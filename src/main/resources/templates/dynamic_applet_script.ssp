@@ -7,12 +7,12 @@ ${dockerPreamble}
 
 main() {
     # check if this is the correct instance type
-    correctInstanceType=`java -jar ${bashDollar}{DX_FS_ROOT}/dxWDL.jar task checkInstanceType ${bashDollar}{HOME} -traceLevel ${rtTraceLevel} ${if (streamFiles != dx.core.io.StreamFiles.PerFile) "-streamFiles " + streamFiles.toString else ""}`
+    correctInstanceType=`java -jar ${bashDollar}{DX_FS_ROOT}/dxWDL.jar task checkInstanceType ${bashDollar}{HOME} -traceLevel ${rtTraceLevel} -streamFiles ${streamFiles.toString}`
     if [[ ${bashDollar}correctInstanceType == "true" ]]; then
         body
     else
         # evaluate the instance type, and launch a sub job on it
-        java -jar ${bashDollar}{DX_FS_ROOT}/dxWDL.jar task relaunch ${bashDollar}{HOME} -traceLevel ${rtTraceLevel} ${if (streamFiles != dx.core.io.StreamFiles.PerFile) "-streamFiles " + streamFiles.toString else ""}
+        java -jar ${bashDollar}{DX_FS_ROOT}/dxWDL.jar task relaunch ${bashDollar}{HOME} -traceLevel ${rtTraceLevel} -streamFiles ${streamFiles.toString}
     fi
 }
 

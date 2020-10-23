@@ -87,10 +87,11 @@ object Main {
     s"""|java -jar dxWDL.jar <task|workflow> <action> <rootdir> [options]
         |
         |Options:
-              -streamFiles [all,none] Whether to mount all files with dxfuse (do not use the 
-        |                             download agent), or to mount no files with dxfuse (only use 
-        |                             download agent); this setting overrides any per-file settings
-        |                             in WDL parameter_meta sections.
+        |    -streamFiles [all,none,perfile] 
+        |                             Whether to mount all files with dxfuse (do not use the 
+        |                             download agent), to mount no files with dxfuse (only use 
+        |                             download agent), or to allow streaming to be set on a
+        |                             per-file basis (the default).
         |    -traceLevel [0,1,2]      How much debug information to write to the
         |                             job log at runtime. 0 means write the minimum,
         |                             1 is the default, and 2 is for internal debugging.
