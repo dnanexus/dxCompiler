@@ -148,11 +148,13 @@ object Main {
       "reorg" -> FlagOptionSpec.default,
       "runtimeDebugLevel" -> IntOptionSpec.one.copy(choices = Vector(0, 1, 2)),
       "streamFiles" -> StreamFilesOptionSpec(),
+      "streamAllFiles" -> FlagOptionSpec.default,
       "scatterChunkSize" -> IntOptionSpec.one
   )
 
   private val DeprecatedCompileOptions = Set(
-      "fatalValidationWarnings"
+      "fatalValidationWarnings",
+      "streamAllFiles"
   )
 
   private def resolveDestination(
