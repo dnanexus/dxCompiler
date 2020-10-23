@@ -971,13 +971,6 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     retval shouldBe a[Success]
   }
 
-  it should "compile myriad workflow" taggedAs NativeTest in {
-    val path = pathFromBasename("myriad", basename = "dts_batch.wdl")
-    val args = path.toString :: cFlags
-    val retval = Main.compile(args.toVector)
-    retval shouldBe a[Success]
-  }
-
   it should "Set job-reuse flag" taggedAs NativeTest in {
     val path = pathFromBasename("compiler", "add_timeout.wdl")
     val extrasContent =
