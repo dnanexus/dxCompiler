@@ -14,7 +14,7 @@ on:
 
 jobs:
   test:
-    name: Integration Tests (Staging)
+    name: WDL Integration Tests (Staging)
     runs-on: ubuntu-18.04
     steps:
       - name: Git checkout
@@ -42,4 +42,4 @@ jobs:
           # run tests
           cd ${GITHUB_WORKSPACE}
           pwd
-          ./scripts/run_tests.py --test M
+          python3 scripts/run_tests.py --test M
