@@ -24,11 +24,12 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
-      - name: Install dxpy
+      - name: Install dxpy and other dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y apt-transport-https wget git openssh-server tree python3 python3-pip python3-venv
-          pip3 install setuptools wheel termcolor
+          pip3 install setuptools wheel
+          pip3 install termcolor
           pip3 install dxpy
       - name: Run tests
         env:
