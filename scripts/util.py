@@ -32,18 +32,19 @@ def get_appl_conf_path(top_dir):
 def get_runtime_conf_path(top_dir):
     return os.path.join(top_dir, "src", "main", "resources", "dxWDL_runtime.conf")
 
-def build_dirs(project, version_id):
-    user_desc = pwd.getpwuid(os.getuid())
-    username = user_desc.pw_name
-    base_folder = "/builds/{}/{}".format(username, version_id)
+def build_subdirs(project, base_folder):
+    """ Creates subfolder in the base folder needed for running tests"""
     applet_folder = base_folder + "/applets"
     test_folder = base_folder + "/test"
     project.new_folder(test_folder, parents=True)
     project.new_folder(applet_folder, parents=True)
-    return base_folder
 
-def build_dir(project, folder)
-    project.new_folder(folder, parents=True)
+def build_dirs(project, version_id):
+    user_desc = pwd.getpwuid(os.getuid())
+    username = user_desc.pw_name
+    base_folder = "/builds/{}/{}".format(username, version_id)
+    build_subdirs(project, base_folder)
+    return base_folder
 
 def get_project(project_name):
     '''Try to find the project with the given name or id.'''

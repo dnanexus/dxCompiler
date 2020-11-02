@@ -747,8 +747,7 @@ def main():
     else:
         # Use existing prebuilt base folder
         base_folder = args.folder
-        util.build_dir(project, base_folder + "/applets")
-        util.build_dir(project, base_folder + "/test")
+        util.build_subdirs(project, base_folder)
     applet_folder = base_folder + "/applets"
     test_folder = base_folder + "/test"
     print("project: {} ({})".format(project.name, project.get_id()))
