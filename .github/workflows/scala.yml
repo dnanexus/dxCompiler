@@ -1,4 +1,4 @@
-name: Unit Test Workflow
+name: Unit Tests
 
 on:
   push:
