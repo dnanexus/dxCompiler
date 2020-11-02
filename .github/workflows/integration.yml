@@ -40,11 +40,12 @@ jobs:
 
           # set up DNAnexus staging environment
           dx login --noprojects --staging --token $AUTH_TOKEN
-          dx select dxCompiler_playground
+          PROJECT=dxCompiler_playground
+          dx select $PROJECT
 
           # run tests
           cd ${GITHUB_WORKSPACE}
           FOLDER=/builds/test_gha_dxwdl_$(date +%s)_$RANDOM
           dx mkdir $FOLDER
-          python3 scripts/run_tests.py --test M --clean --folder $FOLDER
+          python3 scripts/run_tests.py --test M --clean --folder $FOLDER --project $PROJECT
 
