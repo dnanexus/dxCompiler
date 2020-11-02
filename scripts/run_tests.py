@@ -452,6 +452,7 @@ def run_test_subset(project, runnable, test_folder, debug_flag, delay_workspace_
     wait_for_completion(test_exec_objs)
 
     print("Verifying results")
+    failed = []
     for exec_obj in test_exec_objs:
         exec_desc = exec_obj.describe()
         tname = find_test_from_exec(exec_obj)
@@ -467,6 +468,13 @@ def run_test_subset(project, runnable, test_folder, debug_flag, delay_workspace_
             correct = validate_result(tname, exec_outputs, key, expected_val)
         if correct:
             print("Analysis {} passed".format(tname))
+        else:
+            failed.append(tname)
+
+    if failed:
+        print("Failed {} analyses:\n{}".format(len(failed),
+                                               "\n".join(failed)))
+        sys.exit(1)
 
 def print_test_list():
     l = [key for key in test_files.keys()]
