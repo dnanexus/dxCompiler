@@ -703,6 +703,8 @@ def main():
                            action="store_true",
                            dest="test_list",
                            default=False)
+    argparser.add_argument("--clean", help="Remove build directory in the project after running tests",
+                           action="store_true", default=False)
     argparser.add_argument("--locked", help="Generate locked-down workflows",
                            action="store_true", default=False)
     argparser.add_argument("--project", help="DNAnexus project ID",
@@ -743,8 +745,10 @@ def main():
     if args.folder is None:
         base_folder = util.build_dirs(project, version_id)
     else:
-        # Use existing prebuilt folder
+        # Use existing prebuilt base folder
         base_folder = args.folder
+        util.build_dir(project, base_folder + "/applets")
+        util.build_dir(project, base_folder + "/test")
     applet_folder = base_folder + "/applets"
     test_folder = base_folder + "/test"
     print("project: {} ({})".format(project.name, project.get_id()))
@@ -802,7 +806,10 @@ def main():
         if not args.compile_only:
             run_test_subset(project, runnable, test_folder, args.debug, args.delay_workspace_destruction)
     finally:
+        if args.clean:
+            project.remove_folder(folder, recurse=True, force=True)
         print("Completed running tasks in {}".format(args.project))
+
 
 if __name__ == '__main__':
     main()

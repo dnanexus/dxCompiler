@@ -42,6 +42,9 @@ def build_dirs(project, version_id):
     project.new_folder(applet_folder, parents=True)
     return base_folder
 
+def build_dir(project, folder)
+    project.new_folder(folder, parents=True)
+
 def get_project(project_name):
     '''Try to find the project with the given name or id.'''
 

@@ -1,4 +1,4 @@
-name: Integration Test Workflow
+name: WDL Integration Test Workflow
 
 on:
   push:
@@ -43,5 +43,6 @@ jobs:
 
           # run tests
           cd ${GITHUB_WORKSPACE}
-          pwd
-          python3 scripts/run_tests.py --test M
+          FOLDER=/builds/test_dxwdl_$(date +%s)_$RANDOM
+          dx mkdir $FOLDER
+          python3 scripts/run_tests.py --test M --clean --folder $FOLDER
