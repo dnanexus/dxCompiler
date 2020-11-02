@@ -11,6 +11,7 @@ on:
       - opened
       - synchronize
       - ready_for_review
+      - labeled
 
 jobs:
   test:
@@ -39,7 +40,7 @@ jobs:
 
           # set up DNAnexus staging environment
           dx login --noprojects --staging --token $AUTH_TOKEN
-          dx select dxWDL_playground
+          dx select dxCompiler_playground
 
           # run tests
           cd ${GITHUB_WORKSPACE}

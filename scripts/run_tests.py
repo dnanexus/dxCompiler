@@ -806,7 +806,7 @@ def main():
             run_test_subset(project, runnable, test_folder, args.debug, args.delay_workspace_destruction)
     finally:
         if args.clean:
-            project.remove_folder(folder, recurse=True, force=True)
+            project.remove_folder(base_folder, recurse=True, force=True)
         print("Completed running tasks in {}".format(args.project))
 
 
