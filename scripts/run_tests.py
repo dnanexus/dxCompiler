@@ -41,7 +41,7 @@ wdl_v1_list = [
     "linear_no_expressions",
     "linear",
     "optionals",
-    "optionals3"
+    "optionals3",
 
     "spaces_in_file_paths",
     "strings",
