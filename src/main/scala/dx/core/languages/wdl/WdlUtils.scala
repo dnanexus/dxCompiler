@@ -654,16 +654,6 @@ object WdlUtils {
     inner(value, wdlType, name)
   }
 
-  def fromIR(ir: Map[String, (Type, Value)],
-             typeAliases: Map[String, T_Struct]): Map[String, (T, V)] = {
-    ir.map {
-      case (name, (t, v)) =>
-        val wdlType = fromIRType(t, typeAliases)
-        val wdlValue = fromIRValue(v, wdlType, name)
-        name -> (wdlType, wdlValue)
-    }
-  }
-
   private def ensureUniformType(exprs: Iterable[TAT.Expr]): T = {
     exprs.headOption.map(_.wdlType) match {
       case Some(t) if exprs.tail.exists(_.wdlType != t) =>
