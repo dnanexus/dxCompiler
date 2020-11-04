@@ -30,6 +30,8 @@ import wdlTools.types.{TypeCheckingRegime, TypedAbstractSyntax => TAT}
 import wdlTools.util.{AddressableFileNode, Bindings, LocalFileSource, Logger, TraceLevel}
 
 object WdlTaskSupport {
+  val MaxDisambiguationDirs: Int = 5000
+
   def serializeValues(
       values: Map[String, (T, V)]
   ): Map[String, JsValue] = {
@@ -241,7 +243,8 @@ case class WdlTaskSupport(task: TAT.Task,
     logger.traceLimited(s"downloading files = ${filesToDownload}")
     val downloadLocalizer =
       SafeLocalizationDisambiguator(jobMeta.workerPaths.getInputFilesDir(),
-                                    existingPaths = localFilesToPath.values.toSet)
+                                    existingPaths = localFilesToPath.values.toSet,
+                                    disambiguationDirLimit = WdlTaskSupport.MaxDisambiguationDirs)
     val downloadFileSourceToPath: Map[AddressableFileNode, Path] =
       filesToDownload.map(fs => fs -> downloadLocalizer.getLocalPath(fs)).toMap
     val dxdaManifest: Option[DxdaManifest] =
@@ -252,7 +255,8 @@ case class WdlTaskSupport(task: TAT.Task,
     logger.traceLimited(s"streaming files = ${filesToStream}")
     val streamingLocalizer =
       SafeLocalizationDisambiguator(jobMeta.workerPaths.getDxfuseMountDir(),
-                                    existingPaths = localFilesToPath.values.toSet)
+                                    existingPaths = localFilesToPath.values.toSet,
+                                    disambiguationDirLimit = WdlTaskSupport.MaxDisambiguationDirs)
     val streamFileSourceToPath: Map[AddressableFileNode, Path] =
       filesToStream.map(fs => fs -> streamingLocalizer.getLocalPath(fs)).toMap
     val dxfuseManifest =
