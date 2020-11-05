@@ -5,7 +5,7 @@ import dx.api.{DiskType, DxInstanceType, InstanceTypeDB, InstanceTypeRequest}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spray.json._
-import wdlTools.eval.{Eval, EvalPaths, Runtime => WdlRuntime}
+import wdlTools.eval.{Eval, DefaultEvalPaths, Runtime => WdlRuntime}
 import wdlTools.syntax.WdlVersion
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 import dx.util.{FileSourceResolver, Logger}
@@ -160,7 +160,7 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
   private val dbFull = genTestDB(true)
   private lazy val dbOpaque = InstanceTypeDB.opaquePrices(dbFull)
   private val evaluator: Eval =
-    Eval(EvalPaths.empty, Some(WdlVersion.V1), FileSourceResolver.get, Logger.get)
+    Eval(DefaultEvalPaths.empty, Some(WdlVersion.V1), FileSourceResolver.get, Logger.get)
 
   private def createRuntime(dxInstanceType: Option[String],
                             memory: Option[String],
