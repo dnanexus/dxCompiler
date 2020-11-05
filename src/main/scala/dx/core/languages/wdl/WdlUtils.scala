@@ -759,87 +759,105 @@ object WdlUtils {
   //   foo.y + 3    Vector(foo.y)   [withMember = false]
   //   foo.y + 3    Vector(foo)     [withMember = true]
   //
-  def getExpressionInputs(expr: TAT.Expr,
-                          withMember: Boolean = true): Vector[(String, WdlTypes.T, Boolean)] = {
-    def inner(expr: TAT.Expr): Vector[(String, WdlTypes.T, Boolean)] = {
-      expr match {
-        case _: TAT.ValueNull      => Vector.empty
-        case _: TAT.ValueNone      => Vector.empty
-        case _: TAT.ValueBoolean   => Vector.empty
-        case _: TAT.ValueInt       => Vector.empty
-        case _: TAT.ValueFloat     => Vector.empty
-        case _: TAT.ValueString    => Vector.empty
-        case _: TAT.ValueFile      => Vector.empty
-        case _: TAT.ValueDirectory => Vector.empty
-        case TAT.ExprIdentifier(id, wdlType, _) =>
-          Vector((id, wdlType, TypeUtils.isOptional(wdlType)))
-        case TAT.ExprCompoundString(valArr, _, _) =>
-          valArr.flatMap(elem => inner(elem))
-        case TAT.ExprPair(l, r, _, _) =>
-          inner(l) ++ inner(r)
-        case TAT.ExprArray(arrVal, _, _) =>
-          arrVal.flatMap(elem => inner(elem))
-        case TAT.ExprMap(valMap, _, _) =>
-          valMap
-            .map { case (k, v) => inner(k) ++ inner(v) }
-            .toVector
-            .flatten
-        case TAT.ExprObject(fields, _, _) =>
-          fields
-            .map { case (_, v) => inner(v) }
-            .toVector
-            .flatten
-        case TAT.ExprPlaceholderCondition(t: TAT.Expr, f: TAT.Expr, value: TAT.Expr, _, _) =>
-          inner(t) ++ inner(f) ++ inner(value)
-        case TAT.ExprPlaceholderDefault(default: TAT.Expr, value: TAT.Expr, _, _) =>
-          inner(default) ++ inner(value)
-        case TAT.ExprPlaceholderSep(sep: TAT.Expr, value: TAT.Expr, _, _) =>
-          inner(sep) ++ inner(value)
-        // Access an array element at [index]
-        case TAT.ExprAt(value, index, _, _) =>
-          inner(value) ++ inner(index)
-        // conditional:
-        case TAT.ExprIfThenElse(cond, tBranch, fBranch, _, _) =>
-          inner(cond) ++ inner(tBranch) ++ inner(fBranch)
-        // Apply a standard library function to arguments.
-        //
-        // TODO: some arguments may be _optional_ we need to take that
-        // into account. We need to look into the function type
-        // and figure out which arguments are optional.
-        case TAT.ExprApply(_, _, elements, _, _) =>
-          elements.flatMap(inner)
-        // Access the field of a call/struct/etc. What we do here depends on the
-        // value of withMember. When we the expression value is a struct and we
-        // are generating a closure, we only need the parent struct, not the member.
-        // Otherwise, we need to add the member name.
-        // Note: this case was added to fix bug/APPS-104 - there may be other expressions
-        // besides structs that need to not have the member name added when withMember = false.
-        // It may also be the case that the bug is with construction of the environment rather
-        // than here with the closure.
-        case TAT.ExprGetName(expr, _, _, _)
-            if !withMember && TypeUtils
-              .unwrapOptional(expr.wdlType)
-              .isInstanceOf[WdlTypes.T_Struct] =>
-          inner(expr)
-        // Access a field of an identifier
-        //   Int z = eliminateDuplicate.fields
-        case TAT.ExprGetName(TAT.ExprIdentifier(id, _, _), fieldName, wdlType, _) =>
-          Vector((s"${id}.${fieldName}", wdlType, false))
-        // Access a field of the result of an expression
-        case TAT.ExprGetName(expr, fieldName, _, _) =>
-          inner(expr) match {
-            case Vector((name, wdlType, _)) =>
-              Vector((s"${name}.${fieldName}", wdlType, false))
-            case _ =>
-              throw new Exception(
-                  s"Unhandled ExprGetName construction ${TypeUtils.prettyFormatExpr(expr)}"
-              )
+  def getExpressionInputs(expr: TAT.Expr): Vector[(String, WdlTypes.T, Boolean)] = {
+    expr match {
+      case _: TAT.ValueNull      => Vector.empty
+      case _: TAT.ValueNone      => Vector.empty
+      case _: TAT.ValueBoolean   => Vector.empty
+      case _: TAT.ValueInt       => Vector.empty
+      case _: TAT.ValueFloat     => Vector.empty
+      case _: TAT.ValueString    => Vector.empty
+      case _: TAT.ValueFile      => Vector.empty
+      case _: TAT.ValueDirectory => Vector.empty
+      case TAT.ExprIdentifier(id, wdlType, _) =>
+        Vector((id, wdlType, TypeUtils.isOptional(wdlType)))
+      case TAT.ExprCompoundString(valArr, _, _) =>
+        valArr.flatMap(elem => getExpressionInputs(elem))
+      case TAT.ExprPair(l, r, _, _) =>
+        getExpressionInputs(l) ++ getExpressionInputs(r)
+      case TAT.ExprArray(arrVal, _, _) =>
+        arrVal.flatMap(elem => getExpressionInputs(elem))
+      case TAT.ExprMap(valMap, _, _) =>
+        valMap
+          .map { case (k, v) => getExpressionInputs(k) ++ getExpressionInputs(v) }
+          .toVector
+          .flatten
+      case TAT.ExprObject(fields, _, _) =>
+        fields
+          .map { case (_, v) => getExpressionInputs(v) }
+          .toVector
+          .flatten
+      case TAT.ExprPlaceholderCondition(t: TAT.Expr, f: TAT.Expr, value: TAT.Expr, _, _) =>
+        getExpressionInputs(t) ++ getExpressionInputs(f) ++ getExpressionInputs(value)
+      case TAT.ExprPlaceholderDefault(default: TAT.Expr, value: TAT.Expr, _, _) =>
+        getExpressionInputs(default) ++ getExpressionInputs(value)
+      case TAT.ExprPlaceholderSep(sep: TAT.Expr, value: TAT.Expr, _, _) =>
+        getExpressionInputs(sep) ++ getExpressionInputs(value)
+      // Access an array element at [index]
+      case TAT.ExprAt(value, index, _, _) =>
+        getExpressionInputs(value) ++ getExpressionInputs(index)
+      // conditional:
+      case TAT.ExprIfThenElse(cond, tBranch, fBranch, _, _) =>
+        getExpressionInputs(cond) ++ getExpressionInputs(tBranch) ++ getExpressionInputs(fBranch)
+      // Apply a standard library function to arguments.
+      case TAT.ExprApply(_, funcWdlType, elements, _, _) =>
+        // the function parameters might be optional even if the arguments are not
+        def maybeMakeOptional(inputs: Vector[(String, WdlTypes.T, Boolean)],
+                              argType: T): Vector[(String, WdlTypes.T, Boolean)] = {
+          if (TypeUtils.isOptional(argType)) {
+            inputs.map {
+              case (s, t, _) => (s, t, true)
+            }
+          } else {
+            inputs
           }
-        case other =>
-          throw new Exception(s"Unhandled expression ${other}")
-      }
+        }
+        funcWdlType match {
+          case _: T_Function0 => Vector.empty
+          case T_Function1(_, arg0Type, _) =>
+            maybeMakeOptional(getExpressionInputs(elements(0)), arg0Type)
+          case T_Function2(_, arg0Type, arg1Type, _) =>
+            Vector(
+                maybeMakeOptional(getExpressionInputs(elements(0)), arg0Type),
+                maybeMakeOptional(getExpressionInputs(elements(1)), arg1Type)
+            ).flatten
+          case T_Function3(_, arg0Type, arg1Type, arg2Type, _) =>
+            Vector(
+                maybeMakeOptional(getExpressionInputs(elements(0)), arg0Type),
+                maybeMakeOptional(getExpressionInputs(elements(1)), arg1Type),
+                maybeMakeOptional(getExpressionInputs(elements(2)), arg2Type)
+            ).flatten
+        }
+      // Access the field of a call/struct/etc. What we do here depends on the
+      // value of withMember. When we the expression value is a struct and we
+      // are generating a closure, we only need the parent struct, not the member.
+      // Otherwise, we need to add the member name.
+      // Note: this case was added to fix bug/APPS-104 - there may be other expressions
+      // besides structs that need to not have the member name added when withMember = false.
+      // It may also be the case that the bug is with construction of the environment rather
+      // than here with the closure.
+      case TAT.ExprGetName(expr, _, _, _)
+          if !withMember && TypeUtils
+            .unwrapOptional(expr.wdlType)
+            .isInstanceOf[WdlTypes.T_Struct] =>
+        getExpressionInputs(expr)
+      // Access a field of an identifier
+      //   Int z = eliminateDuplicate.fields
+      case TAT.ExprGetName(TAT.ExprIdentifier(id, _, _), fieldName, wdlType, _) =>
+        Vector((s"${id}.${fieldName}", wdlType, false))
+      // Access a field of the result of an expression
+      case TAT.ExprGetName(expr, fieldName, _, _) =>
+        getExpressionInputs(expr) match {
+          case Vector((name, wdlType, _)) =>
+            Vector((s"${name}.${fieldName}", wdlType, false))
+          case _ =>
+            throw new Exception(
+                s"Unhandled ExprGetName construction ${TypeUtils.prettyFormatExpr(expr)}"
+            )
+        }
+      case other =>
+        throw new Exception(s"Unhandled expression ${other}")
     }
-    inner(expr)
   }
 
   def getCallInputs(call: TAT.Call): Vector[(String, WdlTypes.T, Boolean)] = {
