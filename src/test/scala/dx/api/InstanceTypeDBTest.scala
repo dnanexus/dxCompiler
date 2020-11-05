@@ -6,7 +6,7 @@ import dx.core.Constants
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spray.json._
-import wdlTools.util.Logger
+import dx.util.Logger
 
 class InstanceTypeDBTest extends AnyFlatSpec with Matchers {
 

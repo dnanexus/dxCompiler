@@ -1,7 +1,7 @@
 package dx.core.languages
 
 import wdlTools.syntax.WdlVersion
-import wdlTools.util.Enum
+import dx.util.Enum
 
 object Language extends Enum {
   type Language = Value

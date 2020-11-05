@@ -17,7 +17,7 @@ import dx.api.{
 import dx.core.Constants
 import dx.core.ir.Bundle
 import spray.json.JsString
-import wdlTools.util.{JsUtils, Logger}
+import dx.util.{JsUtils, Logger}
 
 trait DxExecutableInfo {
   val dataObj: DxDataObject

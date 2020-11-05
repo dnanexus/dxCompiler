@@ -12,7 +12,7 @@ import dx.translator.{InputTranslator, ReorgSettings, Translator, TranslatorFact
 import spray.json.{JsArray, JsObject, JsString, JsValue}
 import wdlTools.types.{TypeCheckingRegime, TypeException, WdlTypes, TypedAbstractSyntax => TAT}
 import wdlTools.types.TypeCheckingRegime.TypeCheckingRegime
-import wdlTools.util.{FileSourceResolver, Logger}
+import dx.util.{FileSourceResolver, Logger}
 
 case class WdlInputTranslator(bundle: Bundle,
                               inputs: Vector[Path],

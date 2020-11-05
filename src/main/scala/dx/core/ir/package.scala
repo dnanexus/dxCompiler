@@ -2,7 +2,7 @@ package dx.core.ir
 
 import dx.api.DxWorkflowStage
 import dx.translator.RunSpec.{ContainerImage, InstanceType}
-import wdlTools.util.Enum
+import dx.util.Enum
 
 trait ParameterAttribute
 

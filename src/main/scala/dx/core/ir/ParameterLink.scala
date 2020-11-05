@@ -7,7 +7,7 @@ import dx.core.io.{DxFileDescCache, DxFileSource}
 import dx.core.ir.Type.TFile
 import dx.core.ir.Value._
 import spray.json._
-import wdlTools.util.{Enum, FileSourceResolver, LocalFileSource, Logger}
+import dx.util.{Enum, FileSourceResolver, LocalFileSource, Logger}
 
 object IORef extends Enum {
   type IORef = Value

@@ -8,7 +8,7 @@ import org.scalatest.matchers.should.Matchers
 import wdlTools.eval.{Eval, EvalPaths}
 import wdlTools.syntax.WdlVersion
 import wdlTools.types.{TypedAbstractSyntax => TAT}
-import wdlTools.util.FileSourceResolver
+import dx.util.FileSourceResolver
 
 class DxFileAccessProtocolTest extends AnyFlatSpec with Matchers {
   assume(isLoggedIn)

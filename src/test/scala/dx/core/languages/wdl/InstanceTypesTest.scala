@@ -8,7 +8,7 @@ import spray.json._
 import wdlTools.eval.{Eval, EvalPaths, Runtime => WdlRuntime}
 import wdlTools.syntax.WdlVersion
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
-import wdlTools.util.{FileSourceResolver, Logger}
+import dx.util.{FileSourceResolver, Logger}
 
 class InstanceTypesTest extends AnyFlatSpec with Matchers {
   // The original list is at:

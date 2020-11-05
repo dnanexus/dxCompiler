@@ -14,7 +14,7 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spray.json._
-import wdlTools.util.{FileUtils, Logger, SysUtils}
+import dx.util.{FileUtils, Logger, SysUtils}
 
 // This test module requires being logged in to the platform.
 // It compiles WDL scripts without the runtime library.

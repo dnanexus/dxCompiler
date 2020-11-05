@@ -8,7 +8,7 @@ import dx.core.languages.wdl.{WdlUtils => WdlUtils}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
-import wdlTools.util.Logger
+import dx.util.Logger
 
 class WdlBlockTest extends AnyFlatSpec with Matchers {
   private val logger = Logger.Quiet

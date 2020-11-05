@@ -2,7 +2,7 @@ package dx
 
 import dx.api.DxApi
 import org.scalatest.Tag
-import wdlTools.util.SysUtils
+import dx.util.SysUtils
 
 // test that requires being logged into DNAnexus
 class DxTag(name: String = "dx") extends Tag(name)

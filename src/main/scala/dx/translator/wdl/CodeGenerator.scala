@@ -5,7 +5,7 @@ import dx.core.languages.wdl.WdlUtils
 import wdlTools.eval.WdlValues
 import wdlTools.syntax.{CommentMap, SourceLocation, WdlVersion}
 import wdlTools.types.{GraphUtils, TypeGraph, WdlTypes, TypedAbstractSyntax => TAT}
-import wdlTools.util.{Logger, StringFileNode}
+import dx.util.{Logger, StringFileNode}
 
 case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
                          wdlVersion: WdlVersion,

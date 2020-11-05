@@ -9,7 +9,7 @@ import wdlTools.syntax.{CommentMap, SourceLocation, WdlVersion}
 import wdlTools.types.TypeCheckingRegime.TypeCheckingRegime
 import wdlTools.types.WdlTypes.T_Task
 import wdlTools.types.{TypeCheckingRegime, WdlTypes, TypedAbstractSyntax => TAT}
-import wdlTools.util.{FileSourceResolver, Logger, StringFileNode}
+import dx.util.{FileSourceResolver, Logger, StringFileNode}
 
 case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
                                        fileResolver: FileSourceResolver = FileSourceResolver.get,

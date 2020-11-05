@@ -11,7 +11,7 @@ import wdlTools.eval.WdlValues._
 import wdlTools.syntax.WdlVersion
 import wdlTools.types.WdlTypes._
 import wdlTools.types.{TypedAbstractSyntax => TAT}
-import wdlTools.util.Adjuncts
+import dx.util.Adjuncts
 
 private object MetaUtils {
   // strip muli-layer array types and get the member

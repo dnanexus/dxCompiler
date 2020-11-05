@@ -24,10 +24,10 @@ import dx.api.{
 import dx.core.{Constants, getVersion}
 import dx.core.io.DxWorkerPaths
 import dx.core.ir._
-import wdlTools.util.CodecUtils
+import dx.util.CodecUtils
 import dx.translator.Extras
 import spray.json._
-import wdlTools.util.{FileSourceResolver, FileUtils, JsUtils, Logger, TraceLevel}
+import dx.util.{FileSourceResolver, FileUtils, JsUtils, Logger, TraceLevel}
 
 import scala.jdk.CollectionConverters._
 

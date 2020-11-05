@@ -26,10 +26,10 @@ import dx.core.languages.wdl.{
   WdlBlockInput,
   WdlUtils
 }
-import wdlTools.eval.{Eval, EvalException, EvalPaths}
+import wdlTools.eval.{DefaultEvalPaths, Eval, EvalException}
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 import wdlTools.types.WdlTypes._
-import wdlTools.util.{Adjuncts, FileSourceResolver, Logger}
+import dx.util.{Adjuncts, FileSourceResolver, Logger}
 
 case class CallableTranslator(wdlBundle: WdlBundle,
                               typeAliases: Map[String, T_Struct],
@@ -42,7 +42,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                               logger: Logger = Logger.get) {
 
   private lazy val evaluator: Eval =
-    Eval(EvalPaths.empty, Some(wdlBundle.version), fileResolver, logger)
+    Eval(DefaultEvalPaths.empty, Some(wdlBundle.version), fileResolver, logger)
   private lazy val codegen = CodeGenerator(typeAliases, wdlBundle.version, logger)
 
   private case class WdlTaskTranslator(task: TAT.Task) {

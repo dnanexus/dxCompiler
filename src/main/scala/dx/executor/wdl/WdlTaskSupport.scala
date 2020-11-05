@@ -27,7 +27,7 @@ import wdlTools.syntax.SourceLocation
 import wdlTools.types.TypeCheckingRegime.TypeCheckingRegime
 import wdlTools.types.WdlTypes._
 import wdlTools.types.{TypeCheckingRegime, TypedAbstractSyntax => TAT}
-import wdlTools.util.{AddressableFileNode, Bindings, LocalFileSource, Logger, TraceLevel}
+import dx.util.{AddressableFileNode, Bindings, LocalFileSource, Logger, TraceLevel}
 
 object WdlTaskSupport {
   def serializeValues(

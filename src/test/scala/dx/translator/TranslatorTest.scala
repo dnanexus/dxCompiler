@@ -18,7 +18,7 @@ import org.scalatest.Inside._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import wdlTools.generators.code.WdlGenerator
-import wdlTools.util.Logger
+import dx.util.Logger
 
 // These tests involve compilation -without- access to the platform.
 //

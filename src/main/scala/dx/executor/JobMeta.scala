@@ -30,9 +30,9 @@ import dx.core.ir.{
 }
 import dx.core.languages.Language
 import dx.core.languages.Language.Language
-import wdlTools.util.CodecUtils
+import dx.util.CodecUtils
 import spray.json._
-import wdlTools.util.{FileSourceResolver, FileUtils, JsUtils, Logger, TraceLevel}
+import dx.util.{FileSourceResolver, FileUtils, JsUtils, Logger, TraceLevel}
 
 object JobMeta {
   val inputFile = "job_input.json"

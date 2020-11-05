@@ -27,7 +27,7 @@ import wdlTools.exec.{InputOutput, TaskInputOutput}
 import wdlTools.types.TypeCheckingRegime.TypeCheckingRegime
 import wdlTools.types.{TypeCheckingRegime, TypeUtils, TypedAbstractSyntax => TAT}
 import wdlTools.types.WdlTypes._
-import wdlTools.util.{JsUtils, Logger, TraceLevel}
+import dx.util.{JsUtils, Logger, TraceLevel}
 
 case class WorkflowIO(workflow: TAT.Workflow, logger: Logger)
     extends InputOutput(workflow, logger) {

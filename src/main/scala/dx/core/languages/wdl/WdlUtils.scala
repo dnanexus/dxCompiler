@@ -29,7 +29,7 @@ import wdlTools.types.{
   WdlTypes,
   TypedAbstractSyntax => TAT
 }
-import wdlTools.util.{Bindings, FileNode, FileSourceResolver, JsUtils, Logger, StringFileNode}
+import dx.util.{Bindings, FileNode, FileSourceResolver, JsUtils, Logger, StringFileNode}
 
 object WdlUtils {
   val locPlaceholder: SourceLocation = SourceLocation.empty

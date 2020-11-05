@@ -1,7 +1,7 @@
 package dx.api
 
 import spray.json.JsValue
-import wdlTools.util.{Enum, JsUtils}
+import dx.util.{Enum, JsUtils}
 
 class NewDxObject {}
 

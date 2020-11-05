@@ -10,7 +10,7 @@ import dx.core.io.{DxFileAccessProtocol, DxWorkerPaths}
 import dx.core.ir.Type.TInt
 import dx.core.ir.{ParameterLinkSerializer, ParameterLinkValue, Type, TypeSerde}
 import dx.core.languages.wdl.{WdlBlock, WdlUtils => WdlUtils}
-import wdlTools.util.CodecUtils
+import dx.util.CodecUtils
 import dx.executor.{JobMeta, WorkflowAction, WorkflowExecutor, WorkflowSupport}
 import dx.translator.wdl.WdlBundle
 import org.scalatest.flatspec.AnyFlatSpec
@@ -19,7 +19,7 @@ import spray.json._
 import wdlTools.eval.{Eval, WdlValueBindings, WdlValues}
 import wdlTools.syntax.WdlVersion
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
-import wdlTools.util.{FileSourceResolver, FileUtils, Logger}
+import dx.util.{FileSourceResolver, FileUtils, Logger}
 
 private case class WorkflowTestJobMeta(override val workerPaths: DxWorkerPaths,
                                        override val dxApi: DxApi = DxApi.get,

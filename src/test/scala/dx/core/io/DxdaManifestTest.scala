@@ -8,7 +8,7 @@ import dx.api.{DxApi, DxFile, DxProject}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spray.json._
-import wdlTools.util.Logger
+import dx.util.Logger
 
 class DxdaManifestTest extends AnyFlatSpec with Matchers {
   assume(isLoggedIn)

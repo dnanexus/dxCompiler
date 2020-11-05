@@ -27,8 +27,8 @@ price       comparative price
 package dx.api
 
 import dx.api
-import wdlTools.util.{Enum, JsUtils, Logger}
-import wdlTools.util.Enum.enumFormat
+import dx.util.{Enum, JsUtils, Logger}
+import dx.util.Enum.enumFormat
 import spray.json.{RootJsonFormat, _}
 
 import scala.collection.immutable.ListMap

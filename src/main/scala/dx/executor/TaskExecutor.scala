@@ -7,14 +7,7 @@ import dx.core.getVersion
 import dx.core.io.{DxdaManifest, DxfuseManifest}
 import dx.executor.wdl.WdlTaskSupportFactory
 import spray.json._
-import wdlTools.util.{
-  AddressableFileNode,
-  AddressableFileSource,
-  Enum,
-  FileUtils,
-  SysUtils,
-  TraceLevel
-}
+import dx.util.{AddressableFileNode, AddressableFileSource, Enum, FileUtils, SysUtils, TraceLevel}
 
 object TaskAction extends Enum {
   type TaskAction = Value

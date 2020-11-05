@@ -5,7 +5,7 @@ import java.nio.file.Path
 import dx.core.ir.Parameter
 import wdlTools.syntax.WdlVersion
 import wdlTools.types.{TypedAbstractSyntax => TAT}
-import wdlTools.util.{Adjuncts, LocalFileSource, Logger}
+import dx.util.{Adjuncts, LocalFileSource, Logger}
 
 case class WdlBundle(version: WdlVersion,
                      primaryCallable: Option[TAT.Callable],

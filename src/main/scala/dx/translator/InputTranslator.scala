@@ -17,7 +17,7 @@ import dx.core.ir.{
   Workflow
 }
 import spray.json.{JsArray, JsNull, JsObject, JsString, JsValue}
-import wdlTools.util.{FileSourceResolver, FileUtils, JsUtils, Logger}
+import dx.util.{FileSourceResolver, FileUtils, JsUtils, Logger}
 
 /**
   * Tracks which keys are accessed in a map and ensures all keys are accessed exactly once.

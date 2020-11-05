@@ -17,11 +17,11 @@ import dx.core.ir.{
   Workflow,
   WorkflowInput
 }
-import wdlTools.util.CodecUtils
+import dx.util.CodecUtils
 import dx.translator.CallableAttributes._
 import dx.translator.Extras
 import spray.json._
-import wdlTools.util.Logger
+import dx.util.Logger
 
 import scala.collection.immutable.TreeMap
 
