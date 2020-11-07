@@ -12,12 +12,12 @@ import spray.json.{JsBoolean, JsObject, JsString, JsValue}
 import wdlTools.eval.{Coercion, EvalUtils}
 import wdlTools.eval.WdlValues._
 import wdlTools.syntax.{
-  AbstractSyntax => AST,
   Parsers,
   SourceLocation,
   SyntaxException,
   WdlParser,
-  WdlVersion
+  WdlVersion,
+  AbstractSyntax => AST
 }
 import wdlTools.types.TypeCheckingRegime.TypeCheckingRegime
 import wdlTools.types.WdlTypes.{T_Float, _}
@@ -30,6 +30,8 @@ import wdlTools.types.{
   TypedAbstractSyntax => TAT
 }
 import dx.util.{Bindings, FileNode, FileSourceResolver, JsUtils, Logger, StringFileNode}
+
+import scala.collection.immutable.{SeqMap, TreeSeqMap}
 
 object WdlUtils {
   val locPlaceholder: SourceLocation = SourceLocation.empty
@@ -135,7 +137,7 @@ object WdlUtils {
       case WdlTypes.T_Map(keyType, valueType) =>
         val k = getDefaultValueOfType(keyType)
         val v = getDefaultValueOfType(valueType)
-        TAT.ExprMap(Map(k -> v), wdlType, loc)
+        TAT.ExprMap(TreeSeqMap(k -> v), wdlType, loc)
 
       // an empty array
       case WdlTypes.T_Array(_, false) =>
@@ -157,7 +159,7 @@ object WdlUtils {
         TAT.ExprObject(members, wdlType, loc)
 
       case WdlTypes.T_Object =>
-        TAT.ExprObject(Map.empty, wdlType, SourceLocation.empty)
+        TAT.ExprObject(SeqMap.empty, wdlType, SourceLocation.empty)
 
       case _ => throw new Exception(s"Unhandled type ${wdlType}")
     }
@@ -344,6 +346,18 @@ object WdlUtils {
 
   def isMapValue(fields: Map[String, _]): Boolean = {
     fields.size == 2 && fields.keySet == Set(MapKeysKey, MapValuesKey)
+  }
+
+  def mapValueToMap(fields: Map[String, Value]): Map[Value, Value] = {
+    val keys = fields.get(MapKeysKey) match {
+      case Some(VArray(array)) => array
+      case _                   => throw new Exception(s"invalid map value ${fields}")
+    }
+    val values = fields.get(MapValuesKey) match {
+      case Some(VArray(array)) => array
+      case _                   => throw new Exception(s"invalid map value ${fields}")
+    }
+    keys.zip(values).toMap
   }
 
   def toIRSchema(wdlStruct: T_Struct): TSchema = {
@@ -686,14 +700,16 @@ object WdlUtils {
         val values = irValueToExpr(fields(MapValuesKey))
         (keys, values) match {
           case (TAT.ExprArray(keyArray, keyType, _), TAT.ExprArray(valueArray, valueType, _)) =>
-            TAT.ExprMap(keyArray.zip(valueArray).toMap, T_Map(keyType, valueType), loc)
+            TAT.ExprMap(keyArray.zip(valueArray).to(TreeSeqMap), T_Map(keyType, valueType), loc)
           case other =>
             throw new Exception(s"invalid map value ${other}")
         }
       case VHash(members) =>
-        val m: Map[TAT.Expr, TAT.Expr] = members.map {
-          case (key, value) => TAT.ValueString(key, T_String, loc) -> irValueToExpr(value)
-        }
+        val m: SeqMap[TAT.Expr, TAT.Expr] = members
+          .map {
+            case (key, value) => TAT.ValueString(key, T_String, loc) -> irValueToExpr(value)
+          }
+          .to(TreeSeqMap)
         TAT.ExprObject(m, T_Object, loc)
       case _ =>
         throw new Exception(s"cannot convert IR value ${value} to WDL")

@@ -98,8 +98,6 @@ object WdlBundle {
         name -> (aCallable, bCallable)
       }
       .filter {
-        // The comparision is done with "toString", because otherwise two identical
-        // definitions are somehow, through the magic of Scala, unequal.
         case (_, (ac, bc)) => ac != bc
       }
       .toMap

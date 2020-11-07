@@ -35,4 +35,16 @@ object Value {
     * A JSON object.
     */
   case class VHash(value: Map[String, Value]) extends Value
+
+  def isPrimitive(value: Value): Boolean = {
+    value match {
+      case _: VInt       => true
+      case _: VFloat     => true
+      case _: VString    => true
+      case _: VBoolean   => true
+      case _: VFile      => true
+      case _: VDirectory => true
+      case _             => false
+    }
+  }
 }

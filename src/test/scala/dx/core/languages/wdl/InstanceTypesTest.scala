@@ -5,10 +5,12 @@ import dx.api.{DiskType, DxInstanceType, InstanceTypeDB, InstanceTypeRequest}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spray.json._
-import wdlTools.eval.{Eval, DefaultEvalPaths, Runtime => WdlRuntime}
+import wdlTools.eval.{DefaultEvalPaths, Eval, Runtime => WdlRuntime}
 import wdlTools.syntax.WdlVersion
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 import dx.util.{FileSourceResolver, Logger}
+
+import scala.collection.immutable.TreeSeqMap
 
 class InstanceTypesTest extends AnyFlatSpec with Matchers {
   // The original list is at:
@@ -168,7 +170,7 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
                             cpu: Option[String],
                             gpu: Option[Boolean]): Runtime = {
     def makeString(s: String): TAT.Expr = TAT.ValueString(s, WdlTypes.T_String, null)
-    val rt = Map(
+    val rt = TreeSeqMap(
         Runtime.DxInstanceTypeKey -> dxInstanceType.map(makeString),
         WdlRuntime.MemoryKey -> memory.map(makeString),
         WdlRuntime.DisksKey -> disks.map(makeString),
