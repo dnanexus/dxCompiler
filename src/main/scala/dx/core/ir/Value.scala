@@ -8,18 +8,19 @@ sealed trait Value
 
 object Value {
   // Primitive values.
-  case class VInt(value: Long) extends Value
-  case class VFloat(value: Double) extends Value
-  case class VString(value: String) extends Value
-  case class VBoolean(value: Boolean) extends Value
-  case class VFile(value: String) extends Value
+  sealed trait PrimitiveValue extends Value
+  case class VInt(value: Long) extends PrimitiveValue
+  case class VFloat(value: Double) extends PrimitiveValue
+  case class VString(value: String) extends PrimitiveValue
+  case class VBoolean(value: Boolean) extends PrimitiveValue
+  case class VFile(value: String) extends PrimitiveValue
 
   /**
     * Represents a DNAnexus folder or a file-based representation of a directory
     * (e.g. a zip or tar archive file).
     * @param value directory
     */
-  case class VDirectory(value: String) extends Value
+  case class VDirectory(value: String) extends PrimitiveValue
 
   /**
     * Represents the empty value for an optional field.
@@ -35,16 +36,4 @@ object Value {
     * A JSON object.
     */
   case class VHash(value: Map[String, Value]) extends Value
-
-  def isPrimitive(value: Value): Boolean = {
-    value match {
-      case _: VInt       => true
-      case _: VFloat     => true
-      case _: VString    => true
-      case _: VBoolean   => true
-      case _: VFile      => true
-      case _: VDirectory => true
-      case _             => false
-    }
-  }
 }
