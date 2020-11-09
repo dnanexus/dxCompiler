@@ -81,7 +81,7 @@ val logbackVersion = "1.2.3"
 val scalatestVersion = "3.1.1"
 
 libraryDependencies ++= Seq(
-    "com.dnanexus" % "dxCommon" % dxCommonVersion,
+    "com.dnanexus" % "dxcommon" % dxCommonVersion,
     "com.dnanexus" % "wdltools" % wdlToolsVersion,
     "io.spray" %% "spray-json" % sprayVersion,
     "com.typesafe" % "config" % typesafeVersion,
