@@ -9,6 +9,7 @@ import dx.core.ir.{Block, BlockKind, ExecutableLink, Parameter, ParameterLink, T
 import dx.core.ir.Type._
 import dx.core.ir.Value._
 import dx.core.languages.wdl.{
+  ComputedBlockInput,
   OptionalBlockInput,
   OverridableBlockInputWithDynamicDefault,
   OverridableBlockInputWithStaticDefault,
@@ -155,7 +156,7 @@ case class WdlWorkflowSupport(workflow: TAT.Workflow,
   }
 
   private def getBlockOutputs(elements: Vector[TAT.WorkflowElement]): Map[String, T] = {
-    val (_, outputs) = WdlUtils.getInputOutputClosure(elements)
+    val (_, outputs) = WdlUtils.getInputOutputClosure(elements, withField = false)
     outputs.values.map {
       case TAT.OutputParameter(name, wdlType, _, _) => name -> wdlType
     }.toMap
@@ -228,16 +229,17 @@ case class WdlWorkflowSupport(workflow: TAT.Workflow,
         call: TAT.Call,
         env: Map[String, (T, V)] = Map.empty
     ): Map[String, (T, V)] = {
-      val calleeInputs = call.callee.input
-      call.inputs.map {
-        case (key, expr) =>
-          val actualCalleeType: T = calleeInputs.get(key) match {
-            case Some((t, _)) => t
-            case None =>
-              throw new Exception(s"Callee ${call.callee.name} doesn't have input ${key}")
-          }
-          val value = evaluateExpression(expr, actualCalleeType, env)
-          key -> (actualCalleeType, value)
+      call.callee.input.flatMap {
+        case (name, (wdlType, _)) if call.inputs.contains(name) =>
+          val value = evaluateExpression(call.inputs(name), wdlType, env)
+          Some(name -> (wdlType, value))
+        case (name, (_, optional)) if optional =>
+          logger.trace(s"no input for optional input ${name} to call ${call.fullyQualifiedName}")
+          None
+        case (name, _) =>
+          throw new Exception(
+              s"missing non-optional input ${name} to call ${call.fullyQualifiedName}"
+          )
       }
     }
   }
@@ -933,6 +935,9 @@ case class WdlWorkflowSupport(workflow: TAT.Workflow,
         accu + (blockInput.name -> (wdlType, wdlValue))
       case (_, RequiredBlockInput(name, _)) =>
         throw new Exception(s"missing required input ${name}")
+      case (accu, _: ComputedBlockInput) =>
+        // this is the scatter variable - we can ignore it
+        accu
       case (accu, OverridableBlockInputWithStaticDefault(name, wdlType, defaultValue)) =>
         accu + (name -> (wdlType, defaultValue))
       case (accu, OverridableBlockInputWithDynamicDefault(name, wdlType, defaultExpr)) =>

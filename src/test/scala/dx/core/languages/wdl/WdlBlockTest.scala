@@ -42,7 +42,10 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
     blocks(1).inputs.map(_.name).toSet should be(Set("flag", "rain"))
     blocks(2).inputs.map(_.name).toSet should be(Set("flag", "inc1.result"))
     blocks(3).inputs.map(_.name).toSet should be(Set("rain"))
-    blocks(4).inputs.map(_.name).toSet should be(Set("rain", "inc1.result", "flag"))
+    blocks(4).inputs.flatMap {
+      case _: ComputedBlockInput => None
+      case i                     => Some(i.name)
+    }.toSet should be(Set("rain", "inc1.result", "flag"))
   }
 
   it should "calculate outputs correctly" in {
@@ -93,12 +96,18 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
     blocks(1).inputs.map(_.name).toSet should be(Set("flag", "rain"))
     blocks(2).inputs.map(_.name).toSet should be(Set("flag", "inc1.result"))
     blocks(3).inputs.map(_.name).toSet should be(Set("rain"))
-    blocks(4).inputs.map(_.name).toSet should be(Set("rain", "inc1.result", "flag"))
+    blocks(4).inputs.flatMap {
+      case _: ComputedBlockInput => None
+      case i                     => Some(i.name)
+    }.toSet should be(Set("rain", "inc1.result", "flag"))
   }
 
   it should "calculate closure correctly for WDL draft-2 II" in {
     val blocks = getWorkflowBlocks("draft2", "shapes.wdl")
-    blocks(0).inputs.map(_.name).toSet should be(Set("num"))
+    blocks(0).inputs.flatMap {
+      case _: ComputedBlockInput => None
+      case i                     => Some(i.name)
+    }.toSet should be(Set("num"))
     blocks(1).inputs.map(_.name).toSet should be(Set.empty)
   }
 

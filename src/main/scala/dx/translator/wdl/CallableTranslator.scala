@@ -17,6 +17,8 @@ import dx.core.ir.Type._
 import dx.core.ir.Value._
 import dx.core.Constants.{ReorgStatus, ReorgStatusCompleted}
 import dx.core.languages.wdl.{
+  ComputedBlockInput,
+  InputKind,
   OptionalBlockInput,
   OverridableBlockInputWithDynamicDefault,
   OverridableBlockInputWithStaticDefault,
@@ -293,6 +295,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
             throw new Exception(s"Required input ${name} cannot have optional type ${wdlType}")
           }
           (Parameter(name, irType, None, attr), false)
+        case ComputedBlockInput(name, _) =>
+          throw new Exception(s"computed input ${name} cannot be a workflow input")
         case OverridableBlockInputWithStaticDefault(name, _, defaultValue) =>
           (Parameter(name, irType, Some(WdlUtils.toIRValue(defaultValue, wdlType)), attr), false)
         case OverridableBlockInputWithDynamicDefault(name, _, _) =>
@@ -456,14 +460,16 @@ case class CallableTranslator(wdlBundle: WdlBundle,
 
     // Find the closure of the inputs. Do not include the inputs themselves. Create an input
     // for each of these external references.
-    private def inputClosure(inputs: Vector[WdlBlockInput],
-                             subBlocks: Vector[WdlBlock]): Map[String, (WdlTypes.T, Boolean)] = {
+    private def inputClosure(
+        inputs: Vector[WdlBlockInput],
+        subBlocks: Vector[WdlBlock]
+    ): Map[String, (WdlTypes.T, InputKind.InputKind)] = {
       // remove the regular inputs
       val inputNames = inputs.map(_.name).toSet
       subBlocks.flatMap { block =>
         block.inputs.collect {
           case blockInput if !inputNames.contains(blockInput.name) =>
-            blockInput.name -> (blockInput.wdlType, WdlBlockInput.isOptional(blockInput))
+            blockInput.name -> (blockInput.wdlType, blockInput.kind)
         }
       }.toMap
     }
@@ -472,7 +478,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
     private def splitWorkflowElements(
         statements: Vector[TAT.WorkflowElement]
     ): (Vector[WdlBlockInput], Vector[WdlBlock], Vector[TAT.OutputParameter]) = {
-      val (inputs, outputs) = WdlUtils.getInputOutputClosure(statements)
+      val (inputs, outputs) = WdlUtils.getInputOutputClosure(statements, withField = true)
       val subBlocks = WdlBlock.createBlocks(statements)
       (WdlBlockInput.create(inputs), subBlocks, outputs.values.toVector)
     }
@@ -881,7 +887,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
     private def translateWorkflowLocked(
         wfName: String,
         inputs: Vector[WdlBlockInput],
-        closureInputs: Map[String, (T, Boolean)],
+        closureInputs: Map[String, (T, InputKind.InputKind)],
         outputs: Vector[TAT.OutputParameter],
         blockPath: Vector[Int],
         subBlocks: Vector[WdlBlock],
@@ -894,19 +900,21 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       // inputs that are a result of accessing variables in an encompassing
       // WDL workflow.
       val closureInputParams: Vector[Parameter] = closureInputs.map {
-        case (name, (wdlType, false)) =>
+        case (name, (wdlType, InputKind.Required)) =>
           // no default value
           val irType = WdlUtils.toIRType(wdlType)
           if (isOptional(irType)) {
             throw new Exception(s"Required input ${name} cannot have optional type ${wdlType}")
           }
           Parameter(name, irType)
-        case (name, (wdlType, true)) =>
+        case (name, (wdlType, InputKind.Optional)) =>
           // there is a default value. This input is de facto optional.
           // We change the type of the Parameter and make sure it is optional.
           // no default value
           val irType = WdlUtils.toIRType(wdlType)
           Parameter(name, Type.ensureOptional(irType))
+        case (name, (_, InputKind.Computed)) =>
+          throw new Exception(s"computed input parameter ${name} not allowed as workflow input")
       }.toVector
       val allWfInputParameters = wfInputParams ++ closureInputParams
 
