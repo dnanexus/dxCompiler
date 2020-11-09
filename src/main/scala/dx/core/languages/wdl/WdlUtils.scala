@@ -805,7 +805,7 @@ object WdlUtils {
     *   x + y        Vector(('x', None), ('y', None))
     *   foo.y        Vector(('foo', Some('y')))    [foo is a call]
     *   bar.left     Vector(('bar', None))         [bar is a Pair, withField = false]
-    *   bar.left     Vector(('bar', 'left'))       [bar is a Pair, withField = true]
+    *   bar.left     Vector(('bar', Some('left'))) [bar is a Pair, withField = true]
     */
   def getExpressionInputs(expr: TAT.Expr, withField: Boolean): Vector[WdlInputRef] = {
     def inner(
