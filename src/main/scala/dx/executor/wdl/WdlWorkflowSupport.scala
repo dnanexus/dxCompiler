@@ -156,7 +156,7 @@ case class WdlWorkflowSupport(workflow: TAT.Workflow,
   }
 
   private def getBlockOutputs(elements: Vector[TAT.WorkflowElement]): Map[String, T] = {
-    val (_, outputs) = WdlUtils.getInputOutputClosure(elements, withField = false)
+    val (_, outputs) = WdlUtils.getClosureInputsAndOutputs(elements, withField = false)
     outputs.values.map {
       case TAT.OutputParameter(name, wdlType, _, _) => name -> wdlType
     }.toMap

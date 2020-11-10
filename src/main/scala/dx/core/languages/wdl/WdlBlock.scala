@@ -407,7 +407,7 @@ object WdlBlock {
     // convert to blocks - keep only non-empty blocks
     parts.filter(_.nonEmpty).zipWithIndex.map {
       case (v, index) =>
-        val (inputs, outputs) = WdlUtils.getInputOutputClosure(v, withField = true)
+        val (inputs, outputs) = WdlUtils.getClosureInputsAndOutputs(v, withField = true)
         WdlBlock(index, WdlBlockInput.create(inputs), outputs.values.toVector, v)
     }
   }

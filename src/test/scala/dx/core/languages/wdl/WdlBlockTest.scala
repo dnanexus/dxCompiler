@@ -57,12 +57,11 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
         Map("inc3.result" -> WdlTypes.T_Optional(WdlTypes.T_Int))
     )
     mapFromOutputs(blocks(3).outputs) should be(
-        Map("inc4.result" -> WdlTypes.T_Array(WdlTypes.T_Int))
+        Map("inc4.result" -> WdlTypes.T_Array(WdlTypes.T_Int, nonEmpty = true))
     )
     mapFromOutputs(blocks(4).outputs) should be(
-        Map("x" -> WdlTypes.T_Array(WdlTypes.T_Int, nonEmpty = false),
-            "inc5.result" -> WdlTypes.T_Array(WdlTypes.T_Optional(WdlTypes.T_Int),
-                                              nonEmpty = false))
+        Map("x" -> WdlTypes.T_Array(WdlTypes.T_Int, nonEmpty = true),
+            "inc5.result" -> WdlTypes.T_Array(WdlTypes.T_Optional(WdlTypes.T_Int), nonEmpty = true))
     )
   }
 
@@ -247,5 +246,39 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
 //    System.out.println(bl33)
 
     b00.kind shouldBe BlockKind.ConditionalOneCall
+  }
+
+  it should "generate correct closure inputs and outputs" in {
+    val doc = getDocument("util", "nested_closure_no_fw_ref.wdl")
+    val blocks = WdlBlock.createBlocks(doc.workflow.get.body)
+    blocks.size shouldBe 1
+    blocks.head.inputs.iterator sameElements {
+      Vector(RequiredBlockInput("i", WdlTypes.T_Int),
+             ComputedBlockInput("x", WdlTypes.T_Int),
+             ComputedBlockInput("j", WdlTypes.T_Int))
+    }
+    blocks.head.outputs.sortWith(_.name < _.name) should matchPattern {
+      case Vector(
+          TAT.OutputParameter("foo.out", WdlTypes.T_Array(WdlTypes.T_String, true), _, _),
+          TAT.OutputParameter("indexes", WdlTypes.T_Array(WdlTypes.T_Int, true), _, _),
+          TAT.OutputParameter("n",
+                              WdlTypes.T_Array(WdlTypes.T_Array(WdlTypes.T_String, true), true),
+                              _,
+                              _),
+          TAT.OutputParameter("out",
+                              WdlTypes.T_Array(WdlTypes.T_Array(WdlTypes.T_String, true), true),
+                              _,
+                              _),
+          TAT.OutputParameter("s", WdlTypes.T_Array(WdlTypes.T_String, true), _, _),
+          TAT.OutputParameter("string",
+                              WdlTypes.T_Array(
+                                  WdlTypes.T_Array(WdlTypes.T_Array(WdlTypes.T_String, true), true),
+                                  true
+                              ),
+                              _,
+                              _),
+          TAT.OutputParameter("t", WdlTypes.T_Array(WdlTypes.T_String, true), _, _)
+          ) =>
+    }
   }
 }

@@ -6,7 +6,7 @@ import org.scalatest.matchers.should.Matchers
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 import dx.util.{Bindings, FileSourceResolver}
 
-class UtilsTest extends AnyFlatSpec with Matchers {
+class WdlUtilsTest extends AnyFlatSpec with Matchers {
   private def validateTaskMeta(task: TAT.Task): Unit = {
     val kvs = task.meta match {
       case Some(TAT.MetaSection(kvs, _)) => kvs
@@ -86,7 +86,7 @@ class UtilsTest extends AnyFlatSpec with Matchers {
     validateTaskMeta(task)
   }
 
-  ignore should "parse the meta section in wdl 2.0" taggedAs EdgeTest in {
+  it should "parse the meta section in wdl 2.0" taggedAs EdgeTest in {
     val srcCode =
       """|version 2.0
          |

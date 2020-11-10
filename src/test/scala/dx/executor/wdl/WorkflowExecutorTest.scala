@@ -256,7 +256,7 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     }
     results should be(
         Map(
-            "z" -> (WdlTypes.T_Optional(WdlTypes.T_Array(WdlTypes.T_Int, nonEmpty = false)),
+            "z" -> (WdlTypes.T_Optional(WdlTypes.T_Array(WdlTypes.T_Int, nonEmpty = true)),
             WdlValues.V_Null)
         )
     )

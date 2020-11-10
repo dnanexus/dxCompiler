@@ -965,53 +965,33 @@ object WdlUtils {
     * @param elements the block elements
     * @return
     */
-  def getInputOutputClosure(
+  def getClosureInputsAndOutputs(
       elements: Vector[TAT.WorkflowElement],
       withField: Boolean
   ): (Map[String, (WdlTypes.T, InputKind.InputKind)], Map[String, TAT.OutputParameter]) = {
-    def inner(
+    def getOutputs(
         innerElements: Vector[TAT.WorkflowElement],
         innerWithField: Boolean
-    ): (Vector[WdlInputRef], Vector[TAT.OutputParameter]) = {
-      // convert workflow elements to inputs and outputs
-      val (inputs, outputs) = innerElements.map {
+    ): Vector[TAT.OutputParameter] = {
+      innerElements.flatMap {
         case TAT.PrivateVariable(name, wdlType, expr, loc) =>
-          val newInputs = getExpressionInputs(expr, innerWithField)
-          val newOutputs = Vector(TAT.OutputParameter(name, wdlType, expr, loc))
-          (newInputs, newOutputs)
+          Vector(TAT.OutputParameter(name, wdlType, expr, loc))
         case call: TAT.Call =>
-          val newInputs = WdlUtils.getCallInputs(call)
-          val newOutputs = call.callee.output.map {
+          call.callee.output.map {
             case (name, wdlType) =>
               val fqn = s"${call.actualName}.${name}"
-              TAT.OutputParameter(fqn,
-                                  wdlType,
-                                  TAT.ExprIdentifier(fqn, wdlType, call.loc),
-                                  call.loc)
+              TAT.OutputParameter(
+                  fqn,
+                  wdlType,
+                  TAT.ExprIdentifier(fqn, wdlType, call.loc),
+                  call.loc
+              )
           }.toVector
-          (newInputs, newOutputs)
         case cond: TAT.Conditional =>
-          val exprInputs = getExpressionInputs(cond.expr, innerWithField)
-          // recurse into body of conditional
-          val (subBlockInputs, subBlockOutputs) =
-            inner(cond.body, innerWithField = true)
-          val newInputs = exprInputs ++ subBlockInputs
-          // make outputs optional
-          val newOutputs = subBlockOutputs.map { out =>
+          getOutputs(cond.body, innerWithField = true).map { out =>
             out.copy(wdlType = TypeUtils.ensureOptional(out.wdlType))
           }
-          (newInputs, newOutputs)
         case scatter: TAT.Scatter =>
-          val exprInputs = getExpressionInputs(scatter.expr, innerWithField)
-          // recurse into body of the scatter
-          val (subBlockInputs, subBlockOutputs) = inner(scatter.body, innerWithField = true)
-          val updatedSubBlockInputs = subBlockInputs.map {
-            // if the scatter variable is referenced, ensure its kind is
-            // 'Computed' so it doesn't become a required input
-            case ref if ref.name == scatter.identifier => ref.copy(kind = InputKind.Computed)
-            case ref                                   => ref
-          }
-          val newInputs = exprInputs ++ updatedSubBlockInputs
           // make outputs arrays, remove the collection iteration variable
           val nonEmptyOutputArray = scatter.expr.wdlType match {
             case T_Array(_, nonEmpty) => nonEmpty
@@ -1020,44 +1000,74 @@ object WdlUtils {
                   s"scatter expression type ${scatter.expr.wdlType} not an array"
               )
           }
-          val newOutputs = subBlockOutputs.collect {
+          getOutputs(scatter.body, innerWithField = true).collect {
             case out: TAT.OutputParameter if out.name != scatter.identifier =>
               out.copy(wdlType = WdlTypes.T_Array(out.wdlType, nonEmpty = nonEmptyOutputArray))
           }
-          (newInputs, newOutputs)
-      }.unzip
-      (inputs.flatten, outputs.flatten)
+      }
     }
 
-    val (inputs, outputs) = inner(elements, withField)
-    // ensure output names are unique
-    val outputMap = outputs.groupBy(_.name).map {
+    def getInputs(
+        innerElements: Vector[TAT.WorkflowElement],
+        innerWithField: Boolean
+    ): Vector[WdlInputRef] = {
+      innerElements.flatMap {
+        case v: TAT.PrivateVariable =>
+          getExpressionInputs(v.expr, innerWithField)
+        case call: TAT.Call =>
+          getCallInputs(call)
+        case cond: TAT.Conditional =>
+          // get inputs for the conditional expression
+          val exprInputs = getExpressionInputs(cond.expr, innerWithField)
+          // recurse into body of conditional
+          val bodyInputs = getInputs(cond.body, innerWithField = true)
+          exprInputs ++ bodyInputs
+        case scatter: TAT.Scatter =>
+          // get inputs for the scatter expression
+          val exprInputs = getExpressionInputs(scatter.expr, innerWithField)
+          // recurse into body of the scatter
+          // if the scatter variable is referenced, ensure its kind is
+          // 'Computed' so it doesn't become a required input
+          val bodyInputs = getInputs(scatter.body, innerWithField = true).map {
+            case ref if ref.name == scatter.identifier => ref.copy(kind = InputKind.Computed)
+            case ref                                   => ref
+          }
+          exprInputs ++ bodyInputs
+      }
+    }
+
+    // first convert outputs - we need to do this prior to
+    // inputs because WDL allows forward references, and we
+    // need to be able to distinguish block inputs from
+    // variables that are defined within the block
+    val outputs = getOutputs(elements, withField).groupBy(_.name).map {
       case (name, outputs) if outputs.size == 1 => name -> outputs.head
       case (name, outputs) if Set(outputs).size > 1 =>
         throw new Exception(s"multiple outputs defined with the name ${name}: ${outputs}")
     }
-    val inputMap = inputs
+
+    // now convert the inputs, excluding any output variables
+    val inputs = getInputs(elements, withField)
       .groupBy(_.fullyQualifiedName)
+      .filterNot(i => outputs.contains(i._1))
       .map {
-        case (fqn, refs) if refs.size == 1       => fqn -> refs.head
-        case (fqn, refs) if refs.toSet.size == 1 => fqn -> refs.head
-        case (fqn, refs)                         =>
+        case (fqn, refs) if refs.toSet.size == 1 =>
+          fqn -> (refs.head.wdlType, refs.head.kind)
+        case (fqn, refs) =>
           // there are multiple references to the same variable from different kinds of
           // input - sort by InputKind, pick the one with the highest priority (lowest
           // value), and make sure if there are multiple with the same kind that they're
           // all of the same type
-          val priorityRef = refs.groupBy(_.kind).toVector.sortWith(_._1 < _._1).head._2
-          if (priorityRef.map(_.wdlType).toSet.size > 1) {
+          val priorityRefs = refs.groupBy(_.kind).toVector.sortWith(_._1 < _._1).head._2
+          if (priorityRefs.map(_.wdlType).toSet.size > 1) {
             throw new Exception(
-                s"multiple references to the same paramter with different types: ${priorityRef}"
+                s"multiple references to the same paramter with different types: ${priorityRefs}"
             )
           }
-          fqn -> priorityRef.head
+          fqn -> (priorityRefs.head.wdlType, priorityRefs.head.kind)
       }
-      .view
-      .mapValues(ref => (ref.wdlType, ref.kind))
-      .toMap
-    (inputMap, outputMap)
+
+    (inputs, outputs)
   }
 
   /**
