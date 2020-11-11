@@ -11,6 +11,7 @@ import dx.core.languages.wdl.{VersionSupport, WdlUtils}
 import dx.translator.{InputTranslator, ReorgSettings, Translator, TranslatorFactory}
 import spray.json.{JsArray, JsObject, JsString, JsValue}
 import wdlTools.types.{TypeCheckingRegime, TypeException, WdlTypes, TypedAbstractSyntax => TAT}
+import wdlTools.syntax.SyntaxException
 import wdlTools.types.TypeCheckingRegime.TypeCheckingRegime
 import wdlTools.util.{FileSourceResolver, Logger}
 
@@ -205,9 +206,10 @@ case class WdlTranslatorFactory(regime: TypeCheckingRegime = TypeCheckingRegime.
         case ex: TypeException =>
           // the file could be parsed, so it is WDL, but it failed type checking
           throw ex
+        case se: SyntaxException =>
+          // the file could not be parsed due to syntax errors (it might or might not be WDL)
+          throw se
         case _: Throwable =>
-          // there was some other error, probably a SyntaxException, meaning the
-          // file couldn't be parsed, so it's probably not WDL
           return None
       }
     if (!language.forall(Language.toWdlVersion(_) == doc.version.value)) {
