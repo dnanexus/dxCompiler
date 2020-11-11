@@ -505,18 +505,26 @@ case class WdlWorkflowSupport(workflow: TAT.Workflow,
       }
     }
 
+    private def truncate(scatterName: String): String = {
+      if (scatterName.length > WorkflowSupport.JobNameLengthLimit) {
+        s"${scatterName.substring(0, WorkflowSupport.JobNameLengthLimit - 3)}..."
+      } else {
+        scatterName
+      }
+    }
+
     // create a short, easy to read, description for a scatter element.
     private def getScatterName(item: V): Option[String] = {
       item match {
-        case _ if EvalUtils.isPrimitive(item) => Some(EvalUtils.formatPrimitive(item))
-        case V_File(path)                     => Some(Paths.get(path).getFileName.toString)
-        case V_Directory(path)                => Some(Paths.get(path).getFileName.toString)
+        case _ if EvalUtils.isPrimitive(item) => Some(truncate(EvalUtils.formatPrimitive(item)))
+        case V_File(path)                     => Some(truncate(Paths.get(path).getFileName.toString))
+        case V_Directory(path)                => Some(truncate(Paths.get(path).getFileName.toString))
         case V_Optional(x)                    => getScatterName(x)
         case V_Pair(l, r) =>
           val ls = getScatterName(l)
           val rs = getScatterName(r)
           (ls, rs) match {
-            case (Some(ls1), Some(rs1)) => Some(s"(${ls1}, ${rs1})")
+            case (Some(ls1), Some(rs1)) => Some(truncate(s"(${ls1}, ${rs1})"))
             case _                      => None
           }
         case V_Array(array) =>

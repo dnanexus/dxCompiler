@@ -313,14 +313,13 @@ case class CallableTranslator(wdlBundle: WdlBundle,
 
     // generate a stage Id, this is a string of the form: 'stage-xxx'
     private val fragNumIter = Iterator.from(0)
-    private def genFragId(stageName: Option[String] = None): DxWorkflowStage = {
-      stageName match {
-        case None =>
-          val retval = DxWorkflowStage(s"stage-${fragNumIter.next()}")
-          retval
-        case Some(name) =>
-          DxWorkflowStage(s"stage-${name}")
-      }
+
+    private def getStageId(stageName: Option[String] = None): String = {
+      stageName.map(name => s"stage-${name}").getOrElse(s"stage-${fragNumIter.next()}")
+    }
+
+    private def getStage(stageName: Option[String] = None): DxWorkflowStage = {
+      DxWorkflowStage(getStageId(stageName))
     }
 
     /**
@@ -346,7 +345,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       logger.trace(s"Compiling common applet ${applet.name}")
       val stage = Stage(
           CommonStage,
-          genFragId(Some(CommonStage)),
+          getStage(Some(CommonStage)),
           applet.name,
           stageInputs,
           outputs
@@ -455,7 +454,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                              locked,
                              call.fullyQualifiedName)
       }
-      Stage(call.actualName, genFragId(), calleeName, inputs, callee.outputVars)
+      Stage(call.actualName, getStage(), calleeName, inputs, callee.outputVars)
     }
 
     // Find the closure of the inputs. Do not include the inputs themselves. Create an input
@@ -668,7 +667,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         }
 
       val applet = Application(
-          s"${wfName}_frag_${genFragId()}",
+          s"${wfName}_frag_${getStageId()}",
           inputVars,
           outputVars,
           DefaultInstanceType,
@@ -681,7 +680,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         case (_, stageInput) => stageInput
       }.toVector
 
-      (Stage(stageName, genFragId(), applet.name, stageInputs, outputVars), auxCallables :+ applet)
+      (Stage(stageName, getStage(), applet.name, stageInputs, outputVars), auxCallables :+ applet)
     }
 
     /**
@@ -853,7 +852,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           (ExecutableKindWfOutputs, outputVars)
       }
       val application = Application(
-          s"${wfName}_$OutputStage",
+          s"${wfName}_${OutputStage}",
           inputVars.map(_._1),
           updatedOutputVars,
           DefaultInstanceType,
@@ -863,7 +862,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       )
       val stage = Stage(
           OutputStage,
-          genFragId(Some(OutputStage)),
+          getStage(Some(OutputStage)),
           application.name,
           inputVars.map(_._2),
           updatedOutputVars
@@ -1108,7 +1107,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
     private def createReorgStage(wfName: String,
                                  wfOutputs: Vector[LinkedVar]): (Stage, Application) = {
       val applet = Application(
-          s"${wfName}_$ReorgStage",
+          s"${wfName}_${ReorgStage}",
           wfOutputs.map(_._1),
           Vector.empty,
           DefaultInstanceType,
@@ -1120,7 +1119,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       // Link to the X.y original variables
       val inputs: Vector[StageInput] = wfOutputs.map(_._2)
       val stage =
-        Stage(ReorgStage, genFragId(Some(ReorgStage)), applet.name, inputs, Vector.empty[Parameter])
+        Stage(ReorgStage, getStage(Some(ReorgStage)), applet.name, inputs, Vector.empty[Parameter])
       (stage, applet)
     }
 
@@ -1158,7 +1157,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         case _       => Vector(statusStageInput)
       }
       val stage =
-        Stage(ReorgStage, genFragId(Some(ReorgStage)), applet.name, inputs, Vector.empty[Parameter])
+        Stage(ReorgStage, getStage(Some(ReorgStage)), applet.name, inputs, Vector.empty[Parameter])
       (stage, applet)
     }
 
