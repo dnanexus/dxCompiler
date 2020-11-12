@@ -191,8 +191,8 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
                        |│       ├───App Task: c1
                        |│       └───App Task: c2
                        |├───App Fragment: scatter (i in [1, 4, 9])
-                       |│   └───App Fragment: four_levels_frag_DxWorkflowStage(stage-6)
-                       |│       └───App Fragment: four_levels_frag_DxWorkflowStage(stage-4)
+                       |│   └───App Fragment: four_levels_frag_stage-6
+                       |│       └───App Fragment: four_levels_frag_stage-4
                        |│           └───App Task: concat
                        |└───App Outputs: outputs""".stripMargin
   }
@@ -260,8 +260,8 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
                                                           |│       ├───App Task: c1
                                                           |│       └───App Task: c2
                                                           |├───App Fragment: scatter (i in [1, 4, 9])
-                                                          |│   └───App Fragment: four_levels_frag_DxWorkflowStage(stage-6)
-                                                          |│       └───App Fragment: four_levels_frag_DxWorkflowStage(stage-4)
+                                                          |│   └───App Fragment: four_levels_frag_stage-6
+                                                          |│       └───App Fragment: four_levels_frag_stage-4
                                                           |│           └───App Task: concat
                                                           |└───App Outputs: outputs""".stripMargin
   }
@@ -288,8 +288,8 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
                                                           |│       ├───App Task: c1
                                                           |│       └───App Task: c2
                                                           |├───App Fragment: scatter (i in [1, 4, 9])
-                                                          |│   └───App Fragment: four_levels_frag_DxWorkflowStage(stage-6)
-                                                          |│       └───App Fragment: four_levels_frag_DxWorkflowStage(stage-4)
+                                                          |│   └───App Fragment: four_levels_frag_stage-6
+                                                          |│       └───App Fragment: four_levels_frag_stage-4
                                                           |│           └───App Task: concat
                                                           |└───App Outputs: outputs""".stripMargin
   }
