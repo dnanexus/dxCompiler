@@ -6,9 +6,9 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spray.json._
 import wdlTools.eval.{DefaultEvalPaths, Eval, Runtime => WdlRuntime}
-import wdlTools.syntax.WdlVersion
+import wdlTools.syntax.{SourceLocation, WdlVersion}
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
-import dx.util.{FileSourceResolver, Logger}
+import dx.util.{CodecUtils, FileSourceResolver, Logger}
 
 import scala.collection.immutable.TreeSeqMap
 
@@ -377,5 +377,28 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
 
     createRuntime(None, None, None, None, Some(false)).parseInstanceType shouldBe
       InstanceTypeRequest(None, Some(2048), Some(1), None, Some(1), Some(false))
+  }
+
+  it should "get required instance type" in {
+    val encodedDb =
+      "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"
+    val js = CodecUtils.base64DecodeAndGunzip(encodedDb)
+    val db = js.parseJson.convertTo[InstanceTypeDB]
+    // query: memory=Some(2048) disk=Some(1) diskType=None cores=Some(5) gpu=None  os=None instancetype=None
+    val runtime = Runtime(
+        WdlVersion.V1,
+        Some(
+            TAT.RuntimeSection(
+                TreeSeqMap("cpu" -> TAT.ValueInt(5, WdlTypes.T_Int, SourceLocation.empty)),
+                SourceLocation.empty
+            )
+        ),
+        None,
+        evaluator,
+        None,
+        None
+    )
+    val request = runtime.parseInstanceType
+    db.apply(request).name
   }
 }
