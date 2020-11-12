@@ -57,12 +57,11 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
         Map("inc3.result" -> WdlTypes.T_Optional(WdlTypes.T_Int))
     )
     mapFromOutputs(blocks(3).outputs) should be(
-        Map("inc4.result" -> WdlTypes.T_Array(WdlTypes.T_Int))
+        Map("inc4.result" -> WdlTypes.T_Array(WdlTypes.T_Int, nonEmpty = true))
     )
     mapFromOutputs(blocks(4).outputs) should be(
-        Map("x" -> WdlTypes.T_Array(WdlTypes.T_Int, nonEmpty = false),
-            "inc5.result" -> WdlTypes.T_Array(WdlTypes.T_Optional(WdlTypes.T_Int),
-                                              nonEmpty = false))
+        Map("x" -> WdlTypes.T_Array(WdlTypes.T_Int, nonEmpty = true),
+            "inc5.result" -> WdlTypes.T_Array(WdlTypes.T_Optional(WdlTypes.T_Int), nonEmpty = true))
     )
   }
 
