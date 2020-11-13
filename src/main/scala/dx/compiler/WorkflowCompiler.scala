@@ -2,68 +2,60 @@ package dx.compiler
 
 import dx.api.{DxApi, DxUtils}
 import dx.core.Constants
-import dx.core.ir.{
-  EmptyInput,
-  ExecutableLink,
-  IORef,
-  Level,
-  LinkInput,
-  Parameter,
-  ParameterLinkSerializer,
-  ParameterLinkStage,
-  ParameterLinkWorkflowInput,
-  StageInput,
-  StaticInput,
-  Workflow,
-  WorkflowInput
-}
-import dx.util.CodecUtils
+import dx.core.ir._
 import dx.translator.CallableAttributes._
 import dx.translator.Extras
+import dx.util.{CodecUtils, Logger}
 import spray.json._
-import dx.util.Logger
 
 import scala.collection.immutable.TreeMap
 
-case class WorkflowCompiler(extras: Option[Extras],
+case class WorkflowCompiler(compactComplexValues: Boolean,
+                            extras: Option[Extras],
                             parameterLinkSerializer: ParameterLinkSerializer,
                             dxApi: DxApi = DxApi.get,
                             logger: Logger = Logger.get)
     extends ExecutableCompiler(extras, parameterLinkSerializer, dxApi) {
 
   private def workflowInputParameterToNative(parameter: Parameter,
-                                             stageInput: StageInput): Vector[JsValue] = {
+                                             stageInput: StageInput,
+                                             isTopLevel: Boolean): Vector[JsValue] = {
     // The default value can come from the stageInput or the parameter
     val default = stageInput match {
       case StaticInput(value) => Some(value)
       case _                  => parameter.defaultValue
     }
-    inputParameterToNative(parameter.copy(defaultValue = default))
+    inputParameterToNative(parameter.copy(defaultValue = default),
+                           compactComplexValues && !isTopLevel)
   }
 
   // Note: a single WDL output can generate one or two JSON outputs.
   private def workflowOutputParameterToNative(parameter: Parameter,
                                               stageInput: StageInput): Vector[JsValue] = {
-    val outputSpec: Map[String, Map[String, JsValue]] = outputParameterToNative(parameter).map {
-      obj =>
+    val outputSpec: Map[String, Map[String, JsValue]] =
+      outputParameterToNative(parameter, compactComplexValues).map { obj =>
         val name = obj.fields.get("name") match {
           case Some(JsString(name)) => name
           case other                => throw new Exception(s"Unexpected value for 'name' field: ${other}")
         }
         name -> obj.fields
-    }.toMap
+      }.toMap
 
     val outputSources: Vector[(String, JsValue)] = stageInput match {
       case StaticInput(value) =>
         Vector(parameterLinkSerializer.createConstantField(value, parameter.dxName))
       case LinkInput(dxStage, paramName) =>
-        val link = ParameterLinkStage(dxStage, IORef.Output, paramName, parameter.dxType)
+        val link = ParameterLinkStage(dxStage,
+                                      IORef.Output,
+                                      paramName,
+                                      getActualType(parameter.dxType, compactComplexValues))
         parameterLinkSerializer.createFieldsFromLink(link, parameter.dxName)
       case WorkflowInput(wfParam) =>
         // TODO: if the input has a non-static default, link to the value of the workflow input
         //  (either the user-specified value or the result of evaluting the expression)
         //  - right now this only links to the user-specified value
-        val link = ParameterLinkWorkflowInput(wfParam.dxName, parameter.dxType)
+        val link = ParameterLinkWorkflowInput(wfParam.dxName,
+                                              getActualType(parameter.dxType, compactComplexValues))
         parameterLinkSerializer.createFieldsFromLink(link, parameter.dxName)
       case other =>
         throw new Exception(s"Bad value for stage input ${other}")
@@ -95,11 +87,16 @@ case class WorkflowCompiler(extras: Option[Extras],
               parameterLinkSerializer.createFields(parameter.dxName, parameter.dxType, value)
             accu ++ fields.toMap
           case LinkInput(dxStage, paramname) =>
-            val link = ParameterLinkStage(dxStage, IORef.Output, paramname, parameter.dxType)
+            val link = ParameterLinkStage(dxStage,
+                                          IORef.Output,
+                                          paramname,
+                                          getActualType(parameter.dxType, compactComplexValues))
             val fields = parameterLinkSerializer.createFieldsFromLink(link, parameter.dxName)
             accu ++ fields.toMap
           case WorkflowInput(wfParam) =>
-            val link = ParameterLinkWorkflowInput(wfParam.dxName, parameter.dxType)
+            val link =
+              ParameterLinkWorkflowInput(wfParam.dxName,
+                                         getActualType(parameter.dxType, compactComplexValues))
             val fields = parameterLinkSerializer.createFieldsFromLink(link, parameter.dxName)
             accu ++ fields.toMap
         }
@@ -173,13 +170,14 @@ case class WorkflowCompiler(extras: Option[Extras],
         "execTree" -> JsString(CodecUtils.gzipAndBase64Encode(execTree.toString))
     )
     val details = wfMetaDetails ++ sourceDetails ++ dxLinks ++ delayDetails ++ execTreeDetails
+    val isTopLevel = workflow.level == Level.Top
     // required arguments for API call
     val required = Map(
         "name" -> JsString(workflow.name),
         "stages" -> JsArray(stages),
         "details" -> JsObject(details),
         // Sub-workflow are compiled to hidden objects.
-        "hidden" -> JsBoolean(workflow.level == Level.Sub)
+        "hidden" -> JsBoolean(!isTopLevel)
     )
     // convert inputs and outputs to spec
     val wfInputOutput: Map[String, JsValue] =
@@ -188,7 +186,8 @@ case class WorkflowCompiler(extras: Option[Extras],
         val wfInputSpec: Vector[JsValue] = workflow.inputs
           .sortWith(_._1.name < _._1.name)
           .flatMap {
-            case (parameter, stageInput) => workflowInputParameterToNative(parameter, stageInput)
+            case (parameter, stageInput) =>
+              workflowInputParameterToNative(parameter, stageInput, isTopLevel)
           }
         val wfOutputSpec: Vector[JsValue] = workflow.outputs
           .sortWith(_._1.name < _._1.name)

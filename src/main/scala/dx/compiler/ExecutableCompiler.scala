@@ -8,10 +8,12 @@ import dx.core.ir.{
   ParameterAttribute,
   ParameterLink,
   ParameterLinkSerializer,
+  Type,
   TypeSerde,
   Value,
   ValueSerde
 }
+import dx.core.ir.Type._
 import dx.translator.CallableAttributes.{
   DescriptionAttribute,
   DetailsAttribute,
@@ -150,8 +152,36 @@ class ExecutableCompiler(extras: Option[Extras],
     }
   }
 
-  private val InputOnlyKeys: Set[String] =
+  private val InputOnlyKeys: Set[String] = {
     Set(DxIOSpec.Default, DxIOSpec.Choices, DxIOSpec.Suggestions)
+  }
+
+  /**
+    * Gets the actual input/output type, which is `dxType` unless
+    * `compactComplexValues` is true and its a complex type, i.e.
+    * it is a) a collection type, and b) contains nested file types.
+    * In that case, we return TFile, since the actual input to/output
+    * from the applet will be an archive file.
+    */
+  protected def getActualType(dxType: Type, compactComplexValues: Boolean): Type = {
+    def hasNestedFiles(t: Type): Boolean = {
+      t match {
+        case TFile               => true
+        case TArray(itemType, _) => hasNestedFiles(itemType)
+        case THash               =>
+          // we don't know in advance what the values will be, so we have
+          // to assume there will be files
+          true
+        case TSchema(_, members) =>
+          members.values.exists(hasNestedFiles)
+        case _ => false
+      }
+    }
+    dxType match {
+      case _: TCollection if compactComplexValues && hasNestedFiles(dxType) => TFile
+      case _                                                                => dxType
+    }
+  }
 
   /**
     * Converts an IR Paramter to a native input/output spec.
@@ -170,7 +200,8 @@ class ExecutableCompiler(extras: Option[Extras],
     * @param parameter the input Parameter
     * @return the DNAnexus inputDesc
     */
-  protected def inputParameterToNative(parameter: Parameter): Vector[JsObject] = {
+  protected def inputParameterToNative(parameter: Parameter,
+                                       compactComplexValues: Boolean): Vector[JsObject] = {
     val name = parameter.dxName
     val defaultValues: Map[String, JsValue] = parameter.defaultValue match {
       case Some(wdlValue) =>
@@ -192,7 +223,8 @@ class ExecutableCompiler(extras: Option[Extras],
     }
     val attributes = defaultValueToNative(name) ++
       parameterAttributesToNative(parameter.attributes, excludeAttributeNames)
-    val (nativeType, optional) = TypeSerde.toNative(parameter.dxType)
+    val (nativeType, optional) =
+      TypeSerde.toNative(getActualType(parameter.dxType, compactComplexValues))
     val paramSpec = JsObject(
         Map(DxIOSpec.Name -> JsString(name), DxIOSpec.Class -> JsString(nativeType)) ++ attributes ++
           optionalToNative(optional || attributes.contains(DxIOSpec.Default))
@@ -224,11 +256,13 @@ class ExecutableCompiler(extras: Option[Extras],
     * @param parameter the output Parameter
     * @return the DNAnexus outputDesc
     */
-  protected def outputParameterToNative(parameter: Parameter): Vector[JsObject] = {
+  protected def outputParameterToNative(parameter: Parameter,
+                                        compactComplexValues: Boolean): Vector[JsObject] = {
     val name = parameter.dxName
     val attributes =
       parameterAttributesToNative(parameter.attributes, InputOnlyKeys)
-    val (nativeType, optional) = TypeSerde.toNative(parameter.dxType)
+    val (nativeType, optional) =
+      TypeSerde.toNative(getActualType(parameter.dxType, compactComplexValues))
     val paramSpec = JsObject(
         Map(DxIOSpec.Name -> JsString(name), DxIOSpec.Class -> JsString(nativeType))
           ++ optionalToNative(optional || parameter.defaultValue.isDefined)
