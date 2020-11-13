@@ -13,13 +13,13 @@ import dx.api.{
 import dx.core.Constants
 import dx.core.io.DxWorkerPaths
 import dx.core.ir._
-import wdlTools.util.CodecUtils
+import dx.util.CodecUtils
 import dx.translator.{DockerRegistry, DxAccess, DxExecPolicy, DxRunSpec, DxTimeout, Extras}
 import dx.translator.CallableAttributes._
 import dx.translator.RunSpec._
 import spray.json._
 import wdlTools.generators.Renderer
-import wdlTools.util.Logger
+import dx.util.Logger
 
 object ApplicationCompiler {
   val DefaultAppletTimeoutInDays = 2

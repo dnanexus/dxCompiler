@@ -9,7 +9,7 @@ import dx.api._
 import dx.core.ir.{Value, ValueSerde}
 import spray.json.DefaultJsonProtocol._
 import spray.json._
-import wdlTools.util.{JsUtils, Logger}
+import dx.util.{JsUtils, Logger}
 
 case class DxExecPolicy(restartOn: Map[String, Long], maxRestarts: Option[Long]) {
   def toJson: Map[String, JsValue] = {

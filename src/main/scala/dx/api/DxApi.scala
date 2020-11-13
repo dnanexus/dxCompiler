@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import dx.api.DxPath.DxPathComponents
 import dx.AppInternalException
 import spray.json._
-import wdlTools.util.{FileUtils, Logger, SysUtils, TraceLevel}
+import dx.util.{FileUtils, Logger, SysUtils, TraceLevel}
 
 object DxApi {
   val ResultsPerCallLimit: Int = 1000

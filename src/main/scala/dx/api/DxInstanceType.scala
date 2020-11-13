@@ -27,8 +27,8 @@ price       comparative price
 package dx.api
 
 import dx.api
-import wdlTools.util.{Enum, JsUtils, Logger}
-import wdlTools.util.Enum.enumFormat
+import dx.util.{Enum, JsUtils, Logger}
+import dx.util.Enum.enumFormat
 import spray.json.{RootJsonFormat, _}
 
 import scala.collection.immutable.ListMap
@@ -116,32 +116,69 @@ case class DxInstanceType(name: String,
     }
   }
 
-  /**
-    * Compare based on resource sizes. This is a partial ordering.
-    * Optionally, adds some fuzziness to the comparison, because the instance
-    * types don't have the exact memory and disk space that you would
-    * expect (e.g. mem1_ssd1_x2 has less disk space than mem2_ssd1_x2) -
-    * round down memory and disk sizes, to make the comparison insensitive to
-    * minor differences.
-    * @param that DxInstanceType
-    * @param fuzzy whether to do fuzz or exact comparison
-    * @return
-    * @example If A has more memory, disk space, and cores than B, then B < A.
-    */
-  def compareByResources(that: DxInstanceType, fuzzy: Boolean = true): Option[Int] = {
+  private def computeResourceDeltas(that: DxInstanceType, fuzzy: Boolean): Vector[Double] = {
     val (memDelta: Double, diskDelta: Double) = if (fuzzy) {
-      ((this.memoryMB.toDouble / DxInstanceType.MemoryNormFactor) - (that.memoryMB.toDouble / DxInstanceType.MemoryNormFactor),
-       (this.diskGB.toDouble / DxInstanceType.DiskNormFactor) - (that.diskGB.toDouble / DxInstanceType.DiskNormFactor))
+      ((this.memoryMB.toDouble / DxInstanceType.MemoryNormFactor) -
+         (that.memoryMB.toDouble / DxInstanceType.MemoryNormFactor),
+       (this.diskGB.toDouble / DxInstanceType.DiskNormFactor) -
+         (that.diskGB.toDouble / DxInstanceType.DiskNormFactor))
     } else {
       ((this.memoryMB - that.memoryMB).toDouble, (this.diskGB - that.diskGB).toDouble)
     }
     val cpuDelta: Double = this.cpu - that.cpu
     val gpuDelta: Double = (if (this.gpu) 1 else 0) - (if (that.gpu) 1 else 0)
-    Set(memDelta, diskDelta, cpuDelta, gpuDelta).toVector.sortWith(_ < _) match {
-      case Vector(0.0)                  => Some(0)
-      case deltas if deltas.head >= 0.0 => Some(1)
-      case deltas if deltas.last <= 0.0 => Some(-1)
-      case _                            => None
+    Vector(cpuDelta, memDelta, gpuDelta, diskDelta)
+  }
+
+  /**
+    * Do all of the resources of `this` match or exceed those of `that`?
+    */
+  def matchesOrExceeded(that: DxInstanceType, fuzzy: Boolean = true): Boolean = {
+    computeResourceDeltas(that, fuzzy).sortWith(_ < _).head >= 0
+  }
+
+  /**
+    * Compare based on resource sizes. This is a partial ordering.
+    *
+    * If `this` has some resources that are greater than and some that
+    * are less than `that`, the comparison is done based on the following
+    * priority:
+    * 1. cpu
+    * 2. memory
+    * 3. gpu
+    * 4. disk space
+    *
+    * Optionally, adds some fuzziness to the comparison, because the instance
+    * types don't have the exact memory and disk space that you would
+    * expect (e.g. mem1_ssd1_x2 has less disk space than mem2_ssd1_x2) -
+    * round down memory and disk sizes, to make the comparison insensitive to
+    * minor differences.
+    *
+    * @param that DxInstanceType
+    * @param fuzzy whether to do fuzz or exact comparison
+    * @return
+    * @example If A has more memory, disk space, and cores than B, then B < A.
+    */
+  def compareByResources(that: DxInstanceType, fuzzy: Boolean = true): Int = {
+    val resources = computeResourceDeltas(that, fuzzy)
+    resources.distinct match {
+      // all resources are equal
+      case Vector(0.0) => 0
+      case d =>
+        d.sortWith(_ < _) match {
+          // all resources in this are greater than that
+          case dSorted if dSorted.head >= 0.0 => 1
+          // all resources in that are greater than this
+          case dSorted if dSorted.last <= 0.0 => -1
+          // some resources are greater and others less - do the comparison hierarchically
+          case _ =>
+            resources
+              .collectFirst {
+                case r if r > 0 => 1
+                case r if r < 0 => -1
+              }
+              .getOrElse(throw new Exception("expected at least one non-zero delta"))
+        }
     }
   }
 
@@ -151,18 +188,16 @@ case class DxInstanceType(name: String,
     typeVersion(this.name).compareTo(typeVersion(that.name))
   }
 
-  def compare(that: DxInstanceType): Int = {
+  override def compare(that: DxInstanceType): Int = {
     // if prices are available, choose the cheapest instance. Otherwise,
     // choose one with minimal resources.
     val costDiff = if (price.isDefined) {
       compareByPrice(that)
     } else {
-      compareByResources(that).getOrElse(0)
+      compareByResources(that)
     }
-    costDiff match {
-      case 0 => -compareByType(that)
-      case _ => costDiff
-    }
+    // all else being equal, choose v2 instances over v1
+    if (costDiff == 0) -compareByType(that) else costDiff
   }
 }
 
@@ -182,6 +217,7 @@ object DxInstanceType extends DefaultJsonProtocol {
 
 case class InstanceTypeDB(instanceTypes: Map[String, DxInstanceType], pricingAvailable: Boolean) {
   // The cheapest available instance, this is normally also the smallest.
+  // If there are multiple equally good instance types, we just pick one at random.
   private def selectMinimalInstanceType(
       instanceTypes: Iterable[DxInstanceType]
   ): Option[DxInstanceType] = {
@@ -281,10 +317,21 @@ case class InstanceTypeDB(instanceTypes: Map[String, DxInstanceType], pricingAva
 
   // check if instance type A is smaller or equal in requirements to
   // instance type B
-  def compareByResources(name1: String, name2: String, fuzzy: Boolean = false): Option[Int] = {
+  def compareByResources(name1: String, name2: String, fuzzy: Boolean = false): Int = {
     Vector(name1, name2).map(instanceTypes.get) match {
       case Vector(Some(i1), Some(i2)) =>
         i1.compareByResources(i2, fuzzy = fuzzy)
+      case _ =>
+        throw new Exception(
+            s"cannot compare instance types ${name1}, ${name2} - at least one is not in the database"
+        )
+    }
+  }
+
+  def matchesOrExceedes(name1: String, name2: String, fuzzy: Boolean = false): Boolean = {
+    Vector(name1, name2).map(instanceTypes.get) match {
+      case Vector(Some(i1), Some(i2)) =>
+        i1.matchesOrExceeded(i2, fuzzy = fuzzy)
       case _ =>
         throw new Exception(
             s"cannot compare instance types ${name1}, ${name2} - at least one is not in the database"

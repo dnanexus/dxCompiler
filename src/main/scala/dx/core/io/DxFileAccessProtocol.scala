@@ -4,7 +4,7 @@ import java.nio.charset.Charset
 import java.nio.file.Path
 
 import dx.api.{DxApi, DxFile}
-import wdlTools.util.{AbstractAddressableFileNode, FileAccessProtocol, FileSource, FileUtils}
+import dx.util.{AbstractAddressableFileNode, FileAccessProtocol, FileSource, FileUtils}
 
 case class DxFileSource(override val address: String,
                         dxFile: DxFile,

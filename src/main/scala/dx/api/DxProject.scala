@@ -1,7 +1,7 @@
 package dx.api
 
 import spray.json._
-import wdlTools.util.Enum
+import dx.util.Enum
 
 case class DxProjectDescribe(id: String,
                              name: String,

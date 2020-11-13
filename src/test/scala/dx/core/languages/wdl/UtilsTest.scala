@@ -4,7 +4,7 @@ import dx.Tags.EdgeTest
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
-import wdlTools.util.{Bindings, FileSourceResolver}
+import dx.util.{Bindings, FileSourceResolver}
 
 class UtilsTest extends AnyFlatSpec with Matchers {
   private def validateTaskMeta(task: TAT.Task): Unit = {

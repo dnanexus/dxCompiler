@@ -17,11 +17,11 @@ import dx.core.ir.{
   Workflow,
   WorkflowInput
 }
-import wdlTools.util.CodecUtils
+import dx.util.CodecUtils
 import dx.translator.CallableAttributes._
 import dx.translator.Extras
 import spray.json._
-import wdlTools.util.Logger
+import dx.util.Logger
 
 import scala.collection.immutable.TreeMap
 
@@ -133,7 +133,7 @@ case class WorkflowCompiler(extras: Option[Extras],
       workflow.stages.foldLeft(Vector.empty[JsValue]) {
         case (stagesReq, stg) =>
           val CompiledExecutable(irApplet, dxExec, _, _) = executableDict(stg.calleeName)
-          val linkedInputs = irApplet.inputVars zip stg.inputs
+          val linkedInputs = irApplet.inputVars.zip(stg.inputs)
           val inputs = stageInputToNative(linkedInputs)
           // convert the per-stage metadata into JSON
           val stageReqDesc = JsObject(
