@@ -17,6 +17,8 @@ import dx.core.ir.Type._
 import dx.core.ir.Value._
 import dx.core.Constants.{ReorgStatus, ReorgStatusCompleted}
 import dx.core.languages.wdl.{
+  ComputedBlockInput,
+  InputKind,
   OptionalBlockInput,
   OverridableBlockInputWithDynamicDefault,
   OverridableBlockInputWithStaticDefault,
@@ -26,10 +28,10 @@ import dx.core.languages.wdl.{
   WdlBlockInput,
   WdlUtils
 }
-import wdlTools.eval.{Eval, EvalException, EvalPaths}
+import wdlTools.eval.{DefaultEvalPaths, Eval, EvalException, WdlValueBindings}
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 import wdlTools.types.WdlTypes._
-import wdlTools.util.{Adjuncts, FileSourceResolver, Logger}
+import dx.util.{Adjuncts, FileSourceResolver, Logger}
 
 case class CallableTranslator(wdlBundle: WdlBundle,
                               typeAliases: Map[String, T_Struct],
@@ -42,7 +44,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                               logger: Logger = Logger.get) {
 
   private lazy val evaluator: Eval =
-    Eval(EvalPaths.empty, Some(wdlBundle.version), fileResolver, logger)
+    Eval(DefaultEvalPaths.empty, Some(wdlBundle.version), fileResolver, logger)
   private lazy val codegen = CodeGenerator(typeAliases, wdlBundle.version, logger)
 
   private case class WdlTaskTranslator(task: TAT.Task) {
@@ -248,6 +250,15 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           case (key, (_, stageInput)) => key -> stageInput
         }
       }
+
+      def staticValues: Map[String, (Type, Value)] = {
+        env.collect {
+          case (key, (Parameter(_, dxType, _, _), StaticInput(value))) =>
+            key -> (dxType, value)
+          case (key, (_, WorkflowInput(Parameter(_, dxType, Some(value), _)))) =>
+            key -> (dxType, value)
+        }
+      }
     }
 
     object CallEnv {
@@ -284,6 +295,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
             throw new Exception(s"Required input ${name} cannot have optional type ${wdlType}")
           }
           (Parameter(name, irType, None, attr), false)
+        case ComputedBlockInput(name, _) =>
+          throw new Exception(s"computed input ${name} cannot be a workflow input")
         case OverridableBlockInputWithStaticDefault(name, _, defaultValue) =>
           (Parameter(name, irType, Some(WdlUtils.toIRValue(defaultValue, wdlType)), attr), false)
         case OverridableBlockInputWithDynamicDefault(name, _, _) =>
@@ -340,22 +353,35 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       (stage, applet)
     }
 
-    private def constToStageInput(expr: Option[TAT.Expr],
-                                  param: Parameter,
-                                  env: CallEnv,
-                                  locked: Boolean,
-                                  callFqn: String): StageInput = {
-      expr match {
-        case None if isOptional(param.dxType) =>
+    private def callExprToStageInput(callInputExpr: Option[TAT.Expr],
+                                     calleeParam: Parameter,
+                                     env: CallEnv,
+                                     locked: Boolean,
+                                     callFqn: String): StageInput = {
+
+      def lookup(key: String): StageInput = {
+        env.get(key) match {
+          case Some((_, stageInput)) => stageInput
+          case None =>
+            throw new Exception(
+                s"""|input <${calleeParam.name}, ${calleeParam.dxType}> to call <${callFqn}>
+                    |is missing from the environment. We don't have ${key} in the environment.
+                    |""".stripMargin.replaceAll("\n", " ")
+            )
+        }
+      }
+
+      callInputExpr match {
+        case None if isOptional(calleeParam.dxType) =>
           // optional argument that is not provided
           EmptyInput
-        case None if param.defaultValue.isDefined =>
+        case None if calleeParam.defaultValue.isDefined =>
           // argument that has a default, it can be omitted in the call
           EmptyInput
         case None if locked =>
           env.log()
           throw new Exception(
-              s"""|input <${param.name}, ${param.dxType}> to call <${callFqn}>
+              s"""|input <${calleeParam.name}, ${calleeParam.dxType}> to call <${callFqn}>
                   |is unspecified. This is illegal in a locked workflow.""".stripMargin
                 .replaceAll("\n", " ")
           )
@@ -364,71 +390,32 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           // runtime to determine whether to fail.
           EmptyInput
         case Some(expr) =>
-          // first try to treat it as a constant
-          val wdlType = WdlUtils.fromIRType(param.dxType, typeAliases)
           try {
-            val value = evaluator.applyConstAndCoerce(expr, wdlType)
-            StaticInput(WdlUtils.toIRValue(value, wdlType))
+            // try to evalaute the expression using the constant values from the env
+            val paramWdlType = WdlUtils.fromIRType(calleeParam.dxType, typeAliases)
+            val bindings = WdlValueBindings(env.staticValues.map {
+              case (key, (dxType, value)) =>
+                val bindingWdlType = WdlUtils.fromIRType(dxType, typeAliases)
+                val bindingValue = WdlUtils.fromIRValue(value, bindingWdlType, key)
+                key -> bindingValue
+            })
+            val value = evaluator.applyExprAndCoerce(expr, paramWdlType, bindings)
+            StaticInput(WdlUtils.toIRValue(value, paramWdlType))
           } catch {
             case _: EvalException =>
+              // if the expression is an identifier, look it up in the env
               expr match {
                 case TAT.ExprIdentifier(id, _, _) =>
-                  try {
-                    env(id)._2
-                  } catch {
-                    case _: Exception =>
-                      throw new Exception(
-                          s"""|input <${param.name}, ${param.dxType}> to call <${callFqn}>
-                              |is missing from the environment. We don't have ${id} in the environment.
-                              |""".stripMargin.replaceAll("\n", " ")
-                      )
-                  }
-                case TAT.ExprAt(expr, index, _, _) =>
-                  val indexValue =
-                    constToStageInput(Some(index), param, env, locked, callFqn) match {
-                      case StaticInput(VInt(value)) => value
-                      case WorkflowInput(Parameter(_, _, Some(VInt(value)), _)) =>
-                        value
-                      case other =>
-                        throw new Exception(
-                            s"Array index expression ${other} is not a constant nor an identifier"
-                        )
-                    }
-                  val value = constToStageInput(Some(expr), param, env, locked, callFqn) match {
-                    case StaticInput(VArray(arrayValue)) if arrayValue.size > indexValue =>
-                      arrayValue(indexValue.toInt)
-                    case WorkflowInput(Parameter(_, _, Some(VArray(arrayValue)), _))
-                        if arrayValue.size > indexValue =>
-                      arrayValue(indexValue.toInt)
-                    case other =>
-                      throw new Exception(
-                          s"Left-hand side expression ${other} is not a constant nor an identifier"
-                      )
-                  }
-                  StaticInput(value)
-                case TAT.ExprGetName(TAT.ExprIdentifier(id, _, _), field, _, _)
-                    if env.contains(s"$id.$field") =>
-                  env(s"$id.$field")._2
-                case TAT.ExprGetName(expr, field, _, _) =>
-                  val lhs = constToStageInput(Some(expr), param, env, locked, callFqn)
-                  val lhsValue = lhs match {
-                    case StaticInput(value)                          => value
-                    case WorkflowInput(p) if p.defaultValue.nonEmpty => p.defaultValue.get
-                    case other =>
-                      throw new Exception(
-                          s"Left-hand side expression ${other} is not a constant nor an identifier"
-                      )
-                  }
-                  val wdlValue = lhsValue match {
-                    // TODO: the original lcode implies lhsValue can be a V_Call - I don't
-                    //  think that's possible, but check to make sure
-                    case VHash(members) if members.contains(field) => members(field)
-                    case other =>
-                      throw new Exception(s"Cannot resolve id ${field} for value ${other}")
-                  }
-                  StaticInput(wdlValue)
+                  lookup(id)
+                case TAT.ExprGetName(TAT.ExprIdentifier(id, _, _), field, _, _) =>
+                  lookup(s"${id}.${field}")
                 case _ =>
-                  throw new Exception(s"Expression $expr is not a constant nor an identifier")
+                  env.log()
+                  throw new Exception(
+                      s"""|value of input <${calleeParam.name}, ${calleeParam.dxType}> to call <${callFqn}>
+                          |cannot be statically evaluated from expression ${expr}.""".stripMargin
+                        .replaceAll("\n", " ")
+                  )
               }
           }
       }
@@ -460,22 +447,28 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           )
       }
       // Extract the input values/links from the environment
-      val inputs: Vector[StageInput] = callee.inputVars.map(param =>
-        constToStageInput(call.inputs.get(param.name), param, env, locked, call.fullyQualifiedName)
-      )
+      val inputs: Vector[StageInput] = callee.inputVars.map { param =>
+        callExprToStageInput(call.inputs.get(param.name),
+                             param,
+                             env,
+                             locked,
+                             call.fullyQualifiedName)
+      }
       Stage(call.actualName, getStage(), calleeName, inputs, callee.outputVars)
     }
 
     // Find the closure of the inputs. Do not include the inputs themselves. Create an input
     // for each of these external references.
-    private def inputClosure(inputs: Vector[WdlBlockInput],
-                             subBlocks: Vector[WdlBlock]): Map[String, (WdlTypes.T, Boolean)] = {
+    private def inputClosure(
+        inputs: Vector[WdlBlockInput],
+        subBlocks: Vector[WdlBlock]
+    ): Map[String, (WdlTypes.T, InputKind.InputKind)] = {
       // remove the regular inputs
       val inputNames = inputs.map(_.name).toSet
       subBlocks.flatMap { block =>
         block.inputs.collect {
           case blockInput if !inputNames.contains(blockInput.name) =>
-            blockInput.name -> (blockInput.wdlType, WdlBlockInput.isOptional(blockInput))
+            blockInput.name -> (blockInput.wdlType, blockInput.kind)
         }
       }.toMap
     }
@@ -484,7 +477,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
     private def splitWorkflowElements(
         statements: Vector[TAT.WorkflowElement]
     ): (Vector[WdlBlockInput], Vector[WdlBlock], Vector[TAT.OutputParameter]) = {
-      val (inputs, outputs) = WdlUtils.getInputOutputClosure(statements)
+      val (inputs, outputs) = WdlUtils.getInputOutputClosure(statements, withField = true)
       val subBlocks = WdlBlock.createBlocks(statements)
       (WdlBlockInput.create(inputs), subBlocks, outputs.values.toVector)
     }
@@ -893,7 +886,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
     private def translateWorkflowLocked(
         wfName: String,
         inputs: Vector[WdlBlockInput],
-        closureInputs: Map[String, (T, Boolean)],
+        closureInputs: Map[String, (T, InputKind.InputKind)],
         outputs: Vector[TAT.OutputParameter],
         blockPath: Vector[Int],
         subBlocks: Vector[WdlBlock],
@@ -906,19 +899,21 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       // inputs that are a result of accessing variables in an encompassing
       // WDL workflow.
       val closureInputParams: Vector[Parameter] = closureInputs.map {
-        case (name, (wdlType, false)) =>
+        case (name, (wdlType, InputKind.Required)) =>
           // no default value
           val irType = WdlUtils.toIRType(wdlType)
           if (isOptional(irType)) {
             throw new Exception(s"Required input ${name} cannot have optional type ${wdlType}")
           }
           Parameter(name, irType)
-        case (name, (wdlType, true)) =>
+        case (name, (wdlType, InputKind.Optional)) =>
           // there is a default value. This input is de facto optional.
           // We change the type of the Parameter and make sure it is optional.
           // no default value
           val irType = WdlUtils.toIRType(wdlType)
           Parameter(name, Type.ensureOptional(irType))
+        case (name, (_, InputKind.Computed)) =>
+          throw new Exception(s"computed input parameter ${name} not allowed as workflow input")
       }.toVector
       val allWfInputParameters = wfInputParams ++ closureInputParams
 

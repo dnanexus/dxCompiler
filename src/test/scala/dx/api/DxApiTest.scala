@@ -4,7 +4,7 @@ import dx.Assumptions.isLoggedIn
 import dx.Tags.ApiTest
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import wdlTools.util.Logger
+import dx.util.Logger
 
 class DxApiTest extends AnyFlatSpec with Matchers {
   assume(isLoggedIn)

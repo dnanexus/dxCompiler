@@ -7,14 +7,7 @@ import dx.core.getVersion
 import dx.core.io.{DxdaManifest, DxfuseManifest}
 import dx.executor.wdl.WdlTaskSupportFactory
 import spray.json._
-import wdlTools.util.{
-  AddressableFileNode,
-  AddressableFileSource,
-  Enum,
-  FileUtils,
-  SysUtils,
-  TraceLevel
-}
+import dx.util.{AddressableFileNode, AddressableFileSource, Enum, FileUtils, SysUtils, TraceLevel}
 
 object TaskAction extends Enum {
   type TaskAction = Value
@@ -120,7 +113,7 @@ case class TaskExecutor(jobMeta: JobMeta,
     trace(s"current instance type: ${curInstanceType}")
     val isSufficient =
       try {
-        jobMeta.instanceTypeDb.compareByResources(reqInstanceType, curInstanceType).exists(_ <= 0)
+        jobMeta.instanceTypeDb.matchesOrExceedes(curInstanceType, reqInstanceType)
       } catch {
         case ex: Throwable =>
           logger.warning("error comparing current and required instance types",

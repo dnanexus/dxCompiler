@@ -2,7 +2,7 @@ package dx.core
 
 import java.nio.file.{Files, Path, Paths}
 
-import wdlTools.util.{Logger, TraceLevel}
+import dx.util.{Logger, TraceLevel}
 
 import scala.reflect.ClassTag
 

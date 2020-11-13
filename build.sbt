@@ -70,7 +70,8 @@ logLevel in assembly := Level.Info
 assemblyOutputPath in assembly := file("applet_resources/resources/dxWDL.jar")
 assemblyMergeStrategy in assembly := customMergeStrategy.value
 
-val wdlToolsVersion = "0.8.3"
+val dxCommonVersion = "0.2.2"
+val wdlToolsVersion = "0.10.5"
 val typesafeVersion = "1.3.3"
 val sprayVersion = "1.3.5"
 val jacksonVersion = "2.11.0"
@@ -80,6 +81,7 @@ val logbackVersion = "1.2.3"
 val scalatestVersion = "3.1.1"
 
 libraryDependencies ++= Seq(
+    "com.dnanexus" % "dxcommon" % dxCommonVersion,
     "com.dnanexus" % "wdltools" % wdlToolsVersion,
     "io.spray" %% "spray-json" % sprayVersion,
     "com.typesafe" % "config" % typesafeVersion,

@@ -2,7 +2,7 @@ package dx.core.ir
 
 import dx.core.ir.Type._
 import spray.json._
-import wdlTools.util.JsUtils
+import dx.util.JsUtils
 
 object TypeSerde {
   private def serializeType(

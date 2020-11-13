@@ -6,7 +6,7 @@ import dx.core.Constants
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spray.json._
-import wdlTools.util.Logger
+import dx.util.Logger
 
 class InstanceTypeDBTest extends AnyFlatSpec with Matchers {
 
@@ -156,10 +156,13 @@ class InstanceTypeDBTest extends AnyFlatSpec with Matchers {
 
   it should "compare two instance types" in {
     // instances where all lhs resources are less than all rhs resources
-    val c1 = dbFull.compareByResources("mem1_ssd1_x2", "mem1_ssd1_x8").get
+    val c1 = dbFull.compareByResources("mem1_ssd1_x2", "mem1_ssd1_x8")
     c1 should be < 0
     // instances where some resources are less and some are greater
-    dbFull.compareByResources("mem1_ssd1_x4", "mem3_ssd1_x2") shouldBe None
+    // the first one is greater than the second because it has more CPU, but
+    // the first one does not match or exceed the second in all resources
+    dbFull.compareByResources("mem1_ssd1_x4", "mem3_ssd1_x2") shouldBe 1
+    dbFull.matchesOrExceedes("mem1_ssd1_x4", "mem3_ssd1_x2") shouldBe false
     // non existant instance
     assertThrows[Exception] {
       dbFull.compareByResources("mem1_ssd2_x2", "ggxx") shouldBe 0

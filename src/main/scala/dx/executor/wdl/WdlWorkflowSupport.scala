@@ -8,7 +8,18 @@ import dx.core.Constants
 import dx.core.ir.{Block, BlockKind, ExecutableLink, Parameter, ParameterLink, Type, Value}
 import dx.core.ir.Type._
 import dx.core.ir.Value._
-import dx.core.languages.wdl.{Runtime, VersionSupport, WdlBlock, WdlBlockInput, WdlUtils}
+import dx.core.languages.wdl.{
+  ComputedBlockInput,
+  OptionalBlockInput,
+  OverridableBlockInputWithDynamicDefault,
+  OverridableBlockInputWithStaticDefault,
+  RequiredBlockInput,
+  Runtime,
+  VersionSupport,
+  WdlBlock,
+  WdlBlockInput,
+  WdlUtils
+}
 import dx.executor.{BlockContext, JobMeta, WorkflowSupport, WorkflowSupportFactory}
 import spray.json._
 import wdlTools.eval.{Eval, EvalUtils, WdlValueBindings}
@@ -17,7 +28,7 @@ import wdlTools.exec.{InputOutput, TaskInputOutput}
 import wdlTools.types.TypeCheckingRegime.TypeCheckingRegime
 import wdlTools.types.{TypeCheckingRegime, TypeUtils, TypedAbstractSyntax => TAT}
 import wdlTools.types.WdlTypes._
-import wdlTools.util.{JsUtils, Logger, TraceLevel}
+import dx.util.{JsUtils, Logger, TraceLevel}
 
 case class WorkflowIO(workflow: TAT.Workflow, logger: Logger)
     extends InputOutput(workflow, logger) {
@@ -145,7 +156,7 @@ case class WdlWorkflowSupport(workflow: TAT.Workflow,
   }
 
   private def getBlockOutputs(elements: Vector[TAT.WorkflowElement]): Map[String, T] = {
-    val (_, outputs) = WdlUtils.getInputOutputClosure(elements)
+    val (_, outputs) = WdlUtils.getInputOutputClosure(elements, withField = false)
     outputs.values.map {
       case TAT.OutputParameter(name, wdlType, _, _) => name -> wdlType
     }.toMap
@@ -218,16 +229,17 @@ case class WdlWorkflowSupport(workflow: TAT.Workflow,
         call: TAT.Call,
         env: Map[String, (T, V)] = Map.empty
     ): Map[String, (T, V)] = {
-      val calleeInputs = call.callee.input
-      call.inputs.map {
-        case (key, expr) =>
-          val actualCalleeType: T = calleeInputs.get(key) match {
-            case Some((t, _)) => t
-            case None =>
-              throw new Exception(s"Callee ${call.callee.name} doesn't have input ${key}")
-          }
-          val value = evaluateExpression(expr, actualCalleeType, env)
-          key -> (actualCalleeType, value)
+      call.callee.input.flatMap {
+        case (name, (wdlType, _)) if call.inputs.contains(name) =>
+          val value = evaluateExpression(call.inputs(name), wdlType, env)
+          Some(name -> (wdlType, value))
+        case (name, (_, optional)) if optional =>
+          logger.trace(s"no input for optional input ${name} to call ${call.fullyQualifiedName}")
+          None
+        case (name, _) =>
+          throw new Exception(
+              s"missing non-optional input ${name} to call ${call.fullyQualifiedName}"
+          )
       }
     }
   }
@@ -922,13 +934,26 @@ case class WdlWorkflowSupport(workflow: TAT.Workflow,
   ): BlockContext[WdlBlock] = {
     val block: WdlBlock =
       Block.getSubBlockAt(WdlBlock.createBlocks(workflow.body), jobMeta.blockPath)
-    // Some of the inputs could be optional. If they are missing,
-    // add in a None value.
-    val irInputEnv: Map[String, (Type, Value)] = block.inputs.collect {
-      case blockInput: WdlBlockInput if jobInputs.contains(blockInput.name) =>
-        blockInput.name -> jobInputs(blockInput.name)
-    }.toMap
-    val inputEnv = WdlUtils.fromIR(irInputEnv, wdlTypeAliases)
+    // Some of the inputs could be optional. If they are missing, add in a V_Null
+    val inputEnv = block.inputs.foldLeft(Map.empty[String, (T, V)]) {
+      case (accu, blockInput: WdlBlockInput) if jobInputs.contains(blockInput.name) =>
+        val (irType, irValue) = jobInputs(blockInput.name)
+        val wdlType = WdlUtils.fromIRType(irType, wdlTypeAliases)
+        val wdlValue = WdlUtils.fromIRValue(irValue, wdlType, blockInput.name)
+        accu + (blockInput.name -> (wdlType, wdlValue))
+      case (_, RequiredBlockInput(name, _)) =>
+        throw new Exception(s"missing required input ${name}")
+      case (accu, _: ComputedBlockInput) =>
+        // this is the scatter variable - we can ignore it
+        accu
+      case (accu, OverridableBlockInputWithStaticDefault(name, wdlType, defaultValue)) =>
+        accu + (name -> (wdlType, defaultValue))
+      case (accu, OverridableBlockInputWithDynamicDefault(name, wdlType, defaultExpr)) =>
+        val wdlValue = evaluateExpression(defaultExpr, wdlType, accu)
+        accu + (name -> (wdlType, wdlValue))
+      case (accu, OptionalBlockInput(name, wdlType)) =>
+        accu + (name -> (wdlType, V_Null))
+    }
     val prereqEnv = evaluateWorkflowElementVariables(block.prerequisites, inputEnv)
     WdlBlockContext(block, inputEnv ++ prereqEnv)
   }

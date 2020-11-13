@@ -2,7 +2,7 @@ package dx.api
 
 import dx.AppInternalException
 import spray.json._
-import wdlTools.util.Enum
+import dx.util.Enum
 
 case class DxFilePart(state: String, size: Long, md5: String)
 
