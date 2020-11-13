@@ -3,12 +3,12 @@ package dx.core.ir
 import java.nio.file.Paths
 
 import dx.Tags.EdgeTest
-import dx.api.DxApi
-import dx.core.io.{DxFileAccessProtocol, DxFileDescCache}
+import dx.api.{DxApi, DxFileDescCache}
+import dx.util.{FileSourceResolver, Logger}
+import dx.util.protocols.DxFileAccessProtocol
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spray.json._
-import dx.util.{FileSourceResolver, Logger}
 
 class ParameterLinkTest extends AnyFlatSpec with Matchers {
   private val dxApi = DxApi()(Logger.Quiet)

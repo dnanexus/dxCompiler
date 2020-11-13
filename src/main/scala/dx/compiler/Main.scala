@@ -7,15 +7,15 @@ import dx.api.{DxApi, DxApplet, DxDataObject, DxProject, DxUtils}
 import dx.compiler.Main.CompilerMode.CompilerMode
 import dx.compiler.Main.ExecTreeFormat.ExecTreeFormat
 import dx.core.{Constants, getVersion}
-import dx.core.io.{DxFileAccessProtocol, DxWorkerPaths, StreamFiles}
+import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir.Bundle
 import dx.core.languages.Language
-import dx.core.languages.Language.Language
 import dx.core.CliUtils._
 import dx.dxni.DxNativeInterface
 import dx.translator.{Extras, ExtrasParser, TranslatorFactory}
-import spray.json._
 import dx.util.{Enum, FileSourceResolver, FileUtils, Logger, TraceLevel}
+import dx.util.protocols.DxFileAccessProtocol
+import spray.json._
 
 /**
   * Compiler CLI.
@@ -47,7 +47,7 @@ object Main {
         case _ =>
           throw OptionParseException(s"Unexpected value ${values} to option ${name}")
       }
-      SingleValueOption[Language](language)
+      SingleValueOption[Language.Language](language)
     }
   }
 
@@ -301,7 +301,7 @@ object Main {
 
     val translator =
       try {
-        val language = options.getValue[Language]("language")
+        val language = options.getValue[Language.Language]("language")
         val reorg = options.getFlag("reorg")
         TranslatorFactory.createTranslator(
             sourceFile,
@@ -483,7 +483,7 @@ object Main {
       return Failure(s"You must be logged in to generate stubs for native app(let)s")
     }
 
-    val language = options.getValue[Language]("language").getOrElse(Language.WdlDefault)
+    val language = options.getValue[Language.Language]("language").getOrElse(Language.WdlDefault)
     val outputPath: Option[Path] = options.getValue[Path]("outputFile")
     val projectOpt = options.getValue[String]("project")
     val folderOpt = options.getValue[String]("folder")

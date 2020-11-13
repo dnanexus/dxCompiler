@@ -72,7 +72,8 @@ assemblyMergeStrategy in assembly := customMergeStrategy.value
 
 val dxApiVersion = "0.1.3"
 val dxCommonVersion = "0.2.2"
-val wdlToolsVersion = "0.10.5"
+val dxFileAccessProtocolsVersion = "0.1.1"
+val wdlToolsVersion = "0.10.6"
 val typesafeVersion = "1.3.3"
 val sprayVersion = "1.3.5"
 val jacksonVersion = "2.11.0"
@@ -85,6 +86,7 @@ val commonsCompressVersion = "1.20"
 libraryDependencies ++= Seq(
     "com.dnanexus" % "dxapi" % dxApiVersion,
     "com.dnanexus" % "dxcommon" % dxCommonVersion,
+    "com.dnanexus" % "dxFileAccessProtocols" % dxFileAccessProtocolsVersion,
     "com.dnanexus" % "wdltools" % wdlToolsVersion,
     "io.spray" %% "spray-json" % sprayVersion,
     "com.typesafe" % "config" % typesafeVersion,

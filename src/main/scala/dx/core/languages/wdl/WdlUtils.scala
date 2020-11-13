@@ -5,7 +5,6 @@ import java.nio.file.Path
 import dx.core.ir.{Type, TypeSerde, Value}
 import dx.core.ir.Type._
 import dx.core.ir.Value._
-import dx.core.languages.Language
 import dx.util.{Bindings, Enum, FileNode, FileSourceResolver, Logger, StringFileNode}
 import wdlTools.eval.{Coercion, EvalUtils}
 import wdlTools.eval.WdlValues._
@@ -15,11 +14,8 @@ import wdlTools.syntax.{
   SourceLocation,
   SyntaxException,
   WdlParser,
-  WdlVersion,
   AbstractSyntax => AST
 }
-import wdlTools.types.TypeCheckingRegime.TypeCheckingRegime
-import wdlTools.types.WdlTypes._
 import wdlTools.types.{
   TypeCheckingRegime,
   TypeException,
@@ -27,6 +23,7 @@ import wdlTools.types.{
   TypeUtils,
   TypedAbstractSyntax => TAT
 }
+import wdlTools.types.WdlTypes._
 
 import scala.collection.immutable.{SeqMap, TreeSeqMap}
 
@@ -58,17 +55,6 @@ case class WdlInputRef(name: String,
 object WdlUtils {
   val locPlaceholder: SourceLocation = SourceLocation.empty
 
-  // A self contained WDL workflow
-  def getWdlVersion(language: Language.Language): WdlVersion = {
-    language match {
-      case Language.WdlVDraft2 => WdlVersion.Draft_2
-      case Language.WdlV1_0    => WdlVersion.V1
-      case Language.WdlV2_0    => WdlVersion.V2
-      case other =>
-        throw new Exception(s"Unsupported language version ${other}")
-    }
-  }
-
   def parseSource(sourceCode: FileNode,
                   parser: WdlParser,
                   logger: Logger = Logger.get): AST.Document = {
@@ -85,7 +71,7 @@ object WdlUtils {
       sourceCode: FileNode,
       parser: WdlParser,
       fileResolver: FileSourceResolver = FileSourceResolver.get,
-      regime: TypeCheckingRegime = TypeCheckingRegime.Moderate,
+      regime: TypeCheckingRegime.TypeCheckingRegime = TypeCheckingRegime.Moderate,
       logger: Logger = Logger.get
   ): (TAT.Document, Bindings[String, T_Struct]) = {
     val doc = parseSource(sourceCode, parser)
@@ -106,7 +92,7 @@ object WdlUtils {
   def parseAndCheckSourceNode(
       node: FileNode,
       fileResolver: FileSourceResolver = FileSourceResolver.get,
-      regime: TypeCheckingRegime = TypeCheckingRegime.Moderate,
+      regime: TypeCheckingRegime.TypeCheckingRegime = TypeCheckingRegime.Moderate,
       logger: Logger = Logger.get
   ): (TAT.Document, Bindings[String, T_Struct]) = {
     val parser =
@@ -136,7 +122,7 @@ object WdlUtils {
   def parseAndCheckSourceFile(
       path: Path,
       fileResolver: FileSourceResolver = FileSourceResolver.get,
-      regime: TypeCheckingRegime = TypeCheckingRegime.Moderate,
+      regime: TypeCheckingRegime.TypeCheckingRegime = TypeCheckingRegime.Moderate,
       logger: Logger = Logger.get
   ): (TAT.Document, Bindings[String, T_Struct]) = {
     parseAndCheckSourceNode(fileResolver.fromPath(path), fileResolver, regime, logger)
@@ -145,7 +131,7 @@ object WdlUtils {
   def parseAndCheckSourceString(
       sourceCodeStr: String,
       fileResolver: FileSourceResolver = FileSourceResolver.get,
-      regime: TypeCheckingRegime = TypeCheckingRegime.Moderate,
+      regime: TypeCheckingRegime.TypeCheckingRegime = TypeCheckingRegime.Moderate,
       logger: Logger = Logger.get
   ): (TAT.Document, Bindings[String, T_Struct]) = {
     parseAndCheckSourceNode(StringFileNode(sourceCodeStr), fileResolver, regime, logger)

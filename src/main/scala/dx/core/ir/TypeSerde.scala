@@ -211,7 +211,6 @@ object TypeSerde {
             throw new Exception(s"invalid serialized type value ${jsValue}")
         }
       case _ => (jsValue, Map.empty[String, JsValue])
-      case _ => throw new Exception(s"invalid serialized types value ${jsValue}")
     }
     deserializeType(jsType, schemas, jsSchemas)
   }

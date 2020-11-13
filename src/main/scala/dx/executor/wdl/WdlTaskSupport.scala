@@ -3,17 +3,13 @@ package dx.executor.wdl
 import java.nio.file.{Files, Path}
 
 import dx.api.{DxJob, DxPath}
-import dx.core.io.{
-  DxFileSource,
-  DxdaManifest,
-  DxdaManifestBuilder,
-  DxfuseManifest,
-  DxfuseManifestBuilder
-}
+import dx.core.io.{DxdaManifest, DxdaManifestBuilder, DxfuseManifest, DxfuseManifestBuilder}
 import dx.core.ir.ParameterLink
 import dx.core.languages.wdl.{DxMetaHints, Runtime, VersionSupport, WdlUtils}
 import dx.executor.{FileUploader, JobMeta, TaskSupport, TaskSupportFactory}
 import dx.translator.wdl.IrToWdlValueBindings
+import dx.util.{AddressableFileNode, Bindings, LocalFileSource, Logger, TraceLevel}
+import dx.util.protocols.DxFileSource
 import spray.json._
 import wdlTools.eval.WdlValues._
 import wdlTools.eval.{Eval, EvalUtils, Hints, Meta, WdlValueBindings, WdlValueSerde}
@@ -26,8 +22,7 @@ import wdlTools.exec.{
 import wdlTools.syntax.SourceLocation
 import wdlTools.types.TypeCheckingRegime.TypeCheckingRegime
 import wdlTools.types.WdlTypes._
-import wdlTools.types.{TypeCheckingRegime, TypedAbstractSyntax => TAT}
-import dx.util.{AddressableFileNode, Bindings, LocalFileSource, Logger, TraceLevel}
+import wdlTools.types.{TypeCheckingRegime, WdlTypeSerde, TypedAbstractSyntax => TAT}
 
 object WdlTaskSupport {
   val MaxDisambiguationDirs: Int = 5000
@@ -37,7 +32,7 @@ object WdlTaskSupport {
   ): Map[String, JsValue] = {
     values.map {
       case (name, (t, v)) =>
-        val jsType = WdlUtils.serializeType(t)
+        val jsType = WdlTypeSerde.serializeType(t)
         val jsValue = WdlValueSerde.serialize(v)
         name -> JsObject("type" -> jsType, "value" -> jsValue)
     }
@@ -49,7 +44,7 @@ object WdlTaskSupport {
   ): Map[String, (T, V)] = {
     values.map {
       case (name, JsObject(fields)) =>
-        val t = WdlUtils.deserializeType(fields("type"), typeAliases)
+        val t = WdlTypeSerde.deserializeType(fields("type"), typeAliases)
         val v = WdlValueSerde.deserialize(fields("value"), t)
         name -> (t, v)
       case other =>

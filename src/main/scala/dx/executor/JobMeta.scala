@@ -9,6 +9,7 @@ import dx.api.{
   DxExecutable,
   DxExecution,
   DxFile,
+  DxFileDescCache,
   DxJob,
   DxJobDescribe,
   DxProject,
@@ -17,7 +18,7 @@ import dx.api.{
   InstanceTypeDB
 }
 import dx.core.Constants
-import dx.core.io.{DxFileAccessProtocol, DxFileDescCache, DxWorkerPaths}
+import dx.core.io.DxWorkerPaths
 import dx.core.ir.Value.VNull
 import dx.core.ir.{
   ParameterLink,
@@ -29,10 +30,9 @@ import dx.core.ir.{
   ValueSerde
 }
 import dx.core.languages.Language
-import dx.core.languages.Language.Language
-import dx.util.CodecUtils
+import dx.util.{CodecUtils, FileSourceResolver, FileUtils, JsUtils, Logger, TraceLevel}
+import dx.util.protocols.DxFileAccessProtocol
 import spray.json._
-import dx.util.{FileSourceResolver, FileUtils, JsUtils, Logger, TraceLevel}
 
 object JobMeta {
   val inputFile = "job_input.json"
@@ -181,7 +181,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 
   def getExecutableDetail(name: String): Option[JsValue]
 
-  lazy val language: Option[Language] = getExecutableDetail(Constants.Language) match {
+  lazy val language: Option[Language.Language] = getExecutableDetail(Constants.Language) match {
     case Some(JsString(lang)) => Some(Language.withName(lang))
     case None =>
       logger.warning("This applet ws built with an old version of dxWDL - please rebuild")
