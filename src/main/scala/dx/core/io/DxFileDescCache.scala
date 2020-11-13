@@ -46,12 +46,12 @@ case class DxFileDescCache(files: Vector[DxFile] = Vector.empty) {
           // make sure the DxFile and DxFileDescribe project IDs are in sync,
           // or leave DxFile.project as None if it's not a 'project-XXX' ID
           file.project match {
-            case Some(DxProject(_, id)) if id == desc.project =>
+            case Some(DxProject(id)) if id == desc.project =>
               file
             case None if !desc.project.startsWith("project-") =>
               file
             case _ =>
-              DxFile(file.dxApi, file.id, Some(DxProject(file.dxApi, desc.project)))
+              DxFile(file.id, Some(DxProject(desc.project)(file.dxApi)))(file.dxApi)
           }
         }
         .getOrElse(file)

@@ -264,7 +264,7 @@ object Main {
       }
 
     val (baseFileResolver, logger) = initCommon(options)
-    val dxApi = DxApi(logger)
+    val dxApi = DxApi()(logger)
 
     val extras: Option[Extras] =
       options.getValue[Path]("extras").map(extrasPath => ExtrasParser().parse(extrasPath))
@@ -451,7 +451,7 @@ object Main {
           return BadUsageTermination("Error parsing command line options", Some(e))
       }
     val (fileResolver, logger) = initCommon(options)
-    val dxApi = DxApi(logger)
+    val dxApi = DxApi()(logger)
 
     // make sure the user is logged in
     if (!dxApi.isLoggedIn) {
@@ -572,7 +572,7 @@ object Main {
           return BadUsageTermination("Error parsing command line options", Some(e))
       }
     val logger = initLogger(options)
-    val dxApi = DxApi(logger)
+    val dxApi = DxApi()(logger)
     // make sure the user is logged in
     if (!dxApi.isLoggedIn) {
       return Failure(s"You must be logged in to generate stubs to describe a workflow")

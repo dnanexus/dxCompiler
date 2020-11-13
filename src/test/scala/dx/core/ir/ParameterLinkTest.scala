@@ -11,7 +11,7 @@ import spray.json._
 import dx.util.{FileSourceResolver, Logger}
 
 class ParameterLinkTest extends AnyFlatSpec with Matchers {
-  private val dxApi = DxApi(Logger.Quiet)
+  private val dxApi = DxApi()(Logger.Quiet)
   private val dxProtocol = DxFileAccessProtocol(dxApi)
   private val fileResolver = FileSourceResolver.create(userProtocols = Vector(dxProtocol))
   private val parameterLinkSerializer = ParameterLinkSerializer(fileResolver, dxApi)

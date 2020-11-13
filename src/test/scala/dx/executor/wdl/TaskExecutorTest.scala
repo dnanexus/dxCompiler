@@ -80,7 +80,7 @@ private object TaskTestJobMeta {
 class TaskExecutorTest extends AnyFlatSpec with Matchers {
   assume(isLoggedIn)
   private val logger = Logger.Quiet
-  private val dxApi = DxApi(logger)
+  private val dxApi = DxApi()(logger)
   private val unicornInstance = DxInstanceType(
       TaskTestJobMeta.InstanceType,
       100,

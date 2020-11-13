@@ -77,7 +77,7 @@ private object WorkflowTestJobMeta {
 class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
   assume(isLoggedIn)
   private val logger = Logger.Quiet
-  private val dxApi = DxApi(logger)
+  private val dxApi = DxApi()(logger)
   private val unicornInstance =
     DxInstanceType(
         WorkflowTestJobMeta.InstanceType,

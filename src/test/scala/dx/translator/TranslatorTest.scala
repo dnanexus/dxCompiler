@@ -23,7 +23,7 @@ import dx.util.Logger
 // These tests involve compilation -without- access to the platform.
 //
 class TranslatorTest extends AnyFlatSpec with Matchers {
-  private val dxApi = DxApi(Logger.Quiet)
+  private val dxApi = DxApi()(Logger.Quiet)
 
   private def pathFromBasename(dir: String, basename: String): Path = {
     val p = getClass.getResource(s"/${dir}/${basename}").getPath
