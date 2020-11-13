@@ -477,7 +477,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
     private def splitWorkflowElements(
         statements: Vector[TAT.WorkflowElement]
     ): (Vector[WdlBlockInput], Vector[WdlBlock], Vector[TAT.OutputParameter]) = {
-      val (inputs, outputs) = WdlUtils.getInputOutputClosure(statements, withField = true)
+      val (inputs, outputs) = WdlUtils.getClosureInputsAndOutputs(statements, withField = true)
       val subBlocks = WdlBlock.createBlocks(statements)
       (WdlBlockInput.create(inputs), subBlocks, outputs.values.toVector)
     }
