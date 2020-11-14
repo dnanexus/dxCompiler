@@ -51,5 +51,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
-          name: dxWDL.jar
           path: ./dxWDL*.jar
+          retention-days: 2
