@@ -23,12 +23,6 @@ object Value {
   case class VDirectory(value: String) extends PrimitiveValue
 
   /**
-    * An archive is a file that represents a complex type packaged
-    * in a TAR archive.
-    */
-  case class VArchive(value: String) extends Value
-
-  /**
     * Represents the empty value for an optional field.
     */
   case object VNull extends Value

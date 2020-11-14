@@ -26,7 +26,6 @@ object ValueSerde extends DefaultJsonProtocol {
         case VString(s)       => JsString(s)
         case VFile(path)      => JsString(path)
         case VDirectory(path) => JsString(path)
-        case VArchive(path)   => JsString(path)
         case VArray(array)    => JsArray(array.map(inner))
         case VHash(members)   => JsObject(members.view.mapValues(inner).toMap)
       }
@@ -121,13 +120,7 @@ object ValueSerde extends DefaultJsonProtocol {
           throw new Exception(s"cannot deserialize value ${innerValue} as type ${innerType}")
       }
     }
-    (t, jsValue) match {
-      case (_: TCollection, JsString(path)) =>
-        // a complex type with a string value - this indicates an archive value
-        // this is only allowed at the top level (i.e. no nested archives allowed)
-        VArchive(path)
-      case _ => inner(jsValue, t)
-    }
+    inner(jsValue, t)
   }
 
   def deserializeMap(m: Map[String, JsValue]): Map[String, Value] = {

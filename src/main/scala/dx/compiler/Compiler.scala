@@ -62,7 +62,6 @@ case class Compiler(extras: Option[Extras],
                     locked: Boolean,
                     projectWideReuse: Boolean,
                     streamFiles: StreamFiles.StreamFiles,
-                    compactComplexValues: Boolean,
                     fileResolver: FileSourceResolver = FileSourceResolver.get,
                     dxApi: DxApi = DxApi.get,
                     logger: Logger = Logger.get) {
@@ -308,7 +307,6 @@ case class Compiler(extras: Option[Extras],
             runtimePathConfig,
             runtimeTraceLevel,
             streamFiles,
-            compactComplexValues,
             scatterChunkSize,
             extras,
             parameterLinkSerializer,
@@ -366,7 +364,7 @@ case class Compiler(extras: Option[Extras],
     ): (DxWorkflow, JsValue) = {
       logger2.trace(s"Compiling workflow ${workflow.name}")
       val workflowCompiler =
-        WorkflowCompiler(compactComplexValues, extras, parameterLinkSerializer, dxApi, logger2)
+        WorkflowCompiler(extras, parameterLinkSerializer, dxApi, logger2)
       // Calculate a checksum of the inputs that went into the making of the applet.
       val (workflowApiRequest, execTree) = workflowCompiler.apply(workflow, dependencyDict)
       val (requestWithChecksum, digest) = checksumRequest(workflow.name, workflowApiRequest)
