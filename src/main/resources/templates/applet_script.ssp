@@ -1,125 +1,126 @@
 <%@ val dxPathConfig: dx.core.io.DxWorkerPaths %>
-<%@ val rtTraceLevel: Int %>
-<%@ val streamAllFiles: Boolean %>
+<%@ val runtimeJar: String %>
+<%@ val runtimeTraceLevel: Int %>
+<%@ val streamFiles: dx.core.io.StreamFiles.StreamFiles %>
 <% val bashDollar: String = "$" %>
-    # evaluate input arguments, and download input files
-    java -jar ${bashDollar}{DX_FS_ROOT}/dxWDL.jar task prolog ${bashDollar}{HOME} -traceLevel ${rtTraceLevel} ${if (streamAllFiles) "-streamAllFiles" else ""}
+# evaluate input arguments, and download input files
+java -jar ${bashDollar}{DX_FS_ROOT}/${runtimeJar} task prolog ${bashDollar}{HOME} -traceLevel ${runtimeTraceLevel} -streamFiles ${streamFiles.toString}
 
-    echo "Using dxda version: ${bashDollar}(dx-download-agent version)"
-    echo "Using dxfuse version: ${bashDollar}(dxfuse -version)"
+echo "Using dxda version: ${bashDollar}(dx-download-agent version)"
+echo "Using dxfuse version: ${bashDollar}(dxfuse -version)"
 
-    # run the dx-download-agent (dxda) on a manifest of files
-    if [[ -e ${dxPathConfig.getDxdaManifestFile().toString} ]]; then
-       head -n 20 ${dxPathConfig.getDxdaManifestFile().toString}
-       bzip2 ${dxPathConfig.getDxdaManifestFile().toString}
+# run the dx-download-agent (dxda) on a manifest of files
+if [[ -e ${dxPathConfig.getDxdaManifestFile().toString} ]]; then
+head -n 20 ${dxPathConfig.getDxdaManifestFile().toString}
+bzip2 ${dxPathConfig.getDxdaManifestFile().toString}
 
-       # run the download agent, and store the return code; do not exit on error.
-       # we need to run it from the root directory, because it uses relative paths.
-       cd /
-       rc=0
-       dx-download-agent download ${dxPathConfig.getDxdaManifestFile().toString}.bz2 || rc=${bashDollar}? && true
+# run the download agent, and store the return code; do not exit on error.
+# we need to run it from the root directory, because it uses relative paths.
+cd /
+rc=0
+dx-download-agent download ${dxPathConfig.getDxdaManifestFile().toString}.bz2 || rc=${bashDollar}? && true
 
-       # if there was an error during download, print out the download log
-       if [[ ${bashDollar}rc != 0 ]]; then
-           echo "download agent failed rc=${bashDollar}rc"
-           if [[ -e ${dxPathConfig.getDxdaManifestFile().toString}.bz2.download.log ]]; then
-              echo "The download log is:"
-              cat ${dxPathConfig.getDxdaManifestFile().toString}.bz2.download.log
-           fi
-           exit ${bashDollar}rc
-       fi
+# if there was an error during download, print out the download log
+if [[ ${bashDollar}rc != 0 ]]; then
+echo "download agent failed rc=${bashDollar}rc"
+if [[ -e ${dxPathConfig.getDxdaManifestFile().toString}.bz2.download.log ]]; then
+echo "The download log is:"
+cat ${dxPathConfig.getDxdaManifestFile().toString}.bz2.download.log
+fi
+exit ${bashDollar}rc
+fi
 
-       # The download was ok, check file integrity on disk
-       dx-download-agent inspect ${dxPathConfig.getDxdaManifestFile().toString}.bz2
+# The download was ok, check file integrity on disk
+dx-download-agent inspect ${dxPathConfig.getDxdaManifestFile().toString}.bz2
 
-       # go back to work directory
-       cd ${dxPathConfig.getWorkDir().toString}
-    fi
+# go back to work directory
+cd ${dxPathConfig.getWorkDir().toString}
+fi
 
-    # run dxfuse on a manifest of files. It will provide remote access
-    # to DNAx files.
-    if [[ -e ${dxPathConfig.getDxfuseManifestFile().toString} ]]; then
-       head -n 20 ${dxPathConfig.getDxfuseManifestFile().toString}
+# run dxfuse on a manifest of files. It will provide remote access
+# to DNAx files.
+if [[ -e ${dxPathConfig.getDxfuseManifestFile().toString} ]]; then
+head -n 20 ${dxPathConfig.getDxfuseManifestFile().toString}
 
-       # make sure the mountpoint exists
-       mkdir -p ${dxPathConfig.getDxfuseMountDir().toString}
+# make sure the mountpoint exists
+mkdir -p ${dxPathConfig.getDxfuseMountDir().toString}
 
-       # don't leak the token to stdout. We need the DNAx token to be accessible
-       # in the environment, so that dxfuse could get it.
-       source environment >& /dev/null
+# don't leak the token to stdout. We need the DNAx token to be accessible
+# in the environment, so that dxfuse could get it.
+source environment >& /dev/null
 
-       dxfuse_version=${bashDollar}(dxfuse -version)
-       echo "dxfuse version ${bashDollar}{dxfuse_version}"
+dxfuse_version=${bashDollar}(dxfuse -version)
+echo "dxfuse version ${bashDollar}{dxfuse_version}"
 
-       # run dxfuse so that it will not exit after the bash script exists.
-       echo "mounting dxfuse on ${dxPathConfig.getDxfuseMountDir().toString}"
-       dxfuse -readOnly ${dxPathConfig.getDxfuseMountDir().toString} ${dxPathConfig.getDxfuseManifestFile().toString}
-       dxfuse_err_code=${bashDollar}?
+# run dxfuse so that it will not exit after the bash script exists.
+echo "mounting dxfuse on ${dxPathConfig.getDxfuseMountDir().toString}"
+dxfuse -readOnly ${dxPathConfig.getDxfuseMountDir().toString} ${dxPathConfig.getDxfuseManifestFile().toString}
+dxfuse_err_code=${bashDollar}?
 
-       if [[ ${bashDollar}dxfuse_err_code != 0 ]]; then
-           echo "error starting dxfuse, rc=${bashDollar}dxfuse_err_code"
-           dxfuse_log=/root/.dxfuse/dxfuse.log
-           # wait a second for the log to sync
-           sleep 1
-           if [[ -f ${bashDollar}dxfuse_log ]]; then
-               cat ${bashDollar}dxfuse_log
-           fi
-           exit 1
-       fi
+if [[ ${bashDollar}dxfuse_err_code != 0 ]]; then
+echo "error starting dxfuse, rc=${bashDollar}dxfuse_err_code"
+dxfuse_log=/root/.dxfuse/dxfuse.log
+# wait a second for the log to sync
+sleep 1
+if [[ -f ${bashDollar}dxfuse_log ]]; then
+cat ${bashDollar}dxfuse_log
+fi
+exit 1
+fi
 
-       echo ""
-       ls -Rl ${dxPathConfig.getDxfuseMountDir().toString}
-    fi
+echo ""
+ls -Rl ${dxPathConfig.getDxfuseMountDir().toString}
+fi
 
-    # construct the bash command and write it to a file
-    java -jar ${bashDollar}{DX_FS_ROOT}/dxWDL.jar task instantiateCommand ${bashDollar}{HOME} -traceLevel ${rtTraceLevel} ${if (streamAllFiles) "-streamAllFiles" else ""}
+# construct the bash command and write it to a file
+java -jar ${bashDollar}{DX_FS_ROOT}/${runtimeJar} task instantiateCommand ${bashDollar}{HOME} -traceLevel ${runtimeTraceLevel} -streamFiles ${streamFiles.toString}
 
-    echo "bash command encapsulation script:"
-    cat ${dxPathConfig.getCommandFile().toString}
+echo "bash command encapsulation script:"
+cat ${dxPathConfig.getCommandFile().toString}
 
-    # Run the shell script generated by the prolog.
-    # Capture the stderr/stdout in files
-    if [[ -e ${dxPathConfig.getContainerCommandFile().toString} ]]; then
-        echo "docker submit script:"
-        cat ${dxPathConfig.getContainerCommandFile().toString}
-        ${dxPathConfig.getContainerCommandFile().toString}
-    else
-        whoami
-        /bin/bash ${dxPathConfig.getCommandFile().toString}
-    fi
+# Run the shell script generated by the prolog.
+# Capture the stderr/stdout in files
+if [[ -e ${dxPathConfig.getContainerCommandFile().toString} ]]; then
+echo "docker submit script:"
+cat ${dxPathConfig.getContainerCommandFile().toString}
+${dxPathConfig.getContainerCommandFile().toString}
+else
+whoami
+/bin/bash ${dxPathConfig.getCommandFile().toString}
+fi
 
-    #  check return code of the script
-    rc=`cat ${dxPathConfig.getReturnCodeFile().toString}`
-    if [[ ${bashDollar}rc != 0 ]]; then
-        if [[ -f ${bashDollar}dxfuse_log ]]; then
-            echo "=== dxfuse filesystem log === "
-            cat ${bashDollar}dxfuse_log
-        fi
-        exit ${bashDollar}rc
-    fi
+#  check return code of the script
+rc=`cat ${dxPathConfig.getReturnCodeFile().toString}`
+if [[ ${bashDollar}rc != 0 ]]; then
+if [[ -f ${bashDollar}dxfuse_log ]]; then
+echo "=== dxfuse filesystem log === "
+cat ${bashDollar}dxfuse_log
+fi
+exit ${bashDollar}rc
+fi
 
-    # evaluate applet outputs, and upload result files -
-    # this may write a UA manifest
-    java -jar ${bashDollar}{DX_FS_ROOT}/dxWDL.jar task epilog ${bashDollar}{HOME} -traceLevel ${rtTraceLevel} ${if (streamAllFiles) "-streamAllFiles" else ""}
+# evaluate applet outputs, and upload result files -
+# this may write a UA manifest
+java -jar ${bashDollar}{DX_FS_ROOT}/${runtimeJar} task epilog ${bashDollar}{HOME} -traceLevel ${runtimeTraceLevel} -streamFiles ${streamFiles.toString}
 
-    # Upload files using UA
-    if [[ -e ${dxPathConfig.getDxuaManifestFile().toString} ]]; then
-      rc=0
-      ua --manifest ${dxPathConfig.getDxuaManifestFile().toString} >/root/ua.log 2>&1 || rc=${bashDollar}? && true
+# Upload files using UA
+if [[ -e ${dxPathConfig.getDxuaManifestFile().toString} ]]; then
+rc=0
+ua --manifest ${dxPathConfig.getDxuaManifestFile().toString} >/root/ua.log 2>&1 || rc=${bashDollar}? && true
 
-      # if there was an error during upload, print out the log
-      if [[ ${bashDollar}rc != 0 ]]; then
-        echo "upload agent failed rc=${bashDollar}rc"
-        if [[ -e /root/ua.log ]]; then
-          echo "The upload log is:"
-          cat /root/ua.log
-        fi
-        exit ${bashDollar}rc
-      fi
-    fi
+# if there was an error during upload, print out the log
+if [[ ${bashDollar}rc != 0 ]]; then
+echo "upload agent failed rc=${bashDollar}rc"
+if [[ -e /root/ua.log ]]; then
+echo "The upload log is:"
+cat /root/ua.log
+fi
+exit ${bashDollar}rc
+fi
+fi
 
-    # unmount dxfuse
-    if [[ -e ${dxPathConfig.getDxfuseManifestFile().toString} ]]; then
-        echo "unmounting dxfuse"
-        sudo umount ${dxPathConfig.getDxfuseMountDir().toString}
-    fi
+# unmount dxfuse
+if [[ -e ${dxPathConfig.getDxfuseManifestFile().toString} ]]; then
+echo "unmounting dxfuse"
+sudo umount ${dxPathConfig.getDxfuseMountDir().toString}
+fi

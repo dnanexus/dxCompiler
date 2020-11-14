@@ -85,7 +85,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
 
   private def generateJobScript(applet: Application): String = {
     val templateAttrs: Map[String, Any] = Map(
-        "rtTraceLevel" -> runtimeTraceLevel,
+        "runtimeJar" -> "dxWDL.jar",
+        "runtimeTraceLevel" -> runtimeTraceLevel,
         "streamFiles" -> streamFiles
     )
     applet.kind match {

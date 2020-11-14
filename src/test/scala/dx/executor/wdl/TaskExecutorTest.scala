@@ -16,7 +16,7 @@ import dx.api.{
   InstanceTypeDB
 }
 import dx.core.Constants
-import dx.core.io.DxWorkerPaths
+import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir.{ParameterLink, ParameterLinkDeserializer, ParameterLinkSerializer}
 import dx.core.languages.wdl.{VersionSupport, WdlUtils}
 import dx.executor.{JobMeta, TaskAction, TaskExecutor}
@@ -251,7 +251,7 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
                       standAloneTaskSource)
 
     // create TaskExecutor
-    (TaskExecutor(jobMeta, streamAllFiles = false), jobMeta)
+    (TaskExecutor(jobMeta, streamFiles = StreamFiles.None), jobMeta)
   }
 
   // Parse the WDL source code, and extract the single task that is supposed to be there.
@@ -313,7 +313,7 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
   it should "handle files with same name in different source folders" taggedAs ApiTest in {
     val (taskExecutor, _) = createTaskExecutor("two_files")
     val (localizedFiles, fileSourceToPath, dxdaManifest, dxfuseManifest) =
-      taskExecutor.taskSupport.localizeInputFiles(false)
+      taskExecutor.taskSupport.localizeInputFiles(streamFiles = StreamFiles.None)
     localizedFiles.size shouldBe 2
     fileSourceToPath.size shouldBe 2
     dxfuseManifest shouldBe None
