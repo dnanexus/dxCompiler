@@ -40,12 +40,12 @@ function basic_checks {
     echo "Found the dx CLI: $path_to_dx"
 
     local branch=$(git symbolic-ref --short HEAD)
-    if [[ $branch != "master" ]]; then
-        echo "This isn't master branch, please do 'git checkout master'"
+    if [[ $branch != "main" ]]; then
+        echo "This isn't main branch, please do 'git checkout main'"
         exit 1
     fi
 
-    echo "making sure master is up to date"
+    echo "making sure main is up to date"
     git pull
 }
 
