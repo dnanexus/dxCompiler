@@ -47,10 +47,4 @@ jobs:
           cd ${GITHUB_WORKSPACE}
           FOLDER=/builds/test_gha_dxwdl_$(date +%s)_$RANDOM
           dx mkdir $FOLDER
-          #python3 scripts/run_tests.py --test M --clean --folder $FOLDER --project $PROJECT
           python3 scripts/run_tests.py --test add3 $FOLDER --project $PROJECT
-        - name: Upload artifact
-          uses: actions/upload-artifact@v2
-          with:
-            path: ./dxWDL*.jar
-            retention-days: 1
