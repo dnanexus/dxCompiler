@@ -80,13 +80,11 @@ case class WorkflowCompiler(extras: Option[Extras],
               parameterLinkSerializer.createFields(parameter.dxName, parameter.dxType, value)
             accu ++ fields.toMap
           case LinkInput(dxStage, paramname) =>
-            val link =
-              ParameterLinkStage(dxStage, IORef.Output, paramname, parameter.dxType)
+            val link = ParameterLinkStage(dxStage, IORef.Output, paramname, parameter.dxType)
             val fields = parameterLinkSerializer.createFieldsFromLink(link, parameter.dxName)
             accu ++ fields.toMap
           case WorkflowInput(wfParam) =>
-            val link =
-              ParameterLinkWorkflowInput(wfParam.dxName, parameter.dxType)
+            val link = ParameterLinkWorkflowInput(wfParam.dxName, parameter.dxType)
             val fields = parameterLinkSerializer.createFieldsFromLink(link, parameter.dxName)
             accu ++ fields.toMap
         }
@@ -176,8 +174,7 @@ case class WorkflowCompiler(extras: Option[Extras],
         val wfInputSpec: Vector[JsValue] = workflow.inputs
           .sortWith(_._1.name < _._1.name)
           .flatMap {
-            case (parameter, stageInput) =>
-              workflowInputParameterToNative(parameter, stageInput)
+            case (parameter, stageInput) => workflowInputParameterToNative(parameter, stageInput)
           }
         val wfOutputSpec: Vector[JsValue] = workflow.outputs
           .sortWith(_._1.name < _._1.name)
