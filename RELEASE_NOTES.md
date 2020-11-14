@@ -1,5 +1,26 @@
 # Release Notes
 
+## 2.0.0-rc5 13-11-2020
+
+- Upgrades wdlTools to 0.10.5
+- Adds dxCommon dependency
+- Sets either a default or null value for missing optional block inputs, and throws an exception if there are any missing required block inputs
+- Addresses the situation where a call input references a field of the scatter variable
+- Updates the mechanism of comparing instance types to select the cheapest one for execution
+- Fixes to the "x appears with two different callable definitions" compilation error
+- Increases disambiguation dir limit to 5000
+- Simplifies job names
+
+## 2.0.0-rc4 08-10-2020
+
+- Upgrade wdlTools to 0.6.1
+- Upgrade dxda to 0.5.4
+- Increase number of API retries to 10
+- Fix to the "x appears with two different callable definitions" compilation error
+- Add missing required fields to findXXX/describe
+- Fix name regexp in DxFindDataObjects
+- Additional fixes and improvements
+
 ## 2.0.0-rc2 14-10-2020
 
 - Major code reorganization to separate the compiler from executor
