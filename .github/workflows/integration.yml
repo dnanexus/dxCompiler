@@ -52,4 +52,4 @@ jobs:
           uses: actions/upload-artifact@v2
           with:
             name: dxWDL.jar
-            path: ./dxWDL*.jar
+            path: ./dxWDL-2.0.0-rc5.jar
