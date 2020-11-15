@@ -86,7 +86,7 @@ val commonsCompressVersion = "1.20"
 libraryDependencies ++= Seq(
     "com.dnanexus" % "dxapi" % dxApiVersion,
     "com.dnanexus" % "dxcommon" % dxCommonVersion,
-    "com.dnanexus" % "dxFileAccessProtocols" % dxFileAccessProtocolsVersion,
+    "com.dnanexus" % "dxfileaccessprotocols" % dxFileAccessProtocolsVersion,
     "com.dnanexus" % "wdltools" % wdlToolsVersion,
     "io.spray" %% "spray-json" % sprayVersion,
     "com.typesafe" % "config" % typesafeVersion,
