@@ -101,7 +101,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
   lazy val inputs: Map[String, Value] = {
     // if we have access to the inputSpec, use it to guide deserialization
     getExecutableAttribute("inputSpec") match {
-      case Some(JsObject(spec)) =>
+      case Some(JsArray(spec)) =>
         val inputTypes = TypeSerde.fromNativeSpec(spec)
         jsInputs.map {
           case (key, value) if inputTypes.contains(key) =>
