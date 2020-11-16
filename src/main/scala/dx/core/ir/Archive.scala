@@ -13,6 +13,9 @@ case class SquashFs(archiveFile: Path)(
     logger: Logger = Logger.get
 ) {
   private var mounted: Boolean = false
+  // whether the archive file is a placeholder that needs to be deleted
+  // before writing the archive
+  private var newFile: Boolean = Files.exists(archiveFile) && Files.size(archiveFile) == 0
   private lazy val isLinux = System.getProperty("os.name").toLowerCase.startsWith("linux")
 
   def isMounted: Boolean = mounted
@@ -72,40 +75,50 @@ case class SquashFs(archiveFile: Path)(
     * mounted. We *could* simply unmount and remount the file system after the append,
     * but this might cause problems for another thread/process trying to access the file
     * system.
-    * @param path path to the file to add to the archive
-    * @param parentDir parent directory to which to relativize `path` - if None, the
-    *                  file is added to the root of the fs
+    * @param srcPath path to the file to add to the archive
+    * @param destPath destination path within the archive
     * @param removeOriginal remove the original file after it has been added to the
     *                       archive
     */
-  def append(path: Path, parentDir: Option[Path] = None, removeOriginal: Boolean = false): Unit = {
+  def append(srcPath: Path,
+             destPath: Option[Path] = None,
+             removeOriginal: Boolean = false): Unit = {
+    if (isMounted) {
+      throw new RuntimeException("cannot append to an archive that is mounted")
+    }
+    val opts = if (newFile) {
+      // overwrite the new file
+      newFile = false
+      "-quiet -noappend"
+    } else {
+      "-quiet"
+    }
     try {
-      if (parentDir.isDefined && parentDir != path.getParent) {
+      if (destPath.isDefined) {
         // mksquashfs can't easily add a specific file in a subdir, so we need to
         // create a temp directory with the desired sub-directory structure, then
         // create a hard link to the file within the leaf dir, then append the file,
         // and finally delete the link
-        val lnDir = appendDir.resolve(parentDir.get.relativize(path.getParent))
-        val lnFile = lnDir.resolve(path.getFileName)
+        val lnFile = appendDir.resolve(destPath.get)
         SysUtils.execCommand(
-            s"""mkdir -p ${lnDir.toString}
-               |&& ln ${path} ${lnFile.toString}
-               |&& mksquashfs ${appendDir.toString} ${archiveFile.toString} -quiet
+            s"""mkdir -p ${lnFile.getParent.toString}
+               |&& ln ${srcPath} ${lnFile.toString}
+               |&& mksquashfs ${appendDir.toString} ${archiveFile.toString} ${opts}
                |&& rm -Rf ${appendDir}/*""".stripMargin.replaceAll("\n", " ")
         )
       } else {
-        SysUtils.execCommand(s"mksquashfs ${path} ${archiveFile} -quiet")
+        SysUtils.execCommand(s"mksquashfs ${srcPath.toString} ${archiveFile.toString} ${opts}")
       }
     } catch {
       case ex: Throwable =>
-        throw new RuntimeException(s"error adding ${path} to archive ${archiveFile}", ex)
+        throw new RuntimeException(s"error adding ${srcPath} to archive ${archiveFile}", ex)
     }
     if (removeOriginal) {
       try {
-        Files.delete(path)
+        Files.delete(srcPath)
       } catch {
         case ex: Throwable =>
-          logger.error(s"error deleting ${path} after adding it to archive ${archiveFile}",
+          logger.error(s"error deleting ${srcPath} after adding it to archive ${archiveFile}",
                        Some(ex))
       }
     }
@@ -218,6 +231,11 @@ case class PackedArchive(path: Path, encoding: Charset = FileUtils.DefaultEncodi
   private def readManifest: (Type, Value) = {
     if (!archive.isMounted) {
       archive.mount()
+      sys.addShutdownHook({
+        if (archive.isMounted) {
+          archive.unmount()
+        }
+      })
     }
     val manifestJs =
       try {
@@ -242,7 +260,8 @@ case class PackedArchive(path: Path, encoding: Charset = FileUtils.DefaultEncodi
     * @param name the name of the variable associated with this archive
     * @return the updated Archive object and a Vector of localized paths
     */
-  def localize(name: Option[String] = None): (LocalizedArchive, Vector[Path]) = {
+  def localize(mount: Boolean = true,
+               name: Option[String] = None): (LocalizedArchive, Vector[Path]) = {
     def transformer(relPath: Path): Path = {
       archive.resolve(relPath)
     }
@@ -250,9 +269,16 @@ case class PackedArchive(path: Path, encoding: Charset = FileUtils.DefaultEncodi
     // make sure these lazy vals have been instantiated
     val (t, v) = (irType, irValue)
     val (localizedValue, filePaths) = Archive.transformPaths(v, t, transformer)
-    val unpackedArchive =
+    if (mount && !archive.isMounted) {
+      archive.mount()
+    }
+    val localizedArchive =
       LocalizedArchive(t, localizedValue)(Some(archive, v), Some(archive.mountPoint), name)
-    (unpackedArchive, filePaths.values.toVector)
+    (localizedArchive, filePaths.values.toVector)
+  }
+
+  def isOpen: Boolean = {
+    archive.isMounted
   }
 
   def close(): Unit = {
@@ -262,7 +288,7 @@ case class PackedArchive(path: Path, encoding: Charset = FileUtils.DefaultEncodi
 
 /**
   * Represents an archive file that has been localized, i.e. the files referenced
-  * in its `irValue` have absolute paths to files within a squasfs image that is
+  * in its `irValue` have absolute paths to files within a squashfs image that is
   * mounted on disk. It could be a previously packed archive or a new archive.
   * @param irType WdlType
   * @param irValue WdlValue
@@ -283,6 +309,7 @@ case class LocalizedArchive(
   parentDir: Option[Path] = None,
   name: Option[String] = None)
     extends Archive {
+  assert(packedArchiveAndValue.isDefined || parentDir.isDefined)
   override val localized: Boolean = true
 
   private lazy val archive: SquashFs = {
@@ -293,7 +320,7 @@ case class LocalizedArchive(
 
   override lazy val path: Path = archive.archiveFile
 
-  private def createArchive(t: Type, v: Value, filePaths: Map[Path, Path]): Unit = {
+  private def createArchive(t: Type, v: Value, files: Map[Path, Path]): Unit = {
     val manifest = JsObject(
         TypeSerde.serializeOne(t).fields ++ Map(Archive.ManifestValueKey -> ValueSerde.serialize(v))
     )
@@ -303,9 +330,9 @@ case class LocalizedArchive(
       val manifestPath = manifestDir.resolve(Archive.ManifestFile)
       JsUtils.jsToFile(manifest, manifestPath)
       // add the manifest to the archive
-      archive.append(manifestPath, Some(manifestDir), removeOriginal = true)
+      archive.append(manifestPath, removeOriginal = true)
       // write each file
-      filePaths.foreach {
+      files.foreach {
         case (absPath, relPath) =>
           archive.append(absPath, Some(relPath), removeOriginal = true)
       }
@@ -317,13 +344,28 @@ case class LocalizedArchive(
 
   lazy val pack: PackedArchive = {
     val delocalizedValue = packedArchiveAndValue.map(_._2).getOrElse {
+      // we have to put each file in its own subdir because
+      // 1. we don't want to append more than one file at a time to
+      //    avoid using more disk space than necessary
+      // 2. squashfs cannot append a file to an existing directory
+      val numIter: Iterator[Path] = Iterator.from(0).map(i => Paths.get(i.toString))
       def transformer(absPath: Path): Path = {
-        parentDir.get.relativize(absPath)
+        numIter.next().resolve(absPath.getFileName)
       }
       val (delocalizedValue, filePaths) = Archive.transformPaths(irValue, irType, transformer)
       createArchive(irType, delocalizedValue, filePaths)
       delocalizedValue
     }
     PackedArchive(path, encoding)(packedTypeAndValue = Some(irType, delocalizedValue))
+  }
+
+  def isOpen: Boolean = {
+    archive.isMounted
+  }
+
+  def close(): Unit = {
+    if (archive.isMounted) {
+      archive.unmount()
+    }
   }
 }
