@@ -244,7 +244,7 @@ case class ParameterLinkDeserializer(dxFileDescCache: DxFileDescCache, dxApi: Dx
   }
 
   def deserializeInput(jsv: JsValue): Value = {
-    def handler(value: JsValue): Option[Value] = {
+    def translator(value: JsValue): Option[Value] = {
       if (DxFile.isLinkJson(value)) {
         // Convert the path in DNAx to a string. We can later decide if we want to download it or not.
         // Use the cache value if there is one to save the API call.
@@ -254,7 +254,7 @@ case class ParameterLinkDeserializer(dxFileDescCache: DxFileDescCache, dxApi: Dx
         None
       }
     }
-    ValueSerde.deserialize(unwrapComplex(jsv), Some(handler))
+    ValueSerde.deserialize(unwrapComplex(jsv), Some(translator))
   }
 
   def deserializeInputMap(inputs: Map[String, JsValue]): Map[String, Value] = {

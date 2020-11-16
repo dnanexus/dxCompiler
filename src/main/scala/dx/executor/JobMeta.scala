@@ -26,6 +26,7 @@ import dx.core.ir.{
   ParameterLinkExec,
   ParameterLinkSerializer,
   Type,
+  TypeSerde,
   Value,
   ValueSerde
 }
@@ -38,7 +39,11 @@ object JobMeta {
   val inputFile = "job_input.json"
   val outputFile = "job_output.json"
   val errorFile = "job_error.json"
-  val infoFile = "dnanexus-job.json"
+  // this file has all the information about the job that is avaiable
+  // at execution time
+  val jobInfoFile = "dnanexus-job.json"
+  // this file has all the information about the executable
+  val executableInfoFile = "dnanexus-executable.json"
 
   /**
     * Report an error, since this is called from a bash script, we can't simply
@@ -93,7 +98,24 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 
   lazy val inputDeserializer: ParameterLinkDeserializer =
     ParameterLinkDeserializer(dxFileDescCache, dxApi)
-  lazy val inputs: Map[String, Value] = inputDeserializer.deserializeInputMap(jsInputs)
+  lazy val inputs: Map[String, Value] = {
+    // if we have access to the inputSpec, use it to guide deserialization
+    getExecutableAttribute("inputSpec") match {
+      case Some(JsObject(spec)) =>
+        val inputTypes = TypeSerde.fromNativeSpec(spec)
+        jsInputs.map {
+          case (key, value) if inputTypes.contains(key) =>
+            key -> inputDeserializer.deserializeInputWithType(value, inputTypes(key))
+          case (key, value) =>
+            logger.warning(s"inputSpec is missing field ${key}")
+            key -> inputDeserializer.deserializeInput(value)
+        }
+      case None =>
+        inputDeserializer.deserializeInputMap(jsInputs)
+      case other =>
+        throw new Exception(s"invalid inputSpec ${other}")
+    }
+  }
 
   lazy val fileResolver: FileSourceResolver = {
     val dxProtocol = DxFileAccessProtocol(dxApi, dxFileDescCache)
@@ -111,7 +133,26 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
   lazy val outputSerializer: ParameterLinkSerializer = ParameterLinkSerializer(fileResolver, dxApi)
 
   def writeOutputs(outputs: Map[String, (Type, Value)]): Unit = {
-    // write outputs, ignore null values, these could occur for optional
+    getExecutableAttribute("outputSpec").foreach {
+      case JsObject(spec) =>
+        // check that the actual types are the same as the expected types
+        val outputTypes = TypeSerde.fromNativeSpec(spec)
+        outputs.foreach {
+          case (key, (actualType, _)) if outputTypes.contains(key) =>
+            val expectedType = outputTypes(key)
+            if (actualType != expectedType) {
+              throw new Exception(
+                  s"""output field ${key} has mismatch between actual type ${actualType} 
+                     |and expected type ${expectedType}""".stripMargin.replaceAll("\n", " ")
+              )
+            }
+          case (key, _) =>
+            logger.warning(s"outputSpec is missing field ${key}")
+        }
+      case other =>
+        throw new Exception(s"invalid outputSpec ${other}")
+    }
+    // write outputs, ignore null values - these could occur for optional
     // values that were not specified.
     val outputJs = outputs
       .collect {
@@ -178,6 +219,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
   def instanceType: Option[String]
 
   def getJobDetail(name: String): Option[JsValue]
+
+  def getExecutableAttribute(name: String): Option[JsValue]
 
   def getExecutableDetail(name: String): Option[JsValue]
 
@@ -269,7 +312,8 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths
   private val rootDir = workerPaths.getRootDir()
   private val inputPath = rootDir.resolve(JobMeta.inputFile)
   private val outputPath = rootDir.resolve(JobMeta.outputFile)
-  private val infoPath = rootDir.resolve(JobMeta.infoFile)
+  private val jobInfoPath = rootDir.resolve(JobMeta.jobInfoFile)
+  private val executableInfoPath = rootDir.resolve(JobMeta.executableInfoFile)
 
   lazy val jsInputs: Map[String, JsValue] = {
     if (Files.exists(inputPath)) {
@@ -284,11 +328,11 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths
     JsUtils.jsToFile(JsObject(outputJs), outputPath)
   }
 
-  private lazy val info: Map[String, JsValue] = {
-    if (Files.exists(infoPath)) {
-      FileUtils.readFileContent(infoPath).parseJson.asJsObject.fields
+  private lazy val jobInfo: Map[String, JsValue] = {
+    if (Files.exists(jobInfoPath)) {
+      FileUtils.readFileContent(jobInfoPath).parseJson.asJsObject.fields
     } else {
-      logger.warning(s"info meta-file ${infoPath} does not exist")
+      logger.warning(s"info meta-file ${jobInfoPath} does not exist")
       Map.empty
     }
   }
@@ -302,7 +346,7 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths
   private lazy val jobDetails: Map[String, JsValue] =
     jobDesc.details.map(_.asJsObject.fields).getOrElse(Map.empty)
 
-  private lazy val executable: DxExecutable = info.get("executable") match {
+  private lazy val executable: DxExecutable = jobInfo.get("executable") match {
     case None =>
       logger.trace(
           "executable field not found locally, performing an API call.",
@@ -317,8 +361,22 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths
       throw new Exception(s"Malformed executable field ${other} in job info")
   }
 
-  private lazy val executableDetails: Map[String, JsValue] =
+  private lazy val executableInfo: Map[String, JsValue] = {
+    if (Files.exists(executableInfoPath)) {
+      FileUtils.readFileContent(executableInfoPath).parseJson.asJsObject.fields
+    } else {
+      logger.warning(s"executable meta-file ${executableInfoPath} does not exist")
+      Map.empty
+    }
+  }
+
+  override def getExecutableAttribute(name: String): Option[JsValue] = {
+    executableInfo.get(name)
+  }
+
+  private lazy val executableDetails: Map[String, JsValue] = {
     executable.describe(Set(Field.Details)).details.get.asJsObject.fields
+  }
 
   def analysis: Option[DxAnalysis] = jobDesc.analysis
 
