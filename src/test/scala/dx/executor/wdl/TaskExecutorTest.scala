@@ -53,6 +53,8 @@ private case class TaskTestJobMeta(override val workerPaths: DxWorkerPaths,
 
   override def getJobDetail(name: String): Option[JsValue] = None
 
+  override def getExecutableAttribute(name: String): Option[JsValue] = None
+
   private val executableDetails: Map[String, JsValue] = Map(
       Constants.InstanceTypeDb -> JsString(
           CodecUtils.gzipAndBase64Encode(

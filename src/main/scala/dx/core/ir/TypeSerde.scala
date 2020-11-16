@@ -219,6 +219,52 @@ object TypeSerde {
     }
   }
 
+  private def fromNativeNonArray(cls: String): Type = {
+    cls match {
+      case "boolean" => TBoolean
+      case "int"     => TInt
+      case "float"   => TFloat
+      case "string"  => TString
+      case "file"    => TFile
+      case "hash"    => THash
+      case _         => throw new Exception(s"invalid native class ${cls}")
+    }
+  }
+
+  def fromNative(cls: String, optional: Boolean): Type = {
+    val t = if (cls.startsWith("array:")) {
+      TArray(fromNativeNonArray(cls.drop(6)))
+    } else {
+      fromNativeNonArray(cls)
+    }
+    if (optional) {
+      TOptional(t)
+    } else {
+      t
+    }
+  }
+
+  def fromNativeSpec(fields: Map[String, JsValue]): Map[String, Type] = {
+    fields.map {
+      case (key, JsObject(field)) =>
+        val cls = field.get("class") match {
+          case Some(JsString(cls)) => cls
+          case None                => "string"
+          case other =>
+            throw new Exception(s"invalid native 'class' value ${other}")
+        }
+        val optional = field.get("optional") match {
+          case Some(JsBoolean(optional)) => optional
+          case None                      => false
+          case other =>
+            throw new Exception(s"invalid native 'optional' value ${other}")
+        }
+        key -> fromNative(cls, optional)
+      case other =>
+        throw new Exception(s"invalid native input/output spec field ${other}")
+    }
+  }
+
   // Get a human readable type name
   // Int ->   "Int"
   // Array[Int] -> "Array[Int]"
