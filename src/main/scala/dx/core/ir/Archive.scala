@@ -1,26 +1,123 @@
 package dx.core.ir
 
-import java.io.{BufferedInputStream, FileInputStream, FileOutputStream}
 import java.nio.charset.Charset
 import java.nio.file.{Files, Path, Paths}
 
 import dx.core.ir.Type._
 import dx.core.ir.Value._
-import dx.util.FileUtils
-import org.apache.commons.compress.archivers.tar.{
-  TarArchiveEntry,
-  TarArchiveInputStream,
-  TarArchiveOutputStream
-}
-import org.apache.commons.compress.utils.IOUtils
+import dx.util.{FileUtils, JsUtils, Logger, SysUtils}
 import spray.json._
 
+case class SquashFs(archiveFile: Path)(
+    val mountPoint: Path = Files.createTempDirectory(archiveFile.getFileName.toString),
+    logger: Logger = Logger.get
+) {
+  private var mounted: Boolean = false
+  private lazy val isLinux = System.getProperty("os.name").toLowerCase.startsWith("linux")
+
+  def isMounted: Boolean = mounted
+
+  /**
+    * Mounts the archive if it has not already been mounted.
+    */
+  def mount(): Unit = {
+    if (!mounted) {
+      try {
+        if (isLinux) {
+          SysUtils.execCommand(s"mount -t squashfs ${archiveFile.toString} ${mountPoint.toString}")
+        } else {
+          SysUtils.execCommand(s"squashfuse ${archiveFile.toString} ${mountPoint.toString}")
+        }
+        mounted = true
+      } catch {
+        case ex: Throwable =>
+          throw new RuntimeException(s"unable to mount archive ${archiveFile} at ${mountPoint}", ex)
+      }
+    }
+  }
+
+  /**
+    * Unmounts the archive if it has previously been mounted.
+    */
+  def unmount(): Unit = {
+    if (isMounted) {
+      try {
+        SysUtils.execCommand(s"umount ${mountPoint.toString}")
+        mounted = false
+      } catch {
+        case ex: Throwable =>
+          logger.error(s"error unmounting archive at ${mountPoint}", Some(ex))
+      }
+    }
+  }
+
+  /**
+    * Resolves the given relative path within the mounted directory.
+    */
+  def resolve(path: String): Path = {
+    mountPoint.resolve(path)
+  }
+
+  /**
+    * Resolves the given relative path within the mounted directory.
+    */
+  def resolve(path: Path): Path = {
+    mountPoint.resolve(path)
+  }
+
+  private lazy val appendDir: Path = Files.createTempDirectory("append")
+
+  /**
+    * Appends a file to the archive. Throws an exception if the archive has already been
+    * mounted. We *could* simply unmount and remount the file system after the append,
+    * but this might cause problems for another thread/process trying to access the file
+    * system.
+    * @param path path to the file to add to the archive
+    * @param parentDir parent directory to which to relativize `path` - if None, the
+    *                  file is added to the root of the fs
+    * @param removeOriginal remove the original file after it has been added to the
+    *                       archive
+    */
+  def append(path: Path, parentDir: Option[Path] = None, removeOriginal: Boolean = false): Unit = {
+    try {
+      if (parentDir.isDefined && parentDir != path.getParent) {
+        // mksquashfs can't easily add a specific file in a subdir, so we need to
+        // create a temp directory with the desired sub-directory structure, then
+        // create a hard link to the file within the leaf dir, then append the file,
+        // and finally delete the link
+        val lnDir = appendDir.resolve(parentDir.get.relativize(path.getParent))
+        val lnFile = lnDir.resolve(path.getFileName)
+        SysUtils.execCommand(
+            s"""mkdir -p ${lnDir.toString}
+               |&& ln ${path} ${lnFile.toString}
+               |&& mksquashfs ${appendDir.toString} ${archiveFile.toString} -quiet
+               |&& rm -Rf ${appendDir}/*""".stripMargin.replaceAll("\n", " ")
+        )
+      } else {
+        SysUtils.execCommand(s"mksquashfs ${path} ${archiveFile} -quiet")
+      }
+    } catch {
+      case ex: Throwable =>
+        throw new RuntimeException(s"error adding ${path} to archive ${archiveFile}", ex)
+    }
+    if (removeOriginal) {
+      try {
+        Files.delete(path)
+      } catch {
+        case ex: Throwable =>
+          logger.error(s"error deleting ${path} after adding it to archive ${archiveFile}",
+                       Some(ex))
+      }
+    }
+  }
+}
+
 /**
-  * An Archive is a TAR file that contains 1) a JSON file (called manifest.json)
+  * An Archive is a squashfs image that contains 1) a JSON file (called manifest.json)
   * with the serialized representation of a complex value, along with its serialized
   * type information, and 2) the files referenced by all of the VFile values nested
   * within the complex value.
-  * TODO: add option to support compressing the TAR
+  * TODO: add option to support compressing the file system
   */
 trait Archive {
   val path: Path
@@ -115,54 +212,24 @@ case class PackedArchive(path: Path, encoding: Charset = FileUtils.DefaultEncodi
   }
 
   override val localized: Boolean = false
-  private var isOpen = false
-
-  private lazy val tarStream: TarArchiveInputStream =
-    try {
-      val inputStream = new FileInputStream(path.toFile)
-      val tarStream = new TarArchiveInputStream(if (inputStream.markSupported()) {
-        inputStream
-      } else {
-        new BufferedInputStream(inputStream)
-      })
-      isOpen = true
-      tarStream
-    } catch {
-      case ex: Throwable =>
-        throw new Exception(s"invalid WDL value archive ${path}", ex)
-    }
-
-  private object iterator extends Iterator[TarArchiveEntry] {
-    private var currentEntry: TarArchiveEntry = _
-
-    override def hasNext: Boolean = {
-      currentEntry = tarStream.getNextTarEntry
-      currentEntry != null
-    }
-
-    override def next(): TarArchiveEntry = currentEntry
-  }
+  private val archive: SquashFs = SquashFs(path)()
+  private lazy val manifestPath: Path = archive.resolve(Archive.ManifestFile)
 
   private def readManifest: (Type, Value) = {
-    if (isOpen) {
-      throw new RuntimeException("manifest has already been read")
+    if (!archive.isMounted) {
+      archive.mount()
     }
-    if (!iterator.hasNext) {
-      throw new RuntimeException(s"invalid archive file: missing ${Archive.ManifestFile}")
-    }
-    val manifestEntry = iterator.next()
-    if (manifestEntry.isFile && manifestEntry.getName == Archive.ManifestFile) {
-      val contents = new String(IOUtils.toByteArray(tarStream), encoding)
-      val manifestJs = contents.parseJson.asJsObject
-      val (irType, _) = TypeSerde.deserializeOne(manifestJs, typeAliases.get)
-      val irValue =
-        ValueSerde.deserializeWithType(manifestJs.fields(Archive.ManifestValueKey), irType)
-      (irType, irValue)
-    } else {
-      throw new RuntimeException(
-          s"invalid archive file: expected first entry to be ${Archive.ManifestFile}, not ${manifestEntry}"
-      )
-    }
+    val manifestJs =
+      try {
+        JsUtils.jsFromFile(manifestPath).asJsObject
+      } catch {
+        case ex: Throwable =>
+          throw new RuntimeException(s"unable to read archive manifest ${manifestPath}", ex)
+      }
+    val (irType, _) = TypeSerde.deserializeOne(manifestJs, typeAliases.get)
+    val irValue =
+      ValueSerde.deserializeWithType(manifestJs.fields(Archive.ManifestValueKey), irType)
+    (irType, irValue)
   }
 
   override lazy val (irType: Type, irValue: Value) = {
@@ -172,39 +239,37 @@ case class PackedArchive(path: Path, encoding: Charset = FileUtils.DefaultEncodi
   /**
     * Unpacks the files in the archive relative to the given parent dir, and updates
     * the paths within `irValue` and returns a new Archive object.
-    * @param parentDir the directory in which to localize files
+    * @param name the name of the variable associated with this archive
     * @return the updated Archive object and a Vector of localized paths
     */
-  def localize(parentDir: Path, name: Option[String] = None): (LocalizedArchive, Vector[Path]) = {
+  def localize(name: Option[String] = None): (LocalizedArchive, Vector[Path]) = {
     def transformer(relPath: Path): Path = {
-      parentDir.resolve(relPath)
+      archive.resolve(relPath)
     }
 
     // make sure these lazy vals have been instantiated
     val (t, v) = (irType, irValue)
     val (localizedValue, filePaths) = Archive.transformPaths(v, t, transformer)
-    val unpackedArchive = LocalizedArchive(t, localizedValue)(Some(path, v), Some(parentDir), name)
+    val unpackedArchive =
+      LocalizedArchive(t, localizedValue)(Some(archive, v), Some(archive.mountPoint), name)
     (unpackedArchive, filePaths.values.toVector)
   }
 
   def close(): Unit = {
-    if (isOpen) {
-      tarStream.close()
-    }
+    archive.unmount()
   }
 }
 
 /**
   * Represents an archive file that has been localized, i.e. the files referenced
-  * in its `irValue` are localized on disk. It could be a previously packed
-  * archive or a new archive that has not yet been packed.
-  *
-  * Either `packedPathAndValue` or `parentDir` must be specified.
+  * in its `irValue` have absolute paths to files within a squasfs image that is
+  * mounted on disk. It could be a previously packed archive or a new archive.
   * @param irType WdlType
   * @param irValue WdlValue
   * @param encoding character encoding of contained files
-  * @param packedPathAndValue optional path and delocalized value of a PackedArchive
-  *                           from which this LocalizedArchive was created
+  * @param packedArchiveAndValue optional archive file and delocalized value of a
+  *                              PackedArchive from which this LocalizedArchive
+  *                              was created
   * @param parentDir optional Path to which files in the archive are relativeized
   *                  when packing.
   * @param name an optional name that will be used to prefix the randomly-generated
@@ -214,52 +279,49 @@ case class LocalizedArchive(
     irType: Type,
     irValue: Value,
     encoding: Charset = FileUtils.DefaultEncoding
-)(packedPathAndValue: Option[(Path, Value)] = None,
+)(packedArchiveAndValue: Option[(SquashFs, Value)] = None,
   parentDir: Option[Path] = None,
   name: Option[String] = None)
     extends Archive {
-  assert(packedPathAndValue.isDefined || parentDir.isDefined)
   override val localized: Boolean = true
 
-  override lazy val path: Path = {
-    packedPathAndValue
+  private lazy val archive: SquashFs = {
+    packedArchiveAndValue
       .map(_._1)
-      .getOrElse(Files.createTempFile(name.getOrElse("archive"), ".tar"))
+      .getOrElse(SquashFs(Files.createTempFile(name.getOrElse("archive"), ".img"))())
   }
 
-  private def createArchive(path: Path, t: Type, v: Value, filePaths: Map[Path, Path]): Unit = {
+  override lazy val path: Path = archive.archiveFile
+
+  private def createArchive(t: Type, v: Value, filePaths: Map[Path, Path]): Unit = {
     val manifest = JsObject(
         TypeSerde.serializeOne(t).fields ++ Map(Archive.ManifestValueKey -> ValueSerde.serialize(v))
     )
-    val manifestBytes = manifest.prettyPrint.getBytes(encoding)
-    val tarStream = new TarArchiveOutputStream(new FileOutputStream(path.toFile))
     try {
-      // write the manifest
-      val manifestEntry = new TarArchiveEntry(Archive.ManifestFile)
-      manifestEntry.setSize(manifestBytes.size)
-      tarStream.putArchiveEntry(manifestEntry)
-      tarStream.write(manifestBytes)
-      tarStream.closeArchiveEntry()
+      // write the manifest to a temp file
+      val manifestDir = Files.createTempDirectory("manifest")
+      val manifestPath = manifestDir.resolve(Archive.ManifestFile)
+      JsUtils.jsToFile(manifest, manifestPath)
+      // add the manifest to the archive
+      archive.append(manifestPath, Some(manifestDir), removeOriginal = true)
       // write each file
       filePaths.foreach {
         case (absPath, relPath) =>
-          val dirEntry = new TarArchiveEntry(absPath.toFile, relPath.toString)
-          tarStream.putArchiveEntry(dirEntry)
-          Files.copy(absPath, tarStream)
-          tarStream.closeArchiveEntry()
+          archive.append(absPath, Some(relPath), removeOriginal = true)
       }
-    } finally {
-      tarStream.close()
+    } catch {
+      case ex: Throwable =>
+        throw new RuntimeException(s"error writing archive to ${path}", ex)
     }
   }
 
   lazy val pack: PackedArchive = {
-    val delocalizedValue = packedPathAndValue.map(_._2).getOrElse {
+    val delocalizedValue = packedArchiveAndValue.map(_._2).getOrElse {
       def transformer(absPath: Path): Path = {
         parentDir.get.relativize(absPath)
       }
       val (delocalizedValue, filePaths) = Archive.transformPaths(irValue, irType, transformer)
-      createArchive(path, irType, delocalizedValue, filePaths)
+      createArchive(irType, delocalizedValue, filePaths)
       delocalizedValue
     }
     PackedArchive(path, encoding)(packedTypeAndValue = Some(irType, delocalizedValue))

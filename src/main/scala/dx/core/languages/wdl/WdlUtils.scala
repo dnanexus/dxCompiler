@@ -571,7 +571,11 @@ object WdlUtils {
           )
       }
     }
-    inner(value, wdlType, name)
+    (wdlType, value) match {
+      // TODO: fixme
+      case (_: T_Collection, VArchive(path)) => V_File(path)
+      case _                                 => inner(value, wdlType, name)
+    }
   }
 
   private def ensureUniformType(exprs: Iterable[TAT.Expr]): T = {
