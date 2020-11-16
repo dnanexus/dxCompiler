@@ -248,7 +248,7 @@ object TypeSerde {
     fields.map {
       case JsObject(field) =>
         val name = field.get("name") match {
-          case JsString(name) => name
+          case Some(JsString(name)) => name
           case _ =>
             throw new Exception(s"invalid or missing name for field ${fields}")
         }
