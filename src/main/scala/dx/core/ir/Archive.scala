@@ -75,14 +75,14 @@ case class SquashFs(archiveFile: Path)(
     * mounted. We *could* simply unmount and remount the file system after the append,
     * but this might cause problems for another thread/process trying to access the file
     * system.
-    * @param srcPath path to the file to add to the archive
-    * @param destPath destination path within the archive
+    * @param files map from absolute source path to target name
+    * @param subdir optional subdir to place the files in within the archive
     * @param removeOriginal remove the original file after it has been added to the
     *                       archive
     */
-  def append(srcPath: Path,
-             destPath: Option[Path] = None,
-             removeOriginal: Boolean = false): Unit = {
+  def appendAll(files: Vector[Path],
+                subdir: Option[Path] = None,
+                removeOriginal: Boolean = false): Unit = {
     if (isMounted) {
       throw new RuntimeException("cannot append to an archive that is mounted")
     }
@@ -94,34 +94,45 @@ case class SquashFs(archiveFile: Path)(
       "-quiet"
     }
     try {
-      if (destPath.isDefined) {
+      if (subdir.isDefined) {
         // mksquashfs can't easily add a specific file in a subdir, so we need to
         // create a temp directory with the desired sub-directory structure, then
-        // create a hard link to the file within the leaf dir, then append the file,
-        // and finally delete the link
-        val lnFile = appendDir.resolve(destPath.get)
+        // create hard links to the files within the leaf dir, then append the files,
+        // and finally delete the links
+        val lnDir = appendDir.resolve(subdir.get)
         SysUtils.execCommand(
-            s"""mkdir -p ${lnFile.getParent.toString}
-               |&& ln ${srcPath} ${lnFile.toString}
+            s"""mkdir -p ${lnDir}
+               |&& ln ${files.mkString(" ")} ${lnDir}
                |&& mksquashfs ${appendDir.toString} ${archiveFile.toString} ${opts}
                |&& rm -Rf ${appendDir}/*""".stripMargin.replaceAll("\n", " ")
         )
       } else {
-        SysUtils.execCommand(s"mksquashfs ${srcPath.toString} ${archiveFile.toString} ${opts}")
+        SysUtils.execCommand(
+            s"mksquashfs ${files.mkString(" ")} ${archiveFile.toString} ${opts}"
+        )
       }
     } catch {
       case ex: Throwable =>
-        throw new RuntimeException(s"error adding ${srcPath} to archive ${archiveFile}", ex)
+        throw new RuntimeException(
+            s"error adding files (${files.mkString(",")}) to archive ${archiveFile}",
+            ex
+        )
     }
     if (removeOriginal) {
-      try {
-        Files.delete(srcPath)
-      } catch {
-        case ex: Throwable =>
-          logger.error(s"error deleting ${srcPath} after adding it to archive ${archiveFile}",
-                       Some(ex))
+      files.foreach { srcPath =>
+        try {
+          Files.delete(srcPath)
+        } catch {
+          case ex: Throwable =>
+            logger.error(s"error deleting ${srcPath} after adding it to archive ${archiveFile}",
+                         Some(ex))
+        }
       }
     }
+  }
+
+  def append(file: Path, subdir: Option[Path] = None, removeOriginal: Boolean = false): Unit = {
+    appendAll(Vector(file), subdir, removeOriginal)
   }
 }
 
@@ -329,12 +340,13 @@ case class LocalizedArchive(
       val manifestDir = Files.createTempDirectory("manifest")
       val manifestPath = manifestDir.resolve(Archive.ManifestFile)
       JsUtils.jsToFile(manifest, manifestPath)
-      // add the manifest to the archive
+      // add the manifest to the root of the archive
       archive.append(manifestPath, removeOriginal = true)
-      // write each file
-      files.foreach {
-        case (absPath, relPath) =>
-          archive.append(absPath, Some(relPath), removeOriginal = true)
+      // write each group of files, where files are grouped
+      // by their target subdirectory within the archive
+      files.groupMap(_._2.getParent)(_._1).foreach {
+        case (relParent, srcFiles) =>
+          archive.appendAll(srcFiles.toVector, Some(relParent), removeOriginal = true)
       }
     } catch {
       case ex: Throwable =>
@@ -344,13 +356,8 @@ case class LocalizedArchive(
 
   lazy val pack: PackedArchive = {
     val delocalizedValue = packedArchiveAndValue.map(_._2).getOrElse {
-      // we have to put each file in its own subdir because
-      // 1. we don't want to append more than one file at a time to
-      //    avoid using more disk space than necessary
-      // 2. squashfs cannot append a file to an existing directory
-      val numIter: Iterator[Path] = Iterator.from(0).map(i => Paths.get(i.toString))
       def transformer(absPath: Path): Path = {
-        numIter.next().resolve(absPath.getFileName)
+        parentDir.get.relativize(absPath)
       }
       val (delocalizedValue, filePaths) = Archive.transformPaths(irValue, irType, transformer)
       createArchive(irType, delocalizedValue, filePaths)

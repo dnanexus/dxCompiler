@@ -70,10 +70,10 @@ logLevel in assembly := Level.Info
 assemblyOutputPath in assembly := file("applet_resources/resources/dxWDL.jar")
 assemblyMergeStrategy in assembly := customMergeStrategy.value
 
-val dxApiVersion = "0.1.3"
+val dxApiVersion = "0.1.4"
 val dxCommonVersion = "0.2.2"
-val dxFileAccessProtocolsVersion = "0.1.1"
-val wdlToolsVersion = "0.10.6"
+val dxFileAccessProtocolsVersion = "0.1.2"
+val wdlToolsVersion = "0.10.7"
 val typesafeVersion = "1.3.3"
 val sprayVersion = "1.3.5"
 val jacksonVersion = "2.11.0"

@@ -16,7 +16,7 @@ class ArchiveTest extends AnyFlatSpec with Matchers {
     val archiveFile = tmpDir.resolve("test.img")
     val fs = SquashFs(archiveFile)()
     fs.isMounted shouldBe false
-    fs.append(file, Some(Paths.get("sub/file.txt")), removeOriginal = true)
+    fs.append(file, Some(Paths.get("sub")), removeOriginal = true)
     Files.exists(file) shouldBe false
     fs.mount()
     fs.isMounted shouldBe true
@@ -33,13 +33,22 @@ class ArchiveTest extends AnyFlatSpec with Matchers {
 
   it should "create an archive" in {
     val tmpDir = Files.createTempDirectory("archive")
-    val subDir = tmpDir.resolve("sub")
-    val file1 = subDir.resolve("file1.txt")
-    val file2 = subDir.resolve("file2.txt")
+    val subDir1 = tmpDir.resolve("sub1")
+    val file1 = subDir1.resolve("file1.txt")
+    val file2 = subDir1.resolve("file2.txt")
+    val subDir2 = tmpDir.resolve("sub2")
+    val file3 = subDir2.resolve("file3.txt")
     FileUtils.writeFileContent(file1, "file1")
     FileUtils.writeFileContent(file2, "file2")
+    FileUtils.writeFileContent(file3, "file3")
     val structType = TSchema("Files", Map("files" -> TArray(TFile)))
-    val value = VHash(Map("files" -> VArray(Vector(VFile(file1.toString), VFile(file2.toString)))))
+    val value = VHash(
+        Map(
+            "files" -> VArray(
+                Vector(VFile(file1.toString), VFile(file2.toString), VFile(file3.toString))
+            )
+        )
+    )
     val unpacked = LocalizedArchive(structType, value)(parentDir = Some(tmpDir), name = Some("foo"))
     unpacked.localized shouldBe true
     unpacked.isOpen shouldBe false
@@ -50,8 +59,11 @@ class ArchiveTest extends AnyFlatSpec with Matchers {
     packed.irValue shouldBe VHash(
         Map(
             "files" -> VArray(
-                Vector(VFile(Paths.get("0").resolve("file1.txt").toString),
-                       VFile(Paths.get("1").resolve("file2.txt").toString))
+                Vector(
+                    VFile(Paths.get("sub1").resolve("file1.txt").toString),
+                    VFile(Paths.get("sub1").resolve("file2.txt").toString),
+                    VFile(Paths.get("sub2").resolve("file3.txt").toString)
+                )
             )
         )
     )
@@ -62,8 +74,11 @@ class ArchiveTest extends AnyFlatSpec with Matchers {
     packed2.irValue shouldBe VHash(
         Map(
             "files" -> VArray(
-                Vector(VFile(Paths.get("0").resolve("file1.txt").toString),
-                       VFile(Paths.get("1").resolve("file2.txt").toString))
+                Vector(
+                    VFile(Paths.get("sub1").resolve("file1.txt").toString),
+                    VFile(Paths.get("sub1").resolve("file2.txt").toString),
+                    VFile(Paths.get("sub2").resolve("file3.txt").toString)
+                )
             )
         )
     )
@@ -89,6 +104,9 @@ class ArchiveTest extends AnyFlatSpec with Matchers {
       val localizedFile2 = Paths.get(localizedFiles(1))
       localizedFile2.getFileName.toString shouldBe "file2.txt"
       FileUtils.readFileContent(localizedFile2) shouldBe "file2"
+      val localizedFile3 = Paths.get(localizedFiles(2))
+      localizedFile3.getFileName.toString shouldBe "file3.txt"
+      FileUtils.readFileContent(localizedFile3) shouldBe "file3"
     } finally {
       localized.close()
     }
