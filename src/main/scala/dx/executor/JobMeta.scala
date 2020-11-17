@@ -134,7 +134,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 
   def writeOutputs(outputs: Map[String, (Type, Value)]): Unit = {
     getExecutableAttribute("outputSpec").foreach {
-      case JsObject(spec) =>
+      case JsArray(spec) =>
         // check that the actual types are the same as the expected types
         val outputTypes = TypeSerde.fromNativeSpec(spec)
         outputs.foreach {
