@@ -25,7 +25,7 @@ class DxFileAccessProtocolTest extends AnyFlatSpec with Matchers {
          |}
          |""".stripMargin
 
-    val (doc, _) = WdlUtils.parseAndCheckSourceString(wdlCode)
+    val (doc, _) = WdlUtils.parseAndCheckSourceString(wdlCode, "test")
     val privateVariables: Vector[TAT.PrivateVariable] = doc.elements.collect {
       case decl: TAT.PrivateVariable => decl
     }

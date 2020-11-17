@@ -131,11 +131,12 @@ object WdlUtils {
 
   def parseAndCheckSourceString(
       sourceCodeStr: String,
+      name: String,
       fileResolver: FileSourceResolver = FileSourceResolver.get,
       regime: TypeCheckingRegime = TypeCheckingRegime.Moderate,
       logger: Logger = Logger.get
   ): (TAT.Document, Bindings[String, WdlTypes.T_Struct]) = {
-    val sourceCode = StringFileNode(sourceCodeStr)
+    val sourceCode = StringFileNode(sourceCodeStr, name)
     val parser = Parsers(followImports = true, fileResolver = fileResolver, logger = logger)
       .getParser(sourceCode)
     parseAndCheckSource(sourceCode, parser, fileResolver, regime, logger)
