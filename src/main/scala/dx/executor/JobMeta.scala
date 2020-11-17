@@ -157,6 +157,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
             )
           case (key, _) if !outputTypes.contains(key) =>
             logger.warning(s"outputSpec is missing field ${key}")
+          case _ => ()
         }
       case other =>
         throw new Exception(s"invalid outputSpec ${other}")
