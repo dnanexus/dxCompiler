@@ -140,7 +140,12 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
         outputs.foreach {
           case (key, (actualType, _)) if outputTypes.contains(key) =>
             val expectedType = outputTypes(key)
-            if (actualType != expectedType) {
+            val typesEqual = if (Type.isNative(actualType)) {
+              expectedType == actualType
+            } else {
+              Set[Type](Type.THash, Type.TOptional(Type.THash)).contains(expectedType)
+            }
+            if (!typesEqual) {
               throw new Exception(
                   s"""output field ${key} has mismatch between actual type ${actualType} 
                      |and expected type ${expectedType}""".stripMargin.replaceAll("\n", " ")
