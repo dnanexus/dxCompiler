@@ -516,7 +516,7 @@ case class WdlWorkflowSupport(workflow: TAT.Workflow,
       jobMeta.fileResolver.resolve(path) match {
         case local: LocalFileSource => local.canonicalPath.getFileName.toString
         case dx: DxFileSource       => dx.dxFile.getName
-        case other                  => other.toString()
+        case other                  => other.toString
       }
     }
 
