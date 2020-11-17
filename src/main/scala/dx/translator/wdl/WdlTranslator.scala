@@ -10,9 +10,10 @@ import dx.core.languages.Language.Language
 import dx.core.languages.wdl.{VersionSupport, WdlUtils}
 import dx.translator.{InputTranslator, ReorgSettings, Translator, TranslatorFactory}
 import spray.json.{JsArray, JsObject, JsString, JsValue}
-import wdlTools.types.{TypeCheckingRegime, TypeException, WdlTypes, TypedAbstractSyntax => TAT}
+import wdlTools.types.{TypeCheckingRegime, WdlTypes, TypedAbstractSyntax => TAT}
 import wdlTools.types.TypeCheckingRegime.TypeCheckingRegime
-import wdlTools.util.{FileSourceResolver, Logger}
+import dx.util.{FileSourceResolver, Logger}
+import wdlTools.syntax.NoSuchParserException
 
 case class WdlInputTranslator(bundle: Bundle,
                               inputs: Vector[Path],
@@ -202,13 +203,11 @@ case class WdlTranslatorFactory(regime: TypeCheckingRegime = TypeCheckingRegime.
       try {
         VersionSupport.fromSourceFile(sourceFile, fileResolver, regime, dxApi, logger)
       } catch {
-        case ex: TypeException =>
-          // the file could be parsed, so it is WDL, but it failed type checking
-          throw ex
-        case _: Throwable =>
-          // there was some other error, probably a SyntaxException, meaning the
-          // file couldn't be parsed, so it's probably not WDL
-          return None
+        // If the exception is because this is not a WDL document, return
+        // None so other translators will have a chance to try to parse it,
+        // otherwise it is a WDL document with a syntax or type error and
+        // we let those exceptions surface.
+        case _: NoSuchParserException => return None
       }
     if (!language.forall(Language.toWdlVersion(_) == doc.version.value)) {
       throw new Exception(s"WDL document ${sourceFile} is not version ${language.get}")

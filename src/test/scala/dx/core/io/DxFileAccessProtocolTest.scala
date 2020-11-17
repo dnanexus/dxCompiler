@@ -5,10 +5,10 @@ import dx.Tags.ApiTest
 import dx.core.languages.wdl.WdlUtils
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import wdlTools.eval.{Eval, EvalPaths}
+import wdlTools.eval.{Eval, DefaultEvalPaths}
 import wdlTools.syntax.WdlVersion
 import wdlTools.types.{TypedAbstractSyntax => TAT}
-import wdlTools.util.FileSourceResolver
+import dx.util.FileSourceResolver
 
 class DxFileAccessProtocolTest extends AnyFlatSpec with Matchers {
   assume(isLoggedIn)
@@ -30,7 +30,7 @@ class DxFileAccessProtocolTest extends AnyFlatSpec with Matchers {
       case decl: TAT.PrivateVariable => decl
     }
     val fileResolver = FileSourceResolver.create(userProtocols = Vector(DxFileAccessProtocol()))
-    val evaluator = Eval(EvalPaths.empty, Some(WdlVersion.V1), fileResolver)
+    val evaluator = Eval(DefaultEvalPaths.empty, Some(WdlVersion.V1), fileResolver)
     privateVariables.foreach {
       case TAT.PrivateVariable(_, wdlType, expr, _) =>
         // applies the default validation, which tries to resolve files and

@@ -9,8 +9,8 @@ import dx.core.{Constants, ir}
 import dx.core.io.{DxFileAccessProtocol, DxWorkerPaths}
 import dx.core.ir.Type.TInt
 import dx.core.ir.{ParameterLinkSerializer, ParameterLinkValue, Type, TypeSerde}
-import dx.core.languages.wdl.{WdlBlock, WdlUtils => WdlUtils}
-import wdlTools.util.CodecUtils
+import dx.core.languages.wdl.{WdlBlock, WdlUtils}
+import dx.util.CodecUtils
 import dx.executor.{JobMeta, WorkflowAction, WorkflowExecutor, WorkflowSupport}
 import dx.translator.wdl.WdlBundle
 import org.scalatest.flatspec.AnyFlatSpec
@@ -19,7 +19,9 @@ import spray.json._
 import wdlTools.eval.{Eval, WdlValueBindings, WdlValues}
 import wdlTools.syntax.WdlVersion
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
-import wdlTools.util.{FileSourceResolver, FileUtils, Logger}
+import dx.util.{FileSourceResolver, FileUtils, Logger}
+
+import scala.collection.immutable.TreeSeqMap
 
 private case class WorkflowTestJobMeta(override val workerPaths: DxWorkerPaths,
                                        override val dxApi: DxApi = DxApi.get,
@@ -254,7 +256,7 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     }
     results should be(
         Map(
-            "z" -> (WdlTypes.T_Optional(WdlTypes.T_Array(WdlTypes.T_Int, nonEmpty = false)),
+            "z" -> (WdlTypes.T_Optional(WdlTypes.T_Array(WdlTypes.T_Int, nonEmpty = true)),
             WdlValues.V_Null)
         )
     )
@@ -444,10 +446,10 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     )
     results("tot") should be(
         (WdlTypes.T_Struct("House",
-                           Map("height" -> WdlTypes.T_Int,
-                               "num_floors" -> WdlTypes.T_Int,
-                               "street" -> WdlTypes.T_String,
-                               "city" -> WdlTypes.T_String)),
+                           TreeSeqMap("height" -> WdlTypes.T_Int,
+                                      "num_floors" -> WdlTypes.T_Int,
+                                      "street" -> WdlTypes.T_String,
+                                      "city" -> WdlTypes.T_String)),
          WdlValues.V_Struct(
              "House",
              Map(

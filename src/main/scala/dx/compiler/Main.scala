@@ -15,7 +15,7 @@ import dx.core.CliUtils._
 import dx.dxni.DxNativeInterface
 import dx.translator.{Extras, ExtrasParser, TranslatorFactory}
 import spray.json._
-import wdlTools.util.{Enum, FileSourceResolver, FileUtils, Logger, TraceLevel}
+import dx.util.{Enum, FileSourceResolver, FileUtils, Logger, TraceLevel}
 
 /**
   * Compiler CLI.

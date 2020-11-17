@@ -8,7 +8,7 @@ import dx.core.{Constants, getVersion}
 import dx.core.ir.{Block, ExecutableLink, Parameter, ParameterLink, Type, TypeSerde, Value}
 import dx.executor.wdl.WdlWorkflowSupportFactory
 import spray.json._
-import wdlTools.util.{Enum, TraceLevel}
+import dx.util.{Enum, TraceLevel}
 
 object WorkflowAction extends Enum {
   type WorkflowAction = Value

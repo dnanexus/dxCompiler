@@ -8,7 +8,7 @@ import dx.core.io.{DxFileAccessProtocol, DxFileDescCache}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spray.json._
-import wdlTools.util.{FileSourceResolver, Logger}
+import dx.util.{FileSourceResolver, Logger}
 
 class ParameterLinkTest extends AnyFlatSpec with Matchers {
   private val dxApi = DxApi(Logger.Quiet)

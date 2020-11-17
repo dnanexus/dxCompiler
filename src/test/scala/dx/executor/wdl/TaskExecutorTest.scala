@@ -18,7 +18,7 @@ import dx.core.Constants
 import dx.core.io.{DxFileAccessProtocol, DxFileDescCache, DxWorkerPaths}
 import dx.core.ir.{ParameterLink, ParameterLinkDeserializer, ParameterLinkSerializer}
 import dx.core.languages.wdl.{VersionSupport, WdlUtils}
-import wdlTools.util.CodecUtils
+import dx.util.CodecUtils
 import dx.executor.{JobMeta, TaskAction, TaskExecutor}
 import dx.translator.wdl.CodeGenerator
 import org.scalatest.flatspec.AnyFlatSpec
@@ -26,7 +26,7 @@ import org.scalatest.matchers.should.Matchers
 import spray.json._
 import wdlTools.eval.WdlValues
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
-import wdlTools.util.{FileSourceResolver, JsUtils, Logger, SysUtils}
+import dx.util.{FileSourceResolver, JsUtils, Logger, SysUtils}
 
 private case class TaskTestJobMeta(override val workerPaths: DxWorkerPaths,
                                    override val dxApi: DxApi = DxApi.get,

@@ -6,7 +6,7 @@ import dx.core.io.DxFileDescCache
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spray.json._
-import wdlTools.util.Logger
+import dx.util.Logger
 
 class DxFileTest extends AnyFlatSpec with Matchers {
   private val dxApi: DxApi = DxApi(Logger.Quiet)
@@ -124,7 +124,7 @@ class DxFileTest extends AnyFlatSpec with Matchers {
     checkFileDesc(query, createFiles(query, Vector("fileA", "fileB", "test2.test")))
   }
 
-  it should "bulk describe a files with and without project" taggedAs ApiTest in {
+  it should "bulk describe files with and without project" taggedAs ApiTest in {
     val query = Vector(FILE4, FILE6_WO_PROJ, FILE7_WO_PROJ)
     checkFileDesc(query,
                   createFiles(query,

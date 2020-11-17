@@ -10,7 +10,7 @@ import dx.core.ir.Value.VString
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spray.json._
-import wdlTools.util.Logger
+import dx.util.Logger
 
 class ExtrasTest extends AnyFlatSpec with Matchers {
   private val dxApi = DxApi(Logger.Quiet)

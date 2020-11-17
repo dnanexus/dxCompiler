@@ -73,10 +73,9 @@ These are not blocks, because we need a subworkflow to run them:
  */
 package dx.core.languages.wdl
 
-import dx.core.ir.BlockKind.BlockKind
 import dx.core.ir.{Block, BlockKind}
-import wdlTools.eval.{Eval, EvalException, WdlValues, EvalUtils}
-import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT, TypeUtils}
+import wdlTools.eval.{Eval, EvalException, EvalUtils, WdlValues}
+import wdlTools.types.{TypeUtils, WdlTypes, TypedAbstractSyntax => TAT}
 
 /**
   * An input to a Block. These are simlar to the TAT.InputParameters, but there is
@@ -86,12 +85,24 @@ import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT, TypeUtils}
 sealed trait WdlBlockInput {
   val name: String
   val wdlType: WdlTypes.T
+  val kind: InputKind.InputKind
 }
 
 /**
   * A compulsory input that has no default, and must be provided by the caller.
   */
-case class RequiredBlockInput(name: String, wdlType: WdlTypes.T) extends WdlBlockInput
+case class RequiredBlockInput(name: String, wdlType: WdlTypes.T) extends WdlBlockInput {
+  val kind: InputKind.InputKind = InputKind.Required
+}
+
+/**
+  * An input that is required, but it is computed from other
+  * inputs rather than being provided/overridable by the user.
+  * Currently, this is only used for the scatter variable.
+  */
+case class ComputedBlockInput(name: String, wdlType: WdlTypes.T) extends WdlBlockInput {
+  val kind: InputKind.InputKind = InputKind.Computed
+}
 
 /**
   * An input that has a constant default value and may be skipped by the caller.
@@ -99,7 +110,9 @@ case class RequiredBlockInput(name: String, wdlType: WdlTypes.T) extends WdlBloc
 case class OverridableBlockInputWithStaticDefault(name: String,
                                                   wdlType: WdlTypes.T,
                                                   defaultValue: WdlValues.V)
-    extends WdlBlockInput
+    extends WdlBlockInput {
+  val kind: InputKind.InputKind = InputKind.Optional
+}
 
 /**
   * An input that has a default value that is an expression that must be evaluated at runtime,
@@ -108,13 +121,17 @@ case class OverridableBlockInputWithStaticDefault(name: String,
 case class OverridableBlockInputWithDynamicDefault(name: String,
                                                    wdlType: WdlTypes.T,
                                                    defaultExpr: TAT.Expr)
-    extends WdlBlockInput
+    extends WdlBlockInput {
+  val kind: InputKind.InputKind = InputKind.Optional
+}
 
 /**
   * An input that may be omitted by the caller. In that case the value will
   * be null (or None).
   */
-case class OptionalBlockInput(name: String, wdlType: WdlTypes.T) extends WdlBlockInput
+case class OptionalBlockInput(name: String, wdlType: WdlTypes.T) extends WdlBlockInput {
+  val kind: InputKind.InputKind = InputKind.Optional
+}
 
 object WdlBlockInput {
   private lazy val evaluator: Eval = Eval.empty
@@ -143,29 +160,26 @@ object WdlBlockInput {
     }
   }
 
-  def create(inputs: Map[String, (WdlTypes.T, Boolean)]): Vector[WdlBlockInput] = {
+  /**
+    * Creates block inputs.
+    * @param inputs a mapping of input name to (type, kind) tuple
+    * @return
+    */
+  def create(
+      inputs: Map[String, (WdlTypes.T, InputKind.InputKind)]
+  ): Vector[WdlBlockInput] = {
     inputs.map {
-      case (name, (wdlType, optional)) =>
-        if (optional) {
-          OptionalBlockInput(name, wdlType)
-        } else {
-          RequiredBlockInput(name, wdlType)
-        }
+      case (name, (wdlType, InputKind.Required)) => RequiredBlockInput(name, wdlType)
+      case (name, (wdlType, InputKind.Computed)) => ComputedBlockInput(name, wdlType)
+      case (name, (wdlType, InputKind.Optional)) => OptionalBlockInput(name, wdlType)
     }.toVector
-  }
-
-  def isOptional(inputDef: WdlBlockInput): Boolean = {
-    inputDef match {
-      case _: RequiredBlockInput                      => false
-      case _: OverridableBlockInputWithStaticDefault  => true
-      case _: OverridableBlockInputWithDynamicDefault => true
-      case _: OptionalBlockInput                      => true
-    }
   }
 
   def prettyFormat(input: WdlBlockInput, indent: String = ""): String = {
     input match {
       case RequiredBlockInput(name, wdlType) =>
+        s"${indent}${TypeUtils.prettyFormatType(wdlType)} ${name}"
+      case ComputedBlockInput(name, wdlType) =>
         s"${indent}${TypeUtils.prettyFormatType(wdlType)} ${name}"
       case OverridableBlockInputWithStaticDefault(name, wdlType, defaultValue) =>
         s"${indent}${TypeUtils.prettyFormatType(wdlType)} ${name} = ${EvalUtils.prettyFormat(defaultValue)}"
@@ -210,7 +224,7 @@ case class WdlBlock(index: Int,
   assert(elements.nonEmpty)
   assert(WdlUtils.deepFindCalls(elements.dropRight(1)).isEmpty)
 
-  override lazy val kind: BlockKind = {
+  override lazy val kind: BlockKind.BlockKind = {
     elements.last match {
       case e if WdlUtils.deepFindCalls(Vector(e)).isEmpty =>
         // The block comprises expressions only
@@ -393,7 +407,7 @@ object WdlBlock {
     // convert to blocks - keep only non-empty blocks
     parts.filter(_.nonEmpty).zipWithIndex.map {
       case (v, index) =>
-        val (inputs, outputs) = WdlUtils.getInputOutputClosure(v)
+        val (inputs, outputs) = WdlUtils.getClosureInputsAndOutputs(v, withField = true)
         WdlBlock(index, WdlBlockInput.create(inputs), outputs.values.toVector, v)
     }
   }

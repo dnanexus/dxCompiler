@@ -7,7 +7,7 @@ import dx.Tags.ApiTest
 import dx.api.{DxApi, DxFile, DxProject}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import wdlTools.util.Logger
+import dx.util.Logger
 
 class DxfuseManifestTest extends AnyFlatSpec with Matchers {
   assume(isLoggedIn)
