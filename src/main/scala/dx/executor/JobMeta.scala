@@ -132,26 +132,30 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 
   lazy val outputSerializer: ParameterLinkSerializer = ParameterLinkSerializer(fileResolver, dxApi)
 
+  private def outputTypesEqual(expectedType: Type, actualType: Type): Boolean = {
+    val comparisonType = if (Type.isNative(actualType)) {
+      actualType
+    } else {
+      Type.THash
+    }
+    comparisonType == expectedType || (
+        Type.isOptional(expectedType) && Type.ensureOptional(comparisonType) == expectedType
+    )
+  }
+
   def writeOutputs(outputs: Map[String, (Type, Value)]): Unit = {
     getExecutableAttribute("outputSpec").foreach {
       case JsObject(spec) =>
         // check that the actual types are the same as the expected types
         val outputTypes = TypeSerde.fromNativeSpec(spec)
         outputs.foreach {
-          case (key, (actualType, _)) if outputTypes.contains(key) =>
-            val expectedType = outputTypes(key)
-            val typesEqual = if (Type.isNative(actualType)) {
-              expectedType == actualType
-            } else {
-              Set[Type](Type.THash, Type.TOptional(Type.THash)).contains(expectedType)
-            }
-            if (!typesEqual) {
-              throw new Exception(
-                  s"""output field ${key} has mismatch between actual type ${actualType} 
-                     |and expected type ${expectedType}""".stripMargin.replaceAll("\n", " ")
-              )
-            }
-          case (key, _) =>
+          case (key, (actualType, _))
+              if outputTypes.contains(key) && !outputTypesEqual(outputTypes(key), actualType) =>
+            throw new Exception(
+                s"""output field ${key} has mismatch between actual type ${actualType} 
+                   |and expected type ${outputTypes(key)}""".stripMargin.replaceAll("\n", " ")
+            )
+          case (key, _) if !outputTypes.contains(key) =>
             logger.warning(s"outputSpec is missing field ${key}")
         }
       case other =>
