@@ -324,7 +324,11 @@ abstract class TaskExecutor(jobMeta: JobMeta,
   def instantiateCommand(): Unit = {
     val (schemas, localizedInputs, fileSourceToPath) = readEnv()
     logger.traceLimited(s"InstantiateCommand, env = ${localizedInputs}")
+    // unpack any archive inputs and substitute their true types and values
+
+    // evaluate the command block and write the command script
     val updatedInputs = writeCommandScript(localizedInputs)
+    // write the updated env to disk
     writeEnv(schemas, updatedInputs, fileSourceToPath)
   }
 
