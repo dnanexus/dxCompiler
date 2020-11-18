@@ -2,12 +2,19 @@ package dx.executor
 
 import java.nio.file.{InvalidPathException, Paths}
 
-import dx.core.io.DxWorkerPaths
+import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.CliUtils._
 import dx.util.Enum
 
 object Main {
+  private object StreamFilesOptionSpec
+      extends SingleValueOptionSpec[StreamFiles.StreamFiles](choices = StreamFiles.values.toVector) {
+    override def parseValue(value: String): StreamFiles.StreamFiles =
+      StreamFiles.withNameIgnoreCase(value)
+  }
+
   private val CommonOptions: InternalOptions = Map(
+      "streamFiles" -> StreamFilesOptionSpec,
       "streamAllFiles" -> FlagOptionSpec.default
   )
 
@@ -48,8 +55,12 @@ object Main {
               case _: NoSuchElementException =>
                 return BadUsageTermination(s"Unknown action ${action}")
             }
-          val streamAllFiles = options.getFlag("streamAllFiles")
-          val taskExecutor = TaskExecutor(jobMeta, streamAllFiles)
+          val streamFiles = options.getValue[StreamFiles.StreamFiles]("streamFiles") match {
+            case Some(value)                               => value
+            case None if options.getFlag("streamAllFiles") => StreamFiles.All
+            case None                                      => StreamFiles.PerFile
+          }
+          val taskExecutor = TaskExecutor(jobMeta, streamFiles)
           val successMessage = taskExecutor.apply(taskAction)
           Success(successMessage)
         case ExecutorKind.Workflow =>
@@ -76,7 +87,11 @@ object Main {
     s"""|java -jar dxWDL.jar <task|workflow> <action> <rootdir> [options]
         |
         |Options:
-        |    -streamAllFiles        Mount all files with dxfuse, do not use the download agent
+        |    -streamFiles [all,none,perfile] 
+        |                           Whether to mount all files with dxfuse (do not use the 
+        |                           download agent), to mount no files with dxfuse (only use 
+        |                           download agent), or to allow streaming to be set on a
+        |                           per-file basis (the default).
         |    -traceLevel [0,1,2]    How much debug information to write to the
         |                           job log at runtime. Zero means write the minimum,
         |                           one is the default, and two is for internal debugging.

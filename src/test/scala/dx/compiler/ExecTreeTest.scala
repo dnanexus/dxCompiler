@@ -27,7 +27,7 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
     Paths.get(p)
   }
 
-  private val dxApi = DxApi(Logger.Quiet)
+  private val dxApi = DxApi()(Logger.Quiet)
   private val testProject = "dxWDL_playground"
 
   private lazy val dxTestProject =
@@ -81,7 +81,7 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
     val args = path.toString +: cFlagsLocked
     val retval = Main.compile(args)
     val wf = retval match {
-      case Success(id) => DxWorkflow(dxApi, id, Some(dxTestProject))
+      case Success(id) => DxWorkflow(id, Some(dxTestProject))(dxApi)
       case Failure(msg, Some(exception)) =>
         throw new Exception(s"Unable to compile workflow: ${msg}", exception)
       case Failure(msg, None) =>
@@ -125,7 +125,7 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
     val args = path.toString +: cFlagsLocked
     val retval = Main.compile(args)
     val wf = retval match {
-      case Success(id) => DxWorkflow(dxApi, id, Some(dxTestProject))
+      case Success(id) => DxWorkflow(id, Some(dxTestProject))(dxApi)
       case Failure(msg, Some(exception)) =>
         throw new Exception(s"Unable to compile workflow: ${msg}", exception)
       case Failure(msg, None) =>

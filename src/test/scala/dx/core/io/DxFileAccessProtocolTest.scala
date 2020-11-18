@@ -3,12 +3,13 @@ package dx.core.io
 import dx.Assumptions.isLoggedIn
 import dx.Tags.ApiTest
 import dx.core.languages.wdl.WdlUtils
+import dx.util.FileSourceResolver
+import dx.util.protocols.DxFileAccessProtocol
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import wdlTools.eval.{Eval, DefaultEvalPaths}
 import wdlTools.syntax.WdlVersion
 import wdlTools.types.{TypedAbstractSyntax => TAT}
-import dx.util.FileSourceResolver
 
 class DxFileAccessProtocolTest extends AnyFlatSpec with Matchers {
   assume(isLoggedIn)
@@ -25,7 +26,7 @@ class DxFileAccessProtocolTest extends AnyFlatSpec with Matchers {
          |}
          |""".stripMargin
 
-    val (doc, _) = WdlUtils.parseAndCheckSourceString(wdlCode)
+    val (doc, _) = WdlUtils.parseAndCheckSourceString(wdlCode, "test")
     val privateVariables: Vector[TAT.PrivateVariable] = doc.elements.collect {
       case decl: TAT.PrivateVariable => decl
     }

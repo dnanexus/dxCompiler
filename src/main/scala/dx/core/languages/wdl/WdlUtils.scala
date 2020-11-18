@@ -4,32 +4,26 @@ import java.nio.file.Path
 
 import dx.core.ir.{Type, TypeSerde, Value}
 import dx.core.ir.Type._
-import dx.core.ir.TypeSerde.UnknownTypeException
 import dx.core.ir.Value._
-import dx.core.languages.Language
-import dx.core.languages.Language.Language
-import spray.json.{JsBoolean, JsObject, JsString, JsValue}
+import dx.util.{Bindings, Enum, FileNode, FileSourceResolver, Logger, StringFileNode}
 import wdlTools.eval.{Coercion, EvalUtils}
 import wdlTools.eval.WdlValues._
 import wdlTools.syntax.{
+  NoSuchParserException,
   Parsers,
   SourceLocation,
   SyntaxException,
   WdlParser,
-  WdlVersion,
   AbstractSyntax => AST
 }
-import wdlTools.types.TypeCheckingRegime.TypeCheckingRegime
-import wdlTools.types.WdlTypes.{T_Float, _}
 import wdlTools.types.{
   TypeCheckingRegime,
   TypeException,
   TypeInfer,
   TypeUtils,
-  WdlTypes,
   TypedAbstractSyntax => TAT
 }
-import dx.util.{Bindings, Enum, FileNode, FileSourceResolver, JsUtils, Logger, StringFileNode}
+import wdlTools.types.WdlTypes._
 
 import scala.collection.immutable.{SeqMap, TreeSeqMap}
 
@@ -52,7 +46,7 @@ object InputKind extends Enum {
   */
 case class WdlInputRef(name: String,
                        fieldName: Option[String],
-                       wdlType: WdlTypes.T,
+                       wdlType: T,
                        kind: InputKind.InputKind) {
   // name.fieldName, if fieldName is defined, otherwise name
   lazy val fullyQualifiedName: String = fieldName.map(field => s"${name}.${field}").getOrElse(name)
@@ -60,17 +54,6 @@ case class WdlInputRef(name: String,
 
 object WdlUtils {
   val locPlaceholder: SourceLocation = SourceLocation.empty
-
-  // A self contained WDL workflow
-  def getWdlVersion(language: Language): WdlVersion = {
-    language match {
-      case Language.WdlVDraft2 => WdlVersion.Draft_2
-      case Language.WdlV1_0    => WdlVersion.V1
-      case Language.WdlV2_0    => WdlVersion.V2
-      case other =>
-        throw new Exception(s"Unsupported language version ${other}")
-    }
-  }
 
   def parseSource(sourceCode: FileNode,
                   parser: WdlParser,
@@ -88,9 +71,9 @@ object WdlUtils {
       sourceCode: FileNode,
       parser: WdlParser,
       fileResolver: FileSourceResolver = FileSourceResolver.get,
-      regime: TypeCheckingRegime = TypeCheckingRegime.Moderate,
+      regime: TypeCheckingRegime.TypeCheckingRegime = TypeCheckingRegime.Moderate,
       logger: Logger = Logger.get
-  ): (TAT.Document, Bindings[String, WdlTypes.T_Struct]) = {
+  ): (TAT.Document, Bindings[String, T_Struct]) = {
     val doc = parseSource(sourceCode, parser)
     try {
       val (tDoc, ctx) =
@@ -104,6 +87,25 @@ object WdlUtils {
         )
         throw te
     }
+  }
+
+  def parseAndCheckSourceNode(
+      node: FileNode,
+      fileResolver: FileSourceResolver = FileSourceResolver.get,
+      regime: TypeCheckingRegime.TypeCheckingRegime = TypeCheckingRegime.Moderate,
+      logger: Logger = Logger.get
+  ): (TAT.Document, Bindings[String, T_Struct]) = {
+    val parser =
+      try {
+        Parsers(followImports = true, fileResolver = fileResolver, logger = logger).getParser(node)
+      } catch {
+        case nspe: NoSuchParserException =>
+          logger.error(
+              s"Source code does not appear to be any supported version of WDL -----\n${node.readString}"
+          )
+          throw nspe
+      }
+    parseAndCheckSource(node, parser, fileResolver, regime, logger)
   }
 
   /**
@@ -120,188 +122,68 @@ object WdlUtils {
   def parseAndCheckSourceFile(
       path: Path,
       fileResolver: FileSourceResolver = FileSourceResolver.get,
-      regime: TypeCheckingRegime = TypeCheckingRegime.Moderate,
+      regime: TypeCheckingRegime.TypeCheckingRegime = TypeCheckingRegime.Moderate,
       logger: Logger = Logger.get
-  ): (TAT.Document, Bindings[String, WdlTypes.T_Struct]) = {
-    val sourceCode = fileResolver.fromPath(path)
-    val parser = Parsers(followImports = true, fileResolver = fileResolver, logger = logger)
-      .getParser(sourceCode)
-    parseAndCheckSource(sourceCode, parser, fileResolver, regime, logger)
+  ): (TAT.Document, Bindings[String, T_Struct]) = {
+    parseAndCheckSourceNode(fileResolver.fromPath(path), fileResolver, regime, logger)
   }
 
   def parseAndCheckSourceString(
       sourceCodeStr: String,
+      name: String,
       fileResolver: FileSourceResolver = FileSourceResolver.get,
-      regime: TypeCheckingRegime = TypeCheckingRegime.Moderate,
+      regime: TypeCheckingRegime.TypeCheckingRegime = TypeCheckingRegime.Moderate,
       logger: Logger = Logger.get
-  ): (TAT.Document, Bindings[String, WdlTypes.T_Struct]) = {
-    val sourceCode = StringFileNode(sourceCodeStr)
-    val parser = Parsers(followImports = true, fileResolver = fileResolver, logger = logger)
-      .getParser(sourceCode)
-    parseAndCheckSource(sourceCode, parser, fileResolver, regime, logger)
+  ): (TAT.Document, Bindings[String, T_Struct]) = {
+    parseAndCheckSourceNode(StringFileNode(sourceCodeStr), fileResolver, regime, logger)
   }
 
   // create a wdl-value of a specific type.
-  def getDefaultValueOfType(wdlType: WdlTypes.T,
-                            loc: SourceLocation = WdlUtils.locPlaceholder): TAT.Expr = {
+  def getDefaultValueOfType(wdlType: T, loc: SourceLocation = WdlUtils.locPlaceholder): TAT.Expr = {
     wdlType match {
-      case WdlTypes.T_Boolean => TAT.ValueBoolean(value = true, wdlType, loc)
-      case WdlTypes.T_Int     => TAT.ValueInt(0, wdlType, loc)
-      case WdlTypes.T_Float   => TAT.ValueFloat(0.0, wdlType, loc)
-      case WdlTypes.T_String  => TAT.ValueString("", wdlType, loc)
-      case WdlTypes.T_File    => TAT.ValueString("placeholder.txt", wdlType, loc)
+      case T_Boolean => TAT.ValueBoolean(value = true, wdlType, loc)
+      case T_Int     => TAT.ValueInt(0, wdlType, loc)
+      case T_Float   => TAT.ValueFloat(0.0, wdlType, loc)
+      case T_String  => TAT.ValueString("", wdlType, loc)
+      case T_File    => TAT.ValueString("placeholder.txt", wdlType, loc)
 
       // We could convert an optional to a null value, but that causes
       // problems for the pretty printer.
       // WdlValues.V_OptionalValue(wdlType, None)
-      case WdlTypes.T_Optional(t) => getDefaultValueOfType(t)
+      case T_Optional(t) => getDefaultValueOfType(t)
 
       // The WdlValues.V_Map type HAS to appear before the array types, because
       // otherwise it is coerced into an array. The map has to
       // contain at least one key-value pair, otherwise you get a type error.
-      case WdlTypes.T_Map(keyType, valueType) =>
+      case T_Map(keyType, valueType) =>
         val k = getDefaultValueOfType(keyType)
         val v = getDefaultValueOfType(valueType)
         TAT.ExprMap(TreeSeqMap(k -> v), wdlType, loc)
 
       // an empty array
-      case WdlTypes.T_Array(_, false) =>
+      case T_Array(_, false) =>
         TAT.ExprArray(Vector.empty, wdlType, loc)
 
       // Non empty array
-      case WdlTypes.T_Array(t, true) =>
+      case T_Array(t, true) =>
         TAT.ExprArray(Vector(getDefaultValueOfType(t)), wdlType, loc)
 
-      case WdlTypes.T_Pair(lType, rType) =>
+      case T_Pair(lType, rType) =>
         TAT.ExprPair(getDefaultValueOfType(lType), getDefaultValueOfType(rType), wdlType, loc)
 
-      case WdlTypes.T_Struct(_, typeMap) =>
+      case T_Struct(_, typeMap) =>
         val members = typeMap.map {
           case (fieldName, t) =>
-            val key: TAT.Expr = TAT.ValueString(fieldName, WdlTypes.T_String, loc)
+            val key: TAT.Expr = TAT.ValueString(fieldName, T_String, loc)
             key -> getDefaultValueOfType(t)
         }
         TAT.ExprObject(members, wdlType, loc)
 
-      case WdlTypes.T_Object =>
+      case T_Object =>
         TAT.ExprObject(SeqMap.empty, wdlType, SourceLocation.empty)
 
       case _ => throw new Exception(s"Unhandled type ${wdlType}")
     }
-  }
-
-  def serializeType(t: WdlTypes.T): JsValue = {
-    t match {
-      case T_Boolean         => JsString("Boolean")
-      case T_Int             => JsString("Int")
-      case T_Float           => JsString("Float")
-      case T_String          => JsString("String")
-      case T_File            => JsString("File")
-      case T_Directory       => JsString("Directory")
-      case T_Object          => JsString("Object")
-      case T_Struct(name, _) => JsString(name)
-      case T_Array(memberType, nonEmpty) =>
-        JsObject(
-            Map(
-                "name" -> JsString("Array"),
-                "type" -> serializeType(memberType),
-                "nonEmpty" -> JsBoolean(nonEmpty)
-            )
-        )
-      case T_Pair(lType, rType) =>
-        JsObject(
-            Map(
-                "name" -> JsString("Pair"),
-                "leftType" -> serializeType(lType),
-                "rightType" -> serializeType(rType)
-            )
-        )
-      case T_Map(keyType, valueType) =>
-        JsObject(
-            Map(
-                "name" -> JsString("Map"),
-                "keyType" -> serializeType(keyType),
-                "valueType" -> serializeType(valueType)
-            )
-        )
-      case T_Optional(inner) =>
-        serializeType(inner) match {
-          case name: JsString =>
-            JsObject(Map("name" -> name, "optional" -> JsBoolean(true)))
-          case JsObject(fields) =>
-            JsObject(fields + ("optional" -> JsBoolean(true)))
-          case other =>
-            throw new Exception(s"unhandled inner type ${other}")
-        }
-      case _ =>
-        throw new Exception(s"Unhandled type ${t}")
-    }
-  }
-
-  def simpleFromString(s: String): WdlTypes.T = {
-    s match {
-      case "Boolean"   => T_Boolean
-      case "Int"       => T_Int
-      case "Float"     => T_Float
-      case "String"    => T_String
-      case "File"      => T_File
-      case "Directory" => T_Directory
-      case "Object"    => T_Object
-      case _ if s.endsWith("?") =>
-        simpleFromString(s.dropRight(1)) match {
-          case T_Optional(_) =>
-            throw new Exception(s"nested optional type ${s}")
-          case inner =>
-            T_Optional(inner)
-        }
-      case s if s.contains("[") =>
-        throw new Exception(s"type ${s} is not primitive")
-      case _ =>
-        throw UnknownTypeException(s"Unknown type ${s}")
-    }
-  }
-
-  def deserializeType(jsValue: JsValue, typeAliases: Map[String, WdlTypes.T]): WdlTypes.T = {
-    def resolveType(name: String): WdlTypes.T = {
-      try {
-        simpleFromString(name)
-      } catch {
-        case _: UnknownTypeException if typeAliases.contains(name) =>
-          typeAliases(name)
-      }
-    }
-    def inner(innerValue: JsValue): WdlTypes.T = {
-      innerValue match {
-        case JsString(name) => resolveType(name)
-        case JsObject(fields) =>
-          val t = fields("name") match {
-            case JsString("Array") =>
-              val arrayType = inner(fields("type"))
-              val nonEmpty = fields.get("nonEmpty").exists(JsUtils.getBoolean(_))
-              T_Array(arrayType, nonEmpty)
-            case JsString("Map") =>
-              val keyType = inner(fields("keyType"))
-              val valueType = inner(fields("valueType"))
-              T_Map(keyType, valueType)
-            case JsString("Pair") =>
-              val lType = inner(fields("leftType"))
-              val rType = inner(fields("rightType"))
-              T_Pair(lType, rType)
-            case JsString(name) =>
-              resolveType(name)
-            case _ =>
-              throw new Exception(s"unhandled type value ${innerValue}")
-          }
-          if (fields.get("optional").exists(JsUtils.getBoolean(_))) {
-            T_Optional(t)
-          } else {
-            t
-          }
-        case other =>
-          throw new Exception(s"unexpected type value ${other}")
-      }
-    }
-    inner(jsValue)
   }
 
   // Functions to convert between WDL and IR types and values.
@@ -892,7 +774,7 @@ object WdlUtils {
         // have a fully-qualified name, and that is what we'll need to look up
         // in the evaluation context. In other cases (pair, struct, object), we want a
         // reference to the LHS object, not directly to the field.
-        case TAT.ExprGetName(TAT.ExprIdentifier(callId, WdlTypes.T_Call(_, output), _),
+        case TAT.ExprGetName(TAT.ExprIdentifier(callId, T_Call(_, output), _),
                              fieldName,
                              wdlType,
                              _) if output.contains(fieldName) =>
@@ -906,9 +788,9 @@ object WdlUtils {
         case TAT.ExprGetName(expr, fieldName, wdlType, _) =>
           // throw an exception if the reference is not valid
           TypeUtils.unwrapOptional(expr.wdlType) match {
-            case _: WdlTypes.T_Pair if Set("left", "right").contains(fieldName) => ()
-            case T_Struct(_, members) if members.contains(fieldName)            => ()
-            case WdlTypes.T_Object | WdlTypes.T_Any                             => ()
+            case _: T_Pair if Set("left", "right").contains(fieldName) => ()
+            case T_Struct(_, members) if members.contains(fieldName)   => ()
+            case T_Object | T_Any                                      => ()
             case _ =>
               throw new Exception(
                   s"Unhandled ExprGetName construction ${TypeUtils.prettyFormatExpr(expr)}"
@@ -940,7 +822,7 @@ object WdlUtils {
   ): Vector[WdlInputRef] = {
     // What the callee expects
     call.callee.input.flatMap {
-      case (name: String, (_: WdlTypes.T, optional: Boolean)) =>
+      case (name: String, (_: T, optional: Boolean)) =>
         (call.inputs.get(name), optional) match {
           case (None, false) =>
             // A required input that will have to be provided at runtime
@@ -968,7 +850,7 @@ object WdlUtils {
   def getClosureInputsAndOutputs(
       elements: Vector[TAT.WorkflowElement],
       withField: Boolean
-  ): (Map[String, (WdlTypes.T, InputKind.InputKind)], Map[String, TAT.OutputParameter]) = {
+  ): (Map[String, (T, InputKind.InputKind)], Map[String, TAT.OutputParameter]) = {
     def getOutputs(
         innerElements: Vector[TAT.WorkflowElement],
         innerWithField: Boolean
@@ -1002,7 +884,7 @@ object WdlUtils {
           }
           getOutputs(scatter.body, innerWithField = true).collect {
             case out: TAT.OutputParameter if out.name != scatter.identifier =>
-              out.copy(wdlType = WdlTypes.T_Array(out.wdlType, nonEmpty = nonEmptyOutputArray))
+              out.copy(wdlType = T_Array(out.wdlType, nonEmpty = nonEmptyOutputArray))
           }
       }
     }
@@ -1077,7 +959,7 @@ object WdlUtils {
     * @param outputs output definitions
     * @return
     */
-  def getOutputClosure(outputs: Vector[TAT.OutputParameter]): Map[String, WdlTypes.T] = {
+  def getOutputClosure(outputs: Vector[TAT.OutputParameter]): Map[String, T] = {
     // create inputs from all the expressions that go into outputs
     outputs
       .flatMap {
@@ -1161,7 +1043,7 @@ object WdlUtils {
 case class ValueMap(values: Map[String, V]) {
   def contains(id: String): Boolean = values.contains(id)
 
-  def get(id: String, wdlTypes: Vector[WdlTypes.T] = Vector.empty): Option[V] = {
+  def get(id: String, wdlTypes: Vector[T] = Vector.empty): Option[V] = {
     (values.get(id), wdlTypes) match {
       case (None, _)         => None
       case (value, Vector()) => value

@@ -3,7 +3,6 @@ package dx.core.ir
 import dx.core.ir.Type._
 import dx.core.ir.Value._
 import spray.json._
-import dx.util.JsUtils
 
 object ValueSerde extends DefaultJsonProtocol {
 
@@ -37,26 +36,6 @@ object ValueSerde extends DefaultJsonProtocol {
   def serializeMap(values: Map[String, Value]): Map[String, JsValue] = {
     values.map {
       case (name, value) => name -> serialize(value)
-    }
-  }
-
-  /**
-    * Determines if a JsValue looks like a Map object - a JsObject with "keys" and
-    * "values" keys whose values are arrays of the same length.
-    * @param jsValue the JsValue
-    * @return
-    */
-  def isMapObject(jsValue: JsValue): Boolean = {
-    jsValue match {
-      case JsObject(members) if members.keySet == Set("keys", "values") =>
-        try {
-          val keys = JsUtils.getValues(members("keys"))
-          val values = JsUtils.getValues(members("values"))
-          keys.size == values.size
-        } catch {
-          case _: Throwable => false
-        }
-      case _ => false
     }
   }
 
@@ -137,6 +116,8 @@ object ValueSerde extends DefaultJsonProtocol {
           VHash(members.map {
             case (key, value) => key -> deserialize(value)
           })
+        case _ =>
+          throw new Exception(s"cannot deserialize value ${innerValue} as type ${innerType}")
       }
     }
     inner(jsValue, t)

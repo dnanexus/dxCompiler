@@ -18,7 +18,7 @@ class DxNativeInterfaceTest extends AnyFlatSpec with Matchers with BeforeAndAfte
   assume(isLoggedIn)
   assume(toolkitCallable)
   private val logger = Logger.Quiet
-  private val dxApi = DxApi(logger)
+  private val dxApi = DxApi()(logger)
 
   val testProject = "dxWDL_playground"
 
