@@ -159,7 +159,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       case (uri, JsString(path)) => jobMeta.fileResolver.resolve(uri) -> Paths.get(path)
       case other                 => throw new Exception(s"unexpected path ${other}")
     }
-    val archives = archiveJs.view.mapValues(LocalizedArchive.fromJson).toMap
+    val archives = archiveJs.view.mapValues(LocalizedArchive.fromJson(_, schemas)).toMap
     (newSchemas, inputs, fileSourceToPath, archives)
   }
 
@@ -433,9 +433,22 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     // if we are building archives for complex values, do that here
     // and replace the complex values in localizedOutputs with paths
     // to the archives
+    val outputsDir = Some(jobMeta.workerPaths.getOutputFilesDir(ensureExists = true))
+    val outputsWithArchives = localizedOutputs.map {
+      case (name, _) if archives.contains(name) =>
+        name -> (TFile, VFile(archives(name).pack.path.toString))
+      case (name, (t: TCollection, v)) if jobMeta.outputSpec.get(name).contains(TFile) =>
+        // there is a mismatch between the applet output (a file) and
+        // the WDL output (a complex type) - implies we want to use
+        // an archive to package up the complex type into a single file
+        val archive = LocalizedArchive(t, v)(parentDir = outputsDir, name = Some(name))
+        val packedArchive = archive.pack
+        name -> (TFile, VFile(packedArchive.path.toString))
+      case other => other
+    }
 
     // extract files from the outputs
-    val localOutputFileSources: Vector[AddressableFileNode] = localizedOutputs.flatMap {
+    val localOutputFileSources: Vector[AddressableFileNode] = outputsWithArchives.flatMap {
       case (name, (irType, irValue)) => extractOutputFiles(name, irValue, irType)
     }.toVector
 
@@ -495,7 +508,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       }
     }
 
-    val delocalizedOutputs = localizedOutputs.view.mapValues {
+    val delocalizedOutputs = outputsWithArchives.view.mapValues {
       case (t, v) => (t, ValueSerde.transform(v, Some(t), pathTranslator))
     }.toMap
 

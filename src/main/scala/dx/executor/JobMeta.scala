@@ -99,23 +99,26 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
   lazy val inputDeserializer: ParameterLinkDeserializer =
     ParameterLinkDeserializer(dxFileDescCache, dxApi)
 
+  lazy val inputSpec: Map[String, Type] = {
+    getExecutableAttribute("inputSpec")
+      .map {
+        case JsArray(spec) => TypeSerde.fromNativeSpec(spec)
+        case other         => throw new Exception(s"invalid inputSpec ${other}")
+      }
+      .getOrElse(Map.empty)
+  }
+
   lazy val inputs: Map[String, Value] = {
     // if we have access to the inputSpec, use it to guide deserialization
-    getExecutableAttribute("inputSpec") match {
-      case Some(JsArray(spec)) =>
-        val inputTypes = TypeSerde.fromNativeSpec(spec)
-        jsInputs.map {
-          case (key, value) if inputTypes.contains(key) =>
-            key -> inputDeserializer.deserializeInputWithType(value, inputTypes(key))
-          case (key, value) =>
+    jsInputs.map {
+      case (key, value) =>
+        val irValue = inputSpec.get(key) match {
+          case Some(t) => inputDeserializer.deserializeInputWithType(value, t)
+          case None =>
             logger.warning(s"inputSpec is missing field ${key}")
-            key -> inputDeserializer.deserializeInput(value)
+            inputDeserializer.deserializeInput(value)
         }
-      case None =>
-        logger.warning("no inputSpec available - deserializing inputs without type information")
-        inputDeserializer.deserializeInputMap(jsInputs)
-      case other =>
-        throw new Exception(s"invalid inputSpec ${other}")
+        key -> irValue
     }
   }
 
@@ -150,34 +153,28 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     )
   }
 
-  def getOutputSpec: Map[String, Type] = {
+  lazy val outputSpec: Map[String, Type] = {
     getExecutableAttribute("outputSpec")
       .map {
         case JsArray(spec) => TypeSerde.fromNativeSpec(spec)
-        case other =>
-          throw new Exception(s"invalid outputSpec ${other}")
+        case other         => throw new Exception(s"invalid outputSpec ${other}")
       }
       .getOrElse(Map.empty)
   }
 
   def writeOutputs(outputs: Map[String, (Type, Value)]): Unit = {
-    getExecutableAttribute("outputSpec").foreach {
-      case JsArray(spec) =>
-        // check that the actual types are the same as the expected types
-        val outputTypes = TypeSerde.fromNativeSpec(spec)
-        outputs.foreach {
-          case (key, (actualType, _))
-              if outputTypes.contains(key) && !outputTypesEqual(outputTypes(key), actualType) =>
+    outputs.foreach {
+      case (key, (actualType, _)) =>
+        outputSpec.get(key) match {
+          case Some(t) if !outputTypesEqual(t, actualType) =>
             throw new Exception(
-                s"""output field ${key} has mismatch between actual type ${actualType} 
-                   |and expected type ${outputTypes(key)}""".stripMargin.replaceAll("\n", " ")
+                s"""output field ${key} has mismatch between actual type ${actualType}
+                   |and expected type ${t}""".stripMargin.replaceAll("\n", " ")
             )
-          case (key, _) if !outputTypes.contains(key) =>
+          case None =>
             logger.warning(s"outputSpec is missing field ${key}")
           case _ => ()
         }
-      case other =>
-        throw new Exception(s"invalid outputSpec ${other}")
     }
     // write outputs, ignore null values - these could occur for optional
     // values that were not specified.

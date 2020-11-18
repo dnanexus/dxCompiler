@@ -19,6 +19,7 @@ import spray.json._
   */
 case class SquashFs(image: Path)(
     mountDir: Option[Either[Path, Path]] = None,
+    alreadyMounted: Boolean = false,
     logger: Logger = Logger.get
 ) {
   lazy val mountPoint: Path = {
@@ -30,7 +31,7 @@ case class SquashFs(image: Path)(
         Files.createTempDirectory(image.getFileName.toString)
     }
   }
-  private var mounted: Boolean = false
+  private var mounted: Boolean = alreadyMounted
   // whether the archive file is a placeholder that needs to be deleted
   // before writing the archive
   private var newFile: Boolean = Files.exists(image) && Files.size(image) == 0
@@ -152,21 +153,18 @@ case class SquashFs(image: Path)(
     appendAll(Vector(file), subdir, removeOriginal)
   }
 
+  /**
+    * Note that it is only safe to use this for temporary serialization within
+    * the same worker session.
+    */
   def toJson: JsValue = {
-    val mountPointJs = if (mounted) {
-      JsString(mountPoint.toString)
+    val (mountPointJs, mountDirJs) = if (mounted) {
+      (JsString(mountPoint.toString), JsNull)
     } else {
       mountDir match {
-        case Some(Right(path)) => JsString(path.toString)
-        case _                 => JsNull
-      }
-    }
-    val mountDirJs = if (mounted) {
-      JsNull
-    } else {
-      mountDir match {
-        case Some(Left(path)) => JsString(path.toString)
-        case _                => JsNull
+        case Some(Left(path))  => (JsNull, JsString(path.toString))
+        case Some(Right(path)) => (JsString(path.toString), JsNull)
+        case _                 => (JsNull, JsNull)
       }
     }
     JsObject(
@@ -175,6 +173,30 @@ case class SquashFs(image: Path)(
         "mountDir" -> mountDirJs,
         "mounted" -> JsBoolean(mounted)
     )
+  }
+}
+
+object SquashFs {
+  def fromJson(jsValue: JsValue): SquashFs = {
+    jsValue.asJsObject.getFields("image", "mountPoint", "mountDir", "mounted") match {
+      case Seq(imageJs, mountPointJs, mountDirJs, mountedJs) =>
+        val image = Paths.get(JsUtils.getString(imageJs))
+        val mounted = JsUtils.getBoolean(mountedJs)
+        val mountDir = if (mounted) {
+          Some(Right(Paths.get(JsUtils.getString(mountPointJs))))
+        } else {
+          (mountDirJs, mountPointJs) match {
+            case (JsNull, JsString(path)) => Some(Right(Paths.get(path)))
+            case (JsString(path), JsNull) => Some(Left(Paths.get(path)))
+            case (JsNull, JsNull)         => None
+            case other =>
+              throw new Exception(s"invalid mountPoint and mountDir values ${other}")
+          }
+        }
+        SquashFs(image)(mountDir, mounted)
+      case _ =>
+        throw new Exception(s"invalid serialized SquashFs value ${jsValue}")
+    }
   }
 }
 
@@ -455,5 +477,33 @@ case class LocalizedArchive(
 }
 
 object LocalizedArchive {
-  def fromJson(jsValue: JsValue): LocalizedArchive = {}
+  def fromJson(jsValue: JsValue, schemas: Map[String, TSchema]): LocalizedArchive = {
+    jsValue.asJsObject
+      .getFields("type", "value", "packedValue", "fs", "encoding", "parentDir", "name") match {
+      case Seq(typeJs, valueJs, packedValueJs, fsJs, encodingJs, parentDirJs, nameJs) =>
+        val (irType, _) = TypeSerde.deserializeOne(typeJs, schemas)
+        val irValue = ValueSerde.deserializeWithType(valueJs, irType)
+        val archive = SquashFs.fromJson(fsJs)
+        val packedArchiveAndValue = packedValueJs match {
+          case JsNull => None
+          case v =>
+            val value = ValueSerde.deserializeWithType(v, irType)
+            Some((archive, value))
+        }
+        val encoding = Charset.forName(JsUtils.getString(encodingJs))
+        val parentDir = parentDirJs match {
+          case JsString(path) => Some(Paths.get(path))
+          case JsNull         => None
+          case _              => throw new Exception(s"invalid parentDir ${parentDirJs}")
+        }
+        val name = nameJs match {
+          case JsString(name) => Some(name)
+          case JsNull         => None
+          case _              => throw new Exception(s"invalid name ${nameJs}")
+        }
+        LocalizedArchive(irType, irValue, encoding)(packedArchiveAndValue, parentDir, name)
+      case _ =>
+        throw new Exception(s"invalid serialized LocalizedArchive value ${jsValue}")
+    }
+  }
 }
