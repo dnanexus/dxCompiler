@@ -4,7 +4,7 @@ import java.nio.file.Paths
 
 import dx.AppInternalException
 import dx.api.{DxExecution, DxObject, Field}
-import dx.core.Constants
+import dx.core.{Constants, getVersion => getDxWdlVersion}
 import dx.core.ir.{Block, BlockKind, ExecutableLink, Parameter, ParameterLink, Type, Value}
 import dx.core.ir.Type._
 import dx.core.ir.Value._
@@ -20,13 +20,12 @@ import dx.core.languages.wdl.{
   WdlBlockInput,
   WdlUtils
 }
-import dx.executor.{BlockContext, JobMeta, WorkflowSupport, WorkflowSupportFactory}
+import dx.executor.{BlockContext, JobMeta, WorkflowExecutor}
 import spray.json._
 import wdlTools.eval.{Eval, EvalUtils, WdlValueBindings}
 import wdlTools.eval.WdlValues._
 import wdlTools.exec.{InputOutput, TaskInputOutput}
-import wdlTools.types.TypeCheckingRegime.TypeCheckingRegime
-import wdlTools.types.{TypeCheckingRegime, TypeUtils, TypedAbstractSyntax => TAT}
+import wdlTools.types.{TypeUtils, TypedAbstractSyntax => TAT}
 import wdlTools.types.WdlTypes._
 import dx.util.{JsUtils, Logger, TraceLevel}
 
@@ -39,16 +38,28 @@ case class WorkflowIO(workflow: TAT.Workflow, logger: Logger)
   override protected def outputOrder: Vector[String] = workflow.outputs.map(_.name)
 }
 
-object WdlWorkflowSupport {
+object WdlWorkflowExecutor {
   implicit class FoldLeftWhile[A](trav: IterableOnce[A]) {
     def foldLeftWhile[B](init: B)(where: B => Boolean)(op: (B, A) => B): B = {
       trav.iterator.foldLeft(init)((acc, next) => if (where(acc)) op(acc, next) else acc)
     }
   }
 
+  def create(jobMeta: JobMeta): WdlWorkflowExecutor = {
+    val (doc, typeAliases, versionSupport) =
+      VersionSupport.fromSourceString(jobMeta.sourceCode, jobMeta.fileResolver)
+    val workflow = doc.workflow.getOrElse(
+        throw new RuntimeException("This document should have a workflow")
+    )
+    val tasks = doc.elements.collect {
+      case task: TAT.Task => task.name -> task
+    }.toMap
+    WdlWorkflowExecutor(workflow, versionSupport, tasks, typeAliases.toMap, jobMeta)
+  }
+
   // this method is exposed for unit testing
   def getComplexScatterName(items: Iterator[Option[String]],
-                            maxLength: Int = WorkflowSupport.JobNameLengthLimit): String = {
+                            maxLength: Int = WorkflowExecutor.JobNameLengthLimit): String = {
     // Create a name by concatenating the initial elements of the array.
     // Limit the total size of the name.
     val (_, strings, hasMore) =
@@ -72,12 +83,12 @@ object WdlWorkflowSupport {
   }
 }
 
-case class WdlWorkflowSupport(workflow: TAT.Workflow,
-                              versionSupport: VersionSupport,
-                              tasks: Map[String, TAT.Task],
-                              wdlTypeAliases: Map[String, T_Struct],
-                              jobMeta: JobMeta)
-    extends WorkflowSupport[WdlBlock](jobMeta) {
+case class WdlWorkflowExecutor(workflow: TAT.Workflow,
+                               versionSupport: VersionSupport,
+                               tasks: Map[String, TAT.Task],
+                               wdlTypeAliases: Map[String, T_Struct],
+                               jobMeta: JobMeta)
+    extends WorkflowExecutor[WdlBlock](jobMeta) {
   private val logger = jobMeta.logger
   private lazy val evaluator = Eval(
       jobMeta.workerPaths,
@@ -87,9 +98,13 @@ case class WdlWorkflowSupport(workflow: TAT.Workflow,
   )
   private lazy val workflowIO = WorkflowIO(workflow, jobMeta.logger)
 
-  override def typeAliases: Map[String, TSchema] = WdlUtils.toIRSchemaMap(wdlTypeAliases)
+  override val executorName: String = "dxExecutorWdl"
 
-  override def evaluateInputs(
+  override def getVersion: String = getDxWdlVersion
+
+  override protected def typeAliases: Map[String, TSchema] = WdlUtils.toIRSchemaMap(wdlTypeAliases)
+
+  override protected def evaluateInputs(
       jobInputs: Map[String, (Type, Value)]
   ): Map[String, (Type, Value)] = {
     if (logger.isVerbose) {
@@ -115,7 +130,7 @@ case class WdlWorkflowSupport(workflow: TAT.Workflow,
     }
   }
 
-  override def evaluateOutputs(
+  override protected def evaluateOutputs(
       jobInputs: Map[String, (Type, Value)],
       addReorgStatus: Boolean
   ): Map[String, (Type, Value)] = {
@@ -506,8 +521,8 @@ case class WdlWorkflowSupport(workflow: TAT.Workflow,
     }
 
     private def truncate(scatterName: String): String = {
-      if (scatterName.length > WorkflowSupport.JobNameLengthLimit) {
-        s"${scatterName.substring(0, WorkflowSupport.JobNameLengthLimit - 3)}..."
+      if (scatterName.length > WorkflowExecutor.JobNameLengthLimit) {
+        s"${scatterName.substring(0, WorkflowExecutor.JobNameLengthLimit - 3)}..."
       } else {
         scatterName
       }
@@ -529,10 +544,10 @@ case class WdlWorkflowSupport(workflow: TAT.Workflow,
           }
         case V_Array(array) =>
           val itemStr =
-            WdlWorkflowSupport.getComplexScatterName(array.iterator.map(getScatterName))
+            WdlWorkflowExecutor.getComplexScatterName(array.iterator.map(getScatterName))
           Some(s"[${itemStr}]")
         case V_Map(members) =>
-          val memberStr = WdlWorkflowSupport.getComplexScatterName(
+          val memberStr = WdlWorkflowExecutor.getComplexScatterName(
               members.iterator.map {
                 case (k, v) =>
                   (getScatterName(k), getScatterName(v)) match {
@@ -543,7 +558,7 @@ case class WdlWorkflowSupport(workflow: TAT.Workflow,
           )
           Some(s"{${memberStr}}")
         case V_Object(members) =>
-          val memberStr = WdlWorkflowSupport.getComplexScatterName(
+          val memberStr = WdlWorkflowExecutor.getComplexScatterName(
               members.iterator.map {
                 case (k, v) =>
                   getScatterName(v) match {
@@ -554,7 +569,7 @@ case class WdlWorkflowSupport(workflow: TAT.Workflow,
           )
           Some(s"{${memberStr}}")
         case V_Struct(name, members) =>
-          val memberStr = WdlWorkflowSupport.getComplexScatterName(
+          val memberStr = WdlWorkflowExecutor.getComplexScatterName(
               members.iterator.map {
                 case (k, v) =>
                   getScatterName(v) match {
@@ -621,13 +636,13 @@ case class WdlWorkflowSupport(workflow: TAT.Workflow,
       * @return
       */
     private def createSubjobDetails(nextStart: Option[Int] = None): JsValue = {
-      val parents = jobMeta.getJobDetail(WorkflowSupport.ParentsKey) match {
+      val parents = jobMeta.getJobDetail(WorkflowExecutor.ParentsKey) match {
         case Some(JsArray(array)) => array.map(JsUtils.getString(_))
         case _                    => Vector.empty
       }
       // add the current job to the list of parents
       val allParents = parents :+ jobMeta.jobId
-      val details = Map(WorkflowSupport.ParentsKey -> JsArray(allParents.map(JsString(_))))
+      val details = Map(WorkflowExecutor.ParentsKey -> JsArray(allParents.map(JsString(_))))
       val continueDetails = nextStart match {
         case Some(i) => Map(Constants.ContinueStart -> JsNumber(i))
         case None    => Map.empty
@@ -753,7 +768,7 @@ case class WdlWorkflowSupport(workflow: TAT.Workflow,
           case Seq(JsString(execName), JsObject(details), JsObject(output)) =>
             (execName, details, output)
         }
-      val seqNum = details.get(WorkflowSupport.SeqNumber) match {
+      val seqNum = details.get(WorkflowExecutor.SeqNumber) match {
         case Some(JsNumber(i)) => i.toIntExact
         case other             => throw new Exception(s"Invalid seqNumber ${other}")
       }
@@ -822,7 +837,7 @@ case class WdlWorkflowSupport(workflow: TAT.Workflow,
       * @return
       */
     private def getScatterJobs: Vector[ChildExecution] = {
-      val childExecs = jobMeta.getJobDetail(WorkflowSupport.ParentsKey) match {
+      val childExecs = jobMeta.getJobDetail(WorkflowExecutor.ParentsKey) match {
         case Some(JsArray(array)) =>
           val parentJobIds = array.map(JsUtils.getString(_))
           val excludeJobIds = parentJobIds.toSet + jobMeta.jobId
@@ -956,27 +971,5 @@ case class WdlWorkflowSupport(workflow: TAT.Workflow,
     }
     val prereqEnv = evaluateWorkflowElementVariables(block.prerequisites, inputEnv)
     WdlBlockContext(block, inputEnv ++ prereqEnv)
-  }
-}
-
-case class WdlWorkflowSupportFactory(regime: TypeCheckingRegime = TypeCheckingRegime.Moderate)
-    extends WorkflowSupportFactory {
-  override def create(jobMeta: JobMeta): Option[WdlWorkflowSupport] = {
-    val (doc, typeAliases, versionSupport) =
-      try {
-        VersionSupport.fromSourceString(jobMeta.sourceCode, jobMeta.fileResolver)
-      } catch {
-        case _: Throwable =>
-          return None
-      }
-    val workflow = doc.workflow.getOrElse(
-        throw new RuntimeException("This document should have a workflow")
-    )
-    val tasks = doc.elements.collect {
-      case task: TAT.Task => task.name -> task
-    }.toMap
-    Some(
-        WdlWorkflowSupport(workflow, versionSupport, tasks, typeAliases.toMap, jobMeta)
-    )
   }
 }

@@ -2,11 +2,9 @@ package dx.executor
 
 import dx.AppInternalException
 import dx.api.{DxAnalysis, DxApp, DxApplet, DxExecution, DxFile, DxWorkflow, Field, FolderContents}
-import dx.core.io.DxWorkerPaths
 import dx.core.ir.Type.TSchema
-import dx.core.{Constants, getVersion}
+import dx.core.Constants
 import dx.core.ir.{Block, ExecutableLink, Parameter, ParameterLink, Type, TypeSerde, Value}
-import dx.executor.wdl.WdlWorkflowSupportFactory
 import spray.json._
 import dx.util.{Enum, TraceLevel}
 
@@ -27,39 +25,28 @@ trait BlockContext[B <: Block[B]] {
   def prettyFormat(): String
 }
 
-object WorkflowSupport {
+object WorkflowExecutor {
+  val MaxNumFilesMoveLimit = 1000
+  val IntermediateResultsFolder = "intermediate"
   val SeqNumber = "seqNumber"
   val JobNameLengthLimit = 50
   val ParentsKey = "parents___"
 }
 
-abstract class WorkflowSupport[B <: Block[B]](jobMeta: JobMeta) {
+abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta) {
+  private val dxApi = jobMeta.dxApi
   private val logger = jobMeta.logger
   private val seqNumIter = Iterator.from(1)
 
   protected def nextSeqNum: Int = seqNumIter.next()
 
-  /**
-    *
-    * @return
-    */
-  def typeAliases: Map[String, TSchema]
+  val executorName: String
 
-  /**
-    * Evaluates any expressions in workflow inputs.
-    * @return
-    */
-  def evaluateInputs(jobInputs: Map[String, (Type, Value)]): Map[String, (Type, Value)]
+  def getVersion: String
 
-  /**
-    * Evaluates any expressions in workflow outputs.
-    */
-  def evaluateOutputs(jobInputs: Map[String, (Type, Value)],
-                      addReorgStatus: Boolean): Map[String, (Type, Value)]
+  protected def typeAliases: Map[String, TSchema]
 
-  def evaluateBlockInputs(jobInputs: Map[String, (Type, Value)]): BlockContext[B]
-
-  lazy val execLinkInfo: Map[String, ExecutableLink] =
+  protected lazy val execLinkInfo: Map[String, ExecutableLink] =
     jobMeta.getExecutableDetail("execLinkInfo") match {
       case Some(JsObject(fields)) =>
         fields.map {
@@ -72,19 +59,58 @@ abstract class WorkflowSupport[B <: Block[B]](jobMeta: JobMeta) {
         throw new Exception(s"Bad value ${other}")
     }
 
-  def getExecutableLink(name: String): ExecutableLink = {
+  protected def getExecutableLink(name: String): ExecutableLink = {
     execLinkInfo.getOrElse(
         name,
         throw new AppInternalException(s"Could not find linking information for ${name}")
     )
   }
 
-  lazy val fqnDictTypes: Map[String, Type] =
+  protected lazy val fqnDictTypes: Map[String, Type] =
     jobMeta.getExecutableDetail(Constants.WfFragmentInputTypes) match {
       case Some(jsv) => TypeSerde.deserializeSpec(jsv, typeAliases)
       case other     => throw new Exception(s"Bad value ${other}")
     }
 
+  private lazy val jobInputs: Map[String, (Type, Value)] = jobMeta.jsInputs.collect {
+    case (name, jsValue) if !name.endsWith(ParameterLink.FlatFilesSuffix) =>
+      val fqn = Parameter.decodeDots(name)
+      val irType = fqnDictTypes.getOrElse(
+          fqn,
+          throw new Exception(s"Did not find variable ${fqn} (${name}) in the block environment")
+      )
+      val irValue = jobMeta.inputDeserializer.deserializeInputWithType(jsValue, irType)
+      fqn -> (irType, irValue)
+  }
+
+  protected def evaluateInputs(jobInputs: Map[String, (Type, Value)]): Map[String, (Type, Value)]
+
+  private def evaluateInputs(): Map[String, ParameterLink] = {
+    if (logger.isVerbose) {
+      logger.traceLimited(s"dxWDL version: ${getVersion}")
+      logger.traceLimited(s"Environment: ${jobInputs}")
+      logger.traceLimited("Artificial applet for unlocked workflow inputs")
+    }
+    val inputs = evaluateInputs(jobInputs)
+    jobMeta.createOutputLinks(inputs)
+  }
+
+  protected def evaluateOutputs(jobInputs: Map[String, (Type, Value)],
+                                addReorgStatus: Boolean): Map[String, (Type, Value)]
+
+  private def evaluateOutputs(addReorgStatus: Boolean = false): Map[String, ParameterLink] = {
+    if (logger.isVerbose) {
+      logger.traceLimited(s"dxWDL version: ${getVersion}")
+      logger.traceLimited(s"Environment: ${jobInputs}")
+      logger.traceLimited("Evaluating workflow outputs")
+    }
+    val outputs = evaluateOutputs(jobInputs, addReorgStatus)
+    jobMeta.createOutputLinks(outputs)
+  }
+
+  /**
+    * Evaluates any expressions in workflow outputs.
+    */
   protected def launchJob(executableLink: ExecutableLink,
                           name: String,
                           inputs: Map[String, (Type, Value)],
@@ -114,7 +140,7 @@ abstract class WorkflowSupport[B <: Block[B]](jobMeta: JobMeta) {
             jobName,
             callInputsJs,
             instanceType = instanceType,
-            details = Some(JsObject(WorkflowSupport.SeqNumber -> JsNumber(seqNum))),
+            details = Some(JsObject(WorkflowExecutor.SeqNumber -> JsNumber(seqNum))),
             delayWorkspaceDestruction = jobMeta.delayWorkspaceDestruction
         )
       case applet: DxApplet =>
@@ -122,14 +148,14 @@ abstract class WorkflowSupport[B <: Block[B]](jobMeta: JobMeta) {
             jobName,
             callInputsJs,
             instanceType = instanceType,
-            details = Some(JsObject(WorkflowSupport.SeqNumber -> JsNumber(seqNum))),
+            details = Some(JsObject(WorkflowExecutor.SeqNumber -> JsNumber(seqNum))),
             delayWorkspaceDestruction = jobMeta.delayWorkspaceDestruction
         )
       case workflow: DxWorkflow =>
         workflow.newRun(
             jobName,
             callInputsJs,
-            Some(JsObject(WorkflowSupport.SeqNumber -> JsNumber(seqNum))),
+            Some(JsObject(WorkflowExecutor.SeqNumber -> JsNumber(seqNum))),
             jobMeta.delayWorkspaceDestruction
         )
       case other =>
@@ -137,77 +163,16 @@ abstract class WorkflowSupport[B <: Block[B]](jobMeta: JobMeta) {
     }
     (dxExecution, jobName)
   }
-}
 
-trait WorkflowSupportFactory {
-  def create(jobMeta: JobMeta): Option[WorkflowSupport[_]]
-}
-
-object WorkflowExecutor {
-  val MaxNumFilesMoveLimit = 1000
-  val IntermediateResultsFolder = "intermediate"
-
-  val workflowSupportFactories: Vector[WorkflowSupportFactory] = Vector(
-      WdlWorkflowSupportFactory()
-  )
-
-  def createWorkflowSupport(jobMeta: JobMeta): WorkflowSupport[_] = {
-    workflowSupportFactories
-      .collectFirst { factory =>
-        factory.create(jobMeta) match {
-          case Some(executor) => executor
-        }
-      }
-      .getOrElse(
-          throw new Exception("Cannot determine language/version from source code")
-      )
-  }
-}
-
-case class WorkflowExecutor(jobMeta: JobMeta, dxWorkerPaths: Option[DxWorkerPaths] = None) {
-  private[executor] val workflowSupport: WorkflowSupport[_] =
-    WorkflowExecutor.createWorkflowSupport(jobMeta)
-  private val dxApi = jobMeta.dxApi
-  private val logger = jobMeta.logger
-
-  private lazy val jobInputs: Map[String, (Type, Value)] = jobMeta.jsInputs.collect {
-    case (name, jsValue) if !name.endsWith(ParameterLink.FlatFilesSuffix) =>
-      val fqn = Parameter.decodeDots(name)
-      val irType = workflowSupport.fqnDictTypes.getOrElse(
-          fqn,
-          throw new Exception(s"Did not find variable ${fqn} (${name}) in the block environment")
-      )
-      val irValue = jobMeta.inputDeserializer.deserializeInputWithType(jsValue, irType)
-      fqn -> (irType, irValue)
-  }
-
-  private def evaluateInputs(): Map[String, ParameterLink] = {
-    if (logger.isVerbose) {
-      logger.traceLimited(s"dxWDL version: ${getVersion}")
-      logger.traceLimited(s"Environment: ${jobInputs}")
-      logger.traceLimited("Artificial applet for unlocked workflow inputs")
-    }
-    val inputs = workflowSupport.evaluateInputs(jobInputs)
-    jobMeta.createOutputLinks(inputs)
-  }
-
-  private def evaluateOutputs(addReorgStatus: Boolean = false): Map[String, ParameterLink] = {
-    if (logger.isVerbose) {
-      logger.traceLimited(s"dxWDL version: ${getVersion}")
-      logger.traceLimited(s"Environment: ${jobInputs}")
-      logger.traceLimited("Evaluating workflow outputs")
-    }
-    val outputs = workflowSupport.evaluateOutputs(jobInputs, addReorgStatus)
-    jobMeta.createOutputLinks(outputs)
-  }
+  protected def evaluateBlockInputs(jobInputs: Map[String, (Type, Value)]): BlockContext[B]
 
   private def evaluateFragInputs(): BlockContext[_] = {
     if (logger.isVerbose) {
       logger.traceLimited(s"dxWDL version: ${getVersion}")
-      logger.traceLimited(s"link info=${workflowSupport.execLinkInfo}")
+      logger.traceLimited(s"link info=${execLinkInfo}")
       logger.traceLimited(s"Environment: ${jobInputs}")
     }
-    val blockCtx = workflowSupport.evaluateBlockInputs(jobInputs)
+    val blockCtx = evaluateBlockInputs(jobInputs)
     logger.traceLimited(
         s"""|Block ${jobMeta.blockPath} to execute:
             |${blockCtx.prettyFormat()}
@@ -257,7 +222,7 @@ case class WorkflowExecutor(jobMeta: JobMeta, dxWorkerPaths: Option[DxWorkerPath
         .collect {
           case (name, jsValue) if !name.endsWith(ParameterLink.FlatFilesSuffix) =>
             val fqn = Parameter.decodeDots(name)
-            if (!workflowSupport.fqnDictTypes.contains(fqn)) {
+            if (!fqnDictTypes.contains(fqn)) {
               throw new Exception(
                   s"Did not find variable ${fqn} (${name}) in the block environment"
               )

@@ -4,7 +4,7 @@ import java.nio.file.{InvalidPathException, Paths}
 
 import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.CliUtils._
-import dx.executor.wdl.WdlTaskExecutor
+import dx.executor.wdl.{WdlTaskExecutor, WdlWorkflowExecutor}
 import dx.util.Enum
 
 object Main {
@@ -73,7 +73,7 @@ object Main {
               case _: NoSuchElementException =>
                 return BadUsageTermination(s"Unknown action ${args(0)}")
             }
-          val executor = WorkflowExecutor(jobMeta)
+          val executor = WdlWorkflowExecutor.create(jobMeta)
           val (_, successMessage) = executor.apply(workflowAction)
           Success(successMessage)
         case _ =>
