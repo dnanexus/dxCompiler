@@ -6,6 +6,35 @@ import spray.json._
 
 object ValueSerde extends DefaultJsonProtocol {
 
+  def transform(value: Value,
+                t: Option[Type],
+                transformer: (Value, Boolean) => Option[Value]): Value = {
+    def inner(innerValue: Value, innerType: Option[Type] = None): Value = {
+      val (nonOptType, optional) = if (innerType.exists(Type.isOptional)) {
+        (Some(Type.unwrapOptional(innerType.get)), true)
+      } else {
+        (innerType, false)
+      }
+      transformer(innerValue, optional).getOrElse {
+        (nonOptType, innerValue) match {
+          case (Some(TArray(_, true)), VArray(Vector())) =>
+            throw new Exception("empty array for non-empty array type")
+          case (Some(TArray(t, _)), VArray(vec)) => VArray(vec.map(inner(_, Some(t))))
+          case (None, VArray(vec))               => VArray(vec.map(inner(_)))
+          case (Some(TSchema(name, memberTypes)), VHash(members)) =>
+            VHash(members.map {
+              case (k, _) if !memberTypes.contains(k) =>
+                throw new Exception(s"invalid member ${k} of schema ${name}")
+              case (k, v) => k -> inner(v, Some(memberTypes(k)))
+            })
+          case (_, VHash(members)) => VHash(members.map { case (k, v) => k -> inner(v) })
+          case _                   => innerValue
+        }
+      }
+    }
+    inner(value, t)
+  }
+
   /**
     * Serializes a Value to JSON.
     * @param value the Value to serialize
@@ -26,7 +55,6 @@ object ValueSerde extends DefaultJsonProtocol {
         case VString(s)       => JsString(s)
         case VFile(path)      => JsString(path)
         case VDirectory(path) => JsString(path)
-        case VArchive(path)   => JsString(path)
         case VArray(array)    => JsArray(array.map(inner))
         case VHash(members)   => JsObject(members.view.mapValues(inner).toMap)
       }
@@ -85,8 +113,8 @@ object ValueSerde extends DefaultJsonProtocol {
         case (TFile, JsString(path))                      => VFile(path)
         case (TDirectory, JsString(path))                 => VDirectory(path)
         case (_: TCollection, JsString(path))             =>
-          // assume a complex type with a string value is an archive
-          VArchive(path)
+          // assume a complex type with a string value is an archive file
+          VFile(path)
         case (TArray(_, true), JsArray(array)) if array.isEmpty =>
           throw new Exception(s"Cannot convert empty array to non-empty type ${innerType}")
         case (TArray(t, _), JsArray(array)) =>

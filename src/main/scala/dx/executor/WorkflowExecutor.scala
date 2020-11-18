@@ -81,7 +81,7 @@ abstract class WorkflowSupport[B <: Block[B]](jobMeta: JobMeta) {
 
   lazy val fqnDictTypes: Map[String, Type] =
     jobMeta.getExecutableDetail(Constants.WfFragmentInputTypes) match {
-      case Some(jsv) => TypeSerde.deserialize(jsv, typeAliases)
+      case Some(jsv) => TypeSerde.deserializeSpec(jsv, typeAliases)
       case other     => throw new Exception(s"Bad value ${other}")
     }
 

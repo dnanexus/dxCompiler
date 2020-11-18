@@ -4,6 +4,7 @@ import java.nio.file.{InvalidPathException, Paths}
 
 import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.CliUtils._
+import dx.executor.wdl.WdlTaskExecutor
 import dx.util.Enum
 
 object Main {
@@ -55,12 +56,13 @@ object Main {
               case _: NoSuchElementException =>
                 return BadUsageTermination(s"Unknown action ${action}")
             }
+          val fileUploader = SerialFileUploader()
           val streamFiles = options.getValue[StreamFiles.StreamFiles]("streamFiles") match {
             case Some(value)                               => value
             case None if options.getFlag("streamAllFiles") => StreamFiles.All
             case None                                      => StreamFiles.PerFile
           }
-          val taskExecutor = TaskExecutor(jobMeta, streamFiles)
+          val taskExecutor = WdlTaskExecutor.create(jobMeta, fileUploader, streamFiles)
           val successMessage = taskExecutor.apply(taskAction)
           Success(successMessage)
         case ExecutorKind.Workflow =>

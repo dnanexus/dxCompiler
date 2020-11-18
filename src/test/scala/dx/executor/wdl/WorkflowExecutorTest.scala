@@ -58,7 +58,7 @@ private case class WorkflowTestJobMeta(override val workerPaths: DxWorkerPaths,
           )
       ),
       Constants.SourceCode -> JsString(CodecUtils.gzipAndBase64Encode(rawSourceCode)),
-      Constants.WfFragmentInputTypes -> TypeSerde.serialize(WdlUtils.toIRTypeMap(rawEnv.map {
+      Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(WdlUtils.toIRTypeMap(rawEnv.map {
         case (k, (t, _)) => k -> t
       }))
   )

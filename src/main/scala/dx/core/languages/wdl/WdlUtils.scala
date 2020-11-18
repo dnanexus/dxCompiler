@@ -455,12 +455,12 @@ object WdlUtils {
   }
 
   def toIR(wdl: Map[String, (T, V)]): Map[String, (Type, Value)] = {
-    wdl.map {
-      case (name, (wdlType, wdlValue)) =>
+    wdl.view.mapValues {
+      case (wdlType, wdlValue) =>
         val irType = toIRType(wdlType)
         val irValue = toIRValue(wdlValue, wdlType)
-        name -> (irType, irValue)
-    }
+        (irType, irValue)
+    }.toMap
   }
 
   def fromIRValue(value: Value, name: Option[String]): V = {
@@ -505,19 +505,19 @@ object WdlUtils {
   def fromIRValue(value: Value, wdlType: T, name: String): V = {
     def inner(innerValue: Value, innerType: T, innerName: String): V = {
       (innerType, innerValue) match {
-        case (T_Optional(_), VNull)            => V_Null
-        case (T_Boolean, VBoolean(b))          => V_Boolean(value = b)
-        case (T_Int, VInt(i))                  => V_Int(i)
-        case (T_Float, VFloat(f))              => V_Float(f)
-        case (T_Float, VInt(i))                => V_Float(i.toDouble)
-        case (T_String, VString(s))            => V_String(s)
-        case (T_File, VString(path))           => V_File(path)
-        case (T_File, VFile(path))             => V_File(path)
-        case (T_Directory, VString(path))      => V_Directory(path)
-        case (T_Directory, VDirectory(path))   => V_Directory(path)
-        case (_: T_Collection, VArchive(path)) => V_File(path)
-        case (T_Object, o: VHash)              => fromIRValue(o, Some(innerName))
-        case (T_Optional(t), v)                => V_Optional(inner(v, t, innerName))
+        case (T_Optional(_), VNull)          => V_Null
+        case (T_Boolean, VBoolean(b))        => V_Boolean(value = b)
+        case (T_Int, VInt(i))                => V_Int(i)
+        case (T_Float, VFloat(f))            => V_Float(f)
+        case (T_Float, VInt(i))              => V_Float(i.toDouble)
+        case (T_String, VString(s))          => V_String(s)
+        case (T_File, VString(path))         => V_File(path)
+        case (T_File, VFile(path))           => V_File(path)
+        case (_: T_Collection, VFile(path))  => V_File(path) // an archive file
+        case (T_Directory, VString(path))    => V_Directory(path)
+        case (T_Directory, VDirectory(path)) => V_Directory(path)
+        case (T_Object, o: VHash)            => fromIRValue(o, Some(innerName))
+        case (T_Optional(t), v)              => V_Optional(inner(v, t, innerName))
         case (T_Array(_, true), VArray(array)) if array.isEmpty =>
           throw new Exception(
               s"Empty array with non-empty (+) quantifier"
@@ -572,10 +572,16 @@ object WdlUtils {
           )
       }
     }
-    (wdlType, value) match {
-      // TODO: fixme
-      case (_: T_Collection, VArchive(path)) => V_File(path)
-      case _                                 => inner(value, wdlType, name)
+    inner(value, wdlType, name)
+  }
+
+  def fromIR(ir: Map[String, (Type, Value)],
+             typeAliases: Map[String, T] = Map.empty): Map[String, (T, V)] = {
+    ir.map {
+      case (name, (t, v)) =>
+        val wdlType = fromIRType(t, typeAliases)
+        val wdlValue = fromIRValue(v, wdlType, name)
+        name -> (wdlType, wdlValue)
     }
   }
 

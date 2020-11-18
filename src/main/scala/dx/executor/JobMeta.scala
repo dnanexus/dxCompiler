@@ -31,11 +31,9 @@ import dx.core.ir.{
   ValueSerde
 }
 import dx.core.languages.Language
-import dx.core.languages.wdl.WdlUtils
 import dx.util.{CodecUtils, FileSourceResolver, FileUtils, JsUtils, Logger, TraceLevel}
 import dx.util.protocols.DxFileAccessProtocol
 import spray.json._
-import wdlTools.eval.WdlValues.V
 
 object JobMeta {
   val inputFile = "job_input.json"

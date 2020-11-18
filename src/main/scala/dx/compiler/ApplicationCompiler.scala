@@ -351,13 +351,13 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
           Map(
               Constants.ExecLinkInfo -> JsObject(linkInfo.toMap),
               Constants.BlockPath -> JsArray(blockPath.map(JsNumber(_))),
-              Constants.WfFragmentInputTypes -> TypeSerde.serialize(inputs),
+              Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(inputs),
               Constants.ScatterChunkSize -> JsNumber(scatterChunkSize)
           )
         case ExecutableKindWfInputs | ExecutableKindWfOutputs | ExecutableKindWfCustomReorgOutputs |
             ExecutableKindWorkflowOutputReorg =>
           val types = applet.inputVars.map(p => p.name -> p.dxType).toMap
-          Map(Constants.WfFragmentInputTypes -> TypeSerde.serialize(types))
+          Map(Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(types))
         case _ =>
           Map.empty
       }
