@@ -5,6 +5,7 @@ import java.nio.file.Path
 import dx.api.{DxApi, DxProject}
 import dx.core.ir._
 import dx.core.languages.Language.Language
+import dx.translator.cwl.CwlTranslatorFactory
 import dx.translator.wdl.WdlTranslatorFactory
 import wdlTools.util.{FileSourceResolver, FileUtils, Logger}
 
@@ -30,7 +31,7 @@ trait TranslatorFactory {
 
 object TranslatorFactory {
   private val translatorFactories: Vector[TranslatorFactory] = Vector(
-      WdlTranslatorFactory()
+      WdlTranslatorFactory(), CwlTranslatorFactory()
   )
 
   def createTranslator(source: Path,
