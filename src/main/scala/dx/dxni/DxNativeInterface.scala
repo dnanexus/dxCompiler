@@ -93,12 +93,10 @@ case class DxNativeInterface(fileResolver: FileSourceResolver = FileSourceResolv
 
   /**
     * Generate only apps.
-    * @param output output file
-    * @param force overwrite existing file
     */
   def apply(language: Language, appId: Option[String]): Vector[String] = {
     val generator = getGenerator(language)
-    val apps: Vector[DxApp] = appId.map(id => Vector(DxApp(dxApi, id))).getOrElse(searchApps)
+    val apps: Vector[DxApp] = appId.map(id => Vector(DxApp(id)(dxApi))).getOrElse(searchApps)
     if (apps.nonEmpty) {
       generator.generate(apps, headerLines = appsHeader)
     } else {

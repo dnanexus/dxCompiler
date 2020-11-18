@@ -150,8 +150,9 @@ class ExecutableCompiler(extras: Option[Extras],
     }
   }
 
-  private val InputOnlyKeys: Set[String] =
+  private val InputOnlyKeys: Set[String] = {
     Set(DxIOSpec.Default, DxIOSpec.Choices, DxIOSpec.Suggestions)
+  }
 
   /**
     * Converts an IR Paramter to a native input/output spec.

@@ -13,7 +13,7 @@ import spray.json._
 import dx.util.Logger
 
 class ExtrasTest extends AnyFlatSpec with Matchers {
-  private val dxApi = DxApi(Logger.Quiet)
+  private val dxApi = DxApi()(Logger.Quiet)
   private val extrasParser = ExtrasParser(dxApi)
   private val testProject: String = "dxWDL_playground"
   private lazy val project: DxProject = {
