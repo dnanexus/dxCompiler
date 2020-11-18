@@ -270,9 +270,14 @@ object TypeSerde {
     }
   }
 
-  def fromNativeSpec(fields: Map[String, JsValue]): Map[String, Type] = {
+  def fromNativeSpec(fields: Vector[JsValue]): Map[String, Type] = {
     fields.map {
-      case (key, JsObject(field)) =>
+      case JsObject(field) =>
+        val name = field.get("name") match {
+          case Some(JsString(name)) => name
+          case _ =>
+            throw new Exception(s"invalid or missing name for field ${fields}")
+        }
         val cls = field.get("class") match {
           case Some(JsString(cls)) => cls
           case None                => "string"
@@ -285,10 +290,10 @@ object TypeSerde {
           case other =>
             throw new Exception(s"invalid native 'optional' value ${other}")
         }
-        key -> fromNative(cls, optional)
+        name -> fromNative(cls, optional)
       case other =>
         throw new Exception(s"invalid native input/output spec field ${other}")
-    }
+    }.toMap
   }
 
   // Get a human readable type name

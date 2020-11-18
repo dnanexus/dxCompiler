@@ -5,6 +5,7 @@ import java.nio.file.{Path, Paths}
 import dx.api.DxJob
 import dx.core.getVersion
 import dx.core.io.{DxdaManifest, DxfuseManifest, StreamFiles}
+import dx.core.ir.{Type, Value}
 import dx.executor.wdl.WdlTaskSupportFactory
 import spray.json._
 import dx.util.{AddressableFileNode, AddressableFileSource, Enum, FileUtils, SysUtils, TraceLevel}
@@ -14,8 +15,11 @@ object TaskAction extends Enum {
   val CheckInstanceType, Prolog, InstantiateCommand, Epilog, Relaunch = Value
 }
 
-trait TaskSupport {
+abstract class TaskSupport(jobMeta: JobMeta) {
+
   def getRequiredInstanceType: String
+
+  def getInputsWithDefaults: Map[String, (Type, Value)]
 
   /**
     * For any File- and Directory-typed inputs for which a value is provided, materialize
@@ -171,13 +175,13 @@ case class TaskExecutor(jobMeta: JobMeta,
     val (localizedInputs, fileSourceToPath, dxdaManifest, dxfuseManifest) =
       taskSupport.localizeInputFiles(streamFiles)
 
-    // build a manifest for dxda, if there are files to download
+    // write the manifest for dxda, if there are files to download
     dxdaManifest.foreach {
       case DxdaManifest(manifestJs) =>
         FileUtils.writeFileContent(jobMeta.workerPaths.getDxdaManifestFile(),
                                    manifestJs.prettyPrint)
     }
-    // build a manifest for dxfuse, if there are files to stream
+    // write the manifest for dxfuse, if there are files to stream
     dxfuseManifest.foreach {
       case DxfuseManifest(manifestJs) =>
         FileUtils.writeFileContent(jobMeta.workerPaths.getDxfuseManifestFile(),

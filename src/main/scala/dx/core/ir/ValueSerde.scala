@@ -48,18 +48,16 @@ object ValueSerde extends DefaultJsonProtocol {
     */
   def deserialize(jsValue: JsValue, translator: Option[JsValue => Option[Value]] = None): Value = {
     def inner(innerValue: JsValue): Value = {
-      val v = translator.flatMap(_(innerValue))
-      if (v.isDefined) {
-        return v.get
-      }
-      innerValue match {
-        case JsNull                               => VNull
-        case JsBoolean(b)                         => VBoolean(b.booleanValue)
-        case JsNumber(value) if value.isValidLong => VInt(value.toLongExact)
-        case JsNumber(value)                      => VFloat(value.toDouble)
-        case JsString(s)                          => VString(s)
-        case JsArray(array)                       => VArray(array.map(x => inner(x)))
-        case JsObject(members)                    => VHash(members.view.mapValues(inner).toMap)
+      translator.flatMap(_(innerValue)).getOrElse {
+        innerValue match {
+          case JsNull                               => VNull
+          case JsBoolean(b)                         => VBoolean(b.booleanValue)
+          case JsNumber(value) if value.isValidLong => VInt(value.toLongExact)
+          case JsNumber(value)                      => VFloat(value.toDouble)
+          case JsString(s)                          => VString(s)
+          case JsArray(array)                       => VArray(array.map(x => inner(x)))
+          case JsObject(members)                    => VHash(members.view.mapValues(inner).toMap)
+        }
       }
     }
     inner(jsValue)
@@ -86,6 +84,9 @@ object ValueSerde extends DefaultJsonProtocol {
         case (TString, JsString(s))                       => VString(s)
         case (TFile, JsString(path))                      => VFile(path)
         case (TDirectory, JsString(path))                 => VDirectory(path)
+        case (_: TCollection, JsString(path))             =>
+          // assume a complex type with a string value is an archive
+          VArchive(path)
         case (TArray(_, true), JsArray(array)) if array.isEmpty =>
           throw new Exception(s"Cannot convert empty array to non-empty type ${innerType}")
         case (TArray(t, _), JsArray(array)) =>
@@ -122,13 +123,7 @@ object ValueSerde extends DefaultJsonProtocol {
           throw new Exception(s"cannot deserialize value ${innerValue} as type ${innerType}")
       }
     }
-    (t, jsValue) match {
-      case (_: TCollection, JsString(path)) =>
-        // a complex type with a string value - this indicates an archive value
-        // this is only allowed at the top level (i.e. no nested archives allowed)
-        VArchive(path)
-      case _ => inner(jsValue, t)
-    }
+    inner(jsValue, t)
   }
 
   def deserializeMap(m: Map[String, JsValue]): Map[String, Value] = {

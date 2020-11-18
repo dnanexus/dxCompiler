@@ -151,8 +151,14 @@ trait Archive {
 }
 
 object Archive {
+  val ArchiveFilePrefix = "archive___"
+  val ArchiveFileSuffix = ".img"
   val ManifestFile: String = "manifest.json"
   val ManifestValueKey: String = "value"
+
+  def isArchiveFile(name: String): Boolean = {
+    name.startsWith(ArchiveFilePrefix) && name.endsWith(ArchiveFileSuffix)
+  }
 
   /**
     * Transforms the paths of File-typed values, which may be contained in
@@ -326,7 +332,12 @@ case class LocalizedArchive(
   private lazy val archive: SquashFs = {
     packedArchiveAndValue
       .map(_._1)
-      .getOrElse(SquashFs(Files.createTempFile(name.getOrElse("archive"), ".img"))())
+      .getOrElse(
+          SquashFs(
+              Files.createTempFile(name.getOrElse(Archive.ArchiveFilePrefix),
+                                   Archive.ArchiveFileSuffix)
+          )()
+      )
   }
 
   override lazy val path: Path = archive.archiveFile

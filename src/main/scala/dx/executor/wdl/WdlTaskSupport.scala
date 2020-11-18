@@ -10,7 +10,7 @@ import dx.core.io.{
   DxfuseManifestBuilder,
   StreamFiles
 }
-import dx.core.ir.ParameterLink
+import dx.core.ir.{Archive, Type, Value}
 import dx.core.languages.wdl.{DxMetaHints, Runtime, VersionSupport, WdlUtils}
 import dx.executor.{FileUploader, JobMeta, TaskSupport, TaskSupportFactory}
 import dx.translator.wdl.IrToWdlValueBindings
@@ -64,7 +64,7 @@ case class WdlTaskSupport(task: TAT.Task,
                           typeAliases: Bindings[String, T_Struct],
                           jobMeta: JobMeta,
                           fileUploader: FileUploader)
-    extends TaskSupport {
+    extends TaskSupport(jobMeta) {
 
   private val fileResolver = jobMeta.fileResolver
   private val dxApi = jobMeta.dxApi
@@ -78,20 +78,18 @@ case class WdlTaskSupport(task: TAT.Task,
   )
   private lazy val taskIO = TaskInputOutput(task, logger)
 
+  private lazy val inputTypes: Map[String, T] =
+    task.inputs.map(d => d.name -> d.wdlType).toMap
+
   private def getInputs: Map[String, V] = {
-    val taskInputs = task.inputs.map(inp => inp.name -> inp).toMap
     // convert IR to WDL values; discard auxiliary fields
-    val inputWdlValues: Map[String, V] = jobMeta.inputs.collect {
-      case (name, value) if !name.endsWith(ParameterLink.FlatFilesSuffix) =>
-        val wdlType = taskInputs(name).wdlType
-        name -> WdlUtils.fromIRValue(value, wdlType, name)
+    val inputWdlValues: Map[String, V] = jobMeta.primaryInputs.map {
+      case (name, value) =>
+        name -> WdlUtils.fromIRValue(value, inputTypes(name), name)
     }
     // add default values for any missing inputs
     taskIO.inputsFromValues(inputWdlValues, evaluator, strict = true).toMap
   }
-
-  private lazy val inputTypes: Map[String, T] =
-    task.inputs.map(d => d.name -> d.wdlType).toMap
 
   private def printInputs(inputs: Map[String, V]): Unit = {
     if (logger.isVerbose) {
@@ -101,6 +99,18 @@ case class WdlTaskSupport(task: TAT.Task,
         }
         .mkString("\n")
       logger.traceLimited(s"inputs: ${inputStr}")
+    }
+  }
+
+  override def getInputsWithDefaults: Map[String, (Type, Value)] = {
+    val inputs = getInputs
+    printInputs(inputs)
+    inputs.map {
+      case (name, value) =>
+        val wdlType = inputTypes(name)
+        val irType = WdlUtils.toIRType(wdlType)
+        val irValue = WdlUtils.toIRValue(value, wdlType)
+        name -> (irType, irValue)
     }
   }
 
@@ -207,32 +217,37 @@ case class WdlTaskSupport(task: TAT.Task,
           if (remote.isEmpty) {
             (localFilesToPath ++ local, filesToStream, filesToDownload)
           } else {
-            val stream = streamFiles match {
-              case StreamFiles.All  => true
-              case StreamFiles.None => false
-              case StreamFiles.PerFile =>
-                parameterMeta.get(name) match {
-                  case Some(V_String(DxMetaHints.ParameterMetaStream)) =>
-                    true
-                  case Some(V_Object(fields)) =>
-                    // This enables the stream annotation in the object form of metadata value, e.g.
-                    // bam_file : {
-                    //   stream : true
-                    // }
-                    // We also support two aliases, dx_stream and localizationOptional
-                    fields.view
-                      .filterKeys(
-                          Set(DxMetaHints.ParameterMetaStream,
-                              DxMetaHints.ParameterHintStream,
-                              Hints.LocalizationOptionalKey)
-                      )
-                      .values
-                      .exists {
-                        case V_Boolean(b) => b
-                        case _            => false
-                      }
-                  case _ => false
-                }
+            val stream = if (Archive.isArchiveFile(remote.head.name)) {
+              // archive files cannot be streamed
+              false
+            } else {
+              streamFiles match {
+                case StreamFiles.All  => true
+                case StreamFiles.None => false
+                case StreamFiles.PerFile =>
+                  parameterMeta.get(name) match {
+                    case Some(V_String(DxMetaHints.ParameterMetaStream)) =>
+                      true
+                    case Some(V_Object(fields)) =>
+                      // This enables the stream annotation in the object form of metadata value, e.g.
+                      // bam_file : {
+                      //   stream : true
+                      // }
+                      // We also support two aliases, dx_stream and localizationOptional
+                      fields.view
+                        .filterKeys(
+                            Set(DxMetaHints.ParameterMetaStream,
+                                DxMetaHints.ParameterHintStream,
+                                Hints.LocalizationOptionalKey)
+                        )
+                        .values
+                        .exists {
+                          case V_Boolean(b) => b
+                          case _            => false
+                        }
+                    case _ => false
+                  }
+              }
             }
             if (stream) {
               (localFilesToPath ++ local, filesToStream ++ remote, filesToDownload)
@@ -244,7 +259,10 @@ case class WdlTaskSupport(task: TAT.Task,
 
     // build dxda and/or dxfuse manifests
     // We use a SafeLocalizationDisambiguator to determine the local path and deal
-    // with file name collisions in the manner specified by the WDL spec
+    // with file name collisions in the manner specified by the WDL spec. We set
+    // separateDirsBySource = true because, when creating archives, we append one
+    // directory at a time to the archive and then delete the source files, so the
+    // smaller each append operation is, the less disk overhead is required.
 
     logger.traceLimited(s"downloading files = ${filesToDownload}")
     val downloadLocalizer =
@@ -295,10 +313,8 @@ case class WdlTaskSupport(task: TAT.Task,
           }
         case V_Optional(V_File(uri)) =>
           uriToPath.get(uri) match {
-            case Some(localPath) =>
-              Some(V_Optional(V_File(localPath)))
-            case None =>
-              Some(V_Null)
+            case Some(localPath) => Some(V_Optional(V_File(localPath)))
+            case None            => Some(V_Null)
           }
         case _ => None
       }

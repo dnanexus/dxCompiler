@@ -505,18 +505,19 @@ object WdlUtils {
   def fromIRValue(value: Value, wdlType: T, name: String): V = {
     def inner(innerValue: Value, innerType: T, innerName: String): V = {
       (innerType, innerValue) match {
-        case (T_Optional(_), VNull)          => V_Null
-        case (T_Boolean, VBoolean(b))        => V_Boolean(value = b)
-        case (T_Int, VInt(i))                => V_Int(i)
-        case (T_Float, VFloat(f))            => V_Float(f)
-        case (T_Float, VInt(i))              => V_Float(i.toDouble)
-        case (T_String, VString(s))          => V_String(s)
-        case (T_File, VString(path))         => V_File(path)
-        case (T_File, VFile(path))           => V_File(path)
-        case (T_Directory, VString(path))    => V_Directory(path)
-        case (T_Directory, VDirectory(path)) => V_Directory(path)
-        case (T_Object, o: VHash)            => fromIRValue(o, Some(innerName))
-        case (T_Optional(t), v)              => V_Optional(inner(v, t, innerName))
+        case (T_Optional(_), VNull)            => V_Null
+        case (T_Boolean, VBoolean(b))          => V_Boolean(value = b)
+        case (T_Int, VInt(i))                  => V_Int(i)
+        case (T_Float, VFloat(f))              => V_Float(f)
+        case (T_Float, VInt(i))                => V_Float(i.toDouble)
+        case (T_String, VString(s))            => V_String(s)
+        case (T_File, VString(path))           => V_File(path)
+        case (T_File, VFile(path))             => V_File(path)
+        case (T_Directory, VString(path))      => V_Directory(path)
+        case (T_Directory, VDirectory(path))   => V_Directory(path)
+        case (_: T_Collection, VArchive(path)) => V_File(path)
+        case (T_Object, o: VHash)              => fromIRValue(o, Some(innerName))
+        case (T_Optional(t), v)                => V_Optional(inner(v, t, innerName))
         case (T_Array(_, true), VArray(array)) if array.isEmpty =>
           throw new Exception(
               s"Empty array with non-empty (+) quantifier"

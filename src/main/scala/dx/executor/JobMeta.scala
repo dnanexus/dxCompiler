@@ -31,9 +31,11 @@ import dx.core.ir.{
   ValueSerde
 }
 import dx.core.languages.Language
+import dx.core.languages.wdl.WdlUtils
 import dx.util.{CodecUtils, FileSourceResolver, FileUtils, JsUtils, Logger, TraceLevel}
 import dx.util.protocols.DxFileAccessProtocol
 import spray.json._
+import wdlTools.eval.WdlValues.V
 
 object JobMeta {
   val inputFile = "job_input.json"
@@ -98,10 +100,11 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 
   lazy val inputDeserializer: ParameterLinkDeserializer =
     ParameterLinkDeserializer(dxFileDescCache, dxApi)
+
   lazy val inputs: Map[String, Value] = {
     // if we have access to the inputSpec, use it to guide deserialization
     getExecutableAttribute("inputSpec") match {
-      case Some(JsObject(spec)) =>
+      case Some(JsArray(spec)) =>
         val inputTypes = TypeSerde.fromNativeSpec(spec)
         jsInputs.map {
           case (key, value) if inputTypes.contains(key) =>
@@ -111,10 +114,16 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
             key -> inputDeserializer.deserializeInput(value)
         }
       case None =>
+        logger.warning("no inputSpec available - deserializing inputs without type information")
         inputDeserializer.deserializeInputMap(jsInputs)
       case other =>
         throw new Exception(s"invalid inputSpec ${other}")
     }
+  }
+
+  lazy val primaryInputs: Map[String, Value] = {
+    // discard auxiliary fields
+    inputs.view.filterKeys(!_.endsWith(ParameterLink.FlatFilesSuffix)).toMap
   }
 
   lazy val fileResolver: FileSourceResolver = {
@@ -145,7 +154,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 
   def writeOutputs(outputs: Map[String, (Type, Value)]): Unit = {
     getExecutableAttribute("outputSpec").foreach {
-      case JsObject(spec) =>
+      case JsArray(spec) =>
         // check that the actual types are the same as the expected types
         val outputTypes = TypeSerde.fromNativeSpec(spec)
         outputs.foreach {
@@ -157,6 +166,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
             )
           case (key, _) if !outputTypes.contains(key) =>
             logger.warning(s"outputSpec is missing field ${key}")
+          case _ => ()
         }
       case other =>
         throw new Exception(s"invalid outputSpec ${other}")
