@@ -94,7 +94,7 @@ dxCompiler uses [wdlTools](https://github.com/dnanexus-rnd/wdlTools), a parser t
 ## Limitations
 
 * Calls with missing arguments have limited support.
-* The new `Directory` type in WDL development/2.0 is not yet supported
+* The new `Directory` type in WDL development/2.0 is not yet supported.
 
 ## Additional information
 
