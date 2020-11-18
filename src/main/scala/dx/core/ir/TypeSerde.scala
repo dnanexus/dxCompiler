@@ -89,6 +89,11 @@ object TypeSerde {
     )
   }
 
+  def serializeOne(t: Type): JsObject = {
+    val (typeJs, schemas) = serializeType(t, Map.empty)
+    JsObject("type" -> typeJs, "schemas" -> JsObject(schemas))
+  }
+
   private def deserializeSchema(jsSchema: JsValue,
                                 schemas: Map[String, TSchema],
                                 jsSchemas: Map[String, JsValue]): Map[String, TSchema] = {
@@ -187,6 +192,27 @@ object TypeSerde {
     }
     val (types, _) = deserializeMap(jsTypes, jsSchemas, schemas, decodeDots)
     types
+  }
+
+  /**
+    * Deserialize a single JsValue that was serialized using the `serializeOne` function.
+    * @param jsValue the value to deserialize
+    * @param schemas initial set of schemas (i.e. type aliases)
+    * @return
+    */
+  def deserializeOne(jsValue: JsValue,
+                     schemas: Map[String, TSchema] = Map.empty): (Type, Map[String, TSchema]) = {
+    val (jsType, jsSchemas) = jsValue match {
+      case obj: JsObject if obj.fields.contains("type") =>
+        obj.getFields("type", "schemas") match {
+          case Seq(jsType, JsObject(jsAliases)) => (jsType, jsAliases)
+          case Seq(jsType)                      => (jsType, Map.empty[String, JsValue])
+          case _ =>
+            throw new Exception(s"invalid serialized type value ${jsValue}")
+        }
+      case _ => (jsValue, Map.empty[String, JsValue])
+    }
+    deserializeType(jsType, schemas, jsSchemas)
   }
 
   private def toNativePrimitive(t: Type): String = {

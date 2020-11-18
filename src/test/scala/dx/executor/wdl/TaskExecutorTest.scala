@@ -8,6 +8,7 @@ import dx.api.{
   DiskType,
   DxAnalysis,
   DxApi,
+  DxFileDescCache,
   DxInstanceType,
   DxJob,
   DxProject,
@@ -15,18 +16,18 @@ import dx.api.{
   InstanceTypeDB
 }
 import dx.core.Constants
-import dx.core.io.{DxFileAccessProtocol, DxFileDescCache, DxWorkerPaths}
+import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir.{ParameterLink, ParameterLinkDeserializer, ParameterLinkSerializer}
 import dx.core.languages.wdl.{VersionSupport, WdlUtils}
-import dx.util.CodecUtils
 import dx.executor.{JobMeta, TaskAction, TaskExecutor}
 import dx.translator.wdl.CodeGenerator
+import dx.util.{CodecUtils, FileSourceResolver, JsUtils, Logger, SysUtils}
+import dx.util.protocols.DxFileAccessProtocol
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spray.json._
 import wdlTools.eval.WdlValues
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
-import dx.util.{FileSourceResolver, JsUtils, Logger, SysUtils}
 
 private case class TaskTestJobMeta(override val workerPaths: DxWorkerPaths,
                                    override val dxApi: DxApi = DxApi.get,
@@ -82,7 +83,7 @@ private object TaskTestJobMeta {
 class TaskExecutorTest extends AnyFlatSpec with Matchers {
   assume(isLoggedIn)
   private val logger = Logger.Quiet
-  private val dxApi = DxApi(logger)
+  private val dxApi = DxApi()(logger)
   private val unicornInstance = DxInstanceType(
       TaskTestJobMeta.InstanceType,
       100,
@@ -252,7 +253,7 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
                       standAloneTaskSource)
 
     // create TaskExecutor
-    (TaskExecutor(jobMeta, streamAllFiles = false), jobMeta)
+    (TaskExecutor(jobMeta, streamFiles = StreamFiles.None), jobMeta)
   }
 
   // Parse the WDL source code, and extract the single task that is supposed to be there.
@@ -314,7 +315,7 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
   it should "handle files with same name in different source folders" taggedAs ApiTest in {
     val (taskExecutor, _) = createTaskExecutor("two_files")
     val (localizedFiles, fileSourceToPath, dxdaManifest, dxfuseManifest) =
-      taskExecutor.taskSupport.localizeInputFiles(false)
+      taskExecutor.taskSupport.localizeInputFiles(streamFiles = StreamFiles.None)
     localizedFiles.size shouldBe 2
     fileSourceToPath.size shouldBe 2
     dxfuseManifest shouldBe None
