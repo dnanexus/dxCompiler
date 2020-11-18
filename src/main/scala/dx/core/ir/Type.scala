@@ -25,8 +25,6 @@ object Type {
     */
   case class TOptional(t: Type) extends Type
 
-  sealed trait TCollection extends Type
-
   /**
     * Array of primitive or file values - all items in an array must be of the
     * same type. Some languages (e.g. WDL) have a quantifier to specify that
@@ -35,19 +33,19 @@ object Type {
     * @param t inner type
     * @param nonEmpty whether the array must not be empty
     */
-  case class TArray(t: Type, nonEmpty: Boolean = false) extends TCollection
+  case class TArray(t: Type, nonEmpty: Boolean = false) extends Type
 
   /**
     * A JSON object.
     */
-  case object THash extends TCollection
+  case object THash extends Type
 
   /**
     * Represents a user-defined type. Values of this type are represented
     * as VHash.
     * @param name type name
     */
-  case class TSchema(name: String, members: Map[String, Type]) extends TCollection
+  case class TSchema(name: String, members: Map[String, Type]) extends Type
 
   @tailrec
   def isPrimitive(t: Type): Boolean = {
