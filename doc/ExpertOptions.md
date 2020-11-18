@@ -429,7 +429,7 @@ The [WDL Spec](https://github.com/openwdl/wdl/blob/master/versions/1.0/SPEC.md#p
   - `dx_type` - maps to the `type` field in dxapp.json; can be either a `String` value or a boolean "expression" (see example below). Applies to `File`-type parameters only.
   - `default` - a default value for the parameter. This is ignored if the parameter's default value is defined in the `inputs` section.
 
-Although the WDL spec indicates that the `parameter_meta` section should apply to both input and output variables, WOM currently only maps the parameter_meta section to the input parameters.
+Although the WDL spec indicates that the `parameter_meta` section should apply to both input and output variables, currently the `parameter_meta` section is mapped only to the input parameters.
 
 ## Runtime hints
 

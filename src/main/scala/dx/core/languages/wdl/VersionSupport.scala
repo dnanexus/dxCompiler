@@ -55,7 +55,7 @@ case class VersionSupport(version: WdlVersion,
 
   def generateDocument(doc: TAT.Document): String = {
     val sourceString = codeGenerator.generateDocument(doc).mkString("\n")
-    Logger.get.ignore(WdlUtils.parseAndCheckSourceString(sourceString))
+    Logger.get.ignore(WdlUtils.parseAndCheckSourceString(sourceString, doc.source.toString))
     sourceString
   }
 
