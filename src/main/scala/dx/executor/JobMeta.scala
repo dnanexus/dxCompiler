@@ -104,11 +104,21 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
       case Some(JsArray(spec)) =>
         val inputTypes = TypeSerde.fromNativeSpec(spec)
         jsInputs.map {
-          case (key, value) if inputTypes.contains(key) =>
-            key -> inputDeserializer.deserializeInputWithType(value, inputTypes(key))
           case (key, value) =>
-            logger.warning(s"inputSpec is missing field ${key}")
-            key -> inputDeserializer.deserializeInput(value)
+            inputTypes.get(key) match {
+              case None =>
+                logger.warning(s"inputSpec is missing field ${key}")
+                key -> inputDeserializer.deserializeInput(value)
+              case Some(Type.THash) =>
+                logger.trace(
+                    s"""expected type of input field ${key} is THash, which may represent an
+                       |unknown schema type, so deserializing without type""".stripMargin
+                      .replaceAll("\n", " ")
+                )
+                key -> inputDeserializer.deserializeInput(value)
+              case Some(t) =>
+                key -> inputDeserializer.deserializeInputWithType(value, t)
+            }
         }
       case None =>
         inputDeserializer.deserializeInputMap(jsInputs)
@@ -149,15 +159,23 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
         // check that the actual types are the same as the expected types
         val outputTypes = TypeSerde.fromNativeSpec(spec)
         outputs.foreach {
-          case (key, (actualType, _))
-              if outputTypes.contains(key) && !outputTypesEqual(outputTypes(key), actualType) =>
-            throw new Exception(
-                s"""output field ${key} has mismatch between actual type ${actualType} 
-                   |and expected type ${outputTypes(key)}""".stripMargin.replaceAll("\n", " ")
-            )
-          case (key, _) if !outputTypes.contains(key) =>
-            logger.warning(s"outputSpec is missing field ${key}")
-          case _ => ()
+          case (key, (actualType, _)) =>
+            outputTypes.get(key) match {
+              case Some(t) if outputTypesEqual(t, actualType) => ()
+              case Some(t) if t == Type.THash =>
+                logger.trace(
+                    s"""expected type of output field ${key} is THash which may represent an
+                       |unknown schema type, so deserializing without type""".stripMargin
+                      .replaceAll("\n", " ")
+                )
+              case Some(t) =>
+                throw new Exception(
+                    s"""output field ${key} has mismatch between actual type ${actualType}
+                       |and expected type ${t}""".stripMargin.replaceAll("\n", " ")
+                )
+              case None =>
+                logger.warning(s"outputSpec is missing field ${key}")
+            }
         }
       case other =>
         throw new Exception(s"invalid outputSpec ${other}")

@@ -246,7 +246,7 @@ case class ParameterLinkDeserializer(dxFileDescCache: DxFileDescCache, dxApi: Dx
   def deserializeInput(jsv: JsValue): Value = {
     def translator(value: JsValue): Option[Value] = {
       if (DxFile.isLinkJson(value)) {
-        // Convert the path in DNAx to a string. We can later decide if we want to download it or not.
+        // Convert the dx link to a URI string. We can later decide if we want to download it or not.
         // Use the cache value if there is one to save the API call.
         val dxFile = dxFileDescCache.updateFileFromCache(DxFile.fromJson(dxApi, value))
         Some(VFile(dxFile.asUri))
@@ -270,10 +270,10 @@ case class ParameterLinkDeserializer(dxFileDescCache: DxFileDescCache, dxApi: Dx
   ): Value = {
     def parameterLinkTranslator(jsv: JsValue, t: Type): JsValue = {
       val updatedValue = translator.map(_(jsv, t)).getOrElse(jsv)
-      if (DxFile.isLinkJson(jsv)) {
-        // Convert the path in DNAx to a string. We can later decide if we want to download it or not.
+      if (DxFile.isLinkJson(updatedValue)) {
+        // Convert the dx link to a URI string. We can later decide if we want to download it or not.
         // Use the cache value if there is one to save the API call.
-        val dxFile = dxFileDescCache.updateFileFromCache(DxFile.fromJson(dxApi, jsv))
+        val dxFile = dxFileDescCache.updateFileFromCache(DxFile.fromJson(dxApi, updatedValue))
         JsString(dxFile.asUri)
       } else {
         updatedValue
