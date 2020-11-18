@@ -62,7 +62,7 @@ object CwlUtils {
 
   def createTSchemaFromRecord(cwlRecord: CwlRecord): TSchema = {
     val name = cwlRecord.name.getOrElse("unknown") // FIXME can name really be empty? if so, which name do we use?
-    val fields = cwlRecord.fields.map({ case (key, value) => key -> toIRType(value.types) }) // FIXME: RecordField has name as well
+    val fields = cwlRecord.fields.map({ case (key, value) => key -> toIRType(value.types) }) // FIXME: RecordField has name as well - just ignore?
     TSchema(name, fields)
   }
 
@@ -73,7 +73,6 @@ object CwlUtils {
   }
 
 
-  // TODO: start only with simple types, then add complex types and then add multiple types
   def toIRType(cwlTypes: Vector[CwlType]): Type = {
     cwlTypes match {
       case _ if cwlTypes.size > 1 && cwlTypes.contains(CwlNull) => TOptional(toIRType(cwlTypes.filter(_ != CwlNull)))
@@ -142,8 +141,6 @@ object CwlUtils {
       case THash => throw new NotImplementedError("THash is not implemented yet")
       case TSchema(_, _) => throw new NotImplementedError("TSchema is not implemented yet")
       case other => throw new NotImplementedError(s"${other} is not supported.")
-
-      // FIXME: add THASH and TSCHEMA
     }
   }
 
