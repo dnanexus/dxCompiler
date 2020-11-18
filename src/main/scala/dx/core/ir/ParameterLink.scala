@@ -254,7 +254,7 @@ case class ParameterLinkDeserializer(dxFileDescCache: DxFileDescCache, dxApi: Dx
         None
       }
     }
-    ValueSerde.deserialize(unwrapComplex(jsv), Some(handler))
+    ValueSerde.deserialize(unwrapComplex(jsv), Some(translator))
   }
 
   def deserializeInputMap(inputs: Map[String, JsValue]): Map[String, Value] = {
