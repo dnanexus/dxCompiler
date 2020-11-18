@@ -113,10 +113,18 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     jsInputs.map {
       case (key, value) =>
         val irValue = inputSpec.get(key) match {
-          case Some(t) => inputDeserializer.deserializeInputWithType(value, t)
           case None =>
             logger.warning(s"inputSpec is missing field ${key}")
             inputDeserializer.deserializeInput(value)
+          case Some(Type.THash) =>
+            logger.trace(
+                s"""expected type of input field ${key} is THash, which may represent an
+                   |unknown schema type, so deserializing without type""".stripMargin
+                  .replaceAll("\n", " ")
+            )
+            inputDeserializer.deserializeInput(value)
+          case Some(t) =>
+            inputDeserializer.deserializeInputWithType(value, t)
         }
         key -> irValue
     }
@@ -166,14 +174,20 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     outputs.foreach {
       case (key, (actualType, _)) =>
         outputSpec.get(key) match {
-          case Some(t) if !outputTypesEqual(t, actualType) =>
+          case Some(t) if outputTypesEqual(t, actualType) => ()
+          case Some(t) if t == Type.THash =>
+            logger.trace(
+                s"""expected type of output field ${key} is THash which may represent an
+                   |unknown schema type, so deserializing without type""".stripMargin
+                  .replaceAll("\n", " ")
+            )
+          case Some(t) =>
             throw new Exception(
                 s"""output field ${key} has mismatch between actual type ${actualType}
                    |and expected type ${t}""".stripMargin.replaceAll("\n", " ")
             )
           case None =>
             logger.warning(s"outputSpec is missing field ${key}")
-          case _ => ()
         }
     }
     // write outputs, ignore null values - these could occur for optional
