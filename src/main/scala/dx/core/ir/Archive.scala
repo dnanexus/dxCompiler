@@ -8,14 +8,32 @@ import dx.core.ir.Value._
 import dx.util.{FileUtils, JsUtils, Logger, SysUtils}
 import spray.json._
 
-case class SquashFs(archiveFile: Path)(
-    val mountPoint: Path = Files.createTempDirectory(archiveFile.getFileName.toString),
+/**
+  *
+  * @param image path to the image file
+  * @param mountDir directory where to mount the file system - if Right, is
+  *                 used as the actual mount point; if Left, is the parent
+  *                 directory of a randomly named mount point; if null, a
+  *                 random mount point is created in tmp
+  * @param logger Logger
+  */
+case class SquashFs(image: Path)(
+    mountDir: Option[Either[Path, Path]] = None,
     logger: Logger = Logger.get
 ) {
+  lazy val mountPoint: Path = {
+    mountDir match {
+      case Some(Right(dir)) => dir
+      case Some(Left(dir)) =>
+        Files.createTempDirectory(dir, image.getFileName.toString)
+      case None =>
+        Files.createTempDirectory(image.getFileName.toString)
+    }
+  }
   private var mounted: Boolean = false
   // whether the archive file is a placeholder that needs to be deleted
   // before writing the archive
-  private var newFile: Boolean = Files.exists(archiveFile) && Files.size(archiveFile) == 0
+  private var newFile: Boolean = Files.exists(image) && Files.size(image) == 0
   private lazy val isLinux = System.getProperty("os.name").toLowerCase.startsWith("linux")
 
   def isMounted: Boolean = mounted
@@ -27,14 +45,14 @@ case class SquashFs(archiveFile: Path)(
     if (!mounted) {
       try {
         if (isLinux) {
-          SysUtils.execCommand(s"mount -t squashfs ${archiveFile.toString} ${mountPoint.toString}")
+          SysUtils.execCommand(s"mount -t squashfs ${image.toString} ${mountPoint.toString}")
         } else {
-          SysUtils.execCommand(s"squashfuse ${archiveFile.toString} ${mountPoint.toString}")
+          SysUtils.execCommand(s"squashfuse ${image.toString} ${mountPoint.toString}")
         }
         mounted = true
       } catch {
         case ex: Throwable =>
-          throw new RuntimeException(s"unable to mount archive ${archiveFile} at ${mountPoint}", ex)
+          throw new RuntimeException(s"unable to mount archive ${image} at ${mountPoint}", ex)
       }
     }
   }
@@ -103,18 +121,18 @@ case class SquashFs(archiveFile: Path)(
         SysUtils.execCommand(
             s"""mkdir -p ${lnDir}
                |&& ln ${files.mkString(" ")} ${lnDir}
-               |&& mksquashfs ${appendDir.toString} ${archiveFile.toString} ${opts}
+               |&& mksquashfs ${appendDir.toString} ${image.toString} ${opts}
                |&& rm -Rf ${appendDir}/*""".stripMargin.replaceAll("\n", " ")
         )
       } else {
         SysUtils.execCommand(
-            s"mksquashfs ${files.mkString(" ")} ${archiveFile.toString} ${opts}"
+            s"mksquashfs ${files.mkString(" ")} ${image.toString} ${opts}"
         )
       }
     } catch {
       case ex: Throwable =>
         throw new RuntimeException(
-            s"error adding files (${files.mkString(",")}) to archive ${archiveFile}",
+            s"error adding files (${files.mkString(",")}) to archive ${image}",
             ex
         )
     }
@@ -124,8 +142,7 @@ case class SquashFs(archiveFile: Path)(
           Files.delete(srcPath)
         } catch {
           case ex: Throwable =>
-            logger.error(s"error deleting ${srcPath} after adding it to archive ${archiveFile}",
-                         Some(ex))
+            logger.error(s"error deleting ${srcPath} after adding it to archive ${image}", Some(ex))
         }
       }
     }
@@ -133,6 +150,31 @@ case class SquashFs(archiveFile: Path)(
 
   def append(file: Path, subdir: Option[Path] = None, removeOriginal: Boolean = false): Unit = {
     appendAll(Vector(file), subdir, removeOriginal)
+  }
+
+  def toJson: JsValue = {
+    val mountPointJs = if (mounted) {
+      JsString(mountPoint.toString)
+    } else {
+      mountDir match {
+        case Some(Right(path)) => JsString(path.toString)
+        case _                 => JsNull
+      }
+    }
+    val mountDirJs = if (mounted) {
+      JsNull
+    } else {
+      mountDir match {
+        case Some(Left(path)) => JsString(path.toString)
+        case _                => JsNull
+      }
+    }
+    JsObject(
+        "image" -> JsString(image.toString),
+        "mountPoint" -> mountPointJs,
+        "mountDir" -> mountDirJs,
+        "mounted" -> JsBoolean(mounted)
+    )
   }
 }
 
@@ -191,8 +233,6 @@ object Archive {
               (k -> value, paths)
           }.unzip
           (VHash(newMembers.toMap), paths.flatten.toMap)
-        case _: VArchive =>
-          throw new RuntimeException("nested archive values are not allowed")
         case _ =>
           (innerValue, Map.empty)
       }
@@ -201,6 +241,8 @@ object Archive {
       (innerType, innerValue) match {
         case (TFile, VFile(s))   => transformFile(s)
         case (TFile, VString(s)) => transformFile(s)
+        case (_: TCollection, _: VFile) =>
+          throw new RuntimeException("nested archive values are not allowed")
         case (TOptional(t), value) if value != VNull =>
           val (v, paths) = transformWithType(value, t)
           (v, paths)
@@ -220,8 +262,6 @@ object Archive {
           (VHash(newMembers.toMap), paths.flatten.toMap)
         case (THash, _: VHash) =>
           transformNoType(innerValue)
-        case (_, _: VArchive) =>
-          throw new RuntimeException("nested archive values are not allowed")
         case _ =>
           (innerValue, Map.empty)
       }
@@ -230,9 +270,18 @@ object Archive {
   }
 }
 
+/**
+  * An Archive that is not localized.
+  * @param path path to the archive (.img) file
+  * @param encoding character encoding
+  * @param typeAliases type aliases
+  * @param packedTypeAndValue the already localized type and value
+  * @param mountDir parent dir in which to create the randomly named mount point
+  */
 case class PackedArchive(path: Path, encoding: Charset = FileUtils.DefaultEncoding)(
     typeAliases: Option[Map[String, TSchema]] = None,
-    packedTypeAndValue: Option[(Type, Value)] = None
+    packedTypeAndValue: Option[(Type, Value)] = None,
+    mountDir: Option[Path] = None
 ) extends Archive {
   assert(typeAliases.isDefined || packedTypeAndValue.isDefined)
   if (!Files.exists(path)) {
@@ -242,7 +291,7 @@ case class PackedArchive(path: Path, encoding: Charset = FileUtils.DefaultEncodi
   }
 
   override val localized: Boolean = false
-  private val archive: SquashFs = SquashFs(path)()
+  private val archive: SquashFs = SquashFs(path)(mountDir.map(Left(_)))
   private lazy val manifestPath: Path = archive.resolve(Archive.ManifestFile)
 
   private def readManifest: (Type, Value) = {
@@ -274,6 +323,7 @@ case class PackedArchive(path: Path, encoding: Charset = FileUtils.DefaultEncodi
   /**
     * Unpacks the files in the archive relative to the given parent dir, and updates
     * the paths within `irValue` and returns a new Archive object.
+    * @param mount whether to mount the filesystem
     * @param name the name of the variable associated with this archive
     * @return the updated Archive object and a Vector of localized paths
     */
@@ -340,7 +390,7 @@ case class LocalizedArchive(
       )
   }
 
-  override lazy val path: Path = archive.archiveFile
+  override lazy val path: Path = archive.image
 
   private def createArchive(t: Type, v: Value, files: Map[Path, Path]): Unit = {
     val manifest = JsObject(
@@ -386,4 +436,24 @@ case class LocalizedArchive(
       archive.unmount()
     }
   }
+
+  def toJson: JsValue = {
+    JsObject(
+        "type" -> TypeSerde.serializeOne(irType),
+        "value" -> ValueSerde.serialize(irValue),
+        "packedValue" -> packedArchiveAndValue
+          .map {
+            case (_, v) => ValueSerde.serialize(v)
+          }
+          .getOrElse(JsNull),
+        "fs" -> archive.toJson,
+        "encoding" -> JsString(encoding.name()),
+        "parentDir" -> parentDir.map(p => JsString(p.toString)).getOrElse(JsNull),
+        "name" -> name.map(JsString(_)).getOrElse(JsNull)
+    )
+  }
+}
+
+object LocalizedArchive {
+  def fromJson(jsValue: JsValue): LocalizedArchive = {}
 }

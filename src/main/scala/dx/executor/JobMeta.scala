@@ -150,6 +150,16 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     )
   }
 
+  def getOutputSpec: Map[String, Type] = {
+    getExecutableAttribute("outputSpec")
+      .map {
+        case JsArray(spec) => TypeSerde.fromNativeSpec(spec)
+        case other =>
+          throw new Exception(s"invalid outputSpec ${other}")
+      }
+      .getOrElse(Map.empty)
+  }
+
   def writeOutputs(outputs: Map[String, (Type, Value)]): Unit = {
     getExecutableAttribute("outputSpec").foreach {
       case JsArray(spec) =>

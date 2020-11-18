@@ -10,7 +10,7 @@ import dx.core.io.{
   DxfuseManifestBuilder,
   StreamFiles
 }
-import dx.core.ir.{Archive, Type, TypeSerde, Value, ValueSerde}
+import dx.core.ir.{Archive, LocalizedArchive, PackedArchive, Type, TypeSerde, Value, ValueSerde}
 import dx.core.ir.Type._
 import dx.core.ir.Value._
 import dx.executor.wdl.WdlTaskExecutor
@@ -96,7 +96,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
 
   private def writeEnv(schemas: Map[String, TSchema],
                        inputs: Map[String, (Type, Value)],
-                       fileSourceToPath: Map[AddressableFileNode, Path]): Unit = {
+                       fileSourceToPath: Map[AddressableFileNode, Path],
+                       archives: Map[String, LocalizedArchive] = Map.empty): Unit = {
     val schemasJs = schemas.values.foldLeft(Map.empty[String, JsValue]) {
       case (accu, schema) => TypeSerde.serialize(schema, accu)._2
     }
@@ -114,22 +115,26 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       case (other, _) =>
         throw new RuntimeException(s"Can only serialize an AddressableFileSource, not ${other}")
     }
+    val archivesJs = archives.view.mapValues(_.toJson).toMap
     val json = JsObject(
         "schemas" -> JsObject(newSchemasJs),
         "localizedInputs" -> JsObject(inputsJs),
-        "dxUrlToPath" -> JsObject(uriToPath)
+        "dxUrlToPath" -> JsObject(uriToPath),
+        "archives" -> JsObject(archivesJs)
     )
     FileUtils.writeFileContent(jobMeta.workerPaths.getTaskEnvFile(), json.prettyPrint)
   }
 
-  private def readEnv()
-      : (Map[String, TSchema], Map[String, (Type, Value)], Map[AddressableFileNode, Path]) = {
-    val (schemasJs, inputsJs, filesJs) =
+  private def readEnv(): (Map[String, TSchema],
+                          Map[String, (Type, Value)],
+                          Map[AddressableFileNode, Path],
+                          Map[String, LocalizedArchive]) = {
+    val (schemasJs, inputsJs, filesJs, archiveJs) =
       FileUtils.readFileContent(jobMeta.workerPaths.getTaskEnvFile()).parseJson match {
         case env: JsObject =>
-          env.getFields("schemas", "localizedInputs", "dxUrlToPath") match {
-            case Seq(JsObject(schemas), JsObject(inputs), JsObject(paths)) =>
-              (schemas, inputs, paths)
+          env.getFields("schemas", "localizedInputs", "dxUrlToPath", "archives") match {
+            case Seq(JsObject(schemas), JsObject(inputs), JsObject(paths), JsObject(archives)) =>
+              (schemas, inputs, paths, archives)
             case _ =>
               throw new Exception("Malformed environment serialized to disk")
           }
@@ -154,7 +159,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       case (uri, JsString(path)) => jobMeta.fileResolver.resolve(uri) -> Paths.get(path)
       case other                 => throw new Exception(s"unexpected path ${other}")
     }
-    (newSchemas, inputs, fileSourceToPath)
+    val archives = archiveJs.view.mapValues(LocalizedArchive.fromJson).toMap
+    (newSchemas, inputs, fileSourceToPath, archives)
   }
 
   /**
@@ -322,14 +328,24 @@ abstract class TaskExecutor(jobMeta: JobMeta,
   ): Map[String, (Type, Value)]
 
   def instantiateCommand(): Unit = {
-    val (schemas, localizedInputs, fileSourceToPath) = readEnv()
+    val (schemas, localizedInputs, fileSourceToPath, _) = readEnv()
     logger.traceLimited(s"InstantiateCommand, env = ${localizedInputs}")
     // unpack any archive inputs and substitute their true types and values
-
+    // mount all archives within the tmpdir
+    val tmpDir = jobMeta.workerPaths.getTempDir(ensureExists = true)
+    val (unarchivedInputs, archives) = localizedInputs.map {
+      case (name, (_: TCollection, VFile(localPath))) =>
+        val path = Paths.get(localPath)
+        val archive =
+          PackedArchive(path)(Some(schemas), mountDir = Some(tmpDir))
+        val (localizedArchive, _) = archive.localize(name = Some(name))
+        (name -> (archive.irType, archive.irValue), Some(name -> localizedArchive))
+      case other => (other, None)
+    }.unzip
     // evaluate the command block and write the command script
-    val updatedInputs = writeCommandScript(localizedInputs)
+    val updatedInputs = writeCommandScript(unarchivedInputs.toMap)
     // write the updated env to disk
-    writeEnv(schemas, updatedInputs, fileSourceToPath)
+    writeEnv(schemas, updatedInputs, fileSourceToPath, archives.flatten.toMap)
   }
 
   /**
@@ -411,8 +427,12 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       trace(s"Epilog debugLevel=${logger.traceLevel}")
       printDirTree()
     }
-    val (_, localizedInputs, fileSourceToPath) = readEnv()
+    val (_, localizedInputs, fileSourceToPath, archives) = readEnv()
     val localizedOutputs = evaluateOutputs(localizedInputs)
+
+    // if we are building archives for complex values, do that here
+    // and replace the complex values in localizedOutputs with paths
+    // to the archives
 
     // extract files from the outputs
     val localOutputFileSources: Vector[AddressableFileNode] = localizedOutputs.flatMap {
