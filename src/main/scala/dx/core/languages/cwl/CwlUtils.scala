@@ -1,30 +1,15 @@
 package dx.core.languages.cwl
 
-import java.nio.file.Path
-
 import dx.translator.CallableAttributes.{DescriptionAttribute, TitleAttribute}
-import dx.cwl.{ArrayValue, BooleanValue, CwlArray, CwlBoolean, CwlDirectory, CwlDouble, CwlEnum, CwlFile, CwlFloat, CwlInt, CwlLong, CwlNull, CwlOptional, CwlRecord, CwlString, CwlType, CwlValue, DirectoryValue, DoubleValue, FileValue, FloatValue, IntValue, LongValue, NullValue, ObjectValue, Parser, Process, StringValue}
+import dx.cwl.{ArrayValue, BooleanValue, CwlArray, CwlBoolean, CwlDirectory, CwlDouble, CwlEnum, CwlFile, CwlFloat, CwlInt, CwlLong, CwlNull, CwlOptional, CwlRecord, CwlString, CwlType, CwlValue, DirectoryValue, DoubleValue, FileValue, FloatValue, IntValue, LongValue, NullValue, ObjectValue, StringValue}
 import dx.core.ir.{CallableAttribute, ParameterAttribute, Type, Value}
 import dx.core.ir.Type.{TArray, TBoolean, TDirectory, TEnum, TFile, TFloat, THash, TInt, TOptional, TSchema, TString}
 import dx.core.ir.Value.{VArray, VBoolean, VDirectory, VFile, VFloat, VHash, VInt, VNull, VString}
 import dx.translator.ParameterAttributes.{HelpAttribute, LabelAttribute}
 import wdlTools.syntax.SourceLocation
-import wdlTools.util.Logger
 
 object CwlUtils {
   val locPlaceholder: SourceLocation = SourceLocation.empty
-
-  def parseSource(sourceCode: Path,
-                  logger: Logger = Logger.get): Process = {
-    try {
-      Parser.parse(sourceCode)
-    } catch {
-      case e: Exception => {
-        logger.error(s"Code is syntactically invalid. (${sourceCode})")
-        throw e
-      }
-    }
-  }
 
   def toIRType(cwlTypes: Vector[CwlType]): Type = {
     cwlTypes match {

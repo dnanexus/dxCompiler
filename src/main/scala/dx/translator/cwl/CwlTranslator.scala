@@ -6,7 +6,7 @@ import dx.cwl.{Parser, Process}
 import dx.api.{DxApi, DxProject}
 import dx.core.ir.{Callable, Type, Value}
 import dx.translator.{ReorgSettings, Translator, TranslatorFactory}
-import wdlTools.util.{FileSourceResolver, Logger}
+import dx.util.{FileSourceResolver, Logger}
 import dx.core.ir.Bundle
 import dx.core.languages.Language.Language
 
@@ -55,7 +55,6 @@ case class CwlTranslatorFactory()
              fileResolver: FileSourceResolver,
              dxApi: DxApi = DxApi.get,
              logger: Logger = Logger.get): Option[Translator] = {
-    println(Parser.canParse(sourceFile))
     val doc = Parser.parse(sourceFile)
     Option(CwlTranslator(doc, sourceFile, locked, defaultRuntimeAttrs, reorgAttrs, fileResolver, dxApi))
   }

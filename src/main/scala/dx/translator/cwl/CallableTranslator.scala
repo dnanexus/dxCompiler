@@ -17,7 +17,6 @@ case class CallableTranslator(cwlBundle: CwlBundle,
 
 
   def translateCallable(callable: Process, sourceFile: Path): Callable = {
-    val filename = sourceFile.getFileName.toString
     callable match {
       case tool: CommandLineTool =>
         val taskTranslator = CwlToolTranslator.apply(tool, sourceFile)
@@ -30,7 +29,6 @@ case class CallableTranslator(cwlBundle: CwlBundle,
   def parseCommandOutputParameter(output: CommandOutputParameter): Parameter = {
     val name = output.id.get.name.get
     val dxType = CwlUtils.toIRType(output.types)
-
     val attributes: Vector[ParameterAttribute] = CwlUtils.createParameterAttributes(output.doc, output.label)
 
     Parameter(name, dxType, attributes=attributes)
