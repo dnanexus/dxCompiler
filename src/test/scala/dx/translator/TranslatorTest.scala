@@ -23,7 +23,7 @@ import dx.util.Logger
 // These tests involve compilation -without- access to the platform.
 //
 class TranslatorTest extends AnyFlatSpec with Matchers {
-  private val dxApi = DxApi(Logger.Quiet)
+  private val dxApi = DxApi()(Logger.Quiet)
 
   private def pathFromBasename(dir: String, basename: String): Path = {
     val p = getClass.getResource(s"/${dir}/${basename}").getPath
@@ -1342,12 +1342,11 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     )
   }
 
-  // `paramter: {stream: true}` should not be converted to an attribute - it is only accessed at runtime
+  // `parameter: {stream: true}` should not be converted to an attribute - it is only accessed at runtime
   it should "ignore the streaming object annotation" in {
     val path = pathFromBasename("compiler", "streaming_files_obj.wdl")
     val args = path.toString :: cFlags
-    val retval =
-      Main.compile(args.toVector)
+    val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessIR]
     val bundle = retval match {
       case SuccessIR(ir, _) => ir

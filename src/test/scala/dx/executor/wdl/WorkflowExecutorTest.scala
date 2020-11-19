@@ -6,20 +6,20 @@ import dx.Assumptions.isLoggedIn
 import dx.Tags.{EdgeTest, NativeTest}
 import dx.api._
 import dx.core.{Constants, ir}
-import dx.core.io.{DxFileAccessProtocol, DxWorkerPaths}
+import dx.core.io.DxWorkerPaths
 import dx.core.ir.Type.TInt
 import dx.core.ir.{ParameterLinkSerializer, ParameterLinkValue, Type, TypeSerde}
 import dx.core.languages.wdl.{WdlBlock, WdlUtils}
-import dx.util.CodecUtils
 import dx.executor.{JobMeta, WorkflowAction, WorkflowExecutor, WorkflowSupport}
 import dx.translator.wdl.WdlBundle
+import dx.util.{CodecUtils, FileSourceResolver, FileUtils, Logger}
+import dx.util.protocols.DxFileAccessProtocol
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spray.json._
 import wdlTools.eval.{Eval, WdlValueBindings, WdlValues}
 import wdlTools.syntax.WdlVersion
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
-import dx.util.{FileSourceResolver, FileUtils, Logger}
 
 import scala.collection.immutable.TreeSeqMap
 
@@ -47,6 +47,8 @@ private case class WorkflowTestJobMeta(override val workerPaths: DxWorkerPaths,
   override val instanceType: Option[String] = Some(WorkflowTestJobMeta.InstanceType)
 
   override def getJobDetail(name: String): Option[JsValue] = None
+
+  override def getExecutableAttribute(name: String): Option[JsValue] = None
 
   private val executableDetails: Map[String, JsValue] = Map(
       Constants.BlockPath -> JsArray(rawBlockPath.map(JsNumber(_))),
@@ -77,7 +79,7 @@ private object WorkflowTestJobMeta {
 class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
   assume(isLoggedIn)
   private val logger = Logger.Quiet
-  private val dxApi = DxApi(logger)
+  private val dxApi = DxApi()(logger)
   private val unicornInstance =
     DxInstanceType(
         WorkflowTestJobMeta.InstanceType,

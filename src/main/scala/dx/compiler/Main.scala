@@ -7,15 +7,15 @@ import dx.api.{DxApi, DxApplet, DxDataObject, DxProject, DxUtils}
 import dx.compiler.Main.CompilerMode.CompilerMode
 import dx.compiler.Main.ExecTreeFormat.ExecTreeFormat
 import dx.core.{Constants, getVersion}
-import dx.core.io.{DxFileAccessProtocol, DxWorkerPaths}
+import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir.Bundle
 import dx.core.languages.Language
-import dx.core.languages.Language.Language
 import dx.core.CliUtils._
 import dx.dxni.DxNativeInterface
 import dx.translator.{Extras, ExtrasParser, TranslatorFactory}
-import spray.json._
 import dx.util.{Enum, FileSourceResolver, FileUtils, Logger, TraceLevel}
+import dx.util.protocols.DxFileAccessProtocol
+import spray.json._
 
 /**
   * Compiler CLI.
@@ -47,7 +47,7 @@ object Main {
         case _ =>
           throw OptionParseException(s"Unexpected value ${values} to option ${name}")
       }
-      SingleValueOption[Language](language)
+      SingleValueOption[Language.Language](language)
     }
   }
 
@@ -124,6 +124,12 @@ object Main {
       ExecTreeFormat.withNameIgnoreCase(value)
   }
 
+  private object StreamFilesOptionSpec
+      extends SingleValueOptionSpec[StreamFiles.StreamFiles](choices = StreamFiles.values.toVector) {
+    override def parseValue(value: String): StreamFiles.StreamFiles =
+      StreamFiles.withNameIgnoreCase(value)
+  }
+
   private def CompileOptions: InternalOptions = Map(
       "archive" -> FlagOptionSpec.default,
       "compileMode" -> CompilerModeOptionSpec(),
@@ -139,6 +145,7 @@ object Main {
       "projectWideReuse" -> FlagOptionSpec.default,
       "reorg" -> FlagOptionSpec.default,
       "runtimeDebugLevel" -> IntOptionSpec.one.copy(choices = Vector(0, 1, 2)),
+      "streamFiles" -> StreamFilesOptionSpec,
       "streamAllFiles" -> FlagOptionSpec.default,
       "scatterChunkSize" -> IntOptionSpec.one
   )
@@ -264,7 +271,7 @@ object Main {
       }
 
     val (baseFileResolver, logger) = initCommon(options)
-    val dxApi = DxApi(logger)
+    val dxApi = DxApi()(logger)
 
     val extras: Option[Extras] =
       options.getValue[Path]("extras").map(extrasPath => ExtrasParser().parse(extrasPath))
@@ -280,10 +287,12 @@ object Main {
     val compileMode: CompilerMode =
       options.getValueOrElse[CompilerMode]("compileMode", CompilerMode.All)
 
+    val locked = options.getFlag("locked")
+
     val translator =
       try {
-        val language = options.getValue[Language]("language")
-        val Vector(locked, reorg) = Vector("locked", "reorg").map(options.getFlag(_))
+        val language = options.getValue[Language.Language]("language")
+        val reorg = options.getFlag("reorg")
         TranslatorFactory.createTranslator(
             sourceFile,
             language,
@@ -386,6 +395,11 @@ object Main {
           "projectWideReuse",
           "streamAllFiles"
       ).map(options.getFlag(_))
+      val streamFiles = options.getValue[StreamFiles.StreamFiles]("streamFiles") match {
+        case Some(value)            => value
+        case None if streamAllFiles => StreamFiles.All
+        case None                   => StreamFiles.PerFile
+      }
       val compiler = Compiler(
           extras,
           dxPathConfig,
@@ -397,7 +411,7 @@ object Main {
           leaveWorkflowsOpen,
           locked,
           projectWideReuse,
-          streamAllFiles,
+          streamFiles,
           fileResolver
       )
       val results = compiler.apply(bundle, project, folder)
@@ -451,14 +465,14 @@ object Main {
           return BadUsageTermination("Error parsing command line options", Some(e))
       }
     val (fileResolver, logger) = initCommon(options)
-    val dxApi = DxApi(logger)
+    val dxApi = DxApi()(logger)
 
     // make sure the user is logged in
     if (!dxApi.isLoggedIn) {
       return Failure(s"You must be logged in to generate stubs for native app(let)s")
     }
 
-    val language = options.getValue[Language]("language").getOrElse(Language.WdlDefault)
+    val language = options.getValue[Language.Language]("language").getOrElse(Language.WdlDefault)
     val outputPath: Option[Path] = options.getValue[Path]("outputFile")
     val projectOpt = options.getValue[String]("project")
     val folderOpt = options.getValue[String]("folder")
@@ -572,7 +586,7 @@ object Main {
           return BadUsageTermination("Error parsing command line options", Some(e))
       }
     val logger = initLogger(options)
-    val dxApi = DxApi(logger)
+    val dxApi = DxApi()(logger)
     // make sure the user is logged in
     if (!dxApi.isLoggedIn) {
       return Failure(s"You must be logged in to generate stubs to describe a workflow")
@@ -639,24 +653,27 @@ object Main {
         |    platform. If a WDL inputs files is specified, a dx JSON
         |    inputs file is generated from it.
         |    options
-        |      -archive               Archive older versions of applets
-        |      -compileMode <string>  Compilation mode, a debugging flag
-        |      -defaults <string>     File with Cromwell formatted default values (JSON)
-        |      -execTree [json,pretty] Write out a json representation of the workflow
-        |      -extras <string>       JSON formatted file with extra options, for example
-        |                             default runtime options for tasks.
-        |      -inputs <string>       File with Cromwell formatted inputs
-        |      -locked                Create a locked-down workflow
-        |      -leaveWorkflowsOpen    Leave created workflows open (otherwise they are closed)
-        |      -p | -imports <string> Directory to search for imported WDL files
-        |      -projectWideReuse      Look for existing applets/workflows in the entire project
-        |                             before generating new ones. The normal search scope is the
-        |                             target folder only.
-        |      -reorg                 Reorganize workflow output files
+        |      -archive                   Archive older versions of applets
+        |      -compileMode <string>      Compilation mode, a debugging flag
+        |      -defaults <string>         File with Cromwell formatted default values (JSON)
+        |      -execTree [json,pretty]    Write out a json representation of the workflow
+        |      -extras <string>           JSON formatted file with extra options, for example
+        |                                 default runtime options for tasks.
+        |      -inputs <string>           File with Cromwell formatted inputs
+        |      -locked                    Create a locked-down workflow
+        |      -leaveWorkflowsOpen        Leave created workflows open (otherwise they are closed)
+        |      -p | -imports <string>     Directory to search for imported WDL files
+        |      -projectWideReuse          Look for existing applets/workflows in the entire project
+        |                                 before generating new ones. The normal search scope is the
+        |                                 target folder only.
+        |      -reorg                     Reorganize workflow output files
         |      -runtimeDebugLevel [0,1,2] How much debug information to write to the
-        |                             job log at runtime. Zero means write the minimum,
-        |                             one is the default, and two is for internal debugging.
-        |      -streamAllFiles        mount all files with dxfuse, do not use the download agent
+        |                                 job log at runtime. Zero means write the minimum,
+        |                                 one is the default, and two is for internal debugging.
+        |      -streamFiles               Whether to mount all files with dxfuse (do not use the 
+        |                                 download agent), or to mount no files with dxfuse (only use 
+        |                                 download agent); this setting overrides any per-file settings
+        |                                 in WDL parameter_meta sections.
         |
         |  dxni
         |    Dx Native call Interface. Create stubs for calling dx
