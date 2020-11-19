@@ -48,6 +48,8 @@ private case class WorkflowTestJobMeta(override val workerPaths: DxWorkerPaths,
 
   override def getJobDetail(name: String): Option[JsValue] = None
 
+  override def getExecutableAttribute(name: String): Option[JsValue] = None
+
   private val executableDetails: Map[String, JsValue] = Map(
       Constants.BlockPath -> JsArray(rawBlockPath.map(JsNumber(_))),
       Constants.InstanceTypeDb -> JsString(

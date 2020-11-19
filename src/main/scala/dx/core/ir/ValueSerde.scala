@@ -42,11 +42,12 @@ object ValueSerde extends DefaultJsonProtocol {
   /**
     * Deserializes a JsValue to a Value, in the absence of type information.
     * @param jsValue the JsValue
+    * @param translator an optional function for special handling of certain values
     * @return
     */
-  def deserialize(jsValue: JsValue, handler: Option[JsValue => Option[Value]] = None): Value = {
+  def deserialize(jsValue: JsValue, translator: Option[JsValue => Option[Value]] = None): Value = {
     def inner(innerValue: JsValue): Value = {
-      val v = handler.flatMap(_(innerValue))
+      val v = translator.flatMap(_(innerValue))
       if (v.isDefined) {
         return v.get
       }
