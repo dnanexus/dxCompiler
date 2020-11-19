@@ -356,24 +356,21 @@ def ensure_dir(path):
 
 def wait_for_completion(test_exec_objs):
     print("awaiting completion ...")
-    # wait for analysis to finish while working around Travis 10m console inactivity timeout
-    noise = subprocess.Popen(["/bin/bash", "-c", "while true; do sleep 60; date; done"])
-    try:
-        for exec_obj in test_exec_objs:
-            tname = find_test_from_exec(exec_obj)
-            desc = test_files[tname]
-            try:
-                exec_obj.wait_on_done()
-                print("Executable {} succeeded".format(desc.name))
-            except DXJobFailureError:
-                if tname in test_failing:
-                    print("Executable {} failed as expected".format(desc.name))
-                else:
-                    cprint("Error: executable {} failed".format(desc.name), "red")
-    finally:
-        noise.kill()
-    print("done")
-
+    failures = []
+    for exec_obj in test_exec_objs:
+        tname = find_test_from_exec(exec_obj)
+        desc = test_files[tname]
+        try:
+            exec_obj.wait_on_done()
+            print("Executable {} succeeded".format(desc.name))
+        except DXJobFailureError:
+            if tname in test_failing:
+                print("Executable {} failed as expected".format(desc.name))
+            else:
+                cprint("Error: executable {} failed".format(desc.name), "red")
+                failures.append(tname)
+    print("tools execution completed")
+    return failures
 
 # Run [workflow] on several inputs, return the analysis ID.
 def run_executable(project, test_folder, tname, oid, debug_flag, delay_workspace_destruction):
@@ -450,10 +447,10 @@ def run_test_subset(project, runnable, test_folder, debug_flag, delay_workspace_
     print("executables: " + ", ".join([a.get_id() for a in test_exec_objs]))
 
     # Wait for completion
-    wait_for_completion(test_exec_objs)
+    failed_execution = wait_for_completion(test_exec_objs)
 
     print("Verifying results")
-    failed = []
+    failed_verification = []
     for exec_obj in test_exec_objs:
         exec_desc = exec_obj.describe()
         tname = find_test_from_exec(exec_obj)
@@ -470,12 +467,16 @@ def run_test_subset(project, runnable, test_folder, debug_flag, delay_workspace_
         if correct:
             print("Analysis {} passed".format(tname))
         else:
-            failed.append(tname)
+            failed_verification.append(tname)
 
-    if failed:
-        print("Failed {} analyses:\n{}".format(len(failed),
-                                               "\n".join(failed)))
-        sys.exit(1)
+    if failed_execution or failed_verification:
+        all_failures = failed_execution + failed_verification
+        print("-----------------------------")
+        if failed_execution:
+            print(f"Tools failed execution: {len(failed_execution)}:\n{'\n'.join(failed_execution)}\n")
+        if failed_verification:
+            print(f"Tools failed results verification: {len(failed_verification)}:\n{'\n'.join(failed_verification)}\n")
+        raise RuntimeError("Failed")
 
 def print_test_list():
     l = [key for key in test_files.keys()]
