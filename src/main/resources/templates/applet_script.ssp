@@ -122,5 +122,5 @@
     # unmount dxfuse
     if [[ -e ${dxPathConfig.getDxfuseManifestFile().toString} ]]; then
         echo "unmounting dxfuse"
-        sudo umount ${dxPathConfig.getDxfuseMountDir().toString}
+        umount ${dxPathConfig.getDxfuseMountDir().toString}
     fi

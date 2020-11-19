@@ -21,6 +21,9 @@ object Constants {
   val ReorgConfig = "reorg_conf___"
   val ReorgStatus = "reorg_status___"
   val ReorgStatusCompleted = "completed"
+  // suffix of extra input/output parameters added to applets
+  // to support archive inputs/outputs for complex values
+  val ArchiveSuffix = "___archive"
 
   // deprecated properties that we still need to check for old applets
   val ChecksumPropertyDeprecated = "dxWDL_checksum"
