@@ -14,7 +14,7 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spray.json._
-import wdlTools.util.{FileUtils, Logger, SysUtils}
+import dx.util.{FileUtils, Logger, SysUtils}
 
 // This test module requires being logged in to the platform.
 // It compiles WDL scripts without the runtime library.
@@ -25,7 +25,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
   assume(isLoggedIn)
   assume(toolkitCallable)
   private val logger = Logger.Quiet
-  private val dxApi = DxApi(logger)
+  private val dxApi = DxApi()(logger)
 
   private def pathFromBasename(dir: String, basename: String): Path = {
     val p = getClass.getResource(s"/${dir}/${basename}").getPath
@@ -955,6 +955,20 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     // this is a subworkflow so there is no reorg_status___ added.
     val trainsOutputVector: Callable = bundle.allCallables("trains")
     trainsOutputVector.outputVars.size shouldBe 1
+  }
+
+  it should "compile workflow with task imported by multiple paths" taggedAs NativeTest in {
+    val path = pathFromBasename("compiler", basename = "multi_import.wdl")
+    val args = path.toString :: cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[Success]
+  }
+
+  it should "compile workflow with call to task having optional output" taggedAs NativeTest in {
+    val path = pathFromBasename("compiler", basename = "optional_call_output.wdl")
+    val args = path.toString :: cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[Success]
   }
 
   it should "Set job-reuse flag" taggedAs NativeTest in {

@@ -18,12 +18,12 @@ import org.scalatest.Inside._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import wdlTools.generators.code.WdlGenerator
-import wdlTools.util.Logger
+import dx.util.Logger
 
 // These tests involve compilation -without- access to the platform.
 //
 class TranslatorTest extends AnyFlatSpec with Matchers {
-  private val dxApi = DxApi(Logger.Quiet)
+  private val dxApi = DxApi()(Logger.Quiet)
 
   private def pathFromBasename(dir: String, basename: String): Path = {
     val p = getClass.getResource(s"/${dir}/${basename}").getPath
@@ -1189,8 +1189,18 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     incApp.attributes.size shouldBe 0
   }
 
-  it should "work correctly with pairs in a scatter" taggedAs EdgeTest in {
+  it should "work correctly with pairs as call inputs in a scatter" taggedAs EdgeTest in {
     val path = pathFromBasename("subworkflows", basename = "scatter_subworkflow_with_optional.wdl")
+    val cFlagsNotQuiet = cFlags.filter(_ != "-quiet")
+    val args = path.toString :: cFlagsNotQuiet
+    //          "--verbose" ::
+    //          :: "--verboseKey" :: "GenerateIR"
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessIR]
+  }
+
+  it should "work correctly with pairs in a simple scatter" taggedAs EdgeTest in {
+    val path = pathFromBasename("frag_runner", basename = "scatter_with_eval.wdl")
     val cFlagsNotQuiet = cFlags.filter(_ != "-quiet")
     val args = path.toString :: cFlagsNotQuiet
     //          :: "--verbose"
@@ -1332,12 +1342,11 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     )
   }
 
-  // `paramter: {stream: true}` should not be converted to an attribute - it is only accessed at runtime
+  // `parameter: {stream: true}` should not be converted to an attribute - it is only accessed at runtime
   it should "ignore the streaming object annotation" in {
     val path = pathFromBasename("compiler", "streaming_files_obj.wdl")
     val args = path.toString :: cFlags
-    val retval =
-      Main.compile(args.toVector)
+    val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessIR]
     val bundle = retval match {
       case SuccessIR(ir, _) => ir

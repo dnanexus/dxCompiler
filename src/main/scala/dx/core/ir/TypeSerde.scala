@@ -2,7 +2,7 @@ package dx.core.ir
 
 import dx.core.ir.Type._
 import spray.json._
-import wdlTools.util.JsUtils
+import dx.util.JsUtils
 
 object TypeSerde {
   private def serializeType(
@@ -87,6 +87,11 @@ object TypeSerde {
             "schemas" -> JsObject(schemasJs)
         )
     )
+  }
+
+  def serializeOne(t: Type): JsObject = {
+    val (typeJs, schemas) = serializeType(t, Map.empty)
+    JsObject("type" -> typeJs, "schemas" -> JsObject(schemas))
   }
 
   private def deserializeSchema(jsSchema: JsValue,
@@ -189,6 +194,27 @@ object TypeSerde {
     types
   }
 
+  /**
+    * Deserialize a single JsValue that was serialized using the `serializeOne` function.
+    * @param jsValue the value to deserialize
+    * @param schemas initial set of schemas (i.e. type aliases)
+    * @return
+    */
+  def deserializeOne(jsValue: JsValue,
+                     schemas: Map[String, TSchema] = Map.empty): (Type, Map[String, TSchema]) = {
+    val (jsType, jsSchemas) = jsValue match {
+      case obj: JsObject if obj.fields.contains("type") =>
+        obj.getFields("type", "schemas") match {
+          case Seq(jsType, JsObject(jsAliases)) => (jsType, jsAliases)
+          case Seq(jsType)                      => (jsType, Map.empty[String, JsValue])
+          case _ =>
+            throw new Exception(s"invalid serialized type value ${jsValue}")
+        }
+      case _ => (jsValue, Map.empty[String, JsValue])
+    }
+    deserializeType(jsType, schemas, jsSchemas)
+  }
+
   private def toNativePrimitive(t: Type): String = {
     t match {
       case TBoolean => "boolean"
@@ -217,6 +243,57 @@ object TypeSerde {
         // everything else is a complex type represented as a hash
         ("hash", optional)
     }
+  }
+
+  private def fromNativeNonArray(cls: String): Type = {
+    cls match {
+      case "boolean" => TBoolean
+      case "int"     => TInt
+      case "float"   => TFloat
+      case "string"  => TString
+      case "file"    => TFile
+      case "hash"    => THash
+      case _         => throw new Exception(s"invalid native class ${cls}")
+    }
+  }
+
+  def fromNative(cls: String, optional: Boolean): Type = {
+    val t = if (cls.startsWith("array:")) {
+      TArray(fromNativeNonArray(cls.drop(6)))
+    } else {
+      fromNativeNonArray(cls)
+    }
+    if (optional) {
+      TOptional(t)
+    } else {
+      t
+    }
+  }
+
+  def fromNativeSpec(fields: Vector[JsValue]): Map[String, Type] = {
+    fields.map {
+      case JsObject(field) =>
+        val name = field.get("name") match {
+          case Some(JsString(name)) => name
+          case _ =>
+            throw new Exception(s"invalid or missing name for field ${fields}")
+        }
+        val cls = field.get("class") match {
+          case Some(JsString(cls)) => cls
+          case None                => "string"
+          case other =>
+            throw new Exception(s"invalid native 'class' value ${other}")
+        }
+        val optional = field.get("optional") match {
+          case Some(JsBoolean(optional)) => optional
+          case None                      => false
+          case other =>
+            throw new Exception(s"invalid native 'optional' value ${other}")
+        }
+        name -> fromNative(cls, optional)
+      case other =>
+        throw new Exception(s"invalid native input/output spec field ${other}")
+    }.toMap
   }
 
   // Get a human readable type name

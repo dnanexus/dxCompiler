@@ -8,11 +8,11 @@ import dx.api.{DxApi, DxFile, DxProject}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spray.json._
-import wdlTools.util.Logger
+import dx.util.Logger
 
 class DxdaManifestTest extends AnyFlatSpec with Matchers {
   assume(isLoggedIn)
-  private val dxApi: DxApi = DxApi(Logger.Quiet)
+  private val dxApi: DxApi = DxApi()(Logger.Quiet)
   private val TestProject = "dxWDL_playground"
   private val ArchivedProject = "ArchivedStuff"
 

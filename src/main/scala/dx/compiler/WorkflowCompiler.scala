@@ -2,26 +2,11 @@ package dx.compiler
 
 import dx.api.{DxApi, DxUtils}
 import dx.core.Constants
-import dx.core.ir.{
-  EmptyInput,
-  ExecutableLink,
-  IORef,
-  Level,
-  LinkInput,
-  Parameter,
-  ParameterLinkSerializer,
-  ParameterLinkStage,
-  ParameterLinkWorkflowInput,
-  StageInput,
-  StaticInput,
-  Workflow,
-  WorkflowInput
-}
-import wdlTools.util.CodecUtils
+import dx.core.ir._
 import dx.translator.CallableAttributes._
 import dx.translator.Extras
+import dx.util.{CodecUtils, Logger}
 import spray.json._
-import wdlTools.util.Logger
 
 import scala.collection.immutable.TreeMap
 
@@ -44,14 +29,14 @@ case class WorkflowCompiler(extras: Option[Extras],
   // Note: a single WDL output can generate one or two JSON outputs.
   private def workflowOutputParameterToNative(parameter: Parameter,
                                               stageInput: StageInput): Vector[JsValue] = {
-    val outputSpec: Map[String, Map[String, JsValue]] = outputParameterToNative(parameter).map {
-      obj =>
+    val outputSpec: Map[String, Map[String, JsValue]] =
+      outputParameterToNative(parameter).map { obj =>
         val name = obj.fields.get("name") match {
           case Some(JsString(name)) => name
           case other                => throw new Exception(s"Unexpected value for 'name' field: ${other}")
         }
         name -> obj.fields
-    }.toMap
+      }.toMap
 
     val outputSources: Vector[(String, JsValue)] = stageInput match {
       case StaticInput(value) =>
@@ -133,7 +118,7 @@ case class WorkflowCompiler(extras: Option[Extras],
       workflow.stages.foldLeft(Vector.empty[JsValue]) {
         case (stagesReq, stg) =>
           val CompiledExecutable(irApplet, dxExec, _, _) = executableDict(stg.calleeName)
-          val linkedInputs = irApplet.inputVars zip stg.inputs
+          val linkedInputs = irApplet.inputVars.zip(stg.inputs)
           val inputs = stageInputToNative(linkedInputs)
           // convert the per-stage metadata into JSON
           val stageReqDesc = JsObject(
@@ -173,13 +158,14 @@ case class WorkflowCompiler(extras: Option[Extras],
         "execTree" -> JsString(CodecUtils.gzipAndBase64Encode(execTree.toString))
     )
     val details = wfMetaDetails ++ sourceDetails ++ dxLinks ++ delayDetails ++ execTreeDetails
+    val isTopLevel = workflow.level == Level.Top
     // required arguments for API call
     val required = Map(
         "name" -> JsString(workflow.name),
         "stages" -> JsArray(stages),
         "details" -> JsObject(details),
         // Sub-workflow are compiled to hidden objects.
-        "hidden" -> JsBoolean(workflow.level == Level.Sub)
+        "hidden" -> JsBoolean(!isTopLevel)
     )
     // convert inputs and outputs to spec
     val wfInputOutput: Map[String, JsValue] =

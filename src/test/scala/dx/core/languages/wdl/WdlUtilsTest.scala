@@ -4,9 +4,9 @@ import dx.Tags.EdgeTest
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
-import wdlTools.util.{Bindings, FileSourceResolver}
+import dx.util.{Bindings, FileSourceResolver}
 
-class UtilsTest extends AnyFlatSpec with Matchers {
+class WdlUtilsTest extends AnyFlatSpec with Matchers {
   private def validateTaskMeta(task: TAT.Task): Unit = {
     val kvs = task.meta match {
       case Some(TAT.MetaSection(kvs, _)) => kvs
@@ -24,7 +24,7 @@ class UtilsTest extends AnyFlatSpec with Matchers {
       sourceCode: String,
       fileResolver: FileSourceResolver = FileSourceResolver.get
   ): (TAT.Task, Bindings[String, WdlTypes.T_Struct], TAT.Document) = {
-    val (doc, typeAliases) = WdlUtils.parseAndCheckSourceString(sourceCode, fileResolver)
+    val (doc, typeAliases) = WdlUtils.parseAndCheckSourceString(sourceCode, "test", fileResolver)
     if (doc.workflow.isDefined) {
       throw new Exception("a workflow shouldn't be a member of this document")
     }

@@ -7,7 +7,7 @@ import dx.core.ir._
 import dx.core.languages.Language.Language
 import dx.translator.cwl.CwlTranslatorFactory
 import dx.translator.wdl.WdlTranslatorFactory
-import wdlTools.util.{FileSourceResolver, FileUtils, Logger}
+import dx.util.{FileSourceResolver, FileUtils, Logger}
 
 trait Translator {
   def apply: Bundle

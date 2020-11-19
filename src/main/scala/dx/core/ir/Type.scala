@@ -6,17 +6,18 @@ sealed trait Type
 
 object Type {
   // Primitive types that are supported natively.
-  case object TBoolean extends Type
-  case object TInt extends Type
-  case object TFloat extends Type
-  case object TString extends Type
-  case object TFile extends Type
+  sealed trait PrimitiveType extends Type
+  case object TBoolean extends PrimitiveType
+  case object TInt extends PrimitiveType
+  case object TFloat extends PrimitiveType
+  case object TString extends PrimitiveType
+  case object TFile extends PrimitiveType
 
   /**
     * A directory maps to a DNAnexus folder, or to some other representation of
     * a hierarchy of files, e.g. a tar or zip archive.
     */
-  case object TDirectory extends Type
+  case object TDirectory extends PrimitiveType
 
   /**
     * Wrapper that indicates a type is optional.
@@ -55,12 +56,7 @@ object Type {
   @tailrec
   def isPrimitive(t: Type): Boolean = {
     t match {
-      case TBoolean         => true
-      case TInt             => true
-      case TFloat           => true
-      case TString          => true
-      case TFile            => true
-      case TDirectory       => true
+      case _: PrimitiveType => true
       case TOptional(inner) => isPrimitive(inner)
       case _                => false
     }

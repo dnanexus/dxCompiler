@@ -4,17 +4,10 @@ import java.nio.file.{Path, Paths}
 
 import dx.api.DxJob
 import dx.core.getVersion
-import dx.core.io.{DxdaManifest, DxfuseManifest}
+import dx.core.io.{DxdaManifest, DxfuseManifest, StreamFiles}
 import dx.executor.wdl.WdlTaskSupportFactory
 import spray.json._
-import wdlTools.util.{
-  AddressableFileNode,
-  AddressableFileSource,
-  Enum,
-  FileUtils,
-  SysUtils,
-  TraceLevel
-}
+import dx.util.{AddressableFileNode, AddressableFileSource, Enum, FileUtils, SysUtils, TraceLevel}
 
 object TaskAction extends Enum {
   type TaskAction = Value
@@ -30,7 +23,7 @@ trait TaskSupport {
     * dxda and/or dxfuse manifests.
     * @return
     */
-  def localizeInputFiles(streamAllFiles: Boolean): (
+  def localizeInputFiles(streamFiles: StreamFiles.StreamFiles): (
       Map[String, JsValue],
       Map[AddressableFileNode, Path],
       Option[DxdaManifest],
@@ -87,7 +80,7 @@ object TaskExecutor {
 }
 
 case class TaskExecutor(jobMeta: JobMeta,
-                        streamAllFiles: Boolean,
+                        streamFiles: StreamFiles.StreamFiles,
                         fileUploader: FileUploader = SerialFileUploader(),
                         traceLengthLimit: Int = 10000) {
   private[executor] val taskSupport: TaskSupport =
@@ -120,7 +113,7 @@ case class TaskExecutor(jobMeta: JobMeta,
     trace(s"current instance type: ${curInstanceType}")
     val isSufficient =
       try {
-        jobMeta.instanceTypeDb.compareByResources(reqInstanceType, curInstanceType).exists(_ <= 0)
+        jobMeta.instanceTypeDb.matchesOrExceedes(curInstanceType, reqInstanceType)
       } catch {
         case ex: Throwable =>
           logger.warning("error comparing current and required instance types",
@@ -176,7 +169,7 @@ case class TaskExecutor(jobMeta: JobMeta,
       trace(s"Task source code:\n${jobMeta.sourceCode}", traceLengthLimit)
     }
     val (localizedInputs, fileSourceToPath, dxdaManifest, dxfuseManifest) =
-      taskSupport.localizeInputFiles(streamAllFiles)
+      taskSupport.localizeInputFiles(streamFiles)
 
     // build a manifest for dxda, if there are files to download
     dxdaManifest.foreach {

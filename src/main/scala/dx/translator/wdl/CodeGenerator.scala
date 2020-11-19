@@ -5,7 +5,9 @@ import dx.core.languages.wdl.WdlUtils
 import wdlTools.eval.WdlValues
 import wdlTools.syntax.{CommentMap, SourceLocation, WdlVersion}
 import wdlTools.types.{GraphUtils, TypeGraph, WdlTypes, TypedAbstractSyntax => TAT}
-import wdlTools.util.{Logger, StringFileNode}
+import dx.util.{Logger, StringFileNode}
+
+import scala.collection.immutable.TreeSeqMap
 
 case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
                          wdlVersion: WdlVersion,
@@ -75,7 +77,7 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
       case WdlValues.V_Map(value) =>
         val keyExprs = value.keys.map(wdlValueToExpr)
         val valueExprs = value.values.map(wdlValueToExpr)
-        TAT.ExprMap(keyExprs.zip(valueExprs).toMap,
+        TAT.ExprMap(keyExprs.zip(valueExprs).to(TreeSeqMap),
                     WdlTypes.T_Map(seqToType(keyExprs), seqToType(valueExprs)),
                     SourceLocation.empty)
 
@@ -90,7 +92,9 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
           case (name: TAT.ValueString, value) => name.value -> value.wdlType
           case other                          => throw new RuntimeException(s"Unexpected member ${other}")
         }
-        TAT.ExprMap(memberExprs, WdlTypes.T_Struct(name, memberTypes), SourceLocation.empty)
+        TAT.ExprMap(memberExprs.to(TreeSeqMap),
+                    WdlTypes.T_Struct(name, memberTypes.to(TreeSeqMap)),
+                    SourceLocation.empty)
 
       case WdlValues.V_Object(members) =>
         val memberExprs = members.map {
@@ -98,7 +102,7 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
             val key: TAT.Expr = TAT.ValueString(name, WdlTypes.T_String, SourceLocation.empty)
             key -> wdlValueToExpr(value)
         }
-        TAT.ExprObject(memberExprs, WdlTypes.T_Object, SourceLocation.empty)
+        TAT.ExprObject(memberExprs.to(TreeSeqMap), WdlTypes.T_Object, SourceLocation.empty)
 
       case other =>
         throw new Exception(s"Unhandled value ${other}")
@@ -176,13 +180,15 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
         callable.name,
         WdlTypes.T_Task(
             callable.name,
-            inputs.map {
-              case TAT.RequiredInputParameter(name, wdlType, _) =>
-                name -> (wdlType, false)
-              case other: TAT.InputParameter =>
-                other.name -> (other.wdlType, true)
-            }.toMap,
-            outputs.map(d => d.name -> d.wdlType).toMap
+            inputs
+              .map {
+                case TAT.RequiredInputParameter(name, wdlType, _) =>
+                  name -> (wdlType, false)
+                case other: TAT.InputParameter =>
+                  other.name -> (other.wdlType, true)
+              }
+              .to(TreeSeqMap),
+            outputs.map(d => d.name -> d.wdlType).to(TreeSeqMap)
         ),
         inputs,
         outputs,
@@ -210,7 +216,7 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
                        outputSpec: Map[String, WdlTypes.T]): TAT.Task = {
 
     val meta = TAT.MetaSection(
-        Map(
+        TreeSeqMap(
             "type" -> TAT.MetaValueString("native", SourceLocation.empty),
             "id" -> TAT.MetaValueString(id, SourceLocation.empty)
         ),
@@ -218,9 +224,13 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
     )
     TAT.Task(
         appletName,
-        WdlTypes.T_Task(appletName, inputSpec.map {
-          case (name, wdlType) => name -> (wdlType, false)
-        }, outputSpec),
+        WdlTypes.T_Task(appletName,
+                        inputSpec
+                          .map {
+                            case (name, wdlType) => name -> (wdlType, false)
+                          }
+                          .to(TreeSeqMap),
+                        outputSpec.to(TreeSeqMap)),
         inputSpec.map {
           case (name, wdlType) => TAT.RequiredInputParameter(name, wdlType, SourceLocation.empty)
         }.toVector,

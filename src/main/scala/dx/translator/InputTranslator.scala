@@ -2,8 +2,7 @@ package dx.translator
 
 import java.nio.file.{Path, Paths}
 
-import dx.api.{DxApi, DxFile, DxProject}
-import dx.core.io.{DxFileAccessProtocol, DxFileDescCache}
+import dx.api.{DxApi, DxFile, DxFileDescCache, DxProject}
 import dx.core.ir.Type._
 import dx.core.ir.{
   Application,
@@ -16,8 +15,9 @@ import dx.core.ir.{
   Value,
   Workflow
 }
+import dx.util.{FileSourceResolver, FileUtils, JsUtils, Logger}
+import dx.util.protocols.DxFileAccessProtocol
 import spray.json.{JsArray, JsNull, JsObject, JsString, JsValue}
-import wdlTools.util.{FileSourceResolver, FileUtils, JsUtils, Logger}
 
 /**
   * Tracks which keys are accessed in a map and ensures all keys are accessed exactly once.

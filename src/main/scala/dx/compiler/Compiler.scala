@@ -22,12 +22,12 @@ import dx.api.{
   InstanceTypeDB
 }
 import dx.core.{Constants, getVersion}
-import dx.core.io.DxWorkerPaths
+import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir._
-import wdlTools.util.CodecUtils
+import dx.util.CodecUtils
 import dx.translator.Extras
 import spray.json._
-import wdlTools.util.{FileSourceResolver, FileUtils, JsUtils, Logger, TraceLevel}
+import dx.util.{FileSourceResolver, FileUtils, JsUtils, Logger, TraceLevel}
 
 import scala.jdk.CollectionConverters._
 
@@ -61,7 +61,7 @@ case class Compiler(extras: Option[Extras],
                     leaveWorkflowsOpen: Boolean,
                     locked: Boolean,
                     projectWideReuse: Boolean,
-                    streamAllFiles: Boolean,
+                    streamFiles: StreamFiles.StreamFiles,
                     fileResolver: FileSourceResolver = FileSourceResolver.get,
                     dxApi: DxApi = DxApi.get,
                     logger: Logger = Logger.get) {
@@ -306,7 +306,7 @@ case class Compiler(extras: Option[Extras],
             runtimeAsset,
             runtimePathConfig,
             runtimeTraceLevel,
-            streamAllFiles,
+            streamFiles,
             scatterChunkSize,
             extras,
             parameterLinkSerializer,

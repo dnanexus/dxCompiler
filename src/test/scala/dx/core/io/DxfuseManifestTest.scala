@@ -7,11 +7,11 @@ import dx.Tags.ApiTest
 import dx.api.{DxApi, DxFile, DxProject}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import wdlTools.util.Logger
+import dx.util.Logger
 
 class DxfuseManifestTest extends AnyFlatSpec with Matchers {
   assume(isLoggedIn)
-  private val dxApi: DxApi = DxApi(Logger.Quiet)
+  private val dxApi: DxApi = DxApi()(Logger.Quiet)
   private val rootDir = Files.createTempDirectory("root")
   rootDir.toFile.deleteOnExit()
   private val dxPathConfig = DxWorkerPaths(rootDir)

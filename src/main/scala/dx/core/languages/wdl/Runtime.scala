@@ -14,7 +14,7 @@ import wdlTools.eval.{
 import wdlTools.syntax.WdlVersion
 import wdlTools.types.WdlTypes._
 import wdlTools.types.{TypedAbstractSyntax => TAT}
-import wdlTools.util.Bindings
+import dx.util.Bindings
 
 object DxMetaHints {
   val ParameterMetaStream: String = "stream"

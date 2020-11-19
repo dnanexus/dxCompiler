@@ -3,13 +3,15 @@ package dx.dxni.wdl
 import dx.api._
 import dx.core.languages.Language
 import dx.core.languages.Language.Language
-import dx.core.languages.wdl.{WdlUtils, VersionSupport}
+import dx.core.languages.wdl.{VersionSupport, WdlUtils}
 import dx.dxni.{NativeInterfaceGenerator, NativeInterfaceGeneratorFactory}
 import wdlTools.syntax.{CommentMap, SourceLocation, WdlVersion}
 import wdlTools.types.TypeCheckingRegime.TypeCheckingRegime
 import wdlTools.types.WdlTypes.T_Task
 import wdlTools.types.{TypeCheckingRegime, WdlTypes, TypedAbstractSyntax => TAT}
-import wdlTools.util.{FileSourceResolver, Logger, StringFileNode}
+import dx.util.{FileSourceResolver, Logger, StringFileNode}
+
+import scala.collection.immutable.TreeSeqMap
 
 case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
                                        fileResolver: FileSourceResolver = FileSourceResolver.get,
@@ -37,7 +39,7 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
     // DNAnexus allows '-' and '.' in app(let) names, WDL does not
     val normalizedName = appletName.replaceAll("[-.]", "_")
     val meta = TAT.MetaSection(
-        Map(
+        TreeSeqMap(
             "type" -> TAT.MetaValueString("native", loc),
             "id" -> TAT.MetaValueString(id, loc)
         ),
@@ -45,9 +47,13 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
     )
     TAT.Task(
         normalizedName,
-        T_Task(normalizedName, inputSpec.map {
-          case (name, wdlType) => name -> (wdlType, false)
-        }, outputSpec),
+        T_Task(normalizedName,
+               inputSpec
+                 .map {
+                   case (name, wdlType) => name -> (wdlType, false)
+                 }
+                 .to(TreeSeqMap),
+               outputSpec.to(TreeSeqMap)),
         inputSpec.map {
           case (name, wdlType) =>
             TAT.RequiredInputParameter(name, wdlType, loc)
@@ -204,7 +210,13 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
         //  need to be implemented in wdlTools
         val taskDoc = createDocument(Vector(task))
         val sourceCode = wdl.codeGenerator.generateDocument(taskDoc).mkString("\n")
-        logger.ignore(WdlUtils.parseAndCheckSourceString(sourceCode, fileResolver, regime, logger))
+        logger.ignore(
+            WdlUtils.parseAndCheckSourceString(sourceCode,
+                                               taskDoc.source.toString,
+                                               fileResolver,
+                                               regime,
+                                               logger)
+        )
         Some(task)
       } catch {
         case e: Throwable =>

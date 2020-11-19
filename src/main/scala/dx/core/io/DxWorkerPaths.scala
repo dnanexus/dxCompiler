@@ -2,8 +2,34 @@ package dx.core.io
 
 import java.nio.file.{Path, Paths}
 
-import wdlTools.exec.ExecPaths
-import wdlTools.util.Logger
+import dx.util.{BaseEvalPaths, ExecPaths, Logger}
+
+object DxWorkerPaths {
+  // The home directory on a DNAnexus worker. This directory exists only at runtime in the cloud.
+  // Beware of using it in code paths that run at compile time.
+  val RootDir: Path = Paths.get("/home/dnanexus")
+  val TempDir = "job_scratch_space"
+  val WorkDir = "work"
+  val MetaDir = "meta"
+  val StdoutFile = "stdout"
+  val StderrFile = "stderr"
+  val CommandScript = "commandScript"
+  val ReturnCode = "returnCode"
+  val ContainerRunScript = "containerRunScript"
+  val ContainerId = "containerId"
+  val InputFilesDir = "inputs"
+  val OutputFilesDir = "outputs"
+  val InstanceTypeDbFile = "instance_type_db.json"
+  val SourceEncodedFile = "source.wdl.uu64"
+  val SetupStreamsFile = "setup_streams"
+  val DxdaManifestFile = "dxdaManifest.json"
+  val DxfuseManifestFile = "dxfuseManifest.json"
+  val DxuaManifestFile = "dxuaManifest.json"
+  val DxfuseMountDir = "mnt"
+  val TaskEnvFile = "taskEnv.json"
+
+  lazy val default: DxWorkerPaths = DxWorkerPaths(RootDir)
+}
 
 /**
   * Important paths on a DNAnexus worker.
@@ -15,8 +41,59 @@ import wdlTools.util.Logger
   * files created with stdlib calls like "write_lines".
   * @param rootDir the root directory - typically the user's home directory
   */
-case class DxWorkerPaths(rootDir: Path)
-    extends ExecPaths(rootDir, rootDir.resolve(DxWorkerPaths.TempDir)) {
+case class DxWorkerPaths(rootDir: Path) extends BaseEvalPaths with ExecPaths {
+  def getRootDir(ensureExists: Boolean = false): Path = {
+    getOrCreateDir("root", rootDir, ensureExists)
+  }
+
+  def getTempDir(ensureExists: Boolean = false): Path = {
+    getOrCreateDir("temp", getRootDir(ensureExists).resolve(DxWorkerPaths.TempDir), ensureExists)
+  }
+
+  /**
+    * The execution directory - used as the base dir for relative paths (e.g. for glob search).
+    */
+  def getWorkDir(ensureExists: Boolean = false): Path = {
+    getOrCreateDir(DxWorkerPaths.WorkDir,
+                   getRootDir(ensureExists).resolve(DxWorkerPaths.WorkDir),
+                   ensureExists)
+  }
+
+  def getMetaDir(ensureExists: Boolean = false): Path = {
+    getOrCreateDir(DxWorkerPaths.MetaDir,
+                   getRootDir(ensureExists).resolve(DxWorkerPaths.MetaDir),
+                   ensureExists)
+  }
+
+  /**
+    * The file that has a copy of standard output.
+    */
+  def getStdoutFile(ensureParentExists: Boolean = false): Path = {
+    getMetaDir(ensureParentExists).resolve(DxWorkerPaths.StdoutFile)
+  }
+
+  /**
+    * The file that has a copy of standard error.
+    */
+  def getStderrFile(ensureParentExists: Boolean = false): Path = {
+    getMetaDir(ensureParentExists).resolve(DxWorkerPaths.StderrFile)
+  }
+
+  def getCommandFile(ensureParentExists: Boolean = false): Path = {
+    getMetaDir(ensureParentExists).resolve(DxWorkerPaths.CommandScript)
+  }
+
+  def getReturnCodeFile(ensureParentExists: Boolean = false): Path = {
+    getMetaDir(ensureParentExists).resolve(DxWorkerPaths.ReturnCode)
+  }
+
+  def getContainerCommandFile(ensureParentExists: Boolean = false): Path = {
+    getMetaDir(ensureParentExists).resolve(DxWorkerPaths.ContainerRunScript)
+  }
+
+  def getContainerIdFile(ensureParentExists: Boolean = false): Path = {
+    getMetaDir(ensureParentExists).resolve(DxWorkerPaths.ContainerId)
+  }
 
   /**
     * Running applets download files from the platform to this location.
@@ -107,23 +184,4 @@ case class DxWorkerPaths(rootDir: Path)
         )
     )
   }
-}
-
-object DxWorkerPaths {
-  // The home directory on a DNAnexus worker. This directory exists only at runtime in the cloud.
-  // Beware of using it in code paths that run at compile time.
-  val RootDir: Path = Paths.get("/home/dnanexus")
-  val InputFilesDir = "inputs"
-  val OutputFilesDir = "outputs"
-  val TempDir = "job_scratch_space"
-  val InstanceTypeDbFile = "instance_type_db.json"
-  val SourceEncodedFile = "source.wdl.uu64"
-  val SetupStreamsFile = "setup_streams"
-  val DxdaManifestFile = "dxdaManifest.json"
-  val DxfuseManifestFile = "dxfuseManifest.json"
-  val DxuaManifestFile = "dxuaManifest.json"
-  val DxfuseMountDir = "mnt"
-  val TaskEnvFile = "taskEnv.json"
-
-  lazy val default: DxWorkerPaths = DxWorkerPaths(RootDir)
 }

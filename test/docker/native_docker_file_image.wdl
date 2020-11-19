@@ -8,7 +8,7 @@ task native_docker_file_image {
         lsb_release --codename | cut -f 2
     }
     runtime {
-        docker : "dx://dxWDL_playground:/test_data/ubuntu_18_04_minimal.tar"
+        docker : "dx://dxCompiler_playground:/test_data/ubuntu_18_04_minimal.tar"
     }
     output {
         String result = read_string(stdout())

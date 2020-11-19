@@ -1,6 +1,6 @@
 package dx.core.ir
 
-import wdlTools.util.Enum
+import dx.util.Enum
 
 import scala.reflect.ClassTag
 

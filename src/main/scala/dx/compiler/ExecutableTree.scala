@@ -2,7 +2,7 @@ package dx.compiler
 
 import dx.api.{DxExecutable, DxWorkflow, Field}
 import dx.core.ir.{Application, Callable, ExecutableKind, ExecutableLink, Workflow}
-import wdlTools.util.CodecUtils
+import dx.util.CodecUtils
 import spray.json._
 
 case class CompiledExecutable(callable: Callable,

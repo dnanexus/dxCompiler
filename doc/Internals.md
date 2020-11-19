@@ -12,7 +12,7 @@ The compiler has three phases:
 1. Parsing: The source code written in a workflow language (WDL or CWL) is parsed into an abstract syntax tree (AST). This depends on a language-specific library:
     * [wdlTools]() for WDL, which is based on the [OpenWDL ANTLR4 grammar]()
     * [cwlTools]() for CWL, which is based on [cwljava](https://github.com/common-workflow-lab/cwljava)
-2. Translation: The language-specific AST is translated into dxCompiler "Intermediate Representation" (IR), which mirrors the struture of DNAnexus applets/workflows, including DNAnexus-supported data types, metadata, and runtime specifications. The output of this step is an IR "Bundle".
+2. Translation: The language-specific AST is translated into dxCompiler "Intermediate Representation" (IR), which mirrors the structure of DNAnexus applets/workflows, including DNAnexus-supported data types, metadata, and runtime specifications. The output of this step is an IR "Bundle".
 3. Compilation: Generates native applets and workflows from the IR. The output of this step is the applet ID (for a source file that contains a single tool/task) or workflow ID.
 
 ### Translation

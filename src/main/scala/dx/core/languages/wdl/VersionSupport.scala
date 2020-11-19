@@ -8,7 +8,7 @@ import wdlTools.generators.code.WdlGenerator
 import wdlTools.syntax.{Parsers, WdlParser, WdlVersion}
 import wdlTools.types.TypeCheckingRegime.TypeCheckingRegime
 import wdlTools.types.{TypeCheckingRegime, WdlTypes, TypedAbstractSyntax => TAT}
-import wdlTools.util.{Bindings, FileNode, FileSourceResolver, Logger, StringFileNode}
+import dx.util.{Bindings, FileNode, FileSourceResolver, Logger, StringFileNode}
 
 case class VersionSupport(version: WdlVersion,
                           fileResolver: FileSourceResolver = FileSourceResolver.get,
@@ -55,7 +55,7 @@ case class VersionSupport(version: WdlVersion,
 
   def generateDocument(doc: TAT.Document): String = {
     val sourceString = codeGenerator.generateDocument(doc).mkString("\n")
-    Logger.get.ignore(WdlUtils.parseAndCheckSourceString(sourceString))
+    Logger.get.ignore(WdlUtils.parseAndCheckSourceString(sourceString, doc.source.toString))
     sourceString
   }
 

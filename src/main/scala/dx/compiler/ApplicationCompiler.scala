@@ -11,15 +11,15 @@ import dx.api.{
   InstanceTypeRequest
 }
 import dx.core.Constants
-import dx.core.io.DxWorkerPaths
+import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir._
-import wdlTools.util.CodecUtils
+import dx.util.CodecUtils
 import dx.translator.{DockerRegistry, DxAccess, DxExecPolicy, DxRunSpec, DxTimeout, Extras}
 import dx.translator.CallableAttributes._
 import dx.translator.RunSpec._
 import spray.json._
 import wdlTools.generators.Renderer
-import wdlTools.util.Logger
+import dx.util.Logger
 
 object ApplicationCompiler {
   val DefaultAppletTimeoutInDays = 2
@@ -40,7 +40,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
                                runtimeAsset: Option[JsValue],
                                runtimePathConfig: DxWorkerPaths,
                                runtimeTraceLevel: Int,
-                               streamAllFiles: Boolean,
+                               streamFiles: StreamFiles.StreamFiles,
                                scatterChunkSize: Int,
                                extras: Option[Extras],
                                parameterLinkSerializer: ParameterLinkSerializer,
@@ -84,8 +84,9 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
 
   private def generateJobScript(applet: Application): String = {
     val templateAttrs: Map[String, Any] = Map(
-        "rtTraceLevel" -> runtimeTraceLevel,
-        "streamAllFiles" -> streamAllFiles
+        "runtimeJar" -> "dxWDL.jar",
+        "runtimeTraceLevel" -> runtimeTraceLevel,
+        "streamFiles" -> streamFiles
     )
     applet.kind match {
       case ExecutableKindApplet =>

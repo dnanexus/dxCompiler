@@ -4,16 +4,18 @@ import java.nio.file.{Files, Path}
 
 import dx.api.{DxJob, DxPath}
 import dx.core.io.{
-  DxFileSource,
   DxdaManifest,
   DxdaManifestBuilder,
   DxfuseManifest,
-  DxfuseManifestBuilder
+  DxfuseManifestBuilder,
+  StreamFiles
 }
 import dx.core.ir.ParameterLink
 import dx.core.languages.wdl.{DxMetaHints, Runtime, VersionSupport, WdlUtils}
 import dx.executor.{FileUploader, JobMeta, TaskSupport, TaskSupportFactory}
 import dx.translator.wdl.IrToWdlValueBindings
+import dx.util.{AddressableFileNode, Bindings, LocalFileSource, Logger, TraceLevel}
+import dx.util.protocols.DxFileSource
 import spray.json._
 import wdlTools.eval.WdlValues._
 import wdlTools.eval.{Eval, EvalUtils, Hints, Meta, WdlValueBindings, WdlValueSerde}
@@ -26,16 +28,17 @@ import wdlTools.exec.{
 import wdlTools.syntax.SourceLocation
 import wdlTools.types.TypeCheckingRegime.TypeCheckingRegime
 import wdlTools.types.WdlTypes._
-import wdlTools.types.{TypeCheckingRegime, TypedAbstractSyntax => TAT}
-import wdlTools.util.{AddressableFileNode, Bindings, LocalFileSource, Logger, TraceLevel}
+import wdlTools.types.{TypeCheckingRegime, WdlTypeSerde, TypedAbstractSyntax => TAT}
 
 object WdlTaskSupport {
+  val MaxDisambiguationDirs: Int = 5000
+
   def serializeValues(
       values: Map[String, (T, V)]
   ): Map[String, JsValue] = {
     values.map {
       case (name, (t, v)) =>
-        val jsType = WdlUtils.serializeType(t)
+        val jsType = WdlTypeSerde.serializeType(t)
         val jsValue = WdlValueSerde.serialize(v)
         name -> JsObject("type" -> jsType, "value" -> jsValue)
     }
@@ -47,7 +50,7 @@ object WdlTaskSupport {
   ): Map[String, (T, V)] = {
     values.map {
       case (name, JsObject(fields)) =>
-        val t = WdlUtils.deserializeType(fields("type"), typeAliases)
+        val t = WdlTypeSerde.deserializeType(fields("type"), typeAliases)
         val v = WdlValueSerde.deserialize(fields("value"), t)
         name -> (t, v)
       case other =>
@@ -174,7 +177,7 @@ case class WdlTaskSupport(task: TAT.Task,
     * @return
     */
   override def localizeInputFiles(
-      streamAllFiles: Boolean
+      streamFiles: StreamFiles.StreamFiles
   ): (Map[String, JsValue],
       Map[AddressableFileNode, Path],
       Option[DxdaManifest],
@@ -204,28 +207,33 @@ case class WdlTaskSupport(task: TAT.Task,
           if (remote.isEmpty) {
             (localFilesToPath ++ local, filesToStream, filesToDownload)
           } else {
-            val stream = streamAllFiles || (parameterMeta.get(name) match {
-              case Some(V_String(DxMetaHints.ParameterMetaStream)) =>
-                true
-              case Some(V_Object(fields)) =>
-                // This enables the stream annotation in the object form of metadata value, e.g.
-                // bam_file : {
-                //   stream : true
-                // }
-                // We also support two aliases, dx_stream and localizationOptional
-                fields.view
-                  .filterKeys(
-                      Set(DxMetaHints.ParameterMetaStream,
-                          DxMetaHints.ParameterHintStream,
-                          Hints.LocalizationOptionalKey)
-                  )
-                  .values
-                  .exists {
-                    case V_Boolean(b) => b
-                    case _            => false
-                  }
-              case _ => false
-            })
+            val stream = streamFiles match {
+              case StreamFiles.All  => true
+              case StreamFiles.None => false
+              case StreamFiles.PerFile =>
+                parameterMeta.get(name) match {
+                  case Some(V_String(DxMetaHints.ParameterMetaStream)) =>
+                    true
+                  case Some(V_Object(fields)) =>
+                    // This enables the stream annotation in the object form of metadata value, e.g.
+                    // bam_file : {
+                    //   stream : true
+                    // }
+                    // We also support two aliases, dx_stream and localizationOptional
+                    fields.view
+                      .filterKeys(
+                          Set(DxMetaHints.ParameterMetaStream,
+                              DxMetaHints.ParameterHintStream,
+                              Hints.LocalizationOptionalKey)
+                      )
+                      .values
+                      .exists {
+                        case V_Boolean(b) => b
+                        case _            => false
+                      }
+                  case _ => false
+                }
+            }
             if (stream) {
               (localFilesToPath ++ local, filesToStream ++ remote, filesToDownload)
             } else {
@@ -241,7 +249,8 @@ case class WdlTaskSupport(task: TAT.Task,
     logger.traceLimited(s"downloading files = ${filesToDownload}")
     val downloadLocalizer =
       SafeLocalizationDisambiguator(jobMeta.workerPaths.getInputFilesDir(),
-                                    existingPaths = localFilesToPath.values.toSet)
+                                    existingPaths = localFilesToPath.values.toSet,
+                                    disambiguationDirLimit = WdlTaskSupport.MaxDisambiguationDirs)
     val downloadFileSourceToPath: Map[AddressableFileNode, Path] =
       filesToDownload.map(fs => fs -> downloadLocalizer.getLocalPath(fs)).toMap
     val dxdaManifest: Option[DxdaManifest] =
@@ -252,7 +261,8 @@ case class WdlTaskSupport(task: TAT.Task,
     logger.traceLimited(s"streaming files = ${filesToStream}")
     val streamingLocalizer =
       SafeLocalizationDisambiguator(jobMeta.workerPaths.getDxfuseMountDir(),
-                                    existingPaths = localFilesToPath.values.toSet)
+                                    existingPaths = localFilesToPath.values.toSet,
+                                    disambiguationDirLimit = WdlTaskSupport.MaxDisambiguationDirs)
     val streamFileSourceToPath: Map[AddressableFileNode, Path] =
       filesToStream.map(fs => fs -> streamingLocalizer.getLocalPath(fs)).toMap
     val dxfuseManifest =

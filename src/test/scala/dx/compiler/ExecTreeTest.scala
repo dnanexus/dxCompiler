@@ -8,12 +8,12 @@ import dx.api._
 import dx.compiler.Main.{SuccessJsonTree, SuccessPrettyTree}
 import dx.core.Constants
 import dx.core.CliUtils.{Failure, Success}
-import wdlTools.util.CodecUtils
+import dx.util.CodecUtils
 import org.scalatest.Inside._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spray.json._
-import wdlTools.util.Logger
+import dx.util.Logger
 
 // This test module requires being logged in to the platform.
 // It compiles WDL scripts without the runtime library.
@@ -27,7 +27,7 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
     Paths.get(p)
   }
 
-  private val dxApi = DxApi(Logger.Quiet)
+  private val dxApi = DxApi()(Logger.Quiet)
   private val testProject = "dxWDL_playground"
 
   private lazy val dxTestProject =
@@ -81,7 +81,7 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
     val args = path.toString +: cFlagsLocked
     val retval = Main.compile(args)
     val wf = retval match {
-      case Success(id) => DxWorkflow(dxApi, id, Some(dxTestProject))
+      case Success(id) => DxWorkflow(id, Some(dxTestProject))(dxApi)
       case Failure(msg, Some(exception)) =>
         throw new Exception(s"Unable to compile workflow: ${msg}", exception)
       case Failure(msg, None) =>
@@ -125,7 +125,7 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
     val args = path.toString +: cFlagsLocked
     val retval = Main.compile(args)
     val wf = retval match {
-      case Success(id) => DxWorkflow(dxApi, id, Some(dxTestProject))
+      case Success(id) => DxWorkflow(id, Some(dxTestProject))(dxApi)
       case Failure(msg, Some(exception)) =>
         throw new Exception(s"Unable to compile workflow: ${msg}", exception)
       case Failure(msg, None) =>
@@ -191,8 +191,8 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
                        |│       ├───App Task: c1
                        |│       └───App Task: c2
                        |├───App Fragment: scatter (i in [1, 4, 9])
-                       |│   └───App Fragment: four_levels_frag_DxWorkflowStage(stage-6)
-                       |│       └───App Fragment: four_levels_frag_DxWorkflowStage(stage-4)
+                       |│   └───App Fragment: four_levels_frag_stage-6
+                       |│       └───App Fragment: four_levels_frag_stage-4
                        |│           └───App Task: concat
                        |└───App Outputs: outputs""".stripMargin
   }
@@ -260,8 +260,8 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
                                                           |│       ├───App Task: c1
                                                           |│       └───App Task: c2
                                                           |├───App Fragment: scatter (i in [1, 4, 9])
-                                                          |│   └───App Fragment: four_levels_frag_DxWorkflowStage(stage-6)
-                                                          |│       └───App Fragment: four_levels_frag_DxWorkflowStage(stage-4)
+                                                          |│   └───App Fragment: four_levels_frag_stage-6
+                                                          |│       └───App Fragment: four_levels_frag_stage-4
                                                           |│           └───App Task: concat
                                                           |└───App Outputs: outputs""".stripMargin
   }
@@ -288,8 +288,8 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
                                                           |│       ├───App Task: c1
                                                           |│       └───App Task: c2
                                                           |├───App Fragment: scatter (i in [1, 4, 9])
-                                                          |│   └───App Fragment: four_levels_frag_DxWorkflowStage(stage-6)
-                                                          |│       └───App Fragment: four_levels_frag_DxWorkflowStage(stage-4)
+                                                          |│   └───App Fragment: four_levels_frag_stage-6
+                                                          |│       └───App Fragment: four_levels_frag_stage-4
                                                           |│           └───App Task: concat
                                                           |└───App Outputs: outputs""".stripMargin
   }
