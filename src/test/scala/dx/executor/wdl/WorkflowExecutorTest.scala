@@ -277,6 +277,18 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     scatters.size shouldBe 1
     val scatterNode = scatters.head
     scatterNode.identifier should be("x")
+
+    val workerPaths = setup()
+    val wfExecutor = createWorkflowExecutor(workerPaths, path, Vector(2, 0))
+    val wdlWorkflowSupport = wfExecutor.workflowSupport match {
+      case supp: WdlWorkflowSupport => supp
+      case _                        => throw new Exception("expected WdlWorkflowSupport")
+    }
+    val wdlX = WdlValues.V_Array(Vector(WdlValues.V_String("x"), WdlValues.V_String("y")))
+    val irX = WdlUtils.toIRValue(wdlX)
+    val blockContext =
+      wdlWorkflowSupport.evaluateBlockInputs(Map("x" -> (Type.TArray(Type.TString), irX)))
+    blockContext.getScatterName(wdlX) shouldBe Some("[x,y]")
   }
 
   it should "Make sure calls cannot be handled by evalExpressions" in {
