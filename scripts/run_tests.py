@@ -473,9 +473,11 @@ def run_test_subset(project, runnable, test_folder, debug_flag, delay_workspace_
         all_failures = failed_execution + failed_verification
         print("-----------------------------")
         if failed_execution:
-            print(f"Tools failed execution: {len(failed_execution)}:\n{'\n'.join(failed_execution)}\n")
+            fexec = '\n'.join(failed_execution)
+            print(f"Tools failed execution: {len(failed_execution)}:\n{fexec}")
         if failed_verification:
-            print(f"Tools failed results verification: {len(failed_verification)}:\n{'\n'.join(failed_verification)}\n")
+            fveri = '\n'.join(failed_verification)
+            print(f"Tools failed results verification: {len(failed_verification)}:\n{fveri}")
         raise RuntimeError("Failed")
 
 def print_test_list():
