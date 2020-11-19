@@ -521,7 +521,7 @@ case class WdlWorkflowSupport(workflow: TAT.Workflow,
     }
 
     // create a short, easy to read, description for a scatter element.
-    private def getScatterName(item: V): Option[String] = {
+    private[wdl] def getScatterName(item: V): Option[String] = {
       item match {
         case _ if EvalUtils.isPrimitive(item) => Some(truncate(EvalUtils.formatPrimitive(item)))
         case V_File(path)                     => Some(truncate(getFileName(path)))
@@ -938,7 +938,7 @@ case class WdlWorkflowSupport(workflow: TAT.Workflow,
 
   override def evaluateBlockInputs(
       jobInputs: Map[String, (Type, Value)]
-  ): BlockContext[WdlBlock] = {
+  ): WdlBlockContext = {
     val block: WdlBlock =
       Block.getSubBlockAt(WdlBlock.createBlocks(workflow.body), jobMeta.blockPath)
     // Some of the inputs could be optional. If they are missing, add in a V_Null
