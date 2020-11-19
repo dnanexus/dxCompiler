@@ -1,11 +1,12 @@
 package dx.translator.cwl
 
+import java.nio.file.Path
+
 import dx.api.DxApi
-import dx.core.ir.{Application, Callable, CallableAttribute, ExecutableKindApplet, Parameter, ParameterAttribute, RuntimeRequirement, Type, Value}
-import dx.core.languages.cwl.CwlUtils.{toIRType, toIRValue, getDefaultCWLValue}
+import dx.core.ir.{Application, Callable, CallableAttribute, ExecutableKindApplet, Parameter, ParameterAttribute, RuntimeRequirement, Value}
+import dx.core.languages.cwl.CwlUtils
 import dx.translator.{ReorgSettings, RunSpec}
 import dx.cwl.{CommandInputParameter, CommandLineTool, CommandOutputParameter, Process, Workflow}
-import dx.translator.ParameterAttributes.{HelpAttribute, LabelAttribute}
 
 
 case class CallableTranslator(cwlBundle: CwlBundle,
@@ -15,70 +16,48 @@ case class CallableTranslator(cwlBundle: CwlBundle,
                               dxApi: DxApi = DxApi.get) {
 
 
-  def translateCallable(callable: Process, filename: String = "Unknown"): Callable = {
+  def translateCallable(callable: Process, sourceFile: Path): Callable = {
+    val filename = sourceFile.getFileName.toString
     callable match {
       case tool: CommandLineTool =>
-        val taskTranslator = CwlToolTranslator.apply(tool, filename)
-        taskTranslator.apply(tool, filename)
+        val taskTranslator = CwlToolTranslator.apply(tool, sourceFile)
+        taskTranslator.apply(tool, sourceFile)
       case wf: Workflow => throw new NotImplementedError("Workflows are not implemented!")
       case other => throw new NotImplementedError(s"Cwl type ${other.getClass} is not supported!")
     }
   }
 
-  // CommandInputParameter ->  doc: Option[String] , but in documentation string | array<string>
   def parseCommandOutputParameter(output: CommandOutputParameter): Parameter = {
-    val name = output.id.get.name.get // FIXME: add errors -  name has to exist
-    val dxType = toIRType(output.types) // FIXME : returns only one type, what if there are multiple types?
+    val name = output.id.get.name.get
+    val dxType = CwlUtils.toIRType(output.types)
 
-    val helpAttribute: Option[HelpAttribute] = output.doc match { // FIXME: code duplication.
-      case Some(s: String) => Option(HelpAttribute(s))
-      //      case Some(s: Array[String]) => Option(HelpAttribute(s.mkString)) // FIXME - according to doc
-      case None => Option.empty[HelpAttribute]
-    }
-    val labelAttribute: Option[LabelAttribute] = output.label match {
-      case Some(s: String) => Option(LabelAttribute(s))
-      case None => Option.empty[LabelAttribute]
-    }
-    val attributes: Vector[ParameterAttribute] = Vector(helpAttribute, labelAttribute).collect { case Some(i: ParameterAttribute) => i }
+    val attributes: Vector[ParameterAttribute] = CwlUtils.createParameterAttributes(output.doc, output.label)
 
     Parameter(name, dxType, attributes=attributes)
   }
 
   def parseCommandInputParameter(input: CommandInputParameter): Parameter = {
-    val name = input.id.get.name.get // FIXME: add errors -  name has to exist
-    val dxType = toIRType(input.types)
-    val defaultValue = Option(toIRValue(input.default.getOrElse(getDefaultCWLValue(input.types))))
-//    val defaultValue = Option(toIRValue(input.default.get))
-
-    val helpAttribute: Option[HelpAttribute] = input.doc match {
-      case Some(s: String) => Option(HelpAttribute(s))
-      //      case Some(s: Array[String]) => Option(HelpAttribute(s.mkString)) // FIXME - according to doc
-      case None => Option.empty[HelpAttribute]
-    }
-
-
-    val labelAttribute: Option[LabelAttribute] = input.label match {
-      case Some(s: String) => Option(LabelAttribute(s))
-      case None => Option.empty[LabelAttribute]
-    }
-    val attributes: Vector[ParameterAttribute] = Vector(helpAttribute, labelAttribute).collect { case Some(i: ParameterAttribute) => i }
+    val name = input.id.get.name.get
+    val dxType = CwlUtils.toIRType(input.types)
+    val defaultValue = Option(CwlUtils.toIRValue(input.default.getOrElse(CwlUtils.getDefaultCWLValue(input.types))))
+    val attributes: Vector[ParameterAttribute] = CwlUtils.createParameterAttributes(input.doc, input.label)
 
     Parameter.apply(name.toString, dxType, defaultValue, attributes)
   }
 
-  // TODO : name should be part of process!
-  private case class CwlToolTranslator(tool: Process, name: String) {
+  private case class CwlToolTranslator(tool: Process, sourceFile: Path) {
 
-    def apply(tool: CommandLineTool, name: String): Application = {
+    def apply(tool: CommandLineTool, sourceFile: Path): Application = {
+      val filename = sourceFile.getFileName.toString
       val inputs = tool.inputs.map(parseCommandInputParameter)
       val outputs = tool.outputs.map(parseCommandOutputParameter)
       val instanceType = RunSpec.DefaultInstanceType // FIXME: get from Extras, if not specified use this.
-      val container = RunSpec.NoImage // FIXME : from extras probably
+      val container = RunSpec.NoImage // TODO : Requirements - blocked by https://github.com/common-workflow-lab/cwljava/issues/31
       val executableKind = ExecutableKindApplet
-      val documentSource = CwlDocumentSource.apply(tool)
-      val attributes = Vector.empty[CallableAttribute]
-      val requirements = Vector.empty[RuntimeRequirement]
-      Application(name, inputs, outputs, instanceType, container, executableKind, documentSource, attributes, requirements)
+      val documentSource = CwlDocumentSource.apply(sourceFile)
+      val attributes: Vector[CallableAttribute] = CwlUtils.createCallableAttributes(tool.label, tool.doc) // TODO : Requirements - blocked by https://github.com/common-workflow-lab/cwljava/issues/31
+      val requirements = Vector.empty[RuntimeRequirement] // TODO : Requirements - blocked by https://github.com/common-workflow-lab/cwljava/issues/31
+      Application(filename, inputs, outputs, instanceType, container, executableKind, documentSource, attributes, requirements)
     }
   }
 }

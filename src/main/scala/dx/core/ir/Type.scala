@@ -35,6 +35,12 @@ object Type {
   case class TArray(t: Type, nonEmpty: Boolean = false) extends Type
 
   /**
+    * Enum - values of enum can be only set to values specified.
+    * @param allowedValues set of allowed strings in enum
+    */
+  case class TEnum(allowedValues: Set[String]) extends Type
+
+  /**
     * A JSON object.
     */
   case object THash extends Type

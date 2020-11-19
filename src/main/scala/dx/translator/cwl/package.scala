@@ -3,11 +3,16 @@
   * when generating apps/workflows.
   */
 package dx.translator.cwl
-import dx.cwl.{Process}
-import dx.core.ir.{DocumentSource}
+import java.nio.file.Path
 
-case class CwlDocumentSource(doc: Process)
+import dx.core.ir.DocumentSource
+
+import scala.io.Source
+
+
+case class CwlDocumentSource(sourceFile: Path)
   extends DocumentSource {
-  override def toString: String = "Temporary string, needs fixing" // FIXME needs to generate document.
+
+  override def toString: String = Source.fromFile(sourceFile.toString).getLines.mkString("\n") // FIXME return original YML file
 }
 

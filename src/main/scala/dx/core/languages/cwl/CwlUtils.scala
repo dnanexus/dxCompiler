@@ -2,10 +2,12 @@ package dx.core.languages.cwl
 
 import java.nio.file.Path
 
-import dx.cwl.{ArrayValue, BooleanValue, CwlArray, CwlBoolean, CwlDirectory, CwlDouble, CwlEnum, CwlFile, CwlFloat, CwlInt, CwlLong, CwlNull, CwlOptional, CwlRecord, CwlString, CwlType, CwlValue, DirectoryValue, DoubleValue, FileValue, FloatValue, IntValue, LongValue, NullValue, Parser, Process, StringValue}
-import dx.core.ir.{Type, Value}
-import dx.core.ir.Type.{TArray, TBoolean, TDirectory, TFile, TFloat, THash, TInt, TOptional, TSchema, TString}
-import dx.core.ir.Value.{VArray, VBoolean, VDirectory, VFile, VFloat, VInt, VNull, VString}
+import dx.translator.CallableAttributes.{DescriptionAttribute, TitleAttribute}
+import dx.cwl.{ArrayValue, BooleanValue, CwlArray, CwlBoolean, CwlDirectory, CwlDouble, CwlEnum, CwlFile, CwlFloat, CwlInt, CwlLong, CwlNull, CwlOptional, CwlRecord, CwlString, CwlType, CwlValue, DirectoryValue, DoubleValue, FileValue, FloatValue, IntValue, LongValue, NullValue, ObjectValue, Parser, Process, StringValue}
+import dx.core.ir.{CallableAttribute, ParameterAttribute, Type, Value}
+import dx.core.ir.Type.{TArray, TBoolean, TDirectory, TEnum, TFile, TFloat, THash, TInt, TOptional, TSchema, TString}
+import dx.core.ir.Value.{VArray, VBoolean, VDirectory, VFile, VFloat, VHash, VInt, VNull, VString}
+import dx.translator.ParameterAttributes.{HelpAttribute, LabelAttribute}
 import wdlTools.syntax.SourceLocation
 import wdlTools.util.Logger
 
@@ -24,60 +26,10 @@ object CwlUtils {
     }
   }
 
-  //  def serializeType(t: CwlType): JsValue = {
-  //    t match {
-  //      case CwlBoolean => JsString("Boolean")
-  //      case CwlInt => JsString("Int")
-  //      case CwlLong => JsString("Int")
-  //      case CwlFloat => JsString("Float")
-  //      case CwlDouble => JsString("Float")
-  //      case CwlString => JsString("String")
-  //      case CwlFile => JsString("File")
-  //      case CwlDirectory => JsString("Directory")
-  //      case CwlNull => JsString("Null")
-  //      // TODO: add T_Array, T_Enum and T_record
-  //      case _ =>
-  //        throw new Exception(s"Unhandled type ${t}")
-  //    }
-  //  }
-  //  def simpleFromString(s: String): CwlType = {
-  //    // recordfield,enum, record, array
-  //    s match {
-  //      case "Boolean" => CwlBoolean
-  //      case "Int" => CwlInt
-  //      case "Long" => CwlLong
-  //      case "Float" => CwlFloat
-  //      case "Double" => CwlDouble
-  //      case "String" => CwlString
-  //      case "File" => CwlFile
-  //      case "Directory" => CwlDirectory
-  //      case "null" => CwlNull
-  //      case s if s.contains("[") =>
-  //        throw new Exception(s"type ${s} is not primitive")
-  //      case _ =>
-  //        throw UnknownTypeException(s"Unknown type ${s}")
-  //    }
-  //  }
-  //
-
-  def createTSchemaFromRecord(cwlRecord: CwlRecord): TSchema = {
-    val name = cwlRecord.name.getOrElse("unknown") // FIXME can name really be empty? if so, which name do we use?
-    val fields = cwlRecord.fields.map({ case (key, value) => key -> toIRType(value.types) }) // FIXME: RecordField has name as well - just ignore?
-    TSchema(name, fields)
-  }
-
-  def createTSchemaFromEnum(cwlEnum: CwlEnum): TSchema = {
-    val name = cwlEnum.name.get
-    val x = List.fill(cwlEnum.symbols.size)(TString)
-    TSchema(name, cwlEnum.symbols.zip(x).toMap)
-  }
-
-
   def toIRType(cwlTypes: Vector[CwlType]): Type = {
     cwlTypes match {
       case _ if cwlTypes.size > 1 && cwlTypes.contains(CwlNull) => TOptional(toIRType(cwlTypes.filter(_ != CwlNull)))
       case _ if cwlTypes.length == 1 => cwlTypes.head match {
-        //      case CwlAny => ? // FIXME: this type is missing in WDL even though T_Any exists
         case CwlBoolean => TBoolean
         case CwlInt => TInt
         case CwlLong => TInt
@@ -86,10 +38,9 @@ object CwlUtils {
         case CwlString => TString
         case CwlFile => TFile
         case CwlDirectory => TDirectory
-        case CwlNull => TSchema(name = "null", members = Map.empty[String, Type])
-        case CwlArray(itemTypes, _, _, _, _) => TArray(toIRType(itemTypes))
-        case r: CwlRecord => createTSchemaFromRecord(r)
-        case e: CwlEnum => createTSchemaFromEnum(e)
+        case a: CwlArray => TSchema(a.name.get, Map[String, Type]("array" -> TArray(toIRType(a.itemTypes))))
+        case r: CwlRecord => TSchema(r.name.get, r.fields.map({ case (key, value) => key -> toIRType(value.types) }))
+        case e: CwlEnum => TSchema(e.name.get, Map[String, Type]("enum" -> TEnum(e.symbols)))
         case _ => throw new Exception(s"Cannot convert CWL type ${cwlTypes.head} to IR")
       }
       case other => throw new NotImplementedError(s"Multiple types are not supported yet! (${other} was given)")
@@ -112,7 +63,7 @@ object CwlUtils {
         case TString => CwlString
         case TFile => CwlFile
         case TDirectory => CwlDirectory
-        case TOptional(t) => inner(t) // TODO:: Needs to return CwlTypes - Vector
+        case TOptional(t) => inner(t)
         case TSchema(name, _) =>
           throw new Exception(s"Unknown type ${name}")
         case _ =>
@@ -135,11 +86,11 @@ object CwlUtils {
       case TBoolean => VBoolean(true)
       case TString => VString("")
       case TFile => VFile("placeholder.txt")
-      case TOptional(_) => VNull // FIXME ??
+      case TOptional(t) => getDefaultIRValue(t) // Check if wdl does the same FIXME
       case TArray(_, _) => VArray(Vector.empty[Value])
-      case TDirectory => VDirectory(".") // FIXME ??
-      case THash => throw new NotImplementedError("THash is not implemented yet")
-      case TSchema(_, _) => throw new NotImplementedError("TSchema is not implemented yet")
+      case TDirectory => VDirectory(".")
+      case THash => VHash(Map.empty[String, Value])
+      //      case TSchema(name, members) => TSchema(name, ) // FIXME
       case other => throw new NotImplementedError(s"${other} is not supported.")
     }
   }
@@ -148,7 +99,7 @@ object CwlUtils {
     val cwlType = cwlTypes.size match {
       case 1 => cwlTypes.head
       case 0 => throw new Exception("Variable in CWL has to have at least one possible type.")
-      case _ => cwlTypes.find(_ != CwlNull).get // Cannot be empty, as there has to be at least 2 types and both cannot be CwlNull
+      case _ => cwlTypes.find(_ != CwlNull).get // Cannot be empty, as there has to be at least 2 types and both cannot be CwlNull (two nulls in cwl file are parsed as one null)
     }
     cwlType match {
       case CwlInt => IntValue(0)
@@ -157,11 +108,11 @@ object CwlUtils {
       case CwlBoolean => BooleanValue(true)
       case CwlString => StringValue("")
       case CwlFile => FileValue("placeholder.txt")
-      case CwlDirectory => DirectoryValue(".") // FIXME ??
-      case _: CwlOptional => NullValue // FIXME ??
+      case CwlDirectory => DirectoryValue(".")
+      case CwlOptional(cwlType) => getDefaultCWLValue(Vector(cwlType))
       case _: CwlArray => ArrayValue(Vector.empty[CwlValue])
-      case c: CwlEnum => StringValue(c.symbols.head) // FIXME ??
-      case _: CwlRecord => NullValue // FIXME ?
+      case e: CwlEnum => StringValue(e.symbols.toList.min)
+      case r: CwlRecord => ObjectValue(r.fields.map({ case (key, value) => key -> getDefaultCWLValue(value.types) }))
       case other => throw new NotImplementedError(s"${other} is not supported.")
     }
   }
@@ -176,7 +127,8 @@ object CwlUtils {
       case DoubleValue(d) => VFloat(d)
       case StringValue(s) => VString(s)
       case ArrayValue(a) => VArray(a.map(toIRValue))
-      case fileValue: FileValue => VFile(fileValue.location.get) // FIXME: default value for location?
+      case fileValue: FileValue => VFile(fileValue.location.get)
+      case ObjectValue(m) => VHash(m.map({ case (key, value) => key -> toIRValue(value)}))
       case null => VNull
       case _ => throw new Exception(s"Invalid CWL value ${cwlValue})")
     }
@@ -193,6 +145,30 @@ object CwlUtils {
         }
         name -> (irType, irValue)
     }
+  }
+
+  def createParameterAttributes(doc: Option[String], label: Option[String]): Vector[ParameterAttribute] = {
+    val helpAttribute: Option[HelpAttribute] = doc match {
+      case Some(s: String) => Option(HelpAttribute(s))
+      case None => Option.empty[HelpAttribute]
+    }
+    val labelAttribute: Option[LabelAttribute] = label match {
+      case Some(s: String) => Option(LabelAttribute(s))
+      case None => Option.empty[LabelAttribute]
+    }
+    Vector(helpAttribute, labelAttribute).collect { case Some(i: ParameterAttribute) => i }
+  }
+
+  def createCallableAttributes(doc: Option[String], label: Option[String]): Vector[CallableAttribute] = {
+    val helpAttribute: Option[CallableAttribute] = doc match {
+      case Some(s: String) => Option(DescriptionAttribute(s))
+      case None => Option.empty[DescriptionAttribute]
+    }
+    val labelAttribute: Option[CallableAttribute] = label match {
+      case Some(s: String) => Option(TitleAttribute(s))
+      case None => Option.empty[TitleAttribute]
+    }
+    Vector(helpAttribute, labelAttribute).collect { case Some(i: CallableAttribute) => i }
   }
 }
 

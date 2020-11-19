@@ -8,6 +8,9 @@ class LanguageTest extends AnyFlatSpec with Matchers {
     Language.parse("wdl 1.0") shouldBe Language.WdlV1_0
     Language.parse("wdl v2.0") shouldBe Language.WdlV2_0
     Language.parse("wdl") shouldBe Language.WdlDefault
+    Language.parse("cwl") shouldBe Language.CwlDefault
+    Language.parse("cwl v1.0") shouldBe Language.CwlV1_0
+    Language.parse("cwl v1.2") shouldBe Language.CwlV1_2
     Language.parse("draft2", Some("wdl")) shouldBe Language.WdlVDraft2
   }
 }
