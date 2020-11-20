@@ -37,5 +37,5 @@ jobs:
           # run unit tests
           cd ${GITHUB_WORKSPACE}
           pwd
-          sbt version && sbt compile && sbt "testOnly -- -l prod"
+          sudo sbt version && sbt compile && sbt "testOnly -- -l prod"
 
