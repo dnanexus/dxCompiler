@@ -15,8 +15,12 @@ The `bam_chrom_counter` workflow is written in WDL. Task `slice_bam` splits a ba
 `count_bam` counts the number of alignments on a bam file. The workflow takes an input bam file, calls `slice_bam` to split it into chromosomes, and calls `count_bam` in parallel on each chromosome. The results comprise a bam index file, and an array with the number of reads per chromosome.
 
 ```wdl
+version 1.0
+
 workflow bam_chrom_counter {
-    File bam
+    input {
+        File bam
+    }
 
     call slice_bam {
         input : bam = bam
@@ -27,14 +31,16 @@ workflow bam_chrom_counter {
         }
     }
     output {
-        slice_bam.bai
-        count_bam.count
+        File bai = slice_bam.bai
+        Array[Int] count = count_bam.count
     }
 }
 
 task slice_bam {
-    File bam
-    Int num_chrom = 22
+    input {
+        File bam
+        Int num_chrom = 22
+    }
     command <<<
     set -ex
     samtools index ${bam}
@@ -53,7 +59,10 @@ task slice_bam {
 }
 
 task count_bam {
-    File bam
+    input {
+        File bam
+    }
+
     command <<<
         samtools view -c ${bam}
     >>>
