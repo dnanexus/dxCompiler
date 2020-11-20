@@ -8,8 +8,6 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 class UtilsTest extends AnyFlatSpec with Matchers {
-
-
   val stringType: Vector[CwlType] = Vector[CwlType](CwlString)
   val floatType: Vector[CwlType] = Vector[CwlType](CwlFloat)
   val emptyType: Vector[CwlType] = Vector.empty[CwlType]
@@ -20,9 +18,7 @@ class UtilsTest extends AnyFlatSpec with Matchers {
   val stringCwl: CwlValue = StringValue("test_string_value")
 //  val floatCwl: CwlValue = FloatValue(3.141592)
 
-
   it should "get default value given cwltype" in {
-
     CwlUtils.getDefaultCWLValue(stringType).shouldBe(StringValue(""))
 //    CwlUtils.getDefaultCWLValue(floatType).shouldBe(FloatValue(0.0))
     CwlUtils.getDefaultCWLValue(optionalStringType).shouldBe(StringValue(""))
