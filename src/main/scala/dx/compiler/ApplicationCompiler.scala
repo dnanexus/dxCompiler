@@ -41,7 +41,6 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
                                runtimePathConfig: DxWorkerPaths,
                                runtimeTraceLevel: Int,
                                streamFiles: StreamFiles.StreamFiles,
-                               compactComplexValues: Boolean,
                                scatterChunkSize: Int,
                                extras: Option[Extras],
                                parameterLinkSerializer: ParameterLinkSerializer,
@@ -297,7 +296,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       .sortWith(_.name < _.name)
       .flatMap { param =>
         try {
-          inputParameterToNative(param, compactComplexValues)
+          inputParameterToNative(param)
         } catch {
           case ex: Throwable =>
             throw new Exception(
@@ -310,7 +309,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       .sortWith(_.name < _.name)
       .flatMap { param =>
         try {
-          outputParameterToNative(param, compactComplexValues)
+          outputParameterToNative(param)
         } catch {
           case ex: Throwable =>
             throw new Exception(

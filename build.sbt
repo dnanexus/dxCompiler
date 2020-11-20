@@ -81,14 +81,16 @@ val guavaVersion = "18.0"
 val httpClientVersion = "4.5"
 val logbackVersion = "1.2.3"
 val scalatestVersion = "3.1.1"
+val commonsCompressVersion = "1.20"
 
 libraryDependencies ++= Seq(
     "com.dnanexus" % "dxapi" % dxApiVersion,
     "com.dnanexus" % "dxcommon" % dxCommonVersion,
-    "com.dnanexus" % "dxFileAccessProtocols" % dxFileAccessProtocolsVersion,
+    "com.dnanexus" % "dxfileaccessprotocols" % dxFileAccessProtocolsVersion,
     "com.dnanexus" % "wdltools" % wdlToolsVersion,
     "io.spray" %% "spray-json" % sprayVersion,
     "com.typesafe" % "config" % typesafeVersion,
+    "org.apache.commons" % "commons-compress" % commonsCompressVersion,
     // libraries used in what remains of dxjava
     "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion,
     "com.google.guava" % "guava" % guavaVersion,

@@ -63,6 +63,7 @@ case class WdlTaskExecutor(task: TAT.Task,
   private lazy val evaluator = Eval(
       jobMeta.workerPaths,
       Some(versionSupport.version),
+      Vector.empty,
       jobMeta.fileResolver,
       Logger.Quiet
   )

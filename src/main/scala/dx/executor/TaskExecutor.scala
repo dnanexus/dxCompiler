@@ -15,6 +15,7 @@ import dx.core.ir.Type._
 import dx.core.ir.Value._
 import dx.executor.wdl.WdlTaskExecutor
 import dx.util.protocols.DxFileSource
+
 import spray.json._
 import dx.util.{
   AddressableFileNode,
@@ -39,6 +40,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
 
   private val fileResolver = jobMeta.fileResolver
   private val dxApi = jobMeta.dxApi
+
   private val logger = jobMeta.logger
 
   protected def trace(msg: String, minLevel: Int = TraceLevel.Verbose): Unit = {

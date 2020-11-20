@@ -162,7 +162,11 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
   private val dbFull = genTestDB(true)
   private lazy val dbOpaque = InstanceTypeDB.opaquePrices(dbFull)
   private val evaluator: Eval =
-    Eval(DefaultEvalPaths.empty, Some(WdlVersion.V1), FileSourceResolver.get, Logger.get)
+    Eval(DefaultEvalPaths.empty,
+         Some(WdlVersion.V1),
+         Vector.empty,
+         FileSourceResolver.get,
+         Logger.get)
 
   private def createRuntime(dxInstanceType: Option[String],
                             memory: Option[String],

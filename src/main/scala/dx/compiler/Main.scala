@@ -288,16 +288,7 @@ object Main {
     val compileMode: CompilerMode =
       options.getValueOrElse[CompilerMode]("compileMode", CompilerMode.All)
 
-    val compactComplexValues = options.getFlag("compactComplexValues")
-    val locked = options.getFlag("locked") match {
-      case false if compactComplexValues =>
-        logger.warning(
-            """Compaction of complex values ('-compactComplexValues' option) is only allowed for
-              |locked workflows; adding '-locked' option.""".stripMargin.replaceAll("\n", " ")
-        )
-        true
-      case locked => locked
-    }
+    val locked = options.getFlag("locked")
 
     val translator =
       try {
@@ -422,7 +413,6 @@ object Main {
           locked,
           projectWideReuse,
           streamFiles,
-          compactComplexValues,
           fileResolver
       )
       val results = compiler.apply(bundle, project, folder)

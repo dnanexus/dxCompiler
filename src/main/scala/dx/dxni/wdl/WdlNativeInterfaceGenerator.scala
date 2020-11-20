@@ -53,7 +53,8 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
                    case (name, wdlType) => name -> (wdlType, false)
                  }
                  .to(TreeSeqMap),
-               outputSpec.to(TreeSeqMap)),
+               outputSpec.to(TreeSeqMap),
+               None),
         inputSpec.map {
           case (name, wdlType) =>
             TAT.RequiredInputParameter(name, wdlType, loc)
@@ -210,7 +211,13 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
         //  need to be implemented in wdlTools
         val taskDoc = createDocument(Vector(task))
         val sourceCode = wdl.codeGenerator.generateDocument(taskDoc).mkString("\n")
-        logger.ignore(WdlUtils.parseAndCheckSourceString(sourceCode, fileResolver, regime, logger))
+        logger.ignore(
+            WdlUtils.parseAndCheckSourceString(sourceCode,
+                                               taskDoc.source.toString,
+                                               fileResolver,
+                                               regime,
+                                               logger)
+        )
         Some(task)
       } catch {
         case e: Throwable =>

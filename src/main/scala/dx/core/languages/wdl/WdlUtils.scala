@@ -130,6 +130,7 @@ object WdlUtils {
 
   def parseAndCheckSourceString(
       sourceCodeStr: String,
+      name: String,
       fileResolver: FileSourceResolver = FileSourceResolver.get,
       regime: TypeCheckingRegime.TypeCheckingRegime = TypeCheckingRegime.Moderate,
       logger: Logger = Logger.get

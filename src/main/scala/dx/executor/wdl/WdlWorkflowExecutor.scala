@@ -1,7 +1,5 @@
 package dx.executor.wdl
 
-import java.nio.file.Paths
-
 import dx.AppInternalException
 import dx.api.{DxExecution, DxObject, Field}
 import dx.core.{Constants, getVersion => getDxWdlVersion}
@@ -20,14 +18,16 @@ import dx.core.languages.wdl.{
   WdlBlockInput,
   WdlUtils
 }
+
 import dx.executor.{BlockContext, JobMeta, WorkflowExecutor}
+import dx.util.{JsUtils, LocalFileSource, Logger, TraceLevel}
+import dx.util.protocols.DxFileSource
 import spray.json._
 import wdlTools.eval.{Eval, EvalUtils, WdlValueBindings}
 import wdlTools.eval.WdlValues._
 import wdlTools.exec.{InputOutput, TaskInputOutput}
 import wdlTools.types.{TypeUtils, TypedAbstractSyntax => TAT}
 import wdlTools.types.WdlTypes._
-import dx.util.{JsUtils, Logger, TraceLevel}
 
 case class WorkflowIO(workflow: TAT.Workflow, logger: Logger)
     extends InputOutput(workflow, logger) {
@@ -93,6 +93,7 @@ case class WdlWorkflowExecutor(workflow: TAT.Workflow,
   private lazy val evaluator = Eval(
       jobMeta.workerPaths,
       Some(versionSupport.version),
+      Vector.empty,
       jobMeta.fileResolver,
       Logger.Quiet
   )
@@ -528,12 +529,20 @@ case class WdlWorkflowExecutor(workflow: TAT.Workflow,
       }
     }
 
+    private def getFileName(path: String): String = {
+      jobMeta.fileResolver.resolve(path) match {
+        case local: LocalFileSource => local.canonicalPath.getFileName.toString
+        case dx: DxFileSource       => dx.dxFile.getName
+        case other                  => other.toString
+      }
+    }
+
     // create a short, easy to read, description for a scatter element.
-    private def getScatterName(item: V): Option[String] = {
+    private[wdl] def getScatterName(item: V): Option[String] = {
       item match {
         case _ if EvalUtils.isPrimitive(item) => Some(truncate(EvalUtils.formatPrimitive(item)))
-        case V_File(path)                     => Some(truncate(Paths.get(path).getFileName.toString))
-        case V_Directory(path)                => Some(truncate(Paths.get(path).getFileName.toString))
+        case V_File(path)                     => Some(truncate(getFileName(path)))
+        case V_Directory(path)                => Some(truncate(getFileName(path)))
         case V_Optional(x)                    => getScatterName(x)
         case V_Pair(l, r) =>
           val ls = getScatterName(l)
@@ -946,7 +955,7 @@ case class WdlWorkflowExecutor(workflow: TAT.Workflow,
 
   override def evaluateBlockInputs(
       jobInputs: Map[String, (Type, Value)]
-  ): BlockContext[WdlBlock] = {
+  ): WdlBlockContext = {
     val block: WdlBlock =
       Block.getSubBlockAt(WdlBlock.createBlocks(workflow.body), jobMeta.blockPath)
     // Some of the inputs could be optional. If they are missing, add in a V_Null
