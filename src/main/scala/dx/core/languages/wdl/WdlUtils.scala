@@ -239,7 +239,7 @@ object WdlUtils {
 
   def createMapSchema(keyType: Type, valueType: Type): TSchema = {
     val name =
-      s"${MapSchemaPrefix}(${TypeSerde.toString(keyType)}, ${TypeSerde.toString(valueType)})"
+      s"${MapSchemaPrefix}[${TypeSerde.toString(keyType)}, ${TypeSerde.toString(valueType)}]"
     TSchema(name, Map(MapKeysKey -> TArray(keyType), MapValuesKey -> TArray(valueType)))
   }
 

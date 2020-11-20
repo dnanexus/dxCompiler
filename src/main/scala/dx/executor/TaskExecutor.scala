@@ -433,7 +433,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     // if we are building archives for complex values, do that here
     // and replace the complex values in localizedOutputs with paths
     // to the archives
-    val outputsDir = Some(jobMeta.workerPaths.getOutputFilesDir(ensureExists = true))
+    val parentDir = Some(jobMeta.workerPaths.getRootDir(ensureExists = true))
     val outputsWithArchives = localizedOutputs.map {
       case (name, _) if archives.contains(name) =>
         name -> (TFile, VFile(archives(name).pack.path.toString))
@@ -441,7 +441,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         // there is a mismatch between the applet output (a file) and
         // the WDL output (a complex type) - implies we want to use
         // an archive to package up the complex type into a single file
-        val archive = LocalizedArchive(t, v)(parentDir = outputsDir, name = Some(name))
+        val archive = LocalizedArchive(t, v)(parentDir = parentDir, name = Some(name))
         val packedArchive = archive.pack
         name -> (TFile, VFile(packedArchive.path.toString))
       case other => other
