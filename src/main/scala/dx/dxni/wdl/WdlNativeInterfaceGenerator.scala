@@ -53,7 +53,8 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
                    case (name, wdlType) => name -> (wdlType, false)
                  }
                  .to(TreeSeqMap),
-               outputSpec.to(TreeSeqMap)),
+               outputSpec.to(TreeSeqMap),
+               None),
         inputSpec.map {
           case (name, wdlType) =>
             TAT.RequiredInputParameter(name, wdlType, loc)
