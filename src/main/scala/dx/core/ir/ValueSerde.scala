@@ -47,18 +47,16 @@ object ValueSerde extends DefaultJsonProtocol {
     */
   def deserialize(jsValue: JsValue, translator: Option[JsValue => Option[Value]] = None): Value = {
     def inner(innerValue: JsValue): Value = {
-      val v = translator.flatMap(_(innerValue))
-      if (v.isDefined) {
-        return v.get
-      }
-      innerValue match {
-        case JsNull                               => VNull
-        case JsBoolean(b)                         => VBoolean(b.booleanValue)
-        case JsNumber(value) if value.isValidLong => VInt(value.toLongExact)
-        case JsNumber(value)                      => VFloat(value.toDouble)
-        case JsString(s)                          => VString(s)
-        case JsArray(array)                       => VArray(array.map(x => inner(x)))
-        case JsObject(members)                    => VHash(members.view.mapValues(inner).toMap)
+      translator.flatMap(_(innerValue)).getOrElse {
+        innerValue match {
+          case JsNull                               => VNull
+          case JsBoolean(b)                         => VBoolean(b.booleanValue)
+          case JsNumber(value) if value.isValidLong => VInt(value.toLongExact)
+          case JsNumber(value)                      => VFloat(value.toDouble)
+          case JsString(s)                          => VString(s)
+          case JsArray(array)                       => VArray(array.map(x => inner(x)))
+          case JsObject(members)                    => VHash(members.view.mapValues(inner).toMap)
+        }
       }
     }
     inner(jsValue)
