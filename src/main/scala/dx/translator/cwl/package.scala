@@ -13,6 +13,6 @@ import scala.io.Source
 case class CwlDocumentSource(sourceFile: Path)
   extends DocumentSource {
 
-  override def toString: String = Source.fromFile(sourceFile.toString).getLines.mkString("\n") // FIXME return original YML file
+  override def toString: String = Source.fromFile(sourceFile.toString).getLines.mkString("\n")
 }
 
