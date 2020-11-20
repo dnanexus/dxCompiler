@@ -81,6 +81,7 @@ case class WdlWorkflowSupport(workflow: TAT.Workflow,
   private lazy val evaluator = Eval(
       jobMeta.workerPaths,
       Some(versionSupport.version),
+      Vector.empty,
       jobMeta.fileResolver,
       Logger.Quiet
   )

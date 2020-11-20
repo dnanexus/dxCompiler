@@ -132,7 +132,7 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
   private def createEvaluator(workerPaths: DxWorkerPaths,
                               wdlVersion: WdlVersion,
                               fileResolver: FileSourceResolver): Eval = {
-    Eval(workerPaths, Some(wdlVersion), fileResolver, logger)
+    Eval(workerPaths, Some(wdlVersion), Vector.empty, fileResolver, logger)
   }
 
   // Note: if the file doesn't exist, this throws a null pointer exception
