@@ -108,9 +108,9 @@ case class SquashFs(image: Path)(
     val opts = if (newFile) {
       // overwrite the new file
       newFile = false
-      "-quiet -noappend"
+      "-noappend"
     } else {
-      "-quiet"
+      ""
     }
     try {
       if (subdir.isDefined) {
