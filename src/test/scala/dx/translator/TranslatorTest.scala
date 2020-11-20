@@ -2,6 +2,9 @@ package dx.translator
 
 import java.nio.file.{Path, Paths}
 
+import dx.core.ir.Type.{TOptional, TSchema}
+import dx.core.ir.Application
+
 import dx.Tags.EdgeTest
 import dx.api._
 import dx.compiler.Main
@@ -27,6 +30,7 @@ class TranslatorTest extends AnyFlatSpec with Matchers {
 
   private def pathFromBasename(dir: String, basename: String): Path = {
     val p = getClass.getResource(s"/${dir}/${basename}").getPath
+    println(Paths.get(p))
     Paths.get(p)
   }
 
@@ -53,6 +57,67 @@ class TranslatorTest extends AnyFlatSpec with Matchers {
       case a: Application => a
       case _              => throw new Exception(s"${name} is not an applet")
     }
+
+  it should "IR compile a basic cwl commandLineTool" in {
+    val path = pathFromBasename("compiler", "cwl_basic.cwl")
+    val args = path.toString :: cFlags
+    Main.compile(args.toVector) shouldBe a[SuccessIR]
+  }
+
+  it should "IR compile a cwl commandlineTool with default values" in {
+    val path = pathFromBasename("compiler", "cwl_default.cwl")
+    val args = path.toString :: cFlags
+    Main.compile(args.toVector) shouldBe a[SuccessIR]
+  }
+
+  it should "IR compile a cwl commandlineTool with record value in input" in {
+    val path = pathFromBasename("compiler", "cwl_record.cwl")
+    val args = path.toString :: cFlags
+
+    Main.compile(args.toVector) match {
+      case s:SuccessIR => s.bundle.primaryCallable.get match {
+        case a: Application if a.inputs.exists(_.dxType match {
+          case _: TSchema => true
+          case _ => false
+        }) => true
+        case _ => throw new Exception("Resulting application contains no TSchema")
+      }
+      case other => throw new Exception(s"SuccessIR type was expected, but got ${other}")
+    }
+  }
+
+  it should "IR compile a cwl commandlineTool with optional values" in {
+    val path = pathFromBasename("compiler", "cwl_optional.cwl")
+    val args = path.toString :: cFlags
+
+    Main.compile(args.toVector) match {
+      case s:SuccessIR => s.bundle.primaryCallable.get match {
+        case a: Application if a.inputs.exists(_.dxType match {
+          case _: TOptional => true
+          case _ => false
+        }) => true
+        case _ => throw new Exception("Resulting application contains no TOptional")
+      }
+      case other => throw new Exception(s"SuccessIR type was expected, but got ${other}")
+    }
+  }
+
+
+  ignore should "IR compile a cwl commandlineTool with requirements" in {
+    val path = pathFromBasename("compiler", "cwl_requirements.cwl")
+    val args = path.toString :: cFlags
+    val result = Main.compile(args.toVector)
+    println(result)
+
+    Main.compile(args.toVector) match {
+      case s:SuccessIR => s.bundle.primaryCallable.get match {
+        case a: Application if a.requirements.size == 3 => true // make sure there are no duplicities
+        case _ => throw new Exception("All requirements were not translated.")
+      }
+      case other => throw new Exception(s"SuccessIR type was expected, but got ${other}")
+    }
+  }
+
 
   it should "IR compile a single WDL task" in {
     val path = pathFromBasename("compiler", "add.wdl")

@@ -28,14 +28,8 @@ object CwlUtils {
         case e: CwlEnum => TSchema(e.name.get, Map[String, Type]("enum" -> TEnum(e.symbols)))
         case _ => throw new Exception(s"Cannot convert CWL type ${cwlTypes.head} to IR")
       }
+      case _ if cwlTypes.isEmpty => throw new IllegalArgumentException("Vector of CwlTypes must be non-empty!")
       case other => throw new NotImplementedError(s"Multiple types are not supported yet! (${other} was given)")
-    }
-  }
-
-
-  def toIRTypeMap(cwlTypes: Map[String, Vector[CwlType]]): Map[String, Type] = {
-    cwlTypes.map {
-      case (name, cwlType) => name -> toIRType(cwlType)
     }
   }
 
@@ -71,11 +65,11 @@ object CwlUtils {
       case TBoolean => VBoolean(true)
       case TString => VString("")
       case TFile => VFile("placeholder.txt")
-      case TOptional(t) => getDefaultIRValue(t) // Check if wdl does the same FIXME
+      case TOptional(t) => getDefaultIRValue(t)
       case TArray(_, _) => VArray(Vector.empty[Value])
       case TDirectory => VDirectory(".")
       case THash => VHash(Map.empty[String, Value])
-      //      case TSchema(name, members) => TSchema(name, ) // FIXME
+      case TSchema(_, members) => VHash(members.map({ case (key, value) => key -> getDefaultIRValue(value) }))
       case other => throw new NotImplementedError(s"${other} is not supported.")
     }
   }
@@ -113,7 +107,7 @@ object CwlUtils {
       case StringValue(s) => VString(s)
       case ArrayValue(a) => VArray(a.map(toIRValue))
       case fileValue: FileValue => VFile(fileValue.location.get)
-      case ObjectValue(m) => VHash(m.map({ case (key, value) => key -> toIRValue(value)}))
+      case ObjectValue(m) => VHash(m.map({ case (key, value) => key -> toIRValue(value) }))
       case null => VNull
       case _ => throw new Exception(s"Invalid CWL value ${cwlValue})")
     }
