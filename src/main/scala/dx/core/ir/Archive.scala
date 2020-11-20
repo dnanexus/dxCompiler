@@ -9,7 +9,7 @@ import dx.util.{FileUtils, JsUtils, Logger, SysUtils}
 import spray.json._
 
 /**
-  *
+  * Interface for mounting or appending to a squashfs image.
   * @param image path to the image file
   * @param mountDir directory where to mount the file system - if Right, is
   *                 used as the actual mount point; if Left, is the parent
@@ -96,12 +96,12 @@ case class SquashFs(image: Path)(
     * system.
     * @param files map from absolute source path to target name
     * @param subdir optional subdir to place the files in within the archive
-    * @param removeOriginal remove the original file after it has been added to the
+    * @param removeSource remove the original file after it has been added to the
     *                       archive
     */
   def appendAll(files: Vector[Path],
                 subdir: Option[Path] = None,
-                removeOriginal: Boolean = false): Unit = {
+                removeSource: Boolean = false): Unit = {
     if (isMounted) {
       throw new RuntimeException("cannot append to an archive that is mounted")
     }
@@ -137,7 +137,7 @@ case class SquashFs(image: Path)(
             ex
         )
     }
-    if (removeOriginal) {
+    if (removeSource) {
       files.foreach { srcPath =>
         try {
           Files.delete(srcPath)
@@ -432,7 +432,7 @@ case class LocalizedArchive(
       // by their target subdirectory within the archive
       files.groupMap(_._2.getParent)(_._1).foreach {
         case (relParent, srcFiles) =>
-          archive.appendAll(srcFiles.toVector, Some(relParent), removeOriginal = true)
+          archive.appendAll(srcFiles.toVector, Some(relParent), removeSource = removeSourceFiles)
       }
     } catch {
       case ex: Throwable =>
