@@ -135,7 +135,7 @@ object WdlUtils {
       regime: TypeCheckingRegime.TypeCheckingRegime = TypeCheckingRegime.Moderate,
       logger: Logger = Logger.get
   ): (TAT.Document, Bindings[String, T_Struct]) = {
-    parseAndCheckSourceNode(StringFileNode(sourceCodeStr), fileResolver, regime, logger)
+    parseAndCheckSourceNode(StringFileNode(sourceCodeStr, name), fileResolver, regime, logger)
   }
 
   // create a wdl-value of a specific type.
@@ -240,7 +240,7 @@ object WdlUtils {
 
   def createMapSchema(keyType: Type, valueType: Type): TSchema = {
     val name =
-      s"${MapSchemaPrefix}(${TypeSerde.toString(keyType)}, ${TypeSerde.toString(valueType)})"
+      s"${MapSchemaPrefix}[${TypeSerde.toString(keyType)}, ${TypeSerde.toString(valueType)}]"
     TSchema(name, Map(MapKeysKey -> TArray(keyType), MapValuesKey -> TArray(valueType)))
   }
 
@@ -573,6 +573,16 @@ object WdlUtils {
       }
     }
     inner(value, wdlType, name)
+  }
+
+  def fromIR(ir: Map[String, (Type, Value)],
+             typeAliases: Map[String, T] = Map.empty): Map[String, (T, V)] = {
+    ir.map {
+      case (name, (t, v)) =>
+        val wdlType = fromIRType(t, typeAliases)
+        val wdlValue = fromIRValue(v, wdlType, name)
+        name -> (wdlType, wdlValue)
+    }
   }
 
   private def ensureUniformType(exprs: Iterable[TAT.Expr]): T = {
