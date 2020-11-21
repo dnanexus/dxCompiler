@@ -138,13 +138,15 @@ case class SquashFs(image: Path)(
         )
     }
     if (removeSource) {
-      files.foreach { srcPath =>
-        try {
-          Files.delete(srcPath)
-        } catch {
-          case ex: Throwable =>
-            logger.error(s"error deleting ${srcPath} after adding it to archive ${image}", Some(ex))
-        }
+      files.foreach {
+        case srcPath if Files.isWritable(srcPath) =>
+          try {
+            Files.delete(srcPath)
+          } catch {
+            case ex: Throwable =>
+              logger.error(s"error deleting ${srcPath} after adding it to archive ${image}",
+                           Some(ex))
+          }
       }
     }
   }
