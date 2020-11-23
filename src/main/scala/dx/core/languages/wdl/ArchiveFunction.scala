@@ -4,49 +4,112 @@ import java.nio.file.Paths
 
 import dx.core.ir.{LocalizedArchive, PackedArchive}
 import wdlTools.eval.{EvalException, FunctionContext, UserDefinedFunctionImplFactory, WdlValues}
+import wdlTools.syntax.SourceLocation
 import wdlTools.types.{TypeUtils, UserDefinedFunctionPrototype, WdlTypes}
 
 import scala.collection.immutable.SeqMap
+import scala.util.matching.Regex
 
-case class ArchiveFunction(initialInputValueTypes: Map[String, WdlTypes.T] = Map.empty)
+abstract class GenericUserDefinedFunction(pattern: Regex)
     extends UserDefinedFunctionPrototype
     with UserDefinedFunctionImplFactory {
-  val ArchiveFunctionPrefix = "archive_"
-  private val deleteSourceFilesType = WdlTypes.T_Optional(WdlTypes.T_Boolean)
-  private val outputType = WdlTypes.T_File
-  private var inputValueTypes = initialInputValueTypes
+  private var prototypeCache: Map[String, Option[WdlTypes.T_Function]] = Map.empty
+  private var taskProxyCache: Map[String, Option[(WdlTypes.T_Function, Vector[String])]] = Map.empty
+
+  def nameMatches(name: String): Boolean = pattern.matches(name)
+
+  protected def createPrototype(funcName: String,
+                                inputTypes: Vector[WdlTypes.T]): Option[WdlTypes.T_Function]
 
   override def getPrototype(funcName: String,
                             inputTypes: Vector[WdlTypes.T]): Option[WdlTypes.T_Function] = {
-    if (!funcName.startsWith(ArchiveFunctionPrefix)) {
-      None
-    } else {
-      inputTypes match {
-        case Vector(t) if !TypeUtils.isOptional(t) =>
-          inputValueTypes += (funcName -> t)
-          Some(WdlTypes.T_Function1(funcName, t, outputType))
-        case Vector(t, deleteSourceFilesType) =>
-          inputValueTypes += (funcName -> t)
-          Some(WdlTypes.T_Function2(funcName, t, deleteSourceFilesType, outputType))
-        case _ => None
+    if (nameMatches(funcName)) {
+      if (prototypeCache.contains(funcName)) {
+        prototypeCache(funcName)
+      } else {
+        val prototype = createPrototype(funcName, inputTypes)
+        prototypeCache += (funcName -> prototype)
+        prototype
       }
+    } else {
+      None
     }
   }
+
+  protected def createTaskProxyFunction(
+      taskName: String,
+      input: SeqMap[String, (WdlTypes.T, Boolean)],
+      output: SeqMap[String, WdlTypes.T]
+  ): Option[(WdlTypes.T_Function, Vector[String])]
 
   override def getTaskProxyFunction(
       taskName: String,
       input: SeqMap[String, (WdlTypes.T, Boolean)],
       output: SeqMap[String, WdlTypes.T]
   ): Option[(WdlTypes.T_Function, Vector[String])] = {
-    if (taskName
-          .startsWith(ArchiveFunctionPrefix) && output.values.toVector == Vector(WdlTypes.T_File)) {
+    if (nameMatches(taskName)) {
+      if (taskProxyCache.contains(taskName)) {
+        taskProxyCache(taskName)
+      } else {
+        val taskProxy = createTaskProxyFunction(taskName, input, output)
+        taskProxyCache += (taskName -> taskProxy)
+        taskProxy
+      }
+    } else {
+      None
+    }
+  }
+
+  protected def createImpl(prototype: WdlTypes.T_Function,
+                           args: Vector[WdlValues.V],
+                           loc: SourceLocation): Option[FunctionContext => WdlValues.V]
+
+  override def getImpl(funcName: String,
+                       args: Vector[WdlValues.V],
+                       loc: SourceLocation): Option[FunctionContext => WdlValues.V] = {
+    if (nameMatches(funcName)) {
+      val prototype = prototypeCache
+        .get(funcName)
+        .flatten
+        .orElse(taskProxyCache.get(funcName).flatten.map(_._1))
+        .getOrElse(
+            throw new EvalException(s"no prototype for generic function ${funcName}")
+        )
+      createImpl(prototype, args, loc)
+    } else {
+      None
+    }
+  }
+}
+
+object ArchiveFunction extends GenericUserDefinedFunction("archive_.*".r) {
+  private val deleteSourceFilesType = WdlTypes.T_Optional(WdlTypes.T_Boolean)
+  private val outputType = WdlTypes.T_File
+
+  override protected def createPrototype(
+      funcName: String,
+      inputTypes: Vector[WdlTypes.T]
+  ): Option[WdlTypes.T_Function] = {
+    inputTypes match {
+      case Vector(t) if !TypeUtils.isOptional(t) =>
+        Some(WdlTypes.T_Function1(funcName, t, outputType))
+      case Vector(t, deleteSourceFilesType) =>
+        Some(WdlTypes.T_Function2(funcName, t, deleteSourceFilesType, outputType))
+      case _ => None
+    }
+  }
+
+  override protected def createTaskProxyFunction(
+      taskName: String,
+      input: SeqMap[String, (WdlTypes.T, Boolean)],
+      output: SeqMap[String, WdlTypes.T]
+  ): Option[(WdlTypes.T_Function, Vector[String])] = {
+    if (output.values.toVector == Vector(WdlTypes.T_File)) {
       val (inputNames, inputTypes) = input.toVector.unzip
       inputTypes match {
         case Vector((t, false)) =>
-          inputValueTypes += (taskName -> t)
           Some((WdlTypes.T_Function1(taskName, t, outputType), inputNames))
         case Vector((t, false), (WdlTypes.T_Boolean, true)) =>
-          inputValueTypes += (taskName -> t)
           Some((WdlTypes.T_Function2(taskName, t, deleteSourceFilesType, outputType), inputNames))
         case _ => None
       }
@@ -72,47 +135,48 @@ case class ArchiveFunction(initialInputValueTypes: Map[String, WdlTypes.T] = Map
     }
   }
 
-  override def getImpl(funcName: String,
-                       args: Vector[WdlValues.V]): Option[FunctionContext => WdlValues.V] = {
-    if (funcName.startsWith(ArchiveFunctionPrefix)) {
-      val inputValueType = inputValueTypes.getOrElse(
-          funcName,
-          throw new EvalException(s"no prototype for generic archive function ${funcName}")
-      )
-      args match {
-        case Vector(_) => Some(PackArchive(funcName, inputValueType).apply)
-        case Vector(_, WdlValues.V_Boolean(_)) =>
-          Some(PackArchive(funcName, inputValueType).apply)
-        case _ => None
-      }
-    } else {
-      None
+  override protected def createImpl(
+      prototype: WdlTypes.T_Function,
+      args: Vector[WdlValues.V],
+      loc: SourceLocation
+  ): Option[FunctionContext => WdlValues.V] = {
+    val inputType = prototype match {
+      case f: WdlTypes.T_Function1 => f.input
+      case f: WdlTypes.T_Function2 => f.arg1
+      case _ =>
+        throw new EvalException(s"invalid prototype for generic archive function ${prototype.name}",
+                                loc)
+    }
+    args match {
+      case Vector(_) =>
+        Some(PackArchive(prototype.name, inputType).apply)
+      case Vector(_, WdlValues.V_Boolean(_)) =>
+        Some(PackArchive(prototype.name, inputType).apply)
+      case _ => None
     }
   }
 }
 
-object UnarchiveFunction extends UserDefinedFunctionPrototype with UserDefinedFunctionImplFactory {
-  val UnarchiveFunctionPrefix = "unarchive_"
+object UnarchiveFunction extends GenericUserDefinedFunction("unarchive_.*".r) {
   private val inputType = WdlTypes.T_File
 
-  override def getPrototype(funcName: String,
-                            inputTypes: Vector[WdlTypes.T]): Option[WdlTypes.T_Function] = {
-    if (funcName.startsWith(UnarchiveFunctionPrefix) &&
-        inputTypes.size == 1 &&
-        inputTypes.head == inputType) {
+  override protected def createPrototype(
+      funcName: String,
+      inputTypes: Vector[WdlTypes.T]
+  ): Option[WdlTypes.T_Function] = {
+    if (inputTypes.size == 1 && inputTypes.head == inputType) {
       Some(WdlTypes.T_Function1(funcName, inputType, WdlTypes.T_Any))
     } else {
       None
     }
   }
 
-  override def getTaskProxyFunction(
+  override protected def createTaskProxyFunction(
       taskName: String,
       input: SeqMap[String, (WdlTypes.T, Boolean)],
       output: SeqMap[String, WdlTypes.T]
   ): Option[(WdlTypes.T_Function, Vector[String])] = {
-    if (taskName.startsWith(UnarchiveFunctionPrefix) &&
-        input.size == 1 &&
+    if (input.size == 1 &&
         input.values.head == (inputType, false) &&
         output.size == 1) {
       Some((WdlTypes.T_Function1(taskName, inputType, output.values.head), Vector(input.keys.head)))
@@ -120,7 +184,6 @@ object UnarchiveFunction extends UserDefinedFunctionPrototype with UserDefinedFu
       None
     }
   }
-
   def unpackArchive(ctx: FunctionContext): WdlValues.V = {
     val path = ctx.getOneArg match {
       case WdlValues.V_File(path) => Paths.get(path)
@@ -133,15 +196,22 @@ object UnarchiveFunction extends UserDefinedFunctionPrototype with UserDefinedFu
     WdlUtils.fromIRValue(localizedArchive.irValue, wdlType, "unknown")
   }
 
-  override def getImpl(funcName: String,
-                       args: Vector[WdlValues.V]): Option[FunctionContext => WdlValues.V] = {
-    if (funcName.startsWith(UnarchiveFunctionPrefix)) {
-      args match {
-        case Vector(WdlValues.V_File(_)) => Some(unpackArchive)
-        case _                           => None
-      }
-    } else {
-      None
+  override protected def createImpl(
+      prototype: WdlTypes.T_Function,
+      args: Vector[WdlValues.V],
+      loc: SourceLocation
+  ): Option[FunctionContext => WdlValues.V] = {
+    val inputType = prototype match {
+      case p: WdlTypes.T_Function1 => p.input
+      case _ =>
+        throw new EvalException(
+            s"invalid prototype for generic unarchive function ${prototype.name}",
+            loc
+        )
+    }
+    (inputType, args) match {
+      case (WdlTypes.T_File, Vector(WdlValues.V_File(_))) => Some(unpackArchive)
+      case _                                              => None
     }
   }
 }
