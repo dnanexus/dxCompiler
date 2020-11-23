@@ -130,6 +130,15 @@ object TypeSerde {
     }
   }
 
+  def deserializeSchemas(
+      jsSchemas: Map[String, JsValue],
+      schemas: Map[String, TSchema] = Map.empty
+  ): Map[String, TSchema] = {
+    jsSchemas.values.foldLeft(schemas) {
+      case (schemaAccu, jsSchema) => deserializeSchema(jsSchema, schemaAccu, jsSchemas)
+    }
+  }
+
   /**
     * Deserializes a serialized type value.
     * @param jsValue the serialized values
