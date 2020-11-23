@@ -188,7 +188,8 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
                   other.name -> (other.wdlType, true)
               }
               .to(TreeSeqMap),
-            outputs.map(d => d.name -> d.wdlType).to(TreeSeqMap)
+            outputs.map(d => d.name -> d.wdlType).to(TreeSeqMap),
+            None
         ),
         inputs,
         outputs,
@@ -230,7 +231,8 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
                             case (name, wdlType) => name -> (wdlType, false)
                           }
                           .to(TreeSeqMap),
-                        outputSpec.to(TreeSeqMap)),
+                        outputSpec.to(TreeSeqMap),
+                        None),
         inputSpec.map {
           case (name, wdlType) => TAT.RequiredInputParameter(name, wdlType, SourceLocation.empty)
         }.toVector,

@@ -1,5 +1,18 @@
 # Release Notes
 
+## 2.0.0-rc6 20-11-2020
+
+- Upgrades wdlTools to 0.11.0
+- Fixes the issue with type-checking struct-typed objects
+- Adds hooks for user-defined functions, which is needed for the new archive/unarchive operations that will be added
+- Uses file name when creating names for scatter jobs
+- Uses dnanexus-executable.json to get type information about applet input/output parameters, and uses it to type-check the actual inputs/outputs. Ignores hash types, which might be JSON objects or schemas
+- Adds `streamFiles` compile option
+- Moves API code to dxApi library
+- Moves DxFileAccessProtocol to separate protocols library
+- Moves WDL type serialization code to wdlTools
+- Makes array type-checking less strict (to coerce between empty and non-empty array types)
+
 ## 2.0.0-rc5 13-11-2020
 
 - Upgrades wdlTools to 0.10.5

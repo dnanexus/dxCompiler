@@ -71,10 +71,10 @@ assemblyOutputPath in assembly := file("applet_resources/resources/dxWDL.jar")
 assemblyMergeStrategy in assembly := customMergeStrategy.value
 
 val cwlScalaVersion = "0.2.5"
-val dxApiVersion = "0.1.3"
+val dxApiVersion = "0.1.4"
 val dxCommonVersion = "0.2.2"
-val dxFileAccessProtocolsVersion = "0.1.1"
-val wdlToolsVersion = "0.10.7"
+val dxFileAccessProtocolsVersion = "0.1.2"
+val wdlToolsVersion = "0.11.0"
 val typesafeVersion = "1.3.3"
 val sprayVersion = "1.3.5"
 val jacksonVersion = "2.11.0"
@@ -82,6 +82,7 @@ val guavaVersion = "18.0"
 val httpClientVersion = "4.5"
 val logbackVersion = "1.2.3"
 val scalatestVersion = "3.1.1"
+val commonsCompressVersion = "1.20"
 
 libraryDependencies ++= Seq(
     "com.dnanexus" % "cwlscala" % cwlScalaVersion,
@@ -91,6 +92,7 @@ libraryDependencies ++= Seq(
     "com.dnanexus" % "wdltools" % wdlToolsVersion,
     "io.spray" %% "spray-json" % sprayVersion,
     "com.typesafe" % "config" % typesafeVersion,
+    "org.apache.commons" % "commons-compress" % commonsCompressVersion,
     // libraries used in what remains of dxjava
     "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion,
     "com.google.guava" % "guava" % guavaVersion,

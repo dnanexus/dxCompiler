@@ -44,7 +44,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                               logger: Logger = Logger.get) {
 
   private lazy val evaluator: Eval =
-    Eval(DefaultEvalPaths.empty, Some(wdlBundle.version), fileResolver, logger)
+    Eval(DefaultEvalPaths.empty, Some(wdlBundle.version), Vector.empty, fileResolver, logger)
   private lazy val codegen = CodeGenerator(typeAliases, wdlBundle.version, logger)
 
   private case class WdlTaskTranslator(task: TAT.Task) {
