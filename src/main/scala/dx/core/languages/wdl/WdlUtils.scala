@@ -325,7 +325,15 @@ object WdlUtils {
         case pairSchema: TSchema if isPairSchema(pairSchema) =>
           T_Pair(inner(pairSchema.members(PairLeftKey)), inner(pairSchema.members(PairRightKey)))
         case mapSchema: TSchema if isMapSchema(mapSchema) =>
-          T_Map(inner(mapSchema.members(MapKeysKey)), inner(mapSchema.members(MapValuesKey)))
+          val keyType = inner(mapSchema.members(MapKeysKey)) match {
+            case T_Array(t, _) => t
+            case other         => throw new Exception(s"invalid Map schema key type ${other}")
+          }
+          val valueType = inner(mapSchema.members(MapValuesKey)) match {
+            case T_Array(t, _) => t
+            case other         => throw new Exception(s"invalid Map schema value type ${other}")
+          }
+          T_Map(keyType, valueType)
         case TSchema(name, _) =>
           throw new Exception(s"Unknown type ${name}")
         case _ =>

@@ -88,8 +88,7 @@ case class DxExecutableDirectory(bundle: Bundle,
               Vector(Constants.CompilerTag),
               allExecutableNames.toVector,
               withInputOutputSpec = false,
-              Vector.empty,
-              Set(Field.Details)
+              extraFields = Set(Field.Details)
           )
         val t1 = System.nanoTime()
         val diffMSec = (t1 - t0) / (1000 * 1000)
