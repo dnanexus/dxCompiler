@@ -70,7 +70,7 @@ logLevel in assembly := Level.Info
 assemblyOutputPath in assembly := file("applet_resources/resources/dxWDL.jar")
 assemblyMergeStrategy in assembly := customMergeStrategy.value
 
-val cwlScalaVersion = "v0.2.3"
+val cwlScalaVersion = "0.2.5"
 val dxApiVersion = "0.1.3"
 val dxCommonVersion = "0.2.2"
 val dxFileAccessProtocolsVersion = "0.1.1"

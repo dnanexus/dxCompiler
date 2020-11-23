@@ -2,8 +2,8 @@ package dx.core.languages.cwl
 
 import dx.core.ir.Type
 import dx.core.ir.Type.{TFloat, TOptional, TString}
-import dx.core.ir.Value.{VFloat, VString}
-import dx.cwl.{CwlFloat, CwlNull, CwlString, CwlType, CwlValue, StringValue}
+import dx.core.ir.Value.{VFloat, VInt, VString}
+import dx.cwl.{CwlFloat, CwlNull, CwlString, CwlType, CwlValue, FloatValue, IntValue, StringValue}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -16,11 +16,11 @@ class UtilsTest extends AnyFlatSpec with Matchers {
   val floatIRType: Type = TFloat
   val optionalIRType: Type = TOptional(TString)
   val stringCwl: CwlValue = StringValue("test_string_value")
-//  val floatCwl: CwlValue = FloatValue(3.141592)
+  val intCwl: CwlValue = IntValue(3)
 
   it should "get default value given cwltype" in {
     CwlUtils.getDefaultCWLValue(stringType).shouldBe(StringValue(""))
-//    CwlUtils.getDefaultCWLValue(floatType).shouldBe(FloatValue(0.0))
+    CwlUtils.getDefaultCWLValue(floatType).shouldBe(FloatValue(0.0))
     CwlUtils.getDefaultCWLValue(optionalStringType).shouldBe(StringValue(""))
     assertThrows[Exception](CwlUtils.getDefaultCWLValue(emptyType))
   }
@@ -43,6 +43,6 @@ class UtilsTest extends AnyFlatSpec with Matchers {
 
     it should "translate CwlValue to IRValue" in {
     CwlUtils.toIRValue(stringCwl).shouldBe(VString("test_string_value"))
-//    CwlUtils.toIRValue(floatCwl).shouldBe(VFloat(3.141592))
+    CwlUtils.toIRValue(intCwl).shouldBe(VInt(3))
   }
 }

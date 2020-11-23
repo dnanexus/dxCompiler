@@ -105,7 +105,6 @@ class TranslatorTest extends AnyFlatSpec with Matchers {
   ignore should "IR compile a cwl commandlineTool with requirements" in {
     val path = pathFromBasename("compiler", "cwl_requirements.cwl")
     val args = path.toString :: cFlags
-    val result = Main.compile(args.toVector)
 
     Main.compile(args.toVector) match {
       case s:SuccessIR => s.bundle.primaryCallable.get match {
