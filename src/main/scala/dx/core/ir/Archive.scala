@@ -434,7 +434,7 @@ case class LocalizedArchive(
       // by their target subdirectory within the archive
       files.groupMap(_._2.getParent)(_._1).foreach {
         case (relParent, srcFiles) =>
-          archive.appendAll(srcFiles.toVector, Some(relParent), removeSource = removeSourceFiles)
+          archive.appendAll(srcFiles.toVector, Option(relParent), removeSource = removeSourceFiles)
       }
     } catch {
       case ex: Throwable =>
@@ -445,7 +445,16 @@ case class LocalizedArchive(
   def pack(removeSourceFiles: Boolean = true): PackedArchive = {
     val delocalizedValue = packedArchiveAndValue.map(_._2).getOrElse {
       def transformer(absPath: Path): Path = {
-        parentDir.get.relativize(absPath)
+        parentDir
+          .map { parent =>
+            if (!absPath.startsWith(parent)) {
+              throw new RuntimeException(
+                  s"path ${absPath} is not located under parent dir ${parentDir}"
+              )
+            }
+            parent.relativize(absPath)
+          }
+          .getOrElse(throw new RuntimeException("parentDir is required to relativize local paths"))
       }
       val (delocalizedValue, filePaths) = Archive.transformPaths(irValue, irType, transformer)
       createArchive(irType, delocalizedValue, filePaths, removeSourceFiles)

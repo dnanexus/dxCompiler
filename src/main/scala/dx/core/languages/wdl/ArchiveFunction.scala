@@ -3,84 +3,11 @@ package dx.core.languages.wdl
 import java.nio.file.Paths
 
 import dx.core.ir.{LocalizedArchive, PackedArchive}
-import wdlTools.eval.{EvalException, FunctionContext, UserDefinedFunctionImplFactory, WdlValues}
+import wdlTools.eval.{EvalException, FunctionContext, GenericUserDefinedFunction, WdlValues}
 import wdlTools.syntax.SourceLocation
-import wdlTools.types.{TypeUtils, UserDefinedFunctionPrototype, WdlTypes}
+import wdlTools.types.{TypeUtils, WdlTypes}
 
 import scala.collection.immutable.SeqMap
-import scala.util.matching.Regex
-
-abstract class GenericUserDefinedFunction(pattern: Regex)
-    extends UserDefinedFunctionPrototype
-    with UserDefinedFunctionImplFactory {
-  private var prototypeCache: Map[String, Option[WdlTypes.T_Function]] = Map.empty
-  private var taskProxyCache: Map[String, Option[(WdlTypes.T_Function, Vector[String])]] = Map.empty
-
-  def nameMatches(name: String): Boolean = pattern.matches(name)
-
-  protected def createPrototype(funcName: String,
-                                inputTypes: Vector[WdlTypes.T]): Option[WdlTypes.T_Function]
-
-  override def getPrototype(funcName: String,
-                            inputTypes: Vector[WdlTypes.T]): Option[WdlTypes.T_Function] = {
-    if (nameMatches(funcName)) {
-      if (prototypeCache.contains(funcName)) {
-        prototypeCache(funcName)
-      } else {
-        val prototype = createPrototype(funcName, inputTypes)
-        prototypeCache += (funcName -> prototype)
-        prototype
-      }
-    } else {
-      None
-    }
-  }
-
-  protected def createTaskProxyFunction(
-      taskName: String,
-      input: SeqMap[String, (WdlTypes.T, Boolean)],
-      output: SeqMap[String, WdlTypes.T]
-  ): Option[(WdlTypes.T_Function, Vector[String])]
-
-  override def getTaskProxyFunction(
-      taskName: String,
-      input: SeqMap[String, (WdlTypes.T, Boolean)],
-      output: SeqMap[String, WdlTypes.T]
-  ): Option[(WdlTypes.T_Function, Vector[String])] = {
-    if (nameMatches(taskName)) {
-      if (taskProxyCache.contains(taskName)) {
-        taskProxyCache(taskName)
-      } else {
-        val taskProxy = createTaskProxyFunction(taskName, input, output)
-        taskProxyCache += (taskName -> taskProxy)
-        taskProxy
-      }
-    } else {
-      None
-    }
-  }
-
-  protected def createImpl(prototype: WdlTypes.T_Function,
-                           args: Vector[WdlValues.V],
-                           loc: SourceLocation): Option[FunctionContext => WdlValues.V]
-
-  override def getImpl(funcName: String,
-                       args: Vector[WdlValues.V],
-                       loc: SourceLocation): Option[FunctionContext => WdlValues.V] = {
-    if (nameMatches(funcName)) {
-      val prototype = prototypeCache
-        .get(funcName)
-        .flatten
-        .orElse(taskProxyCache.get(funcName).flatten.map(_._1))
-        .getOrElse(
-            throw new EvalException(s"no prototype for generic function ${funcName}")
-        )
-      createImpl(prototype, args, loc)
-    } else {
-      None
-    }
-  }
-}
 
 object ArchiveFunction extends GenericUserDefinedFunction("archive_.*".r) {
   private val deleteSourceFilesType = WdlTypes.T_Optional(WdlTypes.T_Boolean)
