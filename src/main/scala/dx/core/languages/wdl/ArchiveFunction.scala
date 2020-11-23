@@ -86,6 +86,7 @@ object ArchiveFunction extends GenericUserDefinedFunction("archive_.*".r) {
 
 object UnarchiveFunction extends GenericUserDefinedFunction("unarchive_.*".r) {
   private val inputType = WdlTypes.T_File
+  private var mountedArchives = Vector.empty[LocalizedArchive]
 
   override protected def createPrototype(
       funcName: String,
@@ -119,6 +120,7 @@ object UnarchiveFunction extends GenericUserDefinedFunction("unarchive_.*".r) {
     }
     val packedArchive = PackedArchive(path)()
     val (localizedArchive, _) = packedArchive.localize()
+    mountedArchives :+= localizedArchive
     val wdlType = WdlUtils.fromIRType(localizedArchive.irType)
     WdlUtils.fromIRValue(localizedArchive.irValue, wdlType, "unknown")
   }

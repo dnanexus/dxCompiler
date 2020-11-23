@@ -2,7 +2,7 @@ package dx.core.languages.wdl
 
 import java.nio.file.{Files, Paths}
 
-import dx.core.ir.{PackedArchive, Value}
+import dx.core.ir.{LocalizedArchive, PackedArchive, Type, Value}
 import dx.util.FileUtils
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -50,7 +50,7 @@ class ArchiveFunctionTest extends AnyFlatSpec with Matchers {
     Files.exists(file1) shouldBe false
     Files.exists(file2) shouldBe false
 
-    val packed = PackedArchive(Paths.get(path))(typeAliases = Some(Map.empty))
+    val packed = PackedArchive(Paths.get(path))()
     val (localized, _) = packed.localize()
     try {
       localized.irValue match {
@@ -62,6 +62,43 @@ class ArchiveFunctionTest extends AnyFlatSpec with Matchers {
       }
     } finally {
       localized.close()
+    }
+  }
+
+  it should "evaluate unarchive function" in {
+    val paths = DefaultEvalPaths.createFromTemp()
+    val file1 = paths.getRootDir(ensureExists = true).resolve("file1.txt")
+    FileUtils.writeFileContent(file1, "file1")
+    val file2 = paths.getRootDir(ensureExists = true).resolve("file2.txt")
+    FileUtils.writeFileContent(file2, "file2")
+
+    val irType = Type.TArray(Type.TFile)
+    val irValue = Value.VArray(Vector(Value.VFile(file1.toString), Value.VFile(file2.toString)))
+    val archive =
+      LocalizedArchive(irType, irValue)(parentDir = Some(paths.getRootDir(ensureExists = true)))
+    val packedArchive = archive.pack()
+
+    val prototype =
+      WdlTypes.T_Function1("unarchive_file_array", WdlTypes.T_File, WdlTypes.T_Any)
+    UnarchiveFunction
+      .getPrototype("unarchive_file_array", Vector(WdlTypes.T_File)) shouldBe Some(prototype)
+
+    val evaluator = Eval(paths, Some(WdlVersion.V1), Vector(UnarchiveFunction))
+    val expr = TAT.ExprApply(
+        "unarchive_file_array",
+        prototype,
+        Vector(
+            TAT.ValueFile(packedArchive.path.toString, WdlTypes.T_File, SourceLocation.empty)
+        ),
+        WdlTypes.T_Any,
+        SourceLocation.empty
+    )
+    evaluator.applyExpr(expr) match {
+      case WdlValues.V_Array(Vector(WdlValues.V_File(path1), WdlValues.V_File(path2))) =>
+        FileUtils.readFileContent(Paths.get(path1)) shouldBe "file1"
+        FileUtils.readFileContent(Paths.get(path2)) shouldBe "file2"
+      case other =>
+        throw new AssertionError(s"unexpected expression value ${other}")
     }
   }
 }

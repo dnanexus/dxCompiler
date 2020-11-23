@@ -303,11 +303,10 @@ object Archive {
   * @param mountDir parent dir in which to create the randomly named mount point
   */
 case class PackedArchive(path: Path, encoding: Charset = FileUtils.DefaultEncoding)(
-    typeAliases: Option[Map[String, TSchema]] = None,
+    typeAliases: Map[String, TSchema] = Map.empty,
     packedTypeAndValue: Option[(Type, Value)] = None,
     mountDir: Option[Path] = None
 ) extends Archive {
-  assert(typeAliases.isDefined || packedTypeAndValue.isDefined)
   if (!Files.exists(path)) {
     throw new Exception(s"${path} does not exist")
   } else if (Files.isDirectory(path)) {
@@ -334,7 +333,7 @@ case class PackedArchive(path: Path, encoding: Charset = FileUtils.DefaultEncodi
         case ex: Throwable =>
           throw new RuntimeException(s"unable to read archive manifest ${manifestPath}", ex)
       }
-    val (irType, _) = TypeSerde.deserializeOne(manifestJs, typeAliases.get)
+    val (irType, _) = TypeSerde.deserializeOne(manifestJs, typeAliases)
     val irValue =
       ValueSerde.deserializeWithType(manifestJs.fields(Archive.ManifestValueKey), irType)
     (irType, irValue)
