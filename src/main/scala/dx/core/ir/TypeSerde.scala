@@ -105,6 +105,7 @@ object TypeSerde {
   /**
     * Serialize and create a specification for a single type.
     * @param t the type
+    * @param schemas schemas that may be referenced by `t`
     * @return JsObject containing the specification
     */
   def serializeOne(t: Type, schemas: Map[String, JsValue] = Map.empty): JsObject = {
@@ -180,7 +181,7 @@ object TypeSerde {
     * Deserializes a map on parameter names to serialized values.
     * @param jsTypes types to deserialize
     * @param schemas schemas that may be referenced by the types
-    * @param jsSchemas serialized schemas that we only deserialize if they are reference
+    * @param jsSchemas serialized schemas that we only deserialize if they are referenced
     * @param decodeDots whether to decode dots in parameter names
     * @return
     */
@@ -207,6 +208,7 @@ object TypeSerde {
     * `serializeSpec` function.
     * @param jsValue the value to deserialize
     * @param schemas initial set of schemas (i.e. type aliases)
+    * @param decodeDots whether to decode dots in variable names
     * @return mapping of variable names to deserialized Types
     */
   def deserializeSpec(jsValue: JsValue,
