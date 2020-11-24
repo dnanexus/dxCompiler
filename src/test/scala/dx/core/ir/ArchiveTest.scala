@@ -67,7 +67,7 @@ class ArchiveTest extends AnyFlatSpec with Matchers {
             )
         )
     )
-    val packed2 = PackedArchive(packed.path)(typeAliases = Some(Map.empty))
+    val packed2 = PackedArchive(packed.path)()
     packed2.isOpen shouldBe false
     packed2.localized shouldBe false
     packed2.irType shouldBe structType
