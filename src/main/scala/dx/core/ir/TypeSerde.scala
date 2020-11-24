@@ -5,9 +5,16 @@ import spray.json._
 import dx.util.JsUtils
 
 object TypeSerde {
-  private def serializeType(
+
+  /**
+    * Serialize a single type.
+    * @param t the type to serialize
+    * @param schemas schemas that t might reference
+    * @return (serialized type, updated serialized schemas)
+    */
+  def serialize(
       t: Type,
-      schemas: Map[String, JsValue]
+      schemas: Map[String, JsValue] = Map.empty
   ): (JsValue, Map[String, JsValue]) = {
     t match {
       case TBoolean   => (JsString("Boolean"), schemas)
@@ -18,7 +25,7 @@ object TypeSerde {
       case TDirectory => (JsString("Directory"), schemas)
       case THash      => (JsString("Hash"), schemas)
       case TArray(memberType, nonEmpty) =>
-        val (typeJs, newSchemas) = serializeType(memberType, schemas)
+        val (typeJs, newSchemas) = serialize(memberType, schemas)
         (JsObject(
              Map(
                  "name" -> JsString("Array"),
@@ -33,7 +40,7 @@ object TypeSerde {
         val (membersJs, newSchemas) =
           members.foldLeft((Map.empty[String, JsValue], Map.empty[String, JsValue])) {
             case ((membersAccu, aliasesAccu), (name, t)) =>
-              val (typeJs, newSchemas) = serializeType(t, aliasesAccu)
+              val (typeJs, newSchemas) = serialize(t, aliasesAccu)
               (membersAccu + (name -> typeJs), newSchemas)
           }
         val schemaJs = JsObject(
@@ -44,7 +51,7 @@ object TypeSerde {
         )
         (JsString(name), newSchemas + (name -> schemaJs))
       case TOptional(inner) =>
-        serializeType(inner, schemas) match {
+        serialize(inner, schemas) match {
           case (name: JsString, newSchemas) =>
             (JsObject(Map("name" -> name, "optional" -> JsBoolean(true))), newSchemas)
           case (JsObject(fields), newSchemas) =>
@@ -74,13 +81,19 @@ object TypeSerde {
         } else {
           name
         }
-        val (typeJs, newSchemas) = serializeType(t, schemaAccu)
+        val (typeJs, newSchemas) = serialize(t, schemaAccu)
         (typeAccu + (nameEncoded -> typeJs), newSchemas)
     }
   }
 
-  def serialize(inputs: Map[String, Type], encodeDots: Boolean = true): JsValue = {
-    val (typesJs, schemasJs) = serializeMap(inputs, encodeDots = encodeDots)
+  /**
+    * Serializes a parameter specification.
+    * @param parameters parameter types
+    * @param encodeDots whether to encode dots in input names
+    * @return JsObject containing the input specification
+    */
+  def serializeSpec(parameters: Map[String, Type], encodeDots: Boolean = true): JsValue = {
+    val (typesJs, schemasJs) = serializeMap(parameters, encodeDots = encodeDots)
     JsObject(
         Map(
             "types" -> JsObject(typesJs),
@@ -89,9 +102,15 @@ object TypeSerde {
     )
   }
 
-  def serializeOne(t: Type): JsObject = {
-    val (typeJs, schemas) = serializeType(t, Map.empty)
-    JsObject("type" -> typeJs, "schemas" -> JsObject(schemas))
+  /**
+    * Serialize and create a specification for a single type.
+    * @param t the type
+    * @param schemas schemas that may be referenced by `t`
+    * @return JsObject containing the specification
+    */
+  def serializeOne(t: Type, schemas: Map[String, JsValue] = Map.empty): JsObject = {
+    val (typeJs, newSchemas) = serialize(t, schemas)
+    JsObject("type" -> typeJs, "schemas" -> JsObject(newSchemas))
   }
 
   private def deserializeSchema(jsSchema: JsValue,
@@ -102,7 +121,7 @@ object TypeSerde {
         val (memberTypes, newSchemas) =
           membersJs.foldLeft((Map.empty[String, Type], schemas)) {
             case ((memberAccu, schemaAccu), (name, jsType)) =>
-              val (t, newSchemas) = deserializeType(jsType, schemaAccu, jsSchemas)
+              val (t, newSchemas) = deserialize(jsType, schemaAccu, jsSchemas)
               (memberAccu + (name -> t), newSchemas)
           }
         newSchemas + (name -> TSchema(name, memberTypes))
@@ -111,9 +130,28 @@ object TypeSerde {
     }
   }
 
-  private def deserializeType(jsValue: JsValue,
-                              schemas: Map[String, TSchema],
-                              jsSchemas: Map[String, JsValue]): (Type, Map[String, TSchema]) = {
+  def deserializeSchemas(
+      jsSchemas: Map[String, JsValue],
+      schemas: Map[String, TSchema] = Map.empty
+  ): Map[String, TSchema] = {
+    jsSchemas.values.foldLeft(schemas) {
+      case (schemaAccu, jsSchema) => deserializeSchema(jsSchema, schemaAccu, jsSchemas)
+    }
+  }
+
+  /**
+    * Deserializes a serialized type value.
+    * @param jsValue the serialized values
+    * @param schemas schemas that the value may reference
+    * @param jsSchemas serialized schemas that we only deserialize if
+    *                  they are referenced
+    * @return (type, new schema map)
+    */
+  def deserialize(
+      jsValue: JsValue,
+      schemas: Map[String, TSchema] = Map.empty,
+      jsSchemas: Map[String, JsValue] = Map.empty
+  ): (Type, Map[String, TSchema]) = {
     jsValue match {
       case JsString(name) if schemas.contains(name) =>
         (schemas(name), schemas)
@@ -125,7 +163,7 @@ object TypeSerde {
       case JsObject(fields) =>
         val (t, newSchemas) = fields("name") match {
           case JsString("Array") =>
-            val (arrayType, newSchemas) = deserializeType(fields("type"), schemas, jsSchemas)
+            val (arrayType, newSchemas) = deserialize(fields("type"), schemas, jsSchemas)
             val nonEmpty = fields.get("nonEmpty").exists(JsUtils.getBoolean(_))
             (TArray(arrayType, nonEmpty), newSchemas)
           case JsString(name) if schemas.contains(name) =>
@@ -148,10 +186,18 @@ object TypeSerde {
     }
   }
 
+  /**
+    * Deserializes a map on parameter names to serialized values.
+    * @param jsTypes types to deserialize
+    * @param schemas schemas that may be referenced by the types
+    * @param jsSchemas serialized schemas that we only deserialize if they are referenced
+    * @param decodeDots whether to decode dots in parameter names
+    * @return
+    */
   def deserializeMap(
       jsTypes: Map[String, JsValue],
-      jsSchemas: Map[String, JsValue],
       schemas: Map[String, TSchema] = Map.empty,
+      jsSchemas: Map[String, JsValue] = Map.empty,
       decodeDots: Boolean = true
   ): (Map[String, Type], Map[String, TSchema]) = {
     jsTypes.foldLeft((Map.empty[String, Type], schemas)) {
@@ -161,20 +207,22 @@ object TypeSerde {
         } else {
           name
         }
-        val (t, newSchemas) = deserializeType(jsType, schemaAccu, jsSchemas)
+        val (t, newSchemas) = deserialize(jsType, schemaAccu, jsSchemas)
         (typeAccu + (nameDecoded -> t), newSchemas)
     }
   }
 
   /**
-    * Deserializes a JsValue that was serialized using the `serialize` function.
+    * Deserializes a parameter specification that was serialized using the
+    * `serializeSpec` function.
     * @param jsValue the value to deserialize
     * @param schemas initial set of schemas (i.e. type aliases)
+    * @param decodeDots whether to decode dots in variable names
     * @return mapping of variable names to deserialized Types
     */
-  def deserialize(jsValue: JsValue,
-                  schemas: Map[String, TSchema] = Map.empty,
-                  decodeDots: Boolean = true): Map[String, Type] = {
+  def deserializeSpec(jsValue: JsValue,
+                      schemas: Map[String, TSchema] = Map.empty,
+                      decodeDots: Boolean = true): Map[String, Type] = {
     val (jsTypes, jsSchemas) = jsValue match {
       case obj: JsObject if obj.fields.contains("types") =>
         obj.getFields("types", "schemas") match {
@@ -190,7 +238,7 @@ object TypeSerde {
       case _ =>
         throw new Exception(s"invalid serialized types value ${jsValue}")
     }
-    val (types, _) = deserializeMap(jsTypes, jsSchemas, schemas, decodeDots)
+    val (types, _) = deserializeMap(jsTypes, schemas, jsSchemas, decodeDots)
     types
   }
 
@@ -212,7 +260,7 @@ object TypeSerde {
         }
       case _ => (jsValue, Map.empty[String, JsValue])
     }
-    deserializeType(jsType, schemas, jsSchemas)
+    deserialize(jsType, schemas, jsSchemas)
   }
 
   private def toNativePrimitive(t: Type): String = {
