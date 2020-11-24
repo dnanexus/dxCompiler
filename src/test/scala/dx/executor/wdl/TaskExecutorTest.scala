@@ -19,7 +19,7 @@ import dx.core.Constants
 import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir.{ParameterLink, ParameterLinkDeserializer, ParameterLinkSerializer}
 import dx.core.languages.wdl.{VersionSupport, WdlUtils}
-import dx.executor.{JobMeta, TaskAction, TaskExecutor}
+import dx.executor.{JobMeta, TaskAction}
 import dx.translator.wdl.CodeGenerator
 import dx.util.{CodecUtils, FileSourceResolver, JsUtils, Logger, SysUtils}
 import dx.util.protocols.DxFileAccessProtocol
@@ -27,7 +27,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spray.json._
 import wdlTools.eval.WdlValues
-import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
+import wdlTools.types.{TypedAbstractSyntax => TAT}
 
 private case class TaskTestJobMeta(override val workerPaths: DxWorkerPaths,
                                    override val dxApi: DxApi = DxApi.get,
@@ -194,7 +194,10 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
       case _                                => None
     }
   }
-  private def createTaskExecutor(wdlName: String): (TaskExecutor, TaskTestJobMeta) = {
+  private def createTaskExecutor(
+      wdlName: String,
+      streamFiles: StreamFiles.StreamFiles = StreamFiles.None
+  ): (WdlTaskExecutor, TaskTestJobMeta) = {
     val wdlFile: Path = pathFromBasename(s"${wdlName}.wdl").get
     val inputs: Map[String, JsValue] = getInputs(wdlName)
     // Create a clean temp directory for the task to use
@@ -253,7 +256,7 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
                       standAloneTaskSource)
 
     // create TaskExecutor
-    (TaskExecutor(jobMeta, streamFiles = StreamFiles.None), jobMeta)
+    (WdlTaskExecutor.create(jobMeta, streamFiles = streamFiles), jobMeta)
   }
 
   // Parse the WDL source code, and extract the single task that is supposed to be there.
@@ -313,9 +316,9 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
   }
 
   it should "handle files with same name in different source folders" taggedAs ApiTest in {
-    val (taskExecutor, _) = createTaskExecutor("two_files")
+    val (taskExecutor, _) = createTaskExecutor("two_files", StreamFiles.None)
     val (localizedFiles, fileSourceToPath, dxdaManifest, dxfuseManifest) =
-      taskExecutor.taskSupport.localizeInputFiles(streamFiles = StreamFiles.None)
+      taskExecutor.localizeInputFiles
     localizedFiles.size shouldBe 2
     fileSourceToPath.size shouldBe 2
     dxfuseManifest shouldBe None
@@ -371,40 +374,5 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
 
   it should "run a python script" in {
     runTask("python_heredoc")
-  }
-
-  it should "deserialize good JSON" in {
-    val goodJson = Map(
-        "a" -> JsObject(
-            Map(
-                "type" -> JsString("Int"),
-                "value" -> JsNumber(5)
-            )
-        ),
-        "b" -> JsObject(
-            Map(
-                "type" -> JsObject(
-                    "name" -> JsString("Array"),
-                    "type" -> JsString("Float"),
-                    "nonEmpty" -> JsBoolean(false)
-                ),
-                "value" -> JsArray(Vector(JsNumber(1.0), JsNumber(2.5)))
-            )
-        )
-    )
-    val v = WdlTaskSupport.deserializeValues(goodJson, Map.empty)
-    v shouldBe Map(
-        "a" -> (WdlTypes.T_Int, WdlValues.V_Int(5)),
-        "b" -> (WdlTypes.T_Array(WdlTypes.T_Float), WdlValues.V_Array(
-            Vector(WdlValues.V_Float(1.0), WdlValues.V_Float(2.5))
-        ))
-    )
-  }
-
-  it should "detect bad JSON" in {
-    val badJson = Map("a" -> JsNumber(1), "b" -> JsString("hello"))
-    assertThrows[Exception] {
-      WdlTaskSupport.deserializeValues(badJson, Map.empty)
-    }
   }
 }

@@ -111,9 +111,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         classRestriction = None,
         withTags = Vector.empty,
         nameConstraints = Vector(basename),
-        withInputOutputSpec = false,
-        Vector.empty,
-        Set.empty
+        withInputOutputSpec = false
     )
     results.size shouldBe 1
     val desc = results.values.head
