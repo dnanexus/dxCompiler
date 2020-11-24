@@ -10,7 +10,7 @@ import dx.core.io.DxWorkerPaths
 import dx.core.ir.Type.TInt
 import dx.core.ir.{ParameterLinkSerializer, ParameterLinkValue, Type, TypeSerde}
 import dx.core.languages.wdl.{WdlBlock, WdlUtils}
-import dx.executor.{JobMeta, WorkflowAction, WorkflowExecutor, WorkflowSupport}
+import dx.executor.{JobMeta, WorkflowAction, WorkflowExecutor}
 import dx.translator.wdl.WdlBundle
 import dx.util.{CodecUtils, FileSourceResolver, FileUtils, Logger}
 import dx.util.protocols.DxFileAccessProtocol
@@ -58,7 +58,7 @@ private case class WorkflowTestJobMeta(override val workerPaths: DxWorkerPaths,
           )
       ),
       Constants.SourceCode -> JsString(CodecUtils.gzipAndBase64Encode(rawSourceCode)),
-      Constants.WfFragmentInputTypes -> TypeSerde.serialize(WdlUtils.toIRTypeMap(rawEnv.map {
+      Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(WdlUtils.toIRTypeMap(rawEnv.map {
         case (k, (t, _)) => k -> t
       }))
   )
@@ -113,11 +113,11 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
       sourcePath: Path,
       blockPath: Vector[Int] = Vector(0),
       env: Map[String, (WdlTypes.T, WdlValues.V)] = Map.empty
-  ): WorkflowExecutor = {
+  ): WdlWorkflowExecutor = {
     val wfSourceCode = FileUtils.readFileContent(sourcePath)
     val jobMeta =
       WorkflowTestJobMeta(workerPaths, dxApi, logger, env, blockPath, instanceTypeDB, wfSourceCode)
-    WorkflowExecutor(jobMeta, Some(workerPaths))
+    WdlWorkflowExecutor.create(jobMeta)
   }
 
   private def createFileResolver(workerPaths: DxWorkerPaths): FileSourceResolver = {
@@ -183,8 +183,8 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
 
     val wfExecutor = createWorkflowExecutor(workerPaths, path)
     val env = Map.empty[String, (WdlTypes.T, WdlValues.V)]
-    val results: Map[String, (WdlTypes.T, WdlValues.V)] = wfExecutor.workflowSupport match {
-      case supp: WdlWorkflowSupport => supp.evaluateWorkflowElementVariables(block.elements, env)
+    val results: Map[String, (WdlTypes.T, WdlValues.V)] = wfExecutor match {
+      case exe: WdlWorkflowExecutor => exe.evaluateWorkflowElementVariables(block.elements, env)
       case _                        => throw new Exception("expected WdlWorkflowSupport")
     }
     results.keys should be(Set("names", "full_name"))
@@ -225,8 +225,8 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     val block = subBlocks.head
     val wfExecutor = createWorkflowExecutor(workerPaths, path)
     val env = Map.empty[String, (WdlTypes.T, WdlValues.V)]
-    val results: Map[String, (WdlTypes.T, WdlValues.V)] = wfExecutor.workflowSupport match {
-      case supp: WdlWorkflowSupport => supp.evaluateWorkflowElementVariables(block.elements, env)
+    val results: Map[String, (WdlTypes.T, WdlValues.V)] = wfExecutor match {
+      case exe: WdlWorkflowExecutor => exe.evaluateWorkflowElementVariables(block.elements, env)
       case _                        => throw new Exception("expected WdlWorkflowSupport")
     }
     results should be(
@@ -250,10 +250,10 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     val subBlocks = WdlBlock.createBlocks(wf.body)
     val block = subBlocks.head
     val wfExecutor = createWorkflowExecutor(workerPaths, path)
-    val results: Map[String, (WdlTypes.T, WdlValues.V)] = wfExecutor.workflowSupport match {
-      case supp: WdlWorkflowSupport =>
-        supp.evaluateWorkflowElementVariables(block.elements,
-                                              Map.empty[String, (WdlTypes.T, WdlValues.V)])
+    val results: Map[String, (WdlTypes.T, WdlValues.V)] = wfExecutor match {
+      case exe: WdlWorkflowExecutor =>
+        exe.evaluateWorkflowElementVariables(block.elements,
+                                             Map.empty[String, (WdlTypes.T, WdlValues.V)])
       case _ => throw new Exception("expected WdlWorkflowSupport")
     }
     results should be(
@@ -280,8 +280,8 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
 
     val workerPaths = setup()
     val wfExecutor = createWorkflowExecutor(workerPaths, path, Vector(2, 0))
-    val wdlWorkflowSupport = wfExecutor.workflowSupport match {
-      case supp: WdlWorkflowSupport => supp
+    val wdlWorkflowSupport = wfExecutor match {
+      case exe: WdlWorkflowExecutor => exe
       case _                        => throw new Exception("expected WdlWorkflowSupport")
     }
     val wdlX = WdlValues.V_Array(Vector(WdlValues.V_String("x"), WdlValues.V_String("y")))
@@ -301,8 +301,8 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     }
     val subBlocks = WdlBlock.createBlocks(wf.body)
     val wfExecutor = createWorkflowExecutor(workerPaths, path)
-    val wdlWorkflowSupport = wfExecutor.workflowSupport match {
-      case supp: WdlWorkflowSupport => supp
+    val wdlWorkflowSupport = wfExecutor match {
+      case exe: WdlWorkflowExecutor => exe
       case _                        => throw new Exception("expected WdlWorkflowSupport")
     }
     // Make sure an exception is thrown if eval-expressions is called with
@@ -325,10 +325,10 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     }
     val subBlocks = WdlBlock.createBlocks(wf.body)
     val wfExecutor = createWorkflowExecutor(workerPaths, path)
-    val results: Map[String, (WdlTypes.T, WdlValues.V)] = wfExecutor.workflowSupport match {
-      case supp: WdlWorkflowSupport =>
-        supp.evaluateWorkflowElementVariables(subBlocks(0).elements,
-                                              Map.empty[String, (WdlTypes.T, WdlValues.V)])
+    val results: Map[String, (WdlTypes.T, WdlValues.V)] = wfExecutor match {
+      case exe: WdlWorkflowExecutor =>
+        exe.evaluateWorkflowElementVariables(subBlocks(0).elements,
+                                             Map.empty[String, (WdlTypes.T, WdlValues.V)])
       case _ => throw new Exception("expected WdlWorkflowSupport")
     }
     results.keys should be(Set("powers10", "i1", "i2", "i3"))
@@ -383,8 +383,8 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     }
     val wfExecutor = createWorkflowExecutor(workerPaths, path)
     val call1 = findCallByName("MaybeInt", wf.body)
-    val wfSupport = wfExecutor.workflowSupport match {
-      case supp: WdlWorkflowSupport => supp
+    val wfSupport = wfExecutor match {
+      case exe: WdlWorkflowExecutor => exe
       case _                        => throw new Exception("expected WdlWorkflowSupport")
     }
     val callInputs1: Map[String, (WdlTypes.T, WdlValues.V)] =
@@ -430,8 +430,8 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     }
     val wfExecutor = createWorkflowExecutor(workerPaths, path)
     val zincCall = findCallByName("zincWithNoParams", wf.body)
-    val wfSupport = wfExecutor.workflowSupport match {
-      case supp: WdlWorkflowSupport => supp
+    val wfSupport = wfExecutor match {
+      case exe: WdlWorkflowExecutor => exe
       case _                        => throw new Exception("expected WdlWorkflowSupport")
     }
     val args = wfSupport.WdlBlockContext.evaluateCallInputs(zincCall, Map.empty)
@@ -448,8 +448,8 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     }
     val subBlocks = WdlBlock.createBlocks(wf.body)
     val wfExecutor = createWorkflowExecutor(workerPaths, path)
-    val wfSupport = wfExecutor.workflowSupport match {
-      case supp: WdlWorkflowSupport => supp
+    val wfSupport = wfExecutor match {
+      case exe: WdlWorkflowExecutor => exe
       case _                        => throw new Exception("expected WdlWorkflowSupport")
     }
     val results =
@@ -524,8 +524,8 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
   }
 
   def getComplexScatterName(items: Vector[Any],
-                            maxLength: Int = WorkflowSupport.JobNameLengthLimit): String = {
-    WdlWorkflowSupport.getComplexScatterName(items.map(i => Some(i.toString)).iterator, maxLength)
+                            maxLength: Int = WorkflowExecutor.JobNameLengthLimit): String = {
+    WdlWorkflowExecutor.getComplexScatterName(items.map(i => Some(i.toString)).iterator, maxLength)
   }
 
   it should "Build limited sized names" in {
