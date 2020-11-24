@@ -5,6 +5,34 @@ import dx.core.ir.Value._
 import spray.json._
 
 object ValueSerde extends DefaultJsonProtocol {
+  def transform(value: Value,
+                t: Option[Type],
+                transformer: (Value, Boolean) => Option[Value]): Value = {
+    def inner(innerValue: Value, innerType: Option[Type] = None): Value = {
+      val (nonOptType, optional) = if (innerType.exists(Type.isOptional)) {
+        (Some(Type.unwrapOptional(innerType.get)), true)
+      } else {
+        (innerType, false)
+      }
+      transformer(innerValue, optional).getOrElse {
+        (nonOptType, innerValue) match {
+          case (Some(TArray(_, true)), VArray(Vector())) =>
+            throw new Exception("empty array for non-empty array type")
+          case (Some(TArray(t, _)), VArray(vec)) => VArray(vec.map(inner(_, Some(t))))
+          case (None, VArray(vec))               => VArray(vec.map(inner(_)))
+          case (Some(TSchema(name, memberTypes)), VHash(members)) =>
+            VHash(members.map {
+              case (k, _) if !memberTypes.contains(k) =>
+                throw new Exception(s"invalid member ${k} of schema ${name}")
+              case (k, v) => k -> inner(v, Some(memberTypes(k)))
+            })
+          case (_, VHash(members)) => VHash(members.map { case (k, v) => k -> inner(v) })
+          case _                   => innerValue
+        }
+      }
+    }
+    inner(value, t)
+  }
 
   /**
     * Serializes a Value to JSON.
@@ -47,18 +75,16 @@ object ValueSerde extends DefaultJsonProtocol {
     */
   def deserialize(jsValue: JsValue, translator: Option[JsValue => Option[Value]] = None): Value = {
     def inner(innerValue: JsValue): Value = {
-      val v = translator.flatMap(_(innerValue))
-      if (v.isDefined) {
-        return v.get
-      }
-      innerValue match {
-        case JsNull                               => VNull
-        case JsBoolean(b)                         => VBoolean(b.booleanValue)
-        case JsNumber(value) if value.isValidLong => VInt(value.toLongExact)
-        case JsNumber(value)                      => VFloat(value.toDouble)
-        case JsString(s)                          => VString(s)
-        case JsArray(array)                       => VArray(array.map(x => inner(x)))
-        case JsObject(members)                    => VHash(members.view.mapValues(inner).toMap)
+      translator.flatMap(_(innerValue)).getOrElse {
+        innerValue match {
+          case JsNull                               => VNull
+          case JsBoolean(b)                         => VBoolean(b.booleanValue)
+          case JsNumber(value) if value.isValidLong => VInt(value.toLongExact)
+          case JsNumber(value)                      => VFloat(value.toDouble)
+          case JsString(s)                          => VString(s)
+          case JsArray(array)                       => VArray(array.map(x => inner(x)))
+          case JsObject(members)                    => VHash(members.view.mapValues(inner).toMap)
+        }
       }
     }
     inner(jsValue)

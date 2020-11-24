@@ -1,10 +1,12 @@
 package dx.core.languages.wdl
 
 import dx.Tags.EdgeTest
+import dx.core.ir.{Type, Value}
+import dx.util.{Bindings, FileSourceResolver}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import wdlTools.eval.WdlValues
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
-import dx.util.{Bindings, FileSourceResolver}
 
 class WdlUtilsTest extends AnyFlatSpec with Matchers {
   private def validateTaskMeta(task: TAT.Task): Unit = {
@@ -109,5 +111,32 @@ class WdlUtilsTest extends AnyFlatSpec with Matchers {
 
     val (task, _, _) = parseAndCheckSingleTask(srcCode)
     validateTaskMeta(task)
+  }
+
+  it should "convert map schema" in {
+    val irType = Type.TSchema(
+        "Map___[File, String]",
+        Map(
+            "keys" -> Type.TArray(Type.TFile),
+            "values" -> Type.TArray(Type.TString)
+        )
+    )
+    WdlUtils.isMapSchema(irType) shouldBe true
+
+    val irValue = Value.VHash(
+        Map(
+            "keys" -> Value.VArray(Vector(Value.VFile("/path/to/file"))),
+            "values" -> Value.VArray(Vector(Value.VString("this is a string")))
+        )
+    )
+    WdlUtils.isMapValue(irValue.value) shouldBe true
+
+    val wdlType = WdlUtils.fromIRType(irType)
+    wdlType shouldBe WdlTypes.T_Map(WdlTypes.T_File, WdlTypes.T_String)
+
+    val wdlValue = WdlUtils.fromIRValue(irValue, wdlType, "")
+    wdlValue shouldBe WdlValues.V_Map(
+        Map(WdlValues.V_File("/path/to/file") -> WdlValues.V_String("this is a string"))
+    )
   }
 }
