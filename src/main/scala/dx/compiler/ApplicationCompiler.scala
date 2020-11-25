@@ -28,6 +28,7 @@ object ApplicationCompiler {
   //private val EcrDockerPreambleTemplate = "templates/ecr_docker_preamble.ssp"
   private val DynamicAppletJobTemplate = "templates/dynamic_applet_script.ssp"
   private val StaticAppletJobTemplate = "templates/static_applet_script.ssp"
+  private val EpilogTemplate = "templates/epilog_script.ssp"
   private val WorkflowFragmentTempalate = "templates/workflow_fragment_script.ssp"
   private val CommandTempalate = "templates/workflow_command_script.ssp"
   // keys used in templates
@@ -85,7 +86,12 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     val templateAttrs: Map[String, Any] = Map(
         "runtimeJar" -> "dxWDL.jar",
         "runtimeTraceLevel" -> runtimeTraceLevel,
-        "streamFiles" -> streamFiles
+        "streamFiles" -> streamFiles,
+        "epilogScript" -> (if (applet.outputs.nonEmpty) {
+                             ApplicationCompiler.EpilogTemplate
+                           } else {
+                             ""
+                           })
     )
     applet.kind match {
       case ExecutableKindApplet =>
