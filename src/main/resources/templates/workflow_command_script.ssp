@@ -1,8 +1,0 @@
-<%@ val command: String %>
-<%@ val runtimeJar: String %>
-<%@ val runtimeTraceLevel: Int %>
-<%@ val streamFiles: dx.core.io.StreamFiles.StreamFiles %>
-<%@ val bashDollar: String = "$" %>
-main() {
-    java -jar ${bashDollar}{DX_FS_ROOT}/${runtimeJar} workflow ${command} ${bashDollar}{HOME} -traceLevel ${runtimeTraceLevel} -streamFiles ${streamFiles.toString}
-}

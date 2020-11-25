@@ -1,43 +1,190 @@
 import Merging.customMergeStrategy
 import sbt.Keys._
-import sbtassembly.AssemblyPlugin.autoImport._
-
-scalaVersion := "2.13.2"
-name := "dxWDL"
+import sbtassembly.AssemblyPlugin.autoImport.{assemblyMergeStrategy, _}
 import com.typesafe.config._
-val confPath =
-  Option(System.getProperty("config.file")).getOrElse("src/main/resources/application.conf")
-val conf = ConfigFactory.parseFile(new File(confPath)).resolve()
-version := conf.getString("dxWDL.version")
-organization := "com.dnanexus"
-developers := List(
-    Developer("orodeh", "orodeh", "orodeh@dnanexus.com", url("https://github.com/dnanexus")),
+
+name := "dxc"
+
+ThisBuild / organization := "com.dnanexus"
+ThisBuild / scalaVersion := "2.13.2"
+ThisBuild / developers := List(
     Developer("jdidion", "jdidion", "jdidion@dnanexus.com", url("https://github.com/dnanexus")),
-    Developer("xquek", "xquek", "xquek@dnanexus.com", url("https://github.com/dnanexus")),
     Developer("commandlinegirl",
               "commandlinegirl",
               "azalcman@dnanexus.com",
               url("https://github.com/dnanexus")),
     Developer("mhrvol", "mhrvol", "mhrvol-cf@dnanexus.com", url("https://github.com/dnanexus"))
 )
-homepage := Some(url("https://github.com/dnanexus/dxWDL"))
-scmInfo := Some(
-    ScmInfo(url("https://github.com/dnanexus/dxWDL"), "git@github.com:dnanexus/dxWDL.git")
+ThisBuild / homepage := Some(url("https://github.com/dnanexus/dxCompiler"))
+ThisBuild / scmInfo := Some(
+    ScmInfo(url("https://github.com/dnanexus/dxCompiler"), "git@github.com:dnanexus/dxCompiler.git")
 )
-licenses += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))
-publishMavenStyle := true
+ThisBuild / licenses += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))
 
-val root = project.in(file("."))
+// PROJECTS
 
-// reduce the maximum number of errors shown by the Scala compiler
-maxErrors := 20
+lazy val root = project.in(file("."))
+lazy val global = root
+  .settings(settings)
+  .disablePlugins(AssemblyPlugin)
+  .aggregate(
+      core,
+      compiler,
+      executorCommon,
+      executorWdl
+  )
 
-//coverageEnabled := true
+def getVersion(subproject: String, subprojectName: String): String = {
+  val confPath = s"${subproject}/src/main/resources/application.conf"
+  val conf = ConfigFactory.parseFile(new File(confPath)).resolve()
+  conf.getString(s"${subprojectName}.version")
+}
 
-javacOptions ++= Seq("-Xlint:deprecation")
+val core = project
+  .in(file("core"))
+  .settings(
+      name := "dxCompilerCore",
+      version := getVersion("core", "dxCompilerCore"),
+      settings,
+      libraryDependencies ++= commonDependencies ++ Seq(
+          dependencies.wdlTools
+      )
+  )
+  .disablePlugins(AssemblyPlugin)
+
+val compiler = project
+  .in(file("compiler"))
+  .settings(
+      name := "dxCompiler",
+      version := getVersion("compiler", "dxCompiler"),
+      settings,
+      assemblySettings,
+      libraryDependencies ++= commonDependencies ++ Seq(
+          dependencies.typesafe,
+          dependencies.wdlTools
+      ),
+      assemblyJarName in assembly := "dxCompiler.jar",
+      assemblyOutputPath in assembly := file("applet_resources/resources/dxCompiler.jar")
+  )
+  .dependsOn(core)
+
+val executorCommon = project
+  .in(file("executorCommon"))
+  .settings(
+      name := "dxExecutorCommon",
+      version := getVersion("executorCommon", "dxExecutorCommon"),
+      settings,
+      libraryDependencies ++= commonDependencies ++ Seq()
+  )
+  .disablePlugins(AssemblyPlugin)
+  .dependsOn(core)
+
+val executorWdl = project
+  .in(file("executorWdl"))
+  .settings(
+      name := "dxExecutorWdl",
+      version := getVersion("executorWdl", "dxExecutorWdl"),
+      settings,
+      assemblySettings,
+      libraryDependencies ++= commonDependencies ++ Seq(
+          dependencies.typesafe,
+          dependencies.wdlTools
+      ),
+      assemblyJarName in assembly := "dxExecutorWdl.jar",
+      assemblyOutputPath in assembly := file("applet_resources/resources/dxExecutorWdl.jar")
+  )
+  .dependsOn(core, executorCommon)
+
+val executorCwl = project
+  .in(file("executorCwl"))
+  .settings(
+      name := "dxExecutorCwl",
+      version := getVersion("executorCwl", "dxExecutorCwl"),
+      settings,
+      assemblySettings,
+      libraryDependencies ++= commonDependencies ++ Seq(
+          dependencies.typesafe
+      ),
+      assemblyJarName in assembly := "dxExecutorCwl.jar",
+      assemblyOutputPath in assembly := file("applet_resources/resources/dxExecutorCwl.jar")
+  )
+  .dependsOn(core, executorCommon)
+
+// DEPENDENCIES
+
+lazy val dependencies =
+  new {
+    val dxCommonVersion = "0.2.3"
+    val dxApiVersion = "0.1.5"
+    val dxFileAccessProtocolsVersion = "0.1.2"
+    val wdlToolsVersion = "0.11.6"
+    val typesafeVersion = "1.3.3"
+    val sprayVersion = "1.3.5"
+    val scalatestVersion = "3.1.1"
+    val logbackVersion = "1.2.3"
+
+    val dxCommon = "com.dnanexus" % "dxcommon" % dxCommonVersion
+    val dxApi = "com.dnanexus" % "dxapi" % dxApiVersion
+    val dxFileAccessProtocols = "com.dnanexus" % "dxfileaccessprotocols" % dxFileAccessProtocolsVersion
+    val wdlTools = "com.dnanexus" % "wdltools" % wdlToolsVersion
+    val typesafe = "com.typesafe" % "config" % typesafeVersion
+    val spray = "io.spray" %% "spray-json" % sprayVersion
+    val logback = "ch.qos.logback" % "logback-classic" % logbackVersion
+    val scalatest = "org.scalatest" % "scalatest_2.13" % scalatestVersion
+  }
+
+lazy val commonDependencies = Seq(
+    dependencies.dxCommon,
+    dependencies.dxApi,
+    dependencies.dxFileAccessProtocols,
+    dependencies.logback,
+    dependencies.spray,
+    dependencies.scalatest % Test
+)
+
+// SETTINGS
+
+lazy val settings = Seq(
+    scalacOptions ++= compilerOptions,
+    // javac
+    javacOptions ++= Seq("-Xlint:deprecation"),
+    // reduce the maximum number of errors shown by the Scala compiler
+    maxErrors := 20,
+    // scalafmt
+    scalafmtConfig := root.base / ".scalafmt.conf",
+    // Publishing
+    // disable publish with scala version, otherwise artifact name will include scala version
+    // e.g dxScala_2.11
+    crossPaths := false,
+    // add sonatype repository settings
+    // snapshot versions publish to sonatype snapshot repository
+    // other versions publish to sonatype staging repository
+    publishTo := Some(
+        if (isSnapshot.value)
+          Opts.resolver.sonatypeSnapshots
+        else
+          Opts.resolver.sonatypeStaging
+    ),
+    publishMavenStyle := true,
+    // Tests
+    // If an exception is thrown during tests, show the full
+    // stack trace, by adding the "-oF" option to the list.
+    Test / testOptions += Tests.Argument("-oF"),
+    Test / parallelExecution := false
+    // Coverage
+    //
+    // sbt clean coverage test
+    // sbt coverageReport
+    //coverageEnabled := true
+    // To turn it off do:
+    // sbt coverageOff
+    // Ignore code parts that cannot be checked in the unit
+    // test environment
+    //coverageExcludedPackages := "dxScala.Main"
+)
 
 // Show deprecation warnings
-scalacOptions ++= Seq(
+val compilerOptions = Seq(
     "-unchecked",
     "-deprecation",
     "-feature",
@@ -65,70 +212,10 @@ scalacOptions ++= Seq(
     "-Xfatal-warnings" // makes those warnings fatal.
 )
 
-assemblyJarName in assembly := "dxWDL.jar"
-logLevel in assembly := Level.Info
-assemblyOutputPath in assembly := file("applet_resources/resources/dxWDL.jar")
-assemblyMergeStrategy in assembly := customMergeStrategy.value
-
-val dxApiVersion = "0.1.5"
-val dxCommonVersion = "0.2.2"
-val dxFileAccessProtocolsVersion = "0.1.2"
-val wdlToolsVersion = "0.11.3"
-val typesafeVersion = "1.3.3"
-val sprayVersion = "1.3.5"
-val jacksonVersion = "2.11.0"
-val guavaVersion = "18.0"
-val httpClientVersion = "4.5"
-val logbackVersion = "1.2.3"
-val scalatestVersion = "3.1.1"
-val commonsCompressVersion = "1.20"
-
-libraryDependencies ++= Seq(
-    "com.dnanexus" % "dxapi" % dxApiVersion,
-    "com.dnanexus" % "dxcommon" % dxCommonVersion,
-    "com.dnanexus" % "dxfileaccessprotocols" % dxFileAccessProtocolsVersion,
-    "com.dnanexus" % "wdltools" % wdlToolsVersion,
-    "io.spray" %% "spray-json" % sprayVersion,
-    "com.typesafe" % "config" % typesafeVersion,
-    "org.apache.commons" % "commons-compress" % commonsCompressVersion,
-    // libraries used in what remains of dxjava
-    "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion,
-    "com.google.guava" % "guava" % guavaVersion,
-    "org.apache.httpcomponents" % "httpclient" % httpClientVersion,
-    // libraries needed for compatiblity
-    "ch.qos.logback" % "logback-classic" % logbackVersion % Runtime,
-    //---------- Test libraries -------------------//
-    "org.scalatest" % "scalatest_2.13" % scalatestVersion % "test"
+// Assembly
+lazy val assemblySettings = Seq(
+    logLevel in assembly := Level.Info,
+    // comment out this line to enable tests in assembly
+    test in assembly := {},
+    assemblyMergeStrategy in assembly := customMergeStrategy.value
 )
-
-// If an exception is thrown during tests, show the full
-// stack trace, by adding the "-oF" option to the list.
-//
-
-// exclude the native tests, they are slow.
-// to do this from the command line:
-// sbt testOnly -- -l native
-//
-// comment out this line in order to allow native
-// tests
-// Test / testOptions += Tests.Argument("-l", "native")
-Test / testOptions += Tests.Argument("-oF")
-
-Test / parallelExecution := false
-
-// comment out this line to enable tests in assembly
-test in assembly := {}
-
-// scalafmt
-scalafmtConfig := root.base / ".scalafmt.conf"
-// Coverage
-//
-// sbt clean coverage test
-// sbt coverageReport
-
-// To turn it off do:
-// sbt coverageOff
-
-// Ignore code parts that cannot be checked in the unit
-// test environment
-//coverageExcludedPackages := "dxWDL.Main;dxWDL.compiler.DxNI;dxWDL.compiler.DxObjectDirectory;dxWDL.compiler.Native"
