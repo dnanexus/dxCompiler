@@ -2,7 +2,7 @@
 <%@ val runtimeJar: String %>
 <%@ val runtimeTraceLevel: Int %>
 <%@ val streamFiles: dx.core.io.StreamFiles.StreamFiles %>
-<%@ val epilogScript: String %>
+<%@ val includeEpilog: Boolean %>
 <% val bashDollar: String = "$" %>
     # evaluate input arguments, and download input files
     java -jar ${bashDollar}{DX_FS_ROOT}/${runtimeJar} task prolog ${bashDollar}{HOME} -traceLevel ${runtimeTraceLevel} -streamFiles ${streamFiles.toString}
@@ -99,7 +99,7 @@
         fi
         exit ${bashDollar}rc
     fi
-    ${epilogScript}
+    <% if (includeEpilog) { %>${include("epilog_script.ssp")}<% } %>
     # unmount dxfuse
     if [[ -e ${dxPathConfig.getDxfuseManifestFile().toString} ]]; then
         echo "unmounting dxfuse"
