@@ -740,7 +740,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       case _       => throw new Exception("No properties")
     }
     desc.summary shouldBe Some("A workflow that defines some metadata")
-    desc.tags shouldBe Some(Vector("foo", "bar", Constants.CompilerTag))
+    desc.tags shouldBe Some(Set("foo", "bar", Constants.CompilerTag))
     desc.title shouldBe Some("Workflow with metadata")
     desc.types shouldBe Some(Vector("calculator"))
   }

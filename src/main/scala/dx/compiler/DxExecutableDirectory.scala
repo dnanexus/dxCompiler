@@ -195,11 +195,9 @@ case class DxExecutableDirectory(bundle: Bundle,
     * @return
     */
   def lookupInProject(name: String, digest: String): Option[DxExecutableInfo] = {
-    projectWideExecDir.get(digest) match {
-      case None => None
-      case Some(checksumMatches) =>
-        checksumMatches.find(_.name.startsWith(name))
-    }
+    projectWideExecDir
+      .get(digest)
+      .flatMap(checksumMatches => checksumMatches.find(_.name.startsWith(name)))
   }
 
   case class DxExecutableInserted(
