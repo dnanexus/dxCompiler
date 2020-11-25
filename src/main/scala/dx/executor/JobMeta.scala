@@ -226,9 +226,9 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
                         irOutputFields: Map[String, Type],
                         prefix: Option[String] = None): Map[String, ParameterLink] = {
     irOutputFields.map {
-      case (name, t) =>
-        val fqn = prefix.map(p => s"${p}.${name}").getOrElse(name)
-        fqn -> ParameterLinkExec(execution, name, t)
+      case (fieldName, t) =>
+        val fqn = prefix.map(p => s"${p}.${fieldName}").getOrElse(fieldName)
+        fqn -> ParameterLinkExec(execution, fieldName, t)
     }
   }
 
