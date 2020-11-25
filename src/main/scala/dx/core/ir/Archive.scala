@@ -46,7 +46,9 @@ case class SquashFs(image: Path)(
     if (!mounted) {
       try {
         if (isLinux) {
-          SysUtils.execCommand(s"mount -t squashfs ${image.toString} ${mountPoint.toString}")
+          SysUtils.execCommand(
+              s"mount -t squashfs -o loop ${image.toString} ${mountPoint.toString}"
+          )
         } else {
           SysUtils.execCommand(s"squashfuse ${image.toString} ${mountPoint.toString}")
         }
