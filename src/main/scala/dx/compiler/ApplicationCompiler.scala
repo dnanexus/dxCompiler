@@ -41,7 +41,6 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
                                runtimePathConfig: DxWorkerPaths,
                                runtimeTraceLevel: Int,
                                streamFiles: StreamFiles.StreamFiles,
-                               scatterChunkSize: Int,
                                extras: Option[Extras],
                                parameterLinkSerializer: ParameterLinkSerializer,
                                dxApi: DxApi = DxApi.get,
@@ -346,13 +345,14 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     // meta information used for running workflow fragments
     val metaDetails: Map[String, JsValue] =
       applet.kind match {
-        case ExecutableKindWfFragment(_, blockPath, inputs) =>
+        case ExecutableKindWfFragment(_, blockPath, inputs, scatterChunkSize) =>
           Map(
               Constants.ExecLinkInfo -> JsObject(linkInfo.toMap),
               Constants.BlockPath -> JsArray(blockPath.map(JsNumber(_))),
-              Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(inputs),
-              Constants.ScatterChunkSize -> JsNumber(scatterChunkSize)
-          )
+              Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(inputs)
+          ) ++ scatterChunkSize
+            .map(chunkSize => Map(Constants.ScatterChunkSize -> JsNumber(chunkSize)))
+            .getOrElse(Map.empty)
         case ExecutableKindWfInputs | ExecutableKindWfOutputs | ExecutableKindWfCustomReorgOutputs |
             ExecutableKindWorkflowOutputReorg =>
           val types = applet.inputVars.map(p => p.name -> p.dxType).toMap

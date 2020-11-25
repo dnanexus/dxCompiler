@@ -6,6 +6,7 @@ package dx.translator
 import java.nio.file.Path
 
 import dx.api._
+import dx.core.Constants
 import dx.core.ir.{Value, ValueSerde}
 import spray.json.DefaultJsonProtocol._
 import spray.json._
@@ -199,6 +200,20 @@ case class DxAppJson(runSpec: Option[DxRunSpec], details: Option[DxDetails]) {
   }
 }
 
+/**
+  * Runtime attributes for scatter blocks.
+  * @param chunkSize maximum number of scatter jobs to run at once
+  */
+case class DxScatterAttrs(chunkSize: Option[Int] = None)
+
+/**
+  * Runtime attributes set at a per-workflow level.
+  * @param scatterDefaults default scatter attributes that apply to an entire workflow
+  * @param perScatterAttrs scatter attributes that apply to individual scatter blocks
+  */
+case class DxWorkflowAttrs(scatterDefaults: Option[DxScatterAttrs],
+                           perScatterAttrs: Map[String, DxScatterAttrs])
+
 case class DockerRegistry(registry: String, username: String, credentials: String)
 
 sealed trait ReorgSettings {
@@ -213,6 +228,7 @@ case class CustomReorgSettings(appUri: String,
 case class Extras(defaultRuntimeAttributes: Map[String, Value],
                   defaultTaskDxAttributes: Option[DxAppJson],
                   perTaskDxAttributes: Map[String, DxAppJson],
+                  perWorkflowDxAttributes: Map[String, DxWorkflowAttrs],
                   dockerRegistry: Option[DockerRegistry],
                   customReorgAttributes: Option[CustomReorgSettings],
                   ignoreReuse: Option[Boolean],
@@ -255,6 +271,7 @@ case class ExtrasParser(dxApi: DxApi = DxApi.get, logger: Logger = Logger.get) {
       "default_runtime_attributes",
       "default_task_dx_attributes",
       "per_task_dx_attributes",
+      "per_workflow_dx_attributes",
       "docker_registry",
       "custom_reorg",
       "ignoreReuse",
@@ -285,6 +302,7 @@ case class ExtrasParser(dxApi: DxApi = DxApi.get, logger: Logger = Logger.get) {
       "*"
   )
   private val TaskDxAttrs = Set("runSpec", "details")
+  private val WorkflowDxAttrs = Set("scatters", "scatterDefaults")
   private val DxDetailsAttrs = Set("upstreamProjects")
   private val PerTaskKey = "per_task_dx_attributes"
 
@@ -495,7 +513,8 @@ case class ExtrasParser(dxApi: DxApi = DxApi.get, logger: Logger = Logger.get) {
       checkedParseStringField(fields, "restartableEntryPoints") match {
         case None                                           => None
         case Some(str) if Set("all", "master") contains str => Some(str)
-        case Some(str)                                      => throw new Exception(s"Unsupported restartableEntryPoints value ${str}")
+        case Some(str) =>
+          throw new Exception(s"Unsupported restartableEntryPoints value ${str}")
       }
     Some(
         DxRunSpec(
@@ -547,6 +566,59 @@ case class ExtrasParser(dxApi: DxApi = DxApi.get, logger: Logger = Logger.get) {
     val runSpec = parseRunSpec(checkedParseObjectField(fields, "runSpec"))
     val details = parseDxDetails(checkedParseObjectField(fields, "details"))
     Some(DxAppJson(runSpec, details))
+  }
+
+  private def parseScatterAttrs(jsv: JsValue): DxScatterAttrs = {
+    jsv match {
+      case JsNull => DxScatterAttrs()
+      case JsObject(fields) =>
+        val chunkSize = fields
+          .get("chunkSize")
+          .map {
+            case JsNumber(n) if n.toInt > Constants.JobsPerScatterLimit =>
+              logger.warning(
+                  s"The number of jobs per scatter must be between 1-${Constants.JobsPerScatterLimit}"
+              )
+              Constants.JobsPerScatterLimit
+            case JsNumber(n) => n.toInt
+            case other       => throw new Exception(s"invalid chunkSize ${other}")
+          }
+        DxScatterAttrs(chunkSize)
+      case _ =>
+        throw new Exception(s"invalid scatters value ${jsv}")
+    }
+  }
+
+  private def parseScatters(jsv: JsValue): Map[String, DxScatterAttrs] = {
+    jsv match {
+      case JsObject(fields) =>
+        fields.map {
+          case (path, attrs: JsObject) =>
+            path -> parseScatterAttrs(attrs)
+          case other =>
+            throw new Exception(s"invalid scatter attribute ${other}")
+        }
+      case _ =>
+        throw new Exception(s"invalid scatters value ${jsv}")
+    }
+  }
+
+  private def parseWorkflowDxAttrs(jsv: JsValue): Option[DxWorkflowAttrs] = {
+    jsv match {
+      case JsNull => None
+      case JsObject(fields) =>
+        val invalidAttrs = fields.keySet.diff(WorkflowDxAttrs)
+        if (invalidAttrs.nonEmpty) {
+          throw new Exception(s"""|Unsupported workflow attribute(s) ${invalidAttrs.mkString(",")},
+                                  |we currently support ${WorkflowDxAttrs}
+                                  |""".stripMargin.replaceAll("\n", ""))
+        }
+        val perScatterAttrs =
+          fields.get("scatters").map(parseScatters).getOrElse(Map.empty)
+        val scatterDefaults = fields.get("scatterDefaults").map(parseScatterAttrs)
+        Some(DxWorkflowAttrs(scatterDefaults, perScatterAttrs))
+      case _ => throw new Exception(s"invalid workflow attributes ${jsv}")
+    }
   }
 
   private def parseDockerRegistry(jsv: JsValue): Option[DockerRegistry] = {
@@ -691,6 +763,16 @@ case class ExtrasParser(dxApi: DxApi = DxApi.get, logger: Logger = Logger.get) {
               }
           }
       }
+    // parse the individual workflow dx attributes
+    val perWorkflowDxAttrs: Map[String, DxWorkflowAttrs] =
+      checkedParseObjectField(fields, "per_workflow_dx_attributes") match {
+        case JsNull => Map.empty
+        case jsObj =>
+          jsObj.asJsObject.fields.flatMap {
+            case (wfName, jsValue) =>
+              parseWorkflowDxAttrs(jsValue).map(attrs => wfName -> attrs)
+          }
+      }
 
     Extras(
         parseRuntimeAttrs(
@@ -698,6 +780,7 @@ case class ExtrasParser(dxApi: DxApi = DxApi.get, logger: Logger = Logger.get) {
         ),
         parseTaskDxAttrs(checkedParseObjectField(fields, "default_task_dx_attributes")),
         perTaskDxAttrs,
+        perWorkflowDxAttrs,
         parseDockerRegistry(checkedParseObjectField(fields, "docker_registry")),
         parseCustomReorgAttrs(
             checkedParseObjectField(fields, fieldName = "custom_reorg")

@@ -23,6 +23,8 @@ trait TranslatorFactory {
              locked: Boolean,
              defaultRuntimeAttrs: Map[String, Value],
              reorgAttrs: ReorgSettings,
+             perWorkflowAttrs: Map[String, DxWorkflowAttrs],
+             defaultScatterChunkSize: Int,
              fileResolver: FileSourceResolver,
              dxApi: DxApi = DxApi.get,
              logger: Logger = Logger.get): Option[Translator]
@@ -36,6 +38,7 @@ object TranslatorFactory {
   def createTranslator(source: Path,
                        language: Option[Language] = None,
                        extras: Option[Extras] = None,
+                       defaultScatterChunkSize: Int,
                        locked: Boolean = false,
                        reorgEnabled: Option[Boolean] = None,
                        baseFileResolver: FileSourceResolver = FileSourceResolver.get,
@@ -51,6 +54,7 @@ object TranslatorFactory {
       case (None, Some(b))       => DefaultReorgSettings(b)
       case (None, None)          => DefaultReorgSettings(false)
     }
+    val perWorkflowAttrs = extras.map(_.perWorkflowDxAttributes).getOrElse(Map.empty)
     translatorFactories
       .collectFirst { factory =>
         factory.create(sourceAbsPath,
@@ -58,6 +62,8 @@ object TranslatorFactory {
                        locked,
                        defaultRuntimeAttrs,
                        reorgAttrs,
+                       perWorkflowAttrs,
+                       defaultScatterChunkSize,
                        fileResolver,
                        dxApi,
                        logger) match {

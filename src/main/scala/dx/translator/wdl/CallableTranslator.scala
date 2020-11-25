@@ -7,6 +7,7 @@ import dx.translator.{
   CommonStage,
   CustomReorgSettings,
   DefaultReorgSettings,
+  DxWorkflowAttrs,
   EvalStage,
   OutputStage,
   ReorgSettings,
@@ -38,6 +39,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                               locked: Boolean,
                               defaultRuntimeAttrs: Map[String, Value],
                               reorgAttrs: ReorgSettings,
+                              perWorkflowAttrs: Map[String, DxWorkflowAttrs],
+                              defaultScatterChunkSize: Int,
                               versionSupport: VersionSupport,
                               dxApi: DxApi = DxApi.get,
                               fileResolver: FileSourceResolver = FileSourceResolver.get,
@@ -166,7 +169,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
   }
 
   private case class WdlWorkflowTranslator(wf: TAT.Workflow,
-                                           availableDependencies: Map[String, Callable]) {
+                                           availableDependencies: Map[String, Callable],
+                                           workflowAttrs: Option[DxWorkflowAttrs]) {
     private lazy val adjunctFiles: Vector[Adjuncts.AdjunctFile] =
       wdlBundle.adjunctFiles.getOrElse(wf.name, Vector.empty)
     private lazy val meta = WorkflowMetaTranslator(wdlBundle.version, wf.meta, adjunctFiles)
@@ -495,6 +499,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
     private def translateNestedBlock(wfName: String,
                                      statements: Vector[TAT.WorkflowElement],
                                      blockPath: Vector[Int],
+                                     scatterPath: Option[String],
                                      env: CallEnv): (Callable, Vector[Callable]) = {
       val (inputs, subBlocks, outputs) = splitWorkflowElements(statements)
       assert(subBlocks.nonEmpty)
@@ -508,7 +513,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         // At runtime, we will need to execute a workflow fragment. This requires an applet.
         // This is a recursive call, to compile a potentially complex sub-block. It could
         // have many calls generating many applets and subworkflows.
-        val (stage, aux) = translateWfFragment(wfName, block, blockPath :+ 0, env)
+        val (stage, aux) = translateWfFragment(wfName, block, blockPath :+ 0, scatterPath, env)
         val fragName = stage.calleeName
         val main = aux.find(_.name == fragName) match {
           case None    => throw new Exception(s"Could not find $fragName")
@@ -548,6 +553,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
             outputs,
             blockPath,
             subBlocks,
+            scatterPath,
             Level.Sub
         )
         (subwf, auxCallables)
@@ -568,6 +574,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
     private def translateWfFragment(wfName: String,
                                     block: WdlBlock,
                                     blockPath: Vector[Int],
+                                    scatterPath: Option[String],
                                     env: CallEnv): (Stage, Vector[Callable]) = {
       val stageName = block.getName match {
         case None       => EvalStage
@@ -633,23 +640,30 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         .withTraceIfContainsKey("GenerateIR")
         .trace(s"category : ${block.kind}")
 
-      val (innerCall, auxCallables): (Option[String], Vector[Callable]) =
+      val (innerCall, auxCallables, newScatterPath) =
         block.kind match {
           case BlockKind.ExpressionsOnly =>
-            (None, Vector.empty)
+            (None, Vector.empty, None)
           case BlockKind.CallDirect =>
             throw new Exception(s"a direct call should not reach this stage")
           case BlockKind.CallWithSubexpressions | BlockKind.CallFragment |
-              BlockKind.ConditionalOneCall | BlockKind.ScatterOneCall =>
+              BlockKind.ConditionalOneCall =>
             // a block with no nested sub-blocks, and a single call, or
-            // a conditional/scatter with exactly one call in the sub-block
-            (Some(block.call.unqualifiedName), Vector.empty)
+            // a conditional with exactly one call in the sub-block
+            (Some(block.call.unqualifiedName), Vector.empty, None)
+          case BlockKind.ScatterOneCall =>
+            // a conditional with exactly one call in the sub-block
+            val scatter = block.scatter
+            val newScatterPath =
+              scatterPath.map(p => s"${p}.${scatter.identifier}").getOrElse(scatter.identifier)
+            (Some(block.call.unqualifiedName), Vector.empty, Some(newScatterPath))
           case BlockKind.ConditionalComplex =>
             // a conditional/scatter with multiple calls or other nested elements
             // in the sub-block
             val conditional = block.conditional
-            val (callable, aux) = translateNestedBlock(wfName, conditional.body, blockPath, env)
-            (Some(callable.name), aux :+ callable)
+            val (callable, aux) =
+              translateNestedBlock(wfName, conditional.body, blockPath, scatterPath, env)
+            (Some(callable.name), aux :+ callable, None)
           case BlockKind.ScatterComplex =>
             val scatter = block.scatter
             // add the iteration variable to the inner environment
@@ -660,11 +674,25 @@ case class CallableTranslator(wdlBundle: WdlBundle,
             }
             val param = Parameter(scatter.identifier, varType)
             val innerEnv = env.add(scatter.identifier, (param, EmptyInput))
-            val (callable, aux) = translateNestedBlock(wfName, scatter.body, blockPath, innerEnv)
-            (Some(callable.name), aux :+ callable)
+            val newScatterPath =
+              scatterPath.map(p => s"${p}.${scatter.identifier}").getOrElse(scatter.identifier)
+            val (callable, aux) =
+              translateNestedBlock(wfName, scatter.body, blockPath, Some(newScatterPath), innerEnv)
+            (Some(callable.name), aux :+ callable, Some(newScatterPath))
           case _ =>
             throw new Exception(s"unexpected block ${block.prettyFormat}")
         }
+
+      val scatterChunkSize: Option[Int] = newScatterPath.map { sctPath =>
+        workflowAttrs
+          .flatMap { wfAttrs =>
+            wfAttrs.perScatterAttrs
+              .get(sctPath)
+              .orElse(wfAttrs.scatterDefaults)
+              .flatMap(scatterAttrs => scatterAttrs.chunkSize)
+          }
+          .getOrElse(defaultScatterChunkSize)
+      }
 
       val applet = Application(
           s"${wfName}_frag_${getStageId()}",
@@ -672,7 +700,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           outputVars,
           DefaultInstanceType,
           NoImage,
-          ExecutableKindWfFragment(innerCall.toVector, blockPath, fqnDictTypes),
+          ExecutableKindWfFragment(innerCall.toVector, blockPath, fqnDictTypes, scatterChunkSize),
           standAloneWorkflow
       )
 
@@ -705,6 +733,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         wfInputs: Vector[LinkedVar],
         blockPath: Vector[Int],
         subBlocks: Vector[WdlBlock],
+        scatterPath: Option[String],
         locked: Boolean
     ): (Vector[(Stage, Vector[Callable])], CallEnv) = {
       logger.trace(s"Assembling workflow backbone $wfName")
@@ -742,7 +771,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
               // A simple block that requires just one applet, OR
               // a complex block that needs a subworkflow
               val (stage, auxCallables) =
-                translateWfFragment(wfName, block, blockPath :+ blockNum, beforeEnv)
+                translateWfFragment(wfName, block, blockPath :+ blockNum, scatterPath, beforeEnv)
               val afterEnv = stage.outputs.foldLeft(beforeEnv) {
                 case (env, param) =>
                   env.add(param.name, (param, LinkInput(stage.dxStage, param.dxName)))
@@ -890,6 +919,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         outputs: Vector[TAT.OutputParameter],
         blockPath: Vector[Int],
         subBlocks: Vector[WdlBlock],
+        scatterPath: Option[String],
         level: Level.Level
     ): (Workflow, Vector[Callable], Vector[LinkedVar]) = {
       // translate wf inputs, and also get a Vector of any non-constant
@@ -946,7 +976,12 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       }
       // translate the Block(s) into workflow stages
       val (backboneStageInfo, env) =
-        createWorkflowStages(wfName, backboneInputs, blockPath, subBlocks, locked = true)
+        createWorkflowStages(wfName,
+                             backboneInputs,
+                             blockPath,
+                             subBlocks,
+                             scatterPath,
+                             locked = true)
       val (stages, auxCallables) = (initialStageInfo ++ backboneStageInfo).unzip
 
       // additional values needed to create the Workflow
@@ -1045,6 +1080,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                               outputs,
                               Vector.empty,
                               subBlocks,
+                              None,
                               Level.Top)
     }
 
@@ -1071,7 +1107,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       }
 
       val (allStageInfo, env) =
-        createWorkflowStages(wf.name, fauxWfInputs, Vector.empty, subBlocks, locked = false)
+        createWorkflowStages(wf.name, fauxWfInputs, Vector.empty, subBlocks, None, locked = false)
       val (stages, auxCallables) = allStageInfo.unzip
 
       // convert the outputs into an applet+stage
@@ -1215,7 +1251,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         val taskTranslator = WdlTaskTranslator(task)
         Vector(taskTranslator.apply)
       case wf: TAT.Workflow =>
-        val wfTranslator = WdlWorkflowTranslator(wf, availableDependencies)
+        val wfAttrs = perWorkflowAttrs.get(wf.name)
+        val wfTranslator = WdlWorkflowTranslator(wf, availableDependencies, wfAttrs)
         wfTranslator.apply
     }
   }

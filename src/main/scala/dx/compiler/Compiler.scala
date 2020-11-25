@@ -53,7 +53,6 @@ object Compiler {
   */
 case class Compiler(extras: Option[Extras],
                     runtimePathConfig: DxWorkerPaths,
-                    scatterChunkSize: Int,
                     runtimeTraceLevel: Int,
                     includeAsset: Boolean,
                     archive: Boolean,
@@ -307,7 +306,6 @@ case class Compiler(extras: Option[Extras],
             runtimePathConfig,
             runtimeTraceLevel,
             streamFiles,
-            scatterChunkSize,
             extras,
             parameterLinkSerializer,
             dxApi,
@@ -315,7 +313,7 @@ case class Compiler(extras: Option[Extras],
         )
       // limit the applet dictionary to actual dependencies
       val dependencies: Map[String, ExecutableLink] = applet.kind match {
-        case ExecutableKindWfFragment(calls, _, _) =>
+        case ExecutableKindWfFragment(calls, _, _, _) =>
           calls.map { name =>
             val CompiledExecutable(irCall, dxObj, _, _) = dependencyDict(name)
             name -> createLinkForCall(irCall, dxObj)
