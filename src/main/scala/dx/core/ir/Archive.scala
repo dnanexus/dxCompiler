@@ -47,7 +47,7 @@ case class SquashFs(image: Path)(
       try {
         if (isLinux) {
           SysUtils.execCommand(
-              s"mount -t squashfs -o loop ${image.toString} ${mountPoint.toString}"
+              s"sudo mount -t squashfs -o loop ${image.toString} ${mountPoint.toString}"
           )
         } else {
           SysUtils.execCommand(s"squashfuse ${image.toString} ${mountPoint.toString}")
@@ -66,7 +66,7 @@ case class SquashFs(image: Path)(
   def unmount(): Unit = {
     if (isMounted) {
       try {
-        SysUtils.execCommand(s"umount ${mountPoint.toString}")
+        SysUtils.execCommand(s"sudo umount ${mountPoint.toString}")
         mounted = false
       } catch {
         case ex: Throwable =>
