@@ -86,7 +86,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     val templateAttrs: Map[String, Any] = Map(
         "runtimeJar" -> "dxWDL.jar",
         "runtimeTraceLevel" -> runtimeTraceLevel,
-        "streamFiles" -> streamFiles
+        "streamFiles" -> streamFiles,
+        "includeEpilog" -> applet.outputs.nonEmpty
     )
     applet.kind match {
       case ExecutableKindApplet =>
