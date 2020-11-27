@@ -88,8 +88,7 @@ case class DxExecutableDirectory(bundle: Bundle,
               Vector(Constants.CompilerTag),
               allExecutableNames.toVector,
               withInputOutputSpec = false,
-              Vector.empty,
-              Set(Field.Details)
+              extraFields = Set(Field.Details)
           )
         val t1 = System.nanoTime()
         val diffMSec = (t1 - t0) / (1000 * 1000)
@@ -196,11 +195,9 @@ case class DxExecutableDirectory(bundle: Bundle,
     * @return
     */
   def lookupInProject(name: String, digest: String): Option[DxExecutableInfo] = {
-    projectWideExecDir.get(digest) match {
-      case None => None
-      case Some(checksumMatches) =>
-        checksumMatches.find(_.name.startsWith(name))
-    }
+    projectWideExecDir
+      .get(digest)
+      .flatMap(checksumMatches => checksumMatches.find(_.name.startsWith(name)))
   }
 
   case class DxExecutableInserted(

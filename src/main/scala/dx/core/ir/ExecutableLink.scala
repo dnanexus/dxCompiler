@@ -40,8 +40,8 @@ object ExecutableLink {
         val JsObject(jsSchemas) = fields("schemas")
         val JsObject(jsInputs) = fields("inputs")
         val JsObject(jsOutputs) = fields("outputs")
-        val (inputTypes, inputSchemas) = TypeSerde.deserializeMap(jsInputs, jsSchemas, typeAliases)
-        val (outputTypes, _) = TypeSerde.deserializeMap(jsOutputs, jsSchemas, inputSchemas)
+        val (inputTypes, inputSchemas) = TypeSerde.deserializeMap(jsInputs, typeAliases, jsSchemas)
+        val (outputTypes, _) = TypeSerde.deserializeMap(jsOutputs, inputSchemas, jsSchemas)
         ExecutableLink(name, inputTypes, outputTypes, dxApi.executable(id))
       case _ =>
         throw new Exception(s"Invalid ExecutableLink ${jsValue}")

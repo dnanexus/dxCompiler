@@ -71,10 +71,10 @@ assemblyOutputPath in assembly := file("applet_resources/resources/dxWDL.jar")
 assemblyMergeStrategy in assembly := customMergeStrategy.value
 
 val cwlScalaVersion = "0.2.5"
-val dxApiVersion = "0.1.4"
+val dxApiVersion = "0.1.5"
 val dxCommonVersion = "0.2.2"
 val dxFileAccessProtocolsVersion = "0.1.2"
-val wdlToolsVersion = "0.11.0"
+val wdlToolsVersion = "0.11.3"
 val typesafeVersion = "1.3.3"
 val sprayVersion = "1.3.5"
 val jacksonVersion = "2.11.0"
