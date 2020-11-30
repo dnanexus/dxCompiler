@@ -87,11 +87,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         "runtimeJar" -> "dxWDL.jar",
         "runtimeTraceLevel" -> runtimeTraceLevel,
         "streamFiles" -> streamFiles,
-        "epilogScript" -> (if (applet.outputs.nonEmpty) {
-                             ApplicationCompiler.EpilogTemplate
-                           } else {
-                             ""
-                           })
+        "includeEpilog" -> applet.outputs.nonEmpty
     )
     applet.kind match {
       case ExecutableKindApplet =>
