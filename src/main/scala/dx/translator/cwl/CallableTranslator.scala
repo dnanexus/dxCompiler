@@ -6,7 +6,8 @@ import dx.api.DxApi
 import dx.core.ir.{Application, Callable, CallableAttribute, ExecutableKindApplet, Parameter, ParameterAttribute, RuntimeRequirement, Value}
 import dx.core.languages.cwl.CwlUtils
 import dx.translator.{ReorgSettings, RunSpec}
-import dx.cwl.{CommandInputParameter, CommandLineTool, CommandOutputParameter, Process, Workflow}
+import dx.cwl.{BooleanValue, CommandInputParameter, CommandLineTool, CommandOutputParameter, DockerRequirement, LongValue, Process, SchemaDefRequirement, ToolTimeLimitRequirement, WorkReuseRequirement, Workflow}
+import dx.translator.RunSpec.{ContainerImage, IgnoreReuseRequirement, TimeoutRequirement}
 
 
 case class CallableTranslator(cwlBundle: CwlBundle,
@@ -21,7 +22,7 @@ case class CallableTranslator(cwlBundle: CwlBundle,
       case tool: CommandLineTool =>
         val taskTranslator = CwlToolTranslator.apply(tool, sourceFile)
         taskTranslator.apply(tool, sourceFile)
-      case wf: Workflow => throw new NotImplementedError("Workflows are not implemented!")
+      case _: Workflow => throw new NotImplementedError("Workflows are not implemented!")
       case other => throw new NotImplementedError(s"Cwl type ${other.getClass} is not supported!")
     }
   }
@@ -49,12 +50,22 @@ case class CallableTranslator(cwlBundle: CwlBundle,
       val filename = sourceFile.getFileName.toString
       val inputs = tool.inputs.map(parseCommandInputParameter)
       val outputs = tool.outputs.map(parseCommandOutputParameter)
-      val instanceType = RunSpec.DefaultInstanceType // FIXME: get from Extras, if not specified use this.
-      val container = RunSpec.NoImage // TODO : Requirements - blocked by https://github.com/common-workflow-lab/cwljava/issues/31
+      val instanceType = RunSpec.DefaultInstanceType
+      var container: ContainerImage = RunSpec.NoImage
       val executableKind = ExecutableKindApplet
       val documentSource = CwlDocumentSource.apply(sourceFile)
-      val attributes: Vector[CallableAttribute] = CwlUtils.createCallableAttributes(tool.label, tool.doc) // TODO : Requirements - blocked by https://github.com/common-workflow-lab/cwljava/issues/31
-      val requirements = Vector.empty[RuntimeRequirement] // TODO : Requirements - blocked by https://github.com/common-workflow-lab/cwljava/issues/31
+      val attributes: Vector[CallableAttribute] = CwlUtils.createCallableAttributes(tool.label, tool.doc)
+      var requirements: Vector[RuntimeRequirement] = Vector.empty[RuntimeRequirement]
+      for (req <- tool.requirements) {
+        req match {
+          case WorkReuseRequirement(enable) => requirements = requirements :+ IgnoreReuseRequirement(enable.asInstanceOf[BooleanValue].value)
+          case ToolTimeLimitRequirement(timeLimit) => requirements = requirements :+ TimeoutRequirement(minutes = Some((timeLimit.asInstanceOf[LongValue].value / 60.0).ceil.toLong)) // todo? test with an expr and number. Currently not testable - problem in underlying java parser
+          case _: DockerRequirement => container = RunSpec.NetworkDockerImage // TODO: can there be a dxfile?
+
+          case SchemaDefRequirement(typeDefinitions) => throw new NotImplementedError("SchemaDefRequirement not yet implemented")
+          case other => throw new NotImplementedError(s"${other} is not implemented yet")
+        }
+      }
       Application(filename, inputs, outputs, instanceType, container, executableKind, documentSource, attributes, requirements)
     }
   }
