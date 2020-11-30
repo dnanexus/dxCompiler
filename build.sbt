@@ -64,7 +64,7 @@ val compiler = project
           dependencies.wdlTools
       ),
       assemblyJarName in assembly := "dxCompiler.jar",
-      assemblyOutputPath in assembly := file("applet_resources/resources/dxCompiler.jar")
+      assemblyOutputPath in assembly := file("applet_resources/dxCompiler.jar")
   )
   .dependsOn(core)
 
@@ -91,7 +91,7 @@ val executorWdl = project
           dependencies.wdlTools
       ),
       assemblyJarName in assembly := "dxExecutorWdl.jar",
-      assemblyOutputPath in assembly := file("applet_resources/resources/dxExecutorWdl.jar")
+      assemblyOutputPath in assembly := file("applet_resources/WDL/resources/dxExecutorWdl.jar")
   )
   .dependsOn(core, executorCommon)
 
@@ -106,7 +106,7 @@ val executorCwl = project
           dependencies.typesafe
       ),
       assemblyJarName in assembly := "dxExecutorCwl.jar",
-      assemblyOutputPath in assembly := file("applet_resources/resources/dxExecutorCwl.jar")
+      assemblyOutputPath in assembly := file("applet_resources/CWL/resources/dxExecutorCwl.jar")
   )
   .dependsOn(core, executorCommon)
 

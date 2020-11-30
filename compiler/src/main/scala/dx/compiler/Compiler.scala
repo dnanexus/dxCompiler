@@ -21,7 +21,7 @@ import dx.api.{
   Field,
   InstanceTypeDB
 }
-import dx.core.Constants
+import dx.core.{Constants, getVersion}
 import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir._
 import dx.util.CodecUtils
@@ -33,7 +33,7 @@ import scala.jdk.CollectionConverters._
 
 object Compiler {
   val RuntimeConfigFile = "dxCompiler_runtime.conf"
-  val RegionToProjectFile = "dxCompiler.region2project"
+  val RegionToProjectFile = "dxCompiler.regionToProject"
 }
 
 /**
@@ -49,7 +49,7 @@ object Compiler {
   * @param projectWideReuse whether to allow project-wide reuse of applications
   * @param fileResolver the FileSourceResolver
   * @param dxApi the DxApi
-  * @param logger the Logge
+  * @param logger the Logger
   */
 case class Compiler(extras: Option[Extras],
                     runtimePathConfig: DxWorkerPaths,
@@ -104,7 +104,7 @@ case class Compiler(extras: Option[Extras],
         case None    => throw new Exception(s"Cannot get region for project ${project}")
       }
       // Find the runtime asset with the correct version. Look inside the
-      // project configured for this region. The regions live in dxCompiler.region2project
+      // project configured for this region. The regions live in dxCompiler.regionToproject
       val config = ConfigFactory.load(Compiler.RuntimeConfigFile)
       val regionToProjectOption: Vector[Config] =
         config.getConfigList(Compiler.RegionToProjectFile).asScala.toVector

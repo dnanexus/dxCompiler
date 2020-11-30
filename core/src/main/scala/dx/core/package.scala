@@ -1,11 +1,11 @@
-package dx.executor
+package dx
 
 import com.typesafe.config.ConfigFactory
 
-package object cwl {
+package object core {
   // The version lives in application.conf
   def getVersion: String = {
     val config = ConfigFactory.load("application.conf")
-    config.getString("dxExecutorCwl.version")
+    config.getString("dxCompilerCore.version")
   }
 }

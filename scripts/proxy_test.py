@@ -260,7 +260,7 @@ def main():
     project = util.get_project(args.project)
     if project is None:
         raise RuntimeError("Could not find project {}".format(args.project))
-    folder = util.build_dirs(project, version_id)
+    folder = util.create_build_dirs(project, version_id)
     print("project: {} ({})".format(project.name, project.get_id()))
     print("folder: {}".format(folder))
 

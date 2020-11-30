@@ -19,7 +19,6 @@ import dx.core.languages.wdl.{
   WdlUtils
 }
 import dx.executor.{BlockContext, JobMeta, WorkflowExecutor}
-import dx.executor.wdl.{getVersion => getDxWdlVersion}
 import dx.util.{JsUtils, LocalFileSource, Logger, TraceLevel}
 import dx.util.protocols.DxFileSource
 import spray.json._
@@ -100,8 +99,6 @@ case class WdlWorkflowExecutor(workflow: TAT.Workflow,
   private lazy val workflowIO = WorkflowIO(workflow, jobMeta.logger)
 
   override val executorName: String = "dxExecutorWdl"
-
-  override def getVersion: String = getDxWdlVersion
 
   override protected def typeAliases: Map[String, TSchema] = WdlUtils.toIRSchemaMap(wdlTypeAliases)
 

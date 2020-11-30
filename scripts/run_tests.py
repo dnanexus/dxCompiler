@@ -747,11 +747,11 @@ def main():
     if project is None:
         raise RuntimeError("Could not find project {}".format(args.project))
     if args.folder is None:
-        base_folder = util.build_dirs(project, version_id)
+        base_folder = util.create_build_dirs(project, version_id)
     else:
         # Use existing prebuilt base folder
         base_folder = args.folder
-        util.build_subdirs(project, base_folder)
+        util.create_build_subdirs(project, base_folder)
     applet_folder = base_folder + "/applets"
     test_folder = base_folder + "/test"
     print("project: {} ({})".format(project.name, project.get_id()))

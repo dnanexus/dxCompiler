@@ -2,6 +2,7 @@ package dx.executor
 
 import dx.AppInternalException
 import dx.api.{DxAnalysis, DxApp, DxApplet, DxExecution, DxFile, DxWorkflow, Field, FolderContents}
+import dx.core.getVersion
 import dx.core.ir.Type.TSchema
 import dx.core.Constants
 import dx.core.ir.{Block, ExecutableLink, Parameter, ParameterLink, Type, TypeSerde, Value}
@@ -41,8 +42,6 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta) {
   protected def nextSeqNum: Int = seqNumIter.next()
 
   val executorName: String
-
-  def getVersion: String
 
   protected def typeAliases: Map[String, TSchema]
 

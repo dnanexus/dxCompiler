@@ -122,7 +122,6 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
   }
 
   private def createRunSpec(applet: Application): (JsValue, Map[String, JsValue]) = {
-    // find the dxCompiler asset
     val instanceType: DxInstanceType = applet.instanceType match {
       case StaticInstanceType(dxInstanceType, memoryMB, diskGB, diskType, cpu, gpu, os) =>
         val request = InstanceTypeRequest(dxInstanceType, memoryMB, diskGB, diskType, cpu, gpu, os)

@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# This script builds a dxCompiler release. A release consists of the client (dxCompiler.jar),
+# which is uploaded to
 
 import argparse
 import dxpy
@@ -195,7 +197,7 @@ def main():
     print("project: {} ({})".format(project.name, project.get_id()))
 
     # Figure out what the current version is
-    version_id = util.get_version_ids(top_dir)
+    version_id = util.get_version_id(top_dir)
     print("version: {}".format(version_id))
 
     # Set the folder
@@ -223,21 +225,23 @@ def main():
                          project_dict.items()))
     if args.dry_run:
         return
+
     home_ad = util.build(project, folder, version_id, top_dir, path_dict)
 
     if multi_region:
-        home_rec = dxpy.DXRecord(home_ad.asset_id)
-        all_regions = project_dict.keys()
+        for (assetName, asset_id) in home_ad.asset_ids.items():
+            home_rec = dxpy.DXRecord(asset_id)
+            all_regions = project_dict.keys()
 
-        # Leave only regions where the asset is missing
-        target_regions = []
-        for dest_region in all_regions:
-            dest_proj = util.get_project(project_dict[dest_region])
-            dest_asset = util.find_asset(dest_proj, folder)
-            if dest_asset == None:
-                target_regions.append(dest_region)
+            # Leave only regions where the asset is missing
+            target_regions = []
+            for dest_region in all_regions:
+                dest_proj = util.get_project(project_dict[dest_region])
+                dest_asset = util.find_asset(dest_proj, folder, assetName)
+                if dest_asset == None:
+                    target_regions.append(dest_region)
 
-        _clone_asset(home_rec, folder, target_regions, project_dict)
+            _clone_asset(home_rec, folder, target_regions, project_dict)
 
 if __name__ == '__main__':
     main()

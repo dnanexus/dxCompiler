@@ -4,7 +4,8 @@ import java.nio.file.{Files, Path, Paths}
 
 import com.typesafe.config.ConfigFactory
 import dx.api._
-import dx.compiler.{Compiler, ExecutableTree, getVersion}
+import dx.compiler.{Compiler, ExecutableTree}
+import dx.core.getVersion
 import dx.core.CliUtils._
 import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir.Bundle

@@ -5,7 +5,6 @@ import dx.core.io.StreamFiles
 import dx.core.ir.{Type, Value}
 import dx.core.languages.wdl.{DxMetaHints, IrToWdlValueBindings, Runtime, VersionSupport, WdlUtils}
 import dx.executor.{FileUploader, JobMeta, SerialFileUploader, TaskExecutor}
-import dx.executor.wdl.{getVersion => getDxWdlVersion}
 import dx.util.{Bindings, Logger, TraceLevel}
 import wdlTools.eval.WdlValues._
 import wdlTools.eval.{Eval, Hints, Meta, WdlValueBindings}
@@ -67,8 +66,6 @@ case class WdlTaskExecutor(task: TAT.Task,
   private lazy val taskIO = TaskInputOutput(task, logger)
 
   override val executorName: String = "dxExecutorWdl"
-
-  override def getVersion: String = getDxWdlVersion
 
   override protected lazy val getSchemas: Map[String, Type.TSchema] = {
     typeAliases.toMap.view.mapValues(WdlUtils.toIRSchema).toMap

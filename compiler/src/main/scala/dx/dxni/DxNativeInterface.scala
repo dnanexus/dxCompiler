@@ -1,7 +1,7 @@
 package dx.dxni
 
 import dx.api._
-import dx.compiler.getVersion
+import dx.core.getVersion
 import dx.core.Constants
 import dx.core.languages.Language.Language
 import dx.dxni.wdl.WdlDxNativeInterfaceFactory

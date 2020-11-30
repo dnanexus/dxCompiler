@@ -2,8 +2,7 @@
 
 # Global variables
 top_dir=""
-compiler_version=""
-executor_wdl_version=""
+version=""
 dry_run=""
 build_flags=""
 staging_token=""
@@ -22,15 +21,13 @@ function get_top_dir {
 
 function get_version {
     # figure out the release tag
-    local subproject=$1
-    local config=$top_dir/$subproject/src/main/resources/application.conf
+    local config=$top_dir/core/src/main/resources/application.conf
     version=$(grep version "${config}" | cut --delimiter='"' --fields=2)
     if [ -z "$version" ]; then
-        echo "could not figure out the $subproject release version"
+        echo "could not figure out the dxCompiler release version"
         exit 1
     fi
-    echo "$subproject version is $version"
-    return "$version"
+    echo "dxCompiler version is $version"
 }
 
 function basic_checks {
@@ -52,11 +49,7 @@ function basic_checks {
     git pull
 }
 
-# TODO: for now we use a concatenation of the compiler and
-#  WDL executor versions as the tag - we should tag and release
-#  the compiler and each of the executors separately
 function tag {
-    local version="compiler-${compiler_version}_executorWdl-${executor_wdl_version}"
     local currentHash=$(git rev-parse HEAD)
     local possibleTags=$(git tag --contains "$currentHash")
     if [[ $possibleTags == "" ]]; then
@@ -96,10 +89,10 @@ function build_docker_image {
     ln $top_dir/dxCompiler-${version}.jar .
 
     echo "building a docker image"
-    sudo docker build --build-arg VERSION=${compiler_version} -t dnanexus/dxcompiler:${compiler_version} .
+    sudo docker build --build-arg VERSION=${version} -t dnanexus/dxcompiler:${version} .
 
     echo "tagging as latest"
-    sudo docker tag dnanexus/dxcompiler:${compiler_version} dnanexus/dxcompiler:latest
+    sudo docker tag dnanexus/dxcompiler:${version} dnanexus/dxcompiler:latest
 
     echo "For the next steps to work you need to:"
     echo "(1) be logged into docker.io"
@@ -107,7 +100,7 @@ function build_docker_image {
     echo $docker_password | sudo docker login -u $docker_user --password-stdin
 
     echo "pushing to docker hub"
-    sudo docker push dnanexus/dxcompiler:${compiler_version}
+    sudo docker push dnanexus/dxcompiler:${version}
     sudo docker push dnanexus/dxcompiler:latest
 }
 
@@ -183,8 +176,7 @@ function parse_cmd_line {
 basic_checks
 parse_cmd_line $@
 get_top_dir
-compiler_version=get_version "compiler"
-executor_wdl_version=get_version "executorWdl"
+get_version
 tag
 build
 build_docker_image

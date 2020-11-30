@@ -3,6 +3,7 @@ package dx.executor
 import java.nio.file.{Files, Path, Paths}
 
 import dx.api.DxJob
+import dx.core.getVersion
 import dx.core.io.{
   DxdaManifest,
   DxdaManifestBuilder,
@@ -59,8 +60,6 @@ abstract class TaskExecutor(jobMeta: JobMeta,
   }
 
   def executorName: String
-
-  def getVersion: String
 
   /**
     * Returns the minimal (i.e. cheapest) instance type that is
