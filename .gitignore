@@ -36,9 +36,11 @@ src/main/resources/dxExecutorCwl_runtime.conf
 src/main/antlr4
 src/main/scala/wdlTools
 *.tmp
+venv/
 
 # IntelliJ
 .idea
+*.iml
 
 # Metals
 .metals
