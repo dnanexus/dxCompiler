@@ -8,7 +8,13 @@ import dx.core.ir._
 import dx.core.languages.Language
 import dx.core.languages.Language.Language
 import dx.core.languages.wdl.{VersionSupport, WdlUtils}
-import dx.translator.{InputTranslator, ReorgSettings, Translator, TranslatorFactory}
+import dx.translator.{
+  DxWorkflowAttrs,
+  InputTranslator,
+  ReorgSettings,
+  Translator,
+  TranslatorFactory
+}
 import spray.json.{JsArray, JsObject, JsString, JsValue}
 import wdlTools.types.{TypeCheckingRegime, WdlTypes, TypedAbstractSyntax => TAT}
 import wdlTools.types.TypeCheckingRegime.TypeCheckingRegime
@@ -57,6 +63,8 @@ case class WdlTranslator(doc: TAT.Document,
                          locked: Boolean,
                          defaultRuntimeAttrs: Map[String, Value],
                          reorgAttrs: ReorgSettings,
+                         perWorkflowAttrs: Map[String, DxWorkflowAttrs],
+                         defaultScatterChunkSize: Int,
                          versionSupport: VersionSupport,
                          fileResolver: FileSourceResolver = FileSourceResolver.get,
                          dxApi: DxApi = DxApi.get,
@@ -151,6 +159,8 @@ case class WdlTranslator(doc: TAT.Document,
         locked,
         defaultRuntimeAttrs,
         reorgAttrs,
+        perWorkflowAttrs,
+        defaultScatterChunkSize,
         versionSupport,
         dxApi,
         fileResolver,
@@ -196,6 +206,8 @@ case class WdlTranslatorFactory(regime: TypeCheckingRegime = TypeCheckingRegime.
                       locked: Boolean,
                       defaultRuntimeAttrs: Map[String, Value],
                       reorgAttrs: ReorgSettings,
+                      perWorkflowAttrs: Map[String, DxWorkflowAttrs],
+                      defaultScatterChunkSize: Int,
                       fileResolver: FileSourceResolver,
                       dxApi: DxApi = DxApi.get,
                       logger: Logger = Logger.get): Option[WdlTranslator] = {
@@ -218,6 +230,8 @@ case class WdlTranslatorFactory(regime: TypeCheckingRegime = TypeCheckingRegime.
                       locked,
                       defaultRuntimeAttrs,
                       reorgAttrs,
+                      perWorkflowAttrs,
+                      defaultScatterChunkSize,
                       versionSupport,
                       fileResolver,
                       dxApi,

@@ -13,6 +13,7 @@ import dx.translator.CallableAttributes._
 import dx.translator.ParameterAttributes._
 import dx.translator.RunSpec._
 import dx.core.CliUtils.{Failure, UnsuccessfulTermination}
+import dx.core.Constants
 import dx.translator.wdl.WdlDocumentSource
 import org.scalatest.Inside._
 import org.scalatest.flatspec.AnyFlatSpec
@@ -1366,8 +1367,7 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
   it should "ignore the streaming annotation for wdl draft2" in {
     val path = pathFromBasename("draft2", "streaming.wdl")
     val args = path.toString :: cFlags
-    val retval =
-      Main.compile(args.toVector)
+    val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessIR]
     val bundle = retval match {
       case SuccessIR(ir, _) => ir
@@ -1378,5 +1378,89 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
         "a" -> Vector(),
         "b" -> Vector()
     )
+  }
+
+  it should "recognize default and per-workflow attributes" in {
+    val path = pathFromBasename("nested", "four_levels.wdl")
+    val extraPath = pathFromBasename("nested/extras", "four_levels_extras1.json")
+    val args = path.toString :: "--extras" :: extraPath.toString :: cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessIR]
+    val bundle = retval match {
+      case SuccessIR(ir, _) => ir
+      case _                => throw new Exception("unexpected")
+    }
+    // there are two scatters - one should have its chunkSize set
+    // by the global default and the other should have it set by
+    // a per-scatter override
+    val stages = bundle.primaryCallable match {
+      case Some(wf: Workflow) => wf.stages
+      case _                  => throw new Exception("missing primary workflow")
+    }
+    val scatter = stages(1)
+    val outerScatterApplet = bundle.allCallables.get(scatter.calleeName) match {
+      case Some(applet: Application) => applet
+      case _                         => throw new Exception(s"missing applet for stage ${scatter}")
+    }
+    val innerName = outerScatterApplet.kind match {
+      case frag: ExecutableKindWfFragment =>
+        frag.scatterChunkSize shouldBe Some(10)
+        frag.calls match {
+          case Vector(innerName) => innerName
+          case _                 => throw new Exception(s"wrong calls ${frag.calls}")
+        }
+      case _ => throw new Exception(s"wrong applet kind ${outerScatterApplet.kind}")
+    }
+    val innerScatterApplet = bundle.allCallables.get(innerName) match {
+      case Some(applet: Application) => applet
+      case _                         => throw new Exception(s"missing applet for stage ${innerName}")
+    }
+    innerScatterApplet.kind match {
+      case frag: ExecutableKindWfFragment =>
+        frag.scatterChunkSize shouldBe Some(3)
+      case _ => throw new Exception(s"wrong applet kind ${innerScatterApplet.kind}")
+    }
+  }
+
+  it should "recognize per-workflow attributes with global default" in {
+    val path = pathFromBasename("nested", "four_levels.wdl")
+    val extraPath = pathFromBasename("nested/extras", "four_levels_extras2.json")
+    val args = path.toString :: "--extras" :: extraPath.toString :: cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessIR]
+    val bundle = retval match {
+      case SuccessIR(ir, _) => ir
+      case _                => throw new Exception("wrong termination type")
+    }
+    // there are two scatters - one should have its chunkSize set
+    // by the global default and the other should have it set by
+    // a per-scatter override
+    val stages = bundle.primaryCallable match {
+      case Some(wf: Workflow) => wf.stages
+      case _                  => throw new Exception("missing primary workflow")
+    }
+    val scatter = stages(1)
+    val outerScatterApplet = bundle.allCallables.get(scatter.calleeName) match {
+      case Some(applet: Application) => applet
+      case _                         => throw new Exception(s"missing applet for stage ${scatter}")
+    }
+    val innerName = outerScatterApplet.kind match {
+      case frag: ExecutableKindWfFragment =>
+        frag.scatterChunkSize shouldBe Some(Constants.JobPerScatterDefault)
+        frag.calls match {
+          case Vector(innerName) => innerName
+          case _                 => throw new Exception(s"wrong calls ${frag.calls}")
+        }
+      case _ => throw new Exception(s"wrong applet kind ${outerScatterApplet.kind}")
+    }
+    val innerScatterApplet = bundle.allCallables.get(innerName) match {
+      case Some(applet: Application) => applet
+      case _                         => throw new Exception(s"missing applet for stage ${innerName}")
+    }
+    innerScatterApplet.kind match {
+      case frag: ExecutableKindWfFragment =>
+        frag.scatterChunkSize shouldBe Some(3)
+      case _ => throw new Exception(s"wrong applet kind ${innerScatterApplet.kind}")
+    }
   }
 }

@@ -153,10 +153,13 @@ case object ExecutableKindApplet extends ExecutableKind
   * @param blockPath path to the block represented by this fragment
   * @param inputs mapping of input name to type, where names are encoded
   *               such that any dots are replaced with '\_\_\_'
+  * @param scatterChunkSize maximum number of scatter jobs that can be
+  *                         run at the same time
   */
 case class ExecutableKindWfFragment(calls: Vector[String],
                                     blockPath: Vector[Int],
-                                    inputs: Map[String, Type])
+                                    inputs: Map[String, Type],
+                                    scatterChunkSize: Option[Int])
     extends ExecutableKind
 case object ExecutableKindWfInputs extends ExecutableKind
 // Output - default and custom reorg

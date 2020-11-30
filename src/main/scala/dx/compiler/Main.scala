@@ -284,6 +284,22 @@ object Main {
       }
     }
 
+    val defaultScatterChunkSize: Int = options.getValue[Int]("scatterChunkSize") match {
+      case None => Constants.JobPerScatterDefault
+      case Some(x) =>
+        val size = x.toInt
+        if (size < 1) {
+          Constants.JobPerScatterDefault
+        } else if (size > Constants.JobsPerScatterLimit) {
+          logger.warning(
+              s"The number of jobs per scatter must be between 1-${Constants.JobsPerScatterLimit}"
+          )
+          Constants.JobsPerScatterLimit
+        } else {
+          size
+        }
+    }
+
     val compileMode: CompilerMode =
       options.getValueOrElse[CompilerMode]("compileMode", CompilerMode.All)
 
@@ -297,6 +313,7 @@ object Main {
             sourceFile,
             language,
             extras,
+            defaultScatterChunkSize,
             locked,
             if (reorg) Some(true) else None,
             baseFileResolver
@@ -362,21 +379,6 @@ object Main {
 
     try {
       val dxPathConfig = DxWorkerPaths.default
-      val scatterChunkSize: Int = options.getValue[Int]("scatterChunkSize") match {
-        case None => Constants.JobPerScatterDefault
-        case Some(x) =>
-          val size = x.toInt
-          if (size < 1) {
-            Constants.JobPerScatterDefault
-          } else if (size > Constants.JobsPerScatterLimit) {
-            logger.warning(
-                s"The number of jobs per scatter must be between 1-${Constants.JobsPerScatterLimit}"
-            )
-            Constants.JobsPerScatterLimit
-          } else {
-            size
-          }
-      }
       val runtimeTraceLevel: Int =
         options.getValueOrElse[Int]("runtimeDebugLevel", DefaultRuntimeTraceLevel)
       val includeAsset = compileMode == CompilerMode.All
@@ -403,7 +405,6 @@ object Main {
       val compiler = Compiler(
           extras,
           dxPathConfig,
-          scatterChunkSize,
           runtimeTraceLevel,
           includeAsset,
           archive,
