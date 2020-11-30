@@ -410,6 +410,7 @@ object Main {
           dxPathConfig,
           runtimeTraceLevel,
           includeAsset,
+          translator.runtimeAssetName,
           archive,
           force,
           leaveWorkflowsOpen,
@@ -636,18 +637,18 @@ object Main {
   }
 
   private val usageMessage =
-    s"""|java -jar dxWDL.jar <action> <parameters> [options]
+    s"""|java -jar dxCompiler.jar <action> <parameters> [options]
         |
         |Actions:
         |  version
-        |    Prints the dxWDL version
+        |    Prints the dxCompiler version
         |  
         |  config
-        |    Prints the current dxWDL configuration
+        |    Prints the current dxCompiler configuration
         |  
         |  describe <DxWorkflow ID>
         |    Generate the execution tree as JSON for a given dnanexus workflow ID.
-        |    Workflow needs to be have been previoulsy compiled by dxWDL.
+        |    Workflow needs to be have been previoulsy compiled by dxCompiler.
         |    options
         |      -pretty                Print exec tree in pretty format instead of JSON
         |

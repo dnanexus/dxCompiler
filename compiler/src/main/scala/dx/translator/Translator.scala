@@ -9,6 +9,13 @@ import dx.translator.wdl.WdlTranslatorFactory
 import dx.util.{FileSourceResolver, FileUtils, Logger}
 
 trait Translator {
+
+  /**
+    * The name of the runtime asset the compiler must bundle
+    * with generated applets.
+    */
+  def runtimeAssetName: String
+
   def apply: Bundle
 
   def translateInputs(bundle: Bundle,

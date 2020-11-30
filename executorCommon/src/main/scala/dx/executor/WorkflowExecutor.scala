@@ -87,7 +87,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta) {
 
   private def evaluateInputs(): Map[String, ParameterLink] = {
     if (logger.isVerbose) {
-      logger.traceLimited(s"dxWDL version: ${getVersion}")
+      logger.traceLimited(s"dxCompiler version: ${getVersion}")
       logger.traceLimited(s"Environment: ${jobInputs}")
       logger.traceLimited("Artificial applet for unlocked workflow inputs")
     }
@@ -100,7 +100,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta) {
 
   private def evaluateOutputs(addReorgStatus: Boolean = false): Map[String, ParameterLink] = {
     if (logger.isVerbose) {
-      logger.traceLimited(s"dxWDL version: ${getVersion}")
+      logger.traceLimited(s"dxCompiler version: ${getVersion}")
       logger.traceLimited(s"Environment: ${jobInputs}")
       logger.traceLimited("Evaluating workflow outputs")
     }
@@ -168,7 +168,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta) {
 
   private def evaluateFragInputs(): BlockContext[_] = {
     if (logger.isVerbose) {
-      logger.traceLimited(s"dxWDL version: ${getVersion}")
+      logger.traceLimited(s"dxCompiler version: ${getVersion}")
       logger.traceLimited(s"link info=${execLinkInfo}")
       logger.traceLimited(s"Environment: ${jobInputs}")
     }
@@ -212,7 +212,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta) {
   }
 
   private def reorganizeOutputsDefault(): Map[String, ParameterLink] = {
-    logger.traceLimited(s"dxWDL version: ${getVersion}")
+    logger.traceLimited(s"dxCompiler version: ${getVersion}")
     val analysis = jobMeta.analysis.get
     val analysisFiles = getAnalysisOutputFiles(analysis)
     if (analysisFiles.isEmpty) {

@@ -36,7 +36,7 @@ object WdlBundle {
     callable match {
       case wf: TAT.Workflow =>
         if (wf.parameterMeta.isDefined) {
-          Logger.get.warning("dxWDL workflows ignore their parameter meta section")
+          Logger.get.warning("dxCompiler workflows ignore their parameter meta section")
         }
         checkVariableName(wf.inputs)
         checkVariableName(wf.outputs)

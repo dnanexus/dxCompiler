@@ -1,5 +1,5 @@
 {
-  "name": "dxwdl_copy",
+  "name": "dxcompiler_copy",
   "title": "Copy File",
   "summary": "Copy a file to a different region",
   "dxapi": "1.0.0",

@@ -33,7 +33,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     Paths.get(p)
   }
 
-  val testProject = "dxWDL_playground"
+  val testProject = "dxCompiler_playground"
 
   private lazy val dxTestProject =
     try {

@@ -100,7 +100,7 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
 
   private def setup(): DxWorkerPaths = {
     // Create a clean temp directory for the task to use
-    val jobRootDir: Path = Files.createTempDirectory("dxwdl_applet_test")
+    val jobRootDir: Path = Files.createTempDirectory("dxcompiler_applet_test")
     val workerPaths = DxWorkerPaths(jobRootDir)
     workerPaths.createCleanDirs()
     workerPaths

@@ -21,11 +21,11 @@ here = os.path.dirname(sys.argv[0])
 top_dir = os.path.dirname(os.path.abspath(here))
 test_dir = os.path.join(os.path.abspath(top_dir), "test")
 
-projects = ["dxWDL",
-            "dxWDL_Sydney",
-            "dxWDL_Azure",
-            "dxWDL_Amsterdam",
-            "dxWDL_Berlin"]
+projects = ["dxCompiler",
+            "dxCompiler_Sydney",
+            "dxCompiler_Azure",
+            "dxCompiler_Amsterdam",
+            "dxCompiler_Berlin"]
 
 target_folder = "/release_test"
 
@@ -57,7 +57,7 @@ def build_test(source_file, dx_proj, folder, version_id):
     dx_proj.new_folder(folder, parents=True)
     print("Compiling {} to project {}:/{}".format(source_file, dx_proj.name, folder))
     cmdline = [ "java", "-jar",
-                os.path.join(top_dir, "dxWDL-{}.jar".format(version_id)),
+                os.path.join(top_dir, "dxCompiler-{}.jar".format(version_id)),
                 "compile",
                 source_file,
                 "-force",
@@ -69,7 +69,7 @@ def build_test(source_file, dx_proj, folder, version_id):
     return oid
 
 def main():
-    argparser = argparse.ArgumentParser(description="Run WDL compiler tests on the platform")
+    argparser = argparse.ArgumentParser(description="Run compiler tests on the platform")
     argparser.add_argument("--compile-only", help="Only compile the workflows, don't run them",
                            action="store_true", default=False)
     args = argparser.parse_args()

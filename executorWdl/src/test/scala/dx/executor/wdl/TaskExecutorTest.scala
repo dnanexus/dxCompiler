@@ -122,7 +122,7 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
   // into:
   //  {
   //    "pattern" : "snow",
-  //    "in_file" : "/home/joe_heller/dxWDL/src/test/resources/runner_tasks/manuscript.txt"
+  //    "in_file" : "/home/joe_heller/dxCompiler/src/test/resources/runner_tasks/manuscript.txt"
   // }
   //
   private def addBaseDir(wdlValue: WdlValues.V): WdlValues.V = {
@@ -201,7 +201,7 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
     val wdlFile: Path = pathFromBasename(s"${wdlName}.wdl").get
     val inputs: Map[String, JsValue] = getInputs(wdlName)
     // Create a clean temp directory for the task to use
-    val jobRootDir: Path = Files.createTempDirectory("dxwdl_applet_test")
+    val jobRootDir: Path = Files.createTempDirectory("dxcompiler_applet_test")
     jobRootDir.toFile.deleteOnExit()
     val workerPaths = DxWorkerPaths(jobRootDir)
     workerPaths.createCleanDirs()

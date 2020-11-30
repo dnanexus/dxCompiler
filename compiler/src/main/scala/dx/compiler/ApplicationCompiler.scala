@@ -83,7 +83,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
 
   private def generateJobScript(applet: Application): String = {
     val templateAttrs: Map[String, Any] = Map(
-        "runtimeJar" -> "dxWDL.jar",
+        "runtimeJar" -> "dxExecutorWdl.jar",
         "runtimeTraceLevel" -> runtimeTraceLevel,
         "streamFiles" -> streamFiles,
         "includeEpilog" -> applet.outputs.nonEmpty
@@ -122,7 +122,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
   }
 
   private def createRunSpec(applet: Application): (JsValue, Map[String, JsValue]) = {
-    // find the dxWDL asset
+    // find the dxCompiler asset
     val instanceType: DxInstanceType = applet.instanceType match {
       case StaticInstanceType(dxInstanceType, memoryMB, diskGB, diskType, cpu, gpu, os) =>
         val request = InstanceTypeRequest(dxInstanceType, memoryMB, diskGB, diskType, cpu, gpu, os)

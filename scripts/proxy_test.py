@@ -89,7 +89,7 @@ def compile(project, folder, version_id, proxy = None):
             os.environ["HTTP_PROXY"] = "localhost:3128"
     cmdline = [
         "java", "-jar",
-        os.path.join(top_dir, "dxWDL-{}.jar".format(version_id)),
+        os.path.join(top_dir, "dxCompiler-{}.jar".format(version_id)),
         "compile",
         os.path.join(test_dir,"draft2","hello.wdl"),
         "-force",
@@ -246,10 +246,10 @@ def test_networking(project, folder, version_id):
 def main():
     global test_locked
     argparser = argparse.ArgumentParser(description="Run WDL proxy tests")
-    argparser.add_argument("--do-not-build", help="Do not assemble the dxWDL jar file",
+    argparser.add_argument("--do-not-build", help="Do not assemble the dxCompiler jar file",
                            action="store_true", default=False)
     argparser.add_argument("--project", help="DNAnexus project ID",
-                           default="dxWDL_playground")
+                           default="dxCompiler_playground")
     argparser.add_argument("--verbose", help="Verbose compilation",
                            action="store_true", default=False)
     args = argparser.parse_args()
@@ -268,7 +268,7 @@ def main():
         "aws:us-east-1" :  project.name + ":" + folder
     }
 
-    # build the dxWDL jar file, only on us-east-1
+    # build the dxCompiler jar file, only on us-east-1
     #if not args.do_not_build:
     #    util.build(project, folder, version_id, top_dir, test_dict)
 

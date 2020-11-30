@@ -12,8 +12,8 @@ case class DxdaManifest(value: JsObject)
 case class DxdaManifestBuilder(dxApi: DxApi) {
   /*
   Start with paths like this:
-    "dx://dxWDL_playground:/test_data/fileB",
-    "dx://dxWDL_playground:/test_data/fileC",
+    "dx://dxCompiler_playground:/test_data/fileB",
+    "dx://dxCompiler_playground:/test_data/fileC",
 
   and generate a manifest like this:
 

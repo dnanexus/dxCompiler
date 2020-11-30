@@ -23,11 +23,15 @@ AssetDesc = namedtuple('AssetDesc', 'region asset_id project')
 #    https://hub.docker.com/r/dnanexus/dxda/tags?page=1&ordering=last_updated
 max_num_retries = 5
 
+subprojects = ["compiler", "executorWdl"]
+
 def dxWDL_jar_path(top_dir):
     return os.path.join(top_dir, "applet_resources/resources/dxWDL.jar")
 
-def get_appl_conf_path(top_dir):
-    return os.path.join(top_dir, "src", "main", "resources", "application.conf")
+def get_appl_conf_paths(top_dir):
+    return dict(
+      ((subproj, os.path.join(top_dir, subproj, "src", "main", "resources", "application.conf"))
+      for subproj in subprojects)
 
 def get_runtime_conf_path(top_dir):
     return os.path.join(top_dir, "src", "main", "resources", "dxWDL_runtime.conf")
@@ -270,10 +274,8 @@ def build(project, folder, version_id, top_dir, path_dict, dependencies = None):
     return ad
 
 
-# Extract version_id from configuration file
-def get_version_id(top_dir):
+def _get_version_id(appl_conf_path):
     pattern = re.compile(r"^(\s*)(version)(\s*)(=)(\s*)(\S+)(\s*)$")
-    appl_conf_path = get_appl_conf_path(top_dir)
     with open(appl_conf_path, 'r') as fd:
         for line in fd:
             line_clean = line.replace("\"", "").replace("'", "")
@@ -281,3 +283,12 @@ def get_version_id(top_dir):
             if m is not None:
                 return m.group(6).strip()
     raise Exception("version ID not found in {}".format(conf_file))
+
+# Extract version_ids from configuration files
+def get_version_ids(top_dir):
+    appl_conf_paths = get_appl_conf_paths(top_dir)
+    dict(
+        ((subproj, _get_version_id(appl_conf_path))
+        for (subproj, appl_conf_path) in appl_conf_paths.items()))
+
+

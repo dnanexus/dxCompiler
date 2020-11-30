@@ -725,7 +725,7 @@ case class ExtrasParser(dxApi: DxApi = DxApi.get, logger: Logger = Logger.get) {
             |not to overload the API server.
             |
             |You may refer to this example:
-            |https://github.com/dnanexus/dxWDL/blob/master/doc/ExpertOptions.md#use-your-own-applet
+            |https://github.com/dnanexus/dxCompiler/blob/master/doc/ExpertOptions.md#use-your-own-applet
             """.stripMargin.replaceAll("\n", " ")
     )
     Some(CustomReorgSettings(reorgAppId, reorgConf))

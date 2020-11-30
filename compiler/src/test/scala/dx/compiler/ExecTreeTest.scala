@@ -29,7 +29,7 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
   }
 
   private val dxApi = DxApi()(Logger.Quiet)
-  private val testProject = "dxWDL_playground"
+  private val testProject = "dxCompiler_playground"
 
   private lazy val dxTestProject =
     try {

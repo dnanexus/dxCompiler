@@ -32,7 +32,7 @@ jobs:
 
           # set up DNAnexus staging environment
           dx login --noprojects --staging --token $AUTH_TOKEN
-          dx select dxWDL_playground
+          dx select dxCompiler_playground
 
           # run unit tests
           cd ${GITHUB_WORKSPACE}

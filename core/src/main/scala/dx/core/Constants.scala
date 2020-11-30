@@ -23,8 +23,8 @@ object Constants {
   val ReorgStatusCompleted = "completed"
 
   // deprecated properties that we still need to check for old applets
-  val ChecksumPropertyDeprecated = "dxWDL_checksum"
-  val VersionPropertyDeprecated = "dxWDL_version"
+  val ChecksumPropertyDeprecated = "dxCompiler_checksum"
+  val VersionPropertyDeprecated = "dxCompiler_version"
 
   // Limits imposed on native apps.
   val JobsPerScatterLimit = 1000
@@ -40,5 +40,4 @@ object Constants {
   val OsDistribution = "Ubuntu"
   val OsRelease = "20.04"
   val OsVersion = "0"
-  val RuntimeAsset = "dxWDLrt"
 }

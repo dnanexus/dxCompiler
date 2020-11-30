@@ -13,7 +13,7 @@ import dx.util.Logger
 class DxdaManifestTest extends AnyFlatSpec with Matchers {
   assume(isLoggedIn)
   private val dxApi: DxApi = DxApi()(Logger.Quiet)
-  private val TestProject = "dxWDL_playground"
+  private val TestProject = "dxCompiler_playground"
   private val ArchivedProject = "ArchivedStuff"
 
   private lazy val dxTestProject: DxProject =

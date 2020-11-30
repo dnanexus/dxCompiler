@@ -304,7 +304,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
   def prolog(): Unit = {
     if (logger.isVerbose) {
       trace(s"Prolog debugLevel=${logger.traceLevel}")
-      trace(s"dxWDL version: ${getVersion}")
+      trace(s"dxCompiler version: ${getVersion}")
       printDirTree()
       trace(s"Task source code:\n${jobMeta.sourceCode}", traceLengthLimit)
     }

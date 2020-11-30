@@ -1,3 +1,3 @@
-# dxWDL Copy File
+# dxCompiler Copy File
 
 Copy a file to a different geographic region.

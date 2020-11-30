@@ -17,24 +17,24 @@ top_dir = os.path.dirname(os.path.abspath(here))
 HOME_REGION = "aws:us-east-1"
 URL_DURATION = 60 * 60 * 24
 SLEEP_TIME = 5
-COPY_FILE_APP_NAME = "dxwdl_copy"
+COPY_FILE_APP_NAME = "dxcompiler_copy"
 COPY_FILE_APP = dxpy.find_one_app(zero_ok=False, more_ok=False, name=COPY_FILE_APP_NAME, return_handler=True)
 NUM_RETRIES = 1
 
 TEST_DICT = {
-    "aws:us-east-1" :  "dxWDL_playground"
+    "aws:us-east-1" :  "dxCompiler_playground"
 }
 
-# To add region R, create a project for it, dxWDL_R, and add
+# To add region R, create a project for it, dxCompiler_R, and add
 # a mapping to the lists
-#    R : dxWDL_R
+#    R : dxCompiler_R
 RELEASE_DICT = {
-    "aws:us-east-1" :  "dxWDL",
-    "aws:ap-southeast-2" : "dxWDL_Sydney",
-    "azure:westus" : "dxWDL_Azure",
-    "azure:westeurope" : "dxWDL_Amsterdam",
-    "aws:eu-central-1" : "dxWDL_Berlin",
-    "aws:eu-west-2": "dxWDL_London"
+    "aws:us-east-1" :  "dxCompiler",
+    "aws:ap-southeast-2" : "dxCompiler_Sydney",
+    "azure:westus" : "dxCompiler_Azure",
+    "azure:westeurope" : "dxCompiler_Amsterdam",
+    "aws:eu-central-1" : "dxCompiler_Berlin",
+    "aws:eu-west-2": "dxCompiler_London"
 }
 
 # 1. Use the clone-asset app to copy the file into [region].
@@ -166,7 +166,7 @@ def _clone_asset(record, folder, regions, project_dict):
 
 
 def main():
-    argparser = argparse.ArgumentParser(description="Build a dxWDL release")
+    argparser = argparse.ArgumentParser(description="Build a dxCompiler release")
     argparser.add_argument("--force",
                            help="Build even if there is an existing version",
                            action='store_true',
@@ -195,7 +195,7 @@ def main():
     print("project: {} ({})".format(project.name, project.get_id()))
 
     # Figure out what the current version is
-    version_id = util.get_version_id(top_dir)
+    version_id = util.get_version_ids(top_dir)
     print("version: {}".format(version_id))
 
     # Set the folder

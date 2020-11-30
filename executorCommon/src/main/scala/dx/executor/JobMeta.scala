@@ -265,7 +265,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
   lazy val language: Option[Language.Language] = getExecutableDetail(Constants.Language) match {
     case Some(JsString(lang)) => Some(Language.withName(lang))
     case None =>
-      logger.warning("This applet ws built with an old version of dxWDL - please rebuild")
+      logger.warning("This applet ws built with an old version of dxCompiler - please rebuild")
       // we will attempt to detect the language/version later
       None
     case other =>
@@ -276,7 +276,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     val sourceCodeEncoded = getExecutableDetail(Constants.SourceCode) match {
       case Some(JsString(s)) => s
       case None =>
-        logger.warning("This applet ws built with an old version of dxWDL - please rebuild")
+        logger.warning("This applet ws built with an old version of dxCompiler - please rebuild")
         val JsString(s) =
           getExecutableDetail("wdlSourceCode")
             .orElse(getExecutableDetail("womSourceCode"))

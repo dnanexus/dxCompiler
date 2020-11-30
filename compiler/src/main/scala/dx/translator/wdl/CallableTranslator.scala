@@ -123,7 +123,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
     def apply: Application = {
       // If the container is stored as a file on the platform, we need to remove
       // the dxURLs in the runtime section, to avoid a runtime lookup. For example:
-      //   dx://dxWDL_playground:/glnexus_internal -> dx://project-xxxx:record-yyyy
+      //   dx://dxCompiler_playground:/glnexus_internal -> dx://project-xxxx:record-yyyy
       def replaceContainer(runtime: TAT.RuntimeSection,
                            newContainer: String): TAT.RuntimeSection = {
         Set("docker", "container").foreach { key =>

@@ -1,4 +1,4 @@
-# Developing dxWDL
+# Developing dxCompiler
 
 ## Setting up your development environment
 
@@ -34,8 +34,8 @@
 
 ## Getting the source code
 
-* Clone or fork the [dxWDL repository](https://github.com/dnanexus/dxWDL) (depending on whether you have commit permissions)
-* Checkout an existing dxWDL branch or create a new branch (e.g. feat/42-my-feature)
+* Clone or fork the [dxCompiler repository](https://github.com/dnanexus/dxCompiler) (depending on whether you have commit permissions)
+* Checkout an existing dxCompiler branch or create a new branch (e.g. feat/42-my-feature)
 * Add pre-commit hooks:
   * Create/edit a file .git/hooks/pre-commit
   * Add the following lines
@@ -53,13 +53,13 @@
 
 ## Developing in a Docker container
 
-A Dockerfile with all the dependencies to build and test dxWDL is available [here](docker/Dockerfile). To build an image from it and run a Docker container, run from the [docker](docker/) directory:
+A Dockerfile with all the dependencies to build and test dxCompiler is available [here](docker/Dockerfile). To build an image from it and run a Docker container, run from the [docker](docker/) directory:
 
 ```
 make
 ```
 
-See below on how to run unit and integration tests. To recompile dxWDL with your updates, run an integration test, as described below.
+See below on how to run unit and integration tests. To recompile dxCompiler with your updates, run an integration test, as described below.
 
 > Always make sure you push your changes to the remote github repo before destroying your Docker container.
 
@@ -109,24 +109,24 @@ Next, delete any existing build artifacts using the following commands:
 $ sbt clean
 $ sbt cleanFiles
 $ find . -name target | xargs rm -rf
-# cached resources used to build dxWDLrt
+# cached resources used to build dx*rt
 $ rm -Rf applet_resources
 ```
 
 You may also need to delete artifiacts that have been cached on the platform:
 
 ```
-$ dx rm -r dxWDL_playground:/builds/<username>/<version>
+$ dx rm -r dxCompiler_playground:/builds/<username>/<version>
 ```
 
-Note: <username> is your local computer's user so if you run tests from root, it will be under root/ folder in dxWDL_playground.
+Note: <username> is your local computer's user so if you run tests from root, it will be under root/ folder in dxCompiler_playground.
 
-Finally, run the integration tests. From the root dxWDL directory, run `./scripts/run_tests.py`.
+Finally, run the integration tests. From the root dxCompiler directory, run `./scripts/run_tests.py`.
 
 Note that the test script does a lot of things for you. If for some reason you want to run them manually, here is what happens:
 
 * TODO: fill out this list
-* The dxWDL JAR file is built and staged in the root dxWDL directory. To do this manually, run `sbt assembly`, then move the JAR file from the `target` folder to the root dxWDL folder, e.g. `mv target/dxWDL.jar ./dxWDL-1.44.jar`.
+* The dxCompiler and dxExecutor* JAR files are built and staged in the root dxCompiler directory. To do this manually, run `sbt assembly`, then move the JAR files from the `target` folder to the root dxCompiler folder, e.g. `mv target/dxCompiler.jar ./dxCompiler-2.0.0.jar`.
 
 You can also execute a subset of tests, for example to run medium set of tests:
 
@@ -156,7 +156,7 @@ sbt keeps the cache of downloaded jar files in `${HOME}/.ivy2/cache`. For exampl
 - Update release notes and README.md
 - Make sure the version number in `src/main/resources/application.conf` is correct. It is used
 when building the release.
-- Merge onto master branch, and make sure all [Github Actions](https://github.com/dnanexus/dxWDL/actions) tests pass
+- Merge onto master branch, and make sure all [Github Actions](https://github.com/dnanexus/dxCompiler/actions) tests pass
 - Clean your `dx` environment because you'll be using limited-power tokens to run the release script. Do not
 mix them with your regular user token.
 ```
@@ -167,7 +167,7 @@ dx clearenv
   ./scripts/build_all_releases.sh --staging-token XXX --production-token YYY --docker-user UUU --docker-password WWW
   ```
   this will take a while. It builds the release on staging, runs multi-region tests on staging, builds on production, and creates an easy to use docker image.
-- Update [releases](https://github.com/dnanexus-rnd/dxWDL/releases) github page, use the `Draft a new release` button, and upload a dxWDL.jar file.
+- Update [releases](https://github.com/dnanexus-rnd/dxCompiler/releases) github page, use the `Draft a new release` button, and upload the JAR files.
 
 ### Post release
 

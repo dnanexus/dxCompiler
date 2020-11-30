@@ -338,7 +338,7 @@ def build_test(tname, project, folder, version_id, compiler_flags):
     print("build {} {}".format(desc.kind, desc.name))
     print("Compiling {} to a {}".format(desc.wdl_source, desc.kind))
     cmdline = [ "java", "-jar",
-                os.path.join(top_dir, "dxWDL-{}.jar".format(version_id)),
+                os.path.join(top_dir, "dxCompiler-{}.jar".format(version_id)),
                 "compile",
                 desc.wdl_source,
                 "-force",
@@ -553,7 +553,7 @@ def compiler_per_test_flags(tname):
 def native_call_dxni(project, applet_folder, version_id, verbose: bool):
     # build WDL wrapper tasks in test/dx_extern.wdl
     cmdline_common = [ "java", "-jar",
-                       os.path.join(top_dir, "dxWDL-{}.jar".format(version_id)),
+                       os.path.join(top_dir, "dxCompiler-{}.jar".format(version_id)),
                        "dxni",
                        "-force",
                        "-folder", applet_folder,
@@ -578,7 +578,7 @@ def dxni_call_with_path(project, path, version_id, verbose):
     cmdline = [
         "java",
         "-jar",
-        os.path.join(top_dir, "dxWDL-{}.jar".format(version_id)),
+        os.path.join(top_dir, "dxCompiler-{}.jar".format(version_id)),
         "dxni",
         "-force",
         "-path",
@@ -645,7 +645,7 @@ def native_call_app_setup(project, version_id, verbose):
     # build WDL wrapper tasks in test/dx_extern.wdl
     header_file = os.path.join(top_dir, "test/wdl_1_0/dx_app_extern.wdl")
     cmdline = [ "java", "-jar",
-                os.path.join(top_dir, "dxWDL-{}.jar".format(version_id)),
+                os.path.join(top_dir, "dxCompiler-{}.jar".format(version_id)),
                 "dxni",
                 "-apps",
                 "only",
@@ -700,7 +700,7 @@ def main():
                            action="store_true", default=False)
     argparser.add_argument("--force", help="Remove old versions of applets and workflows",
                            action="store_true", default=False)
-    argparser.add_argument("--folder", help="Use an existing folder, instead of building dxWDL")
+    argparser.add_argument("--folder", help="Use an existing folder, instead of building dxCompiler")
     argparser.add_argument("--lazy", help="Only compile workflows that are unbuilt",
                            action="store_true", default=False)
     argparser.add_argument("--list", "--test-list", help="Print a list of available tests",
@@ -712,7 +712,7 @@ def main():
     argparser.add_argument("--locked", help="Generate locked-down workflows",
                            action="store_true", default=False)
     argparser.add_argument("--project", help="DNAnexus project ID",
-                           default="dxWDL_playground")
+                           default="dxCompiler_playground")
     argparser.add_argument("--project-wide-reuse", help="look for existing applets in the entire project",
                            action="store_true", default=False)
     argparser.add_argument("--stream-all-files", help="Stream all input files with dxfs2",
@@ -761,7 +761,7 @@ def main():
         "aws:us-east-1" :  project.name + ":" + base_folder
     }
 
-    # build the dxWDL jar file, only on us-east-1
+    # build the dxCompiler jar file, only on us-east-1
     util.build(project, base_folder, version_id, top_dir, test_dict)
 
     if args.unlocked:

@@ -15,7 +15,7 @@ import dx.util.Logger
 class ExtrasTest extends AnyFlatSpec with Matchers {
   private val dxApi = DxApi()(Logger.Quiet)
   private val extrasParser = ExtrasParser(dxApi)
-  private val testProject: String = "dxWDL_playground"
+  private val testProject: String = "dxCompiler_playground"
   private lazy val project: DxProject = {
     try {
       dxApi.resolveProject(testProject)

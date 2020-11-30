@@ -32,8 +32,8 @@ import dx.util.{FileSourceResolver, FileUtils, JsUtils, Logger, TraceLevel}
 import scala.jdk.CollectionConverters._
 
 object Compiler {
-  val RuntimeConfigFile = "dxWDL_runtime.conf"
-  val RegionToProjectFile = "dxWDL.region2project"
+  val RuntimeConfigFile = "dxCompiler_runtime.conf"
+  val RegionToProjectFile = "dxCompiler.region2project"
 }
 
 /**
@@ -55,6 +55,7 @@ case class Compiler(extras: Option[Extras],
                     runtimePathConfig: DxWorkerPaths,
                     runtimeTraceLevel: Int,
                     includeAsset: Boolean,
+                    runtimeAssetName: String,
                     archive: Boolean,
                     force: Boolean,
                     leaveWorkflowsOpen: Boolean,
@@ -69,7 +70,7 @@ case class Compiler(extras: Option[Extras],
 
   // temp dir where applications will be compiled - it is deleted on shutdown
   private lazy val appCompileDirPath: Path = {
-    val p = Files.createTempDirectory("dxWDL_Compile")
+    val p = Files.createTempDirectory("dxCompiler_Compile")
     sys.addShutdownHook({
       FileUtils.deleteRecursive(p)
     })
@@ -103,7 +104,7 @@ case class Compiler(extras: Option[Extras],
         case None    => throw new Exception(s"Cannot get region for project ${project}")
       }
       // Find the runtime asset with the correct version. Look inside the
-      // project configured for this region. The regions live in dxWDL.conf
+      // project configured for this region. The regions live in dxCompiler.region2project
       val config = ConfigFactory.load(Compiler.RuntimeConfigFile)
       val regionToProjectOption: Vector[Config] =
         config.getConfigList(Compiler.RegionToProjectFile).asScala.toVector
@@ -128,17 +129,17 @@ case class Compiler(extras: Option[Extras],
       }
       val regionalProject = dxApi.resolveProject(regionalProjectName)
       val assetUri =
-        s"${DxPath.DxUriPrefix}${regionalProject.id}:${assetFolder}/${Constants.RuntimeAsset}"
+        s"${DxPath.DxUriPrefix}${regionalProject.id}:${assetFolder}/${runtimeAssetName}"
       logger.trace(s"Looking for asset id at ${assetUri}")
       val dxAsset = dxApi.resolveDataObject(assetUri, Some(regionalProject)) match {
         case dxRecord: DxRecord => dxRecord
         case other =>
           throw new Exception(s"Found dx object of wrong type ${other} at ${assetUri}")
       }
-      // We need the dxWDL runtime library cloned into this project, so it will
-      // be available to all subjobs we run. If for some reason we're running in
-      // the same project where the asset lives, no clone operation will be performed.
-      dxApi.cloneAsset(Constants.RuntimeAsset, dxAsset, regionalProject, project)
+      // We need the executor asset cloned into this project, so it will be available
+      // to all subjobs we run. If for some reason we're running in the same project
+      // where the asset lives, no clone operation will be performed.
+      dxApi.cloneAsset(runtimeAssetName, dxAsset, regionalProject, project)
       // Extract the archive from the details field
       val desc = dxAsset.describe(Set(Field.Details))
       val dxLink =
@@ -249,7 +250,7 @@ case class Compiler(extras: Option[Extras],
           // Check if applet code has changed
           existingInfo.checksum match {
             case None =>
-              throw new Exception(s"There is an existing non-dxWDL applet ${name}")
+              throw new Exception(s"There is an existing non-dxCompiler applet ${name}")
             case Some(existingDigest) if digest != existingDigest =>
               logger.trace(
                   s"${existingInfo.dxClass} ${name} has changed, rebuild required"

@@ -19,8 +19,8 @@ class DxFileAccessProtocolTest extends AnyFlatSpec with Matchers {
       """|version 1.0
          |
          |workflow foo {
-         |    File fruit_list = "dx://dxWDL_playground:/test_data/fruit_list.txt"
-         |    File a_txt = "dx://dxWDL_playground:/A.txt"
+         |    File fruit_list = "dx://dxCompiler_playground:/test_data/fruit_list.txt"
+         |    File a_txt = "dx://dxCompiler_playground:/A.txt"
          |    File proj_file_id = "dx://project-xxxx:file-yyyy"
          |    File proj_file_name = "dx://project-xxxx:A.txt"
          |}

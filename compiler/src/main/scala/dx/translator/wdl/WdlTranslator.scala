@@ -71,6 +71,8 @@ case class WdlTranslator(doc: TAT.Document,
                          logger: Logger = Logger.get)
     extends Translator {
 
+  override val runtimeAssetName: String = "dxWDLrt"
+
   private def getUnqualifiedName(name: String): String = {
     if (name contains ".") {
       name.split("\\.").last
