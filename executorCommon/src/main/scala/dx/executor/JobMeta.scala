@@ -35,6 +35,8 @@ import dx.util.{CodecUtils, FileSourceResolver, FileUtils, JsUtils, Logger, Trac
 import dx.util.protocols.DxFileAccessProtocol
 import spray.json._
 
+import scala.annotation.tailrec
+
 object JobMeta {
   val inputFile = "job_input.json"
   val outputFile = "job_output.json"
@@ -150,15 +152,21 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 
   lazy val outputSerializer: ParameterLinkSerializer = ParameterLinkSerializer(fileResolver, dxApi)
 
+  @tailrec
   private def outputTypesEqual(expectedType: Type, actualType: Type): Boolean = {
-    val comparisonType = if (Type.isNative(actualType)) {
-      actualType
-    } else {
-      Type.THash
+    (expectedType, actualType) match {
+      case (a, b) if a == b       => true
+      case (a: Type.TOptional, b) =>
+        // non-optional actual type is compatible with optional expected type
+        outputTypesEqual(Type.unwrapOptional(a), Type.unwrapOptional(b))
+      case (Type.TArray(a, false), Type.TArray(b, true)) =>
+        // non-empty actual array is compatible with maybe-empty expected array
+        outputTypesEqual(a, b)
+      case (a, b) if !Type.isNative(b) =>
+        // non-native types are represented as hashes
+        outputTypesEqual(a, Type.THash)
+      case _ => false
     }
-    comparisonType == expectedType || (
-        Type.isOptional(expectedType) && Type.ensureOptional(comparisonType) == expectedType
-    )
   }
 
   lazy val outputSpec: Map[String, Type] = {

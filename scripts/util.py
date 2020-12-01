@@ -1,10 +1,10 @@
-#!/usr/bin/env python
-from __future__ import print_function
+#!/usr/bin/env python3
 from collections import namedtuple
 import dxpy
 import json
-import pwd
 import os
+from pathlib import Path
+import pwd
 import re
 import shutil
 import subprocess
@@ -91,49 +91,61 @@ def get_project(project_name):
 # download dxda for linux, and place it in the resources
 # sub-directory.
 def _download_dxda_into_resources(top_dir, dxda_version):
-    # TODO: if dxda is already downloaded, check that it's version matches
     # TODO: if dxda_version is None, fetch latest
-    os.chdir(os.path.join(top_dir, "applet_resources"))
+    dxda_dir = os.path.join(top_dir, "applet_resources", "dxda", dxda_version)
+    dxda_exe = os.path.join(dxda_dir, "dx-download-agent")
 
-    # download dxda release, and place it in the resources directory
-    if dxda_version.startswith("v"):
-        # A proper download-agent release, it starts with a "v"
-        subprocess.check_call([
-            "wget",
-            "https://github.com/dnanexus/dxda/releases/download/{}/dx-download-agent-linux".format(dxda_version),
-            "-O",
-            "resources/usr/bin/dx-download-agent"])
-    else:
-        trg_dxda_tar = "resources/dx-download-agent-linux.tar"
-        # A snapshot of the download-agent development branch
-        command = """sudo  docker run --rm --entrypoint=\'\' dnanexus/dxda:{} cat /builds/dx-download-agent-linux.tar > {}""".format(
-            dxda_version, trg_dxda_tar)
-        p = subprocess.Popen(command, universal_newlines=True, shell=True,
-                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        text = p.stdout.read()
-        retcode = p.wait()
-        print("downloading dxda{} {}".format(retcode, text))
-        subprocess.check_call(["tar", "-C", "resources", "-xvf", trg_dxda_tar])
-        os.rename("resources/dx-download-agent-linux/dx-download-agent",
-                  "resources/usr/bin/dx-download-agent")
-        os.remove(trg_dxda_tar)
-        shutil.rmtree("resources/dx-download-agent-linux")
+    if not os.path.exists(dxda_exe):
+        os.makedirs(dxda_dir, exist_ok=True)
+        os.chdir(dxda_dir)
 
-    os.chmod("resources/usr/bin/dx-download-agent", 0o775)
+        # download dxda release, and place it in the resources directory
+        if dxda_version.startswith("v"):
+            # A proper download-agent release, it starts with a "v"
+            subprocess.check_call([
+                "wget",
+                "https://github.com/dnanexus/dxda/releases/download/{}/dx-download-agent-linux".format(dxda_version),
+                "-O",
+                "dx-download-agent"])
+        else:
+            # A snapshot of the download-agent development branch
+            snapshot_dxda_tar = "resources/dx-download-agent-linux.tar"
+            command = """sudo docker run --rm --entrypoint=\'\' dnanexus/dxda:{} cat /builds/dx-download-agent-linux.tar > {}""".format(
+                dxda_version, snapshot_dxda_tar)
+            p = subprocess.Popen(command, universal_newlines=True, shell=True,
+                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            text = p.stdout.read()
+            retcode = p.wait()
+            print("downloading dxda {} {}".format(retcode, text))
+            subprocess.check_call(["tar", "-C", "resources", "-xvf", snapshot_dxda_tar])
+            os.rename("resources/dx-download-agent-linux/dx-download-agent",
+                      "dx-download-agent")
+            os.remove(snapshot_dxda_tar)
+            shutil.rmtree("resources/dx-download-agent-linux")
+
+        # make sure the binary is executable
+        os.chmod("dx-download-agent", 0o775)
+
+    return dxda_exe
 
 
 def _download_dxfuse_to_resources(top_dir, dxfuse_version):
-    # TODO: if dxfuse is already downloaded, check that it's version matches
     # TODO: if dxfuse_version is None, fetch latest
-    p = os.path.join(top_dir, "applet_resources/resources/usr/bin/dxfuse")
-    if not os.path.exists(p):
-        print("downloading dxfuse {} to {}".format(dxfuse_version, p))
+    dxfuse_dir = os.path.join(top_dir, "applet_resources", "dxfuse", dxfuse_version)
+    dxfuse_exe = os.path.join(dxfuse_dir, "dxfuse")
+
+    if not os.path.exists(dxfuse_exe):
+        os.makedirs(dxfuse_dir, exist_ok=True)
+        print("downloading dxfuse {} to {}".format(dxfuse_version, dxfuse_exe))
         subprocess.check_call([
             "wget",
             "https://github.com/dnanexus/dxfuse/releases/download/{}/dxfuse-linux".format(dxfuse_version),
             "-O",
-            p])
-    os.chmod(p, 0o775)
+            dxfuse_exe])
+
+        os.chmod(dxfuse_exe, 0o775)
+
+    return dxfuse_exe
 
 
 def _create_asset_spec(version_id, top_dir, language):
@@ -166,14 +178,14 @@ def _build_asset(top_dir, language, destination):
     os.chdir(crnt_work_dir)
 
 
-def _make_prerequisites(project, folder, version_id, top_dir, language):
+def _make_prerequisites(project, folder, version_id, top_dir, language, resources):
     # Create a folder for the language-specific asset
-    language_resources_dir = os.path.join(top_dir, "applet_resources", language, "resources")
+    language_resources_dir = os.path.join(top_dir, "applet_resources", language, "resources", "usr", "bin")
     os.makedirs(language_resources_dir, exist_ok=True)
 
     # Link in the shared resources
-    resources = os.path.join(top_dir, "applet_resources", "resources", "*")
-    subprocess.check_call(["ln", "-s", resources, language_resources_dir])
+    for res in resources:
+        os.link(res, os.path.join(language_resources_dir, Path(res).name))
 
     # Create the asset description file
     _create_asset_spec(version_id, top_dir, language)
@@ -254,26 +266,27 @@ def build(project, folder, version_id, top_dir, path_dict, dependencies=None, fo
     build_assets = force or not all(assets.values())
 
     if build_assets:
+        for lang in languages:
+            language_dir = os.path.join(top_dir, "applet_resources", lang.upper())
+            if os.path.exists(language_dir):
+                shutil.rmtree(language_dir)
+
         if dependencies is None:
             with open(os.path.join(top_dir, "scripts/bundled_dependencies.json"), "rt") as inp:
                 dependencies = json.load(inp)
 
-        # make sure the resources directory exists
-        if not os.path.exists(os.path.join(top_dir, "applet_resources/resources/usr/bin")):
-            os.makedirs(os.path.join(top_dir, "applet_resources/resources/usr/bin"))
-
-        # get a copy of the dxfuse executable
-        _download_dxfuse_to_resources(top_dir, dependencies["dxfuse"])
-
         # get a copy of the download agent (dxda)
-        _download_dxda_into_resources(top_dir, dependencies["dxda"])
+        dxda_exe = _download_dxda_into_resources(top_dir, dependencies["dxda"])
+        # get a copy of the dxfuse executable
+        dxfuse_exe = _download_dxfuse_to_resources(top_dir, dependencies["dxfuse"])
+        resources = [dxda_exe, dxfuse_exe]
 
         # Create a configuration file
         _gen_config_file(top_dir, path_dict)
         jar_paths = _sbt_assembly(top_dir)
 
         assets = dict(
-            (lang, _make_prerequisites(project, folder, version_id, top_dir, lang))
+            (lang, _make_prerequisites(project, folder, version_id, top_dir, lang, resources))
             for lang in languages
         )
 
@@ -281,6 +294,10 @@ def build(project, folder, version_id, top_dir, path_dict, dependencies=None, fo
             # Move the file to the top level directory
             all_in_one_jar = os.path.join(top_dir, "{}-{}.jar".format(prefix, version_id))
             shutil.move(jar_path, all_in_one_jar)
+
+        # delete the language-specific dirs
+        for lang in languages:
+            shutil.rmtree(os.path.join(top_dir, "applet_resources", lang.upper()))
 
     region = dxpy.describe(project.get_id())['region']
     asset_descs = [
