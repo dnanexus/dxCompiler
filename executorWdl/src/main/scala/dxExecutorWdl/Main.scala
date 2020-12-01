@@ -4,7 +4,7 @@ import dx.core.io.StreamFiles
 import dx.executor.{BaseCli, FileUploader, JobMeta}
 import dx.executor.wdl.{WdlTaskExecutor, WdlWorkflowExecutor}
 
-object Main extends BaseCli with App {
+object Main extends BaseCli {
   override val jarName = "dxExecutorWdl.jar"
 
   override def createTaskExecutor(meta: JobMeta,

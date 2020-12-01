@@ -20,7 +20,7 @@ import spray.json.{JsNull, JsValue}
 /**
   * Compiler CLI.
   */
-object Main {
+object Main extends App {
   private val DefaultRuntimeTraceLevel: Int = TraceLevel.Verbose
 
   /**
@@ -704,7 +704,5 @@ object Main {
         |    -logFile <path>          File to use for logging output; defaults to stderr
         |""".stripMargin
 
-  def main(args: Vector[String]): Unit = {
-    terminate(dispatchCommand(args), usageMessage)
-  }
+  terminate(dispatchCommand(args.toVector), usageMessage)
 }

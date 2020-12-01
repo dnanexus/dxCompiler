@@ -137,11 +137,12 @@ def _download_dxfuse_to_resources(top_dir, dxfuse_version):
 
 
 def _create_asset_spec(version_id, top_dir, language):
+    # TODO: update to 20.04 - just waiting for staging to catch up to prod
     asset_spec = {
         "version": version_id,
         "name": "dx{}rt".format(language.upper()),
         "title": "dx {} asset".format(language.upper()),
-        "release": "20.04",
+        "release": "16.04",
         "distribution": "Ubuntu",
         "execDepends": [
             {"name": "openjdk-8-jre-headless"},
@@ -168,7 +169,7 @@ def _build_asset(top_dir, language, destination):
 def _make_prerequisites(project, folder, version_id, top_dir, language):
     # Create a folder for the language-specific asset
     language_resources_dir = os.path.join(top_dir, "applet_resources", language, "resources")
-    os.makedirs(language_resources_dir)
+    os.makedirs(language_resources_dir, exist_ok=True)
 
     # Link in the shared resources
     resources = os.path.join(top_dir, "applet_resources", "resources", "*")
@@ -191,6 +192,12 @@ def _make_prerequisites(project, folder, version_id, top_dir, language):
     else:
         raise Exception("Failed to build the {} runtime asset".format(language))
 
+    # make sure the asset exists and is findable
+    asset = find_asset(project, folder, language)
+    if asset is None:
+        raise Exception("unable to discover the asset created at {}".format(destination))
+    return asset
+
 
 # Create a dxCompiler_runtime.conf file (in typesafe-config format) in the
 # compiler's resources directory. It holds a mapping from region to project
@@ -209,7 +216,7 @@ def _gen_config_file(top_dir, project_dict):
 
     buf = "\n".join(region_project_hocon)
     conf = "\n".join(["dxCompiler {",
-                      "  regionToproject = [\n{}\n  ]".format(buf),
+                      "  regionToProject = [\n{}\n  ]".format(buf),
                       "}"])
 
     rt_conf_path = os.path.join(top_dir, "compiler", "src", "main", "resources", "dxCompiler_runtime.conf")
@@ -228,7 +235,7 @@ def _sbt_assembly(top_dir):
     jar_paths = dict(
         ("dxExecutor{}".format(lang), os.path.join(
             top_dir, "applet_resources", lang.upper(), "resources", "dxExecutor{}.jar".format(lang)
-        )) for lang in languages.items()
+        )) for lang in languages
     )
     jar_paths.update({"dxCompiler": os.path.join(top_dir, "applet_resources", "dxCompiler.jar")})
     for jar_path in jar_paths.values():
@@ -243,7 +250,8 @@ def _sbt_assembly(top_dir):
 
 
 def build(project, folder, version_id, top_dir, path_dict, dependencies=None, force=False):
-    build_assets = force or not all(find_asset(project, folder, lang) for lang in languages)
+    assets = dict((lang, find_asset(project, folder, lang)) for lang in languages)
+    build_assets = force or not all(assets.values())
 
     if build_assets:
         if dependencies is None:
@@ -260,12 +268,14 @@ def build(project, folder, version_id, top_dir, path_dict, dependencies=None, fo
         # get a copy of the download agent (dxda)
         _download_dxda_into_resources(top_dir, dependencies["dxda"])
 
-        _make_prerequisites(project, folder, version_id, top_dir)
-        asset = find_asset(project, folder)
-
         # Create a configuration file
         _gen_config_file(top_dir, path_dict)
         jar_paths = _sbt_assembly(top_dir)
+
+        assets = dict(
+            (lang, _make_prerequisites(project, folder, version_id, top_dir, lang))
+            for lang in languages
+        )
 
         for (prefix, jar_path) in jar_paths.items():
             # Move the file to the top level directory
@@ -273,9 +283,9 @@ def build(project, folder, version_id, top_dir, path_dict, dependencies=None, fo
             shutil.move(jar_path, all_in_one_jar)
 
     region = dxpy.describe(project.get_id())['region']
-    ad = AssetDesc(region, asset.get_id(), project)
+    asset_descs = [
+        (lang, AssetDesc(region, asset.get_id(), project))
+        for (lang, asset) in assets.items()
+    ]
 
-    # Hygiene, remove the new configuration file, we
-    # don't want it to leak into the next build cycle.
-    # os.remove(crnt_conf_path)
-    return ad
+    return asset_descs

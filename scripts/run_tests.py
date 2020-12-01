@@ -762,7 +762,8 @@ def main():
     }
 
     # build the dxCompiler jar file, only on us-east-1
-    util.build(project, base_folder, version_id, top_dir, test_dict)
+    assets = util.build(project, base_folder, version_id, top_dir, test_dict)
+    print("assets: {}".format(assets))
 
     if args.unlocked:
         # Disable all locked workflows
