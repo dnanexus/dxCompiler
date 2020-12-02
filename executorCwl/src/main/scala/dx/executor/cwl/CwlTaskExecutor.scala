@@ -1,9 +1,11 @@
 package dx.executor.cwl
 
-import dx.cwl.{CommandLineTool, Parser}
+import dx.cwl.{CommandLineTool, CwlType, CwlValue, Parser}
 import dx.core.io.StreamFiles.StreamFiles
 import dx.core.ir.{Type, Value}
+import dx.core.languages.cwl.{CwlUtils, IrToCwlValueBindings, RuntimeRequirements}
 import dx.executor.{FileUploader, JobMeta, TaskExecutor}
+import dx.util.TraceLevel
 
 object CwlTaskExecutor {
   def create(jobMeta: JobMeta,
@@ -35,7 +37,52 @@ case class CwlTaskExecutor(tool: CommandLineTool,
 
   override def executorName: String = "dxExecutorCwl"
 
-  override protected def getRequiredInstanceType: String = ???
+  private lazy val inputTypes: Map[String, Vector[CwlType]] = {
+    tool.inputs.collect {
+      case param if param.id.forall(_.name.isDefined) =>
+        param.id.get.name.get -> param.types
+    }.toMap
+  }
+
+  private def cwlInputs: Map[String, CwlValue] = {
+    // convert IR to CWL values; discard auxiliary fields
+    val inputCwlValues: Map[String, CwlValue] = jobMeta.primaryInputs.map {
+      case (name, value) =>
+        name -> CwlUtils.fromIRValue(value, inputTypes(name), name)
+    }
+  }
+
+  private def printInputs(inputs: Map[String, CwlValue]): Unit = {
+    if (logger.isVerbose) {
+      val inputStr = tool.inputs
+        .flatMap {
+          case param if param.id.forall(_.name.forall(inputs.contains)) =>
+            val name = param.id.get.name.get
+            Some(s"${name} -> (${param.types}, ${inputs.get(name)})")
+          case other =>
+            logger.trace(s"no input for parameter ${other}")
+            None
+        }
+        .mkString("\n")
+      logger.traceLimited(s"inputs: ${inputStr}")
+    }
+  }
+
+  private def createRuntime(env: Map[String, CwlValue]): RuntimeRequirements = {
+    RuntimeRequirements(tool.requirements, IrToCwlValueBindings(jobMeta.defaultRuntimeAttrs), env)
+  }
+
+  private def getRequiredInstanceType(inputs: Map[String, CwlValue] = cwlInputs): String = {
+    logger.traceLimited("calcInstanceType", minLevel = TraceLevel.VVerbose)
+    printInputs(inputs)
+    val env = evaluate(inputs)
+    val runtime = createRuntime(env)
+    val request = runtime.parseInstanceType
+    logger.traceLimited(s"calcInstanceType $request")
+    jobMeta.instanceTypeDb.apply(request).name
+  }
+
+  override protected lazy val getRequiredInstanceType: String = getRequiredInstanceType()
 
   override protected def getInputsWithDefaults: Map[String, (Type, Value)] = ???
 

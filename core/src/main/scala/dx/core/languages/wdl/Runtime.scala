@@ -112,7 +112,11 @@ case class Runtime(wdlVersion: WdlVersion,
       case other =>
         throw new Exception(s"unexpected ${WdlRuntime.GpuKey} value ${other}")
     }
-    InstanceTypeRequest(None, memoryMB, diskGB, diskType, cpu, gpu)
+    InstanceTypeRequest(minMemoryMB = memoryMB,
+                        minDiskGB = diskGB,
+                        diskType = diskType,
+                        minCpu = cpu,
+                        gpu = gpu)
   }
 
   def safeParseInstanceType: Option[InstanceTypeRequest] = {

@@ -69,8 +69,9 @@ case class WdlTaskExecutor(task: TAT.Task,
     typeAliases.toMap.view.mapValues(WdlUtils.toIRSchema).toMap
   }
 
-  private lazy val inputTypes: Map[String, T] =
+  private lazy val inputTypes: Map[String, T] = {
     task.inputs.map(d => d.name -> d.wdlType).toMap
+  }
 
   private def wdlInputs: Map[String, V] = {
     // convert IR to WDL values; discard auxiliary fields

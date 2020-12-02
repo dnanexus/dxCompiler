@@ -47,7 +47,9 @@ val core = project
       version := getVersion("core", "dxCompilerCore"),
       settings,
       libraryDependencies ++= commonDependencies ++ Seq(
-          dependencies.wdlTools
+          dependencies.typesafe,
+          dependencies.wdlTools,
+          dependencies.cwlScala
       )
   )
   .disablePlugins(AssemblyPlugin)
@@ -116,7 +118,7 @@ val executorCwl = project
 lazy val dependencies =
   new {
     val dxCommonVersion = "0.2.3"
-    val dxApiVersion = "0.1.6"
+    val dxApiVersion = "0.1.7"
     val dxFileAccessProtocolsVersion = "0.1.2"
     val wdlToolsVersion = "0.11.8"
     val cwlScalaVersion = "0.2.6"

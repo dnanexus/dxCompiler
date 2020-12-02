@@ -2,6 +2,7 @@ package dx.core.languages
 
 import wdlTools.syntax.WdlVersion
 import dx.util.Enum
+import org.w3id.cwl.cwl1_2.CWLVersion
 
 object Language extends Enum {
   type Language = Value
@@ -9,12 +10,12 @@ object Language extends Enum {
   val WdlDefault: Language = WdlV1_0
   val CwlDefault: Language = CwlV1_2
 
-  def toWdlVersion(value: Value): WdlVersion = {
+  def toWdlVersion(value: Language): WdlVersion = {
     value match {
       case WdlVDraft2 => WdlVersion.Draft_2
       case WdlV1_0    => WdlVersion.V1
       case WdlV2_0    => WdlVersion.V2
-      case other      => throw new Exception(s"${other} is not a wdl version")
+      case other      => throw new Exception(s"${other} is not a WDL version")
     }
   }
 
@@ -23,7 +24,21 @@ object Language extends Enum {
       case WdlVersion.Draft_2 => Language.WdlVDraft2
       case WdlVersion.V1      => Language.WdlV1_0
       case WdlVersion.V2      => Language.WdlV2_0
-      case other              => throw new Exception(s"Unsupported dielect ${other}")
+      case other              => throw new Exception(s"Unsupported WDL dialect ${other}")
+    }
+  }
+
+  def toCwlVersion(value: Language): CWLVersion = {
+    value match {
+      case CwlV1_2 => CWLVersion.V1_2
+      case other   => throw new Exception(s"${other} is not a CWL version")
+    }
+  }
+
+  def fromCwlVersion(version: CWLVersion): Value = {
+    version match {
+      case CWLVersion.V1_2 => Language.CwlV1_2
+      case other           => throw new Exception(s"Unsupported CWL dialect ${other}")
     }
   }
 
@@ -60,7 +75,7 @@ object Language extends Enum {
       case (None | Some("wdl"), Some("draft2"))                     => Language.WdlVDraft2
       case (None | Some("wdl"), Some("draft3" | "10" | "v10"))      => Language.WdlV1_0
       case (None | Some("wdl"), Some("development" | "20" | "v20")) => Language.WdlV2_0
-      case (None | Some("cwl"), Some(v)) if v.startsWith("v120")    => Language.CwlV1_2
+      case (None | Some("cwl"), Some("12" | "v12"))                 => Language.CwlV1_2
       case other =>
         throw new Exception(s"Unrecognized/unsupported language ${other}")
     }
