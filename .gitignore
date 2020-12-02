@@ -31,8 +31,6 @@ test/scratch
 # misc
 applet_resources/
 src/main/resources/dxCompiler_runtime.conf
-src/main/resources/dxExecutorWdl_runtime.conf
-src/main/resources/dxExecutorCwl_runtime.conf
 src/main/antlr4
 src/main/scala/wdlTools
 *.tmp
