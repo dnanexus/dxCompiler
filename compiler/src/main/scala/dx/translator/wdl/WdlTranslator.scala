@@ -3,10 +3,9 @@ package dx.translator.wdl
 import java.nio.file.Path
 
 import dx.api.{DxApi, DxProject}
-import dx.core.ir.Type.TSchema
 import dx.core.ir._
+import dx.core.ir.Type.TSchema
 import dx.core.languages.Language
-import dx.core.languages.Language.Language
 import dx.core.languages.wdl.{VersionSupport, WdlBundle, WdlUtils}
 import dx.translator.{
   DxWorkflowAttrs,
@@ -15,11 +14,10 @@ import dx.translator.{
   Translator,
   TranslatorFactory
 }
-import spray.json.{JsArray, JsObject, JsString, JsValue}
-import wdlTools.types.{TypeCheckingRegime, WdlTypes, TypedAbstractSyntax => TAT}
-import wdlTools.types.TypeCheckingRegime.TypeCheckingRegime
 import dx.util.{FileSourceResolver, Logger}
+import spray.json.{JsArray, JsObject, JsString, JsValue}
 import wdlTools.syntax.NoSuchParserException
+import wdlTools.types.{TypeCheckingRegime, WdlTypes, TypedAbstractSyntax => TAT}
 
 case class WdlInputTranslator(bundle: Bundle,
                               inputs: Vector[Path],
@@ -201,10 +199,11 @@ case class WdlTranslator(doc: TAT.Document,
   }
 }
 
-case class WdlTranslatorFactory(regime: TypeCheckingRegime = TypeCheckingRegime.Moderate)
-    extends TranslatorFactory {
+case class WdlTranslatorFactory(
+    regime: TypeCheckingRegime.TypeCheckingRegime = TypeCheckingRegime.Moderate
+) extends TranslatorFactory {
   override def create(sourceFile: Path,
-                      language: Option[Language],
+                      language: Option[Language.Language],
                       locked: Boolean,
                       defaultRuntimeAttrs: Map[String, Value],
                       reorgAttrs: ReorgSettings,

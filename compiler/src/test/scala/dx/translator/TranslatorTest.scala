@@ -2,24 +2,24 @@ package dx.translator
 
 import java.nio.file.{Path, Paths}
 
+import dxCompiler.Main
+import dxCompiler.Main.SuccessIR
 import dx.Tags.EdgeTest
 import dx.api._
-import dxCompiler.Main.SuccessIR
+import dx.core.Constants
+import dx.core.ir._
+import dx.core.ir.RunSpec._
 import dx.core.ir.Type._
 import dx.core.ir.Value._
-import dx.core.ir._
+import dx.core.CliUtils.{Failure, UnsuccessfulTermination}
+import dx.core.languages.wdl.WdlDocumentSource
 import dx.translator.CallableAttributes._
 import dx.translator.ParameterAttributes._
-import RunSpec._
-import dx.core.CliUtils.{Failure, UnsuccessfulTermination}
-import dx.core.Constants
-import dx.core.languages.wdl.WdlDocumentSource
+import dx.util.Logger
 import org.scalatest.Inside._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import wdlTools.generators.code.WdlGenerator
-import dx.util.Logger
-import dxCompiler.Main
 
 // These tests involve compilation -without- access to the platform.
 //
