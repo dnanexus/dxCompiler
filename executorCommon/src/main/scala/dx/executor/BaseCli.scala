@@ -6,7 +6,7 @@ import dx.core.CliUtils._
 import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.util.Enum
 
-abstract class BaseCli extends App {
+abstract class BaseCli {
   val jarName: String
 
   def createTaskExecutor(meta: JobMeta,
@@ -111,5 +111,7 @@ abstract class BaseCli extends App {
         |    -logFile <path>        File to use for logging output; defaults to stderr
         |""".stripMargin
 
-  terminate(dispatchCommand(args.toVector), usageMessage)
+  def main(args: Vector[String]): Unit = {
+    terminate(dispatchCommand(args), usageMessage)
+  }
 }

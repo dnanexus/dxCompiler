@@ -17,3 +17,7 @@ object Main extends BaseCli {
     WdlWorkflowExecutor.create(meta)
   }
 }
+
+object MainApp extends App {
+  Main.main(args.toVector)
+}
