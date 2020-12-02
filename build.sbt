@@ -103,7 +103,8 @@ val executorCwl = project
       settings,
       assemblySettings,
       libraryDependencies ++= commonDependencies ++ Seq(
-          dependencies.typesafe
+          dependencies.typesafe,
+          dependencies.cwlScala
       ),
       assemblyJarName in assembly := "dxExecutorCwl.jar",
       assemblyOutputPath in assembly := file("applet_resources/CWL/resources/dxExecutorCwl.jar")
@@ -118,6 +119,7 @@ lazy val dependencies =
     val dxApiVersion = "0.1.6"
     val dxFileAccessProtocolsVersion = "0.1.2"
     val wdlToolsVersion = "0.11.8"
+    val cwlScalaVersion = "0.2.6"
     val typesafeVersion = "1.3.3"
     val sprayVersion = "1.3.5"
     val scalatestVersion = "3.1.1"
@@ -127,6 +129,7 @@ lazy val dependencies =
     val dxApi = "com.dnanexus" % "dxapi" % dxApiVersion
     val dxFileAccessProtocols = "com.dnanexus" % "dxfileaccessprotocols" % dxFileAccessProtocolsVersion
     val wdlTools = "com.dnanexus" % "wdltools" % wdlToolsVersion
+    val cwlScala = "com.dnanexus" % "cwlscala" % cwlScalaVersion
     val typesafe = "com.typesafe" % "config" % typesafeVersion
     val spray = "io.spray" %% "spray-json" % sprayVersion
     val logback = "ch.qos.logback" % "logback-classic" % logbackVersion

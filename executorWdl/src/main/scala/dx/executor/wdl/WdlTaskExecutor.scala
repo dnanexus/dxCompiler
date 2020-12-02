@@ -53,9 +53,7 @@ case class WdlTaskExecutor(task: TAT.Task,
     extends TaskExecutor(jobMeta, fileUploader, streamFiles) {
 
   private val fileResolver = jobMeta.fileResolver
-
   private val logger = jobMeta.logger
-
   private lazy val evaluator = Eval(
       jobMeta.workerPaths,
       Some(versionSupport.version),
