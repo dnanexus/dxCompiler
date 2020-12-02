@@ -9,7 +9,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 class ArchiveTest extends AnyFlatSpec with Matchers {
-  it should "create a squasfs" in {
+  it should "create a squashfs" in {
     val tmpDir = Files.createTempDirectory("archive")
     val file = tmpDir.resolve("file.txt")
     FileUtils.writeFileContent(file, "some text")
