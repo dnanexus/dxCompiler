@@ -126,8 +126,8 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
     InstanceTypeRequest(
         minMemoryMB = resources.ramMin.map(evaluateNumeric(_, MinMathContext)),
         maxMemoryMB = resources.ramMax.map(evaluateNumeric(_, MaxMathContext)),
-        minDiskGB = minTmpGB.getOrElse(0) + minOutGB.getOrElse(0),
-        maxDiskGB = maxTmpGB.getOrElse(0) + maxOutGB.getOrElse(0),
+        minDiskGB = Some(minTmpGB.getOrElse(0) + minOutGB.getOrElse(0)),
+        maxDiskGB = Some(maxTmpGB.getOrElse(0) + maxOutGB.getOrElse(0)),
         minCpu = resources.coresMin.map(evaluateNumeric(_, MinMathContext)),
         maxCpu = resources.coresMin.map(evaluateNumeric(_, MaxMathContext))
     )
