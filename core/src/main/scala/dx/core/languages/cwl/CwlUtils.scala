@@ -3,11 +3,11 @@ package dx.core.languages.cwl
 import dx.core.ir.Value
 import dx.core.ir.Value._
 import dx.cwl._
-import dx.util.Bindings
 
 import scala.annotation.tailrec
 
 object CwlUtils {
+
   def isOptional(t: CwlType): Boolean = {
     t match {
       case CwlOptional(_) => true
@@ -107,41 +107,5 @@ object CwlUtils {
           throw new Exception(s"Cannot convert ${name} (${cwlTypes}, ${value}) to CWL value")
         }
       }
-  }
-}
-
-case class IrToCwlValueBindings(
-    values: Map[String, Value],
-    private var cache: Map[String, CwlValue] = Map.empty
-) extends Bindings[String, CwlValue] {
-  override protected val elementType: String = "value"
-
-  override def contains(name: String): Boolean = values.contains(name)
-
-  override def keySet: Set[String] = values.keySet
-
-  private def resolve(name: String): Unit = {
-    if (!cache.contains(name) && values.contains(name)) {
-      cache += (name -> CwlUtils.fromIRValue(values(name), Some(name)))
-    }
-  }
-
-  override def apply(name: String): CwlValue = {
-    resolve(name)
-    cache(name)
-  }
-
-  override def get(name: String): Option[CwlValue] = {
-    resolve(name)
-    cache.get(name)
-  }
-
-  override lazy val toMap: Map[String, CwlValue] = {
-    values.keySet.diff(cache.keySet).foreach(resolve)
-    cache
-  }
-
-  override protected def copyFrom(values: Map[String, CwlValue]): IrToCwlValueBindings = {
-    copy(cache = cache ++ values)
   }
 }

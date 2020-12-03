@@ -3,7 +3,7 @@ package dx.executor.cwl
 import dx.cwl.{CommandLineTool, CwlType, CwlValue, Parser}
 import dx.core.io.StreamFiles.StreamFiles
 import dx.core.ir.{Type, Value}
-import dx.core.languages.cwl.{CwlUtils, IrToCwlValueBindings, RuntimeRequirements}
+import dx.core.languages.cwl.{CwlUtils, IrToCwlValueBindings, RequirementEvaluator}
 import dx.executor.{FileUploader, JobMeta, TaskExecutor}
 import dx.util.TraceLevel
 
@@ -68,7 +68,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
     }
   }
 
-  private def createRuntime(env: Map[String, CwlValue]): RuntimeRequirements = {
+  private def createRuntime(env: Map[String, CwlValue]): RequirementEvaluator = {
     RuntimeRequirements(tool.requirements, IrToCwlValueBindings(jobMeta.defaultRuntimeAttrs), env)
   }
 
