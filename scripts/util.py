@@ -23,6 +23,10 @@ max_num_retries = 5
 languages = ["Wdl"]
 
 
+def info(msg):
+    print(msg, file=sys.stderr)
+
+
 # Extract version_id from configuration file
 def get_version_id(top_dir):
     appl_conf_path = os.path.join(top_dir, "core", "src", "main", "resources", "application.conf")
@@ -80,7 +84,7 @@ def get_project(project_name):
     project = dxpy.find_projects(name=project_name, return_handler=True, level="VIEW")
     project = [p for p in project]
     if len(project) == 0:
-        print('Did not find project {0}'.format(project_name), file=sys.stderr)
+        info('Did not find project {0}'.format(project_name))
         return None
     elif len(project) == 1:
         return project[0]
@@ -116,7 +120,7 @@ def _download_dxda_into_resources(top_dir, dxda_version):
                                  stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             text = p.stdout.read()
             retcode = p.wait()
-            print("downloading dxda {} {}".format(retcode, text))
+            info("downloading dxda {} {}".format(retcode, text))
             subprocess.check_call(["tar", "-C", "resources", "-xvf", snapshot_dxda_tar])
             os.rename("resources/dx-download-agent-linux/dx-download-agent",
                       "dx-download-agent")
@@ -136,7 +140,7 @@ def _download_dxfuse_to_resources(top_dir, dxfuse_version):
 
     if not os.path.exists(dxfuse_exe):
         os.makedirs(dxfuse_dir, exist_ok=True)
-        print("downloading dxfuse {} to {}".format(dxfuse_version, dxfuse_exe))
+        info("downloading dxfuse {} to {}".format(dxfuse_version, dxfuse_exe))
         subprocess.check_call([
             "wget",
             "https://github.com/dnanexus/dxfuse/releases/download/{}/dxfuse-linux".format(dxfuse_version),
@@ -191,19 +195,19 @@ def _make_prerequisites(project, folder, version_id, top_dir, language, resource
     # Create the asset description file
     _create_asset_spec(version_id, top_dir, language)
 
-    # Print the files that will be included in the asset bundle
-    print(subprocess.check_output(["ls", "-laR", language_dir]))
+    # info the files that will be included in the asset bundle
+    info(subprocess.check_output(["ls", "-laR", language_dir]))
 
     # Create an asset from the dxWDL jar file and its dependencies,
     # this speeds up applet creation.
     destination = "{}:{}/dx{}rt".format(project.get_id(), folder, language.upper())
     for i in range(0, max_num_retries):
         try:
-            print("Creating a runtime asset for {} (try {})".format(language, i))
+            info("Creating a runtime asset for {} (try {})".format(language, i))
             _build_asset(top_dir, language, destination)
             break
         except:
-            print("Sleeping for 5 seconds before trying again")
+            info("Sleeping for 5 seconds before trying again")
             time.sleep(5)
     else:
         raise Exception("Failed to build the {} runtime asset".format(language))
@@ -241,7 +245,7 @@ def _gen_config_file(top_dir, project_dict):
     with open(rt_conf_path, 'w') as fd:
         fd.write(conf)
     all_regions_str = ", ".join(all_regions)
-    print("Built configuration regions [{}] into {}".format(all_regions_str, rt_conf_path))
+    info("Built configuration regions [{}] into {}".format(all_regions_str, rt_conf_path))
 
 
 # Build a fat jar file using sbt-assembly.
