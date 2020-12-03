@@ -180,7 +180,8 @@ def _build_asset(top_dir, language, destination):
 
 def _make_prerequisites(project, folder, version_id, top_dir, language, resources):
     # Create a folder for the language-specific asset
-    language_resources_dir = os.path.join(top_dir, "applet_resources", language, "resources", "usr", "bin")
+    language_dir = os.path.join(top_dir, "applet_resources", language)
+    language_resources_dir = os.path.join(language_dir, "resources", "usr", "bin")
     os.makedirs(language_resources_dir, exist_ok=True)
 
     # Link in the shared resources
@@ -189,6 +190,9 @@ def _make_prerequisites(project, folder, version_id, top_dir, language, resource
 
     # Create the asset description file
     _create_asset_spec(version_id, top_dir, language)
+
+    # Print the files that will be included in the asset bundle
+    print(subprocess.check_output(["ls", "-laR", language_dir]))
 
     # Create an asset from the dxWDL jar file and its dependencies,
     # this speeds up applet creation.
