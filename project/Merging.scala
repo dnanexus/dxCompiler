@@ -9,11 +9,10 @@ case class OnErrorMergeStrategy(strategy: MergeStrategy, fallback: MergeStrategy
   override def name: String = s"OnError(${strategy.name},${fallback.name})"
 
   def apply(tempDir: File, path: String, files: Seq[File]): Either[String, Seq[(File, String)]] = {
-    try {
-      strategy.apply(tempDir, path, files)
-    } catch {
-      case _: Throwable =>
-        fallback.apply(tempDir, path, files)
+    // TODO: log failure message
+    strategy.apply(tempDir, path, files) match {
+      case Right(success) => Right(success)
+      case Left(_)        => fallback.apply(tempDir, path, files)
     }
   }
 }
