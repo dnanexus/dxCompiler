@@ -108,4 +108,6 @@ object CwlUtils {
         }
       }
   }
+
+  def fromIR(values: Map[String, Value]): Map[String, CwlValue] = {}
 }

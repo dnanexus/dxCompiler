@@ -68,16 +68,17 @@ case class CwlTaskExecutor(tool: CommandLineTool,
     }
   }
 
-  private def createRuntime(env: Map[String, CwlValue]): RequirementEvaluator = {
-    RuntimeRequirements(tool.requirements, IrToCwlValueBindings(jobMeta.defaultRuntimeAttrs), env)
+  private lazy val defaultRuntimeAttrs: Map[String, CwlValue] = {
+    CwlUtils.fromIR(jobMeta.defaultRuntimeAttrs)
   }
 
   private def getRequiredInstanceType(inputs: Map[String, CwlValue] = cwlInputs): String = {
     logger.traceLimited("calcInstanceType", minLevel = TraceLevel.VVerbose)
     printInputs(inputs)
     val env = evaluate(inputs)
-    val runtime = createRuntime(env)
-    val request = runtime.parseInstanceType
+    val evaluator =
+      RequirementEvaluator(tool.requirements, defaultRuntimeAttrs ++ env, jobMeta.workerPaths)
+    val request = evaluator.parseInstanceType
     logger.traceLimited(s"calcInstanceType $request")
     jobMeta.instanceTypeDb.apply(request).name
   }

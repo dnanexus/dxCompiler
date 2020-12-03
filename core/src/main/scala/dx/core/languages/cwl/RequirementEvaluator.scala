@@ -102,11 +102,12 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
   private val MinMathContext = new MathContext(0, RoundingMode.FLOOR)
   private val MaxMathContext = new MathContext(0, RoundingMode.CEILING)
   private val MiBtoGiB = Some(1024L)
+  private val CwlNumericTypes: Vector[CwlType] = Vector(CwlInt, CwlLong, CwlFloat, CwlDouble)
 
   private def evaluateNumeric(value: CwlValue,
                               mc: MathContext,
                               scale: Option[Long] = None): Long = {
-    (evaluate(value), scale) match {
+    (evaluate(value, CwlNumericTypes), scale) match {
       case (num: NumericValue, Some(d)) =>
         (num.decimalValue / d).round(mc).toLongExact
       case (num: NumericValue, None) =>
