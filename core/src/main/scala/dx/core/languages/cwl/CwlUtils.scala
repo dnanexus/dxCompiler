@@ -18,23 +18,31 @@ object CwlUtils {
   def anyOptional(types: Vector[CwlType]): Boolean = {
     types.exists(isOptional)
   }
-  def fromIRValue(value: Value, name: Option[String]): CwlValue = {
+  def fromIRValue(value: Value, name: Option[String]): (CwlType, CwlValue) = {
     value match {
-      case VNull         => NullValue
-      case VBoolean(b)   => BooleanValue(b)
-      case VInt(i)       => LongValue(i)
-      case VFloat(f)     => DoubleValue(f)
-      case VString(s)    => StringValue(s)
-      case VFile(f)      => FileValue(f)
-      case VDirectory(d) => DirectoryValue(d)
+      case VNull         => (CwlNull, NullValue)
+      case VBoolean(b)   => (CwlBoolean, BooleanValue(b))
+      case VInt(i)       => (CwlLong, LongValue(i))
+      case VFloat(f)     => (CwlDouble, DoubleValue(f))
+      case VString(s)    => (CwlString, StringValue(s))
+      case VFile(f)      => (CwlFile, FileValue(f))
+      case VDirectory(d) => (CwlDirectory, DirectoryValue(d))
       case VArray(array) =>
-        ArrayValue(array.zipWithIndex.map {
+        val (types, values) = array.zipWithIndex.map {
           case (v, i) => fromIRValue(v, name.map(n => s"${n}[${i}]"))
-        })
+        }.unzip
+        (CwlArray(types.distinct), ArrayValue(values))
       case VHash(fields) =>
-        ObjectValue(fields.map {
-          case (key, value) => key -> fromIRValue(value, name.map(n => s"${n}[${key}]"))
-        })
+        val (types, values) = fields.map {
+          case (key, value) =>
+            val (cwlType, cwlValue) = fromIRValue(value, name.map(n => s"${n}[${key}]"))
+            (key -> cwlType, key -> cwlValue)
+        }.unzip
+        // create an anonymous record schema
+        val schemaType = CwlRecord(types.map {
+          case (name, t) => name -> CwlRecordField(name, types = Vector(t))
+        }.toMap)
+        (schemaType, ObjectValue(values.toMap))
       case _ =>
         throw new Exception(
             s"cannot convert ${name.getOrElse("IR")} value ${value} to WDL value"
@@ -42,28 +50,28 @@ object CwlUtils {
     }
   }
 
-  def fromIRValue(value: Value, cwlTypes: Vector[CwlType], name: String): CwlValue = {
+  def fromIRValue(value: Value, cwlTypes: Vector[CwlType], name: String): (CwlType, CwlValue) = {
     @tailrec
-    def inner(innerValue: Value, innerType: CwlType, innerName: String): Option[CwlValue] = {
+    def inner(innerValue: Value, innerType: CwlType, innerName: String): CwlValue = {
       (innerType, innerValue) match {
-        case (CwlOptional(_) | CwlNull, VNull) => Some(NullValue)
+        case (CwlOptional(_) | CwlNull, VNull) => NullValue
         case (CwlOptional(t), _)               => inner(innerValue, t, innerName)
-        case (CwlBoolean, VBoolean(b))         => Some(BooleanValue(b))
-        case (CwlInt, VInt(i)) if i.isValidInt => Some(IntValue(i))
-        case (CwlLong, VInt(l))                => Some(LongValue(l))
-        case (CwlFloat, VFloat(f))             => Some(FloatValue(f.toFloat))
-        case (CwlFloat, VInt(i))               => Some(FloatValue(i.toFloat))
-        case (CwlDouble, VFloat(f))            => Some(FloatValue(f))
-        case (CwlDouble, VInt(i))              => Some(FloatValue(i.toDouble))
-        case (CwlString, VString(s))           => Some(StringValue(s))
-        case (CwlFile, VString(path))          => Some(FileValue(path))
-        case (CwlFile, VFile(path))            => Some(FileValue(path))
-        case (CwlDirectory, VString(path))     => Some(DirectoryValue(path))
-        case (CwlDirectory, VFile(path))       => Some(DirectoryValue(path))
+        case (CwlBoolean, VBoolean(b))         => BooleanValue(b)
+        case (CwlInt, VInt(i)) if i.isValidInt => IntValue(i)
+        case (CwlLong, VInt(l))                => LongValue(l)
+        case (CwlFloat, VFloat(f))             => FloatValue(f.toFloat)
+        case (CwlFloat, VInt(i))               => FloatValue(i.toFloat)
+        case (CwlDouble, VFloat(f))            => FloatValue(f)
+        case (CwlDouble, VInt(i))              => FloatValue(i.toDouble)
+        case (CwlString, VString(s))           => StringValue(s)
+        case (CwlFile, VString(path))          => FileValue(path)
+        case (CwlFile, VFile(path))            => FileValue(path)
+        case (CwlDirectory, VString(path))     => DirectoryValue(path)
+        case (CwlDirectory, VFile(path))       => DirectoryValue(path)
         case (array: CwlArray, VArray(items)) =>
-          Some(ArrayValue(items.zipWithIndex.map {
-            case (item, i) => fromIRValue(item, array.itemTypes, s"${innerName}[${i}]")
-          }))
+          ArrayValue(items.zipWithIndex.map {
+            case (item, i) => fromIRValue(item, array.itemTypes, s"${innerName}[${i}]")._2
+          })
         case (record: CwlRecord, VHash(members)) =>
           // ensure 1) members keys are a subset of memberTypes keys, 2) members
           // values are convertable to the corresponding types, and 3) any keys
@@ -86,20 +94,25 @@ object CwlUtils {
                 s"struct ${record.name} value is missing non-optional members ${missingNonOptional}"
             )
           }
-          Some(ObjectValue(members.map {
+          ObjectValue(members.map {
             case (key, value) =>
-              key -> fromIRValue(value, record.fields(key).types, s"${innerName}[${key}]")
-          }))
+              key -> fromIRValue(value, record.fields(key).types, s"${innerName}[${key}]")._2
+          })
         case (enum: CwlEnum, VString(s)) if enum.symbols.contains(s) =>
-          Some(StringValue(s))
-        case _ => None
+          StringValue(s)
+        case _ =>
+          throw new Exception(s"cannot translate ${innerValue} to CwlValue of type ${innerType}")
       }
     }
     cwlTypes.iterator
-      .map(t => inner(value, t, name))
-      .collectFirst {
-        case Some(value) => value
+      .map { t =>
+        try {
+          Some((t, inner(value, t, name)))
+        } catch {
+          case _: Throwable => None
+        }
       }
+      .collectFirst { case Some(result) => result }
       .getOrElse {
         if (cwlTypes.contains(CwlAny)) {
           fromIRValue(value, Some(name))
@@ -109,5 +122,9 @@ object CwlUtils {
       }
   }
 
-  def fromIR(values: Map[String, Value]): Map[String, CwlValue] = {}
+  def fromIR(values: Map[String, Value]): Map[String, (CwlType, CwlValue)] = {
+    values.map {
+      case (name, value) => name -> fromIRValue(value, Some(name))
+    }
+  }
 }

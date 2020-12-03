@@ -57,9 +57,9 @@ case class CwlTaskExecutor(tool: CommandLineTool,
       case (env, (name, cwlTypes)) =>
         val cwlValue = jobMeta.primaryInputs.get(name) match {
           case Some(irValue) =>
-            evaluator.evaluate(CwlUtils.fromIRValue(irValue, cwlTypes, name),
-                               cwlTypes,
-                               evaluator.createEvauatorContext(env))
+            CwlUtils.fromIRValue(irValue, cwlTypes, name)
+          case None if defaults.contains(name) =>
+            evaluator.evaluate(defaults(name), cwlTypes, evaluator.createEvauatorContext(env))
           case None if cwlTypes.exists(CwlOptional.isOptional) =>
             NullValue
           case _ =>
