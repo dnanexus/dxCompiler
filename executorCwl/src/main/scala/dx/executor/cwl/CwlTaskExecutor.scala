@@ -1,9 +1,9 @@
 package dx.executor.cwl
 
-import dx.cwl.{CommandLineTool, CwlType, CwlValue, Parser}
+import dx.cwl.{CommandLineTool, CwlOptional, CwlType, CwlValue, NullValue, Parser}
 import dx.core.io.StreamFiles.StreamFiles
 import dx.core.ir.{Type, Value}
-import dx.core.languages.cwl.{CwlUtils, IrToCwlValueBindings, RequirementEvaluator}
+import dx.core.languages.cwl.{CwlEvaluator, CwlUtils, RequirementEvaluator}
 import dx.executor.{FileUploader, JobMeta, TaskExecutor}
 import dx.util.TraceLevel
 
@@ -37,18 +37,35 @@ case class CwlTaskExecutor(tool: CommandLineTool,
 
   override def executorName: String = "dxExecutorCwl"
 
-  private lazy val inputTypes: Map[String, Vector[CwlType]] = {
-    tool.inputs.collect {
+  private lazy val (inputTypes, defaults): (Map[String, Vector[CwlType]], Map[String, CwlValue]) = {
+    val (inputs, defaults) = tool.inputs.collect {
       case param if param.id.forall(_.name.isDefined) =>
-        param.id.get.name.get -> param.types
-    }.toMap
+        val name = param.id.get.name.get
+        (name -> param.types, param.default.map(name -> _))
+    }.unzip
+    (inputs.toMap, defaults.flatten.toMap)
   }
 
   private def cwlInputs: Map[String, CwlValue] = {
+    val missingTypes = jobMeta.primaryInputs.keySet.diff(inputTypes.keySet)
+    if (missingTypes.nonEmpty) {
+      throw new Exception(s"no type information given for input(s) ${missingTypes.mkString(",")}")
+    }
     // convert IR to CWL values; discard auxiliary fields
-    val inputCwlValues: Map[String, CwlValue] = jobMeta.primaryInputs.map {
-      case (name, value) =>
-        name -> CwlUtils.fromIRValue(value, inputTypes(name), name)
+    val evaluator = CwlEvaluator(tool.requirements, jobMeta.workerPaths)
+    inputTypes.foldLeft(Map.empty[String, CwlValue]) {
+      case (env, (name, cwlTypes)) =>
+        val cwlValue = jobMeta.primaryInputs.get(name) match {
+          case Some(irValue) =>
+            evaluator.evaluate(CwlUtils.fromIRValue(irValue, cwlTypes, name),
+                               cwlTypes,
+                               evaluator.createEvauatorContext(env))
+          case None if cwlTypes.exists(CwlOptional.isOptional) =>
+            NullValue
+          case _ =>
+            throw new Exception(s"Missing required input ${name} to tool ${tool.id}")
+        }
+        env + (name -> cwlValue)
     }
   }
 
