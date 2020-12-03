@@ -29,9 +29,7 @@ test/scratch
 
 # misc
 applet_resources/
-src/main/resources/dxCompiler_runtime.conf
-src/main/antlr4
-src/main/scala/wdlTools
+compiler/src/main/resources/dxCompiler_runtime.conf
 *.tmp
 venv/
 
