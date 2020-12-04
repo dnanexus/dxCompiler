@@ -182,7 +182,7 @@ def _build_asset(top_dir, language, destination):
     os.chdir(crnt_work_dir)
 
 
-def _make_prerequisites(project, folder, version_id, top_dir, language, resources):
+def _make_prerequisites(project, folder, version_id, top_dir, language, jar_path, resources):
     # Create a folder for the language-specific asset
     language_dir = os.path.join(top_dir, "applet_resources", language)
     language_resources_dir = os.path.join(language_dir, "resources", "usr", "bin")
@@ -195,9 +195,9 @@ def _make_prerequisites(project, folder, version_id, top_dir, language, resource
     # Create the asset description file
     _create_asset_spec(version_id, top_dir, language)
 
-    # info the files that will be included in the asset bundle
-    dirlist = subprocess.check_output(["ls", "-laR", language_dir])
-    raise Exception(dirlist)
+    print("building asset for language {} with JAR {}".format(language, jar_path))
+    if not os.path.exists(jar_path):
+        raise Exception("missing JAR {}".format(jar_path))
 
     # Create an asset from the dxWDL jar file and its dependencies,
     # this speeds up applet creation.
@@ -293,9 +293,10 @@ def build(project, folder, version_id, top_dir, path_dict, dependencies=None, fo
         # Create a configuration file
         _gen_config_file(top_dir, path_dict)
         jar_paths = _sbt_assembly(top_dir)
+        info("jar_paths: {}".format(jar_paths))
 
         assets = dict(
-            (lang, _make_prerequisites(project, folder, version_id, top_dir, lang, resources))
+            (lang, _make_prerequisites(project, folder, version_id, top_dir, lang, jar_paths[lang], resources))
             for lang in languages
         )
 
