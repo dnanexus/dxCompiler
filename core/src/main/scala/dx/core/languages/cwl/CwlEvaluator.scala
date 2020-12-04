@@ -40,7 +40,7 @@ case class CwlEvaluator(requirements: Vector[Requirement], workerPaths: DxWorker
 
   def evaluate(value: CwlValue,
                cwlTypes: Vector[CwlType],
-               ctx: EvaluatorContext = emptyEvaluatorContext): CwlValue = {
+               ctx: EvaluatorContext = emptyEvaluatorContext): (CwlType, CwlValue) = {
     def inner(innerValue: CwlValue, innerTypes: Vector[CwlType]): CwlValue = {
       innerValue match {
         case StringValue(s) =>

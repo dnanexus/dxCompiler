@@ -46,7 +46,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
     (inputs.toMap, defaults.flatten.toMap)
   }
 
-  private def cwlInputs: Map[String, CwlValue] = {
+  private def cwlInputs: Map[String, (CwlType, CwlValue)] = {
     val missingTypes = jobMeta.primaryInputs.keySet.diff(inputTypes.keySet)
     if (missingTypes.nonEmpty) {
       throw new Exception(s"no type information given for input(s) ${missingTypes.mkString(",")}")
@@ -85,7 +85,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
     }
   }
 
-  private lazy val defaultRuntimeAttrs: Map[String, CwlValue] = {
+  private lazy val defaultRuntimeAttrs: Map[String, (CwlType, CwlValue)] = {
     CwlUtils.fromIR(jobMeta.defaultRuntimeAttrs)
   }
 
