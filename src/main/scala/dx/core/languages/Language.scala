@@ -6,7 +6,7 @@ import dx.util.Enum
 
 object Language extends Enum {
   type Language = Value
-  val WdlVDraft2, WdlV1_0, WdlV2_0, CwlV1_0, CwlV1_1, CwlV1_2 = Value
+  val WdlVDraft2, WdlV1_0, WdlV2_0, CwlV1_2 = Value
   val WdlDefault: Language = WdlV1_0
   val CwlDefault: Language = CwlV1_2
 
@@ -31,8 +31,6 @@ object Language extends Enum {
   def toCwlVersion(value: Value): CWLVersion = {
     value match {
       case CwlV1_2 => CWLVersion.V1_2
-      case CwlV1_1 => CWLVersion.V1_1
-      case CwlV1_0 => CWLVersion.V1_0
       case other   => throw new Exception(s"${other} is not a cwl version")
     }
   }
@@ -40,8 +38,6 @@ object Language extends Enum {
   def fromCwlVersion(version: CWLVersion): Value = {
     version match {
       case CWLVersion.V1_2 => Language.CwlV1_2
-      case CWLVersion.V1_1 => Language.CwlV1_1
-      case CWLVersion.V1_0 => Language.CwlV1_0
       case other   => throw new Exception(s"Unsupported dialect ${other}")
     }
   }
@@ -79,8 +75,6 @@ object Language extends Enum {
       case (None | Some("wdl"), Some("draft2"))                      => Language.WdlVDraft2
       case (None | Some("wdl"), Some("draft3" | "10" | "v10"))       => Language.WdlV1_0
       case (None | Some("wdl"), Some("development" | "20" | "v20"))  => Language.WdlV2_0
-      case (None | Some("cwl"), Some("v1.0" | "1.0" | "10" | "v10")) => Language.CwlV1_0
-      case (None | Some("cwl"), Some("v1.1" | "1.1" | "11" | "v11")) => Language.CwlV1_1
       case (None | Some("cwl"), Some("v1.2" | "1.2" | "12" | "v12")) => Language.CwlV1_2
       case other =>
         throw new Exception(s"Unrecognized/unsupported language ${other}")

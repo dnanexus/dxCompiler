@@ -1,7 +1,7 @@
 package dx.core.languages.cwl
 
 import dx.translator.CallableAttributes.{DescriptionAttribute, TitleAttribute}
-import dx.cwl.{ArrayValue, BooleanValue, CwlArray, CwlBoolean, CwlDirectory, CwlDouble, CwlEnum, CwlFile, CwlFloat, CwlInt, CwlLong, CwlNull, CwlOptional, CwlRecord, CwlString, CwlType, CwlValue, DirectoryValue, DoubleValue, FileValue, FloatValue, IntValue, LongValue, NullValue, ObjectValue, StringValue}
+import dx.cwl.{ArrayValue, BooleanValue, CwlArray, CwlBoolean, CwlDirectory, CwlDouble, CwlEnum, CwlFile, CwlFloat, CwlInt, CwlLong, CwlNull, CwlOptional, CwlRecord, CwlSchema, CwlString, CwlType, CwlValue, DirectoryValue, DoubleValue, FileValue, FloatValue, IntValue, LongValue, NullValue, ObjectValue, SchemaDefRequirement, StringValue}
 import dx.core.ir.{CallableAttribute, ParameterAttribute, Type, Value}
 import dx.core.ir.Type.{TArray, TBoolean, TDirectory, TEnum, TFile, TFloat, THash, TInt, TOptional, TSchema, TString}
 import dx.core.ir.Value.{VArray, VBoolean, VDirectory, VFile, VFloat, VHash, VInt, VNull, VString}
@@ -33,24 +33,20 @@ object CwlUtils {
     }
   }
 
-  def fromIRType(irType: Type): CwlType = {
-    def inner(innerType: Type): CwlType = {
-      innerType match {
-        case TBoolean => CwlBoolean
-        case TInt => CwlInt
-        case TFloat => CwlFloat
-        case TString => CwlString
-        case TFile => CwlFile
-        case TDirectory => CwlDirectory
-        case TOptional(t) => inner(t)
-        case TSchema(name, _) =>
-          throw new Exception(s"Unknown type ${name}")
-        case _ =>
-          throw new Exception(s"Cannot convert IR type ${innerType} to WDL")
-      }
+  def fromIRType(irType: Type, typeAliases: Map[String, CwlSchema] = Map.empty): CwlType = {
+    irType match {
+      case TBoolean => CwlBoolean
+      case TInt => CwlInt
+      case TFloat => CwlFloat
+      case TString => CwlString
+      case TFile => CwlFile
+      case TDirectory => CwlDirectory
+      case TOptional(t) => fromIRType(t)
+      case TSchema(name, _) =>
+        throw new Exception(s"Unknown type ${name}")
+      case _ =>
+        throw new Exception(s"Cannot convert IR type ${irType} to CWL")
     }
-
-    inner(irType)
   }
 
 
@@ -148,6 +144,16 @@ object CwlUtils {
       case None => Option.empty[TitleAttribute]
     }
     Vector(helpAttribute, labelAttribute).collect { case Some(i: CallableAttribute) => i }
+  }
+
+  def getTypeAliases(requirements: Vector[SchemaDefRequirement]): Map[String, CwlSchema] = {
+    var typeAliases = Map.empty[String, CwlSchema]
+    for (req <- requirements) {
+      for (typedef <- req.typeDefinitions) {
+        typeAliases = typeAliases ++ Map(typedef.name.get -> typedef)
+      }
+    }
+    typeAliases
   }
 }
 

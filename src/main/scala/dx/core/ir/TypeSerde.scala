@@ -356,7 +356,7 @@ object TypeSerde {
       case TFile            => "File"
       case TDirectory       => "Directory"
       case THash            => "Hash"
-      case TEnum(values)    => s"Enum[${values.mkString(",")}]"
+      case TEnum(values)    => s"Enum{${values.mkString(",")}}"
       case TSchema(name, _) => name
       case TArray(memberType, _) => s"Array[${toString(memberType)}]"
       case TOptional(TOptional(_)) => throw new Exception(s"nested optional type ${t}")
