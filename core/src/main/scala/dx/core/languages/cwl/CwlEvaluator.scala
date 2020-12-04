@@ -31,9 +31,12 @@ case class CwlEvaluator(requirements: Vector[Requirement], workerPaths: DxWorker
 
   lazy val evaluator: Evaluator = Evaluator(javascriptEnabled, javascriptLibrary, schemaDefs)
 
-  def createEvauatorContext(env: Map[String, CwlValue] = Map.empty,
+  def createEvauatorContext(env: Map[String, (CwlType, CwlValue)] = Map.empty,
                             self: CwlValue = NullValue): EvaluatorContext = {
-    EvaluatorContext(self, ObjectValue(env), runtime)
+    val values = env.map {
+      case (key, (_, value)) => key -> value
+    }
+    EvaluatorContext(self, ObjectValue(values), runtime)
   }
 
   private lazy val emptyEvaluatorContext = createEvauatorContext()
@@ -41,7 +44,7 @@ case class CwlEvaluator(requirements: Vector[Requirement], workerPaths: DxWorker
   def evaluate(value: CwlValue,
                cwlTypes: Vector[CwlType],
                ctx: EvaluatorContext = emptyEvaluatorContext): (CwlType, CwlValue) = {
-    def inner(innerValue: CwlValue, innerTypes: Vector[CwlType]): CwlValue = {
+    def inner(innerValue: CwlValue, innerTypes: Vector[CwlType]): (CwlType, CwlValue) = {
       innerValue match {
         case StringValue(s) =>
           evaluator.apply(s, innerTypes, ctx)
@@ -50,7 +53,8 @@ case class CwlEvaluator(requirements: Vector[Requirement], workerPaths: DxWorker
             .map {
               case arrayType: CwlArray =>
                 try {
-                  Some(ArrayValue(items.map(inner(_, arrayType.itemTypes))))
+                  val (types, values) = items.map(inner(_, arrayType.itemTypes)).unzip
+                  Some((CwlArray(types.distinct), ArrayValue(values)))
                 } catch {
                   case _: Throwable => None
                 }
@@ -69,10 +73,15 @@ case class CwlEvaluator(requirements: Vector[Requirement], workerPaths: DxWorker
             .map {
               case record: CwlRecord =>
                 try {
-                  Some(ObjectValue(members.map {
+                  val (types, values) = members.map {
                     case (key, value) =>
-                      key -> inner(value, record.fields(key).types)
-                  }))
+                      val (t, v) = inner(value, record.fields(key).types)
+                      (key -> t, key -> v)
+                  }.unzip
+                  val recordType = CwlRecord(types.map {
+                    case (name, t) => name -> CwlRecordField(name, Vector(t))
+                  }.toMap)
+                  Some((recordType, ObjectValue(values.toMap)))
                 } catch {
                   case _: Throwable => None
                 }
@@ -86,9 +95,19 @@ case class CwlEvaluator(requirements: Vector[Requirement], workerPaths: DxWorker
                     s"object ${members} does not evaluate to any of ${innerTypes}"
                 )
             )
-        case _ => value
+        case _ => value.coerceTo(cwlTypes)
       }
     }
     inner(value, cwlTypes)
+  }
+
+  def evaluateMap(
+      env: Map[String, (CwlType, CwlValue)],
+      ctx: EvaluatorContext = emptyEvaluatorContext
+  ): Map[String, (CwlType, CwlValue)] = {
+    env.foldLeft(Map.empty[String, (CwlType, CwlValue)]) {
+      case (accu, (key, (cwlType, cwlValue))) =>
+        accu + (key -> evaluate(cwlValue, Vector(cwlType), ctx))
+    }
   }
 }

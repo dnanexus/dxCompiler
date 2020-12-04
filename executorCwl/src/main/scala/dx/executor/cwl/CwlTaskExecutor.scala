@@ -1,6 +1,6 @@
 package dx.executor.cwl
 
-import dx.cwl.{CommandLineTool, CwlOptional, CwlType, CwlValue, NullValue, Parser}
+import dx.cwl.{CommandLineTool, CwlNull, CwlOptional, CwlType, CwlValue, NullValue, Parser}
 import dx.core.io.StreamFiles.StreamFiles
 import dx.core.ir.{Type, Value}
 import dx.core.languages.cwl.{CwlEvaluator, CwlUtils, RequirementEvaluator}
@@ -53,23 +53,23 @@ case class CwlTaskExecutor(tool: CommandLineTool,
     }
     // convert IR to CWL values; discard auxiliary fields
     val evaluator = CwlEvaluator(tool.requirements, jobMeta.workerPaths)
-    inputTypes.foldLeft(Map.empty[String, CwlValue]) {
+    inputTypes.foldLeft(Map.empty[String, (CwlType, CwlValue)]) {
       case (env, (name, cwlTypes)) =>
-        val cwlValue = jobMeta.primaryInputs.get(name) match {
+        val (cwlType, cwlValue) = jobMeta.primaryInputs.get(name) match {
           case Some(irValue) =>
             CwlUtils.fromIRValue(irValue, cwlTypes, name)
           case None if defaults.contains(name) =>
             evaluator.evaluate(defaults(name), cwlTypes, evaluator.createEvauatorContext(env))
           case None if cwlTypes.exists(CwlOptional.isOptional) =>
-            NullValue
+            (CwlNull, NullValue)
           case _ =>
             throw new Exception(s"Missing required input ${name} to tool ${tool.id}")
         }
-        env + (name -> cwlValue)
+        env + (name -> (cwlType, cwlValue))
     }
   }
 
-  private def printInputs(inputs: Map[String, CwlValue]): Unit = {
+  private def printInputs(inputs: Map[String, (CwlType, CwlValue)]): Unit = {
     if (logger.isVerbose) {
       val inputStr = tool.inputs
         .flatMap {
@@ -89,13 +89,19 @@ case class CwlTaskExecutor(tool: CommandLineTool,
     CwlUtils.fromIR(jobMeta.defaultRuntimeAttrs)
   }
 
-  private def getRequiredInstanceType(inputs: Map[String, CwlValue] = cwlInputs): String = {
+  private def getRequiredInstanceType(
+      inputs: Map[String, (CwlType, CwlValue)] = cwlInputs
+  ): String = {
     logger.traceLimited("calcInstanceType", minLevel = TraceLevel.VVerbose)
     printInputs(inputs)
-    val env = evaluate(inputs)
-    val evaluator =
-      RequirementEvaluator(tool.requirements, defaultRuntimeAttrs ++ env, jobMeta.workerPaths)
-    val request = evaluator.parseInstanceType
+    val cwlEvaluator = CwlEvaluator(tool.requirements, jobMeta.workerPaths)
+    val env = cwlEvaluator.evaluateMap(inputs)
+    val reqEvaluator = RequirementEvaluator(
+        tool.requirements,
+        defaultRuntimeAttrs ++ env,
+        jobMeta.workerPaths
+    )
+    val request = reqEvaluator.parseInstanceType
     logger.traceLimited(s"calcInstanceType $request")
     jobMeta.instanceTypeDb.apply(request).name
   }

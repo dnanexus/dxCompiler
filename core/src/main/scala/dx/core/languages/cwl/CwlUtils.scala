@@ -7,17 +7,6 @@ import dx.cwl._
 import scala.annotation.tailrec
 
 object CwlUtils {
-
-  def isOptional(t: CwlType): Boolean = {
-    t match {
-      case CwlOptional(_) => true
-      case _              => false
-    }
-  }
-
-  def anyOptional(types: Vector[CwlType]): Boolean = {
-    types.exists(isOptional)
-  }
   def fromIRValue(value: Value, name: Option[String]): (CwlType, CwlValue) = {
     value match {
       case VNull         => (CwlNull, NullValue)
@@ -86,8 +75,8 @@ object CwlUtils {
           }
           val missingNonOptional =
             keys1.diff(keys2).map(key => key -> record.fields(key)).filterNot {
-              case (_, field) if anyOptional(field.types) => false
-              case _                                      => true
+              case (_, field) if CwlOptional.anyOptional(field.types) => false
+              case _                                                  => true
             }
           if (missingNonOptional.nonEmpty) {
             throw new Exception(

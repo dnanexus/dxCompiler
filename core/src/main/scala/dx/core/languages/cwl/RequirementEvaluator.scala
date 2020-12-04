@@ -6,7 +6,7 @@ import dx.core.io.DxWorkerPaths
 import dx.cwl._
 
 case class RequirementEvaluator(requirements: Vector[Requirement],
-                                env: Map[String, CwlValue],
+                                env: Map[String, (CwlType, CwlValue)],
                                 workerPaths: DxWorkerPaths) {
   lazy val evaluator: CwlEvaluator = CwlEvaluator(requirements, workerPaths)
   private lazy val evaluatorContext = evaluator.createEvauatorContext(env)
@@ -30,7 +30,7 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
   private def evaluateNumeric(value: CwlValue,
                               mc: MathContext,
                               scale: Option[Long] = None): Long = {
-    (evaluator.evaluate(value, CwlNumericTypes, evaluatorContext), scale) match {
+    (evaluator.evaluate(value, CwlNumericTypes, evaluatorContext)._2, scale) match {
       case (num: NumericValue, Some(d)) =>
         (num.decimalValue / d).round(mc).toLongExact
       case (num: NumericValue, None) =>
