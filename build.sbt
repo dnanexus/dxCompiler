@@ -34,17 +34,17 @@ lazy val global = root
       executorWdl
   )
 
-def getVersion(subproject: String, subprojectName: String): String = {
-  val confPath = s"${subproject}/src/main/resources/application.conf"
+val dxCompilerVersion: String = {
+  val confPath = s"core/src/main/resources/application.conf"
   val conf = ConfigFactory.parseFile(new File(confPath)).resolve()
-  conf.getString(s"${subprojectName}.version")
+  conf.getString(s"dxCompilerCore.version")
 }
 
 val core = project
   .in(file("core"))
   .settings(
       name := "dxCompilerCore",
-      version := getVersion("core", "dxCompilerCore"),
+      version := dxCompilerVersion,
       settings,
       libraryDependencies ++= commonDependencies ++ Seq(
           dependencies.typesafe,
@@ -58,7 +58,7 @@ val compiler = project
   .in(file("compiler"))
   .settings(
       name := "dxCompiler",
-      version := getVersion("compiler", "dxCompiler"),
+      version := dxCompilerVersion,
       settings,
       assemblySettings,
       libraryDependencies ++= commonDependencies ++ Seq(
@@ -74,7 +74,7 @@ val executorCommon = project
   .in(file("executorCommon"))
   .settings(
       name := "dxExecutorCommon",
-      version := getVersion("executorCommon", "dxExecutorCommon"),
+      version := dxCompilerVersion,
       settings,
       libraryDependencies ++= commonDependencies ++ Seq()
   )
@@ -85,7 +85,7 @@ val executorWdl = project
   .in(file("executorWdl"))
   .settings(
       name := "dxExecutorWdl",
-      version := getVersion("executorWdl", "dxExecutorWdl"),
+      version := dxCompilerVersion,
       settings,
       assemblySettings,
       libraryDependencies ++= commonDependencies ++ Seq(
@@ -101,7 +101,7 @@ val executorCwl = project
   .in(file("executorCwl"))
   .settings(
       name := "dxExecutorCwl",
-      version := getVersion("executorCwl", "dxExecutorCwl"),
+      version := dxCompilerVersion,
       settings,
       assemblySettings,
       libraryDependencies ++= commonDependencies ++ Seq(
