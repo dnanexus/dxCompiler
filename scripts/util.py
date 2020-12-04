@@ -196,7 +196,8 @@ def _make_prerequisites(project, folder, version_id, top_dir, language, resource
     _create_asset_spec(version_id, top_dir, language)
 
     # info the files that will be included in the asset bundle
-    info(subprocess.check_output(["ls", "-laR", language_dir]))
+    dirlist = subprocess.check_output(["ls", "-laR", language_dir])
+    raise Exception(dirlist)
 
     # Create an asset from the dxWDL jar file and its dependencies,
     # this speeds up applet creation.
