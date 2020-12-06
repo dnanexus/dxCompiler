@@ -17,7 +17,7 @@ task DiskSpaceSpec {
 
 >>>
   runtime {
-    disks: "local-disk " + disk_req_gb + " HDD"
+    disks: "local-disk ${disk_req_gb} HDD"
   }
   output {
      String retval = read_string(stdout())
@@ -67,7 +67,7 @@ task MemorySpec {
    fi
   >>>
   runtime {
-    memory: memory_req_gb + " GB"
+    memory: "${memory_req_gb} GB"
   }
   output {
     String retval = read_string(stdout())

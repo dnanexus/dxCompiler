@@ -77,6 +77,6 @@ RUN mkdir -p devel && cd devel && \
 RUN mv /devel/dxfuse /go/src/github.com/dnanexus && \
     go build -o /go/bin/dxfuse /go/src/github.com/dnanexus/dxfuse/cli/main.go
 
-# Clone and make dxWDL
-RUN git clone https://github.com/dnanexus/dxWDL.git
-RUN cd /dxWDL && sbt assembly
+# Clone and make dxCompiler
+RUN git clone https://github.com/dnanexus/dxCompiler.git
+RUN cd /dxCompiler && sbt assembly

@@ -1,6 +1,5 @@
-# wget https://github.com/dnanexus/dxWDL/releases/download/1.12/dxWDL-1.12.jar
 # dx select project-FbBGFVj0P596KqVZ91p6fqzF
-# java -jar dxWDL-1.12.jar compile toy.wdl -project project-FbBGFVj0P596KqVZ91p6fqzF -f
+# java -jar dxCompiler-2.0.0.jar compile toy.wdl -project project-FbBGFVj0P596KqVZ91p6fqzF -f
 # dx run toy -y --name 25x239
 # dx run toy -y --name 25x148 -i common.N=148
 version 1.0

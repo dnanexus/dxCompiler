@@ -32,7 +32,7 @@ task Animals {
         echo "${s} --K -S --flags --contamination ${default=0 num} --s ${default="foobar" foo}"
     }
     runtime {
-       disks: "local-disk " + disk_size + " HDD"
+       disks: "local-disk ${disk_size} HDD"
        cpu: num_cores
        memory: "2 GB"
     }

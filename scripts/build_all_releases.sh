@@ -13,21 +13,21 @@ docker_user=""
 # https://stackoverflow.com/questions/4774054/reliable-way-for-a-bash-script-to-get-the-full-path-to-itself
 # Get the source directory of the distribution
 function get_top_dir {
-    SCRIPT=`realpath $0`
-    SCRIPTPATH=`dirname $SCRIPT`
-    top_dir=$(realpath $SCRIPTPATH/..)
-    echo "The dxWDL top directory is: $top_dir"
+    SCRIPT=$(realpath "$0")
+    SCRIPTPATH=$(dirname "$SCRIPT")
+    top_dir=$(realpath "$SCRIPTPATH/..")
+    echo "The dxCompiler top directory is: $top_dir"
 }
 
 function get_version {
     # figure out the release tag
-    local config=$top_dir/src/main/resources/application.conf
-    version=$(grep version src/main/resources/application.conf | cut --delimiter='"' --fields=2)
-    if [ -z $version ]; then
-        echo "could not figure out the release version"
+    local config=$top_dir/core/src/main/resources/application.conf
+    version=$(grep version "${config}" | cut --delimiter='"' --fields=2)
+    if [ -z "$version" ]; then
+        echo "could not figure out the dxCompiler release version"
         exit 1
     fi
-    echo "version is $version"
+    echo "dxCompiler version is $version"
 }
 
 function basic_checks {
@@ -51,7 +51,7 @@ function basic_checks {
 
 function tag {
     local currentHash=$(git rev-parse HEAD)
-    local possibleTags=$(git tag --contains $currentHash)
+    local possibleTags=$(git tag --contains "$currentHash")
     if [[ $possibleTags == "" ]]; then
         echo "setting release tag on github"
         git tag $version
@@ -82,17 +82,17 @@ function build {
 }
 
 
-# Create a public docker image for the dxWDL compiler that allows a simple command line
+# Create a public docker image for dxCompiler that allows a simple command line
 # invocation
 function build_docker_image {
     cd $top_dir/scripts
-    ln $top_dir/dxWDL-${version}.jar .
+    ln $top_dir/dxCompiler-${version}.jar .
 
     echo "building a docker image"
-    sudo docker build --build-arg VERSION=${version} -t dnanexus/dxwdl:${version} .
+    sudo docker build --build-arg VERSION=${version} -t dnanexus/dxcompiler:${version} .
 
     echo "tagging as latest"
-    sudo docker tag dnanexus/dxwdl:${version} dnanexus/dxwdl:latest
+    sudo docker tag dnanexus/dxcompiler:${version} dnanexus/dxcompiler:latest
 
     echo "For the next steps to work you need to:"
     echo "(1) be logged into docker.io"
@@ -100,8 +100,8 @@ function build_docker_image {
     echo $docker_password | sudo docker login -u $docker_user --password-stdin
 
     echo "pushing to docker hub"
-    sudo docker push dnanexus/dxwdl:${version}
-    sudo docker push dnanexus/dxwdl:latest
+    sudo docker push dnanexus/dxcompiler:${version}
+    sudo docker push dnanexus/dxcompiler:latest
 }
 
 function usage_die

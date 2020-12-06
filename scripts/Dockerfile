@@ -8,7 +8,7 @@ ARG VERSION
 RUN apt-get update && \
     apt-get install -y openjdk-8-jdk-headless
 
-# dxWDL
-COPY dxWDL-$VERSION.jar /dxWDL.jar
+# dxCompiler
+COPY dxCompiler-$VERSION.jar /dxCompiler.jar
 
-ENTRYPOINT ["java", "-jar", "/dxWDL.jar"]
+ENTRYPOINT ["java", "-jar", "/dxCompiler.jar"]

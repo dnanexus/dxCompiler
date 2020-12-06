@@ -82,7 +82,7 @@ WDL types that fall outside these categories (e.g. ragged array of files `Array[
 
 A WDL file creates its own namespace. It may import other WDL files, each inhabiting its own namespace. Tasks and workflows from children can be called with their fully-qualified-names. We map the WDL namespace hierarchy to a flat space of *dx:applets* and *dx:workflows* in the target project and folder. To do this, we make sure that tasks and workflows are uniquely named.
 
-In a complex namespace, a task/workflow can have several definitions. Such namespaces cannot be compiled by dxWDL.
+In a complex namespace, a task/workflow can have several definitions. Such namespaces cannot be compiled by dxCompiler.
 
 ## Compiling a task
 
@@ -422,7 +422,7 @@ The Executor has two branches: TaskExecutor, for executing individual tasks, and
 The command line interface for the Executor is fairly simple:
 
 ```
-java -jar dxWDL.jar <task|workflow> <action> <rootdir> [options]
+java -jar dxCompiler.jar <task|workflow> <action> <rootdir> [options]
 
 Options:
     -streamAllFiles        Mount all files with dxfuse, do not use the download agent

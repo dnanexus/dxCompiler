@@ -1,6 +1,6 @@
 The reader is assumed to understand the [Workflow Description Language (WDL)](http://www.openwdl.org/), and have some experience using the [DNAnexus](http://www.dnanexus.com) platform.
 
-dxWDL takes a pipeline written in WDL, and statically compiles it to an equivalent workflow on the DNAnexus platform.
+dxCompiler takes a pipeline written in WDL, and statically compiles it to an equivalent workflow on the DNAnexus platform.
 
 - [Getting started](#getting-started)
 - [Extensions](#extensions)
@@ -35,13 +35,13 @@ dxWDL takes a pipeline written in WDL, and statically compiles it to an equivale
 
 Prerequisites: [DNAnexus platform](https://platform.dnanexus.com) account, [dx-toolkit](https://github.com/dnanexus/dx-toolkit), java 8+, python 2.7 or 3.5+.
 
-Make sure you've installed the dx-toolkit CLI, and initialized it with `dx login`. Download the latest dxWDL compiler jar file from the [releases](https://github.com/dnanexus/dxWDL/releases) page.
+Make sure you've installed the dx-toolkit CLI, and initialized it with `dx login`. Download the latest dxCompiler compiler jar file from the [releases](https://github.com/dnanexus/dxCompiler/releases) page.
 
 ## Compiling Workflow
 
 To compile a workflow:
 ```console
-$ java -jar dxWDL-xxx.jar compile /path/to/foo.wdl -project project-xxxx
+$ java -jar dxCompiler-xxx.jar compile /path/to/foo.wdl -project project-xxxx
 ```
 This compiles `foo.wdl` to platform workflow `foo` in dx's current project and folder. The generated workflow can then be run as usual using `dx run`. For example, if the workflow takes string argument `X`, then: ``` dx run foo -i0.X="hello world" ```
 
@@ -65,7 +65,7 @@ The `-inputs` option allows specifying a Cromwell JSON
 [format](https://software.broadinstitute.org/wdl/documentation/inputs.php)
 inputs file. An equivalent DNAx format inputs file is generated from
 it. For example, workflow
-[files](https://github.com/dnanexus/dxWDL/blob/master/test/files.wdl)
+[files](https://github.com/dnanexus/dxCompiler/blob/master/test/files.wdl)
 has input file
 
 ```
@@ -79,7 +79,7 @@ has input file
 The command
 
 ```console
-java -jar dxWDL-0.44.jar compile test/files.wdl -project project-xxxx -inputs test/files_input.json
+java -jar dxCompiler-2.0.0.jar compile test/files.wdl -project project-xxxx -inputs test/files_input.json
 ```
 
 generates a `test/files_input.dx.json` file that looks like this:
@@ -108,7 +108,7 @@ and compiles them as defaults into the workflow. If the `files.wdl` worklow is c
 `-defaults` instead of `-inputs`
 
 ```console
-$ java -jar dxWDL-0.44.jar compile test/files.wdl -project project-xxxx -defaults test/files_input.json
+$ java -jar dxCompiler-2.0.0.jar compile test/files.wdl -project project-xxxx -defaults test/files_input.json
 ```
 
 It can be run without parameters, for an equivalent execution.
@@ -134,27 +134,27 @@ Then adding it to the compilation command line will add the `atac-seq` docker im
 tasks by default.
 
 ```console
-$ java -jar dxWDL-0.44.jar compile test/files.wdl -project project-xxxx -defaults test/files_input.json -extras extraOptions.json
+$ java -jar dxCompiler-2.0.0.jar compile test/files.wdl -project project-xxxx -defaults test/files_input.json -extras extraOptions.json
 ```
 
 ## Describe WDL workflow to obtain execution tree
 
-You can describe a dnanexus workflow that was compiled by dxWDL to get an execution tree presentating the workfow.w.
+You can describe a dnanexus workflow that was compiled by dxCompiler to get an execution tree presentating the workfow.w.
 The execution tree will include information on the executables in the workflow (applets and subworkflows). 
 By default, the execution tree is return as JSON. You can supply a `--pretty` flag to return a pretty print. 
 
-To obtain execution tree from a dxWDL compiled workflow:
+To obtain execution tree from a dxCompiler compiled workflow:
 
 1. JSON - [example](./examples/four_levels.exectree.json)
 
 ```bash
-java -jar dxWDL-v1.46.5.jar describe <workflow_id> 
+java -jar dxCompiler-2.0.0.jar describe <workflow_id> 
 ```
 
 2. prettyPrint - [example](./examples/four_levels.exectree.pretty.txt)
 
 ```bash
-java -jar dxWDL-v1.46.5.jar describe <workflow_id> -pretty 
+java -jar dxCompiler-2.0.0.jar describe <workflow_id> -pretty 
 ```
    
 # Extensions
@@ -294,7 +294,7 @@ workflow math {
 }
 ```
 
-Currently, dxWDL does not support this feature. However, there is a [suggestion](MissingCallArguments.md) for limited support.
+Currently, dxCompiler does not support this feature. However, there is a [suggestion](MissingCallArguments.md) for limited support.
 
 # Task metadata
 
@@ -303,7 +303,7 @@ A WDL task has two sections where metadata can be specified:
 * meta: Provides overall metadata about the task
 * parameter_meta: Provides metadata for each of the input parameters
 
-Both of these sections allow arbitrary keys and values; unrecognized keys must be ignored by the workflow engine. dxWDL recognized specific keys in each section that are used when generating the native DNAnexus applets. The purpose of these keys is to provide the same information that can be specified in the [dxapp.json](https://documentation.dnanexus.com/developer/apps/app-metadata) file. 
+Both of these sections allow arbitrary keys and values; unrecognized keys must be ignored by the workflow engine. dxCompiler recognized specific keys in each section that are used when generating the native DNAnexus applets. The purpose of these keys is to provide the same information that can be specified in the [dxapp.json](https://documentation.dnanexus.com/developer/apps/app-metadata) file. 
 
 ## meta section
 
@@ -342,7 +342,7 @@ The following keys are also recognized but currently unused, as they only apply 
 Sometimes, it is desirable to call an existing dx:applet from a WDL workflow. For example, when porting a native workflow, we can leave the applets as is, without rewriting them in WDL. The `dxni` subcommand, short for *Dx Native Interface*, is dedicated to this use case. It searchs a platform folder and generates a WDL wrapper task for each applet. For example, the command:
 
 ```console
-$ java -jar dxWDL.jar dxni --project project-xxxx --folder /A/B/C --output dx_extern.wdl
+$ java -jar dxCompiler.jar dxni --project project-xxxx --folder /A/B/C --output dx_extern.wdl
 ```
 
 will find native applets in the `/A/B/C` folder, generate tasks for
@@ -408,7 +408,7 @@ workflow w {
 To call apps instead of applets, use
 
 ```console
-$ java -jar dxWDL.jar dxni -apps -o my_apps.wdl
+$ java -jar dxCompiler.jar dxni -apps -o my_apps.wdl
 ```
 
 The compiler will search for all the apps you can call, and create WDL
@@ -659,7 +659,7 @@ task bwa_mem {
 
 # Setting DNAnexus-specific attributes in extras.json
 
-When writing a dnanexus applet the user can specify options through the [dxapp.json](https://documentation.dnanexus.com/developer/apps/app-metadata#annotated-example) file. The dxWDL equivalent is the *extras* file, specified with the `extras` command line option. The extras file has a `default_task_dx_attributes` section where runtime specification, timeout policies, and access control can be set.
+When writing a dnanexus applet the user can specify options through the [dxapp.json](https://documentation.dnanexus.com/developer/apps/app-metadata#annotated-example) file. The dxCompiler equivalent is the *extras* file, specified with the `extras` command line option. The extras file has a `default_task_dx_attributes` section where runtime specification, timeout policies, and access control can be set.
 
 ```
 {
@@ -780,7 +780,7 @@ dx run YOUR_WORKFLOW --delay-workspace-destruction
 
 # Workflow metadata
 
-Similar to tasks, workflows can also have `meta` AND `parameter_meta` sections that contain arbitrary workflow-level metadata. dxWDL recognizes the following `meta` attributes and uses them when generating the native DNAnexus workflow:
+Similar to tasks, workflows can also have `meta` AND `parameter_meta` sections that contain arbitrary workflow-level metadata. dxCompiler recognizes the following `meta` attributes and uses them when generating the native DNAnexus workflow:
 
 * `title`: A short title for the workflow. If not specified, the task name is used as the title.
 * `summary`: A short description of the workflow. If not specified, the first line of the description is used (up to 50 characters or the first period, whichever comes first).
@@ -949,7 +949,7 @@ as an argument. For example, if `taskAttrs.json` is this file:
 Then adding it to the compilation command line will add the `atac-seq` docker image to all tasks by default.
 
 ```console
-$ java -jar dxWDL-0.44.jar compile files.wdl -project project-xxxx -defaults files_input.json -extras taskAttrs.json
+$ java -jar dxCompiler-2.0.0.jar compile files.wdl -project project-xxxx -defaults files_input.json -extras taskAttrs.json
 ```
 
 ## Private registries
@@ -1010,7 +1010,7 @@ following on the command line shell:
 
 ```bash
 $ export HTTP_PROXY = proxy.acme.com:8080
-$ java -jar dxWDL.jar compile ...
+$ java -jar dxCompiler.jar compile ...
 ```
 
 the compiler will send all requests through the machine `proxy.acme.com` on port `8080`.
@@ -1021,12 +1021,12 @@ If an a proxy with NTLM authentication is used, the following configuration is r
 $ export HTTP_PROXY_METHOD=ntlm
 $ export HTTP_PROXY_DOMAIN = acme.com
 $ export HTTP_PROXY = https://john_smith:welcome1@proxy.acme.com:8080
-$ java -jar dxWDL.jar compile ...
+$ java -jar dxCompiler.jar compile ...
 ```
 
 # Debugging an applet
 
-If you build an applet on the platform with dxWDL, and want to inspect
+If you build an applet on the platform with dxCompiler, and want to inspect
 it, use: ```dx get --omit-resources <applet path>```. This will
 refrain from downloading the large resource files that go into the
 applet.

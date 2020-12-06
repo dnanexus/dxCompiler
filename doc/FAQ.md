@@ -1,10 +1,10 @@
 > Q: Do you know if it is possible to use AWS ECR directly in conjunction with DNAnexus as a way to host docker images? It would be good to skip the step of saving the images and uploading them.
 
-A: For private registry that needs credentials, you may find the [extras option](https://github.com/dnanexus/dxWDL/blob/master/doc/ExpertOptions.md#private-registries) helpful.
+A: For private registry that needs credentials, you may find the [extras option](https://github.com/dnanexus/dxCompiler/blob/master/doc/ExpertOptions.md#private-registries) helpful.
 
 
 
-> Q: How does dxWDL work when trying to rerun jobs with exactly the same input parameters? Does it rerun everything, or just pieces that are different?
+> Q: How does dxCompiler work when trying to rerun jobs with exactly the same input parameters? Does it rerun everything, or just pieces that are different?
 
 A: Any workflows on the platform (WDL compiled or not), can have their output data reused if the job executable in any of the stage and the input data are the same as previously-run analysis, and that the output data is intact (no missing objects).
 
@@ -28,7 +28,7 @@ After the feature is turned on, the reuse works automatically unless options lik
 
 A: The intermediate output files can be moved to a specified folder by using the "--reorg" option during runtime. Detailed information on how to use it can be found in
 
-[https://github.com/dnanexus/dxWDL/blob/master/doc/ExpertOptions.md#handling-intermediate-workflow-outputs](https://github.com/dnanexus/dxWDL/blob/master/doc/ExpertOptions.md#handling-intermediate-workflow-outputs)
+[https://github.com/dnanexus/dxCompiler/blob/master/doc/ExpertOptions.md#handling-intermediate-workflow-outputs](https://github.com/dnanexus/dxCompiler/blob/master/doc/ExpertOptions.md#handling-intermediate-workflow-outputs)
 
 
 

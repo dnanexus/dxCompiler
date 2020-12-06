@@ -1,7 +1,6 @@
 version 1.0
 
-# A trivial script, to test the basic sanity
-# of a dxWDL release.
+# A trivial script, to test the basic integrity of a dxCompiler release.
 
 workflow trivial {
     input {

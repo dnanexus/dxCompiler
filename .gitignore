@@ -18,23 +18,24 @@ dx_extern.wdl
 dx_app_extern.wdl
 
 # jar files
-dxWDL*.jar
+dxCompiler*.jar
+dxExecutorWdl*.jar
+dxExecutorCwl*.jar
 dnanexus-api-*.jar
 antlr*.jar
-lib/
 
 # Draft WDL files
 test/scratch
 
 # misc
 applet_resources/
-src/main/resources/dxWDL_runtime.conf
-src/main/antlr4
-src/main/scala/wdlTools
+compiler/src/main/resources/dxCompiler_runtime.conf
 *.tmp
+venv/
 
 # IntelliJ
 .idea
+*.iml
 
 # Metals
 .metals

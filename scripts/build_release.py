@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# This script builds a dxCompiler release. A release consists of the client (dxCompiler.jar),
+# which is uploaded to
 
 import argparse
 import dxpy
@@ -17,24 +19,24 @@ top_dir = os.path.dirname(os.path.abspath(here))
 HOME_REGION = "aws:us-east-1"
 URL_DURATION = 60 * 60 * 24
 SLEEP_TIME = 5
-COPY_FILE_APP_NAME = "dxwdl_copy"
+COPY_FILE_APP_NAME = "dxcompiler_copy"
 COPY_FILE_APP = dxpy.find_one_app(zero_ok=False, more_ok=False, name=COPY_FILE_APP_NAME, return_handler=True)
 NUM_RETRIES = 1
 
 TEST_DICT = {
-    "aws:us-east-1" :  "dxWDL_playground"
+    "aws:us-east-1" :  "dxCompiler_playground"
 }
 
-# To add region R, create a project for it, dxWDL_R, and add
+# To add region R, create a project for it, dxCompiler_R, and add
 # a mapping to the lists
-#    R : dxWDL_R
+#    R : dxCompiler_R
 RELEASE_DICT = {
-    "aws:us-east-1" :  "dxWDL",
-    "aws:ap-southeast-2" : "dxWDL_Sydney",
-    "azure:westus" : "dxWDL_Azure",
-    "azure:westeurope" : "dxWDL_Amsterdam",
-    "aws:eu-central-1" : "dxWDL_Berlin",
-    "aws:eu-west-2": "dxWDL_London"
+    "aws:us-east-1" :  "dxCompiler",
+    "aws:ap-southeast-2" : "dxCompiler_Sydney",
+    "azure:westus" : "dxCompiler_Azure",
+    "azure:westeurope" : "dxCompiler_Amsterdam",
+    "aws:eu-central-1" : "dxCompiler_Berlin",
+    "aws:eu-west-2": "dxCompiler_London"
 }
 
 # 1. Use the clone-asset app to copy the file into [region].
@@ -166,7 +168,7 @@ def _clone_asset(record, folder, regions, project_dict):
 
 
 def main():
-    argparser = argparse.ArgumentParser(description="Build a dxWDL release")
+    argparser = argparse.ArgumentParser(description="Build a dxCompiler release")
     argparser.add_argument("--force",
                            help="Build even if there is an existing version",
                            action='store_true',
@@ -223,21 +225,23 @@ def main():
                          project_dict.items()))
     if args.dry_run:
         return
+
     home_ad = util.build(project, folder, version_id, top_dir, path_dict)
 
     if multi_region:
-        home_rec = dxpy.DXRecord(home_ad.asset_id)
-        all_regions = project_dict.keys()
+        for (assetName, asset_id) in home_ad.asset_ids.items():
+            home_rec = dxpy.DXRecord(asset_id)
+            all_regions = project_dict.keys()
 
-        # Leave only regions where the asset is missing
-        target_regions = []
-        for dest_region in all_regions:
-            dest_proj = util.get_project(project_dict[dest_region])
-            dest_asset = util.find_asset(dest_proj, folder)
-            if dest_asset == None:
-                target_regions.append(dest_region)
+            # Leave only regions where the asset is missing
+            target_regions = []
+            for dest_region in all_regions:
+                dest_proj = util.get_project(project_dict[dest_region])
+                dest_asset = util.find_asset(dest_proj, folder, assetName)
+                if dest_asset == None:
+                    target_regions.append(dest_region)
 
-        _clone_asset(home_rec, folder, target_regions, project_dict)
+            _clone_asset(home_rec, folder, target_regions, project_dict)
 
 if __name__ == '__main__':
     main()

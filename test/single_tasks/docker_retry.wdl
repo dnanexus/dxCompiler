@@ -7,7 +7,7 @@ task expressions_runtime_section {
         echo "Something is happening"
     }
     runtime {
-        docker: "dxwdltest-there-is-no-such-image:123"
+        docker: "dxcompilertest-there-is-no-such-image:123"
     }
     output {
     }

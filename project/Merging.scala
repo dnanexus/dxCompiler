@@ -4,6 +4,19 @@ import sbt._
 import sbtassembly.AssemblyPlugin.autoImport._
 import sbtassembly.{MergeStrategy, PathList}
 
+case class OnErrorMergeStrategy(strategy: MergeStrategy, fallback: MergeStrategy)
+    extends MergeStrategy {
+  override def name: String = s"OnError(${strategy.name},${fallback.name})"
+
+  def apply(tempDir: File, path: String, files: Seq[File]): Either[String, Seq[(File, String)]] = {
+    // TODO: log failure message
+    strategy.apply(tempDir, path, files) match {
+      case Right(success) => Right(success)
+      case Left(_)        => fallback.apply(tempDir, path, files)
+    }
+  }
+}
+
 object Merging {
   val customMergeStrategy: Def.Initialize[String => MergeStrategy] = Def.setting {
     case PathList(ps @ _*) if ps.last == "project.properties" =>
@@ -50,6 +63,6 @@ object Merging {
       MergeStrategy.last
     case x =>
       val oldStrategy = (assemblyMergeStrategy in assembly).value
-      oldStrategy(x)
+      OnErrorMergeStrategy(oldStrategy(x), MergeStrategy.first)
   }
 }

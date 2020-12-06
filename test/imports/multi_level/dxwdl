@@ -1,7 +1,7 @@
 #!/bin/bash -e
 eval "$(dx env --bash)"
-DXWDL_VERSION=v1.32
-echo $DXWDL_VERSION
+DXCOMPILER_VERSION=2.0.0
+echo $DXCOMPILER_VERSION
 docker run \
      --rm \
      -e DX_SECURITY_CONTEXT \
@@ -11,4 +11,4 @@ docker run \
      -e DX_PROJECT_CONTEXT_ID \
      --volume "$(pwd)":"$(pwd)" \
      --workdir "$(pwd)" \
-     dnanexus/dxwdl:${DXWDL_VERSION} "$@"
+     dnanexus/dxcompiler:${DXCOMPILER_VERSION} "$@"

@@ -2,6 +2,6 @@
   "call_native.x" : 3,
   "call_native.s" : "octopus",
   "call_native.flag" : true,
-  "call_native.fileA" : "dx://dxWDL_playground:/test_data/fileA",
-  "call_native.fileB" : "dx://dxWDL_playground:/test_data/fileB"
+  "call_native.fileA" : "dx://dxCompiler_playground:/test_data/fileA",
+  "call_native.fileB" : "dx://dxCompiler_playground:/test_data/fileB"
 }
