@@ -12,7 +12,10 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 import dx.util.{FileUtils, Logger, SysUtils}
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import dxCompiler.Main
+import java.util.UUID.randomUUID
 
 class DxNativeInterfaceTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
   assume(isLoggedIn)
@@ -21,6 +24,8 @@ class DxNativeInterfaceTest extends AnyFlatSpec with Matchers with BeforeAndAfte
   private val dxApi = DxApi()(logger)
 
   val testProject = "dxCompiler_playground"
+  val dateFormatter = DateTimeFormatter.ofPattern("yyyy/MM/dd-HH-mm")
+  val test_time =  dateFormatter.format(LocalDateTime.now)
 
   private lazy val dxTestProject =
     try {
@@ -35,11 +40,10 @@ class DxNativeInterfaceTest extends AnyFlatSpec with Matchers with BeforeAndAfte
 
   private val username = System.getProperty("user.name")
   private val unitTestsPath = s"unit_tests/${username}"
-  private val folderPath = s"/${unitTestsPath}/applets/"
+  private val folderPath = s"/${unitTestsPath}/applets_${test_time}_${randomUUID().toString.substring(24)}/"
 
   override def beforeAll(): Unit = {
     // build the directory with the native applets
-    dxTestProject.removeFolder(folderPath, recurse = true)
     dxTestProject.newFolder(folderPath, parents = true)
     // building necessary applets before starting the tests
     val nativeApplets = Vector(
