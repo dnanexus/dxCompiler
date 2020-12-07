@@ -12,9 +12,9 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 import dx.util.{FileUtils, Logger, SysUtils}
+import dxCompiler.Main
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import dxCompiler.Main
 import java.util.UUID.randomUUID
 
 class DxNativeInterfaceTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
