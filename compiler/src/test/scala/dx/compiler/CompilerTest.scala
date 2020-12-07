@@ -84,7 +84,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 //  }
 //  println(task.requirements)
 
-  val dateFormatter = DateTimeFormatter.ofPattern("yyyy/MM/dd-HH-mm")
+  val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm")
   val test_time =  dateFormatter.format(LocalDateTime.now)
 
   private val reorgAppletFolder = s"/${unitTestsPath}/reorg_applets_${test_time}_${randomUUID().toString.substring(24)}/"
