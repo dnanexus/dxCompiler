@@ -23,7 +23,7 @@ class DxNativeInterfaceTest extends AnyFlatSpec with Matchers with BeforeAndAfte
   private val logger = Logger.Quiet
   private val dxApi = DxApi()(logger)
 
-  val testProject = "dxCompiler_playground"
+  val testProject = "dxWDL_playground"
   val dateFormatter = DateTimeFormatter.ofPattern("yyyy/MM/dd-HH-mm")
   val test_time =  dateFormatter.format(LocalDateTime.now)
 
