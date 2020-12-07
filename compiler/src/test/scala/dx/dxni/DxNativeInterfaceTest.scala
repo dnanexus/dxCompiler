@@ -24,7 +24,7 @@ class DxNativeInterfaceTest extends AnyFlatSpec with Matchers with BeforeAndAfte
   private val dxApi = DxApi()(logger)
 
   val testProject = "dxCompiler_playground"
-  val dateFormatter = DateTimeFormatter.ofPattern("yyyy/MM/dd-HH-mm")
+  val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm")
   val test_time =  dateFormatter.format(LocalDateTime.now)
 
   private lazy val dxTestProject =
@@ -60,6 +60,10 @@ class DxNativeInterfaceTest extends AnyFlatSpec with Matchers with BeforeAndAfte
           logger = Logger.Quiet
       )
     }
+  }
+
+  override def afterAll(): Unit = {
+    dxTestProject.removeFolder(folderPath, recurse = true)
   }
 
   private def parseWdlTasks(
