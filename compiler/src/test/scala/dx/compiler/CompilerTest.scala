@@ -16,6 +16,9 @@ import org.scalatest.matchers.should.Matchers
 import spray.json._
 import dx.util.{FileUtils, Logger, SysUtils}
 import dxCompiler.Main
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.UUID.randomUUID
 
 // This test module requires being logged in to the platform.
 // It compiles WDL scripts without the runtime library.
@@ -80,12 +83,15 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 //    case _                       => throw new Exception("boo")
 //  }
 //  println(task.requirements)
-  private val reorgAppletFolder = s"/${unitTestsPath}/reorg_applets/"
+
+  val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm")
+  val test_time =  dateFormatter.format(LocalDateTime.now)
+
+  private val reorgAppletFolder = s"/${unitTestsPath}/reorg_applets_${test_time}_${randomUUID().toString.substring(24)}/"
   private val reorgAppletPath = s"${reorgAppletFolder}/functional_reorg_test"
 
   override def beforeAll(): Unit = {
     // build the directory with the native applets
-    dxTestProject.removeFolder(reorgAppletFolder, recurse = true)
     dxTestProject.newFolder(reorgAppletFolder, parents = true)
     // building necessary applets before starting the tests
     val nativeApplets = Vector("functional_reorg_test")
@@ -100,6 +106,10 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         case _: Throwable =>
       }
     }
+  }
+
+  override def afterAll(): Unit = {
+    dxTestProject.removeFolder(reorgAppletFolder, recurse = true)
   }
 
   private def getAppletId(path: String): String = {
