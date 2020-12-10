@@ -1,12 +1,129 @@
 package dx.core.languages.cwl
 
-import dx.core.ir.Value
+import dx.core.io.DxWorkerPaths
+import dx.core.ir.{Type, Value}
+import dx.core.ir.Type._
 import dx.core.ir.Value._
 import dx.cwl._
 
 import scala.annotation.tailrec
 
 object CwlUtils {
+  def toIRSchema(cwlRecord: CwlRecord): TSchema = {
+    if (cwlRecord.name.isEmpty) {
+      throw new Exception(s"cannot convert schema without name ${cwlRecord}")
+    }
+    TSchema(
+        cwlRecord.name.get,
+        cwlRecord.fields.map {
+          case (key, value) if value.types.size == 1 =>
+            key -> toIRType(value.types.head)
+          case _ =>
+            throw new Exception("Multi-type fields are not supported")
+        }
+    )
+  }
+
+  def toIRType(cwlType: CwlType): Type = {
+    cwlType match {
+      case CwlBoolean   => TBoolean
+      case CwlInt       => TInt
+      case CwlLong      => TInt
+      case CwlDouble    => TFloat
+      case CwlFloat     => TFloat
+      case CwlString    => TString
+      case CwlFile      => TFile
+      case CwlDirectory => TDirectory
+      case a: CwlArray if a.itemTypes.size == 1 =>
+        TArray(toIRType(a.itemTypes.head))
+      case r: CwlRecord if r.name.isDefined =>
+        toIRSchema(r)
+      case e: CwlEnum => TEnum(e.symbols)
+      case _ =>
+        throw new Exception(s"Cannot convert CWL type ${cwlType} to IR")
+    }
+  }
+
+  def toIRValue(cwlValue: CwlValue): Value = {
+    cwlValue match {
+      case NullValue         => VNull
+      case BooleanValue(b)   => VBoolean(value = b)
+      case IntValue(i)       => VInt(i)
+      case LongValue(l)      => VInt(l)
+      case FloatValue(f)     => VFloat(f)
+      case DoubleValue(d)    => VFloat(d)
+      case StringValue(s)    => VString(s)
+      case f: FileValue      => VFile(f.toString)
+      case d: DirectoryValue => VDirectory(d.toString)
+      case ArrayValue(a)     => VArray(a.map(toIRValue))
+      case ObjectValue(m) =>
+        VHash(m.map {
+          case (key, value) => key -> toIRValue(value)
+        })
+      case _ => throw new Exception(s"Invalid CWL value ${cwlValue})")
+    }
+  }
+
+  def toIRValue(cwlValue: CwlValue, cwlType: CwlType): Value = {
+    (cwlType, cwlValue) match {
+      case (CwlOptional(_), NullValue)       => VNull
+      case (CwlOptional(t), _)               => toIRValue(cwlValue, t)
+      case (CwlBoolean, BooleanValue(b))     => VBoolean(b)
+      case (CwlInt, IntValue(i))             => VInt(i)
+      case (CwlLong, LongValue(l))           => VInt(l)
+      case (CwlFloat, FloatValue(f))         => VFloat(f)
+      case (CwlDouble, DoubleValue(d))       => VFloat(d)
+      case (t: CwlNumber, n: NumericValue)   => toIRValue(n.coerceTo(t), t)
+      case (CwlString, StringValue(s))       => VString(s)
+      case (CwlFile, f: FileValue)           => VFile(f.toString)
+      case (CwlFile, StringValue(s))         => VFile(s)
+      case (CwlDirectory, d: DirectoryValue) => VDirectory(d.toString)
+      case (CwlDirectory, StringValue(s))    => VDirectory(s)
+      case (array: CwlArray, ArrayValue(items)) if array.itemTypes.size == 1 =>
+        VArray(items.map(toIRValue(_, array.itemTypes.head)))
+      case (record: CwlRecord, ObjectValue(members)) =>
+        VHash(members.map {
+          case (name, value)
+              if record.fields.contains(name) && record.fields(name).types.size == 1 =>
+            name -> toIRValue(value, record.fields(name).types.head)
+        })
+      case (enum: CwlEnum, StringValue(s)) if enum.symbols.contains(s) =>
+        VString(s)
+      case _ => throw new Exception(s"Invalid CWL value ${cwlValue})")
+    }
+  }
+
+  def toIR(cwl: Map[String, (CwlType, CwlValue)]): Map[String, (Type, Value)] = {
+    cwl.map {
+      case (name, (cwlType, cwlValue)) =>
+        val irType = toIRType(cwlType)
+        val irValue = toIRValue(cwlValue, cwlType)
+        name -> (irType, irValue)
+    }
+  }
+
+  def fromIRType(irType: Type, typeAliases: Map[String, CwlSchema] = Map.empty): CwlType = {
+    irType match {
+      case TOptional(t) => CwlOptional(fromIRType(t))
+      case TBoolean     => CwlBoolean
+      case TInt         => CwlLong
+      case TFloat       => CwlDouble
+      case TString      => CwlString
+      case TFile        => CwlFile
+      case TDirectory   => CwlDirectory
+      case TArray(t, _) => CwlArray(Vector(fromIRType(t, typeAliases)))
+      case TSchema(name, _) if typeAliases.contains(name) =>
+        typeAliases(name)
+      case TSchema(name, members) =>
+        CwlRecord(members.map {
+          case (name, t) => name -> CwlRecordField(name, Vector(fromIRType(t, typeAliases)))
+        }, Some(name))
+      case TEnum(allowedValues) => CwlEnum(allowedValues)
+      case _ =>
+        throw new Exception(s"Cannot convert IR type ${irType} to CWL")
+    }
+  }
+
   def fromIRValue(value: Value, name: Option[String]): (CwlType, CwlValue) = {
     value match {
       case VNull         => (CwlNull, NullValue)
@@ -36,6 +153,12 @@ object CwlUtils {
         throw new Exception(
             s"cannot convert ${name.getOrElse("IR")} value ${value} to WDL value"
         )
+    }
+  }
+
+  def fromIR(values: Map[String, Value]): Map[String, (CwlType, CwlValue)] = {
+    values.map {
+      case (name, value) => name -> fromIRValue(value, Some(name))
     }
   }
 
@@ -111,9 +234,27 @@ object CwlUtils {
       }
   }
 
-  def fromIR(values: Map[String, Value]): Map[String, (CwlType, CwlValue)] = {
+  def fromIR(values: Map[String, (Type, Value)]): Map[String, (CwlType, CwlValue)] = {
     values.map {
-      case (name, value) => name -> fromIRValue(value, Some(name))
+      case (name, (t, v)) =>
+        val cwlType = fromIRType(t)
+        name -> fromIRValue(v, Vector(cwlType), name)
     }
+  }
+
+  def createRuntime(workerPaths: DxWorkerPaths): Runtime = {
+    Runtime.create(
+        outdir = workerPaths.getOutputFilesDir(ensureExists = true),
+        tmpdir = workerPaths.getTempDir(ensureExists = true)
+    )
+  }
+
+  def createEvauatorContext(runtime: Runtime,
+                            env: Map[String, (CwlType, CwlValue)] = Map.empty,
+                            self: CwlValue = NullValue): EvaluatorContext = {
+    val values = env.map {
+      case (key, (_, value)) => key -> value
+    }
+    EvaluatorContext(self, ObjectValue(values), runtime)
   }
 }

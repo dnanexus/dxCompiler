@@ -213,9 +213,6 @@ case class WdlTaskExecutor(task: TAT.Task,
   ): Map[String, (Type, Value)] = {
     val outputTypes: Map[String, T] = task.outputs.map(d => d.name -> d.wdlType).toMap
     // Evaluate the output parameters in dependency order.
-    // These will include output files without canonicalized paths, which is why we need
-    // the following complex logic to match up local outputs to remote URIs.
-    // TODO: evaluate any private variables that depend on the command
     val localizedOutputs = taskIO
       .evaluateOutputs(
           evaluator,

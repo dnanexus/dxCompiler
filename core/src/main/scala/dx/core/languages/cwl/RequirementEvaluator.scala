@@ -8,8 +8,9 @@ import dx.cwl._
 case class RequirementEvaluator(requirements: Vector[Requirement],
                                 env: Map[String, (CwlType, CwlValue)],
                                 workerPaths: DxWorkerPaths) {
-  lazy val evaluator: CwlEvaluator = CwlEvaluator(requirements, workerPaths)
-  private lazy val evaluatorContext = evaluator.createEvauatorContext(env)
+  lazy val evaluator: Evaluator = Evaluator.create(requirements)
+  private lazy val runtime: Runtime = CwlUtils.createRuntime(workerPaths)
+  private lazy val evaluatorContext: EvaluatorContext = CwlUtils.createEvauatorContext(runtime, env)
 
   lazy val resources: ResourceRequirement = {
     requirements.collect {
