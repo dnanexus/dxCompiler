@@ -2,7 +2,7 @@ package dx.translator.cwl
 
 import java.nio.file.Path
 
-import dx.api.{DxApi, DxFile}
+import dx.api.{DxApi}
 import dx.core.ir.{Application, Callable, CallableAttribute, ExecutableKindApplet, Parameter, ParameterAttribute, RuntimeRequirement, Value}
 import dx.core.languages.cwl.CwlUtils
 import dx.translator.{ReorgSettings, RunSpec}
@@ -21,7 +21,7 @@ case class CallableTranslator(cwlBundle: CwlBundle,
   def translateCallable(callable: Process, sourceFile: Path, logger: Logger = Logger.get): Callable = {
     callable match {
       case tool: CommandLineTool =>
-        val taskTranslator = CwlToolTranslator(tool, sourceFile)
+        val taskTranslator = CwlToolTranslator(tool, sourceFile, logger)
         taskTranslator.apply
       case _: Workflow => throw new NotImplementedError("Workflows are not implemented!")
       case other => throw new NotImplementedError(s"CWL type ${other.getClass} is not supported!")
@@ -45,7 +45,7 @@ case class CallableTranslator(cwlBundle: CwlBundle,
     Parameter.apply(name.toString, dxType, defaultValue, attributes)
   }
 
-  private case class CwlToolTranslator(tool: CommandLineTool, sourceFile: Path) {
+  private case class CwlToolTranslator(tool: CommandLineTool, sourceFile: Path, logger: Logger = Logger.get) {
 
     def apply(): Application = {
       val typeAliases = CwlUtils.getTypeAliases(tool.requirements.collect({case a: SchemaDefRequirement => a}))
@@ -61,10 +61,10 @@ case class CallableTranslator(cwlBundle: CwlBundle,
       for (req <- tool.requirements) {
         req match {
           case WorkReuseRequirement(enable) => requirements = requirements :+ IgnoreReuseRequirement(enable.asInstanceOf[BooleanValue].value)
-          case ToolTimeLimitRequirement(timeLimit) => requirements = requirements :+ TimeoutRequirement(minutes = Some((timeLimit.asInstanceOf[LongValue].value / 60.0).ceil.toLong)) // todo? test with an expr and number. Currently not testable - problem in underlying java parser
+          case ToolTimeLimitRequirement(timeLimit) => requirements = requirements :+ TimeoutRequirement(minutes = Some((timeLimit.asInstanceOf[LongValue].value / 60.0).ceil.toLong)) // TODo: test with an expr and number. Currently not testable - problem in underlying java parser
           case c: DockerRequirement if c.imageId.getOrElse("").startsWith("dx://") => container = RunSpec.DxFileDockerImage(c.imageId.get, null)
           case _: DockerRequirement  => container = RunSpec.NetworkDockerImage
-          case other => System.err.println(s"${other} was not implemented yet.")
+          case _ => // Not all requirements needs to be handled here
         }
       }
       Application(filename, inputs, outputs, instanceType, container, executableKind, documentSource, attributes, requirements)
