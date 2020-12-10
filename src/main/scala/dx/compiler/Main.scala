@@ -259,7 +259,7 @@ object Main {
       .map(Paths.get(_))
       .getOrElse(
           throw OptionParseException(
-              "Missing required positional argument <WDL file>"
+              "Missing required positional argument <WDL/CWL file>"
           )
       )
     val options: Options =

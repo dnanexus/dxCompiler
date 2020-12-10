@@ -16,7 +16,8 @@ case class CwlTranslator(doc: Process,
                          defaultRuntimeAttrs: Map[String, Value],
                          reorgAttrs: ReorgSettings,
                          fileResolver: FileSourceResolver = FileSourceResolver.get,
-                         dxApi: DxApi = DxApi.get)
+                         dxApi: DxApi = DxApi.get,
+                         logger: Logger = Logger.get)
   extends Translator {
 
   override lazy val apply: Bundle = {
@@ -30,8 +31,11 @@ case class CwlTranslator(doc: Process,
       reorgAttrs,
       dxApi
     )
-    val app = callableTranslator.translateCallable(cwlBundle.primaryCallable, cwlBundle.sourceFile)
+    logger.trace(s"Translating file ${sourceFile}")
+    val app = callableTranslator.translateCallable(cwlBundle.primaryCallable, cwlBundle.sourceFile, logger)
+    logger.trace(s"inputs: ${app.inputVars}\noutputs: ${app.outputVars}")
     val allCallables: Map[String, Callable] = Map((app.name, app)) // TODO: workflows can have more callables
+    logger.trace(s"allCallables: ${allCallables.keySet}")
     Bundle(Option(app), allCallables, dependencies, Map.empty[String, Type])
   }
 
@@ -56,6 +60,6 @@ case class CwlTranslatorFactory()
              dxApi: DxApi = DxApi.get,
              logger: Logger = Logger.get): Option[Translator] = {
     val doc = Parser.parse(sourceFile)
-    Option(CwlTranslator(doc, sourceFile, locked, defaultRuntimeAttrs, reorgAttrs, fileResolver, dxApi))
+    Option(CwlTranslator(doc, sourceFile, locked, defaultRuntimeAttrs, reorgAttrs, fileResolver, dxApi, logger))
   }
 }

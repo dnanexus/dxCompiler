@@ -2,12 +2,13 @@ package dx.translator.cwl
 
 import java.nio.file.Path
 
-import dx.api.DxApi
+import dx.api.{DxApi, DxFile}
 import dx.core.ir.{Application, Callable, CallableAttribute, ExecutableKindApplet, Parameter, ParameterAttribute, RuntimeRequirement, Value}
 import dx.core.languages.cwl.CwlUtils
 import dx.translator.{ReorgSettings, RunSpec}
 import dx.cwl.{BooleanValue, CommandInputParameter, CommandLineTool, CommandOutputParameter, CwlSchema, DockerRequirement, LongValue, Process, SchemaDefRequirement, ToolTimeLimitRequirement, WorkReuseRequirement, Workflow}
 import dx.translator.RunSpec.{ContainerImage, IgnoreReuseRequirement, TimeoutRequirement}
+import dx.util.Logger
 
 
 case class CallableTranslator(cwlBundle: CwlBundle,
@@ -17,7 +18,7 @@ case class CallableTranslator(cwlBundle: CwlBundle,
                               dxApi: DxApi = DxApi.get) {
 
 
-  def translateCallable(callable: Process, sourceFile: Path): Callable = {
+  def translateCallable(callable: Process, sourceFile: Path, logger: Logger = Logger.get): Callable = {
     callable match {
       case tool: CommandLineTool =>
         val taskTranslator = CwlToolTranslator(tool, sourceFile)
@@ -61,8 +62,9 @@ case class CallableTranslator(cwlBundle: CwlBundle,
         req match {
           case WorkReuseRequirement(enable) => requirements = requirements :+ IgnoreReuseRequirement(enable.asInstanceOf[BooleanValue].value)
           case ToolTimeLimitRequirement(timeLimit) => requirements = requirements :+ TimeoutRequirement(minutes = Some((timeLimit.asInstanceOf[LongValue].value / 60.0).ceil.toLong)) // todo? test with an expr and number. Currently not testable - problem in underlying java parser
-          case _: DockerRequirement => container = RunSpec.NetworkDockerImage // TODO: can there be a dxfile?
-          case other => System.err.println(s"${other} was not implemented yet.") // TODO: do we need tro implement everything?
+          case c: DockerRequirement if c.imageId.getOrElse("").startsWith("dx://") => container = RunSpec.DxFileDockerImage(c.imageId.get, null)
+          case _: DockerRequirement  => container = RunSpec.NetworkDockerImage
+          case other => System.err.println(s"${other} was not implemented yet.")
         }
       }
       Application(filename, inputs, outputs, instanceType, container, executableKind, documentSource, attributes, requirements)
