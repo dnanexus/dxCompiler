@@ -152,19 +152,20 @@ def _download_dxfuse_to_resources(top_dir, dxfuse_version):
     return dxfuse_exe
 
 
-def _create_asset_spec(version_id, top_dir, language):
+def _create_asset_spec(version_id, top_dir, language, dependencies=None):
     # TODO: update to 20.04 - just waiting for staging to catch up to prod
+    exec_depends = [
+        {"name": "openjdk-8-jre-headless"},
+        {"name": "bzip2"},
+        {"name": "jq"}
+    ] + (dependencies or [])
     asset_spec = {
         "version": version_id,
         "name": "dx{}rt".format(language.upper()),
         "title": "dx {} asset".format(language.upper()),
         "release": "16.04",
         "distribution": "Ubuntu",
-        "execDepends": [
-            {"name": "openjdk-8-jre-headless"},
-            {"name": "bzip2"},
-            {"name": "jq"}
-        ],
+        "execDepends": exec_depends,
         "instanceType": "mem1_ssd1_v2_x4",
         "description": "Prerequisites for running {} workflows compiled to the platform".format(language.upper())
     }
@@ -182,7 +183,7 @@ def _build_asset(top_dir, language, destination):
     os.chdir(crnt_work_dir)
 
 
-def _make_prerequisites(project, folder, version_id, top_dir, language, resources):
+def _make_prerequisites(project, folder, version_id, top_dir, language, resources, dependencies=None):
     # Create a folder for the language-specific asset
     language_dir = os.path.join(top_dir, "applet_resources", language.upper())
     language_resources_dir = os.path.join(language_dir, "resources", "usr", "bin")
@@ -193,7 +194,7 @@ def _make_prerequisites(project, folder, version_id, top_dir, language, resource
         os.link(res, os.path.join(language_resources_dir, Path(res).name))
 
     # Create the asset description file
-    _create_asset_spec(version_id, top_dir, language)
+    _create_asset_spec(version_id, top_dir, language, dependencies)
 
     # Create an asset from the dxWDL jar file and its dependencies,
     # this speeds up applet creation.
@@ -292,7 +293,9 @@ def build(project, folder, version_id, top_dir, path_dict, dependencies=None, fo
         info("jar_paths: {}".format(jar_paths))
 
         assets = dict(
-            (lang, _make_prerequisites(project, folder, version_id, top_dir, lang, resources))
+            (lang, _make_prerequisites(
+                project, folder, version_id, top_dir, lang, resources, dependencies.get(lang.lower())
+            ))
             for lang in languages
         )
 

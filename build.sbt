@@ -63,7 +63,8 @@ val compiler = project
       assemblySettings,
       libraryDependencies ++= commonDependencies ++ Seq(
           dependencies.typesafe,
-          dependencies.wdlTools
+          dependencies.wdlTools,
+          dependencies.cwlScala
       ),
       assemblyJarName in assembly := "dxCompiler.jar",
       assemblyOutputPath in assembly := file("applet_resources/dxCompiler.jar")

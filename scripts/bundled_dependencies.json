@@ -1,4 +1,10 @@
 {
   "dxda": "v0.5.4",
-  "dxfuse": "v0.22.4"
+  "dxfuse": "v0.22.4",
+  "cwl": [
+    {
+      "name": "cwlref-runner==3.0.20201203173111",
+      "package_manager": "pip"
+    }
+  ]
 }

@@ -5,6 +5,7 @@ import dx.core.ir.{Type, Value}
 import dx.core.ir.Type._
 import dx.core.ir.Value._
 import dx.cwl._
+import spray.json._
 
 import scala.annotation.tailrec
 
@@ -104,7 +105,7 @@ object CwlUtils {
 
   def fromIRType(irType: Type, typeAliases: Map[String, CwlSchema] = Map.empty): CwlType = {
     irType match {
-      case TOptional(t) => CwlOptional(fromIRType(t))
+      case TOptional(t) => CwlOptional(fromIRType(t, typeAliases))
       case TBoolean     => CwlBoolean
       case TInt         => CwlLong
       case TFloat       => CwlDouble
@@ -156,7 +157,7 @@ object CwlUtils {
     }
   }
 
-  def fromIR(values: Map[String, Value]): Map[String, (CwlType, CwlValue)] = {
+  def fromIRValues(values: Map[String, Value]): Map[String, (CwlType, CwlValue)] = {
     values.map {
       case (name, value) => name -> fromIRValue(value, Some(name))
     }
@@ -234,12 +235,19 @@ object CwlUtils {
       }
   }
 
-  def fromIR(values: Map[String, (Type, Value)]): Map[String, (CwlType, CwlValue)] = {
+  def fromIR(values: Map[String, (Type, Value)],
+             typeAliases: Map[String, CwlSchema] = Map.empty): Map[String, (CwlType, CwlValue)] = {
     values.map {
       case (name, (t, v)) =>
-        val cwlType = fromIRType(t)
+        val cwlType = fromIRType(t, typeAliases)
         name -> fromIRValue(v, Vector(cwlType), name)
     }
+  }
+
+  def toJson(values: Map[String, (CwlType, CwlValue)]): JsObject = {
+    JsObject(values.map {
+      case (name, (_, v)) => name -> v.toJson
+    })
   }
 
   def createRuntime(workerPaths: DxWorkerPaths): Runtime = {

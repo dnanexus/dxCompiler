@@ -5,7 +5,7 @@ import dx.core.io.StreamFiles.StreamFiles
 import dx.core.ir.{Type, Value}
 import dx.core.languages.cwl.{CwlUtils, RequirementEvaluator}
 import dx.executor.{FileUploader, JobMeta, TaskExecutor}
-import dx.util.TraceLevel
+import dx.util.{FileUtils, JsUtils, TraceLevel}
 
 object CwlTaskExecutor {
   def create(jobMeta: JobMeta,
@@ -87,7 +87,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
   }
 
   private lazy val defaultRuntimeAttrs: Map[String, (CwlType, CwlValue)] = {
-    CwlUtils.fromIR(jobMeta.defaultRuntimeAttrs)
+    CwlUtils.fromIRValues(jobMeta.defaultRuntimeAttrs)
   }
 
   private def getRequiredInstanceType(
@@ -120,15 +120,61 @@ case class CwlTaskExecutor(tool: CommandLineTool,
     inputParams(parameterName).streamable.getOrElse(false)
   }
 
+  private lazy val typeAliases: Map[String, CwlSchema] = {
+    RequirementUtils.getSchemaDefs(tool.requirements)
+  }
+
   override protected def getSchemas: Map[String, Type.TSchema] = {
-    RequirementUtils.getSchemaDefs(tool.requirements).collect {
+    typeAliases.collect {
       case (name, record: CwlRecord) => name -> CwlUtils.toIRSchema(record)
     }
   }
 
   override protected def writeCommandScript(
       localizedInputs: Map[String, (Type, Value)]
-  ): Map[String, (Type, Value)] = ???
+  ): Map[String, (Type, Value)] = {
+    val inputs = CwlUtils.fromIR(localizedInputs, typeAliases)
+    printInputs(inputs)
+    // specify the target tool
+    val target = tool.id.name.map(name => s"--target ${name}").getOrElse("")
+    // write the CWL file
+    val cwlPath = jobMeta.workerPaths.getMetaDir(ensureExists = true).resolve("tool.cwl")
+    FileUtils.writeFileContent(cwlPath, jobMeta.sourceCode)
+    // write the input file
+    val inputPath = jobMeta.workerPaths.getMetaDir(ensureExists = true).resolve("tool_input.json")
+    val inputJson = CwlUtils.toJson(inputs)
+    JsUtils.jsToFile(inputJson, inputPath)
+    val command =
+      s"""#!/bin/bash
+         |(
+         |  cwltool \
+         |    --basedir ${jobMeta.workerPaths.getRootDir(ensureExists = true)} \
+         |    --outdir ${jobMeta.workerPaths.getOutputFilesDir(ensureExists = true)} \
+         |    --tmpdir-prefix ${jobMeta.workerPaths.getTempDir(ensureExists = true)} \
+         |    --rm-container \
+         |    --rm-tmpdir \
+         |    --move-outputs \
+         |    --enable-pull \
+         |    --disable-color \
+         |    ${target} ${cwlPath.toString} ${inputPath.toString}
+         |) \
+         |> >( tee ${jobMeta.workerPaths.getStdoutFile(ensureParentExists = true)} ) \
+         |2> >( tee ${jobMeta.workerPaths.getStderrFile(ensureParentExists = true)} >&2 )
+         |
+         |echo $$? > ${jobMeta.workerPaths.getReturnCodeFile(ensureParentExists = true)}
+         |
+         |# make sure the files are on stable storage
+         |# before leaving. This helps with stdin and stdout
+         |# characters that may be in the fifo queues.
+         |sync
+         |""".stripMargin
+    FileUtils.writeFileContent(
+        jobMeta.workerPaths.getCommandFile(ensureParentExists = true),
+        command,
+        makeExecutable = true
+    )
+    localizedInputs
+  }
 
   private lazy val outputParams: Map[String, CommandOutputParameter] = {
     tool.outputs.map {
@@ -140,7 +186,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
   override protected def evaluateOutputs(
       localizedInputs: Map[String, (Type, Value)]
   ): Map[String, (Type, Value)] = {
-    val irInputs = CwlUtils.fromIR(localizedInputs)
+    val irInputs = CwlUtils.fromIR(localizedInputs, typeAliases)
     val cwlEvaluator = Evaluator.create(tool.requirements)
     val ctx = CwlUtils.createEvauatorContext(runtime)
     val localizedOutputs = cwlEvaluator.evaluateMap(irInputs, ctx)

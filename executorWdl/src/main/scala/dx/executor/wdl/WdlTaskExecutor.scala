@@ -176,10 +176,6 @@ case class WdlTaskExecutor(task: TAT.Task,
     }
     printInputs(inputValues)
     val inputsWithPrivateVars = evaluatePrivateVariables(inputValues)
-    // TODO: there may be private variables that reference files created by the
-    //  command, or functions that depend on the execution of the command
-    //  (e.g. stdout()). Split the private vars into those that need to be
-    //  evaluated before vs after the command, and only evaluate the former here.
     val ctx = WdlValueBindings(inputsWithPrivateVars)
     val command = evaluator.applyCommand(task.command, ctx) match {
       case s if s.trim.isEmpty => None
