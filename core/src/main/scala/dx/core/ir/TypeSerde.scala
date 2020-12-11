@@ -27,11 +27,9 @@ object TypeSerde {
       case TArray(memberType, nonEmpty) =>
         val (typeJs, newSchemas) = serialize(memberType, schemas)
         (JsObject(
-             Map(
-                 "name" -> JsString("Array"),
-                 "type" -> typeJs,
-                 "nonEmpty" -> JsBoolean(nonEmpty)
-             )
+             "name" -> JsString("Array"),
+             "type" -> typeJs,
+             "nonEmpty" -> JsBoolean(nonEmpty)
          ),
          newSchemas)
       case TSchema(name, _) if schemas.contains(name) =>
@@ -44,12 +42,16 @@ object TypeSerde {
               (membersAccu + (name -> typeJs), newSchemas)
           }
         val schemaJs = JsObject(
-            Map(
-                "name" -> JsString(name),
-                "members" -> JsObject(membersJs)
-            )
+            "name" -> JsString(name),
+            "members" -> JsObject(membersJs)
         )
         (JsString(name), newSchemas + (name -> schemaJs))
+      case TEnum(allowedValues) =>
+        (JsObject(
+             "name" -> JsString("Enum"),
+             "values" -> JsArray(allowedValues.map(JsString(_)).toVector)
+         ),
+         schemas)
       case TOptional(inner) =>
         serialize(inner, schemas) match {
           case (name: JsString, newSchemas) =>
@@ -166,6 +168,16 @@ object TypeSerde {
             val (arrayType, newSchemas) = deserialize(fields("type"), schemas, jsSchemas)
             val nonEmpty = fields.get("nonEmpty").exists(JsUtils.getBoolean(_))
             (TArray(arrayType, nonEmpty), newSchemas)
+          case JsString("Enum") =>
+            val allowedValues = fields("values") match {
+              case JsArray(values) =>
+                values.map {
+                  case JsString(s) => s
+                  case other       => throw new Exception(s"Invalid enum value ${other}")
+                }
+              case other => throw new Exception(s"Invalid enum values ${other}")
+            }
+            (TEnum(allowedValues.toSet), schemas)
           case JsString(name) if schemas.contains(name) =>
             (schemas(name), schemas)
           case JsString(name) if jsSchemas.contains(name) =>
@@ -359,6 +371,8 @@ object TypeSerde {
       case TSchema(name, _) => name
       case TArray(memberType, _) =>
         s"Array[${toString(memberType)}]"
+      case TEnum(allowedValues) =>
+        s"Enum{${allowedValues.mkString(",")}}"
       case TOptional(TOptional(_)) =>
         throw new Exception(s"nested optional type ${t}")
       case TOptional(inner) =>

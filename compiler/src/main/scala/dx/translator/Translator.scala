@@ -39,7 +39,8 @@ trait TranslatorFactory {
 
 object TranslatorFactory {
   private val translatorFactories: Vector[TranslatorFactory] = Vector(
-      WdlTranslatorFactory()
+      WdlTranslatorFactory(),
+      CwlTranslatorFactory()
   )
 
   def createTranslator(source: Path,

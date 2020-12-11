@@ -27,7 +27,13 @@ object ValueSerde extends DefaultJsonProtocol {
               case (k, v) => k -> inner(v, Some(memberTypes(k)))
             })
           case (_, VHash(members)) => VHash(members.map { case (k, v) => k -> inner(v) })
-          case _                   => innerValue
+          case (Some(TEnum(allowedValues)), s: VString) if allowedValues.contains(s.value) =>
+            s
+          case (Some(TEnum(allowedValues)), other) =>
+            throw new Exception(
+                s"${other} is not one of the allowed values ${allowedValues.mkString(",")}"
+            )
+          case _ => innerValue
         }
       }
     }
@@ -143,6 +149,8 @@ object ValueSerde extends DefaultJsonProtocol {
           VHash(members.map {
             case (key, value) => key -> deserialize(value)
           })
+        case (TEnum(allowedValues), JsString(s)) if allowedValues.contains(s) =>
+          VString(s)
         case _ =>
           throw new Exception(s"cannot deserialize value ${innerValue} as type ${innerType}")
       }
