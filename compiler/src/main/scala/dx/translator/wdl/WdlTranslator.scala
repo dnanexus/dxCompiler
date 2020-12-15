@@ -148,7 +148,7 @@ case class WdlTranslator(doc: TAT.Document,
     // sort callables by dependencies
     val logger2 = logger.withIncTraceIndent()
     val depOrder: Vector[TAT.Callable] = sortByDependencies(wdlBundle, logger2)
-    if (logger.isVerbose) {
+    if (logger2.isVerbose) {
       logger2.trace(s"all tasks: ${wdlBundle.tasks.keySet}")
       logger2.trace(s"all callables in dependency order: ${depOrder.map(_.name)}")
     }

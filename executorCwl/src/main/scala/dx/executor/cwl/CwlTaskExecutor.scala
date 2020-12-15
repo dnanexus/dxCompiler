@@ -1,5 +1,6 @@
 package dx.executor.cwl
 
+import dx.api.InstanceTypeRequest
 import dx.cwl._
 import dx.core.io.StreamFiles.StreamFiles
 import dx.core.ir.{Type, Value}
@@ -90,9 +91,9 @@ case class CwlTaskExecutor(tool: CommandLineTool,
     CwlUtils.fromIRValues(jobMeta.defaultRuntimeAttrs)
   }
 
-  private def getRequiredInstanceType(
+  private def getRequiredInstanceTypeRequest(
       inputs: Map[String, (CwlType, CwlValue)] = cwlInputs
-  ): String = {
+  ): InstanceTypeRequest = {
     logger.traceLimited("calcInstanceType", minLevel = TraceLevel.VVerbose)
     printInputs(inputs)
     val cwlEvaluator = Evaluator.create(tool.requirements)
@@ -100,15 +101,15 @@ case class CwlTaskExecutor(tool: CommandLineTool,
     val env = cwlEvaluator.evaluateMap(inputs, ctx)
     val reqEvaluator = RequirementEvaluator(
         tool.requirements,
-        defaultRuntimeAttrs ++ env,
-        jobMeta.workerPaths
+        env,
+        jobMeta.workerPaths,
+        defaultRuntimeAttrs
     )
-    val request = reqEvaluator.parseInstanceType
-    logger.traceLimited(s"calcInstanceType $request")
-    jobMeta.instanceTypeDb.apply(request).name
+    reqEvaluator.parseInstanceType
   }
 
-  override protected lazy val getRequiredInstanceType: String = getRequiredInstanceType()
+  override protected lazy val getRequiredInstanceTypeRequest: InstanceTypeRequest =
+    getRequiredInstanceTypeRequest()
 
   override protected def getInputsWithDefaults: Map[String, (Type, Value)] = {
     val inputs = cwlInputs

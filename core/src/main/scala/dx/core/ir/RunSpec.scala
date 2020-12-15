@@ -1,7 +1,7 @@
 package dx.core.ir
 
 import dx.api.DiskType.DiskType
-import dx.api.{DxFile, ExecutionEnvironment}
+import dx.api.{DxFile, ExecutionEnvironment, InstanceTypeRequest}
 
 /**
   * Representation of the parts of dxapp.json `runSpec` that can be specified.
@@ -47,6 +47,18 @@ object RunSpec {
       os: Option[ExecutionEnvironment]
   ) extends InstanceType
   case object DynamicInstanceType extends InstanceType
+
+  object StaticInstanceType {
+    def apply(req: InstanceTypeRequest): StaticInstanceType = {
+      StaticInstanceType(req.dxInstanceType,
+                         req.minMemoryMB,
+                         req.minDiskGB,
+                         req.diskType,
+                         req.minCpu,
+                         req.gpu,
+                         req.os)
+    }
+  }
 
   /**
     * A task may specify a container image to run under. Currently, DNAnexus only

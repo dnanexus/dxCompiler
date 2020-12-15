@@ -4,7 +4,8 @@ import dx.api.{DxApi, DxProject}
 import dx.core.ir.{Bundle, Value}
 import dx.core.languages.Language
 import dx.core.languages.Language.Language
-import dx.cwl.{CommandLineTool, Parser}
+import dx.core.languages.cwl.CwlUtils
+import dx.cwl.{CommandLineTool, CwlRecord, Parser, Requirement, RequirementUtils}
 import dx.translator.{DxWorkflowAttrs, ReorgSettings, Translator, TranslatorFactory}
 import dx.util.{FileSourceResolver, Logger}
 import org.w3id.cwl.cwl1_2.CWLVersion
@@ -29,7 +30,27 @@ case class CwlTranslator(tool: CommandLineTool,
     */
   override def runtimeAssetName: String = "dxCWLrt"
 
-  override lazy val apply: Bundle = {}
+  private lazy val typeAliases = RequirementUtils.getSchemaDefs(tool.requirements)
+
+  override lazy val apply: Bundle = {
+    val callableTranslator = ProcessTranslator(
+        typeAliases,
+        locked,
+        defaultRuntimeAttrs,
+        reorgAttrs,
+        perWorkflowAttrs,
+        defaultScatterChunkSize,
+        dxApi,
+        fileResolver,
+        logger
+    )
+    val callables = callableTranslator.translateProcess(tool)
+    assert(callables.size == 1)
+    val irTypeAliases = typeAliases.collect {
+      case (name, record: CwlRecord) => name -> CwlUtils.toIRType(record)
+    }
+    Bundle(Some(callables.head), Map.empty, Vector.empty, irTypeAliases)
+  }
 
   override def translateInputs(bundle: Bundle,
                                inputs: Vector[Path],
@@ -64,7 +85,7 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
       // otherwise make sure the file is parseable as CWL
       return None
     }
-    val tool = Parser.parse(sourceFile) match {
+    val tool = Parser.parseFile(sourceFile, hintSchemas = DxHintSchema) match {
       case tool: CommandLineTool => tool
       case _ =>
         throw new Exception(s"Not a command line tool ${sourceFile}")

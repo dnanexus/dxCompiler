@@ -166,11 +166,9 @@ case class RuntimeTranslator(wdlVersion: WdlVersion,
 
   def translateInstanceType: InstanceType = {
     runtime.safeParseInstanceType match {
-      case None => DynamicInstanceType
-      case Some(InstanceTypeRequest.empty) =>
-        DefaultInstanceType
-      case Some(InstanceTypeRequest(dxInstanceType, memoryMB, diskGB, diskType, cpu, gpu, os)) =>
-        StaticInstanceType(dxInstanceType, memoryMB, diskGB, diskType, cpu, gpu, os)
+      case None                            => DynamicInstanceType
+      case Some(InstanceTypeRequest.empty) => DefaultInstanceType
+      case Some(req: InstanceTypeRequest)  => StaticInstanceType(req)
     }
   }
 

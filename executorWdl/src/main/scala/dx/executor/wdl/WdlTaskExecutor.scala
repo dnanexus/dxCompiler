@@ -1,6 +1,6 @@
 package dx.executor.wdl
 
-import dx.api.DxPath
+import dx.api.{DxPath, InstanceTypeRequest}
 import dx.core.io.StreamFiles
 import dx.core.ir.{Type, Value}
 import dx.core.languages.wdl.{DxMetaHints, IrToWdlValueBindings, Runtime, VersionSupport, WdlUtils}
@@ -125,17 +125,18 @@ case class WdlTaskExecutor(task: TAT.Task,
     )
   }
 
-  private def getRequiredInstanceType(inputs: Map[String, V] = wdlInputs): String = {
+  private def getRequiredInstanceTypeRequest(
+      inputs: Map[String, V] = wdlInputs
+  ): InstanceTypeRequest = {
     logger.traceLimited("calcInstanceType", minLevel = TraceLevel.VVerbose)
     printInputs(inputs)
     val env = evaluatePrivateVariables(inputs)
     val runtime = createRuntime(env)
-    val request = runtime.parseInstanceType
-    logger.traceLimited(s"calcInstanceType $request")
-    jobMeta.instanceTypeDb.apply(request).name
+    runtime.parseInstanceType
   }
 
-  override protected lazy val getRequiredInstanceType: String = getRequiredInstanceType()
+  override protected lazy val getRequiredInstanceTypeRequest: InstanceTypeRequest =
+    getRequiredInstanceTypeRequest()
 
   private lazy val parameterMeta = Meta.create(versionSupport.version, task.parameterMeta)
 
