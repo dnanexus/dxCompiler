@@ -1463,4 +1463,26 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
       case _ => throw new Exception(s"wrong applet kind ${innerScatterApplet.kind}")
     }
   }
+
+  it should "translate a simple CWL task" in {
+    val path = pathFromBasename("cwl", "cat.wdl")
+    val args = path.toString :: cFlags
+    Main.compile(args.toVector) match {
+      case SuccessIR(bundle, _) =>
+        bundle.allCallables.size shouldBe 1
+        val applet = bundle.primaryCallable match {
+          case Some(applet: Application) => applet
+          case other =>
+            throw new AssertionError(s"expected primaryCallable to be an applet, not ${other}")
+        }
+        applet.name shouldBe "cat"
+        applet.kind shouldBe ExecutableKindApplet
+        applet.attributes shouldBe Vector(DescriptionAttribute("Write a file to stdout using cat"))
+        applet.container shouldBe NoImage
+        applet.inputs shouldBe Vector(Parameter("file", TFile))
+        applet.outputs shouldBe Vector(Parameter("contents", TFile))
+      case other =>
+        throw new AssertionError(s"expected SuccessIR, not ${other}")
+    }
+  }
 }

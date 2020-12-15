@@ -1,11 +1,11 @@
 package dx.translator.cwl
 
-import dx.api.{DxApi, DxProject}
+import dx.api.DxApi
 import dx.core.ir.{Bundle, Value}
 import dx.core.languages.Language
 import dx.core.languages.Language.Language
-import dx.core.languages.cwl.CwlUtils
-import dx.cwl.{CommandLineTool, CwlRecord, Parser, Requirement, RequirementUtils}
+import dx.core.languages.cwl.{CwlUtils, DxHintSchema}
+import dx.cwl.{CommandLineTool, CwlRecord, Parser, RequirementUtils}
 import dx.translator.{DxWorkflowAttrs, ReorgSettings, Translator, TranslatorFactory}
 import dx.util.{FileSourceResolver, Logger}
 import org.w3id.cwl.cwl1_2.CWLVersion
@@ -51,11 +51,6 @@ case class CwlTranslator(tool: CommandLineTool,
     }
     Bundle(Some(callables.head), Map.empty, Vector.empty, irTypeAliases)
   }
-
-  override def translateInputs(bundle: Bundle,
-                               inputs: Vector[Path],
-                               defaults: Option[Path],
-                               project: DxProject): (Bundle, FileSourceResolver) = {}
 }
 
 case class CwlTranslatorFactory() extends TranslatorFactory {
@@ -85,7 +80,7 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
       // otherwise make sure the file is parseable as CWL
       return None
     }
-    val tool = Parser.parseFile(sourceFile, hintSchemas = DxHintSchema) match {
+    val tool = Parser.parseFile(sourceFile, hintSchemas = Vector(DxHintSchema)) match {
       case tool: CommandLineTool => tool
       case _ =>
         throw new Exception(s"Not a command line tool ${sourceFile}")

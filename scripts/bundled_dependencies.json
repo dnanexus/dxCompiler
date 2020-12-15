@@ -1,10 +1,17 @@
 {
   "dxda": "v0.5.4",
   "dxfuse": "v0.22.4",
-  "cwl": [
-    {
-      "name": "cwlref-runner==3.0.20201203173111",
-      "package_manager": "pip"
+  "execDepends": {
+    "cwl": [
+      {
+        "name": "cwlref-runner==3.0.20201203173111",
+        "package_manager": "pip"
+      }
+    ]
+  },
+  "env": {
+    "cwl": {
+      "NODEJS_VERSION": "14.15.1"
     }
-  ]
+  }
 }

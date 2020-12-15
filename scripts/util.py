@@ -183,7 +183,7 @@ def _build_asset(top_dir, language, destination):
     os.chdir(crnt_work_dir)
 
 
-def _make_prerequisites(project, folder, version_id, top_dir, language, resources, dependencies=None):
+def _make_prerequisites(project, folder, version_id, top_dir, language, resources, dependencies=None, env_vars=None):
     # Create a folder for the language-specific asset
     language_dir = os.path.join(top_dir, "applet_resources", language.upper())
     language_resources_dir = os.path.join(language_dir, "resources", "usr", "bin")
@@ -193,10 +193,23 @@ def _make_prerequisites(project, folder, version_id, top_dir, language, resource
     for res in resources:
         os.link(res, os.path.join(language_resources_dir, Path(res).name))
 
+    # Link in executor-specific resources, if any
+    lang_resources_dir = os.path.join(top_dir, "executor{}".format(language), "applet_resources")
+    if os.path.exists(lang_resources_dir):
+        for f in os.listdir(lang_resources_dir):
+            os.link(os.path.join(lang_resources_dir, f), os.path.join(language_dir, f))
+
     # Create the asset description file
     _create_asset_spec(version_id, top_dir, language, dependencies)
 
-    # Create an asset from the dxWDL jar file and its dependencies,
+    # Create the .env file if necessary
+    if env_vars:
+        dot_env = "\n".join("{}={}".format(key, val) for key, val in env_vars.items())
+        dot_env_file = os.path.join(language_dir, ".env")
+        with open(dot_env_file, "wt") as out:
+            out.write(dot_env)
+
+    # Create an asset from the executor jar file and its dependencies,
     # this speeds up applet creation.
     destination = "{}:{}/dx{}rt".format(project.get_id(), folder, language.upper())
     for i in range(0, max_num_retries):
@@ -292,9 +305,12 @@ def build(project, folder, version_id, top_dir, path_dict, dependencies=None, fo
         jar_paths = _sbt_assembly(top_dir)
         info("jar_paths: {}".format(jar_paths))
 
+        exec_depends = dependencies.get("execDepends", {})
+        env_vars = dependencies.get("env", {})
         assets = dict(
             (lang, _make_prerequisites(
-                project, folder, version_id, top_dir, lang, resources, dependencies.get(lang.lower())
+                project, folder, version_id, top_dir, lang, resources,
+                exec_depends.get(lang.lower(), env_vars.get(lang.lower()))
             ))
             for lang in languages
         )

@@ -1,12 +1,16 @@
 package dx.executor.cwl
 
-import dx.api.InstanceTypeRequest
+import dx.api.{DxFile, InstanceTypeRequest}
+import dx.core.Constants
 import dx.cwl._
 import dx.core.io.StreamFiles.StreamFiles
 import dx.core.ir.{Type, Value}
 import dx.core.languages.cwl.{CwlUtils, RequirementEvaluator}
 import dx.executor.{FileUploader, JobMeta, TaskExecutor}
-import dx.util.{FileUtils, JsUtils, TraceLevel}
+import dx.util.{DockerUtils, FileUtils, JsUtils, TraceLevel}
+import spray.json._
+
+import java.nio.file.Files
 
 object CwlTaskExecutor {
   def create(jobMeta: JobMeta,
@@ -27,12 +31,21 @@ object CwlTaskExecutor {
   }
 }
 
+// TODO: add compile-time option to enable passing an overrides file to the
+//  top-level workflow, and have the tool-specific overrides dispatched to
+//  each task
+// TODO: add compile-time option for --non-strict
+// TODO: remove --skip-schemas once schema parsing is working
+// TODO: SHA1 checksums are computed for all outputs - we need to add these as
+//  properties on the uploaded files so they can be propagated to downstream
+//  CWL inputs
 case class CwlTaskExecutor(tool: CommandLineTool,
                            jobMeta: JobMeta,
                            fileUploader: FileUploader,
                            streamFiles: StreamFiles)
     extends TaskExecutor(jobMeta, fileUploader, streamFiles) {
 
+  private val dxApi = jobMeta.dxApi
   private val logger = jobMeta.logger
 
   override def executorName: String = "dxExecutorCwl"
@@ -136,15 +149,40 @@ case class CwlTaskExecutor(tool: CommandLineTool,
   ): Map[String, (Type, Value)] = {
     val inputs = CwlUtils.fromIR(localizedInputs, typeAliases)
     printInputs(inputs)
+    val metaDir = jobMeta.workerPaths.getMetaDir(ensureExists = true)
     // specify the target tool
-    val target = tool.id.name.map(name => s"--target ${name}").getOrElse("")
+    val targetOpt = tool.id.name.map(name => s"--target ${name}").getOrElse("")
     // write the CWL file
-    val cwlPath = jobMeta.workerPaths.getMetaDir(ensureExists = true).resolve("tool.cwl")
+    val cwlPath = metaDir.resolve(s"${targetOpt}.cwl")
     FileUtils.writeFileContent(cwlPath, jobMeta.sourceCode)
     // write the input file
-    val inputPath = jobMeta.workerPaths.getMetaDir(ensureExists = true).resolve("tool_input.json")
+    val inputPath = metaDir.resolve(s"${targetOpt}_input.json")
     val inputJson = CwlUtils.toJson(inputs)
     JsUtils.jsToFile(inputJson, inputPath)
+    // if a dx:// URI is specified for the Docker container, download it
+    // and create an overrides file to override the value in the CWL file
+    val overridesOpt = jobMeta
+      .getExecutableDetail(Constants.DockerImage)
+      .map { dockerImageJs =>
+        val dockerImageDxFile = DxFile.fromJson(dxApi, dockerImageJs)
+        val dockerUtils = DockerUtils(jobMeta.fileResolver, jobMeta.logger)
+        val imageName = dockerUtils.getImage(dockerImageDxFile.asUri)
+        val overridesJs = JsObject(
+            "cwltool:overrides" -> JsObject(
+                cwlPath.toString -> JsObject(
+                    "requirements" -> JsObject(
+                        "DockerRequirement" -> JsObject(
+                            "dockerImageId" -> JsString(imageName)
+                        )
+                    )
+                )
+            )
+        )
+        val overridesPath = metaDir.resolve("overrides.json")
+        JsUtils.jsToFile(overridesJs, overridesPath)
+        s"--overrides ${overridesPath.toString}"
+      }
+      .getOrElse("")
     val command =
       s"""#!/bin/bash
          |(
@@ -152,12 +190,12 @@ case class CwlTaskExecutor(tool: CommandLineTool,
          |    --basedir ${jobMeta.workerPaths.getRootDir(ensureExists = true)} \
          |    --outdir ${jobMeta.workerPaths.getOutputFilesDir(ensureExists = true)} \
          |    --tmpdir-prefix ${jobMeta.workerPaths.getTempDir(ensureExists = true)} \
+         |    --enable-pull \
+         |    --move-outputs \
          |    --rm-container \
          |    --rm-tmpdir \
-         |    --move-outputs \
-         |    --enable-pull \
-         |    --disable-color \
-         |    ${target} ${cwlPath.toString} ${inputPath.toString}
+         |    --skip-schemas \
+         |    ${overridesOpt} ${targetOpt} ${cwlPath.toString} ${inputPath.toString}
          |) \
          |> >( tee ${jobMeta.workerPaths.getStdoutFile(ensureParentExists = true)} ) \
          |2> >( tee ${jobMeta.workerPaths.getStderrFile(ensureParentExists = true)} >&2 )
@@ -187,11 +225,23 @@ case class CwlTaskExecutor(tool: CommandLineTool,
   override protected def evaluateOutputs(
       localizedInputs: Map[String, (Type, Value)]
   ): Map[String, (Type, Value)] = {
-    val irInputs = CwlUtils.fromIR(localizedInputs, typeAliases)
-    val cwlEvaluator = Evaluator.create(tool.requirements)
-    val ctx = CwlUtils.createEvauatorContext(runtime)
-    val localizedOutputs = cwlEvaluator.evaluateMap(irInputs, ctx)
-    CwlUtils.toIR(localizedOutputs)
+    // the outputs were written to stdout
+    val stdoutFile = jobMeta.workerPaths.getStdoutFile()
+    if (Files.exists(stdoutFile)) {
+      val cwlOutputs: Map[String, (CwlType, CwlValue)] = JsUtils.jsFromFile(stdoutFile) match {
+        case JsObject(outputs) =>
+          outputs.map {
+            case (name, jsValue) =>
+              val cwlTypes = outputParams(name).types
+              name -> CwlValue.deserialize(jsValue, cwlTypes, typeAliases)
+          }
+        case JsNull => Map.empty
+        case other  => throw new Exception(s"unexpected cwltool outputs ${other}")
+      }
+      CwlUtils.toIR(cwlOutputs)
+    } else {
+      Map.empty
+    }
   }
 
   override protected def outputTypes: Map[String, Type] = {

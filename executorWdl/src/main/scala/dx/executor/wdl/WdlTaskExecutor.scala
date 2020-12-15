@@ -5,11 +5,10 @@ import dx.core.io.StreamFiles
 import dx.core.ir.{Type, Value}
 import dx.core.languages.wdl.{DxMetaHints, IrToWdlValueBindings, Runtime, VersionSupport, WdlUtils}
 import dx.executor.{FileUploader, JobMeta, SerialFileUploader, TaskExecutor}
-import dx.util.{Bindings, Logger, TraceLevel}
+import dx.util.{Bindings, DockerUtils, Logger, TraceLevel}
 import wdlTools.eval.WdlValues._
 import wdlTools.eval.{Eval, Hints, Meta, WdlValueBindings}
-import wdlTools.exec.{DockerUtils, TaskCommandFileGenerator, TaskInputOutput}
-import wdlTools.syntax.SourceLocation
+import wdlTools.exec.{TaskCommandFileGenerator, TaskInputOutput}
 import wdlTools.types.TypeCheckingRegime.TypeCheckingRegime
 import wdlTools.types.WdlTypes._
 import wdlTools.types.{TypeCheckingRegime, TypedAbstractSyntax => TAT}
@@ -188,12 +187,12 @@ case class WdlTaskExecutor(task: TAT.Task,
     val container = runtime.container match {
       case Vector() => None
       case Vector(image) =>
-        val resolvedImage = dockerUtils.getImage(image, SourceLocation.empty)
+        val resolvedImage = dockerUtils.getImage(image)
         Some(resolvedImage, jobMeta.workerPaths)
       case v =>
         // we prefer a dx:// url
         val (dxUrls, imageNames) = v.partition(_.startsWith(DxPath.DxUriPrefix))
-        val resolvedImage = dockerUtils.getImage(dxUrls ++ imageNames, SourceLocation.empty)
+        val resolvedImage = dockerUtils.getImage(dxUrls ++ imageNames)
         Some(resolvedImage, jobMeta.workerPaths)
     }
     generator.apply(command, jobMeta.workerPaths, container)

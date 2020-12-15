@@ -28,12 +28,6 @@ case class WdlInputTranslator(bundle: Bundle,
                               logger: Logger = Logger.get)
     extends InputTranslator(bundle, inputs, defaults, project, baseFileResolver, dxApi, logger) {
 
-  /**
-    * Overridable function converts a language-specific JSON value to one that can be
-    * deserialized to an IR Value.
-    *
-    * @return
-    */
   override protected def translateJsInput(jsv: JsValue, t: Type): JsValue = {
     (t, jsv) match {
       case (pairType: TSchema, JsArray(pair))
