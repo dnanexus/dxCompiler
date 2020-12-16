@@ -143,7 +143,8 @@ case class ProcessTranslator(typeAliases: Map[String, CwlSchema],
           ExecutableKindApplet,
           docSource,
           translateCallableAttributes(tool, hintCallableAttrs),
-          requirementEvaluator.translateApplicationRequirements
+          requirementEvaluator.translateApplicationRequirements,
+          tags = Set("cwl")
       )
     }
   }

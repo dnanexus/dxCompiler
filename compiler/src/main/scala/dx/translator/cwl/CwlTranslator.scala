@@ -24,11 +24,9 @@ case class CwlTranslator(tool: CommandLineTool,
                          logger: Logger = Logger.get)
     extends Translator {
 
-  /**
-    * The name of the runtime asset the compiler must bundle
-    * with generated applets.
-    */
-  override def runtimeAssetName: String = "dxCWLrt"
+  override val runtimeAssetName: String = "dxCWLrt"
+
+  override val runtimeJar: String = "dxExecutorCwl.jar"
 
   private lazy val typeAliases = RequirementUtils.getSchemaDefs(tool.requirements)
 

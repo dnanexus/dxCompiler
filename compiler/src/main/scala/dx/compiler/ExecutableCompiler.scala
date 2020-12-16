@@ -313,7 +313,10 @@ class ExecutableCompiler(extras: Option[Extras],
   ): (Map[String, JsValue], Map[String, JsValue]) = {
     val metaDefaults = Map(
         "title" -> JsString(applet.name),
-        "tags" -> JsArray(defaultTags.map(JsString(_)).toVector)
+        "tags" -> JsArray((defaultTags ++ applet.tags).map(JsString(_)).toVector),
+        "properties" -> JsObject(applet.properties.map {
+          case (name, value) => name -> JsString(value)
+        })
         // These are currently ignored because they only apply to apps
         //"version" -> JsString("0.0.1"),
         //"openSource" -> JsBoolean(false),
@@ -324,9 +327,9 @@ class ExecutableCompiler(extras: Option[Extras],
       case TypesAttribute(array)      => "types" -> JsArray(array.map(JsString(_)))
       case TagsAttribute(array)       =>
         // merge default and user-specified tags
-        "tags" -> JsArray((array.toSet ++ defaultTags).map(JsString(_)).toVector)
+        "tags" -> JsArray((array.toSet ++ defaultTags ++ applet.tags).map(JsString(_)).toVector)
       case PropertiesAttribute(props) =>
-        "properties" -> JsObject(props.map {
+        "properties" -> JsObject((props ++ applet.properties).map {
           case (k, v) => k -> JsString(v)
         })
     }.toMap

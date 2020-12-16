@@ -6,5 +6,6 @@ import dx.util.FileUtils
 import java.nio.file.Path
 
 case class CwlDocumentSource(source: Path) extends DocumentSource {
+  override val language: String = "wdl"
   override def toString: String = FileUtils.readFileContent(source)
 }

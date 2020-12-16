@@ -29,6 +29,7 @@ object ApplicationCompiler {
 case class ApplicationCompiler(typeAliases: Map[String, Type],
                                instanceTypeDb: InstanceTypeDB,
                                runtimeAsset: Option[JsValue],
+                               runtimeJar: String,
                                runtimePathConfig: DxWorkerPaths,
                                runtimeTraceLevel: Int,
                                streamFiles: StreamFiles.StreamFiles,
@@ -74,7 +75,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
 
   private def generateJobScript(applet: Application): String = {
     val templateAttrs: Map[String, Any] = Map(
-        "runtimeJar" -> "dxExecutorWdl.jar",
+        "runtimeJar" -> runtimeJar,
         "runtimeTraceLevel" -> runtimeTraceLevel,
         "streamFiles" -> streamFiles,
         "includeEpilog" -> applet.outputs.nonEmpty

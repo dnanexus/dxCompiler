@@ -65,6 +65,8 @@ case class WdlTranslator(doc: TAT.Document,
 
   override val runtimeAssetName: String = "dxWDLrt"
 
+  override val runtimeJar: String = "dxExecutorWdl.jar"
+
   private def getUnqualifiedName(name: String): String = {
     if (name contains ".") {
       name.split("\\.").last

@@ -412,6 +412,7 @@ object Main {
           runtimeTraceLevel,
           includeAsset,
           translator.runtimeAssetName,
+          translator.runtimeJar,
           archive,
           force,
           leaveWorkflowsOpen,

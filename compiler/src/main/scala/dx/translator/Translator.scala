@@ -16,6 +16,11 @@ trait Translator {
     */
   def runtimeAssetName: String
 
+  /**
+    * The executor JAR file.
+    */
+  def runtimeJar: String
+
   def apply: Bundle
 
   def fileResolver: FileSourceResolver

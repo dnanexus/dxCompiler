@@ -22,16 +22,17 @@ top_dir = os.path.dirname(os.path.abspath(here))
 test_dir = os.path.join(os.path.abspath(top_dir), "test")
 
 git_revision = subprocess.check_output(["git", "describe", "--always", "--dirty", "--tags"]).strip()
-test_files={}
-test_failing=set(["bad_status",
-                  "bad_status2",
-                  "just_fail_wf",
-                  "missing_output",
-                  "docker_retry"
-                  ])
+test_files = {}
+test_failing = set([
+    "bad_status",
+    "bad_status2",
+    "just_fail_wf",
+    "missing_output",
+    "docker_retry",
+])
 
 wdl_v1_list = [
-     # calling native dx applets/apps
+    # calling native dx applets/apps
     "call_native_v1",
     "call_native_app",
 
@@ -77,7 +78,7 @@ wdl_v1_list = [
 
     # input/output linear_no_expressions
     "wf_with_input_expressions",
-    "wf_with_output_expressions"
+    "wf_with_output_expressions",
 ]
 
 # docker image tests
@@ -88,7 +89,7 @@ docker_test_list = [
     "native_docker_file_image",
     "native_docker_file_image_gzip",
     "samtools_count",
-    "dynamic_docker_image"
+    "dynamic_docker_image",
 ]
 
 # wdl draft-2
@@ -118,7 +119,7 @@ draft2_test_list = [
 
     # calling native dx applets/apps
     # We currently do not have a code generator for draft-2, so cannot import dx_extern.wdl.
-    #"call_native"
+    #"call_native",
 
     "write_lines_bug",
 ]
@@ -128,54 +129,63 @@ single_tasks_list = [
     "diff2files",
     "empty_stdout",
     "sort_file",
-    "symlinks_wc"
+    "symlinks_wc",
+]
+
+cwl_tools = [
+    "cat",  # hello world tool
 ]
 
 # Tests run in continuous integration. We remove the native app test,
 # because we don't want to give permissions for creating platform apps.
 ci_test_list = [
+    # WDL tests
     "advanced",
     # We currently do not have a code generator for draft-2, so cannot import dx_extern.wdl.
     # "call_native",
     "call_with_defaults1",
     "trains",
-    "files"
+    "files",
+    # CWL tests
+    "cat",
 ]
 
 special_flags_list = [
-    "add2",      # test the ignoreReuse flag
-    "add_many",  # tests the delayWorkspaceDestruction flag
-    "inc_range"  # check that runtime call to job/analysis pass the delayWorkspaceDestruction flag
+    "add2",       # test the ignoreReuse flag
+    "add_many",   # tests the delayWorkspaceDestruction flag
+    "inc_range",  # check that runtime call to job/analysis pass the delayWorkspaceDestruction flag
 ]
 
-medium_test_list= wdl_v1_list + docker_test_list + special_flags_list
-large_test_list= medium_test_list + draft2_test_list + single_tasks_list
+medium_test_list = wdl_v1_list + docker_test_list + special_flags_list + cwl_tools
+large_test_list = medium_test_list + draft2_test_list + single_tasks_list
 
 test_suites = {
     'CI': ci_test_list,
     'M': medium_test_list,
     'L': large_test_list,
-    'tasks' : single_tasks_list,
+    'tasks': single_tasks_list,
     'draft2': draft2_test_list,
     'docker': docker_test_list,
     'native': ["call_native", "call_native_v1"]
 }
 
 # Tests with the reorg flags
-test_reorg=["dict", "strings"]
-test_defaults=[]
-test_unlocked=["array_structs",
-               "cast",
-               "call_with_defaults1",
-               "files",
-               "hello",
-               "path_not_taken",
-               "optionals",
-               "shapes"]
-test_project_wide_reuse=['add2', "add_many"]
+test_reorg = ["dict", "strings"]
+test_defaults = []
+test_unlocked = [
+    "array_structs",
+    "cast",
+    "call_with_defaults1",
+    "files",
+    "hello",
+    "path_not_taken",
+    "optionals",
+    "shapes"
+]
+test_project_wide_reuse = ['add2', "add_many"]
 
-test_import_dirs=["A"]
-TestMetaData = namedtuple('TestMetaData', ['name','kind'])
+test_import_dirs = ["A"]
+TestMetaData = namedtuple('TestMetaData', ['name', 'kind'])
 TestDesc = namedtuple('TestDesc',
                       ['name', 'kind', 'wdl_source', 'wdl_input', 'dx_input', 'results', 'extras'])
 
