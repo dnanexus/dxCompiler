@@ -1468,7 +1468,7 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
   }
 
   it should "translate a simple CWL task" in {
-    val path = pathFromBasename("cwl", "cat.wdl")
+    val path = pathFromBasename("cwl", "cat.cwl")
     val args = path.toString :: cFlags
     Main.compile(args.toVector) match {
       case SuccessIR(bundle, _) =>

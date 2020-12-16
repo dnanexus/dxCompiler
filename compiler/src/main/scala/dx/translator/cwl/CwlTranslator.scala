@@ -46,10 +46,14 @@ case class CwlTranslator(tool: CommandLineTool,
     )
     val callables = callableTranslator.translateProcess(tool)
     assert(callables.size == 1)
+    val primaryCallable = callables.head
     val irTypeAliases = typeAliases.collect {
       case (name, record: CwlRecord) => name -> CwlUtils.toIRType(record)
     }
-    Bundle(Some(callables.head), Map.empty, Vector.empty, irTypeAliases)
+    Bundle(Some(primaryCallable),
+           Map(primaryCallable.name -> primaryCallable),
+           Vector(primaryCallable.name),
+           irTypeAliases)
   }
 }
 
