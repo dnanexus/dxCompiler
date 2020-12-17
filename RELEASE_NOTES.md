@@ -1,5 +1,26 @@
 # Release Notes
 
+## 2.0.0 17-12-2020
+
+* Reorganizes dxCompiler code into subprojects, splits codebase into 5 subprojects:
+  * core: shared code between front-end and back-end
+  * compiler: the front-end
+  * executorCommon: shared code between executors
+  * executorWdl: the WDL executor
+  * executorCwl: the CWL executor
+* A few classes were moved into different packages to clear up invalid dependencies (e.g. code in core depending on a class in compiler)
+* Changes (almost) all references from dxWDL to dxCompiler
+* Updates build and test scripts to handle the new layout
+* Changes the way the applet\_resources folder is used: common binaries are stored in sub-folders by version, each executor is built in its own sub-folder
+* Updates to latest wdlTools (0.11.8)
+* Adds archive format
+* Implements udfs for archive and unarchive
+* Updates to dxApi 0.1.6 - fixes parsing of DxFindDataObjects workflow results
+* Fixes errors encountered for repeated compilation
+* Skips epilog if there are no applet outputs
+* Fixes conversion of Map schema to WDL Map type - unwrap key and value array types
+* Fixes comment parsing bug in WDL v2
+ 
 ## 2.0.0-rc6 20-11-2020
 
 - Upgrades wdlTools to 0.11.0
