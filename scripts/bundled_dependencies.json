@@ -4,14 +4,14 @@
   "execDepends": {
     "cwl": [
       {
-        "name": "cwlref-runner==3.0.20201203173111",
-        "package_manager": "pip"
+        "name": "cwltool==3.0.20201203173111",
+        "package_manager": "pip3"
       }
     ]
   },
   "env": {
     "cwl": {
-      "NODEJS_VERSION": "14.15.1"
+      "NODEJS_VERSION": "14"
     }
   }
 }

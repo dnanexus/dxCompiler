@@ -163,7 +163,7 @@ def _create_asset_spec(version_id, top_dir, language, dependencies=None):
         "version": version_id,
         "name": "dx{}rt".format(language.upper()),
         "title": "dx {} asset".format(language.upper()),
-        "release": "16.04",
+        "release": "20.04",
         "distribution": "Ubuntu",
         "execDepends": exec_depends,
         "instanceType": "mem1_ssd1_v2_x4",
