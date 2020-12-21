@@ -20,7 +20,7 @@ max_num_retries = 5
 # - subproject = "executor{}".format(lang)
 # - JAR name = "dxExecutor{}".format(lang)
 # - asset name = "dx{}rt".format(lang.upper())
-languages = ["Wdl"]
+languages = ["Wdl", "Cwl"]
 
 
 def info(msg):
@@ -273,7 +273,11 @@ def _sbt_assembly(top_dir):
         if os.path.exists(jar_path):
             os.remove(jar_path)
     subprocess.check_call(["sbt", "clean"])
-    subprocess.check_call(["sbt", "assembly"])
+    try:
+        subprocess.run(["sbt", "assembly"], check=True, stderr=subprocess.PIPE)
+    except subprocess.CalledProcessError as e:
+        print(e.stderr)
+        raise e
     for jar_path in jar_paths.values():
         if not os.path.exists(jar_path):
             raise Exception("sbt assembly failed")

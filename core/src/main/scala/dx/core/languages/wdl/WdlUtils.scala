@@ -496,7 +496,7 @@ object WdlUtils {
           fromIRValue(fields(MapValuesKey), name.map(n => s"${n}[${MapValuesKey}]"))
         (keys, values) match {
           case (V_Array(keyArray), V_Array(valueArray)) =>
-            V_Map(keyArray.zip(valueArray).toMap)
+            V_Map(keyArray.zip(valueArray).to(TreeSeqMap))
           case other =>
             throw new Exception(s"invalid map value ${other}")
         }
@@ -546,7 +546,7 @@ object WdlUtils {
           fromIRValue(fields(MapValuesKey), T_Array(valueType), s"${name}[${MapValuesKey}]")
         (keys, values) match {
           case (V_Array(keyArray), V_Array(valueArray)) =>
-            V_Map(keyArray.zip(valueArray).toMap)
+            V_Map(keyArray.zip(valueArray).to(TreeSeqMap))
           case other =>
             throw new Exception(s"invalid map value ${other}")
         }
