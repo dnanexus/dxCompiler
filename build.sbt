@@ -31,7 +31,8 @@ lazy val global = root
       core,
       compiler,
       executorCommon,
-      executorWdl
+      executorWdl,
+      executorCwl
   )
 
 val dxCompilerVersion: String = {

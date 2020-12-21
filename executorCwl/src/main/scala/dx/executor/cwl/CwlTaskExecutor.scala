@@ -73,7 +73,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
           case Some(irValue) =>
             CwlUtils.fromIRValue(irValue, cwlTypes, name)
           case None if param.default.isDefined =>
-            val ctx = CwlUtils.createEvauatorContext(runtime, ctx)
+            val ctx = CwlUtils.createEvauatorContext(runtime, env)
             evaluator.evaluate(param.default.get, cwlTypes, ctx)
           case None if cwlTypes.exists(CwlOptional.isOptional) =>
             (CwlNull, NullValue)
@@ -186,18 +186,18 @@ case class CwlTaskExecutor(tool: CommandLineTool,
     val command =
       s"""#!/bin/bash
          |(
-         |  cwltool \
-         |    --basedir ${jobMeta.workerPaths.getRootDir(ensureExists = true)} \
-         |    --outdir ${jobMeta.workerPaths.getOutputFilesDir(ensureExists = true)} \
-         |    --tmpdir-prefix ${jobMeta.workerPaths.getTempDir(ensureExists = true)} \
-         |    --enable-pull \
-         |    --move-outputs \
-         |    --rm-container \
-         |    --rm-tmpdir \
-         |    --skip-schemas \
+         |  cwltool \\
+         |    --basedir ${jobMeta.workerPaths.getRootDir(ensureExists = true)} \\
+         |    --outdir ${jobMeta.workerPaths.getOutputFilesDir(ensureExists = true)} \\
+         |    --tmpdir-prefix ${jobMeta.workerPaths.getTempDir(ensureExists = true)} \\
+         |    --enable-pull \\
+         |    --move-outputs \\
+         |    --rm-container \\
+         |    --rm-tmpdir \\
+         |    --skip-schemas \\
          |    ${overridesOpt} ${targetOpt} ${cwlPath.toString} ${inputPath.toString}
-         |) \
-         |> >( tee ${jobMeta.workerPaths.getStdoutFile(ensureParentExists = true)} ) \
+         |) \\
+         |> >( tee ${jobMeta.workerPaths.getStdoutFile(ensureParentExists = true)} ) \\
          |2> >( tee ${jobMeta.workerPaths.getStderrFile(ensureParentExists = true)} >&2 )
          |
          |echo $$? > ${jobMeta.workerPaths.getReturnCodeFile(ensureParentExists = true)}
