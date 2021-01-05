@@ -149,11 +149,21 @@ case class ProcessTranslator(typeAliases: Map[String, CwlSchema],
     }
   }
 
+  private case class CwlWorkflowTranslator(wf: Workflow) {
+    def apply: Vector[Callable] = {
+      logger.trace(s"Translating workflow ${wf.name}")
+
+    }
+  }
+
   def translateProcess(process: Process): Vector[Callable] = {
     process match {
       case tool: CommandLineTool =>
         val toolTranslator = CwlToolTranslator(tool)
         Vector(toolTranslator.apply)
+      case wf: Workflow =>
+        val workflowTranslator = CwlWorkflowTranslator(wf)
+        workflowTranslator.apply
       case _ =>
         throw new Exception(s"Process type ${process} not supported")
     }
