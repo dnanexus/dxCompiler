@@ -105,31 +105,34 @@ def _download_dxda_into_resources(top_dir, dxda_version):
     if not os.path.exists(dxda_exe):
         os.makedirs(dxda_dir, exist_ok=True)
         os.chdir(dxda_dir)
+        try:
+            # download dxda release, and place it in the resources directory
+            if dxda_version.startswith("v"):
+                # A proper download-agent release, it starts with a "v"
 
-        # download dxda release, and place it in the resources directory
-        if dxda_version.startswith("v"):
-            # A proper download-agent release, it starts with a "v"
-            subprocess.check_call([
-                "wget",
-                "https://github.com/dnanexus/dxda/releases/download/{}/dx-download-agent-linux".format(dxda_version),
-                "-O",
-                "dx-download-agent"])
-        else:
-            # A snapshot of the download-agent development branch
-            snapshot_dxda_tar = "resources/dx-download-agent-linux.tar"
-            command = """sudo docker run --rm --entrypoint=\'\' dnanexus/dxda:{} cat /builds/dx-download-agent-linux.tar > {}""".format(
-                dxda_version, snapshot_dxda_tar)
-            p = subprocess.Popen(command, universal_newlines=True, shell=True,
-                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            text = p.stdout.read()
-            retcode = p.wait()
-            info("downloading dxda {} {}".format(retcode, text))
-            subprocess.check_call(["tar", "-C", "resources", "-xvf", snapshot_dxda_tar])
-            os.rename("resources/dx-download-agent-linux/dx-download-agent",
-                      "dx-download-agent")
-            os.remove(snapshot_dxda_tar)
-            shutil.rmtree("resources/dx-download-agent-linux")
-
+                    subprocess.check_call([
+                        "wget",
+                        "https://github.com/dnanexus/dxda/releases/download/{}/dx-download-agent-linux".format(dxda_version),
+                        "-O",
+                        "dx-download-agent"])
+            else:
+                # A snapshot of the download-agent development branch
+                snapshot_dxda_tar = "resources/dx-download-agent-linux.tar"
+                command = """sudo docker run --rm --entrypoint=\'\' dnanexus/dxda:{} cat /builds/dx-download-agent-linux.tar > {}""".format(
+                    dxda_version, snapshot_dxda_tar)
+                p = subprocess.Popen(command, universal_newlines=True, shell=True,
+                                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                text = p.stdout.read()
+                retcode = p.wait()
+                info("downloading dxda {} {}".format(retcode, text))
+                subprocess.check_call(["tar", "-C", "resources", "-xvf", snapshot_dxda_tar])
+                os.rename("resources/dx-download-agent-linux/dx-download-agent",
+                          "dx-download-agent")
+                os.remove(snapshot_dxda_tar)
+                shutil.rmtree("resources/dx-download-agent-linux")
+        except subprocess.CalledProcessError as e:
+            print(e.stderr)
+            raise e
         # make sure the binary is executable
         os.chmod("dx-download-agent", 0o775)
 
@@ -144,11 +147,15 @@ def _download_dxfuse_to_resources(top_dir, dxfuse_version):
     if not os.path.exists(dxfuse_exe):
         os.makedirs(dxfuse_dir, exist_ok=True)
         info("downloading dxfuse {} to {}".format(dxfuse_version, dxfuse_exe))
-        subprocess.check_call([
-            "wget",
-            "https://github.com/dnanexus/dxfuse/releases/download/{}/dxfuse-linux".format(dxfuse_version),
-            "-O",
-            dxfuse_exe])
+        try:
+            subprocess.check_call([
+                "wget",
+                "https://github.com/dnanexus/dxfuse/releases/download/{}/dxfuse-linux".format(dxfuse_version),
+                "-O",
+                dxfuse_exe])
+        except subprocess.CalledProcessError as e:
+            print(e.stderr)
+            raise e
 
         os.chmod(dxfuse_exe, 0o775)
 
@@ -184,7 +191,11 @@ def _build_asset(top_dir, language, destination):
     crnt_work_dir = os.getcwd()
     # build the platform asset
     os.chdir(os.path.join(os.path.abspath(top_dir), "applet_resources"))
-    subprocess.check_call(["dx", "build_asset", language.upper(), "--destination", destination])
+    try:
+        subprocess.check_call(["dx", "build_asset", language.upper(), "--destination", destination])
+    except subprocess.CalledProcessError as e:
+        print(e.stderr)
+        raise e
     os.chdir(crnt_work_dir)
 
 
@@ -278,9 +289,9 @@ def _sbt_assembly(top_dir):
     for jar_path in jar_paths.values():
         if os.path.exists(jar_path):
             os.remove(jar_path)
-    subprocess.check_call(["sbt", "clean"])
     try:
-        subprocess.run(["sbt", "assembly"], check=True, stderr=subprocess.PIPE)
+        subprocess.check_call(["sbt", "clean"])
+        subprocess.check_call(["sbt", "assembly"])
     except subprocess.CalledProcessError as e:
         print(e.stderr)
         raise e
