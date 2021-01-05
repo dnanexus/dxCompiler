@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import sys
 import time
+import traceback
 
 AssetDesc = namedtuple('AssetDesc', 'region asset_id project')
 
@@ -23,8 +24,10 @@ max_num_retries = 5
 languages = ["Wdl", "Cwl"]
 
 
-def info(msg):
+def info(msg, ex=None):
     print(msg, file=sys.stderr)
+    if ex:
+        traceback.print_exception(*ex)
 
 
 # Extract version_id from configuration file
@@ -221,7 +224,7 @@ def _make_prerequisites(project, folder, version_id, top_dir, language, resource
             _build_asset(top_dir, language, destination)
             break
         except:
-            info("Sleeping for 5 seconds before trying again")
+            info("Error creating runtime asset; sleeping for 5 seconds before trying again", sys.exc_info())
             time.sleep(5)
     else:
         raise Exception("Failed to build the {} runtime asset".format(language))
