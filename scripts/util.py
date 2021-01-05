@@ -131,6 +131,7 @@ def _download_dxda_into_resources(top_dir, dxda_version):
                 os.remove(snapshot_dxda_tar)
                 shutil.rmtree("resources/dx-download-agent-linux")
         except subprocess.CalledProcessError as e:
+            print(e.stdout)
             print(e.stderr)
             raise e
         # make sure the binary is executable
@@ -154,6 +155,7 @@ def _download_dxfuse_to_resources(top_dir, dxfuse_version):
                 "-O",
                 dxfuse_exe])
         except subprocess.CalledProcessError as e:
+            print(e.stdout)
             print(e.stderr)
             raise e
 
@@ -194,6 +196,7 @@ def _build_asset(top_dir, language, destination):
     try:
         subprocess.check_call(["dx", "build_asset", language.upper(), "--destination", destination])
     except subprocess.CalledProcessError as e:
+        print(e.stdout)
         print(e.stderr)
         raise e
     os.chdir(crnt_work_dir)
@@ -293,6 +296,7 @@ def _sbt_assembly(top_dir):
         subprocess.check_call(["sbt", "clean"])
         subprocess.check_call(["sbt", "assembly"])
     except subprocess.CalledProcessError as e:
+        print(e.stdout)
         print(e.stderr)
         raise e
     for jar_path in jar_paths.values():
