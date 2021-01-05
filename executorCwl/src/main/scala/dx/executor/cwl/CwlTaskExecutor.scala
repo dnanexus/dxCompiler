@@ -22,11 +22,16 @@ object CwlTaskExecutor {
              |${jobMeta.sourceCode}""".stripMargin
       )
     }
-    val tool = Parser.parseString(jobMeta.sourceCode) match {
-      case tool: CommandLineTool => tool
-      case other =>
-        throw new Exception(s"expected CWL document to contain a CommandLineTool, not ${other}")
+    val toolName = jobMeta.getExecutableAttribute("name") match {
+      case Some(JsString(name)) => name
+      case _                    => throw new Exception("missing executable name")
     }
+    val tool =
+      Parser.parseString(jobMeta.sourceCode, name = Some(toolName)) match {
+        case tool: CommandLineTool => tool
+        case other =>
+          throw new Exception(s"expected CWL document to contain a CommandLineTool, not ${other}")
+      }
     CwlTaskExecutor(tool, jobMeta, fileUploader, streamFiles)
   }
 }
@@ -150,13 +155,11 @@ case class CwlTaskExecutor(tool: CommandLineTool,
     val inputs = CwlUtils.fromIR(localizedInputs, typeAliases)
     printInputs(inputs)
     val metaDir = jobMeta.workerPaths.getMetaDir(ensureExists = true)
-    // specify the target tool
-    val targetOpt = tool.id.name.map(name => s"--target ${name}").getOrElse("")
-    // write the CWL file
-    val cwlPath = metaDir.resolve(s"${targetOpt}.cwl")
+    // write the CWL and input files
+    val filePrefix = tool.id.name.getOrElse("tool")
+    val cwlPath = metaDir.resolve(s"${filePrefix}.cwl")
     FileUtils.writeFileContent(cwlPath, jobMeta.sourceCode)
-    // write the input file
-    val inputPath = metaDir.resolve(s"${targetOpt}_input.json")
+    val inputPath = metaDir.resolve(s"${filePrefix}_input.json")
     val inputJson = CwlUtils.toJson(inputs)
     JsUtils.jsToFile(inputJson, inputPath)
     // if a dx:// URI is specified for the Docker container, download it
@@ -195,7 +198,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
          |    --rm-container \\
          |    --rm-tmpdir \\
          |    --skip-schemas \\
-         |    ${overridesOpt} ${targetOpt} ${cwlPath.toString} ${inputPath.toString}
+         |    ${overridesOpt} ${cwlPath.toString} ${inputPath.toString}
          |) \\
          |> >( tee ${jobMeta.workerPaths.getStdoutFile(ensureParentExists = true)} ) \\
          |2> >( tee ${jobMeta.workerPaths.getStderrFile(ensureParentExists = true)} >&2 )

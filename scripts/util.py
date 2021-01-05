@@ -162,12 +162,14 @@ def _create_asset_spec(version_id, top_dir, language, dependencies=None):
     asset_spec = {
         "version": version_id,
         "name": "dx{}rt".format(language.upper()),
-        "title": "dx {} asset".format(language.upper()),
+        "title": "dx{} asset".format(language.upper()),
         "release": "20.04",
         "distribution": "Ubuntu",
         "execDepends": exec_depends,
         "instanceType": "mem1_ssd1_v2_x4",
-        "description": "Prerequisites for running {} workflows compiled to the platform".format(language.upper())
+        "description": "Prerequisites for running {} workflows compiled to the platform".format(language.upper()),
+        # workaround for DEVEX-1827
+        "excludeResource": ["/snap*"]
     }
     with open(os.path.join(top_dir, "applet_resources", language.upper(), "dxasset.json"), 'w') as fd:
         fd.write(json.dumps(asset_spec, indent=4))
@@ -205,7 +207,8 @@ def _make_prerequisites(project, folder, version_id, top_dir, language, resource
     # Create the .env file if necessary
     if env_vars:
         dot_env = "\n".join("{}={}".format(key, val) for key, val in env_vars.items())
-        dot_env_file = os.path.join(language_dir, ".env")
+        # files in home dir are not included in the final asset
+        dot_env_file = os.path.join(lang_resources_dir, "home", "dnanexus", ".env")
         with open(dot_env_file, "wt") as out:
             out.write(dot_env)
 

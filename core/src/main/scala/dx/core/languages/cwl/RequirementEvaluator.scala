@@ -71,18 +71,26 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
   }
 
   def parseInstanceType: InstanceTypeRequest = {
-    val minTmpGB = resources.tmpdirMin.map(evaluateNumeric(_, MinMathContext, MiBtoGiB))
-    val minOutGB = resources.outdirMin.map(evaluateNumeric(_, MinMathContext, MiBtoGiB))
-    val maxTmpGB = resources.tmpdirMax.map(evaluateNumeric(_, MaxMathContext, MiBtoGiB))
-    val maxOutGB = resources.outdirMax.map(evaluateNumeric(_, MaxMathContext, MiBtoGiB))
+    def getDiskGB(tmpdir: Option[CwlValue],
+                  outdir: Option[CwlValue],
+                  ctx: MathContext): Option[Long] = {
+      val tmpGB = tmpdir.map(evaluateNumeric(_, ctx, MiBtoGiB))
+      val outGB = outdir.map(evaluateNumeric(_, ctx, MiBtoGiB))
+      if (tmpGB.isDefined || outGB.isDefined) {
+        Some(tmpGB.getOrElse(0L) + outGB.getOrElse(0L))
+      } else {
+        None
+      }
+    }
 
     InstanceTypeRequest(
         minMemoryMB = resources.ramMin.map(evaluateNumeric(_, MinMathContext)),
         maxMemoryMB = resources.ramMax.map(evaluateNumeric(_, MaxMathContext)),
-        minDiskGB = Some(minTmpGB.getOrElse(0L) + minOutGB.getOrElse(0L)),
-        maxDiskGB = Some(maxTmpGB.getOrElse(0L) + maxOutGB.getOrElse(0L)),
+        minDiskGB =
+          getDiskGB(resources.tmpdirMin, resources.outdirMin, MinMathContext).orElse(Some(0L)),
+        maxDiskGB = getDiskGB(resources.tmpdirMax, resources.outdirMax, MaxMathContext),
         minCpu = resources.coresMin.map(evaluateNumeric(_, MinMathContext)),
-        maxCpu = resources.coresMin.map(evaluateNumeric(_, MaxMathContext))
+        maxCpu = resources.coresMax.map(evaluateNumeric(_, MaxMathContext))
     )
   }
 

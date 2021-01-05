@@ -9,6 +9,7 @@ import os
 import re
 import sys
 import subprocess
+import tempfile
 from typing import Callable, Iterator, Union, Optional, List
 from termcolor import colored, cprint
 import time
@@ -330,6 +331,12 @@ def validate_result(tname, exec_outputs, key, expected_val):
             (type(expected_val) is list)):
             result.sort()
             expected_val.sort()
+        if isinstance(result, dict) and "$dnanexus_link" in result:
+            # the result is a file - download it and extract the contents
+            dlpath = os.path.join(tempfile.mkdtemp(), 'result.txt')
+            dxpy.download_dxfile(result["$dnanexus_link"], dlpath)
+            with open(dlpath, "r") as inp:
+                result = inp.read()
         if str(result).strip() != str(expected_val).strip():
             cprint("Analysis {} gave unexpected results".format(tname),
                    "red")
