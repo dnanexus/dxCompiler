@@ -152,7 +152,7 @@ case class ProcessTranslator(typeAliases: Map[String, CwlSchema],
   private case class CwlWorkflowTranslator(wf: Workflow) {
     def apply: Vector[Callable] = {
       logger.trace(s"Translating workflow ${wf.name}")
-
+      val subBlocks = CwlBlock.createBlocks(wf.)
     }
   }
 
