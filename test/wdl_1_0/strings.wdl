@@ -26,12 +26,17 @@ task processTsv {
     input {
         Array[Array[String]] words
     }
+    Array[Array[String]] first_line = [words[0]]
+
     command {
-        cat ${write_tsv(words)}
+        cat ${write_tsv(first_line)}
     }
     output {
-      # This will read -only- the first line of the table
-        String result = read_string(stdout())
+      # It used to be true that read_string only read the first
+      # line of the file, but that is not actually correct according
+      # to the spec. read_string now returns the entire file as a single
+      # line, with only the trailing newline stripped off.
+      String result = read_string(stdout())
     }
 }
 
