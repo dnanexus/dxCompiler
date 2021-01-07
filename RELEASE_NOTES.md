@@ -1,5 +1,39 @@
 # Release Notes
 
+
+## 2.0.0 Release Notes Summary
+
+A summary of changes in the 2.0.0 version of dxCompiler comparing to the previous 1 version:
+
+User-facing changes:
+* Changed the name and all references from dxWDL to dxCompiler, dxCompiler-\*.jar is now used to compile an application or a workflow
+* Replaced Cromwell WOM (parser, type checker and evaluator) with [wdlTools](https://github.com/dnanexus-rnd/wdlTools), a library maintained by DNAnexus
+* Added support for per-workflow and per-scatter chunk size settings to extras.json
+* Added `streamFiles` compile option
+* Updated the mechanism of comparing instance types to select the cheapest one for execution
+* Improved file resolving and caching
+* Optimized bulk description of files by replacing `system/describeDataObjects` with `system/findDataObjects` API call and scoping file search to projects
+* Made array type-checking less strict to coerce between empty and non-empty array types
+* Made it possible to run apps built using dxWDL (after applets to apps conversion using dx-toolkit SDK, min. v0.296)
+* Increased file name disambiguation directory size limit to 5000
+* Increased number of API retries to 10
+
+Development and codebase changes:
+* Reorganized dxCompiler code into subprojects
+  * core: shared code between front-end and back-end
+  * compiler: the front-end
+  * executorCommon: shared code between executors
+  * executorWdl: the WDL executor
+  * executorCwl: the CWL executor
+* Separated the compiler from executor packages
+* Moved API code to a separate dxApi library
+* Moved DxFileAccessProtocol to a separate protocols library
+* Moved parts of the code to a separate dxCommon library
+* Moved WDL type serialization code to wdlTools
+* Added archive format and implemented UDFs (user-defined functions) for archiving and unarchiving inputs
+* Changed the way the applet\_resources folder is used: common binaries are stored in sub-folders by version, each executor is built in its own sub-folder
+* Replaced Travis with Github Actions for unit and integration testing
+
 ## 2.0.0 17-12-2020
 
 * Reorganizes dxCompiler code into subprojects, splits codebase into 5 subprojects:
