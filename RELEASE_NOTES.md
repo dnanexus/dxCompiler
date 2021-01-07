@@ -14,7 +14,7 @@ User-facing changes:
 * Improved file resolving and caching
 * Optimized bulk description of files by replacing `system/describeDataObjects` with `system/findDataObjects` API call and scoping file search to projects
 * Made array type-checking less strict to coerce between empty and non-empty array types
-* Made it possible to run apps built using dxWDL (after applets to apps conversion using dx-toolkit SDK, min. v0.296)
+* Made it possible to run apps built using dxCompiler (after applets to apps conversion using dx-toolkit SDK, min. v0.296)
 * Increased file name disambiguation directory size limit to 5000
 * Increased number of API retries to 10
 
