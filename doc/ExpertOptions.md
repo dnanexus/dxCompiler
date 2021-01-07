@@ -584,8 +584,8 @@ task bwa_mem {
     memory: "${memory_gb} GB"
     disks: "local-disk ${actual_disk_gb} SSD"
     dx_timeout: "1D"
-    dx_restart: {
-      "max": 3
+    dx_restart: object {
+      max: 3
     }
   }
 
