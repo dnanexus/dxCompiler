@@ -3,7 +3,7 @@
 
 ## 2.0.0 Release Notes Summary
 
-A summary of changes in the 2.0.0 version of dxCompiler comparing to the previous 1 version:
+A summary of changes in the 2.0.0 version of dxCompiler comparing to the previous dxWDL version 1:
 
 User-facing changes:
 * Changed the name and all references from dxWDL to dxCompiler, dxCompiler-\*.jar is now used to compile an application or a workflow
