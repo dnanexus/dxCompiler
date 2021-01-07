@@ -26,7 +26,8 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
                                 dxApi: DxApi = DxApi.get) {
   lazy val evaluator: Evaluator = Evaluator.create(requirements)
   private lazy val runtime: Runtime = CwlUtils.createRuntime(workerPaths)
-  private lazy val evaluatorContext: EvaluatorContext = CwlUtils.createEvauatorContext(runtime, env)
+  private lazy val evaluatorContext: EvaluatorContext =
+    CwlUtils.createEvaluatorContext(runtime, env)
   private lazy val defaultResourceRequirement: ResourceRequirement = {
     val req = ResourceRequirement(
         defaultRuntimeAttrs.get("coresMin").map(_._2),

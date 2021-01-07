@@ -5,7 +5,7 @@ import dx.executor.cwl.CwlTaskExecutor
 import dx.executor.{BaseCli, FileUploader, JobMeta, WorkflowExecutor}
 
 object Main extends BaseCli {
-  override val jarName = "dxExecutorWdl.jar"
+  override val jarName = "dxExecutorCwl.jar"
 
   override def createTaskExecutor(meta: JobMeta,
                                   fileUploader: FileUploader,

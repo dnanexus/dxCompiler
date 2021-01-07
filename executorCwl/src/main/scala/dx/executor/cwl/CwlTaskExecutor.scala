@@ -78,7 +78,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
           case Some(irValue) =>
             CwlUtils.fromIRValue(irValue, cwlTypes, name)
           case None if param.default.isDefined =>
-            val ctx = CwlUtils.createEvauatorContext(runtime, env)
+            val ctx = CwlUtils.createEvaluatorContext(runtime, env)
             evaluator.evaluate(param.default.get, cwlTypes, ctx)
           case None if cwlTypes.exists(CwlOptional.isOptional) =>
             (CwlNull, NullValue)
@@ -115,7 +115,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
     logger.traceLimited("calcInstanceType", minLevel = TraceLevel.VVerbose)
     printInputs(inputs)
     val cwlEvaluator = Evaluator.create(tool.requirements)
-    val ctx = CwlUtils.createEvauatorContext(runtime)
+    val ctx = CwlUtils.createEvaluatorContext(runtime)
     val env = cwlEvaluator.evaluateMap(inputs, ctx)
     val reqEvaluator = RequirementEvaluator(
         tool.requirements,

@@ -78,7 +78,7 @@ case class ProcessTranslator(typeAliases: Map[String, CwlSchema],
         case Some(default) =>
           // input with default
           try {
-            val ctx = CwlUtils.createEvauatorContext(Runtime.empty)
+            val ctx = CwlUtils.createEvaluatorContext(Runtime.empty)
             val (actualType, defaultValue) = cwlEvaluator.evaluate(default, Vector(cwlType), ctx)
             (actualType, Some(CwlUtils.toIRValue(defaultValue, actualType)))
           } catch {
@@ -99,7 +99,7 @@ case class ProcessTranslator(typeAliases: Map[String, CwlSchema],
         case other =>
           throw new Exception(s"Mutliple types are not supported ${other}")
       }
-      val ctx = CwlUtils.createEvauatorContext(Runtime.empty)
+      val ctx = CwlUtils.createEvaluatorContext(Runtime.empty)
       val (actualType, defaultValue) = output.outputBinding
         .flatMap { binding =>
           binding.outputEval.map { cwlValue =>

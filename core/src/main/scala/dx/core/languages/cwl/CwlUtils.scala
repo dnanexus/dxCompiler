@@ -257,9 +257,9 @@ object CwlUtils {
     )
   }
 
-  def createEvauatorContext(runtime: Runtime,
-                            env: Map[String, (CwlType, CwlValue)] = Map.empty,
-                            self: CwlValue = NullValue): EvaluatorContext = {
+  def createEvaluatorContext(runtime: Runtime,
+                             env: Map[String, (CwlType, CwlValue)] = Map.empty,
+                             self: CwlValue = NullValue): EvaluatorContext = {
     val values = env.map {
       case (key, (_, value)) => key -> value
     }

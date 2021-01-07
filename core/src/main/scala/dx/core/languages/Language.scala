@@ -24,7 +24,7 @@ object Language extends Enum {
       case WdlVersion.Draft_2 => Language.WdlVDraft2
       case WdlVersion.V1      => Language.WdlV1_0
       case WdlVersion.V2      => Language.WdlV2_0
-      case other              => throw new Exception(s"Unsupported WDL dialect ${other}")
+      case other              => throw new Exception(s"Unsupported WDL version ${other}")
     }
   }
 
@@ -38,7 +38,7 @@ object Language extends Enum {
   def fromCwlVersion(version: CWLVersion): Value = {
     version match {
       case CWLVersion.V1_2 => Language.CwlV1_2
-      case other           => throw new Exception(s"Unsupported CWL dialect ${other}")
+      case other           => throw new Exception(s"Unsupported CWL version ${other}")
     }
   }
 

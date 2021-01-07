@@ -179,9 +179,7 @@ def _create_asset_spec(version_id, top_dir, language, dependencies=None):
         "distribution": "Ubuntu",
         "execDepends": exec_depends,
         "instanceType": "mem1_ssd1_v2_x4",
-        "description": "Prerequisites for running {} workflows compiled to the platform".format(language.upper()),
-        # workaround for DEVEX-1827
-        "excludeResource": ["/snap*"]
+        "description": "Prerequisites for running {} workflows compiled to the platform".format(language.upper())
     }
     with open(os.path.join(top_dir, "applet_resources", language.upper(), "dxasset.json"), 'w') as fd:
         fd.write(json.dumps(asset_spec, indent=4))
@@ -350,9 +348,9 @@ def build(project, folder, version_id, top_dir, path_dict, dependencies=None, fo
             shutil.rmtree(os.path.join(top_dir, "applet_resources", lang.upper()))
 
     region = dxpy.describe(project.get_id())['region']
-    asset_descs = [
+    asset_descs = dict(
         (lang, AssetDesc(region, asset.get_id(), project))
         for (lang, asset) in assets.items()
-    ]
+    )
 
     return asset_descs
