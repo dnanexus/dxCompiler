@@ -76,9 +76,13 @@ case class WdlTaskExecutor(task: TAT.Task,
 
   private def wdlInputs: Map[String, V] = {
     // convert IR to WDL values; discard auxiliary fields
-    val inputWdlValues: Map[String, V] = jobMeta.primaryInputs.map {
-      case (name, value) =>
-        name -> WdlUtils.fromIRValue(value, inputTypes(name), name)
+    val inputWdlValues: Map[String, V] = inputTypes.map {
+      case (name, wdlType) if jobMeta.primaryInputs.contains(name) =>
+        name -> WdlUtils.fromIRValue(jobMeta.primaryInputs(name), wdlType, name)
+      case (name, T_Optional(_)) =>
+        name -> V_Null
+      case (name, _) =>
+        throw new Exception(s"missing non-optional input ${name}")
     }
     // add default values for any missing inputs
     taskIO.inputsFromValues(inputWdlValues, evaluator, strict = true).toMap
