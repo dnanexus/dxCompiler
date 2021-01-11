@@ -3,7 +3,7 @@
 
 ## 2.0.0 Release Notes Summary
 
-A summary of changes in the 2.0.0 version of dxCompiler comparing to the previous dxWDL version 1:
+A summary of changes in the 2.0.0 version of dxCompiler comparing to the dxWDL version 1.47.2 (after which the first 2.0.0-rc version was introduced):
 
 User-facing changes:
 * Changed the name and all references from dxWDL to dxCompiler, dxCompiler-\*.jar is now used to compile an application or a workflow
@@ -13,10 +13,9 @@ User-facing changes:
 * Updated the mechanism of comparing instance types to select the cheapest one for execution
 * Improved file resolving and caching
 * Optimized bulk description of files by replacing `system/describeDataObjects` with `system/findDataObjects` API call and scoping file search to projects
-* Made array type-checking less strict to coerce between empty and non-empty array types
 * Made it possible to run apps built using dxCompiler (after applets to apps conversion using dx-toolkit SDK, min. v0.296)
 * Increased file name disambiguation directory size limit to 5000
-* Increased number of API retries to 10
+* Increased number of retries for the DNAnexus API requests to 10
 
 Development and codebase changes:
 * Reorganized dxCompiler code into subprojects
