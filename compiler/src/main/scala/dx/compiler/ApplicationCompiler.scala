@@ -1,15 +1,6 @@
 package dx.compiler
 
-import dx.api.{
-  DxAccessLevel,
-  DxApi,
-  DxFile,
-  DxInstanceType,
-  DxPath,
-  DxUtils,
-  InstanceTypeDB,
-  InstanceTypeRequest
-}
+import dx.api.{DxAccessLevel, DxApi, DxFile, DxInstanceType, DxPath, DxUtils, InstanceTypeDB}
 import dx.core.Constants
 import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir._
@@ -123,11 +114,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
 
   private def createRunSpec(applet: Application): (JsValue, Map[String, JsValue]) = {
     val instanceType: DxInstanceType = applet.instanceType match {
-      case StaticInstanceType(dxInstanceType, memoryMB, diskGB, diskType, cpu, gpu, os) =>
-        val request = InstanceTypeRequest(dxInstanceType, memoryMB, diskGB, diskType, cpu, gpu, os)
-        instanceTypeDb.apply(request)
-      case DefaultInstanceType | DynamicInstanceType =>
-        instanceTypeDb.defaultInstanceType
+      case static: StaticInstanceType                => instanceTypeDb.apply(static.toInstanceTypeRequest)
+      case DefaultInstanceType | DynamicInstanceType => instanceTypeDb.defaultInstanceType
     }
     // Generate the applet's job script
     val jobScript = generateJobScript(applet)

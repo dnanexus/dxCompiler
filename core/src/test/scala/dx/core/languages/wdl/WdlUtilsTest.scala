@@ -8,6 +8,8 @@ import org.scalatest.matchers.should.Matchers
 import wdlTools.eval.WdlValues
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 
+import scala.collection.immutable.TreeSeqMap
+
 class WdlUtilsTest extends AnyFlatSpec with Matchers {
   private def validateTaskMeta(task: TAT.Task): Unit = {
     val kvs = task.meta match {
@@ -136,7 +138,7 @@ class WdlUtilsTest extends AnyFlatSpec with Matchers {
 
     val wdlValue = WdlUtils.fromIRValue(irValue, wdlType, "")
     wdlValue shouldBe WdlValues.V_Map(
-        Map(WdlValues.V_File("/path/to/file") -> WdlValues.V_String("this is a string"))
+        TreeSeqMap(WdlValues.V_File("/path/to/file") -> WdlValues.V_String("this is a string"))
     )
   }
 }
