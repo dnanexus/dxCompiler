@@ -144,7 +144,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
   it should "allow file as WDL map key" in {
     val wdlCode = pathFromBasename("input_file", "no_file_key.wdl")
     val inputs = pathFromBasename("input_file", "no_file_key_input.json")
-    val args = List(wdlCode.toString, "-inputs", inputs.toString) ++ cFlags
+    val args = List(wdlCode.toString, "-inputs", inputs.toString, "-verbose") ++ cFlags
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessIR]
   }

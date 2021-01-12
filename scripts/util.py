@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import sys
 import time
+import traceback
 
 AssetDesc = namedtuple('AssetDesc', 'region asset_id project')
 
@@ -20,11 +21,13 @@ max_num_retries = 5
 # - subproject = "executor{}".format(lang)
 # - JAR name = "dxExecutor{}".format(lang)
 # - asset name = "dx{}rt".format(lang.upper())
-languages = ["Wdl"]
+languages = ["Wdl", "Cwl"]
 
 
-def info(msg):
+def info(msg, ex=None):
     print(msg, file=sys.stderr)
+    if ex:
+        traceback.print_exception(*ex)
 
 
 # Extract version_id from configuration file
@@ -102,31 +105,35 @@ def _download_dxda_into_resources(top_dir, dxda_version):
     if not os.path.exists(dxda_exe):
         os.makedirs(dxda_dir, exist_ok=True)
         os.chdir(dxda_dir)
+        try:
+            # download dxda release, and place it in the resources directory
+            if dxda_version.startswith("v"):
+                # A proper download-agent release, it starts with a "v"
 
-        # download dxda release, and place it in the resources directory
-        if dxda_version.startswith("v"):
-            # A proper download-agent release, it starts with a "v"
-            subprocess.check_call([
-                "wget",
-                "https://github.com/dnanexus/dxda/releases/download/{}/dx-download-agent-linux".format(dxda_version),
-                "-O",
-                "dx-download-agent"])
-        else:
-            # A snapshot of the download-agent development branch
-            snapshot_dxda_tar = "resources/dx-download-agent-linux.tar"
-            command = """sudo docker run --rm --entrypoint=\'\' dnanexus/dxda:{} cat /builds/dx-download-agent-linux.tar > {}""".format(
-                dxda_version, snapshot_dxda_tar)
-            p = subprocess.Popen(command, universal_newlines=True, shell=True,
-                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            text = p.stdout.read()
-            retcode = p.wait()
-            info("downloading dxda {} {}".format(retcode, text))
-            subprocess.check_call(["tar", "-C", "resources", "-xvf", snapshot_dxda_tar])
-            os.rename("resources/dx-download-agent-linux/dx-download-agent",
-                      "dx-download-agent")
-            os.remove(snapshot_dxda_tar)
-            shutil.rmtree("resources/dx-download-agent-linux")
-
+                    subprocess.check_call([
+                        "wget",
+                        "https://github.com/dnanexus/dxda/releases/download/{}/dx-download-agent-linux".format(dxda_version),
+                        "-O",
+                        "dx-download-agent"])
+            else:
+                # A snapshot of the download-agent development branch
+                snapshot_dxda_tar = "resources/dx-download-agent-linux.tar"
+                command = """sudo docker run --rm --entrypoint=\'\' dnanexus/dxda:{} cat /builds/dx-download-agent-linux.tar > {}""".format(
+                    dxda_version, snapshot_dxda_tar)
+                p = subprocess.Popen(command, universal_newlines=True, shell=True,
+                                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                text = p.stdout.read()
+                retcode = p.wait()
+                info("downloading dxda {} {}".format(retcode, text))
+                subprocess.check_call(["tar", "-C", "resources", "-xvf", snapshot_dxda_tar])
+                os.rename("resources/dx-download-agent-linux/dx-download-agent",
+                          "dx-download-agent")
+                os.remove(snapshot_dxda_tar)
+                shutil.rmtree("resources/dx-download-agent-linux")
+        except subprocess.CalledProcessError as e:
+            print(e.stdout)
+            print(e.stderr)
+            raise e
         # make sure the binary is executable
         os.chmod("dx-download-agent", 0o775)
 
@@ -141,30 +148,36 @@ def _download_dxfuse_to_resources(top_dir, dxfuse_version):
     if not os.path.exists(dxfuse_exe):
         os.makedirs(dxfuse_dir, exist_ok=True)
         info("downloading dxfuse {} to {}".format(dxfuse_version, dxfuse_exe))
-        subprocess.check_call([
-            "wget",
-            "https://github.com/dnanexus/dxfuse/releases/download/{}/dxfuse-linux".format(dxfuse_version),
-            "-O",
-            dxfuse_exe])
+        try:
+            subprocess.check_call([
+                "wget",
+                "https://github.com/dnanexus/dxfuse/releases/download/{}/dxfuse-linux".format(dxfuse_version),
+                "-O",
+                dxfuse_exe])
+        except subprocess.CalledProcessError as e:
+            print(e.stdout)
+            print(e.stderr)
+            raise e
 
         os.chmod(dxfuse_exe, 0o775)
 
     return dxfuse_exe
 
 
-def _create_asset_spec(version_id, top_dir, language):
+def _create_asset_spec(version_id, top_dir, language, dependencies=None):
     # TODO: update to 20.04 - just waiting for staging to catch up to prod
+    exec_depends = [
+        {"name": "openjdk-8-jre-headless"},
+        {"name": "bzip2"},
+        {"name": "jq"}
+    ] + (dependencies or [])
     asset_spec = {
         "version": version_id,
         "name": "dx{}rt".format(language.upper()),
-        "title": "dx {} asset".format(language.upper()),
-        "release": "16.04",
+        "title": "dx{} asset".format(language.upper()),
+        "release": "20.04",
         "distribution": "Ubuntu",
-        "execDepends": [
-            {"name": "openjdk-8-jre-headless"},
-            {"name": "bzip2"},
-            {"name": "jq"}
-        ],
+        "execDepends": exec_depends,
         "instanceType": "mem1_ssd1_v2_x4",
         "description": "Prerequisites for running {} workflows compiled to the platform".format(language.upper())
     }
@@ -178,11 +191,16 @@ def _build_asset(top_dir, language, destination):
     crnt_work_dir = os.getcwd()
     # build the platform asset
     os.chdir(os.path.join(os.path.abspath(top_dir), "applet_resources"))
-    subprocess.check_call(["dx", "build_asset", language.upper(), "--destination", destination])
+    try:
+        subprocess.check_call(["dx", "build_asset", language.upper(), "--destination", destination])
+    except subprocess.CalledProcessError as e:
+        print(e.stdout)
+        print(e.stderr)
+        raise e
     os.chdir(crnt_work_dir)
 
 
-def _make_prerequisites(project, folder, version_id, top_dir, language, resources):
+def _make_prerequisites(project, folder, version_id, top_dir, language, resources, dependencies=None, env_vars=None):
     # Create a folder for the language-specific asset
     language_dir = os.path.join(top_dir, "applet_resources", language.upper())
     language_resources_dir = os.path.join(language_dir, "resources", "usr", "bin")
@@ -192,10 +210,24 @@ def _make_prerequisites(project, folder, version_id, top_dir, language, resource
     for res in resources:
         os.link(res, os.path.join(language_resources_dir, Path(res).name))
 
-    # Create the asset description file
-    _create_asset_spec(version_id, top_dir, language)
+    # Link in executor-specific resources, if any
+    lang_resources_dir = os.path.join(top_dir, "executor{}".format(language), "applet_resources")
+    if os.path.exists(lang_resources_dir):
+        for f in os.listdir(lang_resources_dir):
+            os.link(os.path.join(lang_resources_dir, f), os.path.join(language_dir, f))
 
-    # Create an asset from the dxWDL jar file and its dependencies,
+    # Create the asset description file
+    _create_asset_spec(version_id, top_dir, language, dependencies)
+
+    # Create the .env file if necessary
+    if env_vars:
+        dot_env = "\n".join("{}={}".format(key, val) for key, val in env_vars.items())
+        # files in home dir are not included in the final asset
+        dot_env_file = os.path.join(lang_resources_dir, "home", "dnanexus", ".env")
+        with open(dot_env_file, "wt") as out:
+            out.write(dot_env)
+
+    # Create an asset from the executor jar file and its dependencies,
     # this speeds up applet creation.
     destination = "{}:{}/dx{}rt".format(project.get_id(), folder, language.upper())
     for i in range(0, max_num_retries):
@@ -204,7 +236,7 @@ def _make_prerequisites(project, folder, version_id, top_dir, language, resource
             _build_asset(top_dir, language, destination)
             break
         except:
-            info("Sleeping for 5 seconds before trying again")
+            info("Error creating runtime asset; sleeping for 5 seconds before trying again", sys.exc_info())
             time.sleep(5)
     else:
         raise Exception("Failed to build the {} runtime asset".format(language))
@@ -258,8 +290,13 @@ def _sbt_assembly(top_dir):
     for jar_path in jar_paths.values():
         if os.path.exists(jar_path):
             os.remove(jar_path)
-    subprocess.check_call(["sbt", "clean"])
-    subprocess.check_call(["sbt", "assembly"])
+    try:
+        subprocess.check_call(["sbt", "clean"])
+        subprocess.check_call(["sbt", "assembly"])
+    except subprocess.CalledProcessError as e:
+        print(e.stdout)
+        print(e.stderr)
+        raise e
     for jar_path in jar_paths.values():
         if not os.path.exists(jar_path):
             raise Exception("sbt assembly failed")
@@ -291,8 +328,13 @@ def build(project, folder, version_id, top_dir, path_dict, dependencies=None, fo
         jar_paths = _sbt_assembly(top_dir)
         info("jar_paths: {}".format(jar_paths))
 
+        exec_depends = dependencies.get("execDepends", {})
+        env_vars = dependencies.get("env", {})
         assets = dict(
-            (lang, _make_prerequisites(project, folder, version_id, top_dir, lang, resources))
+            (lang, _make_prerequisites(
+                project, folder, version_id, top_dir, lang, resources,
+                exec_depends.get(lang.lower(), env_vars.get(lang.lower()))
+            ))
             for lang in languages
         )
 
@@ -310,4 +352,5 @@ def build(project, folder, version_id, top_dir, path_dict, dependencies=None, fo
         (lang, AssetDesc(region, asset.get_id(), project))
         for (lang, asset) in assets.items()
     )
+
     return asset_descs

@@ -308,30 +308,33 @@ class ExecutableCompiler(extras: Option[Extras],
 
   // Convert the applet meta to JSON, and overlay details from task-specific extras
   protected def callableAttributesToNative(
-      applet: Callable,
+      callable: Callable,
       defaultTags: Set[String]
   ): (Map[String, JsValue], Map[String, JsValue]) = {
     val metaDefaults = Map(
-        "title" -> JsString(applet.name),
-        "tags" -> JsArray(defaultTags.map(JsString(_)).toVector)
+        "title" -> JsString(callable.name),
+        "tags" -> JsArray((defaultTags ++ callable.tags).map(JsString(_)).toVector),
+        "properties" -> JsObject(callable.properties.map {
+          case (name, value) => name -> JsString(value)
+        })
         // These are currently ignored because they only apply to apps
         //"version" -> JsString("0.0.1"),
         //"openSource" -> JsBoolean(false),
     )
-    val meta = applet.attributes.collect {
+    val meta = callable.attributes.collect {
       case TitleAttribute(text)       => "title" -> JsString(text)
       case DescriptionAttribute(text) => "description" -> JsString(text)
       case TypesAttribute(array)      => "types" -> JsArray(array.map(JsString(_)))
       case TagsAttribute(array)       =>
         // merge default and user-specified tags
-        "tags" -> JsArray((array.toSet ++ defaultTags).map(JsString(_)).toVector)
+        "tags" -> JsArray((array.toSet ++ defaultTags ++ callable.tags).map(JsString(_)).toVector)
       case PropertiesAttribute(props) =>
-        "properties" -> JsObject(props.map {
+        "properties" -> JsObject((props ++ callable.properties).map {
           case (k, v) => k -> JsString(v)
         })
     }.toMap
     // String attributes that need special handling
-    val meta2: Map[String, String] = applet.attributes.collect {
+    val meta2: Map[String, String] = callable.attributes.collect {
       case SummaryAttribute(text)     => "summary" -> text
       case DescriptionAttribute(text) => "description" -> text
     }.toMap
@@ -339,7 +342,7 @@ class ExecutableCompiler(extras: Option[Extras],
     val summary =
       summaryToNative(meta2.get("summary"), meta2.get("description"))
     // extract the details to return separately
-    val metaDetails = applet.attributes
+    val metaDetails = callable.attributes
       .collectFirst {
         case DetailsAttribute(details) =>
           details.map {

@@ -100,6 +100,8 @@ trait Callable {
   def inputVars: Vector[Parameter]
   def outputVars: Vector[Parameter]
   def attributes: Vector[CallableAttribute]
+  def tags: Set[String]
+  def properties: Map[String, String]
 }
 
 /**
@@ -219,7 +221,9 @@ case class Application(name: String,
                        kind: ExecutableKind,
                        document: DocumentSource,
                        attributes: Vector[CallableAttribute] = Vector.empty,
-                       requirements: Vector[RuntimeRequirement] = Vector.empty)
+                       requirements: Vector[RuntimeRequirement] = Vector.empty,
+                       tags: Set[String] = Set.empty,
+                       properties: Map[String, String] = Map.empty)
     extends Callable {
   def inputVars: Vector[Parameter] = inputs
   def outputVars: Vector[Parameter] = outputs
@@ -266,7 +270,9 @@ case class Workflow(name: String,
                     document: WorkflowSource,
                     locked: Boolean,
                     level: Level.Level,
-                    attributes: Vector[CallableAttribute] = Vector.empty)
+                    attributes: Vector[CallableAttribute] = Vector.empty,
+                    tags: Set[String] = Set.empty,
+                    properties: Map[String, String] = Map.empty)
     extends Callable {
   def inputVars: Vector[Parameter] = inputs.map { case (cVar, _)   => cVar }
   def outputVars: Vector[Parameter] = outputs.map { case (cVar, _) => cVar }

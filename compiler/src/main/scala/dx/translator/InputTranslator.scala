@@ -57,13 +57,13 @@ object InputTranslator {
   }
 }
 
-abstract class InputTranslator(bundle: Bundle,
-                               inputs: Vector[Path],
-                               defaults: Option[Path],
-                               project: DxProject,
-                               baseFileResolver: FileSourceResolver = FileSourceResolver.get,
-                               dxApi: DxApi = DxApi.get,
-                               logger: Logger = Logger.get) {
+class InputTranslator(bundle: Bundle,
+                      inputs: Vector[Path],
+                      defaults: Option[Path],
+                      project: DxProject,
+                      baseFileResolver: FileSourceResolver = FileSourceResolver.get,
+                      dxApi: DxApi = DxApi.get,
+                      logger: Logger = Logger.get) {
 
   private lazy val inputsJs: Map[Path, Map[String, JsValue]] =
     inputs.map(path => path -> InputTranslator.loadJsonFileWithComments(path)).toMap
@@ -76,7 +76,7 @@ abstract class InputTranslator(bundle: Bundle,
     * to an IR type.
     * @return
     */
-  protected def translateJsInput(jsv: JsValue, t: Type): JsValue
+  protected def translateJsInput(jsv: JsValue, t: Type): JsValue = jsv
 
   /**
     * Extract Dx files from a JSON input.

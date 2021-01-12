@@ -6,6 +6,11 @@ package dx.core.ir
 trait SourceCode {
 
   /**
+    * The workflow lanaguage of the source code.
+    */
+  def language: String
+
+  /**
     * Generates the source code as a String.
     * @return
     */

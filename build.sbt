@@ -31,7 +31,8 @@ lazy val global = root
       core,
       compiler,
       executorCommon,
-      executorWdl
+      executorWdl,
+      executorCwl
   )
 
 val dxCompilerVersion: String = {
@@ -47,7 +48,9 @@ val core = project
       version := dxCompilerVersion,
       settings,
       libraryDependencies ++= commonDependencies ++ Seq(
-          dependencies.wdlTools
+          dependencies.typesafe,
+          dependencies.wdlTools,
+          dependencies.cwlScala
       )
   )
   .disablePlugins(AssemblyPlugin)
@@ -61,7 +64,8 @@ val compiler = project
       assemblySettings,
       libraryDependencies ++= commonDependencies ++ Seq(
           dependencies.typesafe,
-          dependencies.wdlTools
+          dependencies.wdlTools,
+          dependencies.cwlScala
       ),
       assemblyJarName in assembly := "dxCompiler.jar",
       assemblyOutputPath in assembly := file("applet_resources/dxCompiler.jar")
@@ -103,7 +107,8 @@ val executorCwl = project
       settings,
       assemblySettings,
       libraryDependencies ++= commonDependencies ++ Seq(
-          dependencies.typesafe
+          dependencies.typesafe,
+          dependencies.cwlScala
       ),
       assemblyJarName in assembly := "dxExecutorCwl.jar",
       assemblyOutputPath in assembly := file("applet_resources/CWL/resources/dxExecutorCwl.jar")
@@ -114,10 +119,11 @@ val executorCwl = project
 
 lazy val dependencies =
   new {
-    val dxCommonVersion = "0.2.3"
-    val dxApiVersion = "0.1.6"
+    val dxCommonVersion = "0.2.4"
+    val dxApiVersion = "0.1.7"
     val dxFileAccessProtocolsVersion = "0.1.2"
-    val wdlToolsVersion = "0.11.8"
+    val wdlToolsVersion = "0.11.12"
+    val cwlScalaVersion = "0.2.9"
     val typesafeVersion = "1.3.3"
     val sprayVersion = "1.3.5"
     val scalatestVersion = "3.1.1"
@@ -127,6 +133,7 @@ lazy val dependencies =
     val dxApi = "com.dnanexus" % "dxapi" % dxApiVersion
     val dxFileAccessProtocols = "com.dnanexus" % "dxfileaccessprotocols" % dxFileAccessProtocolsVersion
     val wdlTools = "com.dnanexus" % "wdltools" % wdlToolsVersion
+    val cwlScala = "com.dnanexus" % "cwlscala" % cwlScalaVersion
     val typesafe = "com.typesafe" % "config" % typesafeVersion
     val spray = "io.spray" %% "spray-json" % sprayVersion
     val logback = "ch.qos.logback" % "logback-classic" % logbackVersion

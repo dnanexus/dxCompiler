@@ -28,12 +28,6 @@ case class WdlInputTranslator(bundle: Bundle,
                               logger: Logger = Logger.get)
     extends InputTranslator(bundle, inputs, defaults, project, baseFileResolver, dxApi, logger) {
 
-  /**
-    * Overridable function converts a language-specific JSON value to one that can be
-    * deserialized to an IR Value.
-    *
-    * @return
-    */
   override protected def translateJsInput(jsv: JsValue, t: Type): JsValue = {
     (t, jsv) match {
       case (pairType: TSchema, JsArray(pair))
@@ -70,6 +64,8 @@ case class WdlTranslator(doc: TAT.Document,
     extends Translator {
 
   override val runtimeAssetName: String = "dxWDLrt"
+
+  override val runtimeJar: String = "dxExecutorWdl.jar"
 
   private def getUnqualifiedName(name: String): String = {
     if (name contains ".") {
@@ -148,7 +144,7 @@ case class WdlTranslator(doc: TAT.Document,
     // sort callables by dependencies
     val logger2 = logger.withIncTraceIndent()
     val depOrder: Vector[TAT.Callable] = sortByDependencies(wdlBundle, logger2)
-    if (logger.isVerbose) {
+    if (logger2.isVerbose) {
       logger2.trace(s"all tasks: ${wdlBundle.tasks.keySet}")
       logger2.trace(s"all callables in dependency order: ${depOrder.map(_.name)}")
     }

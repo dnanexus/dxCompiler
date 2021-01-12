@@ -1081,4 +1081,11 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val delayWD = details.asJsObject.fields.get("delayWorkspaceDestruction")
     delayWD shouldBe Some(JsTrue)
   }
+
+  it should "Native compile a CWL tool" taggedAs NativeTest in {
+    val path = pathFromBasename("cwl", "cat.cwl")
+    val args = path.toString :: cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[Success]
+  }
 }
