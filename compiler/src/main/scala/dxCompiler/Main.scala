@@ -21,7 +21,8 @@ import spray.json.{JsNull, JsValue}
   * Compiler CLI.
   */
 object Main {
-  private val DefaultRuntimeTraceLevel: Int = TraceLevel.Verbose
+  // TODO: REVERT TO VERBOSE
+  private val DefaultRuntimeTraceLevel: Int = TraceLevel.VVerbose
 
   /**
     * OptionSpec that parses the string argument(s) to -language.
