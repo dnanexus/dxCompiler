@@ -1,6 +1,6 @@
 package dx.executor.wdl
 
-import dx.api.DxPath
+import dx.api.{DxPath, InstanceTypeRequest}
 import dx.core.io.StreamFiles
 import dx.core.ir.{Type, Value}
 import dx.core.languages.wdl.{DxMetaHints, IrToWdlValueBindings, Runtime, VersionSupport, WdlUtils}
@@ -52,9 +52,7 @@ case class WdlTaskExecutor(task: TAT.Task,
     extends TaskExecutor(jobMeta, fileUploader, streamFiles) {
 
   private val fileResolver = jobMeta.fileResolver
-
   private val logger = jobMeta.logger
-
   private lazy val evaluator = Eval(
       jobMeta.workerPaths,
       Some(versionSupport.version),
@@ -70,8 +68,9 @@ case class WdlTaskExecutor(task: TAT.Task,
     typeAliases.toMap.view.mapValues(WdlUtils.toIRSchema).toMap
   }
 
-  private lazy val inputTypes: Map[String, T] =
+  private lazy val inputTypes: Map[String, T] = {
     task.inputs.map(d => d.name -> d.wdlType).toMap
+  }
 
   private def wdlInputs: Map[String, V] = {
     // convert IR to WDL values; discard auxiliary fields
@@ -125,17 +124,18 @@ case class WdlTaskExecutor(task: TAT.Task,
     )
   }
 
-  private def getRequiredInstanceType(inputs: Map[String, V] = wdlInputs): String = {
+  private def getRequiredInstanceTypeRequest(
+      inputs: Map[String, V] = wdlInputs
+  ): InstanceTypeRequest = {
     logger.traceLimited("calcInstanceType", minLevel = TraceLevel.VVerbose)
     printInputs(inputs)
     val env = evaluatePrivateVariables(inputs)
     val runtime = createRuntime(env)
-    val request = runtime.parseInstanceType
-    logger.traceLimited(s"calcInstanceType $request")
-    jobMeta.instanceTypeDb.apply(request).name
+    runtime.parseInstanceType
   }
 
-  override protected lazy val getRequiredInstanceType: String = getRequiredInstanceType()
+  override protected lazy val getRequiredInstanceTypeRequest: InstanceTypeRequest =
+    getRequiredInstanceTypeRequest()
 
   private lazy val parameterMeta = Meta.create(versionSupport.version, task.parameterMeta)
 
@@ -176,10 +176,6 @@ case class WdlTaskExecutor(task: TAT.Task,
     }
     printInputs(inputValues)
     val inputsWithPrivateVars = evaluatePrivateVariables(inputValues)
-    // TODO: there may be private variables that reference files created by the
-    //  command, or functions that depend on the execution of the command
-    //  (e.g. stdout()). Split the private vars into those that need to be
-    //  evaluated before vs after the command, and only evaluate the former here.
     val ctx = WdlValueBindings(inputsWithPrivateVars)
     val command = evaluator.applyCommand(task.command, ctx) match {
       case s if s.trim.isEmpty => None
@@ -213,9 +209,6 @@ case class WdlTaskExecutor(task: TAT.Task,
   ): Map[String, (Type, Value)] = {
     val outputTypes: Map[String, T] = task.outputs.map(d => d.name -> d.wdlType).toMap
     // Evaluate the output parameters in dependency order.
-    // These will include output files without canonicalized paths, which is why we need
-    // the following complex logic to match up local outputs to remote URIs.
-    // TODO: evaluate any private variables that depend on the command
     val localizedOutputs = taskIO
       .evaluateOutputs(
           evaluator,

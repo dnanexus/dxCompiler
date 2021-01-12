@@ -10,11 +10,13 @@ import scala.collection.immutable.TreeSeqMap
 
 case class WdlDocumentSource(doc: TAT.Document, versionSupport: VersionSupport)
     extends DocumentSource {
+  override val language: String = "wdl"
   override def toString: String = versionSupport.generateDocument(doc)
 }
 
 case class WdlWorkflowSource(workflow: TAT.Workflow, versionSupport: VersionSupport)
     extends WorkflowSource {
+  override val language: String = "wdl"
   override def toString: String = versionSupport.generateElement(workflow)
 }
 
@@ -328,6 +330,8 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
                                  _,
                                  ExecutableKindApplet,
                                  WdlDocumentSource(doc, _),
+                                 _,
+                                 _,
                                  _,
                                  _) =>
                   // This is a task, include its source instead of a header.

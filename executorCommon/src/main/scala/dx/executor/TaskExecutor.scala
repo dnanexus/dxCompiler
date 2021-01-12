@@ -1,8 +1,7 @@
 package dx.executor
 
 import java.nio.file.{Files, Path, Paths}
-
-import dx.api.DxJob
+import dx.api.{DxJob, InstanceTypeRequest}
 import dx.core.getVersion
 import dx.core.io.{
   DxdaManifest,
@@ -15,7 +14,6 @@ import dx.core.ir.{Type, TypeSerde, Value, ValueSerde}
 import dx.core.ir.Type._
 import dx.core.ir.Value._
 import dx.util.protocols.DxFileSource
-
 import spray.json._
 import dx.util.{
   AddressableFileNode,
@@ -65,7 +63,13 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     * Returns the minimal (i.e. cheapest) instance type that is
     * sufficient to the task's resource requirements.
     */
-  protected def getRequiredInstanceType: String
+  protected def getRequiredInstanceTypeRequest: InstanceTypeRequest
+
+  private def getRequiredInstanceType: String = {
+    val instanceTypeRequest: InstanceTypeRequest = getRequiredInstanceTypeRequest
+    logger.traceLimited(s"calcInstanceType $instanceTypeRequest")
+    jobMeta.instanceTypeDb.apply(instanceTypeRequest).name
+  }
 
   /**
     * Checks if we are already on the correct instance type. We only
@@ -74,15 +78,15 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     */
   protected def checkInstanceType: Boolean = {
     // calculate the required instance type
-    val reqInstanceType: String = getRequiredInstanceType
-    trace(s"required instance type: ${reqInstanceType}")
+    val requiredInstanceType = getRequiredInstanceType
+    trace(s"required instance type: ${requiredInstanceType}")
     val curInstanceType = jobMeta.instanceType.getOrElse(
         throw new Exception(s"Cannot get instance type for job ${jobMeta.jobId}")
     )
     trace(s"current instance type: ${curInstanceType}")
     val isSufficient =
       try {
-        jobMeta.instanceTypeDb.matchesOrExceedes(curInstanceType, reqInstanceType)
+        jobMeta.instanceTypeDb.matchesOrExceedes(curInstanceType, requiredInstanceType)
       } catch {
         case ex: Throwable =>
           logger.warning("error comparing current and required instance types",

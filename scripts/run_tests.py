@@ -9,10 +9,12 @@ import os
 import re
 import sys
 import subprocess
+import tempfile
 from typing import Callable, Iterator, Union, Optional, List
 from termcolor import colored, cprint
 import time
 import traceback
+import yaml
 from dxpy.exceptions import DXJobFailureError
 
 import util
@@ -22,16 +24,17 @@ top_dir = os.path.dirname(os.path.abspath(here))
 test_dir = os.path.join(os.path.abspath(top_dir), "test")
 
 git_revision = subprocess.check_output(["git", "describe", "--always", "--dirty", "--tags"]).strip()
-test_files={}
-test_failing=set(["bad_status",
-                  "bad_status2",
-                  "just_fail_wf",
-                  "missing_output",
-                  "docker_retry"
-                  ])
+test_files = {}
+test_failing = set([
+    "bad_status",
+    "bad_status2",
+    "just_fail_wf",
+    "missing_output",
+    "docker_retry",
+])
 
 wdl_v1_list = [
-     # calling native dx applets/apps
+    # calling native dx applets/apps
     "call_native_v1",
     "call_native_app",
 
@@ -77,7 +80,7 @@ wdl_v1_list = [
 
     # input/output linear_no_expressions
     "wf_with_input_expressions",
-    "wf_with_output_expressions"
+    "wf_with_output_expressions",
 ]
 
 # docker image tests
@@ -88,7 +91,7 @@ docker_test_list = [
     "native_docker_file_image",
     "native_docker_file_image_gzip",
     "samtools_count",
-    "dynamic_docker_image"
+    "dynamic_docker_image",
 ]
 
 # wdl draft-2
@@ -118,7 +121,7 @@ draft2_test_list = [
 
     # calling native dx applets/apps
     # We currently do not have a code generator for draft-2, so cannot import dx_extern.wdl.
-    #"call_native"
+    #"call_native",
 
     "write_lines_bug",
 ]
@@ -128,24 +131,31 @@ single_tasks_list = [
     "diff2files",
     "empty_stdout",
     "sort_file",
-    "symlinks_wc"
+    "symlinks_wc",
+]
+
+cwl_tools = [
+    "cat",  # hello world tool
 ]
 
 # Tests run in continuous integration. We remove the native app test,
 # because we don't want to give permissions for creating platform apps.
 ci_test_list = [
+    # WDL tests
     "advanced",
     # We currently do not have a code generator for draft-2, so cannot import dx_extern.wdl.
     # "call_native",
     "call_with_defaults1",
     "trains",
-    "files"
+    "files",
+    # CWL tests
+    "cat",
 ]
 
 special_flags_list = [
-    "add2",      # test the ignoreReuse flag
-    "add_many",  # tests the delayWorkspaceDestruction flag
-    "inc_range"  # check that runtime call to job/analysis pass the delayWorkspaceDestruction flag
+    "add2",       # test the ignoreReuse flag
+    "add_many",   # tests the delayWorkspaceDestruction flag
+    "inc_range",  # check that runtime call to job/analysis pass the delayWorkspaceDestruction flag
 ]
 
 # these are the examples from the documentation
@@ -153,14 +163,14 @@ doc_tests_list = [
     "bwa_mem"
 ]
 
-medium_test_list= wdl_v1_list + docker_test_list + special_flags_list
-large_test_list= medium_test_list + draft2_test_list + single_tasks_list
+medium_test_list = wdl_v1_list + docker_test_list + special_flags_list + cwl_tools
+large_test_list = medium_test_list + draft2_test_list + single_tasks_list
 
 test_suites = {
     'CI': ci_test_list,
     'M': medium_test_list,
     'L': large_test_list,
-    'tasks' : single_tasks_list,
+    'tasks': single_tasks_list,
     'draft2': draft2_test_list,
     'docker': docker_test_list,
     'native': ["call_native", "call_native_v1"],
@@ -168,22 +178,24 @@ test_suites = {
 }
 
 # Tests with the reorg flags
-test_reorg=["dict", "strings"]
-test_defaults=[]
-test_unlocked=["array_structs",
-               "cast",
-               "call_with_defaults1",
-               "files",
-               "hello",
-               "path_not_taken",
-               "optionals",
-               "shapes"]
-test_project_wide_reuse=['add2', "add_many"]
+test_reorg = ["dict", "strings"]
+test_defaults = []
+test_unlocked = [
+    "array_structs",
+    "cast",
+    "call_with_defaults1",
+    "files",
+    "hello",
+    "path_not_taken",
+    "optionals",
+    "shapes"
+]
+test_project_wide_reuse = ['add2', "add_many"]
 
-test_import_dirs=["A"]
-TestMetaData = namedtuple('TestMetaData', ['name','kind'])
+test_import_dirs = ["A"]
+TestMetaData = namedtuple('TestMetaData', ['name', 'kind'])
 TestDesc = namedtuple('TestDesc',
-                      ['name', 'kind', 'wdl_source', 'wdl_input', 'dx_input', 'results', 'extras'])
+                      ['name', 'kind', 'source_file', 'raw_input', 'dx_input', 'results', 'extras'])
 
 ######################################################################
 # Read a JSON file
@@ -207,7 +219,7 @@ def verify_json_file(path):
 # workflows and exactly one task, this is an APPLET.
 task_pattern_re = re.compile(r"^(task)(\s+)(\w+)(\s+){")
 wf_pattern_re = re.compile(r"^(workflow)(\s+)(\w+)(\s+){")
-def get_metadata(filename):
+def get_wdl_metadata(filename):
     workflows = []
     tasks = []
     with open(filename, 'r') as fd:
@@ -232,29 +244,44 @@ def get_metadata(filename):
         return
     raise RuntimeError("{} is not a valid WDL test, #tasks={}".format(filename, len(tasks)))
 
+def get_cwl_metadata(filename, tname):
+    with open(filename, 'r') as fd:
+        doc = yaml.safe_load(fd)
+
+    if doc["class"] == "CommandLineTool":
+        name = doc.get("id", tname)
+        return TestMetaData(name=name, kind="applet")
+
+    raise RuntimeError("{} is not a valid CWL test".format(filename))
+
 # Register a test name, find its inputs and expected results files.
-def register_test(dir_path, tname):
+def register_test(dir_path, tname, ext):
     global test_files
     if tname in test_suites.keys():
         raise RuntimeError("Test name {} is already used by a test-suite, it is reserved".format(tname))
-    wdl_file = os.path.join(dir_path, tname + ".wdl")
-    if not os.path.exists(wdl_file):
-        raise RuntimeError("Test file {} does not exist".format(path))
-    metadata = get_metadata(wdl_file)
-    desc = TestDesc(name = metadata.name,
-                    kind = metadata.kind,
-                    wdl_source= wdl_file,
-                    wdl_input= None,
-                    dx_input= None,
-                    results= os.path.join(dir_path, tname + "_results.json"),
-                    extras = None)
+    source_file = os.path.join(dir_path, tname + ext)
+    if not os.path.exists(source_file):
+        raise RuntimeError("Test file {} does not exist".format(source_file))
+    if ext == ".wdl":
+        metadata = get_wdl_metadata(source_file)
+    elif ext == ".cwl":
+        metadata = get_cwl_metadata(source_file, tname)
+    else:
+        raise RuntimeError("unsupported file type {}".format(ext))
+    desc = TestDesc(name=metadata.name,
+                    kind=metadata.kind,
+                    source_file=source_file,
+                    raw_input=None,
+                    dx_input=None,
+                    results=os.path.join(dir_path, tname + "_results.json"),
+                    extras=None)
 
     # Verify the input file, and add it (if it exists)
-    wdl_input= os.path.join(dir_path, tname + "_input.json")
-    if os.path.exists(wdl_input):
-        verify_json_file(wdl_input)
-        desc = desc._replace(wdl_input= wdl_input,
-                             dx_input= os.path.join(dir_path, tname + "_input.dx.json"))
+    test_input= os.path.join(dir_path, tname + "_input.json")
+    if os.path.exists(test_input):
+        verify_json_file(test_input)
+        desc = desc._replace(raw_input=test_input,
+                             dx_input=os.path.join(dir_path, tname + "_input.dx.json"))
 
     # Add an extras file (if it exists)
     extras = os.path.join(dir_path, tname + "_extras.json")
@@ -310,6 +337,12 @@ def validate_result(tname, exec_outputs, key, expected_val):
             (type(expected_val) is list)):
             result.sort()
             expected_val.sort()
+        if isinstance(result, dict) and "$dnanexus_link" in result:
+            # the result is a file - download it and extract the contents
+            dlpath = os.path.join(tempfile.mkdtemp(), 'result.txt')
+            dxpy.download_dxfile(result["$dnanexus_link"], dlpath)
+            with open(dlpath, "r") as inp:
+                result = inp.read()
         if str(result).strip() != str(expected_val).strip():
             cprint("Analysis {} gave unexpected results".format(tname),
                    "red")
@@ -342,11 +375,11 @@ def lookup_dataobj(tname, project, folder):
 def build_test(tname, project, folder, version_id, compiler_flags):
     desc = test_files[tname]
     print("build {} {}".format(desc.kind, desc.name))
-    print("Compiling {} to a {}".format(desc.wdl_source, desc.kind))
+    print("Compiling {} to a {}".format(desc.source_file, desc.kind))
     cmdline = [ "java", "-jar",
                 os.path.join(top_dir, "dxCompiler-{}.jar".format(version_id)),
                 "compile",
-                desc.wdl_source,
+                desc.source_file,
                 "-force",
                 "-folder", folder,
                 "-project", project.get_id() ]
@@ -514,15 +547,15 @@ def choose_tests(name):
 def register_all_tests(verbose : bool) -> None :
     for root, dirs, files in os.walk(test_dir):
         for t_file in files:
-            if t_file.endswith(".wdl"):
+            if t_file.endswith(".wdl") or t_file.endswith(".cwl"):
                 base = os.path.basename(t_file)
-                fname = os.path.splitext(base)[0]
+                (fname, ext) = os.path.splitext(base)
                 if fname.startswith("library_"):
                     continue
                 if fname.endswith("_extern"):
                     continue
                 try:
-                    register_test(root, fname)
+                    register_test(root, fname, ext)
                 except Exception as e:
                     if verbose:
                         print("Skipping WDL file {} error={}".format(fname, e))
@@ -540,11 +573,11 @@ def compiler_per_test_flags(tname):
         flags.append("-projectWideReuse")
     if tname in test_defaults:
         flags.append("-defaults")
-        flags.append(desc.wdl_input)
+        flags.append(desc.raw_input)
     else:
-        if desc.wdl_input is not None:
+        if desc.raw_input is not None:
             flags.append("-inputs")
-            flags.append(desc.wdl_input)
+            flags.append(desc.raw_input)
     if desc.extras is not None:
         flags += ["--extras", os.path.join(top_dir, desc.extras)]
     if tname in test_import_dirs:

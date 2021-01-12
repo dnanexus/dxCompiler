@@ -512,75 +512,73 @@ object WdlUtils {
   }
 
   def fromIRValue(value: Value, wdlType: T, name: String): V = {
-    def inner(innerValue: Value, innerType: T, innerName: String): V = {
-      (innerType, innerValue) match {
-        case (T_Optional(_), VNull)          => V_Null
-        case (T_Boolean, VBoolean(b))        => V_Boolean(value = b)
-        case (T_Int, VInt(i))                => V_Int(i)
-        case (T_Float, VFloat(f))            => V_Float(f)
-        case (T_Float, VInt(i))              => V_Float(i.toDouble)
-        case (T_String, VString(s))          => V_String(s)
-        case (T_File, VString(path))         => V_File(path)
-        case (T_File, VFile(path))           => V_File(path)
-        case (T_Directory, VString(path))    => V_Directory(path)
-        case (T_Directory, VDirectory(path)) => V_Directory(path)
-        case (T_Object, o: VHash)            => fromIRValue(o, Some(innerName))
-        case (T_Optional(t), v)              => V_Optional(inner(v, t, innerName))
-        case (T_Array(_, true), VArray(array)) if array.isEmpty =>
+    (wdlType, value) match {
+      case (T_Optional(_), VNull)          => V_Null
+      case (T_Boolean, VBoolean(b))        => V_Boolean(value = b)
+      case (T_Int, VInt(i))                => V_Int(i)
+      case (T_Float, VFloat(f))            => V_Float(f)
+      case (T_Float, VInt(i))              => V_Float(i.toDouble)
+      case (T_String, VString(s))          => V_String(s)
+      case (T_File, VString(path))         => V_File(path)
+      case (T_File, VFile(path))           => V_File(path)
+      case (T_Directory, VString(path))    => V_Directory(path)
+      case (T_Directory, VDirectory(path)) => V_Directory(path)
+      case (T_Object, o: VHash)            => fromIRValue(o, Some(name))
+      case (T_Optional(t), v)              => V_Optional(fromIRValue(v, t, name))
+      case (T_Array(_, true), VArray(array)) if array.isEmpty =>
+        throw new Exception(
+            s"Empty array with non-empty (+) quantifier"
+        )
+      case (T_Array(t, _), VArray(array)) =>
+        V_Array(array.zipWithIndex.map {
+          case (v, i) => fromIRValue(v, t, s"${name}[${i}]")
+        })
+      case (T_Pair(leftType, rightType), VHash(fields)) if isPairValue(fields) =>
+        V_Pair(
+            fromIRValue(fields(PairLeftKey), leftType, s"${name}.${PairLeftKey}"),
+            fromIRValue(fields(PairRightKey), rightType, s"${name}.${PairRightKey}")
+        )
+      case (T_Map(keyType, valueType), VHash(fields)) if isMapValue(fields) =>
+        // keyType and valueType will be the map element types, but the keys
+        // and values are encoded as arrays so we need to wrap the types in T_Array
+        val keys = fromIRValue(fields(MapKeysKey), T_Array(keyType), s"${name}[${MapKeysKey}]")
+        val values =
+          fromIRValue(fields(MapValuesKey), T_Array(valueType), s"${name}[${MapValuesKey}]")
+        (keys, values) match {
+          case (V_Array(keyArray), V_Array(valueArray)) =>
+            V_Map(keyArray.zip(valueArray).to(TreeSeqMap))
+          case other =>
+            throw new Exception(s"invalid map value ${other}")
+        }
+      case (T_Struct(structName, memberTypes), VHash(members)) =>
+        // ensure 1) members keys are a subset of memberTypes keys, 2) members
+        // values are convertable to the corresponding types, and 3) any keys
+        // in memberTypes that do not appear in members are optional
+        val keys1 = members.keySet
+        val keys2 = memberTypes.keySet
+        val extra = keys2.diff(keys1)
+        if (extra.nonEmpty) {
           throw new Exception(
-              s"Empty array with non-empty (+) quantifier"
+              s"struct ${structName} value has members that do not appear in the struct definition: ${extra}"
           )
-        case (T_Array(t, _), VArray(array)) =>
-          V_Array(array.zipWithIndex.map {
-            case (v, i) => inner(v, t, s"${innerName}[${i}]")
-          })
-        case (T_Pair(leftType, rightType), VHash(fields)) if isPairValue(fields) =>
-          V_Pair(
-              inner(fields(PairLeftKey), leftType, s"${name}.${PairLeftKey}"),
-              inner(fields(PairRightKey), rightType, s"${name}.${PairRightKey}")
-          )
-        case (T_Map(keyType, valueType), VHash(fields)) if isMapValue(fields) =>
-          // keyType and valueType will be the map element types, but the keys
-          // and values are encoded as arrays so we need to wrap the types in T_Array
-          val keys = inner(fields(MapKeysKey), T_Array(keyType), s"${name}[${MapKeysKey}]")
-          val values = inner(fields(MapValuesKey), T_Array(valueType), s"${name}[${MapValuesKey}]")
-          (keys, values) match {
-            case (V_Array(keyArray), V_Array(valueArray)) =>
-              V_Map(keyArray.zip(valueArray).to(TreeSeqMap))
-            case other =>
-              throw new Exception(s"invalid map value ${other}")
-          }
-        case (T_Struct(structName, memberTypes), VHash(members)) =>
-          // ensure 1) members keys are a subset of memberTypes keys, 2) members
-          // values are convertable to the corresponding types, and 3) any keys
-          // in memberTypes that do not appear in members are optional
-          val keys1 = members.keySet
-          val keys2 = memberTypes.keySet
-          val extra = keys2.diff(keys1)
-          if (extra.nonEmpty) {
-            throw new Exception(
-                s"struct ${structName} value has members that do not appear in the struct definition: ${extra}"
-            )
-          }
-          val missingNonOptional = keys1.diff(keys2).map(key => key -> memberTypes(key)).filterNot {
-            case (_, T_Optional(_)) => false
-            case _                  => true
-          }
-          if (missingNonOptional.nonEmpty) {
-            throw new Exception(
-                s"struct ${structName} value is missing non-optional members ${missingNonOptional}"
-            )
-          }
-          V_Object(members.map {
-            case (key, value) => key -> inner(value, memberTypes(key), s"${innerName}[${key}]")
-          })
-        case _ =>
+        }
+        val missingNonOptional = keys1.diff(keys2).map(key => key -> memberTypes(key)).filterNot {
+          case (_, T_Optional(_)) => false
+          case _                  => true
+        }
+        if (missingNonOptional.nonEmpty) {
           throw new Exception(
-              s"Cannot convert ${innerName} (${innerType}, ${innerValue}) to WDL value"
+              s"struct ${structName} value is missing non-optional members ${missingNonOptional}"
           )
-      }
+        }
+        V_Object(members.map {
+          case (key, value) => key -> fromIRValue(value, memberTypes(key), s"${name}[${key}]")
+        })
+      case _ =>
+        throw new Exception(
+            s"Cannot convert ${name} (${wdlType}, ${value}) to WDL value"
+        )
     }
-    inner(value, wdlType, name)
   }
 
   def fromIR(ir: Map[String, (Type, Value)],

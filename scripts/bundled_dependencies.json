@@ -1,4 +1,17 @@
 {
   "dxda": "v0.5.4",
-  "dxfuse": "v0.22.4"
+  "dxfuse": "v0.22.4",
+  "execDepends": {
+    "cwl": [
+      {
+        "name": "cwltool==3.0.20201203173111",
+        "package_manager": "pip3"
+      }
+    ]
+  },
+  "env": {
+    "cwl": {
+      "NODEJS_VERSION": "14.15.3"
+    }
+  }
 }

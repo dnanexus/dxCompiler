@@ -29,6 +29,7 @@ object ApplicationCompiler {
 case class ApplicationCompiler(typeAliases: Map[String, Type],
                                instanceTypeDb: InstanceTypeDB,
                                runtimeAsset: Option[JsValue],
+                               runtimeJar: String,
                                runtimePathConfig: DxWorkerPaths,
                                runtimeTraceLevel: Int,
                                streamFiles: StreamFiles.StreamFiles,
@@ -74,7 +75,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
 
   private def generateJobScript(applet: Application): String = {
     val templateAttrs: Map[String, Any] = Map(
-        "runtimeJar" -> "dxExecutorWdl.jar",
+        "runtimeJar" -> runtimeJar,
         "runtimeTraceLevel" -> runtimeTraceLevel,
         "streamFiles" -> streamFiles,
         "includeEpilog" -> applet.outputs.nonEmpty
@@ -183,7 +184,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         runSpecRequired ++ defaultTimeout ++ extrasOverrides ++ taskOverrides ++ taskSpecificOverrides ++ bundledDepends
     )
     val details: Map[String, JsValue] = dockerFile match {
-      case Some(dxFile) => Map("docker-image" -> dxFile.asJson)
+      case Some(dxFile) => Map(Constants.DockerImage -> dxFile.asJson)
       case None         => Map.empty
     }
     (runSpec, details)
