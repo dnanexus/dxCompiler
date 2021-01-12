@@ -1,4 +1,4 @@
-name: WDL Integration Tests
+name: WDL Release Tests
 
 on:
   push:
