@@ -112,7 +112,6 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 
   lazy val inputs: Map[String, Value] = {
     // if we have access to the inputSpec, use it to guide deserialization
-    println(jsInputs)
     jsInputs.map {
       case (key, value) =>
         val irValue = inputSpec.get(key) match {
