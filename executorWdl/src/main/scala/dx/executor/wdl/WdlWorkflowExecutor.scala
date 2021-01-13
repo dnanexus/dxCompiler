@@ -115,9 +115,15 @@ case class WdlWorkflowExecutor(workflow: TAT.Workflow,
         val wdlType = workflowInputs(name).wdlType
         name -> WdlUtils.fromIRValue(value, wdlType, name)
     }
-    // evaluate
+    // evaluate - enable special handling for unset array values -
+    // DNAnexus does not distinguish between null and empty for
+    // array inputs, so we treat a null value for a non-optional
+    // array that is allowed to be empty as the empty array.
     val evalauatedInputValues =
-      workflowIO.inputsFromValues(inputWdlValues, evaluator, strict = true)
+      workflowIO.inputsFromValues(inputWdlValues,
+                                  evaluator,
+                                  ignoreDefaultEvalError = false,
+                                  nullArrayAsEmpty = true)
     // convert back to IR
     evalauatedInputValues.toMap.map {
       case (name, value) =>
