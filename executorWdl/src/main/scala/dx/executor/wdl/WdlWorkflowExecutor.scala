@@ -123,7 +123,7 @@ case class WdlWorkflowExecutor(workflow: TAT.Workflow,
       workflowIO.inputsFromValues(inputWdlValues,
                                   evaluator,
                                   ignoreDefaultEvalError = false,
-                                  nullArrayAsEmpty = true)
+                                  nullCollectionAsEmpty = true)
     // convert back to IR
     evalauatedInputValues.toMap.map {
       case (name, value) =>

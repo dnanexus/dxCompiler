@@ -87,7 +87,7 @@ case class WdlTaskExecutor(task: TAT.Task,
       .inputsFromValues(inputWdlValues,
                         evaluator,
                         ignoreDefaultEvalError = false,
-                        nullArrayAsEmpty = true)
+                        nullCollectionAsEmpty = true)
       .toMap
   }
 
