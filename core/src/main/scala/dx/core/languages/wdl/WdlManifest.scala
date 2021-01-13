@@ -10,7 +10,11 @@ import java.nio.file.Path
 
 case class WdlManifest(values: Map[String, (WdlTypes.T, WdlValues.V)],
                        typeAliases: Map[String, WdlTypes.T]) {
-  def serialize: JsObject = {}
+  def serialize: JsObject = {
+    values.map {
+      case (name, (wdlType, wdlValue)) =>
+    }
+  }
 }
 
 case class WdlManifestParser(dxFileDescCache: DxFileDescCache, dxApi: DxApi = DxApi.get) {
