@@ -16,7 +16,7 @@ on:
 jobs:
   test:
     name: dxCompiler Integration Tests (Staging)
-    if: contains(github.event.pull_request.labels.*.name, 'integration')
+    if: contains(github.event.pull_request.labels.*.name, 'release')
     runs-on: ubuntu-18.04
     steps:
       - name: Git checkout
