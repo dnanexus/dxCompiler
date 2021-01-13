@@ -294,7 +294,8 @@ case class WdlWorkflowExecutor(workflow: TAT.Workflow,
             name -> WdlUtils.fromIRValue(v, wdlType, name)
         }
         // add default values for any missing inputs
-        val callInputs = callIO.inputsFromValues(inputWdlValues, evaluator, strict = true)
+        val callInputs =
+          callIO.inputsFromValues(inputWdlValues, evaluator, ignoreDefaultEvalError = false)
         val runtime =
           Runtime(versionSupport.version,
                   task.runtime,
