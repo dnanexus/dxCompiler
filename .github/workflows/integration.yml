@@ -15,7 +15,7 @@ on:
 
 jobs:
   test:
-    name: dxCompiler Release Tests (Staging)
+    name: dxCompiler Integration Tests (Staging)
     if: contains(github.event.pull_request.labels.*.name, 'integration')
     runs-on: ubuntu-18.04
     steps:
