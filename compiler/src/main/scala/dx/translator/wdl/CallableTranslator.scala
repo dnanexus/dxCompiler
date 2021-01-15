@@ -644,30 +644,33 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         .withTraceIfContainsKey("GenerateIR")
         .trace(s"category : ${block.kind}")
 
-      val (innerCall, auxCallables, newScatterPath) =
+      val (innerAppletName, auxCallables, newScatterPath, callName) =
         block.kind match {
           case BlockKind.ExpressionsOnly =>
-            (None, Vector.empty, None)
+            (None, Vector.empty, None, None)
           case BlockKind.CallDirect =>
             throw new Exception(s"a direct call should not reach this stage")
           case BlockKind.CallWithSubexpressions | BlockKind.CallFragment |
               BlockKind.ConditionalOneCall =>
             // a block with no nested sub-blocks, and a single call, or
             // a conditional with exactly one call in the sub-block
-            (Some(block.call.unqualifiedName), Vector.empty, None)
+            (Some(block.call.unqualifiedName), Vector.empty, None, Some(block.call.actualName))
           case BlockKind.ScatterOneCall =>
             // a conditional with exactly one call in the sub-block
             val scatter = block.scatter
             val newScatterPath =
               scatterPath.map(p => s"${p}.${scatter.identifier}").getOrElse(scatter.identifier)
-            (Some(block.call.unqualifiedName), Vector.empty, Some(newScatterPath))
+            (Some(block.call.unqualifiedName),
+             Vector.empty,
+             Some(newScatterPath),
+             Some(block.call.actualName))
           case BlockKind.ConditionalComplex =>
             // a conditional/scatter with multiple calls or other nested elements
             // in the sub-block
             val conditional = block.conditional
             val (callable, aux) =
               translateNestedBlock(wfName, conditional.body, blockPath, scatterPath, env)
-            (Some(callable.name), aux :+ callable, None)
+            (Some(callable.name), aux :+ callable, None, None)
           case BlockKind.ScatterComplex =>
             val scatter = block.scatter
             // add the iteration variable to the inner environment
@@ -682,7 +685,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
               scatterPath.map(p => s"${p}.${scatter.identifier}").getOrElse(scatter.identifier)
             val (callable, aux) =
               translateNestedBlock(wfName, scatter.body, blockPath, Some(newScatterPath), innerEnv)
-            (Some(callable.name), aux :+ callable, Some(newScatterPath))
+            (Some(callable.name), aux :+ callable, Some(newScatterPath), None)
           case _ =>
             throw new Exception(s"unexpected block ${block.prettyFormat}")
         }
@@ -698,13 +701,26 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           .getOrElse(defaultScatterChunkSize)
       }
 
+      val calls = innerAppletName
+        .map { name =>
+          val priority = workflowAttrs
+            .flatMap { wfAttrs =>
+              callName.flatMap { name =>
+                val fqn = scatterPath.map(p => s"${p}.${name}").getOrElse(name)
+                wfAttrs.perCallAttrs.get(fqn).flatMap(_.priority)
+              }
+            }
+          Map(name -> priority)
+        }
+        .getOrElse(Map.empty)
+
       val applet = Application(
           s"${wfName}_frag_${getStageId()}",
           inputVars,
           outputVars,
           DefaultInstanceType,
           NoImage,
-          ExecutableKindWfFragment(innerCall.toVector, blockPath, fqnDictTypes, scatterChunkSize),
+          ExecutableKindWfFragment(calls, blockPath, fqnDictTypes, scatterChunkSize),
           standAloneWorkflow
       )
 

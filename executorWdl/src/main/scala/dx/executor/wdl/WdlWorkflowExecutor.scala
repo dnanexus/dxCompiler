@@ -325,12 +325,14 @@ case class WdlWorkflowExecutor(workflow: TAT.Workflow,
             None
         }
       }
+      val priority = getCallPriority(call.actualName)
       val (dxExecution, execName) =
         launchJob(executableLink,
                   call.actualName,
                   callInputsIR,
                   nameDetail,
-                  instanceType.map(_.name))
+                  instanceType.map(_.name),
+                  priority)
       (dxExecution, executableLink, execName)
     }
 

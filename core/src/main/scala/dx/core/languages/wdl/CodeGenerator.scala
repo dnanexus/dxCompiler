@@ -318,7 +318,7 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
       callables
         .foldLeft(Map.empty[String, TAT.Task]) {
           case (accu, callable) =>
-            if (accu contains callable.name) {
+            if (accu.contains(callable.name)) {
               // we have already created a stub for this call
               accu
             } else {

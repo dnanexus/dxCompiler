@@ -28,6 +28,7 @@ case class ExecutableTree(executableDict: Map[String, CompiledExecutable]) {
     val vec = workflow.stages.map { stage =>
       val calleeRecord = executableDict(stage.calleeName)
       val jsv: JsValue = apply(calleeRecord)
+      // TODO: add priority?
       JsObject("stage_name" -> JsString(stage.description), "callee" -> jsv)
     }
     val stages = JsArray(vec)

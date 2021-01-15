@@ -3,6 +3,7 @@ package dx.core
 object Constants {
   // keys used in details of native applets
   val ExecLinkInfo: String = "execLinkInfo"
+  val CallPriority: String = "callPriority"
   val BlockPath: String = "blockPath"
   val WfFragmentInputTypes: String = "fqnDictTypes"
   val InstanceTypeDb: String = "instanceTypeDB"

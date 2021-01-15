@@ -4,7 +4,6 @@ package dx.translator
 // Also, allows dnanexus specific configuration per task.
 
 import java.nio.file.Path
-
 import dx.api._
 import dx.core.Constants
 import dx.core.ir.{Value, ValueSerde}
@@ -205,6 +204,7 @@ case class DxAppJson(runSpec: Option[DxRunSpec], details: Option[DxDetails]) {
   * @param chunkSize maximum number of scatter jobs to run at once
   */
 case class DxScatterAttrs(chunkSize: Option[Int] = None)
+case class DxCallAttrs(priority: Option[Priority.Priority] = None)
 
 /**
   * Runtime attributes set at a per-workflow level.
@@ -212,7 +212,8 @@ case class DxScatterAttrs(chunkSize: Option[Int] = None)
   * @param perScatterAttrs scatter attributes that apply to individual scatter blocks
   */
 case class DxWorkflowAttrs(scatterDefaults: Option[DxScatterAttrs],
-                           perScatterAttrs: Map[String, DxScatterAttrs])
+                           perScatterAttrs: Map[String, DxScatterAttrs],
+                           perCallAttrs: Map[String, DxCallAttrs])
 
 case class DockerRegistry(registry: String, username: String, credentials: String)
 
@@ -301,7 +302,7 @@ case class ExtrasParser(dxApi: DxApi = DxApi.get, logger: Logger = Logger.get) {
       "JobTimeoutExceeded",
       "*"
   )
-  private val TaskDxAttrs = Set("runSpec", "details")
+  private val TaskDxAttrs = Set("runSpec", "details", "priority")
   private val WorkflowDxAttrs = Set("scatters", "scatterDefaults")
   private val DxDetailsAttrs = Set("upstreamProjects")
   private val PerTaskKey = "per_task_dx_attributes"
@@ -585,7 +586,7 @@ case class ExtrasParser(dxApi: DxApi = DxApi.get, logger: Logger = Logger.get) {
           }
         DxScatterAttrs(chunkSize)
       case _ =>
-        throw new Exception(s"invalid scatters value ${jsv}")
+        throw new Exception(s"invalid scatter attributes ${jsv}")
     }
   }
 
@@ -596,10 +597,38 @@ case class ExtrasParser(dxApi: DxApi = DxApi.get, logger: Logger = Logger.get) {
           case (path, attrs: JsObject) =>
             path -> parseScatterAttrs(attrs)
           case other =>
-            throw new Exception(s"invalid scatter attribute ${other}")
+            throw new Exception(s"invalid scatter attributes ${other}")
         }
       case _ =>
         throw new Exception(s"invalid scatters value ${jsv}")
+    }
+  }
+
+  def parseCallAttrs(jsv: JsValue): DxCallAttrs = {
+    jsv match {
+      case JsNull => DxCallAttrs()
+      case JsObject(fields) =>
+        val priority = fields.get("priority").map {
+          case JsString(p) => Priority.withName(p)
+          case other       => throw new Exception(s"invalid priority ${other}")
+        }
+        DxCallAttrs(priority)
+      case _ =>
+        throw new Exception(s"invalid call attributes ${jsv}")
+    }
+  }
+
+  private def parseCalls(jsv: JsValue): Map[String, DxCallAttrs] = {
+    jsv match {
+      case JsObject(fields) =>
+        fields.map {
+          case (path, attrs: JsObject) =>
+            path -> parseCallAttrs(attrs)
+          case other =>
+            throw new Exception(s"invalid call attributes ${other}")
+        }
+      case _ =>
+        throw new Exception(s"invalid calls value ${jsv}")
     }
   }
 
@@ -616,7 +645,8 @@ case class ExtrasParser(dxApi: DxApi = DxApi.get, logger: Logger = Logger.get) {
         val perScatterAttrs =
           fields.get("scatters").map(parseScatters).getOrElse(Map.empty)
         val scatterDefaults = fields.get("scatterDefaults").map(parseScatterAttrs)
-        Some(DxWorkflowAttrs(scatterDefaults, perScatterAttrs))
+        val perCallAttrs = fields.get("calls").map(parseCalls).getOrElse(Map.empty)
+        Some(DxWorkflowAttrs(scatterDefaults, perScatterAttrs, perCallAttrs))
       case _ => throw new Exception(s"invalid workflow attributes ${jsv}")
     }
   }
@@ -751,8 +781,7 @@ case class ExtrasParser(dxApi: DxApi = DxApi.get, logger: Logger = Logger.get) {
     // parse the individual task dx attributes
     val perTaskDxAttrs: Map[String, DxAppJson] =
       checkedParseObjectField(fields, PerTaskKey) match {
-        case JsNull =>
-          Map.empty
+        case JsNull => Map.empty
         case jsObj =>
           val fields = jsObj.asJsObject.fields
           fields.flatMap {

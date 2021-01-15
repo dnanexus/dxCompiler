@@ -1,7 +1,7 @@
 package dx.core.ir
 
-import dx.api.DxWorkflowStage
-import dx.core.ir.RunSpec.{InstanceType, ContainerImage}
+import dx.api.{DxWorkflowStage, Priority}
+import dx.core.ir.RunSpec.{ContainerImage, InstanceType}
 import dx.util.Enum
 
 trait ParameterAttribute
@@ -151,14 +151,14 @@ case object ExecutableKindApplet extends ExecutableKind
 
 /**
   * An applet that executes a workflow fragment.
-  * @param calls names of calls made in the fragment
+  * @param calls calls made in the fragment - mapped to an optional execution priority
   * @param blockPath path to the block represented by this fragment
   * @param inputs mapping of input name to type, where names are encoded
   *               such that any dots are replaced with '\_\_\_'
   * @param scatterChunkSize maximum number of scatter jobs that can be
   *                         run at the same time
   */
-case class ExecutableKindWfFragment(calls: Vector[String],
+case class ExecutableKindWfFragment(calls: Map[String, Option[Priority.Priority]],
                                     blockPath: Vector[Int],
                                     inputs: Map[String, Type],
                                     scatterChunkSize: Option[Int])
@@ -190,7 +190,7 @@ object ExecutableKind {
       case ExecutableKindWfInputs                => "Inputs"
       case ExecutableKindWfOutputs               => "Outputs"
       case ExecutableKindWfCustomReorgOutputs    => "Reorg outputs"
-      case ExecutableKindWorkflowOutputReorg     => "Output Reorg"
+      case ExecutableKindWorkflowOutputReorg     => "Output reorg"
       case ExecutableKindWorkflowCustomReorg(id) => s"Custom reorg ${id}"
     }
   }

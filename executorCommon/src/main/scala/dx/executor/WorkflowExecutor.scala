@@ -1,7 +1,17 @@
 package dx.executor
 
 import dx.AppInternalException
-import dx.api.{DxAnalysis, DxApp, DxApplet, DxExecution, DxFile, DxWorkflow, Field, FolderContents}
+import dx.api.{
+  DxAnalysis,
+  DxApp,
+  DxApplet,
+  DxExecution,
+  DxFile,
+  DxWorkflow,
+  Field,
+  FolderContents,
+  Priority
+}
 import dx.core.getVersion
 import dx.core.ir.Type.TSchema
 import dx.core.Constants
@@ -45,8 +55,8 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta) {
 
   protected def typeAliases: Map[String, TSchema]
 
-  protected lazy val execLinkInfo: Map[String, ExecutableLink] =
-    jobMeta.getExecutableDetail("execLinkInfo") match {
+  protected lazy val execLinkInfo: Map[String, ExecutableLink] = {
+    jobMeta.getExecutableDetail(Constants.ExecLinkInfo) match {
       case Some(JsObject(fields)) =>
         fields.map {
           case (key, link) =>
@@ -57,12 +67,29 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta) {
       case other =>
         throw new Exception(s"Bad value ${other}")
     }
+  }
 
   protected def getExecutableLink(name: String): ExecutableLink = {
     execLinkInfo.getOrElse(
         name,
         throw new AppInternalException(s"Could not find linking information for ${name}")
     )
+  }
+
+  protected lazy val callPriorityInfo: Map[String, Priority.Priority] = {
+    jobMeta.getExecutableDetail(Constants.CallPriority) match {
+      case Some(JsObject(fields)) =>
+        fields.map {
+          case (name, JsString(priority)) =>
+            name -> Priority.withNameIgnoreCase(priority)
+          case (name, other) =>
+            throw new Exception(s"invalid priority ${other} for ${name}")
+        }
+    }
+  }
+
+  protected def getCallPriority(name: String): Option[Priority.Priority] = {
+    callPriorityInfo.get(name)
   }
 
   protected lazy val fqnDictTypes: Map[String, Type] =
@@ -114,7 +141,8 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta) {
                           name: String,
                           inputs: Map[String, (Type, Value)],
                           nameDetail: Option[String] = None,
-                          instanceType: Option[String] = None): (DxExecution, String) = {
+                          instanceType: Option[String] = None,
+                          priority: Option[Priority.Priority] = None): (DxExecution, String) = {
     val jobName: String = nameDetail.map(hint => s"${name} ${hint}").getOrElse(name)
     val callInputsJs = JsObject(jobMeta.outputSerializer.createFieldsFromMap(inputs))
     logger.traceLimited(s"execDNAx ${callInputsJs.prettyPrint}", minLevel = TraceLevel.VVerbose)
@@ -140,7 +168,8 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta) {
             callInputsJs,
             instanceType = instanceType,
             details = Some(JsObject(WorkflowExecutor.SeqNumber -> JsNumber(seqNum))),
-            delayWorkspaceDestruction = jobMeta.delayWorkspaceDestruction
+            delayWorkspaceDestruction = jobMeta.delayWorkspaceDestruction,
+            priority
         )
       case applet: DxApplet =>
         applet.newRun(
@@ -148,14 +177,16 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta) {
             callInputsJs,
             instanceType = instanceType,
             details = Some(JsObject(WorkflowExecutor.SeqNumber -> JsNumber(seqNum))),
-            delayWorkspaceDestruction = jobMeta.delayWorkspaceDestruction
+            delayWorkspaceDestruction = jobMeta.delayWorkspaceDestruction,
+            priority
         )
       case workflow: DxWorkflow =>
         workflow.newRun(
             jobName,
             callInputsJs,
             Some(JsObject(WorkflowExecutor.SeqNumber -> JsNumber(seqNum))),
-            jobMeta.delayWorkspaceDestruction
+            jobMeta.delayWorkspaceDestruction,
+            priority
         )
       case other =>
         throw new Exception(s"Unsupported executable ${other}")

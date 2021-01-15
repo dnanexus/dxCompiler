@@ -122,10 +122,12 @@ case class WorkflowCompiler(extras: Option[Extras],
           val inputs = stageInputToNative(linkedInputs)
           // convert the per-stage metadata into JSON
           val stageReqDesc = JsObject(
-              Map("id" -> JsString(stg.dxStage.id),
+              Map(
+                  "id" -> JsString(stg.dxStage.id),
                   "executable" -> JsString(dxExec.id),
                   "name" -> JsString(stg.description),
-                  "input" -> inputs)
+                  "input" -> inputs
+              )
           )
           stagesReq :+ stageReqDesc
       }
