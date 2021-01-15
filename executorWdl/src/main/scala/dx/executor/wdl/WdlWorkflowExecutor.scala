@@ -142,14 +142,19 @@ case class WdlWorkflowExecutor(workflow: TAT.Workflow,
       logger.trace(workflow.outputs.map(TypeUtils.prettyFormatOutput(_)).mkString("\n"))
     }
     // convert IR to WDL
-    // Some of the inputs could be optional. If they are missing, add in a None value.
     val outputWdlValues: Map[String, V] =
       WdlUtils.getOutputClosure(workflow.outputs).collect {
         case (name, wdlType) if jobInputs.contains(name) =>
           val (_, value) = jobInputs(name)
           name -> WdlUtils.fromIRValue(value, wdlType, name)
         case (name, T_Optional(_)) =>
+          // set missing optional inputs to null
           name -> V_Null
+        case (name, T_Array(_, false)) =>
+          // DNAnexus does not distinguish between null and empty array inputs.
+          // A non-optional, maybe-empty array may be missing, so set it to
+          // the empty array.
+          name -> V_Array(Vector())
       }
     // evaluate
     val evaluatedOutputValues =
