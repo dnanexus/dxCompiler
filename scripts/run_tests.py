@@ -54,6 +54,9 @@ wdl_v1_list = [
     "param_passing",
     "nested_scatter",
 
+    # Array input with no values
+    "empty_array",
+
     # Map with a File key
     "map_file_key",
 
