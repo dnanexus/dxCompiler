@@ -545,7 +545,7 @@ task bwa_mem {
     File genome_index_tgz
     Int min_seed_length = 19
     String? read_group
-    String docker_image = "broadinstitute/baseimg"
+    String docker_image = "broadinstitute/genomes-in-the-cloud:2.3.1-1512499786"
     Int cpu = 4
     Int memory_gb = 8
     Int? disk_gb
@@ -584,8 +584,8 @@ task bwa_mem {
     memory: "${memory_gb} GB"
     disks: "local-disk ${actual_disk_gb} SSD"
     dx_timeout: "1D"
-    dx_restart: {
-      "max": 3
+    dx_restart: object {
+      max: 3
     }
   }
 
@@ -632,7 +632,7 @@ task bwa_mem {
       label: "Docker Image",
       help: "Name of the docker image to use",
       group: "Resources",
-      default: "broadinstitute/baseimg"
+      default: "broadinstitute/genomes-in-the-cloud:2.3.1-1512499786"
     }
     cpu: {
       label: "CPUs",
