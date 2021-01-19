@@ -70,9 +70,10 @@ has input file
 
 ```
 {
-  "files.f": "dx://file-F5gkKkQ0ZvgjG3g16xyFf7b1",
-  "files.f1": "dx://file-F5gkQ3Q0ZvgzxKZ28JX5YZjy",
-  "files.f2": "dx://file-F5gkPXQ0Zvgp2y4Q8GJFYZ8G"
+  "files.f": "dx://file-wwww",
+  "files.f1": "dx://file-xxxx",
+  "files.f2": "dx://file-yyyy",
+  "files.fruit_list": "dx://file-zzzz"
 }
 ```
 
@@ -86,13 +87,16 @@ generates a `test/files_input.dx.json` file that looks like this:
 ```
 {
   "f": {
-    "$dnanexus_link": "file-F5gkKkQ0ZvgjG3g16xyFf7b1"
+    "$dnanexus_link": "file-wwww"
   },
   "f1": {
-    "$dnanexus_link": "file-F5gkQ3Q0ZvgzxKZ28JX5YZjy"
+    "$dnanexus_link": "file-xxxx"
   },
   "f2": {
-    "$dnanexus_link": "file-F5gkPXQ0Zvgp2y4Q8GJFYZ8G"
+    "$dnanexus_link": "file-yyyy"
+  },
+  "fruit_list": {
+    "$dnanexus_link": "file-zzzz"
   }
 }
 ```
