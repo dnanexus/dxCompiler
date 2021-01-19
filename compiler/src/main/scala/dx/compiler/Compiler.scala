@@ -316,8 +316,8 @@ case class Compiler(extras: Option[Extras],
         )
       // limit the applet dictionary to actual dependencies
       val dependencies: Map[String, ExecutableLink] = applet.kind match {
-        case ExecutableKindWfFragment(calls, _, _, _) =>
-          calls.keySet.map { name =>
+        case ExecutableKindWfFragment(calls, _, _, _, _) =>
+          calls.map { name =>
             val CompiledExecutable(irCall, dxObj, _, _) = dependencyDict(name)
             name -> createLinkForCall(irCall, dxObj)
           }.toMap

@@ -303,7 +303,7 @@ case class ExtrasParser(dxApi: DxApi = DxApi.get, logger: Logger = Logger.get) {
       "*"
   )
   private val TaskDxAttrs = Set("runSpec", "details", "priority")
-  private val WorkflowDxAttrs = Set("scatters", "scatterDefaults")
+  private val WorkflowDxAttrs = Set("scatters", "scatterDefaults", "calls")
   private val DxDetailsAttrs = Set("upstreamProjects")
   private val PerTaskKey = "per_task_dx_attributes"
 
@@ -609,7 +609,7 @@ case class ExtrasParser(dxApi: DxApi = DxApi.get, logger: Logger = Logger.get) {
       case JsNull => DxCallAttrs()
       case JsObject(fields) =>
         val priority = fields.get("priority").map {
-          case JsString(p) => Priority.withName(p)
+          case JsString(p) => Priority.withNameIgnoreCase(p)
           case other       => throw new Exception(s"invalid priority ${other}")
         }
         DxCallAttrs(priority)

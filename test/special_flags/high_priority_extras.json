@@ -1,0 +1,11 @@
+{
+  "per_workflow_dx_attributes": {
+    "high_priority": {
+      "calls": {
+        "echo_priority": {
+          "priority": "high"
+        }
+      }
+    }
+  }
+}

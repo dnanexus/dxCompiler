@@ -334,9 +334,9 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     // meta information used for running workflow fragments
     val metaDetails: Map[String, JsValue] =
       applet.kind match {
-        case ExecutableKindWfFragment(calls, blockPath, inputs, scatterChunkSize) =>
-          val callPriorityInfo = calls.map {
-            case (name, priority) => name -> JsString(priority.toString)
+        case ExecutableKindWfFragment(_, blockPath, inputs, scatterChunkSize, callPriority) =>
+          val callPriorityInfo = callPriority.collect {
+            case (name, Some(priority)) => name -> JsString(priority.toString)
           }
           Map(
               Constants.ExecLinkInfo -> JsObject(linkInfo.toMap),

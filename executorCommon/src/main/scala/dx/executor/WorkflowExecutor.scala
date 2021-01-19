@@ -65,7 +65,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta) {
       case None =>
         Map.empty
       case other =>
-        throw new Exception(s"Bad value ${other}")
+        throw new Exception(s"invalid ${Constants.ExecLinkInfo} value ${other}")
     }
   }
 
@@ -85,6 +85,9 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta) {
           case (name, other) =>
             throw new Exception(s"invalid priority ${other} for ${name}")
         }
+      case None => Map.empty
+      case other =>
+        throw new Exception(s"invalid ${Constants.CallPriority} value ${other}")
     }
   }
 
@@ -200,6 +203,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta) {
     if (logger.isVerbose) {
       logger.traceLimited(s"dxCompiler version: ${getVersion}")
       logger.traceLimited(s"link info=${execLinkInfo}")
+      logger.traceLimited(s"priority info=${callPriorityInfo}")
       logger.traceLimited(s"Environment: ${jobInputs}")
     }
     val blockCtx = evaluateBlockInputs(jobInputs)

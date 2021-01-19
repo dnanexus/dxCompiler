@@ -158,7 +158,8 @@ ci_test_list = [
 special_flags_list = [
     "add2",       # test the ignoreReuse flag
     "add_many",   # tests the delayWorkspaceDestruction flag
-    "inc_range",  # check that runtime call to job/analysis pass the delayWorkspaceDestruction flag
+    "inc_range",  # check that runtime call to job/analysis pass the delayWorkspaceDestruction flag,
+    "high_priority",  # specify execution priority for a single call
 ]
 
 # these are the examples from the documentation

@@ -193,11 +193,13 @@ object WdlBlockInput {
 
 /**
   * A contiguous list of workflow elements from a user workflow.
-  *
+  * @param index the index of the block within its parent block
   * @param inputs all the inputs required for a block (i.e. the Block's closure)
   * @param outputs all the outputs from a sequence of WDL statements - includes
   *                only variables that are used after the block completes.
   * @param elements the elements in the block
+  * @param callFragments call names that must be classified as CallFragments, even
+  *                      if they would otherwise be direct calls
   * @example
   * In the workflow:
   *
@@ -219,7 +221,8 @@ object WdlBlockInput {
 case class WdlBlock(index: Int,
                     inputs: Vector[WdlBlockInput],
                     outputs: Vector[TAT.OutputParameter],
-                    elements: Vector[TAT.WorkflowElement])
+                    elements: Vector[TAT.WorkflowElement],
+                    callFragments: Set[String])
     extends Block[WdlBlock] {
   assert(elements.nonEmpty)
   assert(WdlUtils.deepFindCalls(elements.dropRight(1)).isEmpty)
@@ -229,6 +232,8 @@ case class WdlBlock(index: Int,
       case e if WdlUtils.deepFindCalls(Vector(e)).isEmpty =>
         // The block comprises expressions only
         BlockKind.ExpressionsOnly
+      case call: TAT.Call if callFragments.contains(call.actualName) =>
+        BlockKind.CallFragment
       case _ if WdlBlock.isTrivialCall(elements) =>
         BlockKind.CallDirect
       case _ if WdlBlock.isSimpleCall(elements) =>
@@ -319,7 +324,7 @@ case class WdlBlock(index: Int,
   }
 
   override def getSubBlock(index: Int): WdlBlock = {
-    val innerBlocks = WdlBlock.createBlocks(innerElements)
+    val innerBlocks = WdlBlock.createBlocks(innerElements, callFragments)
     innerBlocks(index)
   }
 
@@ -369,9 +374,12 @@ object WdlBlock {
   /**
     * Splits a sequence of statements into blocks.
     * @param elements the elements to split
+    * @param callFragments call names that must be classified as CallFragments, even
+    *                      if they would otherwise be direct calls
     * @return
     */
-  def createBlocks(elements: Vector[TAT.WorkflowElement]): Vector[WdlBlock] = {
+  def createBlocks(elements: Vector[TAT.WorkflowElement],
+                   callFragments: Set[String] = Set.empty): Vector[WdlBlock] = {
     // add to last part
     // if startNew = true, also add a new fresh Vector to the end
     def addToLastPart(parts: Vector[Vector[TAT.WorkflowElement]],
@@ -408,7 +416,7 @@ object WdlBlock {
     parts.filter(_.nonEmpty).zipWithIndex.map {
       case (v, index) =>
         val (inputs, outputs) = WdlUtils.getClosureInputsAndOutputs(v, withField = true)
-        WdlBlock(index, WdlBlockInput.create(inputs), outputs.values.toVector, v)
+        WdlBlock(index, WdlBlockInput.create(inputs), outputs.values.toVector, v, callFragments)
     }
   }
 }

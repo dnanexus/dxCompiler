@@ -5,14 +5,14 @@ import dx.util.Enum
 import scala.reflect.ClassTag
 
 /**
-  * These are the kinds of blocks that are run by the workflow-fragment-runner.
-  * A block can have expressions, input ports, and output ports in the beginning.
-  * The block can be one of these types:
+  * These are the kinds of blocks that are run by the workflow-fragment-runner:
   *   - Purely expressions (no asynchronous calls at any nesting level).
   *   - Call
-  *      - with no subexpressions to evaluate
-  *      - with subexpressions requiring evaluation
-  *      - Fragment with expressions and one call
+  *      - with no input expressions to evaluate
+  *      - with input expressions requiring evaluation
+  *      - fragment with declarations and one call (a call may be forced to be
+  *        classified as a fragment, for example if it has attributes that require
+  *        it to be launched via applet/run rather than as a workflows stage)
   *   - Conditional block
   *      - with exactly one call
   *      - a complex subblock

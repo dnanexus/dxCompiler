@@ -195,6 +195,10 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           true
       }
     }
+    // Any call with externally specified attributes must be classified as a CallFragment
+    // so the attributes can be specified in applet/run (since workflows do not allow setting
+    // per-stage attributes)
+    private val callFragments = workflowAttrs.map(_.perCallAttrs.keySet).getOrElse(Set.empty)
 
     private type LinkedVar = (Parameter, StageInput)
 
@@ -486,7 +490,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         statements: Vector[TAT.WorkflowElement]
     ): (Vector[WdlBlockInput], Vector[WdlBlock], Vector[TAT.OutputParameter]) = {
       val (inputs, outputs) = WdlUtils.getClosureInputsAndOutputs(statements, withField = true)
-      val subBlocks = WdlBlock.createBlocks(statements)
+      val subBlocks = WdlBlock.createBlocks(statements, callFragments)
       (WdlBlockInput.create(inputs), subBlocks, outputs.values.toVector)
     }
 
@@ -701,15 +705,10 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           .getOrElse(defaultScatterChunkSize)
       }
 
-      val calls = innerAppletName
+      val callPriority = callName
         .map { name =>
           val priority = workflowAttrs
-            .flatMap { wfAttrs =>
-              callName.flatMap { name =>
-                val fqn = scatterPath.map(p => s"${p}.${name}").getOrElse(name)
-                wfAttrs.perCallAttrs.get(fqn).flatMap(_.priority)
-              }
-            }
+            .flatMap(_.perCallAttrs.get(name).flatMap(_.priority))
           Map(name -> priority)
         }
         .getOrElse(Map.empty)
@@ -720,7 +719,11 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           outputVars,
           DefaultInstanceType,
           NoImage,
-          ExecutableKindWfFragment(calls, blockPath, fqnDictTypes, scatterChunkSize),
+          ExecutableKindWfFragment(innerAppletName.toVector,
+                                   blockPath,
+                                   fqnDictTypes,
+                                   scatterChunkSize,
+                                   callPriority),
           standAloneWorkflow
       )
 
@@ -1221,7 +1224,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       logger.trace(s"Translating workflow ${wf.name}")
       // Create a stage per workflow body element (variable block, call,
       // scatter block, conditional block)
-      val subBlocks = WdlBlock.createBlocks(wf.body)
+      val subBlocks = WdlBlock.createBlocks(wf.body, callFragments)
       // translate workflow inputs/outputs to equivalent classes defined in Block
       val inputs = wf.inputs.map(WdlBlockInput.translate)
       val (irWf, irCallables, irOutputs) =

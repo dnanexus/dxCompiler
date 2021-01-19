@@ -968,7 +968,8 @@ case class WdlWorkflowExecutor(workflow: TAT.Workflow,
       jobInputs: Map[String, (Type, Value)]
   ): WdlBlockContext = {
     val block: WdlBlock =
-      Block.getSubBlockAt(WdlBlock.createBlocks(workflow.body), jobMeta.blockPath)
+      Block.getSubBlockAt(WdlBlock.createBlocks(workflow.body, callPriorityInfo.keySet),
+                          jobMeta.blockPath)
     // Some of the inputs could be optional. If they are missing, add in a V_Null
     val inputEnv = block.inputs.foldLeft(Map.empty[String, (T, V)]) {
       case (accu, blockInput: WdlBlockInput) if jobInputs.contains(blockInput.name) =>
