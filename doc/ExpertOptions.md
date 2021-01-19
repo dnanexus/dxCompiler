@@ -65,7 +65,7 @@ The `-inputs` option allows specifying a Cromwell JSON
 [format](https://software.broadinstitute.org/wdl/documentation/inputs.php)
 inputs file. An equivalent DNAx format inputs file is generated from
 it. For example, workflow
-[files](https://github.com/dnanexus/dxCompiler/blob/master/test/files.wdl)
+[files](https://github.com/dnanexus/dxCompiler/blob/main/test/draft2/files.wdl)
 has input file
 
 ```
