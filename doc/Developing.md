@@ -99,9 +99,19 @@ You need to have a DNAnexus account and be logged into DNAnexus via the command 
 
 ### Running the integration tests
 
-Integration tests actually build and run apps/workflows on DNAnexus. These tests take much longer to run than the unit tests, and so typically you only run them before submitting a pull request.
+Integration tests actually build and run apps/workflows on DNAnexus. These tests take much longer to run than the unit tests, and so typically you only run them before submitting a pull request. You can also submit a PR and trigger the integration tests via Github Actions.
 
-First, you need to an account on the DNAnexus staging environment, and you need to be added to the projects that have been setup for testing; @orodeh can set this up for you. Next, log into the DNAnexus staging environment using dx-toolkit: `dx login --staging`. Note that very often your login will timeout while the integration tests are running unless you are actively using the platform in another session, and this will cause the tests to fail. To avoid, this, generate a token via the web UI and use that token to log in on the command line: `dx login --staging --token <token>`.
+### Running integration tests on GitHub
+
+You can run run integration tests after submitting a PR. By default the integration tests pipeline is skipped and only runs when the `integration` label is addded to the PR and in subsequent commit pushes. If you want to push more changes and temporarily skip these tests, remove the label.
+
+The results will be available in the [Actions](https://github.com/dnanexus/dxCompiler/actions) tab. Ideally set the label only before requesting a review so that we don't incur too high costs from running the jobs at each push.
+
+Note that only DNAnexus developers can set up a label on a PR so let us know when you'd like to request a review and we'll start them for you.
+
+### Running integration tests locally
+
+First, you need to an account on the DNAnexus staging environment, and you need to be added to the projects that have been setup for testing. Next, log into the DNAnexus staging environment using dx-toolkit: `dx login --staging`. Note that very often your login will timeout while the integration tests are running unless you are actively using the platform in another session, and this will cause the tests to fail. To avoid, this, generate a token via the web UI and use that token to log in on the command line: `dx login --staging --token <token>`.
 
 Next, delete any existing build artifacts using the following commands:
 
@@ -128,11 +138,15 @@ Note that the test script does a lot of things for you. If for some reason you w
 * TODO: fill out this list
 * The dxCompiler and dxExecutor* JAR files are built and staged in the root dxCompiler directory. To do this manually, run `sbt assembly`, then move the JAR files from the `target` folder to the root dxCompiler folder, e.g. `mv target/dxCompiler.jar ./dxCompiler-2.0.0.jar`.
 
+### Running a subset of tests locally
+
 You can also execute a subset of tests, for example to run medium set of tests:
 
 ```
 ./scripts/run_tests.py --test M
 ```
+
+It will also generate a runtime asset in the test project and a dxCompiler*.jar on your local computer so you can use them for further manual testing of the compilation and execution.
 
 It's also possible to specify one test to run from the [/test](/test) directory and invoke it by name, for example:
 
@@ -153,12 +167,16 @@ sbt keeps the cache of downloaded jar files in `${HOME}/.ivy2/cache`. For exampl
 ### Release check list
 
 - Make sure regression tests pass
-- Update release notes and README.md
-- Make sure the version number in `src/main/resources/application.conf` is correct. It is used
-when building the release.
+- Update [Release Notes](https://github.com/dnanexus/dxCompiler/blob/main/RELEASE_NOTES.md) and, if needed, README.md
+- Make sure the version number in configuration for
+  * [compiler](https://github.com/dnanexus/dxCompiler/blob/main/compiler/src/main/resources/application.conf)
+  * [core](https://github.com/dnanexus/dxCompiler/blob/main/core/src/main/resources/application.conf)
+  * [executorCommon](https://github.com/dnanexus/dxCompiler/blob/main/executorCommon/src/main/resources/application.conf)
+  * [executorWdl](https://github.com/dnanexus/dxCompiler/blob/main/executorWdl/src/main/resources/application.conf)
+
+is correct. It is used when building the release and creating the tag. Currently the version must be the same for all these packages.
 - Merge onto master branch, and make sure all [Github Actions](https://github.com/dnanexus/dxCompiler/actions) tests pass
-- Clean your `dx` environment because you'll be using limited-power tokens to run the release script. Do not
-mix them with your regular user token.
+- Clean your `dx` environment because you'll be using limited-power tokens to run the release script. Do not mix them with your regular user token.
 ```
 dx clearenv
 ```
@@ -166,10 +184,9 @@ dx clearenv
   ```
   ./scripts/build_all_releases.sh --staging-token XXX --production-token YYY --docker-user UUU --docker-password WWW
   ```
-  this will take a while. It builds the release on staging, runs multi-region tests on staging, builds on production, and creates an easy to use docker image.
-- Update [releases](https://github.com/dnanexus-rnd/dxCompiler/releases) github page, use the `Draft a new release` button, and upload the JAR files.
+  this will take a while. It builds the release on staging, runs multi-region tests on staging (one test per region), builds on production, and creates an easy to use Docker image, which is pushed to DockerHub.
+- Update [releases](https://github.com/dnanexus-rnd/dxCompiler/releases) GitHub page, use the `Draft a new release` button, and upload the dxCompiler JAR file.
 
 ### Post release
 
-- Update the version number in `src/main/resources/application.conf`. We don't want
-to mix the experimental release, with the old code.
+- Update the version number in `*/src/main/resources/application.conf`. We don't want to mix the experimental release, with the old code.
