@@ -65,14 +65,15 @@ The `-inputs` option allows specifying a Cromwell JSON
 [format](https://software.broadinstitute.org/wdl/documentation/inputs.php)
 inputs file. An equivalent DNAx format inputs file is generated from
 it. For example, workflow
-[files](https://github.com/dnanexus/dxCompiler/blob/master/test/files.wdl)
+[files](https://github.com/dnanexus/dxCompiler/blob/main/test/draft2/files.wdl)
 has input file
 
 ```
 {
-  "files.f": "dx://file-F5gkKkQ0ZvgjG3g16xyFf7b1",
-  "files.f1": "dx://file-F5gkQ3Q0ZvgzxKZ28JX5YZjy",
-  "files.f2": "dx://file-F5gkPXQ0Zvgp2y4Q8GJFYZ8G"
+  "files.f": "dx://file-wwww",
+  "files.f1": "dx://file-xxxx",
+  "files.f2": "dx://file-yyyy",
+  "files.fruit_list": "dx://file-zzzz"
 }
 ```
 
@@ -86,13 +87,16 @@ generates a `test/files_input.dx.json` file that looks like this:
 ```
 {
   "f": {
-    "$dnanexus_link": "file-F5gkKkQ0ZvgjG3g16xyFf7b1"
+    "$dnanexus_link": "file-wwww"
   },
   "f1": {
-    "$dnanexus_link": "file-F5gkQ3Q0ZvgzxKZ28JX5YZjy"
+    "$dnanexus_link": "file-xxxx"
   },
   "f2": {
-    "$dnanexus_link": "file-F5gkPXQ0Zvgp2y4Q8GJFYZ8G"
+    "$dnanexus_link": "file-yyyy"
+  },
+  "fruit_list": {
+    "$dnanexus_link": "file-zzzz"
   }
 }
 ```
