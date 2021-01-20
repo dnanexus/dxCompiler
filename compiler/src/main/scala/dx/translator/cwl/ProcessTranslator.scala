@@ -12,7 +12,7 @@ import dx.core.ir.{
   Value
 }
 import dx.core.languages.cwl.{CwlDocumentSource, CwlUtils, DxHints, RequirementEvaluator}
-import dx.cwl._
+import dx.cwl.{Parameter => CwlParameter, _}
 import dx.translator.CallableAttributes.{DescriptionAttribute, TitleAttribute}
 import dx.translator.ParameterAttributes.{HelpAttribute, LabelAttribute}
 import dx.translator.{DxWorkflowAttrs, ReorgSettings}
@@ -31,16 +31,21 @@ case class ProcessTranslator(typeAliases: Map[String, CwlSchema],
                              logger: Logger = Logger.get) {
 
   private lazy val cwlDefaultRuntimeAttrs: Map[String, (CwlType, CwlValue)] = {
-    CwlUtils.fromIRValues(defaultRuntimeAttrs)
+    CwlUtils.fromIRValues(defaultRuntimeAttrs, isInput = true)
   }
 
   private def translateParameterAttributes(
-      param: CommandParameter,
+      param: CwlParameter,
       hintParameterAttrs: Map[String, Vector[ParameterAttribute]]
   ): Vector[ParameterAttribute] = {
-    val metaAttrs = Vector(param.doc.map(HelpAttribute), param.label.map(LabelAttribute)).flatten
-    val hintAttrs = hintParameterAttrs.getOrElse(param.name, Vector.empty)
-    metaAttrs ++ hintAttrs
+    param.getName
+      .map { name =>
+        val metaAttrs =
+          Vector(param.doc.map(HelpAttribute), param.label.map(LabelAttribute)).flatten
+        val hintAttrs = hintParameterAttrs.getOrElse(name, Vector.empty)
+        metaAttrs ++ hintAttrs
+      }
+      .getOrElse(Vector.empty)
   }
 
   private def translateCallableAttributes(

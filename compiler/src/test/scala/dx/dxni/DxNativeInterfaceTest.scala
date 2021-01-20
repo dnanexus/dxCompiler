@@ -25,7 +25,7 @@ class DxNativeInterfaceTest extends AnyFlatSpec with Matchers with BeforeAndAfte
 
   val testProject = "dxCompiler_playground"
   val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm")
-  val test_time =  dateFormatter.format(LocalDateTime.now)
+  val test_time = dateFormatter.format(LocalDateTime.now)
 
   private lazy val dxTestProject =
     try {
@@ -40,7 +40,8 @@ class DxNativeInterfaceTest extends AnyFlatSpec with Matchers with BeforeAndAfte
 
   private val username = System.getProperty("user.name")
   private val unitTestsPath = s"unit_tests/${username}"
-  private val folderPath = s"/${unitTestsPath}/applets_${test_time}_${randomUUID().toString.substring(24)}/"
+  private val folderPath =
+    s"/${unitTestsPath}/applets_${test_time}_${randomUUID().toString.substring(24)}/"
 
   override def beforeAll(): Unit = {
     // build the directory with the native applets

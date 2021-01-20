@@ -154,6 +154,10 @@ class InputTranslator(bundle: Bundle,
   private lazy val parameterLinkSerializer = ParameterLinkSerializer(fileResolver, dxApi)
   private lazy val parameterLinkDeserializer = ParameterLinkDeserializer(dxFileDescCache, dxApi)
 
+  private def deserializationHandler(jsValue: JsValue, t: Type): Either[JsValue, Value] = {
+    Left(translateJsInput(jsValue, t))
+  }
+
   lazy val bundleWithDefaults: Bundle = {
     logger.trace(s"Embedding defaults into the IR")
     val defaultsExactlyOnce = ExactlyOnce("default", defaultsJs, logger)
@@ -167,7 +171,7 @@ class InputTranslator(bundle: Bundle,
               val irValue =
                 parameterLinkDeserializer.deserializeInputWithType(default,
                                                                    param.dxType,
-                                                                   Some(translateJsInput))
+                                                                   Some(deserializationHandler))
               param.copy(defaultValue = Some(irValue))
           }
         }
@@ -184,9 +188,11 @@ class InputTranslator(bundle: Bundle,
                     stageInput
                   case Some(default: JsValue) =>
                     val irValue =
-                      parameterLinkDeserializer.deserializeInputWithType(default,
-                                                                         param.dxType,
-                                                                         Some(translateJsInput))
+                      parameterLinkDeserializer.deserializeInputWithType(
+                          default,
+                          param.dxType,
+                          Some(deserializationHandler)
+                      )
                     StaticInput(irValue)
                 }
                 (param, stageInputWithDefault)
@@ -212,9 +218,11 @@ class InputTranslator(bundle: Bundle,
                       stageInput
                     case Some(default: JsValue) =>
                       val irValue =
-                        parameterLinkDeserializer.deserializeInputWithType(default,
-                                                                           param.dxType,
-                                                                           Some(translateJsInput))
+                        parameterLinkDeserializer.deserializeInputWithType(
+                            default,
+                            param.dxType,
+                            Some(deserializationHandler)
+                        )
                       StaticInput(irValue)
                   }
               }
@@ -265,7 +273,7 @@ class InputTranslator(bundle: Bundle,
             val irValue =
               parameterLinkDeserializer.deserializeInputWithType(value,
                                                                  parameter.dxType,
-                                                                 Some(translateJsInput))
+                                                                 Some(deserializationHandler))
             Map(dxName -> (parameter.dxType, irValue))
         }
       }.toMap
