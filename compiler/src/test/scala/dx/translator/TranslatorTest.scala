@@ -1,7 +1,6 @@
 package dx.translator
 
 import java.nio.file.{Path, Paths}
-
 import dxCompiler.Main
 import dxCompiler.Main.SuccessIR
 import dx.Tags.EdgeTest
@@ -20,6 +19,8 @@ import org.scalatest.Inside._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import wdlTools.generators.code.WdlGenerator
+
+import scala.collection.immutable.TreeSeqMap
 
 // These tests involve compilation -without- access to the platform.
 //
@@ -805,7 +806,7 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
                   "whatsNew" -> VArray(
                       Vector(
                           VHash(
-                              Map(
+                              TreeSeqMap(
                                   "version" -> VString("1.1"),
                                   "changes" -> VArray(
                                       Vector(
@@ -816,7 +817,7 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
                               )
                           ),
                           VHash(
-                              Map(
+                              TreeSeqMap(
                                   "version" -> VString("1.0"),
                                   "changes" -> VArray(
                                       Vector(

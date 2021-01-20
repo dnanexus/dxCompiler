@@ -102,7 +102,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
   // state between different phases of task execution, so we don't
   // have to re-evaluate expressions every time.
 
-  private def writeEnv(schemas: Map[String, TSchema],
+  private def writeEnv(schemas: Map[String, Type],
                        inputs: Map[String, (Type, Value)],
                        fileSourceToPath: Map[AddressableFileNode, Path]): Unit = {
     val schemasJs = schemas.values.foldLeft(Map.empty[String, JsValue]) {
@@ -131,7 +131,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
   }
 
   private def readEnv()
-      : (Map[String, TSchema], Map[String, (Type, Value)], Map[AddressableFileNode, Path]) = {
+      : (Map[String, Type], Map[String, (Type, Value)], Map[AddressableFileNode, Path]) = {
     val (schemasJs, inputsJs, filesJs) =
       FileUtils.readFileContent(jobMeta.workerPaths.getTaskEnvFile()).parseJson match {
         case env: JsObject =>

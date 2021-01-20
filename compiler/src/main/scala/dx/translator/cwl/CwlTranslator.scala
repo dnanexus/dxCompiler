@@ -56,6 +56,8 @@ case class CwlTranslator(tool: CommandLineTool,
 }
 
 case class CwlTranslatorFactory() extends TranslatorFactory {
+  private lazy val parser = Parser.create(hintSchemas = Vector(DxHintSchema))
+
   override def create(sourceFile: Path,
                       language: Option[Language],
                       locked: Boolean,
@@ -78,11 +80,11 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
       if (ver != CWLVersion.V1_2) {
         throw new Exception(s"dxCompiler does not support CWL version ${ver}")
       }
-    } else if (!Parser.canParse(sourceFile)) {
+    } else if (!parser.canParse(sourceFile)) {
       // otherwise make sure the file is parseable as CWL
       return None
     }
-    val tool = Parser.parseFile(sourceFile, hintSchemas = Vector(DxHintSchema)) match {
+    val tool = parser.parseFile(sourceFile) match {
       case tool: CommandLineTool => tool
       case _ =>
         throw new Exception(s"Not a command line tool ${sourceFile}")

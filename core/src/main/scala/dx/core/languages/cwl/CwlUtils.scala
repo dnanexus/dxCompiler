@@ -8,6 +8,7 @@ import dx.cwl._
 import spray.json._
 
 import scala.annotation.tailrec
+import scala.collection.immutable.TreeSeqMap
 
 object CwlUtils {
   def toIRSchema(cwlRecord: CwlRecord): TSchema = {
@@ -103,67 +104,97 @@ object CwlUtils {
     }
   }
 
-  def fromIRType(irType: Type, typeAliases: Map[String, CwlSchema] = Map.empty): CwlType = {
-    irType match {
-      case TOptional(t) => CwlOptional(fromIRType(t, typeAliases))
-      case TBoolean     => CwlBoolean
-      case TInt         => CwlLong
-      case TFloat       => CwlDouble
-      case TString      => CwlString
-      case TFile        => CwlFile
-      case TDirectory   => CwlDirectory
-      case TArray(t, _) => CwlArray(Vector(fromIRType(t, typeAliases)))
-      case TSchema(name, _) if typeAliases.contains(name) =>
-        typeAliases(name)
-      case TSchema(name, members) =>
-        CwlRecord(members.map {
-          case (name, t) => name -> CwlRecordField(name, Vector(fromIRType(t, typeAliases)))
-        }, Some(name))
-      case TEnum(allowedValues) => CwlEnum(allowedValues)
-      case _ =>
-        throw new Exception(s"Cannot convert IR type ${irType} to CWL")
+  def fromIRType(irType: Type,
+                 typeAliases: Map[String, CwlSchema] = Map.empty,
+                 isInput: Boolean): CwlType = {
+    def inner(innerType: Type): CwlType = {
+      innerType match {
+        case TOptional(t) => CwlOptional(inner(t))
+        case TBoolean     => CwlBoolean
+        case TInt         => CwlLong
+        case TFloat       => CwlDouble
+        case TString      => CwlString
+        case TFile        => CwlFile
+        case TDirectory   => CwlDirectory
+        case TArray(t, _) => CwlArray(Vector(inner(t)))
+        case TSchema(name, _) if typeAliases.contains(name) =>
+          typeAliases(name)
+        case TSchema(name, members) if isInput =>
+          CwlInputRecord(members.map {
+            case (name, t) => name -> CwlInputRecordField(name, Vector(inner(t)))
+          }, Some(name))
+        case TSchema(name, members) =>
+          CwlOutputRecord(members.map {
+            case (name, t) => name -> CwlOutputRecordField(name, Vector(inner(t)))
+          }, Some(name))
+        case TEnum(allowedValues) => CwlEnum(allowedValues)
+        case _ =>
+          throw new Exception(s"Cannot convert IR type ${irType} to CWL")
+      }
     }
+    inner(irType)
   }
 
-  def fromIRValue(value: Value, name: Option[String]): (CwlType, CwlValue) = {
-    value match {
-      case VNull         => (CwlNull, NullValue)
-      case VBoolean(b)   => (CwlBoolean, BooleanValue(b))
-      case VInt(i)       => (CwlLong, LongValue(i))
-      case VFloat(f)     => (CwlDouble, DoubleValue(f))
-      case VString(s)    => (CwlString, StringValue(s))
-      case VFile(f)      => (CwlFile, FileValue(f))
-      case VDirectory(d) => (CwlDirectory, DirectoryValue(d))
-      case VArray(array) =>
-        val (types, values) = array.zipWithIndex.map {
-          case (v, i) => fromIRValue(v, name.map(n => s"${n}[${i}]"))
-        }.unzip
-        (CwlArray(types.distinct), ArrayValue(values))
-      case VHash(fields) =>
-        val (types, values) = fields.map {
-          case (key, value) =>
-            val (cwlType, cwlValue) = fromIRValue(value, name.map(n => s"${n}[${key}]"))
-            (key -> cwlType, key -> cwlValue)
-        }.unzip
-        // create an anonymous record schema
-        val schemaType = CwlRecord(types.map {
-          case (name, t) => name -> CwlRecordField(name, types = Vector(t))
-        }.toMap)
-        (schemaType, ObjectValue(values.toMap))
-      case _ =>
-        throw new Exception(
-            s"cannot convert ${name.getOrElse("IR")} value ${value} to WDL value"
-        )
+  def fromIRValue(value: Value, name: Option[String], isInput: Boolean): (CwlType, CwlValue) = {
+    def inner(innerValue: Value, innerName: Option[String]): (CwlType, CwlValue) = {
+      innerValue match {
+        case VNull         => (CwlNull, NullValue)
+        case VBoolean(b)   => (CwlBoolean, BooleanValue(b))
+        case VInt(i)       => (CwlLong, LongValue(i))
+        case VFloat(f)     => (CwlDouble, DoubleValue(f))
+        case VString(s)    => (CwlString, StringValue(s))
+        case VFile(f)      => (CwlFile, FileValue(f))
+        case VDirectory(d) => (CwlDirectory, DirectoryValue(d))
+        case VArray(array) =>
+          val (types, values) = array.zipWithIndex.map {
+            case (v, i) => inner(v, innerName.map(n => s"${n}[${i}]"))
+          }.unzip
+          (CwlArray(types.distinct), ArrayValue(values))
+        case VHash(fields) =>
+          val (types, values) = fields.map {
+            case (key, value) =>
+              val (cwlType, cwlValue) = inner(value, innerName.map(n => s"${n}[${key}]"))
+              (key -> cwlType, key -> cwlValue)
+          }.unzip
+          // create an anonymous record schema
+          val schemaType = if (isInput) {
+            CwlInputRecord(
+                types
+                  .map {
+                    case (name, t) => name -> CwlInputRecordField(name, types = Vector(t))
+                  }
+                  .to(TreeSeqMap)
+            )
+          } else {
+            CwlOutputRecord(
+                types
+                  .map {
+                    case (name, t) => name -> CwlOutputRecordField(name, types = Vector(t))
+                  }
+                  .to(TreeSeqMap)
+            )
+          }
+          (schemaType, ObjectValue(values.to(TreeSeqMap)))
+        case _ =>
+          throw new Exception(
+              s"cannot convert ${name.getOrElse("IR")} value ${value} to WDL value"
+          )
+      }
     }
+    inner(value, name)
   }
 
-  def fromIRValues(values: Map[String, Value]): Map[String, (CwlType, CwlValue)] = {
+  def fromIRValues(values: Map[String, Value],
+                   isInput: Boolean): Map[String, (CwlType, CwlValue)] = {
     values.map {
-      case (name, value) => name -> fromIRValue(value, Some(name))
+      case (name, value) => name -> fromIRValue(value, Some(name), isInput)
     }
   }
 
-  def fromIRValue(value: Value, cwlTypes: Vector[CwlType], name: String): (CwlType, CwlValue) = {
+  def fromIRValue(value: Value,
+                  cwlTypes: Vector[CwlType],
+                  name: String,
+                  isInput: Boolean): (CwlType, CwlValue) = {
     @tailrec
     def inner(innerValue: Value, innerType: CwlType, innerName: String): CwlValue = {
       (innerType, innerValue) match {
@@ -183,7 +214,7 @@ object CwlUtils {
         case (CwlDirectory, VFile(path))       => DirectoryValue(path)
         case (array: CwlArray, VArray(items)) =>
           ArrayValue(items.zipWithIndex.map {
-            case (item, i) => fromIRValue(item, array.itemTypes, s"${innerName}[${i}]")._2
+            case (item, i) => fromIRValue(item, array.itemTypes, s"${innerName}[${i}]", isInput)._2
           })
         case (record: CwlRecord, VHash(members)) =>
           // ensure 1) members keys are a subset of memberTypes keys, 2) members
@@ -207,10 +238,15 @@ object CwlUtils {
                 s"struct ${record.name} value is missing non-optional members ${missingNonOptional}"
             )
           }
-          ObjectValue(members.map {
-            case (key, value) =>
-              key -> fromIRValue(value, record.fields(key).types, s"${innerName}[${key}]")._2
-          })
+          ObjectValue(
+              members.map {
+                case (key, value) =>
+                  key -> fromIRValue(value,
+                                     record.fields(key).types,
+                                     s"${innerName}[${key}]",
+                                     isInput)._2
+              }
+          )
         case (enum: CwlEnum, VString(s)) if enum.symbols.contains(s) =>
           StringValue(s)
         case _ =>
@@ -228,7 +264,7 @@ object CwlUtils {
       .collectFirst { case Some(result) => result }
       .getOrElse {
         if (cwlTypes.contains(CwlAny)) {
-          fromIRValue(value, Some(name))
+          fromIRValue(value, Some(name), isInput)
         } else {
           throw new Exception(s"Cannot convert ${name} (${cwlTypes}, ${value}) to CWL value")
         }
@@ -236,11 +272,12 @@ object CwlUtils {
   }
 
   def fromIR(values: Map[String, (Type, Value)],
-             typeAliases: Map[String, CwlSchema] = Map.empty): Map[String, (CwlType, CwlValue)] = {
+             typeAliases: Map[String, CwlSchema] = Map.empty,
+             isInput: Boolean): Map[String, (CwlType, CwlValue)] = {
     values.map {
       case (name, (t, v)) =>
-        val cwlType = fromIRType(t, typeAliases)
-        name -> fromIRValue(v, Vector(cwlType), name)
+        val cwlType = fromIRType(t, typeAliases, isInput)
+        name -> fromIRValue(v, Vector(cwlType), name, isInput)
     }
   }
 
@@ -260,9 +297,11 @@ object CwlUtils {
   def createEvaluatorContext(runtime: Runtime,
                              env: Map[String, (CwlType, CwlValue)] = Map.empty,
                              self: CwlValue = NullValue): EvaluatorContext = {
-    val values = env.map {
-      case (key, (_, value)) => key -> value
-    }
+    val values = env
+      .map {
+        case (key, (_, value)) => key -> value
+      }
+      .to(TreeSeqMap)
     EvaluatorContext(self, ObjectValue(values), runtime)
   }
 }

@@ -16,7 +16,8 @@ object CwlTaskExecutor {
   def create(jobMeta: JobMeta,
              fileUploader: FileUploader,
              streamFiles: StreamFiles): CwlTaskExecutor = {
-    if (!Parser.canParse(jobMeta.sourceCode)) {
+    val parser = Parser.default
+    if (!parser.canParse(jobMeta.sourceCode)) {
       throw new Exception(
           s"""source code does not appear to be a CWL document of a supported version
              |${jobMeta.sourceCode}""".stripMargin
@@ -27,7 +28,7 @@ object CwlTaskExecutor {
       case _                    => throw new Exception("missing executable name")
     }
     val tool =
-      Parser.parseString(jobMeta.sourceCode, name = Some(toolName)) match {
+      parser.parseString(jobMeta.sourceCode, name = Some(toolName)) match {
         case tool: CommandLineTool => tool
         case other =>
           throw new Exception(s"expected CWL document to contain a CommandLineTool, not ${other}")
@@ -76,7 +77,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
         val cwlTypes = param.types
         val (cwlType, cwlValue) = jobMeta.primaryInputs.get(name) match {
           case Some(irValue) =>
-            CwlUtils.fromIRValue(irValue, cwlTypes, name)
+            CwlUtils.fromIRValue(irValue, cwlTypes, name, isInput = true)
           case None if param.default.isDefined =>
             val ctx = CwlUtils.createEvaluatorContext(runtime, env)
             evaluator.evaluate(param.default.get, cwlTypes, ctx)
@@ -106,7 +107,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
   }
 
   private lazy val defaultRuntimeAttrs: Map[String, (CwlType, CwlValue)] = {
-    CwlUtils.fromIRValues(jobMeta.defaultRuntimeAttrs)
+    CwlUtils.fromIRValues(jobMeta.defaultRuntimeAttrs, isInput = true)
   }
 
   private def getRequiredInstanceTypeRequest(
@@ -152,7 +153,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
   override protected def writeCommandScript(
       localizedInputs: Map[String, (Type, Value)]
   ): Map[String, (Type, Value)] = {
-    val inputs = CwlUtils.fromIR(localizedInputs, typeAliases)
+    val inputs = CwlUtils.fromIR(localizedInputs, typeAliases, isInput = true)
     printInputs(inputs)
     val metaDir = jobMeta.workerPaths.getMetaDir(ensureExists = true)
     // write the CWL and input files
