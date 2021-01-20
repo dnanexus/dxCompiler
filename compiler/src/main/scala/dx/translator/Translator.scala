@@ -43,6 +43,7 @@ trait TranslatorFactory {
              reorgAttrs: ReorgSettings,
              perWorkflowAttrs: Map[String, DxWorkflowAttrs],
              defaultScatterChunkSize: Int,
+             inputManifests: Boolean,
              fileResolver: FileSourceResolver,
              dxApi: DxApi = DxApi.get,
              logger: Logger = Logger.get): Option[Translator]
@@ -60,6 +61,7 @@ object TranslatorFactory {
                        defaultScatterChunkSize: Int,
                        locked: Boolean = false,
                        reorgEnabled: Option[Boolean] = None,
+                       inputManifests: Boolean = false,
                        baseFileResolver: FileSourceResolver = FileSourceResolver.get,
                        dxApi: DxApi = DxApi.get,
                        logger: Logger = Logger.get): Translator = {
@@ -83,6 +85,7 @@ object TranslatorFactory {
                        reorgAttrs,
                        perWorkflowAttrs,
                        defaultScatterChunkSize,
+                       inputManifests,
                        fileResolver,
                        dxApi,
                        logger) match {

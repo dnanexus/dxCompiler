@@ -19,6 +19,7 @@ case class CwlTranslator(tool: CommandLineTool,
                          reorgAttrs: ReorgSettings,
                          perWorkflowAttrs: Map[String, DxWorkflowAttrs],
                          defaultScatterChunkSize: Int,
+                         inputManifests: Boolean,
                          fileResolver: FileSourceResolver = FileSourceResolver.get,
                          dxApi: DxApi = DxApi.get,
                          logger: Logger = Logger.get)
@@ -63,6 +64,7 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
                       reorgAttrs: ReorgSettings,
                       perWorkflowAttrs: Map[String, DxWorkflowAttrs],
                       defaultScatterChunkSize: Int,
+                      inputManifests: Boolean,
                       fileResolver: FileSourceResolver,
                       dxApi: DxApi,
                       logger: Logger): Option[Translator] = {
@@ -95,6 +97,7 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
                       reorgAttrs,
                       perWorkflowAttrs,
                       defaultScatterChunkSize,
+                      inputManifests,
                       fileResolver,
                       dxApi,
                       logger)

@@ -18,7 +18,8 @@ object Constants {
   // keys used in details of jobs of native applets
   val ContinueStart = "continue_start___"
 
-  // parameter names used in "special" native applets
+  // reserved parameter names
+  val InputManifest = "input_manifest"
   val ReorgConfig = "reorg_conf___"
   val ReorgStatus = "reorg_status___"
   val ReorgStatusCompleted = "completed"

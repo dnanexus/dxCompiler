@@ -34,9 +34,10 @@ import dx.core.languages.wdl.{
   WdlWorkflowSource
 }
 import wdlTools.eval.{DefaultEvalPaths, Eval, EvalException, WdlValueBindings}
-import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
+import wdlTools.types.{TypeUtils, WdlTypes, TypedAbstractSyntax => TAT}
 import wdlTools.types.WdlTypes._
 import dx.util.{Adjuncts, FileSourceResolver, Logger}
+import wdlTools.types.TypedAbstractSyntax.RequiredInputParameter
 
 case class CallableTranslator(wdlBundle: WdlBundle,
                               typeAliases: Map[String, T_Struct],
@@ -45,6 +46,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                               reorgAttrs: ReorgSettings,
                               perWorkflowAttrs: Map[String, DxWorkflowAttrs],
                               defaultScatterChunkSize: Int,
+                              inputManifests: Boolean,
                               versionSupport: VersionSupport,
                               dxApi: DxApi = DxApi.get,
                               fileResolver: FileSourceResolver = FileSourceResolver.get,
@@ -140,7 +142,18 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       }
 
       logger.trace(s"Translating task ${task.name}")
-      val inputs = task.inputs.map(translateInput)
+      val inputs = task.inputs match {
+        case Vector()                                                               => Vector.empty[Parameter]
+        case v if inputManifests && v.exists(i => !TypeUtils.isOptional(i.wdlType)) =>
+          // the manifest parameter is required if at least one input is required
+          RequiredInputParameter(Constants.InputManifest, WdlTypes.T_File, v.head.loc)
+        case v if inputManifests && v.exists(i => !TypeUtils.isOptional(i.wdlType)) =>
+          // the manifest parameter is required if at least one input is required
+          RequiredInputParameter(Constants.InputManifest,
+                                 WdlTypes.T_Optional(WdlTypes.T_File),
+                                 v.head.loc)
+        case i => i.map(translateInput)
+      }
       val outputs = task.outputs.map(translateOutput)
       val instanceType = runtime.translateInstanceType
       val kind = runtime.translateExecutableKind match {

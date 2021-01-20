@@ -145,6 +145,7 @@ object Main {
       "locked" -> FlagOptionSpec.default,
       "leaveWorkflowsOpen" -> FlagOptionSpec.default,
       "imports" -> PathOptionSpec.listMustExist,
+      "inputManifests" -> FlagOptionSpec.default,
       "p" -> PathOptionSpec.listMustExist.copy(alias = Some("imports")),
       "projectWideReuse" -> FlagOptionSpec.default,
       "reorg" -> FlagOptionSpec.default,
@@ -155,7 +156,9 @@ object Main {
   )
 
   private val DeprecatedCompileOptions = Set(
-      "fatalValidationWarnings"
+      "fatalValidationWarnings",
+      "input",
+      "streamAllFiles"
   )
 
   private def resolveDestination(
@@ -308,6 +311,7 @@ object Main {
       options.getValueOrElse[CompilerMode.CompilerMode]("compileMode", CompilerMode.All)
 
     val locked = options.getFlag("locked")
+    val inputManifests: Boolean = options.getFlag("inputManifests")
 
     val translator =
       try {
@@ -320,6 +324,7 @@ object Main {
             defaultScatterChunkSize,
             locked,
             if (reorg) Some(true) else None,
+            inputManifests,
             baseFileResolver
         )
       } catch {
@@ -341,6 +346,9 @@ object Main {
     // if there are defaults, they need to be "embedded" in the bundle
     val defaults: Option[Path] = options.getValue[Path]("defaults")
     val hasInputs = inputs.nonEmpty || defaults.nonEmpty
+    if (inputManifests && hasInputs) {
+      return Failure("'inputManifests' is mutually exclusive with 'inputs' and 'defaults'")
+    }
 
     // quit here if the target is IR and there are no inputs to translate
     if (!hasInputs && compileMode == CompilerMode.IR) {

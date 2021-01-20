@@ -60,6 +60,7 @@ case class WdlTranslator(doc: TAT.Document,
                          reorgAttrs: ReorgSettings,
                          perWorkflowAttrs: Map[String, DxWorkflowAttrs],
                          defaultScatterChunkSize: Int,
+                         inputManifests: Boolean,
                          versionSupport: VersionSupport,
                          fileResolver: FileSourceResolver = FileSourceResolver.get,
                          dxApi: DxApi = DxApi.get,
@@ -160,6 +161,7 @@ case class WdlTranslator(doc: TAT.Document,
         reorgAttrs,
         perWorkflowAttrs,
         defaultScatterChunkSize,
+        inputManifests,
         versionSupport,
         dxApi,
         fileResolver,
@@ -192,6 +194,9 @@ case class WdlTranslator(doc: TAT.Document,
                                inputs: Vector[Path],
                                defaults: Option[Path],
                                project: DxProject): (Bundle, FileSourceResolver) = {
+    if (inputManifests) {
+      throw new Exception("cannot translate inputs when inputManifests=true")
+    }
     val inputTranslator = WdlInputTranslator(bundle, inputs, defaults, project, fileResolver)
     inputTranslator.writeTranslatedInputs()
     (inputTranslator.bundleWithDefaults, inputTranslator.fileResolver)
@@ -208,6 +213,7 @@ case class WdlTranslatorFactory(
                       reorgAttrs: ReorgSettings,
                       perWorkflowAttrs: Map[String, DxWorkflowAttrs],
                       defaultScatterChunkSize: Int,
+                      inputManifests: Boolean,
                       fileResolver: FileSourceResolver,
                       dxApi: DxApi = DxApi.get,
                       logger: Logger = Logger.get): Option[WdlTranslator] = {
@@ -225,17 +231,20 @@ case class WdlTranslatorFactory(
       throw new Exception(s"WDL document ${sourceFile} is not version ${language.get}")
     }
     Some(
-        WdlTranslator(doc,
-                      typeAliases.toMap,
-                      locked,
-                      defaultRuntimeAttrs,
-                      reorgAttrs,
-                      perWorkflowAttrs,
-                      defaultScatterChunkSize,
-                      versionSupport,
-                      fileResolver,
-                      dxApi,
-                      logger)
+        WdlTranslator(
+            doc,
+            typeAliases.toMap,
+            locked,
+            defaultRuntimeAttrs,
+            reorgAttrs,
+            perWorkflowAttrs,
+            defaultScatterChunkSize,
+            inputManifests,
+            versionSupport,
+            fileResolver,
+            dxApi,
+            logger
+        )
     )
   }
 }
