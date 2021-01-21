@@ -9,7 +9,8 @@ import spray.json._
 import java.nio.file.Path
 import scala.collection.immutable.SortedMap
 
-case class Manifest(values: Map[String, Value],
+case class Manifest(id: String,
+                    values: Map[String, Value],
                     types: Map[String, Type],
                     definitions: Map[String, Type] = Map.empty) {
   values.keySet.diff(types.keySet) match {
@@ -39,6 +40,7 @@ case class Manifest(values: Map[String, Value],
     }
     val jsValues = ValueSerde.serializeMap(values)
     JsObject(
+        "id" -> JsString(id),
         "definitions" -> JsObject(jsDefinitions2),
         "types" -> JsObject(jsTypes),
         "values" -> JsObject(jsValues)
@@ -61,65 +63,50 @@ case class ManifestParser(typeAliases: Map[String, Type] = Map.empty,
   }
 
   def parse(jsValue: JsValue, expectedTypes: Option[Map[String, Type]] = None): Manifest = {
-    val (values, types, definitions) = jsValue match {
-      case JsObject(fields) if fields.contains("types") && fields.contains("values") =>
-        // extended manifest format
-        val jsValues = fields("values") match {
-          case JsObject(values) => values
-          case other            => throw new Exception(s"Invalid manifest values ${other}")
-        }
-        val jsDefinitions: Map[String, JsValue] = fields.get("definitions") match {
-          case Some(JsObject(fields)) => fields
-          case None                   => Map.empty
-          case other                  => throw new Exception(s"invalid 'definitions' ${other}")
-        }
-        val (types, definitions) = fields("types") match {
-          case JsObject(typeDefs) => TypeSerde.deserializeMap(typeDefs, typeAliases, jsDefinitions)
-          case other              => throw new Exception(s"invalid 'types' ${other}")
-        }
-        expectedTypes.foreach {
-          case expected if expected.keySet != types.keySet =>
-            throw new Exception(
-                s"mismatch between actual and expected types: ${types} != ${expected}"
-            )
-          case expected =>
-            expected.foreach {
-              case (name, t) if t != types(name) =>
-                throw new Exception(
-                    s"mismatch between '${name}' actual and expected type definition: ${t} != ${types(name)}"
-                )
-            }
-        }
-        val values = types.flatMap {
-          case (name, t) if jsValues.contains(name) =>
-            Some(
-                name -> ValueSerde
-                  .deserializeWithType(jsValues(name), t, Some(fileHandler))
-            )
-          case (_, _: TOptional) =>
-            None
-          case t =>
-            throw new Exception(s"missing value for non-optional type ${t}")
-        }
-        (values, types, definitions)
-      case JsObject(jsValues) if expectedTypes.isDefined =>
-        // simple manifest format
-        val values = expectedTypes.get.flatMap {
-          case (name, t) if jsValues.contains(name) =>
-            Some(
-                name -> ValueSerde.deserializeWithType(jsValues(name), t, Some(fileHandler))
-            )
-          case (_, _: TOptional) =>
-            None
-          case t =>
-            throw new Exception(s"missing value for non-optional type ${t}")
-        }
-        val definitions = Type.collectSchemas(expectedTypes.get.values.toVector)
-        (values, expectedTypes.get, definitions)
-      case _ =>
-        throw new Exception("expectedTypes must be specified for simple manifest")
+    val fields = jsValue.asJsObject.fields
+    val id = fields.get("id") match {
+      case Some(JsString(id)) => id
+      case other              => throw new Exception(s"invalid manifest ID ${other}")
     }
-    Manifest(values, types, definitions)
+    val jsValues = fields.get("values") match {
+      case Some(JsObject(values)) => values
+      case other                  => throw new Exception(s"invalid manifest values ${other}")
+    }
+    val jsDefinitions: Map[String, JsValue] = fields.get("definitions") match {
+      case Some(JsObject(fields)) => fields
+      case None                   => Map.empty
+      case other                  => throw new Exception(s"invalid 'definitions' ${other}")
+    }
+    val (types, definitions) = fields.get("types") match {
+      case Some(JsObject(typeDefs)) =>
+        TypeSerde.deserializeMap(typeDefs, typeAliases, jsDefinitions)
+      case other => throw new Exception(s"invalid 'types' ${other}")
+    }
+    expectedTypes.foreach {
+      case expected if expected.keySet != types.keySet =>
+        throw new Exception(
+            s"mismatch between actual and expected types: ${types} != ${expected}"
+        )
+      case expected =>
+        expected.foreach {
+          case (name, t) if t != types(name) =>
+            throw new Exception(
+                s"mismatch between '${name}' actual and expected type definition: ${t} != ${types(name)}"
+            )
+        }
+    }
+    val values = types.flatMap {
+      case (name, t) if jsValues.contains(name) =>
+        Some(
+            name -> ValueSerde
+              .deserializeWithType(jsValues(name), t, Some(fileHandler))
+        )
+      case (_, _: TOptional) =>
+        None
+      case t =>
+        throw new Exception(s"missing value for non-optional type ${t}")
+    }
+    Manifest(id, values, types, definitions)
   }
 
   def parseFile(path: Path, expectedTypes: Option[Map[String, Type]] = None): Manifest = {
