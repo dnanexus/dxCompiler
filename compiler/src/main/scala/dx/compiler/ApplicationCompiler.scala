@@ -4,13 +4,12 @@ import dx.api.{DxAccessLevel, DxApi, DxFile, DxInstanceType, DxPath, DxUtils, In
 import dx.core.Constants
 import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir._
-import dx.util.CodecUtils
 import dx.translator.{DockerRegistry, DxAccess, DxExecPolicy, DxRunSpec, DxTimeout, Extras}
 import dx.translator.CallableAttributes._
+import dx.util.{CodecUtils, Logger}
 import RunSpec._
 import spray.json._
 import wdlTools.generators.Renderer
-import dx.util.Logger
 
 object ApplicationCompiler {
   val DefaultAppletTimeoutInDays = 2
@@ -35,6 +34,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
                                streamFiles: StreamFiles.StreamFiles,
                                extras: Option[Extras],
                                parameterLinkSerializer: ParameterLinkSerializer,
+                               useManifests: Boolean,
                                dxApi: DxApi = DxApi.get,
                                logger: Logger = Logger.get)
     extends ExecutableCompiler(extras, parameterLinkSerializer, dxApi) {
@@ -280,7 +280,15 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
   ): Map[String, JsValue] = {
     logger.trace(s"Building /applet/new request for ${applet.name}")
     // convert inputs and outputs to dxapp inputSpec
-    val inputSpec: Vector[JsValue] = applet.inputs
+    val inputParams = if (useManifests) {
+      Vector(
+          Parameter(Constants.InputManifests, Type.TArray(Type.TFile)),
+          Parameter(Constants.InputLinks, Type.THash)
+      )
+    } else {
+      applet.inputs
+    }
+    val inputSpec = inputParams
       .sortWith(_.name < _.name)
       .flatMap { param =>
         try {
@@ -293,7 +301,13 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
             )
         }
       }
-    val outputSpec: Vector[JsValue] = applet.outputs
+
+    val outputParams = if (useManifests) {
+      Vector(Parameter(Constants.OutputManifests, Type.TArray(Type.TFile)))
+    } else {
+      applet.outputs
+    }
+    val outputSpec: Vector[JsValue] = outputParams
       .sortWith(_.name < _.name)
       .flatMap { param =>
         try {
@@ -306,6 +320,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
             )
         }
       }
+
     // build the dxapp runSpec
     val (runSpec, runSpecDetails) = createRunSpec(applet)
     // A fragemnt is hidden, not visible under default settings. This

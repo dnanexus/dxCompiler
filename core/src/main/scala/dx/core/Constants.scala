@@ -18,11 +18,24 @@ object Constants {
   // keys used in details of jobs of native applets
   val ContinueStart = "continue_start___"
 
+  // stages that the compiler uses in generated DNAx workflows
+  val CommonStage = "common"
+  val EvalStage = "eval"
+  val ReorgStage = "reorg"
+  val OutputStage = "outputs"
+
   // reserved parameter names
-  val InputManifest = "input_manifest"
+  val InputManifests = "input_manifest___"
+  val InputLinks = "input_links___"
+  val OutputManifests = "output_manifests___"
+  val OutputLinks = "output_links___"
   val ReorgConfig = "reorg_conf___"
   val ReorgStatus = "reorg_status___"
   val ReorgStatusCompleted = "completed"
+
+  // keys used in manifest link hashes
+  val WorkflowLinksKey = "workflow"
+  val StageLinksKey = "stage"
 
   // deprecated properties that we still need to check for old applets
   val ChecksumPropertyDeprecated = "dxCompiler_checksum"

@@ -11,7 +11,7 @@ import scala.collection.immutable.SortedMap
 
 case class Manifest(values: Map[String, Value],
                     types: Map[String, Type],
-                    definitions: Map[String, Type]) {
+                    definitions: Map[String, Type] = Map.empty) {
   values.keySet.diff(types.keySet) match {
     case d if d.nonEmpty =>
       throw new Exception(s"missing type definition(s) ${d.mkString(",")}")

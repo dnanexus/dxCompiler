@@ -25,12 +25,24 @@ trait Translator {
 
   def fileResolver: FileSourceResolver
 
+  protected def createInputTranslator(bundle: Bundle,
+                                      inputs: Vector[Path],
+                                      defaults: Option[Path],
+                                      project: DxProject): InputTranslator = {
+    new InputTranslator(bundle, inputs, defaults, project, fileResolver)
+  }
+
   def translateInputs(bundle: Bundle,
                       inputs: Vector[Path],
                       defaults: Option[Path],
-                      project: DxProject): (Bundle, FileSourceResolver) = {
-    val inputTranslator = new InputTranslator(bundle, inputs, defaults, project, fileResolver)
-    inputTranslator.writeTranslatedInputs()
+                      project: DxProject,
+                      writeManifest: Boolean): (Bundle, FileSourceResolver) = {
+    val inputTranslator = createInputTranslator(bundle, inputs, defaults, project)
+    if (writeManifest) {
+      inputTranslator.writeTranslatedInputManifest()
+    } else {
+      inputTranslator.writeTranslatedInputs()
+    }
     (inputTranslator.bundleWithDefaults, inputTranslator.fileResolver)
   }
 }
@@ -43,7 +55,7 @@ trait TranslatorFactory {
              reorgAttrs: ReorgSettings,
              perWorkflowAttrs: Map[String, DxWorkflowAttrs],
              defaultScatterChunkSize: Int,
-             inputManifests: Boolean,
+             useManifests: Boolean,
              fileResolver: FileSourceResolver,
              dxApi: DxApi = DxApi.get,
              logger: Logger = Logger.get): Option[Translator]
@@ -61,7 +73,7 @@ object TranslatorFactory {
                        defaultScatterChunkSize: Int,
                        locked: Boolean = false,
                        reorgEnabled: Option[Boolean] = None,
-                       inputManifests: Boolean = false,
+                       useManifests: Boolean,
                        baseFileResolver: FileSourceResolver = FileSourceResolver.get,
                        dxApi: DxApi = DxApi.get,
                        logger: Logger = Logger.get): Translator = {
@@ -85,7 +97,7 @@ object TranslatorFactory {
                        reorgAttrs,
                        perWorkflowAttrs,
                        defaultScatterChunkSize,
-                       inputManifests,
+                       useManifests,
                        fileResolver,
                        dxApi,
                        logger) match {

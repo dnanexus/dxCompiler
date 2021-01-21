@@ -145,14 +145,14 @@ object Main {
       "locked" -> FlagOptionSpec.default,
       "leaveWorkflowsOpen" -> FlagOptionSpec.default,
       "imports" -> PathOptionSpec.listMustExist,
-      "inputManifests" -> FlagOptionSpec.default,
       "p" -> PathOptionSpec.listMustExist.copy(alias = Some("imports")),
       "projectWideReuse" -> FlagOptionSpec.default,
       "reorg" -> FlagOptionSpec.default,
       "runtimeDebugLevel" -> IntOptionSpec.one.copy(choices = Vector(0, 1, 2)),
       "streamFiles" -> StreamFilesOptionSpec,
       "streamAllFiles" -> FlagOptionSpec.default,
-      "scatterChunkSize" -> IntOptionSpec.one
+      "scatterChunkSize" -> IntOptionSpec.one,
+      "useManifests" -> FlagOptionSpec.default
   )
 
   private val DeprecatedCompileOptions = Set(
@@ -311,7 +311,10 @@ object Main {
       options.getValueOrElse[CompilerMode.CompilerMode]("compileMode", CompilerMode.All)
 
     val locked = options.getFlag("locked")
-    val inputManifests: Boolean = options.getFlag("inputManifests")
+    val useManifests: Boolean = options.getFlag("useManifests")
+    if (useManifests && !locked) {
+      return Failure("usage of manifests is only compatible with locked workflows")
+    }
 
     val translator =
       try {
@@ -324,7 +327,7 @@ object Main {
             defaultScatterChunkSize,
             locked,
             if (reorg) Some(true) else None,
-            inputManifests,
+            useManifests,
             baseFileResolver
         )
       } catch {
@@ -346,9 +349,6 @@ object Main {
     // if there are defaults, they need to be "embedded" in the bundle
     val defaults: Option[Path] = options.getValue[Path]("defaults")
     val hasInputs = inputs.nonEmpty || defaults.nonEmpty
-    if (inputManifests && hasInputs) {
-      return Failure("'inputManifests' is mutually exclusive with 'inputs' and 'defaults'")
-    }
 
     // quit here if the target is IR and there are no inputs to translate
     if (!hasInputs && compileMode == CompilerMode.IR) {
@@ -375,7 +375,7 @@ object Main {
     val (bundle, fileResolver) = if (hasInputs) {
       val (bundleWithDefaults, fileResolver) =
         try {
-          translator.translateInputs(rawBundle, inputs, defaults, project)
+          translator.translateInputs(rawBundle, inputs, defaults, project, useManifests)
         } catch {
           case ex: Throwable =>
             return Failure("Error translating inputs", Some(ex))
@@ -427,6 +427,7 @@ object Main {
           locked,
           projectWideReuse,
           streamFiles,
+          useManifests,
           fileResolver
       )
       val results = compiler.apply(bundle, project, folder)

@@ -47,6 +47,8 @@ object Compiler {
   * @param leaveWorkflowsOpen whether to leave generated workflows in the open state
   * @param locked whether to generate locked workflows
   * @param projectWideReuse whether to allow project-wide reuse of applications
+  * @param streamFiles which files to stream vs download
+  * @param useManifests whether to use manifest files for all application inputs and outputs
   * @param fileResolver the FileSourceResolver
   * @param dxApi the DxApi
   * @param logger the Logger
@@ -63,6 +65,7 @@ case class Compiler(extras: Option[Extras],
                     locked: Boolean,
                     projectWideReuse: Boolean,
                     streamFiles: StreamFiles.StreamFiles,
+                    useManifests: Boolean,
                     fileResolver: FileSourceResolver = FileSourceResolver.get,
                     dxApi: DxApi = DxApi.get,
                     logger: Logger = Logger.get) {
@@ -311,6 +314,7 @@ case class Compiler(extras: Option[Extras],
             streamFiles,
             extras,
             parameterLinkSerializer,
+            useManifests,
             dxApi,
             logger2
         )
@@ -365,7 +369,7 @@ case class Compiler(extras: Option[Extras],
     ): (DxWorkflow, JsValue) = {
       logger2.trace(s"Compiling workflow ${workflow.name}")
       val workflowCompiler =
-        WorkflowCompiler(extras, parameterLinkSerializer, dxApi, logger2)
+        WorkflowCompiler(extras, parameterLinkSerializer, useManifests, dxApi, logger2)
       // Calculate a checksum of the inputs that went into the making of the applet.
       val (workflowApiRequest, execTree) = workflowCompiler.apply(workflow, dependencyDict)
       val (requestWithChecksum, digest) = checksumRequest(workflow.name, workflowApiRequest)
@@ -406,6 +410,8 @@ case class Compiler(extras: Option[Extras],
           bundle.allCallables(name) match {
             case application: Application =>
               val execRecord = application.kind match {
+                case _: ExecutableKindNative if useManifests =>
+                  throw new Exception("cannot use manifest files with native app(let)s")
                 case ExecutableKindNative(ExecutableType.App | ExecutableType.Applet,
                                           Some(id),
                                           _,
@@ -414,6 +420,8 @@ case class Compiler(extras: Option[Extras],
                   // native applets do not depend on other data-objects
                   CompiledExecutable(application, dxApi.executable(id))
                 case ExecutableKindWorkflowCustomReorg(id) =>
+                  // for now, we assume the user has built their reorg applet to
+                  // handle manifest input if useManifests = true
                   CompiledExecutable(application, dxApi.executable(id))
                 case _ =>
                   val (dxApplet, dependencies) = maybeBuildApplet(application, accu)

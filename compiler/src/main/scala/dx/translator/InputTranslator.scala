@@ -8,6 +8,7 @@ import dx.core.ir.{
   Application,
   Bundle,
   Callable,
+  Manifest,
   ParameterLinkDeserializer,
   ParameterLinkSerializer,
   StaticInput,
@@ -361,6 +362,22 @@ class InputTranslator(bundle: Bundle,
         }
         logger.trace(s"Writing DNAnexus JSON input file ${dxInputFile}")
         JsUtils.jsToFile(JsObject(inputs), dxInputFile)
+    }
+  }
+
+  def writeTranslatedInputManifest(): Unit = {
+    translatedInputs.foreach {
+      case (path, inputs) =>
+        val fileName = FileUtils.replaceFileSuffix(path, ".manifest.json")
+        val manifestFile = path.getParent match {
+          case null   => Paths.get(fileName)
+          case parent => parent.resolve(fileName)
+        }
+        val (types, values) = inputs.map {
+          case (name, (t, v)) => (name -> t, name -> v)
+        }.unzip
+        val manifest = Manifest(values.toMap, types.toMap)
+        JsUtils.jsToFile(manifest.toJson, manifestFile)
     }
   }
 }

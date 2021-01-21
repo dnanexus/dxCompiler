@@ -1,6 +1,6 @@
 package dx.compiler
 
-import dx.api.{DxApi, DxUtils}
+import dx.api.{DxApi, DxUtils, DxWorkflowStage}
 import dx.core.Constants
 import dx.core.ir._
 import dx.translator.CallableAttributes._
@@ -8,10 +8,11 @@ import dx.translator.Extras
 import dx.util.{CodecUtils, Logger}
 import spray.json._
 
-import scala.collection.immutable.TreeMap
+import scala.collection.immutable.{TreeMap, TreeSeqMap}
 
 case class WorkflowCompiler(extras: Option[Extras],
                             parameterLinkSerializer: ParameterLinkSerializer,
+                            useManifests: Boolean,
                             dxApi: DxApi = DxApi.get,
                             logger: Logger = Logger.get)
     extends ExecutableCompiler(extras, parameterLinkSerializer, dxApi) {
@@ -19,11 +20,13 @@ case class WorkflowCompiler(extras: Option[Extras],
   private def workflowInputParameterToNative(parameter: Parameter,
                                              stageInput: StageInput): Vector[JsValue] = {
     // The default value can come from the stageInput or the parameter
-    val default = stageInput match {
-      case StaticInput(value) => Some(value)
-      case _                  => parameter.defaultValue
+    val paramWithDefault = stageInput match {
+      case WorkflowInput(wfParam) if wfParam != parameter =>
+        parameter.copy(defaultValue = wfParam.defaultValue)
+      case StaticInput(value) => parameter.copy(defaultValue = Some(value))
+      case _                  => parameter
     }
-    inputParameterToNative(parameter.copy(defaultValue = default))
+    inputParameterToNative(paramWithDefault)
   }
 
   // Note: a single WDL output can generate one or two JSON outputs.
@@ -114,18 +117,104 @@ case class WorkflowCompiler(extras: Option[Extras],
       executableDict: Map[String, CompiledExecutable]
   ): (Map[String, JsValue], JsValue) = {
     logger.trace(s"Building /workflow/new request for ${workflow.name}")
+
+    // convert inputs and outputs to spec
+    val wfInputOutput: Map[String, JsValue] = {
+      if (workflow.locked) {
+        // Locked workflows have well defined inputs and outputs
+        val (inputParams, outputParams) = if (useManifests) {
+          // When using manifests, the first stage is always a common input stage,
+          // and the last stage is always a common output stage. We need to
+
+          // link manifest workflow outputs to all the stages providing actual workflow outputs
+          val (wfLinks, stageLinks, stageManifests) =
+            workflow.outputs.foldLeft(Map.empty[String, Value],
+                                      Map.empty[String, Map[String, Value]],
+                                      Set.empty[DxWorkflowStage]) {
+              case ((wfAccu, stageAccu, stageManifestAccu), (param, wfInput: WorkflowInput)) =>
+                (wfAccu + (param.name -> Value.VString(wfInput.param.name)),
+                 stageAccu,
+                 stageManifestAccu)
+              case ((wfAccu, stageAccu, stageManifestAccu), (param, linkInput: LinkInput)) =>
+                (wfAccu, stageAccu + stageAccu.getOrElse(), stageManifestAccu + linkInput.stageId)
+              case (accu, _) => accu
+            }
+          (Vector(
+               (Parameter(Constants.InputManifests, Type.TArray(Type.TFile)), EmptyInput),
+               (Parameter(Constants.InputLinks, Type.THash), EmptyInput)
+           ),
+           Vector(
+               (Parameter(Constants.OutputManifests, Type.TArray(Type.TFile)), x),
+               (Parameter(Constants.OutputLinks, Type.THash),
+                StaticInput(
+                    Value.VHash(
+                        TreeSeqMap(Constants.WorkflowLinksKey -> wfLinks,
+                                   Constants.StageLinksKey -> stageLinks)
+                    )
+                ))
+           ))
+        } else {
+          (workflow.inputs, workflow.outputs)
+        }
+        val wfInputSpec: Vector[JsValue] = inputParams
+          .sortWith(_._1.name < _._1.name)
+          .flatMap {
+            case (parameter, stageInput) => workflowInputParameterToNative(parameter, stageInput)
+          }
+        val wfOutputSpec: Vector[JsValue] = outputParams
+          .sortWith(_._1.name < _._1.name)
+          .flatMap {
+            case (parameter, stageInput) => workflowOutputParameterToNative(parameter, stageInput)
+          }
+        Map("inputs" -> JsArray(wfInputSpec), "outputs" -> JsArray(wfOutputSpec))
+      } else {
+        Map.empty
+      }
+    }
+
     val stages =
       workflow.stages.foldLeft(Vector.empty[JsValue]) {
         case (stagesReq, stg) =>
           val CompiledExecutable(irApplet, dxExec, _, _) = executableDict(stg.calleeName)
-          val linkedInputs = irApplet.inputVars.zip(stg.inputs)
-          val inputs = stageInputToNative(linkedInputs)
+          val linkedInputs = if (useManifests) {
+            // when using manifests, we have to create an input array of all the
+            // manifests output by any linked stages, and a hash of links between
+            // the manifest fields and the stage inputs, plus any static values
+            val (wfLinks, stageLinks, manifests, staticInputs) = irApplet.inputVars
+              .zip(stg.inputs)
+              .foldLeft(Map.empty[String, JsValue],
+                        Map.empty[String, JsValue],
+                        Set.empty[x],
+                        Vector.empty[x]) {
+                case (accu, (param, EmptyInput))
+                    if Type.isOptional(param.dxType) || param.defaultValue.isDefined =>
+                  accu
+                case (_, (param, EmptyInput)) =>
+                  throw new Exception(
+                      s"""no input specified for stage input ${stg}.${param.name}; overriding required 
+                         |call inputs at runtime is not supported when using manifests""".stripMargin
+                        .replaceAll("\n", " ")
+                  )
+                case ((wfAccu, stageAccu, manifestAccu, staticAccu),
+                      (param, wfInput: WorkflowInput)) =>
+                  (wfAccu + (param.name -> JsString(wfInput.param.name)),
+                   stageAccu,
+                   manifestAccu +,
+                   staticAccu)
+                case ((wfAccu, linkAccu, staticAccu), (param, wfInput: LinkInput)) =>
+                  (wfAccu, linkAccu :+ (param, wfInput), staticAccu)
+                case ((wfAccu, linkAccu, staticAccu), (param, staticInput: StaticInput)) =>
+                  (wfAccu, linkAccu, staticAccu :+ (param, staticInput))
+              }
+          } else {
+            irApplet.inputVars.zip(stg.inputs)
+          }
           // convert the per-stage metadata into JSON
           val stageReqDesc = JsObject(
               Map("id" -> JsString(stg.dxStage.id),
                   "executable" -> JsString(dxExec.id),
                   "name" -> JsString(stg.description),
-                  "input" -> inputs)
+                  "input" -> stageInputToNative(linkedInputs))
           )
           stagesReq :+ stageReqDesc
       }
@@ -167,24 +256,6 @@ case class WorkflowCompiler(extras: Option[Extras],
         // Sub-workflow are compiled to hidden objects.
         "hidden" -> JsBoolean(!isTopLevel)
     )
-    // convert inputs and outputs to spec
-    val wfInputOutput: Map[String, JsValue] =
-      if (workflow.locked) {
-        // Locked workflows have well defined inputs and outputs
-        val wfInputSpec: Vector[JsValue] = workflow.inputs
-          .sortWith(_._1.name < _._1.name)
-          .flatMap {
-            case (parameter, stageInput) => workflowInputParameterToNative(parameter, stageInput)
-          }
-        val wfOutputSpec: Vector[JsValue] = workflow.outputs
-          .sortWith(_._1.name < _._1.name)
-          .flatMap {
-            case (parameter, stageInput) => workflowOutputParameterToNative(parameter, stageInput)
-          }
-        Map("inputs" -> JsArray(wfInputSpec), "outputs" -> JsArray(wfOutputSpec))
-      } else {
-        Map.empty
-      }
     // look for ignoreReuse in runtime hints and in extras - the later overrides the former
     val ignoreReuse = extras.flatMap(_.ignoreReuse) match {
       case Some(true) => Map("ignoreReuse" -> JsArray(JsString("*")))

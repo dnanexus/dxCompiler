@@ -3,16 +3,7 @@ package dx.translator.wdl
 import dx.api.{DxApi, DxUtils, DxWorkflowStage}
 import dx.core.Constants
 import dx.core.ir.RunSpec.{DefaultInstanceType, DxFileDockerImage, NoImage}
-import dx.translator.{
-  CommonStage,
-  CustomReorgSettings,
-  DefaultReorgSettings,
-  DxWorkflowAttrs,
-  EvalStage,
-  OutputStage,
-  ReorgSettings,
-  ReorgStage
-}
+import dx.translator.{CustomReorgSettings, DefaultReorgSettings, DxWorkflowAttrs, ReorgSettings}
 import dx.core.ir._
 import dx.core.ir.Type._
 import dx.core.ir.Value._
@@ -34,10 +25,9 @@ import dx.core.languages.wdl.{
   WdlWorkflowSource
 }
 import wdlTools.eval.{DefaultEvalPaths, Eval, EvalException, WdlValueBindings}
-import wdlTools.types.{TypeUtils, WdlTypes, TypedAbstractSyntax => TAT}
+import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 import wdlTools.types.WdlTypes._
 import dx.util.{Adjuncts, FileSourceResolver, Logger}
-import wdlTools.types.TypedAbstractSyntax.RequiredInputParameter
 
 case class CallableTranslator(wdlBundle: WdlBundle,
                               typeAliases: Map[String, T_Struct],
@@ -46,7 +36,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                               reorgAttrs: ReorgSettings,
                               perWorkflowAttrs: Map[String, DxWorkflowAttrs],
                               defaultScatterChunkSize: Int,
-                              inputManifests: Boolean,
+                              useManifests: Boolean,
                               versionSupport: VersionSupport,
                               dxApi: DxApi = DxApi.get,
                               fileResolver: FileSourceResolver = FileSourceResolver.get,
@@ -142,18 +132,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       }
 
       logger.trace(s"Translating task ${task.name}")
-      val inputs = task.inputs match {
-        case Vector()                                                               => Vector.empty[Parameter]
-        case v if inputManifests && v.exists(i => !TypeUtils.isOptional(i.wdlType)) =>
-          // the manifest parameter is required if at least one input is required
-          RequiredInputParameter(Constants.InputManifest, WdlTypes.T_File, v.head.loc)
-        case v if inputManifests && v.exists(i => !TypeUtils.isOptional(i.wdlType)) =>
-          // the manifest parameter is required if at least one input is required
-          RequiredInputParameter(Constants.InputManifest,
-                                 WdlTypes.T_Optional(WdlTypes.T_File),
-                                 v.head.loc)
-        case i => i.map(translateInput)
-      }
+      val inputs = task.inputs.map(translateInput)
       val outputs = task.outputs.map(translateOutput)
       val instanceType = runtime.translateInstanceType
       val kind = runtime.translateExecutableKind match {
@@ -356,7 +335,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                                    appletInputs: Vector[Parameter],
                                    stageInputs: Vector[StageInput],
                                    outputs: Vector[Parameter]): (Stage, Application) = {
-      val applet = Application(s"${wfName}_${CommonStage}",
+      val applet = Application(s"${wfName}_${Constants.CommonStage}",
                                appletInputs,
                                outputs,
                                DefaultInstanceType,
@@ -365,8 +344,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                                standAloneWorkflow)
       logger.trace(s"Compiling common applet ${applet.name}")
       val stage = Stage(
-          CommonStage,
-          getStage(Some(CommonStage)),
+          Constants.CommonStage,
+          getStage(Some(Constants.CommonStage)),
           applet.name,
           stageInputs,
           outputs
@@ -594,7 +573,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                                     scatterPath: Option[String],
                                     env: CallEnv): (Stage, Vector[Callable]) = {
       val stageName = block.getName match {
-        case None       => EvalStage
+        case None       => Constants.EvalStage
         case Some(name) => name
       }
       logger.trace(s"Compiling fragment <$stageName> as stage")
@@ -898,7 +877,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           (ExecutableKindWfOutputs, outputVars)
       }
       val application = Application(
-          s"${wfName}_${OutputStage}",
+          s"${wfName}_${Constants.OutputStage}",
           inputVars.map(_._1),
           updatedOutputVars,
           DefaultInstanceType,
@@ -907,8 +886,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           standAloneWorkflow
       )
       val stage = Stage(
-          OutputStage,
-          getStage(Some(OutputStage)),
+          Constants.OutputStage,
+          getStage(Some(Constants.OutputStage)),
           application.name,
           inputVars.map(_._2),
           updatedOutputVars
@@ -939,7 +918,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         scatterPath: Option[String],
         level: Level.Level
     ): (Workflow, Vector[Callable], Vector[LinkedVar]) = {
-      // translate wf inputs, and also get a Vector of any non-constant
+      // translate workflow inputs, and also get a Vector of any non-constant
       // expressions that need to be evaluated in the common stage
       val (wfInputParams, dynamicDefaults): (Vector[Parameter], Vector[Boolean]) =
         inputs.map(createWorkflowInput).unzip
@@ -963,19 +942,17 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           throw new Exception(s"computed input parameter ${name} not allowed as workflow input")
       }.toVector
       val allWfInputParameters = wfInputParams ++ closureInputParams
+      val wfInputLinks: Vector[LinkedVar] = allWfInputParameters.map(p => (p, WorkflowInput(p)))
 
-      // If the workflow has inputs that are defined with complex expressions,
-      // we need to build an initial applet to evaluate those.
-      val (backboneInputs, initialStageInfo) = if (dynamicDefaults.exists(b => b)) {
+      val (backboneInputs, commonStageInfo) = if (useManifests || dynamicDefaults.exists(b => b)) {
+        // If we are using manifests, we need an initial applet to merge multiple
+        // manifests into a single manifest.
+        // If the workflow has inputs that are defined with complex expressions,
+        // we need an initial applet to evaluate those.
         val commonAppletInputs = allWfInputParameters
         val commonStageInputs = allWfInputParameters.map(p => WorkflowInput(p))
-        val inputOutputs: Vector[Parameter] = inputs.map {
-          case OverridableBlockInputWithDynamicDefault(name, wdlType, _) =>
-            val nonOptType = WdlUtils.toIRType(wdlType)
-            Parameter(name, nonOptType)
-          case i: WdlBlockInput =>
-            val irType = WdlUtils.toIRType(i.wdlType)
-            Parameter(i.name, irType)
+        val inputOutputs: Vector[Parameter] = inputs.map { i =>
+          Parameter(i.name, WdlUtils.toIRType(i.wdlType))
         }
         val closureOutputs: Vector[Parameter] = closureInputParams
         val (commonStage, commonApplet) =
@@ -991,96 +968,90 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       } else {
         (allWfInputParameters.map(p => (p, WorkflowInput(p))), Vector.empty)
       }
+
       // translate the Block(s) into workflow stages
-      val (backboneStageInfo, env) =
-        createWorkflowStages(wfName,
-                             backboneInputs,
-                             blockPath,
-                             subBlocks,
-                             scatterPath,
-                             locked = true)
-      val (stages, auxCallables) = (initialStageInfo ++ backboneStageInfo).unzip
+      val (backboneStageInfo, env) = createWorkflowStages(
+          wfName,
+          backboneInputs,
+          blockPath,
+          subBlocks,
+          scatterPath,
+          locked = true
+      )
+      val (stages, auxCallables) = (commonStageInfo ++ backboneStageInfo).unzip
 
-      // additional values needed to create the Workflow
-      val wfInputLinks: Vector[LinkedVar] = allWfInputParameters.map(p => (p, WorkflowInput(p)))
-      val wfSource = WdlWorkflowSource(wf, versionSupport)
-      // translate workflow-level metadata to IR
-      val attributes = meta.translate
-
-      // check if all expressions can be resolved without evaluation (i.e. is a constant
-      // or a reference to a defined variable)
-      val allSimpleOutputs = outputs.forall {
-        case TAT.OutputParameter(name, _, _, _) if env.contains(name) =>
-          // the environment has a stage with this output - we can get it by linking
-          true
-        case TAT.OutputParameter(_, _, expr, _) if WdlUtils.isTrivialExpression(expr) =>
-          // A constant or a reference to a variable
-          true
-        case TAT.OutputParameter(_, _, TAT.ExprIdentifier(id, _, _), _) if env.contains(id) =>
-          // An identifier that is in scope
-          true
-        case TAT.OutputParameter(
-            _,
-            _,
-            TAT.ExprGetName(TAT.ExprIdentifier(id2, _, _), id, _, _),
-            _
-            ) =>
-          // Access to the results of a call. For example,
-          // c1 is call, and the output section is:
-          //  output {
-          //     Int? result1 = c1.result
-          //     Int? result2 = c2.result
-          //  }
-          env.contains(s"$id2.$id")
-        case _ => false
+      // We need a common output stage for any of three reasons:
+      // 1. we need to build an output manifest
+      val useOutputStage = useManifests || {
+        // 2. any output expressions cannot be resolved without evaluation (i.e. is a constant
+        // or a reference to a defined variable)
+        outputs.exists {
+          case TAT.OutputParameter(name, _, _, _) if env.contains(name) =>
+            // the environment has a stage with this output - we can get it by linking
+            false
+          case TAT.OutputParameter(_, _, expr, _) if WdlUtils.isTrivialExpression(expr) =>
+            // A constant or a reference to a variable
+            false
+          case TAT.OutputParameter(_, _, TAT.ExprIdentifier(id, _, _), _) if env.contains(id) =>
+            // An identifier that is in scope
+            false
+          case TAT.OutputParameter(
+              _,
+              _,
+              TAT.ExprGetName(TAT.ExprIdentifier(id2, _, _), id, _, _),
+              _
+              ) =>
+            // Access to the results of a call. For example,
+            // c1 is call, and the output section is:
+            //  output {
+            //     Int? result1 = c1.result
+            //     Int? result2 = c2.result
+            //  }
+            !env.contains(s"$id2.$id")
+          case _ => true
+        }
+      } || {
+        // 3. an output is used directly as an input
+        // For example, in the small workflow below, 'lane' is used in such a manner.
+        //
+        // workflow inner {
+        //   input {
+        //      String lane
+        //   }
+        //   output {
+        //      String blah = lane
+        //   }
+        // }
+        //
+        // In locked workflows, it is illegal to access a workflow input directly from
+        // a workflow output. It is only allowed to access a stage input/output.
+        inputs
+          .map(_.name)
+          .toSet
+          .intersect(WdlUtils.getOutputClosure(outputs).keySet)
+          .nonEmpty
       }
-      // Is an output used directly as an input? For example, in the small workflow
-      // below, 'lane' is used in such a manner.
-      //
-      // workflow inner {
-      //   input {
-      //      String lane
-      //   }
-      //   output {
-      //      String blah = lane
-      //   }
-      // }
-      //
-      // In locked workflows, it is illegal to access a workflow input directly from
-      // a workflow output. It is only allowed to access a stage input/output.
-      val noInputsUsedAsOutputs =
-        inputs.map(_.name).toSet.intersect(WdlUtils.getOutputClosure(outputs).keySet).isEmpty
-      // if all inputs are simple and no inputs are used as outputs, then we do not
-      // need a separate workflow stage to evaluate inputs
-      if (allSimpleOutputs && noInputsUsedAsOutputs) {
-        val simpleWfOutputs = outputs.map(output => buildSimpleWorkflowOutput(output, env))
-        val irwf =
-          Workflow(wfName,
-                   wfInputLinks,
-                   simpleWfOutputs,
-                   stages,
-                   wfSource,
-                   locked = true,
-                   level,
-                   attributes)
-        (irwf, auxCallables.flatten, simpleWfOutputs)
-      } else {
-        // Some of the outputs are expressions. We need an extra applet+stage
-        // to evaluate them.
+      val (wfOutputs, finalStages, finalCallables) = if (useOutputStage) {
         val (outputStage, outputApplet) = createOutputStage(wfName, outputs, env)
         val wfOutputs = outputStage.outputs.map { param =>
           (param, LinkInput(outputStage.dxStage, param.dxName))
         }
-        val irwf = Workflow(wfName,
-                            wfInputLinks,
-                            wfOutputs,
-                            stages :+ outputStage,
-                            wfSource,
-                            locked = true,
-                            level,
-                            attributes)
-        (irwf, auxCallables.flatten :+ outputApplet, wfOutputs)
+        (wfOutputs, stages :+ outputStage, auxCallables.flatten :+ outputApplet)
+      } else {
+        val wfOutputs = outputs.map(output => buildSimpleWorkflowOutput(output, env))
+        (wfOutputs, stages, auxCallables.flatten)
       }
+
+      (Workflow(wfName,
+                wfInputLinks,
+                wfOutputs,
+                finalStages,
+                WdlWorkflowSource(wf, versionSupport),
+                locked = true,
+                level,
+                meta.translate),
+       finalCallables,
+       wfOutputs)
     }
 
     /**
@@ -1160,7 +1131,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
     private def createReorgStage(wfName: String,
                                  wfOutputs: Vector[LinkedVar]): (Stage, Application) = {
       val applet = Application(
-          s"${wfName}_${ReorgStage}",
+          s"${wfName}_${Constants.ReorgStage}",
           wfOutputs.map(_._1),
           Vector.empty,
           DefaultInstanceType,
@@ -1172,7 +1143,11 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       // Link to the X.y original variables
       val inputs: Vector[StageInput] = wfOutputs.map(_._2)
       val stage =
-        Stage(ReorgStage, getStage(Some(ReorgStage)), applet.name, inputs, Vector.empty[Parameter])
+        Stage(Constants.ReorgStage,
+              getStage(Some(Constants.ReorgStage)),
+              applet.name,
+              inputs,
+              Vector.empty[Parameter])
       (stage, applet)
     }
 
@@ -1210,7 +1185,11 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         case _       => Vector(statusStageInput)
       }
       val stage =
-        Stage(ReorgStage, getStage(Some(ReorgStage)), applet.name, inputs, Vector.empty[Parameter])
+        Stage(Constants.ReorgStage,
+              getStage(Some(Constants.ReorgStage)),
+              applet.name,
+              inputs,
+              Vector.empty[Parameter])
       (stage, applet)
     }
 
