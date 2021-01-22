@@ -115,9 +115,15 @@ case class WdlWorkflowExecutor(workflow: TAT.Workflow,
         val wdlType = workflowInputs(name).wdlType
         name -> WdlUtils.fromIRValue(value, wdlType, name)
     }
-    // evaluate
+    // evaluate - enable special handling for unset array values -
+    // DNAnexus does not distinguish between null and empty for
+    // array inputs, so we treat a null value for a non-optional
+    // array that is allowed to be empty as the empty array.
     val evalauatedInputValues =
-      workflowIO.inputsFromValues(inputWdlValues, evaluator, strict = true)
+      workflowIO.inputsFromValues(inputWdlValues,
+                                  evaluator,
+                                  ignoreDefaultEvalError = false,
+                                  nullCollectionAsEmpty = true)
     // convert back to IR
     evalauatedInputValues.toMap.map {
       case (name, value) =>
@@ -136,14 +142,19 @@ case class WdlWorkflowExecutor(workflow: TAT.Workflow,
       logger.trace(workflow.outputs.map(TypeUtils.prettyFormatOutput(_)).mkString("\n"))
     }
     // convert IR to WDL
-    // Some of the inputs could be optional. If they are missing, add in a None value.
     val outputWdlValues: Map[String, V] =
       WdlUtils.getOutputClosure(workflow.outputs).collect {
         case (name, wdlType) if jobInputs.contains(name) =>
           val (_, value) = jobInputs(name)
           name -> WdlUtils.fromIRValue(value, wdlType, name)
         case (name, T_Optional(_)) =>
+          // set missing optional inputs to null
           name -> V_Null
+        case (name, T_Array(_, false)) =>
+          // DNAnexus does not distinguish between null and empty array inputs.
+          // A non-optional, maybe-empty array may be missing, so set it to
+          // the empty array.
+          name -> V_Array(Vector())
       }
     // evaluate
     val evaluatedOutputValues =
@@ -288,7 +299,8 @@ case class WdlWorkflowExecutor(workflow: TAT.Workflow,
             name -> WdlUtils.fromIRValue(v, wdlType, name)
         }
         // add default values for any missing inputs
-        val callInputs = callIO.inputsFromValues(inputWdlValues, evaluator, strict = true)
+        val callInputs =
+          callIO.inputsFromValues(inputWdlValues, evaluator, ignoreDefaultEvalError = false)
         val runtime =
           Runtime(versionSupport.version,
                   task.runtime,

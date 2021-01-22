@@ -54,6 +54,9 @@ wdl_v1_list = [
     "param_passing",
     "nested_scatter",
 
+    # Array input with no values
+    "empty_array",
+
     # Map with a File key
     "map_file_key",
 
@@ -158,8 +161,13 @@ special_flags_list = [
     "inc_range",  # check that runtime call to job/analysis pass the delayWorkspaceDestruction flag
 ]
 
+# these are the examples from the documentation
+doc_tests_list = [
+    "bwa_mem"
+]
+
 medium_test_list = wdl_v1_list + docker_test_list + special_flags_list + cwl_tools
-large_test_list = medium_test_list + draft2_test_list + single_tasks_list
+large_test_list = medium_test_list + draft2_test_list + single_tasks_list + doc_tests_list
 
 test_suites = {
     'CI': ci_test_list,
@@ -168,7 +176,8 @@ test_suites = {
     'tasks': single_tasks_list,
     'draft2': draft2_test_list,
     'docker': docker_test_list,
-    'native': ["call_native", "call_native_v1"]
+    'native': ["call_native", "call_native_v1"],
+    'docs': doc_tests_list
 }
 
 # Tests with the reorg flags

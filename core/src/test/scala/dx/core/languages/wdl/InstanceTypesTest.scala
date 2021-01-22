@@ -262,21 +262,21 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
     //  a string, so this doesn't actually throw an exception at
     //  parse time, though it will throw an exception when the value
     //  is not found in the instance type DB
-//    assertThrows[Exception] {
-//      // illegal request format
-//      Runtime(
-//          WdlVersion.V1,
-//          Some(
-//              TAT.RuntimeSection(
-//                  Map(Runtime.DxInstanceTypeKey -> TAT.ValueInt(4, WdlTypes.T_Int, null)),
-//                  null
-//              )
-//          ),
-//          None,
-//          evaluator,
-//          WdlValueBindings.empty
-//      ).parseInstanceType
-//    }
+    //    assertThrows[Exception] {
+    //      // illegal request format
+    //      Runtime(
+    //          WdlVersion.V1,
+    //          Some(
+    //              TAT.RuntimeSection(
+    //                  Map(Runtime.DxInstanceTypeKey -> TAT.ValueInt(4, WdlTypes.T_Int, null)),
+    //                  null
+    //              )
+    //          ),
+    //          None,
+    //          evaluator,
+    //          WdlValueBindings.empty
+    //      ).parseInstanceType
+    //    }
 
     // note that wdlTools applies default values to memory, disk, and cpu
 
@@ -326,9 +326,9 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
       createRuntime(None, Some("230.x GB"), None, None, None).parseInstanceType
     }
     // this one is fine - 230.3 is just rounded up to 231
-//    assertThrows[Exception] {
-//      createRuntime(None, Some("230.3"), None, None, None).parseInstanceType
-//    }
+    //    assertThrows[Exception] {
+    //      createRuntime(None, Some("230.3"), None, None, None).parseInstanceType
+    //    }
     assertThrows[Exception] {
       createRuntime(None, Some("230 XXB"), None, None, None).parseInstanceType
     }
@@ -340,9 +340,9 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
     assertThrows[Exception] {
       createRuntime(None, None, Some("local-disk xxxx"), None, None).parseInstanceType
     }
-//    assertThrows[Exception] {
-//      createRuntime(None, None, Some(1024), None, None).parseInstanceType.get
-//    }
+    //    assertThrows[Exception] {
+    //      createRuntime(None, None, Some(1024), None, None).parseInstanceType.get
+    //    }
 
     // cpu
     assertThrows[Exception] {
@@ -359,9 +359,9 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
         minCpu = Some(2)
     )
 
-//    assertThrows[Exception] {
-//      createRuntime(None, None, None, Some(V_Boolean(false)), None)
-//    }
+    //    assertThrows[Exception] {
+    //      createRuntime(None, None, None, Some(V_Boolean(false)), None)
+    //    }
 
     // gpu
     createRuntime(None, Some("1000 TiB"), None, None, Some(true)).parseInstanceType shouldBe

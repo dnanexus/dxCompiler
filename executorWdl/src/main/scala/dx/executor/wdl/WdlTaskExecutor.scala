@@ -79,7 +79,16 @@ case class WdlTaskExecutor(task: TAT.Task,
         name -> WdlUtils.fromIRValue(value, inputTypes(name), name)
     }
     // add default values for any missing inputs
-    taskIO.inputsFromValues(inputWdlValues, evaluator, strict = true).toMap
+    // Enable special handling for unset array values -
+    // DNAnexus does not distinguish between null and empty for
+    // array inputs, so we treat a null value for a non-optional
+    // array that is allowed to be empty as the empty array.
+    taskIO
+      .inputsFromValues(inputWdlValues,
+                        evaluator,
+                        ignoreDefaultEvalError = false,
+                        nullCollectionAsEmpty = true)
+      .toMap
   }
 
   private def printInputs(inputs: Map[String, V]): Unit = {

@@ -65,14 +65,15 @@ The `-inputs` option allows specifying a Cromwell JSON
 [format](https://software.broadinstitute.org/wdl/documentation/inputs.php)
 inputs file. An equivalent DNAx format inputs file is generated from
 it. For example, workflow
-[files](https://github.com/dnanexus/dxCompiler/blob/master/test/files.wdl)
+[files](https://github.com/dnanexus/dxCompiler/blob/main/test/draft2/files.wdl)
 has input file
 
 ```
 {
-  "files.f": "dx://file-F5gkKkQ0ZvgjG3g16xyFf7b1",
-  "files.f1": "dx://file-F5gkQ3Q0ZvgzxKZ28JX5YZjy",
-  "files.f2": "dx://file-F5gkPXQ0Zvgp2y4Q8GJFYZ8G"
+  "files.f": "dx://file-wwww",
+  "files.f1": "dx://file-xxxx",
+  "files.f2": "dx://file-yyyy",
+  "files.fruit_list": "dx://file-zzzz"
 }
 ```
 
@@ -86,13 +87,16 @@ generates a `test/files_input.dx.json` file that looks like this:
 ```
 {
   "f": {
-    "$dnanexus_link": "file-F5gkKkQ0ZvgjG3g16xyFf7b1"
+    "$dnanexus_link": "file-wwww"
   },
   "f1": {
-    "$dnanexus_link": "file-F5gkQ3Q0ZvgzxKZ28JX5YZjy"
+    "$dnanexus_link": "file-xxxx"
   },
   "f2": {
-    "$dnanexus_link": "file-F5gkPXQ0Zvgp2y4Q8GJFYZ8G"
+    "$dnanexus_link": "file-yyyy"
+  },
+  "fruit_list": {
+    "$dnanexus_link": "file-zzzz"
   }
 }
 ```
@@ -545,7 +549,7 @@ task bwa_mem {
     File genome_index_tgz
     Int min_seed_length = 19
     String? read_group
-    String docker_image = "broadinstitute/baseimg"
+    String docker_image = "broadinstitute/genomes-in-the-cloud:2.3.1-1512499786"
     Int cpu = 4
     Int memory_gb = 8
     Int? disk_gb
@@ -584,8 +588,8 @@ task bwa_mem {
     memory: "${memory_gb} GB"
     disks: "local-disk ${actual_disk_gb} SSD"
     dx_timeout: "1D"
-    dx_restart: {
-      "max": 3
+    dx_restart: object {
+      max: 3
     }
   }
 
@@ -632,7 +636,7 @@ task bwa_mem {
       label: "Docker Image",
       help: "Name of the docker image to use",
       group: "Resources",
-      default: "broadinstitute/baseimg"
+      default: "broadinstitute/genomes-in-the-cloud:2.3.1-1512499786"
     }
     cpu: {
       label: "CPUs",
