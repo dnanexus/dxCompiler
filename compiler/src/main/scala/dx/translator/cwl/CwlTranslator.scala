@@ -56,8 +56,6 @@ case class CwlTranslator(tool: CommandLineTool,
 }
 
 case class CwlTranslatorFactory() extends TranslatorFactory {
-  private lazy val parser = Parser.create(hintSchemas = Vector(DxHintSchema))
-
   override def create(sourceFile: Path,
                       language: Option[Language],
                       locked: Boolean,
@@ -68,6 +66,17 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
                       fileResolver: FileSourceResolver,
                       dxApi: DxApi,
                       logger: Logger): Option[Translator] = {
+    lazy val basePath = fileResolver.localSearchPath match {
+      case Vector()     => sourceFile.toAbsolutePath.getParent
+      case Vector(path) => path
+      case v =>
+        logger.warning(
+            s"CWL parser can only use a single import directory; ignoring ${v.tail.mkString(",")}"
+        )
+        v.head
+    }
+    lazy val parser =
+      Parser.create(baseUri = Some(basePath.toUri.toString), hintSchemas = Vector(DxHintSchema))
     if (language.isDefined) {
       // if language is specified, make sure it is CWL 1.2
       val ver =
