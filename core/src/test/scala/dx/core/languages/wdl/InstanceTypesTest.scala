@@ -196,21 +196,21 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
       case Some(instanceType: DxInstanceType) if instanceType.name == "mem1_ssd1_x2" =>
     }
     db.selectOptimal(
-        InstanceTypeRequest(memoryMB = Some(3 * 1024), diskGB = Some(100), cpu = Some(5))
+        InstanceTypeRequest(minMemoryMB = Some(3 * 1024), minDiskGB = Some(100), minCpu = Some(5))
     ) should matchPattern {
       case Some(instanceType: DxInstanceType) if instanceType.name == "mem1_ssd1_x8" =>
     }
-    db.selectOptimal(InstanceTypeRequest(memoryMB = Some(2 * 1024), diskGB = Some(20))) should matchPattern {
+    db.selectOptimal(InstanceTypeRequest(minMemoryMB = Some(2 * 1024), minDiskGB = Some(20))) should matchPattern {
       case Some(instanceType: DxInstanceType) if instanceType.name == "mem1_ssd1_x2" =>
     }
     db.selectOptimal(
-        InstanceTypeRequest(memoryMB = Some(30 * 1024), diskGB = Some(128), cpu = Some(8))
+        InstanceTypeRequest(minMemoryMB = Some(30 * 1024), minDiskGB = Some(128), minCpu = Some(8))
     ) should matchPattern {
       case Some(instanceType: DxInstanceType) if instanceType.name == "mem3_ssd1_x8" =>
     }
 
     // no instance with 1024 CPUs
-    db.selectOptimal(InstanceTypeRequest(cpu = Some(1024))) shouldBe None
+    db.selectOptimal(InstanceTypeRequest(minCpu = Some(1024))) shouldBe None
 
     db.apply(
           createRuntime(None, Some("3 GB"), Some("local-disk 10 HDD"), Some("1"), None).parseInstanceType
@@ -262,65 +262,59 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
     //  a string, so this doesn't actually throw an exception at
     //  parse time, though it will throw an exception when the value
     //  is not found in the instance type DB
-//    assertThrows[Exception] {
-//      // illegal request format
-//      Runtime(
-//          WdlVersion.V1,
-//          Some(
-//              TAT.RuntimeSection(
-//                  Map(Runtime.DxInstanceTypeKey -> TAT.ValueInt(4, WdlTypes.T_Int, null)),
-//                  null
-//              )
-//          ),
-//          None,
-//          evaluator,
-//          WdlValueBindings.empty
-//      ).parseInstanceType
-//    }
+    //    assertThrows[Exception] {
+    //      // illegal request format
+    //      Runtime(
+    //          WdlVersion.V1,
+    //          Some(
+    //              TAT.RuntimeSection(
+    //                  Map(Runtime.DxInstanceTypeKey -> TAT.ValueInt(4, WdlTypes.T_Int, null)),
+    //                  null
+    //              )
+    //          ),
+    //          None,
+    //          evaluator,
+    //          WdlValueBindings.empty
+    //      ).parseInstanceType
+    //    }
 
     // note that wdlTools applies default values to memory, disk, and cpu
 
     // memory specification
     createRuntime(None, Some("230MB"), None, None, None).parseInstanceType shouldBe
       InstanceTypeRequest(
-          None,
-          Some(Math.ceil((230d * 1000d * 1000d) / (1024d * 1024d)).toLong),
-          Some(1),
-          None,
-          Some(1),
-          None
+          minMemoryMB = Some(Math.ceil((230d * 1000d * 1000d) / (1024d * 1024d)).toLong),
+          minDiskGB = Some(1),
+          minCpu = Some(1)
       )
 
     createRuntime(None, Some("230MiB"), None, None, None).parseInstanceType shouldBe
-      InstanceTypeRequest(None, Some(230), Some(1), None, Some(1), None)
+      InstanceTypeRequest(minMemoryMB = Some(230), minDiskGB = Some(1), minCpu = Some(1))
 
     createRuntime(None, Some("230GB"), None, None, None).parseInstanceType shouldBe
       InstanceTypeRequest(
-          None,
-          Some(
+          minMemoryMB = Some(
               Math.ceil((230d * 1000d * 1000d * 1000d) / (1024d * 1024d)).toLong
           ),
-          Some(1),
-          None,
-          Some(1),
-          None
+          minDiskGB = Some(1),
+          minCpu = Some(1)
       )
 
     createRuntime(None, Some("230GiB"), None, None, None).parseInstanceType shouldBe
-      InstanceTypeRequest(None, Some(230 * 1024), Some(1), None, Some(1), None)
+      InstanceTypeRequest(minMemoryMB = Some(230 * 1024), minDiskGB = Some(1), minCpu = Some(1))
 
     createRuntime(None, Some("1000 TB"), None, None, None).parseInstanceType shouldBe
       InstanceTypeRequest(
-          None,
-          Some(Math.ceil((1000d * 1000d * 1000d * 1000d * 1000d) / (1024d * 1024d)).toLong),
-          Some(1),
-          None,
-          Some(1),
-          None
+          minMemoryMB =
+            Some(Math.ceil((1000d * 1000d * 1000d * 1000d * 1000d) / (1024d * 1024d)).toLong),
+          minDiskGB = Some(1),
+          minCpu = Some(1)
       )
 
     createRuntime(None, Some("1000 TiB"), None, None, None).parseInstanceType shouldBe
-      InstanceTypeRequest(None, Some(1000L * 1024L * 1024L), Some(1), None, Some(1), None)
+      InstanceTypeRequest(minMemoryMB = Some(1000L * 1024L * 1024L),
+                          minDiskGB = Some(1),
+                          minCpu = Some(1))
 
     assertThrows[Exception] {
       createRuntime(None, Some("230 44 34 GB"), None, None, None).parseInstanceType
@@ -332,9 +326,9 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
       createRuntime(None, Some("230.x GB"), None, None, None).parseInstanceType
     }
     // this one is fine - 230.3 is just rounded up to 231
-//    assertThrows[Exception] {
-//      createRuntime(None, Some("230.3"), None, None, None).parseInstanceType
-//    }
+    //    assertThrows[Exception] {
+    //      createRuntime(None, Some("230.3"), None, None, None).parseInstanceType
+    //    }
     assertThrows[Exception] {
       createRuntime(None, Some("230 XXB"), None, None, None).parseInstanceType
     }
@@ -346,41 +340,41 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
     assertThrows[Exception] {
       createRuntime(None, None, Some("local-disk xxxx"), None, None).parseInstanceType
     }
-//    assertThrows[Exception] {
-//      createRuntime(None, None, Some(1024), None, None).parseInstanceType.get
-//    }
+    //    assertThrows[Exception] {
+    //      createRuntime(None, None, Some(1024), None, None).parseInstanceType.get
+    //    }
 
     // cpu
     assertThrows[Exception] {
       createRuntime(None, None, None, Some("xxyy"), None).parseInstanceType
     }
     createRuntime(None, None, None, Some("1"), None).parseInstanceType shouldBe InstanceTypeRequest(
-        None,
-        Some(2048),
-        Some(1),
-        None,
-        Some(1),
-        None
+        minMemoryMB = Some(2048),
+        minDiskGB = Some(1),
+        minCpu = Some(1)
     )
     createRuntime(None, None, None, Some("1.2"), None).parseInstanceType shouldBe InstanceTypeRequest(
-        None,
-        Some(2048),
-        Some(1),
-        None,
-        Some(2),
-        None
+        minMemoryMB = Some(2048),
+        minDiskGB = Some(1),
+        minCpu = Some(2)
     )
 
-//    assertThrows[Exception] {
-//      createRuntime(None, None, None, Some(V_Boolean(false)), None)
-//    }
+    //    assertThrows[Exception] {
+    //      createRuntime(None, None, None, Some(V_Boolean(false)), None)
+    //    }
 
     // gpu
     createRuntime(None, Some("1000 TiB"), None, None, Some(true)).parseInstanceType shouldBe
-      InstanceTypeRequest(None, Some(1000L * 1024L * 1024L), Some(1), None, Some(1), Some(true))
+      InstanceTypeRequest(minMemoryMB = Some(1000L * 1024L * 1024L),
+                          minDiskGB = Some(1),
+                          minCpu = Some(1),
+                          gpu = Some(true))
 
     createRuntime(None, None, None, None, Some(false)).parseInstanceType shouldBe
-      InstanceTypeRequest(None, Some(2048), Some(1), None, Some(1), Some(false))
+      InstanceTypeRequest(minMemoryMB = Some(2048),
+                          minDiskGB = Some(1),
+                          minCpu = Some(1),
+                          gpu = Some(false))
   }
 
   it should "get required instance type" in {

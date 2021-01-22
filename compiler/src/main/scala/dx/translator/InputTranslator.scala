@@ -57,13 +57,13 @@ object InputTranslator {
   }
 }
 
-abstract class InputTranslator(bundle: Bundle,
-                               inputs: Vector[Path],
-                               defaults: Option[Path],
-                               project: DxProject,
-                               baseFileResolver: FileSourceResolver = FileSourceResolver.get,
-                               dxApi: DxApi = DxApi.get,
-                               logger: Logger = Logger.get) {
+class InputTranslator(bundle: Bundle,
+                      inputs: Vector[Path],
+                      defaults: Option[Path],
+                      project: DxProject,
+                      baseFileResolver: FileSourceResolver = FileSourceResolver.get,
+                      dxApi: DxApi = DxApi.get,
+                      logger: Logger = Logger.get) {
 
   private lazy val inputsJs: Map[Path, Map[String, JsValue]] =
     inputs.map(path => path -> InputTranslator.loadJsonFileWithComments(path)).toMap
@@ -76,7 +76,7 @@ abstract class InputTranslator(bundle: Bundle,
     * to an IR type.
     * @return
     */
-  protected def translateJsInput(jsv: JsValue, t: Type): JsValue
+  protected def translateJsInput(jsv: JsValue, t: Type): JsValue = jsv
 
   /**
     * Extract Dx files from a JSON input.
@@ -257,8 +257,7 @@ abstract class InputTranslator(bundle: Bundle,
         val fqn = s"${fqnPrefix.getOrElse(callable.name)}.${name}"
         val dxName = dxPrefix.map(p => s"${p}.${name}").getOrElse(name)
         fieldsExactlyOnce.get(fqn) match {
-          case None =>
-            Map.empty
+          case None        => Map.empty
           case Some(value) =>
             // Do not assign the value to any later stages. We found the variable
             // declaration, the others are variable uses.
@@ -274,8 +273,7 @@ abstract class InputTranslator(bundle: Bundle,
 
     val inputs: Map[String, (Type, Value)] = bundle.primaryCallable match {
       // File with WDL tasks only, no workflows
-      case None if tasks.isEmpty =>
-        Map.empty
+      case None if tasks.isEmpty => Map.empty
       case None if tasks.size > 1 =>
         throw new Exception(s"Cannot generate one input file for ${tasks.size} tasks")
       case None =>
@@ -354,7 +352,7 @@ abstract class InputTranslator(bundle: Bundle,
           case parent => parent.resolve(fileName)
         }
         logger.trace(s"Writing DNAnexus JSON input file ${dxInputFile}")
-        FileUtils.writeFileContent(dxInputFile, JsObject(inputs).prettyPrint)
+        JsUtils.jsToFile(JsObject(inputs), dxInputFile)
     }
   }
 }

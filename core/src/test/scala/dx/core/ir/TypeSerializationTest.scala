@@ -51,9 +51,9 @@ class TypeSerializationTest extends AnyFlatSpec with Matchers {
   val badTypes: Vector[JsValue] = Vector(
       JsString("A bad type"),
       JsString("placeholder"),
-      JsObject("name" -> JsString("Map"),
-               "keyType" -> JsString("Int"),
-               "valueType" -> JsString("UnrealFile"))
+      JsObject("type" -> JsString("Map"),
+               "keys" -> JsString("Int"),
+               "values" -> JsString("UnrealFile"))
   )
 
   it should "detect bad type descriptions" in {

@@ -1,0 +1,12 @@
+{
+  "map_argument2.files": {
+    "splicing": "dx://file-FV5fqXj0ffPB9bKP986j5kVQ",
+    "transcripts": "dx://file-Fg5PgBQ0ffP7B8bg3xqB115G",
+    "cosmic": "dx://file-Fg5PgBj0ffPP0Jjv3zfv0yxq",
+    "dbsnp": "dx://file-Fy9VJ1j0yzZgVgFqJPf6KK17",
+    "evs": "dx://file-FGqFJ8Q0ffPGVz3zGy4FK02P",
+    "cmh_maf": "dx://file-FGzzpkQ0ffPJX74548Vp6670",
+    "exac": "dx://file-FGqFY200ffP3qQYgK163Z4gf",
+    "gnomad": "dx://file-Fzy8x5j0yzZVQv9KB41FGz3V"
+  }
+}

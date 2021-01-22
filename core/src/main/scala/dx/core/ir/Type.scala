@@ -49,6 +49,12 @@ object Type {
     */
   case class TSchema(name: String, members: Map[String, Type]) extends TCollection
 
+  /**
+    * Represents a String that is restricted to the specified values.
+    * @param allowedValues set of allowed strings in enum
+    */
+  case class TEnum(allowedValues: Set[String]) extends PrimitiveType
+
   @tailrec
   def isPrimitive(t: Type): Boolean = {
     t match {

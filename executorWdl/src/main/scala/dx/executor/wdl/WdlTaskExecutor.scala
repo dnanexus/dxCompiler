@@ -1,15 +1,14 @@
 package dx.executor.wdl
 
-import dx.api.DxPath
+import dx.api.{DxPath, InstanceTypeRequest}
 import dx.core.io.StreamFiles
 import dx.core.ir.{Type, Value}
 import dx.core.languages.wdl.{DxMetaHints, IrToWdlValueBindings, Runtime, VersionSupport, WdlUtils}
 import dx.executor.{FileUploader, JobMeta, SerialFileUploader, TaskExecutor}
-import dx.util.{Bindings, Logger, TraceLevel}
+import dx.util.{Bindings, DockerUtils, Logger, TraceLevel}
 import wdlTools.eval.WdlValues._
 import wdlTools.eval.{Eval, Hints, Meta, WdlValueBindings}
-import wdlTools.exec.{DockerUtils, TaskCommandFileGenerator, TaskInputOutput}
-import wdlTools.syntax.SourceLocation
+import wdlTools.exec.{TaskCommandFileGenerator, TaskInputOutput}
 import wdlTools.types.TypeCheckingRegime.TypeCheckingRegime
 import wdlTools.types.WdlTypes._
 import wdlTools.types.{TypeCheckingRegime, TypedAbstractSyntax => TAT}
@@ -53,9 +52,7 @@ case class WdlTaskExecutor(task: TAT.Task,
     extends TaskExecutor(jobMeta, fileUploader, streamFiles) {
 
   private val fileResolver = jobMeta.fileResolver
-
   private val logger = jobMeta.logger
-
   private lazy val evaluator = Eval(
       jobMeta.workerPaths,
       Some(versionSupport.version),
@@ -71,8 +68,9 @@ case class WdlTaskExecutor(task: TAT.Task,
     typeAliases.toMap.view.mapValues(WdlUtils.toIRSchema).toMap
   }
 
-  private lazy val inputTypes: Map[String, T] =
+  private lazy val inputTypes: Map[String, T] = {
     task.inputs.map(d => d.name -> d.wdlType).toMap
+  }
 
   private def wdlInputs: Map[String, V] = {
     // convert IR to WDL values; discard auxiliary fields
@@ -81,7 +79,16 @@ case class WdlTaskExecutor(task: TAT.Task,
         name -> WdlUtils.fromIRValue(value, inputTypes(name), name)
     }
     // add default values for any missing inputs
-    taskIO.inputsFromValues(inputWdlValues, evaluator, strict = true).toMap
+    // Enable special handling for unset array values -
+    // DNAnexus does not distinguish between null and empty for
+    // array inputs, so we treat a null value for a non-optional
+    // array that is allowed to be empty as the empty array.
+    taskIO
+      .inputsFromValues(inputWdlValues,
+                        evaluator,
+                        ignoreDefaultEvalError = false,
+                        nullCollectionAsEmpty = true)
+      .toMap
   }
 
   private def printInputs(inputs: Map[String, V]): Unit = {
@@ -126,17 +133,18 @@ case class WdlTaskExecutor(task: TAT.Task,
     )
   }
 
-  private def getRequiredInstanceType(inputs: Map[String, V] = wdlInputs): String = {
+  private def getRequiredInstanceTypeRequest(
+      inputs: Map[String, V] = wdlInputs
+  ): InstanceTypeRequest = {
     logger.traceLimited("calcInstanceType", minLevel = TraceLevel.VVerbose)
     printInputs(inputs)
     val env = evaluatePrivateVariables(inputs)
     val runtime = createRuntime(env)
-    val request = runtime.parseInstanceType
-    logger.traceLimited(s"calcInstanceType $request")
-    jobMeta.instanceTypeDb.apply(request).name
+    runtime.parseInstanceType
   }
 
-  override protected lazy val getRequiredInstanceType: String = getRequiredInstanceType()
+  override protected lazy val getRequiredInstanceTypeRequest: InstanceTypeRequest =
+    getRequiredInstanceTypeRequest()
 
   private lazy val parameterMeta = Meta.create(versionSupport.version, task.parameterMeta)
 
@@ -177,10 +185,6 @@ case class WdlTaskExecutor(task: TAT.Task,
     }
     printInputs(inputValues)
     val inputsWithPrivateVars = evaluatePrivateVariables(inputValues)
-    // TODO: there may be private variables that reference files created by the
-    //  command, or functions that depend on the execution of the command
-    //  (e.g. stdout()). Split the private vars into those that need to be
-    //  evaluated before vs after the command, and only evaluate the former here.
     val ctx = WdlValueBindings(inputsWithPrivateVars)
     val command = evaluator.applyCommand(task.command, ctx) match {
       case s if s.trim.isEmpty => None
@@ -192,12 +196,12 @@ case class WdlTaskExecutor(task: TAT.Task,
     val container = runtime.container match {
       case Vector() => None
       case Vector(image) =>
-        val resolvedImage = dockerUtils.getImage(image, SourceLocation.empty)
+        val resolvedImage = dockerUtils.getImage(image)
         Some(resolvedImage, jobMeta.workerPaths)
       case v =>
         // we prefer a dx:// url
         val (dxUrls, imageNames) = v.partition(_.startsWith(DxPath.DxUriPrefix))
-        val resolvedImage = dockerUtils.getImage(dxUrls ++ imageNames, SourceLocation.empty)
+        val resolvedImage = dockerUtils.getImage(dxUrls ++ imageNames)
         Some(resolvedImage, jobMeta.workerPaths)
     }
     generator.apply(command, jobMeta.workerPaths, container)
@@ -214,9 +218,6 @@ case class WdlTaskExecutor(task: TAT.Task,
   ): Map[String, (Type, Value)] = {
     val outputTypes: Map[String, T] = task.outputs.map(d => d.name -> d.wdlType).toMap
     // Evaluate the output parameters in dependency order.
-    // These will include output files without canonicalized paths, which is why we need
-    // the following complex logic to match up local outputs to remote URIs.
-    // TODO: evaluate any private variables that depend on the command
     val localizedOutputs = taskIO
       .evaluateOutputs(
           evaluator,

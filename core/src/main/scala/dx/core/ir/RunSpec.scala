@@ -1,7 +1,7 @@
 package dx.core.ir
 
 import dx.api.DiskType.DiskType
-import dx.api.{DxFile, ExecutionEnvironment}
+import dx.api.{DxFile, ExecutionEnvironment, InstanceTypeRequest}
 
 /**
   * Representation of the parts of dxapp.json `runSpec` that can be specified.
@@ -37,16 +37,47 @@ object RunSpec {
     */
   sealed trait InstanceType
   case object DefaultInstanceType extends InstanceType
+  case object DynamicInstanceType extends InstanceType
   case class StaticInstanceType(
       dxInstanceType: Option[String],
-      memoryMB: Option[Long],
-      diskGB: Option[Long],
+      minMemoryMB: Option[Long],
+      maxMemoryMB: Option[Long],
+      minDiskGB: Option[Long],
+      maxDiskGB: Option[Long],
       diskType: Option[DiskType],
-      cpu: Option[Long],
+      minCpu: Option[Long],
+      maxCpu: Option[Long],
       gpu: Option[Boolean],
       os: Option[ExecutionEnvironment]
-  ) extends InstanceType
-  case object DynamicInstanceType extends InstanceType
+  ) extends InstanceType {
+    def toInstanceTypeRequest: InstanceTypeRequest = {
+      InstanceTypeRequest(dxInstanceType,
+                          minMemoryMB,
+                          maxMemoryMB,
+                          minDiskGB,
+                          maxDiskGB,
+                          diskType,
+                          minCpu,
+                          maxCpu,
+                          gpu,
+                          os)
+    }
+  }
+
+  object StaticInstanceType {
+    def apply(req: InstanceTypeRequest): StaticInstanceType = {
+      StaticInstanceType(req.dxInstanceType,
+                         req.minMemoryMB,
+                         req.maxMemoryMB,
+                         req.minDiskGB,
+                         req.maxDiskGB,
+                         req.diskType,
+                         req.minCpu,
+                         req.maxCpu,
+                         req.gpu,
+                         req.os)
+    }
+  }
 
   /**
     * A task may specify a container image to run under. Currently, DNAnexus only

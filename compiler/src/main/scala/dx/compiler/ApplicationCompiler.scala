@@ -1,15 +1,6 @@
 package dx.compiler
 
-import dx.api.{
-  DxAccessLevel,
-  DxApi,
-  DxFile,
-  DxInstanceType,
-  DxPath,
-  DxUtils,
-  InstanceTypeDB,
-  InstanceTypeRequest
-}
+import dx.api.{DxAccessLevel, DxApi, DxFile, DxInstanceType, DxPath, DxUtils, InstanceTypeDB}
 import dx.core.Constants
 import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir._
@@ -38,6 +29,7 @@ object ApplicationCompiler {
 case class ApplicationCompiler(typeAliases: Map[String, Type],
                                instanceTypeDb: InstanceTypeDB,
                                runtimeAsset: Option[JsValue],
+                               runtimeJar: String,
                                runtimePathConfig: DxWorkerPaths,
                                runtimeTraceLevel: Int,
                                streamFiles: StreamFiles.StreamFiles,
@@ -83,7 +75,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
 
   private def generateJobScript(applet: Application): String = {
     val templateAttrs: Map[String, Any] = Map(
-        "runtimeJar" -> "dxExecutorWdl.jar",
+        "runtimeJar" -> runtimeJar,
         "runtimeTraceLevel" -> runtimeTraceLevel,
         "streamFiles" -> streamFiles,
         "includeEpilog" -> applet.outputs.nonEmpty
@@ -123,11 +115,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
 
   private def createRunSpec(applet: Application): (JsValue, Map[String, JsValue]) = {
     val instanceType: DxInstanceType = applet.instanceType match {
-      case StaticInstanceType(dxInstanceType, memoryMB, diskGB, diskType, cpu, gpu, os) =>
-        val request = InstanceTypeRequest(dxInstanceType, memoryMB, diskGB, diskType, cpu, gpu, os)
-        instanceTypeDb.apply(request)
-      case DefaultInstanceType | DynamicInstanceType =>
-        instanceTypeDb.defaultInstanceType
+      case static: StaticInstanceType                => instanceTypeDb.apply(static.toInstanceTypeRequest)
+      case DefaultInstanceType | DynamicInstanceType => instanceTypeDb.defaultInstanceType
     }
     // Generate the applet's job script
     val jobScript = generateJobScript(applet)
@@ -195,7 +184,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         runSpecRequired ++ defaultTimeout ++ extrasOverrides ++ taskOverrides ++ taskSpecificOverrides ++ bundledDepends
     )
     val details: Map[String, JsValue] = dockerFile match {
-      case Some(dxFile) => Map("docker-image" -> dxFile.asJson)
+      case Some(dxFile) => Map(Constants.DockerImage -> dxFile.asJson)
       case None         => Map.empty
     }
     (runSpec, details)

@@ -28,12 +28,6 @@ case class WdlInputTranslator(bundle: Bundle,
                               logger: Logger = Logger.get)
     extends InputTranslator(bundle, inputs, defaults, project, baseFileResolver, dxApi, logger) {
 
-  /**
-    * Overridable function converts a language-specific JSON value to one that can be
-    * deserialized to an IR Value.
-    *
-    * @return
-    */
   override protected def translateJsInput(jsv: JsValue, t: Type): JsValue = {
     (t, jsv) match {
       case (pairType: TSchema, JsArray(pair))
@@ -43,8 +37,11 @@ case class WdlInputTranslator(bundle: Bundle,
       case (mapType: TSchema, JsObject(fields))
           if WdlUtils.isMapSchema(mapType) && !WdlUtils.isMapValue(fields) =>
         // map represented as a JSON object (i.e. has keys that are coercible from String)
-        JsObject(WdlUtils.MapKeysKey -> JsArray(fields.keys.map(JsString(_)).toVector),
-                 WdlUtils.MapValuesKey -> JsArray(fields.values.toVector))
+        val (keys, values) = fields.map {
+          case (key, value) => (JsString(key), value)
+        }.unzip
+        JsObject(WdlUtils.MapKeysKey -> JsArray(keys.toVector),
+                 WdlUtils.MapValuesKey -> JsArray(values.toVector))
       case _ =>
         jsv
     }
@@ -70,6 +67,8 @@ case class WdlTranslator(doc: TAT.Document,
     extends Translator {
 
   override val runtimeAssetName: String = "dxWDLrt"
+
+  override val runtimeJar: String = "dxExecutorWdl.jar"
 
   private def getUnqualifiedName(name: String): String = {
     if (name contains ".") {
@@ -148,7 +147,7 @@ case class WdlTranslator(doc: TAT.Document,
     // sort callables by dependencies
     val logger2 = logger.withIncTraceIndent()
     val depOrder: Vector[TAT.Callable] = sortByDependencies(wdlBundle, logger2)
-    if (logger.isVerbose) {
+    if (logger2.isVerbose) {
       logger2.trace(s"all tasks: ${wdlBundle.tasks.keySet}")
       logger2.trace(s"all callables in dependency order: ${depOrder.map(_.name)}")
     }

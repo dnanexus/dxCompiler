@@ -28,7 +28,7 @@ antlr*.jar
 test/scratch
 
 # misc
-applet_resources/
+/applet_resources/
 compiler/src/main/resources/dxCompiler_runtime.conf
 *.tmp
 venv/

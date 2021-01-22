@@ -1,11 +1,11 @@
 package dx.translator
 
 import java.nio.file.Path
-
 import dx.api.{DxApi, DxProject}
 import dx.core.ir._
 import dx.core.languages.Language.Language
 import dx.translator.wdl.WdlTranslatorFactory
+import dx.translator.cwl.CwlTranslatorFactory
 import dx.util.{FileSourceResolver, FileUtils, Logger}
 
 trait Translator {
@@ -16,12 +16,23 @@ trait Translator {
     */
   def runtimeAssetName: String
 
+  /**
+    * The executor JAR file.
+    */
+  def runtimeJar: String
+
   def apply: Bundle
+
+  def fileResolver: FileSourceResolver
 
   def translateInputs(bundle: Bundle,
                       inputs: Vector[Path],
                       defaults: Option[Path],
-                      project: DxProject): (Bundle, FileSourceResolver)
+                      project: DxProject): (Bundle, FileSourceResolver) = {
+    val inputTranslator = new InputTranslator(bundle, inputs, defaults, project, fileResolver)
+    inputTranslator.writeTranslatedInputs()
+    (inputTranslator.bundleWithDefaults, inputTranslator.fileResolver)
+  }
 }
 
 trait TranslatorFactory {
@@ -39,7 +50,8 @@ trait TranslatorFactory {
 
 object TranslatorFactory {
   private val translatorFactories: Vector[TranslatorFactory] = Vector(
-      WdlTranslatorFactory()
+      WdlTranslatorFactory(),
+      CwlTranslatorFactory()
   )
 
   def createTranslator(source: Path,
