@@ -12,6 +12,29 @@ import scala.annotation.tailrec
 import scala.collection.immutable.TreeSeqMap
 
 object CwlUtils {
+
+  /**
+    * Attempts to convert a Vector of alternative types to a single type.
+    * If the Vector is of size 2 and one of the types is CwlNull, returns
+    * the other type, converted to an optional. If the Vector contains
+    * CwlAny, then CwlAny is returned. Otherwise throws an Exception
+    * unless the Vector contains exactly one type.
+    * @param types Vector of CwlTypes
+    * @return
+    */
+  def getSingleType(types: Vector[CwlType]): CwlType = {
+    types match {
+      case Vector(t)               => t
+      case v if v.contains(CwlAny) => CwlAny
+      case Vector(CwlNull, other)  => CwlOptional.ensureOptional(other)
+      case Vector(other, CwlNull)  => CwlOptional.ensureOptional(other)
+      case Vector() =>
+        throw new Exception("No type specified")
+      case _ =>
+        throw new Exception("Multi-type fields are not supported")
+    }
+  }
+
   def toIRSchema(cwlRecord: CwlRecord): TSchema = {
     if (cwlRecord.name.isEmpty) {
       throw new Exception(s"cannot convert schema without name ${cwlRecord}")
@@ -19,24 +42,22 @@ object CwlUtils {
     TSchema(
         cwlRecord.name.get,
         cwlRecord.fields.map {
-          case (key, value) if value.types.size == 1 =>
-            key -> toIRType(value.types.head)
-          case _ =>
-            throw new Exception("Multi-type fields are not supported")
+          case (key, value) => key -> toIRType(getSingleType(value.types))
         }
     )
   }
 
   def toIRType(cwlType: CwlType): Type = {
     cwlType match {
-      case CwlBoolean   => TBoolean
-      case CwlInt       => TInt
-      case CwlLong      => TInt
-      case CwlDouble    => TFloat
-      case CwlFloat     => TFloat
-      case CwlString    => TString
-      case CwlFile      => TFile
-      case CwlDirectory => TDirectory
+      case CwlOptional(t) => TOptional(toIRType(t))
+      case CwlBoolean     => TBoolean
+      case CwlInt         => TInt
+      case CwlLong        => TInt
+      case CwlDouble      => TFloat
+      case CwlFloat       => TFloat
+      case CwlString      => TString
+      case CwlFile        => TFile
+      case CwlDirectory   => TDirectory
       case a: CwlArray if a.itemTypes.size == 1 =>
         TArray(toIRType(a.itemTypes.head))
       case r: CwlRecord if r.name.isDefined =>
@@ -47,61 +68,130 @@ object CwlUtils {
     }
   }
 
-  def toIRValue(cwlValue: CwlValue): Value = {
+  private def toIRValue(cwlValue: CwlValue): (Type, Value) = {
     cwlValue match {
-      case NullValue         => VNull
-      case BooleanValue(b)   => VBoolean(value = b)
-      case IntValue(i)       => VInt(i)
-      case LongValue(l)      => VInt(l)
-      case FloatValue(f)     => VFloat(f)
-      case DoubleValue(d)    => VFloat(d)
-      case StringValue(s)    => VString(s)
-      case f: FileValue      => VFile(f.toString)
-      case d: DirectoryValue => VDirectory(d.toString)
-      case ArrayValue(a)     => VArray(a.map(toIRValue))
+      case BooleanValue(b)   => (TBoolean, VBoolean(value = b))
+      case IntValue(i)       => (TInt, VInt(i))
+      case LongValue(l)      => (TInt, VInt(l))
+      case FloatValue(f)     => (TFloat, VFloat(f))
+      case DoubleValue(d)    => (TFloat, VFloat(d))
+      case StringValue(s)    => (TString, VString(s))
+      case f: FileValue      => (TFile, VFile(f.toString))
+      case d: DirectoryValue => (TDirectory, VDirectory(d.toString))
+      case ArrayValue(items) =>
+        val (itemTypes, itemValues, optional) =
+          items.foldLeft(Set.empty[Type], Vector.empty[Value], false) {
+            case ((types, values, optional), item) =>
+              item match {
+                case NullValue => (types, values :+ VNull, true)
+                case _ =>
+                  val (t, v) = toIRValue(item)
+                  if (types.isEmpty || types.contains(t)) {
+                    (types + t, values :+ v, optional)
+                  } else {
+                    throw new Exception(s"array ${items} contains values of multiple types")
+                  }
+              }
+          }
+        if (itemTypes.isEmpty) {
+          throw new Exception("cannot determine type of array with only null items")
+        }
+        val itemType = itemTypes.head match {
+          case t if optional => ensureOptional(t)
+          case t             => t
+        }
+        (TArray(itemType), VArray(itemValues))
       case ObjectValue(m) =>
-        VHash(m.map {
-          case (key, value) => key -> toIRValue(value)
-        })
+        (THash,
+         VHash(
+             m.map {
+                 case (key, NullValue) => key -> VNull
+                 case (key, value) =>
+                   val (_, v) = toIRValue(value)
+                   key -> v
+               }
+               .to(TreeSeqMap)
+         ))
       case _ => throw new Exception(s"Invalid CWL value ${cwlValue})")
     }
   }
 
-  def toIRValue(cwlValue: CwlValue, cwlType: CwlType): Value = {
+  def toIRValue(cwlValue: CwlValue, cwlType: CwlType): (Type, Value) = {
     (cwlType, cwlValue) match {
-      case (CwlOptional(_), NullValue)       => VNull
-      case (CwlOptional(t), _)               => toIRValue(cwlValue, t)
-      case (CwlBoolean, BooleanValue(b))     => VBoolean(b)
-      case (CwlInt, IntValue(i))             => VInt(i)
-      case (CwlLong, LongValue(l))           => VInt(l)
-      case (CwlFloat, FloatValue(f))         => VFloat(f)
-      case (CwlDouble, DoubleValue(d))       => VFloat(d)
+      case (CwlAny, _)                 => toIRValue(cwlValue)
+      case (CwlOptional(_), NullValue) => (toIRType(cwlType), VNull)
+      case (CwlOptional(t), _) =>
+        val (irType, irValue) = toIRValue(cwlValue, t)
+        (TOptional(irType), irValue)
+      case (CwlBoolean, BooleanValue(b))     => (TBoolean, VBoolean(b))
+      case (CwlInt, IntValue(i))             => (TInt, VInt(i))
+      case (CwlLong, LongValue(l))           => (TInt, VInt(l))
+      case (CwlFloat, FloatValue(f))         => (TFloat, VFloat(f))
+      case (CwlDouble, DoubleValue(d))       => (TFloat, VFloat(d))
       case (t: CwlNumber, n: NumericValue)   => toIRValue(n.coerceTo(t), t)
-      case (CwlString, StringValue(s))       => VString(s)
-      case (CwlFile, f: FileValue)           => VFile(f.toString)
-      case (CwlFile, StringValue(s))         => VFile(s)
-      case (CwlDirectory, d: DirectoryValue) => VDirectory(d.toString)
-      case (CwlDirectory, StringValue(s))    => VDirectory(s)
-      case (array: CwlArray, ArrayValue(items)) if array.itemTypes.size == 1 =>
-        VArray(items.map(toIRValue(_, array.itemTypes.head)))
-      case (record: CwlRecord, ObjectValue(members)) =>
-        VHash(members.map {
-          case (name, value)
-              if record.fields.contains(name) && record.fields(name).types.size == 1 =>
-            name -> toIRValue(value, record.fields(name).types.head)
+      case (CwlString, StringValue(s))       => (TString, VString(s))
+      case (CwlFile, f: FileValue)           => (TFile, VFile(f.toString))
+      case (CwlFile, StringValue(s))         => (TFile, VFile(s))
+      case (CwlDirectory, d: DirectoryValue) => (TDirectory, VDirectory(d.toString))
+      case (CwlDirectory, StringValue(s))    => (TDirectory, VDirectory(s))
+      case (array: CwlArray, ArrayValue(items)) =>
+        val itemType = getSingleType(array.itemTypes)
+        val (irItemTypes, irItems, optional) =
+          items.foldLeft(Set.empty[Type], Vector.empty[Value], false) {
+            case ((irTypes, irItems, _), NullValue) => (irTypes, irItems :+ VNull, true)
+            case ((irTypes, irItems, optional), i) =>
+              val (t, v) = toIRValue(i, itemType)
+              if (irTypes.nonEmpty && !irTypes.contains(t)) {
+                throw new Exception(s"array ${array} contains items of multiple types")
+              }
+              (irTypes + t, irItems :+ v, optional || Type.isOptional(t))
+          }
+        val irItemType = irItemTypes.headOption.getOrElse(toIRType(itemType))
+        val irType = TArray(if (optional) {
+          TOptional(irItemType)
+        } else {
+          irItemType
         })
+        (irType, VArray(irItems))
+      case (record: CwlRecord, ObjectValue(fields)) =>
+        val (types, values) =
+          fields.foldLeft(TreeSeqMap.empty[String, Type], TreeSeqMap.empty[String, Value]) {
+            case ((types, values), (name, value)) if record.fields.contains(name) =>
+              val cwlType = getSingleType(record.fields(name).types)
+              val (irType, irValue) = toIRValue(value, cwlType)
+              (types + (name -> irType), values + (name -> irValue))
+            case (name, _) =>
+              throw new Exception(s"invalid field ${name}")
+          }
+        val irType = if (record.name.isDefined) {
+          TSchema(record.name.get, types)
+        } else {
+          THash
+        }
+        (irType, VHash(values))
       case (enum: CwlEnum, StringValue(s)) if enum.symbols.contains(s) =>
-        VString(s)
+        (TEnum(enum.symbols), VString(s))
       case _ => throw new Exception(s"Invalid CWL value ${cwlValue})")
     }
+  }
+
+  /**
+    * The CWL "Any" type does not have a DNAnexus equivalent, so
+    * we need to wrap the value (and optionally also the actual
+    * type) in a hash.
+    */
+  def anyToIRValue(cwlValue: CwlValue, cwlType: Option[CwlType] = None): (Type, VHash) = {
+    val (irType, irValue) = if (cwlType.isDefined) {
+      toIRValue(cwlValue, cwlType.get)
+    } else {
+      toIRValue(cwlValue)
+    }
+    (irType, VHash(TreeSeqMap("value" -> irValue)))
   }
 
   def toIR(cwl: Map[String, (CwlType, CwlValue)]): Map[String, (Type, Value)] = {
     cwl.map {
-      case (name, (cwlType, cwlValue)) =>
-        val irType = toIRType(cwlType)
-        val irValue = toIRValue(cwlValue, cwlType)
-        name -> (irType, irValue)
+      case (name, (cwlType, cwlValue)) => name -> toIRValue(cwlValue, cwlType)
     }
   }
 
