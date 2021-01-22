@@ -1,5 +1,12 @@
 # Release Notes
 
+## 2.0.1 21-01-2021
+
+* Implement translator and executor for CWL (tools only)
+* Fix map keys and values being out of order
+* Fix to EvalException: identifier not found
+* Fix to passing non-optional empty arrays
+* Update documentation and WDL examples
 
 ## 2.0.0 Release Notes Summary
 
