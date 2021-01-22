@@ -13,7 +13,6 @@ User-facing changes:
 * Updated the mechanism of comparing instance types to select the cheapest one for execution
 * Improved file resolving and caching
 * Optimized bulk description of files by replacing `system/describeDataObjects` with `system/findDataObjects` API call and scoping file search to projects
-* Made it possible to run apps built using dxCompiler (after applets to apps conversion using dx-toolkit SDK, min. v0.296)
 * Increased file name disambiguation directory size limit to 5000
 * Increased number of retries for the DNAnexus API requests to 10
 
