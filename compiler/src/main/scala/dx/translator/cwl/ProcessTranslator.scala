@@ -73,7 +73,7 @@ case class ProcessTranslator(typeAliases: Map[String, CwlSchema],
     }
 
     def translateInput(input: CommandInputParameter): Parameter = {
-      val name = input.id.get.name.get
+      val name = input.id.get.unqualifiedName.get
       val cwlType = input.types match {
         case Vector(cwlType) => cwlType
         case other =>
@@ -85,20 +85,26 @@ case class ProcessTranslator(typeAliases: Map[String, CwlSchema],
           try {
             val ctx = CwlUtils.createEvaluatorContext(Runtime.empty)
             val (actualType, defaultValue) = cwlEvaluator.evaluate(default, Vector(cwlType), ctx)
-            (actualType, Some(CwlUtils.toIRValue(defaultValue, actualType)))
+            (actualType, defaultValue) match {
+              case (CwlFile | CwlOptional(CwlFile), file: FileValue) if !CwlUtils.isDxFile(file) =>
+                // cannot specify a local file as default - the default will
+                // be resolved at runtime
+                (actualType, None)
+              case _ =>
+                (actualType, Some(CwlUtils.toIRValue(defaultValue, actualType)))
+            }
           } catch {
             case _: Throwable => (cwlType, None)
           }
         case None => (cwlType, None)
       }
-      // a required or optional input
       val irType = CwlUtils.toIRType(actualType)
       val attrs = translateParameterAttributes(input, hintParameterAttrs)
       Parameter(name, irType, defaultValue, attrs)
     }
 
     def translateOutput(output: CommandOutputParameter): Parameter = {
-      val name = output.id.get.name.get
+      val name = output.id.get.unqualifiedName.get
       val cwlType = output.types match {
         case Vector(cwlType) => cwlType
         case other =>

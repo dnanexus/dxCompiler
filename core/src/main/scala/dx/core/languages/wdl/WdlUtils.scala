@@ -1,7 +1,8 @@
 package dx.core.languages.wdl
 
-import java.nio.file.Path
+import dx.api.DxPath
 
+import java.nio.file.Path
 import dx.core.ir.{Type, TypeSerde, Value}
 import dx.core.ir.Type._
 import dx.core.ir.Value._
@@ -668,6 +669,10 @@ object WdlUtils {
 
       case _ => false
     }
+  }
+
+  def isDxFile(file: V_File): Boolean = {
+    file.value.startsWith(DxPath.DxUriPrefix)
   }
 
   /**

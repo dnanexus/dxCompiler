@@ -1,5 +1,6 @@
 package dx.core.languages.cwl
 
+import dx.api.DxPath
 import dx.core.io.DxWorkerPaths
 import dx.core.ir.{Type, Value}
 import dx.core.ir.Type._
@@ -279,6 +280,10 @@ object CwlUtils {
         val cwlType = fromIRType(t, typeAliases, isInput)
         name -> fromIRValue(v, Vector(cwlType), name, isInput)
     }
+  }
+
+  def isDxFile(file: FileValue): Boolean = {
+    file.location.exists(_.startsWith(DxPath.DxUriPrefix))
   }
 
   def toJson(values: Map[String, (CwlType, CwlValue)]): JsObject = {

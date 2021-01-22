@@ -59,7 +59,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
   private lazy val inputParams: Map[String, CommandInputParameter] = {
     tool.inputs.collect {
       case param if param.id.forall(_.name.isDefined) =>
-        param.id.get.name.get -> param
+        param.id.get.unqualifiedName.get -> param
     }.toMap
   }
 
@@ -94,8 +94,8 @@ case class CwlTaskExecutor(tool: CommandLineTool,
     if (logger.isVerbose) {
       val inputStr = tool.inputs
         .flatMap {
-          case param if param.id.forall(_.name.forall(inputs.contains)) =>
-            val name = param.id.get.name.get
+          case param if param.id.forall(_.unqualifiedName.forall(inputs.contains)) =>
+            val name = param.id.get.unqualifiedName.get
             Some(s"${name} -> (${param.types}, ${inputs.get(name)})")
           case other =>
             logger.trace(s"no input for parameter ${other}")
@@ -222,7 +222,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
   private lazy val outputParams: Map[String, CommandOutputParameter] = {
     tool.outputs.map {
       case param if param.id.forall(_.name.isDefined) =>
-        param.id.get.name.get -> param
+        param.id.get.unqualifiedName.get -> param
     }.toMap
   }
 
