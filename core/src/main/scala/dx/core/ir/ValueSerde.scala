@@ -66,6 +66,7 @@ object ValueSerde extends DefaultJsonProtocol {
       }
       (innerType, v) match {
         case (_: TOptional, VNull)                    => JsNull
+        case (TOptional(t), _)                        => inner(v, t)
         case (t: TMulti, _)                           => innerMulti(v, t)
         case (TBoolean, VBoolean(b))                  => JsBoolean(b)
         case (TInt, VInt(i))                          => JsNumber(i)
