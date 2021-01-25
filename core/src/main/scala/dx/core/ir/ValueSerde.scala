@@ -7,52 +7,9 @@ import spray.json._
 import scala.collection.immutable.TreeSeqMap
 
 object ValueSerde extends DefaultJsonProtocol {
+  val WrappedValueKey = "values___"
 
-  /**
-    * Transform a Value to another Value.
-    * @param value the Value to transform
-    * @param t an optional Type to which the value should be transformed
-    * @param handler an optional function to handle special cases. If the
-    *                function returns Some(newValue), then newValue is
-    *                the result of the transformation, otherwise the default
-    *                transformation rules are used.
-    * @return the transformed Value
-    */
-  def transform(value: Value,
-                t: Option[Type],
-                handler: (Value, Boolean) => Option[Value]): Value = {
-    def inner(innerValue: Value, innerType: Option[Type] = None): Value = {
-      val (nonOptType, optional) = if (innerType.exists(Type.isOptional)) {
-        (Some(Type.unwrapOptional(innerType.get)), true)
-      } else {
-        (innerType, false)
-      }
-      handler(innerValue, optional).getOrElse {
-        (nonOptType, innerValue) match {
-          case (Some(TArray(_, true)), VArray(Vector())) =>
-            throw new Exception("empty array for non-empty array type")
-          case (Some(TArray(itemType, _)), VArray(items)) =>
-            VArray(items.map(inner(_, Some(itemType))))
-          case (None, VArray(items)) => VArray(items.map(inner(_)))
-          case (Some(TSchema(name, fieldTypes)), VHash(fields)) =>
-            VHash(fields.map {
-              case (k, _) if !fieldTypes.contains(k) =>
-                throw new Exception(s"invalid member ${k} of schema ${name}")
-              case (k, v) => k -> inner(v, Some(fieldTypes(k)))
-            })
-          case (_, VHash(fields)) => VHash(fields.map { case (k, v) => k -> inner(v) })
-          case (Some(TEnum(symbols)), s: VString) if symbols.contains(s.value) =>
-            s
-          case (Some(TEnum(symbols)), other) =>
-            throw new Exception(
-                s"${other} is not one of the allowed symbols ${symbols.mkString(",")}"
-            )
-          case _ => innerValue
-        }
-      }
-    }
-    inner(value, t)
-  }
+  case class ValueSerdeException(message: String) extends Exception(message)
 
   /**
     * Serializes a Value to JSON.
@@ -85,9 +42,106 @@ object ValueSerde extends DefaultJsonProtocol {
     inner(value)
   }
 
+  def wrapValue(jsValue: JsValue, mustNotBeWrapped: Boolean = false): JsValue = {
+    jsValue match {
+      case JsObject(fields) if !fields.contains(WrappedValueKey) =>
+        JsObject(WrappedValueKey -> jsValue)
+      case _ if mustNotBeWrapped =>
+        throw ValueSerdeException(s"expected ${jsValue} to not be wrapped")
+      case _ => jsValue
+    }
+  }
+
+  def serializeWithType(
+      value: Value,
+      irType: Type,
+      handler: Option[(Value, Type) => Either[Value, JsValue]] = None
+  ): JsValue = {
+    lazy val handlerWrapper = handler.map(h => (v: Value) => h(v, TMulti.Any))
+    def inner(innerValue: Value, innerType: Type): JsValue = {
+      val v = handler.map(_(innerValue, innerType)) match {
+        case Some(Right(result))  => return result
+        case Some(Left(newValue)) => newValue
+        case None                 => innerValue
+      }
+      (innerType, v) match {
+        case (_: TOptional, VNull)                    => JsNull
+        case (t: TMulti, _)                           => innerMulti(v, t)
+        case (TBoolean, VBoolean(b))                  => JsBoolean(b)
+        case (TInt, VInt(i))                          => JsNumber(i)
+        case (TInt, VFloat(i)) if i.isValidInt        => JsNumber(i.intValue())
+        case (TFloat, VFloat(f))                      => JsNumber(f)
+        case (TFloat, VInt(i))                        => JsNumber(i.floatValue())
+        case (TString, VString(s))                    => JsString(s)
+        case (TFile | TString, VFile(path))           => JsString(path)
+        case (TDirectory | TString, VDirectory(path)) => JsString(path)
+        case (TArray(_, true), VArray(items)) if items.isEmpty =>
+          throw ValueSerdeException(s"empty value for non-empty array type ${innerType}")
+        case (TArray(itemType, _), VArray(items)) =>
+          JsArray(items.map(inner(_, itemType)))
+        case (TSchema(schemaName, fieldTypes), VHash(fields)) =>
+          val extra = fieldTypes.keySet.diff(fields.keySet)
+          if (extra.nonEmpty) {
+            throw ValueSerdeException(
+                s"invalid field(s) ${extra} in schema ${schemaName} value ${fields}"
+            )
+          }
+          JsObject(fieldTypes.collect {
+            case (name, t) if fields.contains(name) => name -> inner(fields(name), t)
+            case (name, t) if !Type.isOptional(t) =>
+              throw new Exception(s"missing non-optional member ${name} of schema ${schemaName}")
+          })
+        case (THash, VHash(fields)) =>
+          JsObject(fields.view.mapValues(inner(_, TMulti.Any)).toMap)
+        case (TEnum(symbols), VString(s)) if symbols.contains(s) => JsString(s)
+        case _ =>
+          throw ValueSerdeException(s"cannot serialize ${innerValue} as ${innerType}")
+      }
+    }
+    def innerMulti(innerValue: Value, innerMultiType: TMulti): JsValue = {
+      val jsValue = if (innerMultiType.bounds.isEmpty) {
+        serialize(innerValue, handlerWrapper)
+      } else {
+        innerMultiType.bounds.iterator
+          .map { t =>
+            try {
+              Some(inner(innerValue, t))
+            } catch {
+              case _: Throwable => None
+            }
+          }
+          .collectFirst {
+            case Some(t) => t
+          }
+          .getOrElse(
+              throw new Exception(s"value ${value} not serializable to ${innerMultiType.bounds}")
+          )
+      }
+      wrapValue(jsValue)
+    }
+    inner(value, irType)
+  }
+
   def serializeMap(values: Map[String, Value]): Map[String, JsValue] = {
     values.map {
       case (name, value) => name -> serialize(value)
+    }
+  }
+
+  def isWrappedValue(jsValue: JsValue): Boolean = {
+    jsValue match {
+      case JsObject(fields) if fields.size == 1 && fields.contains(WrappedValueKey) => true
+      case _                                                                        => false
+    }
+  }
+
+  def unwrapValue(jsValue: JsValue, mustBeWrapped: Boolean = false): JsValue = {
+    jsValue match {
+      case JsObject(fields) if fields.size == 1 && fields.contains(WrappedValueKey) =>
+        fields(WrappedValueKey)
+      case _ if mustBeWrapped =>
+        throw ValueSerdeException(s"not a wrapped value ${jsValue}")
+      case _ => jsValue
     }
   }
 
@@ -109,6 +163,7 @@ object ValueSerde extends DefaultJsonProtocol {
         case None                   => innerValue
       }
       v match {
+        case _ if isWrappedValue(v)               => inner(unwrapValue(v))
         case JsNull                               => VNull
         case JsBoolean(b)                         => VBoolean(b.booleanValue)
         case JsNumber(value) if value.isValidLong => VInt(value.toLongExact)
@@ -143,8 +198,21 @@ object ValueSerde extends DefaultJsonProtocol {
         case None                   => innerValue
       }
       (innerType, v) match {
-        case (TOptional(_), JsNull)                       => VNull
-        case (TOptional(t), _)                            => inner(v, t)
+        case (TOptional(_), JsNull) => VNull
+        case (TOptional(t), _)      => inner(v, t)
+        case (any: TMulti, _) if any.bounds.isEmpty && isWrappedValue(v) =>
+          inner(unwrapValue(v), any)
+        case (TMulti(bounds), _) if bounds.isEmpty => deserialize(v)
+        case (TMulti(bounds), _) if isWrappedValue(v) =>
+          val unwrappedValue = unwrapValue(v)
+          bounds.foreach { t =>
+            try {
+              return inner(unwrappedValue, t)
+            } catch {
+              case _: ValueSerdeException => ()
+            }
+          }
+          throw ValueSerdeException(s"value ${unwrappedValue} does not match any of ${bounds}")
         case (TBoolean, JsBoolean(b))                     => VBoolean(b.booleanValue)
         case (TInt, JsNumber(value)) if value.isValidLong => VInt(value.toLongExact)
         case (TFloat, JsNumber(value))                    => VFloat(value.toDouble)
@@ -152,7 +220,7 @@ object ValueSerde extends DefaultJsonProtocol {
         case (TFile, JsString(path))                      => VFile(path)
         case (TDirectory, JsString(path))                 => VDirectory(path)
         case (TArray(_, true), JsArray(items)) if items.isEmpty =>
-          throw new Exception(s"Cannot convert empty array to non-empty type ${innerType}")
+          throw ValueSerdeException(s"Cannot convert empty array to non-empty type ${innerType}")
         case (TArray(t, _), JsArray(items)) =>
           VArray(items.map(x => inner(x, t)))
         case (TSchema(name, fieldTypes), JsObject(fields)) =>
@@ -163,7 +231,7 @@ object ValueSerde extends DefaultJsonProtocol {
           val keys2 = fieldTypes.keySet
           val extra = keys2.diff(keys1)
           if (extra.nonEmpty) {
-            throw new Exception(
+            throw ValueSerdeException(
                 s"struct ${name} value has members that do not appear in the struct definition: ${extra}"
             )
           }
@@ -172,7 +240,7 @@ object ValueSerde extends DefaultJsonProtocol {
             case _                 => true
           }
           if (missingNonOptional.nonEmpty) {
-            throw new Exception(
+            throw ValueSerdeException(
                 s"struct ${name} value is missing non-optional members ${missingNonOptional}"
             )
           }
@@ -190,7 +258,7 @@ object ValueSerde extends DefaultJsonProtocol {
         case (TEnum(symbols), JsString(s)) if symbols.contains(s) =>
           VString(s)
         case _ =>
-          throw new Exception(s"cannot deserialize value ${innerValue} as type ${innerType}")
+          throw ValueSerdeException(s"cannot deserialize value ${innerValue} as type ${innerType}")
       }
     }
     inner(jsValue, t)

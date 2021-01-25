@@ -5,7 +5,7 @@ import dx.core.Constants
 import dx.cwl._
 import dx.core.io.StreamFiles.StreamFiles
 import dx.core.ir.{Type, Value}
-import dx.core.languages.cwl.{CwlUtils, RequirementEvaluator}
+import dx.core.languages.cwl.{CwlUtils, DxHintSchema, RequirementEvaluator}
 import dx.executor.{FileUploader, JobMeta, TaskExecutor}
 import dx.util.{DockerUtils, FileUtils, JsUtils, TraceLevel}
 import spray.json._
@@ -16,7 +16,7 @@ object CwlTaskExecutor {
   def create(jobMeta: JobMeta,
              fileUploader: FileUploader,
              streamFiles: StreamFiles): CwlTaskExecutor = {
-    val parser = Parser.default
+    val parser = Parser.create(hintSchemas = Vector(DxHintSchema))
     if (!parser.canParse(jobMeta.sourceCode)) {
       throw new Exception(
           s"""source code does not appear to be a CWL document of a supported version
@@ -74,15 +74,20 @@ case class CwlTaskExecutor(tool: CommandLineTool,
     val evaluator = Evaluator.create(tool.requirements)
     inputParams.foldLeft(Map.empty[String, (CwlType, CwlValue)]) {
       case (env, (name, param)) =>
-        val cwlTypes = param.types
-        val (cwlType, cwlValue) = jobMeta.primaryInputs.get(name) match {
+        val cwlTypes = CwlUtils.flattenTypes(param.types.distinct)
+        val (cwlType: CwlType, cwlValue: CwlValue) = jobMeta.primaryInputs.get(name) match {
           case Some(irValue) =>
             CwlUtils.fromIRValue(irValue, cwlTypes, name, isInput = true)
           case None if param.default.isDefined =>
             val ctx = CwlUtils.createEvaluatorContext(runtime, env)
             evaluator.evaluate(param.default.get, cwlTypes, ctx)
           case None if cwlTypes.exists(CwlOptional.isOptional) =>
-            (CwlNull, NullValue)
+            val optTypes = cwlTypes.filter(CwlOptional.isOptional)
+            if (optTypes.size == 1) {
+              (optTypes.head, NullValue)
+            } else {
+              (CwlNull, NullValue)
+            }
           case _ =>
             throw new Exception(s"Missing required input ${name} to tool ${tool.id}")
         }
@@ -127,8 +132,9 @@ case class CwlTaskExecutor(tool: CommandLineTool,
     reqEvaluator.parseInstanceType
   }
 
-  override protected lazy val getRequiredInstanceTypeRequest: InstanceTypeRequest =
+  override protected lazy val getRequiredInstanceTypeRequest: InstanceTypeRequest = {
     getRequiredInstanceTypeRequest()
+  }
 
   override protected def getInputsWithDefaults: Map[String, (Type, Value)] = {
     val inputs = cwlInputs

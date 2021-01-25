@@ -66,6 +66,11 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
                       fileResolver: FileSourceResolver,
                       dxApi: DxApi,
                       logger: Logger): Option[Translator] = {
+    // TODO: we need to require that the source file be "packed" before compiling, because
+    //  we cannot include auxiliary files (e.g. a JavaScript or YAML import) with the CWL.
+    //  Then we shouldn't use a base URI and instead let parsing errors due to unsatisfied
+    //  imports (which shouldn't happen) bubble up. We should also print a warning if the
+    //  user tries to specify any import directories for CWL.
     lazy val basePath = fileResolver.localSearchPath match {
       case Vector()     => sourceFile.toAbsolutePath.getParent
       case Vector(path) => path

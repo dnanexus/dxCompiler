@@ -13,28 +13,6 @@ import scala.collection.immutable.TreeSeqMap
 
 object CwlUtils {
 
-  /**
-    * Attempts to convert a Vector of alternative types to a single type.
-    * If the Vector is of size 2 and one of the types is CwlNull, returns
-    * the other type, converted to an optional. If the Vector contains
-    * CwlAny, then CwlAny is returned. Otherwise throws an Exception
-    * unless the Vector contains exactly one type.
-    * @param types Vector of CwlTypes
-    * @return
-    */
-  def getSingleType(types: Vector[CwlType]): CwlType = {
-    types match {
-      case Vector(t)               => t
-      case v if v.contains(CwlAny) => CwlAny
-      case Vector(CwlNull, other)  => CwlOptional.ensureOptional(other)
-      case Vector(other, CwlNull)  => CwlOptional.ensureOptional(other)
-      case Vector() =>
-        throw new Exception("No type specified")
-      case _ =>
-        throw new Exception("Multi-type fields are not supported")
-    }
-  }
-
   def toIRSchema(cwlRecord: CwlRecord): TSchema = {
     if (cwlRecord.name.isEmpty) {
       throw new Exception(s"cannot convert schema without name ${cwlRecord}")
@@ -42,7 +20,7 @@ object CwlUtils {
     TSchema(
         cwlRecord.name.get,
         cwlRecord.fields.map {
-          case (key, value) => key -> toIRType(getSingleType(value.types))
+          case (key, value) => key -> toIRType(value.types)
         }
     )
   }
@@ -50,6 +28,7 @@ object CwlUtils {
   def toIRType(cwlType: CwlType): Type = {
     cwlType match {
       case CwlOptional(t) => TOptional(toIRType(t))
+      case CwlAny         => TMulti.Any
       case CwlBoolean     => TBoolean
       case CwlInt         => TInt
       case CwlLong        => TInt
@@ -65,6 +44,34 @@ object CwlUtils {
       case e: CwlEnum => TEnum(e.symbols)
       case _ =>
         throw new Exception(s"Cannot convert CWL type ${cwlType} to IR")
+    }
+  }
+
+  /**
+    * Simplifies a Set of alternative types
+    * 1) if CwlNull is in the set, convert all types to optional and remove CwlNull
+    * 2) if CwlAny or CwlOptional(CwlAny) is in the set, reduce the set to that
+    * single type (since Any is a superset of all non-null types)
+    * @param types set of alternative types
+    * @return
+    */
+  @tailrec
+  def flattenTypes(types: Vector[CwlType]): Vector[CwlType] = {
+    if (types.contains(CwlNull)) {
+      flattenTypes(types.diff(Vector(CwlNull)).map(CwlOptional.ensureOptional))
+    } else if (types.contains(CwlOptional(CwlAny))) {
+      Vector(CwlOptional(CwlAny))
+    } else if (types.contains(CwlAny)) {
+      Vector(CwlAny)
+    } else {
+      types
+    }
+  }
+
+  def toIRType(cwlTypes: Vector[CwlType]): Type = {
+    flattenTypes(cwlTypes).map(toIRType) match {
+      case Vector(t) => t
+      case types     => TMulti(types)
     }
   }
 
@@ -118,7 +125,7 @@ object CwlUtils {
 
   def toIRValue(cwlValue: CwlValue, cwlType: CwlType): (Type, Value) = {
     (cwlType, cwlValue) match {
-      case (CwlAny, _)                 => toIRValue(cwlValue)
+      case (CwlAny, _)                 => (TMulti.Any, toIRValue(cwlValue)._2)
       case (CwlOptional(_), NullValue) => (toIRType(cwlType), VNull)
       case (CwlOptional(t), _) =>
         val (irType, irValue) = toIRValue(cwlValue, t)
@@ -135,20 +142,16 @@ object CwlUtils {
       case (CwlDirectory, d: DirectoryValue) => (TDirectory, VDirectory(d.toString))
       case (CwlDirectory, StringValue(s))    => (TDirectory, VDirectory(s))
       case (array: CwlArray, ArrayValue(items)) =>
-        val itemType = getSingleType(array.itemTypes)
-        val (irItemTypes, irItems, optional) =
-          items.foldLeft(Set.empty[Type], Vector.empty[Value], false) {
-            case ((irTypes, irItems, _), NullValue) => (irTypes, irItems :+ VNull, true)
-            case ((irTypes, irItems, optional), i) =>
-              val (t, v) = toIRValue(i, itemType)
-              if (irTypes.nonEmpty && !irTypes.contains(t)) {
-                throw new Exception(s"array ${array} contains items of multiple types")
-              }
-              (irTypes + t, irItems :+ v, optional || Type.isOptional(t))
+        val (irItems, optional) =
+          items.foldLeft(Vector.empty[Value], false) {
+            case ((irItems, _), NullValue) => (irItems :+ VNull, true)
+            case ((irItems, optional), i) =>
+              val (t, v) = toIRValue(i, array.itemTypes)
+              (irItems :+ v, optional || Type.isOptional(t))
           }
-        val irItemType = irItemTypes.headOption.getOrElse(toIRType(itemType))
+        val irItemType = toIRType(array.itemTypes)
         val irType = TArray(if (optional) {
-          TOptional(irItemType)
+          Type.ensureOptional(irItemType)
         } else {
           irItemType
         })
@@ -157,8 +160,7 @@ object CwlUtils {
         val (types, values) =
           fields.foldLeft(TreeSeqMap.empty[String, Type], TreeSeqMap.empty[String, Value]) {
             case ((types, values), (name, value)) if record.fields.contains(name) =>
-              val cwlType = getSingleType(record.fields(name).types)
-              val (irType, irValue) = toIRValue(value, cwlType)
+              val (irType, irValue) = toIRValue(value, record.fields(name).types)
               (types + (name -> irType), values + (name -> irValue))
             case (name, _) =>
               throw new Exception(s"invalid field ${name}")
@@ -175,18 +177,17 @@ object CwlUtils {
     }
   }
 
-  /**
-    * The CWL "Any" type does not have a DNAnexus equivalent, so
-    * we need to wrap the value (and optionally also the actual
-    * type) in a hash.
-    */
-  def anyToIRValue(cwlValue: CwlValue, cwlType: Option[CwlType] = None): (Type, VHash) = {
-    val (irType, irValue) = if (cwlType.isDefined) {
-      toIRValue(cwlValue, cwlType.get)
-    } else {
-      toIRValue(cwlValue)
+  def toIRValue(cwlValue: CwlValue, cwlTypes: Vector[CwlType]): (Type, Value) = {
+    val flattened = flattenTypes(cwlTypes)
+    flattened.foreach { t =>
+      try {
+        val (_, irValue) = toIRValue(cwlValue, t)
+        (toIRType(flattened), irValue)
+      } catch {
+        case _: Exception => ()
+      }
     }
-    (irType, VHash(TreeSeqMap("value" -> irValue)))
+    throw new Exception(s"value ${cwlValue} does not match any of ${cwlTypes}")
   }
 
   def toIR(cwl: Map[String, (CwlType, CwlValue)]): Map[String, (Type, Value)] = {
@@ -197,33 +198,40 @@ object CwlUtils {
 
   def fromIRType(irType: Type,
                  typeAliases: Map[String, CwlSchema] = Map.empty,
-                 isInput: Boolean): CwlType = {
+                 isInput: Boolean): Vector[CwlType] = {
     def inner(innerType: Type): CwlType = {
       innerType match {
         case TOptional(t) => CwlOptional(inner(t))
+        case TMulti.Any   => CwlAny
         case TBoolean     => CwlBoolean
         case TInt         => CwlLong
         case TFloat       => CwlDouble
         case TString      => CwlString
         case TFile        => CwlFile
         case TDirectory   => CwlDirectory
-        case TArray(t, _) => CwlArray(Vector(inner(t)))
+        case TArray(t, _) => CwlArray(innerMulti(t))
         case TSchema(name, _) if typeAliases.contains(name) =>
           typeAliases(name)
-        case TSchema(name, members) if isInput =>
-          CwlInputRecord(members.map {
-            case (name, t) => name -> CwlInputRecordField(name, Vector(inner(t)))
+        case TSchema(name, fields) if isInput =>
+          CwlInputRecord(fields.map {
+            case (name, t) => name -> CwlInputRecordField(name, innerMulti(t))
           }, Some(name))
         case TSchema(name, members) =>
           CwlOutputRecord(members.map {
-            case (name, t) => name -> CwlOutputRecordField(name, Vector(inner(t)))
+            case (name, t) => name -> CwlOutputRecordField(name, innerMulti(t))
           }, Some(name))
-        case TEnum(allowedValues) => CwlEnum(allowedValues)
+        case TEnum(symbols) => CwlEnum(symbols)
         case _ =>
           throw new Exception(s"Cannot convert IR type ${irType} to CWL")
       }
     }
-    inner(irType)
+    def innerMulti(innerType: Type): Vector[CwlType] = {
+      innerType match {
+        case TMulti(bounds) => flattenTypes(bounds.map(inner))
+        case _              => Vector(inner(innerType))
+      }
+    }
+    innerMulti(irType)
   }
 
   def fromIRValue(value: Value, name: Option[String], isInput: Boolean): (CwlType, CwlValue) = {
@@ -289,6 +297,7 @@ object CwlUtils {
     @tailrec
     def inner(innerValue: Value, innerType: CwlType, innerName: String): CwlValue = {
       (innerType, innerValue) match {
+        case (CwlAny, _)                       => fromIRValue(innerValue, Some(name), isInput)._2
         case (CwlOptional(_) | CwlNull, VNull) => NullValue
         case (CwlOptional(t), _)               => inner(innerValue, t, innerName)
         case (CwlBoolean, VBoolean(b))         => BooleanValue(b)
@@ -305,13 +314,13 @@ object CwlUtils {
         case (CwlDirectory, VFile(path))       => DirectoryValue(path)
         case (array: CwlArray, VArray(items)) =>
           ArrayValue(items.zipWithIndex.map {
-            case (item, i) => fromIRValue(item, array.itemTypes, s"${innerName}[${i}]", isInput)._2
+            case (item, i) => innerMulti(item, array.itemTypes, s"${innerName}[${i}]")._2
           })
-        case (record: CwlRecord, VHash(members)) =>
+        case (record: CwlRecord, VHash(fields)) =>
           // ensure 1) members keys are a subset of memberTypes keys, 2) members
           // values are convertable to the corresponding types, and 3) any keys
           // in memberTypes that do not appear in members are optional
-          val keys1 = members.keySet
+          val keys1 = fields.keySet
           val keys2 = record.fields.keySet
           val extra = keys2.diff(keys1)
           if (extra.nonEmpty) {
@@ -330,36 +339,32 @@ object CwlUtils {
             )
           }
           ObjectValue(
-              members.map {
+              fields.map {
                 case (key, value) =>
-                  key -> fromIRValue(value,
-                                     record.fields(key).types,
-                                     s"${innerName}[${key}]",
-                                     isInput)._2
+                  key -> innerMulti(value, record.fields(key).types, s"${innerName}[${key}]")._2
               }
           )
-        case (enum: CwlEnum, VString(s)) if enum.symbols.contains(s) =>
-          StringValue(s)
+        case (enum: CwlEnum, VString(s)) if enum.symbols.contains(s) => StringValue(s)
         case _ =>
           throw new Exception(s"cannot translate ${innerValue} to CwlValue of type ${innerType}")
       }
     }
-    cwlTypes.iterator
-      .map { t =>
+    def innerMulti(innerValue: Value,
+                   innerCwlTypes: Vector[CwlType],
+                   innerName: String): (CwlType, CwlValue) = {
+      val flattenedTypes = flattenTypes(innerCwlTypes)
+      flattenedTypes.foreach { t =>
         try {
-          Some((t, inner(value, t, name)))
+          (t, inner(innerValue, t, innerName))
         } catch {
           case _: Throwable => None
         }
       }
-      .collectFirst { case Some(result) => result }
-      .getOrElse {
-        if (cwlTypes.contains(CwlAny)) {
-          fromIRValue(value, Some(name), isInput)
-        } else {
-          throw new Exception(s"Cannot convert ${name} (${cwlTypes}, ${value}) to CWL value")
-        }
-      }
+      throw new Exception(
+          s"cannot convert ${innerName} (${innerCwlTypes}, ${innerValue}) to CWL value"
+      )
+    }
+    innerMulti(value, cwlTypes, name)
   }
 
   def fromIR(values: Map[String, (Type, Value)],
@@ -368,7 +373,7 @@ object CwlUtils {
     values.map {
       case (name, (t, v)) =>
         val cwlType = fromIRType(t, typeAliases, isInput)
-        name -> fromIRValue(v, Vector(cwlType), name, isInput)
+        name -> fromIRValue(v, cwlType, name, isInput)
     }
   }
 

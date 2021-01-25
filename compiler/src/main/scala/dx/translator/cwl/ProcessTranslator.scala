@@ -9,7 +9,6 @@ import dx.core.ir.{
   ExecutableKindApplet,
   Parameter,
   ParameterAttribute,
-  Type,
   Value
 }
 import dx.core.languages.cwl.{CwlDocumentSource, CwlUtils, DxHints, RequirementEvaluator}
@@ -75,91 +74,45 @@ case class ProcessTranslator(typeAliases: Map[String, CwlSchema],
 
     def translateInput(input: CommandInputParameter): Parameter = {
       val name = input.id.get.unqualifiedName.get
-      val cwlType = CwlUtils.getSingleType(input.types)
-      // the parameter value to use if there is no default or the default
-      // expression fails to evaluate
-      lazy val nullOrDynamicDefault = {
-        val t = cwlType match {
-          case CwlAny  => Type.THash
-          case CwlNull => Type.TOptional(Type.THash)
-          case _       => CwlUtils.toIRType(cwlType)
-        }
-        (t, None)
-      }
-      val (irType, irDefaultValue) = input.default match {
+      val irDefaultValue = input.default match {
         case Some(default) =>
           try {
             val ctx = CwlUtils.createEvaluatorContext(Runtime.empty)
-            val (actualType, defaultValue) = cwlEvaluator.evaluate(default, Vector(cwlType), ctx)
-            (actualType, defaultValue) match {
-              case (CwlFile | CwlOptional(CwlFile), file: FileValue) if !CwlUtils.isDxFile(file) =>
+            val (actualType, defaultValue) = cwlEvaluator.evaluate(default, input.types, ctx)
+            defaultValue match {
+              case file: FileValue if !CwlUtils.isDxFile(file) =>
                 // cannot specify a local file as default - the default will
                 // be resolved at runtime
-                nullOrDynamicDefault
+                None
               case _ =>
-                val (irType, irValue) = cwlType match {
-                  case CwlAny =>
-                    // DNAnexus does not have an "any" type, so if the input field is of type CwlAny,
-                    // we convert it to THash, with an object value that wraps the actual value
-                    val (_, irValue) = CwlUtils.anyToIRValue(defaultValue, Some(actualType))
-                    (Type.THash, irValue)
-                  case CwlNull if defaultValue == NullValue =>
-                    (Type.TOptional(Type.THash), Value.VNull)
-                  case CwlNull =>
-                    throw new Exception(s"got non-null default value for null-type field ${name}")
-                  case _ =>
-                    CwlUtils.toIRValue(defaultValue, actualType)
-                }
-                (irType, Some(irValue))
+                val (_, value) = CwlUtils.toIRValue(defaultValue, actualType)
+                Some(value)
             }
           } catch {
-            case _: Throwable => nullOrDynamicDefault
+            case _: Throwable => None
           }
-        case None => nullOrDynamicDefault
+        case None => None
       }
       val attrs = translateParameterAttributes(input, hintParameterAttrs)
-      Parameter(name, irType, irDefaultValue, attrs)
+      Parameter(name, CwlUtils.toIRType(input.types), irDefaultValue, attrs)
     }
 
     def translateOutput(output: CommandOutputParameter): Parameter = {
       val name = output.id.get.unqualifiedName.get
-      val cwlType = CwlUtils.getSingleType(output.types)
-      // the parameter value to use if the expression fails to evaluate
-      lazy val dynamicValue = {
-        val t = cwlType match {
-          case CwlAny  => Type.THash
-          case CwlNull => Type.TOptional(Type.THash)
-          case _       => CwlUtils.toIRType(cwlType)
-        }
-        (t, None)
-      }
       val ctx = CwlUtils.createEvaluatorContext(Runtime.empty)
-      val (irType, irValue) = output.outputBinding
-        .flatMap(_.outputEval.map { cwlValue =>
+      val irValue = output.outputBinding
+        .flatMap(_.outputEval.flatMap { cwlValue =>
           try {
-            val (actualType, actualValue) = cwlEvaluator.evaluate(cwlValue, Vector(cwlType), ctx)
-            val (irType, irValue) = cwlType match {
-              case CwlAny =>
-                // DNAnexus does not have an "any" type, so if the output field is of type CwlAny,
-                // we convert it to THash, with an object value that wraps the actual value
-                val (_, irValue) = CwlUtils.anyToIRValue(actualValue, Some(actualType))
-                (Type.THash, irValue)
-              case CwlNull if actualValue == NullValue =>
-                (Type.TOptional(Type.THash), Value.VNull)
-              case CwlNull =>
-                throw new Exception(s"got non-null output value for null-type field ${name}")
-              case _ =>
-                CwlUtils.toIRValue(actualValue, actualType)
-            }
-            (irType, Some(irValue))
+            val (actualType, actualValue) = cwlEvaluator.evaluate(cwlValue, output.types, ctx)
+            val (_, value) = CwlUtils.toIRValue(actualValue, actualType)
+            Some(value)
           } catch {
             // the expression cannot be statically evaluated
-            case _: Throwable => dynamicValue
+            case _: Throwable => None
           }
         })
-        .getOrElse(dynamicValue)
       val attrs = translateParameterAttributes(output, hintParameterAttrs)
-      Parameter(name, irType, irValue, attrs)
+      Parameter(name, CwlUtils.toIRType(output.types), irValue, attrs)
     }
 
     def apply: Application = {

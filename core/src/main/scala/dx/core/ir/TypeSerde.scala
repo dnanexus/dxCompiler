@@ -13,6 +13,22 @@ import scala.collection.immutable.{SeqMap, SortedMap, TreeSeqMap}
   * then deserialized may have their fields reordered.
   */
 object TypeSerde {
+  val TypeKey = "type"
+  val ItemsKey = "items"
+  val NonEmptyKey = "nonEmpty"
+  val FieldsKey = "fields"
+  val SymbolsKey = "symbols"
+  val ChoicesKey = "choices"
+  val OptionalKey = "optional"
+  val TypesKey = "types"
+  val DefinitionsKey = "definitions"
+
+  val ArrayTypeName = "Array"
+  val EnumTypeName = "Enum"
+  val MultiTypeName = "Multi"
+
+  case class TypeSerdeException(message: String) extends Exception(message)
+
   def serializeSchema(
       t: TSchema,
       typeDefs: Map[String, JsValue] = Map.empty
@@ -24,8 +40,8 @@ object TypeSerde {
           (fieldsAccu + (name -> typeJs), newTypeDefs)
       }
     (JsObject(
-         "type" -> JsString(t.name),
-         "fields" -> JsObject(fieldsJs)
+         TypeKey -> JsString(t.name),
+         FieldsKey -> JsObject(fieldsJs)
      ),
      newTypeDefs)
   }
@@ -58,26 +74,35 @@ object TypeSerde {
       case TArray(memberType, nonEmpty) =>
         val (typeJs, updatedTypeDefs) = serialize(memberType, newTypeDefs)
         (JsObject(
-             "type" -> JsString("Array"),
-             "items" -> typeJs,
-             "nonEmpty" -> JsBoolean(nonEmpty)
+             TypeKey -> JsString(ArrayTypeName),
+             ItemsKey -> typeJs,
+             NonEmptyKey -> JsBoolean(nonEmpty)
          ),
          updatedTypeDefs)
       case TEnum(symbols) =>
         (JsObject(
-             "type" -> JsString("Enum"),
-             "symbols" -> JsArray(symbols.map(JsString(_)))
+             TypeKey -> JsString(EnumTypeName),
+             SymbolsKey -> JsArray(symbols.map(JsString(_)))
          ),
          newTypeDefs)
       case TOptional(inner) =>
         serialize(inner, newTypeDefs) match {
           case (name: JsString, updatedTypeDefs) =>
-            (JsObject(SortedMap("type" -> name, "optional" -> JsBoolean(true))), updatedTypeDefs)
+            (JsObject(TypeKey -> name, OptionalKey -> JsBoolean(true)), updatedTypeDefs)
           case (JsObject(fields), updatedTypeDefs) =>
-            (JsObject(fields + ("optional" -> JsBoolean(true))), updatedTypeDefs)
+            (JsObject(fields + (OptionalKey -> JsBoolean(true))), updatedTypeDefs)
           case (other, _) =>
-            throw new Exception(s"invalid inner type value ${other}")
+            throw TypeSerdeException(s"invalid inner type value ${other}")
         }
+      case TMulti(types) =>
+        val (serializedTypes, updatedTypeDefs) =
+          types.foldLeft(Vector.empty[JsValue], newTypeDefs) {
+            case ((serializedTypeAccu, typeDefAccu), t) =>
+              val (serializedType, updatedTypeDefs) = serialize(t, typeDefAccu)
+              (serializedTypeAccu :+ serializedType, updatedTypeDefs)
+          }
+        (JsObject(TypeKey -> JsString(MultiTypeName), ChoicesKey -> JsArray(serializedTypes)),
+         updatedTypeDefs)
     }
   }
 
@@ -113,8 +138,8 @@ object TypeSerde {
     val (typesJs, schemasJs) = serializeMap(parameters, encodeDots = encodeDots)
     JsObject(
         Map(
-            "types" -> JsObject(typesJs),
-            "definitions" -> JsObject(schemasJs)
+            TypesKey -> JsObject(typesJs),
+            DefinitionsKey -> JsObject(schemasJs)
         )
     )
   }
@@ -127,18 +152,18 @@ object TypeSerde {
     */
   def serializeOne(t: Type, typeDefs: Map[String, JsValue] = Map.empty): JsObject = {
     val (typeJs, newTypeDefs) = serialize(t, typeDefs)
-    JsObject("type" -> typeJs, "definitions" -> JsObject(newTypeDefs))
+    JsObject(TypeKey -> typeJs, DefinitionsKey -> JsObject(newTypeDefs))
   }
 
   private def deserializeSchema(jsSchema: JsValue,
                                 typeDefs: Map[String, Type],
                                 jsTypeDefs: Map[String, JsValue],
                                 name: Option[String] = None): Map[String, Type] = {
-    val (schemaName, fieldsJs) = jsSchema.asJsObject.getFields("fields", "type") match {
+    val (schemaName, fieldsJs) = jsSchema.asJsObject.getFields(FieldsKey, TypeKey) match {
       case Seq(JsObject(fieldsJs), JsString(name))   => (name, fieldsJs)
       case Seq(JsObject(fieldsJs)) if name.isDefined => (name.get, fieldsJs)
       case _ =>
-        throw new Exception(s"invalid schema ${jsSchema}")
+        throw TypeSerdeException(s"invalid schema ${jsSchema}")
     }
     val (fieldTypes, newTypeDefs) =
       fieldsJs.foldLeft((Map.empty[String, Type], typeDefs)) {
@@ -177,7 +202,7 @@ object TypeSerde {
         (typeDefs(name), typeDefs)
       case JsString(name) if jsTypeDefs.contains(name) =>
         jsTypeDefs(name) match {
-          case obj: JsObject if obj.fields.contains("type") =>
+          case obj: JsObject if obj.fields.contains(TypeKey) =>
             deserialize(obj, typeDefs, jsTypeDefs)
           case obj: JsObject =>
             val newTypeDefs = deserializeSchema(obj, typeDefs, jsTypeDefs, Some(name))
@@ -186,21 +211,35 @@ object TypeSerde {
       case JsString(name) =>
         (simpleFromString(name), typeDefs)
       case JsObject(fields) =>
-        val (t, newTypeDefs) = fields("type") match {
-          case JsString("Array") =>
-            val (arrayType, newTypeDefs) = deserialize(fields("items"), typeDefs, jsTypeDefs)
-            val nonEmpty = fields.get("nonEmpty").exists(JsUtils.getBoolean(_))
+        val (t, newTypeDefs) = fields(TypeKey) match {
+          case JsString(ArrayTypeName) =>
+            val (arrayType, newTypeDefs) = deserialize(fields(ItemsKey), typeDefs, jsTypeDefs)
+            val nonEmpty = fields.get(NonEmptyKey).exists(JsUtils.getBoolean(_))
             (TArray(arrayType, nonEmpty), newTypeDefs)
-          case JsString("Enum") =>
-            val symbols = fields("symbols") match {
+          case JsString(EnumTypeName) =>
+            val symbols = fields(SymbolsKey) match {
               case JsArray(values) =>
                 values.map {
                   case JsString(s) => s
-                  case other       => throw new Exception(s"Invalid enum symbol ${other}")
+                  case other       => throw TypeSerdeException(s"invalid enum symbol ${other}")
                 }
-              case other => throw new Exception(s"Invalid enum symbols ${other}")
+              case other => throw TypeSerdeException(s"invalid enum symbols ${other}")
             }
             (TEnum(symbols), typeDefs)
+          case JsString(MultiTypeName) =>
+            val (choices, newTypeDefs) = fields.get(ChoicesKey) match {
+              case Some(JsArray(choices)) =>
+                choices.foldLeft(Vector.empty[Type], typeDefs) {
+                  case ((typeAccu, typeDefAccu), jsValue) =>
+                    val (t, newTypeDefs) = deserialize(jsValue, typeDefAccu, jsTypeDefs)
+                    (typeAccu :+ t, newTypeDefs)
+                }
+              case Some(JsNull) | None =>
+                (Vector.empty[Type], typeDefs)
+              case other =>
+                throw TypeSerdeException(s"invalid multi-type array ${other}")
+            }
+            (TMulti(choices), newTypeDefs)
           case JsString(name) if typeDefs.contains(name) =>
             (typeDefs(name), typeDefs)
           case JsString(name) if jsTypeDefs.contains(name) =>
@@ -209,15 +248,15 @@ object TypeSerde {
           case JsString(name) =>
             (simpleFromString(name), typeDefs)
           case _ =>
-            throw new Exception(s"invalid type field value ${jsValue}")
+            throw TypeSerdeException(s"invalid type field value ${jsValue}")
         }
-        if (fields.get("optional").exists(JsUtils.getBoolean(_))) {
+        if (fields.get(OptionalKey).exists(JsUtils.getBoolean(_))) {
           (TOptional(t), newTypeDefs)
         } else {
           (t, newTypeDefs)
         }
       case _ =>
-        throw new Exception(s"unexpected type value ${jsValue}")
+        throw TypeSerdeException(s"unexpected type value ${jsValue}")
     }
   }
 
@@ -260,19 +299,19 @@ object TypeSerde {
                       typeDefs: Map[String, TSchema] = Map.empty,
                       decodeDots: Boolean = true): Map[String, Type] = {
     val (jsTypes, jsTypeDefs) = jsValue match {
-      case obj: JsObject if obj.fields.contains("types") =>
-        obj.getFields("types", "definitions") match {
+      case obj: JsObject if obj.fields.contains(TypesKey) =>
+        obj.getFields(TypesKey, DefinitionsKey) match {
           case Seq(JsObject(jsTypes), JsObject(jsDefinitions)) =>
             (jsTypes, jsDefinitions)
           case Seq(JsObject(jsTypes)) =>
             (jsTypes, Map.empty[String, JsValue])
           case _ =>
-            throw new Exception(s"invalid serialized types or definitions in ${jsValue}")
+            throw TypeSerdeException(s"invalid serialized types or definitions in ${jsValue}")
         }
       case JsObject(jsTypes) =>
         (jsTypes, Map.empty[String, JsValue])
       case _ =>
-        throw new Exception(s"invalid serialized spec ${jsValue}")
+        throw TypeSerdeException(s"invalid serialized spec ${jsValue}")
     }
     val (types, _) = deserializeMap(jsTypes, typeDefs, jsTypeDefs, decodeDots)
     types
@@ -287,12 +326,12 @@ object TypeSerde {
   def deserializeOne(jsValue: JsValue,
                      typeDefs: Map[String, Type] = Map.empty): (Type, Map[String, Type]) = {
     val (jsType, jsTypeDefs) = jsValue match {
-      case obj: JsObject if obj.fields.contains("type") =>
-        obj.getFields("type", "definitions") match {
+      case obj: JsObject if obj.fields.contains(TypeKey) =>
+        obj.getFields(TypeKey, DefinitionsKey) match {
           case Seq(jsType, JsObject(jsDefinitions)) => (jsType, jsDefinitions)
           case Seq(jsType)                          => (jsType, Map.empty[String, JsValue])
           case _ =>
-            throw new Exception(s"invalid serialized type or definitions in ${jsValue}")
+            throw TypeSerdeException(s"invalid serialized type or definitions in ${jsValue}")
         }
       case _ => (jsValue, Map.empty[String, JsValue])
     }
@@ -307,7 +346,7 @@ object TypeSerde {
       case TString  => "string"
       case TFile    => "file"
       // TODO: case TDirectory =>
-      case _ => throw new Exception(s"not a primitive type")
+      case _ => throw TypeSerdeException(s"not a primitive type")
     }
   }
 
@@ -337,7 +376,7 @@ object TypeSerde {
       case "string"  => TString
       case "file"    => TFile
       case "hash"    => THash
-      case _         => throw new Exception(s"invalid native class ${cls}")
+      case _         => throw TypeSerdeException(s"invalid native class ${cls}")
     }
   }
 
@@ -361,23 +400,23 @@ object TypeSerde {
           val name = field.get("name") match {
             case Some(JsString(name)) => name
             case _ =>
-              throw new Exception(s"invalid or missing name for field ${fields}")
+              throw TypeSerdeException(s"invalid or missing name for field ${fields}")
           }
           val cls = field.get("class") match {
             case Some(JsString(cls)) => cls
             case None                => "string"
             case other =>
-              throw new Exception(s"invalid native 'class' value ${other}")
+              throw TypeSerdeException(s"invalid native 'class' value ${other}")
           }
           val optional = field.get("optional") match {
             case Some(JsBoolean(optional)) => optional
             case None                      => false
             case other =>
-              throw new Exception(s"invalid native 'optional' value ${other}")
+              throw TypeSerdeException(s"invalid native 'optional' value ${other}")
           }
           name -> fromNative(cls, optional)
         case other =>
-          throw new Exception(s"invalid native input/output spec field ${other}")
+          throw TypeSerdeException(s"invalid native input/output spec field ${other}")
       }
       .to(TreeSeqMap)
   }
@@ -396,17 +435,18 @@ object TypeSerde {
       case THash            => "Hash"
       case TSchema(name, _) => name
       case TArray(memberType, _) =>
-        s"Array[${toString(memberType)}]"
-      case TEnum(allowedValues) =>
-        s"Enum{${allowedValues.mkString(",")}}"
+        s"${ArrayTypeName}[${toString(memberType)}]"
+      case TEnum(symbols) =>
+        s"${EnumTypeName}{${symbols.mkString(",")}}"
+      case TMulti(Vector()) => MultiTypeName
+      case TMulti(choices) =>
+        s"${MultiTypeName}{${choices.map(toString).mkString(",")}}"
       case TOptional(TOptional(_)) =>
-        throw new Exception(s"nested optional type ${t}")
+        throw TypeSerdeException(s"nested optional type ${t}")
       case TOptional(inner) =>
         s"${toString(inner)}?"
     }
   }
-
-  case class UnknownTypeException(message: String) extends Exception(message)
 
   /**
     * Convert a String to a simple (non-compound) type, i.e. TArray and TMap
@@ -426,14 +466,14 @@ object TypeSerde {
       case _ if s.endsWith("?") =>
         simpleFromString(s.dropRight(1)) match {
           case TOptional(_) =>
-            throw new Exception(s"nested optional type ${s}")
+            throw TypeSerdeException(s"nested optional type ${s}")
           case inner =>
             TOptional(inner)
         }
       case s if s.contains("[") =>
-        throw new Exception(s"type ${s} is not primitive")
+        throw TypeSerdeException(s"type ${s} is not primitive")
       case _ =>
-        throw UnknownTypeException(s"Unknown type ${s}")
+        throw TypeSerdeException(s"Unknown type ${s}")
     }
   }
 }

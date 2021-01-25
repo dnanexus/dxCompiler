@@ -289,7 +289,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     }
 
     val localizedInputs = inputs.view.mapValues {
-      case (t, v) => (t, ValueSerde.transform(v, Some(t), pathTranslator))
+      case (t, v) => (t, Value.transform(v, Some(t), pathTranslator))
     }.toMap
 
     (localizedInputs, fileSourceToPath, dxdaManifest, dxfuseManifest)
@@ -492,7 +492,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     }
 
     val delocalizedOutputs = localizedOutputs.view.mapValues {
-      case (t, v) => (t, ValueSerde.transform(v, Some(t), pathTranslator))
+      case (t, v) => (t, Value.transform(v, Some(t), pathTranslator))
     }.toMap
 
     // serialize the outputs to the job output file
