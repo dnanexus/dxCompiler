@@ -73,49 +73,46 @@ case class ProcessTranslator(typeAliases: Map[String, CwlSchema],
     }
 
     def translateInput(input: CommandInputParameter): Parameter = {
-      val name = input.id.get.name.get
-      val cwlType = input.types match {
-        case Vector(cwlType) => cwlType
-        case other =>
-          throw new Exception(s"Mutliple types are not supported ${other}")
-      }
-      val (actualType, defaultValue) = input.default match {
+      val name = input.id.get.unqualifiedName.get
+      val irDefaultValue = input.default match {
         case Some(default) =>
-          // input with default
           try {
             val ctx = CwlUtils.createEvaluatorContext(Runtime.empty)
-            val (actualType, defaultValue) = cwlEvaluator.evaluate(default, Vector(cwlType), ctx)
-            (actualType, Some(CwlUtils.toIRValue(defaultValue, actualType)))
+            val (actualType, defaultValue) = cwlEvaluator.evaluate(default, input.types, ctx)
+            defaultValue match {
+              case file: FileValue if !CwlUtils.isDxFile(file) =>
+                // cannot specify a local file as default - the default will
+                // be resolved at runtime
+                None
+              case _ =>
+                val (_, value) = CwlUtils.toIRValue(defaultValue, actualType)
+                Some(value)
+            }
           } catch {
-            case _: Throwable => (cwlType, None)
+            case _: Throwable => None
           }
-        case None => (cwlType, None)
+        case None => None
       }
-      // a required or optional input
-      val irType = CwlUtils.toIRType(actualType)
       val attrs = translateParameterAttributes(input, hintParameterAttrs)
-      Parameter(name, irType, defaultValue, attrs)
+      Parameter(name, CwlUtils.toIRType(input.types), irDefaultValue, attrs)
     }
 
     def translateOutput(output: CommandOutputParameter): Parameter = {
-      val name = output.id.get.name.get
-      val cwlType = output.types match {
-        case Vector(cwlType) => cwlType
-        case other =>
-          throw new Exception(s"Mutliple types are not supported ${other}")
-      }
+      val name = output.id.get.unqualifiedName.get
       val ctx = CwlUtils.createEvaluatorContext(Runtime.empty)
-      val (actualType, defaultValue) = output.outputBinding
-        .flatMap { binding =>
-          binding.outputEval.map { cwlValue =>
-            val (actualType, actualValue) = cwlEvaluator.evaluate(cwlValue, Vector(cwlType), ctx)
-            (actualType, Some(CwlUtils.toIRValue(actualValue, actualType)))
+      val irValue = output.outputBinding
+        .flatMap(_.outputEval.flatMap { cwlValue =>
+          try {
+            val (actualType, actualValue) = cwlEvaluator.evaluate(cwlValue, output.types, ctx)
+            val (_, value) = CwlUtils.toIRValue(actualValue, actualType)
+            Some(value)
+          } catch {
+            // the expression cannot be statically evaluated
+            case _: Throwable => None
           }
-        }
-        .getOrElse((cwlType, None))
-      val irType = CwlUtils.toIRType(actualType)
+        })
       val attrs = translateParameterAttributes(output, hintParameterAttrs)
-      Parameter(name, irType, defaultValue, attrs)
+      Parameter(name, CwlUtils.toIRType(output.types), irValue, attrs)
     }
 
     def apply: Application = {

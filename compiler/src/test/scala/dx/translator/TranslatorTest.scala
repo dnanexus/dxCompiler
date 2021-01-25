@@ -1489,4 +1489,16 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
         throw new AssertionError(s"expected SuccessIR, not ${other}")
     }
   }
+
+  it should "translate a simple CWL task with JS expressions" in {
+    val path = pathFromBasename("cwl", "params.cwl")
+    val args = path.toString :: cFlags
+    Main.compile(args.toVector) shouldBe a[SuccessIR]
+  }
+
+  it should "translate a simple CWL task with Any type input" in {
+    val path = pathFromBasename("cwl", "params2.cwl")
+    val args = path.toString :: cFlags
+    Main.compile(args.toVector) shouldBe a[SuccessIR]
+  }
 }

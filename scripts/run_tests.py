@@ -3,9 +3,10 @@ import argparse
 from collections import namedtuple
 import dxpy
 import fnmatch
+import glob
 import json
-import pprint
 import os
+import pprint
 import re
 import sys
 import subprocess
@@ -141,6 +142,15 @@ cwl_tools = [
     "cat",  # hello world tool
 ]
 
+cwl_compliance = [
+    os.path.basename(path)[:-4]
+    for path in glob.glob(os.path.join(test_dir, "cwl_compliance", "tools", "*.cwl"))
+]
+cwl_compliance_failing = [
+    os.path.basename(path)[:-4]
+    for path in glob.glob(os.path.join(test_dir, "cwl_compliance", "failing", "*.cwl"))
+]
+
 # Tests run in continuous integration. We remove the native app test,
 # because we don't want to give permissions for creating platform apps.
 ci_test_list = [
@@ -177,7 +187,9 @@ test_suites = {
     'draft2': draft2_test_list,
     'docker': docker_test_list,
     'native': ["call_native", "call_native_v1"],
-    'docs': doc_tests_list
+    'docs': doc_tests_list,
+    'cwl_compliance': cwl_compliance,
+    'cwl_compliance_failing': cwl_compliance_failing
 }
 
 # Tests with the reorg flags
@@ -712,17 +724,28 @@ def compile_tests_to_project(trg_proj,
                              applet_folder,
                              compiler_flags,
                              version_id,
-                             lazy_flag):
+                             lazy_flag,
+                             delay_compile_errors=False):
     runnable = {}
+    has_errors = False
     for tname in test_names:
         oid = None
         if lazy_flag:
             oid = lookup_dataobj(tname, trg_proj, applet_folder)
         if oid is None:
             c_flags = compiler_flags[:] + compiler_per_test_flags(tname)
-            oid = build_test(tname, trg_proj, applet_folder, version_id, c_flags)
+            try:
+                oid = build_test(tname, trg_proj, applet_folder, version_id, c_flags)
+            except subprocess.CalledProcessError:
+                if delay_compile_errors:
+                    traceback.print_exc()
+                    has_errors = True
+                else:
+                    raise
         runnable[tname] = oid
         print("runnable({}) = {}".format(tname, oid))
+    if has_errors:
+        raise RuntimeError("failed to compile one or more tests")
     return runnable
 
 
@@ -750,6 +773,8 @@ def main():
                            dest="test_list",
                            default=False)
     argparser.add_argument("--clean", help="Remove build directory in the project after running tests",
+                           action="store_true", default=False)
+    argparser.add_argument("--delay-compile-errors", help="Compile all tests before failing on any errors",
                            action="store_true", default=False)
     argparser.add_argument("--locked", help="Generate locked-down workflows",
                            action="store_true", default=False)
@@ -848,7 +873,8 @@ def main():
                                             applet_folder,
                                             compiler_flags,
                                             version_id,
-                                            args.lazy)
+                                            args.lazy,
+                                            args.delay_compile_errors)
         if not args.compile_only:
             run_test_subset(project, runnable, test_folder, args.debug, args.delay_workspace_destruction)
     finally:

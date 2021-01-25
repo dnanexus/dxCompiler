@@ -24,7 +24,7 @@ import dx.core.languages.wdl.{
   WdlUtils,
   WdlWorkflowSource
 }
-import wdlTools.eval.{DefaultEvalPaths, Eval, EvalException, WdlValueBindings}
+import wdlTools.eval.{DefaultEvalPaths, Eval, EvalException, WdlValueBindings, WdlValues}
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 import wdlTools.types.WdlTypes._
 import dx.util.{Adjuncts, FileSourceResolver, Logger}
@@ -80,7 +80,15 @@ case class CallableTranslator(wdlBundle: WdlBundle,
             // This is a task "input" parameter definition of the form:
             //    Int y = 3
             val defaultValue = evaluator.applyConstAndCoerce(defaultExpr, wdlType)
-            Parameter(name, irType, Some(WdlUtils.toIRValue(defaultValue, wdlType)), attrs)
+            (wdlType, defaultValue) match {
+              case (WdlTypes.T_File | WdlTypes.T_Optional(WdlTypes.T_File), file: WdlValues.V_File)
+                  if !WdlUtils.isDxFile(file) =>
+                // the default value cannot be specified in the input spec, so we leave it to be
+                // evaluated at runtime - e.g. a local file
+                Parameter(name, irType, None, attrs)
+              case _ =>
+                Parameter(name, irType, Some(WdlUtils.toIRValue(defaultValue, wdlType)), attrs)
+            }
           } catch {
             // This is a task "input" parameter definition of the form:
             //    Int y = x + 3
@@ -282,6 +290,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       *    String s = "glasses"
       *    ...
       *  }
+      *
       * @param input the workflow input
       * @return (parameter, isDynamic)
       */
@@ -298,7 +307,16 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         case ComputedBlockInput(name, _) =>
           throw new Exception(s"computed input ${name} cannot be a workflow input")
         case OverridableBlockInputWithStaticDefault(name, _, defaultValue) =>
-          (Parameter(name, irType, Some(WdlUtils.toIRValue(defaultValue, wdlType)), attr), false)
+          (wdlType, defaultValue) match {
+            case (WdlTypes.T_File | WdlTypes.T_Optional(WdlTypes.T_File), file: WdlValues.V_File)
+                if !WdlUtils.isDxFile(file) =>
+              // the default value cannot be specified in the input spec, so we leave it to be
+              // evaluated at runtime - e.g. a local file
+              (Parameter(name, irType, None, attr), true)
+            case _ =>
+              (Parameter(name, irType, Some(WdlUtils.toIRValue(defaultValue, wdlType)), attr),
+               false)
+          }
         case OverridableBlockInputWithDynamicDefault(name, _, _) =>
           // If the default value is an expression that requires evaluation (i.e. not a constant),
           // treat the input as an optional applet input and leave the default value to be calculated
