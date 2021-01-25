@@ -229,8 +229,8 @@ def main():
     home_ad = util.build(project, folder, version_id, top_dir, path_dict)
 
     if multi_region:
-        for lang, asset_desc in home_ad.asset_ids.items():
-            home_rec = dxpy.DXRecord(asset_desc)
+        for lang, asset_desc in home_ad.items():
+            home_rec = dxpy.DXRecord(asset_desc.asset_id)
             all_regions = project_dict.keys()
 
             # Leave only regions where the asset is missing
