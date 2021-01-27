@@ -146,10 +146,6 @@ cwl_compliance = [
     os.path.basename(path)[:-4]
     for path in glob.glob(os.path.join(test_dir, "cwl_compliance", "tools", "*.cwl"))
 ]
-cwl_compliance_failing = [
-    os.path.basename(path)[:-4]
-    for path in glob.glob(os.path.join(test_dir, "cwl_compliance", "failing", "*.cwl"))
-]
 
 # Tests run in continuous integration. We remove the native app test,
 # because we don't want to give permissions for creating platform apps.
@@ -188,8 +184,7 @@ test_suites = {
     'docker': docker_test_list,
     'native': ["call_native", "call_native_v1"],
     'docs': doc_tests_list,
-    'cwl_compliance': cwl_compliance,
-    'cwl_compliance_failing': cwl_compliance_failing
+    'cwl_compliance': cwl_compliance
 }
 
 # Tests with the reorg flags
