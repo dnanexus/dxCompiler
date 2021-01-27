@@ -9,7 +9,24 @@ import spray.json._
 import scala.collection.immutable.TreeSeqMap
 
 class ManifestTest extends AnyFlatSpec with Matchers {
-  val manifestJs: JsValue =
+  val userManifestJs: JsValue =
+    """
+      |{
+      |  "person": {
+      |    "name": {
+      |      "first": "John",
+      |      "last": "Smith"
+      |    },
+      |    "age": 42
+      |  },
+      |  "height_ft_in": {
+      |    "left": 6, 
+      |    "right": 1
+      |  },
+      |  "bank_account": "1234567890"
+      |}""".stripMargin.parseJson
+
+  val fullManifestJs: JsValue =
     """
       |{
       |  "id": "test",
@@ -118,10 +135,47 @@ class ManifestTest extends AnyFlatSpec with Matchers {
       |  }
       |}""".stripMargin.parseJson
 
-  it should "parse a manifest" in {
+  it should "parse a user manifest" in {
+    val nameType = TSchema("Name", TreeSeqMap("first" -> TString, "last" -> TString))
+    val personType = TSchema("Person",
+                             TreeSeqMap(
+                                 "name" -> nameType,
+                                 "age" -> TInt
+                             ))
+    val pairType = TSchema("Pair___(Int, Int)", TreeSeqMap("left" -> TInt, "right" -> TInt))
+    val types: Map[String, Type] = Map(
+        "person" -> personType,
+        "bank_account" -> TString,
+        "height_ft_in" -> pairType,
+        "ssn_digits" -> TOptional(TArray(TInt))
+    )
     val manifestParser = ManifestParser()
-    val manifest = manifestParser.parse(manifestJs)
-    manifest.id shouldBe "test"
+    val manifest = manifestParser.parseUserManifest(userManifestJs, types)
+    manifest.values should contain theSameElementsAs
+      Map(
+          "person" -> VHash(
+              TreeSeqMap(
+                  "name" -> VHash(
+                      TreeSeqMap("first" -> VString("John"), "last" -> VString("Smith"))
+                  ),
+                  "age" -> VInt(42)
+              )
+          ),
+          "height_ft_in" -> VHash(TreeSeqMap("left" -> VInt(6), "right" -> VInt(1))),
+          "bank_account" -> VString("1234567890")
+      )
+    manifest.definitions should contain theSameElementsAs
+      Map(
+          "Name" -> nameType,
+          "Person" -> personType,
+          "Pair___(Int, Int)" -> pairType
+      )
+  }
+
+  it should "parse a full manifest" in {
+    val manifestParser = ManifestParser()
+    val manifest = manifestParser.parseFullManifest(fullManifestJs)
+    manifest.id shouldBe Some("test")
     manifest.values should contain theSameElementsAs
       Map(
           "person" -> VHash(
@@ -162,7 +216,6 @@ class ManifestTest extends AnyFlatSpec with Matchers {
                              ))
     val pairType = TSchema("Pair___(Int, Int)", TreeSeqMap("left" -> TInt, "right" -> TInt))
     val manifest = Manifest(
-        "test",
         TreeSeqMap(
             "bank_account" -> VString("1234567890"),
             "height_ft_in" -> VHash(TreeSeqMap("left" -> VInt(6), "right" -> VInt(1))),
@@ -185,7 +238,8 @@ class ManifestTest extends AnyFlatSpec with Matchers {
             "Name" -> nameType,
             "Pair___(Int, Int)" -> pairType,
             "Person" -> personType
-        )
+        ),
+        id = Some("test")
     )
     manifest.toJson.prettyPrint shouldBe serializedManifestJs.prettyPrint
   }

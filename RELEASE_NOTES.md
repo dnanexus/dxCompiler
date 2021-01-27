@@ -1,12 +1,13 @@
 # Release Notes
 
-## 2.0.1 21-01-2021
+## 2.0.1 22-01-2021
 
 * Implement translator and executor for CWL (tools only)
 * Fix map keys and values being out of order
 * Fix to EvalException: identifier not found
 * Fix to passing non-optional empty arrays
-* Update documentation and WDL examples
+* Update and fix documentation and WDL examples
+* Upgrade [dxfuse](https://github.com/dnanexus/dxfuse/releases) to 0.23.3, which now mounts in a read-only mode by default
 
 ## 2.0.0 Release Notes Summary
 
