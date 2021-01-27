@@ -3,7 +3,7 @@ package dx.core.ir
 import dx.core.ir.Type.{TArray, TEnum, TMulti, TSchema}
 import dx.core.ir.ValueSerde.ValueSerdeException
 
-import scala.collection.immutable.SeqMap
+import scala.collection.immutable.{SeqMap, TreeSeqMap}
 
 /**
   * A language-independent representation of values used as input to/output from
@@ -37,10 +37,22 @@ object Value {
     */
   case class VArray(items: Vector[Value]) extends Value
 
+  object VArray {
+    def apply(items: Value*): VArray = {
+      VArray(items.toVector)
+    }
+  }
+
   /**
     * A JSON object. Fields are stored in a SeqMap to preserve their order.
     */
   case class VHash(fields: SeqMap[String, Value]) extends Value
+
+  object VHash {
+    def apply(fields: (String, Value)*): VHash = {
+      new VHash(fields.to(TreeSeqMap))
+    }
+  }
 
   /**
     * Transform a Value to another Value.

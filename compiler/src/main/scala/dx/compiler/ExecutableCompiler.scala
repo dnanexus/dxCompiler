@@ -1,6 +1,7 @@
 package dx.compiler
 
 import dx.api.{ConstraintOper, DxApi, DxConstraint, DxIOSpec}
+import dx.core.Constants
 import dx.core.ir.Value._
 import dx.core.ir.{
   Callable,
@@ -8,6 +9,7 @@ import dx.core.ir.{
   ParameterAttribute,
   ParameterLink,
   ParameterLinkSerializer,
+  Type,
   TypeSerde,
   Value,
   ValueSerde
@@ -24,6 +26,15 @@ import dx.translator.CallableAttributes.{
 import dx.translator.{Extras, ParameterAttributes}
 import spray.json._
 
+object ExecutableCompiler {
+  val InputManfestsParameter: Parameter =
+    Parameter(Constants.InputManifests, Type.TArray(Type.TFile))
+  val InputLinksParameter: Parameter = Parameter(Constants.InputLinks, Type.THash)
+  val WorkflowInputManfestsParameter: Parameter =
+    Parameter(Constants.WorkflowInputManifests, Type.TArray(Type.TFile))
+  val WorkflowInputLinksParameter: Parameter = Parameter(Constants.WorkflowInputLinks, Type.THash)
+  val OutputManifestParameter: Parameter = Parameter(Constants.OutputManifest, Type.TFile)
+}
 class ExecutableCompiler(extras: Option[Extras],
                          parameterLinkSerializer: ParameterLinkSerializer,
                          dxApi: DxApi = DxApi.get) {

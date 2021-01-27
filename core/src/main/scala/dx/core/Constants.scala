@@ -25,10 +25,13 @@ object Constants {
   val OutputStage = "outputs"
 
   // reserved parameter names
-  val InputManifests = "input_manifest___"
+  val InputManifests = "input_manifests___"
   val InputLinks = "input_links___"
+  val WorkflowInputManifests = "workflow_input_manifests___"
+  val WorkflowInputLinks = "workflow_input_links___"
   val OutputManifest = "output_manifest___"
   val ValueKey = "value___"
+  val WorkflowKey = "workflow___"
   val ReorgConfig = "reorg_conf___"
   val ReorgStatus = "reorg_status___"
   val ReorgStatusCompleted = "completed"

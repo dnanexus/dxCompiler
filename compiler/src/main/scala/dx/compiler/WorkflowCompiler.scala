@@ -8,7 +8,7 @@ import dx.translator.Extras
 import dx.util.{CodecUtils, Logger}
 import spray.json._
 
-import scala.collection.immutable.{SeqMap, TreeMap, TreeSeqMap}
+import scala.collection.immutable.TreeSeqMap
 
 case class WorkflowCompiler(extras: Option[Extras],
                             parameterLinkSerializer: ParameterLinkSerializer,
@@ -136,15 +136,18 @@ case class WorkflowCompiler(extras: Option[Extras],
       }
     }
     // sort the inputs, to make the request deterministic
-    val jsInputs: TreeMap[String, JsValue] = inputs.foldLeft(TreeMap.empty[String, JsValue]) {
-      case (accu, (parameter, stageInput)) =>
-        accu ++ createLink(stageInput, parameter.dxType)
-          .map { link =>
-            parameterLinkSerializer.createFieldsFromLink(link, parameter.dxName).to(TreeSeqMap)
+    JsObject(
+        inputs
+          .flatMap {
+            case (parameter, stageInput) =>
+              createLink(stageInput, parameter.dxType)
+                .map { link =>
+                  parameterLinkSerializer.createFieldsFromLink(link, parameter.dxName)
+                }
+                .getOrElse(Vector.empty)
           }
-          .getOrElse(SeqMap.empty)
-    }
-    JsObject(jsInputs)
+          .to(TreeSeqMap)
+    )
   }
 
   private def workflowAttributesToNative(
@@ -170,7 +173,7 @@ case class WorkflowCompiler(extras: Option[Extras],
   ): (Map[String, JsValue], JsValue) = {
     logger.trace(s"Building /workflow/new request for ${workflow.name}")
 
-    // convert inputs and outputs to spec
+    // build the "inputs" and "outputs" part of the API request
     val wfInputOutput: Map[String, JsValue] = {
       if (workflow.locked) {
         // Locked workflows have well defined inputs and outputs
@@ -183,15 +186,14 @@ case class WorkflowCompiler(extras: Option[Extras],
           //   key, or a link to a value in one of the manifests, which is a hash with
           //   a single field mapping the stage ID to the value. A value can also be an
           //   array of nested value/link hashes.
-          def getStageInputValue(stageInput: StageInput,
-                                 dxType: Type): (Set[DxWorkflowStage], Option[Value]) = {
+          def getWorkflowInputValue(stageInput: StageInput,
+                                    dxType: Type): (Set[DxWorkflowStage], Option[Value]) = {
             stageInput match {
               case EmptyInput => (Set.empty, None)
               case StaticInput(value) =>
-                (Set.empty, Some(Value.VHash(TreeSeqMap(Constants.ValueKey -> value))))
+                (Set.empty, Some(Value.VHash(Constants.ValueKey -> value)))
               case LinkInput(stageId, stageParamName) =>
-                (Set(stageId),
-                 Some(Value.VHash(TreeSeqMap(stageId.id -> Value.VString(stageParamName)))))
+                (Set(stageId), Some(Value.VHash(stageId.id -> Value.VString(stageParamName))))
               case ArrayInput(inputs) =>
                 val itemType = dxType match {
                   case Type.TArray(itemType, _) => itemType
@@ -200,7 +202,7 @@ case class WorkflowCompiler(extras: Option[Extras],
                         s"ArrayInput for stage input with type ${dxType} that is not a natively supported array type"
                     )
                 }
-                val (stages, values) = inputs.map(getStageInputValue(_, itemType)).unzip
+                val (stages, values) = inputs.map(getWorkflowInputValue(_, itemType)).unzip
                 (stages.flatten.toSet, Some(Value.VArray(values.flatten)))
               case _ =>
                 throw new Exception(s"invalid nested stage input ${stageInput}")
@@ -232,15 +234,15 @@ case class WorkflowCompiler(extras: Option[Extras],
                   s"locked workflow ${workflow.name} has empty required input ${param.name}"
               )
             case (param, stageInput) =>
-              val (inputStages, value) = getStageInputValue(stageInput, param.dxType)
+              val (inputStages, value) = getWorkflowInputValue(stageInput, param.dxType)
               (inputStages, value.map(v => param.name -> v))
           }.unzip
           val inputParams = Vector(
-              (Parameter(Constants.InputManifests, Type.TArray(Type.TFile)),
-               ArrayInput(inputStages.flatten.toSet.map { stage =>
-                 LinkInput(stage, Constants.OutputManifest)
-               }.toVector)),
-              (Parameter(Constants.InputLinks, Type.THash),
+              (ExecutableCompiler.InputManfestsParameter, ArrayInput(inputStages.flatten.toSet.map {
+                stage =>
+                  LinkInput(stage, Constants.OutputManifest)
+              }.toVector)),
+              (ExecutableCompiler.InputLinksParameter,
                StaticInput(Value.VHash(inputLinks.flatten.to(TreeSeqMap))))
           )
           // When using manifests, there is a single "output_manifest___" parameter, which
@@ -252,7 +254,7 @@ case class WorkflowCompiler(extras: Option[Extras],
             case _                   => throw new Exception("expected a single output stage")
           }
           val outputParams = Vector(
-              (Parameter(Constants.OutputManifest, Type.TFile),
+              (ExecutableCompiler.OutputManifestParameter,
                LinkInput(outputStage.dxStage, Constants.OutputManifest))
           )
           (inputParams, outputParams)
@@ -275,51 +277,88 @@ case class WorkflowCompiler(extras: Option[Extras],
       }
     }
 
+    // build the "stages" part of the API request
     val stages =
-      workflow.stages.foldLeft(Vector.empty[JsValue]) {
-        case (stagesReq, stg) =>
-          val CompiledExecutable(irApplet, dxExec, _, _) = executableDict(stg.calleeName)
-          val linkedInputs = if (useManifests) {
-            // when using manifests, we have to create an input array of all the
-            // manifests output by any linked stages, and a hash of links between
-            // the manifest fields and the stage inputs, plus any static values
-            val (wfLinks, stageLinks, manifests, staticInputs) = irApplet.inputVars
-              .zip(stg.inputs)
-              .foldLeft(Map.empty[String, JsValue],
-                        Map.empty[String, JsValue],
-                        Set.empty[x],
-                        Vector.empty[x]) {
-                case (accu, (param, EmptyInput))
-                    if Type.isOptional(param.dxType) || param.defaultValue.isDefined =>
-                  accu
-                case (_, (param, EmptyInput)) =>
-                  throw new Exception(
-                      s"""no input specified for stage input ${stg}.${param.name}; overriding required 
-                         |call inputs at runtime is not supported when using manifests""".stripMargin
-                        .replaceAll("\n", " ")
-                  )
-                case ((wfAccu, stageAccu, manifestAccu, staticAccu),
-                      (param, wfInput: WorkflowInput)) =>
-                  (wfAccu + (param.name -> JsString(wfInput.param.name)),
-                   stageAccu,
-                   manifestAccu +,
-                   staticAccu)
-                case ((wfAccu, linkAccu, staticAccu), (param, wfInput: LinkInput)) =>
-                  (wfAccu, linkAccu :+ (param, wfInput), staticAccu)
-                case ((wfAccu, linkAccu, staticAccu), (param, staticInput: StaticInput)) =>
-                  (wfAccu, linkAccu, staticAccu :+ (param, staticInput))
-              }
-          } else {
-            irApplet.inputVars.zip(stg.inputs)
+      workflow.stages.map { stage =>
+        val CompiledExecutable(irApplet, dxExec, _, _) = executableDict(stage.calleeName)
+        val linkedInputs = if (useManifests) {
+          // when using manifests, we have to create an input array of all the
+          // manifests output by any linked stages, and a hash of links between
+          // the manifest fields and the stage inputs, plus any static values
+          def getStageInputValue(
+              stageInput: StageInput,
+              dxType: Type
+          ): (Boolean, Set[DxWorkflowStage], Option[Value]) = {
+            stageInput match {
+              case EmptyInput => (false, Set.empty, None)
+              case StaticInput(value) =>
+                (false, Set.empty, Some(Value.VHash(Constants.ValueKey -> value)))
+              case WorkflowInput(wfParam) =>
+                (true,
+                 Set.empty,
+                 Some(Value.VHash(Constants.WorkflowKey -> Value.VString(wfParam.name))))
+              case LinkInput(sourceStage, sourceParamName) =>
+                (false,
+                 Set(sourceStage),
+                 Some(Value.VHash(sourceStage.id -> Value.VString(sourceParamName))))
+              case ArrayInput(inputs) =>
+                val itemType = dxType match {
+                  case Type.TArray(itemType, _) => itemType
+                  case _ =>
+                    throw new Exception(
+                        s"ArrayInput for stage input with type ${dxType} that is not a natively supported array type"
+                    )
+                }
+                val (inputWorkflow, inputStages, values) =
+                  inputs.map(getStageInputValue(_, itemType)).unzip3
+                (inputWorkflow.exists(identity),
+                 inputStages.flatten.toSet,
+                 Some(Value.VArray(values.flatten)))
+            }
           }
-          // convert the per-stage metadata into JSON
-          val stageReqDesc = JsObject(
-              Map("id" -> JsString(stg.dxStage.id),
-                  "executable" -> JsString(dxExec.id),
-                  "name" -> JsString(stg.description),
-                  "input" -> stageInputToNative(linkedInputs))
+          val (inputWorkflow, inputStages, inputLinks) = irApplet.inputVars
+            .zip(stage.inputs)
+            .map {
+              case (param, EmptyInput)
+                  if Type.isOptional(param.dxType) || param.defaultValue.isDefined =>
+                (false, Set.empty, None)
+              case (param, EmptyInput) =>
+                throw new Exception(
+                    s"""no input specified for stage input ${stage}.${param.name}; overriding required
+                       |call inputs at runtime is not supported when using manifests""".stripMargin
+                      .replaceAll("\n", " ")
+                )
+              case (param, stageInput) =>
+                val (inputWorkflow, inputStages, value) =
+                  getStageInputValue(stageInput, param.dxType)
+                (inputWorkflow, inputStages, value.map(v => param.name -> v))
+            }
+            .unzip3
+          val inputWorkflowManifest = if (inputWorkflow.exists(identity)) {
+            Vector(WorkflowInput(ExecutableCompiler.WorkflowInputManfestsParameter),
+                   WorkflowInput(ExecutableCompiler.WorkflowInputLinksParameter))
+          } else {
+            Vector.empty
+          }
+          val inputStageManifests = inputStages.flatten.toSet.map { stage =>
+            LinkInput(stage, Constants.OutputManifest)
+          }.toVector
+          Vector(
+              (ExecutableCompiler.InputManfestsParameter,
+               ArrayInput(inputWorkflowManifest ++ inputStageManifests)),
+              (ExecutableCompiler.InputLinksParameter,
+               StaticInput(Value.VHash(inputLinks.flatten.to(TreeSeqMap))))
           )
-          stagesReq :+ stageReqDesc
+        } else {
+          irApplet.inputVars.zip(stage.inputs)
+        }
+        // convert the per-stage metadata into JSON
+        JsObject(
+            Map("id" -> JsString(stage.dxStage.id),
+                "executable" -> JsString(dxExec.id),
+                "name" -> JsString(stage.description),
+                "input" -> stageInputToNative(linkedInputs))
+        )
       }
     // build the details JSON
     val defaultTags = Set(Constants.CompilerTag)
@@ -332,10 +371,9 @@ case class WorkflowCompiler(extras: Option[Extras],
     )
     // links through applets that run workflow fragments
     val transitiveDependencies: Vector[ExecutableLink] =
-      workflow.stages.foldLeft(Vector.empty[ExecutableLink]) {
-        case (accu, stg) =>
-          val CompiledExecutable(_, _, dependencies, _) = executableDict(stg.calleeName)
-          accu ++ dependencies
+      workflow.stages.flatMap { stage =>
+        val CompiledExecutable(_, _, dependencies, _) = executableDict(stage.calleeName)
+        dependencies
       }
     // link to applets used by the fragments. This notifies the platform that they
     // need to be cloned when copying workflows.

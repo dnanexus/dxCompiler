@@ -1,8 +1,8 @@
 package dx.translator
 
 import java.nio.file.{Path, Paths}
-
 import dx.api.{DxApi, DxFile, DxFileDescCache, DxProject}
+import dx.core.Constants
 import dx.core.ir.Type._
 import dx.core.ir.{
   Application,
@@ -205,7 +205,7 @@ class InputTranslator(bundle: Bundle,
             val stagesWithDefaults = workflow.stages.map { stage =>
               val callee: Callable = bundle.allCallables(stage.calleeName)
               logger.trace(s"addDefaultToStage ${stage.dxStage.id}, ${stage.description}")
-              val prefix = if (stage.dxStage.id == s"stage-${CommonStage}") {
+              val prefix = if (stage.dxStage.id == s"stage-${Constants.CommonStage}") {
                 workflow.name
               } else {
                 s"${workflow.name}.${stage.description}"
@@ -303,10 +303,10 @@ class InputTranslator(bundle: Bundle,
         val commonInputs = checkAndBindCallableInputs(wf, Some(commonStage))
         // filter out auxiliary stages
         val auxStages =
-          Set(s"stage-${CommonStage}",
-              s"stage-${EvalStage}",
-              s"stage-${OutputStage}",
-              s"stage-${ReorgStage}")
+          Set(Constants.CommonStage,
+              Constants.EvalStage,
+              Constants.OutputStage,
+              Constants.ReorgStage).map(stg => s"stage-${stg}")
         val middleStages = wf.stages.filterNot(stg => auxStages.contains(stg.dxStage.id))
         // Inputs for top level calls
         val middleInputs = middleStages.flatMap { stage =>
