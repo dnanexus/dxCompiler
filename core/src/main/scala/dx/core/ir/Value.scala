@@ -43,61 +43,48 @@ object Value {
   case class VHash(fields: SeqMap[String, Value]) extends Value
 
   /**
-    * Transform a Value to another Value.
+    * Transforms a Value to another Value, applying the `handler` function
+    * at each level of nesting. The default rules handle recursively
+    * descending into parameterized types (VArray, VHash) but otherwise
+    * leave the original value unchanged.
     * @param value the Value to transform
     * @param t an optional Type to which the value should be transformed
-    * @param handler an optional function to handle special cases. If the
-    *                function returns Some(newValue), then newValue is
+    * @param handler a function that may transform a Value to another Value.
+    *                If the function returns Some(newValue), then newValue is
     *                the result of the transformation, otherwise the default
-    *                transformation rules are used.
+    *                transformation rules are applied.
     * @return the transformed Value
     */
   def transform(value: Value,
                 t: Option[Type],
-                handler: (Value, Boolean) => Option[Value]): Value = {
+                handler: (Value, Option[Type], Boolean) => Option[Value]): Value = {
     def inner(innerValue: Value, innerType: Option[Type] = None): Value = {
       val (nonOptType, optional) = if (innerType.exists(Type.isOptional)) {
         (Some(Type.unwrapOptional(innerType.get)), true)
       } else {
-        (innerType, false)
+        (innerType, true)
       }
-      handler(innerValue, optional).getOrElse {
+      handler(innerValue, nonOptType, optional).getOrElse {
         (nonOptType, innerValue) match {
-          case (Some(TMulti(types)), value) if types.isEmpty => inner(value)
-          case (Some(TMulti(types)), value: Value) =>
-            types.foreach { t =>
-              try {
-                return inner(value, Some(t))
-              } catch {
-                case _: ValueSerdeException => ()
-              }
-            }
-            throw ValueSerdeException(s"value ${value} does not match any of ${types}")
+          case (_, VNull) if optional => VNull
+          case (_, VNull) =>
+            throw new Exception(s"null value for non-optional type ${innerType.get}")
           case (Some(TArray(_, true)), VArray(Vector())) =>
-            throw ValueSerdeException("empty array for non-empty array type")
+            throw new Exception("empty array for non-empty array type")
           case (Some(TArray(itemType, _)), VArray(items)) =>
             VArray(items.map(inner(_, Some(itemType))))
-          case (None, VArray(items)) => VArray(items.map(inner(_)))
-          case (Some(TSchema(schemaName, fieldTypes)), VHash(fields)) =>
-            val extra = fieldTypes.keySet.diff(fields.keySet)
-            if (extra.nonEmpty) {
-              throw ValueSerdeException(
-                  s"invalid field(s) ${extra} in schema ${schemaName} value ${fields}"
-              )
-            }
-            VHash(fieldTypes.collect {
-              case (name, t) if fieldTypes.contains(name) =>
-                name -> inner(fields(name), Some(t))
-              case (name, t) if !Type.isOptional(t) =>
-                throw ValueSerdeException(
-                    s"missing non-optional member ${name} of schema ${schemaName}"
-                )
+          case (_, VArray(items)) => VArray(items.map(inner(_)))
+          case (Some(TSchema(name, fieldTypes)), VHash(fields)) =>
+            VHash(fields.map {
+              case (k, _) if !fieldTypes.contains(k) =>
+                throw new Exception(s"invalid member ${k} of schema ${name}")
+              case (k, v) => k -> inner(v, Some(fieldTypes(k)))
             })
           case (_, VHash(fields)) =>
             VHash(fields.map { case (k, v) => k -> inner(v) })
           case (Some(TEnum(symbols)), s: VString) if symbols.contains(s.value) => s
           case (Some(TEnum(symbols)), other) =>
-            throw ValueSerdeException(
+            throw new Exception(
                 s"${other} is not one of the allowed symbols ${symbols.mkString(",")}"
             )
           case _ => innerValue
