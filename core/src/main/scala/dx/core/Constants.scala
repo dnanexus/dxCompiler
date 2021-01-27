@@ -27,8 +27,8 @@ object Constants {
   // reserved parameter names
   val InputManifests = "input_manifest___"
   val InputLinks = "input_links___"
-  val OutputManifests = "output_manifests___"
-  val OutputLinks = "output_links___"
+  val OutputManifest = "output_manifest___"
+  val ValueKey = "value___"
   val ReorgConfig = "reorg_conf___"
   val ReorgStatus = "reorg_status___"
   val ReorgStatusCompleted = "completed"

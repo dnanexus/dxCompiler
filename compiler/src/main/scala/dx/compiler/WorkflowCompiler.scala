@@ -8,7 +8,7 @@ import dx.translator.Extras
 import dx.util.{CodecUtils, Logger}
 import spray.json._
 
-import scala.collection.immutable.{TreeMap, TreeSeqMap}
+import scala.collection.immutable.{SeqMap, TreeMap, TreeSeqMap}
 
 case class WorkflowCompiler(extras: Option[Extras],
                             parameterLinkSerializer: ParameterLinkSerializer,
@@ -20,42 +20,77 @@ case class WorkflowCompiler(extras: Option[Extras],
   private def workflowInputParameterToNative(parameter: Parameter,
                                              stageInput: StageInput): Vector[JsValue] = {
     // The default value can come from the stageInput or the parameter
-    val paramWithDefault = stageInput match {
-      case WorkflowInput(wfParam) if wfParam != parameter =>
-        parameter.copy(defaultValue = wfParam.defaultValue)
-      case StaticInput(value) => parameter.copy(defaultValue = Some(value))
-      case _                  => parameter
+    def getDefault(stageInput: StageInput): Option[Option[Value]] = {
+      stageInput match {
+        case WorkflowInput(wfParam) if wfParam != parameter => Some(wfParam.defaultValue)
+        case StaticInput(value)                             => Some(Some(value))
+        case ArrayInput(inputs) =>
+          val inputValues = inputs.flatMap(getDefault)
+          if (inputValues.isEmpty) {
+            None
+          } else {
+            Some(Some(Value.VArray(inputValues.flatten)))
+          }
+        case _ => None
+      }
     }
+    val paramWithDefault = getDefault(stageInput)
+      .map(value => parameter.copy(defaultValue = value))
+      .getOrElse(parameter)
     inputParameterToNative(paramWithDefault)
   }
 
-  // Note: a single WDL output can generate one or two JSON outputs.
+  /**
+    * Converts a workflow output paramter to outputSpec JSON. A complex ouptut
+    * will generate two output specs - one for the value and one for an array
+    * of files that are nested within the complex value.
+    * @param parameter the workflow output Parameter
+    * @param stageInput the StageInput from which the workflow output is derived
+    * @return
+    */
   private def workflowOutputParameterToNative(parameter: Parameter,
                                               stageInput: StageInput): Vector[JsValue] = {
     val outputSpec: Map[String, Map[String, JsValue]] =
       outputParameterToNative(parameter).map { obj =>
         val name = obj.fields.get("name") match {
           case Some(JsString(name)) => name
-          case other                => throw new Exception(s"Unexpected value for 'name' field: ${other}")
+          case other =>
+            throw new Exception(s"Unexpected value for 'name' field: ${other}")
         }
         name -> obj.fields
       }.toMap
 
-    val outputSources: Vector[(String, JsValue)] = stageInput match {
-      case StaticInput(value) =>
-        Vector(parameterLinkSerializer.createConstantField(value, parameter.dxName))
-      case LinkInput(dxStage, paramName) =>
-        val link = ParameterLinkStage(dxStage, IORef.Output, paramName, parameter.dxType)
-        parameterLinkSerializer.createFieldsFromLink(link, parameter.dxName)
-      case WorkflowInput(wfParam) =>
-        // TODO: if the input has a non-static default, link to the value of the workflow input
-        //  (either the user-specified value or the result of evaluting the expression)
-        //  - right now this only links to the user-specified value
-        val link = ParameterLinkWorkflowInput(wfParam.dxName, parameter.dxType)
-        parameterLinkSerializer.createFieldsFromLink(link, parameter.dxName)
-      case other =>
-        throw new Exception(s"Bad value for stage input ${other}")
+    def createLink(stageInput: StageInput, dxType: Type): ParameterLink = {
+      stageInput match {
+        case StaticInput(value) => parameterLinkSerializer.createLink(dxType, value)
+        case LinkInput(dxStage, paramName) =>
+          ParameterLinkStage(dxStage, IORef.Output, paramName, dxType)
+        case WorkflowInput(wfParam) =>
+          // TODO: if the input has a non-static default, link to the value of the workflow input
+          //  (either the user-specified value or the result of evaluting the expression)
+          //  - right now this only links to the user-specified value
+          ParameterLinkWorkflowInput(wfParam.dxName, dxType)
+        case ArrayInput(stageInputs) =>
+          val itemType = dxType match {
+            case Type.TArray(itemType, _) if Type.isNative(itemType) => itemType
+            case _ =>
+              throw new Exception(
+                  s"""ArrayInput for workflow output parameter ${parameter.name} with type ${dxType} 
+                     |that is not a natively supported array type""".stripMargin
+                    .replaceAll("\n", " ")
+              )
+          }
+          ParameterLinkValue(JsArray(stageInputs.map { i =>
+            parameterLinkSerializer.serializeSimpleLink(createLink(i, itemType))
+          }), dxType)
+        case other =>
+          throw new Exception(s"Bad value for stage input ${other}")
+      }
     }
+
+    val outputSources: Vector[(String, JsValue)] =
+      parameterLinkSerializer.createFieldsFromLink(createLink(stageInput, parameter.dxType),
+                                                   parameter.dxName)
 
     // merge the specification and the output sources
     outputSources.map {
@@ -65,32 +100,49 @@ case class WorkflowCompiler(extras: Option[Extras],
   }
 
   /**
-    * Translates stage inputs to JSON.
+    * Translates stage inputs to native input spec.
     * @param inputs stage inputs
     * @return
     */
   private def stageInputToNative(inputs: Vector[(Parameter, StageInput)]): JsValue = {
+    def createLink(stageInput: StageInput, dxType: Type): Option[ParameterLink] = {
+      stageInput match {
+        case EmptyInput =>
+          // We do not have a value for this input at compile time. For compulsory applet inputs,
+          // the user will have to fill in a value at runtime.
+          None
+        case StaticInput(value) =>
+          Some(parameterLinkSerializer.createLink(dxType, value))
+        case LinkInput(dxStage, paramName) =>
+          Some(ParameterLinkStage(dxStage, IORef.Output, paramName, dxType))
+        case WorkflowInput(wfParam) =>
+          Some(ParameterLinkWorkflowInput(wfParam.dxName, dxType))
+        case ArrayInput(stageInputs) =>
+          val itemType = dxType match {
+            case Type.TArray(itemType, _) if Type.isNative(itemType) => itemType
+            case _ =>
+              throw new Exception(
+                  s"ArrayInput for stage input with type ${dxType} that is not a natively supported array type"
+              )
+          }
+          val inputs = stageInputs.flatMap { i =>
+            createLink(i, itemType).map(parameterLinkSerializer.serializeSimpleLink)
+          }
+          if (inputs.isEmpty) {
+            None
+          } else {
+            Some(ParameterLinkValue(JsArray(inputs), dxType))
+          }
+      }
+    }
     // sort the inputs, to make the request deterministic
     val jsInputs: TreeMap[String, JsValue] = inputs.foldLeft(TreeMap.empty[String, JsValue]) {
       case (accu, (parameter, stageInput)) =>
-        stageInput match {
-          case EmptyInput =>
-            // We do not have a value for this input at compile time. For compulsory applet inputs,
-            // the user will have to fill in a value at runtime.
-            accu
-          case StaticInput(value) =>
-            val fields =
-              parameterLinkSerializer.createFields(parameter.dxName, parameter.dxType, value)
-            accu ++ fields.toMap
-          case LinkInput(dxStage, paramname) =>
-            val link = ParameterLinkStage(dxStage, IORef.Output, paramname, parameter.dxType)
-            val fields = parameterLinkSerializer.createFieldsFromLink(link, parameter.dxName)
-            accu ++ fields.toMap
-          case WorkflowInput(wfParam) =>
-            val link = ParameterLinkWorkflowInput(wfParam.dxName, parameter.dxType)
-            val fields = parameterLinkSerializer.createFieldsFromLink(link, parameter.dxName)
-            accu ++ fields.toMap
-        }
+        accu ++ createLink(stageInput, parameter.dxType)
+          .map { link =>
+            parameterLinkSerializer.createFieldsFromLink(link, parameter.dxName).to(TreeSeqMap)
+          }
+          .getOrElse(SeqMap.empty)
     }
     JsObject(jsInputs)
   }
@@ -102,9 +154,9 @@ case class WorkflowCompiler(extras: Option[Extras],
     val (commonMeta, commonDetails) = callableAttributesToNative(workflow, defaultTags)
     val workflowMeta = workflow.attributes.collect {
       // These will be implemented in a future PR
-      case CallNamesAttribute(_) =>
+      case _: CallNamesAttribute =>
         throw new NotImplementedError()
-      case RunOnSingleNodeAttribute(_) =>
+      case _: RunOnSingleNodeAttribute =>
         throw new NotImplementedError()
       // These are currently ignored because they only apply to apps
       //case VersionAttribute(text) => Some("version" -> JsString(text))
@@ -123,36 +175,87 @@ case class WorkflowCompiler(extras: Option[Extras],
       if (workflow.locked) {
         // Locked workflows have well defined inputs and outputs
         val (inputParams, outputParams) = if (useManifests) {
-          // When using manifests, the first stage is always a common input stage,
-          // and the last stage is always a common output stage. We need to
-
-          // link manifest workflow outputs to all the stages providing actual workflow outputs
-          val (wfLinks, stageLinks, stageManifests) =
-            workflow.outputs.foldLeft(Map.empty[String, Value],
-                                      Map.empty[String, Map[String, Value]],
-                                      Set.empty[DxWorkflowStage]) {
-              case ((wfAccu, stageAccu, stageManifestAccu), (param, wfInput: WorkflowInput)) =>
-                (wfAccu + (param.name -> Value.VString(wfInput.param.name)),
-                 stageAccu,
-                 stageManifestAccu)
-              case ((wfAccu, stageAccu, stageManifestAccu), (param, linkInput: LinkInput)) =>
-                (wfAccu, stageAccu + stageAccu.getOrElse(), stageManifestAccu + linkInput.stageId)
-              case (accu, _) => accu
-            }
-          (Vector(
-               (Parameter(Constants.InputManifests, Type.TArray(Type.TFile)), EmptyInput),
-               (Parameter(Constants.InputLinks, Type.THash), EmptyInput)
-           ),
-           Vector(
-               (Parameter(Constants.OutputManifests, Type.TArray(Type.TFile)), x),
-               (Parameter(Constants.OutputLinks, Type.THash),
-                StaticInput(
-                    Value.VHash(
-                        TreeSeqMap(Constants.WorkflowLinksKey -> wfLinks,
-                                   Constants.StageLinksKey -> stageLinks)
+          // When using manifests, there are two input parameters:
+          // * "input_manifests___": an array of all the manifest files from the
+          //   upstream stages in any workflow LinkInputs
+          // * "input_links___": a hash of parameter names to values, where a value
+          //   may be a static value, which must be embedded in a hash with a "value___"
+          //   key, or a link to a value in one of the manifests, which is a hash with
+          //   a single field mapping the stage ID to the value. A value can also be an
+          //   array of nested value/link hashes.
+          def getStageInputValue(stageInput: StageInput,
+                                 dxType: Type): (Set[DxWorkflowStage], Option[Value]) = {
+            stageInput match {
+              case EmptyInput => (Set.empty, None)
+              case StaticInput(value) =>
+                (Set.empty, Some(Value.VHash(TreeSeqMap(Constants.ValueKey -> value))))
+              case LinkInput(stageId, stageParamName) =>
+                (Set(stageId),
+                 Some(Value.VHash(TreeSeqMap(stageId.id -> Value.VString(stageParamName)))))
+              case ArrayInput(inputs) =>
+                val itemType = dxType match {
+                  case Type.TArray(itemType, _) => itemType
+                  case _ =>
+                    throw new Exception(
+                        s"ArrayInput for stage input with type ${dxType} that is not a natively supported array type"
                     )
-                ))
-           ))
+                }
+                val (stages, values) = inputs.map(getStageInputValue(_, itemType)).unzip
+                (stages.flatten.toSet, Some(Value.VArray(values.flatten)))
+              case _ =>
+                throw new Exception(s"invalid nested stage input ${stageInput}")
+            }
+          }
+          val (inputStages, inputLinks) = workflow.inputs.map {
+            case (param, EmptyInput)
+                if param.defaultValue.isDefined || Type.isOptional(param.dxType) =>
+              // an optional input - the value will come from the default or will be null
+              (Set.empty, None)
+            case (_, EmptyInput) if workflow.level == Level.Top =>
+              // a top-level workflow input - the value (if any) will be supplied
+              // in the input manifest
+              (Set.empty, None)
+            case (param, WorkflowInput(wfParam))
+                if param == wfParam && (
+                    param.defaultValue.isDefined || Type.isOptional(param.dxType)
+                ) =>
+              // an optional input - the value will come from the default or will be null
+              (Set.empty, None)
+            case (param, WorkflowInput(wfParam))
+                if param == wfParam && workflow.level == Level.Top =>
+              // a top-level workflow input - this is a top-level workflow,
+              // so the value (if any) will be supplied in the input manifest
+              (Set.empty, None)
+            case (param, EmptyInput | _: WorkflowInput) =>
+              // empty required inputs are not allowed for nested locked workflows
+              throw new Exception(
+                  s"locked workflow ${workflow.name} has empty required input ${param.name}"
+              )
+            case (param, stageInput) =>
+              val (inputStages, value) = getStageInputValue(stageInput, param.dxType)
+              (inputStages, value.map(v => param.name -> v))
+          }.unzip
+          val inputParams = Vector(
+              (Parameter(Constants.InputManifests, Type.TArray(Type.TFile)),
+               ArrayInput(inputStages.flatten.toSet.map { stage =>
+                 LinkInput(stage, Constants.OutputManifest)
+               }.toVector)),
+              (Parameter(Constants.InputLinks, Type.THash),
+               StaticInput(Value.VHash(inputLinks.flatten.to(TreeSeqMap))))
+          )
+          // When using manifests, there is a single "output_manifest___" parameter, which
+          // is a manifest file. The common output applet is responsible for merging all
+          // incomming manifests into a single manifest, so the workflow output is just a
+          // link to the common stage output.
+          val outputStage = workflow.stages.filter(_.description == Constants.OutputStage) match {
+            case Vector(outputStage) => outputStage
+            case _                   => throw new Exception("expected a single output stage")
+          }
+          val outputParams = Vector(
+              (Parameter(Constants.OutputManifest, Type.TFile),
+               LinkInput(outputStage.dxStage, Constants.OutputManifest))
+          )
+          (inputParams, outputParams)
         } else {
           (workflow.inputs, workflow.outputs)
         }

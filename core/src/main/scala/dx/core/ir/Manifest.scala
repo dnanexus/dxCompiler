@@ -72,28 +72,31 @@ case class ManifestParser(typeAliases: Map[String, Type] = Map.empty,
       case Some(JsObject(values)) => values
       case other                  => throw new Exception(s"invalid manifest values ${other}")
     }
-    val jsDefinitions: Map[String, JsValue] = fields.get("definitions") match {
+    val jsDefinitions = fields.get("definitions") match {
       case Some(JsObject(fields)) => fields
-      case None                   => Map.empty
+      case None                   => Map.empty[String, JsValue]
       case other                  => throw new Exception(s"invalid 'definitions' ${other}")
     }
     val (types, definitions) = fields.get("types") match {
       case Some(JsObject(typeDefs)) =>
-        TypeSerde.deserializeMap(typeDefs, typeAliases, jsDefinitions)
-      case other => throw new Exception(s"invalid 'types' ${other}")
-    }
-    expectedTypes.foreach {
-      case expected if expected.keySet != types.keySet =>
-        throw new Exception(
-            s"mismatch between actual and expected types: ${types} != ${expected}"
-        )
-      case expected =>
-        expected.foreach {
-          case (name, t) if t != types(name) =>
+        val (types, definitions) = TypeSerde.deserializeMap(typeDefs, typeAliases, jsDefinitions)
+        expectedTypes.foreach {
+          case expected if expected.keySet != types.keySet =>
             throw new Exception(
-                s"mismatch between '${name}' actual and expected type definition: ${t} != ${types(name)}"
+                s"mismatch between actual and expected types: ${types} != ${expected}"
             )
+          case expected =>
+            expected.foreach {
+              case (name, t) if t != types(name) =>
+                throw new Exception(
+                    s"mismatch between '${name}' actual and expected type definition: ${t} != ${types(name)}"
+                )
+            }
         }
+        (types, definitions)
+      case None if expectedTypes.isDefined =>
+        (expectedTypes.get, Map.empty[String, Type])
+      case other => throw new Exception(s"invalid 'types' ${other}")
     }
     val values = types.flatMap {
       case (name, t) if jsValues.contains(name) =>

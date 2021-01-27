@@ -303,7 +303,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       }
 
     val outputParams = if (useManifests) {
-      Vector(Parameter(Constants.OutputManifests, Type.TArray(Type.TFile)))
+      Vector(Parameter(Constants.OutputManifest, Type.TFile))
     } else {
       applet.outputs
     }

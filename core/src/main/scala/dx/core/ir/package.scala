@@ -239,6 +239,7 @@ case object EmptyInput extends StageInput
 case class StaticInput(value: Value) extends StageInput
 case class LinkInput(stageId: DxWorkflowStage, paramName: String) extends StageInput
 case class WorkflowInput(param: Parameter) extends StageInput
+case class ArrayInput(stageInputs: Vector[StageInput]) extends StageInput
 
 // A stage can call an application or a workflow.
 //

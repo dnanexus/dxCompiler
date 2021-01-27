@@ -199,12 +199,10 @@ object ValueSerde extends DefaultJsonProtocol {
         case None                   => innerValue
       }
       (innerType, v) match {
-        case (TOptional(_), JsNull) => VNull
-        case (TOptional(t), _)      => inner(v, t)
-        case (any: TMulti, _) if any.bounds.isEmpty && isWrappedValue(v) =>
-          inner(unwrapValue(v), any)
-        case (TMulti(bounds), _) if bounds.isEmpty => deserialize(v)
-        case (TMulti(bounds), _) if isWrappedValue(v) =>
+        case (TOptional(_), JsNull)                => VNull
+        case (TOptional(t), _)                     => inner(v, t)
+        case (TMulti(bounds), _) if bounds.isEmpty => deserialize(unwrapValue(v))
+        case (TMulti(bounds), _) =>
           val unwrappedValue = unwrapValue(v)
           bounds.foreach { t =>
             try {

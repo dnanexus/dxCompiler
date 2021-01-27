@@ -135,6 +135,29 @@ case class ParameterLinkSerializer(fileResolver: FileSourceResolver = FileSource
     (bindEncName, ValueSerde.serialize(value))
   }
 
+  def serializeSimpleLink(link: ParameterLink): JsValue = {
+    link match {
+      case ParameterLinkValue(jsLinkvalue, _) => jsLinkvalue
+      case ParameterLinkStage(dxStage, ioRef, varEncName, _) =>
+        ioRef match {
+          case IORef.Input =>
+            dxStage.getInputReference(Parameter.encodeDots(varEncName))
+          case IORef.Output =>
+            dxStage.getOutputReference(Parameter.encodeDots(varEncName))
+        }
+      case ParameterLinkWorkflowInput(varEncName, _) =>
+        JsObject(
+            DxUtils.DxLinkKey -> JsObject(
+                ParameterLink.WorkflowInputFieldKey -> JsString(
+                    Parameter.encodeDots(varEncName)
+                )
+            )
+        )
+      case ParameterLinkExec(dxJob, varEncName, _) =>
+        DxUtils.dxExecutionToEbor(dxJob, Parameter.encodeDots(varEncName))
+    }
+  }
+
   // create input/output fields that bind the variable name [bindName] to
   // this WdlVar
   def createFieldsFromLink(link: ParameterLink,
@@ -148,27 +171,7 @@ case class ParameterLinkSerializer(fileResolver: FileSourceResolver = FileSource
       }
     if (Type.isNative(link.dxType)) {
       // Types that are supported natively in DX
-      val jsv: JsValue = link match {
-        case ParameterLinkValue(jsLinkvalue, _) => jsLinkvalue
-        case ParameterLinkStage(dxStage, ioRef, varEncName, _) =>
-          ioRef match {
-            case IORef.Input =>
-              dxStage.getInputReference(Parameter.encodeDots(varEncName))
-            case IORef.Output =>
-              dxStage.getOutputReference(Parameter.encodeDots(varEncName))
-          }
-        case ParameterLinkWorkflowInput(varEncName, _) =>
-          JsObject(
-              DxUtils.DxLinkKey -> JsObject(
-                  ParameterLink.WorkflowInputFieldKey -> JsString(
-                      Parameter.encodeDots(varEncName)
-                  )
-              )
-          )
-        case ParameterLinkExec(dxJob, varEncName, _) =>
-          DxUtils.dxExecutionToEbor(dxJob, Parameter.encodeDots(varEncName))
-      }
-      Vector((encodedName, jsv))
+      Vector((encodedName, serializeSimpleLink(link)))
     } else {
       // Complex type requiring two fields: a JSON structure, and a flat array of files.
       val fileArrayName = s"${encodedName}${ParameterLink.FlatFilesSuffix}"
