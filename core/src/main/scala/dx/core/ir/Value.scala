@@ -1,7 +1,6 @@
 package dx.core.ir
 
-import dx.core.ir.Type.{TArray, TEnum, TMulti, TSchema}
-import dx.core.ir.ValueSerde.ValueSerdeException
+import dx.core.ir.Type.{TArray, TEnum, TSchema}
 
 import scala.collection.immutable.SeqMap
 
