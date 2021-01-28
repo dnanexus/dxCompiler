@@ -355,13 +355,13 @@ object CwlUtils {
       val flattenedTypes = flattenTypes(innerCwlTypes)
       flattenedTypes.foreach { t =>
         try {
-          (t, inner(innerValue, t, innerName))
+          return (t, inner(innerValue, t, innerName))
         } catch {
           case _: Throwable => None
         }
       }
       throw new Exception(
-          s"cannot convert ${innerName} (${innerCwlTypes}, ${innerValue}) to CWL value"
+          s"cannot convert ${innerName} ${innerValue} to CWL value of any type ${flattenedTypes}"
       )
     }
     innerMulti(value, cwlTypes, name)
