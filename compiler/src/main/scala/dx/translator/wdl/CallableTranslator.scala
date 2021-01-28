@@ -481,11 +481,22 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       }.toMap
     }
 
-    // split a part of a workflow
+    /**
+      * Split a part of a workflow into blocks.
+      * @param statements the WorkflowElements
+      * @return (inputs, blocks, outputs), where inputs is the closure of all the statement
+      *         inputs and outputs are references to all of the private variables and call
+      *         outputs produced by the statements.
+      */
     private def splitWorkflowElements(
         statements: Vector[TAT.WorkflowElement]
     ): (Vector[WdlBlockInput], Vector[WdlBlock], Vector[TAT.OutputParameter]) = {
       val (inputs, outputs) = WdlUtils.getClosureInputsAndOutputs(statements, withField = true)
+      // the outputs still have their original expressions - we need to replace them with identifier expressions
+      val workflowOutputs = outputs.values.map {
+        case TAT.OutputParameter(name, wdlType, expr, loc) =>
+          name -> TAT.OutputParameter(name, wdlType, TAT.ExprIdentifier(, expr.wdlType, expr.loc), loc)
+      }
       val subBlocks = WdlBlock.createBlocks(statements)
       (WdlBlockInput.create(inputs), subBlocks, outputs.values.toVector)
     }

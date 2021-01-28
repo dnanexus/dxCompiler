@@ -1214,6 +1214,16 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     retval shouldBe a[SuccessIR]
   }
 
+  it should "work correctly with nested pairs in a simple scatter" taggedAs EdgeTest in {
+    val path = pathFromBasename("bugs", basename = "apps-370.wdl")
+    val cFlagsNotQuiet = cFlags.filter(_ != "-quiet")
+    val args = path.toString :: cFlagsNotQuiet
+    //          :: "--verbose"
+    //          :: "--verboseKey" :: "GenerateIR"
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessIR]
+  }
+
   // Check parameter_meta pattern: ["array"]
   it should "recognize pattern in parameters_meta via WDL" in {
     val path = pathFromBasename("compiler", "pattern_params.wdl")
