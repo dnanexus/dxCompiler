@@ -2,11 +2,12 @@ package dx.core.ir
 
 import java.nio.charset.Charset
 import java.nio.file.{Files, Path, Paths}
-
 import dx.core.ir.Type._
 import dx.core.ir.Value._
 import dx.util.{FileUtils, JsUtils, Logger, SysUtils}
 import spray.json._
+
+import scala.collection.immutable.TreeSeqMap
 
 /**
   * Interface for mounting or appending to a squashfs image.
@@ -269,21 +270,21 @@ object Archive {
     def transformFile(path: String): (VFile, Map[Path, Path]) = {
       val oldPath = Paths.get(path)
       val newPath = transformer(oldPath)
-      (VFile(newPath.toString), Map(oldPath -> newPath))
+      (VFile(newPath.toString), TreeSeqMap(oldPath -> newPath))
     }
     def transformNoType(innerValue: Value): (Value, Map[Path, Path]) = {
       innerValue match {
         case VFile(s) => transformFile(s)
-        case VArray(value) =>
-          val (items, paths) = value.map(transformNoType).unzip
-          (VArray(items), paths.flatten.toMap)
-        case VHash(members) =>
-          val (newMembers, paths) = members.map {
+        case VArray(items) =>
+          val (transformedItems, paths) = items.map(transformNoType).unzip
+          (VArray(transformedItems), paths.flatten.toMap)
+        case VHash(fields) =>
+          val (transformedFields, paths) = fields.map {
             case (k, v) =>
               val (value, paths) = transformNoType(v)
               (k -> value, paths)
           }.unzip
-          (VHash(newMembers.toMap), paths.flatten.toMap)
+          (VHash(transformedFields.to(TreeSeqMap)), paths.flatten.toMap)
         case _ =>
           (innerValue, Map.empty)
       }
@@ -297,20 +298,16 @@ object Archive {
         case (TOptional(t), value) if value != VNull =>
           val (v, paths) = transformWithType(value, t)
           (v, paths)
-        case (TArray(itemType, _), VArray(value)) =>
-          val (items, paths) = value.map(transformWithType(_, itemType)).unzip
-          (VArray(items), paths.flatten.toMap)
-        case (TSchema(name, memberTypes), VHash(members)) =>
-          val (newMembers, paths) = members.map {
-            case (k, v) =>
-              val valueType = memberTypes.getOrElse(
-                  k,
-                  throw new RuntimeException(s"${k} is not a member of schema ${name}")
-              )
-              val (value, paths) = transformWithType(v, valueType)
-              (k -> value, paths)
+        case (TArray(itemType, _), VArray(items)) =>
+          val (transformedItems, paths) = items.map(transformWithType(_, itemType)).unzip
+          (VArray(transformedItems), paths.flatten.toMap)
+        case (TSchema(name, fieldTypes), VHash(fields)) =>
+          val (transformedFields, paths) = fieldTypes.collect {
+            case (name, t) if fields.contains(name) =>
+              val (transformedValue, paths) = transformWithType(fields(name), t)
+              (name -> transformedValue, paths)
           }.unzip
-          (VHash(newMembers.toMap), paths.flatten.toMap)
+          (VHash(transformedFields.to(TreeSeqMap)), paths.flatten.toMap)
         case (THash, _: VHash) =>
           transformNoType(innerValue)
         case _ =>

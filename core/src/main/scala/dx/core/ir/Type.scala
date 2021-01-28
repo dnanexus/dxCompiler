@@ -1,6 +1,7 @@
 package dx.core.ir
 
 import scala.annotation.tailrec
+import scala.collection.immutable.SeqMap
 
 sealed trait Type
 
@@ -44,16 +45,17 @@ object Type {
 
   /**
     * Represents a user-defined type. Values of this type are represented
-    * as VHash.
+    * as VHash. Fields are stored in a SeqMap to preserve their order.
     * @param name type name
     */
-  case class TSchema(name: String, members: Map[String, Type]) extends TCollection
+  case class TSchema(name: String, fields: SeqMap[String, Type]) extends TCollection
 
   /**
-    * Represents a String that is restricted to the specified values.
-    * @param allowedValues set of allowed strings in enum
+    * Represents a String that is restricted to the specified symbols.
+    * Symbols are stored in a Vector to preserve their order.
+    * @param symbols set of allowed symbols in enum
     */
-  case class TEnum(allowedValues: Set[String]) extends PrimitiveType
+  case class TEnum(symbols: Vector[String]) extends PrimitiveType
 
   @tailrec
   def isPrimitive(t: Type): Boolean = {
@@ -129,6 +131,23 @@ object Type {
     t match {
       case TOptional(TOptional(_)) => true
       case _                       => false
+    }
+  }
+
+  def collectSchemas(types: Vector[Type]): Map[String, TSchema] = {
+    def inner(t: Type, schemas: Map[String, TSchema]): Map[String, TSchema] = {
+      t match {
+        case schema: TSchema if !schemas.contains(schema.name) =>
+          schema.fields.values.foldLeft(schemas + (schema.name -> schema)) {
+            case (accu, memberType) => inner(memberType, accu)
+          }
+        case TOptional(c: TCollection) => inner(c, schemas)
+        case TArray(c: TCollection, _) => inner(c, schemas)
+        case _                         => schemas
+      }
+    }
+    types.foldLeft(Map.empty[String, TSchema]) {
+      case (accu, wdlType) => inner(wdlType, accu)
     }
   }
 }

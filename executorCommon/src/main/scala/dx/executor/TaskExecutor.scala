@@ -102,7 +102,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
   // state between different phases of task execution, so we don't
   // have to re-evaluate expressions every time.
 
-  private def writeEnv(schemas: Map[String, TSchema],
+  private def writeEnv(schemas: Map[String, Type],
                        inputs: Map[String, (Type, Value)],
                        fileSourceToPath: Map[AddressableFileNode, Path]): Unit = {
     val schemasJs = schemas.values.foldLeft(Map.empty[String, JsValue]) {
@@ -131,7 +131,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
   }
 
   private def readEnv()
-      : (Map[String, TSchema], Map[String, (Type, Value)], Map[AddressableFileNode, Path]) = {
+      : (Map[String, Type], Map[String, (Type, Value)], Map[AddressableFileNode, Path]) = {
     val (schemasJs, inputsJs, filesJs) =
       FileUtils.readFileContent(jobMeta.workerPaths.getTaskEnvFile()).parseJson match {
         case env: JsObject =>
@@ -275,16 +275,19 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     }
 
     // Replace the URIs with local file paths
-    def pathTranslator(v: Value, optional: Boolean): Option[Value] = {
-      v match {
-        case VFile(uri) =>
-          uriToPath.get(uri) match {
-            case Some(localPath)  => Some(VFile(localPath))
-            case None if optional => Some(VNull)
-            case _ =>
-              throw new Exception(s"Did not localize file ${uri}")
-          }
-        case _ => None
+    def pathTranslator(v: Value, t: Option[Type], optional: Boolean): Option[Value] = {
+      val uri = (t, v) match {
+        case (_, VFile(uri))             => Some(uri)
+        case (Some(TFile), VString(uri)) => Some(uri)
+        case _                           => None
+      }
+      uri.map { u =>
+        uriToPath.get(u) match {
+          case Some(localPath)  => VFile(localPath)
+          case None if optional => VNull
+          case _ =>
+            throw new Exception(s"Did not localize file ${u}")
+        }
       }
     }
 
@@ -478,16 +481,19 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         })
     }
 
-    def pathTranslator(v: Value, optional: Boolean): Option[Value] = {
-      v match {
-        case VFile(value) =>
-          resolveFileValue(value) match {
-            case Some(uri)        => Some(VFile(uri))
-            case None if optional => Some(VNull)
-            case None =>
-              throw new Exception(s"Did not delocalize file ${value}")
-          }
-        case _ => None
+    def pathTranslator(v: Value, t: Option[Type], optional: Boolean): Option[Value] = {
+      val uri = (t, v) match {
+        case (_, VFile(uri))             => Some(uri)
+        case (Some(TFile), VString(uri)) => Some(uri)
+        case _                           => None
+      }
+      uri.map { u =>
+        resolveFileValue(u) match {
+          case Some(uri)        => VFile(uri)
+          case None if optional => VNull
+          case None =>
+            throw new Exception(s"Did not delocalize file ${u}")
+        }
       }
     }
 

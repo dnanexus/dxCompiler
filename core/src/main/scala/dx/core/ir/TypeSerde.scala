@@ -4,60 +4,77 @@ import dx.core.ir.Type._
 import spray.json._
 import dx.util.JsUtils
 
+import scala.collection.immutable.{SeqMap, SortedMap, TreeSeqMap}
+
+/**
+  * Functions for serialization and deserialization of types. Note that SortedMap is
+  * used for all object types in JSON, which ensures that fields have a consistent
+  * (lexicographic) ordering. This means that object values that are serialized and
+  * then deserialized may have their fields reordered.
+  */
 object TypeSerde {
+  def serializeSchema(
+      t: TSchema,
+      typeDefs: Map[String, JsValue] = Map.empty
+  ): (JsValue, SortedMap[String, JsValue]) = {
+    val (fieldsJs, newTypeDefs) =
+      t.fields.foldLeft((SortedMap.empty[String, JsValue], typeDefs.to(SortedMap))) {
+        case ((fieldsAccu, typeDefAccu), (name, t)) =>
+          val (typeJs, newTypeDefs) = serialize(t, typeDefAccu)
+          (fieldsAccu + (name -> typeJs), newTypeDefs)
+      }
+    (JsObject(
+         "type" -> JsString(t.name),
+         "fields" -> JsObject(fieldsJs)
+     ),
+     newTypeDefs)
+  }
 
   /**
     * Serialize a single type.
     * @param t the type to serialize
-    * @param schemas schemas that t might reference
-    * @return (serialized type, updated serialized schemas)
+    * @param typeDefs type definitions that might be referenced by t
+    * @return (serialized type, updated serialized type defs)
     */
   def serialize(
       t: Type,
-      schemas: Map[String, JsValue] = Map.empty
-  ): (JsValue, Map[String, JsValue]) = {
+      typeDefs: Map[String, JsValue] = Map.empty
+  ): (JsValue, SortedMap[String, JsValue]) = {
+    val newTypeDefs = t match {
+      case schemaType: TSchema if !typeDefs.contains(schemaType.name) =>
+        val (schemaJs, newTypeDefs) = serializeSchema(schemaType, typeDefs)
+        newTypeDefs + (schemaType.name -> schemaJs)
+      case _ => typeDefs.to(SortedMap)
+    }
     t match {
-      case TBoolean   => (JsString("Boolean"), schemas)
-      case TInt       => (JsString("Int"), schemas)
-      case TFloat     => (JsString("Float"), schemas)
-      case TString    => (JsString("String"), schemas)
-      case TFile      => (JsString("File"), schemas)
-      case TDirectory => (JsString("Directory"), schemas)
-      case THash      => (JsString("Hash"), schemas)
+      case TBoolean         => (JsString("Boolean"), newTypeDefs)
+      case TInt             => (JsString("Int"), newTypeDefs)
+      case TFloat           => (JsString("Float"), newTypeDefs)
+      case TString          => (JsString("String"), newTypeDefs)
+      case TFile            => (JsString("File"), newTypeDefs)
+      case TDirectory       => (JsString("Directory"), newTypeDefs)
+      case THash            => (JsString("Hash"), newTypeDefs)
+      case TSchema(name, _) => (JsString(name), newTypeDefs)
       case TArray(memberType, nonEmpty) =>
-        val (typeJs, newSchemas) = serialize(memberType, schemas)
+        val (typeJs, updatedTypeDefs) = serialize(memberType, newTypeDefs)
         (JsObject(
-             "name" -> JsString("Array"),
-             "type" -> typeJs,
+             "type" -> JsString("Array"),
+             "items" -> typeJs,
              "nonEmpty" -> JsBoolean(nonEmpty)
          ),
-         newSchemas)
-      case TSchema(name, _) if schemas.contains(name) =>
-        (JsString(name), schemas)
-      case TSchema(name, members) =>
-        val (membersJs, newSchemas) =
-          members.foldLeft((Map.empty[String, JsValue], Map.empty[String, JsValue])) {
-            case ((membersAccu, aliasesAccu), (name, t)) =>
-              val (typeJs, newSchemas) = serialize(t, aliasesAccu)
-              (membersAccu + (name -> typeJs), newSchemas)
-          }
-        val schemaJs = JsObject(
-            "name" -> JsString(name),
-            "members" -> JsObject(membersJs)
-        )
-        (JsString(name), newSchemas + (name -> schemaJs))
-      case TEnum(allowedValues) =>
+         updatedTypeDefs)
+      case TEnum(symbols) =>
         (JsObject(
-             "name" -> JsString("Enum"),
-             "values" -> JsArray(allowedValues.map(JsString(_)).toVector)
+             "type" -> JsString("Enum"),
+             "symbols" -> JsArray(symbols.map(JsString(_)))
          ),
-         schemas)
+         newTypeDefs)
       case TOptional(inner) =>
-        serialize(inner, schemas) match {
-          case (name: JsString, newSchemas) =>
-            (JsObject(Map("name" -> name, "optional" -> JsBoolean(true))), newSchemas)
-          case (JsObject(fields), newSchemas) =>
-            (JsObject(fields + ("optional" -> JsBoolean(true))), newSchemas)
+        serialize(inner, newTypeDefs) match {
+          case (name: JsString, updatedTypeDefs) =>
+            (JsObject(SortedMap("type" -> name, "optional" -> JsBoolean(true))), updatedTypeDefs)
+          case (JsObject(fields), updatedTypeDefs) =>
+            (JsObject(fields + ("optional" -> JsBoolean(true))), updatedTypeDefs)
           case (other, _) =>
             throw new Exception(s"invalid inner type value ${other}")
         }
@@ -67,24 +84,22 @@ object TypeSerde {
   /**
     * Serializes a mapping of variable names to Types.
     * @param types mapping of variable names to Types
-    * @return a JsObject with two fields: 'types' and 'schemas'. Any TSchema in the
-    *         input map are serialized to a JsString in the 'types' field and a
-    *         corresponding entry in the 'schemas' field.
+    * @return (parameter types, updated type definitions)
     */
   def serializeMap(
       types: Map[String, Type],
-      jsSchema: Map[String, JsValue] = Map.empty,
+      jsTypeDefs: Map[String, JsValue] = Map.empty,
       encodeDots: Boolean = true
-  ): (Map[String, JsValue], Map[String, JsValue]) = {
-    types.foldLeft((Map.empty[String, JsValue], jsSchema)) {
-      case ((typeAccu, schemaAccu), (name, t)) =>
+  ): (SortedMap[String, JsValue], SortedMap[String, JsValue]) = {
+    types.foldLeft((SortedMap.empty[String, JsValue], jsTypeDefs.to(SortedMap))) {
+      case ((typeAccu, typeDefAccu), (name, t)) =>
         val nameEncoded = if (encodeDots) {
           Parameter.encodeDots(name)
         } else {
           name
         }
-        val (typeJs, newSchemas) = serialize(t, schemaAccu)
-        (typeAccu + (nameEncoded -> typeJs), newSchemas)
+        val (typeJs, newTypeDefs) = serialize(t, typeDefAccu)
+        (typeAccu + (nameEncoded -> typeJs), newTypeDefs)
     }
   }
 
@@ -99,7 +114,7 @@ object TypeSerde {
     JsObject(
         Map(
             "types" -> JsObject(typesJs),
-            "schemas" -> JsObject(schemasJs)
+            "definitions" -> JsObject(schemasJs)
         )
     )
   }
@@ -107,91 +122,99 @@ object TypeSerde {
   /**
     * Serialize and create a specification for a single type.
     * @param t the type
-    * @param schemas schemas that may be referenced by `t`
+    * @param typeDefs type definitions that may be referenced by `t`
     * @return JsObject containing the specification
     */
-  def serializeOne(t: Type, schemas: Map[String, JsValue] = Map.empty): JsObject = {
-    val (typeJs, newSchemas) = serialize(t, schemas)
-    JsObject("type" -> typeJs, "schemas" -> JsObject(newSchemas))
+  def serializeOne(t: Type, typeDefs: Map[String, JsValue] = Map.empty): JsObject = {
+    val (typeJs, newTypeDefs) = serialize(t, typeDefs)
+    JsObject("type" -> typeJs, "definitions" -> JsObject(newTypeDefs))
   }
 
   private def deserializeSchema(jsSchema: JsValue,
-                                schemas: Map[String, TSchema],
-                                jsSchemas: Map[String, JsValue]): Map[String, TSchema] = {
-    jsSchema.asJsObject.getFields("name", "members") match {
-      case Seq(JsString(name), JsObject(membersJs)) =>
-        val (memberTypes, newSchemas) =
-          membersJs.foldLeft((Map.empty[String, Type], schemas)) {
-            case ((memberAccu, schemaAccu), (name, jsType)) =>
-              val (t, newSchemas) = deserialize(jsType, schemaAccu, jsSchemas)
-              (memberAccu + (name -> t), newSchemas)
-          }
-        newSchemas + (name -> TSchema(name, memberTypes))
+                                typeDefs: Map[String, Type],
+                                jsTypeDefs: Map[String, JsValue],
+                                name: Option[String] = None): Map[String, Type] = {
+    val (schemaName, fieldsJs) = jsSchema.asJsObject.getFields("fields", "type") match {
+      case Seq(JsObject(fieldsJs), JsString(name))   => (name, fieldsJs)
+      case Seq(JsObject(fieldsJs)) if name.isDefined => (name.get, fieldsJs)
       case _ =>
         throw new Exception(s"invalid schema ${jsSchema}")
     }
+    val (fieldTypes, newTypeDefs) =
+      fieldsJs.foldLeft((Map.empty[String, Type], typeDefs)) {
+        case ((fieldAccu, typeDefAccu), (name, jsType)) =>
+          val (t, newTypeDefs) = deserialize(jsType, typeDefAccu, jsTypeDefs)
+          (fieldAccu + (name -> t), newTypeDefs)
+      }
+    newTypeDefs + (schemaName -> TSchema(schemaName, fieldTypes.to(TreeSeqMap)))
   }
 
   def deserializeSchemas(
       jsSchemas: Map[String, JsValue],
-      schemas: Map[String, TSchema] = Map.empty
-  ): Map[String, TSchema] = {
-    jsSchemas.values.foldLeft(schemas) {
-      case (schemaAccu, jsSchema) => deserializeSchema(jsSchema, schemaAccu, jsSchemas)
-    }
+      typeDefs: Map[String, Type] = Map.empty
+  ): Map[String, Type] = {
+    jsSchemas.values
+      .foldLeft(typeDefs) {
+        case (schemaAccu, jsSchema) => deserializeSchema(jsSchema, schemaAccu, jsSchemas)
+      }
   }
 
   /**
     * Deserializes a serialized type value.
     * @param jsValue the serialized values
-    * @param schemas schemas that the value may reference
-    * @param jsSchemas serialized schemas that we only deserialize if
+    * @param typeDefs type definitions that the may be referenced by jsValue
+    * @param jsTypeDefs serialized type definitions that we only deserialize if
     *                  they are referenced
-    * @return (type, new schema map)
+    * @return (type, updated type definition map)
     */
   def deserialize(
       jsValue: JsValue,
-      schemas: Map[String, TSchema] = Map.empty,
-      jsSchemas: Map[String, JsValue] = Map.empty
-  ): (Type, Map[String, TSchema]) = {
+      typeDefs: Map[String, Type] = Map.empty,
+      jsTypeDefs: Map[String, JsValue] = Map.empty
+  ): (Type, Map[String, Type]) = {
     jsValue match {
-      case JsString(name) if schemas.contains(name) =>
-        (schemas(name), schemas)
-      case JsString(name) if jsSchemas.contains(name) =>
-        val newSchemas = deserializeSchema(jsSchemas(name), schemas, jsSchemas)
-        (newSchemas(name), newSchemas)
+      case JsString(name) if typeDefs.contains(name) =>
+        (typeDefs(name), typeDefs)
+      case JsString(name) if jsTypeDefs.contains(name) =>
+        jsTypeDefs(name) match {
+          case obj: JsObject if obj.fields.contains("type") =>
+            deserialize(obj, typeDefs, jsTypeDefs)
+          case obj: JsObject =>
+            val newTypeDefs = deserializeSchema(obj, typeDefs, jsTypeDefs, Some(name))
+            (newTypeDefs(name), newTypeDefs)
+        }
       case JsString(name) =>
-        (simpleFromString(name), schemas)
+        (simpleFromString(name), typeDefs)
       case JsObject(fields) =>
-        val (t, newSchemas) = fields("name") match {
+        val (t, newTypeDefs) = fields("type") match {
           case JsString("Array") =>
-            val (arrayType, newSchemas) = deserialize(fields("type"), schemas, jsSchemas)
+            val (arrayType, newTypeDefs) = deserialize(fields("items"), typeDefs, jsTypeDefs)
             val nonEmpty = fields.get("nonEmpty").exists(JsUtils.getBoolean(_))
-            (TArray(arrayType, nonEmpty), newSchemas)
+            (TArray(arrayType, nonEmpty), newTypeDefs)
           case JsString("Enum") =>
-            val allowedValues = fields("values") match {
+            val symbols = fields("symbols") match {
               case JsArray(values) =>
                 values.map {
                   case JsString(s) => s
-                  case other       => throw new Exception(s"Invalid enum value ${other}")
+                  case other       => throw new Exception(s"Invalid enum symbol ${other}")
                 }
-              case other => throw new Exception(s"Invalid enum values ${other}")
+              case other => throw new Exception(s"Invalid enum symbols ${other}")
             }
-            (TEnum(allowedValues.toSet), schemas)
-          case JsString(name) if schemas.contains(name) =>
-            (schemas(name), schemas)
-          case JsString(name) if jsSchemas.contains(name) =>
-            val newSchemas = deserializeSchema(jsSchemas(name), schemas, jsSchemas)
-            (newSchemas(name), newSchemas)
+            (TEnum(symbols), typeDefs)
+          case JsString(name) if typeDefs.contains(name) =>
+            (typeDefs(name), typeDefs)
+          case JsString(name) if jsTypeDefs.contains(name) =>
+            val newTypeDefs = deserializeSchema(jsTypeDefs(name), typeDefs, jsTypeDefs)
+            (newTypeDefs(name), newTypeDefs)
           case JsString(name) =>
-            (simpleFromString(name), schemas)
+            (simpleFromString(name), typeDefs)
           case _ =>
             throw new Exception(s"invalid type field value ${jsValue}")
         }
         if (fields.get("optional").exists(JsUtils.getBoolean(_))) {
-          (TOptional(t), newSchemas)
+          (TOptional(t), newTypeDefs)
         } else {
-          (t, newSchemas)
+          (t, newTypeDefs)
         }
       case _ =>
         throw new Exception(s"unexpected type value ${jsValue}")
@@ -201,26 +224,27 @@ object TypeSerde {
   /**
     * Deserializes a map on parameter names to serialized values.
     * @param jsTypes types to deserialize
-    * @param schemas schemas that may be referenced by the types
-    * @param jsSchemas serialized schemas that we only deserialize if they are referenced
+    * @param typeDefs type definitions that may be referenced by the types
+    * @param jsTypeDefs serialized type definitions that we only deserialize
+    *                   if they are referenced
     * @param decodeDots whether to decode dots in parameter names
-    * @return
+    * @return (parameter types, updated type definitions)
     */
   def deserializeMap(
       jsTypes: Map[String, JsValue],
-      schemas: Map[String, TSchema] = Map.empty,
-      jsSchemas: Map[String, JsValue] = Map.empty,
+      typeDefs: Map[String, Type] = Map.empty,
+      jsTypeDefs: Map[String, JsValue] = Map.empty,
       decodeDots: Boolean = true
-  ): (Map[String, Type], Map[String, TSchema]) = {
-    jsTypes.foldLeft((Map.empty[String, Type], schemas)) {
-      case ((typeAccu, schemaAccu), (name, jsType)) =>
+  ): (Map[String, Type], Map[String, Type]) = {
+    jsTypes.foldLeft((Map.empty[String, Type], typeDefs)) {
+      case ((typeAccu, typeDefAccu), (name, jsType)) =>
         val nameDecoded = if (decodeDots) {
           Parameter.decodeDots(name)
         } else {
           name
         }
-        val (t, newSchemas) = deserialize(jsType, schemaAccu, jsSchemas)
-        (typeAccu + (nameDecoded -> t), newSchemas)
+        val (t, newTypeDefs) = deserialize(jsType, typeDefAccu, jsTypeDefs)
+        (typeAccu + (nameDecoded -> t), newTypeDefs)
     }
   }
 
@@ -228,51 +252,51 @@ object TypeSerde {
     * Deserializes a parameter specification that was serialized using the
     * `serializeSpec` function.
     * @param jsValue the value to deserialize
-    * @param schemas initial set of schemas (i.e. type aliases)
+    * @param typeDefs initial set of schemas (i.e. type aliases)
     * @param decodeDots whether to decode dots in variable names
     * @return mapping of variable names to deserialized Types
     */
   def deserializeSpec(jsValue: JsValue,
-                      schemas: Map[String, TSchema] = Map.empty,
+                      typeDefs: Map[String, TSchema] = Map.empty,
                       decodeDots: Boolean = true): Map[String, Type] = {
-    val (jsTypes, jsSchemas) = jsValue match {
+    val (jsTypes, jsTypeDefs) = jsValue match {
       case obj: JsObject if obj.fields.contains("types") =>
-        obj.getFields("types", "schemas") match {
-          case Seq(JsObject(jsTypes), JsObject(jsAliases)) =>
-            (jsTypes, jsAliases)
+        obj.getFields("types", "definitions") match {
+          case Seq(JsObject(jsTypes), JsObject(jsDefinitions)) =>
+            (jsTypes, jsDefinitions)
           case Seq(JsObject(jsTypes)) =>
             (jsTypes, Map.empty[String, JsValue])
           case _ =>
-            throw new Exception(s"invalid serialized types value ${jsValue}")
+            throw new Exception(s"invalid serialized types or definitions in ${jsValue}")
         }
       case JsObject(jsTypes) =>
         (jsTypes, Map.empty[String, JsValue])
       case _ =>
-        throw new Exception(s"invalid serialized types value ${jsValue}")
+        throw new Exception(s"invalid serialized spec ${jsValue}")
     }
-    val (types, _) = deserializeMap(jsTypes, schemas, jsSchemas, decodeDots)
+    val (types, _) = deserializeMap(jsTypes, typeDefs, jsTypeDefs, decodeDots)
     types
   }
 
   /**
     * Deserialize a single JsValue that was serialized using the `serializeOne` function.
     * @param jsValue the value to deserialize
-    * @param schemas initial set of schemas (i.e. type aliases)
-    * @return
+    * @param typeDefs initial set of type definitions
+    * @return (deserialized type, updated type definitions)
     */
   def deserializeOne(jsValue: JsValue,
-                     schemas: Map[String, TSchema] = Map.empty): (Type, Map[String, TSchema]) = {
-    val (jsType, jsSchemas) = jsValue match {
+                     typeDefs: Map[String, Type] = Map.empty): (Type, Map[String, Type]) = {
+    val (jsType, jsTypeDefs) = jsValue match {
       case obj: JsObject if obj.fields.contains("type") =>
-        obj.getFields("type", "schemas") match {
-          case Seq(jsType, JsObject(jsAliases)) => (jsType, jsAliases)
-          case Seq(jsType)                      => (jsType, Map.empty[String, JsValue])
+        obj.getFields("type", "definitions") match {
+          case Seq(jsType, JsObject(jsDefinitions)) => (jsType, jsDefinitions)
+          case Seq(jsType)                          => (jsType, Map.empty[String, JsValue])
           case _ =>
-            throw new Exception(s"invalid serialized type value ${jsValue}")
+            throw new Exception(s"invalid serialized type or definitions in ${jsValue}")
         }
       case _ => (jsValue, Map.empty[String, JsValue])
     }
-    deserialize(jsType, schemas, jsSchemas)
+    deserialize(jsType, typeDefs, jsTypeDefs)
   }
 
   private def toNativePrimitive(t: Type): String = {
@@ -330,30 +354,32 @@ object TypeSerde {
     }
   }
 
-  def fromNativeSpec(fields: Vector[JsValue]): Map[String, Type] = {
-    fields.map {
-      case JsObject(field) =>
-        val name = field.get("name") match {
-          case Some(JsString(name)) => name
-          case _ =>
-            throw new Exception(s"invalid or missing name for field ${fields}")
-        }
-        val cls = field.get("class") match {
-          case Some(JsString(cls)) => cls
-          case None                => "string"
-          case other =>
-            throw new Exception(s"invalid native 'class' value ${other}")
-        }
-        val optional = field.get("optional") match {
-          case Some(JsBoolean(optional)) => optional
-          case None                      => false
-          case other =>
-            throw new Exception(s"invalid native 'optional' value ${other}")
-        }
-        name -> fromNative(cls, optional)
-      case other =>
-        throw new Exception(s"invalid native input/output spec field ${other}")
-    }.toMap
+  def fromNativeSpec(fields: Vector[JsValue]): SeqMap[String, Type] = {
+    fields
+      .map {
+        case JsObject(field) =>
+          val name = field.get("name") match {
+            case Some(JsString(name)) => name
+            case _ =>
+              throw new Exception(s"invalid or missing name for field ${fields}")
+          }
+          val cls = field.get("class") match {
+            case Some(JsString(cls)) => cls
+            case None                => "string"
+            case other =>
+              throw new Exception(s"invalid native 'class' value ${other}")
+          }
+          val optional = field.get("optional") match {
+            case Some(JsBoolean(optional)) => optional
+            case None                      => false
+            case other =>
+              throw new Exception(s"invalid native 'optional' value ${other}")
+          }
+          name -> fromNative(cls, optional)
+        case other =>
+          throw new Exception(s"invalid native input/output spec field ${other}")
+      }
+      .to(TreeSeqMap)
   }
 
   // Get a human readable type name

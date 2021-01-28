@@ -1,5 +1,7 @@
 package dx.core.ir
 
+import scala.collection.immutable.SeqMap
+
 /**
   * A language-independent representation of values used as input to/output from
   * DNAnexus applications and workflows.
@@ -30,10 +32,10 @@ object Value {
   /**
     * An array of values
     */
-  case class VArray(value: Vector[Value]) extends Value
+  case class VArray(items: Vector[Value]) extends Value
 
   /**
-    * A JSON object.
+    * A JSON object. Fields are stored in a SeqMap to preserve their order.
     */
-  case class VHash(value: Map[String, Value]) extends Value
+  case class VHash(fields: SeqMap[String, Value]) extends Value
 }
