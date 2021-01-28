@@ -1096,6 +1096,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       case other =>
         throw new AssertionError(s"expected Success, got ${other}")
     }
+    val dxApplet = dxApi.applet(appletId)
 
   }
 }
