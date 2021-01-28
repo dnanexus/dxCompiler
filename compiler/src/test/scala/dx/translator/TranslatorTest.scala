@@ -1,8 +1,7 @@
 package dx.translator
 
 import java.nio.file.{Path, Paths}
-import dxCompiler.Main
-import dxCompiler.Main.SuccessIR
+
 import dx.Tags.EdgeTest
 import dx.api._
 import dx.core.Constants
@@ -15,6 +14,8 @@ import dx.core.languages.wdl.WdlDocumentSource
 import dx.translator.CallableAttributes._
 import dx.translator.ParameterAttributes._
 import dx.util.Logger
+import dxCompiler.Main
+import dxCompiler.Main.SuccessfulCompileIR
 import org.scalatest.Inside._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -59,50 +60,50 @@ class TranslatorTest extends AnyFlatSpec with Matchers {
   it should "IR compile a single WDL task" in {
     val path = pathFromBasename("compiler", "add.wdl")
     val args = path.toString :: cFlags
-    Main.compile(args.toVector) shouldBe a[SuccessIR]
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
   it should "IR compile a task with docker" in {
     val path = pathFromBasename("compiler", "BroadGenomicsDocker.wdl")
     val args = path.toString :: cFlags
-    Main.compile(args.toVector) shouldBe a[SuccessIR]
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
   // workflow compilation
   it should "IR compile a linear WDL workflow without expressions" in {
     val path = pathFromBasename("compiler", "wf_linear_no_expr.wdl")
     val args = path.toString :: cFlags
-    Main.compile(args.toVector) shouldBe a[SuccessIR]
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
   it should "IR compile a linear WDL workflow" in {
     val path = pathFromBasename("compiler", "wf_linear.wdl")
     val args = path.toString :: cFlags
-    Main.compile(args.toVector) shouldBe a[SuccessIR]
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
   it should "IR compile unlocked workflow" in {
     val path = pathFromBasename("compiler", "wf_linear.wdl")
     val args = path.toString :: cFlagsUnlocked
-    Main.compile(args.toVector) shouldBe a[SuccessIR]
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
   it should "IR compile a non trivial linear workflow with variable coercions" in {
     val path = pathFromBasename("compiler", "cast.wdl")
     val args = path.toString :: cFlags
-    Main.compile(args.toVector) shouldBe a[SuccessIR]
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
   it should "IR compile a workflow with two consecutive calls" in {
     val path = pathFromBasename("compiler", "strings.wdl")
     val args = path.toString :: cFlags
-    Main.compile(args.toVector) shouldBe a[SuccessIR]
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
   it should "IR compile a workflow with a scatter without a call" in {
     val path = pathFromBasename("compiler", "scatter_no_call.wdl")
     val args = path.toString :: cFlags
-    Main.compile(args.toVector) shouldBe a[SuccessIR]
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
   it should "IR compile optionals" in {
@@ -110,50 +111,50 @@ class TranslatorTest extends AnyFlatSpec with Matchers {
     val args = path.toString :: cFlags
     //                :: "--verbose"
     //                :: "--verboseKey" :: "GenerateIR"
-    Main.compile(args.toVector) shouldBe a[SuccessIR]
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
   it should "support imports" in {
     val path = pathFromBasename("compiler", "check_imports.wdl")
     val args = path.toString :: cFlags
-    Main.compile(args.toVector) shouldBe a[SuccessIR]
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
   it should "IR compile a draft2 workflow" in {
     val path = pathFromBasename("draft2", "shapes.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
   }
 
   it should "expressions in an output block" in {
     val path = pathFromBasename("compiler", "expr_output_block.wdl")
     val args = path.toString :: cFlags
-    Main.compile(args.toVector) shouldBe a[SuccessIR]
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
   /*  ignore should "scatters over maps" in {
     val path = pathFromBasename("compiler", "dict2.wdl")
     val args =         path.toString :: cFlags
-Main.compile(args.toVector) shouldBe a[SuccessIR]
+Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }*/
 
   it should "skip missing optional arguments" in {
     val path = pathFromBasename("util", "missing_inputs_to_direct_call.wdl")
     val args = path.toString :: cFlags
-    Main.compile(args.toVector) shouldBe a[SuccessIR]
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
   it should "handle calling subworkflows" in {
     val path = pathFromBasename("subworkflows", "trains.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
-    val irwf = retval match {
-      case SuccessIR(irwf, _) => irwf
-      case _                  => throw new Exception("unexpected")
+    retval shouldBe a[SuccessfulCompileIR]
+    val bundle = retval match {
+      case SuccessfulCompileIR(irwf) => irwf
+      case _                         => throw new Exception("unexpected")
     }
-    val primaryWf: Workflow = irwf.primaryCallable match {
+    val primaryWf: Workflow = bundle.primaryCallable match {
       case Some(wf: Workflow) => wf
       case _                  => throw new Exception("unexpected")
     }
@@ -163,33 +164,33 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
   it should "compile a sub-block with several calls" in {
     val path = pathFromBasename("compiler", "subblock_several_calls.wdl")
     val args = path.toString :: cFlags
-    Main.compile(args.toVector) shouldBe a[SuccessIR]
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
   it should "missing workflow inputs" in {
     val path = pathFromBasename("input_file", "missing_args.wdl")
     val args = path.toString :: List("--compileMode", "ir", "--quiet", "--project", dxProject.id)
-    Main.compile(args.toVector) shouldBe a[SuccessIR]
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
   // Nested blocks
   it should "compile two level nested workflow" in {
     val path = pathFromBasename("nested", "two_levels.wdl")
     val args = path.toString :: cFlags
-    Main.compile(args.toVector) shouldBe a[SuccessIR]
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
   it should "handle passing closure arguments to nested blocks" in {
     val path = pathFromBasename("nested", "param_passing.wdl")
     val args = path.toString :: cFlags
-    Main.compile(args.toVector) shouldBe a[SuccessIR]
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
   it should "compile a workflow calling a subworkflow as a direct call" in {
     val path = pathFromBasename("draft2", "movies.wdl")
     val args = path.toString :: cFlags
     val bundle: Bundle = Main.compile(args.toVector) match {
-      case SuccessIR(bundle, _) => bundle
+      case SuccessfulCompileIR(bundle) => bundle
       case other =>
         Logger.error(other.toString)
         throw new Exception(s"Failed to compile ${path}")
@@ -207,7 +208,7 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val path = pathFromBasename("v2", "movies.wdl")
     val args = path.toString :: cFlags
     val bundle: Bundle = Main.compile(args.toVector) match {
-      case SuccessIR(bundle, _) => bundle
+      case SuccessfulCompileIR(bundle) => bundle
       case other =>
         Logger.error(other.toString)
         throw new Exception(s"Failed to compile ${path}")
@@ -225,7 +226,7 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val path = pathFromBasename("v2", "call_dnanexus_applet.wdl")
     val args = path.toString :: cFlags
     val bundle: Bundle = Main.compile(args.toVector) match {
-      case SuccessIR(bundle, _) => bundle
+      case SuccessfulCompileIR(bundle) => bundle
       case other =>
         Logger.error(other.toString)
         throw new Exception(s"Failed to compile ${path}")
@@ -244,10 +245,10 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val path = pathFromBasename("nested", "three_levels.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
     val bundle = retval match {
-      case SuccessIR(ir, _) => ir
-      case _                => throw new Exception("unexpected")
+      case SuccessfulCompileIR(ir) => ir
+      case _                       => throw new Exception("unexpected")
     }
     val primary: Callable = bundle.primaryCallable.get
     val wf = primary match {
@@ -271,7 +272,7 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
             case Main.UnsuccessfulTermination(errMsg) =>
                 errMsg should include ("nested scatter")
  }*/
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
   }
 
   // Check parameter_meta `pattern` keyword
@@ -279,10 +280,10 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val path = pathFromBasename("compiler", "pattern_params.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
     val bundle = retval match {
-      case SuccessIR(ir, _) => ir
-      case _                => throw new Exception("unexpected")
+      case SuccessfulCompileIR(ir) => ir
+      case _                       => throw new Exception("unexpected")
     }
 
     val cgrepApplication = getApplicationByName("pattern_params_cgrep", bundle)
@@ -329,10 +330,10 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val path = pathFromBasename("compiler", "pattern_obj_params.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
     val bundle = retval match {
-      case SuccessIR(ir, _) => ir
-      case _                => throw new Exception("unexpected")
+      case SuccessfulCompileIR(ir) => ir
+      case _                       => throw new Exception("unexpected")
     }
 
     val cgrepApplication = getApplicationByName("pattern_params_obj_cgrep", bundle)
@@ -385,10 +386,10 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val path = pathFromBasename("compiler", "choice_values.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
     val bundle = retval match {
-      case SuccessIR(ir, _) => ir
-      case _                => throw new Exception("unexpected")
+      case SuccessfulCompileIR(ir) => ir
+      case _                       => throw new Exception("unexpected")
     }
 
     val cgrepApplication = getApplicationByName("choice_values_cgrep", bundle)
@@ -433,10 +434,10 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val path = pathFromBasename("compiler", "choice_obj_values.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
     val bundle = retval match {
-      case SuccessIR(ir, _) => ir
-      case _                => throw new Exception("unexpected")
+      case SuccessfulCompileIR(ir) => ir
+      case _                       => throw new Exception("unexpected")
     }
 
     val cgrepApplication = getApplicationByName("choice_values_cgrep", bundle)
@@ -490,10 +491,10 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val path = pathFromBasename("compiler", "suggestion_values.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
     val bundle = retval match {
-      case SuccessIR(ir, _) => ir
-      case _                => throw new Exception("unexpected")
+      case SuccessfulCompileIR(ir) => ir
+      case _                       => throw new Exception("unexpected")
     }
 
     val cgrepApplication = getApplicationByName("suggestion_values_cgrep", bundle)
@@ -542,10 +543,10 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val path = pathFromBasename("compiler", "suggestion_obj_values.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
     val bundle = retval match {
-      case SuccessIR(ir, _) => ir
-      case _                => throw new Exception("unexpected")
+      case SuccessfulCompileIR(ir) => ir
+      case _                       => throw new Exception("unexpected")
     }
 
     val cgrepApplication = getApplicationByName("suggestion_values_cgrep", bundle)
@@ -612,10 +613,10 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val path = pathFromBasename("compiler", "add_dx_type.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
     val bundle = retval match {
-      case SuccessIR(ir, _) => ir
-      case _                => throw new Exception("unexpected")
+      case SuccessfulCompileIR(ir) => ir
+      case _                       => throw new Exception("unexpected")
     }
 
     val cgrepApplication = getApplicationByName("add_dx_type", bundle)
@@ -667,10 +668,10 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val path = pathFromBasename("compiler", "add_default.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
     val bundle = retval match {
-      case SuccessIR(ir, _) => ir
-      case _                => throw new Exception("unexpected")
+      case SuccessfulCompileIR(ir) => ir
+      case _                       => throw new Exception("unexpected")
     }
 
     val cgrepApplication = getApplicationByName("add_default", bundle)
@@ -705,10 +706,10 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val args = path.toString :: cFlags
     val retval =
       Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
     val bundle = retval match {
-      case SuccessIR(ir, _) => ir
-      case _                => throw new Exception("unexpected")
+      case SuccessfulCompileIR(ir) => ir
+      case _                       => throw new Exception("unexpected")
     }
 
     val cgrepApplication = getApplicationByName("help_input_params_cgrep", bundle)
@@ -752,10 +753,10 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val args = path.toString :: cFlags
     val retval =
       Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
     val bundle = retval match {
-      case SuccessIR(ir, _) => ir
-      case _                => throw new Exception("unexpected")
+      case SuccessfulCompileIR(ir) => ir
+      case _                       => throw new Exception("unexpected")
     }
 
     val cgrepApplication = getApplicationByName("help_output_params_cgrep", bundle)
@@ -774,10 +775,10 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val args = path.toString :: cFlags
     val retval =
       Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
     val bundle = retval match {
-      case SuccessIR(ir, _) => ir
-      case _                => throw new Exception("unexpected")
+      case SuccessfulCompileIR(ir) => ir
+      case _                       => throw new Exception("unexpected")
     }
 
     val cgrepApplication = getApplicationByName("add", bundle)
@@ -840,10 +841,10 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val args = path.toString :: cFlags
     val retval =
       Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
     val bundle = retval match {
-      case SuccessIR(ir, _) => ir
-      case _                => throw new Exception("unexpected")
+      case SuccessfulCompileIR(ir) => ir
+      case _                       => throw new Exception("unexpected")
     }
 
     val cgrepApplication = getApplicationByName("add_runtime_hints", bundle)
@@ -865,10 +866,10 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val args = path.toString :: cFlags
     val retval =
       Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
     retval match {
-      case SuccessIR(ir, _) => ir
-      case _                => throw new Exception("unexpected")
+      case SuccessfulCompileIR(ir) => ir
+      case _                       => throw new Exception("unexpected")
     }
   }
 
@@ -877,7 +878,7 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val args = path.toString :: cFlags
     val retval =
       Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
   }
 
   it should "handle structs" in {
@@ -885,14 +886,14 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val args = path.toString :: cFlags
     val retval =
       Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
   }
 
   it should "recognize that an argument with a default can be omitted at the call site" in {
     val path = pathFromBasename("compiler", "call_level2.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
   }
 
   it should "check for reserved symbols" in {
@@ -909,21 +910,21 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val path = pathFromBasename("compiler", "nested_scatter.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
   }
 
   it should "handle struct imported several times" in {
     val path = pathFromBasename("struct/struct_imported_twice", "file3.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
   }
 
   it should "handle file constants in a workflow" in {
     val path = pathFromBasename("compiler", "wf_constants.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
   }
 
   it should "respect import flag" in {
@@ -931,7 +932,7 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val libraryPath = path.getParent.resolve("lib")
     val args = path.toString :: "--imports" :: libraryPath.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
   }
 
   it should "respect import -p flag" in {
@@ -939,21 +940,21 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val libraryPath = path.getParent.resolve("lib")
     val args = path.toString :: "--p" :: libraryPath.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
   }
 
   it should "pass environment between deep stages" in {
     val path = pathFromBasename("compiler", "environment_passing_deep_nesting.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
   }
 
   it should "handle multiple struct definitions" in {
     val path = pathFromBasename("struct/DEVEX-1196-struct-resolution-wrong-order", "file3.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
   }
 
   it should "retain all characters in a WDL task" in {
@@ -962,7 +963,7 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     //                                      :: "--verbose"
     //                                      :: "--verboseKey" :: "GenerateIR"
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
 
     val commandSection =
       """|  command <<<
@@ -977,7 +978,7 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
          |""".stripMargin
 
     inside(retval) {
-      case SuccessIR(bundle, _) =>
+      case SuccessfulCompileIR(bundle) =>
         bundle.allCallables.size shouldBe 1
         val (_, callable) = bundle.allCallables.head
         callable shouldBe a[Application]
@@ -996,7 +997,7 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val path = pathFromBasename("compiler", "wf_to_flatten.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
   }
 
   it should "detect a request for GPU" in {
@@ -1005,10 +1006,10 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     //                                      :: "--verbose"
     //                                      :: "--verboseKey" :: "GenerateIR"
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
 
     inside(retval) {
-      case SuccessIR(bundle, _) =>
+      case SuccessfulCompileIR(bundle) =>
         bundle.allCallables.size shouldBe 1
         val (_, callable) = bundle.allCallables.head
         callable shouldBe a[Application]
@@ -1032,11 +1033,11 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     //                                      :: "--verbose"
     //                                      :: "--verboseKey" :: "GenerateIR"
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
 
     val bundle = retval match {
-      case SuccessIR(bundle, _) => bundle
-      case _                    => throw new Exception("unexpected")
+      case SuccessfulCompileIR(bundle) => bundle
+      case _                           => throw new Exception("unexpected")
     }
 
     val wfs: Vector[Workflow] = bundle.allCallables.flatMap {
@@ -1059,14 +1060,14 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     //                                      :: "--verbose"
     //                                      :: "--verboseKey" :: "GenerateIR"
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
   }
 
   it should "pass as subworkflows do not have expression statement in output block" in {
     val path = pathFromBasename("subworkflows", basename = "trains.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
   }
 
   // this is currently failing.
@@ -1082,17 +1083,17 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     //          :: "--verbose"
     //          :: "--verboseKey" :: "GenerateIR"
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
   }
 
   it should "recognize workflow metadata" in {
     val path = pathFromBasename("compiler", "wf_meta.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
     val bundle = retval match {
-      case SuccessIR(ir, _) => ir
-      case _                => throw new Exception("unexpected")
+      case SuccessfulCompileIR(ir) => ir
+      case _                       => throw new Exception("unexpected")
     }
     val workflow = bundle.primaryCallable match {
       case Some(wf: Workflow) => wf
@@ -1115,10 +1116,10 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val path = pathFromBasename("compiler", "wf_param_meta.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
     val bundle = retval match {
-      case SuccessIR(ir, _) => ir
-      case _                => throw new Exception("unexpected")
+      case SuccessfulCompileIR(ir) => ir
+      case _                       => throw new Exception("unexpected")
     }
     val workflow = bundle.primaryCallable match {
       case Some(wf: Workflow) => wf
@@ -1154,11 +1155,11 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val path = pathFromBasename("compiler", "wf_readme.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
 
     val bundle = retval match {
-      case SuccessIR(ir, _) => ir
-      case _                => throw new Exception("unexpected")
+      case SuccessfulCompileIR(ir) => ir
+      case _                       => throw new Exception("unexpected")
     }
 
     val workflow = bundle.primaryCallable match {
@@ -1201,7 +1202,7 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     //          "--verbose" ::
     //          :: "--verboseKey" :: "GenerateIR"
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
   }
 
   it should "work correctly with pairs in a simple scatter" taggedAs EdgeTest in {
@@ -1211,7 +1212,7 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     //          :: "--verbose"
     //          :: "--verboseKey" :: "GenerateIR"
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
   }
 
   // Check parameter_meta pattern: ["array"]
@@ -1219,10 +1220,10 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val path = pathFromBasename("compiler", "pattern_params.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
     val bundle = retval match {
-      case SuccessIR(ir, _) => ir
-      case _                => throw new Exception("unexpected")
+      case SuccessfulCompileIR(ir) => ir
+      case _                       => throw new Exception("unexpected")
     }
 
     val cgrepTask = getApplicationByName("pattern_params_cgrep", bundle)
@@ -1253,10 +1254,10 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val path = pathFromBasename("compiler", "pattern_obj_params.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
     val bundle = retval match {
-      case SuccessIR(ir, _) => ir
-      case _                => throw new Exception("unexpected")
+      case SuccessfulCompileIR(ir) => ir
+      case _                       => throw new Exception("unexpected")
     }
 
     val cgrepTask = getApplicationByName("pattern_params_obj_cgrep", bundle)
@@ -1290,10 +1291,10 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val path = pathFromBasename("compiler", "help_input_params.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
     val bundle = retval match {
-      case SuccessIR(ir, _) => ir
-      case _                => throw new Exception("unexpected")
+      case SuccessfulCompileIR(ir) => ir
+      case _                       => throw new Exception("unexpected")
     }
 
     val cgrepTask = getApplicationByName("help_input_params_cgrep", bundle)
@@ -1331,10 +1332,10 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val path = pathFromBasename("compiler", "streaming_files.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
     val bundle = retval match {
-      case SuccessIR(ir, _) => ir
-      case _                => throw new Exception("unexpected")
+      case SuccessfulCompileIR(ir) => ir
+      case _                       => throw new Exception("unexpected")
     }
     val cgrepTask = getApplicationByName("cgrep", bundle)
     cgrepTask.inputs.map(param => param.name -> param.attributes).iterator sameElements Vector(
@@ -1352,10 +1353,10 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val path = pathFromBasename("compiler", "streaming_files_obj.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
     val bundle = retval match {
-      case SuccessIR(ir, _) => ir
-      case _                => throw new Exception("unexpected")
+      case SuccessfulCompileIR(ir) => ir
+      case _                       => throw new Exception("unexpected")
     }
     val cgrepTask = getApplicationByName("cgrep", bundle)
     cgrepTask.inputs.map(param => param.name -> param.attributes).iterator sameElements Vector(
@@ -1372,10 +1373,10 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val path = pathFromBasename("draft2", "streaming.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
     val bundle = retval match {
-      case SuccessIR(ir, _) => ir
-      case _                => throw new Exception("unexpected")
+      case SuccessfulCompileIR(ir) => ir
+      case _                       => throw new Exception("unexpected")
     }
     val diffTask = getApplicationByName("diff", bundle)
     diffTask.inputs.map(param => param.name -> param.attributes).iterator sameElements Vector(
@@ -1389,10 +1390,10 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val extraPath = pathFromBasename("nested/extras", "four_levels_extras1.json")
     val args = path.toString :: "--extras" :: extraPath.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
     val bundle = retval match {
-      case SuccessIR(ir, _) => ir
-      case _                => throw new Exception("unexpected")
+      case SuccessfulCompileIR(ir) => ir
+      case _                       => throw new Exception("unexpected")
     }
     // there are two scatters - one should have its chunkSize set
     // by the global default and the other should have it set by
@@ -1431,10 +1432,10 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val extraPath = pathFromBasename("nested/extras", "four_levels_extras2.json")
     val args = path.toString :: "--extras" :: extraPath.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
     val bundle = retval match {
-      case SuccessIR(ir, _) => ir
-      case _                => throw new Exception("wrong termination type")
+      case SuccessfulCompileIR(ir) => ir
+      case _                       => throw new Exception("wrong termination type")
     }
     // there are two scatters - one should have its chunkSize set
     // by the global default and the other should have it set by
@@ -1472,7 +1473,7 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     val path = pathFromBasename("cwl", "cat.cwl")
     val args = path.toString :: cFlags
     Main.compile(args.toVector) match {
-      case SuccessIR(bundle, _) =>
+      case SuccessfulCompileIR(bundle) =>
         bundle.allCallables.size shouldBe 1
         val applet = bundle.primaryCallable match {
           case Some(applet: Application) => applet
@@ -1486,19 +1487,19 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
         applet.inputs shouldBe Vector(Parameter("file", TFile))
         applet.outputs shouldBe Vector(Parameter("contents", TFile))
       case other =>
-        throw new AssertionError(s"expected SuccessIR, not ${other}")
+        throw new AssertionError(s"expected SuccessfulCompileIR, not ${other}")
     }
   }
 
   it should "translate a simple CWL task with JS expressions" in {
     val path = pathFromBasename("cwl", "params.cwl")
     val args = path.toString :: cFlags
-    Main.compile(args.toVector) shouldBe a[SuccessIR]
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
   it should "translate a simple CWL task with Any type input" in {
     val path = pathFromBasename("cwl", "params2.cwl")
     val args = path.toString :: cFlags
-    Main.compile(args.toVector) shouldBe a[SuccessIR]
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 }

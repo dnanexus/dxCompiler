@@ -1,8 +1,7 @@
 package dxCompiler
 
 import java.nio.file.{Files, Path, Paths}
-
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{Config, ConfigFactory}
 import dx.api._
 import dx.compiler.{Compiler, ExecutableTree}
 import dx.core.getVersion
@@ -82,19 +81,6 @@ object Main {
   }
 
   // compile
-
-  case class SuccessIR(bundle: Bundle, override val message: String = "Intermediate representation")
-      extends SuccessfulTermination
-
-  case class SuccessPrettyTree(pretty: String) extends SuccessfulTermination {
-    def message: String = pretty
-  }
-  case class SuccessJsonTree(jsValue: JsValue) extends SuccessfulTermination {
-    lazy val message: String = jsValue match {
-      case JsNull => ""
-      case _      => jsValue.prettyPrint
-    }
-  }
 
   object CompilerAction extends Enum {
     type CompilerAction = Value
@@ -261,6 +247,56 @@ object Main {
     resolveOrCreateDestination(dxApi, project, folder)
   }
 
+  sealed trait CompilerSuccessfulTermination extends SuccessfulTermination {
+    def compilerAction: CompilerAction.CompilerAction
+  }
+
+  sealed trait SuccessfulCompile extends CompilerSuccessfulTermination {
+    override val compilerAction: CompilerAction.CompilerAction = CompilerAction.Compile
+
+    def compilerMode: CompilerMode.CompilerMode
+  }
+
+  case class SuccessfulCompileIR(bundle: Bundle) extends SuccessfulCompile {
+    override val compilerMode: CompilerMode.CompilerMode = CompilerMode.IR
+
+    override val message: String = "Intermediate representation"
+  }
+
+  sealed trait SuccessfulPrettyTree extends CompilerSuccessfulTermination {
+    def prettyTree: String
+  }
+
+  sealed trait SuccessfulJsonTree extends CompilerSuccessfulTermination {
+    def jsonTree: JsValue
+  }
+
+  sealed trait SuccessfulCompileNative extends SuccessfulCompile {
+    def executableIds: Vector[String]
+
+    override def message: String = {
+      executableIds.mkString(",")
+    }
+  }
+
+  case class SuccessfulCompileNativeNoTree(override val compilerMode: CompilerMode.CompilerMode,
+                                           override val executableIds: Vector[String])
+      extends SuccessfulCompileNative
+
+  case class SuccessfulCompileNativeWithPrettyTree(
+      override val compilerMode: CompilerMode.CompilerMode,
+      override val executableIds: Vector[String],
+      override val prettyTree: String
+  ) extends SuccessfulCompileNative
+      with SuccessfulPrettyTree
+
+  case class SuccessfulCompileNativeWithJsonTree(
+      override val compilerMode: CompilerMode.CompilerMode,
+      override val executableIds: Vector[String],
+      override val jsonTree: JsValue
+  ) extends SuccessfulCompileNative
+      with SuccessfulJsonTree
+
   def compile(args: Vector[String]): Termination = {
     val sourceFile: Path = args.headOption
       .map(Paths.get(_))
@@ -352,7 +388,7 @@ object Main {
 
     // quit here if the target is IR and there are no inputs to translate
     if (!hasInputs && compileMode == CompilerMode.IR) {
-      return SuccessIR(rawBundle)
+      return SuccessfulCompileIR(rawBundle)
     }
 
     // for everything past this point, the user needs to be logged in
@@ -382,7 +418,7 @@ object Main {
         }
       if (compileMode == CompilerMode.IR) {
         // if we're only performing translation to IR, we can quit early
-        return SuccessIR(bundleWithDefaults)
+        return SuccessfulCompileIR(bundleWithDefaults)
       }
       (bundleWithDefaults, fileResolver)
     } else {
@@ -440,12 +476,14 @@ object Main {
           }
           format match {
             case ExecTreeFormat.Json =>
-              SuccessJsonTree(treeJs)
+              SuccessfulCompileNativeWithJsonTree(compileMode, results.executableIds, treeJs)
             case ExecTreeFormat.Pretty =>
-              SuccessPrettyTree(ExecutableTree.prettyPrint(treeJs.asJsObject))
+              SuccessfulCompileNativeWithPrettyTree(compileMode,
+                                                    results.executableIds,
+                                                    ExecutableTree.prettyPrint(treeJs.asJsObject))
           }
         case _ =>
-          Success(results.executableIds.mkString(","))
+          SuccessfulCompileNativeNoTree(compileMode, results.executableIds)
       }
     } catch {
       case e: Throwable =>
@@ -471,6 +509,17 @@ object Main {
       "recursive" -> FlagOptionSpec.default,
       "r" -> FlagOptionSpec.default.copy(alias = Some("recursive"))
   )
+
+  case class SuccessfulDxNI(appsOption: AppsOption.AppsOption,
+                            apps: Vector[DxApp],
+                            applets: Vector[DxApplet])
+      extends CompilerSuccessfulTermination {
+    override val compilerAction: CompilerAction.CompilerAction = CompilerAction.DxNI
+
+    override def message: String = {
+      s"Apps: ${apps.size}, Applets: ${applets.size}"
+    }
+  }
 
   def dxni(args: Vector[String]): Termination = {
     val options =
@@ -511,7 +560,7 @@ object Main {
         "force",
         "recursive"
     ).map(options.getFlag(_))
-    val apps = options
+    val appsOption = options
       .getValue[String]("apps")
       .map(AppsOption.withNameIgnoreCase)
       .getOrElse(
@@ -544,23 +593,24 @@ object Main {
     }
 
     val dxni = DxNativeInterface(fileResolver)
-    if (apps == AppsOption.Only) {
+    if (appsOption == AppsOption.Only) {
       try {
-        writeOutput(dxni.apply(language, pathOpt))
-        Success()
+        val (apps, lines) = dxni.apply(language, pathOpt)
+        writeOutput(lines)
+        SuccessfulDxNI(appsOption, apps, Vector.empty)
       } catch {
         case e: Throwable => Failure(exception = Some(e))
       }
     } else {
       val (dxProject, folderOrFile) = resolveDestination(dxApi, projectOpt, folderOpt, pathOpt)
-      val includeApps = apps match {
+      val includeApps = appsOption match {
         case AppsOption.Include => true
         case AppsOption.Exclude => false
         case _ =>
-          throw new RuntimeException(s"unexpected value for --apps ${apps}")
+          throw new RuntimeException(s"unexpected value for --apps ${appsOption}")
       }
       try {
-        val output = folderOrFile match {
+        val (apps, applets, lines) = folderOrFile match {
           case Left(folder) =>
             dxni.apply(language,
                        dxProject,
@@ -574,8 +624,8 @@ object Main {
                 s"Invalid folder/path ${folderOrFile}"
             )
         }
-        writeOutput(output)
-        Success()
+        writeOutput(lines)
+        SuccessfulDxNI(appsOption, apps, applets)
       } catch {
         case e: Throwable => Failure(exception = Some(e))
       }
@@ -583,6 +633,25 @@ object Main {
   }
 
   // describe
+
+  sealed trait SuccessfulDescribe extends CompilerSuccessfulTermination {
+    override def compilerAction: CompilerAction.CompilerAction = CompilerAction.Describe
+  }
+
+  case class SuccessfulDescribePrettyTree(override val prettyTree: String)
+      extends SuccessfulDescribe
+      with SuccessfulPrettyTree {
+    override def message: String = prettyTree
+  }
+
+  case class SuccessfulDescribeJsonTree(override val jsonTree: JsValue)
+      extends SuccessfulDescribe
+      with SuccessfulJsonTree {
+    override def message: String = jsonTree match {
+      case JsNull => ""
+      case _      => jsonTree.prettyPrint
+    }
+  }
 
   private def DescribeOptions: InternalOptions = Map(
       "pretty" -> FlagOptionSpec.default
@@ -612,14 +681,26 @@ object Main {
       val execTreeJS = ExecutableTree.fromDxWorkflow(wf)
       if (options.getFlag("pretty")) {
         val prettyTree = ExecutableTree.prettyPrint(execTreeJS.asJsObject)
-        SuccessPrettyTree(prettyTree)
+        SuccessfulDescribePrettyTree(prettyTree)
       } else {
-        SuccessJsonTree(execTreeJS)
+        SuccessfulDescribeJsonTree(execTreeJS)
       }
     } catch {
       case e: Throwable =>
         BadUsageTermination(exception = Some(e))
     }
+  }
+
+  case class SuccessfulConfig(config: Config) extends CompilerSuccessfulTermination {
+    override def compilerAction: CompilerAction.CompilerAction = CompilerAction.Config
+
+    override def message: String = config.toString
+  }
+
+  case class SuccessfulVersion(version: String = getVersion) extends CompilerSuccessfulTermination {
+    override def compilerAction: CompilerAction.CompilerAction = CompilerAction.Version
+
+    override def message: String = version
   }
 
   private def dispatchCommand(args: Vector[String]): Termination = {
@@ -638,8 +719,8 @@ object Main {
         case CompilerAction.Compile  => compile(args.tail)
         case CompilerAction.Describe => describe(args.tail)
         case CompilerAction.DxNI     => dxni(args.tail)
-        case CompilerAction.Config   => Success(ConfigFactory.load().toString)
-        case CompilerAction.Version  => Success(getVersion)
+        case CompilerAction.Config   => SuccessfulConfig(ConfigFactory.load())
+        case CompilerAction.Version  => SuccessfulVersion()
       }
     } catch {
       case e: Throwable =>

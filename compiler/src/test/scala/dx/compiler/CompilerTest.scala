@@ -2,23 +2,23 @@ package dx.compiler
 
 import java.io.File
 import java.nio.file.{Path, Paths}
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.UUID.randomUUID
 
 import dx.Assumptions.{isLoggedIn, toolkitCallable}
 import dx.Tags.NativeTest
 import dx.api._
-import dxCompiler.Main.SuccessIR
 import dx.core.Constants
 import dx.core.ir.Callable
 import dx.core.CliUtils.{Success, Termination}
+import dx.util.{FileUtils, Logger, SysUtils}
+import dxCompiler.Main
+import dxCompiler.Main.{SuccessfulCompileIR, SuccessfulCompileNativeNoTree}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spray.json._
-import dx.util.{FileUtils, Logger, SysUtils}
-import dxCompiler.Main
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import java.util.UUID.randomUUID
 
 // This test module requires being logged in to the platform.
 // It compiles WDL scripts without the runtime library.
@@ -67,25 +67,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
   private lazy val cFlagsReorgCompile: List[String] = cFlagsBase ++
     List("-compileMode", "NativeWithoutRuntimeAsset", "-folder", "/reorg_tests")
 
-//  val irArgs = path.toString :: "--extras" :: extraPath.toString :: (cFlagsBase ++ List(
-//    "-compileMode",
-//    "IR",
-//    "-folder",
-//    s"/${unitTestsPath}",
-//    "-locked"
-//  ))
-//  val bundle = Main.compile(irArgs.toVector) match {
-//    case SuccessIR(x, _) => x
-//    case other           => throw new Exception(s"Unexpected result ${other}")
-//  }
-//  val task = bundle.primaryCallable match {
-//    case Some(task: Application) => task
-//    case _                       => throw new Exception("boo")
-//  }
-//  println(task.requirements)
-
-  val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm")
-  val test_time = dateFormatter.format(LocalDateTime.now)
+  private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm")
+  private val test_time = dateFormatter.format(LocalDateTime.now)
 
   private val reorgAppletFolder =
     s"/${unitTestsPath}/reorg_applets_${test_time}_${randomUUID().toString.substring(24)}/"
@@ -176,9 +159,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val path = pathFromBasename("compiler", "pattern_params.wdl")
     val args = path.toString :: cFlags
     val appId = Main.compile(args.toVector) match {
-      case Success(x) => x
-      case _          => throw new Exception("unexpected")
-
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
     }
 
     val dxApplet = dxApi.applet(appId)
@@ -204,8 +187,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val path = pathFromBasename("compiler", "pattern_obj_params.wdl")
     val args = path.toString :: cFlags
     val appId = Main.compile(args.toVector) match {
-      case Success(x) => x
-      case _          => throw new Exception("unexpected")
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
     }
 
     val dxApplet = dxApi.applet(appId)
@@ -235,8 +219,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val path = pathFromBasename("compiler", "choice_values.wdl")
     val args = path.toString :: cFlags
     val appId = Main.compile(args.toVector) match {
-      case Success(x) => x
-      case _          => throw new Exception("unexpected")
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
     }
 
     val dxApplet = dxApi.applet(appId)
@@ -269,8 +254,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val path = pathFromBasename("compiler", "choice_obj_values.wdl")
     val args = path.toString :: cFlags
     val appId = Main.compile(args.toVector) match {
-      case Success(x) => x
-      case other      => throw new Exception(s"Unexpected result ${other}")
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
     }
 
     val dxApplet = dxApi.applet(appId)
@@ -303,8 +289,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val path = pathFromBasename("compiler", "suggestion_values.wdl")
     val args = path.toString :: cFlags
     val appId = Main.compile(args.toVector) match {
-      case Success(x) => x
-      case _          => throw new Exception("unexpected")
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
     }
 
     val dxApplet = dxApi.applet(appId)
@@ -341,8 +328,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val path = pathFromBasename("compiler", "suggestion_obj_values.wdl")
     val args = path.toString :: cFlags
     val appId = Main.compile(args.toVector) match {
-      case Success(x) => x
-      case other      => throw new Exception(s"Unexpected result ${other}")
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
     }
 
     val dxApplet = dxApi.applet(appId)
@@ -379,8 +367,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val path = pathFromBasename("compiler", "add_dx_type.wdl")
     val args = path.toString :: cFlags
     val appId = Main.compile(args.toVector) match {
-      case Success(x) => x
-      case other      => throw new Exception(s"Unexpected result ${other}")
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
     }
 
     val dxApplet = dxApi.applet(appId)
@@ -411,8 +400,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val path = pathFromBasename("compiler", "add_default.wdl")
     val args = path.toString :: cFlags
     val appId = Main.compile(args.toVector) match {
-      case Success(x) => x
-      case other      => throw new Exception(s"Unexpected result ${other}")
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
     }
 
     val dxApplet = dxApi.applet(appId)
@@ -429,8 +419,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val path = pathFromBasename("compiler", "add_help.wdl")
     val args = path.toString :: cFlags
     val appId = Main.compile(args.toVector) match {
-      case Success(x) => x
-      case _          => throw new Exception("unexpected")
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
     }
 
     val dxApplet = dxApi.applet(appId)
@@ -450,8 +441,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val path = pathFromBasename("compiler", "add_group.wdl")
     val args = path.toString :: cFlags
     val appId = Main.compile(args.toVector) match {
-      case Success(x) => x
-      case _          => throw new Exception("unexpected")
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
     }
 
     val dxApplet = dxApi.applet(appId)
@@ -468,8 +460,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val path = pathFromBasename("compiler", "add_label.wdl")
     val args = path.toString :: cFlags
     val appId = Main.compile(args.toVector) match {
-      case Success(x) => x
-      case _          => throw new Exception("unexpected")
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
     }
 
     val dxApplet = dxApi.applet(appId)
@@ -510,8 +503,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val args = path.toString :: "--extras" :: extraPath.toString :: cFlags
     //:: "--verbose"
     val appId = Main.compile(args.toVector) match {
-      case Success(x) => x
-      case other      => throw new Exception(s"Unexpected result ${other}")
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
     }
 
     val dxApplet = dxApi.applet(appId)
@@ -570,8 +564,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val path = pathFromBasename("compiler", "add_runtime_hints.wdl")
     val args = path.toString :: cFlags
     val appId = Main.compile(args.toVector) match {
-      case Success(x) => x
-      case other      => throw new Exception(s"Unexpected result ${other}")
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
     }
 
     val dxApplet = dxApi.applet(appId)
@@ -628,8 +623,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
     //:: "--verbose"
     val appId = Main.compile(args.toVector) match {
-      case Success(x) => x
-      case other      => throw new Exception(s"Unexpected result ${other}")
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
     }
 
     val dxApplet = dxApi.applet(appId)
@@ -662,8 +658,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val args = path.toString :: "--extras" :: extraPath.toString :: cFlags
     //:: "--verbose"
     val appId = Main.compile(args.toVector) match {
-      case Success(x) => x
-      case other      => throw new Exception(s"Unexpected result ${other}")
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
     }
 
     val dxApplet = dxApi.applet(appId)
@@ -711,8 +708,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val path = pathFromBasename("compiler", "wf_meta.wdl")
     val args = path.toString :: cFlags
     val wfId = Main.compile(args.toVector) match {
-      case Success(x) => x
-      case other      => throw new Exception(s"Unexpected result ${other}")
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
     }
 
     val dxWorkflow = dxApi.workflow(wfId)
@@ -761,8 +759,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val path = pathFromBasename("compiler", "wf_param_meta.wdl")
     val args = path.toString :: cFlags
     val wfId = Main.compile(args.toVector) match {
-      case Success(x) => x
-      case other      => throw new Exception(s"Unexpected result ${other}")
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
     }
 
     val dxWorkflow = dxApi.workflow(wfId)
@@ -790,8 +789,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val path = pathFromBasename("compiler", "add_timeout.wdl")
     val args = path.toString :: cFlags
     val appId = Main.compile(args.toVector) match {
-      case Success(x) => x
-      case _          => throw new Exception("unexpected")
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
     }
 
     // make sure the timeout is what it should be
@@ -815,8 +815,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val extraPath = pathFromBasename("compiler/extras", "short_timeout.json")
     val args = path.toString :: "--extras" :: extraPath.toString :: cFlags
     val appId = Main.compile(args.toVector) match {
-      case Success(x) => x
-      case _          => throw new Exception("unexpected")
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
     }
 
     // make sure the timeout is what it should be
@@ -837,8 +838,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val path = pathFromBasename("compiler", "GPU2.wdl")
     val args = path.toString :: cFlags
     val appId = Main.compile(args.toVector) match {
-      case Success(x) => x
-      case _          => throw new Exception("unexpected")
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
     }
 
     // make sure the timeout is what it should be
@@ -870,10 +872,10 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       val args = path.toString :: "-extras" :: extrasPath :: cFlagsReorgCompile
       Main.compile(args.toVector)
     }
-    retval shouldBe a[Success]
-    val wfId: String = retval match {
-      case Success(id) => id
-      case _           => throw new Exception("unexpected")
+    val wfId = retval match {
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
     }
 
     val wf = dxApi.workflow(wfId)
@@ -919,10 +921,10 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       val args = path.toString :: "-extras" :: extrasPath :: cFlagsReorgCompile
       Main.compile(args.toVector)
     }
-    retval shouldBe a[Success]
-    val wfId: String = retval match {
-      case Success(wfId) => wfId
-      case _             => throw new Exception("unexpected")
+    val wfId = retval match {
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
     }
 
     val wf = dxApi.workflow(wfId)
@@ -955,11 +957,11 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       val args = path.toString :: "-extras" :: extrasPath :: cFlagsReorgIR
       Main.compile(args.toVector)
     }
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
 
     val bundle = retval match {
-      case SuccessIR(bundle, _) => bundle
-      case _                    => throw new Exception("unexpected")
+      case SuccessfulCompileIR(bundle) => bundle
+      case _                           => throw new Exception("unexpected")
     }
 
     // this is a subworkflow so there is no reorg_status___ added.
@@ -992,11 +994,10 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       val args = path.toString :: "--extras" :: extrasPath :: cFlags
       Main.compile(args.toVector)
     }
-    retval shouldBe a[Success]
-
     val appletId = retval match {
-      case Success(x) => x
-      case _          => throw new Exception("unexpected")
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
     }
 
     // make sure the job reuse flag is set
@@ -1017,11 +1018,10 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       val args = path.toString :: "-extras" :: extrasPath :: cFlags
       Main.compile(args.toVector)
     }
-    retval shouldBe a[Success]
-
     val wfId = retval match {
-      case Success(x) => x
-      case _          => throw new Exception("unexpected")
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
     }
 
     // make sure the job reuse flag is set
@@ -1042,11 +1042,10 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       val args = path.toString :: "-extras" :: extrasPath :: cFlags
       Main.compile(args.toVector)
     }
-    retval shouldBe a[Success]
-
     val appletId = retval match {
-      case Success(x) => x
-      case _          => throw new Exception("unexpected")
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
     }
 
     // make sure the delayWorkspaceDestruction flag is set
@@ -1068,11 +1067,10 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       val args = path.toString :: "-extras" :: extrasPath :: cFlags
       Main.compile(args.toVector)
     }
-    retval shouldBe a[Success]
-
     val wfId = retval match {
-      case Success(x) => x
-      case _          => throw new Exception("unexpected")
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
     }
 
     // make sure the flag is set on the resulting workflow
@@ -1088,5 +1086,16 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
     retval shouldBe a[Success]
+  }
+
+  it should "Compile a tool with -useManifests flag" in {
+    val path = pathFromBasename("compiler", "add.wdl")
+    val args = path.toString :: "-useManifests" :: cFlags
+    val appletId = Main.compile(args.toVector) match {
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new AssertionError(s"expected Success, got ${other}")
+    }
+
   }
 }
