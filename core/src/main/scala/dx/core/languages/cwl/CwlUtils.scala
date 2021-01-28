@@ -357,7 +357,9 @@ object CwlUtils {
         try {
           return (t, inner(innerValue, t, innerName))
         } catch {
-          case _: Throwable => None
+          case ex: Throwable =>
+            ex.printStackTrace()
+            None
         }
       }
       throw new Exception(
