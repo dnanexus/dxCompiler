@@ -1,5 +1,10 @@
 # Release Notes
 
+## in dev
+
+* Update CWL parser to fix compilation of WDL tools with imports
+* Add CWL tool compilance tests to integration test suite
+
 ## 2.0.1 22-01-2021
 
 * Implement translator and executor for CWL (tools only)
