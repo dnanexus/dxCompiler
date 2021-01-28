@@ -353,18 +353,22 @@ object CwlUtils {
                    innerCwlTypes: Vector[CwlType],
                    innerName: String): (CwlType, CwlValue) = {
       val flattenedTypes = flattenTypes(innerCwlTypes)
-      flattenedTypes.foreach { t =>
-        try {
-          return (t, inner(innerValue, t, innerName))
-        } catch {
-          case ex: Throwable =>
-            ex.printStackTrace()
-            None
+      flattenedTypes.iterator
+        .map { t =>
+          try {
+            Some(t, inner(innerValue, t, innerName))
+          } catch {
+            case _: Throwable => None
+          }
         }
-      }
-      throw new Exception(
-          s"cannot convert ${innerName} ${innerValue} to CWL value of any type ${flattenedTypes}"
-      )
+        .collectFirst {
+          case Some(x) => x
+        }
+        .getOrElse(
+            throw new Exception(
+                s"cannot convert ${innerName} ${innerValue} to CWL value of any type ${flattenedTypes}"
+            )
+        )
     }
     innerMulti(value, cwlTypes, name)
   }
