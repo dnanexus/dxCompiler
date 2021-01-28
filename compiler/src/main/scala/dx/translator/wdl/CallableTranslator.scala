@@ -490,12 +490,12 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       */
     private def splitWorkflowElements(
         statements: Vector[TAT.WorkflowElement]
-    ): (Vector[WdlBlockInput], Vector[WdlBlock], Map[String, WdlTypes.T]) = {
+    ): (Vector[WdlBlockInput], Vector[WdlBlock], Vector[TAT.OutputParameter]) = {
       val (inputs, outputs) = WdlUtils.getClosureInputsAndOutputs(statements, withField = true)
       // the outputs still have their original expressions - we need to replace them with identifier expressions
-      val workflowOutputs = outputs.map {
-        case (name, TAT.OutputParameter(_, wdlType, _, _)) => name -> wdlType
-      }
+      val workflowOutputs = outputs.values.map { param =>
+        param.copy(expr = TAT.ExprIdentifier(param.name, param.expr.wdlType, param.expr.loc))
+      }.toVector
       val subBlocks = WdlBlock.createBlocks(statements)
       (WdlBlockInput.create(inputs), subBlocks, workflowOutputs)
     }
