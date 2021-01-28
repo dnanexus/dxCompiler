@@ -57,8 +57,6 @@ case class CwlTranslator(tool: CommandLineTool,
 }
 
 case class CwlTranslatorFactory() extends TranslatorFactory {
-  private lazy val parser = Parser.create(hintSchemas = Vector(DxHintSchema))
-
   override def create(sourceFile: Path,
                       language: Option[Language],
                       locked: Boolean,
