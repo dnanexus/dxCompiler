@@ -714,6 +714,8 @@ def native_call_app_setup(project, version_id, verbose):
 
 ######################################################################
 # Compile the WDL files to dx:workflows and dx:applets
+# delay_compile_errors: whether to aggregate all compilation errors
+#   and only raise an Exception after trying to compile all the tests
 def compile_tests_to_project(trg_proj,
                              test_names,
                              applet_folder,
