@@ -6,7 +6,7 @@ import wdlTools.eval.WdlValues
 import wdlTools.syntax.{CommentMap, SourceLocation, WdlVersion}
 import wdlTools.types.{GraphUtils, TypeGraph, WdlTypes, TypedAbstractSyntax => TAT}
 
-import scala.collection.immutable.{SeqMap, TreeSeqMap}
+import scala.collection.immutable.TreeSeqMap
 
 case class WdlDocumentSource(doc: TAT.Document, versionSupport: VersionSupport)
     extends DocumentSource {
