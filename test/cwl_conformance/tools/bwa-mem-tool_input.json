@@ -1,0 +1,26 @@
+{
+  "bwa-mem-tool.reference": {
+    "class": "File",
+    "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/chr20.fa",
+    "size": 123,
+    "checksum": "sha1$hash"
+  },
+  "bwa-mem-tool.reads": [
+    {
+      "class": "File",
+      "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/example_human_Illumina.pe_1.fastq"
+    },
+    {
+      "class": "File",
+      "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/example_human_Illumina.pe_2.fastq"
+    }
+  ],
+  "bwa-mem-tool.min_std_max_min": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "bwa-mem-tool.minimum_seed_length": 3,
+  "bwa-mem-tool.args___py": "dx://file-G0G3BZQ0yzZf6x1Y3vxzpgk6"
+}

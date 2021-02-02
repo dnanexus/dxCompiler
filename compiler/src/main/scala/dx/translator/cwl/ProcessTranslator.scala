@@ -59,7 +59,7 @@ case class ProcessTranslator(typeAliases: Map[String, CwlSchema],
   }
 
   private case class CwlToolTranslator(tool: CommandLineTool) {
-    private lazy val cwlEvaluator = Evaluator.create(tool.requirements)
+    private lazy val cwlEvaluator = Evaluator.create(tool.requirements, tool.hints)
     private lazy val dxHints = tool.hints.collectFirst {
       case dxHints: DxHints => dxHints
     }
@@ -132,6 +132,7 @@ case class ProcessTranslator(typeAliases: Map[String, CwlSchema],
       )
       val requirementEvaluator = RequirementEvaluator(
           tool.requirements,
+          tool.hints,
           Map.empty,
           DxWorkerPaths.default,
           cwlDefaultRuntimeAttrs

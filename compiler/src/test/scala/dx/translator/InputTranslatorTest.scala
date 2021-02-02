@@ -222,4 +222,49 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessIR]
   }
+
+  it should "handle parameter name with dot" in {
+    val cwlCode = pathFromBasename("input_file", "bwa-mem-tool.cwl")
+    val inputs = pathFromBasename("input_file", "bwa-mem-tool_input.json")
+    val args = List(cwlCode.toString, "-inputs", inputs.toString, "-verbose") ++ cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessIR]
+
+    val dxInputsFile = inputs.getParent.resolve(FileUtils.replaceFileSuffix(inputs, ".dx.json"))
+    val jsInputs = JsUtils.jsFromFile(dxInputsFile)
+    val fields = jsInputs.asJsObject.fields
+    fields("reference") shouldBe JsObject(
+        "$dnanexus_link" -> JsObject(
+            "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
+            "id" -> JsString("file-G0G0V000yzZf6x1Y3vxzpg63")
+        )
+    )
+    fields("reads") shouldBe JsArray(
+        JsObject(
+            "$dnanexus_link" -> JsObject(
+                "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
+                "id" -> JsString("file-G0G0V0Q0yzZbyFF03xqgxv87")
+            )
+        ),
+        JsObject(
+            "$dnanexus_link" -> JsObject(
+                "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
+                "id" -> JsString("file-G0G0V0j0yzZV5q4q3vkQJJX5")
+            )
+        )
+    )
+    fields("min_std_max_min") shouldBe JsArray(
+        JsNumber(1),
+        JsNumber(2),
+        JsNumber(3),
+        JsNumber(4)
+    )
+    fields("minimum_seed_length") shouldBe JsNumber(3)
+    fields("args___py") shouldBe JsObject(
+        "$dnanexus_link" -> JsObject(
+            "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
+            "id" -> JsString("file-G0G3BZQ0yzZf6x1Y3vxzpgk6")
+        )
+    )
+  }
 }

@@ -1,0 +1,26 @@
+{
+  "binding-test.reference": {
+    "class": "File",
+    "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/chr20.fa",
+    "size": 123,
+    "checksum": "sha1$hash"
+  },
+  "binding-test.reads": [
+    {
+      "class": "File",
+      "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/example_human_Illumina.pe_1.fastq"
+    },
+    {
+      "class": "File",
+      "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/example_human_Illumina.pe_2.fastq"
+    }
+  ],
+  "binding-test.min_std_max_min": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "binding-test.minimum_seed_length": 3,
+  "binding-test.args___py": "dx://file-G0G3BZQ0yzZf6x1Y3vxzpgk6"
+}

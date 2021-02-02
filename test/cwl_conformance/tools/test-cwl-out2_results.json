@@ -1,0 +1,8 @@
+{
+  "test-cwl-out2.foo": {
+    "location": "foo",
+    "class": "File",
+    "checksum": "sha1$f1d2d2f924e986ac86fdf7b36c94bcdf32beec15",
+    "size": 4
+  }
+}

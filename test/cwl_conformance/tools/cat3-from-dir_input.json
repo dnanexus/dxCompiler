@@ -1,0 +1,13 @@
+{
+  "cat3-from-dir.dir1": {
+    "class": "Directory",
+    "basename": "cwl",
+    "listing": [
+      {
+        "class": "File",
+        "basename": "literal.txt",
+        "contents": "I'm a File literal; howdy!"
+      }
+    ]
+  }
+}
