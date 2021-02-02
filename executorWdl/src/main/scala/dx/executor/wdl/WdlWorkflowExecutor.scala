@@ -977,7 +977,9 @@ case class WdlWorkflowExecutor(workflow: TAT.Workflow,
       case (_, RequiredBlockInput(name, _)) =>
         throw new Exception(s"missing required input ${name}")
       case (accu, _: ComputedBlockInput) =>
-        // this is the scatter variable - we can ignore it
+        // this is the scatter variable, or some expression that references the scatter
+        // variable - we can ignore it since it will be evaluated during launching of
+        // the scatter jobs
         accu
       case (accu, OverridableBlockInputWithStaticDefault(name, wdlType, defaultValue)) =>
         accu + (name -> (wdlType, defaultValue))

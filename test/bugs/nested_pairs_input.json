@@ -1,0 +1,18 @@
+{
+  "nested_pairs.manifest": [
+    {
+      "left": "a",
+      "right": {
+        "left": "hello",
+        "right": "goodbye"
+      }
+    },
+    {
+      "left": "b",
+      "right": {
+        "left": "up",
+        "right": "down"
+      }
+    }
+  ]
+}
