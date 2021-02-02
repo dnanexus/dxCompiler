@@ -5,6 +5,7 @@ import dx.core.Constants
 import dx.cwl._
 import dx.core.io.StreamFiles.StreamFiles
 import dx.core.ir.{Parameter, Type, Value}
+import dx.core.languages.Language
 import dx.core.languages.cwl.{CwlUtils, DxHintSchema, RequirementEvaluator}
 import dx.executor.{FileUploader, JobMeta, TaskExecutor}
 import dx.util.{DockerUtils, FileUtils, JsUtils, TraceLevel}
@@ -17,11 +18,13 @@ object CwlTaskExecutor {
              fileUploader: FileUploader,
              streamFiles: StreamFiles): CwlTaskExecutor = {
     val parser = Parser.create(hintSchemas = Vector(DxHintSchema))
-    if (!parser.canParse(jobMeta.sourceCode)) {
-      throw new Exception(
-          s"""source code does not appear to be a CWL document of a supported version
-             |${jobMeta.sourceCode}""".stripMargin
-      )
+    parser.detectVersionAndClass(jobMeta.sourceCode) match {
+      case Some((version, "CommandLineTool")) if Language.parse(version) == Language.CwlV1_2 => ()
+      case _ =>
+        throw new Exception(
+            s"""source code does not appear to be a CWL CommandLineTool document of a supported version
+               |${jobMeta.sourceCode}""".stripMargin
+        )
     }
     val toolName = jobMeta.getExecutableAttribute("name") match {
       case Some(JsString(name)) => name

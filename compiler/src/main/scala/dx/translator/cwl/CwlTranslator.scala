@@ -141,9 +141,13 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
       if (ver != CWLVersion.V1_2) {
         throw new Exception(s"dxCompiler does not support CWL version ${ver}")
       }
-    } else if (!parser.canParse(sourceFile)) {
+    } else {
       // otherwise make sure the file is parseable as CWL
-      return None
+      parser.detectVersionAndClass(sourceFile) match {
+        case Some((version, _)) if Language.parse(version) == Language.CwlV1_2 => ()
+        case _ =>
+          return None
+      }
     }
     val tool = parser.parseFile(sourceFile) match {
       case tool: CommandLineTool => tool
