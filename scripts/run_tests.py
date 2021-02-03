@@ -144,6 +144,7 @@ single_tasks_list = [
 
 cwl_tools = [
     "cat",  # hello world tool
+    "tar_files",
 ]
 
 cwl_conformance = [
