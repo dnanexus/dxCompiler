@@ -315,21 +315,19 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     }
 
   lazy val delayWorkspaceDestruction: Option[Boolean] =
-    getExecutableDetail("delayWorkspaceDestruction") match {
+    getExecutableDetail(Constants.DelayWorkspaceDestruction) match {
       case Some(JsBoolean(flag)) => Some(flag)
       case None                  => None
     }
 
-  lazy val blockPath: Vector[Int] = getExecutableDetail("blockPath") match {
+  lazy val blockPath: Vector[Int] = getExecutableDetail(Constants.BlockPath) match {
     case Some(JsArray(arr)) if arr.nonEmpty =>
       arr.map {
         case JsNumber(n) => n.toInt
         case _           => throw new Exception("Bad value ${arr}")
       }
-    case None =>
-      Vector.empty
-    case other =>
-      throw new Exception(s"Bad value ${other}")
+    case None  => Vector.empty
+    case other => throw new Exception(s"Bad value ${other}")
   }
 
   lazy val scatterStart: Int = getJobDetail(Constants.ContinueStart) match {

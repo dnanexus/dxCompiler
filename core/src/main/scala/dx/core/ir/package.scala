@@ -165,7 +165,7 @@ case class ExecutableKindWfFragment(calls: Vector[String],
     extends ExecutableKind
 case object ExecutableKindWfInputs extends ExecutableKind
 // Output - default and custom reorg
-case object ExecutableKindWfOutputs extends ExecutableKind
+case class ExecutableKindWfOutputs(blockPath: Vector[Int]) extends ExecutableKind
 case object ExecutableKindWfCustomReorgOutputs extends ExecutableKind
 // Reorg - default and custom reorg
 case object ExecutableKindWorkflowOutputReorg extends ExecutableKind
@@ -175,7 +175,7 @@ object ExecutableKind {
   def getCommand(kind: ExecutableKind): Option[String] = {
     kind match {
       case ExecutableKindWfInputs             => Some("Inputs")
-      case ExecutableKindWfOutputs            => Some("Outputs")
+      case _: ExecutableKindWfOutputs         => Some("Outputs")
       case ExecutableKindWfCustomReorgOutputs => Some("CustomReorgOutputs")
       case ExecutableKindWorkflowOutputReorg  => Some("OutputReorg")
       case _                                  => None
@@ -188,7 +188,7 @@ object ExecutableKind {
       case _: ExecutableKindWfFragment           => "Fragment"
       case ExecutableKindApplet                  => "Task"
       case ExecutableKindWfInputs                => "Inputs"
-      case ExecutableKindWfOutputs               => "Outputs"
+      case _: ExecutableKindWfOutputs            => "Outputs"
       case ExecutableKindWfCustomReorgOutputs    => "Reorg outputs"
       case ExecutableKindWorkflowOutputReorg     => "Output Reorg"
       case ExecutableKindWorkflowCustomReorg(id) => s"Custom reorg ${id}"

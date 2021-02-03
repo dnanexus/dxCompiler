@@ -859,6 +859,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       */
     private def createOutputStage(wfName: String,
                                   outputs: Vector[TAT.OutputParameter],
+                                  blockPath: Vector[Int],
                                   env: CallEnv): (Stage, Application) = {
       // split outputs into those that are passed through directly from inputs vs
       // those that require evaluation
@@ -905,7 +906,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           )
           (ExecutableKindWfCustomReorgOutputs, updatedOutputVars)
         case _ =>
-          (ExecutableKindWfOutputs, outputVars)
+          (ExecutableKindWfOutputs(blockPath), outputVars)
       }
       val application = Application(
           s"${wfName}_${OutputStage}",
@@ -1077,7 +1078,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       } else {
         // Some of the outputs are expressions. We need an extra applet+stage
         // to evaluate them.
-        val (outputStage, outputApplet) = createOutputStage(wfName, outputs, env)
+        val (outputStage, outputApplet) = createOutputStage(wfName, outputs, blockPath, env)
         val wfOutputs = outputStage.outputs.map { param =>
           (param, LinkInput(outputStage.dxStage, param.dxName))
         }
@@ -1138,7 +1139,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       val (stages, auxCallables) = allStageInfo.unzip
 
       // convert the outputs into an applet+stage
-      val (outputStage, outputApplet) = createOutputStage(wf.name, outputs, env)
+      val (outputStage, outputApplet) = createOutputStage(wf.name, outputs, Vector.empty, env)
 
       val wfInputs = commonAppletInputs.map(param => (param, EmptyInput))
       val wfOutputs =

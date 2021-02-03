@@ -138,12 +138,20 @@ case class WdlWorkflowExecutor(workflow: TAT.Workflow,
       jobInputs: Map[String, (Type, Value)],
       addReorgStatus: Boolean
   ): Map[String, (Type, Value)] = {
+    // this might be the output for the entire workflow or just a subblock
+    val outputs = jobMeta.blockPath match {
+      case Vector() => workflow.outputs
+      case path =>
+        val block: WdlBlock =
+          Block.getSubBlockAt(WdlBlock.createBlocks(workflow.body), path)
+        block.outputs
+    }
     if (logger.isVerbose) {
-      logger.trace(workflow.outputs.map(TypeUtils.prettyFormatOutput(_)).mkString("\n"))
+      logger.trace(outputs.map(TypeUtils.prettyFormatOutput(_)).mkString("\n"))
     }
     // convert IR to WDL
     val outputWdlValues: Map[String, V] =
-      WdlUtils.getOutputClosure(workflow.outputs).collect {
+      WdlUtils.getOutputClosure(outputs).collect {
         case (name, wdlType) if jobInputs.contains(name) =>
           val (_, value) = jobInputs(name)
           name -> WdlUtils.fromIRValue(value, wdlType, name)
