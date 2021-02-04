@@ -3,9 +3,11 @@ import argparse
 from collections import namedtuple
 import dxpy
 import fnmatch
+import glob
+import hashlib
 import json
-import pprint
 import os
+import pprint
 import re
 import sys
 import subprocess
@@ -142,6 +144,12 @@ single_tasks_list = [
 
 cwl_tools = [
     "cat",  # hello world tool
+    "tar_files",
+]
+
+cwl_conformance = [
+    os.path.basename(path)[:-4]
+    for path in glob.glob(os.path.join(test_dir, "cwl_conformance", "tools", "*.cwl"))
 ]
 
 # Tests run in continuous integration. We remove the native app test,
@@ -180,7 +188,8 @@ test_suites = {
     'draft2': draft2_test_list,
     'docker': docker_test_list,
     'native': ["call_native", "call_native_v1"],
-    'docs': doc_tests_list
+    'docs': doc_tests_list,
+    'cwl_conformance': cwl_conformance
 }
 
 # Tests with the reorg flags
@@ -277,22 +286,36 @@ def register_test(dir_path, tname, ext):
     desc = TestDesc(name=metadata.name,
                     kind=metadata.kind,
                     source_file=source_file,
-                    raw_input=None,
-                    dx_input=None,
-                    results=os.path.join(dir_path, tname + "_results.json"),
+                    raw_input=[],
+                    dx_input=[],
+                    results=[],
                     extras=None)
 
     # Verify the input file, and add it (if it exists)
-    test_input= os.path.join(dir_path, tname + "_input.json")
+    test_input = os.path.join(dir_path, tname + "_input.json")
     if os.path.exists(test_input):
         verify_json_file(test_input)
-        desc = desc._replace(raw_input=test_input,
-                             dx_input=os.path.join(dir_path, tname + "_input.dx.json"))
+        desc.raw_input.append(test_input)
+        desc.dx_input.append(os.path.join(dir_path, tname + "_input.dx.json"))
+        desc.results.append(os.path.join(dir_path, tname + "_results.json"))
+
+    # check if the alternate naming scheme is used for tests with multiple inputs
+    i = 1
+    while True:
+        test_input = os.path.join(dir_path, tname + "_input{}.json".format(i))
+        if os.path.exists(test_input):
+            verify_json_file(test_input)
+            desc.raw_input.append(test_input)
+            desc.dx_input.append(os.path.join(dir_path, tname + "_input{}.dx.json".format(i)))
+            desc.results.append(os.path.join(dir_path, tname + "_results{}.json".format(i)))
+            i += 1
+        else:
+            break
 
     # Add an extras file (if it exists)
     extras = os.path.join(dir_path, tname + "_extras.json")
     if os.path.exists(extras):
-        desc = desc._replace(extras = extras)
+        desc = desc._replace(extras=extras)
 
     test_files[tname] = desc
     desc
@@ -339,8 +362,7 @@ def validate_result(tname, exec_outputs, key, expected_val):
             cprint("field {} missing from executable results {}".format(field_name1, exec_outputs),
                    "red")
             return False
-        if ((type(result) is list) and
-            (type(expected_val) is list)):
+        if isinstance(result, list) and isinstance(expected_val, list):
             result.sort()
             expected_val.sort()
         if isinstance(result, dict) and "$dnanexus_link" in result:
@@ -349,16 +371,48 @@ def validate_result(tname, exec_outputs, key, expected_val):
             dxpy.download_dxfile(result["$dnanexus_link"], dlpath)
             with open(dlpath, "r") as inp:
                 result = inp.read()
-        if str(result).strip() != str(expected_val).strip():
-            cprint("Analysis {} gave unexpected results".format(tname),
-                   "red")
-            cprint("Field {} should be ({}), actual = ({})".format(field_name1, expected_val, result),
-                   "red")
+        if isinstance(expected_val, dict) and expected_val.get("class") == "File":
+            contents = str(result).strip()
+            # the result is a cwl File - match the contents, checksum, and/or size
+            if "contents" in result and len(contents) != result["size"]:
+                cprint("Analysis {} gave unexpected results".format(tname), "red")
+                cprint("Field {} should have contents ({}), actual = ({})".format(
+                    field_name1, result["contents"], contents
+                ), "red")
+                return False
+            if "size" in result and len(contents) != result["size"]:
+                cprint("Analysis {} gave unexpected results".format(tname), "red")
+                cprint("Field {} should have size ({}), actual = ({})".format(
+                    field_name1, result["size"], len(contents)
+                ), "red")
+                return False
+            if "checksum" in result:
+                algo, expected_digest = result["checksum"].split("$")
+                actual_digest = get_checksum(contents, algo)
+                if actual_digest not in (expected_digest, None):
+                    cprint("Analysis {} gave unexpected results".format(tname), "red")
+                    cprint("Field {} should have size ({}), actual = ({})".format(
+                        field_name1, expected_digest, actual_digest
+                    ), "red")
+                    return False
+        elif str(result).strip() != str(expected_val).strip():
+            cprint("Analysis {} gave unexpected results".format(tname), "red")
+            cprint("Field {} should be ({}), actual = ({})".format(field_name1, expected_val, result), "red")
             return False
         return True
     except Exception as e:
         print("exception message={}".format(e))
         return False
+
+
+def get_checksum(contents, algo):
+    try:
+        m = hashlib.new(algo)
+        m.update(contents)
+        return m.digest()
+    except:
+        println("python does not support digest algorithm {}".format(algo))
+        return None
 
 
 def lookup_dataobj(tname, project, folder):
@@ -419,15 +473,16 @@ def wait_for_completion(test_exec_objs):
 
 # Run [workflow] on several inputs, return the analysis ID.
 def run_executable(project, test_folder, tname, oid, debug_flag, delay_workspace_destruction):
-    def once():
+    desc = test_files[tname]
+
+    def once(i):
         try:
-            desc = test_files[tname]
             if tname in test_defaults:
                 inputs = {}
-            elif desc.dx_input is None:
+            elif i < 0:
                 inputs = {}
             else:
-                inputs = read_json_file(desc.dx_input)
+                inputs = read_json_file(desc.dx_input[i])
             project.new_folder(test_folder, parents=True)
             if desc.kind == "workflow":
                 exec_obj = dxpy.DXWorkflow(project=project.get_id(), dxid=oid)
@@ -455,13 +510,22 @@ def run_executable(project, test_folder, tname, oid, debug_flag, delay_workspace
             print("exception message={}".format(e))
             return None
 
-    for i in range(1,5):
-        retval = once()
-        if retval is not None:
-            return retval
-        print("Sleeping for 5 seconds before trying again")
-        time.sleep(5)
-    raise RuntimeError("running workflow")
+    def run(i):
+        for _ in range(1,5):
+            retval = once(i)
+            if retval is not None:
+                return retval
+            print("Sleeping for 5 seconds before trying again")
+            time.sleep(5)
+        else:
+            raise RuntimeError("running workflow")
+
+    n = len(desc.dx_input)
+    if n == 0:
+        return [run(-1)]
+    else:
+        return [run(i) for i in range(n)]
+
 
 def extract_outputs(tname, exec_obj):
     desc = test_files[tname]
@@ -488,31 +552,38 @@ def run_test_subset(project, runnable, test_folder, debug_flag, delay_workspace_
         desc = test_files[tname]
         print("Running {} {} {}".format(desc.kind, desc.name, oid))
         anl = run_executable(project, test_folder, tname, oid, debug_flag, delay_workspace_destruction)
-        test_exec_objs.append(anl)
+        test_exec_objs.extend(anl)
     print("executables: " + ", ".join([a.get_id() for a in test_exec_objs]))
 
     # Wait for completion
     failed_execution = wait_for_completion(test_exec_objs)
 
     print("Verifying results")
-    failed_verification = []
-    for exec_obj in test_exec_objs:
+    def verify_test(exec_obj, i):
         exec_desc = exec_obj.describe()
         tname = find_test_from_exec(exec_obj)
         if tname in test_failing:
-            continue
+            return None
         test_desc = test_files[tname]
         exec_outputs = extract_outputs(tname, exec_desc)
-        shouldbe = read_json_file_maybe_empty(test_desc.results)
-        correct = True
-        print("Checking results for workflow {}".format(test_desc.name))
+        if len(test_desc.results) > i:
+            shouldbe = read_json_file_maybe_empty(test_desc.results[i])
+            correct = True
+            print("Checking results for workflow {} job {}".format(test_desc.name, i))
+            for key, expected_val in shouldbe.items():
+                correct = validate_result(tname, exec_outputs, key, expected_val)
+            anl_name = "{}.{}".format(tname, i)
+            if correct:
+                print("Analysis {} passed".format(anl_name))
+                return None
+            else:
+                return anl_name
 
-        for key, expected_val in shouldbe.items():
-            correct = validate_result(tname, exec_outputs, key, expected_val)
-        if correct:
-            print("Analysis {} passed".format(tname))
-        else:
-            failed_verification.append(tname)
+    failed_verification = []
+    for i, exec_obj in enumerate(test_exec_objs):
+        failed_name = verify_test(exec_obj, i)
+        if failed_name is not None:
+            failed_verification.append(failed_name)
 
     if failed_execution or failed_verification:
         all_failures = failed_execution + failed_verification
@@ -577,13 +648,13 @@ def compiler_per_test_flags(tname):
         flags.append("-reorg")
     if tname in test_project_wide_reuse:
         flags.append("-projectWideReuse")
-    if tname in test_defaults:
+    if tname in test_defaults and len(desc.raw_input) > 0:
         flags.append("-defaults")
-        flags.append(desc.raw_input)
+        flags.append(desc.raw_input[0])
     else:
-        if desc.raw_input is not None:
+        for i in desc.raw_input:
             flags.append("-inputs")
-            flags.append(desc.raw_input)
+            flags.append(i)
     if desc.extras is not None:
         flags += ["--extras", os.path.join(top_dir, desc.extras)]
     if tname in test_import_dirs:
@@ -710,22 +781,35 @@ def native_call_app_setup(project, version_id, verbose):
 
 ######################################################################
 # Compile the WDL files to dx:workflows and dx:applets
+# delay_compile_errors: whether to aggregate all compilation errors
+#   and only raise an Exception after trying to compile all the tests
 def compile_tests_to_project(trg_proj,
                              test_names,
                              applet_folder,
                              compiler_flags,
                              version_id,
-                             lazy_flag):
+                             lazy_flag,
+                             delay_compile_errors=False):
     runnable = {}
+    has_errors = False
     for tname in test_names:
         oid = None
         if lazy_flag:
             oid = lookup_dataobj(tname, trg_proj, applet_folder)
         if oid is None:
             c_flags = compiler_flags[:] + compiler_per_test_flags(tname)
-            oid = build_test(tname, trg_proj, applet_folder, version_id, c_flags)
+            try:
+                oid = build_test(tname, trg_proj, applet_folder, version_id, c_flags)
+            except subprocess.CalledProcessError:
+                if delay_compile_errors:
+                    traceback.print_exc()
+                    has_errors = True
+                else:
+                    raise
         runnable[tname] = oid
         print("runnable({}) = {}".format(tname, oid))
+    if has_errors:
+        raise RuntimeError("failed to compile one or more tests")
     return runnable
 
 
@@ -753,6 +837,8 @@ def main():
                            dest="test_list",
                            default=False)
     argparser.add_argument("--clean", help="Remove build directory in the project after running tests",
+                           action="store_true", default=False)
+    argparser.add_argument("--delay-compile-errors", help="Compile all tests before failing on any errors",
                            action="store_true", default=False)
     argparser.add_argument("--locked", help="Generate locked-down workflows",
                            action="store_true", default=False)
@@ -851,7 +937,8 @@ def main():
                                             applet_folder,
                                             compiler_flags,
                                             version_id,
-                                            args.lazy)
+                                            args.lazy,
+                                            args.delay_compile_errors)
         if not args.compile_only:
             run_test_subset(project, runnable, test_folder, args.debug, args.delay_workspace_destruction)
     finally:

@@ -1,0 +1,7 @@
+{
+  "runtime-paths-distinct.foo": {
+    "class": "File",
+    "basename": "foo",
+    "checksum": "sha1$fa98d6085770a79e44853d575cd3ab40c0f1f4de"
+  }
+}

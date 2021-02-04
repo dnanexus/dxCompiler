@@ -1,0 +1,72 @@
+{
+  "params2.t1": {
+    "bar": {
+      "b az": 2,
+      "b\"az": null,
+      "b'az": true,
+      "baz": "zab1",
+      "buz": [
+        "a",
+        "b",
+        "c"
+      ]
+    }
+  },
+  "params2.t10": true,
+  "params2.t11": true,
+  "params2.t12": null,
+  "params2.t13": "-zab1",
+  "params2.t14": "-zab1",
+  "params2.t15": "-zab1",
+  "params2.t16": "-zab1",
+  "params2.t17": "zab1 zab1",
+  "params2.t18": "zab1 zab1",
+  "params2.t19": "zab1 zab1",
+  "params2.t2": {
+    "b az": 2,
+    "b\"az": null,
+    "b'az": true,
+    "baz": "zab1",
+    "buz": [
+      "a",
+      "b",
+      "c"
+    ]
+  },
+  "params2.t20": "zab1 zab1",
+  "params2.t21": "2 2",
+  "params2.t22": "true true",
+  "params2.t23": "true true",
+  "params2.t24": "null null",
+  "params2.t25": "b",
+  "params2.t26": "b b",
+  "params2.t3": {
+    "b az": 2,
+    "b\"az": null,
+    "b'az": true,
+    "baz": "zab1",
+    "buz": [
+      "a",
+      "b",
+      "c"
+    ]
+  },
+  "params2.t4": {
+    "b az": 2,
+    "b\"az": null,
+    "b'az": true,
+    "baz": "zab1",
+    "buz": [
+      "a",
+      "b",
+      "c"
+    ]
+  },
+  "params2.t5": "zab1",
+  "params2.t6": "zab1",
+  "params2.t7": "zab1",
+  "params2.t8": "zab1",
+  "params2.t9": 2,
+  "params2.t27": null,
+  "params2.t28": 3
+}

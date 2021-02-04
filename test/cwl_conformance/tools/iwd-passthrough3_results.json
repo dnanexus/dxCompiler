@@ -1,0 +1,9 @@
+{
+  "iwd-passthrough3.filelist": {
+    "location": "renamed-filelist.txt",
+    "basename": "renamed-filelist.txt",
+    "class": "File",
+    "checksum": "sha1$57f77b36009332d236b52b4beca77301b503b27c",
+    "size": 268866
+  }
+}

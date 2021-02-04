@@ -1,0 +1,9 @@
+{
+  "formattest3.output": {
+    "location": "output.txt",
+    "format": "http://edamontology.org/format_1929",
+    "size": 12010,
+    "class": "File",
+    "checksum": "sha1$971d88faeda85a796752ecf752b7e2e34f1337ce"
+  }
+}

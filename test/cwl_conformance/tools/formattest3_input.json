@@ -1,0 +1,7 @@
+{
+  "formattest3.input": {
+    "class": "File",
+    "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/ref.fasta",
+    "format": "edam:format_1929"
+  }
+}

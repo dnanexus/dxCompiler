@@ -88,23 +88,28 @@ case class ParameterLinkSerializer(fileResolver: FileSourceResolver = FileSource
                        |""".stripMargin)
       throw new Exception("a nested optional type/value")
     }
-    def handler(value: Value): Either[Value, JsValue] = {
-      value match {
-        case VString(s) if s.length > Constants.StringLengthLimit =>
+    def handler(irValue: Value, irType: Type): Either[Value, JsValue] = {
+      def serializePath(path: String): JsValue = {
+        fileResolver.resolve(path) match {
+          case dxFile: DxFileSource       => dxFile.dxFile.asJson
+          case localFile: LocalFileSource => JsString(localFile.originalPath.toString)
+          case other =>
+            throw new RuntimeException(s"Unsupported file source ${other}")
+        }
+      }
+
+      (irType, irValue) match {
+        case (_, VString(s)) if s.length > Constants.StringLengthLimit =>
           throw new AppInternalException(
               s"string is longer than ${Constants.StringLengthLimit}"
           )
-        case VFile(path) =>
-          fileResolver.resolve(path) match {
-            case dxFile: DxFileSource       => Right(dxFile.dxFile.asJson)
-            case localFile: LocalFileSource => Right(JsString(localFile.originalPath.toString))
-            case other =>
-              throw new RuntimeException(s"Unsupported file source ${other}")
-          }
-        case _ => Left(value)
+        case (Type.TMulti.Any, VFile(path)) => Right(ValueSerde.wrapValue(serializePath(path)))
+        case (_, VFile(path))               => Right(serializePath(path))
+        case (Type.TFile, VString(path))    => Right(serializePath(path))
+        case _                              => Left(irValue)
       }
     }
-    ValueSerde.serialize(v, Some(handler))
+    ValueSerde.serializeWithType(v, t, Some(handler))
   }
 
   /**

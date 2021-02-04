@@ -1,0 +1,46 @@
+{
+  "glob_test.letters": [
+    {
+      "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "location": "a",
+      "class": "File",
+      "size": 0
+    },
+    {
+      "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "location": "b",
+      "class": "File",
+      "size": 0
+    },
+    {
+      "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "location": "c",
+      "class": "File",
+      "size": 0
+    },
+    {
+      "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "location": "w",
+      "class": "File",
+      "size": 0
+    },
+    {
+      "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "location": "x",
+      "class": "File",
+      "size": 0
+    },
+    {
+      "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "location": "y",
+      "class": "File",
+      "size": 0
+    },
+    {
+      "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "location": "z",
+      "class": "File",
+      "size": 0
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "nested-array.echo": {
+    "checksum": "sha1$3f786850e387550fdab836ed7e6dc881de23001b",
+    "location": "echo.txt",
+    "class": "File",
+    "size": 2
+  }
+}

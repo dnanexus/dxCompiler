@@ -1,0 +1,16 @@
+{
+  "io-file-or-files.input": [
+    {
+      "class": "File",
+      "path": "empty.txt"
+    },
+    {
+      "class": "File",
+      "path": "whale.txt"
+    },
+    {
+      "class": "File",
+      "path": "number.txt"
+    }
+  ]
+}

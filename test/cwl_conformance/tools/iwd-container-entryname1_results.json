@@ -1,0 +1,9 @@
+{
+  "iwd-container-entryname1.head": {
+    "location": "head.txt",
+    "basename": "head.txt",
+    "class": "File",
+    "checksum": "sha1$8b5071fa49953fcdb8729b16345b7c894b493f83",
+    "size": 241
+  }
+}
