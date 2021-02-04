@@ -27,15 +27,17 @@ import wdlTools.eval.WdlValues._
 import wdlTools.exec.{InputOutput, TaskInputOutput}
 import wdlTools.types.{TypeUtils, TypedAbstractSyntax => TAT}
 import wdlTools.types.WdlTypes._
+//
+//case class WorkflowIO(workflow: TAT.Workflow, logger: Logger)
+//    extends InputOutput(workflow, logger) {
+//  // TODO: implement graph building from workflow
+//
+//  override protected def inputOrder: Vector[String] = workflow.inputs.map(_.name)
+//
+//  override protected def outputOrder: Vector[String] = workflow.outputs.map(_.name)
+//}
 
-case class WorkflowIO(workflow: TAT.Workflow, logger: Logger)
-    extends InputOutput(workflow, logger) {
-  // TODO: implement graph building from workflow
-
-  override protected def inputOrder: Vector[String] = workflow.inputs.map(_.name)
-
-  override protected def outputOrder: Vector[String] = workflow.outputs.map(_.name)
-}
+case class BlockIO(block: WdlBlock, logger: Logger)
 
 object WdlWorkflowExecutor {
   implicit class FoldLeftWhile[A](trav: IterableOnce[A]) {
@@ -82,6 +84,8 @@ object WdlWorkflowExecutor {
   }
 }
 
+// TODO: implement graph building from workflow - input and output parameters
+//  should be ordered in calls to InputOutput.*
 case class WdlWorkflowExecutor(workflow: TAT.Workflow,
                                versionSupport: VersionSupport,
                                tasks: Map[String, TAT.Task],
@@ -96,7 +100,6 @@ case class WdlWorkflowExecutor(workflow: TAT.Workflow,
       jobMeta.fileResolver,
       Logger.Quiet
   )
-  private lazy val workflowIO = WorkflowIO(workflow, jobMeta.logger)
 
   override val executorName: String = "dxExecutorWdl"
 
@@ -120,10 +123,12 @@ case class WdlWorkflowExecutor(workflow: TAT.Workflow,
     // array inputs, so we treat a null value for a non-optional
     // array that is allowed to be empty as the empty array.
     val evalauatedInputValues =
-      workflowIO.inputsFromValues(inputWdlValues,
-                                  evaluator,
-                                  ignoreDefaultEvalError = false,
-                                  nullCollectionAsEmpty = true)
+      InputOutput.inputsFromValues(workflow.name,
+                                   workflow.inputs,
+                                   inputWdlValues,
+                                   evaluator,
+                                   ignoreDefaultEvalError = false,
+                                   nullCollectionAsEmpty = true)
     // convert back to IR
     evalauatedInputValues.toMap.map {
       case (name, value) =>
@@ -162,11 +167,11 @@ case class WdlWorkflowExecutor(workflow: TAT.Workflow,
           // DNAnexus does not distinguish between null and empty array inputs.
           // A non-optional, maybe-empty array may be missing, so set it to
           // the empty array.
-          name -> V_Array(Vector())
+          name -> V_Array()
       }
     // evaluate
     val evaluatedOutputValues =
-      workflowIO.evaluateOutputs(evaluator, WdlValueBindings(outputWdlValues))
+      InputOutput.evaluateOutputs(outputs, evaluator, WdlValueBindings(outputWdlValues))
     // convert back to IR
     val workflowOutputs = workflow.outputs.map(inp => inp.name -> inp).toMap
     val irOutputs = evaluatedOutputValues.toMap.map {
