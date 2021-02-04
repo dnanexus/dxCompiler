@@ -115,6 +115,9 @@ case class ProcessTranslator(typeAliases: Map[String, CwlSchema],
       Parameter(name, CwlUtils.toIRType(output.types), irValue, attrs)
     }
 
+    // TODO: If the source CWL has a DockerRequirement with a dockerLoad
+    //  URI like dx://dxCompiler_playground:/glnexus_internal, rewrite it
+    //  to dx://project-xxx:file-xxx to avoid a runtime lookup
     def apply: Application = {
       val name = tool.id.name.get
       val inputs = tool.inputs.collect {
