@@ -1,6 +1,6 @@
 {
   "dxda": "v0.5.4",
-  "dxfuse": "v0.23.3",
+  "dxfuse": "v0.24.0",
   "execDepends": {
     "cwl": [
       {
