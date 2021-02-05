@@ -27,15 +27,6 @@ import wdlTools.eval.WdlValues._
 import wdlTools.exec.{InputOutput, TaskInputOutput}
 import wdlTools.types.{TypeUtils, TypedAbstractSyntax => TAT}
 import wdlTools.types.WdlTypes._
-//
-//case class WorkflowIO(workflow: TAT.Workflow, logger: Logger)
-//    extends InputOutput(workflow, logger) {
-//  // TODO: implement graph building from workflow
-//
-//  override protected def inputOrder: Vector[String] = workflow.inputs.map(_.name)
-//
-//  override protected def outputOrder: Vector[String] = workflow.outputs.map(_.name)
-//}
 
 case class BlockIO(block: WdlBlock, logger: Logger)
 
