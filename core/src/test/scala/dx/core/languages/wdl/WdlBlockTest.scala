@@ -74,11 +74,6 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
     blocks(1).inputs.map(_.name).toSet should be(Set("add.result"))
   }
 
-//  it should "calculate outputs correctly III" in {
-//    val blocks = getWorkflowBlocks("bugs", "apps-378.wdl")
-//    val block: WdlBlock = Block.getSubBlockAt(blocks, Vector(0, 0))
-//  }
-
   it should "handle block zero" in {
     val blocks = getWorkflowBlocks("util", "block_zero.wdl")
     mapFromOutputs(blocks(0).outputs) should be(
