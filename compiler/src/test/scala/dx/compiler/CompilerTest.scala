@@ -163,6 +163,12 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     Main.compile(args.toVector) shouldBe a[Success]
   }
 
+//  it should "Native compile a 1.1 task" taggedAs NativeTest in {
+//    val path = pathFromBasename("v1.1", "add.wdl")
+//    val args = path.toString :: cFlags
+//    Main.compile(args.toVector) shouldBe a[Success]
+//  }
+
   it should "handle various conditionals" taggedAs NativeTest in {
     val path = pathFromBasename("draft2", "conditionals_base.wdl")
     val args = path.toString :: cFlags
