@@ -337,8 +337,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
         case JsNumber(n) => n.toInt
         case _           => throw new Exception("Bad value ${arr}")
       }
-    case None  => Vector.empty
-    case other => throw new Exception(s"Bad value ${other}")
+    case Some(_: JsArray) | None => Vector.empty
+    case other                   => throw new Exception(s"Bad value ${other}")
   }
 
   lazy val scatterStart: Int = getJobDetail(Constants.ContinueStart) match {
