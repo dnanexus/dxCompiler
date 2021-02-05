@@ -1,5 +1,10 @@
 # Release Notes
 
+## in dev
+
+* Avoids unnecessarily generating sub-workflow output applets
+* Fixes issue with task command blocks that begin with a placeholder
+
 ## 2.1.0 04-02-2021
 
 * Update CWL parser to fix compilation of WDL tools with imports
