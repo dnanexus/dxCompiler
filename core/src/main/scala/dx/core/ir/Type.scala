@@ -57,6 +57,16 @@ object Type {
     */
   case class TEnum(symbols: Vector[String]) extends PrimitiveType
 
+  /**
+    * Represents a collection of equally valid types. If bounds
+    * is empty, then any type is allowed.
+    */
+  case class TMulti(bounds: Vector[Type]) extends Type
+
+  object TMulti {
+    val Any: TMulti = TMulti(Vector())
+  }
+
   @tailrec
   def isPrimitive(t: Type): Boolean = {
     t match {
@@ -99,8 +109,13 @@ object Type {
 
   def isOptional(t: Type): Boolean = {
     t match {
-      case _: TOptional => true
-      case _            => false
+      case _: TOptional  => true
+      case TMulti(types) =>
+        // a multi-type is considered optional if any of its
+        // alternative types is optional, regardless of whether
+        // it is wrapped in TOptional
+        types.exists(isOptional)
+      case _ => false
     }
   }
 
@@ -121,8 +136,8 @@ object Type {
   def unwrapOptional(t: Type, mustBeOptional: Boolean = false): Type = {
     t match {
       case TOptional(wrapped) => wrapped
-      case _ if mustBeOptional =>
-        throw new Exception(s"Type ${t} is not T_Optional")
+      case _ if mustBeOptional && !isOptional(t) =>
+        throw new Exception(s"Type ${t} is not TOptional")
       case _ => t
     }
   }

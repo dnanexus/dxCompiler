@@ -1,0 +1,9 @@
+{
+  "size-expression-tool.output_file": {
+    "checksum": "sha1$9def39730e8012bd09bf8387648982728501737d",
+    "basename": "output.txt",
+    "location": "Any",
+    "class": "File",
+    "size": 31
+  }
+}

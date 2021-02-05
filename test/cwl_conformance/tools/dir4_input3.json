@@ -1,0 +1,17 @@
+{
+  "dir4.inf": {
+    "class": "File",
+    "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/subdirsecondaries/hello.py",
+    "secondaryFiles": [
+      {
+        "class": "File",
+        "location": "hello.tar"
+      },
+      {
+        "class": "Directory",
+        "basename": "xtestdir",
+        "location": "subdirsecondaries/testdir"
+      }
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "dynresreq.output": {
+    "location": "cores.txt",
+    "size": 2,
+    "class": "File",
+    "checksum": "sha1$7448d8798a4380162d4b56f9b452e2f6f9e24e7a"
+  }
+}

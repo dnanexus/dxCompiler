@@ -1,7 +1,8 @@
 package dx.core.languages.wdl
 
-import java.nio.file.Path
+import dx.api.DxPath
 
+import java.nio.file.Path
 import dx.core.ir.{Type, TypeSerde, Value}
 import dx.core.ir.Type._
 import dx.core.ir.Value._
@@ -670,6 +671,10 @@ object WdlUtils {
     }
   }
 
+  def isDxFile(file: V_File): Boolean = {
+    file.value.startsWith(DxPath.DxUriPrefix)
+  }
+
   /**
     * Deep search for all calls in WorkflowElements.
     * @param elements WorkflowElements
@@ -927,9 +932,11 @@ object WdlUtils {
           // recurse into body of the scatter
           // if the scatter variable is referenced, ensure its kind is
           // 'Computed' so it doesn't become a required input
+          val scatterIdentifierRegexp = s"${scatter.identifier}([.\\[].+)?".r
           val bodyInputs = getInputs(scatter.body, innerWithField = true).map {
-            case ref if ref.name == scatter.identifier => ref.copy(kind = InputKind.Computed)
-            case ref                                   => ref
+            case ref if scatterIdentifierRegexp.matches(ref.name) =>
+              ref.copy(kind = InputKind.Computed)
+            case ref => ref
           }
           exprInputs ++ bodyInputs
       }

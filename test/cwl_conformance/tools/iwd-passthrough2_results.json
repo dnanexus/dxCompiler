@@ -1,0 +1,9 @@
+{
+  "iwd-passthrough2.out": {
+    "location": "out.txt",
+    "basename": "out.txt",
+    "class": "File",
+    "checksum": "sha1$406e83b1cd694780f1b3ea4fe8fbb754511fe3f7",
+    "size": 49
+  }
+}

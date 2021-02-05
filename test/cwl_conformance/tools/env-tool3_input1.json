@@ -1,0 +1,14 @@
+{
+  "env-tool3.in": "hello test env",
+  "env-tool3.cwl:requirements": [
+    {
+      "class": "EnvVarRequirement",
+      "envDef": [
+        {
+          "envName": "TEST_ENV",
+          "envValue": "$(inputs.in)"
+        }
+      ]
+    }
+  ]
+}

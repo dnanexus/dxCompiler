@@ -1,0 +1,6 @@
+{
+  "dir2.indir": {
+    "class": "Directory",
+    "location": "testdir"
+  }
+}

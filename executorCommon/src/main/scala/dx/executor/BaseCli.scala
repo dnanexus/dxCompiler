@@ -89,7 +89,7 @@ abstract class BaseCli {
       }
     } catch {
       case e: Throwable =>
-        Failure(s"failure running ${action}", Some(e))
+        Failure(s"failure executing action '${action}'", Some(e))
     }
   }
 

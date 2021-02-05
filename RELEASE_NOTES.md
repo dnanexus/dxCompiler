@@ -1,5 +1,18 @@
 # Release Notes
 
+## dev
+
+* Upgraded dxfuse to 0.24.0
+
+## 2.1.0 04-02-2021
+
+* Update CWL parser to fix compilation of WDL tools with imports
+* Add CWL tool compilance tests to integration test suite
+* Fixes a bug where structs were out of order in generated code. This bug was due to an unnecessary conversion of a Vector to Map in CodeGenerator, which disordered the items.
+* Fixes an issue with resolving nested field references. There were two issues here: i. Unnecessarily including outputs that are direct pass-throughs of inputs in the closure when determining the inputs to an Output stage. ii. A bug in the resolution of deeply nested field references in wdlTools.eval.Eval that is fixed in 0.11.18.
+* Added an implementation of the manifest format for WDL.
+* Update wdlTools to 0.12.1, dxCommon to 0.2.5, dxApi to 0.1.8, cwlScala to 0.3.4
+
 ## 2.0.1 22-01-2021
 
 * Implement translator and executor for CWL (tools only)

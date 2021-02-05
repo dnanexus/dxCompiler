@@ -1,0 +1,12 @@
+{
+  "docker-array-secondaryfiles.fasta_path": [
+    {
+      "class": "File",
+      "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/ref.fasta"
+    },
+    {
+      "class": "File",
+      "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/ref2.fasta"
+    }
+  ]
+}
