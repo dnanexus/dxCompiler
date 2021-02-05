@@ -2,7 +2,7 @@
 ![](https://github.com/dnanexus/dxCompiler/workflows/WDL%20Integration%20Tests/badge.svg)
 
 dxCompiler takes a pipeline written in the
-[Workflow Description Language (WDL)](http://www.openwdl.org/) or [Common Workflow Language](https://www.commonwl.org/v1.2) and compiles it to an equivalent workflow on the DNAnexus platform. WDL draft-2 and version 1.0 are fully supported, while WDL 2.0 (aka 'development') and CWL 1.2 support are under active development.
+[Workflow Description Language (WDL)](http://www.openwdl.org/) or [Common Workflow Language](https://www.commonwl.org/v1.2) and compiles it to an equivalent workflow on the DNAnexus platform. WDL draft-2 and versions 1.0 and 1.1 are fully supported, while WDL 2.0 (aka 'development') and CWL 1.2 support are under active development.
 
 ## Setup
 
@@ -99,11 +99,12 @@ The compiled workflow can be executed via the DNAnexus command line client or we
 
 ## Strict syntax
 
-dxCompiler uses [wdlTools](https://github.com/dnanexus-rnd/wdlTools), a parser that adheres strictly to the specifications. Most of the problematic automatic type conversions that are allowed by some other WDL runtime engines are not allowed by dxCompiler. Please use the command line tools in wdlTools (e.g. `check` and `lint`) to validate your WDL files before trying to compile them with dxCompiler.
+dxCompiler uses [wdlTools](https://github.com/dnanexus-rnd/wdlTools), a parser that adheres strictly to the WDL specifications. Most of the problematic automatic type conversions that are allowed by some other WDL runtime engines are not allowed by dxCompiler. Please use the command line tools in wdlTools (e.g. `check` and `lint`) to validate your WDL files before trying to compile them with dxCompiler.
 
 ## Limitations
 
 * Calls with missing arguments have limited support.
+* WDL Workflows with forward references are not yet supported.
 * The new `Directory` type in WDL development/2.0 is not yet supported.
 
 ## Additional information
@@ -111,7 +112,7 @@ dxCompiler uses [wdlTools](https://github.com/dnanexus-rnd/wdlTools), a parser t
 - [Advanced options](doc/ExpertOptions.md) explains additional compiler options
 - [Internals](doc/Internals.md) describes current compiler structure (_work in progress_)
 - [Tips](doc/Tips.md) examples for how to write good WDL code
-- A high-level [list of changes](doc/WdlVersionChanges.md) between draft-2 and version 1.0
+- A high-level [list of changes](doc/WdlVersionChanges.md) between WDL draft-2 and version 1.0
 
 ## Contributing to dxCompiler
 
