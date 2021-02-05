@@ -826,8 +826,8 @@ it may misplace or outright delete files. The applet:
 In addition to using `--reorg` flag to add the reorg stage, you may also add a custom reorganization applet that takes an optional input by declaring a "custom-reorg" object in the JSON file used as parameter with `-extras`
 
 The  "custom-reorg" object has two properties in extra.json:
-    # app_id: reorg applet id
-    # conf: auxiliary configuration
+    # appUri: reorg applet URI - either an app ID (e.g. "app-bwa_mem") or a URI of a platform file (e.g. "dx://file-xxx")
+    # configFile: auxiliary configuration file
 
 The optional input file can be used as a configuration file for the reorganization process.
 
@@ -984,8 +984,8 @@ credentials file, even if it is stored on a different project.
 
 Logging into an AWS Elastic Container Registry (ECR) is a bit different
 than logging into a standard docker registry. Specifically, the AWS
-command line client is used to dynamically generate a password from a
-specific AWS user profile. To handle this use-case, dxCompiler downloads two
+command line client is used to dynamically generate a password from an AWS 
+user profile. To handle this use-case, dxCompiler downloads two
 required files (the AWS `config` and `credentials` files), installs the
 AWS client, and generates the password. *For this to work, the profile in
 the `config` file must specify the AWS region.* See the
@@ -996,9 +996,9 @@ for more details and examples.
 {
   "docker_registry": {
     "registry": "<aws_account_id>.dkr.ecr.<region>.amazonaws.com",
-    "config": "dx://myproj/aws_config",
     "credentials": "dx://myproj/aws_credentials",
-    "profile": "perkins"
+    "awsConfig": "dx://myproj/aws_config",
+    "awsProfile": "perkins"
   }
 }
 ```

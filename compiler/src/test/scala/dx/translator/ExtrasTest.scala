@@ -7,14 +7,14 @@ import dx.Tags.{ApiTest, EdgeTest}
 import dx.api.{DxAccessLevel, DxApi, DxProject}
 import dx.core.ir.Value
 import dx.core.ir.Value.VString
+import dx.translator.ExtrasJsonProtocol._
+import dx.util.Logger
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spray.json._
-import dx.util.Logger
 
 class ExtrasTest extends AnyFlatSpec with Matchers {
   private val dxApi = DxApi()(Logger.Quiet)
-  private val extrasParser = ExtrasParser(dxApi)
   private val testProject: String = "dxCompiler_playground"
   private lazy val project: DxProject = {
     try {
@@ -45,7 +45,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
          |  }
          |}""".stripMargin.parseJson
 
-    val extras = extrasParser.parse(runtimeAttrs)
+    val extras = Extras.parse(runtimeAttrs)
     extras.defaultTaskDxAttributes should be(
         Some(DxAppJson(Some(DxRunSpec(None, None, Some("all"), None)), None))
     )
@@ -65,7 +65,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
          |""".stripMargin
 
     assertThrows[Exception] {
-      extrasParser.parse(ex1.parseJson)
+      Extras.parse(ex1.parseJson)
     }
   }
 
@@ -85,7 +85,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
          |""".stripMargin
 
     assertThrows[Exception] {
-      extrasParser.parse(ex2.parseJson)
+      Extras.parse(ex2.parseJson)
     }
   }
 
@@ -105,7 +105,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
          |""".stripMargin
 
     assertThrows[Exception] {
-      extrasParser.parse(ex3.parseJson)
+      Extras.parse(ex3.parseJson)
     }
   }
 
@@ -138,20 +138,20 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
          |""".stripMargin
 
     val js = runSpecValid.parseJson
-    val extras = extrasParser.parse(js)
+    val extras = Extras.parse(js)
     extras.defaultTaskDxAttributes should be(
         Some(
             DxAppJson(
                 Some(
                     DxRunSpec(
                         Some(
-                            DxAccess(Vector("*"),
+                            DxAccess(Some(Vector("*")),
                                      Some(DxAccessLevel.Contribute),
                                      Some(DxAccessLevel.View),
                                      Some(true),
                                      None)
                         ),
-                        Some(DxExecPolicy(Map("*" -> 3), None)),
+                        Some(DxExecPolicy(Some(Map("*" -> 3)), None)),
                         None,
                         Some(DxTimeout(None, Some(12), None))
                     )
@@ -181,14 +181,14 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
          |""".stripMargin
 
     val js = runSpec.parseJson
-    val extras = extrasParser.parse(js)
+    val extras = Extras.parse(js)
 
     val restartPolicy: Map[String, Long] =
       Map("UnresponsiveWorker" -> 2, "JMInternalError" -> 0, "ExecutionError" -> 4)
     extras.defaultTaskDxAttributes should be(
         Some(
             DxAppJson(
-                Some(DxRunSpec(None, Some(DxExecPolicy(restartPolicy, Some(5))), None, None)),
+                Some(DxRunSpec(None, Some(DxExecPolicy(Some(restartPolicy), Some(5))), None, None)),
                 None
             )
         )
@@ -214,7 +214,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
 
     val js = runSpec.parseJson
     assertThrows[Exception] {
-      extrasParser.parse(js)
+      Extras.parse(js)
     }
   }
 
@@ -232,7 +232,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
           |}
           |""".stripMargin.parseJson
 
-    val extras = extrasParser.parse(reorg)
+    val extras = Extras.parse(reorg)
     extras.customReorgAttributes shouldBe Some(CustomReorgSettings(appletId, Some(fileId)))
   }
 
@@ -248,7 +248,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
           |""".stripMargin.parseJson
 
     val thrown = intercept[IllegalArgumentException] {
-      extrasParser.parse(reorg)
+      Extras.parse(reorg)
     }
 
     thrown.getMessage should be("app_id must be specified in the custom_reorg section.")
@@ -266,7 +266,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
           |""".stripMargin.parseJson
 
     val thrown = intercept[IllegalArgumentException] {
-      extrasParser.parse(reorg)
+      Extras.parse(reorg)
     }
 
     thrown.getMessage should include(
@@ -285,7 +285,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
           |}
           |""".stripMargin.parseJson
 
-    val extras = extrasParser.parse(reorg)
+    val extras = Extras.parse(reorg)
     extras.customReorgAttributes shouldBe Some(CustomReorgSettings(appletId))
   }
 
@@ -303,7 +303,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
           |""".stripMargin.parseJson
 
     val thrown = intercept[IllegalArgumentException] {
-      extrasParser.parse(reorg)
+      Extras.parse(reorg)
     }
 
     thrown.getMessage should be(
@@ -324,7 +324,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
           |}
           |""".stripMargin.parseJson
     val thrown = intercept[Exception] {
-      extrasParser.parse(reorg)
+      Extras.parse(reorg)
     }
 
     thrown.getMessage should be(
@@ -345,7 +345,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
           |""".stripMargin.parseJson
 
     val thrown = intercept[IllegalArgumentException] {
-      extrasParser.parse(reorg)
+      Extras.parse(reorg)
     }
     thrown.getMessage should include(
         "'conf' must be specified as a valid DNAnexus"
@@ -364,7 +364,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
           |""".stripMargin.parseJson
 
     val thrown = intercept[ResourceNotFoundException] {
-      extrasParser.parse(reorg)
+      Extras.parse(reorg)
     }
 
     val fileId: String = inputs.replace("dx://", "")
@@ -385,7 +385,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
           |""".stripMargin.parseJson
 
     val thrown = intercept[PermissionDeniedException] {
-      extrasParser.parse(reorg)
+      Extras.parse(reorg)
     }
 
     thrown.getMessage should be(
@@ -406,7 +406,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
           |}
           |""".stripMargin.parseJson
 
-    val extras = extrasParser.parse(reorg)
+    val extras = Extras.parse(reorg)
     extras.customReorgAttributes shouldBe Some(CustomReorgSettings(appId))
   }
 
@@ -422,8 +422,8 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
          |}
          |""".stripMargin.parseJson
 
-    val execPolicy = DxExecPolicy(Map("*" -> 5), Some(4))
-    JsObject(execPolicy.toJson) should be(expectedJs)
+    val execPolicy = DxExecPolicy(Some(Map("*" -> 5)), Some(4))
+    execPolicy.toJson shouldBe expectedJs
   }
 
   it should "generate valid JSON timeout policy" in {
@@ -439,7 +439,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
          |""".stripMargin.parseJson
 
     val timeout = DxTimeout(None, Some(12), Some(30))
-    JsObject(timeout.toJson) should be(expectedJs)
+    timeout.toJson shouldBe expectedJs
   }
 
   it should "handle default runtime attributes" in {
@@ -456,8 +456,8 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
          | }
          |}""".stripMargin.parseJson
 
-    val extras = extrasParser.parse(runtimeAttrs)
-    val dockerOpt: Option[Value] = extras.defaultRuntimeAttributes.get("docker")
+    val extras = Extras.parse(runtimeAttrs)
+    val dockerOpt: Option[Value] = extras.defaultRuntimeAttributes.flatMap(_.get("docker"))
     dockerOpt match {
       case None =>
         throw new Exception("Wrong type for dockerOpt")
@@ -475,7 +475,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
          | }
          |}""".stripMargin.parseJson
 
-    val extrasEmpty = extrasParser.parse(rtEmpty)
+    val extrasEmpty = Extras.parse(rtEmpty)
     extrasEmpty.defaultRuntimeAttributes should equal(Map.empty[String, Value])
   }
 
@@ -517,7 +517,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
          |}
          |""".stripMargin.parseJson
 
-    val extras = extrasParser.parse(runSpec)
+    val extras = Extras.parse(runSpec)
     extras.defaultTaskDxAttributes should be(
         Some(
             DxAppJson(Some(
@@ -536,7 +536,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
             "Multiply" -> DxAppJson(
                 Some(
                     DxRunSpec(
-                        Some(DxAccess(Vector.empty, Some(DxAccessLevel.Upload), None, None, None)),
+                        Some(DxAccess(None, Some(DxAccessLevel.Upload), None, None, None)),
                         None,
                         None,
                         Some(DxTimeout(None, None, Some(30)))
@@ -602,7 +602,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
          |}
          |""".stripMargin.parseJson
 
-    val extras = extrasParser.parse(runSpec)
+    val extras = Extras.parse(runSpec)
     extras.defaultTaskDxAttributes should be(
         Some(
             DxAppJson(Some(
@@ -639,7 +639,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
             "Multiply" -> DxAppJson(
                 Some(
                     DxRunSpec(
-                        Some(DxAccess(Vector.empty, Some(DxAccessLevel.Upload), None, None, None)),
+                        Some(DxAccess(None, Some(DxAccessLevel.Upload), None, None, None)),
                         None,
                         None,
                         Some(DxTimeout(None, None, Some(30)))
@@ -682,7 +682,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
          |}
          |""".stripMargin.parseJson
 
-    val extras = extrasParser.parse(runSpec)
+    val extras = Extras.parse(runSpec)
     extras.defaultTaskDxAttributes should be(
         Some(
             DxAppJson(
@@ -725,9 +725,15 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
          |}
          |""".stripMargin.parseJson
 
-    val extras = extrasParser.parse(data)
+    val extras = Extras.parse(data)
     extras.dockerRegistry should be(
-        Some(DockerRegistry("foo.bar.dnanexus.com", "perkins", "The Bandersnatch has gotten loose"))
+        Some(
+            DockerRegistry("foo.bar.dnanexus.com",
+                           "The Bandersnatch has gotten loose",
+                           Some("perkins"),
+                           None,
+                           None)
+        )
     )
   }
 
@@ -742,7 +748,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
          |}
          |""".stripMargin.parseJson
     assertThrows[Exception] {
-      extrasParser.parse(data)
+      Extras.parse(data)
     }
   }
 
@@ -756,7 +762,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
          |}
          |""".stripMargin.parseJson
     assertThrows[Exception] {
-      extrasParser.parse(data)
+      Extras.parse(data)
     }
   }
 
@@ -769,7 +775,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
          |}
          |""".stripMargin.parseJson
     assertThrows[Exception] {
-      extrasParser.parse(data)
+      Extras.parse(data)
     }
   }
 
@@ -802,8 +808,8 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
 
     val dxDetails = DxDetails(Some(upstreamProjects))
 
-    val result = dxDetails.toDetailsJson
-    result("upstreamProjects") should be(dxDetailsJson)
+    val result = dxDetails.toJson
+    result.asJsObject("upstreamProjects") should be(dxDetailsJson)
   }
 
   it should "all DxAttr to return RunSpec Json" in {
@@ -822,14 +828,14 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
         None
     )
 
-    val runSpecJson: Map[String, JsValue] = dxAppJson.getRunSpecJson
+    val runSpecJson: Map[String, JsValue] = dxAppJson.getApiRunSpecJson
     runSpecJson should be(expected)
 
   }
 
   it should "all DxAttr to return empty runSpec and details Json" in {
     val dxAppJson = DxAppJson(None, None)
-    val runSpecJson = dxAppJson.getRunSpecJson
+    val runSpecJson = dxAppJson.getApiRunSpecJson
     runSpecJson should be(Map.empty)
     val detailJson = dxAppJson.getDetailsJson
     detailJson should be(Map.empty)

@@ -4,26 +4,29 @@ import dx.api.{DxAccessLevel, DxApi, DxFile, DxInstanceType, DxPath, DxUtils, In
 import dx.core.Constants
 import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir._
-import dx.util.CodecUtils
+import dx.core.ir.RunSpec._
 import dx.translator.{DockerRegistry, DxAccess, DxExecPolicy, DxRunSpec, DxTimeout, Extras}
 import dx.translator.CallableAttributes._
-import RunSpec._
+import dx.translator.ExtrasJsonProtocol._
+import dx.util.{CodecUtils, Logger}
 import spray.json._
 import wdlTools.generators.Renderer
-import dx.util.Logger
 
 object ApplicationCompiler {
   val DefaultAppletTimeoutInDays = 2
   // templates
   private val GenericDockerPreambleTemplate = "templates/generic_docker_preamble.ssp"
-  //private val EcrDockerPreambleTemplate = "templates/ecr_docker_preamble.ssp"
+  private val EcrDockerPreambleTemplate = "templates/ecr_docker_preamble.ssp"
   private val DynamicAppletJobTemplate = "templates/dynamic_applet_script.ssp"
   private val StaticAppletJobTemplate = "templates/static_applet_script.ssp"
   private val WorkflowFragmentTempalate = "templates/workflow_fragment_script.ssp"
   private val CommandTempalate = "templates/workflow_command_script.ssp"
   // keys used in templates
   private val RegistryKey = "registry"
+  private val CredentialsKey = "credentials"
   private val UsernameKey = "username"
+  private val AwsConfigKey = "config"
+  private val AwsProfileKey = "profile"
 }
 
 case class ApplicationCompiler(typeAliases: Map[String, Type],
@@ -45,21 +48,24 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
   // Preamble required for accessing a private docker registry (if required)
   private lazy val dockerRegistry: Option[DockerRegistry] = extras.flatMap(_.dockerRegistry)
   private lazy val dockerPreamble: String = {
+    def checkFile(uri: String, name: String): Unit = {
+      try {
+        logger.ignore(dxApi.resolveFile(uri))
+      } catch {
+        case e: Throwable =>
+          throw new Exception(s"""|${name} has to point to a platform file.
+                                  |It is now:
+                                  |   ${uri}
+                                  |Error:
+                                  |  ${e}
+                                  |""".stripMargin)
+      }
+    }
     dockerRegistry match {
-      case None                                                  => ""
-      case Some(DockerRegistry(registry, username, credentials)) =>
+      case None                                                                    => ""
+      case Some(DockerRegistry(registry, credentials, Some(username), None, None)) =>
         // check that the credentials file is a valid platform path
-        try {
-          logger.ignore(dxApi.resolveFile(credentials))
-        } catch {
-          case e: Throwable =>
-            throw new Exception(s"""|credentials has to point to a platform file.
-                                    |It is now:
-                                    |   ${credentials}
-                                    |Error:
-                                    |  ${e}
-                                    |""".stripMargin)
-        }
+        checkFile(credentials, "credentials")
         // render the preamble
         renderer.render(
             ApplicationCompiler.GenericDockerPreambleTemplate,
@@ -67,9 +73,31 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
                 ApplicationCompiler.RegistryKey -> registry,
                 ApplicationCompiler.UsernameKey -> username,
                 // strip the URL from the dx:// prefix, so we can use dx-download directly
-                "credentials" -> credentials.substring(DxPath.DxUriPrefix.length)
+                ApplicationCompiler.CredentialsKey -> credentials.substring(
+                    DxPath.DxUriPrefix.length
+                )
             )
         )
+      case Some(DockerRegistry(registry, credentials, None, Some(awsConfig), Some(awsProfile))) =>
+        checkFile(credentials, "credentials")
+        checkFile(awsConfig, "awsConfig")
+        checkFile(awsProfile, "awsProfile")
+        renderer.render(
+            ApplicationCompiler.EcrDockerPreambleTemplate,
+            Map(
+                ApplicationCompiler.RegistryKey -> registry,
+                // strip the URL from the dx:// prefix, so we can use dx-download directly
+                ApplicationCompiler.CredentialsKey -> credentials.substring(
+                    DxPath.DxUriPrefix.length
+                ),
+                ApplicationCompiler.AwsConfigKey -> awsConfig.substring(DxPath.DxUriPrefix.length),
+                ApplicationCompiler.AwsProfileKey -> awsProfile.substring(
+                    DxPath.DxUriPrefix.length
+                )
+            )
+        )
+      case _ =>
+        throw new Exception(s"invalid dockerRegistry settings ${dockerRegistry}")
     }
   }
 
@@ -135,16 +163,20 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     )
     // Add default timeout
     val defaultTimeout =
-      DxRunSpec(
-          None,
-          None,
-          None,
-          Some(DxTimeout(Some(ApplicationCompiler.DefaultAppletTimeoutInDays), Some(0), Some(0)))
-      ).toRunSpecJson
+      DxRunSpec.toApiJson(
+          DxRunSpec(
+              None,
+              None,
+              None,
+              Some(
+                  DxTimeout(Some(ApplicationCompiler.DefaultAppletTimeoutInDays), Some(0), Some(0))
+              )
+          )
+      )
     // Start with the default dx-attribute section, and override
     // any field that is specified in the runtime hints or the individual task section.
     val extrasOverrides = extras.flatMap(_.defaultTaskDxAttributes) match {
-      case Some(dta) => dta.getRunSpecJson
+      case Some(dta) => dta.getApiRunSpecJson
       case None      => Map.empty
     }
     // runtime hints in the task override defaults from extras
@@ -155,17 +187,21 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
             case Some(i) => Map("*" -> i)
             case _       => Map.empty
           }
-          DxExecPolicy(errors ++ defaultMap, max).toJson
+          val restartOn = errors ++ defaultMap match {
+            case m if m.isEmpty => None
+            case m              => Some(m)
+          }
+          DxExecPolicy(restartOn, max).toJson.asJsObject.fields
         case TimeoutRequirement(days, hours, minutes) =>
-          DxTimeout(days.orElse(Some(0)), hours.orElse(Some(0)), minutes.orElse(Some(0))).toJson
+          DxTimeout(days.orElse(Some(0)), hours.orElse(Some(0)), minutes.orElse(Some(0))).toJson.asJsObject.fields
       }
       .flatten
       .toMap
     // task-specific settings from extras override runtime hints in the task
     val taskSpecificOverrides = applet.kind match {
       case ExecutableKindApplet =>
-        extras.flatMap(_.perTaskDxAttributes.get(applet.name)) match {
-          case Some(dta) => dta.getRunSpecJson
+        extras.flatMap(_.perTaskDxAttributes.flatMap(_.get(applet.name))) match {
+          case Some(dta) => dta.getApiRunSpecJson
           case None      => Map.empty
         }
       case _ => Map.empty
@@ -208,7 +244,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     // Default and WDL-specified details can be overridden in task-specific extras
     val taskSpecificDetails = (applet.kind match {
       case ExecutableKindApplet =>
-        extras.flatMap(_.perTaskDxAttributes.get(applet.name).map(_.getDetailsJson))
+        extras.flatMap(_.perTaskDxAttributes.flatMap(_.get(applet.name)).map(_.getDetailsJson))
       case _ => None
     }).getOrElse(Map.empty)
     (commonMeta ++ applicationMeta, commonDetails ++ taskSpecificDetails)
@@ -221,7 +257,12 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     val taskAccess: DxAccess = applet.requirements
       .collectFirst {
         case AccessRequirement(network, project, allProjects, developer, projectCreation) =>
-          DxAccess(network,
+          val networkOpt = if (network.isEmpty) {
+            None
+          } else {
+            Some(network)
+          }
+          DxAccess(networkOpt,
                    project.map(DxAccessLevel.withName),
                    allProjects.map(DxAccessLevel.withName),
                    developer,
@@ -243,7 +284,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     val appletKindAccess = applet.kind match {
       case ExecutableKindApplet if applet.container == NetworkDockerImage =>
         // docker requires network access, because we are downloading the image from the network
-        Some(DxAccess.empty.copy(network = Vector("*")))
+        Some(DxAccess.empty.copy(network = Some(Vector("*"))))
       case ExecutableKindApplet =>
         None
       case ExecutableKindWorkflowOutputReorg =>
@@ -252,7 +293,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       case _ =>
         // Scatters need network access, because they spawn subjobs that (may) use dx-docker.
         // We end up allowing all applets to use the network
-        Some(DxAccess.empty.copy(network = Vector("*")))
+        Some(DxAccess.empty.copy(network = Some(Vector("*"))))
     }
     // merge all
     val access = defaultAccess
@@ -261,8 +302,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       .merge(allProjectsAccess)
       .mergeOpt(appletKindAccess)
     access.toJson match {
-      case fields if fields.isEmpty => JsNull
-      case fields                   => JsObject(fields)
+      case JsObject(fields) if fields.isEmpty => JsNull
+      case fields                             => fields
     }
   }
 
@@ -355,10 +396,11 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     val dbOpaque = InstanceTypeDB.opaquePrices(instanceTypeDb)
     val dbOpaqueEncoded = CodecUtils.gzipAndBase64Encode(dbOpaque.toJson.prettyPrint)
     // serilize default runtime attributes
-    val defaultRuntimeAttributes =
-      extras
-        .map(ex => JsObject(ValueSerde.serializeMap(ex.defaultRuntimeAttributes)))
-        .getOrElse(JsNull)
+    val defaultRuntimeAttributes = extras
+      .flatMap(ex =>
+        ex.defaultRuntimeAttributes.map(attr => JsObject(ValueSerde.serializeMap(attr)))
+      )
+      .getOrElse(JsNull)
     val auxDetails = Map(
         Constants.SourceCode -> JsString(sourceEncoded),
         Constants.InstanceTypeDb -> JsString(dbOpaqueEncoded),

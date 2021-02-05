@@ -702,14 +702,24 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         }
 
       val scatterChunkSize: Option[Int] = newScatterPath.map { sctPath =>
-        workflowAttrs
+        val scatterChunkSize = workflowAttrs
           .flatMap { wfAttrs =>
             wfAttrs.perScatterAttrs
-              .get(sctPath)
-              .orElse(wfAttrs.scatterDefaults)
-              .flatMap(scatterAttrs => scatterAttrs.chunkSize)
+              .flatMap {
+                _.get(sctPath)
+                  .orElse(wfAttrs.scatterDefaults)
+                  .flatMap(scatterAttrs => scatterAttrs.chunkSize)
+              }
           }
           .getOrElse(defaultScatterChunkSize)
+        if (scatterChunkSize > Constants.JobsPerScatterLimit) {
+          logger.warning(
+              s"The number of jobs per scatter must be between 1-${Constants.JobsPerScatterLimit}"
+          )
+          Constants.JobsPerScatterLimit
+        } else {
+          scatterChunkSize
+        }
       }
 
       val applet = Application(
