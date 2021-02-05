@@ -1,5 +1,9 @@
 # Release Notes
 
+## dev
+
+* Upgraded dxfuse to 0.24.0
+
 ## 2.1.0 04-02-2021
 
 * Update CWL parser to fix compilation of WDL tools with imports
