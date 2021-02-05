@@ -138,7 +138,7 @@ class WdlUtilsTest extends AnyFlatSpec with Matchers {
 
     val wdlValue = WdlUtils.fromIRValue(irValue, wdlType, "")
     wdlValue shouldBe WdlValues.V_Map(
-        TreeSeqMap(WdlValues.V_File("/path/to/file") -> WdlValues.V_String("this is a string"))
+        WdlValues.V_File("/path/to/file") -> WdlValues.V_String("this is a string")
     )
   }
 }
