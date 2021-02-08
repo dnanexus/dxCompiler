@@ -19,7 +19,7 @@ workflow apps_384 {
     String row1 = manifest[0].left
     String row2 = manifest[0].right.left
     String row3 = manifest[0].right.right
-    String rg_out = cat.rg_out
+    String rg = cat.rg_out
   }
 }
 
@@ -31,6 +31,6 @@ task cat {
   command {}
 
   output {
-     String rg_out = rg
+    String rg_out = rg
   }
 }
