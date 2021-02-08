@@ -5,6 +5,7 @@ package dx.translator
 
 import java.nio.file.Path
 import dx.api._
+import dx.core.Constants
 import dx.core.ir.{Value, ValueSerde}
 import dx.util.{JsUtils, Logger}
 import spray.json._
@@ -21,22 +22,16 @@ object ExtrasJsonProtocol extends DefaultJsonProtocol {
   }
 
   implicit object DxRunSpecJsonProtocol extends RootJsonFormat[DxRunSpec] {
-    val Access = "access"
-    val ExecutionPolicy = "executionPolicy"
-    val RestartableEntryPoints = "restartableEntryPoints"
-    val TimeoutPolicy = "timeoutPolicy"
-    val EntryPointNames = Set("all", "master")
-
     def read(jsv: JsValue): DxRunSpec = {
       jsv match {
         case JsObject(fields) =>
           val restartableEntryPoints =
-            JsUtils.getOptionalString(fields, RestartableEntryPoints).map {
-              case name if EntryPointNames.contains(name) => name
+            JsUtils.getOptionalString(fields, DxRunSpec.RestartableEntryPoints).map {
+              case name if DxRunSpec.EntryPointNames.contains(name) => name
               case name =>
                 throw new Exception(s"Unsupported restartableEntryPoints value ${name}")
             }
-          val timeout = JsUtils.getOptionalFields(fields, TimeoutPolicy).map { timeout =>
+          val timeout = JsUtils.getOptionalFields(fields, DxRunSpec.TimeoutPolicy).map { timeout =>
             if (timeout.size != 1) {
               deserializationError("Exactly one entry-point timeout can be specified")
             }
@@ -48,8 +43,8 @@ object ExtrasJsonProtocol extends DefaultJsonProtocol {
             timeout("*").convertTo[DxTimeout]
           }
           DxRunSpec(
-              fields.get(Access).map(_.convertTo[DxAccess]),
-              fields.get(ExecutionPolicy).map(_.convertTo[DxExecPolicy]),
+              fields.get(DxRunSpec.Access).map(_.convertTo[DxAccess]),
+              fields.get(DxRunSpec.ExecutionPolicy).map(_.convertTo[DxExecPolicy]),
               restartableEntryPoints,
               timeout
           )
@@ -60,10 +55,10 @@ object ExtrasJsonProtocol extends DefaultJsonProtocol {
 
     def write(runSpec: DxRunSpec): JsValue = {
       val fields = Vector(
-          runSpec.access.map(x => Access -> x.toJson),
-          runSpec.timeoutPolicy.map(x => TimeoutPolicy -> JsObject("*" -> x.toJson)),
-          runSpec.execPolicy.map(x => ExecutionPolicy -> x.toJson),
-          runSpec.restartableEntryPoints.map(x => RestartableEntryPoints -> JsString(x))
+          runSpec.access.map(x => DxRunSpec.Access -> x.toJson),
+          runSpec.timeoutPolicy.map(x => DxRunSpec.TimeoutPolicy -> JsObject("*" -> x.toJson)),
+          runSpec.executionPolicy.map(x => DxRunSpec.ExecutionPolicy -> x.toJson),
+          runSpec.restartableEntryPoints.map(x => DxRunSpec.RestartableEntryPoints -> JsString(x))
       ).flatten.toMap
       if (fields.isEmpty) {
         JsNull
@@ -91,8 +86,10 @@ object ExtrasJsonProtocol extends DefaultJsonProtocol {
       val fields = jsv.asJsObject.fields
       val reorgAppId: String = fields.get(AppUri).orElse(fields.get("app_id")) match {
         case Some(JsString(uri)) => uri
+        case None =>
+          deserializationError(s"appUri must be specified in the customReorgAttributes section")
         case other =>
-          deserializationError(s"invalid or missing appUri value ${other}")
+          deserializationError(s"invalid appUri value ${other}")
       }
       val access: Option[JsValue] =
         try {
@@ -134,11 +131,12 @@ object ExtrasJsonProtocol extends DefaultJsonProtocol {
           Logger.get.ignore(DxApi.get.file(reorgFileID).describe())
           Some(uri)
         case Some(JsString(uri)) if uri.trim.isEmpty => None
+        case Some(JsNull)                            => None
         case _ =>
           deserializationError(
               """In the 'custom_reorg' section of extras, 'configFile' must be specified as
                 |a valid DNAnexus file in the form 'dx://file-XXX'. Please set the value
-                |to null if there is no configuration file.""".stripMargin.replaceAll("\n", "")
+                |to null if there is no configuration file.""".stripMargin.replaceAll("\n", " ")
           )
       }
       Logger.get.trace(
@@ -169,14 +167,14 @@ object ExtrasJsonProtocol extends DefaultJsonProtocol {
   }
 
   implicit val accessFormat: RootJsonFormat[DxAccess] = jsonFormat5(DxAccess.apply)
-  implicit val execPolicyFormat: RootJsonFormat[DxExecPolicy] = jsonFormat2(DxExecPolicy)
+  implicit val executionPolicyFormat: RootJsonFormat[DxExecPolicy] = jsonFormat2(DxExecPolicy.apply)
   implicit val timeoutPolicyFormat: RootJsonFormat[DxTimeout] = jsonFormat3(DxTimeout)
   implicit val licenseFormat: RootJsonFormat[DxLicense] = jsonFormat6(DxLicense)
   implicit val detailsFormat: RootJsonFormat[DxDetails] = jsonFormat1(DxDetails)
   implicit val dxAppFormat: RootJsonFormat[DxAppJson] = jsonFormat2(DxAppJson)
   implicit val scatterAttrsFormat: RootJsonFormat[DxScatterAttrs] = jsonFormat1(DxScatterAttrs)
   implicit val workflowAttrsFormat: RootJsonFormat[DxWorkflowAttrs] = jsonFormat2(DxWorkflowAttrs)
-  implicit val dockerRegistryFormat: RootJsonFormat[DockerRegistry] = jsonFormat5(DockerRegistry)
+  implicit val dockerRegistryFormat: RootJsonFormat[DockerRegistry] = jsonFormat4(DockerRegistry)
   implicit val defaultReorgSettingsFormat: RootJsonFormat[DefaultReorgSettings] = jsonFormat1(
       DefaultReorgSettings
   )
@@ -237,21 +235,58 @@ case class DxAccess(network: Option[Vector[String]],
   }
 }
 
-case class DxExecPolicy(restartOn: Option[Map[String, Long]], maxRestarts: Option[Long])
+case class DxExecPolicy(restartOn: Option[Map[String, Long]], maxRestarts: Option[Long]) {
+  restartOn.map { r =>
+    val unsupported = r.keySet.diff(DxExecPolicy.RunSpecExecPolicyRestartOnAttrs)
+    if (unsupported.nonEmpty) {
+      deserializationError(s"unsupported field(s) ${unsupported.mkString(",")} in restart policy")
+    }
+  }
+}
+
+object DxExecPolicy {
+  private val RunSpecExecPolicyRestartOnAttrs = Set(
+      "ExecutionError",
+      "UnresponsiveWorker",
+      "JMInternalError",
+      "AppInternalError",
+      "JobTimeoutExceeded",
+      "*"
+  )
+}
 
 case class DxTimeout(days: Option[Long], hours: Option[Long], minutes: Option[Long])
 
 case class DxRunSpec(access: Option[DxAccess],
-                     execPolicy: Option[DxExecPolicy],
+                     executionPolicy: Option[DxExecPolicy],
                      restartableEntryPoints: Option[String],
-                     timeoutPolicy: Option[DxTimeout])
+                     timeoutPolicy: Option[DxTimeout]) {}
 
 object DxRunSpec {
+  val Access = "access"
+  val ExecutionPolicy = "executionPolicy"
+  val RestartableEntryPoints = "restartableEntryPoints"
+  val TimeoutPolicy = "timeoutPolicy"
+  val EntryPointNames = Set("all", "master")
+
   def toApiJson(runSpec: DxRunSpec): Map[String, JsValue] = {
     runSpec.toJson.asJsObject.fields.filterNot {
       // the access field is in runSpec in in dxapp.json but not in the API call
       case (key, _) => key == "access"
     }
+  }
+
+  def createApiExecutionPolicy(restartOn: Option[Map[String, Long]],
+                               maxRestarts: Option[Long]): (String, JsValue) = {
+    DxRunSpec.ExecutionPolicy -> DxExecPolicy(restartOn, maxRestarts).toJson
+  }
+
+  def createApiTimeoutPolicy(days: Option[Long],
+                             hours: Option[Long],
+                             minutes: Option[Long]): (String, JsValue) = {
+    DxRunSpec.TimeoutPolicy -> JsObject(
+        "*" -> DxTimeout(days.orElse(Some(0)), hours.orElse(Some(0)), minutes.orElse(Some(0))).toJson
+    )
   }
 }
 
@@ -281,21 +316,34 @@ case class DxAppJson(runSpec: Option[DxRunSpec], details: Option[DxDetails]) {
   * Runtime attributes for scatter blocks.
   * @param chunkSize maximum number of scatter jobs to run at once
   */
-case class DxScatterAttrs(chunkSize: Option[Int] = None)
+case class DxScatterAttrs(chunkSize: Option[Int] = None) {
+  chunkSize.map { size =>
+    if (size > Constants.JobsPerScatterLimit) {
+      deserializationError(
+          s"The number of jobs per scatter must be between 1-${Constants.JobsPerScatterLimit}"
+      )
+    }
+  }
+}
 
 /**
   * Runtime attributes set at a per-workflow level.
   * @param scatterDefaults default scatter attributes that apply to an entire workflow
-  * @param perScatterAttrs scatter attributes that apply to individual scatter blocks
+  * @param scatters scatter attributes that apply to individual scatter blocks
   */
 case class DxWorkflowAttrs(scatterDefaults: Option[DxScatterAttrs],
-                           perScatterAttrs: Option[Map[String, DxScatterAttrs]])
+                           scatters: Option[Map[String, DxScatterAttrs]])
 
 case class DockerRegistry(registry: String,
                           credentials: String,
                           username: Option[String],
-                          awsConfig: Option[String],
-                          awsProfile: Option[String])
+                          awsRegion: Option[String]) {
+  if (!(username.isDefined || awsRegion.isDefined)) {
+    deserializationError(
+        "either 'username' or 'awsRegion' must be defined in Extras.dockerRegistry"
+    )
+  }
+}
 
 sealed trait ReorgSettings {
   val enabled: Boolean
@@ -314,6 +362,17 @@ case class Extras(defaultRuntimeAttributes: Option[Map[String, Value]],
                   customReorgAttributes: Option[CustomReorgSettings],
                   ignoreReuse: Option[Boolean],
                   delayWorkspaceDestruction: Option[Boolean]) {
+  defaultRuntimeAttributes.map { attrs =>
+    val unsupportedRuntimeAttrs = attrs.keySet.diff(Extras.RuntimeAttrs)
+    if (unsupportedRuntimeAttrs.nonEmpty) {
+      deserializationError(
+          s"""|Unsupported runtime attribute(s) ${unsupportedRuntimeAttrs.mkString(",")};
+              |we currently support ${Extras.RuntimeAttrs}
+              |""".stripMargin.replaceAll("\n", " ")
+      )
+    }
+  }
+
   def getDefaultAccess: DxAccess = {
     defaultTaskDxAttributes.flatMap(_.runSpec.flatMap(_.access)).getOrElse(DxAccess.empty)
   }
@@ -326,6 +385,16 @@ case class Extras(defaultRuntimeAttributes: Option[Map[String, Value]],
 }
 
 object Extras {
+  private val RuntimeAttrs =
+    Set("dx_instance_type",
+        "memory",
+        "disks",
+        "cpu",
+        "docker",
+        "container",
+        "docker_registry",
+        "container_registry",
+        "custom_reorg")
   private val camelizeRegexp = "_([a-z\\d])".r
 
   private def camelize(s: String): String = {
@@ -346,8 +415,15 @@ object Extras {
   }
 
   def parse(jsv: JsValue): Extras = {
-    // the format use to have some snake-cased keys, so we update them all to camel-case first
-    camelizeKeys(jsv).convertTo[Extras]
+    // The format used to have some snake-cased keys and some weirdly named attributes,
+    // so we update them all to camel-case and fix the names first.
+    val fixed = JsObject(jsv.asJsObject.fields.map {
+      case (key, value) if Set("custom-reorg", "custom_reorg").contains(key) =>
+        "customReorgAttributes" -> value
+      case other => other
+    })
+    val camelized = camelizeKeys(fixed)
+    camelized.convertTo[Extras]
   }
 
   def parse(path: Path): Extras = {

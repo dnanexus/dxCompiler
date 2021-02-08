@@ -5,7 +5,7 @@ import dx.core.Constants
 import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir._
 import dx.core.ir.RunSpec._
-import dx.translator.{DockerRegistry, DxAccess, DxExecPolicy, DxRunSpec, DxTimeout, Extras}
+import dx.translator.{DockerRegistry, DxAccess, DxRunSpec, DxTimeout, Extras}
 import dx.translator.CallableAttributes._
 import dx.translator.ExtrasJsonProtocol._
 import dx.util.{CodecUtils, Logger}
@@ -25,8 +25,7 @@ object ApplicationCompiler {
   private val RegistryKey = "registry"
   private val CredentialsKey = "credentials"
   private val UsernameKey = "username"
-  private val AwsConfigKey = "config"
-  private val AwsProfileKey = "profile"
+  private val AwsRegionKey = "region"
 }
 
 case class ApplicationCompiler(typeAliases: Map[String, Type],
@@ -62,8 +61,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       }
     }
     dockerRegistry match {
-      case None                                                                    => ""
-      case Some(DockerRegistry(registry, credentials, Some(username), None, None)) =>
+      case None                                                              => ""
+      case Some(DockerRegistry(registry, credentials, Some(username), None)) =>
         // check that the credentials file is a valid platform path
         checkFile(credentials, "credentials")
         // render the preamble
@@ -78,10 +77,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
                 )
             )
         )
-      case Some(DockerRegistry(registry, credentials, None, Some(awsConfig), Some(awsProfile))) =>
+      case Some(DockerRegistry(registry, credentials, None, Some(awsRegion))) =>
         checkFile(credentials, "credentials")
-        checkFile(awsConfig, "awsConfig")
-        checkFile(awsProfile, "awsProfile")
         renderer.render(
             ApplicationCompiler.EcrDockerPreambleTemplate,
             Map(
@@ -90,10 +87,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
                 ApplicationCompiler.CredentialsKey -> credentials.substring(
                     DxPath.DxUriPrefix.length
                 ),
-                ApplicationCompiler.AwsConfigKey -> awsConfig.substring(DxPath.DxUriPrefix.length),
-                ApplicationCompiler.AwsProfileKey -> awsProfile.substring(
-                    DxPath.DxUriPrefix.length
-                )
+                ApplicationCompiler.AwsRegionKey -> awsRegion
             )
         )
       case _ =>
@@ -180,23 +174,20 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       case None      => Map.empty
     }
     // runtime hints in the task override defaults from extras
-    val taskOverrides: Map[String, JsValue] = applet.requirements
-      .collect {
-        case RestartRequirement(max, default, errors) =>
-          val defaultMap: Map[String, Long] = default match {
-            case Some(i) => Map("*" -> i)
-            case _       => Map.empty
-          }
-          val restartOn = errors ++ defaultMap match {
-            case m if m.isEmpty => None
-            case m              => Some(m)
-          }
-          DxExecPolicy(restartOn, max).toJson.asJsObject.fields
-        case TimeoutRequirement(days, hours, minutes) =>
-          DxTimeout(days.orElse(Some(0)), hours.orElse(Some(0)), minutes.orElse(Some(0))).toJson.asJsObject.fields
-      }
-      .flatten
-      .toMap
+    val taskOverrides: Map[String, JsValue] = applet.requirements.collect {
+      case RestartRequirement(maxRestarts, default, errors) =>
+        val defaultMap: Map[String, Long] = default match {
+          case Some(i) => Map("*" -> i)
+          case _       => Map.empty
+        }
+        val restartOn = errors ++ defaultMap match {
+          case m if m.isEmpty => None
+          case m              => Some(m)
+        }
+        DxRunSpec.createApiExecutionPolicy(restartOn, maxRestarts)
+      case TimeoutRequirement(days, hours, minutes) =>
+        DxRunSpec.createApiTimeoutPolicy(days, hours, minutes)
+    }.toMap
     // task-specific settings from extras override runtime hints in the task
     val taskSpecificOverrides = applet.kind match {
       case ExecutableKindApplet =>
@@ -400,7 +391,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     val dbOpaque = InstanceTypeDB.opaquePrices(instanceTypeDb)
     val dbOpaqueEncoded = CodecUtils.gzipAndBase64Encode(dbOpaque.toJson.prettyPrint)
     // serilize default runtime attributes
-    val defaultRuntimeAttributes = extras
+    val defaultRuntimeAttributes: JsValue = extras
       .flatMap(ex =>
         ex.defaultRuntimeAttributes.map(attr => JsObject(ValueSerde.serializeMap(attr)))
       )

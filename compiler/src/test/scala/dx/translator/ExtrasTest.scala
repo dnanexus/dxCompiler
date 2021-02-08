@@ -54,7 +54,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
   it should "invalid runSpec I" in {
     val ex1 =
       """|{
-         | "default_task_dx_attributes" : {
+         | "default_task_dx_attributes": {
          |     "timeoutPolicy": {
          |        "main": {
          |          "hours": 12
@@ -64,8 +64,8 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
          |}
          |""".stripMargin
 
-    assertThrows[Exception] {
-      Extras.parse(ex1.parseJson)
+    assertThrows[DeserializationException] {
+      Extras.parse(ex1.toJson)
     }
   }
 
@@ -247,11 +247,11 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
           |}
           |""".stripMargin.parseJson
 
-    val thrown = intercept[IllegalArgumentException] {
+    val thrown = intercept[DeserializationException] {
       Extras.parse(reorg)
     }
 
-    thrown.getMessage should be("app_id must be specified in the custom_reorg section.")
+    thrown.getMessage should be("appUri must be specified in the customReorgAttributes section")
   }
 
   it should "throw IllegalArgumentException due to missing inputs in custom_reorg section" taggedAs ApiTest in {
@@ -265,12 +265,12 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
           |}
           |""".stripMargin.parseJson
 
-    val thrown = intercept[IllegalArgumentException] {
+    val thrown = intercept[DeserializationException] {
       Extras.parse(reorg)
     }
 
     thrown.getMessage should include(
-        "'conf' must be specified as a valid DNAnexus"
+        "'configFile' must be specified as a valid DNAnexus"
     )
   }
 
@@ -302,7 +302,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
           |}
           |""".stripMargin.parseJson
 
-    val thrown = intercept[IllegalArgumentException] {
+    val thrown = intercept[DeserializationException] {
       Extras.parse(reorg)
     }
 
@@ -344,11 +344,11 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
           |}
           |""".stripMargin.parseJson
 
-    val thrown = intercept[IllegalArgumentException] {
+    val thrown = intercept[DeserializationException] {
       Extras.parse(reorg)
     }
     thrown.getMessage should include(
-        "'conf' must be specified as a valid DNAnexus"
+        "'configFile' must be specified as a valid DNAnexus"
     )
   }
   it should "throw ResourceNotFoundException due to non-existant file" taggedAs ApiTest in {
@@ -399,7 +399,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
     val appId: String = dxApi.resolveApp("cloud_workstation").id
     val reorg: JsValue =
       s"""|{
-          | "custom_reorg" : {
+          |  "customReorgAttributes" : {
           |    "app_id" : "${appId}",
           |    "conf": null
           |  }
@@ -413,12 +413,10 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
   it should "generate valid JSON execution policy" in {
     val expectedJs: JsValue =
       """|{
-         | "executionPolicy": {
-         |    "restartOn": {
-         |       "*": 5
-         |    },
-         |    "maxRestarts" : 4
-         | }
+         |  "restartOn": {
+         |    "*": 5
+         |  },
+         |  "maxRestarts" : 4
          |}
          |""".stripMargin.parseJson
 
@@ -430,30 +428,23 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
     val expectedJs: JsValue =
       """|{
          |  "timeoutPolicy": {
-         |     "*": {
-         |        "hours": 12,
-         |        "minutes" : 30
-         |     }
+         |    "*": {
+         |      "hours": 12,
+         |      "minutes" : 30
+         |    }
          |  }
          |}
          |""".stripMargin.parseJson
-
-    val timeout = DxTimeout(None, Some(12), Some(30))
-    timeout.toJson shouldBe expectedJs
+    val runSpec = DxRunSpec(None, None, None, Some(DxTimeout(None, Some(12), Some(30))))
+    runSpec.toJson shouldBe expectedJs
   }
 
   it should "handle default runtime attributes" in {
     val runtimeAttrs: JsValue =
       """|{
-         | "default_runtime_attributes" : {
-         |     "docker" : "quay.io/encode-dcc/atac-seq-pipeline:v1",
-         |     "zones": "us-west1-a us-west1-b us-west1-c us-central1-c us-central1-b",
-         |     "failOnStderr" : false,
-         |     "continueOnReturnCode" : 0,
-         |     "preemptible": "0",
-         |     "bootDiskSizeGb": "10",
-         |     "noAddress": "false"
-         | }
+         |  "default_runtime_attributes" : {
+         |    "docker" : "quay.io/encode-dcc/atac-seq-pipeline:v1"
+         |  }
          |}""".stripMargin.parseJson
 
     val extras = Extras.parse(runtimeAttrs)
@@ -466,8 +457,8 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
     }
   }
 
-  it should "handle default runtime attributes that are empty" in {
-    val rtEmpty: JsValue =
+  it should "handle invalid default runtime attributes" in {
+    val rtInvalid: JsValue =
       """|{
          | "default_runtime_attributes" : {
          |     "preemptible": "0",
@@ -475,8 +466,9 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
          | }
          |}""".stripMargin.parseJson
 
-    val extrasEmpty = Extras.parse(rtEmpty)
-    extrasEmpty.defaultRuntimeAttributes should equal(Map.empty[String, Value])
+    assertThrows[DeserializationException] {
+      Extras.parse(rtInvalid)
+    }
   }
 
   it should "accept per task attributes" in {
@@ -532,21 +524,23 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
         )
     )
     extras.perTaskDxAttributes should be(
-        Map(
-            "Multiply" -> DxAppJson(
-                Some(
-                    DxRunSpec(
-                        Some(DxAccess(None, Some(DxAccessLevel.Upload), None, None, None)),
-                        None,
-                        None,
-                        Some(DxTimeout(None, None, Some(30)))
-                    )
+        Some(
+            Map(
+                "Multiply" -> DxAppJson(
+                    Some(
+                        DxRunSpec(
+                            Some(DxAccess(None, Some(DxAccessLevel.Upload), None, None, None)),
+                            None,
+                            None,
+                            Some(DxTimeout(None, None, Some(30)))
+                        )
+                    ),
+                    None
                 ),
-                None
-            ),
-            "Add" -> DxAppJson(
-                Some(DxRunSpec(None, None, None, Some(DxTimeout(None, None, Some(30))))),
-                None
+                "Add" -> DxAppJson(
+                    Some(DxRunSpec(None, None, None, Some(DxTimeout(None, None, Some(30))))),
+                    None
+                )
             )
         )
     )
@@ -618,34 +612,36 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
     )
 
     extras.perTaskDxAttributes should be(
-        Map(
-            "Add" -> DxAppJson(
-                Some(DxRunSpec(None, None, None, Some(DxTimeout(None, None, Some(30))))),
-                Some(
-                    DxDetails(
-                        Some(
-                            Vector(
-                                DxLicense("GATK4",
-                                          "https://github.com/broadinstitute/gatk",
-                                          "GATK-4.0.1.2",
-                                          "BSD-3-Clause",
-                                          "https://github.com/broadinstitute/LICENSE.TXT",
-                                          "Broad Institute")
+        Some(
+            Map(
+                "Add" -> DxAppJson(
+                    Some(DxRunSpec(None, None, None, Some(DxTimeout(None, None, Some(30))))),
+                    Some(
+                        DxDetails(
+                            Some(
+                                Vector(
+                                    DxLicense("GATK4",
+                                              "https://github.com/broadinstitute/gatk",
+                                              "GATK-4.0.1.2",
+                                              "BSD-3-Clause",
+                                              "https://github.com/broadinstitute/LICENSE.TXT",
+                                              "Broad Institute")
+                                )
                             )
                         )
                     )
-                )
-            ),
-            "Multiply" -> DxAppJson(
-                Some(
-                    DxRunSpec(
-                        Some(DxAccess(None, Some(DxAccessLevel.Upload), None, None, None)),
-                        None,
-                        None,
-                        Some(DxTimeout(None, None, Some(30)))
-                    )
                 ),
-                None
+                "Multiply" -> DxAppJson(
+                    Some(
+                        DxRunSpec(
+                            Some(DxAccess(None, Some(DxAccessLevel.Upload), None, None, None)),
+                            None,
+                            None,
+                            Some(DxTimeout(None, None, Some(30)))
+                        )
+                    ),
+                    None
+                )
             )
         )
     )
@@ -692,19 +688,21 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
         )
     )
     extras.perTaskDxAttributes should be(
-        Map(
-            "Add" -> DxAppJson(
-                None,
-                Some(
-                    DxDetails(
-                        Some(
-                            Vector(
-                                DxLicense("GATK4",
-                                          "https://github.com/broadinstitute/gatk",
-                                          "GATK-4.0.1.2",
-                                          "BSD-3-Clause",
-                                          "https://github.com/broadinstitute/LICENSE.TXT",
-                                          "Broad Institute")
+        Some(
+            Map(
+                "Add" -> DxAppJson(
+                    None,
+                    Some(
+                        DxDetails(
+                            Some(
+                                Vector(
+                                    DxLicense("GATK4",
+                                              "https://github.com/broadinstitute/gatk",
+                                              "GATK-4.0.1.2",
+                                              "BSD-3-Clause",
+                                              "https://github.com/broadinstitute/LICENSE.TXT",
+                                              "Broad Institute")
+                                )
                             )
                         )
                     )
@@ -731,7 +729,6 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
             DockerRegistry("foo.bar.dnanexus.com",
                            "The Bandersnatch has gotten loose",
                            Some("perkins"),
-                           None,
                            None)
         )
     )
@@ -809,7 +806,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
     val dxDetails = DxDetails(Some(upstreamProjects))
 
     val result = dxDetails.toJson
-    result.asJsObject("upstreamProjects") should be(dxDetailsJson)
+    result.asJsObject.fields("upstreamProjects") should be(dxDetailsJson)
   }
 
   it should "all DxAttr to return RunSpec Json" in {

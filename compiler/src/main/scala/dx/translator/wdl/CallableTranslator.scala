@@ -701,7 +701,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       val scatterChunkSize: Option[Int] = newScatterPath.map { sctPath =>
         val scatterChunkSize = workflowAttrs
           .flatMap { wfAttrs =>
-            wfAttrs.perScatterAttrs
+            wfAttrs.scatters
               .flatMap {
                 _.get(sctPath)
                   .orElse(wfAttrs.scatterDefaults)
