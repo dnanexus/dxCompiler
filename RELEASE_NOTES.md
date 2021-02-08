@@ -1,7 +1,9 @@
 # Release Notes
 
-## dev
+## in dev
 
+* Avoids unnecessarily generating sub-workflow output applets
+* Fixes issue with task command blocks that begin with a placeholder
 * Upgraded dxfuse to 0.24.0
 
 ## 2.1.0 04-02-2021
