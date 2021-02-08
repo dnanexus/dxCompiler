@@ -84,8 +84,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 //  }
 //  println(task.requirements)
 
-  val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm")
-  val test_time = dateFormatter.format(LocalDateTime.now)
+  private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm")
+  private val test_time = dateFormatter.format(LocalDateTime.now)
 
   private val reorgAppletFolder =
     s"/${unitTestsPath}/reorg_applets_${test_time}_${randomUUID().toString.substring(24)}/"
@@ -162,12 +162,6 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val args = path.toString :: cFlags
     Main.compile(args.toVector) shouldBe a[Success]
   }
-
-//  it should "Native compile a 1.1 task" taggedAs NativeTest in {
-//    val path = pathFromBasename("v1.1", "add.wdl")
-//    val args = path.toString :: cFlags
-//    Main.compile(args.toVector) shouldBe a[Success]
-//  }
 
   it should "handle various conditionals" taggedAs NativeTest in {
     val path = pathFromBasename("draft2", "conditionals_base.wdl")
