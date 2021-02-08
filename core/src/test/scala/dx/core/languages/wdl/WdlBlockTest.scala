@@ -282,11 +282,4 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
           ) =>
     }
   }
-
-//  it should "generate correct closure inputs and outputs II" in {
-//    val doc = getDocument("bugs", "apps_384.wdl")
-//    val blocks = WdlBlock.createBlocks(doc.workflow.get.body)
-//    blocks.size shouldBe 1
-//    val block: WdlBlock = Block.getSubBlockAt(blocks, Vector(0))
-//  }
 }
