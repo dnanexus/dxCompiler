@@ -9,7 +9,7 @@ workflow apps_384 {
 
   String RG_LB = "${dataset}_${dataset}_${row.left}"
 
-  call cat {
+  call apps_384_task {
     input:
       rg = "'@RG\\tID:" + RG_LB + "\\tPL:Illumina\\tPU:" + RG_LB + "\\tLB:" + RG_LB + "\\tSM:" + row.left + "'"
   }
@@ -19,11 +19,11 @@ workflow apps_384 {
     String row1 = manifest[0].left
     String row2 = manifest[0].right.left
     String row3 = manifest[0].right.right
-    String rg_out = cat.rg_out
+    String rg_out = apps_384_task.rg_out
   }
 }
 
-task cat {
+task apps_384_task {
   input {
     String rg
   }
