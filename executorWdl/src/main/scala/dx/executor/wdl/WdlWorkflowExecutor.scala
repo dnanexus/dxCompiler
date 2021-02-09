@@ -20,6 +20,7 @@ import dx.core.languages.wdl.{
 }
 import dx.executor.{BlockContext, JobMeta, WorkflowExecutor}
 import dx.util.{DefaultBindings, FileNode, JsUtils, LocalFileSource, Logger, TraceLevel}
+import dx.util.CollectionUtils.IterableOnceExtensions
 import dx.util.protocols.DxFileSource
 import spray.json._
 import wdlTools.eval.{Eval, EvalUtils, WdlValueBindings}
@@ -31,13 +32,8 @@ import wdlTools.types.WdlTypes._
 case class BlockIO(block: WdlBlock, logger: Logger)
 
 object WdlWorkflowExecutor {
-  implicit class FoldLeftWhile[A](trav: IterableOnce[A]) {
-    def foldLeftWhile[B](init: B)(where: B => Boolean)(op: (B, A) => B): B = {
-      trav.iterator.foldLeft(init)((acc, next) => if (where(acc)) op(acc, next) else acc)
-    }
-  }
-
   def create(jobMeta: JobMeta): WdlWorkflowExecutor = {
+    // parse the workflow source code to get the WDL document
     val (doc, typeAliases, versionSupport) =
       VersionSupport.fromSourceString(jobMeta.sourceCode, jobMeta.fileResolver)
     val workflow = doc.workflow.getOrElse(
@@ -77,6 +73,15 @@ object WdlWorkflowExecutor {
 
 // TODO: implement graph building from workflow - input and output parameters
 //  should be ordered in calls to InputOutput.*
+/**
+  * Executor for WDL workflows.
+  * @param docSource the FileNode from which the workflow source originated.
+  * @param workflow the Workflow object.
+  * @param versionSupport WDL version-specific functions.
+  * @param tasks the WDL tasks called by the workflow.
+  * @param wdlTypeAliases Struct definitions.
+  * @param jobMeta functions to access job and executable metadata.
+  */
 case class WdlWorkflowExecutor(docSource: FileNode,
                                workflow: TAT.Workflow,
                                versionSupport: VersionSupport,
