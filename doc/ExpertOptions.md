@@ -663,9 +663,13 @@ task bwa_mem {
 
 # Setting DNAnexus-specific attributes in extras.json
 
-When writing a dnanexus applet the user can specify options through the [dxapp.json](https://documentation.dnanexus.com/developer/apps/app-metadata#annotated-example) file. The dxCompiler equivalent is the *extras* file, specified with the `extras` command line option. The extras file has a `defaultTaskDxAttributes` section where runtime specification, timeout policies, and access control can be set.
+When writing a dnanexus applet the user can specify options through the [dxapp.json](https://documentation.dnanexus.com/developer/apps/app-metadata#annotated-example) file. The dxCompiler equivalent is the *extras* file, specified with the `extras` command line option.
 
-```
+## Default and per-task attributes
+
+The extras file has a `defaultTaskDxAttributes` section where runtime specification, timeout policies, and access control can be set.
+
+```json
 {
   "defaultTaskDxAttributes" : {
     "runSpec": {
@@ -694,7 +698,7 @@ When writing a dnanexus applet the user can specify options through the [dxapp.j
 
 In order to override the defaults for specific tasks, you can add the `perTaskDxAttributes` section. For example
 
-```
+```json
 {
   "perTaskDxAttributes" : {
     "Add": {
@@ -726,7 +730,7 @@ will override the default timeout for tasks `Add` and `Inc`. It will also provid
 
 You are also able add citations or licenses information using for each task at the `perTaskDxAttributes` section. For example
 
-```
+```json
 {
   "perTaskDxAttributes" : {
     "Add": {
@@ -755,6 +759,55 @@ You are also able add citations or licenses information using for each task at t
 ```
 
 Note that `details` specified in `perTaskDxAttributes` override those that are set in the task's `meta` section.
+
+## Per-workflow attributes
+
+There are also attributes that can be set at the workflow level. Currently, the only attribute that can be set is the "chunk size" limit for scatters. DNAnexus executes large scatters in "chunks" of no more than 1000 jobs at a time (the default is 500). For some scatters, it may be necessary to increase or decrease the chunk size for efficient execution. You should not need to modify this attribute unless instructed to do so by the DNAnexus support team.
+
+Consider the following workflow:
+
+```wdl
+workflow wf1 {
+  input {
+    Array[Array[File]] samples
+    Array[Int] numbers
+  }
+  
+  scatter (sample_files in samples) {
+    scatter (file in sample_files) {
+      call summarize { input: file = file }
+    }
+  }
+  
+  scatter (num in numbers) {
+    call add { input: num = num }
+  }
+  
+  output {
+    Array[String] summary = mytask.summary
+  }
+}
+
+task summarize { ... }
+task add { ... }
+```
+
+If you want the default scatter chunk size for this workflow to be 100, but you want the scatter chunk size for nested scatter (`scatter (file in sample_files) { ...}`) to be 700, then you'd use the following configuration: 
+
+```json
+{
+  "perWorkflowDxAttributes": {
+    "wf1": {
+      "scatterDefaults": {
+        "chunkSize": 100
+      },
+      "sample_files.file": {
+        "chunkSize": 700
+      }
+    }
+  }
+}
+```
 
 ## Job reuse
 
