@@ -15,9 +15,11 @@ import wdlTools.syntax.{
   SourceLocation,
   SyntaxException,
   WdlParser,
+  WdlVersion,
   AbstractSyntax => AST
 }
 import wdlTools.types.{
+  Section,
   TypeCheckingRegime,
   TypeException,
   TypeInfer,
@@ -54,6 +56,7 @@ case class WdlInputRef(name: String,
 }
 
 object WdlUtils {
+
   val locPlaceholder: SourceLocation = SourceLocation.empty
 
   def parseSource(sourceCode: FileNode,
@@ -137,6 +140,28 @@ object WdlUtils {
       logger: Logger = Logger.get
   ): (TAT.Document, Bindings[String, T_Struct]) = {
     parseAndCheckSourceNode(StringFileNode(sourceCodeStr, name), fileResolver, regime, logger)
+  }
+
+  def parseExpr(exprStr: String,
+                wdlVersion: WdlVersion,
+                parser: WdlParser,
+                docSource: FileNode,
+                bindings: Bindings[String, T],
+                section: Section.Section = Section.Other,
+                fileResolver: FileSourceResolver = FileSourceResolver.get,
+                regime: TypeCheckingRegime.TypeCheckingRegime = TypeCheckingRegime.Moderate,
+                logger: Logger = Logger.get): TAT.Expr = {
+    val expr = parser.parseExpr(exprStr)
+    try {
+      TypeInfer(regime, fileResolver = fileResolver, logger = logger)
+        .applyExpression(expr, wdlVersion, regime, docSource, bindings, section)
+    } catch {
+      case te: TypeException =>
+        logger.error(
+            s"Expression code is syntactically valid BUT it fails type-checking: ${exprStr}"
+        )
+        throw te
+    }
   }
 
   // create a wdl-value of a specific type.
@@ -1059,6 +1084,15 @@ object WdlUtils {
       .map {
         case (name, (t, v)) =>
           s"${indent}${name}: ${TypeUtils.prettyFormatType(t)} ${EvalUtils.prettyFormat(v)}"
+      }
+      .mkString("\n")
+  }
+
+  def prettyFormatValues(env: Map[String, V], indent: String = "  "): String = {
+    env
+      .map {
+        case (name, v) =>
+          s"${indent}${name}: ${EvalUtils.prettyFormat(v)}"
       }
       .mkString("\n")
   }

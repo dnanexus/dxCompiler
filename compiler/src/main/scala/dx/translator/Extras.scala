@@ -139,17 +139,16 @@ case class DxRunSpec(access: Option[DxAccess],
   // call. It does fit, however, in dxapp.json.
   def toRunSpecJson: Map[String, JsValue] = {
     val execPolicyFields = execPolicy match {
-      case None => Map.empty
-      case Some(execPolicy) =>
-        execPolicy.toJson
+      case None             => Map.empty
+      case Some(execPolicy) => execPolicy.toJson
     }
     val restartableEntryPointsFields = restartableEntryPoints match {
       case None                => Map.empty
       case Some(value: String) => Map("restartableEntryPoints" -> JsString(value))
     }
     val timeoutFields = timeoutPolicy match {
-      case None             => Map.empty
-      case Some(execPolicy) => execPolicy.toJson
+      case None                => Map.empty
+      case Some(timeoutPolicy) => timeoutPolicy.toJson
     }
     (execPolicyFields ++ restartableEntryPointsFields).toMap ++ timeoutFields
   }

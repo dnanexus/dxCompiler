@@ -22,7 +22,7 @@ workflow test {
 
   output {
     Array[String] out = testtask.out
-    Array[String] sample_types = sample_type
+    Array[String] sample_types_out = sample_type
   }
 }
 

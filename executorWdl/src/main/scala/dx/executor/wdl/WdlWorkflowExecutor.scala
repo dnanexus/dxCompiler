@@ -19,7 +19,8 @@ import dx.core.languages.wdl.{
   WdlUtils
 }
 import dx.executor.{BlockContext, JobMeta, WorkflowExecutor}
-import dx.util.{JsUtils, LocalFileSource, Logger, TraceLevel}
+import dx.util.{DefaultBindings, FileNode, JsUtils, LocalFileSource, Logger, TraceLevel}
+import dx.util.CollectionUtils.IterableOnceExtensions
 import dx.util.protocols.DxFileSource
 import spray.json._
 import wdlTools.eval.{Eval, EvalUtils, WdlValueBindings}
@@ -31,13 +32,8 @@ import wdlTools.types.WdlTypes._
 case class BlockIO(block: WdlBlock, logger: Logger)
 
 object WdlWorkflowExecutor {
-  implicit class FoldLeftWhile[A](trav: IterableOnce[A]) {
-    def foldLeftWhile[B](init: B)(where: B => Boolean)(op: (B, A) => B): B = {
-      trav.iterator.foldLeft(init)((acc, next) => if (where(acc)) op(acc, next) else acc)
-    }
-  }
-
   def create(jobMeta: JobMeta): WdlWorkflowExecutor = {
+    // parse the workflow source code to get the WDL document
     val (doc, typeAliases, versionSupport) =
       VersionSupport.fromSourceString(jobMeta.sourceCode, jobMeta.fileResolver)
     val workflow = doc.workflow.getOrElse(
@@ -46,7 +42,7 @@ object WdlWorkflowExecutor {
     val tasks = doc.elements.collect {
       case task: TAT.Task => task.name -> task
     }.toMap
-    WdlWorkflowExecutor(workflow, versionSupport, tasks, typeAliases.toMap, jobMeta)
+    WdlWorkflowExecutor(doc.source, workflow, versionSupport, tasks, typeAliases.toMap, jobMeta)
   }
 
   // this method is exposed for unit testing
@@ -77,7 +73,17 @@ object WdlWorkflowExecutor {
 
 // TODO: implement graph building from workflow - input and output parameters
 //  should be ordered in calls to InputOutput.*
-case class WdlWorkflowExecutor(workflow: TAT.Workflow,
+/**
+  * Executor for WDL workflows.
+  * @param docSource the FileNode from which the workflow source originated.
+  * @param workflow the Workflow object.
+  * @param versionSupport WDL version-specific functions.
+  * @param tasks the WDL tasks called by the workflow.
+  * @param wdlTypeAliases Struct definitions.
+  * @param jobMeta functions to access job and executable metadata.
+  */
+case class WdlWorkflowExecutor(docSource: FileNode,
+                               workflow: TAT.Workflow,
                                versionSupport: VersionSupport,
                                tasks: Map[String, TAT.Task],
                                wdlTypeAliases: Map[String, T_Struct],
@@ -100,7 +106,10 @@ case class WdlWorkflowExecutor(workflow: TAT.Workflow,
       jobInputs: Map[String, (Type, Value)]
   ): Map[String, (Type, Value)] = {
     if (logger.isVerbose) {
-      logger.trace(workflow.inputs.map(TypeUtils.prettyFormatInput(_)).mkString("\n"))
+      logger.trace(s"""input paramters:
+                      |${workflow.inputs
+                        .map(TypeUtils.prettyFormatInput(_))
+                        .mkString("\n")}""".stripMargin)
     }
     val workflowInputs = workflow.inputs.map(inp => inp.name -> inp).toMap
     // convert IR to WDL values
@@ -108,6 +117,10 @@ case class WdlWorkflowExecutor(workflow: TAT.Workflow,
       case (name, (_, value)) =>
         val wdlType = workflowInputs(name).wdlType
         name -> WdlUtils.fromIRValue(value, wdlType, name)
+    }
+    if (logger.isVerbose) {
+      logger.trace(s"""input values:
+                      |${WdlUtils.prettyFormatValues(inputWdlValues)}""".stripMargin)
     }
     // evaluate - enable special handling for unset array values -
     // DNAnexus does not distinguish between null and empty for
@@ -991,31 +1004,43 @@ case class WdlWorkflowExecutor(workflow: TAT.Workflow,
     }
   }
 
+  private val compoundNameRegexp = ".+[.\\[].+".r
+
   override def evaluateBlockInputs(
       jobInputs: Map[String, (Type, Value)]
   ): WdlBlockContext = {
     val block: WdlBlock =
       Block.getSubBlockAt(WdlBlock.createBlocks(workflow.body), jobMeta.blockPath)
-    // Some of the inputs could be optional. If they are missing, add in a V_Null
-    val inputEnv = block.inputs.foldLeft(Map.empty[String, (T, V)]) {
-      case (accu, blockInput: WdlBlockInput) if jobInputs.contains(blockInput.name) =>
-        val (irType, irValue) = jobInputs(blockInput.name)
+    // convert the inputs to WDL
+    val initEnv = jobInputs.map {
+      case (name, (irType, irValue)) =>
         val wdlType = WdlUtils.fromIRType(irType, wdlTypeAliases)
-        val wdlValue = WdlUtils.fromIRValue(irValue, wdlType, blockInput.name)
-        accu + (blockInput.name -> (wdlType, wdlValue))
-      case (_, RequiredBlockInput(name, _)) =>
-        throw new Exception(s"missing required input ${name}")
+        val wdlValue = WdlUtils.fromIRValue(irValue, wdlType, name)
+        name -> (wdlType, wdlValue)
+    }
+    val inputEnv = block.inputs.foldLeft(initEnv) {
+      case (accu, blockInput: WdlBlockInput) if accu.contains(blockInput.name) =>
+        accu
       case (accu, _: ComputedBlockInput) =>
         // this is the scatter variable, or some expression that references the scatter
         // variable - we can ignore it since it will be evaluated during launching of
         // the scatter jobs
         accu
+      case (accu, RequiredBlockInput(name, wdlType)) if compoundNameRegexp.matches(name) =>
+        // the input name is a compound reference - evaluate it as an identifier
+        val expr = versionSupport.parseExpression(name, DefaultBindings(accu.map {
+          case (name, (wdlType, _)) => name -> wdlType
+        }), docSource)
+        accu + (name -> (wdlType, evaluateExpression(expr, wdlType, accu)))
+      case (_, RequiredBlockInput(name, _)) =>
+        throw new Exception(s"missing required input ${name}")
       case (accu, OverridableBlockInputWithStaticDefault(name, wdlType, defaultValue)) =>
         accu + (name -> (wdlType, defaultValue))
       case (accu, OverridableBlockInputWithDynamicDefault(name, wdlType, defaultExpr)) =>
         val wdlValue = evaluateExpression(defaultExpr, wdlType, accu)
         accu + (name -> (wdlType, wdlValue))
       case (accu, OptionalBlockInput(name, wdlType)) =>
+        // the input is missing but it could be optional - add a V_Null
         accu + (name -> (wdlType, V_Null))
     }
     val prereqEnv = evaluateWorkflowElementVariables(block.prerequisites, inputEnv)
