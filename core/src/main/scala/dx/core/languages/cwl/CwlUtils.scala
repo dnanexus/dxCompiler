@@ -6,6 +6,7 @@ import dx.core.ir.{Type, Value}
 import dx.core.ir.Type._
 import dx.core.ir.Value._
 import dx.cwl._
+import dx.util.CollectionUtils.IterableOnceExtensions
 import spray.json._
 
 import scala.annotation.tailrec
@@ -179,15 +180,16 @@ object CwlUtils {
 
   def toIRValue(cwlValue: CwlValue, cwlTypes: Vector[CwlType]): (Type, Value) = {
     val flattened = flattenTypes(cwlTypes)
-    flattened.foreach { t =>
-      try {
-        val (_, irValue) = toIRValue(cwlValue, t)
-        (toIRType(flattened), irValue)
-      } catch {
-        case _: Exception => ()
+    flattened.iterator
+      .collectFirstDefined { t =>
+        try {
+          val (_, irValue) = toIRValue(cwlValue, t)
+          Some(toIRType(flattened), irValue)
+        } catch {
+          case _: Exception => None
+        }
       }
-    }
-    throw new Exception(s"value ${cwlValue} does not match any of ${cwlTypes}")
+      .getOrElse(throw new Exception(s"value ${cwlValue} does not match any of ${cwlTypes}"))
   }
 
   def toIR(cwl: Map[String, (CwlType, CwlValue)]): Map[String, (Type, Value)] = {
@@ -354,15 +356,12 @@ object CwlUtils {
                    innerName: String): (CwlType, CwlValue) = {
       val flattenedTypes = flattenTypes(innerCwlTypes)
       flattenedTypes.iterator
-        .map { t =>
+        .collectFirstDefined { t =>
           try {
             Some(t, inner(innerValue, t, innerName))
           } catch {
             case _: Throwable => None
           }
-        }
-        .collectFirst {
-          case Some(x) => x
         }
         .getOrElse(
             throw new Exception(

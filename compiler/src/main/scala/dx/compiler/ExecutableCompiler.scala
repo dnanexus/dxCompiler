@@ -368,7 +368,7 @@ class ExecutableCompiler(extras: Option[Extras],
 
   protected def delayWorkspaceDestructionToNative: Map[String, JsValue] = {
     if (extras.flatMap(_.delayWorkspaceDestruction).getOrElse(false)) {
-      Map("delayWorkspaceDestruction" -> JsTrue)
+      Map(Constants.DelayWorkspaceDestruction -> JsTrue)
     } else {
       Map.empty
     }

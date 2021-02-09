@@ -2,6 +2,7 @@ package dx.core.ir
 
 import dx.core.ir.Type._
 import dx.core.ir.Value._
+import dx.util.CollectionUtils.IterableOnceExtensions
 import spray.json._
 
 import scala.collection.immutable.TreeSeqMap
@@ -10,7 +11,7 @@ object ValueSerde extends DefaultJsonProtocol {
   val WrappedValueKey = "value___"
 
   case class ValueSerdeException(message: String) extends Exception(message)
-  
+
   /**
     * Serializes a Value to JSON.
     * @param value the Value to serialize
@@ -199,19 +200,26 @@ object ValueSerde extends DefaultJsonProtocol {
         case None                   => innerValue
       }
       (innerType, v) match {
-        case (TOptional(_), JsNull)                => VNull
-        case (TOptional(t), _)                     => inner(v, t)
-        case (TMulti(bounds), _) if bounds.isEmpty => deserialize(unwrapValue(v))
-        case (TMulti(bounds), _) =>
+        case (TOptional(_), JsNull) => VNull
+        case (TOptional(t), _)      => inner(v, t)
+        case (any: TMulti, _) if any.bounds.isEmpty && isWrappedValue(v) =>
+          inner(unwrapValue(v), any)
+        case (TMulti(bounds), _) if bounds.isEmpty => deserialize(v)
+        case (TMulti(bounds), _) if isWrappedValue(v) =>
           val unwrappedValue = unwrapValue(v)
-          bounds.foreach { t =>
-            try {
-              return inner(unwrappedValue, t)
-            } catch {
-              case _: ValueSerdeException => ()
+          bounds.iterator
+            .collectFirstDefined { t =>
+              try {
+                Some(inner(unwrappedValue, t))
+              } catch {
+                case _: ValueSerdeException => None
+              }
             }
-          }
-          throw ValueSerdeException(s"value ${unwrappedValue} does not match any of ${bounds}")
+            .getOrElse(
+                throw ValueSerdeException(
+                    s"value ${unwrappedValue} does not match any of ${bounds}"
+                )
+            )
         case (TBoolean, JsBoolean(b))                     => VBoolean(b.booleanValue)
         case (TInt, JsNumber(value)) if value.isValidLong => VInt(value.toLongExact)
         case (TFloat, JsNumber(value))                    => VFloat(value.toDouble)

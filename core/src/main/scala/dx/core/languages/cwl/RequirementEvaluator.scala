@@ -20,14 +20,25 @@ import dx.core.ir.RuntimeRequirement
 import dx.cwl._
 
 case class RequirementEvaluator(requirements: Vector[Requirement],
+                                hints: Vector[Hint],
                                 env: Map[String, (CwlType, CwlValue)],
                                 workerPaths: DxWorkerPaths,
                                 defaultRuntimeAttrs: Map[String, (CwlType, CwlValue)] = Map.empty,
                                 dxApi: DxApi = DxApi.get) {
-  lazy val evaluator: Evaluator = Evaluator.create(requirements)
+  lazy val evaluator: Evaluator = Evaluator.create(requirements, hints)
   private lazy val runtime: Runtime = CwlUtils.createRuntime(workerPaths)
   private lazy val evaluatorContext: EvaluatorContext =
     CwlUtils.createEvaluatorContext(runtime, env)
+
+  /**
+    * Returns the first Requirement or Hint matching the given filter.
+    * @param filter the filter function to apply
+    * @return Option[(hint, optional)]
+    */
+  def getHint(filter: Hint => Boolean): Option[(Hint, Boolean)] = {
+    requirements.find(filter).map((_, false)).orElse(hints.find(filter).map((_, true)))
+  }
+
   private lazy val defaultResourceRequirement: ResourceRequirement = {
     val req = ResourceRequirement(
         defaultRuntimeAttrs.get("coresMin").map(_._2),
@@ -42,14 +53,14 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
     req.merge(ResourceRequirement.default)
   }
 
-  lazy val resources: ResourceRequirement = {
-    requirements.collect {
-      case req: ResourceRequirement => req
+  lazy val (resources: ResourceRequirement, resourcesOptional: Boolean) = {
+    getHint {
+      case _: ResourceRequirement => true
+      case _                      => false
     } match {
-      case Vector()    => defaultResourceRequirement
-      case Vector(req) => req.merge(defaultResourceRequirement)
-      case _ =>
-        throw new Exception("found multiple ResourceRequirements")
+      case Some((req: ResourceRequirement, optional)) =>
+        (req.merge(defaultResourceRequirement), optional)
+      case _ => (defaultResourceRequirement, true)
     }
   }
 
@@ -91,7 +102,8 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
           getDiskGB(resources.tmpdirMin, resources.outdirMin, MinMathContext).orElse(Some(0L)),
         maxDiskGB = getDiskGB(resources.tmpdirMax, resources.outdirMax, MaxMathContext),
         minCpu = resources.coresMin.map(evaluateNumeric(_, MinMathContext)),
-        maxCpu = resources.coresMax.map(evaluateNumeric(_, MaxMathContext))
+        maxCpu = resources.coresMax.map(evaluateNumeric(_, MaxMathContext)),
+        optional = resourcesOptional
     )
   }
 
@@ -114,35 +126,55 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
   }
 
   def translateContainer: ContainerImage = {
-    requirements
-      .collectFirst {
-        case req: DockerRequirement =>
-          req.loadUri match {
-            case Some(uri) if uri.startsWith("dx") =>
-              val dxfile = dxApi.resolveFile(uri)
-              DxFileDockerImage(uri, dxfile)
-            case None if req.pullName.isDefined => NetworkDockerImage
-            case None if req.importUri.isDefined || req.dockerfile.isDefined =>
-              throw new Exception("Docker is only supported via pull or download of a dx file")
-            case _ => NoImage
-          }
-      }
-      .getOrElse(NoImage)
+    getHint {
+      case _: DockerRequirement => true
+      case _                    => false
+    } match {
+      case Some((req: DockerRequirement, optional)) =>
+        req.loadUri match {
+          case Some(uri) if uri.startsWith("dx") =>
+            val dxfile = dxApi.resolveFile(uri)
+            DxFileDockerImage(uri, dxfile)
+          case None if req.pullName.isDefined => NetworkDockerImage
+          case None if !optional && (req.importUri.isDefined || req.dockerfile.isDefined) =>
+            throw new Exception("Docker is only supported via pull or download of a dx file")
+          case _ => NoImage
+        }
+      case _ => NoImage
+    }
   }
 
   def translateApplicationRequirements: Vector[RuntimeRequirement] = {
     // here we only consider the requirements that need to be applied
     // at compile time - the rest are evaluated at runtime
-    requirements.collect {
-      case WorkReuseRequirement(BooleanValue(allow)) =>
+    Vector(
+        getHint {
+          case _: WorkReuseRequirement => true
+          case _                       => false
+        },
+        getHint {
+          case _: NetworkAccessRequirement => true
+          case _                           => false
+        },
+        getHint {
+          case _: ToolTimeLimitRequirement => true
+          case _                           => false
+        },
+        getHint {
+          case _: SoftwareRequirement => true
+          case _                      => false
+        }
+    ).flatten.collect {
+      case (WorkReuseRequirement(BooleanValue(allow)), _) =>
         IgnoreReuseRequirement(!allow)
-      case NetworkAccessRequirement(BooleanValue(allow)) =>
+      case (NetworkAccessRequirement(BooleanValue(allow)), _) =>
+        // TODO: optional should have some effect here
         AccessRequirement(network = if (allow) Vector("*") else Vector.empty)
-      case ToolTimeLimitRequirement(timeLimit: NumericValue) =>
+      case (ToolTimeLimitRequirement(timeLimit: NumericValue), _) =>
         TimeoutRequirement(minutes =
           Some((timeLimit.decimalValue / 60).round(MaxMathContext).longValue)
         )
-      case _: SoftwareRequirement =>
+      case (_: SoftwareRequirement, true) =>
         throw new Exception("SoftwareRequirement is not supported")
     }
   }

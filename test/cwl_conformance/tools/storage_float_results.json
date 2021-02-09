@@ -1,0 +1,9 @@
+{
+  "storage_float.output": {
+    "location": "values.txt",
+    "basename": "values.txt",
+    "class": "File",
+    "checksum": "sha1$c73f68407c144c5336a6c14e7ec79ee470231bd7",
+    "size": 12
+  }
+}

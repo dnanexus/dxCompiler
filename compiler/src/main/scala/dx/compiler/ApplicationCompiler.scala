@@ -357,8 +357,12 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
           ) ++ scatterChunkSize
             .map(chunkSize => Map(Constants.ScatterChunkSize -> JsNumber(chunkSize)))
             .getOrElse(Map.empty)
-        case ExecutableKindWfInputs | ExecutableKindWfOutputs | ExecutableKindWfCustomReorgOutputs |
-            ExecutableKindWorkflowOutputReorg =>
+        case ExecutableKindWfOutputs(blockPath) if blockPath.nonEmpty =>
+          val types = applet.inputVars.map(p => p.name -> p.dxType).toMap
+          Map(Constants.BlockPath -> JsArray(blockPath.map(JsNumber(_))),
+              Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(types))
+        case ExecutableKindWfInputs | _: ExecutableKindWfOutputs |
+            ExecutableKindWfCustomReorgOutputs | ExecutableKindWorkflowOutputReorg =>
           val types = applet.inputVars.map(p => p.name -> p.dxType).toMap
           Map(Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(types))
         case _ =>

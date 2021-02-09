@@ -1,0 +1,15 @@
+{
+  "bwa-mem-tool.args": [
+    "bwa",
+    "mem",
+    "-t",
+    "2",
+    "-I",
+    "1,2,3,4",
+    "-m",
+    "3",
+    "chr20.fa",
+    "example_human_Illumina.pe_1.fastq",
+    "example_human_Illumina.pe_2.fastq"
+  ]
+}

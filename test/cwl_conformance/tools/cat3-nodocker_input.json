@@ -1,0 +1,6 @@
+{
+  "cat3-nodocker.file1": {
+    "class": "File",
+    "contents": "Hello file literal"
+  }
+}

@@ -63,10 +63,10 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     * Returns the minimal (i.e. cheapest) instance type that is
     * sufficient to the task's resource requirements.
     */
-  protected def getRequiredInstanceTypeRequest: InstanceTypeRequest
+  protected def getInstanceTypeRequest: InstanceTypeRequest
 
   private def getRequiredInstanceType: String = {
-    val instanceTypeRequest: InstanceTypeRequest = getRequiredInstanceTypeRequest
+    val instanceTypeRequest: InstanceTypeRequest = getInstanceTypeRequest
     logger.traceLimited(s"calcInstanceType $instanceTypeRequest")
     jobMeta.instanceTypeDb.apply(instanceTypeRequest).name
   }
@@ -522,7 +522,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
                               JsObject(jobMeta.jsInputs),
                               Vector.empty,
                               jobMeta.delayWorkspaceDestruction)
-    jobMeta.writeOutputLinks(dxSubJob, outputTypes)
+    jobMeta.writeExecutionOutputLinks(dxSubJob, outputTypes)
   }
 
   def apply(action: TaskAction.TaskAction): String = {
