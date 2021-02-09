@@ -1097,6 +1097,15 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         throw new AssertionError(s"expected Success, got ${other}")
     }
     val dxApplet = dxApi.applet(appletId)
+    val desc = dxApplet.describe()
 
+    val input = desc.inputSpec.get.map(i => i.name -> i).toMap
+    input.keySet shouldBe Set(Constants.InputManifests, Constants.InputLinks)
+    input(Constants.InputManifests).ioClass shouldBe DxIOClass.FileArray
+    input(Constants.InputLinks).ioClass shouldBe DxIOClass.Hash
+
+    val output = desc.outputSpec.get.map(i => i.name -> i).toMap
+    output.keySet shouldBe Set(Constants.OutputManifest)
+    output(Constants.OutputManifest).ioClass shouldBe DxIOClass.File
   }
 }

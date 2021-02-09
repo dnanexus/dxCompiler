@@ -87,11 +87,10 @@ wdl_v1_list = [
     "wf_with_input_expressions",
     "wf_with_output_expressions",
 
-    # APPS-370
-    "nested_pairs",
-
-    # APPS-378
+    # bug regression tests
+    "nested_pairs",  # APPS-370
     "apps_378",
+    "apps_384",
 ]
 
 # docker image tests
