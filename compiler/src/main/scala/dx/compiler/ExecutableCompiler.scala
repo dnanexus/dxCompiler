@@ -35,6 +35,7 @@ object ExecutableCompiler {
   val WorkflowInputLinksParameter: Parameter = Parameter(Constants.WorkflowInputLinks, Type.THash)
   val OutputManifestParameter: Parameter = Parameter(Constants.OutputManifest, Type.TFile)
 }
+
 class ExecutableCompiler(extras: Option[Extras],
                          parameterLinkSerializer: ParameterLinkSerializer,
                          dxApi: DxApi = DxApi.get) {

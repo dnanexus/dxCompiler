@@ -960,30 +960,33 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       val allWfInputParameters = wfInputParams ++ closureInputParams
       val wfInputLinks: Vector[LinkedVar] = allWfInputParameters.map(p => (p, WorkflowInput(p)))
 
-      val (backboneInputs, commonStageInfo) = if (useManifests || dynamicDefaults.exists(b => b)) {
-        // If we are using manifests, we need an initial applet to merge multiple
-        // manifests into a single manifest.
-        // If the workflow has inputs that are defined with complex expressions,
-        // we need an initial applet to evaluate those.
-        val commonAppletInputs = allWfInputParameters
-        val commonStageInputs = allWfInputParameters.map(p => WorkflowInput(p))
-        val inputOutputs: Vector[Parameter] = inputs.map { i =>
-          Parameter(i.name, WdlUtils.toIRType(i.wdlType))
+      val (backboneInputs, commonStageInfo) =
+        if (useManifests || dynamicDefaults.exists(identity)) {
+          // If we are using manifests, we need an initial applet to merge multiple
+          // manifests into a single manifest.
+          // If the workflow has inputs that are defined with complex expressions,
+          // we need an initial applet to evaluate those.
+          val commonAppletInputs = allWfInputParameters
+          val commonStageInputs = allWfInputParameters.map(p => WorkflowInput(p))
+          val inputOutputs: Vector[Parameter] = inputs.map { i =>
+            // TODO: do we need to force the type to be non-optional in the case of
+            //  OverridableBlockInputWithDynamicDefault?
+            Parameter(i.name, WdlUtils.toIRType(i.wdlType))
+          }
+          val closureOutputs: Vector[Parameter] = closureInputParams
+          val (commonStage, commonApplet) =
+            createCommonApplet(wf.name,
+                               commonAppletInputs,
+                               commonStageInputs,
+                               inputOutputs ++ closureOutputs)
+          val fauxWfInputs: Vector[LinkedVar] = commonStage.outputs.map { param =>
+            val link = LinkInput(commonStage.dxStage, param.dxName)
+            (param, link)
+          }
+          (fauxWfInputs, Vector((commonStage, Vector(commonApplet))))
+        } else {
+          (wfInputLinks, Vector.empty)
         }
-        val closureOutputs: Vector[Parameter] = closureInputParams
-        val (commonStage, commonApplet) =
-          createCommonApplet(wf.name,
-                             commonAppletInputs,
-                             commonStageInputs,
-                             inputOutputs ++ closureOutputs)
-        val fauxWfInputs: Vector[LinkedVar] = commonStage.outputs.map { param =>
-          val link = LinkInput(commonStage.dxStage, param.dxName)
-          (param, link)
-        }
-        (fauxWfInputs, Vector((commonStage, Vector(commonApplet))))
-      } else {
-        (allWfInputParameters.map(p => (p, WorkflowInput(p))), Vector.empty)
-      }
 
       // translate the Block(s) into workflow stages
       val (backboneStageInfo, env) = createWorkflowStages(
@@ -1046,7 +1049,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         val (outputsToPass, outputsToEval) = outputs.partition(o => env.contains(o.name))
         val inputAsOutputNames = outputsToPass.map(_.name).toSet ++
           WdlUtils.getOutputClosure(outputsToEval).keySet
-        inputs.map(_.name).toSet.intersect(inputAsOutputNames).isEmpty
+        inputs.map(_.name).toSet.intersect(inputAsOutputNames).nonEmpty
       }
 
       val (wfOutputs, finalStages, finalCallables) = if (useOutputStage) {

@@ -8,6 +8,7 @@ import dxCompiler.Main.{
   SuccessfulCompileNativeNoTree,
   SuccessfulCompileNativeWithJsonTree,
   SuccessfulCompileNativeWithPrettyTree,
+  SuccessfulDescribeJsonTree,
   SuccessfulDescribePrettyTree
 }
 import dx.core.Constants
@@ -219,10 +220,10 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
     }
 
     val describeRet = Main.describe(Vector(wfID))
-    describeRet shouldBe a[SuccessfulCompileNativeWithJsonTree]
+    describeRet shouldBe a[SuccessfulDescribeJsonTree]
 
     inside(describeRet) {
-      case SuccessfulCompileNativeWithJsonTree(_, _, treeJs: JsValue) =>
+      case SuccessfulDescribeJsonTree(treeJs: JsValue) =>
         treeJs.asJsObject.getFields("name", "kind", "stages", "id") match {
           case Seq(JsString(name), JsString(kind), JsArray(stages), JsString(id)) =>
             name shouldBe "four_levels"

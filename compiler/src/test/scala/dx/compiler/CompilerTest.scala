@@ -11,7 +11,7 @@ import dx.Tags.NativeTest
 import dx.api._
 import dx.core.Constants
 import dx.core.ir.Callable
-import dx.core.CliUtils.{Success, Termination}
+import dx.core.CliUtils.Termination
 import dx.util.{FileUtils, Logger, SysUtils}
 import dxCompiler.Main
 import dxCompiler.Main.{SuccessfulCompileIR, SuccessfulCompileNativeNoTree}

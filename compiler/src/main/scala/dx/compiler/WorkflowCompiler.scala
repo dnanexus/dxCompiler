@@ -19,7 +19,7 @@ case class WorkflowCompiler(extras: Option[Extras],
 
   private def workflowInputParameterToNative(parameter: Parameter,
                                              stageInput: StageInput): Vector[JsValue] = {
-    // The default value can come from the stageInput or the parameter
+    // The default value can come from the stage input or the workflow input
     def getDefault(stageInput: StageInput): Option[Option[Value]] = {
       stageInput match {
         case WorkflowInput(wfParam) if wfParam != parameter => Some(wfParam.defaultValue)
@@ -280,7 +280,7 @@ case class WorkflowCompiler(extras: Option[Extras],
     // build the "stages" part of the API request
     val stages =
       workflow.stages.map { stage =>
-        val CompiledExecutable(irApplet, dxExec, _, _) = executableDict(stage.calleeName)
+        val CompiledExecutable(irExecutable, dxExec, _, _) = executableDict(stage.calleeName)
         val linkedInputs = if (useManifests) {
           // when using manifests, we have to create an input array of all the
           // manifests output by any linked stages, and a hash of links between
@@ -316,7 +316,7 @@ case class WorkflowCompiler(extras: Option[Extras],
                  Some(Value.VArray(values.flatten)))
             }
           }
-          val (inputWorkflow, inputStages, inputLinks) = irApplet.inputVars
+          val (inputWorkflow, inputStages, inputLinks) = irExecutable.inputVars
             .zip(stage.inputs)
             .map {
               case (param, EmptyInput)
@@ -350,7 +350,7 @@ case class WorkflowCompiler(extras: Option[Extras],
                StaticInput(Value.VHash(inputLinks.flatten.to(TreeSeqMap))))
           )
         } else {
-          irApplet.inputVars.zip(stage.inputs)
+          irExecutable.inputVars.zip(stage.inputs)
         }
         // convert the per-stage metadata into JSON
         JsObject(
