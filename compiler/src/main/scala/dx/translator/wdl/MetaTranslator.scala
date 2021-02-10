@@ -6,7 +6,7 @@ import dx.core.ir.{CallableAttribute, ParameterAttribute, Value}
 import dx.core.languages.wdl
 import dx.core.languages.wdl.DxMetaHints
 import dx.translator.{CallableAttributes, ParameterAttributes}
-import wdlTools.eval.Meta
+import wdlTools.eval.{EvalUtils, Meta}
 import wdlTools.eval.WdlValues._
 import wdlTools.syntax.WdlVersion
 import wdlTools.types.WdlTypes._
@@ -357,15 +357,17 @@ object ParameterMetaTranslator {
   }
 
   private def metaDefaultToIR(value: V, wdlType: T): Value = {
-    value match {
-      case _: VHash =>
-        throw new Exception(
-            "Default keyword is only valid for primitive-, file-, and array-type parameters, and "
-              + "types must match between parameter and default"
-        )
+    EvalUtils.unwrapOptional(value) match {
+      case _ if EvalUtils.isPrimitive(value) => ()
+      case V_Array(_)                        => ()
       case _ =>
-        wdl.WdlUtils.toIRValue(value, wdlType)
+        throw new Exception(
+            """Default keyword is only valid for primitive-, file-, and array-type parameters, 
+              |and types must match between parameter and default""".stripMargin
+              .replaceAll("\n", " ")
+        )
     }
+    wdl.WdlUtils.toIRValue(value, wdlType)
   }
 
   // Extract the parameter_meta info from the WDL structure

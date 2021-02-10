@@ -1,0 +1,9 @@
+{
+  "docker-run-cmd.cow": {
+    "checksum": "sha1$7a788f56fa49ae0ba5ebde780efe4d6a89b5db47",
+    "basename": "cow",
+    "class": "File",
+    "size": 4,
+    "location": "Any"
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "nested_pairs.messages": ["hello goodbye", "up down"],
+  "nested_pairs.names": ["a", "b"]
+}

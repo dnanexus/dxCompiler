@@ -1,0 +1,6 @@
+{
+  "cat3-tool.file1": {
+    "class": "File",
+    "contents": "Hello file literal"
+  }
+}

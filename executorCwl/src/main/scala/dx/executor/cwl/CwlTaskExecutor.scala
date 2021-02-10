@@ -4,8 +4,9 @@ import dx.api.{DxFile, InstanceTypeRequest}
 import dx.core.Constants
 import dx.cwl._
 import dx.core.io.StreamFiles.StreamFiles
-import dx.core.ir.{Type, Value}
-import dx.core.languages.cwl.{CwlUtils, RequirementEvaluator}
+import dx.core.ir.{Parameter, Type, Value}
+import dx.core.languages.Language
+import dx.core.languages.cwl.{CwlUtils, DxHintSchema, RequirementEvaluator}
 import dx.executor.{FileUploader, JobMeta, TaskExecutor}
 import dx.util.{DockerUtils, FileUtils, JsUtils, TraceLevel}
 import spray.json._
@@ -16,18 +17,21 @@ object CwlTaskExecutor {
   def create(jobMeta: JobMeta,
              fileUploader: FileUploader,
              streamFiles: StreamFiles): CwlTaskExecutor = {
-    if (!Parser.canParse(jobMeta.sourceCode)) {
-      throw new Exception(
-          s"""source code does not appear to be a CWL document of a supported version
-             |${jobMeta.sourceCode}""".stripMargin
-      )
+    val parser = Parser.create(hintSchemas = Vector(DxHintSchema))
+    parser.detectVersionAndClass(jobMeta.sourceCode) match {
+      case Some((version, "CommandLineTool")) if Language.parse(version) == Language.CwlV1_2 => ()
+      case _ =>
+        throw new Exception(
+            s"""source code does not appear to be a CWL CommandLineTool document of a supported version
+               |${jobMeta.sourceCode}""".stripMargin
+        )
     }
     val toolName = jobMeta.getExecutableAttribute("name") match {
       case Some(JsString(name)) => name
       case _                    => throw new Exception("missing executable name")
     }
     val tool =
-      Parser.parseString(jobMeta.sourceCode, name = Some(toolName)) match {
+      parser.parseString(jobMeta.sourceCode, name = Some(toolName)) match {
         case tool: CommandLineTool => tool
         case other =>
           throw new Exception(s"expected CWL document to contain a CommandLineTool, not ${other}")
@@ -52,36 +56,46 @@ case class CwlTaskExecutor(tool: CommandLineTool,
 
   private val dxApi = jobMeta.dxApi
   private val logger = jobMeta.logger
+  private val workerPaths = jobMeta.workerPaths
 
   override def executorName: String = "dxExecutorCwl"
 
   private lazy val inputParams: Map[String, CommandInputParameter] = {
     tool.inputs.collect {
       case param if param.id.forall(_.name.isDefined) =>
-        param.id.get.name.get -> param
+        param.id.get.unqualifiedName.get -> param
     }.toMap
   }
 
-  private lazy val runtime: Runtime = CwlUtils.createRuntime(jobMeta.workerPaths)
+  private lazy val runtime: Runtime = CwlUtils.createRuntime(workerPaths)
 
   private def cwlInputs: Map[String, (CwlType, CwlValue)] = {
-    val missingTypes = jobMeta.primaryInputs.keySet.diff(inputParams.keySet)
+    // CWL parameters can have '.' in their name
+    val irInputs = jobMeta.primaryInputs.map {
+      case (name, value) => Parameter.decodeDots(name) -> value
+    }
+    val missingTypes = irInputs.keySet.diff(inputParams.keySet)
     if (missingTypes.nonEmpty) {
       throw new Exception(s"no type information given for input(s) ${missingTypes.mkString(",")}")
     }
     // convert IR to CWL values; discard auxiliary fields
-    val evaluator = Evaluator.create(tool.requirements)
+    val evaluator = Evaluator.create(tool.requirements, tool.hints)
     inputParams.foldLeft(Map.empty[String, (CwlType, CwlValue)]) {
       case (env, (name, param)) =>
-        val cwlTypes = param.types
-        val (cwlType, cwlValue) = jobMeta.primaryInputs.get(name) match {
+        val cwlTypes = CwlUtils.flattenTypes(param.types.distinct)
+        val (cwlType: CwlType, cwlValue: CwlValue) = irInputs.get(name) match {
           case Some(irValue) =>
-            CwlUtils.fromIRValue(irValue, cwlTypes, name)
+            CwlUtils.fromIRValue(irValue, cwlTypes, name, isInput = true)
           case None if param.default.isDefined =>
             val ctx = CwlUtils.createEvaluatorContext(runtime, env)
             evaluator.evaluate(param.default.get, cwlTypes, ctx)
           case None if cwlTypes.exists(CwlOptional.isOptional) =>
-            (CwlNull, NullValue)
+            val optTypes = cwlTypes.filter(CwlOptional.isOptional)
+            if (optTypes.size == 1) {
+              (optTypes.head, NullValue)
+            } else {
+              (CwlNull, NullValue)
+            }
           case _ =>
             throw new Exception(s"Missing required input ${name} to tool ${tool.id}")
         }
@@ -93,41 +107,43 @@ case class CwlTaskExecutor(tool: CommandLineTool,
     if (logger.isVerbose) {
       val inputStr = tool.inputs
         .flatMap {
-          case param if param.id.forall(_.name.forall(inputs.contains)) =>
-            val name = param.id.get.name.get
+          case param if param.id.forall(_.unqualifiedName.forall(inputs.contains)) =>
+            val name = param.id.get.unqualifiedName.get
             Some(s"${name} -> (${param.types}, ${inputs.get(name)})")
           case other =>
             logger.trace(s"no input for parameter ${other}")
             None
         }
-        .mkString("\n")
-      logger.traceLimited(s"inputs: ${inputStr}")
+        .mkString("\n  ")
+      logger.traceLimited(s"inputs:\n  ${inputStr}")
     }
   }
 
   private lazy val defaultRuntimeAttrs: Map[String, (CwlType, CwlValue)] = {
-    CwlUtils.fromIRValues(jobMeta.defaultRuntimeAttrs)
+    CwlUtils.fromIRValues(jobMeta.defaultRuntimeAttrs, isInput = true)
   }
 
-  private def getRequiredInstanceTypeRequest(
+  private def getInstanceTypeRequest(
       inputs: Map[String, (CwlType, CwlValue)] = cwlInputs
   ): InstanceTypeRequest = {
     logger.traceLimited("calcInstanceType", minLevel = TraceLevel.VVerbose)
     printInputs(inputs)
-    val cwlEvaluator = Evaluator.create(tool.requirements)
+    val cwlEvaluator = Evaluator.create(tool.requirements, tool.hints)
     val ctx = CwlUtils.createEvaluatorContext(runtime)
     val env = cwlEvaluator.evaluateMap(inputs, ctx)
     val reqEvaluator = RequirementEvaluator(
         tool.requirements,
+        tool.hints,
         env,
-        jobMeta.workerPaths,
+        workerPaths,
         defaultRuntimeAttrs
     )
     reqEvaluator.parseInstanceType
   }
 
-  override protected lazy val getRequiredInstanceTypeRequest: InstanceTypeRequest =
-    getRequiredInstanceTypeRequest()
+  override protected lazy val getInstanceTypeRequest: InstanceTypeRequest = {
+    getInstanceTypeRequest()
+  }
 
   override protected def getInputsWithDefaults: Map[String, (Type, Value)] = {
     val inputs = cwlInputs
@@ -140,7 +156,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
   }
 
   private lazy val typeAliases: Map[String, CwlSchema] = {
-    RequirementUtils.getSchemaDefs(tool.requirements)
+    HintUtils.getSchemaDefs(tool.requirements)
   }
 
   override protected def getSchemas: Map[String, Type.TSchema] = {
@@ -152,15 +168,18 @@ case class CwlTaskExecutor(tool: CommandLineTool,
   override protected def writeCommandScript(
       localizedInputs: Map[String, (Type, Value)]
   ): Map[String, (Type, Value)] = {
-    val inputs = CwlUtils.fromIR(localizedInputs, typeAliases)
+    val inputs = CwlUtils.fromIR(localizedInputs, typeAliases, isInput = true)
     printInputs(inputs)
-    val metaDir = jobMeta.workerPaths.getMetaDir(ensureExists = true)
+    val metaDir = workerPaths.getMetaDir(ensureExists = true)
     // write the CWL and input files
     val filePrefix = tool.id.name.getOrElse("tool")
     val cwlPath = metaDir.resolve(s"${filePrefix}.cwl")
     FileUtils.writeFileContent(cwlPath, jobMeta.sourceCode)
     val inputPath = metaDir.resolve(s"${filePrefix}_input.json")
     val inputJson = CwlUtils.toJson(inputs)
+    if (logger.isVerbose) {
+      logger.trace(s"input JSON ${inputPath}:\n${inputJson.prettyPrint}")
+    }
     JsUtils.jsToFile(inputJson, inputPath)
     // if a dx:// URI is specified for the Docker container, download it
     // and create an overrides file to override the value in the CWL file
@@ -182,6 +201,9 @@ case class CwlTaskExecutor(tool: CommandLineTool,
             )
         )
         val overridesPath = metaDir.resolve("overrides.json")
+        if (logger.isVerbose) {
+          logger.trace(s"overrides JSON ${overridesPath}:\n${overridesJs.prettyPrint}")
+        }
         JsUtils.jsToFile(overridesJs, overridesPath)
         s"--overrides ${overridesPath.toString}"
       }
@@ -190,9 +212,9 @@ case class CwlTaskExecutor(tool: CommandLineTool,
       s"""#!/bin/bash
          |(
          |  cwltool \\
-         |    --basedir ${jobMeta.workerPaths.getRootDir(ensureExists = true)} \\
-         |    --outdir ${jobMeta.workerPaths.getOutputFilesDir(ensureExists = true)} \\
-         |    --tmpdir-prefix ${jobMeta.workerPaths.getTempDir(ensureExists = true)} \\
+         |    --basedir ${workerPaths.getRootDir(ensureExists = true)} \\
+         |    --outdir ${workerPaths.getOutputFilesDir(ensureExists = true)} \\
+         |    --tmpdir-prefix ${workerPaths.getTempDir(ensureExists = true)} \\
          |    --enable-pull \\
          |    --move-outputs \\
          |    --rm-container \\
@@ -200,10 +222,10 @@ case class CwlTaskExecutor(tool: CommandLineTool,
          |    --skip-schemas \\
          |    ${overridesOpt} ${cwlPath.toString} ${inputPath.toString}
          |) \\
-         |> >( tee ${jobMeta.workerPaths.getStdoutFile(ensureParentExists = true)} ) \\
-         |2> >( tee ${jobMeta.workerPaths.getStderrFile(ensureParentExists = true)} >&2 )
+         |> >( tee ${workerPaths.getStdoutFile(ensureParentExists = true)} ) \\
+         |2> >( tee ${workerPaths.getStderrFile(ensureParentExists = true)} >&2 )
          |
-         |echo $$? > ${jobMeta.workerPaths.getReturnCodeFile(ensureParentExists = true)}
+         |echo $$? > ${workerPaths.getReturnCodeFile(ensureParentExists = true)}
          |
          |# make sure the files are on stable storage
          |# before leaving. This helps with stdin and stdout
@@ -211,7 +233,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
          |sync
          |""".stripMargin
     FileUtils.writeFileContent(
-        jobMeta.workerPaths.getCommandFile(ensureParentExists = true),
+        workerPaths.getCommandFile(ensureParentExists = true),
         command,
         makeExecutable = true
     )
@@ -221,7 +243,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
   private lazy val outputParams: Map[String, CommandOutputParameter] = {
     tool.outputs.map {
       case param if param.id.forall(_.name.isDefined) =>
-        param.id.get.name.get -> param
+        param.id.get.unqualifiedName.get -> param
     }.toMap
   }
 
@@ -229,7 +251,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
       localizedInputs: Map[String, (Type, Value)]
   ): Map[String, (Type, Value)] = {
     // the outputs were written to stdout
-    val stdoutFile = jobMeta.workerPaths.getStdoutFile()
+    val stdoutFile = workerPaths.getStdoutFile()
     if (Files.exists(stdoutFile)) {
       val cwlOutputs: Map[String, (CwlType, CwlValue)] = JsUtils.jsFromFile(stdoutFile) match {
         case JsObject(outputs) =>

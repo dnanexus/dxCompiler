@@ -1,0 +1,9 @@
+{
+  "iwd-jsondump1.filelist": {
+    "location": "out-filelist.json",
+    "basename": "out-filelist.json",
+    "class": "File",
+    "checksum": "sha1$5bbeb2a75327927cb97d7e9716c8299682001b36",
+    "size": 298863
+  }
+}

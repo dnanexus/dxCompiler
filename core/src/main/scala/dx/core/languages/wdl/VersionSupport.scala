@@ -1,13 +1,12 @@
 package dx.core.languages.wdl
 
 import java.nio.file.Path
-
 import dx.api.DxApi
 import dx.core.languages.wdl.WdlUtils.parseSource
 import wdlTools.generators.code.WdlGenerator
 import wdlTools.syntax.{Parsers, WdlParser, WdlVersion}
 import wdlTools.types.TypeCheckingRegime.TypeCheckingRegime
-import wdlTools.types.{TypeCheckingRegime, WdlTypes, TypedAbstractSyntax => TAT}
+import wdlTools.types.{Section, TypeCheckingRegime, WdlTypes, TypedAbstractSyntax => TAT}
 import dx.util.{Bindings, FileNode, FileSourceResolver, Logger, StringFileNode}
 
 case class VersionSupport(version: WdlVersion,
@@ -41,6 +40,13 @@ case class VersionSupport(version: WdlVersion,
 
   def parse(path: Path): (TAT.Document, Bindings[String, WdlTypes.T_Struct]) = {
     parse(fileResolver.fromPath(path))
+  }
+
+  def parseExpression(exprStr: String,
+                      bindings: Bindings[String, WdlTypes.T],
+                      docSource: FileNode,
+                      section: Section.Section = Section.Other): TAT.Expr = {
+    WdlUtils.parseExpr(exprStr, version, parser, docSource, bindings, section)
   }
 
   def validateWdlCode(wdlWfSource: String): Unit = {

@@ -5,6 +5,8 @@ import dx.core.ir.Value._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import scala.collection.immutable.TreeSeqMap
+
 class ValueSerializationTest extends AnyFlatSpec with Matchers {
   val valueTestCases: Vector[(Type, Value)] = Vector(
       // primitive types
@@ -18,10 +20,10 @@ class ValueSerializationTest extends AnyFlatSpec with Matchers {
       // compounds
       (TOptional(TInt), VInt(13)),
       // hash
-      (THash, VHash(Map("A" -> VInt(1), "C" -> VInt(4), "G" -> VInt(5), "T" -> VInt(5)))),
+      (THash, VHash(TreeSeqMap("A" -> VInt(1), "C" -> VInt(4), "G" -> VInt(5), "T" -> VInt(5)))),
       // structs
-      (TSchema("Person", Map("name" -> TString, "age" -> TInt)),
-       VHash(Map("name" -> VString("Bradly"), "age" -> VInt(42))))
+      (TSchema("Person", TreeSeqMap("name" -> TString, "age" -> TInt)),
+       VHash(TreeSeqMap("name" -> VString("Bradly"), "age" -> VInt(42))))
   )
 
   it should "work on a variety of values" in {

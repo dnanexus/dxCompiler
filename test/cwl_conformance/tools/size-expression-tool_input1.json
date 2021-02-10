@@ -1,0 +1,8 @@
+{
+  "size-expression-tool.input": [
+    {
+      "class": "File",
+      "path": "empty.txt"
+    }
+  ]
+}

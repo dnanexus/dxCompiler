@@ -1,0 +1,12 @@
+{
+  "binding-test.args": [
+    "bwa",
+    "mem",
+    "chr20.fa",
+    "-XXX",
+    "-YYY",
+    "example_human_Illumina.pe_1.fastq",
+    "-YYY",
+    "example_human_Illumina.pe_2.fastq"
+  ]
+}

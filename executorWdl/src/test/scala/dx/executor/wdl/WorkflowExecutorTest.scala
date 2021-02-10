@@ -156,7 +156,7 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     val env: Map[String, WdlValues.V] = Map(
         "x" -> WdlValues.V_Int(3),
         "y" -> WdlValues.V_Int(5),
-        "add" -> WdlValues.V_Call("add", Map("result" -> WdlValues.V_Int(8)))
+        "add" -> WdlValues.V_Call("add", TreeSeqMap("result" -> WdlValues.V_Int(8)))
     )
     val decls: Vector[TAT.PrivateVariable] = block.elements.collect {
       case eNode: TAT.PrivateVariable => eNode
@@ -464,7 +464,7 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
                                       "city" -> WdlTypes.T_String)),
          WdlValues.V_Struct(
              "House",
-             Map(
+             TreeSeqMap(
                  "height" -> WdlValues.V_Int(32),
                  "num_floors" -> WdlValues.V_Int(4),
                  "street" -> WdlValues.V_String("Alda_Mary"),

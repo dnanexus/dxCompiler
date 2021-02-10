@@ -1,0 +1,9 @@
+{
+  "io-file-or-files.output_file": {
+    "checksum": "sha1$503458abf7614be3fb26d85ff5d8f3e17aa0a552",
+    "basename": "output.txt",
+    "location": "Any",
+    "class": "File",
+    "size": 10
+  }
+}

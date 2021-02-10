@@ -1,6 +1,7 @@
 package dx.compiler
 
 import dx.api.{ConstraintOper, DxApi, DxConstraint, DxIOSpec}
+import dx.core.Constants
 import dx.core.ir.Value._
 import dx.core.ir.{
   Callable,
@@ -174,8 +175,8 @@ class ExecutableCompiler(extras: Option[Extras],
   protected def inputParameterToNative(parameter: Parameter): Vector[JsObject] = {
     val name = parameter.dxName
     val defaultValues: Map[String, JsValue] = parameter.defaultValue match {
-      case Some(wdlValue) =>
-        parameterLinkSerializer.createFields(name, parameter.dxType, wdlValue).toMap
+      case Some(value) =>
+        parameterLinkSerializer.createFields(name, parameter.dxType, value).toMap
       case None => Map.empty
     }
 
@@ -357,7 +358,7 @@ class ExecutableCompiler(extras: Option[Extras],
 
   protected def delayWorkspaceDestructionToNative: Map[String, JsValue] = {
     if (extras.flatMap(_.delayWorkspaceDestruction).getOrElse(false)) {
-      Map("delayWorkspaceDestruction" -> JsTrue)
+      Map(Constants.DelayWorkspaceDestruction -> JsTrue)
     } else {
       Map.empty
     }

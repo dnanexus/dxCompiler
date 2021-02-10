@@ -4,6 +4,8 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spray.json.{JsObject, JsString, JsValue}
 
+import scala.collection.immutable.TreeSeqMap
+
 class TypeSerializationTest extends AnyFlatSpec with Matchers {
   private val testCases: Vector[Type] = Vector(
       // Primitive types
@@ -28,10 +30,11 @@ class TypeSerializationTest extends AnyFlatSpec with Matchers {
     }
   }
 
-  private val personType = Type.TSchema("Person", Map("name" -> Type.TString, "age" -> Type.TInt))
+  private val personType =
+    Type.TSchema("Person", TreeSeqMap("name" -> Type.TString, "age" -> Type.TInt))
   private val houseType = Type.TSchema(
       "House",
-      Map("street" -> Type.TString, "zip code" -> Type.TInt, "owner" -> personType)
+      TreeSeqMap("street" -> Type.TString, "zip code" -> Type.TInt, "owner" -> personType)
   )
   private val structTestCases: Vector[Type] = Vector(
       personType,

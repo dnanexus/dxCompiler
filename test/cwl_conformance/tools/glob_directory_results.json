@@ -1,0 +1,19 @@
+{
+  "glob_directory.directories": [
+    {
+      "basename": "a_dir",
+      "class": "Directory",
+      "listing": []
+    },
+    {
+      "basename": "b_dir",
+      "class": "Directory",
+      "listing": []
+    },
+    {
+      "basename": "c_dir",
+      "class": "Directory",
+      "listing": []
+    }
+  ]
+}

@@ -1,7 +1,6 @@
 package dx.translator
 
 import java.nio.file.{Path, Paths}
-
 import dx.api.{DxApi, DxFile, DxFileDescCache, DxProject}
 import dx.core.ir.Type._
 import dx.core.ir.{
@@ -53,7 +52,11 @@ case class ExactlyOnce(name: String, fields: Map[String, JsValue], logger: Logge
 object InputTranslator {
   def loadJsonFileWithComments(path: Path): Map[String, JsValue] = {
     // skip comment lines, which start with ##
-    JsUtils.getFields(JsUtils.jsFromFile(path)).view.filterKeys(!_.startsWith("##")).toMap
+    JsUtils
+      .getFields(JsUtils.jsFromFile(path))
+      .view
+      .filterKeys(!_.startsWith("##"))
+      .toMap
   }
 }
 
@@ -119,7 +122,7 @@ class InputTranslator(bundle: Bundle,
     val allInputs: Map[String, JsValue] = defaultsJs ++ inputsJs.values.flatten
     val fileJs = bundle.allCallables.values.toVector.flatMap { callable: Callable =>
       callable.inputVars.flatMap { param =>
-        val fqn = s"${callable.name}.${param.name}"
+        val fqn = s"${callable.name}.${param.dxName}"
         allInputs
           .get(fqn)
           .map(jsv => extractDxFiles(jsv, param.dxType))
@@ -154,20 +157,24 @@ class InputTranslator(bundle: Bundle,
   private lazy val parameterLinkSerializer = ParameterLinkSerializer(fileResolver, dxApi)
   private lazy val parameterLinkDeserializer = ParameterLinkDeserializer(dxFileDescCache, dxApi)
 
+  private def deserializationHandler(jsValue: JsValue, t: Type): Either[JsValue, Value] = {
+    Left(translateJsInput(jsValue, t))
+  }
+
   lazy val bundleWithDefaults: Bundle = {
     logger.trace(s"Embedding defaults into the IR")
     val defaultsExactlyOnce = ExactlyOnce("default", defaultsJs, logger)
     val allCallablesWithDefaults: Map[String, Callable] = bundle.allCallables.map {
       case (name, applet: Application) =>
         val inputsWithDefaults = applet.inputs.map { param =>
-          val fqn = s"${applet.name}.${param.name}"
+          val fqn = s"${applet.name}.${param.dxName}"
           defaultsExactlyOnce.get(fqn) match {
             case None => param
             case Some(default: JsValue) =>
               val irValue =
                 parameterLinkDeserializer.deserializeInputWithType(default,
                                                                    param.dxType,
-                                                                   Some(translateJsInput))
+                                                                   Some(deserializationHandler))
               param.copy(defaultValue = Some(irValue))
           }
         }
@@ -184,9 +191,11 @@ class InputTranslator(bundle: Bundle,
                     stageInput
                   case Some(default: JsValue) =>
                     val irValue =
-                      parameterLinkDeserializer.deserializeInputWithType(default,
-                                                                         param.dxType,
-                                                                         Some(translateJsInput))
+                      parameterLinkDeserializer.deserializeInputWithType(
+                          default,
+                          param.dxType,
+                          Some(deserializationHandler)
+                      )
                     StaticInput(irValue)
                 }
                 (param, stageInputWithDefault)
@@ -212,9 +221,11 @@ class InputTranslator(bundle: Bundle,
                       stageInput
                     case Some(default: JsValue) =>
                       val irValue =
-                        parameterLinkDeserializer.deserializeInputWithType(default,
-                                                                           param.dxType,
-                                                                           Some(translateJsInput))
+                        parameterLinkDeserializer.deserializeInputWithType(
+                            default,
+                            param.dxType,
+                            Some(deserializationHandler)
+                        )
                       StaticInput(irValue)
                   }
               }
@@ -253,7 +264,7 @@ class InputTranslator(bundle: Bundle,
         fqnPrefix: Option[String] = None
     ): Map[String, (Type, Value)] = {
       callable.inputVars.flatMap { parameter =>
-        val name = parameter.name
+        val name = parameter.dxName
         val fqn = s"${fqnPrefix.getOrElse(callable.name)}.${name}"
         val dxName = dxPrefix.map(p => s"${p}.${name}").getOrElse(name)
         fieldsExactlyOnce.get(fqn) match {
@@ -265,7 +276,7 @@ class InputTranslator(bundle: Bundle,
             val irValue =
               parameterLinkDeserializer.deserializeInputWithType(value,
                                                                  parameter.dxType,
-                                                                 Some(translateJsInput))
+                                                                 Some(deserializationHandler))
             Map(dxName -> (parameter.dxType, irValue))
         }
       }.toMap

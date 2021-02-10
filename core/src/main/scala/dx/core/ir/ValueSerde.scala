@@ -4,55 +4,30 @@ import dx.core.ir.Type._
 import dx.core.ir.Value._
 import spray.json._
 
-object ValueSerde extends DefaultJsonProtocol {
-  def transform(value: Value,
-                t: Option[Type],
-                transformer: (Value, Boolean) => Option[Value]): Value = {
-    def inner(innerValue: Value, innerType: Option[Type] = None): Value = {
-      val (nonOptType, optional) = if (innerType.exists(Type.isOptional)) {
-        (Some(Type.unwrapOptional(innerType.get)), true)
-      } else {
-        (innerType, false)
-      }
-      transformer(innerValue, optional).getOrElse {
-        (nonOptType, innerValue) match {
-          case (Some(TArray(_, true)), VArray(Vector())) =>
-            throw new Exception("empty array for non-empty array type")
-          case (Some(TArray(t, _)), VArray(vec)) => VArray(vec.map(inner(_, Some(t))))
-          case (None, VArray(vec))               => VArray(vec.map(inner(_)))
-          case (Some(TSchema(name, memberTypes)), VHash(members)) =>
-            VHash(members.map {
-              case (k, _) if !memberTypes.contains(k) =>
-                throw new Exception(s"invalid member ${k} of schema ${name}")
-              case (k, v) => k -> inner(v, Some(memberTypes(k)))
-            })
-          case (_, VHash(members)) => VHash(members.map { case (k, v) => k -> inner(v) })
-          case (Some(TEnum(allowedValues)), s: VString) if allowedValues.contains(s.value) =>
-            s
-          case (Some(TEnum(allowedValues)), other) =>
-            throw new Exception(
-                s"${other} is not one of the allowed values ${allowedValues.mkString(",")}"
-            )
-          case _ => innerValue
-        }
-      }
-    }
-    inner(value, t)
-  }
+import scala.collection.immutable.TreeSeqMap
 
+object ValueSerde extends DefaultJsonProtocol {
+  val WrappedValueKey = "value___"
+
+  case class ValueSerdeException(message: String) extends Exception(message)
+  
   /**
     * Serializes a Value to JSON.
     * @param value the Value to serialize
-    * @param handler an optional function to perform special handling of certain values
+    * @param handler an optional function to perform special handling of certain values.
+    *                If Right(jsValue) is returned, then jsValue is the result of the
+    *                transformation. If Left(newValue) is returned, then newValue is
+    *                transformed according to the default rules.
     * @return
     */
-  def serialize(value: Value, handler: Option[Value => Option[JsValue]] = None): JsValue = {
+  def serialize(value: Value, handler: Option[Value => Either[Value, JsValue]] = None): JsValue = {
     def inner(innerValue: Value): JsValue = {
-      val v = handler.flatMap(_(innerValue))
-      if (v.isDefined) {
-        return v.get
+      val v = handler.map(_(innerValue)) match {
+        case Some(Right(result))  => return result
+        case Some(Left(newValue)) => newValue
+        case None                 => innerValue
       }
-      innerValue match {
+      v match {
         case VNull            => JsNull
         case VBoolean(b)      => JsBoolean(b)
         case VInt(i)          => JsNumber(i)
@@ -60,11 +35,92 @@ object ValueSerde extends DefaultJsonProtocol {
         case VString(s)       => JsString(s)
         case VFile(path)      => JsString(path)
         case VDirectory(path) => JsString(path)
-        case VArray(array)    => JsArray(array.map(inner))
-        case VHash(members)   => JsObject(members.view.mapValues(inner).toMap)
+        case VArray(items)    => JsArray(items.map(inner))
+        case VHash(fields)    => JsObject(fields.view.mapValues(inner).toMap)
       }
     }
     inner(value)
+  }
+
+  def wrapValue(jsValue: JsValue, mustNotBeWrapped: Boolean = false): JsValue = {
+    jsValue match {
+      case JsObject(fields) if !fields.contains(WrappedValueKey) =>
+        JsObject(WrappedValueKey -> jsValue)
+      case _ if mustNotBeWrapped =>
+        throw ValueSerdeException(s"expected ${jsValue} to not be wrapped")
+      case _ => jsValue
+    }
+  }
+
+  def serializeWithType(
+      value: Value,
+      irType: Type,
+      handler: Option[(Value, Type) => Either[Value, JsValue]] = None
+  ): JsValue = {
+    lazy val handlerWrapper = handler.map(h => (v: Value) => h(v, TMulti.Any))
+    def inner(innerValue: Value, innerType: Type): JsValue = {
+      val v = handler.map(_(innerValue, innerType)) match {
+        case Some(Right(result))  => return result
+        case Some(Left(newValue)) => newValue
+        case None                 => innerValue
+      }
+      (innerType, v) match {
+        case (_: TOptional, VNull)                    => JsNull
+        case (TOptional(t), _)                        => inner(v, t)
+        case (t: TMulti, _)                           => innerMulti(v, t)
+        case (TBoolean, VBoolean(b))                  => JsBoolean(b)
+        case (TInt, VInt(i))                          => JsNumber(i)
+        case (TInt, VFloat(i)) if i.isValidInt        => JsNumber(i.intValue())
+        case (TFloat, VFloat(f))                      => JsNumber(f)
+        case (TFloat, VInt(i))                        => JsNumber(i.floatValue())
+        case (TString, VString(s))                    => JsString(s)
+        case (TFile | TString, VFile(path))           => JsString(path)
+        case (TDirectory | TString, VDirectory(path)) => JsString(path)
+        case (TArray(_, true), VArray(items)) if items.isEmpty =>
+          throw ValueSerdeException(s"empty value for non-empty array type ${innerType}")
+        case (TArray(itemType, _), VArray(items)) =>
+          JsArray(items.map(inner(_, itemType)))
+        case (TSchema(schemaName, fieldTypes), VHash(fields)) =>
+          val extra = fieldTypes.keySet.diff(fields.keySet)
+          if (extra.nonEmpty) {
+            throw ValueSerdeException(
+                s"invalid field(s) ${extra} in schema ${schemaName} value ${fields}"
+            )
+          }
+          JsObject(fieldTypes.collect {
+            case (name, t) if fields.contains(name) => name -> inner(fields(name), t)
+            case (name, t) if !Type.isOptional(t) =>
+              throw new Exception(s"missing non-optional member ${name} of schema ${schemaName}")
+          })
+        case (THash, VHash(fields)) =>
+          JsObject(fields.view.mapValues(inner(_, TMulti.Any)).toMap)
+        case (TEnum(symbols), VString(s)) if symbols.contains(s) => JsString(s)
+        case _ =>
+          throw ValueSerdeException(s"cannot serialize ${innerValue} as ${innerType}")
+      }
+    }
+    def innerMulti(innerValue: Value, innerMultiType: TMulti): JsValue = {
+      val jsValue = if (innerMultiType.bounds.isEmpty) {
+        serialize(innerValue, handlerWrapper)
+      } else {
+        innerMultiType.bounds.iterator
+          .map { t =>
+            try {
+              Some(inner(innerValue, t))
+            } catch {
+              case _: Throwable => None
+            }
+          }
+          .collectFirst {
+            case Some(t) => t
+          }
+          .getOrElse(
+              throw new Exception(s"value ${value} not serializable to ${innerMultiType.bounds}")
+          )
+      }
+      wrapValue(jsValue)
+    }
+    inner(value, irType)
   }
 
   def serializeMap(values: Map[String, Value]): Map[String, JsValue] = {
@@ -73,24 +129,49 @@ object ValueSerde extends DefaultJsonProtocol {
     }
   }
 
+  def isWrappedValue(jsValue: JsValue): Boolean = {
+    jsValue match {
+      case JsObject(fields) if fields.size == 1 && fields.contains(WrappedValueKey) => true
+      case _                                                                        => false
+    }
+  }
+
+  def unwrapValue(jsValue: JsValue, mustBeWrapped: Boolean = false): JsValue = {
+    jsValue match {
+      case JsObject(fields) if fields.size == 1 && fields.contains(WrappedValueKey) =>
+        fields(WrappedValueKey)
+      case _ if mustBeWrapped =>
+        throw ValueSerdeException(s"not a wrapped value ${jsValue}")
+      case _ => jsValue
+    }
+  }
+
   /**
     * Deserializes a JsValue to a Value, in the absence of type information.
     * @param jsValue the JsValue
-    * @param translator an optional function for special handling of certain values
+    * @param handler an optional function to perform special handling of certain values.
+    *                If Right(value) is returned, then value is the result of the
+    *                transformation. If Left(newJsValue) is returned, then newJsValue is
+    *                transformed according to the default rules.
     * @return
     */
-  def deserialize(jsValue: JsValue, translator: Option[JsValue => Option[Value]] = None): Value = {
+  def deserialize(jsValue: JsValue,
+                  handler: Option[JsValue => Either[JsValue, Value]] = None): Value = {
     def inner(innerValue: JsValue): Value = {
-      translator.flatMap(_(innerValue)).getOrElse {
-        innerValue match {
-          case JsNull                               => VNull
-          case JsBoolean(b)                         => VBoolean(b.booleanValue)
-          case JsNumber(value) if value.isValidLong => VInt(value.toLongExact)
-          case JsNumber(value)                      => VFloat(value.toDouble)
-          case JsString(s)                          => VString(s)
-          case JsArray(array)                       => VArray(array.map(x => inner(x)))
-          case JsObject(members)                    => VHash(members.view.mapValues(inner).toMap)
-        }
+      val v = handler.map(_(innerValue)) match {
+        case Some(Right(result))    => return result
+        case Some(Left(newJsValue)) => newJsValue
+        case None                   => innerValue
+      }
+      v match {
+        case _ if isWrappedValue(v)               => inner(unwrapValue(v))
+        case JsNull                               => VNull
+        case JsBoolean(b)                         => VBoolean(b.booleanValue)
+        case JsNumber(value) if value.isValidLong => VInt(value.toLongExact)
+        case JsNumber(value)                      => VFloat(value.toDouble)
+        case JsString(s)                          => VString(s)
+        case JsArray(items)                       => VArray(items.map(x => inner(x)))
+        case JsObject(fields)                     => VHash(fields.view.mapValues(inner).to(TreeSeqMap))
       }
     }
     inner(jsValue)
@@ -100,59 +181,85 @@ object ValueSerde extends DefaultJsonProtocol {
     * Deserializes a JsValue to a Value of the specified type.
     * @param jsValue the JsValue
     * @param t the Type
-    * @param translator an optional function for special handling of certain values
+    * @param handler an optional function to perform special handling of certain values.
+    *                If Right(value) is returned, then value is the result of the
+    *                transformation. If Left(newJsValue) is returned, then newJsValue is
+    *                transformed according to the default rules.
     * @return
     */
-  def deserializeWithType(jsValue: JsValue,
-                          t: Type,
-                          translator: Option[(JsValue, Type) => JsValue] = None): Value = {
+  def deserializeWithType(
+      jsValue: JsValue,
+      t: Type,
+      handler: Option[(JsValue, Type) => Either[JsValue, Value]] = None
+  ): Value = {
     def inner(innerValue: JsValue, innerType: Type): Value = {
-      val updatedValue = translator.map(_(innerValue, innerType)).getOrElse(innerValue)
-      (innerType, updatedValue) match {
-        case (TOptional(_), JsNull)                       => VNull
-        case (TOptional(t), _)                            => inner(updatedValue, t)
+      val v = handler.map(_(innerValue, innerType)) match {
+        case Some(Right(result))    => return result
+        case Some(Left(newJsValue)) => newJsValue
+        case None                   => innerValue
+      }
+      (innerType, v) match {
+        case (TOptional(_), JsNull) => VNull
+        case (TOptional(t), _)      => inner(v, t)
+        case (any: TMulti, _) if any.bounds.isEmpty && isWrappedValue(v) =>
+          inner(unwrapValue(v), any)
+        case (TMulti(bounds), _) if bounds.isEmpty => deserialize(v)
+        case (TMulti(bounds), _) if isWrappedValue(v) =>
+          val unwrappedValue = unwrapValue(v)
+          bounds.foreach { t =>
+            try {
+              return inner(unwrappedValue, t)
+            } catch {
+              case _: ValueSerdeException => ()
+            }
+          }
+          throw ValueSerdeException(s"value ${unwrappedValue} does not match any of ${bounds}")
         case (TBoolean, JsBoolean(b))                     => VBoolean(b.booleanValue)
         case (TInt, JsNumber(value)) if value.isValidLong => VInt(value.toLongExact)
         case (TFloat, JsNumber(value))                    => VFloat(value.toDouble)
         case (TString, JsString(s))                       => VString(s)
         case (TFile, JsString(path))                      => VFile(path)
         case (TDirectory, JsString(path))                 => VDirectory(path)
-        case (TArray(_, true), JsArray(array)) if array.isEmpty =>
-          throw new Exception(s"Cannot convert empty array to non-empty type ${innerType}")
-        case (TArray(t, _), JsArray(array)) =>
-          VArray(array.map(x => inner(x, t)))
-        case (TSchema(name, memberTypes), JsObject(members)) =>
-          // ensure 1) members keys are a subset of memberTypes keys, 2) members
+        case (TArray(_, true), JsArray(items)) if items.isEmpty =>
+          throw ValueSerdeException(s"Cannot convert empty array to non-empty type ${innerType}")
+        case (TArray(t, _), JsArray(items)) =>
+          VArray(items.map(x => inner(x, t)))
+        case (TSchema(name, fieldTypes), JsObject(fields)) =>
+          // ensure 1) fields keys are a subset of typeTypes keys, 2) fields
           // values are convertable to the corresponding types, and 3) any keys
-          // in memberTypes that do not appear in members are optional
-          val keys1 = members.keySet
-          val keys2 = memberTypes.keySet
+          // in fieldTypes that do not appear in fields are optional
+          val keys1 = fields.keySet
+          val keys2 = fieldTypes.keySet
           val extra = keys2.diff(keys1)
           if (extra.nonEmpty) {
-            throw new Exception(
+            throw ValueSerdeException(
                 s"struct ${name} value has members that do not appear in the struct definition: ${extra}"
             )
           }
-          val missingNonOptional = keys1.diff(keys2).map(key => key -> memberTypes(key)).filterNot {
+          val missingNonOptional = keys1.diff(keys2).map(key => key -> fieldTypes(key)).filterNot {
             case (_, TOptional(_)) => false
             case _                 => true
           }
           if (missingNonOptional.nonEmpty) {
-            throw new Exception(
+            throw ValueSerdeException(
                 s"struct ${name} value is missing non-optional members ${missingNonOptional}"
             )
           }
-          VHash(members.map {
-            case (key, value) => key -> inner(value, memberTypes(key))
+          VHash(fieldTypes.collect {
+            case (name, t) if fields.contains(name) => name -> inner(fields(name), t)
           })
-        case (THash, JsObject(members)) =>
-          VHash(members.map {
-            case (key, value) => key -> deserialize(value)
-          })
-        case (TEnum(allowedValues), JsString(s)) if allowedValues.contains(s) =>
+        case (THash, JsObject(fields)) =>
+          VHash(
+              fields
+                .map {
+                  case (key, value) => key -> deserialize(value)
+                }
+                .to(TreeSeqMap)
+          )
+        case (TEnum(symbols), JsString(s)) if symbols.contains(s) =>
           VString(s)
         case _ =>
-          throw new Exception(s"cannot deserialize value ${innerValue} as type ${innerType}")
+          throw ValueSerdeException(s"cannot deserialize value ${innerValue} as type ${innerType}")
       }
     }
     inner(jsValue, t)

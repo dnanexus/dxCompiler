@@ -63,10 +63,10 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     * Returns the minimal (i.e. cheapest) instance type that is
     * sufficient to the task's resource requirements.
     */
-  protected def getRequiredInstanceTypeRequest: InstanceTypeRequest
+  protected def getInstanceTypeRequest: InstanceTypeRequest
 
   private def getRequiredInstanceType: String = {
-    val instanceTypeRequest: InstanceTypeRequest = getRequiredInstanceTypeRequest
+    val instanceTypeRequest: InstanceTypeRequest = getInstanceTypeRequest
     logger.traceLimited(s"calcInstanceType $instanceTypeRequest")
     jobMeta.instanceTypeDb.apply(instanceTypeRequest).name
   }
@@ -102,7 +102,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
   // state between different phases of task execution, so we don't
   // have to re-evaluate expressions every time.
 
-  private def writeEnv(schemas: Map[String, TSchema],
+  private def writeEnv(schemas: Map[String, Type],
                        inputs: Map[String, (Type, Value)],
                        fileSourceToPath: Map[AddressableFileNode, Path]): Unit = {
     val schemasJs = schemas.values.foldLeft(Map.empty[String, JsValue]) {
@@ -131,7 +131,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
   }
 
   private def readEnv()
-      : (Map[String, TSchema], Map[String, (Type, Value)], Map[AddressableFileNode, Path]) = {
+      : (Map[String, Type], Map[String, (Type, Value)], Map[AddressableFileNode, Path]) = {
     val (schemasJs, inputsJs, filesJs) =
       FileUtils.readFileContent(jobMeta.workerPaths.getTaskEnvFile()).parseJson match {
         case env: JsObject =>
@@ -275,21 +275,24 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     }
 
     // Replace the URIs with local file paths
-    def pathTranslator(v: Value, optional: Boolean): Option[Value] = {
-      v match {
-        case VFile(uri) =>
-          uriToPath.get(uri) match {
-            case Some(localPath)  => Some(VFile(localPath))
-            case None if optional => Some(VNull)
-            case _ =>
-              throw new Exception(s"Did not localize file ${uri}")
-          }
-        case _ => None
+    def pathTranslator(v: Value, t: Option[Type], optional: Boolean): Option[Value] = {
+      val uri = (t, v) match {
+        case (_, VFile(uri))             => Some(uri)
+        case (Some(TFile), VString(uri)) => Some(uri)
+        case _                           => None
+      }
+      uri.map { u =>
+        uriToPath.get(u) match {
+          case Some(localPath)  => VFile(localPath)
+          case None if optional => VNull
+          case _ =>
+            throw new Exception(s"Did not localize file ${u}")
+        }
       }
     }
 
     val localizedInputs = inputs.view.mapValues {
-      case (t, v) => (t, ValueSerde.transform(v, Some(t), pathTranslator))
+      case (t, v) => (t, Value.transform(v, Some(t), pathTranslator))
     }.toMap
 
     (localizedInputs, fileSourceToPath, dxdaManifest, dxfuseManifest)
@@ -478,21 +481,24 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         })
     }
 
-    def pathTranslator(v: Value, optional: Boolean): Option[Value] = {
-      v match {
-        case VFile(value) =>
-          resolveFileValue(value) match {
-            case Some(uri)        => Some(VFile(uri))
-            case None if optional => Some(VNull)
-            case None =>
-              throw new Exception(s"Did not delocalize file ${value}")
-          }
-        case _ => None
+    def pathTranslator(v: Value, t: Option[Type], optional: Boolean): Option[Value] = {
+      val uri = (t, v) match {
+        case (_, VFile(uri))             => Some(uri)
+        case (Some(TFile), VString(uri)) => Some(uri)
+        case _                           => None
+      }
+      uri.map { u =>
+        resolveFileValue(u) match {
+          case Some(uri)        => VFile(uri)
+          case None if optional => VNull
+          case None =>
+            throw new Exception(s"Did not delocalize file ${u}")
+        }
       }
     }
 
     val delocalizedOutputs = localizedOutputs.view.mapValues {
-      case (t, v) => (t, ValueSerde.transform(v, Some(t), pathTranslator))
+      case (t, v) => (t, Value.transform(v, Some(t), pathTranslator))
     }.toMap
 
     // serialize the outputs to the job output file
@@ -516,7 +522,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
                               JsObject(jobMeta.jsInputs),
                               Vector.empty,
                               jobMeta.delayWorkspaceDestruction)
-    jobMeta.writeOutputLinks(dxSubJob, outputTypes)
+    jobMeta.writeExecutionOutputLinks(dxSubJob, outputTypes)
   }
 
   def apply(action: TaskAction.TaskAction): String = {

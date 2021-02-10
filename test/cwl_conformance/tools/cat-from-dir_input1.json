@@ -1,0 +1,12 @@
+{
+  "cat-from-dir.dir1": {
+    "class": "Directory",
+    "basename": "cwl",
+    "listing": [
+      {
+        "class": "File",
+        "path": "hello.txt"
+      }
+    ]
+  }
+}
