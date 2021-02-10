@@ -1,13 +1,17 @@
 package dx.compiler
 
 import java.nio.file.{Path, Paths}
-
 import dx.Assumptions.isLoggedIn
 import dx.Tags.NativeTest
 import dx.api._
-import dxCompiler.Main.{SuccessJsonTree, SuccessPrettyTree}
+import dxCompiler.Main.{
+  SuccessfulCompileNativeNoTree,
+  SuccessfulCompileNativeWithJsonTree,
+  SuccessfulCompileNativeWithPrettyTree,
+  SuccessfulDescribePrettyTree
+}
 import dx.core.Constants
-import dx.core.CliUtils.{Failure, Success}
+import dx.core.CliUtils.Failure
 import dx.util.CodecUtils
 import org.scalatest.Inside._
 import org.scalatest.flatspec.AnyFlatSpec
@@ -60,7 +64,7 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
     val args = Vector(path.toString, "-execTree", "json") ++ cFlagsLocked
     val retval = Main.compile(args)
     val treeJs = retval match {
-      case SuccessJsonTree(treeJs: JsValue) => treeJs
+      case SuccessfulCompileNativeWithJsonTree(_, _, treeJs: JsValue) => treeJs
       case Failure(msg, Some(exception)) =>
         throw new Exception(s"Unable to compile workflow: ${msg}", exception)
       case Failure(msg, None) =>
@@ -82,7 +86,8 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
     val args = path.toString +: cFlagsLocked
     val retval = Main.compile(args)
     val wf = retval match {
-      case Success(id) => DxWorkflow(id, Some(dxTestProject))(dxApi)
+      case SuccessfulCompileNativeNoTree(_, Vector(id)) =>
+        DxWorkflow(id, Some(dxTestProject))(dxApi)
       case Failure(msg, Some(exception)) =>
         throw new Exception(s"Unable to compile workflow: ${msg}", exception)
       case Failure(msg, None) =>
@@ -126,7 +131,8 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
     val args = path.toString +: cFlagsLocked
     val retval = Main.compile(args)
     val wf = retval match {
-      case Success(id) => DxWorkflow(id, Some(dxTestProject))(dxApi)
+      case SuccessfulCompileNativeNoTree(_, Vector(id)) =>
+        DxWorkflow(id, Some(dxTestProject))(dxApi)
       case Failure(msg, Some(exception)) =>
         throw new Exception(s"Unable to compile workflow: ${msg}", exception)
       case Failure(msg, None) =>
@@ -151,7 +157,7 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
     val args = Vector(path.toString, "-execTree", "json") ++ cFlagsLocked
     val retval = Main.compile(args)
     val treeJs = retval match {
-      case SuccessJsonTree(treeJs: JsValue) => treeJs
+      case SuccessfulCompileNativeWithJsonTree(_, _, treeJs: JsValue) => treeJs
       case Failure(msg, Some(exception)) =>
         throw new Exception(s"Unable to compile workflow: ${msg}", exception)
       case Failure(msg, None) =>
@@ -175,7 +181,7 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
     val args = Vector(path.toString, "-execTree", "json") ++ cFlagsUnlocked
     val retval = Main.compile(args)
     val treeJs = retval match {
-      case SuccessJsonTree(treeJs: JsValue) => treeJs
+      case SuccessfulCompileNativeWithJsonTree(_, _, treeJs: JsValue) => treeJs
       case Failure(msg, Some(exception)) =>
         throw new Exception(s"Unable to compile workflow: ${msg}", exception)
       case Failure(msg, None) =>
@@ -203,7 +209,7 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
     val args = path.toString +: cFlagsUnlocked
     val retval = Main.compile(args)
     val wfID = retval match {
-      case Success(wfID) => wfID
+      case SuccessfulCompileNativeNoTree(_, Vector(wfID)) => wfID
       case Failure(msg, Some(exception)) =>
         throw new Exception(s"Unable to compile workflow: ${msg}", exception)
       case Failure(msg, None) =>
@@ -213,10 +219,10 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
     }
 
     val describeRet = Main.describe(Vector(wfID))
-    describeRet shouldBe a[SuccessJsonTree]
+    describeRet shouldBe a[SuccessfulCompileNativeWithJsonTree]
 
     inside(describeRet) {
-      case SuccessJsonTree(treeJs) =>
+      case SuccessfulCompileNativeWithJsonTree(_, _, treeJs: JsValue) =>
         treeJs.asJsObject.getFields("name", "kind", "stages", "id") match {
           case Seq(JsString(name), JsString(kind), JsArray(stages), JsString(id)) =>
             name shouldBe "four_levels"
@@ -233,7 +239,7 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
     val args = path.toString +: cFlagsUnlocked
     val retval = Main.compile(args)
     val wfID = retval match {
-      case Success(wfID) => wfID
+      case SuccessfulCompileNativeNoTree(_, Vector(wfID)) => wfID
       case Failure(msg, Some(exception)) =>
         throw new Exception(s"Unable to compile workflow: ${msg}", exception)
       case Failure(msg, None) =>
@@ -244,7 +250,7 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
 
     val describeRet = Main.describe(Vector(wfID, "-pretty"))
     val pretty = describeRet match {
-      case SuccessPrettyTree(pretty) => pretty
+      case SuccessfulDescribePrettyTree(pretty) => pretty
       case Failure(msg, Some(exception)) =>
         throw new Exception(s"Unable to compile workflow: ${msg}", exception)
       case Failure(msg, None) =>
@@ -272,7 +278,7 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
     val args = Vector(path.toString, "-execTree", "pretty") ++ cFlagsUnlocked
     val retval = Main.compile(args)
     val pretty = retval match {
-      case SuccessPrettyTree(pretty) => pretty
+      case SuccessfulCompileNativeWithPrettyTree(_, _, pretty) => pretty
       case Failure(msg, Some(exception)) =>
         throw new Exception(s"Unable to compile workflow: ${msg}", exception)
       case Failure(msg, None) =>

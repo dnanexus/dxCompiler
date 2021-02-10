@@ -131,19 +131,19 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val path = pathFromBasename("compiler", "wf_linear.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[Success]
+    retval shouldBe a[SuccessfulCompileNativeNoTree]
   }
 
   it should "Native compile a workflow with a scatter without a call" taggedAs NativeTest in {
     val path = pathFromBasename("compiler", "scatter_no_call.wdl")
     val args = path.toString :: cFlags
-    Main.compile(args.toVector) shouldBe a[Success]
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileNativeNoTree]
   }
 
   it should "Native compile a draft2 workflow" taggedAs NativeTest in {
     val path = pathFromBasename("draft2", "shapes.wdl")
     val args = path.toString :: cFlags
-    Main.compile(args.toVector) shouldBe a[Success]
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileNativeNoTree]
   }
 
   it should "handle various conditionals" taggedAs NativeTest in {
@@ -152,7 +152,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     /*                :: "--verbose"
             :: "--verboseKey" :: "Native"
             :: "--verboseKey" :: "GenerateIR"*/
-    Main.compile(args.toVector) shouldBe a[Success]
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileNativeNoTree]
   }
 
   ignore should "be able to include pattern information in inputSpec" in {
@@ -782,7 +782,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     /*                :: "--verbose"
             :: "--verboseKey" :: "Native"
             :: "--verboseKey" :: "GenerateIR"*/
-    Main.compile(args.toVector) shouldBe a[Success]
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileNativeNoTree]
   }
 
   it should "make default task timeout 48 hours" taggedAs NativeTest in {
@@ -973,14 +973,14 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val path = pathFromBasename("compiler", basename = "multi_import.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[Success]
+    retval shouldBe a[SuccessfulCompileNativeNoTree]
   }
 
   it should "compile workflow with call to task having optional output" taggedAs NativeTest in {
     val path = pathFromBasename("compiler", basename = "optional_call_output.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[Success]
+    retval shouldBe a[SuccessfulCompileNativeNoTree]
   }
 
   it should "Set job-reuse flag" taggedAs NativeTest in {
@@ -1085,7 +1085,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val path = pathFromBasename("cwl", "cat.cwl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[Success]
+    retval shouldBe a[SuccessfulCompileNativeNoTree]
   }
 
   it should "Compile a tool with -useManifests flag" in {
@@ -1100,7 +1100,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val desc = dxApplet.describe()
 
     val input = desc.inputSpec.get.map(i => i.name -> i).toMap
-    input.keySet shouldBe Set(Constants.InputManifests, Constants.InputLinks)
+    input.keySet shouldBe Set(Constants.InputManifests,
+                              Constants.InputLinks,
+                              s"${Constants.InputLinks}___dxfiles")
     input(Constants.InputManifests).ioClass shouldBe DxIOClass.FileArray
     input(Constants.InputLinks).ioClass shouldBe DxIOClass.Hash
 

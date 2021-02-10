@@ -494,7 +494,7 @@ object Main {
 
   // DxNI
 
-  private object AppsOption extends Enum {
+  object AppsOption extends Enum {
     type AppsOption = Value
     val Include, Exclude, Only = Value
   }

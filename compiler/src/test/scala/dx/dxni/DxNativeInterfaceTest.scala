@@ -1,11 +1,9 @@
 package dx.dxni
 
 import java.nio.file.{Files, Path, Paths}
-
 import dx.Assumptions.{isLoggedIn, toolkitCallable}
 import dx.Tags.NativeTest
 import dx.api.{DxApi, DxApplet, DxPath}
-import dx.core.CliUtils.Success
 import dx.core.languages.wdl.WdlUtils
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
@@ -13,6 +11,8 @@ import org.scalatest.matchers.should.Matchers
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 import dx.util.{FileUtils, Logger, SysUtils}
 import dxCompiler.Main
+import dxCompiler.Main.SuccessfulDxNI
+
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID.randomUUID
@@ -23,9 +23,9 @@ class DxNativeInterfaceTest extends AnyFlatSpec with Matchers with BeforeAndAfte
   private val logger = Logger.Quiet
   private val dxApi = DxApi()(logger)
 
-  val testProject = "dxCompiler_playground"
-  val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm")
-  val test_time = dateFormatter.format(LocalDateTime.now)
+  private val testProject = "dxCompiler_playground"
+  private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm")
+  private val test_time = dateFormatter.format(LocalDateTime.now)
 
   private lazy val dxTestProject =
     try {
@@ -80,7 +80,7 @@ class DxNativeInterfaceTest extends AnyFlatSpec with Matchers with BeforeAndAfte
   private def runDxni(args: Vector[String]): Map[String, TAT.Task] = {
     val outputPath: Path = Files.createTempFile("dx_extern_one", ".wdl")
     try {
-      Main.dxni(args ++ Vector("-output", outputPath.toString)) shouldBe a[Success]
+      Main.dxni(args ++ Vector("-output", outputPath.toString)) shouldBe a[SuccessfulDxNI]
       // check that the generated file contains the correct tasks
       val content = FileUtils.readFileContent(outputPath)
       val (tasks, _, _) = parseWdlTasks(content)
