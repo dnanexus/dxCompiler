@@ -1,22 +1,15 @@
-name: WDL Release Tests
+name: dxCompiler Release Workflow
 
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
-    types:
-      - opened
-      - synchronize
-      - ready_for_review
-      - labeled
+on: 
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: 'Release version'     
+        required: true
 
 jobs:
   test:
-    name: dxCompiler Release Tests (Staging)
-    if: contains(github.event.pull_request.labels.*.name, 'release')
+    name: dxCompiler Release (Staging)
     runs-on: ubuntu-18.04
     steps:
       - name: Git checkout
@@ -52,4 +45,3 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           path: ./dx*.jar
-          retention-days: 2
