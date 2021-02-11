@@ -18,11 +18,12 @@ object ApplicationCompiler {
   //private val EcrDockerPreambleTemplate = "templates/ecr_docker_preamble.ssp"
   private val DynamicAppletJobTemplate = "templates/dynamic_applet_script.ssp"
   private val StaticAppletJobTemplate = "templates/static_applet_script.ssp"
-  private val WorkflowFragmentTempalate = "templates/workflow_fragment_script.ssp"
-  private val CommandTempalate = "templates/workflow_command_script.ssp"
+  private val WorkflowFragmentTemplate = "templates/workflow_fragment_script.ssp"
+  private val CommandTemplate = "templates/workflow_command_script.ssp"
   // keys used in templates
   private val RegistryKey = "registry"
   private val UsernameKey = "username"
+  private val CredentialsKey = "credentials"
 }
 
 case class ApplicationCompiler(typeAliases: Map[String, Type],
@@ -67,7 +68,9 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
                 ApplicationCompiler.RegistryKey -> registry,
                 ApplicationCompiler.UsernameKey -> username,
                 // strip the URL from the dx:// prefix, so we can use dx-download directly
-                "credentials" -> credentials.substring(DxPath.DxUriPrefix.length)
+                ApplicationCompiler.CredentialsKey -> credentials.substring(
+                    DxPath.DxUriPrefix.length
+                )
             )
         )
     }
@@ -95,14 +98,14 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         )
       case _: ExecutableKindWfFragment =>
         renderer.render(
-            ApplicationCompiler.WorkflowFragmentTempalate,
+            ApplicationCompiler.WorkflowFragmentTemplate,
             templateAttrs
         )
       case other =>
         ExecutableKind.getCommand(other) match {
           case Some(command) =>
             renderer.render(
-                ApplicationCompiler.CommandTempalate,
+                ApplicationCompiler.CommandTemplate,
                 templateAttrs + ("command" -> command)
             )
           case _ =>
@@ -383,9 +386,14 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         Constants.InstanceTypeDb -> JsString(dbOpaqueEncoded),
         Constants.RuntimeAttributes -> defaultRuntimeAttributes
     )
+    val useManifestsDetails = if (useManifests) {
+      Map(Constants.UseManifests -> JsBoolean(true))
+    } else {
+      Map.empty
+    }
     // combine all details into a single Map
     val details: Map[String, JsValue] =
-      taskDetails ++ runSpecDetails ++ delayDetails ++ dxLinks.toMap ++ metaDetails ++ auxDetails
+      taskDetails ++ runSpecDetails ++ delayDetails ++ dxLinks.toMap ++ metaDetails ++ auxDetails ++ useManifestsDetails
     // build the API request
     val requestRequired = Map(
         "name" -> JsString(applet.name),

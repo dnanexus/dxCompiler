@@ -19,10 +19,22 @@ object Manifest {
   val AllKeys = Set(IdKey, ValuesKey, TypesKey, DefinitionsKey)
 }
 
-case class Manifest(values: Map[String, Value],
-                    types: Map[String, Type],
-                    definitions: Map[String, Type] = Map.empty,
-                    id: Option[String] = None) {
+sealed trait Manifest {
+  def values: Map[String, Value]
+  def toJson: JsObject
+}
+
+case class UntypedManifest(values: Map[String, Value]) extends Manifest {
+  def toJson: JsObject = {
+    JsObject(ValueSerde.serializeMap(values))
+  }
+}
+
+case class TypedManifest(values: Map[String, Value],
+                         types: Map[String, Type],
+                         definitions: Map[String, Type] = Map.empty,
+                         id: Option[String] = None)
+    extends Manifest {
   values.keySet.diff(types.keySet) match {
     case d if d.nonEmpty =>
       throw new Exception(s"missing type definition(s) ${d.mkString(",")}")
@@ -60,9 +72,26 @@ case class Manifest(values: Map[String, Value],
   }
 }
 
+object ManifestParser {
+  def getValues(jsValue: JsValue): Map[String, JsValue] = {
+    jsValue match {
+      case JsObject(fields) if Manifest.FullFormatKeys.forall(fields.contains) =>
+        fields(Manifest.ValuesKey).asJsObject.fields
+      case JsObject(fields)
+          if fields.contains(Manifest.ValuesKey) &&
+            fields.keySet.diff(Manifest.AllKeys).isEmpty =>
+        fields(Manifest.ValuesKey).asJsObject.fields
+      case JsObject(fields) => fields
+      case _ =>
+        throw new Exception(s"invalid manifest ${jsValue}")
+    }
+  }
+}
+
 case class ManifestParser(typeAliases: Map[String, Type] = Map.empty,
                           dxFileDescCache: DxFileDescCache = DxFileDescCache.empty,
                           dxApi: DxApi = DxApi.get) {
+
   private def fileHandler(jsValue: JsValue, t: Type): Either[JsValue, Value] = {
     (Type.unwrapOptional(t), jsValue) match {
       case (TFile, fileObj: JsObject) if DxFile.isLinkJson(jsValue) =>
@@ -89,13 +118,13 @@ case class ManifestParser(typeAliases: Map[String, Type] = Map.empty,
     }
   }
 
-  def parseUserManifest(jsValue: JsValue, expectedTypes: Map[String, Type]): Manifest = {
+  def parseUserManifest(jsValue: JsValue, expectedTypes: Map[String, Type]): TypedManifest = {
     val values = parseValues(jsValue.asJsObject.fields, expectedTypes)
-    Manifest(values, expectedTypes, Type.collectSchemas(expectedTypes.values.toVector))
+    TypedManifest(values, expectedTypes, Type.collectSchemas(expectedTypes.values.toVector))
   }
 
   def parseFullManifest(jsValue: JsValue,
-                        expectedTypes: Option[Map[String, Type]] = None): Manifest = {
+                        expectedTypes: Option[Map[String, Type]] = None): TypedManifest = {
     val fields = jsValue.asJsObject.fields
     val id = fields.get(Manifest.IdKey) match {
       case Some(JsString(id)) => Some(id)
@@ -128,12 +157,30 @@ case class ManifestParser(typeAliases: Map[String, Type] = Map.empty,
             }
         }
         (types, definitions)
-      case None if expectedTypes.isDefined =>
-        (expectedTypes.get, Map.empty[String, Type])
-      case other => throw new Exception(s"invalid 'types' ${other}")
+      case None if expectedTypes.isDefined => (expectedTypes.get, Map.empty[String, Type])
+      case _ =>
+        throw new Exception(s"invalid manifest ${jsValue}")
     }
     val values = parseValues(jsValues, types)
-    Manifest(values, types, definitions, id)
+    TypedManifest(values, types, definitions, id)
+  }
+
+  private def untypedFileHandler(jsValue: JsValue): Either[JsValue, Value] = {
+    jsValue match {
+      case fileObj: JsObject if DxFile.isLinkJson(fileObj) =>
+        // Convert the dx link to a URI string. We can later decide if we want to download it or not.
+        // Use the cache value if there is one to save the API call.
+        val dxFile = dxFileDescCache.updateFileFromCache(DxFile.fromJson(dxApi, fileObj))
+        Right(VFile(dxFile.asUri))
+      case _ => Left(jsValue)
+    }
+  }
+
+  def parseUntypedManifest(value: JsValue): UntypedManifest = {
+    val fields = value.asJsObject.fields.map {
+      case (name, value) => name -> ValueSerde.deserialize(value, Some(untypedFileHandler))
+    }
+    UntypedManifest(fields)
   }
 
   def parse(jsValue: JsValue, expectedTypes: Option[Map[String, Type]] = None): Manifest = {
@@ -141,14 +188,14 @@ case class ManifestParser(typeAliases: Map[String, Type] = Map.empty,
       case JsObject(fields) if Manifest.FullFormatKeys.forall(fields.contains) =>
         parseFullManifest(jsValue, expectedTypes)
       case JsObject(fields)
-          if fields.contains(Manifest.ValuesKey) && fields.keySet
-            .diff(Manifest.AllKeys)
-            .isEmpty && expectedTypes.isDefined =>
+          if fields.contains(Manifest.ValuesKey) &&
+            fields.keySet.diff(Manifest.AllKeys).isEmpty &&
+            (fields.contains(Manifest.TypesKey) || expectedTypes.isDefined) =>
         parseFullManifest(jsValue, expectedTypes)
       case _ if expectedTypes.isDefined =>
         parseUserManifest(jsValue, expectedTypes.get)
       case _ =>
-        throw new Exception(s"type information is required to parse manifest ${jsValue}")
+        parseUntypedManifest(jsValue)
     }
   }
 

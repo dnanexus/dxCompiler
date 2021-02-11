@@ -215,7 +215,7 @@ class ManifestTest extends AnyFlatSpec with Matchers {
                                  "age" -> TInt
                              ))
     val pairType = TSchema("Pair___(Int, Int)", TreeSeqMap("left" -> TInt, "right" -> TInt))
-    val manifest = Manifest(
+    val manifest = TypedManifest(
         TreeSeqMap(
             "bank_account" -> VString("1234567890"),
             "height_ft_in" -> VHash(TreeSeqMap("left" -> VInt(6), "right" -> VInt(1))),

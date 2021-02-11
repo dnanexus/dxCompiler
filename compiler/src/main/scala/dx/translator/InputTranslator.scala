@@ -8,7 +8,7 @@ import dx.core.ir.{
   Application,
   Bundle,
   Callable,
-  Manifest,
+  TypedManifest,
   ParameterLinkDeserializer,
   ParameterLinkSerializer,
   StaticInput,
@@ -380,7 +380,7 @@ class InputTranslator(bundle: Bundle,
         val (types, values) = inputs.map {
           case (name, (t, v)) => (name -> t, name -> v)
         }.unzip
-        val manifest = Manifest(values.toMap, types.toMap)
+        val manifest = TypedManifest(values.toMap, types.toMap)
         JsUtils.jsToFile(manifest.toJson, manifestFile)
     }
   }

@@ -14,7 +14,8 @@ object Constants {
   val ScatterChunkSize = "scatterChunkSize"
   val Checksum = "checksum"
   val Version = "version"
-  val DockerImage = "docker-image"
+  val DockerImage = "dockerImage"
+  val UseManifests = "useManifests"
 
   // keys used in details of jobs of native applets
   val ContinueStart = "continue_start___"

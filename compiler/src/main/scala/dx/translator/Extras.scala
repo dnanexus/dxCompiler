@@ -696,16 +696,14 @@ case class ExtrasParser(dxApi: DxApi = DxApi.get, logger: Logger = Logger.get) {
       )
     }
     val reorgConf: Option[String] = checkedParseStringFieldReplaceNull(fields, "conf") match {
-      case Some(uri) if uri.trim.isEmpty =>
-        None
+      case Some(uri) if uri.trim.isEmpty                        => None
       case Some(uri) if uri.trim.startsWith(DxPath.DxUriPrefix) =>
-        // if provided, check that the fileID is valid and present
-        // format dx file ID
-        val reorgFileID: String = uri.trim.replace(DxPath.DxUriPrefix, "")
+        // if provided, check that the fileID is valid and present format dx file ID
+        val dxfile = dxApi.resolveFile(uri.trim)
         // if input file ID is invalid, DxFile.getInstance will thow an IllegalArgumentException
         // if reorgFileID cannot be found, describe will throw a ResourceNotFoundException
-        logger.ignore(dxApi.file(reorgFileID).describe())
-        Some(uri)
+        logger.ignore(dxfile.describe())
+        Some(dxfile.asUri)
       case _ =>
         throw new IllegalArgumentException(
             """In the 'custom_reorg' section of extras, 'conf' must be specified as 
