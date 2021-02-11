@@ -1049,7 +1049,7 @@ for more details and examples.
   "dockerRegistry": {
     "registry": "<aws_account_id>.dkr.ecr.<region>.amazonaws.com",
     "credentials": "dx://myproj/aws_credentials",
-    "region": "us-east-1"
+    "awsRegion": "us-east-1"
   }
 }
 ```

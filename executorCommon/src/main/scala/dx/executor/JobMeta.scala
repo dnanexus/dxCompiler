@@ -50,6 +50,7 @@ object JobMeta {
   /**
     * Report an error, since this is called from a bash script, we can't simply
     * raise an exception. Instead, we write the error to a standard JSON file.
+    * @param rootDir the directory that contains the error file
     * @param e the exception
     */
   def writeError(rootDir: Path, e: Throwable): Unit = {
