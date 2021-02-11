@@ -502,18 +502,22 @@ object Main {
         "force",
         "recursive"
     ).map(options.getFlag(_))
-    val apps = options
-      .getValue[String]("apps")
-      .map(AppsOption.withNameIgnoreCase)
-      .getOrElse(
-          if (appsOnly || pathIsAppId) {
-            AppsOption.Only
-          } else if (Vector(projectOpt, folderOpt, pathOpt).exists(_.isDefined)) {
-            AppsOption.Exclude
-          } else {
-            AppsOption.Include
-          }
-      )
+    val apps = if (pathIsAppId) {
+      AppsOption.Only
+    } else {
+      options
+        .getValue[String]("apps")
+        .map(AppsOption.withNameIgnoreCase)
+        .getOrElse(
+            if (appsOnly) {
+              AppsOption.Only
+            } else if (Vector(projectOpt, folderOpt, pathOpt).exists(_.isDefined)) {
+              AppsOption.Exclude
+            } else {
+              AppsOption.Include
+            }
+        )
+    }
 
     def writeOutput(doc: Vector[String]): Unit = {
       val path = outputPath.map { path =>
