@@ -85,7 +85,7 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
       } else {
         throw new Exception(
             s"""|Cannot call applet ${appletName} from WDL, argument ${argName}
-                |has non-optional non-file object input ${argName}""".stripMargin
+                |has required non-file object input of type ${ioClass}""".stripMargin
               .replaceAll("\n", " ")
         )
       }
@@ -144,7 +144,6 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
       Some(createDnanexusStub(dxAppDesc.id, dxAppDesc.name, inputSpec, outputSpec))
     } catch {
       case e: Throwable =>
-        println(e)
         logger.warning(
             s"Unable to construct a WDL interface for app ${appName}",
             exception = Some(e)
