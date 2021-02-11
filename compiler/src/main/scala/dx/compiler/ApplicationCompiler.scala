@@ -118,6 +118,10 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       case static: StaticInstanceType                => instanceTypeDb.apply(static.toInstanceTypeRequest)
       case DefaultInstanceType | DynamicInstanceType => instanceTypeDb.defaultInstanceType
     }
+
+    // TODO REMOVE
+    logger.trace(s"__ Instance type for ${applet.name} is ${instanceType}")
+
     // Generate the applet's job script
     val jobScript = generateJobScript(applet)
     // build the run spec
