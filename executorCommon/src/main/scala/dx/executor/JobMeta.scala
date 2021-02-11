@@ -31,7 +31,6 @@ import dx.core.ir.{
   Type,
   TypeSerde,
   TypedManifest,
-  UntypedManifest,
   Value,
   ValueSerde
 }
@@ -389,7 +388,33 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths
   private val jobInfoPath = rootDir.resolve(JobMeta.JobInfoFile)
   private val executableInfoPath = rootDir.resolve(JobMeta.ExecutableInfoFile)
 
+  /**
+    * If the task/workflow was compiled with -useManifests, then the job inputs
+    * will be manifest files, rather than the actual inputs expected by the
+    * task/workflow. The inputs will be:
+    * 1. At least one manifest file
+    * 2. A linking hash (required if there is more than one manifest)
+    * 3. Zero or more workflow manifest files
+    * 4. A linking hash for the workflow manifest files (required if there is
+    *    more than one workflow manifest)
+    * We need to:
+    * 1. Download and parse all the manifest files
+    * 2. If there is no linking hash, then just return the values from the
+    *    single manifest
+    * 3. Otherwise, resolve all the links. A link maps a task/workflow input
+    *    name to a value. The link value is one of the following:
+    *    * { "value\_\_\_": <value> } - a constant value
+    *    * { "<manifest_id>": "<manifest_param_name>" } - a reference to a
+    *      parameter that is looked up in the manifest(s)
+    *    * { "workflow\_\_\_": "<workflow_param_name>" } - a reference to a
+    *      workflow input parameter that is looked up in the workflow
+    *      manifest(s)
+    * All missing parameters are ignored since they may be optional.
+    * @param rawInputs raw job inputs
+    * @return the actual task/workflow inputs extracted from the manifest
+    */
   private def unpackManifests(rawInputs: Map[String, JsValue]): Map[String, JsValue] = {
+    // resolve a file input to a DxFile
     def resolveManifestFiles(key: String): Vector[DxFile] = {
       rawInputs.get(key) match {
         case Some(JsArray(files)) =>
@@ -408,11 +433,6 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths
     }
 
     val manifestFiles = resolveManifestFiles(Constants.InputManifests)
-    val workflowManifestFiles = resolveManifestFiles(Constants.WorkflowInputManifests)
-    if (manifestFiles.isEmpty && workflowManifestFiles.isEmpty) {
-      return Map.empty
-    }
-
     val manifestLinks = rawInputs.get(Constants.InputLinks) match {
       case Some(JsObject(fields)) => fields
       case None                   => Map.empty
@@ -421,7 +441,9 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths
     }
 
     if (manifestLinks.isEmpty) {
-      if (manifestFiles.size == 1) {
+      if (manifestFiles.isEmpty) {
+        return Map.empty
+      } else if (manifestFiles.size == 1) {
         // there is only one manifest and there is no mapping information, so we can
         // just extract and return the values
         val jsValue = new String(dxApi.downloadBytes(manifestFiles.head)).parseJson
@@ -434,32 +456,25 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths
     val manifestParser = ManifestParser(dxApi = dxApi)
 
     def downloadAndParseManifests(files: Vector[DxFile]): Vector[Manifest] = {
-      files.map { dxFile =>
-        val jsValue = new String(dxApi.downloadBytes(dxFile)).parseJson
-        manifestParser.parse(jsValue) match {
-          case manifest: TypedManifest if files.size == 1 || manifest.id.isDefined =>
-            manifest
-          case manifest: UntypedManifest if files.size == 1 => manifest
+      // download manifest bytes, convert to JSON, and parse into Manifest object
+      val manifests = files
+        .map(dxFile => manifestParser.parse(new String(dxApi.downloadBytes(dxFile)).parseJson))
+      // if there is more than one manifest, check that they all have IDs
+      if (manifests.size > 1) {
+        manifests.foreach {
+          case manifest: TypedManifest if manifest.id.isDefined => ()
           case _ =>
-            throw new Exception("at most one manifest file may have an undefined ID")
+            throw new Exception("when there are multiple manifests, all manifests must have ID")
         }
       }
+      manifests
     }
 
     val manifests = downloadAndParseManifests(manifestFiles)
-    val workflowManifests = downloadAndParseManifests(workflowManifestFiles)
-    val workflowManifestLinks = rawInputs.get(Constants.WorkflowInputLinks) match {
-      case Some(JsObject(fields)) => fields
-      case None                   => Map.empty
-      case other =>
-        throw new Exception(s"invalid workflow manifest links ${other}")
-    }
-
-    val manifestLookup = if (manifests.size == 1) {
+    // create lookup function for manifests
+    val manifestLookup: (String, String) => Option[Value] = if (manifests.size == 1) {
       val values = manifests.head.values
-      (_: String, manifestParamName: String) => {
-        values.get(manifestParamName)
-      }
+      (_: String, manifestParamName: String) => values.get(manifestParamName)
     } else {
       val manifestMap = manifests.map {
         case m: TypedManifest if m.id.isDefined => m.id.get -> m.values
@@ -469,22 +484,76 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths
           )
       }.toMap
       (manifestId: String, manifestParamName: String) => {
-        manifestMap.get(manifestId).map(_.get(manifestParamName))
+        manifestMap.get(manifestId).flatMap(_.get(manifestParamName))
       }
     }
 
-    val irValues = manifestLinks.map {
+    // create lookup function for workflow manifests - this is lazy because the
+    // manifest linkes may not contain any workflow references
+    lazy val workflowManifestLookup: String => Option[Value] = {
+      val workflowManifestFiles = resolveManifestFiles(Constants.WorkflowInputManifests)
+      val workflowManifests = downloadAndParseManifests(workflowManifestFiles)
+      val workflowManifestLinks = rawInputs.get(Constants.WorkflowInputLinks) match {
+        case Some(JsObject(fields)) => fields
+        case None                   => Map.empty[String, JsValue]
+        case other =>
+          throw new Exception(s"invalid workflow manifest links ${other}")
+      }
+      if (workflowManifestFiles.isEmpty) {
+        throw new Exception("there are no workflow manifest files")
+      } else if (workflowManifestLinks.isEmpty) {
+        if (workflowManifestFiles.size == 1) {
+          val values = workflowManifests.head.values
+          (paramName: String) => values.get(paramName)
+        } else {
+          throw new Exception(
+              "when there are multiple workflow manifests, workflow manifest links are required"
+          )
+        }
+      } else {
+        val workflowManifestMap = workflowManifests.map {
+          case m: TypedManifest if m.id.isDefined => m.id.get -> m.values
+          case _ =>
+            throw new Exception(
+                "when there are multiple workflow manifests, all manifests must have id defined"
+            )
+        }.toMap
+        @tailrec
+        def workflowManifestLookup(paramName: String): Option[Value] = {
+          workflowManifestLinks.get(paramName) match {
+            case Some(JsObject(fields)) if fields.size == 1 =>
+              fields.head match {
+                case (Constants.ValueKey, value) => Some(ValueSerde.deserialize(value))
+                case (Constants.WorkflowKey, JsString(workflowParamName)) =>
+                  workflowManifestLookup(workflowParamName)
+                case (manifestId, JsString(manifestParamName)) =>
+                  workflowManifestMap.get(manifestId).flatMap(_.get(manifestParamName))
+              }
+            case other =>
+              throw new Exception(s"invalid manifest link ${other}")
+          }
+        }
+        workflowManifestLookup
+      }
+    }
+
+    // lookup all values in the manifest links
+    val irValues = manifestLinks.flatMap {
       case (paramName, JsObject(fields)) if fields.size == 1 =>
         val value = fields.head match {
-          case (Constants.ValueKey, value)                          =>
+          case (Constants.ValueKey, value) =>
+            Some(ValueSerde.deserialize(value))
           case (Constants.WorkflowKey, JsString(workflowParamName)) =>
-          case (manifestId, JsString(manifestParamName))            =>
+            workflowManifestLookup(workflowParamName)
+          case (manifestId, JsString(manifestParamName)) =>
+            manifestLookup(manifestId, manifestParamName)
         }
-        paramName -> value
+        value.map(paramName -> _)
       case other =>
         throw new Exception(s"invalid manifest link ${other}")
     }
 
+    // convert the IR values back to JSON
     ValueSerde.serializeMap(irValues)
   }
 
