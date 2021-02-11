@@ -10,7 +10,7 @@ object ValueSerde extends DefaultJsonProtocol {
   val WrappedValueKey = "value___"
 
   case class ValueSerdeException(message: String) extends Exception(message)
-  
+
   /**
     * Serializes a Value to JSON.
     * @param value the Value to serialize
