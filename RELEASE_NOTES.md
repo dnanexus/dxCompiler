@@ -1,5 +1,9 @@
 # Release Notes
 
+## in dev
+
+* DxNI handles native app(let)s with optional non-file object inputs
+
 ## 2.1.1. 09-02-2021
 
 * Fixes errors due to expression evaluator not handling values wrapped in V\_Optional
