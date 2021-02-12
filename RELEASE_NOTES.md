@@ -1,7 +1,10 @@
 # Release Notes
 
-## in dev
+## 2.1.1. 09-02-2021
 
+* Fixes errors due to expression evaluator not handling values wrapped in V\_Optional
+* Fixes errors related to compound references
+* Updated wdlTools 0.12.3. This update enforces uniqueness of variable names within the same scope
 * Avoids unnecessarily generating sub-workflow output applets
 * Fixes issue with task command blocks that begin with a placeholder
 * Upgraded dxfuse to 0.24.0
