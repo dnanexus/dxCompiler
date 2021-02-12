@@ -1,6 +1,6 @@
 # Release Notes
 
-## in dev
+## 2.2.0 12-02-2021
 
 * DxNI handles native app(let)s with optional non-file object inputs
 * Sevaral additions/changes to extras.json:  
