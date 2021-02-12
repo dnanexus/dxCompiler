@@ -118,12 +118,6 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       case static: StaticInstanceType                => instanceTypeDb.apply(static.toInstanceTypeRequest)
       case DefaultInstanceType | DynamicInstanceType => instanceTypeDb.defaultInstanceType
     }
-
-    // TODO REMOVE
-    logger.trace(s"--------> Applet name ${applet.name}")
-    logger.trace(s"--------> Applet instance type ${applet.instanceType}")
-    logger.trace(s"--------> Resolved instance type ${instanceType}")
-
     // Generate the applet's job script
     val jobScript = generateJobScript(applet)
     // build the run spec
@@ -153,7 +147,6 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       case Some(dta) => dta.getRunSpecJson
       case None      => Map.empty
     }
-
     // runtime hints in the task override defaults from extras
     val taskOverrides: Map[String, JsValue] = applet.requirements
       .collect {
@@ -168,7 +161,6 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       }
       .flatten
       .toMap
-
     // task-specific settings from extras override runtime hints in the task
     val taskSpecificOverrides = applet.kind match {
       case ExecutableKindApplet =>
@@ -178,7 +170,6 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         }
       case _ => Map.empty
     }
-
     // If the docker image is a tarball, add a link in the details field.
     val dockerFile: Option[DxFile] = applet.container match {
       case DxFileDockerImage(_, dxfile) => Some(dxfile)

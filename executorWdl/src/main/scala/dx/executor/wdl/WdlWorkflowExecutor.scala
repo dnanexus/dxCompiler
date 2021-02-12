@@ -339,10 +339,6 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           case Some(V_Boolean(b)) => b
           case _                  => false
         }
-
-        logger.trace(s"--------> Meta ${meta}")
-        logger.trace(s"--------> isNative? ${isNative}")
-
         if (isNative) {
           None
         } else {
@@ -380,8 +376,6 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           }
         }
       }
-
-      logger.trace(s"--------> launchCall called with instance type ${instanceType}")
 
       val (dxExecution, execName) =
         launchJob(executableLink,
