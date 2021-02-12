@@ -31,6 +31,7 @@ object Constants {
   val InputLinks = "input_links___"
   val WorkflowInputManifests = "workflow_input_manifests___"
   val WorkflowInputLinks = "workflow_input_links___"
+  val OutputId = "output_id___"
   val OutputManifest = "output_manifest___"
   val ValueKey = "value___"
   val WorkflowKey = "workflow___"

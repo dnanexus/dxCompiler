@@ -208,7 +208,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       //case CategoriesAttribute(categories) =>
       //  Some("categories" -> categories.mapValues(anyToJs))
     }
-    // Default and WDL-specified details can be overridden in task-specific extras
+    // Default details and those specified in the source file can be overridden
+    // by task-specific extras
     val taskSpecificDetails = (applet.kind match {
       case ExecutableKindApplet =>
         extras.flatMap(_.perTaskDxAttributes.get(applet.name).map(_.getDetailsJson))
@@ -285,8 +286,9 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     // convert inputs and outputs to dxapp inputSpec
     val inputParams = if (useManifests) {
       Vector(
-          Parameter(Constants.InputManifests, Type.TArray(Type.TFile)),
-          Parameter(Constants.InputLinks, Type.THash)
+          ExecutableCompiler.InputManfestsParameter,
+          ExecutableCompiler.InputLinksParameter,
+          ExecutableCompiler.OutputIdParameter
       )
     } else {
       applet.inputs

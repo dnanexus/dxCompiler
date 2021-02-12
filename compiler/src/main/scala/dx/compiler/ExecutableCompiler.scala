@@ -29,11 +29,16 @@ import spray.json._
 object ExecutableCompiler {
   val InputManfestsParameter: Parameter =
     Parameter(Constants.InputManifests, Type.TArray(Type.TFile))
-  val InputLinksParameter: Parameter = Parameter(Constants.InputLinks, Type.THash)
+  val InputLinksParameter: Parameter =
+    Parameter(Constants.InputLinks, Type.TOptional(Type.THash))
   val WorkflowInputManfestsParameter: Parameter =
     Parameter(Constants.WorkflowInputManifests, Type.TArray(Type.TFile))
-  val WorkflowInputLinksParameter: Parameter = Parameter(Constants.WorkflowInputLinks, Type.THash)
-  val OutputManifestParameter: Parameter = Parameter(Constants.OutputManifest, Type.TFile)
+  val WorkflowInputLinksParameter: Parameter =
+    Parameter(Constants.WorkflowInputLinks, Type.TOptional(Type.THash))
+  val OutputIdParameter: Parameter =
+    Parameter(Constants.OutputId, Type.TString)
+  val OutputManifestParameter: Parameter =
+    Parameter(Constants.OutputManifest, Type.TFile)
 }
 
 class ExecutableCompiler(extras: Option[Extras],

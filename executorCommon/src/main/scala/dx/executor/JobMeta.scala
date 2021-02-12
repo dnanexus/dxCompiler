@@ -150,24 +150,21 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
       } else if (manifestFiles.size == 1) {
         // there is only one manifest and there is no mapping information, so we can
         // just extract and return the values
-        val jsValue = new String(dxApi.downloadBytes(manifestFiles.head)).parseJson
-        val manifest = Manifest.parse(jsValue)
+        val manifest = Manifest.parse(new String(dxApi.downloadBytes(manifestFiles.head)).parseJson)
         return manifest.jsValues
       } else {
         throw new Exception("manifest links are required when there is more than one manifest file")
       }
     }
 
-    val manifestParser = ManifestParser(dxApi = dxApi)
-
     def downloadAndParseManifests(files: Vector[DxFile]): Vector[Manifest] = {
       // download manifest bytes, convert to JSON, and parse into Manifest object
       val manifests = files
-        .map(dxFile => manifestParser.parse(new String(dxApi.downloadBytes(dxFile)).parseJson))
+        .map(dxFile => Manifest.parse(new String(dxApi.downloadBytes(dxFile)).parseJson))
       // if there is more than one manifest, check that they all have IDs
       if (manifests.size > 1) {
         manifests.foreach {
-          case manifest: TypedManifest if manifest.id.isDefined => ()
+          case manifest: Manifest if manifest.id.isDefined => ()
           case _ =>
             throw new Exception("when there are multiple manifests, all manifests must have ID")
         }
@@ -177,12 +174,12 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 
     val manifests = downloadAndParseManifests(manifestFiles)
     // create lookup function for manifests
-    val manifestLookup: (String, String) => Option[Value] = if (manifests.size == 1) {
-      val values = manifests.head.values
+    val manifestLookup: (String, String) => Option[JsValue] = if (manifests.size == 1) {
+      val values = manifests.head.jsValues
       (_: String, manifestParamName: String) => values.get(manifestParamName)
     } else {
       val manifestMap = manifests.map {
-        case m: TypedManifest if m.id.isDefined => m.id.get -> m.values
+        case m: Manifest if m.id.isDefined => m.id.get -> m.jsValues
         case _ =>
           throw new Exception(
               "when there are multiple manifests, all manifests must have id defined"
@@ -195,7 +192,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 
     // create lookup function for workflow manifests - this is lazy because the
     // manifest linkes may not contain any workflow references
-    lazy val workflowManifestLookup: String => Option[Value] = {
+    lazy val workflowManifestLookup: String => Option[JsValue] = {
       val workflowManifestFiles = resolveManifestFiles(Constants.WorkflowInputManifests)
       val workflowManifests = downloadAndParseManifests(workflowManifestFiles)
       val workflowManifestLinks = rawInputs.get(Constants.WorkflowInputLinks) match {
@@ -208,7 +205,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
         throw new Exception("there are no workflow manifest files")
       } else if (workflowManifestLinks.isEmpty) {
         if (workflowManifestFiles.size == 1) {
-          val values = workflowManifests.head.values
+          val values = workflowManifests.head.jsValues
           (paramName: String) => values.get(paramName)
         } else {
           throw new Exception(
@@ -217,18 +214,18 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
         }
       } else {
         val workflowManifestMap = workflowManifests.map {
-          case m: TypedManifest if m.id.isDefined => m.id.get -> m.values
+          case m: Manifest if m.id.isDefined => m.id.get -> m.jsValues
           case _ =>
             throw new Exception(
                 "when there are multiple workflow manifests, all manifests must have id defined"
             )
         }.toMap
         @tailrec
-        def workflowManifestLookup(paramName: String): Option[Value] = {
+        def workflowManifestLookup(paramName: String): Option[JsValue] = {
           workflowManifestLinks.get(paramName) match {
             case Some(JsObject(fields)) if fields.size == 1 =>
               fields.head match {
-                case (Constants.ValueKey, value) => Some(ValueSerde.deserialize(value))
+                case (Constants.ValueKey, value) => Some(value)
                 case (Constants.WorkflowKey, JsString(workflowParamName)) =>
                   workflowManifestLookup(workflowParamName)
                 case (manifestId, JsString(manifestParamName)) =>
@@ -243,11 +240,10 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     }
 
     // lookup all values in the manifest links
-    val irValues = manifestLinks.flatMap {
+    manifestLinks.flatMap {
       case (paramName, JsObject(fields)) if fields.size == 1 =>
         val value = fields.head match {
-          case (Constants.ValueKey, value) =>
-            Some(ValueSerde.deserialize(value))
+          case (Constants.ValueKey, value) => Some(value)
           case (Constants.WorkflowKey, JsString(workflowParamName)) =>
             workflowManifestLookup(workflowParamName)
           case (manifestId, JsString(manifestParamName)) =>
@@ -257,9 +253,6 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
       case other =>
         throw new Exception(s"invalid manifest link ${other}")
     }
-
-    // convert the IR values back to JSON
-    ValueSerde.serializeMap(irValues)
   }
 
   lazy val jsInputs: Map[String, JsValue] = {
@@ -331,7 +324,15 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     fileResolver
   }
 
-  def writeJsOutputs(outputJs: Map[String, JsValue]): Unit
+  def writeRawJsOutputs(outputJs: Map[String, JsValue]): Unit
+
+  def writeJsOutputs(outputJs: Map[String, JsValue]): Unit = {
+    if (useManifests) {
+      val manifest = Manifest(outputJs, id = Some())
+
+      dxApi.uploadString(manifest.toJson.prettyPrint, )
+    }
+  }
 
   lazy val outputSerializer: ParameterLinkSerializer = ParameterLinkSerializer(fileResolver, dxApi)
 
