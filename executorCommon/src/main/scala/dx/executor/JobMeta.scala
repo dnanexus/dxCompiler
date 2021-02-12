@@ -233,6 +233,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
                   workflowManifestLookup(workflowParamName)
                 case (manifestId, JsString(manifestParamName)) =>
                   workflowManifestMap.get(manifestId).flatMap(_.get(manifestParamName))
+                case other =>
+                  throw new Exception(s"invalid workflow manifest link entry ${other}")
               }
             case other =>
               throw new Exception(s"invalid manifest link ${other}")
@@ -251,6 +253,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
             workflowManifestLookup(workflowParamName)
           case (manifestId, JsString(manifestParamName)) =>
             manifestLookup(manifestId, manifestParamName)
+          case other =>
+            throw new Exception(s"invalid manifest link entry ${other}")
         }
         value.map(paramName -> _)
       case other =>

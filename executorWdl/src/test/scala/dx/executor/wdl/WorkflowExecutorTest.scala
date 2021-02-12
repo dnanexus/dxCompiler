@@ -34,7 +34,7 @@ private case class WorkflowTestJobMeta(override val workerPaths: DxWorkerPaths,
   override val rawJsInputs: Map[String, JsValue] =
     ParameterLinkSerializer().createFieldsFromMap(WdlUtils.toIR(rawEnv))
 
-  override def writeJsOutputs(outputJs: Map[String, JsValue]): Unit = {}
+  override def writeRawJsOutputs(outputJs: Map[String, JsValue]): Unit = {}
 
   override val jobId: String = null
 

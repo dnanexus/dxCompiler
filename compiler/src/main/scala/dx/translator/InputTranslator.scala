@@ -8,12 +8,13 @@ import dx.core.ir.{
   Application,
   Bundle,
   Callable,
-  TypedManifest,
   ParameterLinkDeserializer,
   ParameterLinkSerializer,
   StaticInput,
   Type,
+  Manifest,
   Value,
+  ValueSerde,
   Workflow
 }
 import dx.util.{FileSourceResolver, FileUtils, JsUtils, Logger}
@@ -378,9 +379,9 @@ class InputTranslator(bundle: Bundle,
           case parent => parent.resolve(fileName)
         }
         val (types, values) = inputs.map {
-          case (name, (t, v)) => (name -> t, name -> v)
+          case (name, (t, v)) => (name -> t, name -> ValueSerde.serializeWithType(v, t))
         }.unzip
-        val manifest = TypedManifest(values.toMap, types.toMap)
+        val manifest = Manifest(values.toMap, Some(types.toMap))
         JsUtils.jsToFile(manifest.toJson, manifestFile)
     }
   }

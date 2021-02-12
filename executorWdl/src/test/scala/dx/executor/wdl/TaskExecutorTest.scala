@@ -40,7 +40,7 @@ private case class TaskTestJobMeta(override val workerPaths: DxWorkerPaths,
 
   override val project: DxProject = null
 
-  override def writeJsOutputs(outputJs: Map[String, JsValue]): Unit = {
+  override def writeRawJsOutputs(outputJs: Map[String, JsValue]): Unit = {
     outputs = Some(outputJs)
   }
 

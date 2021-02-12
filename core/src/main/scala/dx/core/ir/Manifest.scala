@@ -68,7 +68,9 @@ object Manifest {
             fields.keySet.diff(Manifest.AllKeys).isEmpty =>
         parseFullManifest(jsValue, types, typeAliases)
       case _ =>
-        Manifest(jsValue.asJsObject.fields)
+        Manifest(jsValue.asJsObject.fields,
+                 types,
+                 types.map(t => Type.collectSchemas(t.values.toVector)))
     }
   }
 
