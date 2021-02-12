@@ -128,7 +128,7 @@ If this is file `extraOptions.json`:
 
 ```
 {
-    "default_runtime_attributes" : {
+    "defaultRuntimeAttributes" : {
       "docker" : "quay.io/encode-dcc/atac-seq-pipeline:v1"
     }
 }
@@ -663,11 +663,17 @@ task bwa_mem {
 
 # Setting DNAnexus-specific attributes in extras.json
 
-When writing a dnanexus applet the user can specify options through the [dxapp.json](https://documentation.dnanexus.com/developer/apps/app-metadata#annotated-example) file. The dxCompiler equivalent is the *extras* file, specified with the `extras` command line option. The extras file has a `default_task_dx_attributes` section where runtime specification, timeout policies, and access control can be set.
+When writing a DNAnexus applet the user can specify options through the [dxapp.json](https://documentation.dnanexus.com/developer/apps/app-metadata#annotated-example) file. The dxCompiler equivalent is the *extras* file, specified with the `extras` command line option.
 
-```
+*Note:* the first-level keys in the extras file have been changed to camel case; however, all the old keys (v2.1.0 and earlier) are still recoginzed.
+
+## Default and per-task attributes
+
+The extras file has a `defaultTaskDxAttributes` section where runtime specification, timeout policies, and access control can be set.
+
+```json
 {
-  "default_task_dx_attributes" : {
+  "defaultTaskDxAttributes" : {
     "runSpec": {
         "executionPolicy": {
           "restartOn": {
@@ -692,11 +698,11 @@ When writing a dnanexus applet the user can specify options through the [dxapp.j
 }
 ```
 
-In order to override the defaults for specific tasks, you can add the `per_task_dx_attributes` section. For example
+In order to override the defaults for specific tasks, you can add the `perTaskDxAttributes` section. For example
 
-```
+```json
 {
-  "per_task_dx_attributes" : {
+  "perTaskDxAttributes" : {
     "Add": {
       "runSpec": {
         "timeoutPolicy": {
@@ -724,11 +730,11 @@ In order to override the defaults for specific tasks, you can add the `per_task_
 
 will override the default timeout for tasks `Add` and `Inc`. It will also provide `UPLOAD` instead of `VIEW` project access to `Inc`.
 
-You are also able add citations or licenses information using for each task at the `per_task_dx_attributes` section. For example
+You are also able to add citations or licenses information using for each task at the `perTaskDxAttributes` section. For example
 
-```
+```json
 {
-  "per_task_dx_attributes" : {
+  "perTaskDxAttributes" : {
     "Add": {
       "runSpec": {
         "timeoutPolicy": {
@@ -754,7 +760,56 @@ You are also able add citations or licenses information using for each task at t
 }
 ```
 
-Note that `details` specified in `per_task_dx_attributes` override those that are set in the task's `meta` section.
+Note that `details` specified in `perTaskDxAttributes` override those that are set in the task's `meta` section.
+
+## Per-workflow attributes
+
+There are also attributes that can be set at the workflow level. Currently, the only attribute that can be set is the "chunk size" limit for scatters. DNAnexus executes large scatters in "chunks" of no more than 1000 jobs at a time (the default is 500). For some scatters, it may be necessary to increase or decrease the chunk size for efficient execution. You should not need to modify this attribute unless instructed to do so by the DNAnexus support team.
+
+Consider the following workflow:
+
+```wdl
+workflow wf1 {
+  input {
+    Array[Array[File]] samples
+    Array[Int] numbers
+  }
+  
+  scatter (sample_files in samples) {
+    scatter (file in sample_files) {
+      call summarize { input: file = file }
+    }
+  }
+  
+  scatter (num in numbers) {
+    call add { input: num = num }
+  }
+  
+  output {
+    Array[String] summary = mytask.summary
+  }
+}
+
+task summarize { ... }
+task add { ... }
+```
+
+If you want the default scatter chunk size for this workflow to be 100, but you want the scatter chunk size for nested scatter (`scatter (file in sample_files) { ...}`) to be 700, then you'd use the following configuration: 
+
+```json
+{
+  "perWorkflowDxAttributes": {
+    "wf1": {
+      "scatterDefaults": {
+        "chunkSize": 100
+      },
+      "sample_files.file": {
+        "chunkSize": 700
+      }
+    }
+  }
+}
+```
 
 ## Job reuse
 
@@ -823,38 +878,35 @@ it may misplace or outright delete files. The applet:
 
 ## Adding config-file based reorg applet at compilation time
 
-In addition to using `--reorg` flag to add the reorg stage, you may also add a custom reorganization applet that takes an optional input by declaring a "custom-reorg" object in the JSON file used as parameter with `-extras`
+In addition to using `--reorg` flag to add the reorg stage, you may also add a custom reorganization applet that takes an optional input by declaring a "customReorgAttributes" object in the JSON file used as parameter with `-extras`
 
-The  "custom-reorg" object has two properties in extra.json:
-    # app_id: reorg applet id
-    # conf: auxiliary configuration
+The `customReorgAttributes` object has two properties in extra.json:
+* `appUri`: reorg app or applet URI - either an ID (e.g. "app-bwa_mem" or "app-xxx" or "applet-yyy") or a URI of a platform file (e.g. "dx://file-xxx").
+* `configFile`: auxiliary configuration file.
 
 The optional input file can be used as a configuration file for the reorganization process.
 
 For example:
 
 ```
-
 {
-  "custom-reorg" : {
-    "app_id" : "applet-12345678910",
-    "conf" : "dx://file-xxxxxxxx"
+  "customReorgAttributes" : {
+    "appUri" : "applet-12345678910",
+    "configFile" : "dx://file-xxxxxxxx"
   }
 }
 
-# if you do not wish to include an additional config file, please set the "conf" to `null`
+# if you do not wish to include an additional config file, 
+# you can omit "configFile" or set it to `null`
 {
-  "custom-reorg" : {
-    "app_id" : "applet-12345678910",
-    "conf" : null
+  "customReorgAttributes" : {
+    "appUri" : "applet-12345678910",
+    "configFile" : null
   }
 }
-
 ```
 
-The config-file based reorg applet needs to have the following specs as inputs.
-
-`reorg_conf___` and `reorg_status___`:
+The config-file based reorg applet needs to have the following input specs in the dxapp.json:
 
 ```json
 {
@@ -944,9 +996,9 @@ The `extras` commad line flag can help achieve this. It takes a JSON file
 as an argument. For example, if `taskAttrs.json` is this file:
 ```
 {
-    "default_runtime_attributes" : {
-      "docker" : "quay.io/encode-dcc/atac-seq-pipeline:v1"
-    }
+  "defaultRuntimeAttributes" : {
+    "docker" : "quay.io/encode-dcc/atac-seq-pipeline:v1"
+  }
 }
 ```
 
@@ -964,7 +1016,7 @@ For example:
 
 ```
 {
-  "docker_registry" : {
+  "dockerRegistry" : {
       "registry" : "foo.acme.com",
        "username" : "perkins",
        "credentials" : "dx://CornSequencing:/B/creds.txt"
@@ -979,6 +1031,27 @@ appear in the applet logs. Compiling a workflow with this
 configuration sets it to use native docker, and all applets are given
 the `allProjects: VIEW` permission. This allows them to access the
 credentials file, even if it is stored on a different project.
+
+### AWS ECR registries
+
+Logging into an AWS Elastic Container Registry (ECR) is a bit different
+than logging into a standard docker registry. Specifically, the AWS
+command line client is used to dynamically generate a password from an AWS 
+user profile. To handle this use-case, dxCompiler downloads the
+required AWS `credentials` file, installs the AWS client, and generates the 
+password. See the
+[AWS documentation](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html)
+for more details and examples.
+
+```
+{
+  "dockerRegistry": {
+    "registry": "<aws_account_id>.dkr.ecr.<region>.amazonaws.com",
+    "credentials": "dx://myproj/aws_credentials",
+    "awsRegion": "us-east-1"
+  }
+}
+```
 
 ## Storing a docker image as a file
 
