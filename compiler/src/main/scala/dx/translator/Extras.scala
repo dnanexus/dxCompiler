@@ -1,7 +1,7 @@
 package dx.translator
 
 // Place to put any extra options, equivalent to Cromwell workflowOptions.
-// Also, allows dnanexus specific configuration per task.
+// Also, allows DNAnexus specific configuration per task.
 
 import java.nio.file.Path
 import dx.api._
@@ -386,15 +386,18 @@ case class Extras(defaultRuntimeAttributes: Option[Map[String, Value]],
 
 object Extras {
   private val RuntimeAttrs =
-    Set("dx_instance_type",
+    Set(
+        "dx_instance_type",
         "memory",
         "disks",
         "cpu",
         "docker",
         "container",
+        // TODO: I think these are no longer allowed - they have been moved to top-level
         "docker_registry",
         "container_registry",
-        "custom_reorg")
+        "custom_reorg"
+    )
   private val camelizeRegexp = "_([a-z\\d])".r
 
   private def camelize(s: String): String = {
@@ -415,7 +418,7 @@ object Extras {
   }
 
   def parse(jsv: JsValue): Extras = {
-    // The format used to have some snake-cased keys and some weirdly named attributes,
+    // The format used to have some snake-cased and some weirdly named attributes,
     // so we update them all to camel-case and fix the names first.
     val fixed = JsObject(jsv.asJsObject.fields.map {
       case (key, value) if Set("custom-reorg", "custom_reorg").contains(key) =>
