@@ -130,6 +130,19 @@ class DxNativeInterfaceTest extends AnyFlatSpec with Matchers with BeforeAndAfte
     tasks.keySet shouldBe Set("native_sum")
   }
 
+  it should "be able to build an interface to a specific app" taggedAs NativeTest in {
+    val args = Vector(
+        "-force",
+        "-quiet",
+        "-path",
+        "app-data_model_loader_v2",
+        "-language",
+        "wdl_1_0"
+    )
+    val tasks = runDxni(args)
+    tasks.keySet shouldBe Set("data_model_loader_v2")
+  }
+
   it should "build an interface to an applet specified by ID" taggedAs NativeTest in {
     val applet = dxApi.resolveDataObject(
         s"${DxPath.DxUriPrefix}${dxTestProject.id}:${folderPath}/native_sum"

@@ -80,14 +80,14 @@ object TranslatorFactory {
     val sourceAbsPath = FileUtils.absolutePath(source)
     val fileResolver = baseFileResolver.addToLocalSearchPath(Vector(sourceAbsPath.getParent))
     // load defaults from extras
-    val defaultRuntimeAttrs = extras.map(_.defaultRuntimeAttributes).getOrElse(Map.empty)
+    val defaultRuntimeAttrs = extras.flatMap(_.defaultRuntimeAttributes).getOrElse(Map.empty)
     val reorgAttrs = (extras.flatMap(_.customReorgAttributes), reorgEnabled) match {
       case (Some(attr), None)    => attr
       case (Some(attr), Some(b)) => attr.copy(enabled = b)
       case (None, Some(b))       => DefaultReorgSettings(b)
       case (None, None)          => DefaultReorgSettings(false)
     }
-    val perWorkflowAttrs = extras.map(_.perWorkflowDxAttributes).getOrElse(Map.empty)
+    val perWorkflowAttrs = extras.flatMap(_.perWorkflowDxAttributes).getOrElse(Map.empty)
     translatorFactories
       .collectFirst { factory =>
         factory.create(sourceAbsPath,

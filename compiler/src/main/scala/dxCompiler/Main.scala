@@ -11,7 +11,7 @@ import dx.core.ir.Bundle
 import dx.core.languages.Language
 import dx.core.Constants
 import dx.dxni.DxNativeInterface
-import dx.translator.{Extras, ExtrasParser, TranslatorFactory}
+import dx.translator.{Extras, TranslatorFactory}
 import dx.util.protocols.DxFileAccessProtocol
 import dx.util.{Enum, FileSourceResolver, FileUtils, Logger, TraceLevel}
 import spray.json.{JsNull, JsValue}
@@ -317,7 +317,7 @@ object Main {
     val dxApi = DxApi()(logger)
 
     val extras: Option[Extras] =
-      options.getValue[Path]("extras").map(extrasPath => ExtrasParser().parse(extrasPath))
+      options.getValue[Path]("extras").map(extrasPath => Extras.parse(extrasPath))
     if (extras.exists(_.customReorgAttributes.isDefined)) {
       val conflictingOpts = Set("reorg", "locked").filter(options.contains)
       if (conflictingOpts.nonEmpty) {
@@ -560,18 +560,22 @@ object Main {
         "force",
         "recursive"
     ).map(options.getFlag(_))
-    val appsOption = options
-      .getValue[String]("apps")
-      .map(AppsOption.withNameIgnoreCase)
-      .getOrElse(
-          if (appsOnly || pathIsAppId) {
-            AppsOption.Only
-          } else if (Vector(projectOpt, folderOpt, pathOpt).exists(_.isDefined)) {
-            AppsOption.Exclude
-          } else {
-            AppsOption.Include
-          }
-      )
+    val appsOption = if (pathIsAppId) {
+      AppsOption.Only
+    } else {
+      options
+        .getValue[String]("apps")
+        .map(AppsOption.withNameIgnoreCase)
+        .getOrElse(
+            if (appsOnly) {
+              AppsOption.Only
+            } else if (Vector(projectOpt, folderOpt, pathOpt).exists(_.isDefined)) {
+              AppsOption.Exclude
+            } else {
+              AppsOption.Include
+            }
+        )
+    }
 
     def writeOutput(doc: Vector[String]): Unit = {
       val path = outputPath.map { path =>
