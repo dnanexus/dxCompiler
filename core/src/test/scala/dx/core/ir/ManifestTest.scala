@@ -149,9 +149,8 @@ class ManifestTest extends AnyFlatSpec with Matchers {
         "height_ft_in" -> pairType,
         "ssn_digits" -> TOptional(TArray(TInt))
     )
-    val manifestParser = ManifestParser()
-    val manifest = manifestParser.parseUserManifest(userManifestJs, types)
-    manifest.values should contain theSameElementsAs
+    val manifest = Manifest.parse(userManifestJs, Some(types))
+    manifest.deserialize() should contain theSameElementsAs
       Map(
           "person" -> VHash(
               TreeSeqMap(
@@ -164,7 +163,8 @@ class ManifestTest extends AnyFlatSpec with Matchers {
           "height_ft_in" -> VHash(TreeSeqMap("left" -> VInt(6), "right" -> VInt(1))),
           "bank_account" -> VString("1234567890")
       )
-    manifest.definitions should contain theSameElementsAs
+    manifest.definitions.nonEmpty shouldBe true
+    manifest.definitions.get should contain theSameElementsAs
       Map(
           "Name" -> nameType,
           "Person" -> personType,
@@ -173,10 +173,9 @@ class ManifestTest extends AnyFlatSpec with Matchers {
   }
 
   it should "parse a full manifest" in {
-    val manifestParser = ManifestParser()
-    val manifest = manifestParser.parseFullManifest(fullManifestJs)
+    val manifest = Manifest.parse(fullManifestJs)
     manifest.id shouldBe Some("test")
-    manifest.values should contain theSameElementsAs
+    manifest.deserialize() should contain theSameElementsAs
       Map(
           "person" -> VHash(
               TreeSeqMap(
@@ -192,14 +191,16 @@ class ManifestTest extends AnyFlatSpec with Matchers {
     val nameType = TSchema("Name", TreeSeqMap("first" -> TString, "last" -> TString))
     val personType = TSchema("Person", TreeSeqMap("name" -> nameType, "age" -> TInt))
     val pairType = TSchema("Pair___(Int, Int)", TreeSeqMap("left" -> TInt, "right" -> TInt))
-    manifest.types should contain theSameElementsAs
+    manifest.types.nonEmpty shouldBe true
+    manifest.types.get should contain theSameElementsAs
       Map(
           "person" -> personType,
           "bank_account" -> TString,
           "height_ft_in" -> pairType,
           "ssn_digits" -> TOptional(TArray(TInt))
       )
-    manifest.definitions should contain theSameElementsAs
+    manifest.definitions.nonEmpty shouldBe true
+    manifest.definitions.get should contain theSameElementsAs
       Map(
           "Name" -> nameType,
           "Person" -> personType,
@@ -215,29 +216,32 @@ class ManifestTest extends AnyFlatSpec with Matchers {
                                  "age" -> TInt
                              ))
     val pairType = TSchema("Pair___(Int, Int)", TreeSeqMap("left" -> TInt, "right" -> TInt))
-    val manifest = TypedManifest(
+    val manifest = Manifest(
         TreeSeqMap(
-            "bank_account" -> VString("1234567890"),
-            "height_ft_in" -> VHash(TreeSeqMap("left" -> VInt(6), "right" -> VInt(1))),
-            "person" -> VHash(
-                TreeSeqMap(
-                    "age" -> VInt(42),
-                    "name" -> VHash(
-                        TreeSeqMap("first" -> VString("John"), "last" -> VString("Smith"))
-                    )
+            "bank_account" -> JsString("1234567890"),
+            "height_ft_in" -> JsObject("left" -> JsNumber(6), "right" -> JsNumber(1)),
+            "person" -> JsObject(
+                "age" -> JsNumber(42),
+                "name" -> JsObject(
+                    "first" -> JsString("John"),
+                    "last" -> JsString("Smith")
                 )
             )
         ),
-        TreeSeqMap(
-            "bank_account" -> TString,
-            "height_ft_in" -> pairType,
-            "person" -> personType,
-            "ssn_digits" -> TOptional(TArray(TInt))
+        Some(
+            TreeSeqMap(
+                "bank_account" -> TString,
+                "height_ft_in" -> pairType,
+                "person" -> personType,
+                "ssn_digits" -> TOptional(TArray(TInt))
+            )
         ),
-        TreeSeqMap(
-            "Name" -> nameType,
-            "Pair___(Int, Int)" -> pairType,
-            "Person" -> personType
+        Some(
+            TreeSeqMap(
+                "Name" -> nameType,
+                "Pair___(Int, Int)" -> pairType,
+                "Person" -> personType
+            )
         ),
         id = Some("test")
     )

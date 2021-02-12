@@ -22,7 +22,6 @@ import dx.core.io.DxWorkerPaths
 import dx.core.ir.Value.VNull
 import dx.core.ir.{
   Manifest,
-  ManifestParser,
   Parameter,
   ParameterLink,
   ParameterLinkDeserializer,
@@ -30,7 +29,6 @@ import dx.core.ir.{
   ParameterLinkSerializer,
   Type,
   TypeSerde,
-  TypedManifest,
   Value,
   ValueSerde
 }
@@ -153,7 +151,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
         // there is only one manifest and there is no mapping information, so we can
         // just extract and return the values
         val jsValue = new String(dxApi.downloadBytes(manifestFiles.head)).parseJson
-        return ManifestParser.getValues(jsValue)
+        val manifest = Manifest.parse(jsValue)
+        return manifest.jsValues
       } else {
         throw new Exception("manifest links are required when there is more than one manifest file")
       }
