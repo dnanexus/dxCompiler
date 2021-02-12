@@ -337,8 +337,12 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         val meta: Meta = Meta.create(versionSupport.version, task.meta)
         val isNative = meta.get("type", Vector(T_Boolean)) match {
           case Some(V_Boolean(b)) => b
-          case _ => false
+          case _                  => false
         }
+
+        logger.trace(s"--------> Meta ${meta}")
+        logger.trace(s"--------> isNative? ${isNative}")
+
         if (isNative) {
           None
         } else {
@@ -353,11 +357,11 @@ case class WdlWorkflowExecutor(docSource: FileNode,
             callIO.inputsFromValues(inputWdlValues, evaluator, ignoreDefaultEvalError = false)
           val runtime =
             Runtime(versionSupport.version,
-              task.runtime,
-              task.hints,
-              evaluator,
-              None,
-              ctx = Some(callInputs))
+                    task.runtime,
+                    task.hints,
+                    evaluator,
+                    None,
+                    ctx = Some(callInputs))
           try {
             val request = runtime.parseInstanceType
             val instanceType = jobMeta.instanceTypeDb.apply(request)
@@ -366,16 +370,19 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           } catch {
             case e: Throwable =>
               logger.traceLimited(
-                s"""|Failed to precalculate the instance type for
-                    |task ${task.name}.
-                    |
-                    |${e}
-                    |""".stripMargin
+                  s"""|Failed to precalculate the instance type for
+                      |task ${task.name}.
+                      |
+                      |${e}
+                      |""".stripMargin
               )
               None
           }
         }
       }
+
+      logger.trace(s"--------> launchCall called with instance type ${instanceType}")
+
       val (dxExecution, execName) =
         launchJob(executableLink,
                   call.actualName,
