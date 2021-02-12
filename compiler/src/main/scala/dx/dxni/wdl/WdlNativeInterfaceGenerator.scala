@@ -77,7 +77,19 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
   private def wdlTypeFromDxClass(appletName: String,
                                  argName: String,
                                  ioClass: DxIOClass.Value,
-                                 isOptional: Boolean): WdlTypes.T = {
+                                 isOptional: Boolean): Option[WdlTypes.T] = {
+    if (ioClass == DxIOClass.Other) {
+      if (isOptional) {
+        logger.warning(s"ignoring applet ${appletName} optional non-file object input ${argName}")
+        return None
+      } else {
+        throw new Exception(
+            s"""|Cannot call applet ${appletName} from WDL, argument ${argName}
+                |has required non-file object input of type ${ioClass}""".stripMargin
+              .replaceAll("\n", " ")
+        )
+      }
+    }
     val (t, isArray) = ioClass match {
       case DxIOClass.Boolean      => (WdlTypes.T_Boolean, false)
       case DxIOClass.Int          => (WdlTypes.T_Int, false)
@@ -94,31 +106,29 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
         throw new Exception(s"""|Cannot call applet ${appletName} from WDL, argument ${argName}
                                 |has IO class ${ioClass}""".stripMargin.replaceAll("\n", " "))
     }
-    if (isArray) {
+    Some(if (isArray) {
       WdlTypes.T_Array(t, !isOptional)
     } else if (isOptional) {
       WdlTypes.T_Optional(t)
     } else {
       t
-    }
+    })
   }
 
   private def appToWdlInterface(dxAppDesc: DxAppDescribe): Option[TAT.Task] = {
     val appName = dxAppDesc.name
     try {
       val inputSpec: Map[String, WdlTypes.T] =
-        dxAppDesc.inputSpec.get.map { ioSpec =>
-          ioSpec.name -> wdlTypeFromDxClass(dxAppDesc.name,
-                                            ioSpec.name,
-                                            ioSpec.ioClass,
-                                            ioSpec.optional)
+        dxAppDesc.inputSpec.get.flatMap { ioSpec =>
+          wdlTypeFromDxClass(dxAppDesc.name, ioSpec.name, ioSpec.ioClass, ioSpec.optional).map(
+              ioSpec.name -> _
+          )
         }.toMap
       val outputSpec: Map[String, WdlTypes.T] =
-        dxAppDesc.outputSpec.get.map { ioSpec =>
-          ioSpec.name -> wdlTypeFromDxClass(dxAppDesc.name,
-                                            ioSpec.name,
-                                            ioSpec.ioClass,
-                                            ioSpec.optional)
+        dxAppDesc.outputSpec.get.flatMap { ioSpec =>
+          wdlTypeFromDxClass(dxAppDesc.name, ioSpec.name, ioSpec.ioClass, ioSpec.optional).map(
+              ioSpec.name -> _
+          )
         }.toMap
       // DNAnexus applets allow the same variable name to be used for inputs and outputs.
       // This is illegal in WDL.
@@ -147,17 +157,21 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
   // We can translate with primitive types, and their arrays. Hashes cannot
   // be translated; applets that have them cannot be converted.
   private def wdlTypesOfDxApplet(
-      aplName: String,
+      appletName: String,
       desc: DxAppletDescribe
   ): (Map[String, WdlTypes.T], Map[String, WdlTypes.T]) = {
-    logger.trace(s"analyzing applet ${aplName}")
+    logger.trace(s"analyzing applet ${appletName}")
     val inputSpec: Map[String, WdlTypes.T] =
-      desc.inputSpec.get.map { iSpec =>
-        iSpec.name -> wdlTypeFromDxClass(aplName, iSpec.name, iSpec.ioClass, iSpec.optional)
+      desc.inputSpec.get.flatMap { ioSpec =>
+        wdlTypeFromDxClass(appletName, ioSpec.name, ioSpec.ioClass, ioSpec.optional).map(
+            ioSpec.name -> _
+        )
       }.toMap
     val outputSpec: Map[String, WdlTypes.T] =
-      desc.outputSpec.get.map { iSpec =>
-        iSpec.name -> wdlTypeFromDxClass(aplName, iSpec.name, iSpec.ioClass, iSpec.optional)
+      desc.outputSpec.get.flatMap { ioSpec =>
+        wdlTypeFromDxClass(appletName, ioSpec.name, ioSpec.ioClass, ioSpec.optional).map(
+            ioSpec.name -> _
+        )
       }.toMap
     (inputSpec, outputSpec)
   }
