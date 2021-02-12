@@ -120,7 +120,9 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     }
 
     // TODO REMOVE
-    logger.trace(s"__ Instance type for ${applet.name} is ${instanceType}")
+    logger.trace(s"--------> Applet name ${applet.name}")
+    logger.trace(s"--------> Applet instance type ${applet.instanceType}")
+    logger.trace(s"--------> Resolved instance type ${instanceType}")
 
     // Generate the applet's job script
     val jobScript = generateJobScript(applet)
@@ -152,9 +154,6 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       case None      => Map.empty
     }
 
-    // TODO REMOVE
-    logger.trace(s"__ extrasOverrides ${applet.name} are ${extrasOverrides}")
-
     // runtime hints in the task override defaults from extras
     val taskOverrides: Map[String, JsValue] = applet.requirements
       .collect {
@@ -170,9 +169,6 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       .flatten
       .toMap
 
-    // TODO REMOVE
-    logger.trace(s"__ taskOverrides for ${applet.name} are ${taskOverrides}")
-
     // task-specific settings from extras override runtime hints in the task
     val taskSpecificOverrides = applet.kind match {
       case ExecutableKindApplet =>
@@ -182,9 +178,6 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         }
       case _ => Map.empty
     }
-
-    // TODO REMOVE
-    logger.trace(s"__ taskSpecificOverrides for ${applet.name} are ${taskSpecificOverrides}")
 
     // If the docker image is a tarball, add a link in the details field.
     val dockerFile: Option[DxFile] = applet.container match {
