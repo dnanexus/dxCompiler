@@ -64,7 +64,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       case None                                                              => ""
       case Some(DockerRegistry(registry, credentials, Some(username), None)) =>
         // check that the credentials file is a valid platform path
-        checkFile(credentials, "credentials")
+        checkFile(credentials, ApplicationCompiler.CredentialsKey)
         // render the preamble
         renderer.render(
             ApplicationCompiler.GenericDockerPreambleTemplate,
@@ -78,7 +78,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
             )
         )
       case Some(DockerRegistry(registry, credentials, None, Some(awsRegion))) =>
-        checkFile(credentials, "credentials")
+        checkFile(credentials, ApplicationCompiler.CredentialsKey)
         renderer.render(
             ApplicationCompiler.EcrDockerPreambleTemplate,
             Map(
@@ -159,10 +159,10 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     val defaultTimeout =
       DxRunSpec.toApiJson(
           DxRunSpec(
-              None,
-              None,
-              None,
-              Some(
+              access = None,
+              executionPolicy = None,
+              restartableEntryPoints = None,
+              timeoutPolicy = Some(
                   DxTimeout(Some(ApplicationCompiler.DefaultAppletTimeoutInDays), Some(0), Some(0))
               )
           )

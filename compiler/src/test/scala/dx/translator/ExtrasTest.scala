@@ -38,7 +38,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
   it should "recognize restartable entry points" in {
     val runtimeAttrs: JsValue =
       """|{
-         |  "default_task_dx_attributes" : {
+         |  "defaultTaskDxAttributes" : {
          |     "runSpec" : {
          |       "restartableEntryPoints": "all"
          |     }
@@ -54,7 +54,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
   it should "invalid runSpec I" in {
     val ex1 =
       """|{
-         | "default_task_dx_attributes": {
+         | "defaultTaskDxAttributes": {
          |     "timeoutPolicy": {
          |        "main": {
          |          "hours": 12
@@ -72,7 +72,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
   it should "invalid runSpec II" in {
     val ex2 =
       """|{
-         | "default_task_dx_attributes" : {
+         | "defaultTaskDxAttributes" : {
          |   "runSpec": {
          |     "timeoutPolicy": {
          |        "main": {
@@ -92,7 +92,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
   it should "invalid runSpec III" in {
     val ex3 =
       """|{
-         | "default_task_dx_attributes" : {
+         | "defaultTaskDxAttributes" : {
          |   "runSpec": {
          |     "access" : {
          |        "project": "CONTRIBUTE__XD",
@@ -112,7 +112,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
   it should "parse the run spec" in {
     val runSpecValid =
       """|{
-         | "default_task_dx_attributes" : {
+         | "defaultTaskDxAttributes" : {
          |   "runSpec": {
          |     "executionPolicy": {
          |        "restartOn": {
@@ -165,7 +165,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
   it should "parse complex execution policy" in {
     val runSpec =
       """|{
-         | "default_task_dx_attributes" : {
+         | "defaultTaskDxAttributes" : {
          |   "runSpec": {
          |     "executionPolicy": {
          |        "restartOn": {
@@ -198,7 +198,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
   it should "recognize error in complex execution policy" in {
     val runSpec =
       """|{
-         | "default_task_dx_attributes" : {
+         | "defaultTaskDxAttributes" : {
          |   "runSpec": {
          |     "executionPolicy": {
          |        "restartOn": {
@@ -225,9 +225,9 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
     // inputs is Readme.md file in
     val reorg: JsValue =
       s"""|{
-          | "custom_reorg" : {
-          |    "app_id" :"${appletId}",
-          |    "conf" : "${fileId}"
+          | "customReorgAttributes" : {
+          |    "appUri" :"${appletId}",
+          |    "configFile" : "${fileId}"
           |  }
           |}
           |""".stripMargin.parseJson
@@ -236,13 +236,13 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
     extras.customReorgAttributes shouldBe Some(CustomReorgSettings(appletId, Some(fileId)))
   }
 
-  it should "throw IllegalArgumentException due to missing applet id" taggedAs ApiTest in {
+  it should "throw DeserializationException due to missing applet id" taggedAs ApiTest in {
     assume(isLoggedIn)
     val inputs: String = "dx://file-123456"
     val reorg: JsValue =
       s"""|{
-          | "custom_reorg" : {
-          |    "conf" : "${inputs}"
+          | "customReorgAttributes" : {
+          |    "configFile" : "${inputs}"
           |  }
           |}
           |""".stripMargin.parseJson
@@ -254,13 +254,13 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
     thrown.getMessage should be("appUri must be specified in the customReorgAttributes section")
   }
 
-  it should "throw IllegalArgumentException due to missing inputs in custom_reorg section" taggedAs ApiTest in {
+  it should "throw DeserializationException due to missing inputs in custom_reorg section" taggedAs ApiTest in {
     assume(isLoggedIn)
 
     val reorg: JsValue =
       s"""|{
-          | "custom_reorg" : {
-          |    "app_id" : "${appletId}"
+          | "customReorgAttributes" : {
+          |    "appUri" : "${appletId}"
           |  }
           |}
           |""".stripMargin.parseJson
@@ -278,9 +278,9 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
     assume(isLoggedIn)
     val reorg: JsValue =
       s"""|{
-          | "custom_reorg" : {
-          |    "app_id" : "${appletId}",
-          |    "conf" : null
+          | "customReorgAttributes" : {
+          |    "appUri" : "${appletId}",
+          |    "configFile" : null
           |  }
           |}
           |""".stripMargin.parseJson
@@ -289,15 +289,15 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
     extras.customReorgAttributes shouldBe Some(CustomReorgSettings(appletId))
   }
 
-  it should "throw IllegalArgumentException due to invalid applet ID" taggedAs ApiTest in {
+  it should "throw DeserializationException due to invalid applet ID" taggedAs ApiTest in {
     assume(isLoggedIn)
     // invalid applet ID
     val appId: String = "applet-123456"
     val reorg: JsValue =
       s"""|{
-          |  "custom_reorg" : {
-          |      "app_id" : "${appId}",
-          |      "conf": null
+          |  "customReorgAttributes" : {
+          |      "appUri" : "${appId}",
+          |      "configFile": null
           |   }
           |}
           |""".stripMargin.parseJson
@@ -317,9 +317,9 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
     val appletId: String = "applet-mPX7K2j0Gv2K2jXF75Bf21v2"
     val reorg: JsValue =
       s"""|{
-          |  "custom_reorg" : {
-          |      "app_id" : "${appletId}",
-          |      "conf": null
+          |  "customReorgAttributes" : {
+          |      "appUri" : "${appletId}",
+          |      "configFile": null
           |   }
           |}
           |""".stripMargin.parseJson
@@ -332,14 +332,14 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
     )
 
   }
-  it should "throw IllegalArgumentException due to invalid file ID" taggedAs ApiTest in {
+  it should "throw DeserializationException due to invalid file ID" taggedAs ApiTest in {
     assume(isLoggedIn)
     val inputs: String = "file-1223445"
     val reorg: JsValue =
       s"""|{
-          |  "custom_reorg" : {
-          |      "app_id" : "${appletId}",
-          |      "conf": "${inputs}"
+          |  "customReorgAttributes" : {
+          |      "appUri" : "${appletId}",
+          |      "configFile": "${inputs}"
           |   }
           |}
           |""".stripMargin.parseJson
@@ -356,9 +356,9 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
     val inputs: String = "dx://file-AZBYlBQ0jy1qpqJz17gpXFf8"
     val reorg: JsValue =
       s"""|{
-          |  "custom_reorg" : {
-          |      "app_id" : "${appletId}",
-          |      "conf": "${inputs}"
+          |  "customReorgAttributes" : {
+          |      "appUri" : "${appletId}",
+          |      "configFile": "${inputs}"
           |   }
           |}
           |""".stripMargin.parseJson
@@ -377,9 +377,9 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
     val appletId: String = getIdFromName("/release_test/Sum ")
     val reorg: JsValue =
       s"""|{
-          | "custom_reorg" : {
-          |    "app_id" : "${appletId}",
-          |    "conf": "null"
+          | "customReorgAttributes" : {
+          |    "appUri" : "${appletId}",
+          |    "configFile": "null"
           |  }
           |}
           |""".stripMargin.parseJson
@@ -400,8 +400,8 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
     val reorg: JsValue =
       s"""|{
           |  "customReorgAttributes" : {
-          |    "app_id" : "${appId}",
-          |    "conf": null
+          |    "appUri" : "${appId}",
+          |    "configFile": null
           |  }
           |}
           |""".stripMargin.parseJson
@@ -442,7 +442,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
   it should "handle default runtime attributes" in {
     val runtimeAttrs: JsValue =
       """|{
-         |  "default_runtime_attributes" : {
+         |  "defaultRuntimeAttributes" : {
          |    "docker" : "quay.io/encode-dcc/atac-seq-pipeline:v1"
          |  }
          |}""".stripMargin.parseJson
@@ -460,7 +460,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
   it should "handle invalid default runtime attributes" in {
     val rtInvalid: JsValue =
       """|{
-         | "default_runtime_attributes" : {
+         | "defaultRuntimeAttributes" : {
          |     "preemptible": "0",
          |     "bootDiskSizeGb": "10"
          | }
@@ -474,7 +474,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
   it should "accept per task attributes" in {
     val runSpec: JsValue =
       """|{
-         | "default_task_dx_attributes" : {
+         | "defaultTaskDxAttributes" : {
          |   "runSpec": {
          |     "timeoutPolicy": {
          |        "*": {
@@ -483,7 +483,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
          |     }
          |   }
          |  },
-         | "per_task_dx_attributes" : {
+         | "perTaskDxAttributes" : {
          |   "Add": {
          |      "runSpec": {
          |        "timeoutPolicy": {
@@ -549,7 +549,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
   it should "include optional details and runSpec in per task attributes" in {
     val runSpec: JsValue =
       """|{
-         | "default_task_dx_attributes" : {
+         | "defaultTaskDxAttributes" : {
          |   "runSpec": {
          |     "timeoutPolicy": {
          |        "*": {
@@ -558,7 +558,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
          |     }
          |   }
          |  },
-         | "per_task_dx_attributes" : {
+         | "perTaskDxAttributes" : {
          |   "Add": {
          |      "runSpec": {
          |        "timeoutPolicy": {
@@ -650,7 +650,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
   it should "include optional details in per task attributes" in {
     val runSpec: JsValue =
       """|{
-         | "default_task_dx_attributes" : {
+         | "defaultTaskDxAttributes" : {
          |   "runSpec": {
          |     "timeoutPolicy": {
          |        "*": {
@@ -659,7 +659,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
          |     }
          |   }
          |  },
-         | "per_task_dx_attributes" : {
+         | "perTaskDxAttributes" : {
          |   "Add": {
          |      "details": {
          |        "upstreamProjects": [
@@ -715,7 +715,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
   it should "parse the docker registry section" in {
     val data =
       """|{
-         | "docker_registry" : {
+         | "dockerRegistry" : {
          |   "registry" : "foo.bar.dnanexus.com",
          |   "username" : "perkins",
          |   "credentials" : "The Bandersnatch has gotten loose"
@@ -737,14 +737,14 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
   it should "recognize errors in docker registry section" in {
     val data =
       """|{
-         | "docker_registry" : {
+         | "dockerRegistry" : {
          |   "registry_my" : "foo.bar.dnanexus.com",
          |   "username" : "perkins",
          |   "credentials" : "BandersnatchOnTheLoose"
          | }
          |}
          |""".stripMargin.parseJson
-    assertThrows[Exception] {
+    assertThrows[DeserializationException] {
       Extras.parse(data)
     }
   }
@@ -752,13 +752,13 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
   it should "recognize errors in docker registry section II" in {
     val data =
       """|{
-         | "docker_registry" : {
+         | "dockerRegistry" : {
          |   "registry" : "foo.bar.dnanexus.com",
          |   "credentials" : "BandersnatchOnTheLoose"
          | }
          |}
          |""".stripMargin.parseJson
-    assertThrows[Exception] {
+    assertThrows[DeserializationException] {
       Extras.parse(data)
     }
   }
@@ -766,12 +766,12 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
   it should "recognize errors in docker registry section III" in {
     val data =
       """|{
-         | "docker_registry" : {
+         | "dockerRegistry" : {
          |   "creds" : "XXX"
          | }
          |}
          |""".stripMargin.parseJson
-    assertThrows[Exception] {
+    assertThrows[DeserializationException] {
       Extras.parse(data)
     }
   }
