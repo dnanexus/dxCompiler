@@ -33,7 +33,7 @@ sealed trait ParameterLink {
     */
   def makeOptional: ParameterLink
 }
-case class ParameterLinkValue(jsn: JsValue, dxType: Type) extends ParameterLink {
+case class ParameterLinkValue(jsv: JsValue, dxType: Type) extends ParameterLink {
   def makeOptional: ParameterLinkValue = {
     copy(dxType = Type.ensureOptional(dxType))
   }
@@ -178,11 +178,11 @@ case class ParameterLinkSerializer(fileResolver: FileSourceResolver = FileSource
       val mapValue = link match {
         case ParameterLinkValue(jsLinkValue, _) =>
           // files that are embedded in the structure
-          val jsFiles = DxFile.findFiles(dxApi, jsLinkValue).map(_.asJson)
+          val jsFiles = JsArray(DxFile.findFiles(dxApi, jsLinkValue).map(_.asJson))
           // Dx allows hashes as an input/output type. If the JSON value is
           // not a hash (JsObject), we need to add an outer layer to it.
           val jsLink = JsObject(Parameter.ComplexValueKey -> jsLinkValue)
-          Map(encodedName -> jsLink, fileArrayName -> JsArray(jsFiles))
+          Map(encodedName -> jsLink, fileArrayName -> jsFiles)
         case ParameterLinkStage(dxStage, ioRef, varName, _) =>
           val varFileArrayName = s"${varName}${ParameterLink.FlatFilesSuffix}"
           ioRef match {

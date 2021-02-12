@@ -32,7 +32,7 @@ import wdlTools.types.{TypedAbstractSyntax => TAT}
 private case class TaskTestJobMeta(override val workerPaths: DxWorkerPaths,
                                    override val dxApi: DxApi = DxApi.get,
                                    override val logger: Logger = Logger.get,
-                                   override val jsInputs: Map[String, JsValue],
+                                   override val rawJsInputs: Map[String, JsValue],
                                    rawInstanceTypeDb: InstanceTypeDB,
                                    rawSourceCode: String)
     extends JobMeta(workerPaths, dxApi, logger) {

@@ -453,10 +453,20 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     }.toMap
 
     // upload the files, and map their local paths to their remote URIs
-    val delocalizedPathToUri: Map[Path, String] =
-      fileUploader.upload(delocalizingValueToPath.values.toSet).map {
+    val delocalizedPathToUri: Map[Path, String] = {
+      val dxFiles = if (jobMeta.useManifests) {
+        // if using manifests, we need to upload the files directly to the project
+        val prefix = s"${dxApi.currentProject.id}:/.d/${dxApi.currentJob.id}"
+        fileUploader.upload(delocalizingValueToPath.values.map { path =>
+          path -> s"${prefix}/${path.getFileName.toString}"
+        }.toMap)
+      } else {
+        fileUploader.upload(delocalizingValueToPath.values.toSet)
+      }
+      dxFiles.map {
         case (path, dxFile) => path -> dxFile.asUri
       }
+    }
 
     // Replace the local paths in the output values with URIs. For files that
     // were inputs, we can resolve them using a mapping of input values to URIs;
@@ -518,7 +528,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     val dxSubJob: DxJob =
       jobMeta.dxApi.runSubJob("body",
                               Some(getRequestedInstanceType),
-                              JsObject(jobMeta.jsInputs),
+                              JsObject(jobMeta.rawJsInputs),
                               Vector.empty,
                               jobMeta.delayWorkspaceDestruction)
     jobMeta.writeExecutionOutputLinks(dxSubJob, outputTypes)

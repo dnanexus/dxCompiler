@@ -742,7 +742,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       val dxSubJob: DxExecution = dxApi.runSubJob(
           "continue",
           Some(jobMeta.instanceTypeDb.defaultInstanceType.name),
-          JsObject(jobMeta.jsInputs),
+          JsObject(jobMeta.rawJsInputs),
           childJobs,
           jobMeta.delayWorkspaceDestruction,
           Some(s"continue_scatter($nextStart)"),
@@ -753,12 +753,12 @@ case class WdlWorkflowExecutor(docSource: FileNode,
 
     private def launchScatterCollect(childJobs: Vector[DxExecution]): Map[String, ParameterLink] = {
       assert(childJobs.nonEmpty)
-      // Run a sub-job with the "continue" entry point.
+      // Run a sub-job with the "collect" entry point.
       // We need to provide the exact same inputs.
       val dxSubJob: DxExecution = dxApi.runSubJob(
           "collect",
           Some(jobMeta.instanceTypeDb.defaultInstanceType.name),
-          JsObject(jobMeta.jsInputs),
+          JsObject(jobMeta.rawJsInputs),
           childJobs,
           jobMeta.delayWorkspaceDestruction,
           Some(s"collect_scatter"),
@@ -918,6 +918,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
 
     private def collectScatter(): Map[String, ParameterLink] = {
       val childExecutions = getScatterJobs
+
       val outputTypes: Map[String, (String, Type)] = block.kind match {
         case BlockKind.ScatterOneCall =>
           call.callee.output.map {
