@@ -362,6 +362,7 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
                     case _: ExecutableKindNative => true
                     case _                       => false
                   }
+                  // no existing stub, create it - specify whether the target app(let) is native
                   createTaskStub(callable, native = native)
                 case _ =>
                   // no existing stub, create it
