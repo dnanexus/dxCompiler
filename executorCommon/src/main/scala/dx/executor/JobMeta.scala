@@ -329,9 +329,16 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 
   def writeJsOutputs(outputJs: Map[String, JsValue]): Unit = {
     if (useManifests) {
-      val manifest = Manifest(outputJs, id = Some())
-
-      dxApi.uploadString(manifest.toJson.prettyPrint, )
+      val manifestId = rawJsInputs.get(Constants.OutputId) match {
+        case Some(JsString(id)) => id
+        case other =>
+          throw new Exception(s"missing or invalid outputId ${other}")
+      }
+      val manifest = Manifest(outputJs, id = Some(manifestId))
+      val destination = s"${FileUtils.sanitizeFileName(manifestId)}.json"
+      dxApi.uploadString(manifest.toJson.prettyPrint, destination)
+    } else {
+      writeRawJsOutputs(outputJs)
     }
   }
 
@@ -568,7 +575,7 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths
     }
   }
 
-  def writeJsOutputs(outputJs: Map[String, JsValue]): Unit = {
+  def writeRawJsOutputs(outputJs: Map[String, JsValue]): Unit = {
     if (useManifests) {} else {
       JsUtils.jsToFile(JsObject(outputJs), outputPath)
     }

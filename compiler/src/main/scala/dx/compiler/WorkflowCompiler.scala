@@ -237,13 +237,14 @@ case class WorkflowCompiler(extras: Option[Extras],
               val (inputStages, value) = getWorkflowInputValue(stageInput, param.dxType)
               (inputStages, value.map(v => param.name -> v))
           }.unzip
+          val stageManifestLinks = ArrayInput(inputStages.flatten.toSet.map { stage =>
+            LinkInput(stage, Constants.OutputManifest)
+          }.toVector)
           val inputParams = Vector(
-              (ExecutableCompiler.InputManfestsParameter, ArrayInput(inputStages.flatten.toSet.map {
-                stage =>
-                  LinkInput(stage, Constants.OutputManifest)
-              }.toVector)),
+              (ExecutableCompiler.InputManfestsParameter, stageManifestLinks),
               (ExecutableCompiler.InputLinksParameter,
-               StaticInput(Value.VHash(inputLinks.flatten.to(TreeSeqMap))))
+               StaticInput(Value.VHash(inputLinks.flatten.to(TreeSeqMap)))),
+              (ExecutableCompiler.OutputIdParameter, StaticInput(Value.VString(workflow.name)))
           )
           // When using manifests, there is a single "output_manifest___" parameter, which
           // is a manifest file. The common output applet is responsible for merging all
@@ -347,7 +348,8 @@ case class WorkflowCompiler(extras: Option[Extras],
               (ExecutableCompiler.InputManfestsParameter,
                ArrayInput(inputWorkflowManifest ++ inputStageManifests)),
               (ExecutableCompiler.InputLinksParameter,
-               StaticInput(Value.VHash(inputLinks.flatten.to(TreeSeqMap))))
+               StaticInput(Value.VHash(inputLinks.flatten.to(TreeSeqMap)))),
+              (ExecutableCompiler.OutputIdParameter, StaticInput(Value.VString(stage.dxStage.id)))
           )
         } else {
           irExecutable.inputVars.zip(stage.inputs)

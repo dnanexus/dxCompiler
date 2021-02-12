@@ -214,7 +214,7 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
   }
 
   /**
-    * Generate a WDL stub fore a DNAnexus applet.
+    * Generate a WDL stub for a DNAnexus applet.
     * @param id the applet ID
     * @param appletName the applet name
     * @param inputSpec the applet inputs
