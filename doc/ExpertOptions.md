@@ -663,7 +663,9 @@ task bwa_mem {
 
 # Setting DNAnexus-specific attributes in extras.json
 
-When writing a dnanexus applet the user can specify options through the [dxapp.json](https://documentation.dnanexus.com/developer/apps/app-metadata#annotated-example) file. The dxCompiler equivalent is the *extras* file, specified with the `extras` command line option.
+When writing a DNAnexus applet the user can specify options through the [dxapp.json](https://documentation.dnanexus.com/developer/apps/app-metadata#annotated-example) file. The dxCompiler equivalent is the *extras* file, specified with the `extras` command line option.
+
+*Note:* the first-level keys in the extras file have been changed to camel case; however, all the old keys (v2.1.0 and earlier) are still recoginzed.
 
 ## Default and per-task attributes
 
@@ -878,16 +880,15 @@ it may misplace or outright delete files. The applet:
 
 In addition to using `--reorg` flag to add the reorg stage, you may also add a custom reorganization applet that takes an optional input by declaring a "customReorgAttributes" object in the JSON file used as parameter with `-extras`
 
-The  "customReorgAttributes" object has two properties in extra.json:
-    # appUri: reorg applet URI - either an app ID (e.g. "app-bwa_mem") or a URI of a platform file (e.g. "dx://file-xxx")
-    # configFile: auxiliary configuration file
+The `customReorgAttributes` object has two properties in extra.json:
+* `appUri`: reorg app or applet URI - either an ID (e.g. "app-bwa_mem" or "app-xxx" or "applet-yyy") or a URI of a platform file (e.g. "dx://file-xxx").
+* `configFile`: auxiliary configuration file.
 
 The optional input file can be used as a configuration file for the reorganization process.
 
 For example:
 
 ```
-
 {
   "customReorgAttributes" : {
     "appUri" : "applet-12345678910",
@@ -895,19 +896,17 @@ For example:
   }
 }
 
-# if you do not wish to include an additional config file, please set the "conf" to `null`
+# if you do not wish to include an additional config file, 
+# you can omit "configFile" or set it to `null`
 {
   "customReorgAttributes" : {
     "appUri" : "applet-12345678910",
     "configFile" : null
   }
 }
-
 ```
 
-The config-file based reorg applet needs to have the following specs as inputs.
-
-`reorg_conf___` and `reorg_status___`:
+The config-file based reorg applet needs to have the following input specs in the dxapp.json:
 
 ```json
 {

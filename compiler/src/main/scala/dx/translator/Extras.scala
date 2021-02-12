@@ -134,7 +134,7 @@ object ExtrasJsonProtocol extends DefaultJsonProtocol {
         case Some(JsNull)                            => None
         case _ =>
           deserializationError(
-              """In the 'custom_reorg' section of extras, 'configFile' must be specified as
+              """In the 'customReorgAttributes' section of extras, 'configFile' must be specified as
                 |a valid DNAnexus file in the form 'dx://file-XXX'. Please set the value
                 |to null if there is no configuration file.""".stripMargin.replaceAll("\n", " ")
           )
