@@ -3,7 +3,10 @@
 ## in dev
 
 * DxNI handles native app(let)s with optional non-file object inputs
-* Adds support for Amazon ECR repositories
+* Sevaral additions/changes to extras.json:  
+  * Adds support for Amazon ECR repositories
+  * Adds support for configuring the chunk size for scatters (how many scatter jobs run concurrently)
+  * All top-level keys are now camel-case (old-style names are still recognized)
 
 ## 2.1.1. 09-02-2021
 
