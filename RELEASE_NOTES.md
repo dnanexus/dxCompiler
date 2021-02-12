@@ -3,9 +3,11 @@
 ## in dev
 
 * DxNI handles native app(let)s with optional non-file object inputs
+* Adds support for Amazon ECR repositories
 
 ## 2.1.1. 09-02-2021
 
+* Adds support for WDL v1.1
 * Fixes errors due to expression evaluator not handling values wrapped in V\_Optional
 * Fixes errors related to compound references
 * Updated wdlTools 0.12.3. This update enforces uniqueness of variable names within the same scope
