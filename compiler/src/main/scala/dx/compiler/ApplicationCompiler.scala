@@ -318,6 +318,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       Vector(
           ExecutableCompiler.InputManfestsParameter,
           ExecutableCompiler.InputLinksParameter,
+          ExecutableCompiler.WorkflowInputManfestsParameter,
+          ExecutableCompiler.WorkflowInputLinksParameter,
           ExecutableCompiler.OutputIdParameter
       )
     } else {

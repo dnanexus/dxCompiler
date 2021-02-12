@@ -456,9 +456,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     val delocalizedPathToUri: Map[Path, String] = {
       val dxFiles = if (jobMeta.useManifests) {
         // if using manifests, we need to upload the files directly to the project
-        val prefix = s"${dxApi.currentProject.id}:/.d/${dxApi.currentJob.id}"
         fileUploader.upload(delocalizingValueToPath.values.map { path =>
-          path -> s"${prefix}/${path.getFileName.toString}"
+          path -> s"${jobMeta.manifestFolder}/${path.getFileName.toString}"
         }.toMap)
       } else {
         fileUploader.upload(delocalizingValueToPath.values.toSet)
@@ -544,14 +543,10 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         checkInstanceType.toString
       } else {
         action match {
-          case TaskAction.Prolog =>
-            prolog()
-          case TaskAction.InstantiateCommand =>
-            instantiateCommand()
-          case TaskAction.Epilog =>
-            epilog()
-          case TaskAction.Relaunch =>
-            relaunch()
+          case TaskAction.Prolog             => prolog()
+          case TaskAction.InstantiateCommand => instantiateCommand()
+          case TaskAction.Epilog             => epilog()
+          case TaskAction.Relaunch           => relaunch()
           case _ =>
             throw new Exception(s"Invalid executor action ${action}")
         }

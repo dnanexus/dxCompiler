@@ -91,6 +91,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 
   lazy val projectDesc: DxProjectDescribe = project.describe()
 
+  lazy val manifestFolder = s"${dxApi.currentProject.id}:/.d/${dxApi.currentJob.id}"
+
   def rawJsInputs: Map[String, JsValue]
 
   /**
@@ -335,7 +337,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
           throw new Exception(s"missing or invalid outputId ${other}")
       }
       val manifest = Manifest(outputJs, id = Some(manifestId))
-      val destination = s"${FileUtils.sanitizeFileName(manifestId)}.json"
+      val destination = s"${manifestFolder}/${FileUtils.sanitizeFileName(manifestId)}.json"
       dxApi.uploadString(manifest.toJson.prettyPrint, destination)
     } else {
       writeRawJsOutputs(outputJs)
@@ -576,9 +578,7 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths
   }
 
   def writeRawJsOutputs(outputJs: Map[String, JsValue]): Unit = {
-    if (useManifests) {} else {
-      JsUtils.jsToFile(JsObject(outputJs), outputPath)
-    }
+    JsUtils.jsToFile(JsObject(outputJs), outputPath)
   }
 
   private lazy val jobInfo: Map[String, JsValue] = {

@@ -335,22 +335,27 @@ case class WorkflowCompiler(extras: Option[Extras],
                 (inputWorkflow, inputStages, value.map(v => param.name -> v))
             }
             .unzip3
-          val inputWorkflowManifest = if (inputWorkflow.exists(identity)) {
-            Vector(WorkflowInput(ExecutableCompiler.WorkflowInputManfestsParameter),
-                   WorkflowInput(ExecutableCompiler.WorkflowInputLinksParameter))
-          } else {
-            Vector.empty
-          }
           val inputStageManifests = inputStages.flatten.toSet.map { stage =>
             LinkInput(stage, Constants.OutputManifest)
           }.toVector
-          Vector(
-              (ExecutableCompiler.InputManfestsParameter,
-               ArrayInput(inputWorkflowManifest ++ inputStageManifests)),
+          val stageInputs = Vector(
+              (ExecutableCompiler.InputManfestsParameter, ArrayInput(inputStageManifests)),
               (ExecutableCompiler.InputLinksParameter,
                StaticInput(Value.VHash(inputLinks.flatten.to(TreeSeqMap)))),
               (ExecutableCompiler.OutputIdParameter, StaticInput(Value.VString(stage.dxStage.id)))
           )
+          // if there are any workflow inputs, pass the workflow manifests and links to the stage
+          val stageWorkflowInputs = if (inputWorkflow.exists(identity)) {
+            Vector(
+                (ExecutableCompiler.WorkflowInputManfestsParameter,
+                 WorkflowInput(ExecutableCompiler.InputManfestsParameter)),
+                (ExecutableCompiler.WorkflowInputLinksParameter,
+                 WorkflowInput(ExecutableCompiler.InputLinksParameter))
+            )
+          } else {
+            Vector.empty
+          }
+          stageInputs ++ stageWorkflowInputs
         } else {
           irExecutable.inputVars.zip(stage.inputs)
         }
