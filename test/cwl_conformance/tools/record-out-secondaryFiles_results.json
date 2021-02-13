@@ -1,0 +1,48 @@
+{
+  "record-out-secondaryFiles.record_output": {
+    "f1": {
+      "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "location": "A",
+      "secondaryFiles": [
+        {
+          "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+          "location": "A.s2",
+          "class": "File",
+          "size": 0
+        }
+      ],
+      "class": "File",
+      "size": 0
+    },
+    "f2": [
+      {
+        "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+        "location": "B",
+        "secondaryFiles": [
+          {
+            "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+            "location": "B.s3",
+            "class": "File",
+            "size": 0
+          }
+        ],
+        "class": "File",
+        "size": 0
+      },
+      {
+        "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+        "location": "C",
+        "secondaryFiles": [
+          {
+            "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+            "location": "C.s3",
+            "class": "File",
+            "size": 0
+          }
+        ],
+        "class": "File",
+        "size": 0
+      }
+    ]
+  }
+}

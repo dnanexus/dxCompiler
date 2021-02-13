@@ -1,7 +1,8 @@
 package dx.core.languages.wdl
 
-import java.nio.file.Path
+import dx.api.DxPath
 
+import java.nio.file.Path
 import dx.core.ir.{Type, TypeSerde, Value}
 import dx.core.ir.Type._
 import dx.core.ir.Value._
@@ -14,9 +15,11 @@ import wdlTools.syntax.{
   SourceLocation,
   SyntaxException,
   WdlParser,
+  WdlVersion,
   AbstractSyntax => AST
 }
 import wdlTools.types.{
+  Section,
   TypeCheckingRegime,
   TypeException,
   TypeInfer,
@@ -53,6 +56,7 @@ case class WdlInputRef(name: String,
 }
 
 object WdlUtils {
+
   val locPlaceholder: SourceLocation = SourceLocation.empty
 
   def parseSource(sourceCode: FileNode,
@@ -138,6 +142,28 @@ object WdlUtils {
     parseAndCheckSourceNode(StringFileNode(sourceCodeStr, name), fileResolver, regime, logger)
   }
 
+  def parseExpr(exprStr: String,
+                wdlVersion: WdlVersion,
+                parser: WdlParser,
+                docSource: FileNode,
+                bindings: Bindings[String, T],
+                section: Section.Section = Section.Other,
+                fileResolver: FileSourceResolver = FileSourceResolver.get,
+                regime: TypeCheckingRegime.TypeCheckingRegime = TypeCheckingRegime.Moderate,
+                logger: Logger = Logger.get): TAT.Expr = {
+    val expr = parser.parseExpr(exprStr)
+    try {
+      TypeInfer(regime, fileResolver = fileResolver, logger = logger)
+        .applyExpression(expr, wdlVersion, regime, docSource, bindings, section)
+    } catch {
+      case te: TypeException =>
+        logger.error(
+            s"Expression code is syntactically valid BUT it fails type-checking: ${exprStr}"
+        )
+        throw te
+    }
+  }
+
   // create a wdl-value of a specific type.
   def getDefaultValueOfType(wdlType: T, loc: SourceLocation = WdlUtils.locPlaceholder): TAT.Expr = {
     wdlType match {
@@ -209,11 +235,11 @@ object WdlUtils {
 
   def createPairSchema(left: Type, right: Type): TSchema = {
     val name = s"${PairSchemaPrefix}(${TypeSerde.toString(left)}, ${TypeSerde.toString(right)})"
-    TSchema(name, Map(PairLeftKey -> left, PairRightKey -> right))
+    TSchema(name, TreeSeqMap(PairLeftKey -> left, PairRightKey -> right))
   }
 
   def isPairSchema(t: TSchema): Boolean = {
-    t.name.startsWith(PairSchemaPrefix) && t.members.size == 2 && t.members.keySet == Set(
+    t.name.startsWith(PairSchemaPrefix) && t.fields.size == 2 && t.fields.keySet == Set(
         PairLeftKey,
         PairRightKey
     )
@@ -241,11 +267,11 @@ object WdlUtils {
   def createMapSchema(keyType: Type, valueType: Type): TSchema = {
     val name =
       s"${MapSchemaPrefix}[${TypeSerde.toString(keyType)}, ${TypeSerde.toString(valueType)}]"
-    TSchema(name, Map(MapKeysKey -> TArray(keyType), MapValuesKey -> TArray(valueType)))
+    TSchema(name, TreeSeqMap(MapKeysKey -> TArray(keyType), MapValuesKey -> TArray(valueType)))
   }
 
   def isMapSchema(t: TSchema): Boolean = {
-    t.name.startsWith(MapSchemaPrefix) && t.members.size == 2 && t.members.keySet == Set(
+    t.name.startsWith(MapSchemaPrefix) && t.fields.size == 2 && t.fields.keySet == Set(
         MapKeysKey,
         MapValuesKey
     )
@@ -323,13 +349,13 @@ object WdlUtils {
         case TSchema(name, _) if typeAliases.contains(name) =>
           typeAliases(name)
         case pairSchema: TSchema if isPairSchema(pairSchema) =>
-          T_Pair(inner(pairSchema.members(PairLeftKey)), inner(pairSchema.members(PairRightKey)))
+          T_Pair(inner(pairSchema.fields(PairLeftKey)), inner(pairSchema.fields(PairRightKey)))
         case mapSchema: TSchema if isMapSchema(mapSchema) =>
-          val keyType = inner(mapSchema.members(MapKeysKey)) match {
+          val keyType = inner(mapSchema.fields(MapKeysKey)) match {
             case T_Array(t, _) => t
             case other         => throw new Exception(s"invalid Map schema key type ${other}")
           }
-          val valueType = inner(mapSchema.members(MapValuesKey)) match {
+          val valueType = inner(mapSchema.fields(MapValuesKey)) match {
             case T_Array(t, _) => t
             case other         => throw new Exception(s"invalid Map schema value type ${other}")
           }
@@ -357,7 +383,7 @@ object WdlUtils {
       case V_Pair(left, right) =>
         // encode this as a hash with 'left' and 'right' keys
         VHash(
-            Map(
+            TreeSeqMap(
                 PairLeftKey -> toIRValue(left),
                 PairRightKey -> toIRValue(right)
             )
@@ -368,17 +394,17 @@ object WdlUtils {
           case (k, v) => (toIRValue(k), toIRValue(v))
         }.unzip
         VHash(
-            Map(
+            TreeSeqMap(
                 MapKeysKey -> VArray(keys.toVector),
                 MapValuesKey -> VArray(values.toVector)
             )
         )
-      case V_Object(members) =>
-        VHash(members.map {
+      case V_Object(fields) =>
+        VHash(fields.map {
           case (key, value) => key -> toIRValue(value)
         })
-      case V_Struct(_, members) =>
-        VHash(members.map {
+      case V_Struct(_, fields) =>
+        VHash(fields.map {
           case (key, value) => key -> toIRValue(value)
         })
       case _ =>
@@ -410,7 +436,7 @@ object WdlUtils {
       case (T_Pair(leftType, rightType), V_Pair(leftValue, rightValue)) =>
         // encode this as a hash with left and right keys
         VHash(
-            Map(
+            TreeSeqMap(
                 PairLeftKey -> toIRValue(leftValue, leftType),
                 PairRightKey -> toIRValue(rightValue, rightType)
             )
@@ -421,7 +447,7 @@ object WdlUtils {
           case (k, v) => (toIRValue(k, keyType), toIRValue(v, valueType))
         }.unzip
         VHash(
-            Map(
+            TreeSeqMap(
                 MapKeysKey -> VArray(keys.toVector),
                 MapValuesKey -> VArray(values.toVector)
             )
@@ -436,20 +462,20 @@ object WdlUtils {
   }
 
   private def structToIRValue(name: String,
-                              memberValues: Map[String, V],
-                              memberTypes: Map[String, T]): VHash = {
+                              fieldValues: SeqMap[String, V],
+                              fieldTypes: SeqMap[String, T]): VHash = {
     // ensure 1) members keys are a subset of memberTypes keys, 2) members
     // values are convertable to the corresponding types, and 3) any keys
     // in memberTypes that do not appear in members are optional
-    val keys1 = memberValues.keySet
-    val keys2 = memberTypes.keySet
+    val keys1 = fieldValues.keySet
+    val keys2 = fieldTypes.keySet
     val extra = keys2.diff(keys1)
     if (extra.nonEmpty) {
       throw new Exception(
           s"struct ${name} value has members that do not appear in the struct definition: ${extra}"
       )
     }
-    val missingNonOptional = keys1.diff(keys2).map(key => key -> memberTypes(key)).filterNot {
+    val missingNonOptional = keys1.diff(keys2).map(key => key -> fieldTypes(key)).filterNot {
       case (_, T_Optional(_)) => false
       case _                  => true
     }
@@ -458,8 +484,9 @@ object WdlUtils {
           s"struct ${name} value is missing non-optional members ${missingNonOptional}"
       )
     }
-    VHash(memberValues.map {
-      case (key, value) => key -> toIRValue(value, memberTypes(key))
+    VHash(fieldTypes.collect {
+      case (name, t) if fieldValues.contains(name) =>
+        name -> toIRValue(fieldValues(name), t)
     })
   }
 
@@ -667,6 +694,10 @@ object WdlUtils {
 
       case _ => false
     }
+  }
+
+  def isDxFile(file: V_File): Boolean = {
+    file.value.startsWith(DxPath.DxUriPrefix)
   }
 
   /**
@@ -926,9 +957,11 @@ object WdlUtils {
           // recurse into body of the scatter
           // if the scatter variable is referenced, ensure its kind is
           // 'Computed' so it doesn't become a required input
+          val scatterIdentifierRegexp = s"${scatter.identifier}([.\\[].+)?".r
           val bodyInputs = getInputs(scatter.body, innerWithField = true).map {
-            case ref if ref.name == scatter.identifier => ref.copy(kind = InputKind.Computed)
-            case ref                                   => ref
+            case ref if scatterIdentifierRegexp.matches(ref.name) =>
+              ref.copy(kind = InputKind.Computed)
+            case ref => ref
           }
           exprInputs ++ bodyInputs
       }
@@ -1051,6 +1084,15 @@ object WdlUtils {
       .map {
         case (name, (t, v)) =>
           s"${indent}${name}: ${TypeUtils.prettyFormatType(t)} ${EvalUtils.prettyFormat(v)}"
+      }
+      .mkString("\n")
+  }
+
+  def prettyFormatValues(env: Map[String, V], indent: String = "  "): String = {
+    env
+      .map {
+        case (name, v) =>
+          s"${indent}${name}: ${EvalUtils.prettyFormat(v)}"
       }
       .mkString("\n")
   }

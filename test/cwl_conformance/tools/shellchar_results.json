@@ -1,0 +1,14 @@
+{
+  "shellchar.stderr_file": {
+    "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+    "location": "Any",
+    "class": "File",
+    "size": 0
+  },
+  "shellchar.stdout_file": {
+    "checksum": "sha1$1555252d52d4ec3262538a4426a83a99cfff4402",
+    "location": "Any",
+    "class": "File",
+    "size": 9
+  }
+}

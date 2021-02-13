@@ -37,8 +37,11 @@ case class WdlInputTranslator(bundle: Bundle,
       case (mapType: TSchema, JsObject(fields))
           if WdlUtils.isMapSchema(mapType) && !WdlUtils.isMapValue(fields) =>
         // map represented as a JSON object (i.e. has keys that are coercible from String)
-        JsObject(WdlUtils.MapKeysKey -> JsArray(fields.keys.map(JsString(_)).toVector),
-                 WdlUtils.MapValuesKey -> JsArray(fields.values.toVector))
+        val (keys, values) = fields.map {
+          case (key, value) => (JsString(key), value)
+        }.unzip
+        JsObject(WdlUtils.MapKeysKey -> JsArray(keys.toVector),
+                 WdlUtils.MapValuesKey -> JsArray(values.toVector))
       case _ =>
         jsv
     }

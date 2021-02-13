@@ -1,0 +1,16 @@
+{
+  "writable-dir-docker.out": {
+    "basename": "emptyWritableDir",
+    "listing": [
+      {
+        "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+        "basename": "blurg",
+        "location": "blurg",
+        "class": "File",
+        "size": 0
+      }
+    ],
+    "location": "emptyWritableDir",
+    "class": "Directory"
+  }
+}

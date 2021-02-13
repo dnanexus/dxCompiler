@@ -1,0 +1,8 @@
+{
+  "docker-array-secondaryfiles.bai_list": {
+    "checksum": "sha1$081fc0e57d6efa5f75eeb237aab1d04031132be6",
+    "location": "fai.list",
+    "class": "File",
+    "size": 386
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "iwd-nolimit.filelist": {
+    "location": "out-filelist.txt",
+    "basename": "out-filelist.txt",
+    "class": "File",
+    "checksum": "sha1$57f77b36009332d236b52b4beca77301b503b27c",
+    "size": 268866
+  }
+}

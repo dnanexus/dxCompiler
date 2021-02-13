@@ -143,7 +143,7 @@ case class WdlTaskExecutor(task: TAT.Task,
     runtime.parseInstanceType
   }
 
-  override protected lazy val getRequiredInstanceTypeRequest: InstanceTypeRequest =
+  override protected lazy val getInstanceTypeRequest: InstanceTypeRequest =
     getRequiredInstanceTypeRequest()
 
   private lazy val parameterMeta = Meta.create(versionSupport.version, task.parameterMeta)

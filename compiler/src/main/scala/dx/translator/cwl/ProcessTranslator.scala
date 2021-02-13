@@ -12,7 +12,7 @@ import dx.core.ir.{
   Value
 }
 import dx.core.languages.cwl.{CwlDocumentSource, CwlUtils, DxHints, RequirementEvaluator}
-import dx.cwl._
+import dx.cwl.{Parameter => CwlParameter, _}
 import dx.translator.CallableAttributes.{DescriptionAttribute, TitleAttribute}
 import dx.translator.ParameterAttributes.{HelpAttribute, LabelAttribute}
 import dx.translator.{DxWorkflowAttrs, ReorgSettings}
@@ -31,16 +31,21 @@ case class ProcessTranslator(typeAliases: Map[String, CwlSchema],
                              logger: Logger = Logger.get) {
 
   private lazy val cwlDefaultRuntimeAttrs: Map[String, (CwlType, CwlValue)] = {
-    CwlUtils.fromIRValues(defaultRuntimeAttrs)
+    CwlUtils.fromIRValues(defaultRuntimeAttrs, isInput = true)
   }
 
   private def translateParameterAttributes(
-      param: CommandParameter,
+      param: CwlParameter,
       hintParameterAttrs: Map[String, Vector[ParameterAttribute]]
   ): Vector[ParameterAttribute] = {
-    val metaAttrs = Vector(param.doc.map(HelpAttribute), param.label.map(LabelAttribute)).flatten
-    val hintAttrs = hintParameterAttrs.getOrElse(param.name, Vector.empty)
-    metaAttrs ++ hintAttrs
+    param.getName
+      .map { name =>
+        val metaAttrs =
+          Vector(param.doc.map(HelpAttribute), param.label.map(LabelAttribute)).flatten
+        val hintAttrs = hintParameterAttrs.getOrElse(name, Vector.empty)
+        metaAttrs ++ hintAttrs
+      }
+      .getOrElse(Vector.empty)
   }
 
   private def translateCallableAttributes(
@@ -54,7 +59,7 @@ case class ProcessTranslator(typeAliases: Map[String, CwlSchema],
   }
 
   private case class CwlToolTranslator(tool: CommandLineTool) {
-    private lazy val cwlEvaluator = Evaluator.create(tool.requirements)
+    private lazy val cwlEvaluator = Evaluator.create(tool.requirements, tool.hints)
     private lazy val dxHints = tool.hints.collectFirst {
       case dxHints: DxHints => dxHints
     }
@@ -68,49 +73,46 @@ case class ProcessTranslator(typeAliases: Map[String, CwlSchema],
     }
 
     def translateInput(input: CommandInputParameter): Parameter = {
-      val name = input.id.get.name.get
-      val cwlType = input.types match {
-        case Vector(cwlType) => cwlType
-        case other =>
-          throw new Exception(s"Mutliple types are not supported ${other}")
-      }
-      val (actualType, defaultValue) = input.default match {
+      val name = input.id.get.unqualifiedName.get
+      val irDefaultValue = input.default match {
         case Some(default) =>
-          // input with default
           try {
             val ctx = CwlUtils.createEvaluatorContext(Runtime.empty)
-            val (actualType, defaultValue) = cwlEvaluator.evaluate(default, Vector(cwlType), ctx)
-            (actualType, Some(CwlUtils.toIRValue(defaultValue, actualType)))
+            val (actualType, defaultValue) = cwlEvaluator.evaluate(default, input.types, ctx)
+            defaultValue match {
+              case file: FileValue if !CwlUtils.isDxFile(file) =>
+                // cannot specify a local file as default - the default will
+                // be resolved at runtime
+                None
+              case _ =>
+                val (_, value) = CwlUtils.toIRValue(defaultValue, actualType)
+                Some(value)
+            }
           } catch {
-            case _: Throwable => (cwlType, None)
+            case _: Throwable => None
           }
-        case None => (cwlType, None)
+        case None => None
       }
-      // a required or optional input
-      val irType = CwlUtils.toIRType(actualType)
       val attrs = translateParameterAttributes(input, hintParameterAttrs)
-      Parameter(name, irType, defaultValue, attrs)
+      Parameter(name, CwlUtils.toIRType(input.types), irDefaultValue, attrs)
     }
 
     def translateOutput(output: CommandOutputParameter): Parameter = {
-      val name = output.id.get.name.get
-      val cwlType = output.types match {
-        case Vector(cwlType) => cwlType
-        case other =>
-          throw new Exception(s"Mutliple types are not supported ${other}")
-      }
+      val name = output.id.get.unqualifiedName.get
       val ctx = CwlUtils.createEvaluatorContext(Runtime.empty)
-      val (actualType, defaultValue) = output.outputBinding
-        .flatMap { binding =>
-          binding.outputEval.map { cwlValue =>
-            val (actualType, actualValue) = cwlEvaluator.evaluate(cwlValue, Vector(cwlType), ctx)
-            (actualType, Some(CwlUtils.toIRValue(actualValue, actualType)))
+      val irValue = output.outputBinding
+        .flatMap(_.outputEval.flatMap { cwlValue =>
+          try {
+            val (actualType, actualValue) = cwlEvaluator.evaluate(cwlValue, output.types, ctx)
+            val (_, value) = CwlUtils.toIRValue(actualValue, actualType)
+            Some(value)
+          } catch {
+            // the expression cannot be statically evaluated
+            case _: Throwable => None
           }
-        }
-        .getOrElse((cwlType, None))
-      val irType = CwlUtils.toIRType(actualType)
+        })
       val attrs = translateParameterAttributes(output, hintParameterAttrs)
-      Parameter(name, irType, defaultValue, attrs)
+      Parameter(name, CwlUtils.toIRType(output.types), irValue, attrs)
     }
 
     def apply: Application = {
@@ -130,6 +132,7 @@ case class ProcessTranslator(typeAliases: Map[String, CwlSchema],
       )
       val requirementEvaluator = RequirementEvaluator(
           tool.requirements,
+          tool.hints,
           Map.empty,
           DxWorkerPaths.default,
           cwlDefaultRuntimeAttrs

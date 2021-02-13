@@ -1,7 +1,6 @@
 package dx.translator
 
 import java.nio.file.{Path, Paths}
-
 import dxCompiler.Main
 import dxCompiler.Main.SuccessIR
 import dx.Tags.EdgeTest
@@ -20,6 +19,8 @@ import org.scalatest.Inside._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import wdlTools.generators.code.WdlGenerator
+
+import scala.collection.immutable.TreeSeqMap
 
 // These tests involve compilation -without- access to the platform.
 //
@@ -805,7 +806,7 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
                   "whatsNew" -> VArray(
                       Vector(
                           VHash(
-                              Map(
+                              TreeSeqMap(
                                   "version" -> VString("1.1"),
                                   "changes" -> VArray(
                                       Vector(
@@ -816,7 +817,7 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
                               )
                           ),
                           VHash(
-                              Map(
+                              TreeSeqMap(
                                   "version" -> VString("1.0"),
                                   "changes" -> VArray(
                                       Vector(
@@ -1213,6 +1214,26 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
     retval shouldBe a[SuccessIR]
   }
 
+  it should "work correctly with nested pairs in a simple scatter" taggedAs EdgeTest in {
+    val path = pathFromBasename("bugs", basename = "apps-370.wdl")
+    val cFlagsNotQuiet = cFlags.filter(_ != "-quiet")
+    val args = path.toString :: cFlagsNotQuiet
+    //          :: "--verbose"
+    //          :: "--verboseKey" :: "GenerateIR"
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessIR]
+  }
+
+  it should "work correctly with a complex scatter" taggedAs EdgeTest in {
+    val path = pathFromBasename("bugs", basename = "apps-378.wdl")
+    val cFlagsNotQuiet = cFlags.filter(_ != "-quiet")
+    val args = path.toString :: cFlagsNotQuiet
+    //          :: "--verbose"
+    //          :: "--verboseKey" :: "GenerateIR"
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessIR]
+  }
+
   // Check parameter_meta pattern: ["array"]
   it should "recognize pattern in parameters_meta via WDL" in {
     val path = pathFromBasename("compiler", "pattern_params.wdl")
@@ -1487,5 +1508,17 @@ Main.compile(args.toVector) shouldBe a[SuccessIR]
       case other =>
         throw new AssertionError(s"expected SuccessIR, not ${other}")
     }
+  }
+
+  it should "translate a simple CWL task with JS expressions" in {
+    val path = pathFromBasename("cwl", "params.cwl")
+    val args = path.toString :: cFlags
+    Main.compile(args.toVector) shouldBe a[SuccessIR]
+  }
+
+  it should "translate a simple CWL task with Any type input" in {
+    val path = pathFromBasename("cwl", "params2.cwl")
+    val args = path.toString :: cFlags
+    Main.compile(args.toVector) shouldBe a[SuccessIR]
   }
 }

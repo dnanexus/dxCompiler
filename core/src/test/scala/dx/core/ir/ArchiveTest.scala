@@ -1,12 +1,13 @@
 package dx.core.ir
 
 import java.nio.file.{Files, Paths}
-
 import dx.core.ir.Type._
 import dx.core.ir.Value._
 import dx.util.FileUtils
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import scala.collection.immutable.TreeSeqMap
 
 class ArchiveTest extends AnyFlatSpec with Matchers {
   it should "create a squashfs" in {
@@ -41,9 +42,9 @@ class ArchiveTest extends AnyFlatSpec with Matchers {
     FileUtils.writeFileContent(file1, "file1")
     FileUtils.writeFileContent(file2, "file2")
     FileUtils.writeFileContent(file3, "file3")
-    val structType = TSchema("Files", Map("files" -> TArray(TFile)))
+    val structType = TSchema("Files", TreeSeqMap("files" -> TArray(TFile)))
     val value = VHash(
-        Map(
+        TreeSeqMap(
             "files" -> VArray(
                 Vector(VFile(file1.toString), VFile(file2.toString), VFile(file3.toString))
             )
@@ -57,7 +58,7 @@ class ArchiveTest extends AnyFlatSpec with Matchers {
     packed.localized shouldBe false
     packed.irType shouldBe structType
     packed.irValue shouldBe VHash(
-        Map(
+        TreeSeqMap(
             "files" -> VArray(
                 Vector(
                     VFile(Paths.get("sub1").resolve("file1.txt").toString),
@@ -72,7 +73,7 @@ class ArchiveTest extends AnyFlatSpec with Matchers {
     packed2.localized shouldBe false
     packed2.irType shouldBe structType
     packed2.irValue shouldBe VHash(
-        Map(
+        TreeSeqMap(
             "files" -> VArray(
                 Vector(
                     VFile(Paths.get("sub1").resolve("file1.txt").toString),

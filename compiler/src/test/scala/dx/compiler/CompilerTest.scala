@@ -84,10 +84,11 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 //  }
 //  println(task.requirements)
 
-  val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm")
-  val test_time =  dateFormatter.format(LocalDateTime.now)
+  private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm")
+  private val test_time = dateFormatter.format(LocalDateTime.now)
 
-  private val reorgAppletFolder = s"/${unitTestsPath}/reorg_applets_${test_time}_${randomUUID().toString.substring(24)}/"
+  private val reorgAppletFolder =
+    s"/${unitTestsPath}/reorg_applets_${test_time}_${randomUUID().toString.substring(24)}/"
   private val reorgAppletPath = s"${reorgAppletFolder}/functional_reorg_test"
 
   override def beforeAll(): Unit = {
@@ -540,13 +541,13 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
           case ("upstreamLicenses", JsArray(array)) => array shouldBe Vector(JsString("MIT"))
           case ("upstreamProjects", array: JsArray) =>
             array shouldBe expectedUpstreamProjects
-          case ("whatsNew", JsString(value))              => value shouldBe expectedWhatsNew
-          case (Constants.InstanceTypeDb, JsString(_))    => () // ignore
-          case (Constants.Language, JsString(_))          => () // ignore
-          case (Constants.RuntimeAttributes, JsObject(_)) => () // ignore
-          case (Constants.Version, JsString(_))           => () // ignore
-          case (Constants.Checksum, JsString(_))          => () // ignore
-          case (Constants.SourceCode, JsString(_))        => () // ignore
+          case ("whatsNew", JsString(value))                       => value shouldBe expectedWhatsNew
+          case (Constants.InstanceTypeDb, JsString(_))             => () // ignore
+          case (Constants.Language, JsString(_))                   => () // ignore
+          case (Constants.RuntimeAttributes, JsNull | JsObject(_)) => () // ignore
+          case (Constants.Version, JsString(_))                    => () // ignore
+          case (Constants.Checksum, JsString(_))                   => () // ignore
+          case (Constants.SourceCode, JsString(_))                 => () // ignore
           // old values for sourceCode - can probalby delete these
           case ("womSourceCode", JsString(_)) => () // ignore
           case ("wdlSourceCode", JsString(_)) => () // ignore

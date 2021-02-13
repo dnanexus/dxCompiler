@@ -1,0 +1,8 @@
+{
+  "stagefile.outfile": {
+    "checksum": "sha1$b769c7b2e316edd4b5eb2d24799b2c1f9d8c86e6",
+    "size": 1111,
+    "location": "bob.txt",
+    "class": "File"
+  }
+}

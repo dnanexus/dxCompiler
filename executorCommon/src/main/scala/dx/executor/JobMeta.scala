@@ -1,7 +1,6 @@
 package dx.executor
 
 import java.nio.file.{Files, Path}
-
 import dx.{AppException, AppInternalException}
 import dx.api.{
   DxAnalysis,
@@ -21,6 +20,7 @@ import dx.core.Constants
 import dx.core.io.DxWorkerPaths
 import dx.core.ir.Value.VNull
 import dx.core.ir.{
+  Parameter,
   ParameterLink,
   ParameterLinkDeserializer,
   ParameterLinkExec,
@@ -50,6 +50,7 @@ object JobMeta {
   /**
     * Report an error, since this is called from a bash script, we can't simply
     * raise an exception. Instead, we write the error to a standard JSON file.
+    * @param rootDir the directory that contains the error file
     * @param e the exception
     */
   def writeError(rootDir: Path, e: Throwable): Unit = {
@@ -178,25 +179,28 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
       .getOrElse(Map.empty)
   }
 
+  private def validateOutput(name: String, actualType: Type): Unit = {
+    outputSpec.get(name) match {
+      case Some(t) if outputTypesEqual(t, actualType) => ()
+      case Some(t) if t == Type.THash =>
+        logger.trace(
+            s"""expected type of output field ${name} is THash which may represent an
+               |unknown schema type, so deserializing without type""".stripMargin
+              .replaceAll("\n", " ")
+        )
+      case Some(t) =>
+        throw new Exception(
+            s"""output field ${name} has mismatch between actual type ${actualType}
+               |and expected type ${t}""".stripMargin.replaceAll("\n", " ")
+        )
+      case None =>
+        logger.warning(s"outputSpec is missing field ${name}")
+    }
+  }
+
   def writeOutputs(outputs: Map[String, (Type, Value)]): Unit = {
     outputs.foreach {
-      case (key, (actualType, _)) =>
-        outputSpec.get(key) match {
-          case Some(t) if outputTypesEqual(t, actualType) => ()
-          case Some(t) if t == Type.THash =>
-            logger.trace(
-                s"""expected type of output field ${key} is THash which may represent an
-                   |unknown schema type, so deserializing without type""".stripMargin
-                  .replaceAll("\n", " ")
-            )
-          case Some(t) =>
-            throw new Exception(
-                s"""output field ${key} has mismatch between actual type ${actualType}
-                   |and expected type ${t}""".stripMargin.replaceAll("\n", " ")
-            )
-          case None =>
-            logger.warning(s"outputSpec is missing field ${key}")
-        }
+      case (name, (actualType, _)) => validateOutput(name, actualType)
     }
     // write outputs, ignore null values - these could occur for optional
     // values that were not specified.
@@ -210,10 +214,14 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     writeJsOutputs(outputJs)
   }
 
-  def createOutputLinks(outputs: Map[String, (Type, Value)]): Map[String, ParameterLink] = {
+  def createOutputLinks(outputs: Map[String, (Type, Value)],
+                        validate: Boolean = true): Map[String, ParameterLink] = {
     outputs.collect {
-      case (name, (t, v)) if v != VNull =>
-        name -> outputSerializer.createLink(t, v)
+      case (name, (actualType, value)) if value != VNull =>
+        if (validate) {
+          validateOutput(name, actualType)
+        }
+        name -> outputSerializer.createLink(actualType, value)
     }
   }
 
@@ -230,19 +238,23 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     writeJsOutputs(serializeOutputLinks(outputs))
   }
 
-  def createOutputLinks(execution: DxExecution,
-                        irOutputFields: Map[String, Type],
-                        prefix: Option[String] = None): Map[String, ParameterLink] = {
+  def createExecutionOutputLinks(execution: DxExecution,
+                                 irOutputFields: Map[String, Type],
+                                 prefix: Option[String] = None,
+                                 validate: Boolean = false): Map[String, ParameterLink] = {
     irOutputFields.map {
       case (fieldName, t) =>
         val fqn = prefix.map(p => s"${p}.${fieldName}").getOrElse(fieldName)
+        if (validate) {
+          validateOutput(Parameter.encodeDots(fieldName), t)
+        }
         fqn -> ParameterLinkExec(execution, fieldName, t)
     }
   }
 
-  def serializeOutputLinks(execution: DxExecution,
-                           irOutputFields: Map[String, Type]): Map[String, JsValue] = {
-    createOutputLinks(execution, irOutputFields)
+  def serializeExecutionOutputLinks(execution: DxExecution,
+                                    irOutputFields: Map[String, Type]): Map[String, JsValue] = {
+    createExecutionOutputLinks(execution, irOutputFields)
       .flatMap {
         case (name, link) => outputSerializer.createFieldsFromLink(link, name)
       }
@@ -252,8 +264,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
       }
   }
 
-  def writeOutputLinks(execution: DxExecution, irOutputFields: Map[String, Type]): Unit = {
-    writeJsOutputs(serializeOutputLinks(execution, irOutputFields))
+  def writeExecutionOutputLinks(execution: DxExecution, irOutputFields: Map[String, Type]): Unit = {
+    writeJsOutputs(serializeExecutionOutputLinks(execution, irOutputFields))
   }
 
   def jobId: String
@@ -315,21 +327,19 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     }
 
   lazy val delayWorkspaceDestruction: Option[Boolean] =
-    getExecutableDetail("delayWorkspaceDestruction") match {
+    getExecutableDetail(Constants.DelayWorkspaceDestruction) match {
       case Some(JsBoolean(flag)) => Some(flag)
       case None                  => None
     }
 
-  lazy val blockPath: Vector[Int] = getExecutableDetail("blockPath") match {
+  lazy val blockPath: Vector[Int] = getExecutableDetail(Constants.BlockPath) match {
     case Some(JsArray(arr)) if arr.nonEmpty =>
       arr.map {
         case JsNumber(n) => n.toInt
         case _           => throw new Exception("Bad value ${arr}")
       }
-    case None =>
-      Vector.empty
-    case other =>
-      throw new Exception(s"Bad value ${other}")
+    case Some(_: JsArray) | None => Vector.empty
+    case other                   => throw new Exception(s"Bad value ${other}")
   }
 
   lazy val scatterStart: Int = getJobDetail(Constants.ContinueStart) match {

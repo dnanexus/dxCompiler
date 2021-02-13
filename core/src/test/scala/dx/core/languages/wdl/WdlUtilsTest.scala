@@ -118,7 +118,7 @@ class WdlUtilsTest extends AnyFlatSpec with Matchers {
   it should "convert map schema" in {
     val irType = Type.TSchema(
         "Map___[File, String]",
-        Map(
+        TreeSeqMap(
             "keys" -> Type.TArray(Type.TFile),
             "values" -> Type.TArray(Type.TString)
         )
@@ -126,19 +126,19 @@ class WdlUtilsTest extends AnyFlatSpec with Matchers {
     WdlUtils.isMapSchema(irType) shouldBe true
 
     val irValue = Value.VHash(
-        Map(
+        TreeSeqMap(
             "keys" -> Value.VArray(Vector(Value.VFile("/path/to/file"))),
             "values" -> Value.VArray(Vector(Value.VString("this is a string")))
         )
     )
-    WdlUtils.isMapValue(irValue.value) shouldBe true
+    WdlUtils.isMapValue(irValue.fields) shouldBe true
 
     val wdlType = WdlUtils.fromIRType(irType)
     wdlType shouldBe WdlTypes.T_Map(WdlTypes.T_File, WdlTypes.T_String)
 
     val wdlValue = WdlUtils.fromIRValue(irValue, wdlType, "")
     wdlValue shouldBe WdlValues.V_Map(
-        TreeSeqMap(WdlValues.V_File("/path/to/file") -> WdlValues.V_String("this is a string"))
+        WdlValues.V_File("/path/to/file") -> WdlValues.V_String("this is a string")
     )
   }
 }

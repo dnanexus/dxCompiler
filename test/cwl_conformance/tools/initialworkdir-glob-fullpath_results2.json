@@ -1,0 +1,16 @@
+{
+  "initialworkdir-glob-fullpath.OUTPUT": {
+    "checksum": "sha1$aeb3d11bdf536511649129f4077d5cda6a324118",
+    "location": "ref.fasta",
+    "secondaryFiles": [
+      {
+        "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+        "location": "ref.fasta.fai",
+        "class": "File",
+        "size": 0
+      }
+    ],
+    "class": "File",
+    "size": 12010
+  }
+}

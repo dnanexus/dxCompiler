@@ -33,7 +33,7 @@ import dx.core.languages.wdl.{
   WdlUtils,
   WdlWorkflowSource
 }
-import wdlTools.eval.{DefaultEvalPaths, Eval, EvalException, WdlValueBindings}
+import wdlTools.eval.{DefaultEvalPaths, Eval, EvalException, WdlValueBindings, WdlValues}
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 import wdlTools.types.WdlTypes._
 import dx.util.{Adjuncts, FileSourceResolver, Logger}
@@ -88,7 +88,15 @@ case class CallableTranslator(wdlBundle: WdlBundle,
             // This is a task "input" parameter definition of the form:
             //    Int y = 3
             val defaultValue = evaluator.applyConstAndCoerce(defaultExpr, wdlType)
-            Parameter(name, irType, Some(WdlUtils.toIRValue(defaultValue, wdlType)), attrs)
+            (wdlType, defaultValue) match {
+              case (WdlTypes.T_File | WdlTypes.T_Optional(WdlTypes.T_File), file: WdlValues.V_File)
+                  if !WdlUtils.isDxFile(file) =>
+                // the default value cannot be specified in the input spec, so we leave it to be
+                // evaluated at runtime - e.g. a local file
+                Parameter(name, irType, None, attrs)
+              case _ =>
+                Parameter(name, irType, Some(WdlUtils.toIRValue(defaultValue, wdlType)), attrs)
+            }
           } catch {
             // This is a task "input" parameter definition of the form:
             //    Int y = x + 3
@@ -290,6 +298,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       *    String s = "glasses"
       *    ...
       *  }
+      *
       * @param input the workflow input
       * @return (parameter, isDynamic)
       */
@@ -306,7 +315,16 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         case ComputedBlockInput(name, _) =>
           throw new Exception(s"computed input ${name} cannot be a workflow input")
         case OverridableBlockInputWithStaticDefault(name, _, defaultValue) =>
-          (Parameter(name, irType, Some(WdlUtils.toIRValue(defaultValue, wdlType)), attr), false)
+          (wdlType, defaultValue) match {
+            case (WdlTypes.T_File | WdlTypes.T_Optional(WdlTypes.T_File), file: WdlValues.V_File)
+                if !WdlUtils.isDxFile(file) =>
+              // the default value cannot be specified in the input spec, so we leave it to be
+              // evaluated at runtime - e.g. a local file
+              (Parameter(name, irType, None, attr), true)
+            case _ =>
+              (Parameter(name, irType, Some(WdlUtils.toIRValue(defaultValue, wdlType)), attr),
+               false)
+          }
         case OverridableBlockInputWithDynamicDefault(name, _, _) =>
           // If the default value is an expression that requires evaluation (i.e. not a constant),
           // treat the input as an optional applet input and leave the default value to be calculated
@@ -465,31 +483,6 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       Stage(call.actualName, getStage(), calleeName, inputs, callee.outputVars)
     }
 
-    // Find the closure of the inputs. Do not include the inputs themselves. Create an input
-    // for each of these external references.
-    private def inputClosure(
-        inputs: Vector[WdlBlockInput],
-        subBlocks: Vector[WdlBlock]
-    ): Map[String, (WdlTypes.T, InputKind.InputKind)] = {
-      // remove the regular inputs
-      val inputNames = inputs.map(_.name).toSet
-      subBlocks.flatMap { block =>
-        block.inputs.collect {
-          case blockInput if !inputNames.contains(blockInput.name) =>
-            blockInput.name -> (blockInput.wdlType, blockInput.kind)
-        }
-      }.toMap
-    }
-
-    // split a part of a workflow
-    private def splitWorkflowElements(
-        statements: Vector[TAT.WorkflowElement]
-    ): (Vector[WdlBlockInput], Vector[WdlBlock], Vector[TAT.OutputParameter]) = {
-      val (inputs, outputs) = WdlUtils.getClosureInputsAndOutputs(statements, withField = true)
-      val subBlocks = WdlBlock.createBlocks(statements)
-      (WdlBlockInput.create(inputs), subBlocks, outputs.values.toVector)
-    }
-
     /**
       * A block inside a conditional or scatter. If it is simple, we can use a
       * direct call. Otherwise, recursively call into the asssemble-backbone
@@ -505,9 +498,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                                      blockPath: Vector[Int],
                                      scatterPath: Option[String],
                                      env: CallEnv): (Callable, Vector[Callable]) = {
-      val (inputs, subBlocks, outputs) = splitWorkflowElements(statements)
-      assert(subBlocks.nonEmpty)
-
+      val subBlocks = WdlBlock.createBlocks(statements)
       if (subBlocks.size == 1) {
         val block = subBlocks.head
         if (Set(BlockKind.CallDirect, BlockKind.CallWithSubexpressions)
@@ -542,11 +533,31 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         //       |- stage-4
         //
         val pathStr = blockPath.map(x => x.toString).mkString("_")
-        val closureInputs = inputClosure(inputs, subBlocks)
+        // get the input and output closures of the workflow statements -
+        // these are the inputs that come from outside the block, and the
+        // outputs that are exposed
+        val (statementClosureInputs, statementClosureOutputs) =
+          WdlUtils.getClosureInputsAndOutputs(statements, withField = true)
+        // create block inputs for the closure inputs
+        val inputs = WdlBlockInput.create(statementClosureInputs)
+        val outputs = statementClosureOutputs.values.toVector
+        // collect the sub-block inputs that are not workflow inputs or outputs -
+        // these are additional inputs from outside the block that need to be
+        // supplied as workflow inputs
+        val externalNames = (inputs.map(_.name) ++ outputs.map(_.name)).toSet
+        // TODO: will there ever be block inputs that are not included in
+        //  statementClosureInputs?
+        val closureInputs = subBlocks.flatMap { block =>
+          block.inputs.collect {
+            case blockInput if !externalNames.contains(blockInput.name) =>
+              blockInput.name -> (blockInput.wdlType, blockInput.kind)
+          }
+        }.toMap
         logger.trace(
             s"""|compileNestedBlock
                 |    inputs = $inputs
-                |    closureInputs= $closureInputs
+                |    outputs = $outputs
+                |    closureInputs = $closureInputs
                 |""".stripMargin
         )
         val blockName = s"${wfName}_block_${pathStr}"
@@ -688,14 +699,24 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         }
 
       val scatterChunkSize: Option[Int] = newScatterPath.map { sctPath =>
-        workflowAttrs
+        val scatterChunkSize = workflowAttrs
           .flatMap { wfAttrs =>
-            wfAttrs.perScatterAttrs
-              .get(sctPath)
-              .orElse(wfAttrs.scatterDefaults)
-              .flatMap(scatterAttrs => scatterAttrs.chunkSize)
+            wfAttrs.scatters
+              .flatMap {
+                _.get(sctPath)
+                  .orElse(wfAttrs.scatterDefaults)
+                  .flatMap(scatterAttrs => scatterAttrs.chunkSize)
+              }
           }
           .getOrElse(defaultScatterChunkSize)
+        if (scatterChunkSize > Constants.JobsPerScatterLimit) {
+          logger.warning(
+              s"The number of jobs per scatter must be between 1-${Constants.JobsPerScatterLimit}"
+          )
+          Constants.JobsPerScatterLimit
+        } else {
+          scatterChunkSize
+        }
       }
 
       val applet = Application(
@@ -845,19 +866,23 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       */
     private def createOutputStage(wfName: String,
                                   outputs: Vector[TAT.OutputParameter],
+                                  blockPath: Vector[Int],
                                   env: CallEnv): (Stage, Application) = {
-      // Figure out what variables from the environment we need to pass into the applet.
-      // create inputs from outputs
-      val outputInputVars: Map[String, LinkedVar] = outputs.collect {
-        case TAT.OutputParameter(name, _, _, _) if env.contains(name) => name -> env(name)
-      }.toMap
-      // create inputs from the closure of the output nodes, which includes (recursively)
-      // all the variables in the output node expressions
-      val closureInputVars: Map[String, LinkedVar] =
-        WdlUtils.getOutputClosure(outputs).keySet.map(name => name -> env(name)).toMap
-      val inputVars = (outputInputVars ++ closureInputVars).values.toVector
-      logger.trace(s"inputVars: ${inputVars.map(_._1)}")
-      // build definitions of the output variables
+      // split outputs into those that are passed through directly from inputs vs
+      // those that require evaluation
+      val (outputsToPass, outputsToEval) = outputs.partition(o => env.contains(o.name))
+      val outputsToPassEnv = outputsToPass.map(o => o.name -> env(o.name)).toMap
+      // create inputs from the closure of the output nodes that need to be evaluate,
+      // which includes (recursively) all the variables in the output node expressions
+      val outputsToEvalClosureEnv: Map[String, LinkedVar] =
+        WdlUtils.getOutputClosure(outputsToEval).keySet.map(name => name -> env(name)).toMap
+
+      val (applicationInputs, stageInputs) =
+        (outputsToPassEnv ++ outputsToEvalClosureEnv).values.unzip
+      logger.trace(s"inputVars: ${applicationInputs}")
+
+      // build definitions of the output variables - if the expression can be evaluated,
+      // set the values as the parameter's default
       val outputVars: Vector[Parameter] = outputs.map {
         case TAT.OutputParameter(name, wdlType, expr, _) =>
           val value =
@@ -870,6 +895,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           val irType = WdlUtils.toIRType(wdlType)
           Parameter(name, irType, value)
       }
+
       // Determine kind of application. If a custom reorg app is used and this is a top-level
       // workflow (custom reorg applet doesn't apply to locked workflows), add an output
       // variable for reorg status.
@@ -882,11 +908,11 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           )
           (ExecutableKindWfCustomReorgOutputs, updatedOutputVars)
         case _ =>
-          (ExecutableKindWfOutputs, outputVars)
+          (ExecutableKindWfOutputs(blockPath), outputVars)
       }
       val application = Application(
           s"${wfName}_${OutputStage}",
-          inputVars.map(_._1),
+          applicationInputs.toVector,
           updatedOutputVars,
           DefaultInstanceType,
           NoImage,
@@ -897,7 +923,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           OutputStage,
           getStage(Some(OutputStage)),
           application.name,
-          inputVars.map(_._2),
+          stageInputs.toVector,
           updatedOutputVars
       )
       (stage, application)
@@ -1021,7 +1047,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           env.contains(s"$id2.$id")
         case _ => false
       }
-      // Is an output used directly as an input? For example, in the small workflow
+      // Is an input used directly as an output? For example, in the small workflow
       // below, 'lane' is used in such a manner.
       //
       // workflow inner {
@@ -1035,8 +1061,11 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       //
       // In locked workflows, it is illegal to access a workflow input directly from
       // a workflow output. It is only allowed to access a stage input/output.
-      val noInputsUsedAsOutputs =
-        inputs.map(_.name).toSet.intersect(WdlUtils.getOutputClosure(outputs).keySet).isEmpty
+      val (outputsToPass, outputsToEval) = outputs.partition(o => env.contains(o.name))
+      val inputAsOutputNames = outputsToPass.map(_.name).toSet ++
+        WdlUtils.getOutputClosure(outputsToEval).keySet
+      val noInputsUsedAsOutputs = inputs.map(_.name).toSet.intersect(inputAsOutputNames).isEmpty
+
       // if all inputs are simple and no inputs are used as outputs, then we do not
       // need a separate workflow stage to evaluate inputs
       if (allSimpleOutputs && noInputsUsedAsOutputs) {
@@ -1054,7 +1083,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       } else {
         // Some of the outputs are expressions. We need an extra applet+stage
         // to evaluate them.
-        val (outputStage, outputApplet) = createOutputStage(wfName, outputs, env)
+        val (outputStage, outputApplet) = createOutputStage(wfName, outputs, blockPath, env)
         val wfOutputs = outputStage.outputs.map { param =>
           (param, LinkInput(outputStage.dxStage, param.dxName))
         }
@@ -1115,7 +1144,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       val (stages, auxCallables) = allStageInfo.unzip
 
       // convert the outputs into an applet+stage
-      val (outputStage, outputApplet) = createOutputStage(wf.name, outputs, env)
+      val (outputStage, outputApplet) = createOutputStage(wf.name, outputs, Vector.empty, env)
 
       val wfInputs = commonAppletInputs.map(param => (param, EmptyInput))
       val wfOutputs =

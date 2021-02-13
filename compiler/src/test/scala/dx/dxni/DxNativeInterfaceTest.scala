@@ -23,9 +23,9 @@ class DxNativeInterfaceTest extends AnyFlatSpec with Matchers with BeforeAndAfte
   private val logger = Logger.Quiet
   private val dxApi = DxApi()(logger)
 
-  val testProject = "dxCompiler_playground"
-  val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm")
-  val test_time =  dateFormatter.format(LocalDateTime.now)
+  private val testProject = "dxCompiler_playground"
+  private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm")
+  private val test_time = dateFormatter.format(LocalDateTime.now)
 
   private lazy val dxTestProject =
     try {
@@ -40,7 +40,8 @@ class DxNativeInterfaceTest extends AnyFlatSpec with Matchers with BeforeAndAfte
 
   private val username = System.getProperty("user.name")
   private val unitTestsPath = s"unit_tests/${username}"
-  private val folderPath = s"/${unitTestsPath}/applets_${test_time}_${randomUUID().toString.substring(24)}/"
+  private val folderPath =
+    s"/${unitTestsPath}/applets_${test_time}_${randomUUID().toString.substring(24)}/"
 
   override def beforeAll(): Unit = {
     // build the directory with the native applets
@@ -127,6 +128,19 @@ class DxNativeInterfaceTest extends AnyFlatSpec with Matchers with BeforeAndAfte
     )
     val tasks = runDxni(args)
     tasks.keySet shouldBe Set("native_sum")
+  }
+
+  it should "be able to build an interface to a specific app" taggedAs NativeTest in {
+    val args = Vector(
+        "-force",
+        "-quiet",
+        "-path",
+        "app-data_model_loader_v2",
+        "-language",
+        "wdl_1_0"
+    )
+    val tasks = runDxni(args)
+    tasks.keySet shouldBe Set("data_model_loader_v2")
   }
 
   it should "build an interface to an applet specified by ID" taggedAs NativeTest in {

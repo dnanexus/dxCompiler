@@ -1,5 +1,72 @@
 # Release Notes
 
+## 2.2.0 12-02-2021
+
+* DxNI handles native app(let)s with optional non-file object inputs
+* Sevaral additions/changes to extras.json:  
+  * Adds support for Amazon ECR repositories
+  * Adds support for configuring the chunk size for scatters (how many scatter jobs run concurrently)
+  * All top-level keys are now camel-case (old-style names are still recognized)
+
+## 2.1.1 09-02-2021
+
+* Adds support for WDL v1.1
+* Fixes errors due to expression evaluator not handling values wrapped in V\_Optional
+* Fixes errors related to compound references
+* Updated wdlTools 0.12.3. This update enforces uniqueness of variable names within the same scope
+* Avoids unnecessarily generating sub-workflow output applets
+* Fixes issue with task command blocks that begin with a placeholder
+* Upgraded dxfuse to 0.24.0
+
+## 2.1.0 04-02-2021
+
+* Update CWL parser to fix compilation of WDL tools with imports
+* Add CWL tool compilance tests to integration test suite
+* Fixes a bug where structs were out of order in generated code. This bug was due to an unnecessary conversion of a Vector to Map in CodeGenerator, which disordered the items.
+* Fixes an issue with resolving nested field references. There were two issues here: i. Unnecessarily including outputs that are direct pass-throughs of inputs in the closure when determining the inputs to an Output stage. ii. A bug in the resolution of deeply nested field references in wdlTools.eval.Eval that is fixed in 0.11.18.
+* Added an implementation of the manifest format for WDL.
+* Update wdlTools to 0.12.1, dxCommon to 0.2.5, dxApi to 0.1.8, cwlScala to 0.3.4
+
+## 2.0.1 22-01-2021
+
+* Implement translator and executor for CWL (tools only)
+* Fix map keys and values being out of order
+* Fix to EvalException: identifier not found
+* Fix to passing non-optional empty arrays
+* Update and fix documentation and WDL examples
+* Upgrade [dxfuse](https://github.com/dnanexus/dxfuse/releases) to 0.23.3, which now mounts in a read-only mode by default
+
+## 2.0.0 Release Notes Summary
+
+A summary of changes in the 2.0.0 version of dxCompiler comparing to the dxWDL version 1.47.2 (after which the first 2.0.0-rc version was introduced):
+
+User-facing changes:
+* Changed the name and all references from dxWDL to dxCompiler, dxCompiler-\*.jar is now used to compile an application or a workflow
+* Replaced Cromwell WOM (parser, type checker and evaluator) with [wdlTools](https://github.com/dnanexus-rnd/wdlTools), a library maintained by DNAnexus
+* Added support for per-workflow and per-scatter chunk size settings to extras.json
+* Added `streamFiles` compile option
+* Updated the mechanism of comparing instance types to select the cheapest one for execution
+* Improved file resolving and caching
+* Optimized bulk description of files by replacing `system/describeDataObjects` with `system/findDataObjects` API call and scoping file search to projects
+* Increased file name disambiguation directory size limit to 5000
+* Increased number of retries for the DNAnexus API requests to 10
+
+Development and codebase changes:
+* Reorganized dxCompiler code into subprojects
+  * core: shared code between front-end and back-end
+  * compiler: the front-end
+  * executorCommon: shared code between executors
+  * executorWdl: the WDL executor
+  * executorCwl: the CWL executor
+* Separated the compiler from executor packages
+* Moved API code to a separate dxApi library
+* Moved DxFileAccessProtocol to a separate protocols library
+* Moved parts of the code to a separate dxCommon library
+* Moved WDL type serialization code to wdlTools
+* Added archive format and implemented UDFs (user-defined functions) for archiving and unarchiving inputs
+* Changed the way the applet\_resources folder is used: common binaries are stored in sub-folders by version, each executor is built in its own sub-folder
+* Replaced Travis with Github Actions for unit and integration testing
+
 ## 2.0.0 17-12-2020
 
 * Reorganizes dxCompiler code into subprojects, splits codebase into 5 subprojects:
