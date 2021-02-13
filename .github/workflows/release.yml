@@ -44,7 +44,14 @@ jobs:
           echo dx mkdir $FOLDER
           echo python3 scripts/run_tests.py --test L --folder $FOLDER --project $PROJECT
           echo dx rmdir $FOLDER
-          
+
+      - name: Commit changes to release notes and application.conf files
+        uses: EndBug/add-and-commit@v7
+        with:
+          cwd: './dxCompiler'
+          message: 'Release ${{ github.event.inputs.release-version }}'
+          add: '["./executorWdl/src/main/resources/application.conf", "./core/src/main/resources/application.conf"]'
+
       - name: Run the release script
         env:
           STG_TOKEN: ${{ secrets.DX_STAGING_TOKEN }}
