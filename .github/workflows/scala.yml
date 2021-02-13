@@ -10,7 +10,7 @@ on:
 
 jobs:
   test:
-    name: dxCompiler Unit Tests (Staging)
+    name: Scala Unit Tests (Staging)
     runs-on: ubuntu-18.04
     steps:
       - name: Git Checkout
