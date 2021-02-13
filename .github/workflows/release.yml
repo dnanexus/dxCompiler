@@ -45,6 +45,23 @@ jobs:
           echo python3 scripts/run_tests.py --test L --folder $FOLDER --project $PROJECT
           echo dx rmdir $FOLDER
 
+      - name: Update release notes and application.conf files
+        id: update-release
+        run: |
+          export PATH="$PATH:$HOME/.local/bin"
+          extract-release-notes="ABC"
+          echo '::set-output name={release-notes}::{extract-release-notes}'
+          CONF_FILES=(
+              ./executorWdl/src/main/resources/application.conf
+              ./core/src/main/resources/application.conf
+              ./executorCwl/src/main/resources/application.conf
+              ./compiler/src/main/resources/application.conf
+              ./executorCommon/src/main/resources/application.conf
+          )
+          for i in ${CONF_FILES[@]}; do
+              sed -i 's/version.*$/version = "${{ github.event.inputs.release-version }}"/' $i
+          done
+
       - name: Commit changes to release notes and application.conf files
         uses: EndBug/add-and-commit@v7
         with:
@@ -78,6 +95,7 @@ jobs:
 #         with:
 #           tag_name: ${{ github.event.inputs.release-version }}
 #           release_name: dxCompiler ${{ github.event.inputs.release-version }}
+#           body: ${{ steps.update-release.outputs.release-notes }}
 #           draft: false
 #           prerelease: false
 
@@ -94,3 +112,12 @@ jobs:
 #           asset_path: ./dxCompiler${{ release-version }}.jar
 #           asset_name: dxCompiler${{ release-version }}.jar
 #           asset_content_type: application/jar
+
+#       - name: Revert if unsuccessful
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#         run: |
+#           export PATH="$PATH:$HOME/.local/bin"
+#           # revert the release commit
+#           # remove the tag
+#           # clean release page if it was created
