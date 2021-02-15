@@ -49,8 +49,8 @@ jobs:
         id: update-release
         run: |
           export PATH="$PATH:$HOME/.local/bin"
-          extract-release-notes="ABC"
-          echo '::set-output name={release-notes}::{extract-release-notes}'
+          export EXTRACT_RELEASE_NOTES=$(sed -n '/# 2.2.0,/##/p' RELEASE_NOTES.md | sed '1d; $d')
+          echo '::set-output name={release-notes}::$(echo $EXTRACT_RELEASE_NOTES)'
           CONF_FILES=(
               ./executorWdl/src/main/resources/application.conf
               ./core/src/main/resources/application.conf
