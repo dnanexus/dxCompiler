@@ -67,7 +67,6 @@ jobs:
       - name: Commit changes to release notes and application.conf files
         uses: EndBug/add-and-commit@v7
         with:
-          cwd: './dxCompiler'
           message: 'Release ${{ github.event.inputs.release-version }}'
           add: '["./executorWdl/src/main/resources/application.conf", "./core/src/main/resources/application.conf"]'
 
