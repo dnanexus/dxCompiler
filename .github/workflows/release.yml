@@ -61,6 +61,8 @@ jobs:
           for i in ${CONF_FILES[@]}; do
               sed -i 's/version.*$/version = "${{ github.event.inputs.release-version }}"/' $i
           done
+          git status
+          git diff
 
       - name: Commit changes to release notes and application.conf files
         uses: EndBug/add-and-commit@v7
@@ -76,48 +78,43 @@ jobs:
           DOCKERHUB_TOKEN: ${{ secrets.DX_STAGING_TOKEN }}
         run: |
           export PATH="$PATH:$HOME/.local/bin"
-          
-          # Update application.conf files in 5 packages
-          
-          # Update RELEASE_NOTES
-          
           echo ./scripts/build_all_releases.sh \
               --staging-token $STG_TOKEN \
               --production-token $PROD_TOKEN \
-              --docker-user ROBOT_ACCOUNT \
+              --docker-user commandlinegirl \
               --docker-password $DOCKERHUB_TOKEN
 
-#       - name: Create release entry
-#         id: create-release
-#         uses: actions/create-release@v1
-#         env:
-#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#         with:
-#           tag_name: ${{ github.event.inputs.release-version }}
-#           release_name: dxCompiler ${{ github.event.inputs.release-version }}
-#           body: ${{ steps.update-release.outputs.release-notes }}
-#           draft: false
-#           prerelease: false
+      - name: Create release entry
+        id: create-release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.event.inputs.release-version }}
+          release_name: dxCompiler ${{ github.event.inputs.release-version }}
+          body: ${{ steps.update-release.outputs.release-notes }}
+          draft: true
+          prerelease: false
 
-#       - name: Upload release asset
-#         id: upload-release-asset 
-#         uses: actions/upload-release-asset@v1
-#         env:
-#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#         with:
-#           # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, 
-#           # which include a `upload_url`. See this blog post for more info: 
-#           # https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-#           upload_url: ${{ steps.create-release.outputs.upload_url }} 
-#           asset_path: ./dxCompiler${{ release-version }}.jar
-#           asset_name: dxCompiler${{ release-version }}.jar
-#           asset_content_type: application/jar
+      - name: Upload release asset
+        id: upload-release-asset 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # This pulls from the "Create release entry" step above, referencing it's ID to get its outputs object, 
+          # which include a `upload_url`. See this blog post for more info: 
+          # https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+          upload_url: ${{ steps.create-release.outputs.upload_url }} 
+          asset_path: ./dxCompiler${{ release-version }}.jar
+          asset_name: dxCompiler${{ release-version }}.jar
+          asset_content_type: application/jar
 
-#       - name: Revert if unsuccessful
-#         env:
-#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#         run: |
-#           export PATH="$PATH:$HOME/.local/bin"
-#           # revert the release commit
-#           # remove the tag
-#           # clean release page if it was created
+      - name: Revert if unsuccessful
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          export PATH="$PATH:$HOME/.local/bin"
+          # revert the release commit
+          # remove the tag
+          # clean release page if it was created
