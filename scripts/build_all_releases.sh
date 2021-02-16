@@ -162,8 +162,9 @@ function parse_cmd_line {
 
 # main program
 basic_checks
-parse_cmd_line $@
-get_top_dir
-get_version
-build
-build_docker_image
+# TODO: uncomment
+# parse_cmd_line $@
+# get_top_dir
+# get_version
+# build
+# build_docker_image
