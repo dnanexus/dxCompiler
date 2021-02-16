@@ -49,7 +49,7 @@ jobs:
         id: update-release
         run: |
           export PATH="$PATH:$HOME/.local/bin"
-          export EXTRACT_RELEASE_NOTES=$(sed -n '/# 2.2.0,/##/p' RELEASE_NOTES.md | sed '1d; $d')
+          export EXTRACT_RELEASE_NOTES=$(sed -n '/# 2.2.0/,/##/p' RELEASE_NOTES.md |  sed '1d; $d')
           echo '::set-output name={release-notes}::$(echo $EXTRACT_RELEASE_NOTES)'
           CONF_FILES=(
               ./executorWdl/src/main/resources/application.conf
@@ -61,9 +61,10 @@ jobs:
           for i in ${CONF_FILES[@]}; do
               sed -i 's/version.*$/version = "${{ github.event.inputs.release-version }}"/' $i
           done
-          echo "-----\n Debugging (REMOVE ME)"
+          echo "----- Debugging (REMOVE ME)"
           git status
           git diff
+          echo "----- Debugging (value of EXTRACT_RELEASE_NOTES)"
           echo $EXTRACT_RELEASE_NOTES
 
       - name: Commit changes to release notes and application.conf files
@@ -77,6 +78,7 @@ jobs:
               "./compiler/src/main/resources/application.conf",
               "./executorCommon/src/main/resources/application.conf"
           ]'
+          push: false
 
       - name: Run the release script
         env:
@@ -115,16 +117,31 @@ jobs:
           upload_url: ${{ steps.create-release.outputs.upload_url }} 
           # asset_path: ./dxCompiler${{ github.event.inputs.release-version }}.jar
           asset_path: ./executorWdl/src/main/resources/application.conf
-          asset_name: dxCompiler${{ github.event.inputs.release-version }}.jar
+          asset_name: dxCompiler-${{ github.event.inputs.release-version }}.jar
           # asset_content_type: application/jar
           asset_content_type: text/html
 
-      - name: Revert if unsuccessful
-        if: ${{ cancelled() || failure() }}
+      - name: If successful push main to origin
+        if: ${{ success() }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           export PATH="$PATH:$HOME/.local/bin"
           # revert the release commit
           # remove the tag
+          # git merge release-${{ github.event.inputs.release-version }} main
+          # git branch -D release-${{ github.event.inputs.release-version }}
           # clean release page if it was created
+
+      # - name: If unsuccessfull rollback release
+      #   if: ${{ cancelled() || failure() || success() }}
+      #   uses: author/action-rollback@stable
+      #   with:
+      #     # Using a known release ID
+      #     release_id: ${{ steps.create-release.id }}
+      #     # Using a tag name
+      #     tag: ${{ github.event.inputs.release-version }}
+      #     #  If the release does not exist but the tag does, setting this to true will remove the tag.
+      #     delete_orphan_tag: true
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
