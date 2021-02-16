@@ -61,14 +61,22 @@ jobs:
           for i in ${CONF_FILES[@]}; do
               sed -i 's/version.*$/version = "${{ github.event.inputs.release-version }}"/' $i
           done
+          echo "-----\n Debugging (REMOVE ME)"
           git status
           git diff
+          echo $EXTRACT_RELEASE_NOTES
 
       - name: Commit changes to release notes and application.conf files
         uses: EndBug/add-and-commit@v7
         with:
           message: 'Release ${{ github.event.inputs.release-version }}'
-          add: '["./executorWdl/src/main/resources/application.conf", "./core/src/main/resources/application.conf"]'
+          add: '[
+              "./executorWdl/src/main/resources/application.conf", 
+              "./core/src/main/resources/application.conf",
+              "./executorCwl/src/main/resources/application.conf",
+              "./compiler/src/main/resources/application.conf",
+              "./executorCommon/src/main/resources/application.conf"
+          ]'
 
       - name: Run the release script
         env:
@@ -105,11 +113,13 @@ jobs:
           # which include a `upload_url`. See this blog post for more info: 
           # https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
           upload_url: ${{ steps.create-release.outputs.upload_url }} 
-          asset_path: ./dxCompiler${{ github.event.inputs.release-version }}.jar
+          # asset_path: ./dxCompiler${{ github.event.inputs.release-version }}.jar
+          asset_path: ./executorWdl/src/main/resources/application.conf
           asset_name: dxCompiler${{ github.event.inputs.release-version }}.jar
-          asset_content_type: application/jar
+          # asset_content_type: application/jar
 
       - name: Revert if unsuccessful
+        if: ${{ cancelled() || failure() }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
