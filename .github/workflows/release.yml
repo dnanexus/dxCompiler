@@ -117,6 +117,7 @@ jobs:
           asset_path: ./executorWdl/src/main/resources/application.conf
           asset_name: dxCompiler${{ github.event.inputs.release-version }}.jar
           # asset_content_type: application/jar
+          asset_content_type: text/html
 
       - name: Revert if unsuccessful
         if: ${{ cancelled() || failure() }}
