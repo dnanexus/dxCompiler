@@ -129,26 +129,28 @@ jobs:
           # asset_content_type: application/jar
           asset_content_type: text/html
 
-      - name: Push main to origin if successful
+      - name: Push main and tag to origin if successful
         if: ${{ success() }}
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          export PATH="$PATH:$HOME/.local/bin"
+          git push origin ${{ github.event.inputs.release-version }}
+          git push origin ${{ github.ref }}
 
-      - name: Push tag to origin if successful
-        if: ${{ success() }}
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.event.inputs.release-version }}
+      # - name: Push tag to origin if successful
+      #   if: ${{ success() }}
+      #   uses: ad-m/github-push-action@master
+      #   with:
+      #     github_token: ${{ secrets.GITHUB_TOKEN }}
+      #     branch: ${{ github.event.inputs.release-version }}
 
       - name: Rollback release if unsuccessfull
         if: ${{ cancelled() || failure() || success() }}
         uses: author/action-rollback@stable
         with:
-          # Using a known release ID
           release_id: ${{ steps.create-release.id }}
+          tag: ${{ github.event.inputs.release-version }}
           #  If the release does not exist but the tag does, setting this to true will remove the tag.
           delete_orphan_tag: true
         env:
