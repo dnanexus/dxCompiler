@@ -7,7 +7,7 @@ on:
         required: true
       should-run-tests:
         description: 'Should run large integration tests'
-        required: true
+        required: false
         default: false
 
 jobs:
@@ -32,7 +32,7 @@ jobs:
           pip3 install dxpy
 
       - name: Run tests
-        if: ${{ github.event.inputs.should-run-tests }}
+        if: ${{ github.event.inputs.should-run-tests }} != false
         env:
           AUTH_TOKEN: ${{ secrets.DX_STAGING_TOKEN }}
         run: |
