@@ -5,6 +5,10 @@ on:
       release-version:
         description: 'Release version'
         required: true
+      should-run-tests:
+        description: 'Should run large integration tests'
+        required: true
+        default: false
 
 jobs:
   run-release:
@@ -28,6 +32,7 @@ jobs:
           pip3 install dxpy
 
       - name: Run tests
+        if: ${{ github.event.inputs.should-run-tests }}
         env:
           AUTH_TOKEN: ${{ secrets.DX_STAGING_TOKEN }}
         run: |
@@ -123,25 +128,8 @@ jobs:
 
       - name: If successful push main to origin
         if: ${{ success() }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          export PATH="$PATH:$HOME/.local/bin"
-          # revert the release commit
-          # remove the tag
-          # git merge release-${{ github.event.inputs.release-version }} main
-          # git branch -D release-${{ github.event.inputs.release-version }}
-          # clean release page if it was created
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
 
-      # - name: If unsuccessfull rollback release
-      #   if: ${{ cancelled() || failure() || success() }}
-      #   uses: author/action-rollback@stable
-      #   with:
-      #     # Using a known release ID
-      #     release_id: ${{ steps.create-release.id }}
-      #     # Using a tag name
-      #     tag: ${{ github.event.inputs.release-version }}
-      #     #  If the release does not exist but the tag does, setting this to true will remove the tag.
-      #     delete_orphan_tag: true
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
