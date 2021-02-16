@@ -323,7 +323,8 @@ case class WdlWorkflowExecutor(docSource: FileNode,
 
     private def launchCall(
         callInputs: Map[String, (T, V)],
-        nameDetail: Option[String] = None
+        nameDetail: Option[String] = None,
+        folder: Option[String] = None
     ): (DxExecution, ExecutableLink, String) = {
       logger.traceLimited(
           s"""|call = ${call}
@@ -372,13 +373,15 @@ case class WdlWorkflowExecutor(docSource: FileNode,
                   call.actualName,
                   callInputsIR,
                   nameDetail,
-                  instanceType.map(_.name))
+                  instanceType.map(_.name),
+                  folder = folder)
       (dxExecution, executableLink, execName)
     }
 
-    private def launchCall(): Map[String, ParameterLink] = {
+    private def launchCall(blockIndex: Int): Map[String, ParameterLink] = {
       val callInputs = evaluateCallInputs()
-      val (dxExecution, executableLink, callName) = launchCall(callInputs)
+      val (dxExecution, executableLink, callName) =
+        launchCall(callInputs, folder = Some(blockIndex.toString))
       jobMeta.createExecutionOutputLinks(dxExecution, executableLink.outputs, Some(callName))
     }
 
@@ -438,29 +441,6 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       }
     }
 
-    /**
-      * A complex subblock requiring a fragment runner, or a subworkflow.
-      * For example:
-      *
-      *  if (flag) {
-      *    call zinc as inc3 { input: a = num}
-      *    call zinc as inc4 { input: a = num + 3 }
-      *
-      *    Int b = inc4.result + 14
-      *    call zinc as inc5 { input: a = b * 4 }
-      *  }
-      *
-      * There must be exactly one sub-workflow.
-      * @return
-      */
-    private def launchConditionalSubblock(): Map[String, ParameterLink] = {
-      assert(execLinkInfo.size == 1)
-      val executableLink = execLinkInfo.values.head
-      val callInputs = prepareSubworkflowInputs(executableLink)
-      val (dxExecution, _) = launchJob(executableLink, executableLink.name, callInputs)
-      jobMeta.createExecutionOutputLinks(dxExecution, executableLink.outputs)
-    }
-
     private def launchConditional(): Map[String, ParameterLink] = {
       val cond = block.target match {
         case Some(TAT.Conditional(expr, _, _)) =>
@@ -476,10 +456,30 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           // }
           // The flag evaluates to true, so execute the inner call
           // and ensure it's output type is optional
-          launchCall()
+          launchCall(block.index)
         case (V_Boolean(true), BlockKind.ConditionalComplex) =>
-          // complex conditional block that requires a subworkflow
-          launchConditionalSubblock()
+          // A complex subblock requiring a fragment runner, or a subworkflow. For example:
+          //
+          // if (flag) {
+          //    call zinc as inc3 { input: a = num}
+          //    call zinc as inc4 { input: a = num + 3 }
+          //
+          //    Int b = inc4.result + 14
+          //    call zinc as inc5 { input: a = b * 4 }
+          // }
+          //
+          // There must be exactly one sub-workflow.
+          assert(execLinkInfo.size == 1)
+          val executableLink = execLinkInfo.values.head
+          val callInputs = prepareSubworkflowInputs(executableLink)
+          // there is no good human-readable name for a conditional, so we just
+          // use the current block index
+          val (dxExecution, _) =
+            launchJob(executableLink,
+                      executableLink.name,
+                      callInputs,
+                      folder = Some(block.index.toString))
+          jobMeta.createExecutionOutputLinks(dxExecution, executableLink.outputs)
         case (V_Boolean(false), _) =>
           Map.empty
         case _ =>
@@ -957,7 +957,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     override def launch(): Map[String, ParameterLink] = {
       val outputs: Map[String, ParameterLink] = block.kind match {
         case BlockKind.CallWithSubexpressions | BlockKind.CallFragment =>
-          launchCall()
+          launchCall(block.index)
         case BlockKind.ConditionalOneCall | BlockKind.ConditionalComplex =>
           launchConditional()
         case BlockKind.ScatterOneCall | BlockKind.ScatterComplex =>
