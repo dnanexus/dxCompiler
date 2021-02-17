@@ -94,8 +94,6 @@ jobs:
               --docker-password $DOCKERHUB_TOKEN
 
       - name: Create release entry
-        # It is expected RELEASE_NOTES.md already have a section for the release added
-        # It should start with '# <version>'
         id: create-release
         uses: actions/create-release@v1
         env:
@@ -103,7 +101,7 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.release-version }}
           release_name: dxCompiler ${{ github.event.inputs.release-version }}
-          body: "Test"
+          body: Test
           draft: true
           prerelease: false
 
@@ -124,12 +122,11 @@ jobs:
           asset_content_type: text/html
 
       - name: Push main and tag to origin if successful
-        if: ${{ success() }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           export PATH="$PATH:$HOME/.local/bin"
-          git push origin ${{ github.ref }}
+          # git push origin ${{ github.ref }}
           # git push origin tagname
           echo ${{ steps.create-release.outputs.id }}
 
