@@ -39,14 +39,15 @@ function basic_checks {
     fi
     echo "Found the dx CLI: $path_to_dx"
 
-    local branch=$(git symbolic-ref --short HEAD)
-    if [[ $branch != "main" ]]; then
-        echo "This isn't main branch, please do 'git checkout main'"
-        exit 1
-    fi
+    # TODO: uncomment this code
+    # local branch=$(git symbolic-ref --short HEAD)
+    # if [[ $branch != "main" ]]; then
+    #     echo "This isn't main branch, please do 'git checkout main'"
+    #     exit 1
+    # fi
 
-    echo "making sure main is up to date"
-    git pull
+    # echo "making sure main is up to date"
+    # git pull
 }
 
 function build {
