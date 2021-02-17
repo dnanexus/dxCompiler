@@ -46,11 +46,14 @@ jobs:
           # run tests
           cd ${GITHUB_WORKSPACE}
           FOLDER=/builds/test_gha_dxcompiler_$(date +%s)_$RANDOM
-          echo dx mkdir $FOLDER
-          echo python3 scripts/run_tests.py --test L --folder $FOLDER --project $PROJECT
-          echo dx rmdir $FOLDER
+          dx mkdir $FOLDER
+          python3 scripts/run_tests.py --test L --folder $FOLDER --project $PROJECT
+          #TODO: also remove the folder when the tests fail
+          dx rmdir $FOLDER
 
-      - name: Update release notes and application.conf files
+      - name: Extract release notes and set version in application.conf files
+        # It is expected RELEASE_NOTES.md already have a section for the release added
+        # It should start with '# <version>'
         id: update-release
         run: |
           export PATH="$PATH:$HOME/.local/bin"
@@ -58,7 +61,7 @@ jobs:
           echo "--- start EXTRACT_RELEASE_NOTES"
           echo "${EXTRACT_RELEASE_NOTES}"
           echo "--- end EXTRACT_RELEASE_NOTES"
-          echo ::set-output name=release-notes::$(echo "${EXTRACT_RELEASE_NOTES}")
+          echo ::set-output name=release-notes::"$(echo "${EXTRACT_RELEASE_NOTES}")"
           CONF_FILES=(
               ./executorWdl/src/main/resources/application.conf
               ./core/src/main/resources/application.conf
@@ -70,7 +73,7 @@ jobs:
               sed -i 's/version.*$/version = "${{ github.event.inputs.release-version }}"/' $i
           done
 
-      - name: Commit changes to release notes and application.conf files
+      - name: Commit changes to application.conf files
         uses: EndBug/add-and-commit@v7
         with:
           message: 'Release ${{ github.event.inputs.release-version }}'
@@ -86,14 +89,14 @@ jobs:
 
       - name: Run the release script
         env:
-          STG_TOKEN: ${{ secrets.DX_STAGING_TOKEN }}
-          PROD_TOKEN: ${{ secrets.DX_STAGING_TOKEN }}
-          DOCKERHUB_TOKEN: ${{ secrets.DX_STAGING_TOKEN }}
+          DX_STAGING_RELEASE_TOKEN: ${{ secrets.DX_STAGING_RELEASE_TOKEN }}
+          DX_PROD_RELEASE_TOKEN: ${{ secrets.DX_PROD_RELEASE_TOKEN }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
           export PATH="$PATH:$HOME/.local/bin"
-          echo ./scripts/build_all_releases.sh \
-              --staging-token $STG_TOKEN \
-              --production-token $PROD_TOKEN \
+          ./scripts/build_all_releases.sh \
+              --staging-token $DX_STAGING_RELEASE_TOKEN \
+              --production-token $DX_PROD_RELEASE_TOKEN \
               --docker-user commandlinegirl \
               --docker-password $DOCKERHUB_TOKEN
 
@@ -125,13 +128,15 @@ jobs:
           # asset_content_type: application/jar
           asset_content_type: text/html
 
-      # - name: Push main and tag to origin if successful
-      #   if: ${{ success() }}
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   run: |
-      #     export PATH="$PATH:$HOME/.local/bin"
-      #     git push origin ${{ github.ref }}
+      - name: Push main and tag to origin if successful
+        if: ${{ success() }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          export PATH="$PATH:$HOME/.local/bin"
+          git push origin ${{ github.ref }}
+          # git push origin tagname
+          echo ${{ steps.create-release.outputs.id }}
 
       # - name: Push tag to origin if successful
       #   if: ${{ success() }}
@@ -144,7 +149,7 @@ jobs:
         if: ${{ cancelled() || failure() || success() }}
         uses: author/action-rollback@stable
         with:
-          release_id: create-release
+          release_id: ${{ steps.create-release.outputs.id }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
