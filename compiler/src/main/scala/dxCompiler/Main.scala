@@ -775,6 +775,8 @@ object Main {
         |                                 download agent), or to mount no files with dxfuse (only use 
         |                                 download agent); this setting overrides any per-file settings
         |                                 in WDL parameter_meta sections.
+        |      -useManifests              Use manifest files for all workflow and applet inputs and 
+        |                                 outputs.
         |
         |  dxni
         |    Dx Native call Interface. Create stubs for calling dx

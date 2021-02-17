@@ -6,21 +6,27 @@ workflow simple {
     File f
   }
 
-  call task1 {
+  call echocat {
     input: s = s, f = f, n = 2
   }
 
-  call task1 as task2 {
-    input: s = task1.sout, f = task1.fout, n = 1
+  call echocat as echocat2 {
+    input: s = echocat.sout, f = echocat.fout, n = 1
+  }
+
+  call merge {
+    input:
+      strings = [echocat.sout, echocat2.sout],
+      files = [echocat.fout, echocat2.fout]
   }
 
   output {
-    String sout = task2.sout
-    File fout = task2.fout
+    String sout = merge.sout
+    File fout = merge.fout
   }
 }
 
-task task1 {
+task echocat {
   input {
     String s
     File f
@@ -35,5 +41,21 @@ task task1 {
   output {
     String sout = read_string(stdout())
     File fout = "out.${n}"
+  }
+}
+
+task merge {
+  input {
+    Array[String] strings
+    Array[File] files
+  }
+
+  command <<<
+    cat ~{sep=" " files} > out_merge.txt
+  >>>
+
+  output {
+    String sout = "${sep=" " strings}"
+    File fout = "out_merge.txt"
   }
 }

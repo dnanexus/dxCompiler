@@ -8,7 +8,7 @@ import spray.json._
 import scala.collection.immutable.TreeSeqMap
 
 object ValueSerde extends DefaultJsonProtocol {
-  val WrappedValueKey = "value___"
+  val WrappedValueKey = "wrapped___"
 
   case class ValueSerdeException(message: String) extends Exception(message)
 
