@@ -42,6 +42,7 @@ case class SquashFs(image: Path)(
 
   private def mount(sudo: Boolean): Unit = {
     val prefix = if (sudo) "sudo -n " else ""
+    // suppress error logs
     if (isLinux) {
       SysUtils.execCommand(
           s"${prefix}mount -t squashfs -o loop ${image.toString} ${mountPoint.toString}"

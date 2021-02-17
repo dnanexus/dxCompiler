@@ -57,8 +57,7 @@ class DxNativeInterfaceTest extends AnyFlatSpec with Matchers with BeforeAndAfte
     val topDir = Paths.get(System.getProperty("user.dir"))
     nativeApplets.foreach { app =>
       SysUtils.execCommand(
-          s"dx build $topDir/test/applets/$app --destination ${testProject}:${folderPath}",
-          logger = Logger.Quiet
+          s"dx build $topDir/test/applets/$app --destination ${testProject}:${folderPath}"
       )
     }
   }
