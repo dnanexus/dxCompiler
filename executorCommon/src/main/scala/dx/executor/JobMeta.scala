@@ -121,6 +121,9 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     * @return the actual task/workflow inputs extracted from the manifest
     */
   private def unpackManifests(rawInputs: Map[String, JsValue]): Map[String, JsValue] = {
+    logger.trace(s"""Unpacking manifests from raw inputs:
+                    |${rawInputs}""".stripMargin)
+
     // resolve a file input to a DxFile
     def resolveManifestFiles(key: String): Vector[DxFile] = {
       rawInputs.get(key) match {
