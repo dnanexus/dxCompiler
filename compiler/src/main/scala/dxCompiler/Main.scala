@@ -421,8 +421,8 @@ object Main {
           leaveWorkflowsOpen,
           locked,
           projectWideReuse,
-          streamFiles,
           separateOutputs,
+          streamFiles,
           fileResolver
       )
       val results = compiler.apply(bundle, project, folder)

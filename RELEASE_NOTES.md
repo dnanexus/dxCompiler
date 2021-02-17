@@ -1,5 +1,9 @@
 # Release Notes
 
+## in dev
+
+* Adds `-separateOutputs` option to store output from each call in a separate folder
+
 ## 2.2.0 12-02-2021
 
 * DxNI handles native app(let)s with optional non-file object inputs
