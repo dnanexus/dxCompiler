@@ -58,7 +58,7 @@ jobs:
           echo "--- start EXTRACT_RELEASE_NOTES"
           echo "${EXTRACT_RELEASE_NOTES}"
           echo "--- end EXTRACT_RELEASE_NOTES"
-          echo ":set-output name={release-notes}::$(echo $EXTRACT_RELEASE_NOTES)"
+          echo "::set-output name=release-notes::$(echo $EXTRACT_RELEASE_NOTES)"
           CONF_FILES=(
               ./executorWdl/src/main/resources/application.conf
               ./core/src/main/resources/application.conf
