@@ -58,7 +58,7 @@ jobs:
           echo "--- start EXTRACT_RELEASE_NOTES"
           echo "${EXTRACT_RELEASE_NOTES}"
           echo "--- end EXTRACT_RELEASE_NOTES"
-          echo ::set-output name=release-notes::echo "${EXTRACT_RELEASE_NOTES}"
+          echo ::set-output name=release-notes::$(echo "${EXTRACT_RELEASE_NOTES}")
           CONF_FILES=(
               ./executorWdl/src/main/resources/application.conf
               ./core/src/main/resources/application.conf
@@ -125,13 +125,13 @@ jobs:
           # asset_content_type: application/jar
           asset_content_type: text/html
 
-      - name: Push main and tag to origin if successful
-        if: ${{ success() }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          export PATH="$PATH:$HOME/.local/bin"
-          git push origin ${{ github.ref }}
+      # - name: Push main and tag to origin if successful
+      #   if: ${{ success() }}
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   run: |
+      #     export PATH="$PATH:$HOME/.local/bin"
+      #     git push origin ${{ github.ref }}
 
       # - name: Push tag to origin if successful
       #   if: ${{ success() }}
