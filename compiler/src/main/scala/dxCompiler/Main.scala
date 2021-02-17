@@ -348,13 +348,12 @@ object Main {
 
     val useManifests: Boolean = options.getFlag("useManifests")
     val locked = options.getFlag("locked") match {
-      case true => true
       case false if useManifests =>
         logger.warning(
-            "usage of manifests is only compatible with locked workflows - setting '-locked' flag"
+            "Usage of manifests is only compatible with locked workflows; setting '-locked' flag"
         )
         true
-      case false => false
+      case b => b
     }
 
     val translator =
