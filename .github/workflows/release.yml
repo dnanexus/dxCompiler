@@ -149,10 +149,9 @@ jobs:
         if: ${{ cancelled() || failure() || success() }}
         uses: author/action-rollback@stable
         with:
-          release_id: ${{ steps.create-release.id }}
+          id: ${{ steps.create-release.id }}
           tag: ${{ github.event.inputs.release-version }}
           #  If the release does not exist but the tag does, setting this to true will remove the tag.
-          delete_orphan_tag: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
