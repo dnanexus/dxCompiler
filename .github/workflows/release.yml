@@ -52,16 +52,9 @@ jobs:
           dx rmdir $FOLDER
 
       - name: Extract release notes and set version in application.conf files
-        # It is expected RELEASE_NOTES.md already have a section for the release added
-        # It should start with '# <version>'
         id: update-release
         run: |
           export PATH="$PATH:$HOME/.local/bin"
-          export EXTRACT_RELEASE_NOTES=$(sed -n '/# 2.2.0/,/##/p' RELEASE_NOTES.md |  sed '1d; $d')
-          echo "--- start EXTRACT_RELEASE_NOTES"
-          echo "${EXTRACT_RELEASE_NOTES}"
-          echo "--- end EXTRACT_RELEASE_NOTES"
-          echo ::set-output name=release-notes::"$(echo "${EXTRACT_RELEASE_NOTES}")"
           CONF_FILES=(
               ./executorWdl/src/main/resources/application.conf
               ./core/src/main/resources/application.conf
@@ -101,6 +94,8 @@ jobs:
               --docker-password $DOCKERHUB_TOKEN
 
       - name: Create release entry
+        # It is expected RELEASE_NOTES.md already have a section for the release added
+        # It should start with '# <version>'
         id: create-release
         uses: actions/create-release@v1
         env:
@@ -108,7 +103,7 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.release-version }}
           release_name: dxCompiler ${{ github.event.inputs.release-version }}
-          body: ${{ steps.update-release.outputs.release-notes }}
+          body: "$(sed -n '/# 2.2.0/,/##/p' RELEASE_NOTES.md |  sed '1d; $d')"
           draft: true
           prerelease: false
 
