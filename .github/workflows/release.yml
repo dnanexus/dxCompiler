@@ -1,0 +1,15 @@
+name: dxCompiler Release (Staging and Prod)
+on:
+  workflow_dispatch:
+    inputs:
+      release-version:
+        description: 'Release version'
+        required: true
+
+jobs:
+  print-releaase-version:
+    runs-on: ubuntu-latest
+    steps:
+    - run: |
+        echo "Hello ${{ github.event.inputs.release-version }}!"
+
