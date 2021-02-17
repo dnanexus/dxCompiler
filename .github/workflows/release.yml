@@ -6,9 +6,9 @@ on:
         description: 'Release version'
         required: true
       should-run-tests:
-        description: 'Should run large integration tests'
+        description: 'Should run large integration tests (false/true; default: false)'
         required: false
-        default: false
+        default: 'false'
 
 jobs:
   run-release:
@@ -32,7 +32,7 @@ jobs:
           pip3 install dxpy
 
       - name: Run tests
-        if: ${{ github.event.inputs.should-run-tests }} != false
+        if: ${{ github.event.inputs.should-run-tests }} == 'true'
         env:
           AUTH_TOKEN: ${{ secrets.DX_STAGING_TOKEN }}
         run: |
@@ -56,7 +56,7 @@ jobs:
           export PATH="$PATH:$HOME/.local/bin"
           export EXTRACT_RELEASE_NOTES=$(sed -n '/# 2.2.0/,/##/p' RELEASE_NOTES.md |  sed '1d; $d')
           echo "--- start EXTRACT_RELEASE_NOTES"
-          echo $EXTRACT_RELEASE_NOTES
+          echo "${EXTRACT_RELEASE_NOTES}"
           echo "--- end EXTRACT_RELEASE_NOTES"
           echo '::set-output name={release-notes}::$(echo $EXTRACT_RELEASE_NOTES)'
           CONF_FILES=(
@@ -69,11 +69,6 @@ jobs:
           for i in ${CONF_FILES[@]}; do
               sed -i 's/version.*$/version = "${{ github.event.inputs.release-version }}"/' $i
           done
-          echo "----- Debugging (REMOVE ME)"
-          git status
-          git diff
-          echo "----- Debugging (value of EXTRACT_RELEASE_NOTES)"
-          echo $EXTRACT_RELEASE_NOTES
 
       - name: Commit changes to release notes and application.conf files
         uses: EndBug/add-and-commit@v7
