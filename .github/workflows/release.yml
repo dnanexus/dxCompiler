@@ -87,6 +87,7 @@ jobs:
               "./executorCommon/src/main/resources/application.conf"
           ]'
           push: false
+          tag: ${{ github.event.inputs.release-version }}
 
       - name: Run the release script
         env:
@@ -135,7 +136,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           export PATH="$PATH:$HOME/.local/bin"
-          git push origin ${{ github.event.inputs.release-version }}
           git push origin ${{ github.ref }}
 
       # - name: Push tag to origin if successful
@@ -149,7 +149,7 @@ jobs:
         if: ${{ cancelled() || failure() || success() }}
         uses: author/action-rollback@stable
         with:
-          id: ${{ steps.create-release.id }}
+          release_id: ${{ steps.create-release.id }}
           tag: ${{ github.event.inputs.release-version }}
           #  If the release does not exist but the tag does, setting this to true will remove the tag.
         env:
