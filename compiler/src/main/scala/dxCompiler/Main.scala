@@ -147,7 +147,7 @@ object Main {
       "streamAllFiles"
   )
 
-  private def resolveDestination(
+  private def resolvePath(
       dxApi: DxApi,
       project: Option[String],
       folder: Option[String],
@@ -194,10 +194,10 @@ object Main {
     (dxProject, folderOrPath)
   }
 
-  private def resolveOrCreateDestination(dxApi: DxApi,
-                                         project: String,
-                                         folder: String): (DxProject, String) = {
-    resolveDestination(dxApi, Some(project), Some(folder), create = true) match {
+  private def resolveOrCreatePath(dxApi: DxApi,
+                                  project: String,
+                                  folder: String): (DxProject, String) = {
+    resolvePath(dxApi, Some(project), Some(folder), create = true) match {
       case (dxProject, Left(folder)) => (dxProject, folder)
       case _                         => throw new Exception("expected folder")
     }
@@ -244,7 +244,7 @@ object Main {
       case _ =>
         throw OptionParseException("Project is unspecified")
     }
-    resolveOrCreateDestination(dxApi, project, folder)
+    resolveOrCreatePath(dxApi, project, folder)
   }
 
   sealed trait CompilerSuccessfulTermination extends SuccessfulTermination {
@@ -346,10 +346,15 @@ object Main {
     val compileMode: CompilerMode.CompilerMode =
       options.getValueOrElse[CompilerMode.CompilerMode]("compileMode", CompilerMode.All)
 
-    val locked = options.getFlag("locked")
     val useManifests: Boolean = options.getFlag("useManifests")
-    if (useManifests && !locked) {
-      return Failure("usage of manifests is only compatible with locked workflows")
+    val locked = options.getFlag("locked") match {
+      case true => true
+      case false if useManifests =>
+        logger.warning(
+            "usage of manifests is only compatible with locked workflows - setting '-locked' flag"
+        )
+        true
+      case false => false
     }
 
     val translator =
@@ -606,7 +611,7 @@ object Main {
         case e: Throwable => Failure(exception = Some(e))
       }
     } else {
-      val (dxProject, folderOrFile) = resolveDestination(dxApi, projectOpt, folderOpt, pathOpt)
+      val (dxProject, folderOrFile) = resolvePath(dxApi, projectOpt, folderOpt, pathOpt)
       val includeApps = appsOption match {
         case AppsOption.Include => true
         case AppsOption.Exclude => false
@@ -737,68 +742,78 @@ object Main {
         |
         |Actions:
         |  version
-        |    Prints the dxCompiler version
+        |    Prints the dxCompiler version.
         |  
         |  config
-        |    Prints the current dxCompiler configuration
+        |    Prints the current dxCompiler configuration.
         |  
         |  describe <DxWorkflow ID>
-        |    Generate the execution tree as JSON for a given dnanexus workflow ID.
-        |    Workflow needs to be have been previoulsy compiled by dxCompiler.
+        |    Generate the JSON execution tree for a given DNAnexus workflow ID.
+        |    The workflow needs to be have been previously compiled by dxCompiler.
         |    options
-        |      -pretty                Print exec tree in pretty format instead of JSON
+        |      -pretty                Print exec tree in "pretty" text format instead of JSON.
         |
         |  compile <WDL file>
-        |    Compile a wdl file into a dnanexus workflow.
-        |    Optionally, specify a destination path on the
-        |    platform. If a WDL inputs files is specified, a dx JSON
-        |    inputs file is generated from it.
+        |    Compile a WDL file to a DNAnexus workflow or applet.
         |    options
-        |      -archive                   Archive older versions of applets
-        |      -compileMode <string>      Compilation mode, a debugging flag
-        |      -defaults <string>         File with Cromwell formatted default values (JSON)
-        |      -execTree [json,pretty]    Write out a json representation of the workflow
-        |      -extras <string>           JSON formatted file with extra options, for example
-        |                                 default runtime options for tasks.
-        |      -inputs <string>           File with Cromwell formatted inputs
-        |      -locked                    Create a locked-down workflow
-        |      -leaveWorkflowsOpen        Leave created workflows open (otherwise they are closed)
-        |      -p | -imports <string>     Directory to search for imported WDL files
-        |      -projectWideReuse          Look for existing applets/workflows in the entire project
-        |                                 before generating new ones. The normal search scope is the
-        |                                 target folder only.
-        |      -reorg                     Reorganize workflow output files
-        |      -runtimeDebugLevel [0,1,2] How much debug information to write to the
-        |                                 job log at runtime. Zero means write the minimum,
-        |                                 one is the default, and two is for internal debugging.
-        |      -streamFiles               Whether to mount all files with dxfuse (do not use the 
-        |                                 download agent), or to mount no files with dxfuse (only use 
-        |                                 download agent); this setting overrides any per-file settings
-        |                                 in WDL parameter_meta sections.
-        |      -useManifests              Use manifest files for all workflow and applet inputs and 
-        |                                 outputs.
+        |      -archive               Archive older versions of applets.
+        |      -compileMode <string>  Compilation mode - a debugging flag for internal use.
+        |      -defaults <string>     JSON file with standard-formatted default values.
+        |      -destination <string>    Full platform path (project:/folder).
+        |      -execTree [json,pretty]    
+        |                             Print a JSON representation of the workflow.
+        |      -extras <string>       JSON file with extra options (see documentation).
+        |      -inputs <string>       JSON file with standard-formatted input values. May be
+        |                             specified multiple times. A DNAnexus JSON input file is
+        |                             generated for each standard input file.
+        |      -locked                Create a locked workflow. When running a locked workflow,
+        |                             input values may only be specified for the top-level workflow.
+        |      -leaveWorkflowsOpen    Leave created workflows open (otherwise they are closed).
+        |      -p | -imports <string> Directory to search for imported WDL files. May be specified
+        |                             multiple times.
+        |      -projectWideReuse      Look for existing applets/workflows in the entire project
+        |                             before generating new ones. The default search scope is the
+        |                             target folder only.
+        |      -reorg                 Reorganize workflow output files.
+        |      -runtimeDebugLevel [0,1,2] 
+        |                             How much debug information to write to the job log at runtime.
+        |                             Log the minimum (0), intermediate (1, the default), or all 
+        |                             debug information (2, for internal debugging).
+        |      -streamFiles [all,none,perfile]
+        |                             Whether to mount all files with dxfuse (do not use the 
+        |                             download agent), to mount no files with dxfuse (only use 
+        |                             download agent), or to respect the per-file settings in WDL
+        |                             parameter_meta sections (default).
+        |      -useManifests          Use manifest files for all workflow and applet inputs and 
+        |                             outputs. Implies -locked.
         |
         |  dxni
-        |    Dx Native call Interface. Create stubs for calling dx
-        |    executables (apps/applets/workflows), and store them as WDL
-        |    tasks in a local file. Allows calling existing platform executables
-        |    without modification. Default is to look for applets.
+        |    DNAnexus Native call Interface. Creates stubs for calling DNAnexus executables 
+        |    (apps/applets/workflows), and stores them as WDL tasks in a local file. Enables 
+        |    calling existing platform executables without modification.
         |    options:
-        |      -apps                  Whether to 'include' apps, 'exclude' apps, or 'only' generate app stubs.
-        |      -path <string>         Name of specific app/path to a specific applet
-        |      -o <path>              Destination file for WDL task definitions (defaults to stdout)
-        |      -r | recursive         Recursive search
+        |      -apps [include,exclude,only]
+        |                             Whether to 'include' apps, 'exclude' apps (the default), or 
+        |                             'only' generate app stubs.
+        |      -f | force             Delete any existing output file.
+        |      -o <path>              Destination file for WDL task definitions (defaults to 
+        |                             stdout).
+        |      -path <string>         Name of a specific app or a path to a specific applet.
+        |      -r | recursive         Search recursively for applets in the target folder.
         |
         |Common options
-        |    -destination <string>    Full platform path (project:/folder)
-        |    -f | force               Delete existing applets/workflows
-        |    -folder <string>         Platform folder (defaults to '/')
-        |    -project <string>        Platform project (defaults to currently selected project)
-        |    -language <string> [ver] Which language to use? (wdl or cwl; can optionally specify version)
-        |    -quiet                   Do not print warnings or informational outputs
-        |    -verbose                 Print detailed progress reports
-        |    -verboseKey <module>     Detailed information for a specific module
-        |    -logFile <path>          File to use for logging output; defaults to stderr
+        |    -folder <string>         Platform folder (defaults to '/').
+        |    -project <string>        Platform project (defaults to currently selected project).
+        |    -language <string> [ver] Which language to use? May be WDL or CWL. You can optionally 
+        |                             specify a version. Currently, WDL draft-2, 1.0, and 1.1 are
+        |                             fully supported and WDL development and CWL 1.2 are partially
+        |                             supported. The default is to auto-detect the language from the
+        |                             source file.
+        |    -quiet                   Do not print warnings or informational outputs.
+        |    -verbose                 Print detailed logging.
+        |    -verboseKey <module>     Print verbose output only for a specific module. May be 
+        |                             specified multiple times.
+        |    -logFile <path>          File to use for logging output; defaults to stderr.
         |""".stripMargin
 
   def main(args: Vector[String]): Unit = {
