@@ -58,7 +58,7 @@ jobs:
           echo "--- start EXTRACT_RELEASE_NOTES"
           echo "${EXTRACT_RELEASE_NOTES}"
           echo "--- end EXTRACT_RELEASE_NOTES"
-          echo "::set-output name=release-notes::$(echo $EXTRACT_RELEASE_NOTES)"
+          echo ::set-output name=release-notes::$(echo "$EXTRACT_RELEASE_NOTES")
           CONF_FILES=(
               ./executorWdl/src/main/resources/application.conf
               ./core/src/main/resources/application.conf
@@ -144,7 +144,7 @@ jobs:
         if: ${{ cancelled() || failure() || success() }}
         uses: author/action-rollback@stable
         with:
-          tag: ${{ github.event.inputs.release-version }}
+          release_id: create-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
