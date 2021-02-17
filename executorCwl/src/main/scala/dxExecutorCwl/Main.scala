@@ -13,7 +13,8 @@ object Main extends BaseCli {
     CwlTaskExecutor.create(meta, fileUploader, streamFiles)
   }
 
-  override def createWorkflowExecutor(meta: JobMeta): WorkflowExecutor[_] = ???
+  override def createWorkflowExecutor(meta: JobMeta,
+                                      separateOutputs: Boolean): WorkflowExecutor[_] = ???
 }
 
 object MainApp extends App {

@@ -34,7 +34,7 @@ object WorkflowExecutor {
   val ParentsKey = "parents___"
 }
 
-abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta) {
+abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs: Boolean) {
   private val dxApi = jobMeta.dxApi
   private val logger = jobMeta.logger
   private val seqNumIter = Iterator.from(1)
@@ -123,12 +123,18 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta) {
                           instanceType: Option[String] = None,
                           folder: Option[String] = None): (DxExecution, String) = {
     val jobName: String = nameDetail.map(hint => s"${name} ${hint}").getOrElse(name)
-    val outputFolder = folder.orElse(Some(jobName)).map {
-      case f if !f.startsWith("/") => s"/${f}"
-      case f                       => f
+    val outputFolder = if (separateOutputs) {
+      folder.orElse(Some(jobName)).map {
+        case f if !f.startsWith("/") => s"/${f}"
+        case f                       => f
+      }
+    } else {
+      None
     }
     val callInputsJs = JsObject(jobMeta.outputSerializer.createFieldsFromMap(inputs))
-    logger.traceLimited(s"execDNAx ${callInputsJs.prettyPrint}", minLevel = TraceLevel.VVerbose)
+    logger.traceLimited(s"""launchJob ${name} with arguments:
+                           |${callInputsJs.prettyPrint}""".stripMargin,
+                        minLevel = TraceLevel.VVerbose)
 
     // Last check that we have all the compulsory arguments.
     // Note that we don't have the information here to tell difference between optional and non

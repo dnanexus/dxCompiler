@@ -32,7 +32,7 @@ import wdlTools.types.WdlTypes._
 case class BlockIO(block: WdlBlock, logger: Logger)
 
 object WdlWorkflowExecutor {
-  def create(jobMeta: JobMeta): WdlWorkflowExecutor = {
+  def create(jobMeta: JobMeta, separateOutputs: Boolean): WdlWorkflowExecutor = {
     // parse the workflow source code to get the WDL document
     val (doc, typeAliases, versionSupport) =
       VersionSupport.fromSourceString(jobMeta.sourceCode, jobMeta.fileResolver)
@@ -42,7 +42,13 @@ object WdlWorkflowExecutor {
     val tasks = doc.elements.collect {
       case task: TAT.Task => task.name -> task
     }.toMap
-    WdlWorkflowExecutor(doc.source, workflow, versionSupport, tasks, typeAliases.toMap, jobMeta)
+    WdlWorkflowExecutor(doc.source,
+                        workflow,
+                        versionSupport,
+                        tasks,
+                        typeAliases.toMap,
+                        jobMeta,
+                        separateOutputs)
   }
 
   // this method is exposed for unit testing
@@ -87,8 +93,9 @@ case class WdlWorkflowExecutor(docSource: FileNode,
                                versionSupport: VersionSupport,
                                tasks: Map[String, TAT.Task],
                                wdlTypeAliases: Map[String, T_Struct],
-                               jobMeta: JobMeta)
-    extends WorkflowExecutor[WdlBlock](jobMeta) {
+                               jobMeta: JobMeta,
+                               separateOutputs: Boolean)
+    extends WorkflowExecutor[WdlBlock](jobMeta, separateOutputs) {
   private val logger = jobMeta.logger
   private lazy val evaluator = Eval(
       jobMeta.workerPaths,

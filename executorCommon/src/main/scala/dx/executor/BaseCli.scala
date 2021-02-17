@@ -13,7 +13,7 @@ abstract class BaseCli {
                          fileUploader: FileUploader,
                          streamFiles: StreamFiles.StreamFiles): TaskExecutor
 
-  def createWorkflowExecutor(meta: JobMeta): WorkflowExecutor[_]
+  def createWorkflowExecutor(meta: JobMeta, separateOutputs: Boolean): WorkflowExecutor[_]
 
   private object StreamFilesOptionSpec
       extends SingleValueOptionSpec[StreamFiles.StreamFiles](choices = StreamFiles.values.toVector) {
@@ -23,7 +23,8 @@ abstract class BaseCli {
 
   private val CommonOptions: Map[String, OptionSpec] = Map(
       "streamFiles" -> StreamFilesOptionSpec,
-      "streamAllFiles" -> FlagOptionSpec.default
+      "streamAllFiles" -> FlagOptionSpec.default,
+      "separateOutputs" -> FlagOptionSpec.default
   )
 
   object ExecutorKind extends Enum {
@@ -74,6 +75,7 @@ abstract class BaseCli {
           val successMessage = taskExecutor.apply(taskAction)
           Success(successMessage)
         case ExecutorKind.Workflow =>
+          val separateOutputs = options.getFlag("separateOutputs")
           val workflowAction =
             try {
               WorkflowAction.withNameIgnoreCase(action)
@@ -81,7 +83,7 @@ abstract class BaseCli {
               case _: NoSuchElementException =>
                 return BadUsageTermination(s"Unknown action ${args(0)}")
             }
-          val executor = createWorkflowExecutor(jobMeta)
+          val executor = createWorkflowExecutor(jobMeta, separateOutputs)
           val (_, successMessage) = executor.apply(workflowAction)
           Success(successMessage)
         case _ =>
@@ -102,6 +104,9 @@ abstract class BaseCli {
         |                           download agent), to mount no files with dxfuse (only use 
         |                           download agent), or to allow streaming to be set on a
         |                           per-file basis (the default).
+        |    -separateOutputs       Whether to put output files in a separate folder based on
+        |                           the job name. If not specified, then all outputs go to the
+        |                           parent job's output folder.
         |    -traceLevel [0,1,2]    How much debug information to write to the
         |                           job log at runtime. Zero means write the minimum,
         |                           one is the default, and two is for internal debugging.
