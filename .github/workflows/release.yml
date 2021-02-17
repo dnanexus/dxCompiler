@@ -32,7 +32,7 @@ jobs:
           pip3 install dxpy
 
       - name: Run tests
-        if: ${{ github.event.inputs.should-run-tests }} == 'true'
+        if: ${{ github.event.inputs.should-run-tests == 'true' }} 
         env:
           AUTH_TOKEN: ${{ secrets.DX_STAGING_TOKEN }}
         run: |
@@ -58,7 +58,7 @@ jobs:
           echo "--- start EXTRACT_RELEASE_NOTES"
           echo "${EXTRACT_RELEASE_NOTES}"
           echo "--- end EXTRACT_RELEASE_NOTES"
-          echo '::set-output name={release-notes}::$(echo $EXTRACT_RELEASE_NOTES)'
+          echo ":set-output name={release-notes}::$(echo $EXTRACT_RELEASE_NOTES)"
           CONF_FILES=(
               ./executorWdl/src/main/resources/application.conf
               ./core/src/main/resources/application.conf
@@ -144,7 +144,7 @@ jobs:
         if: ${{ cancelled() || failure() || success() }}
         uses: author/action-rollback@stable
         with:
-          release_id: ${{ steps.create-release.id }}
+          tag: ${{ github.event.inputs.release-version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
