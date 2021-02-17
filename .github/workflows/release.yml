@@ -150,8 +150,6 @@ jobs:
         uses: author/action-rollback@stable
         with:
           release_id: ${{ steps.create-release.id }}
-          tag: ${{ github.event.inputs.release-version }}
-          #  If the release does not exist but the tag does, setting this to true will remove the tag.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
