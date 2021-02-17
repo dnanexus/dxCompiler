@@ -1,6 +1,13 @@
 package dx.core.languages.wdl
 
-import dx.core.ir.{Application, Callable, DocumentSource, ExecutableKindApplet, WorkflowSource}
+import dx.core.ir.{
+  Application,
+  Callable,
+  DocumentSource,
+  ExecutableKindApplet,
+  ExecutableKindNative,
+  WorkflowSource
+}
 import dx.util.{Logger, StringFileNode}
 import wdlTools.eval.WdlValues
 import wdlTools.syntax.{CommentMap, SourceLocation, WdlVersion}
@@ -153,7 +160,7 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
      }
     }
    */
-  private def createTaskStub(callable: Callable): TAT.Task = {
+  private def createTaskStub(callable: Callable, native: Boolean = false): TAT.Task = {
     /*Utils.trace(verbose.on,
                     s"""|taskHeader  callable=${callable.name}
                         |  inputs= ${callable.inputVars.map(_.name)}
@@ -186,6 +193,17 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
           TAT.OutputParameter(parameter.name, wdlType, defaultVal, SourceLocation.empty)
         }
 
+    val meta = if (native) {
+      Some(
+          TAT.MetaSection(
+              TreeSeqMap("type" -> TAT.MetaValueBoolean(value = true, SourceLocation.empty)),
+              SourceLocation.empty
+          )
+      )
+    } else {
+      None
+    }
+
     TAT.Task(
         callable.name,
         WdlTypes.T_Task(
@@ -205,7 +223,7 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
         outputs,
         TAT.CommandSection(Vector.empty, SourceLocation.empty),
         Vector.empty,
-        None,
+        meta,
         None,
         None,
         None,
@@ -339,6 +357,13 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
                   }
                   assert(tasks.size == 1)
                   tasks.head
+                case app: Application =>
+                  val native = app.kind match {
+                    case _: ExecutableKindNative => true
+                    case _                       => false
+                  }
+                  // no existing stub, create it - specify whether the target app(let) is native
+                  createTaskStub(callable, native = native)
                 case _ =>
                   // no existing stub, create it
                   createTaskStub(callable)
