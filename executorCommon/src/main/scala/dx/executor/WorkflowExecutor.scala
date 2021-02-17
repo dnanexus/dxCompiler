@@ -115,6 +115,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
     * @param inputs the job inputs
     * @param nameDetail: a suffix to add to the job name
     * @param instanceType the instance type to use for the new job
+    * @param folder optional output folder
     */
   protected def launchJob(executableLink: ExecutableLink,
                           name: String,

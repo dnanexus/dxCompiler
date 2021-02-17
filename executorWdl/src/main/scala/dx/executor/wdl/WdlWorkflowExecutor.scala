@@ -497,8 +497,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
                       callInputs,
                       folder = Some(block.index.toString))
           jobMeta.createExecutionOutputLinks(dxExecution, executableLink.outputs)
-        case (V_Boolean(false), _) =>
-          Map.empty
+        case (V_Boolean(false), _) => Map.empty
         case _ =>
           throw new Exception(s"invalid conditional value ${cond}")
       }
