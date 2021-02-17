@@ -103,7 +103,7 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.release-version }}
           release_name: dxCompiler ${{ github.event.inputs.release-version }}
-          body: "$(sed -n '/# 2.2.0/,/##/p' RELEASE_NOTES.md |  sed '1d; $d')"
+          body: "Test"
           draft: true
           prerelease: false
 
