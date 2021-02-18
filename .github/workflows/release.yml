@@ -68,7 +68,7 @@ jobs:
           # extract release notes for the release
           RELEASE_NOTES_PATH="./release_notes_${{ github.event.inputs.release-version }}.md"
           echo "RELEASE_NOTES_PATH $RELEASE_NOTES_PATH"
-          sed -n '/# 2.2.0/,/##/p' RELEASE_NOTES.md |  sed '1d; $d' > $RELEASE_NOTES_PATH
+          sed -n '/# ${{ github.event.inputs.release-version }}/,/##/p' RELEASE_NOTES.md |  sed '1d; $d' > $RELEASE_NOTES_PATH
           cat $RELEASE_NOTES_PATH
           echo ::set-output name=release-notes-path::$(echo "${RELEASE_NOTES_PATH}")
 
@@ -133,12 +133,10 @@ jobs:
         run: |
           export PATH="$PATH:$HOME/.local/bin"
           # git push origin ${{ github.ref }}
-          # git push origin tagname
-          git tag | grep 2.2.0
-          echo ${{ steps.create-release.outputs.id }}
+          git push origin ${{ github.event.inputs.release-version }}
 
       # - name: Rollback release if unsuccessfull
-      #   if: ${{ cancelled() || failure() }}
+      #   if: ${{ cancelled() || failure() || success() }}
       #   uses: author/action-rollback@stable
       #   with:
       #     release_id: ${{ steps.create-release.outputs.id }}
