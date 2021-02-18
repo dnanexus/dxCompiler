@@ -65,6 +65,12 @@ jobs:
           for i in ${CONF_FILES[@]}; do
               sed -i 's/version.*$/version = "${{ github.event.inputs.release-version }}"/' $i
           done
+          # extract release notes for the release
+          RELEASE_NOTES_PATH="./release_notes_${{ github.event.inputs.release-version }}.md"
+          echo "RELEASE_NOTES_PATH $RELEASE_NOTES_PATH"
+          sed -n '/# 2.2.0/,/##/p' RELEASE_NOTES.md |  sed '1d; $d' > $RELEASE_NOTES_PATH
+          cat $RELEASE_NOTES_PATH
+          echo ::set-output name=release-notes-path::$(echo "${RELEASE_NOTES_PATH}")
 
       - name: Commit changes to application.conf files
         uses: EndBug/add-and-commit@v7
@@ -101,7 +107,7 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.release-version }}
           release_name: dxCompiler ${{ github.event.inputs.release-version }}
-          body: echo "$(sed -n '/# 2.2.0/,/##/p' RELEASE_NOTES.md |  sed '1d; $d')"
+          body_path: ${{ steps.update-release.outputs.release-notes-path }} 
           draft: true
           prerelease: false
 
@@ -131,13 +137,12 @@ jobs:
           git tag | grep 2.2.0
           echo ${{ steps.create-release.outputs.id }}
 
-
-
       # - name: Rollback release if unsuccessfull
-      #   if: ${{ cancelled() || failure() || success() }}
+      #   if: ${{ cancelled() || failure() }}
       #   uses: author/action-rollback@stable
       #   with:
       #     release_id: ${{ steps.create-release.outputs.id }}
+      #     delete_orphan_tag: true
       #   env:
       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
