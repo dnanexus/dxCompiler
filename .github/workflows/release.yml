@@ -137,11 +137,12 @@ jobs:
       # #     github_token: ${{ secrets.GITHUB_TOKEN }}
       # #     branch: ${{ github.event.inputs.release-version }}
 
-      # - name: Rollback release if unsuccessfull
-      #   if: ${{ cancelled() || failure() || success() }}
-      #   uses: author/action-rollback@stable
-      #   with:
-      #     release_id: ${{ steps.create-release.outputs.id }}
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Rollback release if unsuccessfull
+        if: ${{ cancelled() || failure() || success() }}
+        uses: author/action-rollback@stable
+        with:
+          release_id: ${{ steps.create-release.outputs.id }}
+          always_delete_tag: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
