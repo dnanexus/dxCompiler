@@ -27,9 +27,11 @@ object Constants {
   val OutputStage = "outputs"
 
   // reserved parameter names
-  val InputManifests = "input_manifests___"
+  val InputManifest = "input_manifest___"
+  val InputManifestFiles = "input_manifest_files___"
   val InputLinks = "input_links___"
-  val WorkflowInputManifests = "workflow_input_manifests___"
+  val WorkflowInputManifest = "workflow_input_manifest___"
+  val WorkflowInputManifestFiles = "workflow_input_manifest_files___"
   val WorkflowInputLinks = "workflow_input_links___"
   val OutputId = "output_id___"
   val OutputManifest = "output_manifest___"

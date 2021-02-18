@@ -175,9 +175,9 @@ case class WorkflowCompiler(extras: Option[Extras],
 
     // build the "inputs" and "outputs" part of the API request
     val wfInputOutput: Map[String, JsValue] = {
+      // Locked workflows have well defined inputs and outputs
       if (workflow.locked) {
-        // Locked workflows have well defined inputs and outputs
-        val (inputParams, outputParams) = if (useManifests) {
+        val inputParams = if (useManifests) {
           // When using manifests, there are two input parameters:
           // * "input_manifests___": an array of all the manifest files from the
           //   upstream stages in any workflow LinkInputs
@@ -237,15 +237,21 @@ case class WorkflowCompiler(extras: Option[Extras],
               val (inputStages, value) = getWorkflowInputValue(stageInput, param.dxType)
               (inputStages, value.map(v => param.name -> v))
           }.unzip
-          val stageManifestLinks = ArrayInput(inputStages.flatten.toSet.map { stage =>
+          val stageManifestLinks: StageInput = ArrayInput(inputStages.flatten.toSet.map { stage =>
             LinkInput(stage, Constants.OutputManifest)
           }.toVector)
           val inputParams = Vector(
-              (ExecutableCompiler.InputManfestsParameter, stageManifestLinks),
+              (ExecutableCompiler.InputManfestFilesParameter, stageManifestLinks),
               (ExecutableCompiler.InputLinksParameter,
                StaticInput(Value.VHash(inputLinks.flatten.to(TreeSeqMap)))),
               (ExecutableCompiler.OutputIdParameter, StaticInput(Value.VString(workflow.name)))
           )
+          inputParams
+        } else {
+          workflow.inputs
+        }
+
+        val outputParams = if (useManifests) {
           // When using manifests, there is a single "output_manifest___" parameter, which
           // is a manifest file. The common output applet is responsible for merging all
           // incomming manifests into a single manifest, so the workflow output is just a
@@ -254,14 +260,14 @@ case class WorkflowCompiler(extras: Option[Extras],
             case Vector(outputStage) => outputStage
             case _                   => throw new Exception("expected a single output stage")
           }
-          val outputParams = Vector(
+          Vector(
               (ExecutableCompiler.OutputManifestParameter,
                LinkInput(outputStage.dxStage, Constants.OutputManifest))
           )
-          (inputParams, outputParams)
         } else {
-          (workflow.inputs, workflow.outputs)
+          workflow.outputs
         }
+
         val wfInputSpec: Vector[JsValue] = inputParams
           .sortWith(_._1.name < _._1.name)
           .flatMap {
@@ -339,7 +345,7 @@ case class WorkflowCompiler(extras: Option[Extras],
             LinkInput(stage, Constants.OutputManifest)
           }.toVector
           val stageInputs = Vector(
-              (ExecutableCompiler.InputManfestsParameter, ArrayInput(inputStageManifests)),
+              (ExecutableCompiler.InputManfestFilesParameter, ArrayInput(inputStageManifests)),
               (ExecutableCompiler.InputLinksParameter,
                StaticInput(Value.VHash(inputLinks.flatten.to(TreeSeqMap)))),
               (ExecutableCompiler.OutputIdParameter, StaticInput(Value.VString(stage.dxStage.id)))
@@ -347,8 +353,10 @@ case class WorkflowCompiler(extras: Option[Extras],
           // if there are any workflow inputs, pass the workflow manifests and links to the stage
           val stageWorkflowInputs = if (inputWorkflow.exists(identity)) {
             Vector(
-                (ExecutableCompiler.WorkflowInputManfestsParameter,
-                 WorkflowInput(ExecutableCompiler.InputManfestsParameter)),
+                (ExecutableCompiler.WorkflowInputManifestParameter,
+                 WorkflowInput(ExecutableCompiler.InputManifestParameter)),
+                (ExecutableCompiler.WorkflowInputManfestFilesParameter,
+                 WorkflowInput(ExecutableCompiler.InputManfestFilesParameter)),
                 (ExecutableCompiler.WorkflowInputLinksParameter,
                  WorkflowInput(ExecutableCompiler.InputLinksParameter))
             )

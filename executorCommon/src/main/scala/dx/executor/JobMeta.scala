@@ -91,7 +91,9 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 
   lazy val projectDesc: DxProjectDescribe = project.describe()
 
-  lazy val manifestFolder = s"${dxApi.currentProject.id}:/.d/${dxApi.currentJob.id}"
+  def jobId: String
+
+  lazy val manifestFolder = s"${dxApi.currentProject.id}:/.d/${jobId}"
 
   def rawJsInputs: Map[String, JsValue]
 
@@ -99,9 +101,10 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     * If the task/workflow was compiled with -useManifests, then the job inputs
     * will be manifest files, rather than the actual inputs expected by the
     * task/workflow. The inputs will be:
-    * 1. At least one manifest file
+    * 1. At least one manifest file and/or a manifest as a JSON hash
     * 2. A linking hash (required if there is more than one manifest)
-    * 3. Zero or more workflow manifest files
+    * 3. Zero or more workflow manifest files and/or a workflow manifest as a
+    *    JSON hash
     * 4. A linking hash for the workflow manifest files (required if there is
     *    more than one workflow manifest)
     * We need to:
@@ -142,7 +145,13 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
       }
     }
 
-    val manifestFiles = resolveManifestFiles(Constants.InputManifests)
+    val manifestHash = rawInputs.get(Constants.InputManifest) match {
+      case Some(hash: JsObject) => Some(hash)
+      case None                 => None
+      case other =>
+        throw new Exception(s"invalid manifest ${other}")
+    }
+    val manifestFiles = resolveManifestFiles(Constants.InputManifestFiles)
     val manifestLinks = rawInputs.get(Constants.InputLinks) match {
       case Some(JsObject(fields)) => fields
       case None                   => Map.empty
@@ -151,16 +160,19 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     }
 
     if (manifestLinks.isEmpty) {
-      if (manifestFiles.isEmpty) {
-        return Map.empty
-      } else if (manifestFiles.size == 1) {
-        // there is only one manifest and there is no mapping information, so we can
-        // just extract and return the values
-        val manifest = Manifest.parse(new String(dxApi.downloadBytes(manifestFiles.head)).parseJson)
-        return manifest.jsValues
-      } else {
-        throw new Exception("manifest links are required when there is more than one manifest file")
+      // if there are no manifest links, then there must be at most one manifest
+      // (either as a hash or a file). We can just parse it and return the values.
+      val manifestJson = (manifestHash, manifestFiles) match {
+        case (None, Vector.empty)         => None
+        case (Some(inputs), Vector.empty) => Some(inputs)
+        case (None, Vector(manifestFile)) =>
+          Some(new String(dxApi.downloadBytes(manifestFile)).parseJson)
+        case _ =>
+          throw new Exception(
+              "manifest links are required when there is more than one manifest file"
+          )
       }
+      return manifestJson.map(Manifest.parse(_).jsValues).getOrElse(Map.empty)
     }
 
     def downloadAndParseManifests(files: Vector[DxFile]): Vector[Manifest] = {
@@ -178,7 +190,9 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
       manifests
     }
 
-    val manifests = downloadAndParseManifests(manifestFiles)
+    // parse all the manifests and combine into a single Vector
+    val manifests = manifestHash.map(h => Vector(Manifest.parse(h))).getOrElse(Vector.empty) ++
+      downloadAndParseManifests(manifestFiles)
     // create lookup function for manifests
     val manifestLookup: (String, String) => Option[JsValue] = if (manifests.size == 1) {
       val values = manifests.head.jsValues
@@ -199,8 +213,16 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     // create lookup function for workflow manifests - this is lazy because the
     // manifest linkes may not contain any workflow references
     lazy val workflowManifestLookup: String => Option[JsValue] = {
-      val workflowManifestFiles = resolveManifestFiles(Constants.WorkflowInputManifests)
-      val workflowManifests = downloadAndParseManifests(workflowManifestFiles)
+      val workflowManifestHash = rawInputs.get(Constants.WorkflowInputManifest) match {
+        case Some(hash: JsObject) => Some(hash)
+        case None                 => None
+        case other =>
+          throw new Exception(s"invalid manifest ${other}")
+      }
+      val workflowManifestFiles = resolveManifestFiles(Constants.WorkflowInputManifestFiles)
+      val workflowManifests =
+        workflowManifestHash.map(h => Vector(Manifest.parse(h))).getOrElse(Vector.empty) ++
+          downloadAndParseManifests(workflowManifestFiles)
       val workflowManifestLinks = rawInputs.get(Constants.WorkflowInputLinks) match {
         case Some(JsObject(fields)) => fields
         case None                   => Map.empty[String, JsValue]
@@ -344,7 +366,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
           throw new Exception(s"missing or invalid outputId ${other}")
       }
       val manifest = Manifest(outputJs, id = Some(manifestId))
-      val destination = s"${manifestFolder}/${FileUtils.sanitizeFileName(manifestId)}.json"
+      val destination = s"${manifestFolder}/${jobId}_output.json"
       dxApi.uploadString(manifest.toJson.prettyPrint, destination)
     } else {
       writeRawJsOutputs(outputJs)
@@ -464,8 +486,6 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
       }
     writeJsOutputs(serializedLinks)
   }
-
-  def jobId: String
 
   def analysis: Option[DxAnalysis]
 
@@ -597,9 +617,9 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths
     }
   }
 
-  def jobId: String = DxApi.get.currentJob.id
+  def jobId: String = dxApi.currentJob.id
 
-  private lazy val jobDesc: DxJobDescribe = DxApi.get.currentJob.describe(
+  private lazy val jobDesc: DxJobDescribe = dxApi.currentJob.describe(
       Set(Field.Executable, Field.Details, Field.InstanceType)
   )
 

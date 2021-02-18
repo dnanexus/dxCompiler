@@ -27,12 +27,16 @@ import dx.translator.{Extras, ParameterAttributes}
 import spray.json._
 
 object ExecutableCompiler {
-  val InputManfestsParameter: Parameter =
-    Parameter(Constants.InputManifests, Type.TArray(Type.TFile))
+  val InputManifestParameter: Parameter =
+    Parameter(Constants.InputManifest, Type.TOptional(Type.THash))
+  val InputManfestFilesParameter: Parameter =
+    Parameter(Constants.InputManifestFiles, Type.TArray(Type.TFile))
   val InputLinksParameter: Parameter =
     Parameter(Constants.InputLinks, Type.TOptional(Type.THash))
-  val WorkflowInputManfestsParameter: Parameter =
-    Parameter(Constants.WorkflowInputManifests, Type.TArray(Type.TFile))
+  val WorkflowInputManifestParameter: Parameter =
+    Parameter(Constants.WorkflowInputManifest, Type.TOptional(Type.THash))
+  val WorkflowInputManfestFilesParameter: Parameter =
+    Parameter(Constants.WorkflowInputManifestFiles, Type.TArray(Type.TFile))
   val WorkflowInputLinksParameter: Parameter =
     Parameter(Constants.WorkflowInputLinks, Type.TOptional(Type.THash))
   val OutputIdParameter: Parameter =

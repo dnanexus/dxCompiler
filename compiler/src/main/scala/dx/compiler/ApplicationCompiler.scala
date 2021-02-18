@@ -316,9 +316,11 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     // convert inputs and outputs to dxapp inputSpec
     val inputParams = if (useManifests) {
       Vector(
-          ExecutableCompiler.InputManfestsParameter,
+          ExecutableCompiler.InputManifestParameter,
+          ExecutableCompiler.InputManfestFilesParameter,
           ExecutableCompiler.InputLinksParameter,
-          ExecutableCompiler.WorkflowInputManfestsParameter,
+          ExecutableCompiler.WorkflowInputManifestParameter,
+          ExecutableCompiler.WorkflowInputManfestFilesParameter,
           ExecutableCompiler.WorkflowInputLinksParameter,
           ExecutableCompiler.OutputIdParameter
       )
@@ -402,8 +404,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
             ExecutableKindWfCustomReorgOutputs | ExecutableKindWorkflowOutputReorg =>
           val types = applet.inputVars.map(p => p.name -> p.dxType).toMap
           Map(Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(types))
-        case _ =>
-          Map.empty
+        case _ => Map.empty
       }
     // compress and base64 encode the source code
     val sourceEncoded = CodecUtils.gzipAndBase64Encode(applet.document.toString)
