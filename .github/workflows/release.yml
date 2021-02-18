@@ -49,7 +49,7 @@ jobs:
           dx mkdir $FOLDER
           python3 scripts/run_tests.py --test L --folder $FOLDER --project $PROJECT
           #TODO: also remove the folder when the tests fail
-          dx rmdir $FOLDER
+          dx rmdir -r $FOLDER
 
       - name: Extract release notes and set version in application.conf files
         id: update-release
