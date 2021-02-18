@@ -54,7 +54,6 @@ jobs:
       - name: Extract release notes and set version in application.conf files
         id: update-release
         run: |
-          export PATH="$PATH:$HOME/.local/bin"
           # Update the config files with the newest version
           CONF_FILES=(
               ./executorWdl/src/main/resources/application.conf
@@ -100,6 +99,7 @@ jobs:
               --production-token $DX_PROD_RELEASE_TOKEN \
               --docker-user commandlinegirl \
               --docker-password $DOCKERHUB_TOKEN
+              --force
 
       - name: Create release entry
         id: create-release
@@ -123,22 +123,19 @@ jobs:
           # which include a `upload_url`. See this blog post for more info: 
           # https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
           upload_url: ${{ steps.create-release.outputs.upload_url }} 
-          # asset_path: ./dxCompiler${{ github.event.inputs.release-version }}.jar
-          asset_path: ./executorWdl/src/main/resources/application.conf
+          asset_path: ./dxCompiler${{ github.event.inputs.release-version }}.jar
           asset_name: dxCompiler-${{ github.event.inputs.release-version }}.jar
-          # asset_content_type: application/jar
-          asset_content_type: text/html
+          asset_content_type: application/jar
 
-      - name: Push main and tag to origin if successful
+      - name: Push local main branch and tag to origin
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          export PATH="$PATH:$HOME/.local/bin"
-          # git push origin ${{ github.ref }}
-          # git push origin ${{ github.event.inputs.release-version }}
+          git push origin ${{ github.ref }}
+          git push origin ${{ github.event.inputs.release-version }}
 
       - name: Rollback release if unsuccessfull
-        if: ${{ cancelled() || failure() || success() }}
+        if: ${{ cancelled() || failure() }}
         uses: author/action-rollback@stable
         with:
           release_id: ${{ steps.create-release.outputs.id }}
