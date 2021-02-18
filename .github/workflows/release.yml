@@ -98,7 +98,7 @@ jobs:
               --staging-token $DX_STAGING_RELEASE_TOKEN \
               --production-token $DX_PROD_RELEASE_TOKEN \
               --docker-user commandlinegirl \
-              --docker-password $DOCKERHUB_TOKEN
+              --docker-password $DOCKERHUB_TOKEN \
               --force
 
       - name: Create release entry
@@ -139,7 +139,6 @@ jobs:
         uses: author/action-rollback@stable
         with:
           release_id: ${{ steps.create-release.outputs.id }}
-          delete_orphan_tag: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
