@@ -123,7 +123,7 @@ jobs:
           # which include a `upload_url`. See this blog post for more info: 
           # https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
           upload_url: ${{ steps.create-release.outputs.upload_url }} 
-          asset_path: ./dxCompiler${{ github.event.inputs.release-version }}.jar
+          asset_path: ./dxCompiler-${{ github.event.inputs.release-version }}.jar
           asset_name: dxCompiler-${{ github.event.inputs.release-version }}.jar
           asset_content_type: application/jar
 
