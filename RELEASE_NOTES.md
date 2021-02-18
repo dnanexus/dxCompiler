@@ -1,5 +1,9 @@
 # Release Notes
 
+## 2.2.1 17-02-2021
+
+* Fix: native tasks now use instance type from native app/let, not wrapper task
+
 ## 2.2.0 12-02-2021
 
 * DxNI handles native app(let)s with optional non-file object inputs

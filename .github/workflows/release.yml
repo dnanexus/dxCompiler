@@ -5,11 +5,141 @@ on:
       release-version:
         description: 'Release version'
         required: true
+      should-run-tests:
+        description: 'Should run large integration tests (false/true; default: false)'
+        required: false
+        default: 'false'
 
 jobs:
-  print-releaase-version:
-    runs-on: ubuntu-latest
+  run-release:
+    name: dxCompiler Release (Staging and Prod)
+    runs-on: ubuntu-18.04
     steps:
-    - run: |
-        echo "Hello ${{ github.event.inputs.release-version }}!"
+      - name: Git checkout
+        uses: actions/checkout@v2
+
+      - name: Install java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+
+      - name: Install dxpy and other dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y apt-transport-https wget git openssh-server tree python3 python3-pip python3-venv
+          pip3 install setuptools wheel
+          pip3 install termcolor
+          pip3 install dxpy
+
+      - name: Run tests
+        if: ${{ github.event.inputs.should-run-tests == 'true' }} 
+        env:
+          AUTH_TOKEN: ${{ secrets.DX_STAGING_TOKEN }}
+        run: |
+          export PATH="$PATH:$HOME/.local/bin"
+
+          # set up DNAnexus staging environment
+          dx login --noprojects --staging --token $AUTH_TOKEN
+          PROJECT=dxCompiler_playground
+          dx select $PROJECT
+
+          # run tests
+          cd ${GITHUB_WORKSPACE}
+          FOLDER=/builds/test_gha_dxcompiler_$(date +%s)_$RANDOM
+          dx mkdir $FOLDER
+          python3 scripts/run_tests.py --test L --folder $FOLDER --project $PROJECT
+          #TODO: also remove the folder when the tests fail
+          dx rmdir $FOLDER
+
+      - name: Extract release notes and set version in application.conf files
+        id: update-release
+        run: |
+          # Update the config files with the newest version
+          CONF_FILES=(
+              ./executorWdl/src/main/resources/application.conf
+              ./core/src/main/resources/application.conf
+              ./executorCwl/src/main/resources/application.conf
+              ./compiler/src/main/resources/application.conf
+              ./executorCommon/src/main/resources/application.conf
+          )
+          for i in ${CONF_FILES[@]}; do
+              sed -i 's/version.*$/version = "${{ github.event.inputs.release-version }}"/' $i
+          done
+          # Extract release notes for the release into a temporary (unpushed) file
+          # It is expected the RELEASE_NOTES.md has already an entry for the version being
+          # released. The section should start with '# <version>', e.g. # 2.0.0 2021-01-01
+          # The file will be read by the create-release step
+          RELEASE_NOTES_PATH="./release_notes_${{ github.event.inputs.release-version }}.md"
+          sed -n '/# ${{ github.event.inputs.release-version }}/,/##/p' RELEASE_NOTES.md |  sed '1d; $d' > $RELEASE_NOTES_PATH
+          echo ::set-output name=release-notes-path::$(echo "${RELEASE_NOTES_PATH}")
+
+      - name: Commit changes to application.conf files
+        uses: EndBug/add-and-commit@v7
+        with:
+          message: 'Release ${{ github.event.inputs.release-version }}'
+          add: '[
+              "./executorWdl/src/main/resources/application.conf", 
+              "./core/src/main/resources/application.conf",
+              "./executorCwl/src/main/resources/application.conf",
+              "./compiler/src/main/resources/application.conf",
+              "./executorCommon/src/main/resources/application.conf"
+          ]'
+          push: false
+          tag: ${{ github.event.inputs.release-version }}
+
+      - name: Run the release script
+        env:
+          DX_STAGING_RELEASE_TOKEN: ${{ secrets.DX_STAGING_RELEASE_TOKEN }}
+          DX_PROD_RELEASE_TOKEN: ${{ secrets.DX_PROD_RELEASE_TOKEN }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          export PATH="$PATH:$HOME/.local/bin"
+          ./scripts/build_all_releases.sh \
+              --staging-token $DX_STAGING_RELEASE_TOKEN \
+              --production-token $DX_PROD_RELEASE_TOKEN \
+              --docker-user commandlinegirl \
+              --docker-password $DOCKERHUB_TOKEN
+              --force
+
+      - name: Create release entry
+        id: create-release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.event.inputs.release-version }}
+          release_name: dxCompiler ${{ github.event.inputs.release-version }}
+          body_path: ${{ steps.update-release.outputs.release-notes-path }} 
+          draft: true
+          prerelease: false
+
+      - name: Upload release asset
+        id: upload-release-asset 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # This pulls from the "Create release entry" step above, referencing it's ID to get its outputs object, 
+          # which include a `upload_url`. See this blog post for more info: 
+          # https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+          upload_url: ${{ steps.create-release.outputs.upload_url }} 
+          asset_path: ./dxCompiler${{ github.event.inputs.release-version }}.jar
+          asset_name: dxCompiler-${{ github.event.inputs.release-version }}.jar
+          asset_content_type: application/jar
+
+      - name: Push local main branch and tag to origin
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git push origin ${{ github.ref }}
+          git push origin ${{ github.event.inputs.release-version }}
+
+      - name: Rollback release if unsuccessfull
+        if: ${{ cancelled() || failure() }}
+        uses: author/action-rollback@1.0.3
+        with:
+          release_id: ${{ steps.create-release.outputs.id }}
+          delete_orphan_tag: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
