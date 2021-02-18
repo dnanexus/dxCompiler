@@ -55,6 +55,7 @@ jobs:
         id: update-release
         run: |
           export PATH="$PATH:$HOME/.local/bin"
+          # Update the config files with the newest version
           CONF_FILES=(
               ./executorWdl/src/main/resources/application.conf
               ./core/src/main/resources/application.conf
@@ -65,11 +66,12 @@ jobs:
           for i in ${CONF_FILES[@]}; do
               sed -i 's/version.*$/version = "${{ github.event.inputs.release-version }}"/' $i
           done
-          # extract release notes for the release
+          # Extract release notes for the release into a temporary (unpushed) file
+          # It is expected the RELEASE_NOTES.md has already an entry for the version being
+          # released. The section should start with '# <version>', e.g. # 2.0.0 2021-01-01
+          # The file will be read by the create-release step
           RELEASE_NOTES_PATH="./release_notes_${{ github.event.inputs.release-version }}.md"
-          echo "RELEASE_NOTES_PATH $RELEASE_NOTES_PATH"
           sed -n '/# ${{ github.event.inputs.release-version }}/,/##/p' RELEASE_NOTES.md |  sed '1d; $d' > $RELEASE_NOTES_PATH
-          cat $RELEASE_NOTES_PATH
           echo ::set-output name=release-notes-path::$(echo "${RELEASE_NOTES_PATH}")
 
       - name: Commit changes to application.conf files
@@ -111,21 +113,21 @@ jobs:
           draft: true
           prerelease: false
 
-      # - name: Upload release asset
-      #   id: upload-release-asset 
-      #   uses: actions/upload-release-asset@v1
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   with:
-      #     # This pulls from the "Create release entry" step above, referencing it's ID to get its outputs object, 
-      #     # which include a `upload_url`. See this blog post for more info: 
-      #     # https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-      #     upload_url: ${{ steps.create-release.outputs.upload_url }} 
-      #     # asset_path: ./dxCompiler${{ github.event.inputs.release-version }}.jar
-      #     asset_path: ./executorWdl/src/main/resources/application.conf
-      #     asset_name: dxCompiler-${{ github.event.inputs.release-version }}.jar
-      #     # asset_content_type: application/jar
-      #     asset_content_type: text/html
+      - name: Upload release asset
+        id: upload-release-asset 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # This pulls from the "Create release entry" step above, referencing it's ID to get its outputs object, 
+          # which include a `upload_url`. See this blog post for more info: 
+          # https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+          upload_url: ${{ steps.create-release.outputs.upload_url }} 
+          # asset_path: ./dxCompiler${{ github.event.inputs.release-version }}.jar
+          asset_path: ./executorWdl/src/main/resources/application.conf
+          asset_name: dxCompiler-${{ github.event.inputs.release-version }}.jar
+          # asset_content_type: application/jar
+          asset_content_type: text/html
 
       - name: Push main and tag to origin if successful
         env:
@@ -133,14 +135,14 @@ jobs:
         run: |
           export PATH="$PATH:$HOME/.local/bin"
           # git push origin ${{ github.ref }}
-          git push origin ${{ github.event.inputs.release-version }}
+          # git push origin ${{ github.event.inputs.release-version }}
 
-      # - name: Rollback release if unsuccessfull
-      #   if: ${{ cancelled() || failure() || success() }}
-      #   uses: author/action-rollback@stable
-      #   with:
-      #     release_id: ${{ steps.create-release.outputs.id }}
-      #     delete_orphan_tag: true
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Rollback release if unsuccessfull
+        if: ${{ cancelled() || failure() || success() }}
+        uses: author/action-rollback@stable
+        with:
+          release_id: ${{ steps.create-release.outputs.id }}
+          delete_orphan_tag: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
