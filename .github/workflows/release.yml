@@ -127,11 +127,10 @@ jobs:
           asset_name: dxCompiler-${{ github.event.inputs.release-version }}.jar
           asset_content_type: application/jar
 
-      - name: Push local main branch and tag to origin
+      - name: Push tag to origin
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git push origin ${{ github.ref }}
           git push origin ${{ github.event.inputs.release-version }}
 
       - name: Rollback release if unsuccessfull
