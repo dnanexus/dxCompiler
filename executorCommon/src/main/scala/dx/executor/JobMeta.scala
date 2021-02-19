@@ -163,8 +163,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
       // if there are no manifest links, then there must be at most one manifest
       // (either as a hash or a file). We can just parse it and return the values.
       val manifestJson = (manifestHash, manifestFiles) match {
-        case (None, Vector.empty)         => None
-        case (Some(inputs), Vector.empty) => Some(inputs)
+        case (None, Vector())         => None
+        case (Some(inputs), Vector()) => Some(inputs)
         case (None, Vector(manifestFile)) =>
           Some(new String(dxApi.downloadBytes(manifestFile)).parseJson)
         case _ =>

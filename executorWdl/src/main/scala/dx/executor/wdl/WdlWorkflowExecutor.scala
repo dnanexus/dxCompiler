@@ -945,37 +945,43 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           throw new RuntimeException(s"invalid block ${block}")
       }
 
-      val (manifestId: Option[String], childOutputs: Vector[Map[String, JsValue]]) =
+      val (manifestId, childOutputs) =
         if (jobMeta.useManifests) {
           // each job has an output manifest - we need to download them all
-          val (ids, childOutputs) = childExecutions.map { childExec =>
-            val manifestFile = childExec.outputs.get(Constants.OutputManifest) match {
-              case Some(fileObj: JsObject) if DxFile.isLinkJson(fileObj) =>
-                Some(DxFile.fromJson(dxApi, fileObj))
-              case Some(JsString(uri)) if uri.startsWith(DxPath.DxUriPrefix) =>
-                Some(dxApi.resolveFile(uri))
-              case None =>
-                // maybe the applet doesn't have any outputs
-                None
-              case other =>
-                throw new Exception(s"invalid manifest file value ${other}")
+          childExecutions
+            .foldLeft(Option.empty[String], Vector.empty[Map[String, JsValue]]) {
+              case ((id, childOutputs), childExec) =>
+                val manifestFile = childExec.outputs.get(Constants.OutputManifest) match {
+                  case Some(fileObj: JsObject) if DxFile.isLinkJson(fileObj) =>
+                    Some(DxFile.fromJson(dxApi, fileObj))
+                  case Some(JsString(uri)) if uri.startsWith(DxPath.DxUriPrefix) =>
+                    Some(dxApi.resolveFile(uri))
+                  case None =>
+                    // maybe the applet doesn't have any outputs
+                    None
+                  case other =>
+                    throw new Exception(s"invalid manifest file value ${other}")
+                }
+                val (manifestId, manifestValues) = manifestFile
+                  .map { dxFile =>
+                    val manifestJson = new String(dxApi.downloadBytes(dxFile)).parseJson
+                    val manifest = Manifest.parse(manifestJson)
+                    (manifest.id, manifest.jsValues)
+                  }
+                  .getOrElse((None, Map.empty[String, JsValue]))
+                // all scatter jobs manifests should have the same ID
+                val newId = (id, manifestId) match {
+                  case (None, None)                         => None
+                  case (None, Some(id))                     => Some(id)
+                  case (Some(id), None)                     => Some(id)
+                  case (Some(id1), Some(id2)) if id1 == id2 => Some(id1)
+                  case (Some(id1), Some(id2)) =>
+                    throw new Exception(
+                        s"scatter job output manifests had different IDs: ${id1} != ${id2}"
+                    )
+                }
+                (newId, childOutputs :+ manifestValues)
             }
-            manifestFile
-              .map { dxFile =>
-                val manifestJson = new String(dxApi.downloadBytes(dxFile)).parseJson
-                val manifest = Manifest.parse(manifestJson)
-                (manifest.id, manifest.jsValues)
-              }
-              .getOrElse((None, Map.empty))
-          }.unzip
-          // all scatter jobs manifests should have the same ID
-          val uniqueIds = ids.flatten.toSet
-          if (uniqueIds.size > 1) {
-            throw new Exception(
-                s"scatter job output manifests had different IDs: ${uniqueIds.mkString(",")}"
-            )
-          }
-          (uniqueIds.headOption, childOutputs)
         } else {
           (None, childExecutions.map(_.outputs))
         }
