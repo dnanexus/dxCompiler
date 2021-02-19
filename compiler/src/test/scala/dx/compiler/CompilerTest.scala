@@ -100,8 +100,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     nativeApplets.foreach { app =>
       try {
         SysUtils.execCommand(
-            s"dx build $topDir/test/applets/$app --destination ${testProject}:${reorgAppletFolder}",
-            logger = Logger.Quiet
+            s"dx build $topDir/test/applets/$app --destination ${testProject}:${reorgAppletFolder}"
         )
       } catch {
         case _: Throwable =>

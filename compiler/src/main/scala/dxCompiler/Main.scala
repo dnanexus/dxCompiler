@@ -149,6 +149,7 @@ object Main {
       "projectWideReuse" -> FlagOptionSpec.default,
       "reorg" -> FlagOptionSpec.default,
       "runtimeDebugLevel" -> IntOptionSpec.one.copy(choices = Vector(0, 1, 2)),
+      "separateOutputs" -> FlagOptionSpec.default,
       "streamFiles" -> StreamFilesOptionSpec,
       "streamAllFiles" -> FlagOptionSpec.default,
       "scatterChunkSize" -> IntOptionSpec.one
@@ -392,6 +393,7 @@ object Main {
           leaveWorkflowsOpen,
           locked,
           projectWideReuse,
+          separateOutputs,
           streamAllFiles
       ) = Vector(
           "archive",
@@ -399,6 +401,7 @@ object Main {
           "leaveWorkflowsOpen",
           "locked",
           "projectWideReuse",
+          "separateOutputs",
           "streamAllFiles"
       ).map(options.getFlag(_))
       val streamFiles = options.getValue[StreamFiles.StreamFiles]("streamFiles") match {
@@ -418,6 +421,7 @@ object Main {
           leaveWorkflowsOpen,
           locked,
           projectWideReuse,
+          separateOutputs,
           streamFiles,
           fileResolver
       )
@@ -681,6 +685,8 @@ object Main {
         |      -runtimeDebugLevel [0,1,2] How much debug information to write to the
         |                                 job log at runtime. Zero means write the minimum,
         |                                 one is the default, and two is for internal debugging.
+        |      -separateOutputs           Store the output files of each call in a separate folder. The
+        |                                 default behavior is to put all outputs in the same folder.
         |      -streamFiles               Whether to mount all files with dxfuse (do not use the 
         |                                 download agent), or to mount no files with dxfuse (only use 
         |                                 download agent); this setting overrides any per-file settings

@@ -115,7 +115,7 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     val wfSourceCode = FileUtils.readFileContent(sourcePath)
     val jobMeta =
       WorkflowTestJobMeta(workerPaths, dxApi, logger, env, blockPath, instanceTypeDB, wfSourceCode)
-    WdlWorkflowExecutor.create(jobMeta)
+    WdlWorkflowExecutor.create(jobMeta, separateOutputs = false)
   }
 
   private def createFileResolver(workerPaths: DxWorkerPaths): FileSourceResolver = {
