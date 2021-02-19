@@ -34,7 +34,7 @@ object WorkflowExecutor {
   val ParentsKey = "parents___"
 }
 
-abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta) {
+abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs: Boolean) {
   private val dxApi = jobMeta.dxApi
   private val logger = jobMeta.logger
   private val seqNumIter = Iterator.from(1)
@@ -108,16 +108,34 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta) {
   }
 
   /**
-    * Evaluates any expressions in workflow outputs.
+    * Evaluates any expressions in workflow outputs. The job output folder is set
+    * to the job name, which is the concatenation of `name` and `nameDetail`.
+    * @param executableLink the executable to launch
+    * @param name the job name
+    * @param inputs the job inputs
+    * @param nameDetail: a suffix to add to the job name
+    * @param instanceType the instance type to use for the new job
+    * @param folder optional output folder
     */
   protected def launchJob(executableLink: ExecutableLink,
                           name: String,
                           inputs: Map[String, (Type, Value)],
                           nameDetail: Option[String] = None,
-                          instanceType: Option[String] = None): (DxExecution, String) = {
+                          instanceType: Option[String] = None,
+                          folder: Option[String] = None): (DxExecution, String) = {
     val jobName: String = nameDetail.map(hint => s"${name} ${hint}").getOrElse(name)
+    val outputFolder = if (separateOutputs) {
+      folder.orElse(Some(jobName)).map {
+        case f if !f.startsWith("/") => s"/${f}"
+        case f                       => f
+      }
+    } else {
+      None
+    }
     val callInputsJs = JsObject(jobMeta.outputSerializer.createFieldsFromMap(inputs))
-    logger.traceLimited(s"execDNAx ${callInputsJs.prettyPrint}", minLevel = TraceLevel.VVerbose)
+    logger.traceLimited(s"""launchJob ${name} with arguments:
+                           |${callInputsJs.prettyPrint}""".stripMargin,
+                        minLevel = TraceLevel.VVerbose)
 
     // Last check that we have all the compulsory arguments.
     // Note that we don't have the information here to tell difference between optional and non
@@ -126,13 +144,11 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta) {
       logger.warning(s"Missing argument ${argName} to call ${executableLink.name}", force = true)
     }
 
-    // We may need to run a collect subjob. Add the the sequence
-    // number to each invocation, so the collect subjob will be
-    // able to put the results back together in the correct order.
+    // We may need to run a collect subjob. Add the the sequence number to each invocation, so the
+    // collect subjob will be able to put the results back together in the correct order.
     val seqNum: Int = nextSeqNum
 
-    // If this is a task that specifies the instance type
-    // at runtime, launch it in the requested instance.
+    // If this is a task that specifies the instance type at runtime, launch it in the requested instance.
     val dxExecution = executableLink.dxExec match {
       case app: DxApp =>
         app.newRun(
@@ -140,7 +156,8 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta) {
             callInputsJs,
             instanceType = instanceType,
             details = Some(JsObject(WorkflowExecutor.SeqNumber -> JsNumber(seqNum))),
-            delayWorkspaceDestruction = jobMeta.delayWorkspaceDestruction
+            delayWorkspaceDestruction = jobMeta.delayWorkspaceDestruction,
+            folder = outputFolder
         )
       case applet: DxApplet =>
         applet.newRun(
@@ -148,14 +165,16 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta) {
             callInputsJs,
             instanceType = instanceType,
             details = Some(JsObject(WorkflowExecutor.SeqNumber -> JsNumber(seqNum))),
-            delayWorkspaceDestruction = jobMeta.delayWorkspaceDestruction
+            delayWorkspaceDestruction = jobMeta.delayWorkspaceDestruction,
+            folder = outputFolder
         )
       case workflow: DxWorkflow =>
         workflow.newRun(
             jobName,
             callInputsJs,
             Some(JsObject(WorkflowExecutor.SeqNumber -> JsNumber(seqNum))),
-            jobMeta.delayWorkspaceDestruction
+            jobMeta.delayWorkspaceDestruction,
+            folder = outputFolder
         )
       case other =>
         throw new Exception(s"Unsupported executable ${other}")

@@ -13,8 +13,9 @@ object Main extends BaseCli {
     WdlTaskExecutor.create(meta, fileUploader, streamFiles)
   }
 
-  override def createWorkflowExecutor(meta: JobMeta): WdlWorkflowExecutor = {
-    WdlWorkflowExecutor.create(meta)
+  override def createWorkflowExecutor(meta: JobMeta,
+                                      separateOutputs: Boolean): WdlWorkflowExecutor = {
+    WdlWorkflowExecutor.create(meta, separateOutputs)
   }
 }
 

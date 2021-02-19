@@ -34,6 +34,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
                                runtimeJar: String,
                                runtimePathConfig: DxWorkerPaths,
                                runtimeTraceLevel: Int,
+                               separateOutputs: Boolean,
                                streamFiles: StreamFiles.StreamFiles,
                                extras: Option[Extras],
                                parameterLinkSerializer: ParameterLinkSerializer,
@@ -119,14 +120,16 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       case _: ExecutableKindWfFragment =>
         renderer.render(
             ApplicationCompiler.WorkflowFragmentTemplate,
-            templateAttrs
+            templateAttrs ++ Map(
+                "separateOutputs" -> separateOutputs
+            )
         )
       case other =>
         ExecutableKind.getCommand(other) match {
           case Some(command) =>
             renderer.render(
                 ApplicationCompiler.CommandTemplate,
-                templateAttrs + ("command" -> command)
+                templateAttrs ++ Map("command" -> command, "separateOutputs" -> separateOutputs)
             )
           case _ =>
             throw new RuntimeException(
