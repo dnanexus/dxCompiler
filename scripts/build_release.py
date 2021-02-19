@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # This script builds a dxCompiler release. A release consists of the client (dxCompiler.jar),
 # which is uploaded to
 
