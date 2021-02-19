@@ -1,9 +1,19 @@
 package dx.executor.wdl
 
 import dx.AppInternalException
-import dx.api.{DxExecution, DxObject, Field}
+import dx.api.{DxExecution, DxFile, DxObject, DxPath, Field}
 import dx.core.Constants
-import dx.core.ir.{Block, BlockKind, ExecutableLink, Parameter, ParameterLink, Type, Value}
+import dx.core.ir.{
+  Block,
+  BlockKind,
+  ExecutableLink,
+  Manifest,
+  Parameter,
+  ParameterLink,
+  Type,
+  Value,
+  ValueSerde
+}
 import dx.core.ir.Type._
 import dx.core.ir.Value._
 import dx.core.languages.wdl.{
@@ -448,29 +458,6 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       }
     }
 
-    /**
-      * A complex subblock requiring a fragment runner, or a subworkflow.
-      * For example:
-      *
-      *  if (flag) {
-      *    call zinc as inc3 { input: a = num}
-      *    call zinc as inc4 { input: a = num + 3 }
-      *
-      *    Int b = inc4.result + 14
-      *    call zinc as inc5 { input: a = b * 4 }
-      *  }
-      *
-      * There must be exactly one sub-workflow.
-      * @return
-      */
-    private def launchConditionalSubblock(): Map[String, ParameterLink] = {
-      assert(execLinkInfo.size == 1)
-      val executableLink = execLinkInfo.values.head
-      val callInputs = prepareSubworkflowInputs(executableLink)
-      val (dxExecution, _) = launchJob(executableLink, executableLink.name, callInputs)
-      jobMeta.createExecutionOutputLinks(dxExecution, executableLink.outputs)
-    }
-
     private def launchConditional(): Map[String, ParameterLink] = {
       val cond = block.target match {
         case Some(TAT.Conditional(expr, _, _)) =>
@@ -488,8 +475,20 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           // and ensure it's output type is optional
           launchCall()
         case (V_Boolean(true), BlockKind.ConditionalComplex) =>
-          // complex conditional block that requires a subworkflow
-          launchConditionalSubblock()
+          // A complex conditional subblock requiring a fragment runner, or a subworkflow.
+          // For example:
+          //   if (flag) {
+          //     call zinc as inc3 { input: a = num}
+          //     call zinc as inc4 { input: a = num + 3 }
+          //     Int b = inc4.result + 14
+          //     call zinc as inc5 { input: a = b * 4 }
+          //   }
+          // There must be exactly one sub-workflow.
+          assert(execLinkInfo.size == 1)
+          val executableLink = execLinkInfo.values.head
+          val callInputs = prepareSubworkflowInputs(executableLink)
+          val (dxExecution, _) = launchJob(executableLink, executableLink.name, callInputs)
+          jobMeta.createExecutionOutputLinks(dxExecution, executableLink.outputs)
         case (V_Boolean(false), _) =>
           Map.empty
         case _ =>
@@ -945,12 +944,48 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         case _ =>
           throw new RuntimeException(s"invalid block ${block}")
       }
+
+      val (manifestId: Option[String], childOutputs: Vector[Map[String, JsValue]]) =
+        if (jobMeta.useManifests) {
+          // each job has an output manifest - we need to download them all
+          val (ids, childOutputs) = childExecutions.map { childExec =>
+            val manifestFile = childExec.outputs.get(Constants.OutputManifest) match {
+              case Some(fileObj: JsObject) if DxFile.isLinkJson(fileObj) =>
+                Some(DxFile.fromJson(dxApi, fileObj))
+              case Some(JsString(uri)) if uri.startsWith(DxPath.DxUriPrefix) =>
+                Some(dxApi.resolveFile(uri))
+              case None =>
+                // maybe the applet doesn't have any outputs
+                None
+              case other =>
+                throw new Exception(s"invalid manifest file value ${other}")
+            }
+            manifestFile
+              .map { dxFile =>
+                val manifestJson = new String(dxApi.downloadBytes(dxFile)).parseJson
+                val manifest = Manifest.parse(manifestJson)
+                (manifest.id, manifest.jsValues)
+              }
+              .getOrElse((None, Map.empty))
+          }.unzip
+          // all scatter jobs manifests should have the same ID
+          val uniqueIds = ids.flatten.toSet
+          if (uniqueIds.size > 1) {
+            throw new Exception(
+                s"scatter job output manifests had different IDs: ${uniqueIds.mkString(",")}"
+            )
+          }
+          (uniqueIds.headOption, childOutputs)
+        } else {
+          (None, childExecutions.map(_.outputs))
+        }
+
       val arrayValues: Map[String, (Type, Value)] = outputTypes.view.mapValues {
         case (name, irType) =>
           val arrayType = TArray(irType)
           val nameEncoded = Parameter.encodeDots(name)
-          val arrayValue = childExecutions.flatMap { childExec =>
-            (irType, childExec.outputs.get(nameEncoded)) match {
+          val arrayValue = childOutputs.flatMap { outputs =>
+            (irType, outputs.get(nameEncoded)) match {
               case (_, Some(jsValue)) =>
                 Some(jobMeta.inputDeserializer.deserializeInputWithType(jsValue, irType))
               case (TOptional(_), None) =>
@@ -962,7 +997,27 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           }
           (arrayType, VArray(arrayValue))
       }.toMap
-      jobMeta.createOutputLinks(arrayValues, validate = false)
+
+      if (arrayValues.isEmpty) {
+        Map.empty
+      } else if (jobMeta.useManifests) {
+        if (manifestId.isEmpty) {
+          throw new Exception("missing manifest Id")
+        }
+        // upload the merged manifest file
+        val outputJson = arrayValues.map {
+          case (name, (t, v)) => name -> ValueSerde.serializeWithType(v, t)
+        }
+        val manifest = Manifest(outputJson, id = manifestId)
+        val destination = s"${jobMeta.manifestFolder}/${jobMeta.jobId}_output.json"
+        val manifestDxFile = dxApi.uploadString(manifest.toJson.prettyPrint, destination)
+        val outputValues = Map(
+            Constants.OutputManifest -> (TFile, VFile(manifestDxFile.asUri))
+        )
+        jobMeta.createOutputLinks(outputValues, validate = false)
+      } else {
+        jobMeta.createOutputLinks(arrayValues, validate = false)
+      }
     }
 
     override def launch(): Map[String, ParameterLink] = {
