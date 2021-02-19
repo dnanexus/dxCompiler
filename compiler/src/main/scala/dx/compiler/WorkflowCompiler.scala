@@ -241,6 +241,7 @@ case class WorkflowCompiler(extras: Option[Extras],
             LinkInput(stage, Constants.OutputManifest)
           }.toVector)
           val inputParams = Vector(
+              (ExecutableCompiler.InputManifestParameter, EmptyInput),
               (ExecutableCompiler.InputManfestFilesParameter, stageManifestLinks),
               (ExecutableCompiler.InputLinksParameter,
                StaticInput(Value.VHash(inputLinks.flatten.to(TreeSeqMap)))),

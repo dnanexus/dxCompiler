@@ -7,11 +7,11 @@ workflow simple {
   }
 
   call echocat {
-    input: s = s, f = f, n = 2
+    input: s = s, f = f, n = ("a", 2)
   }
 
   call echocat as echocat2 {
-    input: s = echocat.sout, f = echocat.fout, n = 1
+    input: s = echocat.sout, f = echocat.fout, n = ("b", 1)
   }
 
   call merge {
@@ -30,17 +30,17 @@ task echocat {
   input {
     String s
     File f
-    Int n
+    Pair[String, Int] n
   }
 
   command <<<
   echo "hello ~{s}"
-  cat ~{f} | head -~{n} > out
+  cat ~{f} | head -~{n.right} > out
   >>>
 
   output {
     String sout = read_string(stdout())
-    File fout = "out.${n}"
+    File fout = "out.${n.right}"
   }
 }
 

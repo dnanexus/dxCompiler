@@ -152,7 +152,13 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
         throw new Exception(s"invalid manifest ${other}")
     }
     val manifestFiles = resolveManifestFiles(Constants.InputManifestFiles)
+    // links have been serialized, so they actually look like:
+    // { "___": { "x": { "wrapped___": { "value___": ... } } }
+    // we do not want to deserialize the values (because we don't have the
+    // type information here), so instead we have to manually unwrap the fields
     val manifestLinks = rawInputs.get(Constants.InputLinks) match {
+      case Some(JsObject(fields)) if fields.contains(Parameter.ComplexValueKey) =>
+        fields(Parameter.ComplexValueKey).asJsObject.fields
       case Some(JsObject(fields)) => fields
       case None                   => Map.empty
       case other =>
@@ -224,12 +230,14 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
         workflowManifestHash.map(h => Vector(Manifest.parse(h))).getOrElse(Vector.empty) ++
           downloadAndParseManifests(workflowManifestFiles)
       val workflowManifestLinks = rawInputs.get(Constants.WorkflowInputLinks) match {
+        case Some(JsObject(fields)) if fields.contains(Parameter.ComplexValueKey) =>
+          fields(Parameter.ComplexValueKey).asJsObject.fields
         case Some(JsObject(fields)) => fields
         case None                   => Map.empty[String, JsValue]
         case other =>
           throw new Exception(s"invalid workflow manifest links ${other}")
       }
-      if (workflowManifestFiles.isEmpty) {
+      if (workflowManifests.isEmpty) {
         throw new Exception("there are no workflow manifest files")
       } else if (workflowManifestLinks.isEmpty) {
         if (workflowManifestFiles.size == 1) {
@@ -251,8 +259,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
         @tailrec
         def workflowManifestLookup(paramName: String): Option[JsValue] = {
           workflowManifestLinks.get(paramName) match {
-            case Some(JsObject(fields)) if fields.size == 1 =>
-              fields.head match {
+            case Some(JsObject(fields)) if fields.keySet == Set(ValueSerde.WrappedValueKey) =>
+              fields(ValueSerde.WrappedValueKey).asJsObject.fields.head match {
                 case (Constants.ValueKey, value) => Some(value)
                 case (Constants.WorkflowKey, JsString(workflowParamName)) =>
                   workflowManifestLookup(workflowParamName)
@@ -271,8 +279,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 
     // lookup all values in the manifest links
     manifestLinks.flatMap {
-      case (paramName, JsObject(fields)) if fields.size == 1 =>
-        val value = fields.head match {
+      case (paramName, JsObject(fields)) if fields.keySet == Set(ValueSerde.WrappedValueKey) =>
+        val value = fields(ValueSerde.WrappedValueKey).asJsObject.fields.head match {
           case (Constants.ValueKey, value) => Some(value)
           case (Constants.WorkflowKey, JsString(workflowParamName)) =>
             workflowManifestLookup(workflowParamName)

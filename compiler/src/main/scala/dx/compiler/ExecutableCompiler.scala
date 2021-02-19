@@ -215,6 +215,7 @@ class ExecutableCompiler(extras: Option[Extras],
     val attributes = defaultValueToNative(name) ++
       parameterAttributesToNative(parameter.attributes, excludeAttributeNames)
     val (nativeType, optional) = TypeSerde.toNative(parameter.dxType)
+    // TODO: I don't think the parameter should always be set to optional if it has a default
     val paramSpec = JsObject(
         Map(DxIOSpec.Name -> JsString(name), DxIOSpec.Class -> JsString(nativeType)) ++ attributes ++
           optionalToNative(optional || attributes.contains(DxIOSpec.Default))
