@@ -1,23 +1,24 @@
 package dx.executor.wdl
 
 import java.nio.file.{Files, Path, Paths}
-
 import dx.Assumptions.isLoggedIn
 import dx.Tags.{ApiTest, EdgeTest}
 import dx.api.{
   DiskType,
   DxAnalysis,
   DxApi,
+  DxFile,
   DxFileDescCache,
   DxInstanceType,
   DxJob,
+  DxPath,
   DxProject,
   ExecutionEnvironment,
   InstanceTypeDB
 }
 import dx.core.Constants
 import dx.core.io.{DxWorkerPaths, StreamFiles}
-import dx.core.ir.{ParameterLink, ParameterLinkDeserializer, ParameterLinkSerializer}
+import dx.core.ir.{Manifest, ParameterLink, ParameterLinkDeserializer, ParameterLinkSerializer}
 import dx.core.languages.wdl.{VersionSupport, WdlUtils}
 import dx.executor.{JobMeta, TaskAction}
 import dx.core.languages.wdl.CodeGenerator
@@ -84,7 +85,7 @@ private object TaskTestJobMeta {
 // dnanexus applets and workflows that are not runnable.
 class TaskExecutorTest extends AnyFlatSpec with Matchers {
   assume(isLoggedIn)
-  private val logger = Logger.Quiet
+  private val logger = Logger.Verbose
   private val dxApi = DxApi()(logger)
   private val unicornInstance = DxInstanceType(
       TaskTestJobMeta.InstanceType,
@@ -297,7 +298,27 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
     taskExecutor.apply(TaskAction.Epilog) shouldBe "success Epilog"
 
     if (outputsExpected.isDefined) {
-      val outputs = jobMeta.outputs.getOrElse(Map.empty)
+      val outputs = if (useManifests) {
+        jobMeta.outputs
+          .map(_.get(Constants.OutputManifest) match {
+            case Some(value) =>
+              val manifestFile = value match {
+                case fileObj: JsObject if DxFile.isLinkJson(fileObj) =>
+                  DxFile.fromJson(dxApi, fileObj)
+                case JsString(uri) if uri.startsWith(DxPath.DxUriPrefix) =>
+                  dxApi.resolveFile(uri)
+                case other =>
+                  throw new Exception(s"invalid manifest file value ${other}")
+              }
+              val manifest =
+                Manifest.parse(new String(jobMeta.dxApi.downloadBytes(manifestFile)).parseJson)
+              manifest.jsValues
+            case None => Map.empty[String, JsValue]
+          })
+          .getOrElse(Map.empty[String, JsValue])
+      } else {
+        jobMeta.outputs.getOrElse(Map.empty[String, JsValue])
+      }
       outputs shouldBe outputsExpected.get
     }
   }

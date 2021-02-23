@@ -364,7 +364,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     fileResolver
   }
 
-  def writeRawJsOutputs(outputJs: Map[String, JsValue]): Unit
+  protected def writeRawJsOutputs(outputJs: Map[String, JsValue]): Unit
 
   def writeJsOutputs(outputJs: Map[String, JsValue]): Unit = {
     if (useManifests) {
@@ -375,7 +375,10 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
       }
       val manifest = Manifest(outputJs, id = Some(manifestId))
       val destination = s"${manifestFolder}/${jobId}_output.json"
-      dxApi.uploadString(manifest.toJson.prettyPrint, destination)
+      val manifestDxFile = dxApi.uploadString(manifest.toJson.prettyPrint, destination)
+      outputSerializer
+        .createFields(Constants.OutputManifest, Type.TFile, Value.VFile(manifestDxFile.asUri))
+        .toMap
     } else {
       writeRawJsOutputs(outputJs)
     }
