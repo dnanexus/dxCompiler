@@ -133,11 +133,11 @@ jobs:
         run: |
           git push origin ${{ github.event.inputs.release-version }}
 
-      - name: Rollback release if unsuccessfull
-        if: ${{ cancelled() || failure() }}
-        uses: author/action-rollback@stable
-        with:
-          release_id: ${{ steps.create-release.outputs.id }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        #- name: Rollback release if unsuccessfull
+        #if: ${{ cancelled() || failure() }}
+        #uses: author/action-rollback@stable
+        #with:
+        #  release_id: ${{ steps.create-release.outputs.id }}
+        #env:
+        #  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
