@@ -35,7 +35,7 @@ task echocat {
 
   command <<<
   echo "hello ~{s}"
-  cat ~{f} | head -~{n.right} > out
+  cat ~{f} | head -~{n.right} > out.~{n.right}
   >>>
 
   output {

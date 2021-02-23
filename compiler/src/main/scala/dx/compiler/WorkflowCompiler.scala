@@ -235,7 +235,7 @@ case class WorkflowCompiler(extras: Option[Extras],
               )
             case (param, stageInput) =>
               val (inputStages, value) = getWorkflowInputValue(stageInput, param.dxType)
-              (inputStages, value.map(v => param.name -> v))
+              (inputStages, value.map(v => param.dxName -> v))
           }.unzip
           val stageManifestLinks: StageInput = ArrayInput(inputStages.flatten.toSet.map { stage =>
             LinkInput(stage, Constants.OutputManifest)
@@ -339,7 +339,7 @@ case class WorkflowCompiler(extras: Option[Extras],
               case (param, stageInput) =>
                 val (inputWorkflow, inputStages, value) =
                   getStageInputValue(stageInput, param.dxType)
-                (inputWorkflow, inputStages, value.map(v => param.name -> v))
+                (inputWorkflow, inputStages, value.map(v => param.dxName -> v))
             }
             .unzip3
           val inputStageManifests = inputStages.flatten.toSet.map { stage =>
