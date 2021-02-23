@@ -1,6 +1,6 @@
 # Release Notes
 
-## in dev
+## 2.3.0 23-02-2021
 
 * Adds `-separateOutputs` option to store output from each call in a separate folder
 * Fixes issue with referencing optional variables in the command block
