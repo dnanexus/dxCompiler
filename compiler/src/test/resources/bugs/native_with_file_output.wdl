@@ -1,5 +1,7 @@
 version 1.0
 
+import "subwf.wdl" as sub
+
 workflow native_with_file_output {
   input {
     Array[String]+ f_urls
@@ -12,8 +14,12 @@ workflow native_with_file_output {
     input: f_urls = f_urls, target_s3 = target_s3, config_file = config_file, up_dir = up_dir
   }
 
+  call sub.foo {
+    input: inp = aws_s3_to_platform_files.transferred_files
+  }
+
   output {
-    Array[File]+ transferred_files = aws_s3_to_platform_files.transferred_files
+    Array[File]+ transferred_files = foo.out
   }
 }
 
