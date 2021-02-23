@@ -240,7 +240,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
       if (workflowManifests.isEmpty) {
         throw new Exception("there are no workflow manifest files")
       } else if (workflowManifestLinks.isEmpty) {
-        if (workflowManifestFiles.size == 1) {
+        if (workflowManifests.size == 1) {
           val values = workflowManifests.head.jsValues
           (paramName: String) => values.get(paramName)
         } else {

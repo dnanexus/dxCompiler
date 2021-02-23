@@ -1100,18 +1100,24 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
     val input = desc.inputSpec.get.map(i => i.name -> i).toMap
     input.keySet shouldBe Set(
-        Constants.InputManifests,
+        Constants.InputManifestFiles,
+        Constants.InputManifest,
         Constants.InputLinks,
         s"${Constants.InputLinks}___dxfiles",
-        Constants.WorkflowInputManifests,
+        Constants.WorkflowInputManifest,
+        Constants.WorkflowInputManifestFiles,
         Constants.WorkflowInputLinks,
         s"${Constants.WorkflowInputLinks}___dxfiles",
         Constants.OutputId
     )
-    input(Constants.InputManifests).ioClass shouldBe DxIOClass.FileArray
+    input(Constants.InputManifest).ioClass shouldBe DxIOClass.Hash
+    input(Constants.InputManifest).optional shouldBe true
+    input(Constants.InputManifestFiles).ioClass shouldBe DxIOClass.FileArray
     input(Constants.InputLinks).ioClass shouldBe DxIOClass.Hash
     input(Constants.InputLinks).optional shouldBe true
-    input(Constants.WorkflowInputManifests).ioClass shouldBe DxIOClass.FileArray
+    input(Constants.WorkflowInputManifest).ioClass shouldBe DxIOClass.Hash
+    input(Constants.WorkflowInputManifest).optional shouldBe true
+    input(Constants.WorkflowInputManifestFiles).ioClass shouldBe DxIOClass.FileArray
     input(Constants.WorkflowInputLinks).ioClass shouldBe DxIOClass.Hash
     input(Constants.WorkflowInputLinks).optional shouldBe true
     input(Constants.OutputId).ioClass shouldBe DxIOClass.String

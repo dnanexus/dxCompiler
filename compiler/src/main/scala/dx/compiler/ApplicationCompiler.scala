@@ -291,12 +291,19 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         // We end up allowing all applets to use the network
         Some(DxAccess.empty.copy(network = Some(Vector("*"))))
     }
+    // using manifests requires at least UPLOAD access
+    val manifestAccess = if (useManifests) {
+      Some(DxAccess.empty.copy(project = Some(DxAccessLevel.Upload)))
+    } else {
+      None
+    }
     // merge all
     val access = defaultAccess
       .merge(taskAccess)
       .merge(taskSpecificAccess)
       .merge(allProjectsAccess)
       .mergeOpt(appletKindAccess)
+      .mergeOpt(manifestAccess)
     access.toJson match {
       case JsObject(fields) if fields.isEmpty => JsNull
       case fields                             => fields
