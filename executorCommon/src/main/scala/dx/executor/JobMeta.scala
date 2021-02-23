@@ -367,7 +367,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
   protected def writeRawJsOutputs(outputJs: Map[String, JsValue]): Unit
 
   def writeJsOutputs(outputJs: Map[String, JsValue]): Unit = {
-    if (useManifests) {
+    val rawOutputJs = if (useManifests) {
       val manifestId = rawJsInputs.get(Constants.OutputId) match {
         case Some(JsString(id)) => id
         case other =>
@@ -380,8 +380,9 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
         .createFields(Constants.OutputManifest, Type.TFile, Value.VFile(manifestDxFile.asUri))
         .toMap
     } else {
-      writeRawJsOutputs(outputJs)
+      outputJs
     }
+    writeRawJsOutputs(rawOutputJs)
   }
 
   lazy val outputSerializer: ParameterLinkSerializer = ParameterLinkSerializer(fileResolver, dxApi)

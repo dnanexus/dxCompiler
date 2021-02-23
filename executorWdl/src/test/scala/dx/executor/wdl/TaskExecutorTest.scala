@@ -30,6 +30,8 @@ import spray.json._
 import wdlTools.eval.WdlValues
 import wdlTools.types.{TypedAbstractSyntax => TAT}
 
+import scala.util.Random
+
 private case class TaskTestJobMeta(override val workerPaths: DxWorkerPaths,
                                    override val dxApi: DxApi = DxApi.get,
                                    override val logger: Logger = Logger.get,
@@ -46,7 +48,7 @@ private case class TaskTestJobMeta(override val workerPaths: DxWorkerPaths,
     outputs = Some(outputJs)
   }
 
-  override val jobId: String = null
+  override lazy val jobId: String = s"job-${Random.alphanumeric.take(24).mkString}"
 
   override val analysis: Option[DxAnalysis] = None
 
@@ -85,7 +87,7 @@ private object TaskTestJobMeta {
 // dnanexus applets and workflows that are not runnable.
 class TaskExecutorTest extends AnyFlatSpec with Matchers {
   assume(isLoggedIn)
-  private val logger = Logger.Verbose
+  private val logger = Logger.Quiet
   private val dxApi = DxApi()(logger)
   private val unicornInstance = DxInstanceType(
       TaskTestJobMeta.InstanceType,
@@ -287,12 +289,10 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
 
     // execute the shell script in a child job
     val script: Path = jobMeta.workerPaths.getCommandFile()
-    //println(FileUtils.readFileContent(script))
     if (Files.exists(script)) {
       // this will throw an exception if the script exits with a non-zero return code
       logger.ignore(SysUtils.execCommand(script.toString))
     }
-    //println(FileUtils.readFileContent(workerPaths.stdout))
 
     // epilog
     taskExecutor.apply(TaskAction.Epilog) shouldBe "success Epilog"
