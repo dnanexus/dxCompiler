@@ -1088,4 +1088,11 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val retval = Main.compile(args.toVector)
     retval shouldBe a[Success]
   }
+
+  it should "compile a workflow with a native app with file output" taggedAs NativeTest in {
+    val path = pathFromBasename("bugs", "native_with_file_output.wdl")
+    val args = path.toString :: cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[Success]
+  }
 }

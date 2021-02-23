@@ -113,10 +113,12 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       }
     }
 
-    private def translateOutput(output: TAT.OutputParameter): Parameter = {
+    private def translateOutput(output: TAT.OutputParameter, ignoreDefault: Boolean): Parameter = {
       val wdlType = output.wdlType
       val irType = WdlUtils.toIRType(wdlType)
-      val defaultValue = {
+      val defaultValue = if (ignoreDefault) {
+        None
+      } else {
         try {
           val wdlValue = evaluator.applyConstAndCoerce(output.expr, wdlType)
           Some(WdlUtils.toIRValue(wdlValue, wdlType))
@@ -148,13 +150,16 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       }
 
       logger.trace(s"Translating task ${task.name}")
-      val inputs = task.inputs.map(translateInput)
-      val outputs = task.outputs.map(translateOutput)
-      val instanceType = runtime.translateInstanceType
-      val kind = runtime.translateExecutableKind match {
-        case Some(native) => native
-        case None         => ExecutableKindApplet
+      val (kind, isNative) = runtime.translateExecutableKind match {
+        case Some(native: ExecutableKindNative) => (native, true)
+        case Some(kind)                         => (kind, false)
+        case None                               => (ExecutableKindApplet, false)
       }
+      val inputs = task.inputs.map(translateInput)
+      // the output declarations in a native applet stub have values only because they
+      // are required for WDL parsing - they can be safely ignored
+      val outputs = task.outputs.map(translateOutput(_, ignoreDefault = isNative))
+      val instanceType = runtime.translateInstanceType
       val requirements = runtime.translateRequirements
       val attributes = meta.translate
       val container = runtime.translateContainer

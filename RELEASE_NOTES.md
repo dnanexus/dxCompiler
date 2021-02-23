@@ -4,6 +4,7 @@
 
 * Adds `-separateOutputs` option to store output from each call in a separate folder
 * Fixes issue with referencing optional variables in the command block
+* Ignores default values from native app stubs that can cause errors during compilation
 
 ## 2.2.1 17-02-2021
 
