@@ -699,19 +699,23 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     private def prepareBlockOutputs(
         outputs: Map[String, ParameterLink]
     ): Map[String, ParameterLink] = {
-      val outputNames = block.outputNames
-      logger.traceLimited(
-          s"""|processOutputs
-              |  env = ${env.keys}
-              |  fragResults = ${outputs.keys}
-              |  exportedVars = ${outputNames}
-              |""".stripMargin,
-          minLevel = TraceLevel.VVerbose
-      )
-      val inputsIR = WdlUtils.toIR(env.view.filterKeys(outputNames.contains).toMap)
-      val inputLinks = jobMeta.createOutputLinks(inputsIR, validate = false)
-      val outputLink = outputs.view.filterKeys(outputNames.contains).toMap
-      inputLinks ++ outputLink
+      if (jobMeta.useManifests && outputs.contains(Constants.OutputManifest)) {
+        outputs
+      } else {
+        val outputNames = block.outputNames
+        logger.traceLimited(
+            s"""|processOutputs
+                |  env = ${env.keys}
+                |  fragResults = ${outputs.keys}
+                |  exportedVars = ${outputNames}
+                |""".stripMargin,
+            minLevel = TraceLevel.VVerbose
+        )
+        val inputsIR = WdlUtils.toIR(env.view.filterKeys(outputNames.contains).toMap)
+        val inputLinks = jobMeta.createOutputLinks(inputsIR, validate = false)
+        val outputLink = outputs.view.filterKeys(outputNames.contains).toMap
+        inputLinks ++ outputLink
+      }
     }
 
     /**
