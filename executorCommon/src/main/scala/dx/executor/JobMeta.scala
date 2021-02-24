@@ -368,7 +368,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
   protected def writeRawJsOutputs(outputJs: Map[String, JsValue]): Unit
 
   def writeJsOutputs(outputJs: Map[String, JsValue]): Unit = {
-    val rawOutputJs = if (useManifests) {
+    val rawOutputJs = if (useManifests && !outputJs.contains(Constants.OutputManifest)) {
       val manifestId = rawJsInputs.get(Constants.OutputId) match {
         case Some(JsString(id)) => id
         case other =>
@@ -503,13 +503,21 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
                                  irOutputFields: Map[String, Type],
                                  prefix: Option[String] = None,
                                  validate: Boolean = false): Map[String, ParameterLink] = {
-    irOutputFields.map {
-      case (fieldName, t) =>
-        val fqn = prefix.map(p => s"${p}.${fieldName}").getOrElse(fieldName)
-        if (validate) {
-          validateOutput(Parameter.encodeDots(fieldName), t)
-        }
-        fqn -> ParameterLinkExec(execution, fieldName, t)
+    if (useManifests) {
+      Map(
+          Constants.OutputManifest -> ParameterLinkExec(execution,
+                                                        Constants.OutputManifest,
+                                                        Type.TFile)
+      )
+    } else {
+      irOutputFields.map {
+        case (fieldName, t) =>
+          val fqn = prefix.map(p => s"${p}.${fieldName}").getOrElse(fieldName)
+          if (validate) {
+            validateOutput(Parameter.encodeDots(fieldName), t)
+          }
+          fqn -> ParameterLinkExec(execution, fieldName, t)
+      }
     }
   }
 
