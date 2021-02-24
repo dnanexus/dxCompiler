@@ -1,5 +1,9 @@
 # Release Notes
 
+## in dev
+
+* Adds `-useManifests` option to generate applets and workflows whose inputs and outputs are manifest files
+
 ## 2.3.0 23-02-2021
 
 * Adds `-separateOutputs` option to store output from each call in a separate folder
