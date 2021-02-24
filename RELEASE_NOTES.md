@@ -1,5 +1,9 @@
 # Release Notes
 
+## in dev
+
+* Fixes common applet naming issue with complex nested workflows
+
 ## 2.3.0 23-02-2021
 
 * Adds `-separateOutputs` option to store output from each call in a separate folder
