@@ -210,29 +210,27 @@ case class WorkflowCompiler(extras: Option[Extras],
           }
           val (inputStages, inputLinks) = workflow.inputs.map {
             case (param, EmptyInput)
-                if param.defaultValue.isDefined || Type.isOptional(param.dxType) =>
-              // an optional input - the value will come from the default or will be null
+                if workflow.level == Level.Top ||
+                  param.defaultValue.isDefined ||
+                  Type.isOptional(param.dxType) =>
+              // this is one of:
+              // 1) an optional input - the value will come from the default or will be null
+              // 2) a top-level workflow input - the value (if any) will be supplied in the
+              //    input manifest
               (Set.empty, None)
-            case (_, EmptyInput) if workflow.level == Level.Top =>
-              // a top-level workflow input - the value (if any) will be supplied
-              // in the input manifest
-              (Set.empty, None)
-            case (param, WorkflowInput(wfParam))
-                if param == wfParam && (
-                    param.defaultValue.isDefined || Type.isOptional(param.dxType)
-                ) =>
-              // an optional input - the value will come from the default or will be null
-              (Set.empty, None)
-            case (param, WorkflowInput(wfParam))
-                if param == wfParam && workflow.level == Level.Top =>
-              // a top-level workflow input - this is a top-level workflow,
-              // so the value (if any) will be supplied in the input manifest
-              (Set.empty, None)
-            case (param, EmptyInput | _: WorkflowInput) =>
+            case (param, EmptyInput) =>
               // empty required inputs are not allowed for nested locked workflows
               throw new Exception(
                   s"locked workflow ${workflow.name} has empty required input ${param.name}"
               )
+            case (param, WorkflowInput(wfParam)) if param == wfParam =>
+              // this is one of:
+              // 1) an optional input - the value will come from the default or will be null
+              // 2) a top-level workflow input - the value (if any) will be supplied in the
+              //    input manifest
+              // 3) a scatter variable (or an expression that references the scatter
+              //    variable) - the value is provided by the caller
+              (Set.empty, None)
             case (param, stageInput) =>
               val (inputStages, value) = getWorkflowInputValue(stageInput, param.dxType)
               (inputStages, value.map(v => param.dxName -> v))
