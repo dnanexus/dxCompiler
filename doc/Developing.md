@@ -207,10 +207,3 @@ dx clearenv
   this will take a while. It builds the release on staging, runs multi-region tests on staging (one test per region), builds on production, and creates an easy to use Docker image, which is pushed to DockerHub.
 - Update [releases](https://github.com/dnanexus/dxCompiler/releases) GitHub page, use the `Draft a new release` button, and upload the dxCompiler JAR file.
 
-### Post release
-
-- Update the version number in `*/src/main/resources/application.conf`. We don't want to mix the experimental release, with the old code.
-
-### Post release
-
-- Update the version number in `*/src/main/resources/application.conf`. We don't want to mix the experimental release, with the old code.
