@@ -122,7 +122,8 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
                           inputs: Map[String, (Type, Value)],
                           nameDetail: Option[String] = None,
                           instanceType: Option[String] = None,
-                          folder: Option[String] = None): (DxExecution, String) = {
+                          folder: Option[String] = None,
+                          prefixOutputs: Boolean = false): (DxExecution, String) = {
     val jobName: String = nameDetail.map(hint => s"${name} ${hint}").getOrElse(name)
     val outputFolder = if (separateOutputs) {
       folder.orElse(Some(jobName)).map {
@@ -133,7 +134,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
       None
     }
 
-    val callInputsJs = JsObject(jobMeta.prepareSubjobInputs(inputs, executableLink))
+    val callInputsJs = JsObject(jobMeta.prepareSubjobInputs(inputs, executableLink, prefixOutputs))
     logger.traceLimited(s"""launchJob ${name} with arguments:
                            |${callInputsJs.prettyPrint}""".stripMargin,
                         minLevel = TraceLevel.VVerbose)

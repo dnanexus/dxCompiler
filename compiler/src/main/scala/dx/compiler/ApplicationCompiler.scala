@@ -332,7 +332,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
           ExecutableCompiler.WorkflowInputManifestParameter,
           ExecutableCompiler.WorkflowInputManfestFilesParameter,
           ExecutableCompiler.WorkflowInputLinksParameter,
-          ExecutableCompiler.OutputIdParameter
+          ExecutableCompiler.OutputIdParameter,
+          ExecutableCompiler.CallNameParameter
       )
     } else {
       applet.inputs

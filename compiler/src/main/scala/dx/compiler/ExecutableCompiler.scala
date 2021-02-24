@@ -41,6 +41,8 @@ object ExecutableCompiler {
     Parameter(Constants.WorkflowInputLinks, Type.TOptional(Type.THash))
   val OutputIdParameter: Parameter =
     Parameter(Constants.OutputId, Type.TString)
+  val CallNameParameter: Parameter =
+    Parameter(Constants.CallName, Type.TOptional(Type.TString))
   val OutputManifestParameter: Parameter =
     Parameter(Constants.OutputManifest, Type.TFile)
 }

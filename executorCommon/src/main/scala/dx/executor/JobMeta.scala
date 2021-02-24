@@ -374,7 +374,16 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
         case other =>
           throw new Exception(s"missing or invalid outputId ${other}")
       }
-      val manifest = Manifest(outputJs, id = Some(manifestId))
+      val manifestValues = rawJsInputs.get(Constants.CallName) match {
+        case Some(JsString(callName)) =>
+          val prefix = s"${callName}${Parameter.ComplexValueKey}"
+          outputJs.map {
+            case (name, value) => s"${prefix}${name}" -> value
+          }
+        case None  => outputJs
+        case other => throw new Exception(s"invalid call name value ${other}")
+      }
+      val manifest = Manifest(manifestValues, id = Some(manifestId))
       val destination = s"${manifestFolder}/${jobId}_output.json"
       val manifestDxFile = dxApi.uploadString(manifest.toJson.prettyPrint, destination)
       outputSerializer
@@ -392,10 +401,13 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     * Prepares the inputs for a subjob. If using manifests, creates a manifest
     * with the same output ID as the current job.
     * @param inputs raw subjob inputs
+    * @param executableLink the subjob executable
+    * @param prefixOutputs whether to prefix the subjob outputs with the call name
     * @return serialized subjob inputs
     */
   def prepareSubjobInputs(inputs: Map[String, (Type, Value)],
-                          executableLink: ExecutableLink): Map[String, JsValue] = {
+                          executableLink: ExecutableLink,
+                          prefixOutputs: Boolean): Map[String, JsValue] = {
     val inputsJs = outputSerializer.createFieldsFromMap(inputs)
     // Check that we have all the compulsory arguments.
     // Note that we don't have the information here to tell difference between optional and non-
@@ -404,10 +416,16 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
       logger.warning(s"Missing argument ${argName} to call ${executableLink.name}", force = true)
     }
     if (useManifests) {
-      Map(
+      val requiredInputs = Map(
           Constants.InputManifest -> JsObject(inputsJs),
           Constants.OutputId -> rawJsInputs(Constants.OutputId)
       )
+      val callNameInputs = if (prefixOutputs) {
+        Map(Constants.CallName -> JsString(executableLink.name))
+      } else {
+        Map.empty
+      }
+      requiredInputs ++ callNameInputs
     } else {
       inputsJs
     }

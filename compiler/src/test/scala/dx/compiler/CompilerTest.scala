@@ -1108,7 +1108,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         Constants.WorkflowInputManifestFiles,
         Constants.WorkflowInputLinks,
         s"${Constants.WorkflowInputLinks}___dxfiles",
-        Constants.OutputId
+        Constants.OutputId,
+        Constants.CallName
     )
     input(Constants.InputManifest).ioClass shouldBe DxIOClass.Hash
     input(Constants.InputManifest).optional shouldBe true
@@ -1121,6 +1122,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     input(Constants.WorkflowInputLinks).ioClass shouldBe DxIOClass.Hash
     input(Constants.WorkflowInputLinks).optional shouldBe true
     input(Constants.OutputId).ioClass shouldBe DxIOClass.String
+    input(Constants.CallName).ioClass shouldBe DxIOClass.String
+    input(Constants.CallName).optional shouldBe true
 
     val output = desc.outputSpec.get.map(i => i.name -> i).toMap
     output.keySet shouldBe Set(Constants.OutputManifest)

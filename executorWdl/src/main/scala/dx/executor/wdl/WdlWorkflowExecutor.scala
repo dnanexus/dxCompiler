@@ -401,7 +401,8 @@ case class WdlWorkflowExecutor(docSource: FileNode,
                   callInputsIR,
                   nameDetail,
                   instanceType.map(_.name),
-                  folder = folder)
+                  folder = folder,
+                  prefixOutputs = true)
       (dxExecution, executableLink, execName)
     }
 
