@@ -21,6 +21,7 @@ import dx.core.Constants
 import dx.core.io.DxWorkerPaths
 import dx.core.ir.Value.VNull
 import dx.core.ir.{
+  ExecutableLink,
   Manifest,
   Parameter,
   ParameterLink,
@@ -386,6 +387,31 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
   }
 
   lazy val outputSerializer: ParameterLinkSerializer = ParameterLinkSerializer(fileResolver, dxApi)
+
+  /**
+    * Prepares the inputs for a subjob. If using manifests, creates a manifest
+    * with the same output ID as the current job.
+    * @param inputs raw subjob inputs
+    * @return serialized subjob inputs
+    */
+  def prepareSubjobInputs(inputs: Map[String, (Type, Value)],
+                          executableLink: ExecutableLink): Map[String, JsValue] = {
+    val inputsJs = outputSerializer.createFieldsFromMap(inputs)
+    // Check that we have all the compulsory arguments.
+    // Note that we don't have the information here to tell difference between optional and non-
+    // optional parameters, so we emit warnings for missing arguments.
+    executableLink.inputs.keys.filterNot(inputsJs.contains).foreach { argName =>
+      logger.warning(s"Missing argument ${argName} to call ${executableLink.name}", force = true)
+    }
+    if (useManifests) {
+      Map(
+          Constants.InputManifest -> JsObject(inputsJs),
+          Constants.OutputId -> rawJsInputs(Constants.OutputId)
+      )
+    } else {
+      inputsJs
+    }
+  }
 
   @tailrec
   private def outputTypesEqual(expectedType: Type, actualType: Type): Boolean = {

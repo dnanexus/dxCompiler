@@ -447,11 +447,11 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     ): Map[String, (Type, Value)] = {
       val inputEnv = env ++ extraEnv
       logger.traceLimited(
-          s"""|buildCallInputs (${executableLink.name})
+          s"""|prepareSubworkflowInputs (${executableLink.name})
               |env:
               |${inputEnv.mkString("\n")}
               |
-              |linkInfo = ${executableLink}
+              |linkInfo: ${executableLink}
               |""".stripMargin,
           minLevel = TraceLevel.VVerbose
       )

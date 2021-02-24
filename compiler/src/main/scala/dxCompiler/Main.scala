@@ -157,7 +157,7 @@ object Main {
   ): (DxProject, Either[String, DxDataObject]) = {
     val projectId = project.getOrElse({
       val projectId = dxApi.currentProjectId.get
-      Logger.get.warning(s"Project is unspecified...using currently select project ${projectId}")
+      Logger.get.warning(s"Project is unspecified...using currently selected project ${projectId}")
       projectId
     })
     val dxProject =
@@ -226,7 +226,7 @@ object Main {
         (project, folder)
       case (Some(folder), None, _) if folder.startsWith("/") && dxApi.currentProjectId.isDefined =>
         val project = dxApi.currentProjectId.get
-        Logger.get.warning(s"Project is unspecified...using currently select project ${project}")
+        Logger.get.warning(s"Project is unspecified...using currently selected project ${project}")
         (project, folder)
       case (Some(other), _, _) =>
         throw OptionParseException(s"Invalid destination <${other}>")
@@ -236,11 +236,11 @@ object Main {
         (project, "/")
       case (None, None, Some(folder)) =>
         val project = dxApi.currentProjectId.get
-        Logger.get.warning(s"Project is unspecified...using currently select project ${project}")
+        Logger.get.warning(s"Project is unspecified...using currently selected project ${project}")
         (project, folder)
       case (None, None, None) =>
         val project = dxApi.currentProjectId.get
-        Logger.get.warning(s"Project is unspecified...using currently select project ${project}")
+        Logger.get.warning(s"Project is unspecified...using currently selected project ${project}")
         (project, "/")
       case _ =>
         throw OptionParseException("Project is unspecified")

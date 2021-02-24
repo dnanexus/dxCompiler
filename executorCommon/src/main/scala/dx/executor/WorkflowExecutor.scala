@@ -132,17 +132,11 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
     } else {
       None
     }
-    val callInputsJs = JsObject(jobMeta.outputSerializer.createFieldsFromMap(inputs))
+
+    val callInputsJs = JsObject(jobMeta.prepareSubjobInputs(inputs, executableLink))
     logger.traceLimited(s"""launchJob ${name} with arguments:
                            |${callInputsJs.prettyPrint}""".stripMargin,
                         minLevel = TraceLevel.VVerbose)
-
-    // Last check that we have all the compulsory arguments.
-    // Note that we don't have the information here to tell difference between optional and non
-    // optionals. Right now, we are emitting warnings for optionals or arguments that have defaults.
-    executableLink.inputs.keys.filterNot(callInputsJs.fields.contains).foreach { argName =>
-      logger.warning(s"Missing argument ${argName} to call ${executableLink.name}", force = true)
-    }
 
     // We may need to run a collect subjob. Add the the sequence number to each invocation, so the
     // collect subjob will be able to put the results back together in the correct order.
