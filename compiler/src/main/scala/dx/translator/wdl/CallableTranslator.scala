@@ -990,7 +990,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           }
           val closureOutputs: Vector[Parameter] = closureInputParams
           val (commonStage, commonApplet) =
-            createCommonApplet(wf.name,
+            createCommonApplet(wfName,
                                commonAppletInputs,
                                commonStageInputs,
                                inputOutputs ++ closureOutputs)
