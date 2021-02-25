@@ -221,7 +221,7 @@ case class WorkflowCompiler(extras: Option[Extras],
             case (param, EmptyInput) =>
               // empty required inputs are not allowed for nested locked workflows
               throw new Exception(
-                  s"locked workflow ${workflow.name} has empty required input ${param.name}"
+                  s"locked workflow ${workflow.name} has empty required input ${param.dxName}"
               )
             case (param, WorkflowInput(wfParam)) if param == wfParam =>
               // this is one of:
@@ -302,7 +302,7 @@ case class WorkflowCompiler(extras: Option[Extras],
               case WorkflowInput(wfParam) =>
                 (true,
                  Set.empty,
-                 Some(Value.VHash(Constants.WorkflowKey -> Value.VString(wfParam.name))))
+                 Some(Value.VHash(Constants.WorkflowKey -> Value.VString(wfParam.dxName))))
               case LinkInput(sourceStage, sourceParamName) =>
                 (false,
                  Set(sourceStage),

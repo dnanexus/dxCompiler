@@ -357,13 +357,14 @@ case class CallableTranslator(wdlBundle: WdlBundle,
     private def createCommonApplet(wfName: String,
                                    appletInputs: Vector[Parameter],
                                    stageInputs: Vector[StageInput],
-                                   outputs: Vector[Parameter]): (Stage, Application) = {
+                                   outputs: Vector[Parameter],
+                                   blockPath: Vector[Int] = Vector.empty): (Stage, Application) = {
       val applet = Application(s"${wfName}_${Constants.CommonStage}",
                                appletInputs,
                                outputs,
                                DefaultInstanceType,
                                NoImage,
-                               ExecutableKindWfInputs,
+                               ExecutableKindWfInputs(blockPath),
                                standAloneWorkflow)
       logger.trace(s"Compiling common applet ${applet.name}")
       val stage = Stage(
@@ -993,7 +994,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
             createCommonApplet(wfName,
                                commonAppletInputs,
                                commonStageInputs,
-                               inputOutputs ++ closureOutputs)
+                               inputOutputs ++ closureOutputs,
+                               blockPath)
           val fauxWfInputs: Vector[LinkedVar] = commonStage.outputs.map { param =>
             val link = LinkInput(commonStage.dxStage, param.dxName)
             (param, link)

@@ -88,7 +88,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
     if (logger.isVerbose) {
       logger.traceLimited(s"dxCompiler version: ${getVersion}")
       logger.traceLimited(s"Environment: ${jobInputs}")
-      logger.traceLimited("Artificial applet for unlocked workflow inputs")
+      logger.traceLimited("Artificial applet for workflow inputs")
     }
     val inputs = evaluateInputs(jobInputs)
     jobMeta.createOutputLinks(inputs)

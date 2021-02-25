@@ -122,18 +122,54 @@ case class WdlWorkflowExecutor(docSource: FileNode,
   override protected def evaluateInputs(
       jobInputs: Map[String, (Type, Value)]
   ): Map[String, (Type, Value)] = {
-    if (logger.isVerbose) {
-      logger.trace(s"""input paramters:
-                      |${workflow.inputs
-                        .map(TypeUtils.prettyFormatInput(_))
-                        .mkString("\n")}""".stripMargin)
+    // This might be the input for the entire workflow or just a subblock.
+    // If it is for a sublock, it may be for the body of a conditional or
+    // scatter, in which case we only need the inputs of the body statements.
+    val inputParams = jobMeta.blockPath match {
+      case Vector() =>
+        if (logger.isVerbose) {
+          logger.trace(s"""input parameters:
+                          |${workflow.inputs
+                            .map(TypeUtils.prettyFormatInput(_))
+                            .mkString("\n")}""".stripMargin)
+        }
+        workflow.inputs.map(inp => inp.name -> inp.wdlType).toMap
+      case path =>
+        val block: WdlBlock =
+          Block.getSubBlockAt(WdlBlock.createBlocks(workflow.body), path)
+        val blockInputs = block.target match {
+          case Some(conditional: TAT.Conditional) =>
+            val (inputs, _) =
+              WdlUtils.getClosureInputsAndOutputs(Vector(conditional), withField = true)
+            inputs.map {
+              case (name, (wdlType, _)) => name -> wdlType
+            }
+          case Some(scatter: TAT.Scatter) =>
+            val (inputs, _) =
+              WdlUtils.getClosureInputsAndOutputs(Vector(scatter), withField = true)
+            inputs.map {
+              case (name, (wdlType, _)) => name -> wdlType
+            }
+          case _ => block.inputs.map(inp => inp.name -> inp.wdlType).toMap
+        }
+        if (logger.isVerbose) {
+          logger.trace(
+              s"""input parameters:
+                 |${blockInputs
+                   .map {
+                     case (name, wdlType) => s"  ${TypeUtils.prettyFormatType(wdlType)} ${name}"
+                   }
+                   .mkString("\n")}""".stripMargin
+          )
+        }
+        blockInputs
     }
-    val workflowInputs = workflow.inputs.map(inp => inp.name -> inp).toMap
     // convert IR to WDL values
     val inputWdlValues: Map[String, V] = jobInputs.collect {
-      case (name, (_, value)) =>
-        val wdlType = workflowInputs(name).wdlType
-        name -> WdlUtils.fromIRValue(value, wdlType, name)
+      case (name, (_, value)) if inputParams.contains(name) =>
+        name -> WdlUtils.fromIRValue(value, inputParams(name), name)
+      case (name, (t, v)) =>
+        name -> WdlUtils.fromIRValue(v, WdlUtils.fromIRType(t), name)
     }
     if (logger.isVerbose) {
       logger.trace(s"""input values:
@@ -153,7 +189,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     // convert back to IR
     evalauatedInputValues.toMap.map {
       case (name, value) =>
-        val wdlType = workflowInputs(name).wdlType
+        val wdlType = inputParams(name)
         val irType = WdlUtils.toIRType(wdlType)
         val irValue = WdlUtils.toIRValue(value, wdlType)
         name -> (irType, irValue)
@@ -167,7 +203,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     // This might be the output for the entire workflow or just a subblock.
     // If it is for a sublock, it may be for the body of a conditional or
     // scatter, in which case we only need the outputs of the body statements.
-    val outputs = jobMeta.blockPath match {
+    val outputsParams = jobMeta.blockPath match {
       case Vector() => workflow.outputs
       case path =>
         val block: WdlBlock =
@@ -187,16 +223,19 @@ case class WdlWorkflowExecutor(docSource: FileNode,
             block.outputs.filterNot(o => inputs.contains(o.name))
         }
     }
+    val outputTypes = outputsParams.map(o => o.name -> o.wdlType).toMap
     // create the evaluation environment
     // first add the input values
     val inputWdlValues: Map[String, V] = jobInputs.map {
+      case (name, (_, v)) if outputTypes.contains(name) =>
+        name -> WdlUtils.fromIRValue(v, outputTypes(name), name)
       case (name, (t, v)) =>
         name -> WdlUtils.fromIRValue(v, WdlUtils.fromIRType(t), name)
     }
     // also add defaults for any optional values in the output
     // closure that are not inputs
     val outputWdlValues: Map[String, V] =
-      WdlUtils.getOutputClosure(outputs).collect {
+      WdlUtils.getOutputClosure(outputsParams).collect {
         case (name, T_Optional(_)) if !inputWdlValues.contains(name) =>
           // set missing optional inputs to null
           name -> V_Null
@@ -211,15 +250,14 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           s"""|input values: ${inputWdlValues}
               |output closure values: ${outputWdlValues} 
               |outputs parameters:
-              |  ${outputs.map(TypeUtils.prettyFormatOutput(_)).mkString("\n  ")}
+              |  ${outputsParams.map(TypeUtils.prettyFormatOutput(_)).mkString("\n  ")}
               |""".stripMargin
       )
     }
     // evaluate
     val env = WdlValueBindings(inputWdlValues ++ outputWdlValues)
-    val evaluatedOutputValues = InputOutput.evaluateOutputs(outputs, evaluator, env)
+    val evaluatedOutputValues = InputOutput.evaluateOutputs(outputsParams, evaluator, env)
     // convert back to IR
-    val outputTypes = outputs.map(o => o.name -> o.wdlType).toMap
     val irOutputs = evaluatedOutputValues.toMap.map {
       case (name, value) =>
         val wdlType = outputTypes(name)
