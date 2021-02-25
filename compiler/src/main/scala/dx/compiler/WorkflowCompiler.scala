@@ -343,11 +343,17 @@ case class WorkflowCompiler(extras: Option[Extras],
           val inputStageManifests = inputStages.flatten.toSet.map { stage =>
             LinkInput(stage, Constants.OutputManifest)
           }.toVector
+          // the manifest ID for the output stage comes from the workflow
+          val outputId = if (stage.description == Constants.OutputStage) {
+            WorkflowInput(ExecutableCompiler.OutputIdParameter)
+          } else {
+            StaticInput(Value.VString(stage.dxStage.id))
+          }
           val stageInputs = Vector(
               (ExecutableCompiler.InputManfestFilesParameter, ArrayInput(inputStageManifests)),
               (ExecutableCompiler.InputLinksParameter,
                StaticInput(Value.VHash(inputLinks.flatten.to(TreeSeqMap)))),
-              (ExecutableCompiler.OutputIdParameter, StaticInput(Value.VString(stage.dxStage.id)))
+              (ExecutableCompiler.OutputIdParameter, outputId)
           )
           // if there are any workflow inputs, pass the workflow manifests and links to the stage
           val stageWorkflowInputs = if (inputWorkflow.exists(identity)) {
