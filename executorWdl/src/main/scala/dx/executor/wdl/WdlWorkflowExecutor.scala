@@ -122,22 +122,47 @@ case class WdlWorkflowExecutor(docSource: FileNode,
   override protected def evaluateInputs(
       jobInputs: Map[String, (Type, Value)]
   ): Map[String, (Type, Value)] = {
+    def getInputValues(inputTypes: Map[String, T]): Map[String, V] = {
+      jobInputs.collect {
+        case (name, (_, value)) if inputTypes.contains(name) =>
+          name -> WdlUtils.fromIRValue(value, inputTypes(name), name)
+        case (name, (t, v)) =>
+          name -> WdlUtils.fromIRValue(v, WdlUtils.fromIRType(t), name)
+      }
+    }
+
     // This might be the input for the entire workflow or just a subblock.
     // If it is for a sublock, it may be for the body of a conditional or
     // scatter, in which case we only need the inputs of the body statements.
-    val inputParams = jobMeta.blockPath match {
+    val (inputTypes, inputValues) = jobMeta.blockPath match {
       case Vector() =>
+        val inputTypes = workflow.inputs.map(inp => inp.name -> inp.wdlType).toMap
+        // convert IR to WDL values
+        val inputValues = getInputValues(inputTypes)
         if (logger.isVerbose) {
           logger.trace(s"""input parameters:
                           |${workflow.inputs
                             .map(TypeUtils.prettyFormatInput(_))
-                            .mkString("\n")}""".stripMargin)
+                            .mkString("\n")}
+                          |input values:
+                          |${WdlUtils.prettyFormatValues(inputValues)}""".stripMargin)
         }
-        workflow.inputs.map(inp => inp.name -> inp.wdlType).toMap
+        // evaluate - enable special handling for unset array values -
+        // DNAnexus does not distinguish between null and empty for
+        // array inputs, so we treat a null value for a non-optional
+        // array that is allowed to be empty as the empty array.
+        val inputBindings = InputOutput.inputsFromValues(workflow.name,
+                                                         workflow.inputs,
+                                                         inputValues,
+                                                         evaluator,
+                                                         ignoreDefaultEvalError = false,
+                                                         nullCollectionAsEmpty = true)
+        // convert back to IR
+        (inputTypes, inputBindings.toMap)
       case path =>
         val block: WdlBlock =
           Block.getSubBlockAt(WdlBlock.createBlocks(workflow.body), path)
-        val blockInputs = block.target match {
+        val inputTypes = block.target match {
           case Some(conditional: TAT.Conditional) =>
             val (inputs, _) =
               WdlUtils.getClosureInputsAndOutputs(Vector(conditional), withField = true)
@@ -152,44 +177,25 @@ case class WdlWorkflowExecutor(docSource: FileNode,
             }
           case _ => block.inputs.map(inp => inp.name -> inp.wdlType).toMap
         }
+        val inputValues = getInputValues(inputTypes)
         if (logger.isVerbose) {
           logger.trace(
               s"""input parameters:
-                 |${blockInputs
+                 |${inputTypes
                    .map {
                      case (name, wdlType) => s"  ${TypeUtils.prettyFormatType(wdlType)} ${name}"
                    }
-                   .mkString("\n")}""".stripMargin
+                   .mkString("\n")}
+                 |input values:
+                 |${WdlUtils.prettyFormatValues(inputValues)}""".stripMargin
           )
         }
-        blockInputs
+        (inputTypes, inputValues)
     }
-    // convert IR to WDL values
-    val inputWdlValues: Map[String, V] = jobInputs.collect {
-      case (name, (_, value)) if inputParams.contains(name) =>
-        name -> WdlUtils.fromIRValue(value, inputParams(name), name)
-      case (name, (t, v)) =>
-        name -> WdlUtils.fromIRValue(v, WdlUtils.fromIRType(t), name)
-    }
-    if (logger.isVerbose) {
-      logger.trace(s"""input values:
-                      |${WdlUtils.prettyFormatValues(inputWdlValues)}""".stripMargin)
-    }
-    // evaluate - enable special handling for unset array values -
-    // DNAnexus does not distinguish between null and empty for
-    // array inputs, so we treat a null value for a non-optional
-    // array that is allowed to be empty as the empty array.
-    val evalauatedInputValues =
-      InputOutput.inputsFromValues(workflow.name,
-                                   workflow.inputs,
-                                   inputWdlValues,
-                                   evaluator,
-                                   ignoreDefaultEvalError = false,
-                                   nullCollectionAsEmpty = true)
     // convert back to IR
-    evalauatedInputValues.toMap.map {
+    inputValues.map {
       case (name, value) =>
-        val wdlType = inputParams(name)
+        val wdlType = inputTypes(name)
         val irType = WdlUtils.toIRType(wdlType)
         val irValue = WdlUtils.toIRValue(value, wdlType)
         name -> (irType, irValue)
