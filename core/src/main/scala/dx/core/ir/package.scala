@@ -244,7 +244,7 @@ case class ArrayInput(stageInputs: Vector[StageInput]) extends StageInput
 // A stage can call an application or a workflow.
 //
 // Note: the description may contain dots, parentheses, and other special
-// symbols. It is shown to the user on the UI. The [id] is unique
+// symbols. It is shown to the user on the UI. The dxStage.id is unique
 // across the workflow.
 case class Stage(description: String,
                  dxStage: DxWorkflowStage,

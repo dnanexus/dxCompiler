@@ -384,7 +384,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
         case other => throw new Exception(s"invalid call name value ${other}")
       }
       val manifest = Manifest(manifestValues, id = Some(manifestId))
-      val destination = s"${manifestFolder}/${jobId}_output.json"
+      val destination = s"${manifestFolder}/${jobId}_output.manifest.json"
       val manifestDxFile = dxApi.uploadString(manifest.toJson.prettyPrint, destination)
       outputSerializer
         .createFields(Constants.OutputManifest, Type.TFile, Value.VFile(manifestDxFile.asUri))

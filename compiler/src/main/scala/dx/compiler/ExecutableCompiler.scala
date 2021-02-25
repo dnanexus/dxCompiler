@@ -27,6 +27,8 @@ import dx.translator.{Extras, ParameterAttributes}
 import spray.json._
 
 object ExecutableCompiler {
+  // these parameters are used for applets and workflows that are generated
+  // with useManifests=true.
   val InputManifestParameter: Parameter =
     Parameter(Constants.InputManifest, Type.TOptional(Type.THash))
   val InputManfestFilesParameter: Parameter =

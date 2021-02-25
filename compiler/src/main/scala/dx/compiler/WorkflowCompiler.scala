@@ -238,14 +238,14 @@ case class WorkflowCompiler(extras: Option[Extras],
           val stageManifestLinks: StageInput = ArrayInput(inputStages.flatten.toSet.map { stage =>
             LinkInput(stage, Constants.OutputManifest)
           }.toVector)
-          val inputParams = Vector(
+          Vector(
               (ExecutableCompiler.InputManifestParameter, EmptyInput),
               (ExecutableCompiler.InputManfestFilesParameter, stageManifestLinks),
               (ExecutableCompiler.InputLinksParameter,
                StaticInput(Value.VHash(inputLinks.flatten.to(TreeSeqMap)))),
-              (ExecutableCompiler.OutputIdParameter, StaticInput(Value.VString(workflow.name)))
+              (ExecutableCompiler.OutputIdParameter, StaticInput(Value.VString(workflow.name))),
+              (ExecutableCompiler.CallNameParameter, EmptyInput)
           )
-          inputParams
         } else {
           workflow.inputs
         }
@@ -344,17 +344,23 @@ case class WorkflowCompiler(extras: Option[Extras],
             LinkInput(stage, Constants.OutputManifest)
           }.toVector
           // the manifest ID for the output stage comes from the workflow
-          val outputId = if (stage.description == Constants.OutputStage) {
-            WorkflowInput(ExecutableCompiler.OutputIdParameter)
+          val outputInputs = if (stage.description == Constants.OutputStage) {
+            Vector(
+                (ExecutableCompiler.OutputIdParameter,
+                 WorkflowInput(ExecutableCompiler.OutputIdParameter)),
+                (ExecutableCompiler.CallNameParameter,
+                 WorkflowInput(ExecutableCompiler.CallNameParameter))
+            )
           } else {
-            StaticInput(Value.VString(stage.dxStage.id))
+            Vector(
+                (ExecutableCompiler.OutputIdParameter, StaticInput(Value.VString(stage.dxStage.id)))
+            )
           }
           val stageInputs = Vector(
               (ExecutableCompiler.InputManfestFilesParameter, ArrayInput(inputStageManifests)),
               (ExecutableCompiler.InputLinksParameter,
-               StaticInput(Value.VHash(inputLinks.flatten.to(TreeSeqMap)))),
-              (ExecutableCompiler.OutputIdParameter, outputId)
-          )
+               StaticInput(Value.VHash(inputLinks.flatten.to(TreeSeqMap))))
+          ) ++ outputInputs
           // if there are any workflow inputs, pass the workflow manifests and links to the stage
           val stageWorkflowInputs = if (inputWorkflow.exists(identity)) {
             Vector(

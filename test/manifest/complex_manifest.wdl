@@ -4,21 +4,21 @@ import "tumor_normal.wdl" as tn
 
 workflow complex_manifest {
   input {
-    Map[String, File] samples
+    Map[String, Array[File]+] samples
   }
 
   scatter (sample in as_pairs(samples)) {
     call tn.wf as tumor {
       input:
         id = sample.left,
-        file = sample.right
+        file = sample.right[0]
     }
 
-    if (sample.left == "normal") {
+    if (length(sample.right) > 1) {
       call tn.wf as normal {
         input:
           id = sample.left,
-          file = sample.right
+          file = sample.right[1]
       }
     }
   }

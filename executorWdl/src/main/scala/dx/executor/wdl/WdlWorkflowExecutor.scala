@@ -1085,7 +1085,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           case (name, (t, v)) => name -> ValueSerde.serializeWithType(v, t)
         }
         val manifest = Manifest(outputJson, id = manifestId)
-        val destination = s"${jobMeta.manifestFolder}/${jobMeta.jobId}_output.json"
+        val destination = s"${jobMeta.manifestFolder}/${jobMeta.jobId}_output.manifest.json"
         val manifestDxFile = dxApi.uploadString(manifest.toJson.prettyPrint, destination)
         val outputValues = Map(
             Constants.OutputManifest -> (TFile, VFile(manifestDxFile.asUri))
