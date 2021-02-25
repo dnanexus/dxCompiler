@@ -217,12 +217,16 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         block.target match {
           case Some(conditional: TAT.Conditional) =>
             val (_, outputs) =
-              WdlUtils.getClosureInputsAndOutputs(Vector(conditional), withField = true)
+              WdlUtils.getClosureInputsAndOutputs(conditional.body, withField = true)
             outputs.values.toVector
           case Some(scatter: TAT.Scatter) =>
             val (_, outputs) =
-              WdlUtils.getClosureInputsAndOutputs(Vector(scatter), withField = true)
-            outputs.values.toVector
+              WdlUtils.getClosureInputsAndOutputs(scatter.body, withField = true)
+            // exclude the scatter variable
+            outputs.values.filter {
+              case out: TAT.OutputParameter if out.name == scatter.identifier => false
+              case _                                                          => true
+            }.toVector
           case _ =>
             // we only need to expose the outputs that are not inputs
             val inputs = block.inputs.map(i => i.name -> i.wdlType).toMap

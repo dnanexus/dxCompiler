@@ -899,8 +899,7 @@ object WdlUtils {
       withField: Boolean
   ): (Map[String, (T, InputKind.InputKind)], Map[String, TAT.OutputParameter]) = {
     def getOutputs(
-        innerElements: Vector[TAT.WorkflowElement],
-        innerWithField: Boolean
+        innerElements: Vector[TAT.WorkflowElement]
     ): Vector[TAT.OutputParameter] = {
       innerElements.flatMap {
         case TAT.PrivateVariable(name, wdlType, expr, loc) =>
@@ -917,7 +916,7 @@ object WdlUtils {
               )
           }.toVector
         case cond: TAT.Conditional =>
-          getOutputs(cond.body, innerWithField = true).map { out =>
+          getOutputs(cond.body).map { out =>
             out.copy(wdlType = TypeUtils.ensureOptional(out.wdlType))
           }
         case scatter: TAT.Scatter =>
@@ -929,7 +928,7 @@ object WdlUtils {
                   s"scatter expression type ${scatter.expr.wdlType} not an array"
               )
           }
-          getOutputs(scatter.body, innerWithField = true).collect {
+          getOutputs(scatter.body).collect {
             case out: TAT.OutputParameter if out.name != scatter.identifier =>
               out.copy(wdlType = T_Array(out.wdlType, nonEmpty = nonEmptyOutputArray))
           }
@@ -971,7 +970,7 @@ object WdlUtils {
     // inputs because WDL allows forward references, and we
     // need to be able to distinguish block inputs from
     // variables that are defined within the block
-    val outputs = getOutputs(elements, withField).groupBy(_.name).map {
+    val outputs = getOutputs(elements).groupBy(_.name).map {
       case (name, outputs) if outputs.size == 1 => name -> outputs.head
       case (name, outputs) if Set(outputs).size > 1 =>
         throw new Exception(s"multiple outputs defined with the name ${name}: ${outputs}")
