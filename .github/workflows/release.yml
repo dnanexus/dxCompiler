@@ -6,9 +6,9 @@ on:
         description: 'Release version'
         required: true
       should-run-tests:
-        description: 'Should run large integration tests (false/true; default: false)'
+        description: 'Should run large integration tests (false/true; default: true)'
         required: false
-        default: 'false'
+        default: 'true'
 
 jobs:
   run-release:
@@ -17,6 +17,35 @@ jobs:
     steps:
       - name: Git checkout
         uses: actions/checkout@v2
+
+      - name: Validate inputs
+        run: |
+          # Check if dxCompiler has already been released under this version
+          URL=https://github.com/dnanexus/dxCompiler/releases/download/${{ github.event.inputs.release-version }}/dxCompiler-${{ github.event.inputs.release-version }}.jar
+          RESP=$(curl -s -o /dev/null -w "%{http_code}" $URL)
+          echo "Response: $RESP"
+          if [ $RESP == 404 ]; then
+            echo "Version ${{ github.event.inputs.release-version }} not found; can continue with the release."
+          else
+            echo "Version ${{ github.event.inputs.release-version }} has already been released; please pick a different release version or delete the ${{ github.event.inputs.release-version }} release page and re-try."
+            exit 1
+          fi
+          # Check if application.conf files are already updated
+          CONF_FILES=(
+            ./executorWdl/src/main/resources/application.conf
+            ./core/src/main/resources/application.conf
+            ./executorCwl/src/main/resources/application.conf
+            ./compiler/src/main/resources/application.conf
+            ./executorCommon/src/main/resources/application.conf
+          )
+          for i in ${CONF_FILES[@]}; do
+            if [ $(grep -c \"${{ github.event.inputs.release-version }}\" $i) == 0 ]; then
+              echo "File $i is not updated with version ${{ github.event.inputs.release-version }}. Please update all application.conf files and re-try."
+              exit 1
+            else
+              echo "File $i is updated with version ${{ github.event.inputs.release-version }}. Continuing.."
+            fi
+          done
 
       - name: Install java
         uses: actions/setup-java@v1
@@ -51,42 +80,6 @@ jobs:
           #TODO: also remove the folder when the tests fail
           dx rmdir -r $FOLDER
 
-      - name: Extract release notes and set version in application.conf files
-        id: update-release
-        run: |
-          # Update the config files with the newest version
-          CONF_FILES=(
-              ./executorWdl/src/main/resources/application.conf
-              ./core/src/main/resources/application.conf
-              ./executorCwl/src/main/resources/application.conf
-              ./compiler/src/main/resources/application.conf
-              ./executorCommon/src/main/resources/application.conf
-          )
-          for i in ${CONF_FILES[@]}; do
-              sed -i 's/version.*$/version = "${{ github.event.inputs.release-version }}"/' $i
-          done
-          # Extract release notes for the release into a temporary (unpushed) file
-          # It is expected the RELEASE_NOTES.md has already an entry for the version being
-          # released. The section should start with '# <version>', e.g. # 2.0.0 2021-01-01
-          # The file will be read by the create-release step
-          RELEASE_NOTES_PATH="./release_notes_${{ github.event.inputs.release-version }}.md"
-          sed -n '/# ${{ github.event.inputs.release-version }}/,/##/p' RELEASE_NOTES.md |  sed '1d; $d' > $RELEASE_NOTES_PATH
-          echo ::set-output name=release-notes-path::$(echo "${RELEASE_NOTES_PATH}")
-
-      - name: Commit changes to application.conf files
-        uses: EndBug/add-and-commit@v7
-        with:
-          message: 'Release ${{ github.event.inputs.release-version }}'
-          add: '[
-              "./executorWdl/src/main/resources/application.conf", 
-              "./core/src/main/resources/application.conf",
-              "./executorCwl/src/main/resources/application.conf",
-              "./compiler/src/main/resources/application.conf",
-              "./executorCommon/src/main/resources/application.conf"
-          ]'
-          push: false
-          tag: ${{ github.event.inputs.release-version }}
-
       - name: Run the release script
         env:
           DX_STAGING_RELEASE_TOKEN: ${{ secrets.DX_STAGING_RELEASE_TOKEN }}
@@ -100,6 +93,17 @@ jobs:
               --docker-user commandlinegirl \
               --docker-password $DOCKERHUB_TOKEN \
               --force
+
+      - name: Extract release notes
+        id: update-release
+        run: |
+          # Extract release notes for the release into a temporary (unpushed) file
+          # It is expected the RELEASE_NOTES.md has already an entry for the version being
+          # released. The section should start with '# <version>', e.g. # 1.0.0 2021-01-01
+          # The file will be read by the create-release step
+          RELEASE_NOTES_PATH="./release_notes_${{ github.event.inputs.release-version }}.md"
+          sed -n '/# ${{ github.event.inputs.release-version }}/,/##/p' RELEASE_NOTES.md |  sed '1d; $d' > $RELEASE_NOTES_PATH
+          echo ::set-output name=release-notes-path::$(echo "${RELEASE_NOTES_PATH}")
 
       - name: Create release entry
         id: create-release
@@ -127,17 +131,9 @@ jobs:
           asset_name: dxCompiler-${{ github.event.inputs.release-version }}.jar
           asset_content_type: application/jar
 
-      - name: Push tag to origin
+      - name: Create and push tag to origin
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          git tag ${{ github.event.inputs.release-version }}
           git push origin ${{ github.event.inputs.release-version }}
-
-        #- name: Rollback release if unsuccessfull
-        #if: ${{ cancelled() || failure() }}
-        #uses: author/action-rollback@stable
-        #with:
-        #  release_id: ${{ steps.create-release.outputs.id }}
-        #env:
-        #  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
