@@ -1134,6 +1134,6 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val path = pathFromBasename("bugs", "native_with_file_output.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[Success]
+    retval shouldBe a[SuccessfulCompileNativeNoTree]
   }
 }

@@ -120,7 +120,7 @@ val executorCwl = project
 lazy val dependencies =
   new {
     val dxCommonVersion = "0.2.8"
-    val dxApiVersion = "0.1.12"
+    val dxApiVersion = "0.1.13"
     val dxFileAccessProtocolsVersion = "0.1.2"
     val wdlToolsVersion = "0.12.5"
     val cwlScalaVersion = "0.3.4"
