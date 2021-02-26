@@ -40,6 +40,8 @@ object CwlUtils {
       case CwlDirectory   => TDirectory
       case a: CwlArray if a.itemTypes.size == 1 =>
         TArray(toIRType(a.itemTypes.head))
+      case a: CwlArray =>
+        TArray(TMulti(a.itemTypes.map(toIRType)))
       case r: CwlRecord if r.name.isDefined =>
         toIRSchema(r)
       case e: CwlEnum => TEnum(e.symbols)
@@ -379,6 +381,63 @@ object CwlUtils {
       case (name, (t, v)) =>
         val cwlType = fromIRType(t, typeAliases, isInput)
         name -> fromIRValue(v, cwlType, name, isInput)
+    }
+  }
+
+  def prettyFormatType(cwlType: CwlType): String = {
+    cwlType match {
+      case CwlOptional(t) => s"${prettyFormatType(t)}?"
+      case CwlAny         => "any"
+      case CwlBoolean     => "boolean"
+      case CwlInt         => "int"
+      case CwlLong        => "long"
+      case CwlFloat       => "float"
+      case CwlDouble      => "double"
+      case CwlString      => "string"
+      case CwlFile        => "File"
+      case CwlDirectory   => "Directory"
+      case a: CwlArray if a.name.isDefined =>
+        a.name.get
+      case a: CwlArray =>
+        s"array<${prettyFormatTypes(a.itemTypes)}>"
+      case r: CwlRecord if r.name.isDefined =>
+        r.name.get
+      case r: CwlRecord =>
+        s"record<${r.fields.values.map(f => s"${prettyFormatTypes(f.types)} ${f.name}").mkString(", ")}>"
+      case e: CwlEnum if e.name.isDefined =>
+        e.name.get
+      case e: CwlEnum =>
+        s"enum<${e.symbols.mkString(",")}>"
+    }
+  }
+
+  def prettyFormatTypes(types: Vector[CwlType]): String = {
+    flattenTypes(types) match {
+      case Vector()  => ""
+      case Vector(t) => prettyFormatType(t)
+      case v         => s"(${v.map(prettyFormatType).mkString("|")})"
+    }
+  }
+
+  def prettyFormatValue(value: CwlValue): String = {
+    value match {
+      case NullValue           => "null"
+      case BooleanValue(true)  => "true"
+      case BooleanValue(false) => "false"
+      case IntValue(i)         => i.toString
+      case LongValue(l)        => l.toString
+      case FloatValue(f)       => f.toString
+      case DoubleValue(d)      => d.toString
+      case StringValue(s)      => s
+      case f: FileValue        => f.toString
+      case d: DirectoryValue   => d.toString
+      case ArrayValue(items)   => s"[${items.map(prettyFormatValue)}]"
+      case ObjectValue(fields) =>
+        val fieldStrs = fields.map {
+          case (name, value) => s"${name}: ${prettyFormatValue(value)}"
+        }
+        s"{${fieldStrs.mkString(",")}}"
+      case _ => throw new Exception(s"unrecognized CWL value ${value})")
     }
   }
 

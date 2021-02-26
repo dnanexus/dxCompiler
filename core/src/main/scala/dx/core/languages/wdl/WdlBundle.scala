@@ -13,7 +13,71 @@ case class WdlBundle(version: WdlVersion,
                      workflows: Map[String, TAT.Workflow],
                      callableNames: Set[String],
                      sources: Map[String, TAT.Document],
-                     adjunctFiles: Map[String, Vector[Adjuncts.AdjunctFile]])
+                     adjunctFiles: Map[String, Vector[Adjuncts.AdjunctFile]]) {
+
+  def sortByDependencies(logger: Logger = Logger.get): Vector[TAT.Callable] = {
+    // We only need to figure out the dependency order of workflows. Tasks don't depend
+    // on anything else - they are at the bottom of the dependency tree.
+    val wfDeps: Map[String, Set[String]] = workflows.map {
+      case (name, wf) =>
+        WdlUtils.getUnqualifiedName(name) -> WdlUtils
+          .deepFindCalls(wf.body)
+          .map { call: TAT.Call =>
+            // The name is fully qualified, for example, lib.add, lib.concat.
+            // We need the task/workflow itself ("add", "concat"). We are
+            // assuming that the namespace can be flattened; there are
+            // no lib.add and lib2.add.
+            call.unqualifiedName
+          }
+          .toSet
+    }
+
+    // Iteratively identify executables for which all dependencies are satisfied -
+    // these can be compiled.
+    var remainingWorkflows = workflows.values.toVector
+    var orderedWorkflows = Vector.empty[TAT.Workflow]
+    var orderedNames = tasks.keySet
+    logger.trace("Sorting workflows by dependency order")
+    while (remainingWorkflows.nonEmpty) {
+      if (logger.isVerbose) {
+        logger.trace(s"ordered: ${orderedWorkflows.map(_.name)}")
+        logger.trace(s"remaining: ${remainingWorkflows.map(_.name)}")
+      }
+      // split the remaining workflows into those who have all dependencies satisfied
+      // and those who do not
+      val (satisfied, unsatisfied) =
+        remainingWorkflows.partition(wf => wfDeps(wf.name).subsetOf(orderedNames))
+      // no workflows were fully satisfied on this pass - we're stuck :(
+      if (satisfied.nonEmpty) {
+        if (logger.isVerbose) {
+          satisfied.foreach { wf =>
+            logger.trace(
+                s"Satisifed all workflow ${wf.name} dependencies ${wfDeps(wf.name)}"
+            )
+          }
+        }
+        orderedWorkflows ++= satisfied
+        orderedNames |= satisfied.map(_.name).toSet
+        remainingWorkflows = unsatisfied
+      } else {
+        val stuck = remainingWorkflows.map(_.name)
+        val stuckWaitingOn: Map[String, Set[String]] = stuck.map { name =>
+          name -> (wfDeps(name) -- orderedNames)
+        }.toMap
+        throw new Exception(s"""|Cannot find the next callable to compile.
+                                |ready = ${orderedNames}
+                                |stuck = ${stuck}
+                                |stuckWaitingOn =
+                                |${stuckWaitingOn.mkString("\n")}
+                                |""".stripMargin)
+      }
+    }
+    // ensure we've accounted for all the callables
+    assert(orderedNames == callableNames)
+    // Add tasks to the beginning - it doesn't matter what order these are compiled
+    tasks.values.toVector ++ orderedWorkflows
+  }
+}
 
 object WdlBundle {
 

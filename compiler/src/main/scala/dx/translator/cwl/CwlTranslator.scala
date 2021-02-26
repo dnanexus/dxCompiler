@@ -1,11 +1,11 @@
 package dx.translator.cwl
 
-import dx.api.{DxApi, DxProject}
-import dx.core.ir.{Bundle, Type, Value}
+import dx.api.{DxApi, DxFile, DxPath, DxProject}
+import dx.core.ir.{Bundle, Callable, Type, Value}
 import dx.core.languages.Language
 import dx.core.languages.Language.Language
-import dx.core.languages.cwl.{CwlUtils, DxHintSchema}
-import dx.cwl.{CommandLineTool, CwlRecord, HintUtils, Parser}
+import dx.core.languages.cwl.{CwlBundle, CwlUtils, DxHintSchema}
+import dx.cwl.{CommandLineTool, CwlRecord, HintUtils, Parser, Process, Workflow}
 import dx.translator.{
   DxWorkflowAttrs,
   InputTranslator,
@@ -32,17 +32,13 @@ case class CwlInputTranslator(bundle: Bundle,
     (t, jsv) match {
       case (Type.TFile, JsObject(fields)) if fields.get("class").contains(JsString("File")) =>
         fields.get("location") match {
-          case Some(uri: JsString) if uri.value.startsWith("dx://") => uri
-          case Some(obj) =>
-            try {
-              obj
-            } catch {
-              case _: Throwable =>
-                throw new Exception(s"not a valid DNAnexus link object: ${obj}")
-            }
-          case _ =>
+          case Some(uri: JsString) if uri.value.startsWith(DxPath.DxUriPrefix) => uri
+          case Some(obj: JsObject) if DxFile.isLinkJson(obj)                   => obj
+          case other =>
             throw new Exception(
-                s"dxCompiler can only translate files represented as dx:// URIs or as link objects, not ${fields}"
+                s"""dxCompiler can only translate files with 'location' 
+                   |set to a dx:// URIs or as link objects, not ${other}""".stripMargin
+                  .replaceAll("\n", " ")
             )
         }
       case _ => jsv
@@ -50,7 +46,7 @@ case class CwlInputTranslator(bundle: Bundle,
   }
 }
 
-case class CwlTranslator(tool: CommandLineTool,
+case class CwlTranslator(process: Process,
                          sourceFile: Path,
                          locked: Boolean,
                          defaultRuntimeAttrs: Map[String, Value],
@@ -67,10 +63,12 @@ case class CwlTranslator(tool: CommandLineTool,
 
   override val runtimeJar: String = "dxExecutorCwl.jar"
 
-  private lazy val typeAliases = HintUtils.getSchemaDefs(tool.requirements)
+  private lazy val typeAliases = HintUtils.getSchemaDefs(process.requirements)
 
   override lazy val apply: Bundle = {
+    val cwlBundle: CwlBundle = CwlBundle.create(process)
     val callableTranslator = ProcessTranslator(
+        cwlBundle,
         typeAliases,
         locked,
         defaultRuntimeAttrs,
@@ -81,16 +79,35 @@ case class CwlTranslator(tool: CommandLineTool,
         fileResolver,
         logger
     )
-    val callables = callableTranslator.translateProcess(tool)
-    assert(callables.size == 1)
-    val primaryCallable = callables.head
+    // sort callables by dependencies
+    val logger2 = logger.withIncTraceIndent()
+    val depOrder: Vector[Process] = cwlBundle.sortByDependencies
+    if (logger2.isVerbose) {
+      logger2.trace(s"all tasks: ${cwlBundle.tools.keySet}")
+      logger2.trace(s"all processes in dependency order: ${depOrder.map(_.name)}")
+    }
+    // translate processes
+    val (allCallables, sortedCallables) =
+      depOrder.foldLeft((Map.empty[String, Callable], Vector.empty[Callable])) {
+        case ((allCallables, sortedCallables), callable) =>
+          val translatedCallables = callableTranslator.translateProcess(callable, allCallables)
+          (
+              allCallables ++ translatedCallables.map(c => c.name -> c).toMap,
+              sortedCallables ++ translatedCallables
+          )
+      }
+    val allCallablesSortedNames = sortedCallables.map(_.name).distinct
+    val primaryCallable = cwlBundle.primaryCallable.map { callable =>
+      allCallables(callable.name)
+    }
+    if (logger2.isVerbose) {
+      logger2.trace(s"allCallables: ${allCallables.keys}")
+      logger2.trace(s"allCallablesSorted: ${allCallablesSortedNames}")
+    }
     val irTypeAliases = typeAliases.collect {
       case (name, record: CwlRecord) => name -> CwlUtils.toIRType(record)
     }
-    Bundle(Some(primaryCallable),
-           Map(primaryCallable.name -> primaryCallable),
-           Vector(primaryCallable.name),
-           irTypeAliases)
+    Bundle(primaryCallable, allCallables, allCallablesSortedNames, irTypeAliases)
   }
 
   override protected def createInputTranslator(bundle: Bundle,
@@ -149,13 +166,14 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
           return None
       }
     }
-    val tool = parser.parseFile(sourceFile) match {
+    val process = parser.parseFile(sourceFile) match {
       case tool: CommandLineTool => tool
+      case wf: Workflow          => wf
       case _ =>
-        throw new Exception(s"Not a command line tool ${sourceFile}")
+        throw new Exception(s"Not a command line tool or workflow: ${sourceFile}")
     }
     Some(
-        CwlTranslator(tool,
+        CwlTranslator(process,
                       sourceFile,
                       locked,
                       defaultRuntimeAttrs,

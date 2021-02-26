@@ -311,7 +311,7 @@ case class WdlBlock(index: Int,
             Some(block: TAT.BlockElement)) =>
         block.body
       case _ =>
-        throw new UnsupportedOperationException(
+        throw new Exception(
             s"block ${this} does not have inner elements"
         )
     }

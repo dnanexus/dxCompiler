@@ -1,9 +1,9 @@
 package dx.translator.wdl
 
-import dx.api.{DxApi, DxUtils, DxWorkflowStage}
+import dx.api.{DxApi, DxUtils}
 import dx.core.Constants
 import dx.core.ir.RunSpec.{DefaultInstanceType, DxFileDockerImage, NoImage}
-import dx.translator.{CustomReorgSettings, DefaultReorgSettings, DxWorkflowAttrs, ReorgSettings}
+import dx.translator.{CustomReorgSettings, DxWorkflowAttrs, ReorgSettings, WorkflowTranslator}
 import dx.core.ir._
 import dx.core.ir.Type._
 import dx.core.ir.Value._
@@ -179,12 +179,13 @@ case class CallableTranslator(wdlBundle: WdlBundle,
 
   private case class WdlWorkflowTranslator(wf: TAT.Workflow,
                                            availableDependencies: Map[String, Callable],
-                                           workflowAttrs: Option[DxWorkflowAttrs]) {
+                                           workflowAttrs: Option[DxWorkflowAttrs])
+      extends WorkflowTranslator(wf.name, availableDependencies, reorgAttrs, logger) {
     private lazy val adjunctFiles: Vector[Adjuncts.AdjunctFile] =
       wdlBundle.adjunctFiles.getOrElse(wf.name, Vector.empty)
     private lazy val meta = WorkflowMetaTranslator(wdlBundle.version, wf.meta, adjunctFiles)
     private lazy val parameterMeta = ParameterMetaTranslator(wdlBundle.version, wf.parameterMeta)
-    private lazy val standAloneWorkflow = {
+    protected lazy val standAloneWorkflow: WdlDocumentSource = {
       val dependencyNames = WdlUtils.deepFindCalls(wf.body).map(_.unqualifiedName).toSet
       val dependencies =
         availableDependencies.view.filterKeys(dependencyNames.contains).values.toVector
@@ -192,94 +193,12 @@ case class CallableTranslator(wdlBundle: WdlBundle,
     }
     // Only the toplevel workflow may be unlocked. This happens
     // only if the user specifically compiles it as "unlocked".
-    private lazy val isLocked: Boolean = {
+    protected lazy val isLocked: Boolean = {
       wdlBundle.primaryCallable match {
         case Some(wf2: TAT.Workflow) =>
           (wf.name != wf2.name) || locked
         case _ =>
           true
-      }
-    }
-
-    private type LinkedVar = (Parameter, StageInput)
-
-    case class CallEnv(env: Map[String, LinkedVar]) {
-      def add(key: String, lvar: LinkedVar): CallEnv = {
-        CallEnv(env + (key -> lvar))
-      }
-
-      def contains(key: String): Boolean = env.contains(key)
-
-      def keys: Set[String] = env.keySet
-
-      def get(key: String): Option[LinkedVar] = env.get(key)
-
-      def apply(key: String): LinkedVar = {
-        get(key) match {
-          case None =>
-            log()
-            throw new Exception(s"${key} does not exist in the environment.")
-          case Some(lvar) => lvar
-        }
-      }
-
-      def log(): Unit = {
-        if (logger.isVerbose) {
-          logger.trace("env:")
-          val logger2 = logger.withIncTraceIndent()
-          stageInputs.map {
-            case (name, stageInput) =>
-              logger2.trace(s"$name -> ${stageInput}")
-          }
-        }
-      }
-
-      /**
-        * Check if the environment has a variable with a binding for
-        * a fully-qualified name. For example, if fqn is "A.B.C", then
-        * look for "A.B.C", "A.B", or "A", in that order.
-        *
-        * If the environment has a pair "p", then we want to be able to
-        * to return "p" when looking for "p.left" or "p.right".
-        *
-        * @param fqn fully-qualified name
-        * @return
-        */
-      def lookup(fqn: String): Option[(String, LinkedVar)] = {
-        if (env.contains(fqn)) {
-          // exact match
-          Some(fqn, env(fqn))
-        } else {
-          // A.B.C --> A.B
-          fqn.lastIndexOf(".") match {
-            case pos if pos >= 0 => lookup(fqn.substring(0, pos))
-            case _               => None
-          }
-        }
-      }
-
-      def stageInputs: Map[String, StageInput] = {
-        env.map {
-          case (key, (_, stageInput)) => key -> stageInput
-        }
-      }
-
-      def staticValues: Map[String, (Type, Value)] = {
-        env.collect {
-          case (key, (Parameter(_, dxType, _, _), StaticInput(value))) =>
-            key -> (dxType, value)
-          case (key, (_, WorkflowInput(Parameter(_, dxType, Some(value), _)))) =>
-            key -> (dxType, value)
-        }
-      }
-    }
-
-    object CallEnv {
-      def fromLinkedVars(lvars: Vector[LinkedVar]): CallEnv = {
-        CallEnv(lvars.map {
-          case (parameter, stageInput) =>
-            parameter.name -> (parameter, stageInput)
-        }.toMap)
       }
     }
 
@@ -332,49 +251,6 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           val optType = Type.ensureOptional(irType)
           (Parameter(name, optType, None, attr), false)
       }
-    }
-
-    // generate a stage Id, this is a string of the form: 'stage-xxx'
-    private val fragNumIter = Iterator.from(0)
-
-    private def getStageId(stageName: Option[String] = None): String = {
-      stageName.map(name => s"stage-${name}").getOrElse(s"stage-${fragNumIter.next()}")
-    }
-
-    private def getStage(stageName: Option[String] = None): DxWorkflowStage = {
-      DxWorkflowStage(getStageId(stageName))
-    }
-
-    /**
-      * Create a preliminary applet to handle workflow input/outputs. This is
-      * used only in the absence of workflow-level inputs/outputs.
-      * @param wfName the workflow name
-      * @param appletInputs the common applet inputs
-      * @param stageInputs the common stage inputs
-      * @param outputs the outputs
-      * @return
-      */
-    private def createCommonApplet(wfName: String,
-                                   appletInputs: Vector[Parameter],
-                                   stageInputs: Vector[StageInput],
-                                   outputs: Vector[Parameter],
-                                   blockPath: Vector[Int] = Vector.empty): (Stage, Application) = {
-      val applet = Application(s"${wfName}_${Constants.CommonStage}",
-                               appletInputs,
-                               outputs,
-                               DefaultInstanceType,
-                               NoImage,
-                               ExecutableKindWfInputs(blockPath),
-                               standAloneWorkflow)
-      logger.trace(s"Compiling common applet ${applet.name}")
-      val stage = Stage(
-          Constants.CommonStage,
-          getStage(Some(Constants.CommonStage)),
-          applet.name,
-          stageInputs,
-          outputs
-      )
-      (stage, applet)
     }
 
     private def callExprToStageInput(callInputExpr: Option[TAT.Expr],
@@ -1157,118 +1033,18 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       (irwf, commonApplet +: auxCallables.flatten :+ outputApplet, wfOutputs)
     }
 
-    /**
-      * Creates an applet to reorganize the output files. We want to
-      * move the intermediate results to a subdirectory.  The applet
-      * needs to process all the workflow outputs, to find the files
-      * that belong to the final results.
-      * @param wfName workflow name
-      * @param wfOutputs workflow outputs
-      * @return
-      */
-    private def createReorgStage(wfName: String,
-                                 wfOutputs: Vector[LinkedVar]): (Stage, Application) = {
-      val applet = Application(
-          s"${wfName}_${Constants.ReorgStage}",
-          wfOutputs.map(_._1),
-          Vector.empty,
-          DefaultInstanceType,
-          NoImage,
-          ExecutableKindWorkflowOutputReorg,
-          standAloneWorkflow
-      )
-      logger.trace(s"Creating output reorganization applet ${applet.name}")
-      // Link to the X.y original variables
-      val inputs: Vector[StageInput] = wfOutputs.map(_._2)
-      val stage =
-        Stage(Constants.ReorgStage,
-              getStage(Some(Constants.ReorgStage)),
-              applet.name,
-              inputs,
-              Vector.empty[Parameter])
-      (stage, applet)
-    }
-
-    private def createCustomReorgStage(wfOutputs: Vector[LinkedVar],
-                                       appletId: String,
-                                       reorgConfigFile: Option[String]): (Stage, Application) = {
-      logger.trace(s"Creating custom output reorganization applet ${appletId}")
-      val (statusParam, statusStageInput): LinkedVar = wfOutputs.filter {
-        case (x, _) => x.name == ReorgStatus
-      } match {
-        case Vector(lvar) => lvar
-        case other =>
-          throw new Exception(
-              s"Expected exactly one output with name ${ReorgStatus}, found ${other}"
-          )
-      }
-      val configFile: Option[VFile] = reorgConfigFile.map(VFile)
-      val appInputs = Vector(
-          statusParam,
-          Parameter(Constants.ReorgConfig, TFile, configFile)
-      )
-      val appletKind = ExecutableKindWorkflowCustomReorg(appletId)
-      val applet = Application(
-          appletId,
-          appInputs,
-          Vector.empty,
-          DefaultInstanceType,
-          NoImage,
-          appletKind,
-          standAloneWorkflow
-      )
-      // Link to the X.y original variables
-      val inputs: Vector[StageInput] = configFile match {
-        case Some(x) => Vector(statusStageInput, StaticInput(x))
-        case _       => Vector(statusStageInput)
-      }
-      val stage =
-        Stage(Constants.ReorgStage,
-              getStage(Some(Constants.ReorgStage)),
-              applet.name,
-              inputs,
-              Vector.empty[Parameter])
-      (stage, applet)
-    }
-
-    def apply: Vector[Callable] = {
+    override def translate: (Workflow, Vector[Callable], Vector[LinkedVar]) = {
       logger.trace(s"Translating workflow ${wf.name}")
       // Create a stage per workflow body element (variable block, call,
       // scatter block, conditional block)
       val subBlocks = WdlBlock.createBlocks(wf.body)
       // translate workflow inputs/outputs to equivalent classes defined in Block
       val inputs = wf.inputs.map(WdlBlockInput.translate)
-      val (irWf, irCallables, irOutputs) =
-        if (isLocked) {
-          translateTopWorkflowLocked(inputs, wf.outputs, subBlocks)
-        } else {
-          translateTopWorkflowUnlocked(inputs, wf.outputs, subBlocks)
-        }
-      // add a reorg applet if necessary
-      val (updatedWf, updatedCallables) = reorgAttrs match {
-        case DefaultReorgSettings(true) =>
-          val (reorgStage, reorgApl) = createReorgStage(wf.name, irOutputs)
-          (irWf.copy(stages = irWf.stages :+ reorgStage), irCallables :+ reorgApl)
-        case CustomReorgSettings(appUri, reorgConfigFile, true) if !isLocked =>
-          val (reorgStage, reorgApl) = createCustomReorgStage(irOutputs, appUri, reorgConfigFile)
-          (irWf.copy(stages = irWf.stages :+ reorgStage), irCallables :+ reorgApl)
-        case _ =>
-          (irWf, irCallables)
+      if (isLocked) {
+        translateTopWorkflowLocked(inputs, wf.outputs, subBlocks)
+      } else {
+        translateTopWorkflowUnlocked(inputs, wf.outputs, subBlocks)
       }
-      // validate workflow stages
-      val allCallableNames = updatedCallables.map(_.name).toSet ++ availableDependencies.keySet
-      val invalidStages =
-        updatedWf.stages.filterNot(stage => allCallableNames.contains(stage.calleeName))
-      if (invalidStages.nonEmpty) {
-        val invalidStageDesc = invalidStages
-          .map(stage => s"$stage.description, $stage.id.getId -> ${stage.calleeName}")
-          .mkString("    ")
-        throw new Exception(s"""|One or more stages reference missing tasks:
-                                |stages: $invalidStageDesc
-                                |callables: $allCallableNames
-                                |""".stripMargin)
-      }
-      updatedCallables :+ updatedWf
     }
   }
 

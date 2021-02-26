@@ -2,25 +2,18 @@ package dx.translator.cwl
 
 import dx.api.DxApi
 import dx.core.io.DxWorkerPaths
-import dx.core.ir.{
-  Application,
-  Callable,
-  CallableAttribute,
-  ExecutableKindApplet,
-  Parameter,
-  ParameterAttribute,
-  Value
-}
-import dx.core.languages.cwl.{CwlDocumentSource, CwlUtils, DxHints, RequirementEvaluator}
-import dx.cwl.{Parameter => CwlParameter, _}
+import dx.core.ir.{Application, Callable, CallableAttribute, EmptyInput, ExecutableKindApplet, Level, LinkInput, Parameter, ParameterAttribute, Stage, StageInput, Value, Workflow}
+import dx.core.languages.cwl.{CwlBlock, CwlBundle, CwlDocumentSource, CwlUtils, DxHints, RequirementEvaluator}
+import dx.cwl.{CommandInputParameter, CommandLineTool, CommandOutputParameter, CwlSchema, CwlType, CwlValue, Evaluator, EvaluatorContext, FileValue, Process, Runtime, WorkflowInputParameter, WorkflowOutputParameter, Parameter => CwlParameter, Workflow => CwlWorkflow}
 import dx.translator.CallableAttributes.{DescriptionAttribute, TitleAttribute}
 import dx.translator.ParameterAttributes.{HelpAttribute, LabelAttribute}
-import dx.translator.{DxWorkflowAttrs, ReorgSettings}
+import dx.translator.{DxWorkflowAttrs, ReorgSettings, WorkflowTranslator}
 import dx.util.{FileSourceResolver, Logger}
 
 import java.nio.file.Paths
 
-case class ProcessTranslator(typeAliases: Map[String, CwlSchema],
+case class ProcessTranslator(cwlBundle: CwlBundle,
+                             typeAliases: Map[String, CwlSchema],
                              locked: Boolean,
                              defaultRuntimeAttrs: Map[String, Value],
                              reorgAttrs: ReorgSettings,
@@ -119,7 +112,7 @@ case class ProcessTranslator(typeAliases: Map[String, CwlSchema],
     //  URI like dx://dxCompiler_playground:/glnexus_internal, rewrite it
     //  to dx://project-xxx:file-xxx to avoid a runtime lookup
     def apply: Application = {
-      val name = tool.id.name.get
+      val name = tool.name
       val inputs = tool.inputs.collect {
         case i if i.id.exists(_.name.isDefined) => translateInput(i)
       }
@@ -155,11 +148,104 @@ case class ProcessTranslator(typeAliases: Map[String, CwlSchema],
     }
   }
 
-  def translateProcess(process: Process): Vector[Callable] = {
+  private case class CwlWorkflowTranslator(wf: CwlWorkflow,
+                                           availableDependencies: Map[String, Callable])
+      extends WorkflowTranslator(wf.name, availableDependencies, reorgAttrs, logger) {
+    // Only the toplevel workflow may be unlocked. This happens
+    // only if the user specifically compiles it as "unlocked".
+    protected lazy val isLocked: Boolean = {
+      cwlBundle.primaryCallable match {
+        case Some(wf2: CwlWorkflow) => (wf.name != wf2.name) || locked
+        case _                      => true
+      }
+    }
+    private lazy val evaluator: Evaluator = Evaluator.default
+
+    private def createWorkflowInput(input: WorkflowInputParameter): (Parameter, Boolean) = {
+      val cwlTypes = input.types
+      val irType = CwlUtils.toIRType(cwlTypes)
+      val (default, isDynamic) = input.default
+        .map { d =>
+          try {
+            val (_, staticValue) = evaluator.evaluate(d, cwlTypes, EvaluatorContext.empty)
+            (Some(staticValue), false)
+          } catch {
+            case _: Throwable => (None, true)
+          }
+        }
+        .getOrElse((None, false))
+      (Parameter(input.name, irType, default.map(CwlUtils.toIRValue(_, cwlTypes)._2), Vector.empty),
+       isDynamic)
+    }
+
+    private def createWorkflowStages(
+        wfName: String,
+        wfInputs: Vector[LinkedVar],
+        blockPath: Vector[Int],
+        subBlocks: Vector[CwlBlock],
+        locked: Boolean): (Vector[(Stage, Vector[Callable])], CallEnv) = {
+
+    }
+
+    def translateWorkflowLocked(
+        name: String,
+        inputs: Vector[WorkflowInputParameter],
+        outputs: Vector[WorkflowOutputParameter],
+        subBlocks: Vector[CwlBlock],
+        level: Level.Value
+    ): (Workflow, Vector[Callable], Vector[(Parameter, StageInput)]) = ???
+
+    private def translateTopWorkflowLocked(
+        inputs: Vector[WorkflowInputParameter],
+        outputs: Vector[WorkflowOutputParameter],
+        subBlocks: Vector[CwlBlock]
+    ): (Workflow, Vector[Callable], Vector[LinkedVar]) = {
+      translateWorkflowLocked(wf.name, inputs, outputs, subBlocks, Level.Top)
+    }
+
+    private def translateTopWorkflowUnlocked(
+        inputs: Vector[WorkflowInputParameter],
+        outputs: Vector[WorkflowOutputParameter],
+        subBlocks: Vector[CwlBlock]
+    ): (Workflow, Vector[Callable], Vector[LinkedVar]) = {
+      // Create a special applet+stage for the inputs. This is a substitute for
+      // workflow inputs. We now call the workflow inputs, "fauxWfInputs" since
+      // they are references to the outputs of this first applet.
+      val commonAppletInputs: Vector[Parameter] =
+        inputs.map(input => createWorkflowInput(input)._1)
+      val commonStageInputs: Vector[StageInput] = inputs.map(_ => EmptyInput)
+      val (commonStg, commonApplet) =
+        createCommonApplet(wf.name, commonAppletInputs, commonStageInputs, commonAppletInputs)
+      val fauxWfInputs: Vector[LinkedVar] = commonStg.outputs.map { param =>
+        val stageInput = LinkInput(commonStg.dxStage, param.dxName)
+        (param, stageInput)
+      }
+
+      createWorkflowStages(wf.name, fauxWfInputs, )
+    }
+
+    def translate: (Workflow, Vector[Callable], Vector[LinkedVar]) = {
+      logger.trace(s"Translating workflow ${wf.name}")
+      // Create a stage per workflow step - steps with conditional and/or scatter
+      // require helper applets.
+      val subBlocks = CwlBlock.createBlocks(wf)
+      if (isLocked) {
+        translateTopWorkflowLocked(wf.inputs, wf.outputs, subBlocks)
+      } else {
+        translateTopWorkflowUnlocked(wf.inputs, wf.outputs, subBlocks)
+      }
+    }
+  }
+
+  def translateProcess(process: Process,
+                       availableDependencies: Map[String, Callable]): Vector[Callable] = {
     process match {
       case tool: CommandLineTool =>
         val toolTranslator = CwlToolTranslator(tool)
         Vector(toolTranslator.apply)
+      case wf: CwlWorkflow =>
+        val wfTranslator = CwlWorkflowTranslator(wf, availableDependencies)
+        wfTranslator.apply
       case _ =>
         throw new Exception(s"Process type ${process} not supported")
     }

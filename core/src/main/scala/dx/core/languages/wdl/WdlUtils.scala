@@ -164,6 +164,14 @@ object WdlUtils {
     }
   }
 
+  def getUnqualifiedName(name: String): String = {
+    if (name contains ".") {
+      name.split("\\.").last
+    } else {
+      name
+    }
+  }
+
   // create a wdl-value of a specific type.
   def getDefaultValueOfType(wdlType: T, loc: SourceLocation = WdlUtils.locPlaceholder): TAT.Expr = {
     wdlType match {
