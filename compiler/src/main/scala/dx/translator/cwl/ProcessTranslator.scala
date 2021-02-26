@@ -2,9 +2,46 @@ package dx.translator.cwl
 
 import dx.api.DxApi
 import dx.core.io.DxWorkerPaths
-import dx.core.ir.{Application, Callable, CallableAttribute, EmptyInput, ExecutableKindApplet, Level, LinkInput, Parameter, ParameterAttribute, Stage, StageInput, Value, Workflow}
-import dx.core.languages.cwl.{CwlBlock, CwlBundle, CwlDocumentSource, CwlUtils, DxHints, RequirementEvaluator}
-import dx.cwl.{CommandInputParameter, CommandLineTool, CommandOutputParameter, CwlSchema, CwlType, CwlValue, Evaluator, EvaluatorContext, FileValue, Process, Runtime, WorkflowInputParameter, WorkflowOutputParameter, Parameter => CwlParameter, Workflow => CwlWorkflow}
+import dx.core.ir.{
+  Application,
+  Callable,
+  CallableAttribute,
+  EmptyInput,
+  ExecutableKindApplet,
+  Level,
+  LinkInput,
+  Parameter,
+  ParameterAttribute,
+  Stage,
+  StageInput,
+  Value,
+  Workflow
+}
+import dx.core.languages.cwl.{
+  CwlBlock,
+  CwlBundle,
+  CwlDocumentSource,
+  CwlUtils,
+  DxHints,
+  RequirementEvaluator
+}
+import dx.cwl.{
+  CommandInputParameter,
+  CommandLineTool,
+  CommandOutputParameter,
+  CwlSchema,
+  CwlType,
+  CwlValue,
+  Evaluator,
+  EvaluatorContext,
+  FileValue,
+  Process,
+  Runtime,
+  WorkflowInputParameter,
+  WorkflowOutputParameter,
+  Parameter => CwlParameter,
+  Workflow => CwlWorkflow
+}
 import dx.translator.CallableAttributes.{DescriptionAttribute, TitleAttribute}
 import dx.translator.ParameterAttributes.{HelpAttribute, LabelAttribute}
 import dx.translator.{DxWorkflowAttrs, ReorgSettings, WorkflowTranslator}
@@ -183,9 +220,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         wfInputs: Vector[LinkedVar],
         blockPath: Vector[Int],
         subBlocks: Vector[CwlBlock],
-        locked: Boolean): (Vector[(Stage, Vector[Callable])], CallEnv) = {
-
-    }
+        locked: Boolean
+    ): (Vector[(Stage, Vector[Callable])], CallEnv) = {}
 
     def translateWorkflowLocked(
         name: String,
@@ -221,7 +257,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         (param, stageInput)
       }
 
-      createWorkflowStages(wf.name, fauxWfInputs, )
+      val (allStageInfo, env) =
+        createWorkflowStages(wf.name, fauxWfInputs, Vector.empty, subBlocks, locked = false)
     }
 
     def translate: (Workflow, Vector[Callable], Vector[LinkedVar]) = {
