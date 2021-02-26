@@ -402,12 +402,12 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     * with the same output ID as the current job.
     * @param inputs raw subjob inputs
     * @param executableLink the subjob executable
-    * @param prefixOutputs whether to prefix the subjob outputs with the call name
+    * @param callName the call name to use to prefix the subjob outputs
     * @return serialized subjob inputs
     */
   def prepareSubjobInputs(inputs: Map[String, (Type, Value)],
                           executableLink: ExecutableLink,
-                          prefixOutputs: Boolean): Map[String, JsValue] = {
+                          callName: Option[String] = None): Map[String, JsValue] = {
     val inputsJs = outputSerializer.createFieldsFromMap(inputs)
     // Check that we have all the compulsory arguments.
     // Note that we don't have the information here to tell difference between optional and non-
@@ -420,11 +420,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
           Constants.InputManifest -> JsObject(inputsJs),
           Constants.OutputId -> rawJsInputs(Constants.OutputId)
       )
-      val callNameInputs = if (prefixOutputs) {
-        Map(Constants.CallName -> JsString(executableLink.name))
-      } else {
-        Map.empty
-      }
+      val callNameInputs =
+        callName.map(name => Map(Constants.CallName -> JsString(name))).getOrElse(Map.empty)
       requiredInputs ++ callNameInputs
     } else {
       inputsJs

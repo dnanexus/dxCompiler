@@ -116,6 +116,8 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
     * @param nameDetail: a suffix to add to the job name
     * @param instanceType the instance type to use for the new job
     * @param folder optional output folder
+    * @param prefixOutputs whether to prefix output parameter names with the call
+    *                      name when using manifest
     */
   protected def launchJob(executableLink: ExecutableLink,
                           name: String,
@@ -134,7 +136,8 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
       None
     }
 
-    val callInputsJs = JsObject(jobMeta.prepareSubjobInputs(inputs, executableLink, prefixOutputs))
+    val prefix = if (prefixOutputs) Some(name) else None
+    val callInputsJs = JsObject(jobMeta.prepareSubjobInputs(inputs, executableLink, prefix))
     logger.traceLimited(s"""launchJob ${name} with arguments:
                            |${callInputsJs.prettyPrint}""".stripMargin,
                         minLevel = TraceLevel.VVerbose)

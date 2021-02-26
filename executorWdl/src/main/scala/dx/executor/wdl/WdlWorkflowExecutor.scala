@@ -954,7 +954,6 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     private def findChildExecutions(parentJobId: Option[String],
                                     excludeIds: Set[String],
                                     limit: Option[Int] = None): Vector[ChildExecution] = {
-
       Iterator
         .unfold[Vector[ChildExecution], Option[JsValue]](Some(JsNull)) {
           case None => None
@@ -1082,7 +1081,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         }
         // upload the merged manifest file
         val outputJson = arrayValues.map {
-          case (name, (t, v)) => name -> ValueSerde.serializeWithType(v, t)
+          case (name, (t, v)) => Parameter.encodeDots(name) -> ValueSerde.serializeWithType(v, t)
         }
         val manifest = Manifest(outputJson, id = manifestId)
         val destination = s"${jobMeta.manifestFolder}/${jobMeta.jobId}_output.manifest.json"
