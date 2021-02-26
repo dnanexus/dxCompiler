@@ -28,7 +28,7 @@ import spray.json._
 class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
   assume(isLoggedIn)
   assume(toolkitCallable)
-  private val logger = Logger.Verbose
+  private val logger = Logger.Quiet
   private val dxApi = DxApi()(logger)
 
   private def pathFromBasename(dir: String, basename: String): Path = {
@@ -1089,7 +1089,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
   it should "Compile a tool with -useManifests flag" in {
     val path = pathFromBasename("compiler", "add.wdl")
-    val args = path.toString :: "-useManifests" :: cFlags
+    val args = path.toString :: "-useManifests" :: "-verbose" :: cFlags
     val appletId = Main.compile(args.toVector) match {
       case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
       case other =>
