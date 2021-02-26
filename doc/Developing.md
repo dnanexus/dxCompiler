@@ -164,7 +164,26 @@ sbt keeps the cache of downloaded jar files in `${HOME}/.ivy2/cache`. For exampl
 
 ## Releasing a new version
 
-### Release check list
+### Releasing using Github Actions
+
+dxCompiler can be released from Github. The release pipeline (optionally) runs large integration tests, builds the release on staging, runs multi-region tests on staging (one test per region), builds on production, and creates a Docker image, which is pushed to DockerHub.
+
+Before starting the release:
+* Update [Release Notes](https://github.com/dnanexus/dxCompiler/blob/main/RELEASE_NOTES.md). The section corresponding to the new version should start with `## <version>`, e.g. `## 1.0.0 2020-01-01`; it will be used for the release page.
+* Update the configuration files with the new release version (one version for all packages). You can use this [script](../scripts/update_version.sh) for that.
+  * [compiler](https://github.com/dnanexus/dxCompiler/blob/main/compiler/src/main/resources/application.conf)
+  * [core](https://github.com/dnanexus/dxCompiler/blob/main/core/src/main/resources/application.conf)
+  * [executorCommon](https://github.com/dnanexus/dxCompiler/blob/main/executorCommon/src/main/resources/application.conf)
+  * [executorWdl](https://github.com/dnanexus/dxCompiler/blob/main/executorWdl/src/main/resources/application.conf)
+  * [executorCwl](https://github.com/dnanexus/dxCompiler/blob/main/executorCwl/src/main/resources/application.conf)
+* Push the changes to the `main` branch.
+* Run the release pipeline:
+  * Go to `Actions` > `dxCompiler Release (Staging and Prod)` and click `Run workflow` on the right side.
+  * Make sure the `main` branch is selected (default setting).
+  * Once finished, the pipeline will create a draft release page on GitHub.
+* Publish the draft [release](https://github.com/dnanexus/dxCompiler/releases). The compressed source code (in `zip` and `tar.gz`) will be added to the release page automatically.
+
+### Releasing manually
 
 - Make sure regression tests pass
 - Update [Release Notes](https://github.com/dnanexus/dxCompiler/blob/main/RELEASE_NOTES.md) and, if needed, README.md
@@ -173,9 +192,10 @@ sbt keeps the cache of downloaded jar files in `${HOME}/.ivy2/cache`. For exampl
   * [core](https://github.com/dnanexus/dxCompiler/blob/main/core/src/main/resources/application.conf)
   * [executorCommon](https://github.com/dnanexus/dxCompiler/blob/main/executorCommon/src/main/resources/application.conf)
   * [executorWdl](https://github.com/dnanexus/dxCompiler/blob/main/executorWdl/src/main/resources/application.conf)
+  * [executorCwl](https://github.com/dnanexus/dxCompiler/blob/main/executorCwl/src/main/resources/application.conf)
 
-is correct. It is used when building the release and creating the tag. Currently the version must be the same for all these packages.
-- Merge onto master branch, and make sure all [Github Actions](https://github.com/dnanexus/dxCompiler/actions) tests pass
+is correct (you can use this [script](../scripts/update_version.sh) for that). It is used when building the release and creating the tag. Currently the version must be the same for all these packages.
+- Merge onto main branch, and make sure all [Github Actions](https://github.com/dnanexus/dxCompiler/actions) tests pass
 - Clean your `dx` environment because you'll be using limited-power tokens to run the release script. Do not mix them with your regular user token.
 ```
 dx clearenv
@@ -185,8 +205,5 @@ dx clearenv
   ./scripts/build_all_releases.sh --staging-token XXX --production-token YYY --docker-user UUU --docker-password WWW
   ```
   this will take a while. It builds the release on staging, runs multi-region tests on staging (one test per region), builds on production, and creates an easy to use Docker image, which is pushed to DockerHub.
-- Update [releases](https://github.com/dnanexus-rnd/dxCompiler/releases) GitHub page, use the `Draft a new release` button, and upload the dxCompiler JAR file.
+- Update [releases](https://github.com/dnanexus/dxCompiler/releases) GitHub page, use the `Draft a new release` button, and upload the dxCompiler JAR file.
 
-### Post release
-
-- Update the version number in `*/src/main/resources/application.conf`. We don't want to mix the experimental release, with the old code.

@@ -12,7 +12,7 @@ import dx.core.ir.Bundle
 import dx.core.languages.Language
 import dx.core.Constants
 import dx.dxni.DxNativeInterface
-import dx.translator.{Extras, ExtrasParser, TranslatorFactory}
+import dx.translator.{Extras, TranslatorFactory}
 import dx.util.protocols.DxFileAccessProtocol
 import dx.util.{Enum, FileSourceResolver, FileUtils, Logger, TraceLevel}
 import spray.json.{JsNull, JsValue}
@@ -149,6 +149,7 @@ object Main {
       "projectWideReuse" -> FlagOptionSpec.default,
       "reorg" -> FlagOptionSpec.default,
       "runtimeDebugLevel" -> IntOptionSpec.one.copy(choices = Vector(0, 1, 2)),
+      "separateOutputs" -> FlagOptionSpec.default,
       "streamFiles" -> StreamFilesOptionSpec,
       "streamAllFiles" -> FlagOptionSpec.default,
       "scatterChunkSize" -> IntOptionSpec.one
@@ -278,7 +279,7 @@ object Main {
     val dxApi = DxApi()(logger)
 
     val extras: Option[Extras] =
-      options.getValue[Path]("extras").map(extrasPath => ExtrasParser().parse(extrasPath))
+      options.getValue[Path]("extras").map(extrasPath => Extras.parse(extrasPath))
     if (extras.exists(_.customReorgAttributes.isDefined)) {
       val conflictingOpts = Set("reorg", "locked").filter(options.contains)
       if (conflictingOpts.nonEmpty) {
@@ -392,6 +393,7 @@ object Main {
           leaveWorkflowsOpen,
           locked,
           projectWideReuse,
+          separateOutputs,
           streamAllFiles
       ) = Vector(
           "archive",
@@ -399,6 +401,7 @@ object Main {
           "leaveWorkflowsOpen",
           "locked",
           "projectWideReuse",
+          "separateOutputs",
           "streamAllFiles"
       ).map(options.getFlag(_))
       val streamFiles = options.getValue[StreamFiles.StreamFiles]("streamFiles") match {
@@ -418,6 +421,7 @@ object Main {
           leaveWorkflowsOpen,
           locked,
           projectWideReuse,
+          separateOutputs,
           streamFiles,
           fileResolver
       )
@@ -502,18 +506,22 @@ object Main {
         "force",
         "recursive"
     ).map(options.getFlag(_))
-    val apps = options
-      .getValue[String]("apps")
-      .map(AppsOption.withNameIgnoreCase)
-      .getOrElse(
-          if (appsOnly || pathIsAppId) {
-            AppsOption.Only
-          } else if (Vector(projectOpt, folderOpt, pathOpt).exists(_.isDefined)) {
-            AppsOption.Exclude
-          } else {
-            AppsOption.Include
-          }
-      )
+    val apps = if (pathIsAppId) {
+      AppsOption.Only
+    } else {
+      options
+        .getValue[String]("apps")
+        .map(AppsOption.withNameIgnoreCase)
+        .getOrElse(
+            if (appsOnly) {
+              AppsOption.Only
+            } else if (Vector(projectOpt, folderOpt, pathOpt).exists(_.isDefined)) {
+              AppsOption.Exclude
+            } else {
+              AppsOption.Include
+            }
+        )
+    }
 
     def writeOutput(doc: Vector[String]): Unit = {
       val path = outputPath.map { path =>
@@ -677,6 +685,8 @@ object Main {
         |      -runtimeDebugLevel [0,1,2] How much debug information to write to the
         |                                 job log at runtime. Zero means write the minimum,
         |                                 one is the default, and two is for internal debugging.
+        |      -separateOutputs           Store the output files of each call in a separate folder. The
+        |                                 default behavior is to put all outputs in the same folder.
         |      -streamFiles               Whether to mount all files with dxfuse (do not use the 
         |                                 download agent), or to mount no files with dxfuse (only use 
         |                                 download agent); this setting overrides any per-file settings

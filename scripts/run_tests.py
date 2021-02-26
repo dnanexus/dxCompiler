@@ -87,8 +87,10 @@ wdl_v1_list = [
     "wf_with_input_expressions",
     "wf_with_output_expressions",
 
-    # APPS-370
-    "nested_pairs"
+    # bug regression tests
+    "nested_pairs",  # APPS-370
+    "apps_378",
+    "apps_384",
 ]
 
 # docker image tests
@@ -100,6 +102,7 @@ docker_test_list = [
     "native_docker_file_image_gzip",
     "samtools_count",
     "dynamic_docker_image",
+    "ecr_docker",
 ]
 
 # wdl draft-2

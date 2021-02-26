@@ -84,8 +84,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 //  }
 //  println(task.requirements)
 
-  val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm")
-  val test_time = dateFormatter.format(LocalDateTime.now)
+  private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm")
+  private val test_time = dateFormatter.format(LocalDateTime.now)
 
   private val reorgAppletFolder =
     s"/${unitTestsPath}/reorg_applets_${test_time}_${randomUUID().toString.substring(24)}/"
@@ -100,8 +100,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     nativeApplets.foreach { app =>
       try {
         SysUtils.execCommand(
-            s"dx build $topDir/test/applets/$app --destination ${testProject}:${reorgAppletFolder}",
-            logger = Logger.Quiet
+            s"dx build $topDir/test/applets/$app --destination ${testProject}:${reorgAppletFolder}"
         )
       } catch {
         case _: Throwable =>
@@ -541,13 +540,13 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
           case ("upstreamLicenses", JsArray(array)) => array shouldBe Vector(JsString("MIT"))
           case ("upstreamProjects", array: JsArray) =>
             array shouldBe expectedUpstreamProjects
-          case ("whatsNew", JsString(value))              => value shouldBe expectedWhatsNew
-          case (Constants.InstanceTypeDb, JsString(_))    => () // ignore
-          case (Constants.Language, JsString(_))          => () // ignore
-          case (Constants.RuntimeAttributes, JsObject(_)) => () // ignore
-          case (Constants.Version, JsString(_))           => () // ignore
-          case (Constants.Checksum, JsString(_))          => () // ignore
-          case (Constants.SourceCode, JsString(_))        => () // ignore
+          case ("whatsNew", JsString(value))                       => value shouldBe expectedWhatsNew
+          case (Constants.InstanceTypeDb, JsString(_))             => () // ignore
+          case (Constants.Language, JsString(_))                   => () // ignore
+          case (Constants.RuntimeAttributes, JsNull | JsObject(_)) => () // ignore
+          case (Constants.Version, JsString(_))                    => () // ignore
+          case (Constants.Checksum, JsString(_))                   => () // ignore
+          case (Constants.SourceCode, JsString(_))                 => () // ignore
           // old values for sourceCode - can probalby delete these
           case ("womSourceCode", JsString(_)) => () // ignore
           case ("wdlSourceCode", JsString(_)) => () // ignore
@@ -1085,6 +1084,13 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
   it should "Native compile a CWL tool" taggedAs NativeTest in {
     val path = pathFromBasename("cwl", "cat.cwl")
+    val args = path.toString :: cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[Success]
+  }
+
+  it should "compile a workflow with a native app with file output" taggedAs NativeTest in {
+    val path = pathFromBasename("bugs", "native_with_file_output.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
     retval shouldBe a[Success]

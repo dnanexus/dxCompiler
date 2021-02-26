@@ -2,8 +2,44 @@
 
 ## in dev
 
+* Fixes common applet naming issue with complex nested workflows
+
+## 2.3.0 23-02-2021
+
+* Adds `-separateOutputs` option to store output from each call in a separate folder
+* Fixes issue with referencing optional variables in the command block
+* Ignores default values from native app stubs that can cause errors during compilation
+
+## 2.2.1 17-02-2021
+
+* Fix: native tasks now use instance type from native app/let, not wrapper task
+
+## 2.2.0 12-02-2021
+
+* DxNI handles native app(let)s with optional non-file object inputs
+* Sevaral additions/changes to extras.json:  
+  * Adds support for Amazon ECR repositories
+  * Adds support for configuring the chunk size for scatters (how many scatter jobs run concurrently)
+  * All top-level keys are now camel-case (old-style names are still recognized)
+
+## 2.1.1 09-02-2021
+
+* Adds support for WDL v1.1
+* Fixes errors due to expression evaluator not handling values wrapped in V\_Optional
+* Fixes errors related to compound references
+* Updated wdlTools 0.12.3. This update enforces uniqueness of variable names within the same scope
+* Avoids unnecessarily generating sub-workflow output applets
+* Fixes issue with task command blocks that begin with a placeholder
+* Upgraded dxfuse to 0.24.0
+
+## 2.1.0 04-02-2021
+
 * Update CWL parser to fix compilation of WDL tools with imports
 * Add CWL tool compilance tests to integration test suite
+* Fixes a bug where structs were out of order in generated code. This bug was due to an unnecessary conversion of a Vector to Map in CodeGenerator, which disordered the items.
+* Fixes an issue with resolving nested field references. There were two issues here: i. Unnecessarily including outputs that are direct pass-throughs of inputs in the closure when determining the inputs to an Output stage. ii. A bug in the resolution of deeply nested field references in wdlTools.eval.Eval that is fixed in 0.11.18.
+* Added an implementation of the manifest format for WDL.
+* Update wdlTools to 0.12.1, dxCommon to 0.2.5, dxApi to 0.1.8, cwlScala to 0.3.4
 
 ## 2.0.1 22-01-2021
 

@@ -29,6 +29,7 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
     val (doc, _) = WdlUtils.parseAndCheckSourceFile(path)
     doc
   }
+
   private def getWorkflowBlocks(dir: String, basename: String): Vector[WdlBlock] = {
     WdlBlock.createBlocks(getDocument(dir, basename).workflow.get.body)
   }

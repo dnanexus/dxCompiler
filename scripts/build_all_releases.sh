@@ -49,18 +49,6 @@ function basic_checks {
     git pull
 }
 
-function tag {
-    local currentHash=$(git rev-parse HEAD)
-    local possibleTags=$(git tag --contains "$currentHash")
-    if [[ $possibleTags == "" ]]; then
-        echo "setting release tag on github"
-        git tag $version
-        git push origin $version
-    else
-        echo "Tag is already set"
-    fi
-}
-
 function build {
     # build the release on staging
     echo "building staging release"
@@ -177,6 +165,5 @@ basic_checks
 parse_cmd_line $@
 get_top_dir
 get_version
-tag
 build
 build_docker_image

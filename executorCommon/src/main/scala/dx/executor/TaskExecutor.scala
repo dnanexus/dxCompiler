@@ -522,7 +522,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
                               JsObject(jobMeta.jsInputs),
                               Vector.empty,
                               jobMeta.delayWorkspaceDestruction)
-    jobMeta.writeOutputLinks(dxSubJob, outputTypes)
+    jobMeta.writeExecutionOutputLinks(dxSubJob, outputTypes)
   }
 
   def apply(action: TaskAction.TaskAction): String = {
