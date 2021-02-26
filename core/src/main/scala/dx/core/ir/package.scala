@@ -163,7 +163,7 @@ case class ExecutableKindWfFragment(calls: Vector[String],
                                     inputs: Map[String, Type],
                                     scatterChunkSize: Option[Int])
     extends ExecutableKind
-case object ExecutableKindWfInputs extends ExecutableKind
+case class ExecutableKindWfInputs(blockPath: Vector[Int]) extends ExecutableKind
 // Output - default and custom reorg
 case class ExecutableKindWfOutputs(blockPath: Vector[Int]) extends ExecutableKind
 case object ExecutableKindWfCustomReorgOutputs extends ExecutableKind
@@ -174,7 +174,7 @@ case class ExecutableKindWorkflowCustomReorg(id: String) extends ExecutableKind
 object ExecutableKind {
   def getCommand(kind: ExecutableKind): Option[String] = {
     kind match {
-      case ExecutableKindWfInputs             => Some("Inputs")
+      case _: ExecutableKindWfInputs          => Some("Inputs")
       case _: ExecutableKindWfOutputs         => Some("Outputs")
       case ExecutableKindWfCustomReorgOutputs => Some("CustomReorgOutputs")
       case ExecutableKindWorkflowOutputReorg  => Some("OutputReorg")
@@ -187,7 +187,7 @@ object ExecutableKind {
       case _: ExecutableKindNative               => "Native"
       case _: ExecutableKindWfFragment           => "Fragment"
       case ExecutableKindApplet                  => "Task"
-      case ExecutableKindWfInputs                => "Inputs"
+      case _: ExecutableKindWfInputs             => "Inputs"
       case _: ExecutableKindWfOutputs            => "Outputs"
       case ExecutableKindWfCustomReorgOutputs    => "Reorg outputs"
       case ExecutableKindWorkflowOutputReorg     => "Output Reorg"
@@ -239,11 +239,12 @@ case object EmptyInput extends StageInput
 case class StaticInput(value: Value) extends StageInput
 case class LinkInput(stageId: DxWorkflowStage, paramName: String) extends StageInput
 case class WorkflowInput(param: Parameter) extends StageInput
+case class ArrayInput(stageInputs: Vector[StageInput]) extends StageInput
 
 // A stage can call an application or a workflow.
 //
 // Note: the description may contain dots, parentheses, and other special
-// symbols. It is shown to the user on the UI. The [id] is unique
+// symbols. It is shown to the user on the UI. The dxStage.id is unique
 // across the workflow.
 case class Stage(description: String,
                  dxStage: DxWorkflowStage,

@@ -1,23 +1,24 @@
 package dx.executor.wdl
 
 import java.nio.file.{Files, Path, Paths}
-
 import dx.Assumptions.isLoggedIn
 import dx.Tags.{ApiTest, EdgeTest}
 import dx.api.{
   DiskType,
   DxAnalysis,
   DxApi,
+  DxFile,
   DxFileDescCache,
   DxInstanceType,
   DxJob,
+  DxPath,
   DxProject,
   ExecutionEnvironment,
   InstanceTypeDB
 }
 import dx.core.Constants
 import dx.core.io.{DxWorkerPaths, StreamFiles}
-import dx.core.ir.{ParameterLink, ParameterLinkDeserializer, ParameterLinkSerializer}
+import dx.core.ir.{Manifest, ParameterLink, ParameterLinkDeserializer, ParameterLinkSerializer}
 import dx.core.languages.wdl.{VersionSupport, WdlUtils}
 import dx.executor.{JobMeta, TaskAction}
 import dx.core.languages.wdl.CodeGenerator
@@ -29,22 +30,25 @@ import spray.json._
 import wdlTools.eval.WdlValues
 import wdlTools.types.{TypedAbstractSyntax => TAT}
 
+import scala.util.Random
+
 private case class TaskTestJobMeta(override val workerPaths: DxWorkerPaths,
                                    override val dxApi: DxApi = DxApi.get,
                                    override val logger: Logger = Logger.get,
-                                   override val jsInputs: Map[String, JsValue],
+                                   override val rawJsInputs: Map[String, JsValue],
                                    rawInstanceTypeDb: InstanceTypeDB,
-                                   rawSourceCode: String)
+                                   rawSourceCode: String,
+                                   useManifestInputs: Boolean = false)
     extends JobMeta(workerPaths, dxApi, logger) {
   var outputs: Option[Map[String, JsValue]] = None
 
   override val project: DxProject = null
 
-  override def writeJsOutputs(outputJs: Map[String, JsValue]): Unit = {
+  override def writeRawJsOutputs(outputJs: Map[String, JsValue]): Unit = {
     outputs = Some(outputJs)
   }
 
-  override val jobId: String = null
+  override lazy val jobId: String = s"job-${Random.alphanumeric.take(24).mkString}"
 
   override val analysis: Option[DxAnalysis] = None
 
@@ -62,7 +66,8 @@ private case class TaskTestJobMeta(override val workerPaths: DxWorkerPaths,
               rawInstanceTypeDb.toJson.prettyPrint
           )
       ),
-      Constants.SourceCode -> JsString(CodecUtils.gzipAndBase64Encode(rawSourceCode))
+      Constants.SourceCode -> JsString(CodecUtils.gzipAndBase64Encode(rawSourceCode)),
+      Constants.UseManifests -> JsBoolean(useManifestInputs)
   )
 
   override def getExecutableDetail(name: String): Option[JsValue] = {
@@ -194,9 +199,11 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
       case _                                => None
     }
   }
+
   private def createTaskExecutor(
       wdlName: String,
-      streamFiles: StreamFiles.StreamFiles = StreamFiles.None
+      streamFiles: StreamFiles.StreamFiles = StreamFiles.None,
+      useManifests: Boolean = false
   ): (WdlTaskExecutor, TaskTestJobMeta) = {
     val wdlFile: Path = pathFromBasename(s"${wdlName}.wdl").get
     val inputs: Map[String, JsValue] = getInputs(wdlName)
@@ -246,23 +253,34 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
       .flatten
       .toMap
 
+    // wrap inputs if using manifests
+    val finalInputs = updatedInputs match {
+      case i if useManifests =>
+        Map(
+            Constants.InputManifest -> JsObject(i),
+            Constants.OutputId -> JsString("test")
+        )
+      case i => i
+    }
+
     // create JobMeta
     val jobMeta =
       TaskTestJobMeta(DxWorkerPaths(jobRootDir),
                       dxApi,
                       logger,
-                      updatedInputs,
+                      finalInputs,
                       instanceTypeDB,
-                      standAloneTaskSource)
+                      standAloneTaskSource,
+                      useManifests)
 
     // create TaskExecutor
     (WdlTaskExecutor.create(jobMeta, streamFiles = streamFiles), jobMeta)
   }
 
-  // Parse the WDL source code, and extract the single task that is supposed to be there.
-  // Also return the source script itself, verbatim.
-  private def runTask(wdlName: String): Unit = {
-    val (taskExecutor, jobMeta) = createTaskExecutor(wdlName)
+  // Parse the WDL source code, extract the single task that is supposed to be there,
+  // run the task, and compare the outputs to the expected values (if any).
+  private def runTask(wdlName: String, useManifests: Boolean = false): Unit = {
+    val (taskExecutor, jobMeta) = createTaskExecutor(wdlName, useManifests = useManifests)
     val outputsExpected = getExpectedOutputs(wdlName)
 
     // run the steps of task execution in order
@@ -271,18 +289,36 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
 
     // execute the shell script in a child job
     val script: Path = jobMeta.workerPaths.getCommandFile()
-    //println(FileUtils.readFileContent(script))
     if (Files.exists(script)) {
       // this will throw an exception if the script exits with a non-zero return code
       logger.ignore(SysUtils.execCommand(script.toString))
     }
-    //println(FileUtils.readFileContent(workerPaths.stdout))
 
     // epilog
     taskExecutor.apply(TaskAction.Epilog) shouldBe "success Epilog"
 
     if (outputsExpected.isDefined) {
-      val outputs = jobMeta.outputs.getOrElse(Map.empty)
+      val outputs = if (useManifests) {
+        jobMeta.outputs
+          .map(_.get(Constants.OutputManifest) match {
+            case Some(value) =>
+              val manifestFile = value match {
+                case fileObj: JsObject if DxFile.isLinkJson(fileObj) =>
+                  DxFile.fromJson(dxApi, fileObj)
+                case JsString(uri) if uri.startsWith(DxPath.DxUriPrefix) =>
+                  dxApi.resolveFile(uri)
+                case other =>
+                  throw new Exception(s"invalid manifest file value ${other}")
+              }
+              val manifest =
+                Manifest.parse(new String(jobMeta.dxApi.downloadBytes(manifestFile)).parseJson)
+              manifest.jsValues
+            case None => Map.empty[String, JsValue]
+          })
+          .getOrElse(Map.empty[String, JsValue])
+      } else {
+        jobMeta.outputs.getOrElse(Map.empty[String, JsValue])
+      }
       outputs shouldBe outputsExpected.get
     }
   }
@@ -374,5 +410,9 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
 
   it should "run a python script" in {
     runTask("python_heredoc")
+  }
+
+  it should "run a task using manifests" in {
+    runTask("add", useManifests = true)
   }
 }

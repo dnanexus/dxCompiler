@@ -2,6 +2,7 @@
 
 ## in dev
 
+* Adds `-useManifests` option to generate applets and workflows whose inputs and outputs are manifest files
 * Fixes common applet naming issue with complex nested workflows
 
 ## 2.3.0 23-02-2021

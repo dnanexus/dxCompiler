@@ -60,6 +60,7 @@ case class WdlTranslator(doc: TAT.Document,
                          reorgAttrs: ReorgSettings,
                          perWorkflowAttrs: Map[String, DxWorkflowAttrs],
                          defaultScatterChunkSize: Int,
+                         useManifests: Boolean,
                          versionSupport: VersionSupport,
                          fileResolver: FileSourceResolver = FileSourceResolver.get,
                          dxApi: DxApi = DxApi.get,
@@ -160,6 +161,7 @@ case class WdlTranslator(doc: TAT.Document,
         reorgAttrs,
         perWorkflowAttrs,
         defaultScatterChunkSize,
+        useManifests,
         versionSupport,
         dxApi,
         fileResolver,
@@ -188,13 +190,11 @@ case class WdlTranslator(doc: TAT.Document,
     Bundle(primaryCallable, allCallables, allCallablesSortedNames, irTypeAliases)
   }
 
-  override def translateInputs(bundle: Bundle,
-                               inputs: Vector[Path],
-                               defaults: Option[Path],
-                               project: DxProject): (Bundle, FileSourceResolver) = {
-    val inputTranslator = WdlInputTranslator(bundle, inputs, defaults, project, fileResolver)
-    inputTranslator.writeTranslatedInputs()
-    (inputTranslator.bundleWithDefaults, inputTranslator.fileResolver)
+  override protected def createInputTranslator(bundle: Bundle,
+                                               inputs: Vector[Path],
+                                               defaults: Option[Path],
+                                               project: DxProject): InputTranslator = {
+    WdlInputTranslator(bundle, inputs, defaults, project, fileResolver)
   }
 }
 
@@ -208,6 +208,7 @@ case class WdlTranslatorFactory(
                       reorgAttrs: ReorgSettings,
                       perWorkflowAttrs: Map[String, DxWorkflowAttrs],
                       defaultScatterChunkSize: Int,
+                      useManifests: Boolean,
                       fileResolver: FileSourceResolver,
                       dxApi: DxApi = DxApi.get,
                       logger: Logger = Logger.get): Option[WdlTranslator] = {
@@ -225,17 +226,20 @@ case class WdlTranslatorFactory(
       throw new Exception(s"WDL document ${sourceFile} is not version ${language.get}")
     }
     Some(
-        WdlTranslator(doc,
-                      typeAliases.toMap,
-                      locked,
-                      defaultRuntimeAttrs,
-                      reorgAttrs,
-                      perWorkflowAttrs,
-                      defaultScatterChunkSize,
-                      versionSupport,
-                      fileResolver,
-                      dxApi,
-                      logger)
+        WdlTranslator(
+            doc,
+            typeAliases.toMap,
+            locked,
+            defaultRuntimeAttrs,
+            reorgAttrs,
+            perWorkflowAttrs,
+            defaultScatterChunkSize,
+            useManifests,
+            versionSupport,
+            fileResolver,
+            dxApi,
+            logger
+        )
     )
   }
 }

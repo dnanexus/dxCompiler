@@ -88,7 +88,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
     if (logger.isVerbose) {
       logger.traceLimited(s"dxCompiler version: ${getVersion}")
       logger.traceLimited(s"Environment: ${jobInputs}")
-      logger.traceLimited("Artificial applet for unlocked workflow inputs")
+      logger.traceLimited("Artificial applet for workflow inputs")
     }
     val inputs = evaluateInputs(jobInputs)
     jobMeta.createOutputLinks(inputs)
@@ -116,13 +116,16 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
     * @param nameDetail: a suffix to add to the job name
     * @param instanceType the instance type to use for the new job
     * @param folder optional output folder
+    * @param prefixOutputs whether to prefix output parameter names with the call
+    *                      name when using manifest
     */
   protected def launchJob(executableLink: ExecutableLink,
                           name: String,
                           inputs: Map[String, (Type, Value)],
                           nameDetail: Option[String] = None,
                           instanceType: Option[String] = None,
-                          folder: Option[String] = None): (DxExecution, String) = {
+                          folder: Option[String] = None,
+                          prefixOutputs: Boolean = false): (DxExecution, String) = {
     val jobName: String = nameDetail.map(hint => s"${name} ${hint}").getOrElse(name)
     val outputFolder = if (separateOutputs) {
       folder.orElse(Some(jobName)).map {
@@ -132,17 +135,12 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
     } else {
       None
     }
-    val callInputsJs = JsObject(jobMeta.outputSerializer.createFieldsFromMap(inputs))
+
+    val prefix = if (prefixOutputs) Some(name) else None
+    val callInputsJs = JsObject(jobMeta.prepareSubjobInputs(inputs, executableLink, prefix))
     logger.traceLimited(s"""launchJob ${name} with arguments:
                            |${callInputsJs.prettyPrint}""".stripMargin,
                         minLevel = TraceLevel.VVerbose)
-
-    // Last check that we have all the compulsory arguments.
-    // Note that we don't have the information here to tell difference between optional and non
-    // optionals. Right now, we are emitting warnings for optionals or arguments that have defaults.
-    executableLink.inputs.keys.filterNot(callInputsJs.fields.contains).foreach { argName =>
-      logger.warning(s"Missing argument ${argName} to call ${executableLink.name}", force = true)
-    }
 
     // We may need to run a collect subjob. Add the the sequence number to each invocation, so the
     // collect subjob will be able to put the results back together in the correct order.

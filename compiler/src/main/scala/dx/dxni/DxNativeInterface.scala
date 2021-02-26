@@ -94,13 +94,13 @@ case class DxNativeInterface(fileResolver: FileSourceResolver = FileSourceResolv
   /**
     * Generate only apps.
     */
-  def apply(language: Language, appId: Option[String]): Vector[String] = {
+  def apply(language: Language, appId: Option[String]): (Vector[DxApp], Vector[String]) = {
     val generator = getGenerator(language)
     val apps: Vector[DxApp] = appId.map(id => Vector(DxApp(id)(dxApi))).getOrElse(searchApps)
     if (apps.nonEmpty) {
-      generator.generate(apps, headerLines = appsHeader)
+      (apps, generator.generate(apps, headerLines = appsHeader))
     } else {
-      Vector.empty
+      (Vector.empty, Vector.empty)
     }
   }
 
@@ -117,7 +117,7 @@ case class DxNativeInterface(fileResolver: FileSourceResolver = FileSourceResolv
             path: Option[String] = None,
             applet: Option[DxApplet] = None,
             recursive: Boolean = false,
-            includeApps: Boolean = true): Vector[String] = {
+            includeApps: Boolean = true): (Vector[DxApp], Vector[DxApplet], Vector[String]) = {
     val generator = getGenerator(language)
     val apps = if (includeApps) {
       searchApps
@@ -131,9 +131,9 @@ case class DxNativeInterface(fileResolver: FileSourceResolver = FileSourceResolv
       case _                          => throw new Exception("must specify exactly one of (folder, path)")
     }
     if (apps.nonEmpty || applets.nonEmpty) {
-      generator.generate(apps, applets, appletsHeader(dxProject, search))
+      (apps, applets, generator.generate(apps, applets, appletsHeader(dxProject, search)))
     } else {
-      Vector.empty
+      (Vector.empty, Vector.empty, Vector.empty)
     }
   }
 }

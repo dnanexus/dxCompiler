@@ -91,6 +91,10 @@ wdl_v1_list = [
     "nested_pairs",  # APPS-370
     "apps_378",
     "apps_384",
+
+    # manifests
+    "simple_manifest",
+    "complex_manifest",
 ]
 
 # docker image tests

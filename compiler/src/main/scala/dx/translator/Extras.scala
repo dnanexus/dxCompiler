@@ -122,16 +122,15 @@ object ExtrasJsonProtocol extends DefaultJsonProtocol {
         )
       }
       val reorgConf: Option[String] = fields.get(ConfigFile).orElse(fields.get("conf")) match {
+        case Some(JsString(uri)) if uri.trim.isEmpty                        => None
         case Some(JsString(uri)) if uri.trim.startsWith(DxPath.DxUriPrefix) =>
-          // if provided, check that the fileID is valid and present
-          // format dx file ID
-          val reorgFileID: String = uri.trim.replace(DxPath.DxUriPrefix, "")
+          // if provided, check that the fileID is valid and present format dx file ID
+          val dxfile = DxApi.get.resolveFile(uri.trim)
           // if input file ID is invalid, DxFile.getInstance will thow an IllegalArgumentException
           // if reorgFileID cannot be found, describe will throw a ResourceNotFoundException
-          Logger.get.ignore(DxApi.get.file(reorgFileID).describe())
-          Some(uri)
-        case Some(JsString(uri)) if uri.trim.isEmpty => None
-        case Some(JsNull)                            => None
+          Logger.get.ignore(dxfile.describe())
+          Some(dxfile.asUri)
+        case Some(JsNull) => None
         case _ =>
           deserializationError(
               """In the 'customReorgAttributes' section of extras, 'configFile' must be specified as

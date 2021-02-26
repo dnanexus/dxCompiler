@@ -14,15 +14,37 @@ object Constants {
   val ScatterChunkSize = "scatterChunkSize"
   val Checksum = "checksum"
   val Version = "version"
-  val DockerImage = "docker-image"
+  val DockerImage = "dockerImage"
+  val UseManifests = "useManifests"
 
   // keys used in details of jobs of native applets
   val ContinueStart = "continue_start___"
 
-  // parameter names used in "special" native applets
+  // stages that the compiler uses in generated DNAx workflows
+  val CommonStage = "common"
+  val EvalStage = "eval"
+  val ReorgStage = "reorg"
+  val OutputStage = "outputs"
+
+  // reserved parameter names
+  val InputManifest = "input_manifest___"
+  val InputManifestFiles = "input_manifest_files___"
+  val InputLinks = "input_links___"
+  val WorkflowInputManifest = "workflow_input_manifest___"
+  val WorkflowInputManifestFiles = "workflow_input_manifest_files___"
+  val WorkflowInputLinks = "workflow_input_links___"
+  val OutputId = "output_id___"
+  val CallName = "call_name___"
+  val OutputManifest = "output_manifest___"
+  val ValueKey = "value___"
+  val WorkflowKey = "workflow___"
   val ReorgConfig = "reorg_conf___"
   val ReorgStatus = "reorg_status___"
   val ReorgStatusCompleted = "completed"
+
+  // keys used in manifest link hashes
+  val WorkflowLinksKey = "workflow"
+  val StageLinksKey = "stage"
 
   // deprecated properties that we still need to check for old applets
   val ChecksumPropertyDeprecated = "dxCompiler_checksum"

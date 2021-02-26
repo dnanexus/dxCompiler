@@ -1,0 +1,14 @@
+{
+  "input_manifest___": {
+    "samples": {
+      "keys": ["sample1", "sample2"],
+      "values": [
+        [{"$dnanexus_link": "file-G0fgy1j0yzZQfGg037bxyb95"}],
+        [
+          {"$dnanexus_link": "file-G0fgy1j0yzZQfGg037bxyb95"},
+          {"$dnanexus_link": "file-G0q9Qz00yzZqG8pV2f3F8XXb"}
+        ]
+      ]
+    }
+  }
+}
