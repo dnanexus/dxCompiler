@@ -310,6 +310,22 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
                 case other =>
                   throw new Exception(s"invalid manifest file value ${other}")
               }
+              // sometimes it takes a while for the output file to close -
+              // block here until the file is closed
+              if (!Iterator.range(0, 10).exists { i =>
+                    if (i > 0) {
+                      Thread.sleep(1000)
+                    }
+                    val desc =
+                      dxApi.fileDescribe(manifestFile.id,
+                                         Map("fields" -> JsObject("state" -> JsBoolean(true))))
+                    desc.fields.get("state") match {
+                      case Some(JsString("closed")) => true
+                      case _                        => false
+                    }
+                  }) {
+                throw new Exception("manifest file did not close within 10 seconds")
+              }
               val manifest =
                 Manifest.parse(new String(jobMeta.dxApi.downloadBytes(manifestFile)).parseJson)
               manifest.jsValues

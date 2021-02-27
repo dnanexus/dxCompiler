@@ -1089,7 +1089,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
   it should "Compile a tool with -useManifests flag" in {
     val path = pathFromBasename("compiler", "add.wdl")
-    val args = path.toString :: "-useManifests" :: "-verbose" :: cFlags
+    val args = path.toString :: "-useManifests" :: cFlags
     val appletId = Main.compile(args.toVector) match {
       case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
       case other =>
