@@ -372,7 +372,8 @@ class InputTranslator(bundle: Bundle,
             case (name, (t, v)) => (name -> t, name -> ValueSerde.serializeWithType(v, t))
           }.unzip
           val manifest = Manifest(values.toMap, Some(types.toMap))
-          (fileName, manifest.toJson)
+          val manifestJson = JsObject(Constants.InputManifest -> JsObject(manifest.jsValues))
+          (fileName, manifestJson)
         } else {
           val fileName = FileUtils.replaceFileSuffix(path, ".dx.json")
           val jsValues = inputs.flatMap {
