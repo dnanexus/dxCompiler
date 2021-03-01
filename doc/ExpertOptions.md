@@ -988,7 +988,7 @@ For an in depth discussion, please see [Missing Call Arguments](MissingCallArgum
 
 In extreme cases, running compiled WDL workflows can fail due to DNAnexus platform limits on the total size of the input and output JSON documents of a job. An example is a task with many inputs/outputs that is called in scatter over a large collection. In such a case, you can enable manifest support at compile time with the `-useManifests` option. This option causes each generated applet or workflow to accept inputs as a manifest, and to produce outputs as a manifest.
 
-A manifest file is a JSON document that contains all the inputs/outputs that would otherwise be passed directly to/from the applet. A manifest can be specified in one of two ways: via a JSON input, or via a File input (where the file must exist on the platform).
+A manifest is a JSON document that contains all the inputs/outputs that would otherwise be passed directly to/from the applet. A manifest can be specified in one of two ways: via a JSON input, or via a File input (where the file must exist on the platform).
 
 ## Manifest JSON
 
