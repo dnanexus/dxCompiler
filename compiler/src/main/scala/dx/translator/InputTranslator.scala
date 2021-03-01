@@ -367,7 +367,7 @@ class InputTranslator(bundle: Bundle,
     translatedInputs.foreach {
       case (path, inputs) =>
         val (fileName, jsValues) = if (useManifests) {
-          val fileName = FileUtils.replaceFileSuffix(path, ".manifest.json")
+          val fileName = FileUtils.replaceFileSuffix(path, ".dx.json")
           val (types, values) = inputs.map {
             case (name, (t, v)) => (name -> t, name -> ValueSerde.serializeWithType(v, t))
           }.unzip
