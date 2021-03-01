@@ -34,6 +34,7 @@ import dx.core.languages.cwl.{
   DxHints,
   RequirementEvaluator
 }
+import dx.core.languages.wdl.WdlBlock
 import dx.cwl.{
   CommandInputParameter,
   CommandLineTool,
@@ -289,11 +290,29 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       Stage(call.name, getStage(), calleeName, inputs, callee.outputVars)
     }
 
+    /**
+      * Builds an applet to evaluate a WDL workflow fragment.
+      *
+      * @param wfName the workflow name
+      * @param block the Block to translate into a WfFragment
+      * @param blockPath keeps track of which block this fragment represents;
+      *                   a top level block is a number. A sub-block of a top-level
+      *                   block is a vector of two numbers, etc.
+      * @param env the environment
+      * @return
+      */
+    private def translateWfFragment(wfName: String,
+                                    block: CwlBlock,
+                                    blockPath: Vector[Int],
+                                    stepPath: Option[String],
+                                    env: CallEnv): (Stage, Vector[Callable]) = {}
+
     private def createWorkflowStages(
         wfName: String,
         wfInputs: Vector[LinkedVar],
         blockPath: Vector[Int],
         subBlocks: Vector[CwlBlock],
+        stepPath: Option[String],
         locked: Boolean
     ): (Vector[(Stage, Vector[Callable])], CallEnv) = {
       logger.trace(s"Assembling workflow backbone $wfName")
@@ -327,6 +346,16 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
                 case _ =>
                   throw new Exception(s"invalid DirectCall block ${block}")
               }
+            } else {
+              // A simple block that requires just one applet, OR
+              // a complex block that needs a subworkflow
+              val (stage, auxCallables) =
+                translateWfFragment(wfName, block, blockPath :+ blockNum, stepPath, beforeEnv)
+              val afterEnv = stage.outputs.foldLeft(beforeEnv) {
+                case (env, param) =>
+                  env.add(param.name, (param, LinkInput(stage.dxStage, param.dxName)))
+              }
+              (stages :+ (stage, auxCallables), afterEnv)
             }
         }
     }
