@@ -1,13 +1,20 @@
 package dx.translator.cwl
 
 import dx.api.DxApi
+import dx.core.Constants
+import dx.core.Constants.{ReorgStatus, ReorgStatusCompleted}
 import dx.core.io.DxWorkerPaths
+import dx.core.ir.RunSpec.{DefaultInstanceType, NoImage}
+import dx.core.ir.Type.TString
+import dx.core.ir.Value.VString
 import dx.core.ir.{
   Application,
   Callable,
   CallableAttribute,
   EmptyInput,
   ExecutableKindApplet,
+  ExecutableKindWfCustomReorgOutputs,
+  ExecutableKindWfOutputs,
   Level,
   LinkInput,
   Parameter,
@@ -25,6 +32,7 @@ import dx.core.languages.cwl.{
   DxHints,
   RequirementEvaluator
 }
+import dx.core.languages.wdl.WdlUtils
 import dx.cwl.{
   CommandInputParameter,
   CommandLineTool,
@@ -44,8 +52,9 @@ import dx.cwl.{
 }
 import dx.translator.CallableAttributes.{DescriptionAttribute, TitleAttribute}
 import dx.translator.ParameterAttributes.{HelpAttribute, LabelAttribute}
-import dx.translator.{DxWorkflowAttrs, ReorgSettings, WorkflowTranslator}
+import dx.translator.{CustomReorgSettings, DxWorkflowAttrs, ReorgSettings, WorkflowTranslator}
 import dx.util.{FileSourceResolver, Logger}
+import wdlTools.eval.EvalException
 
 import java.nio.file.Paths
 
@@ -223,6 +232,79 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         locked: Boolean
     ): (Vector[(Stage, Vector[Callable])], CallEnv) = {}
 
+    /**
+      * Build an applet + workflow stage for evaluating outputs. There are two reasons
+      * to be build a special output section:
+      * 1. Locked workflow: some of the workflow outputs are expressions.
+      *    We need an extra applet+stage to evaluate them.
+      * 2. Unlocked workflow: there are no workflow outputs, so we create
+      *    them artificially with a separate stage that collects the outputs.
+      * @param wfName the workflow name
+      * @param outputs the outputs
+      * @param env the environment
+      * @return
+      */
+    private def createOutputStage(wfName: String,
+                                  outputs: Vector[WorkflowOutputParameter],
+                                  blockPath: Vector[Int],
+                                  env: CallEnv): (Stage, Application) = {
+      // split outputs into those that are passed through directly from inputs vs
+      // those that require evaluation
+      val (outputsToPass, outputsToEval) = outputs.partition(o => env.contains(o.name))
+      val outputsToPassEnv = outputsToPass.map(o => o.name -> env(o.name)).toMap
+
+      val (applicationInputs, stageInputs) =
+        (outputsToPassEnv ++ outputsToEvalClosureEnv).values.unzip
+      logger.trace(s"inputVars: ${applicationInputs}")
+
+      // build definitions of the output variables - if the expression can be evaluated,
+      // set the values as the parameter's default
+      val outputVars: Vector[Parameter] = outputs.map {
+        case TAT.OutputParameter(name, wdlType, expr, _) =>
+          val value =
+            try {
+              val v = evaluator.applyConstAndCoerce(expr, wdlType)
+              Some(WdlUtils.toIRValue(v, wdlType))
+            } catch {
+              case _: EvalException => None
+            }
+          val irType = WdlUtils.toIRType(wdlType)
+          Parameter(name, irType, value)
+      }
+
+      // Determine kind of application. If a custom reorg app is used and this is a top-level
+      // workflow (custom reorg applet doesn't apply to locked workflows), add an output
+      // variable for reorg status.
+      val (applicationKind, updatedOutputVars) = reorgAttrs match {
+        case CustomReorgSettings(_, _, true) if !isLocked =>
+          val updatedOutputVars = outputVars :+ Parameter(
+              ReorgStatus,
+              TString,
+              Some(VString(ReorgStatusCompleted))
+          )
+          (ExecutableKindWfCustomReorgOutputs, updatedOutputVars)
+        case _ =>
+          (ExecutableKindWfOutputs(blockPath), outputVars)
+      }
+      val application = Application(
+          s"${wfName}_${Constants.OutputStage}",
+          applicationInputs.toVector,
+          updatedOutputVars,
+          DefaultInstanceType,
+          NoImage,
+          applicationKind,
+          standAloneWorkflow
+      )
+      val stage = Stage(
+          Constants.OutputStage,
+          getStage(Some(Constants.OutputStage)),
+          application.name,
+          stageInputs.toVector,
+          updatedOutputVars
+      )
+      (stage, application)
+    }
+
     def translateWorkflowLocked(
         name: String,
         inputs: Vector[WorkflowInputParameter],
@@ -259,6 +341,25 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
 
       val (allStageInfo, env) =
         createWorkflowStages(wf.name, fauxWfInputs, Vector.empty, subBlocks, locked = false)
+      val (stages, auxCallables) = allStageInfo.unzip
+
+      // convert the outputs into an applet+stage
+      val (outputStage, outputApplet) = createOutputStage(wf.name, outputs, Vector.empty, env)
+
+      val wfInputs = commonAppletInputs.map(param => (param, EmptyInput))
+      val wfOutputs =
+        outputStage.outputs.map(param => (param, LinkInput(outputStage.dxStage, param.dxName)))
+      val irwf = Workflow(
+          wf.name,
+          wfInputs,
+          wfOutputs,
+          commonStg +: stages :+ outputStage,
+          wfSource,
+          locked = false,
+          Level.Top,
+          wfAttr
+      )
+      (irwf, commonApplet +: auxCallables.flatten :+ outputApplet, wfOutputs)
     }
 
     def translate: (Workflow, Vector[Callable], Vector[LinkedVar]) = {
