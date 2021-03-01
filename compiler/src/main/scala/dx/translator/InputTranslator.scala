@@ -79,9 +79,14 @@ class InputTranslator(bundle: Bundle,
 
   private lazy val inputsJs: Map[Path, Map[String, JsValue]] = {
     rawInputsJs.map {
-      case (path, jsValues) if jsValues.keySet == Set(Constants.InputManifest) =>
-        val manifest = Manifest.parse(jsValues(Constants.InputManifest))
-        path -> manifest.jsValues
+      case (path, jsValues)
+          if jsValues.size == 1 && jsValues.keys.head.endsWith(Constants.InputManifest) =>
+        val (key, fields) = jsValues.head
+        val prefix = key.dropRight(Constants.InputManifest.length + 1)
+        val manifest = Manifest.parse(fields)
+        path -> manifest.jsValues.map {
+          case (name, value) => s"${prefix}.${name}" -> value
+        }
       case (path, jsValues) => path -> jsValues
     }
   }

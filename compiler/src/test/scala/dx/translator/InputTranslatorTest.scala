@@ -223,6 +223,14 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
     retval shouldBe a[SuccessfulCompileIR]
   }
 
+  it should "translate manifest inputs" in {
+    val wdlCode = pathFromBasename("manifest", "simple_manifest.wdl")
+    val inputs = pathFromBasename("manifest", "simple_manifest_input.json")
+    val args = List(wdlCode.toString, "-inputs", inputs.toString, "-verbose", "-useManifests") ++ cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileIR]
+  }
+
   it should "handle parameter name with dot" in {
     val cwlCode = pathFromBasename("input_file", "bwa-mem-tool.cwl")
     val inputs = pathFromBasename("input_file", "bwa-mem-tool_input.json")
