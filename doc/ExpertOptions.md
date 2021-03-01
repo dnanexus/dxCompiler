@@ -1059,7 +1059,7 @@ Given the above workflow, the manifest output would be:
 
 The `id` field is optional but will always be populated in the output manfiests. The manifest may contain additional fields (`types` and `definitions`) that are only for internal use and can be ignored.
 
-To specify an input file as input to an applet or workflow, first upload the file to the platform and then pass it as input to the `input_manifest_files___` parameter:
+To specify a manifest file as input to an applet or workflow, first upload the file to the platform and then pass it as input to the `input_manifest_files___` parameter:
 
 `dx run workflow-yyy -iinput_manifest_files___=file-zzz`
 
