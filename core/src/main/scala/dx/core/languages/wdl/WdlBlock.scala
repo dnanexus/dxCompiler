@@ -73,7 +73,7 @@ These are not blocks, because we need a subworkflow to run them:
  */
 package dx.core.languages.wdl
 
-import dx.core.ir.{Block, BlockKind}
+import dx.core.ir.{Block, BlockKind, Parameter}
 import wdlTools.eval.{Eval, EvalException, EvalUtils, WdlValues}
 import wdlTools.types.{TypeUtils, WdlTypes, TypedAbstractSyntax => TAT}
 
@@ -321,6 +321,8 @@ case class WdlBlock(index: Int,
     val innerBlocks = WdlBlock.createBlocks(innerElements)
     innerBlocks(index)
   }
+
+  override lazy val inputNames: Set[String] = inputs.map(_.name).toSet
 
   override lazy val outputNames: Set[String] = outputs.map(_.name).toSet
 

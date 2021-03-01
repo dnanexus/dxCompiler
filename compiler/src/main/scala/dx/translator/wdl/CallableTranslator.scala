@@ -485,14 +485,14 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       // Note: some referenced variables may be undefined. This could be because they are:
       // 1) optional
       // 2) defined -inside- the block
-      val closure: Map[String, LinkedVar] = block.inputs.flatMap { i: WdlBlockInput =>
-        env.lookup(i.name) match {
+      val closure: Map[String, LinkedVar] = block.inputNames.flatMap { iname =>
+        env.lookup(iname) match {
           case None               => None
           case Some((name, lVar)) => Some((name, lVar))
         }
       }.toMap
 
-      val inputVars: Vector[Parameter] = closure.map {
+      val inputParams: Vector[Parameter] = closure.map {
         case (fqn, (param: Parameter, _)) =>
           param.copy(name = fqn)
       }.toVector
@@ -502,22 +502,17 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       //
       // This is a simplifying assumption, that is hopefully sufficient. It disallows
       // users from using variables with the ___ character sequence.
-      val fqnDictTypes: Map[String, Type] = inputVars.map { param: Parameter =>
+      val fqnDictTypes: Map[String, Type] = inputParams.map { param: Parameter =>
         param.dxName -> param.dxType
       }.toMap
 
-      // Figure out the block outputs
-      val outputs: Map[String, WdlTypes.T] = block.outputs.map {
-        case TAT.OutputParameter(name, wdlType, _, _) => name -> wdlType
-      }.toMap
-
-      // create a cVar definition from each block output. The dx:stage
-      // will output these cVars.
-      val outputVars = outputs.map {
-        case (fqn, wdlType) =>
-          val irType = WdlUtils.toIRType(wdlType)
-          Parameter(fqn, irType)
-      }.toVector
+      val outputParams: Vector[Parameter] = {
+        block.outputs.map {
+          case TAT.OutputParameter(name, wdlType, _, _) =>
+            val irType = WdlUtils.toIRType(wdlType)
+            Parameter(name, irType)
+        }
+      }
 
       // The fragment runner can only handle a single call. If the
       // block already has exactly one call, then we are good. If
@@ -595,8 +590,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
 
       val applet = Application(
           s"${wfName}_frag_${getStageId()}",
-          inputVars,
-          outputVars,
+          inputParams,
+          outputParams,
           DefaultInstanceType,
           NoImage,
           ExecutableKindWfFragment(innerCall.toVector, blockPath, fqnDictTypes, scatterChunkSize),
@@ -607,7 +602,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         case (_, stageInput) => stageInput
       }.toVector
 
-      (Stage(stageName, getStage(), applet.name, stageInputs, outputVars), auxCallables :+ applet)
+      (Stage(stageName, getStage(), applet.name, stageInputs, outputParams), auxCallables :+ applet)
     }
 
     /**

@@ -9,6 +9,7 @@ import dx.core.ir.Type.TString
 import dx.core.ir.Value.VString
 import dx.core.ir.{
   Application,
+  BlockKind,
   Callable,
   CallableAttribute,
   EmptyInput,
@@ -32,7 +33,7 @@ import dx.core.languages.cwl.{
   DxHints,
   RequirementEvaluator
 }
-import dx.core.languages.wdl.WdlUtils
+import dx.core.languages.wdl.{WdlBlock, WdlUtils}
 import dx.cwl.{
   CommandInputParameter,
   CommandLineTool,
@@ -47,6 +48,7 @@ import dx.cwl.{
   Runtime,
   WorkflowInputParameter,
   WorkflowOutputParameter,
+  WorkflowStep,
   Parameter => CwlParameter,
   Workflow => CwlWorkflow
 }
@@ -205,6 +207,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         case _                      => true
       }
     }
+
     private lazy val evaluator: Evaluator = Evaluator.default
 
     private def createWorkflowInput(input: WorkflowInputParameter): (Parameter, Boolean) = {
@@ -224,13 +227,66 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
        isDynamic)
     }
 
+    private def translateCall(call: WorkflowStep, env: CallEnv, locked: Boolean): Stage = {
+      // Find the callee
+      val calleeName = call.name
+      val callee: Callable = availableDependencies.get(calleeName) match {
+        case Some(x) => x
+        case _ =>
+          throw new Exception(
+              s"""|Callable ${calleeName} should exist but is missing from the list of known 
+                  |tasks/workflows ${availableDependencies.keys}|""".stripMargin
+                .replaceAll("\n", " ")
+          )
+      }
+      // Extract the input values/links from the environment
+      val inputs: Vector[StageInput] = callee.inputVars.map { param =>
+        call.inputs
+      }
+      Stage(call.name, getStage(), calleeName, inputs, callee.outputVars)
+    }
+
     private def createWorkflowStages(
         wfName: String,
         wfInputs: Vector[LinkedVar],
         blockPath: Vector[Int],
         subBlocks: Vector[CwlBlock],
         locked: Boolean
-    ): (Vector[(Stage, Vector[Callable])], CallEnv) = {}
+    ): (Vector[(Stage, Vector[Callable])], CallEnv) = {
+      logger.trace(s"Assembling workflow backbone $wfName")
+
+      val inputEnv: CallEnv = CallEnv.fromLinkedVars(wfInputs)
+
+      val logger2 = logger.withIncTraceIndent()
+      logger2.trace(s"inputs: ${inputEnv.keys}")
+
+      // link together all the stages into a linear workflow
+      val (allStageInfo, stageEnv): (Vector[(Stage, Vector[Callable])], CallEnv) =
+        subBlocks.zipWithIndex.foldLeft((Vector.empty[(Stage, Vector[Callable])], inputEnv)) {
+          case ((stages, beforeEnv), (block: CwlBlock, blockNum: Int)) =>
+            if (block.kind == BlockKind.CallDirect) {
+              block.target match {
+                case Some(step) if CwlUtils.isSimpleCall(step) =>
+                  // The block contains exactly one call, with no extra variables.
+                  // All the variables are already in the environment, so there is no
+                  // need to do any extra work. Compile directly into a workflow stage.
+                  logger2.trace(s"Translating step ${step.name} as stage")
+                  val stage = translateCall(call, beforeEnv, locked)
+                  // Add bindings for the output variables. This allows later calls to refer
+                  // to these results.
+                  val afterEnv = stage.outputs.foldLeft(beforeEnv) {
+                    case (env, param: Parameter) =>
+                      val fqn = s"${call.actualName}.${param.name}"
+                      val paramFqn = param.copy(name = fqn)
+                      env.add(fqn, (paramFqn, LinkInput(stage.dxStage, param.dxName)))
+                  }
+                  (stages :+ (stage, Vector.empty[Callable]), afterEnv)
+                case _ =>
+                  throw new Exception(s"invalid DirectCall block ${block}")
+              }
+            }
+        }
+    }
 
     /**
       * Build an applet + workflow stage for evaluating outputs. There are two reasons
@@ -248,28 +304,29 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
                                   outputs: Vector[WorkflowOutputParameter],
                                   blockPath: Vector[Int],
                                   env: CallEnv): (Stage, Application) = {
-      // split outputs into those that are passed through directly from inputs vs
-      // those that require evaluation
-      val (outputsToPass, outputsToEval) = outputs.partition(o => env.contains(o.name))
-      val outputsToPassEnv = outputsToPass.map(o => o.name -> env(o.name)).toMap
+      val paramNames = outputs.flatMap { param =>
+        if (param.outputSource.isEmpty) {
+          throw new Exception(
+              s"there must be at least one 'outputSource' for parameter ${param.name}"
+          )
+        }
+        param.outputSource.map(source => source.replaceAll("/", Parameter.ComplexValueKey))
+      }.toSet
+      logger.trace(s"paramNames: ${paramNames}")
 
-      val (applicationInputs, stageInputs) =
-        (outputsToPassEnv ++ outputsToEvalClosureEnv).values.unzip
-      logger.trace(s"inputVars: ${applicationInputs}")
+      val (applicationInputs, stageInputs) = paramNames.map { name =>
+        env.get(name) match {
+          case Some((param, stageInput)) => (param, stageInput)
+          case None =>
+            throw new Exception(s"parameter ${name} missing from CallEnv")
+        }
+      }.unzip
 
       // build definitions of the output variables - if the expression can be evaluated,
       // set the values as the parameter's default
-      val outputVars: Vector[Parameter] = outputs.map {
-        case TAT.OutputParameter(name, wdlType, expr, _) =>
-          val value =
-            try {
-              val v = evaluator.applyConstAndCoerce(expr, wdlType)
-              Some(WdlUtils.toIRValue(v, wdlType))
-            } catch {
-              case _: EvalException => None
-            }
-          val irType = WdlUtils.toIRType(wdlType)
-          Parameter(name, irType, value)
+      val outputParams: Vector[Parameter] = outputs.map { param =>
+        val irType = CwlUtils.toIRType(param.types)
+        Parameter(param.name, irType, None)
       }
 
       // Determine kind of application. If a custom reorg app is used and this is a top-level
@@ -277,14 +334,14 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       // variable for reorg status.
       val (applicationKind, updatedOutputVars) = reorgAttrs match {
         case CustomReorgSettings(_, _, true) if !isLocked =>
-          val updatedOutputVars = outputVars :+ Parameter(
+          val updatedOutputVars = outputParams :+ Parameter(
               ReorgStatus,
               TString,
               Some(VString(ReorgStatusCompleted))
           )
           (ExecutableKindWfCustomReorgOutputs, updatedOutputVars)
         case _ =>
-          (ExecutableKindWfOutputs(blockPath), outputVars)
+          (ExecutableKindWfOutputs(blockPath), outputParams)
       }
       val application = Application(
           s"${wfName}_${Constants.OutputStage}",
@@ -349,6 +406,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       val wfInputs = commonAppletInputs.map(param => (param, EmptyInput))
       val wfOutputs =
         outputStage.outputs.map(param => (param, LinkInput(outputStage.dxStage, param.dxName)))
+      val wfSource = CwlWorkflowSource()
       val irwf = Workflow(
           wf.name,
           wfInputs,
@@ -356,8 +414,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           commonStg +: stages :+ outputStage,
           wfSource,
           locked = false,
-          Level.Top,
-          wfAttr
+          Level.Top
       )
       (irwf, commonApplet +: auxCallables.flatten :+ outputApplet, wfOutputs)
     }

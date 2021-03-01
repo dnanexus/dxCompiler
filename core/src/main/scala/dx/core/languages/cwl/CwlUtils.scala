@@ -441,6 +441,16 @@ object CwlUtils {
     }
   }
 
+  /**
+    * Does a WorkflowStep represent a simple call - i.e. with no
+    * scatter or conditional?
+    * @param step the WorkflowStep
+    * @return
+    */
+  def isSimpleCall(step: WorkflowStep): Boolean = {
+    step.scatter.isEmpty && step.when.isEmpty
+  }
+
   def isDxFile(file: FileValue): Boolean = {
     file.location.exists(_.startsWith(DxPath.DxUriPrefix))
   }
