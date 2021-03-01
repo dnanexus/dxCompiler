@@ -450,7 +450,7 @@ def build_test(tname, project, folder, version_id, compiler_flags):
                 "-force",
                 "-folder", folder,
                 "-project", project.get_id() ]
-    if desc.source_file.contains("manifest"):
+    if "manifest" in desc.source_file:
         cmdline.append("-useManifests")
     cmdline += compiler_flags
     print(" ".join(cmdline))
