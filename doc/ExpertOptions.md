@@ -22,6 +22,7 @@ dxCompiler takes a pipeline written in WDL, and statically compiles it to an equ
   * [Use your own applet](#use-your-own-applet)
   * [Adding config-file based reorg applet at compilation time](#adding-config-file-based-reorg-applet-at-compilation-time)
 - [Top-level calls compiled as stages](#toplevel-calls-compiled-as-stages)
+- [Manifests](#manifests)  
 - [Docker](#docker)
   * [Setting a default docker image for all tasks](#setting-a-default-docker-image-for-all-tasks)
   * [Private registries](#private-registries)
