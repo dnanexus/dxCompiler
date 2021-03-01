@@ -529,7 +529,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
         case (fieldName, t) =>
           val fqn = prefix.map(p => s"${p}.${fieldName}").getOrElse(fieldName)
           if (validate) {
-            validateOutput(Parameter.encodeDots(fieldName), t)
+            validateOutput(Parameter.encodeName(fieldName), t)
           }
           fqn -> ParameterLinkExec(execution, fieldName, t)
       }

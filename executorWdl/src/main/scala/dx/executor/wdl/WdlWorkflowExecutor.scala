@@ -1058,7 +1058,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       val arrayValues: Map[String, (Type, Value)] = outputTypes.view.mapValues {
         case (name, irType) =>
           val arrayType = TArray(irType)
-          val nameEncoded = Parameter.encodeDots(name)
+          val nameEncoded = Parameter.encodeName(name)
           val arrayValue = childOutputs.flatMap { outputs =>
             (irType, outputs.get(nameEncoded)) match {
               case (_, Some(jsValue)) =>
@@ -1081,7 +1081,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         }
         // upload the merged manifest file
         val outputJson = arrayValues.map {
-          case (name, (t, v)) => Parameter.encodeDots(name) -> ValueSerde.serializeWithType(v, t)
+          case (name, (t, v)) => Parameter.encodeName(name) -> ValueSerde.serializeWithType(v, t)
         }
         val manifest = Manifest(outputJson, id = manifestId)
         val destination = s"${jobMeta.manifestFolder}/${jobMeta.jobId}_output.manifest.json"

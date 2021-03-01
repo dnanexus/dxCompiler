@@ -22,6 +22,7 @@ import dx.core.ir.{
   ParameterAttribute,
   Stage,
   StageInput,
+  Type,
   Value,
   Workflow
 }
@@ -33,7 +34,6 @@ import dx.core.languages.cwl.{
   DxHints,
   RequirementEvaluator
 }
-import dx.core.languages.wdl.{WdlBlock, WdlUtils}
 import dx.cwl.{
   CommandInputParameter,
   CommandLineTool,
@@ -49,6 +49,7 @@ import dx.cwl.{
   WorkflowInputParameter,
   WorkflowOutputParameter,
   WorkflowStep,
+  WorkflowStepInput,
   Parameter => CwlParameter,
   Workflow => CwlWorkflow
 }
@@ -56,7 +57,6 @@ import dx.translator.CallableAttributes.{DescriptionAttribute, TitleAttribute}
 import dx.translator.ParameterAttributes.{HelpAttribute, LabelAttribute}
 import dx.translator.{CustomReorgSettings, DxWorkflowAttrs, ReorgSettings, WorkflowTranslator}
 import dx.util.{FileSourceResolver, Logger}
-import wdlTools.eval.EvalException
 
 import java.nio.file.Paths
 
@@ -227,7 +227,50 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
        isDynamic)
     }
 
+    private def callInputToStageInput(callInput: Option[WorkflowStepInput],
+                                      calleeParam: Parameter,
+                                      env: CallEnv,
+                                      locked: Boolean,
+                                      callName: String): StageInput = {
+      def lookup(key: String): StageInput = {
+        env.get(key) match {
+          case Some((_, stageInput)) => stageInput
+          case None =>
+            throw new Exception(
+                s"""|input <${calleeParam.name}, ${calleeParam.dxType}> to call <${callName}>
+                    |is missing from the environment. We don't have ${key} in the environment.
+                    |""".stripMargin.replaceAll("\n", " ")
+            )
+        }
+      }
+
+      callInput match {
+        case None if locked =>
+          env.log()
+          throw new Exception(
+              s"""|input <${calleeParam.name}, ${calleeParam.dxType}> to call <${callName}>
+                  |is unspecified. This is illegal in a locked workflow.""".stripMargin
+                .replaceAll("\n", " ")
+          )
+        case None =>
+          // the argument may be optional, may have a default, or the callee may not
+          // use the argument - defer until runtime
+          EmptyInput
+        case Some(inp) =>
+          try {
+            lookup(inp.name)
+          } catch {
+            case _: Throwable if inp.default.isDefined =>
+              // the workflow step has a default that will be evaluated at runtime
+              EmptyInput
+          }
+      }
+    }
+
     private def translateCall(call: WorkflowStep, env: CallEnv, locked: Boolean): Stage = {
+      val callInputParams = call.inputs.map { param =>
+        param.name -> param
+      }.toMap
       // Find the callee
       val calleeName = call.name
       val callee: Callable = availableDependencies.get(calleeName) match {
@@ -241,7 +284,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       }
       // Extract the input values/links from the environment
       val inputs: Vector[StageInput] = callee.inputVars.map { param =>
-        call.inputs
+        callInputToStageInput(callInputParams.get(param.name), param, env, locked, call.name)
       }
       Stage(call.name, getStage(), calleeName, inputs, callee.outputVars)
     }
@@ -271,12 +314,12 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
                   // All the variables are already in the environment, so there is no
                   // need to do any extra work. Compile directly into a workflow stage.
                   logger2.trace(s"Translating step ${step.name} as stage")
-                  val stage = translateCall(call, beforeEnv, locked)
+                  val stage = translateCall(step, beforeEnv, locked)
                   // Add bindings for the output variables. This allows later calls to refer
                   // to these results.
                   val afterEnv = stage.outputs.foldLeft(beforeEnv) {
                     case (env, param: Parameter) =>
-                      val fqn = s"${call.actualName}.${param.name}"
+                      val fqn = s"${step.name}/${param.name}"
                       val paramFqn = param.copy(name = fqn)
                       env.add(fqn, (paramFqn, LinkInput(stage.dxStage, param.dxName)))
                   }

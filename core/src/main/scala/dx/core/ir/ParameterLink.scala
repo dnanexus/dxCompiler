@@ -128,7 +128,7 @@ case class ParameterLinkSerializer(fileResolver: FileSourceResolver = FileSource
                           encodeDots: Boolean = true): (String, JsValue) = {
     val bindEncName =
       if (encodeDots) {
-        Parameter.encodeDots(bindName)
+        Parameter.encodeName(bindName)
       } else {
         bindName
       }
@@ -141,20 +141,20 @@ case class ParameterLinkSerializer(fileResolver: FileSourceResolver = FileSource
       case ParameterLinkStage(dxStage, ioRef, varEncName, _) =>
         ioRef match {
           case IORef.Input =>
-            dxStage.getInputReference(Parameter.encodeDots(varEncName))
+            dxStage.getInputReference(Parameter.encodeName(varEncName))
           case IORef.Output =>
-            dxStage.getOutputReference(Parameter.encodeDots(varEncName))
+            dxStage.getOutputReference(Parameter.encodeName(varEncName))
         }
       case ParameterLinkWorkflowInput(varEncName, _) =>
         JsObject(
             DxUtils.DxLinkKey -> JsObject(
                 ParameterLink.WorkflowInputFieldKey -> JsString(
-                    Parameter.encodeDots(varEncName)
+                    Parameter.encodeName(varEncName)
                 )
             )
         )
       case ParameterLinkExec(dxJob, varEncName, _) =>
-        DxUtils.dxExecutionToEbor(dxJob, Parameter.encodeDots(varEncName))
+        DxUtils.dxExecutionToEbor(dxJob, Parameter.encodeName(varEncName))
     }
   }
 
@@ -165,7 +165,7 @@ case class ParameterLinkSerializer(fileResolver: FileSourceResolver = FileSource
                            encodeDots: Boolean = true): Vector[(String, JsValue)] = {
     val encodedName =
       if (encodeDots) {
-        Parameter.encodeDots(bindName)
+        Parameter.encodeName(bindName)
       } else {
         bindName
       }
@@ -217,9 +217,9 @@ case class ParameterLinkSerializer(fileResolver: FileSourceResolver = FileSource
           val varFileArrayName = s"${varName}${ParameterLink.FlatFilesSuffix}"
           Map(
               encodedName -> DxUtils
-                .dxExecutionToEbor(dxJob, Parameter.encodeDots(varName)),
+                .dxExecutionToEbor(dxJob, Parameter.encodeName(varName)),
               fileArrayName -> DxUtils
-                .dxExecutionToEbor(dxJob, Parameter.encodeDots(varFileArrayName))
+                .dxExecutionToEbor(dxJob, Parameter.encodeName(varFileArrayName))
           )
       }
       mapValue.toVector

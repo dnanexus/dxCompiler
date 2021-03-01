@@ -26,19 +26,18 @@ case class Parameter(
     defaultValue: Option[Value] = None,
     attributes: Vector[ParameterAttribute] = Vector.empty
 ) {
-  // dx does not allow dots in variable names, so we
+  // dx does not allow dots, slashes, etc in variable names, so we
   // convert them to underscores.
   //
   // TODO: check for collisions that are created this way.
-  def dxName: String = {
-    val nameNoDots = Parameter.encodeDots(name)
-    assert(!nameNoDots.contains("."))
-    nameNoDots
-  }
+  def dxName: String = Parameter.encodeName(name)
 }
 
 object Parameter {
   val ComplexValueKey = "___"
+
+  private val illegalChars = "[./]"
+  private val illegalCharsRegexp = s"${illegalChars}".r
 
   /**
     * Converts dots in parameter names to underscores.
@@ -46,20 +45,20 @@ object Parameter {
     * @param name parameter name
     * @return
     */
-  def encodeDots(name: String): String = {
-    if (name.endsWith(".")) {
-      throw new Exception(s"${name} ends with a '.'")
+  def encodeName(name: String): String = {
+    illegalCharsRegexp.split(name).toVector match {
+      case Vector()     => throw new Exception("empty name")
+      case Vector(name) => name
+      case v if v.last.isEmpty =>
+        throw new Exception(s"${name} ends with one of ${illegalChars}")
+      case parts =>
+        // check that none of the individual words start/end with '_',
+        // which will cause problems when decoding
+        if (parts.drop(1).exists(_.endsWith("_")) || parts.tail.exists(_.startsWith("_"))) {
+          throw new Exception(s"Cannot encode value ${name} - cannot have '_' next to '.'")
+        }
+        parts.mkString(ComplexValueKey)
     }
-    val parts = name.split("\\.")
-    if (parts.size == 1) {
-      return name
-    }
-    // check that none of the individual words start/end with '_',
-    // which will cause problems when decoding
-    if (parts.drop(1).exists(_.endsWith("_")) || parts.tail.exists(_.startsWith("_"))) {
-      throw new Exception(s"Cannot encode value ${name} - cannot have '_' next to '.'")
-    }
-    parts.mkString(ComplexValueKey)
   }
 
   def decodeDots(name: String): String = {

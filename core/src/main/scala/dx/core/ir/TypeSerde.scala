@@ -119,7 +119,7 @@ object TypeSerde {
     types.foldLeft((SortedMap.empty[String, JsValue], jsTypeDefs.to(SortedMap))) {
       case ((typeAccu, typeDefAccu), (name, t)) =>
         val nameEncoded = if (encodeDots) {
-          Parameter.encodeDots(name)
+          Parameter.encodeName(name)
         } else {
           name
         }
