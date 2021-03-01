@@ -21,7 +21,7 @@ dxCompiler takes a pipeline written in WDL, and statically compiles it to an equ
 - [Handling intermediate workflow outputs](#handling-intermediate-workflow-outputs)
   * [Use your own applet](#use-your-own-applet)
   * [Adding config-file based reorg applet at compilation time](#adding-config-file-based-reorg-applet-at-compilation-time)
-- [Toplevel calls compiled as stages](#toplevel-calls-compiled-as-stages)
+- [Top-level calls compiled as stages](#toplevel-calls-compiled-as-stages)
 - [Docker](#docker)
   * [Setting a default docker image for all tasks](#setting-a-default-docker-image-for-all-tasks)
   * [Private registries](#private-registries)
@@ -983,11 +983,88 @@ into stage inputs. The `add` stage will have compulsory integer inputs
 
 For an in depth discussion, please see [Missing Call Arguments](MissingCallArguments.md).
 
-# Docker
+# Manifests
 
-As of release 0.80, we moved to using docker, instead of
-[dx-docker](https://documentation.dnanexus.com/developer/apps/dependency-management/using-docker-images). `dx-docker`
-is deprecated, although you can still use it with the `--useDxDocker` command line flag.
+In extreme cases, running compiled WDL workflows can fail due to DNAnexus platform limits on the total size of the input and output JSON documents of a job. An example is a task with many inputs/outputs that is called in scatter over a large collection. In such a case, you can enable manifest support at compile time with the `-useManifests` option. This option causes each generated applet or workflow to accept inputs as a manifest, and to produce outputs as a manifest.
+
+A manifest file is a JSON document that contains all the inputs/outputs that would otherwise be passed directly to/from the applet. A manifest can be specified in one of two ways: via a JSON input, or via a File input (where the file must exist on the platform).
+
+## Manifest JSON
+
+When manifest support is enabled, each applet has an `input_mainfest___` input field of type `hash`, which means that it accepts a JSON document as a string. For example, given the following workflow:
+
+```wdl
+workflow test {
+  input {
+    String s
+    File f
+  }
+  ...
+  output {
+    Int i
+    Pair[String, File] p
+  }
+}
+```
+
+You would write the following manifest:
+
+`mymanifest.json`
+```json
+{
+  "test.input_manifest___": {
+    "s": "hello",
+    "f": "dx://file-xxx"
+  }
+}
+```
+
+When you compile the workflow, provide the manifest using the `-inputs` option, and it will be translated to:
+
+`mymanifest.dx.json`
+```json
+{
+  "input_manifest___": {
+    "s": "hello",
+    "f": {
+      "$dnanexus_link": "file-xxx"
+    }
+  }
+}
+```
+
+Finally, run your workflow using the translated input file:
+
+`dx run workflow-yyy -f mymanifest.dx.json`
+
+## Manifest file
+
+Manifest files are less convenient to use as applet/workflow inputs because they must be uploaded to the platform. However, when manifest support is enabled, applet/workflow outputs are in the form of manifest files, so it is useful to understand the format.
+
+Given the above workflow, the manifest output would be:
+
+```json
+{
+  "id": "test",
+  "values": {
+    "i": 1,
+    "p": {
+      "left": "hello",
+      "right": "dx://file-xxx"
+    }
+  }
+}
+```
+
+The `id` field is optional but will always be populated in the output manfiests. The manifest may contain additional fields (`types` and `definitions`) that are only for internal use and can be ignored.
+
+To specify an input file as input to an applet or workflow, first upload the file to the platform and then pass it as input to the `input_manifest_files___` parameter:
+
+`dx run workflow-yyy -iinput_manifest_files___=file-zzz`
+
+Note that while `input_manifest_files___` is an array, you may only pass a single manifest file as input.
+
+# Docker
 
 ## Setting a default docker image for all tasks
 
