@@ -23,10 +23,18 @@ case class CwlInputTranslator(bundle: Bundle,
                               inputs: Vector[Path],
                               defaults: Option[Path],
                               project: DxProject,
+                              useManifests: Boolean,
                               baseFileResolver: FileSourceResolver = FileSourceResolver.get,
                               dxApi: DxApi = DxApi.get,
                               logger: Logger = Logger.get)
-    extends InputTranslator(bundle, inputs, defaults, project, baseFileResolver, dxApi, logger) {
+    extends InputTranslator(bundle,
+                            inputs,
+                            defaults,
+                            project,
+                            useManifests,
+                            baseFileResolver,
+                            dxApi,
+                            logger) {
 
   override protected def translateJsInput(jsv: JsValue, t: Type): JsValue = {
     (t, jsv) match {
@@ -97,7 +105,7 @@ case class CwlTranslator(tool: CommandLineTool,
                                                inputs: Vector[Path],
                                                defaults: Option[Path],
                                                project: DxProject): InputTranslator = {
-    CwlInputTranslator(bundle, inputs, defaults, project, fileResolver)
+    CwlInputTranslator(bundle, inputs, defaults, project, useManifests, fileResolver)
   }
 }
 
