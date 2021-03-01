@@ -22,7 +22,6 @@ import dx.core.ir.{
   ParameterAttribute,
   Stage,
   StageInput,
-  Type,
   Value,
   Workflow
 }
@@ -34,7 +33,6 @@ import dx.core.languages.cwl.{
   DxHints,
   RequirementEvaluator
 }
-import dx.core.languages.wdl.WdlBlock
 import dx.cwl.{
   CommandInputParameter,
   CommandLineTool,
