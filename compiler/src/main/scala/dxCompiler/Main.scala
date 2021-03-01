@@ -416,7 +416,7 @@ object Main {
     val (bundle, fileResolver) = if (hasInputs) {
       val (bundleWithDefaults, fileResolver) =
         try {
-          translator.translateInputs(rawBundle, inputs, defaults, project, useManifests)
+          translator.translateInputs(rawBundle, inputs, defaults, project)
         } catch {
           case ex: Throwable =>
             return Failure("Error translating inputs", Some(ex))
