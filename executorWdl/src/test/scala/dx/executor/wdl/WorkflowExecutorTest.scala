@@ -1,7 +1,6 @@
 package dx.executor.wdl
 
 import java.nio.file.{Files, Path, Paths}
-
 import dx.Assumptions.isLoggedIn
 import dx.Tags.{EdgeTest, NativeTest}
 import dx.api._

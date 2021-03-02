@@ -42,17 +42,31 @@ object InputKind extends Enum {
 
 /**
   * A reference to a block input variable.
-  * @param name the variable name
-  * @param fieldName a field of the variable
+  * @param identifierParts the parts of the identifier name
+  * @param fieldName the fieldName within the call/object
+  *                  referred to by the identifier, if any
   * @param wdlType the variable's type
   * @param kind the variable's kind
   */
-case class WdlInputRef(name: String,
-                       fieldName: Option[String],
-                       wdlType: T,
-                       kind: InputKind.InputKind) {
-  // name.fieldName, if fieldName is defined, otherwise name
-  lazy val fullyQualifiedName: String = fieldName.map(field => s"${name}.${field}").getOrElse(name)
+private case class WdlInputRef(identifierParts: Vector[String],
+                               fieldName: Option[String],
+                               wdlType: T,
+                               kind: InputKind.InputKind) {
+  lazy val identifier: String = identifierParts.mkString(".")
+
+  lazy val fullyQualifiedName: String = {
+    (identifierParts ++ fieldName.toVector).mkString(".")
+  }
+
+  /**
+    * Returns an Iterator over all the nested identifiers
+    * represented by this reference.
+    */
+  def nameIter: Iterator[String] = {
+    (identifierParts ++ fieldName.toVector).reverse.tails.collect {
+      case parts if parts.nonEmpty => parts.reverse.mkString(".")
+    }
+  }
 }
 
 object WdlUtils {
@@ -744,7 +758,7 @@ object WdlUtils {
     *   bar.left     Vector(('bar', None))         [bar is a Pair, withField = false]
     *   bar.left     Vector(('bar', Some('left'))) [bar is a Pair, withField = true]
     */
-  def getExpressionInputs(expr: TAT.Expr, withField: Boolean): Vector[WdlInputRef] = {
+  private def getExpressionInputs(expr: TAT.Expr, withField: Boolean): Vector[WdlInputRef] = {
     def inner(
         innerExpr: TAT.Expr
     ): Vector[WdlInputRef] = {
@@ -758,13 +772,12 @@ object WdlUtils {
         case _: TAT.ValueFile      => Vector.empty
         case _: TAT.ValueDirectory => Vector.empty
         case TAT.ExprIdentifier(id, wdlType, _) =>
-          Vector(
-              WdlInputRef(id,
-                          None,
-                          wdlType,
-                          if (TypeUtils.isOptional(wdlType)) InputKind.Optional
-                          else InputKind.Required)
-          )
+          val kind = if (TypeUtils.isOptional(wdlType)) {
+            InputKind.Optional
+          } else {
+            InputKind.Required
+          }
+          Vector(WdlInputRef(Vector(id), None, wdlType, kind))
         case TAT.ExprCompoundString(valArr, _, _) =>
           valArr.flatMap(elem => inner(elem))
         case TAT.ExprPair(l, r, _, _) =>
@@ -833,13 +846,12 @@ object WdlUtils {
                              fieldName,
                              wdlType,
                              _) if output.contains(fieldName) =>
-          Vector(
-              WdlInputRef(callId,
-                          Some(fieldName),
-                          wdlType,
-                          if (TypeUtils.isOptional(wdlType)) InputKind.Optional
-                          else InputKind.Required)
-          )
+          val kind = if (TypeUtils.isOptional(wdlType)) {
+            InputKind.Optional
+          } else {
+            InputKind.Required
+          }
+          Vector(WdlInputRef(Vector(callId), Some(fieldName), wdlType, kind))
         case TAT.ExprGetName(expr, fieldName, wdlType, _) =>
           // throw an exception if the reference is not valid
           TypeUtils.unwrapOptional(expr.wdlType) match {
@@ -855,7 +867,7 @@ object WdlUtils {
           val kind = if (TypeUtils.isOptional(wdlType)) InputKind.Optional else InputKind.Required
           inner(expr) match {
             case Vector(WdlInputRef(lhsName, Some(field), _, _)) if withField =>
-              Vector(WdlInputRef(s"${lhsName}.${field}", Some(fieldName), wdlType, kind))
+              Vector(WdlInputRef(lhsName :+ field, Some(fieldName), wdlType, kind))
             case Vector(WdlInputRef(lhsName, None, _, _)) if withField =>
               Vector(WdlInputRef(lhsName, Some(fieldName), wdlType, kind))
             case v if withField && v.nonEmpty =>
@@ -870,31 +882,6 @@ object WdlUtils {
       }
     }
     inner(expr)
-  }
-
-  def getCallInputs(
-      call: TAT.Call
-  ): Vector[WdlInputRef] = {
-    // What the callee expects
-    call.callee.input.flatMap {
-      case (name: String, (_: T, optional: Boolean)) =>
-        (call.inputs.get(name), optional) match {
-          case (None, false) =>
-            // A required input that will have to be provided at runtime
-            Vector.empty
-          case (Some(expr), false) =>
-            // required input that is provided
-            getExpressionInputs(expr, withField = true)
-          case (None, true) =>
-            // a missing optional input, doesn't have to be provided
-            Vector.empty
-          case (Some(expr), true) =>
-            // an optional input
-            getExpressionInputs(expr, withField = true).map { ref =>
-              ref.copy(kind = InputKind.Optional)
-            }
-        }
-    }.toVector
   }
 
   /**
@@ -951,7 +938,22 @@ object WdlUtils {
         case v: TAT.PrivateVariable =>
           getExpressionInputs(v.expr, innerWithField)
         case call: TAT.Call =>
-          getCallInputs(call)
+          call.callee.input.flatMap {
+            case (name: String, (_: T, optional: Boolean)) =>
+              call.inputs
+                .get(name)
+                .map { expr =>
+                  val exprInputs = getExpressionInputs(expr, withField = true)
+                  if (optional) {
+                    exprInputs.map { ref =>
+                      ref.copy(kind = InputKind.Optional)
+                    }
+                  } else {
+                    exprInputs
+                  }
+                }
+                .getOrElse(Vector.empty)
+          }.toVector
         case cond: TAT.Conditional =>
           // get inputs for the conditional expression
           val exprInputs = getExpressionInputs(cond.expr, innerWithField)
@@ -966,7 +968,7 @@ object WdlUtils {
           // 'Computed' so it doesn't become a required input
           val scatterIdentifierRegexp = s"${scatter.identifier}([.\\[].+)?".r
           val bodyInputs = getInputs(scatter.body, innerWithField = true).map {
-            case ref if scatterIdentifierRegexp.matches(ref.name) =>
+            case ref if scatterIdentifierRegexp.matches(ref.identifier) =>
               ref.copy(kind = InputKind.Computed)
             case ref => ref
           }
@@ -984,10 +986,11 @@ object WdlUtils {
         throw new Exception(s"multiple outputs defined with the name ${name}: ${outputs}")
     }
 
-    // now convert the inputs, excluding any output variables
+    // now convert the inputs, filter out those that are in outputs,
+    // and check for collisions
     val inputs = getInputs(elements, withField)
+      .filterNot(i => i.nameIter.exists(outputs.contains))
       .groupBy(_.fullyQualifiedName)
-      .filterNot(i => outputs.contains(i._1))
       .map {
         case (fqn, refs) if refs.toSet.size == 1 =>
           fqn -> (refs.head.wdlType, refs.head.kind)
