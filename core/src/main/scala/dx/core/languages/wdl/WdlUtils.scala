@@ -52,7 +52,7 @@ private case class WdlInputRef(identifierParts: Vector[String],
                                fieldName: Option[String],
                                wdlType: T,
                                kind: InputKind.InputKind) {
-  def identifier: String = identifierParts.mkString(".")
+  lazy val identifier: String = identifierParts.mkString(".")
 
   lazy val fullyQualifiedName: String = {
     (identifierParts ++ fieldName.toVector).mkString(".")
