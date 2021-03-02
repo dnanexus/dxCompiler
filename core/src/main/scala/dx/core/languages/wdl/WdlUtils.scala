@@ -898,6 +898,7 @@ object WdlUtils {
       elements: Vector[TAT.WorkflowElement],
       withField: Boolean
   ): (Map[String, (T, InputKind.InputKind)], Map[String, TAT.OutputParameter]) = {
+    println(elements)
     def getOutputs(
         innerElements: Vector[TAT.WorkflowElement],
         innerWithField: Boolean
@@ -978,9 +979,8 @@ object WdlUtils {
     }
 
     // now convert the inputs, excluding any output variables
-    val inputs = getInputs(elements, withField)
+    val allInputs = getInputs(elements, withField)
       .groupBy(_.fullyQualifiedName)
-      .filterNot(i => outputs.contains(i._1))
       .map {
         case (fqn, refs) if refs.toSet.size == 1 =>
           fqn -> (refs.head.wdlType, refs.head.kind)
@@ -997,6 +997,10 @@ object WdlUtils {
           }
           fqn -> (priorityRefs.head.wdlType, priorityRefs.head.kind)
       }
+
+    val inputs = allInputs.flatMap {
+      case (fqn, (wdlType, kind)) if outputs.contains(fqn) =>
+    }
 
     (inputs, outputs)
   }

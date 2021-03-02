@@ -436,6 +436,18 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     args shouldBe Map.empty // ("a" -> (WdlTypes.T_Int, WdlValues.V_Int(3)))
   }
 
+  it should "evaluate call input from private variable" in {
+    //val workerPaths = setup()
+    val path = pathFromBasename("bugs", "apps-422.wdl")
+    val wdlBundle = parse(path)
+    val wf: TAT.Workflow = wdlBundle.primaryCallable match {
+      case Some(wf: TAT.Workflow) => wf
+      case _                      => throw new Exception("unexpected")
+    }
+    val subBlocks = WdlBlock.createBlocks(wf.body)
+    println(subBlocks.head.inputs.mkString("\n"))
+  }
+
   it should "expressions with structs" in {
     val workerPaths = setup()
     val path = pathFromBasename("frag_runner", "House.wdl")
