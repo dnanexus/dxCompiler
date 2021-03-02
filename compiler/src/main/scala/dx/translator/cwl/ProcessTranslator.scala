@@ -15,29 +15,25 @@ import dx.core.ir.{
   EmptyInput,
   ExecutableKindApplet,
   ExecutableKindWfCustomReorgOutputs,
+  ExecutableKindWfFragment,
   ExecutableKindWfOutputs,
   Level,
   LinkInput,
   Parameter,
   ParameterAttribute,
+  SourceCode,
   Stage,
   StageInput,
+  Type,
   Value,
-  Workflow
+  Workflow,
+  WorkflowInput
 }
-import dx.core.languages.cwl.{
-  CwlBlock,
-  CwlBundle,
-  CwlDocumentSource,
-  CwlUtils,
-  DxHints,
-  RequirementEvaluator
-}
+import dx.core.languages.cwl.{CwlBlock, CwlBundle, CwlUtils, DxHints, RequirementEvaluator}
 import dx.cwl.{
   CommandInputParameter,
   CommandLineTool,
   CommandOutputParameter,
-  CwlSchema,
   CwlType,
   CwlValue,
   Evaluator,
@@ -55,24 +51,28 @@ import dx.cwl.{
 import dx.translator.CallableAttributes.{DescriptionAttribute, TitleAttribute}
 import dx.translator.ParameterAttributes.{HelpAttribute, LabelAttribute}
 import dx.translator.{CustomReorgSettings, DxWorkflowAttrs, ReorgSettings, WorkflowTranslator}
-import dx.util.{FileSourceResolver, Logger}
+import dx.util.{FileSourceResolver, FileUtils, Logger}
 
-import java.nio.file.Paths
+import java.nio.file.{Path, Paths}
+
+case class CwlSourceCode(source: Path, override val target: Option[String]) extends SourceCode {
+  override val language: String = "cwl"
+  override def toString: String = FileUtils.readFileContent(source)
+}
 
 case class ProcessTranslator(cwlBundle: CwlBundle,
-                             typeAliases: Map[String, CwlSchema],
                              locked: Boolean,
                              defaultRuntimeAttrs: Map[String, Value],
                              reorgAttrs: ReorgSettings,
                              perWorkflowAttrs: Map[String, DxWorkflowAttrs],
                              defaultScatterChunkSize: Int,
+                             useManifests: Boolean,
                              dxApi: DxApi = DxApi.get,
                              fileResolver: FileSourceResolver = FileSourceResolver.get,
                              logger: Logger = Logger.get) {
 
-  private lazy val cwlDefaultRuntimeAttrs: Map[String, (CwlType, CwlValue)] = {
+  private lazy val cwlDefaultRuntimeAttrs: Map[String, (CwlType, CwlValue)] =
     CwlUtils.fromIRValues(defaultRuntimeAttrs, isInput = true)
-  }
 
   private def translateParameterAttributes(
       param: CwlParameter,
@@ -166,13 +166,6 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       val outputs = tool.outputs.collect {
         case i if i.id.exists(_.name.isDefined) => translateOutput(i)
       }
-      val docSource = CwlDocumentSource(
-          tool.source
-            .map(Paths.get(_))
-            .getOrElse(
-                throw new Exception(s"no document source for tool ${name}")
-            )
-      )
       val requirementEvaluator = RequirementEvaluator(
           tool.requirements,
           tool.hints,
@@ -180,6 +173,11 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           DxWorkerPaths.default,
           cwlDefaultRuntimeAttrs
       )
+      val docSource = tool.source.orElse(cwlBundle.primaryProcess.source) match {
+        case Some(path) => Paths.get(path)
+        case None =>
+          throw new Exception(s"no source code for tool ${name}")
+      }
       Application(
           name,
           inputs,
@@ -187,7 +185,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           requirementEvaluator.translateInstanceType,
           requirementEvaluator.translateContainer,
           ExecutableKindApplet,
-          docSource,
+          CwlSourceCode(docSource, Some(name)),
           translateCallableAttributes(tool, hintCallableAttrs),
           requirementEvaluator.translateApplicationRequirements,
           tags = Set("cwl")
@@ -196,34 +194,42 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
   }
 
   private case class CwlWorkflowTranslator(wf: CwlWorkflow,
-                                           availableDependencies: Map[String, Callable])
+                                           availableDependencies: Map[String, Callable],
+                                           workflowAttrs: Option[DxWorkflowAttrs])
       extends WorkflowTranslator(wf.name, availableDependencies, reorgAttrs, logger) {
     // Only the toplevel workflow may be unlocked. This happens
     // only if the user specifically compiles it as "unlocked".
     protected lazy val isLocked: Boolean = {
-      cwlBundle.primaryCallable match {
-        case Some(wf2: CwlWorkflow) => (wf.name != wf2.name) || locked
-        case _                      => true
+      cwlBundle.primaryProcess match {
+        case wf2: CwlWorkflow => (wf.name != wf2.name) || locked
+        case _                => true
       }
     }
 
     private lazy val evaluator: Evaluator = Evaluator.default
 
-    private def createWorkflowInput(input: WorkflowInputParameter): (Parameter, Boolean) = {
+    override protected lazy val standAloneWorkflow: SourceCode = {
+      val docSource = wf.source.orElse(cwlBundle.primaryProcess.source) match {
+        case Some(path) => Paths.get(path)
+        case None =>
+          throw new Exception(s"no source code for tool ${wf.name}")
+      }
+      CwlSourceCode(docSource, Some(wf.name))
+    }
+
+    private def createWorkflowInput(input: WorkflowInputParameter): Parameter = {
       val cwlTypes = input.types
       val irType = CwlUtils.toIRType(cwlTypes)
-      val (default, isDynamic) = input.default
-        .map { d =>
+      val default = input.default
+        .flatMap { d =>
           try {
             val (_, staticValue) = evaluator.evaluate(d, cwlTypes, EvaluatorContext.empty)
-            (Some(staticValue), false)
+            Some(staticValue)
           } catch {
-            case _: Throwable => (None, true)
+            case _: Throwable => None
           }
         }
-        .getOrElse((None, false))
-      (Parameter(input.name, irType, default.map(CwlUtils.toIRValue(_, cwlTypes)._2), Vector.empty),
-       isDynamic)
+      Parameter(input.name, irType, default.map(CwlUtils.toIRValue(_, cwlTypes)._2), Vector.empty)
     }
 
     private def callInputToStageInput(callInput: Option[WorkflowStepInput],
@@ -296,6 +302,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       * @param blockPath keeps track of which block this fragment represents;
       *                   a top level block is a number. A sub-block of a top-level
       *                   block is a vector of two numbers, etc.
+      * @param stepPath the workflow steps that led to this fragment.
       * @param env the environment
       * @return
       */
@@ -303,7 +310,99 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
                                     block: CwlBlock,
                                     blockPath: Vector[Int],
                                     stepPath: Option[String],
-                                    env: CallEnv): (Stage, Vector[Callable]) = {}
+                                    env: CallEnv): (Stage, Callable) = {
+      val stageName = block.getName match {
+        case None       => Constants.EvalStage
+        case Some(name) => name
+      }
+      logger.trace(s"Compiling fragment <$stageName> as stage")
+      logger
+        .withTraceIfContainsKey("GenerateIR")
+        .trace(
+            s"""|block:
+                |${block.prettyFormat}
+                |""".stripMargin
+        )
+
+      // Get the applet inputs from the block inputs, which represent the
+      // closure required for the block - all the variables defined earlier
+      // that are required to evaluate any expression. Some referenced
+      // variables may be undefined because they are optional or defined
+      // inside the block - we ignore these.
+      val (inputParams, stageInputs) = block.inputNames
+        .flatMap(env.lookup)
+        .map {
+          case (fqn, (param, stageInput)) => (param.copy(name = fqn), stageInput)
+        }
+        .unzip
+
+      // The fragment runner can only handle a single call. If the
+      // block already has exactly one call, then we are good. If
+      // it contains a scatter/conditional with several calls,
+      // then compile the inner block into a sub-workflow. Also
+      // Figure out the name of the callable - we need to link with
+      // it when we get to the native phase.
+      val (stepName, newStepPath) = block.kind match {
+        case BlockKind.ExpressionsOnly =>
+          (None, None)
+        case BlockKind.CallDirect =>
+          throw new Exception(s"a direct call should not reach this stage")
+        case BlockKind.CallFragment | BlockKind.ConditionalOneCall =>
+          // a block with no nested sub-blocks, and a single call, or
+          // a conditional with exactly one call in the sub-block
+          (Some(block.target.get.name), None)
+        case BlockKind.ScatterOneCall =>
+          // a scatter with exactly one call in the sub-block
+          val stepName = block.target.get.name
+          val newScatterPath = stepPath.map(p => s"${p}.${stepName}").getOrElse(stepName)
+          (Some(stepName), Some(newScatterPath))
+        case _ =>
+          throw new Exception(s"unexpected block ${block.prettyFormat}")
+      }
+
+      val scatterChunkSize: Option[Int] = newStepPath.map { sctPath =>
+        val scatterChunkSize = workflowAttrs
+          .flatMap { wfAttrs =>
+            wfAttrs.scatters
+              .flatMap {
+                _.get(sctPath)
+                  .orElse(wfAttrs.scatterDefaults)
+                  .flatMap(scatterAttrs => scatterAttrs.chunkSize)
+              }
+          }
+          .getOrElse(defaultScatterChunkSize)
+        if (scatterChunkSize > Constants.JobsPerScatterLimit) {
+          logger.warning(
+              s"The number of jobs per scatter must be between 1-${Constants.JobsPerScatterLimit}"
+          )
+          Constants.JobsPerScatterLimit
+        } else {
+          scatterChunkSize
+        }
+      }
+
+      val outputParams: Vector[Parameter] = block.outputs.values.map { param =>
+        val irType = CwlUtils.toIRType(param.types)
+        Parameter(param.name, irType)
+      }.toVector
+
+      // create the type map that will be serialized in the applet's details
+      val fqnDictTypes: Map[String, Type] = inputParams.map { param: Parameter =>
+        param.dxName -> param.dxType
+      }.toMap
+
+      val applet = Application(
+          s"${wfName}_frag_${getStageId()}",
+          inputParams.toVector,
+          outputParams,
+          DefaultInstanceType,
+          NoImage,
+          ExecutableKindWfFragment(stepName.toVector, blockPath, fqnDictTypes, scatterChunkSize),
+          standAloneWorkflow
+      )
+
+      (Stage(stageName, getStage(), applet.name, stageInputs.toVector, outputParams), applet)
+    }
 
     private def createWorkflowStages(
         wfName: String,
@@ -347,15 +446,29 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
             } else {
               // A simple block that requires just one applet, OR
               // a complex block that needs a subworkflow
-              val (stage, auxCallables) =
+              val (stage, callable) =
                 translateWfFragment(wfName, block, blockPath :+ blockNum, stepPath, beforeEnv)
               val afterEnv = stage.outputs.foldLeft(beforeEnv) {
                 case (env, param) =>
                   env.add(param.name, (param, LinkInput(stage.dxStage, param.dxName)))
               }
-              (stages :+ (stage, auxCallables), afterEnv)
+              (stages :+ (stage, Vector(callable)), afterEnv)
             }
         }
+
+      if (logger2.containsKey("GenerateIR")) {
+        logger2.trace(s"stages for workflow $wfName = [")
+        val logger3 = logger2.withTraceIfContainsKey("GenerateIR", indentInc = 1)
+        allStageInfo.foreach {
+          case (stage, _) =>
+            logger3.trace(
+                s"${stage.description}, ${stage.dxStage.id} -> callee=${stage.calleeName}"
+            )
+        }
+        logger2.trace("]")
+      }
+
+      (allStageInfo, stageEnv)
     }
 
     /**
@@ -432,20 +545,117 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       (stage, application)
     }
 
+    /**
+      * Compile a locked workflow. This is called at the top level for locked workflows,
+      * and it is always called for nested workflows regarless of whether the top level
+      * is locked.
+      * @param wfName workflow name
+      * @param inputs formal workflow inputs
+      * @param outputs workflow outputs
+      * @param blockPath the path to the current (sub)workflow, as a vector of block indices
+      * @param subBlocks the sub-blocks of the current block
+      * @param stepPath the workflow steps that led to this fragment.
+      * @param level the workflow level
+      * @return
+      */
     def translateWorkflowLocked(
-        name: String,
+        wfName: String,
         inputs: Vector[WorkflowInputParameter],
         outputs: Vector[WorkflowOutputParameter],
+        blockPath: Vector[Int],
         subBlocks: Vector[CwlBlock],
+        stepPath: Option[String],
         level: Level.Value
-    ): (Workflow, Vector[Callable], Vector[(Parameter, StageInput)]) = ???
+    ): (Workflow, Vector[Callable], Vector[(Parameter, StageInput)]) = {
+      val wfInputParams = inputs.map(createWorkflowInput)
+      val wfInputLinks: Vector[LinkedVar] = wfInputParams.map(p => (p, WorkflowInput(p)))
+      val (backboneInputs, commonStageInfo) = if (useManifests) {
+        // If we are using manifests, we need an initial applet to merge multiple
+        // manifests into a single manifest.
+        val commonStageInputs = wfInputParams.map(p => WorkflowInput(p))
+        val inputOutputs: Vector[Parameter] = inputs.map { i =>
+          Parameter(i.name, CwlUtils.toIRType(i.types))
+        }
+        val (commonStage, commonApplet) =
+          createCommonApplet(wfName, wfInputParams, commonStageInputs, inputOutputs, blockPath)
+        val fauxWfInputs: Vector[LinkedVar] = commonStage.outputs.map { param =>
+          val link = LinkInput(commonStage.dxStage, param.dxName)
+          (param, link)
+        }
+        (fauxWfInputs, Vector((commonStage, Vector(commonApplet))))
+      } else {
+        (wfInputLinks, Vector.empty)
+      }
+
+      // translate the Block(s) into workflow stages
+      val (backboneStageInfo, env) = createWorkflowStages(
+          wfName,
+          backboneInputs,
+          blockPath,
+          subBlocks,
+          stepPath,
+          locked = true
+      )
+      val (stages, auxCallables) = (commonStageInfo ++ backboneStageInfo).unzip
+
+      // We need a common output stage for either of two reasons:
+      // 1. we need to build an output manifest
+      val useOutputStage = useManifests || {
+        // 2. an output is used directly as an input
+        // For example, in the small workflow below, 'lane' is used in such a manner.
+        //
+        // workflow inner {
+        //   input {
+        //      String lane
+        //   }
+        //   output {
+        //      String blah = lane
+        //   }
+        // }
+        //
+        // In locked workflows, it is illegal to access a workflow input directly from
+        // a workflow output. It is only allowed to access a stage input/output.
+        // In locked workflows, it is illegal to access a workflow input directly from
+        // a workflow output. It is only allowed to access a stage input/output.
+        val inputNames = inputs.map(_.name).toSet
+        outputs.exists(out => out.outputSource.exists(inputNames.contains))
+      }
+
+      val (wfOutputs, finalStages, finalCallables) = if (useOutputStage) {
+        val (outputStage, outputApplet) = createOutputStage(wfName, outputs, blockPath, env)
+        val wfOutputs = outputStage.outputs.map { param =>
+          (param, LinkInput(outputStage.dxStage, param.dxName))
+        }
+        (wfOutputs, stages :+ outputStage, auxCallables.flatten :+ outputApplet)
+      } else {
+        val wfOutputs = outputs.map { out =>
+          val outputStage = env.get(out.name).map(_._2).getOrElse {
+            val (stepName, paramName) = out.outputSource.head.split("/")
+            LinkInput(getStage(stepName), paramName)
+          }
+          val irType = CwlUtils.toIRType(out.types)
+          (Parameter(out.name, irType), outputStage)
+        }
+        (wfOutputs, stages, auxCallables.flatten)
+      }
+
+      (Workflow(wfName,
+                wfInputLinks,
+                wfOutputs,
+                finalStages,
+                standAloneWorkflow,
+                locked = true,
+                level),
+       finalCallables,
+       wfOutputs)
+    }
 
     private def translateTopWorkflowLocked(
         inputs: Vector[WorkflowInputParameter],
         outputs: Vector[WorkflowOutputParameter],
         subBlocks: Vector[CwlBlock]
     ): (Workflow, Vector[Callable], Vector[LinkedVar]) = {
-      translateWorkflowLocked(wf.name, inputs, outputs, subBlocks, Level.Top)
+      translateWorkflowLocked(wf.name, inputs, outputs, Vector.empty, subBlocks, None, Level.Top)
     }
 
     private def translateTopWorkflowUnlocked(
@@ -457,7 +667,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       // workflow inputs. We now call the workflow inputs, "fauxWfInputs" since
       // they are references to the outputs of this first applet.
       val commonAppletInputs: Vector[Parameter] =
-        inputs.map(input => createWorkflowInput(input)._1)
+        inputs.map(input => createWorkflowInput(input))
       val commonStageInputs: Vector[StageInput] = inputs.map(_ => EmptyInput)
       val (commonStg, commonApplet) =
         createCommonApplet(wf.name, commonAppletInputs, commonStageInputs, commonAppletInputs)
@@ -467,7 +677,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       }
 
       val (allStageInfo, env) =
-        createWorkflowStages(wf.name, fauxWfInputs, Vector.empty, subBlocks, locked = false)
+        createWorkflowStages(wf.name, fauxWfInputs, Vector.empty, subBlocks, None, locked = false)
       val (stages, auxCallables) = allStageInfo.unzip
 
       // convert the outputs into an applet+stage
@@ -476,13 +686,13 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       val wfInputs = commonAppletInputs.map(param => (param, EmptyInput))
       val wfOutputs =
         outputStage.outputs.map(param => (param, LinkInput(outputStage.dxStage, param.dxName)))
-      val wfSource = CwlWorkflowSource()
+
       val irwf = Workflow(
           wf.name,
           wfInputs,
           wfOutputs,
           commonStg +: stages :+ outputStage,
-          wfSource,
+          standAloneWorkflow,
           locked = false,
           Level.Top
       )
@@ -509,7 +719,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         val toolTranslator = CwlToolTranslator(tool)
         Vector(toolTranslator.apply)
       case wf: CwlWorkflow =>
-        val wfTranslator = CwlWorkflowTranslator(wf, availableDependencies)
+        val wfAttrs = perWorkflowAttrs.get(wf.name)
+        val wfTranslator = CwlWorkflowTranslator(wf, availableDependencies, wfAttrs)
         wfTranslator.apply
       case _ =>
         throw new Exception(s"Process type ${process} not supported")

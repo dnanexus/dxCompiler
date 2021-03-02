@@ -75,7 +75,6 @@ case class VersionSupport(version: WdlVersion,
     Logger.get.ignore(parseSource(StringFileNode(standAloneString), parser))
     standAloneString
   }
-
 }
 
 object VersionSupport {

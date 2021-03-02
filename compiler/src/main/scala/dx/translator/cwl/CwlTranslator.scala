@@ -5,7 +5,7 @@ import dx.core.ir.{Bundle, Callable, Type, Value}
 import dx.core.languages.Language
 import dx.core.languages.Language.Language
 import dx.core.languages.cwl.{CwlBundle, CwlUtils, DxHintSchema}
-import dx.cwl.{CommandLineTool, CwlRecord, HintUtils, Parser, Process, Workflow}
+import dx.cwl.{CommandLineTool, CwlRecord, Parser, Process, Workflow}
 import dx.translator.{
   DxWorkflowAttrs,
   InputTranslator,
@@ -63,18 +63,16 @@ case class CwlTranslator(process: Process,
 
   override val runtimeJar: String = "dxExecutorCwl.jar"
 
-  private lazy val typeAliases = HintUtils.getSchemaDefs(process.requirements)
-
   override lazy val apply: Bundle = {
     val cwlBundle: CwlBundle = CwlBundle.create(process)
     val callableTranslator = ProcessTranslator(
         cwlBundle,
-        typeAliases,
         locked,
         defaultRuntimeAttrs,
         reorgAttrs,
         perWorkflowAttrs,
         defaultScatterChunkSize,
+        useManifests,
         dxApi,
         fileResolver,
         logger
@@ -97,17 +95,15 @@ case class CwlTranslator(process: Process,
           )
       }
     val allCallablesSortedNames = sortedCallables.map(_.name).distinct
-    val primaryCallable = cwlBundle.primaryCallable.map { callable =>
-      allCallables(callable.name)
-    }
+    val primaryCallable = allCallables(cwlBundle.primaryProcess.name)
     if (logger2.isVerbose) {
       logger2.trace(s"allCallables: ${allCallables.keys}")
       logger2.trace(s"allCallablesSorted: ${allCallablesSortedNames}")
     }
-    val irTypeAliases = typeAliases.collect {
+    val irTypeAliases = cwlBundle.typeAliases.collect {
       case (name, record: CwlRecord) => name -> CwlUtils.toIRType(record)
     }
-    Bundle(primaryCallable, allCallables, allCallablesSortedNames, irTypeAliases)
+    Bundle(Some(primaryCallable), allCallables, allCallablesSortedNames, irTypeAliases)
   }
 
   override protected def createInputTranslator(bundle: Bundle,
@@ -145,7 +141,7 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
         v.head
     }
     lazy val parser =
-      Parser.create(baseUri = Some(basePath.toUri.toString), hintSchemas = Vector(DxHintSchema))
+      Parser.create(baseUri = Some(basePath.toUri), hintSchemas = Vector(DxHintSchema))
     if (language.isDefined) {
       // if language is specified, make sure it is CWL 1.2
       val ver =

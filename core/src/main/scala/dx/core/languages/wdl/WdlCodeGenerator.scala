@@ -1,13 +1,6 @@
 package dx.core.languages.wdl
 
-import dx.core.ir.{
-  Application,
-  Callable,
-  DocumentSource,
-  ExecutableKindApplet,
-  ExecutableKindNative,
-  WorkflowSource
-}
+import dx.core.ir.{Application, Callable, ExecutableKindApplet, ExecutableKindNative, SourceCode}
 import dx.util.{Logger, StringFileNode}
 import wdlTools.eval.WdlValues
 import wdlTools.syntax.{CommentMap, SourceLocation, WdlVersion}
@@ -15,14 +8,13 @@ import wdlTools.types.{GraphUtils, TypeGraph, WdlTypes, TypedAbstractSyntax => T
 
 import scala.collection.immutable.TreeSeqMap
 
-case class WdlDocumentSource(doc: TAT.Document, versionSupport: VersionSupport)
-    extends DocumentSource {
+case class WdlDocumentSource(doc: TAT.Document, versionSupport: VersionSupport) extends SourceCode {
   override val language: String = "wdl"
   override def toString: String = versionSupport.generateDocument(doc)
 }
 
 case class WdlWorkflowSource(workflow: TAT.Workflow, versionSupport: VersionSupport)
-    extends WorkflowSource {
+    extends SourceCode {
   override val language: String = "wdl"
   override def toString: String = versionSupport.generateElement(workflow)
 }

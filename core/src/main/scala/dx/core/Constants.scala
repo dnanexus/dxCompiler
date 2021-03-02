@@ -10,6 +10,7 @@ object Constants {
   val RuntimeAttributes: String = "runtimeAttrs"
   val CompilerTag = "dxCompiler"
   val SourceCode: String = "sourceCode"
+  val Target: String = "target"
   val Language: String = "language"
   val ScatterChunkSize = "scatterChunkSize"
   val Checksum = "checksum"

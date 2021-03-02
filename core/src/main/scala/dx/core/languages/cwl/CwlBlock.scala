@@ -73,6 +73,8 @@ case class CwlBlock(index: Int,
     }
   }
 
+  override lazy val inputNames: Set[String] = inputs.keySet
+
   override lazy val outputNames: Set[String] = outputs.values.map(_.name).toSet
 
   private def prettyFormatStep(step: WorkflowStep): String = {

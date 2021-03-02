@@ -1,16 +1,20 @@
 package dx.core.languages.cwl
 
-import dx.cwl.{CommandLineTool, ExpressionTool, Identifier, Process, Workflow}
+import dx.cwl.{CommandLineTool, CwlSchema, ExpressionTool, HintUtils, Identifier, Process, Workflow}
 import org.w3id.cwl.cwl1_2.CWLVersion
 
 import scala.collection.immutable.{SeqMap, TreeSeqMap}
 
 case class CwlBundle(version: CWLVersion,
-                     primaryCallable: Option[Process],
+                     primaryProcess: Process,
                      tools: Map[String, CommandLineTool],
                      expressions: Map[String, ExpressionTool],
                      workflows: Map[String, Workflow],
                      processNames: Set[String]) {
+
+  lazy val typeAliases: Map[String, CwlSchema] =
+    HintUtils.getSchemaDefs(primaryProcess.requirements)
+
   def sortByDependencies: Vector[Process] = {
     def inner(wfs: Iterable[Workflow],
               deps: SeqMap[String, Workflow] = TreeSeqMap.empty): SeqMap[String, Workflow] = {
@@ -38,15 +42,19 @@ object CwlBundle {
          Map[Identifier, ExpressionTool],
          Map[Identifier, Workflow]) = {
     process match {
-      case tool: CommandLineTool if !tools.contains(tool.id) =>
-        (tools + (tool.id -> tool), expressions, workflows)
-      case tool: ExpressionTool if !expressions.contains(tool.id) =>
-        (tools, expressions + (tool.id -> tool), workflows)
-      case wf: Workflow if !workflows.contains(wf.id) =>
+      case _ if process.id.isEmpty =>
+        throw new Exception(s"missing id for process ${process}")
+      case tool: CommandLineTool if !tools.contains(tool.id.get) =>
+        (tools + (tool.id.get -> tool), expressions, workflows)
+      case tool: ExpressionTool if !expressions.contains(tool.id.get) =>
+        (tools, expressions + (tool.id.get -> tool), workflows)
+      case wf: Workflow if !workflows.contains(wf.id.get) =>
         wf.steps.foldLeft(tools, expressions, workflows) {
           case ((toolAccu, exprAccu, wfAccu), step) =>
-            getProcesses(step.run, toolAccu, exprAccu, wfAccu + (wf.id -> wf))
+            getProcesses(step.run, toolAccu, exprAccu, wfAccu + (wf.id.get -> wf))
         }
+      case _ =>
+        throw new Exception(s"unsupported process ${process}")
     }
   }
 
@@ -56,7 +64,7 @@ object CwlBundle {
     )
     process match {
       case tool: CommandLineTool =>
-        CwlBundle(version, Some(tool), Map(tool.name -> tool), Map.empty, Map.empty, Set(tool.name))
+        CwlBundle(version, tool, Map(tool.name -> tool), Map.empty, Map.empty, Set(tool.name))
       case wf: Workflow =>
         val (tools, expressions, workflows) = getProcesses(wf)
         // check that there are no name collisions
@@ -81,7 +89,7 @@ object CwlBundle {
             case (_, wf) =>
               throw new Exception(s"duplicate name ${wf.name}")
           }
-        CwlBundle(version, Some(wf), toolsByName, expressionsByName, workflowsByName, allNames3)
+        CwlBundle(version, wf, toolsByName, expressionsByName, workflowsByName, allNames3)
     }
   }
 }

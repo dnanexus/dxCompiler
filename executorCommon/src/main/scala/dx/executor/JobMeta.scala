@@ -588,6 +588,14 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     CodecUtils.base64DecodeAndGunzip(sourceCodeEncoded)
   }
 
+  lazy val target: Option[String] = {
+    getExecutableDetail(Constants.Target) match {
+      case Some(JsString(t)) => Some(t)
+      case None              => None
+      case other =>
+        throw new Exception(s"invalid target value ${other}")
+    }
+  }
   lazy val instanceTypeDb: InstanceTypeDB = getExecutableDetail(Constants.InstanceTypeDb) match {
     case Some(JsString(s)) =>
       val js = CodecUtils.base64DecodeAndGunzip(s)

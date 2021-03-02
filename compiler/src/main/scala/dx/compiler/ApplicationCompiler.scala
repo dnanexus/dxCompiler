@@ -423,20 +423,21 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       }
     // compress and base64 encode the source code
     val sourceEncoded = CodecUtils.gzipAndBase64Encode(applet.document.toString)
+    val target = applet.document.target.map(JsString(_))
     // serialize the pricing model, and make the prices opaque.
     val dbOpaque = InstanceTypeDB.opaquePrices(instanceTypeDb)
     val dbOpaqueEncoded = CodecUtils.gzipAndBase64Encode(dbOpaque.toJson.prettyPrint)
     // serilize default runtime attributes
-    val defaultRuntimeAttributes: JsValue = extras
+    val defaultRuntimeAttributes = extras
       .flatMap(ex =>
         ex.defaultRuntimeAttributes.map(attr => JsObject(ValueSerde.serializeMap(attr)))
       )
-      .getOrElse(JsNull)
-    val auxDetails = Map(
-        Constants.SourceCode -> JsString(sourceEncoded),
-        Constants.InstanceTypeDb -> JsString(dbOpaqueEncoded),
-        Constants.RuntimeAttributes -> defaultRuntimeAttributes
-    )
+    val auxDetails = Vector(
+        Some(Constants.SourceCode -> JsString(sourceEncoded)),
+        target.map(t => Constants.Target -> t),
+        Some(Constants.InstanceTypeDb -> JsString(dbOpaqueEncoded)),
+        defaultRuntimeAttributes.map(attr => Constants.RuntimeAttributes -> attr)
+    ).flatten.toMap
     val useManifestsDetails = if (useManifests) {
       Map(Constants.UseManifests -> JsBoolean(true))
     } else {

@@ -457,6 +457,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       * @param blockPath keeps track of which block this fragment represents;
       *                   a top level block is a number. A sub-block of a top-level
       *                   block is a vector of two numbers, etc.
+      * @param scatterPath all of the parent scatters this fragment is nested within
       * @param env the environment
       * @return
       */
@@ -478,52 +479,24 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                 |""".stripMargin
         )
 
-      // Figure out the closure required for this block, out of the environment
-      // Find the closure of a block, all the variables defined earlier
-      // that are required for the calculation.
-      //
-      // Note: some referenced variables may be undefined. This could be because they are:
-      // 1) optional
-      // 2) defined -inside- the block
-      val closure: Map[String, LinkedVar] = block.inputNames.flatMap { iname =>
-        env.lookup(iname) match {
-          case None               => None
-          case Some((name, lVar)) => Some((name, lVar))
+      // Get the applet inputs from the block inputs, which represent the
+      // closure required for the block - all the variables defined earlier
+      // that are required to evaluate any expression. Some referenced
+      // variables may be undefined because they are optional or defined
+      // inside the block - we ignore these.
+      val (inputParams, stageInputs) = block.inputNames
+        .flatMap(env.lookup)
+        .map {
+          case (fqn, (param, stageInput)) => (param.copy(name = fqn), stageInput)
         }
-      }.toMap
-
-      val inputParams: Vector[Parameter] = closure.map {
-        case (fqn, (param: Parameter, _)) =>
-          param.copy(name = fqn)
-      }.toVector
-
-      // A reversible conversion mul.result --> mul___result. This
-      // assumes the '___' symbol is not used anywhere in the original WDL script.
-      //
-      // This is a simplifying assumption, that is hopefully sufficient. It disallows
-      // users from using variables with the ___ character sequence.
-      val fqnDictTypes: Map[String, Type] = inputParams.map { param: Parameter =>
-        param.dxName -> param.dxType
-      }.toMap
-
-      val outputParams: Vector[Parameter] = {
-        block.outputs.map {
-          case TAT.OutputParameter(name, wdlType, _, _) =>
-            val irType = WdlUtils.toIRType(wdlType)
-            Parameter(name, irType)
-        }
-      }
+        .unzip
 
       // The fragment runner can only handle a single call. If the
       // block already has exactly one call, then we are good. If
       // it contains a scatter/conditional with several calls,
       // then compile the inner block into a sub-workflow. Also
-      // Figure out the name of the callable - we need to link with
+      // figure out the name of the callable - we need to link with
       // it when we get to the native phase.
-      logger
-        .withTraceIfContainsKey("GenerateIR")
-        .trace(s"category : ${block.kind}")
-
       val (innerCall, auxCallables, newScatterPath) =
         block.kind match {
           case BlockKind.ExpressionsOnly =>
@@ -536,7 +509,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
             // a conditional with exactly one call in the sub-block
             (Some(block.call.unqualifiedName), Vector.empty, None)
           case BlockKind.ScatterOneCall =>
-            // a conditional with exactly one call in the sub-block
+            // a scatter with exactly one call in the sub-block
             val scatter = block.scatter
             val newScatterPath =
               scatterPath.map(p => s"${p}.${scatter.identifier}").getOrElse(scatter.identifier)
@@ -588,9 +561,20 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         }
       }
 
+      val outputParams: Vector[Parameter] = block.outputs.map {
+        case TAT.OutputParameter(name, wdlType, _, _) =>
+          val irType = WdlUtils.toIRType(wdlType)
+          Parameter(name, irType)
+      }
+
+      // create the type map that will be serialized in the applet's details
+      val fqnDictTypes: Map[String, Type] = inputParams.map { param: Parameter =>
+        param.dxName -> param.dxType
+      }.toMap
+
       val applet = Application(
           s"${wfName}_frag_${getStageId()}",
-          inputParams,
+          inputParams.toVector,
           outputParams,
           DefaultInstanceType,
           NoImage,
@@ -598,11 +582,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           standAloneWorkflow
       )
 
-      val stageInputs: Vector[StageInput] = closure.values.map {
-        case (_, stageInput) => stageInput
-      }.toVector
-
-      (Stage(stageName, getStage(), applet.name, stageInputs, outputParams), auxCallables :+ applet)
+      (Stage(stageName, getStage(), applet.name, stageInputs.toVector, outputParams),
+       auxCallables :+ applet)
     }
 
     /**
@@ -689,7 +670,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       (allStageInfo, stageEnv)
     }
 
-    private def buildSimpleWorkflowOutput(output: TAT.OutputParameter, env: CallEnv): LinkedVar = {
+    private def createSimpleWorkflowOutput(output: TAT.OutputParameter, env: CallEnv): LinkedVar = {
       val irType = WdlUtils.toIRType(output.wdlType)
       val param = Parameter(output.name, irType)
       val stageInput: StageInput = if (env.contains(output.name)) {
@@ -808,6 +789,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       * @param outputs workflow outputs
       * @param blockPath the path to the current (sub)workflow, as a vector of block indices
       * @param subBlocks the sub-blocks of the current block
+      * @param scatterPath all of the parent scatters this fragment is nested within
       * @param level the workflow level
       * @return
       */
@@ -853,19 +835,17 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           // manifests into a single manifest.
           // If the workflow has inputs that are defined with complex expressions,
           // we need an initial applet to evaluate those.
-          val commonAppletInputs = allWfInputParameters
           val commonStageInputs = allWfInputParameters.map(p => WorkflowInput(p))
           val inputOutputs: Vector[Parameter] = inputs.map { i =>
             // TODO: do we need to force the type to be non-optional in the case of
             //  OverridableBlockInputWithDynamicDefault?
             Parameter(i.name, WdlUtils.toIRType(i.wdlType))
           }
-          val closureOutputs: Vector[Parameter] = closureInputParams
           val (commonStage, commonApplet) =
             createCommonApplet(wfName,
-                               commonAppletInputs,
+                               allWfInputParameters,
                                commonStageInputs,
-                               inputOutputs ++ closureOutputs,
+                               inputOutputs ++ closureInputParams,
                                blockPath)
           val fauxWfInputs: Vector[LinkedVar] = commonStage.outputs.map { param =>
             val link = LinkInput(commonStage.dxStage, param.dxName)
@@ -947,7 +927,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         }
         (wfOutputs, stages :+ outputStage, auxCallables.flatten :+ outputApplet)
       } else {
-        val wfOutputs = outputs.map(output => buildSimpleWorkflowOutput(output, env))
+        val wfOutputs = outputs.map(output => createSimpleWorkflowOutput(output, env))
         (wfOutputs, stages, auxCallables.flatten)
       }
 

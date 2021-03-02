@@ -11,10 +11,14 @@ trait SourceCode {
   def language: String
 
   /**
+    * Specifies a target to execute within the source.
+    * @return
+    */
+  def target: Option[String] = None
+
+  /**
     * Generates the source code as a String.
     * @return
     */
   def toString: String
 }
-trait DocumentSource extends SourceCode
-trait WorkflowSource extends SourceCode
