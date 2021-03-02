@@ -1,7 +1,7 @@
 package dxExecutorCwl
 
 import dx.core.io.StreamFiles
-import dx.executor.cwl.CwlTaskExecutor
+import dx.executor.cwl.{CwlTaskExecutor, CwlWorkflowExecutor}
 import dx.executor.{BaseCli, FileUploader, JobMeta, WorkflowExecutor}
 
 object Main extends BaseCli {
@@ -14,7 +14,9 @@ object Main extends BaseCli {
   }
 
   override def createWorkflowExecutor(meta: JobMeta,
-                                      separateOutputs: Boolean): WorkflowExecutor[_] = ???
+                                      separateOutputs: Boolean): WorkflowExecutor[_] = {
+    CwlWorkflowExecutor.create(meta, separateOutputs)
+  }
 }
 
 object MainApp extends App {
