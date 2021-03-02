@@ -1,14 +1,13 @@
 package dx.executor.wdl
 
 import java.nio.file.{Files, Path, Paths}
-
 import dx.Assumptions.isLoggedIn
 import dx.Tags.{EdgeTest, NativeTest}
 import dx.api._
 import dx.core.{Constants, ir}
 import dx.core.io.DxWorkerPaths
 import dx.core.ir.{ParameterLinkSerializer, ParameterLinkValue, Type, TypeSerde}
-import dx.core.languages.wdl.{WdlBlock, WdlBundle, WdlUtils}
+import dx.core.languages.wdl.{OptionalBlockInput, WdlBlock, WdlBundle, WdlUtils}
 import dx.executor.{JobMeta, WorkflowAction, WorkflowExecutor}
 import dx.util.{CodecUtils, FileSourceResolver, FileUtils, Logger}
 import dx.util.protocols.DxFileAccessProtocol
@@ -463,18 +462,6 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     }
     val args = wfSupport.WdlBlockContext.evaluateCallInputs(zincCall, Map.empty)
     args shouldBe Map.empty // ("a" -> (WdlTypes.T_Int, WdlValues.V_Int(3)))
-  }
-
-  it should "evaluate call input from private variable" in {
-    //val workerPaths = setup()
-    val path = pathFromBasename("bugs", "apps-422.wdl")
-    val wdlBundle = parse(path)
-    val wf: TAT.Workflow = wdlBundle.primaryCallable match {
-      case Some(wf: TAT.Workflow) => wf
-      case _                      => throw new Exception("unexpected")
-    }
-    val subBlocks = WdlBlock.createBlocks(wf.body)
-    println(subBlocks.head.inputs.mkString("\n"))
   }
 
   it should "expressions with structs" in {

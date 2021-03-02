@@ -22,9 +22,9 @@ workflow struct_test {
     input:
       answer = c.s
   }
-  
+
   output {
-    String out = test.out  
+    String out = test.out
   }
 }
 

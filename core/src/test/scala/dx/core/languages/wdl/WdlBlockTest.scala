@@ -282,4 +282,12 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
           ) =>
     }
   }
+
+  it should "handle inputs that are nested references" in {
+    val subBlocks = getWorkflowBlocks("bugs", "apps-422.wdl")
+    subBlocks.head.inputs shouldBe Vector(
+        OptionalBlockInput("wf_input", WdlTypes.T_Optional(WdlTypes.T_String))
+    )
+  }
+
 }
