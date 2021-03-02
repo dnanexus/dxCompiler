@@ -289,5 +289,4 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
         OptionalBlockInput("wf_input", WdlTypes.T_Optional(WdlTypes.T_String))
     )
   }
-
 }
