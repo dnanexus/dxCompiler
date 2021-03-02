@@ -361,9 +361,14 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         env: Map[String, (T, V)] = Map.empty
     ): Map[String, (T, V)] = {
       call.callee.input.flatMap {
-        case (name, (wdlType, _)) if call.inputs.contains(name) =>
-          val value = evaluateExpression(call.inputs(name), wdlType, env)
-          Some(name -> (wdlType, value))
+        case (name, (wdlType, optional)) if call.inputs.contains(name) =>
+          val optType = if (optional) {
+            TypeUtils.ensureOptional(wdlType)
+          } else {
+            TypeUtils.unwrapOptional(wdlType)
+          }
+          val value = evaluateExpression(call.inputs(name), optType, env)
+          Some(name -> (optType, value))
         case (name, (_, optional)) if optional =>
           logger.trace(s"no input for optional input ${name} to call ${call.fullyQualifiedName}")
           None

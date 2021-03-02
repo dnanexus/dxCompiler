@@ -418,6 +418,35 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     )
   }
 
+  it should "evaluate call inputs properly II" in {
+    val workerPaths = setup()
+    val path = pathFromBasename("bugs", "opt_with_default.wdl")
+    val wdlBundle = parse(path)
+    val wf: TAT.Workflow = wdlBundle.primaryCallable match {
+      case Some(wf: TAT.Workflow) => wf
+      case _                      => throw new Exception("unexpected")
+    }
+    val wfExecutor = createWorkflowExecutor(workerPaths, path)
+    val call = findCallByName("Foo", wf.body)
+    val wdlWfExecutor = wfExecutor match {
+      case exe: WdlWorkflowExecutor => exe
+      case _                        => throw new Exception("expected WdlWorkflowExecutor")
+    }
+    val callInputs: Map[String, (WdlTypes.T, WdlValues.V)] =
+      wdlWfExecutor.WdlBlockContext.evaluateCallInputs(
+          call,
+          Map("opt" -> (WdlTypes.T_Optional(WdlTypes.T_Int), WdlValues.V_Null),
+              "ref_size" -> (WdlTypes.T_Int, WdlValues.V_Int(1)))
+      )
+    // We need to coerce the inputs into what the callee is expecting
+    callInputs should be(
+        Map(
+            "opt" -> (WdlTypes.T_Optional(WdlTypes.T_Int), WdlValues.V_Null),
+            "non_opt" -> (WdlTypes.T_Int, WdlValues.V_Int(1))
+        )
+    )
+  }
+
   it should "evaluate call constant inputs" in {
     val workerPaths = setup()
     val path = pathFromBasename("nested", "two_levels.wdl")
