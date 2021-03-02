@@ -7,7 +7,7 @@ import dx.api._
 import dx.core.{Constants, ir}
 import dx.core.io.DxWorkerPaths
 import dx.core.ir.{ParameterLinkSerializer, ParameterLinkValue, Type, TypeSerde}
-import dx.core.languages.wdl.{OptionalBlockInput, WdlBlock, WdlBundle, WdlUtils}
+import dx.core.languages.wdl.{WdlBlock, WdlBundle, WdlUtils}
 import dx.executor.{JobMeta, WorkflowAction, WorkflowExecutor}
 import dx.util.{CodecUtils, FileSourceResolver, FileUtils, Logger}
 import dx.util.protocols.DxFileAccessProtocol
