@@ -39,8 +39,6 @@ import wdlTools.exec.{InputOutput, TaskInputOutput}
 import wdlTools.types.{TypeUtils, TypedAbstractSyntax => TAT}
 import wdlTools.types.WdlTypes._
 
-case class BlockIO(block: WdlBlock, logger: Logger)
-
 object WdlWorkflowExecutor {
   def create(jobMeta: JobMeta, separateOutputs: Boolean): WdlWorkflowExecutor = {
     // parse the workflow source code to get the WDL document
@@ -117,7 +115,8 @@ case class WdlWorkflowExecutor(docSource: FileNode,
 
   override val executorName: String = "dxExecutorWdl"
 
-  override protected def typeAliases: Map[String, TSchema] = WdlUtils.toIRSchemaMap(wdlTypeAliases)
+  override protected lazy val typeAliases: Map[String, TSchema] =
+    WdlUtils.toIRSchemaMap(wdlTypeAliases)
 
   override protected def evaluateInputs(
       jobInputs: Map[String, (Type, Value)]
@@ -162,21 +161,25 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       case path =>
         val block: WdlBlock =
           Block.getSubBlockAt(WdlBlock.createBlocks(workflow.body), path)
-        val inputTypes = block.target match {
-          case Some(conditional: TAT.Conditional) =>
-            val (inputs, _) =
-              WdlUtils.getClosureInputsAndOutputs(Vector(conditional), withField = true)
-            inputs.map {
-              case (name, (wdlType, _)) => name -> wdlType
-            }
-          case Some(scatter: TAT.Scatter) =>
-            val (inputs, _) =
-              WdlUtils.getClosureInputsAndOutputs(Vector(scatter), withField = true)
-            inputs.map {
-              case (name, (wdlType, _)) => name -> wdlType
-            }
-          case _ => block.inputs.map(inp => inp.name -> inp.wdlType).toMap
+        val targetElement = block.target match {
+          case Some(conditional: TAT.Conditional) => Some(conditional)
+          case Some(scatter: TAT.Scatter)         => Some(scatter)
+          case _                                  => None
         }
+        val targetInputTypes = targetElement
+          .map { e =>
+            val (inputs, _) =
+              WdlUtils.getClosureInputsAndOutputs(Vector(e), withField = true)
+            inputs.map {
+              case (name, (wdlType, _)) => name -> wdlType
+            }
+          }
+          .getOrElse(Map.empty)
+        val exprInputTypes = block.inputs
+          .filterNot(i => targetInputTypes.contains(i.name))
+          .map(inp => inp.name -> inp.wdlType)
+          .toMap
+        val inputTypes = targetInputTypes ++ exprInputTypes
         val inputValues = getInputValues(inputTypes)
         if (logger.isVerbose) {
           logger.trace(

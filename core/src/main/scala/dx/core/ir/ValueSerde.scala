@@ -282,4 +282,19 @@ object ValueSerde extends DefaultJsonProtocol {
     override def read(jsv: JsValue): Value = deserialize(jsv)
     override def write(value: Value): JsValue = serialize(value)
   }
+
+  def toString(value: Value): String = {
+    value match {
+      case VInt(i)       => i.toString
+      case VFloat(f)     => f.toString
+      case VString(s)    => s
+      case VBoolean(b)   => b.toString
+      case VFile(f)      => f
+      case VDirectory(d) => d
+      case VNull         => "null"
+      case VArray(items) => s"[${items.map(toString).mkString(",")}]"
+      case VHash(fields) => s"{${fields.map { case (k, v) => s"${k}: ${toString(v)}" }}}"
+      case _             => throw new Exception(s"unexpected value ${value}")
+    }
+  }
 }

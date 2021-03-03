@@ -6,15 +6,15 @@ import dx.cwl.{
   CommandLineTool,
   CwlOptional,
   ExpressionTool,
+  Parameter,
   Workflow,
   WorkflowInputParameter,
-  WorkflowOutputParameter,
   WorkflowStep
 }
 
 case class CwlBlock(index: Int,
-                    inputs: Map[String, (WorkflowInputParameter, Boolean)],
-                    outputs: Map[String, WorkflowOutputParameter],
+                    inputs: Map[String, (Parameter, Boolean)],
+                    outputs: Map[String, Parameter],
                     steps: Vector[WorkflowStep])
     extends Block[CwlBlock] {
   assert(steps.nonEmpty)
@@ -156,9 +156,6 @@ object CwlBlock {
     val wfInputs = wf.inputs.collect {
       case i if i.hasName => i.name -> i
     }.toMap
-    val wfOutputs = wf.outputs.collect {
-      case o if o.hasName => o.name -> o
-    }.toMap
 
     parts.zipWithIndex.map {
       case (v, index) =>
@@ -188,11 +185,14 @@ object CwlBlock {
                 }
             }
         }
-        val blockOutputs = v.foldLeft(Map.empty[String, WorkflowOutputParameter]) {
+        val blockOutputs = v.foldLeft(Map.empty[String, Parameter]) {
           case (accu, step) =>
+            val procOutputs = step.run.outputs.collect {
+              case o if o.hasName => o.name -> o
+            }.toMap
             step.outputs.foldLeft(accu) {
-              case (accu, out) if wfOutputs.contains(out.name) && !accu.contains(out.name) =>
-                accu + (out.name -> wfOutputs(out.name))
+              case (accu, out) if procOutputs.contains(out.name) && !accu.contains(out.name) =>
+                accu + (out.name -> procOutputs(out.name))
               case (_, out) =>
                 throw new Exception(s"invalid or duplicate output parameter name ${out.name}")
             }
