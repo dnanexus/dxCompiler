@@ -1,7 +1,9 @@
 # Release Notes
 
-## in dev
+## 2.3.1 03-03-2021
 
+* Fixes issue with call arguments that access fields of private declarations
+* Fixes issue with passing null to optional call parameters
 * Fixes common applet naming issue with complex nested workflows
 
 ## 2.3.0 23-02-2021
