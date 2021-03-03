@@ -1,7 +1,6 @@
 package dx.executor.wdl
 
 import java.nio.file.{Files, Path, Paths}
-
 import dx.Assumptions.isLoggedIn
 import dx.Tags.{EdgeTest, NativeTest}
 import dx.api._
@@ -414,6 +413,35 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
             WdlValues.V_String("hello")),
             "b" -> (WdlTypes.T_Array(WdlTypes.T_Int),
             WdlValues.V_Array(Vector(WdlValues.V_Int(1), WdlValues.V_Int(10))))
+        )
+    )
+  }
+
+  it should "evaluate call inputs properly II" in {
+    val workerPaths = setup()
+    val path = pathFromBasename("bugs", "opt_with_default.wdl")
+    val wdlBundle = parse(path)
+    val wf: TAT.Workflow = wdlBundle.primaryCallable match {
+      case Some(wf: TAT.Workflow) => wf
+      case _                      => throw new Exception("unexpected")
+    }
+    val wfExecutor = createWorkflowExecutor(workerPaths, path)
+    val call = findCallByName("Foo", wf.body)
+    val wdlWfExecutor = wfExecutor match {
+      case exe: WdlWorkflowExecutor => exe
+      case _                        => throw new Exception("expected WdlWorkflowExecutor")
+    }
+    val callInputs: Map[String, (WdlTypes.T, WdlValues.V)] =
+      wdlWfExecutor.WdlBlockContext.evaluateCallInputs(
+          call,
+          Map("opt" -> (WdlTypes.T_Optional(WdlTypes.T_Int), WdlValues.V_Null),
+              "ref_size" -> (WdlTypes.T_Int, WdlValues.V_Int(1)))
+      )
+    // We need to coerce the inputs into what the callee is expecting
+    callInputs should be(
+        Map(
+            "opt" -> (WdlTypes.T_Optional(WdlTypes.T_Int), WdlValues.V_Null),
+            "non_opt" -> (WdlTypes.T_Int, WdlValues.V_Int(1))
         )
     )
   }
