@@ -641,7 +641,6 @@ def register_all_tests(verbose : bool) -> None :
                         print("Skipping WDL file {} error={}".format(fname, e))
 
 
-
 # Some compiler flags are test specific
 def compiler_per_test_flags(tname):
     flags = []
