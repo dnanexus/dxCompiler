@@ -1102,9 +1102,11 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     input.keySet shouldBe Set(
         Constants.InputManifestFiles,
         Constants.InputManifest,
+        s"${Constants.InputManifest}___dxfiles",
         Constants.InputLinks,
         s"${Constants.InputLinks}___dxfiles",
         Constants.WorkflowInputManifest,
+        s"${Constants.WorkflowInputManifest}___dxfiles",
         Constants.WorkflowInputManifestFiles,
         Constants.WorkflowInputLinks,
         s"${Constants.WorkflowInputLinks}___dxfiles",

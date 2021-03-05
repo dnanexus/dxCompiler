@@ -28,21 +28,14 @@ trait Translator {
   protected def createInputTranslator(bundle: Bundle,
                                       inputs: Vector[Path],
                                       defaults: Option[Path],
-                                      project: DxProject): InputTranslator = {
-    new InputTranslator(bundle, inputs, defaults, project, fileResolver)
-  }
+                                      project: DxProject): InputTranslator
 
   def translateInputs(bundle: Bundle,
                       inputs: Vector[Path],
                       defaults: Option[Path],
-                      project: DxProject,
-                      writeManifest: Boolean): (Bundle, FileSourceResolver) = {
+                      project: DxProject): (Bundle, FileSourceResolver) = {
     val inputTranslator = createInputTranslator(bundle, inputs, defaults, project)
-    if (writeManifest) {
-      inputTranslator.writeTranslatedInputManifest()
-    } else {
-      inputTranslator.writeTranslatedInputs()
-    }
+    inputTranslator.writeTranslatedInputs()
     (inputTranslator.bundleWithDefaults, inputTranslator.fileResolver)
   }
 }

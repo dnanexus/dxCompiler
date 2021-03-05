@@ -2,6 +2,7 @@ package dx.core.ir
 
 import dx.core.ir.Type._
 import dx.util.CollectionUtils.IterableOnceExtensions
+
 import scala.collection.immutable.{SeqMap, TreeSeqMap}
 
 /**

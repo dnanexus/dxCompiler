@@ -88,7 +88,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         jobMeta.instanceTypeDb.matchesOrExceedes(currentInstanceType, requestedInstanceType)
       } catch {
         case ex: Throwable =>
-          logger.warning("error comparing current and required instance types",
+          logger.warning("error comparing current and requested instance types",
                          exception = Some(ex))
           false
       }
