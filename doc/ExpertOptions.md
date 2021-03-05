@@ -986,7 +986,7 @@ For an in depth discussion, please see [Missing Call Arguments](MissingCallArgum
 
 # Manifests
 
-In extreme cases, running compiled WDL workflows can fail due to DNAnexus platform limits on the total size of the input and output JSON documents of a job. An example is a task with many inputs/outputs that is called in scatter over a large collection. In such a case, you can enable manifest support at compile time with the `-useManifests` option. This option causes each generated applet or workflow to accept inputs as a manifest, and to produce outputs as a manifest.
+In extreme cases, running compiled workflows can fail due to DNAnexus platform limits on the total size of the input and output JSON documents of a job. An example is a task with many inputs/outputs that is called in scatter over a large collection. In such a case, you can enable manifest support at compile time with the `-useManifests` option. This option causes each generated applet or workflow to accept inputs as a manifest, and to produce outputs as a manifest.
 
 A manifest is a JSON document that contains all the inputs/outputs that would otherwise be passed directly to/from the applet. A manifest can be specified in one of two ways: via a JSON input, or via a File input (where the file must exist on the platform).
 
@@ -1064,6 +1064,10 @@ To specify a manifest file as input to an applet or workflow, first upload the f
 `dx run workflow-yyy -iinput_manifest_files___=file-zzz`
 
 Note that while `input_manifest_files___` is an array, you may only pass a single manifest file as input.
+
+## Analysis outputs
+
+Currently, when a workflow compiled with manifest support is run, the outputs of each job along with the generated manifest files are placed directly in the project, in a temporary folder `/.d/<job id>`. In a future release, upon a successful run, these outputs will be reorganized automatically, with final outputs moved to the analysis output folder and intermediate files deleted. 
 
 # Docker
 
