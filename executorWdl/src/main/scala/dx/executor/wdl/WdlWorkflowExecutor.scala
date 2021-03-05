@@ -28,7 +28,7 @@ import dx.core.languages.wdl.{
   WdlBlockInput,
   WdlUtils
 }
-import dx.executor.{BlockContext, JobMeta, WorkflowExecutor}
+import dx.executor.{JobMeta, WorkflowExecutor}
 import dx.util.{DefaultBindings, FileNode, JsUtils, LocalFileSource, Logger, TraceLevel}
 import dx.util.CollectionUtils.IterableOnceExtensions
 import dx.util.protocols.DxFileSource
@@ -383,15 +383,16 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     }
   }
 
-  case class WdlBlockContext(block: WdlBlock, env: Map[String, (T, V)])
-      extends BlockContext[WdlBlock] {
-    private def call: TAT.Call = block.call
-    private def dxApi = jobMeta.dxApi
+  case class WdlBlockContext(block: WdlBlock, wdlEnv: Map[String, (T, V)]) extends BlockContext {
+    private val call: TAT.Call = block.call
+    private val dxApi = jobMeta.dxApi
+
+    protected override lazy val env: Map[String, (Type, Value)] = WdlUtils.toIR(wdlEnv)
 
     private def evaluateCallInputs(
         extraEnv: Map[String, (T, V)] = Map.empty
     ): Map[String, (T, V)] = {
-      WdlBlockContext.evaluateCallInputs(call, env ++ extraEnv)
+      WdlBlockContext.evaluateCallInputs(call, wdlEnv ++ extraEnv)
     }
 
     private def launchCall(
@@ -440,9 +441,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           } catch {
             case e: Throwable =>
               logger.traceLimited(
-                  s"""|Failed to precalculate the instance type for
-                      |task ${task.name}.
-                      |
+                  s"""|Failed to precalculate the instance type for task ${task.name}.
                       |${e}
                       |""".stripMargin
               )
@@ -462,7 +461,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       (dxExecution, executableLink, execName)
     }
 
-    private def launchCall(blockIndex: Int): Map[String, ParameterLink] = {
+    override protected def launchCall(blockIndex: Int): Map[String, ParameterLink] = {
       val callInputs = evaluateCallInputs()
       val (dxExecution, executableLink, callName) =
         launchCall(callInputs, folder = Some(blockIndex.toString))
@@ -502,7 +501,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         executableLink: ExecutableLink,
         extraEnv: Map[String, (T, V)] = Map.empty
     ): Map[String, (Type, Value)] = {
-      val inputEnv = env ++ extraEnv
+      val inputEnv = wdlEnv ++ extraEnv
       logger.traceLimited(
           s"""|prepareSubworkflowInputs (${executableLink.name})
               |env:
@@ -525,10 +524,10 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       }
     }
 
-    private def launchConditional(): Map[String, ParameterLink] = {
+    override protected def launchConditional(): Map[String, ParameterLink] = {
       val cond = block.target match {
         case Some(TAT.Conditional(expr, _, _)) =>
-          evaluateExpression(expr, T_Boolean, env)
+          evaluateExpression(expr, T_Boolean, wdlEnv)
         case _ =>
           throw new Exception(s"invalid conditional block ${block}")
       }
@@ -640,7 +639,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
      */
 
     private def evaluateScatterCollection(expr: TAT.Expr): (Vector[V], Option[Int]) = {
-      evaluateExpression(expr, expr.wdlType, env) match {
+      evaluateExpression(expr, expr.wdlType, wdlEnv) match {
         case V_Array(array) if jobMeta.scatterStart == 0 && array.size <= jobMeta.scatterSize =>
           (array, None)
         case V_Array(array) =>
@@ -753,28 +752,6 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       }
     }
 
-    private def prepareBlockOutputs(
-        outputs: Map[String, ParameterLink]
-    ): Map[String, ParameterLink] = {
-      if (jobMeta.useManifests && outputs.contains(Constants.OutputManifest)) {
-        outputs
-      } else {
-        val outputNames = block.outputNames
-        logger.traceLimited(
-            s"""|processOutputs
-                |  env = ${env.keys}
-                |  fragResults = ${outputs.keys}
-                |  exportedVars = ${outputNames}
-                |""".stripMargin,
-            minLevel = TraceLevel.VVerbose
-        )
-        val inputsIR = WdlUtils.toIR(env.view.filterKeys(outputNames.contains).toMap)
-        val inputLinks = jobMeta.createOutputLinks(inputsIR, validate = false)
-        val outputLink = outputs.view.filterKeys(outputNames.contains).toMap
-        inputLinks ++ outputLink
-      }
-    }
-
     /**
       * stick the IDs of all the parent jobs and all the child jobs to exclude
       * (i.e. the continue/collect jobs) into details - we'll use these in the
@@ -854,7 +831,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       prepareScatterResults(dxSubJob)
     }
 
-    private def launchScatter(): Map[String, ParameterLink] = {
+    override protected def launchScatter(): Map[String, ParameterLink] = {
       val (identifier, itemType, collection, next) = block.target match {
         case Some(TAT.Scatter(identifier, expr, _, _)) =>
           val (collection, next) = evaluateScatterCollection(expr)
@@ -1002,7 +979,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       childExecs
     }
 
-    private def collectScatter(): Map[String, ParameterLink] = {
+    override protected def collectScatter(): Map[String, ParameterLink] = {
       val childExecutions = getScatterJobs
 
       val outputTypes: Map[String, (String, Type)] = block.kind match {
@@ -1101,55 +1078,6 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       } else {
         jobMeta.createOutputLinks(arrayValues, validate = false)
       }
-    }
-
-    override def launch(): Map[String, ParameterLink] = {
-      val outputs: Map[String, ParameterLink] = block.kind match {
-        case BlockKind.CallWithSubexpressions | BlockKind.CallFragment =>
-          launchCall(block.index)
-        case BlockKind.ConditionalOneCall | BlockKind.ConditionalComplex =>
-          launchConditional()
-        case BlockKind.ScatterOneCall | BlockKind.ScatterComplex =>
-          assert(jobMeta.scatterStart == 0)
-          launchScatter()
-        case BlockKind.ExpressionsOnly =>
-          Map.empty
-        case BlockKind.CallDirect =>
-          throw new RuntimeException("unreachable state")
-      }
-      prepareBlockOutputs(outputs)
-    }
-
-    override def continue(): Map[String, ParameterLink] = {
-      val outputs: Map[String, ParameterLink] = block.kind match {
-        case BlockKind.ScatterOneCall | BlockKind.ScatterComplex =>
-          assert(jobMeta.scatterStart > 0)
-          launchScatter()
-        case _ =>
-          throw new RuntimeException(s"cannot continue non-scatter block ${block}")
-      }
-      prepareBlockOutputs(outputs)
-    }
-
-    override def collect(): Map[String, ParameterLink] = {
-      val outputs: Map[String, ParameterLink] = block.kind match {
-        case BlockKind.ScatterOneCall | BlockKind.ScatterComplex =>
-          collectScatter()
-        case _ =>
-          throw new RuntimeException(s"cannot continue non-scatter block ${block}")
-      }
-      prepareBlockOutputs(outputs)
-    }
-
-    override lazy val prettyFormat: String = {
-      val envStr = if (env.isEmpty) {
-        " <empty>"
-      } else {
-        s"\n${WdlUtils.prettyFormatEnv(env)}"
-      }
-      s"""${block.prettyFormat}
-         |Env:${envStr}
-         |""".stripMargin
     }
   }
 

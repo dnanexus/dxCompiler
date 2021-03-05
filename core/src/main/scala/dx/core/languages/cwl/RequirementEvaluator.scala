@@ -19,6 +19,18 @@ import dx.core.ir.RunSpec.{
 import dx.core.ir.RuntimeRequirement
 import dx.cwl._
 
+/**
+  * Evaluates requirements and hints.
+  * @param requirements Vector of Requirements in increasing priority order.
+  *                     This means if two instances of the same requirement
+  *                     are in the list, the latter takes presidence.
+  * @param hints Vector of Hints in increasing priority order
+  * @param env values to use for evaluation
+  * @param workerPaths DxWorkerPaths
+  * @param defaultRuntimeAttrs default values to use for attributes that
+  *                            are not given as Requirements or Hints.
+  * @param dxApi DxApi
+  */
 case class RequirementEvaluator(requirements: Vector[Requirement],
                                 hints: Vector[Hint],
                                 env: Map[String, (CwlType, CwlValue)],
@@ -31,14 +43,30 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
     CwlUtils.createEvaluatorContext(runtime, env)
 
   /**
-    * Returns the first Requirement or Hint matching the given filter.
+    * Returns the last (i.e. highest priority) Requirement or Hint matching
+    * the given filter.
     * @param filter the filter function to apply
     * @return Option[(hint, optional)]
     */
   def getHint(filter: Hint => Boolean): Option[(Hint, Boolean)] = {
-    requirements.find(filter).map((_, false)).orElse(hints.find(filter).map((_, true)))
+    requirements.findLast(filter).map((_, false)).orElse(hints.findLast(filter).map((_, true)))
   }
 
+  /**
+    * def getHints(filter: Hint => Boolean): Option[(Vector[Hint], Boolean)] = {
+    val filteredRequirements = requirements.filter(filter)
+    if (filteredRequirements.nonEmpty) {
+      Some(filteredRequirements, false)
+    } else {
+      val filteredHints = hints.filter(filter)
+      if (filteredHints.nonEmpty) {
+        Some(filteredHints, true)
+      } else {
+        None
+      }
+    }
+  }
+    */
   private lazy val defaultResourceRequirement: ResourceRequirement = {
     val req = ResourceRequirement(
         defaultRuntimeAttrs.get("coresMin").map(_._2),
@@ -67,7 +95,7 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
   private val MinMathContext = new MathContext(0, RoundingMode.FLOOR)
   private val MaxMathContext = new MathContext(0, RoundingMode.CEILING)
   private val MiBtoGiB = Some(1024L)
-  private val CwlNumericTypes: Vector[CwlType] = Vector(CwlInt, CwlLong, CwlFloat, CwlDouble)
+  private val CwlNumericTypes = CwlMulti(Vector(CwlInt, CwlLong, CwlFloat, CwlDouble))
 
   private def evaluateNumeric(value: CwlValue,
                               mc: MathContext,
@@ -176,6 +204,8 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
         )
       case (_: SoftwareRequirement, true) =>
         throw new Exception("SoftwareRequirement is not supported")
+      case (_: InplaceUpdateRequirement, true) =>
+        throw new Exception("InplaceUpdateRequirement is not supported")
     }
   }
 }

@@ -1,6 +1,16 @@
 package dx.core.languages.cwl
 
-import dx.cwl.{CommandLineTool, CwlSchema, ExpressionTool, HintUtils, Identifier, Process, Workflow}
+import dx.cwl.{
+  CommandLineTool,
+  CwlSchema,
+  ExpressionTool,
+  Hint,
+  HintUtils,
+  Identifier,
+  Process,
+  Requirement,
+  Workflow
+}
 import org.w3id.cwl.cwl1_2.CWLVersion
 
 import scala.collection.immutable.{SeqMap, TreeSeqMap}
@@ -10,6 +20,8 @@ case class CwlBundle(version: CWLVersion,
                      tools: Map[String, CommandLineTool],
                      expressions: Map[String, ExpressionTool],
                      workflows: Map[String, Workflow],
+                     requirements: Map[String, Vector[Requirement]],
+                     hints: Map[String, Vector[Hint]],
                      processNames: Set[String]) {
 
   lazy val typeAliases: Map[String, CwlSchema] =
@@ -36,22 +48,45 @@ object CwlBundle {
       process: Process,
       tools: Map[Identifier, CommandLineTool] = Map.empty,
       expressions: Map[Identifier, ExpressionTool] = Map.empty,
-      workflows: Map[Identifier, Workflow] = Map.empty
-  )
-      : (Map[Identifier, CommandLineTool],
-         Map[Identifier, ExpressionTool],
-         Map[Identifier, Workflow]) = {
+      workflows: Map[Identifier, Workflow] = Map.empty,
+      requirements: Map[Identifier, Vector[Requirement]] = Map.empty,
+      hints: Map[Identifier, Vector[Hint]] = Map.empty,
+      inheritedRequirements: Vector[Requirement] = Vector.empty,
+      inheritedHints: Vector[Hint] = Vector.empty
+  ): (Map[Identifier, CommandLineTool],
+      Map[Identifier, ExpressionTool],
+      Map[Identifier, Workflow],
+      Map[Identifier, Vector[Requirement]],
+      Map[Identifier, Vector[Hint]]) = {
+    if (process.id.isEmpty) {
+      throw new Exception(s"missing id for process ${process}")
+    }
+    val newReqs = if (inheritedRequirements.nonEmpty) {
+      requirements + (process.id.get -> inheritedRequirements)
+    } else {
+      requirements
+    }
+    val newHints = if (inheritedHints.nonEmpty) {
+      hints + (process.id.get -> inheritedHints)
+    } else {
+      hints
+    }
     process match {
-      case _ if process.id.isEmpty =>
-        throw new Exception(s"missing id for process ${process}")
       case tool: CommandLineTool if !tools.contains(tool.id.get) =>
-        (tools + (tool.id.get -> tool), expressions, workflows)
+        (tools + (tool.id.get -> tool), expressions, workflows, newReqs, newHints)
       case tool: ExpressionTool if !expressions.contains(tool.id.get) =>
-        (tools, expressions + (tool.id.get -> tool), workflows)
+        (tools, expressions + (tool.id.get -> tool), workflows, newReqs, newHints)
       case wf: Workflow if !workflows.contains(wf.id.get) =>
-        wf.steps.foldLeft(tools, expressions, workflows) {
-          case ((toolAccu, exprAccu, wfAccu), step) =>
-            getProcesses(step.run, toolAccu, exprAccu, wfAccu + (wf.id.get -> wf))
+        wf.steps.foldLeft(tools, expressions, workflows, newReqs, newHints) {
+          case ((toolAccu, exprAccu, wfAccu, reqAccu, hintAccu), step) =>
+            getProcesses(step.run,
+                         toolAccu,
+                         exprAccu,
+                         wfAccu + (wf.id.get -> wf),
+                         reqAccu,
+                         hintAccu,
+                         inheritedRequirements ++ wf.requirements,
+                         inheritedHints ++ wf.hints)
         }
       case _ =>
         throw new Exception(s"unsupported process ${process}")
@@ -64,9 +99,16 @@ object CwlBundle {
     )
     process match {
       case tool: CommandLineTool =>
-        CwlBundle(version, tool, Map(tool.name -> tool), Map.empty, Map.empty, Set(tool.name))
+        CwlBundle(version,
+                  tool,
+                  Map(tool.name -> tool),
+                  Map.empty,
+                  Map.empty,
+                  Map.empty,
+                  Map.empty,
+                  Set(tool.name))
       case wf: Workflow =>
-        val (tools, expressions, workflows) = getProcesses(wf)
+        val (tools, expressions, workflows, requirements, hints) = getProcesses(wf)
         // check that there are no name collisions
         val (toolsByName, allNames) =
           tools.values.foldLeft(Map.empty[String, CommandLineTool], Set.empty[String]) {
@@ -89,7 +131,20 @@ object CwlBundle {
             case (_, wf) =>
               throw new Exception(s"duplicate name ${wf.name}")
           }
-        CwlBundle(version, wf, toolsByName, expressionsByName, workflowsByName, allNames3)
+        val requirementsByName = requirements.map {
+          case (id, reqs) => id.name.get -> reqs
+        }
+        val hintsByName = hints.map {
+          case (id, hints) => id.name.get -> hints
+        }
+        CwlBundle(version,
+                  wf,
+                  toolsByName,
+                  expressionsByName,
+                  workflowsByName,
+                  requirementsByName,
+                  hintsByName,
+                  allNames3)
     }
   }
 }

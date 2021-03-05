@@ -5,25 +5,23 @@ import dx.api.{DxAnalysis, DxApp, DxApplet, DxExecution, DxFile, DxWorkflow, Fie
 import dx.core.getVersion
 import dx.core.ir.Type.TSchema
 import dx.core.Constants
-import dx.core.ir.{Block, ExecutableLink, Parameter, ParameterLink, Type, TypeSerde, Value}
+import dx.core.ir.{
+  Block,
+  BlockKind,
+  ExecutableLink,
+  Parameter,
+  ParameterLink,
+  Type,
+  TypeSerde,
+  Value,
+  ValueSerde
+}
 import spray.json._
 import dx.util.{Enum, TraceLevel}
 
 object WorkflowAction extends Enum {
   type WorkflowAction = Value
   val Inputs, Outputs, OutputReorg, CustomReorgOutputs, Run, Continue, Collect = Value
-}
-
-trait BlockContext[B <: Block[B]] {
-  def block: Block[B]
-
-  def launch(): Map[String, ParameterLink]
-
-  def continue(): Map[String, ParameterLink]
-
-  def collect(): Map[String, ParameterLink]
-
-  def prettyFormat(): String
 }
 
 object WorkflowExecutor {
@@ -73,7 +71,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
 
   private lazy val jobInputs: Map[String, (Type, Value)] = jobMeta.jsInputs.collect {
     case (name, jsValue) if !name.endsWith(ParameterLink.FlatFilesSuffix) =>
-      val fqn = Parameter.decodeDots(name)
+      val fqn = Parameter.decodeName(name)
       val irType = fqnDictTypes.getOrElse(
           fqn,
           throw new Exception(s"Did not find variable ${fqn} (${name}) in the block environment")
@@ -180,9 +178,98 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
     (dxExecution, jobName)
   }
 
-  protected def evaluateBlockInputs(jobInputs: Map[String, (Type, Value)]): BlockContext[B]
+  protected trait BlockContext {
+    def block: Block[B]
 
-  private def evaluateFragInputs(): BlockContext[_] = {
+    def env: Map[String, (Type, Value)]
+
+    protected def prepareBlockOutputs(
+        outputs: Map[String, ParameterLink]
+    ): Map[String, ParameterLink] = {
+      if (jobMeta.useManifests && outputs.contains(Constants.OutputManifest)) {
+        outputs
+      } else {
+        val outputNames = block.outputNames
+        logger.traceLimited(
+            s"""|processOutputs
+                |  env = ${env.keys}
+                |  fragResults = ${outputs.keys}
+                |  exportedVars = ${outputNames}
+                |""".stripMargin,
+            minLevel = TraceLevel.VVerbose
+        )
+        val filteredEnv = env.view.filterKeys(outputNames.contains).toMap
+        val inputLinks = jobMeta.createOutputLinks(filteredEnv, validate = false)
+        val outputLink = outputs.view.filterKeys(outputNames.contains).toMap
+        inputLinks ++ outputLink
+      }
+    }
+
+    protected def launchCall(blockIndex: Int): Map[String, ParameterLink]
+
+    protected def launchConditional(): Map[String, ParameterLink]
+
+    protected def launchScatter(): Map[String, ParameterLink]
+
+    protected def collectScatter(): Map[String, ParameterLink]
+
+    def launch(): Map[String, ParameterLink] = {
+      val outputs: Map[String, ParameterLink] = block.kind match {
+        case BlockKind.CallWithSubexpressions | BlockKind.CallFragment =>
+          launchCall(block.index)
+        case BlockKind.ConditionalOneCall | BlockKind.ConditionalComplex =>
+          launchConditional()
+        case BlockKind.ScatterOneCall | BlockKind.ScatterComplex =>
+          assert(jobMeta.scatterStart == 0)
+          launchScatter()
+        case BlockKind.ExpressionsOnly => Map.empty
+        case BlockKind.CallDirect =>
+          throw new RuntimeException("unreachable state")
+      }
+      prepareBlockOutputs(outputs)
+    }
+
+    def continue(): Map[String, ParameterLink] = {
+      val outputs: Map[String, ParameterLink] = block.kind match {
+        case BlockKind.ScatterOneCall | BlockKind.ScatterComplex =>
+          assert(jobMeta.scatterStart > 0)
+          launchScatter()
+        case _ =>
+          throw new RuntimeException(s"cannot continue non-scatter block ${block}")
+      }
+      prepareBlockOutputs(outputs)
+    }
+
+    def collect(): Map[String, ParameterLink] = {
+      val outputs: Map[String, ParameterLink] = block.kind match {
+        case BlockKind.ScatterOneCall | BlockKind.ScatterComplex =>
+          collectScatter()
+        case _ =>
+          throw new RuntimeException(s"cannot continue non-scatter block ${block}")
+      }
+      prepareBlockOutputs(outputs)
+    }
+
+    def prettyFormat(): String = {
+      val envStr = if (env.isEmpty) {
+        " <empty>"
+      } else {
+        "\n" + env
+          .map {
+            case (name, (t, v)) =>
+              s"  ${name}: ${TypeSerde.toString(t)} ${ValueSerde.toString(v)}"
+          }
+          .mkString("\n")
+      }
+      s"""${block.prettyFormat}
+         |Env:${envStr}
+         |""".stripMargin
+    }
+  }
+
+  protected def evaluateBlockInputs(jobInputs: Map[String, (Type, Value)]): BlockContext
+
+  private def evaluateFragInputs(): BlockContext = {
     if (logger.isVerbose) {
       logger.traceLimited(s"dxCompiler version: ${getVersion}")
       logger.traceLimited(s"link info=${execLinkInfo}")
@@ -237,7 +324,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
       val outputIds: Set[String] = jobMeta.jsInputs
         .collect {
           case (name, jsValue) if !name.endsWith(ParameterLink.FlatFilesSuffix) =>
-            val fqn = Parameter.decodeDots(name)
+            val fqn = Parameter.decodeName(name, parameterNameDelimiter)
             if (!fqnDictTypes.contains(fqn)) {
               throw new Exception(
                   s"Did not find variable ${fqn} (${name}) in the block environment"

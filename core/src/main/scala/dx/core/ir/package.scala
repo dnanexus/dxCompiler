@@ -36,7 +36,7 @@ case class Parameter(
 object Parameter {
   val ComplexValueKey = "___"
 
-  private val illegalChars = "[./]"
+  private val illegalChars = "[./-~]"
   private val illegalCharsRegexp = s"${illegalChars}".r
 
   /**
@@ -61,9 +61,9 @@ object Parameter {
     }
   }
 
-  def decodeDots(name: String): String = {
-    if (name.contains(".")) {
-      throw new Exception(s"Encoded value ${name} contains '.'")
+  def decodeName(name: String): String = {
+    illegalCharsRegexp.findFirstIn(name).map { c =>
+      throw new Exception(s"Encoded value ${name} contains '${c}''")
     }
     val parts = name.split(ComplexValueKey)
     if (parts.size == 1) {
@@ -83,6 +83,15 @@ object Parameter {
     } else {
       decoded
     }
+  }
+
+  /**
+    * Converts all illegal characters to '.'.
+    * When a CWL parameter name is encoded and then decoded, all illegal characters
+    * are converted to ".", so this function enables comparison to non-encoded names.
+    */
+  def normalizeName(name: String): String = {
+    illegalCharsRegexp.replaceAllIn(name, ".")
   }
 }
 

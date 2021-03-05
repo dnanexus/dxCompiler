@@ -6,7 +6,9 @@ import dx.cwl.{
   CommandLineTool,
   CwlOptional,
   ExpressionTool,
+  Hint,
   Parameter,
+  Requirement,
   Workflow,
   WorkflowInputParameter,
   WorkflowStep
@@ -15,7 +17,9 @@ import dx.cwl.{
 case class CwlBlock(index: Int,
                     inputs: Map[String, (Parameter, Boolean)],
                     outputs: Map[String, Parameter],
-                    steps: Vector[WorkflowStep])
+                    steps: Vector[WorkflowStep],
+                    inheritedRequirements: Vector[Requirement],
+                    inheritedHints: Vector[Hint])
     extends Block[CwlBlock] {
   assert(steps.nonEmpty)
 
@@ -56,14 +60,29 @@ case class CwlBlock(index: Int,
     }
   }
 
+  def targetRequirements: Vector[Requirement] = {
+    target
+      .map(step => inheritedRequirements ++ step.requirements ++ step.run.requirements)
+      .getOrElse(Vector.empty)
+  }
+
+  def targetHints: Vector[Hint] = {
+    target
+      .map(step => inheritedHints ++ step.hints ++ step.run.hints)
+      .getOrElse(Vector.empty)
+  }
+
   override def getSubBlock(index: Int): CwlBlock = {
     (kind, target) match {
       case (BlockKind.ConditionalOneCall | BlockKind.ScatterOneCall, Some(step)) =>
         step.run match {
           case _: CommandLineTool if index == 0 =>
-            CwlBlock(0, inputs, outputs, Vector(step))
+            CwlBlock(0, inputs, outputs, Vector(step), inheritedRequirements, inheritedHints)
           case wf: Workflow =>
-            val innerBlocks = CwlBlock.createBlocks(wf)
+            val innerBlocks =
+              CwlBlock.createBlocks(wf,
+                                    inheritedRequirements ++ step.requirements,
+                                    inheritedHints ++ step.hints)
             innerBlocks(index)
           case other =>
             throw new Exception(s"unexpected process ${other}")
@@ -118,16 +137,16 @@ case class CwlBlock(index: Int,
   override lazy val prettyFormat: String = {
     val inputStr = inputs.map {
       case (name, (param, optional)) =>
-        val types = if (optional) {
-          param.types.map(CwlOptional.ensureOptional)
+        val cwlType = if (optional) {
+          CwlOptional.ensureOptional(param.cwlType)
         } else {
-          param.types.map(CwlOptional.unwrapOptional)
+          CwlOptional.unwrapOptional(param.cwlType)
         }
-        s"${CwlUtils.prettyFormatTypes(types)} ${name}"
+        s"${CwlUtils.prettyFormatType(cwlType)} ${name}"
     }
     val outputStr = outputs.map {
       case (name, param) =>
-        s"${CwlUtils.prettyFormatTypes(param.types)} ${name}"
+        s"${CwlUtils.prettyFormatType(param.cwlType)} ${name}"
     }
     val bodyStr = steps.map(prettyFormatStep).mkString("\n")
     s"""Block(${index}, ${kind})
@@ -138,7 +157,9 @@ case class CwlBlock(index: Int,
 }
 
 object CwlBlock {
-  def createBlocks(wf: Workflow): Vector[CwlBlock] = {
+  def createBlocks(wf: Workflow,
+                   inheritedRequirements: Vector[Requirement] = Vector.empty,
+                   inheritedHints: Vector[Hint] = Vector.empty): Vector[CwlBlock] = {
     // ExpressionTools are bundled with the next tool or workflow step.
     val (parts, _) =
       wf.steps.foldLeft(Vector.empty[Vector[WorkflowStep]], Vector.empty[WorkflowStep]) {
@@ -171,10 +192,7 @@ object CwlBlock {
                 inp.source.foldLeft(accu) {
                   case (accu, name) =>
                     val wfInput = wfInputs(name)
-                    val optional = hasDefault || wfInput.types.forall {
-                      case _: CwlOptional => true
-                      case _              => false
-                    }
+                    val optional = hasDefault || CwlOptional.isOptional(wfInput.cwlType)
                     accu.get(name) match {
                       case Some((_, true)) if !optional =>
                         accu + (name -> (wfInput, false))
@@ -197,7 +215,12 @@ object CwlBlock {
                 throw new Exception(s"invalid or duplicate output parameter name ${out.name}")
             }
         }
-        CwlBlock(index, blockInputs, blockOutputs, v)
+        CwlBlock(index,
+                 blockInputs,
+                 blockOutputs,
+                 v,
+                 inheritedRequirements ++ wf.requirements,
+                 inheritedHints ++ wf.hints)
     }
   }
 }

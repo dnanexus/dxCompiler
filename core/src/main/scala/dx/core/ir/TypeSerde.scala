@@ -266,19 +266,20 @@ object TypeSerde {
     * @param typeDefs type definitions that may be referenced by the types
     * @param jsTypeDefs serialized type definitions that we only deserialize
     *                   if they are referenced
-    * @param decodeDots whether to decode dots in parameter names
+    * @param decodeNames whether to decode dots in parameter names
     * @return (parameter types, updated type definitions)
     */
   def deserializeMap(
       jsTypes: Map[String, JsValue],
       typeDefs: Map[String, Type] = Map.empty,
       jsTypeDefs: Map[String, JsValue] = Map.empty,
-      decodeDots: Boolean = true
+      decodeNames: Boolean = true,
+      nameDelimiter: String = "."
   ): (Map[String, Type], Map[String, Type]) = {
     jsTypes.foldLeft((Map.empty[String, Type], typeDefs)) {
       case ((typeAccu, typeDefAccu), (name, jsType)) =>
-        val nameDecoded = if (decodeDots) {
-          Parameter.decodeDots(name)
+        val nameDecoded = if (decodeNames) {
+          Parameter.decodeName(name, nameDelimiter)
         } else {
           name
         }
@@ -292,12 +293,13 @@ object TypeSerde {
     * `serializeSpec` function.
     * @param jsValue the value to deserialize
     * @param typeDefs initial set of schemas (i.e. type aliases)
-    * @param decodeDots whether to decode dots in variable names
+    * @param decodeNames whether to decode dots in variable names
     * @return mapping of variable names to deserialized Types
     */
   def deserializeSpec(jsValue: JsValue,
                       typeDefs: Map[String, TSchema] = Map.empty,
-                      decodeDots: Boolean = true): Map[String, Type] = {
+                      decodeNames: Boolean = true,
+                      nameDelimiter: String = "."): Map[String, Type] = {
     val (jsTypes, jsTypeDefs) = jsValue match {
       case obj: JsObject if obj.fields.contains(TypesKey) =>
         obj.getFields(TypesKey, DefinitionsKey) match {
@@ -313,7 +315,7 @@ object TypeSerde {
       case _ =>
         throw TypeSerdeException(s"invalid serialized spec ${jsValue}")
     }
-    val (types, _) = deserializeMap(jsTypes, typeDefs, jsTypeDefs, decodeDots)
+    val (types, _) = deserializeMap(jsTypes, typeDefs, jsTypeDefs, decodeNames, nameDelimiter)
     types
   }
 

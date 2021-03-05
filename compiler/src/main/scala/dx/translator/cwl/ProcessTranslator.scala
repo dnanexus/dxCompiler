@@ -39,7 +39,9 @@ import dx.cwl.{
   Evaluator,
   EvaluatorContext,
   FileValue,
+  Hint,
   Process,
+  Requirement,
   Runtime,
   WorkflowInputParameter,
   WorkflowOutputParameter,
@@ -98,7 +100,11 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
     metaAttrs ++ hintAttrs
   }
 
-  private case class CwlToolTranslator(tool: CommandLineTool) {
+  private case class CwlToolTranslator(
+      tool: CommandLineTool,
+      inheritedRequirements: Vector[Requirement] = Vector.empty,
+      inheritedHints: Vector[Hint] = Vector.empty
+  ) {
     private lazy val cwlEvaluator = Evaluator.create(tool.requirements, tool.hints)
     private lazy val dxHints = tool.hints.collectFirst {
       case dxHints: DxHints => dxHints
@@ -118,7 +124,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         case Some(default) =>
           try {
             val ctx = CwlUtils.createEvaluatorContext(Runtime.empty)
-            val (actualType, defaultValue) = cwlEvaluator.evaluate(default, input.types, ctx)
+            val (actualType, defaultValue) = cwlEvaluator.evaluate(default, input.cwlType, ctx)
             defaultValue match {
               case file: FileValue if !CwlUtils.isDxFile(file) =>
                 // cannot specify a local file as default - the default will
@@ -134,7 +140,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         case None => None
       }
       val attrs = translateParameterAttributes(input, hintParameterAttrs)
-      Parameter(name, CwlUtils.toIRType(input.types), irDefaultValue, attrs)
+      Parameter(name, CwlUtils.toIRType(input.cwlType), irDefaultValue, attrs)
     }
 
     def translateOutput(output: CommandOutputParameter): Parameter = {
@@ -143,7 +149,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       val irValue = output.outputBinding
         .flatMap(_.outputEval.flatMap { cwlValue =>
           try {
-            val (actualType, actualValue) = cwlEvaluator.evaluate(cwlValue, output.types, ctx)
+            val (actualType, actualValue) = cwlEvaluator.evaluate(cwlValue, output.cwlType, ctx)
             val (_, value) = CwlUtils.toIRValue(actualValue, actualType)
             Some(value)
           } catch {
@@ -152,7 +158,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           }
         })
       val attrs = translateParameterAttributes(output, hintParameterAttrs)
-      Parameter(name, CwlUtils.toIRType(output.types), irValue, attrs)
+      Parameter(name, CwlUtils.toIRType(output.cwlType), irValue, attrs)
     }
 
     // TODO: If the source CWL has a DockerRequirement with a dockerLoad
@@ -167,8 +173,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         case i if i.id.exists(_.name.isDefined) => translateOutput(i)
       }
       val requirementEvaluator = RequirementEvaluator(
-          tool.requirements,
-          tool.hints,
+          inheritedRequirements ++ tool.requirements,
+          inheritedHints ++ tool.hints,
           Map.empty,
           DxWorkerPaths.default,
           cwlDefaultRuntimeAttrs
@@ -193,10 +199,13 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
     }
   }
 
-  private case class CwlWorkflowTranslator(wf: CwlWorkflow,
-                                           availableDependencies: Map[String, Callable],
-                                           workflowAttrs: Option[DxWorkflowAttrs])
-      extends WorkflowTranslator(wf.name, availableDependencies, reorgAttrs, logger) {
+  private case class CwlWorkflowTranslator(
+      wf: CwlWorkflow,
+      availableDependencies: Map[String, Callable],
+      workflowAttrs: Option[DxWorkflowAttrs],
+      inheritedRequirements: Vector[Requirement] = Vector.empty,
+      inheritedHints: Vector[Hint] = Vector.empty
+  ) extends WorkflowTranslator(wf.name, availableDependencies, reorgAttrs, logger) {
     // Only the toplevel workflow may be unlocked. This happens
     // only if the user specifically compiles it as "unlocked".
     protected lazy val isLocked: Boolean = {
@@ -218,18 +227,18 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
     }
 
     private def createWorkflowInput(input: WorkflowInputParameter): Parameter = {
-      val cwlTypes = input.types
-      val irType = CwlUtils.toIRType(cwlTypes)
+      val cwlType = input.cwlType
+      val irType = CwlUtils.toIRType(cwlType)
       val default = input.default
         .flatMap { d =>
           try {
-            val (_, staticValue) = evaluator.evaluate(d, cwlTypes, EvaluatorContext.empty)
+            val (_, staticValue) = evaluator.evaluate(d, cwlType, EvaluatorContext.empty)
             Some(staticValue)
           } catch {
             case _: Throwable => None
           }
         }
-      Parameter(input.name, irType, default.map(CwlUtils.toIRValue(_, cwlTypes)._2), Vector.empty)
+      Parameter(input.name, irType, default.map(CwlUtils.toIRValue(_, cwlType)._2), Vector.empty)
     }
 
     private def callInputToStageInput(callInput: Option[WorkflowStepInput],
@@ -382,7 +391,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       }
 
       val outputParams: Vector[Parameter] = block.outputs.values.map { param =>
-        val irType = CwlUtils.toIRType(param.types)
+        val irType = CwlUtils.toIRType(param.cwlType)
         Parameter(param.name, irType)
       }.toVector
 
@@ -508,7 +517,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       // build definitions of the output variables - if the expression can be evaluated,
       // set the values as the parameter's default
       val outputParams: Vector[Parameter] = outputs.map { param =>
-        val irType = CwlUtils.toIRType(param.types)
+        val irType = CwlUtils.toIRType(param.cwlType)
         Parameter(param.name, irType, None)
       }
 
@@ -574,7 +583,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         // manifests into a single manifest.
         val commonStageInputs = wfInputParams.map(p => WorkflowInput(p))
         val inputOutputs: Vector[Parameter] = inputs.map { i =>
-          Parameter(i.name, CwlUtils.toIRType(i.types))
+          Parameter(i.name, CwlUtils.toIRType(i.cwlType))
         }
         val (commonStage, commonApplet) =
           createCommonApplet(wfName, wfInputParams, commonStageInputs, inputOutputs, blockPath)
@@ -633,7 +642,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
             val (stepName, paramName) = out.outputSource.head.split("/")
             LinkInput(getStage(stepName), paramName)
           }
-          val irType = CwlUtils.toIRType(out.types)
+          val irType = CwlUtils.toIRType(out.cwlType)
           (Parameter(out.name, irType), outputStage)
         }
         (wfOutputs, stages, auxCallables.flatten)
@@ -716,11 +725,20 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
                        availableDependencies: Map[String, Callable]): Vector[Callable] = {
     process match {
       case tool: CommandLineTool =>
-        val toolTranslator = CwlToolTranslator(tool)
+        val toolTranslator =
+          CwlToolTranslator(tool,
+                            cwlBundle.requirements.getOrElse(tool.name, Vector.empty),
+                            cwlBundle.hints.getOrElse(tool.name, Vector.empty))
         Vector(toolTranslator.apply)
       case wf: CwlWorkflow =>
         val wfAttrs = perWorkflowAttrs.get(wf.name)
-        val wfTranslator = CwlWorkflowTranslator(wf, availableDependencies, wfAttrs)
+        val wfTranslator = CwlWorkflowTranslator(
+            wf,
+            availableDependencies,
+            wfAttrs,
+            cwlBundle.requirements.getOrElse(wf.name, Vector.empty),
+            cwlBundle.hints.getOrElse(wf.name, Vector.empty)
+        )
         wfTranslator.apply
       case _ =>
         throw new Exception(s"Process type ${process} not supported")

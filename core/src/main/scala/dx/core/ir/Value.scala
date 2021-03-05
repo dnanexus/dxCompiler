@@ -1,7 +1,7 @@
 package dx.core.ir
 
-import dx.core.ir.Type.{TArray, TEnum, TSchema}
-
+import dx.core.ir.Type._
+import dx.util.CollectionUtils.IterableOnceExtensions
 import scala.collection.immutable.{SeqMap, TreeSeqMap}
 
 /**
@@ -70,8 +70,8 @@ object Value {
                 t: Option[Type],
                 handler: (Value, Option[Type], Boolean) => Option[Value]): Value = {
     def inner(innerValue: Value, innerType: Option[Type] = None): Value = {
-      val (nonOptType, optional) = if (innerType.exists(Type.isOptional)) {
-        (Some(Type.unwrapOptional(innerType.get)), true)
+      val (nonOptType, optional) = if (innerType.exists(isOptional)) {
+        (Some(unwrapOptional(innerType.get)), true)
       } else {
         (innerType, true)
       }
@@ -103,5 +103,61 @@ object Value {
       }
     }
     inner(value, t)
+  }
+
+  def coerceTo(value: Value, targetType: Type): Value = {
+    (targetType, value) match {
+      case (TOptional(_), VNull) => VNull
+      case (TOptional(t), _)     => coerceTo(value, t)
+      // check whether the value is already of the correct type
+      case (TBoolean, b: VBoolean)     => b
+      case (TInt, i: VInt)             => i
+      case (TFloat, f: VFloat)         => f
+      case (TString, s: VString)       => s
+      case (TFile, f: VFile)           => f
+      case (TDirectory, d: VDirectory) => d
+      case (THash, h: VHash)           => h
+      // compound types
+      case (TArray(_, nonEmpty), VArray(items)) if nonEmpty && items.isEmpty =>
+        throw new Exception("cannot coerce empty array to non-empty array")
+      case (TArray(t, _), VArray(items)) =>
+        VArray(items.map(coerceTo(_, t)))
+      case (TSchema(schemaName, fields), VHash(members)) =>
+        val invalid = members.keySet.diff(fields.keySet)
+        if (invalid.nonEmpty) {
+          throw new Exception(
+              s"cannot coerce hash with key(s) ${invalid.mkString(",")} to type ${targetType}"
+          )
+        }
+        VHash(fields.collect {
+          case (fieldName, t) if members.contains(fieldName) =>
+            fieldName -> coerceTo(members(fieldName), t)
+          case (fieldName, t) if !Type.isOptional(t) =>
+            throw new Exception(s"missing required ${schemaName} field ${fieldName}")
+        })
+      case (TEnum(symbols), s: VString) if symbols.contains(s.value) => s
+      case (TEnum(symbols), _) =>
+        throw new Exception(s"${value} is not one of allowed symbols ${symbols.mkString(",")}")
+      case (TMulti(bounds), _) =>
+        bounds.iterator
+          .collectFirstDefined { t =>
+            try {
+              Some(coerceTo(value, t))
+            } catch {
+              case _: Throwable => None
+            }
+          }
+          .getOrElse(
+              throw new Exception(s"cannot coerce ${value} to any of ${bounds.mkString(",")}")
+          )
+      // coercions
+      case (TFile, VString(s))      => VFile(s)
+      case (TString, VFile(f))      => VString(f)
+      case (TDirectory, VString(s)) => VDirectory(s)
+      case (TString, VDirectory(d)) => VString(d)
+      case (TFloat, VInt(i))        => VFloat(i.toFloat)
+      case _ =>
+        throw new Exception(s"cannot coerce ${value} to ${targetType}")
+    }
   }
 }

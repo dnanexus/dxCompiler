@@ -72,7 +72,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
   private def cwlInputs: Map[String, (CwlType, CwlValue)] = {
     // CWL parameters can have '.' in their name
     val irInputs = jobMeta.primaryInputs.map {
-      case (name, value) => Parameter.decodeDots(name) -> value
+      case (name, value) => Parameter.decodeName(name) -> value
     }
     val missingTypes = irInputs.keySet.diff(inputParams.keySet)
     if (missingTypes.nonEmpty) {
@@ -82,20 +82,14 @@ case class CwlTaskExecutor(tool: CommandLineTool,
     val evaluator = Evaluator.create(tool.requirements, tool.hints)
     inputParams.foldLeft(Map.empty[String, (CwlType, CwlValue)]) {
       case (env, (name, param)) =>
-        val cwlTypes = CwlUtils.flattenTypes(param.types.distinct)
         val (cwlType: CwlType, cwlValue: CwlValue) = irInputs.get(name) match {
           case Some(irValue) =>
-            CwlUtils.fromIRValue(irValue, cwlTypes, name, isInput = true)
+            CwlUtils.fromIRValue(irValue, param.cwlType, name, isInput = true)
           case None if param.default.isDefined =>
             val ctx = CwlUtils.createEvaluatorContext(runtime, env)
-            evaluator.evaluate(param.default.get, cwlTypes, ctx)
-          case None if cwlTypes.exists(CwlOptional.isOptional) =>
-            val optTypes = cwlTypes.filter(CwlOptional.isOptional)
-            if (optTypes.size == 1) {
-              (optTypes.head, NullValue)
-            } else {
-              (CwlNull, NullValue)
-            }
+            evaluator.evaluate(param.default.get, param.cwlType, ctx)
+          case None if CwlOptional.isOptional(param.cwlType) =>
+            (param.cwlType, NullValue)
           case _ =>
             throw new Exception(s"Missing required input ${name} to tool ${tool.id}")
         }
@@ -109,7 +103,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
         .flatMap {
           case param if param.id.forall(_.unqualifiedName.forall(inputs.contains)) =>
             val name = param.id.get.unqualifiedName.get
-            Some(s"${name} -> (${param.types}, ${inputs.get(name)})")
+            Some(s"${name} -> (${param.cwlType}, ${inputs.get(name)})")
           case other =>
             logger.trace(s"no input for parameter ${other}")
             None
@@ -172,7 +166,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
     printInputs(inputs)
     val metaDir = workerPaths.getMetaDir(ensureExists = true)
     // write the CWL and input files
-    val filePrefix = tool.id.name.getOrElse("tool")
+    val filePrefix = tool.getName.getOrElse("tool")
     val cwlPath = metaDir.resolve(s"${filePrefix}.cwl")
     FileUtils.writeFileContent(cwlPath, jobMeta.sourceCode)
     val inputPath = metaDir.resolve(s"${filePrefix}_input.json")
@@ -257,7 +251,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
         case JsObject(outputs) =>
           outputs.map {
             case (name, jsValue) =>
-              val cwlTypes = outputParams(name).types
+              val cwlTypes = outputParams(name).cwlType
               name -> CwlValue.deserialize(jsValue, cwlTypes, typeAliases)
           }
         case JsNull => Map.empty
@@ -271,10 +265,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
 
   override protected def outputTypes: Map[String, Type] = {
     outputParams.map {
-      case (name, param) if param.types.size == 1 =>
-        name -> CwlUtils.toIRType(param.types.head)
-      case (_, param) =>
-        throw new Exception(s"Multi-type outputs are not supported ${param}")
+      case (name, param) => name -> CwlUtils.toIRType(param.cwlType)
     }
   }
 }
