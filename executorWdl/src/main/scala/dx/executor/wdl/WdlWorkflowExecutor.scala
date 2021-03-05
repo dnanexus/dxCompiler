@@ -1,9 +1,19 @@
 package dx.executor.wdl
 
 import dx.AppInternalException
-import dx.api.{DxExecution, DxObject, Field}
+import dx.api.{DxExecution, DxFile, DxObject, DxPath, Field}
 import dx.core.Constants
-import dx.core.ir.{Block, BlockKind, ExecutableLink, Parameter, ParameterLink, Type, Value}
+import dx.core.ir.{
+  Block,
+  BlockKind,
+  ExecutableLink,
+  Manifest,
+  Parameter,
+  ParameterLink,
+  Type,
+  Value,
+  ValueSerde
+}
 import dx.core.ir.Type._
 import dx.core.ir.Value._
 import dx.core.languages.wdl.{
@@ -112,38 +122,80 @@ case class WdlWorkflowExecutor(docSource: FileNode,
   override protected def evaluateInputs(
       jobInputs: Map[String, (Type, Value)]
   ): Map[String, (Type, Value)] = {
-    if (logger.isVerbose) {
-      logger.trace(s"""input paramters:
-                      |${workflow.inputs
-                        .map(TypeUtils.prettyFormatInput(_))
-                        .mkString("\n")}""".stripMargin)
+    def getInputValues(inputTypes: Map[String, T]): Map[String, V] = {
+      jobInputs.collect {
+        case (name, (_, value)) if inputTypes.contains(name) =>
+          name -> WdlUtils.fromIRValue(value, inputTypes(name), name)
+        case (name, (t, v)) =>
+          name -> WdlUtils.fromIRValue(v, WdlUtils.fromIRType(t), name)
+      }
     }
-    val workflowInputs = workflow.inputs.map(inp => inp.name -> inp).toMap
-    // convert IR to WDL values
-    val inputWdlValues: Map[String, V] = jobInputs.collect {
-      case (name, (_, value)) =>
-        val wdlType = workflowInputs(name).wdlType
-        name -> WdlUtils.fromIRValue(value, wdlType, name)
+
+    // This might be the input for the entire workflow or just a subblock.
+    // If it is for a sublock, it may be for the body of a conditional or
+    // scatter, in which case we only need the inputs of the body statements.
+    val (inputTypes, inputValues) = jobMeta.blockPath match {
+      case Vector() =>
+        val inputTypes = workflow.inputs.map(inp => inp.name -> inp.wdlType).toMap
+        // convert IR to WDL values
+        val inputValues = getInputValues(inputTypes)
+        if (logger.isVerbose) {
+          logger.trace(s"""input parameters:
+                          |${workflow.inputs
+                            .map(TypeUtils.prettyFormatInput(_))
+                            .mkString("\n")}
+                          |input values:
+                          |${WdlUtils.prettyFormatValues(inputValues)}""".stripMargin)
+        }
+        // evaluate - enable special handling for unset array values -
+        // DNAnexus does not distinguish between null and empty for
+        // array inputs, so we treat a null value for a non-optional
+        // array that is allowed to be empty as the empty array.
+        val inputBindings = InputOutput.inputsFromValues(workflow.name,
+                                                         workflow.inputs,
+                                                         inputValues,
+                                                         evaluator,
+                                                         ignoreDefaultEvalError = false,
+                                                         nullCollectionAsEmpty = true)
+        // convert back to IR
+        (inputTypes, inputBindings.toMap)
+      case path =>
+        val block: WdlBlock =
+          Block.getSubBlockAt(WdlBlock.createBlocks(workflow.body), path)
+        val inputTypes = block.target match {
+          case Some(conditional: TAT.Conditional) =>
+            val (inputs, _) =
+              WdlUtils.getClosureInputsAndOutputs(Vector(conditional), withField = true)
+            inputs.map {
+              case (name, (wdlType, _)) => name -> wdlType
+            }
+          case Some(scatter: TAT.Scatter) =>
+            val (inputs, _) =
+              WdlUtils.getClosureInputsAndOutputs(Vector(scatter), withField = true)
+            inputs.map {
+              case (name, (wdlType, _)) => name -> wdlType
+            }
+          case _ => block.inputs.map(inp => inp.name -> inp.wdlType).toMap
+        }
+        val inputValues = getInputValues(inputTypes)
+        if (logger.isVerbose) {
+          logger.trace(
+              s"""input parameters:
+                 |${inputTypes
+                   .map {
+                     case (name, wdlType) => s"  ${TypeUtils.prettyFormatType(wdlType)} ${name}"
+                   }
+                   .mkString("\n")}
+                 |input values:
+                 |${WdlUtils.prettyFormatValues(inputValues)}""".stripMargin
+          )
+        }
+        (inputTypes, inputValues)
     }
-    if (logger.isVerbose) {
-      logger.trace(s"""input values:
-                      |${WdlUtils.prettyFormatValues(inputWdlValues)}""".stripMargin)
-    }
-    // evaluate - enable special handling for unset array values -
-    // DNAnexus does not distinguish between null and empty for
-    // array inputs, so we treat a null value for a non-optional
-    // array that is allowed to be empty as the empty array.
-    val evalauatedInputValues =
-      InputOutput.inputsFromValues(workflow.name,
-                                   workflow.inputs,
-                                   inputWdlValues,
-                                   evaluator,
-                                   ignoreDefaultEvalError = false,
-                                   nullCollectionAsEmpty = true)
     // convert back to IR
-    evalauatedInputValues.toMap.map {
+    inputValues.map {
       case (name, value) =>
-        val wdlType = workflowInputs(name).wdlType
+        val wdlType = inputTypes(name)
         val irType = WdlUtils.toIRType(wdlType)
         val irValue = WdlUtils.toIRValue(value, wdlType)
         name -> (irType, irValue)
@@ -157,7 +209,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     // This might be the output for the entire workflow or just a subblock.
     // If it is for a sublock, it may be for the body of a conditional or
     // scatter, in which case we only need the outputs of the body statements.
-    val outputs = jobMeta.blockPath match {
+    val outputsParams = jobMeta.blockPath match {
       case Vector() => workflow.outputs
       case path =>
         val block: WdlBlock =
@@ -165,28 +217,35 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         block.target match {
           case Some(conditional: TAT.Conditional) =>
             val (_, outputs) =
-              WdlUtils.getClosureInputsAndOutputs(Vector(conditional), withField = true)
+              WdlUtils.getClosureInputsAndOutputs(conditional.body, withField = true)
             outputs.values.toVector
           case Some(scatter: TAT.Scatter) =>
             val (_, outputs) =
-              WdlUtils.getClosureInputsAndOutputs(Vector(scatter), withField = true)
-            outputs.values.toVector
+              WdlUtils.getClosureInputsAndOutputs(scatter.body, withField = true)
+            // exclude the scatter variable
+            outputs.values.filter {
+              case out: TAT.OutputParameter if out.name == scatter.identifier => false
+              case _                                                          => true
+            }.toVector
           case _ =>
             // we only need to expose the outputs that are not inputs
             val inputs = block.inputs.map(i => i.name -> i.wdlType).toMap
             block.outputs.filterNot(o => inputs.contains(o.name))
         }
     }
+    val outputTypes = outputsParams.map(o => o.name -> o.wdlType).toMap
     // create the evaluation environment
     // first add the input values
     val inputWdlValues: Map[String, V] = jobInputs.map {
+      case (name, (_, v)) if outputTypes.contains(name) =>
+        name -> WdlUtils.fromIRValue(v, outputTypes(name), name)
       case (name, (t, v)) =>
         name -> WdlUtils.fromIRValue(v, WdlUtils.fromIRType(t), name)
     }
     // also add defaults for any optional values in the output
     // closure that are not inputs
     val outputWdlValues: Map[String, V] =
-      WdlUtils.getOutputClosure(outputs).collect {
+      WdlUtils.getOutputClosure(outputsParams).collect {
         case (name, T_Optional(_)) if !inputWdlValues.contains(name) =>
           // set missing optional inputs to null
           name -> V_Null
@@ -201,15 +260,14 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           s"""|input values: ${inputWdlValues}
               |output closure values: ${outputWdlValues} 
               |outputs parameters:
-              |  ${outputs.map(TypeUtils.prettyFormatOutput(_)).mkString("\n  ")}
+              |  ${outputsParams.map(TypeUtils.prettyFormatOutput(_)).mkString("\n  ")}
               |""".stripMargin
       )
     }
     // evaluate
     val env = WdlValueBindings(inputWdlValues ++ outputWdlValues)
-    val evaluatedOutputValues = InputOutput.evaluateOutputs(outputs, evaluator, env)
+    val evaluatedOutputValues = InputOutput.evaluateOutputs(outputsParams, evaluator, env)
     // convert back to IR
-    val outputTypes = outputs.map(o => o.name -> o.wdlType).toMap
     val irOutputs = evaluatedOutputValues.toMap.map {
       case (name, value) =>
         val wdlType = outputTypes(name)
@@ -396,7 +454,8 @@ case class WdlWorkflowExecutor(docSource: FileNode,
                   callInputsIR,
                   nameDetail,
                   instanceType.map(_.name),
-                  folder = folder)
+                  folder = folder,
+                  prefixOutputs = true)
       (dxExecution, executableLink, execName)
     }
 
@@ -442,11 +501,11 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     ): Map[String, (Type, Value)] = {
       val inputEnv = env ++ extraEnv
       logger.traceLimited(
-          s"""|buildCallInputs (${executableLink.name})
+          s"""|prepareSubworkflowInputs (${executableLink.name})
               |env:
               |${inputEnv.mkString("\n")}
               |
-              |linkInfo = ${executableLink}
+              |linkInfo: ${executableLink}
               |""".stripMargin,
           minLevel = TraceLevel.VVerbose
       )
@@ -694,19 +753,23 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     private def prepareBlockOutputs(
         outputs: Map[String, ParameterLink]
     ): Map[String, ParameterLink] = {
-      val outputNames = block.outputNames
-      logger.traceLimited(
-          s"""|processOutputs
-              |  env = ${env.keys}
-              |  fragResults = ${outputs.keys}
-              |  exportedVars = ${outputNames}
-              |""".stripMargin,
-          minLevel = TraceLevel.VVerbose
-      )
-      val inputsIR = WdlUtils.toIR(env.view.filterKeys(outputNames.contains).toMap)
-      val inputLinks = jobMeta.createOutputLinks(inputsIR, validate = false)
-      val outputLink = outputs.view.filterKeys(outputNames.contains).toMap
-      inputLinks ++ outputLink
+      if (jobMeta.useManifests && outputs.contains(Constants.OutputManifest)) {
+        outputs
+      } else {
+        val outputNames = block.outputNames
+        logger.traceLimited(
+            s"""|processOutputs
+                |  env = ${env.keys}
+                |  fragResults = ${outputs.keys}
+                |  exportedVars = ${outputNames}
+                |""".stripMargin,
+            minLevel = TraceLevel.VVerbose
+        )
+        val inputsIR = WdlUtils.toIR(env.view.filterKeys(outputNames.contains).toMap)
+        val inputLinks = jobMeta.createOutputLinks(inputsIR, validate = false)
+        val outputLink = outputs.view.filterKeys(outputNames.contains).toMap
+        inputLinks ++ outputLink
+      }
     }
 
     /**
@@ -763,7 +826,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       val dxSubJob: DxExecution = dxApi.runSubJob(
           "continue",
           Some(jobMeta.instanceTypeDb.defaultInstanceType.name),
-          JsObject(jobMeta.jsInputs),
+          JsObject(jobMeta.rawJsInputs),
           childJobs,
           jobMeta.delayWorkspaceDestruction,
           Some(s"continue_scatter($nextStart)"),
@@ -774,12 +837,12 @@ case class WdlWorkflowExecutor(docSource: FileNode,
 
     private def launchScatterCollect(childJobs: Vector[DxExecution]): Map[String, ParameterLink] = {
       assert(childJobs.nonEmpty)
-      // Run a sub-job with the "continue" entry point.
+      // Run a sub-job with the "collect" entry point.
       // We need to provide the exact same inputs.
       val dxSubJob: DxExecution = dxApi.runSubJob(
           "collect",
           Some(jobMeta.instanceTypeDb.defaultInstanceType.name),
-          JsObject(jobMeta.jsInputs),
+          JsObject(jobMeta.rawJsInputs),
           childJobs,
           jobMeta.delayWorkspaceDestruction,
           Some(s"collect_scatter"),
@@ -896,7 +959,6 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     private def findChildExecutions(parentJobId: Option[String],
                                     excludeIds: Set[String],
                                     limit: Option[Int] = None): Vector[ChildExecution] = {
-
       Iterator
         .unfold[Vector[ChildExecution], Option[JsValue]](Some(JsNull)) {
           case None => None
@@ -939,6 +1001,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
 
     private def collectScatter(): Map[String, ParameterLink] = {
       val childExecutions = getScatterJobs
+
       val outputTypes: Map[String, (String, Type)] = block.kind match {
         case BlockKind.ScatterOneCall =>
           call.callee.output.map {
@@ -955,12 +1018,54 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         case _ =>
           throw new RuntimeException(s"invalid block ${block}")
       }
+
+      val (manifestId, childOutputs) =
+        if (jobMeta.useManifests) {
+          // each job has an output manifest - we need to download them all
+          childExecutions
+            .foldLeft(Option.empty[String], Vector.empty[Map[String, JsValue]]) {
+              case ((id, childOutputs), childExec) =>
+                val manifestFile = childExec.outputs.get(Constants.OutputManifest) match {
+                  case Some(fileObj: JsObject) if DxFile.isLinkJson(fileObj) =>
+                    Some(DxFile.fromJson(dxApi, fileObj))
+                  case Some(JsString(uri)) if uri.startsWith(DxPath.DxUriPrefix) =>
+                    Some(dxApi.resolveFile(uri))
+                  case None =>
+                    // maybe the applet doesn't have any outputs
+                    None
+                  case other =>
+                    throw new Exception(s"invalid manifest file value ${other}")
+                }
+                val (manifestId, manifestValues) = manifestFile
+                  .map { dxFile =>
+                    val manifestJson = new String(dxApi.downloadBytes(dxFile)).parseJson
+                    val manifest = Manifest.parse(manifestJson)
+                    (manifest.id, manifest.jsValues)
+                  }
+                  .getOrElse((None, Map.empty[String, JsValue]))
+                // all scatter jobs manifests should have the same ID
+                val newId = (id, manifestId) match {
+                  case (None, None)                         => None
+                  case (None, Some(id))                     => Some(id)
+                  case (Some(id), None)                     => Some(id)
+                  case (Some(id1), Some(id2)) if id1 == id2 => Some(id1)
+                  case (Some(id1), Some(id2)) =>
+                    throw new Exception(
+                        s"scatter job output manifests had different IDs: ${id1} != ${id2}"
+                    )
+                }
+                (newId, childOutputs :+ manifestValues)
+            }
+        } else {
+          (None, childExecutions.map(_.outputs))
+        }
+
       val arrayValues: Map[String, (Type, Value)] = outputTypes.view.mapValues {
         case (name, irType) =>
           val arrayType = TArray(irType)
           val nameEncoded = Parameter.encodeDots(name)
-          val arrayValue = childExecutions.flatMap { childExec =>
-            (irType, childExec.outputs.get(nameEncoded)) match {
+          val arrayValue = childOutputs.flatMap { outputs =>
+            (irType, outputs.get(nameEncoded)) match {
               case (_, Some(jsValue)) =>
                 Some(jobMeta.inputDeserializer.deserializeInputWithType(jsValue, irType))
               case (TOptional(_), None) =>
@@ -972,7 +1077,27 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           }
           (arrayType, VArray(arrayValue))
       }.toMap
-      jobMeta.createOutputLinks(arrayValues, validate = false)
+
+      if (arrayValues.isEmpty) {
+        Map.empty
+      } else if (jobMeta.useManifests) {
+        if (manifestId.isEmpty) {
+          throw new Exception("missing manifest Id")
+        }
+        // upload the merged manifest file
+        val outputJson = arrayValues.map {
+          case (name, (t, v)) => Parameter.encodeDots(name) -> ValueSerde.serializeWithType(v, t)
+        }
+        val manifest = Manifest(outputJson, id = manifestId)
+        val destination = s"${jobMeta.manifestFolder}/${jobMeta.jobId}_output.manifest.json"
+        val manifestDxFile = dxApi.uploadString(manifest.toJson.prettyPrint, destination)
+        val outputValues = Map(
+            Constants.OutputManifest -> (TFile, VFile(manifestDxFile.asUri))
+        )
+        jobMeta.createOutputLinks(outputValues, validate = false)
+      } else {
+        jobMeta.createOutputLinks(arrayValues, validate = false)
+      }
     }
 
     override def launch(): Map[String, ParameterLink] = {

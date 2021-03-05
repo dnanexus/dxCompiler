@@ -4,7 +4,7 @@ import java.nio.file.{Path, Paths}
 import dx.Assumptions.isLoggedIn
 import dx.Tags.EdgeTest
 import dx.api._
-import dxCompiler.Main.SuccessIR
+import dxCompiler.Main.SuccessfulCompileIR
 import dx.core.CliUtils.Failure
 import dx.util.{FileUtils, JsUtils}
 import dxCompiler.Main
@@ -32,7 +32,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
     val wdlCode = pathFromBasename("input_file", "add.wdl")
     val inputs = pathFromBasename("input_file", "add_inputs.json")
     val args = List(wdlCode.toString, "-inputs", inputs.toString) ++ cFlags
-    Main.compile(args.toVector) shouldBe a[SuccessIR]
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
   it should "deal with a locked workflow" in {
@@ -44,7 +44,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
                     "--locked"
                     //, "--verbose", "--verboseKey", "GenerateIR"
     ) ++ cFlags
-    Main.compile(args.toVector) shouldBe a[SuccessIR]
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
   it should "not compile for several applets without a workflow" in {
@@ -74,18 +74,18 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
     val defaults = pathFromBasename("input_file", "population_inputs.json")
     val args = List(wdlCode.toString, "-defaults", defaults.toString) ++ cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
   }
 
   it should "handle inputs specified in the json file, but missing in the workflow" in {
     val wdlCode = pathFromBasename("input_file", "missing_args.wdl")
     val inputs = pathFromBasename("input_file", "missing_args_inputs.json")
     val args = List(wdlCode.toString, "-inputs", inputs.toString) ++ cFlags
-    Main.compile(args.toVector) shouldBe a[SuccessIR]
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
 
     // inputs as defaults
     val args2 = List(wdlCode.toString, "-defaults", inputs.toString) ++ cFlags
-    Main.compile(args2.toVector) shouldBe a[SuccessIR]
+    Main.compile(args2.toVector) shouldBe a[SuccessfulCompileIR]
 
     // Input to an applet.
     // Missing argument in a locked workflow should throw an exception.
@@ -98,7 +98,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
 
     // Missing arguments are legal in an unlocked workflow
     val args4 = List(wdlCode.toString, "-inputs", inputs.toString) ++ cFlags
-    Main.compile(args4.toVector) shouldBe a[SuccessIR]
+    Main.compile(args4.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
   it should "support struct inputs" in {
@@ -106,7 +106,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
     val inputs = pathFromBasename("struct", "Person_input.json")
     val args = List(wdlCode.toString, "-inputs", inputs.toString) ++ cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
   }
 
   it should "support array of pairs" taggedAs EdgeTest in {
@@ -115,7 +115,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
     val args = List(wdlCode.toString, "-inputs", inputs.toString) ++ cFlags
     //        ++ List("--verbose", "--verboseKey", "GenerateIR")
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
   }
 
   it should "handle an array of structs" in {
@@ -123,7 +123,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
     val inputs = pathFromBasename("struct", "array_of_structs_input.json")
     val args = List(wdlCode.toString, "-inputs", inputs.toString) ++ cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
   }
 
   it should "override default values in input file" in {
@@ -131,7 +131,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
     val inputs = pathFromBasename("input_file", "override_input.json")
     val args = List(wdlCode.toString, "-inputs", inputs.toString) ++ cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
   }
 
   it should "WDL map input" in {
@@ -139,7 +139,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
     val inputs = pathFromBasename("input_file", "map_argument_input.json")
     val args = List(wdlCode.toString, "-inputs", inputs.toString) ++ cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
 
     val dxInputsFile = inputs.getParent.resolve(FileUtils.replaceFileSuffix(inputs, ".dx.json"))
     val jsInputs = JsUtils.jsFromFile(dxInputsFile)
@@ -171,7 +171,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
     val inputs = pathFromBasename("input_file", "map_argument2_input.json")
     val args = List(wdlCode.toString, "-inputs", inputs.toString) ++ cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
 
     val dxInputsFile = inputs.getParent.resolve(FileUtils.replaceFileSuffix(inputs, ".dx.json"))
     val jsInputs = JsUtils.jsFromFile(dxInputsFile)
@@ -220,7 +220,15 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
     val inputs = pathFromBasename("input_file", "no_file_key_input.json")
     val args = List(wdlCode.toString, "-inputs", inputs.toString, "-verbose") ++ cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
+  }
+
+  it should "translate manifest inputs" in {
+    val wdlCode = pathFromBasename("manifest", "simple_manifest.wdl")
+    val inputs = pathFromBasename("manifest", "simple_manifest_input.json")
+    val args = List(wdlCode.toString, "-inputs", inputs.toString, "-verbose", "-useManifests") ++ cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileIR]
   }
 
   it should "handle parameter name with dot" in {
@@ -228,7 +236,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
     val inputs = pathFromBasename("input_file", "bwa-mem-tool_input.json")
     val args = List(cwlCode.toString, "-inputs", inputs.toString, "-verbose") ++ cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessIR]
+    retval shouldBe a[SuccessfulCompileIR]
 
     val dxInputsFile = inputs.getParent.resolve(FileUtils.replaceFileSuffix(inputs, ".dx.json"))
     val jsInputs = JsUtils.jsFromFile(dxInputsFile)

@@ -6,7 +6,11 @@ dxCompiler takes a pipeline written in the
 
 ## Setup
 
-Prerequisites: DNAnexus platform account, dx-toolkit, java 8+, python 2.7/3.x.
+Prerequisites:
+* [DNAnexus platform](https://platform.dnanexus.com) account
+* [dx-toolkit](https://documentation.dnanexus.com/downloads)
+* java 8+
+* python 2.7/3.x.
 
 Make sure you've installed the dx-toolkit CLI, and initialized it with `dx login`. Download the latest compiler jar file from the [releases](https://github.com/dnanexus/dxCompiler/releases) page.
 

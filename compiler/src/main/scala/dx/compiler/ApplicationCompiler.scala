@@ -19,8 +19,8 @@ object ApplicationCompiler {
   private val EcrDockerPreambleTemplate = "templates/ecr_docker_preamble.ssp"
   private val DynamicAppletJobTemplate = "templates/dynamic_applet_script.ssp"
   private val StaticAppletJobTemplate = "templates/static_applet_script.ssp"
-  private val WorkflowFragmentTempalate = "templates/workflow_fragment_script.ssp"
-  private val CommandTempalate = "templates/workflow_command_script.ssp"
+  private val WorkflowFragmentTemplate = "templates/workflow_fragment_script.ssp"
+  private val CommandTemplate = "templates/workflow_command_script.ssp"
   // keys used in templates
   private val RegistryKey = "registry"
   private val CredentialsKey = "credentials"
@@ -38,6 +38,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
                                streamFiles: StreamFiles.StreamFiles,
                                extras: Option[Extras],
                                parameterLinkSerializer: ParameterLinkSerializer,
+                               useManifests: Boolean,
                                dxApi: DxApi = DxApi.get,
                                logger: Logger = Logger.get)
     extends ExecutableCompiler(extras, parameterLinkSerializer, dxApi) {
@@ -118,7 +119,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         )
       case _: ExecutableKindWfFragment =>
         renderer.render(
-            ApplicationCompiler.WorkflowFragmentTempalate,
+            ApplicationCompiler.WorkflowFragmentTemplate,
             templateAttrs ++ Map(
                 "separateOutputs" -> separateOutputs
             )
@@ -127,7 +128,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         ExecutableKind.getCommand(other) match {
           case Some(command) =>
             renderer.render(
-                ApplicationCompiler.CommandTempalate,
+                ApplicationCompiler.CommandTemplate,
                 templateAttrs ++ Map("command" -> command, "separateOutputs" -> separateOutputs)
             )
           case _ =>
@@ -235,7 +236,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       //case CategoriesAttribute(categories) =>
       //  Some("categories" -> categories.mapValues(anyToJs))
     }
-    // Default and WDL-specified details can be overridden in task-specific extras
+    // Default details and those specified in the source file can be overridden
+    // by task-specific extras
     val taskSpecificDetails = (applet.kind match {
       case ExecutableKindApplet =>
         extras.flatMap(_.perTaskDxAttributes.flatMap(_.get(applet.name)).map(_.getDetailsJson))
@@ -289,12 +291,19 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         // We end up allowing all applets to use the network
         Some(DxAccess.empty.copy(network = Some(Vector("*"))))
     }
+    // using manifests requires at least UPLOAD access
+    val manifestAccess = if (useManifests) {
+      Some(DxAccess.empty.copy(project = Some(DxAccessLevel.Upload)))
+    } else {
+      None
+    }
     // merge all
     val access = defaultAccess
       .merge(taskAccess)
       .merge(taskSpecificAccess)
       .merge(allProjectsAccess)
       .mergeOpt(appletKindAccess)
+      .mergeOpt(manifestAccess)
     access.toJson match {
       case JsObject(fields) if fields.isEmpty => JsNull
       case fields                             => fields
@@ -315,7 +324,21 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
   ): Map[String, JsValue] = {
     logger.trace(s"Building /applet/new request for ${applet.name}")
     // convert inputs and outputs to dxapp inputSpec
-    val inputSpec: Vector[JsValue] = applet.inputs
+    val inputParams = if (useManifests) {
+      Vector(
+          ExecutableCompiler.InputManifestParameter,
+          ExecutableCompiler.InputManfestFilesParameter,
+          ExecutableCompiler.InputLinksParameter,
+          ExecutableCompiler.WorkflowInputManifestParameter,
+          ExecutableCompiler.WorkflowInputManfestFilesParameter,
+          ExecutableCompiler.WorkflowInputLinksParameter,
+          ExecutableCompiler.OutputIdParameter,
+          ExecutableCompiler.CallNameParameter
+      )
+    } else {
+      applet.inputs
+    }
+    val inputSpec = inputParams
       .sortWith(_.name < _.name)
       .flatMap { param =>
         try {
@@ -328,7 +351,13 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
             )
         }
       }
-    val outputSpec: Vector[JsValue] = applet.outputs
+
+    val outputParams = if (useManifests) {
+      Vector(Parameter(Constants.OutputManifest, Type.TFile))
+    } else {
+      applet.outputs
+    }
+    val outputSpec: Vector[JsValue] = outputParams
       .sortWith(_.name < _.name)
       .flatMap { param =>
         try {
@@ -341,6 +370,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
             )
         }
       }
+
     // build the dxapp runSpec
     val (runSpec, runSpecDetails) = createRunSpec(applet)
     // A fragemnt is hidden, not visible under default settings. This
@@ -377,16 +407,19 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
           ) ++ scatterChunkSize
             .map(chunkSize => Map(Constants.ScatterChunkSize -> JsNumber(chunkSize)))
             .getOrElse(Map.empty)
+        case ExecutableKindWfInputs(blockPath) if blockPath.nonEmpty =>
+          val types = applet.inputVars.map(p => p.name -> p.dxType).toMap
+          Map(Constants.BlockPath -> JsArray(blockPath.map(JsNumber(_))),
+              Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(types))
         case ExecutableKindWfOutputs(blockPath) if blockPath.nonEmpty =>
           val types = applet.inputVars.map(p => p.name -> p.dxType).toMap
           Map(Constants.BlockPath -> JsArray(blockPath.map(JsNumber(_))),
               Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(types))
-        case ExecutableKindWfInputs | _: ExecutableKindWfOutputs |
+        case _: ExecutableKindWfInputs | _: ExecutableKindWfOutputs |
             ExecutableKindWfCustomReorgOutputs | ExecutableKindWorkflowOutputReorg =>
           val types = applet.inputVars.map(p => p.name -> p.dxType).toMap
           Map(Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(types))
-        case _ =>
-          Map.empty
+        case _ => Map.empty
       }
     // compress and base64 encode the source code
     val sourceEncoded = CodecUtils.gzipAndBase64Encode(applet.document.toString)
@@ -404,9 +437,14 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         Constants.InstanceTypeDb -> JsString(dbOpaqueEncoded),
         Constants.RuntimeAttributes -> defaultRuntimeAttributes
     )
+    val useManifestsDetails = if (useManifests) {
+      Map(Constants.UseManifests -> JsBoolean(true))
+    } else {
+      Map.empty
+    }
     // combine all details into a single Map
     val details: Map[String, JsValue] =
-      taskDetails ++ runSpecDetails ++ delayDetails ++ dxLinks.toMap ++ metaDetails ++ auxDetails
+      taskDetails ++ runSpecDetails ++ delayDetails ++ dxLinks.toMap ++ metaDetails ++ auxDetails ++ useManifestsDetails
     // build the API request
     val requestRequired = Map(
         "name" -> JsString(applet.name),

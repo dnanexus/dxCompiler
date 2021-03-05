@@ -2,12 +2,13 @@ package dx.core.ir
 
 import dx.core.ir.Type._
 import dx.core.ir.Value._
+import dx.util.CollectionUtils.IterableOnceExtensions
 import spray.json._
 
 import scala.collection.immutable.TreeSeqMap
 
 object ValueSerde extends DefaultJsonProtocol {
-  val WrappedValueKey = "value___"
+  val WrappedValueKey = "wrapped___"
 
   case class ValueSerdeException(message: String) extends Exception(message)
 
@@ -206,14 +207,19 @@ object ValueSerde extends DefaultJsonProtocol {
         case (TMulti(bounds), _) if bounds.isEmpty => deserialize(v)
         case (TMulti(bounds), _) if isWrappedValue(v) =>
           val unwrappedValue = unwrapValue(v)
-          bounds.foreach { t =>
-            try {
-              return inner(unwrappedValue, t)
-            } catch {
-              case _: ValueSerdeException => ()
+          bounds.iterator
+            .collectFirstDefined { t =>
+              try {
+                Some(inner(unwrappedValue, t))
+              } catch {
+                case _: ValueSerdeException => None
+              }
             }
-          }
-          throw ValueSerdeException(s"value ${unwrappedValue} does not match any of ${bounds}")
+            .getOrElse(
+                throw ValueSerdeException(
+                    s"value ${unwrappedValue} does not match any of ${bounds}"
+                )
+            )
         case (TBoolean, JsBoolean(b))                     => VBoolean(b.booleanValue)
         case (TInt, JsNumber(value)) if value.isValidLong => VInt(value.toLongExact)
         case (TFloat, JsNumber(value))                    => VFloat(value.toDouble)

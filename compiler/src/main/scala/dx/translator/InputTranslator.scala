@@ -2,6 +2,7 @@ package dx.translator
 
 import java.nio.file.{Path, Paths}
 import dx.api.{DxApi, DxFile, DxFileDescCache, DxProject}
+import dx.core.Constants
 import dx.core.ir.Type._
 import dx.core.ir.{
   Application,
@@ -11,7 +12,9 @@ import dx.core.ir.{
   ParameterLinkSerializer,
   StaticInput,
   Type,
+  Manifest,
   Value,
+  ValueSerde,
   Workflow
 }
 import dx.util.{FileSourceResolver, FileUtils, JsUtils, Logger}
@@ -64,14 +67,29 @@ class InputTranslator(bundle: Bundle,
                       inputs: Vector[Path],
                       defaults: Option[Path],
                       project: DxProject,
+                      useManifests: Boolean,
                       baseFileResolver: FileSourceResolver = FileSourceResolver.get,
                       dxApi: DxApi = DxApi.get,
                       logger: Logger = Logger.get) {
 
-  private lazy val inputsJs: Map[Path, Map[String, JsValue]] =
+  private lazy val rawInputsJs: Map[Path, Map[String, JsValue]] =
     inputs.map(path => path -> InputTranslator.loadJsonFileWithComments(path)).toMap
   private lazy val defaultsJs =
     defaults.map(InputTranslator.loadJsonFileWithComments).getOrElse(Map.empty)
+
+  private lazy val inputsJs: Map[Path, Map[String, JsValue]] = {
+    rawInputsJs.map {
+      case (path, jsValues)
+          if jsValues.size == 1 && jsValues.keys.head.endsWith(Constants.InputManifest) =>
+        val (key, fields) = jsValues.head
+        val prefix = key.dropRight(Constants.InputManifest.length + 1)
+        val manifest = Manifest.parse(fields)
+        path -> manifest.jsValues.map {
+          case (name, value) => s"${prefix}.${name}" -> value
+        }
+      case (path, jsValues) => path -> jsValues
+    }
+  }
 
   /**
     * Converts a language-specific JSON value to one that can be deserialized to an IR Value.
@@ -207,7 +225,7 @@ class InputTranslator(bundle: Bundle,
             val stagesWithDefaults = workflow.stages.map { stage =>
               val callee: Callable = bundle.allCallables(stage.calleeName)
               logger.trace(s"addDefaultToStage ${stage.dxStage.id}, ${stage.description}")
-              val prefix = if (stage.dxStage.id == s"stage-${CommonStage}") {
+              val prefix = if (stage.dxStage.id == s"stage-${Constants.CommonStage}") {
                 workflow.name
               } else {
                 s"${workflow.name}.${stage.description}"
@@ -305,10 +323,10 @@ class InputTranslator(bundle: Bundle,
         val commonInputs = checkAndBindCallableInputs(wf, Some(commonStage))
         // filter out auxiliary stages
         val auxStages =
-          Set(s"stage-${CommonStage}",
-              s"stage-${EvalStage}",
-              s"stage-${OutputStage}",
-              s"stage-${ReorgStage}")
+          Set(Constants.CommonStage,
+              Constants.EvalStage,
+              Constants.OutputStage,
+              Constants.ReorgStage).map(stg => s"stage-${stg}")
         val middleStages = wf.stages.filterNot(stg => auxStages.contains(stg.dxStage.id))
         // Inputs for top level calls
         val middleInputs = middleStages.flatMap { stage =>
@@ -345,25 +363,31 @@ class InputTranslator(bundle: Bundle,
     }
   }
 
-  lazy val translatedInputFields: Map[Path, Map[String, JsValue]] = {
-    translatedInputs.view.mapValues { inputs =>
-      inputs.flatMap {
-        case (name, (t, v)) =>
-          parameterLinkSerializer.createFields(name, t, v, encodeDots = false)
-      }
-    }.toMap
-  }
-
   def writeTranslatedInputs(): Unit = {
-    translatedInputFields.foreach {
+    translatedInputs.foreach {
       case (path, inputs) =>
-        val fileName = FileUtils.replaceFileSuffix(path, ".dx.json")
+        val (fileName, jsValues) = if (useManifests) {
+          val fileName = FileUtils.replaceFileSuffix(path, ".dx.json")
+          val (types, values) = inputs.map {
+            case (name, (t, v)) => (name -> t, name -> ValueSerde.serializeWithType(v, t))
+          }.unzip
+          val manifest = Manifest(values.toMap, Some(types.toMap))
+          val manifestJson = JsObject(Constants.InputManifest -> JsObject(manifest.jsValues))
+          (fileName, manifestJson)
+        } else {
+          val fileName = FileUtils.replaceFileSuffix(path, ".dx.json")
+          val jsValues = inputs.flatMap {
+            case (name, (t, v)) =>
+              parameterLinkSerializer.createFields(name, t, v, encodeDots = false)
+          }
+          (fileName, JsObject(jsValues))
+        }
         val dxInputFile = path.getParent match {
           case null   => Paths.get(fileName)
           case parent => parent.resolve(fileName)
         }
         logger.trace(s"Writing DNAnexus JSON input file ${dxInputFile}")
-        JsUtils.jsToFile(JsObject(inputs), dxInputFile)
+        JsUtils.jsToFile(jsValues, dxInputFile)
     }
   }
 }

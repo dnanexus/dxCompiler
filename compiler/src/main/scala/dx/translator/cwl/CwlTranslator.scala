@@ -5,7 +5,7 @@ import dx.core.ir.{Bundle, Type, Value}
 import dx.core.languages.Language
 import dx.core.languages.Language.Language
 import dx.core.languages.cwl.{CwlUtils, DxHintSchema}
-import dx.cwl.{CommandLineTool, CwlRecord, Parser, HintUtils}
+import dx.cwl.{CommandLineTool, CwlRecord, HintUtils, Parser}
 import dx.translator.{
   DxWorkflowAttrs,
   InputTranslator,
@@ -23,10 +23,18 @@ case class CwlInputTranslator(bundle: Bundle,
                               inputs: Vector[Path],
                               defaults: Option[Path],
                               project: DxProject,
+                              useManifests: Boolean,
                               baseFileResolver: FileSourceResolver = FileSourceResolver.get,
                               dxApi: DxApi = DxApi.get,
                               logger: Logger = Logger.get)
-    extends InputTranslator(bundle, inputs, defaults, project, baseFileResolver, dxApi, logger) {
+    extends InputTranslator(bundle,
+                            inputs,
+                            defaults,
+                            project,
+                            useManifests,
+                            baseFileResolver,
+                            dxApi,
+                            logger) {
 
   override protected def translateJsInput(jsv: JsValue, t: Type): JsValue = {
     (t, jsv) match {
@@ -57,6 +65,7 @@ case class CwlTranslator(tool: CommandLineTool,
                          reorgAttrs: ReorgSettings,
                          perWorkflowAttrs: Map[String, DxWorkflowAttrs],
                          defaultScatterChunkSize: Int,
+                         useManifests: Boolean,
                          fileResolver: FileSourceResolver = FileSourceResolver.get,
                          dxApi: DxApi = DxApi.get,
                          logger: Logger = Logger.get)
@@ -92,13 +101,11 @@ case class CwlTranslator(tool: CommandLineTool,
            irTypeAliases)
   }
 
-  override def translateInputs(bundle: Bundle,
-                               inputs: Vector[Path],
-                               defaults: Option[Path],
-                               project: DxProject): (Bundle, FileSourceResolver) = {
-    val inputTranslator = CwlInputTranslator(bundle, inputs, defaults, project, fileResolver)
-    inputTranslator.writeTranslatedInputs()
-    (inputTranslator.bundleWithDefaults, inputTranslator.fileResolver)
+  override protected def createInputTranslator(bundle: Bundle,
+                                               inputs: Vector[Path],
+                                               defaults: Option[Path],
+                                               project: DxProject): InputTranslator = {
+    CwlInputTranslator(bundle, inputs, defaults, project, useManifests, fileResolver)
   }
 }
 
@@ -110,6 +117,7 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
                       reorgAttrs: ReorgSettings,
                       perWorkflowAttrs: Map[String, DxWorkflowAttrs],
                       defaultScatterChunkSize: Int,
+                      useManifests: Boolean,
                       fileResolver: FileSourceResolver,
                       dxApi: DxApi,
                       logger: Logger): Option[Translator] = {
@@ -162,6 +170,7 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
                       reorgAttrs,
                       perWorkflowAttrs,
                       defaultScatterChunkSize,
+                      useManifests,
                       fileResolver,
                       dxApi,
                       logger)

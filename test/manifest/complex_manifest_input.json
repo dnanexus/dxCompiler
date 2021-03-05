@@ -1,0 +1,14 @@
+{
+  "complex_manifest.input_manifest___": {
+    "samples": {
+      "keys": ["sample1", "sample2"],
+      "values": [
+        ["dx://file-G0fgy1j0yzZQfGg037bxyb95"],
+        [
+          "dx://file-G0fgy1j0yzZQfGg037bxyb95",
+          "dx://file-G0q9Qz00yzZqG8pV2f3F8XXb"
+        ]
+      ]
+    }
+  }
+}

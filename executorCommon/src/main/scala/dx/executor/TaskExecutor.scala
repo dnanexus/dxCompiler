@@ -42,7 +42,6 @@ abstract class TaskExecutor(jobMeta: JobMeta,
 
   private val fileResolver = jobMeta.fileResolver
   private val dxApi = jobMeta.dxApi
-
   private val logger = jobMeta.logger
 
   protected def trace(msg: String, minLevel: Int = TraceLevel.Verbose): Unit = {
@@ -65,7 +64,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     */
   protected def getInstanceTypeRequest: InstanceTypeRequest
 
-  private def getRequiredInstanceType: String = {
+  private def getRequestedInstanceType: String = {
     val instanceTypeRequest: InstanceTypeRequest = getInstanceTypeRequest
     logger.traceLimited(s"calcInstanceType $instanceTypeRequest")
     jobMeta.instanceTypeDb.apply(instanceTypeRequest).name
@@ -78,18 +77,18 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     */
   protected def checkInstanceType: Boolean = {
     // calculate the required instance type
-    val requiredInstanceType = getRequiredInstanceType
-    trace(s"required instance type: ${requiredInstanceType}")
-    val curInstanceType = jobMeta.instanceType.getOrElse(
+    val requestedInstanceType = getRequestedInstanceType
+    trace(s"requested instance type: ${requestedInstanceType}")
+    val currentInstanceType = jobMeta.instanceType.getOrElse(
         throw new Exception(s"Cannot get instance type for job ${jobMeta.jobId}")
     )
-    trace(s"current instance type: ${curInstanceType}")
+    trace(s"current instance type: ${currentInstanceType}")
     val isSufficient =
       try {
-        jobMeta.instanceTypeDb.matchesOrExceedes(curInstanceType, requiredInstanceType)
+        jobMeta.instanceTypeDb.matchesOrExceedes(currentInstanceType, requestedInstanceType)
       } catch {
         case ex: Throwable =>
-          logger.warning("error comparing current and required instance types",
+          logger.warning("error comparing current and requested instance types",
                          exception = Some(ex))
           false
       }
@@ -454,10 +453,19 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     }.toMap
 
     // upload the files, and map their local paths to their remote URIs
-    val delocalizedPathToUri: Map[Path, String] =
-      fileUploader.upload(delocalizingValueToPath.values.toSet).map {
+    val delocalizedPathToUri: Map[Path, String] = {
+      val dxFiles = if (jobMeta.useManifests) {
+        // if using manifests, we need to upload the files directly to the project
+        fileUploader.upload(delocalizingValueToPath.values.map { path =>
+          path -> s"${jobMeta.manifestFolder}/${path.getFileName.toString}"
+        }.toMap)
+      } else {
+        fileUploader.upload(delocalizingValueToPath.values.toSet)
+      }
+      dxFiles.map {
         case (path, dxFile) => path -> dxFile.asUri
       }
+    }
 
     // Replace the local paths in the output values with URIs. For files that
     // were inputs, we can resolve them using a mapping of input values to URIs;
@@ -518,8 +526,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     // Run a sub-job with the "body" entry point, and the required instance type
     val dxSubJob: DxJob =
       jobMeta.dxApi.runSubJob("body",
-                              Some(getRequiredInstanceType),
-                              JsObject(jobMeta.jsInputs),
+                              Some(getRequestedInstanceType),
+                              JsObject(jobMeta.rawJsInputs),
                               Vector.empty,
                               jobMeta.delayWorkspaceDestruction)
     jobMeta.writeExecutionOutputLinks(dxSubJob, outputTypes)
@@ -535,14 +543,10 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         checkInstanceType.toString
       } else {
         action match {
-          case TaskAction.Prolog =>
-            prolog()
-          case TaskAction.InstantiateCommand =>
-            instantiateCommand()
-          case TaskAction.Epilog =>
-            epilog()
-          case TaskAction.Relaunch =>
-            relaunch()
+          case TaskAction.Prolog             => prolog()
+          case TaskAction.InstantiateCommand => instantiateCommand()
+          case TaskAction.Epilog             => epilog()
+          case TaskAction.Relaunch           => relaunch()
           case _ =>
             throw new Exception(s"Invalid executor action ${action}")
         }

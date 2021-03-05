@@ -1,5 +1,9 @@
 # Release Notes
 
+## in dev
+
+* Adds `-useManifests` option to generate applets and workflows whose inputs and outputs are manifest files
+
 ## 2.3.1 03-03-2021
 
 * Fixes issue with call arguments that access fields of private declarations

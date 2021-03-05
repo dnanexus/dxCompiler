@@ -91,6 +91,10 @@ wdl_v1_list = [
     "nested_pairs",  # APPS-370
     "apps_378",
     "apps_384",
+
+    # manifests
+    "simple_manifest",
+    "complex_manifest",
 ]
 
 # docker image tests
@@ -446,6 +450,8 @@ def build_test(tname, project, folder, version_id, compiler_flags):
                 "-force",
                 "-folder", folder,
                 "-project", project.get_id() ]
+    if "manifest" in desc.source_file:
+        cmdline.append("-useManifests")
     cmdline += compiler_flags
     print(" ".join(cmdline))
     oid = subprocess.check_output(cmdline).strip()

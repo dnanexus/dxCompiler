@@ -25,11 +25,16 @@ trait Translator {
 
   def fileResolver: FileSourceResolver
 
+  protected def createInputTranslator(bundle: Bundle,
+                                      inputs: Vector[Path],
+                                      defaults: Option[Path],
+                                      project: DxProject): InputTranslator
+
   def translateInputs(bundle: Bundle,
                       inputs: Vector[Path],
                       defaults: Option[Path],
                       project: DxProject): (Bundle, FileSourceResolver) = {
-    val inputTranslator = new InputTranslator(bundle, inputs, defaults, project, fileResolver)
+    val inputTranslator = createInputTranslator(bundle, inputs, defaults, project)
     inputTranslator.writeTranslatedInputs()
     (inputTranslator.bundleWithDefaults, inputTranslator.fileResolver)
   }
@@ -43,6 +48,7 @@ trait TranslatorFactory {
              reorgAttrs: ReorgSettings,
              perWorkflowAttrs: Map[String, DxWorkflowAttrs],
              defaultScatterChunkSize: Int,
+             useManifests: Boolean,
              fileResolver: FileSourceResolver,
              dxApi: DxApi = DxApi.get,
              logger: Logger = Logger.get): Option[Translator]
@@ -60,6 +66,7 @@ object TranslatorFactory {
                        defaultScatterChunkSize: Int,
                        locked: Boolean = false,
                        reorgEnabled: Option[Boolean] = None,
+                       useManifests: Boolean,
                        baseFileResolver: FileSourceResolver = FileSourceResolver.get,
                        dxApi: DxApi = DxApi.get,
                        logger: Logger = Logger.get): Translator = {
@@ -83,6 +90,7 @@ object TranslatorFactory {
                        reorgAttrs,
                        perWorkflowAttrs,
                        defaultScatterChunkSize,
+                       useManifests,
                        fileResolver,
                        dxApi,
                        logger) match {

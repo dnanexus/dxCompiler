@@ -1,8 +1,7 @@
 package dxCompiler
 
 import java.nio.file.{Files, Path, Paths}
-
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{Config, ConfigFactory}
 import dx.api._
 import dx.compiler.{Compiler, ExecutableTree}
 import dx.core.getVersion
@@ -83,19 +82,6 @@ object Main {
 
   // compile
 
-  case class SuccessIR(bundle: Bundle, override val message: String = "Intermediate representation")
-      extends SuccessfulTermination
-
-  case class SuccessPrettyTree(pretty: String) extends SuccessfulTermination {
-    def message: String = pretty
-  }
-  case class SuccessJsonTree(jsValue: JsValue) extends SuccessfulTermination {
-    lazy val message: String = jsValue match {
-      case JsNull => ""
-      case _      => jsValue.prettyPrint
-    }
-  }
-
   object CompilerAction extends Enum {
     type CompilerAction = Value
     val Compile, Config, DxNI, Version, Describe = Value
@@ -152,14 +138,17 @@ object Main {
       "separateOutputs" -> FlagOptionSpec.default,
       "streamFiles" -> StreamFilesOptionSpec,
       "streamAllFiles" -> FlagOptionSpec.default,
-      "scatterChunkSize" -> IntOptionSpec.one
+      "scatterChunkSize" -> IntOptionSpec.one,
+      "useManifests" -> FlagOptionSpec.default
   )
 
   private val DeprecatedCompileOptions = Set(
-      "fatalValidationWarnings"
+      "fatalValidationWarnings",
+      "input",
+      "streamAllFiles"
   )
 
-  private def resolveDestination(
+  private def resolvePath(
       dxApi: DxApi,
       project: Option[String],
       folder: Option[String],
@@ -168,7 +157,7 @@ object Main {
   ): (DxProject, Either[String, DxDataObject]) = {
     val projectId = project.getOrElse({
       val projectId = dxApi.currentProjectId.get
-      Logger.get.warning(s"Project is unspecified...using currently select project ${projectId}")
+      Logger.get.warning(s"Project is unspecified...using currently selected project ${projectId}")
       projectId
     })
     val dxProject =
@@ -206,10 +195,10 @@ object Main {
     (dxProject, folderOrPath)
   }
 
-  private def resolveOrCreateDestination(dxApi: DxApi,
-                                         project: String,
-                                         folder: String): (DxProject, String) = {
-    resolveDestination(dxApi, Some(project), Some(folder), create = true) match {
+  private def resolveOrCreatePath(dxApi: DxApi,
+                                  project: String,
+                                  folder: String): (DxProject, String) = {
+    resolvePath(dxApi, Some(project), Some(folder), create = true) match {
       case (dxProject, Left(folder)) => (dxProject, folder)
       case _                         => throw new Exception("expected folder")
     }
@@ -237,7 +226,7 @@ object Main {
         (project, folder)
       case (Some(folder), None, _) if folder.startsWith("/") && dxApi.currentProjectId.isDefined =>
         val project = dxApi.currentProjectId.get
-        Logger.get.warning(s"Project is unspecified...using currently select project ${project}")
+        Logger.get.warning(s"Project is unspecified...using currently selected project ${project}")
         (project, folder)
       case (Some(other), _, _) =>
         throw OptionParseException(s"Invalid destination <${other}>")
@@ -247,17 +236,67 @@ object Main {
         (project, "/")
       case (None, None, Some(folder)) =>
         val project = dxApi.currentProjectId.get
-        Logger.get.warning(s"Project is unspecified...using currently select project ${project}")
+        Logger.get.warning(s"Project is unspecified...using currently selected project ${project}")
         (project, folder)
       case (None, None, None) =>
         val project = dxApi.currentProjectId.get
-        Logger.get.warning(s"Project is unspecified...using currently select project ${project}")
+        Logger.get.warning(s"Project is unspecified...using currently selected project ${project}")
         (project, "/")
       case _ =>
         throw OptionParseException("Project is unspecified")
     }
-    resolveOrCreateDestination(dxApi, project, folder)
+    resolveOrCreatePath(dxApi, project, folder)
   }
+
+  sealed trait CompilerSuccessfulTermination extends SuccessfulTermination {
+    def compilerAction: CompilerAction.CompilerAction
+  }
+
+  sealed trait SuccessfulCompile extends CompilerSuccessfulTermination {
+    override val compilerAction: CompilerAction.CompilerAction = CompilerAction.Compile
+
+    def compilerMode: CompilerMode.CompilerMode
+  }
+
+  case class SuccessfulCompileIR(bundle: Bundle) extends SuccessfulCompile {
+    override val compilerMode: CompilerMode.CompilerMode = CompilerMode.IR
+
+    override val message: String = "Intermediate representation"
+  }
+
+  sealed trait SuccessfulPrettyTree extends CompilerSuccessfulTermination {
+    def prettyTree: String
+  }
+
+  sealed trait SuccessfulJsonTree extends CompilerSuccessfulTermination {
+    def jsonTree: JsValue
+  }
+
+  sealed trait SuccessfulCompileNative extends SuccessfulCompile {
+    def executableIds: Vector[String]
+
+    override def message: String = {
+      executableIds.mkString(",")
+    }
+  }
+
+  case class SuccessfulCompileNativeNoTree(override val compilerMode: CompilerMode.CompilerMode,
+                                           override val executableIds: Vector[String])
+      extends SuccessfulCompileNative
+
+  case class SuccessfulCompileNativeWithPrettyTree(
+      override val compilerMode: CompilerMode.CompilerMode,
+      override val executableIds: Vector[String],
+      override val prettyTree: String
+  ) extends SuccessfulCompileNative
+      with SuccessfulPrettyTree
+
+  case class SuccessfulCompileNativeWithJsonTree(
+      override val compilerMode: CompilerMode.CompilerMode,
+      override val executableIds: Vector[String],
+      override val jsonTree: JsValue
+  ) extends SuccessfulCompileNative
+      with SuccessfulJsonTree
 
   def compile(args: Vector[String]): Termination = {
     val sourceFile: Path = args.headOption
@@ -308,7 +347,15 @@ object Main {
     val compileMode: CompilerMode.CompilerMode =
       options.getValueOrElse[CompilerMode.CompilerMode]("compileMode", CompilerMode.All)
 
-    val locked = options.getFlag("locked")
+    val useManifests: Boolean = options.getFlag("useManifests")
+    val locked = options.getFlag("locked") match {
+      case false if useManifests =>
+        logger.warning(
+            "Usage of manifests is only compatible with locked workflows; setting '-locked' flag"
+        )
+        true
+      case b => b
+    }
 
     val translator =
       try {
@@ -321,6 +368,7 @@ object Main {
             defaultScatterChunkSize,
             locked,
             if (reorg) Some(true) else None,
+            useManifests,
             baseFileResolver
         )
       } catch {
@@ -345,7 +393,7 @@ object Main {
 
     // quit here if the target is IR and there are no inputs to translate
     if (!hasInputs && compileMode == CompilerMode.IR) {
-      return SuccessIR(rawBundle)
+      return SuccessfulCompileIR(rawBundle)
     }
 
     // for everything past this point, the user needs to be logged in
@@ -375,7 +423,7 @@ object Main {
         }
       if (compileMode == CompilerMode.IR) {
         // if we're only performing translation to IR, we can quit early
-        return SuccessIR(bundleWithDefaults)
+        return SuccessfulCompileIR(bundleWithDefaults)
       }
       (bundleWithDefaults, fileResolver)
     } else {
@@ -423,6 +471,7 @@ object Main {
           projectWideReuse,
           separateOutputs,
           streamFiles,
+          useManifests,
           fileResolver
       )
       val results = compiler.apply(bundle, project, folder)
@@ -435,12 +484,14 @@ object Main {
           }
           format match {
             case ExecTreeFormat.Json =>
-              SuccessJsonTree(treeJs)
+              SuccessfulCompileNativeWithJsonTree(compileMode, results.executableIds, treeJs)
             case ExecTreeFormat.Pretty =>
-              SuccessPrettyTree(ExecutableTree.prettyPrint(treeJs.asJsObject))
+              SuccessfulCompileNativeWithPrettyTree(compileMode,
+                                                    results.executableIds,
+                                                    ExecutableTree.prettyPrint(treeJs.asJsObject))
           }
         case _ =>
-          Success(results.executableIds.mkString(","))
+          SuccessfulCompileNativeNoTree(compileMode, results.executableIds)
       }
     } catch {
       case e: Throwable =>
@@ -451,7 +502,7 @@ object Main {
 
   // DxNI
 
-  private object AppsOption extends Enum {
+  object AppsOption extends Enum {
     type AppsOption = Value
     val Include, Exclude, Only = Value
   }
@@ -466,6 +517,17 @@ object Main {
       "recursive" -> FlagOptionSpec.default,
       "r" -> FlagOptionSpec.default.copy(alias = Some("recursive"))
   )
+
+  case class SuccessfulDxNI(appsOption: AppsOption.AppsOption,
+                            apps: Vector[DxApp],
+                            applets: Vector[DxApplet])
+      extends CompilerSuccessfulTermination {
+    override val compilerAction: CompilerAction.CompilerAction = CompilerAction.DxNI
+
+    override def message: String = {
+      s"Apps: ${apps.size}, Applets: ${applets.size}"
+    }
+  }
 
   def dxni(args: Vector[String]): Termination = {
     val options =
@@ -506,7 +568,7 @@ object Main {
         "force",
         "recursive"
     ).map(options.getFlag(_))
-    val apps = if (pathIsAppId) {
+    val appsOption = if (pathIsAppId) {
       AppsOption.Only
     } else {
       options
@@ -543,23 +605,24 @@ object Main {
     }
 
     val dxni = DxNativeInterface(fileResolver)
-    if (apps == AppsOption.Only) {
+    if (appsOption == AppsOption.Only) {
       try {
-        writeOutput(dxni.apply(language, pathOpt))
-        Success()
+        val (apps, lines) = dxni.apply(language, pathOpt)
+        writeOutput(lines)
+        SuccessfulDxNI(appsOption, apps, Vector.empty)
       } catch {
         case e: Throwable => Failure(exception = Some(e))
       }
     } else {
-      val (dxProject, folderOrFile) = resolveDestination(dxApi, projectOpt, folderOpt, pathOpt)
-      val includeApps = apps match {
+      val (dxProject, folderOrFile) = resolvePath(dxApi, projectOpt, folderOpt, pathOpt)
+      val includeApps = appsOption match {
         case AppsOption.Include => true
         case AppsOption.Exclude => false
         case _ =>
-          throw new RuntimeException(s"unexpected value for --apps ${apps}")
+          throw new RuntimeException(s"unexpected value for --apps ${appsOption}")
       }
       try {
-        val output = folderOrFile match {
+        val (apps, applets, lines) = folderOrFile match {
           case Left(folder) =>
             dxni.apply(language,
                        dxProject,
@@ -573,8 +636,8 @@ object Main {
                 s"Invalid folder/path ${folderOrFile}"
             )
         }
-        writeOutput(output)
-        Success()
+        writeOutput(lines)
+        SuccessfulDxNI(appsOption, apps, applets)
       } catch {
         case e: Throwable => Failure(exception = Some(e))
       }
@@ -582,6 +645,25 @@ object Main {
   }
 
   // describe
+
+  sealed trait SuccessfulDescribe extends CompilerSuccessfulTermination {
+    override def compilerAction: CompilerAction.CompilerAction = CompilerAction.Describe
+  }
+
+  case class SuccessfulDescribePrettyTree(override val prettyTree: String)
+      extends SuccessfulDescribe
+      with SuccessfulPrettyTree {
+    override def message: String = prettyTree
+  }
+
+  case class SuccessfulDescribeJsonTree(override val jsonTree: JsValue)
+      extends SuccessfulDescribe
+      with SuccessfulJsonTree {
+    override def message: String = jsonTree match {
+      case JsNull => ""
+      case _      => jsonTree.prettyPrint
+    }
+  }
 
   private def DescribeOptions: InternalOptions = Map(
       "pretty" -> FlagOptionSpec.default
@@ -611,14 +693,26 @@ object Main {
       val execTreeJS = ExecutableTree.fromDxWorkflow(wf)
       if (options.getFlag("pretty")) {
         val prettyTree = ExecutableTree.prettyPrint(execTreeJS.asJsObject)
-        SuccessPrettyTree(prettyTree)
+        SuccessfulDescribePrettyTree(prettyTree)
       } else {
-        SuccessJsonTree(execTreeJS)
+        SuccessfulDescribeJsonTree(execTreeJS)
       }
     } catch {
       case e: Throwable =>
         BadUsageTermination(exception = Some(e))
     }
+  }
+
+  case class SuccessfulConfig(config: Config) extends CompilerSuccessfulTermination {
+    override def compilerAction: CompilerAction.CompilerAction = CompilerAction.Config
+
+    override def message: String = config.toString
+  }
+
+  case class SuccessfulVersion(version: String = getVersion) extends CompilerSuccessfulTermination {
+    override def compilerAction: CompilerAction.CompilerAction = CompilerAction.Version
+
+    override def message: String = version
   }
 
   private def dispatchCommand(args: Vector[String]): Termination = {
@@ -637,8 +731,8 @@ object Main {
         case CompilerAction.Compile  => compile(args.tail)
         case CompilerAction.Describe => describe(args.tail)
         case CompilerAction.DxNI     => dxni(args.tail)
-        case CompilerAction.Config   => Success(ConfigFactory.load().toString)
-        case CompilerAction.Version  => Success(getVersion)
+        case CompilerAction.Config   => SuccessfulConfig(ConfigFactory.load())
+        case CompilerAction.Version  => SuccessfulVersion()
       }
     } catch {
       case e: Throwable =>
@@ -651,68 +745,80 @@ object Main {
         |
         |Actions:
         |  version
-        |    Prints the dxCompiler version
+        |    Prints the dxCompiler version.
         |  
         |  config
-        |    Prints the current dxCompiler configuration
+        |    Prints the current dxCompiler configuration.
         |  
         |  describe <DxWorkflow ID>
-        |    Generate the execution tree as JSON for a given dnanexus workflow ID.
-        |    Workflow needs to be have been previoulsy compiled by dxCompiler.
+        |    Generate the JSON execution tree for a given DNAnexus workflow ID.
+        |    The workflow needs to be have been previously compiled by dxCompiler.
         |    options
-        |      -pretty                Print exec tree in pretty format instead of JSON
+        |      -pretty                Print exec tree in "pretty" text format instead of JSON.
         |
         |  compile <WDL file>
-        |    Compile a wdl file into a dnanexus workflow.
-        |    Optionally, specify a destination path on the
-        |    platform. If a WDL inputs files is specified, a dx JSON
-        |    inputs file is generated from it.
+        |    Compile a WDL file to a DNAnexus workflow or applet.
         |    options
-        |      -archive                   Archive older versions of applets
-        |      -compileMode <string>      Compilation mode, a debugging flag
-        |      -defaults <string>         File with Cromwell formatted default values (JSON)
-        |      -execTree [json,pretty]    Write out a json representation of the workflow
-        |      -extras <string>           JSON formatted file with extra options, for example
-        |                                 default runtime options for tasks.
-        |      -inputs <string>           File with Cromwell formatted inputs
-        |      -locked                    Create a locked-down workflow
-        |      -leaveWorkflowsOpen        Leave created workflows open (otherwise they are closed)
-        |      -p | -imports <string>     Directory to search for imported WDL files
-        |      -projectWideReuse          Look for existing applets/workflows in the entire project
-        |                                 before generating new ones. The normal search scope is the
-        |                                 target folder only.
-        |      -reorg                     Reorganize workflow output files
-        |      -runtimeDebugLevel [0,1,2] How much debug information to write to the
-        |                                 job log at runtime. Zero means write the minimum,
-        |                                 one is the default, and two is for internal debugging.
-        |      -separateOutputs           Store the output files of each call in a separate folder. The
-        |                                 default behavior is to put all outputs in the same folder.
-        |      -streamFiles               Whether to mount all files with dxfuse (do not use the 
-        |                                 download agent), or to mount no files with dxfuse (only use 
-        |                                 download agent); this setting overrides any per-file settings
-        |                                 in WDL parameter_meta sections.
+        |      -archive               Archive older versions of applets.
+        |      -compileMode <string>  Compilation mode - a debugging flag for internal use.
+        |      -defaults <string>     JSON file with standard-formatted default values.
+        |      -destination <string>    Full platform path (project:/folder).
+        |      -execTree [json,pretty]    
+        |                             Print a JSON representation of the workflow.
+        |      -extras <string>       JSON file with extra options (see documentation).
+        |      -inputs <string>       JSON file with standard-formatted input values. May be
+        |                             specified multiple times. A DNAnexus JSON input file is
+        |                             generated for each standard input file.
+        |      -locked                Create a locked workflow. When running a locked workflow,
+        |                             input values may only be specified for the top-level workflow.
+        |      -leaveWorkflowsOpen    Leave created workflows open (otherwise they are closed).
+        |      -p | -imports <string> Directory to search for imported WDL files. May be specified
+        |                             multiple times.
+        |      -projectWideReuse      Look for existing applets/workflows in the entire project
+        |                             before generating new ones. The default search scope is the
+        |                             target folder only.
+        |      -reorg                 Reorganize workflow output files.
+        |      -runtimeDebugLevel [0,1,2] 
+        |                             How much debug information to write to the job log at runtime.
+        |                             Log the minimum (0), intermediate (1, the default), or all 
+        |                             debug information (2, for internal debugging).
+        |      -separateOutputs       Store the output files of each call in a separate folder. The
+        |                             default behavior is to put all outputs in the same folder.                             
+        |      -streamFiles [all,none,perfile]
+        |                             Whether to mount all files with dxfuse (do not use the 
+        |                             download agent), to mount no files with dxfuse (only use 
+        |                             download agent), or to respect the per-file settings in WDL
+        |                             parameter_meta sections (default).
+        |      -useManifests          Use manifest files for all workflow and applet inputs and 
+        |                             outputs. Implies -locked.
         |
         |  dxni
-        |    Dx Native call Interface. Create stubs for calling dx
-        |    executables (apps/applets/workflows), and store them as WDL
-        |    tasks in a local file. Allows calling existing platform executables
-        |    without modification. Default is to look for applets.
+        |    DNAnexus Native call Interface. Creates stubs for calling DNAnexus executables 
+        |    (apps/applets/workflows), and stores them as WDL tasks in a local file. Enables 
+        |    calling existing platform executables without modification.
         |    options:
-        |      -apps                  Whether to 'include' apps, 'exclude' apps, or 'only' generate app stubs.
-        |      -path <string>         Name of specific app/path to a specific applet
-        |      -o <path>              Destination file for WDL task definitions (defaults to stdout)
-        |      -r | recursive         Recursive search
+        |      -apps [include,exclude,only]
+        |                             Whether to 'include' apps, 'exclude' apps (the default), or 
+        |                             'only' generate app stubs.
+        |      -f | force             Delete any existing output file.
+        |      -o <path>              Destination file for WDL task definitions (defaults to 
+        |                             stdout).
+        |      -path <string>         Name of a specific app or a path to a specific applet.
+        |      -r | recursive         Search recursively for applets in the target folder.
         |
         |Common options
-        |    -destination <string>    Full platform path (project:/folder)
-        |    -f | force               Delete existing applets/workflows
-        |    -folder <string>         Platform folder (defaults to '/')
-        |    -project <string>        Platform project (defaults to currently selected project)
-        |    -language <string> [ver] Which language to use? (wdl or cwl; can optionally specify version)
-        |    -quiet                   Do not print warnings or informational outputs
-        |    -verbose                 Print detailed progress reports
-        |    -verboseKey <module>     Detailed information for a specific module
-        |    -logFile <path>          File to use for logging output; defaults to stderr
+        |    -folder <string>         Platform folder (defaults to '/').
+        |    -project <string>        Platform project (defaults to currently selected project).
+        |    -language <string> [ver] Which language to use? May be WDL or CWL. You can optionally 
+        |                             specify a version. Currently, WDL draft-2, 1.0, and 1.1 are
+        |                             fully supported and WDL development and CWL 1.2 are partially
+        |                             supported. The default is to auto-detect the language from the
+        |                             source file.
+        |    -quiet                   Do not print warnings or informational outputs.
+        |    -verbose                 Print detailed logging.
+        |    -verboseKey <module>     Print verbose output only for a specific module. May be 
+        |                             specified multiple times.
+        |    -logFile <path>          File to use for logging output; defaults to stderr.
         |""".stripMargin
 
   def main(args: Vector[String]): Unit = {
