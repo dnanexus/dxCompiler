@@ -588,12 +588,17 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     CodecUtils.base64DecodeAndGunzip(sourceCodeEncoded)
   }
 
-  lazy val target: Option[String] = {
-    getExecutableDetail(Constants.Target) match {
-      case Some(JsString(t)) => Some(t)
-      case None              => None
+  lazy val targets: Option[Vector[String]] = {
+    getExecutableDetail(Constants.Targets) match {
+      case Some(JsString(t)) => Some(Vector(t))
+      case Some(JsArray(a)) =>
+        Some(a.map {
+          case JsString(t) => t
+          case other       => throw new Exception(s"invalid target value ${other}")
+        })
+      case None => None
       case other =>
-        throw new Exception(s"invalid target value ${other}")
+        throw new Exception(s"invalid targets value ${other}")
     }
   }
   lazy val instanceTypeDb: InstanceTypeDB = getExecutableDetail(Constants.InstanceTypeDb) match {

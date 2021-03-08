@@ -14,7 +14,7 @@ trait SourceCode {
     * Specifies a target to execute within the source.
     * @return
     */
-  def target: Option[String] = None
+  def targets: Vector[String] = Vector.empty
 
   /**
     * Generates the source code as a String.

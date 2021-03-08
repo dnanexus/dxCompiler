@@ -175,6 +175,10 @@ case class CwlTaskExecutor(tool: CommandLineTool,
       logger.trace(s"input JSON ${inputPath}:\n${inputJson.prettyPrint}")
     }
     JsUtils.jsToFile(inputJson, inputPath)
+    // if a target is specified (a specific workflow step), add the --target option
+    val targetOpt = jobMeta.targets.map { targets =>
+      targets.map(t => s"--target ${t}").mkString(" ")
+    }
     // if a dx:// URI is specified for the Docker container, download it
     // and create an overrides file to override the value in the CWL file
     val overridesOpt = jobMeta
@@ -214,7 +218,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
          |    --rm-container \\
          |    --rm-tmpdir \\
          |    --skip-schemas \\
-         |    ${overridesOpt} ${cwlPath.toString} ${inputPath.toString}
+         |    ${targetOpt} ${overridesOpt} ${cwlPath.toString} ${inputPath.toString}
          |) \\
          |> >( tee ${workerPaths.getStdoutFile(ensureParentExists = true)} ) \\
          |2> >( tee ${workerPaths.getStderrFile(ensureParentExists = true)} >&2 )
