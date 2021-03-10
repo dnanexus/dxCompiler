@@ -399,7 +399,7 @@ object WdlUtils {
       case V_Float(f)        => VFloat(f)
       case V_String(s)       => VString(s)
       case V_File(path)      => VFile(path)
-      case V_Directory(path) => VDirectory(path)
+      case V_Directory(path) => VFolder(path)
       case V_Array(array) =>
         VArray(array.map(v => toIRValue(v)))
       case V_Pair(left, right) =>
@@ -443,8 +443,8 @@ object WdlUtils {
       case (T_String, V_String(s))          => VString(s)
       case (T_File, V_String(path))         => VFile(path)
       case (T_File, V_File(path))           => VFile(path)
-      case (T_Directory, V_String(path))    => VDirectory(path)
-      case (T_Directory, V_Directory(path)) => VDirectory(path)
+      case (T_Directory, V_String(path))    => VFolder(path)
+      case (T_Directory, V_Directory(path)) => VFolder(path)
       case (T_Object, o: V_Object)          => toIRValue(o)
       case (T_Optional(t), V_Optional(v))   => toIRValue(v, t)
       case (T_Optional(t), v)               => toIRValue(v, t)
@@ -523,13 +523,13 @@ object WdlUtils {
 
   def fromIRValue(value: Value, name: Option[String]): V = {
     value match {
-      case VNull         => V_Null
-      case VBoolean(b)   => V_Boolean(b)
-      case VInt(i)       => V_Int(i)
-      case VFloat(f)     => V_Float(f)
-      case VString(s)    => V_String(s)
-      case f: VFile      => V_File(f.uri)
-      case d: VDirectory => V_Directory(d.uri)
+      case VNull       => V_Null
+      case VBoolean(b) => V_Boolean(b)
+      case VInt(i)     => V_Int(i)
+      case VFloat(f)   => V_Float(f)
+      case VString(s)  => V_String(s)
+      case f: VFile    => V_File(f.uri)
+      case f: VFolder  => V_Directory(f.uri)
       case VArray(array) =>
         V_Array(array.zipWithIndex.map {
           case (v, i) => fromIRValue(v, name.map(n => s"${n}[${i}]"))
@@ -571,7 +571,7 @@ object WdlUtils {
       case (T_File, VString(path))      => V_File(path)
       case (T_File, f: VFile)           => V_File(f.uri)
       case (T_Directory, VString(path)) => V_Directory(path)
-      case (T_Directory, d: VDirectory) => V_Directory(d.uri)
+      case (T_Directory, f: VFolder)    => V_Directory(f.uri)
       case (T_Object, o: VHash)         => fromIRValue(o, Some(name))
       case (T_Optional(t), v)           => V_Optional(fromIRValue(v, t, name))
       case (T_Array(_, true), VArray(array)) if array.isEmpty =>
@@ -652,13 +652,13 @@ object WdlUtils {
   def irValueToExpr(value: Value): TAT.Expr = {
     val loc = SourceLocation.empty
     value match {
-      case VNull         => TAT.ValueNull(T_Any, loc)
-      case VBoolean(b)   => TAT.ValueBoolean(b, T_Boolean, loc)
-      case VInt(i)       => TAT.ValueInt(i, T_Int, loc)
-      case VFloat(f)     => TAT.ValueFloat(f, T_Float, loc)
-      case VString(s)    => TAT.ValueString(s, T_String, loc)
-      case f: VFile      => TAT.ValueFile(f.uri, T_File, loc)
-      case d: VDirectory => TAT.ValueDirectory(d.uri, T_Directory, loc)
+      case VNull       => TAT.ValueNull(T_Any, loc)
+      case VBoolean(b) => TAT.ValueBoolean(b, T_Boolean, loc)
+      case VInt(i)     => TAT.ValueInt(i, T_Int, loc)
+      case VFloat(f)   => TAT.ValueFloat(f, T_Float, loc)
+      case VString(s)  => TAT.ValueString(s, T_String, loc)
+      case f: VFile    => TAT.ValueFile(f.uri, T_File, loc)
+      case f: VFolder  => TAT.ValueDirectory(f.uri, T_Directory, loc)
       case VArray(array) =>
         val a = array.map(irValueToExpr)
         val t = ensureUniformType(a)

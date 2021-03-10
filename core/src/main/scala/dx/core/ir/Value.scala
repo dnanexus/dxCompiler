@@ -1,5 +1,6 @@
 package dx.core.ir
 
+import dx.api.DxPath
 import dx.core.ir.Type._
 import dx.util.CollectionUtils.IterableOnceExtensions
 
@@ -40,27 +41,29 @@ object Value {
                    secondaryFiles: Vector[PathValue] = Vector.empty)
       extends PathValue
 
+  sealed trait DirectoryValue extends PathValue
+
   /**
     * A local or remote DNAnexus folder.
     * @param uri local path or dx://project-xxx:/path/to/folder/ URI
     * @param basename the name to use when localizing the directory
     */
-  case class VFolder(uri: String, basename: Option[String] = None) extends PathValue
+  case class VFolder(uri: String, basename: Option[String] = None) extends DirectoryValue
 
   /**
     * An archive file-based representation of a directory (e.g. a tar archive file).
     * @param uri file URI
     * @param basename the name to use when localizing the directory
     */
-  case class VArchive(uri: String, basename: Option[String] = None) extends PathValue
+  case class VArchive(uri: String, basename: Option[String] = None) extends DirectoryValue
 
   /**
     * A synthetic directory consisting of specific platform files/folders.
     * @param basename the name to use when localizing the directory
     * @param listing a Vector of files/subdirectories in this Directory
     */
-  case class VListing(basename: Option[String] = None, listing: Vector[PathValue] = Vector.empty)
-      extends PathValue
+  case class VListing(basename: String, listing: Vector[PathValue] = Vector.empty)
+      extends DirectoryValue
 
   /**
     * Represents the empty value for an optional field.
@@ -108,8 +111,8 @@ object Value {
     def transformPaths(paths: Vector[PathValue]): Vector[PathValue] = {
       paths
         .map {
-          case f: VFile      => inner(f, Some(TFile))
-          case d: VDirectory => inner(d, Some(TDirectory))
+          case f: VFile          => inner(f, Some(TFile))
+          case d: DirectoryValue => inner(d, Some(TDirectory))
         }
         .map {
           case p: PathValue => p
@@ -129,8 +132,8 @@ object Value {
             throw new Exception(s"null value for non-optional type ${innerType.get}")
           case (Some(TFile), f: VFile) if f.secondaryFiles.nonEmpty =>
             f.copy(secondaryFiles = transformPaths(f.secondaryFiles))
-          case (Some(TDirectory), d: VDirectory) if d.listing.nonEmpty =>
-            d.copy(listing = transformPaths(d.listing))
+          case (Some(TDirectory), l: VListing) if l.listing.nonEmpty =>
+            l.copy(listing = transformPaths(l.listing))
           case (Some(TArray(_, true)), VArray(Vector())) =>
             throw new Exception("empty array for non-empty array type")
           case (Some(TArray(itemType, _)), VArray(items)) =>
@@ -156,18 +159,26 @@ object Value {
     inner(value, t)
   }
 
+  def isDxFileUri(uri: String): Boolean = {
+    uri.startsWith(DxPath.DxUriPrefix) && uri.contains("file-") && !uri.endsWith("/")
+  }
+
+  def isDxFolderUri(uri: String): Boolean = {
+    uri.startsWith(DxPath.DxUriPrefix) && uri.contains("project-") && uri.endsWith("/")
+  }
+
   def coerceTo(value: Value, targetType: Type): Value = {
     (targetType, value) match {
       case (TOptional(_), VNull) => VNull
       case (TOptional(t), _)     => coerceTo(value, t)
       // check whether the value is already of the correct type
-      case (TBoolean, b: VBoolean)     => b
-      case (TInt, i: VInt)             => i
-      case (TFloat, f: VFloat)         => f
-      case (TString, s: VString)       => s
-      case (TFile, f: VFile)           => f
-      case (TDirectory, d: VDirectory) => d
-      case (THash, h: VHash)           => h
+      case (TBoolean, b: VBoolean)    => b
+      case (TInt, i: VInt)            => i
+      case (TFloat, f: VFloat)        => f
+      case (TString, s: VString)      => s
+      case (TFile, f: VFile)          => f
+      case (TDirectory, p: PathValue) => p
+      case (THash, h: VHash)          => h
       // compound types
       case (TArray(_, nonEmpty), VArray(items)) if nonEmpty && items.isEmpty =>
         throw new Exception("cannot coerce empty array to non-empty array")
@@ -202,11 +213,13 @@ object Value {
               throw new Exception(s"cannot coerce ${value} to any of ${bounds.mkString(",")}")
           )
       // coercions
-      case (TFile, VString(s))      => VFile(s)
-      case (TString, f: VFile)      => VString(f.uri)
-      case (TDirectory, VString(s)) => VDirectory(s)
-      case (TString, d: VDirectory) => VString(d.uri)
-      case (TFloat, VInt(i))        => VFloat(i.toFloat)
+      case (TFile, VString(s))                          => VFile(s)
+      case (TString, f: VFile)                          => VString(f.uri)
+      case (TDirectory, VString(s)) if isDxFolderUri(s) => VFolder(s)
+      case (TDirectory, VString(s)) if isDxFileUri(s)   => VArchive(s)
+      case (TString, f: VFolder)                        => VString(f.uri)
+      case (TString, a: VArchive)                       => VString(a.uri)
+      case (TFloat, VInt(i))                            => VFloat(i.toFloat)
       case _ =>
         throw new Exception(s"cannot coerce ${value} to ${targetType}")
     }
