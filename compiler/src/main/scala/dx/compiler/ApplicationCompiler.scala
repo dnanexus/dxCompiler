@@ -39,9 +39,10 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
                                extras: Option[Extras],
                                parameterLinkSerializer: ParameterLinkSerializer,
                                useManifests: Boolean,
+                               complexPathValues: Boolean,
                                dxApi: DxApi = DxApi.get,
                                logger: Logger = Logger.get)
-    extends ExecutableCompiler(extras, parameterLinkSerializer, dxApi) {
+    extends ExecutableCompiler(extras, parameterLinkSerializer, complexPathValues, dxApi) {
 
   // renderer for job script templates
   private lazy val renderer = Renderer()

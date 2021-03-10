@@ -13,9 +13,10 @@ import scala.collection.immutable.TreeSeqMap
 case class WorkflowCompiler(extras: Option[Extras],
                             parameterLinkSerializer: ParameterLinkSerializer,
                             useManifests: Boolean,
+                            complexPathValues: Boolean,
                             dxApi: DxApi = DxApi.get,
                             logger: Logger = Logger.get)
-    extends ExecutableCompiler(extras, parameterLinkSerializer, dxApi) {
+    extends ExecutableCompiler(extras, parameterLinkSerializer, complexPathValues, dxApi) {
 
   private def workflowInputParameterToNative(parameter: Parameter,
                                              stageInput: StageInput): Vector[JsValue] = {
@@ -72,7 +73,7 @@ case class WorkflowCompiler(extras: Option[Extras],
           ParameterLinkWorkflowInput(wfParam.dxName, dxType)
         case ArrayInput(stageInputs) =>
           val itemType = dxType match {
-            case Type.TArray(itemType, _) if Type.isNative(itemType) => itemType
+            case Type.TArray(itemType, _) if Type.isNative(itemType, !complexPathValues) => itemType
             case _ =>
               throw new Exception(
                   s"""ArrayInput for workflow output parameter ${parameter.name} with type ${dxType} 
@@ -119,7 +120,7 @@ case class WorkflowCompiler(extras: Option[Extras],
           Some(ParameterLinkWorkflowInput(wfParam.dxName, dxType))
         case ArrayInput(stageInputs) =>
           val itemType = dxType match {
-            case Type.TArray(itemType, _) if Type.isNative(itemType) => itemType
+            case Type.TArray(itemType, _) if Type.isNative(itemType, !complexPathValues) => itemType
             case _ =>
               throw new Exception(
                   s"ArrayInput for stage input with type ${dxType} that is not a natively supported array type"

@@ -4,9 +4,8 @@ import dx.AppInternalException
 import dx.api.{DxApi, DxExecution, DxFile, DxFileDescCache, DxUtils, DxWorkflowStage}
 import dx.core.Constants
 import dx.core.ir.Value._
-import dx.util.protocols.DxFileSource
 import spray.json._
-import dx.util.{Enum, FileSourceResolver, LocalFileSource, Logger}
+import dx.util.{Enum, FileSourceResolver, Logger}
 
 object IORef extends Enum {
   type IORef = Value
@@ -70,7 +69,8 @@ object ParameterLink {
 }
 
 case class ParameterLinkSerializer(fileResolver: FileSourceResolver = FileSourceResolver.get,
-                                   dxApi: DxApi = DxApi.get) {
+                                   dxApi: DxApi = DxApi.get,
+                                   pathsAsObjects: Boolean = false) {
 
   /**
     * Serialize a complex value into a JSON value. The value could potentially point
@@ -88,25 +88,30 @@ case class ParameterLinkSerializer(fileResolver: FileSourceResolver = FileSource
                        |""".stripMargin)
       throw new Exception("a nested optional type/value")
     }
-    def handler(irValue: Value, irType: Type): Either[Value, JsValue] = {
-      def serializePath(path: String): JsValue = {
-        fileResolver.resolve(path) match {
-          case dxFile: DxFileSource       => dxFile.dxFile.asJson
-          case localFile: LocalFileSource => JsString(localFile.originalPath.toString)
-          case other =>
-            throw new RuntimeException(s"Unsupported file source ${other}")
-        }
-      }
 
+    def handler(irValue: Value, irType: Type): Either[Value, JsValue] = {
       (irType, irValue) match {
         case (_, VString(s)) if s.length > Constants.StringLengthLimit =>
           throw new AppInternalException(
               s"string is longer than ${Constants.StringLengthLimit}"
           )
-        case (Type.TMulti.Any, VFile(path)) => Right(ValueSerde.wrapValue(serializePath(path)))
-        case (_, VFile(path))               => Right(serializePath(path))
-        case (Type.TFile, VString(path))    => Right(serializePath(path))
-        case _                              => Left(irValue)
+        case (Type.TMulti.Any, f: VFile) =>
+          Right(
+              ValueSerde.wrapValue(ValueSerde.serializePath(f, Some(fileResolver), pathsAsObjects))
+          )
+        case (_, f: VFile) =>
+          Right(ValueSerde.serializePath(f, Some(fileResolver), pathsAsObjects))
+        case (Type.TFile, VString(path)) =>
+          Right(ValueSerde.serializePath(VFile(path), Some(fileResolver)))
+        case (Type.TMulti.Any, d: VDirectory) =>
+          Right(
+              ValueSerde.wrapValue(ValueSerde.serializePath(d, Some(fileResolver), pathsAsObjects))
+          )
+        case (_, d: VDirectory) =>
+          Right(ValueSerde.serializePath(d, Some(fileResolver), pathsAsObjects))
+        case (Type.TDirectory, VString(path)) =>
+          Right(ValueSerde.serializePath(VDirectory(path), Some(fileResolver), pathsAsObjects))
+        case _ => Left(irValue)
       }
     }
     ValueSerde.serializeWithType(v, t, Some(handler))
@@ -169,7 +174,7 @@ case class ParameterLinkSerializer(fileResolver: FileSourceResolver = FileSource
       } else {
         bindName
       }
-    if (Type.isNative(link.dxType)) {
+    if (Type.isNative(link.dxType, !pathsAsObjects)) {
       // Types that are supported natively in DX
       Vector((encodedName, serializeSimpleLink(link)))
     } else {
@@ -252,17 +257,9 @@ case class ParameterLinkDeserializer(dxFileDescCache: DxFileDescCache, dxApi: Dx
   }
 
   def deserializeInput(jsv: JsValue): Value = {
-    def handler(value: JsValue): Either[JsValue, Value] = {
-      if (DxFile.isLinkJson(value)) {
-        // Convert the dx link to a URI string. We can later decide if we want to download it or not.
-        // Use the cache value if there is one to save the API call.
-        val dxFile = dxFileDescCache.updateFileFromCache(DxFile.fromJson(dxApi, value))
-        Right(VFile(dxFile.asUri))
-      } else {
-        Left(value)
-      }
-    }
-    ValueSerde.deserialize(unwrapComplex(jsv), Some(handler))
+    ValueSerde.deserialize(unwrapComplex(jsv),
+                           dxApi = dxApi,
+                           dxFileDescCache = Some(dxFileDescCache))
   }
 
   def deserializeInputMap(inputs: Map[String, JsValue]): Map[String, Value] = {
@@ -276,21 +273,6 @@ case class ParameterLinkDeserializer(dxFileDescCache: DxFileDescCache, dxApi: Dx
       t: Type,
       handler: Option[(JsValue, Type) => Either[JsValue, Value]] = None
   ): Value = {
-    def parameterLinkTranslator(jsv: JsValue, t: Type): Either[JsValue, Value] = {
-      val newJsValue = handler.map(_(jsv, t)) match {
-        case Some(Right(value))      => return Right(value)
-        case None                    => jsv
-        case Some(Left(transformed)) => transformed
-      }
-      Left(if (DxFile.isLinkJson(newJsValue)) {
-        // Convert the dx link to a URI string. We can later decide if we want to download it or not.
-        // Use the cache value if there is one to save the API call.
-        val dxFile = dxFileDescCache.updateFileFromCache(DxFile.fromJson(dxApi, newJsValue))
-        JsString(dxFile.asUri)
-      } else {
-        newJsValue
-      })
-    }
-    ValueSerde.deserializeWithType(unwrapComplex(jsv), t, Some(parameterLinkTranslator))
+    ValueSerde.deserializeWithType(unwrapComplex(jsv), t, handler, dxApi, Some(dxFileDescCache))
   }
 }

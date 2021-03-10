@@ -57,7 +57,7 @@ import dx.util.{FileSourceResolver, FileUtils, Logger}
 
 import java.nio.file.{Path, Paths}
 
-case class CwlSourceCode(source: Path, override val target: Option[String]) extends SourceCode {
+case class CwlSourceCode(source: Path, override val targets: Vector[String]) extends SourceCode {
   override val language: String = "cwl"
   override def toString: String = FileUtils.readFileContent(source)
 }
@@ -191,7 +191,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           requirementEvaluator.translateInstanceType,
           requirementEvaluator.translateContainer,
           ExecutableKindApplet,
-          CwlSourceCode(docSource, Some(name)),
+          CwlSourceCode(docSource, Vector(name)),
           translateCallableAttributes(tool, hintCallableAttrs),
           requirementEvaluator.translateApplicationRequirements,
           tags = Set("cwl")
@@ -223,7 +223,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         case None =>
           throw new Exception(s"no source code for tool ${wf.name}")
       }
-      CwlSourceCode(docSource, Some(wf.name))
+      CwlSourceCode(docSource, Vector(wf.name))
     }
 
     private def createWorkflowInput(input: WorkflowInputParameter): Parameter = {
@@ -639,8 +639,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       } else {
         val wfOutputs = outputs.map { out =>
           val outputStage = env.get(out.name).map(_._2).getOrElse {
-            val (stepName, paramName) = out.outputSource.head.split("/")
-            LinkInput(getStage(stepName), paramName)
+            val Vector(stepName, paramName) = out.outputSource.head.split("/").toVector
+            LinkInput(getStage(Some(stepName)), paramName)
           }
           val irType = CwlUtils.toIRType(out.cwlType)
           (Parameter(out.name, irType), outputStage)

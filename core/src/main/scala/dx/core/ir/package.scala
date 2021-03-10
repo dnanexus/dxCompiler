@@ -36,7 +36,7 @@ case class Parameter(
 object Parameter {
   val ComplexValueKey = "___"
 
-  private val illegalChars = "[./-~]"
+  private val illegalChars = "[./\\-~]"
   private val illegalCharsRegexp = s"${illegalChars}".r
 
   /**

@@ -4,13 +4,25 @@ import dx.api.DxPath
 import dx.core.io.DxWorkerPaths
 import dx.core.ir.{Type, Value}
 import dx.core.ir.Type._
-import dx.core.ir.Value._
+import dx.core.ir.Value.{
+  VArray,
+  VBoolean,
+  VDirectory,
+  VFile,
+  VFloat,
+  VHash,
+  VInt,
+  VNull,
+  VString,
+  PathValue => IRPathValue
+}
 import dx.cwl._
 import dx.util.CollectionUtils.IterableOnceExtensions
 import spray.json._
 
 import scala.annotation.tailrec
 import scala.collection.immutable.TreeSeqMap
+import scala.util.Random
 
 object CwlUtils {
 
@@ -48,7 +60,39 @@ object CwlUtils {
     }
   }
 
-  private def toIRValue(cwlValue: CwlValue): (Type, Value) = {
+  def toIRPath(path: PathValue): IRPathValue = {
+    path match {
+      case f: FileValue =>
+        VFile(
+            f.location.getOrElse(
+                if (f.contents.isDefined) {
+                  f.basename.getOrElse(Random.nextString(8))
+                } else {
+                  throw new Exception("both 'location' and 'contents' are missing")
+                }
+            ),
+            f.basename,
+            f.contents,
+            f.checksum,
+            f.size,
+            f.secondaryFiles.map(toIRPath)
+        )
+      case d: DirectoryValue =>
+        VDirectory(
+            d.location.getOrElse(
+                if (d.listing.nonEmpty) {
+                  d.basename.getOrElse(Random.nextString(8))
+                } else {
+                  throw new Exception("both 'location' and 'listing' are missing")
+                }
+            ),
+            d.basename,
+            d.listing.map(toIRPath)
+        )
+    }
+  }
+
+  def toIRValue(cwlValue: CwlValue): (Type, Value) = {
     cwlValue match {
       case BooleanValue(b)   => (TBoolean, VBoolean(value = b))
       case IntValue(i)       => (TInt, VInt(i))
@@ -56,8 +100,8 @@ object CwlUtils {
       case FloatValue(f)     => (TFloat, VFloat(f))
       case DoubleValue(d)    => (TFloat, VFloat(d))
       case StringValue(s)    => (TString, VString(s))
-      case f: FileValue      => (TFile, VFile(f.toString))
-      case d: DirectoryValue => (TDirectory, VDirectory(d.toString))
+      case f: FileValue      => (TFile, toIRPath(f))
+      case d: DirectoryValue => (TDirectory, toIRPath(d))
       case ArrayValue(items) =>
         val (itemTypes, itemValues, optional) =
           items.foldLeft(Set.empty[Type], Vector.empty[Value], false) {
@@ -97,6 +141,7 @@ object CwlUtils {
   }
 
   def toIRValue(cwlValue: CwlValue, cwlType: CwlType): (Type, Value) = {
+    println(cwlType, cwlValue)
     (cwlType, cwlValue) match {
       case (CwlAny, _)                 => (TMulti.Any, toIRValue(cwlValue)._2)
       case (CwlOptional(_), NullValue) => (toIRType(cwlType), VNull)
@@ -115,7 +160,9 @@ object CwlUtils {
               }
           }
           .getOrElse(
-              if (types.contains(CwlAny)) {} else {
+              if (types.contains(CwlAny)) {
+                toIRValue(cwlValue)
+              } else {
                 throw new Exception(
                     s"cannot translate ${cwlValue} as any of ${types.mkString("\n")}"
                 )
@@ -128,9 +175,9 @@ object CwlUtils {
       case (CwlDouble, DoubleValue(d))       => (TFloat, VFloat(d))
       case (t: CwlNumber, n: NumericValue)   => toIRValue(n.coerceTo(t), t)
       case (CwlString, StringValue(s))       => (TString, VString(s))
-      case (CwlFile, f: FileValue)           => (TFile, VFile(f.toString))
+      case (CwlFile, f: FileValue)           => (TFile, toIRPath(f))
       case (CwlFile, StringValue(s))         => (TFile, VFile(s))
-      case (CwlDirectory, d: DirectoryValue) => (TDirectory, VDirectory(d.toString))
+      case (CwlDirectory, d: DirectoryValue) => (TDirectory, toIRPath(d))
       case (CwlDirectory, StringValue(s))    => (TDirectory, VDirectory(s))
       case (array: CwlArray, ArrayValue(items)) =>
         val (irItems, optional) =
@@ -207,6 +254,20 @@ object CwlUtils {
     inner(irType)
   }
 
+  def fromIRPath(path: IRPathValue): PathValue = {
+    path match {
+      case f: VFile =>
+        FileValue(Some(f.uri),
+                  basename = f.basename,
+                  checksum = f.checksum,
+                  size = f.size,
+                  contents = f.contents,
+                  secondaryFiles = f.secondaryFiles.map(fromIRPath))
+      case d: VDirectory =>
+        DirectoryValue(Some(d.uri), basename = d.basename, listing = d.listing.map(fromIRPath))
+    }
+  }
+
   def fromIRValue(value: Value, name: Option[String], isInput: Boolean): (CwlType, CwlValue) = {
     def inner(innerValue: Value, innerName: Option[String]): (CwlType, CwlValue) = {
       innerValue match {
@@ -215,8 +276,8 @@ object CwlUtils {
         case VInt(i)       => (CwlLong, LongValue(i))
         case VFloat(f)     => (CwlDouble, DoubleValue(f))
         case VString(s)    => (CwlString, StringValue(s))
-        case VFile(f)      => (CwlFile, FileValue(f))
-        case VDirectory(d) => (CwlDirectory, DirectoryValue(d))
+        case f: VFile      => (CwlFile, fromIRPath(f))
+        case d: VDirectory => (CwlDirectory, fromIRPath(d))
         case VArray(array) =>
           val (types, values) = array.zipWithIndex.map {
             case (v, i) => inner(v, innerName.map(n => s"${n}[${i}]"))
@@ -282,9 +343,9 @@ object CwlUtils {
         case (CwlDouble, VInt(i))              => FloatValue(i.toDouble)
         case (CwlString, VString(s))           => StringValue(s)
         case (CwlFile, VString(path))          => FileValue(path)
-        case (CwlFile, VFile(path))            => FileValue(path)
+        case (CwlFile, f: VFile)               => fromIRPath(f)
         case (CwlDirectory, VString(path))     => DirectoryValue(path)
-        case (CwlDirectory, VFile(path))       => DirectoryValue(path)
+        case (CwlDirectory, d: VDirectory)     => fromIRPath(d)
         case (array: CwlArray, VArray(items)) =>
           ArrayValue(items.zipWithIndex.map {
             case (item, i) => innerMulti(item, array.itemType, s"${innerName}[${i}]")._2
@@ -322,28 +383,32 @@ object CwlUtils {
           throw new Exception(s"cannot translate ${innerValue} to CwlValue of type ${innerType}")
       }
     }
-    def innerMulti(innerValue: Value, innerType: CwlType, innerName: String): (CwlType, CwlValue) = {
-      case CwlMulti(types) =>
-        types
-          .collectFirstDefined {
-            case CwlAny => None
-            case t =>
-              try {
-                Some(t, inner(value, t, name))
-              } catch {
-                case _: Throwable => None
-              }
-          }
-          .getOrElse(
-              if (types.contains(CwlAny)) {
-                (CwlAny, value)
-              } else {
-                throw new Exception(
-                    s"cannot convert ${name} ${value} to CWL value of any type ${types.mkString(",")}"
-                )
-              }
-          )
-      case _ => (innerType, inner(innerValue, innerType, innerName))
+    def innerMulti(innerValue: Value,
+                   innerType: CwlType,
+                   innerName: String): (CwlType, CwlValue) = {
+      innerType match {
+        case CwlMulti(types) =>
+          types
+            .collectFirstDefined {
+              case CwlAny => None
+              case t =>
+                try {
+                  Some(t, inner(value, t, name))
+                } catch {
+                  case _: Throwable => None
+                }
+            }
+            .getOrElse(
+                if (types.contains(CwlAny)) {
+                  fromIRValue(innerValue, Some(name), isInput)
+                } else {
+                  throw new Exception(
+                      s"cannot convert ${name} ${value} to CWL value of any type ${types.mkString(",")}"
+                  )
+                }
+            )
+        case _ => (innerType, inner(innerValue, innerType, innerName))
+      }
     }
     innerMulti(value, cwlType, name)
   }

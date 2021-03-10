@@ -23,6 +23,8 @@ trait Translator {
 
   def fileResolver: FileSourceResolver
 
+  def complexPathValues: Boolean
+
   def apply: Bundle
 
   protected def createInputTranslator(bundle: Bundle,
@@ -83,17 +85,19 @@ object TranslatorFactory {
     val perWorkflowAttrs = extras.flatMap(_.perWorkflowDxAttributes).getOrElse(Map.empty)
     translatorFactories
       .collectFirst { factory =>
-        factory.create(sourceAbsPath,
-                       language,
-                       locked,
-                       defaultRuntimeAttrs,
-                       reorgAttrs,
-                       perWorkflowAttrs,
-                       defaultScatterChunkSize,
-                       useManifests,
-                       fileResolver,
-                       dxApi,
-                       logger) match {
+        factory.create(
+            sourceAbsPath,
+            language,
+            locked,
+            defaultRuntimeAttrs,
+            reorgAttrs,
+            perWorkflowAttrs,
+            defaultScatterChunkSize,
+            useManifests,
+            fileResolver,
+            dxApi,
+            logger
+        ) match {
           case Some(translator) => translator
         }
       }

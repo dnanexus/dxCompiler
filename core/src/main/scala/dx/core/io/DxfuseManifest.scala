@@ -12,12 +12,14 @@ case class DxfuseManifest(value: JsValue)
 
 case class DxfuseManifestBuilder(dxApi: DxApi) {
   def apply(fileToLocalMapping: Map[DxFile, Path],
+            archiveToLocalMapping: Map[DxFile, Path],
+            folderToLocalMapping: Map[(String, String), Path],
             workerPaths: DxWorkerPaths): Option[DxfuseManifest] = {
     if (fileToLocalMapping.isEmpty) {
       return None
     }
 
-    val files = fileToLocalMapping.map {
+    val files = (fileToLocalMapping ++ archiveToLocalMapping).map {
       case (dxFile, path) =>
         // we expect that the files will have already been bulk described
         assert(dxFile.hasCachedDesc)
@@ -38,16 +40,25 @@ case class DxfuseManifestBuilder(dxApi: DxApi) {
             "file_id" -> JsString(dxFile.id),
             "parent" -> JsString(relParentDir),
             "proj_id" -> JsString(desc.project),
-            "fname" -> JsString(desc.name),
+            "fname" -> JsString(path.getFileName.toString),
             "size" -> JsNumber(desc.size),
             "ctime" -> JsNumber(desc.created),
             "mtime" -> JsNumber(desc.modified)
         )
     }.toVector
 
+    val folders = folderToLocalMapping.map {
+      case ((project, folder), path) =>
+        JsObject(
+            "proj_id" -> JsString(project),
+            "folder" -> JsString(folder),
+            "dirname" -> JsString(path.toString)
+        )
+    }.toVector
+
     Some(
         DxfuseManifest(
-            JsObject("files" -> JsArray(files), "directories" -> JsArray(Vector.empty))
+            JsObject("files" -> JsArray(files), "directories" -> JsArray(folders))
         )
     )
   }

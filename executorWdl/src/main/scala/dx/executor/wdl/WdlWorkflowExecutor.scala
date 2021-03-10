@@ -349,7 +349,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
   case class WdlBlockContext(block: WdlBlock, wdlEnv: Map[String, (T, V)]) extends BlockContext {
     private val call: TAT.Call = block.call
 
-    protected override lazy val env: Map[String, (Type, Value)] = WdlUtils.toIR(wdlEnv)
+    override lazy val env: Map[String, (Type, Value)] = WdlUtils.toIR(wdlEnv)
 
     private def evaluateCallInputs(
         extraEnv: Map[String, (T, V)] = Map.empty

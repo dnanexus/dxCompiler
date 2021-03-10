@@ -1,11 +1,21 @@
 package dx.translator.cwl
 
-import dx.api.{DxApi, DxFile, DxPath, DxProject}
-import dx.core.ir.{Bundle, Callable, Type, Value}
+import dx.api.{DxApi, DxProject}
+import dx.core.ir.{Bundle, Callable, Type, Value, ValueSerde}
 import dx.core.languages.Language
 import dx.core.languages.Language.Language
 import dx.core.languages.cwl.{CwlBundle, CwlUtils, DxHintSchema}
-import dx.cwl.{CommandLineTool, CwlRecord, Parser, Process, Workflow}
+import dx.cwl.{
+  CommandLineTool,
+  CwlDirectory,
+  CwlFile,
+  CwlRecord,
+  DirectoryValue,
+  FileValue,
+  Parser,
+  Process,
+  Workflow
+}
 import dx.translator.{
   DxWorkflowAttrs,
   InputTranslator,
@@ -38,17 +48,13 @@ case class CwlInputTranslator(bundle: Bundle,
 
   override protected def translateJsInput(jsv: JsValue, t: Type): JsValue = {
     (t, jsv) match {
-      case (Type.TFile, JsObject(fields)) if fields.get("class").contains(JsString("File")) =>
-        fields.get("location") match {
-          case Some(uri: JsString) if uri.value.startsWith(DxPath.DxUriPrefix) => uri
-          case Some(obj: JsObject) if DxFile.isLinkJson(obj)                   => obj
-          case other =>
-            throw new Exception(
-                s"""dxCompiler can only translate files with 'location' 
-                   |set to a dx:// URIs or as link objects, not ${other}""".stripMargin
-                  .replaceAll("\n", " ")
-            )
-        }
+      case (Type.TFile, obj: JsObject) if obj.fields.get("class").contains(JsString("File")) =>
+        val (_, cwlValue) = CwlUtils.toIRValue(FileValue.deserialize(obj), CwlFile)
+        ValueSerde.serialize(cwlValue, fileResolver = Some(baseFileResolver), pathsAsObjects = true)
+      case (Type.TDirectory, obj: JsObject)
+          if obj.fields.get("class").contains(JsString("Directory")) =>
+        val (_, cwlValue) = CwlUtils.toIRValue(DirectoryValue.deserialize(obj), CwlDirectory)
+        ValueSerde.serialize(cwlValue, fileResolver = Some(baseFileResolver), pathsAsObjects = true)
       case _ => jsv
     }
   }
@@ -70,6 +76,8 @@ case class CwlTranslator(process: Process,
   override val runtimeAssetName: String = "dxCWLrt"
 
   override val runtimeJar: String = "dxExecutorCwl.jar"
+
+  override val complexPathValues: Boolean = true
 
   override lazy val apply: Bundle = {
     val cwlBundle: CwlBundle = CwlBundle.create(process)
@@ -177,17 +185,19 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
         throw new Exception(s"Not a command line tool or workflow: ${sourceFile}")
     }
     Some(
-        CwlTranslator(process,
-                      sourceFile,
-                      locked,
-                      defaultRuntimeAttrs,
-                      reorgAttrs,
-                      perWorkflowAttrs,
-                      defaultScatterChunkSize,
-                      useManifests,
-                      fileResolver,
-                      dxApi,
-                      logger)
+        CwlTranslator(
+            process,
+            sourceFile,
+            locked,
+            defaultRuntimeAttrs,
+            reorgAttrs,
+            perWorkflowAttrs,
+            defaultScatterChunkSize,
+            useManifests,
+            fileResolver,
+            dxApi,
+            logger
+        )
     )
   }
 }

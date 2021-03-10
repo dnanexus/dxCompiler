@@ -416,7 +416,7 @@ object Main {
     val (bundle, fileResolver) = if (hasInputs) {
       val (bundleWithDefaults, fileResolver) =
         try {
-          translator.translateInputs(rawBundle, inputs, defaults, project, useManifests)
+          translator.translateInputs(rawBundle, inputs, defaults, project)
         } catch {
           case ex: Throwable =>
             return Failure("Error translating inputs", Some(ex))
@@ -472,6 +472,7 @@ object Main {
           separateOutputs,
           streamFiles,
           useManifests,
+          translator.complexPathValues,
           fileResolver
       )
       val results = compiler.apply(bundle, project, folder)
@@ -791,7 +792,7 @@ object Main {
         |                             parameter_meta sections (default).
         |      -useManifests          Use manifest files for all workflow and applet inputs and 
         |                             outputs. Implies -locked.
-        |
+        |    
         |  dxni
         |    DNAnexus Native call Interface. Creates stubs for calling DNAnexus executables 
         |    (apps/applets/workflows), and stores them as WDL tasks in a local file. Enables 

@@ -2,11 +2,11 @@
   "stage-array-dirs.input_list": [
     {
       "class": "Directory",
-      "location": "testdir"
+      "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G1350Y80yzZj946V4YzKbVVp"
     },
     {
       "class": "Directory",
-      "location": "rec"
+      "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G1350Y00yzZV66314YbFXZvY"
     }
   ]
 }

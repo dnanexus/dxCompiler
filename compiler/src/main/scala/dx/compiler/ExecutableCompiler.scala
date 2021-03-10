@@ -51,6 +51,7 @@ object ExecutableCompiler {
 
 class ExecutableCompiler(extras: Option[Extras],
                          parameterLinkSerializer: ParameterLinkSerializer,
+                         complexPathValues: Boolean,
                          dxApi: DxApi = DxApi.get) {
 
   private def constraintToNative(constraint: ParameterAttributes.Constraint): JsValue = {
@@ -68,15 +69,19 @@ class ExecutableCompiler(extras: Option[Extras],
 
   private def defaultValueToNative(value: Value): JsValue = {
     value match {
-      case VNull       => JsNull
-      case VBoolean(b) => JsBoolean(b)
-      case VInt(i)     => JsNumber(i)
-      case VFloat(f)   => JsNumber(f)
-      case VString(s)  => JsString(s)
-      case VFile(f)    => dxApi.resolveFile(f).asJson
-      // TODO: case VDirectory(d) =>
+      case VNull         => JsNull
+      case VBoolean(b)   => JsBoolean(b)
+      case VInt(i)       => JsNumber(i)
+      case VFloat(f)     => JsNumber(f)
+      case VString(s)    => JsString(s)
+      case f: VFile      => dxApi.resolveFile(f.uri).asJson
+      case d: VDirectory => dxApi.resolveFile(d.uri).asJson
       case VArray(array) => JsArray(array.map(defaultValueToNative))
-      case _             => throw new Exception(s"unhandled value ${value}")
+      case VHash(obj) =>
+        JsObject(obj.map {
+          case (key, value) => key -> defaultValueToNative(value)
+        })
+      case _ => throw new Exception(s"unhandled value ${value}")
     }
   }
 
@@ -218,7 +223,7 @@ class ExecutableCompiler(extras: Option[Extras],
     }
     val attributes = defaultValueToNative(name) ++
       parameterAttributesToNative(parameter.attributes, excludeAttributeNames)
-    val (nativeType, optional) = TypeSerde.toNative(parameter.dxType)
+    val (nativeType, optional) = TypeSerde.toNative(parameter.dxType, !complexPathValues)
     // TODO: I don't think the parameter should always be set to optional if it has a default
     val paramSpec = JsObject(
         Map(DxIOSpec.Name -> JsString(name), DxIOSpec.Class -> JsString(nativeType)) ++ attributes ++
@@ -255,7 +260,7 @@ class ExecutableCompiler(extras: Option[Extras],
     val name = parameter.dxName
     val attributes =
       parameterAttributesToNative(parameter.attributes, InputOnlyKeys)
-    val (nativeType, optional) = TypeSerde.toNative(parameter.dxType)
+    val (nativeType, optional) = TypeSerde.toNative(parameter.dxType, !complexPathValues)
     val paramSpec = JsObject(
         Map(DxIOSpec.Name -> JsString(name), DxIOSpec.Class -> JsString(nativeType))
           ++ optionalToNative(optional || parameter.defaultValue.isDefined)

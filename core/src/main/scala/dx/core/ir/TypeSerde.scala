@@ -273,13 +273,12 @@ object TypeSerde {
       jsTypes: Map[String, JsValue],
       typeDefs: Map[String, Type] = Map.empty,
       jsTypeDefs: Map[String, JsValue] = Map.empty,
-      decodeNames: Boolean = true,
-      nameDelimiter: String = "."
+      decodeNames: Boolean = true
   ): (Map[String, Type], Map[String, Type]) = {
     jsTypes.foldLeft((Map.empty[String, Type], typeDefs)) {
       case ((typeAccu, typeDefAccu), (name, jsType)) =>
         val nameDecoded = if (decodeNames) {
-          Parameter.decodeName(name, nameDelimiter)
+          Parameter.decodeName(name)
         } else {
           name
         }
@@ -298,8 +297,7 @@ object TypeSerde {
     */
   def deserializeSpec(jsValue: JsValue,
                       typeDefs: Map[String, TSchema] = Map.empty,
-                      decodeNames: Boolean = true,
-                      nameDelimiter: String = "."): Map[String, Type] = {
+                      decodeNames: Boolean = true): Map[String, Type] = {
     val (jsTypes, jsTypeDefs) = jsValue match {
       case obj: JsObject if obj.fields.contains(TypesKey) =>
         obj.getFields(TypesKey, DefinitionsKey) match {
@@ -315,7 +313,7 @@ object TypeSerde {
       case _ =>
         throw TypeSerdeException(s"invalid serialized spec ${jsValue}")
     }
-    val (types, _) = deserializeMap(jsTypes, typeDefs, jsTypeDefs, decodeNames, nameDelimiter)
+    val (types, _) = deserializeMap(jsTypes, typeDefs, jsTypeDefs, decodeNames)
     types
   }
 
@@ -340,29 +338,30 @@ object TypeSerde {
     deserialize(jsType, typeDefs, jsTypeDefs)
   }
 
-  private def toNativePrimitive(t: Type): String = {
+  private def toNativePrimitive(t: Type, pathsAreNative: Boolean): String = {
     t match {
-      case TBoolean => "boolean"
-      case TInt     => "int"
-      case TFloat   => "float"
-      case TString  => "string"
-      case TFile    => "file"
-      // TODO: case TDirectory =>
-      case _ => throw TypeSerdeException(s"not a primitive type")
+      case TBoolean                     => "boolean"
+      case TInt                         => "int"
+      case TFloat                       => "float"
+      case TString                      => "string"
+      case TFile if pathsAreNative      => "file"
+      case TDirectory if pathsAreNative => "file"
+      case TFile | TDirectory           => "hash"
+      case _                            => throw TypeSerdeException(s"not a primitive type")
     }
   }
 
-  def toNative(t: Type): (String, Boolean) = {
+  def toNative(t: Type, pathsAreNative: Boolean = true): (String, Boolean) = {
     val (innerType, optional) = t match {
       case TOptional(innerType) => (innerType, true)
       case _                    => (t, false)
     }
     innerType match {
-      case _ if Type.isNativePrimitive(innerType) =>
-        (toNativePrimitive(innerType), optional)
-      case TArray(memberType, nonEmpty) if Type.isNativePrimitive(memberType) =>
+      case _ if Type.isNativePrimitive(innerType, pathsAreNative) =>
+        (toNativePrimitive(innerType, pathsAreNative), optional)
+      case TArray(memberType, nonEmpty) if Type.isNativePrimitive(memberType, pathsAreNative) =>
         // arrays of primitives translate to e.g. 'array:file' -
-        val nativeInnerType = toNativePrimitive(memberType)
+        val nativeInnerType = toNativePrimitive(memberType, pathsAreNative)
         (s"array:${nativeInnerType}", !nonEmpty || optional)
       case _ =>
         // everything else is a complex type represented as a hash

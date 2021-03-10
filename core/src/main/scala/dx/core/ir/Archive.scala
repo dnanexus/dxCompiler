@@ -267,14 +267,38 @@ object Archive {
   def transformPaths(irValue: Value,
                      irType: Type,
                      transformer: Path => Path): (Value, Map[Path, Path]) = {
-    def transformFile(path: String): (VFile, Map[Path, Path]) = {
-      val oldPath = Paths.get(path)
-      val newPath = transformer(oldPath)
-      (VFile(newPath.toString), TreeSeqMap(oldPath -> newPath))
+    def transformFile(value: Value): (VFile, Map[Path, Path]) = {
+      value match {
+        case f: VFile =>
+          val oldPath = Paths.get(f.uri)
+          val newPath = transformer(oldPath)
+          (f.copy(uri = newPath.toString), TreeSeqMap(oldPath -> newPath))
+        case VString(s) =>
+          val oldPath = Paths.get(s)
+          val newPath = transformer(oldPath)
+          (VFile(newPath.toString), TreeSeqMap(oldPath -> newPath))
+        case _ =>
+          throw new Exception(s"cannot transform ${value} to file")
+      }
+    }
+    def transformDirectory(value: Value): (VDirectory, Map[Path, Path]) = {
+      value match {
+        case f: VDirectory =>
+          val oldPath = Paths.get(f.uri)
+          val newPath = transformer(oldPath)
+          (f.copy(uri = newPath.toString), TreeSeqMap(oldPath -> newPath))
+        case VString(s) =>
+          val oldPath = Paths.get(s)
+          val newPath = transformer(oldPath)
+          (VDirectory(newPath.toString), TreeSeqMap(oldPath -> newPath))
+        case _ =>
+          throw new Exception(s"cannot transform ${value} to directory")
+      }
     }
     def transformNoType(innerValue: Value): (Value, Map[Path, Path]) = {
       innerValue match {
-        case VFile(s) => transformFile(s)
+        case f: VFile      => transformFile(f)
+        case d: VDirectory => transformDirectory(d)
         case VArray(items) =>
           val (transformedItems, paths) = items.map(transformNoType).unzip
           (VArray(transformedItems), paths.flatten.toMap)
@@ -291,8 +315,10 @@ object Archive {
     }
     def transformWithType(innerValue: Value, innerType: Type): (Value, Map[Path, Path]) = {
       (innerType, innerValue) match {
-        case (TFile, VFile(s))   => transformFile(s)
-        case (TFile, VString(s)) => transformFile(s)
+        case (TFile, f: VFile)           => transformFile(f)
+        case (TFile, s: VString)         => transformFile(s)
+        case (TDirectory, d: VDirectory) => transformDirectory(d)
+        case (TDirectory, s: VString)    => transformDirectory(s)
         case (_: TCollection, _: VFile) =>
           throw new RuntimeException("nested archive values are not allowed")
         case (TOptional(t), value) if value != VNull =>
@@ -301,7 +327,7 @@ object Archive {
         case (TArray(itemType, _), VArray(items)) =>
           val (transformedItems, paths) = items.map(transformWithType(_, itemType)).unzip
           (VArray(transformedItems), paths.flatten.toMap)
-        case (TSchema(name, fieldTypes), VHash(fields)) =>
+        case (TSchema(_, fieldTypes), VHash(fields)) =>
           val (transformedFields, paths) = fieldTypes.collect {
             case (name, t) if fields.contains(name) =>
               val (transformedValue, paths) = transformWithType(fields(name), t)

@@ -1,7 +1,6 @@
 package dx.translator.wdl
 
 import java.nio.file.Path
-
 import dx.api.{DxApi, DxProject}
 import dx.core.ir._
 import dx.core.ir.Type.TSchema
@@ -77,6 +76,8 @@ case class WdlTranslator(doc: TAT.Document,
   override val runtimeAssetName: String = "dxWDLrt"
 
   override val runtimeJar: String = "dxExecutorWdl.jar"
+
+  override val complexPathValues: Boolean = false
 
   override lazy val apply: Bundle = {
     val wdlBundle: WdlBundle = WdlBundle.create(doc)

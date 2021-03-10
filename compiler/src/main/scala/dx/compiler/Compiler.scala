@@ -49,6 +49,7 @@ object Compiler {
   * @param projectWideReuse whether to allow project-wide reuse of applications
   * @param streamFiles which files to stream vs download
   * @param useManifests whether to use manifest files for all application inputs and outputs
+  * @param complexPathValues whether File and Directory values should be treated as objects
   * @param fileResolver the FileSourceResolver
   * @param dxApi the DxApi
   * @param logger the Logger
@@ -67,6 +68,7 @@ case class Compiler(extras: Option[Extras],
                     separateOutputs: Boolean,
                     streamFiles: StreamFiles.StreamFiles,
                     useManifests: Boolean,
+                    complexPathValues: Boolean,
                     fileResolver: FileSourceResolver = FileSourceResolver.get,
                     dxApi: DxApi = DxApi.get,
                     logger: Logger = Logger.get) {
@@ -317,6 +319,7 @@ case class Compiler(extras: Option[Extras],
             extras,
             parameterLinkSerializer,
             useManifests,
+            complexPathValues,
             dxApi,
             logger2
         )
@@ -371,7 +374,12 @@ case class Compiler(extras: Option[Extras],
     ): (DxWorkflow, JsValue) = {
       logger2.trace(s"Compiling workflow ${workflow.name}")
       val workflowCompiler =
-        WorkflowCompiler(extras, parameterLinkSerializer, useManifests, dxApi, logger2)
+        WorkflowCompiler(extras,
+                         parameterLinkSerializer,
+                         useManifests,
+                         complexPathValues,
+                         dxApi,
+                         logger2)
       // Calculate a checksum of the inputs that went into the making of the applet.
       val (workflowApiRequest, execTree) = workflowCompiler.apply(workflow, dependencyDict)
       val (requestWithChecksum, digest) = checksumRequest(workflow.name, workflowApiRequest)

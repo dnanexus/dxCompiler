@@ -285,7 +285,7 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     val irX = WdlUtils.toIRValue(wdlX)
     val blockContext =
       wdlWorkflowSupport.evaluateBlockInputs(Map("x" -> (Type.TArray(Type.TString), irX)))
-    blockContext.getScatterName(wdlX) shouldBe Some("[x,y]")
+    blockContext.getScatterName(wdlX, 0) shouldBe Some("[x,y]")
   }
 
   it should "Make sure calls cannot be handled by evalExpressions" in {
@@ -551,7 +551,7 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
 
   def getComplexScatterName(items: Vector[Any],
                             maxLength: Int = WorkflowExecutor.JobNameLengthLimit): String = {
-    WdlWorkflowExecutor.getComplexScatterName(items.map(i => Some(i.toString)).iterator, maxLength)
+    WorkflowExecutor.getComplexScatterName(items.map(i => Some(i.toString)).iterator, maxLength)
   }
 
   it should "Build limited sized names" in {

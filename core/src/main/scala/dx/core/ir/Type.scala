@@ -18,8 +18,9 @@ object Type {
     * A directory maps to a DNAnexus folder, or to some other representation of
     * a hierarchy of files, e.g. a tar or zip archive.
     */
-  case object TDirectory extends PrimitiveType
+  case object TDirectory extends Type
 
+  case object TListing extends
   /**
     * Wrapper that indicates a type is optional.
     * @param t wrapped type
@@ -76,15 +77,15 @@ object Type {
     }
   }
 
-  def isNativePrimitive(t: Type): Boolean = {
+  def isNativePrimitive(t: Type, pathsAreNative: Boolean = true): Boolean = {
     t match {
-      case TBoolean => true
-      case TInt     => true
-      case TFloat   => true
-      case TString  => true
-      case TFile    => true
-      // TODO: TDirectory
-      case _ => false
+      case TBoolean                     => true
+      case TInt                         => true
+      case TFloat                       => true
+      case TString                      => true
+      case TFile if pathsAreNative      => true
+      case TDirectory if pathsAreNative => true
+      case _                            => false
     }
   }
 
@@ -93,17 +94,21 @@ object Type {
     * DNAnexus only supports primitives, optionals of primitives, and arrays of primitives
     * (with no nested optional types).
     * @param t IR type
+    * @param pathsAreNative whether path types (TFile and TDirectory) should be treated
+    *                       as native types. This may be false in the case of languages
+    *                       like CWL that have parameterized File/Directory types that
+    *                       must be passed as hashes.
     * @return
     */
-  def isNative(t: Type): Boolean = {
+  def isNative(t: Type, pathsAreNative: Boolean = true): Boolean = {
     t match {
       case TOptional(TArray(inner, _)) =>
         // TODO: should an optional non-empty array be considered native? Currently it is
         //  allowed, and must always agree with the type conversion logic in TypeSerde.toNative.
-        isNativePrimitive(inner)
-      case TOptional(inner) => isNativePrimitive(inner)
-      case TArray(inner, _) => isNativePrimitive(inner)
-      case _                => isNativePrimitive(t)
+        isNativePrimitive(inner, pathsAreNative)
+      case TOptional(inner) => isNativePrimitive(inner, pathsAreNative)
+      case TArray(inner, _) => isNativePrimitive(inner, pathsAreNative)
+      case _                => isNativePrimitive(t, pathsAreNative)
     }
   }
 

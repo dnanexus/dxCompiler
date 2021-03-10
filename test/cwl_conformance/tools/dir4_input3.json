@@ -5,12 +5,12 @@
     "secondaryFiles": [
       {
         "class": "File",
-        "location": "hello.tar"
+        "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G0G0V0j0yzZbyFF03xqgxv89"
       },
       {
         "class": "Directory",
         "basename": "xtestdir",
-        "location": "subdirsecondaries/testdir"
+        "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G1352Yj0yzZyF4JX4gPq407k"
       }
     ]
   }

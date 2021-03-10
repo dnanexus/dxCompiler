@@ -150,8 +150,6 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
           case _ =>
             val step = block.target.get
             (block.outputs, step.when.isDefined, step.scatter.nonEmpty)
-          case _ =>
-            throw new Exception(s"unexpected block kind ${block.kind}")
         }
     }
     val irOutputs = outputParams.map {
@@ -180,7 +178,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
       extends BlockContext {
     private val step = block.target.get
 
-    override protected lazy val env: Map[String, (Type, Value)] = CwlUtils.toIR(cwlEnv)
+    override lazy val env: Map[String, (Type, Value)] = CwlUtils.toIR(cwlEnv)
 
     private def evaluateCallInputs(
         extraEnv: Map[String, (CwlType, CwlValue)] = Map.empty
@@ -316,7 +314,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
       step.scatter.map(name =>
         cwlEnv.get(name) match {
           case Some((t, NullValue)) if CwlOptional.isOptional(t) => None
-          case Some((_, ArrayValue(items))) if items.empty       => None
+          case Some((_, ArrayValue(items))) if items.isEmpty     => None
           case Some((array: CwlArray, ArrayValue(items))) =>
             Some(array.itemType, items)
           case None =>
@@ -397,6 +395,8 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
           (createScatterOutputArray(childOutputs, out.name, irType), arraySizes) match {
             case (Value.VArray(a), Some(sizes)) => nestArrays(a, sizes)
             case (a, None)                      => a
+            case (other, _) =>
+              throw new Exception(s"invalid array value ${other}")
           }
         s"${step.name}/${out.name}" -> (irType, arrayValue)
       }.toMap

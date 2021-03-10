@@ -204,7 +204,7 @@ abstract class WorkflowTranslator(wfName: String,
             s"Expected exactly one output with name ${ReorgStatus}, found ${other}"
         )
     }
-    val configFile: Option[VFile] = reorgConfigFile.map(VFile)
+    val configFile: Option[VFile] = reorgConfigFile.map(VFile(_))
     val appInputs = Vector(
         statusParam,
         Parameter(Constants.ReorgConfig, TFile, configFile)

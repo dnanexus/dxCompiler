@@ -18,14 +18,49 @@ object Value {
   case class VFloat(value: Double) extends PrimitiveValue
   case class VString(value: String) extends PrimitiveValue
   case class VBoolean(value: Boolean) extends PrimitiveValue
-  case class VFile(value: String) extends PrimitiveValue
+
+  sealed trait PathValue extends PrimitiveValue
 
   /**
-    * Represents a DNAnexus folder or a file-based representation of a directory
-    * (e.g. a zip or tar archive file).
-    * @param value directory
+    * Represents a local or remote file. If `contents` is set,
+    * this is a virtual file can be localized by writing its
+    * contents to a local path.
+    * @param uri the local file path or remote URI
+    * @param basename the name to use when localizing the file
+    * @param contents the file contents
+    * @param checksum the file checksum
+    * @param size the file size
+    * @param secondaryFiles additional files that must accompany this file
     */
-  case class VDirectory(value: String) extends PrimitiveValue
+  case class VFile(uri: String,
+                   basename: Option[String] = None,
+                   contents: Option[String] = None,
+                   checksum: Option[String] = None,
+                   size: Option[Long] = None,
+                   secondaryFiles: Vector[PathValue] = Vector.empty)
+      extends PathValue
+
+  /**
+    * A local or remote DNAnexus folder.
+    * @param uri local path or dx://project-xxx:/path/to/folder/ URI
+    * @param basename the name to use when localizing the directory
+    */
+  case class VFolder(uri: String, basename: Option[String] = None) extends PathValue
+
+  /**
+    * An archive file-based representation of a directory (e.g. a tar archive file).
+    * @param uri file URI
+    * @param basename the name to use when localizing the directory
+    */
+  case class VArchive(uri: String, basename: Option[String] = None) extends PathValue
+
+  /**
+    * A synthetic directory consisting of specific platform files/folders.
+    * @param basename the name to use when localizing the directory
+    * @param listing a Vector of files/subdirectories in this Directory
+    */
+  case class VListing(basename: Option[String] = None, listing: Vector[PathValue] = Vector.empty)
+      extends PathValue
 
   /**
     * Represents the empty value for an optional field.
@@ -70,6 +105,17 @@ object Value {
   def transform(value: Value,
                 t: Option[Type],
                 handler: (Value, Option[Type], Boolean) => Option[Value]): Value = {
+    def transformPaths(paths: Vector[PathValue]): Vector[PathValue] = {
+      paths
+        .map {
+          case f: VFile      => inner(f, Some(TFile))
+          case d: VDirectory => inner(d, Some(TDirectory))
+        }
+        .map {
+          case p: PathValue => p
+          case other        => throw new Exception(s"not a PathValue ${other}")
+        }
+    }
     def inner(innerValue: Value, innerType: Option[Type] = None): Value = {
       val (nonOptType, optional) = if (innerType.exists(isOptional)) {
         (Some(unwrapOptional(innerType.get)), true)
@@ -81,6 +127,10 @@ object Value {
           case (_, VNull) if optional => VNull
           case (_, VNull) =>
             throw new Exception(s"null value for non-optional type ${innerType.get}")
+          case (Some(TFile), f: VFile) if f.secondaryFiles.nonEmpty =>
+            f.copy(secondaryFiles = transformPaths(f.secondaryFiles))
+          case (Some(TDirectory), d: VDirectory) if d.listing.nonEmpty =>
+            d.copy(listing = transformPaths(d.listing))
           case (Some(TArray(_, true)), VArray(Vector())) =>
             throw new Exception("empty array for non-empty array type")
           case (Some(TArray(itemType, _)), VArray(items)) =>
@@ -153,9 +203,9 @@ object Value {
           )
       // coercions
       case (TFile, VString(s))      => VFile(s)
-      case (TString, VFile(f))      => VString(f)
+      case (TString, f: VFile)      => VString(f.uri)
       case (TDirectory, VString(s)) => VDirectory(s)
-      case (TString, VDirectory(d)) => VString(d)
+      case (TString, d: VDirectory) => VString(d.uri)
       case (TFloat, VInt(i))        => VFloat(i.toFloat)
       case _ =>
         throw new Exception(s"cannot coerce ${value} to ${targetType}")

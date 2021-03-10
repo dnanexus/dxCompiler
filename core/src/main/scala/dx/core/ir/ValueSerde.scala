@@ -1,8 +1,11 @@
 package dx.core.ir
 
+import dx.api.{DxApi, DxFile, DxFileDescCache, DxPath}
 import dx.core.ir.Type._
 import dx.core.ir.Value._
 import dx.util.CollectionUtils.IterableOnceExtensions
+import dx.util.protocols.{DxArchiveFolderSource, DxFileSource, DxFolderSource}
+import dx.util.{FileSourceResolver, JsUtils, LocalFileSource}
 import spray.json._
 
 import scala.collection.immutable.TreeSeqMap
@@ -13,6 +16,82 @@ object ValueSerde extends DefaultJsonProtocol {
   case class ValueSerdeException(message: String) extends Exception(message)
 
   /**
+    * Serialize a PathValue (VFile or VDirectory). If `fileResolver` is specified,
+    * file URIs are resolved and serialized as dx link objects.
+    * @param path PathValue to serialize
+    * @param fileResolver FileSourceResolver
+    * @param pathsAsObjects whether PathValues should be serialized as JsObject or JsString
+    * @return
+    */
+  def serializePath(path: PathValue,
+                    fileResolver: Option[FileSourceResolver] = None,
+                    pathsAsObjects: Boolean = false): JsValue = {
+    def serializeFileUri(uri: String): JsValue = {
+      fileResolver
+        .map { res =>
+          res.resolve(uri) match {
+            case dxFile: DxFileSource       => dxFile.dxFile.asJson
+            case localFile: LocalFileSource => JsString(localFile.originalPath.toString)
+            case other =>
+              throw new RuntimeException(s"Unsupported file source ${other}")
+          }
+        }
+        .getOrElse(JsString(uri))
+    }
+    def serializeFolderUri(uri: String): JsValue = {
+      fileResolver
+        .map { res =>
+          res.resolveDirectory(uri) match {
+            case dxFolder: DxFolderSource         => JsString(dxFolder.address)
+            case dxArchive: DxArchiveFolderSource => dxArchive.dxFileSource.dxFile.asJson
+            case localFile: LocalFileSource       => JsString(localFile.originalPath.toString)
+            case other =>
+              throw new RuntimeException(s"Unsupported file source ${other}")
+          }
+        }
+        .getOrElse(JsString(uri))
+    }
+    def inner(innerPath: PathValue): JsValue = {
+      innerPath match {
+        case VFile(uri, None, None, None, None, Vector()) if !pathsAsObjects =>
+          serializeFileUri(uri)
+        case VDirectory(uri, None, Vector()) if !pathsAsObjects =>
+          serializeFolderUri(uri)
+        case f: VFile if pathsAsObjects =>
+          JsObject(
+              Vector(
+                  Some("type" -> JsString("File")),
+                  Some("uri" -> serializeFileUri(f.uri)),
+                  f.basename.map("basename" -> JsString(_)),
+                  f.contents.map("contents" -> JsString(_)),
+                  f.checksum.map("checksum" -> JsString(_)),
+                  f.size.map("size" -> JsNumber(_)),
+                  Option.when(f.secondaryFiles.nonEmpty)(
+                      "secondaryFiles" -> JsArray(f.secondaryFiles.map(inner))
+                  )
+              ).flatten.toMap
+          )
+        case d: VDirectory if pathsAsObjects =>
+          JsObject(
+              Vector(
+                  Some("type" -> JsString("Directory")),
+                  Some("uri" -> serializeFolderUri(d.uri)),
+                  d.basename.map("basename" -> JsString(_)),
+                  Option.when(d.listing.nonEmpty)(
+                      "secondaryFiles" -> JsArray(d.listing.map(inner))
+                  )
+              ).flatten.toMap
+          )
+        case _: VFile | _: VDirectory =>
+          throw new Exception(s"cannot serialize ${innerPath} with pathsAsObjects=false")
+        case _ =>
+          throw new Exception(s"not a PathValue ${innerPath}")
+      }
+    }
+    inner(path)
+  }
+
+  /**
     * Serializes a Value to JSON.
     * @param value the Value to serialize
     * @param handler an optional function to perform special handling of certain values.
@@ -21,7 +100,10 @@ object ValueSerde extends DefaultJsonProtocol {
     *                transformed according to the default rules.
     * @return
     */
-  def serialize(value: Value, handler: Option[Value => Either[Value, JsValue]] = None): JsValue = {
+  def serialize(value: Value,
+                handler: Option[Value => Either[Value, JsValue]] = None,
+                fileResolver: Option[FileSourceResolver] = None,
+                pathsAsObjects: Boolean = false): JsValue = {
     def inner(innerValue: Value): JsValue = {
       val v = handler.map(_(innerValue)) match {
         case Some(Right(result))  => return result
@@ -29,15 +111,15 @@ object ValueSerde extends DefaultJsonProtocol {
         case None                 => innerValue
       }
       v match {
-        case VNull            => JsNull
-        case VBoolean(b)      => JsBoolean(b)
-        case VInt(i)          => JsNumber(i)
-        case VFloat(f)        => JsNumber(f)
-        case VString(s)       => JsString(s)
-        case VFile(path)      => JsString(path)
-        case VDirectory(path) => JsString(path)
-        case VArray(items)    => JsArray(items.map(inner))
-        case VHash(fields)    => JsObject(fields.view.mapValues(inner).toMap)
+        case VNull         => JsNull
+        case VBoolean(b)   => JsBoolean(b)
+        case VInt(i)       => JsNumber(i)
+        case VFloat(f)     => JsNumber(f)
+        case VString(s)    => JsString(s)
+        case f: VFile      => serializePath(f, fileResolver, pathsAsObjects)
+        case d: VDirectory => serializePath(d, fileResolver, pathsAsObjects)
+        case VArray(items) => JsArray(items.map(inner))
+        case VHash(fields) => JsObject(fields.view.mapValues(inner).toMap)
       }
     }
     inner(value)
@@ -56,7 +138,9 @@ object ValueSerde extends DefaultJsonProtocol {
   def serializeWithType(
       value: Value,
       irType: Type,
-      handler: Option[(Value, Type) => Either[Value, JsValue]] = None
+      handler: Option[(Value, Type) => Either[Value, JsValue]] = None,
+      fileResolver: Option[FileSourceResolver] = None,
+      pathsAsObjects: Boolean = false
   ): JsValue = {
     lazy val handlerWrapper = handler.map(h => (v: Value) => h(v, TMulti.Any))
     def inner(innerValue: Value, innerType: Type): JsValue = {
@@ -66,17 +150,19 @@ object ValueSerde extends DefaultJsonProtocol {
         case None                 => innerValue
       }
       (innerType, v) match {
-        case (_: TOptional, VNull)                    => JsNull
-        case (TOptional(t), _)                        => inner(v, t)
-        case (t: TMulti, _)                           => innerMulti(v, t)
-        case (TBoolean, VBoolean(b))                  => JsBoolean(b)
-        case (TInt, VInt(i))                          => JsNumber(i)
-        case (TInt, VFloat(i)) if i.isValidInt        => JsNumber(i.intValue())
-        case (TFloat, VFloat(f))                      => JsNumber(f)
-        case (TFloat, VInt(i))                        => JsNumber(i.floatValue())
-        case (TString, VString(s))                    => JsString(s)
-        case (TFile | TString, VFile(path))           => JsString(path)
-        case (TDirectory | TString, VDirectory(path)) => JsString(path)
+        case (_: TOptional, VNull)             => JsNull
+        case (TOptional(t), _)                 => inner(v, t)
+        case (t: TMulti, _)                    => innerMulti(v, t)
+        case (TBoolean, VBoolean(b))           => JsBoolean(b)
+        case (TInt, VInt(i))                   => JsNumber(i)
+        case (TInt, VFloat(i)) if i.isValidInt => JsNumber(i.intValue())
+        case (TFloat, VFloat(f))               => JsNumber(f)
+        case (TFloat, VInt(i))                 => JsNumber(i.floatValue())
+        case (TString, VString(s))             => JsString(s)
+        case (TString, f: VFile)               => JsString(f.uri)
+        case (TString, d: VDirectory)          => JsString(d.uri)
+        case (TFile, f: VFile)                 => serializePath(f, fileResolver, pathsAsObjects)
+        case (TDirectory, d: VDirectory)       => serializePath(d, fileResolver, pathsAsObjects)
         case (TArray(_, true), VArray(items)) if items.isEmpty =>
           throw ValueSerdeException(s"empty value for non-empty array type ${innerType}")
         case (TArray(itemType, _), VArray(items)) =>
@@ -147,6 +233,85 @@ object ValueSerde extends DefaultJsonProtocol {
     }
   }
 
+  def isPathObject(jsv: JsValue): Boolean = {
+    jsv match {
+      case JsObject(fields) =>
+        fields.contains("uri") && fields.get("type").exists {
+          case JsString(s) => Set("File", "Directory").contains(s)
+          case _           => false
+        }
+      case _ => false
+    }
+  }
+
+  def deserializeDxFileUri(uri: JsValue,
+                           dxApi: DxApi = DxApi.get,
+                           dxFileDescCache: Option[DxFileDescCache] = None): String = {
+    uri match {
+      case JsString(s) => s
+      case obj: JsObject if DxFile.isLinkJson(obj) =>
+        val dxFile = DxFile.fromJson(dxApi, obj)
+        dxFileDescCache.map(_.updateFileFromCache(dxFile)).getOrElse(dxFile).asUri
+      case _ =>
+        throw new Exception(s"invalid URI value ${uri}")
+    }
+  }
+
+  def deserializePathObject(jsv: JsValue,
+                            dxApi: DxApi = DxApi.get,
+                            dxFileDescCache: Option[DxFileDescCache] = None): PathValue = {
+    def inner(innerValue: JsValue): PathValue = {
+      innerValue match {
+        case JsObject(fields) =>
+          fields.get("type") match {
+            case Some(JsString("File")) =>
+              VFile(
+                  deserializeDxFileUri(fields("uri"), dxApi, dxFileDescCache),
+                  JsUtils.getOptionalString(fields, "basename"),
+                  JsUtils.getOptionalString(fields, "contents"),
+                  JsUtils.getOptionalString(fields, "checksum"),
+                  JsUtils.getOptionalLong(fields, "size"),
+                  JsUtils
+                    .getOptionalValues(fields, "secondaryFiles")
+                    .map {
+                      _.map {
+                        case obj: JsObject => deserializePathObject(obj)
+                        case other         => throw new Exception(s"invalid path ${other}")
+                      }
+                    }
+                    .getOrElse(Vector.empty)
+              )
+            case Some(JsString("Directory")) =>
+              VDirectory(
+                  deserializeDxFileUri(fields("uri"), dxApi, dxFileDescCache),
+                  JsUtils.getOptionalString(fields, "basename"),
+                  JsUtils
+                    .getOptionalValues(fields, "listing")
+                    .map {
+                      _.map {
+                        case obj: JsObject => deserializePathObject(obj)
+                        case other         => throw new Exception(s"invalid path ${other}")
+                      }
+                    }
+                    .getOrElse(Vector.empty)
+              )
+            case _ =>
+              throw new Exception(s"invalid serialized PathValue ${fields}")
+          }
+        case _ => throw new Exception("")
+      }
+    }
+    inner(jsv)
+  }
+
+  def isDxFileUri(uri: String): Boolean = {
+    uri.startsWith(DxPath.DxUriPrefix) && uri.contains("file-") && !uri.endsWith("/")
+  }
+
+  def isDxFolderUri(uri: String): Boolean = {
+    uri.startsWith(DxPath.DxUriPrefix) && uri.contains("project-") && uri.endsWith("/")
+  }
+
   /**
     * Deserializes a JsValue to a Value, in the absence of type information.
     * @param jsValue the JsValue
@@ -157,7 +322,9 @@ object ValueSerde extends DefaultJsonProtocol {
     * @return
     */
   def deserialize(jsValue: JsValue,
-                  handler: Option[JsValue => Either[JsValue, Value]] = None): Value = {
+                  handler: Option[JsValue => Either[JsValue, Value]] = None,
+                  dxApi: DxApi = DxApi.get,
+                  dxFileDescCache: Option[DxFileDescCache] = None): Value = {
     def inner(innerValue: JsValue): Value = {
       val v = handler.map(_(innerValue)) match {
         case Some(Right(result))    => return result
@@ -170,9 +337,15 @@ object ValueSerde extends DefaultJsonProtocol {
         case JsBoolean(b)                         => VBoolean(b.booleanValue)
         case JsNumber(value) if value.isValidLong => VInt(value.toLongExact)
         case JsNumber(value)                      => VFloat(value.toDouble)
+        case JsString(s) if isDxFileUri(s)        => VFile(s)
+        case JsString(s) if isDxFolderUri(s)      => VDirectory(s)
         case JsString(s)                          => VString(s)
         case JsArray(items)                       => VArray(items.map(x => inner(x)))
-        case JsObject(fields)                     => VHash(fields.view.mapValues(inner).to(TreeSeqMap))
+        case obj: JsObject if isPathObject(obj) =>
+          deserializePathObject(obj, dxApi, dxFileDescCache)
+        case obj: JsObject if DxFile.isLinkJson(obj) =>
+          VFile(deserializeDxFileUri(obj, dxApi, dxFileDescCache))
+        case JsObject(fields) => VHash(fields.view.mapValues(inner).to(TreeSeqMap))
       }
     }
     inner(jsValue)
@@ -191,7 +364,9 @@ object ValueSerde extends DefaultJsonProtocol {
   def deserializeWithType(
       jsValue: JsValue,
       t: Type,
-      handler: Option[(JsValue, Type) => Either[JsValue, Value]] = None
+      handler: Option[(JsValue, Type) => Either[JsValue, Value]] = None,
+      dxApi: DxApi = DxApi.get,
+      dxFileDescCache: Option[DxFileDescCache] = None
   ): Value = {
     def inner(innerValue: JsValue, innerType: Type): Value = {
       val v = handler.map(_(innerValue, innerType)) match {
@@ -226,6 +401,12 @@ object ValueSerde extends DefaultJsonProtocol {
         case (TString, JsString(s))                       => VString(s)
         case (TFile, JsString(path))                      => VFile(path)
         case (TDirectory, JsString(path))                 => VDirectory(path)
+        case (TFile | TDirectory, obj: JsObject) if isPathObject(obj) =>
+          deserializePathObject(obj, dxApi, dxFileDescCache)
+        case (TFile, obj: JsObject) if DxFile.isLinkJson(obj) =>
+          VFile(deserializeDxFileUri(obj, dxApi, dxFileDescCache))
+        case (TDirectory, obj: JsObject) if DxFile.isLinkJson(obj) =>
+          VDirectory(deserializeDxFileUri(obj, dxApi, dxFileDescCache))
         case (TArray(_, true), JsArray(items)) if items.isEmpty =>
           throw ValueSerdeException(s"Cannot convert empty array to non-empty type ${innerType}")
         case (TArray(t, _), JsArray(items)) =>
@@ -289,8 +470,8 @@ object ValueSerde extends DefaultJsonProtocol {
       case VFloat(f)     => f.toString
       case VString(s)    => s
       case VBoolean(b)   => b.toString
-      case VFile(f)      => f
-      case VDirectory(d) => d
+      case f: VFile      => f.uri
+      case d: VDirectory => d.uri
       case VNull         => "null"
       case VArray(items) => s"[${items.map(toString).mkString(",")}]"
       case VHash(fields) => s"{${fields.map { case (k, v) => s"${k}: ${toString(v)}" }}}"

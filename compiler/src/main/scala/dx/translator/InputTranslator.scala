@@ -1,18 +1,18 @@
 package dx.translator
 
 import java.nio.file.{Path, Paths}
-import dx.api.{DxApi, DxFile, DxFileDescCache, DxProject}
+import dx.api.{DxApi, DxFile, DxFileDescCache, DxPath, DxProject}
 import dx.core.Constants
 import dx.core.ir.Type._
 import dx.core.ir.{
   Application,
   Bundle,
   Callable,
+  Manifest,
   ParameterLinkDeserializer,
   ParameterLinkSerializer,
   StaticInput,
   Type,
-  Manifest,
   Value,
   ValueSerde,
   Workflow
@@ -107,11 +107,42 @@ class InputTranslator(bundle: Bundle,
     * @return a Vector of JSON values that describe Dx files
     */
   private def extractDxFiles(jsv: JsValue, t: Type): Vector[JsValue] = {
+    def extractFromArray(a: JsValue): Vector[JsValue] = {
+      a match {
+        case JsArray(paths) =>
+          paths.flatMap {
+            case obj: JsObject =>
+              obj.fields.get("type") match {
+                case Some(JsString("File"))      => extractDxFiles(obj, TFile)
+                case Some(JsString("Directory")) => extractDxFiles(obj, TDirectory)
+                case other =>
+                  throw new Exception(s"invalid path ${other}")
+              }
+            case other => throw new Exception(s"invalid path value ${other}")
+          }
+        case other =>
+          throw new Exception(s"invalid path array ${other}")
+      }
+    }
+
     val updatedValue = translateJsInput(jsv, t)
     (t, updatedValue) match {
-      case (TOptional(_), JsNull)   => Vector.empty
-      case (TOptional(inner), _)    => extractDxFiles(updatedValue, inner)
-      case (TFile, fileValue)       => Vector(fileValue)
+      case (TOptional(_), JsNull) => Vector.empty
+      case (TOptional(inner), _)  => extractDxFiles(updatedValue, inner)
+      case (TFile | TDirectory, uri: JsString) if uri.value.startsWith(DxPath.DxUriPrefix) =>
+        Vector(uri)
+      case (TFile | TDirectory, obj: JsObject) if DxFile.isLinkJson(obj) =>
+        Vector(obj)
+      case (TFile, JsObject(fields)) =>
+        Vector(fields("uri")) ++ fields
+          .get("secondaryFiles")
+          .map(extractFromArray)
+          .getOrElse(Vector.empty)
+      case (TDirectory, JsObject(fields)) =>
+        Vector(fields("uri")) ++ fields
+          .get("listing")
+          .map(extractFromArray)
+          .getOrElse(Vector.empty)
       case _ if Type.isPrimitive(t) => Vector.empty
       case (TArray(elementType, _), JsArray(array)) =>
         array.flatMap(element => extractDxFiles(element, elementType))

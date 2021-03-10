@@ -44,7 +44,6 @@ object CwlTaskExecutor {
 //  top-level workflow, and have the tool-specific overrides dispatched to
 //  each task
 // TODO: add compile-time option for --non-strict
-// TODO: remove --skip-schemas once schema parsing is working
 // TODO: SHA1 checksums are computed for all outputs - we need to add these as
 //  properties on the uploaded files so they can be propagated to downstream
 //  CWL inputs
@@ -217,7 +216,6 @@ case class CwlTaskExecutor(tool: CommandLineTool,
          |    --move-outputs \\
          |    --rm-container \\
          |    --rm-tmpdir \\
-         |    --skip-schemas \\
          |    ${targetOpt} ${overridesOpt} ${cwlPath.toString} ${inputPath.toString}
          |) \\
          |> >( tee ${workerPaths.getStdoutFile(ensureParentExists = true)} ) \\

@@ -14,7 +14,7 @@ import dx.api.{
   FolderContents
 }
 import dx.core.getVersion
-import dx.core.ir.Type.{TArray, TFile, TOptional, TSchema}
+import dx.core.ir.Type.{TFile, TOptional, TSchema}
 import dx.core.Constants
 import dx.core.ir.Value.{VArray, VFile}
 import dx.core.ir.{

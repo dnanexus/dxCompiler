@@ -275,4 +275,39 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
         )
     )
   }
+
+  it should "translate cwl inputs" in {
+    val cwlCode = pathFromBasename("cwl", "initialwork-path.cwl")
+    val inputs = pathFromBasename("cwl", "initialwork-path_input.json")
+    val args = List(cwlCode.toString, "-inputs", inputs.toString, "-verbose") ++ cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileIR]
+  }
+
+  it should "translate cwl directory inputs I" in {
+    val cwlCode = pathFromBasename("cwl", "cat-from-dir.cwl")
+    val inputs = pathFromBasename("cwl", "cat-from-dir_input1.json")
+    val args = List(cwlCode.toString, "-inputs", inputs.toString, "-verbose") ++ cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileIR]
+
+    val dxInputsFile = inputs.getParent.resolve(FileUtils.replaceFileSuffix(inputs, ".dx.json"))
+    val jsInputs = JsUtils.jsFromFile(dxInputsFile)
+    val fields = jsInputs.asJsObject.fields
+    fields("dir1") shouldBe JsObject(
+        "type" -> JsString("Directory"),
+        "basename" -> JsString("cwl"),
+        "listing" -> JsArray(
+            JsObject(
+                "type" -> JsString("File"),
+                "location" -> JsObject(
+                    "$dnanexus_link" -> JsObject(
+                        "id" -> JsString("file-G0G0V100yzZg3BBz3x4Y2Q69"),
+                        "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq")
+                    )
+                )
+            )
+        )
+    )
+  }
 }
