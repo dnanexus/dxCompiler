@@ -26,12 +26,12 @@ case class DxfuseManifestBuilder(dxApi: DxApi) {
           throw new Exception(s"file ${dxFile} is not live")
         }
 
-        val parentDir = path.getParent.toString
+        val parentDir = path.getParent
         // remove the mountpoint from the directory. We need
         // paths that are relative to the mount point.
-        val mountDir = workerPaths.getDxfuseMountDir().toString
+        val mountDir = workerPaths.getDxfuseMountDir()
         assert(parentDir.startsWith(mountDir))
-        val relParentDir = s"/${parentDir.stripPrefix(mountDir)}"
+        val relParentDir = s"/${mountDir.relativize(parentDir)}"
 
         val desc = dxFile.describe()
         JsObject(
