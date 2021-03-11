@@ -328,6 +328,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
           jobMeta.workerPaths.getInputFilesDir(),
           existingPaths = paths.localPaths,
           separateDirsBySource = true,
+          createDirs = true,
           disambiguationDirLimit = TaskExecutor.MaxDisambiguationDirs
       )
     val downloadFileSourceToPath =
@@ -347,6 +348,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
           jobMeta.workerPaths.getDxfuseMountDir(),
           existingPaths = paths.localPaths,
           separateDirsBySource = true,
+          createDirs = false,
           disambiguationDirLimit = TaskExecutor.MaxDisambiguationDirs
       )
     val streamFileSourceToPath =
