@@ -215,6 +215,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
           block.targetHints,
           callInputs,
           jobMeta.workerPaths,
+          step.run.inputs.map(i => i.name -> i).toMap,
           dxApi = jobMeta.dxApi
       )
       val instanceType =

@@ -35,12 +35,16 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
                                 hints: Vector[Hint],
                                 env: Map[String, (CwlType, CwlValue)],
                                 workerPaths: DxWorkerPaths,
+                                inputParameters: Map[String, InputParameter] = Map.empty,
                                 defaultRuntimeAttrs: Map[String, (CwlType, CwlValue)] = Map.empty,
                                 dxApi: DxApi = DxApi.get) {
   lazy val evaluator: Evaluator = Evaluator.create(requirements, hints)
   private lazy val runtime: Runtime = CwlUtils.createRuntime(workerPaths)
   private lazy val evaluatorContext: EvaluatorContext =
-    CwlUtils.createEvaluatorContext(runtime, env)
+    CwlUtils.createEvaluatorContext(runtime,
+                                    env,
+                                    inputParameters = inputParameters,
+                                    inputDir = workerPaths.getInputFilesDir())
 
   /**
     * Returns the last (i.e. highest priority) Requirement or Hint matching

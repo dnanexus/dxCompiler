@@ -129,6 +129,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
         tool.hints,
         env,
         workerPaths,
+        tool.inputs.map(i => i.name -> i).toMap,
         defaultRuntimeAttrs
     )
     reqEvaluator.parseInstanceType

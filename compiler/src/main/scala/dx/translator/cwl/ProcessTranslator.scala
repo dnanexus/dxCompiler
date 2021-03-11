@@ -118,13 +118,14 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       dxHints.map(_.getCallableAttributes).getOrElse(Map.empty)
     }
 
-    def translateInput(input: CommandInputParameter): Parameter = {
+    def translateInput(input: CommandInputParameter,
+                       evaluatorContext: EvaluatorContext): Parameter = {
       val name = input.id.get.unqualifiedName.get
       val irDefaultValue = input.default match {
         case Some(default) =>
           try {
-            val ctx = CwlUtils.createEvaluatorContext(Runtime.empty)
-            val (actualType, defaultValue) = cwlEvaluator.evaluate(default, input.cwlType, ctx)
+            val (actualType, defaultValue) =
+              cwlEvaluator.evaluate(default, input.cwlType, evaluatorContext)
             defaultValue match {
               case file: FileValue if !CwlUtils.isDxFile(file) =>
                 // cannot specify a local file as default - the default will
@@ -143,13 +144,14 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       Parameter(name, CwlUtils.toIRType(input.cwlType), irDefaultValue, attrs)
     }
 
-    def translateOutput(output: CommandOutputParameter): Parameter = {
+    def translateOutput(output: CommandOutputParameter,
+                        evaluatorContext: EvaluatorContext): Parameter = {
       val name = output.id.get.unqualifiedName.get
-      val ctx = CwlUtils.createEvaluatorContext(Runtime.empty)
       val irValue = output.outputBinding
         .flatMap(_.outputEval.flatMap { cwlValue =>
           try {
-            val (actualType, actualValue) = cwlEvaluator.evaluate(cwlValue, output.cwlType, ctx)
+            val (actualType, actualValue) =
+              cwlEvaluator.evaluate(cwlValue, output.cwlType, evaluatorContext)
             val (_, value) = CwlUtils.toIRValue(actualValue, actualType)
             Some(value)
           } catch {
@@ -166,11 +168,20 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
     //  to dx://project-xxx:file-xxx to avoid a runtime lookup
     def apply: Application = {
       val name = tool.name
-      val inputs = tool.inputs.collect {
-        case i if i.id.exists(_.name.isDefined) => translateInput(i)
-      }
+      // translate inputs and evaluate any static default values
+      val inputParams = tool.inputs.collect {
+        case i if i.id.exists(_.name.isDefined) => i.name -> i
+      }.toMap
+      val inputCtx = CwlUtils.createEvaluatorContext(Runtime.empty)
+      val inputs = inputParams.values.map(i => translateInput(i, inputCtx)).toVector
+      val defaults = inputParams.values.collect {
+        case i if i.default.isDefined => i.name -> (i.cwlType, i.default.get)
+      }.toMap
+      // translate outputs and evaluate any static expressions
+      val outputCtx =
+        CwlUtils.createEvaluatorContext(Runtime.empty, defaults, inputParameters = inputParams)
       val outputs = tool.outputs.collect {
-        case i if i.id.exists(_.name.isDefined) => translateOutput(i)
+        case i if i.id.exists(_.name.isDefined) => translateOutput(i, outputCtx)
       }
       val requirementEvaluator = RequirementEvaluator(
           inheritedRequirements ++ tool.requirements,
