@@ -12,14 +12,13 @@ case class DxfuseManifest(value: JsValue)
 
 case class DxfuseManifestBuilder(dxApi: DxApi) {
   def apply(fileToLocalMapping: Map[DxFile, Path],
-            archiveToLocalMapping: Map[DxFile, Path],
             folderToLocalMapping: Map[(String, String), Path],
             workerPaths: DxWorkerPaths): Option[DxfuseManifest] = {
     if (fileToLocalMapping.isEmpty) {
       return None
     }
 
-    val files = (fileToLocalMapping ++ archiveToLocalMapping).map {
+    val files = fileToLocalMapping.map {
       case (dxFile, path) =>
         // we expect that the files will have already been bulk described
         assert(dxFile.hasCachedDesc)

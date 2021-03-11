@@ -24,6 +24,7 @@ import dx.translator.CallableAttributes.{
   TypesAttribute
 }
 import dx.translator.{Extras, ParameterAttributes}
+import dx.util.FileSourceResolver
 import spray.json._
 
 object ExecutableCompiler {
@@ -52,6 +53,7 @@ object ExecutableCompiler {
 class ExecutableCompiler(extras: Option[Extras],
                          parameterLinkSerializer: ParameterLinkSerializer,
                          complexPathValues: Boolean,
+                         fileResolver: FileSourceResolver,
                          dxApi: DxApi = DxApi.get) {
 
   private def constraintToNative(constraint: ParameterAttributes.Constraint): JsValue = {
@@ -69,13 +71,16 @@ class ExecutableCompiler(extras: Option[Extras],
 
   private def defaultValueToNative(value: Value): JsValue = {
     value match {
-      case VNull         => JsNull
-      case VBoolean(b)   => JsBoolean(b)
-      case VInt(i)       => JsNumber(i)
-      case VFloat(f)     => JsNumber(f)
-      case VString(s)    => JsString(s)
-      case f: VFile      => dxApi.resolveFile(f.uri).asJson
-      case d: VDirectory => dxApi.resolveFile(d.uri).asJson
+      case VNull                             => JsNull
+      case VBoolean(b)                       => JsBoolean(b)
+      case VInt(i)                           => JsNumber(i)
+      case VFloat(f)                         => JsNumber(f)
+      case VString(s)                        => JsString(s)
+      case f: VFile if !complexPathValues    => dxApi.resolveFile(f.uri).asJson
+      case a: VArchive if !complexPathValues => dxApi.resolveFile(a.uri).asJson
+      case f: VFolder if !complexPathValues  => JsString(f.uri)
+      case p: PathValue if complexPathValues =>
+        ValueSerde.serializePath(p, Some(fileResolver), pathsAsObjects = true)
       case VArray(array) => JsArray(array.map(defaultValueToNative))
       case VHash(obj) =>
         JsObject(obj.map {

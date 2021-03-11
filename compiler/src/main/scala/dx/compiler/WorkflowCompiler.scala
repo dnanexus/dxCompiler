@@ -5,7 +5,7 @@ import dx.core.Constants
 import dx.core.ir._
 import dx.translator.CallableAttributes._
 import dx.translator.Extras
-import dx.util.{CodecUtils, Logger}
+import dx.util.{CodecUtils, FileSourceResolver, Logger}
 import spray.json._
 
 import scala.collection.immutable.TreeSeqMap
@@ -14,9 +14,14 @@ case class WorkflowCompiler(extras: Option[Extras],
                             parameterLinkSerializer: ParameterLinkSerializer,
                             useManifests: Boolean,
                             complexPathValues: Boolean,
+                            fileResolver: FileSourceResolver,
                             dxApi: DxApi = DxApi.get,
                             logger: Logger = Logger.get)
-    extends ExecutableCompiler(extras, parameterLinkSerializer, complexPathValues, dxApi) {
+    extends ExecutableCompiler(extras,
+                               parameterLinkSerializer,
+                               complexPathValues,
+                               fileResolver,
+                               dxApi) {
 
   private def workflowInputParameterToNative(parameter: Parameter,
                                              stageInput: StageInput): Vector[JsValue] = {

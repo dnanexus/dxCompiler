@@ -8,7 +8,7 @@ import dx.core.ir.RunSpec._
 import dx.translator.{DockerRegistry, DxAccess, DxRunSpec, DxTimeout, Extras}
 import dx.translator.CallableAttributes._
 import dx.translator.ExtrasJsonProtocol._
-import dx.util.{CodecUtils, Logger}
+import dx.util.{CodecUtils, FileSourceResolver, Logger}
 import spray.json._
 import wdlTools.generators.Renderer
 
@@ -40,9 +40,14 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
                                parameterLinkSerializer: ParameterLinkSerializer,
                                useManifests: Boolean,
                                complexPathValues: Boolean,
+                               fileResolver: FileSourceResolver,
                                dxApi: DxApi = DxApi.get,
                                logger: Logger = Logger.get)
-    extends ExecutableCompiler(extras, parameterLinkSerializer, complexPathValues, dxApi) {
+    extends ExecutableCompiler(extras,
+                               parameterLinkSerializer,
+                               complexPathValues,
+                               fileResolver,
+                               dxApi) {
 
   // renderer for job script templates
   private lazy val renderer = Renderer()

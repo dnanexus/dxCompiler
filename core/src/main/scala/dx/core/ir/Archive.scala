@@ -281,24 +281,34 @@ object Archive {
           throw new Exception(s"cannot transform ${value} to file")
       }
     }
-    def transformDirectory(value: Value): (VDirectory, Map[Path, Path]) = {
+    def transformDirectory(value: Value): (DirectoryValue, Map[Path, Path]) = {
       value match {
-        case f: VDirectory =>
+        case f: VFolder =>
           val oldPath = Paths.get(f.uri)
           val newPath = transformer(oldPath)
           (f.copy(uri = newPath.toString), TreeSeqMap(oldPath -> newPath))
+        case a: VArchive =>
+          val oldPath = Paths.get(a.uri)
+          val newPath = transformer(oldPath)
+          (a.copy(uri = newPath.toString), TreeSeqMap(oldPath -> newPath))
+        case l: VListing =>
+          val (newValues, nestedPaths) = l.listing.map {
+            case f: VFile          => transformFile(f)
+            case d: DirectoryValue => transformDirectory(d)
+          }.unzip
+          (l.copy(listing = newValues), nestedPaths.flatten.toMap)
         case VString(s) =>
           val oldPath = Paths.get(s)
           val newPath = transformer(oldPath)
-          (VDirectory(newPath.toString), TreeSeqMap(oldPath -> newPath))
+          (VFolder(newPath.toString), TreeSeqMap(oldPath -> newPath))
         case _ =>
           throw new Exception(s"cannot transform ${value} to directory")
       }
     }
     def transformNoType(innerValue: Value): (Value, Map[Path, Path]) = {
       innerValue match {
-        case f: VFile      => transformFile(f)
-        case d: VDirectory => transformDirectory(d)
+        case f: VFile          => transformFile(f)
+        case d: DirectoryValue => transformDirectory(d)
         case VArray(items) =>
           val (transformedItems, paths) = items.map(transformNoType).unzip
           (VArray(transformedItems), paths.flatten.toMap)
@@ -315,10 +325,10 @@ object Archive {
     }
     def transformWithType(innerValue: Value, innerType: Type): (Value, Map[Path, Path]) = {
       (innerType, innerValue) match {
-        case (TFile, f: VFile)           => transformFile(f)
-        case (TFile, s: VString)         => transformFile(s)
-        case (TDirectory, d: VDirectory) => transformDirectory(d)
-        case (TDirectory, s: VString)    => transformDirectory(s)
+        case (TFile, f: VFile)               => transformFile(f)
+        case (TFile, s: VString)             => transformFile(s)
+        case (TDirectory, d: DirectoryValue) => transformDirectory(d)
+        case (TDirectory, s: VString)        => transformDirectory(s)
         case (_: TCollection, _: VFile) =>
           throw new RuntimeException("nested archive values are not allowed")
         case (TOptional(t), value) if value != VNull =>

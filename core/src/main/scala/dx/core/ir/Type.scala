@@ -20,7 +20,6 @@ object Type {
     */
   case object TDirectory extends Type
 
-  case object TListing extends
   /**
     * Wrapper that indicates a type is optional.
     * @param t wrapped type
