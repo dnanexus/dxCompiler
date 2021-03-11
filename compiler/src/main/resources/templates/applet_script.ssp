@@ -34,8 +34,8 @@
        # The download was ok, check file integrity on disk
        dx-download-agent inspect ${dxPathConfig.getDxdaManifestFile().toString}.bz2
 
-       # go back to work directory
-       cd ${dxPathConfig.getWorkDir().toString}
+       # go back to root directory
+       cd ${dxPathConfig.getRootDir().toString}
     fi
 
     # run dxfuse on a manifest of files. It will provide remote access

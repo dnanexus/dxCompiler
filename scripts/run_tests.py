@@ -91,6 +91,7 @@ wdl_v1_list = [
     "nested_pairs",  # APPS-370
     "apps_378",
     "apps_384",
+    "diff_stream_and_download",  # APPS-288
 
     # manifests
     "simple_manifest",
