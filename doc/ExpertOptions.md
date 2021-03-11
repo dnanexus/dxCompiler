@@ -569,7 +569,7 @@ task bwa_mem {
   command <<<
   set -eux
   tar xzvf ~{genome_index_tgz}
-  bwa mem \
+  /usr/gitc/bwa mem \
     -M \
     -t ~{cpu} \
     -R "~{actual_read_group}" \
