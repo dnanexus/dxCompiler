@@ -567,7 +567,7 @@ task bwa_mem {
   ])
 
   command <<<
-  set -eux
+  set -euxo pipefail
   tar xzvf ~{genome_index_tgz}
   /usr/gitc/bwa mem \
     -M \
