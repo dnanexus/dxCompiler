@@ -30,12 +30,27 @@ import scala.collection.immutable.TreeSeqMap
 
 object CwlUtils {
 
+  /**
+    * CWL has a "null" type. When used alone, it means the field
+    * only accepts a null value. This is not able to be represented
+    * natively, so instead we use a TSchema.
+    */
+  val NullSchema: TSchema = TSchema("null", TreeSeqMap.empty)
+
+  def isNullSchema(t: TSchema): Boolean = {
+    t.name == "null"
+  }
+
+  def isNullValue(fields: Map[String, _]): Boolean = {
+    fields.isEmpty
+  }
+
   def toIRSchema(cwlRecord: CwlRecord): TSchema = {
-    if (cwlRecord.name.isEmpty) {
+    if (!cwlRecord.hasName) {
       throw new Exception(s"cannot convert schema without name ${cwlRecord}")
     }
     TSchema(
-        cwlRecord.name.get,
+        cwlRecord.name,
         cwlRecord.fields.map {
           case (key, value) => key -> toIRType(value.cwlType)
         }
@@ -47,6 +62,7 @@ object CwlUtils {
       case CwlOptional(t)  => TOptional(toIRType(t))
       case CwlMulti(types) => TMulti(types.map(toIRType))
       case CwlAny          => TMulti.Any
+      case CwlNull         => NullSchema
       case CwlBoolean      => TBoolean
       case CwlInt          => TInt
       case CwlLong         => TInt
@@ -57,7 +73,7 @@ object CwlUtils {
       case CwlDirectory    => TDirectory
       case a: CwlArray     => TArray(toIRType(a.itemType))
       case e: CwlEnum      => TEnum(e.symbols)
-      case r: CwlRecord if r.name.isDefined =>
+      case r: CwlRecord if r.hasName =>
         toIRSchema(r)
       case _ =>
         throw new Exception(s"Cannot convert CWL type ${cwlType} to IR")
@@ -102,6 +118,10 @@ object CwlUtils {
       case StringValue(s)    => (TString, VString(s))
       case f: FileValue      => (TFile, toIRPath(f))
       case d: DirectoryValue => (TDirectory, toIRPath(d))
+      case NullValue         =>
+        // it is possible that the type is null (i.e. NullSchema)
+        // but much more likely to be CwlOptional
+        (TMulti.Any, VNull)
       case ArrayValue(items) =>
         val (itemTypes, itemValues, optional) =
           items.foldLeft(Set.empty[Type], Vector.empty[Value], false) {
@@ -141,9 +161,11 @@ object CwlUtils {
   }
 
   def toIRValue(cwlValue: CwlValue, cwlType: CwlType): (Type, Value) = {
-    println(cwlType, cwlValue)
     (cwlType, cwlValue) match {
-      case (CwlAny, _)                 => (TMulti.Any, toIRValue(cwlValue)._2)
+      case (CwlAny, _)          => (TMulti.Any, toIRValue(cwlValue)._2)
+      case (CwlNull, NullValue) => (NullSchema, VNull)
+      case (CwlNull, _) =>
+        throw new Exception("type 'null' only accepts a value of 'null'")
       case (CwlOptional(_), NullValue) => (toIRType(cwlType), VNull)
       case (CwlOptional(t), _) =>
         val (irType, irValue) = toIRValue(cwlValue, t)
@@ -203,8 +225,8 @@ object CwlUtils {
             case (name, _) =>
               throw new Exception(s"invalid field ${name}")
           }
-        val irType = if (record.name.isDefined) {
-          TSchema(record.name.get, types)
+        val irType = if (record.hasName) {
+          TSchema(record.name, types)
         } else {
           THash
         }
@@ -229,6 +251,7 @@ object CwlUtils {
         case TOptional(t)  => CwlOptional(inner(t))
         case TMulti.Any    => CwlAny
         case TMulti(types) => CwlMulti(types.map(inner))
+        case NullSchema    => CwlNull
         case TBoolean      => CwlBoolean
         case TInt          => CwlLong
         case TFloat        => CwlDouble
@@ -241,11 +264,11 @@ object CwlUtils {
         case TSchema(name, fields) if isInput =>
           CwlInputRecord(fields.map {
             case (name, t) => name -> CwlInputRecordField(name, inner(t))
-          }, Some(name))
+          }, Some(Identifier(namespace = None, name = Some(name))))
         case TSchema(name, members) =>
           CwlOutputRecord(members.map {
             case (name, t) => name -> CwlOutputRecordField(name, inner(t))
-          }, Some(name))
+          }, Some(Identifier(namespace = None, name = Some(name))))
         case TEnum(symbols) => CwlEnum(symbols)
         case _ =>
           throw new Exception(s"Cannot convert IR type ${irType} to CWL")
@@ -275,7 +298,7 @@ object CwlUtils {
   def fromIRValue(value: Value, name: Option[String], isInput: Boolean): (CwlType, CwlValue) = {
     def inner(innerValue: Value, innerName: Option[String]): (CwlType, CwlValue) = {
       innerValue match {
-        case VNull               => (CwlNull, NullValue)
+        case VNull               => (CwlOptional(CwlAny), NullValue)
         case VBoolean(b)         => (CwlBoolean, BooleanValue(b))
         case VInt(i)             => (CwlLong, LongValue(i))
         case VFloat(f)           => (CwlDouble, DoubleValue(f))
@@ -335,9 +358,11 @@ object CwlUtils {
     @tailrec
     def inner(innerValue: Value, innerType: CwlType, innerName: String): CwlValue = {
       (innerType, innerValue) match {
-        case (CwlAny, _)                         => fromIRValue(innerValue, Some(name), isInput)._2
-        case (CwlOptional(_) | CwlNull, VNull)   => NullValue
-        case (CwlOptional(t), _)                 => inner(innerValue, t, innerName)
+        case (CwlAny, _)                       => fromIRValue(innerValue, Some(name), isInput)._2
+        case (CwlOptional(_) | CwlNull, VNull) => NullValue
+        case (CwlOptional(t), _)               => inner(innerValue, t, innerName)
+        case (CwlNull, _) =>
+          throw new Exception("type 'null' only accepts a value of 'null'")
         case (CwlBoolean, VBoolean(b))           => BooleanValue(b)
         case (CwlInt, VInt(i)) if i.isValidInt   => IntValue(i)
         case (CwlLong, VInt(l))                  => LongValue(l)
@@ -432,6 +457,7 @@ object CwlUtils {
       case CwlOptional(t)  => s"${prettyFormatType(t)}?"
       case CwlMulti(types) => s"(${types.map(prettyFormatType).mkString("|")})"
       case CwlAny          => "any"
+      case CwlNull         => "null"
       case CwlBoolean      => "boolean"
       case CwlInt          => "int"
       case CwlLong         => "long"
@@ -440,16 +466,16 @@ object CwlUtils {
       case CwlString       => "string"
       case CwlFile         => "File"
       case CwlDirectory    => "Directory"
-      case a: CwlArray if a.name.isDefined =>
-        a.name.get
+      case a: CwlArray if a.hasName =>
+        a.name
       case a: CwlArray =>
         s"array<${prettyFormatType(a.itemType)}>"
-      case r: CwlRecord if r.name.isDefined =>
-        r.name.get
+      case r: CwlRecord if r.hasName =>
+        r.name
       case r: CwlRecord =>
         s"record<${r.fields.values.map(f => s"${prettyFormatType(f.cwlType)} ${f.name}").mkString(", ")}>"
-      case e: CwlEnum if e.name.isDefined =>
-        e.name.get
+      case e: CwlEnum if e.hasName =>
+        e.name
       case e: CwlEnum =>
         s"enum<${e.symbols.mkString(",")}>"
     }

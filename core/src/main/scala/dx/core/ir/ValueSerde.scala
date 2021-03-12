@@ -395,7 +395,7 @@ object ValueSerde extends DefaultJsonProtocol {
         case (any: TMulti, _) if any.bounds.isEmpty && isWrappedValue(v) =>
           inner(unwrapValue(v), any)
         case (TMulti(bounds), _) if bounds.isEmpty => deserialize(v)
-        case (TMulti(bounds), _) if isWrappedValue(v) =>
+        case (TMulti(bounds), _) =>
           val unwrappedValue = unwrapValue(v)
           bounds.iterator
             .collectFirstDefined { t =>

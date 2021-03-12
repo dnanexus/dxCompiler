@@ -68,6 +68,7 @@ class InputTranslator(bundle: Bundle,
                       defaults: Option[Path],
                       project: DxProject,
                       useManifests: Boolean,
+                      complexPathValues: Boolean,
                       baseFileResolver: FileSourceResolver = FileSourceResolver.get,
                       dxApi: DxApi = DxApi.get,
                       logger: Logger = Logger.get) {
@@ -127,8 +128,8 @@ class InputTranslator(bundle: Bundle,
 
     val updatedValue = translateJsInput(jsv, t)
     (t, updatedValue) match {
-      case (TOptional(_), JsNull) => Vector.empty
-      case (TOptional(inner), _)  => extractDxFiles(updatedValue, inner)
+      case (_, JsNull) if Type.isOptional(t) => Vector.empty
+      case (TOptional(inner), _)             => extractDxFiles(updatedValue, inner)
       case (TFile | TDirectory, uri: JsString) if uri.value.startsWith(DxPath.DxUriPrefix) =>
         Vector(uri)
       case (TFile | TDirectory, obj: JsObject) if DxFile.isLinkJson(obj) =>
@@ -203,7 +204,8 @@ class InputTranslator(bundle: Bundle,
     baseFileResolver.replaceProtocol[DxFileAccessProtocol](dxProtocol)
   }
 
-  private lazy val parameterLinkSerializer = ParameterLinkSerializer(fileResolver, dxApi)
+  private lazy val parameterLinkSerializer =
+    ParameterLinkSerializer(fileResolver, dxApi, pathsAsObjects = complexPathValues)
   private lazy val parameterLinkDeserializer = ParameterLinkDeserializer(dxFileDescCache, dxApi)
 
   private def deserializationHandler(jsValue: JsValue, t: Type): Either[JsValue, Value] = {
@@ -338,8 +340,8 @@ class InputTranslator(bundle: Bundle,
         throw new Exception(s"Cannot generate one input file for ${tasks.size} tasks")
       case None =>
         checkAndBindCallableInputs(tasks.head)
-      case Some(task: Application) =>
-        checkAndBindCallableInputs(task)
+      case Some(app: Application) =>
+        checkAndBindCallableInputs(app)
       case Some(wf: Workflow) if wf.locked =>
         // Locked workflow. A user can set workflow level
         // inputs; nothing else.

@@ -183,12 +183,16 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       val outputs = tool.outputs.collect {
         case i if i.id.exists(_.name.isDefined) => translateOutput(i, outputCtx)
       }
+      // We try to determine the instance type from the process requirements -
+      // if any of the expressions fail to evaluate statically, then the instance
+      // type will be determined at runtime.
+      // We also get the container from the process requirements.
       val requirementEvaluator = RequirementEvaluator(
           inheritedRequirements ++ tool.requirements,
           inheritedHints ++ tool.hints,
           Map.empty,
           DxWorkerPaths.default,
-          cwlDefaultRuntimeAttrs
+          defaultRuntimeAttrs = cwlDefaultRuntimeAttrs
       )
       val docSource = tool.source.orElse(cwlBundle.primaryProcess.source) match {
         case Some(path) => Paths.get(path)
