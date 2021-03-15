@@ -102,6 +102,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
 
   private case class CwlToolTranslator(
       tool: CommandLineTool,
+      isPrimary: Boolean,
       inheritedRequirements: Vector[Requirement] = Vector.empty,
       inheritedHints: Vector[Hint] = Vector.empty
   ) {
@@ -199,6 +200,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         case None =>
           throw new Exception(s"no source code for tool ${name}")
       }
+      val targets = if (isPrimary) Vector.empty else Vector(name)
       Application(
           name,
           inputs,
@@ -206,7 +208,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           requirementEvaluator.translateInstanceType,
           requirementEvaluator.translateContainer,
           ExecutableKindApplet,
-          CwlSourceCode(docSource, Vector(name)),
+          CwlSourceCode(docSource, targets),
           translateCallableAttributes(tool, hintCallableAttrs),
           requirementEvaluator.translateApplicationRequirements,
           tags = Set("cwl")
@@ -232,13 +234,14 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
 
     private lazy val evaluator: Evaluator = Evaluator.default
 
-    override protected lazy val standAloneWorkflow: SourceCode = {
+    override protected def standAloneWorkflow(setTarget: Boolean): SourceCode = {
       val docSource = wf.source.orElse(cwlBundle.primaryProcess.source) match {
         case Some(path) => Paths.get(path)
         case None =>
           throw new Exception(s"no source code for tool ${wf.name}")
       }
-      CwlSourceCode(docSource, Vector(wf.name))
+      val targets = if (setTarget) Vector(wf.name) else Vector.empty
+      CwlSourceCode(docSource, targets)
     }
 
     private def createWorkflowInput(input: WorkflowInputParameter): Parameter = {
@@ -422,7 +425,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           DefaultInstanceType,
           NoImage,
           ExecutableKindWfFragment(stepName.toVector, blockPath, fqnDictTypes, scatterChunkSize),
-          standAloneWorkflow
+          standAloneWorkflow(setTarget = true)
       )
 
       (Stage(stageName, getStage(), applet.name, stageInputs.toVector, outputParams), applet)
@@ -557,7 +560,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           DefaultInstanceType,
           NoImage,
           applicationKind,
-          standAloneWorkflow
+          standAloneWorkflow(setTarget = false)
       )
       val stage = Stage(
           Constants.OutputStage,
@@ -667,7 +670,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
                 wfInputLinks,
                 wfOutputs,
                 finalStages,
-                standAloneWorkflow,
+                standAloneWorkflow(setTarget = level != Level.Top),
                 locked = true,
                 level),
        finalCallables,
@@ -716,7 +719,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           wfInputs,
           wfOutputs,
           commonStg +: stages :+ outputStage,
-          standAloneWorkflow,
+          standAloneWorkflow(setTarget = false),
           locked = false,
           Level.Top
       )
@@ -737,11 +740,13 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
   }
 
   def translateProcess(process: Process,
-                       availableDependencies: Map[String, Callable]): Vector[Callable] = {
+                       availableDependencies: Map[String, Callable],
+                       isPrimary: Boolean): Vector[Callable] = {
     process match {
       case tool: CommandLineTool =>
         val toolTranslator =
           CwlToolTranslator(tool,
+                            isPrimary = isPrimary,
                             cwlBundle.requirements.getOrElse(tool.name, Vector.empty),
                             cwlBundle.hints.getOrElse(tool.name, Vector.empty))
         Vector(toolTranslator.apply)

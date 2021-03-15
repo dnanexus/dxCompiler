@@ -114,7 +114,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         .foldLeft((Map.empty[String, JsValue], schemasJs)) {
           case ((paramAccu, schemaAccu), (k, (t, v))) =>
             val (jsType, newSchemasJs) = TypeSerde.serialize(t, schemaAccu)
-            val jsValue = ValueSerde.serialize(v)
+            val jsValue = ValueSerde.serialize(v, pathsAsObjects = jobMeta.pathsAsObjects)
             (paramAccu + (k -> JsObject("type" -> jsType, "value" -> jsValue)), newSchemasJs)
         }
     val fileUriToPath: Map[String, JsValue] = fileSourceToPath.map {

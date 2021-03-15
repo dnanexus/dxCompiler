@@ -158,7 +158,7 @@ cwl_tools = [
 cwl_conformance = [
     os.path.basename(path)[:-4]
     for path in glob.glob(os.path.join(test_dir, "cwl_conformance", "tools", "*.cwl"))
-]
+][6:20]
 
 # Tests run in continuous integration. We remove the native app test,
 # because we don't want to give permissions for creating platform apps.

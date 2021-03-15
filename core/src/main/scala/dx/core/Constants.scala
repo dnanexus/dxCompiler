@@ -8,6 +8,7 @@ object Constants {
   val InstanceTypeDb: String = "instanceTypeDB"
   val DelayWorkspaceDestruction = "delayWorkspaceDestruction"
   val RuntimeAttributes: String = "runtimeAttrs"
+  val PathsAsObjects: String = "pathsAsObjects"
   val CompilerTag = "dxCompiler"
   val SourceCode: String = "sourceCode"
   val Targets: String = "target"

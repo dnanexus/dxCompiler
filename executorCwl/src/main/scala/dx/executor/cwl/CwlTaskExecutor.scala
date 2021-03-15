@@ -102,7 +102,10 @@ case class CwlTaskExecutor(tool: CommandLineTool,
         .flatMap {
           case param if param.id.forall(_.unqualifiedName.forall(inputs.contains)) =>
             val name = param.id.get.unqualifiedName.get
-            Some(s"${name} -> (${param.cwlType}, ${inputs.get(name)})")
+            val (inputType, inputValue) = inputs(name)
+            Some(
+                s"${name}: paramType=${param.cwlType}; inputType=${inputType}; inputValue=${inputValue}"
+            )
           case other =>
             logger.trace(s"no input for parameter ${other}")
             None
@@ -176,9 +179,11 @@ case class CwlTaskExecutor(tool: CommandLineTool,
     }
     JsUtils.jsToFile(inputJson, inputPath)
     // if a target is specified (a specific workflow step), add the --target option
-    val targetOpt = jobMeta.targets.map { targets =>
-      targets.map(t => s"--target ${t}").mkString(" ")
-    }
+    val targetOpt = jobMeta.targets
+      .map { targets =>
+        targets.map(t => s"--target ${t}").mkString(" ")
+      }
+      .getOrElse("")
     // if a dx:// URI is specified for the Docker container, download it
     // and create an overrides file to override the value in the CWL file
     val overridesOpt = jobMeta

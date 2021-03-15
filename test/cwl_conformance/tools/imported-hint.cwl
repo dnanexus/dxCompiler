@@ -6,7 +6,10 @@ outputs:
   out: stdout
 
 hints:
-- $import: envvar.yml
+- class: EnvVarRequirement
+  envDef:
+    - envName: "TEST_ENV"
+      envValue: "hello test env"
 
 baseCommand: ["/bin/sh", "-c", "echo $TEST_ENV"]
 

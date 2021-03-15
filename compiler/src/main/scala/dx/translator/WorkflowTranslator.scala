@@ -32,7 +32,7 @@ abstract class WorkflowTranslator(wfName: String,
 
   protected def isLocked: Boolean
 
-  protected def standAloneWorkflow: SourceCode
+  protected def standAloneWorkflow(setTarget: Boolean): SourceCode
 
   // generate a stage Id, this is a string of the form: 'stage-xxx'
   protected val fragNumIter: Iterator[Int] = Iterator.from(0)
@@ -141,13 +141,15 @@ abstract class WorkflowTranslator(wfName: String,
                                    stageInputs: Vector[StageInput],
                                    outputs: Vector[Parameter],
                                    blockPath: Vector[Int] = Vector.empty): (Stage, Application) = {
-    val applet = Application(s"${wfName}_${Constants.CommonStage}",
-                             appletInputs,
-                             outputs,
-                             DefaultInstanceType,
-                             NoImage,
-                             ExecutableKindWfInputs(blockPath),
-                             standAloneWorkflow)
+    val applet = Application(
+        s"${wfName}_${Constants.CommonStage}",
+        appletInputs,
+        outputs,
+        DefaultInstanceType,
+        NoImage,
+        ExecutableKindWfInputs(blockPath),
+        standAloneWorkflow(setTarget = false)
+    )
     logger.trace(s"Compiling common applet ${applet.name}")
     val stage = Stage(
         Constants.CommonStage,
@@ -177,7 +179,7 @@ abstract class WorkflowTranslator(wfName: String,
         DefaultInstanceType,
         NoImage,
         ExecutableKindWorkflowOutputReorg,
-        standAloneWorkflow
+        standAloneWorkflow(setTarget = false)
     )
     logger.trace(s"Creating output reorganization applet ${applet.name}")
     // Link to the X.y original variables
@@ -217,7 +219,7 @@ abstract class WorkflowTranslator(wfName: String,
         DefaultInstanceType,
         NoImage,
         appletKind,
-        standAloneWorkflow
+        standAloneWorkflow(setTarget = false)
     )
     // Link to the X.y original variables
     val inputs: Vector[StageInput] = configFile match {

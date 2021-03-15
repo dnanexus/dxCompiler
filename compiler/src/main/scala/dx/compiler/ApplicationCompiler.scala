@@ -446,16 +446,13 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         Some(Constants.SourceCode -> JsString(sourceEncoded)),
         targets.map(t => Constants.Targets -> t),
         Some(Constants.InstanceTypeDb -> JsString(dbOpaqueEncoded)),
-        defaultRuntimeAttributes.map(attr => Constants.RuntimeAttributes -> attr)
+        defaultRuntimeAttributes.map(attr => Constants.RuntimeAttributes -> attr),
+        Option.when(useManifests)(Constants.UseManifests -> JsBoolean(true)),
+        Option.when(complexPathValues)(Constants.PathsAsObjects -> JsBoolean(true))
     ).flatten.toMap
-    val useManifestsDetails = if (useManifests) {
-      Map(Constants.UseManifests -> JsBoolean(true))
-    } else {
-      Map.empty
-    }
     // combine all details into a single Map
     val details: Map[String, JsValue] =
-      taskDetails ++ runSpecDetails ++ delayDetails ++ dxLinks.toMap ++ metaDetails ++ auxDetails ++ useManifestsDetails
+      taskDetails ++ runSpecDetails ++ delayDetails ++ dxLinks.toMap ++ metaDetails ++ auxDetails
     // build the API request
     val requestRequired = Map(
         "name" -> JsString(applet.name),

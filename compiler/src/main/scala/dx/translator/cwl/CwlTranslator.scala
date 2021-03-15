@@ -106,7 +106,9 @@ case class CwlTranslator(process: Process,
     val (allCallables, sortedCallables) =
       depOrder.foldLeft((Map.empty[String, Callable], Vector.empty[Callable])) {
         case ((allCallables, sortedCallables), callable) =>
-          val translatedCallables = callableTranslator.translateProcess(callable, allCallables)
+          val isPrimary = callable.name == cwlBundle.primaryProcess.name
+          val translatedCallables =
+            callableTranslator.translateProcess(callable, allCallables, isPrimary = isPrimary)
           (
               allCallables ++ translatedCallables.map(c => c.name -> c).toMap,
               sortedCallables ++ translatedCallables

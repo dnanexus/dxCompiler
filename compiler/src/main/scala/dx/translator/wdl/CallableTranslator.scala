@@ -185,7 +185,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       wdlBundle.adjunctFiles.getOrElse(wf.name, Vector.empty)
     private lazy val meta = WorkflowMetaTranslator(wdlBundle.version, wf.meta, adjunctFiles)
     private lazy val parameterMeta = ParameterMetaTranslator(wdlBundle.version, wf.parameterMeta)
-    protected lazy val standAloneWorkflow: WdlDocumentSource = {
+    private lazy val standAloneWorkflow: WdlDocumentSource = {
       val dependencyNames = WdlUtils.deepFindCalls(wf.body).map(_.unqualifiedName).toSet
       val dependencies =
         availableDependencies.view.filterKeys(dependencyNames.contains).values.toVector
@@ -201,6 +201,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           true
       }
     }
+
+    override protected def standAloneWorkflow(setTarget: Boolean): SourceCode = standAloneWorkflow
 
     /**
       * Represents each workflow input with:

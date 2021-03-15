@@ -395,7 +395,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     writeRawJsOutputs(rawOutputJs)
   }
 
-  lazy val outputSerializer: ParameterLinkSerializer = ParameterLinkSerializer(fileResolver, dxApi)
+  lazy val outputSerializer: ParameterLinkSerializer =
+    ParameterLinkSerializer(fileResolver, dxApi, pathsAsObjects = pathsAsObjects)
 
   /**
     * Prepares the inputs for a subjob. If using manifests, creates a manifest
@@ -652,6 +653,13 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     case None               => false
     case other =>
       throw new Exception(s"Invalid value ${other} for ${Constants.UseManifests}")
+  }
+
+  lazy val pathsAsObjects: Boolean = getExecutableDetail(Constants.PathsAsObjects) match {
+    case Some(JsBoolean(b)) => b
+    case None               => false
+    case other =>
+      throw new Exception(s"Invalid value ${other} for ${Constants.PathsAsObjects}")
   }
 
   def error(e: Throwable): Unit

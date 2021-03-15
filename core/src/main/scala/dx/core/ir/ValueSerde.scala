@@ -53,7 +53,7 @@ object ValueSerde extends DefaultJsonProtocol {
     }
     def inner(innerPath: PathValue): JsValue = {
       innerPath match {
-        case VFile(uri, None, None, None, None, Vector()) if !pathsAsObjects =>
+        case VFile(uri, None, None, None, None, Vector(), None) if !pathsAsObjects =>
           serializeFileUri(uri)
         case VFolder(uri, None) if !pathsAsObjects =>
           serializeFolderUri(uri)
@@ -70,7 +70,8 @@ object ValueSerde extends DefaultJsonProtocol {
                   f.size.map("size" -> JsNumber(_)),
                   Option.when(f.secondaryFiles.nonEmpty)(
                       "secondaryFiles" -> JsArray(f.secondaryFiles.map(inner))
-                  )
+                  ),
+                  f.format.map(f => "format" -> JsString(f))
               ).flatten.toMap
           )
         case VFolder(uri, basename) if pathsAsObjects =>
@@ -292,7 +293,8 @@ object ValueSerde extends DefaultJsonProtocol {
                         case other         => throw new Exception(s"invalid path ${other}")
                       }
                     }
-                    .getOrElse(Vector.empty)
+                    .getOrElse(Vector.empty),
+                  JsUtils.getOptionalString(fields, "format")
               )
             case Some(JsString("Folder")) =>
               VFolder(

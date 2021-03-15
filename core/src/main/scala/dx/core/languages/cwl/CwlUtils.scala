@@ -95,7 +95,8 @@ object CwlUtils {
             f.contents,
             f.checksum,
             f.size,
-            f.secondaryFiles.map(toIRPath)
+            f.secondaryFiles.map(toIRPath),
+            f.format
         )
       case d: DirectoryValue =>
         d.location match {
@@ -285,7 +286,8 @@ object CwlUtils {
                   checksum = f.checksum,
                   size = f.size,
                   contents = f.contents,
-                  secondaryFiles = f.secondaryFiles.map(fromIRPath))
+                  secondaryFiles = f.secondaryFiles.map(fromIRPath),
+                  format = f.format)
       case VFolder(uri, basename) =>
         DirectoryValue(Some(uri), basename = basename)
       case VArchive(uri, basename) =>
