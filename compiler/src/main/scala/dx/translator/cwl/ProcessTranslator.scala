@@ -141,7 +141,6 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         case None => None
       }
       val attrs = translateParameterAttributes(input, hintParameterAttrs)
-      println(input.cwlType)
       Parameter(name, CwlUtils.toIRType(input.cwlType), irDefaultValue, attrs)
     }
 

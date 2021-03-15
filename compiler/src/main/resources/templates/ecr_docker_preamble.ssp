@@ -24,7 +24,7 @@ fi
 dx download ${bashDollar}{AWS_CREDENTIALS} -o ${bashDollar}{HOME}/.aws/credentials
 
 # install the aws client
-apt install -y awscli
+apt update -y && apt install -y awscli
 
 # get the password from the aws client
 password=${bashDollar}(aws ecr get-login-password --region ${bashDollar}{AWS_REGION})
