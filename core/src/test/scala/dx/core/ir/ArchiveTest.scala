@@ -92,8 +92,8 @@ class ArchiveTest extends AnyFlatSpec with Matchers {
           m.get("files") match {
             case Some(VArray(files)) =>
               files.map {
-                case VFile(path) => path
-                case _           => throw new Exception("invalid localized value")
+                case f: VFile => f.uri
+                case _        => throw new Exception("invalid localized value")
               }
             case _ => throw new Exception("invalid localized value")
           }

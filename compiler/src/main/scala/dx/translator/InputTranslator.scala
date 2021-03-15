@@ -69,6 +69,7 @@ class InputTranslator(bundle: Bundle,
                       project: DxProject,
                       useManifests: Boolean,
                       complexPathValues: Boolean,
+                      ignoreUnusedInputs: Boolean,
                       baseFileResolver: FileSourceResolver = FileSourceResolver.get,
                       dxApi: DxApi = DxApi.get,
                       logger: Logger = Logger.get) {
@@ -134,7 +135,7 @@ class InputTranslator(bundle: Bundle,
         Vector(uri)
       case (TFile | TDirectory, obj: JsObject) if DxFile.isLinkJson(obj) =>
         Vector(obj)
-      case (TFile, JsObject(fields)) =>
+      case (TFile, JsObject(fields)) if !fields.contains("contents") =>
         Vector(fields("uri")) ++ fields
           .get("secondaryFiles")
           .map(extractFromArray)
@@ -377,7 +378,9 @@ class InputTranslator(bundle: Bundle,
       case other =>
         throw new Exception(s"Unknown case ${other.getClass}")
     }
-    fieldsExactlyOnce.checkAllUsed()
+    if (!ignoreUnusedInputs) {
+      fieldsExactlyOnce.checkAllUsed()
+    }
     inputs
   }
 

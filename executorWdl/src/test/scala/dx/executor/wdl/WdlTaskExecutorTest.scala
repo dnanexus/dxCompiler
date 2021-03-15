@@ -82,9 +82,6 @@ private object TaskTestJobMeta {
 }
 
 // This test module requires being logged in to the platform.
-// It compiles WDL scripts without the runtime library.
-// This tests the compiler Native mode, however, it creates
-// dnanexus applets and workflows that are not runnable.
 class TaskExecutorTest extends AnyFlatSpec with Matchers {
   assume(isLoggedIn)
   private val logger = Logger.Quiet
@@ -106,7 +103,6 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
   private val instanceTypeDB =
     InstanceTypeDB(Map(TaskTestJobMeta.InstanceType -> unicornInstance), pricingAvailable = true)
 
-  // Note: if the file doesn't exist, this throws a null pointer exception
   private def pathFromBasename(basename: String): Option[Path] = {
     getClass.getResource(s"/task_runner/${basename}") match {
       case null => None
@@ -369,7 +365,7 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
 
   it should "handle files with same name in different source folders" taggedAs ApiTest in {
     val (taskExecutor, _) = createTaskExecutor("two_files", StreamFiles.None)
-    val (localizedFiles, fileSourceToPath, dxdaManifest, dxfuseManifest) =
+    val (localizedFiles, fileSourceToPath, _, _, dxdaManifest, dxfuseManifest) =
       taskExecutor.localizeInputFiles
     localizedFiles.size shouldBe 2
     fileSourceToPath.size shouldBe 2

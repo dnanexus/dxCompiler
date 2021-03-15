@@ -54,9 +54,9 @@ class ArchiveFunctionTest extends AnyFlatSpec with Matchers {
     val (localized, _) = packed.localize()
     try {
       localized.irValue match {
-        case Value.VArray(Vector(Value.VFile(file1), Value.VFile(file2))) =>
-          FileUtils.readFileContent(Paths.get(file1)) shouldBe "file1"
-          FileUtils.readFileContent(Paths.get(file2)) shouldBe "file2"
+        case Value.VArray(Vector(file1: Value.VFile, file2: Value.VFile)) =>
+          FileUtils.readFileContent(Paths.get(file1.uri)) shouldBe "file1"
+          FileUtils.readFileContent(Paths.get(file2.uri)) shouldBe "file2"
         case _ =>
           throw new Exception(s"unexpected IR value ${localized.irValue}")
       }

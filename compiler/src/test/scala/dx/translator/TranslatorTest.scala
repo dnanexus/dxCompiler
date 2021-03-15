@@ -1,7 +1,6 @@
 package dx.translator
 
 import java.nio.file.{Path, Paths}
-
 import dx.Tags.EdgeTest
 import dx.api._
 import dx.core.Constants
@@ -1489,7 +1488,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     }
   }
 
-  it should "translate a simple CWL task" in {
+  it should "translate a simple CWL tool" in {
     val path = pathFromBasename("cwl", "cat.cwl")
     val args = path.toString :: cFlags
     Main.compile(args.toVector) match {
@@ -1511,15 +1510,35 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     }
   }
 
-  it should "translate a simple CWL task with JS expressions" in {
+  it should "translate a simple CWL tool with JS expressions" in {
     val path = pathFromBasename("cwl", "params.cwl")
     val args = path.toString :: cFlags
     Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
-  it should "translate a simple CWL task with Any type input" in {
+  it should "translate a simple CWL tool with Any type input" in {
     val path = pathFromBasename("cwl", "params2.cwl")
     val args = path.toString :: cFlags
     Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
+  }
+
+  it should "translate a CWL tool with inline record type" in {
+    val path = pathFromBasename("cwl", "record-in-format.cwl")
+    val args = path.toString :: cFlags
+    val result = Main.compile(args.toVector) match {
+      case SuccessfulCompileIR(bundle) => bundle
+      case _                           => throw new Exception("unexpected")
+    }
+    val tool = result.primaryCallable match {
+      case Some(tool: Application) => tool
+      case other =>
+        throw new Exception(s"expected compilation result to be a tool, not ${other}")
+    }
+    val recordInput = tool.inputs
+      .collectFirst {
+        case inp if inp.name == "record_input" => inp
+      }
+      .getOrElse(throw new Exception("missing field record_input"))
+    println(recordInput.dxType)
   }
 }

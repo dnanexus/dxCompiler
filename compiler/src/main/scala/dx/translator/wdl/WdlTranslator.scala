@@ -32,6 +32,7 @@ case class WdlInputTranslator(bundle: Bundle,
                             project,
                             useManifests,
                             complexPathValues = false,
+                            ignoreUnusedInputs = false,
                             baseFileResolver,
                             dxApi,
                             logger) {

@@ -43,6 +43,7 @@ case class CwlInputTranslator(bundle: Bundle,
                             project,
                             useManifests,
                             complexPathValues = true,
+                            ignoreUnusedInputs = true,
                             baseFileResolver,
                             dxApi,
                             logger) {

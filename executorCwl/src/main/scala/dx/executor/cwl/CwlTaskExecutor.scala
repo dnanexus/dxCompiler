@@ -7,7 +7,7 @@ import dx.core.io.StreamFiles.StreamFiles
 import dx.core.ir.{Parameter, Type, Value}
 import dx.core.languages.Language
 import dx.core.languages.cwl.{CwlUtils, DxHintSchema, RequirementEvaluator}
-import dx.executor.{FileUploader, JobMeta, TaskExecutor}
+import dx.executor.{FileUploader, JobMeta, SerialFileUploader, TaskExecutor}
 import dx.util.{DockerUtils, FileUtils, JsUtils, TraceLevel}
 import spray.json._
 
@@ -15,7 +15,7 @@ import java.nio.file.Files
 
 object CwlTaskExecutor {
   def create(jobMeta: JobMeta,
-             fileUploader: FileUploader,
+             fileUploader: FileUploader = SerialFileUploader(),
              streamFiles: StreamFiles): CwlTaskExecutor = {
     val parser = Parser.create(hintSchemas = Vector(DxHintSchema))
     parser.detectVersionAndClass(jobMeta.sourceCode) match {
