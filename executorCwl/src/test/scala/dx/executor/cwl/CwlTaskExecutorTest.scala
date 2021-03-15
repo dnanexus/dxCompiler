@@ -123,8 +123,8 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
 
   private def createTaskExecutor(
       cwlName: String,
-      streamFiles: StreamFiles.StreamFiles = StreamFiles.None,
-      useManifests: Boolean = false
+      useManifests: Boolean,
+      streamFiles: StreamFiles.StreamFiles = StreamFiles.None
   ): (CwlTaskExecutor, ToolTestJobMeta) = {
     val cwlFile: Path = pathFromBasename(s"${cwlName}.cwl").get
     val inputs: Map[String, JsValue] = getInputs(cwlName)
