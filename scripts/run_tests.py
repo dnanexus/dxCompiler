@@ -158,7 +158,7 @@ cwl_tools = [
 cwl_conformance = [
     os.path.basename(path)[:-4]
     for path in glob.glob(os.path.join(test_dir, "cwl_conformance", "tools", "*.cwl"))
-][6:20]
+]
 
 # Tests run in continuous integration. We remove the native app test,
 # because we don't want to give permissions for creating platform apps.
@@ -487,11 +487,11 @@ def run_executable(project, test_folder, tname, oid, debug_flag, delay_workspace
 
     def once(i):
         try:
-            if tname in test_defaults:
-                inputs = {}
-            elif i < 0:
+            if tname in test_defaults or i < 0:
+                print("  with empty input")
                 inputs = {}
             else:
+                print("  with input file: {}".format(desc.dx_input[i]))
                 inputs = read_json_file(desc.dx_input[i])
             project.new_folder(test_folder, parents=True)
             if desc.kind == "workflow":

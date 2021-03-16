@@ -211,6 +211,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
         s"--overrides ${overridesPath.toString}"
       }
       .getOrElse("")
+    // TODO: remove --skip-schemas once we support them
     val command =
       s"""#!/bin/bash
          |(
@@ -222,6 +223,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
          |    --move-outputs \\
          |    --rm-container \\
          |    --rm-tmpdir \\
+         |    --skip-schemas \\
          |    ${targetOpt} ${overridesOpt} ${cwlPath.toString} ${inputPath.toString}
          |) \\
          |> >( tee ${workerPaths.getStdoutFile(ensureParentExists = true)} ) \\
@@ -255,15 +257,18 @@ case class CwlTaskExecutor(tool: CommandLineTool,
     // the outputs were written to stdout
     val stdoutFile = workerPaths.getStdoutFile()
     if (Files.exists(stdoutFile)) {
-      val cwlOutputs: Map[String, (CwlType, CwlValue)] = JsUtils.jsFromFile(stdoutFile) match {
-        case JsObject(outputs) =>
-          outputs.map {
-            case (name, jsValue) =>
-              val cwlTypes = outputParams(name).cwlType
-              name -> CwlValue.deserialize(jsValue, cwlTypes, typeAliases)
-          }
-        case JsNull => Map.empty
-        case other  => throw new Exception(s"unexpected cwltool outputs ${other}")
+      val allOutputs = JsUtils.jsFromFile(stdoutFile) match {
+        case JsObject(outputs) => outputs
+        case JsNull            => Map.empty[String, JsValue]
+        case other             => throw new Exception(s"unexpected cwltool outputs ${other}")
+      }
+      val cwlOutputs = outputParams.map {
+        case (name, param) if allOutputs.contains(name) =>
+          name -> CwlValue.deserialize(allOutputs(name), param.cwlType, typeAliases)
+        case (name, param) if CwlOptional.isOptional(param.cwlType) =>
+          name -> (param.cwlType, NullValue)
+        case (_, param) =>
+          throw new Exception(s"missing value for output parameter ${param}")
       }
       CwlUtils.toIR(cwlOutputs)
     } else {

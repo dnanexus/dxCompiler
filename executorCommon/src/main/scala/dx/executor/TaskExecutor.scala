@@ -206,34 +206,42 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     */
   protected def streamFileForInput(parameterName: String): Boolean
 
+  case class FileSource(virutalFiles: Vector[VFile] = Vector.empty,
+                        realFiles: Vector[AddressableFileNode] = Vector.empty,
+                        archives: Vector[AddressableFileNode] = Vector.empty,
+                        folders: Vector[AddressableFileSource] = Vector.empty)
+
   // TODO: it would be nice to extract dx:// links from VString values - this will
   //  happen in the case where the container is a dx file and being passed in as
   //  an input parameter - so that they could be downloaded using dxda. However,
   //  this would also require some way for the downloaded image tarball to be
   //  discovered and loaded. For now, we rely on DockerUtils to download the image
   //  (via DxFileSource, which uses the dx API to download the file).
-  private def extractPaths(
-      v: Value
-  ): (Vector[AddressableFileNode], Vector[AddressableFileNode], Vector[AddressableFileSource]) = {
-    def extractArray(
-        values: Vector[Value]
-    ): (Vector[AddressableFileNode], Vector[AddressableFileNode], Vector[AddressableFileSource]) = {
-      val (files, archives, folders) = values.map(extractPaths).unzip3
-      (files.flatten, archives.flatten, folders.flatten)
+  private def extractPaths(v: Value): FileSource = {
+    def extractArray(values: Vector[Value]): FileSource = {
+      values.map(extractPaths).foldLeft(FileSource()) {
+        case (pathsAccu, paths) =>
+          FileSource(pathsAccu.virutalFiles ++ paths.virutalFiles,
+                     pathsAccu.realFiles ++ paths.realFiles,
+                     pathsAccu.archives ++ paths.archives,
+                     pathsAccu.folders ++ paths.folders)
+      }
     }
     v match {
+      case f: VFile if f.contents.nonEmpty =>
+        FileSource(virutalFiles = Vector(f))
       case f: VFile =>
         val primaryFile = fileResolver.resolve(f.uri)
-        val (secFiles, secArchives, secFolders) = extractArray(f.secondaryFiles)
-        (secFiles :+ primaryFile, secArchives, secFolders)
+        val secondaryPaths = extractArray(f.secondaryFiles)
+        secondaryPaths.copy(realFiles = secondaryPaths.realFiles :+ primaryFile)
       case f: VFolder =>
-        (Vector.empty, Vector.empty, Vector(fileResolver.resolveDirectory(f.uri)))
+        FileSource(folders = Vector(fileResolver.resolveDirectory(f.uri)))
       case a: VArchive =>
-        (Vector.empty, Vector(fileResolver.resolve(a.uri)), Vector.empty)
+        FileSource(archives = Vector(fileResolver.resolve(a.uri)))
       case l: VListing   => extractArray(l.listing)
       case VArray(items) => extractArray(items)
       case VHash(m)      => extractArray(m.values.toVector)
-      case _             => (Vector.empty, Vector.empty, Vector.empty)
+      case _             => FileSource()
     }
   }
 
@@ -257,14 +265,15 @@ abstract class TaskExecutor(jobMeta: JobMeta,
 
     val inputs = getInputsWithDefaults
 
-    case class Paths(localFilesToPath: Map[AddressableFileNode, Path] = Map.empty,
-                     filesToStream: Set[AddressableFileNode] = Set.empty,
-                     filesToDownload: Set[AddressableFileNode] = Set.empty,
-                     localArchivesToPath: Map[AddressableFileNode, Path] = Map.empty,
-                     archivesToStream: Set[AddressableFileNode] = Set.empty,
-                     archivesToDownload: Set[AddressableFileNode] = Set.empty,
-                     localFoldersToPath: Map[AddressableFileSource, Path] = Map.empty,
-                     foldersToStream: Set[AddressableFileSource] = Set.empty) {
+    case class PathsToLocalize(virtualFiles: Vector[VFile] = Vector.empty,
+                               localFilesToPath: Map[AddressableFileNode, Path] = Map.empty,
+                               filesToStream: Set[AddressableFileNode] = Set.empty,
+                               filesToDownload: Set[AddressableFileNode] = Set.empty,
+                               localArchivesToPath: Map[AddressableFileNode, Path] = Map.empty,
+                               archivesToStream: Set[AddressableFileNode] = Set.empty,
+                               archivesToDownload: Set[AddressableFileNode] = Set.empty,
+                               localFoldersToPath: Map[AddressableFileSource, Path] = Map.empty,
+                               foldersToStream: Set[AddressableFileSource] = Set.empty) {
       lazy val localPaths: Set[Path] =
         (localFilesToPath.values ++ localArchivesToPath.values ++ localFoldersToPath.values).toSet
     }
@@ -291,19 +300,23 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       }
     }
 
-    val paths = inputs.foldLeft(Paths()) {
+    val paths = inputs.foldLeft(PathsToLocalize()) {
       case (paths, (name, (_, irValue))) =>
-        val (files, archives, folders) = extractPaths(irValue)
-        val (localFilesToPath, filesToStream, filesToDownload) = splitFiles(name, files)
-        val (localArchivesToPath, archivesToStream, archivesToDownload) = splitFiles(name, archives)
-        val (localFolders, remoteFolders) = folders.foldLeft(Map.empty[AddressableFileSource, Path],
-                                                             Set.empty[AddressableFileSource]) {
-          case ((local, remote), fs: LocalFileSource) if fs.isDirectory =>
-            (local + (fs -> fs.canonicalPath), remote)
-          case ((local, remote), other) =>
-            (local, remote + other)
-        }
-        Paths(
+        val fileSources = extractPaths(irValue)
+        val (localFilesToPath, filesToStream, filesToDownload) =
+          splitFiles(name, fileSources.realFiles)
+        val (localArchivesToPath, archivesToStream, archivesToDownload) =
+          splitFiles(name, fileSources.archives)
+        val (localFolders, remoteFolders) =
+          fileSources.folders.foldLeft(Map.empty[AddressableFileSource, Path],
+                                       Set.empty[AddressableFileSource]) {
+            case ((local, remote), fs: LocalFileSource) if fs.isDirectory =>
+              (local + (fs -> fs.canonicalPath), remote)
+            case ((local, remote), other) =>
+              (local, remote + other)
+          }
+        PathsToLocalize(
+            fileSources.virutalFiles,
             paths.localFilesToPath ++ localFilesToPath,
             paths.filesToStream ++ filesToStream,
             paths.filesToDownload ++ filesToDownload,
@@ -314,6 +327,23 @@ abstract class TaskExecutor(jobMeta: JobMeta,
             paths.foldersToStream ++ remoteFolders
         )
     }
+
+    // localize any virtual files
+    logger.traceLimited(s"virtual files = ${paths.virtualFiles}")
+    val virtualFileLocalizer =
+      SafeLocalizationDisambiguator(
+          jobMeta.workerPaths.getInputFilesDir(),
+          existingPaths = paths.localPaths,
+          separateDirsBySource = true,
+          createDirs = true,
+          disambiguationDirLimit = TaskExecutor.MaxDisambiguationDirs
+      )
+    val (virtualFilePaths, virtualUriToFileVec) = paths.virtualFiles.map { f =>
+      val localPath = virtualFileLocalizer.getLocalPath(f.uri, "<virtual>")
+      FileUtils.writeFileContent(localPath, f.contents.get)
+      (localPath, f.uri -> f.copy(uri = localPath.toString))
+    }.unzip
+    val virtualUriToFile = virtualUriToFileVec.toMap
 
     // build dxda and/or dxfuse manifests
     // We use a SafeLocalizationDisambiguator to determine the local path and deal
@@ -326,7 +356,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     val downloadLocalizer =
       SafeLocalizationDisambiguator(
           jobMeta.workerPaths.getInputFilesDir(),
-          existingPaths = paths.localPaths,
+          existingPaths = paths.localPaths ++ virtualFilePaths,
           separateDirsBySource = true,
           createDirs = true,
           disambiguationDirLimit = TaskExecutor.MaxDisambiguationDirs
@@ -391,6 +421,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         }
       }
       (t, v) match {
+        case (_, f: VFile) if f.contents.nonEmpty =>
+          Some(virtualUriToFile(f.uri))
         case (_, f: VFile) =>
           translateUri(f.uri).map { newUri =>
             val newSecondaryFiles =
@@ -584,8 +616,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         case (THash, VHash(members)) =>
           members.flatMap {
             case (key, value) =>
-              val (files, _, folders) = extractPaths(value)
-              (files ++ folders).flatMap(fs =>
+              val fileSources = extractPaths(value)
+              (fileSources.realFiles ++ fileSources.folders).flatMap(fs =>
                 getFileNode(s"${innerName}.${key}", fs, optional = true)
               )
           }.toVector

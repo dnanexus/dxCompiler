@@ -17,7 +17,7 @@ requirements:
 
 steps:
   step1:
-    run: env-tool1.cwl
+    run: env-tool3.cwl
     in:
       in: in
     out: [out]

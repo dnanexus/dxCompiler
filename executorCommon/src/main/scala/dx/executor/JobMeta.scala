@@ -327,6 +327,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
   lazy val inputs: Map[String, Value] = {
     // If we are using manifests, then the inputSpec won't match the task inputs.
     // Otherwise, if we have access to the inputSpec, use it to guide deserialization.
+    logger.traceLimited(s"inputSpec:\n  ${inputSpec.mkString("\n  ")}")
     jsInputs.map {
       case (key, value) if useManifests =>
         key -> inputDeserializer.deserializeInput(value)
@@ -335,9 +336,9 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
           case None =>
             logger.warning(s"inputSpec is missing field ${key}")
             inputDeserializer.deserializeInput(value)
-          case Some(Type.THash) =>
+          case Some(t) if Type.unwrapOptional(t) == Type.THash =>
             logger.trace(
-                s"""expected type of input field ${key} is THash, which may represent an
+                s"""expected type of input field '${key}' is THash, which may represent an
                    |unknown schema type, so deserializing without type""".stripMargin
                   .replaceAll("\n", " ")
             )
@@ -456,9 +457,10 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
   }
 
   private def validateOutput(name: String, actualType: Type): Unit = {
+    logger.traceLimited(s"outputSpec:\n  ${outputSpec.mkString("\n  ")}")
     outputSpec.get(name) match {
       case Some(t) if outputTypesEqual(t, actualType) => ()
-      case Some(t) if t == Type.THash =>
+      case Some(t) if Type.unwrapOptional(t) == Type.THash =>
         logger.trace(
             s"""expected type of output field ${name} is THash which may represent an
                |unknown schema type, so deserializing without type""".stripMargin

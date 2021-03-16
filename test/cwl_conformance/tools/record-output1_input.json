@@ -1,5 +1,5 @@
 {
-  "record-output.irec": {
+  "record-output1.irec": {
     "ifoo": {
       "location": "whale.txt",
       "class": "File"

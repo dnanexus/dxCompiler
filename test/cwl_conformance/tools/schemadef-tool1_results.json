@@ -1,5 +1,5 @@
 {
-  "schemadef-tool.output": {
+  "schemadef-tool1.output": {
     "location": "output.txt",
     "size": 12,
     "class": "File",

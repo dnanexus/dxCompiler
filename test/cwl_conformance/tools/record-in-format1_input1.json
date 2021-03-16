@@ -1,10 +1,10 @@
 {
-  "record-in-format.regular_input": {
+  "record-in-format1.regular_input": {
     "class": "File",
     "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/rec/D",
     "format": "http://example.com/format1"
   },
-  "record-in-format.record_input": {
+  "record-in-format1.record_input": {
     "f1": {
       "class": "File",
       "location": "dx://file-G15vQ8Q0yzZkg6424fGVf61v",
