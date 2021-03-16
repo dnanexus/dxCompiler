@@ -91,7 +91,7 @@ This compiles the source WDL file to several platform objects.
 - Two applets that can be called independently: `slice_bam`, and `count_bam`
 - A few auxiliary applets that process workflow inputs, outputs, and launch the scatter.
 
-These objects are all created in the specified `dx` project and folder. The generated workflow can be run using `dx run`. For example:
+These objects are all created in the specified DNAnexus project and folder. The generated workflow can be run using `dx run`. For example:
 
 ```
 dx run bam_chrom_counter -i0.file=file-xxxx
