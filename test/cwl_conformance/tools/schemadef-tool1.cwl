@@ -3,11 +3,19 @@ class: CommandLineTool
 cwlVersion: v1.2
 
 requirements:
-  - $import: schemadef-type.yml
+  - class: SchemaDefRequirement
+    types:
+      - name: HelloType
+        type: record
+        fields:
+          - name: a
+            type: string
+          - name: b
+            type: string
 
 inputs:
     - id: hello
-      type: "schemadef-type.yml#HelloType"
+      type: HelloType
       inputBinding:
         valueFrom: $(self.a)/$(self.b)
 

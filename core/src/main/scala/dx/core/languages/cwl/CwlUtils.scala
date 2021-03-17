@@ -21,6 +21,7 @@ import dx.core.ir.Value.{
 }
 import dx.cwl._
 import dx.util.CollectionUtils.IterableOnceExtensions
+import dx.util.FileSourceResolver
 import spray.json._
 
 import java.nio.file.{Path, Paths}
@@ -541,15 +542,21 @@ object CwlUtils {
     )
   }
 
-  def createEvaluatorContext(runtime: Runtime,
-                             env: Map[String, (CwlType, CwlValue)] = Map.empty,
-                             self: CwlValue = NullValue,
-                             inputParameters: Map[String, InputParameter] = Map.empty,
-                             inputDir: Path = Paths.get(".")): EvaluatorContext = {
+  def createEvaluatorContext(
+      runtime: Runtime,
+      env: Map[String, (CwlType, CwlValue)] = Map.empty,
+      self: CwlValue = NullValue,
+      inputParameters: Map[String, InputParameter] = Map.empty,
+      inputDir: Path = Paths.get("."),
+      fileResolver: FileSourceResolver = FileSourceResolver.get
+  ): EvaluatorContext = {
     val values = env
       .map {
         case (key, (_, value)) if inputParameters.contains(key) =>
-          key -> EvaluatorContext.finalizeInputValue(value, inputParameters(key), inputDir)
+          key -> EvaluatorContext.finalizeInputValue(value,
+                                                     inputParameters(key),
+                                                     inputDir,
+                                                     fileResolver)
         case (key, (_, value)) => key -> value
       }
       .to(TreeSeqMap)

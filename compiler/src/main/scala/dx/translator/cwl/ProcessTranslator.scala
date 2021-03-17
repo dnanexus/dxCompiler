@@ -179,8 +179,13 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         case i if i.default.isDefined => i.name -> (i.cwlType, i.default.get)
       }.toMap
       // translate outputs and evaluate any static expressions
+      val inputDir = tool.source.map(Paths.get(_).getParent).getOrElse(Paths.get("."))
       val outputCtx =
-        CwlUtils.createEvaluatorContext(Runtime.empty, defaults, inputParameters = inputParams)
+        CwlUtils.createEvaluatorContext(Runtime.empty,
+                                        defaults,
+                                        inputParameters = inputParams,
+                                        inputDir = inputDir,
+                                        fileResolver = fileResolver)
       val outputs = tool.outputs.collect {
         case i if i.id.exists(_.name.isDefined) => translateOutput(i, outputCtx)
       }

@@ -284,6 +284,14 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
     retval shouldBe a[SuccessfulCompileIR]
   }
 
+  it should "translate cwl inputs with default file value" in {
+    val cwlCode = pathFromBasename("cwl", "bool-empty-inputbinding.cwl")
+    val inputs = pathFromBasename("cwl", "bool-empty-inputbinding_input.json")
+    val args = List(cwlCode.toString, "-inputs", inputs.toString, "-verbose") ++ cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileIR]
+  }
+
 //  it should "translate cwl directory inputs I" in {
 //    val cwlCode = pathFromBasename("cwl", "cat-from-dir.cwl")
 //    val inputs = pathFromBasename("cwl", "cat-from-dir_input1.json")

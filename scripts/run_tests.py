@@ -645,7 +645,7 @@ def register_all_tests(verbose : bool) -> None :
                     register_test(root, fname, ext)
                 except Exception as e:
                     if verbose:
-                        print("Skipping WDL file {} error={}".format(fname, e))
+                        print("Skipping file {} error={}".format(fname, e))
 
 
 # Some compiler flags are test specific
