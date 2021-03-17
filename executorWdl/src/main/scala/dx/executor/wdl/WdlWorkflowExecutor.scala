@@ -393,8 +393,8 @@ case class WdlWorkflowExecutor(docSource: FileNode,
 
     private def launchCall(
         callInputs: Map[String, (T, V)],
-        nameDetail: Option[String] = None,
-        folder: Option[String] = None
+        folder: Option[String],
+        nameDetail: Option[String] = None
     ): (DxExecution, ExecutableLink, String) = {
       logger.traceLimited(
           s"""|call = ${call}
@@ -462,7 +462,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     private def launchCall(blockIndex: Int): Map[String, ParameterLink] = {
       val callInputs = evaluateCallInputs()
       val (dxExecution, executableLink, callName) =
-        launchCall(callInputs, folder = Some(blockIndex.toString))
+        launchCall(callInputs, Some(blockIndex.toString))
       jobMeta.createExecutionOutputLinks(dxExecution, executableLink.outputs, Some(callName))
     }
 
@@ -732,7 +732,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           val callInputs = evaluateCallInputs(Map(identifier -> (itemType, item)))
           val callNameDetail = getScatterName(item)
           val (dxExecution, _, _) =
-            launchCall(callInputs, callNameDetail, Some((jobMeta.scatterStart + index).toString))
+            launchCall(callInputs, Some((jobMeta.scatterStart + index).toString), callNameDetailc)
           dxExecution
       }
     }
