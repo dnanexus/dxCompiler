@@ -1541,4 +1541,10 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
       .getOrElse(throw new Exception("missing field record_input"))
     println(recordInput.dxType)
   }
+
+  it should "translate a workflow with scatter inside conditional" in {
+    val path = pathFromBasename("bugs", "scatter_inside_if.wdl")
+    val args = path.toString :: cFlags
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
+  }
 }

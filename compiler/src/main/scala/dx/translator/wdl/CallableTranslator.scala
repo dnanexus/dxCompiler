@@ -415,12 +415,12 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         val (statementClosureInputs, statementClosureOutputs) =
           WdlUtils.getClosureInputsAndOutputs(statements, withField = true)
         // create block inputs for the closure inputs
-        val inputs = WdlBlockInput.create(statementClosureInputs)
+        val allInputs = WdlBlockInput.create(statementClosureInputs)
         val outputs = statementClosureOutputs.values.toVector
         // collect the sub-block inputs that are not workflow inputs or outputs -
         // these are additional inputs from outside the block that need to be
         // supplied as workflow inputs
-        val externalNames = (inputs.map(_.name) ++ outputs.map(_.name)).toSet
+        val externalNames = (allInputs.map(_.name) ++ outputs.map(_.name)).toSet
         // TODO: will there ever be block inputs that are not included in
         //  statementClosureInputs?
         val closureInputs = subBlocks.flatMap { block =>
@@ -429,6 +429,10 @@ case class CallableTranslator(wdlBundle: WdlBundle,
               blockInput.name -> (blockInput.wdlType, blockInput.kind)
           }
         }.toMap
+        val inputs = allInputs.filter {
+          case _: ComputedBlockInput => false
+          case _                     => true
+        }
         logger.trace(
             s"""|compileNestedBlock
                 |    inputs = $inputs

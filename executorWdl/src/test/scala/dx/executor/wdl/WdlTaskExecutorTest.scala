@@ -310,7 +310,7 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
               // block here until the file is closed
               if (!Iterator.range(0, 10).exists { i =>
                     if (i > 0) {
-                      Thread.sleep(1000)
+                      Thread.sleep(2000)
                     }
                     val desc =
                       dxApi.fileDescribe(manifestFile.id,
@@ -320,7 +320,7 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
                       case _                        => false
                     }
                   }) {
-                throw new Exception("manifest file did not close within 10 seconds")
+                throw new Exception("manifest file did not close within 20 seconds")
               }
               val manifest =
                 Manifest.parse(new String(jobMeta.dxApi.downloadBytes(manifestFile)).parseJson)
