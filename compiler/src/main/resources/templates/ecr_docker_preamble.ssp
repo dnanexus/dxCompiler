@@ -47,5 +47,5 @@ while [[ ${bashDollar}i -le 5 ]]; do
 done
 
 # cleanup
-apt autoclean && apt purge awscli
+apt autoclean -y && apt purge -y awscli
 rm -rf ${bashDollar}{HOME}/.aws
