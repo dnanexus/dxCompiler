@@ -727,11 +727,13 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     private def launchScatterCallJobs(identifier: String,
                                       itemType: T,
                                       collection: Vector[V]): Vector[DxExecution] = {
-      collection.map { item =>
-        val callInputs = evaluateCallInputs(Map(identifier -> (itemType, item)))
-        val callNameDetail = getScatterName(item)
-        val (dxExecution, _, _) = launchCall(callInputs, callNameDetail)
-        dxExecution
+      collection.zipWithIndex.map {
+        case (item, index) =>
+          val callInputs = evaluateCallInputs(Map(identifier -> (itemType, item)))
+          val callNameDetail = getScatterName(item)
+          val (dxExecution, _, _) =
+            launchCall(callInputs, callNameDetail, Some((jobMeta.scatterStart + index).toString))
+          dxExecution
       }
     }
 
@@ -740,13 +742,18 @@ case class WdlWorkflowExecutor(docSource: FileNode,
                                           collection: Vector[V]): Vector[DxExecution] = {
       assert(execLinkInfo.size == 1)
       val executableLink = execLinkInfo.values.head
-      collection.map { item =>
-        val callInputs =
-          prepareSubworkflowInputs(executableLink, Map(identifier -> (itemType, item)))
-        val callNameDetail = getScatterName(item)
-        val (dxExecution, _) =
-          launchJob(executableLink, executableLink.name, callInputs, callNameDetail)
-        dxExecution
+      collection.zipWithIndex.map {
+        case (item, index) =>
+          val callInputs =
+            prepareSubworkflowInputs(executableLink, Map(identifier -> (itemType, item)))
+          val callNameDetail = getScatterName(item)
+          val (dxExecution, _) =
+            launchJob(executableLink,
+                      executableLink.name,
+                      callInputs,
+                      callNameDetail,
+                      folder = Some((jobMeta.scatterStart + index).toString))
+          dxExecution
       }
     }
 
