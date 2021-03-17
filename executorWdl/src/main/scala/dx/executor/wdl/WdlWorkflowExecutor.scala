@@ -1019,7 +1019,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           throw new RuntimeException(s"invalid block ${block}")
       }
 
-      val (manifestId, executionName, childOutputs) =
+      val (manifestId, execName, childOutputs) =
         if (jobMeta.useManifests) {
           // each job has an output manifest - we need to download them all
           childExecutions
@@ -1074,7 +1074,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         case (name, irType) =>
           val arrayType = TArray(irType)
           val nameEncoded = Parameter.encodeDots(name)
-          val longNameEncoded = executionName.map(e => Parameter.encodeDots(s"${e}.${name}"))
+          val longNameEncoded = execName.map(e => Parameter.encodeDots(s"${e}.${name}"))
           val arrayValue = childOutputs.flatMap { outputs =>
             val jsValue = outputs.get(nameEncoded).orElse(longNameEncoded.flatMap(outputs.get))
             (irType, jsValue) match {

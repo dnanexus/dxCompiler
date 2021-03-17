@@ -98,6 +98,15 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 
   def rawJsInputs: Map[String, JsValue]
 
+  def callName: Option[String] = {
+    rawJsInputs.get(Constants.CallName) match {
+      case Some(JsString(callName)) => Some(callName)
+      case None                     => None
+      case other =>
+        throw new Exception(s"invalid callName ${other}")
+    }
+  }
+
   /**
     * If the task/workflow was compiled with -useManifests, then the job inputs
     * will be manifest files, rather than the actual inputs expected by the
@@ -374,15 +383,14 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
         case other =>
           throw new Exception(s"missing or invalid outputId ${other}")
       }
-      val manifestValues = rawJsInputs.get(Constants.CallName) match {
-        case Some(JsString(callName)) =>
-          val prefix = s"${callName}${Parameter.ComplexValueKey}"
+      val manifestValues = callName
+        .map { c =>
+          val prefix = s"${c}${Parameter.ComplexValueKey}"
           outputJs.map {
             case (name, value) => s"${prefix}${name}" -> value
           }
-        case None  => outputJs
-        case other => throw new Exception(s"invalid call name value ${other}")
-      }
+        }
+        .getOrElse(outputJs)
       val manifest = Manifest(manifestValues, id = Some(manifestId))
       val destination = s"${manifestFolder}/${jobId}_output.manifest.json"
       val manifestDxFile = dxApi.uploadString(manifest.toJson.prettyPrint, destination)
