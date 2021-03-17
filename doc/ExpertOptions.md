@@ -1114,6 +1114,10 @@ configuration sets it to use native docker, and all applets are given
 the `allProjects: VIEW` permission. This allows them to access the
 credentials file, even if it is stored on a different project.
 
+Note that you need to use the full path of the docker image in your WDL.
+For example, the `myimage:latest` image in the above private registry
+would be referred to as `foo.acme.com/myimage:latest`.
+
 ### AWS ECR registries
 
 Logging into an AWS Elastic Container Registry (ECR) is a bit different
