@@ -96,7 +96,7 @@ wdl_v1_list = [
     # manifests
     "simple_manifest",
     "complex_manifest",
-    "view_and_count"
+    "view_and_count_manifest"
 ]
 
 # docker image tests
