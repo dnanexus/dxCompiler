@@ -22,11 +22,14 @@ dx download ${bashDollar}{DOCKER_CREDENTIALS} -o ${bashDollar}{HOME}/docker_cred
 creds=${bashDollar}(cat ${bashDollar}{HOME}/docker_credentials)
 
 # Log into docker. Retry several times.
-set -e
 i=0
 while [[ ${bashDollar}i -le 5 ]]; do
+    # disable echo to avoid logging password
+    # TODO: use credential helper instead https://docs.docker.com/engine/reference/commandline/login/
+    set +e
     echo ${bashDollar}{creds} | docker login ${bashDollar}{DOCKER_REGISTRY} -u ${bashDollar}{DOCKER_USERNAME} --password-stdin
     rc=${bashDollar}?
+    set -e
     if [[ ${bashDollar}rc == 0 ]]; then
         break
     fi
@@ -34,6 +37,5 @@ while [[ ${bashDollar}i -le 5 ]]; do
     sleep 3
     echo "retry docker login (${bashDollar}i)"
 done
-set +e
 
 rm -f ${bashDollar}{HOME}/docker_credentials
