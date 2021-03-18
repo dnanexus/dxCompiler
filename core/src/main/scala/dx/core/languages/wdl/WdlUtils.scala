@@ -786,12 +786,13 @@ object WdlUtils {
             .map { case (_, v) => inner(v) }
             .toVector
             .flatten
-        case TAT.ExprPlaceholderCondition(t: TAT.Expr, f: TAT.Expr, value: TAT.Expr, _, _) =>
-          inner(t) ++ inner(f) ++ inner(value)
-        case TAT.ExprPlaceholderDefault(default: TAT.Expr, value: TAT.Expr, _, _) =>
-          inner(default) ++ inner(value)
-        case TAT.ExprPlaceholderSep(sep: TAT.Expr, value: TAT.Expr, _, _) =>
-          inner(sep) ++ inner(value)
+        case TAT.ExprPlaceholder(t, f, sep, default, value: TAT.Expr, _, _) =>
+          inner(value) ++ Vector(
+              t.map(inner),
+              f.map(inner),
+              sep.map(inner),
+              default.map(inner)
+          ).flatten.flatten
         // Access an array element at [index]
         case TAT.ExprAt(value, index, _, _) =>
           inner(value) ++ inner(index)

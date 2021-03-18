@@ -1026,12 +1026,14 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           throw new RuntimeException(s"invalid block ${block}")
       }
 
-      val (manifestId, childOutputs) =
+      val (manifestId, execName, childOutputs) =
         if (jobMeta.useManifests) {
           // each job has an output manifest - we need to download them all
           childExecutions
-            .foldLeft(Option.empty[String], Vector.empty[Map[String, JsValue]]) {
-              case ((id, childOutputs), childExec) =>
+            .foldLeft(Option.empty[String],
+                      Option.empty[String],
+                      Vector.empty[Map[String, JsValue]]) {
+              case ((id, execName, childOutputs), childExec) =>
                 val manifestFile = childExec.outputs.get(Constants.OutputManifest) match {
                   case Some(fileObj: JsObject) if DxFile.isLinkJson(fileObj) =>
                     Some(DxFile.fromJson(dxApi, fileObj))
@@ -1061,23 +1063,32 @@ case class WdlWorkflowExecutor(docSource: FileNode,
                         s"scatter job output manifests had different IDs: ${id1} != ${id2}"
                     )
                 }
-                (newId, childOutputs :+ manifestValues)
+                val newExecName = (execName, childExec.execName) match {
+                  case (None, execName)                                       => Some(execName)
+                  case (Some(execName1), execName2) if execName1 == execName2 => Some(execName1)
+                  case (Some(execName1), execName2) =>
+                    throw new Exception(
+                        s"child execution names do not match: ${execName1} != ${execName2}"
+                    )
+                }
+                (newId, newExecName, childOutputs :+ manifestValues)
             }
         } else {
-          (None, childExecutions.map(_.outputs))
+          (None, None, childExecutions.map(_.outputs))
         }
 
       val arrayValues: Map[String, (Type, Value)] = outputTypes.view.mapValues {
         case (name, irType) =>
           val arrayType = TArray(irType)
           val nameEncoded = Parameter.encodeDots(name)
+          val longNameEncoded = execName.map(e => Parameter.encodeDots(s"${e}.${name}"))
           val arrayValue = childOutputs.flatMap { outputs =>
-            (irType, outputs.get(nameEncoded)) match {
+            val jsValue = outputs.get(nameEncoded).orElse(longNameEncoded.flatMap(outputs.get))
+            (irType, jsValue) match {
               case (_, Some(jsValue)) =>
                 Some(jobMeta.inputDeserializer.deserializeInputWithType(jsValue, irType))
-              case (TOptional(_), None) =>
-                None
-              case (_, None) =>
+              case (TOptional(_), None) => None
+              case (_, None)            =>
                 // Required output that is missing
                 throw new Exception(s"missing required field <${name}> in results")
             }
