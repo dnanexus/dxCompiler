@@ -1,10 +1,11 @@
 # Release Notes
 
-## in dev
+## 2.4.0 03-18-2021
 
 * Adds `-useManifests` option to generate applets and workflows whose inputs and outputs are manifest files
 * Fixes issue with using both streaming and non-streaming file inputs in the same task
 * Fixes issue with scatter as the first element of a workflow
+* Updates to wdlTools 0.12.7, which provides compatibility for some non-complaint syntax allowed by Cromwell
 
 ## 2.3.1 03-03-2021
 
