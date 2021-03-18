@@ -78,7 +78,7 @@ jobs:
           dx mkdir $FOLDER
           python3 scripts/run_tests.py --test L --folder $FOLDER --project $PROJECT
           #TODO: also remove the folder when the tests fail
-          dx rmdir $FOLDER
+          dx rm -rf $FOLDER
 
       - name: Run the release script
         env:
