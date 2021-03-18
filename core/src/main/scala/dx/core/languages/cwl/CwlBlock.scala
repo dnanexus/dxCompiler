@@ -1,22 +1,13 @@
 package dx.core.languages.cwl
 
-import dx.core.ir.Block
-import dx.core.ir.BlockKind
-import dx.cwl.{
-  CommandLineTool,
-  CwlOptional,
-  ExpressionTool,
-  Hint,
-  Parameter,
-  Requirement,
-  Workflow,
-  WorkflowInputParameter,
-  WorkflowStep
-}
+import dx.core.ir.{Block, BlockKind, Parameter}
+import dx.cwl.{CommandLineTool, CwlOptional, ExpressionTool, Hint, InputParameter, OutputParameter, Parameter, Requirement, Workflow, WorkflowInputParameter, WorkflowStep, WorkflowStepOutput}
+
+import scala.collection.immutable.TreeSeqMap
 
 case class CwlBlock(index: Int,
-                    inputs: Map[String, (Parameter, Boolean)],
-                    outputs: Map[String, Parameter],
+                    inputs: Map[String, (InputParameter, Boolean)],
+                    outputs: Map[String, OutputParameter],
                     steps: Vector[WorkflowStep],
                     inheritedRequirements: Vector[Requirement],
                     inheritedHints: Vector[Hint])
@@ -160,65 +151,86 @@ object CwlBlock {
   def createBlocks(wf: Workflow,
                    inheritedRequirements: Vector[Requirement] = Vector.empty,
                    inheritedHints: Vector[Hint] = Vector.empty): Vector[CwlBlock] = {
-    // ExpressionTools are bundled with the next tool or workflow step.
-    val (parts, _) =
-      wf.steps.foldLeft(Vector.empty[Vector[WorkflowStep]], Vector.empty[WorkflowStep]) {
-        case ((parts, curPart), step) =>
-          step.run match {
-            case _: ExpressionTool =>
-              (parts, curPart :+ step)
-            case _ if curPart.isEmpty =>
-              (parts :+ Vector(step), curPart)
-            case _ =>
-              (parts :+ curPart, Vector.empty)
-          }
-      }
+    // TODO: bundle ExpressionTools with the next tool or workflow step - currently
+    //  they are their own step because cwltool can only execute a single workflow
+    //  step in isolation
 
     val wfInputs = wf.inputs.collect {
       case i if i.hasName => i.name -> i
     }.toMap
 
-    parts.zipWithIndex.map {
-      case (v, index) =>
-        val blockInputs = v.foldLeft(Map.empty[String, (WorkflowInputParameter, Boolean)]) {
-          case (accu, step) =>
-            step.inputs.foldLeft(accu) {
-              case (accu, inp) =>
-                val missing = inp.source.toSet.diff(wfInputs.keySet)
-                if (missing.nonEmpty) {
-                  throw new Exception(s"undefined workflow input(s) ${missing.mkString(",")}")
-                }
-                val hasDefault = inp.default.isDefined
-                inp.source.foldLeft(accu) {
-                  case (accu, name) =>
-                    val wfInput = wfInputs(name)
-                    val optional = hasDefault || CwlOptional.isOptional(wfInput.cwlType)
-                    accu.get(name) match {
-                      case Some((_, true)) if !optional =>
-                        accu + (name -> (wfInput, false))
-                      case None =>
-                        accu + (name -> (wfInputs(name), optional))
-                      case _ => accu
-                    }
-                }
+    // sort steps in dependency order
+    def orderSteps(
+        steps: Vector[WorkflowStep],
+        deps: TreeSeqMap[String, WorkflowStep] = TreeSeqMap.empty
+    ): TreeSeqMap[String, WorkflowStep] = {
+      val (satisfied, unsatisfied) =
+        steps.partition { step =>
+          step.inputs.forall { inp =>
+            inp.source.forall {
+              case id if id.parent.isDefined => deps.contains(id.parent.get)
+              case id                        => wfInputs.contains(id.name.get)
             }
+          }
         }
-        val blockOutputs = v.foldLeft(Map.empty[String, Parameter]) {
-          case (accu, step) =>
-            val procOutputs = step.run.outputs.collect {
-              case o if o.hasName => o.name -> o
-            }.toMap
-            step.outputs.foldLeft(accu) {
-              case (accu, out) if procOutputs.contains(out.name) && !accu.contains(out.name) =>
-                accu + (out.name -> procOutputs(out.name))
-              case (_, out) =>
-                throw new Exception(s"invalid or duplicate output parameter name ${out.name}")
-            }
+      val newDeps = deps ++ satisfied.map(step => step.name -> step).to(TreeSeqMap)
+      newDeps ++ orderSteps(unsatisfied, newDeps)
+    }
+
+    val orderedSteps = orderSteps(wf.steps)
+
+    orderedSteps.values.zipWithIndex.map {
+      case (step, index) =>
+        val blockInputs =
+          step.inputs.foldLeft(Map.empty[String, (InputParameter, Boolean)]) {
+            case (accu, inp) =>
+              // sources of this step input - either a workflow input
+              // like "file1" or a step output like "step1/file1"
+              val sources = inp.source.map { src =>
+                (src, Parameter.encodeName(src.path.get))
+              }
+              val hasDefault = inp.default.isDefined
+              sources.foldLeft(accu) {
+                case (accu, (_, name)) if accu.contains(name) => accu
+                case (accu, (id, name)) if id.parent.isDefined =>
+                  val srcStep = orderedSteps(id.parent.get)
+                  val param = srcStep.outputs.collectFirst {
+                    case out if out.name == id.name.get =>
+                      srcStep.run.outputs.collectFirst {
+                        case srcOut if out.name == srcOut.name => srcOut
+                      }.getOrElse(
+                          throw new Exception(s"process ${srcStep.run.name} does not define output parameter ${out.name}")
+                      )
+                  }.getOrElse(throw new Exception(s"step ${id.parent.get} does not define output parameter ${id.name.get}"))
+                  val optional = hasDefault || CwlOptional.isOptional(param.cwlType)
+                  accu + (name -> ())
+                case (accu, id)
+
+
+                  val wfInput = wfInputs(name)
+                  val optional = hasDefault || CwlOptional.isOptional(wfInput.cwlType)
+                  accu.get(name) match {
+                    case Some((_, true)) if !optional =>
+                      accu + (name -> (wfInput, false))
+                    case None =>
+                      accu + (name -> (wfInputs(name), optional))
+                    case _ => accu
+                  }
+              }
+          }
+        val procOutputs = step.run.outputs.collect {
+          case o if o.hasName => o.name -> o
+        }.toMap
+        val blockOutputs = step.outputs.foldLeft(Map.empty[String, Parameter]) {
+          case (accu, out) if procOutputs.contains(out.name) && !accu.contains(out.name) =>
+            accu + (out.name -> procOutputs(out.name))
+          case (_, out) =>
+            throw new Exception(s"invalid or duplicate output parameter name ${out.name}")
         }
         CwlBlock(index,
                  blockInputs,
                  blockOutputs,
-                 v,
+                 Vector(step),
                  inheritedRequirements ++ wf.requirements,
                  inheritedHints ++ wf.hints)
     }

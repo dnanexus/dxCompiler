@@ -1547,4 +1547,40 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val args = path.toString :: cFlags
     Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
+
+  it should "translate a simple CWL workflow" in {
+    val path = pathFromBasename("cwl", "count-lines1-wf.cwl")
+    val args = path.toString :: cFlags
+    val result = Main.compile(args.toVector) match {
+      case SuccessfulCompileIR(bundle) => bundle
+      case other =>
+        throw new Exception(s"expected success not ${other}")
+    }
+    val wf = result.primaryCallable match {
+      case Some(wf: Workflow) => wf
+      case other =>
+        throw new Exception(s"expected Workflow not ${other}")
+    }
+    wf.inputs shouldBe Vector(
+        Parameter("file1", TFile) -> WorkflowInput(Parameter("file1", TFile))
+    )
+    wf.outputs shouldBe Vector(
+        Parameter("count_output", TInt) -> LinkInput(DxWorkflowStage("step2"), "output")
+    )
+    wf.stages.size shouldBe 2
+    wf.stages(0).calleeName shouldBe "word-count"
+    wf.stages(0).inputs shouldBe Vector(
+        WorkflowInput(Parameter("file1", TFile))
+    )
+    wf.stages(0).outputs shouldBe Vector(
+        Parameter("output", TFile)
+    )
+    wf.stages(1).calleeName shouldBe "parseInt"
+    wf.stages(1).inputs shouldBe Vector(
+        LinkInput(DxWorkflowStage("step1"), "output")
+    )
+    wf.stages(1).outputs shouldBe Vector(
+        Parameter("output", TInt)
+    )
+  }
 }

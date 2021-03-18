@@ -121,7 +121,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
 
     def translateInput(input: CommandInputParameter,
                        evaluatorContext: EvaluatorContext): Parameter = {
-      val name = input.id.get.unqualifiedName.get
+      val name = input.id.flatMap(_.name).get
       val irDefaultValue = input.default match {
         case Some(default) =>
           try {
@@ -147,7 +147,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
 
     def translateOutput(output: CommandOutputParameter,
                         evaluatorContext: EvaluatorContext): Parameter = {
-      val name = output.id.get.unqualifiedName.get
+      val name = output.id.flatMap(_.name).get
       val irValue = output.outputBinding
         .flatMap(_.outputEval.flatMap { cwlValue =>
           try {

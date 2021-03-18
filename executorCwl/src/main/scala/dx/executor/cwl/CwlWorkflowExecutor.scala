@@ -188,7 +188,10 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
       step.run.inputs.flatMap {
         case param if stepInputs.contains(param.name) =>
           val step = stepInputs(param.name)
-          step.source.map(k => k -> fullEnv(k))
+          step.source.map { src =>
+            val name = src.name.get
+            name -> fullEnv(name)
+          }
         case param if CwlOptional.isOptional(param.cwlType) =>
           logger.trace(s"no input for optional input ${param.name} to step ${step.name}")
           Vector.empty
