@@ -426,7 +426,8 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
         .sortWith(_.seqNum < _.seqNum)
     }
 
-    protected def aggregateScatterJobOutputs: (Option[String], Vector[Map[String, JsValue]]) = {
+    protected def aggregateScatterJobOutputs
+        : (Option[String], Option[String], Vector[Map[String, JsValue]]) = {
       val childExecutions = jobMeta.getJobDetail(WorkflowExecutor.ParentsKey) match {
         case Some(JsArray(array)) =>
           val parentJobIds = array.map(JsUtils.getString(_))
@@ -443,12 +444,11 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
           findChildExecutions(Some(parentJob.id), Set(jobMeta.jobId))
       }
       logger.trace(s"childExecs=${childExecutions}")
-
       if (jobMeta.useManifests) {
         // each job has an output manifest - we need to download them all
         childExecutions
-          .foldLeft(Option.empty[String], Vector.empty[Map[String, JsValue]]) {
-            case ((id, childOutputs), childExec) =>
+          .foldLeft(Option.empty[String], Option.empty[String], Vector.empty[Map[String, JsValue]]) {
+            case ((id, execName, childOutputs), childExec) =>
               val manifestFile = childExec.outputs.get(Constants.OutputManifest) match {
                 case Some(fileObj: JsObject) if DxFile.isLinkJson(fileObj) =>
                   Some(DxFile.fromJson(dxApi, fileObj))
@@ -478,26 +478,36 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
                       s"scatter job output manifests had different IDs: ${id1} != ${id2}"
                   )
               }
-              (newId, childOutputs :+ manifestValues)
+              val newExecName = (execName, childExec.execName) match {
+                case (None, execName)                                       => Some(execName)
+                case (Some(execName1), execName2) if execName1 == execName2 => Some(execName1)
+                case (Some(execName1), execName2) =>
+                  throw new Exception(
+                      s"child execution names do not match: ${execName1} != ${execName2}"
+                  )
+              }
+              (newId, newExecName, childOutputs :+ manifestValues)
           }
       } else {
-        (None, childExecutions.map(_.outputs))
+        (None, None, childExecutions.map(_.outputs))
       }
     }
 
     protected def createScatterOutputArray(
         childOutputs: Vector[Map[String, JsValue]],
         name: String,
-        irType: Type
+        irType: Type,
+        execName: Option[String]
     ): Value = {
       val nameEncoded = Parameter.encodeName(name)
+      val longNameEncoded = execName.map(e => Parameter.encodeName(s"${e}.${name}"))
       val arrayValue = childOutputs.flatMap { outputs =>
-        (irType, outputs.get(nameEncoded)) match {
+        val jsValue = outputs.get(nameEncoded).orElse(longNameEncoded.flatMap(outputs.get))
+        (irType, jsValue) match {
           case (_, Some(jsValue)) =>
             Some(jobMeta.inputDeserializer.deserializeInputWithType(jsValue, irType))
-          case (TOptional(_), None) =>
-            None
-          case (_, None) =>
+          case (TOptional(_), None) => None
+          case (_, None)            =>
             // Required output that is missing
             throw new Exception(s"missing required field <${name}> in results")
         }
@@ -506,12 +516,13 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
     }
 
     protected def getScatterOutputs(
-        childOutputs: Vector[Map[String, JsValue]]
+        childOutputs: Vector[Map[String, JsValue]],
+        execName: Option[String]
     ): Map[String, (Type, Value)]
 
     private def collectScatter(): Map[String, ParameterLink] = {
-      val (manifestId, childOutputs) = aggregateScatterJobOutputs
-      val arrayValues: Map[String, (Type, Value)] = getScatterOutputs(childOutputs)
+      val (manifestId, execName, childOutputs) = aggregateScatterJobOutputs
+      val arrayValues: Map[String, (Type, Value)] = getScatterOutputs(childOutputs, execName)
       if (arrayValues.isEmpty) {
         Map.empty
       } else if (jobMeta.useManifests) {

@@ -381,7 +381,8 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
     }
 
     override protected def getScatterOutputs(
-        childOutputs: Vector[Map[String, JsValue]]
+        childOutputs: Vector[Map[String, JsValue]],
+        execName: Option[String]
     ): Map[String, (Type, Value)] = {
       val targetOutputs = step.run.outputs.map(param => param.name -> param.cwlType).toMap
       val arraySizes = if (step.scatterMethod.get == ScatterMethod.NestedCrossproduct) {
@@ -393,7 +394,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
       step.outputs.map { out =>
         val irType = CwlUtils.toIRType(targetOutputs(out.name))
         val arrayValue =
-          (createScatterOutputArray(childOutputs, out.name, irType), arraySizes) match {
+          (createScatterOutputArray(childOutputs, out.name, irType, execName), arraySizes) match {
             case (Value.VArray(a), Some(sizes)) => nestArrays(a, sizes)
             case (a, None)                      => a
             case (other, _) =>

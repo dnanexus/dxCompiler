@@ -756,7 +756,8 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     }
 
     override protected def getScatterOutputs(
-        childOutputs: Vector[Map[String, JsValue]]
+        childOutputs: Vector[Map[String, JsValue]],
+        execName: Option[String]
     ): Map[String, (Type, Value)] = {
       val outputTypes = block.kind match {
         case BlockKind.ScatterOneCall =>
@@ -777,7 +778,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       outputTypes.map {
         case (fqn, (name, irType)) =>
           val arrayType = TArray(irType)
-          val value = createScatterOutputArray(childOutputs, name, irType)
+          val value = createScatterOutputArray(childOutputs, name, irType, execName)
           fqn -> (arrayType, value)
       }
     }

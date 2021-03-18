@@ -18,17 +18,17 @@
        # run the download agent, and store the return code; do not exit on error.
        # we need to run it from the root directory, because it uses relative paths.
        cd /
-       rc=0
-       dx-download-agent download ${dxPathConfig.getDxdaManifestFile().toString}.bz2 || rc=${bashDollar}? && true
+       dxda_error_code=0
+       dx-download-agent download ${dxPathConfig.getDxdaManifestFile().toString}.bz2 || dxda_error_code=${bashDollar}? && true
 
        # if there was an error during download, print out the download log
-       if [[ ${bashDollar}rc != 0 ]]; then
-           echo "download agent failed rc=${bashDollar}rc"
+       if [[ ${bashDollar}dxda_error_code != 0 ]]; then
+           echo "download agent failed rc=${bashDollar}dxda_error_code"
            if [[ -e ${dxPathConfig.getDxdaManifestFile().toString}.bz2.download.log ]]; then
               echo "The download log is:"
               cat ${dxPathConfig.getDxdaManifestFile().toString}.bz2.download.log
            fi
-           exit ${bashDollar}rc
+           exit ${bashDollar}dxda_error_code
        fi
 
        # The download was ok, check file integrity on disk
@@ -55,8 +55,8 @@
 
        # run dxfuse so that it will not exit after the bash script exists.
        echo "mounting dxfuse on ${dxPathConfig.getDxfuseMountDir().toString}"
-       dxfuse -readOnly ${dxPathConfig.getDxfuseMountDir().toString} ${dxPathConfig.getDxfuseManifestFile().toString}
-       dxfuse_err_code=${bashDollar}?
+       dxfuse_err_code=0
+       dxfuse -readOnly ${dxPathConfig.getDxfuseMountDir().toString} ${dxPathConfig.getDxfuseManifestFile().toString} || dxfuse_err_code=${bashDollar}? && true
 
        if [[ ${bashDollar}dxfuse_err_code != 0 ]]; then
            echo "error starting dxfuse, rc=${bashDollar}dxfuse_err_code"
@@ -66,7 +66,7 @@
            if [[ -f ${bashDollar}dxfuse_log ]]; then
                cat ${bashDollar}dxfuse_log
            fi
-           exit 1
+           exit ${bashDollar}dxfuse_err_code
        fi
 
        echo ""
