@@ -3,10 +3,10 @@ package dx.core.languages.wdl
 import dx.api.DxPath
 
 import java.nio.file.Path
-import dx.core.ir.{Type, TypeSerde, Value}
+import dx.core.ir.{InputKind, Type, TypeSerde, Value}
 import dx.core.ir.Type._
 import dx.core.ir.Value._
-import dx.util.{Bindings, Enum, FileNode, FileSourceResolver, Logger, StringFileNode}
+import dx.util.{Bindings, FileNode, FileSourceResolver, Logger, StringFileNode}
 import wdlTools.eval.{Coercion, EvalUtils, VBindings}
 import wdlTools.eval.WdlValues._
 import wdlTools.syntax.{
@@ -29,16 +29,6 @@ import wdlTools.types.{
 import wdlTools.types.WdlTypes._
 
 import scala.collection.immutable.{SeqMap, TreeSeqMap}
-
-/**
-  * The kind of block input variable being referenced. A Computed
-  * input is one that is computed from other inputs - currently
-  * this is only used for the scatter variable.
-  */
-object InputKind extends Enum {
-  type InputKind = Value
-  val Required, Computed, Optional = Value
-}
 
 /**
   * A reference to a block input variable.

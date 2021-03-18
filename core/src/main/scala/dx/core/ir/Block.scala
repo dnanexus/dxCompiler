@@ -5,6 +5,16 @@ import dx.util.Enum
 import scala.reflect.ClassTag
 
 /**
+  * The kind of block input variable being referenced. A Computed
+  * input is one that is computed from other inputs - currently
+  * this is only used for the scatter variable.
+  */
+object InputKind extends Enum {
+  type InputKind = Value
+  val Required, Computed, Optional = Value
+}
+
+/**
   * These are the kinds of blocks that are run by the workflow-fragment-runner.
   * A block can have expressions, input ports, and output ports in the beginning.
   * The block can be one of these types:

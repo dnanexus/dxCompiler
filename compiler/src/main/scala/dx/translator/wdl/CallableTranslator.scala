@@ -11,7 +11,6 @@ import dx.core.Constants.{ReorgStatus, ReorgStatusCompleted}
 import dx.core.languages.wdl.{
   CodeGenerator,
   ComputedBlockInput,
-  InputKind,
   OptionalBlockInput,
   OverridableBlockInputWithDynamicDefault,
   OverridableBlockInputWithStaticDefault,

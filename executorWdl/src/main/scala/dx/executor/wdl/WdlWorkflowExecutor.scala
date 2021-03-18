@@ -359,8 +359,8 @@ case class WdlWorkflowExecutor(docSource: FileNode,
 
     private def launchCall(
         callInputs: Map[String, (T, V)],
-        nameDetail: Option[String] = None,
-        folder: Option[String] = None
+        folder: Option[String],
+        nameDetail: Option[String] = None
     ): (DxExecution, ExecutableLink, String) = {
       logger.traceLimited(
           s"""|call = ${call}
@@ -426,7 +426,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     override protected def launchCall(blockIndex: Int): Map[String, ParameterLink] = {
       val callInputs = evaluateCallInputs()
       val (dxExecution, executableLink, callName) =
-        launchCall(callInputs, folder = Some(blockIndex.toString))
+        launchCall(callInputs, Some(blockIndex.toString))
       jobMeta.createExecutionOutputLinks(dxExecution, executableLink.outputs, Some(callName))
     }
 
@@ -685,7 +685,10 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         case (item, index) =>
           val callInputs = evaluateCallInputs(Map(identifier -> (itemType, item)))
           val callNameDetail = getScatterName(item, jobMeta.scatterStart + index)
-          val (dxExecution, _, _) = launchCall(callInputs, Some(callNameDetail))
+          val (dxExecution, _, _) =
+            launchCall(callInputs,
+                       Some((jobMeta.scatterStart + index).toString),
+                       Some(callNameDetail))
           dxExecution
       }
     }
@@ -701,7 +704,11 @@ case class WdlWorkflowExecutor(docSource: FileNode,
             prepareSubworkflowInputs(executableLink, Map(identifier -> (itemType, item)))
           val callNameDetail = getScatterName(item, jobMeta.scatterStart + index)
           val (dxExecution, _) =
-            launchJob(executableLink, executableLink.name, callInputs, Some(callNameDetail))
+            launchJob(executableLink,
+                      executableLink.name,
+                      callInputs,
+                      Some(callNameDetail),
+                      folder = Some((jobMeta.scatterStart + index).toString))
           dxExecution
       }
     }
