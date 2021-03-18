@@ -732,7 +732,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           val callInputs = evaluateCallInputs(Map(identifier -> (itemType, item)))
           val callNameDetail = getScatterName(item)
           val (dxExecution, _, _) =
-            launchCall(callInputs, Some((jobMeta.scatterStart + index).toString), callNameDetailc)
+            launchCall(callInputs, Some((jobMeta.scatterStart + index).toString), callNameDetail)
           dxExecution
       }
     }
