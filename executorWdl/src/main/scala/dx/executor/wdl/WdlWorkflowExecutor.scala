@@ -393,8 +393,8 @@ case class WdlWorkflowExecutor(docSource: FileNode,
 
     private def launchCall(
         callInputs: Map[String, (T, V)],
-        nameDetail: Option[String] = None,
-        folder: Option[String] = None
+        folder: Option[String],
+        nameDetail: Option[String] = None
     ): (DxExecution, ExecutableLink, String) = {
       logger.traceLimited(
           s"""|call = ${call}
@@ -462,7 +462,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     private def launchCall(blockIndex: Int): Map[String, ParameterLink] = {
       val callInputs = evaluateCallInputs()
       val (dxExecution, executableLink, callName) =
-        launchCall(callInputs, folder = Some(blockIndex.toString))
+        launchCall(callInputs, Some(blockIndex.toString))
       jobMeta.createExecutionOutputLinks(dxExecution, executableLink.outputs, Some(callName))
     }
 
@@ -727,11 +727,13 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     private def launchScatterCallJobs(identifier: String,
                                       itemType: T,
                                       collection: Vector[V]): Vector[DxExecution] = {
-      collection.map { item =>
-        val callInputs = evaluateCallInputs(Map(identifier -> (itemType, item)))
-        val callNameDetail = getScatterName(item)
-        val (dxExecution, _, _) = launchCall(callInputs, callNameDetail)
-        dxExecution
+      collection.zipWithIndex.map {
+        case (item, index) =>
+          val callInputs = evaluateCallInputs(Map(identifier -> (itemType, item)))
+          val callNameDetail = getScatterName(item)
+          val (dxExecution, _, _) =
+            launchCall(callInputs, Some((jobMeta.scatterStart + index).toString), callNameDetail)
+          dxExecution
       }
     }
 
@@ -740,13 +742,18 @@ case class WdlWorkflowExecutor(docSource: FileNode,
                                           collection: Vector[V]): Vector[DxExecution] = {
       assert(execLinkInfo.size == 1)
       val executableLink = execLinkInfo.values.head
-      collection.map { item =>
-        val callInputs =
-          prepareSubworkflowInputs(executableLink, Map(identifier -> (itemType, item)))
-        val callNameDetail = getScatterName(item)
-        val (dxExecution, _) =
-          launchJob(executableLink, executableLink.name, callInputs, callNameDetail)
-        dxExecution
+      collection.zipWithIndex.map {
+        case (item, index) =>
+          val callInputs =
+            prepareSubworkflowInputs(executableLink, Map(identifier -> (itemType, item)))
+          val callNameDetail = getScatterName(item)
+          val (dxExecution, _) =
+            launchJob(executableLink,
+                      executableLink.name,
+                      callInputs,
+                      callNameDetail,
+                      folder = Some((jobMeta.scatterStart + index).toString))
+          dxExecution
       }
     }
 

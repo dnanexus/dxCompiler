@@ -6,6 +6,7 @@
 * Fixes issue with using both streaming and non-streaming file inputs in the same task
 * Fixes issue with scatter as the first element of a workflow
 * Updates to wdlTools 0.12.7, which provides compatibility for some non-complaint syntax allowed by Cromwell
+* Fixes `-separateOutputs` for scatter jobs
 
 ## 2.3.1 03-03-2021
 
