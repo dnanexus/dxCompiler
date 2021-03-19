@@ -155,7 +155,7 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
         )
     }
     val tool = parser.parseFile(cwlFile) match {
-      case tool: CommandLineTool => tool
+      case (tool: CommandLineTool, _) => tool
       case other =>
         throw new Exception(s"expected CWL document to contain a CommandLineTool, not ${other}")
     }

@@ -266,11 +266,11 @@ object CwlUtils {
         case TSchema(name, fields) if isInput =>
           CwlInputRecord(fields.map {
             case (name, t) => name -> CwlInputRecordField(name, inner(t))
-          }, Some(Identifier(namespace = None, path = Some(name))))
+          }, Some(Identifier(namespace = None, frag = Some(name))))
         case TSchema(name, members) =>
           CwlOutputRecord(members.map {
             case (name, t) => name -> CwlOutputRecordField(name, inner(t))
-          }, Some(Identifier(namespace = None, path = Some(name))))
+          }, Some(Identifier(namespace = None, frag = Some(name))))
         case TEnum(symbols) => CwlEnum(symbols)
         case _ =>
           throw new Exception(s"Cannot convert IR type ${irType} to CWL")

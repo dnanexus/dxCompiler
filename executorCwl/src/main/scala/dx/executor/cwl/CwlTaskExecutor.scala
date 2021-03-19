@@ -19,10 +19,13 @@ object CwlTaskExecutor {
              streamFiles: StreamFiles): CwlTaskExecutor = {
     val parser = Parser.create(hintSchemas = Vector(DxHintSchema))
     parser.detectVersionAndClass(jobMeta.sourceCode) match {
-      case Some((version, "CommandLineTool")) if Language.parse(version) == Language.CwlV1_2 => ()
+      case Some((version, "CommandLineTool" | "ExpressionTool" | "Workflow"))
+          if Language.parse(version) == Language.CwlV1_2 =>
+        ()
       case _ =>
         throw new Exception(
-            s"""source code does not appear to be a CWL CommandLineTool document of a supported version
+            s"""source code does not appear to be a CWL CommandLineTool, ExpressionTool,
+               |or Workflow of a supported version:
                |${jobMeta.sourceCode}""".stripMargin
         )
     }
@@ -31,10 +34,28 @@ object CwlTaskExecutor {
       case _                    => throw new Exception("missing executable name")
     }
     val tool =
-      parser.parseString(jobMeta.sourceCode, name = Some(toolName)) match {
-        case tool: CommandLineTool => tool
-        case other =>
-          throw new Exception(s"expected CWL document to contain a CommandLineTool, not ${other}")
+      parser.parseString(jobMeta.sourceCode) match {
+        case (tool: CommandLineTool, _) =>
+          if (tool.id.exists(_.frag.isDefined)) {
+            tool
+          } else {
+            tool.copy(id = Some(Identifier(namespace = None, frag = Some(toolName))))
+          }
+        case (tool: ExpressionTool, _) =>
+          if (tool.id.exists(_.frag.isDefined)) {
+            tool
+          } else {
+            tool.copy(id = Some(Identifier(namespace = None, frag = Some(toolName))))
+          }
+        case (_, doc: Document) =>
+          val target = jobMeta.targets.flatMap(_.headOption)
+          if (target.exists(doc.contains)) {
+            doc(target.get)
+          } else {
+            throw new Exception(
+                s"No target process defined, or workflow does not contain a nested tool named ${target}"
+            )
+          }
       }
     CwlTaskExecutor(tool, jobMeta, fileUploader, streamFiles)
   }
@@ -47,7 +68,7 @@ object CwlTaskExecutor {
 // TODO: SHA1 checksums are computed for all outputs - we need to add these as
 //  properties on the uploaded files so they can be propagated to downstream
 //  CWL inputs
-case class CwlTaskExecutor(tool: CommandLineTool,
+case class CwlTaskExecutor(tool: Process,
                            jobMeta: JobMeta,
                            fileUploader: FileUploader,
                            streamFiles: StreamFiles)
@@ -59,7 +80,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
 
   override def executorName: String = "dxExecutorCwl"
 
-  private lazy val inputParams: Map[String, CommandInputParameter] = {
+  private lazy val inputParams: Map[String, InputParameter] = {
     tool.inputs.collect {
       case param if param.id.forall(_.name.isDefined) =>
         param.id.flatMap(_.name).get -> param
@@ -181,7 +202,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
     // if a target is specified (a specific workflow step), add the --target option
     val targetOpt = jobMeta.targets
       .map { targets =>
-        targets.map(t => s"--target ${t}").mkString(" ")
+        targets.map(t => s"--single-step ${t}").mkString(" ")
       }
       .getOrElse("")
     // if a dx:// URI is specified for the Docker container, download it
@@ -244,7 +265,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
     localizedInputs
   }
 
-  private lazy val outputParams: Map[String, CommandOutputParameter] = {
+  private lazy val outputParams: Map[String, OutputParameter] = {
     tool.outputs.map {
       case param if param.id.forall(_.name.isDefined) =>
         param.id.flatMap(_.name).get -> param

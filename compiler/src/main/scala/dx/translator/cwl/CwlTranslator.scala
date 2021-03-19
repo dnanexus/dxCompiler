@@ -11,6 +11,7 @@ import dx.cwl.{
   CwlFile,
   CwlRecord,
   DirectoryValue,
+  ExpressionTool,
   FileValue,
   Parser,
   Process,
@@ -183,8 +184,9 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
       }
     }
     val process = parser.parseFile(sourceFile) match {
-      case tool: CommandLineTool => tool
-      case wf: Workflow          => wf
+      case (tool: CommandLineTool, _) => tool
+      case (tool: ExpressionTool, _)  => tool
+      case (wf: Workflow, _)          => wf
       case _ =>
         throw new Exception(s"Not a command line tool or workflow: ${sourceFile}")
     }

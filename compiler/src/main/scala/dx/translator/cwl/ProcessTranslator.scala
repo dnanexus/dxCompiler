@@ -310,7 +310,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           EmptyInput
         case Some(inp) if inp.source.size == 1 =>
           try {
-            lookup(inp.source.head.path.get)
+            lookup(inp.source.head.frag.get)
           } catch {
             case _: Throwable if inp.default.isDefined =>
               // the workflow step has a default that will be evaluated at runtime
@@ -544,7 +544,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
               s"there must be at least one 'outputSource' for parameter ${param.name}"
           )
         }
-        param.outputSource.map(source => Parameter.encodeName(source.path.get))
+        param.outputSource.map(source => Parameter.encodeName(source.frag.get))
       }.toSet
       logger.trace(s"paramNames: ${paramNames}")
 
@@ -672,7 +672,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         val inputNames = inputs.map(_.name).toSet
         outputs.exists { out =>
           out.outputSource.size > 1 ||
-          out.outputSource.exists(_.path.exists(inputNames.contains))
+          out.outputSource.exists(_.frag.exists(inputNames.contains))
         }
       }
 
@@ -689,7 +689,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
             // using an output stage
             val outputSource = out.outputSource.head
             env
-              .get(outputSource.path.get)
+              .get(outputSource.frag.get)
               .map(_._2)
               .getOrElse(
                   throw new Exception(s"output source ${outputSource} missing from environment")
