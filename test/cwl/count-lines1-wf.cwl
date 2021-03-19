@@ -15,6 +15,7 @@ steps:
   step1:
     run:
       class: CommandLineTool
+      id: word-count
       inputs:
         file1: File
       outputs:
@@ -31,6 +32,7 @@ steps:
   step2:
     run:
       class: ExpressionTool
+      id: parseInt
       requirements:
         - class: InlineJavascriptRequirement
       cwlVersion: v1.2

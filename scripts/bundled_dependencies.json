@@ -4,7 +4,7 @@
   "execDepends": {
     "cwl": [
       {
-        "name": "cwltool==3.0.2021031914372",
+        "name": "cwltool==3.0.20210319143721",
         "package_manager": "pip3"
       }
     ]
