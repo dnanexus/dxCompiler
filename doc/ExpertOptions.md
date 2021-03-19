@@ -1113,28 +1113,15 @@ For example:
 }
 ```
 
-will setup the `foo.acme.com` registry, with user `perkins`. The
-credentials are stored in a platform file, so they can be replaced
-without recompiling. Care is taken so that the credentials never
-appear in the applet logs. Compiling a workflow with this
-configuration sets it to use native docker, and all applets are given
-the `allProjects: VIEW` permission. This allows them to access the
-credentials file, even if it is stored on a different project.
+will setup the `foo.acme.com` registry, with user `perkins`.
 
-Note that you need to use the full path of the docker image in your WDL.
-For example, the `myimage:latest` image in the above private registry
-would be referred to as `foo.acme.com/myimage:latest`.
+The credentials are stored in a platform file, so they can be replaced without recompiling. The credentials file must be referenced using a `dx://<project>:<file>` URI, where `<project>` can be a project name or ID, and `<file>` can be a file path or ID. All applets are given the `allProjects: VIEW` permission. This allows them to access the credentials file, even if it is stored on a different project. Care is taken so that the credentials never appear in the applet logs. 
+
+Note that you need to use the full path of the docker image in your WDL. For example, the `myimage:latest` image in the above private registry would be referred to as `foo.acme.com/myimage:latest`.
 
 ### AWS ECR registries
 
-Logging into an AWS Elastic Container Registry (ECR) is a bit different
-than logging into a standard docker registry. Specifically, the AWS
-command line client is used to dynamically generate a password from an AWS 
-user profile. To handle this use-case, dxCompiler downloads the
-required AWS `credentials` file, installs the AWS client, and generates the 
-password. See the
-[AWS documentation](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html)
-for more details and examples.
+Logging into an AWS Elastic Container Registry (ECR) is a bit different than logging into a standard docker registry. Specifically, the AWS command line client is used to dynamically generate a password from an AWS user profile. To handle this use-case, dxCompiler downloads the required AWS `credentials` file, installs the AWS client, and generates the password. See the [AWS documentation](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html) for more details and examples.
 
 ```
 {
