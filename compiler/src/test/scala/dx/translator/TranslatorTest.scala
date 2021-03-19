@@ -1565,9 +1565,10 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
         Parameter("file1", TFile) -> WorkflowInput(Parameter("file1", TFile))
     )
     wf.outputs shouldBe Vector(
-        Parameter("count_output", TInt) -> LinkInput(DxWorkflowStage("step2"), "output")
+        Parameter("count_output", TInt) -> LinkInput(DxWorkflowStage("stage-1"), "output")
     )
     wf.stages.size shouldBe 2
+    wf.stages(0).dxStage.id shouldBe "stage-0"
     wf.stages(0).calleeName shouldBe "word-count"
     wf.stages(0).inputs shouldBe Vector(
         WorkflowInput(Parameter("file1", TFile))
@@ -1575,9 +1576,10 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     wf.stages(0).outputs shouldBe Vector(
         Parameter("output", TFile)
     )
+    wf.stages(1).dxStage.id shouldBe "stage-1"
     wf.stages(1).calleeName shouldBe "parseInt"
     wf.stages(1).inputs shouldBe Vector(
-        LinkInput(DxWorkflowStage("step1"), "output")
+        LinkInput(DxWorkflowStage("stage-0"), "output")
     )
     wf.stages(1).outputs shouldBe Vector(
         Parameter("output", TInt)

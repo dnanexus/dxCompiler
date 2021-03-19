@@ -618,7 +618,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
     ): (Vector[(Stage, Vector[Callable])], CallEnv) = {
       logger.trace(s"Assembling workflow backbone $wfName")
 
-      val inputEnv: CallEnv = CallEnv.fromLinkedVars(wfInputs)
+      val inputEnv: CallEnv = CallEnv.fromLinkedVars(wfInputs, delim = ".")
 
       val logger2 = logger.withIncTraceIndent()
       logger2.trace(s"inputs: ${inputEnv.keys}")

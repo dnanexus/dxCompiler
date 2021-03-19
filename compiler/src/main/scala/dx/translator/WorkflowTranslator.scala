@@ -47,9 +47,9 @@ abstract class WorkflowTranslator(wfName: String,
 
   def translate: (Workflow, Vector[Callable], Vector[LinkedVar])
 
-  protected case class CallEnv(env: Map[String, LinkedVar]) {
+  protected case class CallEnv(env: Map[String, LinkedVar], delim: String) {
     def add(key: String, lvar: LinkedVar): CallEnv = {
-      CallEnv(env + (key -> lvar))
+      CallEnv(env + (key -> lvar), delim)
     }
 
     def contains(key: String): Boolean = env.contains(key)
@@ -95,7 +95,7 @@ abstract class WorkflowTranslator(wfName: String,
         Some(fqn, env(fqn))
       } else {
         // A.B.C --> A.B
-        fqn.lastIndexOf(".") match {
+        fqn.lastIndexOf(delim) match {
           case pos if pos >= 0 => lookup(fqn.substring(0, pos))
           case _               => None
         }
@@ -119,11 +119,11 @@ abstract class WorkflowTranslator(wfName: String,
   }
 
   object CallEnv {
-    def fromLinkedVars(lvars: Vector[LinkedVar]): CallEnv = {
+    def fromLinkedVars(lvars: Vector[LinkedVar], delim: String): CallEnv = {
       CallEnv(lvars.map {
         case (parameter, stageInput) =>
           parameter.name -> (parameter, stageInput)
-      }.toMap)
+      }.toMap, delim)
     }
   }
 

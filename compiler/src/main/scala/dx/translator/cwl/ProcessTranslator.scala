@@ -29,17 +29,27 @@ import dx.core.ir.{
   Workflow,
   WorkflowInput
 }
-import dx.core.languages.cwl.{CwlBlock, CwlBundle, CwlUtils, DxHints, RequirementEvaluator}
+import dx.core.languages.cwl.{
+  CwlBlock,
+  CwlBundle,
+  CwlUtils,
+  DxHints,
+  OptionalBlockInput,
+  RequiredBlockInput,
+  RequirementEvaluator
+}
 import dx.cwl.{
-  CommandInputParameter,
   CommandLineTool,
   CommandOutputParameter,
   CwlType,
   CwlValue,
   Evaluator,
   EvaluatorContext,
+  ExpressionTool,
   FileValue,
   Hint,
+  InputParameter,
+  OutputParameter,
   Process,
   Requirement,
   Runtime,
@@ -101,7 +111,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
   }
 
   private case class CwlToolTranslator(
-      tool: CommandLineTool,
+      tool: Process,
       isPrimary: Boolean,
       inheritedRequirements: Vector[Requirement] = Vector.empty,
       inheritedHints: Vector[Hint] = Vector.empty
@@ -119,8 +129,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       dxHints.map(_.getCallableAttributes).getOrElse(Map.empty)
     }
 
-    def translateInput(input: CommandInputParameter,
-                       evaluatorContext: EvaluatorContext): Parameter = {
+    def translateInput(input: InputParameter, evaluatorContext: EvaluatorContext): Parameter = {
       val name = input.id.flatMap(_.name).get
       val irDefaultValue = input.default match {
         case Some(default) =>
@@ -145,21 +154,24 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       Parameter(name, CwlUtils.toIRType(input.cwlType), irDefaultValue, attrs)
     }
 
-    def translateOutput(output: CommandOutputParameter,
-                        evaluatorContext: EvaluatorContext): Parameter = {
+    def translateOutput(output: OutputParameter, evaluatorContext: EvaluatorContext): Parameter = {
       val name = output.id.flatMap(_.name).get
-      val irValue = output.outputBinding
-        .flatMap(_.outputEval.flatMap { cwlValue =>
-          try {
-            val (actualType, actualValue) =
-              cwlEvaluator.evaluate(cwlValue, output.cwlType, evaluatorContext)
-            val (_, value) = CwlUtils.toIRValue(actualValue, actualType)
-            Some(value)
-          } catch {
-            // the expression cannot be statically evaluated
-            case _: Throwable => None
-          }
-        })
+      val irValue = output match {
+        case cmdOutput: CommandOutputParameter =>
+          cmdOutput.outputBinding
+            .flatMap(_.outputEval.flatMap { cwlValue =>
+              try {
+                val (actualType, actualValue) =
+                  cwlEvaluator.evaluate(cwlValue, output.cwlType, evaluatorContext)
+                val (_, value) = CwlUtils.toIRValue(actualValue, actualType)
+                Some(value)
+              } catch {
+                // the expression cannot be statically evaluated
+                case _: Throwable => None
+              }
+            })
+        case _ => None
+      }
       val attrs = translateParameterAttributes(output, hintParameterAttrs)
       Parameter(name, CwlUtils.toIRType(output.cwlType), irValue, attrs)
     }
@@ -269,13 +281,14 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
                                       env: CallEnv,
                                       locked: Boolean,
                                       callName: String): StageInput = {
+
       def lookup(key: String): StageInput = {
         env.get(key) match {
           case Some((_, stageInput)) => stageInput
           case None =>
             throw new Exception(
                 s"""|input <${calleeParam.name}, ${calleeParam.dxType}> to call <${callName}>
-                    |is missing from the environment. We don't have ${key} in the environment.
+                    |is missing from the environment. We don't have '${key}' in the environment.
                     |""".stripMargin.replaceAll("\n", " ")
             )
         }
@@ -293,33 +306,35 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           // the argument may be optional, may have a default, or the callee may not
           // use the argument - defer until runtime
           EmptyInput
-        case Some(inp) =>
+        case Some(inp) if inp.source.isEmpty =>
+          EmptyInput
+        case Some(inp) if inp.source.size == 1 =>
           try {
-            lookup(inp.name)
+            lookup(inp.source.head.path.get)
           } catch {
             case _: Throwable if inp.default.isDefined =>
               // the workflow step has a default that will be evaluated at runtime
               EmptyInput
           }
+        case Some(inp) =>
+          throw new Exception(s"invalid call input ${inp}")
       }
     }
 
     private def translateCall(call: WorkflowStep, env: CallEnv, locked: Boolean): Stage = {
-      val callInputParams = call.inputs.map { param =>
-        param.name -> param
-      }.toMap
-      // Find the callee
-      val calleeName = call.name
-      val callee: Callable = availableDependencies.get(calleeName) match {
-        case Some(x) => x
-        case _ =>
+      val calleeName = call.run.name
+      val callee: Callable = availableDependencies.getOrElse(
+          calleeName,
           throw new Exception(
               s"""|Callable ${calleeName} should exist but is missing from the list of known 
                   |tasks/workflows ${availableDependencies.keys}|""".stripMargin
                 .replaceAll("\n", " ")
           )
-      }
+      )
       // Extract the input values/links from the environment
+      val callInputParams = call.inputs.map { param =>
+        param.name -> param
+      }.toMap
       val inputs: Vector[StageInput] = callee.inputVars.map { param =>
         callInputToStageInput(callInputParams.get(param.name), param, env, locked, call.name)
       }
@@ -359,14 +374,20 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       // Get the applet inputs from the block inputs, which represent the
       // closure required for the block - all the variables defined earlier
       // that are required to evaluate any expression. Some referenced
-      // variables may be undefined because they are optional or defined
-      // inside the block - we ignore these.
-      val (inputParams, stageInputs) = block.inputNames
-        .flatMap(env.lookup)
-        .map {
-          case (fqn, (param, stageInput)) => (param.copy(name = fqn), stageInput)
-        }
-        .unzip
+      // variables may be undefined because they are optional.
+      val (inputParams, stageInputs) = block.inputs.flatMap {
+        case RequiredBlockInput(name, _) =>
+          env.lookup(name) match {
+            case Some((fqn, (param, stageInput))) =>
+              Some(param.copy(name = fqn), stageInput)
+            case None =>
+              throw new Exception(s"missing required input ${name}")
+          }
+        case OptionalBlockInput(name, _) =>
+          env.lookup(name).map {
+            case (fqn, (param, stageInput)) => (param.copy(name = fqn), stageInput)
+          }
+      }.unzip
 
       // The fragment runner can only handle a single call. If the
       // block already has exactly one call, then we are good. If
@@ -375,8 +396,6 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       // Figure out the name of the callable - we need to link with
       // it when we get to the native phase.
       val (stepName, newStepPath) = block.kind match {
-        case BlockKind.ExpressionsOnly =>
-          (None, None)
         case BlockKind.CallDirect =>
           throw new Exception(s"a direct call should not reach this stage")
         case BlockKind.CallFragment | BlockKind.ConditionalOneCall =>
@@ -413,10 +432,10 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         }
       }
 
-      val outputParams: Vector[Parameter] = block.outputs.values.map { param =>
+      val outputParams: Vector[Parameter] = block.outputs.map { param =>
         val irType = CwlUtils.toIRType(param.cwlType)
         Parameter(param.name, irType)
-      }.toVector
+      }
 
       // create the type map that will be serialized in the applet's details
       val fqnDictTypes: Map[String, Type] = inputParams.map { param: Parameter =>
@@ -425,7 +444,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
 
       val applet = Application(
           s"${wfName}_frag_${getStageId()}",
-          inputParams.toVector,
+          inputParams,
           outputParams,
           DefaultInstanceType,
           NoImage,
@@ -433,7 +452,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           standAloneWorkflow(setTarget = true)
       )
 
-      (Stage(stageName, getStage(), applet.name, stageInputs.toVector, outputParams), applet)
+      (Stage(stageName, getStage(), applet.name, stageInputs, outputParams), applet)
     }
 
     private def createWorkflowStages(
@@ -446,7 +465,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
     ): (Vector[(Stage, Vector[Callable])], CallEnv) = {
       logger.trace(s"Assembling workflow backbone $wfName")
 
-      val inputEnv: CallEnv = CallEnv.fromLinkedVars(wfInputs)
+      val inputEnv: CallEnv = CallEnv.fromLinkedVars(wfInputs, delim = "/")
 
       val logger2 = logger.withIncTraceIndent()
       logger2.trace(s"inputs: ${inputEnv.keys}")
@@ -525,7 +544,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
               s"there must be at least one 'outputSource' for parameter ${param.name}"
           )
         }
-        param.outputSource.map(source => source.replaceAll("/", Parameter.ComplexValueKey))
+        param.outputSource.map(source => Parameter.encodeName(source.path.get))
       }.toSet
       logger.trace(s"paramNames: ${paramNames}")
 
@@ -633,7 +652,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       // We need a common output stage for either of two reasons:
       // 1. we need to build an output manifest
       val useOutputStage = useManifests || {
-        // 2. an output is used directly as an input
+        // 2. there are outputs that need to be merged
+        // 3. an output is used directly as an input
         // For example, in the small workflow below, 'lane' is used in such a manner.
         //
         // workflow inner {
@@ -650,7 +670,10 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         // In locked workflows, it is illegal to access a workflow input directly from
         // a workflow output. It is only allowed to access a stage input/output.
         val inputNames = inputs.map(_.name).toSet
-        outputs.exists(out => out.outputSource.exists(inputNames.contains))
+        outputs.exists { out =>
+          out.outputSource.size > 1 ||
+          out.outputSource.exists(_.path.exists(inputNames.contains))
+        }
       }
 
       val (wfOutputs, finalStages, finalCallables) = if (useOutputStage) {
@@ -662,8 +685,15 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       } else {
         val wfOutputs = outputs.map { out =>
           val outputStage = env.get(out.name).map(_._2).getOrElse {
-            val Vector(stepName, paramName) = out.outputSource.head.split("/").toVector
-            LinkInput(getStage(Some(stepName)), paramName)
+            // we know there is only one output source otherwise we'd be
+            // using an output stage
+            val outputSource = out.outputSource.head
+            env
+              .get(outputSource.path.get)
+              .map(_._2)
+              .getOrElse(
+                  throw new Exception(s"output source ${outputSource} missing from environment")
+              )
           }
           val irType = CwlUtils.toIRType(out.cwlType)
           (Parameter(out.name, irType), outputStage)
@@ -754,6 +784,14 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
                             isPrimary = isPrimary,
                             cwlBundle.requirements.getOrElse(tool.name, Vector.empty),
                             cwlBundle.hints.getOrElse(tool.name, Vector.empty))
+        Vector(toolTranslator.apply)
+      case tool: ExpressionTool =>
+        val toolTranslator = CwlToolTranslator(
+            tool,
+            isPrimary = isPrimary,
+            cwlBundle.requirements.getOrElse(tool.name, Vector.empty),
+            cwlBundle.hints.getOrElse(tool.name, Vector.empty)
+        )
         Vector(toolTranslator.apply)
       case wf: CwlWorkflow =>
         val wfAttrs = perWorkflowAttrs.get(wf.name)

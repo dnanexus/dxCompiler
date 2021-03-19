@@ -522,7 +522,9 @@ object CwlUtils {
     * @return
     */
   def isSimpleCall(step: WorkflowStep): Boolean = {
-    step.scatter.isEmpty && step.when.isEmpty
+    step.scatter.isEmpty && step.when.isEmpty && step.inputs.forall { inp =>
+      inp.source.size <= 1
+    }
   }
 
   def isDxFile(file: FileValue): Boolean = {

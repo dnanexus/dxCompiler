@@ -39,7 +39,7 @@ case class CwlBundle(version: CWLVersion,
       }
     }
     // tools have no dependencies so they come first and their ordering doesn't matter
-    tools.values.toVector ++ inner(workflows.values).values.toVector
+    tools.values.toVector ++ expressions.values.toVector ++ inner(workflows.values).values.toVector
   }
 }
 
@@ -103,6 +103,15 @@ object CwlBundle {
                   tool,
                   Map(tool.name -> tool),
                   Map.empty,
+                  Map.empty,
+                  Map.empty,
+                  Map.empty,
+                  Set(tool.name))
+      case tool: ExpressionTool =>
+        CwlBundle(version,
+                  tool,
+                  Map.empty,
+                  Map(tool.name -> tool),
                   Map.empty,
                   Map.empty,
                   Map.empty,

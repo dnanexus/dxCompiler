@@ -1,6 +1,6 @@
 package dx.core.languages.cwl
 
-import dx.core.ir.{Block, BlockKind, InputKind, Parameter => IRParameter}
+import dx.core.ir.{Block, BlockKind, InputKind}
 import dx.cwl.{
   CommandLineTool,
   CwlOptional,
@@ -35,8 +35,8 @@ case class OptionalBlockInput(name: String, cwlType: CwlType) extends CwlBlockIn
 }
 
 case class CwlBlock(index: Int,
-                    inputs: Map[String, CwlBlockInput],
-                    outputs: Map[String, OutputParameter],
+                    inputs: Vector[CwlBlockInput],
+                    outputs: Vector[OutputParameter],
                     steps: Vector[WorkflowStep],
                     inheritedRequirements: Vector[Requirement],
                     inheritedHints: Vector[Hint])
@@ -47,17 +47,18 @@ case class CwlBlock(index: Int,
     * The kind of block this is.
     */
   override lazy val kind: BlockKind.BlockKind = {
-    (steps.last, steps.last.run) match {
-      case (_, _: ExpressionTool) =>
-        BlockKind.ExpressionsOnly
-      case (step, _: CommandLineTool) if step.scatter.isEmpty && step.when.isEmpty =>
-        BlockKind.CallDirect
-      case (step, _) if step.scatter.nonEmpty =>
-        BlockKind.ScatterOneCall
-      case (step, _) if step.when.nonEmpty =>
-        BlockKind.ConditionalOneCall
-      case _ =>
-        BlockKind.CallFragment
+    val call = steps.last
+    if (call.scatter.nonEmpty) {
+      BlockKind.ScatterOneCall
+    } else if (call.when.nonEmpty) {
+      BlockKind.ConditionalOneCall
+    } else {
+      call.run match {
+        case _: ExpressionTool | _: CommandLineTool
+            if call.inputs.forall(inp => inp.source.size <= 1) =>
+          BlockKind.CallDirect
+        case _ => BlockKind.CallFragment
+      }
     }
   }
 
@@ -74,10 +75,7 @@ case class CwlBlock(index: Int,
   }
 
   lazy val (prerequisites, target): (Vector[WorkflowStep], Option[WorkflowStep]) = {
-    kind match {
-      case BlockKind.ExpressionsOnly => (steps, None)
-      case _                         => (steps.dropRight(1), Some(steps.last))
-    }
+    (steps.dropRight(1), Some(steps.last))
   }
 
   def targetRequirements: Vector[Requirement] = {
@@ -112,9 +110,9 @@ case class CwlBlock(index: Int,
     }
   }
 
-  override lazy val inputNames: Set[String] = inputs.keySet
+  override lazy val inputNames: Set[String] = inputs.map(_.name).toSet
 
-  override lazy val outputNames: Set[String] = outputs.values.map(_.name).toSet
+  override lazy val outputNames: Set[String] = outputs.map(_.name).toSet
 
   private def prettyFormatStep(step: WorkflowStep): String = {
     val parts = Vector(
@@ -155,13 +153,11 @@ case class CwlBlock(index: Int,
   }
 
   override lazy val prettyFormat: String = {
-    val inputStr = inputs.map {
-      case (name, param) =>
-        s"${CwlUtils.prettyFormatType(param.cwlType)} ${name}"
+    val inputStr = inputs.map { param =>
+      s"${CwlUtils.prettyFormatType(param.cwlType)} ${param.name}"
     }
-    val outputStr = outputs.map {
-      case (name, param) =>
-        s"${CwlUtils.prettyFormatType(param.cwlType)} ${name}"
+    val outputStr = outputs.map { param =>
+      s"${CwlUtils.prettyFormatType(param.cwlType)} ${param.name}"
     }
     val bodyStr = steps.map(prettyFormatStep).mkString("\n")
     s"""Block(${index}, ${kind})
@@ -197,20 +193,27 @@ object CwlBlock {
             }
           }
         }
+      if (satisfied.isEmpty) {
+        throw new Exception("could not satisfy any dependencies")
+      }
       val newDeps = deps ++ satisfied.map(step => step.name -> step).to(TreeSeqMap)
-      newDeps ++ orderSteps(unsatisfied, newDeps)
+      if (unsatisfied.isEmpty) {
+        newDeps
+      } else {
+        newDeps ++ orderSteps(unsatisfied, newDeps)
+      }
     }
 
     val orderedSteps = orderSteps(wf.steps)
 
     orderedSteps.values.zipWithIndex.map {
       case (step, index) =>
-        val blockInputs = {
+        val blockInputs: Map[String, CwlBlockInput] = {
           val inputSources: Vector[Map[String, CwlBlockInput]] = step.inputs.map { inp =>
             // sources of this step input - either a workflow input
             // like "file1" or a step output like "step1/file1"
             val sources = inp.source.map { src =>
-              (src, IRParameter.encodeName(src.path.get))
+              (src, src.path.get)
             }
             val sourceParams = sources.foldLeft(Map.empty[String, Parameter]) {
               case (accu, (_, name)) if accu.contains(name) => accu
@@ -250,18 +253,19 @@ object CwlBlock {
                 }
             }
           }
+
           inputSources.flatMap(_.toVector).groupBy(_._1).map {
-            case (_, inputs) if inputs.toSet.size == 1 => inputs.head
             case (name, inputs) =>
-              inputs.toSet
-                .collectFirst {
-                  case (_, inp: RequiredBlockInput) => name -> inp
-                }
-                .getOrElse(
-                    throw new Exception(
-                        s"multiple incompatible inputs ${inputs} map to name ${name}"
-                    )
-                )
+              val param = inputs.map(_._2).distinct match {
+                case Vector(i)                                              => i
+                case Vector(req: RequiredBlockInput, _: OptionalBlockInput) => req
+                case Vector(_: OptionalBlockInput, req: RequiredBlockInput) => req
+                case _ =>
+                  throw new Exception(
+                      s"multiple incompatible inputs ${inputs} map to name ${name}"
+                  )
+              }
+              name -> param
           }
         }
         val procOutputs = step.run.outputs.collect {
@@ -274,8 +278,8 @@ object CwlBlock {
             throw new Exception(s"invalid or duplicate output parameter name ${out.name}")
         }
         CwlBlock(index,
-                 blockInputs,
-                 blockOutputs,
+                 blockInputs.values.toVector,
+                 blockOutputs.values.toVector,
                  Vector(step),
                  inheritedRequirements ++ wf.requirements,
                  inheritedHints ++ wf.hints)

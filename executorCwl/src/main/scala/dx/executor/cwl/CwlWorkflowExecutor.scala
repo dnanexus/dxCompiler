@@ -15,7 +15,15 @@ import dx.core.ir.{
   ValueSerde
 }
 import dx.core.languages.Language
-import dx.core.languages.cwl.{CwlBlock, CwlUtils, DxHintSchema, RequirementEvaluator}
+import dx.core.languages.cwl.{
+  CwlBlock,
+  CwlBlockInput,
+  CwlUtils,
+  DxHintSchema,
+  OptionalBlockInput,
+  RequiredBlockInput,
+  RequirementEvaluator
+}
 import dx.cwl.{
   ArrayValue,
   CwlArray,
@@ -94,14 +102,12 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
       case path =>
         val block: CwlBlock = Block.getSubBlockAt(CwlBlock.createBlocks(workflow), path)
         val inputTypes = block.inputs.map {
-          case (name, (param, optional)) =>
-            val irType = CwlUtils.toIRType(param.cwlType)
-            if (optional) {
-              name -> Type.ensureOptional(irType)
-            } else {
-              name -> irType
-            }
-        }
+          case RequiredBlockInput(name, cwlType) =>
+            name -> CwlUtils.toIRType(cwlType)
+          case OptionalBlockInput(name, cwlType) =>
+            val irType = CwlUtils.toIRType(cwlType)
+            name -> Type.ensureOptional(irType)
+        }.toMap
         if (logger.isVerbose) {
           logger.trace(
               s"""input parameters:
@@ -141,11 +147,11 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
     // If it is for a sublock, it may be for the body of a conditional or
     // scatter, in which case we only need the outputs of the body statements.
     val (outputParams, optional, array) = jobMeta.blockPath match {
-      case Vector() => (workflow.outputs.map(o => o.name -> o).toMap, false, false)
+      case Vector() => (workflow.outputs, false, false)
       case path =>
         val block = Block.getSubBlockAt(CwlBlock.createBlocks(workflow), path)
         block.kind match {
-          case BlockKind.ExpressionsOnly | BlockKind.CallDirect | BlockKind.CallFragment =>
+          case BlockKind.CallDirect | BlockKind.CallFragment =>
             (block.outputs, false, false)
           case _ =>
             val step = block.target.get
@@ -153,7 +159,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
         }
     }
     val irOutputs = outputParams.map {
-      case (name, param) if jobInputs.contains(name) =>
+      case param if jobInputs.contains(param.name) =>
         val paramIrType = CwlUtils.toIRType(param.cwlType)
         val irType = (optional, array) match {
           case (true, true)   => Type.TArray(Type.ensureOptional(paramIrType))
@@ -161,12 +167,12 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
           case (false, true)  => Type.TArray(paramIrType)
           case (false, false) => paramIrType
         }
-        name -> (irType, Value.coerceTo(jobInputs(name)._2, irType))
-      case (name, param) if CwlOptional.isOptional(param.cwlType) =>
-        name -> (CwlUtils.toIRType(param.cwlType), VNull)
-      case (name, _) =>
-        throw new Exception(s"missing required output ${name}")
-    }
+        param.name -> (irType, Value.coerceTo(jobInputs(param.name)._2, irType))
+      case param if CwlOptional.isOptional(param.cwlType) =>
+        param.name -> (CwlUtils.toIRType(param.cwlType), VNull)
+      case param =>
+        throw new Exception(s"missing required output ${param.name}")
+    }.toMap
     if (addReorgStatus) {
       irOutputs + (Constants.ReorgStatus -> (TString, VString(Constants.ReorgStatusCompleted)))
     } else {
@@ -300,9 +306,9 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
     override protected def prepareScatterResults(
         dxSubJob: DxExecution
     ): Map[String, ParameterLink] = {
-      val resultTypes = block.outputs.map {
-        case (name, param) => name -> CwlUtils.toIRType(param.cwlType)
-      }
+      val resultTypes = block.outputs.map { param =>
+        param.name -> CwlUtils.toIRType(param.cwlType)
+      }.toMap
       // Return JBORs for all the outputs. Since the signature of the sub-job
       // is exactly the same as the parent, we can immediately exit the parent job.
       val links = jobMeta.createExecutionOutputLinks(dxSubJob, resultTypes)
@@ -413,14 +419,14 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
   ): CwlBlockContext = {
     val block = Block.getSubBlockAt(CwlBlock.createBlocks(workflow), jobMeta.blockPath)
     val env = block.inputs.map {
-      case (name, (param, _)) if jobInputs.contains(name) =>
-        val (_, irValue) = jobInputs(name)
-        name -> CwlUtils.fromIRValue(irValue, param.cwlType, name, isInput = true)
-      case (name, (param, true)) =>
-        name -> (param.cwlType, NullValue)
-      case (name, _) =>
-        throw new Exception(s"missing required input ${name}")
-    }
+      case param: CwlBlockInput if jobInputs.contains(param.name) =>
+        val (_, irValue) = jobInputs(param.name)
+        param.name -> CwlUtils.fromIRValue(irValue, param.cwlType, param.name, isInput = true)
+      case OptionalBlockInput(name, cwlType) =>
+        name -> (cwlType, NullValue)
+      case param =>
+        throw new Exception(s"missing required input ${param.name}")
+    }.toMap
     CwlBlockContext(block, env)
   }
 }
