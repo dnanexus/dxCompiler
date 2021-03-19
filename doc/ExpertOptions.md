@@ -1030,7 +1030,12 @@ When you compile the workflow, provide the manifest using the `-inputs` option, 
     "f": {
       "$dnanexus_link": "file-xxx"
     }
-  }
+  },
+  "input_manifest___files": [
+    {
+      "$dnanexus_link": "file-xxx"
+    }
+  ]
 }
 ```
 
@@ -1051,7 +1056,9 @@ Given the above workflow, the manifest output would be:
     "i": 1,
     "p": {
       "left": "hello",
-      "right": "dx://file-xxx"
+      "right": {
+        "$dnanexus_link": "file-xxx"
+      }
     }
   }
 }
