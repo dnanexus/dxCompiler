@@ -1,0 +1,7 @@
+{
+  "basename-fields-test.cwlVersion": "v1.2",
+  "basename-fields-test.tool": {
+    "class": "File",
+    "path": "echo-tool.cwl"
+  }
+}

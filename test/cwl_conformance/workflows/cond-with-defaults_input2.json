@@ -1,0 +1,6 @@
+{
+  "cond-with-defaults.single_reads": {
+    "class": "File",
+    "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/../reads.fastq"
+  }
+}

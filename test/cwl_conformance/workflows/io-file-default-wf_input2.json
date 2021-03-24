@@ -1,0 +1,6 @@
+{
+  "io-file-default-wf.file1": {
+    "class": "File",
+    "path": "hello.txt"
+  }
+}

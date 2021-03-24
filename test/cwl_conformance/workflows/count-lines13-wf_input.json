@@ -1,0 +1,10 @@
+{
+  "count-lines13-wf.file1": {
+    "class": "File",
+    "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/whale.txt"
+  },
+  "count-lines13-wf.file2": {
+    "class": "File",
+    "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/hello.txt"
+  }
+}
