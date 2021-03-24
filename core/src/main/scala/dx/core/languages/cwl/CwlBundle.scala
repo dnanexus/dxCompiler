@@ -77,12 +77,13 @@ object CwlBundle {
       case tool: ExpressionTool if !expressions.contains(tool.id.get) =>
         (tools, expressions + (tool.id.get -> tool), workflows, newReqs, newHints)
       case wf: Workflow if !workflows.contains(wf.id.get) =>
-        wf.steps.foldLeft(tools, expressions, workflows, newReqs, newHints) {
+        val newWorkflows = workflows + (wf.id.get -> wf)
+        wf.steps.foldLeft(tools, expressions, newWorkflows, newReqs, newHints) {
           case ((toolAccu, exprAccu, wfAccu, reqAccu, hintAccu), step) =>
             getProcesses(step.run,
                          toolAccu,
                          exprAccu,
-                         wfAccu + (wf.id.get -> wf),
+                         wfAccu,
                          reqAccu,
                          hintAccu,
                          inheritedRequirements ++ wf.requirements,

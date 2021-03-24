@@ -1585,4 +1585,14 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
         Parameter("output", TInt)
     )
   }
+
+  it should "translate a packed CWL workflow" in {
+    val path = pathFromBasename("cwl", "any-type-compat.cwl.json")
+    val args = path.toString :: cFlags
+    Main.compile(args.toVector) match {
+      case SuccessfulCompileIR(bundle) => bundle
+      case other =>
+        throw new Exception(s"expected success not ${other}")
+    }
+  }
 }

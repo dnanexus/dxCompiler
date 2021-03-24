@@ -277,6 +277,71 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       Parameter(input.name, irType, default.map(CwlUtils.toIRValue(_, cwlType)._2), Vector.empty)
     }
 
+    private case class CallEnv(env: Map[String, LinkedVar]) {
+      def add(key: String, lvar: LinkedVar): CallEnv = {
+        CallEnv(env + (key -> lvar))
+      }
+
+      def keys: Set[String] = env.keySet
+
+      def get(key: String): Option[LinkedVar] = env.get(key)
+
+      def apply(key: String): LinkedVar = {
+        get(key) match {
+          case None =>
+            log()
+            throw new Exception(s"${key} does not exist in the environment.")
+          case Some(lvar) => lvar
+        }
+      }
+
+      def log(): Unit = {
+        if (logger.isVerbose) {
+          logger.trace("env:")
+          val logger2 = logger.withIncTraceIndent()
+          stageInputs.map {
+            case (name, stageInput) =>
+              logger2.trace(s"$name -> ${stageInput}")
+          }
+        }
+      }
+
+      /**
+        * Check if the environment has a variable with a binding for
+        * a fully-qualified name. For example, if fqn is "A/B/C", then
+        * look for "A/B/C", "B/C", or "C", in that order.
+        * @param fqn fully-qualified name
+        * @return
+        */
+      def lookup(fqn: String): Option[(String, LinkedVar)] = {
+        if (env.contains(fqn)) {
+          // exact match
+          Some(fqn, env(fqn))
+        } else {
+          // A/B/C --> B/C
+          fqn.indexOf("/") match {
+            case pos if pos >= 0 => lookup(fqn.drop(pos + 1))
+            case _               => None
+          }
+        }
+      }
+
+      def stageInputs: Map[String, StageInput] = {
+        env.map {
+          case (key, (_, stageInput)) => key -> stageInput
+        }
+      }
+    }
+
+    private object CallEnv {
+      def fromLinkedVars(lvars: Vector[LinkedVar], delim: String): CallEnv = {
+        CallEnv(lvars.map {
+          case (parameter, stageInput) =>
+            parameter.name -> (parameter, stageInput)
+        }.toMap)
+      }
+    }
+
     private def callInputToStageInput(callInput: Option[WorkflowStepInput],
                                       calleeParam: Parameter,
                                       env: CallEnv,
@@ -624,9 +689,12 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
     ): (Workflow, Vector[Callable], Vector[(Parameter, StageInput)]) = {
       val wfInputParams = inputs.map(createWorkflowInput)
       val wfInputLinks: Vector[LinkedVar] = wfInputParams.map(p => (p, WorkflowInput(p)))
-      val (backboneInputs, commonStageInfo) = if (useManifests) {
+      val (backboneInputs, commonStageInfo) = if (useManifests || subBlocks.isEmpty) {
         // If we are using manifests, we need an initial applet to merge multiple
         // manifests into a single manifest.
+        // If this workflow has no steps (unlikely, but there is at least one conformance
+        // test where this is the case), then the worklfow will consist of only the
+        // common applet.
         val commonStageInputs = wfInputParams.map(p => WorkflowInput(p))
         val inputOutputs: Vector[Parameter] = inputs.map { i =>
           Parameter(i.name, CwlUtils.toIRType(i.cwlType))
@@ -693,10 +761,12 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
             // using an output stage
             val outputSource = out.outputSource.head
             env
-              .get(outputSource.frag.get)
-              .map(_._2)
+              .lookup(outputSource.frag.get)
+              .map(_._2._2)
               .getOrElse(
-                  throw new Exception(s"output source ${outputSource} missing from environment")
+                  throw new Exception(
+                      s"output source ${outputSource} missing from environment ${env}"
+                  )
               )
           }
           val irType = CwlUtils.toIRType(out.cwlType)

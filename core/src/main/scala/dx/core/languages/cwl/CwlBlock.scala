@@ -204,85 +204,88 @@ object CwlBlock {
       }
     }
 
-    val orderedSteps = orderSteps(wf.steps)
-
-    orderedSteps.values.zipWithIndex.map {
-      case (step, index) =>
-        val blockInputs: Map[String, CwlBlockInput] = {
-          val inputSources: Vector[Map[String, CwlBlockInput]] = step.inputs.map { inp =>
-            // sources of this step input - either a workflow input
-            // like "file1" or a step output like "step1/file1"
-            val sources = inp.source.map { src =>
-              (src, src.frag.get)
-            }
-            val sourceParams = sources.foldLeft(Map.empty[String, Parameter]) {
-              case (accu, (_, name)) if accu.contains(name) => accu
-              case (accu, (id, name)) if id.parent.isDefined =>
-                val srcStep = orderedSteps(id.parent.get)
-                val param = srcStep.outputs
-                  .collectFirst {
-                    case out if out.name == id.name.get =>
-                      srcStep.run.outputs
-                        .collectFirst {
-                          case srcOut if out.name == srcOut.name => srcOut
-                        }
-                        .getOrElse(
-                            throw new Exception(
-                                s"process ${srcStep.run.name} does not define output parameter ${out.name}"
-                            )
-                        )
-                  }
-                  .getOrElse(
-                      throw new Exception(
-                          s"step ${id.parent.get} does not define output parameter ${id.name.get}"
-                      )
-                  )
-                accu + (name -> param)
-              case (accu, (_, name)) if wfInputs.contains(name) =>
-                accu + (name -> wfInputs(name))
-              case (_, (_, name)) =>
-                throw new Exception(s"invalid parameter source ${name}")
-            }
-            val hasDefault = inp.default.isDefined
-            sourceParams.map {
-              case (name, param) =>
-                if (hasDefault || CwlOptional.isOptional(param.cwlType)) {
-                  name -> OptionalBlockInput(name, param.cwlType)
-                } else {
-                  name -> RequiredBlockInput(name, param.cwlType)
-                }
-            }
-          }
-
-          inputSources.flatMap(_.toVector).groupBy(_._1).map {
-            case (name, inputs) =>
-              val param = inputs.map(_._2).distinct match {
-                case Vector(i)                                              => i
-                case Vector(req: RequiredBlockInput, _: OptionalBlockInput) => req
-                case Vector(_: OptionalBlockInput, req: RequiredBlockInput) => req
-                case _ =>
-                  throw new Exception(
-                      s"multiple incompatible inputs ${inputs} map to name ${name}"
-                  )
+    if (wf.steps.isEmpty) {
+      Vector.empty[CwlBlock]
+    } else {
+      val orderedSteps = orderSteps(wf.steps)
+      orderedSteps.values.zipWithIndex.map {
+        case (step, index) =>
+          val blockInputs: Map[String, CwlBlockInput] = {
+            val inputSources: Vector[Map[String, CwlBlockInput]] = step.inputs.map { inp =>
+              // sources of this step input - either a workflow input
+              // like "file1" or a step output like "step1/file1"
+              val sources = inp.source.map { src =>
+                (src, src.frag.get)
               }
-              name -> param
+              val sourceParams = sources.foldLeft(Map.empty[String, Parameter]) {
+                case (accu, (_, name)) if accu.contains(name) => accu
+                case (accu, (id, name)) if id.parent.isDefined =>
+                  val srcStep = orderedSteps(id.parent.get)
+                  val param = srcStep.outputs
+                    .collectFirst {
+                      case out if out.name == id.name.get =>
+                        srcStep.run.outputs
+                          .collectFirst {
+                            case srcOut if out.name == srcOut.name => srcOut
+                          }
+                          .getOrElse(
+                              throw new Exception(
+                                  s"process ${srcStep.run.name} does not define output parameter ${out.name}"
+                              )
+                          )
+                    }
+                    .getOrElse(
+                        throw new Exception(
+                            s"step ${id.parent.get} does not define output parameter ${id.name.get}"
+                        )
+                    )
+                  accu + (name -> param)
+                case (accu, (_, name)) if wfInputs.contains(name) =>
+                  accu + (name -> wfInputs(name))
+                case (_, (_, name)) =>
+                  throw new Exception(s"invalid parameter source ${name}")
+              }
+              val hasDefault = inp.default.isDefined
+              sourceParams.map {
+                case (name, param) =>
+                  if (hasDefault || CwlOptional.isOptional(param.cwlType)) {
+                    name -> OptionalBlockInput(name, param.cwlType)
+                  } else {
+                    name -> RequiredBlockInput(name, param.cwlType)
+                  }
+              }
+            }
+
+            inputSources.flatMap(_.toVector).groupBy(_._1).map {
+              case (name, inputs) =>
+                val param = inputs.map(_._2).distinct match {
+                  case Vector(i)                                              => i
+                  case Vector(req: RequiredBlockInput, _: OptionalBlockInput) => req
+                  case Vector(_: OptionalBlockInput, req: RequiredBlockInput) => req
+                  case _ =>
+                    throw new Exception(
+                        s"multiple incompatible inputs ${inputs} map to name ${name}"
+                    )
+                }
+                name -> param
+            }
           }
-        }
-        val procOutputs = step.run.outputs.collect {
-          case o if o.hasName => o.name -> o
-        }.toMap
-        val blockOutputs = step.outputs.foldLeft(Map.empty[String, OutputParameter]) {
-          case (accu, out) if procOutputs.contains(out.name) && !accu.contains(out.name) =>
-            accu + (out.name -> procOutputs(out.name))
-          case (_, out) =>
-            throw new Exception(s"invalid or duplicate output parameter name ${out.name}")
-        }
-        CwlBlock(index,
-                 blockInputs.values.toVector,
-                 blockOutputs.values.toVector,
-                 Vector(step),
-                 inheritedRequirements ++ wf.requirements,
-                 inheritedHints ++ wf.hints)
-    }.toVector
+          val procOutputs = step.run.outputs.collect {
+            case o if o.hasName => o.name -> o
+          }.toMap
+          val blockOutputs = step.outputs.foldLeft(Map.empty[String, OutputParameter]) {
+            case (accu, out) if procOutputs.contains(out.name) && !accu.contains(out.name) =>
+              accu + (out.name -> procOutputs(out.name))
+            case (_, out) =>
+              throw new Exception(s"invalid or duplicate output parameter name ${out.name}")
+          }
+          CwlBlock(index,
+                   blockInputs.values.toVector,
+                   blockOutputs.values.toVector,
+                   Vector(step),
+                   inheritedRequirements ++ wf.requirements,
+                   inheritedHints ++ wf.hints)
+      }.toVector
+    }
   }
 }

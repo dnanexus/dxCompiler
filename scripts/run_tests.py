@@ -202,7 +202,7 @@ test_suites = {
     'docker': docker_test_list,
     'native': ["call_native", "call_native_v1"],
     'docs': doc_tests_list,
-    'cwl_conformance': cwl_conformance
+    'cwl_conformance': cwl_conformance_tools + cwl_conformance_workflows
 }
 
 # Tests with the reorg flags
@@ -652,6 +652,8 @@ def choose_tests(name):
 # directory. A test file must have some support files.
 def register_all_tests(verbose : bool) -> None :
     for root, dirs, files in os.walk(test_dir):
+        if os.path.basename(root).endswith("_ignore") or os.path.basename(root).endswith("_notimplemented"):
+            continue
         for t_file in files:
             if t_file.endswith(".wdl") or t_file.endswith(".cwl"):
                 base = os.path.basename(t_file)

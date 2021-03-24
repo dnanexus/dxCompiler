@@ -188,7 +188,7 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
       case (tool: ExpressionTool, _)  => tool
       case (wf: Workflow, _)          => wf
       case _ =>
-        throw new Exception(s"Not a command line tool or workflow: ${sourceFile}")
+        throw new Exception(s"Not a tool or workflow: ${sourceFile}")
     }
     Some(
         CwlTranslator(

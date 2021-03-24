@@ -17,10 +17,7 @@ import dx.core.ir.{
   Stage,
   StageInput,
   StaticInput,
-  Type,
-  Value,
-  Workflow,
-  WorkflowInput
+  Workflow
 }
 import dx.util.Logger
 
@@ -46,86 +43,6 @@ abstract class WorkflowTranslator(wfName: String,
   }
 
   def translate: (Workflow, Vector[Callable], Vector[LinkedVar])
-
-  protected case class CallEnv(env: Map[String, LinkedVar], delim: String) {
-    def add(key: String, lvar: LinkedVar): CallEnv = {
-      CallEnv(env + (key -> lvar), delim)
-    }
-
-    def contains(key: String): Boolean = env.contains(key)
-
-    def keys: Set[String] = env.keySet
-
-    def get(key: String): Option[LinkedVar] = env.get(key)
-
-    def apply(key: String): LinkedVar = {
-      get(key) match {
-        case None =>
-          log()
-          throw new Exception(s"${key} does not exist in the environment.")
-        case Some(lvar) => lvar
-      }
-    }
-
-    def log(): Unit = {
-      if (logger.isVerbose) {
-        logger.trace("env:")
-        val logger2 = logger.withIncTraceIndent()
-        stageInputs.map {
-          case (name, stageInput) =>
-            logger2.trace(s"$name -> ${stageInput}")
-        }
-      }
-    }
-
-    /**
-      * Check if the environment has a variable with a binding for
-      * a fully-qualified name. For example, if fqn is "A.B.C", then
-      * look for "A.B.C", "A.B", or "A", in that order.
-      *
-      * If the environment has a pair "p", then we want to be able to
-      * to return "p" when looking for "p.left" or "p.right".
-      *
-      * @param fqn fully-qualified name
-      * @return
-      */
-    def lookup(fqn: String): Option[(String, LinkedVar)] = {
-      if (env.contains(fqn)) {
-        // exact match
-        Some(fqn, env(fqn))
-      } else {
-        // A.B.C --> A.B
-        fqn.lastIndexOf(delim) match {
-          case pos if pos >= 0 => lookup(fqn.substring(0, pos))
-          case _               => None
-        }
-      }
-    }
-
-    def stageInputs: Map[String, StageInput] = {
-      env.map {
-        case (key, (_, stageInput)) => key -> stageInput
-      }
-    }
-
-    def staticValues: Map[String, (Type, Value)] = {
-      env.collect {
-        case (key, (Parameter(_, dxType, _, _), StaticInput(value))) =>
-          key -> (dxType, value)
-        case (key, (_, WorkflowInput(Parameter(_, dxType, Some(value), _)))) =>
-          key -> (dxType, value)
-      }
-    }
-  }
-
-  object CallEnv {
-    def fromLinkedVars(lvars: Vector[LinkedVar], delim: String): CallEnv = {
-      CallEnv(lvars.map {
-        case (parameter, stageInput) =>
-          parameter.name -> (parameter, stageInput)
-      }.toMap, delim)
-    }
-  }
 
   /**
     * Create a preliminary applet to handle workflow input/outputs. This is
