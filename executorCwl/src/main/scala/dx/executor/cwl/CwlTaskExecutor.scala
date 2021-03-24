@@ -3,10 +3,12 @@ package dx.executor.cwl
 import dx.api.{DxFile, InstanceTypeRequest}
 import dx.core.Constants
 import dx.cwl._
+import dx.cwl.Document.Document
 import dx.core.io.StreamFiles.StreamFiles
+import dx.core.ir.Value.VString
 import dx.core.ir.{Parameter, Type, Value}
 import dx.core.languages.Language
-import dx.core.languages.cwl.{CwlUtils, DxHintSchema, RequirementEvaluator}
+import dx.core.languages.cwl.{CwlUtils, DxHintSchema, RequirementEvaluator, Target}
 import dx.executor.{FileUploader, JobMeta, SerialFileUploader, TaskExecutor}
 import dx.util.{DockerUtils, FileUtils, JsUtils, TraceLevel}
 import spray.json._
@@ -33,30 +35,33 @@ object CwlTaskExecutor {
       case Some(JsString(name)) => name
       case _                    => throw new Exception("missing executable name")
     }
-    val tool =
-      parser.parseString(jobMeta.sourceCode) match {
-        case (tool: CommandLineTool, _) =>
-          if (tool.id.exists(_.frag.isDefined)) {
-            tool
-          } else {
-            tool.copy(id = Some(Identifier(namespace = None, frag = Some(toolName))))
-          }
-        case (tool: ExpressionTool, _) =>
-          if (tool.id.exists(_.frag.isDefined)) {
-            tool
-          } else {
-            tool.copy(id = Some(Identifier(namespace = None, frag = Some(toolName))))
-          }
-        case (_, doc: Document) =>
-          val target = jobMeta.targets.flatMap(_.headOption)
-          if (target.exists(doc.contains)) {
-            doc(target.get)
-          } else {
-            throw new Exception(
-                s"No target process defined, or workflow does not contain a nested tool named ${target}"
-            )
-          }
-      }
+    jobMeta.logger.trace(s"toolName: ${toolName}")
+    // The main process may or may not have an ID. In the case it does not,
+    // we supply a default ID fragment that is unlikely to be taken by the
+    // user. Then, if the main process is a CommandLineTool or ExpressionTool,
+    // we update the ID to use the tool name as the fragment; otherwise it is
+    // a workflow and we look up the tool by name in the Map of processes nested
+    // within the workflow.
+    val defaultFrag = "___"
+    val tool = parser.parseString(jobMeta.sourceCode, Some(defaultFrag)) match {
+      case (tool: CommandLineTool, _) if tool.frag == defaultFrag =>
+        tool.copy(id = Some(Identifier(namespace = None, frag = Some(toolName))))
+      case (tool: CommandLineTool, _) => tool
+      case (tool: ExpressionTool, _) if tool.frag == defaultFrag =>
+        tool.copy(id = Some(Identifier(namespace = None, frag = Some(toolName))))
+      case (tool: ExpressionTool, _) => tool
+      case (_, doc: Document) =>
+        doc.values.toVector.collect {
+          case tool: CommandLineTool if tool.name == toolName => tool
+          case tool: ExpressionTool if tool.name == toolName  => tool
+        } match {
+          case Vector(tool) => tool
+          case Vector() =>
+            throw new Exception(s"workflow does not contain a tool named ${toolName}")
+          case v =>
+            throw new Exception(s"more than one tool with name ${toolName}: ${v.mkString("\n")}")
+        }
+    }
     CwlTaskExecutor(tool, jobMeta, fileUploader, streamFiles)
   }
 }
@@ -89,18 +94,22 @@ case class CwlTaskExecutor(tool: Process,
 
   private lazy val runtime: Runtime = CwlUtils.createRuntime(workerPaths)
 
-  private def cwlInputs: Map[String, (CwlType, CwlValue)] = {
+  private lazy val (cwlInputs: Map[String, (CwlType, CwlValue)], target: Option[String]) = {
     // CWL parameters can have '.' in their name
-    val irInputs = jobMeta.primaryInputs.map {
-      case (name, value) => Parameter.decodeName(name) -> value
-    }
+    val (irInputs, target) =
+      jobMeta.primaryInputs.foldLeft(Map.empty[String, Value], Option.empty[String]) {
+        case ((accu, None), (Target, VString(targetName))) =>
+          (accu, Some(targetName))
+        case ((accu, target), (name, value)) =>
+          (accu + (Parameter.decodeName(name) -> value), target)
+      }
     val missingTypes = irInputs.keySet.diff(inputParams.keySet)
     if (missingTypes.nonEmpty) {
       throw new Exception(s"no type information given for input(s) ${missingTypes.mkString(",")}")
     }
     // convert IR to CWL values; discard auxiliary fields
     val evaluator = Evaluator.create(tool.requirements, tool.hints)
-    inputParams.foldLeft(Map.empty[String, (CwlType, CwlValue)]) {
+    val cwlInputs = inputParams.foldLeft(Map.empty[String, (CwlType, CwlValue)]) {
       case (env, (name, param)) =>
         val (cwlType: CwlType, cwlValue: CwlValue) = irInputs.get(name) match {
           case Some(irValue) =>
@@ -115,6 +124,7 @@ case class CwlTaskExecutor(tool: Process,
         }
         env + (name -> (cwlType, cwlValue))
     }
+    (cwlInputs, target)
   }
 
   private def printInputs(inputs: Map[String, (CwlType, CwlValue)]): Unit = {
@@ -200,11 +210,7 @@ case class CwlTaskExecutor(tool: Process,
     }
     JsUtils.jsToFile(inputJson, inputPath)
     // if a target is specified (a specific workflow step), add the --target option
-    val targetOpt = jobMeta.targets
-      .map { targets =>
-        targets.map(t => s"--single-step ${t}").mkString(" ")
-      }
-      .getOrElse("")
+    val targetOpt = target.map(t => s"--single-step ${t}").getOrElse("")
     // if a dx:// URI is specified for the Docker container, download it
     // and create an overrides file to override the value in the CWL file
     val overridesOpt = jobMeta
@@ -266,10 +272,14 @@ case class CwlTaskExecutor(tool: Process,
   }
 
   private lazy val outputParams: Map[String, OutputParameter] = {
-    tool.outputs.map {
+    val outputParams = tool.outputs.map {
       case param if param.id.forall(_.name.isDefined) =>
         param.id.flatMap(_.name).get -> param
     }.toMap
+    if (logger.isVerbose) {
+      logger.traceLimited(s"outputParams=${outputParams}")
+    }
+    outputParams
   }
 
   override protected def evaluateOutputs(
@@ -284,6 +294,72 @@ case class CwlTaskExecutor(tool: Process,
         case other             => throw new Exception(s"unexpected cwltool outputs ${other}")
       }
       val cwlOutputs = outputParams.map {
+        case (name, param: WorkflowOutputParameter) if param.outputSource.nonEmpty =>
+          val sources = param.outputSource.map(id => allOutputs.getOrElse(id.name.get, JsNull))
+          val isArray = param.cwlType match {
+            case _: CwlArray => true
+            case CwlMulti(types) =>
+              types.exists {
+                case _: CwlArray => true
+                case _           => false
+              }
+            case _ => false
+          }
+          val pickedAndMerged = if (sources.size == 1) {
+            sources.head
+          } else {
+            val mergedValues = if (isArray) {
+              param.linkMerge.getOrElse(LinkMergeMethod.MergeNested) match {
+                case LinkMergeMethod.MergeNested => sources
+                case LinkMergeMethod.MergeFlattened =>
+                  sources.flatMap {
+                    case JsArray(items) => items
+                    case value          => Vector(value)
+                  }
+              }
+            } else if (param.linkMerge.nonEmpty) {
+              throw new Exception(s"param ${param} is not of array type but specifies linkMerge")
+            } else {
+              sources
+            }
+            val pickedValues: Vector[JsValue] = if (param.pickValue.nonEmpty) {
+              val nonNull = mergedValues.filterNot(_ == JsNull)
+              param.pickValue.get match {
+                case PickValueMethod.FirstNonNull =>
+                  Vector(
+                      nonNull.headOption
+                        .getOrElse(
+                            throw new Exception(
+                                s"all source values are null for parameter ${param}"
+                            )
+                        )
+                  )
+                case PickValueMethod.TheOnlyNonNull =>
+                  if (nonNull.size == 1) {
+                    Vector(nonNull.head)
+                  } else {
+                    throw new Exception(
+                        s"there is not exactly one non-null value for parameter ${param}"
+                    )
+                  }
+                case PickValueMethod.AllNonNull => nonNull
+              }
+            } else {
+              mergedValues
+            }
+            if (isArray) {
+              JsArray(pickedValues)
+            } else if (pickedValues.size == 1) {
+              pickedValues.head
+            } else if (pickedValues.size > 1) {
+              throw new Exception(
+                  s"multiple output sources for non-array parameter ${param} that does not specify pickValue"
+              )
+            } else {
+              JsNull
+            }
+          }
+          name -> CwlValue.deserialize(pickedAndMerged, param.cwlType, typeAliases)
         case (name, param) if allOutputs.contains(name) =>
           name -> CwlValue.deserialize(allOutputs(name), param.cwlType, typeAliases)
         case (name, param) if CwlOptional.isOptional(param.cwlType) =>

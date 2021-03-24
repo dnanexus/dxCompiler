@@ -24,6 +24,7 @@ import dx.core.ir.{
   SourceCode,
   Stage,
   StageInput,
+  StaticInput,
   Type,
   Value,
   Workflow,
@@ -36,7 +37,8 @@ import dx.core.languages.cwl.{
   DxHints,
   OptionalBlockInput,
   RequiredBlockInput,
-  RequirementEvaluator
+  RequirementEvaluator,
+  TargetParam
 }
 import dx.cwl.{
   CommandLineTool,
@@ -67,7 +69,7 @@ import dx.util.{FileSourceResolver, FileUtils, Logger}
 
 import java.nio.file.{Path, Paths}
 
-case class CwlSourceCode(source: Path, override val targets: Vector[String]) extends SourceCode {
+case class CwlSourceCode(source: Path) extends SourceCode {
   override val language: String = "cwl"
   override def toString: String = FileUtils.readFileContent(source)
 }
@@ -186,7 +188,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         case i if i.id.exists(_.name.isDefined) => i.name -> i
       }.toMap
       val inputCtx = CwlUtils.createEvaluatorContext(Runtime.empty)
-      val inputs = inputParams.values.map(i => translateInput(i, inputCtx)).toVector
+      // cwl applications always have a "target___" parameter
+      val inputs = inputParams.values.map(i => translateInput(i, inputCtx)).toVector :+ TargetParam
       val defaults = inputParams.values.collect {
         case i if i.default.isDefined => i.name -> (i.cwlType, i.default.get)
       }.toMap
@@ -217,7 +220,6 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         case None =>
           throw new Exception(s"no source code for tool ${name}")
       }
-      val targets = if (isPrimary) Vector.empty else Vector(name)
       Application(
           name,
           inputs,
@@ -225,7 +227,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           requirementEvaluator.translateInstanceType,
           requirementEvaluator.translateContainer,
           ExecutableKindApplet,
-          CwlSourceCode(docSource, targets),
+          CwlSourceCode(docSource),
           translateCallableAttributes(tool, hintCallableAttrs),
           requirementEvaluator.translateApplicationRequirements,
           tags = Set("cwl")
@@ -257,8 +259,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         case None =>
           throw new Exception(s"no source code for tool ${wf.name}")
       }
-      val targets = if (setTarget) Vector(wf.name) else Vector.empty
-      CwlSourceCode(docSource, targets)
+      CwlSourceCode(docSource)
     }
 
     private def createWorkflowInput(input: WorkflowInputParameter): Parameter = {
@@ -335,8 +336,11 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       val callInputParams = call.inputs.map { param =>
         param.name -> param
       }.toMap
-      val inputs: Vector[StageInput] = callee.inputVars.map { param =>
-        callInputToStageInput(callInputParams.get(param.name), param, env, locked, call.name)
+      val inputs: Vector[StageInput] = callee.inputVars.map {
+        case param if param == TargetParam =>
+          StaticInput(VString(call.name))
+        case param =>
+          callInputToStageInput(callInputParams.get(param.name), param, env, locked, call.name)
       }
       Stage(call.name, getStage(), calleeName, inputs, callee.outputVars)
     }

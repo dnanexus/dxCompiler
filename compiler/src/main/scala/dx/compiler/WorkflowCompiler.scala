@@ -395,20 +395,11 @@ case class WorkflowCompiler(extras: Option[Extras],
     // build the details JSON
     val defaultTags = Set(Constants.CompilerTag)
     val (wfMeta, wfMetaDetails) = workflowAttributesToNative(workflow, defaultTags)
-    // compress and base64 encode the source code
-    val targets = if (workflow.document.targets.nonEmpty) {
-      Some(JsArray(workflow.document.targets.map(JsString(_))))
-    } else {
-      None
-    }
-    val sourceDetails = Vector(
-        Some(
-            Constants.SourceCode -> JsString(
-                CodecUtils.gzipAndBase64Encode(workflow.document.toString)
-            )
-        ),
-        targets.map(t => Constants.Targets -> t)
-    ).flatten.toMap
+    val sourceDetails = Map(
+        Constants.SourceCode -> JsString(
+            CodecUtils.gzipAndBase64Encode(workflow.document.toString)
+        )
+    )
     // links through applets that run workflow fragments
     val transitiveDependencies: Vector[ExecutableLink] =
       workflow.stages.flatMap { stage =>

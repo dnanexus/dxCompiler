@@ -11,12 +11,6 @@ trait SourceCode {
   def language: String
 
   /**
-    * Specifies a target to execute within the source.
-    * @return
-    */
-  def targets: Vector[String] = Vector.empty
-
-  /**
     * Generates the source code as a String.
     * @return
     */

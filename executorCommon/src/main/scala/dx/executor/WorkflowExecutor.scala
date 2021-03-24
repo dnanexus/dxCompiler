@@ -183,6 +183,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
     // We may need to run a collect subjob. Add the the sequence number to each invocation, so the
     // collect subjob will be able to put the results back together in the correct order.
     val seqNum: Int = nextSeqNum
+    val details = JsObject(WorkflowExecutor.SeqNumber -> JsNumber(seqNum))
 
     // If this is a task that specifies the instance type at runtime, launch it in the requested instance.
     val dxExecution = executableLink.dxExec match {
@@ -191,7 +192,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
             jobName,
             callInputsJs,
             instanceType = instanceType,
-            details = Some(JsObject(WorkflowExecutor.SeqNumber -> JsNumber(seqNum))),
+            details = Some(details),
             delayWorkspaceDestruction = jobMeta.delayWorkspaceDestruction,
             folder = outputFolder
         )
@@ -200,7 +201,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
             jobName,
             callInputsJs,
             instanceType = instanceType,
-            details = Some(JsObject(WorkflowExecutor.SeqNumber -> JsNumber(seqNum))),
+            details = Some(details),
             delayWorkspaceDestruction = jobMeta.delayWorkspaceDestruction,
             folder = outputFolder
         )
@@ -208,7 +209,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
         workflow.newRun(
             jobName,
             callInputsJs,
-            Some(JsObject(WorkflowExecutor.SeqNumber -> JsNumber(seqNum))),
+            Some(details),
             jobMeta.delayWorkspaceDestruction,
             folder = outputFolder
         )

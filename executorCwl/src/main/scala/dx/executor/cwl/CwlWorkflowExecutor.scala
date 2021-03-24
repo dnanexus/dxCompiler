@@ -22,11 +22,14 @@ import dx.core.languages.cwl.{
   DxHintSchema,
   OptionalBlockInput,
   RequiredBlockInput,
-  RequirementEvaluator
+  RequirementEvaluator,
+  Target,
+  TargetParam
 }
 import dx.cwl.{
   ArrayValue,
   CwlArray,
+  CwlMulti,
   CwlOptional,
   CwlRecord,
   CwlType,
@@ -34,9 +37,11 @@ import dx.cwl.{
   DirectoryValue,
   FileValue,
   HintUtils,
+  LinkMergeMethod,
   NullValue,
   ObjectValue,
   Parser,
+  PickValueMethod,
   ScatterMethod,
   Workflow
 }
@@ -59,7 +64,7 @@ object CwlWorkflowExecutor {
       case Some(JsString(name)) => name
       case _                    => throw new Exception("missing executable name")
     }
-    val workflow = parser.parseString(jobMeta.sourceCode, name = Some(wfName)) match {
+    val workflow = parser.parseString(jobMeta.sourceCode, defaultFrag = Some(wfName)) match {
       case (wf: Workflow, _) => wf
       case other =>
         throw new Exception(s"expected CWL document to contain a Workflow, not ${other}")
@@ -79,6 +84,8 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
       case (name, schema: CwlRecord) => name -> CwlUtils.toIRSchema(schema)
     }
   }
+
+  // TODO: deal with steps with multiple input sources that need to be picked/merged
 
   override protected def evaluateInputs(
       jobInputs: Map[String, (Type, Value)]
@@ -191,16 +198,85 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
     ): Map[String, (CwlType, CwlValue)] = {
       val fullEnv = cwlEnv ++ extraEnv
       val stepInputs = step.inputs.collect(inp => inp.name -> inp).toMap
-      step.run.inputs.flatMap {
+      step.run.inputs.map {
         case param if stepInputs.contains(param.name) =>
-          val step = stepInputs(param.name)
-          step.source.map { src =>
-            val name = src.name.get
-            name -> fullEnv(name)
+          val stepInput = stepInputs(param.name)
+          val sources = stepInput.source.map(src => fullEnv(src.name.get))
+          val isArray = param.cwlType match {
+            case _: CwlArray => true
+            case CwlMulti(types) =>
+              types.exists {
+                case _: CwlArray => true
+                case _           => false
+              }
+            case _ => false
           }
+          val (t, v) = if (sources.size == 1) {
+            sources.head
+          } else {
+            val mergedValues = if (isArray) {
+              stepInput.linkMerge.getOrElse(LinkMergeMethod.MergeNested) match {
+                case LinkMergeMethod.MergeNested => sources
+                case LinkMergeMethod.MergeFlattened =>
+                  sources.flatMap {
+                    case (array: CwlArray, ArrayValue(items)) => items.map(i => (array.itemType, i))
+                    case (t, value)                           => Vector((t, value))
+                  }
+              }
+            } else if (stepInput.linkMerge.nonEmpty) {
+              throw new Exception(s"param ${param} is not of array type but specifies linkMerge")
+            } else {
+              sources
+            }
+            val pickedValues = if (stepInput.pickValue.nonEmpty) {
+              val nonNull = mergedValues.filterNot(_._2 == NullValue)
+              stepInput.pickValue.get match {
+                case PickValueMethod.FirstNonNull =>
+                  Vector(
+                      nonNull.headOption
+                        .getOrElse(
+                            throw new Exception(
+                                s"all source values are null for parameter ${param}"
+                            )
+                        )
+                  )
+                case PickValueMethod.TheOnlyNonNull =>
+                  if (nonNull.size == 1) {
+                    Vector(nonNull.head)
+                  } else {
+                    throw new Exception(
+                        s"there is not exactly one non-null value for parameter ${param}"
+                    )
+                  }
+                case PickValueMethod.AllNonNull => nonNull
+              }
+            } else {
+              mergedValues
+            }
+            if (isArray) {
+              val (types, values) = pickedValues.unzip
+              (CwlType.flatten(types), ArrayValue(values))
+            } else if (pickedValues.size == 1) {
+              pickedValues.head
+            } else if (pickedValues.size > 1) {
+              throw new Exception(
+                  s"multiple output sources for non-array parameter ${param} that does not specify pickValue"
+              )
+            } else {
+              (param.cwlType, NullValue)
+            }
+          }
+          if (!t.coercibleTo(param.cwlType)) {
+            throw new Exception(
+                s"""effective type ${t} of input value ${v} to parameter ${param.name} 
+                   |is not coercible to expected type ${param.cwlType}""".stripMargin
+                  .replaceAll("\n", " ")
+            )
+          }
+          param.name -> (param.cwlType, v.coerceTo(param.cwlType))
         case param if CwlOptional.isOptional(param.cwlType) =>
           logger.trace(s"no input for optional input ${param.name} to step ${step.name}")
-          Vector.empty
+          param.name -> (param.cwlType, NullValue)
         case param =>
           throw new Exception(s"missing non-optional input ${param.name} to step ${step.name}")
       }.toMap
@@ -218,7 +294,10 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
           minLevel = TraceLevel.VVerbose
       )
       val executableLink = getExecutableLink(step.run.name)
-      val callInputsIR = CwlUtils.toIR(callInputs)
+      val targetCallInput = block.target
+        .map(t => Map(Target -> (TargetParam.dxType, VString(t.name))))
+        .getOrElse(Map.empty)
+      val callInputsIR = CwlUtils.toIR(callInputs) ++ targetCallInput
       val requirementEvaluator = RequirementEvaluator(
           block.targetRequirements,
           block.targetHints,
