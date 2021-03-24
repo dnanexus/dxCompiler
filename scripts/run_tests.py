@@ -156,9 +156,13 @@ cwl_tools = [
     "tar_files",
 ]
 
-cwl_conformance = [
+cwl_conformance_tools = [
     os.path.basename(path)[:-4]
     for path in glob.glob(os.path.join(test_dir, "cwl_conformance", "tools", "*.cwl"))
+]
+cwl_conformance_workflows = [
+    os.path.basename(path)[:-9]
+    for path in glob.glob(os.path.join(test_dir, "cwl_conformance", "workflows_packed", "*.cwl.json"))
 ]
 
 # Tests run in continuous integration. We remove the native app test,
@@ -276,7 +280,19 @@ def get_cwl_metadata(filename, tname):
         name = doc.get("id", tname)
         return TestMetaData(name=name, kind="applet")
 
-    raise RuntimeError("{} is not a valid CWL test".format(filename))
+    raise RuntimeError("{} is not a valid CWL tool test".format(filename))
+
+def get_cwl_json_metadata(filename, tname):
+    with open(filename, 'r') as fd:
+        doc = json.load(fd)
+
+    if doc["class"] == "Workflow":
+        # the workflow id in a packed CWL file is always "main"
+        # so we use the test name instead
+        name = doc.get("id", tname)
+        return TestMetaData(name=tname, kind="applet")
+
+    raise RuntimeError("{} is not a valid CWL workflow test".format(filename))
 
 # Register a test name, find its inputs and expected results files.
 def register_test(dir_path, tname, ext):
@@ -290,6 +306,8 @@ def register_test(dir_path, tname, ext):
         metadata = get_wdl_metadata(source_file)
     elif ext == ".cwl":
         metadata = get_cwl_metadata(source_file, tname)
+    elif ext == ".cwl.json":
+        metadata = get_cwl_json_metadata(source_file, tname)
     else:
         raise RuntimeError("unsupported file type {}".format(ext))
     desc = TestDesc(name=metadata.name,
@@ -638,15 +656,22 @@ def register_all_tests(verbose : bool) -> None :
             if t_file.endswith(".wdl") or t_file.endswith(".cwl"):
                 base = os.path.basename(t_file)
                 (fname, ext) = os.path.splitext(base)
-                if fname.startswith("library_"):
-                    continue
-                if fname.endswith("_extern"):
-                    continue
-                try:
-                    register_test(root, fname, ext)
-                except Exception as e:
-                    if verbose:
-                        print("Skipping file {} error={}".format(fname, e))
+            elif t_file.endswith(".cwl.json"):
+                base = os.path.basename(t_file)
+                fname = base[:-9]
+                ext = ".cwl.json"
+            else:
+                continue
+
+            if fname.startswith("library_"):
+                continue
+            if fname.endswith("_extern"):
+                continue
+            try:
+                register_test(root, fname, ext)
+            except Exception as e:
+                if verbose:
+                    print("Skipping file {} error={}".format(fname, e))
 
 
 # Some compiler flags are test specific

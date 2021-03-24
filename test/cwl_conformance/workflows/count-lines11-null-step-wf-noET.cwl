@@ -22,5 +22,5 @@ steps:
         source: step0/output
         default:
           class: File
-          location: whale.txt
+          location: dx://file-G0G0V1Q0yzZZZXfx3xPK1B1Z
     out: [output]

@@ -5,7 +5,7 @@ cwlVersion: v1.2
 inputs:
     file1:
       type: File
-      default: {class: File, location: hello.txt}
+      default: {class: File, location: dx://file-G0G0V100yzZg3BBz3x4Y2Q69}
 outputs:
     count_output:
       type: int

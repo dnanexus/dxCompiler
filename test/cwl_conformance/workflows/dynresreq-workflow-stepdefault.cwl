@@ -16,7 +16,7 @@ steps:
         source: special_file
         default:
           class: File
-          location: special_file
+          location: dx://file-G1353z00yzZYkb2V4j4g7yb9
     out: [output]
     run: dynresreq.cwl
 

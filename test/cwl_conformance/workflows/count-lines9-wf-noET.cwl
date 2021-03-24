@@ -16,5 +16,5 @@ steps:
       file1:
         default:
           class: File
-          location: whale.txt
+          location: dx://file-G0G0V1Q0yzZZZXfx3xPK1B1Z
     out: [output]

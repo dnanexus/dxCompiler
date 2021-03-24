@@ -17,7 +17,7 @@ inputs:
     type: File
     default:
       class: File
-      location: updateval.py
+      location: dx://file-G0G3BZj0yzZg3BBz3x4Y2Qkq
 outputs:
   out:
     type: File

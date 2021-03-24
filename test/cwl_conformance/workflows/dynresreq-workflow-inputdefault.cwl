@@ -7,7 +7,7 @@ inputs:
     type: File
     default:
       class: File
-      path: special_file
+      location: dx://file-G1353z00yzZYkb2V4j4g7yb9
 
 outputs:
   cores:

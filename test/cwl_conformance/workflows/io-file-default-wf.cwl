@@ -6,7 +6,7 @@ inputs:
     type: File
     default:
       class: File
-      path: whale.txt
+      location: dx://file-G0G0V1Q0yzZZZXfx3xPK1B1Z
 
 outputs:
   o:
