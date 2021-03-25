@@ -164,6 +164,26 @@ def _download_dxfuse_to_resources(top_dir, dxfuse_version):
     return dxfuse_exe
 
 
+def _download_awscli_to_resources(top_dir, awscli_version):
+    awscli_dir = os.path.join(top_dir, "applet_resources", "awscli", awscli_version)
+    awscli_zip = os.path.join(awscli_dir, "awscliv2.zip")
+
+    if not (os.path.exists(awscli_zip)):
+        os.makedirs(awscli_dir, exist_ok=True)
+        info("downloading awscli {} to {}".format(awscli_version, awscli_zip))
+        try:
+            subprocess.check_call([
+                "wget",
+                "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-{}.zip".format(awscli_version),
+                "-O",
+                awscli_zip])
+        except subprocess.CalledProcessError as e:
+            print(e.stdout)
+            print(e.stderr)
+            raise e
+
+    return awscli_zip
+
 def _create_asset_spec(version_id, top_dir, language, dependencies=None):
     # TODO: update to 20.04 - just waiting for staging to catch up to prod
     exec_depends = [
@@ -321,7 +341,9 @@ def build(project, folder, version_id, top_dir, path_dict, dependencies=None, fo
         dxda_exe = _download_dxda_into_resources(top_dir, dependencies["dxda"])
         # get a copy of the dxfuse executable
         dxfuse_exe = _download_dxfuse_to_resources(top_dir, dependencies["dxfuse"])
-        resources = [dxda_exe, dxfuse_exe]
+        # get a copy of awscliv2
+        awscli_zip = _download_awscli_to_resources(top_dir, dependencies["awscli"])
+        resources = [dxda_exe, dxfuse_exe, awscli_zip]
 
         # Create a configuration file
         _gen_config_file(top_dir, path_dict)
