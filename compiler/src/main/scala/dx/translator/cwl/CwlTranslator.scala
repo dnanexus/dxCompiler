@@ -1,7 +1,7 @@
 package dx.translator.cwl
 
 import dx.api.{DxApi, DxProject}
-import dx.core.ir.{Bundle, Callable, Type, Value, ValueSerde}
+import dx.core.ir.{Bundle, Callable, Type, Value, ValueSerde, Workflow => IRWorkflow}
 import dx.core.languages.Language
 import dx.core.languages.Language.Language
 import dx.core.languages.cwl.{CwlBundle, CwlUtils, DxHintSchema}
@@ -24,7 +24,7 @@ import dx.translator.{
   Translator,
   TranslatorFactory
 }
-import dx.util.{FileSourceResolver, Logger}
+import dx.util.{FileSourceResolver, FileUtils, Logger}
 import org.w3id.cwl.cwl1_2.CWLVersion
 import spray.json._
 
@@ -59,6 +59,19 @@ case class CwlInputTranslator(bundle: Bundle,
         val (_, cwlValue) = CwlUtils.toIRValue(DirectoryValue.deserialize(obj), CwlDirectory)
         ValueSerde.serialize(cwlValue, fileResolver = Some(baseFileResolver), pathsAsObjects = true)
       case _ => jsv
+    }
+  }
+
+  override protected val mainPrefix: Option[String] = {
+    bundle.primaryCallable match {
+      case Some(wf: IRWorkflow) if wf.name == "main" =>
+        // a packed workflow - use the source file name
+        wf.document match {
+          case CwlSourceCode(source) if source.getFileName.toString.endsWith(".cwl.json") =>
+            Some(FileUtils.changeFileExt(source.getFileName.toString, ".cwl.json"))
+          case _ => throw new Exception("expected CwlSourceCode")
+        }
+      case _ => None
     }
   }
 }

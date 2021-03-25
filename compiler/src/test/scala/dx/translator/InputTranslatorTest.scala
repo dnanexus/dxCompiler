@@ -292,6 +292,24 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
     retval shouldBe a[SuccessfulCompileIR]
   }
 
+  it should "translate cwl inputs for workflow with no steps" in {
+    val cwlCode = pathFromBasename("cwl", "any-type-compat.cwl.json")
+    val inputs = pathFromBasename("cwl", "any-type-compat_input.json")
+    val args = List(cwlCode.toString, "-inputs", inputs.toString, "-verbose") ++ cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileIR]
+    val dxInputsFile = inputs.getParent.resolve(FileUtils.replaceFileSuffix(inputs, ".dx.json"))
+    val jsInputs = JsUtils.jsFromFile(dxInputsFile)
+    val fields = jsInputs.asJsObject.fields
+    // the input types are all 'Any' so they should be treated as objects
+    fields.keySet shouldBe Set("input1",
+                               "input1___dxfiles",
+                               "input2",
+                               "input2___dxfiles",
+                               "input3",
+                               "input3___dxfiles")
+  }
+
 //  it should "translate cwl directory inputs I" in {
 //    val cwlCode = pathFromBasename("cwl", "cat-from-dir.cwl")
 //    val inputs = pathFromBasename("cwl", "cat-from-dir_input1.json")

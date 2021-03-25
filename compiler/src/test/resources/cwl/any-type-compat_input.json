@@ -1,0 +1,11 @@
+{
+  "any-type-compat.input1": [
+    "hello",
+    "world"
+  ],
+  "any-type-compat.input2": [
+    "foo",
+    "bar"
+  ],
+  "any-type-compat.input3": "hello"
+}

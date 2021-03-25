@@ -242,13 +242,14 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       inheritedRequirements: Vector[Requirement] = Vector.empty,
       inheritedHints: Vector[Hint] = Vector.empty
   ) extends WorkflowTranslator(wf.name, availableDependencies, reorgAttrs, logger) {
-    // Only the toplevel workflow may be unlocked. This happens
-    // only if the user specifically compiles it as "unlocked".
+    // Only the toplevel workflow may be unlocked, and only if it has
+    // at least one step. This happens only if the user specifically
+    // compiles it as "unlocked".
     protected lazy val isLocked: Boolean = {
-      cwlBundle.primaryProcess match {
+      wf.steps.isEmpty || (cwlBundle.primaryProcess match {
         case wf2: CwlWorkflow => (wf.name != wf2.name) || locked
         case _                => true
-      }
+      })
     }
 
     private lazy val evaluator: Evaluator = Evaluator.default
@@ -616,7 +617,6 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         param.outputSource.map(source => Parameter.encodeName(source.frag.get))
       }.toSet
       logger.trace(s"paramNames: ${paramNames}")
-
       val (applicationInputs, stageInputs) = paramNames.map { name =>
         env.get(name) match {
           case Some((param, stageInput)) => (param, stageInput)

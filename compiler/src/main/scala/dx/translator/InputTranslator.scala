@@ -305,6 +305,12 @@ class InputTranslator(bundle: Bundle,
     case (_, callable: Application) => callable
   }.toVector
 
+  // CWL packed workflows always use 'main' as the main process name -
+  // this enables CwlInputTranslator to replace it with the filename
+  // TODO: the right solution to this is to have the pre-processing
+  //  script change #main to #<filename>
+  protected val mainPrefix: Option[String] = None
+
   private def translateJsonInputs(fields: Map[String, JsValue]): Map[String, (Type, Value)] = {
     val fieldsExactlyOnce = ExactlyOnce("input", fields, logger)
 
@@ -342,14 +348,11 @@ class InputTranslator(bundle: Bundle,
       case None =>
         checkAndBindCallableInputs(tasks.head)
       case Some(app: Application) =>
-        checkAndBindCallableInputs(app)
+        checkAndBindCallableInputs(app, fqnPrefix = mainPrefix)
       case Some(wf: Workflow) if wf.locked =>
         // Locked workflow. A user can set workflow level
         // inputs; nothing else.
-        checkAndBindCallableInputs(wf)
-      case Some(wf: Workflow) if wf.stages.isEmpty =>
-        // edge case: workflow, with zero stages
-        Map.empty
+        checkAndBindCallableInputs(wf, fqnPrefix = mainPrefix)
       case Some(wf: Workflow) =>
         // unlocked workflow with at least one stage.
         // Workflow inputs go into the common stage

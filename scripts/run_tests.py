@@ -290,7 +290,7 @@ def get_cwl_json_metadata(filename, tname):
         # the workflow id in a packed CWL file is always "main"
         # so we use the test name instead
         name = doc.get("id", tname)
-        return TestMetaData(name=tname, kind="applet")
+        return TestMetaData(name=tname, kind="workflow")
 
     raise RuntimeError("{} is not a valid CWL workflow test".format(filename))
 
