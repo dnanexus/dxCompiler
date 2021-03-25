@@ -21,15 +21,18 @@ fi
 dx download ${bashDollar}{DOCKER_CREDENTIALS} -o ${bashDollar}{HOME}/docker_credentials
 
 # disable echo to avoid logging password
-set +e
+set +x
 creds=${bashDollar}(cat ${bashDollar}{HOME}/docker_credentials)
 
 # Log into docker. Retry several times.
 i=0
 while [[ ${bashDollar}i -le 5 ]]; do
+    # don't exit if docker command fails - retry instead
+    set +e
     # TODO: use credential helper instead https://docs.docker.com/engine/reference/commandline/login/
     echo ${bashDollar}{creds} | docker login ${bashDollar}{DOCKER_REGISTRY} -u ${bashDollar}{DOCKER_USERNAME} --password-stdin
     rc=${bashDollar}?
+    set -e
     if [[ ${bashDollar}rc == 0 ]]; then
         break
     fi
@@ -38,6 +41,6 @@ while [[ ${bashDollar}i -le 5 ]]; do
     echo "retry docker login (${bashDollar}i)"
 done
 
-set -e
+set -x
 
 rm -f ${bashDollar}{HOME}/docker_credentials
