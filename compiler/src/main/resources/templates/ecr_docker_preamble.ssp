@@ -23,8 +23,11 @@ if [[ ${bashDollar}num_lines != 1 ]]; then
 fi
 dx download ${bashDollar}{AWS_CREDENTIALS} -o ${bashDollar}{HOME}/.aws/credentials
 
-# install the aws client
-apt update -y && apt install -y awscli
+# disable echo to avoid logging password
+set +x
+
+# install the aws client to /usr/local/bin
+unzip /usr/bin/awscliv2.zip && ./aws/install && rm -Rf ./aws
 
 # get the password from the aws client
 password=${bashDollar}(aws ecr get-login-password --region ${bashDollar}{AWS_REGION})
@@ -32,9 +35,9 @@ password=${bashDollar}(aws ecr get-login-password --region ${bashDollar}{AWS_REG
 # Log into docker. Retry several times.
 i=0
 while [[ ${bashDollar}i -le 5 ]]; do
-    # disable echo to avoid logging password
-    # TODO: use credential helper instead https://docs.docker.com/engine/reference/commandline/login/
+    # don't exit if docker command fails - retry instead
     set +e
+    # TODO: use credential helper instead https://docs.docker.com/engine/reference/commandline/login/
     echo ${bashDollar}{password} | docker login ${bashDollar}{DOCKER_REGISTRY} --username AWS --password-stdin
     rc=${bashDollar}?
     set -e
@@ -45,6 +48,8 @@ while [[ ${bashDollar}i -le 5 ]]; do
     sleep 3
     echo "retry docker login (${bashDollar}i)"
 done
+
+set -x
 
 # cleanup
 apt autoclean -y && apt purge -y awscli

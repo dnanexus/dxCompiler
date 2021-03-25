@@ -1,5 +1,9 @@
 # Release Notes
 
+## 2.4.1 03-25-2021
+
+* Fixes AWS ECR issues: bundles AWS CLI with executor rather than installing at runtime
+
 ## 2.4.0 03-18-2021
 
 * Adds `-useManifests` option to generate applets and workflows whose inputs and outputs are manifest files
