@@ -315,9 +315,10 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         * @return
         */
       def lookup(fqn: String): Option[(String, LinkedVar)] = {
-        if (env.contains(fqn)) {
+        val fqnEncoded = Parameter.encodeName(fqn)
+        if (env.contains(fqnEncoded)) {
           // exact match
-          Some(fqn, env(fqn))
+          Some(fqn, env(fqnEncoded))
         } else {
           // A/B/C --> B/C
           fqn.indexOf("/") match {
@@ -614,12 +615,12 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
               s"there must be at least one 'outputSource' for parameter ${param.name}"
           )
         }
-        param.outputSource.map(source => Parameter.encodeName(source.frag.get))
+        param.outputSource.map(source => source.frag.get)
       }.toSet
       logger.trace(s"paramNames: ${paramNames}")
       val (applicationInputs, stageInputs) = paramNames.map { name =>
-        env.get(name) match {
-          case Some((param, stageInput)) => (param, stageInput)
+        env.lookup(name) match {
+          case Some((_, (param, stageInput))) => (param, stageInput)
           case None =>
             throw new Exception(s"parameter ${name} missing from CallEnv")
         }
@@ -689,12 +690,9 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
     ): (Workflow, Vector[Callable], Vector[(Parameter, StageInput)]) = {
       val wfInputParams = inputs.map(createWorkflowInput)
       val wfInputLinks: Vector[LinkedVar] = wfInputParams.map(p => (p, WorkflowInput(p)))
-      val (backboneInputs, commonStageInfo) = if (useManifests || subBlocks.isEmpty) {
+      val (backboneInputs, commonStageInfo) = if (useManifests) {
         // If we are using manifests, we need an initial applet to merge multiple
         // manifests into a single manifest.
-        // If this workflow has no steps (unlikely, but there is at least one conformance
-        // test where this is the case), then the worklfow will consist of only the
-        // common applet.
         val commonStageInputs = wfInputParams.map(p => WorkflowInput(p))
         val inputOutputs: Vector[Parameter] = inputs.map { i =>
           Parameter(i.name, CwlUtils.toIRType(i.cwlType))
@@ -721,11 +719,14 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       )
       val (stages, auxCallables) = (commonStageInfo ++ backboneStageInfo).unzip
 
-      // We need a common output stage for either of two reasons:
+      // We need a common output stage for any of these reasons:
       // 1. we need to build an output manifest
-      val useOutputStage = useManifests || {
-        // 2. there are outputs that need to be merged
-        // 3. an output is used directly as an input
+      // 2. there are no workflow steps (unlikely, but there is at least one conformance
+      // test where this is the case), then the worklfow will consist of only the
+      // output applet.
+      val useOutputStage = useManifests || backboneStageInfo.isEmpty || {
+        // 3. there are outputs that need to be merged
+        // 4. an output is used directly as an input
         // For example, in the small workflow below, 'lane' is used in such a manner.
         //
         // workflow inner {

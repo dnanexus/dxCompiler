@@ -53,7 +53,8 @@ object CwlWorkflowExecutor {
   def create(jobMeta: JobMeta, separateOutputs: Boolean): CwlWorkflowExecutor = {
     val parser = Parser.create(hintSchemas = Vector(DxHintSchema))
     parser.detectVersionAndClass(jobMeta.sourceCode) match {
-      case Some((version, "CommandLineTool")) if Language.parse(version) == Language.CwlV1_2 => ()
+      case Some((version, "Workflow")) if Language.parse(version) == Language.CwlV1_2 =>
+        ()
       case _ =>
         throw new Exception(
             s"""source code does not appear to be a CWL Workflow document of a supported version
