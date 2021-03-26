@@ -2,8 +2,8 @@ package dx.executor.cwl
 
 import dx.api.DxExecution
 import dx.core.Constants
-import dx.core.ir.Type.TString
-import dx.core.ir.Value.{VNull, VString}
+import dx.core.ir.Type._
+import dx.core.ir.Value._
 import dx.core.ir.{
   Block,
   BlockKind,
@@ -43,7 +43,8 @@ import dx.cwl.{
   Parser,
   PickValueMethod,
   ScatterMethod,
-  Workflow
+  Workflow,
+  WorkflowOutputParameter
 }
 import dx.executor.{JobMeta, WorkflowExecutor}
 import dx.util.TraceLevel
@@ -166,7 +167,79 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
             (block.outputs, step.when.isDefined, step.scatter.nonEmpty)
         }
     }
+    logger.trace(s"outputParams=${outputParams}")
     val irOutputs = outputParams.map {
+      case param: WorkflowOutputParameter if param.outputSource.nonEmpty =>
+        val sources =
+          param.outputSource.map(id => jobInputs.getOrElse(id.name.get, (TMulti.Any, VNull)))
+        val isArray = param.cwlType match {
+          case _: CwlArray => true
+          case CwlMulti(types) =>
+            types.exists {
+              case _: CwlArray => true
+              case _           => false
+            }
+          case _ => false
+        }
+        val (irType, irValue) = if (sources.size == 1) {
+          sources.head
+        } else {
+          val mergedValues = if (isArray) {
+            param.linkMerge.getOrElse(LinkMergeMethod.MergeNested) match {
+              case LinkMergeMethod.MergeNested => sources
+              case LinkMergeMethod.MergeFlattened =>
+                sources.flatMap {
+                  case (TArray(itemType, _), VArray(items)) =>
+                    Iterator.continually(itemType).zip(items).toVector
+                  case value => Vector(value)
+                }
+            }
+          } else if (param.linkMerge.nonEmpty) {
+            throw new Exception(s"param ${param} is not of array type but specifies linkMerge")
+          } else {
+            sources
+          }
+          val pickedValues = if (param.pickValue.nonEmpty) {
+            val nonNull = mergedValues.filterNot(_._2 == VNull)
+            param.pickValue.get match {
+              case PickValueMethod.FirstNonNull =>
+                Vector(
+                    nonNull.headOption
+                      .getOrElse(
+                          throw new Exception(
+                              s"all source values are null for parameter ${param}"
+                          )
+                      )
+                )
+              case PickValueMethod.TheOnlyNonNull =>
+                if (nonNull.size == 1) {
+                  Vector(nonNull.head)
+                } else {
+                  throw new Exception(
+                      s"there is not exactly one non-null value for parameter ${param}"
+                  )
+                }
+              case PickValueMethod.AllNonNull => nonNull
+            }
+          } else {
+            mergedValues
+          }
+          if (isArray) {
+            val (types, values) = pickedValues.unzip
+            println("array:", types, values)
+            val irType = Type.merge(types)
+            (irType, Value.coerceTo(VArray(values), irType))
+          } else if (pickedValues.size == 1) {
+            pickedValues.head
+          } else if (pickedValues.size > 1) {
+            throw new Exception(
+                s"multiple output sources for non-array parameter ${param} that does not specify pickValue"
+            )
+          } else {
+            (TMulti.Any, VNull)
+          }
+        }
+        param.name -> (irType, irValue)
       case param if jobInputs.contains(param.name) =>
         val paramIrType = CwlUtils.toIRType(param.cwlType)
         val irType = (optional, array) match {

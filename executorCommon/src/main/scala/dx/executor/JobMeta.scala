@@ -441,8 +441,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
   @tailrec
   private def outputTypesEqual(expectedType: Type, actualType: Type): Boolean = {
     (expectedType, actualType) match {
-      case (a, b) if a == b       => true
-      case (a: Type.TOptional, b) =>
+      case (a, b) if a == b             => true
+      case (a, b) if Type.isOptional(a) =>
         // non-optional actual type is compatible with optional expected type
         outputTypesEqual(Type.unwrapOptional(a), Type.unwrapOptional(b))
       case (Type.TArray(a, false), Type.TArray(b, true)) =>
@@ -450,7 +450,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
         outputTypesEqual(a, b)
       case (a, b) if !Type.isNative(b) =>
         // non-native types are represented as hashes
-        outputTypesEqual(a, Type.THash)
+        a == Type.THash
       case _ => false
     }
   }
@@ -464,20 +464,31 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
       .getOrElse(Map.empty)
   }
 
-  private def validateOutput(name: String, actualType: Type): Unit = {
+  private def validateOutput(name: String, actualType: Type, value: Option[Value] = None): Unit = {
     logger.traceLimited(s"outputSpec:\n  ${outputSpec.mkString("\n  ")}")
     outputSpec.get(name) match {
-      case Some(t) if outputTypesEqual(t, actualType) => ()
-      case Some(t) if Type.unwrapOptional(t) == Type.THash =>
+      case Some(expectedType) if outputTypesEqual(expectedType, actualType) => ()
+      case Some(expectedType) if Type.unwrapOptional(expectedType) == Type.THash =>
         logger.trace(
             s"""expected type of output field ${name} is THash which may represent an
                |unknown schema type, so deserializing without type""".stripMargin
               .replaceAll("\n", " ")
         )
-      case Some(t) =>
+      case Some(expectedType) if value.isDefined =>
+        try {
+          // TODO: add a Type.coercibleTo function
+          logger.ignore(Value.coerceTo(value.get, expectedType))
+        } catch {
+          case _: Throwable =>
+            throw new Exception(
+                s"""value ${value} is not coercible to expected type ${expectedType}""".stripMargin
+                  .replaceAll("\n", " ")
+            )
+        }
+      case Some(expectedType) =>
         throw new Exception(
             s"""output field ${name} has mismatch between actual type ${actualType}
-               |and expected type ${t}""".stripMargin.replaceAll("\n", " ")
+               |and expected type ${expectedType}""".stripMargin.replaceAll("\n", " ")
         )
       case None =>
         logger.warning(s"outputSpec is missing field ${name}")
@@ -489,7 +500,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     // Otherwise, if we have access to the outputSpec, use it to validate the outputs.
     if (!useManifests) {
       outputs.foreach {
-        case (name, (actualType, _)) => validateOutput(name, actualType)
+        case (name, (actualType, value)) => validateOutput(name, actualType, Some(value))
       }
     }
     // write outputs, ignore null values - these could occur for optional
@@ -509,7 +520,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     outputs.collect {
       case (name, (actualType, value)) if value != VNull =>
         if (validate) {
-          validateOutput(name, actualType)
+          validateOutput(name, actualType, Some(value))
         }
         name -> outputSerializer.createLink(actualType, value)
     }
