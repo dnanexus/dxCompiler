@@ -142,6 +142,9 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
       logger.traceLimited("Evaluating workflow outputs")
     }
     val outputs = evaluateOutputs(jobInputs, addReorgStatus)
+    if (logger.isVerbose) {
+      logger.traceLimited(s"Outputs: ${outputs}")
+    }
     jobMeta.createOutputLinks(outputs)
   }
 

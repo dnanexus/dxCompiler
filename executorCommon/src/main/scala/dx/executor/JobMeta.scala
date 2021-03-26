@@ -455,29 +455,33 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     }
   }
 
-  lazy val outputSpec: Map[String, Type] = {
-    getExecutableAttribute("outputSpec")
+  private lazy val outputSpec: Map[String, Type] = {
+    val outputSpec: Map[String, Type] = getExecutableAttribute("outputSpec")
       .map {
         case JsArray(spec) => TypeSerde.fromNativeSpec(spec)
         case other         => throw new Exception(s"invalid outputSpec ${other}")
       }
       .getOrElse(Map.empty)
+    logger.traceLimited(s"outputSpec:\n  ${outputSpec.mkString("\n  ")}")
+    outputSpec
   }
 
-  private def validateOutput(name: String, actualType: Type, value: Option[Value] = None): Unit = {
-    logger.traceLimited(s"outputSpec:\n  ${outputSpec.mkString("\n  ")}")
+  private def validateOutput(name: String, actualType: Type, value: Option[Value] = None): Type = {
     outputSpec.get(name) match {
-      case Some(expectedType) if outputTypesEqual(expectedType, actualType) => ()
+      case Some(expectedType) if outputTypesEqual(expectedType, actualType) =>
+        expectedType
       case Some(expectedType) if Type.unwrapOptional(expectedType) == Type.THash =>
         logger.trace(
             s"""expected type of output field ${name} is THash which may represent an
                |unknown schema type, so deserializing without type""".stripMargin
               .replaceAll("\n", " ")
         )
+        expectedType
       case Some(expectedType) if value.isDefined =>
         try {
           // TODO: add a Type.coercibleTo function
           logger.ignore(Value.coerceTo(value.get, expectedType))
+          expectedType
         } catch {
           case _: Throwable =>
             throw new Exception(
@@ -492,6 +496,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
         )
       case None =>
         logger.warning(s"outputSpec is missing field ${name}")
+        actualType
     }
   }
 
@@ -519,10 +524,12 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
                         validate: Boolean = true): Map[String, ParameterLink] = {
     outputs.collect {
       case (name, (actualType, value)) if value != VNull =>
-        if (validate) {
+        val validatedType = if (validate) {
           validateOutput(name, actualType, Some(value))
+        } else {
+          actualType
         }
-        name -> outputSerializer.createLink(actualType, value)
+        name -> outputSerializer.createLink(validatedType, value)
     }
   }
 
@@ -548,12 +555,14 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
       )
     } else {
       irOutputFields.map {
-        case (fieldName, t) =>
+        case (fieldName, actualType) =>
           val fqn = prefix.map(p => s"${p}.${fieldName}").getOrElse(fieldName)
-          if (validate) {
-            validateOutput(Parameter.encodeName(fieldName), t)
+          val validatedType = if (validate) {
+            validateOutput(Parameter.encodeName(fieldName), actualType)
+          } else {
+            actualType
           }
-          fqn -> ParameterLinkExec(execution, fieldName, t)
+          fqn -> ParameterLinkExec(execution, fieldName, validatedType)
       }
     }
   }
@@ -636,16 +645,18 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     case Some(JsArray(arr)) if arr.nonEmpty =>
       arr.map {
         case JsNumber(n) => n.toInt
-        case _           => throw new Exception("Bad value ${arr}")
+        case other =>
+          throw new Exception(s"Invalid array item ${other} for ${Constants.BlockPath}")
       }
     case Some(_: JsArray) | None => Vector.empty
-    case other                   => throw new Exception(s"Bad value ${other}")
+    case other =>
+      throw new Exception(s"Invalid value ${other} for ${Constants.BlockPath}")
   }
 
   lazy val scatterStart: Int = getJobDetail(Constants.ContinueStart) match {
     case Some(JsNumber(s)) => s.toIntExact
     case Some(other) =>
-      throw new Exception(s"Invalid value ${other} for  ${Constants.ContinueStart}")
+      throw new Exception(s"Invalid value ${other} for ${Constants.ContinueStart}")
     case _ => 0
   }
 
