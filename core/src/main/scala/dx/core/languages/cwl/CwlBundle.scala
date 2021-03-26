@@ -72,11 +72,17 @@ object CwlBundle {
       hints
     }
     process match {
-      case tool: CommandLineTool if !tools.contains(tool.id.get) =>
+      case tool: CommandLineTool if tools.contains(tool.id.get) =>
+        (tools, expressions, workflows, newReqs, newHints)
+      case tool: CommandLineTool =>
         (tools + (tool.id.get -> tool), expressions, workflows, newReqs, newHints)
-      case tool: ExpressionTool if !expressions.contains(tool.id.get) =>
+      case tool: ExpressionTool if expressions.contains(tool.id.get) =>
+        (tools, expressions, workflows, newReqs, newHints)
+      case tool: ExpressionTool =>
         (tools, expressions + (tool.id.get -> tool), workflows, newReqs, newHints)
-      case wf: Workflow if !workflows.contains(wf.id.get) =>
+      case wf: Workflow if workflows.contains(wf.id.get) =>
+        (tools, expressions, workflows, newReqs, newHints)
+      case wf: Workflow =>
         val newWorkflows = workflows + (wf.id.get -> wf)
         wf.steps.foldLeft(tools, expressions, newWorkflows, newReqs, newHints) {
           case ((toolAccu, exprAccu, wfAccu, reqAccu, hintAccu), step) =>
@@ -96,7 +102,11 @@ object CwlBundle {
 
   def create(process: Process): CwlBundle = {
     val version = process.cwlVersion.getOrElse(
-        throw new Exception(s"top-level process does not have a version ${process}")
+        // due to https://github.com/common-workflow-lab/cwljava/issues/43
+        // the version does not get set when parsing packed workflows, so
+        // for now we assume v1.2 and hope for the best
+        CWLVersion.V1_2
+        //throw new Exception(s"top-level process does not have a version ${process}")
     )
     process match {
       case tool: CommandLineTool =>

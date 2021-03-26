@@ -315,11 +315,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         * @return
         */
       def lookup(fqn: String): Option[(String, LinkedVar)] = {
-        val fqnEncoded = Parameter.encodeName(fqn)
-        if (env.contains(fqnEncoded)) {
-          // exact match
-          Some(fqn, env(fqnEncoded))
-        } else {
+        env.get(fqn).orElse(env.get(Parameter.encodeName(fqn))).map((fqn, _)).orElse {
           // A/B/C --> B/C
           fqn.indexOf("/") match {
             case pos if pos >= 0 => lookup(fqn.drop(pos + 1))
@@ -363,6 +359,10 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       }
 
       callInput match {
+        case None if Type.isOptional(calleeParam.dxType) =>
+          EmptyInput
+        case None if calleeParam.defaultValue.isDefined =>
+          EmptyInput
         case None if locked =>
           env.log()
           throw new Exception(
@@ -371,8 +371,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
                 .replaceAll("\n", " ")
           )
         case None =>
-          // the argument may be optional, may have a default, or the callee may not
-          // use the argument - defer until runtime
+          // the callee may not use the argument - defer until runtime
           EmptyInput
         case Some(inp) if inp.source.isEmpty =>
           EmptyInput

@@ -286,11 +286,18 @@ def get_cwl_json_metadata(filename, tname):
     with open(filename, 'r') as fd:
         doc = json.load(fd)
 
-    if doc["class"] == "Workflow":
-        # the workflow id in a packed CWL file is always "main"
-        # so we use the test name instead
-        name = doc.get("id", tname)
-        return TestMetaData(name=tname, kind="workflow")
+    if "class" in doc:
+        if doc["class"] == "Workflow":
+            # the workflow id in a packed CWL file is always "main"
+            # so we use the test name instead
+            return TestMetaData(name=tname, kind="workflow")
+    elif "$graph" in doc:
+        for proc in doc["$graph"]:
+            if proc["id"] == "#main":
+                if proc["class"] == "Workflow":
+                    return TestMetaData(name=tname, kind="workflow")
+                else:
+                    break
 
     raise RuntimeError("{} is not a valid CWL workflow test".format(filename))
 
