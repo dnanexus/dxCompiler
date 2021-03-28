@@ -523,7 +523,9 @@ object CwlUtils {
     */
   def isSimpleCall(step: WorkflowStep): Boolean = {
     step.scatter.isEmpty && step.when.isEmpty && step.inputs.forall { inp =>
-      inp.source.size <= 1
+      // if there is more than one source, a fragment is required to merge them
+      // if there is a valueFrom, a fragment is required to evaluate it
+      inp.sources.size <= 1 && inp.valueFrom.isEmpty
     }
   }
 
@@ -555,10 +557,9 @@ object CwlUtils {
     val values = env
       .map {
         case (key, (_, value)) if inputParameters.contains(key) =>
-          key -> EvaluatorContext.finalizeInputValue(value,
-                                                     inputParameters(key),
-                                                     inputDir,
-                                                     fileResolver)
+          val param = inputParameters(key)
+          key -> EvaluatorContext
+            .finalizeInputValue(value, param.cwlType, param, inputDir, fileResolver)
         case (key, (_, value)) => key -> value
       }
       .to(TreeSeqMap)

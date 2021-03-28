@@ -29,7 +29,7 @@ abstract class WorkflowTranslator(wfName: String,
 
   protected def isLocked: Boolean
 
-  protected def standAloneWorkflow(setTarget: Boolean): SourceCode
+  protected def standAloneWorkflow: SourceCode
 
   // generate a stage Id, this is a string of the form: 'stage-xxx'
   protected val fragNumIter: Iterator[Int] = Iterator.from(0)
@@ -65,7 +65,7 @@ abstract class WorkflowTranslator(wfName: String,
         DefaultInstanceType,
         NoImage,
         ExecutableKindWfInputs(blockPath),
-        standAloneWorkflow(setTarget = false)
+        standAloneWorkflow
     )
     logger.trace(s"Compiling common applet ${applet.name}")
     val stage = Stage(
@@ -96,7 +96,7 @@ abstract class WorkflowTranslator(wfName: String,
         DefaultInstanceType,
         NoImage,
         ExecutableKindWorkflowOutputReorg,
-        standAloneWorkflow(setTarget = false)
+        standAloneWorkflow
     )
     logger.trace(s"Creating output reorganization applet ${applet.name}")
     // Link to the X.y original variables
@@ -136,7 +136,7 @@ abstract class WorkflowTranslator(wfName: String,
         DefaultInstanceType,
         NoImage,
         appletKind,
-        standAloneWorkflow(setTarget = false)
+        standAloneWorkflow
     )
     // Link to the X.y original variables
     val inputs: Vector[StageInput] = configFile match {

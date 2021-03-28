@@ -1429,9 +1429,9 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val innerName = outerScatterApplet.kind match {
       case frag: ExecutableKindWfFragment =>
         frag.scatterChunkSize shouldBe Some(10)
-        frag.calls match {
-          case Vector(innerName) => innerName
-          case _                 => throw new Exception(s"wrong calls ${frag.calls}")
+        frag.call match {
+          case Some(innerName) => innerName
+          case _               => throw new Exception(s"wrong calls ${frag.call}")
         }
       case _ => throw new Exception(s"wrong applet kind ${outerScatterApplet.kind}")
     }
@@ -1471,9 +1471,9 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val innerName = outerScatterApplet.kind match {
       case frag: ExecutableKindWfFragment =>
         frag.scatterChunkSize shouldBe Some(Constants.JobPerScatterDefault)
-        frag.calls match {
-          case Vector(innerName) => innerName
-          case _                 => throw new Exception(s"wrong calls ${frag.calls}")
+        frag.call match {
+          case Some(innerName) => innerName
+          case _               => throw new Exception(s"wrong calls ${frag.call}")
         }
       case _ => throw new Exception(s"wrong applet kind ${outerScatterApplet.kind}")
     }
@@ -1588,16 +1588,6 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
 
   it should "translate a packed CWL workflow" in {
     val path = pathFromBasename("cwl", "any-type-compat.cwl.json")
-    val args = path.toString :: cFlags
-    Main.compile(args.toVector) match {
-      case SuccessfulCompileIR(bundle) => bundle
-      case other =>
-        throw new Exception(s"expected success not ${other}")
-    }
-  }
-
-  it should "translate a packed CWL workflow II" in {
-    val path = pathFromBasename("cwl", "basename-fields-test.cwl.json")
     val args = path.toString :: cFlags
     Main.compile(args.toVector) match {
       case SuccessfulCompileIR(bundle) => bundle

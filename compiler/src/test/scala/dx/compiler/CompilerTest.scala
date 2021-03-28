@@ -1138,4 +1138,14 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileNativeNoTree]
   }
+
+  it should "compile a packed CWL workflow" in {
+    val path = pathFromBasename("cwl", "basename-fields-test.cwl.json")
+    val args = path.toString :: cFlags
+    Main.compile(args.toVector) match {
+      case _: SuccessfulCompileNativeNoTree => ()
+      case other =>
+        throw new Exception(s"expected success not ${other}")
+    }
+  }
 }

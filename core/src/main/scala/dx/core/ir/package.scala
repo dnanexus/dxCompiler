@@ -159,14 +159,14 @@ case object ExecutableKindApplet extends ExecutableKind
 
 /**
   * An applet that executes a workflow fragment.
-  * @param calls names of calls made in the fragment
+  * @param call names of calls made in the fragment
   * @param blockPath path to the block represented by this fragment
   * @param inputs mapping of input name to type, where names are encoded
   *               such that any dots are replaced with '\_\_\_'
   * @param scatterChunkSize maximum number of scatter jobs that can be
   *                         run at the same time
   */
-case class ExecutableKindWfFragment(calls: Vector[String],
+case class ExecutableKindWfFragment(call: Option[String],
                                     blockPath: Vector[Int],
                                     inputs: Map[String, Type],
                                     scatterChunkSize: Option[Int])

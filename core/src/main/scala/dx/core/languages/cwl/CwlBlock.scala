@@ -18,11 +18,13 @@ import scala.collection.immutable.TreeSeqMap
 
 sealed trait CwlBlockInput {
   val name: String
-  val cwlType: CwlType
+  def source: Parameter
   val kind: InputKind.InputKind
+
+  def cwlType: CwlType = source.cwlType
 }
 
-case class RequiredBlockInput(name: String, cwlType: CwlType) extends CwlBlockInput {
+case class RequiredBlockInput(name: String, source: Parameter) extends CwlBlockInput {
   val kind: InputKind.InputKind = InputKind.Required
 }
 
@@ -30,13 +32,13 @@ case class RequiredBlockInput(name: String, cwlType: CwlType) extends CwlBlockIn
   * An input that may be omitted by the caller. In that case the value will
   * be null (or None).
   */
-case class OptionalBlockInput(name: String, cwlType: CwlType) extends CwlBlockInput {
+case class OptionalBlockInput(name: String, source: Parameter) extends CwlBlockInput {
   val kind: InputKind.InputKind = InputKind.Optional
 }
 
 case class CwlBlock(index: Int,
-                    inputs: Vector[CwlBlockInput],
-                    outputs: Vector[OutputParameter],
+                    inputs: Map[String, CwlBlockInput],
+                    outputs: Map[String, OutputParameter],
                     steps: Vector[WorkflowStep],
                     inheritedRequirements: Vector[Requirement],
                     inheritedHints: Vector[Hint])
@@ -54,8 +56,7 @@ case class CwlBlock(index: Int,
       BlockKind.ConditionalOneCall
     } else {
       call.run match {
-        case _: ExpressionTool | _: CommandLineTool
-            if call.inputs.forall(inp => inp.source.size <= 1) =>
+        case _: ExpressionTool | _: CommandLineTool if CwlUtils.isSimpleCall(call) =>
           BlockKind.CallDirect
         case _ => BlockKind.CallFragment
       }
@@ -110,9 +111,9 @@ case class CwlBlock(index: Int,
     }
   }
 
-  override lazy val inputNames: Set[String] = inputs.map(_.name).toSet
+  override lazy val inputNames: Set[String] = inputs.keySet
 
-  override lazy val outputNames: Set[String] = outputs.map(_.name).toSet
+  override lazy val outputNames: Set[String] = outputs.keySet
 
   private def prettyFormatStep(step: WorkflowStep): String = {
     val parts = Vector(
@@ -153,10 +154,10 @@ case class CwlBlock(index: Int,
   }
 
   override lazy val prettyFormat: String = {
-    val inputStr = inputs.map { param =>
+    val inputStr = inputs.values.map { param =>
       s"${CwlUtils.prettyFormatType(param.cwlType)} ${param.name}"
     }
-    val outputStr = outputs.map { param =>
+    val outputStr = outputs.values.map { param =>
       s"${CwlUtils.prettyFormatType(param.cwlType)} ${param.name}"
     }
     val bodyStr = steps.map(prettyFormatStep).mkString("\n")
@@ -187,7 +188,7 @@ object CwlBlock {
       val (satisfied, unsatisfied) =
         steps.partition { step =>
           step.inputs.forall { inp =>
-            inp.source.forall {
+            inp.sources.forall {
               case id if id.parent.isDefined => deps.contains(id.parent.get)
               case id                        => wfInputs.contains(id.name.get)
             }
@@ -214,7 +215,7 @@ object CwlBlock {
             val inputSources: Vector[Map[String, CwlBlockInput]] = step.inputs.map { inp =>
               // sources of this step input - either a workflow input
               // like "file1" or a step output like "step1/file1"
-              val sources = inp.source.map { src =>
+              val sources = inp.sources.map { src =>
                 (src, src.frag.get)
               }
               val sourceParams = sources.foldLeft(Map.empty[String, Parameter]) {
@@ -249,9 +250,9 @@ object CwlBlock {
               sourceParams.map {
                 case (name, param) =>
                   if (hasDefault || CwlOptional.isOptional(param.cwlType)) {
-                    name -> OptionalBlockInput(name, param.cwlType)
+                    name -> OptionalBlockInput(name, param)
                   } else {
-                    name -> RequiredBlockInput(name, param.cwlType)
+                    name -> RequiredBlockInput(name, param)
                   }
               }
             }
@@ -280,8 +281,8 @@ object CwlBlock {
               throw new Exception(s"invalid or duplicate output parameter name ${out.name}")
           }
           CwlBlock(index,
-                   blockInputs.values.toVector,
-                   blockOutputs.values.toVector,
+                   blockInputs,
+                   blockOutputs,
                    Vector(step),
                    inheritedRequirements ++ wf.requirements,
                    inheritedHints ++ wf.hints)

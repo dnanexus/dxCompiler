@@ -254,7 +254,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
 
     private lazy val evaluator: Evaluator = Evaluator.default
 
-    override protected def standAloneWorkflow(setTarget: Boolean): SourceCode = {
+    override protected def standAloneWorkflow: SourceCode = {
       val docSource = wf.source.orElse(cwlBundle.primaryProcess.source) match {
         case Some(path) => Paths.get(path)
         case None =>
@@ -373,11 +373,11 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         case None =>
           // the callee may not use the argument - defer until runtime
           EmptyInput
-        case Some(inp) if inp.source.isEmpty =>
+        case Some(inp) if inp.sources.isEmpty =>
           EmptyInput
-        case Some(inp) if inp.source.size == 1 =>
+        case Some(inp) if inp.sources.size == 1 =>
           try {
-            lookup(inp.source.head.frag.get)
+            lookup(inp.sources.head.frag.get)
           } catch {
             case _: Throwable if inp.default.isDefined =>
               // the workflow step has a default that will be evaluated at runtime
@@ -445,7 +445,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       // closure required for the block - all the variables defined earlier
       // that are required to evaluate any expression. Some referenced
       // variables may be undefined because they are optional.
-      val (inputParams, stageInputs) = block.inputs.flatMap {
+      val (inputParams, stageInputs) = block.inputs.values.flatMap {
         case RequiredBlockInput(name, _) =>
           env.lookup(name) match {
             case Some((fqn, (param, stageInput))) =>
@@ -465,16 +465,16 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       // then compile the inner block into a sub-workflow. Also
       // Figure out the name of the callable - we need to link with
       // it when we get to the native phase.
-      val (stepName, newStepPath) = block.kind match {
+      val (calleeName, newStepPath) = block.kind match {
         case BlockKind.CallDirect =>
           throw new Exception(s"a direct call should not reach this stage")
         case BlockKind.CallFragment | BlockKind.ConditionalOneCall =>
           // a block with no nested sub-blocks, and a single call, or
           // a conditional with exactly one call in the sub-block
-          (Some(block.target.get.name), None)
+          (Some(block.target.get.run.name), None)
         case BlockKind.ScatterOneCall =>
           // a scatter with exactly one call in the sub-block
-          val stepName = block.target.get.name
+          val stepName = block.target.get.run.name
           val newScatterPath = stepPath.map(p => s"${p}.${stepName}").getOrElse(stepName)
           (Some(stepName), Some(newScatterPath))
         case _ =>
@@ -502,10 +502,10 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         }
       }
 
-      val outputParams: Vector[Parameter] = block.outputs.map { param =>
+      val outputParams: Vector[Parameter] = block.outputs.values.map { param =>
         val irType = CwlUtils.toIRType(param.cwlType)
         Parameter(param.name, irType)
-      }
+      }.toVector
 
       // create the type map that will be serialized in the applet's details
       val fqnDictTypes: Map[String, Type] = inputParams.map { param: Parameter =>
@@ -514,15 +514,15 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
 
       val applet = Application(
           s"${wfName}_frag_${getStageId()}",
-          inputParams,
+          inputParams.toVector,
           outputParams,
           DefaultInstanceType,
           NoImage,
-          ExecutableKindWfFragment(stepName.toVector, blockPath, fqnDictTypes, scatterChunkSize),
-          standAloneWorkflow(setTarget = true)
+          ExecutableKindWfFragment(calleeName, blockPath, fqnDictTypes, scatterChunkSize),
+          standAloneWorkflow
       )
 
-      (Stage(stageName, getStage(), applet.name, stageInputs, outputParams), applet)
+      (Stage(stageName, getStage(), applet.name, stageInputs.toVector, outputParams), applet)
     }
 
     private def createWorkflowStages(
@@ -609,12 +609,12 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
                                   blockPath: Vector[Int],
                                   env: CallEnv): (Stage, Application) = {
       val paramNames = outputs.flatMap { param =>
-        if (param.outputSource.isEmpty) {
+        if (param.sources.isEmpty) {
           throw new Exception(
               s"there must be at least one 'outputSource' for parameter ${param.name}"
           )
         }
-        param.outputSource.map(source => source.frag.get)
+        param.sources.map(source => source.frag.get)
       }.toSet
       logger.trace(s"paramNames: ${paramNames}")
       val (applicationInputs, stageInputs) = paramNames.map { name =>
@@ -653,7 +653,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           DefaultInstanceType,
           NoImage,
           applicationKind,
-          standAloneWorkflow(setTarget = false)
+          standAloneWorkflow
       )
       val stage = Stage(
           Constants.OutputStage,
@@ -743,8 +743,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         // a workflow output. It is only allowed to access a stage input/output.
         val inputNames = inputs.map(_.name).toSet
         outputs.exists { out =>
-          out.outputSource.size > 1 ||
-          out.outputSource.exists(_.frag.exists(inputNames.contains))
+          out.sources.size > 1 ||
+          out.sources.exists(_.frag.exists(inputNames.contains))
         }
       }
 
@@ -759,7 +759,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           val outputStage = env.get(out.name).map(_._2).getOrElse {
             // we know there is only one output source otherwise we'd be
             // using an output stage
-            val outputSource = out.outputSource.head
+            val outputSource = out.sources.head
             env
               .lookup(outputSource.frag.get)
               .map(_._2._2)
@@ -779,7 +779,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
                 wfInputLinks,
                 wfOutputs,
                 finalStages,
-                standAloneWorkflow(setTarget = level != Level.Top),
+                standAloneWorkflow,
                 locked = true,
                 level),
        finalCallables,
@@ -828,7 +828,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           wfInputs,
           wfOutputs,
           commonStg +: stages :+ outputStage,
-          standAloneWorkflow(setTarget = false),
+          standAloneWorkflow,
           locked = false,
           Level.Top
       )

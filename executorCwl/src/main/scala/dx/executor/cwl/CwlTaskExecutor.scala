@@ -294,8 +294,8 @@ case class CwlTaskExecutor(tool: Process,
         case other             => throw new Exception(s"unexpected cwltool outputs ${other}")
       }
       val cwlOutputs = outputParams.map {
-        case (name, param: WorkflowOutputParameter) if param.outputSource.nonEmpty =>
-          val sources = param.outputSource.map(id => allOutputs.getOrElse(id.name.get, JsNull))
+        case (name, param: WorkflowOutputParameter) if param.sources.nonEmpty =>
+          val sources = param.sources.map(id => allOutputs.getOrElse(id.name.get, JsNull))
           val isArray = param.cwlType match {
             case _: CwlArray => true
             case CwlMulti(types) =>
