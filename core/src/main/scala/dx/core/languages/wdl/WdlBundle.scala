@@ -76,6 +76,9 @@ object WdlBundle {
       case None if tasks.size == 1 => Some(tasks.values.head)
       case _                       => None
     }
+    println(" sources of WDL BUNDLE ")
+    println(s"${sources}")
+
     WdlBundle(doc.version.value,
               primaryCallable,
               tasks,

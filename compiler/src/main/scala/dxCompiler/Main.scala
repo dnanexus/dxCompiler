@@ -15,7 +15,6 @@ import dx.translator.{Extras, TranslatorFactory}
 import dx.util.protocols.DxFileAccessProtocol
 import dx.util.{Enum, FileSourceResolver, FileUtils, Logger, TraceLevel}
 import spray.json.{JsNull, JsValue}
-
 /**
   * Compiler CLI.
   */
@@ -429,6 +428,12 @@ object Main {
     } else {
       (rawBundle, baseFileResolver)
     }
+
+    logger.warning(" _____ ____ ____ ")
+    logger.warning(s"${bundle.primaryCallable}")
+    logger.warning(s"${bundle.allCallables}")
+    logger.warning(s"${bundle.dependencies}")
+    logger.warning(s"${bundle.typeAliases}")
 
     try {
       val dxPathConfig = DxWorkerPaths.default
