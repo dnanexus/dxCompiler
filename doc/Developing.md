@@ -3,12 +3,13 @@
 ## Setting up your development environment
 
 * Install JDK 8
-  * On mac with [homebrew]() installed:
+  * On mac with [homebrew](https://brew.sh/) installed:
     ```
     $ brew tap AdoptOpenJDK/openjdk
     $ brew cask install adoptopenjdk8
     # Use java_home to find the location of JAVA_HOME to set
     $ /usr/libexec/java_home -V
+    # We recommend adding the following line to ~/.zshrc
     $ export JAVA_HOME=/Library/Java/...
     ```
   * On Linux (assuming Ubuntu 16.04)
@@ -206,4 +207,3 @@ dx clearenv
   ```
   this will take a while. It builds the release on staging, runs multi-region tests on staging (one test per region), builds on production, and creates an easy to use Docker image, which is pushed to DockerHub.
 - Update [releases](https://github.com/dnanexus/dxCompiler/releases) GitHub page, use the `Draft a new release` button, and upload the dxCompiler JAR file.
-
