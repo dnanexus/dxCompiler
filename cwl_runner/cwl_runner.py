@@ -27,7 +27,7 @@ dx_input = input_utils.write_dx_input(inputs, args.jobfile)
 
 utils.print_if_verbose("Running process file...", not args.quiet)
 # TODO: how to find dxcompiler name?
-job, log = run_cwl("dxCompiler-2.4.1.jar", args.processfile, dx_input, verbose=not args.quiet)
+job, log = run_cwl("dxCompiler.jar", args.processfile, dx_input, verbose=not args.quiet)
 utils.print_if_verbose(log, not args.quiet, file=sys.stderr)
 
 utils.print_if_verbose("Creating outputs...", not args.quiet)

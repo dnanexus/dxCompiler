@@ -31,7 +31,6 @@ def get_modified_input(i):
 def create_dx_input(jobfile):
     # issues:
     #         if file does not exist, exception is thrown and no json is generated, even if some files were uploaded
-    #         no filename can start with "dx://" - its existence on the platform is already assumed
     with open(jobfile) as input_file:
         inputs = json.load(input_file)
         for i in inputs:
