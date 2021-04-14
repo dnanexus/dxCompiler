@@ -16,7 +16,8 @@ import java.nio.file.Files
 object CwlTaskExecutor {
   def create(jobMeta: JobMeta,
              fileUploader: FileUploader,
-             streamFiles: StreamFiles): CwlTaskExecutor = {
+             streamFiles: StreamFiles,
+             waitOnUpload: Boolean): CwlTaskExecutor = {
     val parser = Parser.create(hintSchemas = Vector(DxHintSchema))
     parser.detectVersionAndClass(jobMeta.sourceCode) match {
       case Some((version, "CommandLineTool")) if Language.parse(version) == Language.CwlV1_2 => ()
@@ -36,7 +37,7 @@ object CwlTaskExecutor {
         case other =>
           throw new Exception(s"expected CWL document to contain a CommandLineTool, not ${other}")
       }
-    CwlTaskExecutor(tool, jobMeta, fileUploader, streamFiles)
+    CwlTaskExecutor(tool, jobMeta, fileUploader, streamFiles, waitOnUpload)
   }
 }
 
@@ -51,8 +52,9 @@ object CwlTaskExecutor {
 case class CwlTaskExecutor(tool: CommandLineTool,
                            jobMeta: JobMeta,
                            fileUploader: FileUploader,
-                           streamFiles: StreamFiles)
-    extends TaskExecutor(jobMeta, fileUploader, streamFiles) {
+                           streamFiles: StreamFiles,
+                           waitOnUpload: Boolean)
+    extends TaskExecutor(jobMeta, fileUploader, streamFiles, waitOnUpload) {
 
   private val dxApi = jobMeta.dxApi
   private val logger = jobMeta.logger

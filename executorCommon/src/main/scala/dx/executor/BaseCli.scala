@@ -11,7 +11,8 @@ abstract class BaseCli {
 
   def createTaskExecutor(meta: JobMeta,
                          fileUploader: FileUploader,
-                         streamFiles: StreamFiles.StreamFiles): TaskExecutor
+                         streamFiles: StreamFiles.StreamFiles,
+                         waitOnUpload: Boolean): TaskExecutor
 
   def createWorkflowExecutor(meta: JobMeta, separateOutputs: Boolean): WorkflowExecutor[_]
 
@@ -24,7 +25,8 @@ abstract class BaseCli {
   private val CommonOptions: Map[String, OptionSpec] = Map(
       "streamFiles" -> StreamFilesOptionSpec,
       "streamAllFiles" -> FlagOptionSpec.default,
-      "separateOutputs" -> FlagOptionSpec.default
+      "separateOutputs" -> FlagOptionSpec.default,
+      "waitOnUpload" -> FlagOptionSpec.default
   )
 
   object ExecutorKind extends Enum {
@@ -52,7 +54,7 @@ abstract class BaseCli {
         case e: OptionParseException =>
           return BadUsageTermination("Error parsing command line options", Some(e))
       }
-    initLogger(options)
+    val logger = initLogger(options)
     try {
       val jobMeta = WorkerJobMeta(DxWorkerPaths(rootDir))
       kind match {
@@ -71,7 +73,15 @@ abstract class BaseCli {
             case None if options.getFlag("streamAllFiles") => StreamFiles.All
             case None                                      => StreamFiles.PerFile
           }
-          val taskExecutor = createTaskExecutor(jobMeta, fileUploader, streamFiles)
+          val waitOnUpload = options.getFlag("waitOnUpload")
+
+          // TODO REVERT LOGGING
+          logger.info(
+            s"--> Creating TaskExecutor: streamFiles ${streamFiles}, waitOnUpload ${waitOnUpload}"
+          )
+
+          // TODO REVERT, JUST TESTING
+          val taskExecutor = createTaskExecutor(jobMeta, fileUploader, streamFiles, waitOnUpload = true)
           val successMessage = taskExecutor.apply(taskAction)
           Success(successMessage)
         case ExecutorKind.Workflow =>
