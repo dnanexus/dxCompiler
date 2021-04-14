@@ -11,7 +11,8 @@ abstract class BaseCli {
 
   def createTaskExecutor(meta: JobMeta,
                          fileUploader: FileUploader,
-                         streamFiles: StreamFiles.StreamFiles): TaskExecutor
+                         streamFiles: StreamFiles.StreamFiles,
+                         waitOnUpload: Boolean): TaskExecutor
 
   def createWorkflowExecutor(meta: JobMeta, separateOutputs: Boolean): WorkflowExecutor[_]
 
@@ -24,7 +25,8 @@ abstract class BaseCli {
   private val CommonOptions: Map[String, OptionSpec] = Map(
       "streamFiles" -> StreamFilesOptionSpec,
       "streamAllFiles" -> FlagOptionSpec.default,
-      "separateOutputs" -> FlagOptionSpec.default
+      "separateOutputs" -> FlagOptionSpec.default,
+      "waitOnUpload" -> FlagOptionSpec.default
   )
 
   object ExecutorKind extends Enum {
@@ -71,7 +73,8 @@ abstract class BaseCli {
             case None if options.getFlag("streamAllFiles") => StreamFiles.All
             case None                                      => StreamFiles.PerFile
           }
-          val taskExecutor = createTaskExecutor(jobMeta, fileUploader, streamFiles)
+          val waitOnUpload = options.getFlag("waitOnUpload") != false
+          val taskExecutor = createTaskExecutor(jobMeta, fileUploader, streamFiles, waitOnUpload)
           val successMessage = taskExecutor.apply(taskAction)
           Success(successMessage)
         case ExecutorKind.Workflow =>

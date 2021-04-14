@@ -139,7 +139,8 @@ object Main {
       "streamFiles" -> StreamFilesOptionSpec,
       "streamAllFiles" -> FlagOptionSpec.default,
       "scatterChunkSize" -> IntOptionSpec.one,
-      "useManifests" -> FlagOptionSpec.default
+      "useManifests" -> FlagOptionSpec.default,
+      "waitOnUpload" -> FlagOptionSpec.default
   )
 
   private val DeprecatedCompileOptions = Set(
