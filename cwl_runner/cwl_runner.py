@@ -11,6 +11,8 @@ import constants as C
 def run_cwl(dxCompiler, processfile, dx_input, verbose=True):
     applet = utils.run_cmd(f"java -jar {dxCompiler} compile {processfile} -force -folder {C.test_dx_folder} -project {C.current_dx_project} -locked -inputs {dx_input}", returnOutput=True)
     new_dx_input = input_utils.get_new_dx_input(dx_input)
+
+    utils.print_if_verbose(f"Running {applet} with {new_dx_input} input.", verbose)
     job = utils.run_cmd(f"dx run {applet} -f {new_dx_input} -y --brief", returnOutput=True)
 
     utils.print_if_verbose(f"Waiting for {job} to finish...", verbose)
