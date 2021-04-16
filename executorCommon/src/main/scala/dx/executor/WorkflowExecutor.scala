@@ -208,7 +208,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
       )
       .collectFirstDefined {
         case a if a.dependsOn.exists(_.nonEmpty) =>
-          Thread.sleep(1000)
+          Thread.sleep(3000)
           None
         case a => Some(a)
       }

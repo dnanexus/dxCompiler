@@ -77,7 +77,7 @@ def main(reorg_conf___=None, reorg_status___=None):
     while True:
         analysis_desc = dxpy.describe(analysis_id)
         if analysis_desc.get("dependsOn"):
-            time.sleep(1)
+            time.sleep(3)
         else:
             break
             
