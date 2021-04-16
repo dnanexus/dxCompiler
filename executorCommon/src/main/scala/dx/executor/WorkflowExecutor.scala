@@ -199,7 +199,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
   }
 
   private def getAnalysisOutputFiles(analysis: DxAnalysis): Map[String, DxFile] = {
-    // the analysis is updated ansynchronously, so we need to check the dependsOn field
+    // the analysis is updated asynchronously, so we need to check the dependsOn field
     // to determine if it is still waiting on the output of a previous stage before we
     // can proceed with the reorg
     val desc = Iterator

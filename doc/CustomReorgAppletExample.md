@@ -59,7 +59,7 @@ The applet code does the following.
 
 ```
 import json
-
+import time
 import dxpy
 
 @dxpy.entry_point('main')
@@ -73,7 +73,15 @@ def main(reorg_conf___=None, reorg_status___=None):
 
     # find the output stage of the current analysis
     analysis_id = dxpy.describe(dxpy.JOB_ID)["analysis"]
-    stages = dxpy.describe(analysis_id)["stages"]
+    # describe the analysis in a loop until dependsOn is empty
+    while True:
+        analysis_desc = dxpy.describe(analysis_id)
+        if analysis_desc.get("dependsOn"):
+            time.sleep(1)
+        else:
+            break
+            
+    stages = analysis_desc["stages"]
 
     # retrieve the dictionary containing outputs, where key is the name of output and value is the link to the file.
     output_map = [x['execution']['output'] for x in stages if x['id'] == 'stage-outputs'][0]
