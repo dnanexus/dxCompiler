@@ -74,12 +74,14 @@ def main(reorg_conf___=None, reorg_status___=None):
     # find the output stage of the current analysis
     analysis_id = dxpy.describe(dxpy.JOB_ID)["analysis"]
     # describe the analysis in a loop until dependsOn is empty
+    # or contains only this reorg job's ID
     while True:
         analysis_desc = dxpy.describe(analysis_id)
-        if analysis_desc.get("dependsOn"):
-            time.sleep(3)
-        else:
+        depends_on = analysis_desc.get("dependsOn")
+        if not depends_on or depends_on == [dxpy.JOB_ID]:
             break
+        else:
+            time.sleep(3)
             
     stages = analysis_desc["stages"]
 

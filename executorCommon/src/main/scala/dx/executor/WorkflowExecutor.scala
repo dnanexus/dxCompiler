@@ -206,11 +206,15 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
       .continually(
           analysis.describeNoCache(Set(Field.Input, Field.Output, Field.DependsOn))
       )
-      .collectFirstDefined {
-        case a if a.dependsOn.exists(_.nonEmpty) =>
-          Thread.sleep(3000)
-          None
-        case a => Some(a)
+      .collectFirstDefined { a =>
+        a.dependsOn match {
+          case Some(Vector(jobMeta.jobId)) => Some(a)
+          case Some(Vector())              => Some(a)
+          case None                        => Some(a)
+          case _ =>
+            Thread.sleep(3000)
+            None
+        }
       }
       .get
     val fileOutputs: Set[DxFile] = DxFile.findFiles(dxApi, desc.output.get).toSet
