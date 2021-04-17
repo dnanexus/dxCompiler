@@ -208,6 +208,10 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         CallEnv(env + (key -> lvar))
       }
 
+      def addAll(items: Vector[(String, LinkedVar)]): CallEnv = {
+        CallEnv(env ++ items)
+      }
+
       def contains(key: String): Boolean = env.contains(key)
 
       def keys: Set[String] = env.keySet
@@ -639,8 +643,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         case TAT.OutputParameter(name, wdlType, _, _) => name -> wdlType
       }.toMap
 
-      // create a cVar definition from each block output. The dx:stage
-      // will output these cVars.
+      // create a Parameter from each block output. The dx:stage
+      // will output these Parameter.
       val outputVars = outputs.map {
         case (fqn, wdlType) =>
           val irType = WdlUtils.toIRType(wdlType)
@@ -656,6 +660,17 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       logger
         .withTraceIfContainsKey("GenerateIR")
         .trace(s"category : ${block.kind}")
+
+      // complex conditional and scatter blocks may have private variables
+      // that need to be added to the environment for use in nested blocks
+      lazy val envWithPrivateVars: CallEnv = {
+        env.addAll(
+            block.prerequisiteVars.map {
+              case (name, wdlType) =>
+                name -> (Parameter(name, WdlUtils.toIRType(wdlType)), EmptyInput)
+            }
+        )
+      }
 
       val (innerCall, auxCallables, newScatterPath) =
         block.kind match {
@@ -679,7 +694,11 @@ case class CallableTranslator(wdlBundle: WdlBundle,
             // in the sub-block
             val conditional = block.conditional
             val (callable, aux) =
-              translateNestedBlock(wfName, conditional.body, blockPath, scatterPath, env)
+              translateNestedBlock(wfName,
+                                   conditional.body,
+                                   blockPath,
+                                   scatterPath,
+                                   envWithPrivateVars)
             (Some(callable.name), aux :+ callable, None)
           case BlockKind.ScatterComplex =>
             val scatter = block.scatter
@@ -690,7 +709,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                 throw new Exception("scatter doesn't have an array expression")
             }
             val param = Parameter(scatter.identifier, varType)
-            val innerEnv = env.add(scatter.identifier, (param, EmptyInput))
+            val innerEnv = envWithPrivateVars.add(scatter.identifier, (param, EmptyInput))
             val newScatterPath =
               scatterPath.map(p => s"${p}.${scatter.identifier}").getOrElse(scatter.identifier)
             val (callable, aux) =
