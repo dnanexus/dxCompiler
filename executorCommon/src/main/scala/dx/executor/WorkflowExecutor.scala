@@ -208,9 +208,8 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
       )
       .collectFirstDefined { a =>
         a.dependsOn match {
-          case Some(Vector(jobMeta.jobId)) => Some(a)
-          case Some(Vector())              => Some(a)
-          case None                        => Some(a)
+          case Some(Vector(jobId)) if jobId == jobMeta.jobId => Some(a)
+          case None | Some(Vector())                         => Some(a)
           case _ =>
             Thread.sleep(3000)
             None
