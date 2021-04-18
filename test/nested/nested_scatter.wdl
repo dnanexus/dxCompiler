@@ -8,7 +8,7 @@ workflow nested_scatter {
         scatter (y in ints2) {
             call xxx_add{ input: a = x, b = y }
 
-            Int i = ints1[x]
+            Int i = ints1[x-1]
             if (i < 3) {
                 String s = "hello ${x} ${y}"
             }
