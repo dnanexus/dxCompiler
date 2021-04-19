@@ -2,7 +2,6 @@
 
 ## in develop
 
-<<<<<<< HEAD
 * Fixes usage of a struct in a call argument
 
 ## 2.4.2 2021-04-20
@@ -11,11 +10,6 @@
 * Fixes issue with nested scatters that reference private variables from outer scopes
 
 ## 2.4.1 2021-03-25
-=======
-* Updates to wdlTools 0.12.8
-
-## 2.4.1 03-25-2021
->>>>>>> ddb2c2eb... updates to wdlTools-0.12.8, which fixes whitespace issue
 
 * Fixes AWS ECR issues: bundles AWS CLI with executor rather than installing at runtime
 
