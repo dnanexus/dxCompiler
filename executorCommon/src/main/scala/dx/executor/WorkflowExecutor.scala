@@ -8,6 +8,7 @@ import dx.core.Constants
 import dx.core.ir.{Block, ExecutableLink, Parameter, ParameterLink, Type, TypeSerde, Value}
 import spray.json._
 import dx.util.{Enum, TraceLevel}
+import dx.util.CollectionUtils.IterableOnceExtensions
 
 object WorkflowAction extends Enum {
   type WorkflowAction = Value
@@ -198,7 +199,23 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
   }
 
   private def getAnalysisOutputFiles(analysis: DxAnalysis): Map[String, DxFile] = {
-    val desc = analysis.describe(Set(Field.Input, Field.Output))
+    // the analysis is updated asynchronously, so we need to check the dependsOn field
+    // to determine if it is still waiting on the output of a previous stage before we
+    // can proceed with the reorg
+    val desc = Iterator
+      .continually(
+          analysis.describeNoCache(Set(Field.Input, Field.Output, Field.DependsOn))
+      )
+      .collectFirstDefined { a =>
+        a.dependsOn match {
+          case Some(Vector(jobId)) if jobId == jobMeta.jobId => Some(a)
+          case None | Some(Vector())                         => Some(a)
+          case _ =>
+            Thread.sleep(3000)
+            None
+        }
+      }
+      .get
     val fileOutputs: Set[DxFile] = DxFile.findFiles(dxApi, desc.output.get).toSet
     val fileInputs: Set[DxFile] = DxFile.findFiles(dxApi, desc.input.get).toSet
     val analysisFiles: Vector[DxFile] = (fileOutputs -- fileInputs).toVector
