@@ -1,5 +1,9 @@
 # Release Notes
 
+## in develop
+
+* Updates to wdlTools 0.12.8
+
 ## 2.4.1 03-25-2021
 
 * Fixes AWS ECR issues: bundles AWS CLI with executor rather than installing at runtime
