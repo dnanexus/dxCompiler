@@ -122,10 +122,17 @@ resolvers += githubResolver
 
 lazy val dependencies =
   new {
+<<<<<<< HEAD
     val dxCommonVersion = "0.2.14-SNAPSHOT"
     val dxApiVersion = "0.1.17-SNAPSHOT"
     val dxFileAccessProtocolsVersion = "0.1.5"
     val wdlToolsVersion = "0.12.9"
+=======
+    val dxCommonVersion = "0.2.11"
+    val dxApiVersion = "0.1.15"
+    val dxFileAccessProtocolsVersion = "0.1.4"
+    val wdlToolsVersion = "0.12.8"
+>>>>>>> ddb2c2eb... updates to wdlTools-0.12.8, which fixes whitespace issue
     val cwlScalaVersion = "0.3.4"
     val typesafeVersion = "1.3.3"
     val sprayVersion = "1.3.5"
