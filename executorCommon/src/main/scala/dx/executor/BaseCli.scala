@@ -54,7 +54,7 @@ abstract class BaseCli {
         case e: OptionParseException =>
           return BadUsageTermination("Error parsing command line options", Some(e))
       }
-    initLogger(options)
+    val logger = initLogger(options)
     try {
       val jobMeta = WorkerJobMeta(DxWorkerPaths(rootDir))
       kind match {
@@ -74,6 +74,11 @@ abstract class BaseCli {
             case None                                      => StreamFiles.PerFile
           }
           val waitOnUpload = options.getFlag("waitOnUpload") != false
+
+          // TODO DECREASE LOGGING LEVEL
+          logger.info(
+              s"--> Creating TaskExecutor: streamFiles ${streamFiles}, waitOnUpload ${waitOnUpload}"
+          )
           val taskExecutor = createTaskExecutor(jobMeta, fileUploader, streamFiles, waitOnUpload)
           val successMessage = taskExecutor.apply(taskAction)
           Success(successMessage)
