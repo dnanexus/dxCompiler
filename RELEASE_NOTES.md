@@ -1,5 +1,9 @@
 # Release Notes
 
+## in develop
+
+* Fixes issue with nested scatters that reference private variables from outer scopes
+
 ## 2.4.1 03-25-2021
 
 * Fixes AWS ECR issues: bundles AWS CLI with executor rather than installing at runtime
