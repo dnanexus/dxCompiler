@@ -3,6 +3,7 @@
 ## in develop
 
 * Updates to wdlTools 0.12.9
+* Fixes issue with nested scatters that reference private variables from outer scopes
 
 ## 2.4.1 03-25-2021
 
