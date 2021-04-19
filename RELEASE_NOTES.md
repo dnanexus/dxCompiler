@@ -2,7 +2,7 @@
 
 ## in develop
 
-* Updates to wdlTools 0.12.8
+* Updates to wdlTools 0.12.9
 
 ## 2.4.1 03-25-2021
 
