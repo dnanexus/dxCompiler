@@ -877,8 +877,6 @@ it may misplace or outright delete files. The applet:
 3. has to be careful about inputs that are *also* outputs. Normally, these should not be moved.
 4. should use bulk object operations, so as not to overload the API server.
 
-You must also be aware that the analysis information is updated in the platform's database asynchronously, so the result of calling `dx describe` on the analysis may not be up-to-date. The most reliable method for making sure you have an up-to-date analysis description is to call `dx describe` in a loop (waiting at least 3 seconds between iterations), and exit the loop when the `dependsOn` field returns an array that contains exactly one item - the ID of the reorg job itself. See the [example](CustomReorgAppletExample.md).  
-
 ## Adding config-file based reorg applet at compilation time
 
 In addition to using `--reorg` flag to add the reorg stage, you may also add a custom reorganization applet that takes an optional input by declaring a "customReorgAttributes" object in the JSON file used as parameter with `-extras`
