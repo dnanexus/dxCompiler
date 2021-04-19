@@ -59,7 +59,6 @@ The applet code does the following.
 
 ```
 import json
-import time
 import dxpy
 
 @dxpy.entry_point('main')
