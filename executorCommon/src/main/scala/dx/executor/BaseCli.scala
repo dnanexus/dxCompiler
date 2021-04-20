@@ -80,8 +80,7 @@ abstract class BaseCli {
               s"--> Creating TaskExecutor: streamFiles ${streamFiles}, waitOnUpload ${waitOnUpload}"
           )
 
-          // TODO REVERT, JUST TESTING
-          val taskExecutor = createTaskExecutor(jobMeta, fileUploader, streamFiles, waitOnUpload = true)
+          val taskExecutor = createTaskExecutor(jobMeta, fileUploader, streamFiles, waitOnUpload)
           val successMessage = taskExecutor.apply(taskAction)
           Success(successMessage)
         case ExecutorKind.Workflow =>
