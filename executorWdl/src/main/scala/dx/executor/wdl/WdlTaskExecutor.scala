@@ -19,7 +19,7 @@ object WdlTaskExecutor {
       fileUploader: FileUploader = SerialFileUploader(),
       streamFiles: StreamFiles.StreamFiles = StreamFiles.PerFile,
       regime: TypeCheckingRegime = TypeCheckingRegime.Moderate,
-      waitOnUpload: Boolean
+      waitOnUpload: Boolean = false
   ): WdlTaskExecutor = {
     val (doc, typeAliases, versionSupport) =
       VersionSupport.fromSourceString(jobMeta.sourceCode, jobMeta.fileResolver, regime)

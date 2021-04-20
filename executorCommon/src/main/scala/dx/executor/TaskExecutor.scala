@@ -37,8 +37,8 @@ object TaskExecutor {
 
 abstract class TaskExecutor(jobMeta: JobMeta,
                             fileUploader: FileUploader = SerialFileUploader(),
-                            streamFiles: StreamFiles.StreamFiles,
-                            waitOnUpload: Boolean,
+                            streamFiles: StreamFiles.StreamFiles = StreamFiles.PerFile,
+                            waitOnUpload: Boolean = false,
                             traceLengthLimit: Int = 10000) {
 
   private val fileResolver = jobMeta.fileResolver

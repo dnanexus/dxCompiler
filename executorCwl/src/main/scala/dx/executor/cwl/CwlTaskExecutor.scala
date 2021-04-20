@@ -2,12 +2,13 @@ package dx.executor.cwl
 
 import dx.api.{DxFile, InstanceTypeRequest}
 import dx.core.Constants
+import dx.core.io.StreamFiles
 import dx.cwl._
 import dx.core.io.StreamFiles.StreamFiles
 import dx.core.ir.{Parameter, Type, Value}
 import dx.core.languages.Language
 import dx.core.languages.cwl.{CwlUtils, DxHintSchema, RequirementEvaluator}
-import dx.executor.{FileUploader, JobMeta, TaskExecutor}
+import dx.executor.{FileUploader, JobMeta, SerialFileUploader, TaskExecutor}
 import dx.util.{DockerUtils, FileUtils, JsUtils, TraceLevel}
 import spray.json._
 
@@ -15,9 +16,9 @@ import java.nio.file.Files
 
 object CwlTaskExecutor {
   def create(jobMeta: JobMeta,
-             fileUploader: FileUploader,
-             streamFiles: StreamFiles,
-             waitOnUpload: Boolean): CwlTaskExecutor = {
+             fileUploader: FileUploader = SerialFileUploader(),
+             streamFiles: StreamFiles = StreamFiles.PerFile,
+             waitOnUpload: Boolean = false): CwlTaskExecutor = {
     val parser = Parser.create(hintSchemas = Vector(DxHintSchema))
     parser.detectVersionAndClass(jobMeta.sourceCode) match {
       case Some((version, "CommandLineTool")) if Language.parse(version) == Language.CwlV1_2 => ()
