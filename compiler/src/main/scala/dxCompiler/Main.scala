@@ -443,7 +443,8 @@ object Main {
           locked,
           projectWideReuse,
           separateOutputs,
-          streamAllFiles
+          streamAllFiles,
+          waitOnUpload
       ) = Vector(
           "archive",
           "force",
@@ -451,7 +452,8 @@ object Main {
           "locked",
           "projectWideReuse",
           "separateOutputs",
-          "streamAllFiles"
+          "streamAllFiles",
+          "waitOnUpload"
       ).map(options.getFlag(_))
       val streamFiles = options.getValue[StreamFiles.StreamFiles]("streamFiles") match {
         case Some(value)            => value
@@ -472,6 +474,7 @@ object Main {
           projectWideReuse,
           separateOutputs,
           streamFiles,
+          waitOnUpload,
           useManifests,
           fileResolver
       )
