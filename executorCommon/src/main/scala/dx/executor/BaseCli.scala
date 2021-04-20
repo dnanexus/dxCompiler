@@ -73,7 +73,7 @@ abstract class BaseCli {
             case None if options.getFlag("streamAllFiles") => StreamFiles.All
             case None                                      => StreamFiles.PerFile
           }
-          val waitOnUpload = options.getFlag("waitOnUpload") != false
+          val waitOnUpload = options.getFlag("waitOnUpload")
 
           // TODO REVERT LOGGING
           logger.info(
