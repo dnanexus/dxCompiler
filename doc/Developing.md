@@ -121,16 +121,16 @@ $ sbt clean
 $ sbt cleanFiles
 $ find . -name target | xargs rm -rf
 # cached resources used to build dx*rt
-$ rm -Rf applet_resources
+$ rm -rf applet_resources
 ```
 
 You may also need to delete artifiacts that have been cached on the platform:
 
 ```
-$ dx rm -r dxCompiler_playground:/builds/<username>/<version>
+$ username=`dx whoami`
+$ dx rm -r dxCompiler_playground:/builds/$username/<version>
+$ dx rm -rf dxCompiler_playground:/unit_tests/$username/
 ```
-
-Note: <username> is your local computer's user so if you run tests from root, it will be under root/ folder in dxCompiler_playground.
 
 Finally, run the integration tests. From the root dxCompiler directory, run `./scripts/run_tests.py`.
 
