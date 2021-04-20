@@ -77,7 +77,7 @@ abstract class BaseCli {
 
           // TODO REVERT LOGGING
           logger.info(
-            s"--> Creating TaskExecutor: streamFiles ${streamFiles}, waitOnUpload ${waitOnUpload}"
+              s"--> Creating TaskExecutor: streamFiles ${streamFiles}, waitOnUpload ${waitOnUpload}"
           )
 
           // TODO REVERT, JUST TESTING
