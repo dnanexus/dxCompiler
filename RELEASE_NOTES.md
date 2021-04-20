@@ -1,10 +1,15 @@
 # Release Notes
 
-## 2.4.1 03-25-2021
+## 2.4.2 2021-04-20
+
+* Updates to wdlTools 0.12.9
+* Fixes issue with nested scatters that reference private variables from outer scopes
+
+## 2.4.1 2021-03-25
 
 * Fixes AWS ECR issues: bundles AWS CLI with executor rather than installing at runtime
 
-## 2.4.0 03-18-2021
+## 2.4.0 2021-03-18
 
 * Adds `-useManifests` option to generate applets and workflows whose inputs and outputs are manifest files
 * Fixes issue with using both streaming and non-streaming file inputs in the same task
@@ -12,23 +17,23 @@
 * Updates to wdlTools 0.12.7, which provides compatibility for some non-complaint syntax allowed by Cromwell
 * Fixes `-separateOutputs` for scatter jobs
 
-## 2.3.1 03-03-2021
+## 2.3.1 2021-03-03
 
 * Fixes issue with call arguments that access fields of private declarations
 * Fixes issue with passing null to optional call parameters
 * Fixes common applet naming issue with complex nested workflows
 
-## 2.3.0 23-02-2021
+## 2.3.0 2021-02-23
 
 * Adds `-separateOutputs` option to store output from each call in a separate folder
 * Fixes issue with referencing optional variables in the command block
 * Ignores default values from native app stubs that can cause errors during compilation
 
-## 2.2.1 17-02-2021
+## 2.2.1 2021-02-17
 
 * Fix: native tasks now use instance type from native app/let, not wrapper task
 
-## 2.2.0 12-02-2021
+## 2.2.0 2021-02-12
 
 * DxNI handles native app(let)s with optional non-file object inputs
 * Sevaral additions/changes to extras.json:  
@@ -36,7 +41,7 @@
   * Adds support for configuring the chunk size for scatters (how many scatter jobs run concurrently)
   * All top-level keys are now camel-case (old-style names are still recognized)
 
-## 2.1.1 09-02-2021
+## 2.1.1 2021-02-09
 
 * Adds support for WDL v1.1
 * Fixes errors due to expression evaluator not handling values wrapped in V\_Optional
@@ -46,7 +51,7 @@
 * Fixes issue with task command blocks that begin with a placeholder
 * Upgraded dxfuse to 0.24.0
 
-## 2.1.0 04-02-2021
+## 2.1.0 2021-02-04
 
 * Update CWL parser to fix compilation of WDL tools with imports
 * Add CWL tool compilance tests to integration test suite
@@ -55,7 +60,7 @@
 * Added an implementation of the manifest format for WDL.
 * Update wdlTools to 0.12.1, dxCommon to 0.2.5, dxApi to 0.1.8, cwlScala to 0.3.4
 
-## 2.0.1 22-01-2021
+## 2.0.1 2021-01-22
 
 * Implement translator and executor for CWL (tools only)
 * Fix map keys and values being out of order
@@ -95,7 +100,7 @@ Development and codebase changes:
 * Changed the way the applet\_resources folder is used: common binaries are stored in sub-folders by version, each executor is built in its own sub-folder
 * Replaced Travis with Github Actions for unit and integration testing
 
-## 2.0.0 17-12-2020
+## 2.0.0 2020-12-17
 
 * Reorganizes dxCompiler code into subprojects, splits codebase into 5 subprojects:
   * core: shared code between front-end and back-end
@@ -116,7 +121,7 @@ Development and codebase changes:
 * Fixes conversion of Map schema to WDL Map type - unwrap key and value array types
 * Fixes comment parsing bug in WDL v2
  
-## 2.0.0-rc6 20-11-2020
+## 2.0.0-rc6 2020-11-20
 
 - Upgrades wdlTools to 0.11.0
 - Fixes the issue with type-checking struct-typed objects
@@ -129,7 +134,7 @@ Development and codebase changes:
 - Moves WDL type serialization code to wdlTools
 - Makes array type-checking less strict (to coerce between empty and non-empty array types)
 
-## 2.0.0-rc5 13-11-2020
+## 2.0.0-rc5 2020-11-13
 
 - Upgrades wdlTools to 0.10.5
 - Adds dxCommon dependency
@@ -140,7 +145,7 @@ Development and codebase changes:
 - Increases disambiguation dir limit to 5000
 - Simplifies job names
 
-## 2.0.0-rc4 08-10-2020
+## 2.0.0-rc4 2020-10-15
 
 - Upgrade wdlTools to 0.6.1
 - Upgrade dxda to 0.5.4
@@ -150,16 +155,16 @@ Development and codebase changes:
 - Fix name regexp in DxFindDataObjects
 - Additional fixes and improvements
 
-## 2.0.0-rc2 14-10-2020
+## 2.0.0-rc3 2020-09-16
 
 - Major code reorganization to separate the compiler from executor
 - Upgrade of dxda to v0.5.4 and dxfuse - to v0.22.4
 
-## 2.0.0-rc2
+## 2.0.0-rc2 2020-07-30
 
 - Mostly internal changes and code re-organization, in preparation for adding CWL support
 
-## 2.0.0-rc 25-Jun-2020
+## 2.0.0-rc 2020-06-25
 
 - Replaced WOM with `wdlTools`
 - TODO:
@@ -169,39 +174,39 @@ Development and codebase changes:
 - Replaced Travis with Github Actions for unit testing
 - Optimized bulk description of files by replacing `system/describeDataObjects` with `system/findDataObjects` API call and scoping file search to projects
 
-## 1.47.2 05-Jun-2020
+## 1.47.2 2020-06-05
 - Upgrade dx-download-agent (includes a fix to the early database close issue) 
 - Fix to describing billTo of a project
 
-## 1.47.1 26-May-2020
+## 1.47.1 2020-05-26
 - Log dxda and dxfuse version in applet execution
 
-## 1.47  14-May-2020
+## 1.47 2020-05-14
 - Improvements to `exectree` option
 - Upgrade dxfuse to v0.22.2
 - Bug fix in dx-download-agent (https://github.com/dnanexus/dxda/issues/34)
 
-## 1.46.4 8-Apr-2020
+## 1.46.4 2020-04-08
 - Limit scatters to 500 elements. Running more than that risks causing platform problems.
 - Uprade dxfuse to v0.22.1
 
-## 1.46.3 27-Mar-2020
+## 1.46.3 2020-03-27
 - fixed bug when describing a live (non-archived) hidden file.
 - Uprade dxfuse to v0.21
 
-## 1.46.2 18-Mar-2020
+## 1.46.2 2020-03-18
 - Do not use any of the test instances, or any instance with less than 2 CPUs and 3GiB or RAM for auxiliarly WDL jobs.
 
-## 1.46.1 17-Mar-2020
+## 1.46.1 2020-03-17
 - Do not use AWS nano instances for auxiliarly WDL jobs. They are not strong enough for the task.
 
-## 1.46 12-Mar-2020
+## 1.46 2020-03-12
 - Recognize DNAnexus-specific keys in task and workflow metadata
 - Recognize workflow parameter metadata
 - Optionally load task and workflow descriptions from README files
 - Updated dx-download-agent that reduces memory consumption. This is noticible on small instances with a limited amount of memory.
 
-## 1.45 3-Mar-2020
+## 1.45 2020-03-03
 - Upgrade packages to:
   - dxfuse v20
   - dx-download-agent with support for symbolic links
@@ -229,7 +234,7 @@ Development and codebase changes:
 }
 ```
 
-## 1.44 21-Feb-2020
+## 1.44 2020-02-21
 - Added support for additional parameter metadata:
   - group
   - label
@@ -238,14 +243,14 @@ Development and codebase changes:
   - dx_type
 - Fixed bug in project-wide-reuse option.
 
-## 1.43 11-Feb-2020
+## 1.43 2020-02-11
 - Providing a tree structure representing a compiled workflow via `--execTree pretty`
 - For the json structure use `--execTree json`
 - Added support for the parameter_meta: patterns to take an object: [docs/ExpertOptions](doc/ExpertOptions.md#parameter_meta-section)
 - Support the `ignoreReuse` and `delayWorkflowDestruction` in the extras file. More details are in the [expert options](https://github.com/dnanexus/dxWDL/blob/DEVEX-1499-support-job-reuse-flag/doc/ExpertOptions.md#job-reuse).
 
 
-## 1.42 23-Jan-2020
+## 1.42 2020-01-23
 - Providing a JSON structure representing a compiled workflow. This can be done with the command line flag `--execTree`. For example:
 
 ```
@@ -254,7 +259,7 @@ java -jar dxWDL-v1.42.jar compile CODE.wdl --project project-xxxx --execTree
 
 - Bug fix for case where the number of executions is large and requires multiple queries.
 
-## 1.41 21-Jan-2020
+## 1.41 2020-01-21
 - Added support for `patterns` and `help` in the `parameter_meta` section of a WDL task. For more information, see [docs/ExpertOptions](doc/ExpertOptions.md#parameter_meta-section)
 - Upgrade to Cromwell v48
 - Upgrade to dxfuse v0.17
@@ -269,26 +274,26 @@ java -jar dxWDL-v1.41.jar dxni --path /MY_APPLETS/assemble --project project-xxx
 "403 forbidden" http error code.
 
 
-## 1.40  19-Dec-2019
+## 1.40 2019-12-19
 - Replaced the dxjava package with scala code. The dnanexus calls now go through the low-level DXAPI java
 module.
 
 
-## 1.37.1 18-Dec-2019
+## 1.37.1 2019-12-18
 - Bug fix for calling a task inside a scatter with an optional that is not provided.
 
-## 1.37  16-Dec-2019
+## 1.37 2019-12-16
 
 - Fix issue with invalid WOM when compiling workflows containing sub-workflow with expression in output block while using custom reorg applet.
 - Warning message for custom reorg applet will only show when `--verbosity` is set.
 - Minor changes.
 
-## 1.36.1 22-Nov-2019
+## 1.36.1 2019-11-22
 
 - Upgraded to dxfuse version [0.13](https://github.com/dnanexus/dxfuse/releases/tag/v0.13)
 - Making dxfuse startup script more robust
 
-## 1.36 18-Nov-2019
+## 1.36 2019-11-18
 Added a mechanism for a custom reorganization applet, it can be used instead of the built in --reorg option.
 You can use it to reorganize workflow file results after it completes.
 
@@ -315,7 +320,7 @@ parameter_meta {
 - The checksum of an applet/workflow does not include the dxWDL version. This means that upgrading to
 a new dxWDL version does not require recompiling everything.
 
-## 1.35 24-Oct-2019
+## 1.35 2019-10-24
 - Support for GPU instances.
 
 If you want an instance that has a GPU chipset, set the `gpu` attribute to true. For example:
@@ -328,22 +333,23 @@ runtime {
 ```
 
 
-## 1.34 17-Oct-2019
+## 1.34 2019-10-17
 - Bug fix for handling of structs when creating task headers
 
-## 1.33 15-Oct-2019
+## 1.33 2019-10-15
 - Upgrade to Cromwell 47
 - Protect 300MiB of memory for dxfuse, if it is running. We don't want it killed by the OOM if the user
 processes use too much memory. This works only when using docker images.
 - Fixed bug with comparision of tasks.
 
-## 1.32 4-Oct-2019
+## 1.32 2019-10-04
 - Upgrade to Cromwell 46.1
 - Retrying docker pull at runtime.
 - Improved release script. Copies to geographically distributed regions with an app.
 - Fixed bug [#313](https://github.com/dnanexus/dxWDL/issues/313).
 
-## 1.31  30-Sep-2019
+## 1.31 2019-09-30
+
 - Renaming dxfs2 to [dxfuse](https://github.com/dnanexus/dxfuse). This
   is the official name for the DNAx FUSE filesystem.
 - [Prefer](https://github.com/dnanexus/dxWDL/issues/309) v2 instances over v1 instances.
