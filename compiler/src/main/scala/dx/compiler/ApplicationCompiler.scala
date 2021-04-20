@@ -103,6 +103,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         "runtimeJar" -> runtimeJar,
         "runtimeTraceLevel" -> runtimeTraceLevel,
         "streamFiles" -> streamFiles,
+        "waitOnUpload" -> waitOnUpload,
         "includeEpilog" -> applet.outputs.nonEmpty
     )
     applet.kind match {
