@@ -212,6 +212,6 @@ dx clearenv
 
 If dxCompiler needs to be enabled in a new DNAnexus region the following should be done in the staging & production environments:
 
-* dxCompiler requires WDL and CWL assets to be stored in a public "dxCompiler\_region" project. Please use these [scripts](/scripts/dxCompiler_projects_utils) to create a new project and add a "PUBLIC" invitee to these projects.
+* dxCompiler requires WDL and CWL assets to be stored in a public "dxCompiler\_region" project. Please use these [scripts](/scripts/dxCompiler_projects_utils) to create a new project and add a "PUBLIC" invitee to the project.
 * The release script that tests and releases dxCompiler in all regions needs to be [updated](/scripts/build_release.py#L33) (one line change).
-* The app used for copying the assets to different regions ([app-dxwdl_copy](/scripts/dxcompiler_copy)) needs to be enabled in the new region (please update `regionalOptions`, `whatsNew`, and increment the `version` of the app).
+* The app used for copying the assets to different regions during a release ([app-dxwdl_copy](/scripts/dxcompiler_copy)) needs to be enabled in the new region (please update `regionalOptions`, `whatsNew`, and increment the `version` of the app).
