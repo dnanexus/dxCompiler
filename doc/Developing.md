@@ -92,6 +92,12 @@ $ sbt compile
 
 If there are errors in your code, the compiler will fail with (hopefully useful) error messages.
 
+### Cleaning up artifacts & building
+
+Generate a staging token via the web UI and login with `dx login --staging --token <token>`.
+
+Run [scripts/clean_build.sh](scripts/clean_build.sh) to clean up existing artifacts (locally and on staging) and build new dxCompiler artifacts.
+
 ### Running unit tests
 
 You should always run the unit tests after every successful compile. Generally, you want to run `sbt testQuick`, which only runs the tests that failed previously, as well as the tests for any code you've modified since the last time you ran the tests. However, the first time you checkout the code (to make sure your development environment is set up correctly) and then right before you push any changes to the repository, you should run the full test suite using `sbt test`.
@@ -114,30 +120,14 @@ Note that only DNAnexus developers can set up a label on a PR so let us know whe
 
 First, you need to an account on the DNAnexus staging environment, and you need to be added to the projects that have been setup for testing. Next, log into the DNAnexus staging environment using dx-toolkit: `dx login --staging`. Note that very often your login will timeout while the integration tests are running unless you are actively using the platform in another session, and this will cause the tests to fail. To avoid, this, generate a token via the web UI and use that token to log in on the command line: `dx login --staging --token <token>`.
 
-Next, delete any existing build artifacts using the following commands:
-
-```
-$ sbt clean
-$ sbt cleanFiles
-$ find . -name target | xargs rm -rf
-# cached resources used to build dx*rt
-$ rm -rf applet_resources
-```
-
-You may also need to delete artifiacts that have been cached on the platform:
-
-```
-$ username=`dx whoami`
-$ dx rm -r dxCompiler_playground:/builds/$username/<version>
-$ dx rm -rf dxCompiler_playground:/unit_tests/$username/
-```
+Follow the "Cleaning up artifacts & building" instructions above.
 
 Finally, run the integration tests. From the root dxCompiler directory, run `./scripts/run_tests.py`.
 
 Note that the test script does a lot of things for you. If for some reason you want to run them manually, here is what happens:
 
 * TODO: fill out this list
-* The dxCompiler and dxExecutor* JAR files are built and staged in the root dxCompiler directory. To do this manually, run `sbt assembly`, then move the JAR files from the `target` folder to the root dxCompiler folder, e.g. `mv target/dxCompiler.jar ./dxCompiler-2.0.0.jar`.
+* The dxCompiler and dxExecutor* JAR files are built and staged in the root dxCompiler directory. To do this manually, run `sbt assembly`, then move the JAR files from the `applet_resources` folder to the root dxCompiler folder, e.g. `mv applet_resources/dxCompiler.jar ./dxCompiler-X.Y.Z.jar`.
 
 ### Running a subset of tests locally
 
