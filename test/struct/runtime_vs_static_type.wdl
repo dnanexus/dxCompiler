@@ -10,9 +10,9 @@ workflow runtime_vs_static_type {
 
     call opt_array { input: xa = [14,15,20] }
 
-    WordStruct manitoba = {
-        "word": "Manitoba",
-        "len": 8
+    WordStruct manitoba = object {
+        word: "Manitoba",
+        len: 8
     }
     call opt_struct { input : ao = [manitoba] }
 
