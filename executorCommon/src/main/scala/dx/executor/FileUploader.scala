@@ -9,7 +9,7 @@ trait FileUploader {
   /**
     * Upload files to the context project and folder.
     * @param files files to upload
-    * @param wait wait for upload to finish?
+    * @param wait whether to wait for upload to complete
     * @return
     */
   def upload(files: Set[Path], wait: Boolean = false): Map[Path, DxFile]
@@ -17,7 +17,7 @@ trait FileUploader {
   /**
     * Upload files to specific destinations.
     * @param files mapping of source file to destination path
-    * @param wait wait for upload to finish?
+    * @param wait whether to wait for upload to complete
     * @return
     */
   def uploadWithDestination(files: Map[Path, String], wait: Boolean = false): Map[Path, DxFile]

@@ -123,6 +123,7 @@ abstract class BaseCli {
         |    -verbose               Print detailed progress reports
         |    -verboseKey <module>   Detailed information for a specific module
         |    -logFile <path>        File to use for logging output; defaults to stderr
+        |    -waitOnUpload          Whether to wait for each file upload to complete.
         |""".stripMargin
 
   def main(args: Vector[String]): Unit = {
