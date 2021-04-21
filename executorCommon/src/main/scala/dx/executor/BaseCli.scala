@@ -74,12 +74,9 @@ abstract class BaseCli {
             case None                                      => StreamFiles.PerFile
           }
           val waitOnUpload = options.getFlag("waitOnUpload")
-
-          // TODO REVERT LOGGING
-          logger.info(
-              s"--> Creating TaskExecutor: streamFiles ${streamFiles}, waitOnUpload ${waitOnUpload}"
+          logger.traceLimited(
+              s"Creating TaskExecutor: streamFiles ${streamFiles}, waitOnUpload ${waitOnUpload}"
           )
-
           val taskExecutor = createTaskExecutor(jobMeta, fileUploader, streamFiles, waitOnUpload)
           val successMessage = taskExecutor.apply(taskAction)
           Success(successMessage)
