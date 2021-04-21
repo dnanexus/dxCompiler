@@ -87,7 +87,9 @@ jobs:
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
           export PATH="$PATH:$HOME/.local/bin"
+          echo ${{ github.ref }}
           export TARGET_BRANCH=`echo ${{ github.ref }} | sed -e 's/ref\/heads\///g'`
+          echo $TARGET_BRANCH
           ./scripts/build_all_releases.sh \
               --staging-token $DX_STAGING_RELEASE_TOKEN \
               --production-token $DX_PROD_RELEASE_TOKEN \
