@@ -169,8 +169,8 @@ function parse_cmd_line {
 }
 
 # main program
-basic_checks
 parse_cmd_line $@
+basic_checks
 get_top_dir
 get_version
 build

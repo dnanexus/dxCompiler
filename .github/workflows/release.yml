@@ -88,7 +88,7 @@ jobs:
         run: |
           export PATH="$PATH:$HOME/.local/bin"
           echo ${{ github.ref }}
-          export TARGET_BRANCH=`echo ${{ github.ref }} | sed -e 's/ref\/heads\///g'`
+          export TARGET_BRANCH=`echo ${{ github.ref }} | sed -e 's/refs\/heads\///g'`
           echo $TARGET_BRANCH
           ./scripts/build_all_releases.sh \
               --staging-token $DX_STAGING_RELEASE_TOKEN \
