@@ -291,6 +291,8 @@ case class ParameterLinkDeserializer(dxFileDescCache: DxFileDescCache, dxApi: Dx
         newJsValue
       })
     }
+    println(jsv)
+    println(t)
     ValueSerde.deserializeWithType(unwrapComplex(jsv), t, Some(parameterLinkTranslator))
   }
 }

@@ -14,6 +14,7 @@ workflow runtime_vs_static_type {
         word: "Manitoba",
         len: 8
     }
+
     call opt_struct { input : ao = [manitoba] }
 
     output {
@@ -22,7 +23,6 @@ workflow runtime_vs_static_type {
         String result3 = opt_struct.w
     }
 }
-
 
 task opt_int {
     input {

@@ -93,7 +93,7 @@ jobs:
               --production-token $DX_PROD_RELEASE_TOKEN \
               --docker-user commandlinegirl \
               --docker-password $DOCKERHUB_TOKEN \
-              --force
+              --force \
               --branch $TARGET_BRANCH
 
       - name: Extract release notes

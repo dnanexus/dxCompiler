@@ -33,6 +33,7 @@ test_failing = set([
     "just_fail_wf",
     "missing_output",
     "docker_retry",
+    "argument_list_too_long",
 ])
 
 wdl_v1_list = [
@@ -99,7 +100,6 @@ wdl_v1_list = [
     "apps_378",
     "apps_384",
     "diff_stream_and_download",  # APPS-288,
-    "argument_list_too_long",
 
     # manifests
     "simple_manifest",
