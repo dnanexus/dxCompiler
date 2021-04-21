@@ -195,7 +195,7 @@ Before starting the release:
   * [executorWdl](https://github.com/dnanexus/dxCompiler/blob/main/executorWdl/src/main/resources/application.conf)
   * [executorCwl](https://github.com/dnanexus/dxCompiler/blob/main/executorCwl/src/main/resources/application.conf)
 
-is correct (you can use this [script](../scripts/update_version.sh) for that). It is used when building the release and creating the tag. Currently the version must be the same for all these packages.
+is correct (you can use this script [for Linux](../scripts/update_version.sh) / [for macOS](../scripts/update_version_mac.sh) for that). It is used when building the release and creating the tag. Currently the version must be the same for all these packages.
 - Merge onto main branch, and make sure all [Github Actions](https://github.com/dnanexus/dxCompiler/actions) tests pass
 - Clean your `dx` environment because you'll be using limited-power tokens to run the release script. Do not mix them with your regular user token.
 ```
