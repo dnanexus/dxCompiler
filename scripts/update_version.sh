@@ -11,7 +11,7 @@ CONF_FILES=(
     ./executorCommon/src/main/resources/application.conf
 )
 
-# Adapted to work also w/ macOS version of sed, where -i expects extension arg
+# Adapted to work also with macOS version of sed, where -i expects extension arg
 # https://stackoverflow.com/questions/19456518/invalid-command-code-despite-escaping-periods-using-sed/19457213#19457213
 for i in ${CONF_FILES[@]}; do
     sed -i'' -e "s/version.*$/version = \"${VERSION}\"/" $i
