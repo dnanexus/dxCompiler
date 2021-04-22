@@ -6,12 +6,12 @@ workflow environment_passing_deep_nesting {
     }
 
     call bear
-    call cat
+    call bull
 
     if (verify) {
         call compare { input:
             a = bear.result,
-            b = cat.result
+            b = bull.result
         }
 
         call assert
@@ -30,7 +30,7 @@ task bear {
     }
 }
 
-task cat {
+task bull {
   command {}
   output {
       Int result = 3

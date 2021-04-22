@@ -312,6 +312,7 @@ object WdlUtils {
       case (key, value) => key -> toIRType(value)
     })
   }
+
   def toIRType(wdlType: T): Type = {
     wdlType match {
       case T_Boolean     => TBoolean
@@ -677,6 +678,26 @@ object WdlUtils {
         TAT.ExprObject(m, T_Object, loc)
       case _ =>
         throw new Exception(s"cannot convert IR value ${value} to WDL")
+    }
+  }
+
+  def isPathType(wdlType: T): Boolean = {
+    wdlType match {
+      case T_Optional(t) => isPathType(t)
+      case T_File        => true
+      case T_Directory   => true
+      case T_Array(t, _) => isPathType(t)
+      case T_Map(k, v)   => isPathType(k) | isPathType(v)
+      case T_Pair(l, r)  => isPathType(l) | isPathType(r)
+      case T_Struct(_, members) =>
+        members.exists {
+          case (_, t) => isPathType(t)
+        }
+      case T_Object | T_Any =>
+        // no way to know if an object/Any will contain a path type,
+        // so we have to assume yes
+        true
+      case _ => false
     }
   }
 
