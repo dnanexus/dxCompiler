@@ -2,11 +2,12 @@
 <%@ val runtimeJar: String %>
 <%@ val runtimeTraceLevel: Int %>
 <%@ val streamFiles: dx.core.io.StreamFiles.StreamFiles %>
+<%@ val waitOnUpload: Boolean %>
 <% val bashDollar: String = "$" %>
 
     # evaluate applet outputs, and upload result files -
     # this may write a UA manifest
-    java -jar ${bashDollar}{DX_FS_ROOT}/${runtimeJar} task epilog ${bashDollar}{HOME} -traceLevel ${runtimeTraceLevel} -streamFiles ${streamFiles.toString}
+    java -jar ${bashDollar}{DX_FS_ROOT}/${runtimeJar} task epilog ${bashDollar}{HOME} -traceLevel ${runtimeTraceLevel} -streamFiles ${streamFiles.toString} ${if (waitOnUpload) "-waitOnUpload"}
 
     # Upload files using UA
     if [[ -e ${dxPathConfig.getDxuaManifestFile().toString} ]]; then

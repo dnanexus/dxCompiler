@@ -795,6 +795,7 @@ object Main {
         |                             parameter_meta sections (default).
         |      -useManifests          Use manifest files for all workflow and applet inputs and 
         |                             outputs. Implies -locked.
+        |      -waitOnUpload          Whether to wait for each file upload to complete.
         |
         |  dxni
         |    DNAnexus Native call Interface. Creates stubs for calling DNAnexus executables 
