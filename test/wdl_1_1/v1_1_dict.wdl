@@ -21,6 +21,6 @@ workflow v2_dict {
     }
 
     output {
-        Array[String] result = v2_add.result
+        Array[Int] result = v2_add.result
     }
 }

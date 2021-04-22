@@ -1,5 +1,9 @@
 # Release Notes
 
+## in develop
+
+* Fixes usage of a struct in a call argument
+
 ## 2.4.2 2021-04-20
 
 * Updates to wdlTools 0.12.9
