@@ -702,6 +702,13 @@ object WdlUtils {
         }
       case TAT.ExprObject(value, _, _) => value.values.forall(TypeUtils.isPrimitiveValue)
 
+      // Access a field in a call
+      //   Int z = eliminateDuplicate.fields
+      // TODO: this will work for structs as well, if we are able to make
+      //  struct fields part of the output closure (see comment in
+      //  getClosureInputsAndOutputs)
+      case TAT.ExprGetName(TAT.ExprIdentifier(_, _: T_Call, _), _, _, _) => true
+
       case _ => false
     }
   }
