@@ -27,7 +27,7 @@ dx download ${bashDollar}{AWS_CREDENTIALS} -o ${bashDollar}{HOME}/.aws/credentia
 set +x
 
 # install the aws client to /usr/local/bin
-unzip /usr/bin/awscliv2.zip && ./aws/install && rm -Rf ./aws
+unzip -q /usr/bin/awscliv2.zip && ./aws/install && rm -Rf ./aws
 
 # get the password from the aws client
 password=${bashDollar}(aws ecr get-login-password --region ${bashDollar}{AWS_REGION})
