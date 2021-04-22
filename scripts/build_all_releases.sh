@@ -40,12 +40,12 @@ function basic_checks {
     echo "Found the dx CLI: $path_to_dx"
 
     local branch=$(git symbolic-ref --short HEAD)
-    if [[ $branch != "main" ]]; then
-        echo "This isn't main branch, please do 'git checkout main'"
+    if [[ $branch != "$target_branch" ]]; then
+        echo "This isn't $target_branch branch, please do 'git checkout $target_branch'"
         exit 1
     fi
 
-    echo "making sure main is up to date"
+    echo "making sure $target_branch is up to date"
     git pull
 }
 
@@ -101,6 +101,7 @@ function usage_die
     echo "  --production-token <string>: an auth token for the production environment"
     echo "  --docker-user <string>: docker user name"
     echo "  --docker-password <string>: docker password"
+    echo "  --branch <string>: branch to build from (default=main)"
     exit 1
 }
 
@@ -131,6 +132,10 @@ function parse_cmd_line {
                 docker_password=$2
                 shift
                 ;;
+            --branch)
+                target_branch=$2
+                shift
+                ;;
             *)
                 echo "unknown argument $1"
                 usage_die
@@ -157,6 +162,9 @@ function parse_cmd_line {
     if [[ $docker_password == "" ]]; then
         echo "docker password is missing"
         exit 1
+    fi
+    if [[$target_branch == ""]]; then
+        target_branch="main"
     fi
 }
 
