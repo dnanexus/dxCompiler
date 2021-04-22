@@ -108,7 +108,11 @@ case class CallableTranslator(wdlBundle: WdlBundle,
     private def translateOutput(output: TAT.OutputParameter, ignoreDefault: Boolean): Parameter = {
       val wdlType = output.wdlType
       val irType = WdlUtils.toIRType(wdlType)
-      val defaultValue = if (ignoreDefault) {
+      val defaultValue = if (ignoreDefault || WdlUtils.isPathType(wdlType)) {
+        // if the expression is a File, Directory or collection thereof,
+        // the paths will be local to the worker so we cannot use them
+        // as the default value (since file inputs need to be given as
+        // links to dx files)
         None
       } else {
         try {
@@ -206,6 +210,10 @@ case class CallableTranslator(wdlBundle: WdlBundle,
     case class CallEnv(env: Map[String, LinkedVar]) {
       def add(key: String, lvar: LinkedVar): CallEnv = {
         CallEnv(env + (key -> lvar))
+      }
+
+      def addAll(items: Vector[(String, LinkedVar)]): CallEnv = {
+        CallEnv(env ++ items)
       }
 
       def contains(key: String): Boolean = env.contains(key)
@@ -639,8 +647,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         case TAT.OutputParameter(name, wdlType, _, _) => name -> wdlType
       }.toMap
 
-      // create a cVar definition from each block output. The dx:stage
-      // will output these cVars.
+      // create a Parameter from each block output. The dx:stage
+      // will output these Parameter.
       val outputVars = outputs.map {
         case (fqn, wdlType) =>
           val irType = WdlUtils.toIRType(wdlType)
@@ -656,6 +664,17 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       logger
         .withTraceIfContainsKey("GenerateIR")
         .trace(s"category : ${block.kind}")
+
+      // complex conditional and scatter blocks may have private variables
+      // that need to be added to the environment for use in nested blocks
+      lazy val envWithPrivateVars: CallEnv = {
+        env.addAll(
+            block.prerequisiteVars.map {
+              case (name, wdlType) =>
+                name -> (Parameter(name, WdlUtils.toIRType(wdlType)), EmptyInput)
+            }
+        )
+      }
 
       val (innerCall, auxCallables, newScatterPath) =
         block.kind match {
@@ -679,7 +698,11 @@ case class CallableTranslator(wdlBundle: WdlBundle,
             // in the sub-block
             val conditional = block.conditional
             val (callable, aux) =
-              translateNestedBlock(wfName, conditional.body, blockPath, scatterPath, env)
+              translateNestedBlock(wfName,
+                                   conditional.body,
+                                   blockPath,
+                                   scatterPath,
+                                   envWithPrivateVars)
             (Some(callable.name), aux :+ callable, None)
           case BlockKind.ScatterComplex =>
             val scatter = block.scatter
@@ -690,7 +713,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                 throw new Exception("scatter doesn't have an array expression")
             }
             val param = Parameter(scatter.identifier, varType)
-            val innerEnv = env.add(scatter.identifier, (param, EmptyInput))
+            val innerEnv = envWithPrivateVars.add(scatter.identifier, (param, EmptyInput))
             val newScatterPath =
               scatterPath.map(p => s"${p}.${scatter.identifier}").getOrElse(scatter.identifier)
             val (callable, aux) =

@@ -1,5 +1,8 @@
 {
   "nested_scatter.result" : {
     "___": [[11, 12], [12, 13], [13, 14]]
-  }
+  },
+  "nested_scatter.strings": [
+    "hello 1 10", "hello 1 11", "hello 2 10", "hello 2 11"
+  ]
 }
