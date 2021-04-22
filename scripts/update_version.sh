@@ -9,5 +9,5 @@ CONF_FILES=(
     ./executorCommon/src/main/resources/application.conf
 )
 for i in ${CONF_FILES[@]}; do
-    sed -i "s/version.*$/version = \"${VERSION}\"/" $i
+    sed -i'' -e "s/version.*$/version = \"${VERSION}\"/" $i
 done
