@@ -702,9 +702,9 @@ object WdlUtils {
         }
       case TAT.ExprObject(value, _, _) => value.values.forall(TypeUtils.isPrimitiveValue)
 
-      // Access a field in a call or a struct
+      // Access a field in a call
       //   Int z = eliminateDuplicate.fields
-      case TAT.ExprGetName(_: TAT.ExprIdentifier, _, _, _) => true
+      case TAT.ExprGetName(TAT.ExprIdentifier(_, _: T_Call, _), _, _, _) => true
 
       case _ => false
     }
