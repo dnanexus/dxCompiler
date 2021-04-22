@@ -240,12 +240,11 @@ abstract class TaskExecutor(jobMeta: JobMeta,
           existingPaths = localFilesToPath.values.toSet,
           separateDirsBySource = true,
           createDirs = true,
-          disambiguationDirLimit = TaskExecutor.MaxDisambiguationDirs
+          disambiguationDirLimit = TaskExecutor.MaxDisambiguationDirs,
+          logger = logger
       )
     val downloadFileSourceToPath: Map[AddressableFileNode, Path] =
       downloadLocalizer.getLocalPaths(filesToDownload)
-    println(filesToDownload)
-    println(downloadFileSourceToPath)
     // write the manifest for dxda, if there are files to download
     val dxdaManifest = DxdaManifestBuilder(dxApi)
       .apply(downloadFileSourceToPath.collect {
@@ -259,7 +258,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
           existingPaths = localFilesToPath.values.toSet,
           separateDirsBySource = true,
           createDirs = false,
-          disambiguationDirLimit = TaskExecutor.MaxDisambiguationDirs
+          disambiguationDirLimit = TaskExecutor.MaxDisambiguationDirs,
+          logger = logger
       )
     val streamFileSourceToPath: Map[AddressableFileNode, Path] =
       streamingLocalizer.getLocalPaths(filesToStream)
