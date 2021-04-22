@@ -886,6 +886,10 @@ object WdlUtils {
         innerElements: Vector[TAT.WorkflowElement]
     ): Vector[TAT.OutputParameter] = {
       innerElements.flatMap {
+        // TODO: in the case of private variables where the expression access a
+        //  struct field, it may be possible to create an output for the field
+        //  value, to avoid having to use a fragment in the downstream app to
+        //  dereference the struct.
         case TAT.PrivateVariable(name, wdlType, expr, loc) =>
           Vector(TAT.OutputParameter(name, wdlType, expr, loc))
         case call: TAT.Call =>

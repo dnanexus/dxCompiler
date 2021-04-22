@@ -1012,12 +1012,11 @@ case class CallableTranslator(wdlBundle: WdlBundle,
             //  OverridableBlockInputWithDynamicDefault?
             Parameter(i.name, WdlUtils.toIRType(i.wdlType))
           }
-          val closureOutputs: Vector[Parameter] = closureInputParams
           val (commonStage, commonApplet) =
             createCommonApplet(wfName,
                                commonAppletInputs,
                                commonStageInputs,
-                               inputOutputs ++ closureOutputs,
+                               inputOutputs ++ closureInputParams,
                                blockPath)
           val fauxWfInputs: Vector[LinkedVar] = commonStage.outputs.map { param =>
             val link = LinkInput(commonStage.dxStage, param.dxName)
