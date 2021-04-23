@@ -274,7 +274,7 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
                       useManifests)
 
     // create TaskExecutor
-    (WdlTaskExecutor.create(jobMeta, streamFiles = streamFiles), jobMeta)
+    (WdlTaskExecutor.create(jobMeta, streamFiles = streamFiles, waitOnUpload = false), jobMeta)
   }
 
   // Parse the WDL source code, extract the single task that is supposed to be there,

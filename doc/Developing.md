@@ -122,12 +122,11 @@ First, you need to an account on the DNAnexus staging environment, and you need 
 
 Follow the "Cleaning up artifacts & building" instructions above.
 
-Finally, run the integration tests. From the root dxCompiler directory, run `./scripts/run_tests.py`.
+Finally, run the integration tests. From the root dxCompiler directory, run `./scripts/run_tests.py`. You can run a specific test/suite by adding the `--test <name>` option.
 
 Note that the test script does a lot of things for you. If for some reason you want to run them manually, here is what happens:
 
-* TODO: fill out this list
-* The dxCompiler and dxExecutor* JAR files are built and staged in the root dxCompiler directory. To do this manually, run `sbt assembly`, then move the JAR files from the `applet_resources` folder to the root dxCompiler folder, e.g. `mv applet_resources/dxCompiler.jar ./dxCompiler-X.Y.Z.jar`.
+The dxCompiler and dxExecutor* JAR files are built and staged in the root dxCompiler directory. To do this manually, run `sbt assembly`, then move the JAR files from the `applet_resources` folder to the root dxCompiler folder, e.g. `mv applet_resources/dxCompiler.jar ./dxCompiler-X.Y.Z.jar`.
 
 ### Running a subset of tests locally
 
