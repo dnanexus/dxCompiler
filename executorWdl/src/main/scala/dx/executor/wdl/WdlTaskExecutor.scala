@@ -18,7 +18,8 @@ object WdlTaskExecutor {
       jobMeta: JobMeta,
       fileUploader: FileUploader = SerialFileUploader(),
       streamFiles: StreamFiles.StreamFiles = StreamFiles.PerFile,
-      regime: TypeCheckingRegime = TypeCheckingRegime.Moderate
+      regime: TypeCheckingRegime = TypeCheckingRegime.Moderate,
+      waitOnUpload: Boolean = false
   ): WdlTaskExecutor = {
     val (doc, typeAliases, versionSupport) =
       VersionSupport.fromSourceString(jobMeta.sourceCode, jobMeta.fileResolver, regime)
@@ -39,7 +40,8 @@ object WdlTaskExecutor {
                     typeAliases,
                     jobMeta,
                     fileUploader,
-                    streamFiles)
+                    streamFiles,
+                    waitOnUpload = waitOnUpload)
   }
 }
 
@@ -48,8 +50,9 @@ case class WdlTaskExecutor(task: TAT.Task,
                            typeAliases: Bindings[String, T_Struct],
                            jobMeta: JobMeta,
                            fileUploader: FileUploader,
-                           streamFiles: StreamFiles.StreamFiles)
-    extends TaskExecutor(jobMeta, fileUploader, streamFiles) {
+                           streamFiles: StreamFiles.StreamFiles,
+                           waitOnUpload: Boolean)
+    extends TaskExecutor(jobMeta, fileUploader, streamFiles, waitOnUpload = waitOnUpload) {
 
   private val fileResolver = jobMeta.fileResolver
   private val logger = jobMeta.logger

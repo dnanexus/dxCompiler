@@ -2,12 +2,13 @@ package dx.executor.cwl
 
 import dx.api.{DxFile, InstanceTypeRequest}
 import dx.core.Constants
+import dx.core.io.StreamFiles
 import dx.cwl._
 import dx.core.io.StreamFiles.StreamFiles
 import dx.core.ir.{Parameter, Type, Value}
 import dx.core.languages.Language
 import dx.core.languages.cwl.{CwlUtils, DxHintSchema, RequirementEvaluator}
-import dx.executor.{FileUploader, JobMeta, TaskExecutor}
+import dx.executor.{FileUploader, JobMeta, SerialFileUploader, TaskExecutor}
 import dx.util.{DockerUtils, FileUtils, JsUtils, TraceLevel}
 import spray.json._
 
@@ -15,8 +16,9 @@ import java.nio.file.Files
 
 object CwlTaskExecutor {
   def create(jobMeta: JobMeta,
-             fileUploader: FileUploader,
-             streamFiles: StreamFiles): CwlTaskExecutor = {
+             fileUploader: FileUploader = SerialFileUploader(),
+             streamFiles: StreamFiles = StreamFiles.PerFile,
+             waitOnUpload: Boolean = false): CwlTaskExecutor = {
     val parser = Parser.create(hintSchemas = Vector(DxHintSchema))
     parser.detectVersionAndClass(jobMeta.sourceCode) match {
       case Some((version, "CommandLineTool")) if Language.parse(version) == Language.CwlV1_2 => ()
@@ -36,7 +38,7 @@ object CwlTaskExecutor {
         case other =>
           throw new Exception(s"expected CWL document to contain a CommandLineTool, not ${other}")
       }
-    CwlTaskExecutor(tool, jobMeta, fileUploader, streamFiles)
+    CwlTaskExecutor(tool, jobMeta, fileUploader, streamFiles, waitOnUpload = waitOnUpload)
   }
 }
 
@@ -51,8 +53,9 @@ object CwlTaskExecutor {
 case class CwlTaskExecutor(tool: CommandLineTool,
                            jobMeta: JobMeta,
                            fileUploader: FileUploader,
-                           streamFiles: StreamFiles)
-    extends TaskExecutor(jobMeta, fileUploader, streamFiles) {
+                           streamFiles: StreamFiles,
+                           waitOnUpload: Boolean)
+    extends TaskExecutor(jobMeta, fileUploader, streamFiles, waitOnUpload = waitOnUpload) {
 
   private val dxApi = jobMeta.dxApi
   private val logger = jobMeta.logger
