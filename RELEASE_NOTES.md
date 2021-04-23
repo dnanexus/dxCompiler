@@ -1,5 +1,9 @@
 # Release Notes
 
+## in develop
+
+* Fixes issue where file input from an external project is localized to an invalid path
+
 ## 2.4.2 2021-04-20
 
 * Updates to wdlTools 0.12.9
