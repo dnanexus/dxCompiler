@@ -163,14 +163,14 @@ function parse_cmd_line {
         echo "docker password is missing"
         exit 1
     fi
-    if [[$target_branch == ""]]; then
+    if [[ $target_branch == "" ]]; then
         target_branch="main"
     fi
 }
 
 # main program
-basic_checks
 parse_cmd_line $@
+basic_checks
 get_top_dir
 get_version
 build

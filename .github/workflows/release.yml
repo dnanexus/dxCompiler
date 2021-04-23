@@ -81,9 +81,10 @@ jobs:
           DX_STAGING_RELEASE_TOKEN: ${{ secrets.DX_STAGING_RELEASE_TOKEN }}
           DX_PROD_RELEASE_TOKEN: ${{ secrets.DX_PROD_RELEASE_TOKEN }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           export PATH="$PATH:$HOME/.local/bin"
-          export TARGET_BRANCH=`echo ${{ github.ref }} | sed -e 's/ref\/heads\///g'`
+          export TARGET_BRANCH=`echo ${{ github.ref }} | sed -e 's/refs\/heads\///g'`
           ./scripts/build_all_releases.sh \
               --staging-token $DX_STAGING_RELEASE_TOKEN \
               --production-token $DX_PROD_RELEASE_TOKEN \
