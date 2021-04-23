@@ -270,7 +270,7 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
                       useManifests)
 
     // create TaskExecutor
-    (WdlTaskExecutor.create(jobMeta, streamFiles = streamFiles), jobMeta)
+    (WdlTaskExecutor.create(jobMeta, streamFiles = streamFiles, waitOnUpload = false), jobMeta)
   }
 
   // Parse the WDL source code, extract the single task that is supposed to be there,
@@ -310,7 +310,7 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
               // block here until the file is closed
               if (!Iterator.range(0, 10).exists { i =>
                     if (i > 0) {
-                      Thread.sleep(2000)
+                      Thread.sleep(3000)
                     }
                     val desc =
                       dxApi.fileDescribe(manifestFile.id,
@@ -320,7 +320,7 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
                       case _                        => false
                     }
                   }) {
-                throw new Exception("manifest file did not close within 20 seconds")
+                throw new Exception("manifest file did not close within 30 seconds")
               }
               val manifest =
                 Manifest.parse(new String(jobMeta.dxApi.downloadBytes(manifestFile)).parseJson)

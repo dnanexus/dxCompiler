@@ -48,6 +48,7 @@ object Compiler {
   * @param locked whether to generate locked workflows
   * @param projectWideReuse whether to allow project-wide reuse of applications
   * @param streamFiles which files to stream vs download
+  * @param waitOnUpload whether to wait for each file upload to complete
   * @param useManifests whether to use manifest files for all application inputs and outputs
   * @param complexPathValues whether File and Directory values should be treated as objects
   * @param fileResolver the FileSourceResolver
@@ -67,6 +68,7 @@ case class Compiler(extras: Option[Extras],
                     projectWideReuse: Boolean,
                     separateOutputs: Boolean,
                     streamFiles: StreamFiles.StreamFiles,
+                    waitOnUpload: Boolean,
                     useManifests: Boolean,
                     complexPathValues: Boolean,
                     fileResolver: FileSourceResolver = FileSourceResolver.get,
@@ -316,6 +318,7 @@ case class Compiler(extras: Option[Extras],
             runtimeTraceLevel,
             separateOutputs,
             streamFiles,
+            waitOnUpload,
             extras,
             parameterLinkSerializer,
             useManifests,

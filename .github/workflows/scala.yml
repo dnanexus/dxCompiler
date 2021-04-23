@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - main
+      - develop
   pull_request:
     branches:
       - main
+      - develop
 
 jobs:
   test:
@@ -21,6 +23,7 @@ jobs:
           java-version: 1.8
       - name: Run Tests
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           AUTH_TOKEN: ${{ secrets.DX_STAGING_TOKEN }}
         run: |
           sudo apt-get update
@@ -37,4 +40,3 @@ jobs:
           cd ${GITHUB_WORKSPACE}
           pwd
           sbt version && sbt compile && sbt "testOnly -- -l prod"
-

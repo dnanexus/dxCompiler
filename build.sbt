@@ -117,12 +117,15 @@ val executorCwl = project
 
 // DEPENDENCIES
 
+val githubResolver = Resolver.githubPackages("dnanexus", "dxScala")
+resolvers += githubResolver
+
 lazy val dependencies =
   new {
-    val dxCommonVersion = "0.2.11"
-    val dxApiVersion = "0.1.14"
-    val dxFileAccessProtocolsVersion = "0.1.3"
-    val wdlToolsVersion = "0.12.7"
+    val dxCommonVersion = "0.2.15-SNAPSHOT"
+    val dxApiVersion = "0.2.0"
+    val dxFileAccessProtocolsVersion = "0.1.6"
+    val wdlToolsVersion = "0.12.9"
     val cwlScalaVersion = "0.5.0"
     val typesafeVersion = "1.3.3"
     val sprayVersion = "1.3.5"
@@ -164,14 +167,16 @@ lazy val settings = Seq(
     // e.g dxScala_2.11
     crossPaths := false,
     // add sonatype repository settings
-    // snapshot versions publish to sonatype snapshot repository
-    // other versions publish to sonatype staging repository
+    // snapshot versions publish to GitHub packages repository
+    // release versions publish to sonatype staging repository
     publishTo := Some(
         if (isSnapshot.value)
-          Opts.resolver.sonatypeSnapshots
+          githubResolver
         else
           Opts.resolver.sonatypeStaging
     ),
+    githubOwner := "dnanexus",
+    githubRepository := "dxCompiler",
     publishMavenStyle := true,
     // Tests
     // If an exception is thrown during tests, show the full

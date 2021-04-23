@@ -4,7 +4,7 @@ import java.nio.file.{Path, Paths}
 import dx.Tags.EdgeTest
 import dx.api._
 import dx.core.Constants
-import dx.core.ir._
+import dx.core.ir.{Parameter, _}
 import dx.core.ir.RunSpec._
 import dx.core.ir.Type._
 import dx.core.ir.Value._
@@ -272,6 +272,31 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
                 errMsg should include ("nested scatter")
  }*/
     retval shouldBe a[SuccessfulCompileIR]
+  }
+
+  it should "translate a workflow with nested scatter" in {
+    val path = pathFromBasename("nested", "nested_scatter.wdl")
+    val args = path.toString :: cFlags
+    val bundle = Main.compile(args.toVector) match {
+      case SuccessfulCompileIR(bundle) => bundle
+      case other                       => throw new Exception(s"unexpected compile result ${other}")
+    }
+    val outerScatter = bundle.allCallables("nested_scatter_frag_stage-3")
+    outerScatter.inputVars should contain theSameElementsAs (
+        Vector(
+            Parameter("x", TInt),
+            Parameter("ints1", TArray(TInt)),
+            Parameter("ints2", TArray(TInt))
+        )
+    )
+    val innerScatter = bundle.allCallables("nested_scatter_block_0_0")
+    innerScatter.inputVars should contain theSameElementsAs (
+        Vector(
+            Parameter("x", TInt),
+            Parameter("y", TInt),
+            Parameter("ints1", TArray(TInt))
+        )
+    )
   }
 
   // Check parameter_meta `pattern` keyword
@@ -882,6 +907,14 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
 
   it should "handle structs" in {
     val path = pathFromBasename("struct", "Person.wdl")
+    val args = path.toString :: cFlags
+    val retval =
+      Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileIR]
+  }
+
+  it should "handle access to struct member" in {
+    val path = pathFromBasename("struct", "struct_deref.wdl")
     val args = path.toString :: cFlags
     val retval =
       Main.compile(args.toVector)

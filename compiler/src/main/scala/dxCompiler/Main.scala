@@ -139,7 +139,8 @@ object Main {
       "streamFiles" -> StreamFilesOptionSpec,
       "streamAllFiles" -> FlagOptionSpec.default,
       "scatterChunkSize" -> IntOptionSpec.one,
-      "useManifests" -> FlagOptionSpec.default
+      "useManifests" -> FlagOptionSpec.default,
+      "waitOnUpload" -> FlagOptionSpec.default
   )
 
   private val DeprecatedCompileOptions = Set(
@@ -442,7 +443,8 @@ object Main {
           locked,
           projectWideReuse,
           separateOutputs,
-          streamAllFiles
+          streamAllFiles,
+          waitOnUpload
       ) = Vector(
           "archive",
           "force",
@@ -450,7 +452,8 @@ object Main {
           "locked",
           "projectWideReuse",
           "separateOutputs",
-          "streamAllFiles"
+          "streamAllFiles",
+          "waitOnUpload"
       ).map(options.getFlag(_))
       val streamFiles = options.getValue[StreamFiles.StreamFiles]("streamFiles") match {
         case Some(value)            => value
@@ -471,6 +474,7 @@ object Main {
           projectWideReuse,
           separateOutputs,
           streamFiles,
+          waitOnUpload,
           useManifests,
           translator.complexPathValues,
           fileResolver
@@ -792,7 +796,8 @@ object Main {
         |                             parameter_meta sections (default).
         |      -useManifests          Use manifest files for all workflow and applet inputs and 
         |                             outputs. Implies -locked.
-        |    
+        |      -waitOnUpload          Whether to wait for each file upload to complete.
+        |
         |  dxni
         |    DNAnexus Native call Interface. Creates stubs for calling DNAnexus executables 
         |    (apps/applets/workflows), and stores them as WDL tasks in a local file. Enables 

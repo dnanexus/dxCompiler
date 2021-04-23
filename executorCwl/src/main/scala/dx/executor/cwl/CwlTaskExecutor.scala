@@ -2,6 +2,7 @@ package dx.executor.cwl
 
 import dx.api.{DxFile, InstanceTypeRequest}
 import dx.core.Constants
+import dx.core.io.StreamFiles
 import dx.cwl._
 import dx.cwl.Document.Document
 import dx.core.io.StreamFiles.StreamFiles
@@ -18,7 +19,8 @@ import java.nio.file.Files
 object CwlTaskExecutor {
   def create(jobMeta: JobMeta,
              fileUploader: FileUploader = SerialFileUploader(),
-             streamFiles: StreamFiles): CwlTaskExecutor = {
+             streamFiles: StreamFiles = StreamFiles.PerFile,
+             waitOnUpload: Boolean = false): CwlTaskExecutor = {
     val parser = Parser.create(hintSchemas = Vector(DxHintSchema))
     parser.detectVersionAndClass(jobMeta.sourceCode) match {
       case Some((version, "CommandLineTool" | "ExpressionTool" | "Workflow"))
@@ -62,7 +64,7 @@ object CwlTaskExecutor {
             throw new Exception(s"more than one tool with name ${toolName}: ${v.mkString("\n")}")
         }
     }
-    CwlTaskExecutor(tool, jobMeta, fileUploader, streamFiles)
+    CwlTaskExecutor(tool, jobMeta, fileUploader, streamFiles, waitOnUpload = waitOnUpload)
   }
 }
 
@@ -76,8 +78,9 @@ object CwlTaskExecutor {
 case class CwlTaskExecutor(tool: Process,
                            jobMeta: JobMeta,
                            fileUploader: FileUploader,
-                           streamFiles: StreamFiles)
-    extends TaskExecutor(jobMeta, fileUploader, streamFiles) {
+                           streamFiles: StreamFiles,
+                           waitOnUpload: Boolean)
+    extends TaskExecutor(jobMeta, fileUploader, streamFiles, waitOnUpload = waitOnUpload) {
 
   private val dxApi = jobMeta.dxApi
   private val logger = jobMeta.logger

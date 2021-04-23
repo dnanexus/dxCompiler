@@ -265,6 +265,19 @@ case class WdlBlock(index: Int,
     }
   }
 
+  def prerequisiteVars: Vector[(String, WdlTypes.T)] = {
+    def inner(innerElements: Vector[TAT.WorkflowElement]): Vector[(String, WdlTypes.T)] = {
+      innerElements.flatMap {
+        case TAT.PrivateVariable(name, wdlType, _, _) => Vector(name -> wdlType)
+        case TAT.Conditional(_, body, _)              => inner(body)
+        case TAT.Scatter(_, _, body, _)               => inner(body)
+        case other =>
+          throw new Exception(s"invalid prerequisite ${other}")
+      }
+    }
+    inner(prerequisites)
+  }
+
   def call: TAT.Call = {
     val calls = (kind, target) match {
       case (BlockKind.CallDirect | BlockKind.CallWithSubexpressions | BlockKind.CallFragment,
