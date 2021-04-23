@@ -38,7 +38,7 @@ object CwlTaskExecutor {
         case other =>
           throw new Exception(s"expected CWL document to contain a CommandLineTool, not ${other}")
       }
-    CwlTaskExecutor(tool, jobMeta, fileUploader, streamFiles, waitOnUpload)
+    CwlTaskExecutor(tool, jobMeta, fileUploader, streamFiles, waitOnUpload = waitOnUpload)
   }
 }
 
@@ -55,7 +55,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
                            fileUploader: FileUploader,
                            streamFiles: StreamFiles,
                            waitOnUpload: Boolean)
-    extends TaskExecutor(jobMeta, fileUploader, streamFiles, waitOnUpload) {
+    extends TaskExecutor(jobMeta, fileUploader, streamFiles, waitOnUpload = waitOnUpload) {
 
   private val dxApi = jobMeta.dxApi
   private val logger = jobMeta.logger

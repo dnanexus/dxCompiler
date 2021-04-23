@@ -41,7 +41,7 @@ object WdlTaskExecutor {
                     jobMeta,
                     fileUploader,
                     streamFiles,
-                    waitOnUpload)
+                    waitOnUpload = waitOnUpload)
   }
 }
 
@@ -52,7 +52,7 @@ case class WdlTaskExecutor(task: TAT.Task,
                            fileUploader: FileUploader,
                            streamFiles: StreamFiles.StreamFiles,
                            waitOnUpload: Boolean)
-    extends TaskExecutor(jobMeta, fileUploader, streamFiles, waitOnUpload) {
+    extends TaskExecutor(jobMeta, fileUploader, streamFiles, waitOnUpload = waitOnUpload) {
 
   private val fileResolver = jobMeta.fileResolver
   private val logger = jobMeta.logger
