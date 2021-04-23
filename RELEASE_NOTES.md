@@ -1,9 +1,12 @@
 # Release Notes
 
-## in develop
+## 2.4.3 2021-04-23
 
 * Fixes issue where file input from an external project is localized to an invalid path
 * Fixes usage of a struct in a call argument
+* Fixes file-type outputs - no longer tries to set default values  
+* Blocks on file uploads until they complete
+* Updates to dxCommon 0.2.14, dxApi 0.2.0 and dxFileAccessProtocols 0.1.6
 
 ## 2.4.2 2021-04-20
 
