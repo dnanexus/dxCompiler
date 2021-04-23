@@ -38,7 +38,7 @@ class DxNativeInterfaceTest extends AnyFlatSpec with Matchers with BeforeAndAfte
         )
     }
 
-  private val username = System.getProperty("user.name")
+  private val username = dxApi.whoami()
   private val unitTestsPath = s"unit_tests/${username}"
   private val folderPath =
     s"/${unitTestsPath}/applets_${test_time}_${randomUUID().toString.substring(24)}/"
