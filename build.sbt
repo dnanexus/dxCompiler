@@ -167,8 +167,8 @@ lazy val settings = Seq(
     // e.g dxScala_2.11
     crossPaths := false,
     // add sonatype repository settings
-    // snapshot versions publish to sonatype snapshot repository
-    // other versions publish to sonatype staging repository
+    // snapshot versions publish to GitHub packages repository
+    // release versions publish to sonatype staging repository
     publishTo := Some(
         if (isSnapshot.value)
           githubResolver

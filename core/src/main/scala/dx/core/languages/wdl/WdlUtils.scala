@@ -312,6 +312,7 @@ object WdlUtils {
       case (key, value) => key -> toIRType(value)
     })
   }
+
   def toIRType(wdlType: T): Type = {
     wdlType match {
       case T_Boolean     => TBoolean
@@ -680,6 +681,26 @@ object WdlUtils {
     }
   }
 
+  def isPathType(wdlType: T): Boolean = {
+    wdlType match {
+      case T_Optional(t) => isPathType(t)
+      case T_File        => true
+      case T_Directory   => true
+      case T_Array(t, _) => isPathType(t)
+      case T_Map(k, v)   => isPathType(k) | isPathType(v)
+      case T_Pair(l, r)  => isPathType(l) | isPathType(r)
+      case T_Struct(_, members) =>
+        members.exists {
+          case (_, t) => isPathType(t)
+        }
+      case T_Object | T_Any =>
+        // no way to know if an object/Any will contain a path type,
+        // so we have to assume yes
+        true
+      case _ => false
+    }
+  }
+
   /**
     * A trivial expression has no operators, it is either(1) a constant,
     * (2) a single identifier, or (3) an access to a call field.
@@ -702,9 +723,12 @@ object WdlUtils {
         }
       case TAT.ExprObject(value, _, _) => value.values.forall(TypeUtils.isPrimitiveValue)
 
-      // Access a field in a call or a struct
+      // Access a field in a call
       //   Int z = eliminateDuplicate.fields
-      case TAT.ExprGetName(_: TAT.ExprIdentifier, _, _, _) => true
+      // TODO: this will work for structs as well, if we are able to make
+      //  struct fields part of the output closure (see comment in
+      //  getClosureInputsAndOutputs)
+      case TAT.ExprGetName(TAT.ExprIdentifier(_, _: T_Call, _), _, _, _) => true
 
       case _ => false
     }
@@ -890,6 +914,10 @@ object WdlUtils {
         innerElements: Vector[TAT.WorkflowElement]
     ): Vector[TAT.OutputParameter] = {
       innerElements.flatMap {
+        // TODO: in the case of private variables where the expression access a
+        //  struct field, it may be possible to create an output for the field
+        //  value, to avoid having to use a fragment in the downstream app to
+        //  dereference the struct.
         case TAT.PrivateVariable(name, wdlType, expr, loc) =>
           Vector(TAT.OutputParameter(name, wdlType, expr, loc))
         case call: TAT.Call =>

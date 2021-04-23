@@ -3,6 +3,7 @@
 ## in develop
 
 * Fixes issue where file input from an external project is localized to an invalid path
+* Fixes usage of a struct in a call argument
 
 ## 2.4.2 2021-04-20
 

@@ -344,7 +344,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
           case None =>
             logger.warning(s"inputSpec is missing field ${key}")
             inputDeserializer.deserializeInput(value)
-          case Some(Type.THash) =>
+          case Some(Type.THash | Type.TOptional(Type.THash)) =>
             logger.trace(
                 s"""expected type of input field ${key} is THash, which may represent an
                    |unknown schema type, so deserializing without type""".stripMargin
@@ -465,7 +465,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
   private def validateOutput(name: String, actualType: Type): Unit = {
     outputSpec.get(name) match {
       case Some(t) if outputTypesEqual(t, actualType) => ()
-      case Some(t) if t == Type.THash =>
+      case Some(Type.THash | Type.TOptional(Type.THash)) =>
         logger.trace(
             s"""expected type of output field ${name} is THash which may represent an
                |unknown schema type, so deserializing without type""".stripMargin
