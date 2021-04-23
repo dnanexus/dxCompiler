@@ -461,9 +461,9 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         // if using manifests, we need to upload the files directly to the project
         fileUploader.uploadWithDestination(delocalizingValueToPath.values.map { path =>
           path -> s"${jobMeta.manifestFolder}/${path.getFileName.toString}"
-        }.toMap, waitOnUpload)
+        }.toMap, wait = waitOnUpload)
       } else {
-        fileUploader.upload(delocalizingValueToPath.values.toSet, waitOnUpload)
+        fileUploader.upload(delocalizingValueToPath.values.toSet, wait = waitOnUpload)
       }
       dxFiles.map {
         case (path, dxFile) => path -> dxFile.asUri
