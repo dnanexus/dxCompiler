@@ -913,6 +913,14 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     retval shouldBe a[SuccessfulCompileIR]
   }
 
+  it should "handle access to struct member" in {
+    val path = pathFromBasename("struct", "struct_deref.wdl")
+    val args = path.toString :: cFlags
+    val retval =
+      Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileIR]
+  }
+
   it should "recognize that an argument with a default can be omitted at the call site" in {
     val path = pathFromBasename("compiler", "call_level2.wdl")
     val args = path.toString :: cFlags
