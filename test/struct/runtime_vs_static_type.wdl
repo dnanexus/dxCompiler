@@ -19,7 +19,7 @@ workflow runtime_vs_static_type {
 
     output {
         Int result = opt_int.result
-        String result2 = opt_array.numbers
+        String result2 = opt_array2.numbers
         String result3 = opt_struct.w
     }
 }
