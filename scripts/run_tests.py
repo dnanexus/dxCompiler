@@ -137,7 +137,6 @@ draft2_test_list = [
     "files_with_the_same_name",
     "hello",
     "shapes",
-    "population",
 
     # multiple library imports in one WDL workflow
     "multiple_imports",
@@ -240,7 +239,8 @@ test_unlocked = [
     "hello",
     "path_not_taken",
     "optionals",
-    "shapes"
+    "shapes",
+    #"population"
 ]
 test_project_wide_reuse = ['add2', "add_many"]
 
