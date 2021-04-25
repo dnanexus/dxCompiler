@@ -32,6 +32,14 @@
 * We also recommend to install [Metals](https://scalameta.org/metals/), which enables better integration with your IDE
   * For VSCode, install the "Scala (Metals)" and "Scala Syntax (official)" plugins
 * You will also need Python installed (we recommend version 3.6+) and dx-toolkit (`pip install dxpy`)
+* You will also need to create a GitHub personal access token (this is required by the sbt-github-packages plugin). In GitHub settings, go to "Developer settings > Personal access token" and create a new token with "write:packages" and "read:packages" scopes only. Then, export the `GITHUB_TOKEN` environment variable with this token as the value. For example, in your `.profile`:
+  ```bash
+  export GITHUB_TOKEN=<your personal access token>
+  ```
+  * On macOS, you may also want to add this token into your global environment so it is visible to your IDE:
+  ```bash
+  launchctl setenv GITHUB_TOKEN $GITHUB_TOKEN
+  ```
 
 ## Getting the source code
 
@@ -66,17 +74,32 @@ See below on how to run unit and integration tests. To recompile dxCompiler with
 
 ## Adding new code
 
+1. Checkout the `develop` branch.
+2. Create a new branch with your changes. Name it something meaningful, like `APPS-123-download-bug`.
+3. If the current snapshot version matches the release version, increment the snapshot version.
+  - For example, if the current release is `1.0.0` and the current snapshot version is `1.0.0-SNAPSHOT`, increment the snapshot version to `1.0.1-SNAPSHOT`.
+  - You can use a script to update the version simultaneously in all of the sub-packages: `scripts/update_version.md <version>`
+4. Make your changes. Test locally using `sbt test`.
+5. Update the release notes under the top-most header (which should be "in develop").
+6. If the current snapshot version only differs from the release version by a patch, and you added any new functionality (vs just fixing a bug), increment the minor version instead.
+  - For example, when you first created the branch you set the version to `1.0.1-SNAPSHOT`, but then you realized you needed to add a new function to the public API, change the version to `1.1.0-SNAPSHOT`.
+7. When you are done, create a pull request against the `develop` branch.
+
+While developing, make sure you do the following:
+
 * Follow the style guidelines (below).
 * Always write unit tests for any new code you add, and update tests for any code you modify.
   * Unit tests should assert, and not print to the console
   * WDL test files belong in the top directory `test`
-* Submit a pull request when you are ready to have your code reviewed.
 
 ### Style guidelines
 
 * We use [scalafmt style](https://scalameta.org/scalafmt/) with a few modifications. You don't need to worry so much about code style since you will use the automatic formatter on your code before it is committed.
-* Readability is more important than efficiency or concision - write more/slower code if it makes the code more readable.
-* Avoid using more complex features, e.g. reflection.
+* Readability is more important than efficiency or concision
+  - write more/slower code if it makes the code more readable
+  - avoid using abbreviations in variable names unless you know they will be obvious to everyone 
+  - add comments to clarify any non-obvious code 
+* Avoid using more complex features, e.g. reflection
 
 ## Using sbt
 
@@ -91,6 +114,12 @@ $ sbt compile
 ```
 
 If there are errors in your code, the compiler will fail with (hopefully useful) error messages.
+
+### Cleaning up artifacts & building
+
+Generate a staging token via the web UI and login with `dx login --staging --token <token>`.
+
+Run [scripts/clean_build.sh](scripts/clean_build.sh) to clean up existing artifacts (locally and on staging) and build new dxCompiler artifacts.
 
 ### Running unit tests
 
@@ -114,30 +143,13 @@ Note that only DNAnexus developers can set up a label on a PR so let us know whe
 
 First, you need to an account on the DNAnexus staging environment, and you need to be added to the projects that have been setup for testing. Next, log into the DNAnexus staging environment using dx-toolkit: `dx login --staging`. Note that very often your login will timeout while the integration tests are running unless you are actively using the platform in another session, and this will cause the tests to fail. To avoid, this, generate a token via the web UI and use that token to log in on the command line: `dx login --staging --token <token>`.
 
-Next, delete any existing build artifacts using the following commands:
+Follow the "Cleaning up artifacts & building" instructions above.
 
-```
-$ sbt clean
-$ sbt cleanFiles
-$ find . -name target | xargs rm -rf
-# cached resources used to build dx*rt
-$ rm -Rf applet_resources
-```
-
-You may also need to delete artifiacts that have been cached on the platform:
-
-```
-$ dx rm -r dxCompiler_playground:/builds/<username>/<version>
-```
-
-Note: <username> is your local computer's user so if you run tests from root, it will be under root/ folder in dxCompiler_playground.
-
-Finally, run the integration tests. From the root dxCompiler directory, run `./scripts/run_tests.py`.
+Finally, run the integration tests. From the root dxCompiler directory, run `./scripts/run_tests.py`. You can run a specific test/suite by adding the `--test <name>` option.
 
 Note that the test script does a lot of things for you. If for some reason you want to run them manually, here is what happens:
 
-* TODO: fill out this list
-* The dxCompiler and dxExecutor* JAR files are built and staged in the root dxCompiler directory. To do this manually, run `sbt assembly`, then move the JAR files from the `target` folder to the root dxCompiler folder, e.g. `mv target/dxCompiler.jar ./dxCompiler-2.0.0.jar`.
+The dxCompiler and dxExecutor* JAR files are built and staged in the root dxCompiler directory. To do this manually, run `sbt assembly`, then move the JAR files from the `applet_resources` folder to the root dxCompiler folder, e.g. `mv applet_resources/dxCompiler.jar ./dxCompiler-X.Y.Z.jar`.
 
 ### Running a subset of tests locally
 
@@ -169,41 +181,51 @@ sbt keeps the cache of downloaded jar files in `${HOME}/.ivy2/cache`. For exampl
 
 dxCompiler can be released from Github. The release pipeline (optionally) runs large integration tests, builds the release on staging, runs multi-region tests on staging (one test per region), builds on production, and creates a Docker image, which is pushed to DockerHub.
 
-Before starting the release:
-* Update [Release Notes](https://github.com/dnanexus/dxCompiler/blob/main/RELEASE_NOTES.md). The section corresponding to the new version should start with `## <version>`, e.g. `## 1.0.0 2020-01-01`; it will be used for the release page.
-* Update the configuration files with the new release version (one version for all packages). You can use this [script](../scripts/update_version.sh) for that.
-  * [compiler](https://github.com/dnanexus/dxCompiler/blob/main/compiler/src/main/resources/application.conf)
-  * [core](https://github.com/dnanexus/dxCompiler/blob/main/core/src/main/resources/application.conf)
-  * [executorCommon](https://github.com/dnanexus/dxCompiler/blob/main/executorCommon/src/main/resources/application.conf)
-  * [executorWdl](https://github.com/dnanexus/dxCompiler/blob/main/executorWdl/src/main/resources/application.conf)
-  * [executorCwl](https://github.com/dnanexus/dxCompiler/blob/main/executorCwl/src/main/resources/application.conf)
-* Push the changes to the `main` branch.
-* Run the release pipeline:
-  * Go to `Actions` > `dxCompiler Release (Staging and Prod)` and click `Run workflow` on the right side.
-  * Make sure the `main` branch is selected (default setting).
-  * Once finished, the pipeline will create a draft release page on GitHub.
-* Publish the draft [release](https://github.com/dnanexus/dxCompiler/releases). The compressed source code (in `zip` and `tar.gz`) will be added to the release page automatically.
+1. Checkout the develop branch (either HEAD or the specific commit you want to release)
+2. Create a release branch named with the version number, e.g. `release-2.4.2`
+3. Update the version numbers in application.conf files by removing `-SNAPSHOT`
+    - Run `scripts/update_version.md <version>`
+    - If you want to update the versions manually, there are 5 of them:
+        * [compiler](https://github.com/dnanexus/dxCompiler/blob/main/compiler/src/main/resources/application.conf)
+        * [core](https://github.com/dnanexus/dxCompiler/blob/main/core/src/main/resources/application.conf)
+        * [executorCommon](https://github.com/dnanexus/dxCompiler/blob/main/executorCommon/src/main/resources/application.conf)
+        * [executorWdl](https://github.com/dnanexus/dxCompiler/blob/main/executorWdl/src/main/resources/application.conf)
+        * [executorCwl](https://github.com/dnanexus/dxCompiler/blob/main/executorCwl/src/main/resources/application.conf)
+4. Update the [Release Notes](https://github.com/dnanexus/dxCompiler/blob/main/RELEASE_NOTES.md)
+    - Change the top header from "in develop" to "<version> (<date>)"
+5. Push the release branch to GitHub.
+6. Run the release pipeline:
+    1.  Go to `Actions` > `dxCompiler Release (Staging and Prod)` and click `Run workflow` on the right side.
+    2. Make sure the `release-xxx` branch is selected (default setting).
+    3. Once finished, the pipeline will create a draft release page on GitHub.
+7. Publish the draft [release](https://github.com/dnanexus/dxCompiler/releases). The compressed source code (in `zip` and `tar.gz`) will be added to the release page automatically.
+
+If you encounter any additional issues while creating the release, you will need to make the fixes in `develop` and then merge them into the release branch.
+
+To complete the release, open a PR to merge the release branch into main. You can then delete the release branch.
+
+Following the release, it is also nice to bump the SNAPSHOT versions in the `develop` branch.
 
 ### Releasing manually
 
-- Make sure regression tests pass
-- Update [Release Notes](https://github.com/dnanexus/dxCompiler/blob/main/RELEASE_NOTES.md) and, if needed, README.md
-- Make sure the version number in configuration for
-  * [compiler](https://github.com/dnanexus/dxCompiler/blob/main/compiler/src/main/resources/application.conf)
-  * [core](https://github.com/dnanexus/dxCompiler/blob/main/core/src/main/resources/application.conf)
-  * [executorCommon](https://github.com/dnanexus/dxCompiler/blob/main/executorCommon/src/main/resources/application.conf)
-  * [executorWdl](https://github.com/dnanexus/dxCompiler/blob/main/executorWdl/src/main/resources/application.conf)
-  * [executorCwl](https://github.com/dnanexus/dxCompiler/blob/main/executorCwl/src/main/resources/application.conf)
+This should only be done if you want to create a debug release for internal testing (and even then, you can follow the automated process above and just not publish the draft release).
 
-is correct (you can use this [script](../scripts/update_version.sh) for that). It is used when building the release and creating the tag. Currently the version must be the same for all these packages.
-- Merge onto main branch, and make sure all [Github Actions](https://github.com/dnanexus/dxCompiler/actions) tests pass
-- Clean your `dx` environment because you'll be using limited-power tokens to run the release script. Do not mix them with your regular user token.
-```
-dx clearenv
-```
-- Build new externally visible release
-  ```
-  ./scripts/build_all_releases.sh --staging-token XXX --production-token YYY --docker-user UUU --docker-password WWW
-  ```
-  this will take a while. It builds the release on staging, runs multi-region tests on staging (one test per region), builds on production, and creates an easy to use Docker image, which is pushed to DockerHub.
-- Update [releases](https://github.com/dnanexus/dxCompiler/releases) GitHub page, use the `Draft a new release` button, and upload the dxCompiler JAR file.
+1. Follow steps 1-4 above
+2. Make sure the Unit and Integration tests pass
+3. Clean your `dx` environment because you'll be using limited-power tokens to run the release script. Do not mix them with your regular user token.
+    ```
+    dx clearenv
+    ```
+4. Build new externally visible release
+    ```
+    ./scripts/build_all_releases.sh --staging-token XXX --production-token YYY --docker-user UUU --docker-password WWW
+    ```
+    this will take a while. It builds the release on staging, runs multi-region tests on staging (one test per region), builds on production, and creates an easy to use Docker image, which is pushed to DockerHub.
+
+## Enabling dxCompiler in new DNAnexus regions
+
+If dxCompiler needs to be enabled in a new DNAnexus region the following should be done in the staging & production environments:
+
+* dxCompiler requires WDL and CWL assets to be stored in a public "dxCompiler\_region" project. Please use these [scripts](/scripts/dxCompiler_projects_utils) to create a new project and add a "PUBLIC" invitee to the project.
+* The release script that tests and releases dxCompiler in all regions needs to be [updated](/scripts/build_release.py#L33) (one line change).
+* The app used for copying the assets to different regions during a release ([app-dxwdl_copy](/scripts/dxcompiler_copy)) needs to be enabled in the new region (please update `regionalOptions`, `whatsNew`, and increment the `version` of the app).

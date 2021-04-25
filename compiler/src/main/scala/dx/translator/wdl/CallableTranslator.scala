@@ -108,7 +108,11 @@ case class CallableTranslator(wdlBundle: WdlBundle,
     private def translateOutput(output: TAT.OutputParameter, ignoreDefault: Boolean): Parameter = {
       val wdlType = output.wdlType
       val irType = WdlUtils.toIRType(wdlType)
-      val defaultValue = if (ignoreDefault) {
+      val defaultValue = if (ignoreDefault || WdlUtils.isPathType(wdlType)) {
+        // if the expression is a File, Directory or collection thereof,
+        // the paths will be local to the worker so we cannot use them
+        // as the default value (since file inputs need to be given as
+        // links to dx files)
         None
       } else {
         try {
@@ -1012,12 +1016,11 @@ case class CallableTranslator(wdlBundle: WdlBundle,
             //  OverridableBlockInputWithDynamicDefault?
             Parameter(i.name, WdlUtils.toIRType(i.wdlType))
           }
-          val closureOutputs: Vector[Parameter] = closureInputParams
           val (commonStage, commonApplet) =
             createCommonApplet(wfName,
                                commonAppletInputs,
                                commonStageInputs,
-                               inputOutputs ++ closureOutputs,
+                               inputOutputs ++ closureInputParams,
                                blockPath)
           val fauxWfInputs: Vector[LinkedVar] = commonStage.outputs.map { param =>
             val link = LinkInput(commonStage.dxStage, param.dxName)

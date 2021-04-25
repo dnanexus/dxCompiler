@@ -49,7 +49,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         )
     }
 
-  private lazy val username = System.getProperty("user.name")
+  private lazy val username = dxApi.whoami()
   private lazy val unitTestsPath = s"unit_tests/${username}"
   private lazy val cFlagsBase: List[String] = List(
       "-project",
@@ -977,6 +977,13 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
   it should "compile workflow with call to task having optional output" taggedAs NativeTest in {
     val path = pathFromBasename("compiler", basename = "optional_call_output.wdl")
+    val args = path.toString :: cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileNativeNoTree]
+  }
+
+  it should "compile workflow with optional output" taggedAs NativeTest in {
+    val path = pathFromBasename("compiler", basename = "optional_output.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileNativeNoTree]

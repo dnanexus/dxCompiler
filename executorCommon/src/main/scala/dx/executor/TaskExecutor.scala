@@ -37,7 +37,8 @@ object TaskExecutor {
 
 abstract class TaskExecutor(jobMeta: JobMeta,
                             fileUploader: FileUploader = SerialFileUploader(),
-                            streamFiles: StreamFiles.StreamFiles,
+                            streamFiles: StreamFiles.StreamFiles = StreamFiles.PerFile,
+                            waitOnUpload: Boolean = false,
                             traceLengthLimit: Int = 10000) {
 
   private val fileResolver = jobMeta.fileResolver
@@ -240,10 +241,11 @@ abstract class TaskExecutor(jobMeta: JobMeta,
           existingPaths = localFilesToPath.values.toSet,
           separateDirsBySource = true,
           createDirs = true,
-          disambiguationDirLimit = TaskExecutor.MaxDisambiguationDirs
+          disambiguationDirLimit = TaskExecutor.MaxDisambiguationDirs,
+          logger = logger
       )
     val downloadFileSourceToPath: Map[AddressableFileNode, Path] =
-      filesToDownload.map(fs => fs -> downloadLocalizer.getLocalPath(fs)).toMap
+      downloadLocalizer.getLocalPaths(filesToDownload)
     // write the manifest for dxda, if there are files to download
     val dxdaManifest = DxdaManifestBuilder(dxApi)
       .apply(downloadFileSourceToPath.collect {
@@ -257,10 +259,11 @@ abstract class TaskExecutor(jobMeta: JobMeta,
           existingPaths = localFilesToPath.values.toSet,
           separateDirsBySource = true,
           createDirs = false,
-          disambiguationDirLimit = TaskExecutor.MaxDisambiguationDirs
+          disambiguationDirLimit = TaskExecutor.MaxDisambiguationDirs,
+          logger = logger
       )
     val streamFileSourceToPath: Map[AddressableFileNode, Path] =
-      filesToStream.map(fs => fs -> streamingLocalizer.getLocalPath(fs)).toMap
+      streamingLocalizer.getLocalPaths(filesToStream)
     // write the manifest for dxfuse, if there are files to stream
     val dxfuseManifest = DxfuseManifestBuilder(dxApi)
       .apply(streamFileSourceToPath.collect {
@@ -458,11 +461,11 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     val delocalizedPathToUri: Map[Path, String] = {
       val dxFiles = if (jobMeta.useManifests) {
         // if using manifests, we need to upload the files directly to the project
-        fileUploader.upload(delocalizingValueToPath.values.map { path =>
+        fileUploader.uploadWithDestination(delocalizingValueToPath.values.map { path =>
           path -> s"${jobMeta.manifestFolder}/${path.getFileName.toString}"
-        }.toMap)
+        }.toMap, wait = waitOnUpload)
       } else {
-        fileUploader.upload(delocalizingValueToPath.values.toSet)
+        fileUploader.upload(delocalizingValueToPath.values.toSet, wait = waitOnUpload)
       }
       dxFiles.map {
         case (path, dxFile) => path -> dxFile.asUri

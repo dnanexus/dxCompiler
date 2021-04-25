@@ -33,6 +33,7 @@ test_failing = set([
     "just_fail_wf",
     "missing_output",
     "docker_retry",
+    "argument_list_too_long",
 ])
 
 wdl_v1_list = [
@@ -47,12 +48,19 @@ wdl_v1_list = [
     "linear",
     "optionals",
     "optionals3",
-
     "spaces_in_file_paths",
     "strings",
+    "runtime_vs_static_type",
+    "wf_person",
+    "call_level2",
+    "environment_passing_deep_nesting",
+    "optional_output",
+    "unpassed_default_arg",
 
     # workflows with nested blocks
     "two_levels",
+    "three_levels",
+    "four_levels",
     "param_passing",
     "nested_scatter",
 
@@ -91,12 +99,16 @@ wdl_v1_list = [
     "nested_pairs",  # APPS-370
     "apps_378",
     "apps_384",
-    "diff_stream_and_download",  # APPS-288
+    "diff_stream_and_download",  # APPS-288,
 
     # manifests
     "simple_manifest",
     "complex_manifest",
     "view_and_count_manifest"
+]
+
+wdl_v1_1_list = [
+    "v1_1_dict"
 ]
 
 # docker image tests
@@ -124,6 +136,7 @@ draft2_test_list = [
     "files_with_the_same_name",
     "hello",
     "shapes",
+    #"population",
 
     # multiple library imports in one WDL workflow
     "multiple_imports",
@@ -135,6 +148,7 @@ draft2_test_list = [
     "subblocks2",
     "subblocks",
     "var_type_change",
+    "outer",
 
     # calling native dx applets/apps
     # We currently do not have a code generator for draft-2, so cannot import dx_extern.wdl.
@@ -149,6 +163,10 @@ single_tasks_list = [
     "empty_stdout",
     "sort_file",
     "symlinks_wc",
+    "DiskSpace2",
+    "echo_line_split",
+    "opt_array",
+    "stream_diff_v1"
 ]
 
 cwl_tools = [
@@ -186,7 +204,7 @@ doc_tests_list = [
     "bwa_mem"
 ]
 
-medium_test_list = wdl_v1_list + docker_test_list + special_flags_list + cwl_tools
+medium_test_list = wdl_v1_list + wdl_v1_1_list + docker_test_list + special_flags_list + cwl_tools
 large_test_list = medium_test_list + draft2_test_list + single_tasks_list + doc_tests_list
 
 test_suites = {
@@ -202,7 +220,12 @@ test_suites = {
 }
 
 # Tests with the reorg flags
-test_reorg = ["dict", "strings"]
+test_reorg = [
+    "dict",
+    "strings",
+    "test_reorg",
+    "test_reorg_no_config"
+]
 test_defaults = []
 test_unlocked = [
     "array_structs",
@@ -212,7 +235,8 @@ test_unlocked = [
     "hello",
     "path_not_taken",
     "optionals",
-    "shapes"
+    "shapes",
+    #"population"
 ]
 test_project_wide_reuse = ['add2', "add_many"]
 
