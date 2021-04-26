@@ -245,6 +245,9 @@ TestMetaData = namedtuple('TestMetaData', ['name', 'kind'])
 TestDesc = namedtuple('TestDesc',
                       ['name', 'kind', 'source_file', 'raw_input', 'dx_input', 'results', 'extras'])
 
+# Test with -waitOnUpload flag
+test_upload_wait = ["upload_wait"]
+
 ######################################################################
 # Read a JSON file
 def read_json_file(path):
@@ -686,6 +689,8 @@ def compiler_per_test_flags(tname):
     if tname in test_defaults and len(desc.raw_input) > 0:
         flags.append("-defaults")
         flags.append(desc.raw_input[0])
+    if tname in test_upload_wait:
+        flags.append("-waitOnUpload")
     else:
         for i in desc.raw_input:
             flags.append("-inputs")
