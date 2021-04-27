@@ -556,7 +556,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     } else {
       irOutputFields.map {
         case (fieldName, actualType) =>
-          val fqn = prefix.map(p => s"${p}.${fieldName}").getOrElse(fieldName)
+          val fqn = prefix.map(p => s"${p}${fieldName}").getOrElse(fieldName)
           val validatedType = if (validate) {
             validateOutput(Parameter.encodeName(fieldName), actualType)
           } else {

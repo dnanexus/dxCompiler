@@ -14,6 +14,7 @@ import dx.executor.{FileUploader, JobMeta, SerialFileUploader, TaskExecutor}
 import dx.util.{DockerUtils, FileUtils, JsUtils, TraceLevel}
 import spray.json._
 
+import java.net.URI
 import java.nio.file.Files
 
 object CwlTaskExecutor {
@@ -21,7 +22,9 @@ object CwlTaskExecutor {
              fileUploader: FileUploader = SerialFileUploader(),
              streamFiles: StreamFiles = StreamFiles.PerFile,
              waitOnUpload: Boolean = false): CwlTaskExecutor = {
-    val parser = Parser.create(hintSchemas = Vector(DxHintSchema))
+    // when parsing a packed workflow as a String, we need to use a baseuri -
+    // it doesn't matter what it is
+    val parser = Parser.create(Some(URI.create("file:/null")), hintSchemas = Vector(DxHintSchema))
     parser.detectVersionAndClass(jobMeta.sourceCode) match {
       case Some((version, "CommandLineTool" | "ExpressionTool" | "Workflow"))
           if Language.parse(version) == Language.CwlV1_2 =>
@@ -203,16 +206,16 @@ case class CwlTaskExecutor(tool: Process,
     printInputs(inputs)
     val metaDir = workerPaths.getMetaDir(ensureExists = true)
     // write the CWL and input files
-    val filePrefix = tool.getName.getOrElse("tool")
-    val cwlPath = metaDir.resolve(s"${filePrefix}.cwl")
+    val cwlPath = metaDir.resolve(s"tool.cwl")
     FileUtils.writeFileContent(cwlPath, jobMeta.sourceCode)
-    val inputPath = metaDir.resolve(s"${filePrefix}_input.json")
+    val inputPath = metaDir.resolve(s"tool_input.json")
     val inputJson = CwlUtils.toJson(inputs)
     if (logger.isVerbose) {
       logger.trace(s"input JSON ${inputPath}:\n${inputJson.prettyPrint}")
     }
     JsUtils.jsToFile(inputJson, inputPath)
-    // if a target is specified (a specific workflow step), add the --target option
+    // if a target is specified (a specific workflow step), add the
+    // --single-step option
     val targetOpt = target.map(t => s"--single-step ${t}").getOrElse("")
     // if a dx:// URI is specified for the Docker container, download it
     // and create an overrides file to override the value in the CWL file

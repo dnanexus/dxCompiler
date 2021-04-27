@@ -473,7 +473,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
       val callInputs = evaluateCallInputs()
       val (dxExecution, executableLink, callName) =
         launchCall(callInputs, folder = Some(blockIndex.toString))
-      jobMeta.createExecutionOutputLinks(dxExecution, executableLink.outputs, Some(callName))
+      jobMeta.createExecutionOutputLinks(dxExecution, executableLink.outputs, Some(s"${callName}/"))
     }
 
     override protected def launchConditional(): Map[String, ParameterLink] = {

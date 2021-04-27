@@ -276,7 +276,7 @@ object CwlBlock {
           }.toMap
           val blockOutputs = step.outputs.foldLeft(Map.empty[String, OutputParameter]) {
             case (accu, out) if procOutputs.contains(out.name) && !accu.contains(out.name) =>
-              accu + (out.name -> procOutputs(out.name))
+              accu + (s"${step.name}/${out.name}" -> procOutputs(out.name))
             case (_, out) =>
               throw new Exception(s"invalid or duplicate output parameter name ${out.name}")
           }

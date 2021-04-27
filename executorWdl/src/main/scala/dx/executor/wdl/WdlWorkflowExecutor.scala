@@ -427,7 +427,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       val callInputs = evaluateCallInputs()
       val (dxExecution, executableLink, callName) =
         launchCall(callInputs, Some(blockIndex.toString))
-      jobMeta.createExecutionOutputLinks(dxExecution, executableLink.outputs, Some(callName))
+      jobMeta.createExecutionOutputLinks(dxExecution, executableLink.outputs, Some(s"${callName}."))
     }
 
     private val qualifiedNameRegexp = "(.+)\\.(.+)".r

@@ -278,68 +278,6 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       Parameter(input.name, irType, default.map(CwlUtils.toIRValue(_, cwlType)._2), Vector.empty)
     }
 
-    private case class CallEnv(env: Map[String, LinkedVar]) {
-      def add(key: String, lvar: LinkedVar): CallEnv = {
-        CallEnv(env + (key -> lvar))
-      }
-
-      def keys: Set[String] = env.keySet
-
-      def get(key: String): Option[LinkedVar] = env.get(key)
-
-      def apply(key: String): LinkedVar = {
-        get(key) match {
-          case None =>
-            log()
-            throw new Exception(s"${key} does not exist in the environment.")
-          case Some(lvar) => lvar
-        }
-      }
-
-      def log(): Unit = {
-        if (logger.isVerbose) {
-          logger.trace("env:")
-          val logger2 = logger.withIncTraceIndent()
-          stageInputs.map {
-            case (name, stageInput) =>
-              logger2.trace(s"$name -> ${stageInput}")
-          }
-        }
-      }
-
-      /**
-        * Check if the environment has a variable with a binding for
-        * a fully-qualified name. For example, if fqn is "A/B/C", then
-        * look for "A/B/C", "B/C", or "C", in that order.
-        * @param fqn fully-qualified name
-        * @return
-        */
-      def lookup(fqn: String): Option[(String, LinkedVar)] = {
-        env.get(fqn).orElse(env.get(Parameter.encodeName(fqn))).map((fqn, _)).orElse {
-          // A/B/C --> B/C
-          fqn.indexOf("/") match {
-            case pos if pos >= 0 => lookup(fqn.drop(pos + 1))
-            case _               => None
-          }
-        }
-      }
-
-      def stageInputs: Map[String, StageInput] = {
-        env.map {
-          case (key, (_, stageInput)) => key -> stageInput
-        }
-      }
-    }
-
-    private object CallEnv {
-      def fromLinkedVars(lvars: Vector[LinkedVar], delim: String): CallEnv = {
-        CallEnv(lvars.map {
-          case (parameter, stageInput) =>
-            parameter.name -> (parameter, stageInput)
-        }.toMap)
-      }
-    }
-
     private def callInputToStageInput(callInput: Option[WorkflowStepInput],
                                       calleeParam: Parameter,
                                       env: CallEnv,
@@ -502,9 +440,10 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         }
       }
 
-      val outputParams: Vector[Parameter] = block.outputs.values.map { param =>
-        val irType = CwlUtils.toIRType(param.cwlType)
-        Parameter(param.name, irType)
+      val outputParams: Vector[Parameter] = block.outputs.map {
+        case (name, param) =>
+          val irType = CwlUtils.toIRType(param.cwlType)
+          Parameter(name, irType)
       }.toVector
 
       // create the type map that will be serialized in the applet's details
