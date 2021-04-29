@@ -93,7 +93,9 @@ wdl_v1_list = [
     "view_and_count_manifest",
 ]
 
-wdl_v1_1_list = ["v1_1_dict"]
+wdl_v1_1_list = [
+    "v1_1_dict"
+]
 
 # docker image tests
 docker_test_list = [
@@ -181,7 +183,9 @@ special_flags_list = [
 ]
 
 # these are the examples from the documentation
-doc_tests_list = ["bwa_mem"]
+doc_tests_list = [
+    "bwa_mem"
+]
 
 medium_test_list = (
     wdl_v1_list + wdl_v1_1_list + docker_test_list + special_flags_list + cwl_tools
@@ -203,8 +207,13 @@ test_suites = {
 }
 
 # Tests with the reorg flags
-test_reorg = ["dict", "strings", "test_reorg", "test_reorg_no_config"]
-test_defaults = []
+test_reorg = {
+    "dict",
+    "strings",
+    "test_reorg",
+    "test_reorg_no_config"
+}
+test_defaults = set()
 test_unlocked = {
     "array_structs",
     "cast",
@@ -215,8 +224,13 @@ test_unlocked = {
     "optionals",
     "shapes",
 }
-test_project_wide_reuse = {"add2", "add_many"}
-test_separate_outputs = {"localization"}
+test_project_wide_reuse = {
+    "add2",
+    "add_many"
+}
+test_separate_outputs = {
+    "localization"
+}
 
 test_import_dirs = ["A"]
 TestMetaData = namedtuple("TestMetaData", ["name", "kind"])
@@ -226,7 +240,9 @@ TestDesc = namedtuple(
 )
 
 # Test with -waitOnUpload flag
-test_upload_wait = ["upload_wait"]
+test_upload_wait = {
+    "upload_wait"
+}
 
 
 def read_json_file(path):
