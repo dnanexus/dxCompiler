@@ -9,7 +9,7 @@ from dx_cwl_runner.dx import Dx
 from dx_cwl_runner.utils import Log
 
 
-def run_cwl(dx_compiler, processfile, dx_input, dx: Dx):
+def run_cwl(dx_compiler, processfile, dx_input, dx: Dx) -> (str, str):
     cmd = f"java -jar {dx_compiler} compile {processfile} -force -folder {dx.test_folder} " \
           f"-project {dx.current_dx_project} -locked -inputs {dx_input}"
     if dx.log.dryrun:
@@ -20,11 +20,11 @@ def run_cwl(dx_compiler, processfile, dx_input, dx: Dx):
         new_dx_input = input_utils.get_new_dx_input(dx_input)
 
         dx.log.debug(f"Running {executable} with {new_dx_input} input.", dx.log.verbose)
-        job = utils.run_cmd(f"dx run {executable} -f {new_dx_input} -y --brief")
+        job_id = utils.run_cmd(f"dx run {executable} -f {new_dx_input} -y --brief")
 
-        dx.log.debug(f"Waiting for {job} to finish...", dx.log.verbose)
-        utils.run_cmd(f"dx wait {job}")
-        return job, utils.run_cmd(f"dx watch {job} --quiet")
+        dx.log.debug(f"Waiting for {job_id} to finish...", dx.log.verbose)
+        utils.run_cmd(f"dx wait {job_id}")
+        return job_id, utils.run_cmd(f"dx watch {job_id} --quiet")
 
 
 def main():

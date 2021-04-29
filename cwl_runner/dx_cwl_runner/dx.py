@@ -23,7 +23,7 @@ class Dx:
     version = utils.run_cmd(f"java -jar {compiler_jar} version")
 
     @staticmethod
-    def dx_file_to_path(f: dxpy.DXFile):
+    def dx_file_to_path(f: dxpy.DXFile) -> str:
         desc = f.describe()
         return os.path.join(desc["folder"], desc["name"])
 
@@ -43,14 +43,14 @@ class Dx:
         else:
             utils.run_cmd(mk_folder_cmd, config.verbose)
 
-    def _get_cache(self, location):
+    def _get_cache(self, location: str) -> str:
         if location in self.cache:
             return self.cache[location]
 
-    def _add_to_cache(self, local, remote):
+    def _add_to_cache(self, local: str, remote: str):
         self.cache[local] = remote
 
-    def get_file_name(self, outdir, file_id):
+    def get_file_name(self, outdir: str, file_id: str) -> str:
         dx_file = dxpy.DXFile(file_id, project=self.current_dx_project)
         platform_file_name = dx_file.describe(fields={"name": True}).get("name")
         file_name = os.path.join(outdir, platform_file_name)
@@ -60,7 +60,7 @@ class Dx:
             file_name = f"{os.path.join(outdir, platform_file_name)}({counter})"
         return file_name
 
-    def find_or_upload_file(self, file):
+    def find_or_upload_file(self, file: str) -> str:
         # the file may have been resolved previously
         dx_uri = self._get_cache(file)
         if dx_uri is not None:
@@ -91,7 +91,7 @@ class Dx:
         self._add_to_cache(file, dx_uri)
         return dx_uri
 
-    def find_or_upload_dir(self, dir):
+    def find_or_upload_dir(self, dir: str) -> str:
         # the file may have been resolved previously
         dx_uri = self._get_cache(dir)
         if dx_uri is not None:
@@ -159,7 +159,7 @@ class Dx:
 
         return f"dx://{self.current_dx_project}:{base_folder}"
 
-    def check_outdir(self, dir, create=True):
+    def check_outdir(self, dir: str, create: bool = True):
         if not os.path.exists(dir):
             self.log.log(f"Creating output directory {dir}")
             if create:

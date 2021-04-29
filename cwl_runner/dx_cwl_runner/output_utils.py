@@ -5,7 +5,7 @@ from dx_cwl_runner import utils
 from dx_cwl_runner.dx import Dx
 
 
-def get_modified_output(output: dict, outdir, dx: Dx):
+def get_modified_output(output: dict, outdir: str, dx: Dx) -> dict:
     file_id = next(iter(output.values()))
     output_path = dx.get_file_name(outdir, file_id)
     utils.run_cmd(f"dx download {next(iter(output.values()))} --output '{output_path}' --no-progress")
@@ -17,8 +17,8 @@ def get_modified_output(output: dict, outdir, dx: Dx):
     }
 
 
-def create_dx_output(job, process_file, outdir, dx: Dx):
-    description = json.loads(utils.run_cmd(f"dx describe {job} --json"))
+def create_dx_output(job_id: str, process_file: str, outdir: str, dx: Dx) -> dict:
+    description = json.loads(utils.run_cmd(f"dx describe {job_id} --json"))
     outputs = description.get("output")
     results = {}
     if description.get("state") == "done":
@@ -40,8 +40,9 @@ def create_dx_output(job, process_file, outdir, dx: Dx):
     return results
 
 
-def write_output(file_name, results, print_output=True):
+def write_output(file_name: str, results: str, print_output=True):
+    js = json.dumps(results, indent=4)
     with open(file_name, 'w') as result_file:
-        json.dump(results, result_file)
+        result_file.write(js)
     if print_output:
-        print(json.dumps(results, indent=4))
+        print(js)

@@ -5,7 +5,7 @@ from dx_cwl_runner.dx import Dx
 from dx_cwl_runner.utils import Log
 
 
-def upload_file(path, basedir, dx: Dx):
+def upload_file(path: str, basedir: str, dx: Dx) -> str:
     if path.startswith("dx://"):
         return path
     if not os.path.isabs(path):
@@ -18,7 +18,7 @@ def upload_file(path, basedir, dx: Dx):
     return dx.find_or_upload_file(path)
 
 
-def upload_dir(path, basedir, dx: Dx):
+def upload_dir(path: str, basedir: str, dx: Dx) -> (str, str):
     if path.startswith("dx://"):
         return path, None
     if not os.path.isabs(path):
@@ -33,7 +33,7 @@ def upload_dir(path, basedir, dx: Dx):
     return dx_uri, basename
 
 
-def get_modified_input(i, basedir, dx: Dx):
+def get_modified_input(i, basedir: str, dx: Dx):
     if type(i) is list:
         return [get_modified_input(x, basedir, dx) for x in i]
 
@@ -67,7 +67,7 @@ def get_modified_input(i, basedir, dx: Dx):
     return i
 
 
-def create_dx_input(jobfile, basedir, dx: Dx):
+def create_dx_input(jobfile: str, basedir: str, dx: Dx) -> (dict, str):
     # issues:
     #         if file does not exist, exception is thrown and no json is generated, even if some files were uploaded
     with open(jobfile) as input_file:
@@ -79,7 +79,7 @@ def create_dx_input(jobfile, basedir, dx: Dx):
         ), process_file
 
 
-def write_dx_input(new_input, jobfile, log: Log):
+def write_dx_input(new_input: dict, jobfile: str, log: Log) -> str:
     js = json.dumps(new_input, indent=4)
     if log.dryrun:
         log.log(f"writing input to {jobfile}:\n{js}")
@@ -89,7 +89,7 @@ def write_dx_input(new_input, jobfile, log: Log):
     return jobfile
 
 
-def get_new_dx_input(input_path):
+def get_new_dx_input(input_path: str) -> str:
     basename = os.path.basename(input_path)
     new_input_filename = f"{os.path.splitext(basename)[0]}.dx.json"
     return new_input_filename
