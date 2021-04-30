@@ -12,4 +12,4 @@ dx rm -r dxCompiler_playground:/builds/$username
 dx rm -r dxCompiler_playground:/unit_tests/$username
 
 # Run 1 integration test to re-build, upload
-./scripts/run_tests.py --test add3
+./scripts/run_tests.py --test upload_wait

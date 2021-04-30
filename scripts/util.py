@@ -67,8 +67,7 @@ def create_build_subdirs(project, base_folder):
 
 
 def create_build_dirs(project, version_id):
-    user_desc = pwd.getpwuid(os.getuid())
-    username = user_desc.pw_name
+    username = dxpy.whoami()
     base_folder = "/builds/{}/{}".format(username, version_id)
     create_build_subdirs(project, base_folder)
     return base_folder
