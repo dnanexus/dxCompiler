@@ -382,6 +382,8 @@ case class Compiler(extras: Option[Extras],
                          extras,
                          parameterLinkSerializer,
                          useManifests,
+                         complexPathValues,
+                         fileResolver,
                          dxApi,
                          logger2)
       // Calculate a checksum of the inputs that went into the making of the applet.

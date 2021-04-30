@@ -115,8 +115,10 @@ class InputTranslator(bundle: Bundle,
           paths.flatMap {
             case obj: JsObject =>
               obj.fields.get("type") match {
-                case Some(JsString("File"))      => extractDxFiles(obj, TFile)
-                case Some(JsString("Directory")) => extractDxFiles(obj, TDirectory)
+                case Some(JsString("File")) =>
+                  extractDxFiles(obj, TFile)
+                case Some(JsString("Folder" | "Archive" | "Listing")) =>
+                  extractDxFiles(obj, TDirectory)
                 case other =>
                   throw new Exception(s"invalid path ${other}")
               }
