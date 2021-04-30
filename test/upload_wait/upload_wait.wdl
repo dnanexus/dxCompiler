@@ -11,7 +11,7 @@ task upload_task {
   }
 }
 
-workflow upload_wf {
+workflow upload_wait {
   call upload_task
 
   output {
