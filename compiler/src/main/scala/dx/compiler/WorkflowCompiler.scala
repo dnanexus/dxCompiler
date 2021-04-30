@@ -10,7 +10,8 @@ import spray.json._
 
 import scala.collection.immutable.TreeSeqMap
 
-case class WorkflowCompiler(extras: Option[Extras],
+case class WorkflowCompiler(separateOutputs: Boolean,
+                            extras: Option[Extras],
                             parameterLinkSerializer: ParameterLinkSerializer,
                             useManifests: Boolean,
                             complexPathValues: Boolean,
@@ -384,13 +385,20 @@ case class WorkflowCompiler(extras: Option[Extras],
         } else {
           irExecutable.inputVars.zip(stage.inputs)
         }
-        // convert the per-stage metadata into JSON
-        JsObject(
-            Map("id" -> JsString(stage.dxStage.id),
-                "executable" -> JsString(dxExec.id),
-                "name" -> JsString(stage.description),
-                "input" -> stageInputToNative(linkedInputs))
+        val stageAttrs = Vector(
+            "id" -> JsString(stage.dxStage.id),
+            "executable" -> JsString(dxExec.id),
+            "name" -> JsString(stage.description),
+            "input" -> stageInputToNative(linkedInputs)
         )
+        val folderAttr = if (separateOutputs) {
+          val folderName = s"${workflow.name}_${stage.dxStage.id}"
+          Vector("folder" -> JsString(folderName))
+        } else {
+          Vector.empty
+        }
+        // convert the per-stage metadata into JSON
+        JsObject((stageAttrs ++ folderAttr).toMap)
       }
     // build the details JSON
     val defaultTags = Set(Constants.CompilerTag)
