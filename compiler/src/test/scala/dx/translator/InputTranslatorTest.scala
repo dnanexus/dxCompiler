@@ -311,7 +311,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
                                "input3___dxfiles")
   }
 
-  it should "translate cwl directory listing" in {
+  it should "translate cwl directory listing I" in {
     val cwlCode = pathFromBasename("cwl", "cat-from-dir.cwl")
     val inputs = pathFromBasename("cwl", "cat-from-dir_input1.json")
     val args = List(cwlCode.toString, "-inputs", inputs.toString, "-verbose") ++ cFlags
@@ -334,6 +334,32 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
                             "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq")
                         )
                     )
+                )
+            )
+        )
+    )
+  }
+
+  it should "translate cwl directory listing II" in {
+    val cwlCode = pathFromBasename("cwl", "cat-from-dir.cwl")
+    val inputs = pathFromBasename("cwl", "cat-from-dir_input2.json")
+    val args = List(cwlCode.toString, "-inputs", inputs.toString, "-verbose") ++ cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileIR]
+
+    val dxInputsFile = inputs.getParent.resolve(FileUtils.replaceFileSuffix(inputs, ".dx.json"))
+    val jsInputs = JsUtils.jsFromFile(dxInputsFile)
+    val fields = jsInputs.asJsObject.fields
+    fields("dir1") shouldBe JsObject(
+        Parameter.ComplexValueKey -> JsObject(
+            "type" -> JsString("Listing"),
+            "basename" -> JsString("cwl"),
+            "listing" -> JsArray(
+                JsObject(
+                    "type" -> JsString("File"),
+                    "uri" -> JsString("literal.txt"),
+                    "basename" -> JsString("literal.txt"),
+                    "contents" -> JsString("I'm a File literal; howdy!")
                 )
             )
         )
