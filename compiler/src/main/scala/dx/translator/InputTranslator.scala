@@ -140,11 +140,13 @@ class InputTranslator(bundle: Bundle,
           .get("secondaryFiles")
           .map(extractFromArray)
           .getOrElse(Vector.empty)
-      case (TDirectory, JsObject(fields)) =>
-        Vector(fields("uri")) ++ fields
+      case (TDirectory, JsObject(fields)) if fields.contains("listing") =>
+        fields
           .get("listing")
           .map(extractFromArray)
           .getOrElse(Vector.empty)
+      case (TDirectory, JsObject(fields)) =>
+        Vector(fields("uri"))
       case _ if Type.isPrimitive(t) => Vector.empty
       case (TArray(elementType, _), JsArray(array)) =>
         array.flatMap(element => extractDxFiles(element, elementType))

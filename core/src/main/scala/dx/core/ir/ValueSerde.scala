@@ -250,9 +250,10 @@ object ValueSerde extends DefaultJsonProtocol {
   def isPathObject(jsv: JsValue): Boolean = {
     jsv match {
       case JsObject(fields) =>
-        fields.contains("uri") && fields.get("type").exists {
-          case JsString(s) => Set("File", "Folder", "Archive", "Listing").contains(s)
-          case _           => false
+        fields.get("type") match {
+          case Some(JsString("File" | "Folder" | "Archive")) if fields.contains("uri") => true
+          case Some(JsString("Listing")) if fields.contains("listing")                 => true
+          case _                                                                       => false
         }
       case _ => false
     }
