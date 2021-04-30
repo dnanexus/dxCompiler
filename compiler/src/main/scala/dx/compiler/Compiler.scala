@@ -374,7 +374,12 @@ case class Compiler(extras: Option[Extras],
     ): (DxWorkflow, JsValue) = {
       logger2.trace(s"Compiling workflow ${workflow.name}")
       val workflowCompiler =
-        WorkflowCompiler(extras, parameterLinkSerializer, useManifests, dxApi, logger2)
+        WorkflowCompiler(separateOutputs,
+                         extras,
+                         parameterLinkSerializer,
+                         useManifests,
+                         dxApi,
+                         logger2)
       // Calculate a checksum of the inputs that went into the making of the applet.
       val (workflowApiRequest, execTree) = workflowCompiler.apply(workflow, dependencyDict)
       val (requestWithChecksum, digest) = checksumRequest(workflow.name, workflowApiRequest)
