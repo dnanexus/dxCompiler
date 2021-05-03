@@ -165,6 +165,14 @@ cwl_conformance_workflows = [
     os.path.basename(path)[:-9]
     for path in glob.glob(os.path.join(test_dir, "cwl_conformance", "workflows_packed", "*.cwl.json"))
 ]
+cwl_directory_tools = [
+    "dir",
+    "dir2",
+    "dir3",
+    "dir4",
+    "dir5",
+    "dir6"
+]
 
 # Tests run in continuous integration. We remove the native app test,
 # because we don't want to give permissions for creating platform apps.
@@ -208,6 +216,7 @@ test_suites = {
     "native": ["call_native", "call_native_v1"],
     "docs": doc_tests_list,
     "cwl_conformance": cwl_conformance_tools + cwl_conformance_workflows,
+    "cwl_dir": cwl_directory_tools
 }
 
 # Tests with the reorg flags

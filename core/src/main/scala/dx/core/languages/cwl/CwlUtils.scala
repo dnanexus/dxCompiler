@@ -101,11 +101,12 @@ object CwlUtils {
         )
       case d: DirectoryValue =>
         d.location match {
-          case Some(uri) if Value.isDxFolderUri(uri) => VFolder(uri, d.basename)
-          case Some(uri) if Value.isDxFileUri(uri)   => VArchive(uri, d.basename)
-          case None if d.listing.nonEmpty            => VListing(d.basename.get, d.listing.map(toIRPath))
-          case None if d.path.nonEmpty               => VFolder(d.path.get)
-          case _                                     => throw new Exception()
+          case Some(uri) if Value.isDxFileUri(uri) => VArchive(uri, d.basename)
+          case Some(uri)                           => VFolder(uri, d.basename)
+          case None if d.listing.nonEmpty          => VListing(d.basename.get, d.listing.map(toIRPath))
+          case None if d.path.nonEmpty             => VFolder(d.path.get)
+          case _ =>
+            throw new Exception(s"DirectoryValue does not have a location, path, or listing ${d}")
         }
     }
   }

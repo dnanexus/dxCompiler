@@ -207,10 +207,20 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     */
   protected def streamFileForInput(parameterName: String): Boolean
 
-  case class FileSource(virutalFiles: Vector[VFile] = Vector.empty,
-                        realFiles: Vector[AddressableFileNode] = Vector.empty,
-                        archives: Vector[AddressableFileNode] = Vector.empty,
-                        folders: Vector[AddressableFileSource] = Vector.empty)
+  /**
+    * Collection of files associated with an input value.
+    * @param virutalFiles VFiles that have a `contents` attribute - these are
+    *                     localized by writing the contents to a file
+    * @param realFiles local/remote files
+    * @param archives local/remote archives that need to be unpacked to
+    *                 directories after downloading
+    * @param folders local/remove folders - these are localized by streaming/
+    *                downloading the folder recursively
+    */
+  case class FileSources(virutalFiles: Vector[VFile] = Vector.empty,
+                         realFiles: Vector[AddressableFileNode] = Vector.empty,
+                         archives: Vector[AddressableFileNode] = Vector.empty,
+                         folders: Vector[AddressableFileSource] = Vector.empty)
 
   // TODO: it would be nice to extract dx:// links from VString values - this will
   //  happen in the case where the container is a dx file and being passed in as
@@ -218,31 +228,31 @@ abstract class TaskExecutor(jobMeta: JobMeta,
   //  this would also require some way for the downloaded image tarball to be
   //  discovered and loaded. For now, we rely on DockerUtils to download the image
   //  (via DxFileSource, which uses the dx API to download the file).
-  private def extractPaths(v: Value): FileSource = {
-    def extractArray(values: Vector[Value]): FileSource = {
-      values.map(extractPaths).foldLeft(FileSource()) {
+  private def extractPaths(v: Value): FileSources = {
+    def extractArray(values: Vector[Value]): FileSources = {
+      values.map(extractPaths).foldLeft(FileSources()) {
         case (pathsAccu, paths) =>
-          FileSource(pathsAccu.virutalFiles ++ paths.virutalFiles,
-                     pathsAccu.realFiles ++ paths.realFiles,
-                     pathsAccu.archives ++ paths.archives,
-                     pathsAccu.folders ++ paths.folders)
+          FileSources(pathsAccu.virutalFiles ++ paths.virutalFiles,
+                      pathsAccu.realFiles ++ paths.realFiles,
+                      pathsAccu.archives ++ paths.archives,
+                      pathsAccu.folders ++ paths.folders)
       }
     }
     v match {
       case f: VFile if f.contents.nonEmpty =>
-        FileSource(virutalFiles = Vector(f))
+        FileSources(virutalFiles = Vector(f))
       case f: VFile =>
         val primaryFile = fileResolver.resolve(f.uri)
         val secondaryPaths = extractArray(f.secondaryFiles)
         secondaryPaths.copy(realFiles = secondaryPaths.realFiles :+ primaryFile)
       case f: VFolder =>
-        FileSource(folders = Vector(fileResolver.resolveDirectory(f.uri)))
+        FileSources(folders = Vector(fileResolver.resolveDirectory(f.uri)))
       case a: VArchive =>
-        FileSource(archives = Vector(fileResolver.resolve(a.uri)))
+        FileSources(archives = Vector(fileResolver.resolve(a.uri)))
       case l: VListing   => extractArray(l.listing)
       case VArray(items) => extractArray(items)
       case VHash(m)      => extractArray(m.values.toVector)
-      case _             => FileSource()
+      case _             => FileSources()
     }
   }
 
@@ -251,7 +261,6 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     * to be streamed or downloaded, and generates the dxda and dxfuse manifests.
     * @return
     * TODO: handle file/archive/folder with basename
-    * TODO: handle file with contents
     * TODO: basedir for paths in listing
     * TODO: ensure secondary files are in the same dir as the parent file
     */
@@ -274,27 +283,54 @@ abstract class TaskExecutor(jobMeta: JobMeta,
                                archivesToStream: Set[AddressableFileNode] = Set.empty,
                                archivesToDownload: Set[AddressableFileNode] = Set.empty,
                                localFoldersToPath: Map[AddressableFileSource, Path] = Map.empty,
-                               foldersToStream: Set[AddressableFileSource] = Set.empty) {
+                               foldersToStream: Set[AddressableFileSource] = Set.empty,
+                               foldersToDownload: Set[AddressableFileSource] = Set.empty) {
       lazy val localPaths: Set[Path] =
         (localFilesToPath.values ++ localArchivesToPath.values ++ localFoldersToPath.values).toSet
     }
 
     def splitFiles(
-        name: String,
-        files: Vector[AddressableFileNode]
+        files: Vector[AddressableFileNode],
+        stream: Boolean
     ): (Map[AddressableFileNode, Path], Set[AddressableFileNode], Set[AddressableFileNode]) = {
       val (local, remote) = files.foldLeft(
           (Map.empty[AddressableFileNode, Path], Set.empty[AddressableFileNode])
       ) {
-        case ((local, remote), fs: LocalFileSource) =>
+        case ((local, remote), fs: LocalFileSource) if !fs.isDirectory =>
           // The file is already on the local disk, there is no need to download it.
           // TODO: make sure this file is NOT in the applet input/output directories.
           (local + (fs -> fs.canonicalPath), remote)
+        case (_, fs: LocalFileSource) =>
+          throw new Exception(s"not a local file ${fs}")
         case ((local, remote), other) =>
           (local, remote + other)
       }
-      if (streamFiles == StreamFiles.All ||
-          (streamFiles == StreamFiles.PerFile && streamFileForInput(name))) {
+      if (stream) {
+        (local, remote, Set.empty)
+      } else {
+        (local, Set.empty, remote)
+      }
+    }
+
+    // splits a Vector of AddressableFileSource associated with an input parameter into
+    // (local_files, files_to_stream, files_to_download)
+    def splitFolders(
+        files: Vector[AddressableFileSource],
+        stream: Boolean
+    ): (Map[AddressableFileSource, Path], Set[AddressableFileSource], Set[AddressableFileSource]) = {
+      val (local, remote) = files.foldLeft(
+          (Map.empty[AddressableFileSource, Path], Set.empty[AddressableFileSource])
+      ) {
+        case ((local, remote), fs: LocalFileSource) if fs.isDirectory =>
+          // The file is already on the local disk, there is no need to download it.
+          // TODO: make sure this file is NOT in the applet input/output directories.
+          (local + (fs -> fs.canonicalPath), remote)
+        case (_, fs: LocalFileSource) =>
+          throw new Exception(s"not a local directory ${fs}")
+        case ((local, remote), other) =>
+          (local, remote + other)
+      }
+      if (stream) {
         (local, remote, Set.empty)
       } else {
         (local, Set.empty, remote)
@@ -303,19 +339,17 @@ abstract class TaskExecutor(jobMeta: JobMeta,
 
     val paths = inputs.foldLeft(PathsToLocalize()) {
       case (paths, (name, (_, irValue))) =>
+        // extract all the files/directories nested within the input value
         val fileSources = extractPaths(irValue)
+        // whether to stream all the files associated with this input
+        val stream = streamFiles == StreamFiles.All ||
+          (streamFiles == StreamFiles.PerFile && streamFileForInput(name))
         val (localFilesToPath, filesToStream, filesToDownload) =
-          splitFiles(name, fileSources.realFiles)
+          splitFiles(fileSources.realFiles, stream)
         val (localArchivesToPath, archivesToStream, archivesToDownload) =
-          splitFiles(name, fileSources.archives)
-        val (localFolders, remoteFolders) =
-          fileSources.folders.foldLeft(Map.empty[AddressableFileSource, Path],
-                                       Set.empty[AddressableFileSource]) {
-            case ((local, remote), fs: LocalFileSource) if fs.isDirectory =>
-              (local + (fs -> fs.canonicalPath), remote)
-            case ((local, remote), other) =>
-              (local, remote + other)
-          }
+          splitFiles(fileSources.archives, stream)
+        val (localFolders, foldersToStream, foldersToDownload) =
+          splitFolders(fileSources.folders, stream)
         PathsToLocalize(
             fileSources.virutalFiles,
             paths.localFilesToPath ++ localFilesToPath,
@@ -325,7 +359,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
             paths.archivesToStream ++ archivesToStream,
             paths.archivesToDownload ++ archivesToDownload,
             paths.localFoldersToPath ++ localFolders,
-            paths.foldersToStream ++ remoteFolders
+            paths.foldersToStream ++ foldersToStream,
+            paths.foldersToDownload ++ foldersToDownload
         )
     }
 
@@ -346,12 +381,13 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     }.unzip
     val virtualUriToFile = virtualUriToFileVec.toMap
 
-    // build dxda and/or dxfuse manifests
-    // We use a SafeLocalizationDisambiguator to determine the local path and deal
-    // with file name collisions in the manner specified by the WDL spec. We set
-    // separateDirsBySource = true because, when creating archives, we append one
-    // directory at a time to the archive and then delete the source files, so the
-    // smaller each append operation is, the less disk overhead is required.
+    // Build dxda and/or dxfuse manifests to localize all remote files, archives,
+    // and folders. We use a SafeLocalizationDisambiguator to determine the local
+    // path and deal with file name collisions in the manner specified by the WDL
+    // spec. We set separateDirsBySource = true because, when creating archives,
+    // we append one directory at a time to the archive and then delete the source
+    // files, so the smaller each append operation is, the less disk overhead is
+    // required.
 
     logger.traceLimited(s"downloading files = ${paths.filesToDownload ++ paths.archivesToDownload}")
     val downloadLocalizer =
@@ -367,12 +403,17 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       downloadLocalizer.getLocalPaths(paths.filesToDownload)
     val downloadArchiveSourceToPath =
       downloadLocalizer.getLocalPaths(paths.archivesToDownload)
+    val downloadFilesToPath = (downloadFileSourceToPath ++ downloadArchiveSourceToPath).collect {
+      case (dxFs: DxFileSource, localPath)          => dxFs.dxFile -> localPath
+      case (dxFs: DxArchiveFolderSource, localPath) => dxFs.dxFileSource.dxFile -> localPath
+    }
+    val downloadFolderSourceToPath: Map[AddressableFileSource, Path] =
+      paths.foldersToDownload.map(fs => fs -> downloadLocalizer.getLocalPath(fs)).toMap
+    val downloadFolderToPath = downloadFolderSourceToPath.collect {
+      case (dxFs: DxFolderSource, localPath) => (dxFs.dxProject.id, dxFs.folder) -> localPath
+    }
     // write the manifest for dxda, if there are files to download
-    val dxdaManifest = DxdaManifestBuilder(dxApi)
-      .apply((downloadFileSourceToPath ++ downloadArchiveSourceToPath).collect {
-        case (dxFs: DxFileSource, localPath)          => dxFs.dxFile -> localPath
-        case (dxFs: DxArchiveFolderSource, localPath) => dxFs.dxFileSource.dxFile -> localPath
-      })
+    val dxdaManifest = DxdaManifestBuilder(dxApi).apply(downloadFilesToPath, downloadFolderToPath)
 
     logger.traceLimited(s"streaming files = ${paths.filesToStream ++ paths.filesToDownload}")
     val streamingLocalizer =
@@ -387,22 +428,22 @@ abstract class TaskExecutor(jobMeta: JobMeta,
 
     val streamFileSourceToPath = streamingLocalizer.getLocalPaths(paths.filesToStream)
     val streamArchiveSourceToPath = streamingLocalizer.getLocalPaths(paths.archivesToStream)
-    val dxFilesToPaths = (streamFileSourceToPath ++ streamArchiveSourceToPath).collect {
+    val streamFilesToPaths = (streamFileSourceToPath ++ streamArchiveSourceToPath).collect {
       case (dxFs: DxFileSource, localPath)          => dxFs.dxFile -> localPath
       case (dxFs: DxArchiveFolderSource, localPath) => dxFs.dxFileSource.dxFile -> localPath
     }
     val streamFolderSourceToPath: Map[AddressableFileSource, Path] =
       paths.foldersToStream.map(fs => fs -> streamingLocalizer.getLocalPath(fs)).toMap
-    val dxFoldersToPath = streamFolderSourceToPath.collect {
+    val streamFoldersToPath = streamFolderSourceToPath.collect {
       case (dxFs: DxFolderSource, localPath) => (dxFs.dxProject.id, dxFs.folder) -> localPath
     }
     // write the manifest for dxfuse, if there are files to stream
     val dxfuseManifest = DxfuseManifestBuilder(dxApi)
-      .apply(dxFilesToPaths, dxFoldersToPath, jobMeta.workerPaths)
+      .apply(streamFilesToPaths, streamFoldersToPath, jobMeta.workerPaths)
 
     val fileSourceToPath = paths.localFilesToPath ++ downloadFileSourceToPath ++ streamFileSourceToPath
     val archiveSourceToPath = paths.localArchivesToPath ++ downloadArchiveSourceToPath ++ streamArchiveSourceToPath
-    val folderSourceToPath = paths.localFoldersToPath ++ streamFileSourceToPath
+    val folderSourceToPath = paths.localFoldersToPath ++ downloadFolderSourceToPath ++ streamFolderSourceToPath
 
     val uriToPath: Map[String, String] =
       (fileSourceToPath ++ archiveSourceToPath ++ folderSourceToPath).map {

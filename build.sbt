@@ -123,7 +123,7 @@ resolvers += githubResolver
 lazy val dependencies =
   new {
     val dxCommonVersion = "0.2.15-SNAPSHOT"
-    val dxApiVersion = "0.2.1-SNAPSHOT"
+    val dxApiVersion = "0.3.0-SNAPSHOT"
     val dxFileAccessProtocolsVersion = "0.1.7-SNAPSHOT"
     val wdlToolsVersion = "0.12.9"
     val cwlScalaVersion = "0.5.1-SNAPSHOT"

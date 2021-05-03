@@ -2,8 +2,7 @@
 //
 package dx.core.io
 
-import java.nio.file.Path
-
+import java.nio.file.{Path, Paths}
 import dx.api._
 import spray.json._
 
@@ -33,7 +32,52 @@ case class DxdaManifestBuilder(dxApi: DxApi) {
     val destinationFile = destination.toFile
     val name = destinationFile.getName
     val folder = destinationFile.getParent
-    JsObject("id" -> JsString(dxFile.id), "name" -> JsString(name), "folder" -> JsString(folder))
+    val parts = dxFile
+      .describe()
+      .parts
+      .map { parts =>
+        Map("parts" -> JsObject(parts.map {
+          case (idx, part) =>
+            idx.toString -> JsObject(
+                "size" -> JsNumber(part.size),
+                "md5" -> JsString(part.md5)
+            )
+        }))
+      }
+      .getOrElse(Map.empty)
+    JsObject(
+        Map(
+            "id" -> JsString(dxFile.id),
+            "name" -> JsString(name),
+            "folder" -> JsString(folder)
+        ) ++ parts
+    )
+  }
+
+  private def createFolderEntry(projectId: String,
+                                folder: String,
+                                destination: Path): Vector[JsValue] = {
+    // dxda manifest doesn't support folders so we have to list the folder contents and add
+    // all the files to the manifest
+    val findDataObjects = DxFindDataObjects(dxApi)
+    val project = dxApi.project(projectId)
+    val result = findDataObjects.apply(
+        Some(project),
+        Some(folder),
+        recurse = true,
+        classRestriction = Some("file"),
+        state = Some(DxState.Closed),
+        extraFields = Set(Field.Parts)
+    )
+    val folderPath = Paths.get(folder)
+    result.keys.toVector.map {
+      case dxFile: DxFile =>
+        val fileRelFolder = folderPath.relativize(Paths.get(dxFile.getFolder))
+        val fileDest = destination.resolve(fileRelFolder).resolve(dxFile.getName)
+        createFileEntry(dxFile, fileDest)
+      case other =>
+        throw new Exception(s"not a file: ${other}")
+    }
   }
 
   /**
@@ -41,7 +85,8 @@ case class DxdaManifestBuilder(dxApi: DxApi) {
     * @param fileToLocalMapping mapping of
     * @return
     */
-  def apply(fileToLocalMapping: Map[DxFile, Path]): Option[DxdaManifest] = {
+  def apply(fileToLocalMapping: Map[DxFile, Path],
+            folderToLocalMapping: Map[(String, String), Path]): Option[DxdaManifest] = {
     if (fileToLocalMapping.isEmpty) {
       return None
     }
@@ -58,18 +103,28 @@ case class DxdaManifestBuilder(dxApi: DxApi) {
         dxApi.project(file.describe().project)
       }
 
-    val idToPath = fileToLocalMapping.map {
-      case (dxFile, path) => dxFile.id -> path
-    }
+    val foldersByContainer: Map[DxProject, Vector[String]] =
+      folderToLocalMapping.keys.toVector.groupBy(_._1).map {
+        case (projectId, folders) => dxApi.project(projectId) -> folders.map(_._2)
+      }
 
-    val manifest: Map[String, JsValue] = filesByContainer.map {
-      case (dxContainer, containerFiles) =>
-        val projectFilesToLocalPath: Vector[JsValue] =
+    val manifest: Map[String, JsValue] =
+      (filesByContainer.keySet ++ foldersByContainer.keySet).map { dxContainer =>
+        val containerFiles = filesByContainer.getOrElse(dxContainer, Vector.empty)
+        val containerFilesToLocalPath: Vector[JsValue] =
           containerFiles.map { dxFile =>
-            createFileEntry(dxFile, idToPath(dxFile.id))
+            createFileEntry(dxFile, fileToLocalMapping(dxFile))
           }
-        dxContainer.id -> JsArray(projectFilesToLocalPath)
-    }
+        val containerFolders = foldersByContainer.getOrElse(dxContainer, Vector.empty)
+        val containerFolderFilesToLocalPath: Vector[JsValue] =
+          containerFolders.flatMap { folder =>
+            createFolderEntry(dxContainer.id,
+                              folder,
+                              folderToLocalMapping((dxContainer.id, folder)))
+          }
+
+        dxContainer.id -> JsArray(containerFilesToLocalPath ++ containerFolderFilesToLocalPath)
+      }.toMap
 
     Some(DxdaManifest(JsObject(manifest)))
   }
