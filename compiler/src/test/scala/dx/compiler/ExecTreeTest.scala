@@ -47,7 +47,7 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
         )
     }
 
-  private lazy val username = System.getProperty("user.name")
+  private lazy val username = dxApi.whoami()
   private lazy val unitTestsPath = s"unit_tests/${username}"
   private lazy val cFlagsUnlocked = Vector("-compileMode",
                                            "NativeWithoutRuntimeAsset",

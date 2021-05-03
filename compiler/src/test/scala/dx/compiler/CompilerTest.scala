@@ -49,7 +49,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         )
     }
 
-  private lazy val username = System.getProperty("user.name")
+  private lazy val username = dxApi.whoami()
   private lazy val unitTestsPath = s"unit_tests/${username}"
   private lazy val cFlagsBase: List[String] = List(
       "-project",
