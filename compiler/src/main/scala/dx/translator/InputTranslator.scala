@@ -131,11 +131,14 @@ class InputTranslator(bundle: Bundle,
 
     val updatedValue = translateJsInput(jsv, t)
     (t, updatedValue) match {
-      case (_, JsNull) if Type.isOptional(t) => Vector.empty
-      case (TOptional(inner), _)             => extractDxFiles(updatedValue, inner)
-      case (TFile | TDirectory, uri: JsString) if uri.value.startsWith(DxPath.DxUriPrefix) =>
+      case (_, JsNull) if Type.isOptional(t) =>
+        Vector.empty
+      case (TOptional(inner), _) =>
+        extractDxFiles(updatedValue, inner)
+      case (TFile, uri: JsString) if uri.value.startsWith(DxPath.DxUriPrefix) =>
+        // a dx://file-xxx or dx://project-xxx:/path/to/file URI
         Vector(uri)
-      case (TFile | TDirectory, obj: JsObject) if DxFile.isLinkJson(obj) =>
+      case (TFile, obj: JsObject) if DxFile.isLinkJson(obj) =>
         Vector(obj)
       case (TFile, JsObject(fields)) if !fields.contains("contents") =>
         Vector(fields("uri")) ++ fields
