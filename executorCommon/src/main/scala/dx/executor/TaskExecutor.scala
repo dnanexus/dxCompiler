@@ -105,7 +105,6 @@ abstract class TaskExecutor(jobMeta: JobMeta,
   private def writeEnv(schemas: Map[String, Type],
                        inputs: Map[String, (Type, Value)],
                        fileSourceToPath: Map[AddressableFileNode, Path],
-                       archiveSourceToPath: Map[AddressableFileNode, Path],
                        folderSourceToPath: Map[AddressableFileSource, Path]): Unit = {
     val schemasJs = schemas.values.foldLeft(Map.empty[String, JsValue]) {
       case (accu, schema) => TypeSerde.serialize(schema, accu)._2
@@ -124,10 +123,6 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       case (other, _) =>
         throw new RuntimeException(s"Can only serialize an AddressableFileSource, not ${other}")
     }
-    val archiveUriToPath: Map[String, JsValue] = archiveSourceToPath.map {
-      case (archiveSource: AddressableFileSource, path) =>
-        archiveSource.address -> JsString(path.toString)
-    }
     val folderUriToPath: Map[String, JsValue] = folderSourceToPath.map {
       case (folderSource: AddressableFileSource, path) =>
         folderSource.address -> JsString(path.toString)
@@ -136,7 +131,6 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         "schemas" -> JsObject(newSchemasJs),
         "localizedInputs" -> JsObject(inputsJs),
         "fileDxUrlToPath" -> JsObject(fileUriToPath),
-        "archiveDxUrlToPath" -> JsObject(archiveUriToPath),
         "folderDxUrlToPath" -> JsObject(folderUriToPath)
     )
     FileUtils.writeFileContent(jobMeta.workerPaths.getTaskEnvFile(), json.prettyPrint)
@@ -145,22 +139,17 @@ abstract class TaskExecutor(jobMeta: JobMeta,
   private def readEnv(): (Map[String, Type],
                           Map[String, (Type, Value)],
                           Map[AddressableFileNode, Path],
-                          Map[AddressableFileNode, Path],
                           Map[AddressableFileSource, Path]) = {
-    val (schemasJs, inputsJs, filesJs, archivesJs, foldersJs) =
+    val (schemasJs, inputsJs, filesJs, foldersJs) =
       FileUtils.readFileContent(jobMeta.workerPaths.getTaskEnvFile()).parseJson match {
         case env: JsObject =>
-          env.getFields("schemas",
-                        "localizedInputs",
-                        "fileDxUrlToPath",
-                        "archiveDxUrlToPath",
-                        "folderDxUrlToPath") match {
+          env
+            .getFields("schemas", "localizedInputs", "fileDxUrlToPath", "folderDxUrlToPath") match {
             case Seq(JsObject(schemas),
                      JsObject(inputs),
                      JsObject(filePaths),
-                     JsObject(archivePaths),
                      JsObject(folderPaths)) =>
-              (schemas, inputs, filePaths, archivePaths, folderPaths)
+              (schemas, inputs, filePaths, folderPaths)
             case _ =>
               throw new Exception("Malformed environment serialized to disk")
           }
@@ -185,15 +174,11 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       case (uri, JsString(path)) => jobMeta.fileResolver.resolve(uri) -> Paths.get(path)
       case other                 => throw new Exception(s"unexpected path ${other}")
     }
-    val archiveSourceToPath = archivesJs.map {
-      case (uri, JsString(path)) => jobMeta.fileResolver.resolve(uri) -> Paths.get(path)
-      case other                 => throw new Exception(s"unexpected path ${other}")
-    }
     val folderSourceToPath = foldersJs.map {
       case (uri, JsString(path)) => jobMeta.fileResolver.resolveDirectory(uri) -> Paths.get(path)
       case other                 => throw new Exception(s"unexpected path ${other}")
     }
-    (newSchemas, inputs, fileSourceToPath, archiveSourceToPath, folderSourceToPath)
+    (newSchemas, inputs, fileSourceToPath, folderSourceToPath)
   }
 
   /**
@@ -212,14 +197,11 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     * @param virutalFiles VFiles that have a `contents` attribute - these are
     *                     localized by writing the contents to a file
     * @param realFiles local/remote files
-    * @param archives local/remote archives that need to be unpacked to
-    *                 directories after downloading
     * @param folders local/remove folders - these are localized by streaming/
     *                downloading the folder recursively
     */
   case class FileSources(virutalFiles: Vector[VFile] = Vector.empty,
                          realFiles: Vector[AddressableFileNode] = Vector.empty,
-                         archives: Vector[AddressableFileNode] = Vector.empty,
                          folders: Vector[AddressableFileSource] = Vector.empty)
 
   // TODO: it would be nice to extract dx:// links from VString values - this will
@@ -234,7 +216,6 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         case (pathsAccu, paths) =>
           FileSources(pathsAccu.virutalFiles ++ paths.virutalFiles,
                       pathsAccu.realFiles ++ paths.realFiles,
-                      pathsAccu.archives ++ paths.archives,
                       pathsAccu.folders ++ paths.folders)
       }
     }
@@ -247,8 +228,6 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         secondaryPaths.copy(realFiles = secondaryPaths.realFiles :+ primaryFile)
       case f: VFolder =>
         FileSources(folders = Vector(fileResolver.resolveDirectory(f.uri)))
-      case a: VArchive =>
-        FileSources(archives = Vector(fileResolver.resolve(a.uri)))
       case l: VListing   => extractArray(l.listing)
       case VArray(items) => extractArray(items)
       case VHash(m)      => extractArray(m.values.toVector)
@@ -266,7 +245,6 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     */
   def localizeInputFiles: (Map[String, (Type, Value)],
                            Map[AddressableFileNode, Path],
-                           Map[AddressableFileNode, Path],
                            Map[AddressableFileSource, Path],
                            Option[DxdaManifest],
                            Option[DxfuseManifest]) = {
@@ -279,14 +257,10 @@ abstract class TaskExecutor(jobMeta: JobMeta,
                                localFilesToPath: Map[AddressableFileNode, Path] = Map.empty,
                                filesToStream: Set[AddressableFileNode] = Set.empty,
                                filesToDownload: Set[AddressableFileNode] = Set.empty,
-                               localArchivesToPath: Map[AddressableFileNode, Path] = Map.empty,
-                               archivesToStream: Set[AddressableFileNode] = Set.empty,
-                               archivesToDownload: Set[AddressableFileNode] = Set.empty,
                                localFoldersToPath: Map[AddressableFileSource, Path] = Map.empty,
                                foldersToStream: Set[AddressableFileSource] = Set.empty,
                                foldersToDownload: Set[AddressableFileSource] = Set.empty) {
-      lazy val localPaths: Set[Path] =
-        (localFilesToPath.values ++ localArchivesToPath.values ++ localFoldersToPath.values).toSet
+      lazy val localPaths: Set[Path] = (localFilesToPath.values ++ localFoldersToPath.values).toSet
     }
 
     def splitFiles(
@@ -346,8 +320,6 @@ abstract class TaskExecutor(jobMeta: JobMeta,
           (streamFiles == StreamFiles.PerFile && streamFileForInput(name))
         val (localFilesToPath, filesToStream, filesToDownload) =
           splitFiles(fileSources.realFiles, stream)
-        val (localArchivesToPath, archivesToStream, archivesToDownload) =
-          splitFiles(fileSources.archives, stream)
         val (localFolders, foldersToStream, foldersToDownload) =
           splitFolders(fileSources.folders, stream)
         PathsToLocalize(
@@ -355,9 +327,6 @@ abstract class TaskExecutor(jobMeta: JobMeta,
             paths.localFilesToPath ++ localFilesToPath,
             paths.filesToStream ++ filesToStream,
             paths.filesToDownload ++ filesToDownload,
-            paths.localArchivesToPath ++ localArchivesToPath,
-            paths.archivesToStream ++ archivesToStream,
-            paths.archivesToDownload ++ archivesToDownload,
             paths.localFoldersToPath ++ localFolders,
             paths.foldersToStream ++ foldersToStream,
             paths.foldersToDownload ++ foldersToDownload
@@ -389,7 +358,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     // files, so the smaller each append operation is, the less disk overhead is
     // required.
 
-    logger.traceLimited(s"downloading files = ${paths.filesToDownload ++ paths.archivesToDownload}")
+    logger.traceLimited(s"downloading files = ${paths.filesToDownload}")
     val downloadLocalizer =
       SafeLocalizationDisambiguator(
           jobMeta.workerPaths.getInputFilesDir(),
@@ -401,11 +370,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       )
     val downloadFileSourceToPath: Map[AddressableFileNode, Path] =
       downloadLocalizer.getLocalPaths(paths.filesToDownload)
-    val downloadArchiveSourceToPath =
-      downloadLocalizer.getLocalPaths(paths.archivesToDownload)
-    val downloadFilesToPath = (downloadFileSourceToPath ++ downloadArchiveSourceToPath).collect {
-      case (dxFs: DxFileSource, localPath)          => dxFs.dxFile -> localPath
-      case (dxFs: DxArchiveFolderSource, localPath) => dxFs.dxFileSource.dxFile -> localPath
+    val downloadFilesToPath = downloadFileSourceToPath.collect {
+      case (dxFs: DxFileSource, localPath) => dxFs.dxFile -> localPath
     }
     val downloadFolderSourceToPath: Map[AddressableFileSource, Path] =
       paths.foldersToDownload.map(fs => fs -> downloadLocalizer.getLocalPath(fs)).toMap
@@ -427,10 +393,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       )
 
     val streamFileSourceToPath = streamingLocalizer.getLocalPaths(paths.filesToStream)
-    val streamArchiveSourceToPath = streamingLocalizer.getLocalPaths(paths.archivesToStream)
-    val streamFilesToPaths = (streamFileSourceToPath ++ streamArchiveSourceToPath).collect {
-      case (dxFs: DxFileSource, localPath)          => dxFs.dxFile -> localPath
-      case (dxFs: DxArchiveFolderSource, localPath) => dxFs.dxFileSource.dxFile -> localPath
+    val streamFilesToPaths = streamFileSourceToPath.collect {
+      case (dxFs: DxFileSource, localPath) => dxFs.dxFile -> localPath
     }
     val streamFolderSourceToPath: Map[AddressableFileSource, Path] =
       paths.foldersToStream.map(fs => fs -> streamingLocalizer.getLocalPath(fs)).toMap
@@ -442,11 +406,10 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       .apply(streamFilesToPaths, streamFoldersToPath, jobMeta.workerPaths)
 
     val fileSourceToPath = paths.localFilesToPath ++ downloadFileSourceToPath ++ streamFileSourceToPath
-    val archiveSourceToPath = paths.localArchivesToPath ++ downloadArchiveSourceToPath ++ streamArchiveSourceToPath
     val folderSourceToPath = paths.localFoldersToPath ++ downloadFolderSourceToPath ++ streamFolderSourceToPath
 
     val uriToPath: Map[String, String] =
-      (fileSourceToPath ++ archiveSourceToPath ++ folderSourceToPath).map {
+      (fileSourceToPath ++ folderSourceToPath).map {
         case (dxFs: DxFileSource, path)          => dxFs.address -> path.toString
         case (dxFs: DxFolderSource, path)        => dxFs.address -> path.toString
         case (dxFs: DxArchiveFolderSource, path) => dxFs.address -> path.toString
@@ -474,7 +437,6 @@ abstract class TaskExecutor(jobMeta: JobMeta,
           }
         case (Some(TFile), VString(uri)) => translateUri(uri).map(VFile(_))
         case (_, f: VFolder)             => translateUri(f.uri).map(newUri => f.copy(uri = newUri))
-        case (_, a: VArchive)            => translateUri(a.uri).map(newUri => a.copy(uri = newUri))
         case (_, l: VListing) =>
           val newListing = l.listing.map(pathTranslator(_, None, optional = optional))
           if (newListing.forall(_.isEmpty)) {
@@ -497,12 +459,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       case (t, v) => (t, Value.transform(v, Some(t), pathTranslator))
     }.toMap
 
-    (localizedInputs,
-     fileSourceToPath,
-     archiveSourceToPath,
-     folderSourceToPath,
-     dxdaManifest,
-     dxfuseManifest)
+    (localizedInputs, fileSourceToPath, folderSourceToPath, dxdaManifest, dxfuseManifest)
   }
 
   protected def getSchemas: Map[String, TSchema]
@@ -524,12 +481,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       trace(s"Task source code:\n${jobMeta.sourceCode}", traceLengthLimit)
     }
 
-    val (localizedInputs,
-         fileSourceToPath,
-         archiveSourceToPath,
-         folderSourceToPath,
-         dxdaManifest,
-         dxfuseManifest) = localizeInputFiles
+    val (localizedInputs, fileSourceToPath, folderSourceToPath, dxdaManifest, dxfuseManifest) =
+      localizeInputFiles
 
     dxdaManifest.foreach {
       case DxdaManifest(manifestJs) =>
@@ -543,7 +496,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
                                    manifestJs.prettyPrint)
     }
 
-    writeEnv(getSchemas, localizedInputs, fileSourceToPath, archiveSourceToPath, folderSourceToPath)
+    writeEnv(getSchemas, localizedInputs, fileSourceToPath, folderSourceToPath)
   }
 
   /**
@@ -557,32 +510,13 @@ abstract class TaskExecutor(jobMeta: JobMeta,
   ): Map[String, (Type, Value)]
 
   def instantiateCommand(): Unit = {
-    val (schemas, localizedInputs, fileSourceToPath, archiveSourceToPath, folderSourceToPath) =
+    val (schemas, localizedInputs, fileSourceToPath, folderSourceToPath) =
       readEnv()
     logger.traceLimited(s"InstantiateCommand, env = ${localizedInputs}")
-    // unpack any archives and update the paths
-    val archiveSourceToUnpackedPath = archiveSourceToPath.map {
-      case (fs, path) =>
-        // TODO: use the basename here - for now just using the filename without the extension
-        val folder = FileUtils.changeFirstFileExt(fs.name, Vector(".tgz", ".tar.gz", ".tar"))
-        val tarOpts = if (fs.name.endsWith("gz")) "-xz" else "-x"
-        try {
-          SysUtils.execCommand(
-              s"mkdir ${folder} && tar ${tarOpts} -f ${path} -C ${folder}"
-          )
-        } finally {
-          path.toFile.delete()
-        }
-        fs -> path.getParent.resolve(folder)
-    }
     // evaluate the command block and write the command script
     val updatedInputs = writeCommandScript(localizedInputs)
     // write the updated env to disk
-    writeEnv(schemas,
-             updatedInputs,
-             fileSourceToPath,
-             archiveSourceToUnpackedPath,
-             folderSourceToPath)
+    writeEnv(schemas, updatedInputs, fileSourceToPath, folderSourceToPath)
   }
 
   /**
@@ -677,7 +611,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       trace(s"Epilog debugLevel=${logger.traceLevel}")
       printDirTree()
     }
-    val (_, localizedInputs, fileSourceToPath, _, _) = readEnv()
+    val (_, localizedInputs, fileSourceToPath, _) = readEnv()
     val localizedOutputs = evaluateOutputs(localizedInputs)
 
     // extract files from the outputs
@@ -757,7 +691,6 @@ abstract class TaskExecutor(jobMeta: JobMeta,
           }
         case (Some(TFile), VString(uri)) => translateUri(uri).map(VFile(_))
         case (_, f: VFolder)             => translateUri(f.uri).map(newUri => f.copy(uri = newUri))
-        case (_, a: VArchive)            => translateUri(a.uri).map(newUri => a.copy(uri = newUri))
         case (_, l: VListing) =>
           val newListing = l.listing.map(pathTranslator(_, None, optional = optional))
           if (newListing.forall(_.isEmpty)) {

@@ -5,7 +5,6 @@ import dx.core.io.DxWorkerPaths
 import dx.core.ir.{Type, Value}
 import dx.core.ir.Type._
 import dx.core.ir.Value.{
-  VArchive,
   VArray,
   VBoolean,
   VFile,
@@ -100,11 +99,9 @@ object CwlUtils {
             f.format
         )
       case d: DirectoryValue =>
-        d.location match {
-          case Some(uri) if Value.isDxFileUri(uri) => VArchive(uri, d.basename)
-          case Some(uri)                           => VFolder(uri, d.basename)
-          case None if d.listing.nonEmpty          => VListing(d.basename.get, d.listing.map(toIRPath))
-          case None if d.path.nonEmpty             => VFolder(d.path.get)
+        d.location.orElse(d.path) match {
+          case Some(uri)                  => VFolder(uri, d.basename)
+          case None if d.listing.nonEmpty => VListing(d.basename.get, d.listing.map(toIRPath))
           case _ =>
             throw new Exception(s"DirectoryValue does not have a location, path, or listing ${d}")
         }
@@ -291,8 +288,6 @@ object CwlUtils {
                   secondaryFiles = f.secondaryFiles.map(fromIRPath),
                   format = f.format)
       case VFolder(uri, basename) =>
-        DirectoryValue(Some(uri), basename = basename)
-      case VArchive(uri, basename) =>
         DirectoryValue(Some(uri), basename = basename)
       case VListing(basename, listing) =>
         DirectoryValue(basename = Some(basename), listing = listing.map(fromIRPath))

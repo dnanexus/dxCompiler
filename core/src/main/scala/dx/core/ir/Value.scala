@@ -52,13 +52,6 @@ object Value {
   case class VFolder(uri: String, basename: Option[String] = None) extends DirectoryValue
 
   /**
-    * An archive file-based representation of a directory (e.g. a tar archive file).
-    * @param uri file URI
-    * @param basename the name to use when localizing the directory
-    */
-  case class VArchive(uri: String, basename: Option[String] = None) extends DirectoryValue
-
-  /**
     * A synthetic directory consisting of specific platform files/folders.
     * @param basename the name to use when localizing the directory
     * @param listing a Vector of files/subdirectories in this Directory
@@ -217,9 +210,7 @@ object Value {
       case (TFile, VString(s))                          => VFile(s)
       case (TString, f: VFile)                          => VString(f.uri)
       case (TDirectory, VString(s)) if isDxFolderUri(s) => VFolder(s)
-      case (TDirectory, VString(s)) if isDxFileUri(s)   => VArchive(s)
       case (TString, f: VFolder)                        => VString(f.uri)
-      case (TString, a: VArchive)                       => VString(a.uri)
       case (TFloat, VInt(i))                            => VFloat(i.toFloat)
       case _ =>
         throw new Exception(s"cannot coerce ${value} to ${targetType}")

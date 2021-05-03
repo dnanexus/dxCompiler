@@ -111,8 +111,6 @@ case class ParameterLinkSerializer(fileResolver: FileSourceResolver = FileSource
           Right(ValueSerde.serializePath(d, Some(fileResolver), pathsAsObjects))
         case (Type.TDirectory, VString(path)) if Value.isDxFolderUri(path) =>
           Right(ValueSerde.serializePath(VFolder(path), Some(fileResolver), pathsAsObjects))
-        case (Type.TDirectory, VString(path)) if Value.isDxFileUri(path) =>
-          Right(ValueSerde.serializePath(VArchive(path), Some(fileResolver), pathsAsObjects))
         case _ => Left(irValue)
       }
     }

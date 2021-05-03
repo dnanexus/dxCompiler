@@ -57,8 +57,6 @@ object ValueSerde extends DefaultJsonProtocol {
           serializeFileUri(uri)
         case VFolder(uri, None) if !pathsAsObjects =>
           serializeFolderUri(uri)
-        case VArchive(uri, None) if !pathsAsObjects =>
-          serializeFileUri(uri)
         case f: VFile if pathsAsObjects =>
           JsObject(
               Vector(
@@ -78,14 +76,6 @@ object ValueSerde extends DefaultJsonProtocol {
           JsObject(
               Vector(
                   Some("type" -> JsString("Folder")),
-                  Some("uri" -> serializeFolderUri(uri)),
-                  basename.map("basename" -> JsString(_))
-              ).flatten.toMap
-          )
-        case VArchive(uri, basename) =>
-          JsObject(
-              Vector(
-                  Some("type" -> JsString("Archive")),
                   Some("uri" -> serializeFolderUri(uri)),
                   basename.map("basename" -> JsString(_))
               ).flatten.toMap
@@ -174,7 +164,6 @@ object ValueSerde extends DefaultJsonProtocol {
         case (TString, VString(s))             => JsString(s)
         case (TString, f: VFile)               => JsString(f.uri)
         case (TString, f: VFolder)             => JsString(f.uri)
-        case (TString, a: VArchive)            => JsString(a.uri)
         case (TFile, f: VFile)                 => serializePath(f, fileResolver, pathsAsObjects)
         case (TDirectory, d: DirectoryValue)   => serializePath(d, fileResolver, pathsAsObjects)
         case (TArray(_, true), VArray(items)) if items.isEmpty =>
@@ -302,11 +291,6 @@ object ValueSerde extends DefaultJsonProtocol {
                   deserializeDxFileUri(fields("uri"), dxApi, dxFileDescCache),
                   JsUtils.getOptionalString(fields, "basename")
               )
-            case Some(JsString("Archive")) =>
-              VArchive(
-                  deserializeDxFileUri(fields("uri"), dxApi, dxFileDescCache),
-                  JsUtils.getOptionalString(fields, "basename")
-              )
             case Some(JsString("Listing")) =>
               VListing(
                   JsUtils.getString(fields, "basename"),
@@ -419,13 +403,10 @@ object ValueSerde extends DefaultJsonProtocol {
         case (TString, JsString(s))                                  => VString(s)
         case (TFile, JsString(uri))                                  => VFile(uri)
         case (TDirectory, JsString(uri)) if Value.isDxFolderUri(uri) => VFolder(uri)
-        case (TDirectory, JsString(uri)) if Value.isDxFileUri(uri)   => VArchive(uri)
         case (TFile | TDirectory, obj: JsObject) if isPathObject(obj) =>
           deserializePathObject(obj, dxApi, dxFileDescCache)
         case (TFile, obj: JsObject) if DxFile.isLinkJson(obj) =>
           VFile(deserializeDxFileUri(obj, dxApi, dxFileDescCache))
-        case (TDirectory, obj: JsObject) if DxFile.isLinkJson(obj) =>
-          VArchive(deserializeDxFileUri(obj, dxApi, dxFileDescCache))
         case (TArray(_, true), JsArray(items)) if items.isEmpty =>
           throw ValueSerdeException(s"Cannot convert empty array to non-empty type ${innerType}")
         case (TArray(t, _), JsArray(items)) =>
@@ -491,7 +472,6 @@ object ValueSerde extends DefaultJsonProtocol {
       case VBoolean(b)   => b.toString
       case f: VFile      => f.uri
       case f: VFolder    => f.uri
-      case a: VArchive   => a.uri
       case l: VListing   => l.basename
       case VNull         => "null"
       case VArray(items) => s"[${items.map(toString).mkString(",")}]"

@@ -287,10 +287,6 @@ object Archive {
           val oldPath = Paths.get(f.uri)
           val newPath = transformer(oldPath)
           (f.copy(uri = newPath.toString), TreeSeqMap(oldPath -> newPath))
-        case a: VArchive =>
-          val oldPath = Paths.get(a.uri)
-          val newPath = transformer(oldPath)
-          (a.copy(uri = newPath.toString), TreeSeqMap(oldPath -> newPath))
         case l: VListing =>
           val (newValues, nestedPaths) = l.listing.map {
             case f: VFile          => transformFile(f)
