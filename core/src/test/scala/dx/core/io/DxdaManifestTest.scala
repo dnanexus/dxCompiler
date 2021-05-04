@@ -72,7 +72,8 @@ class DxdaManifestTest extends AnyFlatSpec with Matchers {
     }
 
     // create a manifest
-    val manifest: Option[DxdaManifest] = DxdaManifestBuilder(dxApi).apply(filesInManifest)
+    val manifest: Option[DxdaManifest] =
+      DxdaManifestBuilder(dxApi).apply(filesInManifest, Map.empty)
 
     // compare to data obtained with dx-toolkit
     val expected: Vector[JsValue] = describedFiles
@@ -128,7 +129,7 @@ class DxdaManifestTest extends AnyFlatSpec with Matchers {
 
     // Creating a manifest should fail, because some of the files are archived
     assertThrows[Exception] {
-      DxdaManifestBuilder(dxApi).apply(filesInManifest)
+      DxdaManifestBuilder(dxApi).apply(filesInManifest, Map.empty)
     }
   }
 }

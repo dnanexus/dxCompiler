@@ -311,6 +311,14 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
                                "input3___dxfiles")
   }
 
+  it should "translate cwl directory input" in {
+    val cwlCode = pathFromBasename("cwl", "dir.cwl")
+    val inputs = pathFromBasename("cwl", "dir_input.json")
+    val args = List(cwlCode.toString, "-inputs", inputs.toString, "-verbose") ++ cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileIR]
+  }
+
   it should "translate cwl directory listing I" in {
     val cwlCode = pathFromBasename("cwl", "cat-from-dir.cwl")
     val inputs = pathFromBasename("cwl", "cat-from-dir_input1.json")

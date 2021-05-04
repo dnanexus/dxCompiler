@@ -115,12 +115,9 @@ class InputTranslator(bundle: Bundle,
           paths.flatMap {
             case obj: JsObject =>
               obj.fields.get("type") match {
-                case Some(JsString("File")) =>
-                  extractDxFiles(obj, TFile)
-                case Some(JsString("Folder" | "Archive" | "Listing")) =>
-                  extractDxFiles(obj, TDirectory)
-                case other =>
-                  throw new Exception(s"invalid path ${other}")
+                case Some(JsString("File"))    => extractDxFiles(obj, TFile)
+                case Some(JsString("Listing")) => extractDxFiles(obj, TDirectory)
+                case other                     => Vector.empty
               }
             case other => throw new Exception(s"invalid path value ${other}")
           }
@@ -150,8 +147,6 @@ class InputTranslator(bundle: Bundle,
           .get("listing")
           .map(extractFromArray)
           .getOrElse(Vector.empty)
-      case (TDirectory, JsObject(fields)) =>
-        Vector(fields("uri"))
       case _ if Type.isPrimitive(t) => Vector.empty
       case (TArray(elementType, _), JsArray(array)) =>
         array.flatMap(element => extractDxFiles(element, elementType))
@@ -170,8 +165,7 @@ class InputTranslator(bundle: Bundle,
       case (THash, JsObject(_)) =>
         // anonymous objects will never result in file-typed members, so just skip these
         Vector.empty
-      case _ =>
-        throw new Exception(s"value ${updatedValue} cannot be deserialized to ${t}")
+      case _ => Vector.empty
     }
   }
 

@@ -270,7 +270,7 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
                       useManifests)
 
     // create TaskExecutor
-    (WdlTaskExecutor.create(jobMeta, streamFiles = streamFiles, waitOnUpload = false), jobMeta)
+    (WdlTaskExecutor.create(jobMeta, streamFiles = streamFiles), jobMeta)
   }
 
   // Parse the WDL source code, extract the single task that is supposed to be there,
@@ -365,7 +365,7 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
 
   it should "handle files with same name in different source folders" taggedAs ApiTest in {
     val (taskExecutor, _) = createTaskExecutor("two_files", StreamFiles.None)
-    val (localizedFiles, fileSourceToPath, _, _, dxdaManifest, dxfuseManifest) =
+    val (localizedFiles, fileSourceToPath, _, dxdaManifest, dxfuseManifest) =
       taskExecutor.localizeInputFiles
     localizedFiles.size shouldBe 2
     fileSourceToPath.size shouldBe 2
