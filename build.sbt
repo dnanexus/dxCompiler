@@ -120,7 +120,6 @@ val executorCwl = project
 val githubDxScalaResolver = Resolver.githubPackages("dnanexus", "dxScala")
 val githubWdlToolsResolver = Resolver.githubPackages("dnanexus-rnd", "wdlTools")
 val githubDxCompilerResolver = Resolver.githubPackages("dnanexus", "dxCompiler")
-resolvers ++= Seq(githubDxScalaResolver, githubWdlToolsResolver, githubDxCompilerResolver)
 
 lazy val dependencies =
   new {
@@ -168,6 +167,8 @@ lazy val settings = Seq(
     // disable publish with scala version, otherwise artifact name will include scala version
     // e.g dxScala_2.11
     crossPaths := false,
+    // snapshot artifact resolvers
+    resolvers ++= Seq(githubDxScalaResolver, githubWdlToolsResolver, githubDxCompilerResolver),
     // add sonatype repository settings
     // snapshot versions publish to GitHub packages repository
     // release versions publish to sonatype staging repository
