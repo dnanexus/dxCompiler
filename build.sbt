@@ -117,8 +117,9 @@ val executorCwl = project
 
 // DEPENDENCIES
 
-val githubResolver = Resolver.githubPackages("dnanexus", "dxScala")
-resolvers += githubResolver
+val githubDxScalaResolver = Resolver.githubPackages("dnanexus", "dxScala")
+val githubWdlToolsResolver = Resolver.githubPackages("dnanexus-rnd", "wdlTools")
+resolvers ++= Seq(githubDxScalaResolver, githubWdlToolsResolver)
 
 lazy val dependencies =
   new {
@@ -171,7 +172,7 @@ lazy val settings = Seq(
     // release versions publish to sonatype staging repository
     publishTo := Some(
         if (isSnapshot.value)
-          githubResolver
+          githubDxScalaResolver
         else
           Opts.resolver.sonatypeStaging
     ),
