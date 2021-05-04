@@ -1,5 +1,9 @@
 # Release Notes
 
+## in develop
+
+* Escapes WDL strings in generated code
+
 ## 2.4.3 2021-04-23
 
 * Fixes an issue where a file input from an different project than where the workflow is compiled is localized to an invalid path
