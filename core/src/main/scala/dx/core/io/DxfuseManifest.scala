@@ -4,13 +4,13 @@
 package dx.core.io
 
 import java.nio.file.Path
-
 import dx.api.{DxApi, DxArchivalState, DxFile}
+import dx.util.Logger
 import spray.json._
 
 case class DxfuseManifest(value: JsValue)
 
-case class DxfuseManifestBuilder(dxApi: DxApi) {
+case class DxfuseManifestBuilder(dxApi: DxApi, logger: Logger = Logger.get) {
   def apply(fileToLocalMapping: Map[DxFile, Path],
             folderToLocalMapping: Map[(String, String), Path],
             workerPaths: DxWorkerPaths): Option[DxfuseManifest] = {

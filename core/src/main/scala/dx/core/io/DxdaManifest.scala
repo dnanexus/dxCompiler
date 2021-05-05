@@ -4,11 +4,12 @@ package dx.core.io
 
 import java.nio.file.{Path, Paths}
 import dx.api._
+import dx.util.Logger
 import spray.json._
 
 case class DxdaManifest(value: JsObject)
 
-case class DxdaManifestBuilder(dxApi: DxApi) {
+case class DxdaManifestBuilder(dxApi: DxApi, logger: Logger = Logger.get) {
   /*
   Start with paths like this:
     "dx://dxCompiler_playground:/test_data/fileB",
@@ -61,16 +62,20 @@ case class DxdaManifestBuilder(dxApi: DxApi) {
     // all the files to the manifest
     val findDataObjects = DxFindDataObjects(dxApi)
     val project = dxApi.project(projectId)
-    val result = findDataObjects.apply(
-        Some(project),
-        Some(folder),
-        recurse = true,
-        classRestriction = Some("file"),
-        state = Some(DxState.Closed),
-        extraFields = Set(Field.Parts)
-    )
+    val result = findDataObjects
+      .apply(
+          Some(project),
+          Some(folder),
+          recurse = true,
+          classRestriction = Some("file"),
+          state = Some(DxState.Closed),
+          extraFields = Set(Field.Parts)
+      )
+      .keys
+      .toVector
+    // logger.trace(s"in ${projectId}:${folder} found: ${result}")
     val folderPath = Paths.get(folder)
-    result.keys.toVector.map {
+    result.map {
       case dxFile: DxFile =>
         val fileRelFolder = folderPath.relativize(Paths.get(dxFile.getFolder))
         val fileDest = destination.resolve(fileRelFolder).resolve(dxFile.getName)
@@ -87,7 +92,7 @@ case class DxdaManifestBuilder(dxApi: DxApi) {
     */
   def apply(fileToLocalMapping: Map[DxFile, Path],
             folderToLocalMapping: Map[(String, String), Path]): Option[DxdaManifest] = {
-    if (fileToLocalMapping.isEmpty) {
+    if (fileToLocalMapping.isEmpty && folderToLocalMapping.isEmpty) {
       return None
     }
 
@@ -122,7 +127,6 @@ case class DxdaManifestBuilder(dxApi: DxApi) {
                               folder,
                               folderToLocalMapping((dxContainer.id, folder)))
           }
-
         dxContainer.id -> JsArray(containerFilesToLocalPath ++ containerFolderFilesToLocalPath)
       }.toMap
 

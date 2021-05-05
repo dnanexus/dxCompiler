@@ -117,7 +117,7 @@ class InputTranslator(bundle: Bundle,
               obj.fields.get("type") match {
                 case Some(JsString("File"))    => extractDxFiles(obj, TFile)
                 case Some(JsString("Listing")) => extractDxFiles(obj, TDirectory)
-                case other                     => Vector.empty
+                case _                         => Vector.empty
               }
             case other => throw new Exception(s"invalid path value ${other}")
           }

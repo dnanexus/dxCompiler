@@ -379,7 +379,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       case (dxFs: DxFolderSource, localPath) => (dxFs.dxProject.id, dxFs.folder) -> localPath
     }
     // write the manifest for dxda, if there are files to download
-    val dxdaManifest = DxdaManifestBuilder(dxApi).apply(downloadFilesToPath, downloadFolderToPath)
+    val dxdaManifest =
+      DxdaManifestBuilder(dxApi, logger).apply(downloadFilesToPath, downloadFolderToPath)
 
     logger.traceLimited(s"streaming files = ${paths.filesToStream ++ paths.filesToDownload}")
     val streamingLocalizer =
@@ -402,7 +403,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       case (dxFs: DxFolderSource, localPath) => (dxFs.dxProject.id, dxFs.folder) -> localPath
     }
     // write the manifest for dxfuse, if there are files to stream
-    val dxfuseManifest = DxfuseManifestBuilder(dxApi)
+    val dxfuseManifest = DxfuseManifestBuilder(dxApi, logger)
       .apply(streamFilesToPaths, streamFoldersToPath, jobMeta.workerPaths)
 
     val fileSourceToPath = paths.localFilesToPath ++ downloadFileSourceToPath ++ streamFileSourceToPath
