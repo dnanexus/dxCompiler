@@ -1,7 +1,7 @@
 package dx.executor
 
 import java.nio.file.{Files, Path, Paths}
-import dx.api.{DxJob, InstanceTypeRequest}
+import dx.api.{DxJob, DxPath, InstanceTypeRequest}
 import dx.core.getVersion
 import dx.core.io.{
   DxdaManifest,
@@ -239,7 +239,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     * For all input files/directories, determines the local path, whether they need
     * to be streamed or downloaded, and generates the dxda and dxfuse manifests.
     * @return
-    * TODO: handle file/archive/folder with basename
+    * TODO: handle file/folder with basename
     * TODO: basedir for paths in listing
     * TODO: ensure secondary files are in the same dir as the parent file
     */
@@ -635,21 +635,28 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         local.address -> local.canonicalPath
     }.toMap
 
-    // TODO: also do this for archives and folders
-
     // upload the files, and map their local paths to their remote URIs
     val delocalizedPathToUri: Map[Path, String] = {
-      val dxFiles = if (jobMeta.useManifests) {
+      val (dirs, files) = delocalizingValueToPath.values.partition(p => p.toFile.isDirectory)
+      val (dxFiles, dxFolders) = if (jobMeta.useManifests) {
         // if using manifests, we need to upload the files directly to the project
-        fileUploader.uploadWithDestination(delocalizingValueToPath.values.map { path =>
-          path -> s"${jobMeta.manifestFolder}/${path.getFileName.toString}"
-        }.toMap, wait = waitOnUpload)
+        (fileUploader.uploadFilesWithDestination(files.toSet.map { path: Path =>
+           path -> s"${jobMeta.manifestFolder}/${path.getFileName.toString}"
+         }.toMap, wait = waitOnUpload),
+         fileUploader.uploadDirectoriesWithDestination(dirs.toSet.map { path: Path =>
+           path -> s"${jobMeta.manifestFolder}/${path.getFileName.toString}"
+         }.toMap, wait = waitOnUpload))
       } else {
-        fileUploader.upload(delocalizingValueToPath.values.toSet, wait = waitOnUpload)
+        (fileUploader.uploadFiles(files.toSet, wait = waitOnUpload),
+         fileUploader.uploadDirectories(dirs.toSet, wait = waitOnUpload))
       }
-      dxFiles.map {
+      val fileUris = dxFiles.map {
         case (path, dxFile) => path -> dxFile.asUri
       }
+      val folderUris = dxFolders.map {
+        case (path, (projectId, folder)) => path -> s"${DxPath.DxUriPrefix}${projectId}:${folder}"
+      }
+      fileUris ++ folderUris
     }
 
     // Replace the local paths in the output values with URIs. For files that
