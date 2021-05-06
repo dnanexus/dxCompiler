@@ -16,7 +16,7 @@ task apps_579_boolean_t {
     }
 }
 
-workflow apps_571_boolean_wf {
+workflow apps_579_boolean_wf {
     call apps_579_boolean_t
 
     output {
