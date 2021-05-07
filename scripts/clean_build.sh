@@ -11,9 +11,7 @@ rm dx*.jar
 # Clean artifacts from prev. builds, platform
 username=`dx whoami --id`
 dx rm -r dxCompiler_playground:/builds/$username
-dx rm -r dxCompiler_playground:/builds/user-$username
 dx rm -r dxCompiler_playground:/unit_tests/$username
-dx rm -r dxCompiler_playground:/unit_tests/user-$username
 
 # Run 1 integration test to re-build, upload
 ./scripts/run_tests.py --test $TEST
