@@ -109,7 +109,11 @@ wdl_v1_list = [
 ]
 
 wdl_v1_1_list = [
-    "v1_1_dict"
+    "v1_1_dict",
+
+    # bug regression tests
+    "apps_579_boolean_flag_expr",
+    "apps_579_string_substitution_expr"
 ]
 
 # docker image tests
