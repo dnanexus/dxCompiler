@@ -99,7 +99,8 @@ wdl_v1_list = [
     "nested_pairs",  # APPS-370
     "apps_378",
     "apps_384",
-    "diff_stream_and_download",  # APPS-288,
+    "diff_stream_and_download",  # APPS-288
+    "apps_573",
 
     # manifests
     "simple_manifest",
@@ -244,6 +245,9 @@ test_import_dirs = ["A"]
 TestMetaData = namedtuple('TestMetaData', ['name', 'kind'])
 TestDesc = namedtuple('TestDesc',
                       ['name', 'kind', 'source_file', 'raw_input', 'dx_input', 'results', 'extras'])
+
+# Test with -waitOnUpload flag
+test_upload_wait = ["upload_wait"]
 
 ######################################################################
 # Read a JSON file
@@ -686,6 +690,8 @@ def compiler_per_test_flags(tname):
     if tname in test_defaults and len(desc.raw_input) > 0:
         flags.append("-defaults")
         flags.append(desc.raw_input[0])
+    if tname in test_upload_wait:
+        flags.append("-waitOnUpload")
     else:
         for i in desc.raw_input:
             flags.append("-inputs")

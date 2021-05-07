@@ -36,6 +36,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
                                runtimeTraceLevel: Int,
                                separateOutputs: Boolean,
                                streamFiles: StreamFiles.StreamFiles,
+                               waitOnUpload: Boolean,
                                extras: Option[Extras],
                                parameterLinkSerializer: ParameterLinkSerializer,
                                useManifests: Boolean,
@@ -102,6 +103,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         "runtimeJar" -> runtimeJar,
         "runtimeTraceLevel" -> runtimeTraceLevel,
         "streamFiles" -> streamFiles,
+        "waitOnUpload" -> waitOnUpload,
         "includeEpilog" -> applet.outputs.nonEmpty
     )
     applet.kind match {

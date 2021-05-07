@@ -117,15 +117,16 @@ val executorCwl = project
 
 // DEPENDENCIES
 
-val githubResolver = Resolver.githubPackages("dnanexus", "dxScala")
-resolvers += githubResolver
+val githubDxScalaResolver = Resolver.githubPackages("dnanexus", "dxScala")
+val githubWdlToolsResolver = Resolver.githubPackages("dnanexus-rnd", "wdlTools")
+val githubDxCompilerResolver = Resolver.githubPackages("dnanexus", "dxCompiler")
 
 lazy val dependencies =
   new {
     val dxCommonVersion = "0.2.14-SNAPSHOT"
-    val dxApiVersion = "0.1.17-SNAPSHOT"
-    val dxFileAccessProtocolsVersion = "0.1.5"
-    val wdlToolsVersion = "0.12.9"
+    val dxApiVersion = "0.2.0-SNAPSHOT"
+    val dxFileAccessProtocolsVersion = "0.1.6-SNAPSHOT"
+    val wdlToolsVersion = "0.12.10-SNAPSHOT"
     val cwlScalaVersion = "0.3.4"
     val typesafeVersion = "1.3.3"
     val sprayVersion = "1.3.5"
@@ -166,14 +167,17 @@ lazy val settings = Seq(
     // disable publish with scala version, otherwise artifact name will include scala version
     // e.g dxScala_2.11
     crossPaths := false,
+    // snapshot artifact resolvers
+    resolvers ++= Seq(githubDxScalaResolver, githubWdlToolsResolver, githubDxCompilerResolver),
     // add sonatype repository settings
     // snapshot versions publish to GitHub packages repository
     // release versions publish to sonatype staging repository
     publishTo := Some(
-        if (isSnapshot.value)
-          githubResolver
-        else
+        if (isSnapshot.value) {
+          githubDxCompilerResolver
+        } else {
           Opts.resolver.sonatypeStaging
+        }
     ),
     githubOwner := "dnanexus",
     githubRepository := "dxCompiler",
