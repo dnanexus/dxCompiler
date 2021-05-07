@@ -288,11 +288,11 @@ object Archive {
           val newPath = transformer(oldPath)
           (f.copy(uri = newPath.toString), TreeSeqMap(oldPath -> newPath))
         case l: VListing =>
-          val (newValues, nestedPaths) = l.listing.map {
+          val (newValues, nestedPaths) = l.items.map {
             case f: VFile          => transformFile(f)
             case d: DirectoryValue => transformDirectory(d)
           }.unzip
-          (l.copy(listing = newValues), nestedPaths.flatten.toMap)
+          (l.copy(items = newValues), nestedPaths.flatten.toMap)
         case VString(s) =>
           val oldPath = Paths.get(s)
           val newPath = transformer(oldPath)

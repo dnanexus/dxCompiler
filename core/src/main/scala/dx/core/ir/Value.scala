@@ -54,9 +54,9 @@ object Value {
   /**
     * A synthetic directory consisting of specific platform files/folders.
     * @param basename the name to use when localizing the directory
-    * @param listing a Vector of files/subdirectories in this Directory
+    * @param items a Vector of files/subdirectories in this Directory
     */
-  case class VListing(basename: String, listing: Vector[PathValue] = Vector.empty)
+  case class VListing(basename: String, items: Vector[PathValue] = Vector.empty)
       extends DirectoryValue
 
   /**
@@ -126,8 +126,8 @@ object Value {
             throw new Exception(s"null value for non-optional type ${innerType.get}")
           case (Some(TFile), f: VFile) if f.secondaryFiles.nonEmpty =>
             f.copy(secondaryFiles = transformPaths(f.secondaryFiles))
-          case (Some(TDirectory), l: VListing) if l.listing.nonEmpty =>
-            l.copy(listing = transformPaths(l.listing))
+          case (Some(TDirectory), l: VListing) if l.items.nonEmpty =>
+            l.copy(items = transformPaths(l.items))
           case (Some(TArray(_, true)), VArray(Vector())) =>
             throw new Exception("empty array for non-empty array type")
           case (Some(TArray(itemType, _)), VArray(items)) =>
