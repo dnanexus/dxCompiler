@@ -3,6 +3,10 @@
 ## in develop
 
 * Escapes WDL strings in generated code
+* Fixes issues with using expressions in placeholder option values
+* Fixes error when evaluating array element access for an optional value
+* Fixes localization of files in identically named folders in different projects
+* Fixes localization of files with the same name in the same folder
 
 ## 2.4.3 2021-04-23
 
