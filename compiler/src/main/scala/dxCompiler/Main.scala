@@ -10,11 +10,13 @@ import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir.Bundle
 import dx.core.languages.Language
 import dx.core.Constants
+import dx.core.languages.wdl.WdlOptions
 import dx.dxni.DxNativeInterface
 import dx.translator.{Extras, TranslatorFactory}
 import dx.util.protocols.DxFileAccessProtocol
 import dx.util.{Enum, FileSourceResolver, FileUtils, Logger, TraceLevel}
 import spray.json.{JsNull, JsValue}
+import wdlTools.types.TypeCheckingRegime
 
 /**
   * Compiler CLI.
@@ -116,8 +118,18 @@ object Main {
 
   private object StreamFilesOptionSpec
       extends SingleValueOptionSpec[StreamFiles.StreamFiles](choices = StreamFiles.values.toVector) {
-    override def parseValue(value: String): StreamFiles.StreamFiles =
+    override def parseValue(value: String): StreamFiles.StreamFiles = {
       StreamFiles.withNameIgnoreCase(value)
+    }
+  }
+
+  private object WdlRegimeOptionSpec
+      extends SingleValueOptionSpec[TypeCheckingRegime.TypeCheckingRegime](
+          choices = TypeCheckingRegime.values.toVector
+      ) {
+    override def parseValue(value: String): TypeCheckingRegime.TypeCheckingRegime = {
+      TypeCheckingRegime.withNameIgnoreCase(value)
+    }
   }
 
   private def CompileOptions: InternalOptions = Map(
@@ -140,7 +152,8 @@ object Main {
       "streamAllFiles" -> FlagOptionSpec.default,
       "scatterChunkSize" -> IntOptionSpec.one,
       "useManifests" -> FlagOptionSpec.default,
-      "waitOnUpload" -> FlagOptionSpec.default
+      "waitOnUpload" -> FlagOptionSpec.default,
+      "wdlMode" -> WdlRegimeOptionSpec
   )
 
   private val DeprecatedCompileOptions = Set(
@@ -331,8 +344,7 @@ object Main {
 
     val defaultScatterChunkSize: Int = options.getValue[Int]("scatterChunkSize") match {
       case None => Constants.JobPerScatterDefault
-      case Some(x) =>
-        val size = x.toInt
+      case Some(size) =>
         if (size < 1) {
           Constants.JobPerScatterDefault
         } else if (size > Constants.JobsPerScatterLimit) {
@@ -358,6 +370,17 @@ object Main {
       case b => b
     }
 
+    val wdlOptions = options
+      .getValue[TypeCheckingRegime.TypeCheckingRegime]("wdlMode")
+      .map(regime => WdlOptions(regime))
+      .getOrElse(WdlOptions.default)
+
+    if (wdlOptions.regime == TypeCheckingRegime.Lenient) {
+      logger.warning(
+          """You have enabled 'lenient' WDL mode."""
+      )
+    }
+
     val translator =
       try {
         val language = options.getValue[Language.Language]("language")
@@ -365,6 +388,7 @@ object Main {
         TranslatorFactory.createTranslator(
             sourceFile,
             language,
+            wdlOptions,
             extras,
             defaultScatterChunkSize,
             locked,
@@ -796,6 +820,12 @@ object Main {
         |      -useManifests          Use manifest files for all workflow and applet inputs and 
         |                             outputs. Implies -locked.
         |      -waitOnUpload          Whether to wait for each file upload to complete.
+        |      -wdlMode [lenient,moderate,strict]
+        |                             Strictness to use when parsing WDL documents. The default
+        |                             ('moderate') will suffice for all workflows that are
+        |                             compliant with the WDL specification, while 'lenient' will
+        |                             enable compilation of third-party workflows with
+        |                             non-compliant syntax.
         |
         |  dxni
         |    DNAnexus Native call Interface. Creates stubs for calling DNAnexus executables 

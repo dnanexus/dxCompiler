@@ -4,6 +4,7 @@ import java.nio.file.Path
 import dx.api.{DxApi, DxProject}
 import dx.core.ir._
 import dx.core.languages.Language.Language
+import dx.core.languages.wdl.WdlOptions
 import dx.translator.wdl.WdlTranslatorFactory
 import dx.translator.cwl.CwlTranslatorFactory
 import dx.util.{FileSourceResolver, FileUtils, Logger}
@@ -55,13 +56,9 @@ trait TranslatorFactory {
 }
 
 object TranslatorFactory {
-  private val translatorFactories: Vector[TranslatorFactory] = Vector(
-      WdlTranslatorFactory(),
-      CwlTranslatorFactory()
-  )
-
   def createTranslator(source: Path,
                        language: Option[Language] = None,
+                       wdlOptions: WdlOptions = WdlOptions.default,
                        extras: Option[Extras] = None,
                        defaultScatterChunkSize: Int,
                        locked: Boolean = false,
@@ -81,6 +78,10 @@ object TranslatorFactory {
       case (None, None)          => DefaultReorgSettings(false)
     }
     val perWorkflowAttrs = extras.flatMap(_.perWorkflowDxAttributes).getOrElse(Map.empty)
+    val translatorFactories = Vector(
+        WdlTranslatorFactory(wdlOptions),
+        CwlTranslatorFactory()
+    )
     translatorFactories
       .collectFirst { factory =>
         factory.create(sourceAbsPath,

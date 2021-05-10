@@ -26,6 +26,7 @@ import dx.core.languages.wdl.{
   VersionSupport,
   WdlBlock,
   WdlBlockInput,
+  WdlOptions,
   WdlUtils
 }
 import dx.executor.{BlockContext, JobMeta, WorkflowExecutor}
@@ -44,8 +45,9 @@ case class BlockIO(block: WdlBlock, logger: Logger)
 object WdlWorkflowExecutor {
   def create(jobMeta: JobMeta, separateOutputs: Boolean): WdlWorkflowExecutor = {
     // parse the workflow source code to get the WDL document
+    val wdlOptions = jobMeta.parserOptions.map(WdlOptions.fromJson).getOrElse(WdlOptions.default)
     val (doc, typeAliases, versionSupport) =
-      VersionSupport.fromSourceString(jobMeta.sourceCode, jobMeta.fileResolver)
+      VersionSupport.fromSourceString(jobMeta.sourceCode, wdlOptions, jobMeta.fileResolver)
     val workflow = doc.workflow.getOrElse(
         throw new RuntimeException("This document should have a workflow")
     )

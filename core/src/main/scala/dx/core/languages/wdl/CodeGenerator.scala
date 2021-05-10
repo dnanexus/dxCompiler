@@ -9,6 +9,7 @@ import dx.core.ir.{
   WorkflowSource
 }
 import dx.util.{Logger, StringFileNode}
+import spray.json.JsValue
 import wdlTools.eval.WdlValues
 import wdlTools.syntax.{CommentMap, SourceLocation, WdlVersion}
 import wdlTools.types.{GraphUtils, TypeGraph, WdlTypes, TypedAbstractSyntax => TAT}
@@ -18,13 +19,19 @@ import scala.collection.immutable.TreeSeqMap
 case class WdlDocumentSource(doc: TAT.Document, versionSupport: VersionSupport)
     extends DocumentSource {
   override val language: String = "wdl"
+
   override def toString: String = versionSupport.generateDocument(doc)
+
+  override def optionsToJson: JsValue = versionSupport.wdlOptions.toJson
 }
 
 case class WdlWorkflowSource(workflow: TAT.Workflow, versionSupport: VersionSupport)
     extends WorkflowSource {
   override val language: String = "wdl"
+
   override def toString: String = versionSupport.generateElement(workflow)
+
+  override def optionsToJson: JsValue = versionSupport.wdlOptions.toJson
 }
 
 case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],

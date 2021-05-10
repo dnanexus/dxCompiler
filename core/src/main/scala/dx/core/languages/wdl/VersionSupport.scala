@@ -3,15 +3,40 @@ package dx.core.languages.wdl
 import java.nio.file.Path
 import dx.api.DxApi
 import dx.core.languages.wdl.WdlUtils.parseSource
+import dx.util.{Bindings, FileNode, FileSourceResolver, Logger, StringFileNode}
+import spray.json._
 import wdlTools.generators.code.WdlGenerator
 import wdlTools.syntax.{Parsers, WdlParser, WdlVersion}
-import wdlTools.types.TypeCheckingRegime.TypeCheckingRegime
 import wdlTools.types.{Section, TypeCheckingRegime, WdlTypes, TypedAbstractSyntax => TAT}
-import dx.util.{Bindings, FileNode, FileSourceResolver, Logger, StringFileNode}
+
+case class WdlOptions(regime: TypeCheckingRegime.TypeCheckingRegime) {
+  def toJson: JsValue = {
+    JsObject(
+        "regime" -> JsString(regime.toString)
+    )
+  }
+}
+
+object WdlOptions {
+  val default: WdlOptions = WdlOptions(regime = TypeCheckingRegime.Moderate)
+
+  def fromJson(jsValue: JsValue): WdlOptions = {
+    jsValue match {
+      case JsNull => WdlOptions.default
+      case JsObject(fields) =>
+        fields.get("regime") match {
+          case Some(JsString(value)) => WdlOptions(TypeCheckingRegime.withNameIgnoreCase(value))
+          case None                  => WdlOptions.default
+          case other =>
+            throw new Exception(s"invalue 'regime' value ${other}")
+        }
+    }
+  }
+}
 
 case class VersionSupport(version: WdlVersion,
+                          wdlOptions: WdlOptions = WdlOptions.default,
                           fileResolver: FileSourceResolver = FileSourceResolver.get,
-                          regime: TypeCheckingRegime = TypeCheckingRegime.Moderate,
                           dxApi: DxApi = DxApi.get,
                           logger: Logger = Logger.get,
                           wdlParser: Option[WdlParser] = None) {
@@ -30,8 +55,11 @@ case class VersionSupport(version: WdlVersion,
 
   lazy val codeGenerator: WdlGenerator = WdlGenerator(Some(generatedVersion))
 
-  def parse(sourceCode: FileNode): (TAT.Document, Bindings[String, WdlTypes.T_Struct]) = {
-    WdlUtils.parseAndCheckSource(sourceCode, parser, fileResolver, regime, logger)
+  def parse(
+      sourceCode: FileNode,
+      wdlOptions: WdlOptions = WdlOptions.default
+  ): (TAT.Document, Bindings[String, WdlTypes.T_Struct]) = {
+    WdlUtils.parseAndCheckSource(sourceCode, parser, wdlOptions, fileResolver, logger)
   }
 
   def parse(src: String): (TAT.Document, Bindings[String, WdlTypes.T_Struct]) = {
@@ -81,37 +109,37 @@ case class VersionSupport(version: WdlVersion,
 object VersionSupport {
   def fromSource(
       sourceCode: FileNode,
+      wdlOptions: WdlOptions = WdlOptions.default,
       fileResolver: FileSourceResolver = FileSourceResolver.get,
-      regime: TypeCheckingRegime = TypeCheckingRegime.Moderate,
       dxApi: DxApi = DxApi.get,
       logger: Logger = Logger.get
   ): (TAT.Document, Bindings[String, WdlTypes.T_Struct], VersionSupport) = {
     val parser = Parsers(followImports = true, fileResolver = fileResolver, logger = logger)
       .getParser(sourceCode)
     val (doc, typeAliases) =
-      WdlUtils.parseAndCheckSource(sourceCode, parser, fileResolver, regime, logger)
+      WdlUtils.parseAndCheckSource(sourceCode, parser, wdlOptions, fileResolver, logger)
     val versionSupport =
-      VersionSupport(doc.version.value, fileResolver, regime, dxApi, logger, Some(parser))
+      VersionSupport(doc.version.value, wdlOptions, fileResolver, dxApi, logger, Some(parser))
     (doc, typeAliases, versionSupport)
   }
 
   def fromSourceFile(
       sourceFile: Path,
+      wdlOptions: WdlOptions = WdlOptions.default,
       fileResolver: FileSourceResolver = FileSourceResolver.get,
-      regime: TypeCheckingRegime = TypeCheckingRegime.Moderate,
       dxApi: DxApi = DxApi.get,
       logger: Logger = Logger.get
   ): (TAT.Document, Bindings[String, WdlTypes.T_Struct], VersionSupport) = {
-    fromSource(fileResolver.fromPath(sourceFile), fileResolver, regime, dxApi, logger)
+    fromSource(fileResolver.fromPath(sourceFile), wdlOptions, fileResolver, dxApi, logger)
   }
 
   def fromSourceString(
       sourceCode: String,
+      wdlOptions: WdlOptions = WdlOptions.default,
       fileResolver: FileSourceResolver = FileSourceResolver.get,
-      regime: TypeCheckingRegime = TypeCheckingRegime.Moderate,
       dxApi: DxApi = DxApi.get,
       logger: Logger = Logger.get
   ): (TAT.Document, Bindings[String, WdlTypes.T_Struct], VersionSupport) = {
-    fromSource(StringFileNode(sourceCode), fileResolver, regime, dxApi, logger)
+    fromSource(StringFileNode(sourceCode), wdlOptions, fileResolver, dxApi, logger)
   }
 }

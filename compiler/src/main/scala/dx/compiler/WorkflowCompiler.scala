@@ -393,7 +393,8 @@ case class WorkflowCompiler(extras: Option[Extras],
     val sourceDetails = Map(
         Constants.SourceCode -> JsString(
             CodecUtils.gzipAndBase64Encode(workflow.document.toString)
-        )
+        ),
+        Constants.ParseOptions -> workflow.document.optionsToJson
     )
     // links through applets that run workflow fragments
     val transitiveDependencies: Vector[ExecutableLink] =

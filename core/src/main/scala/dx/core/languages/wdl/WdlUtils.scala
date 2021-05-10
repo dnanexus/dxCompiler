@@ -88,14 +88,14 @@ object WdlUtils {
   def parseAndCheckSource(
       sourceCode: FileNode,
       parser: WdlParser,
+      wdlOptions: WdlOptions = WdlOptions.default,
       fileResolver: FileSourceResolver = FileSourceResolver.get,
-      regime: TypeCheckingRegime.TypeCheckingRegime = TypeCheckingRegime.Moderate,
       logger: Logger = Logger.get
   ): (TAT.Document, Bindings[String, T_Struct]) = {
     val doc = parseSource(sourceCode, parser)
     try {
       val (tDoc, ctx) =
-        TypeInfer(regime, fileResolver = fileResolver, logger = logger)
+        TypeInfer(wdlOptions.regime, fileResolver = fileResolver, logger = logger)
           .apply(doc)
       (tDoc, ctx.aliases)
     } catch {
@@ -109,8 +109,8 @@ object WdlUtils {
 
   def parseAndCheckSourceNode(
       node: FileNode,
+      wdlOptions: WdlOptions = WdlOptions.default,
       fileResolver: FileSourceResolver = FileSourceResolver.get,
-      regime: TypeCheckingRegime.TypeCheckingRegime = TypeCheckingRegime.Moderate,
       logger: Logger = Logger.get
   ): (TAT.Document, Bindings[String, T_Struct]) = {
     val parser =
@@ -123,14 +123,14 @@ object WdlUtils {
           )
           throw nspe
       }
-    parseAndCheckSource(node, parser, fileResolver, regime, logger)
+    parseAndCheckSource(node, parser, wdlOptions, fileResolver, logger)
   }
 
   /**
     * Parses a top-level WDL file and all its imports.
     * @param path the path to the WDL file
+    * @param wdlOptions WDL parsing options
     * @param fileResolver FileSourceResolver
-    * @param regime TypeCheckingRegime
     * @param logger Logger
     * @return (document, aliases), where aliases is a mapping of all the (fully-qualified)
     *         alias names to values. Aliases include Structs defined in any file (which are
@@ -139,21 +139,21 @@ object WdlUtils {
     */
   def parseAndCheckSourceFile(
       path: Path,
+      wdlOptions: WdlOptions = WdlOptions.default,
       fileResolver: FileSourceResolver = FileSourceResolver.get,
-      regime: TypeCheckingRegime.TypeCheckingRegime = TypeCheckingRegime.Moderate,
       logger: Logger = Logger.get
   ): (TAT.Document, Bindings[String, T_Struct]) = {
-    parseAndCheckSourceNode(fileResolver.fromPath(path), fileResolver, regime, logger)
+    parseAndCheckSourceNode(fileResolver.fromPath(path), wdlOptions, fileResolver, logger)
   }
 
   def parseAndCheckSourceString(
       sourceCodeStr: String,
       name: String,
+      wdlOptions: WdlOptions = WdlOptions.default,
       fileResolver: FileSourceResolver = FileSourceResolver.get,
-      regime: TypeCheckingRegime.TypeCheckingRegime = TypeCheckingRegime.Moderate,
       logger: Logger = Logger.get
   ): (TAT.Document, Bindings[String, T_Struct]) = {
-    parseAndCheckSourceNode(StringFileNode(sourceCodeStr, name), fileResolver, regime, logger)
+    parseAndCheckSourceNode(StringFileNode(sourceCodeStr, name), wdlOptions, fileResolver, logger)
   }
 
   def parseExpr(exprStr: String,
