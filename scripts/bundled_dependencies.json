@@ -1,6 +1,6 @@
 {
   "dxda": "v0.5.4",
-  "dxfuse": "v0.24.0",
+  "dxfuse": "v0.24.1",
   "awscli": "2.1.32",
   "execDepends": {
     "cwl": [
