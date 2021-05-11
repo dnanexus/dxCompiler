@@ -16,7 +16,7 @@ import dx.translator.{
 import dx.util.{FileSourceResolver, Logger}
 import spray.json.{JsArray, JsObject, JsString, JsValue}
 import wdlTools.syntax.NoSuchParserException
-import wdlTools.types.{TypeCheckingRegime, WdlTypes, TypedAbstractSyntax => TAT}
+import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 
 case class WdlInputTranslator(bundle: Bundle,
                               inputs: Vector[Path],

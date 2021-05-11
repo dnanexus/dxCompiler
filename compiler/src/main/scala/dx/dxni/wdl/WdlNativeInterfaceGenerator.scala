@@ -3,23 +3,22 @@ package dx.dxni.wdl
 import dx.api._
 import dx.core.languages.Language
 import dx.core.languages.Language.Language
-import dx.core.languages.wdl.{VersionSupport, WdlUtils}
+import dx.core.languages.wdl.{VersionSupport, WdlOptions, WdlUtils}
 import dx.dxni.{NativeInterfaceGenerator, NativeInterfaceGeneratorFactory}
 import wdlTools.syntax.{CommentMap, SourceLocation, WdlVersion}
-import wdlTools.types.TypeCheckingRegime.TypeCheckingRegime
 import wdlTools.types.WdlTypes.T_Task
-import wdlTools.types.{TypeCheckingRegime, WdlTypes, TypedAbstractSyntax => TAT}
+import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 import dx.util.{FileSourceResolver, Logger, StringFileNode}
 
 import scala.collection.immutable.TreeSeqMap
 
 case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
+                                       wdlOptions: WdlOptions = WdlOptions.default,
                                        fileResolver: FileSourceResolver = FileSourceResolver.get,
-                                       regime: TypeCheckingRegime = TypeCheckingRegime.Moderate,
                                        dxApi: DxApi = DxApi.get,
                                        logger: Logger = Logger.get)
     extends NativeInterfaceGenerator {
-  private lazy val wdl = VersionSupport(wdlVersion, fileResolver, regime, dxApi, logger)
+  private lazy val wdl = VersionSupport(wdlVersion, wdlOptions, fileResolver, dxApi, logger)
 
   /**
     * Generate a WDL stub fore a DNAnexus applet.
@@ -228,8 +227,8 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
         logger.ignore(
             WdlUtils.parseAndCheckSourceString(sourceCode,
                                                taskDoc.source.toString,
+                                               wdlOptions,
                                                fileResolver,
-                                               regime,
                                                logger)
         )
         Some(task)

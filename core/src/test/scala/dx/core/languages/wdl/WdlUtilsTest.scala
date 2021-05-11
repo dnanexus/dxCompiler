@@ -28,7 +28,8 @@ class WdlUtilsTest extends AnyFlatSpec with Matchers {
       sourceCode: String,
       fileResolver: FileSourceResolver = FileSourceResolver.get
   ): (TAT.Task, Bindings[String, WdlTypes.T_Struct], TAT.Document) = {
-    val (doc, typeAliases) = WdlUtils.parseAndCheckSourceString(sourceCode, "test", fileResolver)
+    val (doc, typeAliases) =
+      WdlUtils.parseAndCheckSourceString(sourceCode, "test", fileResolver = fileResolver)
     if (doc.workflow.isDefined) {
       throw new Exception("a workflow shouldn't be a member of this document")
     }

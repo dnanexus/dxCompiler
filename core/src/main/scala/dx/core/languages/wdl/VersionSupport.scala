@@ -30,6 +30,8 @@ object WdlOptions {
           case other =>
             throw new Exception(s"invalue 'regime' value ${other}")
         }
+      case other =>
+        throw new Exception(s"invalid WdlOptions ${other}")
     }
   }
 }
@@ -89,7 +91,13 @@ case class VersionSupport(version: WdlVersion,
 
   def generateDocument(doc: TAT.Document): String = {
     val sourceString = codeGenerator.generateDocument(doc).mkString("\n")
-    Logger.get.ignore(WdlUtils.parseAndCheckSourceString(sourceString, doc.source.toString))
+    Logger.get.ignore(
+        WdlUtils.parseAndCheckSourceString(sourceString,
+                                           doc.source.toString,
+                                           wdlOptions,
+                                           fileResolver,
+                                           logger)
+    )
     sourceString
   }
 
