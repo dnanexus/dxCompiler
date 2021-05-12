@@ -5,10 +5,10 @@ set -exo pipefail
 DXCOMPILER_JAR=/home/dnanexus/dxCompiler.jar
 
 # Download files needed for compiling workflows
-dx download -r /workflow_1
+dx download -r workflow_1
 
 # Set up test output folder for each workflow
-dx mkdir -p /test_out/workflow_1
+dx mkdir -p test_out/workflow_1
 
 # Compile workflow 1
 exec_1=`java -jar $DXCOMPILER_JAR compile workflow_1/workflow_1.wdl \
