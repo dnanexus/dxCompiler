@@ -66,7 +66,7 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
     }
     ordered.map {
       case (name, wdlType) =>
-        TAT.StructDefinition(name, wdlType, wdlType.members, SourceLocation.empty)
+        TAT.StructDefinition(name, wdlType, wdlType.members)(SourceLocation.empty)
     }
   }
 
@@ -76,40 +76,40 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
     }
 
     value match {
-      case WdlValues.V_Null => TAT.ValueNull(WdlTypes.T_Any, SourceLocation.empty)
+      case WdlValues.V_Null => TAT.ValueNull(WdlTypes.T_Any)(SourceLocation.empty)
       case WdlValues.V_Boolean(value) =>
-        TAT.ValueBoolean(value, WdlTypes.T_Boolean, SourceLocation.empty)
-      case WdlValues.V_Int(value)   => TAT.ValueInt(value, WdlTypes.T_Int, SourceLocation.empty)
-      case WdlValues.V_Float(value) => TAT.ValueFloat(value, WdlTypes.T_Float, SourceLocation.empty)
+        TAT.ValueBoolean(value, WdlTypes.T_Boolean)(SourceLocation.empty)
+      case WdlValues.V_Int(value)   => TAT.ValueInt(value, WdlTypes.T_Int)(SourceLocation.empty)
+      case WdlValues.V_Float(value) => TAT.ValueFloat(value, WdlTypes.T_Float)(SourceLocation.empty)
       case WdlValues.V_String(value) =>
-        TAT.ValueString(value, WdlTypes.T_String, SourceLocation.empty)
-      case WdlValues.V_File(value) => TAT.ValueFile(value, WdlTypes.T_File, SourceLocation.empty)
+        TAT.ValueString(value, WdlTypes.T_String)(SourceLocation.empty)
+      case WdlValues.V_File(value) => TAT.ValueFile(value, WdlTypes.T_File)(SourceLocation.empty)
       case WdlValues.V_Directory(value) =>
-        TAT.ValueDirectory(value, WdlTypes.T_Directory, SourceLocation.empty)
+        TAT.ValueDirectory(value, WdlTypes.T_Directory)(SourceLocation.empty)
 
       // compound values
       case WdlValues.V_Pair(l, r) =>
         val lExpr = wdlValueToExpr(l)
         val rExpr = wdlValueToExpr(r)
-        TAT.ExprPair(lExpr,
-                     rExpr,
-                     WdlTypes.T_Pair(lExpr.wdlType, rExpr.wdlType),
-                     SourceLocation.empty)
+        TAT.ExprPair(lExpr, rExpr, WdlTypes.T_Pair(lExpr.wdlType, rExpr.wdlType))(
+            SourceLocation.empty
+        )
       case WdlValues.V_Array(value) =>
         val valueExprs = value.map(wdlValueToExpr)
-        TAT.ExprArray(valueExprs, seqToType(valueExprs), SourceLocation.empty)
+        TAT.ExprArray(valueExprs, seqToType(valueExprs))(SourceLocation.empty)
       case WdlValues.V_Map(value) =>
         val keyExprs = value.keys.map(wdlValueToExpr)
         val valueExprs = value.values.map(wdlValueToExpr)
-        TAT.ExprMap(keyExprs.zip(valueExprs).to(TreeSeqMap),
-                    WdlTypes.T_Map(seqToType(keyExprs), seqToType(valueExprs)),
-                    SourceLocation.empty)
+        TAT.ExprMap(
+            keyExprs.zip(valueExprs).to(TreeSeqMap),
+            WdlTypes.T_Map(seqToType(keyExprs), seqToType(valueExprs))
+        )(SourceLocation.empty)
 
       case WdlValues.V_Optional(value) => wdlValueToExpr(value)
       case WdlValues.V_Struct(name, members) =>
         val memberExprs: Map[TAT.Expr, TAT.Expr] = members.map {
           case (name, value) =>
-            TAT.ValueString(name, WdlTypes.T_String, SourceLocation.empty) -> wdlValueToExpr(value)
+            TAT.ValueString(name, WdlTypes.T_String)(SourceLocation.empty) -> wdlValueToExpr(value)
           case other => throw new RuntimeException(s"Unexpected member ${other}")
         }
         val memberTypes = memberExprs.map {
@@ -117,16 +117,15 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
           case other                          => throw new RuntimeException(s"Unexpected member ${other}")
         }
         TAT.ExprMap(memberExprs.to(TreeSeqMap),
-                    WdlTypes.T_Struct(name, memberTypes.to(TreeSeqMap)),
-                    SourceLocation.empty)
+                    WdlTypes.T_Struct(name, memberTypes.to(TreeSeqMap)))(SourceLocation.empty)
 
       case WdlValues.V_Object(members) =>
         val memberExprs = members.map {
           case (name, value) =>
-            val key: TAT.Expr = TAT.ValueString(name, WdlTypes.T_String, SourceLocation.empty)
+            val key: TAT.Expr = TAT.ValueString(name, WdlTypes.T_String)(SourceLocation.empty)
             key -> wdlValueToExpr(value)
         }
-        TAT.ExprObject(memberExprs.to(TreeSeqMap), WdlTypes.T_Object, SourceLocation.empty)
+        TAT.ExprObject(memberExprs.to(TreeSeqMap), WdlTypes.T_Object)(SourceLocation.empty)
 
       case other =>
         throw new Exception(s"Unhandled value ${other}")
@@ -182,12 +181,13 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
           val wdlType = WdlUtils.fromIRType(parameter.dxType, typeAliases)
           parameter.defaultValue match {
             case None =>
-              TAT.RequiredInputParameter(parameter.name, wdlType, SourceLocation.empty)
+              TAT.RequiredInputParameter(parameter.name, wdlType)(SourceLocation.empty)
             case Some(value) =>
-              TAT.OverridableInputParameterWithDefault(parameter.name,
-                                                       wdlType,
-                                                       WdlUtils.irValueToExpr(value),
-                                                       SourceLocation.empty)
+              TAT.OverridableInputParameterWithDefault(
+                  parameter.name,
+                  wdlType,
+                  WdlUtils.irValueToExpr(value)
+              )(SourceLocation.empty)
           }
         }
 
@@ -197,13 +197,14 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
         .map { parameter =>
           val wdlType = WdlUtils.fromIRType(parameter.dxType, typeAliases)
           val defaultVal = WdlUtils.getDefaultValueOfType(wdlType)
-          TAT.OutputParameter(parameter.name, wdlType, defaultVal, SourceLocation.empty)
+          TAT.OutputParameter(parameter.name, wdlType, defaultVal)(SourceLocation.empty)
         }
 
     val meta = if (native) {
       Some(
           TAT.MetaSection(
-              TreeSeqMap("type" -> TAT.MetaValueBoolean(value = true, SourceLocation.empty)),
+              TreeSeqMap("type" -> TAT.MetaValueBoolean(value = true)(SourceLocation.empty))
+          )(
               SourceLocation.empty
           )
       )
@@ -217,7 +218,7 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
             callable.name,
             inputs
               .map {
-                case TAT.RequiredInputParameter(name, wdlType, _) =>
+                case TAT.RequiredInputParameter(name, wdlType) =>
                   name -> (wdlType, false)
                 case other: TAT.InputParameter =>
                   other.name -> (other.wdlType, true)
@@ -228,12 +229,13 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
         ),
         inputs,
         outputs,
-        TAT.CommandSection(Vector.empty, SourceLocation.empty),
+        TAT.CommandSection(Vector.empty)(SourceLocation.empty),
         Vector.empty,
         meta,
         None,
         None,
-        None,
+        None
+    )(
         SourceLocation.empty
     )
   }
@@ -253,9 +255,10 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
 
     val meta = TAT.MetaSection(
         TreeSeqMap(
-            "type" -> TAT.MetaValueString("native", SourceLocation.empty),
-            "id" -> TAT.MetaValueString(id, SourceLocation.empty)
-        ),
+            "type" -> TAT.MetaValueString("native")(SourceLocation.empty),
+            "id" -> TAT.MetaValueString(id)(SourceLocation.empty)
+        )
+    )(
         SourceLocation.empty
     )
     TAT.Task(
@@ -269,31 +272,31 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
                         outputSpec.to(TreeSeqMap),
                         None),
         inputSpec.map {
-          case (name, wdlType) => TAT.RequiredInputParameter(name, wdlType, SourceLocation.empty)
+          case (name, wdlType) => TAT.RequiredInputParameter(name, wdlType)(SourceLocation.empty)
         }.toVector,
         outputSpec.map {
           case (name, wdlType) =>
             val expr = WdlUtils.getDefaultValueOfType(wdlType)
-            TAT.OutputParameter(name, wdlType, expr, SourceLocation.empty)
+            TAT.OutputParameter(name, wdlType, expr)(SourceLocation.empty)
         }.toVector,
-        TAT.CommandSection(Vector.empty, SourceLocation.empty),
+        TAT.CommandSection(Vector.empty)(SourceLocation.empty),
         Vector.empty,
         Some(meta),
         parameterMeta = None,
         runtime = None,
-        hints = None,
-        loc = SourceLocation.empty
+        hints = None
+    )(
+        SourceLocation.empty
     )
   }
 
   def createStandAloneTask(task: TAT.Task): TAT.Document = {
-    TAT.Document(
-        StringFileNode.empty,
-        TAT.Version(outputWdlVersion, SourceLocation.empty),
-        structDefs :+ task,
-        None,
-        SourceLocation.empty,
-        CommentMap.empty
+    TAT.Document(StringFileNode.empty,
+                 TAT.Version(outputWdlVersion)(SourceLocation.empty),
+                 structDefs :+ task,
+                 None,
+                 CommentMap.empty)(
+        SourceLocation.empty
     )
   }
 
@@ -319,10 +322,10 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
     body.map {
       case call: TAT.Call =>
         call.copy(fullyQualifiedName = call.unqualifiedName)
-      case scat: TAT.Scatter =>
-        scat.copy(body = unqualifyCallNames(scat.body))
+      case scatter: TAT.Scatter =>
+        scatter.copy(body = unqualifyCallNames(scatter.body))(scatter.loc)
       case cond: TAT.Conditional =>
-        cond.copy(body = unqualifyCallNames(cond.body))
+        cond.copy(body = unqualifyCallNames(cond.body))(cond.loc)
       case other => other
     }
   }
@@ -387,7 +390,7 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
 
     TAT.Document(
         StringFileNode.empty,
-        TAT.Version(outputWdlVersion, SourceLocation.empty),
+        TAT.Version(outputWdlVersion)(SourceLocation.empty),
         structDefs ++ tasks,
         Some(wfWithoutImportCalls),
         SourceLocation.empty,
