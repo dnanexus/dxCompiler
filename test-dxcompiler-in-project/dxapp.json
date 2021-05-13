@@ -24,7 +24,8 @@
     "version": "0"
   },
   "access": {
-    "project": "CONTRIBUTE"
+    "project": "CONTRIBUTE",
+    "allProjects": "VIEW"
   },
   "regionalOptions": {
     "aws:us-east-1": {
