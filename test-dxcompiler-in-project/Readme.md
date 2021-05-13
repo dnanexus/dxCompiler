@@ -4,7 +4,7 @@ Applet `test-dxcompiler-in-project` can be built and deployed in customer-provid
 
 ## Test Project Setup
 
-- The `example_project` directory shows the recommended structure for a test project.
+- The [example_project directory](./example_project) shows the recommended structure for a test project.
 - `test/test_wdl.sh` should be a script that downloads the WDL files onto the worker, compiles the workflows, and runs them.
 - It is recommended to have 1 `workflow_#` folder per test workflow containing the WDL and auxiliary files necessary to compile the workflow.
 - It is recommended to direct compiled artifacts and workflow outputs to `test_out/workflow#`.
