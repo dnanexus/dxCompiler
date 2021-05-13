@@ -16,6 +16,6 @@ Applet `test-dxcompiler-in-project` can be built and deployed in customer-provid
 
 ## Building & Running the Applet
 
-- Upload regional dxCompiler assets to the platform and stage dxCompiler.jar in the root `dxCompiler` folder. This can be done bu running the initial stage of a release.
+- Upload regional dxCompiler assets to the platform and stage dxCompiler.jar in the root `dxCompiler` folder. This can be done by running the initial stage of a release.
 - `dx select` the project for testing.
 - `dx build` and `dx run` this applet.
