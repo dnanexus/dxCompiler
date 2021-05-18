@@ -56,6 +56,7 @@ wdl_v1_list = [
     "environment_passing_deep_nesting",
     "optional_output",
     "unpassed_default_arg",
+    "nested_quotes",
 
     # workflows with nested blocks
     "two_levels",
