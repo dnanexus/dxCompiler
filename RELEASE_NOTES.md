@@ -1,11 +1,19 @@
 # Release Notes
 
+## 2.4.4 2021-05-10
+
+* Escapes WDL strings in generated code
+* Fixes issues with using expressions in placeholder option values
+* Fixes error when evaluating array element access for an optional value
+* Fixes localization of files in identically named folders in different projects
+* Fixes localization of files with the same name in the same folder
+
 ## 2.4.3 2021-04-23
 
 * Fixes an issue where a file input from an different project than where the workflow is compiled is localized to an invalid path
 * File downloads (including Docker images) no longer fail when retried after a previous failure
 * Adds the `-waitOnUpload` compiler option, which causes all file uploads to block until they complete
-* Fixes an issue where tasks with outputs that are collections of files (e.g. `Array[File]`) are compiled with an incorrect default input value  
+* Fixes an issue where tasks with outputs that are collections of files (e.g. `Array[File]`) are compiled with an incorrect default input value
 * Fixes an issue where using a field of a struct as a call input causes a runtime error, e.g.
     ```wdl
     struct MyStruct {
@@ -24,20 +32,20 @@
 * `-imports` now works correctly - `import` statements can reference files that are relative to an import directory rather than the main document
 * Coercion from `Object` to `Map` is now allowed - this enables the result of `read_json` to be assigned to a variable of type `Map`
 * Strings with escape sequences are now processed correctly - to preserve escape sequences in a string, they need to be "double-escaped"
-    - For example, to pass a regular expression containing a tab character to the second argument of the `sub` function:
-        ```wdl
-        String s1 = "hello\tBob"
-        String s2 = sub(s1, "\\t", " ")
-        ```
-    - Another common example is passing a read group to `bwa mem`. Whether the string is defined in WDL, in a JSON input file, or on the command line, it needs to be "double-escaped":
-        ```wdl
-        String rg = "@RG\\tID:${sample_name}\\tSM:${sample_name}\\tLB:${sample_name}\\tPL:ILLUMINA"
-        
-        command <<<
-        bwa -R "~{rg}" ...
-        >>>
-        ```
-* Fixes an issue where indentation is stripped out of some commands  
+  - For example, to pass a regular expression containing a tab character to the second argument of the `sub` function:
+      ```wdl
+      String s1 = "hello\tBob"
+      String s2 = sub(s1, "\\t", " ")
+      ```
+  - Another common example is passing a read group to `bwa mem`. Whether the string is defined in WDL, in a JSON input file, or on the command line, it needs to be "double-escaped":
+      ```wdl
+      String rg = "@RG\\tID:${sample_name}\\tSM:${sample_name}\\tLB:${sample_name}\\tPL:ILLUMINA"
+      
+      command <<<
+      bwa -R "~{rg}" ...
+      >>>
+      ```
+* Fixes an issue where indentation is stripped out of some commands
 * The default reorg applet now polls the analysis until it is fully updated before proceeding. For custom reorg applets, see the updated code in the [example](doc/CustomReorgAppletExample.md).
 * Fixes an issue with nested scatters that reference private variables from outer scopes, e.g.
     ```wdl
