@@ -1,6 +1,6 @@
 # Release Notes
 
-## in develop
+## 2.4.4 2021-05-10
 
 * Escapes WDL strings in generated code
 * Fixes issues with using expressions in placeholder option values
