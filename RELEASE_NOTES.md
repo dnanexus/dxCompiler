@@ -1,5 +1,9 @@
 # Release Notes
 
+## in develop
+
+* An applet that contains multiple scatter or conditional blocks will now have a name that is the concatenation of all the block names 
+
 ## 2.4.4 2021-05-10
 
 * Escapes WDL strings in generated code
