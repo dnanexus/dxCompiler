@@ -738,6 +738,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
           case (Constants.Version, JsString(_))            => () // ignore
           case (Constants.Checksum, JsString(_))           => () // ignore
           case (Constants.SourceCode, JsString(_))         => () // ignore
+          case (Constants.ParseOptions, JsObject(_))       => () // ignore
           // old values for sourceCode - can probalby delete these
           case ("womSourceCode", JsString(_)) => ()
           case ("wdlSourceCode", JsString(_)) => ()
