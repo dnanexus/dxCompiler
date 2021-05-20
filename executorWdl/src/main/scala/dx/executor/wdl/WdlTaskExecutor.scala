@@ -123,7 +123,7 @@ case class WdlTaskExecutor(task: TAT.Task,
     // evaluate the private variables using the inputs
     val env: Map[String, V] =
       task.privateVariables.foldLeft(inputs) {
-        case (env, TAT.PrivateVariable(name, wdlType, expr, _)) =>
+        case (env, TAT.PrivateVariable(name, wdlType, expr)) =>
           val wdlValue =
             evaluator.applyExprAndCoerce(expr, wdlType, WdlValueBindings(env))
           env + (name -> wdlValue)

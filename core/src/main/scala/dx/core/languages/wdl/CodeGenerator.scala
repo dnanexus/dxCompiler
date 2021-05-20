@@ -321,7 +321,7 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
   private def unqualifyCallNames(body: Vector[TAT.WorkflowElement]): Vector[TAT.WorkflowElement] = {
     body.map {
       case call: TAT.Call =>
-        call.copy(fullyQualifiedName = call.unqualifiedName)
+        call.copy(fullyQualifiedName = call.unqualifiedName)(call.loc)
       case scatter: TAT.Scatter =>
         scatter.copy(body = unqualifyCallNames(scatter.body))(scatter.loc)
       case cond: TAT.Conditional =>
@@ -386,15 +386,14 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
         .sortWith(_._1 < _._1)
         .map { case (_, task) => task }
 
-    val wfWithoutImportCalls = wf.copy(body = unqualifyCallNames(wf.body))
+    val wfWithoutImportCalls = wf.copy(body = unqualifyCallNames(wf.body))(wf.loc)
 
     TAT.Document(
         StringFileNode.empty,
         TAT.Version(outputWdlVersion)(SourceLocation.empty),
         structDefs ++ tasks,
         Some(wfWithoutImportCalls),
-        SourceLocation.empty,
         CommentMap.empty
-    )
+    )(SourceLocation.empty)
   }
 }

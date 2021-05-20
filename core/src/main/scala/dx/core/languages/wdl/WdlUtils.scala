@@ -181,11 +181,11 @@ object WdlUtils {
   // create a wdl-value of a specific type.
   def getDefaultValueOfType(wdlType: T, loc: SourceLocation = WdlUtils.locPlaceholder): TAT.Expr = {
     wdlType match {
-      case T_Boolean => TAT.ValueBoolean(value = true, wdlType, loc)
-      case T_Int     => TAT.ValueInt(0, wdlType, loc)
-      case T_Float   => TAT.ValueFloat(0.0, wdlType, loc)
-      case T_String  => TAT.ValueString("", wdlType, loc)
-      case T_File    => TAT.ValueString("placeholder.txt", wdlType, loc)
+      case T_Boolean => TAT.ValueBoolean(value = true, wdlType)(loc)
+      case T_Int     => TAT.ValueInt(0, wdlType)(loc)
+      case T_Float   => TAT.ValueFloat(0.0, wdlType)(loc)
+      case T_String  => TAT.ValueString("", wdlType)(loc)
+      case T_File    => TAT.ValueString("placeholder.txt", wdlType)(loc)
 
       // We could convert an optional to a null value, but that causes
       // problems for the pretty printer.
@@ -198,29 +198,29 @@ object WdlUtils {
       case T_Map(keyType, valueType) =>
         val k = getDefaultValueOfType(keyType)
         val v = getDefaultValueOfType(valueType)
-        TAT.ExprMap(TreeSeqMap(k -> v), wdlType, loc)
+        TAT.ExprMap(TreeSeqMap(k -> v), wdlType)(loc)
 
       // an empty array
       case T_Array(_, false) =>
-        TAT.ExprArray(Vector.empty, wdlType, loc)
+        TAT.ExprArray(Vector.empty, wdlType)(loc)
 
       // Non empty array
       case T_Array(t, true) =>
-        TAT.ExprArray(Vector(getDefaultValueOfType(t)), wdlType, loc)
+        TAT.ExprArray(Vector(getDefaultValueOfType(t)), wdlType)(loc)
 
       case T_Pair(lType, rType) =>
-        TAT.ExprPair(getDefaultValueOfType(lType), getDefaultValueOfType(rType), wdlType, loc)
+        TAT.ExprPair(getDefaultValueOfType(lType), getDefaultValueOfType(rType), wdlType)(loc)
 
       case T_Struct(_, typeMap) =>
         val members = typeMap.map {
           case (fieldName, t) =>
-            val key: TAT.Expr = TAT.ValueString(fieldName, T_String, loc)
+            val key: TAT.Expr = TAT.ValueString(fieldName, T_String)(loc)
             key -> getDefaultValueOfType(t)
         }
-        TAT.ExprObject(members, wdlType, loc)
+        TAT.ExprObject(members, wdlType)(loc)
 
       case T_Object =>
-        TAT.ExprObject(SeqMap.empty, wdlType, SourceLocation.empty)
+        TAT.ExprObject(SeqMap.empty, wdlType)(SourceLocation.empty)
 
       case _ => throw new Exception(s"Unhandled type ${wdlType}")
     }
@@ -645,37 +645,37 @@ object WdlUtils {
   def irValueToExpr(value: Value): TAT.Expr = {
     val loc = SourceLocation.empty
     value match {
-      case VNull            => TAT.ValueNull(T_Any, loc)
-      case VBoolean(b)      => TAT.ValueBoolean(b, T_Boolean, loc)
-      case VInt(i)          => TAT.ValueInt(i, T_Int, loc)
-      case VFloat(f)        => TAT.ValueFloat(f, T_Float, loc)
-      case VString(s)       => TAT.ValueString(s, T_String, loc)
-      case VFile(path)      => TAT.ValueFile(path, T_File, loc)
-      case VDirectory(path) => TAT.ValueDirectory(path, T_Directory, loc)
+      case VNull            => TAT.ValueNull(T_Any)(loc)
+      case VBoolean(b)      => TAT.ValueBoolean(b, T_Boolean)(loc)
+      case VInt(i)          => TAT.ValueInt(i, T_Int)(loc)
+      case VFloat(f)        => TAT.ValueFloat(f, T_Float)(loc)
+      case VString(s)       => TAT.ValueString(s, T_String)(loc)
+      case VFile(path)      => TAT.ValueFile(path, T_File)(loc)
+      case VDirectory(path) => TAT.ValueDirectory(path, T_Directory)(loc)
       case VArray(array) =>
         val a = array.map(irValueToExpr)
         val t = ensureUniformType(a)
-        TAT.ExprArray(a, t, loc)
+        TAT.ExprArray(a, t)(loc)
       case VHash(fields) if isPairValue(fields) =>
         val left = irValueToExpr(fields(PairLeftKey))
         val right = irValueToExpr(fields(PairRightKey))
-        TAT.ExprPair(left, right, T_Pair(left.wdlType, right.wdlType), loc)
+        TAT.ExprPair(left, right, T_Pair(left.wdlType, right.wdlType))(loc)
       case VHash(fields) if isMapValue(fields) =>
         val keys = irValueToExpr(fields(MapKeysKey))
         val values = irValueToExpr(fields(MapValuesKey))
         (keys, values) match {
-          case (TAT.ExprArray(keyArray, keyType, _), TAT.ExprArray(valueArray, valueType, _)) =>
-            TAT.ExprMap(keyArray.zip(valueArray).to(TreeSeqMap), T_Map(keyType, valueType), loc)
+          case (TAT.ExprArray(keyArray, keyType), TAT.ExprArray(valueArray, valueType)) =>
+            TAT.ExprMap(keyArray.zip(valueArray).to(TreeSeqMap), T_Map(keyType, valueType))(loc)
           case other =>
             throw new Exception(s"invalid map value ${other}")
         }
       case VHash(members) =>
         val m: SeqMap[TAT.Expr, TAT.Expr] = members
           .map {
-            case (key, value) => TAT.ValueString(key, T_String, loc) -> irValueToExpr(value)
+            case (key, value) => TAT.ValueString(key, T_String)(loc) -> irValueToExpr(value)
           }
           .to(TreeSeqMap)
-        TAT.ExprObject(m, T_Object, loc)
+        TAT.ExprObject(m, T_Object)(loc)
       case _ =>
         throw new Exception(s"cannot convert IR value ${value} to WDL")
     }
@@ -715,20 +715,20 @@ object WdlUtils {
       case _: TAT.ExprIdentifier                    => true
 
       // A collection of constants
-      case TAT.ExprPair(l, r, _, _)   => Vector(l, r).forall(TypeUtils.isPrimitiveValue)
-      case TAT.ExprArray(value, _, _) => value.forall(TypeUtils.isPrimitiveValue)
-      case TAT.ExprMap(value, _, _) =>
+      case TAT.ExprPair(l, r, _)   => Vector(l, r).forall(TypeUtils.isPrimitiveValue)
+      case TAT.ExprArray(value, _) => value.forall(TypeUtils.isPrimitiveValue)
+      case TAT.ExprMap(value, _) =>
         value.forall {
           case (k, v) => TypeUtils.isPrimitiveValue(k) && TypeUtils.isPrimitiveValue(v)
         }
-      case TAT.ExprObject(value, _, _) => value.values.forall(TypeUtils.isPrimitiveValue)
+      case TAT.ExprObject(value, _) => value.values.forall(TypeUtils.isPrimitiveValue)
 
       // Access a field in a call
       //   Int z = eliminateDuplicate.fields
       // TODO: this will work for structs as well, if we are able to make
       //  struct fields part of the output closure (see comment in
       //  getClosureInputsAndOutputs)
-      case TAT.ExprGetName(TAT.ExprIdentifier(_, _: T_Call, _), _, _, _) => true
+      case TAT.ExprGetName(TAT.ExprIdentifier(_, _: T_Call), _, _) => true
 
       case _ => false
     }
@@ -787,7 +787,7 @@ object WdlUtils {
         case _: TAT.ValueString    => Vector.empty
         case _: TAT.ValueFile      => Vector.empty
         case _: TAT.ValueDirectory => Vector.empty
-        case TAT.ExprIdentifier(id, wdlType, _) =>
+        case TAT.ExprIdentifier(id, wdlType) =>
           val kind = if (TypeUtils.isOptional(wdlType)) {
             InputKind.Optional
           } else {
@@ -796,21 +796,21 @@ object WdlUtils {
           Vector(WdlInputRef(Vector(id), None, wdlType, kind))
         case TAT.ExprCompoundString(valArr, _, _) =>
           valArr.flatMap(elem => inner(elem))
-        case TAT.ExprPair(l, r, _, _) =>
+        case TAT.ExprPair(l, r, _) =>
           inner(l) ++ inner(r)
-        case TAT.ExprArray(arrVal, _, _) =>
+        case TAT.ExprArray(arrVal, _) =>
           arrVal.flatMap(elem => inner(elem))
-        case TAT.ExprMap(valMap, _, _) =>
+        case TAT.ExprMap(valMap, _) =>
           valMap
             .map { case (k, v) => inner(k) ++ inner(v) }
             .toVector
             .flatten
-        case TAT.ExprObject(fields, _, _) =>
+        case TAT.ExprObject(fields, _) =>
           fields
             .map { case (_, v) => inner(v) }
             .toVector
             .flatten
-        case TAT.ExprPlaceholder(t, f, sep, default, value: TAT.Expr, _, _) =>
+        case TAT.ExprPlaceholder(t, f, sep, default, value: TAT.Expr, _) =>
           inner(value) ++ Vector(
               t.map(inner),
               f.map(inner),
@@ -818,13 +818,13 @@ object WdlUtils {
               default.map(inner)
           ).flatten.flatten
         // Access an array element at [index]
-        case TAT.ExprAt(value, index, _, _) =>
+        case TAT.ExprAt(value, index, _) =>
           inner(value) ++ inner(index)
         // conditional:
-        case TAT.ExprIfThenElse(cond, tBranch, fBranch, _, _) =>
+        case TAT.ExprIfThenElse(cond, tBranch, fBranch, _) =>
           inner(cond) ++ inner(tBranch) ++ inner(fBranch)
         // Apply a standard library function to arguments.
-        case TAT.ExprApply(_, funcWdlType, elements, _, _) =>
+        case TAT.ExprApply(_, funcWdlType, elements, _) =>
           // the function parameters might be optional even if the arguments are not
           def maybeMakeOptional(
               inputs: Vector[WdlInputRef],
@@ -859,17 +859,15 @@ object WdlUtils {
         // have a fully-qualified name, and that is what we'll need to look up
         // in the evaluation context. In other cases (pair, struct, object), we want a
         // reference to the LHS object, not directly to the field.
-        case TAT.ExprGetName(TAT.ExprIdentifier(callId, T_Call(_, output), _),
-                             fieldName,
-                             wdlType,
-                             _) if output.contains(fieldName) =>
+        case TAT.ExprGetName(TAT.ExprIdentifier(callId, T_Call(_, output)), fieldName, wdlType)
+            if output.contains(fieldName) =>
           val kind = if (TypeUtils.isOptional(wdlType)) {
             InputKind.Optional
           } else {
             InputKind.Required
           }
           Vector(WdlInputRef(Vector(callId), Some(fieldName), wdlType, kind))
-        case TAT.ExprGetName(expr, fieldName, wdlType, _) =>
+        case TAT.ExprGetName(expr, fieldName, wdlType) =>
           // throw an exception if the reference is not valid
           TypeUtils.unwrapOptional(expr.wdlType) match {
             case _: T_Pair if Set("left", "right").contains(fieldName) => ()
@@ -918,22 +916,19 @@ object WdlUtils {
         //  struct field, it may be possible to create an output for the field
         //  value, to avoid having to use a fragment in the downstream app to
         //  dereference the struct.
-        case TAT.PrivateVariable(name, wdlType, expr, loc) =>
-          Vector(TAT.OutputParameter(name, wdlType, expr, loc))
+        case pv @ TAT.PrivateVariable(name, wdlType, expr) =>
+          Vector(TAT.OutputParameter(name, wdlType, expr)(pv.loc))
         case call: TAT.Call =>
           call.callee.output.map {
             case (name, wdlType) =>
               val fqn = s"${call.actualName}.${name}"
-              TAT.OutputParameter(
-                  fqn,
-                  wdlType,
-                  TAT.ExprIdentifier(fqn, wdlType, call.loc),
+              TAT.OutputParameter(fqn, wdlType, TAT.ExprIdentifier(fqn, wdlType)(call.loc))(
                   call.loc
               )
           }.toVector
         case cond: TAT.Conditional =>
           getOutputs(cond.body).map { out =>
-            out.copy(wdlType = TypeUtils.ensureOptional(out.wdlType))
+            out.copy(wdlType = TypeUtils.ensureOptional(out.wdlType))(out.loc)
           }
         case scatter: TAT.Scatter =>
           // make outputs arrays, remove the collection iteration variable
@@ -946,7 +941,7 @@ object WdlUtils {
           }
           getOutputs(scatter.body).collect {
             case out: TAT.OutputParameter if out.name != scatter.identifier =>
-              out.copy(wdlType = T_Array(out.wdlType, nonEmpty = nonEmptyOutputArray))
+              out.copy(wdlType = T_Array(out.wdlType, nonEmpty = nonEmptyOutputArray))(out.loc)
           }
       }
     }
@@ -1043,7 +1038,7 @@ object WdlUtils {
     // create inputs from all the expressions that go into outputs
     outputs
       .flatMap {
-        case TAT.OutputParameter(_, _, expr, _) => Vector(expr)
+        case TAT.OutputParameter(_, _, expr) => Vector(expr)
       }
       .flatMap(e => getExpressionInputs(e, withField = false))
       .groupBy(_.fullyQualifiedName)
@@ -1064,7 +1059,7 @@ object WdlUtils {
 
   def prettyFormatElement(element: TAT.WorkflowElement, indent: String = "    "): String = {
     element match {
-      case TAT.Scatter(varName, expr, body, _) =>
+      case TAT.Scatter(varName, expr, body) =>
         val collection = TypeUtils.prettyFormatExpr(expr)
         val innerBlock = body
           .map { innerElement =>
@@ -1076,7 +1071,7 @@ object WdlUtils {
             |${indent}}
             |""".stripMargin
 
-      case TAT.Conditional(expr, body, _) =>
+      case TAT.Conditional(expr, body) =>
         val innerBlock =
           body
             .map { innerElement =>
@@ -1105,7 +1100,7 @@ object WdlUtils {
             s"${indent}call ${call.fullyQualifiedName} as ${al} ${inputs}"
         }
 
-      case TAT.PrivateVariable(name, wdlType, expr, _) =>
+      case TAT.PrivateVariable(name, wdlType, expr) =>
         s"${indent} ${TypeUtils.prettyFormatType(wdlType)} ${name} = ${TypeUtils.prettyFormatExpr(expr)}"
     }
   }

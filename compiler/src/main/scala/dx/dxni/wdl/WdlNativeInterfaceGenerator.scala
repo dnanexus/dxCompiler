@@ -39,9 +39,10 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
     val normalizedName = appletName.replaceAll("[-.]", "_")
     val meta = TAT.MetaSection(
         TreeSeqMap(
-            "type" -> TAT.MetaValueString("native", loc),
-            "id" -> TAT.MetaValueString(id, loc)
-        ),
+            "type" -> TAT.MetaValueString("native")(loc),
+            "id" -> TAT.MetaValueString(id)(loc)
+        )
+    )(
         loc
     )
     TAT.Task(
@@ -56,19 +57,20 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
                None),
         inputSpec.map {
           case (name, wdlType) =>
-            TAT.RequiredInputParameter(name, wdlType, loc)
+            TAT.RequiredInputParameter(name, wdlType)(loc)
         }.toVector,
         outputSpec.map {
           case (name, wdlType) =>
             val expr = WdlUtils.getDefaultValueOfType(wdlType)
-            TAT.OutputParameter(name, wdlType, expr, loc)
+            TAT.OutputParameter(name, wdlType, expr)(loc)
         }.toVector,
-        TAT.CommandSection(Vector.empty, loc),
+        TAT.CommandSection(Vector.empty)(loc),
         Vector.empty,
         Some(meta),
         parameterMeta = None,
         runtime = None,
-        hints = None,
+        hints = None
+    )(
         loc = loc
     )
   }
@@ -206,12 +208,11 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
     def createDocument(docTasks: Vector[TAT.Task]): TAT.Document = {
       TAT.Document(
           StringFileNode.empty,
-          TAT.Version(wdl.version, SourceLocation.empty),
+          TAT.Version(wdl.version)(SourceLocation.empty),
           docTasks,
           None,
-          SourceLocation.empty,
           CommentMap.empty
-      )
+      )(SourceLocation.empty)
     }
 
     // uniquify and sort tasks

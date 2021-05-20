@@ -123,14 +123,14 @@ object Main {
     }
   }
 
-  private object WdlRegimeOptionSpec
-      extends SingleValueOptionSpec[TypeCheckingRegime.TypeCheckingRegime](
-          choices = TypeCheckingRegime.values.toVector
-      ) {
-    override def parseValue(value: String): TypeCheckingRegime.TypeCheckingRegime = {
-      TypeCheckingRegime.withNameIgnoreCase(value)
-    }
-  }
+//  private object WdlRegimeOptionSpec
+//      extends SingleValueOptionSpec[TypeCheckingRegime.TypeCheckingRegime](
+//          choices = TypeCheckingRegime.values.toVector
+//      ) {
+//    override def parseValue(value: String): TypeCheckingRegime.TypeCheckingRegime = {
+//      TypeCheckingRegime.withNameIgnoreCase(value)
+//    }
+//  }
 
   private def CompileOptions: InternalOptions = Map(
       "archive" -> FlagOptionSpec.default,
@@ -152,8 +152,8 @@ object Main {
       "streamAllFiles" -> FlagOptionSpec.default,
       "scatterChunkSize" -> IntOptionSpec.one,
       "useManifests" -> FlagOptionSpec.default,
-      "waitOnUpload" -> FlagOptionSpec.default,
-      "wdlMode" -> WdlRegimeOptionSpec
+      "waitOnUpload" -> FlagOptionSpec.default
+      //"wdlMode" -> WdlRegimeOptionSpec
   )
 
   private val DeprecatedCompileOptions = Set(
@@ -370,10 +370,11 @@ object Main {
       case b => b
     }
 
-    val wdlOptions = options
-      .getValue[TypeCheckingRegime.TypeCheckingRegime]("wdlMode")
-      .map(regime => WdlOptions(regime))
-      .getOrElse(WdlOptions.default)
+//    val wdlOptions = options
+//      .getValue[TypeCheckingRegime.TypeCheckingRegime]("wdlMode")
+//      .map(regime => WdlOptions(regime))
+//      .getOrElse(WdlOptions.default)
+    val wdlOptions = WdlOptions.default
 
     if (wdlOptions.regime == TypeCheckingRegime.Lenient) {
       logger.warning(
@@ -773,6 +774,16 @@ object Main {
     }
   }
 
+  /*
+   Add the following if/when wdlMode is enabled
+
+         -wdlMode [lenient,moderate,strict]
+                             Strictness to use when parsing WDL documents. The default
+                             ('moderate') will suffice for all workflows that are
+                             compliant with the WDL specification, while 'lenient' will
+                             enable compilation of third-party workflows with
+                             non-compliant syntax.
+   */
   private val usageMessage =
     s"""|java -jar dxCompiler.jar <action> <parameters> [options]
         |
@@ -825,12 +836,6 @@ object Main {
         |      -useManifests          Use manifest files for all workflow and applet inputs and 
         |                             outputs. Implies -locked.
         |      -waitOnUpload          Whether to wait for each file upload to complete.
-        |      -wdlMode [lenient,moderate,strict]
-        |                             Strictness to use when parsing WDL documents. The default
-        |                             ('moderate') will suffice for all workflows that are
-        |                             compliant with the WDL specification, while 'lenient' will
-        |                             enable compilation of third-party workflows with
-        |                             non-compliant syntax.
         |
         |  dxni
         |    DNAnexus Native call Interface. Creates stubs for calling DNAnexus executables 

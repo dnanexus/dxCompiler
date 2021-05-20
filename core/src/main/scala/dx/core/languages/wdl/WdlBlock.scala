@@ -138,9 +138,9 @@ object WdlBlockInput {
 
   def translate(i: TAT.InputParameter): WdlBlockInput = {
     i match {
-      case TAT.RequiredInputParameter(name, wdlType, _) =>
+      case TAT.RequiredInputParameter(name, wdlType) =>
         RequiredBlockInput(name, wdlType)
-      case TAT.OverridableInputParameterWithDefault(name, wdlType, defaultExpr, _) =>
+      case TAT.OverridableInputParameterWithDefault(name, wdlType, defaultExpr) =>
         // If the default value is an expression that requires evaluation (i.e. not a
         // constant), treat the input as optional and leave the default value to be
         // calculated at runtime
@@ -155,7 +155,7 @@ object WdlBlockInput {
                 defaultExpr
             )
         }
-      case TAT.OptionalInputParameter(name, wdlType, _) =>
+      case TAT.OptionalInputParameter(name, wdlType) =>
         OptionalBlockInput(name, wdlType)
     }
   }
@@ -249,10 +249,10 @@ case class WdlBlock(index: Int,
   override lazy val getName: Option[String] = {
     elements.collectFirst {
       case call: TAT.Call => s"frag ${call.actualName}"
-      case TAT.Scatter(id, expr, _, _) =>
+      case TAT.Scatter(id, expr, _) =>
         val collection = TypeUtils.prettyFormatExpr(expr)
         s"scatter (${id} in ${collection})"
-      case TAT.Conditional(expr, _, _) =>
+      case TAT.Conditional(expr, _) =>
         val cond = TypeUtils.prettyFormatExpr(expr)
         s"if (${cond})"
     }
@@ -268,9 +268,9 @@ case class WdlBlock(index: Int,
   def prerequisiteVars: Vector[(String, WdlTypes.T)] = {
     def inner(innerElements: Vector[TAT.WorkflowElement]): Vector[(String, WdlTypes.T)] = {
       innerElements.flatMap {
-        case TAT.PrivateVariable(name, wdlType, _, _) => Vector(name -> wdlType)
-        case TAT.Conditional(_, body, _)              => inner(body)
-        case TAT.Scatter(_, _, body, _)               => inner(body)
+        case TAT.PrivateVariable(name, wdlType, _) => Vector(name -> wdlType)
+        case TAT.Conditional(_, body)              => inner(body)
+        case TAT.Scatter(_, _, body)               => inner(body)
         case other =>
           throw new Exception(s"invalid prerequisite ${other}")
       }
