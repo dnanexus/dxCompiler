@@ -11,7 +11,8 @@ import dx.core.ir.{
 import dx.util.{Logger, StringFileNode}
 import spray.json.JsValue
 import wdlTools.eval.WdlValues
-import wdlTools.syntax.{CommentMap, SourceLocation, WdlVersion}
+import wdlTools.generators.code.{Utils => GeneratorUtils}
+import wdlTools.syntax.{CommentMap, Quoting, SourceLocation, WdlVersion}
 import wdlTools.types.{GraphUtils, TypeGraph, WdlTypes, TypedAbstractSyntax => TAT}
 
 import scala.collection.immutable.TreeSeqMap
@@ -81,8 +82,14 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
         TAT.ValueBoolean(value, WdlTypes.T_Boolean)(SourceLocation.empty)
       case WdlValues.V_Int(value)   => TAT.ValueInt(value, WdlTypes.T_Int)(SourceLocation.empty)
       case WdlValues.V_Float(value) => TAT.ValueFloat(value, WdlTypes.T_Float)(SourceLocation.empty)
+      case WdlValues.V_String(value) if value.contains('"') && value.contains("'") =>
+        TAT.ValueString(GeneratorUtils.escape(value), WdlTypes.T_String, quoting = Quoting.Double)(
+            SourceLocation.empty
+        )
+      case WdlValues.V_String(value) if value.contains('"') =>
+        TAT.ValueString(value, WdlTypes.T_String, quoting = Quoting.Single)(SourceLocation.empty)
       case WdlValues.V_String(value) =>
-        TAT.ValueString(value, WdlTypes.T_String)(SourceLocation.empty)
+        TAT.ValueString(value, WdlTypes.T_String, quoting = Quoting.Double)(SourceLocation.empty)
       case WdlValues.V_File(value) => TAT.ValueFile(value, WdlTypes.T_File)(SourceLocation.empty)
       case WdlValues.V_Directory(value) =>
         TAT.ValueDirectory(value, WdlTypes.T_Directory)(SourceLocation.empty)
@@ -255,8 +262,8 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
 
     val meta = TAT.MetaSection(
         TreeSeqMap(
-            "type" -> TAT.MetaValueString("native")(SourceLocation.empty),
-            "id" -> TAT.MetaValueString(id)(SourceLocation.empty)
+            "type" -> TAT.MetaValueString("native", Quoting.Double)(SourceLocation.empty),
+            "id" -> TAT.MetaValueString(id, Quoting.Double)(SourceLocation.empty)
         )
     )(
         SourceLocation.empty

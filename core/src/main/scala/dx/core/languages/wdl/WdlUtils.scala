@@ -9,9 +9,11 @@ import dx.core.ir.Value._
 import dx.util.{Bindings, Enum, FileNode, FileSourceResolver, Logger, StringFileNode}
 import wdlTools.eval.{Coercion, EvalUtils, VBindings}
 import wdlTools.eval.WdlValues._
+import wdlTools.generators.code.{Utils => GeneratorUtils}
 import wdlTools.syntax.{
   NoSuchParserException,
   Parsers,
+  Quoting,
   SourceLocation,
   SyntaxException,
   WdlParser,
@@ -184,8 +186,8 @@ object WdlUtils {
       case T_Boolean => TAT.ValueBoolean(value = true, wdlType)(loc)
       case T_Int     => TAT.ValueInt(0, wdlType)(loc)
       case T_Float   => TAT.ValueFloat(0.0, wdlType)(loc)
-      case T_String  => TAT.ValueString("", wdlType)(loc)
-      case T_File    => TAT.ValueString("placeholder.txt", wdlType)(loc)
+      case T_String  => TAT.ValueString("", wdlType, quoting = Quoting.Double)(loc)
+      case T_File    => TAT.ValueString("placeholder.txt", wdlType, quoting = Quoting.Double)(loc)
 
       // We could convert an optional to a null value, but that causes
       // problems for the pretty printer.
@@ -645,11 +647,15 @@ object WdlUtils {
   def irValueToExpr(value: Value): TAT.Expr = {
     val loc = SourceLocation.empty
     value match {
-      case VNull            => TAT.ValueNull(T_Any)(loc)
-      case VBoolean(b)      => TAT.ValueBoolean(b, T_Boolean)(loc)
-      case VInt(i)          => TAT.ValueInt(i, T_Int)(loc)
-      case VFloat(f)        => TAT.ValueFloat(f, T_Float)(loc)
-      case VString(s)       => TAT.ValueString(s, T_String)(loc)
+      case VNull       => TAT.ValueNull(T_Any)(loc)
+      case VBoolean(b) => TAT.ValueBoolean(b, T_Boolean)(loc)
+      case VInt(i)     => TAT.ValueInt(i, T_Int)(loc)
+      case VFloat(f)   => TAT.ValueFloat(f, T_Float)(loc)
+      case VString(s) if s.contains('"') && s.contains("'") =>
+        TAT.ValueString(GeneratorUtils.escape(s), T_String, Quoting.Double)(loc)
+      case VString(s) if s.contains('"') =>
+        TAT.ValueString(s, T_String, Quoting.Single)(loc)
+      case VString(s)       => TAT.ValueString(s, T_String, Quoting.Double)(loc)
       case VFile(path)      => TAT.ValueFile(path, T_File)(loc)
       case VDirectory(path) => TAT.ValueDirectory(path, T_Directory)(loc)
       case VArray(array) =>

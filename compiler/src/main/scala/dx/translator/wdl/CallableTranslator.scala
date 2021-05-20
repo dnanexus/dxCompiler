@@ -28,6 +28,7 @@ import wdlTools.eval.{DefaultEvalPaths, Eval, EvalException, WdlValueBindings, W
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 import wdlTools.types.WdlTypes._
 import dx.util.{Adjuncts, FileSourceResolver, Logger}
+import wdlTools.syntax.Quoting
 
 case class CallableTranslator(wdlBundle: WdlBundle,
                               typeAliases: Map[String, T_Struct],
@@ -136,7 +137,9 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           if (runtime.kvs.contains(key)) {
             return TAT.RuntimeSection(
                 runtime.kvs ++ Map(
-                    key -> TAT.ValueString(newContainer, T_String)(runtime.kvs(key).loc)
+                    key -> TAT.ValueString(newContainer, T_String, quoting = Quoting.Double)(
+                        runtime.kvs(key).loc
+                    )
                 )
             )(
                 runtime.loc

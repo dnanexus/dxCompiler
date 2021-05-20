@@ -5,7 +5,7 @@ import dx.core.languages.Language
 import dx.core.languages.Language.Language
 import dx.core.languages.wdl.{VersionSupport, WdlOptions, WdlUtils}
 import dx.dxni.{NativeInterfaceGenerator, NativeInterfaceGeneratorFactory}
-import wdlTools.syntax.{CommentMap, SourceLocation, WdlVersion}
+import wdlTools.syntax.{CommentMap, Quoting, SourceLocation, WdlVersion}
 import wdlTools.types.WdlTypes.T_Task
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 import dx.util.{FileSourceResolver, Logger, StringFileNode}
@@ -39,8 +39,8 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
     val normalizedName = appletName.replaceAll("[-.]", "_")
     val meta = TAT.MetaSection(
         TreeSeqMap(
-            "type" -> TAT.MetaValueString("native")(loc),
-            "id" -> TAT.MetaValueString(id)(loc)
+            "type" -> TAT.MetaValueString("native", quoting = Quoting.Double)(loc),
+            "id" -> TAT.MetaValueString(id, quoting = Quoting.Double)(loc)
         )
     )(
         loc
