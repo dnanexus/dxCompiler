@@ -131,7 +131,6 @@ docker_test_list = [
 # wdl draft-2
 draft2_test_list = [
     "advanced",
-    "array_add",
     "bad_status",
     "bad_status2",
     "just_fail_wf",
