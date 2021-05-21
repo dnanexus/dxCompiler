@@ -250,10 +250,10 @@ case class WdlBlock(index: Int,
     val elementNames = elements
       .collect {
         case call: TAT.Call => s"frag ${call.actualName}"
-        case TAT.Scatter(id, expr, _, _) =>
+        case TAT.Scatter(id, expr, _) =>
           val collection = TypeUtils.prettyFormatExpr(expr)
           s"scatter (${id} in ${collection})"
-        case TAT.Conditional(expr, _, _) =>
+        case TAT.Conditional(expr, _) =>
           val cond = TypeUtils.prettyFormatExpr(expr)
           s"if (${cond})"
       }
