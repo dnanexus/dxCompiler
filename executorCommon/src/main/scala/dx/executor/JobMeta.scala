@@ -14,6 +14,7 @@ import dx.api.{
   DxPath,
   DxProject,
   DxProjectDescribe,
+  DxState,
   Field,
   InstanceTypeDB
 }
@@ -313,13 +314,22 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     }
   }
 
-  protected lazy val dxFileDescCache: DxFileDescCache = {
-    val allFilesReferenced = jsInputs.flatMap {
+  private lazy val allFilesReferenced: Vector[DxFile] = {
+    // bulk describe all files referenced in the inputs
+    val dxFiles = dxApi.describeFilesBulk(jsInputs.flatMap {
       case (_, jsElem) => DxFile.findFiles(dxApi, jsElem)
-    }.toVector
-    // Describe all the files and build a lookup cache
-    DxFileDescCache(dxApi.describeFilesBulk(allFilesReferenced))
+    }.toVector)
+    // check that all files are in the closed state
+    val notClosed = dxFiles.filterNot(_.describe().state == DxState.Closed)
+    if (notClosed.nonEmpty) {
+      throw new Exception(
+          s"input file(s) not in the 'closed' state: ${notClosed.map(_.id).mkString(",")}"
+      )
+    }
+    dxFiles
   }
+
+  protected lazy val dxFileDescCache: DxFileDescCache = DxFileDescCache(allFilesReferenced)
 
   lazy val inputDeserializer: ParameterLinkDeserializer =
     ParameterLinkDeserializer(dxFileDescCache, dxApi)
