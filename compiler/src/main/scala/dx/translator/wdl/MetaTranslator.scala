@@ -158,6 +158,9 @@ object ParameterMetaTranslator {
   val Type = "dx_type"
   val ConstraintAnd = "and"
   val ConstraintOr = "or"
+  // keys used to store parameter hints
+  val Inputs = "inputs"
+  val Outputs = "outputs"
 
   // Convert a patterns WDL object value to IR
   private def metaPatternsObjToIR(obj: Map[String, V]): ParameterAttributes.Patterns = {
@@ -432,15 +435,37 @@ object ParameterMetaTranslator {
   }
 }
 
-case class ParameterMetaTranslator(wdlVersion: WdlVersion, metaSection: Option[TAT.MetaSection]) {
+case class ParameterMetaTranslator(wdlVersion: WdlVersion,
+                                   metaSection: Option[TAT.MetaSection],
+                                   hintsSection: Option[TAT.MetaSection]) {
   private lazy val meta: Meta = Meta.create(wdlVersion, metaSection)
+  private lazy val hints: Meta = Meta.create(wdlVersion, hintsSection)
+  private lazy val inputs: Option[Map[String, V]] =
+    hints.get(ParameterMetaTranslator.Inputs) match {
+      case Some(V_Object(inputs)) => Some(inputs)
+      case _                      => None
+    }
+  private lazy val outputs: Option[Map[String, V]] =
+    hints.get(ParameterMetaTranslator.Outputs) match {
+      case Some(V_Object(outputs)) => Some(outputs)
+      case _                       => None
+    }
 
-  def translate(name: String, parameterType: T): Vector[ParameterAttribute] = {
-    val metaValue = meta.get(name)
+  def translateInput(name: String, parameterType: T): Vector[ParameterAttribute] = {
+    val metaValue = meta.get(name).orElse(inputs.flatMap(_.get(name)))
     ParameterMetaTranslator.translate(metaValue, parameterType)
   }
 
-  def translate(variables: Vector[TAT.Variable]): Map[String, Vector[ParameterAttribute]] = {
-    variables.map(v => v.name -> translate(v.name, v.wdlType)).toMap
+  def translateInput(variables: Vector[TAT.Variable]): Map[String, Vector[ParameterAttribute]] = {
+    variables.map(v => v.name -> translateInput(v.name, v.wdlType)).toMap
+  }
+
+  def translateOutput(name: String, parameterType: T): Vector[ParameterAttribute] = {
+    val metaValue = meta.get(name).orElse(outputs.flatMap(_.get(name)))
+    ParameterMetaTranslator.translate(metaValue, parameterType)
+  }
+
+  def translateOutput(variables: Vector[TAT.Variable]): Map[String, Vector[ParameterAttribute]] = {
+    variables.map(v => v.name -> translateOutput(v.name, v.wdlType)).toMap
   }
 }
