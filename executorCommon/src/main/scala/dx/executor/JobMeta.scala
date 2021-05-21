@@ -596,6 +596,10 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     CodecUtils.base64DecodeAndGunzip(sourceCodeEncoded)
   }
 
+  lazy val parserOptions: Option[JsValue] = {
+    getExecutableDetail(Constants.ParseOptions)
+  }
+
   lazy val instanceTypeDb: InstanceTypeDB = getExecutableDetail(Constants.InstanceTypeDb) match {
     case Some(JsString(s)) =>
       val js = CodecUtils.base64DecodeAndGunzip(s)

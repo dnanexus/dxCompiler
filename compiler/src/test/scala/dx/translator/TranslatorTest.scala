@@ -999,13 +999,13 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
 
     val commandSection =
       """|  command <<<
-         |    echo 1 hello world | sed 's/world/wdl/'
-         |    echo 2 hello \
-         |    world \
-         |    | sed 's/world/wdl/'
-         |    echo 3 hello \
-         |    world | \
-         |    sed 's/world/wdl/'
+         |  echo 1 hello world | sed 's/world/wdl/'
+         |  echo 2 hello \
+         |  world \
+         |  | sed 's/world/wdl/'
+         |  echo 3 hello \
+         |  world | \
+         |  sed 's/world/wdl/'
          |  >>>
          |""".stripMargin
 

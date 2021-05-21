@@ -142,8 +142,8 @@ draft2_test_list = [
     "files_with_the_same_name",
     "hello",
     "shapes",
-    # this test cannot be enabled, because we don't
-    # yet support overriding task-level inputs
+    # this test cannot be enabled yet, because we
+    # don't yet support overriding task inputs
     #"population",
 
     # multiple library imports in one WDL workflow

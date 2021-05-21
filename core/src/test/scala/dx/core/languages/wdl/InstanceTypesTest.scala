@@ -6,7 +6,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spray.json._
 import wdlTools.eval.{DefaultEvalPaths, Eval, Runtime => WdlRuntime}
-import wdlTools.syntax.{SourceLocation, WdlVersion}
+import wdlTools.syntax.{Quoting, SourceLocation, WdlVersion}
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 import dx.util.{CodecUtils, FileSourceResolver, Logger}
 
@@ -173,19 +173,22 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
                             disks: Option[String],
                             cpu: Option[String],
                             gpu: Option[Boolean]): Runtime = {
-    def makeString(s: String): TAT.Expr = TAT.ValueString(s, WdlTypes.T_String, null)
+    def makeString(s: String): TAT.Expr =
+      TAT.ValueString(s, WdlTypes.T_String, Quoting.Double)(SourceLocation.empty)
     val rt = TreeSeqMap(
         Runtime.DxInstanceTypeKey -> dxInstanceType.map(makeString),
         WdlRuntime.MemoryKey -> memory.map(makeString),
         WdlRuntime.DisksKey -> disks.map(makeString),
         WdlRuntime.CpuKey -> cpu.map(makeString),
-        WdlRuntime.GpuKey -> gpu.map(b => TAT.ValueBoolean(b, WdlTypes.T_Boolean, null))
+        WdlRuntime.GpuKey -> gpu.map(b =>
+          TAT.ValueBoolean(b, WdlTypes.T_Boolean)(SourceLocation.empty)
+        )
     ).collect {
       case (key, Some(value)) => key -> value
     }
     Runtime(
         WdlVersion.V1,
-        Some(TAT.RuntimeSection(rt, null)),
+        Some(TAT.RuntimeSection(rt)(SourceLocation.empty)),
         None,
         evaluator
     )
@@ -387,7 +390,8 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
         WdlVersion.V1,
         Some(
             TAT.RuntimeSection(
-                TreeSeqMap("cpu" -> TAT.ValueInt(5, WdlTypes.T_Int, SourceLocation.empty)),
+                TreeSeqMap("cpu" -> TAT.ValueInt(5, WdlTypes.T_Int)(SourceLocation.empty))
+            )(
                 SourceLocation.empty
             )
         ),

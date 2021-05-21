@@ -436,6 +436,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       .getOrElse(JsNull)
     val auxDetails = Map(
         Constants.SourceCode -> JsString(sourceEncoded),
+        Constants.ParseOptions -> applet.document.optionsToJson,
         Constants.InstanceTypeDb -> JsString(dbOpaqueEncoded),
         Constants.RuntimeAttributes -> defaultRuntimeAttributes
     )

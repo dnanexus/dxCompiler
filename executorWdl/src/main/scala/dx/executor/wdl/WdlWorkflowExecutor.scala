@@ -26,6 +26,7 @@ import dx.core.languages.wdl.{
   VersionSupport,
   WdlBlock,
   WdlBlockInput,
+  WdlOptions,
   WdlUtils
 }
 import dx.executor.{BlockContext, JobMeta, WorkflowExecutor}
@@ -44,8 +45,9 @@ case class BlockIO(block: WdlBlock, logger: Logger)
 object WdlWorkflowExecutor {
   def create(jobMeta: JobMeta, separateOutputs: Boolean): WdlWorkflowExecutor = {
     // parse the workflow source code to get the WDL document
+    val wdlOptions = jobMeta.parserOptions.map(WdlOptions.fromJson).getOrElse(WdlOptions.default)
     val (doc, typeAliases, versionSupport) =
-      VersionSupport.fromSourceString(jobMeta.sourceCode, jobMeta.fileResolver)
+      VersionSupport.fromSourceString(jobMeta.sourceCode, wdlOptions, jobMeta.fileResolver)
     val workflow = doc.workflow.getOrElse(
         throw new RuntimeException("This document should have a workflow")
     )
@@ -289,7 +291,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
   private def getBlockOutputs(elements: Vector[TAT.WorkflowElement]): Map[String, T] = {
     val (_, outputs) = WdlUtils.getClosureInputsAndOutputs(elements, withField = false)
     outputs.values.map {
-      case TAT.OutputParameter(name, wdlType, _, _) => name -> wdlType
+      case TAT.OutputParameter(name, wdlType, _) => name -> wdlType
     }.toMap
   }
 
@@ -305,10 +307,10 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       env: Map[String, (T, V)]
   ): Map[String, (T, V)] = {
     elements.foldLeft(Map.empty[String, (T, V)]) {
-      case (accu, TAT.PrivateVariable(name, wdlType, expr, _)) =>
+      case (accu, TAT.PrivateVariable(name, wdlType, expr)) =>
         val value = evaluateExpression(expr, wdlType, accu ++ env)
         accu + (name -> (wdlType, value))
-      case (accu, TAT.Conditional(expr, body, _)) =>
+      case (accu, TAT.Conditional(expr, body)) =>
         // evaluate the condition
         val results = evaluateExpression(expr, expr.wdlType, accu ++ env) match {
           case V_Boolean(true) =>
@@ -325,7 +327,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
             throw new AppInternalException(s"Unexpected condition expression value ${other}")
         }
         accu ++ results
-      case (accu, TAT.Scatter(id, expr, body, _)) =>
+      case (accu, TAT.Scatter(id, expr, body)) =>
         val collection: Vector[V] =
           evaluateExpression(expr, expr.wdlType, accu ++ env) match {
             case V_Array(array) => array
@@ -524,7 +526,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
 
     private def launchConditional(): Map[String, ParameterLink] = {
       val cond = block.target match {
-        case Some(TAT.Conditional(expr, _, _)) =>
+        case Some(TAT.Conditional(expr, _)) =>
           evaluateExpression(expr, T_Boolean, env)
         case _ =>
           throw new Exception(s"invalid conditional block ${block}")
@@ -803,7 +805,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
 
     private def prepareScatterResults(dxSubJob: DxExecution): Map[String, ParameterLink] = {
       val resultTypes: Map[String, Type] = block.outputs.map {
-        case TAT.OutputParameter(name, wdlType, _, _) =>
+        case TAT.OutputParameter(name, wdlType, _) =>
           name -> WdlUtils.toIRType(wdlType)
       }.toMap
       // Return JBORs for all the outputs. Since the signature of the sub-job
@@ -860,7 +862,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
 
     private def launchScatter(): Map[String, ParameterLink] = {
       val (identifier, itemType, collection, next) = block.target match {
-        case Some(TAT.Scatter(identifier, expr, _, _)) =>
+        case Some(TAT.Scatter(identifier, expr, _)) =>
           val (collection, next) = evaluateScatterCollection(expr)
           val itemType = expr.wdlType match {
             case T_Array(t, _) => t

@@ -31,14 +31,16 @@ class ArchiveFunctionTest extends AnyFlatSpec with Matchers {
         prototype,
         Vector(
             TAT.ExprArray(
-                Vector(TAT.ValueFile(file1.toString, WdlTypes.T_File, SourceLocation.empty),
-                       TAT.ValueFile(file2.toString, WdlTypes.T_File, SourceLocation.empty)),
-                WdlTypes.T_Array(WdlTypes.T_File, nonEmpty = false),
+                Vector(TAT.ValueFile(file1.toString, WdlTypes.T_File)(SourceLocation.empty),
+                       TAT.ValueFile(file2.toString, WdlTypes.T_File)(SourceLocation.empty)),
+                WdlTypes.T_Array(WdlTypes.T_File, nonEmpty = false)
+            )(
                 SourceLocation.empty
             ),
-            TAT.ValueBoolean(value = true, WdlTypes.T_Boolean, SourceLocation.empty)
+            TAT.ValueBoolean(value = true, WdlTypes.T_Boolean)(SourceLocation.empty)
         ),
-        WdlTypes.T_File,
+        WdlTypes.T_File
+    )(
         SourceLocation.empty
     )
     val value = evaluator.applyExpr(expr)
@@ -88,9 +90,10 @@ class ArchiveFunctionTest extends AnyFlatSpec with Matchers {
         "unarchive_file_array",
         prototype,
         Vector(
-            TAT.ValueFile(packedArchive.path.toString, WdlTypes.T_File, SourceLocation.empty)
+            TAT.ValueFile(packedArchive.path.toString, WdlTypes.T_File)(SourceLocation.empty)
         ),
-        WdlTypes.T_Any,
+        WdlTypes.T_Any
+    )(
         SourceLocation.empty
     )
     evaluator.applyExpr(expr) match {

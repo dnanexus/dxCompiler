@@ -20,7 +20,7 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
 
   private def mapFromOutputs(outputs: Vector[TAT.OutputParameter]): Map[String, WdlTypes.T] = {
     outputs.map {
-      case TAT.OutputParameter(name, wdlType, _, _) => name -> wdlType
+      case TAT.OutputParameter(name, wdlType, _) => name -> wdlType
     }.toMap
   }
 
@@ -260,25 +260,22 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
     }
     blocks.head.outputs.sortWith(_.name < _.name) should matchPattern {
       case Vector(
-          TAT.OutputParameter("foo.out", WdlTypes.T_Array(WdlTypes.T_String, true), _, _),
-          TAT.OutputParameter("indexes", WdlTypes.T_Array(WdlTypes.T_Int, true), _, _),
+          TAT.OutputParameter("foo.out", WdlTypes.T_Array(WdlTypes.T_String, true), _),
+          TAT.OutputParameter("indexes", WdlTypes.T_Array(WdlTypes.T_Int, true), _),
           TAT.OutputParameter("n",
                               WdlTypes.T_Array(WdlTypes.T_Array(WdlTypes.T_String, true), true),
-                              _,
                               _),
           TAT.OutputParameter("out",
                               WdlTypes.T_Array(WdlTypes.T_Array(WdlTypes.T_String, true), true),
-                              _,
                               _),
-          TAT.OutputParameter("s", WdlTypes.T_Array(WdlTypes.T_String, true), _, _),
+          TAT.OutputParameter("s", WdlTypes.T_Array(WdlTypes.T_String, true), _),
           TAT.OutputParameter("string",
                               WdlTypes.T_Array(
                                   WdlTypes.T_Array(WdlTypes.T_Array(WdlTypes.T_String, true), true),
                                   true
                               ),
-                              _,
                               _),
-          TAT.OutputParameter("t", WdlTypes.T_Array(WdlTypes.T_String, true), _, _)
+          TAT.OutputParameter("t", WdlTypes.T_Array(WdlTypes.T_String, true), _)
           ) =>
     }
   }
