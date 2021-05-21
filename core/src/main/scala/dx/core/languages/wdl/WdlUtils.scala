@@ -753,12 +753,11 @@ object WdlUtils {
     elements.foldLeft(Vector.empty[TAT.Call]) {
       case (accu, call: TAT.Call) =>
         accu :+ call
-      case (accu, ssc: TAT.Scatter) =>
-        accu ++ deepFindCalls(ssc.body)
-      case (accu, ifStmt: TAT.Conditional) =>
-        accu ++ deepFindCalls(ifStmt.body)
-      case (accu, _) =>
-        accu
+      case (accu, scatter: TAT.Scatter) =>
+        accu ++ deepFindCalls(scatter.body)
+      case (accu, cond: TAT.Conditional) =>
+        accu ++ deepFindCalls(cond.body)
+      case (accu, _) => accu
     }
   }
 
