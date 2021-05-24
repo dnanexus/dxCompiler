@@ -52,6 +52,25 @@ task processLine {
     }
 }
 
+task writeLines {
+    input {
+        String x
+        String y
+    }
+
+    command <<<
+    cat ~{write_lines(["~{x} ~{y}"])}
+    >>>
+
+    output {
+        String result = read_lines(stdout())[0]
+    }
+
+    runtime {
+        docker: "ubuntu:20.04"
+    }
+}
+
 workflow strings {
     input {
     }
@@ -62,8 +81,12 @@ workflow strings {
     scatter (x in createTsv.result) {
         call processLine {input : line=x}
     }
+    call writeLines {
+        input: x = "hello", y = "buddy"
+    }
     output {
         String result1 = processTsv.result
         Array[String] result2 = processLine.result
+        String result3 = writeLines.result
     }
 }

@@ -9,10 +9,10 @@ workflow nested_struct_output {
   }
 
   if (b) {
-    call nested_wf.wf as foo {
+    call nested_wf.wf as nwf {
       input: x = x
     }
-    String s = foo.result.s
+    String s = nwf.result.s
   }
 
   output {
