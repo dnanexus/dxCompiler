@@ -14,7 +14,7 @@ import dx.core.languages.wdl.{
 import dx.executor.{FileUploader, JobMeta, SerialFileUploader, TaskExecutor}
 import dx.util.{Bindings, DockerUtils, Logger, TraceLevel}
 import wdlTools.eval.WdlValues._
-import wdlTools.eval.{Eval, Hints, Meta, WdlValueBindings}
+import wdlTools.eval.{Eval, Hints, WdlValueBindings}
 import wdlTools.exec.{TaskCommandFileGenerator, TaskInputOutput}
 import wdlTools.types.WdlTypes._
 import wdlTools.types.{TypedAbstractSyntax => TAT}
@@ -155,13 +155,13 @@ case class WdlTaskExecutor(task: TAT.Task,
   override protected lazy val getInstanceTypeRequest: InstanceTypeRequest =
     getRequiredInstanceTypeRequest()
 
-  private lazy val parameterMeta = Meta.create(versionSupport.version, task.parameterMeta)
+  private lazy val meta = MetaResolver(versionSupport.version, task.parameterMeta, task.hints)
 
   /**
     * Should we try to stream the file(s) associated with the given input parameter?
     */
   override protected def streamFileForInput(parameterName: String): Boolean = {
-    parameterMeta.get(parameterName) match {
+    meta.getInput(parameterName) match {
       case Some(V_String(DxMetaHints.ParameterMetaStream)) =>
         true
       case Some(V_Object(fields)) =>

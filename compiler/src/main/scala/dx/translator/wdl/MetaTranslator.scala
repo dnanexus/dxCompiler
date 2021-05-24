@@ -6,7 +6,7 @@ import dx.core.ir.{CallableAttribute, ParameterAttribute, Value}
 import dx.core.languages.wdl
 import dx.core.languages.wdl.DxMetaHints
 import dx.translator.{CallableAttributes, ParameterAttributes}
-import wdlTools.eval.{EvalUtils, Meta}
+import wdlTools.eval.{EvalUtils, Hints, Meta}
 import wdlTools.eval.WdlValues._
 import wdlTools.syntax.WdlVersion
 import wdlTools.types.WdlTypes._
@@ -158,9 +158,6 @@ object ParameterMetaTranslator {
   val Type = "dx_type"
   val ConstraintAnd = "and"
   val ConstraintOr = "or"
-  // keys used to store parameter hints
-  val Inputs = "inputs"
-  val Outputs = "outputs"
 
   // Convert a patterns WDL object value to IR
   private def metaPatternsObjToIR(obj: Map[String, V]): ParameterAttributes.Patterns = {
@@ -436,23 +433,23 @@ object ParameterMetaTranslator {
 }
 
 case class ParameterMetaTranslator(wdlVersion: WdlVersion,
-                                   metaSection: Option[TAT.MetaSection],
+                                   parameterMetaSection: Option[TAT.MetaSection],
                                    hintsSection: Option[TAT.MetaSection]) {
-  private lazy val meta: Meta = Meta.create(wdlVersion, metaSection)
+  private lazy val parameterMeta: Meta = Meta.create(wdlVersion, parameterMetaSection)
   private lazy val hints: Meta = Meta.create(wdlVersion, hintsSection)
-  private lazy val inputs: Option[Map[String, V]] =
-    hints.get(ParameterMetaTranslator.Inputs) match {
+  private lazy val hintInputs: Option[Map[String, V]] =
+    hints.get(Hints.InputsKey) match {
       case Some(V_Object(inputs)) => Some(inputs)
       case _                      => None
     }
-  private lazy val outputs: Option[Map[String, V]] =
-    hints.get(ParameterMetaTranslator.Outputs) match {
+  private lazy val hintOutputs: Option[Map[String, V]] =
+    hints.get(Hints.OutputsKey) match {
       case Some(V_Object(outputs)) => Some(outputs)
       case _                       => None
     }
 
   def translateInput(name: String, parameterType: T): Vector[ParameterAttribute] = {
-    val metaValue = meta.get(name).orElse(inputs.flatMap(_.get(name)))
+    val metaValue = parameterMeta.get(name).orElse(hintInputs.flatMap(_.get(name)))
     ParameterMetaTranslator.translate(metaValue, parameterType)
   }
 
@@ -461,7 +458,7 @@ case class ParameterMetaTranslator(wdlVersion: WdlVersion,
   }
 
   def translateOutput(name: String, parameterType: T): Vector[ParameterAttribute] = {
-    val metaValue = meta.get(name).orElse(outputs.flatMap(_.get(name)))
+    val metaValue = parameterMeta.get(name).orElse(hintOutputs.flatMap(_.get(name)))
     ParameterMetaTranslator.translate(metaValue, parameterType)
   }
 
