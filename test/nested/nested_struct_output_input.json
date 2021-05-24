@@ -1,0 +1,4 @@
+{
+  "nested_struct_output.b": true,
+  "nested_struct_output.x": "hello"
+}

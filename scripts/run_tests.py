@@ -101,6 +101,7 @@ wdl_v1_list = [
     "apps_384",
     "diff_stream_and_download",  # APPS-288
     "apps_573",
+    "nested_struct_output",  # APPS-612
 
     # manifests
     "simple_manifest",
