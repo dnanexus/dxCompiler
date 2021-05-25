@@ -199,7 +199,7 @@ case class WdlTaskExecutor(task: TAT.Task,
 
   override protected def evaluateOutputs(
       localizedInputs: Map[String, (Type, Value)]
-  ): Map[String, (Type, Value)] = {
+  ): Map[String, (Type, Value, Set[String], Map[String, String])] = {
     val outputTypes: Map[String, T] = task.outputs.map(d => d.name -> d.wdlType).toMap
     // Evaluate the output parameters in dependency order.
     val localizedOutputs = taskIO
@@ -213,7 +213,32 @@ case class WdlTaskExecutor(task: TAT.Task,
       .map {
         case (name, value) => name -> (outputTypes(name), value)
       }
-    WdlUtils.toIR(localizedOutputs)
+    WdlUtils.toIR(localizedOutputs).map {
+      case (name, (irType, irValue)) =>
+        val (tags, properties) = hints.getOutput(name) match {
+          case Some(V_Object(fields)) =>
+            val tags = fields.get("tags") match {
+              case Some(V_Array(tags)) =>
+                tags.map {
+                  case V_String(tag) => tag
+                  case other         => throw new Exception(s"invalid tag ${other}")
+                }.toSet
+              case _ => Set.empty[String]
+            }
+            val properties = fields.get("properties") match {
+              case Some(V_Object(properties)) =>
+                properties.map {
+                  case (key, V_String(value)) => key -> value
+                  case other                  => throw new Exception(s"invalid property ${other}")
+                }
+              case _ => Map.empty[String, String]
+            }
+            (tags, properties)
+          case _ =>
+            (Set.empty[String], Map.empty[String, String])
+        }
+        name -> (irType, irValue, tags, properties)
+    }
   }
 
   override protected lazy val outputTypes: Map[String, Type] = {
