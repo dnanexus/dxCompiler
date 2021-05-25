@@ -3,18 +3,11 @@ package dx.executor.wdl
 import dx.api.{DxPath, InstanceTypeRequest}
 import dx.core.io.StreamFiles
 import dx.core.ir.{Type, Value}
-import dx.core.languages.wdl.{
-  DxMetaHints,
-  IrToWdlValueBindings,
-  Runtime,
-  VersionSupport,
-  WdlOptions,
-  WdlUtils
-}
+import dx.core.languages.wdl.{IrToWdlValueBindings, Runtime, VersionSupport, WdlOptions, WdlUtils}
 import dx.executor.{FileUploader, JobMeta, SerialFileUploader, TaskExecutor}
 import dx.util.{Bindings, DockerUtils, Logger, TraceLevel}
 import wdlTools.eval.WdlValues._
-import wdlTools.eval.{Eval, Hints, WdlValueBindings}
+import wdlTools.eval.{Eval, WdlValueBindings}
 import wdlTools.exec.{TaskCommandFileGenerator, TaskInputOutput}
 import wdlTools.types.WdlTypes._
 import wdlTools.types.{TypedAbstractSyntax => TAT}
@@ -155,34 +148,16 @@ case class WdlTaskExecutor(task: TAT.Task,
   override protected lazy val getInstanceTypeRequest: InstanceTypeRequest =
     getRequiredInstanceTypeRequest()
 
-  private lazy val meta = MetaResolver(versionSupport.version, task.parameterMeta, task.hints)
+  private lazy val hints =
+    HintResolver(versionSupport.version, task.parameterMeta, task.hints)
 
   /**
     * Should we try to stream the file(s) associated with the given input parameter?
+    * This can be set at the parameter level (in parameters_meta or hints.inputs) or
+    * at the global level (at the hints top level).
     */
   override protected def streamFileForInput(parameterName: String): Boolean = {
-    meta.getInput(parameterName) match {
-      case Some(V_String(DxMetaHints.ParameterMetaStream)) =>
-        true
-      case Some(V_Object(fields)) =>
-        // This enables the stream annotation in the object form of metadata value, e.g.
-        // bam_file : {
-        //   stream : true
-        // }
-        // We also support two aliases, dx_stream and localizationOptional
-        fields.view
-          .filterKeys(
-              Set(DxMetaHints.ParameterMetaStream,
-                  DxMetaHints.ParameterHintStream,
-                  Hints.LocalizationOptionalKey)
-          )
-          .values
-          .exists {
-            case V_Boolean(b) => b
-            case _            => false
-          }
-      case _ => false
-    }
+    hints.isLocalizationOptional(parameterName)
   }
 
   override protected def writeCommandScript(

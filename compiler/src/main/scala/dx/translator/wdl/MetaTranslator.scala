@@ -434,7 +434,7 @@ object ParameterMetaTranslator {
 
 case class ParameterMetaTranslator(wdlVersion: WdlVersion,
                                    parameterMetaSection: Option[TAT.MetaSection],
-                                   hintsSection: Option[TAT.MetaSection]) {
+                                   hintsSection: Option[TAT.MetaSection] = None) {
   private lazy val parameterMeta: Meta = Meta.create(wdlVersion, parameterMetaSection)
   private lazy val hints: Meta = Meta.create(wdlVersion, hintsSection)
   private lazy val hintInputs: Option[Map[String, V]] =
