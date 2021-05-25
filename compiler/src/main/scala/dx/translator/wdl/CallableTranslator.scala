@@ -30,6 +30,8 @@ import wdlTools.types.WdlTypes._
 import dx.util.{Adjuncts, FileSourceResolver, Logger}
 import wdlTools.syntax.Quoting
 
+import scala.annotation.tailrec
+
 case class CallableTranslator(wdlBundle: WdlBundle,
                               typeAliases: Map[String, T_Struct],
                               locked: Boolean,
@@ -556,11 +558,26 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         // these are additional inputs from outside the block that need to be
         // supplied as workflow inputs
         val externalNames = (allInputs.map(_.name) ++ outputs.map(_.name)).toSet
+
+        @tailrec
+        def containsName(fqn: String): Boolean = {
+          if (externalNames.contains(fqn)) {
+            // exact match
+            true
+          } else {
+            // A.B.C --> A.B
+            fqn.lastIndexOf(".") match {
+              case pos if pos >= 0 => containsName(fqn.substring(0, pos))
+              case _               => false
+            }
+          }
+        }
+
         // TODO: will there ever be block inputs that are not included in
         //  statementClosureInputs?
         val closureInputs = subBlocks.flatMap { block =>
           block.inputs.collect {
-            case blockInput if !externalNames.contains(blockInput.name) =>
+            case blockInput if !containsName(blockInput.name) =>
               blockInput.name -> (blockInput.wdlType, blockInput.kind)
           }
         }.toMap

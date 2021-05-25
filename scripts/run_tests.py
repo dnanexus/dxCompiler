@@ -101,6 +101,7 @@ wdl_v1_list = [
     "apps_384",
     "diff_stream_and_download",  # APPS-288
     "apps_573",
+    "apps_612",
 
     # manifests
     "simple_manifest",
@@ -131,7 +132,6 @@ docker_test_list = [
 # wdl draft-2
 draft2_test_list = [
     "advanced",
-    "array_add",
     "bad_status",
     "bad_status2",
     "just_fail_wf",
