@@ -4,7 +4,7 @@ struct Result {
   String s
 }
 
-workflow wf {
+workflow nested_wf {
   input {
     String x
   }
