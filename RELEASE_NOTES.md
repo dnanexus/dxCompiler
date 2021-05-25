@@ -1,9 +1,10 @@
 # Release Notes
 
-## 2.4.5 2020-05-21
+## 2.4.5 2020-05-25
 
 * An applet that contains multiple scatter or conditional blocks will now have a name that is the concatenation of all the block names 
 * Fixes multiple issues with WDL code generator
+* Fixes issue with referencing struct fields/call outputs in declarations within nested blocks
 
 ## 2.4.4 2021-05-10
 
