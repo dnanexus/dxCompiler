@@ -1,6 +1,6 @@
 # Release Notes
 
-## in develop
+## 2.4.5 2020-05-25
 
 * An applet that contains multiple scatter or conditional blocks will now have a name that is the concatenation of all the block names 
 * Fixes multiple issues with WDL code generator
