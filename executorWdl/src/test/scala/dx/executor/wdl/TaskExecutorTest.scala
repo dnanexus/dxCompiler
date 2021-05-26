@@ -19,9 +19,8 @@ import dx.api.{
 import dx.core.Constants
 import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir.{Manifest, ParameterLink, ParameterLinkDeserializer, ParameterLinkSerializer}
-import dx.core.languages.wdl.{VersionSupport, WdlUtils}
+import dx.core.languages.wdl.{CodeGenerator, VersionSupport, WdlOptions, WdlUtils}
 import dx.executor.{JobMeta, TaskAction}
-import dx.core.languages.wdl.CodeGenerator
 import dx.util.{CodecUtils, FileSourceResolver, JsUtils, Logger, SysUtils}
 import dx.util.protocols.DxFileAccessProtocol
 import org.scalatest.flatspec.AnyFlatSpec
@@ -225,7 +224,9 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
     )
 
     // create a stand-alone task
-    val (doc, typeAliases, versionSupport) = VersionSupport.fromSourceFile(wdlFile, fileResolver)
+    val wdlOptions = WdlOptions.default
+    val (doc, typeAliases, versionSupport) =
+      VersionSupport.fromSourceFile(wdlFile, wdlOptions, fileResolver)
     val codegen = CodeGenerator(typeAliases.toMap, doc.version.value, logger)
     val tasks: Vector[TAT.Task] = doc.elements.collect {
       case task: TAT.Task => task

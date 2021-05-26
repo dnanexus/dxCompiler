@@ -13,8 +13,8 @@ import scala.collection.immutable.TreeSeqMap
 class WdlUtilsTest extends AnyFlatSpec with Matchers {
   private def validateTaskMeta(task: TAT.Task): Unit = {
     val kvs = task.meta match {
-      case Some(TAT.MetaSection(kvs, _)) => kvs
-      case _                             => throw new Exception("unexpected")
+      case Some(TAT.MetaSection(kvs)) => kvs
+      case _                          => throw new Exception("unexpected")
     }
     kvs.get("type") should matchPattern {
       case Some(TAT.MetaValueString("native", _)) =>
@@ -28,7 +28,8 @@ class WdlUtilsTest extends AnyFlatSpec with Matchers {
       sourceCode: String,
       fileResolver: FileSourceResolver = FileSourceResolver.get
   ): (TAT.Task, Bindings[String, WdlTypes.T_Struct], TAT.Document) = {
-    val (doc, typeAliases) = WdlUtils.parseAndCheckSourceString(sourceCode, "test", fileResolver)
+    val (doc, typeAliases) =
+      WdlUtils.parseAndCheckSourceString(sourceCode, "test", fileResolver = fileResolver)
     if (doc.workflow.isDefined) {
       throw new Exception("a workflow shouldn't be a member of this document")
     }

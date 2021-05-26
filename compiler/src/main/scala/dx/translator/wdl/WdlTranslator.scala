@@ -1,12 +1,11 @@
 package dx.translator.wdl
 
 import java.nio.file.Path
-
 import dx.api.{DxApi, DxProject}
 import dx.core.ir._
 import dx.core.ir.Type.TSchema
 import dx.core.languages.Language
-import dx.core.languages.wdl.{VersionSupport, WdlBundle, WdlUtils}
+import dx.core.languages.wdl.{VersionSupport, WdlBundle, WdlOptions, WdlUtils}
 import dx.translator.{
   DxWorkflowAttrs,
   InputTranslator,
@@ -17,7 +16,7 @@ import dx.translator.{
 import dx.util.{FileSourceResolver, Logger}
 import spray.json.{JsArray, JsObject, JsString, JsValue}
 import wdlTools.syntax.NoSuchParserException
-import wdlTools.types.{TypeCheckingRegime, WdlTypes, TypedAbstractSyntax => TAT}
+import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 
 case class WdlInputTranslator(bundle: Bundle,
                               inputs: Vector[Path],
@@ -206,9 +205,8 @@ case class WdlTranslator(doc: TAT.Document,
   }
 }
 
-case class WdlTranslatorFactory(
-    regime: TypeCheckingRegime.TypeCheckingRegime = TypeCheckingRegime.Moderate
-) extends TranslatorFactory {
+case class WdlTranslatorFactory(wdlOptions: WdlOptions = WdlOptions.default)
+    extends TranslatorFactory {
   override def create(sourceFile: Path,
                       language: Option[Language.Language],
                       locked: Boolean,
@@ -222,7 +220,7 @@ case class WdlTranslatorFactory(
                       logger: Logger = Logger.get): Option[WdlTranslator] = {
     val (doc, typeAliases, versionSupport) =
       try {
-        VersionSupport.fromSourceFile(sourceFile, fileResolver, regime, dxApi, logger)
+        VersionSupport.fromSourceFile(sourceFile, wdlOptions, fileResolver, dxApi, logger)
       } catch {
         // If the exception is because this is not a WDL document, return
         // None so other translators will have a chance to try to parse it,
