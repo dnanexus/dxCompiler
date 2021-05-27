@@ -8,7 +8,7 @@ struct WordStruct {
 workflow runtime_vs_static_type {
     call opt_int { input: x = 14 }
 
-    call opt_array { input: xa = [14,15,20] }
+    call opt_array2 { input: xa = [14,15,20] }
 
     WordStruct manitoba = object {
         word: "Manitoba",
@@ -19,7 +19,7 @@ workflow runtime_vs_static_type {
 
     output {
         Int result = opt_int.result
-        String result2 = opt_array.numbers
+        String result2 = opt_array2.numbers
         String result3 = opt_struct.w
     }
 }
@@ -37,7 +37,7 @@ task opt_int {
 }
 
 
-task opt_array {
+task opt_array2 {
     input {
         Array[Int?] xa
     }
