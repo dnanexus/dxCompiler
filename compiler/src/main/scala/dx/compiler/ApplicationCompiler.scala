@@ -441,6 +441,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       )
     val auxDetails = Vector(
         Some(Constants.SourceCode -> JsString(sourceEncoded)),
+        Some(Constants.ParseOptions -> applet.document.optionsToJson),
         Some(Constants.InstanceTypeDb -> JsString(dbOpaqueEncoded)),
         defaultRuntimeAttributes.map(attr => Constants.RuntimeAttributes -> attr),
         Option.when(useManifests)(Constants.UseManifests -> JsBoolean(true)),

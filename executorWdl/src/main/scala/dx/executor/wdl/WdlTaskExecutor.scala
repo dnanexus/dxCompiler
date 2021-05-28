@@ -3,26 +3,32 @@ package dx.executor.wdl
 import dx.api.{DxPath, InstanceTypeRequest}
 import dx.core.io.StreamFiles
 import dx.core.ir.{Type, Value}
-import dx.core.languages.wdl.{DxMetaHints, IrToWdlValueBindings, Runtime, VersionSupport, WdlUtils}
+import dx.core.languages.wdl.{
+  DxMetaHints,
+  IrToWdlValueBindings,
+  Runtime,
+  VersionSupport,
+  WdlOptions,
+  WdlUtils
+}
 import dx.executor.{FileUploader, JobMeta, SerialFileUploader, TaskExecutor}
 import dx.util.{Bindings, DockerUtils, Logger, TraceLevel}
 import wdlTools.eval.WdlValues._
 import wdlTools.eval.{Eval, Hints, Meta, WdlValueBindings}
 import wdlTools.exec.{TaskCommandFileGenerator, TaskInputOutput}
-import wdlTools.types.TypeCheckingRegime.TypeCheckingRegime
 import wdlTools.types.WdlTypes._
-import wdlTools.types.{TypeCheckingRegime, TypedAbstractSyntax => TAT}
+import wdlTools.types.{TypedAbstractSyntax => TAT}
 
 object WdlTaskExecutor {
   def create(
       jobMeta: JobMeta,
       fileUploader: FileUploader = SerialFileUploader(),
       streamFiles: StreamFiles.StreamFiles = StreamFiles.PerFile,
-      regime: TypeCheckingRegime = TypeCheckingRegime.Moderate,
       waitOnUpload: Boolean = false
   ): WdlTaskExecutor = {
+    val wdlOptions = jobMeta.parserOptions.map(WdlOptions.fromJson).getOrElse(WdlOptions.default)
     val (doc, typeAliases, versionSupport) =
-      VersionSupport.fromSourceString(jobMeta.sourceCode, jobMeta.fileResolver, regime)
+      VersionSupport.fromSourceString(jobMeta.sourceCode, wdlOptions, jobMeta.fileResolver)
     if (doc.workflow.isDefined) {
       throw new Exception("a workflow shouldn't be a member of this document")
     }
@@ -117,7 +123,7 @@ case class WdlTaskExecutor(task: TAT.Task,
     // evaluate the private variables using the inputs
     val env: Map[String, V] =
       task.privateVariables.foldLeft(inputs) {
-        case (env, TAT.PrivateVariable(name, wdlType, expr, _)) =>
+        case (env, TAT.PrivateVariable(name, wdlType, expr)) =>
           val wdlValue =
             evaluator.applyExprAndCoerce(expr, wdlType, WdlValueBindings(env))
           env + (name -> wdlValue)

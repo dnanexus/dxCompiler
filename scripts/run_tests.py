@@ -86,7 +86,10 @@ wdl_v1_list = [
     "nested_pairs",  # APPS-370
     "apps_378",
     "apps_384",
-    "diff_stream_and_download",  # APPS-288,
+    "diff_stream_and_download",  # APPS-288
+    "apps_573",
+    "apps_612",
+
     # manifests
     "simple_manifest",
     "complex_manifest",
@@ -94,7 +97,11 @@ wdl_v1_list = [
 ]
 
 wdl_v1_1_list = [
-    "v1_1_dict"
+    "v1_1_dict",
+
+    # bug regression tests
+    "apps_579_boolean_flag_expr",
+    "apps_579_string_substitution_expr"
 ]
 
 # docker image tests
@@ -112,7 +119,6 @@ docker_test_list = [
 # wdl draft-2
 draft2_test_list = [
     "advanced",
-    "array_add",
     "bad_status",
     "bad_status2",
     "just_fail_wf",
@@ -123,7 +129,10 @@ draft2_test_list = [
     "files_with_the_same_name",
     "hello",
     "shapes",
-  
+    # this test cannot be enabled yet, because we
+    # don't yet support overriding task inputs
+    #"population",
+
     # multiple library imports in one WDL workflow
     "multiple_imports",
     # subworkflows

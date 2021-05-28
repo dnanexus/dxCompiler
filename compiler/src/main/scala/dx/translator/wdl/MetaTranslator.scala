@@ -92,7 +92,7 @@ abstract class MetaTranslator(wdlVersion: WdlVersion,
   def translate: Vector[CallableAttribute] = {
     val attrs = metaSection match {
       case None => Vector.empty
-      case Some(TAT.MetaSection(kvs, _)) =>
+      case Some(TAT.MetaSection(kvs)) =>
         kvs.keySet
           .collect { name =>
             val value = meta.get(name)

@@ -282,20 +282,16 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
       case other                       => throw new Exception(s"unexpected compile result ${other}")
     }
     val outerScatter = bundle.allCallables("nested_scatter_frag_stage-3")
-    outerScatter.inputVars should contain theSameElementsAs (
-        Vector(
-            Parameter("x", TInt),
-            Parameter("ints1", TArray(TInt)),
-            Parameter("ints2", TArray(TInt))
-        )
+    outerScatter.inputVars should contain theSameElementsAs Vector(
+        Parameter("x", TInt),
+        Parameter("ints1", TArray(TInt)),
+        Parameter("ints2", TArray(TInt))
     )
     val innerScatter = bundle.allCallables("nested_scatter_block_0_0")
-    innerScatter.inputVars should contain theSameElementsAs (
-        Vector(
-            Parameter("x", TInt),
-            Parameter("y", TInt),
-            Parameter("ints1", TArray(TInt))
-        )
+    innerScatter.inputVars should contain theSameElementsAs Vector(
+        Parameter("x", TInt),
+        Parameter("y", TInt),
+        Parameter("ints1", TArray(TInt))
     )
   }
 
@@ -999,13 +995,13 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
 
     val commandSection =
       """|  command <<<
-         |    echo 1 hello world | sed 's/world/wdl/'
-         |    echo 2 hello \
-         |    world \
-         |    | sed 's/world/wdl/'
-         |    echo 3 hello \
-         |    world | \
-         |    sed 's/world/wdl/'
+         |  echo 1 hello world | sed 's/world/wdl/'
+         |  echo 2 hello \
+         |  world \
+         |  | sed 's/world/wdl/'
+         |  echo 3 hello \
+         |  world | \
+         |  sed 's/world/wdl/'
          |  >>>
          |""".stripMargin
 
@@ -1627,5 +1623,11 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
       case other =>
         throw new Exception(s"expected success not ${other}")
     }
+  }
+
+  it should "translate a workflow with struct field as call argument" in {
+    val path = pathFromBasename("struct", "struct_field.wdl")
+    val args = path.toString :: cFlags
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 }

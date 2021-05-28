@@ -27,6 +27,9 @@ import wdlTools.eval.{DefaultEvalPaths, Eval, EvalException, WdlValueBindings, W
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 import wdlTools.types.WdlTypes._
 import dx.util.{Adjuncts, FileSourceResolver, Logger}
+import wdlTools.syntax.Quoting
+
+import scala.annotation.tailrec
 
 case class CallableTranslator(wdlBundle: WdlBundle,
                               typeAliases: Map[String, T_Struct],
@@ -65,7 +68,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       val attrs = parameterMeta.translate(input.name, wdlType)
 
       input match {
-        case TAT.RequiredInputParameter(name, _, _) => {
+        case TAT.RequiredInputParameter(name, _) => {
           // This is a task "input" parameter of the form:
           //     Int y
 
@@ -74,7 +77,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           }
           Parameter(name, irType, attributes = attrs)
         }
-        case TAT.OverridableInputParameterWithDefault(name, _, defaultExpr, _) =>
+        case TAT.OverridableInputParameterWithDefault(name, _, defaultExpr) =>
           try {
             // This is a task "input" parameter definition of the form:
             //    Int y = 3
@@ -98,7 +101,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
               Parameter(name, optType, None, attrs)
 
           }
-        case TAT.OptionalInputParameter(name, _, _) =>
+        case TAT.OptionalInputParameter(name, _) =>
           val optType = Type.ensureOptional(irType)
           Parameter(name, optType, None, attrs)
       }
@@ -135,8 +138,11 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           if (runtime.kvs.contains(key)) {
             return TAT.RuntimeSection(
                 runtime.kvs ++ Map(
-                    key -> TAT.ValueString(newContainer, T_String, runtime.kvs(key).loc)
-                ),
+                    key -> TAT.ValueString(newContainer, T_String, quoting = Quoting.Double)(
+                        runtime.kvs(key).loc
+                    )
+                )
+            )(
                 runtime.loc
             )
           }
@@ -161,7 +167,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       val cleanedTask: TAT.Task = container match {
         case DxFileDockerImage(_, dxFile) =>
           val dxURL = DxUtils.dxDataObjectToUri(dxFile)
-          task.copy(runtime = task.runtime.map(rt => replaceContainer(rt, dxURL)))
+          task.copy(runtime = task.runtime.map(rt => replaceContainer(rt, dxURL)))(task.loc)
         case _ => task
       }
       val standAloneTask =
@@ -308,9 +314,9 @@ case class CallableTranslator(wdlBundle: WdlBundle,
             case _: EvalException =>
               // if the expression is an identifier, look it up in the env
               expr match {
-                case TAT.ExprIdentifier(id, _, _) =>
+                case TAT.ExprIdentifier(id, _) =>
                   lookup(id)
-                case TAT.ExprGetName(TAT.ExprIdentifier(id, _, _), field, _, _) =>
+                case TAT.ExprGetName(TAT.ExprIdentifier(id, _), field, _) =>
                   lookup(s"${id}.${field}")
                 case _ =>
                   env.log()
@@ -422,11 +428,26 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         // these are additional inputs from outside the block that need to be
         // supplied as workflow inputs
         val externalNames = (allInputs.map(_.name) ++ outputs.map(_.name)).toSet
+
+        @tailrec
+        def containsName(fqn: String): Boolean = {
+          if (externalNames.contains(fqn)) {
+            // exact match
+            true
+          } else {
+            // A.B.C --> A.B
+            fqn.lastIndexOf(".") match {
+              case pos if pos >= 0 => containsName(fqn.substring(0, pos))
+              case _               => false
+            }
+          }
+        }
+
         // TODO: will there ever be block inputs that are not included in
         //  statementClosureInputs?
         val closureInputs = subBlocks.flatMap { block =>
           block.inputs.collect {
-            case blockInput if !externalNames.contains(blockInput.name) =>
+            case blockInput if !containsName(blockInput.name) =>
               blockInput.name -> (blockInput.wdlType, blockInput.kind)
           }
         }.toMap
@@ -584,7 +605,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       }
 
       val outputParams: Vector[Parameter] = block.outputs.map {
-        case TAT.OutputParameter(name, wdlType, _, _) =>
+        case TAT.OutputParameter(name, wdlType, _) =>
           val irType = WdlUtils.toIRType(wdlType)
           Parameter(name, irType)
       }
@@ -705,10 +726,10 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         } catch {
           case _: EvalException =>
             output.expr match {
-              case TAT.ExprIdentifier(id, _, _) =>
+              case TAT.ExprIdentifier(id, _) =>
                 // The output is a reference to a previously defined variable
                 env(id)._2
-              case TAT.ExprGetName(TAT.ExprIdentifier(id2, _, _), id, _, _) =>
+              case TAT.ExprGetName(TAT.ExprIdentifier(id2, _), id, _) =>
                 // The output is a reference to a previously defined variable
                 env(s"$id2.$id")._2
               case _ =>
@@ -756,7 +777,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       // build definitions of the output variables - if the expression can be evaluated,
       // set the values as the parameter's default
       val outputVars: Vector[Parameter] = outputs.map {
-        case TAT.OutputParameter(name, wdlType, expr, _) =>
+        case TAT.OutputParameter(name, wdlType, expr) =>
           val value =
             try {
               val v = evaluator.applyConstAndCoerce(expr, wdlType)
@@ -895,21 +916,16 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         // 2. any output expressions cannot be resolved without evaluation (i.e. is a constant
         // or a reference to a defined variable)
         outputs.exists {
-          case TAT.OutputParameter(name, _, _, _) if env.contains(name) =>
+          case TAT.OutputParameter(name, _, _) if env.contains(name) =>
             // the environment has a stage with this output - we can get it by linking
             false
-          case TAT.OutputParameter(_, _, expr, _) if WdlUtils.isTrivialExpression(expr) =>
+          case TAT.OutputParameter(_, _, expr) if WdlUtils.isTrivialExpression(expr) =>
             // A constant or a reference to a variable
             false
-          case TAT.OutputParameter(_, _, TAT.ExprIdentifier(id, _, _), _) if env.contains(id) =>
+          case TAT.OutputParameter(_, _, TAT.ExprIdentifier(id, _)) if env.contains(id) =>
             // An identifier that is in scope
             false
-          case TAT.OutputParameter(
-              _,
-              _,
-              TAT.ExprGetName(TAT.ExprIdentifier(id2, _, _), id, _, _),
-              _
-              ) =>
+          case TAT.OutputParameter(_, _, TAT.ExprGetName(TAT.ExprIdentifier(id2, _), id, _)) =>
             // Access to the results of a call. For example,
             // c1 is call, and the output section is:
             //  output {

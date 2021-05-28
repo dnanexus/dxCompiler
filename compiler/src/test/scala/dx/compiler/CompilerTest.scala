@@ -541,6 +541,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
           case (Constants.Version, JsString(_))                    => () // ignore
           case (Constants.Checksum, JsString(_))                   => () // ignore
           case (Constants.SourceCode, JsString(_))                 => () // ignore
+          case (Constants.ParseOptions, JsObject(_))               => () // ignore
           // old values for sourceCode - can probalby delete these
           case ("womSourceCode", JsString(_)) => () // ignore
           case ("wdlSourceCode", JsString(_)) => () // ignore
@@ -737,6 +738,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
           case (Constants.Version, JsString(_))            => () // ignore
           case (Constants.Checksum, JsString(_))           => () // ignore
           case (Constants.SourceCode, JsString(_))         => () // ignore
+          case (Constants.ParseOptions, JsObject(_))       => () // ignore
           // old values for sourceCode - can probalby delete these
           case ("womSourceCode", JsString(_)) => ()
           case ("wdlSourceCode", JsString(_)) => ()
@@ -1155,4 +1157,11 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         throw new Exception(s"expected success not ${other}")
     }
   }
+
+//  it should "compile a task with a string + int concatenation" taggedAs NativeTest in {
+//    val path = pathFromBasename("non_spec", "string_int_concat.wdl")
+//    val args = path.toString :: "-wdlMode" :: "lenient" :: cFlags
+//    val retval = Main.compile(args.toVector)
+//    retval shouldBe a[SuccessfulCompileNativeNoTree]
+//  }
 }
