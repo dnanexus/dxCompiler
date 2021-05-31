@@ -9,6 +9,7 @@ import wdlTools.eval.{Eval, EvalException, Meta}
 import wdlTools.syntax.WdlVersion
 import wdlTools.types.WdlTypes._
 import wdlTools.types.{TypedAbstractSyntax => TAT}
+import dx.util.{Logger}
 
 import scala.util.matching.Regex
 
@@ -77,7 +78,8 @@ case class RuntimeTranslator(wdlVersion: WdlVersion,
                              metaSection: Option[TAT.MetaSection],
                              defaultAttrs: Map[String, Value],
                              evaluator: Eval,
-                             dxApi: DxApi = DxApi.get) {
+                             dxApi: DxApi = DxApi.get,
+                             logger: Logger = Logger.get) {
   private lazy val runtime =
     Runtime(wdlVersion,
             runtimeSection,
@@ -178,18 +180,25 @@ case class RuntimeTranslator(wdlVersion: WdlVersion,
     }
     val image =
       try {
-        // try to find a Docker image specified as a dx URL
-        // there will be an exception if the value requires
-        // evaluation at runtime
-        runtime.container.collectFirst {
-          case uri if uri.startsWith(DxPath.DxUriPrefix) =>
-            val dxfile = dxApi.resolveFile(uri)
-            DxFileDockerImage(uri, dxfile)
-        }
+        // Prefer dxfile image if one is available, otherwise an
+        // external Docker image if available
+        runtime.container
+          .collectFirst {
+            case uri if uri.startsWith(DxPath.DxUriPrefix) =>
+              val dxfile = dxApi.resolveFile(uri)
+              DxFileDockerImage(uri, dxfile)
+          }
+          .orElse(
+              runtime.container.collectFirst {
+                case uri => NetworkDockerImage(uri)
+              }
+          )
       } catch {
+        // If runtime.containerDefined but runtime.container is None,
+        // image has to be dynamically evaluated at runtime
         case _: EvalException => None
       }
-    image.getOrElse(NetworkDockerImage)
+    image.getOrElse(DynamicDockerImage)
   }
 
   private def unwrapString(value: V): String = {

@@ -82,14 +82,17 @@ object RunSpec {
 
   /**
     * A task may specify a container image to run under. Currently, DNAnexus only
-    * supports Docker images. There are three supported options:
-    *   None:    no image
+    * supports Docker images. There are four supported options:
+    *   None: no image
+    *   Dynamic: Image determined dynamically at runtime, also assumed to reside
+    *   on a network site and require download
     *   Network: the image resides on a network site and requires download
     *   DxFile: the image is a platform file
     * TODO: add a collection type that can contain multiple ContainerImage values
     */
   sealed trait ContainerImage
   case object NoImage extends ContainerImage
-  case object NetworkDockerImage extends ContainerImage
+  case object DynamicDockerImage extends ContainerImage
+  case class NetworkDockerImage(pullName: String) extends ContainerImage
   case class DxFileDockerImage(uri: String, tarball: DxFile) extends ContainerImage
 }

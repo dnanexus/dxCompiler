@@ -1,6 +1,6 @@
 package dx.compiler
 
-import dx.api.{DxApi, DxUtils, DxWorkflowStage}
+import dx.api.{DxApi, DxUtils, DxWorkflowStage, Field}
 import dx.core.Constants
 import dx.core.ir._
 import dx.translator.CallableAttributes._
@@ -9,6 +9,9 @@ import dx.util.{CodecUtils, Logger}
 import spray.json._
 
 import scala.collection.immutable.TreeSeqMap
+import dx.translator.DockerRegistry
+import dx.api.DxWorkflow
+import dx.api.DxApplet
 
 case class WorkflowCompiler(extras: Option[Extras],
                             parameterLinkSerializer: ParameterLinkSerializer,
@@ -152,9 +155,15 @@ case class WorkflowCompiler(extras: Option[Extras],
 
   private def workflowAttributesToNative(
       workflow: Workflow,
-      defaultTags: Set[String]
+      defaultTags: Set[String],
+      extendedDescription: Option[String]
   ): (Map[String, JsValue], Map[String, JsValue]) = {
-    val (commonMeta, commonDetails) = callableAttributesToNative(workflow, defaultTags)
+    val (commonMeta, commonDetails) =
+      callableAttributesToNative(
+          callable = workflow,
+          defaultTags = defaultTags,
+          extendedDescription = extendedDescription
+      )
     val workflowMeta = workflow.attributes.collect {
       // These will be implemented in a future PR
       case _: CallNamesAttribute =>
@@ -165,6 +174,161 @@ case class WorkflowCompiler(extras: Option[Extras],
       //case VersionAttribute(text) => Some("version" -> JsString(text))
     }
     (commonMeta ++ workflowMeta, commonDetails)
+  }
+
+  // Summarize reportable dependencies from details of a workflow
+  private def reportableDependenciesFromWorkflow(
+      workflow: DxWorkflow
+  ): Option[String] = {
+    val description = workflow.describe(Set(Field.Name, Field.Details, Field.Hidden))
+
+    // Do not generate description section if hidden
+    if (description.hidden.exists(h => h)) {
+      return None
+    }
+
+    // Generate Markdown description section
+    val headerMd = s"\n## Sub-workflow ${description.name}"
+    val details = description.details.collect {
+      case v: JsValue => v.asJsObject
+    }
+    val md = details match {
+      case Some(JsObject(details)) => {
+        val appsMd = details.get(Constants.NativeAppDependencies) match {
+          case Some(JsArray(a)) => listMd("Native apps") + a.map(v => listMd2(v.toString)).mkString
+          case _                => ""
+        }
+        val filesMd = details.get(Constants.FileDependencies) match {
+          case Some(JsArray(a)) =>
+            listMd("Files") + a.map(v => listMd2(v.toString)).mkString
+          case _ => ""
+        }
+        val dockerRegistryCredentialsMd =
+          details.get(Constants.DockerRegistryCredentialsUri) match {
+            case Some(JsString(s)) => listMd("Docker registry credentials file") + listMd2(s)
+            case _                 => ""
+          }
+        appsMd + filesMd + dockerRegistryCredentialsMd
+      }
+      case _ => ""
+    }
+    md match {
+      case s: String if !s.isEmpty => Some(headerMd + md)
+      case _                       => None
+    }
+  }
+
+  // Summarize reportable dependencies from details of an applet
+  private def reportableDependenciesFromApplication(
+      applet: DxApplet
+  ): Option[String] = {
+    val description = applet.describe(Set(Field.Name, Field.Details, Field.Hidden))
+
+    // Do not generate description section if hidden
+    if (description.hidden.exists(h => h)) {
+      return None
+    }
+
+    // Generate Markdown description section
+    val headerMd = s"\n## Task ${description.name}"
+    val details = description.details.collect {
+      case v: JsValue => v.asJsObject
+    }
+    val md = details match {
+      case Some(JsObject(details)) => {
+        val filesMd = details.get(Constants.FileDependencies) match {
+          case Some(JsArray(a)) =>
+            listMd("Files") + a.map(v => listMd2(v.toString)).mkString
+          case _ => ""
+        }
+        val networkDockerImageMd = details.get(Constants.NetworkDockerImage) match {
+          case Some(JsString(s)) => listMd("Network Docker image") + listMd2(s)
+          case _                 => ""
+        }
+        val dynamicDockerImageMd = details.get(Constants.DynamicDockerImage) match {
+          case Some(JsBoolean(b)) if b => listMd("Docker image determined at runtime")
+          case _                       => ""
+        }
+        val dxInstanceTypeMd = details.get(Constants.DxInstanceType) match {
+          case Some(JsString(s)) => listMd("Hard-coded instance type") + listMd2(s)
+          case _                 => ""
+        }
+        filesMd + networkDockerImageMd + dynamicDockerImageMd + dxInstanceTypeMd
+      }
+      case _ => ""
+    }
+    md match {
+      case s: String if !s.isEmpty => Some(headerMd + md)
+      case _                       => None
+    }
+  }
+
+  // TODO: Use templates for Markdown dependency report
+
+  // Summarize dependencies that are not bundled for cloning
+  // with the workflow for adding to description in Markdown
+  private def summarizeReportableDependencies(
+      workflow: Workflow,
+      executableDict: Map[String, CompiledExecutable],
+      execTree: JsObject,
+      nativeAppDependencies: Vector[String],
+      fileDependencies: Vector[String],
+      dockerRegistryCredentialsUri: Option[String]
+  ): Option[String] = {
+    val headerMd =
+      "# This workflow requires access to the following dependencies that are not " +
+        "packaged with the workflow"
+
+    val appsMd = nativeAppDependencies.map(listMd2).mkString match {
+      case s: String if !s.isEmpty => listMd("Native apps") + s
+      case _                       => ""
+    }
+    val filesMd = fileDependencies.map(listMd2).mkString match {
+      case s: String if !s.isEmpty => listMd("Files") + s
+      case _                       => ""
+    }
+    val dockerRegistryCredentialsMd = dockerRegistryCredentialsUri match {
+      case Some(s) => listMd("Docker registry credentials file") + listMd2(s)
+      case _       => ""
+    }
+    val topLevelMd = appsMd + filesMd + dockerRegistryCredentialsMd
+
+    val executableNames = ExecutableTree.extractExecutableNames(execTree)
+    val executables = executableNames.collect { n =>
+      executableDict.get(n)
+    }.flatten
+
+    val subWorkflowsMd = executables
+      .collect {
+        case CompiledExecutable(Workflow(_, _, _, _, _, _, _, _, _, _, _), dxExec, _, _) =>
+          dxExec match {
+            case w: DxWorkflow => w
+          }
+      }
+      .map(reportableDependenciesFromWorkflow)
+      .flatten
+      .mkString
+
+    val appletsMd = executables
+      .collect {
+        case CompiledExecutable(Application(_, _, _, _, _, ExecutableKindApplet, _, _, _, _, _, _),
+                                dxExec,
+                                _,
+                                _) =>
+          dxExec match {
+            case a: DxApplet => a
+          }
+      }
+      .map(reportableDependenciesFromApplication)
+      .flatten
+      .mkString
+
+    // Append header & return full report if it has contents
+    val md = topLevelMd + subWorkflowsMd + appletsMd
+    md match {
+      case s: String if !s.isEmpty => Some(headerMd + md)
+      case _                       => None
+    }
   }
 
   def apply(
@@ -388,7 +552,7 @@ case class WorkflowCompiler(extras: Option[Extras],
       }
     // build the details JSON
     val defaultTags = Set(Constants.CompilerTag)
-    val (wfMeta, wfMetaDetails) = workflowAttributesToNative(workflow, defaultTags)
+
     // compress and base64 encode the source code
     val sourceDetails = Map(
         Constants.SourceCode -> JsString(
@@ -414,7 +578,89 @@ case class WorkflowCompiler(extras: Option[Extras],
     val execTreeDetails = Map(
         "execTree" -> JsString(CodecUtils.gzipAndBase64Encode(execTree.toString))
     )
-    val details = wfMetaDetails ++ sourceDetails ++ dxLinks ++ delayDetails ++ execTreeDetails
+
+    // Collect native app dependencies
+    val nativeAppDependencies: Vector[String] =
+      Set
+        .from(
+            workflow.stages
+              .collect { stage =>
+                executableDict(stage.calleeName) match {
+                  case CompiledExecutable(
+                      Application(_,
+                                  _,
+                                  _,
+                                  _,
+                                  _,
+                                  ExecutableKindNative(_, _, _, _, _),
+                                  _,
+                                  _,
+                                  _,
+                                  _,
+                                  _,
+                                  _),
+                      dxExec,
+                      _,
+                      _
+                      ) =>
+                    dxExec.id
+                }
+              }
+              .filter(_.startsWith("app-"))
+        )
+        .toVector
+    val nativeAppDependenciesDetails = nativeAppDependencies match {
+      case nativeAppDependencies if nativeAppDependencies.length > 0 =>
+        Map(
+            Constants.NativeAppDependencies -> JsArray(
+                nativeAppDependencies.map(id => JsString(id))
+            )
+        )
+      case _ => Map.empty
+    }
+
+    // Collect file dependencies from inputs & private variables
+    val fileInputParams = workflow.inputs.map(i => i._1).filter(param => param.dxType == Type.TFile)
+    val fileDependencies =
+      Set
+        .from(
+            fileInputParams
+              .flatMap(CompilerUtils.fileDependenciesFromParam) ++ workflow.varFileDependencies
+        )
+        .toVector
+    val fileDependenciesDetails = fileDependencies match {
+      case fileDependencies if !fileDependencies.isEmpty =>
+        Map(Constants.FileDependencies -> JsArray(fileDependencies.map(s => JsString(s))))
+      case _ => Map.empty
+    }
+
+    // Collect Docker registry credentials URI
+    val dockerRegistryCredentialsUri: Option[String] = extras.flatMap(_.dockerRegistry) match {
+      case Some(DockerRegistry(_, credentials, _, _)) => Some(credentials)
+      case _                                          => None
+    }
+    val dockerRegistryCredentialsUriDetails = dockerRegistryCredentialsUri match {
+      case dockerRegistryCredentialsUri if dockerRegistryCredentialsUri.isDefined =>
+        Map(Constants.DockerRegistryCredentialsUri -> JsString(dockerRegistryCredentialsUri.get))
+      case _ => Map.empty
+    }
+
+    // Build extended description with dependency report
+    val extendedDescription =
+      summarizeReportableDependencies(
+          workflow = workflow,
+          executableDict = executableDict,
+          execTree = execTree.asJsObject,
+          nativeAppDependencies = nativeAppDependencies,
+          fileDependencies = fileDependencies,
+          dockerRegistryCredentialsUri = dockerRegistryCredentialsUri
+      )
+    val (wfMeta, wfMetaDetails) =
+      workflowAttributesToNative(workflow, defaultTags, extendedDescription)
+
+    // Collect details
+    val details = wfMetaDetails ++ sourceDetails ++ dxLinks ++ delayDetails ++ execTreeDetails ++
+      nativeAppDependenciesDetails ++ fileDependenciesDetails ++ dockerRegistryCredentialsUriDetails
     val isTopLevel = workflow.level == Level.Top
     // required arguments for API call
     val required = Map(

@@ -102,6 +102,7 @@ trait Callable {
   def attributes: Vector[CallableAttribute]
   def tags: Set[String]
   def properties: Map[String, String]
+  def varFileDependencies: Set[String]
 }
 
 /**
@@ -223,7 +224,8 @@ case class Application(name: String,
                        attributes: Vector[CallableAttribute] = Vector.empty,
                        requirements: Vector[RuntimeRequirement] = Vector.empty,
                        tags: Set[String] = Set.empty,
-                       properties: Map[String, String] = Map.empty)
+                       properties: Map[String, String] = Map.empty,
+                       varFileDependencies: Set[String] = Set.empty)
     extends Callable {
   def inputVars: Vector[Parameter] = inputs
   def outputVars: Vector[Parameter] = outputs
@@ -273,7 +275,8 @@ case class Workflow(name: String,
                     level: Level.Level,
                     attributes: Vector[CallableAttribute] = Vector.empty,
                     tags: Set[String] = Set.empty,
-                    properties: Map[String, String] = Map.empty)
+                    properties: Map[String, String] = Map.empty,
+                    varFileDependencies: Set[String] = Set.empty)
     extends Callable {
   def inputVars: Vector[Parameter] = inputs.map { case (cVar, _)   => cVar }
   def outputVars: Vector[Parameter] = outputs.map { case (cVar, _) => cVar }
