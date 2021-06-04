@@ -357,7 +357,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     }.toMap
 
     // create links for any local files/folders with basename set
-    val localFileToPath = paths.localFiles.map {
+    val localFileToPath: Map[AddressableFileNode, Path] = paths.localFiles.map {
       case (file, fs) if file.basename.isDefined =>
         val renamedPath = fs.canonicalPath.getParent.resolve(file.basename.get)
         val localizedPath = localizer.getLocalPath(jobMeta.fileResolver.fromPath(renamedPath))
@@ -365,7 +365,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         fs -> localizedPath
       case (_, fs) => fs -> fs.canonicalPath
     }.toMap
-    val localFolderToPath = paths.localFolders.map {
+    val localFolderToPath: Map[AddressableFileSource, Path] = paths.localFolders.map {
       case (folder, fs) if folder.basename.isDefined =>
         val renamedPath = fs.canonicalPath.getParent.resolve(folder.basename.get)
         val localizedPath = localizer.getLocalPath(jobMeta.fileResolver.fromPath(renamedPath))
@@ -374,23 +374,22 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       case (_, fs) => fs -> fs.canonicalPath
     }.toMap
 
-    // Build dxda and/or dxfuse manifests to localize all remote files and folders.
-
+    // Build dxda manifest to localize all non-streaming remote files and folders
     logger.traceLimited(s"downloading files = ${paths.filesToDownload}")
     val downloadFileSourceToPath: Map[AddressableFileNode, Path] =
-      localizer.getLocalPaths(paths.filesToDownload)
-    val downloadFilesToPath = downloadFileSourceToPath.collect {
+      localizer.getLocalPaths(paths.filesToDownload.toMap.values)
+    val downloadFileToPath = downloadFileSourceToPath.collect {
       case (dxFs: DxFileSource, localPath) => dxFs.dxFile -> localPath
     }
     val downloadFolderSourceToPath: Map[AddressableFileSource, Path] =
-      paths.foldersToDownload.map(fs => fs -> localizer.getLocalPath(fs)).toMap
+      localizer.getLocalPaths(paths.foldersToDownload.toMap.values)
     val downloadFolderToPath = downloadFolderSourceToPath.collect {
       case (dxFs: DxFolderSource, localPath) => (dxFs.dxProject.id, dxFs.folder) -> localPath
     }
-    // write the manifest for dxda, if there are files to download
     val dxdaManifest =
-      DxdaManifestBuilder(dxApi, logger).apply(downloadFilesToPath, downloadFolderToPath)
+      DxdaManifestBuilder(dxApi, logger).apply(downloadFileToPath, downloadFolderToPath)
 
+    // build dxfuse manifest to localize all straming remote files and folders
     logger.traceLimited(s"streaming files = ${paths.filesToStream ++ paths.filesToDownload}")
     val streamingLocalizer = SafeLocalizationDisambiguator(
         jobMeta.workerPaths.getDxfuseMountDir(),
@@ -400,22 +399,21 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         disambiguationDirLimit = TaskExecutor.MaxDisambiguationDirs,
         logger = logger
     )
-
-    val streamFileSourceToPath = streamingLocalizer.getLocalPaths(paths.filesToStream)
+    val streamFileSourceToPath: Map[AddressableFileNode, Path] =
+      streamingLocalizer.getLocalPaths(paths.filesToStream.toMap.values)
     val streamFilesToPaths = streamFileSourceToPath.collect {
       case (dxFs: DxFileSource, localPath) => dxFs.dxFile -> localPath
     }
     val streamFolderSourceToPath: Map[AddressableFileSource, Path] =
-      paths.foldersToStream.map(fs => fs -> streamingLocalizer.getLocalPath(fs)).toMap
+      streamingLocalizer.getLocalPaths(paths.foldersToStream.toMap.values)
     val streamFoldersToPath = streamFolderSourceToPath.collect {
       case (dxFs: DxFolderSource, localPath) => (dxFs.dxProject.id, dxFs.folder) -> localPath
     }
-    // write the manifest for dxfuse, if there are files to stream
     val dxfuseManifest = DxfuseManifestBuilder(dxApi, logger)
       .apply(streamFilesToPaths, streamFoldersToPath, jobMeta.workerPaths)
 
-    val fileSourceToPath = paths.localFiles ++ downloadFileSourceToPath ++ streamFileSourceToPath
-    val folderSourceToPath = paths.localFolders ++ downloadFolderSourceToPath ++ streamFolderSourceToPath
+    val fileSourceToPath = localFileToPath ++ downloadFileSourceToPath ++ streamFileSourceToPath
+    val folderSourceToPath = localFolderToPath ++ downloadFolderSourceToPath ++ streamFolderSourceToPath
 
     val uriToPath: Map[String, String] =
       (fileSourceToPath ++ folderSourceToPath).map {
