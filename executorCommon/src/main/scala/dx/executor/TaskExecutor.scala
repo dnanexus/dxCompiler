@@ -254,28 +254,29 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     val inputs = getInputsWithDefaults
 
     case class PathsToLocalize(virtualFiles: Vector[VFile] = Vector.empty,
-                               localFilesToPath: Map[AddressableFileNode, Path] = Map.empty,
-                               filesToStream: Set[AddressableFileNode] = Set.empty,
-                               filesToDownload: Set[AddressableFileNode] = Set.empty,
-                               localFoldersToPath: Map[AddressableFileSource, Path] = Map.empty,
-                               foldersToStream: Set[AddressableFileSource] = Set.empty,
-                               foldersToDownload: Set[AddressableFileSource] = Set.empty) {
-      lazy val localPaths: Set[Path] = (localFilesToPath.values ++ localFoldersToPath.values).toSet
-    }
+                               localFiles: Set[(VFile, LocalFileSource)] = Set.empty,
+                               filesToStream: Set[(VFile, AddressableFileNode)] = Set.empty,
+                               filesToDownload: Set[(VFile, AddressableFileNode)] = Set.empty,
+                               localFolders: Set[(VFolder, LocalFileSource)] = Set.empty,
+                               foldersToStream: Set[(VFolder, AddressableFileSource)] = Set.empty,
+                               foldersToDownload: Set[(VFolder, AddressableFileSource)] = Set.empty)
 
     def splitFiles(
         files: Vector[(VFile, AddressableFileNode)],
         stream: Boolean
-    ): (Map[AddressableFileNode, Path], Set[AddressableFileNode], Set[AddressableFileNode]) = {
+    ): (Set[(VFile, LocalFileSource)],
+        Set[(VFile, AddressableFileNode)],
+        Set[(VFile, AddressableFileNode)]) = {
       val (local, remote) = files.foldLeft(
-          (Map.empty[AddressableFileNode, Path], Set.empty[AddressableFileNode])
+          (Set.empty[(VFile, LocalFileSource)], Set.empty[(VFile, AddressableFileNode)])
       ) {
-        case ((local, remote), fs: LocalFileSource) if !fs.isDirectory =>
+        case (_, (_, fs: LocalFileSource)) if !fs.exists =>
+          throw new Exception(s"Local File-type input does not exist: ${fs}")
+        case (_, (_, fs: LocalFileSource)) if fs.isDirectory =>
+          throw new Exception(s"Local File-type input is a directory: ${fs}")
+        case ((local, remote), (file, fs: LocalFileSource)) =>
           // The file is already on the local disk, there is no need to download it.
-          // TODO: make sure this file is NOT in the applet input/output directories.
-          (local + (fs -> fs.canonicalPath), remote)
-        case (_, fs: LocalFileSource) =>
-          throw new Exception(s"not a local file ${fs}")
+          (local + (file -> fs), remote)
         case ((local, remote), other) =>
           (local, remote + other)
       }
@@ -291,16 +292,19 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     def splitFolders(
         folders: Vector[(VFolder, AddressableFileSource)],
         stream: Boolean
-    ): (Map[AddressableFileSource, Path], Set[AddressableFileSource], Set[AddressableFileSource]) = {
+    ): (Set[(VFolder, LocalFileSource)],
+        Set[(VFolder, AddressableFileSource)],
+        Set[(VFolder, AddressableFileSource)]) = {
       val (local, remote) = folders.foldLeft(
-          (Map.empty[AddressableFileSource, Path], Set.empty[AddressableFileSource])
+          (Set.empty[(VFolder, LocalFileSource)], Set.empty[(VFolder, AddressableFileSource)])
       ) {
-        case ((local, remote), fs: LocalFileSource) if fs.isDirectory =>
+        case (_, (_, fs: LocalFileSource)) if !fs.exists =>
+          throw new Exception(s"Local Directory-type input does not exist: ${fs}")
+        case (_, (_, fs: LocalFileSource)) if !fs.isDirectory =>
+          throw new Exception(s"Local Directory-type input is a file: ${fs}")
+        case ((local, remote), (folder, fs: LocalFileSource)) =>
           // The file is already on the local disk, there is no need to download it.
-          // TODO: make sure this file is NOT in the applet input/output directories.
-          (local + (fs -> fs.canonicalPath), remote)
-        case (_, fs: LocalFileSource) =>
-          throw new Exception(s"not a local directory ${fs}")
+          (local + (folder -> fs), remote)
         case ((local, remote), other) =>
           (local, remote + other)
       }
@@ -324,57 +328,62 @@ abstract class TaskExecutor(jobMeta: JobMeta,
           splitFolders(fileSources.folders, stream)
         PathsToLocalize(
             fileSources.virutalFiles,
-            paths.localFilesToPath ++ localFilesToPath,
+            paths.localFiles ++ localFilesToPath,
             paths.filesToStream ++ filesToStream,
             paths.filesToDownload ++ filesToDownload,
-            paths.localFoldersToPath ++ localFolders,
+            paths.localFolders ++ localFolders,
             paths.foldersToStream ++ foldersToStream,
             paths.foldersToDownload ++ foldersToDownload
         )
     }
 
+    // This object handles mapping file sources to local paths and
+    // deals with file name collisions in the manner specified by
+    // the WDL spec.
+    val localizer = SafeLocalizationDisambiguator(
+        jobMeta.workerPaths.getInputFilesDir(),
+        separateDirsBySource = true,
+        createDirs = true,
+        disambiguationDirLimit = TaskExecutor.MaxDisambiguationDirs,
+        logger = logger
+    )
+
     // localize any virtual files
     logger.traceLimited(s"virtual files = ${paths.virtualFiles}")
-    val virtualFileLocalizer =
-      SafeLocalizationDisambiguator(
-          jobMeta.workerPaths.getInputFilesDir(),
-          existingPaths = paths.localPaths,
-          separateDirsBySource = true,
-          createDirs = true,
-          disambiguationDirLimit = TaskExecutor.MaxDisambiguationDirs
-      )
-    val (virtualFilePaths, virtualUriToFileVec) = paths.virtualFiles.map { f =>
-      val localPath = virtualFileLocalizer.getLocalPath(f.uri, "<virtual>")
+    val virtualUriToFile = paths.virtualFiles.map { f =>
+      val localPath = localizer.getLocalPath(f.uri, "<virtual>")
       FileUtils.writeFileContent(localPath, f.contents.get)
-      (localPath, f.uri -> f.copy(uri = localPath.toString))
-    }.unzip
-    val virtualUriToFile = virtualUriToFileVec.toMap
+      f.uri -> f.copy(uri = localPath.toString)
+    }.toMap
 
-    // Build dxda and/or dxfuse manifests to localize all remote files, archives,
-    // and folders. We use a SafeLocalizationDisambiguator to determine the local
-    // path and deal with file name collisions in the manner specified by the WDL
-    // spec. We set separateDirsBySource = true because, when creating archives,
-    // we append one directory at a time to the archive and then delete the source
-    // files, so the smaller each append operation is, the less disk overhead is
-    // required.
+    // create links for any local files/folders with basename set
+    val localFileToPath = paths.localFiles.map {
+      case (file, fs) if file.basename.isDefined =>
+        val renamedPath = fs.canonicalPath.getParent.resolve(file.basename.get)
+        val localizedPath = localizer.getLocalPath(jobMeta.fileResolver.fromPath(renamedPath))
+        Files.createSymbolicLink(localizedPath, fs.canonicalPath)
+        fs -> localizedPath
+      case (_, fs) => fs -> fs.canonicalPath
+    }.toMap
+    val localFolderToPath = paths.localFolders.map {
+      case (folder, fs) if folder.basename.isDefined =>
+        val renamedPath = fs.canonicalPath.getParent.resolve(folder.basename.get)
+        val localizedPath = localizer.getLocalPath(jobMeta.fileResolver.fromPath(renamedPath))
+        Files.createSymbolicLink(localizedPath, fs.canonicalPath)
+        fs -> localizedPath
+      case (_, fs) => fs -> fs.canonicalPath
+    }.toMap
+
+    // Build dxda and/or dxfuse manifests to localize all remote files and folders.
 
     logger.traceLimited(s"downloading files = ${paths.filesToDownload}")
-    val downloadLocalizer =
-      SafeLocalizationDisambiguator(
-          jobMeta.workerPaths.getInputFilesDir(),
-          existingPaths = paths.localPaths ++ virtualFilePaths,
-          separateDirsBySource = true,
-          createDirs = true,
-          disambiguationDirLimit = TaskExecutor.MaxDisambiguationDirs,
-          logger = logger
-      )
     val downloadFileSourceToPath: Map[AddressableFileNode, Path] =
-      downloadLocalizer.getLocalPaths(paths.filesToDownload)
+      localizer.getLocalPaths(paths.filesToDownload)
     val downloadFilesToPath = downloadFileSourceToPath.collect {
       case (dxFs: DxFileSource, localPath) => dxFs.dxFile -> localPath
     }
     val downloadFolderSourceToPath: Map[AddressableFileSource, Path] =
-      paths.foldersToDownload.map(fs => fs -> downloadLocalizer.getLocalPath(fs)).toMap
+      paths.foldersToDownload.map(fs => fs -> localizer.getLocalPath(fs)).toMap
     val downloadFolderToPath = downloadFolderSourceToPath.collect {
       case (dxFs: DxFolderSource, localPath) => (dxFs.dxProject.id, dxFs.folder) -> localPath
     }
@@ -383,15 +392,14 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       DxdaManifestBuilder(dxApi, logger).apply(downloadFilesToPath, downloadFolderToPath)
 
     logger.traceLimited(s"streaming files = ${paths.filesToStream ++ paths.filesToDownload}")
-    val streamingLocalizer =
-      SafeLocalizationDisambiguator(
-          jobMeta.workerPaths.getDxfuseMountDir(),
-          existingPaths = paths.localPaths,
-          separateDirsBySource = true,
-          createDirs = false,
-          disambiguationDirLimit = TaskExecutor.MaxDisambiguationDirs,
-          logger = logger
-      )
+    val streamingLocalizer = SafeLocalizationDisambiguator(
+        jobMeta.workerPaths.getDxfuseMountDir(),
+        existingPaths = localizer.getLocalizedPaths,
+        separateDirsBySource = true,
+        createDirs = false,
+        disambiguationDirLimit = TaskExecutor.MaxDisambiguationDirs,
+        logger = logger
+    )
 
     val streamFileSourceToPath = streamingLocalizer.getLocalPaths(paths.filesToStream)
     val streamFilesToPaths = streamFileSourceToPath.collect {
@@ -406,8 +414,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     val dxfuseManifest = DxfuseManifestBuilder(dxApi, logger)
       .apply(streamFilesToPaths, streamFoldersToPath, jobMeta.workerPaths)
 
-    val fileSourceToPath = paths.localFilesToPath ++ downloadFileSourceToPath ++ streamFileSourceToPath
-    val folderSourceToPath = paths.localFoldersToPath ++ downloadFolderSourceToPath ++ streamFolderSourceToPath
+    val fileSourceToPath = paths.localFiles ++ downloadFileSourceToPath ++ streamFileSourceToPath
+    val folderSourceToPath = paths.localFolders ++ downloadFolderSourceToPath ++ streamFolderSourceToPath
 
     val uriToPath: Map[String, String] =
       (fileSourceToPath ++ folderSourceToPath).map {

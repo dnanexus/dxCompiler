@@ -25,7 +25,10 @@ ThisBuild / licenses += ("Apache-2.0", url("http://www.apache.org/licenses/LICEN
 
 lazy val root = project.in(file("."))
 lazy val global = root
-  .settings(settings)
+  .settings(
+      settings,
+      skip in publish := true
+  )
   .disablePlugins(AssemblyPlugin)
   .aggregate(
       core,
@@ -124,10 +127,10 @@ val githubDxCompilerResolver = Resolver.githubPackages("dnanexus", "dxCompiler")
 
 lazy val dependencies =
   new {
-    val dxCommonVersion = "0.4.0"
+    val dxCommonVersion = "0.4.1-SNAPSHOT"
     val dxApiVersion = "0.4.0"
     val dxFileAccessProtocolsVersion = "0.3.0"
-    val wdlToolsVersion = "0.14.0k"
+    val wdlToolsVersion = "0.14.0"
     val cwlScalaVersion = "0.5.1-SNAPSHOT"
     val typesafeVersion = "1.3.3"
     val sprayVersion = "1.3.5"
