@@ -129,7 +129,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         case (name, (_, value)) if inputTypes.contains(name) =>
           name -> WdlUtils.fromIRValue(value, inputTypes(name), name)
         case (name, (t, v)) =>
-          name -> WdlUtils.fromIRValue(v, WdlUtils.fromIRType(t), name)
+          name -> WdlUtils.fromIRValue(v, WdlUtils.fromIRType(t, wdlTypeAliases), name)
       }
     }
 
@@ -242,7 +242,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       case (name, (_, v)) if outputTypes.contains(name) =>
         name -> WdlUtils.fromIRValue(v, outputTypes(name), name)
       case (name, (t, v)) =>
-        name -> WdlUtils.fromIRValue(v, WdlUtils.fromIRType(t), name)
+        name -> WdlUtils.fromIRValue(v, WdlUtils.fromIRType(t, wdlTypeAliases), name)
     }
     // also add defaults for any optional values in the output
     // closure that are not inputs
