@@ -13,7 +13,7 @@ import dx.core.io.{
 import dx.core.ir.{Type, TypeSerde, Value, ValueSerde}
 import dx.core.ir.Type._
 import dx.core.ir.Value._
-import dx.util.protocols.{DxArchiveFolderSource, DxFileSource, DxFolderSource}
+import dx.util.protocols.{DxFileSource, DxFolderSource}
 import spray.json._
 import dx.util.{
   AddressableFileNode,
@@ -240,7 +240,6 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     * For all input files/directories, determines the local path, whether they need
     * to be streamed or downloaded, and generates the dxda and dxfuse manifests.
     * @return
-    * TODO: handle file/folder with basename
     * TODO: ensure secondary files are in the same dir as the parent file
     */
   def localizeInputFiles: (Map[String, (Type, Value)],
@@ -414,14 +413,12 @@ abstract class TaskExecutor(jobMeta: JobMeta,
 
     val fileSourceToPath = localFileToPath ++ downloadFileSourceToPath ++ streamFileSourceToPath
     val folderSourceToPath = localFolderToPath ++ downloadFolderSourceToPath ++ streamFolderSourceToPath
-
     val uriToPath: Map[String, String] =
       (fileSourceToPath ++ folderSourceToPath).map {
-        case (dxFs: DxFileSource, path)          => dxFs.address -> path.toString
-        case (dxFs: DxFolderSource, path)        => dxFs.address -> path.toString
-        case (dxFs: DxArchiveFolderSource, path) => dxFs.address -> path.toString
-        case (localFs: LocalFileSource, p2)      => localFs.originalPath.toString -> p2.toString
-        case other                               => throw new RuntimeException(s"unsupported file source ${other}")
+        case (dxFs: DxFileSource, path)       => dxFs.address -> path.toString
+        case (dxFs: DxFolderSource, path)     => dxFs.address -> path.toString
+        case (localFs: LocalFileSource, path) => localFs.originalPath.toString -> path.toString
+        case (other, _)                       => throw new RuntimeException(s"unsupported file source ${other}")
       }.toMap
 
     // Replace the URIs with local file paths
@@ -535,77 +532,117 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       localizedInputs: Map[String, (Type, Value)]
   ): Map[String, (Type, Value)]
 
+  private lazy val virtualOutputDir =
+    Files.createTempDirectory(jobMeta.workerPaths.getOutputFilesDir(ensureExists = true), "virtual")
+
   // TODO: handle secondary files - put files in same output folder as the primary
   // TODO: handle basename
-  // TODO: handle file with contents
-  private def extractOutputFiles(name: String, v: Value, t: Type): Vector[AddressableFileSource] = {
-    def getFileNode(varName: String,
-                    fs: AddressableFileSource,
-                    optional: Boolean): Vector[AddressableFileSource] = {
+  private def extractOutputFiles(
+      name: String,
+      v: Value,
+      t: Type
+  ): (Vector[(VFile, AddressableFileNode)], Vector[(VFolder, AddressableFileSource)]) = {
+    def getLocalFileSource(varName: String,
+                           fs: AddressableFileSource,
+                           optional: Boolean): Option[LocalFileSource] = {
       fs match {
         case localFs: LocalFileSource if optional && !Files.exists(localFs.canonicalPath) =>
           // ignore optional, non-existent files
-          Vector.empty
+          None
         case localFs: LocalFileSource if !Files.exists(localFs.canonicalPath) =>
           throw new Exception(
               s"required output file ${varName} does not exist at ${localFs.canonicalPath}"
           )
         case localFs: LocalFileSource =>
-          Vector(localFs)
+          Some(localFs)
         case other =>
           throw new RuntimeException(s"${varName} specifies non-local file ${other}")
       }
     }
 
-    def inner(innerName: String,
-              innerValue: Value,
-              innerType: Type,
-              optional: Boolean): Vector[AddressableFileSource] = {
+    def inner(
+        innerName: String,
+        innerValue: Value,
+        innerType: Type,
+        optional: Boolean
+    ): (Vector[(VFile, LocalFileSource)], Vector[(VFolder, LocalFileSource)]) = {
       (innerType, innerValue) match {
         case (TOptional(_), VNull) =>
-          Vector.empty
+          (Vector.empty, Vector.empty)
         case (TOptional(optType), _) =>
           inner(innerName, innerValue, optType, optional = true)
+        case (TFile, f: VFile) if f.contents.isDefined =>
+          val path = f.basename
+            .map(virtualOutputDir.resolve)
+            .getOrElse(Files.createTempFile(virtualOutputDir, "virtual", ""))
+          val resolved = FileUtils.writeFileContent(path, f.contents.get)
+          (Vector((f, fileResolver.fromPath(resolved))), Vector.empty)
         case (TFile, f: VFile) =>
-          getFileNode(innerName, fileResolver.resolve(f.uri), optional)
+          (getLocalFileSource(innerName, fileResolver.resolve(f.uri), optional)
+             .map(f -> _)
+             .toVector,
+           Vector.empty)
         case (TFile, VString(path)) =>
-          getFileNode(innerName, fileResolver.resolve(path), optional)
+          (getLocalFileSource(innerName, fileResolver.resolve(path), optional)
+             .map(VFile(path) -> _)
+             .toVector,
+           Vector.empty)
         case (TDirectory, f: VFolder) =>
-          getFileNode(innerName, fileResolver.resolveDirectory(f.uri), optional)
+          (Vector.empty,
+           getLocalFileSource(innerName, fileResolver.resolveDirectory(f.uri), optional)
+             .map(f -> _)
+             .toVector)
         case (TDirectory, f: VListing) =>
-          f.items.zipWithIndex.flatMap {
+          val (files, folders) = f.items.zipWithIndex.map {
             case (p: PathValue, index) =>
               inner(s"${innerName}/${index}", p, TDirectory, optional)
-          }
+          }.unzip
+          (files.flatten, folders.flatten)
         case (TArray(_, nonEmpty), VArray(array)) if nonEmpty && array.isEmpty =>
           throw new Exception(s"Non-empty array ${name} has empty value")
         case (TArray(elementType, _), VArray(array)) =>
-          array.zipWithIndex.flatMap {
+          val (files, folders) = array.zipWithIndex.map {
             case (element, index) =>
               inner(s"${innerName}[${index}]", element, elementType, optional = false)
-          }
+          }.unzip
+          (files.flatten, folders.flatten)
         case (TSchema(name, memberTypes), VHash(members)) =>
-          memberTypes.flatMap {
-            case (key, t) =>
-              (t, members.get(key)) match {
-                case (TOptional(_), None) =>
-                  Vector.empty
-                case (_, None) =>
-                  throw new Exception(s"missing non-optional member ${key} of struct ${name}")
-                case (_, Some(v)) =>
-                  inner(s"${name}.${key}", v, t, optional = false)
-              }
-          }.toVector
+          val (files, folders) = memberTypes
+            .map {
+              case (key, t) =>
+                (t, members.get(key)) match {
+                  case (TOptional(_), None) =>
+                    (Vector.empty, Vector.empty)
+                  case (_, None) =>
+                    throw new Exception(s"missing non-optional member ${key} of struct ${name}")
+                  case (_, Some(v)) =>
+                    inner(s"${name}.${key}", v, t, optional = false)
+                }
+            }
+            .toVector
+            .unzip
+          (files.flatten, folders.flatten)
         case (THash, VHash(members)) =>
-          members.flatMap {
+          val (files, folders) = members.toVector.map {
             case (key, value) =>
               val fileSources = extractPaths(value)
-              (fileSources.realFiles ++ fileSources.folders).flatMap(fs =>
-                getFileNode(s"${innerName}.${key}", fs, optional = true)
-              )
-          }.toVector
+              val files = fileSources.realFiles.flatMap {
+                case (file, fs) =>
+                  getLocalFileSource(s"${innerName}.${key}", fs, optional = true)
+                    .map(file -> _)
+                    .toVector
+              }
+              val folders = fileSources.folders.flatMap {
+                case (folder, fs) =>
+                  getLocalFileSource(s"${innerName}.${key}", fs, optional = true)
+                    .map(folder -> _)
+                    .toVector
+              }
+              (files, folders)
+          }.unzip
+          (files.flatten, folders.flatten)
         case _ =>
-          Vector.empty
+          (Vector.empty, Vector.empty)
       }
     }
 
@@ -621,9 +658,9 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     val localizedOutputs = evaluateOutputs(localizedInputs)
 
     // extract files from the outputs
-    val localOutputFileSources = localizedOutputs.flatMap {
+    val (localOutputFiles, localOutputFolders) = localizedOutputs.map {
       case (name, (irType, irValue)) => extractOutputFiles(name, irValue, irType)
-    }.toVector
+    }.unzip
 
     // Build a map of all the string values in the output values that might
     // map to the same (absolute) local path. Some of the outputs may be files
@@ -632,25 +669,41 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     // may be different.
     val inputAddresses: Set[String] = fileSourceToPath.keySet.map(_.address)
     val inputPaths = fileSourceToPath.values.toSet
-    val delocalizingValueToPath: Map[String, Path] = localOutputFileSources.collect {
-      case local: LocalFileSource
+    val delocalizingFileUriToPath: Map[VFile, Path] = localOutputFiles.flatten.collect {
+      case (file, local: LocalFileSource)
           if !(
-              inputAddresses.contains(local.address) || inputPaths.contains(local.canonicalPath)
+              inputAddresses.contains(file.uri) || inputPaths.contains(local.canonicalPath)
           ) =>
-        local.address -> local.canonicalPath
+        file -> local.canonicalPath
+    }.toMap
+    val delocalizingFolderUriToPath: Map[VFolder, Path] = localOutputFolders.flatten.collect {
+      case (folder, local: LocalFileSource)
+          if !(
+              inputAddresses.contains(folder.uri) || inputPaths.contains(local.canonicalPath)
+          ) =>
+        folder -> local.canonicalPath
     }.toMap
 
     // upload the files, and map their local paths to their remote URIs
     val delocalizedPathToUri: Map[Path, String] = {
-      val (dirs, files) = delocalizingValueToPath.values.partition(p => p.toFile.isDirectory)
       val (dxFiles, dxFolders) = if (jobMeta.useManifests) {
         // if using manifests, we need to upload the files directly to the project
-        (fileUploader.uploadFilesWithDestination(files.toSet.map { path: Path =>
-           path -> s"${jobMeta.manifestFolder}/${path.getFileName.toString}"
-         }.toMap, wait = waitOnUpload),
-         fileUploader.uploadDirectoriesWithDestination(dirs.toSet.map { path: Path =>
-           path -> s"${jobMeta.manifestFolder}/${path.getFileName.toString}"
-         }.toMap, wait = waitOnUpload))
+        (fileUploader.uploadFilesWithDestination(
+             delocalizingFileUriToPath.toSet.map {
+               case (file, path) =>
+                 val basename = file.basename.getOrElse(path.getFileName.toString)
+                 path -> s"${jobMeta.manifestFolder}/${basename}"
+             }.toMap,
+             wait = waitOnUpload
+         ),
+         fileUploader.uploadDirectoriesWithDestination(
+             delocalizingFolderUriToPath.toSet.map {
+               case (folder, path) =>
+                 val basename = folder.basename.getOrElse(path.getFileName.toString)
+                 path -> s"${jobMeta.manifestFolder}/${basename}"
+             }.toMap,
+             wait = waitOnUpload
+         ))
       } else {
         (fileUploader.uploadFiles(files.toSet, wait = waitOnUpload),
          fileUploader.uploadDirectories(dirs.toSet, wait = waitOnUpload))
@@ -680,7 +733,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     def resolveFileValue(value: String): Option[String] = {
       inputValueToUri
         .get(value)
-        .orElse(delocalizingValueToPath.get(value) match {
+        .orElse(delocalizingUriToPath.get(value) match {
           case Some(path) => delocalizedPathToUri.get(path)
           case _          => None
         })
