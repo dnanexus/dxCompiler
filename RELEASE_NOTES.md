@@ -1,6 +1,6 @@
 # Release Notes
 
-## in develop
+## 2.4.7 2021-06-04
 
 * Fixes issue with using struct types in workflow outputs
 
