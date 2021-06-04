@@ -3,14 +3,16 @@
     "hello my name is John and I am 30 years old, although writing WDL has aged me 5 years",
     "hello my name is Sally and I am 42 years old, although writing WDL has aged me 10 years"
   ],
-  "wf_person.older_people": [
-    {
-      "name": "John",
-      "age": 35
-    },
-    {
-      "name": "Sally",
-      "age": 52
-    }
-  ]
+  "wf_person.older_people": {
+    "___": [
+      {
+        "name": "John",
+        "age": 35
+      },
+      {
+        "name": "Sally",
+        "age": 52
+      }
+    ]
+  }
 }
