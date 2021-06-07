@@ -536,7 +536,6 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     Files.createTempDirectory(jobMeta.workerPaths.getOutputFilesDir(ensureExists = true), "virtual")
 
   // TODO: handle secondary files - put files in same output folder as the primary
-  // TODO: handle basename
   private def extractOutputFiles(
       name: String,
       v: Value,
@@ -669,53 +668,48 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     // may be different.
     val inputAddresses: Set[String] = fileSourceToPath.keySet.map(_.address)
     val inputPaths = fileSourceToPath.values.toSet
-    val delocalizingFileUriToPath: Map[VFile, Path] = localOutputFiles.flatten.collect {
+    val delocalizingFileToPath = localOutputFiles.flatten.collect {
       case (file, local: LocalFileSource)
           if !(
               inputAddresses.contains(file.uri) || inputPaths.contains(local.canonicalPath)
           ) =>
         file -> local.canonicalPath
-    }.toMap
-    val delocalizingFolderUriToPath: Map[VFolder, Path] = localOutputFolders.flatten.collect {
+    }
+    val delocalizingFolderToPath = localOutputFolders.flatten.collect {
       case (folder, local: LocalFileSource)
           if !(
               inputAddresses.contains(folder.uri) || inputPaths.contains(local.canonicalPath)
           ) =>
         folder -> local.canonicalPath
-    }.toMap
+    }
 
     // upload the files, and map their local paths to their remote URIs
-    val delocalizedPathToUri: Map[Path, String] = {
-      val (dxFiles, dxFolders) = if (jobMeta.useManifests) {
-        // if using manifests, we need to upload the files directly to the project
-        (fileUploader.uploadFilesWithDestination(
-             delocalizingFileUriToPath.toSet.map {
-               case (file, path) =>
-                 val basename = file.basename.getOrElse(path.getFileName.toString)
-                 path -> s"${jobMeta.manifestFolder}/${basename}"
-             }.toMap,
-             wait = waitOnUpload
-         ),
-         fileUploader.uploadDirectoriesWithDestination(
-             delocalizingFolderUriToPath.toSet.map {
-               case (folder, path) =>
-                 val basename = folder.basename.getOrElse(path.getFileName.toString)
-                 path -> s"${jobMeta.manifestFolder}/${basename}"
-             }.toMap,
-             wait = waitOnUpload
-         ))
-      } else {
-        (fileUploader.uploadFiles(files.toSet, wait = waitOnUpload),
-         fileUploader.uploadDirectories(dirs.toSet, wait = waitOnUpload))
-      }
-      val fileUris = dxFiles.map {
+    // if using manifests, we need to upload the files directly to the project
+    val destFolder = Option.when(jobMeta.useManifests)(jobMeta.manifestFolder)
+    val fileToDelocalizedUri: Map[Path, String] = fileUploader
+      .uploadFilesWithDestination(
+          delocalizingFileToPath.toMap.map {
+            case (file, path) =>
+              val basename = file.basename.getOrElse(path.getFileName.toString)
+              path -> destFolder.map(f => s"${f}/${basename}").getOrElse(basename)
+          },
+          wait = waitOnUpload
+      )
+      .map {
         case (path, dxFile) => path -> dxFile.asUri
       }
-      val folderUris = dxFolders.map {
+    val folderToDelocalizedUri: Map[Path, String] = fileUploader
+      .uploadDirectoriesWithDestination(
+          delocalizingFolderToPath.toMap.map {
+            case (folder, path) =>
+              val basename = folder.basename.getOrElse(path.getFileName.toString)
+              path -> destFolder.map(f => s"${f}/${basename}").getOrElse(basename)
+          },
+          wait = waitOnUpload
+      )
+      .map {
         case (path, (projectId, folder)) => path -> s"${DxPath.DxUriPrefix}${projectId}:${folder}"
       }
-      fileUris ++ folderUris
-    }
 
     // Replace the local paths in the output values with URIs. For files that
     // were inputs, we can resolve them using a mapping of input values to URIs;
@@ -730,33 +724,49 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       }
       .flatten
       .toMap
-    def resolveFileValue(value: String): Option[String] = {
-      inputValueToUri
-        .get(value)
-        .orElse(delocalizingUriToPath.get(value) match {
-          case Some(path) => delocalizedPathToUri.get(path)
-          case _          => None
-        })
-    }
+    val delocalizingFileUriToPath = delocalizingFileToPath.map {
+      case (file, path) => file.uri -> path
+    }.toMap
+    val delocalizingFolderUriToPath = delocalizingFolderToPath.map {
+      case (folder, path) => folder.uri -> path
+    }.toMap
 
     // Replace the URIs with remote file paths
     def pathTranslator(v: Value, t: Option[Type], optional: Boolean): Option[PathValue] = {
-      def translateUri(uri: String): Option[String] = {
-        resolveFileValue(uri) match {
+      def translateFileUri(uri: String): Option[String] = {
+        inputValueToUri
+          .get(uri)
+          .orElse(delocalizingFileUriToPath.get(uri) match {
+            case Some(path) => fileToDelocalizedUri.get(path)
+            case _          => None
+          }) match {
           case Some(localPath)  => Some(localPath)
           case None if optional => None
           case _                => throw new Exception(s"Did not localize file ${uri}")
         }
       }
+      def translateFolderUri(uri: String): Option[String] = {
+        inputValueToUri
+          .get(uri)
+          .orElse(delocalizingFolderUriToPath.get(uri) match {
+            case Some(path) => folderToDelocalizedUri.get(path)
+            case _          => None
+          }) match {
+          case Some(localPath)  => Some(localPath)
+          case None if optional => None
+          case _                => throw new Exception(s"Did not localize folder ${uri}")
+        }
+      }
       (t, v) match {
         case (_, f: VFile) =>
-          translateUri(f.uri).map { newUri =>
+          translateFileUri(f.uri).map { newUri =>
             val newSecondaryFiles =
               f.secondaryFiles.flatMap(pathTranslator(_, None, optional = false))
             f.copy(uri = newUri, secondaryFiles = newSecondaryFiles)
           }
-        case (Some(TFile), VString(uri)) => translateUri(uri).map(VFile(_))
-        case (_, f: VFolder)             => translateUri(f.uri).map(newUri => f.copy(uri = newUri))
+        case (Some(TFile), VString(uri))      => translateFileUri(uri).map(VFile(_))
+        case (_, f: VFolder)                  => translateFolderUri(f.uri).map(newUri => f.copy(uri = newUri))
+        case (Some(TDirectory), VString(uri)) => translateFolderUri(uri).map(VFolder(_))
         case (_, l: VListing) =>
           val newListing = l.items.map(pathTranslator(_, None, optional = optional))
           if (newListing.forall(_.isEmpty)) {

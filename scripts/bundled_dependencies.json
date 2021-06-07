@@ -5,6 +5,7 @@
   "execDepends": {
     "cwl": [
       {
+        "name": "cwltool",
         "url": "https://github.com/common-workflow-language/cwltool.git",
         "tag": "fix_single_step",
         "build_commands": "make install",
