@@ -192,6 +192,7 @@ class InputTranslator(bundle: Bundle,
               val irValue =
                 parameterLinkDeserializer.deserializeInputWithType(default,
                                                                    param.dxType,
+                                                                   fqn,
                                                                    Some(deserializationHandler))
               param.copy(defaultValue = Some(irValue))
           }
@@ -212,6 +213,7 @@ class InputTranslator(bundle: Bundle,
                       parameterLinkDeserializer.deserializeInputWithType(
                           default,
                           param.dxType,
+                          fqn,
                           Some(deserializationHandler)
                       )
                     StaticInput(irValue)
@@ -242,6 +244,7 @@ class InputTranslator(bundle: Bundle,
                         parameterLinkDeserializer.deserializeInputWithType(
                             default,
                             param.dxType,
+                            fqn,
                             Some(deserializationHandler)
                         )
                       StaticInput(irValue)
@@ -294,6 +297,7 @@ class InputTranslator(bundle: Bundle,
             val irValue =
               parameterLinkDeserializer.deserializeInputWithType(value,
                                                                  parameter.dxType,
+                                                                 fqn,
                                                                  Some(deserializationHandler))
             Map(dxName -> (parameter.dxType, irValue))
         }
