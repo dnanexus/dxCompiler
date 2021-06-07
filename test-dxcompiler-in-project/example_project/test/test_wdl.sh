@@ -21,5 +21,5 @@ if [[ "$exec_1" == "workflow-"* ]]; then
     dx run $exec_1 \
         --destination /test_out/workflow_1 \
         --detach \
-        --brief \
+        -y
 fi
