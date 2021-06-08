@@ -1,5 +1,9 @@
 # Release Notes
 
+## in develop
+
+* Fixes issue with using struct types in workflow outputs
+
 ## 2.4.6 2021-05-27
 
 * Fixes regression in WDL code generator where long expressions within placeholders are line-wrapped incorrectly
