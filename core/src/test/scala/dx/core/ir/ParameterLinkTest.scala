@@ -34,7 +34,7 @@ class ParameterLinkTest extends AnyFlatSpec with Matchers {
     val (name2, jsv) = allDxFields2.head
 
     name2 should be(prefix + elem.name)
-    val wdlValue2 = parameterLinkDeserializer.deserializeInputWithType(jsv, elem.irType)
+    val wdlValue2 = parameterLinkDeserializer.deserializeInputWithType(jsv, elem.irType, name2)
     wdlValue2 should be(elem.irValue)
   }
 

@@ -317,18 +317,21 @@ object WdlUtils {
 
   def toIRType(wdlType: T): Type = {
     wdlType match {
-      case T_Boolean     => TBoolean
-      case T_Int         => TInt
-      case T_Float       => TFloat
-      case T_String      => TString
-      case T_File        => TFile
-      case T_Directory   => TDirectory
-      case T_Object      => THash
-      case T_Optional(t) => TOptional(toIRType(t))
-      case T_Array(t, nonEmpty) =>
-        TArray(toIRType(t), nonEmpty)
-      case struct: T_Struct =>
-        toIRSchema(struct)
+      case T_Boolean                                   => TBoolean
+      case T_Int                                       => TInt
+      case T_Float                                     => TFloat
+      case T_String                                    => TString
+      case T_File                                      => TFile
+      case T_Directory                                 => TDirectory
+      case T_Object                                    => THash
+      case T_Optional(t)                               => TOptional(toIRType(t))
+      case T_Array(t, true) if TypeUtils.isOptional(t) =>
+        // an array with an optional item type may be serialized
+        // as an empty array if all the items are None, so we
+        // need to treat it as nonEmpty = false
+        TArray(toIRType(t))
+      case T_Array(t, nonEmpty) => TArray(toIRType(t), nonEmpty)
+      case struct: T_Struct     => toIRSchema(struct)
       case T_Pair(leftType, rightType) =>
         createPairSchema(toIRType(leftType), toIRType(rightType))
       case T_Map(keyType, valueType) =>
