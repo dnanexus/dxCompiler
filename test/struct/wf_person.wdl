@@ -1,32 +1,45 @@
 version 1.0
 
 struct Person {
-    String name
-    Int age
+  String name
+  Int age
 }
 
 task printPerson {
-    input {
-        Person a
+  input {
+    Person person
+    Int years
+  }
+
+  command {
+    echo "hello my name is ${person.name} and I am ${person.age} years old, although writing WDL has aged me ~{years} years"
+  }
+
+  output {
+    Person older_person = object {
+      name: person.name,
+      age: person.age + years
     }
-    command {
-        echo "hello my name is ${a.name} and I am ${a.age} years old"
-    }
-    output {
-        String result = read_string(stdout())
-    }
+    String message = read_string(stdout())
+  }
 }
 
 workflow wf_person {
-    input {
-        Person a
-    }
+  input {
+    Array[Person] people
+    Array[Int] years
+  }
 
+  scatter (item in zip(people, years)) {
     call printPerson {
-        input: a = a
+      input:
+        person = item.left,
+        years =  item.right
     }
+  }
 
-    output {
-        String result = printPerson.result
-    }
+  output {
+    Array[Person] older_people = printPerson.older_person
+    Array[String] messages = printPerson.message
+  }
 }
