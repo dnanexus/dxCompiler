@@ -1088,7 +1088,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
             val jsValue = outputs.get(nameEncoded).orElse(longNameEncoded.flatMap(outputs.get))
             (irType, jsValue) match {
               case (_, Some(jsValue)) =>
-                Some(jobMeta.inputDeserializer.deserializeInputWithType(jsValue, irType))
+                Some(jobMeta.inputDeserializer.deserializeInputWithType(jsValue, irType, name))
               case (TOptional(_), None) => None
               case (_, None)            =>
                 // Required output that is missing
