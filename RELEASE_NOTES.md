@@ -1,6 +1,6 @@
 # Release Notes
 
-## 2.4.7 2021-06-08
+## 2.4.7 2021-06-09
 
 * Fixes issue with using struct types in workflow outputs
 * Fixes issue with array with optional item type
