@@ -686,12 +686,17 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     // upload the files, and map their local paths to their remote URIs
     // if using manifests, we need to upload the files directly to the project
     val destFolder = Option.when(jobMeta.useManifests)(jobMeta.manifestFolder)
+
+    def ensureAbsolute(basename: String): String = {
+      destFolder.map(f => s"${f}/${basename}").getOrElse(s"/${basename}")
+    }
+
     val fileToDelocalizedUri: Map[Path, String] = fileUploader
       .uploadFilesWithDestination(
           delocalizingFileToPath.toMap.map {
             case (file, path) =>
               val basename = file.basename.getOrElse(path.getFileName.toString)
-              path -> destFolder.map(f => s"${f}/${basename}").getOrElse(basename)
+              path -> ensureAbsolute(basename)
           },
           wait = waitOnUpload
       )
@@ -703,7 +708,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
           delocalizingFolderToPath.toMap.map {
             case (folder, path) =>
               val basename = folder.basename.getOrElse(path.getFileName.toString)
-              path -> destFolder.map(f => s"${f}/${basename}").getOrElse(basename)
+              path -> ensureAbsolute(basename)
           },
           wait = waitOnUpload
       )

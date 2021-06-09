@@ -430,6 +430,66 @@ def find_test_from_exec(exec_obj):
     raise RuntimeError("Test for {} {} not found".format(exec_obj, exec_name))
 
 
+def download_result_file(result):
+    # the result is a file - download it and extract the contents
+    dlpath = os.path.join(tempfile.mkdtemp(), "result.txt")
+    dxpy.download_dxfile(result["$dnanexus_link"], dlpath)
+    with open(dlpath, "r") as inp:
+        return str(inp.read()).strip()
+
+
+# result may be a string or an object with class="File"
+# expected_val is an object with class="File"
+def compare_result_file(result, expected_val, field_name, tname):
+    if "checksum" in expected_val:
+        algo, expected_digest = expected_val["checksum"].split("$")
+    else:
+        algo =
+
+    if isinstance(result, dict):
+        contents = result.get("contents")
+        size = result.get("size") or (len(contents) if contents else None)
+        checksum = result.get("checksum")
+    else:
+        contents = result
+
+    # the result is a cwl File - match the contents, checksum, and/or size
+    if "contents" in expected_val and contents != expected_val["contents"]:
+        cprint("Analysis {} gave unexpected results".format(tname), "red")
+        cprint(
+            "Field {} should have contents ({}), actual = ({})".format(
+                field_name, expected_val["contents"], result.get("contents")
+            ),
+            "red",
+        )
+        return False
+
+    if "size" in expected_val and len(contents) != expected_val["size"]:
+        cprint("Analysis {} gave unexpected results".format(tname), "red")
+        cprint(
+            "Field {} should have size ({}), actual = ({})".format(
+                field_name, expected_val["size"], len(contents)
+            ),
+            "red",
+        )
+        return False
+    if "checksum" in result:
+        algo, expected_digest = expected_val["checksum"].split("$")
+        actual_digest = get_checksum(contents, algo)
+        if actual_digest not in (expected_digest, None):
+            cprint("Analysis {} gave unexpected results".format(tname), "red")
+            cprint(
+                "Field {} should have size ({}), actual = ({})".format(
+                    field_name, expected_digest, actual_digest
+                ),
+                "red",
+            )
+            return False
+
+
+def compare_result_directory(result, expected_val, field_name, tname):
+
+
 # Check that a workflow returned the expected result for
 # a [key]
 def validate_result(tname, exec_outputs: dict, key, expected_val):
@@ -465,44 +525,11 @@ def validate_result(tname, exec_outputs: dict, key, expected_val):
             result.sort()
             expected_val.sort()
         if isinstance(result, dict) and "$dnanexus_link" in result:
-            # the result is a file - download it and extract the contents
-            dlpath = os.path.join(tempfile.mkdtemp(), "result.txt")
-            dxpy.download_dxfile(result["$dnanexus_link"], dlpath)
-            with open(dlpath, "r") as inp:
-                result = inp.read()
-        if isinstance(result, dict) and isinstance(expected_val, dict) and expected_val.get("class") == "File":
-            contents = str(result).strip()
-            # the result is a cwl File - match the contents, checksum, and/or size
-            if "contents" in result and len(contents) != result["size"]:
-                cprint("Analysis {} gave unexpected results".format(tname), "red")
-                cprint(
-                    "Field {} should have contents ({}), actual = ({})".format(
-                        field_name1, result["contents"], contents
-                    ),
-                    "red",
-                )
-                return False
-            if "size" in result and len(contents) != result["size"]:
-                cprint("Analysis {} gave unexpected results".format(tname), "red")
-                cprint(
-                    "Field {} should have size ({}), actual = ({})".format(
-                        field_name1, result["size"], len(contents)
-                    ),
-                    "red",
-                )
-                return False
-            if "checksum" in result:
-                algo, expected_digest = result["checksum"].split("$")
-                actual_digest = get_checksum(contents, algo)
-                if actual_digest not in (expected_digest, None):
-                    cprint("Analysis {} gave unexpected results".format(tname), "red")
-                    cprint(
-                        "Field {} should have size ({}), actual = ({})".format(
-                            field_name1, expected_digest, actual_digest
-                        ),
-                        "red",
-                    )
-                    return False
+            result = download_result_file(result)
+        if isinstance(expected_val, dict) and expected_val.get("class") == "File":
+            compare_result_file(result, expected_val, field_name1, tname)
+        elif isinstance(expected_val, dict) and expected_val.get("class") == "Directory":
+            compare_result_directory(result, expected_val, field_name1, tname)
         elif str(result).strip() != str(expected_val).strip():
             cprint("Analysis {} gave unexpected results".format(tname), "red")
             cprint(
