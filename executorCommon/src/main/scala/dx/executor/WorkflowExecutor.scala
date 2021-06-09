@@ -109,15 +109,17 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
       case other     => throw new Exception(s"Bad value ${other}")
     }
 
-  private lazy val jobInputs: Map[String, (Type, Value)] = jobMeta.jsInputs.collect {
-    case (name, jsValue) if !name.endsWith(ParameterLink.FlatFilesSuffix) =>
-      val fqn = Parameter.decodeName(name)
-      val irType = fqnDictTypes.getOrElse(
-          fqn,
-          throw new Exception(s"Did not find variable ${fqn} (${name}) in the block environment")
-      )
-      val irValue = jobMeta.inputDeserializer.deserializeInputWithType(jsValue, irType)
-      fqn -> (irType, irValue)
+  private lazy val jobInputs: Map[String, (Type, Value)] = {
+    jobMeta.jsInputs.collect {
+      case (name, jsValue) if !name.endsWith(ParameterLink.FlatFilesSuffix) =>
+        val fqn = Parameter.decodeName(name)
+        val irType = fqnDictTypes.getOrElse(
+            fqn,
+            throw new Exception(s"Did not find variable ${fqn} (${name}) in the block environment")
+        )
+        val irValue = jobMeta.inputDeserializer.deserializeInputWithType(jsValue, irType, fqn)
+        fqn -> (irType, irValue)
+    }
   }
 
   protected def evaluateInputs(jobInputs: Map[String, (Type, Value)]): Map[String, (Type, Value)]
@@ -506,10 +508,13 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
       val nameEncoded = Parameter.encodeName(name)
       val longNameEncoded = execName.map(e => Parameter.encodeName(s"${e}.${name}"))
       val arrayValue = childOutputs.flatMap { outputs =>
-        val jsValue = outputs.get(nameEncoded).orElse(longNameEncoded.flatMap(outputs.get))
-        (irType, jsValue) match {
-          case (_, Some(jsValue)) =>
-            Some(jobMeta.inputDeserializer.deserializeInputWithType(jsValue, irType))
+        val nameAndJsValue = outputs
+          .get(nameEncoded)
+          .map(jsv => (nameEncoded, Some(jsv)))
+          .orElse(longNameEncoded.map(n => (n, outputs.get(n))))
+        (irType, nameAndJsValue) match {
+          case (_, Some((name, Some(jsValue)))) =>
+            Some(jobMeta.inputDeserializer.deserializeInputWithType(jsValue, irType, name))
           case (TOptional(_), None) => None
           case (_, None)            =>
             // Required output that is missing

@@ -4,6 +4,7 @@ addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.5.1")
 addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.2.1")
 // sbt-github-packages plugin used to publish snapshot versions to github packages
 addSbtPlugin("com.codecommit" % "sbt-github-packages" % "0.5.2")
+addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "0.10.0-RC1")
 
 // workaround for missing static SLF4J binder for logback
 libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3"

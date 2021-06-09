@@ -363,7 +363,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
             )
             inputDeserializer.deserializeInput(value)
           case Some(t) =>
-            inputDeserializer.deserializeInputWithType(value, t)
+            inputDeserializer.deserializeInputWithType(value, t, key)
         }
         key -> irValue
     }

@@ -366,11 +366,12 @@ object ValueSerde extends DefaultJsonProtocol {
   def deserializeWithType(
       jsValue: JsValue,
       t: Type,
+      name: String = "",
       handler: Option[(JsValue, Type) => Either[JsValue, Value]] = None,
       dxApi: DxApi = DxApi.get,
       dxFileDescCache: Option[DxFileDescCache] = None
   ): Value = {
-    def inner(innerValue: JsValue, innerType: Type): Value = {
+    def inner(innerValue: JsValue, innerType: Type, innerName: String): Value = {
       val v = handler.map(_(innerValue, innerType)) match {
         case Some(Right(result))    => return result
         case Some(Left(newJsValue)) => newJsValue
@@ -378,23 +379,23 @@ object ValueSerde extends DefaultJsonProtocol {
       }
       (innerType, v) match {
         case (TOptional(_), JsNull) => VNull
-        case (TOptional(t), _)      => inner(v, t)
+        case (TOptional(t), _)      => inner(v, t, innerName)
         case (any: TMulti, _) if any.bounds.isEmpty && isWrappedValue(v) =>
-          inner(unwrapValue(v), any)
+          inner(unwrapValue(v), any, innerName)
         case (TMulti(bounds), _) if bounds.isEmpty => deserialize(v)
         case (TMulti(bounds), _) =>
           val unwrappedValue = unwrapValue(v)
           bounds.iterator
             .collectFirstDefined { t =>
               try {
-                Some(inner(unwrappedValue, t))
+                Some(inner(unwrappedValue, t, innerName))
               } catch {
                 case _: ValueSerdeException => None
               }
             }
             .getOrElse(
                 throw ValueSerdeException(
-                    s"value ${unwrappedValue} does not match any of ${bounds}"
+                    s"${innerName} value ${unwrappedValue} does not match any of ${bounds}"
                 )
             )
         case (TBoolean, JsBoolean(b))                                => VBoolean(b.booleanValue)
@@ -408,9 +409,14 @@ object ValueSerde extends DefaultJsonProtocol {
         case (TFile, obj: JsObject) if DxFile.isLinkJson(obj) =>
           VFile(deserializeDxFileUri(obj, dxApi, dxFileDescCache))
         case (TArray(_, true), JsArray(items)) if items.isEmpty =>
-          throw ValueSerdeException(s"Cannot convert empty array to non-empty type ${innerType}")
+          throw ValueSerdeException(
+              s"Cannot convert ${innerName} empty array to non-empty type ${innerType}"
+          )
         case (TArray(t, _), JsArray(items)) =>
-          VArray(items.map(x => inner(x, t)))
+          VArray(items.zipWithIndex.map {
+            case (x, index) =>
+              inner(x, t, s"${innerName}[${index}]")
+          })
         case (TSchema(name, fieldTypes), JsObject(fields)) =>
           // ensure 1) fields keys are a subset of typeTypes keys, 2) fields
           // values are convertible to the corresponding types, and 3) any keys
@@ -433,7 +439,8 @@ object ValueSerde extends DefaultJsonProtocol {
             )
           }
           VHash(fieldTypes.collect {
-            case (name, t) if fields.contains(name) => name -> inner(fields(name), t)
+            case (name, t) if fields.contains(name) =>
+              name -> inner(fields(name), t, s"${innerName}.${name}")
           })
         case (THash, JsObject(fields)) =>
           VHash(
@@ -446,10 +453,12 @@ object ValueSerde extends DefaultJsonProtocol {
         case (TEnum(symbols), JsString(s)) if symbols.contains(s) =>
           VString(s)
         case _ =>
-          throw ValueSerdeException(s"cannot deserialize value ${innerValue} as type ${innerType}")
+          throw ValueSerdeException(
+              s"cannot deserialize ${innerName} value ${innerValue} as type ${innerType}"
+          )
       }
     }
-    inner(jsValue, t)
+    inner(jsValue, t, name)
   }
 
   def deserializeMap(m: Map[String, JsValue]): Map[String, Value] = {

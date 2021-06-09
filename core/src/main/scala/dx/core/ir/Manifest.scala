@@ -99,7 +99,7 @@ case class Manifest(jsValues: Map[String, JsValue],
     jsValues.map {
       case (name, jsv) if types.isDefined =>
         val irType = types.get(name)
-        name -> deserializer.deserializeInputWithType(jsv, irType)
+        name -> deserializer.deserializeInputWithType(jsv, irType, name)
       case (name, jsv) =>
         name -> deserializer.deserializeInput(jsv)
     }

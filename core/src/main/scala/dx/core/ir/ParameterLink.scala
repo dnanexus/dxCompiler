@@ -271,8 +271,14 @@ case class ParameterLinkDeserializer(dxFileDescCache: DxFileDescCache, dxApi: Dx
   def deserializeInputWithType(
       jsv: JsValue,
       t: Type,
+      name: String,
       handler: Option[(JsValue, Type) => Either[JsValue, Value]] = None
   ): Value = {
-    ValueSerde.deserializeWithType(unwrapComplex(jsv), t, handler, dxApi, Some(dxFileDescCache))
+    ValueSerde.deserializeWithType(unwrapComplex(jsv),
+                                   t,
+                                   name,
+                                   handler,
+                                   dxApi,
+                                   Some(dxFileDescCache))
   }
 }

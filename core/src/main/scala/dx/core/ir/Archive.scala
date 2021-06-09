@@ -241,6 +241,7 @@ trait Archive {
   val path: Path
   val irType: Type
   val irValue: Value
+  val typeAliases: Map[String, TSchema]
   val localized: Boolean
 }
 
@@ -358,8 +359,9 @@ object Archive {
   * @param packedTypeAndValue the already localized type and value
   * @param mountDir parent dir in which to create the randomly named mount point
   */
-case class PackedArchive(path: Path, encoding: Charset = FileUtils.DefaultEncoding)(
-    typeAliases: Map[String, TSchema] = Map.empty,
+case class PackedArchive(path: Path,
+                         typeAliases: Map[String, TSchema] = Map.empty,
+                         encoding: Charset = FileUtils.DefaultEncoding)(
     packedTypeAndValue: Option[(Type, Value)] = None,
     mountDir: Option[Path] = None
 ) extends Archive {
@@ -391,7 +393,9 @@ case class PackedArchive(path: Path, encoding: Charset = FileUtils.DefaultEncodi
       }
     val (irType, _) = TypeSerde.deserializeOne(manifestJs, typeAliases)
     val irValue =
-      ValueSerde.deserializeWithType(manifestJs.fields(Archive.ManifestValueKey), irType)
+      ValueSerde.deserializeWithType(manifestJs.fields(Archive.ManifestValueKey),
+                                     irType,
+                                     Archive.ManifestValueKey)
     (irType, irValue)
   }
 
@@ -419,7 +423,9 @@ case class PackedArchive(path: Path, encoding: Charset = FileUtils.DefaultEncodi
       archive.mount()
     }
     val localizedArchive =
-      LocalizedArchive(t, localizedValue)(Some(archive, v), Some(archive.mountPoint), name)
+      LocalizedArchive(t, localizedValue, typeAliases)(Some(archive, v),
+                                                       Some(archive.mountPoint),
+                                                       name)
     (localizedArchive, filePaths.values.toVector)
   }
 
@@ -450,6 +456,7 @@ case class PackedArchive(path: Path, encoding: Charset = FileUtils.DefaultEncodi
 case class LocalizedArchive(
     irType: Type,
     irValue: Value,
+    typeAliases: Map[String, TSchema] = Map.empty,
     encoding: Charset = FileUtils.DefaultEncoding
 )(packedArchiveAndValue: Option[(SquashFs, Value)] = None,
   parentDir: Option[Path] = None,
@@ -515,7 +522,7 @@ case class LocalizedArchive(
       createArchive(irType, delocalizedValue, filePaths, removeSourceFiles)
       delocalizedValue
     }
-    PackedArchive(path, encoding)(packedTypeAndValue = Some(irType, delocalizedValue))
+    PackedArchive(path, typeAliases, encoding)(Some(irType, delocalizedValue))
   }
 
   def isOpen: Boolean = {
@@ -532,6 +539,7 @@ case class LocalizedArchive(
     JsObject(
         "type" -> TypeSerde.serializeOne(irType),
         "value" -> ValueSerde.serialize(irValue),
+        "typeAliases" -> JsObject(TypeSerde.serializeMap(typeAliases)._1),
         "packedValue" -> packedArchiveAndValue
           .map {
             case (_, v) => ValueSerde.serialize(v)
@@ -548,11 +556,33 @@ case class LocalizedArchive(
 object LocalizedArchive {
   def fromJson(jsValue: JsValue, schemas: Map[String, TSchema]): LocalizedArchive = {
     jsValue.asJsObject
-      .getFields("type", "value", "packedValue", "fs", "encoding", "parentDir", "name") match {
-      case Seq(typeJs, valueJs, packedValueJs, fsJs, encodingJs, parentDirJs, nameJs) =>
+      .getFields("type",
+                 "value",
+                 "typeAliases",
+                 "packedValue",
+                 "fs",
+                 "encoding",
+                 "parentDir",
+                 "name") match {
+      case Seq(typeJs,
+               valueJs,
+               typeAliasesJs,
+               packedValueJs,
+               fsJs,
+               encodingJs,
+               parentDirJs,
+               nameJs) =>
         val (irType, _) = TypeSerde.deserializeOne(typeJs, schemas)
         val irValue = ValueSerde.deserializeWithType(valueJs, irType)
         val archive = SquashFs.fromJson(fsJs)
+        val typeAliases = typeAliasesJs match {
+          case JsObject(aliases) =>
+            TypeSerde.deserializeSchemas(aliases).collect {
+              case (name, schema: TSchema) => name -> schema
+            }
+          case other =>
+            throw new Exception(s"invalid typeAliases ${other}")
+        }
         val packedArchiveAndValue = packedValueJs match {
           case JsNull => None
           case v =>
@@ -570,7 +600,9 @@ object LocalizedArchive {
           case JsNull         => None
           case _              => throw new Exception(s"invalid name ${nameJs}")
         }
-        LocalizedArchive(irType, irValue, encoding)(packedArchiveAndValue, parentDir, name)
+        LocalizedArchive(irType, irValue, typeAliases, encoding)(packedArchiveAndValue,
+                                                                 parentDir,
+                                                                 name)
       case _ =>
         throw new Exception(s"invalid serialized LocalizedArchive value ${jsValue}")
     }

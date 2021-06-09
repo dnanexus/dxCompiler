@@ -162,7 +162,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
           obj.getFields("type", "value") match {
             case Seq(typeJs, valueJs) =>
               val (irType, newSchemas) = TypeSerde.deserialize(typeJs, schemaAccu)
-              val irValue = ValueSerde.deserializeWithType(valueJs, irType)
+              val irValue = ValueSerde.deserializeWithType(valueJs, irType, key)
               (newSchemas, paramAccu + (key -> (irType, irValue)))
             case _ =>
               throw new Exception("invalid env file")
