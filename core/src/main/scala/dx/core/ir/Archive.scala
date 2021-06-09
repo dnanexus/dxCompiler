@@ -359,7 +359,9 @@ case class PackedArchive(path: Path, encoding: Charset = FileUtils.DefaultEncodi
       }
     val (irType, _) = TypeSerde.deserializeOne(manifestJs, typeAliases)
     val irValue =
-      ValueSerde.deserializeWithType(manifestJs.fields(Archive.ManifestValueKey), irType)
+      ValueSerde.deserializeWithType(manifestJs.fields(Archive.ManifestValueKey),
+                                     irType,
+                                     Archive.ManifestValueKey)
     (irType, irValue)
   }
 
