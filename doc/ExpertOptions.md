@@ -410,10 +410,10 @@ workflow w {
 
 ### Calling apps
 
-To call apps instead of applets, use
+To generate WDL calling apps instead of applets, use
 
 ```console
-$ java -jar dxCompiler.jar dxni -apps -o my_apps.wdl
+$ java -jar dxCompiler.jar dxni -apps only -o my_apps.wdl
 ```
 
 The compiler will search for all the apps you can call, and create WDL
