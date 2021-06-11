@@ -132,6 +132,7 @@ $ dx run files -f test/files_input.dx.json
 Both CWL and the development version of WDL have a `Directory` data type. Although DNAnexus does not treat folders as first-class objects, dxCompiler does support `Directory`-typed inputs and outputs, with some caveats.
 
 A folder within a DNAnexus project can be represented as a URI of the following form: `dx://project-xxx:/path/to/folder/`. This can be specified in a standard WDL JSON input file as:
+
     ```json
     {
       "mytask.dir": "dx://project-xxx:/path/to/folder/"
@@ -157,6 +158,7 @@ A second important caveat, which results from the fact that folders are not trea
     * Disable job reuse when running executables with `Directory`-type inputs.
     * Enact policies and practices to prevent modification of folders that will be used as input to a task when job reuse is enabled.
     * If you are using CWL, you may specify the folder listing in your input file. A job will only be reused if both the folder and the listing are identical. The ordering of the listing is taken into consideration when making the comparison, so the listing must be generated deterministically. The default behavior of dxCompiler when using the `-input` option is to generate input files with full listings for all directories, unless the `-noListings` option is specified. An example of a folder with a listing is:
+
     ```json
     {
       "mytask.dir": {
@@ -203,7 +205,7 @@ default runtime attributes of a task.
 
 If this is file `extraOptions.json`:
 
-```
+```json
 {
     "defaultRuntimeAttributes" : {
       "docker" : "quay.io/encode-dcc/atac-seq-pipeline:v1"
