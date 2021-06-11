@@ -10,9 +10,13 @@ import spray.json._
 
 case class DxfuseManifest(value: JsValue)
 
+// TODO: support using folder listings to restrict which files/subdirs
+//  are synced for a given remote folder - this requires a change in
+//  dxfuse
 case class DxfuseManifestBuilder(dxApi: DxApi, logger: Logger = Logger.get) {
   def apply(fileToLocalMapping: Map[DxFile, Path],
             folderToLocalMapping: Map[(String, String), Path],
+            folderListings: Map[(String, String), Set[Path]],
             workerPaths: DxWorkerPaths): Option[DxfuseManifest] = {
     if (fileToLocalMapping.isEmpty) {
       return None

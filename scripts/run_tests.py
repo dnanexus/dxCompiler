@@ -329,6 +329,7 @@ def get_cwl_metadata(filename, tname):
 
     raise RuntimeError("{} is not a valid CWL tool test".format(filename))
 
+
 def get_cwl_json_metadata(filename, tname):
     with open(filename, 'r') as fd:
         doc = json.load(fd)
@@ -430,69 +431,261 @@ def find_test_from_exec(exec_obj):
     raise RuntimeError("Test for {} {} not found".format(exec_obj, exec_name))
 
 
-def download_result_file(result):
+def link_to_dxfile(link, project):
+    fields = link["$dnanexus_link"]
+    if isinstance(fields, str):
+        return dxpy.DXFile(fields, project)
+    else:
+        return dxpy.DXFile(fields["id"], fields.get("project", project))
+
+
+file_cache = {}
+
+
+def download_dxfile(dxfile):
+    key = (dxfile.get_proj_id(), dxfile.get_id())
+    if key in file_cache:
+        return file_cache[key]
     # the result is a file - download it and extract the contents
-    dlpath = os.path.join(tempfile.mkdtemp(), "result.txt")
-    dxpy.download_dxfile(result["$dnanexus_link"], dlpath)
-    with open(dlpath, "r") as inp:
-        return str(inp.read()).strip()
+    dlpath = os.path.join(tempfile.mkdtemp(), dxfile.describe()["name"])
+    dxpy.download_dxfile(dxfile, dlpath)
+    try:
+        with open(dlpath, "r") as inp:
+            contents = str(inp.read()).strip()
+            file_cache[key] = contents
+            return contents
+    finally:
+        if os.path.exists(dlpath):
+            os.remove(dlpath)
 
 
-# result may be a string or an object with class="File"
-# expected_val is an object with class="File"
-def compare_result_file(result, expected_val, field_name, tname):
+# result may be a string with contents of the file, a dx link object, a
+#   serialized CwlFile (an object with class="File") or a serialized
+#   VFile (an object with type="File")
+# expected_val is a serialized CwlFile
+def compare_result_file(result, expected_val, field_name, tname, project, verbose=True):
     if "checksum" in expected_val:
-        algo, expected_digest = expected_val["checksum"].split("$")
+        algo, expected_checksum = expected_val["checksum"].split("$")
     else:
-        algo =
+        algo = None
+        expected_checksum = None
 
-    if isinstance(result, dict):
-        contents = result.get("contents")
-        size = result.get("size") or (len(contents) if contents else None)
-        checksum = result.get("checksum")
-    else:
+    location = None
+    size = None
+    checksum = None
+    secondary_files = None
+
+    if isinstance(result, str):
         contents = result
+    elif result.get("class", result.get("type")) == "File":
+        contents = result.get("contents")
+        location = result.get("location", result.get("path", result.get("uri")))
+        size = result.get("size")
+        checksum = result.get("checksum")
+        secondary_files = set(result.get("secondaryFiles", []))
+    elif "$dnanexus_link" in result:
+        dxfile = link_to_dxfile(result, project)
+        contents = download_dxfile(dxfile)
+        location = os.path.join(dxfile.describe()["folder"], dxfile.describe()["name"])
+    else:
+        raise Exception("unsupported file value {}".format(result))
+
+    expected_location = expected_val.get("location", expected_val.get("path"))
+    expected_basename = expected_val.get("basename", os.path.basename(expected_location) if expected_location else None)
+    if expected_basename:
+        basename = os.path.basename(location) if location else None
+        if basename != expected_basename:
+            if verbose:
+                cprint("Analysis {} gave unexpected results".format(tname), "red")
+                cprint(
+                    "Field {} should have location/path with basename ({}), actual = ({})".format(
+                        field_name, expected_basename, basename
+                    ),
+                    "red"
+                )
+            return False
 
     # the result is a cwl File - match the contents, checksum, and/or size
     if "contents" in expected_val and contents != expected_val["contents"]:
-        cprint("Analysis {} gave unexpected results".format(tname), "red")
-        cprint(
-            "Field {} should have contents ({}), actual = ({})".format(
-                field_name, expected_val["contents"], result.get("contents")
-            ),
-            "red",
-        )
-        return False
-
-    if "size" in expected_val and len(contents) != expected_val["size"]:
-        cprint("Analysis {} gave unexpected results".format(tname), "red")
-        cprint(
-            "Field {} should have size ({}), actual = ({})".format(
-                field_name, expected_val["size"], len(contents)
-            ),
-            "red",
-        )
-        return False
-    if "checksum" in result:
-        algo, expected_digest = expected_val["checksum"].split("$")
-        actual_digest = get_checksum(contents, algo)
-        if actual_digest not in (expected_digest, None):
+        if verbose:
             cprint("Analysis {} gave unexpected results".format(tname), "red")
             cprint(
-                "Field {} should have size ({}), actual = ({})".format(
-                    field_name, expected_digest, actual_digest
+                "Field {} should have contents ({}), actual = ({})".format(
+                    field_name, expected_val["contents"], result.get("contents")
                 ),
-                "red",
+                "red"
             )
+        return False
+
+    if "size" in expected_val:
+        size |= (len(contents) if contents else None)
+        if size != expected_val["size"]:
+            if verbose:
+                cprint("Analysis {} gave unexpected results".format(tname), "red")
+                cprint(
+                    "Field {} should have size ({}), actual = ({})".format(
+                        field_name, expected_val["size"], len(contents)
+                    ),
+                    "red"
+                )
             return False
 
+    if expected_checksum:
+        checksum |= (get_checksum(contents, algo) if contents else None)
+        if checksum != expected_checksum:
+            if verbose:
+                cprint("Analysis {} gave unexpected results".format(tname), "red")
+                cprint(
+                    "Field {} should have checksum ({}), actual = ({})".format(
+                        field_name, expected_checksum, checksum
+                    ),
+                    "red"
+                )
+            return False
 
-def compare_result_directory(result, expected_val, field_name, tname):
+    expected_secondary_files = expected_val.get("secondaryFiles")
+    if expected_secondary_files:
+        seconary_files_len = len(secondary_files) if secondary_files else 0
+        if len(expected_secondary_files) == seconary_files_len:
+            if verbose:
+                cprint("Analysis {} gave unexpected results".format(tname), "red")
+                cprint(
+                    "Field {} should have secondaryFiles ({}), actual = ({})".format(
+                        field_name, expected_secondary_files, secondary_files
+                    ),
+                    "red"
+                )
+            return False
+        for expected in expected_secondary_files:
+            for actual in secondary_files:
+                if compare_result_path(
+                        actual, expected, "{}.secondaryFiles".format(field_name), tname, project, verbose=False
+                ):
+                    secondary_files.remove(actual)
+                    break
+            else:
+                if verbose:
+                    cprint("Analysis {} gave unexpected results".format(tname), "red")
+                    cprint(
+                        "Field {} is missing secondaryFile ({}) from ({})".format(
+                            field_name, expected, secondary_files
+                        ),
+                        "red"
+                    )
+                return False
+
+    return True
+
+
+folder_cache = {}
+
+
+def list_dx_folder(project, folder):
+    # get shallow listing of remote folder
+    if isinstance(project, str):
+        project = dxpy.DXProject(project)
+    key = (project.get_id(), folder)
+    if key in folder_cache:
+        return folder_cache[key]
+    contents = project.list_folder(folder)
+    files = [
+        {"$dnanexus_link": {"id": obj["id"], "project": project.get_id()}}
+        for obj in contents["objects"]
+        if obj["id"].startswith("file-")
+    ]
+    dirs = [
+        {"type": "Folder", "uri": "dx://{}:{}".format(project.get_id(), folder)}
+        for folder in contents["folders"]
+    ]
+    listing = files + dirs
+    folder_cache[key] = listing
+    return listing
+
+
+# expected_val is a serialized CwlDirectory (an object with class="Directory")
+# result may be a serialized CwlDirectory or a serialized VFolder (an object
+#   with type="Folder")
+def compare_result_directory(result, expected_val, field_name, tname, project, verbose=True):
+    location = result.get("location", result.get("path", result.get("uri")))
+    basename = None
+    if location is not None and location.startswith("dx://"):
+        project, folder = location[5:].split(":")
+    else:
+        folder = location
+    if folder:
+        basename = os.path.basename(folder)
+
+    expected_location = expected_val.get("location", expected_val.get("path"))
+    expected_basename = expected_val.get("basename", os.path.basename(expected_location) if expected_location else None)
+    if expected_basename:
+        if basename != expected_basename:
+            if verbose:
+                cprint("Analysis {} gave unexpected results".format(tname), "red")
+                cprint(
+                    "Field {} should have location/path with basename ({}), actual = ({})".format(
+                        field_name, expected_basename, basename
+                    ),
+                    "red"
+                )
+            return False
+
+    expected_listing = expected_val.get("listing")
+    if expected_listing:
+        if "listing" in result:
+            listing = result["listing"]
+        elif not folder:
+            if verbose:
+                cprint("Analysis {} gave unexpected results".format(tname), "red")
+                cprint("Field {} is missing a folder, actual = ({})".format(field_name, result), "red")
+            return False
+        else:
+            listing = list_dx_folder(project, folder)
+        listing_len = len(listing) if listing else 0
+        if len(expected_listing) != listing_len:
+            if verbose:
+                cprint("Analysis {} gave unexpected results".format(tname), "red")
+                cprint(
+                    "Field {} should have listing ({}), actual = ({})".format(
+                        field_name, expected_listing, listing
+                    ),
+                    "red"
+                )
+            return False
+        for expected in expected_listing:
+            for actual in listing:
+                if compare_result_path(
+                        actual, expected, "{}.listing".format(field_name), tname, project, verbose=False
+                ):
+                    listing.remove(actual)
+                    break
+            else:
+                if verbose:
+                    cprint("Analysis {} gave unexpected results".format(tname), "red")
+                    cprint(
+                        "Field {} is missing item ({}) from listing ({})".format(
+                            field_name, expected, listing
+                        ),
+                        "red"
+                    )
+                return False
+
+    return True
+
+
+def compare_result_path(result, expected_val, field_name, tname, project, verbose=True):
+    cls = result.get("class", result.get("type"))
+    expected_cls = result.get("class", result.get("type"))
+    if cls == "File" and expected_cls == "File":
+        return compare_result_file(result, expected_val, field_name, tname, project, verbose)
+    elif cls in {"Directory", "Folder"} and expected_cls in {"Directory", "Folder"}:
+        return compare_result_directory(result, expected_val, field_name, tname, project, verbose)
+    else:
+        return False
 
 
 # Check that a workflow returned the expected result for
 # a [key]
-def validate_result(tname, exec_outputs: dict, key, expected_val):
+def validate_result(tname, exec_outputs: dict, key, expected_val, project):
     desc = test_files[tname]
     # Extract the key. For example, for workflow "math" returning
     # output "count":
@@ -521,24 +714,28 @@ def validate_result(tname, exec_outputs: dict, key, expected_val):
                 "red",
             )
             return False
+        if isinstance(result, dict) and "___" in result:
+            result = result["___"]
         if isinstance(result, list) and isinstance(expected_val, list):
             result.sort()
             expected_val.sort()
-        if isinstance(result, dict) and "$dnanexus_link" in result:
-            result = download_result_file(result)
-        if isinstance(expected_val, dict) and expected_val.get("class") == "File":
-            compare_result_file(result, expected_val, field_name1, tname)
-        elif isinstance(expected_val, dict) and expected_val.get("class") == "Directory":
-            compare_result_directory(result, expected_val, field_name1, tname)
-        elif str(result).strip() != str(expected_val).strip():
-            cprint("Analysis {} gave unexpected results".format(tname), "red")
-            cprint(
-                "Field {} should be ({}), actual = ({})".format(
-                    field_name1, expected_val, result
-                ),
-                "red",
-            )
-            return False
+        if isinstance(expected_val, dict) and (
+            expected_val.get("class") in {"File", "Directory"} or
+            expected_val.get("type") in {"File", "Folder"}
+        ):
+            compare_result_path(result, expected_val, field_name1, tname, project)
+        else:
+            if isinstance(result, dict) and "$dnanexus_link" in result:
+                result = download_dxfile(link_to_dxfile(result, project))
+            if str(result).strip() != str(expected_val).strip():
+                cprint("Analysis {} gave unexpected results".format(tname), "red")
+                cprint(
+                    "Field {} should be ({}), actual = ({})".format(
+                        field_name1, expected_val, result
+                    ),
+                    "red",
+                )
+                return False
         return True
     except Exception as e:
         print("exception message={}".format(e))
@@ -738,7 +935,7 @@ def run_test_subset(
             correct = True
             print("Checking results for workflow {} job {}".format(test_desc.name, i))
             for key, expected_val in shouldbe.items():
-                correct = validate_result(tname, exec_outputs, key, expected_val)
+                correct = validate_result(tname, exec_outputs, key, expected_val, project)
             anl_name = "{}.{}".format(tname, i)
             if correct:
                 print("Analysis {} passed".format(anl_name))

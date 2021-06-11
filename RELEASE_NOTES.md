@@ -1,5 +1,21 @@
 # Release Notes
 
+## in develop
+
+* Implements Directory support for CWL and for WDL development/2.0
+* Implements CWL workflow support
+* **Breaking Change**: the inputs folder is now modified to be read-only for non-streaming files (this has always been the case for streaming files). This means that tasks that create files in the inputs folder will no longer work. For example, a task that creates an index file in place for an input BAM file should be changed from:
+    ```wdl
+    command <<<
+    samtools index ~{mybam}
+    ```
+    to
+    ```wdl
+    mkdir bams
+    ln -s ~{mybam} bams/~{basename(mybam)}
+    samtools index bams/~{basename(mybam)}
+    ```
+
 ## 2.4.7 2021-06-09
 
 * Fixes issue with using struct types in workflow outputs

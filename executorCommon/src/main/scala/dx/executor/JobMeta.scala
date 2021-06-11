@@ -595,6 +595,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 
   def instanceType: Option[String]
 
+  def folder: String
+
   def getJobDetail(name: String): Option[JsValue]
 
   def getExecutableAttribute(name: String): Option[JsValue]
@@ -735,7 +737,7 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths
   def jobId: String = dxApi.currentJob.id
 
   private lazy val jobDesc: DxJobDescribe = dxApi.currentJob.describe(
-      Set(Field.Executable, Field.Details, Field.InstanceType)
+      Set(Field.Executable, Field.Details, Field.InstanceType, Field.Folder)
   )
 
   private lazy val jobDetails: Map[String, JsValue] =
@@ -778,6 +780,8 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths
   def parentJob: Option[DxJob] = jobDesc.parentJob
 
   def instanceType: Option[String] = jobDesc.instanceType
+
+  def folder: String = jobDesc.folder.get
 
   def getJobDetail(name: String): Option[JsValue] = jobDetails.get(name)
 

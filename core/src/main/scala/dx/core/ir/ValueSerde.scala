@@ -55,7 +55,7 @@ object ValueSerde extends DefaultJsonProtocol {
       innerPath match {
         case VFile(uri, None, None, None, None, Vector(), None) if !pathsAsObjects =>
           serializeFileUri(uri)
-        case VFolder(uri, None) if !pathsAsObjects =>
+        case VFolder(uri, None, None) if !pathsAsObjects =>
           serializeFolderUri(uri)
         case f: VFile if pathsAsObjects =>
           JsObject(
@@ -72,12 +72,13 @@ object ValueSerde extends DefaultJsonProtocol {
                   f.format.map(f => "format" -> JsString(f))
               ).flatten.toMap
           )
-        case VFolder(uri, basename) if pathsAsObjects =>
+        case VFolder(uri, basename, listing) if pathsAsObjects =>
           JsObject(
               Vector(
                   Some("type" -> JsString("Folder")),
                   Some("uri" -> serializeFolderUri(uri)),
-                  basename.map("basename" -> JsString(_))
+                  basename.map("basename" -> JsString(_)),
+                  listing.map(l => "listing" -> JsArray(l.map(inner)))
               ).flatten.toMap
           )
         case VListing(basename, listing) =>
@@ -264,6 +265,16 @@ object ValueSerde extends DefaultJsonProtocol {
   def deserializePathObject(jsv: JsValue,
                             dxApi: DxApi = DxApi.get,
                             dxFileDescCache: Option[DxFileDescCache] = None): PathValue = {
+    def deserializeListing(fields: Map[String, JsValue]): Option[Vector[PathValue]] = {
+      JsUtils
+        .getOptionalValues(fields, "listing")
+        .map {
+          _.map {
+            case obj: JsObject => deserializePathObject(obj)
+            case other         => throw new Exception(s"invalid path ${other}")
+          }
+        }
+    }
     def inner(innerValue: JsValue): PathValue = {
       innerValue match {
         case JsObject(fields) =>
@@ -289,20 +300,13 @@ object ValueSerde extends DefaultJsonProtocol {
             case Some(JsString("Folder")) =>
               VFolder(
                   deserializeDxFileUri(fields("uri"), dxApi, dxFileDescCache),
-                  JsUtils.getOptionalString(fields, "basename")
+                  JsUtils.getOptionalString(fields, "basename"),
+                  deserializeListing(fields)
               )
             case Some(JsString("Listing")) =>
               VListing(
                   JsUtils.getString(fields, "basename"),
-                  JsUtils
-                    .getOptionalValues(fields, "listing")
-                    .map {
-                      _.map {
-                        case obj: JsObject => deserializePathObject(obj)
-                        case other         => throw new Exception(s"invalid path ${other}")
-                      }
-                    }
-                    .getOrElse(Vector.empty)
+                  deserializeListing(fields).getOrElse(Vector.empty)
               )
             case _ =>
               throw new Exception(s"invalid serialized PathValue ${fields}")

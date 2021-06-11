@@ -43,6 +43,8 @@ private case class WorkflowTestJobMeta(override val workerPaths: DxWorkerPaths,
 
   override val instanceType: Option[String] = Some(WorkflowTestJobMeta.InstanceType)
 
+  override def folder: String = "/"
+
   override def getJobDetail(name: String): Option[JsValue] = None
 
   override def getExecutableAttribute(name: String): Option[JsValue] = None

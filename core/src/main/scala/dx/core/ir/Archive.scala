@@ -7,7 +7,7 @@ import dx.core.ir.Value._
 import dx.util.{FileUtils, JsUtils, Logger, SysUtils}
 import spray.json._
 
-import scala.collection.immutable.TreeSeqMap
+import scala.collection.immutable.SeqMap
 
 /**
   * Interface for mounting or appending to a squashfs image.
@@ -267,60 +267,71 @@ object Archive {
     */
   def transformPaths(irValue: Value,
                      irType: Type,
-                     transformer: Path => Path): (Value, Map[Path, Path]) = {
-    def transformFile(value: Value): (VFile, Map[Path, Path]) = {
+                     transformer: Path => Path): (Value, SeqMap[Path, Path]) = {
+    def transformFile(value: Value): (VFile, SeqMap[Path, Path]) = {
       value match {
         case f: VFile =>
           val oldPath = Paths.get(f.uri)
           val newPath = transformer(oldPath)
-          (f.copy(uri = newPath.toString), TreeSeqMap(oldPath -> newPath))
+          (f.copy(uri = newPath.toString), SeqMap(oldPath -> newPath))
         case VString(s) =>
           val oldPath = Paths.get(s)
           val newPath = transformer(oldPath)
-          (VFile(newPath.toString), TreeSeqMap(oldPath -> newPath))
+          (VFile(newPath.toString), SeqMap(oldPath -> newPath))
         case _ =>
           throw new Exception(s"cannot transform ${value} to file")
       }
     }
-    def transformDirectory(value: Value): (DirectoryValue, Map[Path, Path]) = {
+    def transformDirectory(value: Value): (DirectoryValue, SeqMap[Path, Path]) = {
+      def transformListing(listing: Vector[PathValue]): (Vector[PathValue], SeqMap[Path, Path]) = {
+        val (newItems, nestedPaths) = listing.map {
+          case f: VFile          => transformFile(f)
+          case d: DirectoryValue => transformDirectory(d)
+        }.unzip
+        (newItems, nestedPaths.flatten.to(SeqMap))
+      }
       value match {
-        case f: VFolder =>
-          val oldPath = Paths.get(f.uri)
+        case f @ VFolder(uri, _, items) =>
+          val oldPath = Paths.get(uri)
           val newPath = transformer(oldPath)
-          (f.copy(uri = newPath.toString), TreeSeqMap(oldPath -> newPath))
-        case l: VListing =>
-          val (newValues, nestedPaths) = l.items.map {
-            case f: VFile          => transformFile(f)
-            case d: DirectoryValue => transformDirectory(d)
-          }.unzip
-          (l.copy(items = newValues), nestedPaths.flatten.toMap)
+          val (newItems, itemPaths) = if (items.isDefined) {
+            val (newItems, itemPaths) = transformListing(items.get)
+            (Some(newItems), itemPaths)
+          } else {
+            (None, SeqMap.empty)
+          }
+          (f.copy(uri = newPath.toString, listing = newItems),
+           SeqMap(oldPath -> newPath) ++ itemPaths)
+        case l @ VListing(_, items) =>
+          val (newItems, nestedPaths) = transformListing(items)
+          (l.copy(items = newItems), nestedPaths)
         case VString(s) =>
           val oldPath = Paths.get(s)
           val newPath = transformer(oldPath)
-          (VFolder(newPath.toString), TreeSeqMap(oldPath -> newPath))
+          (VFolder(newPath.toString), SeqMap(oldPath -> newPath))
         case _ =>
           throw new Exception(s"cannot transform ${value} to directory")
       }
     }
-    def transformNoType(innerValue: Value): (Value, Map[Path, Path]) = {
+    def transformNoType(innerValue: Value): (Value, SeqMap[Path, Path]) = {
       innerValue match {
         case f: VFile          => transformFile(f)
         case d: DirectoryValue => transformDirectory(d)
         case VArray(items) =>
           val (transformedItems, paths) = items.map(transformNoType).unzip
-          (VArray(transformedItems), paths.flatten.toMap)
+          (VArray(transformedItems), paths.flatten.to(SeqMap))
         case VHash(fields) =>
           val (transformedFields, paths) = fields.map {
             case (k, v) =>
               val (value, paths) = transformNoType(v)
               (k -> value, paths)
           }.unzip
-          (VHash(transformedFields.to(TreeSeqMap)), paths.flatten.toMap)
+          (VHash(transformedFields.to(SeqMap)), paths.flatten.to(SeqMap))
         case _ =>
-          (innerValue, Map.empty)
+          (innerValue, SeqMap.empty)
       }
     }
-    def transformWithType(innerValue: Value, innerType: Type): (Value, Map[Path, Path]) = {
+    def transformWithType(innerValue: Value, innerType: Type): (Value, SeqMap[Path, Path]) = {
       (innerType, innerValue) match {
         case (TFile, f: VFile)               => transformFile(f)
         case (TFile, s: VString)             => transformFile(s)
@@ -333,18 +344,18 @@ object Archive {
           (v, paths)
         case (TArray(itemType, _), VArray(items)) =>
           val (transformedItems, paths) = items.map(transformWithType(_, itemType)).unzip
-          (VArray(transformedItems), paths.flatten.toMap)
+          (VArray(transformedItems), paths.flatten.to(SeqMap))
         case (TSchema(_, fieldTypes), VHash(fields)) =>
           val (transformedFields, paths) = fieldTypes.collect {
             case (name, t) if fields.contains(name) =>
               val (transformedValue, paths) = transformWithType(fields(name), t)
               (name -> transformedValue, paths)
           }.unzip
-          (VHash(transformedFields.to(TreeSeqMap)), paths.flatten.toMap)
+          (VHash(transformedFields.to(SeqMap)), paths.flatten.to(SeqMap))
         case (THash, _: VHash) =>
           transformNoType(innerValue)
         case _ =>
-          (innerValue, Map.empty)
+          (innerValue, SeqMap.empty)
       }
     }
     transformWithType(irValue, irType)

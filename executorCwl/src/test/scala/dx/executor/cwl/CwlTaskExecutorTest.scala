@@ -54,6 +54,8 @@ private case class ToolTestJobMeta(override val workerPaths: DxWorkerPaths,
 
   override val instanceType: Option[String] = Some(ToolTestJobMeta.InstanceType)
 
+  override def folder: String = "/"
+
   override def getJobDetail(name: String): Option[JsValue] = None
 
   override def getExecutableAttribute(name: String): Option[JsValue] = None

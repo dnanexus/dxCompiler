@@ -53,30 +53,36 @@ Compilation can be controled with several parameters.
 | archive  | Archive older versions of applets and workflows |
 | defaults | A file with default parameter settings. The syntax is Cromwell style. |
 | destination | Set the output folder on the platform |
+| execTree | Prints a JSON or text representation of the compiled workflow |
 | extras   | JSON formatted file with additional options |
 | force    | Overwrite existing applets/workflows if they have changed |
 | inputs   | A cromwell style inputs file |
 | imports  | Directory to search for imported WDL files |
 | locked   | Create a locked-down workflow |
+| noListings | CWL-specific option to prevent full folder listings in generated input files |
+| projectWideReuse | Look for existing applets/workflows in the entire project before generating new ones. The default search scope is the target folder only. |
 | reorg    | Move workflow intermediate results into a separate subdirectory |
+| separateOutputs | Store the output files of each call in a separate folder. The default behavior is to put all outputs in the same folder. |
+| streamFiles | Whether to mount all files with dxfuse (do not use the download agent), to mount no files with dxfuse (only use download agent), or to respect the per-file settings in WDL parameter_meta sections (default). |
+| useManifests | Use [manifests](#manifests) files for all workflow and applet inputs and  outputs. Implies -locked. |
+| waitOnUpload | Whether to wait for each file upload to complete. |
 | verbose  | Print detailed progress information |
 | leaveWorkflowsOpen | Keep compiled workflow in `open` state |
 
-The `-inputs` option allows specifying a Cromwell JSON
-[format](https://software.broadinstitute.org/wdl/documentation/inputs.php)
-inputs file. An equivalent DNAx format inputs file is generated from
-it. For example, workflow
-[files](https://github.com/dnanexus/dxCompiler/blob/main/test/draft2/files.wdl)
-has input file
+### Inputs
 
-```
+The `-inputs` option allows specifying a Cromwell JSON [format](https://software.broadinstitute.org/wdl/documentation/inputs.php) inputs file. An equivalent DNAnexus format inputs file is generated from it. For example, workflow [files](https://github.com/dnanexus/dxCompiler/blob/main/test/draft2/files.wdl) has input file
+
+```json
 {
-  "files.f": "dx://file-wwww",
-  "files.f1": "dx://file-xxxx",
-  "files.f2": "dx://file-yyyy",
-  "files.fruit_list": "dx://file-zzzz"
+  "files.f": "dx://project-aaaa:file-wwww",
+  "files.f1": "dx://project-aaaa:file-xxxx",
+  "files.f2": "dx://project-aaaa:file-yyyy",
+  "files.fruit_list": "dx://project-aaaa:file-zzzz"
 }
 ```
+
+Note that the project ID should always be specified in dx URIs. This will speed up execution time by preventing the need for a more expensive API call to resolve the file.
 
 The command
 
@@ -85,19 +91,32 @@ java -jar dxCompiler-2.0.0.jar compile test/files.wdl -project project-xxxx -inp
 ```
 
 generates a `test/files_input.dx.json` file that looks like this:
-```
+
+```json
 {
   "f": {
-    "$dnanexus_link": "file-wwww"
+    "$dnanexus_link": {
+      "id": "file-wwww",
+      "project": "project-aaaa"
+    }
   },
   "f1": {
-    "$dnanexus_link": "file-xxxx"
+    "$dnanexus_link": {
+      "id": "file-xxxx",
+      "project": "project-aaaa"
+    }
   },
   "f2": {
-    "$dnanexus_link": "file-yyyy"
+    "$dnanexus_link": {
+      "id": "file-yyyy",
+      "project": "project-aaaa"
+    }
   },
   "fruit_list": {
-    "$dnanexus_link": "file-zzzz"
+    "$dnanexus_link": {
+      "id": "file-zzzz",
+      "project": "project-aaaa"
+    }
   }
 }
 ```
@@ -107,6 +126,61 @@ The workflow can then be run with the command:
 ```console
 $ dx run files -f test/files_input.dx.json
 ```
+
+#### Directories
+
+Both CWL and the development version of WDL have a `Directory` data type. Although DNAnexus does not treat folders as first-class objects, dxCompiler does support `Directory`-typed inputs and outputs, with some caveats.
+
+A folder within a DNAnexus project can be represented as a URI of the following form: `dx://project-xxx:/path/to/folder/`. This can be specified in a standard WDL JSON input file as:
+    ```json
+    {
+      "mytask.dir": "dx://project-xxx:/path/to/folder/"
+    }
+    ```
+    which, when passed to dxCompiler using the `-input` option, is transformed into the following DNAnexus JSON input file:
+    ```json
+    {
+      "dir": {
+        "___": {
+          "type": "Folder",
+          "uri": "dx://project-xxx:/path/to/folder/"
+        }
+      }
+    }
+    ```
+
+The WDL specification states that a `Directory` input is to be treated as a snapshot of the directory at the time the job is executed. While this is generally true in the dxCompiler implementation, there is one important caveat: `Directory` inputs marked as streaming will update their local contents on the worker to remain in sync with the remote DNAnexus project, which can lead to non-deterministic behavior. There are two possible solutions:
+    * Do not mark `Directory`-type inputs as streaming if there is a possibility the folder specified as input will be modified during the course of task execution.
+    * Enact policies and practices to prevent modification of folders that will be used as input to a task that uses streaming.
+
+A second important caveat, which results from the fact that folders are not treated as first-class objects by DNAnexus, is that, if [job reuse](#job-reuse) is enabled, a job that is run with the same folder input as a previous job (and all other inputs the same) will reuse the previous job regardless of whether the contents of the folder have changed. There are three possible solutions:
+    * Disable job reuse when running executables with `Directory`-type inputs.
+    * Enact policies and practices to prevent modification of folders that will be used as input to a task when job reuse is enabled.
+    * If you are using CWL, you may specify the folder listing in your input file. A job will only be reused if both the folder and the listing are identical. The ordering of the listing is taken into consideration when making the comparison, so the listing must be generated deterministically. The default behavior of dxCompiler when using the `-input` option is to generate input files with full listings for all directories, unless the `-noListings` option is specified. An example of a folder with a listing is:
+    ```json
+    {
+      "mytask.dir": {
+        "___": {
+          "type": "Folder",
+          "uri": "dx://project-xxx:/path/to/folder/",
+          "listing": [
+            {
+              "$dnanexus_link": {
+                "id": "file-xxx",
+                "project": "project-xxx"
+              },
+              "___": {
+                 "type": "Folder",
+                 "uri": "dx://project-xxx:/path/to/folder/subfolder/",
+                 "listing": ...
+              }
+          ]
+        }
+      }
+    }
+    ```
+
+### Defaults
 
 The `-defaults` option is similar to `-inputs`. It takes a JSON file with key-value pairs,
 and compiles them as defaults into the workflow. If the `files.wdl` worklow is compiled with
@@ -121,6 +195,8 @@ It can be run without parameters, for an equivalent execution.
 ```console
 $ dx run files
 ```
+
+### Extras 
 
 The `extras` command line option allows, for example, the Cromwell feature of setting the
 default runtime attributes of a task.
@@ -144,9 +220,7 @@ $ java -jar dxCompiler-2.0.0.jar compile test/files.wdl -project project-xxxx -d
 
 ## Describe WDL workflow to obtain execution tree
 
-You can describe a dnanexus workflow that was compiled by dxCompiler to get an execution tree presentating the workfow.w.
-The execution tree will include information on the executables in the workflow (applets and subworkflows). 
-By default, the execution tree is return as JSON. You can supply a `--pretty` flag to return a pretty print. 
+You can describe a dnanexus workflow that was compiled by dxCompiler to get an execution tree presentating the workflow. The execution tree will include information on the executables in the workflow (applets and subworkflows). By default, the execution tree is return as JSON. You can supply a `--pretty` flag to return a pretty print. 
 
 To obtain execution tree from a dxCompiler compiled workflow:
 
@@ -1210,12 +1284,12 @@ dx describe /builds/1.02/applets/hello --json --details | jq '.details | .wdlSou
 
 # Recompilation
 
-Any significant WDL workflow is compiled into multiple DNAx applets
+Any significant WDL workflow is compiled into multiple DNAnexus applets
 and workflows. Naively, any modification to the WDL source would
 necessitate recompilation of all the constituent objects, which is
 expensive. To optimize this use case, all generated platform objects are
 checksumed. If a dx:object has not changed, it is not recompiled, and
 the existing version can be used. The checksum covers the WDL source
-code, the DNAx runtime specification, and any other attributes. There
+code, the DNAnexus runtime specification, and any other attributes. There
 are two exceptions: the project name, and the folder. This allows
 moving WDL workflows in the folder hierarchy without recompilation.

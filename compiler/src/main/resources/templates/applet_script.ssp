@@ -73,6 +73,9 @@
        ls -Rl ${dxPathConfig.getDxfuseMountDir().toString}
     fi
 
+    # Make the inputs folder read-only
+    chmod -r 500 ${dxPathConfig.getInputFilesDir(ensureExists = true)}
+
     # construct the bash command and write it to a file
     java -jar ${bashDollar}{DX_FS_ROOT}/${runtimeJar} task instantiateCommand ${bashDollar}{HOME} -traceLevel ${runtimeTraceLevel} -streamFiles ${streamFiles.toString}
 

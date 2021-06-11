@@ -82,28 +82,42 @@ object CwlUtils {
 
   def toIRPath(path: PathValue): IRPathValue = {
     path match {
-      case f: FileValue =>
+      case f @ FileValue(location,
+                         _,
+                         basename,
+                         _,
+                         _,
+                         _,
+                         checksum,
+                         size,
+                         secondaryFiles,
+                         format,
+                         contents) =>
         VFile(
-            f.location.getOrElse(
-                if (f.contents.isDefined) {
-                  f.basename.getOrElse(UUID.randomUUID().toString)
+            location.getOrElse(
+                if (contents.isDefined) {
+                  basename.getOrElse(UUID.randomUUID().toString)
                 } else {
-                  throw new Exception("both 'location' and 'contents' are missing")
+                  throw new Exception(s"FileValue does not have 'location' or 'contents' ${f}")
                 }
             ),
-            f.basename,
-            f.contents,
-            f.checksum,
-            f.size,
-            f.secondaryFiles.map(toIRPath),
-            f.format
+            basename,
+            contents,
+            checksum,
+            size,
+            secondaryFiles.map(toIRPath),
+            format
         )
-      case d: DirectoryValue =>
-        d.location.orElse(d.path) match {
-          case Some(uri)                  => VFolder(uri, d.basename)
-          case None if d.listing.nonEmpty => VListing(d.basename.get, d.listing.map(toIRPath))
+      case d @ DirectoryValue(location, path, basename, listing) =>
+        location.orElse(path) match {
+          case Some(uri) =>
+            VFolder(uri, basename, Option.unless(listing.isEmpty)(listing.map(toIRPath)))
+          case None if listing.nonEmpty =>
+            VListing(basename.get, listing.map(toIRPath))
           case _ =>
-            throw new Exception(s"DirectoryValue does not have a location, path, or listing ${d}")
+            throw new Exception(
+                s"DirectoryValue does not have 'location', 'path', or 'listing' ${d}"
+            )
         }
     }
   }
@@ -287,8 +301,10 @@ object CwlUtils {
                   contents = f.contents,
                   secondaryFiles = f.secondaryFiles.map(fromIRPath),
                   format = f.format)
-      case VFolder(uri, basename) =>
-        DirectoryValue(Some(uri), basename = basename)
+      case VFolder(uri, basename, listing) =>
+        DirectoryValue(location = Some(uri),
+                       basename = basename,
+                       listing = listing.map(_.map(fromIRPath)).getOrElse(Vector.empty[PathValue]))
       case VListing(basename, listing) =>
         DirectoryValue(basename = Some(basename), listing = listing.map(fromIRPath))
     }

@@ -508,13 +508,13 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
       val nameEncoded = Parameter.encodeName(name)
       val longNameEncoded = execName.map(e => Parameter.encodeName(s"${e}.${name}"))
       val arrayValue = childOutputs.flatMap { outputs =>
-        val nameAndJsValue = outputs
+        val (name, jsValue) = outputs
           .get(nameEncoded)
           .map(jsv => (nameEncoded, Some(jsv)))
-          .orElse(longNameEncoded.map(n => (n, outputs.get(n))))
-        (irType, nameAndJsValue) match {
-          case (_, Some((name, Some(jsValue)))) =>
-            Some(jobMeta.inputDeserializer.deserializeInputWithType(jsValue, irType, name))
+          .getOrElse((longNameEncoded.get, longNameEncoded.flatMap(outputs.get)))
+        (irType, jsValue) match {
+          case (_, Some(jsv)) =>
+            Some(jobMeta.inputDeserializer.deserializeInputWithType(jsv, irType, name))
           case (TOptional(_), None) => None
           case (_, None)            =>
             // Required output that is missing

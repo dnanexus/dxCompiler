@@ -1,7 +1,6 @@
 package dx.core.io
 
 import java.nio.file.{Path, Paths}
-
 import dx.util.{BaseEvalPaths, ExecPaths, Logger}
 
 object DxWorkerPaths {
@@ -21,12 +20,12 @@ object DxWorkerPaths {
   val OutputFilesDir = "outputs"
   val InstanceTypeDbFile = "instance_type_db.json"
   val SourceEncodedFile = "source.wdl.uu64"
-  val SetupStreamsFile = "setup_streams"
   val DxdaManifestFile = "dxdaManifest.json"
   val DxfuseManifestFile = "dxfuseManifest.json"
   val DxuaManifestFile = "dxuaManifest.json"
   val DxfuseMountDir = "mnt"
-  val TaskEnvFile = "taskEnv.json"
+  val LocalizedInputsFile = "localized_inputs.json"
+  val PathMappingsFile = "path_mappings.json"
 
   lazy val default: DxWorkerPaths = DxWorkerPaths(RootDir)
 }
@@ -137,13 +136,6 @@ case class DxWorkerPaths(rootDir: Path) extends BaseEvalPaths with ExecPaths {
   }
 
   /**
-    * Bash commands for streaming files with 'dx cat' are located here.
-    */
-  def getSetupStreamsFile(ensureParentExists: Boolean = false): Path = {
-    getMetaDir(ensureParentExists).resolve(DxWorkerPaths.SetupStreamsFile)
-  }
-
-  /**
     * Location of dx download agent (dxda) manifest. It will download all these
     * files, if the file is non empty.
     */
@@ -164,10 +156,17 @@ case class DxWorkerPaths(rootDir: Path) extends BaseEvalPaths with ExecPaths {
   }
 
   /**
-    * File for storing the state between prolog and epilog of the task runner.
+    * File for storing the localized inputs between stages of the task runner.
     */
-  def getTaskEnvFile(ensureParentExists: Boolean = false): Path = {
-    getMetaDir(ensureParentExists).resolve(DxWorkerPaths.SetupStreamsFile)
+  def getLocalizedInputsFile(ensureParentExists: Boolean = false): Path = {
+    getMetaDir(ensureParentExists).resolve(DxWorkerPaths.LocalizedInputsFile)
+  }
+
+  /**
+    * File for storing the dx uri to path mappIngs between stages of the task runner.
+    */
+  def getPathMappingsFile(ensureParentExists: Boolean = false): Path = {
+    getMetaDir(ensureParentExists).resolve(DxWorkerPaths.PathMappingsFile)
   }
 
   // create all the directory paths, so we can start using them.

@@ -45,16 +45,22 @@ object Value {
   sealed trait DirectoryValue extends PathValue
 
   /**
-    * A local or remote DNAnexus folder.
+    * A local directory or remote DNAnexus folder.
     * @param uri local path or dx://project-xxx:/path/to/folder/ URI
     * @param basename the name to use when localizing the directory
+    * @param listing an Optional Vector of files/subfolders in this folder.
+    *              If specified, only these files/subfolders will be
+    *              localized.
     */
-  case class VFolder(uri: String, basename: Option[String] = None) extends DirectoryValue
+  case class VFolder(uri: String,
+                     basename: Option[String] = None,
+                     listing: Option[Vector[PathValue]] = None)
+      extends DirectoryValue
 
   /**
     * A synthetic directory consisting of specific platform files/folders.
     * @param basename the name to use when localizing the directory
-    * @param items a Vector of files/subdirectories in this Directory
+    * @param items a Vector of files/subdirectories in this directory
     */
   case class VListing(basename: String, items: Vector[PathValue] = Vector.empty)
       extends DirectoryValue

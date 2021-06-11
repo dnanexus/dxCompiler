@@ -7,6 +7,8 @@ import dx.api._
 import dx.util.Logger
 import spray.json._
 
+import scala.annotation.tailrec
+
 case class DxdaManifest(value: JsObject)
 
 case class DxdaManifestBuilder(dxApi: DxApi, logger: Logger = Logger.get) {
@@ -57,7 +59,8 @@ case class DxdaManifestBuilder(dxApi: DxApi, logger: Logger = Logger.get) {
 
   private def createFolderEntry(projectId: String,
                                 folder: String,
-                                destination: Path): Vector[JsValue] = {
+                                destination: Path,
+                                listing: Option[Set[Path]]): Vector[JsValue] = {
     // dxda manifest doesn't support folders so we have to list the folder contents and add
     // all the files to the manifest
     val findDataObjects = DxFindDataObjects(dxApi)
@@ -72,17 +75,40 @@ case class DxdaManifestBuilder(dxApi: DxApi, logger: Logger = Logger.get) {
           extraFields = Set(Field.Parts)
       )
       .keys
+      .map {
+        case dxFile: DxFile => (dxFile, Paths.get(dxFile.getFolder), dxFile.getName)
+        case other          => throw new Exception(s"not a file: ${other}")
+      }
       .toVector
-    // logger.trace(s"in ${projectId}:${folder} found: ${result}")
+
     val folderPath = Paths.get(folder)
-    result.map {
-      case dxFile: DxFile =>
-        val fileRelFolder = folderPath.relativize(Paths.get(dxFile.getFolder))
-        val fileDest = destination.resolve(fileRelFolder).resolve(dxFile.getName)
-        createFileEntry(dxFile, fileDest)
-      case other =>
-        throw new Exception(s"not a file: ${other}")
-    }
+
+    // if there is a listing, use it to select only the files that
+    // appear in the listing, or that have an ancestor folder that
+    // appears in the listing
+    listing
+      .map { listingPaths =>
+        @tailrec
+        def containsAncestor(child: Path): Boolean = {
+          Option(child.getParent) match {
+            case Some(parent) => listingPaths.contains(parent) || containsAncestor(parent)
+            case None         => false
+          }
+        }
+
+        result.filter {
+          case (_, fileFolder, fileName) =>
+            val path = fileFolder.resolve(fileName)
+            listingPaths.contains(path) || containsAncestor(path)
+        }
+      }
+      .getOrElse(result)
+      .map {
+        case (dxFile, fileFolder, fileName) =>
+          val fileRelFolder = folderPath.relativize(fileFolder)
+          val fileDest = destination.resolve(fileRelFolder).resolve(fileName)
+          createFileEntry(dxFile, fileDest)
+      }
   }
 
   /**
@@ -91,7 +117,8 @@ case class DxdaManifestBuilder(dxApi: DxApi, logger: Logger = Logger.get) {
     * @return
     */
   def apply(fileToLocalMapping: Map[DxFile, Path],
-            folderToLocalMapping: Map[(String, String), Path]): Option[DxdaManifest] = {
+            folderToLocalMapping: Map[(String, String), Path],
+            folderListings: Map[(String, String), Set[Path]]): Option[DxdaManifest] = {
     if (fileToLocalMapping.isEmpty && folderToLocalMapping.isEmpty) {
       return None
     }
@@ -123,9 +150,11 @@ case class DxdaManifestBuilder(dxApi: DxApi, logger: Logger = Logger.get) {
         val containerFolders = foldersByContainer.getOrElse(dxContainer, Vector.empty)
         val containerFolderFilesToLocalPath: Vector[JsValue] =
           containerFolders.flatMap { folder =>
+            val key = (dxContainer.id, folder)
             createFolderEntry(dxContainer.id,
                               folder,
-                              folderToLocalMapping((dxContainer.id, folder)))
+                              folderToLocalMapping(key),
+                              folderListings.get(key))
           }
         dxContainer.id -> JsArray(containerFilesToLocalPath ++ containerFolderFilesToLocalPath)
       }.toMap

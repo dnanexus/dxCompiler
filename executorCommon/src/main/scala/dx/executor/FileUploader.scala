@@ -1,8 +1,9 @@
 package dx.executor
 
 import java.nio.file.Path
-
 import dx.api.{DxApi, DxFile}
+
+import scala.annotation.tailrec
 
 trait FileUploader {
 
@@ -19,11 +20,16 @@ trait FileUploader {
     * @param dirs directories to upload
     * @param recursive whether to upload directories recursively
     * @param wait whether to wait for upload to complete
+    * @param listings mapping of source directory to Set of files/folders to
+    *                 include in the upload; if a folder is included, all of its
+    *                 files and subfolders are included regardless of whether
+    *                 they appear in the Set individually
     * @return mapping of source path to (projectId, folder)
     */
   def uploadDirectories(dirs: Set[Path],
                         recursive: Boolean = true,
-                        wait: Boolean = false): Map[Path, (String, String)]
+                        wait: Boolean = false,
+                        listings: Map[Path, Set[Path]] = Map.empty): Map[Path, (String, String)]
 
   /**
     * Uploads files/directories to specific destinations.
@@ -38,11 +44,19 @@ trait FileUploader {
     * @param dirs mapping of directory source path to destination path
     * @param recursive whether to upload directories recursively
     * @param wait whether to wait for upload to complete
-    * @return mapping of source path to (projectId, folder)
+    * @param listings mapping of source directory to Set of files/folders to
+    *                 include in the upload; if a folder is included, all of its
+    *                 files and subfolders are included regardless of whether
+    *                 they appear in the Set individually
+    * @return mapping of source path to (projectId, folder, files), where files
+    *         is a Vector of all the uploaded files
     */
-  def uploadDirectoriesWithDestination(dirs: Map[Path, String],
-                                       recursive: Boolean = true,
-                                       wait: Boolean = false): Map[Path, (String, String)]
+  def uploadDirectoriesWithDestination(
+      dirs: Map[Path, String],
+      recursive: Boolean = true,
+      wait: Boolean = false,
+      listings: Map[Path, Set[Path]] = Map.empty
+  ): Map[Path, (String, String, Map[Path, DxFile])]
 }
 
 /**
@@ -55,11 +69,29 @@ case class SerialFileUploader(dxApi: DxApi = DxApi.get) extends FileUploader {
     files.map(path => path -> dxApi.uploadFile(path, wait = wait)).toMap
   }
 
-  override def uploadDirectories(dirs: Set[Path],
-                                 recursive: Boolean,
-                                 wait: Boolean): Map[Path, (String, String)] = {
+  private def includePath(path: Path, paths: Set[Path]): Boolean = {
+    @tailrec
+    def containsAncestor(child: Path): Boolean = {
+      Option(child.getParent) match {
+        case Some(parent) => paths.contains(parent) || containsAncestor(parent)
+        case None         => false
+      }
+    }
+    paths.contains(path) || (path.toFile.isFile && containsAncestor(path))
+  }
+
+  override def uploadDirectories(
+      dirs: Set[Path],
+      recursive: Boolean,
+      wait: Boolean,
+      listings: Map[Path, Set[Path]] = Map.empty
+  ): Map[Path, (String, String)] = {
     dirs.map { path =>
-      val (project, folder, _) = dxApi.uploadDirectory(path, recursive = recursive, wait = wait)
+      val filter = listings
+        .get(path)
+        .map(paths => (path: Path) => includePath(path, paths))
+      val (project, folder, _) =
+        dxApi.uploadDirectory(path, recursive = recursive, wait = wait, filter = filter)
       path -> (project.getOrElse(dxApi.currentProject.id), folder)
     }.toMap
   }
@@ -80,14 +112,20 @@ case class SerialFileUploader(dxApi: DxApi = DxApi.get) extends FileUploader {
     * @param wait      whether to wait for upload to complete
     * @return mapping of source path to (projectId, folder)
     */
-  override def uploadDirectoriesWithDestination(dirs: Map[Path, String],
-                                                recursive: Boolean,
-                                                wait: Boolean): Map[Path, (String, String)] = {
+  override def uploadDirectoriesWithDestination(
+      dirs: Map[Path, String],
+      recursive: Boolean,
+      wait: Boolean,
+      listings: Map[Path, Set[Path]] = Map.empty
+  ): Map[Path, (String, String, Map[Path, DxFile])] = {
     dirs.map {
       case (path, destination) =>
-        val (project, folder, _) =
-          dxApi.uploadDirectory(path, Some(destination), recursive = recursive, wait = wait)
-        path -> (project.getOrElse(dxApi.currentProject.id), folder)
+        val filter = listings
+          .get(path)
+          .map(paths => (path: Path) => includePath(path, paths))
+        val (project, folder, files) =
+          dxApi.uploadDirectory(path, Some(destination), recursive = recursive, wait = wait, filter)
+        path -> (project.getOrElse(dxApi.currentProject.id), folder, files)
     }
   }
 }
