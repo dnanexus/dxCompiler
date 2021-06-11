@@ -155,7 +155,7 @@ The WDL specification states that a `Directory` input is to be treated as a snap
 * Do not mark `Directory`-type inputs as streaming if there is a possibility the folder specified as input will be modified during the course of task execution.
 * Enact policies and practices to prevent modification of folders that will be used as input to a task that uses streaming.
 
-A second important caveat, which results from the fact that folders are not treated as first-class objects by DNAnexus, is that, if [job reuse](#job-reuse) is enabled, a job that is run with the same folder input as a previous job (and all other inputs the same) will reuse the previous job regardless of whether the contents of the folder have changed. There are three possible solutions:
+A second important caveat, which results from the fact that folders are not treated as first-class objects by DNAnexus, is that, if [job reuse](#job-reuse) is enabled, a job that is run with the same folder input as a previous job (and all other inputs the same) will reuse the previous job outputs regardless of whether the contents of the folder have changed. There are three possible solutions:
 
 * Disable job reuse when running executables with `Directory`-type inputs.
 * Enact policies and practices to prevent modification of folders that will be used as input to a task when job reuse is enabled.
