@@ -133,22 +133,22 @@ Both CWL and the development version of WDL have a `Directory` data type. Althou
 
 A folder within a DNAnexus project can be represented as a URI of the following form: `dx://project-xxx:/path/to/folder/`. This can be specified in a standard WDL JSON input file as:
 
-    ```json
-    {
-      "mytask.dir": "dx://project-xxx:/path/to/folder/"
+```json
+{
+  "mytask.dir": "dx://project-xxx:/path/to/folder/"
+}
+```
+which, when passed to dxCompiler using the `-input` option, is transformed into the following DNAnexus JSON input file:
+```json
+{
+  "dir": {
+    "___": {
+      "type": "Folder",
+      "uri": "dx://project-xxx:/path/to/folder/"
     }
-    ```
-    which, when passed to dxCompiler using the `-input` option, is transformed into the following DNAnexus JSON input file:
-    ```json
-    {
-      "dir": {
-        "___": {
-          "type": "Folder",
-          "uri": "dx://project-xxx:/path/to/folder/"
-        }
-      }
-    }
-    ```
+  }
+}
+```
 
 The WDL specification states that a `Directory` input is to be treated as a snapshot of the directory at the time the job is executed. While this is generally true in the dxCompiler implementation, there is one important caveat: `Directory` inputs marked as streaming will update their local contents on the worker to remain in sync with the remote DNAnexus project, which can lead to non-deterministic behavior. There are two possible solutions:
     * Do not mark `Directory`-type inputs as streaming if there is a possibility the folder specified as input will be modified during the course of task execution.
@@ -159,28 +159,28 @@ A second important caveat, which results from the fact that folders are not trea
     * Enact policies and practices to prevent modification of folders that will be used as input to a task when job reuse is enabled.
     * If you are using CWL, you may specify the folder listing in your input file. A job will only be reused if both the folder and the listing are identical. The ordering of the listing is taken into consideration when making the comparison, so the listing must be generated deterministically. The default behavior of dxCompiler when using the `-input` option is to generate input files with full listings for all directories, unless the `-noListings` option is specified. An example of a folder with a listing is:
 
-    ```json
-    {
-      "mytask.dir": {
-        "___": {
-          "type": "Folder",
-          "uri": "dx://project-xxx:/path/to/folder/",
-          "listing": [
-            {
-              "$dnanexus_link": {
-                "id": "file-xxx",
-                "project": "project-xxx"
-              },
-              "___": {
-                 "type": "Folder",
-                 "uri": "dx://project-xxx:/path/to/folder/subfolder/",
-                 "listing": ...
-              }
-          ]
-        }
-      }
+```json
+{
+  "mytask.dir": {
+    "___": {
+      "type": "Folder",
+      "uri": "dx://project-xxx:/path/to/folder/",
+      "listing": [
+        {
+          "$dnanexus_link": {
+            "id": "file-xxx",
+            "project": "project-xxx"
+          },
+          "___": {
+             "type": "Folder",
+             "uri": "dx://project-xxx:/path/to/folder/subfolder/",
+             "listing": ...
+          }
+      ]
     }
-    ```
+  }
+}
+```
 
 ### Defaults
 
