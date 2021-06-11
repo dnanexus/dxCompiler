@@ -151,13 +151,15 @@ which, when passed to dxCompiler using the `-input` option, is transformed into 
 ```
 
 The WDL specification states that a `Directory` input is to be treated as a snapshot of the directory at the time the job is executed. While this is generally true in the dxCompiler implementation, there is one important caveat: `Directory` inputs marked as streaming will update their local contents on the worker to remain in sync with the remote DNAnexus project, which can lead to non-deterministic behavior. There are two possible solutions:
-    * Do not mark `Directory`-type inputs as streaming if there is a possibility the folder specified as input will be modified during the course of task execution.
-    * Enact policies and practices to prevent modification of folders that will be used as input to a task that uses streaming.
+
+* Do not mark `Directory`-type inputs as streaming if there is a possibility the folder specified as input will be modified during the course of task execution.
+* Enact policies and practices to prevent modification of folders that will be used as input to a task that uses streaming.
 
 A second important caveat, which results from the fact that folders are not treated as first-class objects by DNAnexus, is that, if [job reuse](#job-reuse) is enabled, a job that is run with the same folder input as a previous job (and all other inputs the same) will reuse the previous job regardless of whether the contents of the folder have changed. There are three possible solutions:
-    * Disable job reuse when running executables with `Directory`-type inputs.
-    * Enact policies and practices to prevent modification of folders that will be used as input to a task when job reuse is enabled.
-    * If you are using CWL, you may specify the folder listing in your input file. A job will only be reused if both the folder and the listing are identical. The ordering of the listing is taken into consideration when making the comparison, so the listing must be generated deterministically. The default behavior of dxCompiler when using the `-input` option is to generate input files with full listings for all directories, unless the `-noListings` option is specified. An example of a folder with a listing is:
+
+* Disable job reuse when running executables with `Directory`-type inputs.
+* Enact policies and practices to prevent modification of folders that will be used as input to a task when job reuse is enabled.
+* If you are using CWL, you may specify the folder listing in your input file. A job will only be reused if both the folder and the listing are identical. The ordering of the listing is taken into consideration when making the comparison, so the listing must be generated deterministically. The default behavior of dxCompiler when using the `-input` option is to generate input files with full listings for all directories, unless the `-noListings` option is specified. An example of a folder with a listing is:
 
 ```json
 {
