@@ -8,12 +8,15 @@
     ```wdl
     command <<<
     samtools index ~{mybam}
+    >>>
     ```
     to
     ```wdl
+    command <<<
     mkdir bams
     ln -s ~{mybam} bams/~{basename(mybam)}
     samtools index bams/~{basename(mybam)}
+    >>>
     ```
 
 ## 2.4.7 2021-06-09
