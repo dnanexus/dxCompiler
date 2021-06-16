@@ -6,7 +6,7 @@ import dx.core.Constants
 import dx.core.ir.Value._
 import dx.util.protocols.DxFileSource
 import spray.json._
-import dx.util.{Enum, FileSourceResolver, LocalFileSource, Logger}
+import dx.util.{Enum, FileSourceResolver, LocalFileSource}
 
 object IORef extends Enum {
   type IORef = Value
