@@ -28,7 +28,7 @@ object CwlUtils {
 
   def toIRType(cwlType: CwlType): Type = {
     cwlType match {
-      case CwlOptional(t) => TOptional(toIRType(t))
+      case CwlOptional(t) => Type.ensureOptional(toIRType(t))
       case CwlAny         => TMulti.Any
       case CwlBoolean     => TBoolean
       case CwlInt         => TInt
@@ -130,7 +130,7 @@ object CwlUtils {
       case (CwlOptional(_), NullValue) => (toIRType(cwlType), VNull)
       case (CwlOptional(t), _) =>
         val (irType, irValue) = toIRValue(cwlValue, t)
-        (TOptional(irType), irValue)
+        (Type.ensureOptional(irType), irValue)
       case (CwlBoolean, BooleanValue(b))     => (TBoolean, VBoolean(b))
       case (CwlInt, IntValue(i))             => (TInt, VInt(i))
       case (CwlLong, LongValue(l))           => (TInt, VInt(l))
