@@ -13,7 +13,7 @@ import dx.core.io.{
 import dx.core.ir.{Type, TypeSerde, Value, ValueSerde}
 import dx.core.ir.Type._
 import dx.core.ir.Value._
-import dx.util.protocols.{DxFileSource, DxFolderSource}
+import dx.util.protocols.{DxFileAccessProtocol, DxFileSource, DxFolderSource}
 import spray.json._
 import dx.util.{
   AddressableFileNode,
@@ -161,7 +161,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
 
   private def serializePathMappings(
       fileSourceToPath: Map[AddressableFileNode, Path],
-      folderSourceToPathAndListing: Map[AddressableFileSource, (Path, Option[Vector[PathValue]])]
+      folderSourceToPathAndListing: Map[AddressableFileSource, Path]
   ): Unit = {
     val fileUriToPath: Map[String, JsValue] = fileSourceToPath.map {
       case (fileSource: AddressableFileSource, path) =>
@@ -169,39 +169,26 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       case (other, _) =>
         throw new RuntimeException(s"Can only serialize an AddressableFileSource, not ${other}")
     }
-    val folderUriToPathAndListing: Map[String, JsValue] = folderSourceToPathAndListing.map {
-      case (folderSource: AddressableFileSource, (path, listing)) =>
-        folderSource.address ->
-          JsObject(
-              Vector(
-                  Some("path" -> JsString(path.toString)),
-                  listing.map(l =>
-                    "listing" -> JsArray(
-                        l.map(i =>
-                          ValueSerde.serializePath(i, Some(fileResolver), pathsAsObjects = true)
-                        )
-                    )
-                  )
-              ).flatten.toMap
-          )
+    val folderUriToPath: Map[String, JsValue] = folderSourceToPathAndListing.map {
+      case (folderSource: AddressableFileSource, path) =>
+        folderSource.address -> JsString(path.toString)
     }
     val json = JsObject(
-        "fileDxUriToPath" -> JsObject(fileUriToPath),
-        "folderDxUriToPathAndListing" -> JsObject(folderUriToPathAndListing)
+        "fileUriToPath" -> JsObject(fileUriToPath),
+        "folderUriToPath" -> JsObject(folderUriToPath)
     )
     FileUtils.writeFileContent(jobMeta.workerPaths.getPathMappingsFile(ensureParentExists = true),
                                json.prettyPrint)
   }
 
   private def deserializePathMappings()
-      : (Map[AddressableFileNode, Path],
-         Map[AddressableFileSource, (Path, Option[Vector[PathValue]])]) = {
+      : (Map[AddressableFileNode, Path], Map[AddressableFileSource, Path]) = {
     val pathMappingsFile = jobMeta.workerPaths.getPathMappingsFile()
     val (filesJs, foldersJs) =
       FileUtils.readFileContent(pathMappingsFile).parseJson match {
         case env: JsObject =>
           env
-            .getFields("fileDxUriToPath", "folderDxUriToPathAndListing") match {
+            .getFields("fileUriToPath", "folderUriToPath") match {
             case Seq(JsObject(filePaths), JsObject(folderPaths)) =>
               (filePaths, folderPaths)
             case _ =>
@@ -214,20 +201,12 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       case (uri, JsString(path)) => jobMeta.fileResolver.resolve(uri) -> Paths.get(path)
       case other                 => throw new Exception(s"unexpected path ${other}")
     }
-    val folderSourceToPathAndListing = foldersJs.map {
-      case (uri, JsObject(fields)) =>
-        val path = fields.get("path") match {
-          case Some(JsString(path)) => Paths.get(path)
-          case other                => throw new Exception(s"unexpected path ${other}")
-        }
-        val listing = fields.get("listing").map {
-          case JsArray(listing) => listing.map(i => ValueSerde.deserializePathObject(i, dxApi))
-          case other            => throw new Exception(s"unexpected listing ${other}")
-        }
-        jobMeta.fileResolver.resolveDirectory(uri) -> (path, listing)
+    val folderSourceToPath = foldersJs.map {
+      case (uri, JsString(path)) =>
+        jobMeta.fileResolver.resolveDirectory(uri) -> Paths.get(path)
       case other => throw new Exception(s"unexpected path and listing ${other}")
     }
-    (fileSourceToPath, folderSourceToPathAndListing)
+    (fileSourceToPath, folderSourceToPath)
   }
 
   /**
@@ -290,10 +269,11 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     * to be streamed or downloaded, and generates the dxda and dxfuse manifests.
     * @return
     * TODO: ensure secondary files are in the same dir as the parent file
+    * TODO: handle InitialWordirRequirement
     */
   def localizeInputFiles: (Map[String, (Type, Value)],
                            Map[AddressableFileNode, Path],
-                           Map[AddressableFileSource, (Path, Option[Vector[PathValue]])],
+                           Map[AddressableFileSource, Path],
                            Option[DxdaManifest],
                            Option[DxfuseManifest]) = {
 
@@ -508,11 +488,11 @@ abstract class TaskExecutor(jobMeta: JobMeta,
 
     // Replace the remote input URIs with local file paths
     val fileSourceToPath = localFileSourceToPath ++ downloadFileSourceToPath ++ streamFileSourceToPath
-    val folderSourceToPathAndListing =
-      localFolderSourceToPathAndListing ++ downloadFolderSourceToPathAndListing ++ streamFolderSourceToPathAndListing
-    val folderSourceToPath = folderSourceToPathAndListing.map {
-      case (fs, (path, _)) => fs -> path
-    }
+    val folderSourceToPath =
+      (localFolderSourceToPathAndListing ++ downloadFolderSourceToPathAndListing ++ streamFolderSourceToPathAndListing)
+        .map {
+          case (fs, (path, _)) => fs -> path
+        }
     val uriToPath: Map[String, String] = (fileSourceToPath ++ folderSourceToPath).map {
       case (dxFs: DxFileSource, path)       => dxFs.address -> path.toString
       case (dxFs: DxFolderSource, path)     => dxFs.address -> path.toString
@@ -565,7 +545,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       case (t, v) => (t, Value.transform(v, Some(t), pathTranslator))
     }.toMap
 
-    (localizedInputs, fileSourceToPath, folderSourceToPathAndListing, dxdaManifest, dxfuseManifest)
+    (localizedInputs, fileSourceToPath, folderSourceToPath, dxdaManifest, dxfuseManifest)
   }
 
   protected def getSchemas: Map[String, TSchema]
@@ -638,11 +618,11 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     Files.createTempDirectory(jobMeta.workerPaths.getOutputFilesDir(ensureExists = true), "virtual")
 
   // TODO: handle secondary files - put in same output folder as the primary
-  private def extractOutputFiles(
+  private def extractOutputPaths(
       name: String,
       v: Value,
       t: Type
-  ): (Vector[(VFile, AddressableFileNode)], Vector[(VFolder, AddressableFileSource)]) = {
+  ): (Vector[(AddressableFileNode, VFile)], Vector[(AddressableFileSource, VFolder)]) = {
     def getLocalFileSource(varName: String,
                            fs: AddressableFileSource,
                            optional: Boolean): Option[LocalFileSource] = {
@@ -666,7 +646,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         innerValue: Value,
         innerType: Type,
         optional: Boolean
-    ): (Vector[(VFile, LocalFileSource)], Vector[(VFolder, LocalFileSource)]) = {
+    ): (Vector[(LocalFileSource, VFile)], Vector[(LocalFileSource, VFolder)]) = {
       (innerType, innerValue) match {
         case (TOptional(_), VNull) =>
           (Vector.empty, Vector.empty)
@@ -677,21 +657,21 @@ abstract class TaskExecutor(jobMeta: JobMeta,
             .map(virtualOutputDir.resolve)
             .getOrElse(Files.createTempFile(virtualOutputDir, "virtual", ""))
           val resolved = FileUtils.writeFileContent(path, f.contents.get)
-          (Vector((f, fileResolver.fromPath(resolved))), Vector.empty)
+          (Vector(fileResolver.fromPath(resolved) -> f), Vector.empty)
         case (TFile, f: VFile) =>
           (getLocalFileSource(innerName, fileResolver.resolve(f.uri), optional)
-             .map(f -> _)
+             .map(_ -> f)
              .toVector,
            Vector.empty)
         case (TFile, VString(path)) =>
           (getLocalFileSource(innerName, fileResolver.resolve(path), optional)
-             .map(VFile(path) -> _)
+             .map(_ -> VFile(path))
              .toVector,
            Vector.empty)
         case (TDirectory, f: VFolder) =>
           (Vector.empty,
            getLocalFileSource(innerName, fileResolver.resolveDirectory(f.uri), optional)
-             .map(f -> _)
+             .map(_ -> f)
              .toVector)
         case (TDirectory, f: VListing) =>
           val (files, folders) = f.items.zipWithIndex.map {
@@ -730,13 +710,13 @@ abstract class TaskExecutor(jobMeta: JobMeta,
               val files = fileSources.realFiles.flatMap {
                 case (fs, file) =>
                   getLocalFileSource(s"${innerName}.${key}", fs, optional = true)
-                    .map(file -> _)
+                    .map(_ -> file)
                     .toVector
               }
               val folders = fileSources.folders.flatMap {
                 case (fs, folder) =>
                   getLocalFileSource(s"${innerName}.${key}", fs, optional = true)
-                    .map(folder -> _)
+                    .map(_ -> folder)
                     .toVector
               }
               (files, folders)
@@ -755,60 +735,42 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       trace(s"Epilog debugLevel=${logger.traceLevel}")
       printDirTree()
     }
-    val (_, localizedInputs) = deserializeInputs()
-    val localizedOutputs = evaluateOutputs(localizedInputs)
 
-    // extract files from the outputs
+    // load the cached localized inputs - folders have no listings
+    val (_, localizedInputs) = deserializeInputs()
+    // evaluate output expressions
+    val localizedOutputs = evaluateOutputs(localizedInputs)
+    // extract files/folders from the outputs
     val (localOutputFiles, localOutputFolders) = localizedOutputs.map {
-      case (name, (irType, irValue)) => extractOutputFiles(name, irValue, irType)
+      case (name, (irType, irValue)) => extractOutputPaths(name, irValue, irType)
     }.unzip
 
     // Build a map of all the addresses in the output values that might
-    // map to the same (absolute) local path. Some of the outputs may be files
-    // that were inputs (in `fileSourceToPath`) - these do not need to be
-    // re-uploaded. The `localPath`s will be the same but the `originalPath`s
-    // may be different.
+    // map to the same (absolute) local path. An output may be a file/folder
+    // that was an input (or nested within an input folder) - these do not
+    // need to be re-uploaded. Since the input directories are read-only (i.e.
+    // there is no possibility the user created a new file there), we just need
+    // to check whether the local file/folder has a path starting with one of
+    // the input directories to determine if it needs to be uploaded.
     val (fileSourceToPath, folderSourceToPath) = deserializePathMappings()
-    val inputFileAddresses: Set[String] = fileSourceToPath.keySet.map(_.address)
-    val inputFilePaths = fileSourceToPath.values.toSet
-    val delocalizingFileToPath = localOutputFiles.flatten.collect {
-      case (file, local: LocalFileSource)
-          if !(
-              inputFileAddresses.contains(file.uri) || inputFilePaths.contains(local.canonicalPath)
-          ) =>
-        file -> local.canonicalPath
+    val inputDirs =
+      Set(jobMeta.workerPaths.getInputFilesDir(), jobMeta.workerPaths.getDxfuseMountDir())
+    val delocalizingPathToFile = localOutputFiles.flatten.toMap.collect {
+      case (local: LocalFileSource, file) if !inputDirs.exists(local.canonicalPath.startsWith) =>
+        local.canonicalPath -> file
     }
-    val inputFolderAddresses: Set[String] = folderSourceToPath.keySet.map(_.address)
-    val inputFolderPaths = folderSourceToPath.values.toSet
-    val delocalizingFolderToPath = localOutputFolders.flatten.collect {
-      case (folder, local: LocalFileSource)
-          if !(
-              inputFolderAddresses.contains(folder.uri) ||
-                inputFolderPaths.contains(local.canonicalPath)
-          ) =>
-        folder -> local.canonicalPath
+    val delocalizingPathToFolder = localOutputFolders.flatten.toMap.collect {
+      case (local: LocalFileSource, folder) if !inputDirs.exists(local.canonicalPath.startsWith) =>
+        local.canonicalPath -> folder
     }
 
-    // upload the files, and map their local paths to their remote URIs
-    // if using manifests, we need to upload the files directly to the project
+    // Upload the files/directories, and map their local paths to their remote URIs.
+    // If using manifests, we need to upload the files directly to the project.
     val destFolder = Option.when(jobMeta.useManifests)(jobMeta.manifestFolder)
 
     def ensureAbsolute(basename: String): String = {
       destFolder.map(f => s"${f}/${basename}").getOrElse(s"/${basename}")
     }
-
-    val fileToDelocalizedUri: Map[Path, String] = fileUploader
-      .uploadFilesWithDestination(
-          delocalizingFileToPath.toMap.map {
-            case (file, path) =>
-              val basename = file.basename.getOrElse(path.getFileName.toString)
-              path -> ensureAbsolute(basename)
-          },
-          wait = waitOnUpload
-      )
-      .map {
-        case (path, dxFile) => path -> dxFile.asUri
-      }
 
     // Gets all the file/folder paths from a listing
     // TODO: deal with secondary files
@@ -850,6 +812,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       }
     }
 
+    // creates a hierarchical listing from a collection of DxFiles with no
+    // guaranteed ordering
     def createListing(root: Path, files: Map[Path, DxFile]): Directory = {
       val rootDir = Directory(root)
       var dirs: Map[Path, Directory] = Map(root -> rootDir)
@@ -873,16 +837,37 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       rootDir
     }
 
+    val dxProtocol = fileResolver.getProtocolForScheme("dx") match {
+      case proto: DxFileAccessProtocol => proto
+      case other =>
+        throw new Exception(s"unexpected dx protocol ${other}")
+    }
+
+    // upload files
+    val fileToDelocalizedUri: Map[Path, DxFileSource] = fileUploader
+      .uploadFilesWithDestination(
+          delocalizingPathToFile.map {
+            case (path, file) =>
+              val basename = file.basename.getOrElse(path.getFileName.toString)
+              path -> ensureAbsolute(basename)
+          },
+          wait = waitOnUpload
+      )
+      .map {
+        case (path, dxFile) => path -> dxProtocol.fromDxFile(dxFile)
+      }
+
     // upload folders - use listing to restrict the files/subfolders that are uploaded
-    val folderToDelocalizedUriAndListing: Map[Path, (String, Directory)] = {
-      val (dirs, listings) = delocalizingFolderToPath.toMap.map {
-        case (folder, path) =>
+    val folderToDelocalizedUriAndListing: Map[Path, (DxFolderSource, Directory)] = {
+      val (dirs, listings) = delocalizingPathToFolder.map {
+        case (path, folder) =>
           val basename = folder.basename.getOrElse(path.getFileName.toString)
           // if the VFolder has a listing, restrict the upload to only those files/folders
           val listingPaths = getListingPaths(path, folder)
           (path -> ensureAbsolute(basename),
            Option.unless(listingPaths.isEmpty)(path -> listingPaths))
       }.unzip
+      val jobFolder = Paths.get(jobMeta.folder)
       fileUploader
         .uploadDirectoriesWithDestination(dirs.toMap,
                                           wait = waitOnUpload,
@@ -894,7 +879,6 @@ abstract class TaskExecutor(jobMeta: JobMeta,
             // TODO: currently, this only works for one level of job nesting -
             //  we probably need to get all the output folders all the way up
             //  the job tree and join them all
-            val jobFolder = Paths.get(jobMeta.folder)
             val containerFolder = Paths.get(folder)
             val baseFolder = jobFolder.resolve(if (containerFolder.isAbsolute) {
               Paths.get("/").relativize(containerFolder)
@@ -905,47 +889,63 @@ abstract class TaskExecutor(jobMeta: JobMeta,
             // object must contain dx links for all the uploaded files or the
             // files will not be added to the job output (and thus not cloned
             // into the project)
-            path -> (s"${DxPath.DxUriPrefix}${projectId}:${baseFolder}", createListing(path, files))
+            path -> (
+                dxProtocol.fromDxFolder(projectId, baseFolder.toString),
+                createListing(path, files)
+            )
         }
     }
 
-    // Replace the local paths in the output values with URIs. For files that
-    // were inputs, we can resolve them using a mapping of input values to URIs;
-    // for files that were generated on the worker, this requires two look-ups:
-    // first to get the absoulte Path associated with the file value (which may
-    // be relative or absolute), and second to get the URI associated with the
-    // Path. Returns an Optional[String] because optional outputs may be null.
-    val inputFileToUri = fileSourceToPath
+    // Replace the local paths in the output values with URIs. For a file/folder
+    // that is located in the inputs folder, we search in the localized inputs
+    // for the file/folder or its nearest ancestor directory. For files/folders
+    // that were generated on the worker, we need to do two look-ups: first to
+    // get the absolute Path associated with the file value (which may be relative
+    // or absolute), and second to get the URI associated with the Path. Returns
+    // an Optional[String] because optional outputs may not be specified.
+    val inputFileToSource = fileSourceToPath
       .collect {
         case (fs: AddressableFileNode, path) =>
-          Map(fs.address -> fs.address, path.toString -> fs.address)
+          Map(fs.address -> fs, path.toString -> fs)
       }
       .flatten
       .toMap
-    val delocalizingFileUriToPath = delocalizingFileToPath.map {
-      case (file, path) => file.uri -> path
-    }.toMap
-    val inputFolderToUri = folderSourceToPath
+    val delocalizingFileUriToPath = delocalizingPathToFile.map {
+      case (path, file) => file.uri -> path
+    }
+    val inputFolderToSource = folderSourceToPath
       .collect {
         case (fs: AddressableFileSource, path) =>
-          Map(fs.address -> fs.address, path.toString -> fs.address)
+          Map(fs.address -> fs, path.toString -> fs)
       }
       .flatten
       .toMap
-    val delocalizingFolderUriToPath = delocalizingFolderToPath.map {
-      case (folder, path) => folder.uri -> path
-    }.toMap
+    val delocalizingFolderUriToPath = delocalizingPathToFolder.map {
+      case (path, folder) => folder.uri -> path
+    }
 
     // Replace the URIs with remote file paths
     def pathTranslator(v: Value, t: Option[Type], optional: Boolean): Option[PathValue] = {
+      def resolveInputSource(fs: AddressableFileSource): Option[AddressableFileSource] = {
+        fs.getParent.flatMap { parent =>
+          inputFolderToSource
+            .get(parent.address)
+            .orElse(resolveInputSource(parent))
+            .map(_.resolve(fs.name))
+        }
+      }
       def translateFileUri(uri: String): Option[String] = {
-        inputFileToUri
-          .get(uri)
-          .orElse(delocalizingFileUriToPath.get(uri) match {
-            case Some(path) => fileToDelocalizedUri.get(path)
-            case _          => None
-          }) match {
-          case Some(localPath)  => Some(localPath)
+        inputFileToSource
+          .get(uri) // look for the local URI directly in the inputs
+          .orElse(resolveInputSource(fileResolver.resolve(uri))) // look for the local URI nested in an input folder
+          .orElse( // look for the local URI in the set that were uploaded
+              delocalizingFileUriToPath
+                .get(uri) match {
+                case Some(path) => fileToDelocalizedUri.get(path)
+                case _          => None
+              }
+          ) match {
+          case Some(fs)         => Some(fs.address)
           case None if optional => None
           case _                => throw new Exception(s"Did not localize file ${uri}")
         }
