@@ -424,6 +424,9 @@ object Main {
 
     // quit here if the target is IR and there are no inputs to translate
     if (!hasInputs && compileMode == CompilerMode.IR) {
+      if (logger.isVerbose) {
+        logger.trace(rawBundle.toString)
+      }
       return SuccessfulCompileIR(rawBundle)
     }
 
@@ -454,6 +457,9 @@ object Main {
         }
       if (compileMode == CompilerMode.IR) {
         // if we're only performing translation to IR, we can quit early
+        if (logger.isVerbose) {
+          logger.trace(rawBundle.toString)
+        }
         return SuccessfulCompileIR(bundleWithDefaults)
       }
       (bundleWithDefaults, fileResolver)
