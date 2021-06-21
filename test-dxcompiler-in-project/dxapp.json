@@ -25,7 +25,8 @@
   },
   "access": {
     "project": "CONTRIBUTE",
-    "allProjects": "VIEW"
+    "allProjects": "VIEW",
+    "network": ["*"]
   },
   "regionalOptions": {
     "aws:us-east-1": {

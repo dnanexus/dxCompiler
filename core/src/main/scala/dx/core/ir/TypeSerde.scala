@@ -251,7 +251,7 @@ object TypeSerde {
             throw TypeSerdeException(s"invalid type field value ${jsValue}")
         }
         if (fields.get(OptionalKey).exists(JsUtils.getBoolean(_))) {
-          (TOptional(t), newTypeDefs)
+          (Type.ensureOptional(t), newTypeDefs)
         } else {
           (t, newTypeDefs)
         }
@@ -387,7 +387,7 @@ object TypeSerde {
       fromNativeNonArray(cls)
     }
     if (optional) {
-      TOptional(t)
+      Type.ensureOptional(t)
     } else {
       t
     }
@@ -465,10 +465,8 @@ object TypeSerde {
       case "Hash"      => THash
       case _ if s.endsWith("?") =>
         simpleFromString(s.dropRight(1)) match {
-          case TOptional(_) =>
-            throw TypeSerdeException(s"nested optional type ${s}")
-          case inner =>
-            TOptional(inner)
+          case TOptional(_) => throw TypeSerdeException(s"nested optional type ${s}")
+          case inner        => TOptional(inner)
         }
       case s if s.contains("[") =>
         throw TypeSerdeException(s"type ${s} is not primitive")

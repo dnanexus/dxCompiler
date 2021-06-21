@@ -2,9 +2,18 @@
 
 ## in develop
 
+* Fixes issue where an optional variable inside a conditional could have an inferred type of `T??`, which is illegal and results in a runtime error
+
+## 2.4.7 2021-06-09
+
+* Fixes issue with using struct types in workflow outputs
+* Fixes issue with array with optional item type
+
+## 2.4.6 2021-05-27
+
 * Fixes regression in WDL code generator where long expressions within placeholders are line-wrapped incorrectly
 
-## 2.4.5 2020-05-25
+## 2.4.5 2021-05-25
 
 * An applet that contains multiple scatter or conditional blocks will now have a name that is the concatenation of all the block names 
 * Fixes multiple issues with WDL code generator

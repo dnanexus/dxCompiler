@@ -424,6 +424,9 @@ object Main {
 
     // quit here if the target is IR and there are no inputs to translate
     if (!hasInputs && compileMode == CompilerMode.IR) {
+      if (logger.isVerbose) {
+        logger.trace(rawBundle.toString)
+      }
       return SuccessfulCompileIR(rawBundle)
     }
 
@@ -454,6 +457,9 @@ object Main {
         }
       if (compileMode == CompilerMode.IR) {
         // if we're only performing translation to IR, we can quit early
+        if (logger.isVerbose) {
+          logger.trace(rawBundle.toString)
+        }
         return SuccessfulCompileIR(bundleWithDefaults)
       }
       (bundleWithDefaults, fileResolver)
@@ -843,8 +849,9 @@ object Main {
         |    calling existing platform executables without modification.
         |    options:
         |      -apps [include,exclude,only]
-        |                             Whether to 'include' apps, 'exclude' apps (the default), or 
-        |                             'only' generate app stubs.
+        |                             Option 'include' includes both apps and applets, 'exclude'
+        |                             excludes apps and generates applet stubs only, 'only'
+        |                             generates app stubs only.
         |      -f | force             Delete any existing output file.
         |      -o <path>              Destination file for WDL task definitions (defaults to 
         |                             stdout).
