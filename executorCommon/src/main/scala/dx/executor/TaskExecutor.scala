@@ -19,6 +19,7 @@ import dx.util.{
   AddressableFileNode,
   AddressableFileSource,
   Enum,
+  FileSource,
   FileUtils,
   LocalFileSource,
   SafeLocalizationDisambiguator,
@@ -238,13 +239,21 @@ abstract class TaskExecutor(jobMeta: JobMeta,
   //  this would also require some way for the downloaded image tarball to be
   //  discovered and loaded. For now, we rely on DockerUtils to download the image
   //  (via DxFileSource, which uses the dx API to download the file).
-  private def extractPaths(v: Value): PathValues = {
+  private def extractPaths(v: Value, fillInListings: Boolean): PathValues = {
     def extractArray(values: Vector[Value]): PathValues = {
-      values.map(extractPaths).foldLeft(PathValues()) {
+      values.map(extractPaths(_, fillInListings)).foldLeft(PathValues()) {
         case (pathsAccu, paths) =>
           PathValues(pathsAccu.virutalFiles ++ paths.virutalFiles,
                      pathsAccu.realFiles ++ paths.realFiles,
                      pathsAccu.folders ++ paths.folders)
+      }
+    }
+    def createListing(value: Vector[FileSource]): Vector[PathValue] = {
+      value.collect {
+        case fs: AddressableFileSource if fs.isDirectory && fs.isListable =>
+          VFolder(fs.address, listing = Some(createListing(fs.listing())))
+        case fs: AddressableFileSource if fs.isDirectory => VFolder(fs.address)
+        case fs: AddressableFileSource                   => VFile(fs.address)
       }
     }
     v match {
@@ -256,7 +265,13 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         secondaryPaths.copy(realFiles = secondaryPaths.realFiles :+ (fileSource -> file))
       case folder: VFolder =>
         val folderSource = fileResolver.resolveDirectory(folder.uri)
-        PathValues(folders = Vector(folderSource -> folder))
+        // fill in the listing if it is not provided
+        val updatedFolder = if (folder.listing.isEmpty && folderSource.isListable) {
+          folder.copy(listing = Some(createListing(folderSource.listing(recursive = true))))
+        } else {
+          folder
+        }
+        PathValues(folders = Vector(folderSource -> updatedFolder))
       case listing: VListing => extractArray(listing.items)
       case VArray(items)     => extractArray(items)
       case VHash(m)          => extractArray(m.values.toVector)
