@@ -46,8 +46,8 @@
       }
     },
     "distribution": "Ubuntu",
-    "release": "20.04",
-    "version": "0",
+    "release": "16.04",
+    "version": "1",
     "file": "code.sh"
   },
   "regionalOptions": {

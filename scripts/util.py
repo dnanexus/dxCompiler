@@ -184,7 +184,6 @@ def _download_awscli_to_resources(top_dir, awscli_version):
     return awscli_zip
 
 def _create_asset_spec(version_id, top_dir, language, dependencies=None):
-    # TODO: update to 20.04 - just waiting for staging to catch up to prod
     exec_depends = [
         {"name": "openjdk-8-jre-headless"},
         {"name": "bzip2"},
@@ -194,7 +193,7 @@ def _create_asset_spec(version_id, top_dir, language, dependencies=None):
         "version": version_id,
         "name": "dx{}rt".format(language.upper()),
         "title": "dx{} asset".format(language.upper()),
-        "release": "20.04",
+        "release": "16.04",
         "distribution": "Ubuntu",
         "execDepends": exec_depends,
         "instanceType": "mem1_ssd1_v2_x4",
