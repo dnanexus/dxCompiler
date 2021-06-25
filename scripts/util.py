@@ -21,7 +21,7 @@ max_num_retries = 5
 # - subproject = "executor{}".format(lang)
 # - JAR name = "dxExecutor{}".format(lang)
 # - asset name = "dx{}rt".format(lang.upper())
-languages = ["Wdl", "Cwl"]
+languages = ["Wdl"]
 
 
 def info(msg, ex=None):
