@@ -177,16 +177,6 @@ single_tasks_list = [
     "stream_diff_v1"
 ]
 
-cwl_tools = [
-    "cat",  # hello world tool
-    "tar_files",
-]
-
-cwl_conformance = [
-    os.path.basename(path)[:-4]
-    for path in glob.glob(os.path.join(test_dir, "cwl_conformance", "tools", "*.cwl"))
-]
-
 # Tests run in continuous integration. We remove the native app test,
 # because we don't want to give permissions for creating platform apps.
 ci_test_list = [
@@ -197,8 +187,6 @@ ci_test_list = [
     "call_with_defaults1",
     "trains",
     "files",
-    # CWL tests
-    "cat",
 ]
 
 special_flags_list = [
@@ -212,7 +200,7 @@ doc_tests_list = [
     "bwa_mem"
 ]
 
-medium_test_list = wdl_v1_list + wdl_v1_1_list + docker_test_list + special_flags_list + cwl_tools
+medium_test_list = wdl_v1_list + wdl_v1_1_list + docker_test_list + special_flags_list
 large_test_list = medium_test_list + draft2_test_list + single_tasks_list + doc_tests_list
 
 test_suites = {
@@ -224,7 +212,6 @@ test_suites = {
     'docker': docker_test_list,
     'native': ["call_native", "call_native_v1"],
     'docs': doc_tests_list,
-    'cwl_conformance': cwl_conformance
 }
 
 # Tests with the reorg flags
