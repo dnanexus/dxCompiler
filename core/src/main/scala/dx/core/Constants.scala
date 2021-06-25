@@ -63,6 +63,6 @@ object Constants {
 
   // other constants
   val OsDistribution = "Ubuntu"
-  val OsRelease = "20.04"
-  val OsVersion = "0"
+  val OsRelease = "16.04"
+  val OsVersion = "1"
 }
