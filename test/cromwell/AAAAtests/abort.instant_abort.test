@@ -1,0 +1,10 @@
+name: abort.instant_abort
+testFormat: instantabort
+
+files {
+  workflow: abort/instant_abort.wdl
+}
+
+metadata {
+  status: Aborted
+}

@@ -1,0 +1,6 @@
+name: referencingpreviousinputsandoutputs
+testFormat: workflowsuccess
+
+files {
+  workflow: referencingpreviousinputsandoutputs/referencingpreviousinputsandoutputs.wdl
+}

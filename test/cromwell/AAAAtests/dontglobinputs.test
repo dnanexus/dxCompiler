@@ -1,0 +1,10 @@
+name: dontglobinputs
+testFormat: workflowsuccess
+
+files {
+  workflow: dontglobinputs/dontglobinputs.wdl
+}
+
+metadata {
+    "outputs.dontglobinputs.length.size" = 2
+}
