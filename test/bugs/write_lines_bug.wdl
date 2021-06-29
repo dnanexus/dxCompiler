@@ -39,10 +39,10 @@ task fix_paths {
     for f in ['~{sep="','" strings}']:
       parts = f.split("/")
       if parts[4] not in dirs:
-        d = f"input{len(dirs)}"
+        d = "input{}".format(len(dirs))
         dirs[parts[4]] = d
       parts[4] = dirs[parts[4]]
-      print(f"{'/'.join(parts)}")
+      print('/'.join(parts))
     CODE
     >>>
 
