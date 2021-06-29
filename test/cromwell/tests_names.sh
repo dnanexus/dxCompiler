@@ -12,7 +12,7 @@
 
 # move all >not Succeeded< statuses to different folder (only >WDL<)
 
-#for i in AAAAtests/*.test; do # Whitespace-safe and recursive
+#for i in _tests/*.test; do # Whitespace-safe and recursive
 #  metadata_status=`cat $i | grep status`
 #  if [[ $metadata_status == *"Succeeded"* ]]; then
 #    continue
@@ -34,7 +34,7 @@
 
 # Create results file from test files.
 
-#for i in AAAAtests/*.test; do # Whitespace-safe and recursive
+#for i in _tests/*.test; do # Whitespace-safe and recursive
 #  workflow_file=`cat $i | grep "workflow:"`
 #  if [[ $workflow_file == *".cwl"* ]]; then
 #    continue

@@ -1,7 +1,6 @@
 selection_functions -> output created from outputs, if (false) {....} - does not exist in the environment.
 
-
-http_inputs -> KeyError: 'http_inputs'
+http_inputs parallel_composite_uploads_on, parallel_composite_uploads_lib - KeyError: 'parallel_composite_uploads_lib'
 
 no_task_no_output_delete - InvalidInput: Expected the "outputs.outputSource" field of output parameter "notUsed" to be a $dnanexus_link referencing a stage output field
 
@@ -39,7 +38,7 @@ sub_workflow_one_output_import, sub_workflow_no_output_block_import, sub_workflo
 
 optional_declarations -  mismatched input 'strings'
 
-parallel_composite_uploads_on, parallel_composite_uploads_lib - KeyError: 'parallel_composite_uploads_lib'
+
 
 globbingBehavior - [error] Error creating translator for /Users/mhrvol-cf/Desktop/projects/dxCompiler/test/cromwell/globbingBehavior/globbingBehavior.wdl
 dx.util.DuplicateBindingException: name(s) symLinkContents_contents,specificDirectory_contents,hardLinkContents_contents,strInterpolation_contents,callDirectory_contents,easyGlob_contents,origFileContents_contents already exists in scope
