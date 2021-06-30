@@ -36,6 +36,8 @@ applet might get killed due to temporary resource shortage, causing an
 expensive workflow to fail. 
 * We want to minimize the context that needs to be kept around for the WDL workflow, because it limits job manager scalability.
 
+### Examining compilation output
+
 After compiling your workflow to a project, you will see the compiled workflows and applets in
 the project like this:
 
@@ -458,7 +460,7 @@ The `streamAllFiles` option overrides any streaming settings in the compiled app
 
 ### TaskExecutor
 
-The TaskExecutor implements the commands called in the [job script]() generated for each task applet by the compiler. The progression of events is:
+The TaskExecutor (`dxExecutorWdl.jar`, `dxExecutorCwl.jar`) implements the commands called in the [job script](#examining-compilation-output) generated for each task applet by the compiler. The progression of events is:
 
 * TaskExecutor prolog:
     * Evaluate all job inputs
