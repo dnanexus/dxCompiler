@@ -3,6 +3,7 @@
 ## in develop
 
 * Fixes issue where an optional variable inside a conditional could have an inferred type of `T??`, which is illegal and results in a runtime error
+* Specifies operating system when selecting optimal instance type
 
 ## 2.4.7 2021-06-09
 
