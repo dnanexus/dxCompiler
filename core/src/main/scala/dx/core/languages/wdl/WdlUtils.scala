@@ -1044,11 +1044,14 @@ object WdlUtils {
     */
   def getOutputClosure(outputs: Vector[TAT.OutputParameter]): Map[String, T] = {
     // create inputs from all the expressions that go into outputs
+    // exclude any inputs that are references to other output parameters
+    val paramNames = outputs.map(_.name).toSet
     outputs
       .flatMap {
         case TAT.OutputParameter(_, _, expr) => Vector(expr)
       }
       .flatMap(e => getExpressionInputs(e, withField = false))
+      .filterNot(i => paramNames.contains(i.identifier))
       .groupBy(_.fullyQualifiedName)
       .map {
         // if there are multiple references to the same parameter, make sure the
