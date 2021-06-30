@@ -958,8 +958,6 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       val args = path.toString :: "-extras" :: extrasPath :: cFlagsReorgIR
       Main.compile(args.toVector)
     }
-    retval shouldBe a[SuccessfulCompileIR]
-
     val bundle = retval match {
       case SuccessfulCompileIR(bundle) => bundle
       case _                           => throw new Exception("unexpected")

@@ -324,7 +324,7 @@ object WdlUtils {
       case T_File                                      => TFile
       case T_Directory                                 => TDirectory
       case T_Object                                    => THash
-      case T_Optional(t)                               => TOptional(toIRType(t))
+      case T_Optional(t)                               => Type.ensureOptional(toIRType(t))
       case T_Array(t, true) if TypeUtils.isOptional(t) =>
         // an array with an optional item type may be serialized
         // as an empty array if all the items are None, so we

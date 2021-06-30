@@ -1,0 +1,401 @@
+{
+  "corpora": [
+    {
+      "url": "https://github.com/broadinstitute/warp.git",
+      "tag": "4d2941f5e511ef853858819c136359d320f6b20f",
+      "entrypoints": [
+        {
+          "path": "pipelines/skylab/optimus/Optimus.wdl",
+          "fix": true,
+          "lint": {
+          }
+        },
+        {
+          "path": "pipelines/skylab/scATAC/scATAC.wdl",
+          "lint": {
+          }
+        },
+        {
+          "path": "pipelines/skylab/smartseq2_multisample/MultiSampleSmartSeq2.wdl",
+          "lint": {
+          }
+        },
+        {
+          "path": "pipelines/skylab/smartseq2_single_sample/SmartSeq2SingleSample.wdl",
+          "lint": {
+          }
+        },
+        {
+          "path": "pipelines/cemba/cemba_methylcseq/CEMBA.wdl",
+          "fix": true,
+          "lint": {}
+        },
+        {
+          "path": "pipelines/broad/dna_seq/germline/single_sample/exome/ExomeGermlineSingleSample.wdl",
+          "fix": true,
+          "lint": {}
+        },
+        {
+          "path": "pipelines/broad/dna_seq/germline/single_sample/wgs/WholeGenomeGermlineSingleSample.wdl",
+          "fix": true,
+          "lint": {}
+        },
+        {
+          "path": "pipelines/broad/dna_seq/germline/variant_calling/VariantCalling.wdl",
+          "fix": true,
+          "lint": {}
+        },
+        {
+          "path": "pipelines/broad/dna_seq/germline/joint_genotyping/JointGenotyping.wdl",
+          "fix": true,
+          "fail": true,
+          "reason": "https://github.com/broadinstitute/warp/issues/341",
+          "lint": {}
+        },
+        {
+          "path": "pipelines/broad/dna_seq/somatic/single_sample/wgs/gdc_genome/GDCWholeGenomeSomaticSingleSample.wdl",
+          "fix": true,
+          "fail": true,
+          "reason": "reuse of variable name 'ubam' in GDCWholeGenomeSomaticSingleSample.wdl; forward reference",
+          "lint": {}
+        }
+      ]
+    },
+    {
+      "url": "https://github.com/broadinstitute/gtex-pipeline.git",
+      "tag": "eb6835bad68d63c176be695b986898b5527d7588",
+      "entrypoints": [
+        {
+          "dir": "rnaseq",
+          "reason": "these WDLs are draft2 and require fixing, and the code generator does not support draft2",
+          "exclude": [
+            "rnaseqc2_aggregate.wdl",
+            "star_fastq_list.wdl"
+          ],
+          "lint": {
+          }
+        },
+        {
+          "dir": "qtl",
+          "lint": {
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://github.com/ENCODE-DCC/atac-seq-pipeline.git",
+      "tag": "77cbf90bdaddbffdaa5c681925c3dc63cfdb0d2e",
+      "entrypoints": [
+        {
+          "path": "atac.wdl",
+          "fix": true,
+          "lint": {
+            "T006": 108,
+            "P001": 15,
+            "T004": 1020,
+            "T001": 30,
+            "T002": 71,
+            "A007": 29
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://github.com/ENCODE-DCC/chip-seq-pipeline2.git",
+      "tag":  "6b70b8dc3337f74dc41f9f8d1c0fa3e732889944",
+      "entrypoints": [
+        {
+          "path": "chip.wdl",
+          "fix": true,
+          "lint": {
+            "T000": 16,
+            "P001": 32,
+            "A007": 31
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://github.com/ENCODE-DCC/rna-seq-pipeline.git",
+      "tag":  "3dee9c7449dcdd477e5bbddb24ad37be3331412b",
+      "entrypoints": [
+        {
+          "path": "rna-seq-pipeline.wdl",
+          "fix": true,
+          "lint": {
+            "T000": 3,
+            "A007": 3
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://github.com/ENCODE-DCC/wgbs-pipeline.git",
+      "tag":  "6040827a052acf43c9d890b8071ab22808a0a18e",
+      "entrypoints": [
+        {
+          "path": "wgbs-pipeline.wdl",
+          "lint": {
+            "T001": 9,
+            "T006": 1,
+            "P001": 1,
+            "A007": 5
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://github.com/chanzuckerberg/miniwdl.git",
+      "tag": "a02e655e7c78df96b9bfc9a8ae39ca2fe561cc02",
+      "entrypoints": [
+        {
+          "dir": "test_corpi/contrived",
+          "exclude": [
+            "check_quant.wdl",
+            "contrived.wdl",
+            "emptier.wdl",
+            "incomplete_call.wdl",
+            "incomplete_import.wdl",
+            "issue81.wdl",
+            "issue120.wdl",
+            "scatter_collisions.wdl",
+            "unverified_struct.wdl",
+            "wdl1.1.wdl"
+          ],
+          "lint": {
+            "A005": 4,
+            "A004": 27,
+            "T001": 4,
+            "T002": 2,
+            "T005": 1,
+            "T007": 2,
+            "T006": 2,
+            "T000": 2,
+            "T009": 1,
+            "A007": 7
+          }
+        },
+        {
+          "dir": "test_corpi/contrived",
+          "fail": true,
+          "include": [
+            "check_quant.wdl",
+            "contrived.wdl",
+            "emptier.wdl",
+            "incomplete_call.wdl",
+            "incomplete_import.wdl",
+            "issue81.wdl",
+            "issue120.wdl",
+            "scatter_collisions.wdl",
+            "unverified_struct.wdl"
+          ]
+        },
+        {
+          "path": "test_corpi/contrived/wdl1.1.wdl",
+          "fix": true
+        }
+      ]
+    },
+    {
+      "url": "https://github.com/biowdl/tasks.git",
+      "tag": "c210b6cfc254dfa7ef0a942f7ba2d961da2d5f0c",
+      "entrypoints": [
+        {
+          "include": [
+            "bedtools.wdl",
+            "bcftools.wdl",
+            "bowtie.wdl",
+            "bwa.wdl",
+            "bwa-mem2.wdl",
+            "centrifuge.wdl",
+            "common.wdl",
+            "clever.wdl",
+            "collect-columns.wdl",
+            "cutadapt.wdl",
+            "fastqc.wdl",
+            "flash.wdl",
+            "gatk.wdl",
+            "gffcompare.wdl",
+            "gridss.wdl",
+            "hisat2.wdl",
+            "macs2.wdl",
+            "multiqc.wdl",
+            "ncbi.wdl",
+            "picard.wdl",
+            "sambamba.wdl",
+            "samtools.wdl",
+            "spades.wdl",
+            "star.wdl",
+            "strelka.wdl",
+            "stringtie.wdl",
+            "survivor.wdl",
+            "umi-tools.wdl",
+            "unicycler.wdl",
+            "vardict.wdl",
+            "whatshap.wdl"
+          ],
+          "fail": true,
+          "reason": "https://github.com/biowdl/tasks/issues/270; https://github.com/biowdl/tasks/issues/281; https://github.com/biowdl/tasks/issues/282 (collect-columns, cutadapt, macs2, ncbi, spades, star, stringtie, unicycler, whatshap); bwa.wdl, bwa-mem2.wdl, and gffcompare.wdl include a forward reference, and several other tasks depend on bwa",
+          "lint": {
+            "T004": 9,
+            "T006": 18,
+            "T005": 1,
+            "A004": 1,
+            "T009": 1
+          }
+        },
+        {
+          "exclude": [
+            "bedtools.wdl",
+            "bcftools.wdl",
+            "bowtie.wdl",
+            "bwa.wdl",
+            "bwa-mem2.wdl",
+            "centrifuge.wdl",
+            "clever.wdl",
+            "collect-columns.wdl",
+            "common.wdl",
+            "cutadapt.wdl",
+            "fastqc.wdl",
+            "flash.wdl",
+            "gatk.wdl",
+            "gffcompare.wdl",
+            "gridss.wdl",
+            "hisat2.wdl",
+            "macs2.wdl",
+            "multiqc.wdl",
+            "ncbi.wdl",
+            "picard.wdl",
+            "sambamba.wdl",
+            "samtools.wdl",
+            "spades.wdl",
+            "star.wdl",
+            "strelka.wdl",
+            "stringtie.wdl",
+            "survivor.wdl",
+            "umi-tools.wdl",
+            "unicycler.wdl",
+            "vardict.wdl",
+            "whatshap.wdl"
+          ]
+        }
+      ]
+    },
+    {
+      "url": "https://github.com/biowdl/aligning.git",
+      "tag": "77576eb60c3448ac67cf4e4a8394285201f96e5e",
+      "entrypoints": [
+        {
+          "path": "align-star.wdl",
+          "fail": true,
+          "reason": "https://github.com/biowdl/tasks/issues/270",
+          "lint": {
+            "T004": 12,
+            "T006": 12,
+            "T005": 1,
+            "A004": 1
+          }
+        },
+        {
+          "path": "align-hisat2.wdl",
+          "fail": true,
+          "reason": "https://github.com/biowdl/tasks/issues/270"
+        }
+      ]
+    },
+    {
+      "url": "https://github.com/biowdl/expression-quantification.git",
+      "tag": "e4567a70cdf6a2f29c4b9fae25c5e92f37441575",
+      "entrypoints": [
+        {
+          "path": "multi-bam-quantify.wdl",
+          "fail": true,
+          "reason": "https://github.com/biowdl/tasks/issues/270",
+          "lint": {
+            "T004": 11,
+            "T006": 12,
+            "T005": 3,
+            "A004": 1
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://github.com/biowdl/somatic-variantcalling.git",
+      "tag": "0ff5733df302e2f8199b5ec6b2fc8edccaecfe38",
+      "entrypoints": [
+        {
+          "path": "somatic-variantcalling.wdl",
+          "fail": true,
+          "reason": "https://github.com/biowdl/tasks/issues/270",
+          "lint": {
+            "A005": 2,
+            "T004": 11,
+            "T006": 11,
+            "T005": 37,
+            "T009": 5
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://github.com/biowdl/small-rna.git",
+      "tag": "8e4972caddf8a9f02d993ddd7052658c224fb294",
+      "entrypoints": [
+        {
+          "path": "small-rna.wdl",
+          "fail": true,
+          "reason": "https://github.com/biowdl/QC/issues/61",
+          "lint": {
+            "T006": 9,
+            "T009": 2,
+            "T004": 2,
+            "T005": 3
+          }
+        }
+      ]
+    }
+  ],
+  "ignored": [
+    {
+      "url": "https://github.com/broadinstitute/viral-ngs.git",
+      "tag": "e144969e4c57060d53f38a4c3a270e8227feace1",
+      "reason": "These WDLs are all draft2, and they require fixing, but the code generator doesn't support draft2",
+      "entrypoints": [
+        {
+          "dir": "pipes/WDL/workflows",
+          "import_dirs": [
+            "pipes/WDL/workflows/tasks"
+          ],
+          "fix": true,
+          "lint": {
+            "T006": 23,
+            "T000": 53,
+            "A005": 1,
+            "T009": 4,
+            "A009": 62
+          }
+        }
+      ]
+    },
+    {
+      "url": "https://github.com/DataBiosphere/topmed-workflows.git",
+      "tag": "de683e0be7c2798b3eb503812a095659039247b3",
+      "reason": "These WDLs are all draft2, and they require fixing, but the code generator doesn't support draft2",
+      "entrypoints": [
+        {
+          "dir": "aligner/functional-equivalence-wdl",
+          "fix": true,
+          "lint": {
+          }
+        },
+        {
+          "dir": "variant-caller/variant-caller-wdl",
+          "fix": true,
+          "lint": {
+          }
+        }
+      ]
+    }
+  ]
+}

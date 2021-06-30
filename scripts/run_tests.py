@@ -36,7 +36,7 @@ test_failing = set([
 ])
 
 wdl_v1_list = [
-    # # calling native dx applets/apps
+    # calling native dx applets/apps
     # "call_native_v1",
     # "call_native_app",
     #
@@ -101,6 +101,7 @@ wdl_v1_list = [
     # "diff_stream_and_download",  # APPS-288
     # "apps_573",
     # "apps_612",
+    # "nested_optional",
     #
     # # manifests
     # "simple_manifest",
@@ -622,7 +623,7 @@ def get_checksum(contents, algo):
         m.update(contents)
         return m.digest()
     except:
-        println("python does not support digest algorithm {}".format(algo))
+        print("python does not support digest algorithm {}".format(algo))
         return None
 
 
@@ -984,7 +985,7 @@ def native_call_app_setup(project, version_id, verbose):
                 "-language", "wdl_v1.0",
                 "-output", header_file]
     if verbose:
-        cmdline_common.append("--verbose")
+        cmdline.append("--verbose")
     print(" ".join(cmdline))
     subprocess.check_output(cmdline)
 
