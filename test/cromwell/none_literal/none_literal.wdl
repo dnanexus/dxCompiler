@@ -22,7 +22,7 @@ task none_in_command {
     echo ~{if (defined(None)) then "Some" else "None" }
   >>>
   runtime {
-    docker: "ubuntu:latest"
+    container: "ubuntu:latest"
   }
   output {
     String s = read_string(stdout())

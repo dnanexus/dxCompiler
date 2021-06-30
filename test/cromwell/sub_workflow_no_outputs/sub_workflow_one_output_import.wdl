@@ -6,7 +6,7 @@ workflow subhello {
     input: inputs = greeting_pieces
   }
 
-  String salutation_length = length(hello.out)
+  Int salutation_length = length(hello.out)
 
   output {
     Int sal_len = salutation_length

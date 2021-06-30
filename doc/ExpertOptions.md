@@ -64,7 +64,7 @@ Compilation can be controled with several parameters.
 
 The `-inputs` option allows specifying a Cromwell JSON
 [format](https://software.broadinstitute.org/wdl/documentation/inputs.php)
-inputs file. An equivalent DNAx format inputs file is generated from
+inputs file. An equivalent DNAnexus format inputs file is generated from
 it. For example, workflow
 [files](https://github.com/dnanexus/dxCompiler/blob/main/test/draft2/files.wdl)
 has input file

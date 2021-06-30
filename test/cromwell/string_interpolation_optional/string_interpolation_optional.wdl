@@ -14,7 +14,7 @@ task string_interpolation_task {
   }
   
   runtime {
-    docker: "ubuntu:latest"
+    container: "ubuntu:latest"
   }
 }
 

@@ -48,9 +48,9 @@ task optional_array_interpolations {
     String unsupplied_prefix = if defined(unsupplied) then "--foo " else ""
 
 	command {
-		echo "${supplied_prefix}${sep="," supplied}"
-		echo "${defaulted_prefix}${sep="," defaulted}"
-		echo "${unsupplied_prefix}${sep="," unsupplied}"
+		echo "${supplied_prefix}${sep="," select_first([supplied])}"
+		echo "${defaulted_prefix}${sep="," select_first([defaulted])}"
+		echo "${unsupplied_prefix}${sep="," select_first([unsupplied])}"
 	}
     runtime {
 	  docker: "ubuntu:latest"

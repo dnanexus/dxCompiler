@@ -7,7 +7,7 @@ workflow subhello {
   }
 
   # Confirm referencing call outputs from subworkflows does not fail validation.
-  String salutation_length = length(hello.out)
+  Int salutation_length = length(hello.out)
 
   output {
     Array[String] hello_out = hello.out
