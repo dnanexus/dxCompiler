@@ -29,12 +29,29 @@ A WDL workflow is compiled into an equivalent DNAnexus workflow, enabling runnin
 * Each scatters or conditional block is compiled into workflow stages, plus an auxiliary applet
     - Nested scatters/conditionals may result in nested workflows 
 
-The mapping from WDL to native DNAnexus objects requires overcomming two key obstacles:
+The mapping from WDL to native DNAnexus objects requires overcoming two key obstacles:
 
 * We wish to avoid creating a controlling applet that would run and manage a WDL workflow. Such an
 applet might get killed due to temporary resource shortage, causing an
 expensive workflow to fail. 
 * We want to minimize the context that needs to be kept around for the WDL workflow, because it limits job manager scalability.
+
+After compiling your workflow to a project, you will see the compiled workflows and applets in
+the project like this:
+
+```
+my_task_1
+my_task_2
+my_workflow
+my_workflow_common
+my_workflow_outputs
+```
+To look inside the generated job script for an applet, you can run e.g. `dx get my_task_1`. This will
+download a folder called `my_task_1` with the applet job script inside `my_task_1/src`.
+
+After compiling, you will also see `dxWDLrt : record-xxxx` in the project. This record points to
+the asset bundle of resources published to the platform during each dxCompiler release. It contains
+`dxExecutorWdl.jar` (or `dxExecutorCwl.jar` for CWL), which is needed during workflow execution.
 
 ## Type mapping
 
