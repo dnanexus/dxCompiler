@@ -393,7 +393,8 @@ test_suites = {
     'docker': docker_test_list,
     'native': ["call_native", "call_native_v1"],
     'docs': doc_tests_list,
-    'cwl_conformance': cwl_conformance
+    'cwl_conformance': cwl_conformance,
+    'cromwell_fail': cromwell_translate_failure_list
 }
 
 # Tests with the reorg flags
