@@ -10,7 +10,7 @@ import wdlTools.eval.{EvalUtils, Meta}
 import wdlTools.eval.WdlValues._
 import wdlTools.syntax.WdlVersion
 import wdlTools.types.WdlTypes._
-import wdlTools.types.{TypedAbstractSyntax => TAT}
+import wdlTools.types.{TypeUtils, TypedAbstractSyntax => TAT}
 import dx.util.Adjuncts
 
 private object MetaUtils {
@@ -191,7 +191,7 @@ object ParameterMetaTranslator {
   private def metaChoiceValueToIR(wdlType: T,
                                   value: V,
                                   name: Option[V] = None): ParameterAttributes.Choice = {
-    (wdlType, value) match {
+    (TypeUtils.unwrapOptional(wdlType), value) match {
       case (T_String, V_String(str)) =>
         ParameterAttributes.SimpleChoice(VString(str))
       case (T_Int, V_Int(i)) =>
