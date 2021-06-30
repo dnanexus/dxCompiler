@@ -441,10 +441,17 @@ The Executor has two branches: TaskExecutor, for executing individual tasks, and
 The command line interface for the Executor is fairly simple:
 
 ```
-java -jar dxCompiler.jar <task|workflow> <action> <rootdir> [options]
+java -jar dxExecutorWdl.jar <task|workflow> <action> <rootdir> [options]
 
 Options:
-    -streamAllFiles        Mount all files with dxfuse, do not use the download agent
+    -streamFiles [all,none,perfile]
+                           Whether to mount all files with dxfuse (do not use the
+                           download agent), to mount no files with dxfuse (only use
+                           download agent), or to allow streaming to be set on a
+                           per-file basis (the default).
+    -separateOutputs       Whether to put output files in a separate folder based on
+                           the job name. If not specified, then all outputs go to the
+                           parent job's output folder.
     -traceLevel [0,1,2]    How much debug information to write to the
                            job log at runtime. Zero means write the minimum,
                            one is the default, and two is for internal debugging.
@@ -452,7 +459,8 @@ Options:
     -verbose               Print detailed progress reports
     -verboseKey <module>   Detailed information for a specific module
     -logFile <path>        File to use for logging output; defaults to stderr
-``` 
+    -waitOnUpload          Whether to wait for each file upload to complete.
+```
 
 On a DNAnexus worker, `rootdir` is always `/home/dnanexus`.
 
