@@ -429,7 +429,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           EmptyInput
         case Some(expr) =>
           try {
-            // try to evalaute the expression using the constant values from the env
+            // try to evaluate the expression using the constant values from the env
             val paramWdlType = WdlUtils.fromIRType(calleeParam.dxType, typeAliases)
             val bindings = WdlValueBindings(env.staticValues.map {
               case (key, (dxType, value)) =>
@@ -1066,20 +1066,19 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       // We need a common output stage for any of three reasons:
       // 1. we need to build an output manifest
       val useOutputStage = useManifests || {
-        // 2. any output expressions cannot be resolved without evaluation (i.e. is a constant
-        // or a reference to a defined variable)
+        // 2. any output expressions cannot be resolved without by linking to
+        // a workflow input or the output of another stage. Note that a constant
+        // value *does* require evaluation because output spec does not allow
+        // a default value.
         outputs.exists {
           case TAT.OutputParameter(name, _, _) if env.contains(name) =>
-            // the environment has a stage with this output - we can get it by linking
-            false
-          case TAT.OutputParameter(_, _, expr) if WdlUtils.isTrivialExpression(expr) =>
-            // A constant or a reference to a variable
+            // The environment has a stage with this output
             false
           case TAT.OutputParameter(_, _, TAT.ExprIdentifier(id, _)) if env.contains(id) =>
             // An identifier that is in scope
             false
           case TAT.OutputParameter(_, _, TAT.ExprGetName(TAT.ExprIdentifier(id2, _), id, _)) =>
-            // Access to the results of a call. For example,
+            // Access to a field value. For example,
             // c1 is call, and the output section is:
             //  output {
             //     Int? result1 = c1.result
