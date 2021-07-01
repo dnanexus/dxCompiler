@@ -6,6 +6,7 @@
 * Specifies operating system when selecting optimal instance type
 * Fixes issue with references between output variables
 * Uses an output stage if there is an output parameter with a literal value (DNAnexus output parameters do not support default values)
+* Fixes issue where compiling with -execTree pretty / json did not print the workflow tree
 
 ## 2.4.7 2021-06-09
 

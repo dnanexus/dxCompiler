@@ -280,10 +280,12 @@ object Main {
 
   sealed trait SuccessfulPrettyTree extends CompilerSuccessfulTermination {
     def prettyTree: String
+    override def message: String = prettyTree
   }
 
   sealed trait SuccessfulJsonTree extends CompilerSuccessfulTermination {
     def jsonTree: JsValue
+    override def message: String = jsonTree.prettyPrint
   }
 
   sealed trait SuccessfulCompileNative extends SuccessfulCompile {
