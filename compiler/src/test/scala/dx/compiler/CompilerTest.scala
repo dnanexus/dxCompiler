@@ -1146,6 +1146,13 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     retval shouldBe a[SuccessfulCompileNativeNoTree]
   }
 
+  it should "compile a workflow with only an output section" in {
+    val path = pathFromBasename("draft2", "output_only.wdl")
+    val args = path.toString :: cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileNativeNoTree]
+  }
+
 //  it should "compile a task with a string + int concatenation" taggedAs NativeTest in {
 //    val path = pathFromBasename("non_spec", "string_int_concat.wdl")
 //    val args = path.toString :: "-wdlMode" :: "lenient" :: cFlags
