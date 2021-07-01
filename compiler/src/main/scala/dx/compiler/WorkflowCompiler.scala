@@ -253,7 +253,7 @@ case class WorkflowCompiler(extras: Option[Extras],
         val outputParams = if (useManifests) {
           // When using manifests, there is a single "output_manifest___" parameter, which
           // is a manifest file. The common output applet is responsible for merging all
-          // incomming manifests into a single manifest, so the workflow output is just a
+          // incoming manifests into a single manifest, so the workflow output is just a
           // link to the common stage output.
           val outputStage = workflow.stages.filter(_.description == Constants.OutputStage) match {
             case Vector(outputStage) => outputStage
