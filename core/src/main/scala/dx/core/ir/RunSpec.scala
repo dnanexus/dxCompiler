@@ -2,6 +2,7 @@ package dx.core.ir
 
 import dx.api.DiskType.DiskType
 import dx.api.{DxFile, ExecutionEnvironment, InstanceTypeRequest}
+import dx.core.Constants
 
 /**
   * Representation of the parts of dxapp.json `runSpec` that can be specified.
@@ -60,7 +61,7 @@ object RunSpec {
                           minCpu,
                           maxCpu,
                           gpu,
-                          os)
+                          os.orElse(Some(Constants.DefaultExecutionEnvironment)))
     }
   }
 

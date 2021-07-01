@@ -1,6 +1,7 @@
 package dx.core.languages.wdl
 
 import dx.api.{DiskType, InstanceTypeRequest}
+import dx.core.Constants
 import wdlTools.eval.WdlValues._
 import wdlTools.eval.{
   Eval,
@@ -84,39 +85,40 @@ case class Runtime(wdlVersion: WdlVersion,
   }
 
   def parseInstanceType: InstanceTypeRequest = {
-    getDxHint(Runtime.InstanceType) match {
-      case Some(V_String(dxInstanceType)) =>
-        return InstanceTypeRequest(Some(dxInstanceType))
-      case None  => ()
-      case other => throw new Exception(s"Invalid dxInstanceType ${other}")
-    }
-
-    val memory = runtimeAttrs.runtime.map(_.memory)
-    val memoryMB = memory.map(mem => EvalUtils.floatToInt(mem.toDouble / Runtime.MiB))
-    // we don't provide multiple disk mounts - instead we just add up all the
-    // requested disk space
-    val diskGB: Option[Long] = runtimeAttrs.runtime.map(_.disks.map(_.size)) match {
-      case Some(v) if v.nonEmpty => Some(EvalUtils.floatToInt(v.sum / Runtime.GiB))
-      case _                     => None
-    }
-    val diskType =
-      runtimeAttrs.runtime.map(_.disks.flatMap(_.diskType.map(_.toUpperCase)).distinct) match {
-        case Some(Vector(diskType))       => Some(DiskType.withNameIgnoreCase(diskType))
-        case Some(v) if v.contains("SSD") => Some(DiskType.SSD)
-        case _                            => None
+    getDxHint(Runtime.InstanceType)
+      .map {
+        case V_String(dxInstanceType) => InstanceTypeRequest(Some(dxInstanceType))
+        case other                    => throw new Exception(s"Invalid dxInstanceType ${other}")
       }
-    val cpu = runtimeAttrs.runtime.map(_.cpu).map(EvalUtils.floatToInt)
-    val gpu = runtimeAttrs.get(WdlRuntime.GpuKey, Vector(T_Boolean)) match {
-      case None               => None
-      case Some(V_Boolean(b)) => Some(b)
-      case other =>
-        throw new Exception(s"unexpected ${WdlRuntime.GpuKey} value ${other}")
-    }
-    InstanceTypeRequest(minMemoryMB = memoryMB,
-                        minDiskGB = diskGB,
-                        diskType = diskType,
-                        minCpu = cpu,
-                        gpu = gpu)
+      .getOrElse {
+        val memory = runtimeAttrs.runtime.map(_.memory)
+        val memoryMB = memory.map(mem => EvalUtils.floatToInt(mem.toDouble / Runtime.MiB))
+        // we don't provide multiple disk mounts - instead we just add up all the
+        // requested disk space
+        val diskGB: Option[Long] = runtimeAttrs.runtime.map(_.disks.map(_.size)) match {
+          case Some(v) if v.nonEmpty => Some(EvalUtils.floatToInt(v.sum / Runtime.GiB))
+          case _                     => None
+        }
+        val diskType =
+          runtimeAttrs.runtime.map(_.disks.flatMap(_.diskType.map(_.toUpperCase)).distinct) match {
+            case Some(Vector(diskType))       => Some(DiskType.withNameIgnoreCase(diskType))
+            case Some(v) if v.contains("SSD") => Some(DiskType.SSD)
+            case _                            => None
+          }
+        val cpu = runtimeAttrs.runtime.map(_.cpu).map(EvalUtils.floatToInt)
+        val gpu = runtimeAttrs.get(WdlRuntime.GpuKey, Vector(T_Boolean)) match {
+          case None               => None
+          case Some(V_Boolean(b)) => Some(b)
+          case other =>
+            throw new Exception(s"unexpected ${WdlRuntime.GpuKey} value ${other}")
+        }
+        InstanceTypeRequest(minMemoryMB = memoryMB,
+                            minDiskGB = diskGB,
+                            diskType = diskType,
+                            minCpu = cpu,
+                            gpu = gpu,
+                            os = Some(Constants.DefaultExecutionEnvironment))
+      }
   }
 
   def safeParseInstanceType: Option[InstanceTypeRequest] = {

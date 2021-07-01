@@ -2,6 +2,7 @@ package dx.core.languages.cwl
 
 import java.math.{MathContext, RoundingMode}
 import dx.api.{DxApi, InstanceTypeRequest}
+import dx.core.Constants
 import dx.core.io.DxWorkerPaths
 import dx.core.ir.RunSpec.{
   AccessRequirement,
@@ -103,6 +104,7 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
         maxDiskGB = getDiskGB(resources.tmpdirMax, resources.outdirMax, MaxMathContext),
         minCpu = resources.coresMin.map(evaluateNumeric(_, MinMathContext)),
         maxCpu = resources.coresMax.map(evaluateNumeric(_, MaxMathContext)),
+        os = Some(Constants.DefaultExecutionEnvironment),
         optional = resourcesOptional
     )
   }
