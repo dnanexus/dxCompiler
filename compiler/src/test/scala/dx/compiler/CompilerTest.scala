@@ -958,8 +958,6 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       val args = path.toString :: "-extras" :: extrasPath :: cFlagsReorgIR
       Main.compile(args.toVector)
     }
-    retval shouldBe a[SuccessfulCompileIR]
-
     val bundle = retval match {
       case SuccessfulCompileIR(bundle) => bundle
       case _                           => throw new Exception("unexpected")
@@ -1143,6 +1141,13 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
   it should "compile a workflow with a native app with file output" taggedAs NativeTest in {
     val path = pathFromBasename("bugs", "native_with_file_output.wdl")
+    val args = path.toString :: cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileNativeNoTree]
+  }
+
+  it should "compile a workflow with only an output section" in {
+    val path = pathFromBasename("draft2", "output_only.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileNativeNoTree]
