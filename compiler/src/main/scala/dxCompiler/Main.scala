@@ -303,14 +303,22 @@ object Main {
       override val executableIds: Vector[String],
       override val prettyTree: String
   ) extends SuccessfulCompileNative
-      with SuccessfulPrettyTree
+      with SuccessfulPrettyTree {
+    override def message: String = {
+      s"${prettyTree}\n${executableIds.mkString(",")}"
+    }
+  }
 
   case class SuccessfulCompileNativeWithJsonTree(
       override val compilerMode: CompilerMode.CompilerMode,
       override val executableIds: Vector[String],
       override val jsonTree: JsValue
   ) extends SuccessfulCompileNative
-      with SuccessfulJsonTree
+      with SuccessfulJsonTree {
+    override def message: String = {
+      s"${jsonTree.prettyPrint}\n${executableIds.mkString(",")}"
+    }
+  }
 
   def compile(args: Vector[String]): Termination = {
     val sourceFile: Path = args.headOption
