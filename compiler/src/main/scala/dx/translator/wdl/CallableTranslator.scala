@@ -61,12 +61,13 @@ case class CallableTranslator(wdlBundle: WdlBundle,
     private lazy val adjunctFiles: Vector[Adjuncts.AdjunctFile] =
       wdlBundle.adjunctFiles.getOrElse(task.name, Vector.empty)
     private lazy val meta = ApplicationMetaTranslator(wdlBundle.version, task.meta, adjunctFiles)
-    private lazy val parameterMeta = ParameterMetaTranslator(wdlBundle.version, task.parameterMeta)
+    private lazy val parameterMeta =
+      ParameterMetaTranslator(wdlBundle.version, task.parameterMeta, task.hints)
 
     private def translateInput(input: TAT.InputParameter): Parameter = {
       val wdlType = input.wdlType
       val irType = WdlUtils.toIRType(wdlType)
-      val attrs = parameterMeta.translate(input.name, wdlType)
+      val attrs = parameterMeta.translateInput(input.name, wdlType)
 
       input match {
         case TAT.RequiredInputParameter(name, _) => {
@@ -125,7 +126,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           case _: EvalException => None
         }
       }
-      val attr = parameterMeta.translate(output.name, wdlType)
+      val attr = parameterMeta.translateOutput(output.name, wdlType)
       Parameter(output.name, irType, defaultValue, attr)
     }
 
@@ -316,7 +317,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
     private def createWorkflowInput(input: WdlBlockInput): (Parameter, Boolean) = {
       val wdlType = input.wdlType
       val irType = WdlUtils.toIRType(wdlType)
-      val attr = parameterMeta.translate(input.name, input.wdlType)
+      val attr = parameterMeta.translateInput(input.name, input.wdlType)
       input match {
         case RequiredBlockInput(name, _) =>
           if (Type.isOptional(irType)) {
@@ -866,9 +867,10 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       (allStageInfo, stageEnv)
     }
 
-    private def buildSimpleWorkflowOutput(output: TAT.OutputParameter, env: CallEnv): LinkedVar = {
+    private def createSimpleWorkflowOutput(output: TAT.OutputParameter, env: CallEnv): LinkedVar = {
       val irType = WdlUtils.toIRType(output.wdlType)
-      val param = Parameter(output.name, irType)
+      val attr = parameterMeta.translateOutput(output.name, output.wdlType)
+      val param = Parameter(output.name, irType, attributes = attr)
       val stageInput: StageInput = if (env.contains(output.name)) {
         env(output.name)._2
       } else {
@@ -939,7 +941,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
               case _: EvalException => None
             }
           val irType = WdlUtils.toIRType(wdlType)
-          Parameter(name, irType, value)
+          val attr = parameterMeta.translateOutput(name, wdlType)
+          Parameter(name, irType, value, attr)
       }
 
       // Determine kind of application. If a custom reorg app is used and this is a top-level
@@ -1117,7 +1120,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         }
         (wfOutputs, stages :+ outputStage, auxCallables.flatten :+ outputApplet)
       } else {
-        val wfOutputs = outputs.map(output => buildSimpleWorkflowOutput(output, env))
+        val wfOutputs = outputs.map(output => createSimpleWorkflowOutput(output, env))
         (wfOutputs, stages, auxCallables.flatten)
       }
 
