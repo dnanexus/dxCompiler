@@ -85,6 +85,7 @@ case class WdlTaskExecutor(task: TAT.Task,
     // DNAnexus does not distinguish between null and empty for
     // array inputs, so we treat a null value for a non-optional
     // array that is allowed to be empty as the empty array.
+    trace("Evaluating default values for inputs")
     taskIO
       .inputsFromValues(inputWdlValues,
                         evaluator,
@@ -138,7 +139,6 @@ case class WdlTaskExecutor(task: TAT.Task,
   private def getRequiredInstanceTypeRequest(
       inputs: Map[String, V] = wdlInputs
   ): InstanceTypeRequest = {
-    logger.traceLimited("calcInstanceType", minLevel = TraceLevel.VVerbose)
     printInputs(inputs)
     val env = evaluatePrivateVariables(inputs)
     val runtime = createRuntime(env)
