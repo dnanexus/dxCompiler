@@ -642,7 +642,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
             TFile,
             None,
             Vector(
-                TypeAttribute(StringConstraint("fastq"))
+                TypeAttribute(DxConstraintString("fastq"))
             )
         ),
         Parameter(
@@ -651,15 +651,15 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
             None,
             Vector(
                 TypeAttribute(
-                    CompoundConstraint(
-                        ConstraintOper.And,
-                        Vector(
-                            StringConstraint("fastq"),
-                            CompoundConstraint(
-                                ConstraintOper.Or,
-                                Vector(
-                                    StringConstraint("Read1"),
-                                    StringConstraint("Read2")
+                    DxConstraintBool(
+                        DxConstraintOper.And,
+                        DxConstraintArray(
+                            DxConstraintString("fastq"),
+                            DxConstraintBool(
+                                DxConstraintOper.Or,
+                                DxConstraintArray(
+                                    DxConstraintString("Read1"),
+                                    DxConstraintString("Read2")
                                 )
                             )
                         )
