@@ -356,13 +356,14 @@ abstract class TaskExecutor(jobMeta: JobMeta,
   }
 
   /**
-    * Evaluates the outputs of the task, uploads and de-localizes output files,
-    * and write outputs to the meta file.
+    * Evaluates the outputs of the task. Returns mapping of output parameter
+    * name to (type, value, Set of tags, and Map of properties), where tags
+    * and properites only apply to output files (or collections thereof).
     * @param localizedInputs the job inputs, with files localized to the worker
     */
   protected def evaluateOutputs(
       localizedInputs: Map[String, (Type, Value)]
-  ): Map[String, (Type, Value)]
+  ): Map[String, (Type, Value, Set[String], Map[String, String])]
 
   private def extractOutputFiles(name: String, v: Value, t: Type): Vector[AddressableFileNode] = {
     def getFileNode(varName: String,
@@ -438,8 +439,9 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     val localizedOutputs = evaluateOutputs(localizedInputs)
 
     // extract files from the outputs
-    val localOutputFileSources: Vector[AddressableFileNode] = localizedOutputs.flatMap {
-      case (name, (irType, irValue)) => extractOutputFiles(name, irValue, irType)
+    val localOutputFileSources = localizedOutputs.flatMap {
+      case (name, (irType, irValue, tags, properties)) =>
+        extractOutputFiles(name, irValue, irType).map(fs => (fs, tags, properties))
     }.toVector
 
     // Build a map of all the string values in the output values that might
@@ -447,30 +449,31 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     // that were inputs (in `fileSourceToPath`) - these do not need to be
     // re-uploaded. The `localPath`s will be the same but the `originalPath`s
     // may be different.
-    val inputAddresses: Set[String] = fileSourceToPath.keySet.map(_.address)
+    val inputAddresses = fileSourceToPath.keySet.map(_.address)
     val inputPaths = fileSourceToPath.values.toSet
-    val delocalizingValueToPath: Map[String, Path] = localOutputFileSources.collect {
-      case local: LocalFileSource
+    val filesToUpload = localOutputFileSources.collect {
+      case (local: LocalFileSource, tags, properties)
           if !(
               inputAddresses.contains(local.address) || inputPaths.contains(local.canonicalPath)
           ) =>
-        local.address -> local.canonicalPath
+        // if using manifests, we need to upload the files directly to the project
+        val dest = if (jobMeta.useManifests) {
+          Some(s"${jobMeta.manifestFolder}/${local.canonicalPath.getFileName.toString}")
+        } else {
+          None
+        }
+        local.address -> FileUpload(local.canonicalPath, dest, tags, properties)
     }.toMap
 
+    val delocalizingValueToPath = filesToUpload.map {
+      case (addr, FileUpload(path, _, _, _)) => addr -> path
+    }
+
     // upload the files, and map their local paths to their remote URIs
-    val delocalizedPathToUri: Map[Path, String] = {
-      val dxFiles = if (jobMeta.useManifests) {
-        // if using manifests, we need to upload the files directly to the project
-        fileUploader.uploadWithDestination(delocalizingValueToPath.values.map { path =>
-          path -> s"${jobMeta.manifestFolder}/${path.getFileName.toString}"
-        }.toMap, wait = waitOnUpload)
-      } else {
-        fileUploader.upload(delocalizingValueToPath.values.toSet, wait = waitOnUpload)
-      }
-      dxFiles.map {
+    val delocalizedPathToUri =
+      fileUploader.upload(filesToUpload.values.toSet, wait = waitOnUpload).map {
         case (path, dxFile) => path -> dxFile.asUri
       }
-    }
 
     // Replace the local paths in the output values with URIs. For files that
     // were inputs, we can resolve them using a mapping of input values to URIs;
@@ -511,7 +514,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     }
 
     val delocalizedOutputs = localizedOutputs.view.mapValues {
-      case (t, v) => (t, Value.transform(v, Some(t), pathTranslator))
+      case (t, v, _, _) => (t, Value.transform(v, Some(t), pathTranslator))
     }.toMap
 
     // serialize the outputs to the job output file
