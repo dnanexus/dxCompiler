@@ -32,14 +32,14 @@ class TranslatorTest extends AnyFlatSpec with Matchers {
     Paths.get(p)
   }
 
-  private val dxProject = dxApi.currentProject
+  private val dxProjectId = dxApi.currentProjectId.get
 
   // task compilation
   private val cFlags =
-    List("--compileMode", "ir", "-quiet", "--locked", "--project", dxProject.id)
+    List("--compileMode", "ir", "-quiet", "--locked", "--project", dxProjectId)
 
   private val cFlagsUnlocked =
-    List("--compileMode", "ir", "-quiet", "--project", dxProject.id)
+    List("--compileMode", "ir", "-quiet", "--project", dxProjectId)
 
   val dbgFlags = List("--compileMode",
                       "ir",
@@ -48,7 +48,7 @@ class TranslatorTest extends AnyFlatSpec with Matchers {
                       "GenerateIR",
                       "--locked",
                       "--project",
-                      dxProject.id)
+                      dxProjectId)
 
   private def getApplicationByName(name: String, bundle: Bundle): Application =
     bundle.allCallables(name) match {
@@ -168,7 +168,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
 
   it should "missing workflow inputs" in {
     val path = pathFromBasename("input_file", "missing_args.wdl")
-    val args = path.toString :: List("--compileMode", "ir", "--quiet", "--project", dxProject.id)
+    val args = path.toString :: List("--compileMode", "ir", "--quiet", "--project", dxProjectId)
     Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
@@ -267,10 +267,6 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val path = pathFromBasename("nested", "four_levels.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    /*        inside(retval) {
-            case Main.UnsuccessfulTermination(errMsg) =>
-                errMsg should include ("nested scatter")
- }*/
     retval shouldBe a[SuccessfulCompileIR]
   }
 
@@ -282,20 +278,16 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
       case other                       => throw new Exception(s"unexpected compile result ${other}")
     }
     val outerScatter = bundle.allCallables("nested_scatter_frag_stage-3")
-    outerScatter.inputVars should contain theSameElementsAs (
-        Vector(
-            Parameter("x", TInt),
-            Parameter("ints1", TArray(TInt)),
-            Parameter("ints2", TArray(TInt))
-        )
+    outerScatter.inputVars should contain theSameElementsAs Vector(
+        Parameter("x", TInt),
+        Parameter("ints1", TArray(TInt)),
+        Parameter("ints2", TArray(TInt))
     )
     val innerScatter = bundle.allCallables("nested_scatter_block_0_0")
-    innerScatter.inputVars should contain theSameElementsAs (
-        Vector(
-            Parameter("x", TInt),
-            Parameter("y", TInt),
-            Parameter("ints1", TArray(TInt))
-        )
+    innerScatter.inputVars should contain theSameElementsAs Vector(
+        Parameter("x", TInt),
+        Parameter("y", TInt),
+        Parameter("ints1", TArray(TInt))
     )
   }
 

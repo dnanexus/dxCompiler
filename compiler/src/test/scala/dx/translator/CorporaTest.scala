@@ -21,9 +21,9 @@ class CorporaTest extends AnyWordSpec with Matchers {
 
   if (corporaAvailable) {
     val dxApi = DxApi()(Logger.Quiet)
-    val dxProject = dxApi.currentProject
+    val dxProjectId = dxApi.currentProjectId.get
     val compilerOpts =
-      Vector("--compileMode", "ir", "-quiet", "--locked", "--project", dxProject.id)
+      Vector("--compileMode", "ir", "-quiet", "--locked", "--project", dxProjectId)
     lazy val fixDir = {
       val fixDir = Files.createTempDirectory("fix")
       fixDir.toFile.deleteOnExit()
