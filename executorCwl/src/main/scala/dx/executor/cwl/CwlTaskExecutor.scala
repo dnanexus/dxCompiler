@@ -290,7 +290,7 @@ case class CwlTaskExecutor(tool: Process,
 
   override protected def evaluateOutputs(
       localizedInputs: Map[String, (Type, Value)]
-  ): Map[String, (Type, Value)] = {
+  ): Map[String, (Type, Value, Set[String], Map[String, String])] = {
     // the outputs were written to stdout
     val stdoutFile = workerPaths.getStdoutFile()
     if (Files.exists(stdoutFile)) {
@@ -373,7 +373,10 @@ case class CwlTaskExecutor(tool: Process,
         case (_, param) =>
           throw new Exception(s"missing value for output parameter ${param}")
       }
-      CwlUtils.toIR(cwlOutputs)
+      CwlUtils.toIR(cwlOutputs).map {
+        case (name, (irType, irValue)) =>
+          name -> (irType, irValue, Set.empty[String], Map.empty[String, String])
+      }
     } else {
       Map.empty
     }

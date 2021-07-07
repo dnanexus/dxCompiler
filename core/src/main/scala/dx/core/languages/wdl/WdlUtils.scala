@@ -322,7 +322,7 @@ object WdlUtils {
       case T_File                                      => TFile
       case T_Directory                                 => TDirectory
       case T_Object                                    => THash
-      case T_Optional(t)                               => TOptional(toIRType(t))
+      case T_Optional(t)                               => Type.ensureOptional(toIRType(t))
       case T_Array(t, true) if TypeUtils.isOptional(t) =>
         // an array with an optional item type may be serialized
         // as an empty array if all the items are None, so we
@@ -709,8 +709,8 @@ object WdlUtils {
   }
 
   /**
-    * A trivial expression has no operators, it is either(1) a constant,
-    * (2) a single identifier, or (3) an access to a call field.
+    * A trivial expression has no operators and it is either a constant
+    * or a single identifier or an access to a call field.
     * For example, `5`, `['a', 'b', 'c']`, and `true` are trivial.
     * 'x + y'  is not.
     * @param expr expression
@@ -718,9 +718,8 @@ object WdlUtils {
     */
   def isTrivialExpression(expr: TAT.Expr): Boolean = {
     expr match {
-      case expr if TypeUtils.isPrimitiveValue(expr) => true
-      case _: TAT.ExprIdentifier                    => true
-
+      case _ if TypeUtils.isPrimitiveValue(expr) => true
+      case _: TAT.ExprIdentifier                 => true
       // A collection of constants
       case TAT.ExprPair(l, r, _)   => Vector(l, r).forall(TypeUtils.isPrimitiveValue)
       case TAT.ExprArray(value, _) => value.forall(TypeUtils.isPrimitiveValue)
@@ -729,15 +728,13 @@ object WdlUtils {
           case (k, v) => TypeUtils.isPrimitiveValue(k) && TypeUtils.isPrimitiveValue(v)
         }
       case TAT.ExprObject(value, _) => value.values.forall(TypeUtils.isPrimitiveValue)
-
       // Access a field in a call
       //   Int z = eliminateDuplicate.fields
       // TODO: this will work for structs as well, if we are able to make
       //  struct fields part of the output closure (see comment in
       //  getClosureInputsAndOutputs)
       case TAT.ExprGetName(TAT.ExprIdentifier(_, _: T_Call), _, _) => true
-
-      case _ => false
+      case _                                                       => false
     }
   }
 
@@ -1042,11 +1039,14 @@ object WdlUtils {
     */
   def getOutputClosure(outputs: Vector[TAT.OutputParameter]): Map[String, T] = {
     // create inputs from all the expressions that go into outputs
+    // exclude any inputs that are references to other output parameters
+    val paramNames = outputs.map(_.name).toSet
     outputs
       .flatMap {
         case TAT.OutputParameter(_, _, expr) => Vector(expr)
       }
       .flatMap(e => getExpressionInputs(e, withField = false))
+      .filterNot(i => paramNames.contains(i.identifier))
       .groupBy(_.fullyQualifiedName)
       .map {
         // if there are multiple references to the same parameter, make sure the

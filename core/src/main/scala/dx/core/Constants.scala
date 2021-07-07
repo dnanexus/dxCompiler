@@ -1,5 +1,7 @@
 package dx.core
 
+import dx.api.ExecutionEnvironment
+
 object Constants {
   // keys used in details of native applets
   val ExecLinkInfo: String = "execLinkInfo"
@@ -66,4 +68,9 @@ object Constants {
   val OsDistribution = "Ubuntu"
   val OsRelease = "20.04"
   val OsVersion = "0"
+  val DefaultExecutionEnvironment: ExecutionEnvironment = ExecutionEnvironment(
+      OsDistribution,
+      OsRelease,
+      Vector(OsVersion)
+  )
 }

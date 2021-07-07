@@ -4,8 +4,8 @@ import dx.AppInternalException
 import dx.api.{DxApi, DxExecution, DxFile, DxFileDescCache, DxUtils, DxWorkflowStage}
 import dx.core.Constants
 import dx.core.ir.Value._
-import spray.json._
 import dx.util.{Enum, FileSourceResolver}
+import spray.json._
 
 object IORef extends Enum {
   type IORef = Value

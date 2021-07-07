@@ -89,6 +89,7 @@ wdl_v1_list = [
     "diff_stream_and_download",  # APPS-288
     "apps_573",
     "apps_612",
+    "nested_optional",
 
     # manifests
     "simple_manifest",

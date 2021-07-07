@@ -276,10 +276,20 @@ case class Compiler(extras: Option[Extras],
 
       if (archive) {
         // archive the applet/workflow(s)
-        executableDir.archive(existingExecutables)
+        try {
+          executableDir.archive(existingExecutables)
+        } catch {
+          case t: Throwable =>
+            throw new Exception(s"unable to archive existing executables ${existingExecutables}", t)
+        }
       } else if (force) {
         // remove all existing executables
-        executableDir.remove(existingExecutables)
+        try {
+          executableDir.remove(existingExecutables)
+        } catch {
+          case t: Throwable =>
+            throw new Exception(s"unable to remove existing executables ${existingExecutables}", t)
+        }
       } else {
         val dxClass = existingExecutables.head.dxClass
         throw new Exception(s"${dxClass} ${name} already exists in ${project.id}:${folder}")

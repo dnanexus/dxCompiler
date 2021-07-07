@@ -303,14 +303,22 @@ object Main {
       override val executableIds: Vector[String],
       override val prettyTree: String
   ) extends SuccessfulCompileNative
-      with SuccessfulPrettyTree
+      with SuccessfulPrettyTree {
+    override def message: String = {
+      s"${prettyTree}\n${executableIds.mkString(",")}"
+    }
+  }
 
   case class SuccessfulCompileNativeWithJsonTree(
       override val compilerMode: CompilerMode.CompilerMode,
       override val executableIds: Vector[String],
       override val jsonTree: JsValue
   ) extends SuccessfulCompileNative
-      with SuccessfulJsonTree
+      with SuccessfulJsonTree {
+    override def message: String = {
+      s"${jsonTree.prettyPrint}\n${executableIds.mkString(",")}"
+    }
+  }
 
   def compile(args: Vector[String]): Termination = {
     val sourceFile: Path = args.headOption
@@ -424,6 +432,9 @@ object Main {
 
     // quit here if the target is IR and there are no inputs to translate
     if (!hasInputs && compileMode == CompilerMode.IR) {
+      if (logger.isVerbose) {
+        logger.trace(rawBundle.toString)
+      }
       return SuccessfulCompileIR(rawBundle)
     }
 
@@ -454,6 +465,9 @@ object Main {
         }
       if (compileMode == CompilerMode.IR) {
         // if we're only performing translation to IR, we can quit early
+        if (logger.isVerbose) {
+          logger.trace(rawBundle.toString)
+        }
         return SuccessfulCompileIR(bundleWithDefaults)
       }
       (bundleWithDefaults, fileResolver)
@@ -844,8 +858,9 @@ object Main {
         |    calling existing platform executables without modification.
         |    options:
         |      -apps [include,exclude,only]
-        |                             Whether to 'include' apps, 'exclude' apps (the default), or 
-        |                             'only' generate app stubs.
+        |                             Option 'include' includes both apps and applets, 'exclude'
+        |                             excludes apps and generates applet stubs only, 'only'
+        |                             generates app stubs only.
         |      -f | force             Delete any existing output file.
         |      -o <path>              Destination file for WDL task definitions (defaults to 
         |                             stdout).

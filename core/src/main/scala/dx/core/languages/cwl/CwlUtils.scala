@@ -59,7 +59,7 @@ object CwlUtils {
 
   def toIRType(cwlType: CwlType): Type = {
     cwlType match {
-      case CwlOptional(t)  => TOptional(toIRType(t))
+      case CwlOptional(t)  => Type.ensureOptional(toIRType(t))
       case CwlMulti(types) => TMulti(types.map(toIRType))
       case CwlAny          => TMulti.Any
       case CwlNull         => NullSchema
@@ -183,7 +183,7 @@ object CwlUtils {
       case (CwlOptional(_), NullValue) => (toIRType(cwlType), VNull)
       case (CwlOptional(t), _) =>
         val (irType, irValue) = toIRValue(cwlValue, t)
-        (TOptional(irType), irValue)
+        (Type.ensureOptional(irType), irValue)
       case (CwlMulti(types), _) =>
         types
           .collectFirstDefined {

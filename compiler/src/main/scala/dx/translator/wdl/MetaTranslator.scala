@@ -6,11 +6,11 @@ import dx.core.ir.{CallableAttribute, ParameterAttribute, Value}
 import dx.core.languages.wdl
 import dx.core.languages.wdl.DxMetaHints
 import dx.translator.{CallableAttributes, ParameterAttributes}
-import wdlTools.eval.{EvalUtils, Meta}
+import wdlTools.eval.{EvalUtils, Hints, Meta}
 import wdlTools.eval.WdlValues._
 import wdlTools.syntax.WdlVersion
 import wdlTools.types.WdlTypes._
-import wdlTools.types.{TypedAbstractSyntax => TAT}
+import wdlTools.types.{TypeUtils, TypedAbstractSyntax => TAT}
 import dx.util.Adjuncts
 
 private object MetaUtils {
@@ -191,7 +191,7 @@ object ParameterMetaTranslator {
   private def metaChoiceValueToIR(wdlType: T,
                                   value: V,
                                   name: Option[V] = None): ParameterAttributes.Choice = {
-    (wdlType, value) match {
+    (TypeUtils.unwrapOptional(wdlType), value) match {
       case (T_String, V_String(str)) =>
         ParameterAttributes.SimpleChoice(VString(str))
       case (T_Int, V_Int(i)) =>
@@ -432,15 +432,37 @@ object ParameterMetaTranslator {
   }
 }
 
-case class ParameterMetaTranslator(wdlVersion: WdlVersion, metaSection: Option[TAT.MetaSection]) {
-  private lazy val meta: Meta = Meta.create(wdlVersion, metaSection)
+case class ParameterMetaTranslator(wdlVersion: WdlVersion,
+                                   parameterMetaSection: Option[TAT.MetaSection],
+                                   hintsSection: Option[TAT.MetaSection] = None) {
+  private lazy val parameterMeta: Meta = Meta.create(wdlVersion, parameterMetaSection)
+  private lazy val hints: Meta = Meta.create(wdlVersion, hintsSection)
+  private lazy val hintInputs: Option[Map[String, V]] =
+    hints.get(Hints.InputsKey) match {
+      case Some(V_Object(inputs)) => Some(inputs)
+      case _                      => None
+    }
+  private lazy val hintOutputs: Option[Map[String, V]] =
+    hints.get(Hints.OutputsKey) match {
+      case Some(V_Object(outputs)) => Some(outputs)
+      case _                       => None
+    }
 
-  def translate(name: String, parameterType: T): Vector[ParameterAttribute] = {
-    val metaValue = meta.get(name)
+  def translateInput(name: String, parameterType: T): Vector[ParameterAttribute] = {
+    val metaValue = parameterMeta.get(name).orElse(hintInputs.flatMap(_.get(name)))
     ParameterMetaTranslator.translate(metaValue, parameterType)
   }
 
-  def translate(variables: Vector[TAT.Variable]): Map[String, Vector[ParameterAttribute]] = {
-    variables.map(v => v.name -> translate(v.name, v.wdlType)).toMap
+  def translateInput(variables: Vector[TAT.Variable]): Map[String, Vector[ParameterAttribute]] = {
+    variables.map(v => v.name -> translateInput(v.name, v.wdlType)).toMap
+  }
+
+  def translateOutput(name: String, parameterType: T): Vector[ParameterAttribute] = {
+    val metaValue = parameterMeta.get(name).orElse(hintOutputs.flatMap(_.get(name)))
+    ParameterMetaTranslator.translate(metaValue, parameterType)
+  }
+
+  def translateOutput(variables: Vector[TAT.Variable]): Map[String, Vector[ParameterAttribute]] = {
+    variables.map(v => v.name -> translateOutput(v.name, v.wdlType)).toMap
   }
 }

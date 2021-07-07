@@ -1,6 +1,7 @@
 package dx.core.languages.cwl
 
 import dx.api.{DxApi, InstanceTypeRequest}
+import dx.core.Constants
 import dx.core.io.DxWorkerPaths
 import dx.core.ir.RunSpec.{
   AccessRequirement,
@@ -134,6 +135,7 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
         maxDiskGB = getDiskGB(resources.tmpdirMax, resources.outdirMax, MaxRoundingMode),
         minCpu = resources.coresMin.map(evaluateNumeric(_, MinRoundingMode)),
         maxCpu = resources.coresMax.map(evaluateNumeric(_, MaxRoundingMode)),
+        os = Some(Constants.DefaultExecutionEnvironment),
         optional = resourcesOptional
     )
   }
