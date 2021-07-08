@@ -1,10 +1,7 @@
 #!/usr/bin/python
-
-# metadata\s*\{[\n\sa-zA-Z:_".?!@#$%^&*()]*}
-
+# helper file for cromwell_utils.sh
 import sys, re, json
 
-# print(sys.argv[1])
 regex = 'metadata\s*\{[\n\sa-zA-Z:_".?!@#$%^&*()]*}'
 file_results = {}
 test_file = sys.argv[1]

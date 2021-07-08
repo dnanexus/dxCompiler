@@ -12,7 +12,7 @@ task runMe {
 
 workflow simple_if {
   if (true) {
-    call runMe as runMeTruee
+    call runMe as runMeTrue
   }
 
   if (false) {
@@ -20,7 +20,7 @@ workflow simple_if {
   }
 
   output {
-    String? true_res = runMeTruee.s
+    String? true_res = runMeTrue.s
     String? false_res = runMeFalse.s
   }
 }

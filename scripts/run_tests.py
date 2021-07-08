@@ -27,189 +27,185 @@ test_dir = os.path.join(os.path.abspath(top_dir), "test")
 
 git_revision = subprocess.check_output(["git", "describe", "--always", "--dirty", "--tags"]).strip()
 test_files = {}
-test_failing = set([
-    "bad_status",
-    "bad_status2",
-    "just_fail_wf",
-    "docker_retry",
-    "argument_list_too_long",
-])
+test_failing = {"bad_status", "bad_status2", "just_fail_wf", "docker_retry", "argument_list_too_long"}
+
+test_compilation_failing = {"import_passwd"}
 
 wdl_v1_list = [
     # calling native dx applets/apps
-    # "call_native_v1",
-    # "call_native_app",
-    #
-    # "cast",
-    # "dict",
-    # "instance_types",
-    # "linear_no_expressions",
-    # "linear",
-    # "optionals",
-    # "optionals3",
-    # "spaces_in_file_paths",
-    # "strings",
-    # "runtime_vs_static_type",
-    # "wf_person",
-    # "call_level2",
-    # "environment_passing_deep_nesting",
-    # "optional_output",
-    # "unpassed_default_arg",
-    #
-    # # workflows with nested blocks
-    # "two_levels",
-    # "three_levels",
-    # "four_levels",
-    # "param_passing",
-    # "nested_scatter",
-    #
-    # # Array input with no values
-    # "empty_array",
-    #
-    # # Map with a File key
-    # "map_file_key",
-    #
-    # # defaults and parameter passing
-    # "top",
-    # "subworkflow_with_default",
-    #
-    # # can we download from a container?
-    # "download_from_container",
-    #
-    # # input file with pairs
-    # "echo_pairs",
-    # "array_structs",
-    #
-    # # Missing optional output files, returned as none, instead
-    # # of an error
-    # "missing_optional_output_file",
-    #
-    # # calling with an optional argument not specified
-    # "scatter_subworkflow_with_optional",
-    #
-    # # streaming
-    # "streaming_inputs",
-    #
-    # # input/output linear_no_expressions
-    # "wf_with_input_expressions",
-    # "wf_with_output_expressions",
-    #
-    # # bug regression tests
-    # "nested_pairs",  # APPS-370
-    # "apps_378",
-    # "apps_384",
-    # "diff_stream_and_download",  # APPS-288
-    # "apps_573",
-    # "apps_612",
-    # "nested_optional",
-    #
-    # # manifests
-    # "simple_manifest",
-    # "complex_manifest",
-    # "view_and_count_manifest"
+    "call_native_v1",
+    "call_native_app",
+
+    "cast",
+    "dict",
+    "instance_types",
+    "linear_no_expressions",
+    "linear",
+    "optionals",
+    "optionals3",
+    "spaces_in_file_paths",
+    "strings",
+    "runtime_vs_static_type",
+    "wf_person",
+    "call_level2",
+    "environment_passing_deep_nesting",
+    "optional_output",
+    "unpassed_default_arg",
+
+    # workflows with nested blocks
+    "two_levels",
+    "three_levels",
+    "four_levels",
+    "param_passing",
+    "nested_scatter",
+
+    # Array input with no values
+    "empty_array",
+
+    # Map with a File key
+    "map_file_key",
+
+    # defaults and parameter passing
+    "top",
+    "subworkflow_with_default",
+
+    # can we download from a container?
+    "download_from_container",
+
+    # input file with pairs
+    "echo_pairs",
+    "array_structs",
+
+    # Missing optional output files, returned as none, instead
+    # of an error
+    "missing_optional_output_file",
+
+    # calling with an optional argument not specified
+    "scatter_subworkflow_with_optional",
+
+    # streaming
+    "streaming_inputs",
+
+    # input/output linear_no_expressions
+    "wf_with_input_expressions",
+    "wf_with_output_expressions",
+
+    # bug regression tests
+    "nested_pairs",  # APPS-370
+    "apps_378",
+    "apps_384",
+    "diff_stream_and_download",  # APPS-288
+    "apps_573",
+    "apps_612",
+    "nested_optional",
+
+    # manifests
+    "simple_manifest",
+    "complex_manifest",
+    "view_and_count_manifest"
 ]
 
 wdl_v1_1_list = [
-    # "v1_1_dict",
-    #
-    # # bug regression tests
-    # "apps_579_boolean_flag_expr",
-    # "apps_579_string_substitution_expr"
+    "v1_1_dict",
+
+    # bug regression tests
+    "apps_579_boolean_flag_expr",
+    "apps_579_string_substitution_expr"
 ]
 
 # docker image tests
 docker_test_list = [
-    # "broad_genomics",
-    # "biocontainers",
-    # "private_registry",
-    # "native_docker_file_image",
-    # "native_docker_file_image_gzip",
-    # "samtools_count",
-    # "dynamic_docker_image",
-    # "ecr_docker",
+    "broad_genomics",
+    "biocontainers",
+    "private_registry",
+    "native_docker_file_image",
+    "native_docker_file_image_gzip",
+    "samtools_count",
+    "dynamic_docker_image",
+    "ecr_docker",
 ]
 
 # wdl draft-2
 draft2_test_list = [
-    # "advanced",
-    # "bad_status",
-    # "bad_status2",
-    # "just_fail_wf",
-    # "call_with_defaults1",
-    # "call_with_defaults2",
-    # "conditionals_base",
-    # "files",
-    # "files_with_the_same_name",
-    # "hello",
-    # "shapes",
-    # # this test cannot be enabled yet, because we
-    # # don't yet support overriding task inputs
-    # #"population",
-    #
-    # # multiple library imports in one WDL workflow
-    # "multiple_imports",
-    #
-    # # subworkflows
-    # "conditionals2",
-    # "modulo",
-    # "movies",
-    # "subblocks2",
-    # "subblocks",
-    # "var_type_change",
-    # "outer",
-    #
-    # # calling native dx applets/apps
-    # # We currently do not have a code generator for draft-2, so cannot import dx_extern.wdl.
-    # #"call_native",
-    #
-    # "write_lines_bug",
+    "advanced",
+    "bad_status",
+    "bad_status2",
+    "just_fail_wf",
+    "call_with_defaults1",
+    "call_with_defaults2",
+    "conditionals_base",
+    "files",
+    "files_with_the_same_name",
+    "hello",
+    "shapes",
+    # this test cannot be enabled yet, because we
+    # don't yet support overriding task inputs
+    #"population",
+
+    # multiple library imports in one WDL workflow
+    "multiple_imports",
+
+    # subworkflows
+    "conditionals2",
+    "modulo",
+    "movies",
+    "subblocks2",
+    "subblocks",
+    "var_type_change",
+    "outer",
+
+    # calling native dx applets/apps
+    # We currently do not have a code generator for draft-2, so cannot import dx_extern.wdl.
+    #"call_native",
+
+    "write_lines_bug",
 ]
 
 single_tasks_list = [
-    # "add3",
-    # "diff2files",
-    # "empty_stdout",
-    # "sort_file",
-    # "symlinks_wc",
-    # "DiskSpace2",
-    # "echo_line_split",
-    # "opt_array",
-    # "stream_diff_v1"
+    "add3",
+    "diff2files",
+    "empty_stdout",
+    "sort_file",
+    "symlinks_wc",
+    "DiskSpace2",
+    "echo_line_split",
+    "opt_array",
+    "stream_diff_v1"
 ]
 
 cwl_tools = [
-    # "cat",  # hello world tool
-    # "tar_files",
+    "cat",  # hello world tool
+    "tar_files",
 ]
 
 cwl_conformance = [
-    # os.path.basename(path)[:-4]
-    # for path in glob.glob(os.path.join(test_dir, "cwl_conformance", "tools", "*.cwl"))
+    os.path.basename(path)[:-4]
+    for path in glob.glob(os.path.join(test_dir, "cwl_conformance", "tools", "*.cwl"))
 ]
 
 # Tests run in continuous integration. We remove the native app test,
 # because we don't want to give permissions for creating platform apps.
 ci_test_list = [
-    # # WDL tests
-    # "advanced",
-    # # We currently do not have a code generator for draft-2, so cannot import dx_extern.wdl.
-    # # "call_native",
-    # "call_with_defaults1",
-    # "trains",
-    # "files",
-    # # CWL tests
-    # "cat",
+    # WDL tests
+    "advanced",
+    # We currently do not have a code generator for draft-2, so cannot import dx_extern.wdl.
+    # "call_native",
+    "call_with_defaults1",
+    "trains",
+    "files",
+    # CWL tests
+    "cat",
 ]
 
 special_flags_list = [
-    # "add2",       # test the ignoreReuse flag
-    # "add_many",   # tests the delayWorkspaceDestruction flag
-    # "inc_range",  # check that runtime call to job/analysis pass the delayWorkspaceDestruction flag
+    "add2",       # test the ignoreReuse flag
+    "add_many",   # tests the delayWorkspaceDestruction flag
+    "inc_range",  # check that runtime call to job/analysis pass the delayWorkspaceDestruction flag
 ]
 
 # these are the examples from the documentation
 doc_tests_list = [
-    # "bwa_mem"
+    "bwa_mem"
 ]
 
 cromwell_key_error_list = [
@@ -218,7 +214,7 @@ cromwell_key_error_list = [
     "drs_usa_jdr",
 ]
 # tests taken from cromwell repository that cannot be translated:
-cromwell_translate_failure_list = [
+cromwell_failed_translate = [
     "select_functions",
     "string_interpolation_optional",
     "no_task_no_output_delete",
@@ -227,6 +223,7 @@ cromwell_translate_failure_list = [
     #"sub_sub",
     #"sub",
     #"large_final_workflow_outputs_dir",
+    #"input_expressions",
     "if_then_else_expressions",
     #"input_from_bucket_with_requester_pays",
     #"string_interpolation",
@@ -261,57 +258,103 @@ cromwell_translate_failure_list = [
     "read_write_json",
     # "custom_cacheworthy_attributes",
     # "reference_disk_test",
+
+    "recursive_imports",
     "member_access",
     "default_runtime_attributes",
+    "unscattered",
+    "workflow_name_length_ok",
+    "importer_ok"
 ]
+
+cromwell_failed_exec = [
+    "defined_function",
+    "confirm_preemptible",
+    "missing_delete",
+    "read_write_map",
+    "check_network_in_vpc",
+    "papi_v2_gcsa",
+    "tmp_dir",
+    "long_cmd",
+    "workbench_health_monitor_check",
+    "papi_v2_log",
+    "call_cache_capoeira_local",
+    "call_cache_capoeira_tes",
+    "call_cache_capoeira_jes",
+    "papi_v2_plain_detritus",
+    "subworkflow",
+    "backendWithNoDocker",
+    "parallel_composite_uploads_off",
+    "docker_image_cache_unspecified",
+    "docker_image_cache_true",
+    "dedup_localizations_papi_v2",
+    "continue_on_return_code",
+    "echo_task",
+    "empty_scatter",
+    "monitoring_image_script",
+    "local_bourne",
+    "exit",
+    "fofn_caching",
+    "docker_size_dockerhub",
+    "docker_size_gcr",
+    "hello_private_repo",
+    "sub_workflow_decls_import",
+    "dummy_scatter",
+    "docker_hash_gcr_private",
+    "monitoring_log",
+    "sizerelativepath",
+    "subworkflow",
+    "super_massive_array_output",
+    "short_circuit",
+    "custom_mount_point",
+    "workflow_engine_functions",
+    "docker_alpine",
+    "engine_functions",
+]
+
 # tests taken from cromwell repository
 cromwell_tests_list = [
-    # "null_input_values",
-    # "dont_strip_line_prefix",
-    # "non_root_default_user",
-    # "memory_units",
-    # "cacheWithinWF",
-    # "dot_dir_stuck_running",
-    # "empty_string",
-    # "floating_tags",
-    # "array_literal_locations",
-    # "stdout_delete",
-    #@ "missing_delete",
-    # "sub_workflow_delete",
-    # "no_output_delete",
-    # "exhaustive_delete",
-    # "scatter_delete",
-    # "collections_delete",
-    # "hello_delete",
-    # "sub_workflow_delete_import",
-    # "no_cache_delete",
-    #@ "confirm_preemptible",
-    # "gcs_path_ending_with_newline",
-    # "readFromCache",
-    # "b",
-    # "c",
-    # "a",
-    # "d",
-    # "top",
-    # "sub_sub_sub",
-    # "array_io",
-    # "simple_if",
-    # "single_to_array_conversion",
-    # "coerce_to_array_of_optionals",
-    #@ "read_write_map",
-    # "wdl_function_locations",
-    # "workflow_output_paths",
-    # "sub_function",
-    # "public_http_import",
-    # "control_chars",
-    # "prefix",
-    # "write_lines_files",
-    # "cached_copy",
-    # "read_tsv",
-    # "custom_entrypoint",
-    # "square",
-    #@ "defined_function",
-    #@ "check_network_in_vpc",
+    "null_input_values",
+    "dont_strip_line_prefix",
+    "non_root_default_user",
+    "memory_units",
+    "cacheWithinWF",
+    "dot_dir_stuck_running",
+    "empty_string",
+    "floating_tags",
+    "array_literal_locations",
+    "stdout_delete",
+    "sub_workflow_delete",
+    "no_output_delete",
+    "exhaustive_delete",
+    "scatter_delete",
+    "collections_delete",
+    "hello_delete",
+    "sub_workflow_delete_import",
+    "no_cache_delete",
+    "gcs_path_ending_with_newline",
+    "readFromCache",
+    "b",
+    "c",
+    "a",
+    "d",
+    "top",
+    "sub_sub_sub",
+    "array_io",
+    "simple_if",
+    "single_to_array_conversion",
+    "coerce_to_array_of_optionals",
+    "wdl_function_locations",
+    "workflow_output_paths",
+    "sub_function",
+    "public_http_import",
+    "control_chars",
+    "prefix",
+    "write_lines_files",
+    "cached_copy",
+    "read_tsv",
+    "custom_entrypoint",
+    "square",
     "papi_cpu_platform",
     "complex_types_files",
     "file_evaluator_identifier_lookups",
@@ -323,68 +366,81 @@ cromwell_tests_list = [
     "recimp_nosubwf_outer",
     "recimp_nosubwf_inner",
     "globbingindex",
-    "papi_v2_gcsa",
     "postfix_quantifiers",
     "length",
-    "tmp_dir",
-    "long_cmd",
-    "workbench_health_monitor_check",
     "wdl_empty_glob",
-    # "ssh_access",
-    # "papi_v2_log",
-    # "call_cache_capoeira_local",
-    # "call_cache_capoeira_tes",
-    # "call_cache_capoeira_jes",
-    # "papi_v2_plain_detritus",
-    # "output_filename_interpolation",
-    # "aliased_subworkflows",
-    # "subworkflow",
-    # "backendWithNoDocker",
-    # "parallel_composite_uploads_off",
-    # "docker_image_cache_unspecified",
-    # "docker_image_cache_true",
-    # "docker_image_cache_false",
-    # "curl",
-    # "symlink_localization",
-    # "dedup_localizations_papi_v2",
-    # "error_10_preemptible",
-    # "multiline_command_line",
-    # "continue_on_return_code",
-    # "use_cacheCopy_dir",
-    # "echo_task",
-    # "empty_scatter",
-    # "gcs_file_name_with_newline_in_the_middle",
-    # "writeToCache",
-    # "monitoring_image_script",
-    # "local_bourne",
-    # "cacheBetweenWF",
-    # "lots_of_inputs",
-    # "exit",
-    # "fofn_caching",
-    # "docker_size_dockerhub",
-    # "docker_size_gcr",
-    # "hello_private_repo",
-    # "local_gcs",
-    # "read_write_json_roundtrip_develop",
-    # "read_write_json_roundtrip",
-    # "checkpointing",
-    # "cromwell_restart",
-    # "space",
-    # "arrays_scatters_ifs",
-    # "declarations_as_nodes",
-    # "variable_scoping",
-    # "sub_workflow_decls",
-    # "sub_workflow_decls_import",
-    # "input_mirror",
-    # "sub_workflow_hello_world_import",
-    # "sub_workflow_hello_world",
-    # "volatile_disables_cache",
-    # "file_outputs_from_input"
+    "ssh_access",
+    "output_filename_interpolation",
+    "aliased_subworkflows",
+    "docker_image_cache_false",
+    "curl",
+     "symlink_localization",
+    "error_10_preemptible",
+    "multiline_command_line",
+    "use_cacheCopy_dir",
+    "gcs_file_name_with_newline_in_the_middle",
+    "writeToCache",
+    "cacheBetweenWF",
+    "lots_of_inputs",
+    "local_gcs",
+    "read_write_json_roundtrip_develop",
+    "read_write_json_roundtrip",
+    "checkpointing",
+    "cromwell_restart",
+    "space",
+    "arrays_scatters_ifs",
+    "declarations_as_nodes",
+    "variable_scoping",
+    "sub_workflow_decls",
+    "input_mirror",
+    "sub_workflow_hello_world_import",
+    "sub_workflow_hello_world",
+    "volatile_disables_cache",
+    "file_outputs_from_input",
+    "write_tsv",
+    "final_call_logs_dir",
+    "subdirectory",
+    "input_localization",
+    "scattered",
+    "filearrayoutput",
+    "array_io",
+    "docker_hash_quay",
+    "monitoring_log",
+    "docker_hash_gcr",
+    "workflow_type_and_version_wdl",
+    "dontglobinputs",
+    "globbingscatter",
+    "ifs_in_scatters",
+    "nested_lookups",
+    "simple_if",
+    "declarations_in_ifs",
+    "lots_of_nesting",
+    "ifs_upstream_and_downstream",
+    "subworkflows_in_ifs",
+    "scatters_in_ifs",
+    "simple_if_workflow_outputs",
+    "scattergather",
+    "map_workflow",
+    "forkjoin",
+    "scatter_chain",
+    "output_redirection",
+    "workflowenginefunctions",
+    "stdout_stderr_passing",
+    "scatter",
+    "siblings_scatter",
+    "simple_scatter",
+    "prepare_scatter_gather",
+    "multiplesourcedarray",
+    "passingfiles",
+    "hello",
+    "referencingpreviousinputsandoutputs",
+
 ]
 
-medium_test_list = wdl_v1_list + wdl_v1_1_list + docker_test_list + special_flags_list + cwl_tools + cromwell_tests_list
-large_test_list = medium_test_list + draft2_test_list + single_tasks_list + doc_tests_list + cromwell_tests_list
+medium_test_list = wdl_v1_list + wdl_v1_1_list + docker_test_list + special_flags_list + cwl_tools
+large_test_list = medium_test_list + draft2_test_list + single_tasks_list + doc_tests_list
 
+cromwell_failure = cromwell_failed_exec + cromwell_failed_translate
 test_suites = {
     'CI': ci_test_list,
     'M': medium_test_list,
@@ -395,7 +451,8 @@ test_suites = {
     'native': ["call_native", "call_native_v1"],
     'docs': doc_tests_list,
     'cwl_conformance': cwl_conformance,
-    'cromwell_fail': cromwell_translate_failure_list
+    'cromwell_fail': cromwell_failure,
+    'cromwell_success': cromwell_tests_list
 }
 
 # Tests with the reorg flags
@@ -1019,7 +1076,10 @@ def compile_tests_to_project(trg_proj,
             try:
                 oid = build_test(tname, trg_proj, applet_folder, version_id, c_flags)
             except subprocess.CalledProcessError:
-                if delay_compile_errors:
+                if tname in test_compilation_failing:
+                    print("Workflow {} compilation failed as expected".format(tname))
+                    continue
+                elif delay_compile_errors:
                     traceback.print_exc()
                     has_errors = True
                 else:

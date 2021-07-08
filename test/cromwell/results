@@ -16,7 +16,7 @@ java.lang.Exception: callable(s) Set(wf) appears multiple times with different d
 string_interpolation_optional.wdl, none_literal --  invalid runtime keyword docker at 17:4-17:27 - `docker: "ubuntu:latest"`
 
 
-large_final_workflow_outputs_dir.wdl -
+large_final_workflow_outputs_dir.wdl, input_expressions -
 java.lang.Exception: Internal error: (ValueString(gs://genomics-public-data/resources/broad/hg38/v0/Homo_sapiens_assembly38.dbsnp138.vcf,T_String,Double)) requires evaluation, which requires constructing an output applet and a stage
 
 if_then_else_expressions -  Conditional branches String, Int are not coercible to a common type
@@ -64,7 +64,30 @@ sub_workflow_interactions_import - [error] InvalidInput: Expected the "outputs.o
 
 workflow_output_declarations - out2 does not exist in the environment.
 
-member_access, read_write_json --  WDL code is syntactically valid BUT it fails type-checking
+member_access, read_write_json, composedenginefunctions, taskless_engine_functions --  WDL code is syntactically valid BUT it fails type-checking
 
 
 custom_cacheworthy_attributes -- invalid runtime keyword cacheworthy_attribute at 12:8-12:33
+
+unscattered - * in output problem
+
+
+recursive_imports -  callable(s) Set(hello) appears multiple times with different definitions
+
+
+_____________' runs ________
+
+ docker_size_gcr,docker_size_dockerhub, exit, fofn_caching, local_bourne, monitoring_image_script, subworkflow, continue_on_return_code, empty_scatter - Error: executable <> failed
+
+ gcs_file_name_with_newline_in_the_middle, parallel_composite_uploads_off, call_cache_capoeira_jes, papi_v2_plain_detritus - the class of the output field "out" was "file" whereas the class of the input field "out_file_path" was "string",
+
+ echo_task - No value found for I/O spec field "s",
+
+
+ sub_decls, hello_private_repo - inputs, not found.
+
+"workflow_name_length_ok", "importer_ok" - Expected the "outputs.outputSource" field of output parameter "s" to be a $dnanexus_link referencing a stage output field
+
+
+ monitoring_log - workflow-G3Kv6F80yzZb88Xq9BZ5bKBp, analysis-G3Kv74j0yzZfZy0599ykjPZx
+ sizerelativepath - workflow-G3KvGbj0yzZgJbfZGpp7PfgK, analysis-G3KvGfj0yzZV1V8X98yjFFfg
