@@ -27,6 +27,8 @@ import dx.util.{
   TraceLevel
 }
 
+import scala.collection.immutable.SeqMap
+
 object TaskAction extends Enum {
   type TaskAction = Value
   val CheckInstanceType, Prolog, InstantiateCommand, Epilog, Relaunch = Value
@@ -295,79 +297,142 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     // downloaded files must go to a different location than the dxfuse mount point
     assert(jobMeta.workerPaths.getInputFilesDir() != jobMeta.workerPaths.getDxfuseMountDir())
 
-    val inputs = getInputsWithDefaults
-
     case class PathsToLocalize(virtualFiles: Vector[VFile] = Vector.empty,
                                localFiles: Set[(LocalFileSource, VFile)] = Set.empty,
                                filesToStream: Set[(AddressableFileNode, VFile)] = Set.empty,
-                               filesToDownload: Set[(AddressableFileNode, VFile)] = Set.empty,
-                               localFolders: Set[(LocalFileSource, VFolder)] = Set.empty,
-                               foldersToStream: Set[(AddressableFileSource, VFolder)] = Set.empty,
-                               foldersToDownload: Set[(AddressableFileSource, VFolder)] = Set.empty)
+                               filesToDownload: Set[(AddressableFileNode, VFile)] = Set.empty)
 
-    // splits a Vector of AddressableFileNode associated with an input parameter into
-    // (local_files, files_to_stream, files_to_download)
-    def splitFiles(
-        files: Vector[(AddressableFileNode, VFile)],
-        stream: Boolean
-    ): (Set[(LocalFileSource, VFile)],
-        Set[(AddressableFileNode, VFile)],
-        Set[(AddressableFileNode, VFile)]) = {
-      val (local, remote) = files.foldLeft(
-          (Set.empty[(LocalFileSource, VFile)], Set.empty[(AddressableFileNode, VFile)])
-      ) {
-        case (_, (fs: LocalFileSource, _)) if !fs.exists =>
-          throw new Exception(s"Local File-type input does not exist: ${fs}")
-        case (_, (fs: LocalFileSource, _)) if fs.isDirectory =>
-          throw new Exception(s"Local File-type input is a directory: ${fs}")
-        case ((local, remote), (fs: LocalFileSource, file)) =>
-          // The file is already on the local disk, there is no need to download it.
-          (local + (fs -> file), remote)
-        case ((local, remote), other) =>
-          (local, remote + other)
+    // Updates all `VFolder` values (including those nested within `value`) to
+    // set their `listing`s if missing. Also extracts all file `VFile` values into
+    // a `PathsToLocalize` object as follows:
+    // * If `contents` is non-empty, the file is added to `virtualFiles`
+    // * If `address` resolves to a `LocalFileSource`, the file is added to `localFiles`
+    // * Otherwise, if `stream` is true, the file is added to `filesToStream`, otherwise
+    //   it is added to `filesToDownload`
+    def updateListingsAndExtractFiles(value: Value,
+                                      stream: Boolean,
+                                      paths: PathsToLocalize): (Value, PathsToLocalize) = {
+
+      // creates a listing of VFile/VFolders from a nested listing of FileSources
+      def createListing(value: Vector[FileSource],
+                        paths: PathsToLocalize): (Vector[PathValue], PathsToLocalize) = {
+        value.foldLeft(Vector.empty[PathValue], paths) {
+          case ((itemAccu, pathAccu), fs: AddressableFileSource)
+              if fs.isDirectory && fs.isListable =>
+            val (items, updatedPaths) = createListing(fs.listing(), pathAccu)
+            (itemAccu :+ VFolder(fs.address, listing = Some(items)), updatedPaths)
+          case ((itemAccu, pathAccu), fs: AddressableFileSource) if fs.isDirectory =>
+            (itemAccu :+ VFolder(fs.address), pathAccu)
+          case ((itemAccu, pathAccu), fs: LocalFileSource) =>
+            val file = VFile(fs.address)
+            (itemAccu :+ file, pathAccu.copy(localFiles = pathAccu.localFiles + (fs, file)))
+          case ((itemAccu, pathAccu), fs: AddressableFileSource) =>
+            val file = VFile(fs.address)
+            val updatedPaths = if (stream) {
+              pathAccu.copy(filesToStream = pathAccu.filesToStream + (fs, file))
+            } else {
+              pathAccu.copy(filesToDownload = pathAccu.filesToDownload + (fs, file))
+            }
+            (itemAccu :+ file, updatedPaths)
+        }
       }
-      if (stream) {
-        (local, remote, Set.empty)
-      } else {
-        (local, Set.empty, remote)
+
+      // updates a listing by ensuring all VFolders have their listing set
+      def updateListing(items: Vector[PathValue]): (Vector[PathValue], PathsToLocalize) = {
+        items.foldLeft(Vector.empty[PathValue], paths) {
+          case ((valueAccu, pathAccu), path) =>
+            val (updatedValue, updatedPaths) =
+              updateListingsAndExtractFiles(path, stream, pathAccu)
+            updatedValue match {
+              case p: PathValue => (valueAccu :+ p, updatedPaths)
+              case other        => throw new Exception(s"expected PathValue, not ${other}")
+            }
+        }
+      }
+
+      value match {
+        case file: VFile if file.contents.nonEmpty =>
+          (file, paths.copy(virtualFiles = paths.virtualFiles :+ file))
+        case file: VFile =>
+          val (updatedSecondaryFiles, updatedPaths) =
+            updateListing(file.secondaryFiles)
+          val updatedFile = file.copy(secondaryFiles = updatedSecondaryFiles)
+          val pathsWithFile = fileResolver.resolve(file.uri) match {
+            case fs if !fs.exists =>
+              throw new Exception(s"File-type input does not exist: ${fs}")
+            case fs if fs.isDirectory =>
+              throw new Exception(s"File-type input is a directory: ${fs}")
+            case fs: LocalFileSource =>
+              updatedPaths.copy(localFiles = updatedPaths.localFiles + (fs, updatedFile))
+            case fs if stream =>
+              updatedPaths.copy(filesToStream = updatedPaths.filesToStream + (fs, updatedFile))
+            case fs =>
+              updatedPaths.copy(filesToDownload = updatedPaths.filesToDownload + (fs, updatedFile))
+          }
+          (updatedFile, pathsWithFile)
+        case folder: VFolder =>
+          // fill in the listing if it is not provided
+          Option
+            .when(folder.listing.isEmpty)(fileResolver.resolveDirectory(folder.uri))
+            .map {
+              case fs if !fs.exists =>
+                throw new Exception(s"Directory-type input does not exist: ${fs}")
+              case fs if !fs.isDirectory =>
+                throw new Exception(s"Directory-type input is not a directory: ${fs}")
+              case fs if !fs.isListable =>
+                throw new Exception(s"Cannot get listing for Directory-type input: ${fs}")
+              case fs => fs.listing(recursive = true)
+            }
+            .filter(_.nonEmpty)
+            .map { listing =>
+              // fill in the listing if it is not provided
+              val (updatedListing, updatedPaths) = createListing(listing, paths)
+              (folder.copy(listing = Some(updatedListing)), updatedPaths)
+            }
+            .getOrElse((folder, paths))
+        case listing: VListing =>
+          val (updatedItems, updatedPaths) = updateListing(listing.items)
+          (listing.copy(items = updatedItems), updatedPaths)
+        case VArray(items) =>
+          val (updatedItems, updatedPaths) = items.foldLeft(Vector.empty[Value], paths) {
+            case ((itemAccu, pathAccu), item) =>
+              val (updatedItem, updatedPaths) =
+                updateListingsAndExtractFiles(item, stream, pathAccu)
+              (itemAccu :+ updatedItem, updatedPaths)
+          }
+          (VArray(updatedItems), updatedPaths)
+        case VHash(items) =>
+          val (updatedItems, updatedPaths) = items.foldLeft(SeqMap.empty[String, Value], paths) {
+            case ((itemAccu, pathAccu), (key, value)) =>
+              val (updatedValue, updatedPaths) =
+                updateListingsAndExtractFiles(value, stream, pathAccu)
+              (itemAccu + (key -> updatedValue), updatedPaths)
+          }
+          (VHash(updatedItems), updatedPaths)
+        case _ => (value, paths)
       }
     }
 
-    // splits a Vector of AddressableFileSource associated with an input parameter into
-    // (local_folders, folders_to_stream, folders_to_download)
-    def splitFolders(
-        folders: Vector[(AddressableFileSource, VFolder)],
-        stream: Boolean
-    ): (Set[(LocalFileSource, VFolder)],
-        Set[(AddressableFileSource, VFolder)],
-        Set[(AddressableFileSource, VFolder)]) = {
-      val (local, remote) = folders.foldLeft(
-          (Set.empty[(LocalFileSource, VFolder)], Set.empty[(AddressableFileSource, VFolder)])
-      ) {
-        case (_, (fs: LocalFileSource, _)) if !fs.exists =>
-          throw new Exception(s"Local Directory-type input does not exist: ${fs}")
-        case (_, (fs: LocalFileSource, _)) if !fs.isDirectory =>
-          throw new Exception(s"Local Directory-type input is a file: ${fs}")
-        case ((local, remote), (fs: LocalFileSource, folder)) =>
-          // The file is already on the local disk, there is no need to download it.
-          (local + (fs -> folder), remote)
-        case ((local, remote), other) =>
-          (local, remote + other)
+    // Make sure all VFolder inputs have their `listing`s set. We do this to ensure that
+    // only the files present in the folder at the beginning of task execution are localized
+    // into the inputs folder, and any changes to the directory during runtime aren't
+    // synchronized to the worker. This step also extracts all the files from the inputs
+    // that need to be localized.
+    val (inputs, paths) =
+      getInputsWithDefaults.foldLeft(Map.empty[String, (Type, Value)], PathsToLocalize()) {
+        case ((inputAccu, pathAccu), (name, (t, v))) =>
+          // whether to stream all the files/directories associated with this input
+          val stream = streamFiles == StreamFiles.All ||
+            (streamFiles == StreamFiles.PerFile && streamFileForInput(name))
+          val (updatedValue, updatedPaths) = updateListingsAndExtractFiles(v, stream, pathAccu)
+          (inputAccu + (name -> (t, updatedValue)), updatedPaths)
       }
-      if (stream) {
-        (local, remote, Set.empty)
-      } else {
-        (local, Set.empty, remote)
-      }
-    }
 
     val paths = inputs.foldLeft(PathsToLocalize()) {
       case (paths, (name, (_, irValue))) =>
         // extract all the files/directories nested within the input value
         val fileSources = extractPaths(irValue)
-        // whether to stream all the files/directories associated with this input
-        val stream = streamFiles == StreamFiles.All ||
-          (streamFiles == StreamFiles.PerFile && streamFileForInput(name))
+
         val (localFilesToPath, filesToStream, filesToDownload) =
           splitFiles(fileSources.realFiles, stream)
         val (localFolders, foldersToStream, foldersToDownload) =
@@ -761,7 +826,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       case (name, (irType, irValue)) => extractOutputPaths(name, irValue, irType)
     }.unzip
 
-<<<<<<< HEAD
+    <<<<<<< HEAD
     // Build a map of all the addresses in the output values that might
     // map to the same (absolute) local path. An output may be a file/folder
     // that was an input (or nested within an input folder) - these do not
@@ -912,7 +977,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
             )
         }
     }
-=======
+    =======
     // extract files from the outputs
     val localOutputFileSources = localizedOutputs.flatMap {
       case (name, (irType, irValue, tags, properties)) =>
@@ -949,7 +1014,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       fileUploader.upload(filesToUpload.values.toSet, wait = waitOnUpload).map {
         case (path, dxFile) => path -> dxFile.asUri
       }
->>>>>>> develop
+    >>>>>>> develop
 
     // Replace the local paths in the output values with URIs. For a file/folder
     // that is located in the inputs folder, we search in the localized inputs
