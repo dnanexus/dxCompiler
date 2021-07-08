@@ -5,7 +5,7 @@ import dx.core.io.StreamFiles
 import dx.core.ir.{Type, Value}
 import dx.core.languages.wdl.{IrToWdlValueBindings, Runtime, VersionSupport, WdlOptions, WdlUtils}
 import dx.executor.{FileUploader, JobMeta, SerialFileUploader, TaskExecutor}
-import dx.util.{Bindings, DockerUtils, Logger, TraceLevel}
+import dx.util.{Bindings, DockerUtils, Logger}
 import wdlTools.eval.WdlValues._
 import wdlTools.eval.{Eval, WdlValueBindings}
 import wdlTools.exec.{TaskCommandFileGenerator, TaskInputOutput}
