@@ -235,6 +235,11 @@ cromwell_invalid = [
     "sub_workflow_interactions",
     "custom_cacheworthy_attributes",
     "reference_disk_test",
+    "call_cache_hit_prefixes",
+    "sub_workflow_no_output",
+    "optional_parameter",
+    "recursive_imports",
+    "unscattered",
 ]
 # tests taken from cromwell repository that cannot be translated:
 cromwell_failed_translate = [
@@ -243,28 +248,22 @@ cromwell_failed_translate = [
     "no_task_no_output_delete",
     "sub_workflow_interactions_scatter",
     "if_then_else_expressions",
-    "call_cache_hit_prefixes",
     "dollars_in_strings",
     "recursive_imports_no_subwf",
     "hello",
     "sub_workflow_one_output_import",
     "sub_workflow_no_output_block_import",
     "sub_workflow_no_outputs_in_block_import",
-    "sub_workflow_no_output",
     "parallel_composite_uploads_on",
     "object_access",
     "sub_workflow_var_refs",
     "sub_workflow_var_refs_import",
-    "optional_parameter",
     "sub_workflow_interactions_import",
     "none_literal",
     "workflow_output_declarations",
     "read_write_json",
-
-    "recursive_imports",
     "member_access",
     "default_runtime_attributes",
-    "unscattered",
     "workflow_name_length_ok",
     "importer_ok"
 ]
