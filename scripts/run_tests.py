@@ -27,7 +27,7 @@ test_dir = os.path.join(os.path.abspath(top_dir), "test")
 
 git_revision = subprocess.check_output(["git", "describe", "--always", "--dirty", "--tags"]).strip()
 test_files = {}
-test_failing = {"bad_status", "bad_status2", "just_fail_wf", "docker_retry", "argument_list_too_long"}
+test_failing = {"bad_status", "bad_status2", "just_fail_wf", "missing_output", "docker_retry", "argument_list_too_long"}
 
 test_compilation_failing = {"import_passwd"}
 
@@ -300,18 +300,12 @@ cromwell_failed_exec = [
     "docker_size_gcr",
     "hello_private_repo",
     "sub_workflow_decls_import",
-
     "dummy_scatter",
-    "docker_hash_gcr_private",
     "monitoring_log",
-    "sizerelativepath",
-    "subworkflow",
-    "super_massive_array_output",
     "short_circuit",
     "custom_mount_point",
     "workflow_engine_functions",
     "docker_alpine",
-    "engine_functions",
 ]
 
 # tests taken from cromwell repository
@@ -336,6 +330,8 @@ cromwell_tests_list = [
     "no_cache_delete",
     "gcs_path_ending_with_newline",
     "readFromCache",
+    "sizerelativepath",
+    "subworkflow",
     "b",
     "c",
     "a",
@@ -436,7 +432,7 @@ cromwell_tests_list = [
     "passingfiles",
     "hello",
     "referencingpreviousinputsandoutputs",
-
+    "engine_functions",
 ]
 
 medium_test_list = wdl_v1_list + wdl_v1_1_list + docker_test_list + special_flags_list + cwl_tools
@@ -459,21 +455,21 @@ test_suites = {
 
 # Tests with the reorg flags
 test_reorg = [
-    # "dict",
-    # "strings",
-    # "test_reorg",
-    # "test_reorg_no_config"
+    "dict",
+    "strings",
+    "test_reorg",
+    "test_reorg_no_config"
 ]
 test_defaults = []
 test_unlocked = [
-    # "array_structs",
-    # "cast",
-    # "call_with_defaults1",
-    # "files",
-    # "hello",
-    # "path_not_taken",
-    # "optionals",
-    # "shapes"
+    "array_structs",
+    "cast",
+    "call_with_defaults1",
+    "files",
+    "hello",
+    "path_not_taken",
+    "optionals",
+    "shapes"
 ]
 test_project_wide_reuse = ['add2', "add_many"]
 
