@@ -116,9 +116,9 @@ case class DxdaManifestBuilder(dxApi: DxApi, logger: Logger = Logger.get) {
     * @param fileToLocalMapping mapping of
     * @return
     */
-  def apply(fileToLocalMapping: Map[DxFile, Path],
-            folderToLocalMapping: Map[(String, String), Path],
-            folderListings: Map[(String, String), Set[Path]]): Option[DxdaManifest] = {
+  def apply(fileToLocalMapping: Map[DxFile, Path] = Map.empty,
+            folderToLocalMapping: Map[(String, String), Path] = Map.empty,
+            folderListings: Map[(String, String), Set[Path]] = Map.empty): Option[DxdaManifest] = {
     if (fileToLocalMapping.isEmpty && folderToLocalMapping.isEmpty) {
       return None
     }

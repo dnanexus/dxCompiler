@@ -13,11 +13,14 @@ case class DxfuseManifest(value: JsValue)
 // TODO: support using folder listings to restrict which files/subdirs
 //  are synced for a given remote folder - this requires a change in
 //  dxfuse
-case class DxfuseManifestBuilder(dxApi: DxApi, logger: Logger = Logger.get) {
-  def apply(fileToLocalMapping: Map[DxFile, Path],
-            folderToLocalMapping: Map[(String, String), Path],
-            folderListings: Map[(String, String), Set[Path]],
-            workerPaths: DxWorkerPaths): Option[DxfuseManifest] = {
+case class DxfuseManifestBuilder(workerPaths: DxWorkerPaths,
+                                 dxApi: DxApi,
+                                 logger: Logger = Logger.get) {
+  def apply(
+      fileToLocalMapping: Map[DxFile, Path] = Map.empty,
+      folderToLocalMapping: Map[(String, String), Path] = Map.empty,
+      folderListings: Map[(String, String), Set[Path]] = Map.empty
+  ): Option[DxfuseManifest] = {
     if (fileToLocalMapping.isEmpty) {
       return None
     }
