@@ -244,7 +244,8 @@ test_unlocked = [
     "hello",
     "path_not_taken",
     "optionals",
-    "shapes"
+    "shapes",
+    #"population"
 ]
 test_project_wide_reuse = ['add2', "add_many"]
 

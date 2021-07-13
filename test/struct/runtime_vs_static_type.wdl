@@ -1,8 +1,8 @@
 version 1.0
 
-struct WordStruct {
-    String word
-    Int len
+struct WordInfo {
+  String word
+  Int len
 }
 
 workflow runtime_vs_static_type {
@@ -36,6 +36,17 @@ task rvs_opt_int {
     }
 }
 
+task rvs_int {
+  input {
+    Int? x
+  }
+  command {
+    echo $(( ~{x} + 10 ))
+  }
+  output {
+    Int result = read_int(stdout())
+  }
+}
 
 task rvs_opt_array {
     input {
