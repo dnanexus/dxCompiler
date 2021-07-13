@@ -370,7 +370,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     // the `originalPath`s may be different.
     val inputAddresses = fileSourceToPath.keySet.map(_.address)
     val inputPaths = fileSourceToPath.values.toSet
-    val localOutputFileSources = localizedOutputs.map {
+    val filesToUpload = localizedOutputs.map {
       case (name, (irType, irValue)) =>
         name -> extractOutputFiles(name, irValue, irType, fileResolver)
           .collect {
@@ -383,12 +383,9 @@ abstract class TaskExecutor(jobMeta: JobMeta,
           }
     }
 
-    val delocalizingValueToPath =
-      localOutputFileSources.values.flatten.map(local => local.address -> local.canonicalPath).toMap
-
     // upload the files, and map their local paths to their remote URIs
     val delocalizedPathToUri = jobMeta
-      .uploadOutputFiles(localOutputFileSources.map {
+      .uploadOutputFiles(filesToUpload.map {
         case (name, localFileSources) => name -> localFileSources.map(_.canonicalPath)
       }, tagsAndProperties)
       .map {
@@ -408,34 +405,18 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       }
       .flatten
       .toMap
-    def resolveFileValue(value: String): Option[String] = {
+    val delocalizingUriToPath =
+      filesToUpload.values.flatten.map(local => local.address -> local.canonicalPath).toMap
+    def resolveUri(value: String): Option[String] = {
       inputValueToUri
         .get(value)
-        .orElse(delocalizingValueToPath.get(value) match {
+        .orElse(delocalizingUriToPath.get(value) match {
           case Some(path) => delocalizedPathToUri.get(path)
           case _          => None
         })
     }
 
-    def pathTranslator(v: Value, t: Option[Type], optional: Boolean): Option[Value] = {
-      val uri = (t, v) match {
-        case (_, VFile(uri))             => Some(uri)
-        case (Some(TFile), VString(uri)) => Some(uri)
-        case _                           => None
-      }
-      uri.map { u =>
-        resolveFileValue(u) match {
-          case Some(uri)        => VFile(uri)
-          case None if optional => VNull
-          case None =>
-            throw new Exception(s"Did not delocalize file ${u}")
-        }
-      }
-    }
-
-    val delocalizedOutputs = localizedOutputs.view.mapValues {
-      case (t, v) => (t, Value.transform(v, Some(t), pathTranslator))
-    }.toMap
+    val delocalizedOutputs = delocalizeOutputFiles(localizedOutputs, resolveUri)
 
     // serialize the outputs to the job output file
     jobMeta.writeOutputs(delocalizedOutputs)

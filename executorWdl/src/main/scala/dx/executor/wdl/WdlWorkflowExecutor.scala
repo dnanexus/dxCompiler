@@ -109,10 +109,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
                                separateOutputs: Boolean,
                                fileUploader: FileUploader = SerialFileUploader(),
                                waitOnUpload: Boolean = false)
-    extends WorkflowExecutor[WdlBlock](jobMeta = jobMeta,
-                                       separateOutputs = separateOutputs,
-                                       fileUploader = fileUploader,
-                                       waitOnUpload = waitOnUpload) {
+    extends WorkflowExecutor[WdlBlock](jobMeta = jobMeta, separateOutputs = separateOutputs) {
   private val logger = jobMeta.logger
   private lazy val evaluator = Eval(
       jobMeta.workerPaths,

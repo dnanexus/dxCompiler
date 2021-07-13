@@ -40,6 +40,7 @@ case class ParallelFileUploader(maxConcurrent: Int = Runtime.getRuntime.availabl
                                 dxApi: DxApi = DxApi.get,
                                 logger: Logger = Logger.get)
     extends FileUploader {
+
   private case class UploadCallable(upload: FileUpload, waitOnUpload: Boolean)
       extends Callable[(Path, DxFile)] {
     override def call(): (Path, DxFile) = {
@@ -79,7 +80,7 @@ case class ParallelFileUploader(maxConcurrent: Int = Runtime.getRuntime.availabl
           // Upload could take a long time, especially if we're waiting for them
           // to complete. If so, we base the timeout on the file size.
           if (wait) {
-            Math.round(files.map(f => Files.size(f.source)).sum / 10_000_000L)
+            Math.round(files.map(f => Files.size(f.source)).sum.toDouble / 10_000_000L)
           } else {
             files.size * 10L
           }

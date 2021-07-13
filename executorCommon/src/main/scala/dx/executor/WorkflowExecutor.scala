@@ -186,30 +186,36 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
     protected def uploadPrivateVariablePaths(
         env: Map[String, (Type, Value)]
     ): Map[String, ParameterLink] = {
-      val filesToUpload = env
-        .flatMap {
-          case (name, (irType, irValue)) =>
-            extractOutputFiles(name, irValue, irType, jobMeta.fileResolver)
-        }
+      val filesToUpload = env.map {
+        case (name, (irType, irValue)) =>
+          name -> extractOutputFiles(name, irValue, irType, jobMeta.fileResolver).map {
+            case local: LocalFileSource => local
+            case other =>
+              throw new Exception(s"unexpected non-local file ${other}")
+          }
+      }
+      val delocalizedPathToUri = jobMeta
+        .uploadOutputFiles(filesToUpload.map {
+          case (name, localFileSources) => name -> localFileSources.map(_.canonicalPath)
+        })
         .map {
-          case local: LocalFileSource =>
-            // if using manifests, we need to upload the files directly to the project
-            val dest = if (jobMeta.useManifests) {
-              Some(s"${jobMeta.manifestFolder}/${local.canonicalPath.getFileName.toString}")
-            } else {
-              None
-            }
-            local.address -> FileUpload(local.canonicalPath, dest)
-            local.address -> FileUpload(local.canonicalPath, dest)
-          case other =>
-            throw new Exception(s"unexpected non-local file ${other}")
-        }
-        .toMap
-      // upload the files, and map their local paths to their remote URIs
-      val delocalizedPathToUri =
-        fileUploader.upload(filesToUpload.values.toSet, wait = waitOnUpload).map {
           case (path, dxFile) => path -> dxFile.asUri
         }
+      // Replace the local paths in the output values with URIs. This requires
+      // two look-ups: first to get the absoulte Path associated with the file
+      // value (which may be relative or absolute), and second to get the URI
+      // associated with the Path. Returns an Optional[String] because optional
+      // outputs may be null.
+      val delocalizingUriToPath =
+        filesToUpload.values.flatten.map(local => local.address -> local.canonicalPath).toMap
+      def resolveUri(value: String): Option[String] = {
+        delocalizingUriToPath.get(value) match {
+          case Some(path) => delocalizedPathToUri.get(path)
+          case _          => None
+        }
+      }
+      val delocalizedOutputs = delocalizeOutputFiles(env, resolveUri)
+      jobMeta.createOutputLinks(delocalizedOutputs)
     }
   }
 

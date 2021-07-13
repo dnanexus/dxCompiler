@@ -455,11 +455,12 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 
   def uploadOutputFiles(
       localFiles: Map[String, Vector[Path]],
-      tagsAndProperties: Map[String, (Set[String], Map[String, String])]
+      tagsAndProperties: Map[String, (Set[String], Map[String, String])] = Map.empty
   ): Map[Path, DxFile] = {
     val filesToUpload = localFiles.flatMap {
       case (name, paths) =>
-        val (tags, properties) = tagsAndProperties.getOrElse(name, (Set.empty, Map.empty))
+        val (tags, properties) =
+          tagsAndProperties.getOrElse(name, (Set.empty[String], Map.empty[String, String]))
         paths.map { path =>
           // if using manifests, we need to upload the files directly to the project
           val dest = if (useManifests) {
