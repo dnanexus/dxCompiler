@@ -7,24 +7,12 @@ import dx.core.ir.Type.TSchema
 import dx.core.Constants
 import dx.core.ir.{Block, ExecutableLink, Parameter, ParameterLink, Type, TypeSerde, Value}
 import spray.json._
-import dx.util.{Enum, TraceLevel}
+import dx.util.{Enum, LocalFileSource, TraceLevel}
 import dx.util.CollectionUtils.IterableOnceExtensions
 
 object WorkflowAction extends Enum {
   type WorkflowAction = Value
   val Inputs, Outputs, OutputReorg, CustomReorgOutputs, Run, Continue, Collect = Value
-}
-
-trait BlockContext[B <: Block[B]] {
-  def block: Block[B]
-
-  def launch(): Map[String, ParameterLink]
-
-  def continue(): Map[String, ParameterLink]
-
-  def collect(): Map[String, ParameterLink]
-
-  def prettyFormat(): String
 }
 
 object WorkflowExecutor {
@@ -183,9 +171,51 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
     (dxExecution, jobName)
   }
 
-  protected def evaluateBlockInputs(jobInputs: Map[String, (Type, Value)]): BlockContext[B]
+  protected trait BlockContext {
+    def block: Block[B]
 
-  private def evaluateFragInputs(): BlockContext[_] = {
+    def launch(): Map[String, ParameterLink]
+
+    def continue(): Map[String, ParameterLink]
+
+    def collect(): Map[String, ParameterLink]
+
+    def prettyFormat(): String
+
+    // private variables may create files that need to be uploaded
+    protected def uploadPrivateVariablePaths(
+        env: Map[String, (Type, Value)]
+    ): Map[String, ParameterLink] = {
+      val filesToUpload = env
+        .flatMap {
+          case (name, (irType, irValue)) =>
+            extractOutputFiles(name, irValue, irType, jobMeta.fileResolver)
+        }
+        .map {
+          case local: LocalFileSource =>
+            // if using manifests, we need to upload the files directly to the project
+            val dest = if (jobMeta.useManifests) {
+              Some(s"${jobMeta.manifestFolder}/${local.canonicalPath.getFileName.toString}")
+            } else {
+              None
+            }
+            local.address -> FileUpload(local.canonicalPath, dest)
+            local.address -> FileUpload(local.canonicalPath, dest)
+          case other =>
+            throw new Exception(s"unexpected non-local file ${other}")
+        }
+        .toMap
+      // upload the files, and map their local paths to their remote URIs
+      val delocalizedPathToUri =
+        fileUploader.upload(filesToUpload.values.toSet, wait = waitOnUpload).map {
+          case (path, dxFile) => path -> dxFile.asUri
+        }
+    }
+  }
+
+  protected def evaluateBlockInputs(jobInputs: Map[String, (Type, Value)]): BlockContext
+
+  private def evaluateFragInputs(): BlockContext = {
     if (logger.isVerbose) {
       logger.traceLimited(s"dxCompiler version: ${getVersion}")
       logger.traceLimited(s"link info=${execLinkInfo}")

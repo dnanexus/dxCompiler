@@ -4,7 +4,7 @@ import dx.api.{DxPath, InstanceTypeRequest}
 import dx.core.io.StreamFiles
 import dx.core.ir.{Type, Value}
 import dx.core.languages.wdl.{IrToWdlValueBindings, Runtime, VersionSupport, WdlOptions, WdlUtils}
-import dx.executor.{FileUploader, JobMeta, SerialFileUploader, TaskExecutor}
+import dx.executor.{JobMeta, TaskExecutor}
 import dx.util.{Bindings, DockerUtils, Logger, TraceLevel}
 import wdlTools.eval.WdlValues._
 import wdlTools.eval.{Eval, WdlValueBindings}
@@ -15,9 +15,7 @@ import wdlTools.types.{TypedAbstractSyntax => TAT}
 object WdlTaskExecutor {
   def create(
       jobMeta: JobMeta,
-      fileUploader: FileUploader = SerialFileUploader(),
-      streamFiles: StreamFiles.StreamFiles = StreamFiles.PerFile,
-      waitOnUpload: Boolean = false
+      streamFiles: StreamFiles.StreamFiles = StreamFiles.PerFile
   ): WdlTaskExecutor = {
     val wdlOptions = jobMeta.parserOptions.map(WdlOptions.fromJson).getOrElse(WdlOptions.default)
     val (doc, typeAliases, versionSupport) =
@@ -34,13 +32,7 @@ object WdlTaskExecutor {
     if (tasks.size > 1) {
       throw new Exception("More than one task in this WDL program")
     }
-    WdlTaskExecutor(tasks.values.head,
-                    versionSupport,
-                    typeAliases,
-                    jobMeta,
-                    fileUploader,
-                    streamFiles,
-                    waitOnUpload = waitOnUpload)
+    WdlTaskExecutor(tasks.values.head, versionSupport, typeAliases, jobMeta, streamFiles)
   }
 }
 
@@ -48,10 +40,8 @@ case class WdlTaskExecutor(task: TAT.Task,
                            versionSupport: VersionSupport,
                            typeAliases: Bindings[String, T_Struct],
                            jobMeta: JobMeta,
-                           fileUploader: FileUploader,
-                           streamFiles: StreamFiles.StreamFiles,
-                           waitOnUpload: Boolean)
-    extends TaskExecutor(jobMeta, fileUploader, streamFiles, waitOnUpload = waitOnUpload) {
+                           streamFiles: StreamFiles.StreamFiles)
+    extends TaskExecutor(jobMeta, streamFiles) {
 
   private val fileResolver = jobMeta.fileResolver
   private val logger = jobMeta.logger
@@ -199,46 +189,47 @@ case class WdlTaskExecutor(task: TAT.Task,
 
   override protected def evaluateOutputs(
       localizedInputs: Map[String, (Type, Value)]
-  ): Map[String, (Type, Value, Set[String], Map[String, String])] = {
+  ): (Map[String, (Type, Value)], Map[String, (Set[String], Map[String, String])]) = {
     val outputTypes: Map[String, T] = task.outputs.map(d => d.name -> d.wdlType).toMap
     // Evaluate the output parameters in dependency order.
-    val localizedOutputs = taskIO
-      .evaluateOutputs(
-          evaluator,
-          WdlValueBindings(
-              WdlUtils.fromIR(localizedInputs, typeAliases.toMap).view.mapValues(_._2).toMap
+    val localizedOutputs = WdlUtils.toIR(
+        taskIO
+          .evaluateOutputs(
+              evaluator,
+              WdlValueBindings(
+                  WdlUtils.fromIR(localizedInputs, typeAliases.toMap).view.mapValues(_._2).toMap
+              )
           )
-      )
-      .toMap
-      .map {
-        case (name, value) => name -> (outputTypes(name), value)
+          .toMap
+          .map {
+            case (name, value) => name -> (outputTypes(name), value)
+          }
+    )
+    val tagsAndProperties = localizedOutputs.keys.map { name =>
+      val (tags, properties) = hints.getOutput(name) match {
+        case Some(V_Object(fields)) =>
+          val tags = fields.get("tags") match {
+            case Some(V_Array(tags)) =>
+              tags.map {
+                case V_String(tag) => tag
+                case other         => throw new Exception(s"invalid tag ${other}")
+              }.toSet
+            case _ => Set.empty[String]
+          }
+          val properties = fields.get("properties") match {
+            case Some(V_Object(properties)) =>
+              properties.map {
+                case (key, V_String(value)) => key -> value
+                case other                  => throw new Exception(s"invalid property ${other}")
+              }
+            case _ => Map.empty[String, String]
+          }
+          (tags, properties)
+        case _ => (Set.empty[String], Map.empty[String, String])
       }
-    WdlUtils.toIR(localizedOutputs).map {
-      case (name, (irType, irValue)) =>
-        val (tags, properties) = hints.getOutput(name) match {
-          case Some(V_Object(fields)) =>
-            val tags = fields.get("tags") match {
-              case Some(V_Array(tags)) =>
-                tags.map {
-                  case V_String(tag) => tag
-                  case other         => throw new Exception(s"invalid tag ${other}")
-                }.toSet
-              case _ => Set.empty[String]
-            }
-            val properties = fields.get("properties") match {
-              case Some(V_Object(properties)) =>
-                properties.map {
-                  case (key, V_String(value)) => key -> value
-                  case other                  => throw new Exception(s"invalid property ${other}")
-                }
-              case _ => Map.empty[String, String]
-            }
-            (tags, properties)
-          case _ =>
-            (Set.empty[String], Map.empty[String, String])
-        }
-        name -> (irType, irValue, tags, properties)
-    }
+      name -> (tags, properties)
+    }.toMap
+    (localizedOutputs, tagsAndProperties)
   }
 
   override protected lazy val outputTypes: Map[String, Type] = {

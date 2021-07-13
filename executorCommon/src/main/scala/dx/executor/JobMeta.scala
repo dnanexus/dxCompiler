@@ -95,7 +95,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 
   def jobId: String
 
-  lazy val manifestFolder = s"${dxApi.currentProject.id}:/.d/${jobId}"
+  lazy val manifestFolder = s"${dxApi.currentProjectId.get}:/.d/${jobId}"
 
   def rawJsInputs: Map[String, JsValue]
 
@@ -446,6 +446,30 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     }
   }
 
+  def fileUploader: FileUploader
+
+  def waitOnUpload: Boolean = false
+
+  def uploadOutputFiles(
+      localFiles: Map[String, Vector[Path]],
+      tagsAndProperties: Map[String, (Set[String], Map[String, String])]
+  ): Map[Path, DxFile] = {
+    val filesToUpload = localFiles.flatMap {
+      case (name, paths) =>
+        val (tags, properties) = tagsAndProperties.getOrElse(name, (Set.empty, Map.empty))
+        paths.map { path =>
+          // if using manifests, we need to upload the files directly to the project
+          val dest = if (useManifests) {
+            Some(s"${manifestFolder}/${path.getFileName.toString}")
+          } else {
+            None
+          }
+          path -> FileUpload(path, dest, tags, properties)
+        }.toMap
+    }
+    fileUploader.upload(filesToUpload.values.toSet, wait = waitOnUpload)
+  }
+
   @tailrec
   private def outputTypesEqual(expectedType: Type, actualType: Type): Boolean = {
     (expectedType, actualType) match {
@@ -667,10 +691,12 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 }
 
 case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths.default,
+                         override val fileUploader: FileUploader,
+                         override val waitOnUpload: Boolean,
                          override val dxApi: DxApi = DxApi.get,
                          override val logger: Logger = Logger.get)
     extends JobMeta(workerPaths, dxApi, logger) {
-  lazy val project: DxProject = dxApi.currentProject
+  lazy val project: DxProject = dxApi.currentProject.get
 
   private val rootDir = workerPaths.getRootDir()
   private val inputPath = rootDir.resolve(JobMeta.InputFile)
@@ -700,9 +726,9 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths
     }
   }
 
-  def jobId: String = dxApi.currentJob.id
+  def jobId: String = dxApi.currentJobId.get
 
-  private lazy val jobDesc: DxJobDescribe = dxApi.currentJob.describe(
+  private lazy val jobDesc: DxJobDescribe = dxApi.currentJob.get.describe(
       Set(Field.Executable, Field.Details, Field.InstanceType)
   )
 

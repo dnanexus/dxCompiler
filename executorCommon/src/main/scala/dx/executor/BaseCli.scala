@@ -9,10 +9,7 @@ import dx.util.Enum
 abstract class BaseCli {
   val jarName: String
 
-  def createTaskExecutor(meta: JobMeta,
-                         fileUploader: FileUploader,
-                         streamFiles: StreamFiles.StreamFiles,
-                         waitOnUpload: Boolean): TaskExecutor
+  def createTaskExecutor(meta: JobMeta, streamFiles: StreamFiles.StreamFiles): TaskExecutor
 
   def createWorkflowExecutor(meta: JobMeta, separateOutputs: Boolean): WorkflowExecutor[_]
 
@@ -55,8 +52,13 @@ abstract class BaseCli {
           return BadUsageTermination("Error parsing command line options", Some(e))
       }
     val logger = initLogger(options)
+    val fileUploader = SerialFileUploader()
+    val waitOnUpload = options.getFlag("waitOnUpload")
     try {
-      val jobMeta = WorkerJobMeta(DxWorkerPaths(rootDir))
+      logger.traceLimited(
+          s"Creating JobMeta: rootDir ${rootDir}, waitOnUpload ${waitOnUpload}"
+      )
+      val jobMeta = WorkerJobMeta(DxWorkerPaths(rootDir), fileUploader, waitOnUpload)
       kind match {
         case ExecutorKind.Task =>
           val taskAction = {
@@ -67,17 +69,15 @@ abstract class BaseCli {
                 return BadUsageTermination(s"Unknown action ${action}")
             }
           }
-          val fileUploader = SerialFileUploader()
           val streamFiles = options.getValue[StreamFiles.StreamFiles]("streamFiles") match {
             case Some(value)                               => value
             case None if options.getFlag("streamAllFiles") => StreamFiles.All
             case None                                      => StreamFiles.PerFile
           }
-          val waitOnUpload = options.getFlag("waitOnUpload")
           logger.traceLimited(
-              s"Creating TaskExecutor: streamFiles ${streamFiles}, waitOnUpload ${waitOnUpload}"
+              s"Creating TaskExecutor: streamFiles ${streamFiles}"
           )
-          val taskExecutor = createTaskExecutor(jobMeta, fileUploader, streamFiles, waitOnUpload)
+          val taskExecutor = createTaskExecutor(jobMeta, streamFiles)
           val successMessage = taskExecutor.apply(taskAction)
           Success(successMessage)
         case ExecutorKind.Workflow =>

@@ -1,8 +1,11 @@
 package dx
 
-import dx.api.DxApi
+import dx.api.{DxApi, DxFile}
+import dx.executor.{FileUpload, FileUploader}
 import org.scalatest.Tag
 import dx.util.SysUtils
+
+import java.nio.file.Path
 
 // test that requires being logged into DNAnexus
 class DxTag(name: String = "dx") extends Tag(name)

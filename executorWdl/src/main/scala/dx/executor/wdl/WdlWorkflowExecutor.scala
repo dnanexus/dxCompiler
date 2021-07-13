@@ -29,7 +29,7 @@ import dx.core.languages.wdl.{
   WdlOptions,
   WdlUtils
 }
-import dx.executor.{BlockContext, JobMeta, WorkflowExecutor}
+import dx.executor.{FileUploader, JobMeta, SerialFileUploader, WorkflowExecutor}
 import dx.util.{DefaultBindings, FileNode, JsUtils, LocalFileSource, Logger, TraceLevel}
 import dx.util.CollectionUtils.IterableOnceExtensions
 import dx.util.protocols.DxFileSource
@@ -106,8 +106,13 @@ case class WdlWorkflowExecutor(docSource: FileNode,
                                tasks: Map[String, TAT.Task],
                                wdlTypeAliases: Map[String, T_Struct],
                                jobMeta: JobMeta,
-                               separateOutputs: Boolean)
-    extends WorkflowExecutor[WdlBlock](jobMeta, separateOutputs) {
+                               separateOutputs: Boolean,
+                               fileUploader: FileUploader = SerialFileUploader(),
+                               waitOnUpload: Boolean = false)
+    extends WorkflowExecutor[WdlBlock](jobMeta = jobMeta,
+                                       separateOutputs = separateOutputs,
+                                       fileUploader = fileUploader,
+                                       waitOnUpload = waitOnUpload) {
   private val logger = jobMeta.logger
   private lazy val evaluator = Eval(
       jobMeta.workerPaths,
@@ -382,8 +387,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     }
   }
 
-  case class WdlBlockContext(block: WdlBlock, env: Map[String, (T, V)])
-      extends BlockContext[WdlBlock] {
+  case class WdlBlockContext(block: WdlBlock, env: Map[String, (T, V)]) extends BlockContext {
     private def call: TAT.Call = block.call
     private def dxApi = jobMeta.dxApi
 
@@ -774,10 +778,18 @@ case class WdlWorkflowExecutor(docSource: FileNode,
                 |""".stripMargin,
             minLevel = TraceLevel.VVerbose
         )
-        val inputsIR = WdlUtils.toIR(env.view.filterKeys(outputNames.contains).toMap)
-        val inputLinks = jobMeta.createOutputLinks(inputsIR, validate = false)
-        val outputLink = outputs.view.filterKeys(outputNames.contains).toMap
-        inputLinks ++ outputLink
+        // Create output links from the values in the env, which came either
+        // from job inputs or from evaluating private variables. Ignore any
+        // variable in env that will be overridden by on in outputs.
+        val envIR = WdlUtils.toIR(env.filter {
+          case (k, _) if outputs.contains(k)           => false
+          case (k, _) if block.outputNames.contains(k) => true
+          case _                                       => false
+        })
+        val envLinks = jobMeta.createOutputLinks(envIR, validate = false)
+        // create output links from the exposed outputs
+        val outputLinks = outputs.view.filterKeys(outputNames.contains).toMap
+        envLinks ++ outputLinks
       }
     }
 
@@ -1130,7 +1142,12 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           assert(jobMeta.scatterStart == 0)
           launchScatter()
         case BlockKind.ExpressionsOnly =>
-          Map.empty
+          // upload files associated with any private variables that are exposed as block outputs
+          uploadPrivateVariablePaths(WdlUtils.toIR(env.filter {
+            case (k, _) if block.inputNames.contains(k)  => false
+            case (k, _) if block.outputNames.contains(k) => true
+            case _                                       => false
+          }))
         case BlockKind.CallDirect =>
           throw new RuntimeException("unreachable state")
       }

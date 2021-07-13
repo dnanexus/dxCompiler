@@ -252,11 +252,11 @@ case class CwlTaskExecutor(tool: CommandLineTool,
 
   override protected def evaluateOutputs(
       localizedInputs: Map[String, (Type, Value)]
-  ): Map[String, (Type, Value, Set[String], Map[String, String])] = {
+  ): (Map[String, (Type, Value)], Map[String, (Set[String], Map[String, String])]) = {
     // the outputs were written to stdout
     val stdoutFile = workerPaths.getStdoutFile()
-    if (Files.exists(stdoutFile)) {
-      val cwlOutputs: Map[String, (CwlType, CwlValue)] = JsUtils.jsFromFile(stdoutFile) match {
+    val localizedOutputs = if (Files.exists(stdoutFile)) {
+      CwlUtils.toIR(JsUtils.jsFromFile(stdoutFile) match {
         case JsObject(outputs) =>
           outputs.map {
             case (name, jsValue) =>
@@ -265,14 +265,11 @@ case class CwlTaskExecutor(tool: CommandLineTool,
           }
         case JsNull => Map.empty
         case other  => throw new Exception(s"unexpected cwltool outputs ${other}")
-      }
-      CwlUtils.toIR(cwlOutputs).map {
-        case (name, (irType, irValue)) =>
-          name -> (irType, irValue, Set.empty[String], Map.empty[String, String])
-      }
+      })
     } else {
-      Map.empty
+      Map.empty[String, (Type, Value)]
     }
+    (localizedOutputs, Map.empty)
   }
 
   override protected def outputTypes: Map[String, Type] = {
