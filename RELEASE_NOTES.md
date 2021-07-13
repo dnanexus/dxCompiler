@@ -6,7 +6,7 @@
 * Specifies operating system when selecting optimal instance type
 * Fixes issue with references between output variables
 * Uses an output stage if there is an output parameter with a literal value (DNAnexus output parameters do not support default values)
-* Fixes issue where compiling with -execTree pretty / json did not print the workflow tree
+* Fixes issue where compiling with `-execTree [pretty|json]` did not print the workflow tree
 * Adds support for specifying app metadata in the hints section in WDL development version
 * All compile-time calls to `findDataObjects` now search the context project for any file with no project specified
 * All runtime calls to `findDataObjects` now search the job/analysis workspace first before searching the source project(s)
