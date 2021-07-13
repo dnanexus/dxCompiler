@@ -1,7 +1,7 @@
 {
   "nested_scatter2.samples": [
-    "dx://file-FGqFGBQ0ffPPkYP19gBvFkZy",
-    "dx://file-FGqFJ8Q0ffPGVz3zGy4FK02P"
+    "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-FGqFGBQ0ffPPkYP19gBvFkZy",
+    "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-FGqFJ8Q0ffPGVz3zGy4FK02P"
   ],
-  "nested_scatter2.reference": "dx://file-FGzzpkQ0ffPJX74548Vp6670"
+  "nested_scatter2.reference": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-FGzzpkQ0ffPJX74548Vp6670"
 }

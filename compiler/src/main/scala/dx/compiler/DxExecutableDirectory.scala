@@ -2,13 +2,13 @@ package dx.compiler
 
 import java.time.{LocalDateTime, ZoneId}
 import java.time.format.DateTimeFormatter
-
 import dx.api.{
   DxApi,
   DxApp,
   DxApplet,
   DxDataObject,
   DxFindDataObjects,
+  DxFindDataObjectsConstraints,
   DxObjectDescribe,
   DxProject,
   DxWorkflow,
@@ -78,18 +78,20 @@ case class DxExecutableDirectory(bundle: Bundle,
   private def findExecutables(folder: Option[String]): Vector[(DxDataObject, DxObjectDescribe)] = {
     Vector("applet", "workflow")
       .flatMap { dxClass =>
+        val constraints = DxFindDataObjectsConstraints(
+            project = Some(project),
+            folder = folder,
+            recurse = false,
+            objectClass = Some(dxClass),
+            tags = Set(Constants.CompilerTag),
+            names = allExecutableNames
+        )
         val t0 = System.nanoTime()
-        val dxObjectsInFolder: Map[DxDataObject, DxObjectDescribe] =
-          dxFind.apply(
-              Some(project),
-              folder,
-              recurse = false,
-              Some(dxClass),
-              Vector(Constants.CompilerTag),
-              allExecutableNames.toVector,
-              withInputOutputSpec = false,
-              extraFields = Set(Field.Details)
-          )
+        val dxObjectsInFolder: Map[DxDataObject, DxObjectDescribe] = dxFind.query(
+            constraints,
+            withInputOutputSpec = false,
+            extraFields = Set(Field.Details)
+        )
         val t1 = System.nanoTime()
         val diffMSec = (t1 - t0) / (1000 * 1000)
         logger.trace(
