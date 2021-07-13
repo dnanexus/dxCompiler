@@ -1,30 +1,30 @@
 version 1.0
 
-struct WordStruct {
-    String word
-    Int len
+struct WordInfo {
+  String word
+  Int len
 }
 
 workflow runtime_vs_static_type {
-    call opt_int { input: x = 14 }
+    call rvs_opt_int { input: x = 14 }
 
-    call opt_array { input: xa = [14,15,20] }
+    call rvs_opt_array { input: xa = [14,15,20] }
 
     WordStruct manitoba = object {
         word: "Manitoba",
         len: 8
     }
 
-    call opt_struct { input : ao = [manitoba] }
+    call rvs_opt_struct { input : ao = [manitoba] }
 
     output {
-        Int result = opt_int.result
-        String result2 = opt_array.numbers
-        String result3 = opt_struct.w
+        Int result = rvs_opt_int.result
+        String result2 = rvs_opt_array.numbers
+        String result3 = rvs_opt_struct.w
     }
 }
 
-task opt_int {
+task rvs_opt_int {
     input {
         Int? x
     }
@@ -36,8 +36,19 @@ task opt_int {
     }
 }
 
+task rvs_int {
+  input {
+    Int? x
+  }
+  command {
+    echo $(( ~{x} + 10 ))
+  }
+  output {
+    Int result = read_int(stdout())
+  }
+}
 
-task opt_array {
+task rvs_opt_array {
     input {
         Array[Int?] xa
     }
@@ -50,7 +61,7 @@ task opt_array {
     }
 }
 
-task opt_struct {
+task rvs_opt_struct {
     input {
         Array[WordStruct?]? ao
     }
