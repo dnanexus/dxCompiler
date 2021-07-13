@@ -107,7 +107,10 @@ wdl_v1_list = [
     # manifests
     "simple_manifest",
     "complex_manifest",
-    "view_and_count_manifest"
+    "view_and_count_manifest",
+
+    # workflow with output files created by expressions
+    "upload_workflow_files"
 ]
 
 wdl_v1_1_list = [
