@@ -103,8 +103,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         Some(folder),
         recurse = false,
         classRestriction = None,
-        withTags = Vector.empty,
-        nameConstraints = Vector(basename),
+        withTags = Set.empty,
+        nameConstraints = Set(basename),
         withInputOutputSpec = false
     )
     results.size shouldBe 1
