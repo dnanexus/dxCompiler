@@ -64,8 +64,9 @@ abstract class TaskExecutor(jobMeta: JobMeta,
   protected def getInstanceTypeRequest: InstanceTypeRequest
 
   private def getRequestedInstanceType: String = {
+    logger.trace("Computing instance type to request")
     val instanceTypeRequest: InstanceTypeRequest = getInstanceTypeRequest
-    logger.traceLimited(s"calcInstanceType $instanceTypeRequest")
+    logger.traceLimited(s"Requesting instance type: $instanceTypeRequest")
     jobMeta.instanceTypeDb.apply(instanceTypeRequest).name
   }
 
@@ -77,21 +78,27 @@ abstract class TaskExecutor(jobMeta: JobMeta,
   protected def checkInstanceType: Boolean = {
     // calculate the required instance type
     val requestedInstanceType = getRequestedInstanceType
-    trace(s"requested instance type: ${requestedInstanceType}")
+    trace(s"Requested instance type: ${requestedInstanceType}")
     val currentInstanceType = jobMeta.instanceType.getOrElse(
         throw new Exception(s"Cannot get instance type for job ${jobMeta.jobId}")
     )
-    trace(s"current instance type: ${currentInstanceType}")
+    trace(s"Current instance type: ${currentInstanceType}")
     val isSufficient =
       try {
         jobMeta.instanceTypeDb.matchesOrExceedes(currentInstanceType, requestedInstanceType)
       } catch {
         case ex: Throwable =>
-          logger.warning("error comparing current and requested instance types",
+          logger.warning("Error comparing current and requested instance types",
                          exception = Some(ex))
           false
       }
-    trace(s"isSufficient? ${isSufficient}")
+    if (isSufficient) {
+      trace(s"The current instance type is sufficient")
+    } else {
+      trace(
+          s"The current instance type is not sufficient; relaunching job with a larger instance type"
+      )
+    }
     isSufficient
   }
 

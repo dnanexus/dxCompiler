@@ -25,8 +25,12 @@ class FileUploaderTest extends AnyFlatSpec with Matchers {
     }
 
   private lazy val username = dxApi.whoami()
-  private lazy val unitTestsPath = s"unit_tests/${username}"
-  it should "upload files in serial" in {}
+  private lazy val uploadPath = s"/unit_tests/${username}/test_upload"
+
+  it should "upload files in serial" in {
+    val uploader = SerialFileUploader(dxApi)
+
+  }
 
   it should "upload files in parallel" in {}
 }

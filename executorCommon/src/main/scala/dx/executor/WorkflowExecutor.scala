@@ -265,7 +265,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
       } else {
         logger.traceLimited("Checking timestamps")
         // Retain only files that were created AFTER the analysis started
-        val describedFiles = dxApi.describeFilesBulk(analysisFiles)
+        val describedFiles = dxApi.describeFilesBulk(analysisFiles, searchWorkspaceFirst = true)
         val analysisCreated: java.util.Date = desc.getCreationDate
         describedFiles.collect {
           case dxFile if dxFile.describe().getCreationDate.compareTo(analysisCreated) >= 0 =>
