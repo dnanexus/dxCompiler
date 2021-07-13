@@ -98,13 +98,14 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
   private def getAppletId(path: String): String = {
     val folder = Paths.get(path).getParent.toAbsolutePath.toString
     val basename = Paths.get(path).getFileName.toString
-    val results = DxFindDataObjects(dxApi, Some(10)).apply(
-        Some(dxTestProject),
-        Some(folder),
+    val constraints = DxFindDataObjectsConstraints(
+        project = Some(dxTestProject),
+        folder = Some(folder),
         recurse = false,
-        classRestriction = None,
-        withTags = Vector.empty,
-        nameConstraints = Vector(basename),
+        names = Set(basename)
+    )
+    val results = DxFindDataObjects(dxApi, Some(10)).query(
+        constraints,
         withInputOutputSpec = false
     )
     results.size shouldBe 1
@@ -377,17 +378,17 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       case Some(x) => (x(0), x(1))
       case other   => throw new Exception(s"Unexpected result ${other}")
     }
-    file_a.dx_type shouldBe Some(IOParameterTypeConstraintString("fastq"))
-    file_b.dx_type shouldBe Some(
-        IOParameterTypeConstraintOper(
-            ConstraintOper.And,
-            Vector(
-                IOParameterTypeConstraintString("fastq"),
-                IOParameterTypeConstraintOper(
-                    ConstraintOper.Or,
-                    Vector(
-                        IOParameterTypeConstraintString("Read1"),
-                        IOParameterTypeConstraintString("Read2")
+    file_a.dxType shouldBe Some(DxConstraintString("fastq"))
+    file_b.dxType shouldBe Some(
+        DxConstraintBool(
+            DxConstraintOper.And,
+            DxConstraintArray(
+                DxConstraintString("fastq"),
+                DxConstraintBool(
+                    DxConstraintOper.Or,
+                    DxConstraintArray(
+                        DxConstraintString("Read1"),
+                        DxConstraintString("Read2")
                     )
                 )
             )
@@ -958,8 +959,6 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       val args = path.toString :: "-extras" :: extrasPath :: cFlagsReorgIR
       Main.compile(args.toVector)
     }
-    retval shouldBe a[SuccessfulCompileIR]
-
     val bundle = retval match {
       case SuccessfulCompileIR(bundle) => bundle
       case _                           => throw new Exception("unexpected")
@@ -1143,6 +1142,13 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
   it should "compile a workflow with a native app with file output" taggedAs NativeTest in {
     val path = pathFromBasename("bugs", "native_with_file_output.wdl")
+    val args = path.toString :: cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileNativeNoTree]
+  }
+
+  it should "compile a workflow with only an output section" in {
+    val path = pathFromBasename("draft2", "output_only.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileNativeNoTree]

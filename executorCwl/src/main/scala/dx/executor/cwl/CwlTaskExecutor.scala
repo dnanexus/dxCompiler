@@ -252,7 +252,7 @@ case class CwlTaskExecutor(tool: CommandLineTool,
 
   override protected def evaluateOutputs(
       localizedInputs: Map[String, (Type, Value)]
-  ): Map[String, (Type, Value)] = {
+  ): Map[String, (Type, Value, Set[String], Map[String, String])] = {
     // the outputs were written to stdout
     val stdoutFile = workerPaths.getStdoutFile()
     if (Files.exists(stdoutFile)) {
@@ -266,7 +266,10 @@ case class CwlTaskExecutor(tool: CommandLineTool,
         case JsNull => Map.empty
         case other  => throw new Exception(s"unexpected cwltool outputs ${other}")
       }
-      CwlUtils.toIR(cwlOutputs)
+      CwlUtils.toIR(cwlOutputs).map {
+        case (name, (irType, irValue)) =>
+          name -> (irType, irValue, Set.empty[String], Map.empty[String, String])
+      }
     } else {
       Map.empty
     }

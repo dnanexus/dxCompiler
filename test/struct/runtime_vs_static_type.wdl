@@ -6,22 +6,34 @@ struct WordInfo {
 }
 
 workflow runtime_vs_static_type {
-  call rvs_int { input: x = 14 }
+    call rvs_opt_int { input: x = 14 }
 
-  call rvs_array { input: xa = [14,15,20] }
+    call rvs_opt_array { input: xa = [14,15,20] }
 
-  WordInfo manitoba = object {
-    word: "Manitoba",
-    len: 8
-  }
+    WordStruct manitoba = object {
+        word: "Manitoba",
+        len: 8
+    }
 
-  call rvs_struct { input : ao = [manitoba] }
+    call rvs_opt_struct { input : ao = [manitoba] }
 
-  output {
-    Int result = rvs_int.result
-    String result2 = rvs_array.numbers
-    String result3 = rvs_struct.w
-  }
+    output {
+        Int result = rvs_opt_int.result
+        String result2 = rvs_opt_array.numbers
+        String result3 = rvs_opt_struct.w
+    }
+}
+
+task rvs_opt_int {
+    input {
+        Int? x
+    }
+    command {
+        echo $(( ~{x} + 10 ))
+    }
+    output {
+        Int result = read_int(stdout())
+    }
 }
 
 task rvs_int {
@@ -36,27 +48,27 @@ task rvs_int {
   }
 }
 
-task rvs_array {
-  input {
-    Array[Int?] xa
-  }
-  Array[Int] a = select_all(xa)
-  command {
-    echo ~{sep=',' a}
-  }
-  output {
-    String numbers = read_string(stdout())
-  }
+task rvs_opt_array {
+    input {
+        Array[Int?] xa
+    }
+    Array[Int] a = select_all(xa)
+    command {
+        echo ~{sep=',' a}
+    }
+    output {
+        String numbers = read_string(stdout())
+    }
 }
 
-task rvs_struct {
-  input {
-    Array[WordInfo?]? ao
-  }
-  Array[WordInfo?] a = select_first([ao])
-  Array[WordInfo] a2 = select_all(a)
-  command {}
-  output {
-    String w = a2[0].word
-  }
+task rvs_opt_struct {
+    input {
+        Array[WordStruct?]? ao
+    }
+    Array[WordStruct?] a = select_first([ao])
+    Array[WordStruct] a2 = select_all(a)
+    command{}
+    output {
+        String w = a2[0].word
+    }
 }

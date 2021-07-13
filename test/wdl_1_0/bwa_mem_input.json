@@ -1,6 +1,6 @@
 {
   "bwa_mem.sample_name": "sample",
-  "bwa_mem.fastq1_gz": "dx://file-Fzy8x5j0yzZVQv9KB41FGz3V",
-  "bwa_mem.fastq2_gz": "dx://file-Fzy8x600yzZxzx7pKky30BF8",
-  "bwa_mem.genome_index_tgz": "dx://file-FzyJ8280yzZVjZq5737896y9"
+  "bwa_mem.fastq1_gz": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-Fzy8x5j0yzZVQv9KB41FGz3V",
+  "bwa_mem.fastq2_gz": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-Fzy8x600yzZxzx7pKky30BF8",
+  "bwa_mem.genome_index_tgz": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-FzyJ8280yzZVjZq5737896y9"
 }

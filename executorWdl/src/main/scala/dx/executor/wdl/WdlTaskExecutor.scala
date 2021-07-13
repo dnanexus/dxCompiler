@@ -3,18 +3,11 @@ package dx.executor.wdl
 import dx.api.{DxPath, InstanceTypeRequest}
 import dx.core.io.StreamFiles
 import dx.core.ir.{Type, Value}
-import dx.core.languages.wdl.{
-  DxMetaHints,
-  IrToWdlValueBindings,
-  Runtime,
-  VersionSupport,
-  WdlOptions,
-  WdlUtils
-}
+import dx.core.languages.wdl.{IrToWdlValueBindings, Runtime, VersionSupport, WdlOptions, WdlUtils}
 import dx.executor.{FileUploader, JobMeta, SerialFileUploader, TaskExecutor}
-import dx.util.{Bindings, DockerUtils, Logger, TraceLevel}
+import dx.util.{Bindings, DockerUtils, Logger}
 import wdlTools.eval.WdlValues._
-import wdlTools.eval.{Eval, Hints, Meta, WdlValueBindings}
+import wdlTools.eval.{Eval, WdlValueBindings}
 import wdlTools.exec.{TaskCommandFileGenerator, TaskInputOutput}
 import wdlTools.types.WdlTypes._
 import wdlTools.types.{TypedAbstractSyntax => TAT}
@@ -92,6 +85,7 @@ case class WdlTaskExecutor(task: TAT.Task,
     // DNAnexus does not distinguish between null and empty for
     // array inputs, so we treat a null value for a non-optional
     // array that is allowed to be empty as the empty array.
+    trace("Evaluating default values for inputs")
     taskIO
       .inputsFromValues(inputWdlValues,
                         evaluator,
@@ -145,7 +139,6 @@ case class WdlTaskExecutor(task: TAT.Task,
   private def getRequiredInstanceTypeRequest(
       inputs: Map[String, V] = wdlInputs
   ): InstanceTypeRequest = {
-    logger.traceLimited("calcInstanceType", minLevel = TraceLevel.VVerbose)
     printInputs(inputs)
     val env = evaluatePrivateVariables(inputs)
     val runtime = createRuntime(env)
@@ -155,34 +148,16 @@ case class WdlTaskExecutor(task: TAT.Task,
   override protected lazy val getInstanceTypeRequest: InstanceTypeRequest =
     getRequiredInstanceTypeRequest()
 
-  private lazy val parameterMeta = Meta.create(versionSupport.version, task.parameterMeta)
+  private lazy val hints =
+    HintResolver(versionSupport.version, task.parameterMeta, task.hints)
 
   /**
     * Should we try to stream the file(s) associated with the given input parameter?
+    * This can be set at the parameter level (in parameters_meta or hints.inputs) or
+    * at the global level (at the hints top level).
     */
   override protected def streamFileForInput(parameterName: String): Boolean = {
-    parameterMeta.get(parameterName) match {
-      case Some(V_String(DxMetaHints.ParameterMetaStream)) =>
-        true
-      case Some(V_Object(fields)) =>
-        // This enables the stream annotation in the object form of metadata value, e.g.
-        // bam_file : {
-        //   stream : true
-        // }
-        // We also support two aliases, dx_stream and localizationOptional
-        fields.view
-          .filterKeys(
-              Set(DxMetaHints.ParameterMetaStream,
-                  DxMetaHints.ParameterHintStream,
-                  Hints.LocalizationOptionalKey)
-          )
-          .values
-          .exists {
-            case V_Boolean(b) => b
-            case _            => false
-          }
-      case _ => false
-    }
+    hints.isLocalizationOptional(parameterName)
   }
 
   override protected def writeCommandScript(
@@ -224,7 +199,7 @@ case class WdlTaskExecutor(task: TAT.Task,
 
   override protected def evaluateOutputs(
       localizedInputs: Map[String, (Type, Value)]
-  ): Map[String, (Type, Value)] = {
+  ): Map[String, (Type, Value, Set[String], Map[String, String])] = {
     val outputTypes: Map[String, T] = task.outputs.map(d => d.name -> d.wdlType).toMap
     // Evaluate the output parameters in dependency order.
     val localizedOutputs = taskIO
@@ -238,7 +213,32 @@ case class WdlTaskExecutor(task: TAT.Task,
       .map {
         case (name, value) => name -> (outputTypes(name), value)
       }
-    WdlUtils.toIR(localizedOutputs)
+    WdlUtils.toIR(localizedOutputs).map {
+      case (name, (irType, irValue)) =>
+        val (tags, properties) = hints.getOutput(name) match {
+          case Some(V_Object(fields)) =>
+            val tags = fields.get("tags") match {
+              case Some(V_Array(tags)) =>
+                tags.map {
+                  case V_String(tag) => tag
+                  case other         => throw new Exception(s"invalid tag ${other}")
+                }.toSet
+              case _ => Set.empty[String]
+            }
+            val properties = fields.get("properties") match {
+              case Some(V_Object(properties)) =>
+                properties.map {
+                  case (key, V_String(value)) => key -> value
+                  case other                  => throw new Exception(s"invalid property ${other}")
+                }
+              case _ => Map.empty[String, String]
+            }
+            (tags, properties)
+          case _ =>
+            (Set.empty[String], Map.empty[String, String])
+        }
+        name -> (irType, irValue, tags, properties)
+    }
   }
 
   override protected lazy val outputTypes: Map[String, Type] = {

@@ -1,16 +1,22 @@
 package dx.translator.wdl
 
-import dx.api.ConstraintOper
+import dx.api.{
+  DxConstraint,
+  DxConstraintArray,
+  DxConstraintBool,
+  DxConstraintOper,
+  DxConstraintString
+}
 import dx.core.ir.Value._
 import dx.core.ir.{CallableAttribute, ParameterAttribute, Value}
 import dx.core.languages.wdl
 import dx.core.languages.wdl.DxMetaHints
 import dx.translator.{CallableAttributes, ParameterAttributes}
-import wdlTools.eval.{EvalUtils, Meta}
+import wdlTools.eval.{EvalUtils, Hints, Meta}
 import wdlTools.eval.WdlValues._
 import wdlTools.syntax.WdlVersion
 import wdlTools.types.WdlTypes._
-import wdlTools.types.{TypedAbstractSyntax => TAT}
+import wdlTools.types.{TypeUtils, TypedAbstractSyntax => TAT}
 import dx.util.Adjuncts
 
 private object MetaUtils {
@@ -191,7 +197,7 @@ object ParameterMetaTranslator {
   private def metaChoiceValueToIR(wdlType: T,
                                   value: V,
                                   name: Option[V] = None): ParameterAttributes.Choice = {
-    (wdlType, value) match {
+    (TypeUtils.unwrapOptional(wdlType), value) match {
       case (T_String, V_String(str)) =>
         ParameterAttributes.SimpleChoice(VString(str))
       case (T_Int, V_Int(i)) =>
@@ -333,24 +339,22 @@ object ParameterMetaTranslator {
     }
   }
 
-  private def metaConstraintToIR(constraint: V): ParameterAttributes.Constraint = {
+  private def metaConstraintToIR(constraint: V): DxConstraint = {
     constraint match {
       case V_Object(obj) if obj.size != 1 =>
         throw new Exception("Constraint hash must have exactly one 'and' or 'or' key")
       case V_Object(obj) =>
         obj.head match {
           case (ConstraintAnd, V_Array(array)) =>
-            ParameterAttributes.CompoundConstraint(ConstraintOper.And,
-                                                   array.map(metaConstraintToIR))
+            DxConstraintBool(DxConstraintOper.And, DxConstraintArray(array.map(metaConstraintToIR)))
           case (ConstraintOr, V_Array(array)) =>
-            ParameterAttributes.CompoundConstraint(ConstraintOper.Or, array.map(metaConstraintToIR))
+            DxConstraintBool(DxConstraintOper.Or, DxConstraintArray(array.map(metaConstraintToIR)))
           case _ =>
             throw new Exception(
                 "Constraint must have key 'and' or 'or' and an array value"
             )
         }
-      case V_String(s) =>
-        ParameterAttributes.StringConstraint(s)
+      case V_String(s) => DxConstraintString(s)
       case _ =>
         throw new Exception("'dx_type' constraints must be either strings or hashes")
     }
@@ -432,15 +436,37 @@ object ParameterMetaTranslator {
   }
 }
 
-case class ParameterMetaTranslator(wdlVersion: WdlVersion, metaSection: Option[TAT.MetaSection]) {
-  private lazy val meta: Meta = Meta.create(wdlVersion, metaSection)
+case class ParameterMetaTranslator(wdlVersion: WdlVersion,
+                                   parameterMetaSection: Option[TAT.MetaSection],
+                                   hintsSection: Option[TAT.MetaSection] = None) {
+  private lazy val parameterMeta: Meta = Meta.create(wdlVersion, parameterMetaSection)
+  private lazy val hints: Meta = Meta.create(wdlVersion, hintsSection)
+  private lazy val hintInputs: Option[Map[String, V]] =
+    hints.get(Hints.InputsKey) match {
+      case Some(V_Object(inputs)) => Some(inputs)
+      case _                      => None
+    }
+  private lazy val hintOutputs: Option[Map[String, V]] =
+    hints.get(Hints.OutputsKey) match {
+      case Some(V_Object(outputs)) => Some(outputs)
+      case _                       => None
+    }
 
-  def translate(name: String, parameterType: T): Vector[ParameterAttribute] = {
-    val metaValue = meta.get(name)
+  def translateInput(name: String, parameterType: T): Vector[ParameterAttribute] = {
+    val metaValue = parameterMeta.get(name).orElse(hintInputs.flatMap(_.get(name)))
     ParameterMetaTranslator.translate(metaValue, parameterType)
   }
 
-  def translate(variables: Vector[TAT.Variable]): Map[String, Vector[ParameterAttribute]] = {
-    variables.map(v => v.name -> translate(v.name, v.wdlType)).toMap
+  def translateInput(variables: Vector[TAT.Variable]): Map[String, Vector[ParameterAttribute]] = {
+    variables.map(v => v.name -> translateInput(v.name, v.wdlType)).toMap
+  }
+
+  def translateOutput(name: String, parameterType: T): Vector[ParameterAttribute] = {
+    val metaValue = parameterMeta.get(name).orElse(hintOutputs.flatMap(_.get(name)))
+    ParameterMetaTranslator.translate(metaValue, parameterType)
+  }
+
+  def translateOutput(variables: Vector[TAT.Variable]): Map[String, Vector[ParameterAttribute]] = {
+    variables.map(v => v.name -> translateOutput(v.name, v.wdlType)).toMap
   }
 }

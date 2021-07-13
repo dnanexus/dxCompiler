@@ -95,7 +95,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 
   def jobId: String
 
-  lazy val manifestFolder = s"${dxApi.currentProject.id}:/.d/${jobId}"
+  lazy val manifestFolder = s"${dxApi.currentProjectId.get}:/.d/${jobId}"
 
   def rawJsInputs: Map[String, JsValue]
 
@@ -316,9 +316,12 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 
   private lazy val allFilesReferenced: Vector[DxFile] = {
     // bulk describe all files referenced in the inputs
-    val dxFiles = dxApi.describeFilesBulk(jsInputs.flatMap {
+    logger.trace("Discovering all files in the input values")
+    val queryFiles = jsInputs.flatMap {
       case (_, jsElem) => DxFile.findFiles(dxApi, jsElem)
-    }.toVector)
+    }.toVector
+    logger.trace(s"Bulk describing ${queryFiles.size} files")
+    val dxFiles = dxApi.describeFilesBulk(queryFiles, searchWorkspaceFirst = true, validate = true)
     // check that all files are in the closed state
     val notClosed = dxFiles.filterNot(_.describe().state == DxState.Closed)
     if (notClosed.nonEmpty) {
@@ -670,7 +673,8 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths
                          override val dxApi: DxApi = DxApi.get,
                          override val logger: Logger = Logger.get)
     extends JobMeta(workerPaths, dxApi, logger) {
-  lazy val project: DxProject = dxApi.currentProject
+  lazy val project: DxProject =
+    dxApi.currentProject.getOrElse(throw new Exception("no current project"))
 
   private val rootDir = workerPaths.getRootDir()
   private val inputPath = rootDir.resolve(JobMeta.InputFile)
@@ -680,6 +684,7 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths
 
   lazy override val rawJsInputs: Map[String, JsValue] = {
     if (Files.exists(inputPath)) {
+      logger.trace(s"Loading raw JSON input from ${inputPath}")
       JsUtils.getFields(JsUtils.jsFromFile(inputPath))
     } else {
       logger.warning(s"input meta-file ${inputPath} does not exist")
@@ -700,9 +705,9 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths
     }
   }
 
-  def jobId: String = dxApi.currentJob.id
+  def jobId: String = dxApi.currentJobId.get
 
-  private lazy val jobDesc: DxJobDescribe = dxApi.currentJob.describe(
+  private lazy val jobDesc: DxJobDescribe = dxApi.currentJob.get.describe(
       Set(Field.Executable, Field.Details, Field.InstanceType)
   )
 
