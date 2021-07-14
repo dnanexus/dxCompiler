@@ -302,23 +302,19 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     }
     pattern.suggestions shouldBe Some(
         Vector(
-            IOParameterSuggestionString(value = "A"),
-            IOParameterSuggestionString(value = "B")
+            IOParameterChoiceString(value = "A"),
+            IOParameterChoiceString(value = "B")
         )
     )
     in_file.suggestions shouldBe Some(
         Vector(
-            IOParameterSuggestionFile(
+            IOParameterChoiceFile(
                 name = None,
-                value = Some(dxApi.file("file-Fg5PgBQ0ffP7B8bg3xqB115G")),
-                project = None,
-                path = None
+                value = dxApi.file("file-Fg5PgBQ0ffP7B8bg3xqB115G")
             ),
-            IOParameterSuggestionFile(
+            IOParameterChoiceFile(
                 name = None,
-                value = Some(dxApi.file("file-Fg5PgBj0ffPP0Jjv3zfv0yxq")),
-                project = None,
-                path = None
+                value = dxApi.file("file-Fg5PgBj0ffPP0Jjv3zfv0yxq")
             )
         )
     )
@@ -335,29 +331,26 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
     val dxApplet = dxApi.applet(appId)
     val inputSpec = dxApplet.describe(Set(Field.InputSpec))
-    val (in_file, pattern) = inputSpec.inputSpec match {
+    val (inFile, pattern) = inputSpec.inputSpec match {
       case Some(x) => (x(0), x(1))
       case other   => throw new Exception(s"Unexpected result ${other}")
     }
     pattern.suggestions shouldBe Some(
         Vector(
-            IOParameterSuggestionString(value = "A"),
-            IOParameterSuggestionString(value = "B")
+            IOParameterChoiceString(value = "A"),
+            IOParameterChoiceString(value = "B")
         )
     )
-    in_file.suggestions shouldBe Some(
+    inFile.suggestions shouldBe Some(
         Vector(
-            IOParameterSuggestionFile(
+            IOParameterChoiceFile(
                 name = Some("file1"),
-                value = Some(dxApi.file("file-Fg5PgBQ0ffP7B8bg3xqB115G")),
-                project = None,
-                path = None
+                value = dxApi.file("file-Fg5PgBQ0ffP7B8bg3xqB115G")
             ),
-            IOParameterSuggestionFile(
+            IOParameterChoiceFile(
                 name = Some("file2"),
-                value = None,
-                project = Some(dxApi.project("project-FGpfqjQ0ffPF1Q106JYP2j3v")),
-                path = Some("/test_data/f2.txt.gz")
+                value = dxApi.file("file-Fg5PgBj0ffPP0Jjv3zfv0yxq",
+                                   Some(dxApi.project("project-FGpfqjQ0ffPF1Q106JYP2j3v")))
             )
         )
     )
