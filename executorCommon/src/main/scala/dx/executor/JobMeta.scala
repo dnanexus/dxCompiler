@@ -329,6 +329,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
           s"input file(s) not in the 'closed' state: ${notClosed.map(_.id).mkString(",")}"
       )
     }
+    logger.trace(s"Successfully described ${dxFiles.size} files")
     dxFiles
   }
 
