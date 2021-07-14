@@ -350,7 +350,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
             IOParameterChoiceFile(
                 name = Some("file2"),
                 value = dxApi.file("file-Fg5PgBj0ffPP0Jjv3zfv0yxq",
-                                   Some(dxApi.project("project-FGpfqjQ0ffPF1Q106JYP2j3v")))
+                                   Some(dxApi.project("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq")))
             )
         )
     )
