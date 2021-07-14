@@ -1,5 +1,9 @@
 # Release Notes
 
+## in develop
+
+* `dxni` now makes optional any input parameter for which the native app(let) has a default value 
+
 ## 2.4.8 2021-07-13
 
 * Fixes issue where an optional variable inside a conditional could have an inferred type of `T??`, which is illegal and results in a runtime error
