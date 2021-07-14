@@ -108,7 +108,9 @@ case class ParallelFileUploader(maxConcurrent: Int = Runtime.getRuntime.availabl
 
       val futures =
         try {
-          callables.map(executor.submit)
+          callables.map { callable: Callable[(Path, DxFile)] =>
+            executor.submit(callable)
+          }
         } catch {
           case re: RejectedExecutionException =>
             shutdown(force = true)

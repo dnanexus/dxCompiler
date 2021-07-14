@@ -8,17 +8,14 @@ import dx.core.io.StreamFiles.StreamFiles
 import dx.core.ir.{Parameter, Type, Value}
 import dx.core.languages.Language
 import dx.core.languages.cwl.{CwlUtils, DxHintSchema, RequirementEvaluator}
-import dx.executor.{FileUploader, JobMeta, SerialFileUploader, TaskExecutor}
+import dx.executor.{JobMeta, TaskExecutor}
 import dx.util.{DockerUtils, FileUtils, JsUtils, TraceLevel}
 import spray.json._
 
 import java.nio.file.Files
 
 object CwlTaskExecutor {
-  def create(jobMeta: JobMeta,
-             fileUploader: FileUploader = SerialFileUploader(),
-             streamFiles: StreamFiles = StreamFiles.PerFile,
-             waitOnUpload: Boolean = false): CwlTaskExecutor = {
+  def create(jobMeta: JobMeta, streamFiles: StreamFiles = StreamFiles.PerFile): CwlTaskExecutor = {
     val parser = Parser.create(hintSchemas = Vector(DxHintSchema))
     parser.detectVersionAndClass(jobMeta.sourceCode) match {
       case Some((version, "CommandLineTool")) if Language.parse(version) == Language.CwlV1_2 => ()
@@ -38,7 +35,7 @@ object CwlTaskExecutor {
         case other =>
           throw new Exception(s"expected CWL document to contain a CommandLineTool, not ${other}")
       }
-    CwlTaskExecutor(tool, jobMeta, fileUploader, streamFiles, waitOnUpload = waitOnUpload)
+    CwlTaskExecutor(tool, jobMeta, streamFiles)
   }
 }
 
@@ -50,12 +47,8 @@ object CwlTaskExecutor {
 // TODO: SHA1 checksums are computed for all outputs - we need to add these as
 //  properties on the uploaded files so they can be propagated to downstream
 //  CWL inputs
-case class CwlTaskExecutor(tool: CommandLineTool,
-                           jobMeta: JobMeta,
-                           fileUploader: FileUploader,
-                           streamFiles: StreamFiles,
-                           waitOnUpload: Boolean)
-    extends TaskExecutor(jobMeta, fileUploader, streamFiles, waitOnUpload = waitOnUpload) {
+case class CwlTaskExecutor(tool: CommandLineTool, jobMeta: JobMeta, streamFiles: StreamFiles)
+    extends TaskExecutor(jobMeta, streamFiles) {
 
   private val dxApi = jobMeta.dxApi
   private val logger = jobMeta.logger
