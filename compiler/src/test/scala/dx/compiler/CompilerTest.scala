@@ -238,8 +238,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     )
     in_file.choices shouldBe Some(
         Vector(
-            IOParameterValueFile("file-Fg5PgBQ0ffP7B8bg3xqB115G"),
-            IOParameterValueFile("file-Fg5PgBj0ffPP0Jjv3zfv0yxq")
+            IOParameterValueDataObject("file-Fg5PgBQ0ffP7B8bg3xqB115G"),
+            IOParameterValueDataObject("file-Fg5PgBj0ffPP0Jjv3zfv0yxq")
         )
     )
   }
@@ -267,11 +267,11 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     )
     inFile.choices shouldBe Some(
         Vector(
-            IOParameterValueFile(
+            IOParameterValueDataObject(
                 id = "file-Fg5PgBQ0ffP7B8bg3xqB115G",
                 name = Some("file1")
             ),
-            IOParameterValueFile(
+            IOParameterValueDataObject(
                 id = "file-Fg5PgBj0ffPP0Jjv3zfv0yxq",
                 name = Some("file2")
             )
@@ -302,8 +302,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     )
     inFile.suggestions shouldBe Some(
         Vector(
-            IOParameterValueFile("file-Fg5PgBQ0ffP7B8bg3xqB115G"),
-            IOParameterValueFile("file-Fg5PgBj0ffPP0Jjv3zfv0yxq")
+            IOParameterValueDataObject("file-Fg5PgBQ0ffP7B8bg3xqB115G"),
+            IOParameterValueDataObject("file-Fg5PgBj0ffPP0Jjv3zfv0yxq")
         )
     )
   }
@@ -331,7 +331,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     )
     inFile.suggestions shouldBe Some(
         Vector(
-            IOParameterValueFile(
+            IOParameterValueDataObject(
                 id = "file-Fg5PgBQ0ffP7B8bg3xqB115G",
                 name = Some("file1")
             ),
