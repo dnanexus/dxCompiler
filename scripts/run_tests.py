@@ -2,18 +2,15 @@
 import argparse
 from collections import namedtuple
 import dxpy
-import fnmatch
 import glob
 import hashlib
 import json
 import os
-import pprint
 import re
 import sys
 import subprocess
 import tempfile
-from typing import Callable, Iterator, Union, Optional, List
-from termcolor import colored, cprint
+from termcolor import cprint
 import time
 import traceback
 import yaml
@@ -27,14 +24,14 @@ test_dir = os.path.join(os.path.abspath(top_dir), "test")
 
 git_revision = subprocess.check_output(["git", "describe", "--always", "--dirty", "--tags"]).strip()
 test_files = {}
-test_failing = set([
+test_failing = {
     "bad_status",
     "bad_status2",
     "just_fail_wf",
     "missing_output",
     "docker_retry",
     "argument_list_too_long",
-])
+}
 
 wdl_v1_list = [
     # calling native dx applets/apps
@@ -458,7 +455,7 @@ def get_checksum(contents, algo):
         m.update(contents)
         return m.digest()
     except:
-        println("python does not support digest algorithm {}".format(algo))
+        print("python does not support digest algorithm {}".format(algo))
         return None
 
 
@@ -820,7 +817,7 @@ def native_call_app_setup(project, version_id, verbose):
                 "-language", "wdl_v1.0",
                 "-output", header_file]
     if verbose:
-        cmdline_common.append("--verbose")
+        cmdline.append("--verbose")
     print(" ".join(cmdline))
     subprocess.check_output(cmdline)
 

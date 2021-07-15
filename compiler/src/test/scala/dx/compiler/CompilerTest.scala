@@ -232,20 +232,14 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     }
     pattern.choices shouldBe Some(
         Vector(
-            IOParameterChoiceString(value = "A"),
-            IOParameterChoiceString(value = "B")
+            IOParameterValueString(value = "A"),
+            IOParameterValueString(value = "B")
         )
     )
     in_file.choices shouldBe Some(
         Vector(
-            IOParameterChoiceFile(
-                name = None,
-                value = dxApi.file("file-Fg5PgBQ0ffP7B8bg3xqB115G")
-            ),
-            IOParameterChoiceFile(
-                name = None,
-                value = dxApi.file("file-Fg5PgBj0ffPP0Jjv3zfv0yxq")
-            )
+            IOParameterValueFile("file-Fg5PgBQ0ffP7B8bg3xqB115G"),
+            IOParameterValueFile("file-Fg5PgBj0ffPP0Jjv3zfv0yxq")
         )
     )
   }
@@ -261,25 +255,25 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
     val dxApplet = dxApi.applet(appId)
     val inputSpec = dxApplet.describe(Set(Field.InputSpec))
-    val (in_file, pattern) = inputSpec.inputSpec match {
+    val (inFile, pattern) = inputSpec.inputSpec match {
       case Some(x) => (x(0), x(1))
       case other   => throw new Exception(s"Unexpected result ${other}")
     }
     pattern.choices shouldBe Some(
         Vector(
-            IOParameterChoiceString(value = "A"),
-            IOParameterChoiceString(value = "B")
+            IOParameterValueString(value = "A"),
+            IOParameterValueString(value = "B")
         )
     )
-    in_file.choices shouldBe Some(
+    inFile.choices shouldBe Some(
         Vector(
-            IOParameterChoiceFile(
-                name = Some("file1"),
-                value = dxApi.file("file-Fg5PgBQ0ffP7B8bg3xqB115G")
+            IOParameterValueFile(
+                id = "file-Fg5PgBQ0ffP7B8bg3xqB115G",
+                name = Some("file1")
             ),
-            IOParameterChoiceFile(
-                name = Some("file2"),
-                value = dxApi.file("file-Fg5PgBj0ffPP0Jjv3zfv0yxq")
+            IOParameterValueFile(
+                id = "file-Fg5PgBj0ffPP0Jjv3zfv0yxq",
+                name = Some("file2")
             )
         )
     )
@@ -296,26 +290,20 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
     val dxApplet = dxApi.applet(appId)
     val inputSpec = dxApplet.describe(Set(Field.InputSpec))
-    val (in_file, pattern) = inputSpec.inputSpec match {
+    val (inFile, pattern) = inputSpec.inputSpec match {
       case Some(x) => (x(0), x(1))
       case other   => throw new Exception(s"Unexpected result ${other}")
     }
     pattern.suggestions shouldBe Some(
         Vector(
-            IOParameterChoiceString(value = "A"),
-            IOParameterChoiceString(value = "B")
+            IOParameterValueString("A"),
+            IOParameterValueString("B")
         )
     )
-    in_file.suggestions shouldBe Some(
+    inFile.suggestions shouldBe Some(
         Vector(
-            IOParameterChoiceFile(
-                name = None,
-                value = dxApi.file("file-Fg5PgBQ0ffP7B8bg3xqB115G")
-            ),
-            IOParameterChoiceFile(
-                name = None,
-                value = dxApi.file("file-Fg5PgBj0ffPP0Jjv3zfv0yxq")
-            )
+            IOParameterValueFile("file-Fg5PgBQ0ffP7B8bg3xqB115G"),
+            IOParameterValueFile("file-Fg5PgBj0ffPP0Jjv3zfv0yxq")
         )
     )
   }
@@ -337,20 +325,20 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     }
     pattern.suggestions shouldBe Some(
         Vector(
-            IOParameterChoiceString(value = "A"),
-            IOParameterChoiceString(value = "B")
+            IOParameterValueString("A"),
+            IOParameterValueString("B")
         )
     )
     inFile.suggestions shouldBe Some(
         Vector(
-            IOParameterChoiceFile(
-                name = Some("file1"),
-                value = dxApi.file("file-Fg5PgBQ0ffP7B8bg3xqB115G")
+            IOParameterValueFile(
+                id = "file-Fg5PgBQ0ffP7B8bg3xqB115G",
+                name = Some("file1")
             ),
-            IOParameterChoiceFile(
-                name = Some("file2"),
-                value = dxApi.file("file-Fg5PgBj0ffPP0Jjv3zfv0yxq",
-                                   Some(dxApi.project("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq")))
+            IOParameterValueFile(
+                id = "file-Fg5PgBj0ffPP0Jjv3zfv0yxq",
+                project = Some("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
+                name = Some("file2")
             )
         )
     )
@@ -404,8 +392,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       case Some(x) => (x(0), x(1))
       case other   => throw new Exception(s"Unexpected result ${other}")
     }
-    int_a.default shouldBe Some(IOParameterDefaultNumber(1))
-    int_b.default shouldBe Some(IOParameterDefaultNumber(2))
+    int_a.default shouldBe Some(IOParameterValueNumber(1))
+    int_b.default shouldBe Some(IOParameterValueNumber(2))
   }
 
   it should "be able to include help information in inputSpec" in {
@@ -766,9 +754,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       case other   => throw new Exception(s"Unexpected result ${other}")
     }
     x.label shouldBe Some("Left-hand side")
-    x.default shouldBe Some(IOParameterDefaultNumber(3))
+    x.default shouldBe Some(IOParameterValueNumber(3))
     y.label shouldBe Some("Right-hand side")
-    y.default shouldBe Some(IOParameterDefaultNumber(5))
+    y.default shouldBe Some(IOParameterValueNumber(5))
   }
 
   it should "deep nesting" taggedAs NativeTest in {

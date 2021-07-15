@@ -36,10 +36,12 @@ class FileUploaderTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll 
     .range(0, 5)
     .map { i =>
       val path = testDir.resolve(s"file_${i}.txt")
-      val length = random.nextInt(1024 * 1024)
+      val length = random.nextInt(1024 * 100)
       val content = random.nextString(length)
       FileUtils.writeFileContent(path, content)
-      (path, length)
+      val fileSize = content.getBytes().length
+      fileSize shouldBe Files.size(path)
+      (path, fileSize)
     }
     .toMap
   private val fileTags = Set("A", "B")
@@ -50,7 +52,7 @@ class FileUploaderTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll 
   }
 
   it should "upload files in serial" in {
-    val uploader = SerialFileUploader(dxApi)
+    val uploader = SerialFileUploader(dxApi = dxApi, logger = Logger.Verbose)
     val dest = s"${dxTestProject.id}:/${uploadPath}/serial/"
     val uploads = files.keys.map { path =>
       FileUpload(path, Some(dest), fileTags, fileProperties)
@@ -67,7 +69,7 @@ class FileUploaderTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll 
   }
 
   it should "upload files in parallel" in {
-    val uploader = ParallelFileUploader(maxConcurrent = 3, dxApi = dxApi)
+    val uploader = ParallelFileUploader(maxConcurrent = 3, dxApi = dxApi, logger = Logger.Verbose)
     val dest = s"${dxTestProject.id}:/${uploadPath}/parallel/"
     val uploads = files.keys.map { path =>
       FileUpload(path, Some(dest), fileTags, fileProperties)
