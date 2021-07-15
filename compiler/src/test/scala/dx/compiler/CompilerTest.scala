@@ -335,9 +335,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
                 id = "file-Fg5PgBQ0ffP7B8bg3xqB115G",
                 name = Some("file1")
             ),
-            IOParameterValueFile(
-                id = "file-Fg5PgBj0ffPP0Jjv3zfv0yxq",
-                project = Some("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
+            DxIoParameterValuePath(
+                project = "project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq",
+                path = "/test_data/f2.txt.gz",
                 name = Some("file2")
             )
         )
