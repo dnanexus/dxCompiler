@@ -10,7 +10,7 @@ workflow runtime_vs_static_type {
 
     call rvs_opt_array { input: xa = [14,15,20] }
 
-    WordStruct manitoba = object {
+    WordInfo manitoba = object {
         word: "Manitoba",
         len: 8
     }
@@ -63,10 +63,10 @@ task rvs_opt_array {
 
 task rvs_opt_struct {
     input {
-        Array[WordStruct?]? ao
+        Array[WordInfo?]? ao
     }
-    Array[WordStruct?] a = select_first([ao])
-    Array[WordStruct] a2 = select_all(a)
+    Array[WordInfo?] a = select_first([ao])
+    Array[WordInfo] a2 = select_all(a)
     command{}
     output {
         String w = a2[0].word

@@ -78,9 +78,10 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
   private def wdlTypeFromDxClass(appletName: String,
                                  argName: String,
                                  ioClass: DxIOClass.Value,
-                                 isOptional: Boolean): Option[WdlTypes.T] = {
+                                 isOptional: Boolean,
+                                 hasDefault: Boolean): Option[WdlTypes.T] = {
     if (ioClass == DxIOClass.Other) {
-      if (isOptional) {
+      if (isOptional || hasDefault) {
         logger.warning(s"ignoring applet ${appletName} optional non-file object input ${argName}")
         return None
       } else {
@@ -108,8 +109,8 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
                                 |has IO class ${ioClass}""".stripMargin.replaceAll("\n", " "))
     }
     Some(if (isArray) {
-      WdlTypes.T_Array(t, !isOptional)
-    } else if (isOptional) {
+      WdlTypes.T_Array(t, !(isOptional || hasDefault))
+    } else if (isOptional || hasDefault) {
       WdlTypes.T_Optional(t)
     } else {
       t
@@ -121,13 +122,21 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
     try {
       val inputSpec: Map[String, WdlTypes.T] =
         dxAppDesc.inputSpec.get.flatMap { ioSpec =>
-          wdlTypeFromDxClass(dxAppDesc.name, ioSpec.name, ioSpec.ioClass, ioSpec.optional).map(
+          wdlTypeFromDxClass(dxAppDesc.name,
+                             ioSpec.name,
+                             ioSpec.ioClass,
+                             ioSpec.optional,
+                             ioSpec.default.isDefined).map(
               ioSpec.name -> _
           )
         }.toMap
       val outputSpec: Map[String, WdlTypes.T] =
         dxAppDesc.outputSpec.get.flatMap { ioSpec =>
-          wdlTypeFromDxClass(dxAppDesc.name, ioSpec.name, ioSpec.ioClass, ioSpec.optional).map(
+          wdlTypeFromDxClass(dxAppDesc.name,
+                             ioSpec.name,
+                             ioSpec.ioClass,
+                             ioSpec.optional,
+                             ioSpec.default.isDefined).map(
               ioSpec.name -> _
           )
         }.toMap
@@ -164,13 +173,21 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
     logger.trace(s"analyzing applet ${appletName}")
     val inputSpec: Map[String, WdlTypes.T] =
       desc.inputSpec.get.flatMap { ioSpec =>
-        wdlTypeFromDxClass(appletName, ioSpec.name, ioSpec.ioClass, ioSpec.optional).map(
+        wdlTypeFromDxClass(appletName,
+                           ioSpec.name,
+                           ioSpec.ioClass,
+                           ioSpec.optional,
+                           ioSpec.default.isDefined).map(
             ioSpec.name -> _
         )
       }.toMap
     val outputSpec: Map[String, WdlTypes.T] =
       desc.outputSpec.get.flatMap { ioSpec =>
-        wdlTypeFromDxClass(appletName, ioSpec.name, ioSpec.ioClass, ioSpec.optional).map(
+        wdlTypeFromDxClass(appletName,
+                           ioSpec.name,
+                           ioSpec.ioClass,
+                           ioSpec.optional,
+                           ioSpec.default.isDefined).map(
             ioSpec.name -> _
         )
       }.toMap
