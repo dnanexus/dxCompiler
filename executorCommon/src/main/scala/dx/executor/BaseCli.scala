@@ -6,6 +6,10 @@ import dx.core.CliUtils._
 import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.util.Enum
 
+object BaseCli {
+  val MaxConcurrentUploads: Int = 8
+}
+
 abstract class BaseCli {
   val jarName: String
 
@@ -52,13 +56,14 @@ abstract class BaseCli {
           return BadUsageTermination("Error parsing command line options", Some(e))
       }
     val logger = initLogger(options)
-    val fileUploader = SerialFileUploader()
-    val waitOnUpload = options.getFlag("waitOnUpload")
+    val fileUploader = ParallelFileUploader(waitOnUpload = options.getFlag("waitOnUpload"),
+                                            maxConcurrent = BaseCli.MaxConcurrentUploads,
+                                            logger = logger)
     try {
-      logger.traceLimited(
-          s"Creating JobMeta: rootDir ${rootDir}, waitOnUpload ${waitOnUpload}"
-      )
-      val jobMeta = WorkerJobMeta(DxWorkerPaths(rootDir), fileUploader, waitOnUpload)
+      logger.traceLimited(s"Creating JobMeta: rootDir ${rootDir}, uploader ${fileUploader}")
+      val jobMeta = WorkerJobMeta(workerPaths = DxWorkerPaths(rootDir),
+                                  fileUploader = fileUploader,
+                                  logger = logger)
       kind match {
         case ExecutorKind.Task =>
           val taskAction = {

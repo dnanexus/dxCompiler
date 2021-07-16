@@ -16,10 +16,9 @@ trait FileUploader {
   /**
     * Upload files to the context project and folder.
     * @param files files to upload
-    * @param wait whether to wait for upload to complete
     * @return
     */
-  def upload(files: Set[FileUpload], wait: Boolean = false): Map[Path, DxFile]
+  def upload(files: Set[FileUpload]): Map[Path, DxFile]
 }
 
 object FileUploader {
@@ -43,13 +42,19 @@ object FileUploader {
   * using the API.
   * @param dxApi DxApi
   */
-case class SerialFileUploader(dxApi: DxApi = DxApi.get, logger: Logger = Logger.get)
+case class SerialFileUploader(waitOnUpload: Boolean = false,
+                              dxApi: DxApi = DxApi.get,
+                              logger: Logger = Logger.get)
     extends FileUploader {
-  def upload(files: Set[FileUpload], wait: Boolean = false): Map[Path, DxFile] = {
+  def upload(files: Set[FileUpload]): Map[Path, DxFile] = {
     val (results, duration) = FileUploader.time() {
       files.map {
         case FileUpload(path, dest, tags, properties) =>
-          path -> dxApi.uploadFile(path, dest, wait = wait, tags = tags, properties = properties)
+          path -> dxApi.uploadFile(path,
+                                   dest,
+                                   wait = waitOnUpload,
+                                   tags = tags,
+                                   properties = properties)
       }.toMap
     }
     logger.trace(s"Uploaded ${results.size} files in ${duration} seconds")
@@ -57,13 +62,13 @@ case class SerialFileUploader(dxApi: DxApi = DxApi.get, logger: Logger = Logger.
   }
 }
 
-case class ParallelFileUploader(maxConcurrent: Int = Runtime.getRuntime.availableProcessors(),
+case class ParallelFileUploader(waitOnUpload: Boolean = false,
+                                maxConcurrent: Int = Runtime.getRuntime.availableProcessors(),
                                 dxApi: DxApi = DxApi.get,
                                 logger: Logger = Logger.get)
     extends FileUploader {
 
-  private case class UploadCallable(upload: FileUpload, waitOnUpload: Boolean)
-      extends Callable[(Path, DxFile)] {
+  private case class UploadCallable(upload: FileUpload) extends Callable[(Path, DxFile)] {
     override def call(): (Path, DxFile) = {
       upload.source -> dxApi.uploadFile(upload.source,
                                         upload.destination,
@@ -73,12 +78,12 @@ case class ParallelFileUploader(maxConcurrent: Int = Runtime.getRuntime.availabl
     }
   }
 
-  def upload(files: Set[FileUpload], wait: Boolean = false): Map[Path, DxFile] = {
-    val callables = files.map(UploadCallable(_, wait)).toVector
+  def upload(files: Set[FileUpload]): Map[Path, DxFile] = {
+    val callables = files.map(UploadCallable).toVector
     if (callables.size == 1) {
       Map(callables.head.call())
     } else {
-      val executor = Executors.newFixedThreadPool(maxConcurrent)
+      val executor = Executors.newFixedThreadPool(Math.min(files.size, maxConcurrent))
 
       def shutdown(now: Boolean = false): Unit = {
         try {

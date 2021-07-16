@@ -452,8 +452,6 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 
   def fileUploader: FileUploader
 
-  def waitOnUpload: Boolean = false
-
   def uploadOutputFiles(
       localFiles: Map[String, Vector[Path]],
       tagsAndProperties: Map[String, (Set[String], Map[String, String])] = Map.empty
@@ -472,7 +470,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
           path -> FileUpload(path, dest, tags, properties)
         }.toMap
     }
-    fileUploader.upload(filesToUpload.values.toSet, wait = waitOnUpload)
+    fileUploader.upload(filesToUpload.values.toSet)
   }
 
   @tailrec
@@ -697,7 +695,6 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 
 case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths.default,
                          override val fileUploader: FileUploader,
-                         override val waitOnUpload: Boolean,
                          override val dxApi: DxApi = DxApi.get,
                          override val logger: Logger = Logger.get)
     extends JobMeta(workerPaths, dxApi, logger) {
