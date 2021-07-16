@@ -188,7 +188,11 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
     ): Map[String, ParameterLink] = {
       val filesToUpload = env.map {
         case (name, (irType, irValue)) =>
-          name -> extractOutputFiles(name, irValue, irType, jobMeta.fileResolver).map {
+          name -> extractOutputFiles(name,
+                                     irValue,
+                                     irType,
+                                     jobMeta.fileResolver,
+                                     ignoreNonLocalFiles = true).map {
             case local: LocalFileSource => local
             case other =>
               throw new Exception(s"unexpected non-local file ${other}")

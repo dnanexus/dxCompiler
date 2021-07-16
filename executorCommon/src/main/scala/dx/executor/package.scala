@@ -33,7 +33,8 @@ package object executor {
       name: String,
       v: Value,
       t: Type,
-      fileResolver: FileSourceResolver
+      fileResolver: FileSourceResolver,
+      ignoreNonLocalFiles: Boolean = false
   ): Vector[AddressableFileNode] = {
     def getFileNode(varName: String,
                     fs: AddressableFileNode,
@@ -46,8 +47,8 @@ package object executor {
           throw new Exception(
               s"required output file ${varName} does not exist at ${localFs.canonicalPath}"
           )
-        case localFs: LocalFileSource =>
-          Vector(localFs)
+        case localFs: LocalFileSource     => Vector(localFs)
+        case other if ignoreNonLocalFiles => Vector.empty
         case other =>
           throw new RuntimeException(s"${varName} specifies non-local file ${other}")
       }
