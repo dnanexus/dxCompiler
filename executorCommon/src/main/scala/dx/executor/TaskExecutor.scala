@@ -211,15 +211,26 @@ abstract class TaskExecutor(jobMeta: JobMeta,
                                 realFiles: Vector[(AddressableFileNode, VFile)] = Vector.empty,
                                 folders: Vector[(AddressableFileSource, VFolder)] = Vector.empty)
 
+  protected def getSchemas: Map[String, TSchema]
+
   /**
-    * For all input files/directories, determines the local path, whether they need
-    * to be streamed or downloaded, and generates the dxda and dxfuse manifests.
-    * TODO: handle InitialWorkdirRequirement
+    * Evaluates input values and creates manifests for dxfuse and/or dxda to localize all
+    * input files. Input files and directories are represented as URIs
+    * (dx://proj-xxxx:file-yyyy::/A/B/C.txt). Input directories (VFolder and VListing types)
+    * are updated recursively so that the listings are determined for all source directories.
+    * Then, all the files are extracted from the inputs recursively and added to either the
+    * dxfuse or dxda manifest, depending on the value of `streamFiles` and whether streaming
+    * has been enabled individually for any of the inputs. The evaluated inputs and a mapping
+    * from source URIs to local paths are stored to transient files for use by the next phase.
+    * TODO: handle InitialWorkDir
     */
-  def localizeInputFiles: (Map[String, (Type, Value)],
-                           Map[String, Path],
-                           Option[DxdaManifest],
-                           Option[DxfuseManifest]) = {
+  def prolog(): Unit = {
+    if (logger.isVerbose) {
+      trace(s"Prolog debugLevel=${logger.traceLevel}")
+      trace(s"dxCompiler version: ${getVersion}")
+      printDirTree()
+      trace(s"Task source code:\n${jobMeta.sourceCode}", traceLengthLimit)
+    }
 
     // downloaded files must go to a different location than the dxfuse mount point
     assert(jobMeta.workerPaths.getInputFilesDir() != jobMeta.workerPaths.getDxfuseMountDir())
@@ -360,6 +371,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
           val (updatedValue, updatedPaths) = updateListingsAndExtractFiles(v, stream, pathAccu)
           (inputAccu + (name -> (t, updatedValue)), updatedPaths)
       }
+    serializeInputs(getSchemas, inputs)
 
     // This object handles mapping FileSources to local paths and deals with file name
     // collisions in the manner specified by the WDL spec. All input files except those
@@ -398,10 +410,15 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     val downloadUriToPath = downloadFileSourceToPath.map {
       case (fs, path) => fs.address -> path
     }
-    val dxdaManifest =
-      DxdaManifestBuilder(dxApi, logger).apply(downloadFileSourceToPath.collect {
+    DxdaManifestBuilder(dxApi, logger)
+      .apply(downloadFileSourceToPath.collect {
         case (dxFs: DxFileSource, localPath) => dxFs.dxFile -> localPath
       })
+      .foreach {
+        case DxdaManifest(manifestJs) =>
+          FileUtils.writeFileContent(jobMeta.workerPaths.getDxdaManifestFile(),
+                                     manifestJs.prettyPrint)
+      }
 
     // build dxfuse manifest to localize all straming remote files and folders
     logger.traceLimited(s"Files to stream: ${pathsToLocalize.filesToStream}")
@@ -419,111 +436,79 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     val streamUriToPath = streamFileSourceToPath.map {
       case (fs, path) => fs.address -> path
     }
-    val dxfuseManifest = DxfuseManifestBuilder(jobMeta.workerPaths, dxApi, logger)
+    DxfuseManifestBuilder(jobMeta.workerPaths, dxApi, logger)
       .apply(streamFileSourceToPath.collect {
         case (dxFs: DxFileSource, localPath) => dxFs.dxFile -> localPath
       })
+      .foreach {
+        case DxfuseManifest(manifestJs) =>
+          FileUtils.writeFileContent(jobMeta.workerPaths.getDxfuseManifestFile(),
+                                     manifestJs.prettyPrint)
+      }
 
     val allUriToPath = virtualUriToPath ++ localUriToPath ++ downloadUriToPath ++ streamUriToPath
-    (inputs, allUriToPath, dxdaManifest, dxfuseManifest)
+    serializeUriToPath(allUriToPath)
   }
 
   // TODO: ensure secondary files are in the same dir as the parent file
   // Replace the remote input URIs with local file paths
-//  val fileSourceToPath = localFileSourceToPath ++ downloadFileSourceToPath ++ streamFileSourceToPath
-//  val folderSourceToPath =
-//    (localFolderSourceToPathAndListing ++ downloadFolderSourceToPathAndListing ++ streamFolderSourceToPathAndListing)
-//      .map {
-//        case (fs, (path, _)) => fs -> path
-//      }
-//  val uriToPath: Map[String, String] = (fileSourceToPath ++ folderSourceToPath).map {
-//    case (dxFs: DxFileSource, path)       => dxFs.address -> path.toString
-//    case (dxFs: DxFolderSource, path)     => dxFs.address -> path.toString
-//    case (localFs: LocalFileSource, path) => localFs.originalPath.toString -> path.toString
-//    case (other, _)                       => throw new RuntimeException(s"unsupported file source ${other}")
-//  }.toMap
-//
-//  def pathTranslator(v: Value, t: Option[Type], optional: Boolean): Option[PathValue] = {
-//    def translateUri(uri: String): Option[String] = {
-//      uriToPath.get(uri) match {
-//        case Some(localPath)  => Some(localPath)
-//        case None if optional => None
-//        case _                => throw new Exception(s"Did not localize file ${uri}")
-//      }
-//    }
-//    (t, v) match {
-//      case (_, f: VFile) if f.contents.nonEmpty =>
-//        Some(virtualUriToFile(f.uri))
-//      case (_, f: VFile) =>
-//        translateUri(f.uri).map { newUri =>
-//          val newSecondaryFiles =
-//            f.secondaryFiles.flatMap(pathTranslator(_, None, optional = false))
-//          f.copy(uri = newUri, secondaryFiles = newSecondaryFiles)
-//        }
-//      case (Some(TFile), VString(uri)) => translateUri(uri).map(VFile(_))
-//      case (_, f: VFolder)             =>
-//        // We've already limited the files that will be downloaded/streamed, so instead of
-//        // transforming all the paths in the listing, we exclude the listings from the
-//        // transformed values and let them be filled in at evaluation time if necessary
-//        translateUri(f.uri).map(newUri => f.copy(uri = newUri, listing = None))
-//      case (_, l: VListing) =>
-//        val newListing = l.items.map(pathTranslator(_, None, optional = optional))
-//        if (newListing.forall(_.isEmpty)) {
-//          None
-//        } else if (newListing.exists(_.isEmpty)) {
-//          val notLocalized = l.items.zip(newListing).collect {
-//            case (old, None) => old
-//          }
-//          throw new Exception(
-//            s"some listing entries were not localized: ${notLocalized.mkString(",")}"
-//          )
-//        } else {
-//          Some(l.copy(items = newListing.flatten))
-//        }
-//      case _ => None
-//    }
-//  }
-//
-//  val localizedInputs = inputs.view.mapValues {
-//    case (t, v) => (t, Value.transform(v, Some(t), pathTranslator))
-//  }.toMap
-
-  protected def getSchemas: Map[String, TSchema]
-
-  /**
-    * For any File- and Directory-typed inputs for which a value is provided, materialize
-    * those files on the local file system. This could be via direct download, or by producing
-    * dxda and/or dxfuse manifests.
-    *
-    * Input files are represented as dx URLs (dx://proj-xxxx:file-yyyy::/A/B/C.txt) instead of
-    * local files (/home/C.txt). Files may be referenced any number of times but are only
-    * downloaded once.
-    */
-  def prolog(): Unit = {
-    if (logger.isVerbose) {
-      trace(s"Prolog debugLevel=${logger.traceLevel}")
-      trace(s"dxCompiler version: ${getVersion}")
-      printDirTree()
-      trace(s"Task source code:\n${jobMeta.sourceCode}", traceLengthLimit)
-    }
-
-    val (inputs, uriToPath, dxdaManifest, dxfuseManifest) = localizeInputFiles
-
-    dxdaManifest.foreach {
-      case DxdaManifest(manifestJs) =>
-        FileUtils.writeFileContent(jobMeta.workerPaths.getDxdaManifestFile(),
-                                   manifestJs.prettyPrint)
-    }
-
-    dxfuseManifest.foreach {
-      case DxfuseManifest(manifestJs) =>
-        FileUtils.writeFileContent(jobMeta.workerPaths.getDxfuseManifestFile(),
-                                   manifestJs.prettyPrint)
-    }
-
-    serializeInputs(getSchemas, inputs)
-    serializeUriToPath(uriToPath)
-  }
+  //  val fileSourceToPath = localFileSourceToPath ++ downloadFileSourceToPath ++ streamFileSourceToPath
+  //  val folderSourceToPath =
+  //    (localFolderSourceToPathAndListing ++ downloadFolderSourceToPathAndListing ++ streamFolderSourceToPathAndListing)
+  //      .map {
+  //        case (fs, (path, _)) => fs -> path
+  //      }
+  //  val uriToPath: Map[String, String] = (fileSourceToPath ++ folderSourceToPath).map {
+  //    case (dxFs: DxFileSource, path)       => dxFs.address -> path.toString
+  //    case (dxFs: DxFolderSource, path)     => dxFs.address -> path.toString
+  //    case (localFs: LocalFileSource, path) => localFs.originalPath.toString -> path.toString
+  //    case (other, _)                       => throw new RuntimeException(s"unsupported file source ${other}")
+  //  }.toMap
+  //
+  //  def pathTranslator(v: Value, t: Option[Type], optional: Boolean): Option[PathValue] = {
+  //    def translateUri(uri: String): Option[String] = {
+  //      uriToPath.get(uri) match {
+  //        case Some(localPath)  => Some(localPath)
+  //        case None if optional => None
+  //        case _                => throw new Exception(s"Did not localize file ${uri}")
+  //      }
+  //    }
+  //    (t, v) match {
+  //      case (_, f: VFile) if f.contents.nonEmpty =>
+  //        Some(virtualUriToFile(f.uri))
+  //      case (_, f: VFile) =>
+  //        translateUri(f.uri).map { newUri =>
+  //          val newSecondaryFiles =
+  //            f.secondaryFiles.flatMap(pathTranslator(_, None, optional = false))
+  //          f.copy(uri = newUri, secondaryFiles = newSecondaryFiles)
+  //        }
+  //      case (Some(TFile), VString(uri)) => translateUri(uri).map(VFile(_))
+  //      case (_, f: VFolder)             =>
+  //        // We've already limited the files that will be downloaded/streamed, so instead of
+  //        // transforming all the paths in the listing, we exclude the listings from the
+  //        // transformed values and let them be filled in at evaluation time if necessary
+  //        translateUri(f.uri).map(newUri => f.copy(uri = newUri, listing = None))
+  //      case (_, l: VListing) =>
+  //        val newListing = l.items.map(pathTranslator(_, None, optional = optional))
+  //        if (newListing.forall(_.isEmpty)) {
+  //          None
+  //        } else if (newListing.exists(_.isEmpty)) {
+  //          val notLocalized = l.items.zip(newListing).collect {
+  //            case (old, None) => old
+  //          }
+  //          throw new Exception(
+  //            s"some listing entries were not localized: ${notLocalized.mkString(",")}"
+  //          )
+  //        } else {
+  //          Some(l.copy(items = newListing.flatten))
+  //        }
+  //      case _ => None
+  //    }
+  //  }
+  //
+  //  val localizedInputs = inputs.view.mapValues {
+  //    case (t, v) => (t, Value.transform(v, Some(t), pathTranslator))
+  //  }.toMap
 
   /**
     * Generates and writes command script(s) to disk.
