@@ -124,13 +124,13 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         "localizedInputs" -> JsObject(inputsJs)
     )
     FileUtils.writeFileContent(
-        jobMeta.workerPaths.getLocalizedInputsFile(ensureParentExists = true),
+        jobMeta.workerPaths.getSerializedInputsFile(ensureParentExists = true),
         json.prettyPrint
     )
   }
 
   private def deserializeInputs(): (Map[String, Type], Map[String, (Type, Value)]) = {
-    val localizedInputsFile = jobMeta.workerPaths.getLocalizedInputsFile()
+    val localizedInputsFile = jobMeta.workerPaths.getSerializedInputsFile()
     val (schemasJs, inputsJs) = FileUtils
       .readFileContent(localizedInputsFile)
       .parseJson match {
@@ -171,12 +171,14 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       case (other, _) =>
         throw new RuntimeException(s"Can only serialize an AddressableFileSource, not ${other}")
     }
-    FileUtils.writeFileContent(jobMeta.workerPaths.getPathMappingsFile(ensureParentExists = true),
-                               JsObject(fileUriToPath).prettyPrint)
+    FileUtils.writeFileContent(
+        jobMeta.workerPaths.getSerializedUriToPathFile(ensureParentExists = true),
+        JsObject(fileUriToPath).prettyPrint
+    )
   }
 
   private def deserializeUriToPath(): Map[String, Path] = {
-    val pathMappingsFile = jobMeta.workerPaths.getPathMappingsFile()
+    val pathMappingsFile = jobMeta.workerPaths.getSerializedUriToPathFile()
     FileUtils.readFileContent(pathMappingsFile).parseJson match {
       case JsObject(fileSourceToPath) =>
         fileSourceToPath.map {
@@ -186,6 +188,19 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       case _ =>
         throw new Exception(s"Malformed environment serialized to disk ${pathMappingsFile}")
     }
+  }
+
+  private def serializeLocalizer(localizer: SafeLocalizationDisambiguator): Unit = {
+    FileUtils.writeFileContent(
+        jobMeta.workerPaths.getSerializedLocalizerFile(ensureParentExists = true),
+        localizer.toJson.prettyPrint
+    )
+  }
+
+  private def deserializeLocalizer(): SafeLocalizationDisambiguator = {
+    SafeLocalizationDisambiguator.fromJson(
+        FileUtils.readFileContent(jobMeta.workerPaths.getSerializedLocalizerFile()).parseJson
+    )
   }
 
   /**
@@ -376,8 +391,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     // This object handles mapping FileSources to local paths and deals with file name
     // collisions in the manner specified by the WDL spec. All input files except those
     // streamed by dxfuse are placed in subfolders of the /home/dnanexus/inputs directory.
-    val localizer = SafeLocalizationDisambiguator(
-        jobMeta.workerPaths.getInputFilesDir(),
+    val localizer = SafeLocalizationDisambiguator.create(
+        rootDir = jobMeta.workerPaths.getInputFilesDir(),
         separateDirsBySource = true,
         createDirs = true,
         disambiguationDirLimit = TaskExecutor.MaxDisambiguationDirs,
@@ -393,13 +408,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       f.uri -> localPath
     }.toMap
 
-    // create links for any local files/folders with basename set
+    // local files already have a path
     val localUriToPath = pathsToLocalize.localFiles.map {
-      case (fs, file) if file.basename.isDefined =>
-        val renamedPath = fs.canonicalPath.getParent.resolve(file.basename.get)
-        val localizedPath = localizer.getLocalPath(jobMeta.fileResolver.fromPath(renamedPath))
-        fs.linkFrom(localizedPath)
-        fs.address -> localizedPath
       case (fs, _) => fs.address -> fs.canonicalPath
     }.toMap
 
@@ -423,8 +433,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     // build dxfuse manifest to localize all straming remote files and folders
     logger.traceLimited(s"Files to stream: ${pathsToLocalize.filesToStream}")
     // use a different localizer for the dxfuse mount point
-    val streamingLocalizer = SafeLocalizationDisambiguator(
-        jobMeta.workerPaths.getDxfuseMountDir(),
+    val streamingLocalizer = SafeLocalizationDisambiguator.create(
+        rootDir = jobMeta.workerPaths.getDxfuseMountDir(),
         existingPaths = localizer.getLocalizedPaths,
         separateDirsBySource = true,
         createDirs = false,
@@ -448,9 +458,15 @@ abstract class TaskExecutor(jobMeta: JobMeta,
 
     val allUriToPath = virtualUriToPath ++ localUriToPath ++ downloadUriToPath ++ streamUriToPath
     serializeUriToPath(allUriToPath)
+    serializeLocalizer(localizer)
   }
 
   // TODO: ensure secondary files are in the same dir as the parent file
+  // create links for any local files/folders with basename set
+  //  val renamedPath = fs.canonicalPath.getParent.resolve(file.basename.get)
+  //  val localizedPath = localizer.getLocalPath(jobMeta.fileResolver.fromPath(renamedPath))
+  //  fs.linkFrom(localizedPath)
+  //  fs.address -> localizedPath
   // Replace the remote input URIs with local file paths
   //  val fileSourceToPath = localFileSourceToPath ++ downloadFileSourceToPath ++ streamFileSourceToPath
   //  val folderSourceToPath =
@@ -521,8 +537,14 @@ abstract class TaskExecutor(jobMeta: JobMeta,
   ): Map[String, (Type, Value)]
 
   def instantiateCommand(): Unit = {
-    val (schemas, localizedInputs) = deserializeInputs()
-    logger.traceLimited(s"InstantiateCommand, env = ${localizedInputs}")
+    val (schemas, inputs) = deserializeInputs()
+    val uriToPath = deserializeUriToPath()
+    val localizer = deserializeLocalizer()
+    logger.traceLimited(s"InstantiateCommand, env = ${inputs}, uriToPath = ${uriToPath}")
+
+    //
+    // Create directories for each VFolder or VListing input and link in all files
+
     // evaluate the command block and write the command script
     val updatedInputs = writeCommandScript(localizedInputs)
     // write the updated env to disk

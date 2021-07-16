@@ -24,8 +24,9 @@ object DxWorkerPaths {
   val DxfuseManifestFile = "dxfuseManifest.json"
   val DxuaManifestFile = "dxuaManifest.json"
   val DxfuseMountDir = "mnt"
-  val LocalizedInputsFile = "localized_inputs.json"
-  val PathMappingsFile = "path_mappings.json"
+  val SerializedInputsFile = "serialized_inputs.json"
+  val SerializedUriToPathFile = "serialized_uri_to_path.json"
+  val SerializedLocalizerFile = "serialized_localizer.json"
 
   lazy val default: DxWorkerPaths = DxWorkerPaths(RootDir)
 }
@@ -156,17 +157,24 @@ case class DxWorkerPaths(rootDir: Path) extends BaseEvalPaths with ExecPaths {
   }
 
   /**
-    * File for storing the localized inputs between stages of the task runner.
+    * File for storing the inputs between stages of the task runner.
     */
-  def getLocalizedInputsFile(ensureParentExists: Boolean = false): Path = {
-    getMetaDir(ensureParentExists).resolve(DxWorkerPaths.LocalizedInputsFile)
+  def getSerializedInputsFile(ensureParentExists: Boolean = false): Path = {
+    getMetaDir(ensureParentExists).resolve(DxWorkerPaths.SerializedInputsFile)
   }
 
   /**
-    * File for storing the dx uri to path mappIngs between stages of the task runner.
+    * File for storing the dx uri to path mappings between stages of the task runner.
     */
-  def getPathMappingsFile(ensureParentExists: Boolean = false): Path = {
-    getMetaDir(ensureParentExists).resolve(DxWorkerPaths.PathMappingsFile)
+  def getSerializedUriToPathFile(ensureParentExists: Boolean = false): Path = {
+    getMetaDir(ensureParentExists).resolve(DxWorkerPaths.SerializedUriToPathFile)
+  }
+
+  /**
+    * File for storing the LocalizationDisambiguator state between stages of the task runner.
+    */
+  def getSerializedLocalizerFile(ensureParentExists: Boolean = false): Path = {
+    getMetaDir(ensureParentExists).resolve(DxWorkerPaths.SerializedLocalizerFile)
   }
 
   // create all the directory paths, so we can start using them.
