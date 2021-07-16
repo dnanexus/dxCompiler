@@ -47,6 +47,10 @@ case class SerialFileUploader(waitOnUpload: Boolean = false,
                               logger: Logger = Logger.get)
     extends FileUploader {
   def upload(files: Set[FileUpload]): Map[Path, DxFile] = {
+    if (files.isEmpty) {
+      return Map.empty
+    }
+
     val (results, duration) = FileUploader.time() {
       files.map {
         case FileUpload(path, dest, tags, properties) =>
@@ -79,6 +83,10 @@ case class ParallelFileUploader(waitOnUpload: Boolean = false,
   }
 
   def upload(files: Set[FileUpload]): Map[Path, DxFile] = {
+    if (files.isEmpty) {
+      return Map.empty
+    }
+
     val callables = files.map(UploadCallable).toVector
     if (callables.size == 1) {
       Map(callables.head.call())

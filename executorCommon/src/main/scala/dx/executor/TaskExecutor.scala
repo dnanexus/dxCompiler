@@ -383,40 +383,45 @@ abstract class TaskExecutor(jobMeta: JobMeta,
           }
     }
 
-    // upload the files, and map their local paths to their remote URIs
-    val delocalizedPathToUri = jobMeta
-      .uploadOutputFiles(filesToUpload.map {
-        case (name, localFileSources) => name -> localFileSources.map(_.canonicalPath)
-      }, tagsAndProperties)
-      .map {
-        case (path, dxFile) => path -> dxFile.asUri
+    val delocalizedOutputs = if (filesToUpload.nonEmpty) {
+      // upload the files, and map their local paths to their remote URIs
+      val delocalizedPathToUri = jobMeta
+        .uploadOutputFiles(filesToUpload.map {
+          case (name, localFileSources) => name -> localFileSources.map(_.canonicalPath)
+        }, tagsAndProperties)
+        .map {
+          case (path, dxFile) => path -> dxFile.asUri
+        }
+
+      // Replace the local paths in the output values with URIs. For files that
+      // were inputs, we can resolve them using a mapping of input values to URIs;
+      // for files that were generated on the worker, this requires two look-ups:
+      // first to get the absoulte Path associated with the file value (which may
+      // be relative or absolute), and second to get the URI associated with the
+      // Path. Returns an Optional[String] because optional outputs may be null.
+      val inputValueToUri = fileSourceToPath
+        .collect {
+          case (fs: AddressableFileNode, path) =>
+            Map(fs.address -> fs.address, path.toString -> fs.address)
+        }
+        .flatten
+        .toMap
+      val delocalizingUriToPath =
+        filesToUpload.values.flatten.map(local => local.address -> local.canonicalPath).toMap
+
+      def resolveUri(value: String): Option[String] = {
+        inputValueToUri
+          .get(value)
+          .orElse(delocalizingUriToPath.get(value) match {
+            case Some(path) => delocalizedPathToUri.get(path)
+            case _          => None
+          })
       }
 
-    // Replace the local paths in the output values with URIs. For files that
-    // were inputs, we can resolve them using a mapping of input values to URIs;
-    // for files that were generated on the worker, this requires two look-ups:
-    // first to get the absoulte Path associated with the file value (which may
-    // be relative or absolute), and second to get the URI associated with the
-    // Path. Returns an Optional[String] because optional outputs may be null.
-    val inputValueToUri = fileSourceToPath
-      .collect {
-        case (fs: AddressableFileNode, path) =>
-          Map(fs.address -> fs.address, path.toString -> fs.address)
-      }
-      .flatten
-      .toMap
-    val delocalizingUriToPath =
-      filesToUpload.values.flatten.map(local => local.address -> local.canonicalPath).toMap
-    def resolveUri(value: String): Option[String] = {
-      inputValueToUri
-        .get(value)
-        .orElse(delocalizingUriToPath.get(value) match {
-          case Some(path) => delocalizedPathToUri.get(path)
-          case _          => None
-        })
+      delocalizeOutputFiles(localizedOutputs, resolveUri)
+    } else {
+      localizedOutputs
     }
-
-    val delocalizedOutputs = delocalizeOutputFiles(localizedOutputs, resolveUri)
 
     // serialize the outputs to the job output file
     jobMeta.writeOutputs(delocalizedOutputs)
