@@ -1,3 +1,4 @@
 # requirements of the build scripts
 dxpy
 pyyaml
+termcolor

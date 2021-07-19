@@ -6,13 +6,14 @@ import dx.core.CliUtils._
 import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.util.Enum
 
+object BaseCli {
+  val MaxConcurrentUploads: Int = 8
+}
+
 abstract class BaseCli {
   val jarName: String
 
-  def createTaskExecutor(meta: JobMeta,
-                         fileUploader: FileUploader,
-                         streamFiles: StreamFiles.StreamFiles,
-                         waitOnUpload: Boolean): TaskExecutor
+  def createTaskExecutor(meta: JobMeta, streamFiles: StreamFiles.StreamFiles): TaskExecutor
 
   def createWorkflowExecutor(meta: JobMeta, separateOutputs: Boolean): WorkflowExecutor[_]
 
@@ -55,8 +56,14 @@ abstract class BaseCli {
           return BadUsageTermination("Error parsing command line options", Some(e))
       }
     val logger = initLogger(options)
+    val fileUploader = ParallelFileUploader(waitOnUpload = options.getFlag("waitOnUpload"),
+                                            maxConcurrent = BaseCli.MaxConcurrentUploads,
+                                            logger = logger)
     try {
-      val jobMeta = WorkerJobMeta(DxWorkerPaths(rootDir))
+      logger.traceLimited(s"Creating JobMeta: rootDir ${rootDir}, uploader ${fileUploader}")
+      val jobMeta = WorkerJobMeta(workerPaths = DxWorkerPaths(rootDir),
+                                  fileUploader = fileUploader,
+                                  logger = logger)
       kind match {
         case ExecutorKind.Task =>
           val taskAction = {
@@ -67,17 +74,15 @@ abstract class BaseCli {
                 return BadUsageTermination(s"Unknown action ${action}")
             }
           }
-          val fileUploader = SerialFileUploader()
           val streamFiles = options.getValue[StreamFiles.StreamFiles]("streamFiles") match {
             case Some(value)                               => value
             case None if options.getFlag("streamAllFiles") => StreamFiles.All
             case None                                      => StreamFiles.PerFile
           }
-          val waitOnUpload = options.getFlag("waitOnUpload")
           logger.traceLimited(
-              s"Creating TaskExecutor: streamFiles ${streamFiles}, waitOnUpload ${waitOnUpload}"
+              s"Creating TaskExecutor: streamFiles ${streamFiles}"
           )
-          val taskExecutor = createTaskExecutor(jobMeta, fileUploader, streamFiles, waitOnUpload)
+          val taskExecutor = createTaskExecutor(jobMeta, streamFiles)
           val successMessage = taskExecutor.apply(taskAction)
           Success(successMessage)
         case ExecutorKind.Workflow =>

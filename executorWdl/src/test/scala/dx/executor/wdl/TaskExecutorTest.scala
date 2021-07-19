@@ -20,7 +20,7 @@ import dx.core.Constants
 import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir.{Manifest, ParameterLink, ParameterLinkDeserializer, ParameterLinkSerializer}
 import dx.core.languages.wdl.{CodeGenerator, VersionSupport, WdlOptions, WdlUtils}
-import dx.executor.{JobMeta, TaskAction}
+import dx.executor.{FileUploader, JobMeta, SerialFileUploader, TaskAction}
 import dx.util.{CodecUtils, FileSourceResolver, JsUtils, Logger, SysUtils}
 import dx.util.protocols.DxFileAccessProtocol
 import org.scalatest.flatspec.AnyFlatSpec
@@ -72,6 +72,8 @@ private case class TaskTestJobMeta(override val workerPaths: DxWorkerPaths,
   override def getExecutableDetail(name: String): Option[JsValue] = {
     executableDetails.get(name)
   }
+
+  override def fileUploader: FileUploader = SerialFileUploader()
 
   override def error(e: Throwable): Unit = {}
 }
