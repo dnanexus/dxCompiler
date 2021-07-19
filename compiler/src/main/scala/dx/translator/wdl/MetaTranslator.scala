@@ -1,6 +1,12 @@
 package dx.translator.wdl
 
-import dx.api.ConstraintOper
+import dx.api.{
+  DxConstraint,
+  DxConstraintArray,
+  DxConstraintBool,
+  DxConstraintOper,
+  DxConstraintString
+}
 import dx.core.ir.Value._
 import dx.core.ir.{CallableAttribute, ParameterAttribute, Value}
 import dx.core.languages.wdl
@@ -333,24 +339,22 @@ object ParameterMetaTranslator {
     }
   }
 
-  private def metaConstraintToIR(constraint: V): ParameterAttributes.Constraint = {
+  private def metaConstraintToIR(constraint: V): DxConstraint = {
     constraint match {
       case V_Object(obj) if obj.size != 1 =>
         throw new Exception("Constraint hash must have exactly one 'and' or 'or' key")
       case V_Object(obj) =>
         obj.head match {
           case (ConstraintAnd, V_Array(array)) =>
-            ParameterAttributes.CompoundConstraint(ConstraintOper.And,
-                                                   array.map(metaConstraintToIR))
+            DxConstraintBool(DxConstraintOper.And, DxConstraintArray(array.map(metaConstraintToIR)))
           case (ConstraintOr, V_Array(array)) =>
-            ParameterAttributes.CompoundConstraint(ConstraintOper.Or, array.map(metaConstraintToIR))
+            DxConstraintBool(DxConstraintOper.Or, DxConstraintArray(array.map(metaConstraintToIR)))
           case _ =>
             throw new Exception(
                 "Constraint must have key 'and' or 'or' and an array value"
             )
         }
-      case V_String(s) =>
-        ParameterAttributes.StringConstraint(s)
+      case V_String(s) => DxConstraintString(s)
       case _ =>
         throw new Exception("'dx_type' constraints must be either strings or hashes")
     }

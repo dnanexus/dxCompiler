@@ -2,7 +2,7 @@
 ![](https://github.com/dnanexus/dxCompiler/workflows/WDL%20Integration%20Tests/badge.svg)
 
 dxCompiler takes a pipeline written in the
-[Workflow Description Language (WDL)](http://www.openwdl.org/) or [Common Workflow Language](https://www.commonwl.org/v1.2) and compiles it to an equivalent workflow on the DNAnexus platform. WDL draft-2 and versions 1.0 and 1.1 are fully supported, while WDL 2.0 (aka 'development') and CWL 1.2 support are under active development.
+[Workflow Description Language (WDL)](http://www.openwdl.org/) or [Common Workflow Language](https://www.commonwl.org/v1.2) and compiles it to an equivalent workflow on the DNAnexus platform. WDL draft-2 and versions 1.0 and 1.1 are fully supported. Support for WDL 2.0 (aka 'development') and CWL 1.2 are under active development and not yet production-ready.
 
 ## Setup
 

@@ -5,7 +5,7 @@ import dx.core.io.StreamFiles
 import dx.core.ir.{Type, Value}
 import dx.core.languages.wdl.{IrToWdlValueBindings, Runtime, VersionSupport, WdlOptions, WdlUtils}
 import dx.executor.{FileUploader, JobMeta, SerialFileUploader, TaskExecutor}
-import dx.util.{Bindings, DockerUtils, Logger, TraceLevel}
+import dx.util.{Bindings, DockerUtils, Logger}
 import wdlTools.eval.WdlValues._
 import wdlTools.eval.{Eval, WdlValueBindings}
 import wdlTools.exec.{TaskCommandFileGenerator, TaskInputOutput}
@@ -85,6 +85,7 @@ case class WdlTaskExecutor(task: TAT.Task,
     // DNAnexus does not distinguish between null and empty for
     // array inputs, so we treat a null value for a non-optional
     // array that is allowed to be empty as the empty array.
+    trace("Evaluating default values for inputs")
     taskIO
       .inputsFromValues(inputWdlValues,
                         evaluator,
@@ -138,7 +139,6 @@ case class WdlTaskExecutor(task: TAT.Task,
   private def getRequiredInstanceTypeRequest(
       inputs: Map[String, V] = wdlInputs
   ): InstanceTypeRequest = {
-    logger.traceLimited("calcInstanceType", minLevel = TraceLevel.VVerbose)
     printInputs(inputs)
     val env = evaluatePrivateVariables(inputs)
     val runtime = createRuntime(env)
