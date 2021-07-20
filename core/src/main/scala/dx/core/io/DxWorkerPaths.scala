@@ -18,6 +18,7 @@ object DxWorkerPaths {
   val ContainerId = "containerId"
   val InputFilesDir = "inputs"
   val OutputFilesDir = "outputs"
+  val VirtualFilesDir = "virtual"
   val InstanceTypeDbFile = "instance_type_db.json"
   val SourceEncodedFile = "source.wdl.uu64"
   val DxdaManifestFile = "dxdaManifest.json"
@@ -26,6 +27,7 @@ object DxWorkerPaths {
   val DxfuseMountDir = "mnt"
   val SerializedInputsFile = "serialized_inputs.json"
   val SerializedUriToPathFile = "serialized_uri_to_path.json"
+  val SerializedPathToUriFile = "serialized_path_to_uri.json"
   val SerializedLocalizerFile = "serialized_localizer.json"
 
   lazy val default: DxWorkerPaths = DxWorkerPaths(RootDir)
@@ -119,6 +121,12 @@ case class DxWorkerPaths(rootDir: Path) extends BaseEvalPaths with ExecPaths {
                    ensureExists)
   }
 
+  def getVirtualFilesDir(ensureExists: Boolean = false): Path = {
+    getOrCreateDir(DxWorkerPaths.VirtualFilesDir,
+                   getRootDir(ensureExists).resolve(DxWorkerPaths.VirtualFilesDir),
+                   ensureExists)
+  }
+
   /**
     * Where a JSON representation of the instance data base is stored.
     */
@@ -168,6 +176,10 @@ case class DxWorkerPaths(rootDir: Path) extends BaseEvalPaths with ExecPaths {
     */
   def getSerializedUriToPathFile(ensureParentExists: Boolean = false): Path = {
     getMetaDir(ensureParentExists).resolve(DxWorkerPaths.SerializedUriToPathFile)
+  }
+
+  def getSerializedPathToUriFile(ensureParentExists: Boolean = false): Path = {
+    getMetaDir(ensureParentExists).resolve(DxWorkerPaths.SerializedPathToUriFile)
   }
 
   /**

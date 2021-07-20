@@ -196,7 +196,8 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
     val outputsExpected = getExpectedOutputs(cwlName)
 
     // run the steps of task execution in order
-    taskExecutor.apply(TaskAction.Prolog) shouldBe "success Prolog"
+    taskExecutor.apply(TaskAction.LocalizeInputs) shouldBe "success LocalizeInputs"
+    taskExecutor.apply(TaskAction.FinalizeInputs) shouldBe "success FinalizeInputs"
     taskExecutor.apply(TaskAction.InstantiateCommand) shouldBe "success InstantiateCommand"
 
     // execute the shell script in a child job
@@ -207,7 +208,7 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
     }
 
     // epilog
-    taskExecutor.apply(TaskAction.Epilog) shouldBe "success Epilog"
+    taskExecutor.apply(TaskAction.DelocalizeOutputs) shouldBe "success Epilog"
 
     if (outputsExpected.isDefined) {
       val outputs = if (useManifests) {

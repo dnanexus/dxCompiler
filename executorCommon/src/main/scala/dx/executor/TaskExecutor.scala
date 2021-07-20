@@ -28,11 +28,10 @@ import dx.util.{
   TraceLevel
 }
 
-import scala.collection.immutable.SeqMap
-
 object TaskAction extends Enum {
   type TaskAction = Value
-  val CheckInstanceType, Prolog, InstantiateCommand, Epilog, Relaunch = Value
+  val CheckInstanceType, LocalizeInputs, FinalizeInputs, InstantiateCommand, DelocalizeOutputs,
+      Relaunch = Value
 }
 
 object TaskExecutor {
@@ -163,30 +162,49 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       }
   }
 
-  private def serializeUriToPath(
-      fileSourceToPath: Map[String, Path]
-  ): Unit = {
-    val fileUriToPath: Map[String, JsValue] = fileSourceToPath.map {
+  private def serializeUriToPath(uriToPath: Map[String, Path]): Unit = {
+    val utiToPathJs: Map[String, JsValue] = uriToPath.map {
       case (uri, path) => uri -> JsString(path.toString)
-      case (other, _) =>
-        throw new RuntimeException(s"Can only serialize an AddressableFileSource, not ${other}")
     }
     FileUtils.writeFileContent(
         jobMeta.workerPaths.getSerializedUriToPathFile(ensureParentExists = true),
-        JsObject(fileUriToPath).prettyPrint
+        JsObject(utiToPathJs).prettyPrint
     )
   }
 
   private def deserializeUriToPath(): Map[String, Path] = {
-    val pathMappingsFile = jobMeta.workerPaths.getSerializedUriToPathFile()
-    FileUtils.readFileContent(pathMappingsFile).parseJson match {
-      case JsObject(fileSourceToPath) =>
-        fileSourceToPath.map {
+    val uriToPathFile = jobMeta.workerPaths.getSerializedUriToPathFile()
+    FileUtils.readFileContent(uriToPathFile).parseJson match {
+      case JsObject(uriToPath) =>
+        uriToPath.map {
           case (uri, JsString(path)) => uri -> Paths.get(path)
           case other                 => throw new Exception(s"unexpected path ${other}")
         }
       case _ =>
-        throw new Exception(s"Malformed environment serialized to disk ${pathMappingsFile}")
+        throw new Exception(s"Malformed environment serialized to disk ${uriToPathFile}")
+    }
+  }
+
+  private def serializePathToUri(pathToUri: Map[Path, String]): Unit = {
+    val pathToUriJs: Map[String, JsValue] = pathToUri.map {
+      case (path, uri) => path.toString -> JsString(uri)
+    }
+    FileUtils.writeFileContent(
+        jobMeta.workerPaths.getSerializedPathToUriFile(ensureParentExists = true),
+        JsObject(pathToUriJs).prettyPrint
+    )
+  }
+
+  private def deserializePathToUri(): Map[Path, String] = {
+    val pathToUriFile = jobMeta.workerPaths.getSerializedPathToUriFile()
+    FileUtils.readFileContent(pathToUriFile).parseJson match {
+      case JsObject(pathToUri) =>
+        pathToUri.map {
+          case (path, JsString(uri)) => Paths.get(path) -> uri
+          case other                 => throw new Exception(s"unexpected uri ${other}")
+        }
+      case _ =>
+        throw new Exception(s"Malformed environment serialized to disk ${pathToUriFile}")
     }
   }
 
@@ -215,17 +233,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
   protected def streamFileForInput(parameterName: String): Boolean
 
   /**
-    * Collection of files associated with an input value.
-    * @param virutalFiles VFiles that have a `contents` attribute - these are
-    *                     localized by writing the contents to a file
-    * @param realFiles local/remote files
-    * @param folders local/remove folders - these are localized by streaming/
-    *                downloading the folder recursively
+    * Returns all schema types referenced in the inputs.
     */
-  private case class PathValues(virutalFiles: Vector[VFile] = Vector.empty,
-                                realFiles: Vector[(AddressableFileNode, VFile)] = Vector.empty,
-                                folders: Vector[(AddressableFileSource, VFolder)] = Vector.empty)
-
   protected def getSchemas: Map[String, TSchema]
 
   /**
@@ -239,130 +248,104 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     * from source URIs to local paths are stored to transient files for use by the next phase.
     * TODO: handle InitialWorkDir
     */
-  def prolog(): Unit = {
+  def localizeInputs(): Unit = {
     if (logger.isVerbose) {
-      trace(s"Prolog debugLevel=${logger.traceLevel}")
       trace(s"dxCompiler version: ${getVersion}")
-      printDirTree()
       trace(s"Task source code:\n${jobMeta.sourceCode}", traceLengthLimit)
+      printDirTree()
+      trace(s"localizeInputs debugLevel=${logger.traceLevel}")
     }
 
-    // downloaded files must go to a different location than the dxfuse mount point
-    assert(jobMeta.workerPaths.getInputFilesDir() != jobMeta.workerPaths.getDxfuseMountDir())
+    object PathsToLocalize {
+      var virtualFiles: Vector[StringFileNode] = Vector.empty
+      var localFiles: Set[LocalFileSource] = Set.empty
+      var filesToStream: Set[AddressableFileNode] = Set.empty
+      var filesToDownload: Set[AddressableFileNode] = Set.empty
 
-    case class PathsToLocalize(virtualFiles: Vector[VFile] = Vector.empty,
-                               localFiles: Set[(LocalFileSource, VFile)] = Set.empty,
-                               filesToStream: Set[(AddressableFileNode, VFile)] = Set.empty,
-                               filesToDownload: Set[(AddressableFileNode, VFile)] = Set.empty)
-
-    // Updates all `VFolder` values (including those nested within `value`) to
-    // set their `listing`s if missing. Also extracts all file `VFile` values into
-    // a `PathsToLocalize` object as follows:
-    // * If `contents` is non-empty, the file is added to `virtualFiles`
-    // * If `address` resolves to a `LocalFileSource`, the file is added to `localFiles`
-    // * Otherwise, if `stream` is true, the file is added to `filesToStream`, otherwise
-    //   it is added to `filesToDownload`
-    def updateListingsAndExtractFiles(value: Value,
-                                      stream: Boolean,
-                                      paths: PathsToLocalize): (Value, PathsToLocalize) = {
-
-      // creates a listing of VFile/VFolders from a nested listing of FileSources
-      def createListing(value: Vector[FileSource],
-                        paths: PathsToLocalize): (Vector[PathValue], PathsToLocalize) = {
-        value.foldLeft(Vector.empty[PathValue], paths) {
-          case ((itemAccu, pathAccu), fs: AddressableFileSource)
-              if fs.isDirectory && fs.isListable =>
-            val (items, updatedPaths) = createListing(fs.listing(), pathAccu)
-            (itemAccu :+ VFolder(fs.address, listing = Some(items)), updatedPaths)
-          case ((itemAccu, pathAccu), fs: AddressableFileSource) if fs.isDirectory =>
-            (itemAccu :+ VFolder(fs.address), pathAccu)
-          case ((itemAccu, pathAccu), fs: LocalFileSource) =>
-            val file = VFile(fs.address)
-            (itemAccu :+ file, pathAccu.copy(localFiles = pathAccu.localFiles + (fs, file)))
-          case ((itemAccu, pathAccu), fs: AddressableFileSource) =>
-            val file = VFile(fs.address)
-            val updatedPaths = if (stream) {
-              pathAccu.copy(filesToStream = pathAccu.filesToStream + (fs, file))
-            } else {
-              pathAccu.copy(filesToDownload = pathAccu.filesToDownload + (fs, file))
+      case class PathValueHandler(stream: Boolean) {
+        // Updates all `VFolder` values (including those nested within `value`) to
+        // set their `listing`s if missing. Also extracts all file `VFile` values into
+        // a `PathsToLocalize` object as follows:
+        // * If `contents` is non-empty, the file is added to `virtualFiles`
+        // * If `address` resolves to a `LocalFileSource`, the file is added to `localFiles`
+        // * Otherwise, if `stream` is true, the file is added to `filesToStream`, otherwise
+        //   it is added to `filesToDownload`
+        def updateListingsAndExtractFiles(value: Value,
+                                          t: Option[Type] = None,
+                                          optional: Boolean = false): Option[Value] = {
+          // creates a listing of VFile/VFolders from a nested listing of FileSources
+          def createListing(value: Vector[FileSource]): Vector[PathValue] = {
+            value.map {
+              case fs: AddressableFileSource if fs.isDirectory && fs.isListable =>
+                val items = createListing(fs.listing())
+                VFolder(fs.address, listing = Some(items))
+              case fs: AddressableFileSource if fs.isDirectory =>
+                VFolder(fs.address)
+              case fs: LocalFileSource =>
+                localFiles += fs
+                VFile(fs.address)
+              case fs: AddressableFileSource =>
+                if (stream) {
+                  filesToStream += fs
+                } else {
+                  filesToDownload += fs
+                }
+                VFile(fs.address)
             }
-            (itemAccu :+ file, updatedPaths)
-        }
-      }
-
-      // updates a listing by ensuring all VFolders have their listing set
-      def updateListing(items: Vector[PathValue]): (Vector[PathValue], PathsToLocalize) = {
-        items.foldLeft(Vector.empty[PathValue], paths) {
-          case ((valueAccu, pathAccu), path) =>
-            val (updatedValue, updatedPaths) =
-              updateListingsAndExtractFiles(path, stream, pathAccu)
-            updatedValue match {
-              case p: PathValue => (valueAccu :+ p, updatedPaths)
-              case other        => throw new Exception(s"expected PathValue, not ${other}")
-            }
-        }
-      }
-
-      value match {
-        case file: VFile if file.contents.nonEmpty =>
-          (file, paths.copy(virtualFiles = paths.virtualFiles :+ file))
-        case file: VFile =>
-          val (updatedSecondaryFiles, updatedPaths) =
-            updateListing(file.secondaryFiles)
-          val updatedFile = file.copy(secondaryFiles = updatedSecondaryFiles)
-          val pathsWithFile = fileResolver.resolve(file.uri) match {
-            case fs if !fs.exists =>
-              throw new Exception(s"File-type input does not exist: ${fs}")
-            case fs if fs.isDirectory =>
-              throw new Exception(s"File-type input is a directory: ${fs}")
-            case fs: LocalFileSource =>
-              updatedPaths.copy(localFiles = updatedPaths.localFiles + (fs, updatedFile))
-            case fs if stream =>
-              updatedPaths.copy(filesToStream = updatedPaths.filesToStream + (fs, updatedFile))
-            case fs =>
-              updatedPaths.copy(filesToDownload = updatedPaths.filesToDownload + (fs, updatedFile))
           }
-          (updatedFile, pathsWithFile)
-        case folder: VFolder =>
-          // fill in the listing if it is not provided
-          Option
-            .when(folder.listing.isEmpty)(fileResolver.resolveDirectory(folder.uri))
-            .map {
-              case fs if !fs.exists =>
-                throw new Exception(s"Directory-type input does not exist: ${fs}")
-              case fs if !fs.isDirectory =>
-                throw new Exception(s"Directory-type input is not a directory: ${fs}")
-              case fs if !fs.isListable =>
-                throw new Exception(s"Cannot get listing for Directory-type input: ${fs}")
-              case fs => fs.listing(recursive = true)
+
+          // updates a listing by ensuring all VFolders have their listing set
+          def updateListing(items: Vector[PathValue]): Vector[PathValue] = {
+            items.map { path =>
+              updateListingsAndExtractFiles(path) match {
+                case Some(p: PathValue) => p
+                case other              => throw new Exception(s"expected PathValue, not ${other}")
+              }
             }
-            .filter(_.nonEmpty)
-            .map { listing =>
+          }
+
+          (t, value) match {
+            case (Some(TFile) | None, file: VFile) if file.contents.nonEmpty =>
+              virtualFiles :+= StringFileNode(file.contents.get, file.uri)
+              Some(file.copy(contents = None))
+            case (Some(TFile) | None, file: VFile) =>
+              fileResolver.resolve(file.uri) match {
+                case fs if !fs.exists =>
+                  throw new Exception(s"File-type input does not exist: ${fs}")
+                case fs if fs.isDirectory =>
+                  throw new Exception(s"File-type input is a directory: ${fs}")
+                case fs: LocalFileSource => localFiles += fs
+                case fs if stream        => filesToStream += fs
+                case fs                  => filesToDownload += fs
+              }
+              val updatedSecondaryFiles = updateListing(file.secondaryFiles)
+              Some(file.copy(secondaryFiles = updatedSecondaryFiles))
+            case (Some(TDirectory) | None, folder: VFolder) =>
               // fill in the listing if it is not provided
-              val (updatedListing, updatedPaths) = createListing(listing, paths)
-              (folder.copy(listing = Some(updatedListing)), updatedPaths)
-            }
-            .getOrElse((folder, paths))
-        case listing: VListing =>
-          val (updatedItems, updatedPaths) = updateListing(listing.items)
-          (listing.copy(items = updatedItems), updatedPaths)
-        case VArray(items) =>
-          val (updatedItems, updatedPaths) = items.foldLeft(Vector.empty[Value], paths) {
-            case ((itemAccu, pathAccu), item) =>
-              val (updatedItem, updatedPaths) =
-                updateListingsAndExtractFiles(item, stream, pathAccu)
-              (itemAccu :+ updatedItem, updatedPaths)
+              Option
+                .when(folder.listing.isEmpty)(fileResolver.resolveDirectory(folder.uri))
+                .map {
+                  case fs if !fs.exists =>
+                    throw new Exception(s"Directory-type input does not exist: ${fs}")
+                  case fs if !fs.isDirectory =>
+                    throw new Exception(s"Directory-type input is not a directory: ${fs}")
+                  case fs if !fs.isListable =>
+                    throw new Exception(s"Cannot get listing for Directory-type input: ${fs}")
+                  case fs => fs.listing(recursive = true)
+                }
+                .filter(_.nonEmpty)
+                .map { listing =>
+                  // fill in the listing if it is not provided
+                  val updatedListing = createListing(listing)
+                  folder.copy(listing = Some(updatedListing))
+                }
+                .orElse(Some(folder))
+            case (Some(TDirectory) | None, listing: VListing) =>
+              val updatedItems = updateListing(listing.items)
+              Some(listing.copy(items = updatedItems))
+            case _ => None
           }
-          (VArray(updatedItems), updatedPaths)
-        case VHash(items) =>
-          val (updatedItems, updatedPaths) = items.foldLeft(SeqMap.empty[String, Value], paths) {
-            case ((itemAccu, pathAccu), (key, value)) =>
-              val (updatedValue, updatedPaths) =
-                updateListingsAndExtractFiles(value, stream, pathAccu)
-              (itemAccu + (key -> updatedValue), updatedPaths)
-          }
-          (VHash(updatedItems), updatedPaths)
-        case _ => (value, paths)
+        }
       }
     }
 
@@ -377,46 +360,40 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     //  require some way for the downloaded image tarball to be discovered and loaded. For now,
     //  we rely on DockerUtils to download the image (via DxFileSource, which uses the dx API
     //  to download the file).
-    val (inputs, pathsToLocalize) =
-      getInputsWithDefaults.foldLeft(Map.empty[String, (Type, Value)], PathsToLocalize()) {
-        case ((inputAccu, pathAccu), (name, (t, v))) =>
-          // whether to stream all the files/directories associated with this input
-          val stream = streamFiles == StreamFiles.All ||
-            (streamFiles == StreamFiles.PerFile && streamFileForInput(name))
-          val (updatedValue, updatedPaths) = updateListingsAndExtractFiles(v, stream, pathAccu)
-          (inputAccu + (name -> (t, updatedValue)), updatedPaths)
-      }
+    val inputs = getInputsWithDefaults.map {
+      case (name, (t, v)) =>
+        // whether to stream all the files/directories associated with this input
+        val stream = streamFiles == StreamFiles.All ||
+          (streamFiles == StreamFiles.PerFile && streamFileForInput(name))
+        val handler = PathsToLocalize.PathValueHandler(stream)
+        name -> (t, Value.transform(v, Some(t), handler.updateListingsAndExtractFiles))
+    }
     serializeInputs(getSchemas, inputs)
 
+    // localize virtual files to /home/dnanexus/virtual
+    logger.traceLimited(s"Virtual files = ${PathsToLocalize.virtualFiles}")
+    val virtualUriToPath = PathsToLocalize.virtualFiles.map { fs =>
+      val localPath = fs.localizeToDir(jobMeta.workerPaths.getVirtualFilesDir(ensureExists = true))
+      fs.name -> localPath
+    }.toMap
+
+    // local files already have a path
+    val localUriToPath = PathsToLocalize.localFiles.map(fs => fs.address -> fs.canonicalPath).toMap
+
     // This object handles mapping FileSources to local paths and deals with file name
-    // collisions in the manner specified by the WDL spec. All input files except those
+    // collisions in the manner specified by the WDL spec. All remote input files except those
     // streamed by dxfuse are placed in subfolders of the /home/dnanexus/inputs directory.
-    val localizer = SafeLocalizationDisambiguator.create(
+    val downloadLocalizer = SafeLocalizationDisambiguator.create(
         rootDir = jobMeta.workerPaths.getInputFilesDir(),
         separateDirsBySource = true,
         createDirs = true,
         disambiguationDirLimit = TaskExecutor.MaxDisambiguationDirs,
         logger = logger
     )
-
-    // localize virtual files
-    logger.traceLimited(s"Virtual files = ${pathsToLocalize.virtualFiles}")
-    val virtualUriToPath = pathsToLocalize.virtualFiles.map { f =>
-      val fs = StringFileNode(f.contents.get, f.uri)
-      val localPath = localizer.getLocalPathForSource(fs, sourceContainer = "<virtual>")
-      fs.localize(localPath)
-      f.uri -> localPath
-    }.toMap
-
-    // local files already have a path
-    val localUriToPath = pathsToLocalize.localFiles.map {
-      case (fs, _) => fs.address -> fs.canonicalPath
-    }.toMap
-
     // Build dxda manifest to localize all non-streaming remote files
-    logger.traceLimited(s"Files to download: ${pathsToLocalize.filesToDownload}")
+    logger.traceLimited(s"Files to download: ${PathsToLocalize.filesToDownload}")
     val downloadFileSourceToPath: Map[AddressableFileNode, Path] =
-      localizer.getLocalPaths(pathsToLocalize.filesToDownload.toMap.keys)
+      downloadLocalizer.getLocalPaths(PathsToLocalize.filesToDownload)
     val downloadUriToPath = downloadFileSourceToPath.map {
       case (fs, path) => fs.address -> path
     }
@@ -431,18 +408,18 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       }
 
     // build dxfuse manifest to localize all straming remote files and folders
-    logger.traceLimited(s"Files to stream: ${pathsToLocalize.filesToStream}")
+    logger.traceLimited(s"Files to stream: ${PathsToLocalize.filesToStream}")
     // use a different localizer for the dxfuse mount point
     val streamingLocalizer = SafeLocalizationDisambiguator.create(
         rootDir = jobMeta.workerPaths.getDxfuseMountDir(),
-        existingPaths = localizer.getLocalizedPaths,
+        existingPaths = downloadLocalizer.getLocalizedPaths,
         separateDirsBySource = true,
         createDirs = false,
         disambiguationDirLimit = TaskExecutor.MaxDisambiguationDirs,
         logger = logger
     )
     val streamFileSourceToPath: Map[AddressableFileNode, Path] =
-      streamingLocalizer.getLocalPaths(pathsToLocalize.filesToStream.toMap.values)
+      streamingLocalizer.getLocalPaths(PathsToLocalize.filesToStream)
     val streamUriToPath = streamFileSourceToPath.map {
       case (fs, path) => fs.address -> path
     }
@@ -458,73 +435,107 @@ abstract class TaskExecutor(jobMeta: JobMeta,
 
     val allUriToPath = virtualUriToPath ++ localUriToPath ++ downloadUriToPath ++ streamUriToPath
     serializeUriToPath(allUriToPath)
-    serializeLocalizer(localizer)
+    serializeLocalizer(downloadLocalizer)
   }
 
-  // TODO: ensure secondary files are in the same dir as the parent file
-  // create links for any local files/folders with basename set
-  //  val renamedPath = fs.canonicalPath.getParent.resolve(file.basename.get)
-  //  val localizedPath = localizer.getLocalPath(jobMeta.fileResolver.fromPath(renamedPath))
-  //  fs.linkFrom(localizedPath)
-  //  fs.address -> localizedPath
-  // Replace the remote input URIs with local file paths
-  //  val fileSourceToPath = localFileSourceToPath ++ downloadFileSourceToPath ++ streamFileSourceToPath
-  //  val folderSourceToPath =
-  //    (localFolderSourceToPathAndListing ++ downloadFolderSourceToPathAndListing ++ streamFolderSourceToPathAndListing)
-  //      .map {
-  //        case (fs, (path, _)) => fs -> path
-  //      }
   //  val uriToPath: Map[String, String] = (fileSourceToPath ++ folderSourceToPath).map {
   //    case (dxFs: DxFileSource, path)       => dxFs.address -> path.toString
   //    case (dxFs: DxFolderSource, path)     => dxFs.address -> path.toString
   //    case (localFs: LocalFileSource, path) => localFs.originalPath.toString -> path.toString
   //    case (other, _)                       => throw new RuntimeException(s"unsupported file source ${other}")
   //  }.toMap
-  //
-  //  def pathTranslator(v: Value, t: Option[Type], optional: Boolean): Option[PathValue] = {
-  //    def translateUri(uri: String): Option[String] = {
-  //      uriToPath.get(uri) match {
-  //        case Some(localPath)  => Some(localPath)
-  //        case None if optional => None
-  //        case _                => throw new Exception(s"Did not localize file ${uri}")
-  //      }
-  //    }
-  //    (t, v) match {
-  //      case (_, f: VFile) if f.contents.nonEmpty =>
-  //        Some(virtualUriToFile(f.uri))
-  //      case (_, f: VFile) =>
-  //        translateUri(f.uri).map { newUri =>
-  //          val newSecondaryFiles =
-  //            f.secondaryFiles.flatMap(pathTranslator(_, None, optional = false))
-  //          f.copy(uri = newUri, secondaryFiles = newSecondaryFiles)
-  //        }
-  //      case (Some(TFile), VString(uri)) => translateUri(uri).map(VFile(_))
-  //      case (_, f: VFolder)             =>
-  //        // We've already limited the files that will be downloaded/streamed, so instead of
-  //        // transforming all the paths in the listing, we exclude the listings from the
-  //        // transformed values and let them be filled in at evaluation time if necessary
-  //        translateUri(f.uri).map(newUri => f.copy(uri = newUri, listing = None))
-  //      case (_, l: VListing) =>
-  //        val newListing = l.items.map(pathTranslator(_, None, optional = optional))
-  //        if (newListing.forall(_.isEmpty)) {
-  //          None
-  //        } else if (newListing.exists(_.isEmpty)) {
-  //          val notLocalized = l.items.zip(newListing).collect {
-  //            case (old, None) => old
-  //          }
-  //          throw new Exception(
-  //            s"some listing entries were not localized: ${notLocalized.mkString(",")}"
-  //          )
-  //        } else {
-  //          Some(l.copy(items = newListing.flatten))
-  //        }
-  //      case _ => None
-  //    }
-  //  }
-  //
-  //  val localizedInputs = inputs.view.mapValues {
-  //    case (t, v) => (t, Value.transform(v, Some(t), pathTranslator))
-  //  }.toMap
+
+  def finalizeInputs(): Unit = {
+    val (schemas, inputs) = deserializeInputs()
+    val uriToPath = deserializeUriToPath()
+    val localizer = deserializeLocalizer()
+    logger.traceLimited(s"InstantiateCommand, env = ${inputs}, uriToPath = ${uriToPath}")
+
+    // Go through all the inputs and finalize files, folders and listings.
+    // For a file that is not in the context of a folder:
+    // * If it is a local file, we link it into a disambiguation dir, naming it with
+    //   its basename if it has one.
+    // * Otherwise, if it has a basename, we create a link with the new name in
+    //   the same folder to the original file, throwing an exception if there is
+    //   a naming collision.
+    // * If it has secondary files, they are linked into the same directory as
+    //   the main file, creating any subfolders, and throwing an exception if there
+    //   is a naming collision.
+    // For a directory or listing, we create a new disambiguation dir and recursively
+    // link in all the files it contains, creating any subfolders.
+    object PathToUri {
+      var pathToUri: Map[Path, String] = Map.empty
+      val inputDirs =
+        Vector(jobMeta.workerPaths.getInputFilesDir(), jobMeta.workerPaths.getDxfuseMountDir())
+
+      def finalizeValue(value: Value, t: Option[Type], parent: Option[Path]): Option[Value] = {
+        def finalizeListing(listing: Vector[PathValue], listingParent: Path): Vector[PathValue] = {
+          listing.map { value =>
+            finalizeValue(value, None, Some(listingParent)) match {
+              case Some(p: PathValue) => p
+              case other              => throw new Exception(s"expected PathValue, not ${other}")
+            }
+          }
+        }
+
+        (t, value) match {
+          case (Some(TFile) | None, f: VFile) =>
+            val path = uriToPath(f.uri)
+            val parentDir = parent.getOrElse(path.getParent)
+            val newPath =
+              if (parent.nonEmpty || !inputDirs.exists(path.startsWith) || f.basename.nonEmpty) {
+                // Either we are localizing into a specific directory, the path is a local or a
+                // virtual file, or it is a remote file that needs its name changed - use the
+                // localizer to determine the new path and then create a symbolic link.
+                val sourcePath = f.basename.map(parentDir.resolve).getOrElse(path)
+                val newPath = localizer.getLocalPath(fileResolver.fromPath(sourcePath))
+                Files.createSymbolicLink(newPath, path)
+              } else {
+                path
+              }
+            pathToUri += (newPath -> f.uri)
+            // recursively resolve the secondary files, linking them to be adjacent to the main file
+            val newSecondaryFiles = finalizeListing(f.secondaryFiles, parentDir)
+            Some(f.copy(uri = newPath.toString, secondaryFiles = newSecondaryFiles))
+          case (Some(TDirectory) | None, f: VFolder) if f.listing.isDefined =>
+            val fs = (fileResolver.resolveDirectory(f.uri), f.basename) match {
+              case (fs, Some(basename)) =>
+                fs.getParent
+                  .map(_.resolve(basename))
+                  .getOrElse(throw new Exception("cannot rename root directory"))
+              case (fs, None) => fs
+            }
+            val path = localizer.getLocalPath(fs, parent)
+            pathToUri += (path -> f.uri)
+            val newListing = finalizeListing(f.listing.get, path)
+            Some(f.copy(uri = path.toString, listing = Some(newListing)))
+          case (Some(TDirectory) | None, l: VListing) =>
+            // a listing is a virtual directory and is unique (i.e. we never want two
+            // listings pointing at the same physical directory), so we source it from
+            // a temp dir
+            val tempDir = Files.createTempDirectory("listing")
+            tempDir.toFile.deleteOnExit()
+            val fs = fileResolver.fromPath(tempDir.resolve(l.basename), isDirectory = Some(true))
+            val path = localizer.getLocalPath(fs, parent)
+            val newListing = finalizeListing(l.items, path)
+            Some(l.copy(items = newListing))
+          case _ => None
+        }
+      }
+
+      def handler(value: Value, t: Option[Type], optional: Boolean): Option[Value] = {
+        finalizeValue(value, t, None)
+      }
+    }
+
+    val finalizedInputs = inputs.map {
+      case (name, (t, v)) =>
+        name -> (t, Value.transform(v, Some(t), PathToUri.handler))
+    }
+
+    serializeInputs(schemas, finalizedInputs)
+    serializePathToUri(PathToUri.pathToUri)
+  }
 
   /**
     * Generates and writes command script(s) to disk.
@@ -536,15 +547,14 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       localizedInputs: Map[String, (Type, Value)]
   ): Map[String, (Type, Value)]
 
+  /**
+    * Updates inputs with localized paths, then evaluates the command script and
+    * writes it to disk. Inputs are supplemented with any local file paths created
+    * when evaluating the command script and are serialized for use in the next phase.
+    */
   def instantiateCommand(): Unit = {
-    val (schemas, inputs) = deserializeInputs()
-    val uriToPath = deserializeUriToPath()
-    val localizer = deserializeLocalizer()
-    logger.traceLimited(s"InstantiateCommand, env = ${inputs}, uriToPath = ${uriToPath}")
-
-    //
-    // Create directories for each VFolder or VListing input and link in all files
-
+    val (schemas, localizedInputs) = deserializeInputs()
+    logger.traceLimited(s"InstantiateCommand, env = ${localizedInputs}")
     // evaluate the command block and write the command script
     val updatedInputs = writeCommandScript(localizedInputs)
     // write the updated env to disk
@@ -559,7 +569,58 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     */
   protected def evaluateOutputs(
       localizedInputs: Map[String, (Type, Value)]
-  ): Map[String, (Type, Value, Set[String], Map[String, String])]
+  ): (Map[String, (Type, Value)], Map[String, (Set[String], Map[String, String])])
+
+  def delocalizeOutputs(): Unit = {
+    if (logger.isVerbose) {
+      trace(s"delocalizeOutputs debugLevel=${logger.traceLevel}")
+      printDirTree()
+    }
+
+    // load the cached localized inputs and path mappings
+    val (_, localizedInputs) = deserializeInputs()
+    val localPathToUri = deserializePathToUri()
+    val uriToSourcePath = deserializeUriToPath()
+
+    // evaluate output expressions
+    val (localizedOutputs, tagsAndProperties) = evaluateOutputs(localizedInputs)
+
+    // extract all files to upload
+    def extractPaths(value: Value,
+                     t: Option[Type],
+                     optional: Boolean,
+                     ctx: Vector[Path]): Option[Vector[Path]] = {
+      (t, value) match {
+        case (Some(TFile) | None, f: VFile) if f.contents.isDefined =>
+          // a file literal
+          val name = f.basename.getOrElse(f.uri)
+
+        case _ => None
+      }
+    }
+
+    val outputFiles = localizedOutputs.map {
+      case (name, (t, v)) => name -> Value.walk(v, Some(t), Vector.empty[Path], extractPaths)
+    }
+
+    // upload files
+    jobMeta.uploadOutputFiles(outputFiles, tagsAndProperties)
+
+    // replace local paths with remote URIs
+
+  }
+
+  /**
+    * Collection of files associated with an input value.
+    * @param virutalFiles VFiles that have a `contents` attribute - these are
+    *                     localized by writing the contents to a file
+    * @param realFiles local/remote files
+    * @param folders local/remove folders - these are localized by streaming/
+    *                downloading the folder recursively
+    */
+  private case class PathValues(virutalFiles: Vector[VFile] = Vector.empty,
+                                realFiles: Vector[(AddressableFileNode, VFile)] = Vector.empty,
+                                folders: Vector[(AddressableFileSource, VFolder)] = Vector.empty)
 
   private lazy val virtualOutputDir =
     Files.createTempDirectory(jobMeta.workerPaths.getOutputFilesDir(ensureExists = true), "virtual")
@@ -717,7 +778,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     inner(name, v, t, optional = false)
   }
 
-  def epilog(): Unit = {
+  def delocalizeOutputs(): Unit = {
     if (logger.isVerbose) {
       trace(s"Epilog debugLevel=${logger.traceLevel}")
       printDirTree()
@@ -1055,9 +1116,10 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         checkInstanceType.toString
       } else {
         action match {
-          case TaskAction.Prolog             => prolog()
+          case TaskAction.LocalizeInputs     => localizeInputs()
+          case TaskAction.FinalizeInputs     => finalizeInputs()
           case TaskAction.InstantiateCommand => instantiateCommand()
-          case TaskAction.Epilog             => epilog()
+          case TaskAction.DelocalizeOutputs  => delocalizeOutputs()
           case TaskAction.Relaunch           => relaunch()
           case _ =>
             throw new Exception(s"Invalid executor action ${action}")

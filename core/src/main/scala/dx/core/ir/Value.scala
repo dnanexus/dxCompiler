@@ -92,6 +92,76 @@ object Value {
     }
   }
 
+  def walk[T](value: Value,
+              t: Option[Type],
+              initialContext: T,
+              handler: (Value, Option[Type], Boolean, T) => Option[T]): T = {
+    def walkPaths(paths: Vector[PathValue], innerContext: T): T = {
+      paths
+        .foldLeft(innerContext) {
+          case (ctx, f: VFile)          => inner(f, Some(TFile), ctx)
+          case (ctx, d: DirectoryValue) => inner(d, Some(TDirectory), ctx)
+        }
+    }
+    def inner(innerValue: Value, innerType: Option[Type], innerContext: T): T = {
+      val (nonOptType, optional) = if (innerType.exists(isOptional)) {
+        (Some(unwrapOptional(innerType.get)), true)
+      } else {
+        (innerType, true)
+      }
+      handler(innerValue, nonOptType, optional, innerContext).getOrElse {
+        (nonOptType, innerValue) match {
+          case (_, VNull) if optional => innerContext
+          case (_, VNull) =>
+            throw new Exception(s"null value for non-optional type ${innerType.get}")
+          case (Some(TFile), f: VFile) if f.secondaryFiles.nonEmpty =>
+            walkPaths(f.secondaryFiles, innerContext)
+          case (Some(TDirectory), l: VListing) if l.items.nonEmpty =>
+            walkPaths(l.items, innerContext)
+          case (Some(TArray(_, true)), VArray(Vector())) =>
+            throw new Exception("empty array for non-empty array type")
+          case (Some(TArray(itemType, _)), VArray(items)) =>
+            items.foldLeft(innerContext) {
+              case (ctx, item) => inner(item, Some(itemType), ctx)
+            }
+          case (_, VArray(items)) =>
+            items.foldLeft(innerContext) {
+              case (ctx, item) => inner(item, None, ctx)
+            }
+          case (Some(TSchema(name, fieldTypes)), VHash(fields)) =>
+            fields.foldLeft(innerContext) {
+              case (_, (k, _)) if !fieldTypes.contains(k) =>
+                throw new Exception(s"invalid member ${k} of schema ${name}")
+              case (ctx, (k, v)) => inner(v, Some(fieldTypes(k)), ctx)
+            }
+          case (_, VHash(fields)) =>
+            fields.foldLeft(innerContext) {
+              case (ctx, (k, v)) => inner(v, None, ctx)
+            }
+          case (Some(TEnum(symbols)), s: VString) if symbols.contains(s.value) => innerContext
+          case (Some(TEnum(symbols)), other) =>
+            throw new Exception(
+                s"${other} is not one of the allowed symbols ${symbols.mkString(",")}"
+            )
+          case (Some(TMulti(bounds)), _) =>
+            bounds
+              .collectFirstDefined { boundType =>
+                try {
+                  Some(inner(innerValue, Some(boundType), innerContext))
+                } catch {
+                  case _: Throwable => None
+                }
+              }
+              .getOrElse(
+                  throw new Exception(s"could not handle ${innerValue} as any of ${bounds}")
+              )
+          case _ => innerContext
+        }
+      }
+    }
+    inner(value, t, initialContext)
+  }
+
   /**
     * Transforms a Value to another Value, applying the `handler` function
     * at each level of nesting. The default rules handle recursively
@@ -152,6 +222,18 @@ object Value {
             throw new Exception(
                 s"${other} is not one of the allowed symbols ${symbols.mkString(",")}"
             )
+          case (Some(TMulti(bounds)), _) =>
+            bounds
+              .collectFirstDefined { boundType =>
+                try {
+                  Some(inner(innerValue, Some(boundType)))
+                } catch {
+                  case _: Throwable => None
+                }
+              }
+              .getOrElse(
+                  throw new Exception(s"could not transform ${innerValue} as any of ${bounds}")
+              )
           case _ => innerValue
         }
       }
