@@ -1,6 +1,6 @@
 package dx.compiler
 
-import dx.api.{ConstraintOper, DxApi, DxConstraint, DxIOSpec}
+import dx.api.{DxApi, DxConstraint, DxConstraintBool, DxConstraintString, DxIOSpec}
 import dx.core.Constants
 import dx.core.ir.Value._
 import dx.core.ir.{
@@ -56,16 +56,13 @@ class ExecutableCompiler(extras: Option[Extras],
                          fileResolver: FileSourceResolver,
                          dxApi: DxApi = DxApi.get) {
 
-  private def constraintToNative(constraint: ParameterAttributes.Constraint): JsValue = {
+  private def typeConstraintToNative(constraint: DxConstraint): JsValue = {
     constraint match {
-      case ParameterAttributes.StringConstraint(s) => JsString(s)
-      case ParameterAttributes.CompoundConstraint(oper, constraints) =>
-        val dxOper = oper match {
-          case ConstraintOper.And => DxConstraint.And
-          case ConstraintOper.Or  => DxConstraint.Or
-          case _                  => throw new Exception(s"Invalid operation ${oper}")
-        }
-        JsObject(Map(dxOper -> JsArray(constraints.map(constraintToNative))))
+      case DxConstraintString(s) => JsString(s)
+      case DxConstraintBool(oper, array) =>
+        JsObject(Map(oper.name -> JsArray(array.constraints.map(typeConstraintToNative))))
+      case other =>
+        throw new Exception(s"invalid type constraint ${other}")
     }
   }
 
@@ -163,7 +160,7 @@ class ExecutableCompiler(extras: Option[Extras],
             // TODO: ParameterAttributes.DirectorySuggestion
           }))
         case ParameterAttributes.TypeAttribute(constraint) =>
-          Some(DxIOSpec.Type -> constraintToNative(constraint))
+          Some(DxIOSpec.Type -> typeConstraintToNative(constraint))
         case ParameterAttributes.DefaultAttribute(value) =>
           // The default was specified in parameter_meta and was not specified in the
           // parameter specification

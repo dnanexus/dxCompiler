@@ -68,7 +68,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
                                wdlTypeAliases: Map[String, T_Struct],
                                jobMeta: JobMeta,
                                separateOutputs: Boolean)
-    extends WorkflowExecutor[WdlBlock](jobMeta, separateOutputs) {
+    extends WorkflowExecutor[WdlBlock](jobMeta = jobMeta, separateOutputs = separateOutputs) {
   private val logger = jobMeta.logger
   private lazy val evaluator = Eval(
       jobMeta.workerPaths,

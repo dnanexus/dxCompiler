@@ -13,10 +13,7 @@ import dx.api.{
   Field,
   FolderContents
 }
-import dx.core.getVersion
-import dx.core.ir.Type.{TFile, TOptional, TSchema}
-import dx.core.Constants
-import dx.core.ir.Value.{VArray, VFile}
+import dx.core.{Constants, getVersion}
 import dx.core.ir.{
   Block,
   BlockKind,
@@ -29,9 +26,11 @@ import dx.core.ir.{
   Value,
   ValueSerde
 }
+import dx.core.ir.Type.{TFile, TOptional, TSchema}
+import dx.core.ir.Value.{VArray, VFile}
 import dx.util.{Enum, JsUtils, LocalFileSource, TraceLevel}
-import dx.util.protocols.DxFileSource
 import dx.util.CollectionUtils.IterableOnceExtensions
+import dx.util.protocols.DxFileSource
 import spray.json._
 
 object WorkflowAction extends Enum {
@@ -244,10 +243,18 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
                 |""".stripMargin,
             minLevel = TraceLevel.Verbose
         )
-        val filteredEnv = env.view.filterKeys(outputNames.contains).toMap
-        val inputLinks = jobMeta.createOutputLinks(filteredEnv, validate = false)
+        // Create output links from the values in the env, which came either
+        // from job inputs or from evaluating private variables. Ignore any
+        // variable in env that will be overridden by on in outputs.
+        val filteredEnv = env.filter {
+          case (k, _) if outputs.contains(k)           => false
+          case (k, _) if block.outputNames.contains(k) => true
+          case _                                       => false
+        }
+        val envLinks = jobMeta.createOutputLinks(filteredEnv, validate = false)
+        // create output links from the exposed outputs
         val outputLink = outputs.view.filterKeys(outputNames.contains).toMap
-        inputLinks ++ outputLink
+        envLinks ++ outputLink
       }
     }
 
@@ -554,6 +561,47 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
       }
     }
 
+    // private variables may create files that need to be uploaded
+    protected def uploadPrivateVariablePaths(
+        env: Map[String, (Type, Value)]
+    ): Map[String, ParameterLink] = {
+      val filesToUpload = env.map {
+        case (name, (irType, irValue)) =>
+          name -> extractOutputFiles(name,
+                                     irValue,
+                                     irType,
+                                     jobMeta.fileResolver,
+                                     ignoreNonLocalFiles = true).map {
+            case local: LocalFileSource => local
+            case other =>
+              throw new Exception(s"unexpected non-local file ${other}")
+          }
+      }
+
+      val delocalizedPathToUri = jobMeta
+        .uploadOutputFiles(filesToUpload.map {
+          case (name, localFileSources) => name -> localFileSources.map(_.canonicalPath)
+        })
+        .map {
+          case (path, dxFile) => path -> dxFile.asUri
+        }
+      // Replace the local paths in the output values with URIs. This requires
+      // two look-ups: first to get the absoulte Path associated with the file
+      // value (which may be relative or absolute), and second to get the URI
+      // associated with the Path. Returns an Optional[String] because optional
+      // outputs may be null.
+      val delocalizingUriToPath =
+        filesToUpload.values.flatten.map(local => local.address -> local.canonicalPath).toMap
+      def resolveUri(value: String): Option[String] = {
+        delocalizingUriToPath.get(value) match {
+          case Some(path) => delocalizedPathToUri.get(path)
+          case _          => None
+        }
+      }
+      val delocalizedOutputs = delocalizeOutputFiles(env, resolveUri)
+      jobMeta.createOutputLinks(delocalizedOutputs)
+    }
+
     def launch(): Map[String, ParameterLink] = {
       val outputs: Map[String, ParameterLink] = block.kind match {
         case BlockKind.CallWithSubexpressions | BlockKind.CallFragment =>
@@ -563,7 +611,13 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
         case BlockKind.ScatterOneCall | BlockKind.ScatterComplex =>
           assert(jobMeta.scatterStart == 0)
           launchScatter()
-        case BlockKind.ExpressionsOnly => Map.empty
+        case BlockKind.ExpressionsOnly =>
+          // upload files associated with any private variables that are exposed as block outputs
+          uploadPrivateVariablePaths(env.filter {
+            case (k, _) if block.inputNames.contains(k)  => false
+            case (k, _) if block.outputNames.contains(k) => true
+            case _                                       => false
+          })
         case BlockKind.CallDirect =>
           throw new RuntimeException("unreachable state")
       }
@@ -660,7 +714,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
       } else {
         logger.traceLimited("Checking timestamps")
         // Retain only files that were created AFTER the analysis started
-        val describedFiles = dxApi.describeFilesBulk(analysisFiles)
+        val describedFiles = dxApi.describeFilesBulk(analysisFiles, searchWorkspaceFirst = true)
         val analysisCreated: java.util.Date = desc.getCreationDate
         describedFiles.collect {
           case dxFile if dxFile.describe().getCreationDate.compareTo(analysisCreated) >= 0 =>

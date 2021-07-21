@@ -1,17 +1,15 @@
 package dxExecutorWdl
 
 import dx.core.io.StreamFiles
-import dx.executor.{BaseCli, FileUploader, JobMeta}
+import dx.executor.{BaseCli, JobMeta}
 import dx.executor.wdl.{WdlTaskExecutor, WdlWorkflowExecutor}
 
 object Main extends BaseCli {
   override val jarName = "dxExecutorWdl.jar"
 
   override def createTaskExecutor(meta: JobMeta,
-                                  fileUploader: FileUploader,
-                                  streamFiles: StreamFiles.StreamFiles,
-                                  waitOnUpload: Boolean): WdlTaskExecutor = {
-    WdlTaskExecutor.create(meta, fileUploader, streamFiles, waitOnUpload = waitOnUpload)
+                                  streamFiles: StreamFiles.StreamFiles): WdlTaskExecutor = {
+    WdlTaskExecutor.create(meta, streamFiles)
   }
 
   override def createWorkflowExecutor(meta: JobMeta,

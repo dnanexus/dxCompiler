@@ -2,15 +2,13 @@ package dx.executor.cwl
 
 import dx.api.{DxFile, InstanceTypeRequest}
 import dx.core.Constants
-import dx.core.io.StreamFiles
 import dx.cwl._
 import dx.cwl.Document.Document
-import dx.core.io.StreamFiles.StreamFiles
-import dx.core.ir.Value.VString
+import dx.core.io.StreamFiles
 import dx.core.ir.{Parameter, Type, Value}
 import dx.core.languages.Language
 import dx.core.languages.cwl.{CwlUtils, DxHintSchema, RequirementEvaluator, Target}
-import dx.executor.{FileUploader, JobMeta, SerialFileUploader, TaskExecutor}
+import dx.executor.{JobMeta, TaskExecutor}
 import dx.util.{DockerUtils, FileUtils, JsUtils, TraceLevel}
 import spray.json._
 
@@ -19,9 +17,7 @@ import java.nio.file.Files
 
 object CwlTaskExecutor {
   def create(jobMeta: JobMeta,
-             fileUploader: FileUploader = SerialFileUploader(),
-             streamFiles: StreamFiles = StreamFiles.PerFile,
-             waitOnUpload: Boolean = false): CwlTaskExecutor = {
+             streamFiles: StreamFiles.StreamFiles = StreamFiles.PerFile): CwlTaskExecutor = {
     // when parsing a packed workflow as a String, we need to use a baseuri -
     // it doesn't matter what it is
     val parser = Parser.create(Some(URI.create("file:/null")), hintSchemas = Vector(DxHintSchema))
@@ -67,7 +63,7 @@ object CwlTaskExecutor {
             throw new Exception(s"more than one tool with name ${toolName}: ${v.mkString("\n")}")
         }
     }
-    CwlTaskExecutor(tool, jobMeta, fileUploader, streamFiles, waitOnUpload = waitOnUpload)
+    CwlTaskExecutor(tool, jobMeta, streamFiles)
   }
 }
 
@@ -78,12 +74,8 @@ object CwlTaskExecutor {
 // TODO: SHA1 checksums are computed for all outputs - we need to add these as
 //  properties on the uploaded files so they can be propagated to downstream
 //  CWL inputs
-case class CwlTaskExecutor(tool: Process,
-                           jobMeta: JobMeta,
-                           fileUploader: FileUploader,
-                           streamFiles: StreamFiles,
-                           waitOnUpload: Boolean)
-    extends TaskExecutor(jobMeta, fileUploader, streamFiles, waitOnUpload = waitOnUpload) {
+case class CwlTaskExecutor(tool: Process, jobMeta: JobMeta, streamFiles: StreamFiles.StreamFiles)
+    extends TaskExecutor(jobMeta, streamFiles) {
 
   private val dxApi = jobMeta.dxApi
   private val logger = jobMeta.logger
@@ -104,7 +96,7 @@ case class CwlTaskExecutor(tool: Process,
     // CWL parameters can have '.' in their name
     val (irInputs, target) =
       jobMeta.primaryInputs.foldLeft(Map.empty[String, Value], Option.empty[String]) {
-        case ((accu, None), (Target, VString(targetName))) =>
+        case ((accu, None), (Target, Value.VString(targetName))) =>
           (accu, Some(targetName))
         case ((accu, target), (name, value)) =>
           (accu + (Parameter.decodeName(name) -> value), target)
@@ -290,10 +282,10 @@ case class CwlTaskExecutor(tool: Process,
 
   override protected def evaluateOutputs(
       localizedInputs: Map[String, (Type, Value)]
-  ): Map[String, (Type, Value, Set[String], Map[String, String])] = {
+  ): (Map[String, (Type, Value)], Map[String, (Set[String], Map[String, String])]) = {
     // the outputs were written to stdout
     val stdoutFile = workerPaths.getStdoutFile()
-    if (Files.exists(stdoutFile)) {
+    val localizedOutputs = if (Files.exists(stdoutFile)) {
       val allOutputs = JsUtils.jsFromFile(stdoutFile) match {
         case JsObject(outputs) => outputs
         case JsNull            => Map.empty[String, JsValue]
@@ -373,13 +365,11 @@ case class CwlTaskExecutor(tool: Process,
         case (_, param) =>
           throw new Exception(s"missing value for output parameter ${param}")
       }
-      CwlUtils.toIR(cwlOutputs).map {
-        case (name, (irType, irValue)) =>
-          name -> (irType, irValue, Set.empty[String], Map.empty[String, String])
-      }
+      CwlUtils.toIR(cwlOutputs)
     } else {
-      Map.empty
+      Map.empty[String, (Type, Value)]
     }
+    (localizedOutputs, Map.empty)
   }
 
   override protected def outputTypes: Map[String, Type] = {

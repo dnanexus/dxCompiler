@@ -197,7 +197,7 @@ class InputTranslator(bundle: Bundle,
           throw new Exception(s"Scanning the input file produced ${dxobj} which is not a file")
       }
     // lookup platform files in bulk
-    dxApi.describeFilesBulk(dxFiles ++ resolvedPaths.values)
+    dxApi.describeFilesBulk(dxFiles ++ resolvedPaths.values, validate = true)
   }
 
   lazy val dxFileDescCache: DxFileDescCache = DxFileDescCache(dxFiles)

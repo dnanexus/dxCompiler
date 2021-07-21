@@ -32,14 +32,14 @@ class TranslatorTest extends AnyFlatSpec with Matchers {
     Paths.get(p)
   }
 
-  private val dxProject = dxApi.currentProject
+  private val dxProjectId = dxApi.currentProjectId.get
 
   // task compilation
   private val cFlags =
-    List("--compileMode", "ir", "-quiet", "--locked", "--project", dxProject.id)
+    List("--compileMode", "ir", "-quiet", "--locked", "--project", dxProjectId)
 
   private val cFlagsUnlocked =
-    List("--compileMode", "ir", "-quiet", "--project", dxProject.id)
+    List("--compileMode", "ir", "-quiet", "--project", dxProjectId)
 
   val dbgFlags = List("--compileMode",
                       "ir",
@@ -48,7 +48,7 @@ class TranslatorTest extends AnyFlatSpec with Matchers {
                       "GenerateIR",
                       "--locked",
                       "--project",
-                      dxProject.id)
+                      dxProjectId)
 
   private def getApplicationByName(name: String, bundle: Bundle): Application =
     bundle.allCallables(name) match {
@@ -168,7 +168,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
 
   it should "missing workflow inputs" in {
     val path = pathFromBasename("input_file", "missing_args.wdl")
-    val args = path.toString :: List("--compileMode", "ir", "--quiet", "--project", dxProject.id)
+    val args = path.toString :: List("--compileMode", "ir", "--quiet", "--project", dxProjectId)
     Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
@@ -267,10 +267,6 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val path = pathFromBasename("nested", "four_levels.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    /*        inside(retval) {
-            case Main.UnsuccessfulTermination(errMsg) =>
-                errMsg should include ("nested scatter")
- }*/
     retval shouldBe a[SuccessfulCompileIR]
   }
 
@@ -646,7 +642,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
             TFile,
             None,
             Vector(
-                TypeAttribute(StringConstraint("fastq"))
+                TypeAttribute(DxConstraintString("fastq"))
             )
         ),
         Parameter(
@@ -655,15 +651,15 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
             None,
             Vector(
                 TypeAttribute(
-                    CompoundConstraint(
-                        ConstraintOper.And,
-                        Vector(
-                            StringConstraint("fastq"),
-                            CompoundConstraint(
-                                ConstraintOper.Or,
-                                Vector(
-                                    StringConstraint("Read1"),
-                                    StringConstraint("Read2")
+                    DxConstraintBool(
+                        DxConstraintOper.And,
+                        DxConstraintArray(
+                            DxConstraintString("fastq"),
+                            DxConstraintBool(
+                                DxConstraintOper.Or,
+                                DxConstraintArray(
+                                    DxConstraintString("Read1"),
+                                    DxConstraintString("Read2")
                                 )
                             )
                         )
