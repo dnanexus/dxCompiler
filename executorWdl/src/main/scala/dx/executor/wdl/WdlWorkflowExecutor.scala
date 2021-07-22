@@ -29,7 +29,7 @@ import dx.core.languages.wdl.{
   WdlOptions,
   WdlUtils
 }
-import dx.executor.{FileUploader, JobMeta, SerialFileUploader, WorkflowExecutor}
+import dx.executor.{JobMeta, WorkflowExecutor}
 import dx.util.{DefaultBindings, FileNode, JsUtils, LocalFileSource, Logger, TraceLevel}
 import dx.util.CollectionUtils.IterableOnceExtensions
 import dx.util.protocols.DxFileSource
@@ -106,9 +106,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
                                tasks: Map[String, TAT.Task],
                                wdlTypeAliases: Map[String, T_Struct],
                                jobMeta: JobMeta,
-                               separateOutputs: Boolean,
-                               fileUploader: FileUploader = SerialFileUploader(),
-                               waitOnUpload: Boolean = false)
+                               separateOutputs: Boolean)
     extends WorkflowExecutor[WdlBlock](jobMeta = jobMeta, separateOutputs = separateOutputs) {
   private val logger = jobMeta.logger
   private lazy val evaluator = Eval(
