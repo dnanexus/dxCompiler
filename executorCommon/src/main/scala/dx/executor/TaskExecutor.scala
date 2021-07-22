@@ -1,8 +1,7 @@
 package dx.executor
 
 import java.nio.file.{Files, Path, Paths}
-
-import dx.api.{DxFile, DxJob, InstanceTypeRequest}
+import dx.api.{DirectoryUpload, DxFile, DxJob, FileUpload, InstanceTypeRequest, StringUpload}
 import dx.core.getVersion
 import dx.core.io.{
   DxdaManifest,
@@ -37,6 +36,13 @@ object TaskAction extends Enum {
 
 object TaskExecutor {
   val MaxDisambiguationDirs: Int = 5000
+  val InitialInputsFile = "serialized_initial_inputs.json"
+  val LocalizedInputsFile = "serialized_localized_inputs.json"
+  val LocalizedInputsWithCommandBindingsFile =
+    "serialized_localized_inputs_with_command_bindings.json"
+  val UriToPathFile = "serialized_uri_to_path.json"
+  val PathToUriFile = "serialized_path_to_uri.json"
+  val LocalizerFile = "serialized_localizer.json"
 }
 
 abstract class TaskExecutor(jobMeta: JobMeta,
@@ -111,7 +117,18 @@ abstract class TaskExecutor(jobMeta: JobMeta,
   // state between different phases of task execution, so we don't
   // have to re-evaluate expressions every time.
 
-  private def serializeInputs(schemas: Map[String, Type],
+  private def writeState(fileName: String, jsValue: JsValue): Unit = {
+    val path = jobMeta.workerPaths.getMetaDir(ensureExists = true).resolve(fileName)
+    FileUtils.writeFileContent(path, jsValue.prettyPrint)
+  }
+
+  private def readState(fileName: String): JsValue = {
+    val path = jobMeta.workerPaths.getMetaDir().resolve(fileName)
+    FileUtils.readFileContent(path, mustExist = true).parseJson
+  }
+
+  private def serializeInputs(fileName: String,
+                              schemas: Map[String, Type],
                               inputs: Map[String, (Type, Value)]): Unit = {
     val schemasJs = schemas.values.foldLeft(Map.empty[String, JsValue]) {
       case (accu, schema) => TypeSerde.serialize(schema, accu)._2
@@ -124,70 +141,60 @@ abstract class TaskExecutor(jobMeta: JobMeta,
             val jsValue = ValueSerde.serialize(v, pathsAsObjects = jobMeta.pathsAsObjects)
             (paramAccu + (k -> JsObject("type" -> jsType, "value" -> jsValue)), newSchemasJs)
         }
-    val json = JsObject(
+    val jsValue = JsObject(
         "schemas" -> JsObject(newSchemasJs),
-        "localizedInputs" -> JsObject(inputsJs)
+        "inputs" -> JsObject(inputsJs)
     )
-    FileUtils.writeFileContent(
-        jobMeta.workerPaths.getSerializedInputsFile(ensureParentExists = true),
-        json.prettyPrint
-    )
+    writeState(fileName, jsValue)
   }
 
-  private def deserializeInputs(): (Map[String, Type], Map[String, (Type, Value)]) = {
-    val localizedInputsFile = jobMeta.workerPaths.getSerializedInputsFile()
-    val (schemasJs, inputsJs) = FileUtils
-      .readFileContent(localizedInputsFile)
-      .parseJson match {
+  private def deserializeInputs(
+      fileName: String
+  ): (Map[String, Type], Map[String, (Type, Value)]) = {
+    readState(fileName) match {
       case env: JsObject =>
-        env
-          .getFields("schemas", "localizedInputs") match {
-          case Seq(JsObject(schemas), JsObject(inputs)) => (schemas, inputs)
+        env.getFields("schemas", "inputs") match {
+          case Seq(JsObject(schemaJs), JsObject(inputJs)) =>
+            val schemas = TypeSerde.deserializeSchemas(schemaJs)
+            inputJs.foldLeft((schemas, Map.empty[String, (Type, Value)])) {
+              case ((schemaAccu, paramAccu), (key, obj: JsObject)) =>
+                obj.getFields("type", "value") match {
+                  case Seq(typeJs, valueJs) =>
+                    val (irType, newSchemas) = TypeSerde.deserialize(typeJs, schemaAccu)
+                    val irValue = ValueSerde.deserializeWithType(valueJs, irType, key)
+                    (newSchemas, paramAccu + (key -> (irType, irValue)))
+                  case _ =>
+                    throw new Exception(s"Malformed environment serialized to disk ${fileName}")
+                }
+              case _ =>
+                throw new Exception(s"Malformed environment serialized to disk ${fileName}")
+            }
           case _ =>
-            throw new Exception(s"Malformed environment serialized to disk ${localizedInputsFile}")
+            throw new Exception(s"Malformed environment serialized to disk ${fileName}")
         }
       case _ =>
-        throw new Exception(s"Malformed environment serialized to disk ${localizedInputsFile}")
+        throw new Exception(s"Malformed environment serialized to disk ${fileName}")
     }
-    val schemas = TypeSerde.deserializeSchemas(schemasJs)
-    inputsJs
-      .foldLeft((schemas, Map.empty[String, (Type, Value)])) {
-        case ((schemaAccu, paramAccu), (key, obj: JsObject)) =>
-          obj.getFields("type", "value") match {
-            case Seq(typeJs, valueJs) =>
-              val (irType, newSchemas) = TypeSerde.deserialize(typeJs, schemaAccu)
-              val irValue = ValueSerde.deserializeWithType(valueJs, irType, key)
-              (newSchemas, paramAccu + (key -> (irType, irValue)))
-            case _ =>
-              throw new Exception(
-                  s"Malformed environment serialized to disk ${localizedInputsFile}"
-              )
-          }
-        case _ =>
-          throw new Exception(s"Malformed environment serialized to disk ${localizedInputsFile}")
-      }
   }
 
   private def serializeUriToPath(uriToPath: Map[String, Path]): Unit = {
-    val utiToPathJs: Map[String, JsValue] = uriToPath.map {
+    val uriToPathJs: Map[String, JsValue] = uriToPath.map {
       case (uri, path) => uri -> JsString(path.toString)
     }
-    FileUtils.writeFileContent(
-        jobMeta.workerPaths.getSerializedUriToPathFile(ensureParentExists = true),
-        JsObject(utiToPathJs).prettyPrint
-    )
+    writeState(TaskExecutor.UriToPathFile, JsObject(uriToPathJs))
   }
 
   private def deserializeUriToPath(): Map[String, Path] = {
-    val uriToPathFile = jobMeta.workerPaths.getSerializedUriToPathFile()
-    FileUtils.readFileContent(uriToPathFile).parseJson match {
+    readState(TaskExecutor.UriToPathFile) match {
       case JsObject(uriToPath) =>
         uriToPath.map {
           case (uri, JsString(path)) => uri -> Paths.get(path)
           case other                 => throw new Exception(s"unexpected path ${other}")
         }
       case _ =>
-        throw new Exception(s"Malformed environment serialized to disk ${uriToPathFile}")
+        throw new Exception(
+            s"Malformed environment serialized to disk ${TaskExecutor.UriToPathFile}"
+        )
     }
   }
 
@@ -195,36 +202,29 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     val pathToUriJs: Map[String, JsValue] = pathToUri.map {
       case (path, uri) => path.toString -> JsString(uri)
     }
-    FileUtils.writeFileContent(
-        jobMeta.workerPaths.getSerializedPathToUriFile(ensureParentExists = true),
-        JsObject(pathToUriJs).prettyPrint
-    )
+    writeState(TaskExecutor.PathToUriFile, JsObject(pathToUriJs))
   }
 
   private def deserializePathToUri(): Map[Path, String] = {
-    val pathToUriFile = jobMeta.workerPaths.getSerializedPathToUriFile()
-    FileUtils.readFileContent(pathToUriFile).parseJson match {
+    readState(TaskExecutor.PathToUriFile) match {
       case JsObject(pathToUri) =>
         pathToUri.map {
           case (path, JsString(uri)) => Paths.get(path) -> uri
           case other                 => throw new Exception(s"unexpected uri ${other}")
         }
       case _ =>
-        throw new Exception(s"Malformed environment serialized to disk ${pathToUriFile}")
+        throw new Exception(
+            s"Malformed environment serialized to disk ${TaskExecutor.PathToUriFile}"
+        )
     }
   }
 
   private def serializeLocalizer(localizer: SafeLocalizationDisambiguator): Unit = {
-    FileUtils.writeFileContent(
-        jobMeta.workerPaths.getSerializedLocalizerFile(ensureParentExists = true),
-        localizer.toJson.prettyPrint
-    )
+    writeState(TaskExecutor.LocalizerFile, localizer.toJson)
   }
 
   private def deserializeLocalizer(): SafeLocalizationDisambiguator = {
-    SafeLocalizationDisambiguator.fromJson(
-        FileUtils.readFileContent(jobMeta.workerPaths.getSerializedLocalizerFile()).parseJson
-    )
+    SafeLocalizationDisambiguator.fromJson(readState(TaskExecutor.LocalizerFile))
   }
 
   /**
@@ -374,7 +374,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         val handler = PathsToLocalize.PathValueHandler(stream)
         name -> (t, Value.transform(v, Some(t), handler.updateListingsAndExtractFiles))
     }
-    serializeInputs(getSchemas, inputs)
+    serializeInputs(TaskExecutor.InitialInputsFile, getSchemas, inputs)
 
     // localize virtual files to /home/dnanexus/virtual
     logger.traceLimited(s"Virtual files = ${PathsToLocalize.virtualFiles}")
@@ -452,7 +452,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
   //  }.toMap
 
   def finalizeInputs(): Unit = {
-    val (schemas, inputs) = deserializeInputs()
+    val (schemas, inputs) = deserializeInputs(TaskExecutor.InitialInputsFile)
     val uriToPath = deserializeUriToPath()
     val localizer = deserializeLocalizer()
     logger.traceLimited(s"InstantiateCommand, env = ${inputs}, uriToPath = ${uriToPath}")
@@ -539,7 +539,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         name -> (t, Value.transform(v, Some(t), PathToUri.handler))
     }
 
-    serializeInputs(schemas, finalizedInputs)
+    serializeInputs(TaskExecutor.LocalizedInputsFile, schemas, finalizedInputs)
     serializePathToUri(PathToUri.pathToUri)
   }
 
@@ -559,12 +559,12 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     * when evaluating the command script and are serialized for use in the next phase.
     */
   def instantiateCommand(): Unit = {
-    val (schemas, localizedInputs) = deserializeInputs()
+    val (schemas, localizedInputs) = deserializeInputs(TaskExecutor.LocalizedInputsFile)
     logger.traceLimited(s"InstantiateCommand, env = ${localizedInputs}")
     // evaluate the command block and write the command script
     val updatedInputs = writeCommandScript(localizedInputs)
     // write the updated env to disk
-    serializeInputs(schemas, updatedInputs)
+    serializeInputs(TaskExecutor.LocalizedInputsWithCommandBindingsFile, schemas, updatedInputs)
   }
 
   /**
@@ -577,36 +577,159 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       localizedInputs: Map[String, (Type, Value)]
   ): (Map[String, (Type, Value)], Map[String, (Set[String], Map[String, String])])
 
+  // TODO: handle output parameter tags and properties
   def delocalizeOutputs(): Unit = {
     if (logger.isVerbose) {
       trace(s"delocalizeOutputs debugLevel=${logger.traceLevel}")
       printDirTree()
     }
 
-    // load the cached localized inputs and path mappings
-    val (_, localizedInputs) = deserializeInputs()
-    val localPathToUri = deserializePathToUri()
-    val uriToSourcePath = deserializeUriToPath()
-
+    // load the cached localized inputs
+    val (_, localizedInputs) = deserializeInputs(
+        TaskExecutor.LocalizedInputsWithCommandBindingsFile
+    )
     // evaluate output expressions
     val (localizedOutputs, tagsAndProperties) = evaluateOutputs(localizedInputs)
+
+    // load the cached path mappings
+    lazy val localPathToUri = deserializePathToUri()
+    lazy val uriToSourcePath = deserializeUriToPath()
+    lazy val dxInputDirs =
+      Vector(jobMeta.workerPaths.getInputFilesDir(), jobMeta.workerPaths.getDxfuseMountDir())
+
+    def isDxPath(path: Path): Boolean = {
+      localPathToUri.get(path).exists { uri =>
+        val sourcePath = uriToSourcePath(uri)
+        dxInputDirs.exists(sourcePath.startsWith)
+      }
+    }
+
+    lazy val localPathToInputFolder: Map[Path, VFolder] = {
+      def handlePath(value: PathValue, folders: Map[Path, VFolder]): Map[Path, VFolder] = {
+        value match {
+          case f: VFolder =>
+            fileResolver.resolveDirectory(f.uri) match {
+              case local: LocalFileSource =>
+                val foldersWithListing = f.listing
+                  .map { listing =>
+                    listing.foldLeft(folders) {
+                      case (accu, path) => handlePath(path, accu)
+                    }
+                  }
+                  .getOrElse(folders)
+                foldersWithListing + (local.canonicalPath -> f)
+              case _ => folders
+            }
+          case _ => folders
+        }
+      }
+
+      def handleFolder(value: Value,
+                       t: Option[Type],
+                       optional: Boolean,
+                       folders: Map[Path, VFolder]): Option[Map[Path, VFolder]] = {
+        (t, value) match {
+          case (Some(TDirectory) | None, f: VFolder) => Some(handlePath(f, folders))
+          case _                                     => None
+        }
+      }
+
+      localizedInputs.foldLeft(Map.empty[Path, VFolder]) {
+        case (accu, (_, (t, v))) => Value.walk(v, Some(t), accu, handleFolder)
+      }
+    }
+
+    def getInputListing(localPath: Path): Option[Vector[PathValue]] = {
+      localPathToInputFolder.get(localPath).flatMap(_.listing)
+    }
+
+    def listingsEqual(localPath: Path, outputListing: Vector[PathValue]): Boolean = {
+      getInputListing(localPath).exists {
+        case inputListing if inputListing.size != outputListing.size => false
+
+      }
+    }
+
+    case class Uploads(var virtualFiles: Vector[StringUpload] = Vector.empty,
+                       var files: Vector[FileUpload] = Vector.empty,
+                       var directories: Vector[DirectoryUpload] = Vector.empty)
 
     // extract all files to upload
     def extractPaths(value: Value,
                      t: Option[Type],
                      optional: Boolean,
-                     ctx: Vector[Path]): Option[Vector[Path]] = {
+                     ctx: Uploads): Option[Uploads] = {
+      def handlePath(innerValue: PathValue,
+                     innerType: Option[Type],
+                     parent: Option[String] = None): Unit = {
+        (innerType, innerValue) match {
+          case (Some(TFile) | None, f: VFile) if f.contents.isDefined =>
+            // a file literal
+            val name = f.basename.getOrElse(f.uri)
+            val destFolder = parent.getOrElse("/")
+            ctx.virtualFiles :+= StringUpload(f.contents.get, s"${destFolder}${name}")
+            f.secondaryFiles.foreach { path =>
+              handlePath(path, None, Some(destFolder))
+            }
+          case (Some(TFile) | None, f: VFile) =>
+            fileResolver.resolve(f.uri) match {
+              case local: LocalFileSource
+                  if parent.isDefined || f.basename.isDefined || !isDxPath(local.canonicalPath) =>
+                // Either the file was created by the command script, it originated as
+                // a local or virtual file, it needs to be uploaded with a new name, or
+                // we are uploading a listing/directory and so need to make a new copy
+                // of the file regardless of its origin
+                val name = f.basename.getOrElse(local.canonicalPath.getFileName.toString)
+                val destFolder = parent.getOrElse("/")
+                ctx.files :+= FileUpload(local.canonicalPath, Some(s"${destFolder}${name}"))
+                f.secondaryFiles.foreach { path =>
+                  handlePath(path, None, Some(destFolder))
+                }
+              case _ => ()
+            }
+          case (Some(TDirectory) | None, f: VFolder) =>
+            fileResolver.resolveDirectory(f.uri) match {
+              case local: LocalFileSource
+                  if parent.isDefined ||
+                    f.basename.isDefined ||
+                    !isDxPath(local.canonicalPath) ||
+                    f.listing.exists(listing => !listingsEqual(local.canonicalPath, listing)) =>
+                // Either the directory was created by the command script, it originated as
+                // a local directory, it needs to be uploaded with a new name, its listing
+                // is different, or we are uploading a subdirectory of a listing/directory
+                // and so need to make a new copy of the this directory regardless of its origin
+                val name = f.basename.getOrElse(local.canonicalPath.getFileName.toString)
+                val destFolder = s"${parent.getOrElse("/")}${name}/"
+                val listing = f.listing.orElse(getInputListing(local.canonicalPath))
+                if (listing.isDefined) {
+                  listing.get.foreach { item =>
+                    handlePath(item, None, Some(destFolder))
+                  }
+                } else {
+                  ctx.directories :+= DirectoryUpload(source = local.canonicalPath,
+                                                      destination = Some(destFolder),
+                                                      recursive = true)
+                }
+            }
+          case (Some(TDirectory) | None, l: VListing) =>
+            val destFolder = s"${parent.getOrElse("/")}${l.basename}/"
+            l.items.foreach { item =>
+              handlePath(item, None, Some(destFolder))
+            }
+          case _ =>
+            throw new Exception(s"Invalid path value ${innerValue} for type ${innerType}")
+        }
+      }
       (t, value) match {
-        case (Some(TFile) | None, f: VFile) if f.contents.isDefined =>
-          // a file literal
-          val name = f.basename.getOrElse(f.uri)
-
+        case (Some(TFile) | Some(TDirectory) | None, p: PathValue) =>
+          handlePath(p, t)
+          Some(ctx)
         case _ => None
       }
     }
 
-    val outputFiles = localizedOutputs.map {
-      case (name, (t, v)) => name -> Value.walk(v, Some(t), Vector.empty[Path], extractPaths)
+    val filesToUpload = localizedOutputs.foldLeft(Uploads()) {
+      case (accu, (_, (t, v))) => Value.walk(v, Some(t), accu, extractPaths)
     }
 
     // upload files

@@ -136,7 +136,7 @@ object Value {
             }
           case (_, VHash(fields)) =>
             fields.foldLeft(innerContext) {
-              case (ctx, (k, v)) => inner(v, None, ctx)
+              case (ctx, (_, v)) => inner(v, None, ctx)
             }
           case (Some(TEnum(symbols)), s: VString) if symbols.contains(s.value) => innerContext
           case (Some(TEnum(symbols)), other) =>
