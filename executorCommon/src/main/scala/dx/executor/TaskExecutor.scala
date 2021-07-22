@@ -226,7 +226,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
 
     logger.traceLimited(s"downloading files = ${filesToDownload}")
     val downloadLocalizer =
-      SafeLocalizationDisambiguator(
+      SafeLocalizationDisambiguator.create(
           jobMeta.workerPaths.getInputFilesDir(),
           existingPaths = localFilesToPath.values.toSet,
           separateDirsBySource = true,
@@ -244,7 +244,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
 
     logger.traceLimited(s"streaming files = ${filesToStream}")
     val streamingLocalizer =
-      SafeLocalizationDisambiguator(
+      SafeLocalizationDisambiguator.create(
           jobMeta.workerPaths.getDxfuseMountDir(),
           existingPaths = localFilesToPath.values.toSet,
           separateDirsBySource = true,
