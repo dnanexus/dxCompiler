@@ -16,7 +16,6 @@ import dx.api.{
   DxProjectDescribe,
   DxState,
   Field,
-  FileUpload,
   InstanceTypeDB
 }
 import dx.core.Constants
@@ -95,8 +94,6 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
   lazy val projectDesc: DxProjectDescribe = project.describe()
 
   def jobId: String
-
-  lazy val manifestFolder = s"${dxApi.currentProjectId.get}:/.d/${jobId}"
 
   def rawJsInputs: Map[String, JsValue]
 
@@ -392,6 +389,19 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 
   protected def writeRawJsOutputs(outputJs: Map[String, JsValue]): Unit
 
+  lazy val manifestFolder: String = s"${dxApi.currentProjectId.get}:/.d/${jobId}"
+
+  /**
+    *
+    */
+  lazy val projectOutputFolder: String = {
+    if (useManifests) {
+      manifestFolder
+    } else {
+      folder
+    }
+  }
+
   def writeJsOutputs(outputJs: Map[String, JsValue]): Unit = {
     val rawOutputJs = if (useManifests && !outputJs.contains(Constants.OutputManifest)) {
       val manifestId = rawJsInputs.get(Constants.OutputId) match {
@@ -450,37 +460,6 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
       requiredInputs ++ callNameInputs
     } else {
       inputsJs
-    }
-  }
-
-  protected def waitOnUpload: Boolean = true
-
-  protected def maxConcurrentUploads: Int = 8
-
-  def uploadOutputFiles(
-      localFiles: Map[String, Vector[Path]],
-      tagsAndProperties: Map[String, (Set[String], Map[String, String])] = Map.empty
-  ): Map[Path, DxFile] = {
-    if (localFiles.isEmpty) {
-      Map.empty
-    } else {
-      val filesToUpload = localFiles.flatMap {
-        case (name, paths) =>
-          val (tags, properties) =
-            tagsAndProperties.getOrElse(name, (Set.empty[String], Map.empty[String, String]))
-          paths.map { path =>
-            // if using manifests, we need to upload the files directly to the project
-            val dest = if (useManifests) {
-              Some(s"${manifestFolder}/${path.getFileName.toString}")
-            } else {
-              None
-            }
-            path -> FileUpload(path, dest, tags, properties)
-          }.toMap
-      }
-      dxApi.uploadFiles(filesToUpload.values.toSet,
-                        waitOnUpload,
-                        maxConcurrent = maxConcurrentUploads)
     }
   }
 
@@ -625,12 +604,24 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     writeJsOutputs(serializedLinks)
   }
 
+  /**
+    * The parent analysis of the current job.
+    */
   def analysis: Option[DxAnalysis]
 
+  /**
+    * The parent job of the current job.
+    */
   def parentJob: Option[DxJob]
 
+  /**
+    * The current instance type.
+    */
   def instanceType: Option[String]
 
+  /**
+    * The job output folder.
+    */
   def folder: String
 
   def getJobDetail(name: String): Option[JsValue]
@@ -737,7 +728,6 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 }
 
 case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths.default,
-                         override val waitOnUpload: Boolean = false,
                          override val dxApi: DxApi = DxApi.get,
                          override val logger: Logger = Logger.get)
     extends JobMeta(workerPaths, dxApi, logger) {
