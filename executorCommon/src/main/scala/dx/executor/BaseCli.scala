@@ -56,13 +56,11 @@ abstract class BaseCli {
           return BadUsageTermination("Error parsing command line options", Some(e))
       }
     val logger = initLogger(options)
-    val fileUploader = ParallelFileUploader(waitOnUpload = options.getFlag("waitOnUpload"),
-                                            maxConcurrent = BaseCli.MaxConcurrentUploads,
-                                            logger = logger)
+    val waitOnUpload = options.getFlag("waitOnUpload")
     try {
-      logger.traceLimited(s"Creating JobMeta: rootDir ${rootDir}, uploader ${fileUploader}")
+      logger.traceLimited(s"Creating JobMeta: rootDir ${rootDir}, waitOnUpload ${waitOnUpload}")
       val jobMeta = WorkerJobMeta(workerPaths = DxWorkerPaths(rootDir),
-                                  fileUploader = fileUploader,
+                                  waitOnUpload = waitOnUpload,
                                   logger = logger)
       kind match {
         case ExecutorKind.Task =>

@@ -8,7 +8,7 @@ import dx.core.{Constants, ir}
 import dx.core.io.DxWorkerPaths
 import dx.core.ir.{ParameterLinkSerializer, ParameterLinkValue, Type, TypeSerde}
 import dx.core.languages.wdl.{WdlBlock, WdlBundle, WdlUtils}
-import dx.executor.{FileUploader, JobMeta, SerialFileUploader, WorkflowAction, WorkflowExecutor}
+import dx.executor.{JobMeta, WorkflowAction, WorkflowExecutor}
 import dx.util.{CodecUtils, FileSourceResolver, FileUtils, Logger}
 import dx.util.protocols.DxFileAccessProtocol
 import org.scalatest.flatspec.AnyFlatSpec
@@ -61,8 +61,6 @@ private case class WorkflowTestJobMeta(override val workerPaths: DxWorkerPaths,
   )
 
   override def getExecutableDetail(name: String): Option[JsValue] = executableDetails.get(name)
-
-  override def fileUploader: FileUploader = SerialFileUploader()
 
   override def error(e: Throwable): Unit = {}
 }

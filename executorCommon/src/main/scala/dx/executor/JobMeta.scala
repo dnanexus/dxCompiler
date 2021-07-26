@@ -16,6 +16,7 @@ import dx.api.{
   DxProjectDescribe,
   DxState,
   Field,
+  FileUpload,
   InstanceTypeDB
 }
 import dx.core.Constants
@@ -50,6 +51,7 @@ object JobMeta {
   val JobInfoFile = "dnanexus-job.json"
   // this file has all the information about the executable
   val ExecutableInfoFile = "dnanexus-executable.json"
+  val MaxConcurrentUploads = 8
 
   /**
     * Report an error, since this is called from a bash script, we can't simply
@@ -450,7 +452,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     }
   }
 
-  def fileUploader: FileUploader
+  def waitOnUpload: Boolean = true
 
   def uploadOutputFiles(
       localFiles: Map[String, Vector[Path]],
@@ -473,7 +475,9 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
             path -> FileUpload(path, dest, tags, properties)
           }.toMap
       }
-      fileUploader.upload(filesToUpload.values.toSet)
+      dxApi.uploadFiles(filesToUpload.values.toSet,
+                        waitOnUpload = waitOnUpload,
+                        maxConcurrent = JobMeta.MaxConcurrentUploads)
     }
   }
 
@@ -698,7 +702,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 }
 
 case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths.default,
-                         override val fileUploader: FileUploader,
+                         override val waitOnUpload: Boolean = false,
                          override val dxApi: DxApi = DxApi.get,
                          override val logger: Logger = Logger.get)
     extends JobMeta(workerPaths, dxApi, logger) {
