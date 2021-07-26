@@ -187,7 +187,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       val container = runtime.translateContainer
       val cleanedTask: TAT.Task = container match {
         case DxFileDockerImage(_, dxFile) =>
-          val dxURL = DxUtils.dxDataObjectToUri(dxFile)
+          val dxURL = DxUtils.dxDataObjectToUri(dxObj = dxFile, includeProject = false)
           task.copy(runtime = task.runtime.map(rt => replaceContainer(rt, dxURL)))(task.loc)
         case _ => task
       }

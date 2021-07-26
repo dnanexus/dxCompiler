@@ -12,13 +12,16 @@ import scala.collection.immutable.TreeSeqMap
 import dx.translator.DockerRegistry
 import dx.api.DxWorkflow
 import dx.api.DxApplet
+import dx.api.DxProject
 
 case class WorkflowCompiler(extras: Option[Extras],
                             parameterLinkSerializer: ParameterLinkSerializer,
                             useManifests: Boolean,
                             dxApi: DxApi = DxApi.get,
-                            logger: Logger = Logger.get)
-    extends ExecutableCompiler(extras, parameterLinkSerializer, dxApi) {
+                            logger: Logger = Logger.get,
+                            project: DxProject,
+                            folder: String)
+    extends ExecutableCompiler(extras, parameterLinkSerializer, dxApi, project, folder) {
 
   private def workflowInputParameterToNative(parameter: Parameter,
                                              stageInput: StageInput): Vector[JsValue] = {
@@ -44,7 +47,7 @@ case class WorkflowCompiler(extras: Option[Extras],
   }
 
   /**
-    * Converts a workflow output paramter to outputSpec JSON. A complex ouptut
+    * Converts a workflow output paramter to outputSpec JSON. A complex output
     * will generate two output specs - one for the value and one for an array
     * of files that are nested within the complex value.
     * @param parameter the workflow output Parameter

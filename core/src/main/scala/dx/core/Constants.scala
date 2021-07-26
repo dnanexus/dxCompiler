@@ -55,6 +55,11 @@ object Constants {
   val WorkflowLinksKey = "workflow"
   val StageLinksKey = "stage"
 
+  // keys used for applet resources
+  val BundledDependsKey = "bundledDepends"
+  val BundledDependsNameKey = "name"
+  val BundledDependsIdKey = "id"
+
   // deprecated properties that we still need to check for old applets
   val ChecksumPropertyDeprecated = "dxCompiler_checksum"
   val VersionPropertyDeprecated = "dxCompiler_version"
