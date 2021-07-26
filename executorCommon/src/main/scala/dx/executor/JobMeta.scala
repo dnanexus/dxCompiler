@@ -95,6 +95,10 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 
   def jobId: String
 
+  def codeFile: Path = {
+    workerPaths.getRootDir().resolve(s"${jobId}.code.sh")
+  }
+
   def rawJsInputs: Map[String, JsValue]
 
   def callName: Option[String] = {

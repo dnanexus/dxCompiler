@@ -2,16 +2,16 @@
 <%@ val runtimeJar: String %>
 <%@ val runtimeTraceLevel: Int %>
 <%@ val streamFiles: dx.core.io.StreamFiles.StreamFiles %>
-<%@ val includeEpilog: Boolean %>
+<%@ val waitOnUpload: Boolean %>
 <% val bashDollar: String = "$" %>
-    # evaluate input arguments, and download input files
-    java -jar ${bashDollar}{DX_FS_ROOT}/${runtimeJar} task localizeInputs ${bashDollar}{HOME} -traceLevel ${runtimeTraceLevel} -streamFiles ${streamFiles.toString}
+body() {
+    java -jar ${bashDollar}{DX_FS_ROOT}/${runtimeJar} task execute ${bashDollar}{HOME} -traceLevel ${runtimeTraceLevel} -streamFiles ${streamFiles.toString} ${if (waitOnUpload) "-waitOnUpload"}
+}
 
-    echo "Using dxda version: ${bashDollar}(dx-download-agent version)"
-    echo "Using dxfuse version: ${bashDollar}(dxfuse -version)"
-
+download_dxda() {
     # run the dx-download-agent (dxda) on a manifest of files
     if [[ -e ${dxPathConfig.getDxdaManifestFile().toString} ]]; then
+       echo "Using dxda version: ${bashDollar}(dx-download-agent version)"
        head -n 20 ${dxPathConfig.getDxdaManifestFile().toString}
        bzip2 ${dxPathConfig.getDxdaManifestFile().toString}
 
@@ -37,10 +37,13 @@
        # go back to root directory
        cd ${dxPathConfig.getRootDir().toString}
     fi
+}
 
+download_dxfuse() {
     # run dxfuse on a manifest of files. It will provide remote access
     # to DNAx files.
     if [[ -e ${dxPathConfig.getDxfuseManifestFile().toString} ]]; then
+       echo "Using dxfuse version: ${bashDollar}(dxfuse -version)"
        head -n 20 ${dxPathConfig.getDxfuseManifestFile().toString}
 
        # make sure the mountpoint exists
@@ -72,16 +75,14 @@
        echo ""
        ls -Rl ${dxPathConfig.getDxfuseMountDir().toString}
     fi
+}
 
-    # finalize input files/directories
-    java -jar ${bashDollar}{DX_FS_ROOT}/${runtimeJar} task finalizeInputs ${bashDollar}{HOME} -traceLevel ${runtimeTraceLevel} -streamFiles ${streamFiles.toString}
-
+before_command() {
     # Make the inputs folder read-only
     chmod -r 500 ${dxPathConfig.getInputFilesDir(ensureExists = true)}
+}
 
-    # construct the bash command and write it to a file
-    java -jar ${bashDollar}{DX_FS_ROOT}/${runtimeJar} task instantiateCommand ${bashDollar}{HOME} -traceLevel ${runtimeTraceLevel} -streamFiles ${streamFiles.toString}
-
+run_command() {
     echo "bash command encapsulation script:"
     cat ${dxPathConfig.getCommandFile().toString}
 
@@ -105,9 +106,30 @@
         fi
         exit ${bashDollar}rc
     fi
-    <% if (includeEpilog) { %>${include("epilog_script.ssp")}<% } %>
+}
+
+upload_files() {
+    # Upload files using UA
+    if [[ -e ${dxPathConfig.getDxuaManifestFile().toString} ]]; then
+        rc=0
+        ua --manifest ${dxPathConfig.getDxuaManifestFile().toString} >/root/ua.log 2>&1 || rc=${bashDollar}? && true
+
+        # if there was an error during upload, print out the log
+        if [[ ${bashDollar}rc != 0 ]]; then
+            echo "upload agent failed rc=${bashDollar}rc"
+            if [[ -e /root/ua.log ]]; then
+                echo "The upload log is:"
+                cat /root/ua.log
+            fi
+            exit ${bashDollar}rc
+        fi
+    fi
+}
+
+cleanup() {
     # unmount dxfuse
     if [[ -e ${dxPathConfig.getDxfuseManifestFile().toString} ]]; then
         echo "unmounting dxfuse"
         umount ${dxPathConfig.getDxfuseMountDir().toString}
     fi
+}

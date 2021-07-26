@@ -2,6 +2,7 @@
 set -exo pipefail
 ${dockerPreamble}
 
-main() {
 ${include("applet_script.ssp")}
-}
+
+docker
+body

@@ -59,9 +59,7 @@ abstract class BaseCli {
     val waitOnUpload = options.getFlag("waitOnUpload")
     try {
       logger.traceLimited(s"Creating JobMeta: rootDir ${rootDir}, waitOnUpload ${waitOnUpload}")
-      val jobMeta = WorkerJobMeta(workerPaths = DxWorkerPaths(rootDir),
-                                  waitOnUpload = waitOnUpload,
-                                  logger = logger)
+      val jobMeta = WorkerJobMeta(workerPaths = DxWorkerPaths(rootDir), logger = logger)
       kind match {
         case ExecutorKind.Task =>
           val taskAction = {
