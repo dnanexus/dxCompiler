@@ -12,7 +12,7 @@ workflow struct_deref {
 
   String sample_name = sampleStruct.sample_name
 
-  call test {
+  call struct_deref_test {
     input:
       sample_name = sample_name,
       id = sampleStruct.id
@@ -23,7 +23,7 @@ workflow struct_deref {
   }
 }
 
-task test {
+task struct_deref_test {
   input {
     String sample_name
     Int id
