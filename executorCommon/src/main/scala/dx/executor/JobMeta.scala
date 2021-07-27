@@ -380,6 +380,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
   }
 
   lazy val fileResolver: FileSourceResolver = {
+    logger.trace(s"Creating FileSourceResolver localDirectories = ${workerPaths.getWorkDir()}")
     val dxProtocol = DxFileAccessProtocol(dxApi, dxFileDescCache)
     val fileResolver = FileSourceResolver.create(
         localDirectories = Vector(workerPaths.getWorkDir()),
