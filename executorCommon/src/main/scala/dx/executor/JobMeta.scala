@@ -325,6 +325,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     logger.trace(s"Bulk describing ${queryFiles.size} files")
     val dxFiles = dxApi.describeFilesBulk(queryFiles, searchWorkspaceFirst = true, validate = true)
     // check that all files are in the closed state
+    logger.trace(s"Checking that all files are closed")
     val notClosed = dxFiles.filterNot(_.describe().state == DxState.Closed)
     if (notClosed.nonEmpty) {
       throw new Exception(
