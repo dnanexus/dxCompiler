@@ -19,7 +19,7 @@ workflow struct_deref {
   }
 
   output {
-    String out = test.out
+    String out = struct_deref_test.out
   }
 }
 
