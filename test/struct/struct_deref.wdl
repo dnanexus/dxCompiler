@@ -2,6 +2,7 @@ version 1.0
 
 struct SampleStruct {
   String sample_name
+  Int id
 }
 
 workflow struct_deref {
@@ -9,9 +10,12 @@ workflow struct_deref {
     SampleStruct sampleStruct
   }
 
+  String sample_name = sampleStruct.sample_name
+
   call test {
     input:
-      sample_name = sampleStruct.sample_name
+      sample_name = sample_name,
+      id = sampleStruct.id
   }
 
   output {
@@ -22,10 +26,11 @@ workflow struct_deref {
 task test {
   input {
     String sample_name
+    Int id
   }
 
   command <<<
-    echo ~{sample_name}
+    echo "~{sample_name} ~{id}"
   >>>
 
   output {
