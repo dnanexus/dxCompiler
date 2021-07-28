@@ -50,6 +50,7 @@ object JobMeta {
   val JobInfoFile = "dnanexus-job.json"
   // this file has all the information about the executable
   val ExecutableInfoFile = "dnanexus-executable.json"
+  val MaxConcurrentUploads = 8
 
   /**
     * Report an error, since this is called from a bash script, we can't simply
@@ -325,6 +326,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     logger.trace(s"Bulk describing ${queryFiles.size} files")
     val dxFiles = dxApi.describeFilesBulk(queryFiles, searchWorkspaceFirst = true, validate = true)
     // check that all files are in the closed state
+    logger.trace(s"Checking that all files are closed")
     val notClosed = dxFiles.filterNot(_.describe().state == DxState.Closed)
     if (notClosed.nonEmpty) {
       throw new Exception(
@@ -381,6 +383,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
   }
 
   lazy val fileResolver: FileSourceResolver = {
+    logger.trace(s"Creating FileSourceResolver localDirectories = ${workerPaths.getWorkDir()}")
     val dxProtocol = DxFileAccessProtocol(dxApi, dxFileDescCache)
     val fileResolver = FileSourceResolver.create(
         localDirectories = Vector(workerPaths.getWorkDir()),
