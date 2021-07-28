@@ -100,6 +100,7 @@ wdl_v1_list = [
     "apps_573",
     "apps_612",
     "nested_optional",
+    "struct_deref",  # APPS-615
 
     # manifests
     "simple_manifest",
