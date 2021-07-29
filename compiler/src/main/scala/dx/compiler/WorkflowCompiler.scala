@@ -623,13 +623,8 @@ case class WorkflowCompiler(extras: Option[Extras],
     val fileInputParams = workflow.inputs
       .map(i => i._1)
       .filter(param => Type.unwrapOptional(param.dxType) == Type.TFile)
-    val fileDependencies =
-      Set
-        .from(
-            fileInputParams
-              .flatMap(CompilerUtils.fileDependenciesFromParam) ++ workflow.varFileDependencies
-        )
-        .toVector
+    val fileDependencies = (fileInputParams
+      .flatMap(CompilerUtils.fileDependenciesFromParam) ++ workflow.varFileDependencies).distinct
     val fileDependenciesDetails = fileDependencies match {
       case fileDependencies if !fileDependencies.isEmpty =>
         Map(Constants.FileDependencies -> JsArray(fileDependencies.map(s => JsString(s))))
