@@ -620,7 +620,9 @@ case class WorkflowCompiler(extras: Option[Extras],
     }
 
     // Collect file dependencies from inputs & private variables
-    val fileInputParams = workflow.inputs.map(i => i._1).filter(param => param.dxType == Type.TFile)
+    val fileInputParams = workflow.inputs
+      .map(i => i._1)
+      .filter(param => Type.unwrapOptional(param.dxType) == Type.TFile)
     val fileDependencies =
       Set
         .from(
