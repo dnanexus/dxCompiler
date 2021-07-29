@@ -610,7 +610,7 @@ case class WorkflowCompiler(extras: Option[Extras],
         )
         .toVector
     val nativeAppDependenciesDetails = nativeAppDependencies match {
-      case nativeAppDependencies if nativeAppDependencies.length > 0 =>
+      case nativeAppDependencies if nativeAppDependencies.nonEmpty =>
         Map(
             Constants.NativeAppDependencies -> JsArray(
                 nativeAppDependencies.map(id => JsString(id))
