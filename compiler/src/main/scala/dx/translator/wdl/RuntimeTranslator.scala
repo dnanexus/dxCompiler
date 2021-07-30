@@ -9,7 +9,6 @@ import wdlTools.eval.{Eval, EvalException, Meta}
 import wdlTools.syntax.WdlVersion
 import wdlTools.types.WdlTypes._
 import wdlTools.types.{TypedAbstractSyntax => TAT}
-import dx.util.{Logger}
 
 import scala.util.matching.Regex
 
@@ -78,8 +77,7 @@ case class RuntimeTranslator(wdlVersion: WdlVersion,
                              metaSection: Option[TAT.MetaSection],
                              defaultAttrs: Map[String, Value],
                              evaluator: Eval,
-                             dxApi: DxApi = DxApi.get,
-                             logger: Logger = Logger.get) {
+                             dxApi: DxApi = DxApi.get) {
   private lazy val runtime =
     Runtime(wdlVersion,
             runtimeSection,
