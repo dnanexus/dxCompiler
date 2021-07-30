@@ -294,10 +294,8 @@ case class WorkflowCompiler(extras: Option[Extras],
 
     val subWorkflowsMd = executables
       .collect {
-        case CompiledExecutable(Workflow(_, _, _, _, _, _, _, _, _, _, _), dxExec, _, _) =>
-          dxExec match {
-            case w: DxWorkflow => w
-          }
+        case CompiledExecutable(w: Workflow, dxExec: DxWorkflow, _, _) =>
+          dxExec
       }
       .map(reportableDependenciesFromWorkflow)
       .flatten
@@ -306,12 +304,10 @@ case class WorkflowCompiler(extras: Option[Extras],
     val appletsMd = executables
       .collect {
         case CompiledExecutable(Application(_, _, _, _, _, ExecutableKindApplet, _, _, _, _, _, _),
-                                dxExec,
+                                dxExec: DxApplet,
                                 _,
                                 _) =>
-          dxExec match {
-            case a: DxApplet => a
-          }
+          dxExec
       }
       .map(reportableDependenciesFromApplication)
       .flatten
