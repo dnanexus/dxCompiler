@@ -629,11 +629,9 @@ case class WorkflowCompiler(extras: Option[Extras],
       case Some(DockerRegistry(_, credentials, _, _)) => Some(credentials)
       case _                                          => None
     }
-    val dockerRegistryCredentialsUriDetails = dockerRegistryCredentialsUri match {
-      case dockerRegistryCredentialsUri if dockerRegistryCredentialsUri.isDefined =>
-        Map(Constants.DockerRegistryCredentialsUri -> JsString(dockerRegistryCredentialsUri.get))
-      case _ => Map.empty
-    }
+    val dockerRegistryCredentialsUriDetails = dockerRegistryCredentialsUri
+      .map(cred => Map(Constants.DockerRegistryCredentialsUri -> JsString(cred)))
+      .getOrElse(Map.empty)
 
     // Build extended description with dependency report
     val extendedDescription =
