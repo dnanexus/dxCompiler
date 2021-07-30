@@ -1,6 +1,8 @@
 package dx.core.ir
 
 import java.nio.file.{Files, Paths}
+import dx.core.Assumptions.isLinux
+import dx.core.Tags.LinuxOnly
 import dx.core.ir.Type._
 import dx.core.ir.Value._
 import dx.util.FileUtils
@@ -10,10 +12,8 @@ import org.scalatest.matchers.should.Matchers
 import scala.collection.immutable.TreeSeqMap
 
 class ArchiveTest extends AnyFlatSpec with Matchers {
-  private val isLinux = System.getProperty("os.name").toLowerCase.startsWith("linux")
-  assume(isLinux)
-
-  it should "create a squashfs" in {
+  it should "create a squashfs" taggedAs LinuxOnly in {
+    assume(isLinux)
     val tmpDir = Files.createTempDirectory("archive")
     val file = tmpDir.resolve("file.txt")
     FileUtils.writeFileContent(file, "some text")
@@ -35,7 +35,8 @@ class ArchiveTest extends AnyFlatSpec with Matchers {
     fs.isMounted shouldBe false
   }
 
-  it should "create an archive" in {
+  it should "create an archive" taggedAs LinuxOnly in {
+    assume(isLinux)
     val tmpDir = Files.createTempDirectory("archive")
     val subDir1 = tmpDir.resolve("sub1")
     val file1 = subDir1.resolve("file1.txt")

@@ -151,6 +151,10 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
           pathFromBasename(f.uri).map(path => f.copy(uri = path.toString)).orElse {
             throw new Exception(s"File ${f.uri} does not exist")
           }
+        case (Some(Type.TFile) | None, Value.VString(uri)) if !uri.startsWith(DxPath.DxUriPrefix) =>
+          pathFromBasename(uri).map(path => Value.VFile(uri = path.toString)).orElse {
+            throw new Exception(s"File ${uri} does not exist")
+          }
         case _ => None
       }
     }

@@ -159,6 +159,13 @@ lazy val commonDependencies = Seq(
 
 // SETTINGS
 
+// exclude tests tagged 'linuxOnly' unless we're on a Linux OS
+val isLinux = System.getProperty("os.name").toLowerCase.contains("linux")
+val scalatestArgs = if (isLinux) {
+  Seq("-oFK")
+} else {
+  Seq("-oFK", "-l", "linuxOnly")
+}
 lazy val settings = Seq(
     scalacOptions ++= compilerOptions,
     // javac
@@ -193,7 +200,7 @@ lazy val settings = Seq(
     // If an exception is thrown during tests, show the full
     // stack trace, by adding the "-oF" option to the list.
     // Ignore cancelled tests (-oK)
-    Test / testOptions += Tests.Argument("-oFK"),
+    Test / testOptions += Tests.Argument(scalatestArgs: _*),
     Test / parallelExecution := false
     // Coverage
     //

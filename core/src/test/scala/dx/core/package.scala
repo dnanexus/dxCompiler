@@ -17,6 +17,8 @@ object Tags {
   object ProdTest extends DxTag("prod")
   // marker for an edge case
   object EdgeTest extends Tag("edge")
+  // marker for tests that will only work on Linux
+  object LinuxOnly extends Tag("linuxOnly")
 }
 
 object Assumptions {
@@ -40,4 +42,6 @@ object Assumptions {
       case _: Throwable => false
     }
   }
+
+  lazy val isLinux: Boolean = System.getProperty("os.name").toLowerCase.startsWith("linux")
 }
