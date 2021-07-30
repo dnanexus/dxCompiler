@@ -55,17 +55,16 @@ case class CallableTranslator(wdlBundle: WdlBundle,
   private def translateVarFileDependencies(
       privateVariables: Vector[TAT.PrivateVariable]
   ): Set[String] = {
-    val exprs = privateVariables.collect {
-      case TAT.PrivateVariable(_, WdlTypes.T_File, expr) => expr
-    }
-    exprs
-      .collect {
-        // APPS-659 to consider also files nested in arrays, structs
-        case ValueFile(value, _)      => value
-        case ValueString(value, _, _) => value
-      }
-      .filter(s => s.contains("://"))
-      .toSet
+
+    // TODO: also consider files nested in arrays, structs
+
+    privateVariables.collect {
+      case TAT.PrivateVariable(_, WdlTypes.T_File, ValueFile(value, _)) if value.contains("://") =>
+        value
+      case TAT.PrivateVariable(_, WdlTypes.T_File, ValueString(value, _, _))
+          if value.contains("://") =>
+        value
+    }.toSet
   }
 
   private case class WdlTaskTranslator(task: TAT.Task) {
