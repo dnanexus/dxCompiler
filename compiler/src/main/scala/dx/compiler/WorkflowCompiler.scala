@@ -296,7 +296,7 @@ case class WorkflowCompiler(extras: Option[Extras],
 
     val subWorkflowsMd = executables
       .collect {
-        case CompiledExecutable(w: Workflow, dxExec: DxWorkflow, _, _) =>
+        case CompiledExecutable(_: Workflow, dxExec: DxWorkflow, _, _) =>
           dxExec
       }
       .map(reportableDependenciesFromWorkflow)
