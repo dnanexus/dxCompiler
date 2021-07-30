@@ -4,6 +4,7 @@ import dx.api.{DxApi, DxPath, DxUtils, InstanceTypeRequest}
 import dx.core.ir.RunSpec._
 import dx.core.ir.{ExecutableKind, ExecutableKindNative, ExecutableType, RuntimeRequirement, Value}
 import dx.core.languages.wdl.{DxRuntimeHint, IrToWdlValueBindings, Runtime, WdlUtils}
+import scala.util.{Try}
 import wdlTools.eval.WdlValues._
 import wdlTools.eval.{Eval, EvalException, Meta}
 import wdlTools.syntax.WdlVersion
@@ -176,27 +177,21 @@ case class RuntimeTranslator(wdlVersion: WdlVersion,
     if (!runtime.containerDefined) {
       return NoImage
     }
-    val image =
-      try {
-        // Prefer dxfile image if one is available, otherwise an
-        // external Docker image if available
-        runtime.container
-          .collectFirst {
-            case uri if uri.startsWith(DxPath.DxUriPrefix) =>
-              val dxfile = dxApi.resolveFile(uri)
-              DxFileDockerImage(uri, dxfile)
-          }
-          .orElse(
-              runtime.container.collectFirst {
-                case uri => NetworkDockerImage(uri)
-              }
-          )
-      } catch {
-        // If runtime.containerDefined but runtime.container is None,
-        // image has to be dynamically evaluated at runtime
-        case _: EvalException => None
-      }
-    image.getOrElse(DynamicDockerImage)
+    Try {
+      // Prefer dxfile image if one is available, otherwise an
+      // external Docker image if available
+      runtime.container
+        .collectFirst {
+          case uri if uri.startsWith(DxPath.DxUriPrefix) =>
+            val dxfile = dxApi.resolveFile(uri)
+            DxFileDockerImage(uri, dxfile)
+        }
+        .orElse(
+            runtime.container.collectFirst {
+              case uri => NetworkDockerImage(uri)
+            }
+        )
+    }.toOption.flatten.getOrElse(DynamicDockerImage)
   }
 
   private def unwrapString(value: V): String = {
