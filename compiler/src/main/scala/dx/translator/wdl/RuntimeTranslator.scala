@@ -180,17 +180,13 @@ case class RuntimeTranslator(wdlVersion: WdlVersion,
     Try {
       // Prefer dxfile image if one is available, otherwise an
       // external Docker image if available
-      runtime.container
-        .collectFirst {
-          case uri if uri.startsWith(DxPath.DxUriPrefix) =>
-            val dxfile = dxApi.resolveFile(uri)
-            DxFileDockerImage(uri, dxfile)
-        }
-        .orElse(
-            runtime.container.collectFirst {
-              case uri => NetworkDockerImage(uri)
-            }
-        )
+      val (dxUris, otherUris) = runtime.container.partition(_.startsWith(DxPath.DxUriPrefix))
+      dxUris.headOption
+        .map(uri => DxFileDockerImage(uri, dxApi.resolveFile(uri)))
+        .orElse(otherUris.headOption.map(NetworkDockerImage))
+
+      // If runtime.containerDefined but runtime.container is None,
+      // image has to be dynamically evaluated at runtime
     }.toOption.flatten.getOrElse(DynamicDockerImage)
   }
 
