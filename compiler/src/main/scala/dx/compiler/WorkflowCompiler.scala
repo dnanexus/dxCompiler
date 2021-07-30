@@ -189,22 +189,19 @@ case class WorkflowCompiler(extras: Option[Extras],
 
     // Generate Markdown description section
     val headerMd = s"\n## Sub-workflow ${description.name}"
-    val details = description.details.collect {
-      case v: JsValue => v.asJsObject
-    }
-    val md = details match {
-      case Some(JsObject(details)) => {
-        val appsMd = details.get(Constants.NativeAppDependencies) match {
+    val md = description.details match {
+      case Some(JsObject(d)) => {
+        val appsMd = d.get(Constants.NativeAppDependencies) match {
           case Some(JsArray(a)) => listMd("Native apps") + a.map(v => listMd2(v.toString)).mkString
           case _                => ""
         }
-        val filesMd = details.get(Constants.FileDependencies) match {
+        val filesMd = d.get(Constants.FileDependencies) match {
           case Some(JsArray(a)) =>
             listMd("Files") + a.map(v => listMd2(v.toString)).mkString
           case _ => ""
         }
         val dockerRegistryCredentialsMd =
-          details.get(Constants.DockerRegistryCredentialsUri) match {
+          d.get(Constants.DockerRegistryCredentialsUri) match {
             case Some(JsString(s)) => listMd("Docker registry credentials file") + listMd2(s)
             case _                 => ""
           }
@@ -231,25 +228,22 @@ case class WorkflowCompiler(extras: Option[Extras],
 
     // Generate Markdown description section
     val headerMd = s"\n## Task ${description.name}"
-    val details = description.details.collect {
-      case v: JsValue => v.asJsObject
-    }
-    val md = details match {
-      case Some(JsObject(details)) => {
-        val filesMd = details.get(Constants.FileDependencies) match {
+    val md = description.details match {
+      case Some(JsObject(d)) => {
+        val filesMd = d.get(Constants.FileDependencies) match {
           case Some(JsArray(a)) =>
             listMd("Files") + a.map(v => listMd2(v.toString)).mkString
           case _ => ""
         }
-        val networkDockerImageMd = details.get(Constants.NetworkDockerImage) match {
+        val networkDockerImageMd = d.get(Constants.NetworkDockerImage) match {
           case Some(JsString(s)) => listMd("Network Docker image") + listMd2(s)
           case _                 => ""
         }
-        val dynamicDockerImageMd = details.get(Constants.DynamicDockerImage) match {
+        val dynamicDockerImageMd = d.get(Constants.DynamicDockerImage) match {
           case Some(JsBoolean(b)) if b => listMd("Docker image determined at runtime")
           case _                       => ""
         }
-        val dxInstanceTypeMd = details.get(Constants.DxInstanceType) match {
+        val dxInstanceTypeMd = d.get(Constants.DxInstanceType) match {
           case Some(JsString(s)) => listMd("Hard-coded instance type") + listMd2(s)
           case _                 => ""
         }
