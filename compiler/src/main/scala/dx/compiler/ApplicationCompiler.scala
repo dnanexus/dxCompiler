@@ -408,7 +408,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       Set
         .from(
             fileInputParams
-              .flatMap(CompilerUtils.fileDependenciesFromParam) ++ applet.varFileDependencies
+              .flatMap(fileDependenciesFromParam) ++ applet.varFileDependencies
         )
         .toVector
     val fileDependenciesDetails = fileDependencies match {
