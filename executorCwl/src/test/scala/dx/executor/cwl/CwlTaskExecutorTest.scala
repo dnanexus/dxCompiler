@@ -1,6 +1,6 @@
 package dx.executor.cwl
 
-import dx.Assumptions.isLoggedIn
+import Assumptions.{cwltoolCallable, isLoggedIn}
 import dx.api.{
   DiskType,
   DxAnalysis,
@@ -16,11 +16,18 @@ import dx.api.{
 }
 import dx.core.Constants
 import dx.core.io.{DxWorkerPaths, StreamFiles}
-import dx.core.ir.{Manifest, ParameterLink, ParameterLinkDeserializer, ParameterLinkSerializer}
+import dx.core.ir.{
+  Manifest,
+  ParameterLink,
+  ParameterLinkDeserializer,
+  ParameterLinkSerializer,
+  Type,
+  Value
+}
 import dx.core.languages.Language
 import dx.core.languages.cwl.{CwlUtils, DxHintSchema}
 import dx.cwl.{CommandLineTool, Parser}
-import dx.executor.{JobMeta, TaskAction}
+import dx.executor.{JobMeta, TaskAction, TaskExecutor}
 import dx.util.protocols.DxFileAccessProtocol
 import dx.util.{CodecUtils, FileSourceResolver, FileUtils, JsUtils, Logger, SysUtils}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -34,6 +41,7 @@ private case class ToolTestJobMeta(override val workerPaths: DxWorkerPaths,
                                    override val dxApi: DxApi = DxApi.get,
                                    override val logger: Logger = Logger.get,
                                    override val rawJsInputs: Map[String, JsValue],
+                                   toolName: String,
                                    rawInstanceTypeDb: InstanceTypeDB,
                                    rawSourceCode: String,
                                    useManifestInputs: Boolean = false)
@@ -48,6 +56,23 @@ private case class ToolTestJobMeta(override val workerPaths: DxWorkerPaths,
 
   override lazy val jobId: String = s"job-${Random.alphanumeric.take(24).mkString}"
 
+  override def runJobScriptFunction(name: String): Unit = {
+    if (name == TaskExecutor.RunCommand) {
+      val script: Path = workerPaths.getCommandFile()
+      if (Files.exists(script)) {
+        // this will never fail due to the way the command script is written - instead
+        // we need to read the return code file
+        val (_, stdout, stderr) = SysUtils.execCommand(script.toString)
+        val rc = FileUtils.readFileContent(workerPaths.getReturnCodeFile()).trim.toInt
+        if (rc != 0) {
+          throw new Exception(
+              s"job script ${script} failed with return code ${rc}\nstdout:\n${stdout}\nstderr:\n${stderr}"
+          )
+        }
+      }
+    }
+  }
+
   override val analysis: Option[DxAnalysis] = None
 
   override val parentJob: Option[DxJob] = None
@@ -58,7 +83,12 @@ private case class ToolTestJobMeta(override val workerPaths: DxWorkerPaths,
 
   override def getJobDetail(name: String): Option[JsValue] = None
 
-  override def getExecutableAttribute(name: String): Option[JsValue] = None
+  override def getExecutableAttribute(name: String): Option[JsValue] = {
+    name match {
+      case "name" => Some(JsString(toolName))
+      case _      => None
+    }
+  }
 
   private val executableDetails: Map[String, JsValue] = Map(
       Constants.InstanceTypeDb -> JsString(
@@ -83,6 +113,7 @@ private object ToolTestJobMeta {
 
 class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
   assume(isLoggedIn)
+  assume(cwltoolCallable)
   private val logger = Logger.Quiet
   private val dxApi = DxApi()(logger)
   private val unicornInstance = DxInstanceType(
@@ -109,6 +140,22 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
     }
   }
 
+  object AddBaseDir extends Value.TransformHandler {
+    override def apply(value: Value, t: Option[Type], optional: Boolean): Option[Value] = {
+      value match {
+        case f: Value.VFile if !f.uri.startsWith(DxPath.DxUriPrefix) =>
+          pathFromBasename(f.uri).map(path => f.copy(uri = path.toString)).orElse {
+            throw new Exception(s"File ${f.uri} does not exist")
+          }
+        case f: Value.VFolder if !f.uri.startsWith(DxPath.DxUriPrefix) =>
+          pathFromBasename(f.uri).map(path => f.copy(uri = path.toString)).orElse {
+            throw new Exception(s"Folder ${f.uri} does not exist")
+          }
+        case _ => None
+      }
+    }
+  }
+
   private def getInputs(cwlName: String): Map[String, JsValue] = {
     pathFromBasename(s"${cwlName}_input.json") match {
       case Some(path) if Files.exists(path) => JsUtils.getFields(JsUtils.jsFromFile(path))
@@ -126,7 +173,8 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
   private def createTaskExecutor(
       cwlName: String,
       useManifests: Boolean,
-      streamFiles: StreamFiles.StreamFiles = StreamFiles.None
+      streamFiles: StreamFiles.StreamFiles = StreamFiles.None,
+      waitOnUpload: Boolean = true
   ): (CwlTaskExecutor, ToolTestJobMeta) = {
     val cwlFile: Path = pathFromBasename(s"${cwlName}.cwl").get
     val inputs: Map[String, JsValue] = getInputs(cwlName)
@@ -163,14 +211,16 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
     }
 
     val taskInputs = tool.inputs.map(inp => inp.name -> inp).toMap
-    val outputSerializer: ParameterLinkSerializer = ParameterLinkSerializer(fileResolver, dxApi)
+    val outputSerializer: ParameterLinkSerializer =
+      ParameterLinkSerializer(fileResolver, dxApi, pathsAsObjects = true)
     val irInputs = inputDeserializer
       .deserializeInputMap(inputs)
       .collect {
         case (name, irValue) if !name.endsWith(ParameterLink.FlatFilesSuffix) =>
           val cwlType = taskInputs(name).cwlType
           val irType = CwlUtils.toIRType(cwlType)
-          outputSerializer.createFields(name, irType, irValue)
+          val updatedIrValue = Value.transform(irValue, Some(irType), AddBaseDir)
+          outputSerializer.createFields(name, irType, updatedIrValue)
       }
       .flatten
       .toMap
@@ -181,12 +231,13 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
                       dxApi,
                       logger,
                       irInputs,
+                      tool.name,
                       instanceTypeDB,
                       FileUtils.readFileContent(cwlFile),
                       useManifests)
 
     // create TaskExecutor
-    (CwlTaskExecutor.create(jobMeta, streamFiles = streamFiles), jobMeta)
+    (CwlTaskExecutor.create(jobMeta, streamFiles = streamFiles, waitOnUpload), jobMeta)
   }
 
   // Parse the CWL source code, extract the single tool that is supposed to be there,
@@ -196,19 +247,7 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
     val outputsExpected = getExpectedOutputs(cwlName)
 
     // run the steps of task execution in order
-    taskExecutor.apply(TaskAction.LocalizeInputs) shouldBe "success LocalizeInputs"
-    taskExecutor.apply(TaskAction.FinalizeInputs) shouldBe "success FinalizeInputs"
-    taskExecutor.apply(TaskAction.InstantiateCommand) shouldBe "success InstantiateCommand"
-
-    // execute the shell script in a child job
-    val script: Path = jobMeta.workerPaths.getCommandFile()
-    if (Files.exists(script)) {
-      // this will throw an exception if the script exits with a non-zero return code
-      logger.ignore(SysUtils.execCommand(script.toString))
-    }
-
-    // epilog
-    taskExecutor.apply(TaskAction.DelocalizeOutputs) shouldBe "success Epilog"
+    taskExecutor.apply(TaskAction.Execute) shouldBe "success Execute"
 
     if (outputsExpected.isDefined) {
       val outputs = if (useManifests) {

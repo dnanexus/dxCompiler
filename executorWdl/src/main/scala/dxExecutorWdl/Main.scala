@@ -8,13 +8,15 @@ object Main extends BaseCli {
   override val jarName = "dxExecutorWdl.jar"
 
   override def createTaskExecutor(meta: JobMeta,
-                                  streamFiles: StreamFiles.StreamFiles): WdlTaskExecutor = {
-    WdlTaskExecutor.create(meta, streamFiles)
+                                  streamFiles: StreamFiles.StreamFiles,
+                                  waitOnUpload: Boolean): WdlTaskExecutor = {
+    WdlTaskExecutor.create(meta, streamFiles, waitOnUpload)
   }
 
   override def createWorkflowExecutor(meta: JobMeta,
-                                      separateOutputs: Boolean): WdlWorkflowExecutor = {
-    WdlWorkflowExecutor.create(meta, separateOutputs)
+                                      separateOutputs: Boolean,
+                                      waitOnUpload: Boolean): WdlWorkflowExecutor = {
+    WdlWorkflowExecutor.create(meta, separateOutputs, waitOnUpload)
   }
 }
 

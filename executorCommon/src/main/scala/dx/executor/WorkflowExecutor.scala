@@ -11,6 +11,7 @@ import dx.api.{
   DxPath,
   DxWorkflow,
   Field,
+  FileUpload,
   FolderContents
 }
 import dx.core.{Constants, getVersion}
@@ -26,12 +27,14 @@ import dx.core.ir.{
   Value,
   ValueSerde
 }
-import dx.core.ir.Type.{TFile, TOptional, TSchema}
-import dx.core.ir.Value.{VArray, VFile}
-import dx.util.{Enum, JsUtils, LocalFileSource, TraceLevel}
+import dx.core.ir.Type.{TArray, TFile, THash, TOptional, TSchema}
+import dx.core.ir.Value.{VArray, VFile, VHash, VNull, VString}
+import dx.util.{AddressableFileNode, Enum, FileSourceResolver, JsUtils, LocalFileSource, TraceLevel}
 import dx.util.CollectionUtils.IterableOnceExtensions
 import dx.util.protocols.DxFileSource
 import spray.json._
+
+import java.nio.file.Files
 
 object WorkflowAction extends Enum {
   type WorkflowAction = Value
@@ -71,7 +74,9 @@ object WorkflowExecutor {
   }
 }
 
-abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs: Boolean) {
+abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta,
+                                               separateOutputs: Boolean,
+                                               waitOnUpload: Boolean = false) {
   private val dxApi = jobMeta.dxApi
   private val logger = jobMeta.logger
   private val seqNumIter = Iterator.from(1)
@@ -561,30 +566,118 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
       }
     }
 
+    private def extractOutputFiles(
+        name: String,
+        v: Value,
+        t: Type,
+        fileResolver: FileSourceResolver
+    ): Vector[AddressableFileNode] = {
+      def getFileNode(varName: String,
+                      fs: AddressableFileNode,
+                      optional: Boolean): Vector[AddressableFileNode] = {
+        fs match {
+          case localFs: LocalFileSource if optional && !Files.exists(localFs.canonicalPath) =>
+            // ignore optional, non-existent files
+            Vector.empty
+          case localFs: LocalFileSource if !Files.exists(localFs.canonicalPath) =>
+            throw new Exception(
+                s"required output file ${varName} does not exist at ${localFs.canonicalPath}"
+            )
+          case localFs: LocalFileSource => Vector(localFs)
+          case _                        => Vector.empty
+        }
+      }
+
+      def extractFiles(
+          v: Value,
+          fileResolver: FileSourceResolver
+      ): Vector[AddressableFileNode] = {
+        def inner(innerValue: Value): Vector[AddressableFileNode] = {
+          innerValue match {
+            case f: VFile      => Vector(fileResolver.resolve(f.uri))
+            case VArray(value) => value.flatMap(inner)
+            case VHash(m)      => m.values.flatMap(inner).toVector
+            case _             => Vector.empty
+          }
+        }
+        inner(v)
+      }
+
+      def inner(innerName: String,
+                innerValue: Value,
+                innerType: Type,
+                optional: Boolean): Vector[AddressableFileNode] = {
+        (innerType, innerValue) match {
+          case (TOptional(_), VNull) =>
+            Vector.empty
+          case (TOptional(optType), _) =>
+            inner(innerName, innerValue, optType, optional = true)
+          case (TFile, f: VFile) =>
+            getFileNode(innerName, fileResolver.resolve(f.uri), optional)
+          case (TFile, VString(path)) =>
+            getFileNode(innerName, fileResolver.resolve(path), optional)
+          case (TArray(_, nonEmpty), VArray(array)) if nonEmpty && array.isEmpty =>
+            throw new Exception(s"Non-empty array ${name} has empty value")
+          case (TArray(elementType, _), VArray(array)) =>
+            array.zipWithIndex.flatMap {
+              case (element, index) =>
+                inner(s"${innerName}[${index}]", element, elementType, optional = false)
+            }
+          case (TSchema(name, memberTypes), VHash(members)) =>
+            memberTypes.flatMap {
+              case (key, t) =>
+                (t, members.get(key)) match {
+                  case (TOptional(_), None) =>
+                    Vector.empty
+                  case (_, None) =>
+                    throw new Exception(s"missing non-optional member ${key} of struct ${name}")
+                  case (_, Some(v)) =>
+                    inner(s"${name}.${key}", v, t, optional = false)
+                }
+            }.toVector
+          case (THash, VHash(members)) =>
+            members.flatMap {
+              case (key, value) =>
+                val files = extractFiles(value, fileResolver)
+                files.flatMap(fs => getFileNode(s"${innerName}.${key}", fs, optional = true))
+            }.toVector
+          case _ =>
+            Vector.empty
+        }
+      }
+
+      inner(name, v, t, optional = false)
+    }
+
     // private variables may create files that need to be uploaded
     protected def uploadPrivateVariablePaths(
         env: Map[String, (Type, Value)]
     ): Map[String, ParameterLink] = {
       val filesToUpload = env.map {
         case (name, (irType, irValue)) =>
-          name -> extractOutputFiles(name,
-                                     irValue,
-                                     irType,
-                                     jobMeta.fileResolver,
-                                     ignoreNonLocalFiles = true).map {
+          name -> extractOutputFiles(name, irValue, irType, jobMeta.fileResolver).map {
             case local: LocalFileSource => local
             case other =>
               throw new Exception(s"unexpected non-local file ${other}")
           }
       }
 
-      val delocalizedPathToUri = jobMeta
-        .uploadOutputFiles(filesToUpload.map {
-          case (name, localFileSources) => name -> localFileSources.map(_.canonicalPath)
+      val defaultDestParent = if (jobMeta.useManifests) {
+        s"${jobMeta.manifestFolder}/"
+      } else {
+        "/"
+      }
+      val delocalizedPathToUri = dxApi
+        .uploadFiles(filesToUpload.values.flatMap { localFileSources =>
+          localFileSources.map { fs =>
+            val destination = s"${defaultDestParent}${fs.canonicalPath.getFileName.toString}"
+            FileUpload(fs.canonicalPath, Some(destination))
+          }
         })
         .map {
           case (path, dxFile) => path -> dxFile.asUri
         }
+
       // Replace the local paths in the output values with URIs. This requires
       // two look-ups: first to get the absoulte Path associated with the file
       // value (which may be relative or absolute), and second to get the URI
@@ -598,7 +691,26 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
           case _          => None
         }
       }
-      val delocalizedOutputs = delocalizeOutputFiles(env, resolveUri)
+      def pathTranslator(v: Value, t: Option[Type], optional: Boolean): Option[Value] = {
+        val uri = (t, v) match {
+          case (_, f: VFile)               => Some(f.uri)
+          case (Some(TFile), VString(uri)) => Some(uri)
+          case _                           => None
+        }
+        uri.map { u =>
+          resolveUri(u) match {
+            case Some(uri)        => VFile(uri)
+            case None if optional => VNull
+            case None =>
+              throw new Exception(s"Did not delocalize file ${u}")
+          }
+        }
+      }
+
+      val delocalizedOutputs = env.view.mapValues {
+        case (t, v) => (t, Value.transform(v, Some(t), pathTranslator))
+      }.toMap
+
       jobMeta.createOutputLinks(delocalizedOutputs)
     }
 

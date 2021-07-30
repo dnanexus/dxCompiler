@@ -13,9 +13,13 @@ object BaseCli {
 abstract class BaseCli {
   val jarName: String
 
-  def createTaskExecutor(meta: JobMeta, streamFiles: StreamFiles.StreamFiles): TaskExecutor
+  def createTaskExecutor(meta: JobMeta,
+                         streamFiles: StreamFiles.StreamFiles,
+                         waitOnUpload: Boolean): TaskExecutor
 
-  def createWorkflowExecutor(meta: JobMeta, separateOutputs: Boolean): WorkflowExecutor[_]
+  def createWorkflowExecutor(meta: JobMeta,
+                             separateOutputs: Boolean,
+                             waitOnUpload: Boolean): WorkflowExecutor[_]
 
   private object StreamFilesOptionSpec
       extends SingleValueOptionSpec[StreamFiles.StreamFiles](choices = StreamFiles.values.toVector) {
@@ -58,7 +62,7 @@ abstract class BaseCli {
     val logger = initLogger(options)
     val waitOnUpload = options.getFlag("waitOnUpload")
     try {
-      logger.traceLimited(s"Creating JobMeta: rootDir ${rootDir}, waitOnUpload ${waitOnUpload}")
+      logger.traceLimited(s"Creating JobMeta: rootDir ${rootDir}")
       val jobMeta = WorkerJobMeta(workerPaths = DxWorkerPaths(rootDir), logger = logger)
       kind match {
         case ExecutorKind.Task =>
@@ -75,10 +79,10 @@ abstract class BaseCli {
             case None if options.getFlag("streamAllFiles") => StreamFiles.All
             case None                                      => StreamFiles.PerFile
           }
-          logger.traceLimited(
-              s"Creating TaskExecutor: streamFiles ${streamFiles}"
+          logger.trace(
+              s"Creating TaskExecutor: streamFiles ${streamFiles}, waitOnUpload ${waitOnUpload}"
           )
-          val taskExecutor = createTaskExecutor(jobMeta, streamFiles)
+          val taskExecutor = createTaskExecutor(jobMeta, streamFiles, waitOnUpload)
           val successMessage = taskExecutor.apply(taskAction)
           Success(successMessage)
         case ExecutorKind.Workflow =>
@@ -90,7 +94,10 @@ abstract class BaseCli {
               case _: NoSuchElementException =>
                 return BadUsageTermination(s"Unknown action ${args(0)}")
             }
-          val executor = createWorkflowExecutor(jobMeta, separateOutputs)
+          logger.trace(
+              s"Creating WorkflowExecutor: separateOutputs ${separateOutputs}, waitOnUpload ${waitOnUpload}"
+          )
+          val executor = createWorkflowExecutor(jobMeta, separateOutputs, waitOnUpload)
           val (_, successMessage) = executor.apply(workflowAction)
           Success(successMessage)
         case _ =>

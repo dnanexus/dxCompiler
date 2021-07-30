@@ -10,7 +10,7 @@
       {
         "class": "Directory",
         "basename": "xtestdir",
-        "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G1350Y80yzZZ3vpf4YFGp4zQ"
+        "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/test/"
       }
     ]
   }

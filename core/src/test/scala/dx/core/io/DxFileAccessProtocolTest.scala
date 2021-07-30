@@ -1,7 +1,7 @@
 package dx.core.io
 
-import dx.Assumptions.isLoggedIn
-import dx.Tags.ApiTest
+import dx.core.Assumptions.isLoggedIn
+import dx.core.Tags.ApiTest
 import dx.core.languages.wdl.WdlUtils
 import dx.util.FileSourceResolver
 import dx.util.protocols.DxFileAccessProtocol

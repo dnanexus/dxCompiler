@@ -29,7 +29,9 @@ import wdlTools.types.{TypeUtils, TypedAbstractSyntax => TAT}
 import wdlTools.types.WdlTypes._
 
 object WdlWorkflowExecutor {
-  def create(jobMeta: JobMeta, separateOutputs: Boolean): WdlWorkflowExecutor = {
+  def create(jobMeta: JobMeta,
+             separateOutputs: Boolean,
+             waitOnUpload: Boolean): WdlWorkflowExecutor = {
     // parse the workflow source code to get the WDL document
     val wdlOptions = jobMeta.parserOptions.map(WdlOptions.fromJson).getOrElse(WdlOptions.default)
     val (doc, typeAliases, versionSupport) =
@@ -46,7 +48,8 @@ object WdlWorkflowExecutor {
                         tasks,
                         typeAliases.toMap,
                         jobMeta,
-                        separateOutputs)
+                        separateOutputs,
+                        waitOnUpload)
   }
 }
 
@@ -67,8 +70,11 @@ case class WdlWorkflowExecutor(docSource: FileNode,
                                tasks: Map[String, TAT.Task],
                                wdlTypeAliases: Map[String, T_Struct],
                                jobMeta: JobMeta,
-                               separateOutputs: Boolean)
-    extends WorkflowExecutor[WdlBlock](jobMeta = jobMeta, separateOutputs = separateOutputs) {
+                               separateOutputs: Boolean,
+                               waitOnUpload: Boolean)
+    extends WorkflowExecutor[WdlBlock](jobMeta = jobMeta,
+                                       separateOutputs = separateOutputs,
+                                       waitOnUpload = waitOnUpload) {
   private val logger = jobMeta.logger
   private lazy val evaluator = Eval(
       jobMeta.workerPaths,
@@ -349,7 +355,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
   }
 
   case class WdlBlockContext(block: WdlBlock, wdlEnv: Map[String, (T, V)]) extends BlockContext {
-    private val call: TAT.Call = block.call
+    private def call: TAT.Call = block.call
 
     override lazy val env: Map[String, (Type, Value)] = WdlUtils.toIR(wdlEnv)
 
@@ -622,10 +628,11 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     private[wdl] def getScatterName(item: V, index: Int): String = {
       def inner(innerItem: V): Option[String] = {
         innerItem match {
-          case _ if EvalUtils.isPrimitive(item) => Some(truncate(EvalUtils.formatPrimitive(item)))
-          case V_File(path)                     => Some(truncate(getFileName(path)))
-          case V_Directory(path)                => Some(truncate(getFileName(path)))
-          case V_Optional(x)                    => inner(x)
+          case _ if EvalUtils.isPrimitive(innerItem) =>
+            Some(truncate(EvalUtils.formatPrimitive(innerItem)))
+          case V_File(path)      => Some(truncate(getFileName(path)))
+          case V_Directory(path) => Some(truncate(getFileName(path)))
+          case V_Optional(x)     => inner(x)
           case V_Pair(l, r) =>
             val ls = inner(l)
             val rs = inner(r)

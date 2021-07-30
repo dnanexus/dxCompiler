@@ -1,8 +1,8 @@
-package dx
+package dx.executor.cwl
 
 import dx.api.DxApi
-import org.scalatest.Tag
 import dx.util.SysUtils
+import org.scalatest.Tag
 
 // test that requires being logged into DNAnexus
 class DxTag(name: String = "dx") extends Tag(name)
@@ -39,5 +39,11 @@ object Assumptions {
     } catch {
       case _: Throwable => false
     }
+  }
+
+  lazy val cwltoolCallable: Boolean = {
+    val (retcode, stdout, _) = SysUtils.execCommand("cwltool --version", exceptionOnFailure = false)
+    // TODO: pull the min cwl version from the bundled_dependencies.json file
+    retcode == 0 && stdout.trim.split('.').last.toLong >= 20210628163208L
   }
 }

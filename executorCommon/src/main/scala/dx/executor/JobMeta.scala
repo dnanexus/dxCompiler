@@ -35,7 +35,7 @@ import dx.core.ir.{
   ValueSerde
 }
 import dx.core.languages.Language
-import dx.util.{CodecUtils, FileSourceResolver, FileUtils, JsUtils, Logger, TraceLevel}
+import dx.util.{CodecUtils, FileSourceResolver, FileUtils, JsUtils, Logger, SysUtils, TraceLevel}
 import dx.util.protocols.DxFileAccessProtocol
 import spray.json._
 
@@ -96,9 +96,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 
   def jobId: String
 
-  def codeFile: Path = {
-    workerPaths.getRootDir().resolve(s"${jobId}.code.sh")
-  }
+  def runJobScriptFunction(name: String): Unit
 
   def rawJsInputs: Map[String, JsValue]
 
@@ -746,6 +744,25 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths
   private val outputPath = rootDir.resolve(JobMeta.OutputFile)
   private val jobInfoPath = rootDir.resolve(JobMeta.JobInfoFile)
   private val executableInfoPath = rootDir.resolve(JobMeta.ExecutableInfoFile)
+
+  def codeFile: Path = {
+    workerPaths.getRootDir().resolve(s"${jobId}.code.sh")
+  }
+
+  override def runJobScriptFunction(name: String): Unit = {
+    logger.trace(s"running job script function ${name}")
+    val command = s"source ${codeFile} && ${name}"
+    val (rc, stdout, stderr) = SysUtils.execCommand(command, exceptionOnFailure = false)
+    if (stdout.nonEmpty) {
+      logger.traceLimited(s"stdout:\n${stdout}")
+    }
+    if (rc != 0) {
+      if (stderr.nonEmpty) {
+        logger.traceLimited(s"stderr:\n${stdout}")
+      }
+      throw new Exception(s"job script function ${name} failed with return code ${rc}")
+    }
+  }
 
   lazy override val rawJsInputs: Map[String, JsValue] = {
     if (Files.exists(inputPath)) {

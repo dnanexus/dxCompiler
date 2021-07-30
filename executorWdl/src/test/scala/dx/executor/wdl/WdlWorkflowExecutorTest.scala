@@ -1,8 +1,8 @@
 package dx.executor.wdl
 
 import java.nio.file.{Files, Path, Paths}
-import dx.Assumptions.isLoggedIn
-import dx.Tags.{EdgeTest, NativeTest}
+import Assumptions.isLoggedIn
+import Tags.{EdgeTest, NativeTest}
 import dx.api._
 import dx.core.{Constants, ir}
 import dx.core.io.DxWorkerPaths
@@ -36,6 +36,8 @@ private case class WorkflowTestJobMeta(override val workerPaths: DxWorkerPaths,
   override def writeRawJsOutputs(outputJs: Map[String, JsValue]): Unit = {}
 
   override val jobId: String = null
+
+  override def runJobScriptFunction(name: String): Unit = ()
 
   override val analysis: Option[DxAnalysis] = None
 
@@ -116,7 +118,7 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     val wfSourceCode = FileUtils.readFileContent(sourcePath)
     val jobMeta =
       WorkflowTestJobMeta(workerPaths, dxApi, logger, env, blockPath, instanceTypeDB, wfSourceCode)
-    WdlWorkflowExecutor.create(jobMeta, separateOutputs = false)
+    WdlWorkflowExecutor.create(jobMeta, separateOutputs = false, waitOnUpload = true)
   }
 
   private def createFileResolver(workerPaths: DxWorkerPaths): FileSourceResolver = {
@@ -287,7 +289,7 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     val irX = WdlUtils.toIRValue(wdlX)
     val blockContext =
       wdlWorkflowSupport.evaluateBlockInputs(Map("x" -> (Type.TArray(Type.TString), irX)))
-    blockContext.getScatterName(wdlX, 0) shouldBe Some("[x,y]")
+    blockContext.getScatterName(wdlX, 0) shouldBe "[x,y]"
   }
 
   it should "Make sure calls cannot be handled by evalExpressions" in {

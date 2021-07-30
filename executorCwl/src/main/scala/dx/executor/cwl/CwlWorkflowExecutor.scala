@@ -58,7 +58,9 @@ import spray.json._
 import java.net.URI
 
 object CwlWorkflowExecutor {
-  def create(jobMeta: JobMeta, separateOutputs: Boolean): CwlWorkflowExecutor = {
+  def create(jobMeta: JobMeta,
+             separateOutputs: Boolean,
+             waitOnUpload: Boolean): CwlWorkflowExecutor = {
     // when parsing a packed workflow as a String, we need to use a baseuri -
     // it doesn't matter what it is
     val parser = Parser.create(Some(URI.create("file:/null")), hintSchemas = Vector(DxHintSchema))
@@ -80,12 +82,15 @@ object CwlWorkflowExecutor {
       case other =>
         throw new Exception(s"expected CWL document to contain a Workflow, not ${other}")
     }
-    CwlWorkflowExecutor(workflow, jobMeta, separateOutputs)
+    CwlWorkflowExecutor(workflow, jobMeta, separateOutputs, waitOnUpload)
   }
 }
 
-case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOutputs: Boolean)
-    extends WorkflowExecutor[CwlBlock](jobMeta, separateOutputs) {
+case class CwlWorkflowExecutor(workflow: Workflow,
+                               jobMeta: JobMeta,
+                               separateOutputs: Boolean,
+                               waitOnUpload: Boolean)
+    extends WorkflowExecutor[CwlBlock](jobMeta, separateOutputs, waitOnUpload) {
   private val logger = jobMeta.logger
 
   override val executorName: String = "dxExecutorCwl"

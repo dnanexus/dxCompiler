@@ -4,11 +4,12 @@ import java.nio.file.{Path, Paths}
 import dx.Tags.EdgeTest
 import dx.api._
 import dx.core.Constants
+import dx.core.CliUtils.{Failure, UnsuccessfulTermination}
 import dx.core.ir.{Parameter, _}
 import dx.core.ir.RunSpec._
 import dx.core.ir.Type._
 import dx.core.ir.Value._
-import dx.core.CliUtils.{Failure, UnsuccessfulTermination}
+import dx.core.languages.cwl.TargetParam
 import dx.core.languages.wdl.WdlDocumentSource
 import dx.translator.CallableAttributes._
 import dx.translator.ParameterAttributes._
@@ -1528,7 +1529,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
         applet.kind shouldBe ExecutableKindApplet
         applet.attributes shouldBe Vector(DescriptionAttribute("Write a file to stdout using cat"))
         applet.container shouldBe NoImage
-        applet.inputs shouldBe Vector(Parameter("file", TFile))
+        applet.inputs shouldBe Vector(Parameter("file", TFile), TargetParam)
         applet.outputs shouldBe Vector(Parameter("contents", TFile))
       case other =>
         throw new AssertionError(s"expected SuccessfulCompileIR, not ${other}")
@@ -1596,7 +1597,8 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     wf.stages(0).dxStage.id shouldBe "stage-0"
     wf.stages(0).calleeName shouldBe "word-count"
     wf.stages(0).inputs shouldBe Vector(
-        WorkflowInput(Parameter("file1", TFile))
+        WorkflowInput(Parameter("file1", TFile)),
+        StaticInput(VString("step1"))
     )
     wf.stages(0).outputs shouldBe Vector(
         Parameter("output", TFile)
@@ -1604,7 +1606,8 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     wf.stages(1).dxStage.id shouldBe "stage-1"
     wf.stages(1).calleeName shouldBe "parseInt"
     wf.stages(1).inputs shouldBe Vector(
-        LinkInput(DxWorkflowStage("stage-0"), "output")
+        LinkInput(DxWorkflowStage("stage-0"), "output"),
+        StaticInput(VString("step2"))
     )
     wf.stages(1).outputs shouldBe Vector(
         Parameter("output", TInt)

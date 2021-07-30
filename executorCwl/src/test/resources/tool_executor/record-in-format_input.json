@@ -1,0 +1,27 @@
+{
+  "record_input": {
+    "___": {
+      "f1": {
+        "type": "File",
+        "uri": "rec/A",
+        "format": "http://example.com/format1"
+      },
+      "f2": [{
+        "type": "File",
+        "uri": "rec/B",
+        "format": "http://example.com/format2"
+      }, {
+        "type": "File",
+        "uri": "rec/C",
+        "format": "http://example.com/format2"
+      }]
+    }
+  },
+  "regular_input": {
+    "___": {
+      "type": "File",
+      "uri": "rec/D",
+      "format": "http://example.com/format1"
+    }
+  }
+}

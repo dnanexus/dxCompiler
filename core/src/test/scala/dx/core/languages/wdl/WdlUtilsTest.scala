@@ -1,6 +1,6 @@
 package dx.core.languages.wdl
 
-import dx.Tags.EdgeTest
+import dx.core.Tags.EdgeTest
 import dx.core.ir.{Type, Value}
 import dx.util.{Bindings, FileSourceResolver}
 import org.scalatest.flatspec.AnyFlatSpec

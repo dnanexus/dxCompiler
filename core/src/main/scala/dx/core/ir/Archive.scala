@@ -298,7 +298,7 @@ object Archive {
             val (newItems, itemPaths) = transformListing(items.get)
             (Some(newItems), itemPaths)
           } else {
-            (None, SeqMap.empty)
+            (None, SeqMap.empty[Path, Path])
           }
           (f.copy(uri = newPath.toString, listing = newItems),
            SeqMap(oldPath -> newPath) ++ itemPaths)

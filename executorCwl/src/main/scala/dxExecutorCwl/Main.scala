@@ -8,13 +8,15 @@ object Main extends BaseCli {
   override val jarName = "dxExecutorCwl.jar"
 
   override def createTaskExecutor(meta: JobMeta,
-                                  streamFiles: StreamFiles.StreamFiles): CwlTaskExecutor = {
-    CwlTaskExecutor.create(meta, streamFiles)
+                                  streamFiles: StreamFiles.StreamFiles,
+                                  waitOnUpload: Boolean): CwlTaskExecutor = {
+    CwlTaskExecutor.create(meta, streamFiles, waitOnUpload)
   }
 
   override def createWorkflowExecutor(meta: JobMeta,
-                                      separateOutputs: Boolean): CwlWorkflowExecutor = {
-    CwlWorkflowExecutor.create(meta, separateOutputs)
+                                      separateOutputs: Boolean,
+                                      waitOnUpload: Boolean): CwlWorkflowExecutor = {
+    CwlWorkflowExecutor.create(meta, separateOutputs, waitOnUpload)
   }
 }
 

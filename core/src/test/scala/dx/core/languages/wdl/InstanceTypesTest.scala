@@ -1,6 +1,6 @@
 package dx.core.languages.wdl
 
-import dx.Tags.ApiTest
+import dx.core.Tags.ApiTest
 import dx.api.{DiskType, DxInstanceType, InstanceTypeDB, InstanceTypeRequest}
 import dx.core.Constants
 import org.scalatest.flatspec.AnyFlatSpec

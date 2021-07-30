@@ -131,7 +131,7 @@ lazy val dependencies =
     val dxApiVersion = "0.8.0"
     val dxFileAccessProtocolsVersion = "0.4.1"
     val wdlToolsVersion = "0.14.4-SNAPSHOT"
-    val cwlScalaVersion = "0.5.1-SNAPSHOT"
+    val cwlScalaVersion = "0.5.2-SNAPSHOT"
     val typesafeVersion = "1.3.3"
     val sprayVersion = "1.3.5"
     val scalatestVersion = "3.1.1"
@@ -192,7 +192,8 @@ lazy val settings = Seq(
     // Tests
     // If an exception is thrown during tests, show the full
     // stack trace, by adding the "-oF" option to the list.
-    Test / testOptions += Tests.Argument("-oF"),
+    // Ignore cancelled tests (-oK)
+    Test / testOptions += Tests.Argument("-oFK"),
     Test / parallelExecution := false
     // Coverage
     //

@@ -243,22 +243,37 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
     val jsInputs = JsUtils.jsFromFile(dxInputsFile)
     val fields = jsInputs.asJsObject.fields
     fields("reference") shouldBe JsObject(
-        "$dnanexus_link" -> JsObject(
-            "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
-            "id" -> JsString("file-G0G0V000yzZf6x1Y3vxzpg63")
+        "___" -> JsObject(
+            "checksum" -> JsString("sha1$hash"),
+            "size" -> JsNumber(123),
+            "type" -> JsString("File"),
+            "uri" -> JsObject(
+                "$dnanexus_link" -> JsObject(
+                    "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
+                    "id" -> JsString("file-G0G0V000yzZf6x1Y3vxzpg63")
+                )
+            )
         )
     )
-    fields("reads") shouldBe JsArray(
-        JsObject(
-            "$dnanexus_link" -> JsObject(
-                "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
-                "id" -> JsString("file-G0G0V0Q0yzZbyFF03xqgxv87")
-            )
-        ),
-        JsObject(
-            "$dnanexus_link" -> JsObject(
-                "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
-                "id" -> JsString("file-G0G0V0j0yzZV5q4q3vkQJJX5")
+    fields("reads") shouldBe JsObject(
+        "___" -> JsArray(
+            JsObject(
+                "type" -> JsString("File"),
+                "uri" -> JsObject(
+                    "$dnanexus_link" -> JsObject(
+                        "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
+                        "id" -> JsString("file-G0G0V0Q0yzZbyFF03xqgxv87")
+                    )
+                )
+            ),
+            JsObject(
+                "type" -> JsString("File"),
+                "uri" -> JsObject(
+                    "$dnanexus_link" -> JsObject(
+                        "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
+                        "id" -> JsString("file-G0G0V0j0yzZV5q4q3vkQJJX5")
+                    )
+                )
             )
         )
     )
@@ -270,9 +285,14 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
     )
     fields("minimum_seed_length") shouldBe JsNumber(3)
     fields("args___py") shouldBe JsObject(
-        "$dnanexus_link" -> JsObject(
-            "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
-            "id" -> JsString("file-G0G3BZQ0yzZf6x1Y3vxzpgk6")
+        "___" -> JsObject(
+            "type" -> JsString("File"),
+            "uri" -> JsObject(
+                "$dnanexus_link" -> JsObject(
+                    "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
+                    "id" -> JsString("file-G0G3BZQ0yzZf6x1Y3vxzpgk6")
+                )
+            )
         )
     )
   }
@@ -404,14 +424,9 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
                     )
                 ),
                 JsObject(
-                    "type" -> JsString("Archive"),
+                    "type" -> JsString("Folder"),
                     "basename" -> JsString("xtestdir"),
-                    "uri" -> JsObject(
-                        "$dnanexus_link" -> JsObject(
-                            "id" -> JsString("file-G1350Y80yzZZ3vpf4YFGp4zQ"),
-                            "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq")
-                        )
-                    )
+                    "uri" -> JsString("dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/test/")
                 )
             )
         )

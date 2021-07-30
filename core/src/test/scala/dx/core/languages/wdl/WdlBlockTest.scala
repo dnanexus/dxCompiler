@@ -2,7 +2,7 @@ package dx.core.languages.wdl
 
 import java.nio.file.{Path, Paths}
 
-import dx.Tags.EdgeTest
+import dx.core.Tags.EdgeTest
 import dx.core.ir.{Block, BlockKind}
 import dx.core.languages.wdl.{WdlUtils => WdlUtils}
 import org.scalatest.flatspec.AnyFlatSpec

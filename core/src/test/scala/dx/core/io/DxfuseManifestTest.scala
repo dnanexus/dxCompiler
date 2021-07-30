@@ -2,8 +2,8 @@ package dx.core.io
 
 import java.nio.file.{Files, Path}
 
-import dx.Assumptions.isLoggedIn
-import dx.Tags.ApiTest
+import dx.core.Assumptions.isLoggedIn
+import dx.core.Tags.ApiTest
 import dx.api.{DxApi, DxFile, DxProject}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -48,7 +48,7 @@ class DxfuseManifestTest extends AnyFlatSpec with Matchers {
 
     // Creating a manifest should fail, because some of the files are archived
     assertThrows[Exception] {
-      DxfuseManifestBuilder(dxApi).apply(filesInManifest, Map.empty, dxPathConfig)
+      DxfuseManifestBuilder(dxPathConfig, dxApi).apply(filesInManifest, Map.empty)
     }
   }
 }

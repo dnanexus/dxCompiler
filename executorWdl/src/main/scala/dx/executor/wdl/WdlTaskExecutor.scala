@@ -15,7 +15,8 @@ import wdlTools.types.{TypedAbstractSyntax => TAT}
 object WdlTaskExecutor {
   def create(
       jobMeta: JobMeta,
-      streamFiles: StreamFiles.StreamFiles = StreamFiles.PerFile
+      streamFiles: StreamFiles.StreamFiles = StreamFiles.PerFile,
+      waitOnUpload: Boolean
   ): WdlTaskExecutor = {
     val wdlOptions = jobMeta.parserOptions.map(WdlOptions.fromJson).getOrElse(WdlOptions.default)
     val (doc, typeAliases, versionSupport) =
@@ -32,7 +33,12 @@ object WdlTaskExecutor {
     if (tasks.size > 1) {
       throw new Exception("More than one task in this WDL program")
     }
-    WdlTaskExecutor(tasks.values.head, versionSupport, typeAliases, jobMeta, streamFiles)
+    WdlTaskExecutor(tasks.values.head,
+                    versionSupport,
+                    typeAliases,
+                    jobMeta,
+                    streamFiles,
+                    waitOnUpload)
   }
 }
 
@@ -40,8 +46,9 @@ case class WdlTaskExecutor(task: TAT.Task,
                            versionSupport: VersionSupport,
                            typeAliases: Bindings[String, T_Struct],
                            jobMeta: JobMeta,
-                           streamFiles: StreamFiles.StreamFiles)
-    extends TaskExecutor(jobMeta, streamFiles) {
+                           streamFiles: StreamFiles.StreamFiles,
+                           waitOnUpload: Boolean)
+    extends TaskExecutor(jobMeta, streamFiles, waitOnUpload) {
 
   private val fileResolver = jobMeta.fileResolver
   private val logger = jobMeta.logger

@@ -2,8 +2,8 @@ package dx.core.io
 
 import java.nio.file.{Path, Paths}
 
-import dx.Assumptions.isLoggedIn
-import dx.Tags.ApiTest
+import dx.core.Assumptions.isLoggedIn
+import dx.core.Tags.ApiTest
 import dx.api.{DxApi, DxFile, DxProject}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

@@ -1,7 +1,7 @@
 package dx.core.ir
 
 import java.nio.file.Paths
-import dx.Tags.EdgeTest
+import dx.core.Tags.EdgeTest
 import dx.api.{DxApi, DxFileDescCache}
 import dx.util.{FileSourceResolver, Logger}
 import dx.util.protocols.DxFileAccessProtocol

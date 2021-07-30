@@ -2,8 +2,8 @@ package dx.translator
 
 import com.dnanexus.exceptions.ResourceNotFoundException
 import dx.Assumptions.isLoggedIn
-import dx.PermissionDeniedException
 import dx.Tags.{ApiTest, EdgeTest}
+import dx.PermissionDeniedException
 import dx.api.{DxAccessLevel, DxApi, DxProject}
 import dx.core.ir.Value
 import dx.core.ir.Value.VString

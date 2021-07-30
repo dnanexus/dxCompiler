@@ -92,10 +92,11 @@ object Value {
     }
   }
 
-  def walk[T](value: Value,
-              t: Option[Type],
-              initialContext: T,
-              handler: (Value, Option[Type], Boolean, T) => Option[T]): T = {
+  trait WalkHandler[T] {
+    def apply(value: Value, t: Option[Type], optional: Boolean, ctx: T): Option[T]
+  }
+
+  def walk[T](value: Value, t: Option[Type], initialContext: T, handler: WalkHandler[T]): T = {
     def walkPaths(paths: Vector[PathValue], innerContext: T): T = {
       paths
         .foldLeft(innerContext) {
@@ -162,6 +163,10 @@ object Value {
     inner(value, t, initialContext)
   }
 
+  trait TransformHandler {
+    def apply(value: Value, t: Option[Type], optional: Boolean): Option[Value]
+  }
+
   /**
     * Transforms a Value to another Value, applying the `handler` function
     * at each level of nesting. The default rules handle recursively
@@ -175,9 +180,7 @@ object Value {
     *                transformation rules are applied.
     * @return the transformed Value
     */
-  def transform(value: Value,
-                t: Option[Type],
-                handler: (Value, Option[Type], Boolean) => Option[Value]): Value = {
+  def transform(value: Value, t: Option[Type], handler: TransformHandler): Value = {
     def transformPaths(paths: Vector[PathValue]): Vector[PathValue] = {
       paths
         .map {
