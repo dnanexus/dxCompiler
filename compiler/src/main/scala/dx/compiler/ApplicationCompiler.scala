@@ -287,9 +287,10 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       case _                 => ""
     }
     val md = filesMd + networkDockerImageMd + dynamicDockerImageMd + dxInstanceTypeMd
-    md match {
-      case s: String if !s.isEmpty => Some(headerMd + md)
-      case _                       => None
+    if (md.nonEmpty) {
+      Some(headerMd + md)
+    } else {
+      None
     }
   }
 

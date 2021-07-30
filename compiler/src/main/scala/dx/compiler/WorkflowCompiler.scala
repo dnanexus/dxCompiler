@@ -209,9 +209,10 @@ case class WorkflowCompiler(extras: Option[Extras],
       }
       case _ => ""
     }
-    md match {
-      case s: String if !s.isEmpty => Some(headerMd + md)
-      case _                       => None
+    if (md.nonEmpty) {
+      Some(headerMd + md)
+    } else {
+      None
     }
   }
 
@@ -251,9 +252,10 @@ case class WorkflowCompiler(extras: Option[Extras],
       }
       case _ => ""
     }
-    md match {
-      case s: String if !s.isEmpty => Some(headerMd + md)
-      case _                       => None
+    if (md.nonEmpty) {
+      Some(headerMd + md)
+    } else {
+      None
     }
   }
 
@@ -315,9 +317,10 @@ case class WorkflowCompiler(extras: Option[Extras],
 
     // Append header & return full report if it has contents
     val md = topLevelMd + subWorkflowsMd + appletsMd
-    md match {
-      case s: String if !s.isEmpty => Some(headerMd + md)
-      case _                       => None
+    if (md.nonEmpty) {
+      Some(headerMd + md)
+    } else {
+      None
     }
   }
 
@@ -615,10 +618,10 @@ case class WorkflowCompiler(extras: Option[Extras],
       .filter(param => Type.unwrapOptional(param.dxType) == Type.TFile)
     val fileDependencies = (fileInputParams
       .flatMap(CompilerUtils.fileDependenciesFromParam) ++ workflow.varFileDependencies).distinct
-    val fileDependenciesDetails = fileDependencies match {
-      case fileDependencies if !fileDependencies.isEmpty =>
-        Map(Constants.FileDependencies -> JsArray(fileDependencies.map(s => JsString(s))))
-      case _ => Map.empty
+    val fileDependenciesDetails = if (fileDependencies.nonEmpty) {
+      Map(Constants.FileDependencies -> JsArray(fileDependencies.map(s => JsString(s))))
+    } else {
+      Map.empty
     }
 
     // Collect Docker registry credentials URI
