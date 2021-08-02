@@ -244,11 +244,11 @@ case class WorkflowCompiler(extras: Option[Extras],
           case Some(JsBoolean(b)) if b => listMd("Docker image determined at runtime")
           case _                       => ""
         }
-        val dxInstanceTypeMd = d.get(Constants.DxInstanceType) match {
+        val staticInstanceTypeMd = d.get(Constants.StaticInstanceType) match {
           case Some(JsString(s)) => listMd("Hard-coded instance type") + listMd2(s)
           case _                 => ""
         }
-        filesMd + networkDockerImageMd + dynamicDockerImageMd + dxInstanceTypeMd
+        filesMd + networkDockerImageMd + dynamicDockerImageMd + staticInstanceTypeMd
       }
       case _ => ""
     }

@@ -213,8 +213,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
 
     // Add hard-coded instance type info to details
     val instanceTypeDetails: Map[String, JsValue] = applet.instanceType match {
-      case StaticInstanceType(Some(dxInstanceType), _, _, _, _, _, _, _, _, _) =>
-        Map(Constants.DxInstanceType -> JsString(dxInstanceType))
+      case StaticInstanceType(Some(staticInstanceType), _, _, _, _, _, _, _, _, _) =>
+        Map(Constants.StaticInstanceType -> JsString(staticInstanceType))
       case _ => Map.empty
     }
 
@@ -282,11 +282,11 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       case Some(JsBoolean(b)) if b => listMd("Docker image determined at runtime")
       case _                       => ""
     }
-    val dxInstanceTypeMd = runSpecDetails.get(Constants.DxInstanceType) match {
+    val staticInstanceTypeMd = runSpecDetails.get(Constants.StaticInstanceType) match {
       case Some(JsString(s)) => listMd("Hard-coded instance type") + listMd2(s)
       case _                 => ""
     }
-    val md = filesMd + networkDockerImageMd + dynamicDockerImageMd + dxInstanceTypeMd
+    val md = filesMd + networkDockerImageMd + dynamicDockerImageMd + staticInstanceTypeMd
     if (md.nonEmpty) {
       Some(headerMd + md)
     } else {

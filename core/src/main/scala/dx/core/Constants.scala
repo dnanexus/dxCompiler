@@ -8,7 +8,7 @@ object Constants {
   val BlockPath = "blockPath"
   val WfFragmentInputTypes = "fqnDictTypes"
   val InstanceTypeDb = "instanceTypeDB"
-  val DxInstanceType = "dxInstanceType"
+  val StaticInstanceType = "staticInstanceType"
   val DelayWorkspaceDestruction = "delayWorkspaceDestruction"
   val RuntimeAttributes = "runtimeAttrs"
   val CompilerTag = "dxCompiler"
