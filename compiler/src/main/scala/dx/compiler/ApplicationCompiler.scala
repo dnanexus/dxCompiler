@@ -271,11 +271,11 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       "# This app requires access to the following dependencies that are not " +
         "packaged with the app"
     val filesMd = fileDependencies.map(listMd2).mkString match {
-      case s: String if !s.isEmpty => listMd("Files") + s
+      case s: String if !s.isEmpty => s"${listMd("Files")}${s}"
       case _                       => ""
     }
     val networkDockerImageMd = runSpecDetails.get(Constants.NetworkDockerImage) match {
-      case Some(JsString(s)) => listMd("Network Docker image") + listMd2(s)
+      case Some(JsString(s)) => s"${listMd("Network Docker image")}${listMd2(s)}"
       case _                 => ""
     }
     val dynamicDockerImageMd = runSpecDetails.get(Constants.DynamicDockerImage) match {
@@ -283,12 +283,12 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       case _                       => ""
     }
     val staticInstanceTypeMd = runSpecDetails.get(Constants.StaticInstanceType) match {
-      case Some(JsString(s)) => listMd("Hard-coded instance type") + listMd2(s)
+      case Some(JsString(s)) => s"${listMd("Hard-coded instance type")}${listMd2(s)}"
       case _                 => ""
     }
-    val md = filesMd + networkDockerImageMd + dynamicDockerImageMd + staticInstanceTypeMd
+    val md = s"${filesMd}${networkDockerImageMd}${dynamicDockerImageMd}${staticInstanceTypeMd}"
     if (md.nonEmpty) {
-      Some(headerMd + md)
+      Some(s"${headerMd}${md}")
     } else {
       None
     }

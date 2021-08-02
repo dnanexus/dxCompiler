@@ -192,20 +192,21 @@ case class WorkflowCompiler(extras: Option[Extras],
     val md = description.details match {
       case Some(JsObject(d)) => {
         val appsMd = d.get(Constants.NativeAppDependencies) match {
-          case Some(JsArray(a)) => listMd("Native apps") + a.map(v => listMd2(v.toString)).mkString
-          case _                => ""
+          case Some(JsArray(a)) =>
+            s"${listMd("Native apps")}${a.map(v => listMd2(v.toString)).mkString}"
+          case _ => ""
         }
         val filesMd = d.get(Constants.FileDependencies) match {
           case Some(JsArray(a)) =>
-            listMd("Files") + a.map(v => listMd2(v.toString)).mkString
+            s"${listMd("Files")}${a.map(v => listMd2(v.toString)).mkString}"
           case _ => ""
         }
         val dockerRegistryCredentialsMd =
           d.get(Constants.DockerRegistryCredentialsUri) match {
-            case Some(JsString(s)) => listMd("Docker registry credentials file") + listMd2(s)
+            case Some(JsString(s)) => s"${listMd("Docker registry credentials file")}${listMd2(s)}"
             case _                 => ""
           }
-        appsMd + filesMd + dockerRegistryCredentialsMd
+        s"${appsMd}${filesMd}${dockerRegistryCredentialsMd}"
       }
       case _ => ""
     }
@@ -233,11 +234,11 @@ case class WorkflowCompiler(extras: Option[Extras],
       case Some(JsObject(d)) => {
         val filesMd = d.get(Constants.FileDependencies) match {
           case Some(JsArray(a)) =>
-            listMd("Files") + a.map(v => listMd2(v.toString)).mkString
+            s"${listMd("Files")}${a.map(v => listMd2(v.toString)).mkString}"
           case _ => ""
         }
         val networkDockerImageMd = d.get(Constants.NetworkDockerImage) match {
-          case Some(JsString(s)) => listMd("Network Docker image") + listMd2(s)
+          case Some(JsString(s)) => s"${listMd("Network Docker image")}${listMd2(s)}"
           case _                 => ""
         }
         val dynamicDockerImageMd = d.get(Constants.DynamicDockerImage) match {
@@ -245,15 +246,15 @@ case class WorkflowCompiler(extras: Option[Extras],
           case _                       => ""
         }
         val staticInstanceTypeMd = d.get(Constants.StaticInstanceType) match {
-          case Some(JsString(s)) => listMd("Hard-coded instance type") + listMd2(s)
+          case Some(JsString(s)) => s"${listMd("Hard-coded instance type")}${listMd2(s)}"
           case _                 => ""
         }
-        filesMd + networkDockerImageMd + dynamicDockerImageMd + staticInstanceTypeMd
+        s"${filesMd}${networkDockerImageMd}${dynamicDockerImageMd}${staticInstanceTypeMd}"
       }
       case _ => ""
     }
     if (md.nonEmpty) {
-      Some(headerMd + md)
+      Some(s"${headerMd}${md}")
     } else {
       None
     }
@@ -315,9 +316,9 @@ case class WorkflowCompiler(extras: Option[Extras],
       .mkString
 
     // Append header & return full report if it has contents
-    val md = topLevelMd + subWorkflowsMd + appletsMd
+    val md = s"${topLevelMd}${subWorkflowsMd}${appletsMd}"
     if (md.nonEmpty) {
-      Some(headerMd + md)
+      Some(s"${headerMd}${md}")
     } else {
       None
     }
