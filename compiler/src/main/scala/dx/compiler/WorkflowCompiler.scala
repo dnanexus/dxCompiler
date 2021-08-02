@@ -275,19 +275,18 @@ case class WorkflowCompiler(extras: Option[Extras],
       "# This workflow requires access to the following dependencies that are not " +
         "packaged with the workflow"
 
-    val appsMd = nativeAppDependencies.map(listMd2).mkString match {
-      case s: String if !s.isEmpty => listMd("Native apps") + s
-      case _                       => ""
-    }
-    val filesMd = fileDependencies.map(listMd2).mkString match {
-      case s: String if !s.isEmpty => listMd("Files") + s
-      case _                       => ""
-    }
-    val dockerRegistryCredentialsMd = dockerRegistryCredentialsUri match {
-      case Some(s) => listMd("Docker registry credentials file") + listMd2(s)
-      case _       => ""
-    }
-    val topLevelMd = appsMd + filesMd + dockerRegistryCredentialsMd
+    val topLevelMd = Vector(
+        Option.when(nativeAppDependencies.nonEmpty)(
+            Vector(listMd("Native apps")) ++ nativeAppDependencies.map(v => listMd2(v.toString))
+        ),
+        Option.when(fileDependencies.nonEmpty)(
+            Vector(listMd("Files")) ++ fileDependencies.map(v => listMd2(v.toString))
+        ),
+        Option.when(dockerRegistryCredentialsUri.nonEmpty)(
+            Vector(listMd("Docker registry credentials file"),
+                   listMd2(dockerRegistryCredentialsUri.get))
+        )
+    ).flatten.flatten.mkString
 
     val executableNames = ExecutableTree.extractExecutableNames(execTree)
     val executables = executableNames.collect { n =>
