@@ -436,7 +436,7 @@ class ExecutableCompiler(extras: Option[Extras],
     * @return Markdown list item of text string
     */
   protected def listMd(s: String): String = {
-    "\n* " + s
+    s"\n* ${s}"
   }
 
   /**
@@ -445,6 +445,6 @@ class ExecutableCompiler(extras: Option[Extras],
     * @return Markdown 2nd-level list item of text string, as code
     */
   protected def listMd2(s: String): String = {
-    "\n    * `" + s + "`"
+    s"\n    * `${s}`"
   }
 }
