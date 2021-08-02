@@ -52,7 +52,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
   private lazy val codegen = CodeGenerator(typeAliases, wdlBundle.version, logger)
 
   // Return non-local file dependencies of private variables
-  private def translateVarFileDependencies(
+  private def translateStaticFileDependencies(
       privateVariables: Vector[TAT.PrivateVariable]
   ): Set[String] = {
 
@@ -182,7 +182,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       val outputs = task.outputs.map(translateOutput(_, ignoreDefault = isNative))
       val instanceType = runtime.translateInstanceType
       val requirements = runtime.translateRequirements
-      val varFileDependencies = translateVarFileDependencies(task.privateVariables)
+      val staticFileDependencies = translateStaticFileDependencies(task.privateVariables)
       val attributes = meta.translate
       val container = runtime.translateContainer
       val cleanedTask: TAT.Task = container match {
@@ -203,7 +203,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           document = standAloneTask,
           attributes = attributes,
           requirements = requirements,
-          varFileDependencies = varFileDependencies
+          staticFileDependencies = staticFileDependencies
       )
     }
   }
@@ -1147,7 +1147,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       val privateVariables = wf.body.collect {
         case e: TAT.PrivateVariable => e
       }
-      val varFileDependencies = translateVarFileDependencies(privateVariables)
+      val staticFileDependencies = translateStaticFileDependencies(privateVariables)
 
       (Workflow(
            name = wfName,
@@ -1158,7 +1158,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
            locked = true,
            level = level,
            attributes = meta.translate,
-           varFileDependencies = varFileDependencies
+           staticFileDependencies = staticFileDependencies
        ),
        finalCallables,
        wfOutputs)
@@ -1220,7 +1220,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       val privateVariables = wf.body.collect {
         case e: TAT.PrivateVariable => e
       }
-      val varFileDependencies = translateVarFileDependencies(privateVariables)
+      val staticFileDependencies = translateStaticFileDependencies(privateVariables)
 
       val irwf = Workflow(
           name = wf.name,
@@ -1231,7 +1231,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           locked = false,
           level = Level.Top,
           attributes = wfAttr,
-          varFileDependencies = varFileDependencies
+          staticFileDependencies = staticFileDependencies
       )
       (irwf, commonApplet +: auxCallables.flatten :+ outputApplet, wfOutputs)
     }

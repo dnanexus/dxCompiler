@@ -617,7 +617,7 @@ case class WorkflowCompiler(extras: Option[Extras],
       .map(i => i._1)
       .filter(param => Type.unwrapOptional(param.dxType) == Type.TFile)
     val fileDependencies = (fileInputParams
-      .flatMap(fileDependenciesFromParam) ++ workflow.varFileDependencies).distinct
+      .flatMap(fileDependenciesFromParam) ++ workflow.staticFileDependencies).distinct
     val fileDependenciesDetails = if (fileDependencies.nonEmpty) {
       Map(Constants.FileDependencies -> JsArray(fileDependencies.map(s => JsString(s))))
     } else {
