@@ -84,8 +84,8 @@ object RunSpec {
     * A task may specify a container image to run under. Currently, DNAnexus only
     * supports Docker images. There are four supported options:
     *   None: no image
-    *   Dynamic: Image determined dynamically at runtime, also assumed to reside
-    *   on a network site and require download
+    *   Dynamic: Image determined dynamically at runtime, may reside on a
+    *   network site or on the platform
     *   Network: the image resides on a network site and requires download
     *   DxFile: the image is a platform file
     * TODO: add a collection type that can contain multiple ContainerImage values
