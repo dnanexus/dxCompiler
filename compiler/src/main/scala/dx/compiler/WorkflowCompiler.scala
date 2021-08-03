@@ -210,11 +210,7 @@ case class WorkflowCompiler(extras: Option[Extras],
       }
       case _ => ""
     }
-    if (md.nonEmpty) {
-      Some(headerMd + md)
-    } else {
-      None
-    }
+    Option.when(md.nonEmpty)(s"${headerMd}${md}")
   }
 
   // Summarize reportable dependencies from details of an applet
@@ -253,11 +249,7 @@ case class WorkflowCompiler(extras: Option[Extras],
       }
       case _ => ""
     }
-    if (md.nonEmpty) {
-      Some(s"${headerMd}${md}")
-    } else {
-      None
-    }
+    Option.when(md.nonEmpty)(s"${headerMd}${md}")
   }
 
   // TODO: Use templates for Markdown dependency report
@@ -317,11 +309,7 @@ case class WorkflowCompiler(extras: Option[Extras],
 
     // Append header & return full report if it has contents
     val md = s"${topLevelMd}${subWorkflowsMd}${appletsMd}"
-    if (md.nonEmpty) {
-      Some(s"${headerMd}${md}")
-    } else {
-      None
-    }
+    Option.when(md.nonEmpty)(s"${headerMd}${md}")
   }
 
   def apply(

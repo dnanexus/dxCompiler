@@ -287,11 +287,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       case _                 => ""
     }
     val md = s"${filesMd}${networkDockerImageMd}${dynamicDockerImageMd}${staticInstanceTypeMd}"
-    if (md.nonEmpty) {
-      Some(s"${headerMd}${md}")
-    } else {
-      None
-    }
+    Option.when(md.nonEmpty)(s"${headerMd}${md}")
   }
 
   def createAccess(applet: Application): JsValue = {
@@ -408,11 +404,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       .flatMap(fileDependenciesFromParam)
       .toVector
       .distinct
-    val fileDependenciesDetails = fileDependencies match {
-      case fileDependencies if fileDependencies.nonEmpty =>
-        Map(Constants.FileDependencies -> JsArray(fileDependencies.map(s => JsString(s))))
-      case _ => Map.empty
-    }
+    val fileDependenciesDetails = Option.when(fileDependencies.nonEmpty)(Map(Constants.FileDependencies -> JsArray(fileDependencies.map(s => JsString(s))))).getOrElse(Map.empty)
 
     val outputParams = if (useManifests) {
       Vector(Parameter(Constants.OutputManifest, Type.TFile))
