@@ -920,7 +920,14 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
         throw new Exception(s"unexpected primary callable ${other}")
     }
     wf.stages.size shouldBe 1
-    println(wf.stages.head.inputs)
+    wf.stages.head.inputs shouldBe Vector(
+        WorkflowInput(
+            Parameter("sampleStruct",
+                      TSchema("SampleStruct", TreeSeqMap("sample_name" -> TString, "id" -> TInt)),
+                      None,
+                      Vector())
+        )
+    )
   }
 
   it should "recognize that an argument with a default can be omitted at the call site" in {

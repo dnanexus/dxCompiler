@@ -495,10 +495,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                                     blockPath: Vector[Int],
                                     scatterPath: Option[String],
                                     env: CallEnv): (Stage, Vector[Callable]) = {
-      val stageName = block.getName match {
-        case None       => Constants.EvalStage
-        case Some(name) => name
-      }
+      val stageName = block.getName.getOrElse(Constants.EvalStage)
       logger.trace(s"Compiling fragment <$stageName> as stage")
       logger
         .withTraceIfContainsKey("GenerateIR")
@@ -665,38 +662,37 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       // link together all the stages into a linear workflow
       val (allStageInfo, stageEnv): (Vector[(Stage, Vector[Callable])], CallEnv) =
         subBlocks.zipWithIndex.foldLeft((Vector.empty[(Stage, Vector[Callable])], inputEnv)) {
-          case ((stages, beforeEnv), (block: WdlBlock, blockNum: Int)) =>
-            if (block.kind == BlockKind.CallDirect) {
-              block.target match {
-                case Some(call: TAT.Call) =>
-                  // The block contains exactly one call, with no extra variables.
-                  // All the variables are already in the environment, so there is no
-                  // need to do any extra work. Compile directly into a workflow stage.
-                  logger2.trace(s"Translating call ${call.actualName} as stage")
-                  val stage = translateCall(call, beforeEnv, locked)
-                  // Add bindings for the output variables. This allows later calls to refer
-                  // to these results.
-                  val afterEnv = stage.outputs.foldLeft(beforeEnv) {
-                    case (env, param: Parameter) =>
-                      val fqn = s"${call.actualName}.${param.name}"
-                      val paramFqn = param.copy(name = fqn)
-                      env.add(fqn, (paramFqn, LinkInput(stage.dxStage, param.dxName)))
-                  }
-                  (stages :+ (stage, Vector.empty[Callable]), afterEnv)
-                case _ =>
-                  throw new Exception(s"invalid DirectCall block ${block}")
-              }
-            } else {
-              // A simple block that requires just one applet, OR
-              // a complex block that needs a subworkflow
-              val (stage, auxCallables) =
-                translateWfFragment(wfName, block, blockPath :+ blockNum, scatterPath, beforeEnv)
-              val afterEnv = stage.outputs.foldLeft(beforeEnv) {
-                case (env, param) =>
-                  env.add(param.name, (param, LinkInput(stage.dxStage, param.dxName)))
-              }
-              (stages :+ (stage, auxCallables), afterEnv)
+          case ((stages, beforeEnv), (block: WdlBlock, _: Int))
+              if block.kind == BlockKind.CallDirect =>
+            block.target match {
+              case Some(call: TAT.Call) =>
+                // The block contains exactly one call, with no extra variables.
+                // All the variables are already in the environment, so there is no
+                // need to do any extra work. Compile directly into a workflow stage.
+                logger2.trace(s"Translating call ${call.actualName} as stage")
+                val stage = translateCall(call, beforeEnv, locked)
+                // Add bindings for the output variables. This allows later calls to refer
+                // to these results.
+                val afterEnv = stage.outputs.foldLeft(beforeEnv) {
+                  case (env, param: Parameter) =>
+                    val fqn = s"${call.actualName}.${param.name}"
+                    val paramFqn = param.copy(name = fqn)
+                    env.add(fqn, (paramFqn, LinkInput(stage.dxStage, param.dxName)))
+                }
+                (stages :+ (stage, Vector.empty[Callable]), afterEnv)
+              case _ =>
+                throw new Exception(s"invalid DirectCall block ${block}")
             }
+          case ((stages, beforeEnv), (block: WdlBlock, blockNum: Int)) =>
+            // A simple block that requires just one applet, OR
+            // a complex block that needs a subworkflow
+            val (stage, auxCallables) =
+              translateWfFragment(wfName, block, blockPath :+ blockNum, scatterPath, beforeEnv)
+            val afterEnv = stage.outputs.foldLeft(beforeEnv) {
+              case (env, param) =>
+                env.add(param.name, (param, LinkInput(stage.dxStage, param.dxName)))
+            }
+            (stages :+ (stage, auxCallables), afterEnv)
         }
 
       if (logger2.containsKey("GenerateIR")) {

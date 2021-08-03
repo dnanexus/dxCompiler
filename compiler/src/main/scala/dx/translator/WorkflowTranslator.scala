@@ -47,11 +47,11 @@ abstract class WorkflowTranslator(wfName: String,
 
   protected case class CallEnv(env: Map[String, LinkedVar], delim: String) {
     def add(key: String, lvar: LinkedVar): CallEnv = {
-      CallEnv(env + (key -> lvar), delim)
+      copy(env = env + (key -> lvar))
     }
 
     def addAll(items: Vector[(String, LinkedVar)]): CallEnv = {
-      CallEnv(env ++ items, delim)
+      copy(env = env ++ items)
     }
 
     def contains(key: String): Boolean = env.contains(key)
@@ -59,15 +59,6 @@ abstract class WorkflowTranslator(wfName: String,
     def keys: Set[String] = env.keySet
 
     def get(key: String): Option[LinkedVar] = env.get(key)
-
-    def apply(key: String): LinkedVar = {
-      get(key) match {
-        case None =>
-          log()
-          throw new Exception(s"${key} does not exist in the environment.")
-        case Some(lvar) => lvar
-      }
-    }
 
     def log(): Unit = {
       if (logger.isVerbose) {
@@ -78,6 +69,13 @@ abstract class WorkflowTranslator(wfName: String,
             logger2.trace(s"$name -> ${stageInput}")
         }
       }
+    }
+
+    def apply(key: String): LinkedVar = {
+      env.getOrElse(key, {
+        log()
+        throw new Exception(s"${key} does not exist in the environment.")
+      })
     }
 
     /**
@@ -95,7 +93,7 @@ abstract class WorkflowTranslator(wfName: String,
       env.get(fqn).map((fqn, _)).orElse {
         // A.B.C --> A.B
         fqn.lastIndexOf(delim) match {
-          case pos if pos >= 0 => lookup(fqn.drop(pos + 1))
+          case pos if pos >= 0 => lookup(fqn.take(pos))
           case _               => None
         }
       }
