@@ -329,9 +329,9 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       case ExecutableKindApplet =>
         applet.container match {
           // Require network access if Docker image needs to be downloaded
-          case NetworkDockerImage(_) => Some(DxAccess.empty.copy(network = Some(Vector("*"))))
-          case DynamicDockerImage    => Some(DxAccess.empty.copy(network = Some(Vector("*"))))
-          case _                     => None
+          case NetworkDockerImage(_) | DynamicDockerImage =>
+            Some(DxAccess.empty.copy(network = Some(Vector("*"))))
+          case _ => None
         }
       case ExecutableKindWorkflowOutputReorg =>
         // The reorg applet requires higher permissions to organize the output directory.
