@@ -1,10 +1,12 @@
-<%@ val dockerPreamble: String %>
+<%@ val dockerPreamble: Option[String] %>
 <%@ val runtimeJar: String %>
 <%@ val runtimeTraceLevel: Int %>
 <%@ val streamFiles: dx.core.io.StreamFiles.StreamFiles %>
 <%@ val bashDollar: String = "$" %>
 set -exo pipefail
-${dockerPreamble}
+<% if (dockerPreamble.nonEmpty) { %>
+${dockerPreamble.get}
+<% } %>
 
 ${include("applet_script.ssp")}
 
@@ -12,7 +14,9 @@ main() {
     # check if this is the correct instance type
     correctInstanceType=`java -jar ${bashDollar}{DX_FS_ROOT}/${runtimeJar} task checkInstanceType ${bashDollar}{HOME} -traceLevel ${runtimeTraceLevel} -streamFiles ${streamFiles.toString}`
     if [[ ${bashDollar}correctInstanceType == "true" ]]; then
-        docker
+        <% if (dockerPreamble.nonEmpty) { %>
+        docker_init
+        <% } %>
         body
     else
         # evaluate the instance type, and launch a sub job on it

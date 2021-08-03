@@ -55,7 +55,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
 
   // Preamble required for accessing a private docker registry (if required)
   private lazy val dockerRegistry: Option[DockerRegistry] = extras.flatMap(_.dockerRegistry)
-  private lazy val dockerPreamble: String = {
+  private lazy val dockerPreamble: Option[String] = {
     def checkFile(uri: String, name: String): Unit = {
       try {
         logger.ignore(dxApi.resolveFile(uri))
@@ -69,9 +69,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
                                   |""".stripMargin)
       }
     }
-    dockerRegistry match {
-      case None                                                              => ""
-      case Some(DockerRegistry(registry, credentials, Some(username), None)) =>
+    dockerRegistry.map {
+      case DockerRegistry(registry, credentials, Some(username), None) =>
         // check that the credentials file is a valid platform path
         checkFile(credentials, ApplicationCompiler.CredentialsKey)
         // render the preamble
@@ -86,7 +85,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
                 )
             )
         )
-      case Some(DockerRegistry(registry, credentials, None, Some(awsRegion))) =>
+      case DockerRegistry(registry, credentials, None, Some(awsRegion)) =>
         checkFile(credentials, ApplicationCompiler.CredentialsKey)
         renderer.render(
             ApplicationCompiler.EcrDockerPreambleTemplate,

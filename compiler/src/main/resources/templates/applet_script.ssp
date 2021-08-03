@@ -79,7 +79,8 @@ download_dxfuse() {
 
 before_command() {
     # Make the inputs folder read-only
-    chmod -r 500 ${dxPathConfig.getInputFilesDir()}
+    mkdir -p ${dxPathConfig.getInputFilesDir()}
+    chmod -R 500 ${dxPathConfig.getInputFilesDir()}
 }
 
 run_command() {

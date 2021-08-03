@@ -1,8 +1,14 @@
-<%@ val dockerPreamble: String %>
+<%@ val dockerPreamble: Option[String] %>
 set -exo pipefail
-${dockerPreamble}
+<% if (dockerPreamble.nonEmpty) { %>
+${dockerPreamble.get}
+<% } %>
 
 ${include("applet_script.ssp")}
 
-docker
-body
+main() {
+    <% if (dockerPreamble.nonEmpty) { %>
+    docker_init
+    <% } %>
+    body
+}

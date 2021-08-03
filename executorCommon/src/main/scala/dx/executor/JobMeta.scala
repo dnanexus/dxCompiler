@@ -1,6 +1,6 @@
 package dx.executor
 
-import java.nio.file.{Files, Path}
+import java.nio.file.{Files, Path, Paths}
 import dx.{AppException, AppInternalException}
 import dx.api.{
   DxAnalysis,
@@ -751,7 +751,7 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths
 
   override def runJobScriptFunction(name: String): Unit = {
     logger.trace(s"running job script function ${name}")
-    val command = s"source ${codeFile} && ${name}"
+    val command = s"bash -c 'source ${codeFile} && ${name}''"
     val (rc, stdout, stderr) = SysUtils.execCommand(command, exceptionOnFailure = false)
     if (stdout.nonEmpty) {
       logger.traceLimited(s"stdout:\n${stdout}")

@@ -2,7 +2,7 @@
 <%@ val credentials: String %>
 <%@ val region: String %>
 <%@ val bashDollar: String = "$" %>
-docker() {
+docker_init() {
     # If we need to pull from ECR, download the credentials file and login.
     # Do not expose the credentials to the logs or to stdout.
 
