@@ -4,7 +4,7 @@ import dx.api.{DxApi, DxPath, DxUtils, InstanceTypeRequest}
 import dx.core.ir.RunSpec._
 import dx.core.ir.{ExecutableKind, ExecutableKindNative, ExecutableType, RuntimeRequirement, Value}
 import dx.core.languages.wdl.{DxRuntimeHint, IrToWdlValueBindings, Runtime, WdlUtils}
-import scala.util.{Try}
+import scala.util.Try
 import wdlTools.eval.WdlValues._
 import wdlTools.eval.{Eval, EvalException, Meta}
 import wdlTools.syntax.WdlVersion
