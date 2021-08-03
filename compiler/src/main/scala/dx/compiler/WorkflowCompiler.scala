@@ -282,9 +282,7 @@ case class WorkflowCompiler(extras: Option[Extras],
     ).flatten.flatten.mkString
 
     val executableNames = ExecutableTree.extractExecutableNames(execTree)
-    val executables = executableNames.collect { n =>
-      executableDict.get(n)
-    }.flatten
+    val executables = executableNames.collect(executableDict.get(_)).flatten
 
     val subWorkflowsMd = executables
       .collect {
