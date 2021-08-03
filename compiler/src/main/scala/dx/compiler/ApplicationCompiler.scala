@@ -399,12 +399,17 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       }
 
     // Collect file dependencies from inputs & private variables
-    val fileDependencies = applet.inputs
-      .filter(param => param.dxType == Type.TFile)
-      .flatMap(fileDependenciesFromParam)
-      .toVector
-      .distinct
-    val fileDependenciesDetails = Option.when(fileDependencies.nonEmpty)(Map(Constants.FileDependencies -> JsArray(fileDependencies.map(s => JsString(s))))).getOrElse(Map.empty)
+    val fileDependencies = (
+        applet.inputs
+          .filter(param => param.dxType == Type.TFile)
+          .flatMap(fileDependenciesFromParam)
+          .toVector ++ applet.staticFileDependencies
+    ).distinct
+    val fileDependenciesDetails = Option
+      .when(fileDependencies.nonEmpty)(
+          Map(Constants.FileDependencies -> JsArray(fileDependencies.map(s => JsString(s))))
+      )
+      .getOrElse(Map.empty)
 
     val outputParams = if (useManifests) {
       Vector(Parameter(Constants.OutputManifest, Type.TFile))
