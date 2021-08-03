@@ -590,15 +590,15 @@ case class WorkflowCompiler(extras: Option[Extras],
               .filter(_.startsWith("app-"))
         )
         .toVector
-    val nativeAppDependenciesDetails = nativeAppDependencies match {
-      case nativeAppDependencies if nativeAppDependencies.nonEmpty =>
-        Map(
-            Constants.NativeAppDependencies -> JsArray(
-                nativeAppDependencies.map(id => JsString(id))
-            )
-        )
-      case _ => Map.empty
-    }
+    val nativeAppDependenciesDetails = Option
+      .when(nativeAppDependencies.nonEmpty)(
+          Map(
+              Constants.NativeAppDependencies -> JsArray(
+                  nativeAppDependencies.map(id => JsString(id))
+              )
+          )
+      )
+      .getOrElse(Map.empty)
 
     // Collect file dependencies from inputs & private variables
     val fileInputParams = workflow.inputs
@@ -606,11 +606,11 @@ case class WorkflowCompiler(extras: Option[Extras],
       .filter(param => Type.unwrapOptional(param.dxType) == Type.TFile)
     val fileDependencies = (fileInputParams
       .flatMap(fileDependenciesFromParam) ++ workflow.staticFileDependencies).distinct
-    val fileDependenciesDetails = if (fileDependencies.nonEmpty) {
-      Map(Constants.FileDependencies -> JsArray(fileDependencies.map(s => JsString(s))))
-    } else {
-      Map.empty
-    }
+    val fileDependenciesDetails = Option
+      .when(fileDependencies.nonEmpty)(
+          Map(Constants.FileDependencies -> JsArray(fileDependencies.map(s => JsString(s))))
+      )
+      .getOrElse(Map.empty)
 
     // Collect Docker registry credentials URI
     val dockerRegistryCredentialsUri: Option[String] = extras.flatMap(_.dockerRegistry) match {
