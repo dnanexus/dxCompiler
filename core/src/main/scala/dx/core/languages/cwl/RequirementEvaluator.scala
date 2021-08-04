@@ -137,7 +137,7 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
           case Some(uri) if uri.startsWith("dx") =>
             val dxfile = dxApi.resolveFile(uri)
             DxFileDockerImage(uri, dxfile)
-          case None if req.pullName.isDefined => NetworkDockerImage
+          case None if req.pullName.isDefined => NetworkDockerImage(req.pullName.get)
           case None if !optional && (req.importUri.isDefined || req.dockerfile.isDefined) =>
             throw new Exception("Docker is only supported via pull or download of a dx file")
           case _ => NoImage
