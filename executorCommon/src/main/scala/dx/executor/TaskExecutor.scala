@@ -360,12 +360,17 @@ abstract class TaskExecutor(jobMeta: JobMeta,
   /**
     * Generates and writes command script(s) to disk.
     * @param localizedInputs task inputs with localized files
-    * @return localizedInputs updated with any additional (non-input) variables that
-    *         may be required to evaluate the outputs.
+    * @return (updatedInputs, successCodes, retryCodes) where updated
+    *         inputs is localizedInputs updated with any additional (non-input)
+    *         variables that may be required to evaluate the outputs,
+    *         successCodes are the return codes that indicate the script was
+    *         executed successfully, and retryCodes are the codes for which the
+    *         script should be retried. If successCodes is None, then all
+    *         non-retry codes are considered successful.
     */
   protected def writeCommandScript(
       localizedInputs: Map[String, (Type, Value)]
-  ): Map[String, (Type, Value)]
+  ): (Map[String, (Type, Value)], Option[Set[Int]], Set[Int])
 
   /**
     * Evaluates the outputs of the task. Returns mapping of output parameter
@@ -750,7 +755,12 @@ abstract class TaskExecutor(jobMeta: JobMeta,
   }
 
   /**
-    * Runs
+    * Executes the task. This implements the full lifecycle of task execution:
+    * 1. Evaluate inputs.
+    * 2. Localize input files.
+    * 3. Evaluate and run the command script.
+    * 4. Evaluate outputs.
+    * 5. Delocalize output files.
     */
   // TODO: handle InitialWorkDir
   // TODO: handle output parameter tags and properties
@@ -852,7 +862,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
           case DxfuseManifest(manifestJs) =>
             FileUtils.writeFileContent(jobMeta.workerPaths.getDxfuseManifestFile(),
                                        manifestJs.prettyPrint)
-          // run dxfuse via a subprocess
+            // run dxfuse via a subprocess
+            jobMeta.runJobScriptFunction(TaskExecutor.DownloadDxfuse)
         }
       streamUriToPath
     } else {
@@ -882,10 +893,10 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     // Evaluate the command script and writes it to disk. Inputs are supplemented with
     // any local file paths created when evaluating the command script and are serialized
     // for use in the next phase.
-    val localizedInputs = writeCommandScript(finalizedInputs)
+    val (localizedInputs, successCodes, retryCodes) = writeCommandScript(finalizedInputs)
 
     // run the command script
-    jobMeta.runJobScriptFunction(TaskExecutor.RunCommand)
+    jobMeta.runJobScriptFunction(TaskExecutor.RunCommand, successCodes, retryCodes)
 
     // evaluate output expressions
     val (localizedOutputs, tagsAndProperties) = evaluateOutputs(localizedInputs)

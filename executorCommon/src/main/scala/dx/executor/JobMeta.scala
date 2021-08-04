@@ -1,6 +1,6 @@
 package dx.executor
 
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.{Files, Path}
 import dx.{AppException, AppInternalException}
 import dx.api.{
   DxAnalysis,
@@ -96,7 +96,9 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 
   def jobId: String
 
-  def runJobScriptFunction(name: String): Unit
+  def runJobScriptFunction(name: String,
+                           successCodes: Option[Set[Int]] = Some(Set(0)),
+                           retryCodes: Set[Int] = Set.empty): Unit
 
   def rawJsInputs: Map[String, JsValue]
 
@@ -734,7 +736,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 
 case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths.default,
                          override val dxApi: DxApi = DxApi.get,
-                         override val logger: Logger = Logger.get)
+                         override val logger: Logger = Logger.get,
+                         maxJobScriptRetries: Int = 3)
     extends JobMeta(workerPaths, dxApi, logger) {
   lazy val project: DxProject =
     dxApi.currentProject.getOrElse(throw new Exception("no current project"))
@@ -749,18 +752,54 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths
     workerPaths.getRootDir().resolve(s"${jobId}.code.sh")
   }
 
-  override def runJobScriptFunction(name: String): Unit = {
-    logger.trace(s"running job script function ${name}")
-    val command = s"bash -c 'source ${codeFile} && ${name}''"
-    val (rc, stdout, stderr) = SysUtils.execCommand(command, exceptionOnFailure = false)
-    if (stdout.nonEmpty) {
-      logger.traceLimited(s"stdout:\n${stdout}")
-    }
-    if (rc != 0) {
-      if (stderr.nonEmpty) {
-        logger.traceLimited(s"stderr:\n${stdout}")
+  override def runJobScriptFunction(name: String,
+                                    successCodes: Option[Set[Int]] = Some(Set(0)),
+                                    retryCodes: Set[Int] = Set.empty): Unit = {
+    val command = s"bash -c 'source ${codeFile} && ${name}'"
+
+    def runOnce(attempt: Int = 0): Boolean = {
+      if (attempt == 0) {
+        logger.trace(s"Running job script function ${name}")
+      } else {
+        logger.trace(s"Retrying job script function ${name} (${attempt}/${maxJobScriptRetries})")
       }
-      throw new Exception(s"job script function ${name} failed with return code ${rc}")
+      val (rc, stdout, stderr) = SysUtils.execCommand(command, exceptionOnFailure = false)
+      if (retryCodes.contains(rc)) {
+        logger.warning(s"""Job script function ${name} exited with temporary fail code ${rc}
+                          |stdout:
+                          |${stdout}
+                          |stderr:
+                          |${stderr}""".stripMargin)
+        false
+      } else if (successCodes.forall(_.contains(rc))) {
+        logger.traceLimited(s"""Job script function ${name} exited with success code ${rc}
+                               |stdout:
+                               |${stdout}""".stripMargin)
+        true
+      } else {
+        logger.error(s"""Job script function ${name} exited with permanent fail code ${rc}
+                        |stdout:
+                        |${stdout}
+                        |stderr:
+                        |${stderr}""".stripMargin)
+        throw new Exception(s"job script function ${name} exited with permanent fail code ${rc}")
+      }
+    }
+
+    if (retryCodes.nonEmpty) {
+      Iterator
+        .range(0, maxJobScriptRetries)
+        .map(runOnce)
+        .collectFirst {
+          case true => true
+        }
+        .orElse(
+            throw new Exception(
+                s"job script function ${name} did not exit successfully after ${maxJobScriptRetries} retries "
+            )
+        )
+    } else {
+      runOnce()
     }
   }
 

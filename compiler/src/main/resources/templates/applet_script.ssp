@@ -98,7 +98,7 @@ run_command() {
         /bin/bash ${dxPathConfig.getCommandFile().toString}
     fi
 
-    #  check return code of the script
+    # check return code of the script
     rc=`cat ${dxPathConfig.getReturnCodeFile().toString}`
     if [[ ${bashDollar}rc != 0 ]]; then
         if [[ -f ${bashDollar}dxfuse_log ]]; then

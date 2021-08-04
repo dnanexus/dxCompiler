@@ -28,7 +28,7 @@ import dx.core.ir.{
 }
 import dx.core.languages.wdl.{CodeGenerator, VersionSupport, WdlOptions, WdlUtils}
 import dx.executor.{JobMeta, TaskAction, TaskExecutor}
-import dx.util.{CodecUtils, FileSourceResolver, JsUtils, Logger, SysUtils}
+import dx.util.{CodecUtils, FileSourceResolver, FileUtils, JsUtils, Logger, SysUtils}
 import dx.util.protocols.DxFileAccessProtocol
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -55,12 +55,20 @@ private case class TaskTestJobMeta(override val workerPaths: DxWorkerPaths,
 
   override lazy val jobId: String = s"job-${Random.alphanumeric.take(24).mkString}"
 
-  override def runJobScriptFunction(name: String): Unit = {
+  override def runJobScriptFunction(name: String,
+                                    successCodes: Option[Set[Int]] = Some(Set(0)),
+                                    retryCodes: Set[Int] = Set.empty): Unit = {
     if (name == TaskExecutor.RunCommand) {
       val script: Path = workerPaths.getCommandFile()
       if (Files.exists(script)) {
-        // this will throw an exception if the script exits with a non-zero return code
-        logger.ignore(SysUtils.execCommand(script.toString))
+        val (_, stdout, stderr) =
+          SysUtils.execCommand(script.toString, allowedReturnCodes = successCodes)
+        val rc = FileUtils.readFileContent(workerPaths.getReturnCodeFile()).trim.toInt
+        if (!successCodes.contains(rc)) {
+          throw new Exception(
+              s"job script ${script} failed with return code ${rc}\nstdout:\n${stdout}\nstderr:\n${stderr}"
+          )
+        }
       }
     }
   }

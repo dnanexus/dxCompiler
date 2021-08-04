@@ -130,8 +130,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
     }
 
     def apply: Application = {
-      // If the container is stored as a file on the platform, we need to remove
-      // the dxURLs in the runtime section, to avoid a runtime lookup. For example:
+      // If the container is stored as a file on the platform, we need to rewrite
+      // the dxURLs in the runtime section to avoid a runtime lookup. For example:
       //   dx://dxCompiler_playground:/glnexus_internal -> dx://project-xxxx:record-yyyy
       def replaceContainer(runtime: TAT.RuntimeSection,
                            newContainer: String): TAT.RuntimeSection = {
@@ -505,41 +505,22 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                 |""".stripMargin
         )
 
-      // Get the applet inputs from the block inputs, which represent the
-      // closure required for the block - all the variables defined earlier
-      // that are required to evaluate any expression. Some referenced
-      // variables may be undefined because they are optional or defined
-      // inside the block - we ignore these.
-      val (inputParams, stageInputs) = block.inputNames
-        .flatMap(env.lookup)
-        .map {
-          case (fqn, (param, stageInput)) => (param.copy(name = fqn), stageInput)
-        }
-        .unzip
+      // Complex conditional and scatter blocks may have private variables
+      // that need to be added to the environment for use in nested blocks.
+      lazy val envWithPrivateVars = env.addAll(
+          block.prerequisiteVars.map {
+            case (name, wdlType) =>
+              name -> (Parameter(name, WdlUtils.toIRType(wdlType)), EmptyInput)
+          }
+      )
 
-      // complex conditional and scatter blocks may have private variables
-      // that need to be added to the environment for use in nested blocks
-      lazy val envWithPrivateVars: CallEnv = {
-        env.addAll(
-            block.prerequisiteVars.map {
-              case (name, wdlType) =>
-                name -> (Parameter(name, WdlUtils.toIRType(wdlType)), EmptyInput)
-            }
-        )
-      }
-
-      // The fragment runner can only handle a single call. If the
-      // block already has exactly one call, then we are good. If
-      // it contains a scatter/conditional with several calls,
-      // then compile the inner block into a sub-workflow. Also
-      // figure out the name of the callable - we need to link with
-      // it when we get to the native phase.
+      // The fragment runner can only handle a single call. If the contains a
+      // scatter/conditional with several calls, then we compile the inner
+      // block into a sub-workflow. We also need the name of the callable so
+      // we can link with it when we get to the compile phase.
       val (innerCall, auxCallables, newScatterPath) =
         block.kind match {
-          case BlockKind.ExpressionsOnly =>
-            (None, Vector.empty, None)
-          case BlockKind.CallDirect =>
-            throw new Exception(s"a direct call should not reach this stage")
+          case BlockKind.ExpressionsOnly => (None, Vector.empty, None)
           case BlockKind.CallWithSubexpressions | BlockKind.CallFragment |
               BlockKind.ConditionalOneCall =>
             // a block with no nested sub-blocks, and a single call, or
@@ -555,12 +536,11 @@ case class CallableTranslator(wdlBundle: WdlBundle,
             // a conditional/scatter with multiple calls or other nested elements
             // in the sub-block
             val conditional = block.conditional
-            val (callable, aux) =
-              translateNestedBlock(wfName,
-                                   conditional.body,
-                                   blockPath,
-                                   scatterPath,
-                                   envWithPrivateVars)
+            val (callable, aux) = translateNestedBlock(wfName,
+                                                       conditional.body,
+                                                       blockPath,
+                                                       scatterPath,
+                                                       envWithPrivateVars)
             (Some(callable.name), aux :+ callable, None)
           case BlockKind.ScatterComplex =>
             val scatter = block.scatter
@@ -577,35 +557,48 @@ case class CallableTranslator(wdlBundle: WdlBundle,
             val (callable, aux) =
               translateNestedBlock(wfName, scatter.body, blockPath, Some(newScatterPath), innerEnv)
             (Some(callable.name), aux :+ callable, Some(newScatterPath))
+          case BlockKind.CallDirect =>
+            throw new Exception(s"a direct call should not reach this stage")
           case _ =>
             throw new Exception(s"unexpected block ${block.prettyFormat}")
         }
 
-      val scatterChunkSize: Option[Int] = newScatterPath.map { sctPath =>
-        val scatterChunkSize = workflowAttrs
-          .flatMap { wfAttrs =>
-            wfAttrs.scatters
-              .flatMap {
-                _.get(sctPath)
-                  .orElse(wfAttrs.scatterDefaults)
-                  .flatMap(scatterAttrs => scatterAttrs.chunkSize)
-              }
+      val scatterChunkSize: Option[Int] = newScatterPath.map { path =>
+        workflowAttrs.flatMap { wfAttrs =>
+          wfAttrs.scatters.flatMap { scatter =>
+            scatter
+              .get(path)
+              .orElse(wfAttrs.scatterDefaults)
+              .flatMap(_.chunkSize)
           }
-          .getOrElse(defaultScatterChunkSize)
-        if (scatterChunkSize > Constants.JobsPerScatterLimit) {
-          logger.warning(
-              s"The number of jobs per scatter must be between 1-${Constants.JobsPerScatterLimit}"
-          )
-          Constants.JobsPerScatterLimit
-        } else {
-          scatterChunkSize
+        } match {
+          case Some(scatterChunkSize) if scatterChunkSize <= Constants.JobsPerScatterLimit =>
+            scatterChunkSize
+          case Some(_) =>
+            logger.warning(
+                s"The number of jobs per scatter must be between 1-${Constants.JobsPerScatterLimit}"
+            )
+            Constants.JobsPerScatterLimit
+          case _ => defaultScatterChunkSize
         }
       }
 
+      // Get the applet inputs from the block inputs, which represent the
+      // closure required for the block - all the variables defined earlier
+      // that are required to evaluate any expression. Some referenced
+      // variables may be undefined because they are optional or defined
+      // inside the block - we ignore these. Note that the stage inputs must
+      // be in the same order as the fragment inputs.
+      val (inputParams, stageInputs) = block.inputs
+        .flatMap(i => env.lookup(i.name))
+        .map {
+          case (fqn, (param, stageInput)) => (param.copy(name = fqn), stageInput)
+        }
+        .unzip
+
       val outputParams: Vector[Parameter] = block.outputs.map {
         case TAT.OutputParameter(name, wdlType, _) =>
-          val irType = WdlUtils.toIRType(wdlType)
-          Parameter(name, irType)
+          Parameter(name, WdlUtils.toIRType(wdlType))
       }
 
       // create the type map that will be serialized in the applet's details
@@ -615,7 +608,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
 
       val applet = Application(
           s"${wfName}_frag_${getStageId()}",
-          inputParams.toVector,
+          inputParams,
           outputParams,
           DefaultInstanceType,
           NoImage,
@@ -623,8 +616,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           standAloneWorkflow
       )
 
-      (Stage(stageName, getStage(), applet.name, stageInputs.toVector, outputParams),
-       auxCallables :+ applet)
+      (Stage(stageName, getStage(), applet.name, stageInputs, outputParams), auxCallables :+ applet)
     }
 
     /**

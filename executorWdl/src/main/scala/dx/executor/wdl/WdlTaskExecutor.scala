@@ -159,7 +159,7 @@ case class WdlTaskExecutor(task: TAT.Task,
 
   override protected def writeCommandScript(
       localizedInputs: Map[String, (Type, Value)]
-  ): Map[String, (Type, Value)] = {
+  ): (Map[String, (Type, Value)], Option[Set[Int]], Set[Int]) = {
     val inputs = WdlUtils.fromIR(localizedInputs, typeAliases.toMap)
     val inputValues = inputs.map {
       case (name, (_, v)) => name -> v
@@ -189,9 +189,10 @@ case class WdlTaskExecutor(task: TAT.Task,
     val inputAndPrivateVarTypes = inputTypes ++ task.privateVariables
       .map(d => d.name -> d.wdlType)
       .toMap
-    WdlUtils.toIR(ctx.bindings.map {
+    val updatedInputs = WdlUtils.toIR(ctx.bindings.map {
       case (name, value) => name -> (inputAndPrivateVarTypes(name), value)
     })
+    (updatedInputs, runtime.returnCodes, Set.empty[Int])
   }
 
   override protected def evaluateOutputs(

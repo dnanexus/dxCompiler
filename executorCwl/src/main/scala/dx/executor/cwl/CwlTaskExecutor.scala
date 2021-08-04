@@ -197,7 +197,7 @@ case class CwlTaskExecutor(tool: Process,
 
   override protected def writeCommandScript(
       localizedInputs: Map[String, (Type, Value)]
-  ): Map[String, (Type, Value)] = {
+  ): (Map[String, (Type, Value)], Option[Set[Int]], Set[Int]) = {
     val inputs = CwlUtils.fromIR(localizedInputs, typeAliases, isInput = true)
     printInputs(inputs)
     val metaDir = workerPaths.getMetaDir(ensureExists = true)
@@ -270,7 +270,12 @@ case class CwlTaskExecutor(tool: Process,
         command,
         makeExecutable = true
     )
-    localizedInputs
+    val (successCodes, retryCodes) = tool match {
+      case c: CommandLineTool =>
+        (Some(c.successCodes), c.temporaryFailCodes)
+      case _ => (Some(Set(0)), Set.empty[Int])
+    }
+    (localizedInputs, successCodes, retryCodes)
   }
 
   private lazy val outputParams: Map[String, OutputParameter] = {

@@ -56,15 +56,17 @@ private case class ToolTestJobMeta(override val workerPaths: DxWorkerPaths,
 
   override lazy val jobId: String = s"job-${Random.alphanumeric.take(24).mkString}"
 
-  override def runJobScriptFunction(name: String): Unit = {
+  override def runJobScriptFunction(name: String,
+                                    successCodes: Option[Set[Int]] = Some(Set(0)),
+                                    retryCodes: Set[Int] = Set.empty): Unit = {
     if (name == TaskExecutor.RunCommand) {
       val script: Path = workerPaths.getCommandFile()
       if (Files.exists(script)) {
         // this will never fail due to the way the command script is written - instead
         // we need to read the return code file
-        val (_, stdout, stderr) = SysUtils.execCommand(script.toString)
+        val (_, stdout, stderr) = SysUtils.execCommand(script.toString, exceptionOnFailure = false)
         val rc = FileUtils.readFileContent(workerPaths.getReturnCodeFile()).trim.toInt
-        if (rc != 0) {
+        if (!successCodes.forall(_.contains(rc))) {
           throw new Exception(
               s"job script ${script} failed with return code ${rc}\nstdout:\n${stdout}\nstderr:\n${stderr}"
           )

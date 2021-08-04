@@ -130,4 +130,8 @@ case class Runtime(wdlVersion: WdlVersion,
         None
     }
   }
+
+  def returnCodes: Option[Set[Int]] = {
+    runtimeAttrs.runtime.flatMap(_.returnCodes)
+  }
 }
