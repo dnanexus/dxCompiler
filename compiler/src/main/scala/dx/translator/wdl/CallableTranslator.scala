@@ -514,10 +514,13 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           }
       )
 
-      // The fragment runner can only handle a single call. If the contains a
-      // scatter/conditional with several calls, then we compile the inner
+      // The fragment runner can only handle a single call. If the block contains
+      // a scatter/conditional with several calls, then we compile the inner
       // block into a sub-workflow. We also need the name of the callable so
       // we can link with it when we get to the compile phase.
+      // TODO: handle call.afters - we need to bundle some metadata with the applet
+      //  so that it can launch the call execution with dependencies on the right
+      //  upstream executions.
       val (innerCall, auxCallables, newScatterPath) =
         block.kind match {
           case BlockKind.ExpressionsOnly => (None, Vector.empty, None)
@@ -591,6 +594,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       // be in the same order as the fragment inputs.
       val (inputParams, stageInputs) = block.inputs
         .flatMap(i => env.lookup(i.name))
+        .distinct
         .map {
           case (fqn, (param, stageInput)) => (param.copy(name = fqn), stageInput)
         }
@@ -657,10 +661,9 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           case ((stages, beforeEnv), (block: WdlBlock, _: Int))
               if block.kind == BlockKind.CallDirect =>
             block.target match {
-              case Some(call: TAT.Call) =>
-                // The block contains exactly one call, with no extra variables.
-                // All the variables are already in the environment, so there is no
-                // need to do any extra work. Compile directly into a workflow stage.
+              case Some(call: TAT.Call) if call.afters.isEmpty =>
+                // The block contains exactly one call with no dependencies and with
+                // no extra variables. Compile directly into a workflow stage.
                 logger2.trace(s"Translating call ${call.actualName} as stage")
                 val stage = translateCall(call, beforeEnv, locked)
                 // Add bindings for the output variables. This allows later calls to refer
@@ -676,8 +679,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                 throw new Exception(s"invalid DirectCall block ${block}")
             }
           case ((stages, beforeEnv), (block: WdlBlock, blockNum: Int)) =>
-            // A simple block that requires just one applet, OR
-            // a complex block that needs a subworkflow
+            // The block requires a "fragment-runner" applet to do some runtime evaluation
+            // before the target applet/workflow can be launched.
             val (stage, auxCallables) =
               translateWfFragment(wfName, block, blockPath :+ blockNum, scatterPath, beforeEnv)
             val afterEnv = stage.outputs.foldLeft(beforeEnv) {

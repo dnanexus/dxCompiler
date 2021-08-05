@@ -829,7 +829,7 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths
   def jobId: String = dxApi.currentJobId.get
 
   private lazy val jobDesc: DxJobDescribe = dxApi.currentJob.get.describe(
-      Set(Field.Executable, Field.Details, Field.InstanceType)
+      Set(Field.Details, Field.Executable, Field.Folder, Field.InstanceType)
   )
 
   private lazy val jobDetails: Map[String, JsValue] =

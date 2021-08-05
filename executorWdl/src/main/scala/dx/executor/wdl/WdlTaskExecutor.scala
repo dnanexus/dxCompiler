@@ -159,40 +159,40 @@ case class WdlTaskExecutor(task: TAT.Task,
 
   override protected def writeCommandScript(
       localizedInputs: Map[String, (Type, Value)]
-  ): (Map[String, (Type, Value)], Option[Set[Int]], Set[Int]) = {
+  ): (Map[String, (Type, Value)], Boolean, Option[Set[Int]], Set[Int]) = {
     val inputs = WdlUtils.fromIR(localizedInputs, typeAliases.toMap)
     val inputValues = inputs.map {
       case (name, (_, v)) => name -> v
     }
     printInputs(inputValues)
     val inputsWithPrivateVars = evaluatePrivateVariables(inputValues)
-    val ctx = WdlValueBindings(inputsWithPrivateVars)
-    val command = evaluator.applyCommand(task.command, ctx) match {
-      case s if s.trim.isEmpty => None
-      case s                   => Some(s)
-    }
-    val generator = TaskCommandFileGenerator(logger)
-    val runtime = createRuntime(inputsWithPrivateVars)
-    val dockerUtils = DockerUtils(fileResolver, logger)
-    val container = runtime.container match {
-      case Vector() => None
-      case Vector(image) =>
-        val resolvedImage = dockerUtils.getImage(image)
-        Some(resolvedImage, jobMeta.workerPaths)
-      case v =>
-        // we prefer a dx:// url
-        val (dxUrls, imageNames) = v.partition(_.startsWith(DxPath.DxUriPrefix))
-        val resolvedImage = dockerUtils.getImage(dxUrls ++ imageNames)
-        Some(resolvedImage, jobMeta.workerPaths)
-    }
-    generator.apply(command, jobMeta.workerPaths, container)
     val inputAndPrivateVarTypes = inputTypes ++ task.privateVariables
       .map(d => d.name -> d.wdlType)
       .toMap
-    val updatedInputs = WdlUtils.toIR(ctx.bindings.map {
+    val updatedInputs = WdlUtils.toIR(inputsWithPrivateVars.map {
       case (name, value) => name -> (inputAndPrivateVarTypes(name), value)
     })
-    (updatedInputs, runtime.returnCodes, Set.empty[Int])
+    evaluator.applyCommand(task.command, WdlValueBindings(inputsWithPrivateVars)) match {
+      case command if command.trim.isEmpty =>
+        (updatedInputs, false, None, Set.empty[Int])
+      case command =>
+        val generator = TaskCommandFileGenerator(logger)
+        val runtime = createRuntime(inputsWithPrivateVars)
+        val dockerUtils = DockerUtils(fileResolver, logger)
+        val container = runtime.container match {
+          case Vector() => None
+          case Vector(image) =>
+            val resolvedImage = dockerUtils.getImage(image)
+            Some(resolvedImage, jobMeta.workerPaths)
+          case images =>
+            // we prefer a dx:// url, false comes before true in sort order
+            val resolvedImage =
+              dockerUtils.getImage(images.sortBy(!_.startsWith(DxPath.DxUriPrefix)))
+            Some(resolvedImage, jobMeta.workerPaths)
+        }
+        generator.apply(Some(command), jobMeta.workerPaths, container)
+        (updatedInputs, true, runtime.returnCodes, Set.empty[Int])
+    }
   }
 
   override protected def evaluateOutputs(

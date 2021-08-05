@@ -370,7 +370,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     */
   protected def writeCommandScript(
       localizedInputs: Map[String, (Type, Value)]
-  ): (Map[String, (Type, Value)], Option[Set[Int]], Set[Int])
+  ): (Map[String, (Type, Value)], Boolean, Option[Set[Int]], Set[Int])
 
   /**
     * Evaluates the outputs of the task. Returns mapping of output parameter
@@ -893,10 +893,13 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     // Evaluate the command script and writes it to disk. Inputs are supplemented with
     // any local file paths created when evaluating the command script and are serialized
     // for use in the next phase.
-    val (localizedInputs, successCodes, retryCodes) = writeCommandScript(finalizedInputs)
-
-    // run the command script
-    jobMeta.runJobScriptFunction(TaskExecutor.RunCommand, successCodes, retryCodes)
+    val (localizedInputs, hasCommand, successCodes, retryCodes) = writeCommandScript(
+        finalizedInputs
+    )
+    if (hasCommand) {
+      // run the command script
+      jobMeta.runJobScriptFunction(TaskExecutor.RunCommand, successCodes, retryCodes)
+    }
 
     // evaluate output expressions
     val (localizedOutputs, tagsAndProperties) = evaluateOutputs(localizedInputs)
@@ -932,6 +935,9 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         val uploadedFiles = dxApi.uploadFiles(files = filesToUpload,
                                               waitOnUpload = waitOnUpload,
                                               maxConcurrent = TaskExecutor.MaxConcurrentUploads)
+
+        // TODO: use dxua or dxfuse instead
+        // jobMeta.runJobScriptFunction(TaskExecutor.UploadFiles)
 
         // replace local paths with remote paths in outputs
         delocalizeFiles(finalizedOutputs,

@@ -964,6 +964,9 @@ def run_test_subset(
             print(
                 f"Tools failed results verification: {len(failed_verification)}:\n{fveri}"
             )
+        # write failed tests to a file so we can easily re-run them next time
+        with open(".failed", "wt") as out:
+            out.write("\n".join(failed_execution + failed_verification))
         raise RuntimeError("Failed")
 
 
@@ -1301,6 +1304,12 @@ def main():
         default=False,
     )
     argparser.add_argument(
+        "--failed",
+        help="Run the tests that failed previously (requires a .failed file in the current directory)",
+        action="store_true",
+        default=False
+    )
+    argparser.add_argument(
         "--locked",
         help="Generate locked-down workflows",
         action="store_true",
@@ -1349,10 +1358,14 @@ def main():
         print_test_list()
         exit(0)
     test_names = []
-    if len(args.test) == 0:
-        args.test = "M"
-    for t in args.test:
-        test_names += choose_tests(t)
+    if args.failed and os.path.exists(".failed"):
+        with open(".failed", "rt") as inp:
+            test_names = [t.strip() for t in inp.readlines()]
+    elif len(args.test) == 0:
+        test_names = choose_tests("M")
+    else:
+        for t in args.test:
+            test_names += choose_tests(t)
     print("Running tests {}".format(test_names))
     version_id = util.get_version_id(top_dir)
 
