@@ -1,7 +1,7 @@
 package dx.executor.wdl
 
 import java.nio.file.{Files, Path, Paths}
-import Assumptions.isLoggedIn
+import Assumptions.{isLoggedIn, dxdaCallable}
 import Tags.{ApiTest, EdgeTest}
 import dx.api.{
   DiskType,
@@ -58,18 +58,28 @@ private case class TaskTestJobMeta(override val workerPaths: DxWorkerPaths,
   override def runJobScriptFunction(name: String,
                                     successCodes: Option[Set[Int]] = Some(Set(0)),
                                     retryCodes: Set[Int] = Set.empty): Unit = {
-    if (name == TaskExecutor.RunCommand) {
-      val script: Path = workerPaths.getCommandFile()
-      if (Files.exists(script)) {
-        val (_, stdout, stderr) =
-          SysUtils.execCommand(script.toString, allowedReturnCodes = successCodes)
-        val rc = FileUtils.readFileContent(workerPaths.getReturnCodeFile()).trim.toInt
-        if (!successCodes.contains(rc)) {
-          throw new Exception(
-              s"job script ${script} failed with return code ${rc}\nstdout:\n${stdout}\nstderr:\n${stderr}"
-          )
+    name match {
+      case TaskExecutor.DownloadDxda if dxdaCallable =>
+        val dxdaManifest = workerPaths.getDxdaManifestFile().toString
+        SysUtils.execCommand(
+            s"""bzip2 ${dxdaManifest} &&
+               |cd / &&
+               |dx-download-agent download ${dxdaManifest}.bz2""".stripMargin
+              .replaceAll("\n", " ")
+        )
+      case TaskExecutor.RunCommand =>
+        val script: Path = workerPaths.getCommandFile()
+        if (Files.exists(script)) {
+          val (_, stdout, stderr) =
+            SysUtils.execCommand(script.toString, exceptionOnFailure = false)
+          val rc = FileUtils.readFileContent(workerPaths.getReturnCodeFile()).trim.toInt
+          if (!successCodes.forall(_.contains(rc))) {
+            throw new Exception(
+                s"job script ${script} failed with return code ${rc}\nstdout:\n${stdout}\nstderr:\n${stderr}"
+            )
+          }
         }
-      }
+      case _ => ()
     }
   }
 
@@ -264,7 +274,7 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
 
   // Parse the WDL source code, extract the single task that is supposed to be there,
   // run the task, and compare the outputs to the expected values (if any).
-  private def runTask(wdlName: String, useManifests: Boolean = false): Unit = {
+  private def runTask(wdlName: String, useManifests: Boolean = false): TaskTestJobMeta = {
     val (taskExecutor, jobMeta) = createTaskExecutor(wdlName, useManifests = useManifests)
     val outputsExpected = getExpectedOutputs(wdlName)
 
@@ -311,6 +321,8 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
       }
       outputs shouldBe outputsExpected.get
     }
+
+    jobMeta
   }
 
   it should "execute a simple WDL task" in {
@@ -400,5 +412,27 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
 
   it should "run a task using manifests" in {
     runTask("add", useManifests = true)
+  }
+
+  it should "localize and delocalize files" in {
+    val jobMeta = runTask("opt_array")
+    jobMeta.outputs shouldBe Some(
+        Map(
+            "o" -> JsArray(
+                JsObject(
+                    "$dnanexus_link" -> JsObject(
+                        "id" -> JsString("file-FGqFGBQ0ffPPkYP19gBvFkZy"),
+                        "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq")
+                    )
+                ),
+                JsObject(
+                    "$dnanexus_link" -> JsObject(
+                        "id" -> JsString("file-FGqFJ8Q0ffPGVz3zGy4FK02P"),
+                        "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq")
+                    )
+                )
+            )
+        )
+    )
   }
 }

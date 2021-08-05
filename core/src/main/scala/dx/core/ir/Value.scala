@@ -105,10 +105,10 @@ object Value {
         }
     }
     def inner(innerValue: Value, innerType: Option[Type], innerContext: T): T = {
-      val (nonOptType, optional) = if (innerType.exists(isOptional)) {
-        (Some(unwrapOptional(innerType.get)), true)
-      } else {
-        (innerType, true)
+      val (nonOptType, optional) = innerType match {
+        case Some(t) if isOptional(t) => (Some(unwrapOptional(innerType.get)), true)
+        case Some(_)                  => (innerType, false)
+        case None                     => (innerType, true)
       }
       handler(innerValue, nonOptType, optional, innerContext).getOrElse {
         (nonOptType, innerValue) match {
@@ -193,10 +193,10 @@ object Value {
         }
     }
     def inner(innerValue: Value, innerType: Option[Type] = None): Value = {
-      val (nonOptType, optional) = if (innerType.exists(isOptional)) {
-        (Some(unwrapOptional(innerType.get)), true)
-      } else {
-        (innerType, true)
+      val (nonOptType, optional) = innerType match {
+        case Some(t) if isOptional(t) => (Some(unwrapOptional(innerType.get)), true)
+        case Some(_)                  => (innerType, false)
+        case None                     => (innerType, true)
       }
       handler(innerValue, nonOptType, optional).getOrElse {
         (nonOptType, innerValue) match {

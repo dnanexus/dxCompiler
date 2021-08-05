@@ -10,7 +10,7 @@ import dx.core.io.{
   DxfuseManifestBuilder,
   StreamFiles
 }
-import dx.core.ir.{Type, Value}
+import dx.core.ir.{Type, TypeSerde, Value, ValueSerde}
 import dx.core.ir.Type._
 import dx.core.ir.Value._
 import dx.util.{
@@ -754,6 +754,17 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     }
   }
 
+  private def logFields(fields: Map[String, (Type, Value)], description: String): Unit = {
+    if (logger.isVerbose) {
+      val inputStr = fields
+        .map {
+          case (name, (t, v)) => s"${name}: (${TypeSerde.toString(t)}, ${ValueSerde.toString(v)})"
+        }
+        .mkString("\n  ")
+      logger.traceLimited(s"${description}:\n  ${inputStr}")
+    }
+  }
+
   /**
     * Executes the task. This implements the full lifecycle of task execution:
     * 1. Evaluate inputs.
@@ -896,6 +907,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     val (localizedInputs, hasCommand, successCodes, retryCodes) = writeCommandScript(
         finalizedInputs
     )
+    logFields(localizedInputs, "Localized inputs")
     if (hasCommand) {
       // run the command script
       jobMeta.runJobScriptFunction(TaskExecutor.RunCommand, successCodes, retryCodes)
@@ -903,6 +915,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
 
     // evaluate output expressions
     val (localizedOutputs, tagsAndProperties) = evaluateOutputs(localizedInputs)
+    logFields(localizedOutputs, "Localized outputs")
 
     // Upload output files/directories and replace local paths with remote URIs
     // in the output values. An output file/folder may have been created on the
@@ -930,25 +943,29 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       val (filesToUpload, virtualFiles, directories) = fileExtractor.extractFiles
 
       // upload files
-      val delocalizedOutputs = if (filesToUpload.nonEmpty) {
+      val uploadedFiles = if (filesToUpload.nonEmpty) {
+        if (logger.isVerbose) {
+          logger.traceLimited(s"Uploading files:\n  ${filesToUpload.map(_.source).mkString("\n")}")
+        }
         // upload all files in parallel
-        val uploadedFiles = dxApi.uploadFiles(files = filesToUpload,
-                                              waitOnUpload = waitOnUpload,
-                                              maxConcurrent = TaskExecutor.MaxConcurrentUploads)
-
+        dxApi.uploadFiles(files = filesToUpload,
+                          waitOnUpload = waitOnUpload,
+                          maxConcurrent = TaskExecutor.MaxConcurrentUploads)
         // TODO: use dxua or dxfuse instead
         // jobMeta.runJobScriptFunction(TaskExecutor.UploadFiles)
-
-        // replace local paths with remote paths in outputs
-        delocalizeFiles(finalizedOutputs,
-                        uploadedFiles,
-                        virtualFiles,
-                        directories,
-                        localPathToUri,
-                        listings)
       } else {
-        finalizedOutputs
+        Map.empty[Path, DxFile]
       }
+
+      // replace local paths with remote paths in outputs
+      val delocalizedOutputs = delocalizeFiles(finalizedOutputs,
+                                               uploadedFiles,
+                                               virtualFiles,
+                                               directories,
+                                               localPathToUri,
+                                               listings)
+
+      logFields(delocalizedOutputs, "Delocalized outputs")
 
       // serialize the outputs to the job output file
       jobMeta.writeOutputs(delocalizedOutputs)

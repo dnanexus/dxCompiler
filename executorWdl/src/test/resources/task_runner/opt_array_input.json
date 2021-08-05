@@ -1,0 +1,13 @@
+{
+  "b": [{
+    "$dnanexus_link": {
+      "id": "file-FGqFGBQ0ffPPkYP19gBvFkZy",
+      "project": "project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"
+    }
+  }, {
+    "$dnanexus_link": {
+      "id": "file-FGqFJ8Q0ffPGVz3zGy4FK02P",
+      "project": "project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"
+    }
+  }]
+}

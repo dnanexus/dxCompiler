@@ -30,12 +30,23 @@ object Assumptions {
 
   /**
     * Tests that the dx toolkit is installed and in the path.
-    * @return
     */
   lazy val toolkitCallable: Boolean = {
     try {
-      val (retcode, _, _) = SysUtils.execCommand("dx whoami")
-      retcode == 0
+      SysUtils.execCommand("dx whoami")
+      true
+    } catch {
+      case _: Throwable => false
+    }
+  }
+
+  /**
+    * Tests that dxda is installed and in the path.
+    */
+  lazy val dxdaCallable: Boolean = {
+    try {
+      SysUtils.execCommand("dx-download-agent version")
+      true
     } catch {
       case _: Throwable => false
     }

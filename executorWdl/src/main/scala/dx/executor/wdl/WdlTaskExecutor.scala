@@ -83,29 +83,27 @@ case class WdlTaskExecutor(task: TAT.Task,
     // array inputs, so we treat a null value for a non-optional
     // array that is allowed to be empty as the empty array.
     trace("Evaluating default values for inputs")
-    taskIO
+    val wdlInputs = taskIO
       .inputsFromValues(inputWdlValues,
                         evaluator,
                         ignoreDefaultEvalError = false,
                         nullCollectionAsEmpty = true)
       .toMap
-  }
-
-  private def printInputs(inputs: Map[String, V]): Unit = {
     if (logger.isVerbose) {
-      val inputStr = task.inputs
-        .map { inputDef =>
-          s"${inputDef.name} -> (${inputDef.wdlType}, ${inputs.get(inputDef.name)})"
-        }
-        .mkString("\n")
-      logger.traceLimited(s"inputs: ${inputStr}")
+      if (logger.isVerbose) {
+        val inputStr = task.inputs
+          .map { inputDef =>
+            s"${inputDef.name} -> (${inputDef.wdlType}, ${wdlInputs.get(inputDef.name)})"
+          }
+          .mkString("\n  ")
+        logger.traceLimited(s"WDL inputs:\n  ${inputStr}")
+      }
     }
+    wdlInputs
   }
 
   override protected def getInputsWithDefaults: Map[String, (Type, Value)] = {
-    val inputs = wdlInputs
-    printInputs(inputs)
-    WdlUtils.toIR(inputs.map {
+    WdlUtils.toIR(wdlInputs.map {
       case (k, v) => k -> (inputTypes(k), v)
     })
   }
@@ -136,7 +134,6 @@ case class WdlTaskExecutor(task: TAT.Task,
   private def getRequiredInstanceTypeRequest(
       inputs: Map[String, V] = wdlInputs
   ): InstanceTypeRequest = {
-    printInputs(inputs)
     val env = evaluatePrivateVariables(inputs)
     val runtime = createRuntime(env)
     runtime.parseInstanceType
@@ -164,7 +161,6 @@ case class WdlTaskExecutor(task: TAT.Task,
     val inputValues = inputs.map {
       case (name, (_, v)) => name -> v
     }
-    printInputs(inputValues)
     val inputsWithPrivateVars = evaluatePrivateVariables(inputValues)
     val inputAndPrivateVarTypes = inputTypes ++ task.privateVariables
       .map(d => d.name -> d.wdlType)

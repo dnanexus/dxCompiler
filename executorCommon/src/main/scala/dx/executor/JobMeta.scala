@@ -310,11 +310,19 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
   }
 
   lazy val jsInputs: Map[String, JsValue] = {
-    if (useManifests) {
+    val jsInputs = if (useManifests) {
       unpackManifests(rawJsInputs)
     } else {
       rawJsInputs
     }
+    if (logger.isVerbose) {
+      if (jsInputs.isEmpty) {
+        logger.trace("No inputs")
+      } else {
+        logger.traceLimited(s"Raw inputs:\n${JsObject(jsInputs).prettyPrint}")
+      }
+    }
+    jsInputs
   }
 
   private lazy val allFilesReferenced: Vector[DxFile] = {
@@ -343,19 +351,22 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     ParameterLinkDeserializer(dxFileDescCache, dxApi)
 
   lazy val inputSpec: Map[String, Type] = {
-    getExecutableAttribute("inputSpec")
+    val inputSpec: Map[String, Type] = getExecutableAttribute("inputSpec")
       .map {
         case JsArray(spec) => TypeSerde.fromNativeSpec(spec)
         case other         => throw new Exception(s"invalid inputSpec ${other}")
       }
       .getOrElse(Map.empty)
+    if (logger.isVerbose) {
+      logger.traceLimited(s"inputSpec:\n  ${inputSpec.mkString("\n  ")}")
+    }
+    inputSpec
   }
 
   lazy val inputs: Map[String, Value] = {
     // If we are using manifests, then the inputSpec won't match the task inputs.
     // Otherwise, if we have access to the inputSpec, use it to guide deserialization.
-    logger.traceLimited(s"inputSpec:\n  ${inputSpec.mkString("\n  ")}")
-    jsInputs.map {
+    val inputs = jsInputs.map {
       case (key, value) if useManifests =>
         key -> inputDeserializer.deserializeInput(value)
       case (key, value) =>
@@ -375,6 +386,15 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
         }
         key -> irValue
     }
+    if (logger.isVerbose && inputs.nonEmpty) {
+      val inputStr = inputs
+        .map {
+          case (name, value) => s"${name}: ${ValueSerde.toString(value)}"
+        }
+        .mkString("\n  ")
+      logger.traceLimited(s"Deserialized inputs:\n  ${inputStr}")
+    }
+    inputs
   }
 
   lazy val primaryInputs: Map[String, Value] = {

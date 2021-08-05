@@ -126,16 +126,12 @@ case class CwlTaskExecutor(tool: Process,
         }
         env + (name -> (cwlType, cwlValue))
     }
-    (cwlInputs, target)
-  }
-
-  private def printInputs(inputs: Map[String, (CwlType, CwlValue)]): Unit = {
     if (logger.isVerbose) {
       val inputStr = tool.inputs
         .flatMap {
-          case param if param.id.forall(_.name.forall(inputs.contains)) =>
+          case param if param.id.forall(_.name.forall(cwlInputs.contains)) =>
             val name = param.id.flatMap(_.name).get
-            val (inputType, inputValue) = inputs(name)
+            val (inputType, inputValue) = cwlInputs(name)
             Some(
                 s"${name}: paramType=${param.cwlType}; inputType=${inputType}; inputValue=${inputValue}"
             )
@@ -146,6 +142,7 @@ case class CwlTaskExecutor(tool: Process,
         .mkString("\n  ")
       logger.traceLimited(s"inputs:\n  ${inputStr}")
     }
+    (cwlInputs, target)
   }
 
   private lazy val defaultRuntimeAttrs: Map[String, (CwlType, CwlValue)] = {
@@ -156,7 +153,6 @@ case class CwlTaskExecutor(tool: Process,
       inputs: Map[String, (CwlType, CwlValue)] = cwlInputs
   ): InstanceTypeRequest = {
     logger.traceLimited("calcInstanceType", minLevel = TraceLevel.VVerbose)
-    printInputs(inputs)
     val cwlEvaluator = Evaluator.create(tool.requirements, tool.hints)
     val ctx = CwlUtils.createEvaluatorContext(runtime)
     val env = cwlEvaluator.evaluateMap(inputs, ctx)
@@ -176,9 +172,7 @@ case class CwlTaskExecutor(tool: Process,
   }
 
   override protected def getInputsWithDefaults: Map[String, (Type, Value)] = {
-    val inputs = cwlInputs
-    printInputs(inputs)
-    CwlUtils.toIR(inputs)
+    CwlUtils.toIR(cwlInputs)
   }
 
   override protected def streamFileForInput(parameterName: String): Boolean = {
@@ -199,7 +193,6 @@ case class CwlTaskExecutor(tool: Process,
       localizedInputs: Map[String, (Type, Value)]
   ): (Map[String, (Type, Value)], Boolean, Option[Set[Int]], Set[Int]) = {
     val inputs = CwlUtils.fromIR(localizedInputs, typeAliases, isInput = true)
-    printInputs(inputs)
     val metaDir = workerPaths.getMetaDir(ensureExists = true)
     // write the CWL and input files
     val cwlPath = metaDir.resolve(s"tool.cwl")
