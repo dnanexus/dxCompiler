@@ -842,13 +842,14 @@ def compile_tests_to_project(trg_proj,
     runnable = {}
     has_errors = False
     for tname in test_names:
+        applet_specific_folder = "{}/{}".format(applet_folder,tname)
         oid = None
         if lazy_flag:
-            oid = lookup_dataobj(tname, trg_proj, applet_folder)
+            oid = lookup_dataobj(tname, trg_proj, applet_specific_folder)
         if oid is None:
             c_flags = compiler_flags[:] + compiler_per_test_flags(tname)
             try:
-                oid = build_test(tname, trg_proj, applet_folder, version_id, c_flags)
+                oid = build_test(tname, trg_proj, applet_specific_folder, version_id, c_flags)
             except subprocess.CalledProcessError:
                 if delay_compile_errors:
                     traceback.print_exc()
