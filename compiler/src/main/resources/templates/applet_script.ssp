@@ -97,6 +97,10 @@
             echo "=== dxfuse filesystem log === "
             cat ${bashDollar}dxfuse_log
         fi
+        if [[ ${bashDollar}rc == '' ]]; then
+            echo "converting empty returnCode to 1"
+            rc=1
+        fi
         exit ${bashDollar}rc
     fi
     <% if (includeEpilog) { %>${include("epilog_script.ssp")}<% } %>
