@@ -199,7 +199,7 @@ case class CwlWorkflowExecutor(workflow: Workflow,
           sources.head
         } else {
           val mergedValues = if (isArray) {
-            param.linkMerge.getOrElse(LinkMergeMethod.MergeNested) match {
+            param.linkMerge match {
               case LinkMergeMethod.MergeNested => sources
               case LinkMergeMethod.MergeFlattened =>
                 sources.flatMap {
@@ -208,8 +208,6 @@ case class CwlWorkflowExecutor(workflow: Workflow,
                   case value => Vector(value)
                 }
             }
-          } else if (param.linkMerge.nonEmpty) {
-            throw new Exception(s"param ${param} is not of array type but specifies linkMerge")
           } else {
             sources
           }
@@ -312,7 +310,7 @@ case class CwlWorkflowExecutor(workflow: Workflow,
         sources.head
       } else {
         val mergedValues = if (isArray) {
-          stepInput.linkMerge.getOrElse(LinkMergeMethod.MergeNested) match {
+          stepInput.linkMerge match {
             case LinkMergeMethod.MergeNested => sources
             case LinkMergeMethod.MergeFlattened =>
               sources.flatMap {
@@ -322,10 +320,6 @@ case class CwlWorkflowExecutor(workflow: Workflow,
                   Vector((t, value))
               }
           }
-        } else if (stepInput.linkMerge.nonEmpty) {
-          throw new Exception(
-              s"param ${stepInput.name} is not of array type but specifies linkMerge"
-          )
         } else {
           sources
         }

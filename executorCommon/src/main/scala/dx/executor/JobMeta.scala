@@ -521,15 +521,16 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
   private def validateOutput(name: String, actualType: Type, value: Option[Value] = None): Type = {
     outputSpec.get(name) match {
       case Some(expectedType) if outputTypesEqual(expectedType, actualType) =>
-        expectedType
+        actualType
       case Some(expectedType) if Type.unwrapOptional(expectedType) == Type.THash =>
         logger.trace(
-            s"""expected type of output field ${name} is THash which may represent an
+            s"""Expected type of output field ${name} is THash which may represent an
                |unknown schema type, so deserializing without type""".stripMargin
               .replaceAll("\n", " ")
         )
-        expectedType
+        actualType
       case Some(expectedType) if value.isDefined =>
+        logger.trace(s"Coercing value ${value.get} to ${expectedType}")
         try {
           // TODO: add a Type.coercibleTo function
           logger.ignore(Value.coerceTo(value.get, expectedType))

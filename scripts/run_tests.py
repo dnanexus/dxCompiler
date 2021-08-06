@@ -730,8 +730,10 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
         ):
             compare_result_path(result, expected_val, field_name1, tname, project)
         else:
+            if isinstance(result, dict) and result.get("type") == "File" and "uri" in result:
+                result = result["uri"]
             if isinstance(result, dict) and "$dnanexus_link" in result:
-                result = download_dxfile(link_to_dxfile(result, project))
+                result = download_dxfile(link_to_dxfile(result, project.id))
             if str(result).strip() != str(expected_val).strip():
                 cprint("Analysis {} gave unexpected results".format(tname), "red")
                 cprint(

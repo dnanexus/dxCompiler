@@ -176,7 +176,7 @@ case class CwlTaskExecutor(tool: Process,
   }
 
   override protected def streamFileForInput(parameterName: String): Boolean = {
-    inputParams(parameterName).streamable.getOrElse(false)
+    inputParams(parameterName).streamable
   }
 
   private lazy val typeAliases: Map[String, CwlSchema] = {
@@ -309,7 +309,7 @@ case class CwlTaskExecutor(tool: Process,
             sources.head
           } else {
             val mergedValues = if (isArray) {
-              param.linkMerge.getOrElse(LinkMergeMethod.MergeNested) match {
+              param.linkMerge match {
                 case LinkMergeMethod.MergeNested => sources
                 case LinkMergeMethod.MergeFlattened =>
                   sources.flatMap {
@@ -317,8 +317,6 @@ case class CwlTaskExecutor(tool: Process,
                     case value          => Vector(value)
                   }
               }
-            } else if (param.linkMerge.nonEmpty) {
-              throw new Exception(s"param ${param} is not of array type but specifies linkMerge")
             } else {
               sources
             }
