@@ -3,6 +3,7 @@
 ## in develop
 
 * `dxni` now makes optional any input parameter for which the native app(let) has a default value 
+* Jobs now fail on out-of-disk errors
 
 ## 2.4.8 2021-07-13
 
