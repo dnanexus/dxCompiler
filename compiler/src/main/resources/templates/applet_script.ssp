@@ -110,7 +110,7 @@
             cat ${bashDollar}dxfuse_log
         fi
         exit ${bashDollar}rc
-        fi
+    fi
     <% if (includeEpilog) { %>${include("epilog_script.ssp")}<% } %>
     # unmount dxfuse
     if [[ -e ${dxPathConfig.getDxfuseManifestFile().toString} ]]; then
