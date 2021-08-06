@@ -91,14 +91,26 @@
     fi
 
     #  check return code of the script
-    rc=`cat ${dxPathConfig.getReturnCodeFile().toString}`
+    rc=1
+    if [[ -f ${dxPathConfig.getReturnCodeFile().toString} ]]; then
+        file_rc=`cat ${dxPathConfig.getReturnCodeFile().toString}`
+        if [[ -z "${bashDollar}file_rc" ]]; then
+            # the rc file exists but is empty, perhaps due to lack of disk space
+            echo "return code file exists but is empty"
+        else
+            rc=${bashDollar}file_rc
+        fi
+    else
+        # the rc file does not exist, perhaps due to lack of disk space
+        echo "command completed but no return code file"
+    fi
     if [[ ${bashDollar}rc != 0 ]]; then
         if [[ -f ${bashDollar}dxfuse_log ]]; then
             echo "=== dxfuse filesystem log === "
             cat ${bashDollar}dxfuse_log
         fi
         exit ${bashDollar}rc
-    fi
+        fi
     <% if (includeEpilog) { %>${include("epilog_script.ssp")}<% } %>
     # unmount dxfuse
     if [[ -e ${dxPathConfig.getDxfuseManifestFile().toString} ]]; then
