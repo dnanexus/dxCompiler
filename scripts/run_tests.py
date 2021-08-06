@@ -618,7 +618,9 @@ def run_test_subset(project, runnable, test_folder, debug_flag, delay_workspace_
             correct = True
             print("Checking results for workflow {} job {}".format(test_desc.name, i))
             for key, expected_val in shouldbe.items():
-                correct = validate_result(tname, exec_outputs, key, expected_val)
+                if not validate_result(tname, exec_outputs, key, expected_val):
+                    correct = False
+                    break
             anl_name = "{}.{}".format(tname, i)
             if correct:
                 print("Analysis {} passed".format(anl_name))
