@@ -968,7 +968,11 @@ def run_test_subset(
             )
         # write failed tests to a file so we can easily re-run them next time
         with open(".failed", "wt") as out:
-            out.write("\n".join(failed_execution + failed_verification))
+            all_failed = [
+                tname.split(".")[0]
+                for tname in failed_execution + failed_verification
+            ]
+            out.write("\n".join(all_failed))
         raise RuntimeError("Failed")
 
 
