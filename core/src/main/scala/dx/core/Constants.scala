@@ -3,22 +3,28 @@ package dx.core
 import dx.api.ExecutionEnvironment
 
 object Constants {
-  // keys used in details of native applets
-  val ExecLinkInfo: String = "execLinkInfo"
-  val BlockPath: String = "blockPath"
-  val WfFragmentInputTypes: String = "fqnDictTypes"
-  val InstanceTypeDb: String = "instanceTypeDB"
+  // keys used in details of native applets, workflows
+  val ExecLinkInfo = "execLinkInfo"
+  val BlockPath = "blockPath"
+  val WfFragmentInputTypes = "fqnDictTypes"
+  val InstanceTypeDb = "instanceTypeDB"
+  val StaticInstanceType = "staticInstanceType"
   val DelayWorkspaceDestruction = "delayWorkspaceDestruction"
-  val RuntimeAttributes: String = "runtimeAttrs"
+  val RuntimeAttributes = "runtimeAttrs"
   val CompilerTag = "dxCompiler"
-  val SourceCode: String = "sourceCode"
-  val ParseOptions: String = "parseOptions"
-  val Language: String = "language"
+  val SourceCode = "sourceCode"
+  val ParseOptions = "parseOptions"
+  val Language = "language"
   val ScatterChunkSize = "scatterChunkSize"
   val Checksum = "checksum"
   val Version = "version"
   val DockerImage = "dockerImage"
+  val NetworkDockerImage = "networkDockerImage"
+  val DynamicDockerImage = "dynamicDockerImage"
   val UseManifests = "useManifests"
+  val FileDependencies = "fileDependencies"
+  val NativeAppDependencies = "nativeAppDependencies"
+  val DockerRegistryCredentialsUri = "dockerRegistryCredentialsUri"
 
   // keys used in details of jobs of native applets
   val ContinueStart = "continue_start___"

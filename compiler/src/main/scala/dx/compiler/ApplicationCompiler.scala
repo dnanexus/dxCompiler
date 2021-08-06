@@ -1,6 +1,6 @@
 package dx.compiler
 
-import dx.api.{DxAccessLevel, DxApi, DxFile, DxInstanceType, DxPath, DxUtils, InstanceTypeDB}
+import dx.api.{DxAccessLevel, DxApi, DxInstanceType, DxPath, DxUtils, InstanceTypeDB}
 import dx.core.Constants
 import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir._
@@ -203,12 +203,6 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         }
       case _ => Map.empty
     }
-    // If the docker image is a tarball, add a link in the details field.
-    val dockerFile: Option[DxFile] = applet.container match {
-      case DxFileDockerImage(_, dxfile) => Some(dxfile)
-      case NoImage                      => None
-      case NetworkDockerImage           => None
-    }
     val bundledDepends = runtimeAsset match {
       case Some(jsv) => Map("bundledDepends" -> JsArray(Vector(jsv)))
       case None      => Map.empty
@@ -216,19 +210,36 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     val runSpec = JsObject(
         runSpecRequired ++ defaultTimeout ++ extrasOverrides ++ taskOverrides ++ taskSpecificOverrides ++ bundledDepends
     )
-    val details: Map[String, JsValue] = dockerFile match {
-      case Some(dxFile) => Map(Constants.DockerImage -> dxFile.asJson)
-      case None         => Map.empty
+
+    // Add hard-coded instance type info to details
+    val instanceTypeDetails: Map[String, JsValue] = applet.instanceType match {
+      case StaticInstanceType(Some(staticInstanceType), _, _, _, _, _, _, _, _, _) =>
+        Map(Constants.StaticInstanceType -> JsString(staticInstanceType))
+      case _ => Map.empty
     }
-    (runSpec, details)
+
+    // Add Docker image info to details
+    val dockerImageDetails: Map[String, JsValue] = applet.container match {
+      case DxFileDockerImage(_, dxfile) => Map(Constants.DockerImage -> dxfile.asJson)
+      case NetworkDockerImage(pullName) => Map(Constants.NetworkDockerImage -> JsString(pullName))
+      case DynamicDockerImage           => Map(Constants.DynamicDockerImage -> JsBoolean(true))
+      case NoImage                      => Map.empty
+    }
+
+    (runSpec, instanceTypeDetails ++ dockerImageDetails)
   }
 
   // Convert the applet meta to JSON, and overlay details from task-specific extras
   private def applicationAttributesToNative(
       applet: Application,
-      defaultTags: Set[String]
+      defaultTags: Set[String],
+      extendedDescription: Option[String]
   ): (Map[String, JsValue], Map[String, JsValue]) = {
-    val (commonMeta, commonDetails) = callableAttributesToNative(applet, defaultTags)
+    val (commonMeta, commonDetails) = callableAttributesToNative(
+        callable = applet,
+        defaultTags = defaultTags,
+        extendedDescription = extendedDescription
+    )
     val applicationMeta = applet.attributes.collect {
       case DeveloperNotesAttribute(text) => "developerNotes" -> JsString(text)
       // These are currently ignored because they only apply to apps
@@ -246,6 +257,37 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       case _ => None
     }).getOrElse(Map.empty)
     (commonMeta ++ applicationMeta, commonDetails ++ taskSpecificDetails)
+  }
+
+  // TODO: Use templates for Markdown dependency report
+
+  // Summarize dependencies that are not bundled for cloning
+  // with the app/let for adding to description in Markdown
+  private def summarizeReportableDependencies(
+      fileDependencies: Vector[String],
+      runSpecDetails: Map[String, JsValue]
+  ): Option[String] = {
+    val headerMd =
+      "# This app requires access to the following dependencies that are not " +
+        "packaged with the app"
+    val filesMd = fileDependencies.map(listMd2).mkString match {
+      case s: String if s.nonEmpty => s"${listMd("Files")}${s}"
+      case _                       => ""
+    }
+    val networkDockerImageMd = runSpecDetails.get(Constants.NetworkDockerImage) match {
+      case Some(JsString(s)) => s"${listMd("Network Docker image")}${listMd2(s)}"
+      case _                 => ""
+    }
+    val dynamicDockerImageMd = runSpecDetails.get(Constants.DynamicDockerImage) match {
+      case Some(JsBoolean(true)) => listMd("Docker image determined at runtime")
+      case _                     => ""
+    }
+    val staticInstanceTypeMd = runSpecDetails.get(Constants.StaticInstanceType) match {
+      case Some(JsString(s)) => s"${listMd("Hard-coded instance type")}${listMd2(s)}"
+      case _                 => ""
+    }
+    val md = s"${filesMd}${networkDockerImageMd}${dynamicDockerImageMd}${staticInstanceTypeMd}"
+    Option.when(md.nonEmpty)(s"${headerMd}${md}")
   }
 
   def createAccess(applet: Application): JsValue = {
@@ -280,11 +322,13 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     }
     // update depending on applet type
     val appletKindAccess = applet.kind match {
-      case ExecutableKindApplet if applet.container == NetworkDockerImage =>
-        // docker requires network access, because we are downloading the image from the network
-        Some(DxAccess.empty.copy(network = Some(Vector("*"))))
       case ExecutableKindApplet =>
-        None
+        applet.container match {
+          // Require network access if Docker image needs to be downloaded
+          case NetworkDockerImage(_) | DynamicDockerImage =>
+            Some(DxAccess.empty.copy(network = Some(Vector("*"))))
+          case _ => None
+        }
       case ExecutableKindWorkflowOutputReorg =>
         // The reorg applet requires higher permissions to organize the output directory.
         Some(DxAccess.empty.copy(project = Some(DxAccessLevel.Contribute)))
@@ -354,6 +398,19 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         }
       }
 
+    // Collect file dependencies from inputs & private variables
+    val fileDependencies = (
+        applet.inputs
+          .filter(param => param.dxType == Type.TFile)
+          .flatMap(fileDependenciesFromParam)
+          .toVector ++ applet.staticFileDependencies
+    ).distinct
+    val fileDependenciesDetails = Option
+      .when(fileDependencies.nonEmpty)(
+          Map(Constants.FileDependencies -> JsArray(fileDependencies.map(s => JsString(s))))
+      )
+      .getOrElse(Map.empty)
+
     val outputParams = if (useManifests) {
       Vector(Parameter(Constants.OutputManifest, Type.TFile))
     } else {
@@ -396,7 +453,15 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     }.unzip
     // build the details JSON
     val defaultTags = Set(Constants.CompilerTag)
-    val (taskMeta, taskDetails) = applicationAttributesToNative(applet, defaultTags)
+
+    // Build extended description with dependency report
+    val extendedDescription = summarizeReportableDependencies(
+        fileDependencies = fileDependencies,
+        runSpecDetails = runSpecDetails
+    )
+    val (taskMeta, taskDetails) =
+      applicationAttributesToNative(applet, defaultTags, extendedDescription)
+
     val delayDetails = delayWorkspaceDestructionToNative
     // meta information used for running workflow fragments
     val metaDetails: Map[String, JsValue] =
@@ -447,7 +512,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     }
     // combine all details into a single Map
     val details: Map[String, JsValue] =
-      taskDetails ++ runSpecDetails ++ delayDetails ++ dxLinks.toMap ++ metaDetails ++ auxDetails ++ useManifestsDetails
+      taskDetails ++ runSpecDetails ++ delayDetails ++ dxLinks.toMap ++ metaDetails ++ auxDetails ++
+        useManifestsDetails ++ fileDependenciesDetails
     // build the API request
     val requestRequired = Map(
         "name" -> JsString(applet.name),
