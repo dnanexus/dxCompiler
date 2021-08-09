@@ -413,13 +413,18 @@ def validate_result(tname, exec_outputs, key, expected_val):
             result = exec_outputs[field_name1]
         elif field_name2 in exec_outputs:
             result = exec_outputs[field_name2]
+        elif expected_val is None:
+            # optional
+            return True
         else:
             cprint("field {} missing from executable results {}".format(field_name1, exec_outputs),
                    "red")
             return False
+        if isinstance(result, dict) and "___" in result:
+            result = result["___"]
         if isinstance(result, list) and isinstance(expected_val, list):
-            result.sort()
-            expected_val.sort()
+            result = list(sorted(filter(lambda x: x is not None, result)))
+            expected_val = list(sorted(filter(lambda x: x is not None, expected_val)))
         if isinstance(result, dict) and "$dnanexus_link" in result:
             # the result is a file - download it and extract the contents
             dlpath = os.path.join(tempfile.mkdtemp(), 'result.txt')
@@ -635,7 +640,9 @@ def run_test_subset(project, runnable, test_folder, debug_flag, delay_workspace_
             correct = True
             print("Checking results for workflow {} job {}".format(test_desc.name, i))
             for key, expected_val in shouldbe.items():
-                correct = validate_result(tname, exec_outputs, key, expected_val)
+                if not validate_result(tname, exec_outputs, key, expected_val):
+                    correct = False
+                    break
             anl_name = "{}.{}".format(tname, i)
             if correct:
                 print("Analysis {} passed".format(anl_name))
