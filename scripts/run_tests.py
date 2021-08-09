@@ -121,6 +121,14 @@ wdl_v1_1_list = [
     "apps_579_string_substitution_expr"
 ]
 
+wdl_v1_1_list = [
+    "v1_1_dict",
+
+    # bug regression tests
+    "apps_579_boolean_flag_expr",
+    "apps_579_string_substitution_expr"
+]
+
 # docker image tests
 docker_test_list = [
     "broad_genomics",
@@ -252,7 +260,8 @@ test_unlocked = [
     "hello",
     "path_not_taken",
     "optionals",
-    "shapes"
+    "shapes",
+    #"population"
 ]
 test_project_wide_reuse = ['add2', "add_many"]
 
