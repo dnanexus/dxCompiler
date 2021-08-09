@@ -13,6 +13,7 @@ import tempfile
 from termcolor import cprint
 import time
 import traceback
+from typing import List
 import yaml
 from dxpy.exceptions import DXJobFailureError
 
@@ -21,6 +22,7 @@ import util
 here = os.path.dirname(sys.argv[0])
 top_dir = os.path.dirname(os.path.abspath(here))
 test_dir = os.path.join(os.path.abspath(top_dir), "test")
+default_instance_type = "mem1_ssd1_v2_x4"
 
 git_revision = subprocess.check_output(
     ["git", "describe", "--always", "--dirty", "--tags"]
@@ -33,6 +35,7 @@ test_failing = {
     "missing_output",
     "docker_retry",
     "argument_list_too_long",
+    "diskspace_exhauster"
 }
 
 wdl_v1_list = [
@@ -136,7 +139,7 @@ draft2_test_list = [
     "shapes",
     # this test cannot be enabled yet, because we
     # don't yet support overriding task inputs
-    #"population",
+    # "population",
 
     # multiple library imports in one WDL workflow
     "multiple_imports",
@@ -213,11 +216,16 @@ doc_tests_list = [
     "bwa_mem"
 ]
 
+# these are tests that take a long time to run
+long_test_list = [
+    "diskspace_exhauster"  # APPS-749
+]
+
 medium_test_list = (
     wdl_v1_list + wdl_v1_1_list + docker_test_list + special_flags_list + cwl_tools
 )
 large_test_list = (
-    medium_test_list + draft2_test_list + single_tasks_list + doc_tests_list
+    medium_test_list + draft2_test_list + single_tasks_list + doc_tests_list + long_test_list
 )
 
 test_suites = {
@@ -272,7 +280,11 @@ test_upload_wait = {
     "upload_wait"
 }
 
+# use the applet's default instance type rather than the default (mem1_ssd1_x4)
+test_instance_type = ["diskspace_exhauster"]
 
+
+# Read a JSON file
 def read_json_file(path):
     with open(path, "r") as fd:
         data = fd.read()
@@ -481,7 +493,7 @@ def compare_result_file(result, expected_val, field_name, tname, project, verbos
     secondary_files = None
 
     if isinstance(result, str):
-        contents = result
+        contents = result.strip()
     elif result.get("class", result.get("type")) == "File":
         contents = result.get("contents")
         location = result.get("location", result.get("path", result.get("uri")))
@@ -593,12 +605,12 @@ def list_dx_folder(project, folder):
     if key in folder_cache:
         return folder_cache[key]
     contents = project.list_folder(folder)
-    files = [
+    files: List[dict] = [
         {"$dnanexus_link": {"id": obj["id"], "project": project.get_id()}}
         for obj in contents["objects"]
         if obj["id"].startswith("file-")
     ]
-    dirs = [
+    dirs: List[dict] = [
         {"type": "Folder", "uri": "dx://{}:{}".format(project.get_id(), folder)}
         for folder in contents["folders"]
     ]
@@ -833,7 +845,7 @@ def wait_for_completion(test_exec_objs):
 
 # Run [workflow] on several inputs, return the analysis ID.
 def run_executable(
-    project, test_folder, tname, oid, debug_flag, delay_workspace_destruction
+    project, test_folder, tname, oid, debug_flag, delay_workspace_destruction, instance_type=default_instance_type
 ):
     desc = test_files[tname]
 
@@ -863,6 +875,8 @@ def run_executable(
                 }
             if delay_workspace_destruction:
                 run_kwargs["delay_workspace_destruction"] = True
+            if instance_type:
+                run_kwargs["instance_type"] = instance_type
 
             return exec_obj.run(
                 inputs,
@@ -922,8 +936,12 @@ def run_test_subset(
     for tname, oid in runnable.items():
         desc = test_files[tname]
         print("Running {} {} {}".format(desc.kind, desc.name, oid))
+        if tname in test_instance_type:
+            instance_type = None
+        else:
+            instance_type = default_instance_type
         anl = run_executable(
-            project, test_folder, tname, oid, debug_flag, delay_workspace_destruction
+            project, test_folder, tname, oid, debug_flag, delay_workspace_destruction, instance_type
         )
         test_exec_objs.extend(anl)
     print("executables: " + ", ".join([a.get_id() for a in test_exec_objs]))

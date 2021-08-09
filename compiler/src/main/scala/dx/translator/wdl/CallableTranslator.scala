@@ -30,6 +30,8 @@ import dx.util.{Adjuncts, FileSourceResolver, Logger}
 import wdlTools.syntax.Quoting
 
 import scala.annotation.tailrec
+import wdlTools.types.TypedAbstractSyntax.ValueString
+import wdlTools.types.TypedAbstractSyntax.ValueFile
 
 case class CallableTranslator(wdlBundle: WdlBundle,
                               typeAliases: Map[String, T_Struct],
@@ -47,6 +49,22 @@ case class CallableTranslator(wdlBundle: WdlBundle,
   private lazy val evaluator: Eval =
     Eval(DefaultEvalPaths.empty, Some(wdlBundle.version), Vector.empty, fileResolver, logger)
   private lazy val codegen = CodeGenerator(typeAliases, wdlBundle.version, logger)
+
+  // Return non-local file dependencies of private variables
+  private def translateStaticFileDependencies(
+      privateVariables: Vector[TAT.PrivateVariable]
+  ): Set[String] = {
+
+    // TODO: also consider files nested in arrays, structs
+
+    privateVariables.collect {
+      case TAT.PrivateVariable(_, WdlTypes.T_File, ValueFile(value, _)) if value.contains("://") =>
+        value
+      case TAT.PrivateVariable(_, WdlTypes.T_File, ValueString(value, _, _))
+          if value.contains("://") =>
+        value
+    }.toSet
+  }
 
   private case class WdlTaskTranslator(task: TAT.Task) {
     private lazy val runtime =
@@ -163,6 +181,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       val outputs = task.outputs.map(translateOutput(_, ignoreDefault = isNative))
       val instanceType = runtime.translateInstanceType
       val requirements = runtime.translateRequirements
+      val staticFileDependencies = translateStaticFileDependencies(task.privateVariables)
       val attributes = meta.translate
       val container = runtime.translateContainer
       val cleanedTask: TAT.Task = container match {
@@ -174,15 +193,16 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       val standAloneTask =
         WdlDocumentSource(codegen.createStandAloneTask(cleanedTask), versionSupport)
       Application(
-          task.name,
-          inputs,
-          outputs,
-          instanceType,
-          container,
-          kind,
-          standAloneTask,
-          attributes,
-          requirements
+          name = task.name,
+          inputs = inputs,
+          outputs = outputs,
+          instanceType = instanceType,
+          container = container,
+          kind = kind,
+          document = standAloneTask,
+          attributes = attributes,
+          requirements = requirements,
+          staticFileDependencies = staticFileDependencies
       )
     }
   }
@@ -818,7 +838,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
 
     /**
       * Compile a locked workflow. This is called at the top level for locked workflows,
-      * and it is always called for nested workflows regarless of whether the top level
+      * and it is always called for nested workflows regardless of whether the top level
       * is locked.
       * @param wfName workflow name
       * @param inputs formal workflow inputs
@@ -962,14 +982,22 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         (wfOutputs, stages, auxCallables.flatten)
       }
 
-      (Workflow(wfName,
-                wfInputLinks,
-                wfOutputs,
-                finalStages,
-                WdlWorkflowSource(wf, versionSupport),
-                locked = true,
-                level,
-                meta.translate),
+      val privateVariables = wf.body.collect {
+        case e: TAT.PrivateVariable => e
+      }
+      val staticFileDependencies = translateStaticFileDependencies(privateVariables)
+
+      (Workflow(
+           name = wfName,
+           inputs = wfInputLinks,
+           outputs = wfOutputs,
+           stages = finalStages,
+           document = WdlWorkflowSource(wf, versionSupport),
+           locked = true,
+           level = level,
+           attributes = meta.translate,
+           staticFileDependencies = staticFileDependencies
+       ),
        finalCallables,
        wfOutputs)
     }
@@ -1026,15 +1054,22 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         outputStage.outputs.map(param => (param, LinkInput(outputStage.dxStage, param.dxName)))
       val wfAttr = meta.translate
       val wfSource = WdlWorkflowSource(wf, versionSupport)
+
+      val privateVariables = wf.body.collect {
+        case e: TAT.PrivateVariable => e
+      }
+      val staticFileDependencies = translateStaticFileDependencies(privateVariables)
+
       val irwf = Workflow(
-          wf.name,
-          wfInputs,
-          wfOutputs,
-          commonStg +: stages :+ outputStage,
-          wfSource,
+          name = wf.name,
+          inputs = wfInputs,
+          outputs = wfOutputs,
+          stages = commonStg +: stages :+ outputStage,
+          document = wfSource,
           locked = false,
-          Level.Top,
-          wfAttr
+          level = Level.Top,
+          attributes = wfAttr,
+          staticFileDependencies = staticFileDependencies
       )
       (irwf, commonApplet +: auxCallables.flatten :+ outputApplet, wfOutputs)
     }

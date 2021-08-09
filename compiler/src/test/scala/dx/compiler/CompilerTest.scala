@@ -759,6 +759,36 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     y.default shouldBe Some(IOParameterValueNumber(5))
   }
 
+  it should "dependency report should be added to WF description" in {
+    val path = pathFromBasename("non_spec", "dependency_report_wf1.wdl")
+    val extraPath = pathFromBasename("non_spec", "dependency_report_extras.json")
+    val args = path.toString :: "-extras" :: extraPath.toString :: cFlags
+    val wfId = Main.compile(args.toVector) match {
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
+    }
+
+    val dxWorkflow = dxApi.workflow(wfId)
+    val desc = dxWorkflow.describe(Set(Field.Description))
+    desc.description match {
+      case Some(d) => {
+        d should include("app-BZ9ZQzQ02VP5gpkP54b96pYY")
+        d should include("file-G3fqPfQ0GqQpPZzy5YX0b017")
+        d should include("file-G3fqPg00GqQXYKQB5bFpKpgf")
+        d should include("file-G3fqPg00GqQkz9Fk5b260XyY")
+        d should include("file-G3fqPg80GqQq14z25Yv4QJkF")
+        d should include("file-G3fqPj00GqQkz9Fk5b260Xyg")
+        d should include("file-G3fqPj80GqQQ2ZBY5ZKX65Gp")
+        d should include("file-G3fqPj80GqQkz9Fk5b260Xyk")
+        d should include("alpine:3.14")
+        d should include("ubuntu:20.04")
+        d should include("mem1_ssd2_x4")
+      }
+      case _ => throw new Exception(s"Expected ${wfId} to have a description.")
+    }
+  }
+
   it should "deep nesting" taggedAs NativeTest in {
     val path = pathFromBasename("compiler", "environment_passing_deep_nesting.wdl")
     val args = path.toString :: cFlags

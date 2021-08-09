@@ -306,6 +306,17 @@ class ExecutableCompiler(extras: Option[Extras],
     }
   }
 
+  // Merge initial description & extended description
+  private def descriptionToNative(description: Option[String],
+                                  extendedDescription: Option[String]): Map[String, JsValue] = {
+    (description, extendedDescription) match {
+      case (Some(d), Some(e)) => Map("description" -> JsString(s"${d}\n\n${e}"))
+      case (Some(d), _)       => Map("description" -> JsString(d))
+      case (_, Some(e))       => Map("description" -> JsString(e))
+      case (_, _)             => Map.empty
+    }
+  }
+
   private def whatsNewToNative(whatsNew: Option[JsValue]): Map[String, JsValue] = {
     whatsNew match {
       case Some(JsArray(array)) =>
@@ -341,7 +352,8 @@ class ExecutableCompiler(extras: Option[Extras],
   // Convert the applet meta to JSON, and overlay details from task-specific extras
   protected def callableAttributesToNative(
       callable: Callable,
-      defaultTags: Set[String]
+      defaultTags: Set[String],
+      extendedDescription: Option[String]
   ): (Map[String, JsValue], Map[String, JsValue]) = {
     val metaDefaults = Map(
         "title" -> JsString(callable.name),
@@ -354,10 +366,9 @@ class ExecutableCompiler(extras: Option[Extras],
         //"openSource" -> JsBoolean(false),
     )
     val meta = callable.attributes.collect {
-      case TitleAttribute(text)       => "title" -> JsString(text)
-      case DescriptionAttribute(text) => "description" -> JsString(text)
-      case TypesAttribute(array)      => "types" -> JsArray(array.map(JsString(_)))
-      case TagsAttribute(array)       =>
+      case TitleAttribute(text)  => "title" -> JsString(text)
+      case TypesAttribute(array) => "types" -> JsArray(array.map(JsString(_)))
+      case TagsAttribute(array)  =>
         // merge default and user-specified tags
         "tags" -> JsArray((array.toSet ++ defaultTags ++ callable.tags).map(JsString(_)).toVector)
       case PropertiesAttribute(props) =>
@@ -373,6 +384,8 @@ class ExecutableCompiler(extras: Option[Extras],
     // default summary to the first line of the description
     val summary =
       summaryToNative(meta2.get("summary"), meta2.get("description"))
+    // Merge initial description & extended description
+    val description = descriptionToNative(meta2.get("description"), extendedDescription)
     // extract the details to return separately
     val metaDetails = callable.attributes
       .collectFirst {
@@ -384,7 +397,7 @@ class ExecutableCompiler(extras: Option[Extras],
       .getOrElse(Map.empty)
     // get the whatsNew section from the details
     val whatsNew = whatsNewToNative(metaDetails.get("whatsNew"))
-    (metaDefaults ++ meta ++ summary, metaDetails ++ whatsNew)
+    (metaDefaults ++ meta ++ summary ++ description, metaDetails ++ whatsNew)
   }
 
   protected def delayWorkspaceDestructionToNative: Map[String, JsValue] = {
@@ -393,5 +406,54 @@ class ExecutableCompiler(extras: Option[Extras],
     } else {
       Map.empty
     }
+  }
+
+  protected def fileDependenciesFromParam(param: Parameter): Set[String] = {
+    val default = param.defaultValue match {
+      case Some(Value.VFile(str)) => Vector(str)
+      case _                      => Vector.empty
+    }
+    val attrs = param.attributes
+      .flatMap(attr =>
+        attr match {
+          case ParameterAttributes.DefaultAttribute(Value.VFile(str)) => Vector(str)
+          case ParameterAttributes.ChoicesAttribute(choices) =>
+            choices
+              .collect {
+                case ParameterAttributes.SimpleChoice(Value.VFile(str)) => str
+                case ParameterAttributes.FileChoice(str, _)             => str
+              }
+          case ParameterAttributes.SuggestionsAttribute(suggestions) =>
+            suggestions
+              .collect {
+                case ParameterAttributes.SimpleSuggestion(Value.VFile(str)) => str
+                case ParameterAttributes.FileSuggestion(Some(str), _, _, _) => str
+              }
+          case _ => Vector.empty
+        }
+      )
+      .toVector
+
+    (default ++ attrs).filter(s => s.contains("://")).toSet
+  }
+
+  // TODO: Use templates for Markdown dependency report
+
+  /**
+    * Markdown helper method for 1st-level list item
+    * @param s text string
+    * @return Markdown list item of text string
+    */
+  protected def listMd(s: String): String = {
+    s"\n* ${s}"
+  }
+
+  /**
+    * Markdown helper method for 2nd-level indented list item, as code
+    * @param s text string
+    * @return Markdown 2nd-level list item of text string, as code
+    */
+  protected def listMd2(s: String): String = {
+    s"\n    * `${s}`"
   }
 }
