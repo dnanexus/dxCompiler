@@ -711,9 +711,12 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
             result = exec_outputs[field_name1]
         elif field_name2 in exec_outputs:
             result = exec_outputs[field_name2]
+        elif expected_val is None:
+            # optional
+            return True
         else:
             cprint(
-                "field {} missing from executable results {}".format(
+                "Field {} missing from executable results {}".format(
                     field_name1, exec_outputs
                 ),
                 "red",
@@ -722,8 +725,8 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
         if isinstance(result, dict) and "___" in result:
             result = result["___"]
         if isinstance(result, list) and isinstance(expected_val, list):
-            result.sort()
-            expected_val.sort()
+            result = list(sorted(filter(lambda x: x is not None, result)))
+            expected_val = list(sorted(filter(lambda x: x is not None, expected_val)))
         if isinstance(expected_val, dict) and (
             expected_val.get("class") in {"File", "Directory"} or
             expected_val.get("type") in {"File", "Folder"}
@@ -744,8 +747,8 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
                 )
                 return False
         return True
-    except Exception as e:
-        print("exception message={}".format(e))
+    except:
+        traceback.print_exc()
         return False
 
 
@@ -942,7 +945,9 @@ def run_test_subset(
             correct = True
             print("Checking results for workflow {} job {}".format(test_desc.name, i))
             for key, expected_val in shouldbe.items():
-                correct = validate_result(tname, exec_outputs, key, expected_val, project)
+                if not validate_result(tname, exec_outputs, key, expected_val, project):
+                    correct = False
+                    break
             anl_name = "{}.{}".format(tname, i)
             if correct:
                 print("Analysis {} passed".format(anl_name))

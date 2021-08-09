@@ -29,8 +29,6 @@ workflow four_levels {
     }
 }
 
-
-
 task zconcat {
     input {
         String a
