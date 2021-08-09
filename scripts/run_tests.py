@@ -367,7 +367,6 @@ cromwell_tests_list = [
     "postfix_quantifiers",
     "length",
     "wdl_empty_glob",
-    "ssh_access",
     "output_filename_interpolation",
     "aliased_subworkflows",
     "docker_image_cache_false",
@@ -376,7 +375,6 @@ cromwell_tests_list = [
     "error_10_preemptible",
     "multiline_command_line",
     "use_cacheCopy_dir",
-    "gcs_file_name_with_newline_in_the_middle",
     "writeToCache",
     "cacheBetweenWF",
     "lots_of_inputs",
@@ -403,7 +401,6 @@ cromwell_tests_list = [
     "filearrayoutput",
     "array_io",
     "docker_hash_quay",
-    "monitoring_log",
     "docker_hash_gcr",
     "workflow_type_and_version_wdl",
     "dontglobinputs",
@@ -430,7 +427,6 @@ cromwell_tests_list = [
     "prepare_scatter_gather",
     "multiplesourcedarray",
     "passingfiles",
-    "hello",
     "referencingpreviousinputsandoutputs",
     "engine_functions",
 ]
@@ -1066,13 +1062,14 @@ def compile_tests_to_project(trg_proj,
     runnable = {}
     has_errors = False
     for tname in test_names:
+        specific_applet_folder = "{}/{}".format(applet_folder, tname)
         oid = None
         if lazy_flag:
-            oid = lookup_dataobj(tname, trg_proj, applet_folder)
+            oid = lookup_dataobj(tname, trg_proj, specific_applet_folder)
         if oid is None:
             c_flags = compiler_flags[:] + compiler_per_test_flags(tname)
             try:
-                oid = build_test(tname, trg_proj, applet_folder, version_id, c_flags)
+                oid = build_test(tname, trg_proj, specific_applet_folder, version_id, c_flags)
             except subprocess.CalledProcessError:
                 if tname in test_compilation_failing:
                     print("Workflow {} compilation failed as expected".format(tname))
