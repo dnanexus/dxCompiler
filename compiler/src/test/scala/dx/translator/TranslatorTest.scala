@@ -918,7 +918,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
       case other =>
         throw new Exception(s"unexpected primary callable ${other}")
     }
-    wf.stages.size shouldBe 1
+    wf.stages.size shouldBe 2
     wf.stages.head.inputs shouldBe Vector(
         WorkflowInput(
             Parameter("sampleStruct",

@@ -766,6 +766,7 @@ object WdlUtils {
     * not include members, except when the identifier refers to a call or
     * `withField` is true.
     * @param expr the expression
+    * @param typeHint type to use if the actual type is T_Any
     * @param withField whether to append the field name of a terminal
     *                  GetName expression to the LHS (requires the LHS
     *                  to be a Pair, object, or struct; always true if
@@ -779,10 +780,19 @@ object WdlUtils {
     *   bar.left     Vector(('bar', None))         [bar is a Pair, withField = false]
     *   bar.left     Vector(('bar', Some('left'))) [bar is a Pair, withField = true]
     */
-  private def getExpressionInputs(expr: TAT.Expr, withField: Boolean): Vector[WdlInputRef] = {
+  private def getExpressionInputs(expr: TAT.Expr,
+                                  typeHint: Option[T],
+                                  withField: Boolean): Vector[WdlInputRef] = {
     def inner(
-        innerExpr: TAT.Expr
+        innerExpr: TAT.Expr,
+        innerTypeHint: Option[T]
     ): Vector[WdlInputRef] = {
+      def resolveType(wdlType: T, default: Option[T] = innerTypeHint): T = {
+        (wdlType, default) match {
+          case (T_Any, Some(t)) => t
+          case _                => wdlType
+        }
+      }
       innerExpr match {
         case _: TAT.ValueNull      => Vector.empty
         case _: TAT.ValueNone      => Vector.empty
@@ -798,38 +808,69 @@ object WdlUtils {
           } else {
             InputKind.Required
           }
-          Vector(WdlInputRef(Vector(id), None, wdlType, kind))
-        case TAT.ExprCompoundString(valArr, _, _) =>
-          valArr.flatMap(elem => inner(elem))
-        case TAT.ExprPair(l, r, _) =>
-          inner(l) ++ inner(r)
-        case TAT.ExprArray(arrVal, _) =>
-          arrVal.flatMap(elem => inner(elem))
-        case TAT.ExprMap(valMap, _) =>
+          val actualType = resolveType(wdlType, innerTypeHint)
+          Vector(WdlInputRef(Vector(id), None, actualType, kind))
+        case TAT.ExprCompoundString(valArr, wdlType, _) =>
+          val typeHint = resolveType(wdlType, Some(T_String))
+          valArr.flatMap(elem => inner(elem, Some(typeHint)))
+        case TAT.ExprPair(l, r, wdlType) =>
+          val (lTypeHint, rTypeHint) = resolveType(wdlType) match {
+            case T_Pair(lTypeHint, rTypeHint) => (Some(lTypeHint), Some(rTypeHint))
+            case _                            => (None, None)
+          }
+          inner(l, lTypeHint) ++ inner(r, rTypeHint)
+        case TAT.ExprArray(arrVal, wdlType) =>
+          val elementTypeHint = resolveType(wdlType) match {
+            case T_Array(elementTypeHint, _) => Some(elementTypeHint)
+            case _                           => None
+          }
+          arrVal.flatMap(elem => inner(elem, elementTypeHint))
+        case TAT.ExprMap(valMap, wdlType) =>
+          val (keyTypeHint, valueTypeHint) = resolveType(wdlType) match {
+            case T_Map(keyTypeHint, valueTypeHint) => (Some(keyTypeHint), Some(valueTypeHint))
+            case _                                 => (None, None)
+          }
           valMap
-            .map { case (k, v) => inner(k) ++ inner(v) }
+            .map { case (k, v) => inner(k, keyTypeHint) ++ inner(v, valueTypeHint) }
             .toVector
             .flatten
-        case TAT.ExprObject(fields, _) =>
+        case TAT.ExprObject(fields, wdlType) =>
           fields
-            .map { case (_, v) => inner(v) }
+            .map {
+              case (TAT.ValueString(name, _, _), value) =>
+                val valueTypeHint = resolveType(wdlType) match {
+                  case T_Struct(_, memberTypeHints) => memberTypeHints.get(name)
+                  case T_Map(_, valueTypeHint)      => Some(valueTypeHint)
+                  case _                            => None
+                }
+                inner(value, valueTypeHint)
+              case (name, value) =>
+                val (keyTypeHint, valueTypeHint) = resolveType(wdlType) match {
+                  case T_Map(keyTypeHint, valueTypeHint) => (Some(keyTypeHint), Some(valueTypeHint))
+                  case _                                 => (None, None)
+                }
+                Vector(inner(name, keyTypeHint), inner(value, valueTypeHint)).flatten
+            }
             .toVector
             .flatten
-        case TAT.ExprPlaceholder(t, f, sep, default, value: TAT.Expr, _) =>
-          inner(value) ++ Vector(
-              t.map(inner),
-              f.map(inner),
-              sep.map(inner),
-              default.map(inner)
+        case TAT.ExprPlaceholder(t, f, sep, default, value: TAT.Expr, wdlType) =>
+          val valueTypeHint = Some(resolveType(wdlType))
+          inner(value, valueTypeHint) ++ Vector(
+              t.map(inner(_, Some(T_String))),
+              f.map(inner(_, Some(T_String))),
+              sep.map(inner(_, Some(T_String))),
+              default.map(inner(_, valueTypeHint))
           ).flatten.flatten
-        // Access an array element at [index]
-        case TAT.ExprAt(value, index, _) =>
-          inner(value) ++ inner(index)
-        // conditional:
-        case TAT.ExprIfThenElse(cond, tBranch, fBranch, _) =>
-          inner(cond) ++ inner(tBranch) ++ inner(fBranch)
-        // Apply a standard library function to arguments.
+        case TAT.ExprAt(value, index, wdlType) =>
+          // Access an array element at [index]
+          inner(value, Some(resolveType(wdlType))) ++ inner(index, Some(T_Int))
+        case TAT.ExprIfThenElse(cond, tBranch, fBranch, wdlType) =>
+          val resultTypeHint = Some(resolveType(wdlType))
+          inner(cond, Some(T_Boolean)) ++
+            inner(tBranch, resultTypeHint) ++
+            inner(fBranch, resultTypeHint)
         case TAT.ExprApply(_, funcWdlType, elements, _) =>
+          // Apply a standard library function to arguments.
           // the function parameters might be optional even if the arguments are not
           def maybeMakeOptional(
               inputs: Vector[WdlInputRef],
@@ -841,21 +882,20 @@ object WdlUtils {
               inputs
             }
           }
-
           funcWdlType match {
             case _: T_Function0 => Vector.empty
             case T_Function1(_, arg0Type, _) =>
-              maybeMakeOptional(inner(elements(0)), arg0Type)
+              maybeMakeOptional(inner(elements(0), Some(arg0Type)), arg0Type)
             case T_Function2(_, arg0Type, arg1Type, _) =>
               Vector(
-                  maybeMakeOptional(inner(elements(0)), arg0Type),
-                  maybeMakeOptional(inner(elements(1)), arg1Type)
+                  maybeMakeOptional(inner(elements(0), Some(arg0Type)), arg0Type),
+                  maybeMakeOptional(inner(elements(1), Some(arg1Type)), arg1Type)
               ).flatten
             case T_Function3(_, arg0Type, arg1Type, arg2Type, _) =>
               Vector(
-                  maybeMakeOptional(inner(elements(0)), arg0Type),
-                  maybeMakeOptional(inner(elements(1)), arg1Type),
-                  maybeMakeOptional(inner(elements(2)), arg2Type)
+                  maybeMakeOptional(inner(elements(0), Some(arg0Type)), arg0Type),
+                  maybeMakeOptional(inner(elements(1), Some(arg1Type)), arg1Type),
+                  maybeMakeOptional(inner(elements(2), Some(arg2Type)), arg2Type)
               ).flatten
           }
         // Access a field of a LHS expression that evaluates to a call, pair or object.
@@ -866,12 +906,13 @@ object WdlUtils {
         // reference to the LHS object, not directly to the field.
         case TAT.ExprGetName(TAT.ExprIdentifier(callId, T_Call(_, output)), fieldName, wdlType)
             if output.contains(fieldName) =>
-          val kind = if (TypeUtils.isOptional(wdlType)) {
+          val actualType = resolveType(wdlType)
+          val kind = if (TypeUtils.isOptional(actualType)) {
             InputKind.Optional
           } else {
             InputKind.Required
           }
-          Vector(WdlInputRef(Vector(callId), Some(fieldName), wdlType, kind))
+          Vector(WdlInputRef(Vector(callId), Some(fieldName), actualType, kind))
         case TAT.ExprGetName(expr, fieldName, wdlType) =>
           // throw an exception if the reference is not valid
           TypeUtils.unwrapOptional(expr.wdlType) match {
@@ -884,12 +925,17 @@ object WdlUtils {
               )
           }
           // get the LHS inputs, but update optional based on the actual type of this reference
-          val kind = if (TypeUtils.isOptional(wdlType)) InputKind.Optional else InputKind.Required
-          inner(expr) match {
+          val actualType = resolveType(wdlType)
+          val kind = if (TypeUtils.isOptional(actualType)) {
+            InputKind.Optional
+          } else {
+            InputKind.Required
+          }
+          inner(expr, Some(actualType)) match {
             case Vector(WdlInputRef(lhsName, Some(field), _, _)) if withField =>
-              Vector(WdlInputRef(lhsName :+ field, Some(fieldName), wdlType, kind))
+              Vector(WdlInputRef(lhsName :+ field, Some(fieldName), actualType, kind))
             case Vector(WdlInputRef(lhsName, None, _, _)) if withField =>
-              Vector(WdlInputRef(lhsName, Some(fieldName), wdlType, kind))
+              Vector(WdlInputRef(lhsName, Some(fieldName), actualType, kind))
             case v if withField && v.nonEmpty =>
               throw new Exception(
                   s"cannot add field name because multiple inputs are required to evaluate LHS ${expr}"
@@ -901,7 +947,7 @@ object WdlUtils {
           throw new Exception(s"Unhandled expression ${other}")
       }
     }
-    inner(expr)
+    inner(expr, typeHint)
   }
 
   /**
@@ -957,14 +1003,15 @@ object WdlUtils {
     ): Vector[WdlInputRef] = {
       innerElements.flatMap {
         case v: TAT.PrivateVariable =>
-          getExpressionInputs(v.expr, innerWithField)
+          getExpressionInputs(v.expr, typeHint = Some(v.wdlType), withField = innerWithField)
         case call: TAT.Call =>
           call.callee.input.flatMap {
-            case (name: String, (_: T, optional: Boolean)) =>
+            case (name: String, (wdlType: T, optional: Boolean)) =>
               call.inputs
                 .get(name)
                 .map { expr =>
-                  val exprInputs = getExpressionInputs(expr, withField = true)
+                  val exprInputs =
+                    getExpressionInputs(expr, typeHint = Some(wdlType), withField = true)
                   if (optional) {
                     exprInputs.map { ref =>
                       ref.copy(kind = InputKind.Optional)
@@ -977,13 +1024,15 @@ object WdlUtils {
           }.toVector
         case cond: TAT.Conditional =>
           // get inputs for the conditional expression
-          val exprInputs = getExpressionInputs(cond.expr, innerWithField)
+          val exprInputs =
+            getExpressionInputs(cond.expr, typeHint = Some(T_Boolean), withField = innerWithField)
           // recurse into body of conditional
           val bodyInputs = getInputs(cond.body, innerWithField = true)
           exprInputs ++ bodyInputs
         case scatter: TAT.Scatter =>
           // get inputs for the scatter expression
-          val exprInputs = getExpressionInputs(scatter.expr, innerWithField)
+          val exprInputs =
+            getExpressionInputs(scatter.expr, typeHint = None, withField = innerWithField)
           // recurse into body of the scatter
           // if the scatter variable is referenced, ensure its kind is
           // 'Computed' so it doesn't become a required input
@@ -1045,9 +1094,9 @@ object WdlUtils {
     val paramNames = outputs.map(_.name).toSet
     outputs
       .flatMap {
-        case TAT.OutputParameter(_, _, expr) => Vector(expr)
+        case TAT.OutputParameter(_, wdlType, expr) =>
+          getExpressionInputs(expr, Some(wdlType), withField = false)
       }
-      .flatMap(e => getExpressionInputs(e, withField = false))
       .filterNot(i => paramNames.contains(i.identifier))
       .groupBy(_.fullyQualifiedName)
       .map {
