@@ -11,6 +11,9 @@ import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 import wdlTools.syntax.{SourceLocation, WdlVersion}
 
 class ArchiveFunctionTest extends AnyFlatSpec with Matchers {
+  private val isLinux = System.getProperty("os.name").toLowerCase.startsWith("linux")
+  assume(isLinux)
+
   it should "evaluate archive function" in {
     val inputType1 = WdlTypes.T_Array(WdlTypes.T_File, nonEmpty = false)
     val inputType2 = WdlTypes.T_Optional(WdlTypes.T_Boolean)

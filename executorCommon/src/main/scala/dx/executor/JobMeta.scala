@@ -16,6 +16,7 @@ import dx.api.{
   DxProjectDescribe,
   DxState,
   Field,
+  FileUpload,
   InstanceTypeDB
 }
 import dx.core.Constants
@@ -50,6 +51,7 @@ object JobMeta {
   val JobInfoFile = "dnanexus-job.json"
   // this file has all the information about the executable
   val ExecutableInfoFile = "dnanexus-executable.json"
+  val MaxConcurrentUploads = 8
 
   /**
     * Report an error, since this is called from a bash script, we can't simply
@@ -323,12 +325,14 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     logger.trace(s"Bulk describing ${queryFiles.size} files")
     val dxFiles = dxApi.describeFilesBulk(queryFiles, searchWorkspaceFirst = true, validate = true)
     // check that all files are in the closed state
+    logger.trace(s"Checking that all files are closed")
     val notClosed = dxFiles.filterNot(_.describe().state == DxState.Closed)
     if (notClosed.nonEmpty) {
       throw new Exception(
           s"input file(s) not in the 'closed' state: ${notClosed.map(_.id).mkString(",")}"
       )
     }
+    logger.trace(s"Successfully described ${dxFiles.size} files")
     dxFiles
   }
 
@@ -377,6 +381,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
   }
 
   lazy val fileResolver: FileSourceResolver = {
+    logger.trace(s"Creating FileSourceResolver localDirectories = ${workerPaths.getWorkDir()}")
     val dxProtocol = DxFileAccessProtocol(dxApi, dxFileDescCache)
     val fileResolver = FileSourceResolver.create(
         localDirectories = Vector(workerPaths.getWorkDir()),
@@ -446,6 +451,35 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
       requiredInputs ++ callNameInputs
     } else {
       inputsJs
+    }
+  }
+
+  def waitOnUpload: Boolean = true
+
+  def uploadOutputFiles(
+      localFiles: Map[String, Vector[Path]],
+      tagsAndProperties: Map[String, (Set[String], Map[String, String])] = Map.empty
+  ): Map[Path, DxFile] = {
+    if (localFiles.isEmpty) {
+      Map.empty
+    } else {
+      val filesToUpload = localFiles.flatMap {
+        case (name, paths) =>
+          val (tags, properties) =
+            tagsAndProperties.getOrElse(name, (Set.empty[String], Map.empty[String, String]))
+          paths.map { path =>
+            // if using manifests, we need to upload the files directly to the project
+            val dest = if (useManifests) {
+              Some(s"${manifestFolder}/${path.getFileName.toString}")
+            } else {
+              None
+            }
+            path -> FileUpload(path, dest, tags, properties)
+          }.toMap
+      }
+      dxApi.uploadFiles(filesToUpload.values.toSet,
+                        waitOnUpload = waitOnUpload,
+                        maxConcurrent = JobMeta.MaxConcurrentUploads)
     }
   }
 
@@ -670,6 +704,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 }
 
 case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths.default,
+                         override val waitOnUpload: Boolean = false,
                          override val dxApi: DxApi = DxApi.get,
                          override val logger: Logger = Logger.get)
     extends JobMeta(workerPaths, dxApi, logger) {

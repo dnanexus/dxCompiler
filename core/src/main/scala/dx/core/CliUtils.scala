@@ -1,8 +1,7 @@
 package dx.core
 
 import java.nio.file.{Files, Path, Paths}
-
-import dx.util.{Logger, TraceLevel}
+import dx.util.{LogLevel, Logger, TraceLevel}
 
 import scala.reflect.ClassTag
 
@@ -286,7 +285,7 @@ object CliUtils {
   // logging
 
   def initLogger(options: Options): Logger = {
-    val verboseKeys: Set[String] = options.getList[String](VerboseKeyOpt).toSet
+    val logLevel = if (options.getFlag(QuietOpt)) LogLevel.Error else LogLevel.Info
     val traceLevel = options
       .getValue[Int](TraceLevelOpt)
       .getOrElse(
@@ -296,11 +295,14 @@ object CliUtils {
             TraceLevel.None
           }
       )
+    val verboseKeys: Set[String] = options.getList[String](VerboseKeyOpt).toSet
     val logFile = options.getValue[Path]("logFile")
-    val logger = Logger(quiet = options.getFlag(QuietOpt),
-                        traceLevel = traceLevel,
-                        keywords = verboseKeys,
-                        logFile = logFile)
+    val logger = Logger(
+        level = logLevel,
+        traceLevel = traceLevel,
+        keywords = verboseKeys,
+        logFile = logFile
+    )
     Logger.set(logger)
     logger
   }

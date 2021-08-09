@@ -1,5 +1,6 @@
 {
   "struct_deref.sampleStruct": {
-    "sample_name": "George"
+    "sample_name": "George",
+    "id": 1
   }
 }
