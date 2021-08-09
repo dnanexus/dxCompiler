@@ -410,29 +410,28 @@ class ExecutableCompiler(extras: Option[Extras],
 
   protected def fileDependenciesFromParam(param: Parameter): Set[String] = {
     val default = param.defaultValue match {
-      case Some(Value.VFile(str)) => Vector(str)
-      case _                      => Vector.empty
+      case Some(f: Value.VFile) => Vector(f.uri)
+      case _                    => Vector.empty
     }
     val attrs = param.attributes
       .flatMap(attr =>
         attr match {
-          case ParameterAttributes.DefaultAttribute(Value.VFile(str)) => Vector(str)
+          case ParameterAttributes.DefaultAttribute(f: Value.VFile) => Vector(f.uri)
           case ParameterAttributes.ChoicesAttribute(choices) =>
             choices
               .collect {
-                case ParameterAttributes.SimpleChoice(Value.VFile(str)) => str
-                case ParameterAttributes.FileChoice(str, _)             => str
+                case ParameterAttributes.SimpleChoice(f: Value.VFile) => f.uri
+                case ParameterAttributes.FileChoice(str, _)           => str
               }
           case ParameterAttributes.SuggestionsAttribute(suggestions) =>
             suggestions
               .collect {
-                case ParameterAttributes.SimpleSuggestion(Value.VFile(str)) => str
+                case ParameterAttributes.SimpleSuggestion(f: Value.VFile)   => f.uri
                 case ParameterAttributes.FileSuggestion(Some(str), _, _, _) => str
               }
           case _ => Vector.empty
         }
       )
-      .toVector
 
     (default ++ attrs).filter(s => s.contains("://")).toSet
   }
