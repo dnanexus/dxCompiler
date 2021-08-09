@@ -21,10 +21,20 @@ import util
 here = os.path.dirname(sys.argv[0])
 top_dir = os.path.dirname(os.path.abspath(here))
 test_dir = os.path.join(os.path.abspath(top_dir), "test")
+default_instance_type = "mem1_ssd1_v2_x4"
 
 git_revision = subprocess.check_output(["git", "describe", "--always", "--dirty", "--tags"]).strip()
 test_files = {}
-test_failing = {"bad_status", "bad_status2", "just_fail_wf", "missing_output", "docker_retry", "argument_list_too_long"}
+
+test_failing = {
+    "bad_status",
+    "bad_status2",
+    "just_fail_wf",
+    "missing_output",
+    "docker_retry",
+    "argument_list_too_long",
+    "diskspace_exhauster"
+}
 
 test_compilation_failing = {"import_passwd"}
 
@@ -242,6 +252,7 @@ cromwell_invalid = [
     "recursive_imports",
     "unscattered",
 ]
+
 # tests taken from cromwell repository that cannot be translated:
 cromwell_failed_translate = [
     "select_functions",
@@ -432,8 +443,13 @@ cromwell_tests_list = [
     "engine_functions",
 ]
 
+# these are tests that take a long time to run
+long_test_list = [
+    "diskspace_exhauster"  # APPS-749
+]
+
 medium_test_list = wdl_v1_list + wdl_v1_1_list + docker_test_list + special_flags_list + cwl_tools
-large_test_list = medium_test_list + draft2_test_list + single_tasks_list + doc_tests_list
+large_test_list = medium_test_list + draft2_test_list + single_tasks_list + doc_tests_list + long_test_list
 
 cromwell_failure = cromwell_failed_exec + cromwell_failed_translate
 test_suites = {
@@ -477,6 +493,9 @@ TestDesc = namedtuple('TestDesc',
 
 # Test with -waitOnUpload flag
 test_upload_wait = ["upload_wait"]
+
+# use the applet's default instance type rather than the default (mem1_ssd1_x4)
+test_instance_type = ["diskspace_exhauster"]
 
 ######################################################################
 # Read a JSON file
@@ -624,13 +643,18 @@ def validate_result(tname, exec_outputs, key, expected_val):
             result = exec_outputs[field_name1]
         elif field_name2 in exec_outputs:
             result = exec_outputs[field_name2]
+        elif expected_val is None:
+            # optional
+            return True
         else:
             cprint("field {} missing from executable results {}".format(field_name1, exec_outputs),
                    "red")
             return False
+        if isinstance(result, dict) and "___" in result:
+            result = result["___"]
         if isinstance(result, list) and isinstance(expected_val, list):
-            result.sort()
-            expected_val.sort()
+            result = list(sorted(filter(lambda x: x is not None, result)))
+            expected_val = list(sorted(filter(lambda x: x is not None, expected_val)))
         if isinstance(result, dict) and "$dnanexus_link" in result:
             # the result is a file - download it and extract the contents
             dlpath = os.path.join(tempfile.mkdtemp(), 'result.txt')
@@ -740,7 +764,9 @@ def wait_for_completion(test_exec_objs):
     return failures
 
 # Run [workflow] on several inputs, return the analysis ID.
-def run_executable(project, test_folder, tname, oid, debug_flag, delay_workspace_destruction):
+def run_executable(
+    project, test_folder, tname, oid, debug_flag, delay_workspace_destruction, instance_type=default_instance_type
+):
     desc = test_files[tname]
 
     def once(i):
@@ -763,16 +789,17 @@ def run_executable(project, test_folder, tname, oid, debug_flag, delay_workspace
             if debug_flag:
                 run_kwargs = {
                     "debug": {"debugOn": ['AppError', 'AppInternalError', 'ExecutionError'] },
-                    "allow_ssh" : [ "*" ]
+                    "allow_ssh": [ "*" ]
                 }
             if delay_workspace_destruction:
                 run_kwargs["delay_workspace_destruction"] = True
+            if instance_type:
+                run_kwargs["instance_type"] = instance_type
 
             return exec_obj.run(inputs,
                                 project=project.get_id(),
                                 folder=test_folder,
                                 name="{} {}".format(desc.name, git_revision),
-                                instance_type="mem1_ssd1_x4",
                                 **run_kwargs)
         except Exception as e:
             print("exception message={}".format(e))
@@ -819,7 +846,11 @@ def run_test_subset(project, runnable, test_folder, debug_flag, delay_workspace_
     for tname, oid in runnable.items():
         desc = test_files[tname]
         print("Running {} {} {}".format(desc.kind, desc.name, oid))
-        anl = run_executable(project, test_folder, tname, oid, debug_flag, delay_workspace_destruction)
+        if tname in test_instance_type:
+            instance_type = None
+        else:
+            instance_type = default_instance_type
+        anl = run_executable(project, test_folder, tname, oid, debug_flag, delay_workspace_destruction, instance_type)
         test_exec_objs.extend(anl)
     print("executables: " + ", ".join([a.get_id() for a in test_exec_objs]))
 
@@ -839,7 +870,9 @@ def run_test_subset(project, runnable, test_folder, debug_flag, delay_workspace_
             correct = True
             print("Checking results for workflow {} job {}".format(test_desc.name, i))
             for key, expected_val in shouldbe.items():
-                correct = validate_result(tname, exec_outputs, key, expected_val)
+                if not validate_result(tname, exec_outputs, key, expected_val):
+                    correct = False
+                    break
             anl_name = "{}.{}".format(tname, i)
             if correct:
                 print("Analysis {} passed".format(anl_name))
