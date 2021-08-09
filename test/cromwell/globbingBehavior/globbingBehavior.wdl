@@ -103,12 +103,12 @@ workflow globbingBehavior {
   }
 
   output {
-    Array[String] strInterpolation_contents = strInterpolation_contents
-    Array[String] callDirectory_contents = callDirectory_contents
-    Array[String] specificDirectory_contents = specificDirectory_contents
-    Array[String] easyGlob_contents = easyGlob_contents
-    Array[String] origFileContents_contents = origFileContents_contents
-    Array[String] symLinkContents_contents = symLinkContents_contents
-    Array[String] hardLinkContents_contents = hardLinkContents_contents
+    Array[String] strInterpolation_contents_out = strInterpolation_contents
+    Array[String] callDirectory_contents_out = callDirectory_contents
+    Array[String] specificDirectory_contents_out = specificDirectory_contents
+    Array[String] easyGlob_contents_out = easyGlob_contents
+    Array[String] origFileContents_contents_out = origFileContents_contents
+    Array[String] symLinkContents_contents_out = symLinkContents_contents
+    Array[String] hardLinkContents_contents_out = hardLinkContents_contents
  }
 }

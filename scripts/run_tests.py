@@ -225,61 +225,44 @@ cromwell_key_error_list = [
     "drs_usa_jdr",
 ]
 
-cromwell_invalid = [
+# These tests are invalid - see README.txt
+cromwell_invalid = {
     "local_backend",
-    "sub_sub",
-    "sub",
-    "large_final_workflow_outputs_dir",
-    "input_expressions",
-    "input_from_bucket_with_requester_pays",
     "string_interpolation",
-    "read_write_functions",
+    "call_cache_hit_prefixes",
     "declarations",
+    "reference_disk_test",
+    "optional_parameter",
+    "sub",
+    "sub_sub",
+    "echo",
+    "sub_workflow_no_output",
+    "recursive_imports",
+    "large_final_workflow_outputs_dir",
+    "input_from_bucket_with_requester_pays",
     "optional_declarations",
-    "parallel_composite_uploads_lib",
-    "globbingBehavior",
+    "sub_workflow_interactions",
+    "unscattered",
+    "inter_scatter_dependencies",
+    "docker_alpine",
+    "read_write_functions",
     "afters_and_ifs",
     "afters",
     "afters_and_scatters",
-    "echo",
-    "inter_scatter_dependencies",
-    "sub_workflow_interactions",
     "custom_cacheworthy_attributes",
-    "reference_disk_test",
-    "call_cache_hit_prefixes",
-    "sub_workflow_no_output",
-    "optional_parameter",
-    "recursive_imports",
-    "unscattered",
-]
+    "parallel_composite_uploads_lib",
+    "input_expressions",
+}
 
 # tests taken from cromwell repository that cannot be translated:
 cromwell_failed_translate = [
     "select_functions",
-    "string_interpolation_optional",
-    "no_task_no_output_delete",
-    "sub_workflow_interactions_scatter",
-    "if_then_else_expressions",
     "dollars_in_strings",
-    "recursive_imports_no_subwf",
-    "hello",
-    "sub_workflow_one_output_import",
-    "sub_workflow_no_output_block_import",
-    "sub_workflow_no_outputs_in_block_import",
-    "parallel_composite_uploads_on",
-    "object_access",
-    "sub_workflow_var_refs",
-    "sub_workflow_var_refs_import",
-    "sub_workflow_interactions_import",
-    "none_literal",
-    "workflow_output_declarations",
-    "read_write_json",
-    "member_access",
-    "default_runtime_attributes",
     "workflow_name_length_ok",
     "importer_ok"
 ]
 
+# tests taken from cromwell repository that fail execution:
 cromwell_failed_exec = [
     "defined_function",
     "confirm_preemptible",
@@ -317,7 +300,6 @@ cromwell_failed_exec = [
     "short_circuit",
     "custom_mount_point",
     "workflow_engine_functions",
-    "docker_alpine",
 ]
 
 # tests taken from cromwell repository
@@ -441,6 +423,26 @@ cromwell_tests_list = [
     "passingfiles",
     "referencingpreviousinputsandoutputs",
     "engine_functions",
+    "string_interpolation_optional",
+    "none_literal",
+    "sub_workflow_interactions_scatter",
+    "recursive_imports_no_subwf",
+    "default_runtime_attributes",
+    "sub_workflow_one_output_import",
+    "sub_workflow_var_refs",
+    "sub_workflow_var_refs_import",
+    "globbingBehavior",
+    "object_access",
+    "read_write_json",
+    "no_task_no_output_delete",
+    "if_then_else_expressions",
+    "hello",
+    "sub_workflow_no_output_block_import",
+    "sub_workflow_no_outputs_in_block_import",
+    "parallel_composite_uploads_on",
+    "sub_workflow_interactions_import",
+    "workflow_output_declarations",
+    "member_access",
 ]
 
 # these are tests that take a long time to run
