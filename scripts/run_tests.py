@@ -451,7 +451,7 @@ long_test_list = [
 ]
 
 medium_test_list = wdl_v1_list + wdl_v1_1_list + docker_test_list + special_flags_list + cwl_tools
-large_test_list = medium_test_list + draft2_test_list + single_tasks_list + doc_tests_list + long_test_list
+large_test_list = medium_test_list + draft2_test_list + single_tasks_list + doc_tests_list + long_test_list + cromwell_tests_list
 
 cromwell_failure = cromwell_failed_exec + cromwell_failed_translate
 test_suites = {
