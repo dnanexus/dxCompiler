@@ -410,10 +410,10 @@ workflow w {
 
 ### Calling apps
 
-To call apps instead of applets, use
+To generate WDL calling apps instead of applets, use
 
 ```console
-$ java -jar dxCompiler.jar dxni -apps -o my_apps.wdl
+$ java -jar dxCompiler.jar dxni -apps only -o my_apps.wdl
 ```
 
 The compiler will search for all the apps you can call, and create WDL
@@ -1115,7 +1115,7 @@ For example:
 }
 ```
 
-will setup the `foo.acme.com` registry, with user `perkins`.
+will `docker login` to `foo.acme.com` with the username of `perkins` and password set to the content of `dx://CornSequencing:/B/creds.txt` prior to fetching docker cointainers.
 
 The credentials are stored in a platform file, so they can be replaced without recompiling. The credentials file must be referenced using a `dx://<project>:<file>` URI, where `<project>` can be a project name or ID, and `<file>` can be a file path or ID. All applets are given the `allProjects: VIEW` permission. This allows them to access the credentials file, even if it is stored on a different project. Care is taken so that the credentials never appear in the applet logs. 
 
@@ -1133,6 +1133,14 @@ Logging into an AWS Elastic Container Registry (ECR) is a bit different than log
     "awsRegion": "us-east-1"
   }
 }
+```
+
+`dx://myproj:/aws_credentials` has AWS credentials:
+
+```
+[default]
+aws_access_key_id: AKI123ABCDEFT1234567
+aws_secret_access_key: ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/ABC
 ```
 
 ## Storing a docker image as a file

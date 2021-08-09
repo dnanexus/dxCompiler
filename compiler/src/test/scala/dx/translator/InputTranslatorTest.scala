@@ -24,7 +24,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
   }
 
   private val cFlags =
-    List("--compileMode", "ir", "-quiet", "--project", DxApi.get.currentProject.id)
+    List("--compileMode", "ir", "-quiet", "--project", DxApi.get.currentProjectId.get)
 
   // make sure we are logged in
 

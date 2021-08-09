@@ -2,7 +2,43 @@
 
 ## in develop
 
+* `dxni` now makes optional any input parameter for which the native app(let) has a default value 
+* Jobs now fail on out-of-disk errors
+
+## 2.4.8 2021-07-13
+
+* Fixes issue where an optional variable inside a conditional could have an inferred type of `T??`, which is illegal and results in a runtime error
+* Specifies operating system when selecting optimal instance type
+* Fixes issue with references between output variables
+* Uses an output stage if there is an output parameter with a literal value (DNAnexus output parameters do not support default values)
+* Fixes issue where compiling with `-execTree [pretty|json]` did not print the workflow tree
+* Adds support for specifying app metadata in the hints section in WDL development version
+* All compile-time calls to `findDataObjects` now search the context project for any file with no project specified
+* All runtime calls to `findDataObjects` now search the job/analysis workspace first before searching the source project(s)
+* Better handles insufficient permissions when requesting instance type price list
+
+## 2.4.7 2021-06-09
+
+* Fixes issue with using struct types in workflow outputs
+* Fixes issue with array with optional item type
+
+## 2.4.6 2021-05-27
+
+* Fixes regression in WDL code generator where long expressions within placeholders are line-wrapped incorrectly
+
+## 2.4.5 2021-05-25
+
+* An applet that contains multiple scatter or conditional blocks will now have a name that is the concatenation of all the block names 
+* Fixes multiple issues with WDL code generator
+* Fixes issue with referencing struct fields/call outputs in declarations within nested blocks
+
+## 2.4.4 2021-05-10
+
 * Escapes WDL strings in generated code
+* Fixes issues with using expressions in placeholder option values
+* Fixes error when evaluating array element access for an optional value
+* Fixes localization of files in identically named folders in different projects
+* Fixes localization of files with the same name in the same folder
 
 ## 2.4.3 2021-04-23
 

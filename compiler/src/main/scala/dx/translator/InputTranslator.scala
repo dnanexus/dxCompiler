@@ -163,7 +163,7 @@ class InputTranslator(bundle: Bundle,
           throw new Exception(s"Scanning the input file produced ${dxobj} which is not a file")
       }
     // lookup platform files in bulk
-    dxApi.describeFilesBulk(dxFiles ++ resolvedPaths.values)
+    dxApi.describeFilesBulk(dxFiles ++ resolvedPaths.values, validate = true)
   }
 
   lazy val dxFileDescCache: DxFileDescCache = DxFileDescCache(dxFiles)
@@ -192,6 +192,7 @@ class InputTranslator(bundle: Bundle,
               val irValue =
                 parameterLinkDeserializer.deserializeInputWithType(default,
                                                                    param.dxType,
+                                                                   fqn,
                                                                    Some(deserializationHandler))
               param.copy(defaultValue = Some(irValue))
           }
@@ -212,6 +213,7 @@ class InputTranslator(bundle: Bundle,
                       parameterLinkDeserializer.deserializeInputWithType(
                           default,
                           param.dxType,
+                          fqn,
                           Some(deserializationHandler)
                       )
                     StaticInput(irValue)
@@ -242,6 +244,7 @@ class InputTranslator(bundle: Bundle,
                         parameterLinkDeserializer.deserializeInputWithType(
                             default,
                             param.dxType,
+                            fqn,
                             Some(deserializationHandler)
                         )
                       StaticInput(irValue)
@@ -294,6 +297,7 @@ class InputTranslator(bundle: Bundle,
             val irValue =
               parameterLinkDeserializer.deserializeInputWithType(value,
                                                                  parameter.dxType,
+                                                                 fqn,
                                                                  Some(deserializationHandler))
             Map(dxName -> (parameter.dxType, irValue))
         }

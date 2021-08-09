@@ -32,14 +32,14 @@ class TranslatorTest extends AnyFlatSpec with Matchers {
     Paths.get(p)
   }
 
-  private val dxProject = dxApi.currentProject
+  private val dxProjectId = dxApi.currentProjectId.get
 
   // task compilation
   private val cFlags =
-    List("--compileMode", "ir", "-quiet", "--locked", "--project", dxProject.id)
+    List("--compileMode", "ir", "-quiet", "--locked", "--project", dxProjectId)
 
   private val cFlagsUnlocked =
-    List("--compileMode", "ir", "-quiet", "--project", dxProject.id)
+    List("--compileMode", "ir", "-quiet", "--project", dxProjectId)
 
   val dbgFlags = List("--compileMode",
                       "ir",
@@ -48,7 +48,7 @@ class TranslatorTest extends AnyFlatSpec with Matchers {
                       "GenerateIR",
                       "--locked",
                       "--project",
-                      dxProject.id)
+                      dxProjectId)
 
   private def getApplicationByName(name: String, bundle: Bundle): Application =
     bundle.allCallables(name) match {
@@ -168,7 +168,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
 
   it should "missing workflow inputs" in {
     val path = pathFromBasename("input_file", "missing_args.wdl")
-    val args = path.toString :: List("--compileMode", "ir", "--quiet", "--project", dxProject.id)
+    val args = path.toString :: List("--compileMode", "ir", "--quiet", "--project", dxProjectId)
     Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
@@ -267,10 +267,6 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val path = pathFromBasename("nested", "four_levels.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    /*        inside(retval) {
-            case Main.UnsuccessfulTermination(errMsg) =>
-                errMsg should include ("nested scatter")
- }*/
     retval shouldBe a[SuccessfulCompileIR]
   }
 
@@ -282,20 +278,16 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
       case other                       => throw new Exception(s"unexpected compile result ${other}")
     }
     val outerScatter = bundle.allCallables("nested_scatter_frag_stage-3")
-    outerScatter.inputVars should contain theSameElementsAs (
-        Vector(
-            Parameter("x", TInt),
-            Parameter("ints1", TArray(TInt)),
-            Parameter("ints2", TArray(TInt))
-        )
+    outerScatter.inputVars should contain theSameElementsAs Vector(
+        Parameter("x", TInt),
+        Parameter("ints1", TArray(TInt)),
+        Parameter("ints2", TArray(TInt))
     )
     val innerScatter = bundle.allCallables("nested_scatter_block_0_0")
-    innerScatter.inputVars should contain theSameElementsAs (
-        Vector(
-            Parameter("x", TInt),
-            Parameter("y", TInt),
-            Parameter("ints1", TArray(TInt))
-        )
+    innerScatter.inputVars should contain theSameElementsAs Vector(
+        Parameter("x", TInt),
+        Parameter("y", TInt),
+        Parameter("ints1", TArray(TInt))
     )
   }
 
@@ -650,7 +642,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
             TFile,
             None,
             Vector(
-                TypeAttribute(StringConstraint("fastq"))
+                TypeAttribute(DxConstraintString("fastq"))
             )
         ),
         Parameter(
@@ -659,15 +651,15 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
             None,
             Vector(
                 TypeAttribute(
-                    CompoundConstraint(
-                        ConstraintOper.And,
-                        Vector(
-                            StringConstraint("fastq"),
-                            CompoundConstraint(
-                                ConstraintOper.Or,
-                                Vector(
-                                    StringConstraint("Read1"),
-                                    StringConstraint("Read2")
+                    DxConstraintBool(
+                        DxConstraintOper.And,
+                        DxConstraintArray(
+                            DxConstraintString("fastq"),
+                            DxConstraintBool(
+                                DxConstraintOper.Or,
+                                DxConstraintArray(
+                                    DxConstraintString("Read1"),
+                                    DxConstraintString("Read2")
                                 )
                             )
                         )
@@ -916,9 +908,25 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   it should "handle access to struct member" in {
     val path = pathFromBasename("struct", "struct_deref.wdl")
     val args = path.toString :: cFlags
-    val retval =
-      Main.compile(args.toVector)
-    retval shouldBe a[SuccessfulCompileIR]
+    val bundle = Main.compile(args.toVector) match {
+      case SuccessfulCompileIR(ir) => ir
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
+    }
+    val wf = bundle.primaryCallable match {
+      case Some(wf: Workflow) => wf
+      case other =>
+        throw new Exception(s"unexpected primary callable ${other}")
+    }
+    wf.stages.size shouldBe 1
+    wf.stages.head.inputs shouldBe Vector(
+        WorkflowInput(
+            Parameter("sampleStruct",
+                      TSchema("SampleStruct", TreeSeqMap("sample_name" -> TString, "id" -> TInt)),
+                      None,
+                      Vector())
+        )
+    )
   }
 
   it should "recognize that an argument with a default can be omitted at the call site" in {
@@ -999,13 +1007,13 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
 
     val commandSection =
       """|  command <<<
-         |    echo 1 hello world | sed 's/world/wdl/'
-         |    echo 2 hello \
-         |    world \
-         |    | sed 's/world/wdl/'
-         |    echo 3 hello \
-         |    world | \
-         |    sed 's/world/wdl/'
+         |  echo 1 hello world | sed 's/world/wdl/'
+         |  echo 2 hello \
+         |  world \
+         |  | sed 's/world/wdl/'
+         |  echo 3 hello \
+         |  world | \
+         |  sed 's/world/wdl/'
          |  >>>
          |""".stripMargin
 
@@ -1557,6 +1565,18 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
 
   it should "translate a workflow with scatter inside conditional" in {
     val path = pathFromBasename("bugs", "scatter_inside_if.wdl")
+    val args = path.toString :: cFlags
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
+  }
+
+  it should "translate a workflow with struct field as call argument" in {
+    val path = pathFromBasename("struct", "struct_field.wdl")
+    val args = path.toString :: cFlags
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
+  }
+
+  it should "translate a workflow with references between output variables" in {
+    val path = pathFromBasename("draft2", "output_references.wdl")
     val args = path.toString :: cFlags
     Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }

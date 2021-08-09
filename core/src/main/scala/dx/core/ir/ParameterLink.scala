@@ -6,7 +6,7 @@ import dx.core.Constants
 import dx.core.ir.Value._
 import dx.util.protocols.DxFileSource
 import spray.json._
-import dx.util.{Enum, FileSourceResolver, LocalFileSource, Logger}
+import dx.util.{Enum, FileSourceResolver, LocalFileSource}
 
 object IORef extends Enum {
   type IORef = Value
@@ -82,11 +82,7 @@ case class ParameterLinkSerializer(fileResolver: FileSourceResolver = FileSource
     */
   private def serialize(t: Type, v: Value): JsValue = {
     if (Type.isNestedOptional(t)) {
-      Logger.error(s"""|jsFromWdlValue
-                       |    type=${t}
-                       |    val=${v}
-                       |""".stripMargin)
-      throw new Exception("a nested optional type/value")
+      throw new Exception(s"trying to serialize a nested optional type ${t} for value ${v}")
     }
     def handler(irValue: Value, irType: Type): Either[Value, JsValue] = {
       def serializePath(path: String): JsValue = {
@@ -274,6 +270,7 @@ case class ParameterLinkDeserializer(dxFileDescCache: DxFileDescCache, dxApi: Dx
   def deserializeInputWithType(
       jsv: JsValue,
       t: Type,
+      name: String,
       handler: Option[(JsValue, Type) => Either[JsValue, Value]] = None
   ): Value = {
     def parameterLinkTranslator(jsv: JsValue, t: Type): Either[JsValue, Value] = {
@@ -291,6 +288,6 @@ case class ParameterLinkDeserializer(dxFileDescCache: DxFileDescCache, dxApi: Dx
         newJsValue
       })
     }
-    ValueSerde.deserializeWithType(unwrapComplex(jsv), t, Some(parameterLinkTranslator))
+    ValueSerde.deserializeWithType(unwrapComplex(jsv), t, name, Some(parameterLinkTranslator))
   }
 }

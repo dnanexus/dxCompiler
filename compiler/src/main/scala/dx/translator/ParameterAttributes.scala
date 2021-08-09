@@ -1,6 +1,6 @@
 package dx.translator
 
-import dx.api.ConstraintOper
+import dx.api.DxConstraint
 import dx.core.ir.{ParameterAttribute, Value}
 
 /**
@@ -110,20 +110,6 @@ object ParameterAttributes {
   ) extends Suggestion
 
   /**
-    * Compile-time representation of the dxapp IO spec 'type' value.
-    * Type is either a string or a boolean "expression" represented as a hash value with a single
-    * key ('$and' or '$or') and an array value that contains two or more expressions.
-    *  Examples:
-    *   type: "fastq"
-    *
-    *   type: { and: [ "fastq", { or: ["Read1", "Read2"] } ] }
-   **/
-  sealed trait Constraint
-  sealed case class StringConstraint(constraint: String) extends Constraint
-  sealed case class CompoundConstraint(oper: ConstraintOper.Value, constraints: Vector[Constraint])
-      extends Constraint
-
-  /**
     * Compile time representaiton of supported parameter_meta section
     * information for the dxapp IO spec.
     */
@@ -133,6 +119,6 @@ object ParameterAttributes {
   final case class PatternsAttribute(patterns: Patterns) extends ParameterAttribute
   final case class ChoicesAttribute(choices: Vector[Choice]) extends ParameterAttribute
   final case class SuggestionsAttribute(suggestions: Vector[Suggestion]) extends ParameterAttribute
-  final case class TypeAttribute(constraint: Constraint) extends ParameterAttribute
+  final case class TypeAttribute(constraint: DxConstraint) extends ParameterAttribute
   final case class DefaultAttribute(value: Value) extends ParameterAttribute
 }

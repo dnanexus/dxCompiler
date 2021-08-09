@@ -6,7 +6,7 @@ import org.w3id.cwl.cwl1_2.CWLVersion
 
 object Language extends Enum {
   type Language = Value
-  val WdlVDraft2, WdlV1_0, WdlV2_0, CwlV1_2 = Value
+  val WdlVDraft2, WdlV1_0, WdlV1_1, WdlV2_0, CwlV1_2 = Value
   val WdlDefault: Language = WdlV1_0
   val CwlDefault: Language = CwlV1_2
 
@@ -14,6 +14,7 @@ object Language extends Enum {
     value match {
       case WdlVDraft2 => WdlVersion.Draft_2
       case WdlV1_0    => WdlVersion.V1
+      case WdlV1_1    => WdlVersion.V1_1
       case WdlV2_0    => WdlVersion.V2
       case other      => throw new Exception(s"${other} is not a WDL version")
     }
@@ -23,6 +24,7 @@ object Language extends Enum {
     version match {
       case WdlVersion.Draft_2 => Language.WdlVDraft2
       case WdlVersion.V1      => Language.WdlV1_0
+      case WdlVersion.V1_1    => Language.WdlV1_1
       case WdlVersion.V2      => Language.WdlV2_0
       case other              => throw new Exception(s"Unsupported WDL version ${other}")
     }
@@ -74,6 +76,7 @@ object Language extends Enum {
       case (Some("cwl"), None)                                      => CwlDefault
       case (None | Some("wdl"), Some("draft2"))                     => Language.WdlVDraft2
       case (None | Some("wdl"), Some("draft3" | "10" | "v10"))      => Language.WdlV1_0
+      case (None | Some("wdl"), Some("11" | "v11"))                 => Language.WdlV1_1
       case (None | Some("wdl"), Some("development" | "20" | "v20")) => Language.WdlV2_0
       case (None | Some("cwl"), Some("12" | "v12"))                 => Language.CwlV1_2
       case other =>

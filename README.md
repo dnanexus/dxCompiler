@@ -2,7 +2,7 @@
 ![](https://github.com/dnanexus/dxCompiler/workflows/WDL%20Integration%20Tests/badge.svg)
 
 dxCompiler takes a pipeline written in the
-[Workflow Description Language (WDL)](http://www.openwdl.org/) or [Common Workflow Language](https://www.commonwl.org/v1.2) and compiles it to an equivalent workflow on the DNAnexus platform. WDL draft-2 and versions 1.0 and 1.1 are fully supported, while WDL 2.0 (aka 'development') and CWL 1.2 support are under active development.
+[Workflow Description Language (WDL)](http://www.openwdl.org/) or [Common Workflow Language](https://www.commonwl.org/v1.2) and compiles it to an equivalent workflow on the DNAnexus platform. WDL draft-2 and versions 1.0 and 1.1 are fully supported. Support for WDL 2.0 (aka 'development') and CWL 1.2 are under active development and not yet production-ready.
 
 ## Setup
 
@@ -10,9 +10,11 @@ Prerequisites:
 * [DNAnexus platform](https://platform.dnanexus.com) account
 * [dx-toolkit](https://documentation.dnanexus.com/downloads)
 * java 8+
-* python 2.7/3.x.
+* python 3.x
+* [docker](https://docs.docker.com/get-docker/) if you want to invoke dxCompiler with the [run-dxcompiler-docker](https://github.com/dnanexus/dxCompiler/blob/main/scripts/compiler_image/run-dxcompiler-docker) script using a public `dnanexus/dxcompiler` docker cointainer.
 
 Make sure you've installed the dx-toolkit CLI, and initialized it with `dx login`. Download the latest compiler jar file from the [releases](https://github.com/dnanexus/dxCompiler/releases) page.
+
 
 ## Example workflow
 
@@ -48,17 +50,17 @@ task slice_bam {
     }
     command <<<
     set -ex
-    samtools index ${bam}
+    samtools index ~{bam}
     mkdir slices/
-    for i in `seq ${num_chrom}`; do
-        samtools view -b ${bam} -o slices/$i.bam $i
+    for i in `seq ~{num_chrom}`; do
+        samtools view -b ~{bam} -o slices/$i.bam $i
     done
     >>>
     runtime {
         docker: "quay.io/ucsc_cgl/samtools"
     }
     output {
-        File bai = "${bam}.bai"
+        File bai = "~{bam}.bai"
         Array[File] slices = glob("slices/*.bam")
     }
 }
@@ -69,7 +71,7 @@ task count_bam {
     }
 
     command <<<
-        samtools view -c ${bam}
+        samtools view -c ~{bam}
     >>>
     runtime {
         docker: "quay.io/ucsc_cgl/samtools"
@@ -94,7 +96,7 @@ This compiles the source WDL file to several platform objects.
 These objects are all created in the specified DNAnexus project and folder. The generated workflow can be run using `dx run`. For example:
 
 ```
-dx run bam_chrom_counter -i0.file=file-xxxx
+dx run bam_chrom_counter -istage-common.bam=project-xxxx:file-yyyy
 ```
 
 The compiled workflow can be executed via the DNAnexus command line client or web UI:

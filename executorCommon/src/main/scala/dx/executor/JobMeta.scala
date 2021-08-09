@@ -14,7 +14,9 @@ import dx.api.{
   DxPath,
   DxProject,
   DxProjectDescribe,
+  DxState,
   Field,
+  FileUpload,
   InstanceTypeDB
 }
 import dx.core.Constants
@@ -49,6 +51,7 @@ object JobMeta {
   val JobInfoFile = "dnanexus-job.json"
   // this file has all the information about the executable
   val ExecutableInfoFile = "dnanexus-executable.json"
+  val MaxConcurrentUploads = 8
 
   /**
     * Report an error, since this is called from a bash script, we can't simply
@@ -94,7 +97,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 
   def jobId: String
 
-  lazy val manifestFolder = s"${dxApi.currentProject.id}:/.d/${jobId}"
+  lazy val manifestFolder = s"${dxApi.currentProjectId.get}:/.d/${jobId}"
 
   def rawJsInputs: Map[String, JsValue]
 
@@ -313,13 +316,27 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     }
   }
 
-  protected lazy val dxFileDescCache: DxFileDescCache = {
-    val allFilesReferenced = jsInputs.flatMap {
+  private lazy val allFilesReferenced: Vector[DxFile] = {
+    // bulk describe all files referenced in the inputs
+    logger.trace("Discovering all files in the input values")
+    val queryFiles = jsInputs.flatMap {
       case (_, jsElem) => DxFile.findFiles(dxApi, jsElem)
     }.toVector
-    // Describe all the files and build a lookup cache
-    DxFileDescCache(dxApi.describeFilesBulk(allFilesReferenced))
+    logger.trace(s"Bulk describing ${queryFiles.size} files")
+    val dxFiles = dxApi.describeFilesBulk(queryFiles, searchWorkspaceFirst = true, validate = true)
+    // check that all files are in the closed state
+    logger.trace(s"Checking that all files are closed")
+    val notClosed = dxFiles.filterNot(_.describe().state == DxState.Closed)
+    if (notClosed.nonEmpty) {
+      throw new Exception(
+          s"input file(s) not in the 'closed' state: ${notClosed.map(_.id).mkString(",")}"
+      )
+    }
+    logger.trace(s"Successfully described ${dxFiles.size} files")
+    dxFiles
   }
+
+  protected lazy val dxFileDescCache: DxFileDescCache = DxFileDescCache(allFilesReferenced)
 
   lazy val inputDeserializer: ParameterLinkDeserializer =
     ParameterLinkDeserializer(dxFileDescCache, dxApi)
@@ -352,7 +369,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
             )
             inputDeserializer.deserializeInput(value)
           case Some(t) =>
-            inputDeserializer.deserializeInputWithType(value, t)
+            inputDeserializer.deserializeInputWithType(value, t, key)
         }
         key -> irValue
     }
@@ -364,6 +381,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
   }
 
   lazy val fileResolver: FileSourceResolver = {
+    logger.trace(s"Creating FileSourceResolver localDirectories = ${workerPaths.getWorkDir()}")
     val dxProtocol = DxFileAccessProtocol(dxApi, dxFileDescCache)
     val fileResolver = FileSourceResolver.create(
         localDirectories = Vector(workerPaths.getWorkDir()),
@@ -433,6 +451,35 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
       requiredInputs ++ callNameInputs
     } else {
       inputsJs
+    }
+  }
+
+  def waitOnUpload: Boolean = true
+
+  def uploadOutputFiles(
+      localFiles: Map[String, Vector[Path]],
+      tagsAndProperties: Map[String, (Set[String], Map[String, String])] = Map.empty
+  ): Map[Path, DxFile] = {
+    if (localFiles.isEmpty) {
+      Map.empty
+    } else {
+      val filesToUpload = localFiles.flatMap {
+        case (name, paths) =>
+          val (tags, properties) =
+            tagsAndProperties.getOrElse(name, (Set.empty[String], Map.empty[String, String]))
+          paths.map { path =>
+            // if using manifests, we need to upload the files directly to the project
+            val dest = if (useManifests) {
+              Some(s"${manifestFolder}/${path.getFileName.toString}")
+            } else {
+              None
+            }
+            path -> FileUpload(path, dest, tags, properties)
+          }.toMap
+      }
+      dxApi.uploadFiles(filesToUpload.values.toSet,
+                        waitOnUpload = waitOnUpload,
+                        maxConcurrent = JobMeta.MaxConcurrentUploads)
     }
   }
 
@@ -596,6 +643,10 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     CodecUtils.base64DecodeAndGunzip(sourceCodeEncoded)
   }
 
+  lazy val parserOptions: Option[JsValue] = {
+    getExecutableDetail(Constants.ParseOptions)
+  }
+
   lazy val instanceTypeDb: InstanceTypeDB = getExecutableDetail(Constants.InstanceTypeDb) match {
     case Some(JsString(s)) =>
       val js = CodecUtils.base64DecodeAndGunzip(s)
@@ -653,10 +704,12 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 }
 
 case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths.default,
+                         override val waitOnUpload: Boolean = false,
                          override val dxApi: DxApi = DxApi.get,
                          override val logger: Logger = Logger.get)
     extends JobMeta(workerPaths, dxApi, logger) {
-  lazy val project: DxProject = dxApi.currentProject
+  lazy val project: DxProject =
+    dxApi.currentProject.getOrElse(throw new Exception("no current project"))
 
   private val rootDir = workerPaths.getRootDir()
   private val inputPath = rootDir.resolve(JobMeta.InputFile)
@@ -666,6 +719,7 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths
 
   lazy override val rawJsInputs: Map[String, JsValue] = {
     if (Files.exists(inputPath)) {
+      logger.trace(s"Loading raw JSON input from ${inputPath}")
       JsUtils.getFields(JsUtils.jsFromFile(inputPath))
     } else {
       logger.warning(s"input meta-file ${inputPath} does not exist")
@@ -686,9 +740,9 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths
     }
   }
 
-  def jobId: String = dxApi.currentJob.id
+  def jobId: String = dxApi.currentJobId.get
 
-  private lazy val jobDesc: DxJobDescribe = dxApi.currentJob.describe(
+  private lazy val jobDesc: DxJobDescribe = dxApi.currentJob.get.describe(
       Set(Field.Executable, Field.Details, Field.InstanceType)
   )
 

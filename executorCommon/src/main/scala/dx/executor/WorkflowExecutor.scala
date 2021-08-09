@@ -7,24 +7,12 @@ import dx.core.ir.Type.TSchema
 import dx.core.Constants
 import dx.core.ir.{Block, ExecutableLink, Parameter, ParameterLink, Type, TypeSerde, Value}
 import spray.json._
-import dx.util.{Enum, TraceLevel}
+import dx.util.{Enum, LocalFileSource, TraceLevel}
 import dx.util.CollectionUtils.IterableOnceExtensions
 
 object WorkflowAction extends Enum {
   type WorkflowAction = Value
   val Inputs, Outputs, OutputReorg, CustomReorgOutputs, Run, Continue, Collect = Value
-}
-
-trait BlockContext[B <: Block[B]] {
-  def block: Block[B]
-
-  def launch(): Map[String, ParameterLink]
-
-  def continue(): Map[String, ParameterLink]
-
-  def collect(): Map[String, ParameterLink]
-
-  def prettyFormat(): String
 }
 
 object WorkflowExecutor {
@@ -72,15 +60,17 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
       case other     => throw new Exception(s"Bad value ${other}")
     }
 
-  private lazy val jobInputs: Map[String, (Type, Value)] = jobMeta.jsInputs.collect {
-    case (name, jsValue) if !name.endsWith(ParameterLink.FlatFilesSuffix) =>
-      val fqn = Parameter.decodeDots(name)
-      val irType = fqnDictTypes.getOrElse(
-          fqn,
-          throw new Exception(s"Did not find variable ${fqn} (${name}) in the block environment")
-      )
-      val irValue = jobMeta.inputDeserializer.deserializeInputWithType(jsValue, irType)
-      fqn -> (irType, irValue)
+  private lazy val jobInputs: Map[String, (Type, Value)] = {
+    jobMeta.jsInputs.collect {
+      case (name, jsValue) if !name.endsWith(ParameterLink.FlatFilesSuffix) =>
+        val fqn = Parameter.decodeDots(name)
+        val irType = fqnDictTypes.getOrElse(
+            fqn,
+            throw new Exception(s"Did not find variable ${fqn} (${name}) in the block environment")
+        )
+        val irValue = jobMeta.inputDeserializer.deserializeInputWithType(jsValue, irType, fqn)
+        fqn -> (irType, irValue)
+    }
   }
 
   protected def evaluateInputs(jobInputs: Map[String, (Type, Value)]): Map[String, (Type, Value)]
@@ -181,9 +171,61 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
     (dxExecution, jobName)
   }
 
-  protected def evaluateBlockInputs(jobInputs: Map[String, (Type, Value)]): BlockContext[B]
+  protected trait BlockContext {
+    def block: Block[B]
 
-  private def evaluateFragInputs(): BlockContext[_] = {
+    def launch(): Map[String, ParameterLink]
+
+    def continue(): Map[String, ParameterLink]
+
+    def collect(): Map[String, ParameterLink]
+
+    def prettyFormat(): String
+
+    // private variables may create files that need to be uploaded
+    protected def uploadPrivateVariablePaths(
+        env: Map[String, (Type, Value)]
+    ): Map[String, ParameterLink] = {
+      val filesToUpload = env.map {
+        case (name, (irType, irValue)) =>
+          name -> extractOutputFiles(name,
+                                     irValue,
+                                     irType,
+                                     jobMeta.fileResolver,
+                                     ignoreNonLocalFiles = true).map {
+            case local: LocalFileSource => local
+            case other =>
+              throw new Exception(s"unexpected non-local file ${other}")
+          }
+      }
+      val delocalizedPathToUri = jobMeta
+        .uploadOutputFiles(filesToUpload.map {
+          case (name, localFileSources) => name -> localFileSources.map(_.canonicalPath)
+        })
+        .map {
+          case (path, dxFile) => path -> dxFile.asUri
+        }
+      // Replace the local paths in the output values with URIs. This requires
+      // two look-ups: first to get the absoulte Path associated with the file
+      // value (which may be relative or absolute), and second to get the URI
+      // associated with the Path. Returns an Optional[String] because optional
+      // outputs may be null.
+      val delocalizingUriToPath =
+        filesToUpload.values.flatten.map(local => local.address -> local.canonicalPath).toMap
+      def resolveUri(value: String): Option[String] = {
+        delocalizingUriToPath.get(value) match {
+          case Some(path) => delocalizedPathToUri.get(path)
+          case _          => None
+        }
+      }
+      val delocalizedOutputs = delocalizeOutputFiles(env, resolveUri)
+      jobMeta.createOutputLinks(delocalizedOutputs)
+    }
+  }
+
+  protected def evaluateBlockInputs(jobInputs: Map[String, (Type, Value)]): BlockContext
+
+  private def evaluateFragInputs(): BlockContext = {
     if (logger.isVerbose) {
       logger.traceLimited(s"dxCompiler version: ${getVersion}")
       logger.traceLimited(s"link info=${execLinkInfo}")
@@ -233,7 +275,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
       } else {
         logger.traceLimited("Checking timestamps")
         // Retain only files that were created AFTER the analysis started
-        val describedFiles = dxApi.describeFilesBulk(analysisFiles)
+        val describedFiles = dxApi.describeFilesBulk(analysisFiles, searchWorkspaceFirst = true)
         val analysisCreated: java.util.Date = desc.getCreationDate
         describedFiles.collect {
           case dxFile if dxFile.describe().getCreationDate.compareTo(analysisCreated) >= 0 =>

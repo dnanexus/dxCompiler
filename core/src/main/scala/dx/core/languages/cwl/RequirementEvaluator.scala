@@ -2,6 +2,7 @@ package dx.core.languages.cwl
 
 import java.math.{MathContext, RoundingMode}
 import dx.api.{DxApi, InstanceTypeRequest}
+import dx.core.Constants
 import dx.core.io.DxWorkerPaths
 import dx.core.ir.RunSpec.{
   AccessRequirement,
@@ -103,6 +104,7 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
         maxDiskGB = getDiskGB(resources.tmpdirMax, resources.outdirMax, MaxMathContext),
         minCpu = resources.coresMin.map(evaluateNumeric(_, MinMathContext)),
         maxCpu = resources.coresMax.map(evaluateNumeric(_, MaxMathContext)),
+        os = Some(Constants.DefaultExecutionEnvironment),
         optional = resourcesOptional
     )
   }
@@ -135,7 +137,7 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
           case Some(uri) if uri.startsWith("dx") =>
             val dxfile = dxApi.resolveFile(uri)
             DxFileDockerImage(uri, dxfile)
-          case None if req.pullName.isDefined => NetworkDockerImage
+          case None if req.pullName.isDefined => NetworkDockerImage(req.pullName.get)
           case None if !optional && (req.importUri.isDefined || req.dockerfile.isDefined) =>
             throw new Exception("Docker is only supported via pull or download of a dx file")
           case _ => NoImage

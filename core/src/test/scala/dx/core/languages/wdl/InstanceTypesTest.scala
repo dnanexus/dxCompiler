@@ -2,11 +2,12 @@ package dx.core.languages.wdl
 
 import dx.Tags.ApiTest
 import dx.api.{DiskType, DxInstanceType, InstanceTypeDB, InstanceTypeRequest}
+import dx.core.Constants
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spray.json._
 import wdlTools.eval.{DefaultEvalPaths, Eval, Runtime => WdlRuntime}
-import wdlTools.syntax.{SourceLocation, WdlVersion}
+import wdlTools.syntax.{Quoting, SourceLocation, WdlVersion}
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 import dx.util.{CodecUtils, FileSourceResolver, Logger}
 
@@ -152,7 +153,7 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
                                diskGB,
                                cpu,
                                gpu = false,
-                               Vector.empty,
+                               Vector(Constants.DefaultExecutionEnvironment),
                                diskType,
                                price)
     }
@@ -173,19 +174,22 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
                             disks: Option[String],
                             cpu: Option[String],
                             gpu: Option[Boolean]): Runtime = {
-    def makeString(s: String): TAT.Expr = TAT.ValueString(s, WdlTypes.T_String, null)
+    def makeString(s: String): TAT.Expr =
+      TAT.ValueString(s, WdlTypes.T_String, Quoting.Double)(SourceLocation.empty)
     val rt = TreeSeqMap(
         Runtime.DxInstanceTypeKey -> dxInstanceType.map(makeString),
         WdlRuntime.MemoryKey -> memory.map(makeString),
         WdlRuntime.DisksKey -> disks.map(makeString),
         WdlRuntime.CpuKey -> cpu.map(makeString),
-        WdlRuntime.GpuKey -> gpu.map(b => TAT.ValueBoolean(b, WdlTypes.T_Boolean, null))
+        WdlRuntime.GpuKey -> gpu.map(b =>
+          TAT.ValueBoolean(b, WdlTypes.T_Boolean)(SourceLocation.empty)
+        )
     ).collect {
       case (key, Some(value)) => key -> value
     }
     Runtime(
         WdlVersion.V1,
-        Some(TAT.RuntimeSection(rt, null)),
+        Some(TAT.RuntimeSection(rt)(SourceLocation.empty)),
         None,
         evaluator
     )
@@ -285,11 +289,15 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
       InstanceTypeRequest(
           minMemoryMB = Some(Math.ceil((230d * 1000d * 1000d) / (1024d * 1024d)).toLong),
           minDiskGB = Some(1),
-          minCpu = Some(1)
+          minCpu = Some(1),
+          os = Some(Constants.DefaultExecutionEnvironment)
       )
 
     createRuntime(None, Some("230MiB"), None, None, None).parseInstanceType shouldBe
-      InstanceTypeRequest(minMemoryMB = Some(230), minDiskGB = Some(1), minCpu = Some(1))
+      InstanceTypeRequest(minMemoryMB = Some(230),
+                          minDiskGB = Some(1),
+                          minCpu = Some(1),
+                          os = Some(Constants.DefaultExecutionEnvironment))
 
     createRuntime(None, Some("230GB"), None, None, None).parseInstanceType shouldBe
       InstanceTypeRequest(
@@ -297,24 +305,30 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
               Math.ceil((230d * 1000d * 1000d * 1000d) / (1024d * 1024d)).toLong
           ),
           minDiskGB = Some(1),
-          minCpu = Some(1)
+          minCpu = Some(1),
+          os = Some(Constants.DefaultExecutionEnvironment)
       )
 
     createRuntime(None, Some("230GiB"), None, None, None).parseInstanceType shouldBe
-      InstanceTypeRequest(minMemoryMB = Some(230 * 1024), minDiskGB = Some(1), minCpu = Some(1))
+      InstanceTypeRequest(minMemoryMB = Some(230 * 1024),
+                          minDiskGB = Some(1),
+                          minCpu = Some(1),
+                          os = Some(Constants.DefaultExecutionEnvironment))
 
     createRuntime(None, Some("1000 TB"), None, None, None).parseInstanceType shouldBe
       InstanceTypeRequest(
           minMemoryMB =
             Some(Math.ceil((1000d * 1000d * 1000d * 1000d * 1000d) / (1024d * 1024d)).toLong),
           minDiskGB = Some(1),
-          minCpu = Some(1)
+          minCpu = Some(1),
+          os = Some(Constants.DefaultExecutionEnvironment)
       )
 
     createRuntime(None, Some("1000 TiB"), None, None, None).parseInstanceType shouldBe
       InstanceTypeRequest(minMemoryMB = Some(1000L * 1024L * 1024L),
                           minDiskGB = Some(1),
-                          minCpu = Some(1))
+                          minCpu = Some(1),
+                          os = Some(Constants.DefaultExecutionEnvironment))
 
     assertThrows[Exception] {
       createRuntime(None, Some("230 44 34 GB"), None, None, None).parseInstanceType
@@ -351,12 +365,14 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
     createRuntime(None, None, None, Some("1"), None).parseInstanceType shouldBe InstanceTypeRequest(
         minMemoryMB = Some(2048),
         minDiskGB = Some(1),
-        minCpu = Some(1)
+        minCpu = Some(1),
+        os = Some(Constants.DefaultExecutionEnvironment)
     )
     createRuntime(None, None, None, Some("1.2"), None).parseInstanceType shouldBe InstanceTypeRequest(
         minMemoryMB = Some(2048),
         minDiskGB = Some(1),
-        minCpu = Some(2)
+        minCpu = Some(2),
+        os = Some(Constants.DefaultExecutionEnvironment)
     )
 
     //    assertThrows[Exception] {
@@ -368,13 +384,15 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
       InstanceTypeRequest(minMemoryMB = Some(1000L * 1024L * 1024L),
                           minDiskGB = Some(1),
                           minCpu = Some(1),
-                          gpu = Some(true))
+                          gpu = Some(true),
+                          os = Some(Constants.DefaultExecutionEnvironment))
 
     createRuntime(None, None, None, None, Some(false)).parseInstanceType shouldBe
       InstanceTypeRequest(minMemoryMB = Some(2048),
                           minDiskGB = Some(1),
                           minCpu = Some(1),
-                          gpu = Some(false))
+                          gpu = Some(false),
+                          os = Some(Constants.DefaultExecutionEnvironment))
   }
 
   it should "get required instance type" in {
@@ -387,7 +405,8 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
         WdlVersion.V1,
         Some(
             TAT.RuntimeSection(
-                TreeSeqMap("cpu" -> TAT.ValueInt(5, WdlTypes.T_Int, SourceLocation.empty)),
+                TreeSeqMap("cpu" -> TAT.ValueInt(5, WdlTypes.T_Int)(SourceLocation.empty))
+            )(
                 SourceLocation.empty
             )
         ),

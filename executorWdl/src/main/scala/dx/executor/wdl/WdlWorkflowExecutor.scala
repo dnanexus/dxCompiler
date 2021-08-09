@@ -26,9 +26,10 @@ import dx.core.languages.wdl.{
   VersionSupport,
   WdlBlock,
   WdlBlockInput,
+  WdlOptions,
   WdlUtils
 }
-import dx.executor.{BlockContext, JobMeta, WorkflowExecutor}
+import dx.executor.{JobMeta, WorkflowExecutor}
 import dx.util.{DefaultBindings, FileNode, JsUtils, LocalFileSource, Logger, TraceLevel}
 import dx.util.CollectionUtils.IterableOnceExtensions
 import dx.util.protocols.DxFileSource
@@ -44,8 +45,9 @@ case class BlockIO(block: WdlBlock, logger: Logger)
 object WdlWorkflowExecutor {
   def create(jobMeta: JobMeta, separateOutputs: Boolean): WdlWorkflowExecutor = {
     // parse the workflow source code to get the WDL document
+    val wdlOptions = jobMeta.parserOptions.map(WdlOptions.fromJson).getOrElse(WdlOptions.default)
     val (doc, typeAliases, versionSupport) =
-      VersionSupport.fromSourceString(jobMeta.sourceCode, jobMeta.fileResolver)
+      VersionSupport.fromSourceString(jobMeta.sourceCode, wdlOptions, jobMeta.fileResolver)
     val workflow = doc.workflow.getOrElse(
         throw new RuntimeException("This document should have a workflow")
     )
@@ -105,7 +107,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
                                wdlTypeAliases: Map[String, T_Struct],
                                jobMeta: JobMeta,
                                separateOutputs: Boolean)
-    extends WorkflowExecutor[WdlBlock](jobMeta, separateOutputs) {
+    extends WorkflowExecutor[WdlBlock](jobMeta = jobMeta, separateOutputs = separateOutputs) {
   private val logger = jobMeta.logger
   private lazy val evaluator = Eval(
       jobMeta.workerPaths,
@@ -127,7 +129,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         case (name, (_, value)) if inputTypes.contains(name) =>
           name -> WdlUtils.fromIRValue(value, inputTypes(name), name)
         case (name, (t, v)) =>
-          name -> WdlUtils.fromIRValue(v, WdlUtils.fromIRType(t), name)
+          name -> WdlUtils.fromIRValue(v, WdlUtils.fromIRType(t, wdlTypeAliases), name)
       }
     }
 
@@ -240,7 +242,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       case (name, (_, v)) if outputTypes.contains(name) =>
         name -> WdlUtils.fromIRValue(v, outputTypes(name), name)
       case (name, (t, v)) =>
-        name -> WdlUtils.fromIRValue(v, WdlUtils.fromIRType(t), name)
+        name -> WdlUtils.fromIRValue(v, WdlUtils.fromIRType(t, wdlTypeAliases), name)
     }
     // also add defaults for any optional values in the output
     // closure that are not inputs
@@ -289,7 +291,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
   private def getBlockOutputs(elements: Vector[TAT.WorkflowElement]): Map[String, T] = {
     val (_, outputs) = WdlUtils.getClosureInputsAndOutputs(elements, withField = false)
     outputs.values.map {
-      case TAT.OutputParameter(name, wdlType, _, _) => name -> wdlType
+      case TAT.OutputParameter(name, wdlType, _) => name -> wdlType
     }.toMap
   }
 
@@ -305,10 +307,10 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       env: Map[String, (T, V)]
   ): Map[String, (T, V)] = {
     elements.foldLeft(Map.empty[String, (T, V)]) {
-      case (accu, TAT.PrivateVariable(name, wdlType, expr, _)) =>
+      case (accu, TAT.PrivateVariable(name, wdlType, expr)) =>
         val value = evaluateExpression(expr, wdlType, accu ++ env)
         accu + (name -> (wdlType, value))
-      case (accu, TAT.Conditional(expr, body, _)) =>
+      case (accu, TAT.Conditional(expr, body)) =>
         // evaluate the condition
         val results = evaluateExpression(expr, expr.wdlType, accu ++ env) match {
           case V_Boolean(true) =>
@@ -325,7 +327,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
             throw new AppInternalException(s"Unexpected condition expression value ${other}")
         }
         accu ++ results
-      case (accu, TAT.Scatter(id, expr, body, _)) =>
+      case (accu, TAT.Scatter(id, expr, body)) =>
         val collection: Vector[V] =
           evaluateExpression(expr, expr.wdlType, accu ++ env) match {
             case V_Array(array) => array
@@ -380,8 +382,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     }
   }
 
-  case class WdlBlockContext(block: WdlBlock, env: Map[String, (T, V)])
-      extends BlockContext[WdlBlock] {
+  case class WdlBlockContext(block: WdlBlock, env: Map[String, (T, V)]) extends BlockContext {
     private def call: TAT.Call = block.call
     private def dxApi = jobMeta.dxApi
 
@@ -524,7 +525,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
 
     private def launchConditional(): Map[String, ParameterLink] = {
       val cond = block.target match {
-        case Some(TAT.Conditional(expr, _, _)) =>
+        case Some(TAT.Conditional(expr, _)) =>
           evaluateExpression(expr, T_Boolean, env)
         case _ =>
           throw new Exception(s"invalid conditional block ${block}")
@@ -772,10 +773,18 @@ case class WdlWorkflowExecutor(docSource: FileNode,
                 |""".stripMargin,
             minLevel = TraceLevel.VVerbose
         )
-        val inputsIR = WdlUtils.toIR(env.view.filterKeys(outputNames.contains).toMap)
-        val inputLinks = jobMeta.createOutputLinks(inputsIR, validate = false)
-        val outputLink = outputs.view.filterKeys(outputNames.contains).toMap
-        inputLinks ++ outputLink
+        // Create output links from the values in the env, which came either
+        // from job inputs or from evaluating private variables. Ignore any
+        // variable in env that will be overridden by on in outputs.
+        val envIR = WdlUtils.toIR(env.filter {
+          case (k, _) if outputs.contains(k)           => false
+          case (k, _) if block.outputNames.contains(k) => true
+          case _                                       => false
+        })
+        val envLinks = jobMeta.createOutputLinks(envIR, validate = false)
+        // create output links from the exposed outputs
+        val outputLinks = outputs.view.filterKeys(outputNames.contains).toMap
+        envLinks ++ outputLinks
       }
     }
 
@@ -803,7 +812,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
 
     private def prepareScatterResults(dxSubJob: DxExecution): Map[String, ParameterLink] = {
       val resultTypes: Map[String, Type] = block.outputs.map {
-        case TAT.OutputParameter(name, wdlType, _, _) =>
+        case TAT.OutputParameter(name, wdlType, _) =>
           name -> WdlUtils.toIRType(wdlType)
       }.toMap
       // Return JBORs for all the outputs. Since the signature of the sub-job
@@ -860,7 +869,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
 
     private def launchScatter(): Map[String, ParameterLink] = {
       val (identifier, itemType, collection, next) = block.target match {
-        case Some(TAT.Scatter(identifier, expr, _, _)) =>
+        case Some(TAT.Scatter(identifier, expr, _)) =>
           val (collection, next) = evaluateScatterCollection(expr)
           val itemType = expr.wdlType match {
             case T_Array(t, _) => t
@@ -1086,7 +1095,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
             val jsValue = outputs.get(nameEncoded).orElse(longNameEncoded.flatMap(outputs.get))
             (irType, jsValue) match {
               case (_, Some(jsValue)) =>
-                Some(jobMeta.inputDeserializer.deserializeInputWithType(jsValue, irType))
+                Some(jobMeta.inputDeserializer.deserializeInputWithType(jsValue, irType, name))
               case (TOptional(_), None) => None
               case (_, None)            =>
                 // Required output that is missing
@@ -1128,7 +1137,12 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           assert(jobMeta.scatterStart == 0)
           launchScatter()
         case BlockKind.ExpressionsOnly =>
-          Map.empty
+          // upload files associated with any private variables that are exposed as block outputs
+          uploadPrivateVariablePaths(WdlUtils.toIR(env.filter {
+            case (k, _) if block.inputNames.contains(k)  => false
+            case (k, _) if block.outputNames.contains(k) => true
+            case _                                       => false
+          }))
         case BlockKind.CallDirect =>
           throw new RuntimeException("unreachable state")
       }

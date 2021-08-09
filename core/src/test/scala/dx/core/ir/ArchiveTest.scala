@@ -10,6 +10,9 @@ import org.scalatest.matchers.should.Matchers
 import scala.collection.immutable.TreeSeqMap
 
 class ArchiveTest extends AnyFlatSpec with Matchers {
+  private val isLinux = System.getProperty("os.name").toLowerCase.startsWith("linux")
+  assume(isLinux)
+
   it should "create a squashfs" in {
     val tmpDir = Files.createTempDirectory("archive")
     val file = tmpDir.resolve("file.txt")
