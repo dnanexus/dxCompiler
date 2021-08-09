@@ -367,6 +367,7 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
                                  _,
                                  _,
                                  _,
+                                 _,
                                  _) =>
                   // This is a task, include its source instead of a header.
                   val tasks = doc.elements.collect {

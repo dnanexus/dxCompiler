@@ -340,6 +340,8 @@ case class WdlBlock(index: Int,
     innerBlocks(index)
   }
 
+  lazy val inputNames: Set[String] = inputs.map(_.name).toSet
+
   override lazy val outputNames: Set[String] = outputs.map(_.name).toSet
 
   override lazy val prettyFormat: String = {

@@ -2,18 +2,15 @@
 import argparse
 from collections import namedtuple
 import dxpy
-import fnmatch
 import glob
 import hashlib
 import json
 import os
-import pprint
 import re
 import sys
 import subprocess
 import tempfile
-from typing import Callable, Iterator, Union, Optional, List
-from termcolor import colored, cprint
+from termcolor import cprint
 import time
 import traceback
 import yaml
@@ -98,11 +95,15 @@ wdl_v1_list = [
     "apps_573",
     "apps_612",
     "nested_optional",
+    "struct_deref",  # APPS-615
 
     # manifests
     "simple_manifest",
     "complex_manifest",
-    "view_and_count_manifest"
+    "view_and_count_manifest",
+
+    # workflow with output files created by expressions
+    "upload_workflow_files"
 ]
 
 wdl_v1_1_list = [

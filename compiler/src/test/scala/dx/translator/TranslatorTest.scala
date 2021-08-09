@@ -908,9 +908,25 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   it should "handle access to struct member" in {
     val path = pathFromBasename("struct", "struct_deref.wdl")
     val args = path.toString :: cFlags
-    val retval =
-      Main.compile(args.toVector)
-    retval shouldBe a[SuccessfulCompileIR]
+    val bundle = Main.compile(args.toVector) match {
+      case SuccessfulCompileIR(ir) => ir
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
+    }
+    val wf = bundle.primaryCallable match {
+      case Some(wf: Workflow) => wf
+      case other =>
+        throw new Exception(s"unexpected primary callable ${other}")
+    }
+    wf.stages.size shouldBe 1
+    wf.stages.head.inputs shouldBe Vector(
+        WorkflowInput(
+            Parameter("sampleStruct",
+                      TSchema("SampleStruct", TreeSeqMap("sample_name" -> TString, "id" -> TInt)),
+                      None,
+                      Vector())
+        )
+    )
   }
 
   it should "recognize that an argument with a default can be omitted at the call site" in {

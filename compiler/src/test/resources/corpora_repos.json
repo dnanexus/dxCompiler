@@ -245,6 +245,12 @@
           }
         },
         {
+          "include": [
+            "deepvariant.wdl"
+          ],
+          "fix": true
+        },
+        {
           "exclude": [
             "bedtools.wdl",
             "bcftools.wdl",
@@ -256,6 +262,7 @@
             "collect-columns.wdl",
             "common.wdl",
             "cutadapt.wdl",
+            "deepvariant.wdl",
             "fastqc.wdl",
             "flash.wdl",
             "gatk.wdl",

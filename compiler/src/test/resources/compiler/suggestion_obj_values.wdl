@@ -18,7 +18,7 @@ task suggestion_values_cgrep {
               },
               {
                   name: "file2",
-                  project: "project-FGpfqjQ0ffPF1Q106JYP2j3v", 
+                  project: "project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq",
                   path: "/test_data/f2.txt.gz"
               }
           ]
