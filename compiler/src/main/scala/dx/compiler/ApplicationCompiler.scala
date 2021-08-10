@@ -212,8 +212,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       case _ => Map.empty
     }
 
-    // Add platform Docker image dependency to bundledDepends
-    val bundledDependsDocker: Option[JsValue] = applet.container match {
+    // If dependency on Docker image file in another project, clone
+    applet.container match {
       case DxFileDockerImage(_, dxfile) => {
         val id = dxfile.id
 
@@ -229,10 +229,14 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
               case Failure(ex)      => throw new RuntimeException(s"Unable to locate file ${id}")
             }
         )
+        dxApi.cloneObject(id, sourceProject, project, folder)
+      }
+      case _ => // Do nothing
+    }
 
-        // TODO: clone Docker image file
-        dxApi.cloneObject(id, sourceProject, project)
-
+    // Add platform Docker image dependency to bundledDepends
+    val bundledDependsDocker: Option[JsValue] = applet.container match {
+      case DxFileDockerImage(_, dxfile) => {
         val mapping = JsObject(
             Constants.BundledDependsNameKey -> JsString(dxfile.describe().name),
             Constants.BundledDependsIdKey -> JsObject(DxUtils.DxLinkKey -> JsString(dxfile.id))
