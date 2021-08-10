@@ -252,51 +252,38 @@ cromwell_invalid = {
     "custom_cacheworthy_attributes",
     "parallel_composite_uploads_lib",
     "input_expressions",
-}
-
-# tests taken from cromwell repository that cannot be translated:
-cromwell_failed_translate = [
-    "select_functions",
-    "dollars_in_strings",
-    "workflow_name_length_ok",
-    "importer_ok"
-]
-
-# tests taken from cromwell repository that fail execution:
-cromwell_failed_exec = [
-    "defined_function",
-    "confirm_preemptible",
     "missing_delete",
-    "read_write_map",
-    "check_network_in_vpc",
+    "confirm_preemptible",
+    "call_cache_capoeira_jes",
+    "dedup_localizations_papi_v2",
+    "papi_v2_log",
+    "papi_v2_plain_detritus",
+    "call_cache_capoeira_local",
+    "backendWithNoDocker",
+    "docker_image_cache_true",
+    "dummy_scatter",
+    "fofn_caching",
+    "hello_private_repo",
+    "local_bourne",
     "papi_v2_gcsa",
+    "parallel_composite_uploads_off",
+    "monitoring_log",
+    "call_cache_capoeira_tes",
+    "check_network_in_vpc",
     "tmp_dir",
     "long_cmd",
     "workbench_health_monitor_check",
-    "papi_v2_log",
-    "call_cache_capoeira_local",
-    "call_cache_capoeira_tes",
-    "call_cache_capoeira_jes",
-    "papi_v2_plain_detritus",
-    "subworkflow",
-    "backendWithNoDocker",
-    "parallel_composite_uploads_off",
-    "docker_image_cache_unspecified",
-    "docker_image_cache_true",
-    "dedup_localizations_papi_v2",
+}
+
+# tests taken from cromwell repository that fail execution:
+cromwell_failed_exec = [
+    # will be supported after merging #87
     "continue_on_return_code",
-    "echo_task",
     "empty_scatter",
     "monitoring_image_script",
-    "local_bourne",
     "exit",
-    "fofn_caching",
     "docker_size_dockerhub",
     "docker_size_gcr",
-    "hello_private_repo",
-    "sub_workflow_decls_import",
-    "dummy_scatter",
-    "monitoring_log",
     "short_circuit",
     "custom_mount_point",
     "workflow_engine_functions",
@@ -443,6 +430,14 @@ cromwell_tests_list = [
     "sub_workflow_interactions_import",
     "workflow_output_declarations",
     "member_access",
+    "select_functions",
+    "dollars_in_strings",
+    "workflow_name_length_ok",
+    "importer_ok",
+    "read_write_map",
+    "docker_image_cache_unspecified",
+    "subworkflow",
+    "defined_function",
 ]
 
 # these are tests that take a long time to run
@@ -453,7 +448,6 @@ long_test_list = [
 medium_test_list = wdl_v1_list + wdl_v1_1_list + docker_test_list + special_flags_list + cwl_tools
 large_test_list = medium_test_list + draft2_test_list + single_tasks_list + doc_tests_list + long_test_list + cromwell_tests_list
 
-cromwell_failure = cromwell_failed_exec + cromwell_failed_translate
 test_suites = {
     'CI': ci_test_list,
     'M': medium_test_list,
@@ -464,7 +458,7 @@ test_suites = {
     'native': ["call_native", "call_native_v1"],
     'docs': doc_tests_list,
     'cwl_conformance': cwl_conformance,
-    'cromwell_fail': cromwell_failure,
+    'cromwell_fail': cromwell_failed_exec,
     'cromwell_success': cromwell_tests_list
 }
 

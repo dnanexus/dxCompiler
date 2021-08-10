@@ -35,9 +35,7 @@ task delete {
 }
 
 workflow missing_delete {
-    call generate {
-        input:
-    }
+    call generate {}
     call delete {
         input:
             path = generate.delete

@@ -1,3 +1,5 @@
+version 1.1
+
 task continueOnRC1 {
     command <<<
         echo "echo 'OH NO!'" > script.sh
@@ -10,7 +12,7 @@ task continueOnRC1 {
     }
     runtime {
         docker: "ubuntu:latest"
-        continueOnReturnCode: true
+        returnCodes: [1]
     }
 }
 
@@ -26,7 +28,7 @@ task continueOnRC2 {
     }
     runtime {
         docker: "ubuntu:latest"
-        continueOnReturnCode: 12
+        returnCodes: [12]
     }
 }
 
@@ -42,14 +44,16 @@ task continueOnRC3 {
     }
     runtime {
         docker: "ubuntu:latest"
-        continueOnReturnCode: [1, 12, 123, 23, 3]
+        returnCodes: [1, 12, 123, 23, 3]
     }
 }
 
 task finisher {
-    File in1
-    String in2
-    String in3
+    input {
+        File in1
+        String in2
+        String in3
+    }
     command <<<
        cat ${in1} && echo ${in2} && wc -l <<< "${in3}"
     >>>
@@ -58,7 +62,7 @@ task finisher {
     }
     runtime {
         docker: "ubuntu:latest"
-        continueOnReturnCode: 0
+        returnCodes: [0]
     }
 }
 
