@@ -285,7 +285,7 @@ cromwell_failed_exec = [
     # will be supported after merging #87
     #"continue_on_return_code",
     #"exit",
-    # APPS-
+    # APPS-759
     #"empty_scatter",
 ]
 
