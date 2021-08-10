@@ -225,7 +225,7 @@ cromwell_key_error_list = [
     "drs_usa_jdr",
 ]
 
-# These tests are invalid - see README.txt
+# These are cromwell tests that won't run on DNAnexus - see README.txt
 cromwell_invalid = {
     "local_backend",
     "string_interpolation",
@@ -273,20 +273,20 @@ cromwell_invalid = {
     "tmp_dir",
     "long_cmd",
     "workbench_health_monitor_check",
+    "monitoring_image_script",
+    "docker_size_dockerhub",
+    "docker_size_gcr",
+    "custom_mount_point",
+    "short_circuit",
 }
 
 # tests taken from cromwell repository that fail execution:
 cromwell_failed_exec = [
     # will be supported after merging #87
-    "continue_on_return_code",
-    "empty_scatter",
-    "monitoring_image_script",
-    "exit",
-    "docker_size_dockerhub",
-    "docker_size_gcr",
-    "short_circuit",
-    "custom_mount_point",
-    "workflow_engine_functions",
+    #"continue_on_return_code",
+    #"exit",
+    # APPS-
+    #"empty_scatter",
 ]
 
 # tests taken from cromwell repository
@@ -438,6 +438,7 @@ cromwell_tests_list = [
     "docker_image_cache_unspecified",
     "subworkflow",
     "defined_function",
+    "workflow_engine_functions",
 ]
 
 # these are tests that take a long time to run
@@ -458,8 +459,7 @@ test_suites = {
     'native': ["call_native", "call_native_v1"],
     'docs': doc_tests_list,
     'cwl_conformance': cwl_conformance,
-    'cromwell_fail': cromwell_failed_exec,
-    'cromwell_success': cromwell_tests_list
+    'cromwell': cromwell_tests_list
 }
 
 # Tests with the reorg flags

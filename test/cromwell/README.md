@@ -26,6 +26,8 @@ The following tests from the Cromwell suite will not pass on DNAnexus due to the
   * papi_v2_log
   * papi_v2_plain_detritus
   * monitoring_log
+  * docker_size_dockerhub
+  * docker_size_gcr
 * No support for the alternative workflow output syntax that has been deprecated since draft2
   * optional_declarations
   * sub_workflow_interactions
@@ -46,6 +48,7 @@ The following tests from the Cromwell suite are invalid and have been updated:
   * globbingBehavior
 * DNAnexus does not support `continueOnReturnCode` - workflow updated to use standard `returnCodes` runtime attribute;
   * continue_on_return_code
+  * exit
 
 The following tests from the Cromwell suite are invalid and will not pass on DNAnexus for the following reasons:
 
@@ -74,7 +77,13 @@ The following tests from the Cromwell suite require non-standard, Cromwell-speci
   * call_cache_capoeira_tes
   * check_network_in_vpc
   * workbench_health_monitor_check
+* Non-standard `volatile` meta key
+  * monitoring_image_script
 * TMPDIR is not a default environment variable in DNAnexus worker
   * tmp_dir
 * DNAnexus puts a limit of 32k on string length
   * long_cmd
+* Custom mount points are not supported
+  * custom_mount_point
+* Divide-by-zero is not short-circuited
+  * short_circuit
