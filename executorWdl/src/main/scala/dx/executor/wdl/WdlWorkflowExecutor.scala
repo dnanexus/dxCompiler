@@ -819,9 +819,8 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       // is exactly the same as the parent, we can immediately exit the parent job.
       val links = jobMeta.createExecutionOutputLinks(dxSubJob, resultTypes)
       if (logger.isVerbose) {
-        val linkStr = links.mkString("\n")
         logger.traceLimited(s"resultTypes=${resultTypes}")
-        logger.traceLimited(s"promises=${linkStr}")
+        logger.traceLimited(s"promises=${links.mkString("\n")}")
       }
       links
     }
@@ -852,19 +851,22 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     }
 
     private def launchScatterCollect(childJobs: Vector[DxExecution]): Map[String, ParameterLink] = {
-      assert(childJobs.nonEmpty)
-      // Run a sub-job with the "collect" entry point.
-      // We need to provide the exact same inputs.
-      val dxSubJob: DxExecution = dxApi.runSubJob(
-          "collect",
-          Some(jobMeta.instanceTypeDb.defaultInstanceType.name),
-          JsObject(jobMeta.rawJsInputs),
-          childJobs,
-          jobMeta.delayWorkspaceDestruction,
-          Some(s"collect_scatter"),
-          Some(createSubjobDetails())
-      )
-      prepareScatterResults(dxSubJob)
+      if (childJobs.nonEmpty) {
+        // Run a sub-job with the "collect" entry point.
+        // We need to provide the exact same inputs.
+        val dxSubJob: DxExecution = dxApi.runSubJob(
+            "collect",
+            Some(jobMeta.instanceTypeDb.defaultInstanceType.name),
+            JsObject(jobMeta.rawJsInputs),
+            childJobs,
+            jobMeta.delayWorkspaceDestruction,
+            Some(s"collect_scatter"),
+            Some(createSubjobDetails())
+        )
+        prepareScatterResults(dxSubJob)
+      } else {
+        Map.empty
+      }
     }
 
     private def launchScatter(): Map[String, ParameterLink] = {
