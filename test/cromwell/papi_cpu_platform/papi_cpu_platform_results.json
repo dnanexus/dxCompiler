@@ -1,0 +1,4 @@
+{
+    "cpus.broadwell.cpuPlatform": "Intel Broadwell", 
+    "cpus.haswell.cpuPlatform": "Intel Haswell"
+}

@@ -33,7 +33,7 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
   // A self contained WDL workflow
   private val outputWdlVersion: WdlVersion = {
     if (wdlVersion == WdlVersion.Draft_2) {
-      logger.warning("Upgrading draft-2 input to verion 1.0")
+      logger.warning("Upgrading draft-2 input to version 1.0")
       WdlVersion.V1
     } else {
       wdlVersion
