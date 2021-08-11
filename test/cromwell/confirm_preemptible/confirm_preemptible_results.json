@@ -1,0 +1,4 @@
+{
+    "confirm_preemptible.should_be_false": "FALSE", 
+    "confirm_preemptible.should_be_true": "TRUE"
+}

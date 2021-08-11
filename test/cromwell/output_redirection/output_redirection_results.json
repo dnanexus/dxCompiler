@@ -1,0 +1,4 @@
+{
+    "output_redirection_wf.output_redirection.stdout": "should be on stdout", 
+    "output_redirection_wf.output_redirection.stderr": "should be on stderr"
+}
