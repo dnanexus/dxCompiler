@@ -239,7 +239,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       case DxFileDockerImage(_, dxfile) => {
         val mapping = JsObject(
             Constants.BundledDependsNameKey -> JsString(dxfile.describe().name),
-            Constants.BundledDependsIdKey -> JsObject(DxUtils.DxLinkKey -> JsString(dxfile.id))
+            Constants.BundledDependsIdKey -> JsObject(DxUtils.DxLinkKey -> JsString(dxfile.id)),
+            Constants.BundledDependsStagesKey -> JsArray(Vector.empty)
         )
         Some(mapping)
       }

@@ -59,6 +59,7 @@ object Constants {
   val BundledDependsKey = "bundledDepends"
   val BundledDependsNameKey = "name"
   val BundledDependsIdKey = "id"
+  val BundledDependsStagesKey = "stages"
 
   // deprecated properties that we still need to check for old applets
   val ChecksumPropertyDeprecated = "dxCompiler_checksum"
