@@ -2,7 +2,7 @@ version 1.0
 
 import "unpassed_default_arg.wdl" as lib
 
-workflow top {
+workflow top_wf {
     input {
         Array[String] arr
     }
