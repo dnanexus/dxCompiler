@@ -759,7 +759,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     y.default shouldBe Some(IOParameterValueNumber(5))
   }
 
-  it should "dependency report should be added to WF description" in {
+  // TODO: un-ignore after files are re-created
+  ignore should "dependency report should be added to WF description" in {
     val path = pathFromBasename("non_spec", "dependency_report_wf1.wdl")
     val extraPath = pathFromBasename("non_spec", "dependency_report_extras.json")
     val args = path.toString :: "-extras" :: extraPath.toString :: cFlags
