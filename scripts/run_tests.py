@@ -73,7 +73,7 @@ wdl_v1_list = [
     "map_file_key",
 
     # defaults and parameter passing
-    "top",
+    "top_wf",
     "subworkflow_with_default",
 
     # can we download from a container?
