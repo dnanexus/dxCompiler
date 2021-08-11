@@ -71,7 +71,7 @@ wdl_v1_list = [
     # Map with a File key
     "map_file_key",
     # defaults and parameter passing
-    "top",
+    "top_wf",
     "subworkflow_with_default",
     # can we download from a container?
     "download_from_container",
@@ -344,7 +344,7 @@ cromwell_tests_list = [
     "aliased_subworkflows",
     "docker_image_cache_false",
     "curl",
-     "symlink_localization",
+    "symlink_localization",
     "error_10_preemptible",
     "multiline_command_line",
     "use_cacheCopy_dir",
