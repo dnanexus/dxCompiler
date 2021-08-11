@@ -263,8 +263,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     }
   }
 
-  private val dxInputDirs =
-    Vector(jobMeta.workerPaths.getInputFilesDir(), jobMeta.workerPaths.getDxfuseMountDir())
+  private val streamingDir = jobMeta.workerPaths.getDxfuseMountDir()
+  private val localizationDirs = Vector(jobMeta.workerPaths.getInputFilesDir(), streamingDir)
 
   private class InputFinalizer(
       uriToPath: Map[String, Path],
@@ -290,17 +290,25 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         case (Some(TFile) | None, f: VFile) =>
           val path = uriToPath(f.uri)
           val parentDir = parent.getOrElse(path.getParent)
+          lazy val fs = fileResolver.resolve(f.uri)
           val newPath = sourceToFinalFile.get(f) match {
             case Some(newPath) => newPath
             case None
                 if parent.nonEmpty ||
-                  !dxInputDirs.exists(path.startsWith) ||
+                  !localizationDirs.exists(path.startsWith) ||
                   f.basename.nonEmpty =>
               // Either we are localizing into a specific directory, the path is a local or a
               // virtual file, or it is a remote file that needs its name changed - use the
               // localizer to determine the new path and then create a symbolic link.
               val sourcePath = f.basename.map(parentDir.resolve).getOrElse(path)
               val newPath = localizer.getLocalPath(fileResolver.fromPath(sourcePath))
+              Files.createSymbolicLink(newPath, path)
+              sourceToFinalFile += (f -> newPath)
+              newPath
+            case None if path.startsWith(streamingDir) && localizer.getTargetDir(fs).isDefined =>
+              // we have streaming and non-streaming files from the same source container -
+              // link the streaming file into the download dir
+              val newPath = localizer.getLocalPath(fs)
               Files.createSymbolicLink(newPath, path)
               sourceToFinalFile += (f -> newPath)
               newPath
@@ -562,7 +570,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     def isDxPath(path: Path): Boolean = {
       localPathToUri.get(path).exists { uri =>
         val sourcePath = uriToSourcePath(uri)
-        dxInputDirs.exists(sourcePath.startsWith)
+        localizationDirs.exists(sourcePath.startsWith)
       }
     }
 
@@ -884,17 +892,19 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     val uriToSourcePath = virtualUriToPath ++ localUriToPath ++ downloadUriToPath ++ streamUriToPath
 
     // Finalize all input files, folders, and listings.
-    // * For a file that is not in the context of a folder:
-    // * - If it is a local file, we link it into a disambiguation dir, naming it with
-    // *   its basename if it has one.
-    // * - Otherwise, if it has a basename, we create a link with the new name in
-    // *   the same folder to the original file, throwing an exception if there is
-    // *   a naming collision.
-    // * - If it has secondary files, they are linked into the same directory as
-    // *   the main file, creating any subfolders, and throwing an exception if there
-    // *   is a naming collision.
-    // * For a directory or listing, we create a new disambiguation dir and recursively
-    // * link in all the files it contains, creating any subfolders.
+    // - For a file that is not in the context of a folder:
+    //   - If it is a local file, we link it into a disambiguation dir, naming it with
+    //     its basename if it has one.
+    //   - Otherwise, if it has a basename, we create a link with the new name in
+    //     the same folder to the original file, throwing an exception if there is
+    //     a naming collision.
+    //   - If it has secondary files, they are linked into the same directory as
+    //     the main file, creating any subfolders, and throwing an exception if there
+    //     is a naming collision.
+    // - For a directory or listing, we create a new disambiguation dir and recursively
+    //   link in all the files it contains, creating any subfolders.
+    // - For streaming files, if the source container is the same as one managed by
+    //   download localizer, link the streaming file into the download directory.
     val inputFinalizer = new InputFinalizer(uriToSourcePath, localizer)
     val (finalizedInputs, localPathToUri) = inputFinalizer.finalizeInputs(inputs)
 

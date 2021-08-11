@@ -59,9 +59,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y apt-transport-https wget git openssh-server tree python3 python3-pip python3-venv
-          pip3 install setuptools wheel
-          pip3 install termcolor
-          pip3 install dxpy
+          cwltool=`jq -r '.execDepends.cwl[0].name' scripts/bundled_dependencies.json`
+          pip3 install setuptools wheel termcolor dxpy $cwltool
       - name: Run tests
         if: ${{ github.event.inputs.should-run-tests == 'true' }}
         env:

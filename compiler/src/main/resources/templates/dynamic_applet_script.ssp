@@ -13,7 +13,7 @@ ${include("applet_script.ssp")}
 main() {
     # check if this is the correct instance type
     correctInstanceType=`java -jar ${bashDollar}{DX_FS_ROOT}/${runtimeJar} task checkInstanceType ${bashDollar}{HOME} -traceLevel ${runtimeTraceLevel} -streamFiles ${streamFiles.toString}`
-    if [[ ${bashDollar}correctInstanceType == "true" ]]; then
+    if [[ "${bashDollar}correctInstanceType" == "true" ]]; then
         <% if (dockerPreamble.nonEmpty) { %>
         docker_init
         <% } %>
