@@ -5,6 +5,7 @@
 * Fixes issue with using `File` declarations in scatter/conditional blocks
 * Updates dxda to 0.5.7
 * Handles empty scatters
+* Docker image dependencies that are DNAnexus platform files are included in applet's bundledDepends
 
 ## 2.4.9 2021-08-09
 
