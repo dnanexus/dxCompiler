@@ -1,5 +1,5 @@
 {
-  "stage-array.output": {
+  "stage_array.output": {
     "basename": "lsout",
     "checksum": "sha1$e453d26efd859a9abc80ae1a1d9d63db72376053",
     "class": "File",

@@ -83,7 +83,7 @@ object CwlUtils {
   def toIRPath(path: PathValue): IRPathValue = {
     path match {
       case f @ FileValue(location,
-                         _,
+                         path,
                          basename,
                          _,
                          _,
@@ -94,13 +94,14 @@ object CwlUtils {
                          format,
                          contents) =>
         VFile(
-            location.getOrElse(
-                if (contents.isDefined) {
-                  basename.getOrElse(UUID.randomUUID().toString)
-                } else {
+            location
+              .orElse(path)
+              .orElse(
+                  Option.when(contents.isDefined)(basename.getOrElse(UUID.randomUUID().toString))
+              )
+              .getOrElse(
                   throw new Exception(s"FileValue does not have 'location' or 'contents' ${f}")
-                }
-            ),
+              ),
             basename,
             contents,
             checksum,
