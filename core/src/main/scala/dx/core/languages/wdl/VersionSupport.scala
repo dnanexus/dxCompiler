@@ -49,7 +49,7 @@ case class VersionSupport(version: WdlVersion,
   lazy val generatedVersion: WdlVersion = {
     version match {
       case WdlVersion.Draft_2 =>
-        logger.warning("Upgrading draft-2 input to verion 1.0")
+        logger.warning("Upgrading draft-2 input to version 1.0")
         WdlVersion.V1
       case _ => version
     }
