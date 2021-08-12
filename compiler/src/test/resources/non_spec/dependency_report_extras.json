@@ -1,7 +1,7 @@
 {
   "dockerRegistry": {
     "registry": "test_docker_registry",
-    "credentials": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G3fqPj80GqQQ2ZBY5ZKX65Gp",
+    "credentials": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G4BV6280yzZkpgjj4Jx6Fjj9",
     "username": "test_docker_user"
   }
 }

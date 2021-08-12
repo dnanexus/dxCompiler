@@ -19,6 +19,8 @@
     samtools index bams/~{basename(mybam)}
     >>>
     ```
+* Update dxda to 0.5.7
+* Handles empty scatters
 
 ## 2.4.9 2021-08-09
 

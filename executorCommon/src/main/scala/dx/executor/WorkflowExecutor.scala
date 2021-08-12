@@ -313,37 +313,43 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta,
         childJobs: Vector[DxExecution],
         nextStart: Int
     ): Map[String, ParameterLink] = {
-      assert(childJobs.nonEmpty)
-      // Run a sub-job with the "continue" entry point.
-      // We need to provide the exact same inputs.
-      val dxSubJob: DxExecution = dxApi.runSubJob(
-          "continue",
-          Some(jobMeta.instanceTypeDb.defaultInstanceType.name),
-          JsObject(jobMeta.rawJsInputs),
-          childJobs,
-          jobMeta.delayWorkspaceDestruction,
-          Some(s"continue_scatter($nextStart)"),
-          Some(createSubjobDetails(Some(nextStart)))
-      )
-      prepareScatterResults(dxSubJob)
+      if (childJobs.nonEmpty) {
+        // Run a sub-job with the "continue" entry point.
+        // We need to provide the exact same inputs.
+        val dxSubJob: DxExecution = dxApi.runSubJob(
+            "continue",
+            Some(jobMeta.instanceTypeDb.defaultInstanceType.name),
+            JsObject(jobMeta.rawJsInputs),
+            childJobs,
+            jobMeta.delayWorkspaceDestruction,
+            Some(s"continue_scatter($nextStart)"),
+            Some(createSubjobDetails(Some(nextStart)))
+        )
+        prepareScatterResults(dxSubJob)
+      } else {
+        Map.empty
+      }
     }
 
     protected def launchScatterCollect(
         childJobs: Vector[DxExecution]
     ): Map[String, ParameterLink] = {
-      assert(childJobs.nonEmpty)
-      // Run a sub-job with the "collect" entry point.
-      // We need to provide the exact same inputs.
-      val dxSubJob: DxExecution = dxApi.runSubJob(
-          "collect",
-          Some(jobMeta.instanceTypeDb.defaultInstanceType.name),
-          JsObject(jobMeta.rawJsInputs),
-          childJobs,
-          jobMeta.delayWorkspaceDestruction,
-          Some(s"collect_scatter"),
-          Some(createSubjobDetails())
-      )
-      prepareScatterResults(dxSubJob)
+      if (childJobs.nonEmpty) {
+        // Run a sub-job with the "collect" entry point.
+        // We need to provide the exact same inputs.
+        val dxSubJob: DxExecution = dxApi.runSubJob(
+            "collect",
+            Some(jobMeta.instanceTypeDb.defaultInstanceType.name),
+            JsObject(jobMeta.rawJsInputs),
+            childJobs,
+            jobMeta.delayWorkspaceDestruction,
+            Some(s"collect_scatter"),
+            Some(createSubjobDetails())
+        )
+        prepareScatterResults(dxSubJob)
+      } else {
+        Map.empty
+      }
     }
 
     protected def launchCall(blockIndex: Int): Map[String, ParameterLink]

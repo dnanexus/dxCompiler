@@ -733,9 +733,8 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       // is exactly the same as the parent, we can immediately exit the parent job.
       val links = jobMeta.createExecutionOutputLinks(dxSubJob, resultTypes)
       if (logger.isVerbose) {
-        val linkStr = links.mkString("\n")
         logger.traceLimited(s"resultTypes=${resultTypes}")
-        logger.traceLimited(s"promises=${linkStr}")
+        logger.traceLimited(s"promises=${links.mkString("\n")}")
       }
       links
     }
