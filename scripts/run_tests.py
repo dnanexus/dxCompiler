@@ -278,6 +278,7 @@ cromwell_invalid = {
     "docker_size_gcr",
     "custom_mount_point",
     "short_circuit",
+    "top",
 }
 
 # tests taken from cromwell repository that fail execution:
@@ -317,7 +318,6 @@ cromwell_tests_list = [
     "c",
     "a",
     "d",
-    "top",
     "sub_sub_sub",
     "array_io",
     "simple_if",

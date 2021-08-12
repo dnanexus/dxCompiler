@@ -10,6 +10,11 @@ rm dx*.jar
 
 # Clean artifacts from prev. builds, platform
 username=`dx whoami --id`
+rc=$?
+if [[ $rc -ne 0 ]]; then
+  echo "Could not get username; you are probably not logged in to DNAnexus"
+  exit $rc
+fi
 dx rm -r dxCompiler_playground:/builds/$username
 dx rm -r dxCompiler_playground:/unit_tests/$username
 
