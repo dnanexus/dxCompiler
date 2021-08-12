@@ -15,7 +15,8 @@ abstract class BaseCli {
 
   def createTaskExecutor(meta: JobMeta,
                          streamFiles: StreamFiles.StreamFiles,
-                         waitOnUpload: Boolean): TaskExecutor
+                         waitOnUpload: Boolean,
+                         checkInstanceType: Boolean): TaskExecutor
 
   def createWorkflowExecutor(meta: JobMeta,
                              separateOutputs: Boolean,
@@ -28,10 +29,15 @@ abstract class BaseCli {
   }
 
   private val CommonOptions: Map[String, OptionSpec] = Map(
+      "waitOnUpload" -> FlagOptionSpec.default
+  )
+  private val TaskOptions: Map[String, OptionSpec] = CommonOptions ++ Map(
       "streamFiles" -> StreamFilesOptionSpec,
       "streamAllFiles" -> FlagOptionSpec.default,
-      "separateOutputs" -> FlagOptionSpec.default,
-      "waitOnUpload" -> FlagOptionSpec.default
+      "checkInstanceType" -> FlagOptionSpec.default
+  )
+  private val WorkflowOptions: Map[String, OptionSpec] = CommonOptions ++ Map(
+      "separateOutputs" -> FlagOptionSpec.default
   )
 
   object ExecutorKind extends Enum {
@@ -54,37 +60,37 @@ abstract class BaseCli {
       }
     val options =
       try {
-        parseCommandLine(args.drop(3), CommonOptions)
+        val optionSpec = if (kind == ExecutorKind.Task) TaskOptions else WorkflowOptions
+        parseCommandLine(args.drop(3), optionSpec)
       } catch {
         case e: OptionParseException =>
           return BadUsageTermination("Error parsing command line options", Some(e))
       }
     val logger = initLogger(options)
     val waitOnUpload = options.getFlag("waitOnUpload")
+    logger.traceLimited(s"Creating JobMeta: rootDir ${rootDir}")
+    val jobMeta = WorkerJobMeta(workerPaths = DxWorkerPaths(rootDir), logger = logger)
     try {
-      logger.traceLimited(s"Creating JobMeta: rootDir ${rootDir}")
-      val jobMeta = WorkerJobMeta(workerPaths = DxWorkerPaths(rootDir), logger = logger)
       kind match {
         case ExecutorKind.Task =>
-          val taskAction = {
-            try {
-              TaskAction.withNameIgnoreCase(action)
-            } catch {
-              case _: NoSuchElementException =>
-                return BadUsageTermination(s"Unknown action ${action}")
-            }
-          }
           val streamFiles = options.getValue[StreamFiles.StreamFiles]("streamFiles") match {
             case Some(value)                               => value
             case None if options.getFlag("streamAllFiles") => StreamFiles.All
             case None                                      => StreamFiles.PerFile
           }
+          val checkInstanceType = options.getFlag("checkInstanceType")
           logger.trace(
-              s"Creating TaskExecutor: streamFiles ${streamFiles}, waitOnUpload ${waitOnUpload}"
+              s"""Creating TaskExecutor: streamFiles ${streamFiles}, waitOnUpload ${waitOnUpload}, 
+                 |checkInstanceType ${checkInstanceType}""".stripMargin.replaceAll("\n", " ")
           )
-          val taskExecutor = createTaskExecutor(jobMeta, streamFiles, waitOnUpload)
-          val successMessage = taskExecutor.apply(taskAction)
-          Success(successMessage)
+          val taskExecutor =
+            createTaskExecutor(jobMeta, streamFiles, waitOnUpload, checkInstanceType)
+          Success()
+          if (taskExecutor.apply()) {
+            Success("task executed successfully")
+          } else {
+            Success("task relaunched")
+          }
         case ExecutorKind.Workflow =>
           val separateOutputs = options.getFlag("separateOutputs")
           val workflowAction =
@@ -100,12 +106,12 @@ abstract class BaseCli {
           val executor = createWorkflowExecutor(jobMeta, separateOutputs, waitOnUpload)
           val (_, successMessage) = executor.apply(workflowAction)
           Success(successMessage)
-        case _ =>
-          BadUsageTermination()
+        case _ => BadUsageTermination()
       }
     } catch {
       case e: Throwable =>
-        Failure(s"failure executing action '${action}'", Some(e))
+        jobMeta.error(e)
+        Failure(s"failure executing ${kind} action '${action}'", Some(e))
     }
   }
 

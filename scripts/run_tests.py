@@ -921,6 +921,9 @@ def compare_result_path(result, expected_val, field_name, tname, project, verbos
 # Check that a workflow returned the expected result for
 # a [key]
 def validate_result(tname, exec_outputs: dict, key, expected_val, project):
+    if not (exec_outputs and expected_val):
+        return False
+
     desc = test_files[tname]
     # Extract the key. For example, for workflow "math" returning
     # output "count":

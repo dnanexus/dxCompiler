@@ -27,7 +27,7 @@ import dx.core.ir.{
   Value
 }
 import dx.core.languages.wdl.{CodeGenerator, VersionSupport, WdlOptions, WdlUtils}
-import dx.executor.{JobMeta, TaskAction, TaskExecutor}
+import dx.executor.{JobMeta, TaskExecutor}
 import dx.util.{CodecUtils, FileSourceResolver, FileUtils, JsUtils, Logger, SysUtils}
 import dx.util.protocols.DxFileAccessProtocol
 import org.scalatest.flatspec.AnyFlatSpec
@@ -203,8 +203,6 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
     // Create a clean temp directory for the task to use
     val jobRootDir: Path = Files.createTempDirectory("dxcompiler_applet_test")
     jobRootDir.toFile.deleteOnExit()
-    val workerPaths = DxWorkerPaths(jobRootDir)
-    workerPaths.createCleanDirs()
 
     // create FileSourceResolver
     val dxFileDescCache = DxFileDescCache.empty
@@ -268,7 +266,10 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
                       useManifests)
 
     // create TaskExecutor
-    (WdlTaskExecutor.create(jobMeta, streamFiles = streamFiles, waitOnUpload = waitOnUpload),
+    (WdlTaskExecutor.create(jobMeta,
+                            streamFiles = streamFiles,
+                            waitOnUpload = waitOnUpload,
+                            checkInstanceType = false),
      jobMeta)
   }
 
@@ -279,7 +280,7 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
     val outputsExpected = getExpectedOutputs(wdlName)
 
     // run the steps of task execution in order
-    taskExecutor.apply(TaskAction.Execute) shouldBe "success Execute"
+    taskExecutor.apply() shouldBe "success Execute"
 
     if (outputsExpected.isDefined) {
       val outputs = if (useManifests) {
@@ -355,7 +356,7 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
 
   it should "handle files with same name in different source folders" taggedAs ApiTest in {
     val (taskExecutor, jobMeta) = createTaskExecutor("two_files", StreamFiles.None)
-    taskExecutor.apply(TaskAction.Execute) shouldBe "success Execute"
+    taskExecutor.apply() shouldBe "success Execute"
     // make sure the download manifest has two different folders
     val manifestJs = JsUtils.jsFromFile(jobMeta.workerPaths.getDxdaManifestFile()).asJsObject.fields
     manifestJs.size shouldBe 1

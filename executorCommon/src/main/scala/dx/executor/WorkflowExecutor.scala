@@ -826,32 +826,26 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta,
   }
 
   def apply(action: WorkflowAction.WorkflowAction): (Map[String, ParameterLink], String) = {
-    try {
-      val outputs: Map[String, ParameterLink] = action match {
-        case WorkflowAction.Inputs =>
-          evaluateInputs()
-        case WorkflowAction.Run =>
-          evaluateFragInputs().launch()
-        case WorkflowAction.Continue =>
-          evaluateFragInputs().continue()
-        case WorkflowAction.Collect =>
-          evaluateFragInputs().collect()
-        case WorkflowAction.Outputs =>
-          evaluateOutputs()
-        case WorkflowAction.CustomReorgOutputs =>
-          evaluateOutputs(addReorgStatus = true)
-        case WorkflowAction.OutputReorg =>
-          reorganizeOutputsDefault()
-        case _ =>
-          throw new Exception(s"Illegal workflow fragment operation ${action}")
-      }
-      logger.traceLimited(s"outputLinks: ${outputs}")
-      jobMeta.writeOutputLinks(outputs)
-      (outputs, s"success ${action}")
-    } catch {
-      case e: Throwable =>
-        jobMeta.error(e)
-        throw e
+    val outputs: Map[String, ParameterLink] = action match {
+      case WorkflowAction.Inputs =>
+        evaluateInputs()
+      case WorkflowAction.Run =>
+        evaluateFragInputs().launch()
+      case WorkflowAction.Continue =>
+        evaluateFragInputs().continue()
+      case WorkflowAction.Collect =>
+        evaluateFragInputs().collect()
+      case WorkflowAction.Outputs =>
+        evaluateOutputs()
+      case WorkflowAction.CustomReorgOutputs =>
+        evaluateOutputs(addReorgStatus = true)
+      case WorkflowAction.OutputReorg =>
+        reorganizeOutputsDefault()
+      case _ =>
+        throw new Exception(s"Illegal workflow fragment operation ${action}")
     }
+    logger.traceLimited(s"outputLinks: ${outputs}")
+    jobMeta.writeOutputLinks(outputs)
+    (outputs, s"success ${action}")
   }
 }

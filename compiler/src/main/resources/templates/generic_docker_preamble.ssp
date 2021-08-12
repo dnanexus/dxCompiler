@@ -2,7 +2,7 @@
 <%@ val username: String %>
 <%@ val credentials: String %>
 <%@ val bashDollar: String = "$" %>
-docker_init() {
+
     # If we need to set up a private docker registry, download the credentials file and login.
     # Do not expose the credentials to the logs or to stdout.
 
@@ -45,4 +45,3 @@ docker_init() {
     set -x
 
     rm -f ${bashDollar}{HOME}/docker_credentials
-}

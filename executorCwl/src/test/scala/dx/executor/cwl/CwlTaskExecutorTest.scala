@@ -27,7 +27,7 @@ import dx.core.ir.{
 import dx.core.languages.Language
 import dx.core.languages.cwl.{CwlUtils, DxHintSchema}
 import dx.cwl.{CommandLineTool, Parser}
-import dx.executor.{JobMeta, TaskAction, TaskExecutor}
+import dx.executor.{JobMeta, TaskExecutor}
 import dx.util.protocols.DxFileAccessProtocol
 import dx.util.{CodecUtils, FileSourceResolver, FileUtils, JsUtils, Logger, SysUtils}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -239,7 +239,11 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
                       useManifests)
 
     // create TaskExecutor
-    (CwlTaskExecutor.create(jobMeta, streamFiles = streamFiles, waitOnUpload), jobMeta)
+    (CwlTaskExecutor.create(jobMeta,
+                            streamFiles = streamFiles,
+                            waitOnUpload = waitOnUpload,
+                            checkInstanceType = false),
+     jobMeta)
   }
 
   // Parse the CWL source code, extract the single tool that is supposed to be there,
@@ -249,7 +253,7 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
     val outputsExpected = getExpectedOutputs(cwlName)
 
     // run the steps of task execution in order
-    taskExecutor.apply(TaskAction.Execute) shouldBe "success Execute"
+    taskExecutor.apply() shouldBe "task executed successfully"
 
     if (outputsExpected.isDefined) {
       val outputs = if (useManifests) {

@@ -15,7 +15,6 @@ import dx.core.ir.Type._
 import dx.core.ir.Value._
 import dx.util.{
   AddressableFileSource,
-  Enum,
   FileSource,
   FileUtils,
   LocalFileSource,
@@ -26,11 +25,6 @@ import dx.util.{
 }
 import dx.util.protocols.DxFileSource
 import spray.json._
-
-object TaskAction extends Enum {
-  type TaskAction = Value
-  val CheckInstanceType, Relaunch, Execute = Value
-}
 
 object TaskExecutor {
   val MaxDisambiguationDirs: Int = 5000
@@ -47,8 +41,10 @@ object TaskExecutor {
 abstract class TaskExecutor(jobMeta: JobMeta,
                             streamFiles: StreamFiles.StreamFiles = StreamFiles.PerFile,
                             waitOnUpload: Boolean = false,
+                            checkInstanceType: Boolean,
                             traceLengthLimit: Int = 10000) {
 
+  private val workerPaths = jobMeta.workerPaths
   private val fileResolver = jobMeta.fileResolver
   private val dxApi = jobMeta.dxApi
   private val logger = jobMeta.logger
@@ -73,64 +69,10 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     */
   protected def getInstanceTypeRequest: InstanceTypeRequest
 
-  private def getRequestedInstanceType: String = {
-    logger.trace("Computing instance type to request")
-    val instanceTypeRequest: InstanceTypeRequest = getInstanceTypeRequest
-    logger.traceLimited(s"Requesting instance type: $instanceTypeRequest")
-    jobMeta.instanceTypeDb.apply(instanceTypeRequest).name
-  }
-
-  /**
-    * Checks if we are already on the correct instance type. We only
-    * relaunch if the current instance type is not sufficient for the
-    * task requirements.
-    */
-  protected def checkInstanceType: Boolean = {
-    // calculate the required instance type
-    val requestedInstanceType = getRequestedInstanceType
-    trace(s"Requested instance type: ${requestedInstanceType}")
-    val currentInstanceType = jobMeta.instanceType.getOrElse(
-        throw new Exception(s"Cannot get instance type for job ${jobMeta.jobId}")
-    )
-    trace(s"Current instance type: ${currentInstanceType}")
-    val isSufficient =
-      try {
-        jobMeta.instanceTypeDb.matchesOrExceedes(currentInstanceType, requestedInstanceType)
-      } catch {
-        case ex: Throwable =>
-          logger.warning("Error comparing current and requested instance types",
-                         exception = Some(ex))
-          false
-      }
-    if (isSufficient) {
-      trace(s"The current instance type is sufficient")
-    } else {
-      trace(
-          s"The current instance type is not sufficient; relaunching job with a larger instance type"
-      )
-    }
-    isSufficient
-  }
-
   /**
     * Returns a mapping of output field names IR types.
     */
   protected def outputTypes: Map[String, Type]
-
-  /**
-    * Launches a sub-job with the same inputs and the dynamically calculated
-    * instance type.
-    */
-  def relaunch(): Unit = {
-    // Run a sub-job with the "body" entry point, and the required instance type
-    val dxSubJob: DxJob =
-      jobMeta.dxApi.runSubJob("body",
-                              Some(getRequestedInstanceType),
-                              JsObject(jobMeta.rawJsInputs),
-                              Vector.empty,
-                              jobMeta.delayWorkspaceDestruction)
-    jobMeta.writeExecutionOutputLinks(dxSubJob, outputTypes)
-  }
 
   /**
     * Returns the IR type and value for each task input, including default values
@@ -263,8 +205,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     }
   }
 
-  private val streamingDir = jobMeta.workerPaths.getDxfuseMountDir()
-  private val localizationDirs = Vector(jobMeta.workerPaths.getInputFilesDir(), streamingDir)
+  private val streamingDir = workerPaths.getDxfuseMountDir()
+  private val localizationDirs = Vector(workerPaths.getInputFilesDir(), streamingDir)
 
   private class InputFinalizer(
       uriToPath: Map[String, Path],
@@ -539,7 +481,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     }
 
     def addVirtualFile(content: String, uri: String, destination: String): Unit = {
-      val localPath = jobMeta.workerPaths.getVirtualFilesDir(ensureExists = true).resolve(uri)
+      val localPath = workerPaths.getVirtualFilesDir(ensureExists = true).resolve(uri)
       val canonicalPath = FileUtils.writeFileContent(localPath, content)
       virtualFiles += (uri -> canonicalPath)
       addFile(canonicalPath, destination)
@@ -769,26 +711,74 @@ abstract class TaskExecutor(jobMeta: JobMeta,
           case (name, (t, v)) => s"${name}: (${TypeSerde.toString(t)}, ${ValueSerde.toString(v)})"
         }
         .mkString("\n  ")
-      logger.traceLimited(s"${description}:\n  ${inputStr}")
+      trace(s"${description}:\n  ${inputStr}")
     }
   }
 
   /**
     * Executes the task. This implements the full lifecycle of task execution:
-    * 1. Evaluate inputs.
-    * 2. Localize input files.
-    * 3. Evaluate and run the command script.
-    * 4. Evaluate outputs.
-    * 5. Delocalize output files.
+    * 1. If the instance type is determined dynamically, computes the instance
+    *    requirements and checks whether the current instance type meets/exceeds
+    *    those requirements. If not, relaunches the task with a new instance type.
+    * 2. Evaluate inputs.
+    * 3. Localize input files.
+    * 4. Evaluate and run the command script.
+    * 5. Evaluate outputs.
+    * 6. Delocalize output files.
+    * @return true if the task was executed successfully, or false if was relaunched
     */
-  // TODO: handle InitialWorkDir
   // TODO: handle output parameter tags and properties
-  def execute(): Unit = {
+  def apply(): Boolean = {
+    // setup the utility directories that the task-runner employs
+    workerPaths.createCleanDirs()
+
     if (logger.isVerbose) {
       trace(s"dxCompiler version: ${getVersion}")
       trace(s"debugLevel=${logger.traceLevel}")
       trace(s"Task source code:\n${jobMeta.sourceCode}", traceLengthLimit)
       printDirTree()
+    }
+
+    if (checkInstanceType) {
+      // calculate the required instance type
+      trace("Computing instance type to request")
+      val instanceTypeRequest: InstanceTypeRequest = getInstanceTypeRequest
+      trace(s"Requesting instance type: $instanceTypeRequest")
+      val requestedInstanceType = jobMeta.instanceTypeDb.apply(instanceTypeRequest).name
+      trace(s"Requested instance type: ${requestedInstanceType}")
+
+      // Check if we are already on a sufficent instance type. We relaunch if
+      // the current instance type is not sufficient for the task requirements.
+      val currentInstanceType = jobMeta.instanceType.getOrElse(
+          throw new Exception(s"Cannot get instance type for job ${jobMeta.jobId}")
+      )
+      trace(s"Current instance type: ${currentInstanceType}")
+      val isSufficient =
+        try {
+          jobMeta.instanceTypeDb.matchesOrExceedes(currentInstanceType, requestedInstanceType)
+        } catch {
+          case ex: Throwable =>
+            logger.warning("Error comparing current and requested instance types",
+                           exception = Some(ex))
+            false
+        }
+      if (isSufficient) {
+        trace(s"The current instance type is sufficient")
+      } else {
+        trace(
+            s"The current instance type is not sufficient; relaunching job with a larger instance type"
+        )
+        // launch a sub-job with the same inputs and the dynamically calculated instance type
+        val dxSubJob: DxJob = dxApi.runSubJob(
+            "body",
+            Some(requestedInstanceType),
+            JsObject(jobMeta.rawJsInputs),
+            Vector.empty,
+            jobMeta.delayWorkspaceDestruction
+        )
+        jobMeta.writeExecutionOutputLinks(dxSubJob, outputTypes)
+        return false
+      }
     }
 
     // Evaluates input values and makes sure all VFolder inputs have their `listing`s set.
@@ -807,9 +797,9 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     val inputs = pathsToLocalize.updateListingsAndExtractFiles(getInputsWithDefaults)
 
     // localize virtual files to /home/dnanexus/virtual
-    logger.traceLimited(s"Virtual files = ${pathsToLocalize.virtualFiles}")
+    trace(s"Virtual files = ${pathsToLocalize.virtualFiles}")
     val virtualUriToPath = pathsToLocalize.virtualFiles.map { fs =>
-      val localPath = fs.localizeToDir(jobMeta.workerPaths.getVirtualFilesDir(ensureExists = true))
+      val localPath = fs.localizeToDir(workerPaths.getVirtualFilesDir(ensureExists = true))
       fs.name -> localPath
     }.toMap
 
@@ -821,7 +811,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     // collisions in the manner specified by the WDL spec. All remote input files except those
     // streamed by dxfuse are placed in subfolders of the /home/dnanexus/inputs directory.
     val localizer = SafeLocalizationDisambiguator.create(
-        rootDir = jobMeta.workerPaths.getInputFilesDir(),
+        rootDir = workerPaths.getInputFilesDir(),
         separateDirsBySource = true,
         createDirs = true,
         disambiguationDirLimit = TaskExecutor.MaxDisambiguationDirs,
@@ -833,7 +823,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     // has been enabled individually for any of the inputs.
     val downloadUriToPath = if (pathsToLocalize.filesToDownload.nonEmpty) {
       // Build dxda manifest to localize all non-streaming remote files
-      logger.traceLimited(s"Files to download: ${pathsToLocalize.filesToDownload}")
+      trace(s"Files to download: ${pathsToLocalize.filesToDownload}")
       val downloadFileSourceToPath: Map[AddressableFileSource, Path] =
         localizer.getLocalPaths(pathsToLocalize.filesToDownload)
       val downloadUriToPath = downloadFileSourceToPath.map {
@@ -846,8 +836,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         .foreach {
           case DxdaManifest(manifestJs) =>
             // write the manifest to a file
-            FileUtils.writeFileContent(jobMeta.workerPaths.getDxdaManifestFile(),
-                                       manifestJs.prettyPrint)
+            FileUtils.writeFileContent(workerPaths.getDxdaManifestFile(), manifestJs.prettyPrint)
             // run dxda via a subprocess
             jobMeta.runJobScriptFunction(TaskExecutor.DownloadDxda)
         }
@@ -858,10 +847,10 @@ abstract class TaskExecutor(jobMeta: JobMeta,
 
     val streamUriToPath = if (pathsToLocalize.filesToStream.nonEmpty) {
       // build dxfuse manifest to localize all straming remote files and folders
-      logger.traceLimited(s"Files to stream: ${pathsToLocalize.filesToStream}")
+      trace(s"Files to stream: ${pathsToLocalize.filesToStream}")
       // use a different localizer for the dxfuse mount point
       val streamingLocalizer = SafeLocalizationDisambiguator.create(
-          rootDir = jobMeta.workerPaths.getDxfuseMountDir(),
+          rootDir = workerPaths.getDxfuseMountDir(),
           existingPaths = localizer.getLocalizedPaths,
           separateDirsBySource = true,
           createDirs = false,
@@ -873,14 +862,13 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       val streamUriToPath = streamFileSourceToPath.map {
         case (fs, path) => fs.address -> path
       }
-      DxfuseManifestBuilder(jobMeta.workerPaths, dxApi, logger)
+      DxfuseManifestBuilder(workerPaths, dxApi, logger)
         .apply(streamFileSourceToPath.collect {
           case (dxFs: DxFileSource, localPath) => dxFs.dxFile -> localPath
         })
         .foreach {
           case DxfuseManifest(manifestJs) =>
-            FileUtils.writeFileContent(jobMeta.workerPaths.getDxfuseManifestFile(),
-                                       manifestJs.prettyPrint)
+            FileUtils.writeFileContent(workerPaths.getDxfuseManifestFile(), manifestJs.prettyPrint)
             // run dxfuse via a subprocess
             jobMeta.runJobScriptFunction(TaskExecutor.DownloadDxfuse)
         }
@@ -955,7 +943,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       // upload files
       val uploadedFiles = if (filesToUpload.nonEmpty) {
         if (logger.isVerbose) {
-          logger.traceLimited(s"Uploading files:\n  ${filesToUpload.map(_.source).mkString("\n")}")
+          trace(s"Uploading files:\n  ${filesToUpload.map(_.source).mkString("\n")}")
         }
         // upload all files in parallel
         dxApi.uploadFiles(files = filesToUpload,
@@ -983,29 +971,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
 
     // peform any cleanup - unmount dxfuse dir
     jobMeta.runJobScriptFunction(TaskExecutor.Cleanup)
-  }
 
-  def apply(action: TaskAction.TaskAction): String = {
-    try {
-      // setup the utility directories that the task-runner employs
-      jobMeta.workerPaths.createCleanDirs()
-
-      if (action == TaskAction.CheckInstanceType) {
-        // special operation to check if this task is on the right instance type
-        checkInstanceType.toString
-      } else {
-        action match {
-          case TaskAction.Relaunch => relaunch()
-          case TaskAction.Execute  => execute()
-          case _ =>
-            throw new Exception(s"Invalid executor action ${action}")
-        }
-        s"success ${action}"
-      }
-    } catch {
-      case e: Throwable =>
-        jobMeta.error(e)
-        throw e
-    }
+    true
   }
 }

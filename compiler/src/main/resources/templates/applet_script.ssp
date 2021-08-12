@@ -3,9 +3,12 @@
 <%@ val runtimeTraceLevel: Int %>
 <%@ val streamFiles: dx.core.io.StreamFiles.StreamFiles %>
 <%@ val waitOnUpload: Boolean %>
+<%@ val dockerPreamble: Option[String] %>
 <% val bashDollar: String = "$" %>
+
 body() {
-    java -jar ${bashDollar}{DX_FS_ROOT}/${runtimeJar} task execute ${bashDollar}{HOME} -traceLevel ${runtimeTraceLevel} -streamFiles ${streamFiles.toString} ${if (waitOnUpload) "-waitOnUpload"}
+    java -jar ${bashDollar}{DX_FS_ROOT}/${runtimeJar} task run ${bashDollar}{HOME} -traceLevel ${runtimeTraceLevel} \
+      -streamFiles ${streamFiles.toString} ${if (waitOnUpload) "-waitOnUpload"}
 }
 
 download_dxda() {
@@ -81,6 +84,11 @@ before_command() {
     # Make the inputs folder read-only
     mkdir -p "${dxPathConfig.getInputFilesDir()}"
     chmod -R 500 "${dxPathConfig.getInputFilesDir()}"
+<% if (dockerPreamble.nonEmpty) { %>
+${dockerPreamble.get}
+<% } else { %>
+    echo "No container specified; executing task in the worker environment"
+<% } %>
 }
 
 run_command() {

@@ -18,7 +18,8 @@ import java.nio.file.Files
 object CwlTaskExecutor {
   def create(jobMeta: JobMeta,
              streamFiles: StreamFiles.StreamFiles = StreamFiles.PerFile,
-             waitOnUpload: Boolean): CwlTaskExecutor = {
+             waitOnUpload: Boolean,
+             checkInstanceType: Boolean): CwlTaskExecutor = {
     // when parsing a packed workflow as a String, we need to use a baseuri -
     // it doesn't matter what it is
     val parser = Parser.create(Some(URI.create("file:/null")), hintSchemas = Vector(DxHintSchema))
@@ -64,7 +65,7 @@ object CwlTaskExecutor {
             throw new Exception(s"more than one tool with name ${toolName}: ${v.mkString("\n")}")
         }
     }
-    CwlTaskExecutor(tool, jobMeta, streamFiles, waitOnUpload)
+    CwlTaskExecutor(tool, jobMeta, streamFiles, waitOnUpload, checkInstanceType)
   }
 }
 
@@ -78,8 +79,9 @@ object CwlTaskExecutor {
 case class CwlTaskExecutor(tool: Process,
                            jobMeta: JobMeta,
                            streamFiles: StreamFiles.StreamFiles,
-                           waitOnUpload: Boolean)
-    extends TaskExecutor(jobMeta, streamFiles, waitOnUpload) {
+                           waitOnUpload: Boolean,
+                           checkInstanceType: Boolean)
+    extends TaskExecutor(jobMeta, streamFiles, waitOnUpload, checkInstanceType) {
 
   private val dxApi = jobMeta.dxApi
   private val logger = jobMeta.logger

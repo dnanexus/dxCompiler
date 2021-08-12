@@ -9,8 +9,9 @@ object Main extends BaseCli {
 
   override def createTaskExecutor(meta: JobMeta,
                                   streamFiles: StreamFiles.StreamFiles,
-                                  waitOnUpload: Boolean): WdlTaskExecutor = {
-    WdlTaskExecutor.create(meta, streamFiles, waitOnUpload)
+                                  waitOnUpload: Boolean,
+                                  checkInstanceType: Boolean): WdlTaskExecutor = {
+    WdlTaskExecutor.create(meta, streamFiles, waitOnUpload, checkInstanceType)
   }
 
   override def createWorkflowExecutor(meta: JobMeta,
