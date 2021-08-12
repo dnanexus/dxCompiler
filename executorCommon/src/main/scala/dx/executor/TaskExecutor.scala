@@ -243,8 +243,11 @@ abstract class TaskExecutor(jobMeta: JobMeta,
               // virtual file, or it is a remote file that needs its name changed - use the
               // localizer to determine the new path and then create a symbolic link.
               val sourcePath = f.basename.map(parentDir.resolve).getOrElse(path)
-              val newPath = localizer.getLocalPath(fileResolver.fromPath(sourcePath))
-              Files.createSymbolicLink(newPath, path)
+              val newPath =
+                localizer.getLocalPath(
+                    fileResolver.fromPath(sourcePath, isDirectory = Some(false)),
+                    Some(parentDir)
+                )
               sourceToFinalFile += (f -> newPath)
               newPath
             case None if path.startsWith(streamingDir) && localizer.getTargetDir(fs).isDefined =>
@@ -261,7 +264,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
           val newSecondaryFiles = finalizeListing(f.secondaryFiles, parentDir)
           Some(f.copy(uri = newPath.toString, secondaryFiles = newSecondaryFiles))
         case (Some(TDirectory) | None, f: VFolder) if f.listing.isDefined =>
-          val path = sourceToFinalFolder.getOrElse(
+          // link all the files/subdirectories in the listing into the parent folder
+          val dirPath = sourceToFinalFolder.getOrElse(
               f, {
                 val fs = (fileResolver.resolveDirectory(f.uri), f.basename) match {
                   case (fs, Some(basename)) =>
@@ -270,14 +274,15 @@ abstract class TaskExecutor(jobMeta: JobMeta,
                       .getOrElse(throw new Exception("cannot rename root directory"))
                   case (fs, None) => fs
                 }
-                val path = localizer.getLocalPath(fs, parent)
-                sourceToFinalFolder += (f -> path)
-                path
+                val dirPath = localizer.getLocalPath(fs, parent)
+                FileUtils.createDirectories(dirPath)
+                sourceToFinalFolder += (f -> dirPath)
+                dirPath
               }
           )
-          pathToUri += (path -> f.uri)
-          val newListing = finalizeListing(f.listing.get, path)
-          Some(f.copy(uri = path.toString, listing = Some(newListing)))
+          pathToUri += (dirPath -> f.uri)
+          val newListing = finalizeListing(f.listing.get, dirPath)
+          Some(f.copy(uri = dirPath.toString, listing = Some(newListing)))
         case (Some(TDirectory) | None, l: VListing) =>
           // a listing is a virtual directory and is unique (i.e. we never want two
           // listings pointing at the same physical directory), so we source it from
@@ -285,8 +290,9 @@ abstract class TaskExecutor(jobMeta: JobMeta,
           val tempDir = Files.createTempDirectory("listing")
           tempDir.toFile.deleteOnExit()
           val fs = fileResolver.fromPath(tempDir.resolve(l.basename), isDirectory = Some(true))
-          val path = localizer.getLocalPath(fs, parent)
-          val newListing = finalizeListing(l.items, path)
+          val dirPath = localizer.getLocalPath(fs, parent)
+          FileUtils.createDirectories(dirPath)
+          val newListing = finalizeListing(l.items, dirPath)
           Some(l.copy(items = newListing))
         case _ => None
       }

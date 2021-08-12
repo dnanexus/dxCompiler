@@ -272,15 +272,6 @@ cromwell_invalid = {
     "short_circuit",
 }
 
-# tests taken from cromwell repository that fail execution:
-cromwell_failed_exec = [
-    # will be supported after merging #87
-    #"continue_on_return_code",
-    #"exit",
-    # APPS-759
-    #"empty_scatter",
-]
-
 # tests taken from cromwell repository
 cromwell_tests_list = [
     "null_input_values",
@@ -431,6 +422,9 @@ cromwell_tests_list = [
     "subworkflow",
     "defined_function",
     "workflow_engine_functions",
+    "empty_scatter",
+    "continue_on_return_code",
+    "exit",
 ]
 
 # these are tests that take a long time to run

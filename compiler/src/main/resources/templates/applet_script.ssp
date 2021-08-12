@@ -18,8 +18,8 @@ download_dxda() {
        head -n 20 "${dxPathConfig.getDxdaManifestFile().toString}"
        bzip2 "${dxPathConfig.getDxdaManifestFile().toString}"
 
-       # run the download agent, and store the return code; do not exit on error.
-       # we need to run it from the root directory, because it uses relative paths.
+       # Run the download agent, and store the return code; do not exit on error.
+       # We need to run it from the root directory, because it uses relative paths.
        cd /
        dxda_error_code=0
        dx-download-agent download "${dxPathConfig.getDxdaManifestFile().toString}.bz2" || dxda_error_code=${bashDollar}? && true
@@ -43,7 +43,7 @@ download_dxda() {
 }
 
 download_dxfuse() {
-    # run dxfuse on a manifest of files. It will provide remote access
+    # Run dxfuse on a manifest of files. It will provide remote access
     # to DNAx files.
     if [[ -f "${dxPathConfig.getDxfuseManifestFile().toString}" ]]; then
        echo "Using dxfuse version: ${bashDollar}(dxfuse -version)"

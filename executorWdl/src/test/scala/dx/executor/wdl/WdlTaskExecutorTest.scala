@@ -280,7 +280,7 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
     val outputsExpected = getExpectedOutputs(wdlName)
 
     // run the steps of task execution in order
-    taskExecutor.apply() shouldBe "success Execute"
+    taskExecutor.apply() shouldBe true
 
     if (outputsExpected.isDefined) {
       val outputs = if (useManifests) {

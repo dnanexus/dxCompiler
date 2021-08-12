@@ -9,5 +9,5 @@ ${include("applet_script.ssp")}
 
 main() {
     java -jar ${bashDollar}{DX_FS_ROOT}/${runtimeJar} task run ${bashDollar}{HOME} -traceLevel ${runtimeTraceLevel} \
-      -streamFiles ${streamFiles.toString} ${if (waitOnUpload) "-waitOnUpload"} -checkInstanceType`
+      -streamFiles ${streamFiles.toString} ${if (waitOnUpload) "-waitOnUpload"} -checkInstanceType
 }

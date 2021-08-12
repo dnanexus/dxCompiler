@@ -41,6 +41,18 @@ object Assumptions {
     }
   }
 
+  /**
+    * Tests that dxda is installed and in the path.
+    */
+  lazy val dxdaCallable: Boolean = {
+    try {
+      SysUtils.execCommand("dx-download-agent version")
+      true
+    } catch {
+      case _: Throwable => false
+    }
+  }
+
   lazy val cwltoolCallable: Boolean = {
     val (retcode, stdout, _) = SysUtils.execCommand("cwltool --version", exceptionOnFailure = false)
     // TODO: pull the min cwl version from the bundled_dependencies.json file

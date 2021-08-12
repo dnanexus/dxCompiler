@@ -1,6 +1,6 @@
 package dx.executor.cwl
 
-import Assumptions.{cwltoolCallable, isLoggedIn}
+import Assumptions.{cwltoolCallable, dxdaCallable, isLoggedIn}
 import dx.api.{
   DiskType,
   DxAnalysis,
@@ -59,19 +59,30 @@ private case class ToolTestJobMeta(override val workerPaths: DxWorkerPaths,
   override def runJobScriptFunction(name: String,
                                     successCodes: Option[Set[Int]] = Some(Set(0)),
                                     retryCodes: Set[Int] = Set.empty): Unit = {
-    if (name == TaskExecutor.RunCommand) {
-      val script: Path = workerPaths.getCommandFile()
-      if (Files.exists(script)) {
-        // this will never fail due to the way the command script is written - instead
-        // we need to read the return code file
-        val (_, stdout, stderr) = SysUtils.execCommand(script.toString, exceptionOnFailure = false)
-        val rc = FileUtils.readFileContent(workerPaths.getReturnCodeFile()).trim.toInt
-        if (!successCodes.forall(_.contains(rc))) {
-          throw new Exception(
-              s"job script ${script} failed with return code ${rc}\nstdout:\n${stdout}\nstderr:\n${stderr}"
-          )
+    name match {
+      case TaskExecutor.DownloadDxda if dxdaCallable =>
+        val dxdaManifest = workerPaths.getDxdaManifestFile().toString
+        SysUtils.execCommand(
+            s"""bzip2 ${dxdaManifest} &&
+               |cd / &&
+               |dx-download-agent download ${dxdaManifest}.bz2""".stripMargin
+              .replaceAll("\n", " ")
+        )
+      case TaskExecutor.RunCommand =>
+        val script: Path = workerPaths.getCommandFile()
+        if (Files.exists(script)) {
+          // this will never fail due to the way the command script is written - instead
+          // we need to read the return code file
+          val (_, stdout, stderr) =
+            SysUtils.execCommand(script.toString, exceptionOnFailure = false)
+          val rc = FileUtils.readFileContent(workerPaths.getReturnCodeFile()).trim.toInt
+          if (!successCodes.forall(_.contains(rc))) {
+            throw new Exception(
+                s"job script ${script} failed with return code ${rc}\nstdout:\n${stdout}\nstderr:\n${stderr}"
+            )
+          }
         }
-      }
+      case _ => ()
     }
   }
 
@@ -99,7 +110,8 @@ private case class ToolTestJobMeta(override val workerPaths: DxWorkerPaths,
           )
       ),
       Constants.SourceCode -> JsString(CodecUtils.gzipAndBase64Encode(rawSourceCode)),
-      Constants.UseManifests -> JsBoolean(useManifestInputs)
+      Constants.UseManifests -> JsBoolean(useManifestInputs),
+      Constants.PathsAsObjects -> JsTrue
   )
 
   override def getExecutableDetail(name: String): Option[JsValue] = {
@@ -253,7 +265,7 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
     val outputsExpected = getExpectedOutputs(cwlName)
 
     // run the steps of task execution in order
-    taskExecutor.apply() shouldBe "task executed successfully"
+    taskExecutor.apply() shouldBe true
 
     if (outputsExpected.isDefined) {
       val outputs = if (useManifests) {
@@ -299,5 +311,9 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
 
   it should "handle in-line record type" in {
     runTask("record-in-format")
+  }
+
+  it should "handle nested input directory" in {
+    runTask("recursive-input-directory")
   }
 }

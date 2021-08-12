@@ -117,6 +117,8 @@ object Value {
             throw new Exception(s"null value for non-optional type ${innerType.get}")
           case (Some(TFile), f: VFile) if f.secondaryFiles.nonEmpty =>
             walkPaths(f.secondaryFiles, innerContext)
+          case (Some(TDirectory), f: VFolder) if f.listing.exists(_.nonEmpty) =>
+            walkPaths(f.listing.get, innerContext)
           case (Some(TDirectory), l: VListing) if l.items.nonEmpty =>
             walkPaths(l.items, innerContext)
           case (Some(TArray(_, true)), VArray(Vector())) =>
@@ -205,6 +207,8 @@ object Value {
             throw new Exception(s"null value for non-optional type ${innerType.get}")
           case (Some(TFile), f: VFile) if f.secondaryFiles.nonEmpty =>
             f.copy(secondaryFiles = transformPaths(f.secondaryFiles))
+          case (Some(TDirectory), f: VFolder) if f.listing.exists(_.nonEmpty) =>
+            f.copy(listing = Some(transformPaths(f.listing.get)))
           case (Some(TDirectory), l: VListing) if l.items.nonEmpty =>
             l.copy(items = transformPaths(l.items))
           case (Some(TArray(_, true)), VArray(Vector())) =>
