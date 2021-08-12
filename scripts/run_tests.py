@@ -423,7 +423,7 @@ cromwell_tests_list = [
     "read_write_json",
     "no_task_no_output_delete",
     "if_then_else_expressions",
-    "hello",
+    #"hello",
     "sub_workflow_no_output_block_import",
     "sub_workflow_no_outputs_in_block_import",
     "parallel_composite_uploads_on",
