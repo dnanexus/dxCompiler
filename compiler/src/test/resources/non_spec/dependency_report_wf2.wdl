@@ -1,7 +1,7 @@
 version 1.1
 
 # Imported in dependency_report_wf1.wdl
-# Input files are stored in dxCompiler_playground:/unit_tests/dependency_report.
+# Input files are stored in dxCompiler_playground:/test_data/dependency_report.
 # Their contents are not important; they only need to exist as platform files.
 
 task dependency_report_t1 {
