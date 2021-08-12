@@ -23,7 +23,7 @@ task dependency_report_t1 {
     }
   }
 
-  File body2 = "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G3fqPj00GqQkz9Fk5b260Xyg"
+  File body2 = "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:__5__"
 
   command <<<
   set -euxo pipefail
@@ -80,7 +80,7 @@ workflow dependency_report_wf2 {
     }
   }
 
-  File body1 = "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G3fqPg80GqQq14z25Yv4QJkF"
+  File body1 = "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:__6__"
 
   call dependency_report_t1 {
     input:
