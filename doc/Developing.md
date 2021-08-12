@@ -169,6 +169,10 @@ It's also possible to specify one test to run from the [/test](/test) directory 
 
 Check the test runner script `--help` for more options.
 
+### Test data on platform
+
+Any files that tests rely on should be stored in `dxCompiler_playground:/test_data/` on `staging`.
+
 ### Other sbt tips
 
 #### Cache
