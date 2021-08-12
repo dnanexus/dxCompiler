@@ -733,7 +733,11 @@ def build_test(tname, project, folder, version_id, compiler_flags):
         cmdline.append("-useManifests")
     cmdline += compiler_flags
     print(" ".join(cmdline))
-    oid = subprocess.check_output(cmdline).strip()
+    try:
+        oid = subprocess.check_output(cmdline).strip()
+    except subprocess.CalledProcessError as cpe:
+        print(f"error compiling {desc.source_file}\n  stdout: {cpe.stdout}\n  stderr: {cpe.stderr}")
+        raise
     return oid.decode("ascii")
 
 def ensure_dir(path):
