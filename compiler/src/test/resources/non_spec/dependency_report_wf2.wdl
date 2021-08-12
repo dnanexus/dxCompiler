@@ -92,8 +92,8 @@ workflow dependency_report_wf2 {
   call dependency_report_t2 {
     input:
       files = [
-        "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:__8__",
-        "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:__9__"
+        "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G4BV62Q0yzZjqf4F4KJvv1gG",
+        "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G4BV62j0yzZyvZ124KB0q46V"
       ]
   }
 
