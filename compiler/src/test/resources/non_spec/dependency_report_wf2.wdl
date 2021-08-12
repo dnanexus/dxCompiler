@@ -6,7 +6,7 @@ version 1.1
 
 task dependency_report_t1 {
   input {
-    File default = "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:__2__"
+    File default = "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G4BV6180yzZyvZ124KB0q46P"
     File pmeta
     File body1
   }
@@ -14,11 +14,11 @@ task dependency_report_t1 {
   parameter_meta {
     pmeta: {
       suggestions: [
-        "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:__3__"
+        "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G4BV61Q0yzZq60Jj4K5vfG92"
       ],
       choices: [
-        "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:__3__",
-        "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:__4__"
+        "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G4BV61Q0yzZq60Jj4K5vfG92",
+        "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G4BV61j0yzZgf6JQKxP4gQ3Y"
       ]
     }
   }
@@ -64,18 +64,18 @@ task dependency_report_t2 {
 
 workflow dependency_report_wf2 {
   input {
-    File default = "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:__2__"
+    File default = "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G4BV6180yzZyvZ124KB0q46P"
     File pmeta
   }
 
   parameter_meta {
     pmeta: {
       suggestions: [
-        "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:__3__"
+        "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G4BV61Q0yzZq60Jj4K5vfG92"
       ],
       choices: [
-        "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:__3__",
-        "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:__4__"
+        "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G4BV61Q0yzZq60Jj4K5vfG92",
+        "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G4BV61j0yzZgf6JQKxP4gQ3Y"
       ]
     }
   }

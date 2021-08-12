@@ -774,13 +774,13 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     desc.description match {
       case Some(d) => {
         d should include("app-BZ9ZQzQ02VP5gpkP54b96pYY")
-        d should include("__2__")
-        d should include("__4__")
-        d should include("__3__")
+        d should include("file-G4BV6180yzZyvZ124KB0q46P")
+        d should include("file-G4BV61j0yzZgf6JQKxP4gQ3Y")
+        d should include("file-G4BV61Q0yzZq60Jj4K5vfG92")
         d should include("__6__")
         d should include("__5__")
         d should include("__7__")
-        d should include("__1__")
+        d should include("file-G4BV6100yzZz17bx4JkQkybb")
         d should include("alpine:3.14")
         d should include("ubuntu:20.04")
         d should include("mem1_ssd2_x4")
