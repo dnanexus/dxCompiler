@@ -6,7 +6,7 @@ version 1.1
 import "dependency_report_wf2.wdl" as lib
 
 task dependency_report_t3 {
-  File body3 = "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G3fqPj80GqQkz9Fk5b260Xyk"
+  File body3 = "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:__1__"
 
   command <<<
   set -euxo pipefail
@@ -26,7 +26,7 @@ task dependency_report_t3 {
 
 workflow dependency_report_wf1 {
   input {
-    File default = "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G3fqPfQ0GqQpPZzy5YX0b017"
+    File default = "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:__2__"
     File pmeta
   }
 
