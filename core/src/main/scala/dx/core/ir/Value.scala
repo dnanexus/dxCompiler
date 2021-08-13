@@ -229,6 +229,7 @@ object Value {
             throw new Exception(
                 s"${other} is not one of the allowed symbols ${symbols.mkString(",")}"
             )
+          case (Some(TMulti.Any), _) => innerValue
           case (Some(TMulti(bounds)), _) =>
             bounds
               .collectFirstDefined { boundType =>

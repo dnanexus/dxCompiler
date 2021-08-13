@@ -57,8 +57,7 @@ private case class ToolTestJobMeta(override val workerPaths: DxWorkerPaths,
   override lazy val jobId: String = s"job-${Random.alphanumeric.take(24).mkString}"
 
   override def runJobScriptFunction(name: String,
-                                    successCodes: Option[Set[Int]] = Some(Set(0)),
-                                    retryCodes: Set[Int] = Set.empty): Unit = {
+                                    successCodes: Option[Set[Int]] = Some(Set(0))): Unit = {
     name match {
       case TaskExecutor.DownloadDxda if dxdaCallable =>
         val dxdaManifest = workerPaths.getDxdaManifestFile().toString

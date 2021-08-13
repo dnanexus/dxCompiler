@@ -193,7 +193,7 @@ case class CwlTaskExecutor(tool: Process,
 
   override protected def writeCommandScript(
       localizedInputs: Map[String, (Type, Value)]
-  ): (Map[String, (Type, Value)], Boolean, Option[Set[Int]], Set[Int]) = {
+  ): (Map[String, (Type, Value)], Boolean, Option[Set[Int]]) = {
     val inputs = CwlUtils.fromIR(localizedInputs, typeAliases, isInput = true)
     val metaDir = workerPaths.getMetaDir(ensureExists = true)
     // write the CWL and input files
@@ -265,12 +265,9 @@ case class CwlTaskExecutor(tool: Process,
         command,
         makeExecutable = true
     )
-    val (successCodes, retryCodes) = tool match {
-      case c: CommandLineTool =>
-        (Some(c.successCodes), c.temporaryFailCodes)
-      case _ => (Some(Set(0)), Set.empty[Int])
-    }
-    (localizedInputs, true, successCodes, retryCodes)
+    // We are testing the return code of cwltool, not the tool it is running, so we
+    // don't need to worry about success/temporaryFail/permanentFail codes.
+    (localizedInputs, true, Some(Set(0)))
   }
 
   private lazy val outputParams: Map[String, OutputParameter] = {
@@ -294,6 +291,9 @@ case class CwlTaskExecutor(tool: Process,
         case JsObject(outputs) => outputs
         case JsNull            => Map.empty[String, JsValue]
         case other             => throw new Exception(s"unexpected cwltool outputs ${other}")
+      }
+      if (logger.isVerbose) {
+        trace(s"cwltool outputs:\n${JsObject(allOutputs).prettyPrint}")
       }
       val cwlOutputs = outputParams.map {
         case (name, param: WorkflowOutputParameter) if param.sources.nonEmpty =>

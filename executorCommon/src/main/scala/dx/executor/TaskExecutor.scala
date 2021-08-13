@@ -243,11 +243,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
               // virtual file, or it is a remote file that needs its name changed - use the
               // localizer to determine the new path and then create a symbolic link.
               val sourcePath = f.basename.map(parentDir.resolve).getOrElse(path)
-              val newPath =
-                localizer.getLocalPath(
-                    fileResolver.fromPath(sourcePath, isDirectory = Some(false)),
-                    Some(parentDir)
-                )
+              val newPath = localizer
+                .getLocalPath(fileResolver.fromPath(sourcePath, isDirectory = Some(false)), parent)
               sourceToFinalFile += (f -> newPath)
               newPath
             case None if path.startsWith(streamingDir) && localizer.getTargetDir(fs).isDefined =>
@@ -316,17 +313,17 @@ abstract class TaskExecutor(jobMeta: JobMeta,
   /**
     * Generates and writes command script(s) to disk.
     * @param localizedInputs task inputs with localized files
-    * @return (updatedInputs, successCodes, retryCodes) where updated
+    * @return (updatedInputs, hasCommand, successCodes) where updated
     *         inputs is localizedInputs updated with any additional (non-input)
-    *         variables that may be required to evaluate the outputs,
-    *         successCodes are the return codes that indicate the script was
-    *         executed successfully, and retryCodes are the codes for which the
-    *         script should be retried. If successCodes is None, then all
-    *         non-retry codes are considered successful.
+    *         variables that may be required to evaluate the outputs, hasCommand
+    *         is whether a command script was actually written, and successCodes
+    *         are the return codes that indicate the script was executed
+    *         successfully. If successCodes is None, then all return codes are
+    *         considered successful.
     */
   protected def writeCommandScript(
       localizedInputs: Map[String, (Type, Value)]
-  ): (Map[String, (Type, Value)], Boolean, Option[Set[Int]], Set[Int])
+  ): (Map[String, (Type, Value)], Boolean, Option[Set[Int]])
 
   /**
     * Evaluates the outputs of the task. Returns mapping of output parameter
@@ -714,7 +711,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     if (logger.isVerbose) {
       val inputStr = fields
         .map {
-          case (name, (t, v)) => s"${name}: (${TypeSerde.toString(t)}, ${ValueSerde.toString(v)})"
+          case (name, (t, v)) =>
+            s"${name}: (${TypeSerde.toString(t)}, ${ValueSerde.toString(v, verbose = true)})"
         }
         .mkString("\n  ")
       trace(s"${description}:\n  ${inputStr}")
@@ -908,13 +906,11 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     // Evaluate the command script and writes it to disk. Inputs are supplemented with
     // any local file paths created when evaluating the command script and are serialized
     // for use in the next phase.
-    val (localizedInputs, hasCommand, successCodes, retryCodes) = writeCommandScript(
-        finalizedInputs
-    )
+    val (localizedInputs, hasCommand, successCodes) = writeCommandScript(finalizedInputs)
     logFields(localizedInputs, "Localized inputs")
     if (hasCommand) {
       // run the command script
-      jobMeta.runJobScriptFunction(TaskExecutor.RunCommand, successCodes, retryCodes)
+      jobMeta.runJobScriptFunction(TaskExecutor.RunCommand, successCodes)
     }
 
     // evaluate output expressions

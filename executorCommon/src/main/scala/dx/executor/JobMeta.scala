@@ -96,9 +96,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 
   def jobId: String
 
-  def runJobScriptFunction(name: String,
-                           successCodes: Option[Set[Int]] = Some(Set(0)),
-                           retryCodes: Set[Int] = Set.empty): Unit
+  def runJobScriptFunction(name: String, successCodes: Option[Set[Int]] = Some(Set(0))): Unit
 
   def rawJsInputs: Map[String, JsValue]
 
@@ -757,8 +755,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
 
 case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths.default,
                          override val dxApi: DxApi = DxApi.get,
-                         override val logger: Logger = Logger.get,
-                         maxJobScriptRetries: Int = 3)
+                         override val logger: Logger = Logger.get)
     extends JobMeta(workerPaths, dxApi, logger) {
   lazy val project: DxProject =
     dxApi.currentProject.getOrElse(throw new Exception("no current project"))
@@ -774,53 +771,22 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths
   }
 
   override def runJobScriptFunction(name: String,
-                                    successCodes: Option[Set[Int]] = Some(Set(0)),
-                                    retryCodes: Set[Int] = Set.empty): Unit = {
+                                    successCodes: Option[Set[Int]] = Some(Set(0))): Unit = {
     val command = s"bash -c 'source ${codeFile} && ${name}'"
+    logger.trace(s"Running job script function ${name}")
+    val (rc, stdout, stderr) = SysUtils.execCommand(command, exceptionOnFailure = false)
+    if (successCodes.forall(_.contains(rc))) {
+      logger.traceLimited(s"""Job script function ${name} exited with success code ${rc}
+                             |stdout:
+                             |${stdout}""".stripMargin)
 
-    def runOnce(attempt: Int = 0): Boolean = {
-      if (attempt == 0) {
-        logger.trace(s"Running job script function ${name}")
-      } else {
-        logger.trace(s"Retrying job script function ${name} (${attempt}/${maxJobScriptRetries})")
-      }
-      val (rc, stdout, stderr) = SysUtils.execCommand(command, exceptionOnFailure = false)
-      if (retryCodes.contains(rc)) {
-        logger.warning(s"""Job script function ${name} exited with temporary fail code ${rc}
-                          |stdout:
-                          |${stdout}
-                          |stderr:
-                          |${stderr}""".stripMargin)
-        false
-      } else if (successCodes.forall(_.contains(rc))) {
-        logger.traceLimited(s"""Job script function ${name} exited with success code ${rc}
-                               |stdout:
-                               |${stdout}""".stripMargin)
-        true
-      } else {
-        logger.error(s"""Job script function ${name} exited with permanent fail code ${rc}
-                        |stdout:
-                        |${stdout}
-                        |stderr:
-                        |${stderr}""".stripMargin)
-        throw new Exception(s"job script function ${name} exited with permanent fail code ${rc}")
-      }
-    }
-
-    if (retryCodes.nonEmpty) {
-      Iterator
-        .range(0, maxJobScriptRetries)
-        .map(runOnce)
-        .collectFirst {
-          case true => true
-        }
-        .orElse(
-            throw new Exception(
-                s"job script function ${name} did not exit successfully after ${maxJobScriptRetries} retries "
-            )
-        )
     } else {
-      runOnce()
+      logger.error(s"""Job script function ${name} exited with permanent fail code ${rc}
+                      |stdout:
+                      |${stdout}
+                      |stderr:
+                      |${stderr}""".stripMargin)
+      throw new Exception(s"job script function ${name} exited with permanent fail code ${rc}")
     }
   }
 

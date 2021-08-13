@@ -159,7 +159,7 @@ case class WdlTaskExecutor(task: TAT.Task,
 
   override protected def writeCommandScript(
       localizedInputs: Map[String, (Type, Value)]
-  ): (Map[String, (Type, Value)], Boolean, Option[Set[Int]], Set[Int]) = {
+  ): (Map[String, (Type, Value)], Boolean, Option[Set[Int]]) = {
     val inputs = WdlUtils.fromIR(localizedInputs, typeAliases.toMap)
     val inputValues = inputs.map {
       case (name, (_, v)) => name -> v
@@ -172,8 +172,7 @@ case class WdlTaskExecutor(task: TAT.Task,
       case (name, value) => name -> (inputAndPrivateVarTypes(name), value)
     })
     evaluator.applyCommand(task.command, WdlValueBindings(inputsWithPrivateVars)) match {
-      case command if command.trim.isEmpty =>
-        (updatedInputs, false, None, Set.empty[Int])
+      case command if command.trim.isEmpty => (updatedInputs, false, None)
       case command =>
         val generator = TaskCommandFileGenerator(logger)
         val runtime = createRuntime(inputsWithPrivateVars)
@@ -190,7 +189,7 @@ case class WdlTaskExecutor(task: TAT.Task,
             Some(resolvedImage, jobMeta.workerPaths)
         }
         generator.apply(Some(command), jobMeta.workerPaths, container)
-        (updatedInputs, true, runtime.returnCodes, Set.empty[Int])
+        (updatedInputs, true, runtime.returnCodes)
     }
   }
 

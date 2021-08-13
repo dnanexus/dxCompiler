@@ -477,17 +477,49 @@ object ValueSerde extends DefaultJsonProtocol {
     override def write(value: Value): JsValue = serialize(value)
   }
 
-  def toString(value: Value): String = {
+  def toString(value: Value, verbose: Boolean = false, indent: Int = 0): String = {
+    val prefix = " " * 2 * indent
+    def pathToString(p: PathValue): String = {
+      p match {
+        case f: VFile if verbose =>
+          Vector(
+              Some(s"${prefix}${f.uri}"),
+              f.basename.map(bn => s"basename: ${bn}"),
+              f.contents.map(c => s"contents: ${c}"),
+              Option.when(f.secondaryFiles.nonEmpty)(
+                  s"secondaryFiles:\n${f.secondaryFiles.map(toString(_, verbose = true, indent = indent + 2))}"
+              )
+          ).flatten.mkString(s"\n${prefix}  ")
+        case f: VFile => s"${prefix}${f.uri}"
+        case f: VFolder if verbose =>
+          Vector(
+              Some(s"${prefix}${f.uri}"),
+              f.basename.map(bn => s"basename: ${bn}"),
+              Option.when(f.listing.nonEmpty)(
+                  s"listing:\n${f.listing.get.map(toString(_, verbose = true, indent = indent + 2))}"
+              )
+          ).flatten.mkString(s"\n${prefix}  ")
+        case f: VFolder => s"${prefix}${f.uri}"
+        case l: VListing if verbose =>
+          s"${prefix}${l.basename}\n${prefix}  listing:\n${l.items
+            .map(toString(_, verbose = true, indent = indent + 2))}"
+        case l: VListing => s"${prefix}${l.basename}"
+      }
+    }
     value match {
-      case VInt(i)       => i.toString
-      case VFloat(f)     => f.toString
-      case VString(s)    => s
-      case VBoolean(b)   => b.toString
-      case f: VFile      => f.uri
-      case f: VFolder    => f.uri
-      case l: VListing   => l.basename
-      case VNull         => "null"
-      case VArray(items) => s"[${items.map(toString).mkString(",")}]"
+      case p: PathValue => pathToString(p)
+      case VInt(i)      => s"${prefix}${i.toString}"
+      case VFloat(f)    => s"${prefix}${f.toString}"
+      case VString(s)   => s"${prefix}${s}"
+      case VBoolean(b)  => s"${prefix}${b.toString}"
+      case VNull        => s"${prefix}null"
+      case VArray(items) if verbose =>
+        s"${prefix}[\n${items.map(toString(_, verbose = true, indent = indent + 1)).mkString("\n")}\n${prefix}]"
+      case VArray(items) => s"[${items.map(toString(_)).mkString(",")}]"
+      case VHash(fields) if verbose =>
+        s"${prefix}{\n${fields
+          .map { case (k, v) => s"${k}: ${toString(v, verbose = true, indent = indent + 1)}" }
+          .mkString("\n")}\n${prefix}}"
       case VHash(fields) => s"{${fields.map { case (k, v) => s"${k}: ${toString(v)}" }}}"
       case _             => throw new Exception(s"unexpected value ${value}")
     }

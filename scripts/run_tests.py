@@ -29,14 +29,16 @@ git_revision = subprocess.check_output(
 ).strip()
 test_files = {}
 
-test_failing = {
+expected_failure = {
     "bad_status",
     "bad_status2",
     "just_fail_wf",
     "missing_output",
     "docker_retry",
     "argument_list_too_long",
-    "diskspace_exhauster"
+    "diskspace_exhauster",
+    "symlink-illegal",
+    "docker-array-secondaryfiles.1"
 }
 
 test_compilation_failing = {"import_passwd"}
@@ -406,7 +408,6 @@ cromwell_tests_list = [
     "read_write_json",
     "no_task_no_output_delete",
     "if_then_else_expressions",
-    "hello",
     "sub_workflow_no_output_block_import",
     "sub_workflow_no_outputs_in_block_import",
     "parallel_composite_uploads_on",
@@ -1041,19 +1042,19 @@ def ensure_dir(path):
 
 def wait_for_completion(test_exec_objs):
     print("awaiting completion ...")
-    failures = []
-    for exec_obj in test_exec_objs:
+    failures = set()
+    for i, exec_obj in enumerate(test_exec_objs):
         tname = find_test_from_exec(exec_obj)
         desc = test_files[tname]
         try:
             exec_obj.wait_on_done()
-            print("Executable {} succeeded".format(desc.name))
+            print("Executable {}.{} succeeded".format(desc.name, i))
         except DXJobFailureError:
-            if tname in test_failing:
-                print("Executable {} failed as expected".format(desc.name))
+            if tname in expected_failure or "{}.{}".format(tname, i) in expected_failure:
+                print("Executable {}.{} failed as expected".format(desc.name, i))
             else:
-                cprint("Error: executable {} failed".format(desc.name), "red")
-                failures.append(tname)
+                cprint("Error: executable {}.{} failed".format(desc.name, i), "red")
+                failures.add(tname)
     print("tools execution completed")
     return failures
 
@@ -1168,7 +1169,7 @@ def run_test_subset(
     def verify_test(exec_obj, i):
         exec_desc = exec_obj.describe()
         tname = find_test_from_exec(exec_obj)
-        if tname in test_failing:
+        if tname in expected_failure:
             return None
         test_desc = test_files[tname]
         exec_outputs = extract_outputs(tname, exec_desc)
