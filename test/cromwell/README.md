@@ -46,11 +46,14 @@ The following tests from the Cromwell suite are invalid and have been updated:
   * sub_workflow_one_output_import
   * sub_workflow_var_refs
   * sub_workflow_var_refs_import
+* Assigning an Int value to a String call input:
+  * sub_workflow_interactions_scatter 
 * Reuse of names within the same scope
   * globbingBehavior
 * DNAnexus does not support `continueOnReturnCode` - workflow updated to use standard `returnCodes` runtime attribute;
   * continue_on_return_code
   * exit
+  * globbingBehavior
 
 The following tests from the Cromwell suite are invalid and will not pass on DNAnexus for the following reasons:
 
@@ -91,3 +94,5 @@ The following tests from the Cromwell suite require non-standard, Cromwell-speci
   * custom_mount_point
 * Divide-by-zero is not short-circuited
   * short_circuit
+* Depends on Cromwell options file
+  * default_runtime_attributes

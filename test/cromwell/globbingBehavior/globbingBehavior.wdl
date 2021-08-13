@@ -1,5 +1,8 @@
+version 1.1
 task writeFiles {
-  String dir
+  input {
+    String dir
+  }
   command <<<
     mkdir ${dir}
     echo "hullo" > ${dir}/hello.txt
@@ -34,12 +37,14 @@ task unexpectedReturnCode {
 
   runtime {
     docker: "ubuntu:latest"
-    continueOnReturnCode: 3
+    returnCodes: 3
   }
 }
 
 task writeLinks {
-  String dir
+  input {
+    String dir
+  }
   command <<<
     mkdir ${dir}
     cd ${dir}
@@ -66,7 +71,9 @@ task writeLinks {
 }
 
 workflow globbingBehavior {
-  String outputDir = "out"
+  input {
+    String outputDir = "out"
+  }
 
   call writeFiles { input: dir = outputDir }
 
