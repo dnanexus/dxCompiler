@@ -250,7 +250,6 @@ cromwell_invalid = {
     "afters",
     "afters_and_scatters",
     "custom_cacheworthy_attributes",
-    "parallel_composite_uploads_lib",
     "input_expressions",
     "missing_delete",
     "confirm_preemptible",
@@ -266,7 +265,6 @@ cromwell_invalid = {
     "hello_private_repo",
     "local_bourne",
     "papi_v2_gcsa",
-    "parallel_composite_uploads_off",
     "monitoring_log",
     "call_cache_capoeira_tes",
     "check_network_in_vpc",
@@ -280,6 +278,8 @@ cromwell_invalid = {
     "short_circuit",
     "top",
     "recursive_imports_no_subwf",
+    "parallel_composite_uploads_on",
+    "parallel_composite_uploads_off",
 }
 
 # tests taken from cromwell repository that fail execution:
@@ -425,7 +425,6 @@ cromwell_tests_list = [
     "if_then_else_expressions",
     "sub_workflow_no_output_block_import",
     "sub_workflow_no_outputs_in_block_import",
-    "parallel_composite_uploads_on",
     "sub_workflow_interactions_import",
     "workflow_output_declarations",
     "member_access",

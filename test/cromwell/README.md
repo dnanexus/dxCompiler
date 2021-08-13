@@ -79,6 +79,8 @@ The following tests from the Cromwell suite require non-standard, Cromwell-speci
   * call_cache_capoeira_tes
   * check_network_in_vpc
   * workbench_health_monitor_check
+  * parallel_composite_uploads_on
+  * parallel_composite_uploads_off
 * Non-standard `volatile` meta key
   * monitoring_image_script
 * TMPDIR is not a default environment variable in DNAnexus worker
