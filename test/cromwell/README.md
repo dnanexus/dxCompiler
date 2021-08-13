@@ -34,6 +34,8 @@ The following tests from the Cromwell suite will not pass on DNAnexus due to the
   * unscattered
 * Forward references not supported
   * inter_scatter_dependencies
+* Cannot have workflows with no stages
+  * recursive_imports_no_subwf
 
 The following tests from the Cromwell suite are invalid and have been updated:
 
