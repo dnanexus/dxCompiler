@@ -279,6 +279,7 @@ cromwell_invalid = {
     "custom_mount_point",
     "short_circuit",
     "top",
+    "recursive_imports_no_subwf",
 }
 
 # tests taken from cromwell repository that fail execution:
@@ -413,7 +414,6 @@ cromwell_tests_list = [
     "string_interpolation_optional",
     "none_literal",
     "sub_workflow_interactions_scatter",
-    "recursive_imports_no_subwf",
     "default_runtime_attributes",
     "sub_workflow_one_output_import",
     "sub_workflow_var_refs",
