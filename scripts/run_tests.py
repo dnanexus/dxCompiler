@@ -418,7 +418,7 @@ cromwell_tests_list = [
     "sub_workflow_one_output_import",
     "sub_workflow_var_refs",
     "sub_workflow_var_refs_import",
-    "globbingBehavior",
+    #"globbingBehavior",  # pending dxCompiler 87
     #"object_access",  # pending wdlTools 171
     #"read_write_json",  # pending wdlTools 171
     "no_task_no_output_delete",
