@@ -1117,9 +1117,9 @@ def run_executable(
 
     n = len(desc.dx_input)
     if n == 0:
-        return [run(-1)]
+        return [(0, run(-1))]
     else:
-        return [run(i) for i in range(n)]
+        return [(i, run(i)) for i in range(n)]
 
 
 def extract_outputs(tname, exec_obj) -> dict:
@@ -1159,7 +1159,7 @@ def run_test_subset(
             project, test_folder, tname, oid, debug_flag, delay_workspace_destruction, instance_type
         )
         test_exec_objs.extend(anl)
-    print("executables: " + ", ".join([a.get_id() for a in test_exec_objs]))
+    print("executables: " + ", ".join([a[1].get_id() for a in test_exec_objs]))
 
     # Wait for completion
     failed_execution = wait_for_completion(test_exec_objs)
@@ -1189,7 +1189,7 @@ def run_test_subset(
                 return anl_name
 
     failed_verification = []
-    for i, exec_obj in enumerate(test_exec_objs):
+    for i, exec_obj in test_exec_objs:
         failed_name = verify_test(exec_obj, i)
         if failed_name is not None:
             failed_verification.append(failed_name)

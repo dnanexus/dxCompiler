@@ -242,9 +242,11 @@ abstract class TaskExecutor(jobMeta: JobMeta,
               // Either we are localizing into a specific directory, the path is a local or a
               // virtual file, or it is a remote file that needs its name changed - use the
               // localizer to determine the new path and then create a symbolic link.
-              val sourcePath = f.basename.map(parentDir.resolve).getOrElse(path)
+              val pathToLocalize = f.basename.map(parentDir.resolve).getOrElse(path)
               val newPath = localizer
-                .getLocalPath(fileResolver.fromPath(sourcePath, isDirectory = Some(false)), parent)
+                .getLocalPath(fileResolver.fromPath(pathToLocalize, isDirectory = Some(false)),
+                              parent)
+              Files.createSymbolicLink(newPath, path)
               sourceToFinalFile += (f -> newPath)
               newPath
             case None if path.startsWith(streamingDir) && localizer.getTargetDir(fs).isDefined =>

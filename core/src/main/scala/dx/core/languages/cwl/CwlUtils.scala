@@ -33,9 +33,9 @@ object CwlUtils {
   /**
     * CWL has a "null" type. When used alone, it means the field
     * only accepts a null value. This is not able to be represented
-    * natively, so instead we use a TSchema.
+    * natively, so instead we use an optional schema type.
     */
-  val NullSchema: TSchema = TSchema("null", TreeSeqMap.empty)
+  val NullSchema: Type = TOptional(TSchema("null", TreeSeqMap.empty))
 
   def isNullSchema(t: TSchema): Boolean = {
     t.name == "null"
