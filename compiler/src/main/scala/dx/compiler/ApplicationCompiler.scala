@@ -225,7 +225,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         // If source project not specified for Docker image file, try to find it
         val sourceProject = dxfile.project.getOrElse(
             Try {
-              dxApi.getObject(id).describe(Set(Field.Project)) match {
+              dxApi.getObject(id).describe() match {
                 case f: DxFileDescribe => DxProject.apply(f.project)(dxApi)
                 case _                 => throw new RuntimeException(s"Expected ${id} to be a file")
               }
