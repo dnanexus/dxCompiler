@@ -1,6 +1,16 @@
 package dx.compiler
 
-import dx.api.{DxAccessLevel, DxApi, DxInstanceType, DxPath, DxUtils, InstanceTypeDB}
+import dx.api.{
+  DxAccessLevel,
+  DxApi,
+  DxFileDescribe,
+  DxInstanceType,
+  DxPath,
+  DxProject,
+  DxUtils,
+  Field,
+  InstanceTypeDB
+}
 import dx.core.Constants
 import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir._
@@ -11,12 +21,7 @@ import dx.translator.ExtrasJsonProtocol._
 import dx.util.{CodecUtils, Logger}
 import spray.json._
 import wdlTools.generators.Renderer
-import dx.api.DxFileDescribe
-import dx.api.Field
-import scala.util.Try
-import scala.util.Success
-import scala.util.Failure
-import dx.api.DxProject
+import scala.util.{Failure, Success, Try}
 
 object ApplicationCompiler {
   val DefaultAppletTimeoutInDays = 2
@@ -229,7 +234,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
               case Failure(ex)      => throw new RuntimeException(s"Unable to locate file ${id}")
             }
         )
-        dxApi.cloneObject(id, sourceProject, project, folder)
+        dxApi.cloneDataObject(id, sourceProject, project, folder)
       }
       case _ => // Do nothing
     }
