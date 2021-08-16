@@ -25,6 +25,7 @@ default_instance_type = "mem1_ssd1_v2_x4"
 
 git_revision = subprocess.check_output(["git", "describe", "--always", "--dirty", "--tags"]).strip()
 test_files = {}
+
 test_failing = {
     "bad_status",
     "bad_status2",
@@ -34,6 +35,8 @@ test_failing = {
     "argument_list_too_long",
     "diskspace_exhauster"
 }
+
+test_compilation_failing = {"import_passwd"}
 
 wdl_v1_list = [
     # calling native dx applets/apps
@@ -70,7 +73,7 @@ wdl_v1_list = [
     "map_file_key",
 
     # defaults and parameter passing
-    "top",
+    "top_wf",
     "subworkflow_with_default",
 
     # can we download from a container?
@@ -216,13 +219,233 @@ doc_tests_list = [
     "bwa_mem"
 ]
 
+cromwell_key_error_list = [
+    "http_inputs",
+    "drs_usa_hca",
+    "drs_usa_jdr",
+]
+
+# These are cromwell tests that won't run on DNAnexus - see README.txt
+cromwell_invalid = {
+    "local_backend",
+    "string_interpolation",
+    "call_cache_hit_prefixes",
+    "declarations",
+    "reference_disk_test",
+    "optional_parameter",
+    "sub",
+    "sub_sub",
+    "echo",
+    "sub_workflow_no_output",
+    "recursive_imports",
+    "large_final_workflow_outputs_dir",
+    "input_from_bucket_with_requester_pays",
+    "optional_declarations",
+    "sub_workflow_interactions",
+    "unscattered",
+    "inter_scatter_dependencies",
+    "docker_alpine",
+    "read_write_functions",
+    "afters_and_ifs",
+    "afters",
+    "afters_and_scatters",
+    "custom_cacheworthy_attributes",
+    "input_expressions",
+    "missing_delete",
+    "confirm_preemptible",
+    "call_cache_capoeira_jes",
+    "dedup_localizations_papi_v2",
+    "papi_v2_log",
+    "papi_v2_plain_detritus",
+    "call_cache_capoeira_local",
+    "backendWithNoDocker",
+    "docker_image_cache_true",
+    "dummy_scatter",
+    "fofn_caching",
+    "hello_private_repo",
+    "local_bourne",
+    "papi_v2_gcsa",
+    "monitoring_log",
+    "call_cache_capoeira_tes",
+    "check_network_in_vpc",
+    "tmp_dir",
+    "long_cmd",
+    "workbench_health_monitor_check",
+    "monitoring_image_script",
+    "docker_size_dockerhub",
+    "docker_size_gcr",
+    "custom_mount_point",
+    "short_circuit",
+    "top",
+    "recursive_imports_no_subwf",
+    "parallel_composite_uploads_on",
+    "parallel_composite_uploads_off",
+    "default_runtime_attributes",
+}
+
+# tests taken from cromwell repository that fail execution:
+cromwell_failed_exec = [
+    # will be supported after merging #87
+    #"continue_on_return_code",
+    #"exit",
+    # APPS-759
+    #"empty_scatter",
+]
+
+# tests taken from cromwell repository
+cromwell_tests_list = [
+    "null_input_values",
+    "dont_strip_line_prefix",
+    "non_root_default_user",
+    "memory_units",
+    "cacheWithinWF",
+    "dot_dir_stuck_running",
+    "empty_string",
+    "floating_tags",
+    "array_literal_locations",
+    "stdout_delete",
+    "sub_workflow_delete",
+    "no_output_delete",
+    "exhaustive_delete",
+    "scatter_delete",
+    "collections_delete",
+    "hello_delete",
+    "sub_workflow_delete_import",
+    "no_cache_delete",
+    "gcs_path_ending_with_newline",
+    "readFromCache",
+    "sizerelativepath",
+    "subworkflow",
+    "b",
+    "c",
+    "a",
+    "d",
+    "sub_sub_sub",
+    "array_io",
+    "simple_if",
+    "single_to_array_conversion",
+    "coerce_to_array_of_optionals",
+    "wdl_function_locations",
+    "workflow_output_paths",
+    "sub_function",
+    "public_http_import",
+    "control_chars",
+    "prefix",
+    "write_lines_files",
+    "cached_copy",
+    "read_tsv",
+    "custom_entrypoint",
+    "square",
+    "papi_cpu_platform",
+    "complex_types_files",
+    "file_evaluator_identifier_lookups",
+    "non_root_specified_user",
+    "write_lines",
+    "workflow_output_paths_colliding",
+    "jes_labels",
+    "localization_sanity_papi_v2",
+    "recimp_nosubwf_outer",
+    "recimp_nosubwf_inner",
+    "globbingindex",
+    "postfix_quantifiers",
+    "length",
+    "wdl_empty_glob",
+    "output_filename_interpolation",
+    "aliased_subworkflows",
+    "docker_image_cache_false",
+    "curl",
+    "symlink_localization",
+    "error_10_preemptible",
+    "multiline_command_line",
+    "use_cacheCopy_dir",
+    "writeToCache",
+    "cacheBetweenWF",
+    "lots_of_inputs",
+    "local_gcs",
+    "read_write_json_roundtrip_develop",
+    "read_write_json_roundtrip",
+    "checkpointing",
+    "cromwell_restart",
+    "space",
+    "arrays_scatters_ifs",
+    "declarations_as_nodes",
+    "variable_scoping",
+    "sub_workflow_decls",
+    "input_mirror",
+    "sub_workflow_hello_world_import",
+    "sub_workflow_hello_world",
+    "volatile_disables_cache",
+    "file_outputs_from_input",
+    "write_tsv",
+    "final_call_logs_dir",
+    "subdirectory",
+    "input_localization",
+    "scattered",
+    "filearrayoutput",
+    "array_io",
+    "docker_hash_quay",
+    "docker_hash_gcr",
+    "workflow_type_and_version_wdl",
+    "dontglobinputs",
+    "globbingscatter",
+    "ifs_in_scatters",
+    "nested_lookups",
+    "simple_if",
+    "declarations_in_ifs",
+    "lots_of_nesting",
+    "ifs_upstream_and_downstream",
+    "subworkflows_in_ifs",
+    "scatters_in_ifs",
+    "simple_if_workflow_outputs",
+    "scattergather",
+    "map_workflow",
+    "forkjoin",
+    "scatter_chain",
+    "output_redirection",
+    "workflowenginefunctions",
+    "stdout_stderr_passing",
+    "scatter",
+    "siblings_scatter",
+    "simple_scatter",
+    "prepare_scatter_gather",
+    "multiplesourcedarray",
+    "passingfiles",
+    "referencingpreviousinputsandoutputs",
+    "engine_functions",
+    #"string_interpolation_optional",  # pending wdlTools 170
+    #"none_literal",  # pending wdlTools 170
+    "sub_workflow_interactions_scatter",
+    "sub_workflow_one_output_import",
+    "sub_workflow_var_refs",
+    "sub_workflow_var_refs_import",
+    #"globbingBehavior",  # pending dxCompiler 87
+    #"object_access",  # pending wdlTools 171
+    #"read_write_json",  # pending wdlTools 171
+    "no_task_no_output_delete",
+    "if_then_else_expressions",
+    "sub_workflow_no_output_block_import",
+    "sub_workflow_no_outputs_in_block_import",
+    "sub_workflow_interactions_import",
+    "workflow_output_declarations",
+    "member_access",
+    "select_functions",
+    "dollars_in_strings",
+    "workflow_name_length_ok",
+    "importer_ok",
+    "read_write_map",
+    "docker_image_cache_unspecified",
+    "subworkflow",
+    "defined_function",
+    "workflow_engine_functions",
+]
+
 # these are tests that take a long time to run
 long_test_list = [
     "diskspace_exhauster"  # APPS-749
 ]
 
 medium_test_list = wdl_v1_list + wdl_v1_1_list + docker_test_list + special_flags_list + cwl_tools
-large_test_list = medium_test_list + draft2_test_list + single_tasks_list + doc_tests_list + long_test_list
+large_test_list = medium_test_list + draft2_test_list + single_tasks_list + doc_tests_list + long_test_list + cromwell_tests_list
 
 test_suites = {
     'CI': ci_test_list,
@@ -233,7 +456,8 @@ test_suites = {
     'docker': docker_test_list,
     'native': ["call_native", "call_native_v1"],
     'docs': doc_tests_list,
-    'cwl_conformance': cwl_conformance
+    'cwl_conformance': cwl_conformance,
+    'cromwell': cromwell_tests_list
 }
 
 # Tests with the reorg flags
@@ -507,7 +731,11 @@ def build_test(tname, project, folder, version_id, compiler_flags):
         cmdline.append("-useManifests")
     cmdline += compiler_flags
     print(" ".join(cmdline))
-    oid = subprocess.check_output(cmdline).strip()
+    try:
+        oid = subprocess.check_output(cmdline).strip()
+    except subprocess.CalledProcessError as cpe:
+        print(f"error compiling {desc.source_file}\n  stdout: {cpe.stdout}\n  stderr: {cpe.stderr}")
+        raise
     return oid.decode("ascii")
 
 def ensure_dir(path):
@@ -866,15 +1094,19 @@ def compile_tests_to_project(trg_proj,
     runnable = {}
     has_errors = False
     for tname in test_names:
+        specific_applet_folder = "{}/{}".format(applet_folder, tname)
         oid = None
         if lazy_flag:
-            oid = lookup_dataobj(tname, trg_proj, applet_folder)
+            oid = lookup_dataobj(tname, trg_proj, specific_applet_folder)
         if oid is None:
             c_flags = compiler_flags[:] + compiler_per_test_flags(tname)
             try:
-                oid = build_test(tname, trg_proj, applet_folder, version_id, c_flags)
+                oid = build_test(tname, trg_proj, specific_applet_folder, version_id, c_flags)
             except subprocess.CalledProcessError:
-                if delay_compile_errors:
+                if tname in test_compilation_failing:
+                    print("Workflow {} compilation failed as expected".format(tname))
+                    continue
+                elif delay_compile_errors:
                     traceback.print_exc()
                     has_errors = True
                 else:

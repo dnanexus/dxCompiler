@@ -198,27 +198,35 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
               throw new Exception(s"unexpected non-local file ${other}")
           }
       }
-      val delocalizedPathToUri = jobMeta
-        .uploadOutputFiles(filesToUpload.map {
-          case (name, localFileSources) => name -> localFileSources.map(_.canonicalPath)
-        })
-        .map {
-          case (path, dxFile) => path -> dxFile.asUri
+      val delocalizedOutputs = if (filesToUpload.nonEmpty) {
+        val delocalizedPathToUri = jobMeta
+          .uploadOutputFiles(filesToUpload.map {
+            case (name, localFileSources) => name -> localFileSources.map(_.canonicalPath)
+          })
+          .map {
+            case (path, dxFile) => path -> dxFile.asUri
+          }
+        // Replace the local paths in the output values with URIs. This requires
+        // two look-ups: first to get the absolute Path associated with the file
+        // value (which may be relative or absolute), and second to get the URI
+        // associated with the Path. Returns an Optional[String] because optional
+        // outputs may be null.
+        val delocalizingUriToPath =
+          filesToUpload.values.flatten.map(local => local.address -> local.canonicalPath).toMap
+
+        def resolveUri(value: String): Option[String] = {
+          delocalizingUriToPath.get(value) match {
+            case Some(path) => delocalizedPathToUri.get(path)
+            case _          => None
+          }
         }
-      // Replace the local paths in the output values with URIs. This requires
-      // two look-ups: first to get the absoulte Path associated with the file
-      // value (which may be relative or absolute), and second to get the URI
-      // associated with the Path. Returns an Optional[String] because optional
-      // outputs may be null.
-      val delocalizingUriToPath =
-        filesToUpload.values.flatten.map(local => local.address -> local.canonicalPath).toMap
-      def resolveUri(value: String): Option[String] = {
-        delocalizingUriToPath.get(value) match {
-          case Some(path) => delocalizedPathToUri.get(path)
-          case _          => None
-        }
+
+        // the resolve function only handles URIs for files being uploaded,
+        // we want to ignore any files that are non-local
+        delocalizeOutputFiles(env, resolveUri, ignoreMissingUris = true)
+      } else {
+        env
       }
-      val delocalizedOutputs = delocalizeOutputFiles(env, resolveUri)
       jobMeta.createOutputLinks(delocalizedOutputs)
     }
   }

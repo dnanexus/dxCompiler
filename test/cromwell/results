@@ -1,0 +1,93 @@
+selection_functions -> output created from outputs, if (false) {....} - does not exist in the environment.
+
+http_inputs parallel_composite_uploads_on, parallel_composite_uploads_lib - KeyError: 'parallel_composite_uploads_lib'
+
+no_task_no_output_delete - InvalidInput: Expected the "outputs.outputSource" field of output parameter "notUsed" to be a $dnanexus_link referencing a stage output field
+
+sub_workflow_interactions_scatter - [error] Error creating translator for <path-to-dx-compiler>/test/cromwell/sub_workflow_interactions_scatter/sub_workflow_interactions_scatter.wdl
+java.io.FileNotFoundException: Path does not exist <path-to-dxcompiler>/sub_workflow_interactions_import.wdl
+
+local_backend -- inputs error...
+
+sub && sub_sub --
+[error] Error translating /Users/mhrvol-cf/Desktop/projects/dxCompiler/test/cromwell/sub_sub/sub_sub.wdl to IR
+java.lang.Exception: callable(s) Set(wf) appears multiple times with different definitions
+
+string_interpolation_optional.wdl, none_literal --  invalid runtime keyword docker at 17:4-17:27 - `docker: "ubuntu:latest"`
+
+
+large_final_workflow_outputs_dir.wdl, input_expressions -
+java.lang.Exception: Internal error: (ValueString(gs://genomics-public-data/resources/broad/hg38/v0/Homo_sapiens_assembly38.dbsnp138.vcf,T_String,Double)) requires evaluation, which requires constructing an output applet and a stage
+
+if_then_else_expressions -  Conditional branches String, Int are not coercible to a common type
+
+input_from_bucket_with_requester_pays - Error translating inputs
+java.lang.Exception: Project gs not found
+
+string_interpolation, local_backend, call_cache_hit_prefixes, hello, declarations, reference_disk_test  - inputs error...
+
+
+read_write_functions - wdlTools.types.TypeException: Invoking stdlib function write_tsv with badly typed arguments
+
+dollars_in_strings -  Error translating /Users/mhrvol-cf/Desktop/projects/dxCompiler/test/cromwell/dollars_in_strings/dollars_in_strings.wdl to IR
+java.lang.Exception: s1 does not exist in the environment.
+
+recursive_imports_no_subwf, default_runtime_attributes --  java.util.NoSuchElementException: empty.head
+
+sub_workflow_one_output_import, sub_workflow_no_output_block_import, sub_workflow_no_outputs_in_block_import, sub_workflow_no_output  - Int is not coercible to String
+
+optional_declarations -  mismatched input 'strings'
+
+
+
+globbingBehavior - [error] Error creating translator for /Users/mhrvol-cf/Desktop/projects/dxCompiler/test/cromwell/globbingBehavior/globbingBehavior.wdl
+dx.util.DuplicateBindingException: name(s) symLinkContents_contents,specificDirectory_contents,hardLinkContents_contents,strInterpolation_contents,callDirectory_contents,easyGlob_contents,origFileContents_contents already exists in scope
+
+object_access - Expression obj_in.a in the command section has type T_Any, which is not coercible to a string at 32:11-32:19
+
+afters_and_ifs -  wdlTools.syntax.SyntaxException: invalid runtime keyword backend at 40:4-40:28
+afters -  wdlTools.syntax.SyntaxException: invalid runtime keyword backend at 35:4-35:28
+afters_and_scatters -  wdlTools.syntax.SyntaxException: invalid runtime keyword backend at 37:4-37:28
+
+sub_workflow_var_refs, sub_workflow_var_refs_import - sal_len value salutation_length of type String is not coercible to Int at 14:4-14:35
+
+echo - name echo appears with two different callable definitions
+
+optional_parameter - wdlTools.types.TypeException: Expression unsupplied has type Optional[Array[Int]], which is not coercible to Array[String] at 53:38-53:48
+
+inter_scatter_dependencies -- wdlTools.types.TypeException: Identifier mirror2 is not defined at 37:40-37:47 in ...
+                          Invalid member access ExprIdentifier(mirror2,T_Any) at 37:40-37:47
+
+sub_workflow_interactions -- extraneous input '}' expecting {<EOF>, 'import', 'task'} at } at 32:0-32:0
+
+sub_workflow_interactions_import - [error] InvalidInput: Expected the "outputs.outputSource" field of output parameter "someStringOutput" to be a $dnanexus_link referencing a stage output field
+
+workflow_output_declarations - out2 does not exist in the environment.
+
+member_access, read_write_json, composedenginefunctions, taskless_engine_functions --  WDL code is syntactically valid BUT it fails type-checking
+
+
+custom_cacheworthy_attributes -- invalid runtime keyword cacheworthy_attribute at 12:8-12:33
+
+unscattered - * in output problem
+
+
+recursive_imports -  callable(s) Set(hello) appears multiple times with different definitions
+
+
+_____________' runs ________
+
+ docker_size_gcr,docker_size_dockerhub, exit, fofn_caching, local_bourne, monitoring_image_script, subworkflow, continue_on_return_code, empty_scatter - Error: executable <> failed
+
+ gcs_file_name_with_newline_in_the_middle, parallel_composite_uploads_off, call_cache_capoeira_jes, papi_v2_plain_detritus - the class of the output field "out" was "file" whereas the class of the input field "out_file_path" was "string",
+
+ echo_task - No value found for I/O spec field "s",
+
+
+ sub_decls, hello_private_repo - inputs, not found.
+
+"workflow_name_length_ok", "importer_ok" - Expected the "outputs.outputSource" field of output parameter "s" to be a $dnanexus_link referencing a stage output field
+
+
+ monitoring_log - workflow-G3Kv6F80yzZb88Xq9BZ5bKBp, analysis-G3Kv74j0yzZfZy0599ykjPZx
+ sizerelativepath - workflow-G3KvGbj0yzZgJbfZGpp7PfgK, analysis-G3KvGfj0yzZV1V8X98yjFFfg
