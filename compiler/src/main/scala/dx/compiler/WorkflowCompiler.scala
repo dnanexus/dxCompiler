@@ -21,7 +21,7 @@ case class WorkflowCompiler(extras: Option[Extras],
                             logger: Logger = Logger.get,
                             project: DxProject,
                             folder: String)
-    extends ExecutableCompiler(extras, parameterLinkSerializer, dxApi, project, folder) {
+    extends ExecutableCompiler(extras, parameterLinkSerializer, dxApi) {
 
   private def workflowInputParameterToNative(parameter: Parameter,
                                              stageInput: StageInput): Vector[JsValue] = {

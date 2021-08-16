@@ -50,7 +50,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
                                logger: Logger = Logger.get,
                                project: DxProject,
                                folder: String)
-    extends ExecutableCompiler(extras, parameterLinkSerializer, dxApi, project, folder) {
+    extends ExecutableCompiler(extras, parameterLinkSerializer, dxApi) {
 
   // renderer for job script templates
   private lazy val renderer = Renderer()
