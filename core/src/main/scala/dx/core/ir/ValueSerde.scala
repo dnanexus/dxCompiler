@@ -129,6 +129,9 @@ object ValueSerde extends DefaultJsonProtocol {
     inner(value)
   }
 
+  /**
+    * Wrap value of associated with `Any` type.
+    */
   def wrapValue(jsValue: JsValue, mustNotBeWrapped: Boolean = false): JsValue = {
     jsValue match {
       case JsObject(fields) if !fields.contains(WrappedValueKey) =>

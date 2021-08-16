@@ -695,7 +695,8 @@ def download_dxfile(dxfile):
 # expected_val is a serialized CwlFile
 def compare_result_file(result, expected_val, field_name, tname, project, verbose=True):
     if "checksum" in expected_val:
-        algo, expected_checksum = expected_val["checksum"].split("$")
+        expected_checksum = expected_val["checksum"]
+        algo = expected_checksum.split("$")[0]
     else:
         algo = None
         expected_checksum = None
@@ -916,14 +917,25 @@ def compare_result_path(result, expected_val, field_name, tname, project, verbos
     elif cls in {"Directory", "Folder"} and expected_cls in {"Directory", "Folder"}:
         return compare_result_directory(result, expected_val, field_name, tname, project, verbose)
     else:
+        cprint("Analysis {} gave unexpected results".format(tname), "red")
+        cprint(
+            "Field {} should be ({}), actual = ({})".format(
+                field_name, len(expected_val), len(result)
+            ),
+            "red",
+        )
         return False
 
 
 # Check that a workflow returned the expected result for
 # a [key]
 def validate_result(tname, exec_outputs: dict, key, expected_val, project):
-    if not (exec_outputs and expected_val):
-        return False
+    if exec_outputs is None:
+        if expected_val is None:
+            return True
+        else:
+            cprint("Outputs missing for {}".format(tname), "red")
+            return False
 
     desc = test_files[tname]
     # Extract the key. For example, for workflow "math" returning
@@ -956,31 +968,73 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
                 "red",
             )
             return False
-        if isinstance(result, dict) and "___" in result:
-            result = result["___"]
-        if isinstance(result, list) and isinstance(expected_val, list):
-            result = list(sorted(filter(lambda x: x is not None, result)))
-            expected_val = list(sorted(filter(lambda x: x is not None, expected_val)))
-        if isinstance(expected_val, dict) and (
-            expected_val.get("class") in {"File", "Directory"} or
-            expected_val.get("type") in {"File", "Folder"}
-        ):
-            compare_result_path(result, expected_val, field_name1, tname, project)
-        else:
-            if isinstance(result, dict) and result.get("type") == "File" and "uri" in result:
-                result = result["uri"]
-            if isinstance(result, dict) and "$dnanexus_link" in result:
-                result = download_dxfile(link_to_dxfile(result, project))
-            if str(result).strip() != str(expected_val).strip():
+
+        def compare_values(expected, actual, field):
+            if isinstance(actual, dict) and "___" in actual:
+                actual = actual["___"]
+            if isinstance(actual, dict) and "wrapped___" in actual:
+                actual = actual["wrapped___"]
+
+            if isinstance(actual, list) and isinstance(expected, list):
+                actual = list(sorted(filter(lambda x: x is not None, actual)))
+                expected = list(sorted(filter(lambda x: x is not None, expected)))
+                if len(actual) != len(expected):
+                    cprint("Analysis {} gave unexpected results".format(tname), "red")
+                    cprint(
+                        "Field {} should have length ({}), actual = ({})".format(
+                            field, len(expected), len(actual)
+                        ),
+                        "red",
+                    )
+                    return False
+                for i, (e, a) in enumerate(zip(expected, actual)):
+                    if not compare_values(e, a, "{}[{}]".format(field, i)):
+                        return False
+                else:
+                    return True
+
+            if isinstance(expected, dict) and (
+                expected.get("class") in {"File", "Directory"} or
+                expected.get("type") in {"File", "Folder"}
+            ):
+                return compare_result_path(actual, expected, field_name1, tname, project)
+
+            if isinstance(actual, dict) and actual.get("type") == "File" and "uri" in actual:
+                actual = actual["uri"]
+            if isinstance(actual, dict) and "$dnanexus_link" in actual:
+                actual = download_dxfile(link_to_dxfile(actual, project))
+
+            if isinstance(actual, dict) and isinstance(expected, dict):
+                expected_keys = set(expected.keys())
+                actual_keys = set(expected.keys())
+                if expected_keys != actual_keys:
+                    cprint("Analysis {} gave unexpected results".format(tname), "red")
+                    cprint(
+                        "Field {} should have keys ({}), actual = ({})".format(
+                            field, expected_keys, actual_keys
+                        ),
+                        "red",
+                    )
+                    return False
+                for k in expected_keys:
+                    if not compare_values(expected[k], actual[k], "{}[{}]".format(field, k)):
+                        return False
+                else:
+                    return True
+
+            if str(actual).strip() != str(expected).strip():
                 cprint("Analysis {} gave unexpected results".format(tname), "red")
                 cprint(
                     "Field {} should be ({}), actual = ({})".format(
-                        field_name1, expected_val, result
+                        field, expected, actual
                     ),
                     "red",
                 )
                 return False
-        return True
+
+            return True
+
+        return compare_values(expected_val, result, field_name1)
     except:
         traceback.print_exc()
         return False
@@ -1215,7 +1269,7 @@ def run_test_subset(
         with open(".failed", "wt") as out:
             all_failed = [
                 tname.split(".")[0]
-                for tname in failed_execution + failed_verification
+                for tname in (set(failed_execution) | set(failed_verification))
             ]
             out.write("\n".join(all_failed))
         raise RuntimeError("Failed")

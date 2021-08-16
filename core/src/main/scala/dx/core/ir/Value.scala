@@ -115,11 +115,11 @@ object Value {
           case (_, VNull) if optional => innerContext
           case (_, VNull) =>
             throw new Exception(s"null value for non-optional type ${innerType.get}")
-          case (Some(TFile), f: VFile) if f.secondaryFiles.nonEmpty =>
+          case (Some(TFile) | None, f: VFile) if f.secondaryFiles.nonEmpty =>
             walkPaths(f.secondaryFiles, innerContext)
-          case (Some(TDirectory), f: VFolder) if f.listing.exists(_.nonEmpty) =>
+          case (Some(TDirectory) | None, f: VFolder) if f.listing.exists(_.nonEmpty) =>
             walkPaths(f.listing.get, innerContext)
-          case (Some(TDirectory), l: VListing) if l.items.nonEmpty =>
+          case (Some(TDirectory) | None, l: VListing) if l.items.nonEmpty =>
             walkPaths(l.items, innerContext)
           case (Some(TArray(_, true)), VArray(Vector())) =>
             throw new Exception("empty array for non-empty array type")
@@ -146,6 +146,7 @@ object Value {
             throw new Exception(
                 s"${other} is not one of the allowed symbols ${symbols.mkString(",")}"
             )
+          case (Some(TMulti.Any), _) => innerContext
           case (Some(TMulti(bounds)), _) =>
             bounds
               .collectFirstDefined { boundType =>
@@ -205,11 +206,11 @@ object Value {
           case (_, VNull) if optional => VNull
           case (_, VNull) =>
             throw new Exception(s"null value for non-optional type ${innerType.get}")
-          case (Some(TFile), f: VFile) if f.secondaryFiles.nonEmpty =>
+          case (Some(TFile) | None, f: VFile) if f.secondaryFiles.nonEmpty =>
             f.copy(secondaryFiles = transformPaths(f.secondaryFiles))
-          case (Some(TDirectory), f: VFolder) if f.listing.exists(_.nonEmpty) =>
+          case (Some(TDirectory) | None, f: VFolder) if f.listing.exists(_.nonEmpty) =>
             f.copy(listing = Some(transformPaths(f.listing.get)))
-          case (Some(TDirectory), l: VListing) if l.items.nonEmpty =>
+          case (Some(TDirectory) | None, l: VListing) if l.items.nonEmpty =>
             l.copy(items = transformPaths(l.items))
           case (Some(TArray(_, true)), VArray(Vector())) =>
             throw new Exception("empty array for non-empty array type")
