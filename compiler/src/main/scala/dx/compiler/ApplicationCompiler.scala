@@ -8,7 +8,6 @@ import dx.api.{
   DxPath,
   DxProject,
   DxUtils,
-  Field,
   InstanceTypeDB
 }
 import dx.core.Constants
