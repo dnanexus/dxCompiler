@@ -248,12 +248,10 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     }
 
     // Include runtimeAsset in bundledDepends
-    val bundledDependsItems = Vector(runtimeAsset, bundledDependsDocker).flatten
-    val bundledDepends = Option
-      .when(bundledDependsItems.nonEmpty)(
-          Map(Constants.BundledDependsKey -> JsArray(bundledDependsItems))
-      )
-      .getOrElse(Map.empty)
+    val bundledDepends = Vector(runtimeAsset, bundledDependsDocker).flatten match {
+      case Vector()            => Map.empty
+      case bundledDependsItems => Map(Constants.BundledDependsKey -> JsArray(bundledDependsItems))
+    }
     val runSpec = JsObject(
         runSpecRequired ++ defaultTimeout ++ extrasOverrides ++ taskOverrides ++ taskSpecificOverrides ++ bundledDepends
     )
