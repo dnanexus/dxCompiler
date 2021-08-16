@@ -83,8 +83,7 @@ def get_project(project_name):
     except dxpy.DXError:
         pass
 
-    project = dxpy.find_projects(name=project_name, return_handler=True, level="VIEW")
-    project = [p for p in project]
+    project = list(dxpy.find_projects(name=project_name, return_handler=True, level="VIEW"))
     if len(project) == 0:
         info('Did not find project {0}'.format(project_name))
         return None

@@ -664,9 +664,9 @@ def find_test_from_exec(exec_obj):
 def link_to_dxfile(link, project):
     fields = link["$dnanexus_link"]
     if isinstance(fields, str):
-        return dxpy.DXFile(fields, project)
+        return dxpy.DXFile(fields, project.id)
     else:
-        return dxpy.DXFile(fields["id"], fields.get("project", project))
+        return dxpy.DXFile(fields["id"], fields.get("project", project.id))
 
 
 file_cache = {}
@@ -710,6 +710,11 @@ def compare_result_file(result, expected_val, field_name, tname, project, verbos
     elif result.get("class", result.get("type")) == "File":
         contents = result.get("contents")
         location = result.get("location", result.get("path", result.get("uri")))
+        if isinstance(location, dict) and "$dnanexus_link" in location:
+            dxfile = link_to_dxfile(location, project)
+            location = os.path.join(dxfile.describe()["folder"], dxfile.describe()["name"])
+            if contents is None:
+                contents = download_dxfile(dxfile)
         size = result.get("size")
         checksum = result.get("checksum")
         secondary_files = set(result.get("secondaryFiles", []))
@@ -748,7 +753,7 @@ def compare_result_file(result, expected_val, field_name, tname, project, verbos
         return False
 
     if "size" in expected_val:
-        size |= (len(contents) if contents else None)
+        size = size or (len(contents) if contents else None)
         if size != expected_val["size"]:
             if verbose:
                 cprint("Analysis {} gave unexpected results".format(tname), "red")
@@ -761,7 +766,7 @@ def compare_result_file(result, expected_val, field_name, tname, project, verbos
             return False
 
     if expected_checksum:
-        checksum |= (get_checksum(contents, algo) if contents else None)
+        checksum = checksum or (get_checksum(contents, algo) if contents else None)
         if checksum != expected_checksum:
             if verbose:
                 cprint("Analysis {} gave unexpected results".format(tname), "red")
@@ -839,7 +844,8 @@ def compare_result_directory(result, expected_val, field_name, tname, project, v
     location = result.get("location", result.get("path", result.get("uri")))
     basename = None
     if location is not None and location.startswith("dx://"):
-        project, folder = location[5:].split(":")
+        project_id, folder = location[5:].split(":")
+        project = dxpy.DXProject(project_id)
     else:
         folder = location
     if folder:
@@ -964,7 +970,7 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
             if isinstance(result, dict) and result.get("type") == "File" and "uri" in result:
                 result = result["uri"]
             if isinstance(result, dict) and "$dnanexus_link" in result:
-                result = download_dxfile(link_to_dxfile(result, project.id))
+                result = download_dxfile(link_to_dxfile(result, project))
             if str(result).strip() != str(expected_val).strip():
                 cprint("Analysis {} gave unexpected results".format(tname), "red")
                 cprint(
@@ -984,7 +990,8 @@ def get_checksum(contents, algo):
     try:
         m = hashlib.new(algo)
         m.update(contents)
-        return m.digest()
+        checksum = m.digest()
+        return f"{algo}${checksum}"
     except:
         print("python does not support digest algorithm {}".format(algo))
         return None
@@ -1043,7 +1050,7 @@ def ensure_dir(path):
 def wait_for_completion(test_exec_objs):
     print("awaiting completion ...")
     failures = set()
-    for i, exec_obj in enumerate(test_exec_objs):
+    for i, exec_obj in test_exec_objs:
         tname = find_test_from_exec(exec_obj)
         desc = test_files[tname]
         try:
@@ -1056,7 +1063,7 @@ def wait_for_completion(test_exec_objs):
                 cprint("Error: executable {}.{} failed".format(desc.name, i), "red")
                 failures.add(tname)
     print("tools execution completed")
-    return failures
+    return list(failures)
 
 
 # Run [workflow] on several inputs, return the analysis ID.
