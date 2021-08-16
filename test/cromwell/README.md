@@ -34,6 +34,8 @@ The following tests from the Cromwell suite will not pass on DNAnexus due to the
   * unscattered
 * Forward references not supported
   * inter_scatter_dependencies
+* Cannot have workflows with no stages
+  * recursive_imports_no_subwf
 
 The following tests from the Cromwell suite are invalid and have been updated:
 
@@ -44,11 +46,14 @@ The following tests from the Cromwell suite are invalid and have been updated:
   * sub_workflow_one_output_import
   * sub_workflow_var_refs
   * sub_workflow_var_refs_import
+* Assigning an Int value to a String call input:
+  * sub_workflow_interactions_scatter 
 * Reuse of names within the same scope
   * globbingBehavior
 * DNAnexus does not support `continueOnReturnCode` - workflow updated to use standard `returnCodes` runtime attribute;
   * continue_on_return_code
   * exit
+  * globbingBehavior
 
 The following tests from the Cromwell suite are invalid and will not pass on DNAnexus for the following reasons:
 
@@ -77,6 +82,8 @@ The following tests from the Cromwell suite require non-standard, Cromwell-speci
   * call_cache_capoeira_tes
   * check_network_in_vpc
   * workbench_health_monitor_check
+  * parallel_composite_uploads_on
+  * parallel_composite_uploads_off
 * Non-standard `volatile` meta key
   * monitoring_image_script
 * TMPDIR is not a default environment variable in DNAnexus worker
@@ -87,3 +94,5 @@ The following tests from the Cromwell suite require non-standard, Cromwell-speci
   * custom_mount_point
 * Divide-by-zero is not short-circuited
   * short_circuit
+* Depends on Cromwell options file
+  * default_runtime_attributes

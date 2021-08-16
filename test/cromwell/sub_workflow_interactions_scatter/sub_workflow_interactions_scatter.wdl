@@ -33,7 +33,7 @@ workflow sub_workflow_interactions_scatter {
   Array[Int] arr = [0, 2]
   
   scatter(i in arr) {
-    call hello as helloInScatter { input: addressee = i }
+    call hello as helloInScatter { input: addressee = "${i}" }
     call counter.countEvens as countEvensInScatter { input: max = helloInScatter.count + i } # sub workflow in scatter
     call hello as secondHelloInScatter { input: addressee = countEvensInScatter.someStringOutput }
   }

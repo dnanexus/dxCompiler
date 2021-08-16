@@ -101,17 +101,19 @@ package object executor {
   }
 
   def delocalizeOutputFiles(localizedOutputs: Map[String, (Type, Value)],
-                            resolveUri: String => Option[String]): Map[String, (Type, Value)] = {
+                            resolveUri: String => Option[String],
+                            ignoreMissingUris: Boolean = false): Map[String, (Type, Value)] = {
     def pathTranslator(v: Value, t: Option[Type], optional: Boolean): Option[Value] = {
       val uri = (t, v) match {
         case (_, VFile(uri))             => Some(uri)
         case (Some(TFile), VString(uri)) => Some(uri)
         case _                           => None
       }
-      uri.map { u =>
+      uri.flatMap { u =>
         resolveUri(u) match {
-          case Some(uri)        => VFile(uri)
-          case None if optional => VNull
+          case Some(uri)                 => Some(VFile(uri))
+          case None if ignoreMissingUris => None
+          case None if optional          => Some(VNull)
           case None =>
             throw new Exception(s"Did not delocalize file ${u}")
         }
