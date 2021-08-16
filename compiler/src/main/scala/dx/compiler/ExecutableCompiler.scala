@@ -25,7 +25,6 @@ import dx.translator.CallableAttributes.{
 }
 import dx.translator.{Extras, ParameterAttributes}
 import spray.json._
-import dx.api.DxProject
 
 object ExecutableCompiler {
   // these parameters are used for applets and workflows that are generated
@@ -52,9 +51,7 @@ object ExecutableCompiler {
 
 class ExecutableCompiler(extras: Option[Extras],
                          parameterLinkSerializer: ParameterLinkSerializer,
-                         dxApi: DxApi = DxApi.get,
-                         project: DxProject,
-                         folder: String) {
+                         dxApi: DxApi = DxApi.get) {
 
   private def typeConstraintToNative(constraint: DxConstraint): JsValue = {
     constraint match {
