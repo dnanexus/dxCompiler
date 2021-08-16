@@ -225,7 +225,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         val sourceProject = dxfile.project.getOrElse(
             Try {
               dxApi.getObject(id).describe() match {
-                case f: DxFileDescribe => DxProject.apply(f.project)(dxApi)
+                case f: DxFileDescribe => dxApi.project(f.project)
                 case _                 => throw new RuntimeException(s"Expected ${id} to be a file")
               }
             } match {
