@@ -684,9 +684,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     CodecUtils.base64DecodeAndGunzip(sourceCodeEncoded)
   }
 
-  lazy val parserOptions: Option[JsValue] = {
-    getExecutableDetail(Constants.ParseOptions)
-  }
+  lazy val parserOptions: Option[JsValue] = getExecutableDetail(Constants.ParseOptions)
 
   lazy val instanceTypeDb: InstanceTypeDB = getExecutableDetail(Constants.InstanceTypeDb) match {
     case Some(JsString(s)) =>
@@ -748,6 +746,20 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     case None               => false
     case other =>
       throw new Exception(s"Invalid value ${other} for ${Constants.PathsAsObjects}")
+  }
+
+  lazy val fileDependencies: Set[String] = {
+    getExecutableDetail(Constants.FileDependencies) match {
+      case Some(JsArray(deps)) =>
+        deps.map {
+          case JsString(uri) => uri
+          case other =>
+            throw new Exception(s"invalid ${Constants.FileDependencies} value: ${other}")
+        }.toSet
+      case None => Set.empty
+      case other =>
+        throw new Exception(s"invalid value for ${Constants.FileDependencies}: ${other}")
+    }
   }
 
   def error(e: Throwable): Unit

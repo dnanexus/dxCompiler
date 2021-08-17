@@ -137,8 +137,7 @@ case class Compiler(extras: Option[Extras],
           throw new Exception(s"Bad syntax for destination ${assetSourcePath}")
       }
       val regionalProject = dxApi.resolveProject(regionalProjectName)
-      val assetUri =
-        s"${DxPath.DxUriPrefix}${regionalProject.id}:${assetFolder}/${runtimeAssetName}"
+      val assetUri = DxPath.format(regionalProject.id, assetFolder, runtimeAssetName)
       logger.trace(s"Looking for asset id at ${assetUri}")
       val dxAsset = dxApi.resolveDataObject(assetUri, Some(regionalProject)) match {
         case dxRecord: DxRecord => dxRecord

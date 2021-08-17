@@ -1,6 +1,6 @@
 package dx.core.ir
 
-import dx.api.DxPath
+import dx.api.{DxPath, DxProject}
 import dx.core.ir.Type._
 import dx.util.CollectionUtils.IterableOnceExtensions
 
@@ -256,6 +256,27 @@ object Value {
 
   def isDxFolderUri(uri: String): Boolean = {
     uri.startsWith(DxPath.DxUriPrefix) && uri.contains("project-") && uri.endsWith("/")
+  }
+
+  def ensureFolderEndsWithSlash(folder: String): String = {
+    if (folder.endsWith("/")) {
+      folder
+    } else {
+      s"${folder}/"
+    }
+  }
+
+  def folderJoin(folder: String, name: String, isFolder: Boolean = false): String = {
+    val joined = s"${ensureFolderEndsWithSlash(folder)}${name}"
+    if (isFolder) {
+      ensureFolderEndsWithSlash(joined)
+    } else {
+      joined
+    }
+  }
+
+  def formatFolder(project: DxProject, folder: String): String = {
+    s"${DxPath.DxUriPrefix}${project.id}:${ensureFolderEndsWithSlash(folder)}"
   }
 
   def coerceTo(value: Value, targetType: Type): Value = {

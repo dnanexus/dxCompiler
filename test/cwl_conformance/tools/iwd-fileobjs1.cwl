@@ -6,9 +6,9 @@ requirements:
   InitialWorkDirRequirement:
     listing:
       - class: File
-        location: ../loadContents/inp-filelist.txt
+        location: "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/loadContents/inp-filelist.txt"
       - class: Directory
-        location: ../testdir
+        location: "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/testdir/"
 inputs: []
 outputs:
   filelist:

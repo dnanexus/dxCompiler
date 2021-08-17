@@ -5,7 +5,7 @@ import dx.core.Constants
 import dx.cwl._
 import dx.cwl.Document.Document
 import dx.core.io.StreamFiles
-import dx.core.ir.{Parameter, Type, Value}
+import dx.core.ir.{Parameter, Type, Value, ValueSerde}
 import dx.core.languages.Language
 import dx.core.languages.cwl.{CwlUtils, DxHintSchema, RequirementEvaluator, Target}
 import dx.executor.{JobMeta, TaskExecutor}
@@ -191,14 +191,76 @@ case class CwlTaskExecutor(tool: Process,
     }
   }
 
+  // scan through the source file and update any hard-coded files/directories
+  // with a location in `dependencies`
+  private def updateSourceCode(dependencies: Map[String, (Type, Value)]): String = {
+    def updateListing(jsv: JsValue): JsValue = {
+      jsv match {
+        case JsArray(entries) =>
+          JsArray(entries.map {
+            case file: JsObject if file.fields.get("class").contains(JsString("File")) =>
+              file.fields
+                .get("location")
+                .orElse(file.fields.get("path"))
+                .collect {
+                  case JsString(uri) if dependencies.contains(uri) =>
+                    dependencies(uri) match {
+                      case (t @ Type.TFile, f: Value.VFile) => ValueSerde.serializeWithType(f, t)
+                      case other =>
+                        throw new Exception(s"expected file value for uri ${uri}, not ${other}")
+                    }
+                }
+                .getOrElse(file)
+            case dir: JsObject if dir.fields.get("class").contains(JsString("Directory")) =>
+              dir.fields.get("location").orElse(dir.fields.get("path")) match {
+                case Some(JsString(uri)) if dependencies.contains(uri) =>
+                  dependencies(uri) match {
+                    case (t @ Type.TDirectory, f: Value.VFolder) =>
+                      ValueSerde.serializeWithType(f, t)
+                    case other =>
+                      throw new Exception(s"expected directory value for uri ${uri}, not ${other}")
+                  }
+                case None if dir.fields.contains("listing") =>
+                  JsObject(dir.fields + ("listing" -> updateListing(dir.fields("listing"))))
+                case None => dir
+              }
+            case arr: JsArray => updateListing(arr)
+            case other        => other
+          })
+        case _ => jsv
+      }
+    }
+    def inner(jsv: JsValue): JsValue = {
+      jsv match {
+        case JsObject(fields) =>
+          JsObject(fields.map {
+            case ("requirements", JsArray(reqs)) =>
+              "requirements" -> JsArray(reqs.map {
+                case JsObject(reqFields)
+                    if reqFields.get("class").contains(JsString("InitialWorkDirRequirement")) =>
+                  JsObject(reqFields + ("listing" -> updateListing(reqFields("listing"))))
+                case other => other
+              })
+            case (k, v) => k -> inner(v)
+          })
+        case JsArray(items) => JsArray(items.map(inner))
+        case _              => jsv
+      }
+    }
+    inner(jobMeta.sourceCode.parseJson).prettyPrint
+  }
+
   override protected def writeCommandScript(
-      localizedInputs: Map[String, (Type, Value)]
+      localizedInputs: Map[String, (Type, Value)],
+      localizedDependencies: Option[Map[String, (Type, Value)]]
   ): (Map[String, (Type, Value)], Boolean, Option[Set[Int]]) = {
     val inputs = CwlUtils.fromIR(localizedInputs, typeAliases, isInput = true)
     val metaDir = workerPaths.getMetaDir(ensureExists = true)
+    // update the source code if necessary
+    val sourceCode = localizedDependencies.map(updateSourceCode).getOrElse(jobMeta.sourceCode)
     // write the CWL and input files
     val cwlPath = metaDir.resolve(s"tool.cwl")
-    FileUtils.writeFileContent(cwlPath, jobMeta.sourceCode)
+    FileUtils.writeFileContent(cwlPath, sourceCode)
     val inputPath = metaDir.resolve(s"tool_input.json")
     val inputJson = CwlUtils.toJson(inputs)
     if (logger.isVerbose) {

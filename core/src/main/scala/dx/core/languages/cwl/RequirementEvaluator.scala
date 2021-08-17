@@ -57,6 +57,15 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
   }
 
   /**
+    * Returns all Requirements and Hints matching the given filter.
+    * @param filter the filter function to apply
+    * @return Vector of hints
+    */
+  def getHints(filter: Hint => Boolean): Vector[Hint] = {
+    requirements.filter(filter) ++ hints.filter(filter)
+  }
+
+  /**
     * def getHints(filter: Hint => Boolean): Option[(Vector[Hint], Boolean)] = {
     val filteredRequirements = requirements.filter(filter)
     if (filteredRequirements.nonEmpty) {
@@ -211,6 +220,19 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
         throw new Exception("SoftwareRequirement is not supported")
       case (_: InplaceUpdateRequirement, true) =>
         throw new Exception("InplaceUpdateRequirement is not supported")
+    }
+  }
+
+  def translatePathDependencies: Vector[PathValue] = {
+    getHints {
+      case _: InitialWorkDirRequirement => true
+      case _                            => false
+    }.flatMap {
+      case InitialWorkDirRequirement(listing) =>
+        listing.collect {
+          case ValueInitialWorkDirEntry(p: PathValue)     => p
+          case DirInitialWorkDirEntry(p: PathValue, _, _) => p
+        }
     }
   }
 }

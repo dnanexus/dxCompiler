@@ -174,14 +174,8 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta,
                           folder: Option[String] = None,
                           prefixOutputs: Boolean = false): (DxExecution, String) = {
     val jobName: String = nameDetail.map(hint => s"${name} ${hint}").getOrElse(name)
-    val outputFolder = if (separateOutputs) {
-      folder.orElse(Some(jobName)).map {
-        case f if !f.startsWith("/") => s"/${f}"
-        case f                       => f
-      }
-    } else {
-      None
-    }
+    val outputFolder =
+      Option.when(separateOutputs)(Value.ensureFolderEndsWithSlash(folder.getOrElse(Some(jobName))))
 
     val prefix = if (prefixOutputs) Some(name) else None
     val callInputsJs = JsObject(jobMeta.prepareSubjobInputs(inputs, executableLink, prefix))
@@ -575,7 +569,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta,
 
     private object FileExtractor extends WalkHandler[Map[String, FileUpload]] {
       private val defaultDestParent = if (jobMeta.useManifests) {
-        s"${jobMeta.manifestFolder}/"
+        Value.ensureFolderEndsWithSlash(jobMeta.manifestFolder)
       } else {
         "/"
       }

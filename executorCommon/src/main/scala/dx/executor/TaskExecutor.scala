@@ -203,6 +203,16 @@ abstract class TaskExecutor(jobMeta: JobMeta,
           name -> (t, Value.transform(v, Some(t), handler))
       }
     }
+
+    def resolveStaticDependencies(uris: Set[String]): Map[String, (Type, Value)] = {
+      val handler = new Handler(stream = false)
+      uris.map {
+        case uri if uri.endsWith("/") =>
+          uri -> (TFile, handler.apply(VFolder(uri), Some(TDirectory)).get)
+        case uri =>
+          uri -> (TDirectory, handler.apply(VFile(uri), Some(TFile)).get)
+      }.toMap
+    }
   }
 
   private val streamingDir = workerPaths.getDxfuseMountDir()
@@ -310,11 +320,23 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       }
       (finalizedInputs, pathToUri)
     }
+
+    def finalizeStaticDependencies(
+        deps: Map[String, (Type, Value)]
+    ): Map[String, (Type, Value)] = {
+      deps.map {
+        case (uri, (t, v)) =>
+          uri -> (t, Value.transform(v, Some(t), this))
+      }
+    }
   }
 
   /**
     * Generates and writes command script(s) to disk.
     * @param localizedInputs task inputs with localized files
+    * @param localizedDependencies mapping of URI to (type, value) for any static
+    *                              dependencies that may need to be updated in
+    *                              the source code.
     * @return (updatedInputs, hasCommand, successCodes) where updated
     *         inputs is localizedInputs updated with any additional (non-input)
     *         variables that may be required to evaluate the outputs, hasCommand
@@ -324,7 +346,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     *         considered successful.
     */
   protected def writeCommandScript(
-      localizedInputs: Map[String, (Type, Value)]
+      localizedInputs: Map[String, (Type, Value)],
+      localizedDependencies: Option[Map[String, (Type, Value)]]
   ): (Map[String, (Type, Value)], Boolean, Option[Set[Int]])
 
   /**
@@ -508,7 +531,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       listings: Listings
   ) extends WalkHandler[Uploads] {
     private val defaultDestParent = if (jobMeta.useManifests) {
-      s"${jobMeta.manifestFolder}/"
+      Value.ensureFolderEndsWithSlash(jobMeta.manifestFolder)
     } else {
       "/"
     }
@@ -531,7 +554,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
             // a file literal
             val name = f.basename.getOrElse(f.uri)
             val destFolder = parent.getOrElse(defaultDestParent)
-            ctx.addVirtualFile(f.contents.get, f.uri, s"${destFolder}${name}")
+            ctx.addVirtualFile(f.contents.get, f.uri, Value.folderJoin(destFolder, name))
             f.secondaryFiles.foreach { path =>
               handlePath(path, None, Some(destFolder))
             }
@@ -548,7 +571,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
                 // of the file regardless of its origin
                 val name = f.basename.getOrElse(local.canonicalPath.getFileName.toString)
                 val destFolder = parent.getOrElse(defaultDestParent)
-                ctx.addFile(local.canonicalPath, s"${destFolder}${name}")
+                ctx.addFile(local.canonicalPath, Value.folderJoin(destFolder, name))
                 f.secondaryFiles.foreach { path =>
                   handlePath(path, None, Some(destFolder))
                 }
@@ -571,7 +594,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
                 // is different, or we are uploading a subdirectory of a listing/directory
                 // and so need to make a new copy of the this directory regardless of its origin
                 val name = f.basename.getOrElse(local.canonicalPath.getFileName.toString)
-                val destFolder = s"${parent.getOrElse(defaultDestParent)}${name}/"
+                val destFolder =
+                  Value.folderJoin(parent.getOrElse(defaultDestParent), name, isFolder = true)
                 ctx.addDirectory(local.canonicalPath, destFolder)
                 f.listing.get.foreach { item =>
                   handlePath(item, None, Some(destFolder))
@@ -579,7 +603,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
               case _ => ()
             }
           case (Some(TDirectory) | None, l: VListing) =>
-            val destFolder = s"${parent.getOrElse(defaultDestParent)}${l.basename}/"
+            val destFolder =
+              Value.folderJoin(parent.getOrElse(defaultDestParent), l.basename, isFolder = true)
             l.items.foreach { item =>
               handlePath(item, None, Some(destFolder))
             }
@@ -620,10 +645,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     // TODO: currently, this only works for one level of job nesting -
     //  we probably need to get all the output folders all the way up
     //  the job tree and join them all
-    val defaultFolderParent = jobMeta.projectOutputFolder match {
-      case folder if folder.endsWith("/") => folder
-      case folder                         => s"${folder}/"
-    }
+    val defaultFolderParent = Value.ensureFolderEndsWithSlash(jobMeta.projectOutputFolder)
 
     // replace local paths with remote URIs
     def handlePath(value: PathValue,
@@ -802,6 +824,12 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     val pathsToLocalize = new PathsToLocalize
     val inputs = pathsToLocalize.updateListingsAndExtractFiles(getInputsWithDefaults)
 
+    // If the task has any hard-coded remote paths, localize them and later update the source
+    // code to replace the remote paths with local ones
+    val staticDependencies = Option.when(jobMeta.fileDependencies.nonEmpty)(
+        pathsToLocalize.resolveStaticDependencies(jobMeta.fileDependencies)
+    )
+
     // localize virtual files to /home/dnanexus/virtual
     trace(s"Virtual files = ${pathsToLocalize.virtualFiles}")
     val virtualUriToPath = pathsToLocalize.virtualFiles.map { fs =>
@@ -902,13 +930,17 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     val inputFinalizer = new InputFinalizer(uriToSourcePath, localizer)
     val (finalizedInputs, localPathToUri) = inputFinalizer.finalizeInputs(inputs)
 
+    // Finalize any static dependencies and update the task source code if necessary
+    val finalizedDependencies = staticDependencies.map(inputFinalizer.finalizeStaticDependencies)
+
     // make the inputs folder read-only
     jobMeta.runJobScriptFunction(TaskExecutor.BeforeCommand)
 
     // Evaluate the command script and writes it to disk. Inputs are supplemented with
     // any local file paths created when evaluating the command script and are serialized
     // for use in the next phase.
-    val (localizedInputs, hasCommand, successCodes) = writeCommandScript(finalizedInputs)
+    val (localizedInputs, hasCommand, successCodes) =
+      writeCommandScript(finalizedInputs, finalizedDependencies)
     logFields(localizedInputs, "Localized inputs")
     if (hasCommand) {
       // run the command script

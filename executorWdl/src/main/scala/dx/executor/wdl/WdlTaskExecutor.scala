@@ -158,7 +158,8 @@ case class WdlTaskExecutor(task: TAT.Task,
   }
 
   override protected def writeCommandScript(
-      localizedInputs: Map[String, (Type, Value)]
+      localizedInputs: Map[String, (Type, Value)],
+      localizedDependencies: Option[Map[String, (Type, Value)]]
   ): (Map[String, (Type, Value)], Boolean, Option[Set[Int]]) = {
     val inputs = WdlUtils.fromIR(localizedInputs, typeAliases.toMap)
     val inputValues = inputs.map {

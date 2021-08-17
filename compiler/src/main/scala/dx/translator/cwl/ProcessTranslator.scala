@@ -45,6 +45,7 @@ import dx.cwl.{
   CommandOutputParameter,
   CwlType,
   CwlValue,
+  DirectoryValue,
   Evaluator,
   EvaluatorContext,
   ExpressionTool,
@@ -52,6 +53,7 @@ import dx.cwl.{
   Hint,
   InputParameter,
   OutputParameter,
+  PathValue,
   Process,
   Requirement,
   Runtime,
@@ -65,7 +67,8 @@ import dx.cwl.{
 import dx.translator.CallableAttributes.{DescriptionAttribute, TitleAttribute}
 import dx.translator.ParameterAttributes.{HelpAttribute, LabelAttribute}
 import dx.translator.{CustomReorgSettings, DxWorkflowAttrs, ReorgSettings, WorkflowTranslator}
-import dx.util.{FileSourceResolver, FileUtils, Logger}
+import dx.util.protocols.{DxFileSource, DxFolderSource}
+import dx.util.{FileSourceResolver, FileUtils, LocalFileSource, Logger}
 
 import java.nio.file.{Path, Paths}
 
@@ -204,10 +207,11 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       val outputs = tool.outputs.collect {
         case i if i.id.exists(_.name.isDefined) => translateOutput(i, outputCtx)
       }
-      // We try to determine the instance type from the process requirements -
-      // if any of the expressions fail to evaluate statically, then the instance
-      // type will be determined at runtime.
-      // We also get the container from the process requirements.
+      val docSource = tool.source.orElse(cwlBundle.primaryProcess.source) match {
+        case Some(path) => Paths.get(path)
+        case None =>
+          throw new Exception(s"no source code for tool ${name}")
+      }
       val requirementEvaluator = RequirementEvaluator(
           inheritedRequirements ++ tool.requirements,
           inheritedHints ++ tool.hints,
@@ -215,22 +219,62 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           DxWorkerPaths.default,
           defaultRuntimeAttrs = cwlDefaultRuntimeAttrs
       )
-      val docSource = tool.source.orElse(cwlBundle.primaryProcess.source) match {
-        case Some(path) => Paths.get(path)
-        case None =>
-          throw new Exception(s"no source code for tool ${name}")
+
+      def extractPaths(p: PathValue): Vector[String] = {
+        p match {
+          case f: FileValue if f.location.isDefined || f.path.isDefined =>
+            val fileUri = fileResolver.resolve(f.location.orElse(f.path).get) match {
+              case DxFileSource(dxFile, _) => Vector(dxFile.asUri)
+              case local: LocalFileSource =>
+                logger.warning(
+                    s"""InitialWorkDirRequirement in ${tool.name} or one of its ancestors 
+                       |references local path ${local.canonicalPath}. This path must be
+                       |already staged on the worker or in the Docker container, otherwise
+                       |you must first upload the file and replace the location with a
+                       |URI of the form 'dx://<project-id>:<file-id>'.""".stripMargin
+                      .replaceAll("\n", " ")
+                )
+                Vector.empty
+              case _ => Vector.empty
+            }
+            fileUri ++ f.secondaryFiles.flatMap(extractPaths)
+          case d: DirectoryValue if d.location.isDefined =>
+            fileResolver.resolveDirectory(d.location.get) match {
+              case DxFolderSource(dxProject, dxFolder) =>
+                Vector(Value.formatFolder(dxProject, dxFolder))
+              case local: LocalFileSource =>
+                logger.warning(
+                    s"""InitialWorkDirRequirement in ${tool.name} or one of its ancestors 
+                       |references local path ${local.canonicalPath}. This path must be
+                       |already staged on the worker or in the Docker container, otherwise
+                       |you must first upload the directory and replace the location with a
+                       |URI of the form 'dx://<project-id>:<folder>'.""".stripMargin
+                      .replaceAll("\n", " ")
+                )
+                Vector.empty
+              case _ => Vector.empty
+            }
+          case d: DirectoryValue => d.listing.flatMap(extractPaths)
+        }
       }
+
       Application(
           name,
           inputs,
           outputs,
+          // Try to determine the instance type from the process requirements -
+          // if any of the expressions fail to evaluate statically, then the instance
+          // type will be determined at runtime.
           requirementEvaluator.translateInstanceType,
           requirementEvaluator.translateContainer,
           ExecutableKindApplet,
           CwlSourceCode(docSource),
           translateCallableAttributes(tool, hintCallableAttrs),
           requirementEvaluator.translateApplicationRequirements,
-          tags = Set("cwl")
+          tags = Set("cwl"),
+          // extract all paths that are hard-coded in the CWL
+          staticFileDependencies =
+            requirementEvaluator.translatePathDependencies.flatMap(extractPaths).toSet
       )
     }
   }
