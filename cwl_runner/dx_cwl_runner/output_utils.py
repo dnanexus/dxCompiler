@@ -8,12 +8,14 @@ from dx_cwl_runner.dx import Dx
 def get_modified_output(output: dict, outdir: str, dx: Dx) -> dict:
     file_id = next(iter(output.values()))
     output_path = dx.get_file_name(outdir, file_id)
-    utils.run_cmd(f"dx download {next(iter(output.values()))} --output '{output_path}' --no-progress")
+    utils.run_cmd(
+        f"dx download {next(iter(output.values()))} --output '{output_path}' --no-progress"
+    )
     return {
         "class": "File",
         "checksum": str(utils.get_checksum(output_path)),
         "location": output_path,
-        "size": os.path.getsize(output_path)
+        "size": os.path.getsize(output_path),
     }
 
 
@@ -42,7 +44,7 @@ def create_dx_output(job_id: str, process_file: str, outdir: str, dx: Dx) -> dic
 
 def write_output(file_name: str, results: str, print_output=True):
     js = json.dumps(results, indent=4)
-    with open(file_name, 'w') as result_file:
+    with open(file_name, "w") as result_file:
         result_file.write(js)
     if print_output:
         print(js)

@@ -3,6 +3,7 @@ import subprocess
 import sys
 from typing import TextIO
 
+
 class Log:
     @staticmethod
     def log(message: str, file=sys.stderr):
@@ -18,7 +19,11 @@ class Log:
 
 
 def run_cmd(cmd: str, verbose: bool = False) -> str:
-    output = subprocess.check_output(cmd, shell=True, executable='/bin/bash').strip().decode('utf-8')
+    output = (
+        subprocess.check_output(cmd, shell=True, executable="/bin/bash")
+        .strip()
+        .decode("utf-8")
+    )
     if verbose:
         Log.log(output)
     return output

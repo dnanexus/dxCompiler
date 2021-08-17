@@ -30,12 +30,15 @@ class Dx:
     def __init__(self, config: utils.Log):
         self.log = config
         self.cache = {}
-        with open(f"{os.environ.get('HOME')}/.dnanexus_config/environment.json") as dx_env:
+        with open(
+            f"{os.environ.get('HOME')}/.dnanexus_config/environment.json"
+        ) as dx_env:
             env = json.load(dx_env)
             self.current_dx_folder = env.get("DX_CLI_WD", "/")
         self.current_dx_project = dxpy.PROJECT_CONTEXT_ID
         self.test_folder = os.path.join(
-            self.current_dx_folder, f"cwl_runner_{datetime.now().strftime('%Y.%d.%m_%H-%M-%S')}"
+            self.current_dx_folder,
+            f"cwl_runner_{datetime.now().strftime('%Y.%d.%m_%H-%M-%S')}",
         )
         mk_folder_cmd = f"dx mkdir -p {self.current_dx_project}:{self.test_folder}"
         if config.dryrun:
@@ -68,25 +71,31 @@ class Dx:
 
         # the file may have been uploaded in a previous run - search by md5
         checksum = utils.get_checksum(file)
-        existing = list(dxpy.find_data_objects(
-            classname="file",
-            project=self.current_dx_project,
-            folder=self.test_folder,
-            properties={"checksum": checksum},
-            describe=True
-        ))
+        existing = list(
+            dxpy.find_data_objects(
+                classname="file",
+                project=self.current_dx_project,
+                folder=self.test_folder,
+                properties={"checksum": checksum},
+                describe=True,
+            )
+        )
         if len(existing) == 1:
             dx_file = existing[0]
         elif len(existing) > 1:
-            raise Exception(f"found multiple files in {self.test_folder} with the same checksum: {existing}")
-        else:
-            self.log.debug(
-                f"uploading {file} to {self.test_folder}"
+            raise Exception(
+                f"found multiple files in {self.test_folder} with the same checksum: {existing}"
             )
+        else:
+            self.log.debug(f"uploading {file} to {self.test_folder}")
             if self.log.dryrun:
-                dx_file = dxpy.DXFile("file-XXXXXXXXXXXXXXXXXXXXXXXX", self.current_dx_project)
+                dx_file = dxpy.DXFile(
+                    "file-XXXXXXXXXXXXXXXXXXXXXXXX", self.current_dx_project
+                )
             else:
-                dx_file = dxpy.upload_local_file(file, folder=self.test_folder, properties={"checksum": checksum})
+                dx_file = dxpy.upload_local_file(
+                    file, folder=self.test_folder, properties={"checksum": checksum}
+                )
         dx_uri = f"dx://{dx_file.get_proj_id()}:{dx_file.get_id()}"
         self._add_to_cache(file, dx_uri)
         return dx_uri
@@ -117,7 +126,7 @@ class Dx:
                 classname="file",
                 project=self.current_dx_project,
                 folder=base_folder,
-                describe={"name": True, "folder": True, "properties": True}
+                describe={"name": True, "folder": True, "properties": True},
             )
         )
 
@@ -145,7 +154,9 @@ class Dx:
                 # check if the folder exists by listing it and seeing if it contains
                 # any files or folders
                 list_obj = proj.list_folder(base_folder)
-                if not (list_obj and (list_obj.get("objects") or list_obj.get("folders"))):
+                if not (
+                    list_obj and (list_obj.get("objects") or list_obj.get("folders"))
+                ):
                     i += 1
                     break
 
@@ -155,7 +166,9 @@ class Dx:
                 folder = os.path.join(base_folder, os.path.dirname(relpath))
                 self.log.debug(f"uploading {local_path} to {folder}")
                 if not self.log.dryrun:
-                    dxpy.upload_local_file(local_path, folder=folder, properties={"checksum": checksum})
+                    dxpy.upload_local_file(
+                        local_path, folder=folder, properties={"checksum": checksum}
+                    )
 
         return f"dx://{self.current_dx_project}:{base_folder}"
 
