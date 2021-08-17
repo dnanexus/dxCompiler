@@ -1,8 +1,9 @@
 # Release Notes
 
-## in develop
+## 2.4.10 2021-08-16
 
-* Update dxda to 0.5.7
+* Fixes issue with using `File` declarations in scatter/conditional blocks
+* Updates dxda to 0.5.7
 * Handles empty scatters
 
 ## 2.4.9 2021-08-09
