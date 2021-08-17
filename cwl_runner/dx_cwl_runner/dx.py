@@ -9,18 +9,18 @@ from dx_cwl_runner import utils
 
 
 class Dx:
-    compiler_jar = os.environ.get("DX_COMPILER_JAR")
+    compiler_jar: str = os.environ.get("DX_COMPILER_JAR")
     if compiler_jar is None:
         jars = glob.glob("dxCompiler*.jar")
         if len(jars) == 1:
             compiler_jar = jars[0]
         else:
             raise Exception(
-                "either 'DX_COMPILER_JAR' environment variable must be set, or there must be a single "
-                "dxCompiler*.jar file in the current directory"
+                "either 'DX_COMPILER_JAR' environment variable must be set, or there must be a "
+                "single dxCompiler*.jar file in the current directory"
             )
 
-    version = utils.run_cmd(f"java -jar {compiler_jar} version")
+    compiler_version = utils.run_cmd(f"java -jar {compiler_jar} version")
 
     @staticmethod
     def dx_file_to_path(f: dxpy.DXFile) -> str:

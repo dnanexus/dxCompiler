@@ -1,5 +1,6 @@
 import json
 import os
+from typing import List, Optional, Tuple
 
 from dx_cwl_runner.dx import Dx
 from dx_cwl_runner.utils import Log
@@ -18,7 +19,7 @@ def upload_file(path: str, basedir: str, dx: Dx) -> str:
     return dx.find_or_upload_file(path)
 
 
-def upload_dir(path: str, basedir: str, dx: Dx) -> (str, str):
+def upload_dir(path: str, basedir: str, dx: Dx) -> Tuple[str, Optional[str]]:
     if path.startswith("dx://"):
         return path, None
     if not os.path.isabs(path):
@@ -59,17 +60,20 @@ def get_modified_input(i, basedir: str, dx: Dx):
             else:
                 listing = i["listing"]
                 if listing is None:
-                    raise Exception(f"Directory is missing a 'location', 'path', or 'listing': {i}")
+                    raise Exception(
+                        f"Directory is missing a 'location', 'path', or 'listing': {i}"
+                    )
                 i["listing"] = get_modified_input(listing, basedir, dx)
         else:
-            dict((k, get_modified_input(v, basedir, dx)) for k, v in i.items())
+            i = dict((k, get_modified_input(v, basedir, dx)) for k, v in i.items())
 
     return i
 
 
-def create_dx_input(jobfile: str, basedir: str, dx: Dx) -> (dict, str):
+def create_dx_input(jobfile: str, basedir: str, dx: Dx) -> Tuple[dict, str]:
     # issues:
-    #         if file does not exist, exception is thrown and no json is generated, even if some files were uploaded
+    #   if file does not exist, exception is thrown and no json is generated, even if some 
+    #   files were uploaded
     with open(jobfile) as input_file:
         inputs = json.load(input_file)
         process_file = inputs.pop("cwl:tool", None)

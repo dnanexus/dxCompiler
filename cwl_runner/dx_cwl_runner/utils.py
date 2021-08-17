@@ -1,7 +1,7 @@
 import hashlib
 import subprocess
 import sys
-
+from typing import TextIO
 
 class Log:
     @staticmethod
@@ -12,7 +12,7 @@ class Log:
         self.verbose = verbose
         self.dryrun = dryrun
 
-    def debug(self, message: str, file=sys.stderr):
+    def debug(self, message: str, file: TextIO = sys.stderr):
         if self.verbose or self.dryrun:
             Log.log(message, file)
 

@@ -13,7 +13,7 @@ def parse_args():
                         help=f"Output directory, defaults {os.getcwd()}")
     parser.add_argument("--quiet", default=False, action="store_true",
                         help="No diagnostic output")
-    parser.add_argument("--version", action="version", version=f"%(prog)s {Dx.version}",
+    parser.add_argument("--version", action="version", version=f"%(prog)s {Dx.compiler_version}",
                         help="Report the name & version, then quit without further processing")
     parser.add_argument("--basedir", default=os.getcwd(), type=str,
                         help=f"Directory to which relative paths will be resolved; defaults to {os.getcwd()}")

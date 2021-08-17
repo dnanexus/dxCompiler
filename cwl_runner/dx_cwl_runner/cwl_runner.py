@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+from typing import Optional, Tuple
 
 from dx_cwl_runner import arg_parser
 from dx_cwl_runner import utils
@@ -9,7 +10,9 @@ from dx_cwl_runner.dx import Dx
 from dx_cwl_runner.utils import Log
 
 
-def run_cwl(dx_compiler, processfile, dx_input, dx: Dx) -> (str, str):
+def run_cwl(
+    dx_compiler: str, processfile: str, dx_input, dx: Dx
+) -> Tuple[Optional[str], Optional[str]]:
     cmd = f"java -jar {dx_compiler} compile {processfile} -force -folder {dx.test_folder} " \
           f"-project {dx.current_dx_project} -locked -inputs {dx_input}"
     if dx.log.dryrun:
@@ -31,24 +34,24 @@ def main():
     args = arg_parser.parse_args()
     log = Log(verbose=not args.quiet, dryrun=args.dryrun)
     dx = Dx(log)
-    dx.check_outdir(args.outdir, create=not log.dryrun)
+    dx.check_outdir(args.outdir, create=not args.dryrun)
 
-    log.debug("Creating DX inputs...", not args.quiet)
+    log.debug("Creating DX inputs...")
     inputs, input_processfile = input_utils.create_dx_input(args.jobfile, args.basedir, dx)
     process_file = args.processfile or input_processfile
     dx_input = input_utils.write_dx_input(inputs, args.jobfile, log)
 
-    log.debug("Running process file...", not args.quiet)
+    log.debug("Running process file...")
     execution, execution_log = run_cwl(dx.compiler_jar, process_file, dx_input, dx)
     if execution_log is not None:
         log.debug(log)
 
-    if not log.dryrun:
-        log.debug("Creating outputs...", not args.quiet)
+    if not args.dryrun:
+        log.debug("Creating outputs...")
         results = output_utils.create_dx_output(execution, process_file, args.outdir, dx)
         output_utils.write_output(f"{os.path.splitext(process_file)[0]}_results.json", results)
 
-    log.debug("Finished successfully!", not args.quiet)
+    log.debug("Finished successfully!")
 
 
 if __name__ == "__main__":
