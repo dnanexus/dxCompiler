@@ -1,0 +1,3 @@
+{
+    "monitoring_script": "gs://cloud-cromwell-dev/some/rounding_script_int.sh"
+}
