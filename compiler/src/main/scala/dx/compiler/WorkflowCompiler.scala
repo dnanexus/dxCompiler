@@ -44,7 +44,7 @@ case class WorkflowCompiler(extras: Option[Extras],
   }
 
   /**
-    * Converts a workflow output paramter to outputSpec JSON. A complex ouptut
+    * Converts a workflow output paramter to outputSpec JSON. A complex output
     * will generate two output specs - one for the value and one for an array
     * of files that are nested within the complex value.
     * @param parameter the workflow output Parameter
