@@ -391,9 +391,7 @@ case class Compiler(extras: Option[Extras],
             parameterLinkSerializer = parameterLinkSerializer,
             useManifests = useManifests,
             dxApi = dxApi,
-            logger = logger2,
-            project = project,
-            folder = folder
+            logger = logger2
         )
       // Calculate a checksum of the inputs that went into the making of the applet.
       val (workflowApiRequest, execTree) = workflowCompiler.apply(workflow, dependencyDict)

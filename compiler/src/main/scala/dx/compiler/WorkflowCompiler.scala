@@ -12,15 +12,12 @@ import scala.collection.immutable.TreeSeqMap
 import dx.translator.DockerRegistry
 import dx.api.DxWorkflow
 import dx.api.DxApplet
-import dx.api.DxProject
 
 case class WorkflowCompiler(extras: Option[Extras],
                             parameterLinkSerializer: ParameterLinkSerializer,
                             useManifests: Boolean,
                             dxApi: DxApi = DxApi.get,
-                            logger: Logger = Logger.get,
-                            project: DxProject,
-                            folder: String)
+                            logger: Logger = Logger.get)
     extends ExecutableCompiler(extras, parameterLinkSerializer, dxApi) {
 
   private def workflowInputParameterToNative(parameter: Parameter,
