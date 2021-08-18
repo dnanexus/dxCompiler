@@ -51,6 +51,10 @@ my_workflow_outputs
 To look inside the generated job script for an applet, you can run e.g. `dx get my_task_1`. This will
 download a folder called `my_task_1` with the applet job script inside `my_task_1/src`.
 
+The workflow source code (afer some processing during compilation, not necessarily matching the input
+WDL/CWL) can be extracted from a compiled workflow / compiled task applets using
+`scripts/extract_source_code.sh` (First have installed: `base64`, `jq`, `gzip`).
+
 After compiling, you will also see `dxWDLrt : record-xxxx` in the project. This record points to
 the asset bundle of resources published to the platform during each dxCompiler release. It contains
 `dxExecutorWdl.jar` (or `dxExecutorCwl.jar` for CWL), which is needed during workflow execution.
