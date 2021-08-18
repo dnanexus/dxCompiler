@@ -1,6 +1,7 @@
 # Release Notes
 
 ## in develop
+
 * Docker image dependencies that are DNAnexus platform files are included in applet's bundledDepends
 
 ## 2.4.10 2021-08-16
