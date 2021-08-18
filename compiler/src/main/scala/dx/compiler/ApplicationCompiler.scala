@@ -1,6 +1,15 @@
 package dx.compiler
 
-import dx.api.{DxAccessLevel, DxApi, DxInstanceType, DxPath, DxUtils, InstanceTypeDB}
+import dx.api.{
+  DxAccessLevel,
+  DxApi,
+  DxFileDescribe,
+  DxInstanceType,
+  DxPath,
+  DxProject,
+  DxUtils,
+  InstanceTypeDB
+}
 import dx.core.Constants
 import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir._
@@ -11,6 +20,7 @@ import dx.translator.ExtrasJsonProtocol._
 import dx.util.{CodecUtils, Logger}
 import spray.json._
 import wdlTools.generators.Renderer
+import scala.util.{Failure, Success, Try}
 
 object ApplicationCompiler {
   val DefaultAppletTimeoutInDays = 2
@@ -41,7 +51,9 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
                                parameterLinkSerializer: ParameterLinkSerializer,
                                useManifests: Boolean,
                                dxApi: DxApi = DxApi.get,
-                               logger: Logger = Logger.get)
+                               logger: Logger = Logger.get,
+                               project: DxProject,
+                               folder: String)
     extends ExecutableCompiler(extras, parameterLinkSerializer, dxApi) {
 
   // renderer for job script templates
@@ -203,10 +215,44 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         }
       case _ => Map.empty
     }
-    val bundledDepends = runtimeAsset match {
-      case Some(jsv) => Map("bundledDepends" -> JsArray(Vector(jsv)))
-      case None      => Map.empty
+
+    // Add platform Docker image dependency to bundledDepends
+    val bundledDependsDocker: Option[JsValue] = applet.container match {
+      case DxFileDockerImage(_, dxfile) => {
+        val id = dxfile.id
+
+        // If source project not specified for Docker image file, try to find it
+        val sourceProject = dxfile.project.getOrElse(
+            Try {
+              dxApi.getObject(id).describe() match {
+                case f: DxFileDescribe => dxApi.project(f.project)
+                case _                 => throw new RuntimeException(s"Expected ${id} to be a file")
+              }
+            } match {
+              case Success(project) => project
+              case Failure(ex)      => throw new RuntimeException(s"Unable to locate file ${id}")
+            }
+        )
+
+        // If dependency on Docker image file in another project, clone
+        dxApi.cloneDataObject(id, sourceProject, project, folder)
+
+        val mapping = JsObject(
+            Constants.BundledDependsNameKey -> JsString(dxfile.describe().name),
+            Constants.BundledDependsIdKey -> JsObject(DxUtils.DxLinkKey -> JsString(dxfile.id)),
+            Constants.BundledDependsStagesKey -> JsArray(Vector.empty)
+        )
+        Some(mapping)
+      }
+      case _ => None
     }
+
+    // Include runtimeAsset in bundledDepends
+    val bundledDepends = Vector(runtimeAsset, bundledDependsDocker).flatten match {
+      case Vector()            => Map.empty
+      case bundledDependsItems => Map(Constants.BundledDependsKey -> JsArray(bundledDependsItems))
+    }
+
     val runSpec = JsObject(
         runSpecRequired ++ defaultTimeout ++ extrasOverrides ++ taskOverrides ++ taskSpecificOverrides ++ bundledDepends
     )
