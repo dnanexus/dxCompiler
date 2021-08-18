@@ -341,15 +341,15 @@ object ValueSerde extends DefaultJsonProtocol {
         case None                   => innerValue
       }
       v match {
-        case _ if isWrappedValue(v)                => inner(unwrapValue(v))
-        case JsNull                                => VNull
-        case JsBoolean(b)                          => VBoolean(b.booleanValue)
-        case JsNumber(value) if value.isValidLong  => VInt(value.toLongExact)
-        case JsNumber(value)                       => VFloat(value.toDouble)
-        case JsString(s) if Value.isDxFileUri(s)   => VFile(s)
-        case JsString(s) if Value.isDxFolderUri(s) => VFolder(s)
-        case JsString(s)                           => VString(s)
-        case JsArray(items)                        => VArray(items.map(x => inner(x)))
+        case _ if isWrappedValue(v)                         => inner(unwrapValue(v))
+        case JsNull                                         => VNull
+        case JsBoolean(b)                                   => VBoolean(b.booleanValue)
+        case JsNumber(value) if value.isValidLong           => VInt(value.toLongExact)
+        case JsNumber(value)                                => VFloat(value.toDouble)
+        case JsString(s) if DxFileSource.isDxFileUri(s)     => VFile(s)
+        case JsString(s) if DxFolderSource.isDxFolderUri(s) => VFolder(s)
+        case JsString(s)                                    => VString(s)
+        case JsArray(items)                                 => VArray(items.map(x => inner(x)))
         case obj: JsObject if isPathObject(obj) =>
           deserializePathObject(obj, dxApi, dxFileDescCache)
         case obj: JsObject if DxFile.isLinkJson(obj) =>
@@ -405,12 +405,12 @@ object ValueSerde extends DefaultJsonProtocol {
                     s"${innerName} value ${unwrappedValue} does not match any of ${bounds}"
                 )
             )
-        case (TBoolean, JsBoolean(b))                                => VBoolean(b.booleanValue)
-        case (TInt, JsNumber(value)) if value.isValidLong            => VInt(value.toLongExact)
-        case (TFloat, JsNumber(value))                               => VFloat(value.toDouble)
-        case (TString, JsString(s))                                  => VString(s)
-        case (TFile, JsString(uri))                                  => VFile(uri)
-        case (TDirectory, JsString(uri)) if Value.isDxFolderUri(uri) => VFolder(uri)
+        case (TBoolean, JsBoolean(b))                                         => VBoolean(b.booleanValue)
+        case (TInt, JsNumber(value)) if value.isValidLong                     => VInt(value.toLongExact)
+        case (TFloat, JsNumber(value))                                        => VFloat(value.toDouble)
+        case (TString, JsString(s))                                           => VString(s)
+        case (TFile, JsString(uri))                                           => VFile(uri)
+        case (TDirectory, JsString(uri)) if DxFolderSource.isDxFolderUri(uri) => VFolder(uri)
         case (TFile | TDirectory, obj: JsObject) if isPathObject(obj) =>
           deserializePathObject(obj, dxApi, dxFileDescCache)
         case (TFile, obj: JsObject) if DxFile.isLinkJson(obj) =>

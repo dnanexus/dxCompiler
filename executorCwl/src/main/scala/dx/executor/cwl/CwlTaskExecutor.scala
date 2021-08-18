@@ -5,10 +5,11 @@ import dx.core.Constants
 import dx.cwl._
 import dx.cwl.Document.Document
 import dx.core.io.StreamFiles
-import dx.core.ir.{Parameter, Type, Value, ValueSerde}
+import dx.core.ir.{Parameter, Type, Value}
 import dx.core.languages.Language
 import dx.core.languages.cwl.{CwlUtils, DxHintSchema, RequirementEvaluator, Target}
 import dx.executor.{JobMeta, TaskExecutor}
+import dx.util.protocols.{DxFileSource, DxFolderSource}
 import dx.util.{DockerUtils, FileUtils, JsUtils, TraceLevel}
 import spray.json._
 
@@ -202,24 +203,44 @@ case class CwlTaskExecutor(tool: Process,
               file.fields
                 .get("location")
                 .orElse(file.fields.get("path"))
-                .collect {
-                  case JsString(uri) if dependencies.contains(uri) =>
-                    dependencies(uri) match {
-                      case (t @ Type.TFile, f: Value.VFile) => ValueSerde.serializeWithType(f, t)
-                      case other =>
-                        throw new Exception(s"expected file value for uri ${uri}, not ${other}")
+                .flatMap {
+                  case JsString(uri) =>
+                    jobMeta.fileResolver.resolve(uri) match {
+                      case DxFileSource(dxFile, _) =>
+                        dependencies.get(dxFile.asUri).map {
+                          case (Type.TFile, f: Value.VFile) =>
+                            val (_, cwlValue) = CwlUtils.fromIRValue(f, CwlFile, "", isInput = true)
+                            cwlValue.toJson
+                          case other =>
+                            throw new Exception(s"expected file value for uri ${uri}, not ${other}")
+                        }
+                      case _ => None
                     }
+                  case other =>
+                    throw new Exception(s"expected file location/path to be a string, not ${other}")
                 }
                 .getOrElse(file)
             case dir: JsObject if dir.fields.get("class").contains(JsString("Directory")) =>
-              dir.fields.get("location").orElse(dir.fields.get("path")) match {
-                case Some(JsString(uri)) if dependencies.contains(uri) =>
-                  dependencies(uri) match {
-                    case (t @ Type.TDirectory, f: Value.VFolder) =>
-                      ValueSerde.serializeWithType(f, t)
-                    case other =>
-                      throw new Exception(s"expected directory value for uri ${uri}, not ${other}")
-                  }
+              dir.fields
+                .get("location")
+                .orElse(dir.fields.get("path"))
+                .flatMap {
+                  case JsString(uri) =>
+                    jobMeta.fileResolver.resolveDirectory(uri) match {
+                      case DxFolderSource(dxProject, dxFolder) =>
+                        dependencies.get(DxFolderSource.format(dxProject, dxFolder))
+                      case _ => None
+                    }
+                  case other =>
+                    throw new Exception(
+                        s"expected directory location/path to be a string, not ${other}"
+                    )
+                } match {
+                case Some((Type.TDirectory, f: Value.VFolder)) =>
+                  val (_, cwlValue) = CwlUtils.fromIRValue(f, CwlDirectory, "", isInput = true)
+                  cwlValue.toJson
+                case Some(other) =>
+                  throw new Exception(s"expected directory URI to be a VFolder, not ${other}")
                 case None if dir.fields.contains("listing") =>
                   JsObject(dir.fields + ("listing" -> updateListing(dir.fields("listing"))))
                 case None => dir

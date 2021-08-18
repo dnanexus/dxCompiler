@@ -23,7 +23,7 @@ import dx.util.{
   SysUtils,
   TraceLevel
 }
-import dx.util.protocols.DxFileSource
+import dx.util.protocols.{DxFileSource, DxFolderSource}
 import spray.json._
 
 object TaskExecutor {
@@ -208,9 +208,17 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       val handler = new Handler(stream = false)
       uris.map {
         case uri if uri.endsWith("/") =>
-          uri -> (TFile, handler.apply(VFolder(uri), Some(TDirectory)).get)
+          val resolved = handler.apply(VFolder(uri), Some(TDirectory)) match {
+            case Some(f: VFolder) => f
+            case other            => throw new Exception(s"expected VFolder, not ${other}")
+          }
+          uri -> (TDirectory, resolved)
         case uri =>
-          uri -> (TDirectory, handler.apply(VFile(uri), Some(TFile)).get)
+          val resolved = handler.apply(VFile(uri), Some(TFile)) match {
+            case Some(f: VFile) => f
+            case other          => throw new Exception(s"expected VFile, not ${other}")
+          }
+          uri -> (TFile, resolved)
       }.toMap
     }
   }
@@ -531,7 +539,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       listings: Listings
   ) extends WalkHandler[Uploads] {
     private val defaultDestParent = if (jobMeta.useManifests) {
-      Value.ensureFolderEndsWithSlash(jobMeta.manifestFolder)
+      DxFolderSource.ensureEndsWithSlash(jobMeta.manifestFolder)
     } else {
       "/"
     }
@@ -554,7 +562,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
             // a file literal
             val name = f.basename.getOrElse(f.uri)
             val destFolder = parent.getOrElse(defaultDestParent)
-            ctx.addVirtualFile(f.contents.get, f.uri, Value.folderJoin(destFolder, name))
+            ctx.addVirtualFile(f.contents.get, f.uri, DxFolderSource.join(destFolder, name))
             f.secondaryFiles.foreach { path =>
               handlePath(path, None, Some(destFolder))
             }
@@ -571,7 +579,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
                 // of the file regardless of its origin
                 val name = f.basename.getOrElse(local.canonicalPath.getFileName.toString)
                 val destFolder = parent.getOrElse(defaultDestParent)
-                ctx.addFile(local.canonicalPath, Value.folderJoin(destFolder, name))
+                ctx.addFile(local.canonicalPath, DxFolderSource.join(destFolder, name))
                 f.secondaryFiles.foreach { path =>
                   handlePath(path, None, Some(destFolder))
                 }
@@ -595,7 +603,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
                 // and so need to make a new copy of the this directory regardless of its origin
                 val name = f.basename.getOrElse(local.canonicalPath.getFileName.toString)
                 val destFolder =
-                  Value.folderJoin(parent.getOrElse(defaultDestParent), name, isFolder = true)
+                  DxFolderSource.join(parent.getOrElse(defaultDestParent), name, isFolder = true)
                 ctx.addDirectory(local.canonicalPath, destFolder)
                 f.listing.get.foreach { item =>
                   handlePath(item, None, Some(destFolder))
@@ -604,7 +612,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
             }
           case (Some(TDirectory) | None, l: VListing) =>
             val destFolder =
-              Value.folderJoin(parent.getOrElse(defaultDestParent), l.basename, isFolder = true)
+              DxFolderSource.join(parent.getOrElse(defaultDestParent), l.basename, isFolder = true)
             l.items.foreach { item =>
               handlePath(item, None, Some(destFolder))
             }
@@ -645,7 +653,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     // TODO: currently, this only works for one level of job nesting -
     //  we probably need to get all the output folders all the way up
     //  the job tree and join them all
-    val defaultFolderParent = Value.ensureFolderEndsWithSlash(jobMeta.projectOutputFolder)
+    val defaultFolderParent = DxFolderSource.ensureEndsWithSlash(jobMeta.projectOutputFolder)
 
     // replace local paths with remote URIs
     def handlePath(value: PathValue,

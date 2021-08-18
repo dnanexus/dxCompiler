@@ -241,7 +241,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           case d: DirectoryValue if d.location.isDefined =>
             fileResolver.resolveDirectory(d.location.get) match {
               case DxFolderSource(dxProject, dxFolder) =>
-                Vector(Value.formatFolder(dxProject, dxFolder))
+                Vector(DxFolderSource.format(dxProject, dxFolder))
               case local: LocalFileSource =>
                 logger.warning(
                     s"""InitialWorkDirRequirement in ${tool.name} or one of its ancestors 

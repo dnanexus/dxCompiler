@@ -182,6 +182,9 @@ cwl_tools = [
 cwl_conformance_tools = [
     os.path.basename(path)[:-4]
     for path in glob.glob(os.path.join(test_dir, "cwl_conformance", "tools", "*.cwl"))
+] + [
+    os.path.basename(path)[:-9]
+    for path in glob.glob(os.path.join(test_dir, "cwl_conformance", "tools", "*.cwl.json"))
 ]
 cwl_conformance_workflows = [
     os.path.basename(path)[:-9]
@@ -565,10 +568,11 @@ def get_cwl_json_metadata(filename, tname):
         doc = json.load(fd)
 
     if "class" in doc:
+        # the id in a packed CWL file is always "main" so we use the test name instead
         if doc["class"] == "Workflow":
-            # the workflow id in a packed CWL file is always "main"
-            # so we use the test name instead
             return TestMetaData(name=tname, kind="workflow")
+        elif doc["class"] == "CommandLineTool":
+            return TestMetaData(name=tname, kind="applet")
     elif "$graph" in doc:
         for proc in doc["$graph"]:
             if proc["id"] == "#main":

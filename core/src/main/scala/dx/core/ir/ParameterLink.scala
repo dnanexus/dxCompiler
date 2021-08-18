@@ -4,6 +4,7 @@ import dx.AppInternalException
 import dx.api.{DxApi, DxExecution, DxFile, DxFileDescCache, DxUtils, DxWorkflowStage}
 import dx.core.Constants
 import dx.core.ir.Value._
+import dx.util.protocols.DxFolderSource
 import dx.util.{Enum, FileSourceResolver}
 import spray.json._
 
@@ -105,7 +106,7 @@ case class ParameterLinkSerializer(fileResolver: FileSourceResolver = FileSource
           )
         case (_, d: DirectoryValue) =>
           Right(ValueSerde.serializePath(d, Some(fileResolver), pathsAsObjects))
-        case (Type.TDirectory, VString(path)) if Value.isDxFolderUri(path) =>
+        case (Type.TDirectory, VString(path)) if DxFolderSource.isDxFolderUri(path) =>
           Right(ValueSerde.serializePath(VFolder(path), Some(fileResolver), pathsAsObjects))
         case _ => Left(irValue)
       }

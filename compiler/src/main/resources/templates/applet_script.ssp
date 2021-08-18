@@ -16,6 +16,7 @@ download_dxda() {
     if [[ -f "${dxPathConfig.getDxdaManifestFile().toString}" ]]; then
        echo "Using dxda version: ${bashDollar}(dx-download-agent version)"
        head -n 20 "${dxPathConfig.getDxdaManifestFile().toString}"
+       echo ""
        bzip2 "${dxPathConfig.getDxdaManifestFile().toString}"
 
        # Run the download agent, and store the return code; do not exit on error.
@@ -48,6 +49,7 @@ download_dxfuse() {
     if [[ -f "${dxPathConfig.getDxfuseManifestFile().toString}" ]]; then
        echo "Using dxfuse version: ${bashDollar}(dxfuse -version)"
        head -n 20 "${dxPathConfig.getDxfuseManifestFile().toString}"
+       echo ""
 
        # make sure the mountpoint exists
        mkdir -p "${dxPathConfig.getDxfuseMountDir().toString}"

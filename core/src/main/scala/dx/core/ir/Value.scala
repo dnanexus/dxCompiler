@@ -1,8 +1,8 @@
 package dx.core.ir
 
-import dx.api.{DxPath, DxProject}
 import dx.core.ir.Type._
 import dx.util.CollectionUtils.IterableOnceExtensions
+import dx.util.protocols.DxFolderSource
 
 import scala.collection.immutable.{SeqMap, TreeSeqMap}
 
@@ -250,35 +250,6 @@ object Value {
     inner(value, t)
   }
 
-  def isDxFileUri(uri: String): Boolean = {
-    uri.startsWith(DxPath.DxUriPrefix) && uri.contains("file-") && !uri.endsWith("/")
-  }
-
-  def isDxFolderUri(uri: String): Boolean = {
-    uri.startsWith(DxPath.DxUriPrefix) && uri.contains("project-") && uri.endsWith("/")
-  }
-
-  def ensureFolderEndsWithSlash(folder: String): String = {
-    if (folder.endsWith("/")) {
-      folder
-    } else {
-      s"${folder}/"
-    }
-  }
-
-  def folderJoin(folder: String, name: String, isFolder: Boolean = false): String = {
-    val joined = s"${ensureFolderEndsWithSlash(folder)}${name}"
-    if (isFolder) {
-      ensureFolderEndsWithSlash(joined)
-    } else {
-      joined
-    }
-  }
-
-  def formatFolder(project: DxProject, folder: String): String = {
-    s"${DxPath.DxUriPrefix}${project.id}:${ensureFolderEndsWithSlash(folder)}"
-  }
-
   def coerceTo(value: Value, targetType: Type): Value = {
     (targetType, value) match {
       case (TOptional(_), VNull) => VNull
@@ -325,11 +296,11 @@ object Value {
               throw new Exception(s"cannot coerce ${value} to any of ${bounds.mkString(",")}")
           )
       // coercions
-      case (TFile, VString(s))                          => VFile(s)
-      case (TString, f: VFile)                          => VString(f.uri)
-      case (TDirectory, VString(s)) if isDxFolderUri(s) => VFolder(s)
-      case (TString, f: VFolder)                        => VString(f.uri)
-      case (TFloat, VInt(i))                            => VFloat(i.toFloat)
+      case (TFile, VString(s))                                         => VFile(s)
+      case (TString, f: VFile)                                         => VString(f.uri)
+      case (TDirectory, VString(s)) if DxFolderSource.isDxFolderUri(s) => VFolder(s)
+      case (TString, f: VFolder)                                       => VString(f.uri)
+      case (TFloat, VInt(i))                                           => VFloat(i.toFloat)
       case _ =>
         throw new Exception(s"cannot coerce ${value} to ${targetType}")
     }

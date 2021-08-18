@@ -31,7 +31,7 @@ import dx.core.ir.Type.{TFile, TSchema}
 import dx.core.ir.Value.{TransformHandler, VArray, VFile, VString, WalkHandler}
 import dx.util.{Enum, JsUtils, LocalFileSource, TraceLevel}
 import dx.util.CollectionUtils.IterableOnceExtensions
-import dx.util.protocols.DxFileSource
+import dx.util.protocols.{DxFileSource, DxFolderSource}
 import spray.json._
 
 import java.nio.file.Files
@@ -175,7 +175,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta,
                           prefixOutputs: Boolean = false): (DxExecution, String) = {
     val jobName: String = nameDetail.map(hint => s"${name} ${hint}").getOrElse(name)
     val outputFolder =
-      Option.when(separateOutputs)(Value.ensureFolderEndsWithSlash(folder.getOrElse(Some(jobName))))
+      Option.when(separateOutputs)(DxFolderSource.ensureEndsWithSlash(folder.getOrElse(jobName)))
 
     val prefix = if (prefixOutputs) Some(name) else None
     val callInputsJs = JsObject(jobMeta.prepareSubjobInputs(inputs, executableLink, prefix))
@@ -569,7 +569,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta,
 
     private object FileExtractor extends WalkHandler[Map[String, FileUpload]] {
       private val defaultDestParent = if (jobMeta.useManifests) {
-        Value.ensureFolderEndsWithSlash(jobMeta.manifestFolder)
+        DxFolderSource.ensureEndsWithSlash(jobMeta.manifestFolder)
       } else {
         "/"
       }
