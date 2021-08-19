@@ -293,7 +293,7 @@ case class DxExecutableDirectory(bundle: Bundle,
     */
   def remove(execInfos: Vector[DxExecutableInfo]): Unit = {
     val objs = execInfos.map(_.dataObj)
-    logger.trace(s"Removing old ${execInfos.head.name} ${objs.map(_.id)}")
+    logger.trace(s"Removing old executables ${objs.map(_.id)}")
     project.removeObjects(objs, force = true)
   }
 }
