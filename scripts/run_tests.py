@@ -250,7 +250,6 @@ cromwell_invalid = {
     "afters",
     "afters_and_scatters",
     "custom_cacheworthy_attributes",
-    "parallel_composite_uploads_lib",
     "input_expressions",
     "missing_delete",
     "confirm_preemptible",
@@ -266,7 +265,6 @@ cromwell_invalid = {
     "hello_private_repo",
     "local_bourne",
     "papi_v2_gcsa",
-    "parallel_composite_uploads_off",
     "monitoring_log",
     "call_cache_capoeira_tes",
     "check_network_in_vpc",
@@ -278,6 +276,11 @@ cromwell_invalid = {
     "docker_size_gcr",
     "custom_mount_point",
     "short_circuit",
+    "top",
+    "recursive_imports_no_subwf",
+    "parallel_composite_uploads_on",
+    "parallel_composite_uploads_off",
+    "default_runtime_attributes",
 }
 
 # tests taken from cromwell repository
@@ -308,7 +311,6 @@ cromwell_tests_list = [
     "c",
     "a",
     "d",
-    "top",
     "sub_sub_sub",
     "array_io",
     "simple_if",
@@ -401,22 +403,19 @@ cromwell_tests_list = [
     "passingfiles",
     "referencingpreviousinputsandoutputs",
     "engine_functions",
-    "string_interpolation_optional",
-    "none_literal",
+    #"string_interpolation_optional",  # pending wdlTools 170
+    #"none_literal",  # pending wdlTools 170
     "sub_workflow_interactions_scatter",
-    "recursive_imports_no_subwf",
-    "default_runtime_attributes",
     "sub_workflow_one_output_import",
     "sub_workflow_var_refs",
     "sub_workflow_var_refs_import",
-    "globbingBehavior",
-    "object_access",
-    "read_write_json",
+    #"globbingBehavior",  # pending dxCompiler 87
+    #"object_access",  # pending wdlTools 171
+    #"read_write_json",  # pending wdlTools 171
     "no_task_no_output_delete",
     "if_then_else_expressions",
     "sub_workflow_no_output_block_import",
     "sub_workflow_no_outputs_in_block_import",
-    "parallel_composite_uploads_on",
     "sub_workflow_interactions_import",
     "workflow_output_declarations",
     "member_access",
@@ -1098,7 +1097,11 @@ def build_test(tname, project, folder, version_id, compiler_flags):
         cmdline.append("-useManifests")
     cmdline += compiler_flags
     print(" ".join(cmdline))
-    oid = subprocess.check_output(cmdline).strip()
+    try:
+        oid = subprocess.check_output(cmdline).strip()
+    except subprocess.CalledProcessError as cpe:
+        print(f"error compiling {desc.source_file}\n  stdout: {cpe.stdout}\n  stderr: {cpe.stderr}")
+        raise
     return oid.decode("ascii")
 
 

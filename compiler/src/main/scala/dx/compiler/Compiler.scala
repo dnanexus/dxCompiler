@@ -319,22 +319,24 @@ case class Compiler(extras: Option[Extras],
       logger2.trace(s"Compiling applet ${applet.name}")
       val appletCompiler =
         ApplicationCompiler(
-            bundle.typeAliases,
-            instanceTypeDb,
-            runtimeAsset,
-            runtimeJar,
-            runtimePathConfig,
-            runtimeTraceLevel,
-            separateOutputs,
-            streamFiles,
-            waitOnUpload,
-            extras,
-            parameterLinkSerializer,
-            useManifests,
-            complexPathValues,
-            fileResolver,
-            dxApi,
-            logger2
+            typeAliases = bundle.typeAliases,
+            instanceTypeDb = instanceTypeDb,
+            runtimeAsset = runtimeAsset,
+            runtimeJar = runtimeJar,
+            runtimePathConfig = runtimePathConfig,
+            runtimeTraceLevel = runtimeTraceLevel,
+            separateOutputs = separateOutputs,
+            streamFiles = streamFiles,
+            waitOnUpload = waitOnUpload,
+            extras = extras,
+            parameterLinkSerializer = parameterLinkSerializer,
+            useManifests = useManifests,
+            complexPathValues = complexPathValues,
+            fileResolver = fileResolver,
+            dxApi = dxApi,
+            logger = logger2,
+            project = project,
+            folder = folder
         )
       // limit the applet dictionary to actual dependencies
       val dependencies: Map[String, ExecutableLink] = applet.kind match {
