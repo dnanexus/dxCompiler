@@ -5,12 +5,12 @@
     "secondaryFiles": [
       {
         "class": "File",
-        "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G1355Zj0yzZzxqZ74fKxgY2V"
+        "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/subdirsecondaries/hello.py"
       },
       {
         "class": "Directory",
         "basename": "xtestdir",
-        "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G1352Yj0yzZyF4JX4gPq407k"
+        "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/subdirsecondaries/testdir/"
       }
     ]
   }

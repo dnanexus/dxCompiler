@@ -38,7 +38,10 @@ expected_failure = {
     "argument_list_too_long",
     "diskspace_exhauster",
     "symlink-illegal",
-    "docker-array-secondaryfiles.1"
+    "docker-array-secondaryfiles.1",
+    "iwd-container-entryname2",
+    "iwd-container-entryname3",
+    "iwd-container-entryname4",
 }
 
 test_compilation_failing = {"import_passwd"}

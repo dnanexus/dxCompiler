@@ -148,17 +148,27 @@ case class CwlTaskExecutor(tool: Process,
     (cwlInputs, target)
   }
 
+  override protected def getInputsWithDefaults: Map[String, (Type, Value)] = {
+    CwlUtils.toIR(cwlInputs)
+  }
+
+  private lazy val typeAliases: Map[String, CwlSchema] = {
+    HintUtils.getSchemaDefs(tool.requirements)
+  }
+
   private lazy val defaultRuntimeAttrs: Map[String, (CwlType, CwlValue)] = {
     CwlUtils.fromIRValues(jobMeta.defaultRuntimeAttrs, isInput = true)
   }
 
-  private def getInstanceTypeRequest(
-      inputs: Map[String, (CwlType, CwlValue)] = cwlInputs
+  override protected def getInstanceTypeRequest(
+      inputs: Map[String, (Type, Value)]
   ): InstanceTypeRequest = {
     logger.traceLimited("calcInstanceType", minLevel = TraceLevel.VVerbose)
     val cwlEvaluator = Evaluator.create(tool.requirements, tool.hints)
+    val cwlInputs = CwlUtils.fromIR(inputs, typeAliases, isInput = true)
     val ctx = CwlUtils.createEvaluatorContext(runtime)
-    val env = cwlEvaluator.evaluateMap(inputs, ctx)
+    val env = cwlEvaluator.evaluateMap(cwlInputs, ctx)
+    println(CwlUtils.prettyFormatEnv(env, verbose = true))
     val reqEvaluator = RequirementEvaluator(
         tool.requirements,
         tool.hints,
@@ -170,20 +180,8 @@ case class CwlTaskExecutor(tool: Process,
     reqEvaluator.parseInstanceType
   }
 
-  override protected lazy val getInstanceTypeRequest: InstanceTypeRequest = {
-    getInstanceTypeRequest()
-  }
-
-  override protected def getInputsWithDefaults: Map[String, (Type, Value)] = {
-    CwlUtils.toIR(cwlInputs)
-  }
-
   override protected def streamFileForInput(parameterName: String): Boolean = {
     inputParams(parameterName).streamable
-  }
-
-  private lazy val typeAliases: Map[String, CwlSchema] = {
-    HintUtils.getSchemaDefs(tool.requirements)
   }
 
   override protected def getSchemas: Map[String, Type.TSchema] = {

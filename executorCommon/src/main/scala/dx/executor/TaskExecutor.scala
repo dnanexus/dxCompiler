@@ -53,6 +53,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     logger.traceLimited(msg, traceLengthLimit, minLevel)
   }
 
+  def executorName: String
+
   private def printDirTree(): Unit = {
     if (logger.traceLevel >= TraceLevel.VVerbose) {
       trace("Directory structure:", TraceLevel.VVerbose)
@@ -61,24 +63,22 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     }
   }
 
-  def executorName: String
-
-  /**
-    * Returns the minimal (i.e. cheapest) instance type that is
-    * sufficient to the task's resource requirements.
-    */
-  protected def getInstanceTypeRequest: InstanceTypeRequest
-
-  /**
-    * Returns a mapping of output field names IR types.
-    */
-  protected def outputTypes: Map[String, Type]
-
   /**
     * Returns the IR type and value for each task input, including default values
     * for any missing optional parameters.
     */
   protected def getInputsWithDefaults: Map[String, (Type, Value)]
+
+  /**
+    * Returns the minimal (i.e. cheapest) instance type that is
+    * sufficient to the task's resource requirements.
+    */
+  protected def getInstanceTypeRequest(inputs: Map[String, (Type, Value)]): InstanceTypeRequest
+
+  /**
+    * Returns a mapping of output field names IR types.
+    */
+  protected def outputTypes: Map[String, Type]
 
   /**
     * Should we try to stream the file(s) associated with the given input parameter?
@@ -254,9 +254,9 @@ abstract class TaskExecutor(jobMeta: JobMeta,
           val newPath = sourceToFinalFile.get(f) match {
             case Some(newPath) => newPath
             case None
-                if parent.nonEmpty ||
+                if f.basename.nonEmpty ||
                   !localizationDirs.exists(path.startsWith) ||
-                  f.basename.nonEmpty =>
+                  (parent.nonEmpty && !path.startsWith(parent.get)) =>
               // Either we are localizing into a specific directory, the path is a local or a
               // virtual file, or it is a remote file that needs its name changed - use the
               // localizer to determine the new path and then create a symbolic link.
@@ -287,7 +287,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
                 val fs = (fileResolver.resolveDirectory(f.uri), f.basename) match {
                   case (fs, Some(basename)) =>
                     fs.getParent
-                      .map(_.resolve(basename))
+                      .map(_.resolveDirectory(basename))
                       .getOrElse(throw new Exception("cannot rename root directory"))
                   case (fs, None) => fs
                 }
@@ -775,10 +775,25 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       printDirTree()
     }
 
+    // Evaluates input values and makes sure all VFolder inputs have their `listing`s set.
+    // We do this to ensure that only the files present in the folder at the beginning of
+    // task execution are localized into the inputs folder, and any changes to the
+    // directory during runtime aren't synchronized to the worker. This step also extracts
+    // all the files from the inputs that need to be localized. Input files and directories
+    // are represented as URIs (dx://proj-xxxx:file-yyyy::/A/B/C.txt).
+    // TODO: it would be nice to extract dx:// links from VString values - this will happen
+    //  in the case where the container is a dx file and being passed in as an input
+    //  parameter - so that they could be downloaded using dxda. However, this would also
+    //  require some way for the downloaded image tarball to be discovered and loaded. For now,
+    //  we rely on DockerUtils to download the image (via DxFileSource, which uses the dx API
+    //  to download the file).
+    val pathsToLocalize = new PathsToLocalize
+    val inputs = pathsToLocalize.updateListingsAndExtractFiles(getInputsWithDefaults)
+
     if (checkInstanceType) {
       // calculate the required instance type
       trace("Computing instance type to request")
-      val instanceTypeRequest: InstanceTypeRequest = getInstanceTypeRequest
+      val instanceTypeRequest: InstanceTypeRequest = getInstanceTypeRequest(inputs)
       trace(s"Requesting instance type: $instanceTypeRequest")
       val requestedInstanceType = jobMeta.instanceTypeDb.apply(instanceTypeRequest).name
       trace(s"Requested instance type: ${requestedInstanceType}")
@@ -816,21 +831,6 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         return false
       }
     }
-
-    // Evaluates input values and makes sure all VFolder inputs have their `listing`s set.
-    // We do this to ensure that only the files present in the folder at the beginning of
-    // task execution are localized into the inputs folder, and any changes to the
-    // directory during runtime aren't synchronized to the worker. This step also extracts
-    // all the files from the inputs that need to be localized. Input files and directories
-    // are represented as URIs (dx://proj-xxxx:file-yyyy::/A/B/C.txt).
-    // TODO: it would be nice to extract dx:// links from VString values - this will happen
-    //  in the case where the container is a dx file and being passed in as an input
-    //  parameter - so that they could be downloaded using dxda. However, this would also
-    //  require some way for the downloaded image tarball to be discovered and loaded. For now,
-    //  we rely on DockerUtils to download the image (via DxFileSource, which uses the dx API
-    //  to download the file).
-    val pathsToLocalize = new PathsToLocalize
-    val inputs = pathsToLocalize.updateListingsAndExtractFiles(getInputsWithDefaults)
 
     // If the task has any hard-coded remote paths, localize them and later update the source
     // code to replace the remote paths with local ones

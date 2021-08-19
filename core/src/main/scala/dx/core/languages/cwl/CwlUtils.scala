@@ -497,19 +497,33 @@ object CwlUtils {
     }
   }
 
-  def prettyFormatValue(value: CwlValue): String = {
-    value match {
-      case NullValue           => "null"
-      case BooleanValue(true)  => "true"
-      case BooleanValue(false) => "false"
-      case IntValue(i)         => i.toString
-      case LongValue(l)        => l.toString
-      case FloatValue(f)       => f.toString
-      case DoubleValue(d)      => d.toString
-      case StringValue(s)      => s
-      case f: FileValue        => f.toString
-      case d: DirectoryValue   => d.toString
-      case ArrayValue(items)   => s"[${items.map(prettyFormatValue)}]"
+  def prettyFormatValue(value: CwlValue, verbose: Boolean = false, indent: Int = 0): String = {
+    val indentStr = " " * indent
+    val s = value match {
+      case NullValue                          => "null"
+      case BooleanValue(true)                 => "true"
+      case BooleanValue(false)                => "false"
+      case IntValue(i)                        => i.toString
+      case LongValue(l)                       => l.toString
+      case FloatValue(f)                      => f.toString
+      case DoubleValue(d)                     => d.toString
+      case StringValue(s)                     => s
+      case f: FileValue if verbose            => f.toJson.prettyPrint
+      case f: FileValue                       => f.toString
+      case d: DirectoryValue if verbose       => d.toJson.prettyPrint
+      case d: DirectoryValue                  => d.toString
+      case ArrayValue(items) if items.isEmpty => "[]"
+      case ArrayValue(items) if verbose =>
+        s"[\n${indentStr}${items
+          .map(prettyFormatValue(_, verbose = true, indent + 2))
+          .mkString(s"\n")}\n${indentStr}]"
+      case ArrayValue(items)                     => s"[${items.map(prettyFormatValue(_))}]"
+      case ObjectValue(fields) if fields.isEmpty => "{}"
+      case ObjectValue(fields) if verbose =>
+        val fieldStrs = fields.map {
+          case (name, value) => s"${name}: ${prettyFormatValue(value, verbose = true, indent + 2)}"
+        }
+        s"{\n${indentStr}${fieldStrs.mkString("\n")}\n${indentStr}}"
       case ObjectValue(fields) =>
         val fieldStrs = fields.map {
           case (name, value) => s"${name}: ${prettyFormatValue(value)}"
@@ -517,13 +531,16 @@ object CwlUtils {
         s"{${fieldStrs.mkString(",")}}"
       case _ => throw new Exception(s"unrecognized CWL value ${value})")
     }
+    s"${indentStr}${s}"
   }
 
-  def prettyFormatEnv(env: Map[String, (CwlType, CwlValue)], indent: String = "  "): String = {
+  def prettyFormatEnv(env: Map[String, (CwlType, CwlValue)],
+                      verbose: Boolean = false,
+                      indent: Int = 2): String = {
     env
       .map {
         case (name, (t, v)) =>
-          s"${indent}${name}: ${prettyFormatType(t)} ${prettyFormatValue(v)}"
+          s"${" " * indent}${name}: ${prettyFormatType(t)} ${prettyFormatValue(v, verbose)}"
       }
       .mkString("\n")
   }

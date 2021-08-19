@@ -326,9 +326,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
   private lazy val allFilesReferenced: Vector[DxFile] = {
     // bulk describe all files referenced in the inputs
     logger.trace("Discovering all files in the input values")
-    val queryFiles = jsInputs.flatMap {
-      case (_, jsv) => DxFile.findFiles(dxApi, jsv)
-    }.toVector
+    val queryFiles = jsInputs.values.flatMap(DxFile.findFiles(dxApi, _)).toVector.distinct
     logger.trace(s"Bulk describing ${queryFiles.size} files")
     val dxFiles = dxApi.describeFilesBulk(queryFiles, searchWorkspaceFirst = true, validate = true)
     // check that all files are in the closed state

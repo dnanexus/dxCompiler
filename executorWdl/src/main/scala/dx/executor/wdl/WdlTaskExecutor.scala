@@ -134,16 +134,16 @@ case class WdlTaskExecutor(task: TAT.Task,
     )
   }
 
-  private def getRequiredInstanceTypeRequest(
-      inputs: Map[String, V] = wdlInputs
+  override protected def getInstanceTypeRequest(
+      inputs: Map[String, (Type, Value)]
   ): InstanceTypeRequest = {
-    val env = evaluatePrivateVariables(inputs)
+    val wdlInputs = WdlUtils.fromIR(inputs).map {
+      case (name, (_, value)) => name -> value
+    }
+    val env = evaluatePrivateVariables(wdlInputs)
     val runtime = createRuntime(env)
     runtime.parseInstanceType
   }
-
-  override protected lazy val getInstanceTypeRequest: InstanceTypeRequest =
-    getRequiredInstanceTypeRequest()
 
   private lazy val hints =
     HintResolver(versionSupport.version, task.parameterMeta, task.hints)
