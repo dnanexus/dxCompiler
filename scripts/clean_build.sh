@@ -1,6 +1,6 @@
 #!/bin/bash
 
-TEST=${1:-upload_wait}
+TEST=$1
 
 # Clean artifacts from prev. builds, local
 sbt clean && sbt cleanFiles
@@ -21,4 +21,6 @@ dx rm -r dxCompiler_playground:/unit_tests/$username
 dx rm -r dxCompiler_playground:/unit_tests/user-$username
 
 # Run 1 integration test to re-build, upload
-./scripts/run_tests.py --test $TEST
+if [[ ! -z "${TEST}"]]; then
+  ./scripts/run_tests.py --test $TEST
+fi
