@@ -168,7 +168,6 @@ case class CwlTaskExecutor(tool: Process,
     val cwlInputs = CwlUtils.fromIR(inputs, typeAliases, isInput = true)
     val ctx = CwlUtils.createEvaluatorContext(runtime)
     val env = cwlEvaluator.evaluateMap(cwlInputs, ctx)
-    println(CwlUtils.prettyFormatEnv(env, verbose = true))
     val reqEvaluator = RequirementEvaluator(
         tool.requirements,
         tool.hints,

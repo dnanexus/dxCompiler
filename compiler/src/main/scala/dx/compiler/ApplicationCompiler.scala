@@ -27,10 +27,10 @@ object ApplicationCompiler {
   // templates
   private val GenericDockerPreambleTemplate = "templates/generic_docker_preamble.ssp"
   private val EcrDockerPreambleTemplate = "templates/ecr_docker_preamble.ssp"
-  private val DynamicAppletJobTemplate = "templates/dynamic_applet_script.ssp"
-  private val StaticAppletJobTemplate = "templates/static_applet_script.ssp"
+  private val DynamicAppletCommandTemplate = "templates/dynamic_applet_script.ssp"
+  private val StaticAppletCommandTemplate = "templates/static_applet_script.ssp"
   private val WorkflowFragmentTemplate = "templates/workflow_fragment_script.ssp"
-  private val CommandTemplate = "templates/workflow_command_script.ssp"
+  private val WorkflowCommandTemplate = "templates/workflow_command_script.ssp"
   // keys used in templates
   private val RegistryKey = "registry"
   private val CredentialsKey = "credentials"
@@ -125,8 +125,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     applet.kind match {
       case ExecutableKindApplet =>
         val template = applet.instanceType match {
-          case DynamicInstanceType => ApplicationCompiler.DynamicAppletJobTemplate
-          case _                   => ApplicationCompiler.StaticAppletJobTemplate
+          case DynamicInstanceType => ApplicationCompiler.DynamicAppletCommandTemplate
+          case _                   => ApplicationCompiler.StaticAppletCommandTemplate
         }
         renderer.render(
             template,
@@ -139,15 +139,20 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         renderer.render(
             ApplicationCompiler.WorkflowFragmentTemplate,
             templateAttrs ++ Map(
-                "separateOutputs" -> separateOutputs
+                "separateOutputs" -> separateOutputs,
+                "waitOnUpload" -> waitOnUpload
             )
         )
       case other =>
         ExecutableKind.getCommand(other) match {
           case Some(command) =>
             renderer.render(
-                ApplicationCompiler.CommandTemplate,
-                templateAttrs ++ Map("command" -> command, "separateOutputs" -> separateOutputs)
+                ApplicationCompiler.WorkflowCommandTemplate,
+                templateAttrs ++ Map(
+                    "command" -> command,
+                    "separateOutputs" -> separateOutputs,
+                    "waitOnUpload" -> waitOnUpload
+                )
             )
           case _ =>
             throw new RuntimeException(

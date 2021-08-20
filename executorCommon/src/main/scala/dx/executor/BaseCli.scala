@@ -85,7 +85,6 @@ abstract class BaseCli {
           )
           val taskExecutor =
             createTaskExecutor(jobMeta, streamFiles, waitOnUpload, checkInstanceType)
-          Success()
           if (taskExecutor.apply()) {
             Success("task executed successfully")
           } else {

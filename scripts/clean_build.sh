@@ -21,6 +21,6 @@ dx rm -r "dxCompiler_playground:/unit_tests/$username"
 dx rm -r "dxCompiler_playground:/unit_tests/user-$username"
 
 # Run 1 integration test to re-build, upload
-if [[ -z "$TEST" ]]; then
+if [[ -n "$TEST" ]]; then
   ./scripts/run_tests.py --test "$TEST"
 fi
