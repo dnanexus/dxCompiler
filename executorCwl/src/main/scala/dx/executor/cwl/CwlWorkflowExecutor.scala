@@ -8,6 +8,7 @@ import dx.core.ir.{
   Block,
   BlockKind,
   ExecutableLink,
+  Parameter,
   ParameterLink,
   Type,
   TypeSerde,

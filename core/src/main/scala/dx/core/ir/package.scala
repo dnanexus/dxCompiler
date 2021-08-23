@@ -26,72 +26,196 @@ case class Parameter(
     defaultValue: Option[Value] = None,
     attributes: Vector[ParameterAttribute] = Vector.empty
 ) {
-  // dx does not allow dots, slashes, etc in variable names, so we
-  // convert them to underscores.
-  //
+  // dx does not allow dots, slashes, etc in variable names, so we encode them.
   // TODO: check for collisions that are created this way.
   def dxName: String = Parameter.encodeName(name)
 }
 
 object Parameter {
+  val DefaultDelim = "."
   val ComplexValueKey = "___"
 
-  private val illegalChars = "[./\\-~]"
-  private val illegalCharsRegexp = s"${illegalChars}".r
+  // character sequences that may not appear in a non-encoded name
+  private val illegalSeqsRegexp = "__|\\s+".r
+  // characters that need to be encoded
+  private val encodeCharsRegexp = "([^a-zA-Z0-9_])".r
+  // character sequences that need to be decoded
+  private val decodeSeqsRegexp = "(___)|__(\\d+)__".r
+
+  private def makeNewName(name: String,
+                          starts: Vector[Int],
+                          ends: Vector[Int],
+                          delims: Vector[String]): String = {
+    (Vector(0) ++ starts)
+      .zip(ends ++ Vector(name.length))
+      .map {
+        case (start, end) if start == end => ""
+        case (start, end)
+            if (start > 0 && name.charAt(start) == '_')
+              || (end < name.length && name.charAt(end - 1) == '_') =>
+          println(start, end, name.substring(start, end))
+          throw new Exception(
+              s"illegal name ${name}: '_' must not be adjacent to a non-alphanumeric character"
+          )
+        case (start, end) => name.substring(start, end)
+      }
+      .zipAll(delims, "", "")
+      .map {
+        case (part, delim) => s"${part}${delim}"
+      }
+      .mkString
+  }
 
   /**
-    * Converts dots in parameter names to underscores.
-    * DNAnexus does not allow dots in variable names
+    * Converts disallowed characters in parameter names to underscores.
+    * DNAnexus only allows [a-zA-Z0-9_] in parameter names. We also
+    * disallow:
+    *   * whitespace - "foo bar"
+    *   * consecutive underscores - "foo\_\_bar"
+    *   * name segments that begin or end in underscore - "foo_._bar"
     * @param name parameter name
-    * @return
+    * @return the encoded parameter name, with "." replaced with "\_\_\_"
+    *         and any other illegal character replaced with "\_\_ord(x)\_\_",
+    *         where `ord(x)` is the ordinal value of the illegal character.
     */
   def encodeName(name: String): String = {
-    illegalCharsRegexp.split(name).toVector match {
-      case Vector()     => throw new Exception("empty name")
-      case Vector(name) => name
-      case v if v.last.isEmpty =>
-        throw new Exception(s"${name} ends with one of ${illegalChars}")
-      case parts =>
+    if (name.trim().isEmpty) {
+      throw new Exception("empty name")
+    }
+    if (name.endsWith(".")) {
+      throw new Exception(s"parameter name ${name} ends with a '.'")
+    }
+    // some special parameter names end with '___' - add this back on after decoding
+    val (encodeName, endsWithComplexValueKey) = if (name.endsWith(ComplexValueKey)) {
+      (name.dropRight(ComplexValueKey.length), true)
+    } else {
+      (name, false)
+    }
+    illegalSeqsRegexp.findFirstIn(encodeName).foreach { c =>
+      throw new Exception(s"parameter name contains illegal character sequence '${c}'")
+    }
+    val encoded = encodeCharsRegexp.findAllMatchIn(encodeName).toVector match {
+      case Vector() => name
+      case matches =>
+        val (starts, ends, delims) = matches.map { m =>
+          val newDelim = m.group(1) match {
+            case DefaultDelim => ComplexValueKey
+            case c if c.length() == 1 =>
+              s"__${c.charAt(0).toInt}__"
+            case other =>
+              throw new Exception(s"unexpected multi-character delimiter ${other}")
+          }
+          (m.end, m.start, newDelim)
+        }.unzip3
+        makeNewName(encodeName, starts, ends, delims)
+    }
+    if (endsWithComplexValueKey) {
+      s"${encoded}${ComplexValueKey}"
+    } else {
+      encoded
+    }
+  }
+
+  /**
+    * Simplified encoding for parameter  names that conform to DNAnexus character
+    * restrictions, with the possible exception of containg dots.
+    * @param name parameter name
+    * @return encoded parameter name
+    */
+  def encodeDots(name: String): String = {
+    if (name.trim().isEmpty) {
+      throw new Exception("empty name")
+    }
+    if (name.endsWith(".")) {
+      throw new Exception(s"parameter name ${name} ends with a '.'")
+    }
+    name.split("\\.").toVector match {
+      case Vector(_) => name
+      case parts     =>
         // check that none of the individual words start/end with '_',
         // which will cause problems when decoding
-        if (parts.drop(1).exists(_.endsWith("_")) || parts.tail.exists(_.startsWith("_"))) {
-          throw new Exception(s"Cannot encode value ${name} - cannot have '_' next to '.'")
+        if (parts.dropRight(1).exists(_.endsWith("_")) || parts.drop(1).exists(_.startsWith("_"))) {
+          throw new Exception(s"cannot encode value ${name} - cannot have '_' next to '.'")
         }
         parts.mkString(ComplexValueKey)
     }
   }
 
+  /**
+    * Decodes a name that was previously encoded using `encodeName`.
+    * @param name encoded parameter name
+    * @return parameter name
+    */
   def decodeName(name: String): String = {
-    illegalCharsRegexp.findFirstIn(name).map { c =>
-      throw new Exception(s"Encoded value ${name} contains '${c}''")
-    }
-    val parts = name.split(ComplexValueKey)
-    if (parts.size == 1) {
-      return name
-    }
-    // check that none of the individual words start/end with '_'
-    if (parts.drop(1).exists(_.endsWith("_")) || parts.tail.exists(_.startsWith("_"))) {
-      throw new Exception(
-          s"Cannot decode value ${name} - more than three consecutive underscores"
-      )
-    }
-    val decoded = parts.mkString(".")
-    if (name.endsWith(ComplexValueKey)) {
-      // some special parameter names end with '___' - add this back on
-      // after decoding
-      s"${decoded}${ComplexValueKey}"
+    // some special parameter names end with '___' - add this back on after decoding
+    val (decodeName, endsWithComplexValueKey) = if (name.endsWith(ComplexValueKey)) {
+      (name.dropRight(ComplexValueKey.length), true)
     } else {
-      decoded
+      (name, false)
+    }
+    if (decodeName.trim().isEmpty) {
+      throw new Exception("empty name")
+    }
+    encodeCharsRegexp.findFirstIn(decodeName).foreach { c =>
+      throw new Exception(s"encoded value ${name} contains illegal character '${c}''")
+    }
+    decodeSeqsRegexp.findAllMatchIn(decodeName).toVector match {
+      case Vector() => name
+      case matches =>
+        val (starts, ends, delims) = matches.map { m =>
+          val newDelim = (m.group(1), m.group(2)) match {
+            case (ComplexValueKey, null) => DefaultDelim
+            case (null, ord)             => ord.toInt.toChar.toString
+            case other =>
+              throw new Exception(s"unexpected delimiter ${other}")
+          }
+          (m.end, m.start, newDelim)
+        }.unzip3
+        val newName = makeNewName(decodeName, starts, ends, delims)
+        if (endsWithComplexValueKey) {
+          s"${newName}${ComplexValueKey}"
+        } else {
+          newName
+        }
     }
   }
 
   /**
-    * Converts all illegal characters to '.'.
-    * When a CWL parameter name is encoded and then decoded, all illegal characters
-    * are converted to ".", so this function enables comparison to non-encoded names.
+    * Simplified decoding for parameter names that conform to DNAnexus character
+    * restrictions, with the possible exception of containg dots.
+    * @param name encoded parameter name
+    * @return parameter name
     */
-  def normalizeName(name: String): String = {
-    illegalCharsRegexp.replaceAllIn(name, ".")
+  def decodeDots(name: String): String = {
+    if (name.trim().isEmpty) {
+      throw new Exception("empty name")
+    }
+    if (name.contains(".")) {
+      throw new Exception(s"encoded name ${name} contains '.'")
+    }
+    // some special parameter names end with '___' - add this back on after decoding
+    val (decodeName, endsWithComplexValueKey) = if (name.endsWith(ComplexValueKey)) {
+      (name.dropRight(ComplexValueKey.length), true)
+    } else {
+      (name, false)
+    }
+    decodeName.split(ComplexValueKey).toVector match {
+      case Vector(_) => name
+      case parts     =>
+        // check that none of the individual words start/end with '_'
+        if (parts.dropRight(1).exists(_.endsWith("_")) || parts.drop(1).exists(_.startsWith("_"))) {
+          throw new Exception(
+              s"cannot decode value ${name} - more than three consecutive underscores"
+          )
+        }
+        val decoded = parts.mkString(DefaultDelim)
+        if (endsWithComplexValueKey) {
+          // some special parameter names end with '___' - add this back on after decoding
+          s"${decoded}${ComplexValueKey}"
+        } else {
+          decoded
+        }
+    }
   }
 }
 

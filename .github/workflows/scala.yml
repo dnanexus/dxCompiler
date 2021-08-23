@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Git Checkout
         uses: actions/checkout@v2
+      # performance optimizations https://abbbi.github.io/actions/
+      - uses: abbbi/github-actions-tune@v1
       - name: Install Java
         uses: actions/setup-java@v1
         with:

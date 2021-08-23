@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Git checkout
         uses: actions/checkout@v2
+      # performance optimizations https://abbbi.github.io/actions/
+      - uses: abbbi/github-actions-tune@v1
       - name: Validate inputs
         run: |
           # make sure the version doesn't contain -SNAPSHOT

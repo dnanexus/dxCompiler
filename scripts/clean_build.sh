@@ -1,6 +1,6 @@
 #!/bin/bash
 
-TEST=$1
+TEST=${1:-cat}
 
 # Clean artifacts from prev. builds, local
 sbt clean && sbt cleanFiles
@@ -21,6 +21,4 @@ dx rm -r "dxCompiler_playground:/unit_tests/$username"
 dx rm -r "dxCompiler_playground:/unit_tests/user-$username"
 
 # Run 1 integration test to re-build, upload
-if [[ -n "$TEST" ]]; then
-  ./scripts/run_tests.py --test "$TEST"
-fi
+./scripts/run_tests.py --test "$TEST"
