@@ -53,7 +53,6 @@ object Parameter {
         case (start, end)
             if (start > 0 && name.charAt(start) == '_')
               || (end < name.length && name.charAt(end - 1) == '_') =>
-          println(start, end, name.substring(start, end))
           throw new Exception(
               s"illegal name ${name}: '_' must not be adjacent to a non-alphanumeric character"
           )
@@ -94,7 +93,7 @@ object Parameter {
     illegalSeqsRegexp.findFirstIn(encodeName).foreach { c =>
       throw new Exception(s"parameter name contains illegal character sequence '${c}'")
     }
-    val encoded = encodeCharsRegexp.findAllMatchIn(encodeName).toVector match {
+    encodeCharsRegexp.findAllMatchIn(encodeName).toVector match {
       case Vector() => name
       case matches =>
         val (starts, ends, delims) = matches.map { m =>
@@ -107,12 +106,12 @@ object Parameter {
           }
           (m.end, m.start, newDelim)
         }.unzip3
-        makeNewName(encodeName, starts, ends, delims)
-    }
-    if (endsWithComplexValueKey) {
-      s"${encoded}${ComplexValueKey}"
-    } else {
-      encoded
+        val newName = makeNewName(encodeName, starts, ends, delims)
+        if (endsWithComplexValueKey) {
+          s"${newName}${ComplexValueKey}"
+        } else {
+          newName
+        }
     }
   }
 
