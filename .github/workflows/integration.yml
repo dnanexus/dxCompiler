@@ -34,7 +34,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y apt-transport-https wget git openssh-server tree python3 python3-pip python3-venv
           cwltool=`jq -r '.execDepends.cwl[0].name' scripts/bundled_dependencies.json`
-          pip3 install setuptools wheel termcolor dxpy $cwltool
+          pip3 install setuptools wheel
+          pip3 install termcolor dxpy $cwltool
       - name: Run tests
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
