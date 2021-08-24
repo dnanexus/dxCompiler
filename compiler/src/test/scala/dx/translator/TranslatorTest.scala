@@ -918,7 +918,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
       case other =>
         throw new Exception(s"unexpected primary callable ${other}")
     }
-    wf.stages.size shouldBe 1
+    wf.stages.size shouldBe 2
     wf.stages.head.inputs shouldBe Vector(
         WorkflowInput(
             Parameter("sampleStruct",
@@ -978,7 +978,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   it should "respect import -p flag" in {
     val path = pathFromBasename("compiler/imports", "A.wdl")
     val libraryPath = path.getParent.resolve("lib")
-    val args = path.toString :: "--p" :: libraryPath.toString :: cFlags
+    val args = path.toString :: "-p" :: libraryPath.toString :: cFlags
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileIR]
   }
