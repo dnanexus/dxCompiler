@@ -979,7 +979,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   it should "respect import -p flag" in {
     val path = pathFromBasename("compiler/imports", "A.wdl")
     val libraryPath = path.getParent.resolve("lib")
-    val args = path.toString :: "--p" :: libraryPath.toString :: cFlags
+    val args = path.toString :: "-p" :: libraryPath.toString :: cFlags
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileIR]
   }
