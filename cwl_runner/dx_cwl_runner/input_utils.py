@@ -143,7 +143,7 @@ def get_new_dx_input(input_path: str) -> str:
 
 def get_paths_referenced(process_file: str, log: Log) -> Optional[dict]:
     deps = json.loads(run_cmd(f"cwltool --print-deps {process_file}"))
-    deps.get("secondaryFiles")
+    return deps.get("secondaryFiles")
 
 
 def replace_paths(obj, pathmap):
