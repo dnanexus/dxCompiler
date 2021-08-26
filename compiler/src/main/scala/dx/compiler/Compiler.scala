@@ -212,8 +212,8 @@ case class Compiler(extras: Option[Extras],
 
     // Create linking information for a dx:executable
     private def createLinkForCall(irCall: Callable, dxObj: DxExecutable): ExecutableLink = {
-      val callInputs: Map[String, Type] = irCall.inputVars.map(p => p.name -> p.dxType).toMap
-      val callOutputs: Map[String, Type] = irCall.outputVars.map(p => p.name -> p.dxType).toMap
+      val callInputs: Map[DxName, Type] = irCall.inputVars.map(p => p.name -> p.dxType).toMap
+      val callOutputs: Map[DxName, Type] = irCall.outputVars.map(p => p.name -> p.dxType).toMap
       ExecutableLink(irCall.name, callInputs, callOutputs, dxObj)
     }
 

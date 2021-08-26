@@ -524,22 +524,34 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
           Map(
               Constants.ExecLinkInfo -> JsObject(linkInfo.toMap),
               Constants.BlockPath -> JsArray(blockPath.map(JsNumber(_))),
-              Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(inputs)
+              Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(inputs.map {
+                case (dxName, t) => dxName.decoded -> t
+              })
           ) ++ scatterChunkSize
             .map(chunkSize => Map(Constants.ScatterChunkSize -> JsNumber(chunkSize)))
             .getOrElse(Map.empty)
         case ExecutableKindWfInputs(blockPath) if blockPath.nonEmpty =>
           val types = applet.inputVars.map(p => p.name -> p.dxType).toMap
-          Map(Constants.BlockPath -> JsArray(blockPath.map(JsNumber(_))),
-              Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(types))
+          Map(
+              Constants.BlockPath -> JsArray(blockPath.map(JsNumber(_))),
+              Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(types.map {
+                case (dxName, t) => dxName.decoded -> t
+              })
+          )
         case ExecutableKindWfOutputs(blockPath) if blockPath.nonEmpty =>
           val types = applet.inputVars.map(p => p.name -> p.dxType).toMap
-          Map(Constants.BlockPath -> JsArray(blockPath.map(JsNumber(_))),
-              Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(types))
+          Map(
+              Constants.BlockPath -> JsArray(blockPath.map(JsNumber(_))),
+              Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(types.map {
+                case (dxName, t) => dxName.decoded -> t
+              })
+          )
         case _: ExecutableKindWfInputs | _: ExecutableKindWfOutputs |
             ExecutableKindWfCustomReorgOutputs | ExecutableKindWorkflowOutputReorg =>
           val types = applet.inputVars.map(p => p.name -> p.dxType).toMap
-          Map(Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(types))
+          Map(Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(types.map {
+            case (dxName, t) => dxName.decoded -> t
+          }))
         case _ => Map.empty
       }
     // compress and base64 encode the source code

@@ -10,7 +10,7 @@ import dx.core.io.{
   DxfuseManifestBuilder,
   StreamFiles
 }
-import dx.core.ir.{Type, TypeSerde, Value, ValueSerde}
+import dx.core.ir.{DxName, Type, TypeSerde, Value, ValueSerde}
 import dx.core.ir.Type._
 import dx.core.ir.Value._
 import dx.util.{
@@ -67,23 +67,23 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     * Returns the IR type and value for each task input, including default values
     * for any missing optional parameters.
     */
-  protected def getInputsWithDefaults: Map[String, (Type, Value)]
+  protected def getInputsWithDefaults: Map[DxName, (Type, Value)]
 
   /**
     * Returns the minimal (i.e. cheapest) instance type that is
     * sufficient to the task's resource requirements.
     */
-  protected def getInstanceTypeRequest(inputs: Map[String, (Type, Value)]): InstanceTypeRequest
+  protected def getInstanceTypeRequest(inputs: Map[DxName, (Type, Value)]): InstanceTypeRequest
 
   /**
     * Returns a mapping of output field names IR types.
     */
-  protected def outputTypes: Map[String, Type]
+  protected def outputTypes: Map[DxName, Type]
 
   /**
     * Should we try to stream the file(s) associated with the given input parameter?
     */
-  protected def streamFileForInput(parameterName: String): Boolean
+  protected def streamFileForInput(parameterName: DxName): Boolean
 
   /**
     * Returns all schema types referenced in the inputs.
@@ -192,15 +192,15 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     }
 
     def updateListingsAndExtractFiles(
-        inputs: Map[String, (Type, Value)]
-    ): Map[String, (Type, Value)] = {
+        inputs: Map[DxName, (Type, Value)]
+    ): Map[DxName, (Type, Value)] = {
       inputs.map {
-        case (name, (t, v)) =>
+        case (dxName, (t, v)) =>
           // whether to stream all the files/directories associated with this input
           val stream = streamFiles == StreamFiles.All ||
-            (streamFiles == StreamFiles.PerFile && streamFileForInput(name))
+            (streamFiles == StreamFiles.PerFile && streamFileForInput(dxName))
           val handler = new Handler(stream)
-          name -> (t, Value.transform(v, Some(t), handler))
+          dxName -> (t, Value.transform(v, Some(t), handler))
       }
     }
 
@@ -320,11 +320,11 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     }
 
     def finalizeInputs(
-        inputs: Map[String, (Type, Value)]
-    ): (Map[String, (Type, Value)], Map[Path, String]) = {
+        inputs: Map[DxName, (Type, Value)]
+    ): (Map[DxName, (Type, Value)], Map[Path, String]) = {
       val finalizedInputs = inputs.map {
-        case (name, (t, v)) =>
-          name -> (t, Value.transform(v, Some(t), this))
+        case (dxName, (t, v)) =>
+          dxName -> (t, Value.transform(v, Some(t), this))
       }
       (finalizedInputs, pathToUri)
     }
@@ -354,9 +354,9 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     *         considered successful.
     */
   protected def writeCommandScript(
-      localizedInputs: Map[String, (Type, Value)],
+      localizedInputs: Map[DxName, (Type, Value)],
       localizedDependencies: Option[Map[String, (Type, Value)]]
-  ): (Map[String, (Type, Value)], Boolean, Option[Set[Int]])
+  ): (Map[DxName, (Type, Value)], Boolean, Option[Set[Int]])
 
   /**
     * Evaluates the outputs of the task. Returns mapping of output parameter
@@ -365,10 +365,10 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     * @param localizedInputs the job inputs, with files localized to the worker
     */
   protected def evaluateOutputs(
-      localizedInputs: Map[String, (Type, Value)]
-  ): (Map[String, (Type, Value)], Map[String, (Set[String], Map[String, String])])
+      localizedInputs: Map[DxName, (Type, Value)]
+  ): (Map[DxName, (Type, Value)], Map[DxName, (Set[String], Map[String, String])])
 
-  private class Listings(localizedInputs: Map[String, (Type, Value)]) {
+  private class Listings(localizedInputs: Map[DxName, (Type, Value)]) {
     // lazily build mapping of input path to VFolder
     private object ListingWalkHandler extends WalkHandler[Map[Path, VFolder]] {
       def handlePath(value: PathValue, folders: Map[Path, VFolder]): Map[Path, VFolder] = {
@@ -497,9 +497,9 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       }
     }
 
-    def finalizeOutputs(outputs: Map[String, (Type, Value)]): Map[String, (Type, Value)] = {
+    def finalizeOutputs(outputs: Map[DxName, (Type, Value)]): Map[DxName, (Type, Value)] = {
       outputs.map {
-        case (name, (t, v)) => name -> (t, Value.transform(v, Some(t), ListingTransformHandler))
+        case (dxName, (t, v)) => dxName -> (t, Value.transform(v, Some(t), ListingTransformHandler))
       }
     }
   }
@@ -532,8 +532,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
   }
 
   private class FileExtractor(
-      finalizedOutputs: Map[String, (Type, Value)],
-      tagsAndProperties: Map[String, (Set[String], Map[String, String])],
+      finalizedOutputs: Map[DxName, (Type, Value)],
+      tagsAndProperties: Map[DxName, (Set[String], Map[String, String])],
       uriToSourcePath: Map[String, Path],
       localPathToUri: Map[Path, String],
       listings: Listings
@@ -639,12 +639,12 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     }
   }
 
-  private def delocalizeFiles(outputs: Map[String, (Type, Value)],
+  private def delocalizeFiles(outputs: Map[DxName, (Type, Value)],
                               uploadedFiles: Map[Path, DxFile],
                               uploadedVirtualFiles: Map[String, Path],
                               uploadedDirectories: Map[Path, String],
                               localPathToUri: Map[Path, String],
-                              listings: Listings): Map[String, (Type, Value)] = {
+                              listings: Listings): Map[DxName, (Type, Value)] = {
     // For folders/listings, we have to determine the project output folder,
     // because the platform won't automatically update directory URIs like
     // it does for data object links. The output folder is either the manifest
@@ -734,17 +734,17 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     }
 
     outputs.map {
-      case (name, (t, v)) =>
-        name -> (t, Value.transform(v, Some(t), delocalizePaths))
+      case (dxName, (t, v)) =>
+        dxName -> (t, Value.transform(v, Some(t), delocalizePaths))
     }
   }
 
-  private def logFields(fields: Map[String, (Type, Value)], description: String): Unit = {
+  private def logFields(fields: Map[DxName, (Type, Value)], description: String): Unit = {
     if (logger.isVerbose) {
       val inputStr = fields
         .map {
-          case (name, (t, v)) =>
-            s"${name}: (${TypeSerde.toString(t)}, ${ValueSerde.toString(v, verbose = true)})"
+          case (dxName, (t, v)) =>
+            s"${dxName.decoded}: (${TypeSerde.toString(t)}, ${ValueSerde.toString(v, verbose = true)})"
         }
         .mkString("\n  ")
       trace(s"${description}:\n  ${inputStr}")
@@ -823,7 +823,9 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         val dxSubJob: DxJob = dxApi.runSubJob(
             "body",
             Some(requestedInstanceType),
-            JsObject(jobMeta.rawJsInputs),
+            JsObject(jobMeta.rawJsInputs.map {
+              case (dxName, jsv) => dxName.encoded -> jsv
+            }),
             Vector.empty,
             jobMeta.delayWorkspaceDestruction
         )

@@ -17,16 +17,16 @@ import dx.api.{
 import dx.core.Constants
 import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir.{
+  DxName,
   Manifest,
-  ParameterLink,
   ParameterLinkDeserializer,
   ParameterLinkSerializer,
   Type,
   Value
 }
 import dx.core.languages.Language
-import dx.core.languages.cwl.{CwlUtils, DxHintSchema}
-import dx.cwl.{CommandLineTool, Parser}
+import dx.core.languages.cwl.{CwlDxName, CwlUtils, DxHintSchema}
+import dx.cwl.{CommandInputParameter, CommandLineTool, Parser}
 import dx.executor.{JobMeta, TaskExecutor}
 import dx.util.protocols.DxFileAccessProtocol
 import dx.util.{CodecUtils, FileSourceResolver, FileUtils, JsUtils, Logger, SysUtils}
@@ -40,17 +40,17 @@ import scala.util.Random
 private case class ToolTestJobMeta(override val workerPaths: DxWorkerPaths,
                                    override val dxApi: DxApi = DxApi.get,
                                    override val logger: Logger = Logger.get,
-                                   override val rawJsInputs: Map[String, JsValue],
+                                   override val rawJsInputs: Map[DxName, JsValue],
                                    toolName: String,
                                    rawInstanceTypeDb: InstanceTypeDB,
                                    rawSourceCode: String,
                                    useManifestInputs: Boolean = false)
     extends JobMeta(workerPaths, dxApi, logger) {
-  var outputs: Option[Map[String, JsValue]] = None
+  var outputs: Option[Map[DxName, JsValue]] = None
 
   override val project: DxProject = null
 
-  override def writeRawJsOutputs(outputJs: Map[String, JsValue]): Unit = {
+  override def writeRawJsOutputs(outputJs: Map[DxName, JsValue]): Unit = {
     outputs = Some(outputJs)
   }
 
@@ -169,10 +169,13 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
     }
   }
 
-  private def getInputs(cwlName: String): Map[String, JsValue] = {
+  private def getInputs(cwlName: String): Map[DxName, JsValue] = {
     pathFromBasename(s"${cwlName}_input.json") match {
-      case Some(path) if Files.exists(path) => JsUtils.getFields(JsUtils.jsFromFile(path))
-      case _                                => Map.empty
+      case Some(path) if Files.exists(path) =>
+        JsUtils.getFields(JsUtils.jsFromFile(path)).map {
+          case (name, jsv) => CwlDxName.fromEncodedParameterName(name) -> jsv
+        }
+      case _ => Map.empty
     }
   }
 
@@ -190,7 +193,7 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
       waitOnUpload: Boolean = true
   ): (CwlTaskExecutor, ToolTestJobMeta) = {
     val cwlFile: Path = pathFromBasename(s"${cwlName}.cwl").get
-    val inputs: Map[String, JsValue] = getInputs(cwlName)
+    val inputs = getInputs(cwlName)
     // Create a clean temp directory for the task to use
     val jobRootDir: Path = Files.createTempDirectory("dxcompiler_applet_test")
     jobRootDir.toFile.deleteOnExit()
@@ -223,17 +226,20 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
         throw new Exception(s"expected CWL document to contain a CommandLineTool, not ${other}")
     }
 
-    val taskInputs = tool.inputs.map(inp => inp.name -> inp).toMap
+    val taskInputs: Map[DxName, CommandInputParameter] =
+      tool.inputs
+        .map(inp => CwlDxName.fromRawParameterName(inp.name) -> inp)
+        .toMap
     val outputSerializer: ParameterLinkSerializer =
       ParameterLinkSerializer(fileResolver, dxApi, pathsAsObjects = true)
     val irInputs = inputDeserializer
       .deserializeInputMap(inputs)
       .collect {
-        case (name, irValue) if !name.endsWith(ParameterLink.FlatFilesSuffix) =>
-          val cwlType = taskInputs(name).cwlType
+        case (dxName, irValue) if !dxName.suffix.contains(Constants.FlatFilesSuffix) =>
+          val cwlType = taskInputs(dxName).cwlType
           val irType = CwlUtils.toIRType(cwlType)
           val updatedIrValue = Value.transform(irValue, Some(irType), AddBaseDir)
-          outputSerializer.createFields(name, irType, updatedIrValue)
+          outputSerializer.createFields(dxName, irType, updatedIrValue)
       }
       .flatten
       .toMap

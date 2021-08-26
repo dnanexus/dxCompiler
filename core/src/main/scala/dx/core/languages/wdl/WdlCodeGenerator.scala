@@ -180,10 +180,10 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
           val wdlType = WdlUtils.fromIRType(parameter.dxType, typeAliases)
           parameter.defaultValue match {
             case None =>
-              TAT.RequiredInputParameter(parameter.name, wdlType)(SourceLocation.empty)
+              TAT.RequiredInputParameter(parameter.name.decoded, wdlType)(SourceLocation.empty)
             case Some(value) =>
               TAT.OverridableInputParameterWithDefault(
-                  parameter.name,
+                  parameter.name.decoded,
                   wdlType,
                   WdlUtils.irValueToExpr(value)
               )(SourceLocation.empty)
@@ -196,7 +196,7 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
         .map { parameter =>
           val wdlType = WdlUtils.fromIRType(parameter.dxType, typeAliases)
           val defaultVal = WdlUtils.getDefaultValueOfType(wdlType)
-          TAT.OutputParameter(parameter.name, wdlType, defaultVal)(SourceLocation.empty)
+          TAT.OutputParameter(parameter.name.decoded, wdlType, defaultVal)(SourceLocation.empty)
         }
 
     val meta = if (native) {

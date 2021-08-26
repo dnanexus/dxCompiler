@@ -13,14 +13,18 @@ import spray.json.{JsObject, JsString, JsValue}
   * @param dxExec API Object
   */
 case class ExecutableLink(name: String,
-                          inputs: Map[String, Type],
-                          outputs: Map[String, Type],
+                          inputs: Map[DxName, Type],
+                          outputs: Map[DxName, Type],
                           dxExec: DxExecutable)
 
 object ExecutableLink {
   def serialize(link: ExecutableLink): JsObject = {
-    val (inputTypes, inputSchemas) = TypeSerde.serializeMap(link.inputs)
-    val (outputTypes, inputAndOutputSchemas) = TypeSerde.serializeMap(link.outputs, inputSchemas)
+    val (inputTypes, inputSchemas) = TypeSerde.serializeMap(link.inputs.map {
+      case (dxName, t) => dxName.decoded -> t
+    })
+    val (outputTypes, inputAndOutputSchemas) = TypeSerde.serializeMap(link.outputs.map {
+      case (dxName, t) => dxName.decoded -> t
+    }, inputSchemas)
     JsObject(
         "name" -> JsString(link.name),
         "id" -> JsString(link.dxExec.id),
@@ -32,6 +36,7 @@ object ExecutableLink {
 
   def deserialize(jsValue: JsValue,
                   typeAliases: Map[String, TSchema],
+                  createDxName: String => DxName,
                   dxApi: DxApi = DxApi.get): ExecutableLink = {
     jsValue match {
       case JsObject(fields) =>
@@ -42,7 +47,18 @@ object ExecutableLink {
         val JsObject(jsOutputs) = fields("outputs")
         val (inputTypes, inputSchemas) = TypeSerde.deserializeMap(jsInputs, typeAliases, jsSchemas)
         val (outputTypes, _) = TypeSerde.deserializeMap(jsOutputs, inputSchemas, jsSchemas)
-        ExecutableLink(name, inputTypes, outputTypes, dxApi.executable(id))
+        // TODO: it may be problematic to create ComplexDxName here rather than
+        //  the appropriate subclass for the language
+        ExecutableLink(
+            name,
+            inputTypes.map {
+              case (name, t) => createDxName(name) -> t
+            },
+            outputTypes.map {
+              case (name, t) => createDxName(name) -> t
+            },
+            dxApi.executable(id)
+        )
       case _ =>
         throw new Exception(s"Invalid ExecutableLink ${jsValue}")
     }

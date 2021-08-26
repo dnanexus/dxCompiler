@@ -7,6 +7,7 @@ import dx.core.ir.Value._
 import dx.core.ir.{
   Block,
   BlockKind,
+  DxName,
   ExecutableLink,
   ParameterLink,
   Type,
@@ -18,6 +19,7 @@ import dx.core.languages.Language
 import dx.core.languages.cwl.{
   CwlBlock,
   CwlBlockInput,
+  CwlDxName,
   CwlUtils,
   DxHintSchema,
   OptionalBlockInput,
@@ -103,9 +105,17 @@ case class CwlWorkflowExecutor(workflow: Workflow,
 
   // TODO: deal with steps with multiple input sources that need to be picked/merged
 
+  override protected def encodedDxName(encodedName: String): DxName = {
+    CwlDxName.fromEncodedParameterName(encodedName)
+  }
+
+  override protected def decodedDxName(decodedName: String): DxName = {
+    CwlDxName.fromDecodedParameterName(decodedName)
+  }
+
   override protected def evaluateInputs(
-      jobInputs: Map[String, (Type, Value)]
-  ): Map[String, (Type, Value)] = {
+      jobInputs: Map[DxName, (Type, Value)]
+  ): Map[DxName, (Type, Value)] = {
     // This might be the input for the entire workflow or just a subblock.
     // If it is for a sublock, it may be for the body of a conditional or
     // scatter, in which case we only need the inputs of the body statements.
@@ -164,8 +174,8 @@ case class CwlWorkflowExecutor(workflow: Workflow,
     inputs
   }
 
-  override protected def evaluateOutputs(jobInputs: Map[String, (Type, Value)],
-                                         addReorgStatus: Boolean): Map[String, (Type, Value)] = {
+  override protected def evaluateOutputs(jobInputs: Map[DxName, (Type, Value)],
+                                         addReorgStatus: Boolean): Map[DxName, (Type, Value)] = {
     // This might be the output for the entire workflow or just a subblock.
     // If it is for a sublock, it may be for the body of a conditional or
     // scatter, in which case we only need the outputs of the body statements.
@@ -182,89 +192,95 @@ case class CwlWorkflowExecutor(workflow: Workflow,
         }
     }
     logger.trace(s"outputParams=${outputParams}")
-    val irOutputs = outputParams.map {
-      case param: WorkflowOutputParameter if param.sources.nonEmpty =>
-        val sources =
-          param.sources.map(id => jobInputs.getOrElse(id.name.get, (TMulti.Any, VNull)))
-        val isArray = param.cwlType match {
-          case _: CwlArray => true
-          case CwlMulti(types) =>
-            types.exists {
-              case _: CwlArray => true
-              case _           => false
+    val irOutputs: Map[DxName, (Type, Value)] = outputParams
+      .map(param => CwlDxName.fromRawParameterName(param.name) -> param)
+      .map {
+        case (dxName, param: WorkflowOutputParameter) if param.sources.nonEmpty =>
+          val sources =
+            param.sources.map { id =>
+              val dxName = CwlDxName.fromRawParameterName(id.name.get)
+              jobInputs.getOrElse(dxName, (TMulti.Any, VNull))
             }
-          case _ => false
-        }
-        val (irType, irValue) = if (sources.size == 1) {
-          sources.head
-        } else {
-          val mergedValues = if (isArray) {
-            param.linkMerge match {
-              case LinkMergeMethod.MergeNested => sources
-              case LinkMergeMethod.MergeFlattened =>
-                sources.flatMap {
-                  case (TArray(itemType, _), VArray(items)) =>
-                    Iterator.continually(itemType).zip(items).toVector
-                  case value => Vector(value)
-                }
-            }
-          } else {
-            sources
+          val isArray = param.cwlType match {
+            case _: CwlArray => true
+            case CwlMulti(types) =>
+              types.exists {
+                case _: CwlArray => true
+                case _           => false
+              }
+            case _ => false
           }
-          val pickedValues = if (param.pickValue.nonEmpty) {
-            val nonNull = mergedValues.filterNot(_._2 == VNull)
-            param.pickValue.get match {
-              case PickValueMethod.FirstNonNull =>
-                Vector(
-                    nonNull.headOption
-                      .getOrElse(
-                          throw new Exception(
-                              s"all source values are null for parameter ${param}"
-                          )
-                      )
-                )
-              case PickValueMethod.TheOnlyNonNull =>
-                if (nonNull.size == 1) {
-                  Vector(nonNull.head)
-                } else {
-                  throw new Exception(
-                      s"there is not exactly one non-null value for parameter ${param}"
+          val (irType, irValue) = if (sources.size == 1) {
+            sources.head
+          } else {
+            val mergedValues = if (isArray) {
+              param.linkMerge match {
+                case LinkMergeMethod.MergeNested => sources
+                case LinkMergeMethod.MergeFlattened =>
+                  sources.flatMap {
+                    case (TArray(itemType, _), VArray(items)) =>
+                      Iterator.continually(itemType).zip(items).toVector
+                    case value => Vector(value)
+                  }
+              }
+            } else {
+              sources
+            }
+            val pickedValues = if (param.pickValue.nonEmpty) {
+              val nonNull = mergedValues.filterNot(_._2 == VNull)
+              param.pickValue.get match {
+                case PickValueMethod.FirstNonNull =>
+                  Vector(
+                      nonNull.headOption
+                        .getOrElse(
+                            throw new Exception(
+                                s"all source values are null for parameter ${param}"
+                            )
+                        )
                   )
-                }
-              case PickValueMethod.AllNonNull => nonNull
+                case PickValueMethod.TheOnlyNonNull =>
+                  if (nonNull.size == 1) {
+                    Vector(nonNull.head)
+                  } else {
+                    throw new Exception(
+                        s"there is not exactly one non-null value for parameter ${param}"
+                    )
+                  }
+                case PickValueMethod.AllNonNull => nonNull
+              }
+            } else {
+              mergedValues
             }
-          } else {
-            mergedValues
+            if (isArray) {
+              val (types, values) = pickedValues.unzip
+              val irType = Type.merge(types)
+              (irType, Value.coerceTo(VArray(values), irType))
+            } else if (pickedValues.size == 1) {
+              pickedValues.head
+            } else if (pickedValues.size > 1) {
+              throw new Exception(
+                  s"multiple output sources for non-array parameter ${param} that does not specify pickValue"
+              )
+            } else {
+              (TMulti.Any, VNull)
+            }
           }
-          if (isArray) {
-            val (types, values) = pickedValues.unzip
-            val irType = Type.merge(types)
-            (irType, Value.coerceTo(VArray(values), irType))
-          } else if (pickedValues.size == 1) {
-            pickedValues.head
-          } else if (pickedValues.size > 1) {
-            throw new Exception(
-                s"multiple output sources for non-array parameter ${param} that does not specify pickValue"
-            )
-          } else {
-            (TMulti.Any, VNull)
+          dxName -> (irType, irValue)
+        case (dxName, param) if jobInputs.contains(dxName) =>
+          val paramIrType = CwlUtils.toIRType(param.cwlType)
+          val irType = (optional, array) match {
+            case (true, true)   => Type.TArray(Type.ensureOptional(paramIrType))
+            case (true, false)  => Type.ensureOptional(paramIrType)
+            case (false, true)  => Type.TArray(paramIrType)
+            case (false, false) => paramIrType
           }
-        }
-        param.name -> (irType, irValue)
-      case param if jobInputs.contains(param.name) =>
-        val paramIrType = CwlUtils.toIRType(param.cwlType)
-        val irType = (optional, array) match {
-          case (true, true)   => Type.TArray(Type.ensureOptional(paramIrType))
-          case (true, false)  => Type.ensureOptional(paramIrType)
-          case (false, true)  => Type.TArray(paramIrType)
-          case (false, false) => paramIrType
-        }
-        param.name -> (irType, Value.coerceTo(jobInputs(param.name)._2, irType))
-      case param if CwlOptional.isOptional(param.cwlType) =>
-        param.name -> (CwlUtils.toIRType(param.cwlType), VNull)
-      case param =>
-        throw new Exception(s"missing required output ${param.name}")
-    }.toMap
+          dxName -> (irType, Value.coerceTo(jobInputs(dxName)._2, irType))
+        case (dxName, param) if CwlOptional.isOptional(param.cwlType) =>
+          dxName -> (CwlUtils.toIRType(param.cwlType), VNull)
+        case (_, param) =>
+          throw new Exception(s"missing required output ${param.name}")
+      }
+      .toMap
     if (addReorgStatus) {
       irOutputs + (Constants.ReorgStatus -> (TString, VString(Constants.ReorgStatusCompleted)))
     } else {
@@ -272,21 +288,24 @@ case class CwlWorkflowExecutor(workflow: Workflow,
     }
   }
 
-  case class CwlBlockContext(block: CwlBlock, cwlEnv: Map[String, (CwlType, CwlValue)])
+  case class CwlBlockContext(block: CwlBlock, cwlEnv: Map[DxName, (CwlType, CwlValue)])
       extends BlockContext {
     private val step = block.target.get
-    private lazy val runInputs = step.run.inputs.map(i => i.name -> i).toMap
+    private lazy val runInputs = step.run.inputs.map { i =>
+      CwlDxName.fromRawParameterName(i.name) -> i
+    }.toMap
 
-    override lazy val env: Map[String, (Type, Value)] = CwlUtils.toIR(cwlEnv)
+    override lazy val env: Map[DxName, (Type, Value)] = CwlUtils.toIR(cwlEnv)
 
     private def evaluateStepInput(
         stepInput: WorkflowStepInput,
-        fullEnv: Map[String, (CwlType, CwlValue)]
-    ): Option[(String, (CwlType, CwlValue))] = {
-      val cwlType = if (runInputs.contains(stepInput.name)) {
-        runInputs(stepInput.name).cwlType
-      } else if (block.inputs.contains(stepInput.name)) {
-        block.inputs(stepInput.name).cwlType
+        fullEnv: Map[DxName, (CwlType, CwlValue)]
+    ): Option[(DxName, (CwlType, CwlValue))] = {
+      val dxName = CwlDxName.fromRawParameterName(stepInput.name)
+      val cwlType = if (runInputs.contains(dxName)) {
+        runInputs(dxName).cwlType
+      } else if (block.inputs.contains(dxName)) {
+        block.inputs(dxName).cwlType
       } else {
         logger.warning(
             s"""step input ${stepInput} not represented in either callee or block inputs,
@@ -296,7 +315,8 @@ case class CwlWorkflowExecutor(workflow: Workflow,
       }
       // resolve all the step input sources
       // if there are multiple sources, we need to merge and/or pick values
-      val sources = stepInput.sources.map(src => fullEnv(src.name.get))
+      val sources =
+        stepInput.sources.map(src => fullEnv(CwlDxName.fromRawParameterName(src.name.get)))
       val isArray = cwlType match {
         case _: CwlArray => true
         case CwlMulti(types) =>
@@ -373,18 +393,20 @@ case class CwlWorkflowExecutor(workflow: Workflow,
       } else {
         sourceValue
       }
-      Some(stepInput.name -> (cwlType, valueWithDefault))
+      Some(dxName -> (cwlType, valueWithDefault))
     }
 
     private def evaluateCallInputs(
-        extraEnv: Map[String, (CwlType, CwlValue)] = Map.empty
-    ): Map[String, (CwlType, CwlValue)] = {
+        extraEnv: Map[DxName, (CwlType, CwlValue)] = Map.empty
+    ): Map[DxName, (CwlType, CwlValue)] = {
       assert(step.scatter.isEmpty)
       val fullEnv = cwlEnv ++ extraEnv
       // evaluate all the step inputs - there may be step inputs that
       // are not passed to the callee but are referred to in expressions
       // of other step inputs' valueFrom fields
-      val stepInputs = step.inputs.map(i => i.name -> i).toMap
+      val stepInputs: Map[DxName, WorkflowStepInput] = step.inputs.map { i =>
+        CwlDxName.fromRawParameterName(i.name) -> i
+      }.toMap
       val stepInputValues = stepInputs.values.flatMap(evaluateStepInput(_, fullEnv)).toMap
       // now evaluate any valueFrom expressions
       lazy val eval = Evaluator.create(block.targetRequirements, block.targetHints)
@@ -394,32 +416,38 @@ case class CwlWorkflowExecutor(workflow: Workflow,
           param -> (t, v)
       }, fileResolver = jobMeta.fileResolver)
       logger.trace(s"evalInputs=${evalInputs}")
-      val finalStepInputs = step.inputs.map { param =>
-        val (t, v) = stepInputValues(param.name)
-        if (param.valueFrom.isDefined) {
-          val ctx = EvaluatorContext(v, evalInputs)
-          param.name -> eval.evaluate(param.valueFrom.get, t, ctx)
-        } else {
-          param.name -> (t, v.coerceTo(t))
-        }
-      }.toMap
+      val finalStepInputs = stepInputs.map {
+        case (dxName, param) =>
+          val (t, v) = stepInputValues(dxName)
+          if (param.valueFrom.isDefined) {
+            val ctx = EvaluatorContext(v, evalInputs)
+            dxName -> eval.evaluate(param.valueFrom.get, t, ctx)
+          } else {
+            dxName -> (t, v.coerceTo(t))
+          }
+      }
       logger.trace(s"stepInputs=${stepInputs}")
       // collect all the step input values to pass to the callee
-      step.run.inputs.map {
-        case param if finalStepInputs.contains(param.name) =>
-          param.name -> finalStepInputs(param.name)
-        case param if CwlOptional.isOptional(param.cwlType) =>
-          logger.trace(s"no input for optional input ${param.name} to step ${step.name}")
-          param.name -> (param.cwlType, NullValue)
-        case param =>
-          throw new Exception(
-              s"missing required input ${param.name} to process ${step.run.name} at step ${step.name}"
-          )
-      }.toMap
+      step.run.inputs
+        .map { param =>
+          CwlDxName.fromRawParameterName(param.name) -> param
+        }
+        .map {
+          case (dxName, _) if finalStepInputs.contains(dxName) =>
+            dxName -> finalStepInputs(dxName)
+          case (dxName, param) if CwlOptional.isOptional(param.cwlType) =>
+            logger.trace(s"no input for optional input ${param.name} to step ${step.name}")
+            dxName -> (param.cwlType, NullValue)
+          case (_, param) =>
+            throw new Exception(
+                s"missing required input ${param.name} to process ${step.run.name} at step ${step.name}"
+            )
+        }
+        .toMap
     }
 
     private def launchCall(
-        callInputs: Map[String, (CwlType, CwlValue)],
+        callInputs: Map[DxName, (CwlType, CwlValue)],
         nameDetail: Option[String] = None,
         folder: Option[String] = None
     ): (DxExecution, ExecutableLink, String) = {
@@ -437,7 +465,9 @@ case class CwlWorkflowExecutor(workflow: Workflow,
       val requirementEvaluator = RequirementEvaluator(
           block.targetRequirements,
           block.targetHints,
-          callInputs,
+          callInputs.map {
+            case (dxName, tv) => dxName.decoded -> tv
+          },
           jobMeta.workerPaths,
           step.run.inputs.map(i => i.name -> i).toMap,
           dxApi = jobMeta.dxApi
@@ -468,14 +498,14 @@ case class CwlWorkflowExecutor(workflow: Workflow,
       (dxExecution, executableLink, execName)
     }
 
-    override protected def launchCall(blockIndex: Int): Map[String, ParameterLink] = {
+    override protected def launchCall(blockIndex: Int): Map[DxName, ParameterLink] = {
       val callInputs = evaluateCallInputs()
       val (dxExecution, executableLink, callName) =
         launchCall(callInputs, folder = Some(blockIndex.toString))
-      jobMeta.createExecutionOutputLinks(dxExecution, executableLink.outputs, Some(s"${callName}/"))
+      jobMeta.createExecutionOutputLinks(dxExecution, executableLink.outputs, Some(callName))
     }
 
-    override protected def launchConditional(): Map[String, ParameterLink] = {
+    override protected def launchConditional(): Map[DxName, ParameterLink] = {
       launchCall(block.index).map {
         case (key, link) => key -> link.makeOptional
       }
@@ -506,7 +536,7 @@ case class CwlWorkflowExecutor(workflow: Workflow,
       items.map(formatItem).mkString(",")
     }
 
-    private def launchScatterCallJobs(scatterParams: Vector[String],
+    private def launchScatterCallJobs(scatterParams: Vector[DxName],
                                       itemTypes: Vector[CwlType],
                                       collection: Vector[Vector[CwlValue]]): Vector[DxExecution] = {
       val otherInputs = cwlEnv.view.filterKeys(!scatterParams.contains(_))
@@ -520,9 +550,9 @@ case class CwlWorkflowExecutor(workflow: Workflow,
 
     override protected def prepareScatterResults(
         dxSubJob: DxExecution
-    ): Map[String, ParameterLink] = {
-      val resultTypes = block.outputs.values.map { param =>
-        param.name -> CwlUtils.toIRType(param.cwlType)
+    ): Map[DxName, ParameterLink] = {
+      val resultTypes: Map[DxName, Type] = block.outputs.values.map { param =>
+        CwlDxName.fromRawParameterName(param.name) -> CwlUtils.toIRType(param.cwlType)
       }.toMap
       // Return JBORs for all the outputs. Since the signature of the sub-job
       // is exactly the same as the parent, we can immediately exit the parent job.
@@ -536,8 +566,9 @@ case class CwlWorkflowExecutor(workflow: Workflow,
     }
 
     private def getScatterValues: Vector[Option[(CwlType, Vector[CwlValue])]] = {
-      step.scatter.map(name =>
-        cwlEnv.get(name) match {
+      step.scatter.map { name =>
+        val dxName = CwlDxName.fromRawParameterName(name)
+        cwlEnv.get(dxName) match {
           case Some((t, NullValue)) if CwlOptional.isOptional(t) => None
           case Some((_, ArrayValue(items))) if items.isEmpty     => None
           case Some((array: CwlArray, ArrayValue(items))) =>
@@ -547,10 +578,10 @@ case class CwlWorkflowExecutor(workflow: Workflow,
           case _ =>
             throw new Exception(s"scatter parameter ${name} not of type array")
         }
-      )
+      }
     }
 
-    override protected def launchScatter(): Map[String, ParameterLink] = {
+    override protected def launchScatter(): Map[DxName, ParameterLink] = {
       // construct the scatter inputs and launch one job for each, such
       // that the inputs for each job are an array of one element for
       // each scattered variable
@@ -579,7 +610,9 @@ case class CwlWorkflowExecutor(workflow: Workflow,
             (scatterCollection.drop(jobMeta.scatterStart), None)
           }
         }
-      val childJobs = launchScatterCallJobs(step.scatter, itemTypes, chunkCollection)
+      val childJobs = launchScatterCallJobs(step.scatter.map(CwlDxName.fromRawParameterName(_)),
+                                            itemTypes,
+                                            chunkCollection)
       next match {
         case Some(index) =>
           // there are remaining chunks - call a continue sub-job
@@ -605,9 +638,9 @@ case class CwlWorkflowExecutor(workflow: Workflow,
     }
 
     override protected def getScatterOutputs(
-        childOutputs: Vector[Map[String, JsValue]],
+        childOutputs: Vector[Map[DxName, JsValue]],
         execName: Option[String]
-    ): Map[String, (Type, Value)] = {
+    ): Map[DxName, (Type, Value)] = {
       val targetOutputs = step.run.outputs.map(param => param.name -> param.cwlType).toMap
       val arraySizes = if (step.scatterMethod.get == ScatterMethod.NestedCrossproduct) {
         val (_, arrays) = getScatterValues.flatten.unzip
@@ -618,25 +651,32 @@ case class CwlWorkflowExecutor(workflow: Workflow,
       step.outputs.map { out =>
         val irType = CwlUtils.toIRType(targetOutputs(out.name))
         val arrayValue =
-          (createScatterOutputArray(childOutputs, out.name, irType, execName), arraySizes) match {
+          (createScatterOutputArray(
+               childOutputs,
+               CwlDxName.fromRawParameterName(out.name),
+               irType,
+               execName
+           ),
+           arraySizes) match {
             case (Value.VArray(a), Some(sizes)) => nestArrays(a, sizes)
             case (a, None)                      => a
             case (other, _) =>
               throw new Exception(s"invalid array value ${other}")
           }
-        s"${step.name}/${out.name}" -> (irType, arrayValue)
+        val dxName = CwlDxName.fromRawParameterName(out.name, namespace = Some(step.name))
+        dxName -> (irType, arrayValue)
       }.toMap
     }
   }
 
   override protected def evaluateBlockInputs(
-      jobInputs: Map[String, (Type, Value)]
+      jobInputs: Map[DxName, (Type, Value)]
   ): CwlBlockContext = {
     val block = Block.getSubBlockAt(CwlBlock.createBlocks(workflow), jobMeta.blockPath)
-    val env: Map[String, (CwlType, CwlValue)] = block.inputs.values.map {
+    val env: Map[DxName, (CwlType, CwlValue)] = block.inputs.values.map {
       case inp: CwlBlockInput if jobInputs.contains(inp.name) =>
         val (_, irValue) = jobInputs(inp.name)
-        inp.name -> CwlUtils.fromIRValue(irValue, inp.cwlType, inp.name, isInput = true)
+        inp.name -> CwlUtils.fromIRValue(irValue, inp.cwlType, inp.name.decoded, isInput = true)
       case OptionalBlockInput(name, param) =>
         name -> (param.cwlType, NullValue)
       case param =>

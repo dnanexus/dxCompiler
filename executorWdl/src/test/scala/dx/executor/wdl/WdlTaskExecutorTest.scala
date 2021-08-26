@@ -1,7 +1,7 @@
 package dx.executor.wdl
 
 import java.nio.file.{Files, Path, Paths}
-import Assumptions.{isLoggedIn, dxdaCallable}
+import Assumptions.{dxdaCallable, isLoggedIn}
 import Tags.{ApiTest, EdgeTest}
 import dx.api.{
   DiskType,
@@ -19,8 +19,8 @@ import dx.api.{
 import dx.core.Constants
 import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir.{
+  DxName,
   Manifest,
-  ParameterLink,
   ParameterLinkDeserializer,
   ParameterLinkSerializer,
   Type,
@@ -40,16 +40,16 @@ import scala.util.Random
 private case class TaskTestJobMeta(override val workerPaths: DxWorkerPaths,
                                    override val dxApi: DxApi = DxApi.get,
                                    override val logger: Logger = Logger.get,
-                                   override val rawJsInputs: Map[String, JsValue],
+                                   override val rawJsInputs: Map[DxName, JsValue],
                                    rawInstanceTypeDb: InstanceTypeDB,
                                    rawSourceCode: String,
                                    useManifestInputs: Boolean = false)
     extends JobMeta(workerPaths, dxApi, logger) {
-  var outputs: Option[Map[String, JsValue]] = None
+  var outputs: Option[Map[DxName, JsValue]] = None
 
   override val project: DxProject = null
 
-  override def writeRawJsOutputs(outputJs: Map[String, JsValue]): Unit = {
+  override def writeRawJsOutputs(outputJs: Map[DxName, JsValue]): Unit = {
     outputs = Some(outputJs)
   }
 
@@ -177,10 +177,13 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
     }
   }
 
-  private def getInputs(wdlName: String): Map[String, JsValue] = {
+  private def getInputs(wdlName: String): Map[DxName, JsValue] = {
     pathFromBasename(s"${wdlName}_input.json") match {
-      case Some(path) if Files.exists(path) => JsUtils.getFields(JsUtils.jsFromFile(path))
-      case _                                => Map.empty
+      case Some(path) if Files.exists(path) =>
+        JsUtils.getFields(JsUtils.jsFromFile(path)).map {
+          case (name, jsv) => SimpleDxName.fromEncodedParameterName(name) -> jsv
+        }
+      case _ => Map.empty
     }
   }
 
@@ -198,7 +201,7 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
       waitOnUpload: Boolean = true
   ): (WdlTaskExecutor, TaskTestJobMeta) = {
     val wdlFile: Path = pathFromBasename(s"${wdlName}.wdl").get
-    val inputs: Map[String, JsValue] = getInputs(wdlName)
+    val inputs = getInputs(wdlName)
     // Create a clean temp directory for the task to use
     val jobRootDir: Path = Files.createTempDirectory("dxcompiler_applet_test")
     jobRootDir.toFile.deleteOnExit()
@@ -231,15 +234,16 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
     // JSON -> IR -> WDL -> update paths -> IR -> JSON
     // which requires some auxilliarly objects
     val outputSerializer: ParameterLinkSerializer = ParameterLinkSerializer(fileResolver, dxApi)
-    val taskInputs = task.inputs.map(inp => inp.name -> inp).toMap
+    val taskInputs: Map[DxName, TAT.InputParameter] =
+      task.inputs.map(inp => SimpleDxName.fromDecodedParameterName(inp.name) -> inp).toMap
     val updatedInputs = inputDeserializer
       .deserializeInputMap(inputs)
       .collect {
-        case (name, irValue) if !name.endsWith(ParameterLink.FlatFilesSuffix) =>
-          val wdlType = taskInputs(name).wdlType
+        case (dxName, irValue) if !dxName.suffix.contains(Constants.FlatFilesSuffix) =>
+          val wdlType = taskInputs(dxName).wdlType
           val irType = WdlUtils.toIRType(wdlType)
           val updatedIrValue = Value.transform(irValue, Some(irType), AddBaseDir)
-          outputSerializer.createFields(name, irType, updatedIrValue)
+          outputSerializer.createFields(dxName, irType, updatedIrValue)
       }
       .flatten
       .toMap
@@ -248,7 +252,9 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
     val finalInputs = updatedInputs match {
       case i if useManifests =>
         Map(
-            Constants.InputManifest -> JsObject(i),
+            Constants.InputManifest -> JsObject(i.map {
+              case (dxName, jsv) => dxName.decoded -> jsv
+            }),
             Constants.OutputId -> JsString("test")
         )
       case i => i

@@ -1,8 +1,8 @@
 package dx.core.languages.wdl
 
-import java.nio.file.Path
+import dx.core.Constants
 
-import dx.core.ir.Parameter
+import java.nio.file.Path
 import dx.util.{Adjuncts, LocalFileSource, Logger}
 import wdlTools.syntax.WdlVersion
 import wdlTools.types.{TypedAbstractSyntax => TAT}
@@ -85,11 +85,11 @@ object WdlBundle {
     * Check that a variable name is not any dx-reserved names.
     */
   private def checkVariableName(variables: Vector[TAT.Variable]): Unit = {
-    val invalidNames = variables.map(_.name).filter(_.contains(Parameter.ComplexValueKey))
+    val invalidNames = variables.map(_.name).filter(_.contains(Constants.ComplexValueKey))
     if (invalidNames.nonEmpty) {
       throw new Exception(
           s"""Variable(s) ${invalidNames.mkString(",")} is using the substring
-             |'${Parameter.ComplexValueKey}', which is reserved by DNAnexus""".stripMargin
+             |'${Constants.ComplexValueKey}', which is reserved by DNAnexus""".stripMargin
             .replaceAll("\n", " ")
       )
     }

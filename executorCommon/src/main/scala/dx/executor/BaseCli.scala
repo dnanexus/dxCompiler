@@ -1,10 +1,9 @@
 package dx.executor
 
 import java.nio.file.{InvalidPathException, Paths}
-
 import dx.core.CliUtils._
 import dx.core.io.{DxWorkerPaths, StreamFiles}
-import dx.util.Enum
+import dx.util.{Enum, Logger}
 
 object BaseCli {
   val MaxConcurrentUploads: Int = 8
@@ -13,14 +12,16 @@ object BaseCli {
 abstract class BaseCli {
   val jarName: String
 
-  def createTaskExecutor(meta: JobMeta,
-                         streamFiles: StreamFiles.StreamFiles,
-                         waitOnUpload: Boolean,
-                         checkInstanceType: Boolean): TaskExecutor
+  protected def createJobMeta(workerPaths: DxWorkerPaths, logger: Logger): JobMeta
 
-  def createWorkflowExecutor(meta: JobMeta,
-                             separateOutputs: Boolean,
-                             waitOnUpload: Boolean): WorkflowExecutor[_]
+  protected def createTaskExecutor(meta: JobMeta,
+                                   streamFiles: StreamFiles.StreamFiles,
+                                   waitOnUpload: Boolean,
+                                   checkInstanceType: Boolean): TaskExecutor
+
+  protected def createWorkflowExecutor(meta: JobMeta,
+                                       separateOutputs: Boolean,
+                                       waitOnUpload: Boolean): WorkflowExecutor[_]
 
   private object StreamFilesOptionSpec
       extends SingleValueOptionSpec[StreamFiles.StreamFiles](choices = StreamFiles.values.toVector) {
@@ -69,7 +70,7 @@ abstract class BaseCli {
     val logger = initLogger(options)
     val waitOnUpload = options.getFlag("waitOnUpload")
     logger.traceLimited(s"Creating JobMeta: rootDir ${rootDir}")
-    val jobMeta = WorkerJobMeta(workerPaths = DxWorkerPaths(rootDir), logger = logger)
+    val jobMeta = createJobMeta(DxWorkerPaths(rootDir), logger)
     try {
       kind match {
         case ExecutorKind.Task =>

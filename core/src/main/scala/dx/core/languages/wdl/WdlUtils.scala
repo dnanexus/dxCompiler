@@ -3,7 +3,7 @@ package dx.core.languages.wdl
 import dx.api.DxPath
 
 import java.nio.file.Path
-import dx.core.ir.{InputKind, Type, TypeSerde, Value}
+import dx.core.ir.{DxName, InputKind, Type, TypeSerde, Value}
 import dx.core.ir.Type._
 import dx.core.ir.Value._
 import dx.util.{Bindings, FileNode, FileSourceResolver, Logger, StringFileNode}
@@ -44,20 +44,21 @@ private case class WdlInputRef(identifierParts: Vector[String],
                                fieldName: Option[String],
                                wdlType: T,
                                kind: InputKind.InputKind) {
-  lazy val identifier: String = identifierParts.mkString(".")
+  lazy val identifier: DxName = WdlDxName.fromDecodedParameterName(identifierParts.mkString("."))
 
-  lazy val fullyQualifiedName: String = {
-    (identifierParts ++ fieldName.toVector).mkString(".")
+  lazy val fullyQualifiedName: DxName = {
+    WdlDxName.fromDecodedParameterName((identifierParts ++ fieldName.toVector).mkString("."))
   }
 
   /**
     * Returns an Iterator over all the nested identifiers
     * represented by this reference.
     */
-  def nameIter: Iterator[String] = {
+  lazy val names: Vector[DxName] = {
     (identifierParts ++ fieldName.toVector).reverse.tails.collect {
-      case parts if parts.nonEmpty => parts.reverse.mkString(".")
-    }
+      case parts if parts.nonEmpty =>
+        WdlDxName.fromDecodedParameterName(parts.reverse.mkString("."))
+    }.toVector
   }
 }
 
@@ -339,7 +340,7 @@ object WdlUtils {
     }
   }
 
-  def toIRTypeMap(wdlTypes: Map[String, T]): Map[String, Type] = {
+  def toIRTypeMap(wdlTypes: Map[DxName, T]): Map[DxName, Type] = {
     wdlTypes.map {
       case (name, t) => name -> toIRType(t)
     }
@@ -508,7 +509,7 @@ object WdlUtils {
     })
   }
 
-  def toIR(wdl: Map[String, (T, V)]): Map[String, (Type, Value)] = {
+  def toIR(wdl: Map[DxName, (T, V)]): Map[DxName, (Type, Value)] = {
     wdl.map {
       case (name, (wdlType, wdlValue)) =>
         val irType = toIRType(wdlType)
@@ -626,13 +627,13 @@ object WdlUtils {
     }
   }
 
-  def fromIR(ir: Map[String, (Type, Value)],
-             typeAliases: Map[String, T] = Map.empty): Map[String, (T, V)] = {
+  def fromIR(ir: Map[DxName, (Type, Value)],
+             typeAliases: Map[String, T] = Map.empty): Map[DxName, (T, V)] = {
     ir.map {
-      case (name, (t, v)) =>
+      case (dxName, (t, v)) =>
         val wdlType = fromIRType(t, typeAliases)
-        val wdlValue = fromIRValue(v, wdlType, name)
-        name -> (wdlType, wdlValue)
+        val wdlValue = fromIRValue(v, wdlType, dxName.decoded)
+        dxName -> (wdlType, wdlValue)
     }
   }
 
@@ -956,28 +957,28 @@ object WdlUtils {
   def getClosureInputsAndOutputs(
       elements: Vector[TAT.WorkflowElement],
       withField: Boolean
-  ): (Map[String, (T, InputKind.InputKind)], Map[String, TAT.OutputParameter]) = {
+  ): (Map[DxName, (T, InputKind.InputKind)], Map[DxName, (T, TAT.Expr)]) = {
     def getOutputs(
         innerElements: Vector[TAT.WorkflowElement]
-    ): Vector[TAT.OutputParameter] = {
+    ): Vector[(DxName, T, TAT.Expr)] = {
       innerElements.flatMap {
         // TODO: in the case of private variables where the expression access a
         //  struct field, it may be possible to create an output for the field
         //  value, to avoid having to use a fragment in the downstream app to
         //  dereference the struct.
-        case pv @ TAT.PrivateVariable(name, wdlType, expr) =>
-          Vector(TAT.OutputParameter(name, wdlType, expr)(pv.loc))
+        case TAT.PrivateVariable(name, wdlType, expr) =>
+          Vector((WdlDxName.fromRawParameterName(name), wdlType, expr))
         case call: TAT.Call =>
           call.callee.output.map {
             case (name, wdlType) =>
-              val fqn = s"${call.actualName}.${name}"
-              TAT.OutputParameter(fqn, wdlType, TAT.ExprIdentifier(fqn, wdlType)(call.loc))(
-                  call.loc
-              )
+              val dxName =
+                WdlDxName.fromRawParameterName(name, namespace = Some(call.actualName))
+              val expr = TAT.ExprIdentifier(dxName.decoded, wdlType)(call.loc)
+              (dxName, wdlType, expr)
           }.toVector
         case cond: TAT.Conditional =>
-          getOutputs(cond.body).map { out =>
-            out.copy(wdlType = TypeUtils.ensureOptional(out.wdlType))(out.loc)
+          getOutputs(cond.body).map {
+            case (dxName, wdlType, expr) => (dxName, TypeUtils.ensureOptional(wdlType), expr)
           }
         case scatter: TAT.Scatter =>
           // make outputs arrays, remove the collection iteration variable
@@ -989,8 +990,8 @@ object WdlUtils {
               )
           }
           getOutputs(scatter.body).collect {
-            case out: TAT.OutputParameter if out.name != scatter.identifier =>
-              out.copy(wdlType = T_Array(out.wdlType, nonEmpty = nonEmptyOutputArray))(out.loc)
+            case (dxName, wdlType, expr) if dxName.decoded != scatter.identifier =>
+              (dxName, T_Array(wdlType, nonEmpty = nonEmptyOutputArray), expr)
           }
       }
     }
@@ -1036,7 +1037,7 @@ object WdlUtils {
           // 'Computed' so it doesn't become a required input
           val scatterIdentifierRegexp = s"${scatter.identifier}([.\\[].+)?".r
           val bodyInputs = getInputs(scatter.body, innerWithField = true).map {
-            case ref if scatterIdentifierRegexp.matches(ref.identifier) =>
+            case ref if scatterIdentifierRegexp.matches(ref.identifier.decoded) =>
               ref.copy(kind = InputKind.Computed)
             case ref => ref
           }
@@ -1048,16 +1049,18 @@ object WdlUtils {
     // inputs because WDL allows forward references, and we
     // need to be able to distinguish block inputs from
     // variables that are defined within the block
-    val outputs = getOutputs(elements).groupBy(_.name).map {
-      case (name, outputs) if outputs.size == 1 => name -> outputs.head
-      case (name, outputs) if Set(outputs).size > 1 =>
-        throw new Exception(s"multiple outputs defined with the name ${name}: ${outputs}")
+    val outputs = getOutputs(elements).groupBy(_._1).map {
+      case (_, outputs) if outputs.size == 1 =>
+        val (dxName, wdlType, expr) = outputs.head
+        dxName -> (wdlType, expr)
+      case (dxName, outputs) if Set(outputs).size > 1 =>
+        throw new Exception(s"multiple outputs defined with the name ${dxName.decoded}: ${outputs}")
     }
 
     // now convert the inputs, filter out those that are in outputs,
     // and check for collisions
     val inputs = getInputs(elements, withField)
-      .filterNot(i => i.nameIter.exists(outputs.contains))
+      .filterNot(i => i.names.exists(outputs.contains))
       .groupBy(_.fullyQualifiedName)
       .map {
         case (fqn, refs) if refs.toSet.size == 1 =>
@@ -1080,36 +1083,42 @@ object WdlUtils {
   }
 
   /**
-    * We are building an applet for the output section of a workflow. The outputs have
-    * expressions, and we need to figure out which variables they refer to. This will
-    * allow the calculations to proceeed inside a stand alone applet.
-    * @param outputs output definitions
-    * @return
+    * Collects all the variables referenced in the expressions of the output parameters.
     */
-  def getOutputClosure(outputs: Vector[TAT.OutputParameter]): Map[String, T] = {
+  def getOutputClosure(outputs: Map[DxName, (T, TAT.Expr)]): Map[DxName, T] = {
     // create inputs from all the expressions that go into outputs
     // exclude any inputs that are references to other output parameters
-    val paramNames = outputs.map(_.name).toSet
-    outputs
+    outputs.values
       .flatMap {
-        case TAT.OutputParameter(_, wdlType, expr) =>
+        case (wdlType, expr) =>
           getExpressionInputs(expr, Some(wdlType), withField = false)
       }
-      .filterNot(i => paramNames.contains(i.identifier))
+      .filterNot(i => outputs.contains(i.identifier))
       .groupBy(_.fullyQualifiedName)
       .map {
         // if there are multiple references to the same parameter, make sure the
         // types are the same
-        case (fqn, refs) if refs.toSet.size == 1 => fqn -> refs.head.wdlType
-        case (fqn, refs) =>
+        case (dxName, refs) if refs.toSet.size == 1 => dxName -> refs.head.wdlType
+        case (dxName, refs) =>
           val priorityRef = refs.groupBy(_.kind).toVector.sortWith(_._1 < _._1).head._2
           if (priorityRef.map(_.wdlType).toSet.size > 1) {
             throw new Exception(
                 s"multiple references to the same paramter with different types: ${priorityRef}"
             )
           }
-          fqn -> priorityRef.head.wdlType
+          dxName -> priorityRef.head.wdlType
       }
+  }
+
+  /**
+    * Collects all the variables referenced in the expressions of the output parameters.
+    */
+  def getOutputClosure(outputs: Vector[TAT.OutputParameter]): Map[DxName, T] = {
+    val dxOutputs: Map[DxName, (T, TAT.Expr)] = outputs.map {
+      case TAT.OutputParameter(name, wdlType, expr) =>
+        WdlDxName.fromRawParameterName(name) -> (wdlType, expr)
+    }.toMap
+    getOutputClosure(dxOutputs)
   }
 
   def prettyFormatElement(element: TAT.WorkflowElement, indent: String = "    "): String = {
@@ -1160,20 +1169,20 @@ object WdlUtils {
     }
   }
 
-  def prettyFormatEnv(env: Map[String, (T, V)], indent: String = "  "): String = {
+  def prettyFormatEnv(env: Map[DxName, (T, V)], indent: String = "  "): String = {
     env
       .map {
         case (name, (t, v)) =>
-          s"${indent}${name}: ${TypeUtils.prettyFormatType(t)} ${EvalUtils.prettyFormat(v)}"
+          s"${indent}${name.decoded}: ${TypeUtils.prettyFormatType(t)} ${EvalUtils.prettyFormat(v)}"
       }
       .mkString("\n")
   }
 
-  def prettyFormatValues(env: Map[String, V], indent: String = "  "): String = {
+  def prettyFormatValues(env: Map[DxName, V], indent: String = "  "): String = {
     env
       .map {
         case (name, v) =>
-          s"${indent}${name}: ${EvalUtils.prettyFormat(v)}"
+          s"${indent}${name.decoded}: ${EvalUtils.prettyFormat(v)}"
       }
       .mkString("\n")
   }

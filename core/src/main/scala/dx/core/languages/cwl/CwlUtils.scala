@@ -2,7 +2,7 @@ package dx.core.languages.cwl
 
 import dx.api.DxPath
 import dx.core.io.DxWorkerPaths
-import dx.core.ir.{Type, Value}
+import dx.core.ir.{DxName, Type, Value}
 import dx.core.ir.Type._
 import dx.core.ir.Value.{
   VArray,
@@ -252,7 +252,7 @@ object CwlUtils {
     }
   }
 
-  def toIR(cwl: Map[String, (CwlType, CwlValue)]): Map[String, (Type, Value)] = {
+  def toIR(cwl: Map[DxName, (CwlType, CwlValue)]): Map[DxName, (Type, Value)] = {
     cwl.map {
       case (name, (cwlType, cwlValue)) => name -> toIRValue(cwlValue, cwlType)
     }
@@ -458,13 +458,13 @@ object CwlUtils {
     innerMulti(value, cwlType, name)
   }
 
-  def fromIR(values: Map[String, (Type, Value)],
+  def fromIR(values: Map[DxName, (Type, Value)],
              typeAliases: Map[String, CwlSchema] = Map.empty,
-             isInput: Boolean): Map[String, (CwlType, CwlValue)] = {
+             isInput: Boolean): Map[DxName, (CwlType, CwlValue)] = {
     values.map {
-      case (name, (t, v)) =>
+      case (dxName, (t, v)) =>
         val cwlType = fromIRType(t, typeAliases, isInput)
-        name -> fromIRValue(v, cwlType, name, isInput)
+        dxName -> fromIRValue(v, cwlType, dxName.decoded, isInput)
     }
   }
 
@@ -563,9 +563,9 @@ object CwlUtils {
     file.location.exists(_.startsWith(DxPath.DxUriPrefix))
   }
 
-  def toJson(values: Map[String, (CwlType, CwlValue)]): JsObject = {
+  def toJson(values: Map[DxName, (CwlType, CwlValue)]): JsObject = {
     JsObject(values.map {
-      case (name, (_, v)) => name -> v.toJson
+      case (dxName, (_, v)) => dxName.decoded -> v.toJson
     })
   }
 

@@ -79,7 +79,7 @@ case class WorkflowCompiler(separateOutputs: Boolean,
           // TODO: if the input has a non-static default, link to the value of the workflow input
           //  (either the user-specified value or the result of evaluting the expression)
           //  - right now this only links to the user-specified value
-          ParameterLinkWorkflowInput(wfParam.dxName, dxType)
+          ParameterLinkWorkflowInput(wfParam.name, dxType)
         case ArrayInput(stageInputs) =>
           val itemType = dxType match {
             case Type.TArray(itemType, _) if Type.isNative(itemType, !complexPathValues) => itemType
@@ -98,14 +98,14 @@ case class WorkflowCompiler(separateOutputs: Boolean,
       }
     }
 
-    val outputSources: Vector[(String, JsValue)] =
+    val outputSources: Vector[(DxName, JsValue)] =
       parameterLinkSerializer.createFieldsFromLink(createLink(stageInput, parameter.dxType),
-                                                   parameter.dxName)
+                                                   parameter.name)
 
     // merge the specification and the output sources
     outputSources.map {
       case (fieldName, output) =>
-        JsObject(outputSpec(fieldName) ++ Map("outputSource" -> output))
+        JsObject(outputSpec(fieldName.encoded) ++ Map("outputSource" -> output))
     }
   }
 
@@ -126,7 +126,7 @@ case class WorkflowCompiler(separateOutputs: Boolean,
         case LinkInput(dxStage, paramName) =>
           Some(ParameterLinkStage(dxStage, IORef.Output, paramName, dxType))
         case WorkflowInput(wfParam) =>
-          Some(ParameterLinkWorkflowInput(wfParam.dxName, dxType))
+          Some(ParameterLinkWorkflowInput(wfParam.name, dxType))
         case ArrayInput(stageInputs) =>
           val itemType = dxType match {
             case Type.TArray(itemType, _) if Type.isNative(itemType, !complexPathValues) => itemType
@@ -152,9 +152,12 @@ case class WorkflowCompiler(separateOutputs: Boolean,
             case (parameter, stageInput) =>
               createLink(stageInput, parameter.dxType)
                 .map { link =>
-                  parameterLinkSerializer.createFieldsFromLink(link, parameter.dxName)
+                  parameterLinkSerializer.createFieldsFromLink(link, parameter.name)
                 }
                 .getOrElse(Vector.empty)
+          }
+          .map {
+            case (dxName, jsv) => dxName.encoded -> jsv
           }
           .to(TreeSeqMap)
     )
@@ -339,9 +342,10 @@ case class WorkflowCompiler(separateOutputs: Boolean,
             stageInput match {
               case EmptyInput => (Set.empty, None)
               case StaticInput(value) =>
-                (Set.empty, Some(Value.VHash(Constants.ValueKey -> value)))
+                (Set.empty, Some(Value.VHash(Constants.ValueKey.decoded -> value)))
               case LinkInput(stageId, stageParamName) =>
-                (Set(stageId), Some(Value.VHash(stageId.id -> Value.VString(stageParamName))))
+                (Set(stageId),
+                 Some(Value.VHash(stageId.id -> Value.VString(stageParamName.decoded))))
               case ArrayInput(inputs) =>
                 val itemType = dxType match {
                   case Type.TArray(itemType, _) => itemType
@@ -369,7 +373,7 @@ case class WorkflowCompiler(separateOutputs: Boolean,
             case (param, EmptyInput) =>
               // empty required inputs are not allowed for nested locked workflows
               throw new Exception(
-                  s"locked workflow ${workflow.name} has empty required input ${param.dxName}"
+                  s"locked workflow ${workflow.name} has empty required input ${param.name.decoded}"
               )
             case (param, WorkflowInput(wfParam)) if param == wfParam =>
               // this is one of:
@@ -381,7 +385,7 @@ case class WorkflowCompiler(separateOutputs: Boolean,
               (Set.empty, None)
             case (param, stageInput) =>
               val (inputStages, value) = getWorkflowInputValue(stageInput, param.dxType)
-              (inputStages, value.map(v => param.dxName -> v))
+              (inputStages, value.map(v => param.name.decoded -> v))
           }.unzip
           val stageManifestLinks: StageInput = ArrayInput(inputStages.flatten.toSet.map { stage =>
             LinkInput(stage, Constants.OutputManifest)
@@ -446,15 +450,19 @@ case class WorkflowCompiler(separateOutputs: Boolean,
             stageInput match {
               case EmptyInput => (false, Set.empty, None)
               case StaticInput(value) =>
-                (false, Set.empty, Some(Value.VHash(Constants.ValueKey -> value)))
+                (false, Set.empty, Some(Value.VHash(Constants.ValueKey.decoded -> value)))
               case WorkflowInput(wfParam) =>
                 (true,
                  Set.empty,
-                 Some(Value.VHash(Constants.WorkflowKey -> Value.VString(wfParam.dxName))))
+                 Some(
+                     Value.VHash(
+                         Constants.WorkflowKey.decoded -> Value.VString(wfParam.name.decoded)
+                     )
+                 ))
               case LinkInput(sourceStage, sourceParamName) =>
                 (false,
                  Set(sourceStage),
-                 Some(Value.VHash(sourceStage.id -> Value.VString(sourceParamName))))
+                 Some(Value.VHash(sourceStage.id -> Value.VString(sourceParamName.decoded))))
               case ArrayInput(inputs) =>
                 val itemType = dxType match {
                   case Type.TArray(itemType, _) => itemType
@@ -485,7 +493,7 @@ case class WorkflowCompiler(separateOutputs: Boolean,
               case (param, stageInput) =>
                 val (inputWorkflow, inputStages, value) =
                   getStageInputValue(stageInput, param.dxType)
-                (inputWorkflow, inputStages, value.map(v => param.dxName -> v))
+                (inputWorkflow, inputStages, value.map(v => param.name.decoded -> v))
             }
             .unzip3
           val inputStageManifests = inputStages.flatten.toSet.map { stage =>

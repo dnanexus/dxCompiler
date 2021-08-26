@@ -6,7 +6,7 @@ import Tags.{EdgeTest, NativeTest}
 import dx.api._
 import dx.core.{Constants, ir}
 import dx.core.io.DxWorkerPaths
-import dx.core.ir.{ParameterLinkSerializer, ParameterLinkValue, Type, TypeSerde}
+import dx.core.ir.{DxName, ParameterLinkSerializer, ParameterLinkValue, Type, TypeSerde}
 import dx.core.languages.wdl.{WdlBlock, WdlBundle, WdlUtils}
 import dx.executor.{JobMeta, WorkflowAction, WorkflowExecutor}
 import dx.util.{CodecUtils, FileSourceResolver, FileUtils, Logger}
@@ -23,17 +23,17 @@ import scala.collection.immutable.TreeSeqMap
 private case class WorkflowTestJobMeta(override val workerPaths: DxWorkerPaths,
                                        override val dxApi: DxApi = DxApi.get,
                                        override val logger: Logger = Logger.get,
-                                       rawEnv: Map[String, (WdlTypes.T, WdlValues.V)],
+                                       rawEnv: Map[DxName, (WdlTypes.T, WdlValues.V)],
                                        rawBlockPath: Vector[Int],
                                        rawInstanceTypeDb: InstanceTypeDB,
                                        rawSourceCode: String)
     extends JobMeta(workerPaths, dxApi, logger) {
   override val project: DxProject = null
 
-  override val rawJsInputs: Map[String, JsValue] =
+  override val rawJsInputs: Map[DxName, JsValue] =
     ParameterLinkSerializer().createFieldsFromMap(WdlUtils.toIR(rawEnv))
 
-  override def writeRawJsOutputs(outputJs: Map[String, JsValue]): Unit = {}
+  override def writeRawJsOutputs(outputJs: Map[DxName, JsValue]): Unit = {}
 
   override val jobId: String = null
 
@@ -61,7 +61,7 @@ private case class WorkflowTestJobMeta(override val workerPaths: DxWorkerPaths,
       ),
       Constants.SourceCode -> JsString(CodecUtils.gzipAndBase64Encode(rawSourceCode)),
       Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(WdlUtils.toIRTypeMap(rawEnv.map {
-        case (k, (t, _)) => k -> t
+        case (dxName, (t, _)) => dxName -> t
       }))
   )
 
@@ -114,7 +114,7 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
       workerPaths: DxWorkerPaths,
       sourcePath: Path,
       blockPath: Vector[Int] = Vector(0),
-      env: Map[String, (WdlTypes.T, WdlValues.V)] = Map.empty
+      env: Map[DxName, (WdlTypes.T, WdlValues.V)] = Map.empty
   ): WdlWorkflowExecutor = {
     val wfSourceCode = FileUtils.readFileContent(sourcePath)
     val jobMeta =
@@ -510,9 +510,10 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
   it should "fill in missing optionals" taggedAs NativeTest in {
     val workerPaths = setup()
     val path = pathFromBasename("frag_runner", "missing_args.wdl")
-    val env = Map(
-        "x" -> (WdlTypes.T_Optional(WdlTypes.T_Int), WdlValues.V_Null),
-        "y" -> (WdlTypes.T_Int, WdlValues.V_Int(5))
+    val env: Map[DxName, (WdlTypes.T, WdlValues.V)] = Map(
+        SimpleDxName
+          .fromRawParameterName("x") -> (WdlTypes.T_Optional(WdlTypes.T_Int), WdlValues.V_Null),
+        SimpleDxName.fromRawParameterName("y") -> (WdlTypes.T_Int, WdlValues.V_Int(5))
     )
     val wfExecutor = createWorkflowExecutor(workerPaths, path, Vector(0), env)
     val (results, msg) = wfExecutor.apply(WorkflowAction.Run)
@@ -531,10 +532,11 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
         JsArray(JsString("1_ACGT_1.bam"), JsNull),
         Type.TArray(Type.TOptional(Type.TString))
     )
+    val paramName = SimpleDxName.fromRawParameterName("bam_lane1")
     wfExecutor.jobMeta.outputSerializer
-      .createFieldsFromLink(results("bam_lane1"), "bam_lane1") shouldBe
-      Vector("bam_lane1" -> JsObject("___" -> JsArray(JsString("1_ACGT_1.bam"), JsNull)),
-             "bam_lane1___dxfiles" -> JsArray())
+      .createFieldsFromLink(results("bam_lane1"), paramName) shouldBe
+      Vector(paramName -> JsObject("___" -> JsArray(JsString("1_ACGT_1.bam"), JsNull)),
+             paramName.withSuffix(Constants.FlatFilesSuffix) -> JsArray())
   }
 
   it should "handle pair field access (left/right)" taggedAs (NativeTest, EdgeTest) in {

@@ -1,222 +1,203 @@
 package dx.core.ir
 
 import dx.api.DxWorkflowStage
-import dx.core.ir.RunSpec.{InstanceType, ContainerImage}
+import dx.core.Constants
+import dx.core.ir.RunSpec.{ContainerImage, InstanceType}
 import dx.util.Enum
 
 trait ParameterAttribute
 
+object DxName {
+  val Dot = "."
+  val DotEncoded = "___"
+  // standard suffixes to parse
+  val suffixes = Set(Constants.ComplexValueKey, Constants.FlatFilesSuffix)
+
+  def split(name: String): (String, Option[String]) = {
+    DxName.suffixes
+      .collectFirst {
+        case suffix if name.endsWith(suffix) => (name.dropRight(suffix.length), Some(suffix))
+      }
+      .getOrElse((name, None))
+  }
+}
+
 /**
-  * Compile time representation of a variable. Used also as an applet argument.
+  * A name that must conform to the character restrictions for DNAnexus input
+  * and output parameter names. May be created from an encoded prefix and/or
+  * a decoded prefix, and an optional suffix. The encoded prefix is the
+  * DNAnexus-compatible version of the name, and the decoded prefix is the
+  * native version of the name. The suffix is added to the end of either prefix
+  * without any encoding.
+  * @example
+  * decodedPrefix = "foo.bar_baz"
+  * encodedPrefix = "foo\_\_\_bar_baz"
+  * suffix = "\_\_\_dxfiles"
+  * encoded = "foo\_\_\_bar_baz\_\_\_dxfiles"
+  * decoded = foo.bar_baz\_\_\_dxfiles
   *
-  * The fullyQualifiedName could contains dots. However dx does not allow dots
-  * in applet/workflow arugment names, this requires some kind of transform.
-  *
-  * The attributes are used to encode DNAx applet input/output specification
-  * fields, such as {help, suggestions, patterns}.
-  *
-  * @param name parameter name
+  * TODO: write tests for equality and hash lookup
+  */
+abstract class DxName(private var encodedPrefix: Option[String],
+                      private var decodedPrefix: Option[String],
+                      val suffix: Option[String])
+    extends Ordered[DxName] {
+  assert(encodedPrefix.exists(_.trim().nonEmpty) || decodedPrefix.exists(_.trim().nonEmpty),
+         "at least one of encodedPrefix, decodedPrefix is required")
+
+  override def compare(that: DxName): Int = {
+    val cmp = if (encodedPrefix.isDefined && that.encodedPrefix.isDefined) {
+      encodedPrefix.get.compare(that.encodedPrefix.get)
+    } else if (decodedPrefix.isDefined && that.decodedPrefix.isDefined) {
+      decodedPrefix.get.compare(that.decodedPrefix.get)
+    } else {
+      decoded.compare(that.decoded)
+    }
+    if (cmp != 0) {
+      cmp
+    } else {
+      (suffix, that.suffix) match {
+        case (None, None)         => 0
+        case (Some(s1), Some(s2)) => s1.compare(s2)
+        case (_, Some(_))         => 1
+        case _                    => -1
+      }
+    }
+  }
+
+  override def hashCode(): Int = {
+    decoded.hashCode
+  }
+
+  override def equals(obj: Any): Boolean = {
+    obj match {
+      case that: DxName => compareTo(that) == 0
+      case _            => false
+    }
+  }
+
+  protected def encodePrefix(prefix: String): String
+
+  def encoded: String = {
+    val encoded = encodedPrefix.getOrElse {
+      val encoded = encodePrefix(decodedPrefix.get)
+      encodedPrefix = Some(encoded)
+      encoded
+    }
+    suffix.map(suf => s"${encoded}${suf}").getOrElse(encoded)
+  }
+
+  protected def decodePrefix(prefix: String): String
+
+  def decoded: String = {
+    val decoded = decodedPrefix.getOrElse {
+      val decoded = decodePrefix(encodedPrefix.get)
+      decodedPrefix = Some(decoded)
+      decoded
+    }
+    suffix.map(suf => s"${decoded}${suf}").getOrElse(decoded)
+  }
+
+  protected def create(encodedPrefix: Option[String] = None,
+                       decodedPrefix: Option[String] = None,
+                       suffix: Option[String] = None): DxName
+
+  /**
+    * Copies this DxName and set suffix to `newSuffix`. Throws an exception
+    * if suffix is already defined.
+    */
+  def withSuffix(newSuffix: String): DxName = {
+    if (suffix.isDefined) {
+      throw new Exception(s"${this} already has a suffix")
+    }
+    create(encodedPrefix, decodedPrefix, Some(newSuffix))
+  }
+
+  /**
+    * Copies this DxName and sets suffix to `None`. Throws an exception
+    * if suffix is already `None`.
+    */
+  def dropSuffix: DxName = {
+    if (suffix.isEmpty) {
+      throw new Exception(s"${this} does not have a suffix")
+    }
+    create(encodedPrefix, decodedPrefix, None)
+  }
+
+  def endsWith(dxName: DxName): Boolean = {
+    decoded.endsWith(dxName.decoded)
+  }
+
+  protected def namespaceDelim: String = DxName.Dot
+
+  /**
+    * Creates a new DxName with `prefix` added to the current prefix, delimited
+    * by `delim`.
+    */
+  def addDecodedNamespace(prefix: String): DxName = {
+    val newDecodedPrefix =
+      s"${prefix}${namespaceDelim}${decodedPrefix.getOrElse(decodePrefix(encodedPrefix.get))}"
+    create(decodedPrefix = Some(newDecodedPrefix), suffix = suffix)
+  }
+
+  def getDecodedNamespace(dxName: DxName): String = {
+    val fqn = decoded
+    val suffix = s"${namespaceDelim}${dxName.decoded}"
+    if (fqn.endsWith(suffix)) {
+      fqn.dropRight(fqn.length)
+    } else {
+      throw new Exception(s"${fqn} does not end with ${suffix}")
+    }
+  }
+
+  // TODO: for now throw an exception because any usage of this might be wrong -
+  //  eventually change this to return `decoded`
+  override def toString: String = {
+    throw new Exception("DxName.toString")
+  }
+}
+
+/**
+  * A DxName that does not perform encoding or decoding - the encoded and
+  * decoded names must be equal.
+  */
+class SimpleDxName(prefix: String, suffix: Option[String] = None)
+    extends DxName(Some(prefix), Some(prefix), suffix) {
+  override protected def encodePrefix(prefix: String): String = {
+    throw new Exception("unreachable")
+  }
+
+  override protected def decodePrefix(prefix: String): String = {
+    throw new Exception("unreachable")
+  }
+
+  override protected def create(encodedPrefix: Option[String],
+                                decodedPrefix: Option[String],
+                                suffix: Option[String]): DxName = {
+    (encodedPrefix, decodedPrefix) match {
+      case (Some(p1), Some(p2)) if p1 == p2 => new SimpleDxName(p1, suffix)
+      case _ =>
+        throw new Exception(
+            s"encoded and decoded names are not equal: ${encodedPrefix} != ${decodedPrefix}"
+        )
+    }
+  }
+}
+
+/**
+  * Compile-time representation of an input or output parameter.
+  * @param name the fully-qualified parameter name
   * @param dxType parameter data type
   * @param defaultValue default value
-  * @param attributes metadata
+  * @param attributes metadata used to encode DNAnexus applet input/output specification
+  *                   fields, such as {help, suggestions, patterns}.
   */
 case class Parameter(
-    name: String,
+    name: DxName,
     dxType: Type,
     defaultValue: Option[Value] = None,
     attributes: Vector[ParameterAttribute] = Vector.empty
-) {
-  // dx does not allow dots, slashes, etc in variable names, so we encode them.
-  // TODO: check for collisions that are created this way.
-  def dxName: String = Parameter.encodeName(name)
-}
-
-object Parameter {
-  val DefaultDelim = "."
-  val ComplexValueKey = "___"
-
-  // character sequences that may not appear in a non-encoded name
-  private val illegalSeqsRegexp = "__|\\s+".r
-  // characters that need to be encoded
-  private val encodeCharsRegexp = "([^a-zA-Z0-9_])".r
-  // character sequences that need to be decoded
-  private val decodeSeqsRegexp = "(___)|__(\\d+)__".r
-
-  private def makeNewName(name: String,
-                          starts: Vector[Int],
-                          ends: Vector[Int],
-                          delims: Vector[String]): String = {
-    (Vector(0) ++ starts)
-      .zip(ends ++ Vector(name.length))
-      .map {
-        case (start, end) if start == end => ""
-        case (start, end)
-            if (start > 0 && name.charAt(start) == '_')
-              || (end < name.length && name.charAt(end - 1) == '_') =>
-          throw new Exception(
-              s"illegal name ${name}: '_' must not be adjacent to a non-alphanumeric character"
-          )
-        case (start, end) => name.substring(start, end)
-      }
-      .zipAll(delims, "", "")
-      .map {
-        case (part, delim) => s"${part}${delim}"
-      }
-      .mkString
-  }
-
-  /**
-    * Converts disallowed characters in parameter names to underscores.
-    * DNAnexus only allows [a-zA-Z0-9_] in parameter names. We also
-    * disallow:
-    *   * whitespace - "foo bar"
-    *   * consecutive underscores - "foo\_\_bar"
-    *   * name segments that begin or end in underscore - "foo_._bar"
-    * @param name parameter name
-    * @return the encoded parameter name, with "." replaced with "\_\_\_"
-    *         and any other illegal character replaced with "\_\_ord(x)\_\_",
-    *         where `ord(x)` is the ordinal value of the illegal character.
-    */
-  def encodeName(name: String): String = {
-    if (name.trim().isEmpty) {
-      throw new Exception("empty name")
-    }
-    if (name.endsWith(".")) {
-      throw new Exception(s"parameter name ${name} ends with a '.'")
-    }
-    // some special parameter names end with '___' - add this back on after decoding
-    val (encodeName, endsWithComplexValueKey) = if (name.endsWith(ComplexValueKey)) {
-      (name.dropRight(ComplexValueKey.length), true)
-    } else {
-      (name, false)
-    }
-    illegalSeqsRegexp.findFirstIn(encodeName).foreach { c =>
-      throw new Exception(s"parameter name contains illegal character sequence '${c}'")
-    }
-    encodeCharsRegexp.findAllMatchIn(encodeName).toVector match {
-      case Vector() => name
-      case matches =>
-        val (starts, ends, delims) = matches.map { m =>
-          val newDelim = m.group(1) match {
-            case DefaultDelim => ComplexValueKey
-            case c if c.length() == 1 =>
-              s"__${c.charAt(0).toInt}__"
-            case other =>
-              throw new Exception(s"unexpected multi-character delimiter ${other}")
-          }
-          (m.end, m.start, newDelim)
-        }.unzip3
-        val newName = makeNewName(encodeName, starts, ends, delims)
-        if (endsWithComplexValueKey) {
-          s"${newName}${ComplexValueKey}"
-        } else {
-          newName
-        }
-    }
-  }
-
-  /**
-    * Simplified encoding for parameter  names that conform to DNAnexus character
-    * restrictions, with the possible exception of containg dots.
-    * @param name parameter name
-    * @return encoded parameter name
-    */
-  def encodeDots(name: String): String = {
-    if (name.trim().isEmpty) {
-      throw new Exception("empty name")
-    }
-    if (name.endsWith(".")) {
-      throw new Exception(s"parameter name ${name} ends with a '.'")
-    }
-    name.split("\\.").toVector match {
-      case Vector(_) => name
-      case parts     =>
-        // check that none of the individual words start/end with '_',
-        // which will cause problems when decoding
-        if (parts.dropRight(1).exists(_.endsWith("_")) || parts.drop(1).exists(_.startsWith("_"))) {
-          throw new Exception(s"cannot encode value ${name} - cannot have '_' next to '.'")
-        }
-        parts.mkString(ComplexValueKey)
-    }
-  }
-
-  /**
-    * Decodes a name that was previously encoded using `encodeName`.
-    * @param name encoded parameter name
-    * @return parameter name
-    */
-  def decodeName(name: String): String = {
-    // some special parameter names end with '___' - add this back on after decoding
-    val (decodeName, endsWithComplexValueKey) = if (name.endsWith(ComplexValueKey)) {
-      (name.dropRight(ComplexValueKey.length), true)
-    } else {
-      (name, false)
-    }
-    if (decodeName.trim().isEmpty) {
-      throw new Exception("empty name")
-    }
-    encodeCharsRegexp.findFirstIn(decodeName).foreach { c =>
-      throw new Exception(s"encoded value ${name} contains illegal character '${c}''")
-    }
-    decodeSeqsRegexp.findAllMatchIn(decodeName).toVector match {
-      case Vector() => name
-      case matches =>
-        val (starts, ends, delims) = matches.map { m =>
-          val newDelim = (m.group(1), m.group(2)) match {
-            case (ComplexValueKey, null) => DefaultDelim
-            case (null, ord)             => ord.toInt.toChar.toString
-            case other =>
-              throw new Exception(s"unexpected delimiter ${other}")
-          }
-          (m.end, m.start, newDelim)
-        }.unzip3
-        val newName = makeNewName(decodeName, starts, ends, delims)
-        if (endsWithComplexValueKey) {
-          s"${newName}${ComplexValueKey}"
-        } else {
-          newName
-        }
-    }
-  }
-
-  /**
-    * Simplified decoding for parameter names that conform to DNAnexus character
-    * restrictions, with the possible exception of containg dots.
-    * @param name encoded parameter name
-    * @return parameter name
-    */
-  def decodeDots(name: String): String = {
-    if (name.trim().isEmpty) {
-      throw new Exception("empty name")
-    }
-    if (name.contains(".")) {
-      throw new Exception(s"encoded name ${name} contains '.'")
-    }
-    // some special parameter names end with '___' - add this back on after decoding
-    val (decodeName, endsWithComplexValueKey) = if (name.endsWith(ComplexValueKey)) {
-      (name.dropRight(ComplexValueKey.length), true)
-    } else {
-      (name, false)
-    }
-    decodeName.split(ComplexValueKey).toVector match {
-      case Vector(_) => name
-      case parts     =>
-        // check that none of the individual words start/end with '_'
-        if (parts.dropRight(1).exists(_.endsWith("_")) || parts.drop(1).exists(_.startsWith("_"))) {
-          throw new Exception(
-              s"cannot decode value ${name} - more than three consecutive underscores"
-          )
-        }
-        val decoded = parts.mkString(DefaultDelim)
-        if (endsWithComplexValueKey) {
-          // some special parameter names end with '___' - add this back on after decoding
-          s"${decoded}${ComplexValueKey}"
-        } else {
-          decoded
-        }
-    }
-  }
-}
+)
 
 trait CallableAttribute
 
@@ -292,7 +273,7 @@ case object ExecutableKindApplet extends ExecutableKind
   */
 case class ExecutableKindWfFragment(call: Option[String],
                                     blockPath: Vector[Int],
-                                    inputs: Map[String, Type],
+                                    inputs: Map[DxName, Type],
                                     scatterChunkSize: Option[Int])
     extends ExecutableKind
 case class ExecutableKindWfInputs(blockPath: Vector[Int]) extends ExecutableKind
@@ -370,7 +351,7 @@ case class Application(name: String,
 sealed trait StageInput
 case object EmptyInput extends StageInput
 case class StaticInput(value: Value) extends StageInput
-case class LinkInput(stageId: DxWorkflowStage, paramName: String) extends StageInput
+case class LinkInput(stageId: DxWorkflowStage, paramName: DxName) extends StageInput
 case class WorkflowInput(param: Parameter) extends StageInput
 case class ArrayInput(stageInputs: Vector[StageInput]) extends StageInput
 

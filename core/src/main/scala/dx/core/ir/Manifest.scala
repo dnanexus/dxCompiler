@@ -25,7 +25,7 @@ object Manifest {
       case None               => None
       case other              => throw new Exception(s"invalid manifest ID ${other}")
     }
-    val jsValues = fields.get(Manifest.ValuesKey) match {
+    val jsValues: Map[String, JsValue] = fields.get(Manifest.ValuesKey) match {
       case Some(JsObject(values)) => values
       case other                  => throw new Exception(s"invalid manifest values ${other}")
     }
@@ -68,9 +68,11 @@ object Manifest {
             fields.keySet.diff(Manifest.AllKeys).isEmpty =>
         parseFullManifest(jsValue, types, typeAliases)
       case _ =>
-        Manifest(jsValue.asJsObject.fields,
-                 types,
-                 types.map(t => Type.collectSchemas(t.values.toVector)))
+        Manifest(
+            jsValue.asJsObject.fields,
+            types,
+            types.map(t => Type.collectSchemas(t.values.toVector))
+        )
     }
   }
 

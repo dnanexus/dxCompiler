@@ -1,11 +1,16 @@
 package dxExecutorCwl
 
-import dx.core.io.StreamFiles
+import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.executor.{BaseCli, JobMeta}
-import dx.executor.cwl.{CwlTaskExecutor, CwlWorkflowExecutor}
+import dx.executor.cwl.{CwlJobMeta, CwlTaskExecutor, CwlWorkflowExecutor}
+import dx.util.Logger
 
 object Main extends BaseCli {
   override val jarName = "dxExecutorCwl.jar"
+
+  override protected def createJobMeta(workerPaths: DxWorkerPaths, logger: Logger): CwlJobMeta = {
+    CwlJobMeta(workerPaths, logger = logger)
+  }
 
   override def createTaskExecutor(meta: JobMeta,
                                   streamFiles: StreamFiles.StreamFiles,

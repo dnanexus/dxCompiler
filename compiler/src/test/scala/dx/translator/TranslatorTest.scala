@@ -1607,7 +1607,8 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
         Parameter("file1", TFile) -> WorkflowInput(Parameter("file1", TFile))
     )
     wf.outputs shouldBe Vector(
-        Parameter("count_output", TInt) -> LinkInput(DxWorkflowStage("stage-1"), "output")
+        Parameter("count_output", TInt) -> LinkInput(DxWorkflowStage("stage-1"),
+                                                     SimpleDxName("output"))
     )
     wf.stages.size shouldBe 2
     wf.stages(0).dxStage.id shouldBe "stage-0"
@@ -1622,7 +1623,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     wf.stages(1).dxStage.id shouldBe "stage-1"
     wf.stages(1).calleeName shouldBe "parseInt"
     wf.stages(1).inputs shouldBe Vector(
-        LinkInput(DxWorkflowStage("stage-0"), "output"),
+        LinkInput(DxWorkflowStage("stage-0"), SimpleDxName("output")),
         StaticInput(VString("step2"))
     )
     wf.stages(1).outputs shouldBe Vector(

@@ -66,9 +66,9 @@ trait Block[Self <: Block[Self]] { this: Self =>
     }
   }
 
-  def inputNames: Set[String]
+  def inputNames: Set[DxName]
 
-  def outputNames: Set[String]
+  def outputNames: Set[DxName]
 
   def prettyFormat: String
 }

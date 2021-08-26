@@ -41,7 +41,7 @@ case class ParameterLinkValue(jsv: JsValue, dxType: Type) extends ParameterLink 
 
 case class ParameterLinkStage(dxStage: DxWorkflowStage,
                               ioRef: IORef.Value,
-                              varName: String,
+                              dxName: DxName,
                               dxType: Type)
     extends ParameterLink {
   def makeOptional: ParameterLinkStage = {
@@ -49,13 +49,13 @@ case class ParameterLinkStage(dxStage: DxWorkflowStage,
   }
 }
 
-case class ParameterLinkWorkflowInput(varName: String, dxType: Type) extends ParameterLink {
+case class ParameterLinkWorkflowInput(dxName: DxName, dxType: Type) extends ParameterLink {
   def makeOptional: ParameterLinkWorkflowInput = {
     copy(dxType = Type.ensureOptional(dxType))
   }
 }
 
-case class ParameterLinkExec(dxExecution: DxExecution, varName: String, dxType: Type)
+case class ParameterLinkExec(dxExecution: DxExecution, dxName: DxName, dxType: Type)
     extends ParameterLink {
   def makeOptional: ParameterLinkExec = {
     copy(dxType = Type.ensureOptional(dxType))
@@ -63,9 +63,7 @@ case class ParameterLinkExec(dxExecution: DxExecution, varName: String, dxType: 
 }
 
 object ParameterLink {
-  // Key used to wrap a complex value in JSON.
-
-  val FlatFilesSuffix = "___dxfiles"
+  // key used to wrap a complex value in JSON
   val WorkflowInputFieldKey = "workflowInputField"
 }
 
@@ -125,87 +123,67 @@ case class ParameterLinkSerializer(fileResolver: FileSourceResolver = FileSource
     ParameterLinkValue(serialize(t, v), t)
   }
 
-  def createConstantField(value: Value,
-                          bindName: String,
-                          encodeDots: Boolean = true): (String, JsValue) = {
-    val bindEncName =
-      if (encodeDots) {
-        Parameter.encodeName(bindName)
-      } else {
-        bindName
-      }
-    (bindEncName, ValueSerde.serialize(value))
-  }
-
   def serializeSimpleLink(link: ParameterLink): JsValue = {
     link match {
       case ParameterLinkValue(jsLinkvalue, _) => jsLinkvalue
-      case ParameterLinkStage(dxStage, ioRef, varEncName, _) =>
+      case ParameterLinkStage(dxStage, ioRef, dxName, _) =>
         ioRef match {
           case IORef.Input =>
-            dxStage.getInputReference(Parameter.encodeName(varEncName))
+            dxStage.getInputReference(dxName.encoded)
           case IORef.Output =>
-            dxStage.getOutputReference(Parameter.encodeName(varEncName))
+            dxStage.getOutputReference(dxName.encoded)
         }
-      case ParameterLinkWorkflowInput(varEncName, _) =>
+      case ParameterLinkWorkflowInput(dxName, _) =>
         JsObject(
             DxUtils.DxLinkKey -> JsObject(
-                ParameterLink.WorkflowInputFieldKey -> JsString(
-                    Parameter.encodeName(varEncName)
-                )
+                ParameterLink.WorkflowInputFieldKey -> JsString(dxName.encoded)
             )
         )
-      case ParameterLinkExec(dxJob, varEncName, _) =>
-        DxUtils.dxExecutionToEbor(dxJob, Parameter.encodeName(varEncName))
+      case ParameterLinkExec(dxJob, dxName, _) =>
+        DxUtils.dxExecutionToEbor(dxJob, dxName.encoded)
     }
   }
 
-  // create input/output fields that bind the variable name [bindName] to
-  // this WdlVar
+  // create input/output fields that bind the variable name [bindName] to this parameter
   def createFieldsFromLink(link: ParameterLink,
-                           bindName: String,
-                           encodeDots: Boolean = true): Vector[(String, JsValue)] = {
-    val encodedName =
-      if (encodeDots) {
-        Parameter.encodeName(bindName)
-      } else {
-        bindName
-      }
+                           bindName: DxName
+                           //encodeName: Boolean = true
+  ): Vector[(DxName, JsValue)] = {
     if (Type.isNative(link.dxType, !pathsAsObjects)) {
       // Types that are supported natively in DX
-      Vector((encodedName, serializeSimpleLink(link)))
+      Vector((bindName, serializeSimpleLink(link)))
     } else {
       // Complex type requiring two fields: a JSON structure, and a flat array of files.
-      val fileArrayName = s"${encodedName}${ParameterLink.FlatFilesSuffix}"
+      val fileArrayName = bindName.withSuffix(Constants.FlatFilesSuffix)
       val mapValue = link match {
         case ParameterLinkValue(jsLinkValue, _) =>
           // files that are embedded in the structure
           val jsFiles = JsArray(DxFile.findFiles(dxApi, jsLinkValue).map(_.asJson))
           // Dx allows hashes as an input/output type. If the JSON value is
           // not a hash (JsObject), we need to add an outer layer to it.
-          val jsLink = JsObject(Parameter.ComplexValueKey -> jsLinkValue)
-          Map(encodedName -> jsLink, fileArrayName -> jsFiles)
-        case ParameterLinkStage(dxStage, ioRef, varName, _) =>
-          val varFileArrayName = s"${varName}${ParameterLink.FlatFilesSuffix}"
+          val jsLink = JsObject(Constants.ComplexValueKey -> jsLinkValue)
+          Map(bindName -> jsLink, fileArrayName -> jsFiles)
+        case ParameterLinkStage(dxStage, ioRef, dxName, _) =>
+          val varFileArrayName = s"${dxName.encoded}${Constants.FlatFilesSuffix}"
           ioRef match {
             case IORef.Input =>
               Map(
-                  encodedName -> dxStage.getInputReference(varName),
+                  bindName -> dxStage.getInputReference(dxName.encoded),
                   fileArrayName -> dxStage.getInputReference(varFileArrayName)
               )
             case IORef.Output =>
               Map(
-                  encodedName -> dxStage.getOutputReference(varName),
+                  bindName -> dxStage.getOutputReference(dxName.encoded),
                   fileArrayName -> dxStage.getOutputReference(varFileArrayName)
               )
           }
-        case ParameterLinkWorkflowInput(varName, _) =>
-          val varFileArrayName = s"${varName}${ParameterLink.FlatFilesSuffix}"
+        case ParameterLinkWorkflowInput(dxName, _) =>
+          val varFileArrayName = s"${dxName.encoded}${Constants.FlatFilesSuffix}"
           Map(
-              encodedName ->
+              bindName ->
                 JsObject(
                     DxUtils.DxLinkKey -> JsObject(
-                        ParameterLink.WorkflowInputFieldKey -> JsString(varName)
+                        ParameterLink.WorkflowInputFieldKey -> JsString(dxName.encoded)
                     )
                 ),
               fileArrayName ->
@@ -215,30 +193,31 @@ case class ParameterLinkSerializer(fileResolver: FileSourceResolver = FileSource
                     )
                 )
           )
-        case ParameterLinkExec(dxJob, varName, _) =>
-          val varFileArrayName = s"${varName}${ParameterLink.FlatFilesSuffix}"
+        case ParameterLinkExec(dxJob, dxName, _) =>
+          val varFileArrayName = s"${dxName.encoded}${Constants.FlatFilesSuffix}"
           Map(
-              encodedName -> DxUtils
-                .dxExecutionToEbor(dxJob, Parameter.encodeName(varName)),
-              fileArrayName -> DxUtils
-                .dxExecutionToEbor(dxJob, Parameter.encodeName(varFileArrayName))
+              bindName -> DxUtils.dxExecutionToEbor(dxJob, dxName.encoded),
+              fileArrayName -> DxUtils.dxExecutionToEbor(dxJob, varFileArrayName)
           )
       }
       mapValue.toVector
     }
   }
 
-  def createFields(bindName: String,
+  def createFields(bindName: DxName,
                    t: Type,
-                   v: Value,
-                   encodeDots: Boolean = true): Vector[(String, JsValue)] = {
-    createFieldsFromLink(createLink(t, v), bindName, encodeDots)
+                   v: Value
+                   //encodeName: Boolean = true
+  ): Vector[(DxName, JsValue)] = {
+    createFieldsFromLink(createLink(t, v), bindName)
   }
 
-  def createFieldsFromMap(values: Map[String, (Type, Value)],
-                          encodeDots: Boolean = true): Map[String, JsValue] = {
+  def createFieldsFromMap(
+      values: Map[DxName, (Type, Value)]
+      //encodeName: Boolean = true
+  ): Map[DxName, JsValue] = {
     values.flatMap {
-      case (name, (t, v)) => createFields(name, t, v, encodeDots)
+      case (name, (t, v)) => createFields(name, t, v)
     }
   }
 }
@@ -246,9 +225,9 @@ case class ParameterLinkSerializer(fileResolver: FileSourceResolver = FileSource
 case class ParameterLinkDeserializer(dxFileDescCache: DxFileDescCache, dxApi: DxApi = DxApi.get) {
   private def unwrapComplex(jsv: JsValue): JsValue = {
     jsv match {
-      case JsObject(fields) if fields.contains(Parameter.ComplexValueKey) =>
+      case JsObject(fields) if fields.contains(Constants.ComplexValueKey) =>
         // unpack the hash with which complex JSON values are wrapped in dnanexus.
-        fields(Parameter.ComplexValueKey)
+        fields(Constants.ComplexValueKey)
       case _ => jsv
     }
   }
@@ -259,7 +238,7 @@ case class ParameterLinkDeserializer(dxFileDescCache: DxFileDescCache, dxApi: Dx
                            dxFileDescCache = Some(dxFileDescCache))
   }
 
-  def deserializeInputMap(inputs: Map[String, JsValue]): Map[String, Value] = {
+  def deserializeInputMap(inputs: Map[DxName, JsValue]): Map[DxName, Value] = {
     inputs.map {
       case (name, jsv) => name -> deserializeInput(jsv)
     }

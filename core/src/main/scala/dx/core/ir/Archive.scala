@@ -550,7 +550,7 @@ case class LocalizedArchive(
     JsObject(
         "type" -> TypeSerde.serializeOne(irType),
         "value" -> ValueSerde.serialize(irValue),
-        "typeAliases" -> JsObject(TypeSerde.serializeMap(typeAliases)._1),
+        "typeAliases" -> JsObject(TypeSerde.serializeSchemas(typeAliases)._1),
         "packedValue" -> packedArchiveAndValue
           .map {
             case (_, v) => ValueSerde.serialize(v)

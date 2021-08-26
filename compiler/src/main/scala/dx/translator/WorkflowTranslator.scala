@@ -9,6 +9,7 @@ import dx.core.ir.Value.VFile
 import dx.core.ir.{
   Application,
   Callable,
+  DxName,
   ExecutableKindWfInputs,
   ExecutableKindWorkflowCustomReorg,
   ExecutableKindWorkflowOutputReorg,
@@ -45,20 +46,22 @@ abstract class WorkflowTranslator(wfName: String,
     DxWorkflowStage(getStageId(stageName))
   }
 
-  protected case class CallEnv(env: Map[String, LinkedVar], delim: String) {
-    def add(key: String, lvar: LinkedVar): CallEnv = {
+  protected case class CallEnv(env: Map[DxName, LinkedVar],
+                               delim: String,
+                               createDxName: String => DxName) {
+    def add(key: DxName, lvar: LinkedVar): CallEnv = {
       copy(env = env + (key -> lvar))
     }
 
-    def addAll(items: Vector[(String, LinkedVar)]): CallEnv = {
+    def addAll(items: Vector[(DxName, LinkedVar)]): CallEnv = {
       copy(env = env ++ items)
     }
 
-    def contains(key: String): Boolean = env.contains(key)
+    def contains(key: DxName): Boolean = env.contains(key)
 
-    def keys: Set[String] = env.keySet
+    def keys: Set[DxName] = env.keySet
 
-    def get(key: String): Option[LinkedVar] = env.get(key)
+    def get(key: DxName): Option[LinkedVar] = env.get(key)
 
     def log(): Unit = {
       if (logger.isVerbose) {
@@ -71,7 +74,7 @@ abstract class WorkflowTranslator(wfName: String,
       }
     }
 
-    def apply(key: String): LinkedVar = {
+    def apply(key: DxName): LinkedVar = {
       env.getOrElse(key, {
         log()
         throw new Exception(s"${key} does not exist in the environment.")
@@ -86,26 +89,27 @@ abstract class WorkflowTranslator(wfName: String,
       * If the environment has a pair "p", then we want to be able to
       * to return "p" when looking for "p.left" or "p.right".
       *
-      * @param fqn fully-qualified name
+      * @param dxName fully-qualified name
       * @return
       */
-    def lookup(fqn: String): Option[(String, LinkedVar)] = {
-      env.get(fqn).map((fqn, _)).orElse {
+    def lookup(dxName: DxName): Option[(DxName, LinkedVar)] = {
+      env.get(dxName).map((dxName, _)).orElse {
         // A.B.C --> A.B
+        val fqn = dxName.decoded
         fqn.lastIndexOf(delim) match {
-          case pos if pos >= 0 => lookup(fqn.take(pos))
+          case pos if pos >= 0 => lookup(createDxName(fqn.take(pos)))
           case _               => None
         }
       }
     }
 
-    def stageInputs: Map[String, StageInput] = {
+    def stageInputs: Map[DxName, StageInput] = {
       env.map {
         case (key, (_, stageInput)) => key -> stageInput
       }
     }
 
-    def staticValues: Map[String, (Type, Value)] = {
+    def staticValues: Map[DxName, (Type, Value)] = {
       env.collect {
         case (key, (Parameter(_, dxType, _, _), StaticInput(value))) =>
           key -> (dxType, value)
@@ -116,11 +120,13 @@ abstract class WorkflowTranslator(wfName: String,
   }
 
   protected object CallEnv {
-    def fromLinkedVars(lvars: Vector[LinkedVar], delim: String): CallEnv = {
+    def fromLinkedVars(lvars: Vector[LinkedVar],
+                       delim: String,
+                       createDxName: String => DxName): CallEnv = {
       CallEnv(lvars.map {
         case (parameter, stageInput) =>
           parameter.name -> (parameter, stageInput)
-      }.toMap, delim)
+      }.toMap, delim, createDxName)
     }
   }
 

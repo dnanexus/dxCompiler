@@ -1,6 +1,6 @@
 package dx.core.languages.cwl
 
-import dx.core.ir.{Block, BlockKind, InputKind}
+import dx.core.ir.{Block, BlockKind, DxName, InputKind}
 import dx.cwl.{
   CommandLineTool,
   CwlOptional,
@@ -11,20 +11,21 @@ import dx.cwl.{
   Parameter,
   Requirement,
   Workflow,
+  WorkflowInputParameter,
   WorkflowStep
 }
 
 import scala.collection.immutable.TreeSeqMap
 
 sealed trait CwlBlockInput {
-  val name: String
+  val name: DxName
   def source: Parameter
   val kind: InputKind.InputKind
 
   def cwlType: CwlType = source.cwlType
 }
 
-case class RequiredBlockInput(name: String, source: Parameter) extends CwlBlockInput {
+case class RequiredBlockInput(name: DxName, source: Parameter) extends CwlBlockInput {
   val kind: InputKind.InputKind = InputKind.Required
 }
 
@@ -32,13 +33,13 @@ case class RequiredBlockInput(name: String, source: Parameter) extends CwlBlockI
   * An input that may be omitted by the caller. In that case the value will
   * be null (or None).
   */
-case class OptionalBlockInput(name: String, source: Parameter) extends CwlBlockInput {
+case class OptionalBlockInput(name: DxName, source: Parameter) extends CwlBlockInput {
   val kind: InputKind.InputKind = InputKind.Optional
 }
 
 case class CwlBlock(index: Int,
-                    inputs: Map[String, CwlBlockInput],
-                    outputs: Map[String, OutputParameter],
+                    inputs: Map[DxName, CwlBlockInput],
+                    outputs: Map[DxName, OutputParameter],
                     steps: Vector[WorkflowStep],
                     inheritedRequirements: Vector[Requirement],
                     inheritedHints: Vector[Hint])
@@ -111,9 +112,9 @@ case class CwlBlock(index: Int,
     }
   }
 
-  override lazy val inputNames: Set[String] = inputs.keySet
+  override lazy val inputNames: Set[DxName] = inputs.keySet
 
-  override lazy val outputNames: Set[String] = outputs.keySet
+  override lazy val outputNames: Set[DxName] = outputs.keySet
 
   private def prettyFormatStep(step: WorkflowStep): String = {
     val parts = Vector(
@@ -176,8 +177,9 @@ object CwlBlock {
     //  they are their own step because cwltool can only execute a single workflow
     //  step in isolation
 
-    val wfInputs = wf.inputs.collect {
-      case i if i.hasName => i.name -> i
+    val wfInputs: Map[DxName, WorkflowInputParameter] = wf.inputs.collect {
+      case i if i.hasName =>
+        CwlDxName.fromRawParameterName(i.name) -> i
     }.toMap
 
     // sort steps in dependency order
@@ -190,7 +192,8 @@ object CwlBlock {
           step.inputs.forall { inp =>
             inp.sources.forall {
               case id if id.parent.isDefined => deps.contains(id.parent.get)
-              case id                        => wfInputs.contains(id.name.get)
+              case id =>
+                wfInputs.contains(CwlDxName.fromRawParameterName(id.name.get))
             }
           }
         }
@@ -211,14 +214,14 @@ object CwlBlock {
       val orderedSteps = orderSteps(wf.steps)
       orderedSteps.values.zipWithIndex.map {
         case (step, index) =>
-          val blockInputs: Map[String, CwlBlockInput] = {
-            val inputSources: Vector[Map[String, CwlBlockInput]] = step.inputs.map { inp =>
+          val blockInputs: Map[DxName, CwlBlockInput] = {
+            val inputSources: Vector[Map[DxName, CwlBlockInput]] = step.inputs.map { inp =>
               // sources of this step input - either a workflow input
               // like "file1" or a step output like "step1/file1"
               val sources = inp.sources.map { src =>
-                (src, src.frag.get)
+                (src, CwlDxName.fromRawParameterName(src.frag.get))
               }
-              val sourceParams = sources.foldLeft(Map.empty[String, Parameter]) {
+              val sourceParams = sources.foldLeft(Map.empty[DxName, Parameter]) {
                 case (accu, (_, name)) if accu.contains(name) => accu
                 case (accu, (id, name)) if id.parent.isDefined =>
                   val srcStep = orderedSteps(id.parent.get)
@@ -248,11 +251,11 @@ object CwlBlock {
               }
               val hasDefault = inp.default.isDefined
               sourceParams.map {
-                case (name, param) =>
+                case (dxName, param) =>
                   if (hasDefault || CwlOptional.isOptional(param.cwlType)) {
-                    name -> OptionalBlockInput(name, param)
+                    dxName -> OptionalBlockInput(dxName, param)
                   } else {
-                    name -> RequiredBlockInput(name, param)
+                    dxName -> RequiredBlockInput(dxName, param)
                   }
               }
             }
@@ -274,12 +277,20 @@ object CwlBlock {
           val procOutputs = step.run.outputs.collect {
             case o if o.hasName => o.name -> o
           }.toMap
-          val blockOutputs = step.outputs.foldLeft(Map.empty[String, OutputParameter]) {
-            case (accu, out) if procOutputs.contains(out.name) && !accu.contains(out.name) =>
-              accu + (s"${step.name}/${out.name}" -> procOutputs(out.name))
-            case (_, out) =>
-              throw new Exception(s"invalid or duplicate output parameter name ${out.name}")
-          }
+          val blockOutputs = step.outputs
+            .map {
+              case out if procOutputs.contains(out.name) =>
+                val dxName = CwlDxName.fromRawParameterName(out.name, namespace = Some(step.name))
+                dxName -> out
+              case out =>
+                throw new Exception(s"invalid output parameter name ${out.name}")
+            }
+            .foldLeft(Map.empty[DxName, OutputParameter]) {
+              case (accu, (dxName, out)) if !accu.contains(dxName) =>
+                accu + (dxName -> procOutputs(out.name))
+              case (_, (_, out)) =>
+                throw new Exception(s"duplicate output parameter name ${out.name}")
+            }
           CwlBlock(index,
                    blockInputs,
                    blockOutputs,

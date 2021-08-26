@@ -5,9 +5,9 @@ import dx.core.Constants
 import dx.cwl._
 import dx.cwl.Document.Document
 import dx.core.io.StreamFiles
-import dx.core.ir.{Parameter, Type, Value}
+import dx.core.ir.{DxName, Type, Value}
 import dx.core.languages.Language
-import dx.core.languages.cwl.{CwlUtils, DxHintSchema, RequirementEvaluator, Target}
+import dx.core.languages.cwl.{CwlDxName, CwlUtils, DxHintSchema, RequirementEvaluator, Target}
 import dx.executor.{JobMeta, TaskExecutor}
 import dx.util.protocols.{DxFileSource, DxFolderSource}
 import dx.util.{DockerUtils, FileUtils, JsUtils, TraceLevel}
@@ -90,23 +90,23 @@ case class CwlTaskExecutor(tool: Process,
 
   override def executorName: String = "dxExecutorCwl"
 
-  private lazy val inputParams: Map[String, InputParameter] = {
+  private lazy val inputParams: Map[DxName, InputParameter] = {
     tool.inputs.collect {
       case param if param.id.forall(_.name.isDefined) =>
-        param.id.flatMap(_.name).get -> param
+        CwlDxName.fromRawParameterName(param.id.flatMap(_.name).get) -> param
     }.toMap
   }
 
   private lazy val runtime: Runtime = CwlUtils.createRuntime(workerPaths)
 
-  private lazy val (cwlInputs: Map[String, (CwlType, CwlValue)], target: Option[String]) = {
+  private lazy val (cwlInputs: Map[DxName, (CwlType, CwlValue)], target: Option[String]) = {
     // CWL parameters can have '.' in their name
     val (irInputs, target) =
-      jobMeta.primaryInputs.foldLeft(Map.empty[String, Value], Option.empty[String]) {
+      jobMeta.primaryInputs.foldLeft(Map.empty[DxName, Value], Option.empty[String]) {
         case ((accu, None), (Target, Value.VString(targetName))) =>
           (accu, Some(targetName))
-        case ((accu, target), (name, value)) =>
-          (accu + (Parameter.decodeName(name) -> value), target)
+        case ((accu, target), (dxName, value)) =>
+          (accu + (dxName -> value), target)
       }
     val missingTypes = irInputs.keySet.diff(inputParams.keySet)
     if (missingTypes.nonEmpty) {
@@ -114,13 +114,15 @@ case class CwlTaskExecutor(tool: Process,
     }
     // convert IR to CWL values; discard auxiliary fields
     val evaluator = Evaluator.create(tool.requirements, tool.hints)
-    val cwlInputs = inputParams.foldLeft(Map.empty[String, (CwlType, CwlValue)]) {
+    val cwlInputs = inputParams.foldLeft(Map.empty[DxName, (CwlType, CwlValue)]) {
       case (env, (name, param)) =>
         val (cwlType: CwlType, cwlValue: CwlValue) = irInputs.get(name) match {
           case Some(irValue) =>
-            CwlUtils.fromIRValue(irValue, param.cwlType, name, isInput = true)
+            CwlUtils.fromIRValue(irValue, param.cwlType, name.decoded, isInput = true)
           case None if param.default.isDefined =>
-            val ctx = CwlUtils.createEvaluatorContext(runtime, env)
+            val ctx = CwlUtils.createEvaluatorContext(runtime, env.map {
+              case (dxName, tv) => dxName.decoded -> tv
+            })
             evaluator.evaluate(param.default.get, param.cwlType, ctx)
           case None if CwlOptional.isOptional(param.cwlType) =>
             (param.cwlType, NullValue)
@@ -131,24 +133,32 @@ case class CwlTaskExecutor(tool: Process,
     }
     if (logger.isVerbose) {
       val inputStr = tool.inputs
-        .flatMap {
-          case param if param.id.forall(_.name.forall(cwlInputs.contains)) =>
-            val name = param.id.flatMap(_.name).get
-            val (inputType, inputValue) = cwlInputs(name)
-            Some(
-                s"${name}: paramType=${param.cwlType}; inputType=${inputType}; inputValue=${inputValue}"
-            )
-          case other =>
-            logger.trace(s"no input for parameter ${other}")
-            None
+        .flatMap { param =>
+          param.id.flatMap(_.name) match {
+            case Some(name) =>
+              val dxName = CwlDxName.fromRawParameterName(name)
+              cwlInputs.get(dxName) match {
+                case Some((inputType, inputValue)) =>
+                  Some(
+                      s"${name}: paramType=${param.cwlType}; inputType=${inputType}; inputValue=${inputValue}"
+                  )
+                case _ =>
+                  logger.trace(s"no input for parameter ${param}")
+                  None
+              }
+            case _ =>
+              logger.trace(s"no name for parameter ${param}")
+              None
+          }
         }
+        .flatten
         .mkString("\n  ")
       logger.traceLimited(s"inputs:\n  ${inputStr}")
     }
     (cwlInputs, target)
   }
 
-  override protected def getInputsWithDefaults: Map[String, (Type, Value)] = {
+  override protected def getInputsWithDefaults: Map[DxName, (Type, Value)] = {
     CwlUtils.toIR(cwlInputs)
   }
 
@@ -161,13 +171,15 @@ case class CwlTaskExecutor(tool: Process,
   }
 
   override protected def getInstanceTypeRequest(
-      inputs: Map[String, (Type, Value)]
+      inputs: Map[DxName, (Type, Value)]
   ): InstanceTypeRequest = {
     logger.traceLimited("calcInstanceType", minLevel = TraceLevel.VVerbose)
     val cwlEvaluator = Evaluator.create(tool.requirements, tool.hints)
     val cwlInputs = CwlUtils.fromIR(inputs, typeAliases, isInput = true)
     val ctx = CwlUtils.createEvaluatorContext(runtime)
-    val env = cwlEvaluator.evaluateMap(cwlInputs, ctx)
+    val env = cwlEvaluator.evaluateMap(cwlInputs.map {
+      case (dxName, tv) => dxName.decoded -> tv
+    }, ctx)
     val reqEvaluator = RequirementEvaluator(
         tool.requirements,
         tool.hints,
@@ -179,7 +191,7 @@ case class CwlTaskExecutor(tool: Process,
     reqEvaluator.parseInstanceType
   }
 
-  override protected def streamFileForInput(parameterName: String): Boolean = {
+  override protected def streamFileForInput(parameterName: DxName): Boolean = {
     inputParams(parameterName).streamable
   }
 
@@ -269,9 +281,9 @@ case class CwlTaskExecutor(tool: Process,
   }
 
   override protected def writeCommandScript(
-      localizedInputs: Map[String, (Type, Value)],
+      localizedInputs: Map[DxName, (Type, Value)],
       localizedDependencies: Option[Map[String, (Type, Value)]]
-  ): (Map[String, (Type, Value)], Boolean, Option[Set[Int]]) = {
+  ): (Map[DxName, (Type, Value)], Boolean, Option[Set[Int]]) = {
     val inputs = CwlUtils.fromIR(localizedInputs, typeAliases, isInput = true)
     val metaDir = workerPaths.getMetaDir(ensureExists = true)
     // update the source code if necessary
@@ -350,10 +362,9 @@ case class CwlTaskExecutor(tool: Process,
     (localizedInputs, true, Some(Set(0)))
   }
 
-  private lazy val outputParams: Map[String, OutputParameter] = {
-    val outputParams = tool.outputs.map {
-      case param if param.id.forall(_.name.isDefined) =>
-        param.id.flatMap(_.name).get -> param
+  private lazy val outputParams: Map[DxName, OutputParameter] = {
+    val outputParams: Map[DxName, OutputParameter] = tool.outputs.flatMap { param =>
+      param.id.flatMap(_.name).map(CwlDxName.fromRawParameterName(_) -> param)
     }.toMap
     if (logger.isVerbose) {
       logger.traceLimited(s"outputParams=${outputParams}")
@@ -362,22 +373,29 @@ case class CwlTaskExecutor(tool: Process,
   }
 
   override protected def evaluateOutputs(
-      localizedInputs: Map[String, (Type, Value)]
-  ): (Map[String, (Type, Value)], Map[String, (Set[String], Map[String, String])]) = {
+      localizedInputs: Map[DxName, (Type, Value)]
+  ): (Map[DxName, (Type, Value)], Map[DxName, (Set[String], Map[String, String])]) = {
     // the outputs were written to stdout
     val stdoutFile = workerPaths.getStdoutFile()
     val localizedOutputs = if (Files.exists(stdoutFile)) {
-      val allOutputs = JsUtils.jsFromFile(stdoutFile) match {
-        case JsObject(outputs) => outputs
-        case JsNull            => Map.empty[String, JsValue]
-        case other             => throw new Exception(s"unexpected cwltool outputs ${other}")
+      val allOutputs: Map[DxName, JsValue] = JsUtils.jsFromFile(stdoutFile) match {
+        case JsObject(outputs) =>
+          outputs.map {
+            case (name, jsv) => CwlDxName.fromRawParameterName(name) -> jsv
+          }
+        case JsNull => Map.empty[DxName, JsValue]
+        case other  => throw new Exception(s"unexpected cwltool outputs ${other}")
       }
       if (logger.isVerbose) {
-        trace(s"cwltool outputs:\n${JsObject(allOutputs).prettyPrint}")
+        trace(s"cwltool outputs:\n${JsObject(allOutputs.map {
+          case (dxName, jsv) => dxName.decoded -> jsv
+        }).prettyPrint}")
       }
       val cwlOutputs = outputParams.map {
-        case (name, param: WorkflowOutputParameter) if param.sources.nonEmpty =>
-          val sources = param.sources.map(id => allOutputs.getOrElse(id.name.get, JsNull))
+        case (dxName, param: WorkflowOutputParameter) if param.sources.nonEmpty =>
+          val sources = param.sources.map(id =>
+            allOutputs.getOrElse(CwlDxName.fromRawParameterName(id.name.get), JsNull)
+          )
           val isArray = param.cwlType match {
             case _: CwlArray => true
             case CwlMulti(types) =>
@@ -439,7 +457,7 @@ case class CwlTaskExecutor(tool: Process,
               JsNull
             }
           }
-          name -> CwlValue.deserialize(pickedAndMerged, param.cwlType, typeAliases)
+          dxName -> CwlValue.deserialize(pickedAndMerged, param.cwlType, typeAliases)
         case (name, param) if allOutputs.contains(name) =>
           name -> CwlValue.deserialize(allOutputs(name), param.cwlType, typeAliases)
         case (name, param) if CwlOptional.isOptional(param.cwlType) =>
@@ -449,12 +467,12 @@ case class CwlTaskExecutor(tool: Process,
       }
       CwlUtils.toIR(cwlOutputs)
     } else {
-      Map.empty[String, (Type, Value)]
+      Map.empty[DxName, (Type, Value)]
     }
     (localizedOutputs, Map.empty)
   }
 
-  override protected def outputTypes: Map[String, Type] = {
+  override protected def outputTypes: Map[DxName, Type] = {
     outputParams.map {
       case (name, param) => name -> CwlUtils.toIRType(param.cwlType)
     }

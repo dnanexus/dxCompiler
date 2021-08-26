@@ -5,9 +5,9 @@ import dx.core.Constants
 import dx.core.ir.Value._
 import dx.core.ir.{
   Callable,
+  DxName,
   Parameter,
   ParameterAttribute,
-  ParameterLink,
   ParameterLinkSerializer,
   Type,
   TypeSerde,
@@ -203,41 +203,42 @@ class ExecutableCompiler(extras: Option[Extras],
     * @return the DNAnexus inputDesc
     */
   protected def inputParameterToNative(parameter: Parameter): Vector[JsObject] = {
-    val name = parameter.dxName
-    val defaultValues: Map[String, JsValue] = parameter.defaultValue match {
+    val defaultValues: Map[DxName, JsValue] = parameter.defaultValue match {
       case Some(value) =>
-        parameterLinkSerializer.createFields(name, parameter.dxType, value).toMap
+        parameterLinkSerializer.createFields(parameter.name, parameter.dxType, value).toMap
       case None => Map.empty
     }
 
-    def defaultValueToNative(name: String): Map[String, JsValue] = {
+    def defaultValueToNative(name: DxName): Map[String, JsValue] = {
       defaultValues.get(name) match {
         case Some(jsv) => Map(DxIOSpec.Default -> jsv)
         case None      => Map.empty
       }
     }
 
-    val excludeAttributeNames: Set[String] = if (defaultValues.contains(name)) {
+    val excludeAttributeNames: Set[String] = if (defaultValues.contains(parameter.name)) {
       Set(DxIOSpec.Default)
     } else {
       Set.empty
     }
-    val attributes = defaultValueToNative(name) ++
+    val attributes = defaultValueToNative(parameter.name) ++
       parameterAttributesToNative(parameter.attributes, excludeAttributeNames)
     val (nativeType, optional) = TypeSerde.toNative(parameter.dxType, !complexPathValues)
     // TODO: I don't think the parameter should always be set to optional if it has a default
     val paramSpec = JsObject(
-        Map(DxIOSpec.Name -> JsString(name), DxIOSpec.Class -> JsString(nativeType)) ++ attributes ++
-          optionalToNative(optional || attributes.contains(DxIOSpec.Default))
+        Map(DxIOSpec.Name -> JsString(parameter.name.encoded),
+            DxIOSpec.Class -> JsString(nativeType))
+          ++ attributes
+          ++ optionalToNative(optional || attributes.contains(DxIOSpec.Default))
     )
     if (nativeType == "hash") {
       // A JSON structure passed as a hash, and a vector of platform files
-      val filesName = s"${name}${ParameterLink.FlatFilesSuffix}"
+      val filesName = parameter.name.withSuffix(Constants.FlatFilesSuffix)
       Vector(
           paramSpec,
           JsObject(
               Map(
-                  DxIOSpec.Name -> JsString(filesName),
+                  DxIOSpec.Name -> JsString(filesName.encoded),
                   DxIOSpec.Class -> JsString("array:file"),
                   DxIOSpec.Optional -> JsTrue
               )
@@ -258,23 +259,23 @@ class ExecutableCompiler(extras: Option[Extras],
     * @return the DNAnexus outputDesc
     */
   protected def outputParameterToNative(parameter: Parameter): Vector[JsObject] = {
-    val name = parameter.dxName
     val attributes =
       parameterAttributesToNative(parameter.attributes, InputOnlyKeys)
     val (nativeType, optional) = TypeSerde.toNative(parameter.dxType, !complexPathValues)
     val paramSpec = JsObject(
-        Map(DxIOSpec.Name -> JsString(name), DxIOSpec.Class -> JsString(nativeType))
+        Map(DxIOSpec.Name -> JsString(parameter.name.encoded),
+            DxIOSpec.Class -> JsString(nativeType))
           ++ optionalToNative(optional || parameter.defaultValue.isDefined)
           ++ attributes
     )
     if (nativeType == "hash") {
       // A JSON structure passed as a hash, and a vector of platform files
-      val filesName = s"${name}${ParameterLink.FlatFilesSuffix}"
+      val filesName = parameter.name.withSuffix(Constants.FlatFilesSuffix)
       Vector(
           paramSpec,
           JsObject(
               Map(
-                  DxIOSpec.Name -> JsString(filesName),
+                  DxIOSpec.Name -> JsString(filesName.encoded),
                   DxIOSpec.Class -> JsString("array:file"),
                   DxIOSpec.Optional -> JsTrue
               )
