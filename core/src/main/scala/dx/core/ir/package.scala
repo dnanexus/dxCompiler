@@ -13,17 +13,13 @@ object DxName {
   val disallowedCharsRegex: Regex = "([^a-zA-Z0-9_])".r
 
   def compareStringVectors(a: Vector[String], b: Vector[String]): Int = {
-    a.size.compare(b.size) match {
-      case 0 =>
-        a.zip(b)
-          .iterator
-          .map { case (i, j) => i.compare(j) }
-          .collectFirst {
-            case x if x != 0 => x
-          }
-          .getOrElse(0)
-      case cmp => cmp
-    }
+    a.zip(b)
+      .iterator
+      .map { case (i, j) => i.compare(j) }
+      .collectFirst {
+        case x if x != 0 => x
+      }
+      .getOrElse(a.size.compare(b.size))
   }
 }
 
@@ -105,7 +101,7 @@ abstract class DxName(private var encodedParts: Option[Vector[String]],
       (suffix, that.suffix) match {
         case (None, None)         => 0
         case (Some(s1), Some(s2)) => s1.compare(s2)
-        case (_, Some(_))         => 1
+        case (Some(_), _)         => 1
         case _                    => -1
       }
     }
@@ -230,9 +226,17 @@ object DxNameFactory {
   // standard suffixes to parse
   val suffixes = Set(Constants.ComplexValueKey, Constants.FlatFilesSuffix)
 
+  // the default Regex.split method does not return parts with empty strings -
+  // we need those for validation
+  implicit class RegexExtensions(regex: Regex) {
+    def split(toSplit: CharSequence, limit: Int): Array[String] = {
+      regex.pattern.split(toSplit, limit)
+    }
+  }
+
   def split(name: String, sepRegex: Option[Regex] = None): (Vector[String], Option[String]) = {
     def splitParts(s: String): Vector[String] = {
-      sepRegex.map(_.split(s).toVector).getOrElse(Vector(s))
+      sepRegex.map(_.split(s, Int.MaxValue).toVector).getOrElse(Vector(s))
     }
     suffixes
       .collectFirst {
@@ -267,6 +271,14 @@ class SimpleDxName(parts: Vector[String],
                    suffix: Option[String] = None,
                    override val namespaceDelim: Option[String] = None)
     extends DxName(Some(parts), Some(parts), suffix) {
+
+  override def equals(obj: Any): Boolean = {
+    obj match {
+      case that: SimpleDxName => compare(that) == 0
+      case _                  => false
+    }
+  }
+
   override protected def create(encodedParts: Option[Vector[String]],
                                 decodedParts: Option[Vector[String]],
                                 suffix: Option[String]): DxName = {

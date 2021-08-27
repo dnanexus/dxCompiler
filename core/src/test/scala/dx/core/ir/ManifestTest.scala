@@ -107,6 +107,7 @@ class ManifestTest extends AnyFlatSpec with Matchers {
       |      "type": "Person"
       |    }
       |  },
+      |  "encoded": false,
       |  "id": "test",
       |  "types": {
       |    "person": "Person",

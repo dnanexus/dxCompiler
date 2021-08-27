@@ -63,31 +63,31 @@ class DxNameTest extends AnyFlatSpec with Matchers {
   }
 
   it should "not encode WDL names with illegal characters" in {
-    assertThrows[Exception] {
+    assertThrows[Throwable] {
       WdlDxName.fromDecodedName("  ")
     }
-    assertThrows[Exception] {
+    assertThrows[Throwable] {
       WdlDxName.fromDecodedName("a b")
     }
-    assertThrows[Exception] {
+    assertThrows[Throwable] {
       WdlDxName.fromDecodedName("foo.")
     }
-    assertThrows[Exception] {
+    assertThrows[Throwable] {
       WdlDxName.fromDecodedName("a_._b")
     }
-    assertThrows[Exception] {
+    assertThrows[Throwable] {
       WdlDxName.fromDecodedName("a-b.c")
     }
   }
 
   it should "not allow encoded WDL names with illegal characters" in {
-    assertThrows[Exception] {
+    assertThrows[Throwable] {
       WdlDxName.fromEncodedName("  ")
     }
-    assertThrows[Exception] {
+    assertThrows[Throwable] {
       WdlDxName.fromEncodedName("a.")
     }
-    assertThrows[Exception] {
+    assertThrows[Throwable] {
       WdlDxName.fromEncodedName("a.b")
     }
   }
@@ -112,22 +112,22 @@ class DxNameTest extends AnyFlatSpec with Matchers {
     m(dxName2) shouldBe "x"
   }
 
-  it should "correctly encode and decode names" in {
+  it should "encode and decode CWL names" in {
     CwlDxName.fromDecodedName("a/b/c").encoded shouldBe "a___b___c"
-    CwlDxName.fromEncodedName("a___b___c") shouldBe "a/b/c"
+    CwlDxName.fromEncodedName("a___b___c").decoded shouldBe "a/b/c"
 
     CwlDxName.fromDecodedName("_foo/bar_").encoded shouldBe "_foo___bar_"
-    CwlDxName.fromEncodedName("_foo___bar_") shouldBe "_foo/bar_"
+    CwlDxName.fromEncodedName("_foo___bar_").decoded shouldBe "_foo/bar_"
 
     CwlDxName.fromDecodedName("a-9/c.d").encoded shouldBe "a__45__9___c__46__d"
-    CwlDxName.fromEncodedName("a__45__9___c__46__d") shouldBe "a-9/c.d"
+    CwlDxName.fromEncodedName("a__45__9___c__46__d").decoded shouldBe "a-9/c.d"
 
-    CwlDxName.fromDecodedName("foo/bar___") shouldBe "foo___bar___"
-    CwlDxName.fromEncodedName("foo___bar___") shouldBe "foo/bar___"
+    CwlDxName.fromDecodedName("foo/bar___").encoded shouldBe "foo___bar___"
+    CwlDxName.fromEncodedName("foo___bar___").decoded shouldBe "foo/bar___"
   }
 
   it should "encode a valid CWL name" in {
-    val dxName = WdlDxName.fromDecodedName("a-b/c.d___dxfiles")
+    val dxName = CwlDxName.fromDecodedName("a-b/c.d___dxfiles")
     dxName.numParts shouldBe 2
     dxName.getDecodedParts shouldBe Vector("a-b", "c.d")
     dxName.getEncodedParts shouldBe Vector("a__45__b", "c__46__d")
@@ -135,10 +135,10 @@ class DxNameTest extends AnyFlatSpec with Matchers {
     dxName.encoded shouldBe "a__45__b___c__46__d___dxfiles"
     dxName.suffix shouldBe Some("___dxfiles")
 
-    val dxName2 = WdlDxName.fromDecodedName("c.d___dxfiles")
+    val dxName2 = CwlDxName.fromDecodedName("c.d___dxfiles")
     dxName.endsWith(dxName2) shouldBe true
     dxName2.pushDecodedNamespace("a-b") shouldBe dxName
-    dxName.popDecodedIdentifier() shouldBe (WdlDxName.fromDecodedName("a-b"), "c.d")
+    dxName.popDecodedIdentifier() shouldBe (CwlDxName.fromDecodedName("a-b"), "c.d")
 
     val dxName3 = dxName.dropSuffix
     dxName3.suffix shouldBe None
@@ -149,7 +149,7 @@ class DxNameTest extends AnyFlatSpec with Matchers {
   }
 
   it should "decode a valid CWL name" in {
-    val dxName = WdlDxName.fromEncodedName("a__45__b___c__46__d___dxfiles")
+    val dxName = CwlDxName.fromEncodedName("a__45__b___c__46__d___dxfiles")
     dxName.numParts shouldBe 2
     dxName.getDecodedParts shouldBe Vector("a-b", "c.d")
     dxName.getEncodedParts shouldBe Vector("a__45__b", "c__46__d")
@@ -157,10 +157,10 @@ class DxNameTest extends AnyFlatSpec with Matchers {
     dxName.encoded shouldBe "a__45__b___c__46__d___dxfiles"
     dxName.suffix shouldBe Some("___dxfiles")
 
-    val dxName2 = WdlDxName.fromEncodedName("c__46__d___dxfiles")
+    val dxName2 = CwlDxName.fromEncodedName("c__46__d___dxfiles")
     dxName.endsWith(dxName2) shouldBe true
     dxName2.pushDecodedNamespace("a-b") shouldBe dxName
-    dxName.popDecodedIdentifier() shouldBe (WdlDxName.fromEncodedName("a__45__b"), "c.d")
+    dxName.popDecodedIdentifier() shouldBe (CwlDxName.fromEncodedName("a__45__b"), "c.d")
 
     val dxName3 = dxName.dropSuffix
     dxName3.suffix shouldBe None
@@ -171,31 +171,31 @@ class DxNameTest extends AnyFlatSpec with Matchers {
   }
 
   it should "not encode CWL names with illegal characters" in {
-    assertThrows[Exception] {
+    assertThrows[Throwable] {
       CwlDxName.fromDecodedName("  ")
     }
-    assertThrows[Exception] {
+    assertThrows[Throwable] {
       CwlDxName.fromDecodedName("a__b")
     }
-    assertThrows[Exception] {
+    assertThrows[Throwable] {
       CwlDxName.fromDecodedName("a b")
     }
-    assertThrows[Exception] {
+    assertThrows[Throwable] {
       CwlDxName.fromDecodedName("foo/")
     }
-    assertThrows[Exception] {
+    assertThrows[Throwable] {
       CwlDxName.fromDecodedName("a_/_b")
     }
   }
 
   it should "not allow encoded CWL names with illegal characters" in {
-    assertThrows[Exception] {
+    assertThrows[Throwable] {
       CwlDxName.fromEncodedName("  ")
     }
-    assertThrows[Exception] {
+    assertThrows[Throwable] {
       CwlDxName.fromEncodedName("a/")
     }
-    assertThrows[Exception] {
+    assertThrows[Throwable] {
       CwlDxName.fromEncodedName("a/b")
     }
   }

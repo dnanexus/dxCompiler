@@ -98,9 +98,7 @@ class CwlDxName(encodedParts: Option[Vector[String]] = None,
       case matches =>
         val (starts, ends, delims) = matches.map { m =>
           val newDelim = m.group(1) match {
-            case CwlDxName.NamespaceDelim => DxName.NamespaceDelimEncoded
-            case c if c.length() == 1 =>
-              s"__${c.charAt(0).toInt}__"
+            case c if c.length() == 1 => s"__${c.charAt(0).toInt}__"
             case other =>
               throw new Exception(s"unexpected multi-character delimiter ${other}")
           }
@@ -110,20 +108,15 @@ class CwlDxName(encodedParts: Option[Vector[String]] = None,
     }
   }
 
-  override protected def decodePart(prefix: String): String = {
-    CwlDxName.decodeSequencesRegex.findAllMatchIn(prefix).toVector match {
-      case Vector() => prefix
+  override protected def decodePart(part: String): String = {
+    CwlDxName.decodeSequencesRegex.findAllMatchIn(part).toVector match {
+      case Vector() => part
       case matches =>
         val (starts, ends, delims) = matches.map { m =>
-          val newDelim = (m.group(1), m.group(2)) match {
-            case (DxName.NamespaceDelimEncoded, null) => CwlDxName.NamespaceDelim
-            case (null, ord)                          => ord.toInt.toChar.toString
-            case other =>
-              throw new Exception(s"unexpected delimiter ${other}")
-          }
+          val newDelim = m.group(1).toInt.toChar.toString
           (m.end, m.start, newDelim)
         }.unzip3
-        makeNewPart(prefix, starts, ends, delims)
+        makeNewPart(part, starts, ends, delims)
     }
   }
 }
