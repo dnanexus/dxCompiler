@@ -77,6 +77,7 @@ object WorkflowExecutor {
 abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta,
                                                separateOutputs: Boolean,
                                                waitOnUpload: Boolean = false) {
+  private val dxNameFactory = jobMeta.dxNameFactory
   private val dxApi = jobMeta.dxApi
   private val logger = jobMeta.logger
   private val seqNumIter = Iterator.from(1)
@@ -88,16 +89,14 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta,
   protected def typeAliases: Map[String, TSchema]
 
   protected lazy val execLinkInfo: Map[String, ExecutableLink] =
-    jobMeta.getExecutableDetail("execLinkInfo") match {
+    jobMeta.getExecutableDetail(Constants.ExecLinkInfo) match {
       case Some(JsObject(fields)) =>
         fields.map {
           case (key, link) =>
-            key -> ExecutableLink.deserialize(link, typeAliases, decodedDxName, jobMeta.dxApi)
+            key -> jobMeta.executableLinkDeserializer(link, typeAliases)
         }
-      case None =>
-        Map.empty
-      case other =>
-        throw new Exception(s"Bad value ${other}")
+      case None  => Map.empty
+      case other => throw new Exception(s"invalid ${Constants.ExecLinkInfo} value: ${other}")
     }
 
   protected def getExecutableLink(name: String): ExecutableLink = {
@@ -107,15 +106,11 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta,
     )
   }
 
-  protected def encodedDxName(encodedName: String): DxName
-
-  protected def decodedDxName(decodedName: String): DxName
-
   protected lazy val dxNameToType: Map[DxName, Type] =
     jobMeta.getExecutableDetail(Constants.WfFragmentInputTypes) match {
       case Some(jsv) =>
         TypeSerde.deserializeSpec(jsv, typeAliases).map {
-          case (encodedName, t) => decodedDxName(encodedName) -> t
+          case (encodedName, t) => dxNameFactory.fromDecodedName(encodedName) -> t
         }
       case other => throw new Exception(s"Bad value ${other}")
     }
@@ -394,7 +389,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta,
         desc.getFields("executableName", "details", "output") match {
           case Seq(JsString(execName), JsObject(details), JsObject(jsOutput)) =>
             val output: Map[DxName, JsValue] = jsOutput.map {
-              case (name, jsv) => encodedDxName(name) -> jsv
+              case (name, jsv) => dxNameFactory.fromEncodedName(name) -> jsv
             }
             (execName, details, output)
         }
@@ -499,7 +494,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta,
                   val manifestJson = new String(dxApi.downloadBytes(dxFile)).parseJson
                   val manifest = Manifest.parse(manifestJson)
                   (manifest.id, manifest.jsValues.map {
-                    case (name, jsv) => decodedDxName(name) -> jsv
+                    case (name, jsv) => dxNameFactory.fromDecodedName(name) -> jsv
                   })
                 }
                 .getOrElse((None, Map.empty[DxName, JsValue]))
@@ -535,7 +530,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta,
         irType: Type,
         execName: Option[String]
     ): Value = {
-      val encodedNames = Vector(Some(name), execName.map(name.addDecodedNamespace)).flatten
+      val encodedNames = Vector(Some(name), execName.map(name.pushDecodedNamespace)).flatten
       VArray(childOutputs.flatMap { outputs =>
         encodedNames
           .collectFirst {

@@ -5,51 +5,97 @@ import dx.core.Constants
 import dx.core.ir.RunSpec.{ContainerImage, InstanceType}
 import dx.util.Enum
 
-trait ParameterAttribute
+import scala.util.matching.Regex
 
 object DxName {
-  val Dot = "."
-  val DotEncoded = "___"
-  // standard suffixes to parse
-  val suffixes = Set(Constants.ComplexValueKey, Constants.FlatFilesSuffix)
+  val NamespaceDelimEncoded = "___"
+  // characters that need to be encoded
+  val disallowedCharsRegex: Regex = "([^a-zA-Z0-9_])".r
 
-  def split(name: String): (String, Option[String]) = {
-    DxName.suffixes
-      .collectFirst {
-        case suffix if name.endsWith(suffix) => (name.dropRight(suffix.length), Some(suffix))
-      }
-      .getOrElse((name, None))
+  def compareStringVectors(a: Vector[String], b: Vector[String]): Int = {
+    a.size.compare(b.size) match {
+      case 0 =>
+        a.zip(b)
+          .iterator
+          .map { case (i, j) => i.compare(j) }
+          .collectFirst {
+            case x if x != 0 => x
+          }
+          .getOrElse(0)
+      case cmp => cmp
+    }
   }
 }
 
 /**
   * A name that must conform to the character restrictions for DNAnexus input
-  * and output parameter names. May be created from an encoded prefix and/or
-  * a decoded prefix, and an optional suffix. The encoded prefix is the
-  * DNAnexus-compatible version of the name, and the decoded prefix is the
-  * native version of the name. The suffix is added to the end of either prefix
-  * without any encoding.
-  * @example
-  * decodedPrefix = "foo.bar_baz"
-  * encodedPrefix = "foo\_\_\_bar_baz"
-  * suffix = "\_\_\_dxfiles"
-  * encoded = "foo\_\_\_bar_baz\_\_\_dxfiles"
-  * decoded = foo.bar_baz\_\_\_dxfiles
+  * and output parameter names (`[a-zA-Z0-9_]`).
   *
-  * TODO: write tests for equality and hash lookup
+  * Provides methods for converting the name to its encoded or decoded
+  * representation, where "encoded" means that it only contains allowed characters
+  * and "decoded" means the language-native form of the name.
+  *
+  * A name consists of zero or more namespaces, followed by an identifier, followed
+  * by an optional suffix. Name components are delimited by a language-specific
+  * delimiter (`namespaceDelim`). When the name is encoded, the namespace
+  * delimiter is encoded as `"___"`, and other disallowed characters are encoded in
+  * a language-specific manner. The suffix is added as-is after the encoding/decoding
+  * of the prefix, so it must not contain any disallowed characters.  We also disallow
+  * parts other than the first that begin with an '_' or parts other than the last that
+  * end with an underscore, e.g. "foo_._bar".
+  *
+  * @example {{{
+  *   namespaces: ["foo", "bar"]
+  *   identifier: "baz_1"
+  *   suffix: "___dxfiles"
+  *   encoded: "foo___bar___baz_1___dxfiles"
+  *   WDL decoded: "foo.bar.baz_1___dxfiles"
+  *   CWL decoded: "foo/bar/baz_1___dxfiles"
+  * }}}
   */
-abstract class DxName(private var encodedPrefix: Option[String],
-                      private var decodedPrefix: Option[String],
+abstract class DxName(private var encodedParts: Option[Vector[String]],
+                      private var decodedParts: Option[Vector[String]],
                       val suffix: Option[String])
     extends Ordered[DxName] {
-  assert(encodedPrefix.exists(_.trim().nonEmpty) || decodedPrefix.exists(_.trim().nonEmpty),
-         "at least one of encodedPrefix, decodedPrefix is required")
+  assert(
+      encodedParts.isEmpty || decodedParts.isEmpty || encodedParts.get.size == decodedParts.get.size,
+      s"encoded and decoded parts are not the same size: ${encodedParts.get.size} != ${decodedParts.get.size}"
+  )
+  encodedParts.foreach { e =>
+    assert(e.nonEmpty, s"there must be at least one encoded part")
+    e.foreach { part =>
+      assert(part.trim.nonEmpty, s"one or more encoded parts is empty")
+      DxName.disallowedCharsRegex.findFirstIn(part).map { c =>
+        throw new Exception(s"encoded part ${part} contains illegal character '${c}'")
+      }
+    }
+  }
+  protected def illegalDecodedSequencesRegex: Option[Regex] = None
+  decodedParts.foreach { d =>
+    assert(d.nonEmpty, s"there must be at least one decoded part")
+    d.zipWithIndex.foreach {
+      case (part, idx) =>
+        assert(part.trim.nonEmpty, s"one or more decoded parts is empty")
+        assert(idx == 0 || !part.startsWith("_"), "only the first part may start with '_'")
+        assert(
+            !part.endsWith("_") || (idx == d.size - 1 && !suffix.exists(_.startsWith("_"))),
+            "only the last part may end with '_', and only if the suffix does not start with '_'"
+        )
+        illegalDecodedSequencesRegex.foreach { r =>
+          r.findFirstIn(part).map { seq =>
+            throw new Exception(s"decoded part ${part} contains illegal sequences ${seq}")
+          }
+        }
+    }
+  }
+
+  protected def namespaceDelim: Option[String]
 
   override def compare(that: DxName): Int = {
-    val cmp = if (encodedPrefix.isDefined && that.encodedPrefix.isDefined) {
-      encodedPrefix.get.compare(that.encodedPrefix.get)
-    } else if (decodedPrefix.isDefined && that.decodedPrefix.isDefined) {
-      decodedPrefix.get.compare(that.decodedPrefix.get)
+    val cmp = if (encodedParts.isDefined && that.encodedParts.isDefined) {
+      DxName.compareStringVectors(encodedParts.get, that.encodedParts.get)
+    } else if (decodedParts.isDefined && that.decodedParts.isDefined) {
+      DxName.compareStringVectors(decodedParts.get, that.decodedParts.get)
     } else {
       decoded.compare(that.decoded)
     }
@@ -66,40 +112,62 @@ abstract class DxName(private var encodedPrefix: Option[String],
   }
 
   override def hashCode(): Int = {
-    decoded.hashCode
+    encoded.hashCode
   }
 
-  override def equals(obj: Any): Boolean = {
-    obj match {
-      case that: DxName => compareTo(that) == 0
-      case _            => false
-    }
+  // subclasses must override equals - comparison with
+  // another name of a different subclass must return false
+  override def equals(obj: Any): Boolean = ???
+
+  def numParts: Int = {
+    encodedParts.map(_.size).orElse(decodedParts.map(_.size)).get
   }
 
-  protected def encodePrefix(prefix: String): String
+  protected def encodePart(part: String): String = part
 
+  def getEncodedParts: Vector[String] = {
+    encodedParts
+      .getOrElse {
+        val encoded = decodedParts.get.map(encodePart)
+        encodedParts = Some(encoded)
+        encoded
+      }
+  }
+
+  /**
+    * The encoded form of this DxName.
+    */
   def encoded: String = {
-    val encoded = encodedPrefix.getOrElse {
-      val encoded = encodePrefix(decodedPrefix.get)
-      encodedPrefix = Some(encoded)
-      encoded
-    }
-    suffix.map(suf => s"${encoded}${suf}").getOrElse(encoded)
+    val prefix = getEncodedParts.mkString(DxName.NamespaceDelimEncoded)
+    suffix.map(suffix => s"${prefix}${suffix}").getOrElse(prefix)
   }
 
-  protected def decodePrefix(prefix: String): String
+  def decodePart(part: String): String = part
 
+  def getDecodedParts: Vector[String] = {
+    decodedParts
+      .getOrElse {
+        val decoded = encodedParts.get.map(decodePart)
+        decodedParts = Some(decoded)
+        decoded
+      }
+  }
+
+  /**
+    * The decoded form of this DxName.
+    */
   def decoded: String = {
-    val decoded = decodedPrefix.getOrElse {
-      val decoded = decodePrefix(encodedPrefix.get)
-      decodedPrefix = Some(decoded)
-      decoded
+    val prefix = getDecodedParts match {
+      case Vector(id) => id
+      case _ if namespaceDelim.isEmpty =>
+        throw new Exception("this name does not allow namespaces")
+      case v => v.mkString(namespaceDelim.get)
     }
-    suffix.map(suf => s"${decoded}${suf}").getOrElse(decoded)
+    suffix.map(suffix => s"${prefix}${suffix}").getOrElse(prefix)
   }
 
-  protected def create(encodedPrefix: Option[String] = None,
-                       decodedPrefix: Option[String] = None,
+  protected def create(encodedParts: Option[Vector[String]] = None,
+                       decodedParts: Option[Vector[String]] = None,
                        suffix: Option[String] = None): DxName
 
   /**
@@ -110,7 +178,7 @@ abstract class DxName(private var encodedPrefix: Option[String],
     if (suffix.isDefined) {
       throw new Exception(s"${this} already has a suffix")
     }
-    create(encodedPrefix, decodedPrefix, Some(newSuffix))
+    create(encodedParts, decodedParts, Some(newSuffix))
   }
 
   /**
@@ -121,33 +189,28 @@ abstract class DxName(private var encodedPrefix: Option[String],
     if (suffix.isEmpty) {
       throw new Exception(s"${this} does not have a suffix")
     }
-    create(encodedPrefix, decodedPrefix, None)
+    create(encodedParts, decodedParts, None)
   }
 
   def endsWith(dxName: DxName): Boolean = {
     decoded.endsWith(dxName.decoded)
   }
 
-  protected def namespaceDelim: String = DxName.Dot
-
   /**
-    * Creates a new DxName with `prefix` added to the current prefix, delimited
-    * by `delim`.
+    * Creates a new DxName with `ns` inserted as the first namespace component.
     */
-  def addDecodedNamespace(prefix: String): DxName = {
-    val newDecodedPrefix =
-      s"${prefix}${namespaceDelim}${decodedPrefix.getOrElse(decodePrefix(encodedPrefix.get))}"
-    create(decodedPrefix = Some(newDecodedPrefix), suffix = suffix)
+  def pushDecodedNamespace(ns: String): DxName = {
+    create(decodedParts = Some(Vector(ns) ++ getDecodedParts), suffix = suffix)
   }
 
-  def getDecodedNamespace(dxName: DxName): String = {
-    val fqn = decoded
-    val suffix = s"${namespaceDelim}${dxName.decoded}"
-    if (fqn.endsWith(suffix)) {
-      fqn.dropRight(fqn.length)
-    } else {
-      throw new Exception(s"${fqn} does not end with ${suffix}")
+  def popDecodedIdentifier(keepSuffix: Boolean = false): (DxName, String) = {
+    val decoded = getDecodedParts
+    if (decoded.size <= 1) {
+      throw new Exception("cannot pop identifier unless there is more than one part")
     }
+    val newName = create(decodedParts = Some(decoded.dropRight(1)),
+                         suffix = Option.when(keepSuffix)(suffix).flatten)
+    (newName, decoded.last)
   }
 
   // TODO: for now throw an exception because any usage of this might be wrong -
@@ -157,32 +220,66 @@ abstract class DxName(private var encodedPrefix: Option[String],
   }
 }
 
+trait DxNameFactory {
+  def fromEncodedName(name: String): DxName
+
+  def fromDecodedName(name: String): DxName
+}
+
+object DxNameFactory {
+  // standard suffixes to parse
+  val suffixes = Set(Constants.ComplexValueKey, Constants.FlatFilesSuffix)
+
+  def split(name: String, sepRegex: Option[Regex] = None): (Vector[String], Option[String]) = {
+    def splitParts(s: String): Vector[String] = {
+      sepRegex.map(_.split(s).toVector).getOrElse(Vector(s))
+    }
+    suffixes
+      .collectFirst {
+        case suffix if name.endsWith(suffix) =>
+          (splitParts(name.dropRight(suffix.length)), Some(suffix))
+      }
+      .getOrElse((splitParts(name), None))
+  }
+}
+
+object SimpleDxName extends DxNameFactory {
+  override def fromEncodedName(name: String): SimpleDxName = {
+    val (parts, suffix) = DxNameFactory.split(name)
+    new SimpleDxName(parts, suffix)
+  }
+
+  override def fromDecodedName(name: String): SimpleDxName = {
+    val (parts, suffix) = DxNameFactory.split(name)
+    new SimpleDxName(parts, suffix)
+  }
+
+  def fromSourceName(identifier: String, suffix: Option[String] = None): SimpleDxName = {
+    new SimpleDxName(Vector(identifier), suffix)
+  }
+}
+
 /**
   * A DxName that does not perform encoding or decoding - the encoded and
   * decoded names must be equal.
   */
-class SimpleDxName(prefix: String, suffix: Option[String] = None)
-    extends DxName(Some(prefix), Some(prefix), suffix) {
-  override protected def encodePrefix(prefix: String): String = {
-    throw new Exception("unreachable")
-  }
-
-  override protected def decodePrefix(prefix: String): String = {
-    throw new Exception("unreachable")
-  }
-
-  override protected def create(encodedPrefix: Option[String],
-                                decodedPrefix: Option[String],
+class SimpleDxName(parts: Vector[String],
+                   suffix: Option[String] = None,
+                   override val namespaceDelim: Option[String] = None)
+    extends DxName(Some(parts), Some(parts), suffix) {
+  override protected def create(encodedParts: Option[Vector[String]],
+                                decodedParts: Option[Vector[String]],
                                 suffix: Option[String]): DxName = {
-    (encodedPrefix, decodedPrefix) match {
-      case (Some(p1), Some(p2)) if p1 == p2 => new SimpleDxName(p1, suffix)
+    (encodedParts, decodedParts) match {
+      case (Some(e), Some(d)) if DxName.compareStringVectors(e, d) != 0 =>
+        throw new Exception(s"encoded and decoded parts must be the same: ${e} != ${d}")
       case _ =>
-        throw new Exception(
-            s"encoded and decoded names are not equal: ${encodedPrefix} != ${decodedPrefix}"
-        )
+        new SimpleDxName(encodedParts.orElse(decodedParts).get, namespaceDelim, suffix)
     }
   }
 }
+
+trait ParameterAttribute
 
 /**
   * Compile-time representation of an input or output parameter.
@@ -355,11 +452,12 @@ case class LinkInput(stageId: DxWorkflowStage, paramName: DxName) extends StageI
 case class WorkflowInput(param: Parameter) extends StageInput
 case class ArrayInput(stageInputs: Vector[StageInput]) extends StageInput
 
-// A stage can call an application or a workflow.
-//
-// Note: the description may contain dots, parentheses, and other special
-// symbols. It is shown to the user on the UI. The dxStage.id is unique
-// across the workflow.
+/**
+  * A stage can call an application or a workflow.
+  * @note the description may contain dots, parentheses, and other special
+  * symbols. It is shown to the user on the UI. The dxStage.id is unique
+  * across the workflow.
+  */
 case class Stage(description: String,
                  dxStage: DxWorkflowStage,
                  calleeName: String,
@@ -390,6 +488,6 @@ case class Workflow(name: String,
                     properties: Map[String, String] = Map.empty,
                     staticFileDependencies: Set[String] = Set.empty)
     extends Callable {
-  def inputVars: Vector[Parameter] = inputs.map { case (cVar, _)   => cVar }
-  def outputVars: Vector[Parameter] = outputs.map { case (cVar, _) => cVar }
+  def inputVars: Vector[Parameter] = inputs.map(_._1)
+  def outputVars: Vector[Parameter] = outputs.map(_._1)
 }

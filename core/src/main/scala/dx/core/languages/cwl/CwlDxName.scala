@@ -1,73 +1,67 @@
 package dx.core.languages.cwl
 
-import dx.core.ir.DxName
+import dx.core.ir.{DxName, DxNameFactory}
 
-object CwlDxName {
-  val Delim = "/"
+import scala.util.matching.Regex
 
+object CwlDxName extends DxNameFactory {
+  val NamespaceDelim = "/"
+  private val NamespaceDelimRegex = NamespaceDelim.r
+  // Regex for finding exactly three consecutive underscores. When
+  // encoding consecutive disallowed characters, we will end up with
+  // something like "__42____67__", which we don't want to match as
+  // a namespace delimiter.
+  private val encodedNamespaceDelimRegex = "((?<=[^_])|^)(___)((?=[^_])|$)".r
   // character sequences that may not appear in a non-encoded name
-  private val illegalSeqsRegexp = "__|\\s+".r
-  // characters that need to be encoded
-  private val encodeCharsRegexp = "([^a-zA-Z0-9_])".r
+  private val illegalDecodedSequencesRegex = "__|\\s+".r
   // character sequences that need to be decoded
-  private val decodeSeqsRegexp = "(___)|__(\\d+)__".r
+  private val decodeSequencesRegex = "__(\\d+)__".r
 
-  /**
-    * Creates a ComplexDxName from an encoded parameter name that may
-    * have a suffix.
-    */
-  def fromEncodedParameterName(name: String): CwlDxName = {
-    val (prefix, suffix) = DxName.split(name)
-    new CwlDxName(encodedPrefix = Some(prefix), suffix = suffix)
+  override def fromEncodedName(name: String): CwlDxName = {
+    val (parts, suffix) = DxNameFactory.split(name, Some(encodedNamespaceDelimRegex))
+    new CwlDxName(encodedParts = Some(parts), suffix = suffix)
   }
 
-  /**
-    * Creates a ComplexDxName from a decoded parameter name that may
-    * have a suffix.
-    */
-  def fromDecodedParameterName(name: String): CwlDxName = {
-    val (prefix, suffix) = DxName.split(name)
-    new CwlDxName(decodedPrefix = Some(prefix), suffix = suffix)
+  override def fromDecodedName(name: String): CwlDxName = {
+    val (parts, suffix) = DxNameFactory.split(name, Some(NamespaceDelimRegex))
+    new CwlDxName(decodedParts = Some(parts), suffix = suffix)
   }
 
   /**
     * Creates a ComplexDxName from a parameter name coming directly from a
     * language AST, with optional namespace.
     */
-  def fromRawParameterName(name: String,
-                           namespace: Option[String] = None,
-                           suffix: Option[String] = None): CwlDxName = {
-    new CwlDxName(
-        decodedPrefix = Some(namespace.map(prefix => s"${prefix}${Delim}${name}").getOrElse(name)),
-        suffix = suffix
-    )
+  def fromSourceName(identifier: String,
+                     namespace: Option[String] = None,
+                     suffix: Option[String] = None): CwlDxName = {
+    new CwlDxName(decodedParts = Some(namespace.toVector ++ Vector(identifier)), suffix = suffix)
   }
 }
 
-class CwlDxName(encodedPrefix: Option[String] = None,
-                decodedPrefix: Option[String] = None,
+class CwlDxName(encodedParts: Option[Vector[String]] = None,
+                decodedParts: Option[Vector[String]] = None,
                 suffix: Option[String] = None)
-    extends DxName(encodedPrefix, decodedPrefix, suffix) {
-  assert(!encodedPrefix.exists(_.contains(DxName.Dot)),
-         s"encoded prefix ${encodedPrefix.get} contains '.'")
-  assert(!decodedPrefix.exists(_.endsWith(DxName.Dot)),
-         s"decoded prefix ${decodedPrefix.get} ends with a '.'")
-  encodedPrefix.flatMap(CwlDxName.encodeCharsRegexp.findFirstIn).map { c =>
-    throw new Exception(s"encoded prefix ${encodedPrefix.get} contains illegal character '${c}'")
-  }
-  decodedPrefix.flatMap(CwlDxName.illegalSeqsRegexp.findFirstIn).map { c =>
-    throw new Exception(s"parameter name ${decoded} contains illegal character sequence '${c}'")
+    extends DxName(encodedParts, decodedParts, suffix) {
+
+  override protected def illegalDecodedSequencesRegex: Option[Regex] =
+    Some(CwlDxName.illegalDecodedSequencesRegex)
+
+  override protected def namespaceDelim: Option[String] = Some(CwlDxName.NamespaceDelim)
+
+  override def equals(obj: Any): Boolean = {
+    obj match {
+      case that: CwlDxName => compare(that) == 0
+      case _               => false
+    }
   }
 
-  override protected def namespaceDelim: String = CwlDxName.Delim
-
-  override protected def create(encodedPrefix: Option[String] = None,
-                                decodedPrefix: Option[String] = None,
+  override protected def create(encodedParts: Option[Vector[String]] = None,
+                                decodedParts: Option[Vector[String]] = None,
                                 suffix: Option[String] = None): CwlDxName = {
-    new CwlDxName(encodedPrefix, decodedPrefix, suffix)
+    new CwlDxName(encodedParts, decodedParts, suffix)
   }
 
-  private def makeNewName(name: String,
+  private def makeNewPart(name: String,
                           starts: Vector[Int],
                           ends: Vector[Int],
                           delims: Vector[String]): String = {
@@ -91,23 +85,20 @@ class CwlDxName(encodedPrefix: Option[String] = None,
   }
 
   /**
-    * Encodes disallowed characters in a parameter name. DNAnexus only allows
-    * [a-zA-Z0-9_] in parameter names. We also disallow:
-    *   * whitespace - "foo bar"
-    *   * consecutive underscores - "foo\_\_bar"
-    *   * name segments that begin or end in underscore - "foo_._bar"
-    * @param prefix the decoded prefix
-    * @return the encoded parameter name, with "." replaced with "\_\_\_"
-    *         and any other illegal character replaced with "\_\_ord(x)\_\_",
-    *         where `ord(x)` is the ordinal value of the illegal character.
+    * Encodes disallowed characters in a part. In addition to DxName restrictions,
+    * we also disallow parts with consecutive underscores, e.g. {{{"foo__bar"}}}.
+    * @param part the decoded prefix
+    * @return the encoded parameter name with each illegal character
+    *         replaced with {{{"__ord(x)__"}}}, where `ord(x)` is the ordinal
+    *         value of the illegal character.
     */
-  override protected def encodePrefix(prefix: String): String = {
-    CwlDxName.encodeCharsRegexp.findAllMatchIn(prefix).toVector match {
-      case Vector() => prefix
+  override protected def encodePart(part: String): String = {
+    DxName.disallowedCharsRegex.findAllMatchIn(part).toVector match {
+      case Vector() => part
       case matches =>
         val (starts, ends, delims) = matches.map { m =>
           val newDelim = m.group(1) match {
-            case DxName.Dot => DxName.DotEncoded
+            case CwlDxName.NamespaceDelim => DxName.NamespaceDelimEncoded
             case c if c.length() == 1 =>
               s"__${c.charAt(0).toInt}__"
             case other =>
@@ -115,24 +106,24 @@ class CwlDxName(encodedPrefix: Option[String] = None,
           }
           (m.end, m.start, newDelim)
         }.unzip3
-        makeNewName(prefix, starts, ends, delims)
+        makeNewPart(part, starts, ends, delims)
     }
   }
 
-  override protected def decodePrefix(prefix: String): String = {
-    CwlDxName.decodeSeqsRegexp.findAllMatchIn(prefix).toVector match {
+  override protected def decodePart(prefix: String): String = {
+    CwlDxName.decodeSequencesRegex.findAllMatchIn(prefix).toVector match {
       case Vector() => prefix
       case matches =>
         val (starts, ends, delims) = matches.map { m =>
           val newDelim = (m.group(1), m.group(2)) match {
-            case (DxName.DotEncoded, null) => DxName.Dot
-            case (null, ord)               => ord.toInt.toChar.toString
+            case (DxName.NamespaceDelimEncoded, null) => CwlDxName.NamespaceDelim
+            case (null, ord)                          => ord.toInt.toChar.toString
             case other =>
               throw new Exception(s"unexpected delimiter ${other}")
           }
           (m.end, m.start, newDelim)
         }.unzip3
-        makeNewName(prefix, starts, ends, delims)
+        makeNewPart(prefix, starts, ends, delims)
     }
   }
 }

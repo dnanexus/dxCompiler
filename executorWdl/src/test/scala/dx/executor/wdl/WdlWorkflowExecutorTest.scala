@@ -7,7 +7,7 @@ import dx.api._
 import dx.core.{Constants, ir}
 import dx.core.io.DxWorkerPaths
 import dx.core.ir.{DxName, ParameterLinkSerializer, ParameterLinkValue, Type, TypeSerde}
-import dx.core.languages.wdl.{WdlBlock, WdlBundle, WdlUtils}
+import dx.core.languages.wdl.{WdlBlock, WdlBundle, WdlDxName, WdlUtils}
 import dx.executor.{JobMeta, WorkflowAction, WorkflowExecutor}
 import dx.util.{CodecUtils, FileSourceResolver, FileUtils, Logger}
 import dx.util.protocols.DxFileAccessProtocol
@@ -27,7 +27,7 @@ private case class WorkflowTestJobMeta(override val workerPaths: DxWorkerPaths,
                                        rawBlockPath: Vector[Int],
                                        rawInstanceTypeDb: InstanceTypeDB,
                                        rawSourceCode: String)
-    extends JobMeta(workerPaths, dxApi, logger) {
+    extends JobMeta(workerPaths, WdlDxName, dxApi, logger) {
   override val project: DxProject = null
 
   override val rawJsInputs: Map[DxName, JsValue] =
@@ -60,9 +60,15 @@ private case class WorkflowTestJobMeta(override val workerPaths: DxWorkerPaths,
           )
       ),
       Constants.SourceCode -> JsString(CodecUtils.gzipAndBase64Encode(rawSourceCode)),
-      Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(WdlUtils.toIRTypeMap(rawEnv.map {
-        case (dxName, (t, _)) => dxName -> t
-      }))
+      Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(
+          WdlUtils
+            .toIRTypeMap(rawEnv.map {
+              case (dxName, (t, _)) => dxName -> t
+            })
+            .map {
+              case (dxName, t) => dxName.encoded -> t
+            }
+      )
   )
 
   override def getExecutableDetail(name: String): Option[JsValue] = executableDetails.get(name)
@@ -184,15 +190,16 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     val block = subBlocks(0)
 
     val wfExecutor = createWorkflowExecutor(workerPaths, path)
-    val env = Map.empty[String, (WdlTypes.T, WdlValues.V)]
-    val results: Map[String, (WdlTypes.T, WdlValues.V)] = wfExecutor match {
+    val env = Map.empty[DxName, (WdlTypes.T, WdlValues.V)]
+    val results: Map[DxName, (WdlTypes.T, WdlValues.V)] = wfExecutor match {
       case exe: WdlWorkflowExecutor => exe.evaluateWorkflowElementVariables(block.elements, env)
       case _                        => throw new Exception("expected WdlWorkflowSupport")
     }
     results.keys should be(Set("names", "full_name"))
     results should be(
         Map(
-            "names" -> (WdlTypes.T_Array(WdlTypes.T_String, nonEmpty = false),
+            WdlDxName.fromSourceName("names") -> (WdlTypes.T_Array(WdlTypes.T_String,
+                                                                   nonEmpty = false),
             WdlValues.V_Array(
                 Vector(WdlValues.V_String("Michael"),
                        WdlValues.V_String("Lukas"),
@@ -200,7 +207,7 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
                        WdlValues.V_String("Shelly"),
                        WdlValues.V_String("Amy"))
             )),
-            "full_name" ->
+            WdlDxName.fromSourceName("full_name") ->
               (WdlTypes.T_Array(WdlTypes.T_String, nonEmpty = false),
               WdlValues.V_Array(
                   Vector(
@@ -226,16 +233,16 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     val subBlocks = WdlBlock.createBlocks(wf.body)
     val block = subBlocks.head
     val wfExecutor = createWorkflowExecutor(workerPaths, path)
-    val env = Map.empty[String, (WdlTypes.T, WdlValues.V)]
-    val results: Map[String, (WdlTypes.T, WdlValues.V)] = wfExecutor match {
+    val env = Map.empty[DxName, (WdlTypes.T, WdlValues.V)]
+    val results: Map[DxName, (WdlTypes.T, WdlValues.V)] = wfExecutor match {
       case exe: WdlWorkflowExecutor => exe.evaluateWorkflowElementVariables(block.elements, env)
       case _                        => throw new Exception("expected WdlWorkflowSupport")
     }
     results should be(
         Map(
-            "flag" -> (WdlTypes.T_Boolean,
+            WdlDxName.fromSourceName("flag") -> (WdlTypes.T_Boolean,
             WdlValues.V_Boolean(true)),
-            "cats" -> (WdlTypes.T_Optional(WdlTypes.T_String),
+            WdlDxName.fromSourceName("cats") -> (WdlTypes.T_Optional(WdlTypes.T_String),
             WdlValues.V_Optional(WdlValues.V_String("Mr. Baggins")))
         )
     )
@@ -252,15 +259,16 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     val subBlocks = WdlBlock.createBlocks(wf.body)
     val block = subBlocks.head
     val wfExecutor = createWorkflowExecutor(workerPaths, path)
-    val results: Map[String, (WdlTypes.T, WdlValues.V)] = wfExecutor match {
+    val results: Map[DxName, (WdlTypes.T, WdlValues.V)] = wfExecutor match {
       case exe: WdlWorkflowExecutor =>
         exe.evaluateWorkflowElementVariables(block.elements,
-                                             Map.empty[String, (WdlTypes.T, WdlValues.V)])
+                                             Map.empty[DxName, (WdlTypes.T, WdlValues.V)])
       case _ => throw new Exception("expected WdlWorkflowSupport")
     }
     results should be(
         Map(
-            "z" -> (WdlTypes.T_Optional(WdlTypes.T_Array(WdlTypes.T_Int, nonEmpty = true)),
+            WdlDxName.fromSourceName("z") -> (WdlTypes
+              .T_Optional(WdlTypes.T_Array(WdlTypes.T_Int, nonEmpty = true)),
             WdlValues.V_Null)
         )
     )
@@ -312,7 +320,7 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     assertThrows[Exception] {
       wdlWorkflowSupport.evaluateWorkflowElementVariables(
           subBlocks(1).elements,
-          Map.empty[String, (WdlTypes.T, WdlValues.V)]
+          Map.empty[DxName, (WdlTypes.T, WdlValues.V)]
       )
     }
   }
@@ -327,21 +335,23 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     }
     val subBlocks = WdlBlock.createBlocks(wf.body)
     val wfExecutor = createWorkflowExecutor(workerPaths, path)
-    val results: Map[String, (WdlTypes.T, WdlValues.V)] = wfExecutor match {
+    val results: Map[DxName, (WdlTypes.T, WdlValues.V)] = wfExecutor match {
       case exe: WdlWorkflowExecutor =>
         exe.evaluateWorkflowElementVariables(subBlocks(0).elements,
-                                             Map.empty[String, (WdlTypes.T, WdlValues.V)])
+                                             Map.empty[DxName, (WdlTypes.T, WdlValues.V)])
       case _ => throw new Exception("expected WdlWorkflowSupport")
     }
     results.keys should be(Set("powers10", "i1", "i2", "i3"))
-    results("i1") should be(
+    results(WdlDxName.fromSourceName("i1")) should be(
         (WdlTypes.T_Optional(WdlTypes.T_Int), WdlValues.V_Optional(WdlValues.V_Int(1)))
     )
-    results("i2") should be((WdlTypes.T_Optional(WdlTypes.T_Int), WdlValues.V_Null))
-    results("i3") should be(
+    results(WdlDxName.fromSourceName("i2")) should be(
+        (WdlTypes.T_Optional(WdlTypes.T_Int), WdlValues.V_Null)
+    )
+    results(WdlDxName.fromSourceName("i3")) should be(
         (WdlTypes.T_Optional(WdlTypes.T_Int), WdlValues.V_Optional(WdlValues.V_Int(100)))
     )
-    results("powers10") should be(
+    results(WdlDxName.fromSourceName("powers10")) should be(
         (WdlTypes.T_Array(WdlTypes.T_Optional(WdlTypes.T_Int), nonEmpty = false),
          WdlValues.V_Array(
              Vector(WdlValues.V_Optional(WdlValues.V_Int(1)),
@@ -389,7 +399,7 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
       case exe: WdlWorkflowExecutor => exe
       case _                        => throw new Exception("expected WdlWorkflowSupport")
     }
-    val callInputs1: Map[String, (WdlTypes.T, WdlValues.V)] =
+    val callInputs1: Map[DxName, (WdlTypes.T, WdlValues.V)] =
       wfSupport.WdlBlockContext.evaluateCallInputs(
           call1,
           Map("i" -> (WdlTypes.T_Int, WdlValues.V_Int(1)))
@@ -403,7 +413,7 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     )
 
     val call2 = findCallByName("ManyArgs", wf.body)
-    val callInputs2: Map[String, (WdlTypes.T, WdlValues.V)] =
+    val callInputs2: Map[DxName, (WdlTypes.T, WdlValues.V)] =
       wfSupport.WdlBlockContext.evaluateCallInputs(
           call2,
           Map(
@@ -414,9 +424,9 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
 
     callInputs2 should be(
         Map(
-            "a" -> (WdlTypes.T_String,
+            WdlDxName.fromSourceName("a") -> (WdlTypes.T_String,
             WdlValues.V_String("hello")),
-            "b" -> (WdlTypes.T_Array(WdlTypes.T_Int),
+            WdlDxName.fromSourceName("b") -> (WdlTypes.T_Array(WdlTypes.T_Int),
             WdlValues.V_Array(Vector(WdlValues.V_Int(1), WdlValues.V_Int(10))))
         )
     )
@@ -436,7 +446,7 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
       case exe: WdlWorkflowExecutor => exe
       case _                        => throw new Exception("expected WdlWorkflowExecutor")
     }
-    val callInputs: Map[String, (WdlTypes.T, WdlValues.V)] =
+    val callInputs: Map[DxName, (WdlTypes.T, WdlValues.V)] =
       wdlWfExecutor.WdlBlockContext.evaluateCallInputs(
           call,
           Map("opt" -> (WdlTypes.T_Optional(WdlTypes.T_Int), WdlValues.V_Null),
@@ -445,8 +455,9 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     // We need to coerce the inputs into what the callee is expecting
     callInputs should be(
         Map(
-            "opt" -> (WdlTypes.T_Optional(WdlTypes.T_Int), WdlValues.V_Null),
-            "non_opt" -> (WdlTypes.T_Int, WdlValues.V_Int(1))
+            WdlDxName
+              .fromSourceName("opt") -> (WdlTypes.T_Optional(WdlTypes.T_Int), WdlValues.V_Null),
+            WdlDxName.fromSourceName("non_opt") -> (WdlTypes.T_Int, WdlValues.V_Int(1))
         )
     )
   }
@@ -485,25 +496,32 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     }
     val results =
       wfSupport.evaluateWorkflowElementVariables(subBlocks(0).elements,
-                                                 Map.empty[String, (WdlTypes.T, WdlValues.V)])
-    results.keys should be(
-        Set("a", "b", "tot_height", "tot_num_floors", "streets", "cities", "tot")
-    )
-    results("tot") should be(
-        (WdlTypes.T_Struct("House",
-                           TreeSeqMap("height" -> WdlTypes.T_Int,
-                                      "num_floors" -> WdlTypes.T_Int,
-                                      "street" -> WdlTypes.T_String,
-                                      "city" -> WdlTypes.T_String)),
-         WdlValues.V_Struct(
-             "House",
-             TreeSeqMap(
-                 "height" -> WdlValues.V_Int(32),
-                 "num_floors" -> WdlValues.V_Int(4),
-                 "street" -> WdlValues.V_String("Alda_Mary"),
-                 "city" -> WdlValues.V_String("Sunnyvale_Santa Clara")
-             )
-         ))
+                                                 Map.empty[DxName, (WdlTypes.T, WdlValues.V)])
+    results.keys shouldBe Set(
+        "a",
+        "b",
+        "tot_height",
+        "tot_num_floors",
+        "streets",
+        "cities",
+        "tot"
+    ).map(WdlDxName.fromSourceName(_))
+
+    results(WdlDxName.fromSourceName("tot")) shouldBe (
+        WdlTypes.T_Struct("House",
+                          TreeSeqMap("height" -> WdlTypes.T_Int,
+                                     "num_floors" -> WdlTypes.T_Int,
+                                     "street" -> WdlTypes.T_String,
+                                     "city" -> WdlTypes.T_String)),
+        WdlValues.V_Struct(
+            "House",
+            TreeSeqMap(
+                "height" -> WdlValues.V_Int(32),
+                "num_floors" -> WdlValues.V_Int(4),
+                "street" -> WdlValues.V_String("Alda_Mary"),
+                "city" -> WdlValues.V_String("Sunnyvale_Santa Clara")
+            )
+        )
     )
   }
 
@@ -511,14 +529,15 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     val workerPaths = setup()
     val path = pathFromBasename("frag_runner", "missing_args.wdl")
     val env: Map[DxName, (WdlTypes.T, WdlValues.V)] = Map(
-        SimpleDxName
-          .fromRawParameterName("x") -> (WdlTypes.T_Optional(WdlTypes.T_Int), WdlValues.V_Null),
-        SimpleDxName.fromRawParameterName("y") -> (WdlTypes.T_Int, WdlValues.V_Int(5))
+        WdlDxName.fromSourceName("x") -> (WdlTypes.T_Optional(WdlTypes.T_Int), WdlValues.V_Null),
+        WdlDxName.fromSourceName("y") -> (WdlTypes.T_Int, WdlValues.V_Int(5))
     )
     val wfExecutor = createWorkflowExecutor(workerPaths, path, Vector(0), env)
     val (results, msg) = wfExecutor.apply(WorkflowAction.Run)
     msg shouldBe "success Run"
-    results shouldBe Map("retval" -> ParameterLinkValue(JsNumber(5), Type.TInt))
+    results shouldBe Map(
+        WdlDxName.fromSourceName("retval") -> ParameterLinkValue(JsNumber(5), Type.TInt)
+    )
   }
 
   it should "evaluate expressions in correct order" taggedAs NativeTest in {
@@ -528,13 +547,13 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     val (results, msg) = wfExecutor.apply(WorkflowAction.Run)
     msg shouldBe "success Run"
     results should contain key "bam_lane1"
-    results("bam_lane1") shouldBe ParameterLinkValue(
+    results(WdlDxName.fromSourceName("bam_lane1")) shouldBe ParameterLinkValue(
         JsArray(JsString("1_ACGT_1.bam"), JsNull),
         Type.TArray(Type.TOptional(Type.TString))
     )
-    val paramName = SimpleDxName.fromRawParameterName("bam_lane1")
+    val paramName = WdlDxName.fromSourceName("bam_lane1")
     wfExecutor.jobMeta.outputSerializer
-      .createFieldsFromLink(results("bam_lane1"), paramName) shouldBe
+      .createFieldsFromLink(results(WdlDxName.fromSourceName("bam_lane1")), paramName) shouldBe
       Vector(paramName -> JsObject("___" -> JsArray(JsString("1_ACGT_1.bam"), JsNull)),
              paramName.withSuffix(Constants.FlatFilesSuffix) -> JsArray())
   }
@@ -545,8 +564,8 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     val wfExecutor = createWorkflowExecutor(workerPaths, path)
     val (results, msg) = wfExecutor.apply(WorkflowAction.Run)
     msg shouldBe "success Run"
-    results should contain key "info"
-    results("info") shouldBe ir.ParameterLinkValue(
+    results should contain key WdlDxName.fromSourceName("info")
+    results(WdlDxName.fromSourceName("info")) shouldBe ir.ParameterLinkValue(
         JsArray(JsString("Michael_27"),
                 JsString("Lukas_9"),
                 JsString("Martin_13"),

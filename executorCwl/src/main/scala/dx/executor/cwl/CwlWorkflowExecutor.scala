@@ -106,11 +106,11 @@ case class CwlWorkflowExecutor(workflow: Workflow,
   // TODO: deal with steps with multiple input sources that need to be picked/merged
 
   override protected def encodedDxName(encodedName: String): DxName = {
-    CwlDxName.fromEncodedParameterName(encodedName)
+    CwlDxName.fromEncodedName(encodedName)
   }
 
   override protected def decodedDxName(decodedName: String): DxName = {
-    CwlDxName.fromDecodedParameterName(decodedName)
+    CwlDxName.fromDecodedName(decodedName)
   }
 
   override protected def evaluateInputs(
@@ -193,12 +193,12 @@ case class CwlWorkflowExecutor(workflow: Workflow,
     }
     logger.trace(s"outputParams=${outputParams}")
     val irOutputs: Map[DxName, (Type, Value)] = outputParams
-      .map(param => CwlDxName.fromRawParameterName(param.name) -> param)
+      .map(param => CwlDxName.fromSourceName(param.name) -> param)
       .map {
         case (dxName, param: WorkflowOutputParameter) if param.sources.nonEmpty =>
           val sources =
             param.sources.map { id =>
-              val dxName = CwlDxName.fromRawParameterName(id.name.get)
+              val dxName = CwlDxName.fromSourceName(id.name.get)
               jobInputs.getOrElse(dxName, (TMulti.Any, VNull))
             }
           val isArray = param.cwlType match {
@@ -292,7 +292,7 @@ case class CwlWorkflowExecutor(workflow: Workflow,
       extends BlockContext {
     private val step = block.target.get
     private lazy val runInputs = step.run.inputs.map { i =>
-      CwlDxName.fromRawParameterName(i.name) -> i
+      CwlDxName.fromSourceName(i.name) -> i
     }.toMap
 
     override lazy val env: Map[DxName, (Type, Value)] = CwlUtils.toIR(cwlEnv)
@@ -301,7 +301,7 @@ case class CwlWorkflowExecutor(workflow: Workflow,
         stepInput: WorkflowStepInput,
         fullEnv: Map[DxName, (CwlType, CwlValue)]
     ): Option[(DxName, (CwlType, CwlValue))] = {
-      val dxName = CwlDxName.fromRawParameterName(stepInput.name)
+      val dxName = CwlDxName.fromSourceName(stepInput.name)
       val cwlType = if (runInputs.contains(dxName)) {
         runInputs(dxName).cwlType
       } else if (block.inputs.contains(dxName)) {
@@ -316,7 +316,7 @@ case class CwlWorkflowExecutor(workflow: Workflow,
       // resolve all the step input sources
       // if there are multiple sources, we need to merge and/or pick values
       val sources =
-        stepInput.sources.map(src => fullEnv(CwlDxName.fromRawParameterName(src.name.get)))
+        stepInput.sources.map(src => fullEnv(CwlDxName.fromSourceName(src.name.get)))
       val isArray = cwlType match {
         case _: CwlArray => true
         case CwlMulti(types) =>
@@ -405,7 +405,7 @@ case class CwlWorkflowExecutor(workflow: Workflow,
       // are not passed to the callee but are referred to in expressions
       // of other step inputs' valueFrom fields
       val stepInputs: Map[DxName, WorkflowStepInput] = step.inputs.map { i =>
-        CwlDxName.fromRawParameterName(i.name) -> i
+        CwlDxName.fromSourceName(i.name) -> i
       }.toMap
       val stepInputValues = stepInputs.values.flatMap(evaluateStepInput(_, fullEnv)).toMap
       // now evaluate any valueFrom expressions
@@ -430,7 +430,7 @@ case class CwlWorkflowExecutor(workflow: Workflow,
       // collect all the step input values to pass to the callee
       step.run.inputs
         .map { param =>
-          CwlDxName.fromRawParameterName(param.name) -> param
+          CwlDxName.fromSourceName(param.name) -> param
         }
         .map {
           case (dxName, _) if finalStepInputs.contains(dxName) =>
@@ -552,7 +552,7 @@ case class CwlWorkflowExecutor(workflow: Workflow,
         dxSubJob: DxExecution
     ): Map[DxName, ParameterLink] = {
       val resultTypes: Map[DxName, Type] = block.outputs.values.map { param =>
-        CwlDxName.fromRawParameterName(param.name) -> CwlUtils.toIRType(param.cwlType)
+        CwlDxName.fromSourceName(param.name) -> CwlUtils.toIRType(param.cwlType)
       }.toMap
       // Return JBORs for all the outputs. Since the signature of the sub-job
       // is exactly the same as the parent, we can immediately exit the parent job.
@@ -567,7 +567,7 @@ case class CwlWorkflowExecutor(workflow: Workflow,
 
     private def getScatterValues: Vector[Option[(CwlType, Vector[CwlValue])]] = {
       step.scatter.map { name =>
-        val dxName = CwlDxName.fromRawParameterName(name)
+        val dxName = CwlDxName.fromSourceName(name)
         cwlEnv.get(dxName) match {
           case Some((t, NullValue)) if CwlOptional.isOptional(t) => None
           case Some((_, ArrayValue(items))) if items.isEmpty     => None
@@ -610,7 +610,7 @@ case class CwlWorkflowExecutor(workflow: Workflow,
             (scatterCollection.drop(jobMeta.scatterStart), None)
           }
         }
-      val childJobs = launchScatterCallJobs(step.scatter.map(CwlDxName.fromRawParameterName(_)),
+      val childJobs = launchScatterCallJobs(step.scatter.map(CwlDxName.fromSourceName(_)),
                                             itemTypes,
                                             chunkCollection)
       next match {
@@ -653,7 +653,7 @@ case class CwlWorkflowExecutor(workflow: Workflow,
         val arrayValue =
           (createScatterOutputArray(
                childOutputs,
-               CwlDxName.fromRawParameterName(out.name),
+               CwlDxName.fromSourceName(out.name),
                irType,
                execName
            ),
@@ -663,7 +663,7 @@ case class CwlWorkflowExecutor(workflow: Workflow,
             case (other, _) =>
               throw new Exception(s"invalid array value ${other}")
           }
-        val dxName = CwlDxName.fromRawParameterName(out.name, namespace = Some(step.name))
+        val dxName = CwlDxName.fromSourceName(out.name, namespace = Some(step.name))
         dxName -> (irType, arrayValue)
       }.toMap
     }

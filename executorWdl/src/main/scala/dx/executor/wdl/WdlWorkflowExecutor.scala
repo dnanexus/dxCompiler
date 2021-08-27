@@ -92,11 +92,11 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     WdlUtils.toIRSchemaMap(wdlTypeAliases)
 
   override protected def encodedDxName(encodedName: String): DxName = {
-    WdlDxName.fromEncodedParameterName(encodedName)
+    WdlDxName.fromEncodedName(encodedName)
   }
 
   override protected def decodedDxName(decodedName: String): DxName = {
-    WdlDxName.fromDecodedParameterName(decodedName)
+    WdlDxName.fromDecodedName(decodedName)
   }
 
   override protected def evaluateInputs(
@@ -117,7 +117,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     val (inputTypes, inputValues) = jobMeta.blockPath match {
       case Vector() =>
         val inputTypes: Map[DxName, T] = workflow.inputs
-          .map(inp => WdlDxName.fromRawParameterName(inp.name) -> inp.wdlType)
+          .map(inp => WdlDxName.fromSourceName(inp.name) -> inp.wdlType)
           .toMap
         // convert IR to WDL values
         val inputValues = getInputValues(inputTypes)
@@ -138,7 +138,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
             case (dxName, v) => dxName.decoded -> v
           }, evaluator, ignoreDefaultEvalError = false, nullCollectionAsEmpty = true)
         (inputTypes, inputBindings.toMap.map {
-          case (name, v) => WdlDxName.fromRawParameterName(name) -> v
+          case (name, v) => WdlDxName.fromSourceName(name) -> v
         })
       case path =>
         val block: WdlBlock =
@@ -198,7 +198,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       case Vector() =>
         workflow.outputs.map {
           case TAT.OutputParameter(name, wdlType, expr) =>
-            WdlDxName.fromRawParameterName(name) -> (wdlType, expr)
+            WdlDxName.fromSourceName(name) -> (wdlType, expr)
         }.toMap
       case path =>
         val block: WdlBlock =
@@ -269,7 +269,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       }, env)
       .toMap
       .map {
-        case (name, value) => WdlDxName.fromRawParameterName(name) -> value
+        case (name, value) => WdlDxName.fromSourceName(name) -> value
       }
     // convert back to IR
     val irOutputs: Map[DxName, (Type, Value)] = evaluatedOutputValues.map {
@@ -313,7 +313,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     elements.foldLeft(Map.empty[DxName, (T, V)]) {
       case (accu, TAT.PrivateVariable(name, wdlType, expr)) =>
         val value = evaluateExpression(expr, wdlType, accu ++ env)
-        accu + (WdlDxName.fromRawParameterName(name) -> (wdlType, value))
+        accu + (WdlDxName.fromSourceName(name) -> (wdlType, value))
       case (accu, TAT.Conditional(expr, body)) =>
         // evaluate the condition
         val results: Map[DxName, (T, V)] =
@@ -369,7 +369,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     ): Map[DxName, (T, V)] = {
       call.callee.input.flatMap {
         case (name, (wdlType, optional)) if call.inputs.contains(name) =>
-          val dxName = WdlDxName.fromRawParameterName(name)
+          val dxName = WdlDxName.fromSourceName(name)
           val optType = if (optional) {
             TypeUtils.ensureOptional(wdlType)
           } else {
@@ -483,7 +483,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         } else {
           innerName.decoded match {
             case qualifiedNameRegexp(lhs, rhs) =>
-              inner(WdlDxName.fromDecodedParameterName(lhs)).map {
+              inner(WdlDxName.fromDecodedName(lhs)).map {
                 case V_Pair(left, _) if rhs == "left" =>
                   left
                 case V_Pair(_, right) if rhs == "right" =>
@@ -814,8 +814,8 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         case BlockKind.ScatterOneCall =>
           call.callee.output.map {
             case (name, wdlType) =>
-              val dxName = WdlDxName.fromRawParameterName(name)
-              val fqn = dxName.addDecodedNamespace(call.actualName)
+              val dxName = WdlDxName.fromSourceName(name)
+              val fqn = dxName.pushDecodedNamespace(call.actualName)
               val irType = WdlUtils.toIRType(wdlType)
               fqn -> (dxName, irType)
           }

@@ -33,11 +33,10 @@ object ExecutableLink {
         "schemas" -> JsObject(inputAndOutputSchemas)
     )
   }
+}
 
-  def deserialize(jsValue: JsValue,
-                  typeAliases: Map[String, TSchema],
-                  createDxName: String => DxName,
-                  dxApi: DxApi = DxApi.get): ExecutableLink = {
+case class ExecutableLinkDeserializer(dxNameFactory: DxNameFactory, dxApi: DxApi = DxApi.get) {
+  def apply(jsValue: JsValue, typeAliases: Map[String, TSchema]): ExecutableLink = {
     jsValue match {
       case JsObject(fields) =>
         val JsString(name) = fields("name")
@@ -47,15 +46,13 @@ object ExecutableLink {
         val JsObject(jsOutputs) = fields("outputs")
         val (inputTypes, inputSchemas) = TypeSerde.deserializeMap(jsInputs, typeAliases, jsSchemas)
         val (outputTypes, _) = TypeSerde.deserializeMap(jsOutputs, inputSchemas, jsSchemas)
-        // TODO: it may be problematic to create ComplexDxName here rather than
-        //  the appropriate subclass for the language
         ExecutableLink(
             name,
             inputTypes.map {
-              case (name, t) => createDxName(name) -> t
+              case (name, t) => dxNameFactory.fromDecodedName(name) -> t
             },
             outputTypes.map {
-              case (name, t) => createDxName(name) -> t
+              case (name, t) => dxNameFactory.fromDecodedName(name) -> t
             },
             dxApi.executable(id)
         )

@@ -139,26 +139,24 @@ object WdlBlockInput {
   def translate(i: TAT.InputParameter): WdlBlockInput = {
     i match {
       case TAT.RequiredInputParameter(name, wdlType) =>
-        RequiredBlockInput(WdlDxName.fromRawParameterName(name), wdlType)
+        RequiredBlockInput(WdlDxName.fromSourceName(name), wdlType)
       case TAT.OverridableInputParameterWithDefault(name, wdlType, defaultExpr) =>
         // If the default value is an expression that requires evaluation (i.e. not a
         // constant), treat the input as optional and leave the default value to be
         // calculated at runtime
         try {
           val value = evaluator.applyConstAndCoerce(defaultExpr, wdlType)
-          OverridableBlockInputWithStaticDefault(WdlDxName.fromRawParameterName(name),
-                                                 wdlType,
-                                                 value)
+          OverridableBlockInputWithStaticDefault(WdlDxName.fromSourceName(name), wdlType, value)
         } catch {
           case _: EvalException =>
             OverridableBlockInputWithDynamicDefault(
-                WdlDxName.fromRawParameterName(name),
+                WdlDxName.fromSourceName(name),
                 TypeUtils.ensureOptional(wdlType),
                 defaultExpr
             )
         }
       case TAT.OptionalInputParameter(name, wdlType) =>
-        OptionalBlockInput(WdlDxName.fromRawParameterName(name), wdlType)
+        OptionalBlockInput(WdlDxName.fromSourceName(name), wdlType)
     }
   }
 
@@ -203,7 +201,7 @@ object WdlBlockOutput {
   }
 
   def translate(o: TAT.OutputParameter): WdlBlockOutput = {
-    WdlBlockOutput(WdlDxName.fromRawParameterName(o.name), o.wdlType, o.expr)
+    WdlBlockOutput(WdlDxName.fromSourceName(o.name), o.wdlType, o.expr)
   }
 
   def prettyFormat(output: WdlBlockOutput, indent: String = ""): String = {
@@ -294,7 +292,7 @@ case class WdlBlock(index: Int,
     def inner(innerElements: Vector[TAT.WorkflowElement]): Vector[(DxName, WdlTypes.T)] = {
       innerElements.flatMap {
         case TAT.PrivateVariable(name, wdlType, _) =>
-          Vector(WdlDxName.fromRawParameterName(name) -> wdlType)
+          Vector(WdlDxName.fromSourceName(name) -> wdlType)
         case TAT.Conditional(_, body) => inner(body)
         case TAT.Scatter(_, _, body)  => inner(body)
         case other =>

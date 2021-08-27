@@ -3,7 +3,8 @@ package dx.executor
 import java.nio.file.{InvalidPathException, Paths}
 import dx.core.CliUtils._
 import dx.core.io.{DxWorkerPaths, StreamFiles}
-import dx.util.{Enum, Logger}
+import dx.core.ir.DxNameFactory
+import dx.util.Enum
 
 object BaseCli {
   val MaxConcurrentUploads: Int = 8
@@ -12,7 +13,7 @@ object BaseCli {
 abstract class BaseCli {
   val jarName: String
 
-  protected def createJobMeta(workerPaths: DxWorkerPaths, logger: Logger): JobMeta
+  protected def dxNameFactory: DxNameFactory
 
   protected def createTaskExecutor(meta: JobMeta,
                                    streamFiles: StreamFiles.StreamFiles,
@@ -68,9 +69,9 @@ abstract class BaseCli {
           return BadUsageTermination("Error parsing command line options", Some(e))
       }
     val logger = initLogger(options)
-    val waitOnUpload = options.getFlag("waitOnUpload")
     logger.traceLimited(s"Creating JobMeta: rootDir ${rootDir}")
-    val jobMeta = createJobMeta(DxWorkerPaths(rootDir), logger)
+    val jobMeta = WorkerJobMeta(DxWorkerPaths(rootDir), dxNameFactory, logger = logger)
+    val waitOnUpload = options.getFlag("waitOnUpload")
     try {
       kind match {
         case ExecutorKind.Task =>

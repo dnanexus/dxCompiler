@@ -1,87 +1,58 @@
 package dx.core.languages.wdl
 
-import dx.core.ir.DxName
+import dx.core.ir.{DxName, DxNameFactory}
+
+import scala.util.matching.Regex
+
+object WdlDxName extends DxNameFactory {
+  val NamespaceDelim = "."
+  private val NamespaceDelimRegex = "\\.".r
+  private val NamespaceDelimEncodedRegex: Regex = DxName.NamespaceDelimEncoded.r
+
+  override def fromEncodedName(name: String): WdlDxName = {
+    val (parts, suffix) = DxNameFactory.split(name, Some(NamespaceDelimEncodedRegex))
+    new WdlDxName(encodedParts = Some(parts), suffix = suffix)
+  }
+
+  override def fromDecodedName(name: String): WdlDxName = {
+    val (parts, suffix) = DxNameFactory.split(name, Some(NamespaceDelimRegex))
+    new WdlDxName(decodedParts = Some(parts), suffix = suffix)
+  }
+
+  /**
+    * Creates a WdlDxName from an identifier that does not contain any disallowed characters.
+    */
+  def fromSourceName(identifier: String,
+                     namespace: Option[String] = None,
+                     suffix: Option[String] = None): WdlDxName = {
+    new WdlDxName(decodedParts = Some(namespace.toVector ++ Vector(identifier)), suffix = suffix)
+  }
+}
 
 /**
   * Simplified decoding for parameter names that conform to DNAnexus character
   * restrictions, with the possible exception of containg dots.
   */
-class WdlDxName(encodedPrefix: Option[String] = None,
-                decodedPrefix: Option[String] = None,
+class WdlDxName(encodedParts: Option[Vector[String]] = None,
+                decodedParts: Option[Vector[String]] = None,
                 suffix: Option[String] = None)
-    extends DxName(encodedPrefix, decodedPrefix, suffix) {
-  assert(!encodedPrefix.exists(_.contains(DxName.Dot)),
-         s"encoded prefix ${encodedPrefix.get} contains '.'")
-  assert(!decodedPrefix.exists(_.endsWith(DxName.Dot)),
-         s"decoded prefix ${decodedPrefix.get} ends with a '.'")
+    extends DxName(encodedParts, decodedParts, suffix) {
 
-  override protected val namespaceDelim: String = DxName.Dot
+  override protected def illegalDecodedSequencesRegex: Option[Regex] =
+    Some(DxName.disallowedCharsRegex)
 
-  override protected def create(encodedPrefix: Option[String] = None,
-                                decodedPrefix: Option[String] = None,
+  override protected val namespaceDelim: Option[String] = Some(WdlDxName.NamespaceDelim)
+
+  override def equals(obj: Any): Boolean = {
+    obj match {
+      case that: WdlDxName => compare(that) == 0
+      case _               => false
+    }
+  }
+
+  override protected def create(encodedParts: Option[Vector[String]] = None,
+                                decodedParts: Option[Vector[String]] = None,
                                 suffix: Option[String] = None): WdlDxName = {
-    new WdlDxName(encodedPrefix, decodedPrefix, suffix)
-  }
-
-  override protected def encodePrefix(prefix: String): String = {
-    prefix.split("\\.").toVector match {
-      case Vector(_) => prefix
-      case parts     =>
-        // check that none of the individual words start/end with '_',
-        // which will cause problems when decoding
-        if (parts.dropRight(1).exists(_.endsWith("_")) || parts.drop(1).exists(_.startsWith("_"))) {
-          throw new Exception(s"cannot encode prefix ${prefix} - cannot have '_' next to '.'")
-        }
-        parts.mkString(DxName.DotEncoded)
-    }
-  }
-
-  override def decodePrefix(prefix: String): String = {
-    encoded.split(DxName.DotEncoded).toVector match {
-      case Vector(_) => encoded
-      case parts     =>
-        // check that none of the individual words start/end with '_'
-        if (parts.dropRight(1).exists(_.endsWith("_")) || parts.drop(1).exists(_.startsWith("_"))) {
-          throw new Exception(
-              s"cannot decode value ${encoded} - more than three consecutive underscores"
-          )
-        }
-        parts.mkString(DxName.Dot)
-    }
-  }
-}
-
-object WdlDxName {
-  private def parse(name: String): (String, Option[String]) = {
-    DxName.suffixes
-      .collectFirst {
-        case suffix if name.endsWith(suffix) => (name.dropRight(suffix.length), Some(suffix))
-      }
-      .getOrElse((name, None))
-  }
-
-  def fromEncodedParameterName(name: String): WdlDxName = {
-    val (prefix, suffix) = parse(name)
-    new WdlDxName(encodedPrefix = Some(prefix), suffix = suffix)
-  }
-
-  def fromDecodedParameterName(name: String): WdlDxName = {
-    val (prefix, suffix) = parse(name)
-    new WdlDxName(decodedPrefix = Some(prefix), suffix = suffix)
-  }
-
-  /**
-    * Creates a SimpleDxName from a name that does not contain any
-    * disallowed characters.
-    */
-  def fromRawParameterName(name: String,
-                           namespace: Option[String] = None,
-                           suffix: Option[String] = None): WdlDxName = {
-    namespace match {
-      case Some(ns) =>
-        new WdlDxName(decodedPrefix = Some(s"${ns}${DxName.Dot}${name}"), suffix = suffix)
-      case None =>
-        new WdlDxName(encodedPrefix = Some(name), decodedPrefix = Some(name), suffix = suffix)
-    }
+    new WdlDxName(encodedParts, decodedParts, suffix)
   }
 }

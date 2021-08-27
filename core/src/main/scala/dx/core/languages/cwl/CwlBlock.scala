@@ -179,7 +179,7 @@ object CwlBlock {
 
     val wfInputs: Map[DxName, WorkflowInputParameter] = wf.inputs.collect {
       case i if i.hasName =>
-        CwlDxName.fromRawParameterName(i.name) -> i
+        CwlDxName.fromSourceName(i.name) -> i
     }.toMap
 
     // sort steps in dependency order
@@ -193,7 +193,7 @@ object CwlBlock {
             inp.sources.forall {
               case id if id.parent.isDefined => deps.contains(id.parent.get)
               case id =>
-                wfInputs.contains(CwlDxName.fromRawParameterName(id.name.get))
+                wfInputs.contains(CwlDxName.fromSourceName(id.name.get))
             }
           }
         }
@@ -219,7 +219,7 @@ object CwlBlock {
               // sources of this step input - either a workflow input
               // like "file1" or a step output like "step1/file1"
               val sources = inp.sources.map { src =>
-                (src, CwlDxName.fromRawParameterName(src.frag.get))
+                (src, CwlDxName.fromSourceName(src.frag.get))
               }
               val sourceParams = sources.foldLeft(Map.empty[DxName, Parameter]) {
                 case (accu, (_, name)) if accu.contains(name) => accu
@@ -280,7 +280,7 @@ object CwlBlock {
           val blockOutputs = step.outputs
             .map {
               case out if procOutputs.contains(out.name) =>
-                val dxName = CwlDxName.fromRawParameterName(out.name, namespace = Some(step.name))
+                val dxName = CwlDxName.fromSourceName(out.name, namespace = Some(step.name))
                 dxName -> out
               case out =>
                 throw new Exception(s"invalid output parameter name ${out.name}")

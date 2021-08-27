@@ -4,7 +4,7 @@ import dx.api.{DxApi, DxProject}
 import dx.core.ir.{Bundle, Callable, Type, Value, ValueSerde, Workflow => IRWorkflow}
 import dx.core.languages.Language
 import dx.core.languages.Language.Language
-import dx.core.languages.cwl.{CwlBundle, CwlUtils, DxHintSchema}
+import dx.core.languages.cwl.{CwlBundle, CwlDxName, CwlUtils, DxHintSchema}
 import dx.cwl.{
   CommandLineTool,
   CwlDirectory,
@@ -45,6 +45,7 @@ case class CwlInputTranslator(bundle: Bundle,
                             useManifests,
                             complexPathValues = true,
                             ignoreUnusedInputs = true,
+                            CwlDxName,
                             baseFileResolver,
                             dxApi,
                             logger) {

@@ -49,7 +49,7 @@ object Constants {
   val OutputStage = "outputs"
 
   private def parameterName(prefix: String): SimpleDxName = {
-    new SimpleDxName(prefix, Some(ComplexValueKey))
+    SimpleDxName.fromSourceName(prefix, Some(ComplexValueKey))
   }
 
   // reserved parameter names

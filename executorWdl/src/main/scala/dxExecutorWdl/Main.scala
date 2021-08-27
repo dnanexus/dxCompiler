@@ -1,16 +1,15 @@
 package dxExecutorWdl
 
-import dx.core.io.{DxWorkerPaths, StreamFiles}
+import dx.core.io.StreamFiles
+import dx.core.ir.DxNameFactory
+import dx.core.languages.wdl.WdlDxName
 import dx.executor.{BaseCli, JobMeta}
-import dx.executor.wdl.{WdlJobMeta, WdlTaskExecutor, WdlWorkflowExecutor}
-import dx.util.Logger
+import dx.executor.wdl.{WdlTaskExecutor, WdlWorkflowExecutor}
 
 object Main extends BaseCli {
   override val jarName = "dxExecutorWdl.jar"
 
-  override protected def createJobMeta(workerPaths: DxWorkerPaths, logger: Logger): WdlJobMeta = {
-    WdlJobMeta(workerPaths, logger = logger)
-  }
+  override protected val dxNameFactory: DxNameFactory = WdlDxName
 
   override def createTaskExecutor(meta: JobMeta,
                                   streamFiles: StreamFiles.StreamFiles,

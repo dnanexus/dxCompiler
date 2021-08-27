@@ -45,7 +45,7 @@ private case class ToolTestJobMeta(override val workerPaths: DxWorkerPaths,
                                    rawInstanceTypeDb: InstanceTypeDB,
                                    rawSourceCode: String,
                                    useManifestInputs: Boolean = false)
-    extends JobMeta(workerPaths, dxApi, logger) {
+    extends JobMeta(workerPaths, CwlDxName, dxApi, logger) {
   var outputs: Option[Map[DxName, JsValue]] = None
 
   override val project: DxProject = null
@@ -173,7 +173,7 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
     pathFromBasename(s"${cwlName}_input.json") match {
       case Some(path) if Files.exists(path) =>
         JsUtils.getFields(JsUtils.jsFromFile(path)).map {
-          case (name, jsv) => CwlDxName.fromEncodedParameterName(name) -> jsv
+          case (name, jsv) => CwlDxName.fromEncodedName(name) -> jsv
         }
       case _ => Map.empty
     }
@@ -228,7 +228,7 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
 
     val taskInputs: Map[DxName, CommandInputParameter] =
       tool.inputs
-        .map(inp => CwlDxName.fromRawParameterName(inp.name) -> inp)
+        .map(inp => CwlDxName.fromSourceName(inp.name) -> inp)
         .toMap
     val outputSerializer: ParameterLinkSerializer =
       ParameterLinkSerializer(fileResolver, dxApi, pathsAsObjects = true)

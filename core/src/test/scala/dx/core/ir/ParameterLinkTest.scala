@@ -3,6 +3,8 @@ package dx.core.ir
 import java.nio.file.Paths
 import dx.core.Tags.EdgeTest
 import dx.api.{DxApi, DxFileDescCache}
+import dx.core.Constants
+import dx.core.languages.wdl.WdlDxName
 import dx.util.{FileSourceResolver, Logger}
 import dx.util.protocols.DxFileAccessProtocol
 import org.scalatest.flatspec.AnyFlatSpec
@@ -25,16 +27,17 @@ class ParameterLinkTest extends AnyFlatSpec with Matchers {
   def check(elem: Element): Unit = {
     val prefix = "XXX_"
     val link = parameterLinkSerializer.createLink(elem.irType, elem.irValue)
-    val allDxFields1: Vector[(String, JsValue)] =
-      parameterLinkSerializer.createFieldsFromLink(link, prefix + elem.name)
+    val dxName = WdlDxName.fromSourceName(prefix + elem.name)
+    val allDxFields1: Vector[(DxName, JsValue)] =
+      parameterLinkSerializer.createFieldsFromLink(link, dxName)
     val allDxFields2 = allDxFields1.filter {
-      case (key, _) => !key.endsWith(ParameterLink.FlatFilesSuffix)
+      case (key, _) => !key.suffix.contains(Constants.FlatFilesSuffix)
     }
     allDxFields2.size should be(1)
     val (name2, jsv) = allDxFields2.head
-
-    name2 should be(prefix + elem.name)
-    val wdlValue2 = parameterLinkDeserializer.deserializeInputWithType(jsv, elem.irType, name2)
+    name2 shouldBe dxName
+    val wdlValue2 =
+      parameterLinkDeserializer.deserializeInputWithType(jsv, elem.irType, dxName.decoded)
     wdlValue2 should be(elem.irValue)
   }
 

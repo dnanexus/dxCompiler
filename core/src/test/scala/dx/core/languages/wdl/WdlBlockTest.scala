@@ -1,10 +1,8 @@
 package dx.core.languages.wdl
 
 import java.nio.file.{Path, Paths}
-
 import dx.core.Tags.EdgeTest
-import dx.core.ir.{Block, BlockKind}
-import dx.core.languages.wdl.{WdlUtils => WdlUtils}
+import dx.core.ir.{Block, BlockKind, DxName}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
@@ -18,9 +16,9 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
     Paths.get(p)
   }
 
-  private def mapFromOutputs(outputs: Vector[TAT.OutputParameter]): Map[String, WdlTypes.T] = {
+  private def mapFromOutputs(outputs: Vector[WdlBlockOutput]): Map[DxName, WdlTypes.T] = {
     outputs.map {
-      case TAT.OutputParameter(name, wdlType, _) => name -> wdlType
+      case WdlBlockOutput(name, wdlType, _) => name -> wdlType
     }.toMap
   }
 
@@ -254,9 +252,11 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
     val blocks = WdlBlock.createBlocks(doc.workflow.get.body)
     blocks.size shouldBe 1
     blocks.head.inputs.iterator sameElements {
-      Vector(RequiredBlockInput("i", WdlTypes.T_Int),
-             ComputedBlockInput("x", WdlTypes.T_Int),
-             ComputedBlockInput("j", WdlTypes.T_Int))
+      Vector(
+          RequiredBlockInput(WdlDxName.fromSourceName("i"), WdlTypes.T_Int),
+          ComputedBlockInput(WdlDxName.fromSourceName("x"), WdlTypes.T_Int),
+          ComputedBlockInput(WdlDxName.fromSourceName("j"), WdlTypes.T_Int)
+      )
     }
     blocks.head.outputs.sortWith(_.name < _.name) should matchPattern {
       case Vector(
@@ -283,7 +283,8 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
   it should "handle inputs that are nested references" in {
     val subBlocks = getWorkflowBlocks("bugs", "apps-422.wdl")
     subBlocks.head.inputs shouldBe Vector(
-        OptionalBlockInput("wf_input", WdlTypes.T_Optional(WdlTypes.T_String))
+        OptionalBlockInput(WdlDxName.fromSourceName("wf_input"),
+                           WdlTypes.T_Optional(WdlTypes.T_String))
     )
   }
 }

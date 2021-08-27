@@ -6,6 +6,7 @@ import dx.Tags.EdgeTest
 import dx.api._
 import dxCompiler.Main.SuccessfulCompileIR
 import dx.core.CliUtils.Failure
+import dx.core.Constants
 import dx.core.ir.Parameter
 import dx.util.{FileUtils, JsUtils}
 import dxCompiler.Main
@@ -350,7 +351,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
     val jsInputs = JsUtils.jsFromFile(dxInputsFile)
     val fields = jsInputs.asJsObject.fields
     fields("dir1") shouldBe JsObject(
-        Parameter.ComplexValueKey -> JsObject(
+        Constants.ComplexValueKey -> JsObject(
             "type" -> JsString("Listing"),
             "basename" -> JsString("cwl"),
             "listing" -> JsArray(
@@ -379,7 +380,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
     val jsInputs = JsUtils.jsFromFile(dxInputsFile)
     val fields = jsInputs.asJsObject.fields
     fields("dir1") shouldBe JsObject(
-        Parameter.ComplexValueKey -> JsObject(
+        Constants.ComplexValueKey -> JsObject(
             "type" -> JsString("Listing"),
             "basename" -> JsString("cwl"),
             "listing" -> JsArray(
@@ -405,7 +406,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
     val jsInputs = JsUtils.jsFromFile(dxInputsFile)
     val fields = jsInputs.asJsObject.fields
     fields("inf") shouldBe JsObject(
-        Parameter.ComplexValueKey -> JsObject(
+        Constants.ComplexValueKey -> JsObject(
             "type" -> JsString("File"),
             "uri" -> JsObject(
                 "$dnanexus_link" -> JsObject(

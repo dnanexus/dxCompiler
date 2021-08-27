@@ -95,7 +95,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           if (isOptional(irType)) {
             throw new Exception(s"Required input ${name} cannot have optional type ${wdlType}")
           }
-          Parameter(WdlDxName.fromRawParameterName(name), irType, attributes = attrs)
+          Parameter(WdlDxName.fromSourceName(name), irType, attributes = attrs)
         }
         case TAT.OverridableInputParameterWithDefault(name, _, defaultExpr) =>
           try {
@@ -107,9 +107,9 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                   if !WdlUtils.isDxFile(file) =>
                 // the default value cannot be specified in the input spec, so we leave it to be
                 // evaluated at runtime - e.g. a local file
-                Parameter(WdlDxName.fromRawParameterName(name), irType, None, attrs)
+                Parameter(WdlDxName.fromSourceName(name), irType, None, attrs)
               case _ =>
-                Parameter(WdlDxName.fromRawParameterName(name),
+                Parameter(WdlDxName.fromSourceName(name),
                           irType,
                           Some(WdlUtils.toIRValue(defaultValue, wdlType)),
                           attrs)
@@ -121,12 +121,12 @@ case class CallableTranslator(wdlBundle: WdlBundle,
             // evaluate the expression if no value is specified.
             case _: EvalException =>
               val optType = Type.ensureOptional(irType)
-              Parameter(WdlDxName.fromRawParameterName(name), optType, None, attrs)
+              Parameter(WdlDxName.fromSourceName(name), optType, None, attrs)
 
           }
         case TAT.OptionalInputParameter(name, _) =>
           val optType = Type.ensureOptional(irType)
-          Parameter(WdlDxName.fromRawParameterName(name), optType, None, attrs)
+          Parameter(WdlDxName.fromSourceName(name), optType, None, attrs)
       }
     }
 
@@ -148,7 +148,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         }
       }
       val attr = parameterMeta.translateOutput(output.name, wdlType)
-      Parameter(WdlDxName.fromRawParameterName(output.name), irType, defaultValue, attr)
+      Parameter(WdlDxName.fromSourceName(output.name), irType, defaultValue, attr)
     }
 
     def apply: Application = {
@@ -340,9 +340,9 @@ case class CallableTranslator(wdlBundle: WdlBundle,
               // if the expression is an identifier, look it up in the env
               expr match {
                 case TAT.ExprIdentifier(id, _) =>
-                  lookup(WdlDxName.fromRawParameterName(id))
+                  lookup(WdlDxName.fromSourceName(id))
                 case TAT.ExprGetName(TAT.ExprIdentifier(id, _), field, _) =>
-                  lookup(WdlDxName.fromRawParameterName(field, Some(id)))
+                  lookup(WdlDxName.fromSourceName(field, Some(id)))
                 case _ =>
                   env.log()
                   throw new Exception(
@@ -464,7 +464,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
             val fqn = dxName.decoded
             fqn.lastIndexOf(".") match {
               case pos if pos >= 0 =>
-                containsName(WdlDxName.fromDecodedParameterName(fqn.substring(0, pos)))
+                containsName(WdlDxName.fromDecodedName(fqn.substring(0, pos)))
               case _ => false
             }
           }
@@ -578,7 +578,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
               case _ =>
                 throw new Exception("scatter doesn't have an array expression")
             }
-            val scatterIdentifier = WdlDxName.fromRawParameterName(scatter.identifier)
+            val scatterIdentifier = WdlDxName.fromSourceName(scatter.identifier)
             val param = Parameter(scatterIdentifier, varType)
             val innerEnv = envWithPrivateVars.add(scatterIdentifier, (param, EmptyInput))
             val newScatterPath =
@@ -676,8 +676,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
     ): (Vector[(Stage, Vector[Callable])], CallEnv) = {
       logger.trace(s"Assembling workflow backbone $wfName")
 
-      val inputEnv: CallEnv =
-        CallEnv.fromLinkedVars(wfInputs, delim = ".", WdlDxName.fromDecodedParameterName)
+      val inputEnv: CallEnv = CallEnv.fromLinkedVars(wfInputs)
 
       val logger2 = logger.withIncTraceIndent()
       logger2.trace(s"inputs: ${inputEnv.keys}")
@@ -697,7 +696,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                 // to these results.
                 val afterEnv = stage.outputs.foldLeft(beforeEnv) {
                   case (env, param: Parameter) =>
-                    val dxName = param.name.addDecodedNamespace(call.actualName)
+                    val dxName = param.name.pushDecodedNamespace(call.actualName)
                     val paramFqn = param.copy(name = dxName)
                     env.add(dxName, (paramFqn, LinkInput(stage.dxStage, param.name)))
                 }
@@ -748,10 +747,10 @@ case class CallableTranslator(wdlBundle: WdlBundle,
             output.expr match {
               case TAT.ExprIdentifier(id, _) =>
                 // The output is a reference to a previously defined variable
-                env(WdlDxName.fromRawParameterName(id))._2
+                env(WdlDxName.fromSourceName(id))._2
               case TAT.ExprGetName(TAT.ExprIdentifier(id2, _), id, _) =>
                 // The output is a reference to a previously defined variable
-                env(WdlDxName.fromRawParameterName(id, Some(id2)))._2
+                env(WdlDxName.fromSourceName(id, Some(id2)))._2
               case _ =>
                 // An expression that requires evaluation
                 throw new Exception(
@@ -951,7 +950,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
             // The environment has a stage with this output
             false
           case WdlBlockOutput(_, _, TAT.ExprIdentifier(id, _))
-              if env.contains(WdlDxName.fromRawParameterName(id)) =>
+              if env.contains(WdlDxName.fromSourceName(id)) =>
             // An identifier that is in scope
             false
           case WdlBlockOutput(_, _, TAT.ExprGetName(TAT.ExprIdentifier(id2, _), id, _)) =>
@@ -961,7 +960,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
             //     Int? result1 = c1.result
             //     Int? result2 = c2.result
             //  }
-            !env.contains(WdlDxName.fromRawParameterName(id, Some(id2)))
+            !env.contains(WdlDxName.fromSourceName(id, Some(id2)))
           case _ => true
         }
       } || {

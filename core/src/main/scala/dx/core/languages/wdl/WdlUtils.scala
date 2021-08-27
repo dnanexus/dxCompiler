@@ -44,10 +44,10 @@ private case class WdlInputRef(identifierParts: Vector[String],
                                fieldName: Option[String],
                                wdlType: T,
                                kind: InputKind.InputKind) {
-  lazy val identifier: DxName = WdlDxName.fromDecodedParameterName(identifierParts.mkString("."))
+  lazy val identifier: DxName = WdlDxName.fromDecodedName(identifierParts.mkString("."))
 
   lazy val fullyQualifiedName: DxName = {
-    WdlDxName.fromDecodedParameterName((identifierParts ++ fieldName.toVector).mkString("."))
+    WdlDxName.fromDecodedName((identifierParts ++ fieldName.toVector).mkString("."))
   }
 
   /**
@@ -57,7 +57,7 @@ private case class WdlInputRef(identifierParts: Vector[String],
   lazy val names: Vector[DxName] = {
     (identifierParts ++ fieldName.toVector).reverse.tails.collect {
       case parts if parts.nonEmpty =>
-        WdlDxName.fromDecodedParameterName(parts.reverse.mkString("."))
+        WdlDxName.fromDecodedName(parts.reverse.mkString("."))
     }.toVector
   }
 }
@@ -967,12 +967,12 @@ object WdlUtils {
         //  value, to avoid having to use a fragment in the downstream app to
         //  dereference the struct.
         case TAT.PrivateVariable(name, wdlType, expr) =>
-          Vector((WdlDxName.fromRawParameterName(name), wdlType, expr))
+          Vector((WdlDxName.fromSourceName(name), wdlType, expr))
         case call: TAT.Call =>
           call.callee.output.map {
             case (name, wdlType) =>
               val dxName =
-                WdlDxName.fromRawParameterName(name, namespace = Some(call.actualName))
+                WdlDxName.fromSourceName(name, namespace = Some(call.actualName))
               val expr = TAT.ExprIdentifier(dxName.decoded, wdlType)(call.loc)
               (dxName, wdlType, expr)
           }.toVector
@@ -1116,7 +1116,7 @@ object WdlUtils {
   def getOutputClosure(outputs: Vector[TAT.OutputParameter]): Map[DxName, T] = {
     val dxOutputs: Map[DxName, (T, TAT.Expr)] = outputs.map {
       case TAT.OutputParameter(name, wdlType, expr) =>
-        WdlDxName.fromRawParameterName(name) -> (wdlType, expr)
+        WdlDxName.fromSourceName(name) -> (wdlType, expr)
     }.toMap
     getOutputClosure(dxOutputs)
   }

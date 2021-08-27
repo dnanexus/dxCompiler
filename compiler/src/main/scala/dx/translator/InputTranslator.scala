@@ -8,10 +8,11 @@ import dx.core.ir.{
   Application,
   Bundle,
   Callable,
-  SimpleDxName,
+  DxNameFactory,
   Manifest,
   ParameterLinkDeserializer,
   ParameterLinkSerializer,
+  SimpleDxName,
   StaticInput,
   Type,
   Value,
@@ -60,6 +61,7 @@ abstract class InputTranslator(bundle: Bundle,
                                useManifests: Boolean,
                                complexPathValues: Boolean,
                                ignoreUnusedInputs: Boolean,
+                               dxNameFactory: DxNameFactory,
                                baseFileResolver: FileSourceResolver = FileSourceResolver.get,
                                dxApi: DxApi = DxApi.get,
                                logger: Logger = Logger.get) {
@@ -419,7 +421,7 @@ abstract class InputTranslator(bundle: Bundle,
         } else {
           JsObject(inputs.flatMap {
             case (name, (t, v)) =>
-              parameterLinkSerializer.createFields(new SimpleDxName(name), t, v).map {
+              parameterLinkSerializer.createFields(dxNameFactory.fromDecodedName(name), t, v).map {
                 case (dxName, jsv) => dxName.encoded -> jsv
               }
           })

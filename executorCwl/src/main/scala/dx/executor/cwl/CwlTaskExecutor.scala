@@ -93,7 +93,7 @@ case class CwlTaskExecutor(tool: Process,
   private lazy val inputParams: Map[DxName, InputParameter] = {
     tool.inputs.collect {
       case param if param.id.forall(_.name.isDefined) =>
-        CwlDxName.fromRawParameterName(param.id.flatMap(_.name).get) -> param
+        CwlDxName.fromSourceName(param.id.flatMap(_.name).get) -> param
     }.toMap
   }
 
@@ -136,7 +136,7 @@ case class CwlTaskExecutor(tool: Process,
         .flatMap { param =>
           param.id.flatMap(_.name) match {
             case Some(name) =>
-              val dxName = CwlDxName.fromRawParameterName(name)
+              val dxName = CwlDxName.fromSourceName(name)
               cwlInputs.get(dxName) match {
                 case Some((inputType, inputValue)) =>
                   Some(
@@ -364,7 +364,7 @@ case class CwlTaskExecutor(tool: Process,
 
   private lazy val outputParams: Map[DxName, OutputParameter] = {
     val outputParams: Map[DxName, OutputParameter] = tool.outputs.flatMap { param =>
-      param.id.flatMap(_.name).map(CwlDxName.fromRawParameterName(_) -> param)
+      param.id.flatMap(_.name).map(CwlDxName.fromSourceName(_) -> param)
     }.toMap
     if (logger.isVerbose) {
       logger.traceLimited(s"outputParams=${outputParams}")
@@ -381,7 +381,7 @@ case class CwlTaskExecutor(tool: Process,
       val allOutputs: Map[DxName, JsValue] = JsUtils.jsFromFile(stdoutFile) match {
         case JsObject(outputs) =>
           outputs.map {
-            case (name, jsv) => CwlDxName.fromRawParameterName(name) -> jsv
+            case (name, jsv) => CwlDxName.fromSourceName(name) -> jsv
           }
         case JsNull => Map.empty[DxName, JsValue]
         case other  => throw new Exception(s"unexpected cwltool outputs ${other}")
@@ -394,7 +394,7 @@ case class CwlTaskExecutor(tool: Process,
       val cwlOutputs = outputParams.map {
         case (dxName, param: WorkflowOutputParameter) if param.sources.nonEmpty =>
           val sources = param.sources.map(id =>
-            allOutputs.getOrElse(CwlDxName.fromRawParameterName(id.name.get), JsNull)
+            allOutputs.getOrElse(CwlDxName.fromSourceName(id.name.get), JsNull)
           )
           val isArray = param.cwlType match {
             case _: CwlArray => true

@@ -26,7 +26,7 @@ import dx.core.ir.{
   Type,
   Value
 }
-import dx.core.languages.wdl.{CodeGenerator, VersionSupport, WdlOptions, WdlUtils}
+import dx.core.languages.wdl.{CodeGenerator, VersionSupport, WdlDxName, WdlOptions, WdlUtils}
 import dx.executor.{JobMeta, TaskExecutor}
 import dx.util.{CodecUtils, FileSourceResolver, FileUtils, JsUtils, Logger, SysUtils}
 import dx.util.protocols.DxFileAccessProtocol
@@ -44,7 +44,7 @@ private case class TaskTestJobMeta(override val workerPaths: DxWorkerPaths,
                                    rawInstanceTypeDb: InstanceTypeDB,
                                    rawSourceCode: String,
                                    useManifestInputs: Boolean = false)
-    extends JobMeta(workerPaths, dxApi, logger) {
+    extends JobMeta(workerPaths, WdlDxName, dxApi, logger) {
   var outputs: Option[Map[DxName, JsValue]] = None
 
   override val project: DxProject = null
@@ -181,7 +181,7 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
     pathFromBasename(s"${wdlName}_input.json") match {
       case Some(path) if Files.exists(path) =>
         JsUtils.getFields(JsUtils.jsFromFile(path)).map {
-          case (name, jsv) => SimpleDxName.fromEncodedParameterName(name) -> jsv
+          case (name, jsv) => WdlDxName.fromEncodedName(name) -> jsv
         }
       case _ => Map.empty
     }
@@ -235,7 +235,7 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
     // which requires some auxilliarly objects
     val outputSerializer: ParameterLinkSerializer = ParameterLinkSerializer(fileResolver, dxApi)
     val taskInputs: Map[DxName, TAT.InputParameter] =
-      task.inputs.map(inp => SimpleDxName.fromDecodedParameterName(inp.name) -> inp).toMap
+      task.inputs.map(inp => WdlDxName.fromDecodedName(inp.name) -> inp).toMap
     val updatedInputs = inputDeserializer
       .deserializeInputMap(inputs)
       .collect {

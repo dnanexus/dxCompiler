@@ -46,9 +46,7 @@ abstract class WorkflowTranslator(wfName: String,
     DxWorkflowStage(getStageId(stageName))
   }
 
-  protected case class CallEnv(env: Map[DxName, LinkedVar],
-                               delim: String,
-                               createDxName: String => DxName) {
+  protected case class CallEnv(env: Map[DxName, LinkedVar]) {
     def add(key: DxName, lvar: LinkedVar): CallEnv = {
       copy(env = env + (key -> lvar))
     }
@@ -82,23 +80,23 @@ abstract class WorkflowTranslator(wfName: String,
     }
 
     /**
-      * Check if the environment has a variable with a binding for
-      * a fully-qualified name. For example, if fqn is "A.B.C", then
-      * look for "A.B.C", "A.B", or "A", in that order.
-      *
-      * If the environment has a pair "p", then we want to be able to
-      * to return "p" when looking for "p.left" or "p.right".
-      *
+      * Returns the value associated with a name or any of its "ancestors".
+      * For example, if `dxName` is "A.B.C", then we look up "A.B.C", "A.B",
+      * and "A", in that order, and return the first non-empty result.
+      * @example {{{
+      * env = {"p": Pair(1, 2), "p.right": 2}
+      * env.lookup("p.left") -> Pair(1, 2)
+      * env.lookup("p.right") -> 2
+      * }}}
       * @param dxName fully-qualified name
-      * @return
       */
     def lookup(dxName: DxName): Option[(DxName, LinkedVar)] = {
       env.get(dxName).map((dxName, _)).orElse {
-        // A.B.C --> A.B
-        val fqn = dxName.decoded
-        fqn.lastIndexOf(delim) match {
-          case pos if pos >= 0 => lookup(createDxName(fqn.take(pos)))
-          case _               => None
+        if (dxName.numParts > 1) {
+          val (prefix, _) = dxName.popDecodedIdentifier()
+          lookup(prefix)
+        } else {
+          None
         }
       }
     }
@@ -120,13 +118,10 @@ abstract class WorkflowTranslator(wfName: String,
   }
 
   protected object CallEnv {
-    def fromLinkedVars(lvars: Vector[LinkedVar],
-                       delim: String,
-                       createDxName: String => DxName): CallEnv = {
+    def fromLinkedVars(lvars: Vector[LinkedVar]): CallEnv = {
       CallEnv(lvars.map {
-        case (parameter, stageInput) =>
-          parameter.name -> (parameter, stageInput)
-      }.toMap, delim, createDxName)
+        case (parameter, stageInput) => parameter.name -> (parameter, stageInput)
+      }.toMap)
     }
   }
 

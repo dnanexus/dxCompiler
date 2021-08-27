@@ -1122,34 +1122,34 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     input.keySet shouldBe Set(
         Constants.InputManifestFiles,
         Constants.InputManifest,
-        s"${Constants.InputManifest}___dxfiles",
+        Constants.InputManifest.withSuffix(Constants.FlatFilesSuffix),
         Constants.InputLinks,
-        s"${Constants.InputLinks}___dxfiles",
+        Constants.InputLinks.withSuffix(Constants.FlatFilesSuffix),
         Constants.WorkflowInputManifest,
-        s"${Constants.WorkflowInputManifest}___dxfiles",
+        Constants.WorkflowInputManifest.withSuffix(Constants.FlatFilesSuffix),
         Constants.WorkflowInputManifestFiles,
         Constants.WorkflowInputLinks,
-        s"${Constants.WorkflowInputLinks}___dxfiles",
+        Constants.WorkflowInputLinks.withSuffix(Constants.FlatFilesSuffix),
         Constants.OutputId,
         Constants.CallName
-    )
-    input(Constants.InputManifest).ioClass shouldBe DxIOClass.Hash
-    input(Constants.InputManifest).optional shouldBe true
-    input(Constants.InputManifestFiles).ioClass shouldBe DxIOClass.FileArray
-    input(Constants.InputLinks).ioClass shouldBe DxIOClass.Hash
-    input(Constants.InputLinks).optional shouldBe true
-    input(Constants.WorkflowInputManifest).ioClass shouldBe DxIOClass.Hash
-    input(Constants.WorkflowInputManifest).optional shouldBe true
-    input(Constants.WorkflowInputManifestFiles).ioClass shouldBe DxIOClass.FileArray
-    input(Constants.WorkflowInputLinks).ioClass shouldBe DxIOClass.Hash
-    input(Constants.WorkflowInputLinks).optional shouldBe true
-    input(Constants.OutputId).ioClass shouldBe DxIOClass.String
-    input(Constants.CallName).ioClass shouldBe DxIOClass.String
-    input(Constants.CallName).optional shouldBe true
+    ).map(_.encoded)
+    input(Constants.InputManifest.encoded).ioClass shouldBe DxIOClass.Hash
+    input(Constants.InputManifest.encoded).optional shouldBe true
+    input(Constants.InputManifestFiles.encoded).ioClass shouldBe DxIOClass.FileArray
+    input(Constants.InputLinks.encoded).ioClass shouldBe DxIOClass.Hash
+    input(Constants.InputLinks.encoded).optional shouldBe true
+    input(Constants.WorkflowInputManifest.encoded).ioClass shouldBe DxIOClass.Hash
+    input(Constants.WorkflowInputManifest.encoded).optional shouldBe true
+    input(Constants.WorkflowInputManifestFiles.encoded).ioClass shouldBe DxIOClass.FileArray
+    input(Constants.WorkflowInputLinks.encoded).ioClass shouldBe DxIOClass.Hash
+    input(Constants.WorkflowInputLinks.encoded).optional shouldBe true
+    input(Constants.OutputId.encoded).ioClass shouldBe DxIOClass.String
+    input(Constants.CallName.encoded).ioClass shouldBe DxIOClass.String
+    input(Constants.CallName.encoded).optional shouldBe true
 
     val output = desc.outputSpec.get.map(i => i.name -> i).toMap
-    output.keySet shouldBe Set(Constants.OutputManifest)
-    output(Constants.OutputManifest).ioClass shouldBe DxIOClass.File
+    output.keySet shouldBe Set(Constants.OutputManifest.encoded)
+    output(Constants.OutputManifest.encoded).ioClass shouldBe DxIOClass.File
   }
 
   it should "compile a workflow with a native app with file output" taggedAs NativeTest in {

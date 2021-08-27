@@ -5,7 +5,7 @@ import dx.api.{DxApi, DxProject}
 import dx.core.ir._
 import dx.core.ir.Type.TSchema
 import dx.core.languages.Language
-import dx.core.languages.wdl.{VersionSupport, WdlBundle, WdlOptions, WdlUtils}
+import dx.core.languages.wdl.{VersionSupport, WdlBundle, WdlDxName, WdlOptions, WdlUtils}
 import dx.translator.{
   DxWorkflowAttrs,
   InputTranslator,
@@ -33,6 +33,7 @@ case class WdlInputTranslator(bundle: Bundle,
                             useManifests,
                             complexPathValues = false,
                             ignoreUnusedInputs = false,
+                            WdlDxName,
                             baseFileResolver,
                             dxApi,
                             logger) {

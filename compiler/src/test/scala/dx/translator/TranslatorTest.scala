@@ -9,8 +9,8 @@ import dx.core.ir.{Parameter, _}
 import dx.core.ir.RunSpec._
 import dx.core.ir.Type._
 import dx.core.ir.Value._
-import dx.core.languages.cwl.TargetParam
-import dx.core.languages.wdl.WdlDocumentSource
+import dx.core.languages.cwl.{CwlDxName, TargetParam}
+import dx.core.languages.wdl.{WdlDocumentSource, WdlDxName}
 import dx.translator.CallableAttributes._
 import dx.translator.ParameterAttributes._
 import dx.util.Logger
@@ -280,15 +280,15 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     }
     val outerScatter = bundle.allCallables("nested_scatter_frag_stage-3")
     outerScatter.inputVars should contain theSameElementsAs Vector(
-        Parameter("x", TInt),
-        Parameter("ints1", TArray(TInt)),
-        Parameter("ints2", TArray(TInt))
+        Parameter(WdlDxName.fromSourceName("x"), TInt),
+        Parameter(WdlDxName.fromSourceName("ints1"), TArray(TInt)),
+        Parameter(WdlDxName.fromSourceName("ints2"), TArray(TInt))
     )
     val innerScatter = bundle.allCallables("nested_scatter_block_0_0")
     innerScatter.inputVars should contain theSameElementsAs Vector(
-        Parameter("x", TInt),
-        Parameter("y", TInt),
-        Parameter("ints1", TArray(TInt))
+        Parameter(WdlDxName.fromSourceName("x"), TInt),
+        Parameter(WdlDxName.fromSourceName("y"), TInt),
+        Parameter(WdlDxName.fromSourceName("ints1"), TArray(TInt))
     )
   }
 
@@ -306,7 +306,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val cgrepApplication = getApplicationByName("pattern_params_cgrep", bundle)
     cgrepApplication.inputs.iterator sameElements Vector(
         Parameter(
-            "in_file",
+            WdlDxName.fromSourceName("in_file"),
             Type.TFile,
             None,
             Vector(
@@ -317,7 +317,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
             )
         ),
         Parameter(
-            "pattern",
+            WdlDxName.fromSourceName("pattern"),
             TString,
             None,
             Vector(
@@ -328,9 +328,9 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
         )
     )
     cgrepApplication.outputs.iterator sameElements Vector(
-        Parameter("count", TInt, None, Vector.empty),
+        Parameter(WdlDxName.fromSourceName("count"), TInt, None, Vector.empty),
         Parameter(
-            "out_file",
+            WdlDxName.fromSourceName("out_file"),
             TFile,
             None,
             Vector(
@@ -356,7 +356,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val cgrepApplication = getApplicationByName("pattern_params_obj_cgrep", bundle)
     cgrepApplication.inputs.iterator sameElements Vector(
         Parameter(
-            "in_file",
+            WdlDxName.fromSourceName("in_file"),
             TFile,
             None,
             Vector(
@@ -373,7 +373,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
             )
         ),
         Parameter(
-            "pattern",
+            WdlDxName.fromSourceName("pattern"),
             TString,
             None,
             Vector(
@@ -384,9 +384,9 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
         )
     )
     cgrepApplication.outputs.iterator sameElements Vector(
-        Parameter("count", TInt, None, Vector.empty),
+        Parameter(WdlDxName.fromSourceName("count"), TInt, None, Vector.empty),
         Parameter(
-            "out_file",
+            WdlDxName.fromSourceName("out_file"),
             TFile,
             None,
             Vector(
@@ -412,7 +412,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val cgrepApplication = getApplicationByName("choice_values_cgrep", bundle)
     cgrepApplication.inputs.iterator sameElements Vector(
         Parameter(
-            "in_file",
+            WdlDxName.fromSourceName("in_file"),
             TFile,
             None,
             Vector(
@@ -431,7 +431,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
             )
         ),
         Parameter(
-            "pattern",
+            WdlDxName.fromSourceName("pattern"),
             TString,
             None,
             Vector(
@@ -460,7 +460,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val cgrepApplication = getApplicationByName("choice_values_cgrep", bundle)
     cgrepApplication.inputs.iterator sameElements Vector(
         Parameter(
-            "in_file",
+            WdlDxName.fromSourceName("in_file"),
             TFile,
             None,
             Vector(
@@ -479,7 +479,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
             )
         ),
         Parameter(
-            "pattern",
+            WdlDxName.fromSourceName("pattern"),
             TString,
             None,
             Vector(
@@ -517,7 +517,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val cgrepApplication = getApplicationByName("suggestion_values_cgrep", bundle)
     cgrepApplication.inputs.iterator sameElements Vector(
         Parameter(
-            "in_file",
+            WdlDxName.fromSourceName("in_file"),
             TFile,
             None,
             Vector(
@@ -540,7 +540,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
             )
         ),
         Parameter(
-            "pattern",
+            WdlDxName.fromSourceName("pattern"),
             TString,
             None,
             Vector(
@@ -569,7 +569,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val cgrepApplication = getApplicationByName("suggestion_values_cgrep", bundle)
     cgrepApplication.inputs.iterator sameElements Vector(
         Parameter(
-            "in_file",
+            WdlDxName.fromSourceName("in_file"),
             TFile,
             None,
             Vector(
@@ -592,7 +592,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
             )
         ),
         Parameter(
-            "pattern",
+            WdlDxName.fromSourceName("pattern"),
             TString,
             None,
             Vector(
@@ -639,7 +639,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val cgrepApplication = getApplicationByName("add_dx_type", bundle)
     cgrepApplication.inputs shouldBe Vector(
         Parameter(
-            "a",
+            WdlDxName.fromSourceName("a"),
             TFile,
             None,
             Vector(
@@ -647,7 +647,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
             )
         ),
         Parameter(
-            "b",
+            WdlDxName.fromSourceName("b"),
             TFile,
             None,
             Vector(
@@ -694,13 +694,13 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val cgrepApplication = getApplicationByName("add_default", bundle)
     cgrepApplication.inputs shouldBe Vector(
         Parameter(
-            "a",
+            WdlDxName.fromSourceName("a"),
             TInt,
             Some(VInt(1)),
             Vector.empty
         ),
         Parameter(
-            "b",
+            WdlDxName.fromSourceName("b"),
             TOptional(TInt),
             None,
             Vector(DefaultAttribute(VInt(2)))
@@ -732,7 +732,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val cgrepApplication = getApplicationByName("help_input_params_cgrep", bundle)
     cgrepApplication.inputs.iterator sameElements Vector(
         Parameter(
-            "s",
+            WdlDxName.fromSourceName("s"),
             TString,
             None,
             Vector(
@@ -740,7 +740,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
             )
         ),
         Parameter(
-            "in_file",
+            WdlDxName.fromSourceName("in_file"),
             TFile,
             None,
             Vector(
@@ -750,7 +750,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
             )
         ),
         Parameter(
-            "pattern",
+            WdlDxName.fromSourceName("pattern"),
             TString,
             None,
             Vector(
@@ -779,7 +779,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val cgrepApplication = getApplicationByName("help_output_params_cgrep", bundle)
     cgrepApplication.outputs.iterator sameElements Vector(
         Parameter(
-            "count",
+            WdlDxName.fromSourceName("count"),
             TInt,
             None,
             Vector.empty
@@ -922,7 +922,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     wf.stages.size shouldBe 2
     wf.stages.head.inputs shouldBe Vector(
         WorkflowInput(
-            Parameter("sampleStruct",
+            Parameter(WdlDxName.fromSourceName("sampleStruct"),
                       TSchema("SampleStruct", TreeSeqMap("sample_name" -> TString, "id" -> TInt)),
                       None,
                       Vector())
@@ -1088,7 +1088,9 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     wfs.length shouldBe 1
     val wf = wfs.head
 
-    val samtools = wf.inputs.find { case (cVar, _) => cVar.name == "samtools_memory" }
+    val samtools = wf.inputs.find {
+      case (cVar, _) => cVar.name.decoded == "samtools_memory"
+    }
     inside(samtools) {
       /*case Some((cVar, _)) =>
        cVar.wdlType shouldBe (TOptional(TString))*/
@@ -1172,7 +1174,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     }
     input_cvars.sortWith(_.name < _.name) shouldBe Vector(
         Parameter(
-            "x",
+            WdlDxName.fromSourceName("x"),
             TInt,
             Some(VInt(3)),
             Vector(
@@ -1181,7 +1183,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
             )
         ),
         Parameter(
-            "y",
+            WdlDxName.fromSourceName("y"),
             TInt,
             Some(VInt(5)),
             Vector(
@@ -1545,8 +1547,9 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
         applet.kind shouldBe ExecutableKindApplet
         applet.attributes shouldBe Vector(DescriptionAttribute("Write a file to stdout using cat"))
         applet.container shouldBe NoImage
-        applet.inputs shouldBe Vector(Parameter("file", TFile), TargetParam)
-        applet.outputs shouldBe Vector(Parameter("contents", TFile))
+        applet.inputs shouldBe Vector(Parameter(CwlDxName.fromSourceName("file"), TFile),
+                                      TargetParam)
+        applet.outputs shouldBe Vector(Parameter(CwlDxName.fromSourceName("contents"), TFile))
       case other =>
         throw new AssertionError(s"expected SuccessfulCompileIR, not ${other}")
     }
@@ -1576,12 +1579,11 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
       case other =>
         throw new Exception(s"expected compilation result to be a tool, not ${other}")
     }
-    val recordInput = tool.inputs
+    tool.inputs
       .collectFirst {
-        case inp if inp.name == "record_input" => inp
+        case inp if inp.name.decoded == "record_input" => inp
       }
       .getOrElse(throw new Exception("missing field record_input"))
-    println(recordInput.dxType)
   }
 
   it should "translate a workflow with scatter inside conditional" in {
@@ -1604,30 +1606,34 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
         throw new Exception(s"expected Workflow not ${other}")
     }
     wf.inputs shouldBe Vector(
-        Parameter("file1", TFile) -> WorkflowInput(Parameter("file1", TFile))
+        Parameter(CwlDxName.fromSourceName("file1"), TFile) -> WorkflowInput(
+            Parameter(CwlDxName.fromSourceName("file1"), TFile)
+        )
     )
     wf.outputs shouldBe Vector(
-        Parameter("count_output", TInt) -> LinkInput(DxWorkflowStage("stage-1"),
-                                                     SimpleDxName("output"))
+        Parameter(CwlDxName.fromSourceName("count_output"), TInt) -> LinkInput(
+            DxWorkflowStage("stage-1"),
+            SimpleDxName.fromSourceName("output")
+        )
     )
     wf.stages.size shouldBe 2
     wf.stages(0).dxStage.id shouldBe "stage-0"
     wf.stages(0).calleeName shouldBe "word-count"
     wf.stages(0).inputs shouldBe Vector(
-        WorkflowInput(Parameter("file1", TFile)),
+        WorkflowInput(Parameter(WdlDxName.fromSourceName("file1"), TFile)),
         StaticInput(VString("step1"))
     )
     wf.stages(0).outputs shouldBe Vector(
-        Parameter("output", TFile)
+        Parameter(WdlDxName.fromSourceName("output"), TFile)
     )
     wf.stages(1).dxStage.id shouldBe "stage-1"
     wf.stages(1).calleeName shouldBe "parseInt"
     wf.stages(1).inputs shouldBe Vector(
-        LinkInput(DxWorkflowStage("stage-0"), SimpleDxName("output")),
+        LinkInput(DxWorkflowStage("stage-0"), SimpleDxName.fromSourceName("output")),
         StaticInput(VString("step2"))
     )
     wf.stages(1).outputs shouldBe Vector(
-        Parameter("output", TInt)
+        Parameter(WdlDxName.fromSourceName("output"), TInt)
     )
   }
 

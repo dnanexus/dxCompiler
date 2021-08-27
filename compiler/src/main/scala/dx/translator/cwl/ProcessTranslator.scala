@@ -155,7 +155,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           }
         case None => None
       }
-      val dxName = CwlDxName.fromRawParameterName(input.id.flatMap(_.name).get)
+      val dxName = CwlDxName.fromSourceName(input.id.flatMap(_.name).get)
       val attrs = translateParameterAttributes(input, hintParameterAttrs)
       Parameter(dxName, CwlUtils.toIRType(input.cwlType), irDefaultValue, attrs)
     }
@@ -177,7 +177,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
             })
         case _ => None
       }
-      val dxName = CwlDxName.fromRawParameterName(output.id.flatMap(_.name).get)
+      val dxName = CwlDxName.fromSourceName(output.id.flatMap(_.name).get)
       val attrs = translateParameterAttributes(output, hintParameterAttrs)
       Parameter(dxName, CwlUtils.toIRType(output.cwlType), irValue, attrs)
     }
@@ -309,7 +309,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
     }
 
     private def createWorkflowInput(input: WorkflowInputParameter): Parameter = {
-      val dxName = CwlDxName.fromRawParameterName(input.name)
+      val dxName = CwlDxName.fromSourceName(input.name)
       val cwlType = input.cwlType
       val irType = CwlUtils.toIRType(cwlType)
       val default = input.default
@@ -360,7 +360,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         case Some(inp) if inp.sources.isEmpty =>
           EmptyInput
         case Some(inp) if inp.sources.size == 1 =>
-          val dxName = CwlDxName.fromRawParameterName(inp.sources.head.frag.get)
+          val dxName = CwlDxName.fromSourceName(inp.sources.head.frag.get)
           try {
             lookup(dxName)
           } catch {
@@ -385,7 +385,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       )
       // Extract the input values/links from the environment
       val callInputParams: Map[DxName, WorkflowStepInput] = call.inputs.map { param =>
-        CwlDxName.fromRawParameterName(param.name) -> param
+        CwlDxName.fromSourceName(param.name) -> param
       }.toMap
       val inputs: Vector[StageInput] = callee.inputVars.map {
         case param if param == TargetParam =>
@@ -521,8 +521,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
     ): (Vector[(Stage, Vector[Callable])], CallEnv) = {
       logger.trace(s"Assembling workflow backbone $wfName")
 
-      val inputEnv: CallEnv =
-        CallEnv.fromLinkedVars(wfInputs, delim = "/", CwlDxName.fromDecodedParameterName)
+      val inputEnv: CallEnv = CallEnv.fromLinkedVars(wfInputs)
 
       val logger2 = logger.withIncTraceIndent()
       logger2.trace(s"inputs: ${inputEnv.keys.map(_.decoded)}")
@@ -543,7 +542,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
                   // to these results.
                   val afterEnv = stage.outputs.foldLeft(beforeEnv) {
                     case (env, param: Parameter) =>
-                      val fqn = param.name.addDecodedNamespace(step.name)
+                      val fqn = param.name.pushDecodedNamespace(step.name)
                       val paramFqn = param.copy(name = fqn)
                       env.add(fqn, (paramFqn, LinkInput(stage.dxStage, param.name)))
                   }
@@ -601,7 +600,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
               s"there must be at least one 'outputSource' for parameter ${param.name}"
           )
         }
-        param.sources.map(source => CwlDxName.fromRawParameterName(source.frag.get))
+        param.sources.map(source => CwlDxName.fromSourceName(source.frag.get))
       }.toSet
       logger.trace(s"paramNames: ${paramNames}")
       val (applicationInputs, stageInputs) = paramNames.map { name =>
@@ -615,7 +614,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       // build definitions of the output variables - if the expression can be evaluated,
       // set the values as the parameter's default
       val outputParams: Vector[Parameter] = outputs.map { param =>
-        val dxName = CwlDxName.fromRawParameterName(param.name)
+        val dxName = CwlDxName.fromSourceName(param.name)
         val irType = CwlUtils.toIRType(param.cwlType)
         Parameter(dxName, irType, None)
       }
@@ -682,7 +681,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         // manifests into a single manifest.
         val commonStageInputs = wfInputParams.map(p => WorkflowInput(p))
         val inputOutputs: Vector[Parameter] = inputs.map { i =>
-          val dxName = CwlDxName.fromRawParameterName(i.name)
+          val dxName = CwlDxName.fromSourceName(i.name)
           Parameter(dxName, CwlUtils.toIRType(i.cwlType))
         }
         val (commonStage, commonApplet) =
@@ -745,11 +744,11 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         (wfOutputs, stages :+ outputStage, auxCallables.flatten :+ outputApplet)
       } else {
         val wfOutputs = outputs.map { out =>
-          val dxName = CwlDxName.fromRawParameterName(out.name)
+          val dxName = CwlDxName.fromSourceName(out.name)
           val outputStage = env.get(dxName).map(_._2).getOrElse {
             // we know there is only one output source otherwise we'd be
             // using an output stage
-            val outputSource = CwlDxName.fromRawParameterName(out.sources.head.frag.get)
+            val outputSource = CwlDxName.fromSourceName(out.sources.head.frag.get)
             env
               .lookup(outputSource)
               .map(_._2._2)
