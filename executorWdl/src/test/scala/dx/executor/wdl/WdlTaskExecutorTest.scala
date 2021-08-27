@@ -187,10 +187,13 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
     }
   }
 
-  private def getExpectedOutputs(wdlName: String): Option[Map[String, JsValue]] = {
+  private def getExpectedOutputs(wdlName: String): Option[Map[DxName, JsValue]] = {
     pathFromBasename(s"${wdlName}_output.json") match {
-      case Some(path) if Files.exists(path) => Some(JsUtils.getFields(JsUtils.jsFromFile(path)))
-      case _                                => None
+      case Some(path) if Files.exists(path) =>
+        Some(JsUtils.getFields(JsUtils.jsFromFile(path)).map {
+          case (name, jsv) => WdlDxName.fromDecodedName(name) -> jsv
+        })
+      case _ => None
     }
   }
 
@@ -316,14 +319,17 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
                   }) {
                 throw new Exception("manifest file did not close within 30 seconds")
               }
-              val manifest =
-                Manifest.parse(new String(jobMeta.dxApi.downloadBytes(manifestFile)).parseJson)
-              manifest.jsValues
-            case None => Map.empty[String, JsValue]
+              Manifest
+                .parse(
+                    new String(jobMeta.dxApi.downloadBytes(manifestFile)).parseJson,
+                    WdlDxName
+                )
+                .jsValues
+            case None => Map.empty[DxName, JsValue]
           })
-          .getOrElse(Map.empty[String, JsValue])
+          .getOrElse(Map.empty[DxName, JsValue])
       } else {
-        jobMeta.outputs.getOrElse(Map.empty[String, JsValue])
+        jobMeta.outputs.getOrElse(Map.empty[DxName, JsValue])
       }
       outputs shouldBe outputsExpected.get
     }

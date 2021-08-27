@@ -91,14 +91,6 @@ case class WdlWorkflowExecutor(docSource: FileNode,
   override protected lazy val typeAliases: Map[String, TSchema] =
     WdlUtils.toIRSchemaMap(wdlTypeAliases)
 
-  override protected def encodedDxName(encodedName: String): DxName = {
-    WdlDxName.fromEncodedName(encodedName)
-  }
-
-  override protected def decodedDxName(decodedName: String): DxName = {
-    WdlDxName.fromDecodedName(decodedName)
-  }
-
   override protected def evaluateInputs(
       jobInputs: Map[DxName, (Type, Value)]
   ): Map[DxName, (Type, Value)] = {
@@ -114,7 +106,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     // This might be the input for the entire workflow or just a subblock.
     // If it is for a sublock, it may be for the body of a conditional or
     // scatter, in which case we only need the inputs of the body statements.
-    val (inputTypes, inputValues) = jobMeta.blockPath match {
+    val (inputTypes: Map[DxName, T], inputValues: Map[DxName, V]) = jobMeta.blockPath match {
       case Vector() =>
         val inputTypes: Map[DxName, T] = workflow.inputs
           .map(inp => WdlDxName.fromSourceName(inp.name) -> inp.wdlType)
@@ -156,7 +148,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
               case (dxName, (wdlType, _)) => dxName -> wdlType
             }
           }
-          .getOrElse(Map.empty)
+          .getOrElse(Map.empty[DxName, T])
         val exprInputTypes = block.inputs
           .filterNot(i => targetInputTypes.contains(i.name))
           .map(inp => inp.name -> inp.wdlType)
@@ -345,7 +337,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         // transpose the results into M vectors of N items
         val outputValues: Vector[Vector[V]] =
           collection.map { v =>
-            val envInner = accu ++ env + (id -> (expr.wdlType, v))
+            val envInner = accu ++ env + (WdlDxName.fromSourceName(id) -> (expr.wdlType, v))
             val bodyValues = evaluateWorkflowElementVariables(body, envInner)
             outputNames.map(bodyValues(_)._2)
           }.transpose
@@ -724,7 +716,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       }
     }
 
-    private def launchScatterCallJobs(identifier: String,
+    private def launchScatterCallJobs(identifier: DxName,
                                       itemType: T,
                                       collection: Vector[V]): Vector[DxExecution] = {
       collection.zipWithIndex.map {
@@ -739,7 +731,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       }
     }
 
-    private def launchScatterSubblockJobs(identifier: String,
+    private def launchScatterSubblockJobs(identifier: DxName,
                                           itemType: T,
                                           collection: Vector[V]): Vector[DxExecution] = {
       assert(execLinkInfo.size == 1)
@@ -784,7 +776,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
             case _ =>
               throw new Exception(s"scatter type ${expr.wdlType} is not an array")
           }
-          (identifier, itemType, collection, next)
+          (WdlDxName.fromSourceName(identifier), itemType, collection, next)
         case _ =>
           throw new RuntimeException(s"invalid scatter block ${block}")
       }

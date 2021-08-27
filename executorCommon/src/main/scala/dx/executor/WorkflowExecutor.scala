@@ -492,10 +492,8 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta,
               val (manifestId, manifestValues) = manifestFile
                 .map { dxFile =>
                   val manifestJson = new String(dxApi.downloadBytes(dxFile)).parseJson
-                  val manifest = Manifest.parse(manifestJson)
-                  (manifest.id, manifest.jsValues.map {
-                    case (name, jsv) => dxNameFactory.fromDecodedName(name) -> jsv
-                  })
+                  val manifest = Manifest.parse(manifestJson, dxNameFactory)
+                  (manifest.id, manifest.jsValues)
                 }
                 .getOrElse((None, Map.empty[DxName, JsValue]))
               // all scatter jobs manifests should have the same ID
@@ -567,11 +565,9 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta,
         val outputJson = arrayValues.map {
           case (dxName, (t, v)) => dxName -> ValueSerde.serializeWithType(v, t)
         }
-        val manifest = Manifest(outputJson.map {
-          case (dxName, jsv) => dxName.decoded -> jsv
-        }, id = manifestId)
+        val manifest = Manifest(outputJson, id = manifestId)
         val destination = s"${jobMeta.manifestFolder}/${jobMeta.jobId}_output.manifest.json"
-        val manifestDxFile = dxApi.uploadString(manifest.toJson.prettyPrint, destination)
+        val manifestDxFile = dxApi.uploadString(manifest.toJson().prettyPrint, destination)
         val outputValues = Map(
             Constants.OutputManifest -> (TFile, VFile(manifestDxFile.asUri))
         )

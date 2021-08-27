@@ -297,7 +297,9 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     val wdlX = WdlValues.V_Array(Vector(WdlValues.V_String("x"), WdlValues.V_String("y")))
     val irX = WdlUtils.toIRValue(wdlX)
     val blockContext =
-      wdlWorkflowSupport.evaluateBlockInputs(Map("x" -> (Type.TArray(Type.TString), irX)))
+      wdlWorkflowSupport.evaluateBlockInputs(
+          Map(WdlDxName.fromSourceName("x") -> (Type.TArray(Type.TString), irX))
+      )
     blockContext.getScatterName(wdlX, 0) shouldBe "[x,y]"
   }
 
@@ -402,12 +404,12 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     val callInputs1: Map[DxName, (WdlTypes.T, WdlValues.V)] =
       wfSupport.WdlBlockContext.evaluateCallInputs(
           call1,
-          Map("i" -> (WdlTypes.T_Int, WdlValues.V_Int(1)))
+          Map(WdlDxName.fromSourceName("i") -> (WdlTypes.T_Int, WdlValues.V_Int(1)))
       )
     // We need to coerce the inputs into what the callee is expecting
     callInputs1 should be(
         Map(
-            "a" -> (WdlTypes.T_Optional(WdlTypes.T_Int),
+            WdlDxName.fromSourceName("a") -> (WdlTypes.T_Optional(WdlTypes.T_Int),
             WdlValues.V_Optional(WdlValues.V_Int(1)))
         )
     )
@@ -417,7 +419,8 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
       wfSupport.WdlBlockContext.evaluateCallInputs(
           call2,
           Map(
-              "powers10" -> (WdlTypes.T_Array(WdlTypes.T_Int, nonEmpty = false),
+              WdlDxName.fromSourceName("powers10") -> (WdlTypes.T_Array(WdlTypes.T_Int,
+                                                                        nonEmpty = false),
               WdlValues.V_Array(Vector(WdlValues.V_Int(1), WdlValues.V_Int(10))))
           )
       )
@@ -449,8 +452,11 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     val callInputs: Map[DxName, (WdlTypes.T, WdlValues.V)] =
       wdlWfExecutor.WdlBlockContext.evaluateCallInputs(
           call,
-          Map("opt" -> (WdlTypes.T_Optional(WdlTypes.T_Int), WdlValues.V_Null),
-              "ref_size" -> (WdlTypes.T_Int, WdlValues.V_Int(1)))
+          Map(
+              WdlDxName
+                .fromSourceName("opt") -> (WdlTypes.T_Optional(WdlTypes.T_Int), WdlValues.V_Null),
+              WdlDxName.fromSourceName("ref_size") -> (WdlTypes.T_Int, WdlValues.V_Int(1))
+          )
       )
     // We need to coerce the inputs into what the callee is expecting
     callInputs should be(

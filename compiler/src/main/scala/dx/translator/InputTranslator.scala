@@ -12,7 +12,6 @@ import dx.core.ir.{
   Manifest,
   ParameterLinkDeserializer,
   ParameterLinkSerializer,
-  SimpleDxName,
   StaticInput,
   Type,
   Value,
@@ -89,7 +88,7 @@ abstract class InputTranslator(bundle: Bundle,
       case (path, jsValues) if jsValues.size == 1 && jsValues.keys.head.endsWith(ManifestSuffix) =>
         val (key, fields) = jsValues.head
         val prefix = key.dropRight(ManifestSuffix.length)
-        val manifest = Manifest.parse(fields)
+        val manifest = Manifest.parse(fields, dxNameFactory)
         path -> manifest.jsValues.map {
           case (name, value) => s"${prefix}.${name}" -> value
         }
@@ -414,10 +413,11 @@ abstract class InputTranslator(bundle: Bundle,
         val jsValues = if (useManifests) {
           val (types, values) = inputs.map {
             case (name, (t, v)) =>
-              (name -> t, name -> ValueSerde.serializeWithType(v, t))
+              val dxName = dxNameFactory.fromDecodedName(name)
+              (dxName -> t, dxName -> ValueSerde.serializeWithType(v, t))
           }.unzip
           val manifest = Manifest(values.toMap, Some(types.toMap))
-          JsObject(Constants.InputManifest.encoded -> JsObject(manifest.jsValues))
+          JsObject(Constants.InputManifest.encoded -> manifest.toJson())
         } else {
           JsObject(inputs.flatMap {
             case (name, (t, v)) =>
@@ -446,10 +446,11 @@ abstract class InputTranslator(bundle: Bundle,
         }
         val (types, values) = inputs.map {
           case (name, (t, v)) =>
-            (name -> t, name -> ValueSerde.serializeWithType(v, t))
+            val dxName = dxNameFactory.fromDecodedName(name)
+            (dxName -> t, dxName -> ValueSerde.serializeWithType(v, t))
         }.unzip
         val manifest = Manifest(values.toMap, Some(types.toMap))
-        JsUtils.jsToFile(manifest.toJson, manifestFile)
+        JsUtils.jsToFile(manifest.toJson(), manifestFile)
     }
   }
 }

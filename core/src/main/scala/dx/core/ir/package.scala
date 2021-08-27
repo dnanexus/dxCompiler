@@ -142,7 +142,7 @@ abstract class DxName(private var encodedParts: Option[Vector[String]],
     suffix.map(suffix => s"${prefix}${suffix}").getOrElse(prefix)
   }
 
-  def decodePart(part: String): String = part
+  protected def decodePart(part: String): String = part
 
   def getDecodedParts: Vector[String] = {
     decodedParts

@@ -7,7 +7,6 @@ import dx.api._
 import dxCompiler.Main.SuccessfulCompileIR
 import dx.core.CliUtils.Failure
 import dx.core.Constants
-import dx.core.ir.Parameter
 import dx.util.{FileUtils, JsUtils}
 import dxCompiler.Main
 import org.scalatest.Inside._

@@ -105,14 +105,6 @@ case class CwlWorkflowExecutor(workflow: Workflow,
 
   // TODO: deal with steps with multiple input sources that need to be picked/merged
 
-  override protected def encodedDxName(encodedName: String): DxName = {
-    CwlDxName.fromEncodedName(encodedName)
-  }
-
-  override protected def decodedDxName(decodedName: String): DxName = {
-    CwlDxName.fromDecodedName(decodedName)
-  }
-
   override protected def evaluateInputs(
       jobInputs: Map[DxName, (Type, Value)]
   ): Map[DxName, (Type, Value)] = {
