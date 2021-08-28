@@ -65,6 +65,14 @@ case class ParameterLinkExec(dxExecution: DxExecution, dxName: DxName, dxType: T
 object ParameterLink {
   // key used to wrap a complex value in JSON
   val WorkflowInputFieldKey = "workflowInputField"
+
+  def prettyFormat(links: Map[DxName, ParameterLink], indent: Int = 2): String = {
+    links
+      .map {
+        case (dxName, link) => s"${dxName.decoded} -> ${link}"
+      }
+      .mkString(s"\n${" " * indent}")
+  }
 }
 
 case class ParameterLinkSerializer(fileResolver: FileSourceResolver = FileSourceResolver.get,

@@ -43,7 +43,8 @@ private case class TaskTestJobMeta(override val workerPaths: DxWorkerPaths,
                                    override val rawJsInputs: Map[DxName, JsValue],
                                    rawInstanceTypeDb: InstanceTypeDB,
                                    rawSourceCode: String,
-                                   useManifestInputs: Boolean = false)
+                                   useManifestInputs: Boolean = false,
+                                   downloadFiles: Boolean = true)
     extends JobMeta(workerPaths, WdlDxName, dxApi, logger) {
   var outputs: Option[Map[DxName, JsValue]] = None
 
@@ -58,7 +59,9 @@ private case class TaskTestJobMeta(override val workerPaths: DxWorkerPaths,
   override def runJobScriptFunction(name: String,
                                     successCodes: Option[Set[Int]] = Some(Set(0))): Unit = {
     name match {
-      case TaskExecutor.DownloadDxda if dxdaCallable =>
+      case TaskExecutor.DownloadDxda if downloadFiles && !dxdaCallable =>
+        throw new Exception("cannot call dxda")
+      case TaskExecutor.DownloadDxda if downloadFiles =>
         val dxdaManifest = workerPaths.getDxdaManifestFile().toString
         SysUtils.execCommand(
             s"""bzip2 ${dxdaManifest} &&
@@ -201,7 +204,8 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
       wdlName: String,
       streamFiles: StreamFiles.StreamFiles = StreamFiles.None,
       useManifests: Boolean = false,
-      waitOnUpload: Boolean = true
+      waitOnUpload: Boolean = true,
+      downloadFiles: Boolean = true
   ): (WdlTaskExecutor, TaskTestJobMeta) = {
     val wdlFile: Path = pathFromBasename(s"${wdlName}.wdl").get
     val inputs = getInputs(wdlName)
@@ -271,7 +275,8 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
                       finalInputs,
                       instanceTypeDB,
                       standAloneTaskSource,
-                      useManifests)
+                      useManifests,
+                      downloadFiles)
 
     // create TaskExecutor
     (WdlTaskExecutor.create(jobMeta,
@@ -366,8 +371,9 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
   }
 
   it should "handle files with same name in different source folders" taggedAs ApiTest in {
-    val (taskExecutor, jobMeta) = createTaskExecutor("two_files", StreamFiles.None)
-    taskExecutor.apply() shouldBe "success Execute"
+    val (taskExecutor, jobMeta) =
+      createTaskExecutor("two_files", StreamFiles.None, downloadFiles = false)
+    taskExecutor.apply() shouldBe true
     // make sure the download manifest has two different folders
     val manifestJs = JsUtils.jsFromFile(jobMeta.workerPaths.getDxdaManifestFile()).asJsObject.fields
     manifestJs.size shouldBe 1
@@ -430,7 +436,7 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
     val jobMeta = runTask("opt_array")
     jobMeta.outputs shouldBe Some(
         Map(
-            "o" -> JsArray(
+            WdlDxName.fromSourceName("o") -> JsArray(
                 JsObject(
                     "$dnanexus_link" -> JsObject(
                         "id" -> JsString("file-FGqFGBQ0ffPPkYP19gBvFkZy"),

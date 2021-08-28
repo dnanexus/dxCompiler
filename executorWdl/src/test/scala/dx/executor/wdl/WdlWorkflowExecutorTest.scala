@@ -195,7 +195,7 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
       case exe: WdlWorkflowExecutor => exe.evaluateWorkflowElementVariables(block.elements, env)
       case _                        => throw new Exception("expected WdlWorkflowSupport")
     }
-    results.keys should be(Set("names", "full_name"))
+    results.keys.map(_.decoded) should be(Set("names", "full_name"))
     results should be(
         Map(
             WdlDxName.fromSourceName("names") -> (WdlTypes.T_Array(WdlTypes.T_String,
@@ -343,7 +343,7 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
                                              Map.empty[DxName, (WdlTypes.T, WdlValues.V)])
       case _ => throw new Exception("expected WdlWorkflowSupport")
     }
-    results.keys should be(Set("powers10", "i1", "i2", "i3"))
+    results.keys.map(_.decoded) should be(Set("powers10", "i1", "i2", "i3"))
     results(WdlDxName.fromSourceName("i1")) should be(
         (WdlTypes.T_Optional(WdlTypes.T_Int), WdlValues.V_Optional(WdlValues.V_Int(1)))
     )
@@ -552,7 +552,7 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     val wfExecutor = createWorkflowExecutor(workerPaths, path)
     val (results, msg) = wfExecutor.apply(WorkflowAction.Run)
     msg shouldBe "success Run"
-    results should contain key "bam_lane1"
+    results should contain key WdlDxName.fromSourceName("bam_lane1")
     results(WdlDxName.fromSourceName("bam_lane1")) shouldBe ParameterLinkValue(
         JsArray(JsString("1_ACGT_1.bam"), JsNull),
         Type.TArray(Type.TOptional(Type.TString))

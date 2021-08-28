@@ -240,9 +240,9 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta,
         val outputNames = block.outputNames
         logger.traceLimited(
             s"""|prepareBlockOutputs
-                |  env = ${env.keys}
-                |  fragResults = ${outputs.keys}
-                |  exportedVars = ${outputNames}
+                |  env = ${env.keys.map(_.decoded)}
+                |  fragResults = ${outputs.keys.map(_.decoded)}
+                |  exportedVars = ${outputNames.map(_.decoded)}
                 |""".stripMargin,
             minLevel = TraceLevel.Verbose
         )
@@ -710,8 +710,8 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta,
       } else {
         "\n" + env
           .map {
-            case (name, (t, v)) =>
-              s"  ${name}: ${TypeSerde.toString(t)} ${ValueSerde.toString(v)}"
+            case (dxName, (t, v)) =>
+              s"  ${dxName.decoded}: ${TypeSerde.toString(t)} ${ValueSerde.toString(v)}"
           }
           .mkString("\n")
       }
@@ -853,7 +853,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta,
       case _ =>
         throw new Exception(s"Illegal workflow fragment operation ${action}")
     }
-    logger.traceLimited(s"outputLinks: ${outputs}")
+    logger.traceLimited(s"outputLinks:\n  ${ParameterLink.prettyFormat(outputs)}")
     jobMeta.writeOutputLinks(outputs)
     (outputs, s"success ${action}")
   }

@@ -143,7 +143,9 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
     */
   private def unpackManifests(rawInputs: Map[DxName, JsValue]): Map[DxName, JsValue] = {
     logger.traceLimited(s"""Unpacking manifests from raw inputs:
-                           |${rawInputs}""".stripMargin)
+                           |${JsObject(rawInputs.map {
+                             case (dxName, jsv) => dxName.decoded -> jsv
+                           }).prettyPrint}""".stripMargin)
 
     // resolve a file input to a DxFile
     def resolveManifestFiles(key: DxName): Vector[DxFile] = {
@@ -393,11 +395,11 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
       case (dxName, value) =>
         val irValue = inputSpec.get(dxName.encoded) match {
           case None =>
-            logger.warning(s"inputSpec is missing field ${dxName}")
+            logger.warning(s"inputSpec is missing field ${dxName.decoded}")
             inputDeserializer.deserializeInput(value)
           case Some(t) if Type.unwrapOptional(t) == Type.THash =>
             logger.trace(
-                s"""expected type of input field '${dxName}' is THash, which may represent an
+                s"""expected type of input field '${dxName.decoded}' is THash, which may represent an
                    |unknown schema type, so deserializing without type""".stripMargin
                   .replaceAll("\n", " ")
             )
