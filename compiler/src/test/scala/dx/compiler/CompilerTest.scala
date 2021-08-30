@@ -867,8 +867,6 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       case Some(JsString(x)) => x
       case other             => throw new Exception(s"Unexpected result ${other}")
     }
-
-    //System.out.println(s"instanceType = ${instanceType}")
     instanceType should include("_gpu")
   }
 

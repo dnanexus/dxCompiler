@@ -34,9 +34,6 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
 
   it should "calculate closure correctly" in {
     val blocks = getWorkflowBlocks("util", "block_closure.wdl")
-    /*System.out.println(s"""|block #0 =
-                               |${subBlocks(0).prettyPrintApproxWdl}}
-                               |""".stripMargin)*/
     blocks(0).inputs.map(_.name.decoded).toSet shouldBe Set.empty
     blocks(1).inputs.map(_.name.decoded).toSet shouldBe Set("flag", "rain")
     blocks(2).inputs.map(_.name.decoded).toSet shouldBe Set("flag", "inc1.result")
@@ -172,16 +169,6 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
     val blocks = getWorkflowBlocks("draft2", "movies.wdl")
     // Find the fragment block to execute
     val block = Block.getSubBlockAt(blocks, Vector(0))
-
-    /*
-        val dbgBlock = block.nodes.map{
-            WdlPrettyPrintApproxWdl.apply(_)
-        }.mkString("\n")
-        System.out.println(s"""|Block:
-                               |${dbgBlock}
-                               |""".stripMargin)
-     */
-
     block.kind shouldBe BlockKind.CallDirect
   }
 
@@ -208,10 +195,6 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
     val blocks = getWorkflowBlocks("draft2", "conditionals4.wdl")
     // Find the fragment block to execute
     val b = Block.getSubBlockAt(blocks, Vector(1))
-    /*        System.out.println(s"""|BLOCK #1 = [
-                               |${b.prettyPrintApproxWdl}
-                               |]
- |""".stripMargin) */
     logger.ignore(b)
   }
 
@@ -243,9 +226,6 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
     b0.kind shouldBe BlockKind.ScatterComplex
 
     val b00 = Block.getSubBlockAt(blocks, Vector(0, 0))
-
-//    val bl33 = WdlPrettyPrintApproxWdl.apply(b00.nodes)
-//    System.out.println(bl33)
 
     b00.kind shouldBe BlockKind.ConditionalOneCall
   }
