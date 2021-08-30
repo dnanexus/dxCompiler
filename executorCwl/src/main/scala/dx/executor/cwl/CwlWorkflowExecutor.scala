@@ -77,11 +77,12 @@ object CwlWorkflowExecutor {
       case Some(JsString(name)) => name
       case _                    => throw new Exception("missing executable name")
     }
-    val workflow = parser.parseString(jobMeta.sourceCode, defaultFrag = Some(wfName)) match {
-      case (wf: Workflow, _) => wf
-      case other =>
-        throw new Exception(s"expected CWL document to contain a Workflow, not ${other}")
-    }
+    val workflow =
+      parser.parseString(jobMeta.sourceCode, defaultFrag = Some(wfName), isPacked = true) match {
+        case (wf: Workflow, _) => wf
+        case other =>
+          throw new Exception(s"expected CWL document to contain a Workflow, not ${other}")
+      }
     CwlWorkflowExecutor(workflow, jobMeta, separateOutputs)
   }
 }

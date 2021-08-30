@@ -46,7 +46,7 @@ object CwlTaskExecutor {
     // a workflow and we look up the tool by name in the Map of processes nested
     // within the workflow.
     val defaultFrag = "___"
-    val tool = parser.parseString(jobMeta.sourceCode, Some(defaultFrag)) match {
+    val tool = parser.parseString(jobMeta.sourceCode, Some(defaultFrag), isPacked = true) match {
       case (tool: CommandLineTool, _) if tool.frag == defaultFrag =>
         tool.copy(id = Some(Identifier(namespace = None, frag = Some(toolName))))
       case (tool: CommandLineTool, _) => tool

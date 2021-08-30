@@ -197,7 +197,8 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
           return None
       }
     }
-    val process = parser.parseFile(sourceFile) match {
+    // CWL file is required to be packed
+    val process = parser.parseFile(sourceFile, isPacked = true) match {
       case (tool: CommandLineTool, _) => tool
       case (tool: ExpressionTool, _)  => tool
       case (wf: Workflow, _)          => wf
