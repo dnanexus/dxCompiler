@@ -68,9 +68,7 @@ object ParameterLink {
 
   def prettyFormat(links: Map[DxName, ParameterLink], indent: Int = 2): String = {
     links
-      .map {
-        case (dxName, link) => s"${dxName.decoded} -> ${link}"
-      }
+      .map { case (dxName, link) => s"${dxName} -> ${link}" }
       .mkString(s"\n${" " * indent}")
   }
 }

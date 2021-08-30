@@ -26,12 +26,27 @@ private case class WorkflowTestJobMeta(override val workerPaths: DxWorkerPaths,
                                        rawEnv: Map[DxName, (WdlTypes.T, WdlValues.V)],
                                        rawBlockPath: Vector[Int],
                                        rawInstanceTypeDb: InstanceTypeDB,
-                                       rawSourceCode: String)
+                                       rawSourceCode: String,
+                                       pathToDxFile: Map[Path, DxFile] = Map.empty)
     extends JobMeta(workerPaths, WdlDxName, dxApi, logger) {
   override val project: DxProject = null
 
   override val rawJsInputs: Map[DxName, JsValue] =
     ParameterLinkSerializer().createFieldsFromMap(WdlUtils.toIR(rawEnv))
+
+  override def uploadFiles(filesToUpload: Iterable[FileUpload]): Map[Path, DxFile] = {
+    filesToUpload.map { upload =>
+      pathToDxFile
+        .collectFirst {
+          case (path, dxFile) if upload.source.endsWith(path) => upload.source -> dxFile
+        }
+        .getOrElse {
+          throw new Exception(
+              s"${upload.source} does not match any of ${pathToDxFile.keys.mkString(",")}"
+          )
+        }
+    }.toMap
+  }
 
   override def writeRawJsOutputs(outputJs: Map[DxName, JsValue]): Unit = {}
 
@@ -125,7 +140,7 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     val wfSourceCode = FileUtils.readFileContent(sourcePath)
     val jobMeta =
       WorkflowTestJobMeta(workerPaths, dxApi, logger, env, blockPath, instanceTypeDB, wfSourceCode)
-    WdlWorkflowExecutor.create(jobMeta, separateOutputs = false, waitOnUpload = true)
+    WdlWorkflowExecutor.create(jobMeta, separateOutputs = false)
   }
 
   private def createFileResolver(workerPaths: DxWorkerPaths): FileSourceResolver = {

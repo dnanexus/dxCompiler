@@ -15,6 +15,7 @@ import dx.core.ir.Type._
 import dx.core.ir.Value._
 import dx.util.{
   AddressableFileSource,
+  Enum,
   FileSource,
   FileUtils,
   LocalFileSource,
@@ -28,7 +29,6 @@ import spray.json._
 
 object TaskExecutor {
   val MaxDisambiguationDirs: Int = 5000
-  val MaxConcurrentUploads: Int = 8
   // functions we can call in the command script
   val DownloadDxda = "download_dxda"
   val DownloadDxfuse = "download_dxfuse"
@@ -38,9 +38,13 @@ object TaskExecutor {
   val Cleanup = "cleanup"
 }
 
+object TaskExecutorResult extends Enum {
+  type TaskExecutorResult = Value
+  val Success, Relaunch = Value
+}
+
 abstract class TaskExecutor(jobMeta: JobMeta,
                             streamFiles: StreamFiles.StreamFiles = StreamFiles.PerFile,
-                            waitOnUpload: Boolean = false,
                             checkInstanceType: Boolean,
                             traceLengthLimit: Int = 10000) {
 
@@ -539,7 +543,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       listings: Listings
   ) extends WalkHandler[Uploads] {
     private val defaultDestParent = if (jobMeta.useManifests) {
-      DxFolderSource.ensureEndsWithSlash(jobMeta.manifestFolder)
+      DxFolderSource.ensureEndsWithSlash(jobMeta.manifestProjectAndFolder)
     } else {
       "/"
     }
@@ -639,7 +643,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     }
   }
 
-  private def delocalizeFiles(outputs: Map[DxName, (Type, Value)],
+  private def delocalizePaths(outputs: Map[DxName, (Type, Value)],
                               uploadedFiles: Map[Path, DxFile],
                               uploadedVirtualFiles: Map[String, Path],
                               uploadedDirectories: Map[Path, String],
@@ -696,9 +700,10 @@ abstract class TaskExecutor(jobMeta: JobMeta,
               // a folder that was uploaded
               val folderParent = parent.getOrElse(defaultFolderParent)
               val name = f.basename.getOrElse(local.canonicalPath.getFileName.toString)
-              val folder = s"${folderParent}${name}"
+              val folder = DxFolderSource.join(folderParent, name)
               VFolder(
-                  folder,
+                  DxFolderSource.format(dxApi.currentProject.get, folder),
+                  basename = Some(name),
                   listing = f.listing.map(_.map(handlePath(_, parent = Some(folder))).map {
                     case p: PathValue => p
                     case other        => throw new Exception(s"not a PathValue ${other}")
@@ -715,11 +720,15 @@ abstract class TaskExecutor(jobMeta: JobMeta,
           }
         case (Some(TDirectory) | None, l: VListing) =>
           val folderParent = parent.getOrElse(defaultFolderParent)
-          val folder = s"${folderParent}${l.basename}"
-          VFolder(folder, listing = Some(l.items.map(handlePath(_, parent = Some(folder))).map {
-            case p: PathValue => p
-            case other        => throw new Exception(s"not a PathValue ${other}")
-          }))
+          val folder = DxFolderSource.join(folderParent, l.basename)
+          VFolder(
+              DxFolderSource.format(dxApi.currentProject.get, folder),
+              basename = Some(l.basename),
+              listing = Some(l.items.map(handlePath(_, parent = Some(folder))).map {
+                case p: PathValue => p
+                case other        => throw new Exception(s"not a PathValue ${other}")
+              })
+          )
         case _ =>
           throw new Exception(s"Could not delocalize ${value} as ${t}")
       }
@@ -744,7 +753,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       val inputStr = fields
         .map {
           case (dxName, (t, v)) =>
-            s"${dxName.decoded}: (${TypeSerde.toString(t)}, ${ValueSerde.toString(v, verbose = true)})"
+            s"${dxName}: (${TypeSerde.toString(t)}, ${ValueSerde.toString(v, verbose = true)})"
         }
         .mkString("\n  ")
       trace(s"${description}:\n  ${inputStr}")
@@ -764,7 +773,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     * @return true if the task was executed successfully, or false if was relaunched
     */
   // TODO: handle output parameter tags and properties
-  def apply(): Boolean = {
+  def apply(): TaskExecutorResult.TaskExecutorResult = {
     // setup the utility directories that the task-runner employs
     workerPaths.createCleanDirs()
 
@@ -830,7 +839,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
             jobMeta.delayWorkspaceDestruction
         )
         jobMeta.writeExecutionOutputLinks(dxSubJob, outputTypes)
-        return false
+        return TaskExecutorResult.Relaunch
       }
     }
 
@@ -992,9 +1001,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
           trace(s"Uploading files:\n  ${filesToUpload.map(_.source).mkString("\n")}")
         }
         // upload all files in parallel
-        dxApi.uploadFiles(files = filesToUpload,
-                          waitOnUpload = waitOnUpload,
-                          maxConcurrent = TaskExecutor.MaxConcurrentUploads)
+        jobMeta.uploadFiles(filesToUpload)
         // TODO: use dxua or dxfuse instead
         // jobMeta.runJobScriptFunction(TaskExecutor.UploadFiles)
       } else {
@@ -1002,7 +1009,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       }
 
       // replace local paths with remote paths in outputs
-      val delocalizedOutputs = delocalizeFiles(finalizedOutputs,
+      val delocalizedOutputs = delocalizePaths(finalizedOutputs,
                                                uploadedFiles,
                                                virtualFiles,
                                                directories,
@@ -1018,6 +1025,6 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     // peform any cleanup - unmount dxfuse dir
     jobMeta.runJobScriptFunction(TaskExecutor.Cleanup)
 
-    true
+    TaskExecutorResult.Success
   }
 }

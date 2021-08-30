@@ -12,6 +12,7 @@ import dx.api.{
   DxPath,
   DxProject,
   ExecutionEnvironment,
+  FileUpload,
   InstanceTypeDB
 }
 import dx.core.Constants
@@ -27,7 +28,7 @@ import dx.core.ir.{
 import dx.core.languages.Language
 import dx.core.languages.cwl.{CwlDxName, CwlUtils, DxHintSchema}
 import dx.cwl.{CommandInputParameter, CommandLineTool, Parser}
-import dx.executor.{JobMeta, TaskExecutor}
+import dx.executor.{JobMeta, TaskExecutor, TaskExecutorResult}
 import dx.util.protocols.DxFileAccessProtocol
 import dx.util.{CodecUtils, FileSourceResolver, FileUtils, JsUtils, Logger, SysUtils}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -44,11 +45,26 @@ private case class ToolTestJobMeta(override val workerPaths: DxWorkerPaths,
                                    toolName: String,
                                    rawInstanceTypeDb: InstanceTypeDB,
                                    rawSourceCode: String,
+                                   pathToDxFile: Map[Path, DxFile] = Map.empty,
                                    useManifestInputs: Boolean = false)
     extends JobMeta(workerPaths, CwlDxName, dxApi, logger) {
   var outputs: Option[Map[DxName, JsValue]] = None
 
   override val project: DxProject = null
+
+  override def uploadFiles(filesToUpload: Iterable[FileUpload]): Map[Path, DxFile] = {
+    filesToUpload.map { upload =>
+      pathToDxFile
+        .collectFirst {
+          case (path, dxFile) if upload.source.endsWith(path) => upload.source -> dxFile
+        }
+        .getOrElse {
+          throw new Exception(
+              s"${upload.source} does not match any of ${pathToDxFile.keys.mkString(",")}"
+          )
+        }
+    }.toMap
+  }
 
   override def writeRawJsOutputs(outputJs: Map[DxName, JsValue]): Unit = {
     outputs = Some(outputJs)
@@ -192,8 +208,7 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
   private def createTaskExecutor(
       cwlName: String,
       useManifests: Boolean,
-      streamFiles: StreamFiles.StreamFiles = StreamFiles.None,
-      waitOnUpload: Boolean = true
+      pathToDxFile: Map[Path, DxFile]
   ): (CwlTaskExecutor, ToolTestJobMeta) = {
     val cwlFile: Path = pathFromBasename(s"${cwlName}.cwl").get
     val inputs = getInputs(cwlName)
@@ -256,24 +271,121 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
                       tool.name,
                       instanceTypeDB,
                       FileUtils.readFileContent(cwlFile),
+                      pathToDxFile,
                       useManifests)
 
     // create TaskExecutor
-    (CwlTaskExecutor.create(jobMeta,
-                            streamFiles = streamFiles,
-                            waitOnUpload = waitOnUpload,
-                            checkInstanceType = false),
+    (CwlTaskExecutor.create(jobMeta, streamFiles = StreamFiles.None, checkInstanceType = false),
      jobMeta)
+  }
+
+  def compareJsv(x: JsValue, y: JsValue, assertEqual: Boolean = true): Int = {
+    (x, y) match {
+      case (JsObject(fields1), JsObject(fields2)) =>
+        val keysCmp = if (assertEqual) {
+          withClue("keys") {
+            fields1.keys shouldBe fields2.keys
+            0
+          }
+        } else {
+          fields1.keys.toVector.sorted
+            .zip(fields2.keys.toVector.sorted)
+            .iterator
+            .map {
+              case (k1, k2) => k1.compare(k2)
+            }
+            .collectFirst {
+              case cmp if cmp != 0 => cmp
+            }
+            .getOrElse(0)
+        }
+        if (keysCmp != 0) {
+          keysCmp
+        } else if (fields1.size != fields2.size) {
+          fields1.size.compare(fields2.size)
+        } else {
+          fields1.iterator
+            .map {
+              case (key, jsv) =>
+                withClue(key) {
+                  compareJsv(jsv, fields2(key), assertEqual)
+                }
+            }
+            .collectFirst {
+              case cmp if cmp != 0 => cmp
+            }
+            .getOrElse(0)
+        }
+      case (JsArray(items1), JsArray(items2)) =>
+        if (assertEqual) {
+          withClue("size") {
+            items1.size shouldBe items2.size
+          }
+        }
+        items1
+          .sortWith {
+            case (j1, j2) => compareJsv(j1, j2, assertEqual = false) < 0
+          }
+          .zip(items2.sortWith {
+            case (j1, j2) => compareJsv(j1, j2, assertEqual = false) < 0
+          })
+          .iterator
+          .zipWithIndex
+          .map {
+            case ((i1, i2), idx) =>
+              withClue(idx) {
+                compareJsv(i1, i2, assertEqual)
+              }
+          }
+          .collectFirst {
+            case cmp if cmp != 0 => cmp
+          }
+          .getOrElse(items1.size.compare(items2.size))
+      case (JsBoolean(b1), JsBoolean(b2)) if assertEqual =>
+        b1 shouldBe b2
+        0
+      case (JsBoolean(false), JsBoolean(true)) => -1
+      case (JsBoolean(true), JsBoolean(false)) => 1
+      case (JsBoolean(_), JsBoolean(_))        => 0
+      case (JsNumber(n1), JsNumber(n2)) if assertEqual =>
+        n1 shouldBe n2
+        0
+      case (JsNumber(n1), JsNumber(n2)) => n1.compare(n2)
+      case (JsString(s1), JsString(s2)) if assertEqual =>
+        s1 shouldBe s2
+        0
+      case (JsString(s1), JsString(s2)) => s1.compare(s2)
+      case _ if assertEqual =>
+        x shouldBe y
+        0
+      case _ => x.toString.compare(y.toString)
+    }
+  }
+
+  private def compareOutputs[T](outputs: Map[T, JsValue], expected: Map[T, JsValue]): Unit = {
+    withClue("outputs") {
+      outputs.size shouldBe expected.size
+      outputs.keys shouldBe expected.keys
+      outputs.foreach {
+        case (key, value) =>
+          withClue(key) {
+            compareJsv(value, expected(key))
+          }
+      }
+    }
   }
 
   // Parse the CWL source code, extract the single tool that is supposed to be there,
   // run the tool, and compare the outputs to the expected values (if any).
-  private def runTask(cwlName: String, useManifests: Boolean = false): Unit = {
-    val (taskExecutor, jobMeta) = createTaskExecutor(cwlName, useManifests = useManifests)
+  private def runTask(cwlName: String,
+                      useManifests: Boolean = false,
+                      pathToDxFile: Map[Path, DxFile] = Map.empty): Unit = {
+    val (taskExecutor, jobMeta) =
+      createTaskExecutor(cwlName, useManifests = useManifests, pathToDxFile = pathToDxFile)
     val outputsExpected = getExpectedOutputs(cwlName)
 
     // run the steps of task execution in order
-    taskExecutor.apply() shouldBe true
+    taskExecutor.apply() shouldBe TaskExecutorResult.Success
 
     if (outputsExpected.isDefined) {
       val outputs = if (useManifests) {
@@ -316,7 +428,7 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
       } else {
         jobMeta.outputs.getOrElse(Map.empty[DxName, JsValue])
       }
-      outputs shouldBe outputsExpected.get
+      compareOutputs(outputs, outputsExpected.get)
     }
   }
 
@@ -325,6 +437,15 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
   }
 
   it should "handle nested input directory" in {
-    runTask("recursive-input-directory")
+    runTask(
+        "recursive-input-directory",
+        pathToDxFile = Map(
+            Paths.get("work_dir/a") -> dxApi.file("file-G284G3Q0yzZjB9VK3vP1b95X"),
+            Paths.get("work_dir/b") -> dxApi.file("file-G284G400yzZXfYxj3vqxVjfk"),
+            Paths.get("work_dir/c/d") -> dxApi.file("file-G284G400yzZgV8xg3vF1jgQp"),
+            Paths.get("work_dir/e") -> dxApi.file("file-G4fVbpj0yzZb4yv626B5pgzj"),
+            Paths.get("output.txt") -> dxApi.file("file-G4fVbpj0yzZy3FPx5G50Q4F0")
+        )
+    )
   }
 }

@@ -209,11 +209,7 @@ abstract class DxName(private var encodedParts: Option[Vector[String]],
     (newName, decoded.last)
   }
 
-  // TODO: for now throw an exception because any usage of this might be wrong -
-  //  eventually change this to return `decoded`
-  override def toString: String = {
-    throw new Exception("DxName.toString")
-  }
+  override def toString: String = decoded
 }
 
 trait DxNameFactory {

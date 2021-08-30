@@ -31,9 +31,7 @@ import wdlTools.types.{TypeUtils, TypedAbstractSyntax => TAT}
 import wdlTools.types.WdlTypes._
 
 object WdlWorkflowExecutor {
-  def create(jobMeta: JobMeta,
-             separateOutputs: Boolean,
-             waitOnUpload: Boolean): WdlWorkflowExecutor = {
+  def create(jobMeta: JobMeta, separateOutputs: Boolean): WdlWorkflowExecutor = {
     // parse the workflow source code to get the WDL document
     val wdlOptions = jobMeta.parserOptions.map(WdlOptions.fromJson).getOrElse(WdlOptions.default)
     val (doc, typeAliases, versionSupport) =
@@ -50,8 +48,7 @@ object WdlWorkflowExecutor {
                         tasks,
                         typeAliases.toMap,
                         jobMeta,
-                        separateOutputs,
-                        waitOnUpload)
+                        separateOutputs)
   }
 }
 
@@ -72,11 +69,8 @@ case class WdlWorkflowExecutor(docSource: FileNode,
                                tasks: Map[String, TAT.Task],
                                wdlTypeAliases: Map[String, T_Struct],
                                jobMeta: JobMeta,
-                               separateOutputs: Boolean,
-                               waitOnUpload: Boolean)
-    extends WorkflowExecutor[WdlBlock](jobMeta = jobMeta,
-                                       separateOutputs = separateOutputs,
-                                       waitOnUpload = waitOnUpload) {
+                               separateOutputs: Boolean)
+    extends WorkflowExecutor[WdlBlock](jobMeta = jobMeta, separateOutputs = separateOutputs) {
   private val logger = jobMeta.logger
   private lazy val evaluator = Eval(
       jobMeta.workerPaths,
@@ -240,7 +234,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       val paramStrs = outputParams
         .map {
           case (dxName, (wdlType, expr)) =>
-            s"${TypeUtils.prettyFormatType(wdlType)} ${dxName.decoded} = ${TypeUtils.prettyFormatExpr(expr)}"
+            s"${TypeUtils.prettyFormatType(wdlType)} ${dxName} = ${TypeUtils.prettyFormatExpr(expr)}"
         }
         .mkString("\n  ")
       logger.trace(

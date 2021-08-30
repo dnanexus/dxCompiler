@@ -17,12 +17,9 @@ abstract class BaseCli {
 
   protected def createTaskExecutor(meta: JobMeta,
                                    streamFiles: StreamFiles.StreamFiles,
-                                   waitOnUpload: Boolean,
                                    checkInstanceType: Boolean): TaskExecutor
 
-  protected def createWorkflowExecutor(meta: JobMeta,
-                                       separateOutputs: Boolean,
-                                       waitOnUpload: Boolean): WorkflowExecutor[_]
+  protected def createWorkflowExecutor(meta: JobMeta, separateOutputs: Boolean): WorkflowExecutor[_]
 
   private object StreamFilesOptionSpec
       extends SingleValueOptionSpec[StreamFiles.StreamFiles](choices = StreamFiles.values.toVector) {
@@ -69,9 +66,10 @@ abstract class BaseCli {
           return BadUsageTermination("Error parsing command line options", Some(e))
       }
     val logger = initLogger(options)
-    logger.traceLimited(s"Creating JobMeta: rootDir ${rootDir}")
-    val jobMeta = WorkerJobMeta(DxWorkerPaths(rootDir), dxNameFactory, logger = logger)
     val waitOnUpload = options.getFlag("waitOnUpload")
+    logger.traceLimited(s"Creating JobMeta: rootDir ${rootDir}, waitOnUpload: ${waitOnUpload}")
+    val jobMeta =
+      WorkerJobMeta(DxWorkerPaths(rootDir), waitOnUpload, dxNameFactory, logger = logger)
     try {
       kind match {
         case ExecutorKind.Task =>
@@ -82,15 +80,12 @@ abstract class BaseCli {
           }
           val checkInstanceType = options.getFlag("checkInstanceType")
           logger.trace(
-              s"""Creating TaskExecutor: streamFiles ${streamFiles}, waitOnUpload ${waitOnUpload}, 
-                 |checkInstanceType ${checkInstanceType}""".stripMargin.replaceAll("\n", " ")
+              s"Creating TaskExecutor: streamFiles ${streamFiles} checkInstanceType ${checkInstanceType}"
           )
-          val taskExecutor =
-            createTaskExecutor(jobMeta, streamFiles, waitOnUpload, checkInstanceType)
-          if (taskExecutor.apply()) {
-            Success("task executed successfully")
-          } else {
-            Success("task relaunched")
+          val taskExecutor = createTaskExecutor(jobMeta, streamFiles, checkInstanceType)
+          taskExecutor.apply() match {
+            case TaskExecutorResult.Success  => Success("task executed successfully")
+            case TaskExecutorResult.Relaunch => Success("task relaunched")
           }
         case ExecutorKind.Workflow =>
           val separateOutputs = options.getFlag("separateOutputs")
@@ -104,7 +99,7 @@ abstract class BaseCli {
           logger.trace(
               s"Creating WorkflowExecutor: separateOutputs ${separateOutputs}, waitOnUpload ${waitOnUpload}"
           )
-          val executor = createWorkflowExecutor(jobMeta, separateOutputs, waitOnUpload)
+          val executor = createWorkflowExecutor(jobMeta, separateOutputs)
           val (_, successMessage) = executor.apply(workflowAction)
           Success(successMessage)
         case _ => BadUsageTermination()

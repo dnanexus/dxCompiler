@@ -524,7 +524,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       val inputEnv: CallEnv = CallEnv.fromLinkedVars(wfInputs)
 
       val logger2 = logger.withIncTraceIndent()
-      logger2.trace(s"inputs: ${inputEnv.keys.map(_.decoded)}")
+      logger2.trace(s"inputs: ${inputEnv.keys}")
 
       // link together all the stages into a linear workflow
       val (allStageInfo, stageEnv): (Vector[(Stage, Vector[Callable])], CallEnv) =

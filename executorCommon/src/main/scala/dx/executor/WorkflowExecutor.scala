@@ -74,9 +74,7 @@ object WorkflowExecutor {
   }
 }
 
-abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta,
-                                               separateOutputs: Boolean,
-                                               waitOnUpload: Boolean = false) {
+abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs: Boolean) {
   private val dxNameFactory = jobMeta.dxNameFactory
   private val dxApi = jobMeta.dxApi
   private val logger = jobMeta.logger
@@ -120,7 +118,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta,
       case (dxName, jsValue) if !dxName.suffix.contains(Constants.FlatFilesSuffix) =>
         val irType = dxNameToType.getOrElse(
             dxName,
-            throw new Exception(s"Did not find variable ${dxName.decoded} in the block environment")
+            throw new Exception(s"Did not find variable ${dxName} in the block environment")
         )
         val irValue =
           jobMeta.inputDeserializer.deserializeInputWithType(jsValue, irType, dxName.decoded)
@@ -240,9 +238,9 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta,
         val outputNames = block.outputNames
         logger.traceLimited(
             s"""|prepareBlockOutputs
-                |  env = ${env.keys.map(_.decoded)}
-                |  fragResults = ${outputs.keys.map(_.decoded)}
-                |  exportedVars = ${outputNames.map(_.decoded)}
+                |  env = ${env.keys}
+                |  fragResults = ${outputs.keys}
+                |  exportedVars = ${outputNames}
                 |""".stripMargin,
             minLevel = TraceLevel.Verbose
         )
@@ -566,7 +564,8 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta,
           case (dxName, (t, v)) => dxName -> ValueSerde.serializeWithType(v, t)
         }
         val manifest = Manifest(outputJson, id = manifestId)
-        val destination = s"${jobMeta.manifestFolder}/${jobMeta.jobId}_output.manifest.json"
+        val destination =
+          s"${jobMeta.manifestProjectAndFolder}/${jobMeta.jobId}_output.manifest.json"
         val manifestDxFile = dxApi.uploadString(manifest.toJson().prettyPrint, destination)
         val outputValues = Map(
             Constants.OutputManifest -> (TFile, VFile(manifestDxFile.asUri))
@@ -579,7 +578,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta,
 
     private object FileExtractor extends WalkHandler[Map[String, FileUpload]] {
       private val defaultDestParent = if (jobMeta.useManifests) {
-        DxFolderSource.ensureEndsWithSlash(jobMeta.manifestFolder)
+        DxFolderSource.ensureEndsWithSlash(jobMeta.manifestProjectAndFolder)
       } else {
         "/"
       }
@@ -630,10 +629,9 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta,
       // Otherwise just pass through env unchanged.
       val delocalizedOutputs = if (filesToUpload.nonEmpty) {
         // upload files
-        val localPathToRemoteUri =
-          dxApi.uploadFiles(filesToUpload.values, waitOnUpload = waitOnUpload).map {
-            case (path, dxFile) => path -> dxFile.asUri
-          }
+        val localPathToRemoteUri = jobMeta.uploadFiles(filesToUpload.values).map {
+          case (path, dxFile) => path -> dxFile.asUri
+        }
         // Replace the local paths in the output values with URIs. This requires
         // two look-ups: first to get the absoulte Path associated with the file
         // value (which may be relative or absolute), and second to get the URI
@@ -711,7 +709,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta,
         "\n" + env
           .map {
             case (dxName, (t, v)) =>
-              s"  ${dxName.decoded}: ${TypeSerde.toString(t)} ${ValueSerde.toString(v)}"
+              s"  ${dxName}: ${TypeSerde.toString(t)} ${ValueSerde.toString(v)}"
           }
           .mkString("\n")
       }
@@ -795,9 +793,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta,
         .collect {
           case (dxName, jsValue) if !dxName.suffix.contains(Constants.FlatFilesSuffix) =>
             if (!dxNameToType.contains(dxName)) {
-              throw new Exception(
-                  s"Did not find variable ${dxName.decoded} in the block environment"
-              )
+              throw new Exception(s"Did not find variable ${dxName} in the block environment")
             }
             DxFile.findFiles(dxApi, jsValue)
         }

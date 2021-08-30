@@ -373,7 +373,7 @@ case class WorkflowCompiler(separateOutputs: Boolean,
             case (param, EmptyInput) =>
               // empty required inputs are not allowed for nested locked workflows
               throw new Exception(
-                  s"locked workflow ${workflow.name} has empty required input ${param.name.decoded}"
+                  s"locked workflow ${workflow.name} has empty required input ${param.name}"
               )
             case (param, WorkflowInput(wfParam)) if param == wfParam =>
               // this is one of:

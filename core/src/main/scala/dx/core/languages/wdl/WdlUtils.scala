@@ -1054,7 +1054,7 @@ object WdlUtils {
         val (dxName, wdlType, expr) = outputs.head
         dxName -> (wdlType, expr)
       case (dxName, outputs) if Set(outputs).size > 1 =>
-        throw new Exception(s"multiple outputs defined with the name ${dxName.decoded}: ${outputs}")
+        throw new Exception(s"multiple outputs defined with the name ${dxName}: ${outputs}")
     }
 
     // now convert the inputs, filter out those that are in outputs,
@@ -1173,7 +1173,7 @@ object WdlUtils {
     env
       .map {
         case (name, (t, v)) =>
-          s"${indent}${name.decoded}: ${TypeUtils.prettyFormatType(t)} ${EvalUtils.prettyFormat(v)}"
+          s"${indent}${name}: ${TypeUtils.prettyFormatType(t)} ${EvalUtils.prettyFormat(v)}"
       }
       .mkString("\n")
   }
@@ -1182,7 +1182,7 @@ object WdlUtils {
     env
       .map {
         case (name, v) =>
-          s"${indent}${name.decoded}: ${EvalUtils.prettyFormat(v)}"
+          s"${indent}${name}: ${EvalUtils.prettyFormat(v)}"
       }
       .mkString("\n")
   }

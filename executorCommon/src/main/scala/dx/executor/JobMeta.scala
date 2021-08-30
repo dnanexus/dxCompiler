@@ -16,6 +16,7 @@ import dx.api.{
   DxProjectDescribe,
   DxState,
   Field,
+  FileUpload,
   InstanceTypeDB
 }
 import dx.core.Constants
@@ -395,11 +396,11 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
       case (dxName, value) =>
         val irValue = inputSpec.get(dxName.encoded) match {
           case None =>
-            logger.warning(s"inputSpec is missing field ${dxName.decoded}")
+            logger.warning(s"inputSpec is missing field ${dxName}")
             inputDeserializer.deserializeInput(value)
           case Some(t) if Type.unwrapOptional(t) == Type.THash =>
             logger.trace(
-                s"""expected type of input field '${dxName.decoded}' is THash, which may represent an
+                s"""expected type of input field '${dxName}' is THash, which may represent an
                    |unknown schema type, so deserializing without type""".stripMargin
                   .replaceAll("\n", " ")
             )
@@ -439,9 +440,10 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
     fileResolver
   }
 
-  protected def writeRawJsOutputs(outputJs: Map[DxName, JsValue]): Unit
+  def uploadFiles(filesToUpload: Iterable[FileUpload]): Map[Path, DxFile]
 
-  lazy val manifestFolder: String = s"${dxApi.currentProjectId.get}:/.d/${jobId}"
+  lazy val manifestFolder = s"/.d/${jobId}"
+  lazy val manifestProjectAndFolder: String = s"${dxApi.currentProjectId.get}:${manifestFolder}"
 
   lazy val projectOutputFolder: String = {
     if (useManifests) {
@@ -450,6 +452,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
       folder
     }
   }
+
+  protected def writeRawJsOutputs(outputJs: Map[DxName, JsValue]): Unit
 
   def writeJsOutputs(outputJs: Map[DxName, JsValue]): Unit = {
     val rawOutputJs = if (useManifests && !outputJs.contains(Constants.OutputManifest)) {
@@ -466,7 +470,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
         }
         .getOrElse(outputJs)
       val manifest = Manifest(manifestValues, id = Some(manifestId))
-      val destination = s"${manifestFolder}/${jobId}_output.manifest.json"
+      val destination = s"${manifestProjectAndFolder}/${jobId}_output.manifest.json"
       val manifestDxFile = dxApi.uploadString(manifest.toJson().prettyPrint, destination)
       outputSerializer
         .createFields(Constants.OutputManifest, Type.TFile, Value.VFile(manifestDxFile.asUri))
@@ -797,7 +801,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
   def error(e: Throwable): Unit
 }
 
-case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths.default,
+case class WorkerJobMeta(override val workerPaths: DxWorkerPaths,
+                         waitOnUpload: Boolean,
                          override val dxNameFactory: DxNameFactory,
                          override val dxApi: DxApi = DxApi.get,
                          override val logger: Logger = Logger.get)
@@ -845,6 +850,10 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths = DxWorkerPaths
       logger.warning(s"input meta-file ${inputPath} does not exist")
       Map.empty
     }
+  }
+
+  override def uploadFiles(filesToUpload: Iterable[FileUpload]): Map[Path, DxFile] = {
+    dxApi.uploadFiles(filesToUpload, waitOnUpload, maxConcurrent = JobMeta.MaxConcurrentUploads)
   }
 
   def writeRawJsOutputs(outputJs: Map[DxName, JsValue]): Unit = {

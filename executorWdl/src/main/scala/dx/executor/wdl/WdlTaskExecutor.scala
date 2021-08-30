@@ -23,7 +23,6 @@ object WdlTaskExecutor {
   def create(
       jobMeta: JobMeta,
       streamFiles: StreamFiles.StreamFiles = StreamFiles.PerFile,
-      waitOnUpload: Boolean,
       checkInstanceType: Boolean
   ): WdlTaskExecutor = {
     val wdlOptions = jobMeta.parserOptions.map(WdlOptions.fromJson).getOrElse(WdlOptions.default)
@@ -46,7 +45,6 @@ object WdlTaskExecutor {
                     typeAliases,
                     jobMeta,
                     streamFiles,
-                    waitOnUpload,
                     checkInstanceType)
   }
 }
@@ -56,9 +54,8 @@ case class WdlTaskExecutor(task: TAT.Task,
                            typeAliases: Bindings[String, T_Struct],
                            jobMeta: JobMeta,
                            streamFiles: StreamFiles.StreamFiles,
-                           waitOnUpload: Boolean,
                            checkInstanceType: Boolean)
-    extends TaskExecutor(jobMeta, streamFiles, waitOnUpload, checkInstanceType) {
+    extends TaskExecutor(jobMeta, streamFiles, checkInstanceType) {
 
   private val fileResolver = jobMeta.fileResolver
   private val logger = jobMeta.logger

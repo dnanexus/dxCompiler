@@ -178,15 +178,15 @@ object WdlBlockInput {
   def prettyFormat(input: WdlBlockInput, indent: String = ""): String = {
     input match {
       case RequiredBlockInput(name, wdlType) =>
-        s"${indent}${TypeUtils.prettyFormatType(wdlType)} ${name.decoded}"
+        s"${indent}${TypeUtils.prettyFormatType(wdlType)} ${name}"
       case ComputedBlockInput(name, wdlType) =>
-        s"${indent}${TypeUtils.prettyFormatType(wdlType)} ${name.decoded}"
+        s"${indent}${TypeUtils.prettyFormatType(wdlType)} ${name}"
       case OverridableBlockInputWithStaticDefault(name, wdlType, defaultValue) =>
-        s"${indent}${TypeUtils.prettyFormatType(wdlType)} ${name.decoded} = ${EvalUtils.prettyFormat(defaultValue)}"
+        s"${indent}${TypeUtils.prettyFormatType(wdlType)} ${name} = ${EvalUtils.prettyFormat(defaultValue)}"
       case OverridableBlockInputWithDynamicDefault(name, wdlType, defaultExpr) =>
-        s"${indent}${TypeUtils.prettyFormatType(wdlType)} ${name.decoded} = ${TypeUtils.prettyFormatExpr(defaultExpr)}"
+        s"${indent}${TypeUtils.prettyFormatType(wdlType)} ${name} = ${TypeUtils.prettyFormatExpr(defaultExpr)}"
       case OptionalBlockInput(name, wdlType) =>
-        s"${indent}${TypeUtils.prettyFormatType(wdlType)} ${name.decoded}"
+        s"${indent}${TypeUtils.prettyFormatType(wdlType)} ${name}"
     }
   }
 }
@@ -205,7 +205,7 @@ object WdlBlockOutput {
   }
 
   def prettyFormat(output: WdlBlockOutput, indent: String = ""): String = {
-    s"${indent}${TypeUtils.prettyFormatType(output.wdlType)} ${output.name.decoded}"
+    s"${indent}${TypeUtils.prettyFormatType(output.wdlType)} ${output.name}"
   }
 }
 

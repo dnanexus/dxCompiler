@@ -14,6 +14,7 @@ import dx.api.{
   DxPath,
   DxProject,
   ExecutionEnvironment,
+  FileUpload,
   InstanceTypeDB
 }
 import dx.core.Constants
@@ -27,7 +28,7 @@ import dx.core.ir.{
   Value
 }
 import dx.core.languages.wdl.{CodeGenerator, VersionSupport, WdlDxName, WdlOptions, WdlUtils}
-import dx.executor.{JobMeta, TaskExecutor}
+import dx.executor.{JobMeta, TaskExecutor, TaskExecutorResult}
 import dx.util.{CodecUtils, FileSourceResolver, FileUtils, JsUtils, Logger, SysUtils}
 import dx.util.protocols.DxFileAccessProtocol
 import org.scalatest.flatspec.AnyFlatSpec
@@ -43,12 +44,27 @@ private case class TaskTestJobMeta(override val workerPaths: DxWorkerPaths,
                                    override val rawJsInputs: Map[DxName, JsValue],
                                    rawInstanceTypeDb: InstanceTypeDB,
                                    rawSourceCode: String,
+                                   pathToDxFile: Map[Path, DxFile] = Map.empty,
                                    useManifestInputs: Boolean = false,
                                    downloadFiles: Boolean = true)
     extends JobMeta(workerPaths, WdlDxName, dxApi, logger) {
   var outputs: Option[Map[DxName, JsValue]] = None
 
   override val project: DxProject = null
+
+  override def uploadFiles(filesToUpload: Iterable[FileUpload]): Map[Path, DxFile] = {
+    filesToUpload.map { upload =>
+      pathToDxFile
+        .collectFirst {
+          case (path, dxFile) if upload.source.endsWith(path) => upload.source -> dxFile
+        }
+        .getOrElse {
+          throw new Exception(
+              s"${upload.source} does not match any of ${pathToDxFile.keys.mkString(",")}"
+          )
+        }
+    }.toMap
+  }
 
   override def writeRawJsOutputs(outputJs: Map[DxName, JsValue]): Unit = {
     outputs = Some(outputJs)
@@ -203,8 +219,8 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
   private def createTaskExecutor(
       wdlName: String,
       streamFiles: StreamFiles.StreamFiles = StreamFiles.None,
+      pathToDxFile: Map[Path, DxFile] = Map.empty,
       useManifests: Boolean = false,
-      waitOnUpload: Boolean = true,
       downloadFiles: Boolean = true
   ): (WdlTaskExecutor, TaskTestJobMeta) = {
     val wdlFile: Path = pathFromBasename(s"${wdlName}.wdl").get
@@ -275,15 +291,12 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
                       finalInputs,
                       instanceTypeDB,
                       standAloneTaskSource,
+                      pathToDxFile,
                       useManifests,
                       downloadFiles)
 
     // create TaskExecutor
-    (WdlTaskExecutor.create(jobMeta,
-                            streamFiles = streamFiles,
-                            waitOnUpload = waitOnUpload,
-                            checkInstanceType = false),
-     jobMeta)
+    (WdlTaskExecutor.create(jobMeta, streamFiles = streamFiles, checkInstanceType = false), jobMeta)
   }
 
   // Parse the WDL source code, extract the single task that is supposed to be there,
@@ -293,7 +306,7 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
     val outputsExpected = getExpectedOutputs(wdlName)
 
     // run the steps of task execution in order
-    taskExecutor.apply() shouldBe true
+    taskExecutor.apply() shouldBe TaskExecutorResult.Success
 
     if (outputsExpected.isDefined) {
       val outputs = if (useManifests) {
