@@ -598,7 +598,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
             (scatterCollection.drop(jobMeta.scatterStart), None)
           }
         }
-      val childJobs = launchScatterCallJobs(step.scatter.map(CwlDxName.fromSourceName(_)),
+      val childJobs = launchScatterCallJobs(step.scatter.map(CwlDxName.fromDecodedName),
                                             itemTypes,
                                             chunkCollection)
       next match {

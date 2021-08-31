@@ -13,7 +13,7 @@ object CwlDxName extends DxNameFactory {
   // a namespace delimiter.
   private val encodedNamespaceDelimRegex = "((?<=[^_])|^)(___)((?=[^_])|$)".r
   // character sequences that may not appear in a non-encoded name
-  private val illegalDecodedSequencesRegex = "__|\\s+".r
+  private val illegalDecodedSequencesRegex = "/|__|\\s+".r
   // character sequences that need to be decoded
   private val decodeSequencesRegex = "__(\\d+)__".r
 

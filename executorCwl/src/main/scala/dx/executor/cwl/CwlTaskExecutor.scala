@@ -379,7 +379,7 @@ case class CwlTaskExecutor(tool: Process,
       val allOutputs: Map[DxName, JsValue] = JsUtils.jsFromFile(stdoutFile) match {
         case JsObject(outputs) =>
           outputs.map {
-            case (name, jsv) => CwlDxName.fromSourceName(name) -> jsv
+            case (name, jsv) => CwlDxName.fromDecodedName(name) -> jsv
           }
         case JsNull => Map.empty[DxName, JsValue]
         case other  => throw new Exception(s"unexpected cwltool outputs ${other}")

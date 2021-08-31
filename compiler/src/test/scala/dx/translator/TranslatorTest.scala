@@ -29,8 +29,7 @@ class TranslatorTest extends AnyFlatSpec with Matchers {
   private val dxApi = DxApi()(Logger.Quiet)
 
   private def pathFromBasename(dir: String, basename: String): Path = {
-    val p = getClass.getResource(s"/${dir}/${basename}").getPath
-    Paths.get(p)
+    Paths.get(getClass.getResource(s"/${dir}/${basename}").getPath)
   }
 
   private val dxProjectId = dxApi.currentProjectId.get
@@ -1533,7 +1532,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
   it should "translate a simple CWL tool" in {
-    val path = pathFromBasename("cwl", "cat.cwl")
+    val path = pathFromBasename("cwl", "cat.cwl.json")
     val args = path.toString :: cFlags
     Main.compile(args.toVector) match {
       case SuccessfulCompileIR(bundle) =>
@@ -1556,23 +1555,24 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
   it should "translate a simple CWL tool with JS expressions" in {
-    val path = pathFromBasename("cwl", "params.cwl")
+    val path = pathFromBasename("cwl", "params.cwl.json")
     val args = path.toString :: cFlags
     Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
   it should "translate a simple CWL tool with Any type input" in {
-    val path = pathFromBasename("cwl", "params2.cwl")
+    val path = pathFromBasename("cwl", "params2.cwl.json")
     val args = path.toString :: cFlags
     Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
   it should "translate a CWL tool with inline record type" in {
-    val path = pathFromBasename("cwl", "record-in-format.cwl")
+    val path = pathFromBasename("cwl", "record-in-format.cwl.json")
     val args = path.toString :: cFlags
     val result = Main.compile(args.toVector) match {
       case SuccessfulCompileIR(bundle) => bundle
-      case _                           => throw new Exception("unexpected")
+      case other =>
+        throw new AssertionError(s"expected SuccessfulCompileIR, not ${other}")
     }
     val tool = result.primaryCallable match {
       case Some(tool: Application) => tool
@@ -1593,7 +1593,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
   it should "translate a simple CWL workflow" in {
-    val path = pathFromBasename("cwl", "count-lines1-wf.cwl")
+    val path = pathFromBasename("cwl", "count-lines1-wf.cwl.json")
     val args = path.toString :: cFlags
     val result = Main.compile(args.toVector) match {
       case SuccessfulCompileIR(bundle) => bundle
@@ -1613,27 +1613,27 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     wf.outputs shouldBe Vector(
         Parameter(CwlDxName.fromSourceName("count_output"), TInt) -> LinkInput(
             DxWorkflowStage("stage-1"),
-            SimpleDxName.fromSourceName("output")
+            CwlDxName.fromSourceName("output")
         )
     )
     wf.stages.size shouldBe 2
     wf.stages(0).dxStage.id shouldBe "stage-0"
     wf.stages(0).calleeName shouldBe "word-count"
     wf.stages(0).inputs shouldBe Vector(
-        WorkflowInput(Parameter(WdlDxName.fromSourceName("file1"), TFile)),
+        WorkflowInput(Parameter(CwlDxName.fromSourceName("file1"), TFile)),
         StaticInput(VString("step1"))
     )
     wf.stages(0).outputs shouldBe Vector(
-        Parameter(WdlDxName.fromSourceName("output"), TFile)
+        Parameter(CwlDxName.fromSourceName("output"), TFile)
     )
     wf.stages(1).dxStage.id shouldBe "stage-1"
     wf.stages(1).calleeName shouldBe "parseInt"
     wf.stages(1).inputs shouldBe Vector(
-        LinkInput(DxWorkflowStage("stage-0"), SimpleDxName.fromSourceName("output")),
+        LinkInput(DxWorkflowStage("stage-0"), CwlDxName.fromSourceName("output")),
         StaticInput(VString("step2"))
     )
     wf.stages(1).outputs shouldBe Vector(
-        Parameter(WdlDxName.fromSourceName("output"), TInt)
+        Parameter(CwlDxName.fromSourceName("output"), TInt)
     )
   }
 

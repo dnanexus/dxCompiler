@@ -219,7 +219,7 @@ object CwlBlock {
               // sources of this step input - either a workflow input
               // like "file1" or a step output like "step1/file1"
               val sources = inp.sources.map { src =>
-                (src, CwlDxName.fromSourceName(src.frag.get))
+                (src, CwlDxName.fromDecodedName(src.frag.get))
               }
               val sourceParams = sources.foldLeft(Map.empty[DxName, Parameter]) {
                 case (accu, (_, name)) if accu.contains(name) => accu

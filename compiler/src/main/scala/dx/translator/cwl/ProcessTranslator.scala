@@ -360,7 +360,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         case Some(inp) if inp.sources.isEmpty =>
           EmptyInput
         case Some(inp) if inp.sources.size == 1 =>
-          val dxName = CwlDxName.fromSourceName(inp.sources.head.frag.get)
+          val dxName = CwlDxName.fromDecodedName(inp.sources.head.frag.get)
           try {
             lookup(dxName)
           } catch {
@@ -600,7 +600,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
               s"there must be at least one 'outputSource' for parameter ${param.name}"
           )
         }
-        param.sources.map(source => CwlDxName.fromSourceName(source.frag.get))
+        param.sources.map(source => CwlDxName.fromDecodedName(source.frag.get))
       }.toSet
       logger.trace(s"paramNames: ${paramNames}")
       val (applicationInputs, stageInputs) = paramNames.map { name =>
@@ -748,7 +748,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           val outputStage = env.get(dxName).map(_._2).getOrElse {
             // we know there is only one output source otherwise we'd be
             // using an output stage
-            val outputSource = CwlDxName.fromSourceName(out.sources.head.frag.get)
+            val outputSource = CwlDxName.fromDecodedName(out.sources.head.frag.get)
             env
               .lookup(outputSource)
               .map(_._2._2)

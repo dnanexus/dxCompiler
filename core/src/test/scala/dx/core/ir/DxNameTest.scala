@@ -170,7 +170,7 @@ class DxNameTest extends AnyFlatSpec with Matchers {
     dxName3.withSuffix("___dxfiles") shouldBe dxName
   }
 
-  it should "not encode CWL names with illegal characters" in {
+  it should "not allow decoded CWL names with illegal characters" in {
     assertThrows[Throwable] {
       CwlDxName.fromDecodedName("  ")
     }
@@ -185,6 +185,9 @@ class DxNameTest extends AnyFlatSpec with Matchers {
     }
     assertThrows[Throwable] {
       CwlDxName.fromDecodedName("a_/_b")
+    }
+    assertThrows[Throwable] {
+      CwlDxName.fromSourceName("a/b")
     }
   }
 
