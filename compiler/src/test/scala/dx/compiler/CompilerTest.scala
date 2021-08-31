@@ -909,7 +909,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
     // no reorg conf input. only status.
     reorgInput.fields.size shouldBe 1
-    reorgInput.fields.keys shouldBe Set(Constants.ReorgStatus)
+    reorgInput.fields.keys should contain theSameElementsAs Set(Constants.ReorgStatus.encoded)
   }
 
   // ignore for now as the test will fail in staging
@@ -951,7 +951,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     }
     // no reorg conf input. only status.
     reorgInput.fields.size shouldBe 2
-    reorgInput.fields.keys shouldBe Set(Constants.ReorgStatus, Constants.ReorgConfig)
+    reorgInput.fields.keys should contain theSameElementsAs Set(Constants.ReorgStatus.encoded,
+                                                                Constants.ReorgConfig.encoded)
   }
 
   it should "ensure subworkflow with custom reorg app does not contain reorg attribute" in {
@@ -1099,7 +1100,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
   }
 
   it should "Native compile a CWL tool" taggedAs NativeTest in {
-    val path = pathFromBasename("cwl", "cat.cwl")
+    val path = pathFromBasename("cwl", "cat.cwl.json")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileNativeNoTree]
@@ -1120,14 +1121,14 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     input.keySet shouldBe Set(
         Constants.InputManifestFiles,
         Constants.InputManifest,
-        Constants.InputManifest.withSuffix(Constants.FlatFilesSuffix),
+        Constants.InputManifest.addSuffix(Constants.FlatFilesSuffix),
         Constants.InputLinks,
-        Constants.InputLinks.withSuffix(Constants.FlatFilesSuffix),
+        Constants.InputLinks.addSuffix(Constants.FlatFilesSuffix),
         Constants.WorkflowInputManifest,
-        Constants.WorkflowInputManifest.withSuffix(Constants.FlatFilesSuffix),
+        Constants.WorkflowInputManifest.addSuffix(Constants.FlatFilesSuffix),
         Constants.WorkflowInputManifestFiles,
         Constants.WorkflowInputLinks,
-        Constants.WorkflowInputLinks.withSuffix(Constants.FlatFilesSuffix),
+        Constants.WorkflowInputLinks.addSuffix(Constants.FlatFilesSuffix),
         Constants.OutputId,
         Constants.CallName
     ).map(_.encoded)

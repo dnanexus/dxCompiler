@@ -8,6 +8,7 @@ import dx.core.ir.{
   Application,
   Bundle,
   Callable,
+  DxName,
   DxNameFactory,
   Manifest,
   ParameterLinkDeserializer,
@@ -313,44 +314,39 @@ abstract class InputTranslator(bundle: Bundle,
   //  script change #main to #<filename>
   protected val mainPrefix: Option[String] = None
 
-  private def translateJsonInputs(fields: Map[String, JsValue]): Map[String, (Type, Value)] = {
+  private def translateJsonInputs(
+      fields: Map[String, JsValue]
+  ): Vector[(Option[String], DxName, Type, Value)] = {
     val fieldsExactlyOnce = ExactlyOnce("input", fields, logger)
 
-    def checkAndBindCallableInputs(callable: Callable,
-                                   inputPrefix: Option[String] = None,
-                                   dxPrefix: Option[String] = None): Map[String, (Type, Value)] = {
+    def checkAndBindCallableInputs(
+        callable: Callable,
+        inputPrefix: Option[String] = None,
+        dxPrefix: Option[String] = None
+    ): Vector[(Option[String], DxName, Type, Value)] = {
       val lookupPrefix = inputPrefix.getOrElse(callable.name)
       callable.inputVars.flatMap { parameter =>
         // the key for looking up the parameter value
         val key = s"${lookupPrefix}.${parameter.name.decoded}"
-        // the input name for the dx applet/workflow
-        val fieldName = if (useManifests) {
-          parameter.name.decoded
-        } else {
-          parameter.name.encoded
-        }
         // the dx input name
-        val dxName = dxPrefix.map(p => s"${p}.${fieldName}").getOrElse(fieldName)
-        fieldsExactlyOnce.get(key) match {
-          case None        => Map.empty
-          case Some(value) =>
-            // Do not assign the value to any later stages. We found the variable
-            // declaration, the others are variable uses.
-            logger.trace(s"checkAndBind, found: ${key} -> ${dxName}")
-            val irValue = parameterLinkDeserializer.deserializeInputWithType(
-                value,
-                parameter.dxType,
-                key,
-                Some(deserializationHandler)
-            )
-            Map(dxName -> (parameter.dxType, irValue))
+        fieldsExactlyOnce.get(key).map { value =>
+          // Do not assign the value to any later stages. We found the variable
+          // declaration, the others are variable uses.
+          logger.trace(s"checkAndBind, found: ${key} -> ${parameter.name}")
+          val irValue = parameterLinkDeserializer.deserializeInputWithType(
+              value,
+              parameter.dxType,
+              key,
+              Some(deserializationHandler)
+          )
+          (dxPrefix, parameter.name, parameter.dxType, irValue)
         }
-      }.toMap
+      }
     }
 
-    val inputs: Map[String, (Type, Value)] = bundle.primaryCallable match {
+    val inputs: Vector[(Option[String], DxName, Type, Value)] = bundle.primaryCallable match {
       // File with WDL tasks only, no workflows
-      case None if tasks.isEmpty => Map.empty
+      case None if tasks.isEmpty => Vector.empty
       case None if tasks.size > 1 =>
         throw new Exception(s"cannot generate one input file for ${tasks.size} tasks")
       case None                            => checkAndBindCallableInputs(tasks.head)
@@ -399,7 +395,7 @@ abstract class InputTranslator(bundle: Bundle,
     * we check if the fqn is defined in the input file.
     * @return
     */
-  lazy val translatedInputs: Map[Path, Map[String, (Type, Value)]] = {
+  private lazy val translatedInputs: Map[Path, Vector[(Option[String], DxName, Type, Value)]] = {
     inputsJs.map {
       case (path, inputs) =>
         logger.trace(s"Translating input file ${path}")
@@ -412,19 +408,21 @@ abstract class InputTranslator(bundle: Bundle,
       case (path, inputs) =>
         val jsValues = if (useManifests) {
           val (types, values) = inputs.map {
-            case (name, (t, v)) =>
-              val dxName = dxNameFactory.fromDecodedName(name)
+            case (_, dxName, t, v) =>
               (dxName -> t, dxName -> ValueSerde.serializeWithType(v, t))
           }.unzip
           val manifest = Manifest(values.toMap, Some(types.toMap))
           JsObject(Constants.InputManifest.encoded -> manifest.toJson())
         } else {
           JsObject(inputs.flatMap {
-            case (name, (t, v)) =>
-              parameterLinkSerializer.createFields(dxNameFactory.fromDecodedName(name), t, v).map {
-                case (dxName, jsv) => dxName.encoded -> jsv
+            case (prefix, dxName, t, v) =>
+              parameterLinkSerializer.createFields(dxName, t, v).map {
+                case (dxName, jsv) =>
+                  val inputName =
+                    prefix.map(p => s"${p}.${dxName.encoded}").getOrElse(dxName.encoded)
+                  inputName -> jsv
               }
-          })
+          }.toMap)
         }
         val fileName = FileUtils.replaceFileSuffix(path, ".dx.json")
         val dxInputFile = path.getParent match {
@@ -445,8 +443,7 @@ abstract class InputTranslator(bundle: Bundle,
           case parent => parent.resolve(fileName)
         }
         val (types, values) = inputs.map {
-          case (name, (t, v)) =>
-            val dxName = dxNameFactory.fromDecodedName(name)
+          case (_, dxName, t, v) =>
             (dxName -> t, dxName -> ValueSerde.serializeWithType(v, t))
         }.unzip
         val manifest = Manifest(values.toMap, Some(types.toMap))

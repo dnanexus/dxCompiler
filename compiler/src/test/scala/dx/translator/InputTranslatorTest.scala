@@ -54,7 +54,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
     val retval = Main.compile(args.toVector)
     inside(retval) {
       case Failure(_, Some(e)) =>
-        e.getMessage should include("Cannot generate one input file for 2 tasks")
+        e.getMessage should include("cannot generate one input file for 2 tasks")
     }
   }
 
@@ -232,7 +232,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
   }
 
   it should "handle parameter name with dot" in {
-    val cwlCode = pathFromBasename("input_file", "bwa-mem-tool.cwl")
+    val cwlCode = pathFromBasename("input_file", "bwa-mem-tool.cwl.json")
     val inputs = pathFromBasename("input_file", "bwa-mem-tool_input.json")
     val args = List(cwlCode.toString, "--inputs", inputs.toString) ++ cFlags
     val retval = Main.compile(args.toVector)
@@ -283,7 +283,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
         JsNumber(4)
     )
     fields("minimum_seed_length") shouldBe JsNumber(3)
-    fields("args___py") shouldBe JsObject(
+    fields("args__46__py") shouldBe JsObject(
         "___" -> JsObject(
             "type" -> JsString("File"),
             "uri" -> JsObject(
@@ -297,7 +297,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
   }
 
   it should "translate cwl inputs" in {
-    val cwlCode = pathFromBasename("cwl", "initialwork-path.cwl")
+    val cwlCode = pathFromBasename("cwl", "initialwork-path.cwl.json")
     val inputs = pathFromBasename("cwl", "initialwork-path_input.json")
     val args = List(cwlCode.toString, "--inputs", inputs.toString) ++ cFlags
     val retval = Main.compile(args.toVector)
@@ -305,7 +305,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
   }
 
   it should "translate cwl inputs with default file value" in {
-    val cwlCode = pathFromBasename("cwl", "bool-empty-inputbinding.cwl")
+    val cwlCode = pathFromBasename("cwl", "bool-empty-inputbinding.cwl.json")
     val inputs = pathFromBasename("cwl", "bool-empty-inputbinding_input.json")
     val args = List(cwlCode.toString, "--inputs", inputs.toString) ++ cFlags
     val retval = Main.compile(args.toVector)
@@ -331,7 +331,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
   }
 
   it should "translate cwl directory input" in {
-    val cwlCode = pathFromBasename("cwl", "dir.cwl")
+    val cwlCode = pathFromBasename("cwl", "dir.cwl.json")
     val inputs = pathFromBasename("cwl", "dir_input.json")
     val args = List(cwlCode.toString, "--inputs", inputs.toString) ++ cFlags
     val retval = Main.compile(args.toVector)
@@ -339,7 +339,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
   }
 
   it should "translate cwl directory listing I" in {
-    val cwlCode = pathFromBasename("cwl", "cat-from-dir.cwl")
+    val cwlCode = pathFromBasename("cwl", "cat-from-dir.cwl.json")
     val inputs = pathFromBasename("cwl", "cat-from-dir_input1.json")
     val args = List(cwlCode.toString, "--inputs", inputs.toString) ++ cFlags
     val retval = Main.compile(args.toVector)
@@ -368,7 +368,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
   }
 
   it should "translate cwl directory listing II" in {
-    val cwlCode = pathFromBasename("cwl", "cat-from-dir.cwl")
+    val cwlCode = pathFromBasename("cwl", "cat-from-dir.cwl.json")
     val inputs = pathFromBasename("cwl", "cat-from-dir_input2.json")
     val args = List(cwlCode.toString, "--inputs", inputs.toString) ++ cFlags
     val retval = Main.compile(args.toVector)
@@ -394,7 +394,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
   }
 
   it should "translate cwl file with secondary files" in {
-    val cwlCode = pathFromBasename("cwl", "dir4.cwl")
+    val cwlCode = pathFromBasename("cwl", "dir4.cwl.json")
     val inputs = pathFromBasename("cwl", "dir4_input1.json")
     val args = List(cwlCode.toString, "--inputs", inputs.toString) ++ cFlags
     val retval = Main.compile(args.toVector)

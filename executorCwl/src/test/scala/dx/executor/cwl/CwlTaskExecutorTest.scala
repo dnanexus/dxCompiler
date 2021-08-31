@@ -210,7 +210,7 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
       useManifests: Boolean,
       pathToDxFile: Map[Path, DxFile]
   ): (CwlTaskExecutor, ToolTestJobMeta) = {
-    val cwlFile: Path = pathFromBasename(s"${cwlName}.cwl").get
+    val cwlFile: Path = pathFromBasename(s"${cwlName}.cwl.json").get
     val inputs = getInputs(cwlName)
     // Create a clean temp directory for the task to use
     val jobRootDir: Path = Files.createTempDirectory("dxcompiler_applet_test")

@@ -248,8 +248,8 @@ object DxNameFactory {
     def splitSuffix(s: String): (String, Option[String]) = {
       suffixes
         .collectFirst {
-          case suffix if name.endsWith(suffix) =>
-            val (prefix, firstSuffix) = splitSuffix(name.dropRight(suffix.length))
+          case suffix if s.endsWith(suffix) =>
+            val (prefix, firstSuffix) = splitSuffix(s.dropRight(suffix.length))
             (prefix, firstSuffix.map(f => s"${f}${suffix}").orElse(Some(suffix)))
         }
         .getOrElse(s, None)

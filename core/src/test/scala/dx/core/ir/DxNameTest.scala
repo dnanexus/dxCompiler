@@ -8,7 +8,9 @@ import scala.util.Random
 
 class DxNameTest extends AnyFlatSpec with Matchers {
   it should "split parts of a name" in {
-    DxNameFactory.split("a.b.c______dxname") shouldBe (Vector("a", "b", "c"), Some("______dxname"))
+    DxNameFactory.split("a.b.c______dxfiles", Some("\\.".r)) shouldBe (Vector("a", "b", "c"), Some(
+        "______dxfiles"
+    ))
   }
 
   it should "encode and decode WDL names" in {

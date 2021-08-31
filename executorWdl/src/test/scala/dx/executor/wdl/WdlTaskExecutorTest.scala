@@ -386,7 +386,7 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
   it should "handle files with same name in different source folders" taggedAs ApiTest in {
     val (taskExecutor, jobMeta) =
       createTaskExecutor("two_files", StreamFiles.None, downloadFiles = false)
-    taskExecutor.apply() shouldBe true
+    taskExecutor.apply() shouldBe TaskExecutorResult.Success
     // make sure the download manifest has two different folders
     val manifestJs = JsUtils.jsFromFile(jobMeta.workerPaths.getDxdaManifestFile()).asJsObject.fields
     manifestJs.size shouldBe 1
