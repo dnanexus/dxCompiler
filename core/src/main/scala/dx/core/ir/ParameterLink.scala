@@ -160,7 +160,7 @@ case class ParameterLinkSerializer(fileResolver: FileSourceResolver = FileSource
       Vector((bindName, serializeSimpleLink(link)))
     } else {
       // Complex type requiring two fields: a JSON structure, and a flat array of files.
-      val fileArrayName = bindName.withSuffix(Constants.FlatFilesSuffix)
+      val fileArrayName = bindName.addSuffix(Constants.FlatFilesSuffix)
       val mapValue = link match {
         case ParameterLinkValue(jsLinkValue, _) =>
           // files that are embedded in the structure
@@ -170,21 +170,21 @@ case class ParameterLinkSerializer(fileResolver: FileSourceResolver = FileSource
           val jsLink = JsObject(Constants.ComplexValueKey -> jsLinkValue)
           Map(bindName -> jsLink, fileArrayName -> jsFiles)
         case ParameterLinkStage(dxStage, ioRef, dxName, _) =>
-          val varFileArrayName = s"${dxName.encoded}${Constants.FlatFilesSuffix}"
+          val varFileArrayName = dxName.addSuffix(Constants.FlatFilesSuffix)
           ioRef match {
             case IORef.Input =>
               Map(
                   bindName -> dxStage.getInputReference(dxName.encoded),
-                  fileArrayName -> dxStage.getInputReference(varFileArrayName)
+                  fileArrayName -> dxStage.getInputReference(varFileArrayName.encoded)
               )
             case IORef.Output =>
               Map(
                   bindName -> dxStage.getOutputReference(dxName.encoded),
-                  fileArrayName -> dxStage.getOutputReference(varFileArrayName)
+                  fileArrayName -> dxStage.getOutputReference(varFileArrayName.encoded)
               )
           }
         case ParameterLinkWorkflowInput(dxName, _) =>
-          val varFileArrayName = s"${dxName.encoded}${Constants.FlatFilesSuffix}"
+          val varFileArrayName = dxName.addSuffix(Constants.FlatFilesSuffix)
           Map(
               bindName ->
                 JsObject(
@@ -195,15 +195,15 @@ case class ParameterLinkSerializer(fileResolver: FileSourceResolver = FileSource
               fileArrayName ->
                 JsObject(
                     DxUtils.DxLinkKey -> JsObject(
-                        ParameterLink.WorkflowInputFieldKey -> JsString(varFileArrayName)
+                        ParameterLink.WorkflowInputFieldKey -> JsString(varFileArrayName.encoded)
                     )
                 )
           )
         case ParameterLinkExec(dxJob, dxName, _) =>
-          val varFileArrayName = s"${dxName.encoded}${Constants.FlatFilesSuffix}"
+          val varFileArrayName = dxName.addSuffix(Constants.FlatFilesSuffix)
           Map(
               bindName -> DxUtils.dxExecutionToEbor(dxJob, dxName.encoded),
-              fileArrayName -> DxUtils.dxExecutionToEbor(dxJob, varFileArrayName)
+              fileArrayName -> DxUtils.dxExecutionToEbor(dxJob, varFileArrayName.encoded)
           )
       }
       mapValue.toVector

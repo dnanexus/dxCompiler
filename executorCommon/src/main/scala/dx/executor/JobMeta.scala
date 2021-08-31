@@ -424,7 +424,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
   lazy val primaryInputs: Map[DxName, Value] = {
     // discard auxiliary fields
     inputs.filter {
-      case (dxName, _) => !dxName.suffix.contains(Constants.FlatFilesSuffix)
+      case (dxName, _) => !dxName.suffix.exists(_.endsWith(Constants.FlatFilesSuffix))
     }
   }
 

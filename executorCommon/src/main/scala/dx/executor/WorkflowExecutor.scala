@@ -115,7 +115,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
 
   private lazy val jobInputs: Map[DxName, (Type, Value)] = {
     jobMeta.jsInputs.collect {
-      case (dxName, jsValue) if !dxName.suffix.contains(Constants.FlatFilesSuffix) =>
+      case (dxName, jsValue) if !dxName.suffix.exists(_.endsWith(Constants.FlatFilesSuffix)) =>
         val irType = dxNameToType.getOrElse(
             dxName,
             throw new Exception(s"Did not find variable ${dxName} in the block environment")
@@ -791,7 +791,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
     } else {
       val outputIds: Set[String] = jobMeta.jsInputs
         .collect {
-          case (dxName, jsValue) if !dxName.suffix.contains(Constants.FlatFilesSuffix) =>
+          case (dxName, jsValue) if !dxName.suffix.exists(_.endsWith(Constants.FlatFilesSuffix)) =>
             if (!dxNameToType.contains(dxName)) {
               throw new Exception(s"Did not find variable ${dxName} in the block environment")
             }

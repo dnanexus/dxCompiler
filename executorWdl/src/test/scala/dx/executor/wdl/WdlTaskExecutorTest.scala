@@ -262,7 +262,7 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
     val updatedInputs = inputDeserializer
       .deserializeInputMap(inputs)
       .collect {
-        case (dxName, irValue) if !dxName.suffix.contains(Constants.FlatFilesSuffix) =>
+        case (dxName, irValue) if !dxName.suffix.exists(_.endsWith(Constants.FlatFilesSuffix)) =>
           val wdlType = taskInputs(dxName).wdlType
           val irType = WdlUtils.toIRType(wdlType)
           val updatedIrValue = Value.transform(irValue, Some(irType), AddBaseDir)

@@ -253,7 +253,7 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
     val irInputs = inputDeserializer
       .deserializeInputMap(inputs)
       .collect {
-        case (dxName, irValue) if !dxName.suffix.contains(Constants.FlatFilesSuffix) =>
+        case (dxName, irValue) if !dxName.suffix.exists(_.endsWith(Constants.FlatFilesSuffix)) =>
           val cwlType = taskInputs(dxName).cwlType
           val irType = CwlUtils.toIRType(cwlType)
           val updatedIrValue = Value.transform(irValue, Some(irType), AddBaseDir)

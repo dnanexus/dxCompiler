@@ -7,6 +7,10 @@ import org.scalatest.matchers.should.Matchers
 import scala.util.Random
 
 class DxNameTest extends AnyFlatSpec with Matchers {
+  it should "split parts of a name" in {
+    DxNameFactory.split("a.b.c______dxname") shouldBe (Vector("a", "b", "c"), Some("______dxname"))
+  }
+
   it should "encode and decode WDL names" in {
     WdlDxName.fromDecodedName("a.b.c").encoded shouldBe "a___b___c"
     WdlDxName.fromEncodedName("a___b___c").decoded shouldBe "a.b.c"
@@ -32,7 +36,7 @@ class DxNameTest extends AnyFlatSpec with Matchers {
     dxName2.pushDecodedNamespace("a") shouldBe dxName
     dxName.popDecodedIdentifier() shouldBe (WdlDxName.fromDecodedName("a"), "b")
 
-    val dxName3 = dxName.dropSuffix
+    val dxName3 = dxName.dropSuffix()
     dxName3.suffix shouldBe None
     dxName3.encoded shouldBe "a___b"
     dxName3.decoded shouldBe "a.b"
@@ -54,7 +58,7 @@ class DxNameTest extends AnyFlatSpec with Matchers {
     dxName2.pushDecodedNamespace("a") shouldBe dxName
     dxName.popDecodedIdentifier() shouldBe (WdlDxName.fromEncodedName("a"), "b")
 
-    val dxName3 = dxName.dropSuffix
+    val dxName3 = dxName.dropSuffix()
     dxName3.suffix shouldBe None
     dxName3.encoded shouldBe "a___b"
     dxName3.decoded shouldBe "a.b"
@@ -140,7 +144,7 @@ class DxNameTest extends AnyFlatSpec with Matchers {
     dxName2.pushDecodedNamespace("a-b") shouldBe dxName
     dxName.popDecodedIdentifier() shouldBe (CwlDxName.fromDecodedName("a-b"), "c.d")
 
-    val dxName3 = dxName.dropSuffix
+    val dxName3 = dxName.dropSuffix()
     dxName3.suffix shouldBe None
     dxName3.encoded shouldBe "a__45__b___c__46__d"
     dxName3.decoded shouldBe "a-b/c.d"
@@ -162,7 +166,7 @@ class DxNameTest extends AnyFlatSpec with Matchers {
     dxName2.pushDecodedNamespace("a-b") shouldBe dxName
     dxName.popDecodedIdentifier() shouldBe (CwlDxName.fromEncodedName("a__45__b"), "c.d")
 
-    val dxName3 = dxName.dropSuffix
+    val dxName3 = dxName.dropSuffix()
     dxName3.suffix shouldBe None
     dxName3.encoded shouldBe "a__45__b___c__46__d"
     dxName3.decoded shouldBe "a-b/c.d"

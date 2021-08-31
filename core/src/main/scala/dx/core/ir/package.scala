@@ -178,14 +178,28 @@ abstract class DxName(private var encodedParts: Option[Vector[String]],
   }
 
   /**
-    * Copies this DxName and sets suffix to `None`. Throws an exception
-    * if suffix is already `None`.
+    * Copies this DxName and adds `newSuffix` after the existing suffix, if any.
     */
-  def dropSuffix: DxName = {
-    if (suffix.isEmpty) {
-      throw new Exception(s"${this} does not have a suffix")
+  def addSuffix(suffixToAdd: String): DxName = {
+    create(encodedParts,
+           decodedParts,
+           suffix.map(suf => s"${suf}${suffixToAdd}").orElse(Some(suffixToAdd)))
+  }
+
+  /**
+    * Copies this DxName with `suffixToDrop` removed from the existing
+    * suffix (if any). If `suffixToDrop` is `None` or equal to the
+    * existing suffix, then the existing suffix is set to `None`.
+    */
+  def dropSuffix(suffixToDrop: Option[String] = None): DxName = {
+    val newSuffix = (suffix, suffixToDrop) match {
+      case (Some(s1), Some(s2)) if s1 == s2        => None
+      case (Some(s1), Some(s2)) if s1.endsWith(s2) => Some(s1.dropRight(s2.length))
+      case (s1, Some(s2)) =>
+        throw new Exception(s"existing suffix ${s1} does not end with ${s2}")
+      case _ => None
     }
-    create(encodedParts, decodedParts, None)
+    create(encodedParts, decodedParts, newSuffix)
   }
 
   def endsWith(dxName: DxName): Boolean = {
@@ -231,15 +245,20 @@ object DxNameFactory {
   }
 
   def split(name: String, sepRegex: Option[Regex] = None): (Vector[String], Option[String]) = {
+    def splitSuffix(s: String): (String, Option[String]) = {
+      suffixes
+        .collectFirst {
+          case suffix if name.endsWith(suffix) =>
+            val (prefix, firstSuffix) = splitSuffix(name.dropRight(suffix.length))
+            (prefix, firstSuffix.map(f => s"${f}${suffix}").orElse(Some(suffix)))
+        }
+        .getOrElse(s, None)
+    }
     def splitParts(s: String): Vector[String] = {
       sepRegex.map(_.split(s, Int.MaxValue).toVector).getOrElse(Vector(s))
     }
-    suffixes
-      .collectFirst {
-        case suffix if name.endsWith(suffix) =>
-          (splitParts(name.dropRight(suffix.length)), Some(suffix))
-      }
-      .getOrElse((splitParts(name), None))
+    val (prefix, suffix) = splitSuffix(name)
+    (splitParts(prefix), suffix)
   }
 }
 

@@ -233,7 +233,7 @@ class ExecutableCompiler(extras: Option[Extras],
     )
     if (nativeType == "hash") {
       // A JSON structure passed as a hash, and a vector of platform files
-      val filesName = parameter.name.withSuffix(Constants.FlatFilesSuffix)
+      val filesName = parameter.name.addSuffix(Constants.FlatFilesSuffix)
       Vector(
           paramSpec,
           JsObject(
@@ -270,7 +270,7 @@ class ExecutableCompiler(extras: Option[Extras],
     )
     if (nativeType == "hash") {
       // A JSON structure passed as a hash, and a vector of platform files
-      val filesName = parameter.name.withSuffix(Constants.FlatFilesSuffix)
+      val filesName = parameter.name.addSuffix(Constants.FlatFilesSuffix)
       Vector(
           paramSpec,
           JsObject(
