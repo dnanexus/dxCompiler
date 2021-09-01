@@ -1,0 +1,28 @@
+{
+    "class": "CommandLineTool",
+    "doc": "Test of capturing stderr output.",
+    "requirements": [
+        {
+            "class": "ShellCommandRequirement"
+        }
+    ],
+    "inputs": [],
+    "outputs": [
+        {
+            "type": "File",
+            "id": "#main/output_file",
+            "outputBinding": {
+                "glob": "aff99242fe2f17a8061d52afe531bce112d4f974"
+            }
+        }
+    ],
+    "arguments": [
+        {
+            "valueFrom": "echo foo 1>&2",
+            "shellQuote": false
+        }
+    ],
+    "id": "#main",
+    "stderr": "aff99242fe2f17a8061d52afe531bce112d4f974",
+    "cwlVersion": "v1.2"
+}

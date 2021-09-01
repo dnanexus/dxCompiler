@@ -1,0 +1,27 @@
+{
+    "class": "CommandLineTool",
+    "requirements": [
+        {
+            "coresMin": 1.25,
+            "coresMax": 1.75,
+            "class": "ResourceRequirement"
+        }
+    ],
+    "inputs": [],
+    "outputs": [
+        {
+            "type": "File",
+            "id": "#main/output",
+            "outputBinding": {
+                "glob": "cores.txt"
+            }
+        }
+    ],
+    "baseCommand": "echo",
+    "stdout": "cores.txt",
+    "arguments": [
+        "$(runtime.cores)"
+    ],
+    "id": "#main",
+    "cwlVersion": "v1.2"
+}

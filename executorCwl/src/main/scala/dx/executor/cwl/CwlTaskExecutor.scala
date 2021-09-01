@@ -10,7 +10,7 @@ import dx.core.languages.Language
 import dx.core.languages.cwl.{CwlDxName, CwlUtils, DxHintSchema, RequirementEvaluator, Target}
 import dx.executor.{JobMeta, TaskExecutor}
 import dx.util.protocols.{DxFileSource, DxFolderSource}
-import dx.util.{DockerUtils, FileUtils, JsUtils, TraceLevel}
+import dx.util.{DockerUtils, FileUtils, JsUtils, LocalFileSource, TraceLevel}
 import spray.json._
 
 import java.net.URI
@@ -47,13 +47,13 @@ object CwlTaskExecutor {
     // within the workflow.
     val defaultFrag = "___"
     val tool = parser.parseString(jobMeta.sourceCode, Some(defaultFrag), isPacked = true) match {
-      case (tool: CommandLineTool, _) if tool.frag == defaultFrag =>
+      case ParserResult(tool: CommandLineTool, _, _, _) if tool.frag == defaultFrag =>
         tool.copy(id = Some(Identifier(namespace = None, frag = Some(toolName))))
-      case (tool: CommandLineTool, _) => tool
-      case (tool: ExpressionTool, _) if tool.frag == defaultFrag =>
+      case ParserResult(tool: CommandLineTool, _, _, _) => tool
+      case ParserResult(tool: ExpressionTool, _, _, _) if tool.frag == defaultFrag =>
         tool.copy(id = Some(Identifier(namespace = None, frag = Some(toolName))))
-      case (tool: ExpressionTool, _) => tool
-      case (_, doc: Document) =>
+      case ParserResult(tool: ExpressionTool, _, _, _) => tool
+      case ParserResult(_, doc: Document, _, _) =>
         doc.values.toVector.collect {
           case tool: CommandLineTool if tool.name == toolName => tool
           case tool: ExpressionTool if tool.name == toolName  => tool
@@ -98,7 +98,6 @@ case class CwlTaskExecutor(tool: Process,
   private lazy val runtime: Runtime = CwlUtils.createRuntime(workerPaths)
 
   private lazy val (cwlInputs: Map[DxName, (CwlType, CwlValue)], target: Option[String]) = {
-    // CWL parameters can have '.' in their name
     val (irInputs, target) =
       jobMeta.primaryInputs.foldLeft(Map.empty[DxName, Value], Option.empty[String]) {
         case ((accu, None), (Target, Value.VString(targetName))) =>
@@ -269,6 +268,25 @@ case class CwlTaskExecutor(tool: Process,
                   JsObject(reqFields + ("listing" -> updateListing(reqFields("listing"))))
                 case other => other
               })
+            case ("$schemas", JsArray(schemas)) =>
+              "$schemas" -> JsArray(
+                  schemas.map {
+                    case JsString(uri) if dependencies.contains(uri) =>
+                      val (_, v) = dependencies(uri)
+                      v match {
+                        case f: Value.VFile =>
+                          jobMeta.fileResolver.resolve(f.uri) match {
+                            case fs: LocalFileSource => JsString(fs.canonicalPath.toString)
+                            case fs                  => JsString(fs.address)
+                          }
+                        case other =>
+                          throw new Exception(
+                              s"expected schema URI ${uri} to resolve to a file value, not ${other}"
+                          )
+                      }
+                    case other => other
+                  }
+              )
             case (k, v) => k -> inner(v)
           })
         case JsArray(items) => JsArray(items.map(inner))

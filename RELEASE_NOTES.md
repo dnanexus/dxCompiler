@@ -19,8 +19,8 @@
     samtools index bams/~{basename(mybam)}
     >>>
     ```
-* Update dxda to 0.5.7
 * Docker image dependencies that are DNAnexus platform files are included in applet's bundledDepends
+* Updates dxCommon, dxApi, dxFileAccessProtocols, wdlTools, and cwlScala dependencies
 
 ## 2.4.10 2021-08-16
 

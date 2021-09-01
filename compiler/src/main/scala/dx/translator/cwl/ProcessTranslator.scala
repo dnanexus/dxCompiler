@@ -1,6 +1,6 @@
 package dx.translator.cwl
 
-import dx.api.DxApi
+import dx.api.{DxApi, DxPath}
 import dx.core.Constants
 import dx.core.io.DxWorkerPaths
 import dx.core.ir.RunSpec.{DefaultInstanceType, NoImage}
@@ -70,6 +70,7 @@ import dx.translator.ParameterAttributes.{HelpAttribute, LabelAttribute}
 import dx.translator.{CustomReorgSettings, DxWorkflowAttrs, ReorgSettings, WorkflowTranslator}
 import dx.util.protocols.{DxFileSource, DxFolderSource}
 import dx.util.{FileSourceResolver, FileUtils, LocalFileSource, Logger}
+import spray.json._
 
 import java.nio.file.{Path, Paths}
 
@@ -79,6 +80,7 @@ case class CwlSourceCode(source: Path) extends SourceCode {
 }
 
 case class ProcessTranslator(cwlBundle: CwlBundle,
+                             cwlSchemas: Option[JsValue],
                              locked: Boolean,
                              defaultRuntimeAttrs: Map[String, Value],
                              reorgAttrs: ReorgSettings,
@@ -89,6 +91,15 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
                              fileResolver: FileSourceResolver = FileSourceResolver.get,
                              logger: Logger = Logger.get) {
 
+  private lazy val schemaStaticDependencies = cwlSchemas match {
+    case Some(JsArray(schemas)) =>
+      schemas.collect {
+        case JsString(uri) if uri.startsWith(DxPath.DxUriPrefix) => uri
+      }.toSet
+    case None => Set.empty
+    case Some(other) =>
+      throw new Exception(s"invalid $$schemas value ${other}")
+  }
   private lazy val cwlDefaultRuntimeAttrs: Map[String, (CwlType, CwlValue)] =
     CwlUtils.fromIRValues(defaultRuntimeAttrs, isInput = true)
 
@@ -275,7 +286,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           tags = Set("cwl"),
           // extract all paths that are hard-coded in the CWL
           staticFileDependencies =
-            requirementEvaluator.translatePathDependencies.flatMap(extractPaths).toSet
+            schemaStaticDependencies ++
+              requirementEvaluator.translatePathDependencies.flatMap(extractPaths).toSet
       )
     }
   }

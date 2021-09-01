@@ -14,6 +14,7 @@ import dx.cwl.{
   ExpressionTool,
   FileValue,
   Parser,
+  ParserResult,
   Process,
   Workflow
 }
@@ -79,6 +80,7 @@ case class CwlInputTranslator(bundle: Bundle,
 
 case class CwlTranslator(process: Process,
                          sourceFile: Path,
+                         cwlSchemas: Option[JsValue],
                          locked: Boolean,
                          defaultRuntimeAttrs: Map[String, Value],
                          reorgAttrs: ReorgSettings,
@@ -100,6 +102,7 @@ case class CwlTranslator(process: Process,
     val cwlBundle: CwlBundle = CwlBundle.create(process)
     val callableTranslator = ProcessTranslator(
         cwlBundle,
+        cwlSchemas,
         locked,
         defaultRuntimeAttrs,
         reorgAttrs,
@@ -198,10 +201,10 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
       }
     }
     // CWL file is required to be packed
-    val process = parser.parseFile(sourceFile, isPacked = true) match {
-      case (tool: CommandLineTool, _) => tool
-      case (tool: ExpressionTool, _)  => tool
-      case (wf: Workflow, _)          => wf
+    val (process, schemas) = parser.parseFile(sourceFile, isPacked = true) match {
+      case ParserResult(tool: CommandLineTool, _, _, schemas) => (tool, schemas)
+      case ParserResult(tool: ExpressionTool, _, _, schemas)  => (tool, schemas)
+      case ParserResult(wf: Workflow, _, _, schemas)          => (wf, schemas)
       case _ =>
         throw new Exception(s"Not a tool or workflow: ${sourceFile}")
     }
@@ -209,6 +212,7 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
         CwlTranslator(
             process,
             sourceFile,
+            schemas,
             locked,
             defaultRuntimeAttrs,
             reorgAttrs,

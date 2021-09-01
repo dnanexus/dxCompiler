@@ -1,0 +1,62 @@
+{
+    "class": "CommandLineTool",
+    "inputs": [
+        {
+            "type": {
+                "type": "record",
+                "fields": [
+                    {
+                        "type": [
+                            {
+                                "type": "enum",
+                                "symbols": [
+                                    "#main/first/species/homo_sapiens",
+                                    "#main/first/species/mus_musculus"
+                                ]
+                            },
+                            "null"
+                        ],
+                        "name": "#main/first/species"
+                    }
+                ]
+            },
+            "id": "#main/first"
+        },
+        {
+            "type": [
+                "null",
+                {
+                    "type": "enum",
+                    "symbols": [
+                        "#main/second/homo_sapiens",
+                        "#main/second/mus_musculus"
+                    ]
+                }
+            ],
+            "id": "#main/second"
+        }
+    ],
+    "baseCommand": "echo",
+    "arguments": [
+        {
+            "prefix": "first",
+            "valueFrom": "$(inputs.first.species)"
+        },
+        {
+            "prefix": "second",
+            "valueFrom": "$(inputs.second)"
+        }
+    ],
+    "outputs": [
+        {
+            "type": "File",
+            "id": "#main/result",
+            "outputBinding": {
+                "glob": "4114671e652492b7e2f05b10178342c11c66195b"
+            }
+        }
+    ],
+    "id": "#main",
+    "stdout": "4114671e652492b7e2f05b10178342c11c66195b",
+    "cwlVersion": "v1.2"
+}

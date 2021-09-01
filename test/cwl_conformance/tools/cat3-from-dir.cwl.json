@@ -1,0 +1,25 @@
+{
+    "class": "CommandLineTool",
+    "inputs": [
+        {
+            "type": "Directory",
+            "inputBinding": {
+                "valueFrom": "$(self.listing[0].path)"
+            },
+            "id": "#main/dir1"
+        }
+    ],
+    "outputs": [
+        {
+            "type": "File",
+            "outputBinding": {
+                "glob": "output.txt"
+            },
+            "id": "#main/output_file"
+        }
+    ],
+    "baseCommand": "cat",
+    "stdout": "output.txt",
+    "id": "#main",
+    "cwlVersion": "v1.2"
+}

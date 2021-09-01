@@ -1,0 +1,34 @@
+{
+    "class": "CommandLineTool",
+    "doc": "Ensure that `shellQuote: true` is the default behavior when\nShellCommandRequirement is in effect.\n",
+    "requirements": [
+        {
+            "class": "ShellCommandRequirement"
+        }
+    ],
+    "inputs": [],
+    "outputs": [
+        {
+            "type": "File",
+            "id": "#main/stderr_file",
+            "outputBinding": {
+                "glob": "c6146505b5b146e6778f547c7accf7fb79a1f0c3"
+            }
+        },
+        {
+            "type": "File",
+            "id": "#main/stdout_file",
+            "outputBinding": {
+                "glob": "6476baa474e2ba0c55b43b31e36ab8553b8ffdc4"
+            }
+        }
+    ],
+    "baseCommand": "echo",
+    "arguments": [
+        "foo 1>&2"
+    ],
+    "id": "#main",
+    "stderr": "c6146505b5b146e6778f547c7accf7fb79a1f0c3",
+    "stdout": "6476baa474e2ba0c55b43b31e36ab8553b8ffdc4",
+    "cwlVersion": "v1.2"
+}

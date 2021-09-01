@@ -47,6 +47,7 @@ import dx.cwl.{
   NullValue,
   ObjectValue,
   Parser,
+  ParserResult,
   PickValueMethod,
   ScatterMethod,
   Workflow,
@@ -79,7 +80,7 @@ object CwlWorkflowExecutor {
     }
     val workflow =
       parser.parseString(jobMeta.sourceCode, defaultFrag = Some(wfName), isPacked = true) match {
-        case (wf: Workflow, _) => wf
+        case ParserResult(wf: Workflow, _, _, _) => wf
         case other =>
           throw new Exception(s"expected CWL document to contain a Workflow, not ${other}")
       }
