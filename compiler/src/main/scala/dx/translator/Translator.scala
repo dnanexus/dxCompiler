@@ -50,6 +50,7 @@ trait TranslatorFactory {
              perWorkflowAttrs: Map[String, DxWorkflowAttrs],
              defaultScatterChunkSize: Int,
              useManifests: Boolean,
+             instanceTypeResolution: InstanceTypeResolution.InstanceTypeResolution,
              fileResolver: FileSourceResolver,
              dxApi: DxApi = DxApi.get,
              logger: Logger = Logger.get): Option[Translator]
@@ -64,6 +65,7 @@ object TranslatorFactory {
                        locked: Boolean = false,
                        reorgEnabled: Option[Boolean] = None,
                        useManifests: Boolean,
+                       instanceTypeResolution: InstanceTypeResolution.InstanceTypeResolution,
                        baseFileResolver: FileSourceResolver = FileSourceResolver.get,
                        dxApi: DxApi = DxApi.get,
                        logger: Logger = Logger.get): Translator = {
@@ -84,17 +86,20 @@ object TranslatorFactory {
     )
     translatorFactories
       .collectFirst { factory =>
-        factory.create(sourceAbsPath,
-                       language,
-                       locked,
-                       defaultRuntimeAttrs,
-                       reorgAttrs,
-                       perWorkflowAttrs,
-                       defaultScatterChunkSize,
-                       useManifests,
-                       fileResolver,
-                       dxApi,
-                       logger) match {
+        factory.create(
+            sourceAbsPath,
+            language,
+            locked,
+            defaultRuntimeAttrs,
+            reorgAttrs,
+            perWorkflowAttrs,
+            defaultScatterChunkSize,
+            useManifests,
+            instanceTypeResolution,
+            fileResolver,
+            dxApi,
+            logger
+        ) match {
           case Some(translator) => translator
         }
       }

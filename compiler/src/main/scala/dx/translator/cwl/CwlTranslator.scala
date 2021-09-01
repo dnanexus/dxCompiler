@@ -1,7 +1,7 @@
 package dx.translator.cwl
 
 import dx.api.{DxApi, DxProject}
-import dx.core.ir.{Bundle, Type, Value}
+import dx.core.ir.{Bundle, InstanceTypeResolution, Type, Value}
 import dx.core.languages.Language
 import dx.core.languages.Language.Language
 import dx.core.languages.cwl.{CwlUtils, DxHintSchema}
@@ -66,6 +66,7 @@ case class CwlTranslator(tool: CommandLineTool,
                          perWorkflowAttrs: Map[String, DxWorkflowAttrs],
                          defaultScatterChunkSize: Int,
                          useManifests: Boolean,
+                         instanceTypeResolution: InstanceTypeResolution.InstanceTypeResolution,
                          fileResolver: FileSourceResolver = FileSourceResolver.get,
                          dxApi: DxApi = DxApi.get,
                          logger: Logger = Logger.get)
@@ -85,6 +86,7 @@ case class CwlTranslator(tool: CommandLineTool,
         reorgAttrs,
         perWorkflowAttrs,
         defaultScatterChunkSize,
+        instanceTypeResolution,
         dxApi,
         fileResolver,
         logger
@@ -118,6 +120,7 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
                       perWorkflowAttrs: Map[String, DxWorkflowAttrs],
                       defaultScatterChunkSize: Int,
                       useManifests: Boolean,
+                      instanceTypeResolution: InstanceTypeResolution.InstanceTypeResolution,
                       fileResolver: FileSourceResolver,
                       dxApi: DxApi,
                       logger: Logger): Option[Translator] = {
@@ -163,17 +166,20 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
         throw new Exception(s"Not a command line tool ${sourceFile}")
     }
     Some(
-        CwlTranslator(tool,
-                      sourceFile,
-                      locked,
-                      defaultRuntimeAttrs,
-                      reorgAttrs,
-                      perWorkflowAttrs,
-                      defaultScatterChunkSize,
-                      useManifests,
-                      fileResolver,
-                      dxApi,
-                      logger)
+        CwlTranslator(
+            tool,
+            sourceFile,
+            locked,
+            defaultRuntimeAttrs,
+            reorgAttrs,
+            perWorkflowAttrs,
+            defaultScatterChunkSize,
+            useManifests,
+            instanceTypeResolution,
+            fileResolver,
+            dxApi,
+            logger
+        )
     )
   }
 }

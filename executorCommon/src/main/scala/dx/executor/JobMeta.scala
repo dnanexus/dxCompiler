@@ -21,6 +21,7 @@ import dx.api.{
 }
 import dx.core.Constants
 import dx.core.io.DxWorkerPaths
+import dx.core.ir.RunSpec.InstanceType
 import dx.core.ir.Value.VNull
 import dx.core.ir.{
   ExecutableLink,
@@ -651,6 +652,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     case Some(JsString(s)) =>
       val js = CodecUtils.base64DecodeAndGunzip(s)
       js.parseJson.convertTo[InstanceTypeDB]
+    case None => InstanceType.createDb(dxApi = dxApi, logger = logger)
     case other =>
       throw new Exception(s"unexpected ${Constants.InstanceTypeDb} value ${other}")
   }

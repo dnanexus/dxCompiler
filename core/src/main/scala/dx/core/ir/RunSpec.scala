@@ -1,8 +1,23 @@
 package dx.core.ir
 
 import dx.api.DiskType.DiskType
-import dx.api.{DxFile, ExecutionEnvironment, InstanceTypeRequest}
+import dx.api.{
+  DiskType,
+  DxApi,
+  DxFile,
+  DxInstanceType,
+  DxProject,
+  ExecutionEnvironment,
+  InstanceTypeDB,
+  InstanceTypeRequest
+}
 import dx.core.Constants
+import dx.util.{Enum, Logger}
+
+object InstanceTypeResolution extends Enum {
+  type InstanceTypeResolution = Value
+  val Static, Dynamic = Value
+}
 
 /**
   * Representation of the parts of dxapp.json `runSpec` that can be specified.
@@ -37,6 +52,28 @@ object RunSpec {
     *           start another job on the correct instance type.
     */
   sealed trait InstanceType
+
+  object InstanceType {
+    // Instance type filter:
+    // - Instance must support Ubuntu.
+    // - Instance is not an FPGA instance.
+    // - Instance does not have local HDD storage (those are older instance types).
+    private def instanceTypeFilter(instanceType: DxInstanceType): Boolean = {
+      instanceType.os.exists(_.release == Constants.OsRelease) &&
+      !instanceType.diskType.contains(DiskType.HDD) &&
+      !instanceType.name.contains("fpga")
+    }
+
+    def createDb(project: Option[DxProject] = None,
+                 dxApi: DxApi = DxApi.get,
+                 logger: Logger = Logger.get): InstanceTypeDB = {
+      InstanceTypeDB.create(project.getOrElse(dxApi.currentProject.get),
+                            instanceTypeFilter,
+                            Some(dxApi),
+                            logger)
+    }
+  }
+
   case object DefaultInstanceType extends InstanceType
   case object DynamicInstanceType extends InstanceType
   case class StaticInstanceType(

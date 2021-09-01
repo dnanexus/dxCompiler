@@ -1,28 +1,25 @@
 package dx.compiler
 
 import java.nio.file.{Files, Path}
-
 import com.typesafe.config.{Config, ConfigFactory}
 import dx.api.{
-  DiskType,
   DxApi,
   DxApplet,
   DxAppletDescribe,
   DxDataObject,
   DxExecutable,
   DxFile,
-  DxInstanceType,
   DxPath,
   DxProject,
   DxRecord,
   DxUtils,
   DxWorkflow,
   DxWorkflowDescribe,
-  Field,
-  InstanceTypeDB
+  Field
 }
 import dx.core.{Constants, getVersion}
 import dx.core.io.{DxWorkerPaths, StreamFiles}
+import dx.core.ir.RunSpec.InstanceType
 import dx.core.ir._
 import dx.util.CodecUtils
 import dx.translator.Extras
@@ -69,6 +66,8 @@ case class Compiler(extras: Option[Extras],
                     streamFiles: StreamFiles.StreamFiles,
                     waitOnUpload: Boolean,
                     useManifests: Boolean,
+                    instanceTypeResolution: InstanceTypeResolution.InstanceTypeResolution,
+                    defaultInstanceType: Option[String],
                     fileResolver: FileSourceResolver = FileSourceResolver.get,
                     dxApi: DxApi = DxApi.get,
                     logger: Logger = Logger.get) {
@@ -87,17 +86,7 @@ case class Compiler(extras: Option[Extras],
   private case class BundleCompiler(bundle: Bundle, project: DxProject, folder: String) {
     private val parameterLinkSerializer = ParameterLinkSerializer(fileResolver)
     // database of available instance types for the user/org that owns the project
-    // Instance type filter:
-    // - Instance must support Ubuntu.
-    // - Instance is not an FPGA instance.
-    // - Instance does not have local HDD storage (those are older instance types).
-    private def instanceTypeFilter(instanceType: DxInstanceType): Boolean = {
-      instanceType.os.exists(_.release == Constants.OsRelease) &&
-      !instanceType.diskType.contains(DiskType.HDD) &&
-      !instanceType.name.contains("fpga")
-    }
-    private val instanceTypeDb =
-      InstanceTypeDB.create(project, instanceTypeFilter, Some(dxApi), logger)
+    private val instanceTypeDb = InstanceType.createDb(Some(project), dxApi, logger)
     // directory of the currently existing applets - we don't want to build them
     // if we don't have to.
     private val executableDir =
@@ -330,6 +319,8 @@ case class Compiler(extras: Option[Extras],
             extras = extras,
             parameterLinkSerializer = parameterLinkSerializer,
             useManifests = useManifests,
+            instanceTypeResolution = instanceTypeResolution,
+            defaultInstanceType,
             dxApi = dxApi,
             logger = logger2,
             project = project,

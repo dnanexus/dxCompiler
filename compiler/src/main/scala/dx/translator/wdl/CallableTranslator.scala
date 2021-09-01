@@ -42,6 +42,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                               perWorkflowAttrs: Map[String, DxWorkflowAttrs],
                               defaultScatterChunkSize: Int,
                               useManifests: Boolean,
+                              instanceTypeResolution: InstanceTypeResolution.InstanceTypeResolution,
                               versionSupport: VersionSupport,
                               dxApi: DxApi = DxApi.get,
                               fileResolver: FileSourceResolver = FileSourceResolver.get,
@@ -180,7 +181,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       // the output declarations in a native applet stub have values only because they
       // are required for WDL parsing - they can be safely ignored
       val outputs = task.outputs.map(translateOutput(_, ignoreDefault = isNative))
-      val instanceType = runtime.translateInstanceType
+      val instanceType = runtime.translateInstanceType(instanceTypeResolution)
       val requirements = runtime.translateRequirements
       val staticFileDependencies = translateStaticFileDependencies(task.privateVariables)
       val attributes = meta.translate
