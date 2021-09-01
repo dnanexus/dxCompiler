@@ -3,7 +3,7 @@
   "title": "Copy File",
   "summary": "Copy a file to a different region",
   "dxapi": "1.0.0",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "billTo": "org-dnanexus_apps",
   "developers": [
     "org-dnanexus_apps"
@@ -92,9 +92,18 @@
           "instanceType": "mem1_ssd1_v2_x2"
         }
       }
+    },
+    "aws:eu-west-2-g": {
+      "systemRequirements": {
+        "*": {
+          "instanceType": "mem1_ssd1_v2_x2"
+        }
+      }
     }
   },
-  "details": {},
+  "details": {
+    "whatsNew": "* 0.0.2: Added new London region."
+  },
   "access": {
     "network": [
       "*"
