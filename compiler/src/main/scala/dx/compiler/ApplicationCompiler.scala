@@ -425,6 +425,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
   ): Map[String, JsValue] = {
     logger.trace(s"Building /applet/new request for ${applet.name}")
     // convert inputs and outputs to dxapp inputSpec
+    // automatically add requirements and hints parameters
     val inputParams = if (useManifests) {
       Vector(
           ExecutableCompiler.InputManifestParameter,
@@ -434,10 +435,15 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
           ExecutableCompiler.WorkflowInputManfestFilesParameter,
           ExecutableCompiler.WorkflowInputLinksParameter,
           ExecutableCompiler.OutputIdParameter,
-          ExecutableCompiler.CallNameParameter
+          ExecutableCompiler.CallNameParameter,
+          ExecutableCompiler.RequirementsParameter,
+          ExecutableCompiler.HintsParameter
       )
     } else {
-      applet.inputs
+      applet.inputs ++ Vector(
+          ExecutableCompiler.RequirementsParameter,
+          ExecutableCompiler.HintsParameter
+      )
     }
     val inputSpec = inputParams
       .sortWith(_.name < _.name)

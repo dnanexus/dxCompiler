@@ -18,6 +18,13 @@ import spray.json.{JsArray, JsObject, JsString, JsValue}
 import wdlTools.syntax.NoSuchParserException
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 
+/**
+  * WDL input details
+  * - JSON only
+  * - For workflow invocation, inputs must be prefixed with workflow name
+  * - Namespaced inputs are allowed for unlocked workflows, e.g. `wf1.wf2.mytask.foo`
+  * - Runtime and hints can be overridden, e.g. `"wf.mytask.runtime.cpu": 2`
+  */
 case class WdlInputTranslator(bundle: Bundle,
                               inputs: Vector[Path],
                               defaults: Option[Path],

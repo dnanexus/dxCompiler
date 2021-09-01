@@ -62,6 +62,8 @@ object Constants {
   val OutputId: DxName = parameterName("output_id")
   val CallName: DxName = parameterName("call_name")
   val OutputManifest: DxName = parameterName("output_manifest")
+  val Requirements: DxName = parameterName("requirements")
+  val Hints: DxName = parameterName("hints")
   val ValueKey: DxName = parameterName("value")
   val WorkflowKey: DxName = parameterName("workflow")
   val ReorgConfig: DxName = parameterName("reorg_conf")

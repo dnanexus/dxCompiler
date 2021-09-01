@@ -1,0 +1,29 @@
+{
+    "class": "CommandLineTool",
+    "requirements": [
+        {
+            "listing": [
+                "$(inputs.filelist)"
+            ],
+            "class": "InitialWorkDirRequirement"
+        }
+    ],
+    "inputs": [
+        {
+            "type": "File",
+            "id": "#main/filelist"
+        }
+    ],
+    "baseCommand": "true",
+    "id": "#main",
+    "outputs": [
+        {
+            "type": "File",
+            "outputBinding": {
+                "glob": "$(inputs.filelist.basename)"
+            },
+            "id": "#main/filelist"
+        }
+    ],
+    "cwlVersion": "v1.2"
+}

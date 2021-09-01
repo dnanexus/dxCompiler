@@ -31,6 +31,12 @@ import spray.json._
 
 import java.nio.file.Path
 
+/**
+  * CWL input details:
+  * - YAML or JSON
+  * - Only top-level inputs can be specified
+  * - `cwl` namespace is supported - ignore any keys other than `cwl:requirements` and `cwl:hints`
+  */
 case class CwlInputTranslator(bundle: Bundle,
                               inputs: Vector[Path],
                               defaults: Option[Path],

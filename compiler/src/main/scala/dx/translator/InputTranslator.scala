@@ -54,6 +54,17 @@ case class ExactlyOnce(name: String, fields: Map[String, JsValue], logger: Logge
   }
 }
 
+object InputTranslator {
+  def loadJsonFileWithComments(path: Path): Map[String, JsValue] = {
+    // skip comment lines, which start with ##
+    JsUtils
+      .getFields(JsUtils.jsFromFile(path))
+      .view
+      .filterKeys(!_.startsWith("##"))
+      .toMap
+  }
+}
+
 abstract class InputTranslator(bundle: Bundle,
                                inputs: Vector[Path],
                                defaults: Option[Path],
@@ -66,19 +77,13 @@ abstract class InputTranslator(bundle: Bundle,
                                dxApi: DxApi = DxApi.get,
                                logger: Logger = Logger.get) {
 
-  private def loadJsonFileWithComments(path: Path): Map[String, JsValue] = {
-    // skip comment lines, which start with ##
-    JsUtils
-      .getFields(JsUtils.jsFromFile(path))
-      .view
-      .filterKeys(!_.startsWith("##"))
-      .toMap
+  protected def loadInputs(path: Path): Map[String, JsValue] = {
+    InputTranslator.loadJsonFileWithComments(path)
   }
 
-  private lazy val rawInputsJs =
-    inputs.map(path => path -> loadJsonFileWithComments(path)).toMap
+  private lazy val rawInputsJs = inputs.map(path => path -> loadInputs(path)).toMap
   private lazy val defaultsJs =
-    defaults.map(loadJsonFileWithComments).getOrElse(Map.empty)
+    defaults.map(InputTranslator.loadJsonFileWithComments).getOrElse(Map.empty)
   private val ManifestSuffix = s".${Constants.InputManifest.decoded}"
 
   // All of the inputs in JSON format. Parameter names are of the form
