@@ -42,7 +42,7 @@ case class ApplicationCompiler(
     extras: Option[Extras],
     parameterLinkSerializer: ParameterLinkSerializer,
     useManifests: Boolean,
-    instanceTypeResolution: InstanceTypeResolution.InstanceTypeResolution,
+    instanceTypeResolution: InstanceTypeSelection.InstanceTypeSelection,
     defaultInstanceType: Option[String],
     dxApi: DxApi = DxApi.get,
     logger: Logger = Logger.get,
@@ -534,8 +534,9 @@ case class ApplicationCompiler(
     // compress and base64 encode the source code
     val sourceEncoded = CodecUtils.gzipAndBase64Encode(applet.document.toString)
     // compress and base64 encode the instance types, unless we specify that we want to
-    // resolve them at runtime
-    val dbOpaqueEncoded = Option.when(instanceTypeResolution == InstanceTypeResolution.Static) {
+    // resolve them at runtime, which requires that the user running the applet has
+    // permission to describe the project it is running in
+    val dbOpaqueEncoded = Option.when(instanceTypeResolution == InstanceTypeSelection.Static) {
       CodecUtils.gzipAndBase64Encode(instanceTypeDb.toJson.prettyPrint)
     }
     // serilize default runtime attributes

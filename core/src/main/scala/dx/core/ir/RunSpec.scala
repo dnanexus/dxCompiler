@@ -14,8 +14,8 @@ import dx.api.{
 import dx.core.Constants
 import dx.util.Enum
 
-object InstanceTypeResolution extends Enum {
-  type InstanceTypeResolution = Value
+object InstanceTypeSelection extends Enum {
+  type InstanceTypeSelection = Value
   val Static, Dynamic = Value
 }
 

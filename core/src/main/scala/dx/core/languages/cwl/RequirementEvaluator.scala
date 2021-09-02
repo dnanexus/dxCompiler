@@ -17,7 +17,7 @@ import dx.core.ir.RunSpec.{
   StaticInstanceType,
   TimeoutRequirement
 }
-import dx.core.ir.{InstanceTypeResolution, RuntimeRequirement}
+import dx.core.ir.{InstanceTypeSelection, RuntimeRequirement}
 import dx.cwl._
 
 case class RequirementEvaluator(requirements: Vector[Requirement],
@@ -120,16 +120,16 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
   }
 
   def translateInstanceType(
-      resolution: InstanceTypeResolution.InstanceTypeResolution
+      resolution: InstanceTypeSelection.InstanceTypeSelection
   ): InstanceType = {
     safeParseInstanceType match {
       case Some(InstanceTypeRequest.empty) => DefaultInstanceType
       case Some(req: InstanceTypeRequest)
-          if resolution == InstanceTypeResolution.Dynamic && req.dxInstanceType.isDefined =>
+          if resolution == InstanceTypeSelection.Dynamic && req.dxInstanceType.isDefined =>
         StaticInstanceType(InstanceTypeRequest(dxInstanceType = req.dxInstanceType))
-      case Some(_) if resolution == InstanceTypeResolution.Dynamic => DynamicInstanceType
-      case Some(req: InstanceTypeRequest)                          => StaticInstanceType(req)
-      case None                                                    => DynamicInstanceType
+      case Some(_) if resolution == InstanceTypeSelection.Dynamic => DynamicInstanceType
+      case Some(req: InstanceTypeRequest)                         => StaticInstanceType(req)
+      case None                                                   => DynamicInstanceType
     }
   }
 

@@ -7,7 +7,7 @@ import dx.core.ir.{
   Callable,
   CallableAttribute,
   ExecutableKindApplet,
-  InstanceTypeResolution,
+  InstanceTypeSelection,
   Parameter,
   ParameterAttribute,
   Value
@@ -27,7 +27,7 @@ case class ProcessTranslator(typeAliases: Map[String, CwlSchema],
                              reorgAttrs: ReorgSettings,
                              perWorkflowAttrs: Map[String, DxWorkflowAttrs],
                              defaultScatterChunkSize: Int,
-                             instanceTypeResolution: InstanceTypeResolution.InstanceTypeResolution,
+                             instanceTypeResolution: InstanceTypeSelection.InstanceTypeSelection,
                              dxApi: DxApi = DxApi.get,
                              fileResolver: FileSourceResolver = FileSourceResolver.get,
                              logger: Logger = Logger.get) {

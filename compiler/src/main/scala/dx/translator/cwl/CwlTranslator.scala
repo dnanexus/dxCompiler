@@ -1,7 +1,7 @@
 package dx.translator.cwl
 
 import dx.api.{DxApi, DxProject}
-import dx.core.ir.{Bundle, InstanceTypeResolution, Type, Value}
+import dx.core.ir.{Bundle, InstanceTypeSelection, Type, Value}
 import dx.core.languages.Language
 import dx.core.languages.Language.Language
 import dx.core.languages.cwl.{CwlUtils, DxHintSchema}
@@ -66,7 +66,7 @@ case class CwlTranslator(tool: CommandLineTool,
                          perWorkflowAttrs: Map[String, DxWorkflowAttrs],
                          defaultScatterChunkSize: Int,
                          useManifests: Boolean,
-                         instanceTypeResolution: InstanceTypeResolution.InstanceTypeResolution,
+                         instanceTypeResolution: InstanceTypeSelection.InstanceTypeSelection,
                          fileResolver: FileSourceResolver = FileSourceResolver.get,
                          dxApi: DxApi = DxApi.get,
                          logger: Logger = Logger.get)
@@ -120,7 +120,7 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
                       perWorkflowAttrs: Map[String, DxWorkflowAttrs],
                       defaultScatterChunkSize: Int,
                       useManifests: Boolean,
-                      instanceTypeResolution: InstanceTypeResolution.InstanceTypeResolution,
+                      instanceTypeResolution: InstanceTypeSelection.InstanceTypeSelection,
                       fileResolver: FileSourceResolver,
                       dxApi: DxApi,
                       logger: Logger): Option[Translator] = {

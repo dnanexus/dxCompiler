@@ -7,7 +7,7 @@ import dx.compiler.{Compiler, ExecutableTree}
 import dx.core.getVersion
 import dx.core.CliUtils._
 import dx.core.io.{DxWorkerPaths, StreamFiles}
-import dx.core.ir.{Bundle, InstanceTypeResolution}
+import dx.core.ir.{Bundle, InstanceTypeSelection}
 import dx.core.languages.Language
 import dx.core.Constants
 import dx.core.languages.wdl.WdlOptions
@@ -123,12 +123,12 @@ object Main {
     }
   }
 
-  private object InstanceTypeResolutionSpec
-      extends SingleValueOptionSpec[InstanceTypeResolution.InstanceTypeResolution](
-          choices = InstanceTypeResolution.values.toVector
+  private object InstanceTypeSelectionSpec
+      extends SingleValueOptionSpec[InstanceTypeSelection.InstanceTypeSelection](
+          choices = InstanceTypeSelection.values.toVector
       ) {
-    override def parseValue(value: String): InstanceTypeResolution.InstanceTypeResolution = {
-      InstanceTypeResolution.withNameIgnoreCase(value)
+    override def parseValue(value: String): InstanceTypeSelection.InstanceTypeSelection = {
+      InstanceTypeSelection.withNameIgnoreCase(value)
     }
   }
 
@@ -150,7 +150,7 @@ object Main {
       "extras" -> PathOptionSpec.mustExist,
       "inputs" -> PathOptionSpec.listMustExist,
       "input" -> PathOptionSpec.listMustExist.copy(alias = Some("inputs")),
-      "instanceTypeSelection" -> InstanceTypeResolutionSpec,
+      "instanceTypeSelection" -> InstanceTypeSelectionSpec,
       "locked" -> FlagOptionSpec.default,
       "leaveWorkflowsOpen" -> FlagOptionSpec.default,
       "imports" -> PathOptionSpec.listMustExist,
@@ -389,9 +389,9 @@ object Main {
       case b => b
     }
     val instanceTypeResolution =
-      options.getValueOrElse[InstanceTypeResolution.InstanceTypeResolution](
+      options.getValueOrElse[InstanceTypeSelection.InstanceTypeSelection](
           "instanceTypeSelection",
-          InstanceTypeResolution.Static
+          InstanceTypeSelection.Static
       )
 
 //    val wdlOptions = options
