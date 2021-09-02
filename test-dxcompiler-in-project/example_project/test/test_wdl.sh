@@ -17,6 +17,7 @@ dx mkdir -p $WF1_DIR
 # Compile workflow 1
 exec_1=`java -jar $DXCOMPILER_JAR compile workflow_1/workflow_1.wdl \
     -extras workflow_1/extras.json \
+    -project $DX_PROJECT_CONTEXT_ID \
     -folder $WF1_DIR \
     -force`
 
