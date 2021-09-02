@@ -536,7 +536,7 @@ case class ApplicationCompiler(
     // compress and base64 encode the instance types, unless we specify that we want to
     // resolve them at runtime, which requires that the user running the applet has
     // permission to describe the project it is running in
-    val dbOpaqueEncoded = Option.when(instanceTypeResolution == InstanceTypeSelection.Static) {
+    val dbEncoded = Option.when(instanceTypeResolution == InstanceTypeSelection.Static) {
       CodecUtils.gzipAndBase64Encode(instanceTypeDb.toJson.prettyPrint)
     }
     // serilize default runtime attributes
@@ -548,7 +548,7 @@ case class ApplicationCompiler(
     val auxDetails = Vector(
         Some(Constants.SourceCode -> JsString(sourceEncoded)),
         Some(Constants.ParseOptions -> applet.document.optionsToJson),
-        dbOpaqueEncoded.map(db => Constants.InstanceTypeDb -> JsString(db)),
+        dbEncoded.map(db => Constants.InstanceTypeDb -> JsString(db)),
         Some(Constants.RuntimeAttributes -> defaultRuntimeAttributes)
     ).flatten.toMap
     val useManifestsDetails = if (useManifests) {
