@@ -19,7 +19,6 @@ import dx.api.{
 }
 import dx.core.{Constants, getVersion}
 import dx.core.io.{DxWorkerPaths, StreamFiles}
-import dx.core.ir.RunSpec.InstanceType
 import dx.core.ir._
 import dx.util.CodecUtils
 import dx.translator.Extras
@@ -85,8 +84,6 @@ case class Compiler(extras: Option[Extras],
 
   private case class BundleCompiler(bundle: Bundle, project: DxProject, folder: String) {
     private val parameterLinkSerializer = ParameterLinkSerializer(fileResolver)
-    // database of available instance types for the user/org that owns the project
-    private val instanceTypeDb = InstanceType.createDb(Some(project))
     // directory of the currently existing applets - we don't want to build them
     // if we don't have to.
     private val executableDir =
@@ -308,7 +305,6 @@ case class Compiler(extras: Option[Extras],
       val appletCompiler =
         ApplicationCompiler(
             typeAliases = bundle.typeAliases,
-            instanceTypeDb = instanceTypeDb,
             runtimeAsset = runtimeAsset,
             runtimeJar = runtimeJar,
             runtimePathConfig = runtimePathConfig,

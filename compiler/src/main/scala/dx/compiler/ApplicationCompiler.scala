@@ -1,6 +1,6 @@
 package dx.compiler
 
-import dx.api.{DxAccessLevel, DxApi, DxFileDescribe, DxPath, DxProject, DxUtils, InstanceTypeDB}
+import dx.api.{DxAccessLevel, DxApi, DxFileDescribe, DxPath, DxProject, DxUtils}
 import dx.core.Constants
 import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir._
@@ -31,7 +31,6 @@ object ApplicationCompiler {
 
 case class ApplicationCompiler(
     typeAliases: Map[String, Type],
-    instanceTypeDb: InstanceTypeDB,
     runtimeAsset: Option[JsValue],
     runtimeJar: String,
     runtimePathConfig: DxWorkerPaths,
@@ -49,6 +48,8 @@ case class ApplicationCompiler(
     project: DxProject,
     folder: String
 ) extends ExecutableCompiler(extras, parameterLinkSerializer, dxApi) {
+  // database of available instance types for the user/org that owns the project
+  private lazy val instanceTypeDb = InstanceType.createDb(Some(project))
 
   // renderer for job script templates
   private lazy val renderer = Renderer()
@@ -228,7 +229,7 @@ case class ApplicationCompiler(
               }
             } match {
               case Success(project) => project
-              case Failure(ex)      => throw new RuntimeException(s"Unable to locate file ${id}")
+              case Failure(ex)      => throw new RuntimeException(s"Unable to locate file ${id}", ex)
             }
         )
 
