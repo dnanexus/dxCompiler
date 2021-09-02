@@ -388,7 +388,7 @@ object Main {
         true
       case b => b
     }
-    val instanceTypeResolution =
+    val instanceTypeSelection =
       options.getValueOrElse[InstanceTypeSelection.InstanceTypeSelection](
           "instanceTypeSelection",
           InstanceTypeSelection.Static
@@ -424,7 +424,7 @@ object Main {
             locked,
             if (reorg) Some(true) else None,
             useManifests,
-            instanceTypeResolution,
+            instanceTypeSelection,
             baseFileResolver
         )
       } catch {
@@ -538,7 +538,7 @@ object Main {
           streamFiles,
           waitOnUpload,
           useManifests,
-          instanceTypeResolution,
+          instanceTypeSelection,
           defaultInstanceType,
           fileResolver
       )
