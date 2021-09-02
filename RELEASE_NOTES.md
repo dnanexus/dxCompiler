@@ -3,6 +3,7 @@
 ## in develop
 
 * Docker image dependencies that are DNAnexus platform files are included in applet's bundledDepends
+* Adds support for new London region, `aws:eu-west-2-g`
 
 ## 2.4.10 2021-08-16
 
