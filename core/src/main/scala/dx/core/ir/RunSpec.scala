@@ -12,7 +12,7 @@ import dx.api.{
   InstanceTypeRequest
 }
 import dx.core.Constants
-import dx.util.{Enum, Logger}
+import dx.util.Enum
 
 object InstanceTypeResolution extends Enum {
   type InstanceTypeResolution = Value
@@ -64,13 +64,8 @@ object RunSpec {
       !instanceType.name.contains("fpga")
     }
 
-    def createDb(project: Option[DxProject] = None,
-                 dxApi: DxApi = DxApi.get,
-                 logger: Logger = Logger.get): InstanceTypeDB = {
-      InstanceTypeDB.create(project.getOrElse(dxApi.currentProject.get),
-                            instanceTypeFilter,
-                            Some(dxApi),
-                            logger)
+    def createDb(project: Option[DxProject] = None, dxApi: DxApi = DxApi.get): InstanceTypeDB = {
+      InstanceTypeDB.create(project.getOrElse(dxApi.currentProject.get), instanceTypeFilter)
     }
   }
 

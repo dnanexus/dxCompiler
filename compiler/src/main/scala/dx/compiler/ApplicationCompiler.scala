@@ -152,6 +152,8 @@ case class ApplicationCompiler(
       case static: StaticInstanceType =>
         instanceTypeDb.apply(static.toInstanceTypeRequest).name
       case DefaultInstanceType | DynamicInstanceType =>
+        // TODO: should we use the project default here rather than
+        //  picking one from the database?
         defaultInstanceType.getOrElse(instanceTypeDb.defaultInstanceType.name)
     }
     // Generate the applet's job script
@@ -531,10 +533,10 @@ case class ApplicationCompiler(
       }
     // compress and base64 encode the source code
     val sourceEncoded = CodecUtils.gzipAndBase64Encode(applet.document.toString)
+    // compress and base64 encode the instance types, unless we specify that we want to
+    // resolve them at runtime
     val dbOpaqueEncoded = Option.when(instanceTypeResolution == InstanceTypeResolution.Static) {
-      // serialize the pricing model, and make the prices opaque
-      val dbOpaque = InstanceTypeDB.opaquePrices(instanceTypeDb)
-      CodecUtils.gzipAndBase64Encode(dbOpaque.toJson.prettyPrint)
+      CodecUtils.gzipAndBase64Encode(instanceTypeDb.toJson.prettyPrint)
     }
     // serilize default runtime attributes
     val defaultRuntimeAttributes: JsValue = extras

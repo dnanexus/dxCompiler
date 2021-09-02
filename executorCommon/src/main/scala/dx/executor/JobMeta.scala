@@ -648,13 +648,21 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths, val dxApi: DxApi, val log
     getExecutableDetail(Constants.ParseOptions)
   }
 
-  lazy val instanceTypeDb: InstanceTypeDB = getExecutableDetail(Constants.InstanceTypeDb) match {
-    case Some(JsString(s)) =>
-      val js = CodecUtils.base64DecodeAndGunzip(s)
-      js.parseJson.convertTo[InstanceTypeDB]
-    case None => InstanceType.createDb(dxApi = dxApi, logger = logger)
-    case other =>
-      throw new Exception(s"unexpected ${Constants.InstanceTypeDb} value ${other}")
+  lazy val instanceTypeDb: InstanceTypeDB = {
+    try {
+      // first try to create the db from the current project
+      InstanceType.createDb(dxApi = dxApi)
+    } catch {
+      case _: Throwable =>
+        // fall back to the cached database if available
+        getExecutableDetail(Constants.InstanceTypeDb) match {
+          case Some(JsString(s)) =>
+            val js = CodecUtils.base64DecodeAndGunzip(s)
+            js.parseJson.convertTo[InstanceTypeDB]
+          case other =>
+            throw new Exception(s"unexpected ${Constants.InstanceTypeDb} value ${other}")
+        }
+    }
   }
 
   lazy val defaultRuntimeAttrs: Map[String, Value] =
