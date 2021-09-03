@@ -423,7 +423,6 @@ case class WdlWorkflowExecutor(docSource: FileNode,
                     task.runtime,
                     task.hints,
                     evaluator,
-                    None,
                     ctx = Some(callInputs))
           try {
             val request = runtime.parseInstanceType

@@ -4,6 +4,7 @@ import dx.api.{DxApi, DxPath, DxUtils, InstanceTypeRequest}
 import dx.core.ir.RunSpec._
 import dx.core.ir.{ExecutableKind, ExecutableKindNative, ExecutableType, RuntimeRequirement, Value}
 import dx.core.languages.wdl.{DxRuntimeHint, IrToWdlValueBindings, Runtime, WdlUtils}
+
 import scala.util.Try
 import wdlTools.eval.WdlValues._
 import wdlTools.eval.{Eval, EvalException, Meta}
@@ -84,7 +85,7 @@ case class RuntimeTranslator(wdlVersion: WdlVersion,
             runtimeSection,
             hintsSection,
             evaluator,
-            Some(IrToWdlValueBindings(defaultAttrs)))
+            defaultAttrs = Some(IrToWdlValueBindings(defaultAttrs)))
   private lazy val meta: Meta = Meta.create(wdlVersion, metaSection)
 
   def translate(id: String, wdlType: Option[T] = None): Option[Value] = {

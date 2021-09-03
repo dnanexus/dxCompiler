@@ -436,13 +436,11 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
           ExecutableCompiler.WorkflowInputLinksParameter,
           ExecutableCompiler.OutputIdParameter,
           ExecutableCompiler.CallNameParameter,
-          ExecutableCompiler.RequirementsParameter,
-          ExecutableCompiler.HintsParameter
+          ExecutableCompiler.OverridesParameter
       )
     } else {
       applet.inputs ++ Vector(
-          ExecutableCompiler.RequirementsParameter,
-          ExecutableCompiler.HintsParameter
+          ExecutableCompiler.OverridesParameter
       )
     }
     val inputSpec = inputParams

@@ -106,16 +106,6 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
 
   def rawJsInputs: Map[DxName, JsValue]
 
-  // the unencoded call name
-  def callName: Option[String] = {
-    rawJsInputs.get(Constants.CallName) match {
-      case Some(JsString(callName)) => Some(callName)
-      case None                     => None
-      case other =>
-        throw new Exception(s"invalid callName ${other}")
-    }
-  }
-
   /**
     * If the task/workflow was compiled with -useManifests, then the job inputs
     * will be manifest files, rather than the actual inputs expected by the
@@ -331,13 +321,20 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
     }
   }
 
-  lazy val jsInputs: Map[DxName, JsValue] = {
-    // TODO: it may be problematic to create ComplexDxName here rather than
-    //  the appropriate subclass for the language
-    val jsInputs: Map[DxName, JsValue] = if (useManifests) {
-      unpackManifests(rawJsInputs)
+  lazy val (jsInputs: Map[DxName, JsValue], jsOverrides: Option[JsValue]) = {
+    // pop the overrides off the rest of the inputs
+    val (rawOverrides, rawInputs) = rawJsInputs.partition {
+      case (dxName, _) => dxName == Constants.Overrides
+    }
+    val jsInputs = if (useManifests) {
+      unpackManifests(rawInputs)
     } else {
-      rawJsInputs
+      rawInputs
+    }
+    val jsOverrides = rawOverrides.values.headOption.map {
+      case JsObject(fields) if fields.contains(Constants.ComplexValueKey) =>
+        fields(Constants.ComplexValueKey)
+      case jsv => jsv
     }
     if (logger.isVerbose) {
       if (jsInputs.isEmpty) {
@@ -347,8 +344,13 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
           case (dxName, jsv) => dxName.decoded -> jsv
         }).prettyPrint}")
       }
+      if (jsOverrides.isEmpty) {
+        logger.trace("No overrides")
+      } else {
+        logger.traceLimited(s"Raw overrides:\n${jsOverrides.get.prettyPrint}")
+      }
     }
-    jsInputs
+    (jsInputs, jsOverrides)
   }
 
   private lazy val allFilesReferenced: Vector[DxFile] = {
@@ -462,13 +464,15 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
         case other =>
           throw new Exception(s"missing or invalid outputId ${other}")
       }
-      val manifestValues = callName
-        .map { c =>
+      val manifestValues = rawJsInputs.get(Constants.CallName) match {
+        case Some(JsString(callName)) =>
           outputJs.map {
-            case (dxName, value) => dxName.pushDecodedNamespace(c) -> value
+            case (dxName, value) => dxName.pushDecodedNamespace(callName) -> value
           }
-        }
-        .getOrElse(outputJs)
+        case None => outputJs
+        case other =>
+          throw new Exception(s"invalid callName ${other}")
+      }
       val manifest = Manifest(manifestValues, id = Some(manifestId))
       val destination = s"${manifestProjectAndFolder}/${jobId}_output.manifest.json"
       val manifestDxFile = dxApi.uploadString(manifest.toJson().prettyPrint, destination)

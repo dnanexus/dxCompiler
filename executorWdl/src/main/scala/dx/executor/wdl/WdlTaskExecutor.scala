@@ -2,7 +2,7 @@ package dx.executor.wdl
 
 import dx.api.{DxPath, InstanceTypeRequest}
 import dx.core.io.StreamFiles
-import dx.core.ir.{DxName, Type, Value}
+import dx.core.ir.{DxName, Type, Value, ValueSerde}
 import dx.core.languages.wdl.{
   IrToWdlValueBindings,
   Runtime,
@@ -13,6 +13,7 @@ import dx.core.languages.wdl.{
 }
 import dx.executor.{JobMeta, TaskExecutor}
 import dx.util.{Bindings, DockerUtils, Logger}
+import spray.json.JsObject
 import wdlTools.eval.WdlValues._
 import wdlTools.eval.{Eval, WdlValueBindings}
 import wdlTools.exec.{TaskCommandFileGenerator, TaskInputOutput}
@@ -135,12 +136,28 @@ case class WdlTaskExecutor(task: TAT.Task,
       }
   }
 
+  lazy val (runtimeOverrides, hintOverrides) = {
+    val (runtimeOverridesJs, hintOverridesJs) = jobMeta.jsOverrides match {
+      case Some(JsObject(fields)) if fields.contains("runtime") || fields.contains("hints") =>
+        (fields.get("runtime").map(_.asJsObject.fields),
+         fields.get("hints").map(_.asJsObject.fields))
+      case Some(JsObject(fields)) => (Some(fields), None)
+      case None                   => (None, None)
+      case Some(other) =>
+        throw new Exception(s"invalid overrides ${other}")
+    }
+    (runtimeOverridesJs.map(o => IrToWdlValueBindings(ValueSerde.deserializeMap(o))),
+     hintOverridesJs.map(o => IrToWdlValueBindings(ValueSerde.deserializeMap(o))))
+  }
+
   private def createRuntime(env: Map[DxName, V]): Runtime = {
     Runtime(
         versionSupport.version,
         task.runtime,
         task.hints,
         evaluator,
+        runtimeOverrides,
+        hintOverrides,
         Some(IrToWdlValueBindings(jobMeta.defaultRuntimeAttrs)),
         Some(WdlValueBindings(env.map {
           case (dxName, v) => dxName.decoded -> v
@@ -160,7 +177,7 @@ case class WdlTaskExecutor(task: TAT.Task,
   }
 
   private lazy val hints =
-    HintResolver(versionSupport.version, task.parameterMeta, task.hints)
+    HintResolver(versionSupport.version, task.parameterMeta, task.hints, hintOverrides)
 
   /**
     * Should we try to stream the file(s) associated with the given input parameter?

@@ -17,13 +17,13 @@ import java.net.URI
 import java.nio.file.Files
 
 object CwlTaskExecutor {
-  def create(jobMeta: JobMeta,
-             streamFiles: StreamFiles.StreamFiles = StreamFiles.PerFile,
-             checkInstanceType: Boolean): CwlTaskExecutor = {
+  val DefaultFrag = "___"
+
+  def parseString(cwl: String): ParserResult = {
     // when parsing a packed workflow as a String, we need to use a baseuri -
     // it doesn't matter what it is
     val parser = Parser.create(Some(URI.create("file:/null")), hintSchemas = Vector(DxHintSchema))
-    parser.detectVersionAndClass(jobMeta.sourceCode) match {
+    parser.detectVersionAndClass(cwl) match {
       case Some((version, "CommandLineTool" | "ExpressionTool" | "Workflow"))
           if Language.parse(version) == Language.CwlV1_2 =>
         ()
@@ -31,26 +31,31 @@ object CwlTaskExecutor {
         throw new Exception(
             s"""source code does not appear to be a CWL CommandLineTool, ExpressionTool,
                |or Workflow of a supported version:
-               |${jobMeta.sourceCode}""".stripMargin
+               |${cwl}""".stripMargin
         )
     }
-    val toolName = jobMeta.getExecutableAttribute("name") match {
-      case Some(JsString(name)) => name
-      case _                    => throw new Exception("missing executable name")
-    }
-    jobMeta.logger.trace(s"toolName: ${toolName}")
     // The main process may or may not have an ID. In the case it does not,
     // we supply a default ID fragment that is unlikely to be taken by the
     // user. Then, if the main process is a CommandLineTool or ExpressionTool,
     // we update the ID to use the tool name as the fragment; otherwise it is
     // a workflow and we look up the tool by name in the Map of processes nested
     // within the workflow.
-    val defaultFrag = "___"
-    val tool = parser.parseString(jobMeta.sourceCode, Some(defaultFrag), isPacked = true) match {
-      case ParserResult(tool: CommandLineTool, _, _, _) if tool.frag == defaultFrag =>
+    parser.parseString(cwl, Some(DefaultFrag), isPacked = true)
+  }
+
+  def create(jobMeta: JobMeta,
+             streamFiles: StreamFiles.StreamFiles = StreamFiles.PerFile,
+             checkInstanceType: Boolean): CwlTaskExecutor = {
+    val toolName = jobMeta.getExecutableAttribute("name") match {
+      case Some(JsString(name)) => name
+      case _                    => throw new Exception("missing executable name")
+    }
+    jobMeta.logger.trace(s"toolName: ${toolName}")
+    val tool = parseString(jobMeta.sourceCode) match {
+      case ParserResult(tool: CommandLineTool, _, _, _) if tool.frag == DefaultFrag =>
         tool.copy(id = Some(Identifier(namespace = None, frag = Some(toolName))))
       case ParserResult(tool: CommandLineTool, _, _, _) => tool
-      case ParserResult(tool: ExpressionTool, _, _, _) if tool.frag == defaultFrag =>
+      case ParserResult(tool: ExpressionTool, _, _, _) if tool.frag == DefaultFrag =>
         tool.copy(id = Some(Identifier(namespace = None, frag = Some(toolName))))
       case ParserResult(tool: ExpressionTool, _, _, _) => tool
       case ParserResult(_, doc: Document, _, _) =>
@@ -69,9 +74,6 @@ object CwlTaskExecutor {
   }
 }
 
-// TODO: add compile-time option to enable passing an overrides file to the
-//  top-level workflow, and have the tool-specific overrides dispatched to
-//  each task
 // TODO: add compile-time option for --non-strict
 // TODO: SHA1 checksums are computed for all outputs - we need to add these as
 //  properties on the uploaded files so they can be propagated to downstream
@@ -97,6 +99,35 @@ case class CwlTaskExecutor(tool: Process,
 
   private lazy val runtime: Runtime = CwlUtils.createRuntime(workerPaths)
 
+  // the requriements and hints for the tool, which may be augmented by runtime overrides
+  lazy val (requirements, hints) = {
+    val overridesJs: Option[Map[String, JsValue]] = jobMeta.jsOverrides match {
+      case Some(JsObject(fields)) if fields.contains("requirements") || fields.contains("hints") =>
+        Some(fields)
+      case Some(requirements: JsArray) => Some(Map("requirements" -> requirements))
+      case None                        => None
+      case other =>
+        throw new Exception(s"invalid overrides ${other}")
+    }
+    overridesJs
+      .map { fields =>
+        // create a minimal document and then parse it to get the AST values
+        val doc = fields ++ Map(
+            "cwlVersion" -> JsString("v1.2"),
+            "class" -> JsString("CommandLineTool"),
+            "inputs" -> JsArray(),
+            "outputs" -> JsArray()
+        )
+        CwlTaskExecutor.parseString(JsObject(doc).prettyPrint) match {
+          case ParserResult(overridesTool: CommandLineTool, _, _, _) =>
+            (overridesTool.requirements ++ tool.requirements, overridesTool.hints ++ tool.hints)
+          case other =>
+            throw new Exception(s"expected CommandLineTool, not ${other}")
+        }
+      }
+      .getOrElse((tool.requirements, tool.hints))
+  }
+
   private lazy val (cwlInputs: Map[DxName, (CwlType, CwlValue)], target: Option[String]) = {
     val (irInputs, target) =
       jobMeta.primaryInputs.foldLeft(Map.empty[DxName, Value], Option.empty[String]) {
@@ -110,7 +141,7 @@ case class CwlTaskExecutor(tool: Process,
       throw new Exception(s"no type information given for input(s) ${missingTypes.mkString(",")}")
     }
     // convert IR to CWL values; discard auxiliary fields
-    val evaluator = Evaluator.create(tool.requirements, tool.hints)
+    val evaluator = Evaluator.create(requirements, hints)
     val cwlInputs = inputParams.foldLeft(Map.empty[DxName, (CwlType, CwlValue)]) {
       case (env, (name, param)) =>
         val (cwlType: CwlType, cwlValue: CwlValue) = irInputs.get(name) match {
@@ -160,7 +191,7 @@ case class CwlTaskExecutor(tool: Process,
   }
 
   private lazy val typeAliases: Map[String, CwlSchema] = {
-    HintUtils.getSchemaDefs(tool.requirements)
+    HintUtils.getSchemaDefs(requirements)
   }
 
   private lazy val defaultRuntimeAttrs: Map[String, (CwlType, CwlValue)] = {
@@ -171,15 +202,15 @@ case class CwlTaskExecutor(tool: Process,
       inputs: Map[DxName, (Type, Value)]
   ): InstanceTypeRequest = {
     logger.traceLimited("calcInstanceType", minLevel = TraceLevel.VVerbose)
-    val cwlEvaluator = Evaluator.create(tool.requirements, tool.hints)
+    val cwlEvaluator = Evaluator.create(requirements, hints)
     val cwlInputs = CwlUtils.fromIR(inputs, typeAliases, isInput = true)
     val ctx = CwlUtils.createEvaluatorContext(runtime)
     val env = cwlEvaluator.evaluateMap(cwlInputs.map {
       case (dxName, tv) => dxName.decoded -> tv
     }, ctx)
     val reqEvaluator = RequirementEvaluator(
-        tool.requirements,
-        tool.hints,
+        requirements,
+        hints,
         env,
         workerPaths,
         tool.inputs.map(i => i.name -> i).toMap,

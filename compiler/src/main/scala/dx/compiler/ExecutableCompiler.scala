@@ -48,10 +48,8 @@ object ExecutableCompiler {
     Parameter(Constants.CallName, Type.TOptional(Type.TString))
   val OutputManifestParameter: Parameter =
     Parameter(Constants.OutputManifest, Type.TFile)
-  val RequirementsParameter: Parameter =
-    Parameter(Constants.Requirements, Type.TOptional(Type.THash))
-  val HintsParameter: Parameter =
-    Parameter(Constants.Hints, Type.TOptional(Type.THash))
+  val OverridesParameter: Parameter =
+    Parameter(Constants.Overrides, Type.TOptional(Type.THash))
 }
 
 class ExecutableCompiler(extras: Option[Extras],

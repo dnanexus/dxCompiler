@@ -39,11 +39,21 @@ case class Runtime(wdlVersion: WdlVersion,
                    runtimeSection: Option[TAT.RuntimeSection],
                    hintsSection: Option[TAT.MetaSection],
                    evaluator: Eval,
+                   runtimeOverrides: Option[VBindings] = None,
+                   hintOverrides: Option[VBindings] = None,
                    defaultAttrs: Option[VBindings] = None,
                    ctx: Option[Bindings[String, V]] = None) {
   private lazy val runtimeAttrs: WdlRuntimeAttributes = {
-    val runtime = runtimeSection.map(r => WdlRuntime.create(Some(r), evaluator, ctx, defaultAttrs))
-    val hints = hintsSection.map(h => Hints.create(Some(h), defaultAttrs))
+    val runtime = runtimeSection.map(r =>
+      WdlRuntime.create(Some(r),
+                        evaluator,
+                        ctx,
+                        overrideValues = runtimeOverrides,
+                        defaultValues = defaultAttrs)
+    )
+    val hints = hintsSection.map(h =>
+      Hints.create(Some(h), overrideValues = hintOverrides, userDefaultValues = defaultAttrs)
+    )
     WdlRuntimeAttributes(runtime, hints)
   }
 
