@@ -297,16 +297,16 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
   }
 
   it should "translate cwl inputs" in {
-    val cwlCode = pathFromBasename("cwl", "initialwork-path.cwl.json")
-    val inputs = pathFromBasename("cwl", "initialwork-path_input.json")
+    val cwlCode = pathFromBasename("input_file", "initialwork-path.cwl.json")
+    val inputs = pathFromBasename("input_file", "initialwork-path_input.json")
     val args = List(cwlCode.toString, "--inputs", inputs.toString) ++ cFlags
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileIR]
   }
 
   it should "translate cwl inputs with default file value" in {
-    val cwlCode = pathFromBasename("cwl", "bool-empty-inputbinding.cwl.json")
-    val inputs = pathFromBasename("cwl", "bool-empty-inputbinding_input.json")
+    val cwlCode = pathFromBasename("input_file", "bool-empty-inputbinding.cwl.json")
+    val inputs = pathFromBasename("input_file", "bool-empty-inputbinding_input.json")
     val args = List(cwlCode.toString, "--inputs", inputs.toString) ++ cFlags
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileIR]
@@ -314,7 +314,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
 
   it should "translate cwl inputs for workflow with no steps" in {
     val cwlCode = pathFromBasename("cwl", "any-type-compat.cwl.json")
-    val inputs = pathFromBasename("cwl", "any-type-compat_input.json")
+    val inputs = pathFromBasename("input_file", "any-type-compat_input.json")
     val args = List(cwlCode.toString, "--inputs", inputs.toString) ++ cFlags
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileIR]
@@ -331,16 +331,16 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
   }
 
   it should "translate cwl directory input" in {
-    val cwlCode = pathFromBasename("cwl", "dir.cwl.json")
-    val inputs = pathFromBasename("cwl", "dir_input.json")
+    val cwlCode = pathFromBasename("input_file", "dir.cwl.json")
+    val inputs = pathFromBasename("input_file", "dir_input.json")
     val args = List(cwlCode.toString, "--inputs", inputs.toString) ++ cFlags
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileIR]
   }
 
   it should "translate cwl directory listing I" in {
-    val cwlCode = pathFromBasename("cwl", "cat-from-dir.cwl.json")
-    val inputs = pathFromBasename("cwl", "cat-from-dir_input1.json")
+    val cwlCode = pathFromBasename("input_file", "cat-from-dir.cwl.json")
+    val inputs = pathFromBasename("input_file", "cat-from-dir_input1.json")
     val args = List(cwlCode.toString, "--inputs", inputs.toString) ++ cFlags
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileIR]
@@ -368,8 +368,8 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
   }
 
   it should "translate cwl directory listing II" in {
-    val cwlCode = pathFromBasename("cwl", "cat-from-dir.cwl.json")
-    val inputs = pathFromBasename("cwl", "cat-from-dir_input2.json")
+    val cwlCode = pathFromBasename("input_file", "cat-from-dir.cwl.json")
+    val inputs = pathFromBasename("input_file", "cat-from-dir_input2.json")
     val args = List(cwlCode.toString, "--inputs", inputs.toString) ++ cFlags
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileIR]
@@ -394,8 +394,8 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
   }
 
   it should "translate cwl file with secondary files" in {
-    val cwlCode = pathFromBasename("cwl", "dir4.cwl.json")
-    val inputs = pathFromBasename("cwl", "dir4_input1.json")
+    val cwlCode = pathFromBasename("input_file", "dir4.cwl.json")
+    val inputs = pathFromBasename("input_file", "dir4_input1.json")
     val args = List(cwlCode.toString, "--inputs", inputs.toString) ++ cFlags
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileIR]
@@ -426,6 +426,57 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
                     "type" -> JsString("Folder"),
                     "basename" -> JsString("xtestdir"),
                     "uri" -> JsString("dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/test/")
+                )
+            )
+        )
+    )
+  }
+
+  it should "translate a WDL file with overrides" in {
+    val wdlCode = pathFromBasename("input_file", "runtime_override.wdl")
+    val inputs = pathFromBasename("input_file", "runtime_override_inputs.json")
+    val args = List(wdlCode.toString, "--inputs", inputs.toString) ++ cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileIR]
+
+    val dxInputsFile = inputs.getParent.resolve(FileUtils.replaceFileSuffix(inputs, ".dx.json"))
+    val jsInputs = JsUtils.jsFromFile(dxInputsFile)
+    val fields = jsInputs.asJsObject.fields
+    fields.size shouldBe 2
+    fields("s") shouldBe JsString("foo")
+    fields(Constants.Overrides.encoded) shouldBe JsObject(
+        "___" -> JsObject(
+            "runtime" -> JsObject(
+                "docker" -> JsString("debian:latest"),
+                "cpu" -> JsNumber(8)
+            )
+        )
+    )
+  }
+
+  it should "translate a CWL file with overrides" in {
+    val wdlCode = pathFromBasename("input_file", "env-tool.cwl.json")
+    val inputs = pathFromBasename("input_file", "env-tool_input.yaml")
+    val args = List(wdlCode.toString, "--inputs", inputs.toString) ++ cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileIR]
+
+    val dxInputsFile = inputs.getParent.resolve(FileUtils.replaceFileSuffix(inputs, ".dx.json"))
+    val jsInputs = JsUtils.jsFromFile(dxInputsFile)
+    val fields = jsInputs.asJsObject.fields
+    fields.size shouldBe 2
+    fields("in") shouldBe JsString("hello test env")
+    fields(Constants.Overrides.encoded) shouldBe JsObject(
+        "___" -> JsObject(
+            "requirements" -> JsArray(
+                JsObject(
+                    "class" -> JsString("EnvVarRequirement"),
+                    "envDef" -> JsArray(
+                        JsObject(
+                            "envName" -> JsString("TEST_ENV"),
+                            "envValue" -> JsString("$(inputs.in)")
+                        )
+                    )
                 )
             )
         )

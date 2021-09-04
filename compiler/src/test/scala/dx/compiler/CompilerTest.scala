@@ -166,17 +166,19 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
     val dxApplet = dxApi.applet(appId)
     val inputSpec = dxApplet.describe(Set(Field.InputSpec))
-    val (in_file, pattern) = inputSpec.inputSpec match {
-      case Some(x) => (x(0), x(1))
+    val params = inputSpec.inputSpec match {
+      case Some(x) => x.map(p => p.name -> p).toMap
       case other   => throw new Exception(s"Unexpected result ${other}")
     }
+    val pattern = params("pattern")
     pattern.help shouldBe Some("The pattern to use to search in_file")
     pattern.group shouldBe Some("Common")
     pattern.label shouldBe Some("Search pattern")
-    in_file.patterns shouldBe Some(IOParameterPatternArray(Vector("*.txt", "*.tsv")))
-    in_file.help shouldBe Some("The input file to be searched")
-    in_file.group shouldBe Some("Common")
-    in_file.label shouldBe Some("Input file")
+    val inFile = params("in_file")
+    inFile.patterns shouldBe Some(IOParameterPatternArray(Vector("*.txt", "*.tsv")))
+    inFile.help shouldBe Some("The input file to be searched")
+    inFile.group shouldBe Some("Common")
+    inFile.label shouldBe Some("Input file")
     // TODO: fix this
     // out_file would be part of the outputSpec, but wom currently doesn't
     // support parameter_meta for output vars
@@ -194,21 +196,23 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
     val dxApplet = dxApi.applet(appId)
     val inputSpec = dxApplet.describe(Set(Field.InputSpec))
-    val (in_file, pattern) = inputSpec.inputSpec match {
-      case Some(x) => (x(0), x(1))
+    val params = inputSpec.inputSpec match {
+      case Some(x) => x.map(p => p.name -> p).toMap
       case other   => throw new Exception(s"Unexpected result ${other}")
     }
+    val pattern = params("pattern")
     pattern.help shouldBe Some("The pattern to use to search in_file")
     pattern.group shouldBe Some("Common")
     pattern.label shouldBe Some("Search pattern")
-    in_file.patterns shouldBe Some(
+    val inFile = params("in_file")
+    inFile.patterns shouldBe Some(
         IOParameterPatternObject(Some(Vector("*.txt", "*.tsv")),
                                  Some("file"),
                                  Some(Vector("foo", "bar")))
     )
-    in_file.help shouldBe Some("The input file to be searched")
-    in_file.group shouldBe Some("Common")
-    in_file.label shouldBe Some("Input file")
+    inFile.help shouldBe Some("The input file to be searched")
+    inFile.group shouldBe Some("Common")
+    inFile.label shouldBe Some("Input file")
     // TODO: fix this
     // out_file would be part of the outputSpec, but wom currently doesn't
     // support parameter_meta for output vars
@@ -226,17 +230,17 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
     val dxApplet = dxApi.applet(appId)
     val inputSpec = dxApplet.describe(Set(Field.InputSpec))
-    val (in_file, pattern) = inputSpec.inputSpec match {
-      case Some(x) => (x(0), x(1))
+    val params = inputSpec.inputSpec match {
+      case Some(x) => x.map(p => p.name -> p).toMap
       case other   => throw new Exception(s"Unexpected result ${other}")
     }
-    pattern.choices shouldBe Some(
+    params("pattern").choices shouldBe Some(
         Vector(
             IOParameterValueString(value = "A"),
             IOParameterValueString(value = "B")
         )
     )
-    in_file.choices shouldBe Some(
+    params("in_file").choices shouldBe Some(
         Vector(
             IOParameterValueDataObject("file-Fg5PgBQ0ffP7B8bg3xqB115G"),
             IOParameterValueDataObject("file-Fg5PgBj0ffPP0Jjv3zfv0yxq")
@@ -255,17 +259,17 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
     val dxApplet = dxApi.applet(appId)
     val inputSpec = dxApplet.describe(Set(Field.InputSpec))
-    val (inFile, pattern) = inputSpec.inputSpec match {
-      case Some(x) => (x(0), x(1))
+    val params = inputSpec.inputSpec match {
+      case Some(x) => x.map(p => p.name -> p).toMap
       case other   => throw new Exception(s"Unexpected result ${other}")
     }
-    pattern.choices shouldBe Some(
+    params("pattern").choices shouldBe Some(
         Vector(
             IOParameterValueString(value = "A"),
             IOParameterValueString(value = "B")
         )
     )
-    inFile.choices shouldBe Some(
+    params("in_file").choices shouldBe Some(
         Vector(
             IOParameterValueDataObject(
                 id = "file-Fg5PgBQ0ffP7B8bg3xqB115G",
@@ -290,17 +294,17 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
     val dxApplet = dxApi.applet(appId)
     val inputSpec = dxApplet.describe(Set(Field.InputSpec))
-    val (inFile, pattern) = inputSpec.inputSpec match {
-      case Some(x) => (x(0), x(1))
+    val params = inputSpec.inputSpec match {
+      case Some(x) => x.map(p => p.name -> p).toMap
       case other   => throw new Exception(s"Unexpected result ${other}")
     }
-    pattern.suggestions shouldBe Some(
+    params("pattern").suggestions shouldBe Some(
         Vector(
             IOParameterValueString("A"),
             IOParameterValueString("B")
         )
     )
-    inFile.suggestions shouldBe Some(
+    params("in_file").suggestions shouldBe Some(
         Vector(
             IOParameterValueDataObject("file-Fg5PgBQ0ffP7B8bg3xqB115G"),
             IOParameterValueDataObject("file-Fg5PgBj0ffPP0Jjv3zfv0yxq")
@@ -319,17 +323,17 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
     val dxApplet = dxApi.applet(appId)
     val inputSpec = dxApplet.describe(Set(Field.InputSpec))
-    val (inFile, pattern) = inputSpec.inputSpec match {
-      case Some(x) => (x(0), x(1))
+    val params = inputSpec.inputSpec match {
+      case Some(x) => x.map(p => p.name -> p).toMap
       case other   => throw new Exception(s"Unexpected result ${other}")
     }
-    pattern.suggestions shouldBe Some(
+    params("pattern").suggestions shouldBe Some(
         Vector(
             IOParameterValueString("A"),
             IOParameterValueString("B")
         )
     )
-    inFile.suggestions shouldBe Some(
+    params("in_file").suggestions shouldBe Some(
         Vector(
             IOParameterValueDataObject(
                 id = "file-Fg5PgBQ0ffP7B8bg3xqB115G",
@@ -1130,7 +1134,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         Constants.WorkflowInputLinks,
         Constants.WorkflowInputLinks.addSuffix(Constants.FlatFilesSuffix),
         Constants.OutputId,
-        Constants.CallName
+        Constants.CallName,
+        Constants.Overrides,
+        Constants.Overrides.addSuffix(Constants.FlatFilesSuffix)
     ).map(_.encoded)
     input(Constants.InputManifest.encoded).ioClass shouldBe DxIOClass.Hash
     input(Constants.InputManifest.encoded).optional shouldBe true

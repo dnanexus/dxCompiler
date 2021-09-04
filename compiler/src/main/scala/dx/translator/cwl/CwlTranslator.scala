@@ -57,8 +57,31 @@ case class CwlInputTranslator(bundle: Bundle,
                             dxApi,
                             logger) {
 
-  override protected def translateJsInput(jsv: JsValue, t: Type): JsValue = {
-    (t, jsv) match {
+  private val CwlPrefix = "cwl:"
+
+  override protected def splitInputs(
+      rawInputs: Map[String, JsValue]
+  ): (Map[String, JsValue], Map[String, JsObject]) = {
+    val (values, overrides) =
+      rawInputs.foldLeft(Map.empty[String, JsValue], Map.empty[String, JsValue]) {
+        case ((values, overrides), (key, value)) if key.startsWith(CwlPrefix) =>
+          (values, overrides + (key.drop(CwlPrefix.length) -> value))
+        case ((values, overrides), (key, value)) =>
+          (values + (key -> value), overrides)
+      }
+    (values, if (overrides.nonEmpty) {
+      val overridesObj = JsObject(overrides)
+      bundle.primaryCallable match {
+        case Some(c: Callable) => Map(c.name -> overridesObj)
+        case _                 => bundle.allCallables.keys.map(_ -> overridesObj).toMap
+      }
+    } else {
+      Map.empty[String, JsObject]
+    })
+  }
+
+  override protected def convertRawInput(rawInput: JsValue, t: Type): JsValue = {
+    (t, rawInput) match {
       case (Type.TFile, obj: JsObject) if obj.fields.get("class").contains(JsString("File")) =>
         val (_, cwlValue) = CwlUtils.toIRValue(FileValue.deserialize(obj), CwlFile)
         ValueSerde.serialize(cwlValue, fileResolver = Some(baseFileResolver), pathsAsObjects = true)
@@ -66,22 +89,28 @@ case class CwlInputTranslator(bundle: Bundle,
           if obj.fields.get("class").contains(JsString("Directory")) =>
         val (_, cwlValue) = CwlUtils.toIRValue(DirectoryValue.deserialize(obj), CwlDirectory)
         ValueSerde.serialize(cwlValue, fileResolver = Some(baseFileResolver), pathsAsObjects = true)
-      case _ => jsv
+      case _ => rawInput
     }
   }
 
+  // CWL packed workflows always use 'main' as the main process name -
+  // this enables CwlInputTranslator to replace it with the filename.
+  // TODO: the right solution to this is to have the pre-processing
+  //  script change #main to #<filename>
   override protected val mainPrefix: Option[String] = {
     bundle.primaryCallable match {
       case Some(wf: IRWorkflow) if wf.name == "main" =>
         // a packed workflow - use the source file name
         wf.document match {
           case CwlSourceCode(source) if source.getFileName.toString.endsWith(".cwl.json") =>
-            Some(FileUtils.changeFileExt(source.getFileName.toString, ".cwl.json"))
+            Some(FileUtils.changeFileExt(source.getFileName.toString, dropExt = ".cwl.json"))
           case _ => throw new Exception("expected CwlSourceCode")
         }
       case _ => None
     }
   }
+
+  override protected val lockedWorkflowPrefixOptional: Boolean = true
 }
 
 case class CwlTranslator(process: Process,

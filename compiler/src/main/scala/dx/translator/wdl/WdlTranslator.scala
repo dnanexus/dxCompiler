@@ -45,8 +45,59 @@ case class WdlInputTranslator(bundle: Bundle,
                             dxApi,
                             logger) {
 
-  override protected def translateJsInput(jsv: JsValue, t: Type): JsValue = {
-    (t, jsv) match {
+  private val RuntimeRegex = "^(?:(.*)\\.)?runtime\\.(.+)$".r
+  private val HintsKey = "^(?:(.*)\\.)?hints\\.(.+)$".r
+
+  override protected def splitInputs(
+      rawInputs: Map[String, JsValue]
+  ): (Map[String, JsValue], Map[String, JsObject]) = {
+    val toolName = bundle.primaryCallable match {
+      case Some(app: Application) => Some(app.name)
+      case _                      => None
+    }
+    val (values, overrides) =
+      rawInputs.foldLeft(Map.empty[String, JsValue],
+                         Map.empty[String, (Map[String, JsValue], Map[String, JsValue])]) {
+        case ((values, overrides), (RuntimeRegex(prefix, key), value)) =>
+          val executable = Option(prefix)
+            .orElse(toolName)
+            .getOrElse(
+                throw new Exception(
+                    s"input prefix is required unless WDL contains a single task: runtime.${key}"
+                )
+            )
+          val (runtime, hints) =
+            overrides.getOrElse(executable,
+                                (Map.empty[String, JsValue], Map.empty[String, JsValue]))
+          (values, overrides + (executable -> (runtime + (key -> value), hints)))
+        case ((values, overrides), (HintsKey(prefix, key), value)) =>
+          val executable = Option(prefix)
+            .orElse(toolName)
+            .getOrElse(
+                throw new Exception(
+                    s"input prefix is required unless WDL contains a single task: hints.${key}"
+                )
+            )
+          val (runtime, hints) =
+            overrides.getOrElse(executable,
+                                (Map.empty[String, JsValue], Map.empty[String, JsValue]))
+          (values, overrides + (executable -> (runtime, hints + (key -> value))))
+        case ((values, overrides), (key, value)) =>
+          (values + (key -> value), overrides)
+      }
+    (values, overrides.map {
+      case (key, (runtime, hints)) =>
+        key -> JsObject(
+            Vector(
+                Option.when(runtime.nonEmpty)("runtime" -> JsObject(runtime)),
+                Option.when(hints.nonEmpty)("hints" -> JsObject(hints))
+            ).flatten.toMap
+        )
+    })
+  }
+
+  override protected def convertRawInput(rawInput: JsValue, t: Type): JsValue = {
+    (t, rawInput) match {
       case (pairType: TSchema, JsArray(pair))
           if WdlUtils.isPairSchema(pairType) && pair.size == 2 =>
         // pair represented as [left, right]
@@ -59,7 +110,7 @@ case class WdlInputTranslator(bundle: Bundle,
         }.unzip
         JsObject(WdlUtils.MapKeysKey -> JsArray(keys.toVector),
                  WdlUtils.MapValuesKey -> JsArray(values.toVector))
-      case _ => jsv
+      case _ => rawInput
     }
   }
 }

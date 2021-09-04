@@ -1,0 +1,5 @@
+{
+  "runtime_override.s": "foo",
+  "runtime_override.runtime.docker": "debian:latest",
+  "runtime_override.runtime.cpu": 8
+}

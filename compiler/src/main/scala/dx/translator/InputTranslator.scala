@@ -20,8 +20,12 @@ import dx.core.ir.{
   Workflow
 }
 import dx.util.{FileSourceResolver, FileUtils, JsUtils, Logger}
+import dx.util.CollectionUtils.IterableOnceExtensions
 import dx.util.protocols.DxFileAccessProtocol
-import spray.json.{JsArray, JsNull, JsObject, JsString, JsValue}
+import dx.yaml._
+import spray.json._
+
+import scala.util.Try
 
 /**
   * Tracks which keys are accessed in a map and ensures all keys are accessed exactly once.
@@ -55,6 +59,8 @@ case class ExactlyOnce(name: String, fields: Map[String, JsValue], logger: Logge
 }
 
 object InputTranslator {
+  val ManifestSuffix = s".${Constants.InputManifest.decoded}"
+
   def loadJsonFileWithComments(path: Path): Map[String, JsValue] = {
     // skip comment lines, which start with ##
     JsUtils
@@ -63,11 +69,52 @@ object InputTranslator {
       .filterKeys(!_.startsWith("##"))
       .toMap
   }
+
+  private def yamlToJson(yamlValue: YamlValue): JsValue = {
+    yamlValue match {
+      case YamlNull        => JsNull
+      case YamlString(s)   => JsString(s)
+      case YamlBoolean(b)  => JsBoolean(b)
+      case YamlNumber(n)   => JsNumber(n)
+      case YamlNaN         => JsNumber(Double.NaN)
+      case YamlPositiveInf => JsNumber(Double.PositiveInfinity)
+      case YamlNegativeInf => JsNumber(Double.NegativeInfinity)
+      case YamlArray(a)    => JsArray(a.map(yamlToJson))
+      case YamlSet(s)      => JsArray(s.map(yamlToJson).toVector)
+      case YamlObject(obj) =>
+        JsObject(obj.map {
+          case (YamlString(key), value) => key -> yamlToJson(value)
+          case (key, value)             => key.toString -> yamlToJson(value)
+        })
+      case other =>
+        throw new Exception(s"unexpected value ${other}")
+    }
+  }
+
+  // load YAML and convert to JSON
+  def loadYamlFile(path: Path): Map[String, JsValue] = {
+    yamlToJson(FileUtils.readFileContent(path).parseYaml) match {
+      case JsObject(fields) => fields
+      case other =>
+        throw new Exception(s"expected object not ${other}")
+    }
+  }
+
+  def loadInputFile(path: Path): Map[String, JsValue] = {
+    val filename = path.getFileName.toString
+    if (filename.endsWith(".json")) {
+      loadJsonFileWithComments(path)
+    } else if (filename.endsWith(".yaml") || filename.endsWith(".yml")) {
+      loadYamlFile(path)
+    } else {
+      Try(loadJsonFileWithComments(path)).orElse(Try(loadYamlFile(path))).get
+    }
+  }
 }
 
 abstract class InputTranslator(bundle: Bundle,
-                               inputs: Vector[Path],
-                               defaults: Option[Path],
+                               inputPaths: Vector[Path],
+                               defaultPaths: Option[Path],
                                project: DxProject,
                                useManifests: Boolean,
                                complexPathValues: Boolean,
@@ -77,29 +124,36 @@ abstract class InputTranslator(bundle: Bundle,
                                dxApi: DxApi = DxApi.get,
                                logger: Logger = Logger.get) {
 
-  protected def loadInputs(path: Path): Map[String, JsValue] = {
-    InputTranslator.loadJsonFileWithComments(path)
-  }
+  /**
+    * Splits raw inputs into two maps: 1) parameter values and 2) overrides.
+    * The overrides value is language-specific and is serialized as-is.
+    */
+  protected def splitInputs(
+      rawInputs: Map[String, JsValue]
+  ): (Map[String, JsValue], Map[String, JsObject])
 
-  private lazy val rawInputsJs = inputs.map(path => path -> loadInputs(path)).toMap
-  private lazy val defaultsJs =
-    defaults.map(InputTranslator.loadJsonFileWithComments).getOrElse(Map.empty)
-  private val ManifestSuffix = s".${Constants.InputManifest.decoded}"
-
-  // All of the inputs in JSON format. Parameter names are of the form
-  // <prefix>.<decoded_name>, where prefix is the task or workflow name,
-  // and decoded_name is the parameter name as it appears in the source.
-  private lazy val inputsJs: Map[Path, Map[String, JsValue]] = {
-    rawInputsJs.map {
-      case (path, jsValues) if jsValues.size == 1 && jsValues.keys.head.endsWith(ManifestSuffix) =>
-        val (key, fields) = jsValues.head
-        val prefix = key.dropRight(ManifestSuffix.length)
-        val manifest = Manifest.parse(fields, dxNameFactory)
-        path -> manifest.jsValues.map {
-          case (name, value) => s"${prefix}.${name}" -> value
+  // All of the inputs and overrides in JSON format. Keys are of the form
+  // <prefix>.<decoded_name>, where prefix is the task or workflow name and
+  // decoded_name is the parameter name as it appears in the source.
+  private lazy val (allRawInputs: Map[Path, Map[String, JsValue]],
+                    allRawOverrides: Map[Path, Map[String, JsObject]]) = {
+    val (rawInputs, overrides) = inputPaths.map { path =>
+      val jsValues = InputTranslator.loadInputFile(path)
+      val (inputs, overridesJs) = splitInputs(jsValues)
+      val inputsJs =
+        if (inputs.size == 1 && inputs.keys.head.endsWith(InputTranslator.ManifestSuffix)) {
+          val (key, fields) = inputs.head
+          val prefix = key.dropRight(InputTranslator.ManifestSuffix.length)
+          val manifest = Manifest.parse(fields, dxNameFactory)
+          manifest.jsValues.map {
+            case (name, value) => s"${prefix}.${name}" -> value
+          }
+        } else {
+          inputs
         }
-      case (path, jsValues) => path -> jsValues
-    }
+      (path -> inputsJs, path -> overridesJs)
+    }.unzip
+    (rawInputs.toMap, overrides.toMap)
   }
 
   /**
@@ -107,16 +161,15 @@ abstract class InputTranslator(bundle: Bundle,
     * This is the mechanism to support compile-time inputs/defaults that do not map implicitly
     * to an IR type.
     */
-  protected def translateJsInput(jsv: JsValue, t: Type): JsValue = jsv
+  protected def convertRawInput(rawInput: JsValue, t: Type): JsValue = rawInput
 
   /**
-    * Extract Dx files from a JSON input.
-    * Can be over-ridden to extract files in a language-specific way.
+    * Extracts Dx files from a JSON input.
+    * @param rawInput the JSON value
     * @param t the parameter type
-    * @param jsv the JSON value
     * @return a Vector of JSON values that describe Dx files
     */
-  private def extractDxFiles(jsv: JsValue, t: Type): Vector[JsValue] = {
+  private def extractDxFiles(rawInput: JsValue, t: Type): Vector[JsValue] = {
     def extractFromArray(a: JsValue): Vector[JsValue] = {
       a match {
         case JsArray(paths) =>
@@ -134,7 +187,7 @@ abstract class InputTranslator(bundle: Bundle,
       }
     }
 
-    val updatedValue = translateJsInput(jsv, t)
+    val updatedValue = convertRawInput(rawInput, t)
     (t, updatedValue) match {
       case (_, JsNull) if Type.isOptional(t) =>
         Vector.empty
@@ -177,15 +230,20 @@ abstract class InputTranslator(bundle: Bundle,
     }
   }
 
+  private lazy val defaults =
+    defaultPaths.map(InputTranslator.loadJsonFileWithComments).getOrElse(Map.empty)
+
   // scan all inputs and defaults and extract files so we can resolve them in bulk
   private lazy val dxFiles: Vector[DxFile] = {
-    val allInputs: Map[String, JsValue] = defaultsJs ++ inputsJs.values.flatten
+    val allInputs: Vector[Map[String, JsValue]] = Vector(defaults) ++ allRawInputs.values.toVector
     val fileJs = bundle.allCallables.values.toVector.flatMap { callable: Callable =>
       callable.inputVars.flatMap { param =>
-        allInputs
-          .get(s"${callable.name}.${param.name.decoded}")
-          .map(jsv => extractDxFiles(jsv, param.dxType))
-          .getOrElse(Vector.empty)
+        val key = s"${callable.name}.${param.name.decoded}"
+        allInputs.flatMap(m =>
+          m.get(key)
+            .map(jsv => extractDxFiles(jsv, param.dxType))
+            .getOrElse(Vector.empty)
+        )
       }
     }
     val (dxFiles, dxPaths) = fileJs.foldLeft((Vector.empty[DxFile], Vector.empty[String])) {
@@ -217,12 +275,12 @@ abstract class InputTranslator(bundle: Bundle,
   private lazy val parameterLinkDeserializer = ParameterLinkDeserializer(dxFileDescCache, dxApi)
 
   private def deserializationHandler(jsValue: JsValue, t: Type): Either[JsValue, Value] = {
-    Left(translateJsInput(jsValue, t))
+    Left(convertRawInput(jsValue, t))
   }
 
-  lazy val bundleWithDefaults: Bundle = {
+  lazy val bundleWithDefaults: Bundle = if (defaults.nonEmpty) {
     logger.trace(s"Embedding defaults into the IR")
-    val defaultsExactlyOnce = ExactlyOnce("default", defaultsJs, logger)
+    val defaultsExactlyOnce = ExactlyOnce("default", defaults, logger)
     val allCallablesWithDefaults: Map[String, Callable] = bundle.allCallables.map {
       case (callableName, applet: Application) =>
         val inputsWithDefaults = applet.inputs.map { param =>
@@ -307,119 +365,161 @@ abstract class InputTranslator(bundle: Bundle,
     bundle.copy(primaryCallable = primaryCallableWithDefaults,
                 allCallables = allCallablesWithDefaults)
 
+  } else {
+    bundle
   }
 
-  private lazy val tasks: Vector[Application] = bundle.allCallables.collect {
+  private lazy val applications: Vector[Application] = bundle.allCallables.collect {
     case (_, callable: Application) => callable
   }.toVector
 
-  // CWL packed workflows always use 'main' as the main process name -
-  // this enables CwlInputTranslator to replace it with the filename.
-  // TODO: the right solution to this is to have the pre-processing
-  //  script change #main to #<filename>
+  /**
+    * The prefix to add to the field name when looking up the field
+    * in the inputs.
+    */
   protected val mainPrefix: Option[String] = None
 
-  private def translateJsonInputs(
-      fields: Map[String, JsValue]
-  ): Vector[(Option[String], DxName, Type, Value)] = {
-    val fieldsExactlyOnce = ExactlyOnce("input", fields, logger)
+  /**
+    * Whether it is optional for the input to a locked workflow to
+    * be prefixed with the workflow name.
+    */
+  protected val lockedWorkflowPrefixOptional: Boolean = false
 
-    def checkAndBindCallableInputs(
+  // type aliases for translated input and override info
+  private type DxInput = (Option[String], DxName, Type, Value)
+  private type DxOverride = (Option[String], JsObject)
+
+  /**
+    * Translates language-specific inputs and overrides to dx format. The general
+    * idea is to figure out the ancestry of each app(let)/call/workflow input.
+    * This provides the fully-qualified-name (fqn) of each IR variable. Then we
+    * check if the fqn is defined in the input file.
+    * @param rawInputs inputs to translate
+    * @return Vector of (prefix, name, type, value), where prefix is optional.
+    */
+  private def translate(
+      rawInputs: Map[String, JsValue],
+      overrides: Option[Map[String, JsObject]]
+  ): (Vector[(Option[String], DxName, Type, Value)], Vector[DxOverride]) = {
+    val fieldsExactlyOnce = ExactlyOnce("input", rawInputs, logger)
+
+    def bind(
         callable: Callable,
         inputPrefix: Option[String] = None,
+        inputPrefixOptional: Boolean = false,
         dxPrefix: Option[String] = None
-    ): Vector[(Option[String], DxName, Type, Value)] = {
+    ): (Vector[DxInput], Vector[DxOverride]) = {
       val lookupPrefix = inputPrefix.getOrElse(callable.name)
-      callable.inputVars.flatMap { parameter =>
-        // the key for looking up the parameter value
-        val key = s"${lookupPrefix}.${parameter.name.decoded}"
+      val boundInputs = callable.inputVars.flatMap { parameter =>
+        // the key(s) for looking up the parameter value
+        val keys = Vector(
+            Some(s"${lookupPrefix}.${parameter.name.decoded}"),
+            Option.when(inputPrefixOptional)(parameter.name.decoded)
+        ).flatten
         // the dx input name
-        fieldsExactlyOnce.get(key).map { value =>
-          // Do not assign the value to any later stages. We found the variable
-          // declaration, the others are variable uses.
-          logger.trace(s"checkAndBind, found: ${key} -> ${parameter.name}")
-          val irValue = parameterLinkDeserializer.deserializeInputWithType(
-              value,
-              parameter.dxType,
-              key,
-              Some(deserializationHandler)
-          )
-          (dxPrefix, parameter.name, parameter.dxType, irValue)
-        }
+        keys
+          .collectFirstDefined(key => fieldsExactlyOnce.get(key).map((key, _)))
+          .map {
+            case (key, value) =>
+              // Do not assign the value to any later stages. We found the variable
+              // declaration, the others are variable uses.
+              logger.trace(s"checkAndBind, found: ${key} -> ${parameter.name}")
+              val irValue = parameterLinkDeserializer.deserializeInputWithType(
+                  value,
+                  parameter.dxType,
+                  key,
+                  Some(deserializationHandler)
+              )
+              (dxPrefix, parameter.name, parameter.dxType, irValue)
+          }
+          .orElse {
+            if (!Type.isOptional(parameter.dxType)) {
+              logger.warning(s"missing input for non-optional parameter ${parameter.name}")
+            }
+            None
+          }
       }
+      val boundOverrides = overrides
+        .flatMap(_.get(lookupPrefix).map { prefixOverrides =>
+          (dxPrefix, JsObject("___" -> prefixOverrides))
+        })
+        .toVector
+      (boundInputs, boundOverrides)
     }
 
-    val inputs: Vector[(Option[String], DxName, Type, Value)] = bundle.primaryCallable match {
-      // File with WDL tasks only, no workflows
-      case None if tasks.isEmpty => Vector.empty
-      case None if tasks.size > 1 =>
-        throw new Exception(s"cannot generate one input file for ${tasks.size} tasks")
-      case None                            => checkAndBindCallableInputs(tasks.head)
-      case Some(app: Application)          => checkAndBindCallableInputs(app, inputPrefix = mainPrefix)
-      case Some(wf: Workflow) if wf.locked =>
-        // locked workflow - user can only set workflow-level inputs
-        checkAndBindCallableInputs(wf, inputPrefix = mainPrefix)
-      case Some(wf: Workflow) if useManifests =>
-        throw new Exception(s"cannot use manifests with unlocked workflow ${wf.name}")
-      case Some(wf: Workflow) =>
-        // unlocked workflow with at least one stage - inputs go into the common stage
-        val commonStage = wf.stages.head.dxStage.id
-        val commonInputs = checkAndBindCallableInputs(wf, dxPrefix = Some(commonStage))
-        // filter out auxiliary stages
-        val auxStages = Set(
-            Constants.CommonStage,
-            Constants.EvalStage,
-            Constants.OutputStage,
-            Constants.ReorgStage
-        ).map(stg => s"stage-${stg}")
-        val middleStages = wf.stages.filterNot(stg => auxStages.contains(stg.dxStage.id))
-        // Inputs for top level calls
-        val middleInputs = middleStages.flatMap { stage =>
-          // Find the input definitions for the stage, by locating the callee
-          val callee: Callable = bundle.allCallables.getOrElse(
-              stage.calleeName,
-              throw new Exception(s"callable ${stage.calleeName} is missing")
-          )
-          checkAndBindCallableInputs(callee,
-                                     inputPrefix = Some(s"${wf.name}.${stage.description}"),
-                                     dxPrefix = Some(stage.description))
-        }
-        commonInputs ++ middleInputs
-      case other => throw new Exception(s"Unknown case ${other.getClass}")
+    val (dxInputs, dxOverrides) = {
+      bundle.primaryCallable match {
+        case None if applications.isEmpty => (Vector.empty[DxInput], Vector.empty[DxOverride])
+        case None if applications.size > 1 =>
+          throw new Exception(s"cannot generate one input file for ${applications.size} tasks")
+        case None =>
+          bind(applications.head, inputPrefix = mainPrefix, inputPrefixOptional = true)
+        case Some(app: Application) =>
+          bind(app, inputPrefix = mainPrefix, inputPrefixOptional = true)
+        case Some(wf: Workflow) if wf.locked =>
+          // locked workflow - user can only set workflow-level inputs
+          bind(wf, inputPrefix = mainPrefix, inputPrefixOptional = lockedWorkflowPrefixOptional)
+        case Some(wf: Workflow) if useManifests =>
+          throw new Exception(s"cannot use manifests with unlocked workflow ${wf.name}")
+        case Some(wf: Workflow) =>
+          // unlocked workflow with at least one stage - inputs go into the common stage
+          val commonStage = wf.stages.head.dxStage.id
+          val (commonInputs, commonOverrides) = bind(wf, dxPrefix = Some(commonStage))
+          // filter out auxiliary stages
+          val auxStages = Set(
+              Constants.CommonStage,
+              Constants.EvalStage,
+              Constants.OutputStage,
+              Constants.ReorgStage
+          ).map(stg => s"stage-${stg}")
+          val middleStages = wf.stages.filterNot(stg => auxStages.contains(stg.dxStage.id))
+          // Inputs for top level calls
+          val (middleInputs, middleOverrides) = middleStages.map { stage =>
+            // Find the input definitions for the stage, by locating the callee
+            val callee: Callable = bundle.allCallables.getOrElse(
+                stage.calleeName,
+                throw new Exception(s"callable ${stage.calleeName} is missing")
+            )
+            bind(callee,
+                 inputPrefix = Some(s"${wf.name}.${stage.description}"),
+                 dxPrefix = Some(stage.description))
+          }.unzip
+          (commonInputs ++ middleInputs.flatten, commonOverrides ++ middleOverrides.flatten)
+        case other => throw new Exception(s"Unknown case ${other.getClass}")
+      }
     }
     if (!ignoreUnusedInputs) {
       fieldsExactlyOnce.checkAllUsed()
     }
-    inputs
-  }
-
-  /**
-    * Build a dx input file, based on the raw input file and the Bundle.
-    * The general idea is to figure out the ancestry of each app(let)/call/workflow
-    * input. This provides the fully-qualified-name (fqn) of each IR variable. Then
-    * we check if the fqn is defined in the input file.
-    * @return
-    */
-  private lazy val translatedInputs: Map[Path, Vector[(Option[String], DxName, Type, Value)]] = {
-    inputsJs.map {
-      case (path, inputs) =>
-        logger.trace(s"Translating input file ${path}")
-        path -> translateJsonInputs(inputs)
-    }
+    (dxInputs, dxOverrides)
   }
 
   def writeTranslatedInputs(): Unit = {
-    translatedInputs.foreach {
-      case (path, inputs) =>
+    allRawInputs.foreach {
+      case (path, inp) =>
+        logger.trace(s"Translating input file ${path}")
+        val (dxInputs, dxOverrides) = translate(inp, allRawOverrides.get(path))
         val jsValues = if (useManifests) {
-          val (types, values) = inputs.map {
+          val (types, values) = dxInputs.map {
             case (_, dxName, t, v) =>
               (dxName -> t, dxName -> ValueSerde.serializeWithType(v, t))
           }.unzip
-          val manifest = Manifest(values.toMap, Some(types.toMap))
+          if (dxOverrides.size > 1) {
+            throw new Exception(
+                s"manifest cannot have overrides for multiple executables: ${dxOverrides}"
+            )
+          }
+          val (overrideTypes, overrideValues) = dxOverrides.headOption
+            .map {
+              case (_, overridesJs) =>
+                (Map(Constants.Overrides -> THash), Map(Constants.Overrides -> overridesJs))
+            }
+            .getOrElse((Map.empty[DxName, Type], Map.empty[DxName, JsValue]))
+          val manifest =
+            Manifest(values.toMap ++ overrideValues, Some(types.toMap ++ overrideTypes))
           JsObject(Constants.InputManifest.encoded -> manifest.toJson())
         } else {
-          JsObject(inputs.flatMap {
+          val translatedInputs = dxInputs.flatMap {
             case (prefix, dxName, t, v) =>
               parameterLinkSerializer.createFields(dxName, t, v).map {
                 case (dxName, jsv) =>
@@ -427,7 +527,14 @@ abstract class InputTranslator(bundle: Bundle,
                     prefix.map(p => s"${p}.${dxName.encoded}").getOrElse(dxName.encoded)
                   inputName -> jsv
               }
-          }.toMap)
+          }.toMap
+          val translatedOverrides = dxOverrides.map {
+            case (prefix, overridesJs) =>
+              prefix
+                .map(p => s"${p}.${Constants.Overrides.encoded}")
+                .getOrElse(Constants.Overrides.encoded) -> overridesJs
+          }.toMap
+          JsObject(translatedInputs ++ translatedOverrides)
         }
         val fileName = FileUtils.replaceFileSuffix(path, ".dx.json")
         val dxInputFile = path.getParent match {
@@ -440,18 +547,31 @@ abstract class InputTranslator(bundle: Bundle,
   }
 
   def writeTranslatedInputManifest(): Unit = {
-    translatedInputs.foreach {
-      case (path, inputs) =>
+    allRawInputs.foreach {
+      case (path, inp) =>
+        logger.trace(s"Translating input file ${path}")
+        val (dxInputs, dxOverrides) = translate(inp, allRawOverrides.get(path))
         val fileName = FileUtils.replaceFileSuffix(path, ".manifest.json")
         val manifestFile = path.getParent match {
           case null   => Paths.get(fileName)
           case parent => parent.resolve(fileName)
         }
-        val (types, values) = inputs.map {
+        val (types, values) = dxInputs.map {
           case (_, dxName, t, v) =>
             (dxName -> t, dxName -> ValueSerde.serializeWithType(v, t))
         }.unzip
-        val manifest = Manifest(values.toMap, Some(types.toMap))
+        if (dxOverrides.size > 1) {
+          throw new Exception(
+              s"manifest cannot have overrides for multiple executables: ${dxOverrides}"
+          )
+        }
+        val (overrideTypes, overrideValues) = dxOverrides.headOption
+          .map {
+            case (_, overridesJs) =>
+              (Map(Constants.Overrides -> THash), Map(Constants.Overrides -> overridesJs))
+          }
+          .getOrElse((Map.empty[DxName, Type], Map.empty[DxName, JsValue]))
+        val manifest = Manifest(values.toMap ++ overrideValues, Some(types.toMap ++ overrideTypes))
         JsUtils.jsToFile(manifest.toJson(), manifestFile)
     }
   }

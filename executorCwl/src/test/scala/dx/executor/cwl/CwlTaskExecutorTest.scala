@@ -27,7 +27,7 @@ import dx.core.ir.{
 }
 import dx.core.languages.Language
 import dx.core.languages.cwl.{CwlDxName, CwlUtils, DxHintSchema}
-import dx.cwl.{CommandInputParameter, CommandLineTool, Parser}
+import dx.cwl.{CommandInputParameter, CommandLineTool, Parser, ParserResult}
 import dx.executor.{JobMeta, TaskExecutor, TaskExecutorResult}
 import dx.util.protocols.DxFileAccessProtocol
 import dx.util.{CodecUtils, FileSourceResolver, FileUtils, JsUtils, Logger, SysUtils}
@@ -239,7 +239,7 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
         )
     }
     val tool = parser.parseFile(cwlFile) match {
-      case (tool: CommandLineTool, _) => tool
+      case ParserResult(tool: CommandLineTool, _, _, _) => tool
       case other =>
         throw new Exception(s"expected CWL document to contain a CommandLineTool, not ${other}")
     }

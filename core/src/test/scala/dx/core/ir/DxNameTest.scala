@@ -1,9 +1,12 @@
 package dx.core.ir
 
+import dx.core.Constants
+import dx.core.Constants.ComplexValueKey
 import dx.core.languages.cwl.CwlDxName
 import dx.core.languages.wdl.WdlDxName
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
 import scala.util.Random
 
 class DxNameTest extends AnyFlatSpec with Matchers {
@@ -11,6 +14,12 @@ class DxNameTest extends AnyFlatSpec with Matchers {
     DxNameFactory.split("a.b.c______dxfiles", Some("\\.".r)) shouldBe (Vector("a", "b", "c"), Some(
         "______dxfiles"
     ))
+  }
+
+  it should "add a suffix" in {
+    val dxName = SimpleDxName.fromSourceName("foo", Some(ComplexValueKey))
+    dxName.encoded shouldBe "foo___"
+    dxName.addSuffix(Constants.FlatFilesSuffix).encoded shouldBe "foo______dxfiles"
   }
 
   it should "encode and decode WDL names" in {

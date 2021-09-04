@@ -301,7 +301,7 @@ class SimpleDxName(parts: Vector[String],
       case (Some(e), Some(d)) if DxName.compareStringVectors(e, d) != 0 =>
         throw new Exception(s"encoded and decoded parts must be the same: ${e} != ${d}")
       case _ =>
-        new SimpleDxName(encodedParts.orElse(decodedParts).get, namespaceDelim, suffix)
+        new SimpleDxName(encodedParts.orElse(decodedParts).get, suffix, namespaceDelim)
     }
   }
 }
