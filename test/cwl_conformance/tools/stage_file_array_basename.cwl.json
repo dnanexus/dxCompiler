@@ -7,7 +7,7 @@
     ],
     "inputs": [
         {
-            "id": "#input_list",
+            "id": "#main/input_list",
             "type": {
                 "type": "array",
                 "items": "File"
@@ -22,7 +22,7 @@
     ],
     "outputs": [
         {
-            "id": "#output",
+            "id": "#main/output",
             "type": {
                 "type": "array",
                 "items": "File"
