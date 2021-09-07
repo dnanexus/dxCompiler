@@ -1,15 +1,6 @@
 package dx.compiler
 
-import dx.api.{
-  DxAccessLevel,
-  DxApi,
-  DxFileDescribe,
-  DxInstanceType,
-  DxPath,
-  DxProject,
-  DxUtils,
-  InstanceTypeDB
-}
+import dx.api.{DxAccessLevel, DxApi, DxFileDescribe, DxPath, DxProject, DxUtils}
 import dx.core.Constants
 import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir._
@@ -38,23 +29,27 @@ object ApplicationCompiler {
   private val AwsRegionKey = "region"
 }
 
-case class ApplicationCompiler(typeAliases: Map[String, Type],
-                               instanceTypeDb: InstanceTypeDB,
-                               runtimeAsset: Option[JsValue],
-                               runtimeJar: String,
-                               runtimePathConfig: DxWorkerPaths,
-                               runtimeTraceLevel: Int,
-                               separateOutputs: Boolean,
-                               streamFiles: StreamFiles.StreamFiles,
-                               waitOnUpload: Boolean,
-                               extras: Option[Extras],
-                               parameterLinkSerializer: ParameterLinkSerializer,
-                               useManifests: Boolean,
-                               dxApi: DxApi = DxApi.get,
-                               logger: Logger = Logger.get,
-                               project: DxProject,
-                               folder: String)
-    extends ExecutableCompiler(extras, parameterLinkSerializer, dxApi) {
+case class ApplicationCompiler(
+    typeAliases: Map[String, Type],
+    runtimeAsset: Option[JsValue],
+    runtimeJar: String,
+    runtimePathConfig: DxWorkerPaths,
+    runtimeTraceLevel: Int,
+    separateOutputs: Boolean,
+    streamFiles: StreamFiles.StreamFiles,
+    waitOnUpload: Boolean,
+    extras: Option[Extras],
+    parameterLinkSerializer: ParameterLinkSerializer,
+    useManifests: Boolean,
+    instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
+    defaultInstanceType: Option[String],
+    dxApi: DxApi = DxApi.get,
+    logger: Logger = Logger.get,
+    project: DxProject,
+    folder: String
+) extends ExecutableCompiler(extras, parameterLinkSerializer, dxApi) {
+  // database of available instance types for the user/org that owns the project
+  private lazy val instanceTypeDb = InstanceType.createDb(Some(project))
 
   // renderer for job script templates
   private lazy val renderer = Renderer()
@@ -154,9 +149,13 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
   }
 
   private def createRunSpec(applet: Application): (JsValue, Map[String, JsValue]) = {
-    val instanceType: DxInstanceType = applet.instanceType match {
-      case static: StaticInstanceType                => instanceTypeDb.apply(static.toInstanceTypeRequest)
-      case DefaultInstanceType | DynamicInstanceType => instanceTypeDb.defaultInstanceType
+    val instanceType: String = applet.instanceType match {
+      case static: StaticInstanceType =>
+        instanceTypeDb.apply(static.toInstanceTypeRequest).name
+      case DefaultInstanceType | DynamicInstanceType =>
+        // TODO: should we use the project default here rather than
+        //  picking one from the database?
+        defaultInstanceType.getOrElse(instanceTypeDb.defaultInstanceType.name)
     }
     // Generate the applet's job script
     val jobScript = generateJobScript(applet)
@@ -167,7 +166,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         "systemRequirements" ->
           JsObject(
               "main" ->
-                JsObject("instanceType" -> JsString(instanceType.name))
+                JsObject("instanceType" -> JsString(instanceType))
           ),
         "distribution" -> JsString(Constants.OsDistribution),
         "release" -> JsString(Constants.OsRelease),
@@ -230,7 +229,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
               }
             } match {
               case Success(project) => project
-              case Failure(ex)      => throw new RuntimeException(s"Unable to locate file ${id}")
+              case Failure(ex)      => throw new RuntimeException(s"Unable to locate file ${id}", ex)
             }
         )
 
@@ -448,8 +447,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     val fileDependencies = (
         applet.inputs
           .filter(param => param.dxType == Type.TFile)
-          .flatMap(fileDependenciesFromParam)
-          .toVector ++ applet.staticFileDependencies
+          .flatMap(fileDependenciesFromParam) ++ applet.staticFileDependencies
     ).distinct
     val fileDependenciesDetails = Option
       .when(fileDependencies.nonEmpty)(
@@ -536,21 +534,24 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       }
     // compress and base64 encode the source code
     val sourceEncoded = CodecUtils.gzipAndBase64Encode(applet.document.toString)
-    // serialize the pricing model, and make the prices opaque.
-    val dbOpaque = InstanceTypeDB.opaquePrices(instanceTypeDb)
-    val dbOpaqueEncoded = CodecUtils.gzipAndBase64Encode(dbOpaque.toJson.prettyPrint)
+    // compress and base64 encode the instance types, unless we specify that we want to
+    // resolve them at runtime, which requires that the user running the applet has
+    // permission to describe the project it is running in
+    val dbEncoded = Option.when(instanceTypeSelection == InstanceTypeSelection.Static) {
+      CodecUtils.gzipAndBase64Encode(instanceTypeDb.toJson.prettyPrint)
+    }
     // serilize default runtime attributes
     val defaultRuntimeAttributes: JsValue = extras
       .flatMap(ex =>
         ex.defaultRuntimeAttributes.map(attr => JsObject(ValueSerde.serializeMap(attr)))
       )
       .getOrElse(JsNull)
-    val auxDetails = Map(
-        Constants.SourceCode -> JsString(sourceEncoded),
-        Constants.ParseOptions -> applet.document.optionsToJson,
-        Constants.InstanceTypeDb -> JsString(dbOpaqueEncoded),
-        Constants.RuntimeAttributes -> defaultRuntimeAttributes
-    )
+    val auxDetails = Vector(
+        Some(Constants.SourceCode -> JsString(sourceEncoded)),
+        Some(Constants.ParseOptions -> applet.document.optionsToJson),
+        dbEncoded.map(db => Constants.InstanceTypeDb -> JsString(db)),
+        Some(Constants.RuntimeAttributes -> defaultRuntimeAttributes)
+    ).flatten.toMap
     val useManifestsDetails = if (useManifests) {
       Map(Constants.UseManifests -> JsBoolean(true))
     } else {
