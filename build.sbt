@@ -13,7 +13,8 @@ ThisBuild / developers := List(
               "commandlinegirl",
               "azalcman@dnanexus.com",
               url("https://github.com/dnanexus")),
-    Developer("mhrvol", "mhrvol", "mhrvol-cf@dnanexus.com", url("https://github.com/dnanexus"))
+    Developer("mhrvol", "mhrvol", "mhrvol-cf@dnanexus.com", url("https://github.com/dnanexus")),
+    Developer("r-i-v-a", "r-i-v-a", "rnathans-cf@dnanexus.com", url("https://github.com/dnanexus"))
 )
 ThisBuild / homepage := Some(url("https://github.com/dnanexus/dxCompiler"))
 ThisBuild / scmInfo := Some(
