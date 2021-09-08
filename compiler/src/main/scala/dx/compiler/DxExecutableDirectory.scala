@@ -166,11 +166,10 @@ case class DxExecutableDirectory(bundle: Bundle,
       .groupBy(_.checksum.get)
   }
 
-  // A map from checksum to dx:executable, across the entire
-  // project.  It allows reusing dx:executables across the entire
-  // project, at the cost of a potentially expensive API call. It is
-  // not clear this is useful to the majority of users, so it is
-  // gated by the [projectWideReuse] flag.
+  // A map from checksum to dx:executable, across the entire project. It allows
+  // reusing dx:executables across the entire project, at the cost of a
+  // potentially expensive API call. It is not clear this is useful to the majority
+  // of users, so it is gated by the [projectWideReuse] flag.
   private lazy val projectWideExecDir: Map[String, Vector[DxExecutableInfo]] = {
     if (projectWideReuse) {
       findExecutablesInProject()

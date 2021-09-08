@@ -6,7 +6,7 @@
     ],
     "inputs": [
         {
-            "id": "#input_list",
+            "id": "#main/input_list",
             "type": {
                 "type": "array",
                 "items": "Directory"
@@ -15,7 +15,7 @@
     ],
     "outputs": [
         {
-            "id": "#output",
+            "id": "#main/output",
             "type": {
                 "type": "array",
                 "items": "File"

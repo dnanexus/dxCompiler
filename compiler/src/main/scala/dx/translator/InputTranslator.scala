@@ -278,95 +278,97 @@ abstract class InputTranslator(bundle: Bundle,
     Left(convertRawInput(jsValue, t))
   }
 
-  lazy val bundleWithDefaults: Bundle = if (defaults.nonEmpty) {
-    logger.trace(s"Embedding defaults into the IR")
-    val defaultsExactlyOnce = ExactlyOnce("default", defaults, logger)
-    val allCallablesWithDefaults: Map[String, Callable] = bundle.allCallables.map {
-      case (callableName, applet: Application) =>
-        val inputsWithDefaults = applet.inputs.map { param =>
-          val key = s"${applet.name}.${param.name.decoded}"
-          defaultsExactlyOnce.get(key) match {
-            case None => param
-            case Some(default: JsValue) =>
-              val irValue = parameterLinkDeserializer.deserializeInputWithType(
-                  default,
-                  param.dxType,
-                  key,
-                  Some(deserializationHandler)
-              )
-              param.copy(defaultValue = Some(irValue))
-          }
-        }
-        callableName -> applet.copy(inputs = inputsWithDefaults)
-      case (name, workflow: Workflow) =>
-        val workflowWithDefaults =
-          if (workflow.locked) {
-            // locked workflow - we have workflow-level inputs
-            val inputsWithDefaults = workflow.inputs.map {
-              case (param, stageInput) =>
-                val key = s"${workflow.name}.${param.name.decoded}"
-                val stageInputWithDefault = defaultsExactlyOnce.get(key) match {
-                  case None => stageInput
-                  case Some(default: JsValue) =>
-                    val irValue = parameterLinkDeserializer.deserializeInputWithType(
-                        default,
-                        param.dxType,
-                        key,
-                        Some(deserializationHandler)
-                    )
-                    StaticInput(irValue)
-                }
-                (param, stageInputWithDefault)
+  lazy val bundleWithDefaults: Bundle = {
+    if (defaults.nonEmpty) {
+      logger.trace(s"Embedding defaults into the IR")
+      val defaultsExactlyOnce = ExactlyOnce("default", defaults, logger)
+      val allCallablesWithDefaults: Map[String, Callable] = bundle.allCallables.map {
+        case (callableName, applet: Application) =>
+          val inputsWithDefaults = applet.inputs.map { param =>
+            val key = s"${applet.name}.${param.name.decoded}"
+            defaultsExactlyOnce.get(key) match {
+              case None => param
+              case Some(default: JsValue) =>
+                val irValue = parameterLinkDeserializer.deserializeInputWithType(
+                    default,
+                    param.dxType,
+                    key,
+                    Some(deserializationHandler)
+                )
+                param.copy(defaultValue = Some(irValue))
             }
-            workflow.copy(inputs = inputsWithDefaults)
-          } else {
-            // Workflow is unlocked, we don't have workflow-level inputs.
-            // Instead, set the defaults in the common stage.
-            val stagesWithDefaults = workflow.stages.map { stage =>
-              val callee: Callable = bundle.allCallables(stage.calleeName)
-              logger.trace(s"addDefaultToStage ${stage.dxStage.id}, ${stage.description}")
-              val prefix = if (stage.dxStage.id == s"stage-${Constants.CommonStage}") {
-                workflow.name
-              } else {
-                s"${workflow.name}.${stage.description}"
-              }
-              val inputsWithDefaults = stage.inputs.zipWithIndex.map {
-                case (stageInput, idx) =>
-                  val param = callee.inputVars(idx)
-                  val key = s"${prefix}.${param.name.decoded}"
-                  defaultsExactlyOnce.get(key) match {
+          }
+          callableName -> applet.copy(inputs = inputsWithDefaults)
+        case (name, workflow: Workflow) =>
+          val workflowWithDefaults =
+            if (workflow.locked) {
+              // locked workflow - we have workflow-level inputs
+              val inputsWithDefaults = workflow.inputs.map {
+                case (param, stageInput) =>
+                  val key = s"${workflow.name}.${param.name.decoded}"
+                  val stageInputWithDefault = defaultsExactlyOnce.get(key) match {
                     case None => stageInput
                     case Some(default: JsValue) =>
-                      val irValue =
-                        parameterLinkDeserializer.deserializeInputWithType(
-                            default,
-                            param.dxType,
-                            key,
-                            Some(deserializationHandler)
-                        )
+                      val irValue = parameterLinkDeserializer.deserializeInputWithType(
+                          default,
+                          param.dxType,
+                          key,
+                          Some(deserializationHandler)
+                      )
                       StaticInput(irValue)
                   }
+                  (param, stageInputWithDefault)
               }
-              stage.copy(inputs = inputsWithDefaults)
+              workflow.copy(inputs = inputsWithDefaults)
+            } else {
+              // Workflow is unlocked, we don't have workflow-level inputs.
+              // Instead, set the defaults in the common stage.
+              val stagesWithDefaults = workflow.stages.map { stage =>
+                val callee: Callable = bundle.allCallables(stage.calleeName)
+                logger.trace(s"addDefaultToStage ${stage.dxStage.id}, ${stage.description}")
+                val prefix = if (stage.dxStage.id == s"stage-${Constants.CommonStage}") {
+                  workflow.name
+                } else {
+                  s"${workflow.name}.${stage.description}"
+                }
+                val inputsWithDefaults = stage.inputs.zipWithIndex.map {
+                  case (stageInput, idx) =>
+                    val param = callee.inputVars(idx)
+                    val key = s"${prefix}.${param.name.decoded}"
+                    defaultsExactlyOnce.get(key) match {
+                      case None => stageInput
+                      case Some(default: JsValue) =>
+                        val irValue =
+                          parameterLinkDeserializer.deserializeInputWithType(
+                              default,
+                              param.dxType,
+                              key,
+                              Some(deserializationHandler)
+                          )
+                        StaticInput(irValue)
+                    }
+                }
+                stage.copy(inputs = inputsWithDefaults)
+              }
+              workflow.copy(stages = stagesWithDefaults)
             }
-            workflow.copy(stages = stagesWithDefaults)
-          }
-        // check that the stage order hasn't changed
-        val allStageNames = workflow.stages.map(_.dxStage)
-        val embedAllStageNames = workflowWithDefaults.stages.map(_.dxStage)
-        assert(allStageNames == embedAllStageNames)
-        name -> workflowWithDefaults
-      case other =>
-        throw new Exception(s"Unexpected callable ${other}")
-    }
-    val primaryCallableWithDefaults =
-      bundle.primaryCallable.map(primary => allCallablesWithDefaults(primary.name))
-    defaultsExactlyOnce.checkAllUsed()
-    bundle.copy(primaryCallable = primaryCallableWithDefaults,
-                allCallables = allCallablesWithDefaults)
+          // check that the stage order hasn't changed
+          val allStageNames = workflow.stages.map(_.dxStage)
+          val embedAllStageNames = workflowWithDefaults.stages.map(_.dxStage)
+          assert(allStageNames == embedAllStageNames)
+          name -> workflowWithDefaults
+        case other =>
+          throw new Exception(s"Unexpected callable ${other}")
+      }
+      val primaryCallableWithDefaults =
+        bundle.primaryCallable.map(primary => allCallablesWithDefaults(primary.name))
+      defaultsExactlyOnce.checkAllUsed()
+      bundle.copy(primaryCallable = primaryCallableWithDefaults,
+                  allCallables = allCallablesWithDefaults)
 
-  } else {
-    bundle
+    } else {
+      bundle
+    }
   }
 
   private lazy val applications: Vector[Application] = bundle.allCallables.collect {
@@ -433,7 +435,7 @@ abstract class InputTranslator(bundle: Bundle,
               (dxPrefix, parameter.name, parameter.dxType, irValue)
           }
           .orElse {
-            if (!Type.isOptional(parameter.dxType)) {
+            if (!Type.isOptional(parameter.dxType) && parameter.defaultValue.isEmpty) {
               logger.warning(s"missing input for non-optional parameter ${parameter.name}")
             }
             None

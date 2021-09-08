@@ -11,9 +11,15 @@ import scala.util.Random
 
 class DxNameTest extends AnyFlatSpec with Matchers {
   it should "split parts of a name" in {
-    DxNameFactory.split("a.b.c______dxfiles", Some("\\.".r)) shouldBe (Vector("a", "b", "c"), Some(
-        "______dxfiles"
-    ))
+    DxNameFactory.split("a.b.c______dxfiles", Some("\\.".r)) shouldBe (
+        Vector("a", "b", "c"), None, Some("______dxfiles")
+    )
+  }
+
+  it should "handle stage prefixes" in {
+    DxNameFactory.split("stage-1.foo.bar___dxfiles", Some("\\.".r)) shouldBe (
+        Vector("foo", "bar"), Some("stage-1"), Some("___dxfiles")
+    )
   }
 
   it should "add a suffix" in {
@@ -31,28 +37,37 @@ class DxNameTest extends AnyFlatSpec with Matchers {
 
     WdlDxName.fromDecodedName("foo.bar___").encoded shouldBe "foo___bar___"
     WdlDxName.fromEncodedName("foo___bar___").decoded shouldBe "foo.bar___"
+
+    WdlDxName.fromDecodedName("stage-1.foo.bar___").encoded shouldBe "stage-1.foo___bar___"
+    WdlDxName.fromEncodedName("stage-1.foo___bar___").decoded shouldBe "stage-1.foo.bar___"
   }
 
   it should "encode a valid WDL name" in {
-    val dxName = WdlDxName.fromDecodedName("a.b___dxfiles")
+    val dxName = WdlDxName.fromDecodedName("stage-1.a.b___dxfiles")
     dxName.numParts shouldBe 2
     dxName.getDecodedParts shouldBe Vector("a", "b")
     dxName.getEncodedParts shouldBe Vector("a", "b")
-    dxName.decoded shouldBe "a.b___dxfiles"
-    dxName.encoded shouldBe "a___b___dxfiles"
+    dxName.decoded shouldBe "stage-1.a.b___dxfiles"
+    dxName.encoded shouldBe "stage-1.a___b___dxfiles"
+    dxName.stage shouldBe Some("stage-1")
     dxName.suffix shouldBe Some("___dxfiles")
 
     val dxName2 = WdlDxName.fromDecodedName("b___dxfiles")
     dxName.endsWith(dxName2) shouldBe true
-    dxName2.pushDecodedNamespace("a") shouldBe dxName
-    dxName.popDecodedIdentifier() shouldBe (WdlDxName.fromDecodedName("a"), "b")
 
-    val dxName3 = dxName.dropSuffix()
-    dxName3.suffix shouldBe None
-    dxName3.encoded shouldBe "a___b"
-    dxName3.decoded shouldBe "a.b"
+    val dxName3 = WdlDxName.fromDecodedName("stage-1.b___dxfiles")
+    dxName3.pushDecodedNamespace("a") shouldBe dxName
+    dxName.popDecodedIdentifier() shouldBe (WdlDxName.fromDecodedName("stage-1.a"), "b")
+    dxName.popDecodedIdentifier(keepSuffix = true) shouldBe (
+        WdlDxName.fromDecodedName("stage-1.a___dxfiles"), "b"
+    )
 
-    dxName3.withSuffix("___dxfiles") shouldBe dxName
+    val dxName4 = dxName.dropSuffix()
+    dxName4.suffix shouldBe None
+    dxName4.encoded shouldBe "stage-1.a___b"
+    dxName4.decoded shouldBe "stage-1.a.b"
+
+    dxName4.withSuffix("___dxfiles") shouldBe dxName
   }
 
   it should "decode valid WDL names" in {
@@ -221,10 +236,10 @@ class DxNameTest extends AnyFlatSpec with Matchers {
   it should "sort CWL names correctly" in {
     val names = Vector(
         "a",
-        "a/b",
-        "a/b___dxfiles",
         "a-b/c.d",
         "a.b/c-d",
+        "a/b",
+        "a/b___dxfiles",
         "b"
     )
     (1 to 10).foreach { _ =>

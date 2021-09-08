@@ -536,11 +536,9 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
                                                                  name.decoded)
           }
           .orElse {
-            if (Type.isOptional(irType)) {
-              None
-            } else {
-              throw new Exception(s"missing required field <${name}> in results")
-            }
+            Option.when(!Type.isOptional(irType))(
+                throw new Exception(s"missing required field <${name}> in results")
+            )
           }
       })
     }

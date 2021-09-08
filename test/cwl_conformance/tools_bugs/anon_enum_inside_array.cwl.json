@@ -10,8 +10,8 @@
                             {
                                 "type": "enum",
                                 "symbols": [
-                                    "#main/first/species/homo_sapiens",
-                                    "#main/first/species/mus_musculus"
+                                    "homo_sapiens",
+                                    "mus_musculus"
                                 ]
                             },
                             "null"
@@ -28,8 +28,8 @@
                 {
                     "type": "enum",
                     "symbols": [
-                        "#main/second/homo_sapiens",
-                        "#main/second/mus_musculus"
+                        "homo_sapiens",
+                        "mus_musculus"
                     ]
                 }
             ],

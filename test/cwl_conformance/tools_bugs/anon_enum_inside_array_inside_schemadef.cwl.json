@@ -13,9 +13,9 @@
                                 {
                                     "type": "enum",
                                     "symbols": [
-                                        "#main/vcf2maf_params/ncbi_build/GRCh37",
-                                        "#main/vcf2maf_params/ncbi_build/GRCh38",
-                                        "#main/vcf2maf_params/ncbi_build/GRCm38"
+                                        "GRCh37",
+                                        "GRCh38",
+                                        "GRCm38"
                                     ]
                                 }
                             ],
@@ -27,8 +27,8 @@
                                 {
                                     "type": "enum",
                                     "symbols": [
-                                        "#main/vcf2maf_params/species/homo_sapiens",
-                                        "#main/vcf2maf_params/species/mus_musculus"
+                                        "homo_sapiens",
+                                        "mus_musculus"
                                     ]
                                 }
                             ],

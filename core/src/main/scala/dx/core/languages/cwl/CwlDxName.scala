@@ -18,13 +18,13 @@ object CwlDxName extends DxNameFactory {
   private val decodeSequencesRegex = "__(\\d+)__".r
 
   override def fromEncodedName(name: String): CwlDxName = {
-    val (parts, suffix) = DxNameFactory.split(name, Some(encodedNamespaceDelimRegex))
-    new CwlDxName(encodedParts = Some(parts), suffix = suffix)
+    val (parts, stage, suffix) = DxNameFactory.split(name, Some(encodedNamespaceDelimRegex))
+    new CwlDxName(encodedParts = Some(parts), stage = stage, suffix = suffix)
   }
 
   override def fromDecodedName(name: String): CwlDxName = {
-    val (parts, suffix) = DxNameFactory.split(name, Some(NamespaceDelimRegex))
-    new CwlDxName(decodedParts = Some(parts), suffix = suffix)
+    val (parts, stage, suffix) = DxNameFactory.split(name, Some(NamespaceDelimRegex))
+    new CwlDxName(decodedParts = Some(parts), stage = stage, suffix = suffix)
   }
 
   /**
@@ -34,31 +34,28 @@ object CwlDxName extends DxNameFactory {
   def fromSourceName(identifier: String,
                      namespace: Option[String] = None,
                      suffix: Option[String] = None): CwlDxName = {
-    new CwlDxName(decodedParts = Some(namespace.toVector ++ Vector(identifier)), suffix = suffix)
+    new CwlDxName(decodedParts = Some(namespace.toVector ++ Vector(identifier)),
+                  stage = None,
+                  suffix = suffix)
   }
 }
 
 class CwlDxName(encodedParts: Option[Vector[String]] = None,
                 decodedParts: Option[Vector[String]] = None,
+                stage: Option[String] = None,
                 suffix: Option[String] = None)
-    extends DxName(encodedParts, decodedParts, suffix) {
+    extends DxName(encodedParts, decodedParts, stage, suffix) {
 
   override protected def illegalDecodedSequencesRegex: Option[Regex] =
     Some(CwlDxName.illegalDecodedSequencesRegex)
 
   override protected def namespaceDelim: Option[String] = Some(CwlDxName.NamespaceDelim)
 
-  override def equals(obj: Any): Boolean = {
-    obj match {
-      case that: CwlDxName => compare(that) == 0
-      case _               => false
-    }
-  }
-
   override protected def create(encodedParts: Option[Vector[String]] = None,
                                 decodedParts: Option[Vector[String]] = None,
-                                suffix: Option[String] = None): CwlDxName = {
-    new CwlDxName(encodedParts, decodedParts, suffix)
+                                stage: Option[String],
+                                suffix: Option[String]): CwlDxName = {
+    new CwlDxName(encodedParts, decodedParts, stage, suffix)
   }
 
   private def makeNewPart(name: String,
