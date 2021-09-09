@@ -218,24 +218,26 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
         .getOrElse(Vector.empty) ++
         downloadAndParseManifests(manifestFiles)
       // create lookup function for manifests
-      val manifestLookup: (String, DxName) => Option[JsValue] = if (manifests.size == 1) {
-        val values = manifests.head.jsValues
-        (_: String, manifestParamName: DxName) => values.get(manifestParamName)
-      } else {
-        val manifestMap = manifests.map {
-          case m: Manifest if m.id.isDefined => m.id.get -> m.jsValues
-          case _ =>
-            throw new Exception(
-                "when there are multiple manifests, all manifests must have id defined"
-            )
-        }.toMap
-        (manifestId: String, manifestParamName: DxName) => {
-          manifestMap.get(manifestId).flatMap(_.get(manifestParamName))
-        }
+      val manifestLookup: (String, DxName) => Option[JsValue] = manifests.size match {
+        case 0 => (_: String, _: DxName) => None
+        case 1 =>
+          val values = manifests.head.jsValues
+          (_: String, manifestParamName: DxName) => values.get(manifestParamName)
+        case _ =>
+          val manifestMap = manifests.map {
+            case m: Manifest if m.id.isDefined => m.id.get -> m.jsValues
+            case _ =>
+              throw new Exception(
+                  "when there are multiple manifests, all manifests must have id defined"
+              )
+          }.toMap
+          (manifestId: String, manifestParamName: DxName) => {
+            manifestMap.get(manifestId).flatMap(_.get(manifestParamName))
+          }
       }
 
       // create lookup function for workflow manifests - this is lazy because the
-      // manifest linkes may not contain any workflow references
+      // manifest links may not contain any workflow references
       lazy val workflowManifestLookup: DxName => Option[JsValue] = {
         val workflowManifestHash = rawInputs.get(Constants.WorkflowInputManifest) match {
           case Some(hash: JsObject) => Some(hash)
@@ -244,11 +246,10 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
             throw new Exception(s"invalid manifest ${other}")
         }
         val workflowManifestFiles = resolveManifestFiles(Constants.WorkflowInputManifestFiles)
-        val workflowManifests =
-          workflowManifestHash
-            .map(h => Vector(Manifest.parse(h, dxNameFactory)))
-            .getOrElse(Vector.empty) ++
-            downloadAndParseManifests(workflowManifestFiles)
+        val workflowManifests = workflowManifestHash
+          .map(h => Vector(Manifest.parse(h, dxNameFactory)))
+          .getOrElse(Vector.empty) ++
+          downloadAndParseManifests(workflowManifestFiles)
         val workflowManifestLinks: Map[DxName, JsValue] =
           (rawInputs.get(Constants.WorkflowInputLinks) match {
             case Some(JsObject(fields)) if fields.contains(Constants.ComplexValueKey) =>

@@ -166,13 +166,13 @@ object WdlBlockInput {
     * @return
     */
   def create(
-      inputs: Map[DxName, (WdlTypes.T, InputKind.InputKind)]
+      inputs: Vector[(DxName, (WdlTypes.T, InputKind.InputKind))]
   ): Vector[WdlBlockInput] = {
     inputs.map {
       case (name, (wdlType, InputKind.Required)) => RequiredBlockInput(name, wdlType)
       case (name, (wdlType, InputKind.Computed)) => ComputedBlockInput(name, wdlType)
       case (name, (wdlType, InputKind.Optional)) => OptionalBlockInput(name, wdlType)
-    }.toVector
+    }
   }
 
   def prettyFormat(input: WdlBlockInput, indent: String = ""): String = {
@@ -194,10 +194,10 @@ object WdlBlockInput {
 case class WdlBlockOutput(name: DxName, wdlType: WdlTypes.T, expr: TAT.Expr)
 
 object WdlBlockOutput {
-  def create(outputs: Map[DxName, (WdlTypes.T, TAT.Expr)]): Vector[WdlBlockOutput] = {
+  def create(outputs: Vector[(DxName, (WdlTypes.T, TAT.Expr))]): Vector[WdlBlockOutput] = {
     outputs.map {
       case (dxName, (wdlType, expr)) => WdlBlockOutput(dxName, wdlType, expr)
-    }.toVector
+    }
   }
 
   def translate(o: TAT.OutputParameter): WdlBlockOutput = {

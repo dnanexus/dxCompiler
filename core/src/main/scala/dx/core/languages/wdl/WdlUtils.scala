@@ -30,7 +30,7 @@ import wdlTools.types.{
 }
 import wdlTools.types.WdlTypes._
 
-import scala.collection.immutable.{SeqMap, TreeSeqMap}
+import scala.collection.immutable.{ListMap, SeqMap, TreeSeqMap}
 
 /**
   * A reference to a block input variable.
@@ -957,7 +957,7 @@ object WdlUtils {
   def getClosureInputsAndOutputs(
       elements: Vector[TAT.WorkflowElement],
       withField: Boolean
-  ): (Map[DxName, (T, InputKind.InputKind)], Map[DxName, (T, TAT.Expr)]) = {
+  ): (Vector[(DxName, (T, InputKind.InputKind))], Vector[(DxName, (T, TAT.Expr))]) = {
     def getOutputs(
         innerElements: Vector[TAT.WorkflowElement]
     ): Vector[(DxName, T, TAT.Expr)] = {
@@ -1045,38 +1045,47 @@ object WdlUtils {
       }
     }
 
-    // first convert outputs - we need to do this prior to
-    // inputs because WDL allows forward references, and we
-    // need to be able to distinguish block inputs from
-    // variables that are defined within the block
-    val outputs = getOutputs(elements).groupBy(_._1).map {
-      case (_, outputs) if outputs.size == 1 =>
-        val (dxName, wdlType, expr) = outputs.head
-        dxName -> (wdlType, expr)
-      case (dxName, outputs) if Set(outputs).size > 1 =>
-        throw new Exception(s"multiple outputs defined with the name ${dxName}: ${outputs}")
+    // first convert outputs - we need to do this prior to inputs because WDL allows forward
+    // references, and we need to be able to distinguish block inputs from variables that are
+    // defined within the block
+    val outputs = getOutputs(elements).distinct.map {
+      case (dxName, t, expr) => (dxName, (t, expr))
+    }
+    val outputNames = outputs.map(_._1).foldLeft(Set.empty[DxName]) {
+      case (accu, dxName) if accu.contains(dxName) =>
+        throw new Exception(
+            s"multiple outputs defined with the name(s) ${dxName}"
+        )
+      case (accu, dxName) => accu + dxName
     }
 
-    // now convert the inputs, filter out those that are in outputs,
-    // and check for collisions
+    // now convert the inputs, filter out those that are in outputs, and check for collisions
+    // we use a ListMap to preserve the order
     val inputs = getInputs(elements, withField)
-      .filterNot(i => i.names.exists(outputs.contains))
-      .groupBy(_.fullyQualifiedName)
+      .filterNot(i => i.names.exists(outputNames.contains))
+      .distinct
+      .foldLeft(ListMap.empty[DxName, ListMap[InputKind.InputKind, Set[T]]]) {
+        case (accu, ref) =>
+          val kinds =
+            accu.getOrElse(ref.fullyQualifiedName, ListMap.empty[InputKind.InputKind, Set[T]])
+          val types = kinds.getOrElse(ref.kind, Set.empty[T])
+          accu + (ref.fullyQualifiedName -> (kinds + (ref.kind -> (types + ref.wdlType))))
+      }
+      .toVector
       .map {
-        case (fqn, refs) if refs.toSet.size == 1 =>
-          fqn -> (refs.head.wdlType, refs.head.kind)
-        case (fqn, refs) =>
-          // there are multiple references to the same variable from different kinds of
+        case (dxName, kinds) =>
+          // if there are multiple references to the same variable from different kinds of
           // input - sort by InputKind, pick the one with the highest priority (lowest
           // value), and make sure if there are multiple with the same kind that they're
           // all of the same type
-          val priorityRefs = refs.groupBy(_.kind).toVector.sortWith(_._1 < _._1).head._2
-          if (priorityRefs.map(_.wdlType).toSet.size > 1) {
+          val (kind, types) = kinds.toVector.sortWith(_._1 < _._1).head
+          if (types.size > 1) {
             throw new Exception(
-                s"multiple references to the same paramter with different types: ${priorityRefs}"
+                s"""multiple references to the same paramter with different types:
+                   |${dxName} ${kind} ${types.mkString(",")}""".stripMargin
             )
           }
-          fqn -> (priorityRefs.head.wdlType, priorityRefs.head.kind)
+          (dxName, (types.head, kind))
       }
 
     (inputs, outputs)

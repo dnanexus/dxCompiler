@@ -97,8 +97,8 @@ abstract class DxName(private var encodedParts: Option[Vector[String]],
 
   override def equals(obj: Any): Boolean = {
     obj match {
-      case that: DxName if this.getClass == that.getClass => compare(that) == 0
-      case _                                              => false
+      case that: DxName => compare(that) == 0
+      case _            => false
     }
   }
 
@@ -237,7 +237,7 @@ trait DxNameFactory {
 object DxNameFactory {
   // standard suffixes to parse
   val suffixes = Set(Constants.ComplexValueKey, Constants.FlatFilesSuffix)
-  private val stageRegex = "^(?:(stage-\\d+)\\.)?(.+)$".r
+  private val stageRegex = "^(?:(stage-[^.]+)\\.)?(.+)$".r
 
   // the default Regex.split method does not return parts with empty strings -
   // we need those for validation

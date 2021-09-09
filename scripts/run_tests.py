@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import shutil
 from collections import namedtuple
 import dxpy
 import glob
@@ -973,16 +974,34 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
             )
             return False
 
+        # give lists of dicts a and b, get the set of all keys in all dicts in
+        # both lists, expand each dict into a list of tuples where the first element
+        # is the key and the second element is the value (which may be None if the
+        # dict does not contain the key), and sort each list
+        def sort_dicts(a, b):
+            all_keys = list(sorted(
+                set(k for x in a for k in x.keys()) | set(k for x in b for k in x.keys())
+            ))
+            return (
+                list(sorted([(k, i.get(k)) for k in all_keys] for i in a)),
+                list(sorted([(k, j.get(k)) for k in all_keys] for j in b))
+            )
+
         def compare_values(expected, actual, field):
             if isinstance(actual, dict) and "___" in actual:
                 actual = actual["___"]
+                if isinstance(expected, dict) and "___" in expected:
+                    expected = expected["___"]
             if isinstance(actual, dict) and "wrapped___" in actual:
                 actual = actual["wrapped___"]
+                if isinstance(expected, dict) and "wrapped___" in expected:
+                    expected = expected["wrapped___"]
 
             if isinstance(actual, list) and isinstance(expected, list):
-                actual = list(sorted(filter(lambda x: x is not None, actual)))
-                expected = list(sorted(filter(lambda x: x is not None, expected)))
-                if len(actual) != len(expected):
+                actual = list(filter(lambda x: x is not None, actual))
+                expected = list(filter(lambda x: x is not None, expected))
+                n = len(actual)
+                if n != len(expected):
                     cprint("Analysis {} gave unexpected results".format(tname), "red")
                     cprint(
                         "Field {} should have length ({}), actual = ({})".format(
@@ -991,6 +1010,14 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
                         "red",
                     )
                     return False
+                if n == 0:
+                    return True
+                elif n > 1:
+                    if isinstance(actual[0], dict):
+                        actual, expected = sort_dicts(actual, expected)
+                    else:
+                        actual = list(sorted(actual))
+                        expected = list(sorted(expected))
                 for i, (e, a) in enumerate(zip(expected, actual)):
                     if not compare_values(e, a, "{}[{}]".format(field, i)):
                         return False
@@ -1274,6 +1301,13 @@ def run_test_subset(
                 f"Tools failed results verification: {len(failed_verification)}:\n{fveri}"
             )
         # write failed tests to a file so we can easily re-run them next time
+        # if a .failed file already exists, make a backup
+        if os.path.exists(".failed"):
+            bak_file = ".failed.bak"
+            i = 0
+            while os.path.exists(bak_file):
+                bak_file = f".failed.bak.{i}"
+            shutil.copy(".failed", bak_file)
         with open(".failed", "wt") as out:
             all_failed = sorted(set(
                 tname.split(".")[0]
@@ -1567,6 +1601,13 @@ def main():
         "--archive", help="Archive old applets", action="store_true", default=False
     )
     argparser.add_argument(
+        "--build",
+        help="force: remove existing dxCompiler JAR and rebuild; only: only build dxCompiler, "
+             "do not run any tests; if not specified, dxCompiler will be built only if there is "
+             "not already a dxCompiler asset in the project",
+        default=None
+    )
+    argparser.add_argument(
         "--compile-only",
         help="Only compile the workflows, don't run them",
         action="store_true",
@@ -1678,12 +1719,13 @@ def main():
     if args.failed and os.path.exists(".failed"):
         with open(".failed", "rt") as inp:
             test_names = [t.strip() for t in inp.readlines()]
-    elif len(args.test) == 0:
-        test_names = choose_tests("M")
-    else:
+    elif args.test:
         for t in args.test:
             test_names += choose_tests(t)
-    print("Running tests {}".format(test_names))
+    elif args.build != "only":
+        test_names = choose_tests("M")
+    if test_names:
+        print("Running tests {}".format(test_names))
     version_id = util.get_version_id(top_dir)
 
     project = util.get_project(args.project)
@@ -1703,8 +1745,12 @@ def main():
     test_dict = {"aws:us-east-1": project.name + ":" + base_folder}
 
     # build the dxCompiler jar file, only on us-east-1
-    assets = util.build(project, base_folder, version_id, top_dir, test_dict)
+    assets = util.build(project, base_folder, version_id, top_dir, test_dict,
+                        force=args.build is not None)
     print("assets: {}".format(assets))
+
+    if args.build == "only":
+        exit(0)
 
     if args.unlocked:
         # Disable all locked workflows
