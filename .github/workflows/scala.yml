@@ -8,6 +8,8 @@ on:
     branches:
       - main
       - develop
+permissions:
+  packages: read
 jobs:
   test:
     name: Scala Unit Tests (Staging)

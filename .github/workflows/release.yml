@@ -11,6 +11,7 @@ on:
         default: 'true'
 permissions:
   contents: write
+  packages: read
 jobs:
   run-release:
     name: dxCompiler Release (Staging and Prod)

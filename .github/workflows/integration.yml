@@ -17,6 +17,7 @@ on:
 permissions:
   contents: read
   actions: write
+  packages: read
 jobs:
   test:
     name: WDL Integration Tests (Staging)
