@@ -9,7 +9,8 @@ on:
         description: 'Should run large integration tests (false/true; default: true)'
         required: false
         default: 'true'
-
+permissions:
+  contents: write
 jobs:
   run-release:
     name: dxCompiler Release (Staging and Prod)

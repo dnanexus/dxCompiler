@@ -14,7 +14,9 @@ on:
       - synchronize
       - ready_for_review
       - labeled
-
+permissions:
+  contents: read
+  actions: write
 jobs:
   test:
     name: WDL Integration Tests (Staging)
