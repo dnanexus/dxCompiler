@@ -43,6 +43,7 @@ expected_failure = {
     "iwd-container-entryname2",
     "iwd-container-entryname3",
     "iwd-container-entryname4",
+    "loadContents-limit"
 }
 
 test_compilation_failing = {"import_passwd"}
@@ -723,7 +724,7 @@ def compare_result_file(result, expected_val, field_name, tname, project, verbos
                 contents = download_dxfile(dxfile)
         size = result.get("size")
         checksum = result.get("checksum")
-        secondary_files = set(result.get("secondaryFiles", []))
+        secondary_files = result.get("secondaryFiles", [])
     elif "$dnanexus_link" in result:
         dxfile = link_to_dxfile(result, project)
         contents = download_dxfile(dxfile)
@@ -759,13 +760,15 @@ def compare_result_file(result, expected_val, field_name, tname, project, verbos
         return False
 
     if "size" in expected_val:
-        size = size or (len(contents) if contents else None)
+        if size is None and contents is not None:
+            size = len(contents)
         if size != expected_val["size"]:
+            print(type(size), type(expected_val["size"]))
             if verbose:
                 cprint("Analysis {} gave unexpected results".format(tname), "red")
                 cprint(
-                    "Field {} should have size ({}), actual = ({})".format(
-                        field_name, expected_val["size"], len(contents)
+                    "Field {} should have size ({}), actual: ({})".format(
+                        field_name, expected_val["size"], size
                     ),
                     "red"
                 )
@@ -787,7 +790,7 @@ def compare_result_file(result, expected_val, field_name, tname, project, verbos
     expected_secondary_files = expected_val.get("secondaryFiles")
     if expected_secondary_files:
         seconary_files_len = len(secondary_files) if secondary_files else 0
-        if len(expected_secondary_files) == seconary_files_len:
+        if len(expected_secondary_files) != seconary_files_len:
             if verbose:
                 cprint("Analysis {} gave unexpected results".format(tname), "red")
                 cprint(
@@ -797,6 +800,7 @@ def compare_result_file(result, expected_val, field_name, tname, project, verbos
                     "red"
                 )
             return False
+        # TODO: sort both lists rather than doing an all-by-all comparison
         for expected in expected_secondary_files:
             for actual in secondary_files:
                 if compare_result_path(
@@ -848,14 +852,18 @@ def list_dx_folder(project, folder):
 #   with type="Folder")
 def compare_result_directory(result, expected_val, field_name, tname, project, verbose=True):
     location = result.get("location", result.get("path", result.get("uri")))
-    basename = None
     if location is not None and location.startswith("dx://"):
         project_id, folder = location[5:].split(":")
         project = dxpy.DXProject(project_id)
     else:
         folder = location
-    if folder:
+
+    if "basename" in result:
+        basename = result["basename"]
+    elif folder:
         basename = os.path.basename(folder)
+    else:
+        basename = None
 
     expected_location = expected_val.get("location", expected_val.get("path"))
     expected_basename = expected_val.get("basename", os.path.basename(expected_location) if expected_location else None)
@@ -916,7 +924,7 @@ def compare_result_directory(result, expected_val, field_name, tname, project, v
 
 def compare_result_path(result, expected_val, field_name, tname, project, verbose=True):
     cls = result.get("class", result.get("type"))
-    expected_cls = result.get("class", result.get("type"))
+    expected_cls = expected_val.get("class", expected_val.get("type"))
     if cls == "File" and expected_cls == "File":
         return compare_result_file(result, expected_val, field_name, tname, project, verbose)
     elif cls in {"Directory", "Folder"} and expected_cls in {"Directory", "Folder"}:
@@ -924,8 +932,8 @@ def compare_result_path(result, expected_val, field_name, tname, project, verbos
     else:
         cprint("Analysis {} gave unexpected results".format(tname), "red")
         cprint(
-            "Field {} should be ({}), actual = ({})".format(
-                field_name, len(expected_val), len(result)
+            "Field {} should be of class ({}), actual = ({})".format(
+                field_name, expected_cls, cls
             ),
             "red",
         )
@@ -974,17 +982,26 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
             )
             return False
 
-        # give lists of dicts a and b, get the set of all keys in all dicts in
-        # both lists, expand each dict into a list of tuples where the first element
-        # is the key and the second element is the value (which may be None if the
-        # dict does not contain the key), and sort each list
+        # Sorte two lists of dicts to make them comparable. Given lists of dicts a and b:
+        # 1. get the set of all keys in all dicts in both lists
+        # 2. expand each dict into a list of tuples where the first element is the key and the
+        # second element is the value (which may be None if the dict does not contain the key)
+        # 3. sort each list
+        # 4. remove the tuples with None values from each list
+        # 5. turn each list of tuples back into a list of dicts.
         def sort_dicts(a, b):
             all_keys = list(sorted(
                 set(k for x in a for k in x.keys()) | set(k for x in b for k in x.keys())
             ))
             return (
-                list(sorted([(k, i.get(k)) for k in all_keys] for i in a)),
-                list(sorted([(k, j.get(k)) for k in all_keys] for j in b))
+                [
+                    dict((k, v) for k, v in x if v is not None)
+                    for x in list(sorted([(k, i.get(k)) for k in all_keys] for i in a))
+                ],
+                [
+                    dict((k, v) for k, v in x if v is not None)
+                    for x in list(sorted([(k, j.get(k)) for k in all_keys] for j in b))
+                ]
             )
 
         def compare_values(expected, actual, field):
@@ -1307,6 +1324,7 @@ def run_test_subset(
             i = 0
             while os.path.exists(bak_file):
                 bak_file = f".failed.bak.{i}"
+                i += 1
             shutil.copy(".failed", bak_file)
         with open(".failed", "wt") as out:
             all_failed = sorted(set(

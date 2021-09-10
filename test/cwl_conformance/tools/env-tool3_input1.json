@@ -1,6 +1,6 @@
 {
   "env-tool3.in": "hello test env",
-  "env-tool3:requirements": [
+  "env-tool3.cwl:requirements": [
     {
       "class": "EnvVarRequirement",
       "envDef": [

@@ -180,7 +180,6 @@ case class CwlTaskExecutor(tool: Process,
               None
           }
         }
-        .flatten
         .mkString("\n  ")
       logger.traceLimited(s"inputs:\n  ${inputStr}")
     }
@@ -325,7 +324,9 @@ case class CwlTaskExecutor(tool: Process,
         case _              => jsv
       }
     }
-    inner(jobMeta.sourceCode.parseJson).prettyPrint
+    val updatedSource = inner(jobMeta.sourceCode.parseJson).prettyPrint
+    logger.traceLimited(s"updated source code:\n${updatedSource}")
+    updatedSource
   }
 
   override protected def writeCommandScript(
@@ -351,10 +352,14 @@ case class CwlTaskExecutor(tool: Process,
     // if a dx:// URI is specified for the Docker container, download it
     // and create an overrides file to override the value in the CWL file
     val requirementOverrides =
-      JsUtils.getOptionalFields(overridesJs, "requirements").getOrElse(Map.empty)
-    val dockerOverride = Option
+      JsUtils.getOptionalValues(overridesJs, "requirements").getOrElse(Vector.empty)
+    val finalOverrides = Option
       .when(
-          !requirementOverrides.contains("DockerRequirement")
+          !requirementOverrides.exists {
+            case JsObject(fields) if fields.get("class").contains(JsString("DockerRequirement")) =>
+              true
+            case _ => false
+          }
       )(
           jobMeta
             .getExecutableDetail(Constants.DockerImage)
@@ -362,24 +367,22 @@ case class CwlTaskExecutor(tool: Process,
               val dockerImageDxFile = DxFile.fromJson(dxApi, dockerImageJs)
               val dockerUtils = DockerUtils(jobMeta.fileResolver, jobMeta.logger)
               val imageName = dockerUtils.getImage(dockerImageDxFile.asUri)
-              Map(
-                  "DockerRequirement" -> JsObject(
-                      "dockerImageId" -> JsString(imageName)
-                  )
+              JsObject(
+                  "class" -> JsString("DockerRequirement"),
+                  "dockerImageId" -> JsString(imageName)
               )
             }
       )
       .flatten
-      .getOrElse(Map.empty[String, JsValue])
-    val overridesOpt = if (dockerOverride.nonEmpty || overridesJs.nonEmpty) {
+      .map { dockerOverride =>
+        overridesJs ++ Map(
+            "requirements" -> JsArray(requirementOverrides ++ Vector(dockerOverride))
+        )
+      }
+      .getOrElse(overridesJs)
+    val overridesOpt = if (finalOverrides.nonEmpty) {
       val overridesDocJs = JsObject(
-          "cwltool:overrides" -> JsObject(
-              cwlPath.toString -> JsObject(
-                  overridesJs ++ Map(
-                      "requirements" -> JsObject(requirementOverrides ++ dockerOverride)
-                  )
-              )
-          )
+          "cwltool:overrides" -> JsObject("#main" -> JsObject(finalOverrides))
       )
       val overridesDocPath = metaDir.resolve("overrides.json")
       if (logger.isVerbose) {
@@ -390,7 +393,6 @@ case class CwlTaskExecutor(tool: Process,
     } else {
       ""
     }
-    // TODO: remove --skip-schemas once we support them
     val command =
       s"""#!/bin/bash
          |(
@@ -402,7 +404,6 @@ case class CwlTaskExecutor(tool: Process,
          |    --move-outputs \\
          |    --rm-container \\
          |    --rm-tmpdir \\
-         |    --skip-schemas \\
          |    ${targetOpt} ${overridesOpt} ${cwlPath.toString} ${inputPath.toString}
          |) \\
          |> >( tee ${workerPaths.getStdoutFile(ensureParentExists = true)} ) \\

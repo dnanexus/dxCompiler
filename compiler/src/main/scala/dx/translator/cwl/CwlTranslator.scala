@@ -57,15 +57,15 @@ case class CwlInputTranslator(bundle: Bundle,
                             dxApi,
                             logger) {
 
-  private val CwlPrefix = "cwl:"
+  private val CwlRegex = "^(?:.*\\.)?cwl:(.+)$".r
 
   override protected def splitInputs(
       rawInputs: Map[String, JsValue]
   ): (Map[String, JsValue], Map[String, JsObject]) = {
     val (values, overrides) =
       rawInputs.foldLeft(Map.empty[String, JsValue], Map.empty[String, JsValue]) {
-        case ((values, overrides), (key, value)) if key.startsWith(CwlPrefix) =>
-          (values, overrides + (key.drop(CwlPrefix.length) -> value))
+        case ((values, overrides), (CwlRegex(key), value)) =>
+          (values, overrides + (key -> value))
         case ((values, overrides), (key, value)) =>
           (values + (key -> value), overrides)
       }
