@@ -166,11 +166,11 @@ case class Compiler(extras: Option[Extras],
 
               |""".stripMargin
       )
-      // We need to sort the hash-tables. They are natually unsorted,
+      // We need to sort the hash-tables. They are naturally unsorted,
       // causing the same object to have different checksums.
       val digest =
         CodecUtils.md5Checksum(JsUtils.makeDeterministic(JsObject(desc)).prettyPrint)
-      // Add the checksum to the properies
+      // Add the checksum to the properties
       val existingDetails: Map[String, JsValue] =
         desc.get("details") match {
           case Some(JsObject(details)) => details

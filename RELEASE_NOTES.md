@@ -6,6 +6,7 @@
 * Adds `-instanceTypeSelection` compiler option to allow disabling compile-type instance type selection
 * Adds `-defaultInstanceType` option
 * Adds support for new London region, `aws:eu-west-2-g`
+* Fixes `-projectWideReuse`
 
 ## 2.4.10 2021-08-16
 
