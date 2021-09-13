@@ -197,7 +197,7 @@ dxCompiler can be released from Github. The release pipeline (optionally) runs l
         * [executorCwl](https://github.com/dnanexus/dxCompiler/blob/main/executorCwl/src/main/resources/application.conf)
 4. Update the [Release Notes](https://github.com/dnanexus/dxCompiler/blob/main/RELEASE_NOTES.md)
     - Change the top header from "in develop" to "<version> (<date>)"
-5. Update versions of libraries as needed in [build.sbt](https://github.com/dnanexus/dxCompiler/blob/main/build.sbt).
+5. Update versions of libraries as needed in [build.sbt](/build.sbt).
 6. Push the release branch to GitHub.
 7. Run the release pipeline:
     1. Go to `Actions` > `dxCompiler Release (Staging and Prod)` and click `Run workflow` on the right side.
