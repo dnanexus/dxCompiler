@@ -1,6 +1,6 @@
 # Release Notes
 
-## 2.5.0 2021-09-14
+## in develop
 
 * Docker image dependencies that are DNAnexus platform files are included in applet's bundledDepends
 * Adds `-instanceTypeSelection` compiler option to allow disabling compile-type instance type selection
