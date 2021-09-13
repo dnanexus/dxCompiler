@@ -1,5 +1,5 @@
-dxCompilerCore {
-    version = "2.5.0"
+dxCompiler {
+    version = "2.4.11-SNAPSHOT"
 }
 
 #
