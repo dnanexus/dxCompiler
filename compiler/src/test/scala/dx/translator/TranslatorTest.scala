@@ -1658,4 +1658,10 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val args = path.toString :: cFlags
     Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
+
+  it should "translate a CWL workflow with JavaScript expressions" in {
+    val path = pathFromBasename("cwl", "timelimit2-wf.cwl.json")
+    val args = path.toString :: cFlags
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
+  }
 }

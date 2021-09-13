@@ -19,6 +19,8 @@ import dx.core.ir.RunSpec.{
 import dx.core.ir.RuntimeRequirement
 import dx.cwl._
 
+import scala.reflect.ClassTag
+
 /**
   * Evaluates requirements and hints.
   * @param requirements Vector of Requirements in increasing priority order.
@@ -56,6 +58,16 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
     requirements.findLast(filter).map((_, false)).orElse(hints.findLast(filter).map((_, true)))
   }
 
+  def getHintOfType[T <: Hint: ClassTag]: Option[(T, Boolean)] = {
+    getHint {
+      case _: T => true
+      case _    => false
+    } match {
+      case Some((hint: T, b)) => Some((hint, b))
+      case _                  => None
+    }
+  }
+
   /**
     * Returns all Requirements and Hints matching the given filter.
     * @param filter the filter function to apply
@@ -63,6 +75,15 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
     */
   def getHints(filter: Hint => Boolean): Vector[Hint] = {
     requirements.filter(filter) ++ hints.filter(filter)
+  }
+
+  def getHintsOfType[T <: Hint: ClassTag]: Vector[T] = {
+    getHints({
+      case _: T => true
+      case _    => false
+    }).map {
+      case hint: T => hint
+    }
   }
 
   /**

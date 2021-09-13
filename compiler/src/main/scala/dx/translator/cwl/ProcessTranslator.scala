@@ -133,9 +133,15 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       inheritedRequirements: Vector[Requirement] = Vector.empty,
       inheritedHints: Vector[Hint] = Vector.empty
   ) {
-    private lazy val cwlEvaluator = Evaluator.create(tool.requirements, tool.hints)
-    private lazy val dxHints = tool.hints.collectFirst {
-      case dxHints: DxHints => dxHints
+    private lazy val requirementEvaluator = RequirementEvaluator(
+        inheritedRequirements ++ tool.requirements,
+        inheritedHints ++ tool.hints,
+        Map.empty,
+        DxWorkerPaths.default,
+        defaultRuntimeAttrs = cwlDefaultRuntimeAttrs
+    )
+    private lazy val dxHints = requirementEvaluator.getHintOfType[DxHints].map {
+      case (dxHints: DxHints, _) => dxHints
     }
     private lazy val hintParameterAttrs: Map[String, Vector[ParameterAttribute]] = {
       dxHints
@@ -151,7 +157,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         case Some(default) =>
           try {
             val (actualType, defaultValue) =
-              cwlEvaluator.evaluate(default, input.cwlType, evaluatorContext)
+              requirementEvaluator.evaluator.evaluate(default, input.cwlType, evaluatorContext)
             defaultValue match {
               case file: FileValue if !CwlUtils.isDxFile(file) =>
                 // cannot specify a local file as default - the default will
@@ -178,7 +184,9 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
             .flatMap(_.outputEval.flatMap { cwlValue =>
               try {
                 val (actualType, actualValue) =
-                  cwlEvaluator.evaluate(cwlValue, output.cwlType, evaluatorContext)
+                  requirementEvaluator.evaluator.evaluate(cwlValue,
+                                                          output.cwlType,
+                                                          evaluatorContext)
                 val (_, value) = CwlUtils.toIRValue(actualValue, actualType)
                 Some(value)
               } catch {
@@ -224,13 +232,6 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         case None =>
           throw new Exception(s"no source code for tool ${name}")
       }
-      val requirementEvaluator = RequirementEvaluator(
-          inheritedRequirements ++ tool.requirements,
-          inheritedHints ++ tool.hints,
-          Map.empty,
-          DxWorkerPaths.default,
-          defaultRuntimeAttrs = cwlDefaultRuntimeAttrs
-      )
 
       def extractPaths(p: PathValue): Vector[String] = {
         p match {

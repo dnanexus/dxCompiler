@@ -190,7 +190,7 @@ cwl_conformance_tools = [
 ]
 cwl_conformance_workflows = [
     os.path.basename(path)[:-9]
-    for path in glob.glob(os.path.join(test_dir, "cwl_conformance", "workflows_packed", "*.cwl.json"))
+    for path in glob.glob(os.path.join(test_dir, "cwl_conformance", "workflows", "*.cwl.json"))
 ]
 
 # Tests run in continuous integration. We remove the native app test,
