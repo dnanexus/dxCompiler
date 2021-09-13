@@ -5,14 +5,13 @@ import java.nio.file.{Path, Paths}
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID.randomUUID
-
 import dx.Assumptions.{isLoggedIn, toolkitCallable}
 import dx.Tags.NativeTest
 import dx.api._
 import dx.core.Constants
 import dx.core.ir.Callable
 import dx.core.CliUtils.Termination
-import dx.util.{FileUtils, Logger, SysUtils}
+import dx.util.{FileUtils, JsUtils, Logger, SysUtils}
 import dxCompiler.Main
 import dxCompiler.Main.{SuccessfulCompileIR, SuccessfulCompileNativeNoTree}
 import org.scalatest.BeforeAndAfterAll
@@ -20,11 +19,8 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spray.json._
 
-// This test module requires being logged in to the platform.
-// It compiles WDL scripts without the runtime library.
-// This tests the compiler Native mode, however, it creates
-// dnanexus applets and workflows that are not runnable.
-
+// This test module requires being logged in to the platform. It compiles WDL scripts without the runtime library.
+// This tests the compiler Native mode, however, it creates DNAnexus applets and workflows that are not runnable.
 class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
   assume(isLoggedIn)
   assume(toolkitCallable)
@@ -38,7 +34,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
   val testProject = "dxCompiler_playground"
 
-  private lazy val dxTestProject =
+  private val dxTestProject =
     try {
       dxApi.resolveProject(testProject)
     } catch {
@@ -49,71 +45,53 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         )
     }
 
-  private lazy val username = dxApi.whoami()
-  private lazy val unitTestsPath = s"unit_tests/${username}"
-  private lazy val cFlagsBase: List[String] = List(
+  private val username = dxApi.whoami()
+  private val unitTestsPath = {
+    val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm")
+    val test_time = dateFormatter.format(LocalDateTime.now)
+    s"/unit_tests/${username}/CompilerTest/${test_time}_${randomUUID().toString.substring(24)}"
+  }
+  private val reorgAppletFolder = s"${unitTestsPath}/reorg_applets"
+  private val unitTestsReusePath = s"${unitTestsPath}/reuse"
+  private var reorgAppletId: Option[String] = None
+
+  private val cFlagsBase: List[String] = List(
       "-project",
       dxTestProject.id,
       "-quiet",
       "-force"
   )
-  private lazy val cFlags: List[String] = cFlagsBase ++ List("-compileMode",
-                                                             "NativeWithoutRuntimeAsset",
-                                                             "-folder",
-                                                             s"/${unitTestsPath}",
-                                                             "-locked")
-  private lazy val cFlagsReorgIR: List[String] = cFlagsBase ++
+  private val cFlags: List[String] = cFlagsBase ++ List("-compileMode",
+                                                        "NativeWithoutRuntimeAsset",
+                                                        "-folder",
+                                                        unitTestsPath,
+                                                        "-locked")
+  private val cFlagsReorgIR: List[String] = cFlagsBase ++
     List("-compileMode", "IR", "-folder", "/reorg_tests")
-  private lazy val cFlagsReorgCompile: List[String] = cFlagsBase ++
+  private val cFlagsReorgCompile: List[String] = cFlagsBase ++
     List("-compileMode", "NativeWithoutRuntimeAsset", "-folder", "/reorg_tests")
-
-  private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm")
-  private val test_time = dateFormatter.format(LocalDateTime.now)
-
-  private val reorgAppletFolder =
-    s"/${unitTestsPath}/reorg_applets_${test_time}_${randomUUID().toString.substring(24)}/"
-  private val reorgAppletPath = s"${reorgAppletFolder}/functional_reorg_test"
+  private lazy val cFlagsReuse: List[String] = cFlagsBase ++
+    List("-compileMode",
+         "NativeWithoutRuntimeAsset",
+         "-folder",
+         unitTestsReusePath,
+         "-projectWideReuse")
 
   override def beforeAll(): Unit = {
     // build the directory with the native applets
     dxTestProject.newFolder(reorgAppletFolder, parents = true)
     // building necessary applets before starting the tests
-    val nativeApplets = Vector("functional_reorg_test")
     val topDir = Paths.get(System.getProperty("user.dir"))
-    nativeApplets.foreach { app =>
-      try {
-        SysUtils.execCommand(
-            s"dx build $topDir/test/applets/$app --destination ${testProject}:${reorgAppletFolder}"
-        )
-      } catch {
-        case _: Throwable =>
-      }
-    }
+    val (_, appletIdJs, _) = SysUtils.execCommand(
+        s"dx build $topDir/test/applets/functional_reorg_test --destination ${testProject}:${reorgAppletFolder} --brief"
+    )
+    val JsString(appletId) = JsUtils.jsFromString(appletIdJs).asJsObject.fields("id")
+    reorgAppletId = Some(appletId)
   }
 
   override def afterAll(): Unit = {
-    dxTestProject.removeFolder(reorgAppletFolder, recurse = true)
+    dxTestProject.removeFolder(unitTestsPath, recurse = true)
   }
-
-  private def getAppletId(path: String): String = {
-    val folder = Paths.get(path).getParent.toAbsolutePath.toString
-    val basename = Paths.get(path).getFileName.toString
-    val constraints = DxFindDataObjectsConstraints(
-        project = Some(dxTestProject),
-        folder = Some(folder),
-        recurse = false,
-        names = Set(basename)
-    )
-    val results = DxFindDataObjects(dxApi, Some(10)).query(
-        constraints,
-        withInputOutputSpec = false
-    )
-    results.size shouldBe 1
-    val desc = results.values.head
-    desc.id
-  }
-
-  private lazy val reorgAppletId = getAppletId(reorgAppletPath)
 
   private object WithExtras {
     def apply(extrasContent: String)(f: String => Termination): Termination = {
@@ -892,7 +870,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val extrasContent =
       s"""|{
           | "custom_reorg" : {
-          |    "app_id" : "${reorgAppletId}",
+          |    "app_id" : "${reorgAppletId.get}",
           |    "conf" : null
           |  }
           |}
@@ -916,7 +894,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val reorgStage = wfStages.last
 
     reorgStage.id shouldBe "stage-reorg"
-    reorgStage.executable shouldBe reorgAppletId
+    reorgStage.executable shouldBe reorgAppletId.get
 
     // There should be 3 inputs, the output from output stage and the custom reorg config file.
     val reorgInput: JsObject = reorgStage.input match {
@@ -941,7 +919,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val extrasContent =
       s"""|{
           | "custom_reorg" : {
-          |    "app_id" : "${reorgAppletId}",
+          |    "app_id" : "${reorgAppletId.get}",
           |    "conf" : "dx://$fileId"
           |  }
           |}
@@ -977,7 +955,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val extrasContent =
       s"""|{
           | "custom_reorg" : {
-          |    "app_id" : "${reorgAppletId}",
+          |    "app_id" : "${reorgAppletId.get}",
           |    "conf" : null
           |  }
           |}
@@ -1179,6 +1157,24 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileNativeNoTree]
+  }
+
+  it should "reuse identical tasks" in {
+    val path = pathFromBasename("bugs", "apps-788.wdl")
+    val args = path.toString :: cFlags
+    val appletId = Main.compile(args.toVector) match {
+      case SuccessfulCompileNativeNoTree(_, Vector(appletId)) => appletId
+      case other =>
+        throw new Exception(s"expected single applet not ${other}")
+    }
+    // compiling a second time into a different folder with -projectWideReuse should reuse the same applet
+    val args2 = path.toString :: cFlagsReuse
+    val appletId2 = Main.compile(args2.toVector) match {
+      case SuccessfulCompileNativeNoTree(_, Vector(appletId)) => appletId
+      case other =>
+        throw new Exception(s"expected single applet not ${other}")
+    }
+    appletId shouldBe appletId2
   }
 
 //  it should "compile a task with a string + int concatenation" taggedAs NativeTest in {
