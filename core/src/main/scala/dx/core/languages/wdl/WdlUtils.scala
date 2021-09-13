@@ -30,7 +30,7 @@ import wdlTools.types.{
 }
 import wdlTools.types.WdlTypes._
 
-import scala.collection.immutable.{SeqMap, TreeSeqMap}
+import scala.collection.immutable.{ListMap, SeqMap, TreeSeqMap}
 
 /**
   * The kind of block input variable being referenced. A Computed
@@ -958,7 +958,7 @@ object WdlUtils {
   def getClosureInputsAndOutputs(
       elements: Vector[TAT.WorkflowElement],
       withField: Boolean
-  ): (Map[String, (T, InputKind.InputKind)], Map[String, TAT.OutputParameter]) = {
+  ): (Vector[(String, (T, InputKind.InputKind))], Vector[TAT.OutputParameter]) = {
     def getOutputs(
         innerElements: Vector[TAT.WorkflowElement]
     ): Vector[TAT.OutputParameter] = {
@@ -1050,32 +1050,40 @@ object WdlUtils {
     // inputs because WDL allows forward references, and we
     // need to be able to distinguish block inputs from
     // variables that are defined within the block
-    val outputs = getOutputs(elements).groupBy(_.name).map {
-      case (name, outputs) if outputs.size == 1 => name -> outputs.head
-      case (name, outputs) if Set(outputs).size > 1 =>
-        throw new Exception(s"multiple outputs defined with the name ${name}: ${outputs}")
+    val outputs = getOutputs(elements).distinct
+    val outputNames = outputs.map(_.name).foldLeft(Set.empty[String]) {
+      case (accu, name) if accu.contains(name) =>
+        throw new Exception(s"multiple outputs defined with the name(s) ${name}")
+      case (accu, name) => accu + name
     }
 
-    // now convert the inputs, filter out those that are in outputs,
-    // and check for collisions
+    // Convert the inputs, filter out those that are in outputs, and check for collisions.
+    // We use a ListMap to preserve the order.
     val inputs = getInputs(elements, withField)
-      .filterNot(i => i.nameIter.exists(outputs.contains))
-      .groupBy(_.fullyQualifiedName)
+      .filterNot(i => i.nameIter.exists(outputNames.contains))
+      .distinct
+      .foldLeft(ListMap.empty[String, ListMap[InputKind.InputKind, Set[T]]]) {
+        case (accu, ref) =>
+          val kinds =
+            accu.getOrElse(ref.fullyQualifiedName, ListMap.empty[InputKind.InputKind, Set[T]])
+          val types = kinds.getOrElse(ref.kind, Set.empty[T])
+          accu + (ref.fullyQualifiedName -> (kinds + (ref.kind -> (types + ref.wdlType))))
+      }
+      .toVector
       .map {
-        case (fqn, refs) if refs.toSet.size == 1 =>
-          fqn -> (refs.head.wdlType, refs.head.kind)
-        case (fqn, refs) =>
-          // there are multiple references to the same variable from different kinds of
+        case (name, kinds) =>
+          // if there are multiple references to the same variable from different kinds of
           // input - sort by InputKind, pick the one with the highest priority (lowest
           // value), and make sure if there are multiple with the same kind that they're
           // all of the same type
-          val priorityRefs = refs.groupBy(_.kind).toVector.sortWith(_._1 < _._1).head._2
-          if (priorityRefs.map(_.wdlType).toSet.size > 1) {
+          val (kind, types) = kinds.toVector.sortWith(_._1 < _._1).head
+          if (types.size > 1) {
             throw new Exception(
-                s"multiple references to the same paramter with different types: ${priorityRefs}"
+                s"""multiple references to the same paramter with different types:
+                   |${name} ${kind} ${types.mkString(",")}""".stripMargin
             )
           }
-          fqn -> (priorityRefs.head.wdlType, priorityRefs.head.kind)
+          (name, (types.head, kind))
       }
 
     (inputs, outputs)
