@@ -442,11 +442,10 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
                 |""".stripMargin
         )
 
-      // Get the applet inputs from the block inputs, which represent the
-      // closure required for the block - all the variables defined earlier
-      // that are required to evaluate any expression. Some referenced
-      // variables may be undefined because they are optional.
-      val (inputParams, stageInputs) = block.inputs.values.flatMap {
+      // Get the applet inputs from the block inputs, which represent the closure required for the
+      // block - all the variables defined earlier that are required to evaluate any expression.
+      // Some referenced variables may be undefined because they are optional.
+      val (inputParams, stageInputs) = block.inputs.flatMap {
         case RequiredBlockInput(name, _) =>
           env.lookup(name) match {
             case Some((fqn, (param, stageInput))) =>
@@ -460,12 +459,10 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           }
       }.unzip
 
-      // The fragment runner can only handle a single call. If the
-      // block already has exactly one call, then we are good. If
-      // it contains a scatter/conditional with several calls,
-      // then compile the inner block into a sub-workflow. Also
-      // Figure out the name of the callable - we need to link with
-      // it when we get to the native phase.
+      // The fragment runner can only handle a single call. If the block already has exactly one
+      // call, then we translate it as an applet. If the block contains a scatter/conditional with
+      // several calls, then we translate the inner block into a sub-workflow. Also determines the
+      // name of the callable - we need to link with it when we get to the compile phase.
       val (calleeName, newStepPath) = block.kind match {
         case BlockKind.CallDirect =>
           throw new Exception(s"a direct call should not reach this stage")
@@ -503,11 +500,10 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         }
       }
 
-      val outputParams: Vector[Parameter] = block.outputs.map {
-        case (name, param) =>
-          val irType = CwlUtils.toIRType(param.cwlType)
-          Parameter(name, irType)
-      }.toVector
+      val outputParams: Vector[Parameter] = block.outputs.map { param =>
+        val irType = CwlUtils.toIRType(param.cwlType)
+        Parameter(param.name, irType)
+      }
 
       // create the type map that will be serialized in the applet's details
       val fqnDictTypes: Map[DxName, Type] = inputParams.map { param: Parameter =>
@@ -516,7 +512,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
 
       val applet = Application(
           s"${wfName}_frag_${getStageId()}",
-          inputParams.toVector,
+          inputParams,
           outputParams,
           DefaultInstanceType,
           NoImage,
@@ -524,7 +520,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           standAloneWorkflow
       )
 
-      (Stage(stageName, getStage(), applet.name, stageInputs.toVector, outputParams), applet)
+      (Stage(stageName, getStage(), applet.name, stageInputs, outputParams), applet)
     }
 
     private def createWorkflowStages(

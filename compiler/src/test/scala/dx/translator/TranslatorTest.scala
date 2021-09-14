@@ -21,7 +21,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import wdlTools.generators.code.WdlGenerator
 
-import scala.collection.immutable.TreeSeqMap
+import scala.collection.immutable.SeqMap
 
 // These tests involve compilation -without- access to the platform.
 //
@@ -823,7 +823,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
                   "whatsNew" -> VArray(
                       Vector(
                           VHash(
-                              TreeSeqMap(
+                              SeqMap(
                                   "version" -> VString("1.1"),
                                   "changes" -> VArray(
                                       Vector(
@@ -834,7 +834,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
                               )
                           ),
                           VHash(
-                              TreeSeqMap(
+                              SeqMap(
                                   "version" -> VString("1.0"),
                                   "changes" -> VArray(
                                       Vector(
@@ -922,7 +922,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     wf.stages.head.inputs shouldBe Vector(
         WorkflowInput(
             Parameter(WdlDxName.fromSourceName("sampleStruct"),
-                      TSchema("SampleStruct", TreeSeqMap("sample_name" -> TString, "id" -> TInt)),
+                      TSchema("SampleStruct", SeqMap("sample_name" -> TString, "id" -> TInt)),
                       None,
                       Vector())
         )

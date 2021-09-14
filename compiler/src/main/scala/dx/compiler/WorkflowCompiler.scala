@@ -8,7 +8,7 @@ import dx.translator.Extras
 import dx.util.{CodecUtils, FileSourceResolver, Logger}
 import spray.json._
 
-import scala.collection.immutable.TreeSeqMap
+import scala.collection.immutable.SeqMap
 import dx.translator.DockerRegistry
 import dx.api.DxWorkflow
 import dx.api.DxApplet
@@ -159,7 +159,7 @@ case class WorkflowCompiler(separateOutputs: Boolean,
           .map {
             case (dxName, jsv) => dxName.encoded -> jsv
           }
-          .to(TreeSeqMap)
+          .to(SeqMap)
     )
   }
 
@@ -394,7 +394,7 @@ case class WorkflowCompiler(separateOutputs: Boolean,
               (ExecutableCompiler.InputManifestParameter, EmptyInput),
               (ExecutableCompiler.InputManfestFilesParameter, stageManifestLinks),
               (ExecutableCompiler.InputLinksParameter,
-               StaticInput(Value.VHash(inputLinks.flatten.to(TreeSeqMap)))),
+               StaticInput(Value.VHash(inputLinks.flatten.to(SeqMap)))),
               (ExecutableCompiler.OutputIdParameter, StaticInput(Value.VString(workflow.name))),
               (ExecutableCompiler.CallNameParameter, EmptyInput)
           )
@@ -515,7 +515,7 @@ case class WorkflowCompiler(separateOutputs: Boolean,
           val stageInputs = Vector(
               (ExecutableCompiler.InputManfestFilesParameter, ArrayInput(inputStageManifests)),
               (ExecutableCompiler.InputLinksParameter,
-               StaticInput(Value.VHash(inputLinks.flatten.to(TreeSeqMap))))
+               StaticInput(Value.VHash(inputLinks.flatten.to(SeqMap))))
           ) ++ outputInputs
           // if there are any workflow inputs, pass the workflow manifests and links to the stage
           val stageWorkflowInputs = if (inputWorkflow.exists(identity)) {

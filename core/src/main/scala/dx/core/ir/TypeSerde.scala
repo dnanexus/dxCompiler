@@ -4,7 +4,7 @@ import dx.core.ir.Type._
 import spray.json._
 import dx.util.JsUtils
 
-import scala.collection.immutable.{SeqMap, SortedMap, TreeSeqMap}
+import scala.collection.immutable.{SeqMap, SortedMap}
 
 /**
   * Functions for serialization and deserialization of types. Note that SortedMap is
@@ -176,7 +176,7 @@ object TypeSerde {
           val (t, newTypeDefs) = deserialize(jsType, typeDefAccu, jsTypeDefs)
           (fieldAccu + (name -> t), newTypeDefs)
       }
-    newTypeDefs + (schemaName -> TSchema(schemaName, fieldTypes.to(TreeSeqMap)))
+    newTypeDefs + (schemaName -> TSchema(schemaName, fieldTypes.to(SeqMap)))
   }
 
   def deserializeSchemas(
@@ -421,7 +421,7 @@ object TypeSerde {
         case other =>
           throw TypeSerdeException(s"invalid native input/output spec field ${other}")
       }
-      .to(TreeSeqMap)
+      .to(SeqMap)
   }
 
   // Get a human readable type name

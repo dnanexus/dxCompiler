@@ -18,7 +18,7 @@ import wdlTools.eval.{Eval, WdlValueBindings, WdlValues}
 import wdlTools.syntax.WdlVersion
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 
-import scala.collection.immutable.TreeSeqMap
+import scala.collection.immutable.SeqMap
 
 private case class WorkflowTestJobMeta(override val workerPaths: DxWorkerPaths,
                                        override val dxApi: DxApi = DxApi.get,
@@ -181,7 +181,7 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
     val env: Map[String, WdlValues.V] = Map(
         "x" -> WdlValues.V_Int(3),
         "y" -> WdlValues.V_Int(5),
-        "add" -> WdlValues.V_Call("add", TreeSeqMap("result" -> WdlValues.V_Int(8)))
+        "add" -> WdlValues.V_Call("add", SeqMap("result" -> WdlValues.V_Int(8)))
     )
     val decls: Vector[TAT.PrivateVariable] = block.elements.collect {
       case eNode: TAT.PrivateVariable => eNode
@@ -530,13 +530,13 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
 
     results(WdlDxName.fromSourceName("tot")) shouldBe (
         WdlTypes.T_Struct("House",
-                          TreeSeqMap("height" -> WdlTypes.T_Int,
-                                     "num_floors" -> WdlTypes.T_Int,
-                                     "street" -> WdlTypes.T_String,
-                                     "city" -> WdlTypes.T_String)),
+                          SeqMap("height" -> WdlTypes.T_Int,
+                                 "num_floors" -> WdlTypes.T_Int,
+                                 "street" -> WdlTypes.T_String,
+                                 "city" -> WdlTypes.T_String)),
         WdlValues.V_Struct(
             "House",
-            TreeSeqMap(
+            SeqMap(
                 "height" -> WdlValues.V_Int(32),
                 "num_floors" -> WdlValues.V_Int(4),
                 "street" -> WdlValues.V_String("Alda_Mary"),

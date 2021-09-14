@@ -4,7 +4,7 @@ import dx.core.ir.Type._
 import dx.util.CollectionUtils.IterableOnceExtensions
 import dx.util.protocols.DxFolderSource
 
-import scala.collection.immutable.{SeqMap, TreeSeqMap}
+import scala.collection.immutable.SeqMap
 
 /**
   * A language-independent representation of values used as input to/output from
@@ -88,7 +88,7 @@ object Value {
 
   object VHash {
     def apply(fields: (String, Value)*): VHash = {
-      new VHash(fields.to(TreeSeqMap))
+      new VHash(fields.to(SeqMap))
     }
   }
 

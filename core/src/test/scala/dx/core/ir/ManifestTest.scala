@@ -6,7 +6,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spray.json._
 
-import scala.collection.immutable.TreeSeqMap
+import scala.collection.immutable.SeqMap
 
 class ManifestTest extends AnyFlatSpec with Matchers {
   val userManifestJs: JsValue =
@@ -137,13 +137,13 @@ class ManifestTest extends AnyFlatSpec with Matchers {
       |}""".stripMargin.parseJson
 
   it should "parse a user manifest" in {
-    val nameType = TSchema("Name", TreeSeqMap("first" -> TString, "last" -> TString))
+    val nameType = TSchema("Name", SeqMap("first" -> TString, "last" -> TString))
     val personType = TSchema("Person",
-                             TreeSeqMap(
+                             SeqMap(
                                  "name" -> nameType,
                                  "age" -> TInt
                              ))
-    val pairType = TSchema("Pair___(Int, Int)", TreeSeqMap("left" -> TInt, "right" -> TInt))
+    val pairType = TSchema("Pair___(Int, Int)", SeqMap("left" -> TInt, "right" -> TInt))
     val types: Map[DxName, Type] = Map(
         SimpleDxName.fromSourceName("person") -> personType,
         SimpleDxName.fromSourceName("bank_account") -> TString,
@@ -154,15 +154,15 @@ class ManifestTest extends AnyFlatSpec with Matchers {
     manifest.deserialize() should contain theSameElementsAs
       Map(
           SimpleDxName.fromSourceName("person") -> VHash(
-              TreeSeqMap(
+              SeqMap(
                   "name" -> VHash(
-                      TreeSeqMap("first" -> VString("John"), "last" -> VString("Smith"))
+                      SeqMap("first" -> VString("John"), "last" -> VString("Smith"))
                   ),
                   "age" -> VInt(42)
               )
           ),
           SimpleDxName.fromSourceName("height_ft_in") -> VHash(
-              TreeSeqMap("left" -> VInt(6), "right" -> VInt(1))
+              SeqMap("left" -> VInt(6), "right" -> VInt(1))
           ),
           SimpleDxName.fromSourceName("bank_account") -> VString("1234567890")
       )
@@ -181,21 +181,21 @@ class ManifestTest extends AnyFlatSpec with Matchers {
     manifest.deserialize() should contain theSameElementsAs
       Map(
           SimpleDxName.fromSourceName("person") -> VHash(
-              TreeSeqMap(
+              SeqMap(
                   "name" -> VHash(
-                      TreeSeqMap("first" -> VString("John"), "last" -> VString("Smith"))
+                      SeqMap("first" -> VString("John"), "last" -> VString("Smith"))
                   ),
                   "age" -> VInt(42)
               )
           ),
           SimpleDxName.fromSourceName("height_ft_in") -> VHash(
-              TreeSeqMap("left" -> VInt(6), "right" -> VInt(1))
+              SeqMap("left" -> VInt(6), "right" -> VInt(1))
           ),
           SimpleDxName.fromSourceName("bank_account") -> VString("1234567890")
       )
-    val nameType = TSchema("Name", TreeSeqMap("first" -> TString, "last" -> TString))
-    val personType = TSchema("Person", TreeSeqMap("name" -> nameType, "age" -> TInt))
-    val pairType = TSchema("Pair___(Int, Int)", TreeSeqMap("left" -> TInt, "right" -> TInt))
+    val nameType = TSchema("Name", SeqMap("first" -> TString, "last" -> TString))
+    val personType = TSchema("Person", SeqMap("name" -> nameType, "age" -> TInt))
+    val pairType = TSchema("Pair___(Int, Int)", SeqMap("left" -> TInt, "right" -> TInt))
     manifest.types.nonEmpty shouldBe true
     manifest.types.get should contain theSameElementsAs
       Map(
@@ -214,15 +214,15 @@ class ManifestTest extends AnyFlatSpec with Matchers {
   }
 
   it should "serialize a manifest" in {
-    val nameType = TSchema("Name", TreeSeqMap("first" -> TString, "last" -> TString))
+    val nameType = TSchema("Name", SeqMap("first" -> TString, "last" -> TString))
     val personType = TSchema("Person",
-                             TreeSeqMap(
+                             SeqMap(
                                  "name" -> nameType,
                                  "age" -> TInt
                              ))
-    val pairType = TSchema("Pair___(Int, Int)", TreeSeqMap("left" -> TInt, "right" -> TInt))
+    val pairType = TSchema("Pair___(Int, Int)", SeqMap("left" -> TInt, "right" -> TInt))
     val manifest = Manifest(
-        TreeSeqMap(
+        SeqMap(
             SimpleDxName.fromSourceName("bank_account") -> JsString("1234567890"),
             SimpleDxName.fromSourceName("height_ft_in") -> JsObject("left" -> JsNumber(6),
                                                                     "right" -> JsNumber(1)),
@@ -235,7 +235,7 @@ class ManifestTest extends AnyFlatSpec with Matchers {
             )
         ),
         Some(
-            TreeSeqMap(
+            SeqMap(
                 SimpleDxName.fromSourceName("bank_account") -> TString,
                 SimpleDxName.fromSourceName("height_ft_in") -> pairType,
                 SimpleDxName.fromSourceName("person") -> personType,
@@ -243,7 +243,7 @@ class ManifestTest extends AnyFlatSpec with Matchers {
             )
         ),
         Some(
-            TreeSeqMap(
+            SeqMap(
                 "Name" -> nameType,
                 "Pair___(Int, Int)" -> pairType,
                 "Person" -> personType

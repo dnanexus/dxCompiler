@@ -8,7 +8,7 @@ import dx.util.protocols.{DxArchiveFolderSource, DxFileSource, DxFolderSource}
 import dx.util.{FileSourceResolver, JsUtils, LocalFileSource}
 import spray.json._
 
-import scala.collection.immutable.TreeSeqMap
+import scala.collection.immutable.SeqMap
 
 object ValueSerde extends DefaultJsonProtocol {
   val WrappedValueKey = "wrapped___"
@@ -354,7 +354,7 @@ object ValueSerde extends DefaultJsonProtocol {
           deserializePathObject(obj, dxApi, dxFileDescCache)
         case obj: JsObject if DxFile.isLinkJson(obj) =>
           VFile(deserializeDxFileUri(obj, dxApi, dxFileDescCache))
-        case JsObject(fields) => VHash(fields.view.mapValues(inner).to(TreeSeqMap))
+        case JsObject(fields) => VHash(fields.view.mapValues(inner).to(SeqMap))
       }
     }
     inner(jsValue)
@@ -455,7 +455,7 @@ object ValueSerde extends DefaultJsonProtocol {
                 .map {
                   case (key, value) => key -> deserialize(value)
                 }
-                .to(TreeSeqMap)
+                .to(SeqMap)
           )
         case (TEnum(symbols), JsString(s)) if symbols.contains(s) =>
           VString(s)

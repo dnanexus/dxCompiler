@@ -11,7 +11,7 @@ import wdlTools.syntax.{Quoting, SourceLocation, WdlVersion}
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 import dx.util.{CodecUtils, FileSourceResolver, Logger}
 
-import scala.collection.immutable.TreeSeqMap
+import scala.collection.immutable.SeqMap
 
 class InstanceTypesTest extends AnyFlatSpec with Matchers {
   // The original list is at:
@@ -176,7 +176,7 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
                             gpu: Option[Boolean]): Runtime = {
     def makeString(s: String): TAT.Expr =
       TAT.ValueString(s, WdlTypes.T_String, Quoting.Double)(SourceLocation.empty)
-    val rt = TreeSeqMap(
+    val rt = SeqMap(
         Runtime.DxInstanceTypeKey -> dxInstanceType.map(makeString),
         WdlRuntime.MemoryKey -> memory.map(makeString),
         WdlRuntime.DisksKey -> disks.map(makeString),
@@ -405,7 +405,7 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
         WdlVersion.V1,
         Some(
             TAT.RuntimeSection(
-                TreeSeqMap("cpu" -> TAT.ValueInt(5, WdlTypes.T_Int)(SourceLocation.empty))
+                SeqMap("cpu" -> TAT.ValueInt(5, WdlTypes.T_Int)(SourceLocation.empty))
             )(
                 SourceLocation.empty
             )

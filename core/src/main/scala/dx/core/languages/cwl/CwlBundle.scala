@@ -13,7 +13,7 @@ import dx.cwl.{
 }
 import org.w3id.cwl.cwl1_2.CWLVersion
 
-import scala.collection.immutable.{SeqMap, TreeSeqMap}
+import scala.collection.immutable.SeqMap
 
 case class CwlBundle(version: CWLVersion,
                      primaryProcess: Process,
@@ -29,7 +29,7 @@ case class CwlBundle(version: CWLVersion,
 
   def sortByDependencies: Vector[Process] = {
     def inner(wfs: Iterable[Workflow],
-              deps: SeqMap[String, Workflow] = TreeSeqMap.empty): SeqMap[String, Workflow] = {
+              deps: SeqMap[String, Workflow] = SeqMap.empty): SeqMap[String, Workflow] = {
       wfs.foldLeft(deps) {
         case (accu, wf) =>
           val unsatisfied = wf.steps.map(_.run).collect {

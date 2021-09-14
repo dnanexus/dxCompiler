@@ -8,7 +8,7 @@ import wdlTools.generators.code.{Utils => GeneratorUtils}
 import wdlTools.syntax.{CommentMap, Quoting, SourceLocation, WdlVersion}
 import wdlTools.types.{GraphUtils, TypeGraph, WdlTypes, TypedAbstractSyntax => TAT}
 
-import scala.collection.immutable.TreeSeqMap
+import scala.collection.immutable.SeqMap
 
 case class WdlDocumentSource(doc: TAT.Document, versionSupport: VersionSupport) extends SourceCode {
   override val language: String = "wdl"
@@ -100,7 +100,7 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
         val keyExprs = value.keys.map(wdlValueToExpr)
         val valueExprs = value.values.map(wdlValueToExpr)
         TAT.ExprMap(
-            keyExprs.zip(valueExprs).to(TreeSeqMap),
+            keyExprs.zip(valueExprs).to(SeqMap),
             WdlTypes.T_Map(seqToType(keyExprs), seqToType(valueExprs))
         )(SourceLocation.empty)
 
@@ -115,8 +115,9 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
           case (name: TAT.ValueString, value) => name.value -> value.wdlType
           case other                          => throw new RuntimeException(s"Unexpected member ${other}")
         }
-        TAT.ExprMap(memberExprs.to(TreeSeqMap),
-                    WdlTypes.T_Struct(name, memberTypes.to(TreeSeqMap)))(SourceLocation.empty)
+        TAT.ExprMap(memberExprs.to(SeqMap), WdlTypes.T_Struct(name, memberTypes.to(SeqMap)))(
+            SourceLocation.empty
+        )
 
       case WdlValues.V_Object(members) =>
         val memberExprs = members.map {
@@ -124,7 +125,7 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
             val key: TAT.Expr = TAT.ValueString(name, WdlTypes.T_String)(SourceLocation.empty)
             key -> wdlValueToExpr(value)
         }
-        TAT.ExprObject(memberExprs.to(TreeSeqMap), WdlTypes.T_Object)(SourceLocation.empty)
+        TAT.ExprObject(memberExprs.to(SeqMap), WdlTypes.T_Object)(SourceLocation.empty)
 
       case other =>
         throw new Exception(s"Unhandled value ${other}")
@@ -202,7 +203,7 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
     val meta = if (native) {
       Some(
           TAT.MetaSection(
-              TreeSeqMap("type" -> TAT.MetaValueBoolean(value = true)(SourceLocation.empty))
+              SeqMap("type" -> TAT.MetaValueBoolean(value = true)(SourceLocation.empty))
           )(
               SourceLocation.empty
           )
@@ -222,8 +223,8 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
                 case other: TAT.InputParameter =>
                   other.name -> (other.wdlType, true)
               }
-              .to(TreeSeqMap),
-            outputs.map(d => d.name -> d.wdlType).to(TreeSeqMap),
+              .to(SeqMap),
+            outputs.map(d => d.name -> d.wdlType).to(SeqMap),
             None
         ),
         inputs,
@@ -253,7 +254,7 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
                        outputSpec: Map[String, WdlTypes.T]): TAT.Task = {
 
     val meta = TAT.MetaSection(
-        TreeSeqMap(
+        SeqMap(
             "type" -> TAT.MetaValueString("native", Quoting.Double)(SourceLocation.empty),
             "id" -> TAT.MetaValueString(id, Quoting.Double)(SourceLocation.empty)
         )
@@ -267,8 +268,8 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
                           .map {
                             case (name, wdlType) => name -> (wdlType, false)
                           }
-                          .to(TreeSeqMap),
-                        outputSpec.to(TreeSeqMap),
+                          .to(SeqMap),
+                        outputSpec.to(SeqMap),
                         None),
         inputSpec.map {
           case (name, wdlType) => TAT.RequiredInputParameter(name, wdlType)(SourceLocation.empty)

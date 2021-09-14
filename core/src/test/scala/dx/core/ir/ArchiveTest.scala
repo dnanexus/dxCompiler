@@ -9,7 +9,7 @@ import dx.util.FileUtils
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import scala.collection.immutable.TreeSeqMap
+import scala.collection.immutable.SeqMap
 
 class ArchiveTest extends AnyFlatSpec with Matchers {
   it should "create a squashfs" taggedAs LinuxOnly in {
@@ -46,9 +46,9 @@ class ArchiveTest extends AnyFlatSpec with Matchers {
     FileUtils.writeFileContent(file1, "file1")
     FileUtils.writeFileContent(file2, "file2")
     FileUtils.writeFileContent(file3, "file3")
-    val structType = TSchema("Files", TreeSeqMap("files" -> TArray(TFile)))
+    val structType = TSchema("Files", SeqMap("files" -> TArray(TFile)))
     val value = VHash(
-        TreeSeqMap(
+        SeqMap(
             "files" -> VArray(
                 Vector(VFile(file1.toString), VFile(file2.toString), VFile(file3.toString))
             )
@@ -62,7 +62,7 @@ class ArchiveTest extends AnyFlatSpec with Matchers {
     packed.localized shouldBe false
     packed.irType shouldBe structType
     packed.irValue shouldBe VHash(
-        TreeSeqMap(
+        SeqMap(
             "files" -> VArray(
                 Vector(
                     VFile(Paths.get("sub1").resolve("file1.txt").toString),
@@ -77,7 +77,7 @@ class ArchiveTest extends AnyFlatSpec with Matchers {
     packed2.localized shouldBe false
     packed2.irType shouldBe structType
     packed2.irValue shouldBe VHash(
-        TreeSeqMap(
+        SeqMap(
             "files" -> VArray(
                 Vector(
                     VFile(Paths.get("sub1").resolve("file1.txt").toString),

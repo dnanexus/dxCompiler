@@ -11,7 +11,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spray.json._
 
-import scala.collection.immutable.TreeSeqMap
+import scala.collection.immutable.SeqMap
 
 class ParameterLinkTest extends AnyFlatSpec with Matchers {
   private val dxApi = DxApi()(Logger.Quiet)
@@ -67,7 +67,7 @@ class ParameterLinkTest extends AnyFlatSpec with Matchers {
         makeElement(
             Type.THash,
             Value.VHash(
-                TreeSeqMap(
+                SeqMap(
                     "A" -> Value.VBoolean(true),
                     "C" -> Value.VBoolean(false),
                     "G" -> Value.VBoolean(true),
@@ -81,9 +81,9 @@ class ParameterLinkTest extends AnyFlatSpec with Matchers {
 
   it should "handle structs" in {
     val personType =
-      Type.TSchema("Person", TreeSeqMap("name" -> Type.TString, "age" -> Type.TInt))
-    val jeff = Value.VHash(TreeSeqMap("name" -> Value.VString("Jeoffrey"), "age" -> Value.VInt(16)))
-    val janice = Value.VHash(TreeSeqMap("name" -> Value.VString("Janice"), "age" -> Value.VInt(25)))
+      Type.TSchema("Person", SeqMap("name" -> Type.TString, "age" -> Type.TInt))
+    val jeff = Value.VHash(SeqMap("name" -> Value.VString("Jeoffrey"), "age" -> Value.VInt(16)))
+    val janice = Value.VHash(SeqMap("name" -> Value.VString("Janice"), "age" -> Value.VInt(25)))
     val testCases = Vector(makeElement(personType, jeff), makeElement(personType, janice))
 
     // no definitions for struct Person, should fail
@@ -100,30 +100,28 @@ class ParameterLinkTest extends AnyFlatSpec with Matchers {
   it should "handle nested structs" taggedAs EdgeTest in {
     // People
     val personType =
-      Type.TSchema("Person", TreeSeqMap("name" -> Type.TString, "age" -> Type.TInt))
+      Type.TSchema("Person", SeqMap("name" -> Type.TString, "age" -> Type.TInt))
     val houseType = Type.TSchema(
         "House",
-        TreeSeqMap("person" -> personType, "zipcode" -> Type.TInt, "type" -> Type.TString)
+        SeqMap("person" -> personType, "zipcode" -> Type.TInt, "type" -> Type.TString)
     )
 
     // people
-    val lucy = Value.VHash(TreeSeqMap("name" -> Value.VString("Lucy"), "age" -> Value.VInt(37)))
+    val lucy = Value.VHash(SeqMap("name" -> Value.VString("Lucy"), "age" -> Value.VInt(37)))
     val lear =
-      Value.VHash(TreeSeqMap("name" -> Value.VString("King Lear"), "age" -> Value.VInt(41)))
+      Value.VHash(SeqMap("name" -> Value.VString("King Lear"), "age" -> Value.VInt(41)))
 
     // Houses
     val learCastle =
       Value.VHash(
-          TreeSeqMap("person" -> lear,
-                     "zipcode" -> Value.VInt(1),
-                     "type" -> Value.VString("Castle"))
+          SeqMap("person" -> lear, "zipcode" -> Value.VInt(1), "type" -> Value.VString("Castle"))
       )
 
     val lucyHouse =
       Value.VHash(
-          TreeSeqMap("person" -> lucy,
-                     "zipcode" -> Value.VInt(94043),
-                     "type" -> Value.VString("town house"))
+          SeqMap("person" -> lucy,
+                 "zipcode" -> Value.VInt(94043),
+                 "type" -> Value.VString("town house"))
       )
 
     val testCases = Vector(makeElement(houseType, learCastle), makeElement(houseType, lucyHouse))

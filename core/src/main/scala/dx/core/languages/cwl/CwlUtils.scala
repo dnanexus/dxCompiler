@@ -26,7 +26,7 @@ import spray.json._
 import java.nio.file.{Path, Paths}
 import java.util.UUID
 import scala.annotation.tailrec
-import scala.collection.immutable.TreeSeqMap
+import scala.collection.immutable.SeqMap
 
 object CwlUtils {
 
@@ -35,7 +35,7 @@ object CwlUtils {
     * only accepts a null value. This is not able to be represented
     * natively, so instead we use an optional schema type.
     */
-  val NullSchema: Type = TOptional(TSchema("null", TreeSeqMap.empty))
+  val NullSchema: Type = TOptional(TSchema("null", SeqMap.empty))
 
   def isNullSchema(t: TSchema): Boolean = {
     t.name == "null"
@@ -169,7 +169,7 @@ object CwlUtils {
                    val (_, v) = toIRValue(value)
                    key -> v
                }
-               .to(TreeSeqMap)
+               .to(SeqMap)
          ))
       case _ => throw new Exception(s"Invalid CWL value ${cwlValue})")
     }
@@ -233,7 +233,7 @@ object CwlUtils {
         (irType, VArray(irItems))
       case (record: CwlRecord, ObjectValue(fields)) =>
         val (types, values) =
-          fields.foldLeft(TreeSeqMap.empty[String, Type], TreeSeqMap.empty[String, Value]) {
+          fields.foldLeft(SeqMap.empty[String, Type], SeqMap.empty[String, Value]) {
             case ((types, values), (name, value)) if record.fields.contains(name) =>
               val (irType, irValue) = toIRValue(value, record.fields(name).cwlType)
               (types + (name -> irType), values + (name -> irValue))
@@ -339,7 +339,7 @@ object CwlUtils {
                   .map {
                     case (name, t) => name -> CwlInputRecordField(name, t)
                   }
-                  .to(TreeSeqMap)
+                  .to(SeqMap)
             )
           } else {
             CwlOutputRecord(
@@ -347,10 +347,10 @@ object CwlUtils {
                   .map {
                     case (name, t) => name -> CwlOutputRecordField(name, t)
                   }
-                  .to(TreeSeqMap)
+                  .to(SeqMap)
             )
           }
-          (schemaType, ObjectValue(values.to(TreeSeqMap)))
+          (schemaType, ObjectValue(values.to(SeqMap)))
         case _ =>
           throw new Exception(
               s"cannot convert ${name.getOrElse("IR")} value ${value} to WDL value"
@@ -615,7 +615,7 @@ object CwlUtils {
             .finalizeInputValue(value, param.cwlType, param, inputDir, fileResolver)
         case (key, (_, value)) => key -> value
       }
-      .to(TreeSeqMap)
+      .to(SeqMap)
     EvaluatorContext(self, ObjectValue(values), runtime)
   }
 }

@@ -3,6 +3,7 @@ package dx.core.languages.cwl
 import dx.core.ir.{Block, BlockKind, DxName, InputKind}
 import dx.cwl.{
   CommandLineTool,
+  CwlArray,
   CwlOptional,
   CwlType,
   ExpressionTool,
@@ -12,10 +13,11 @@ import dx.cwl.{
   Requirement,
   Workflow,
   WorkflowInputParameter,
-  WorkflowStep
+  WorkflowStep,
+  WorkflowStepOutput
 }
 
-import scala.collection.immutable.TreeSeqMap
+import scala.collection.immutable.SeqMap
 
 sealed trait CwlBlockInput {
   val name: DxName
@@ -37,9 +39,26 @@ case class OptionalBlockInput(name: DxName, source: Parameter) extends CwlBlockI
   val kind: InputKind.InputKind = InputKind.Optional
 }
 
+case class CwlBlockOutput(name: DxName, cwlType: CwlType, source: OutputParameter)
+
+object CwlBlockOutput {
+  def create(step: WorkflowStep,
+             stepOutput: WorkflowStepOutput,
+             targetParam: OutputParameter): CwlBlockOutput = {
+    val dxName = CwlDxName.fromSourceName(stepOutput.name, namespace = Some(step.name))
+    val cwlType = (step.when.isDefined, step.scatter.nonEmpty) match {
+      case (true, true)   => CwlArray(CwlOptional.ensureOptional(targetParam.cwlType))
+      case (true, false)  => CwlOptional.ensureOptional(targetParam.cwlType)
+      case (false, true)  => CwlArray(targetParam.cwlType)
+      case (false, false) => targetParam.cwlType
+    }
+    CwlBlockOutput(dxName, cwlType, targetParam)
+  }
+}
+
 case class CwlBlock(index: Int,
-                    inputs: Map[DxName, CwlBlockInput],
-                    outputs: Map[DxName, OutputParameter],
+                    inputs: Vector[CwlBlockInput],
+                    outputs: Vector[CwlBlockOutput],
                     steps: Vector[WorkflowStep],
                     inheritedRequirements: Vector[Requirement],
                     inheritedHints: Vector[Hint])
@@ -58,13 +77,14 @@ case class CwlBlock(index: Int,
   lazy val targetIsSimpleCall: Boolean = {
     target.run match {
       case _: ExpressionTool | _: CommandLineTool if CwlUtils.isSimpleCall(target) =>
+        val blockInputs = inputs.map(i => i.name -> i).toMap
         val stepInputs = target.inputs.map(i => i.name -> i).toMap
         !target.run.inputs.exists { callInput =>
           // check that the call input type is compatible with the block input type
           // the call is not simple if a downcast is required (e.g. Any -> File)
           stepInputs.get(callInput.name).exists { stepInput =>
             stepInput.sources.headOption.exists { src =>
-              inputs.get(CwlDxName.fromDecodedName(src.frag.get)).exists { blockInput =>
+              blockInputs.get(CwlDxName.fromDecodedName(src.frag.get)).exists { blockInput =>
                 try {
                   CwlUtils.requiresDowncast(blockInput.cwlType, callInput.cwlType)
                 } catch {
@@ -137,9 +157,9 @@ case class CwlBlock(index: Int,
     }
   }
 
-  override lazy val inputNames: Set[DxName] = inputs.keySet
+  override lazy val inputNames: Set[DxName] = inputs.map(_.name).toSet
 
-  override lazy val outputNames: Set[DxName] = outputs.keySet
+  override lazy val outputNames: Set[DxName] = outputs.map(_.name).toSet
 
   private def prettyFormatStep(step: WorkflowStep): String = {
     val parts = Vector(
@@ -180,10 +200,10 @@ case class CwlBlock(index: Int,
   }
 
   override lazy val prettyFormat: String = {
-    val inputStr = inputs.values.map { param =>
+    val inputStr = inputs.map { param =>
       s"${CwlUtils.prettyFormatType(param.cwlType)} ${param.name}"
     }
-    val outputStr = outputs.values.map { param =>
+    val outputStr = outputs.map { param =>
       s"${CwlUtils.prettyFormatType(param.cwlType)} ${param.name}"
     }
     val bodyStr = steps.map(prettyFormatStep).mkString("\n")
@@ -210,8 +230,8 @@ object CwlBlock {
     // sort steps in dependency order
     def orderSteps(
         steps: Vector[WorkflowStep],
-        deps: TreeSeqMap[String, WorkflowStep] = TreeSeqMap.empty
-    ): TreeSeqMap[String, WorkflowStep] = {
+        deps: SeqMap[String, WorkflowStep] = SeqMap.empty
+    ): SeqMap[String, WorkflowStep] = {
       val (satisfied, unsatisfied) =
         steps.partition { step =>
           step.inputs.forall { inp =>
@@ -225,7 +245,7 @@ object CwlBlock {
       if (satisfied.isEmpty) {
         throw new Exception("could not satisfy any dependencies")
       }
-      val newDeps = deps ++ satisfied.map(step => step.name -> step).to(TreeSeqMap)
+      val newDeps = deps ++ satisfied.map(step => step.name -> step).to(SeqMap)
       if (unsatisfied.isEmpty) {
         newDeps
       } else {
@@ -239,14 +259,14 @@ object CwlBlock {
       val orderedSteps = orderSteps(wf.steps)
       orderedSteps.values.zipWithIndex.map {
         case (step, index) =>
-          val blockInputs: Map[DxName, CwlBlockInput] = {
-            val inputSources: Vector[Map[DxName, CwlBlockInput]] = step.inputs.map { inp =>
+          val blockInputs: Vector[CwlBlockInput] = {
+            val inputSources: Vector[CwlBlockInput] = step.inputs.flatMap { inp =>
               // sources of this step input - either a workflow input
               // like "file1" or a step output like "step1/file1"
               val sources = inp.sources.map { src =>
                 (src, CwlDxName.fromDecodedName(src.frag.get))
               }
-              val sourceParams = sources.foldLeft(Map.empty[DxName, Parameter]) {
+              val sourceParams = sources.foldLeft(SeqMap.empty[DxName, Parameter]) {
                 case (accu, (_, name)) if accu.contains(name) => accu
                 case (accu, (id, name)) if id.parent.isDefined =>
                   val srcStep = orderedSteps(id.parent.get)
@@ -259,7 +279,8 @@ object CwlBlock {
                           }
                           .getOrElse(
                               throw new Exception(
-                                  s"process ${srcStep.run.name} does not define output parameter ${out.name}"
+                                  s"""process ${srcStep.run.name} does not define output parameter 
+                                     |${out.name}""".stripMargin.replaceAll("\n", " ")
                               )
                           )
                     }
@@ -278,44 +299,59 @@ object CwlBlock {
               sourceParams.map {
                 case (dxName, param) =>
                   if (hasDefault || CwlOptional.isOptional(param.cwlType)) {
-                    dxName -> OptionalBlockInput(dxName, param)
+                    OptionalBlockInput(dxName, param)
                   } else {
-                    dxName -> RequiredBlockInput(dxName, param)
+                    RequiredBlockInput(dxName, param)
                   }
+              }.toVector
+            }
+            inputSources.distinct
+              .foldLeft(
+                  SeqMap.empty[DxName, (Option[RequiredBlockInput], Option[OptionalBlockInput])]
+              )({
+                case (accu, req: RequiredBlockInput) if accu.contains(req.name) =>
+                  val (existingReq, existingOpt) = accu(req.name)
+                  if (existingReq.nonEmpty) {
+                    throw new Exception(s"multiple different required inputs for name ${req.name}")
+                  }
+                  accu + (req.name -> (Some(req), existingOpt))
+                case (accu, opt: OptionalBlockInput) if accu.contains(opt.name) =>
+                  val (existingReq, existingOpt) = accu(opt.name)
+                  if (existingOpt.nonEmpty) {
+                    throw new Exception(s"multiple different optional inputs for name ${opt.name}")
+                  }
+                  accu + (opt.name -> (existingReq, Some(opt)))
+                case (accu, req: RequiredBlockInput) =>
+                  accu + (req.name -> (Some(req), Option.empty[OptionalBlockInput]))
+                case (accu, opt: OptionalBlockInput) =>
+                  accu + (opt.name -> (Option.empty[RequiredBlockInput], Some(opt)))
+                case (_, other) =>
+                  throw new Exception(s"unexpected block input ${other}")
+              })
+              .values
+              .map {
+                case (req, opt) => req.orElse(opt).get
               }
-            }
-
-            inputSources.flatMap(_.toVector).groupBy(_._1).map {
-              case (name, inputs) =>
-                val param = inputs.map(_._2).distinct match {
-                  case Vector(i)                                              => i
-                  case Vector(req: RequiredBlockInput, _: OptionalBlockInput) => req
-                  case Vector(_: OptionalBlockInput, req: RequiredBlockInput) => req
-                  case _ =>
-                    throw new Exception(
-                        s"multiple incompatible inputs ${inputs} map to name ${name}"
-                    )
-                }
-                name -> param
-            }
+              .toVector
           }
           val procOutputs = step.run.outputs.collect {
             case o if o.hasName => o.name -> o
           }.toMap
           val blockOutputs = step.outputs
-            .map {
-              case out if procOutputs.contains(out.name) =>
-                val dxName = CwlDxName.fromSourceName(out.name, namespace = Some(step.name))
-                dxName -> out
-              case out =>
-                throw new Exception(s"invalid output parameter name ${out.name}")
+            .foldLeft(SeqMap.empty[DxName, CwlBlockOutput]) {
+              case (_, out) if !procOutputs.contains(out.name) =>
+                throw new Exception(
+                    s"step output ${out} does not match any output of callable ${step.run.id}"
+                )
+              case (accu, out) =>
+                val blockOutput = CwlBlockOutput.create(step, out, procOutputs(out.name))
+                if (accu.contains(blockOutput.name)) {
+                  throw new Exception(s"duplicate output parameter name ${blockOutput.name}")
+                }
+                accu + (blockOutput.name -> blockOutput)
             }
-            .foldLeft(Map.empty[DxName, OutputParameter]) {
-              case (accu, (dxName, out)) if !accu.contains(dxName) =>
-                accu + (dxName -> procOutputs(out.name))
-              case (_, (_, out)) =>
-                throw new Exception(s"duplicate output parameter name ${out.name}")
-            }
+            .values
+            .toVector
           CwlBlock(index,
                    blockInputs,
                    blockOutputs,

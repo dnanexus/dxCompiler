@@ -30,7 +30,7 @@ import wdlTools.types.{
 }
 import wdlTools.types.WdlTypes._
 
-import scala.collection.immutable.{ListMap, SeqMap, TreeSeqMap}
+import scala.collection.immutable.SeqMap
 
 /**
   * A reference to a block input variable.
@@ -199,7 +199,7 @@ object WdlUtils {
       case T_Map(keyType, valueType) =>
         val k = getDefaultValueOfType(keyType)
         val v = getDefaultValueOfType(valueType)
-        TAT.ExprMap(TreeSeqMap(k -> v), wdlType)(loc)
+        TAT.ExprMap(SeqMap(k -> v), wdlType)(loc)
 
       // an empty array
       case T_Array(_, false) =>
@@ -250,7 +250,7 @@ object WdlUtils {
 
   def createPairSchema(left: Type, right: Type): TSchema = {
     val name = s"${PairSchemaPrefix}(${TypeSerde.toString(left)}, ${TypeSerde.toString(right)})"
-    TSchema(name, TreeSeqMap(PairLeftKey -> left, PairRightKey -> right))
+    TSchema(name, SeqMap(PairLeftKey -> left, PairRightKey -> right))
   }
 
   def isPairSchema(t: TSchema): Boolean = {
@@ -282,7 +282,7 @@ object WdlUtils {
   def createMapSchema(keyType: Type, valueType: Type): TSchema = {
     val name =
       s"${MapSchemaPrefix}[${TypeSerde.toString(keyType)}, ${TypeSerde.toString(valueType)}]"
-    TSchema(name, TreeSeqMap(MapKeysKey -> TArray(keyType), MapValuesKey -> TArray(valueType)))
+    TSchema(name, SeqMap(MapKeysKey -> TArray(keyType), MapValuesKey -> TArray(valueType)))
   }
 
   def isMapSchema(t: TSchema): Boolean = {
@@ -402,7 +402,7 @@ object WdlUtils {
       case V_Pair(left, right) =>
         // encode this as a hash with 'left' and 'right' keys
         VHash(
-            TreeSeqMap(
+            SeqMap(
                 PairLeftKey -> toIRValue(left),
                 PairRightKey -> toIRValue(right)
             )
@@ -413,7 +413,7 @@ object WdlUtils {
           case (k, v) => (toIRValue(k), toIRValue(v))
         }.unzip
         VHash(
-            TreeSeqMap(
+            SeqMap(
                 MapKeysKey -> VArray(keys.toVector),
                 MapValuesKey -> VArray(values.toVector)
             )
@@ -455,7 +455,7 @@ object WdlUtils {
       case (T_Pair(leftType, rightType), V_Pair(leftValue, rightValue)) =>
         // encode this as a hash with left and right keys
         VHash(
-            TreeSeqMap(
+            SeqMap(
                 PairLeftKey -> toIRValue(leftValue, leftType),
                 PairRightKey -> toIRValue(rightValue, rightType)
             )
@@ -466,7 +466,7 @@ object WdlUtils {
           case (k, v) => (toIRValue(k, keyType), toIRValue(v, valueType))
         }.unzip
         VHash(
-            TreeSeqMap(
+            SeqMap(
                 MapKeysKey -> VArray(keys.toVector),
                 MapValuesKey -> VArray(values.toVector)
             )
@@ -542,7 +542,7 @@ object WdlUtils {
           fromIRValue(fields(MapValuesKey), name.map(n => s"${n}[${MapValuesKey}]"))
         (keys, values) match {
           case (V_Array(keyArray), V_Array(valueArray)) =>
-            V_Map(keyArray.zip(valueArray).to(TreeSeqMap))
+            V_Map(keyArray.zip(valueArray).to(SeqMap))
           case other =>
             throw new Exception(s"invalid map value ${other}")
         }
@@ -592,7 +592,7 @@ object WdlUtils {
           fromIRValue(fields(MapValuesKey), T_Array(valueType), s"${name}[${MapValuesKey}]")
         (keys, values) match {
           case (V_Array(keyArray), V_Array(valueArray)) =>
-            V_Map(keyArray.zip(valueArray).to(TreeSeqMap))
+            V_Map(keyArray.zip(valueArray).to(SeqMap))
           case other =>
             throw new Exception(s"invalid map value ${other}")
         }
@@ -673,7 +673,7 @@ object WdlUtils {
         val values = irValueToExpr(fields(MapValuesKey))
         (keys, values) match {
           case (TAT.ExprArray(keyArray, keyType), TAT.ExprArray(valueArray, valueType)) =>
-            TAT.ExprMap(keyArray.zip(valueArray).to(TreeSeqMap), T_Map(keyType, valueType))(loc)
+            TAT.ExprMap(keyArray.zip(valueArray).to(SeqMap), T_Map(keyType, valueType))(loc)
           case other =>
             throw new Exception(s"invalid map value ${other}")
         }
@@ -682,7 +682,7 @@ object WdlUtils {
           .map {
             case (key, value) => TAT.ValueString(key, T_String)(loc) -> irValueToExpr(value)
           }
-          .to(TreeSeqMap)
+          .to(SeqMap)
         TAT.ExprObject(m, T_Object)(loc)
       case _ =>
         throw new Exception(s"cannot convert IR value ${value} to WDL")
@@ -1060,14 +1060,14 @@ object WdlUtils {
     }
 
     // now convert the inputs, filter out those that are in outputs, and check for collisions
-    // we use a ListMap to preserve the order
+    // we use a SeqMap to preserve the order
     val inputs = getInputs(elements, withField)
       .filterNot(i => i.names.exists(outputNames.contains))
       .distinct
-      .foldLeft(ListMap.empty[DxName, ListMap[InputKind.InputKind, Set[T]]]) {
+      .foldLeft(SeqMap.empty[DxName, SeqMap[InputKind.InputKind, Set[T]]]) {
         case (accu, ref) =>
           val kinds =
-            accu.getOrElse(ref.fullyQualifiedName, ListMap.empty[InputKind.InputKind, Set[T]])
+            accu.getOrElse(ref.fullyQualifiedName, SeqMap.empty[InputKind.InputKind, Set[T]])
           val types = kinds.getOrElse(ref.kind, Set.empty[T])
           accu + (ref.fullyQualifiedName -> (kinds + (ref.kind -> (types + ref.wdlType))))
       }
