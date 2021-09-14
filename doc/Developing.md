@@ -197,13 +197,14 @@ dxCompiler can be released from Github. The release pipeline (optionally) runs l
         * [executorCwl](https://github.com/dnanexus/dxCompiler/blob/main/executorCwl/src/main/resources/application.conf)
 4. Update the [Release Notes](https://github.com/dnanexus/dxCompiler/blob/main/RELEASE_NOTES.md)
     - Change the top header from "in develop" to "<version> (<date>)"
-5. Push the release branch to GitHub.
-6. Run the release pipeline:
-    1.  Go to `Actions` > `dxCompiler Release (Staging and Prod)` and click `Run workflow` on the right side.
+5. Update versions of libraries as needed in [build.sbt](/build.sbt).
+6. Push the release branch to GitHub.
+7. Run the release pipeline:
+    1. Go to `Actions` > `dxCompiler Release (Staging and Prod)` and click `Run workflow` on the right side.
     2. Make sure the `release-xxx` branch is selected (default setting).
     3. Once finished, the pipeline will create a draft release page on GitHub.
-7. Test in customer projects: build and run the applet [test-dxcompiler-in-project](/test-dxcompiler-in-project) in customer projects that are shared with `org-dnanexus_apps_customer_testers`.
-8. Publish the draft [release](https://github.com/dnanexus/dxCompiler/releases). The compressed source code (in `zip` and `tar.gz`) will be added to the release page automatically.
+8. Test in customer projects: build and run the applet [test-dxcompiler-in-project](/test-dxcompiler-in-project) in customer projects that are shared with `org-dnanexus_apps_customer_testers`.
+9. Publish the draft [release](https://github.com/dnanexus/dxCompiler/releases). The compressed source code (in `zip` and `tar.gz`) will be added to the release page automatically.
 
 If you encounter any additional issues while creating the release, you will need to make the fixes in `develop` and then merge them into the release branch.
 
