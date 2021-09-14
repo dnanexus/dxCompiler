@@ -173,7 +173,7 @@ case class Application(name: String,
 sealed trait StageInput
 case object EmptyInput extends StageInput
 case class StaticInput(value: Value) extends StageInput
-case class LinkInput(stageId: DxWorkflowStage, paramName: DxName) extends StageInput
+case class LinkInput(stageId: DxWorkflowStage, param: Parameter) extends StageInput
 case class WorkflowInput(param: Parameter) extends StageInput
 case class ArrayInput(stageInputs: Vector[StageInput]) extends StageInput
 

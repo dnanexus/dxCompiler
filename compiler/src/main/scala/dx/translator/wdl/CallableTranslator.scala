@@ -698,7 +698,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                   case (env, param: Parameter) =>
                     val dxName = param.name.pushDecodedNamespace(call.actualName)
                     val paramFqn = param.copy(name = dxName)
-                    env.add(dxName, (paramFqn, LinkInput(stage.dxStage, param.name)))
+                    env.add(dxName, (paramFqn, LinkInput(stage.dxStage, param)))
                 }
                 (stages :+ (stage, Vector.empty[Callable]), afterEnv)
               case _ =>
@@ -711,7 +711,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
               translateWfFragment(wfName, block, blockPath :+ blockNum, scatterPath, beforeEnv)
             val afterEnv = stage.outputs.foldLeft(beforeEnv) {
               case (env, param) =>
-                env.add(param.name, (param, LinkInput(stage.dxStage, param.name)))
+                env.add(param.name, (param, LinkInput(stage.dxStage, param)))
             }
             (stages :+ (stage, auxCallables), afterEnv)
         }
@@ -919,7 +919,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                                inputOutputs ++ closureInputParams,
                                blockPath)
           val fauxWfInputs: Vector[LinkedVar] = commonStage.outputs.map { param =>
-            val link = LinkInput(commonStage.dxStage, param.name)
+            val link = LinkInput(commonStage.dxStage, param)
             (param, link)
           }
           (fauxWfInputs, Vector((commonStage, Vector(commonApplet))))
@@ -993,7 +993,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       val (wfOutputs, finalStages, finalCallables) = if (useOutputStage) {
         val (outputStage, outputApplet) = createOutputStage(wfName, outputs, blockPath, env)
         val wfOutputs = outputStage.outputs.map { param =>
-          (param, LinkInput(outputStage.dxStage, param.name))
+          (param, LinkInput(outputStage.dxStage, param))
         }
         (wfOutputs, stages :+ outputStage, auxCallables.flatten :+ outputApplet)
       } else {
@@ -1057,7 +1057,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       val (commonStg, commonApplet) =
         createCommonApplet(wf.name, commonAppletInputs, commonStageInputs, commonAppletInputs)
       val fauxWfInputs: Vector[LinkedVar] = commonStg.outputs.map { param =>
-        val stageInput = LinkInput(commonStg.dxStage, param.name)
+        val stageInput = LinkInput(commonStg.dxStage, param)
         (param, stageInput)
       }
 
@@ -1070,7 +1070,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
 
       val wfInputs = commonAppletInputs.map(param => (param, EmptyInput))
       val wfOutputs =
-        outputStage.outputs.map(param => (param, LinkInput(outputStage.dxStage, param.name)))
+        outputStage.outputs.map(param => (param, LinkInput(outputStage.dxStage, param)))
       val wfAttr = meta.translate
       val wfSource = WdlWorkflowSource(wf, versionSupport)
 

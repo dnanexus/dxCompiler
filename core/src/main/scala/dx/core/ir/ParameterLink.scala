@@ -33,34 +33,6 @@ sealed trait ParameterLink {
     */
   def makeOptional: ParameterLink
 }
-case class ParameterLinkValue(jsv: JsValue, dxType: Type) extends ParameterLink {
-  def makeOptional: ParameterLinkValue = {
-    copy(dxType = Type.ensureOptional(dxType))
-  }
-}
-
-case class ParameterLinkStage(dxStage: DxWorkflowStage,
-                              ioRef: IORef.Value,
-                              dxName: DxName,
-                              dxType: Type)
-    extends ParameterLink {
-  def makeOptional: ParameterLinkStage = {
-    copy(dxType = Type.ensureOptional(dxType))
-  }
-}
-
-case class ParameterLinkWorkflowInput(dxName: DxName, dxType: Type) extends ParameterLink {
-  def makeOptional: ParameterLinkWorkflowInput = {
-    copy(dxType = Type.ensureOptional(dxType))
-  }
-}
-
-case class ParameterLinkExec(dxExecution: DxExecution, dxName: DxName, dxType: Type)
-    extends ParameterLink {
-  def makeOptional: ParameterLinkExec = {
-    copy(dxType = Type.ensureOptional(dxType))
-  }
-}
 
 object ParameterLink {
   // key used to wrap a complex value in JSON
@@ -70,6 +42,59 @@ object ParameterLink {
     links
       .map { case (dxName, link) => s"${dxName} -> ${link}" }
       .mkString(s"\n${" " * indent}")
+  }
+}
+
+case class ParameterLinkValue(jsv: JsValue, dxType: Type) extends ParameterLink {
+  def makeOptional: ParameterLinkValue = {
+    copy(dxType = Type.ensureOptional(dxType))
+  }
+}
+
+/**
+  * A ParameterLink that is a reference to another parameter.
+  */
+sealed trait ParameterLinkReference extends ParameterLink {
+
+  /**
+    * The type of the parameter source, which is usually, but not always,
+    * the same as `dxType`. For example, a workflow input with type `String`
+    * may be connected to a stage input with type `Any`.
+    */
+  val sourceType: Type
+}
+
+case class ParameterLinkStage(dxStage: DxWorkflowStage,
+                              ioRef: IORef.Value,
+                              dxName: DxName,
+                              dxType: Type,
+                              sourceType: Type)
+    extends ParameterLinkReference {
+  def makeOptional: ParameterLinkStage = {
+    copy(dxType = Type.ensureOptional(dxType))
+  }
+}
+
+case class ParameterLinkWorkflowInput(dxName: DxName, dxType: Type, sourceType: Type)
+    extends ParameterLinkReference {
+  def makeOptional: ParameterLinkWorkflowInput = {
+    copy(dxType = Type.ensureOptional(dxType))
+  }
+}
+
+case class ParameterLinkExec(dxExecution: DxExecution,
+                             dxName: DxName,
+                             dxType: Type,
+                             sourceType: Type)
+    extends ParameterLinkReference {
+  def makeOptional: ParameterLinkExec = {
+    copy(dxType = Type.ensureOptional(dxType))
+  }
+}
+
+object ParameterLinkExec {
+  def create(dxExecution: DxExecution, dxName: DxName, dxType: Type): ParameterLinkExec = {
+    ParameterLinkExec(dxExecution, dxName, dxType, dxType)
   }
 }
 
@@ -132,81 +157,89 @@ case class ParameterLinkSerializer(fileResolver: FileSourceResolver = FileSource
   def serializeSimpleLink(link: ParameterLink): JsValue = {
     link match {
       case ParameterLinkValue(jsLinkvalue, _) => jsLinkvalue
-      case ParameterLinkStage(dxStage, ioRef, dxName, _) =>
+      case ParameterLinkStage(dxStage, ioRef, dxName, _, _) =>
         ioRef match {
           case IORef.Input =>
             dxStage.getInputReference(dxName.encoded)
           case IORef.Output =>
             dxStage.getOutputReference(dxName.encoded)
         }
-      case ParameterLinkWorkflowInput(dxName, _) =>
+      case ParameterLinkWorkflowInput(dxName, _, _) =>
         JsObject(
             DxUtils.DxLinkKey -> JsObject(
                 ParameterLink.WorkflowInputFieldKey -> JsString(dxName.encoded)
             )
         )
-      case ParameterLinkExec(dxJob, dxName, _) =>
+      case ParameterLinkExec(dxJob, dxName, _, _) =>
         DxUtils.dxExecutionToEbor(dxJob, dxName.encoded)
     }
   }
 
   // create input/output fields that bind the variable name [bindName] to this parameter
-  def createFieldsFromLink(link: ParameterLink,
-                           bindName: DxName
-                           //encodeName: Boolean = true
-  ): Vector[(DxName, JsValue)] = {
-    if (Type.isNative(link.dxType, !pathsAsObjects)) {
-      // Types that are supported natively in DX
-      Vector((bindName, serializeSimpleLink(link)))
-    } else {
-      // Complex type requiring two fields: a JSON structure, and a flat array of files.
-      val fileArrayName = bindName.addSuffix(Constants.FlatFilesSuffix)
-      val mapValue = link match {
-        case ParameterLinkValue(jsLinkValue, _) =>
-          // files that are embedded in the structure
-          val jsFiles = JsArray(DxFile.findFiles(dxApi, jsLinkValue).map(_.asJson))
-          // Dx allows hashes as an input/output type. If the JSON value is
-          // not a hash (JsObject), we need to add an outer layer to it.
-          val jsLink = JsObject(Constants.ComplexValueKey -> jsLinkValue)
-          Map(bindName -> jsLink, fileArrayName -> jsFiles)
-        case ParameterLinkStage(dxStage, ioRef, dxName, _) =>
-          val varFileArrayName = dxName.addSuffix(Constants.FlatFilesSuffix)
-          ioRef match {
-            case IORef.Input =>
-              Map(
-                  bindName -> dxStage.getInputReference(dxName.encoded),
-                  fileArrayName -> dxStage.getInputReference(varFileArrayName.encoded)
-              )
-            case IORef.Output =>
-              Map(
-                  bindName -> dxStage.getOutputReference(dxName.encoded),
-                  fileArrayName -> dxStage.getOutputReference(varFileArrayName.encoded)
-              )
-          }
-        case ParameterLinkWorkflowInput(dxName, _) =>
-          val varFileArrayName = dxName.addSuffix(Constants.FlatFilesSuffix)
-          Map(
-              bindName ->
-                JsObject(
-                    DxUtils.DxLinkKey -> JsObject(
-                        ParameterLink.WorkflowInputFieldKey -> JsString(dxName.encoded)
-                    )
-                ),
-              fileArrayName ->
-                JsObject(
-                    DxUtils.DxLinkKey -> JsObject(
-                        ParameterLink.WorkflowInputFieldKey -> JsString(varFileArrayName.encoded)
-                    )
+  def createFieldsFromLink(link: ParameterLink, bindName: DxName): Vector[(DxName, JsValue)] = {
+    val destTypeIsNative = Type.isNative(link.dxType, !pathsAsObjects)
+    link match {
+      case ref: ParameterLinkReference
+          if destTypeIsNative && !Type.isNative(ref.sourceType, !pathsAsObjects) =>
+        throw new Exception(s"cannot link non-native type to native type: ${ref}")
+      case _ if destTypeIsNative =>
+        // links with types that are supported natively in DX
+        Vector((bindName, serializeSimpleLink(link)))
+      case ref: ParameterLinkReference if Type.isNative(ref.sourceType, !pathsAsObjects) =>
+        // References where the source type is native but the dest type is not.
+        // For example, linking a `String` workflow input to a CWL `Any` stage input -
+        // the link is still "simple" because there is no `___dxfiles` parameter associated
+        // with the workflow input.
+        Vector((bindName, serializeSimpleLink(link)))
+      case _ =>
+        // Complex type requiring two fields: a JSON structure, and a flat array of files.
+        val fileArrayName = bindName.addSuffix(Constants.FlatFilesSuffix)
+        val mapValue = link match {
+          case ParameterLinkValue(jsLinkValue, _) =>
+            // files that are embedded in the structure
+            val jsFiles = JsArray(DxFile.findFiles(dxApi, jsLinkValue).map(_.asJson))
+            // Dx allows hashes as an input/output type. If the JSON value is
+            // not a hash (JsObject), we need to add an outer layer to it.
+            val jsLink = JsObject(Constants.ComplexValueKey -> jsLinkValue)
+            Map(bindName -> jsLink, fileArrayName -> jsFiles)
+          case ParameterLinkStage(dxStage, ioRef, dxName, _, _) =>
+            val varFileArrayName = dxName.addSuffix(Constants.FlatFilesSuffix)
+            ioRef match {
+              case IORef.Input =>
+                Map(
+                    bindName -> dxStage.getInputReference(dxName.encoded),
+                    fileArrayName -> dxStage.getInputReference(varFileArrayName.encoded)
                 )
-          )
-        case ParameterLinkExec(dxJob, dxName, _) =>
-          val varFileArrayName = dxName.addSuffix(Constants.FlatFilesSuffix)
-          Map(
-              bindName -> DxUtils.dxExecutionToEbor(dxJob, dxName.encoded),
-              fileArrayName -> DxUtils.dxExecutionToEbor(dxJob, varFileArrayName.encoded)
-          )
-      }
-      mapValue.toVector
+              case IORef.Output =>
+                Map(
+                    bindName -> dxStage.getOutputReference(dxName.encoded),
+                    fileArrayName -> dxStage.getOutputReference(varFileArrayName.encoded)
+                )
+            }
+          case ParameterLinkWorkflowInput(dxName, _, _) =>
+            val varFileArrayName = dxName.addSuffix(Constants.FlatFilesSuffix)
+            Map(
+                bindName ->
+                  JsObject(
+                      DxUtils.DxLinkKey -> JsObject(
+                          ParameterLink.WorkflowInputFieldKey -> JsString(dxName.encoded)
+                      )
+                  ),
+                fileArrayName ->
+                  JsObject(
+                      DxUtils.DxLinkKey -> JsObject(
+                          ParameterLink.WorkflowInputFieldKey -> JsString(varFileArrayName.encoded)
+                      )
+                  )
+            )
+          case ParameterLinkExec(dxJob, dxName, _, _) =>
+            val varFileArrayName = dxName.addSuffix(Constants.FlatFilesSuffix)
+            Map(
+                bindName -> DxUtils.dxExecutionToEbor(dxJob, dxName.encoded),
+                fileArrayName -> DxUtils.dxExecutionToEbor(dxJob, varFileArrayName.encoded)
+            )
+        }
+        mapValue.toVector
     }
   }
 

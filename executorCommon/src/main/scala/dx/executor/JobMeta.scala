@@ -639,9 +639,9 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
                                  validate: Boolean = false): Map[DxName, ParameterLink] = {
     if (useManifests) {
       Map(
-          Constants.OutputManifest -> ParameterLinkExec(execution,
-                                                        Constants.OutputManifest,
-                                                        Type.TFile)
+          Constants.OutputManifest -> ParameterLinkExec.create(execution,
+                                                               Constants.OutputManifest,
+                                                               Type.TFile)
       )
     } else {
       irOutputFields.map {
@@ -654,7 +654,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
           } else {
             actualType
           }
-          fqn -> ParameterLinkExec(execution, fieldDxName, validatedType)
+          fqn -> ParameterLinkExec.create(execution, fieldDxName, validatedType)
       }
     }
   }
