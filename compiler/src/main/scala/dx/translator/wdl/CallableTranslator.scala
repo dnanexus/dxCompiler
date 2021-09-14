@@ -570,11 +570,10 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         // get the input and output closures of the workflow statements -
         // these are the inputs that come from outside the block, and the
         // outputs that are exposed
-        val (statementClosureInputs, statementClosureOutputs) =
+        val (statementClosureInputs, outputs) =
           WdlUtils.getClosureInputsAndOutputs(statements, withField = true)
         // create block inputs for the closure inputs
         val allInputs = WdlBlockInput.create(statementClosureInputs)
-        val outputs = statementClosureOutputs.values.toVector
         // collect the sub-block inputs that are not workflow inputs or outputs -
         // these are additional inputs from outside the block that need to be
         // supplied as workflow inputs

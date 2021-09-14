@@ -164,21 +164,24 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       case path =>
         val block: WdlBlock =
           Block.getSubBlockAt(WdlBlock.createBlocks(workflow.body), path)
-        val inputTypes = block.target match {
-          case Some(conditional: TAT.Conditional) =>
-            val (inputs, _) =
-              WdlUtils.getClosureInputsAndOutputs(Vector(conditional), withField = true)
-            inputs.map {
-              case (name, (wdlType, _)) => name -> wdlType
-            }
-          case Some(scatter: TAT.Scatter) =>
-            val (inputs, _) =
-              WdlUtils.getClosureInputsAndOutputs(Vector(scatter), withField = true)
-            inputs.map {
-              case (name, (wdlType, _)) => name -> wdlType
-            }
-          case _ => block.inputs.map(inp => inp.name -> inp.wdlType).toMap
+        val targetElement = block.target match {
+          case Some(conditional: TAT.Conditional) => Some(conditional)
+          case Some(scatter: TAT.Scatter)         => Some(scatter)
+          case _                                  => None
         }
+        val targetInputTypes = targetElement
+          .map { e =>
+            val (inputs, _) = WdlUtils.getClosureInputsAndOutputs(Vector(e), withField = true)
+            inputs.map {
+              case (name, (wdlType, _)) => name -> wdlType
+            }.toMap
+          }
+          .getOrElse(Map.empty[String, T])
+        val exprInputTypes = block.inputs
+          .filterNot(i => targetInputTypes.contains(i.name))
+          .map(i => i.name -> i.wdlType)
+          .toMap
+        val inputTypes = targetInputTypes ++ exprInputTypes
         val inputValues = getInputValues(inputTypes)
         if (logger.isVerbose) {
           logger.trace(
@@ -211,7 +214,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     // This might be the output for the entire workflow or just a subblock.
     // If it is for a sublock, it may be for the body of a conditional or
     // scatter, in which case we only need the outputs of the body statements.
-    val outputsParams = jobMeta.blockPath match {
+    val outputsParams: Vector[TAT.OutputParameter] = jobMeta.blockPath match {
       case Vector() => workflow.outputs
       case path =>
         val block: WdlBlock =
@@ -220,15 +223,15 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           case Some(conditional: TAT.Conditional) =>
             val (_, outputs) =
               WdlUtils.getClosureInputsAndOutputs(conditional.body, withField = true)
-            outputs.values.toVector
+            outputs
           case Some(scatter: TAT.Scatter) =>
             val (_, outputs) =
               WdlUtils.getClosureInputsAndOutputs(scatter.body, withField = true)
             // exclude the scatter variable
-            outputs.values.filter {
+            outputs.filter {
               case out: TAT.OutputParameter if out.name == scatter.identifier => false
               case _                                                          => true
-            }.toVector
+            }
           case _ =>
             // we only need to expose the outputs that are not inputs
             val inputs = block.inputs.map(i => i.name -> i.wdlType).toMap
@@ -290,7 +293,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
 
   private def getBlockOutputs(elements: Vector[TAT.WorkflowElement]): Map[String, T] = {
     val (_, outputs) = WdlUtils.getClosureInputsAndOutputs(elements, withField = false)
-    outputs.values.map {
+    outputs.map {
       case TAT.OutputParameter(name, wdlType, _) => name -> wdlType
     }.toMap
   }

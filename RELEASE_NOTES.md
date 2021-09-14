@@ -7,6 +7,7 @@
 * Adds `-defaultInstanceType` option
 * Adds support for new London region, `aws:eu-west-2-g`
 * Fixes `-projectWideReuse`
+* Fixes evaluation of `outputs` when one declaration depends on another
 
 ## 2.4.10 2021-08-16
 
