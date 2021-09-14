@@ -1,0 +1,86 @@
+{
+    "$graph": [
+        {
+            "class": "Workflow",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "File",
+                    "outputSource": "#main/step1/output",
+                    "id": "#main/wc_output"
+                }
+            ],
+            "steps": [
+                {
+                    "run": "#null-expression3-tool.cwl",
+                    "in": [],
+                    "out": [
+                        "#main/step0/output"
+                    ],
+                    "id": "#main/step0"
+                },
+                {
+                    "run": "#wc-tool.cwl",
+                    "in": [
+                        {
+                            "source": "#main/step0/output",
+                            "default": {
+                                "class": "File",
+                                "location": "dx://file-G0G0V1Q0yzZZZXfx3xPK1B1Z"
+                            },
+                            "id": "#main/step1/file1"
+                        }
+                    ],
+                    "out": [
+                        "#main/step1/output"
+                    ],
+                    "id": "#main/step1"
+                }
+            ],
+            "id": "#main"
+        },
+        {
+            "class": "ExpressionTool",
+            "requirements": [
+                {
+                    "class": "InlineJavascriptRequirement"
+                }
+            ],
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Any",
+                    "id": "#null-expression3-tool.cwl/output"
+                }
+            ],
+            "expression": "$({'output': null })",
+            "id": "#null-expression3-tool.cwl"
+        },
+        {
+            "class": "CommandLineTool",
+            "inputs": [
+                {
+                    "type": "File",
+                    "id": "#wc-tool.cwl/file1"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "File",
+                    "outputBinding": {
+                        "glob": "output"
+                    },
+                    "id": "#wc-tool.cwl/output"
+                }
+            ],
+            "baseCommand": [
+                "wc",
+                "-l"
+            ],
+            "stdin": "$(inputs.file1.path)",
+            "stdout": "output",
+            "id": "#wc-tool.cwl"
+        }
+    ],
+    "cwlVersion": "v1.2"
+}

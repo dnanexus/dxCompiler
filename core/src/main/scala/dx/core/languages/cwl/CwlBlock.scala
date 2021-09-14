@@ -46,21 +46,54 @@ case class CwlBlock(index: Int,
     extends Block[CwlBlock] {
   assert(steps.nonEmpty)
 
+  val prerequisites: Vector[WorkflowStep] = steps.dropRight(1)
+  val target: WorkflowStep = steps.last
+
+  /**
+    * Returns true if `target` can be called directly:
+    * - no valueFrom
+    * - at most one input source
+    * - step inputs do not require down-casting to be compatible with call inputs
+    */
+  lazy val targetIsSimpleCall: Boolean = {
+    target.run match {
+      case _: ExpressionTool | _: CommandLineTool if CwlUtils.isSimpleCall(target) =>
+        val stepInputs = target.inputs.map(i => i.name -> i).toMap
+        !target.run.inputs.exists { callInput =>
+          // check that the call input type is compatible with the block input type
+          // the call is not simple if a downcast is required (e.g. Any -> File)
+          stepInputs.get(callInput.name).exists { stepInput =>
+            stepInput.sources.headOption.exists { src =>
+              inputs.get(CwlDxName.fromDecodedName(src.frag.get)).exists { blockInput =>
+                try {
+                  CwlUtils.requiresDowncast(blockInput.cwlType, callInput.cwlType)
+                } catch {
+                  case cause: Throwable =>
+                    throw new Exception(
+                        s"block input ${blockInput} is not compatible with call input ${callInput}",
+                        cause
+                    )
+                }
+              }
+            }
+          }
+        }
+      case _ => false
+    }
+  }
+
   /**
     * The kind of block this is.
     */
   override lazy val kind: BlockKind.BlockKind = {
-    val call = steps.last
-    if (call.scatter.nonEmpty) {
+    if (target.scatter.nonEmpty) {
       BlockKind.ScatterOneCall
-    } else if (call.when.nonEmpty) {
+    } else if (target.when.nonEmpty) {
       BlockKind.ConditionalOneCall
+    } else if (targetIsSimpleCall) {
+      BlockKind.CallDirect
     } else {
-      call.run match {
-        case _: ExpressionTool | _: CommandLineTool if CwlUtils.isSimpleCall(call) =>
-          BlockKind.CallDirect
-        case _ => BlockKind.CallFragment
-      }
+      BlockKind.CallFragment
     }
   }
 
@@ -76,33 +109,25 @@ case class CwlBlock(index: Int,
     }
   }
 
-  lazy val (prerequisites, target): (Vector[WorkflowStep], Option[WorkflowStep]) = {
-    (steps.dropRight(1), Some(steps.last))
-  }
-
   def targetRequirements: Vector[Requirement] = {
-    target
-      .map(step => inheritedRequirements ++ step.requirements ++ step.run.requirements)
-      .getOrElse(Vector.empty)
+    inheritedRequirements ++ target.requirements ++ target.run.requirements
   }
 
   def targetHints: Vector[Hint] = {
-    target
-      .map(step => inheritedHints ++ step.hints ++ step.run.hints)
-      .getOrElse(Vector.empty)
+    inheritedHints ++ target.hints ++ target.run.hints
   }
 
   override def getSubBlock(index: Int): CwlBlock = {
-    (kind, target) match {
-      case (BlockKind.ConditionalOneCall | BlockKind.ScatterOneCall, Some(step)) =>
-        step.run match {
+    kind match {
+      case BlockKind.ConditionalOneCall | BlockKind.ScatterOneCall =>
+        target.run match {
           case _: CommandLineTool if index == 0 =>
-            CwlBlock(0, inputs, outputs, Vector(step), inheritedRequirements, inheritedHints)
+            CwlBlock(0, inputs, outputs, Vector(target), inheritedRequirements, inheritedHints)
           case wf: Workflow =>
             val innerBlocks =
               CwlBlock.createBlocks(wf,
-                                    inheritedRequirements ++ step.requirements,
-                                    inheritedHints ++ step.hints)
+                                    inheritedRequirements ++ target.requirements,
+                                    inheritedHints ++ target.hints)
             innerBlocks(index)
           case other =>
             throw new Exception(s"unexpected process ${other}")

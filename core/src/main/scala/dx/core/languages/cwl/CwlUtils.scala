@@ -559,6 +559,29 @@ object CwlUtils {
     }
   }
 
+  /**
+    * Returns true if a down-cast is required for `from` to be compatible
+    * with `to`. A down-cast is required to go from a wider type to a more
+    * narrow type, for example `Any` -> `File`. Throws an exception of the
+    * types are not compatible at all.
+    */
+  def requiresDowncast(from: CwlType, to: CwlType): Boolean = {
+    (from, to) match {
+      case (CwlAny, CwlAny)                                                           => false
+      case (CwlAny, _)                                                                => true
+      case (_: CwlMulti, CwlAny)                                                      => false
+      case (fromMulti: CwlMulti, toMulti: CwlMulti) if fromMulti.coercibleTo(toMulti) => false
+      case (_: CwlMulti, _: CwlMulti) =>
+        throw new Exception(s"type ${from} cannot be downcast to ${to}")
+      case (fromMulti: CwlMulti, _) if fromMulti.coercibleTo(to) => true
+      case (_: CwlMulti, _) =>
+        throw new Exception(s"type ${from} cannot be downcast to ${to}")
+      case _ if from.coercibleTo(to) => false
+      case _ =>
+        throw new Exception(s"type ${from} cannot be downcast to ${to}")
+    }
+  }
+
   def isDxFile(file: FileValue): Boolean = {
     file.location.exists(_.startsWith(DxPath.DxUriPrefix))
   }

@@ -176,7 +176,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
           case BlockKind.CallDirect | BlockKind.CallFragment =>
             (block.outputs.values, false, false)
           case _ =>
-            val step = block.target.get
+            val step = block.target
             (block.outputs.values, step.when.isDefined, step.scatter.nonEmpty)
         }
     }
@@ -279,7 +279,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
 
   case class CwlBlockContext(block: CwlBlock, cwlEnv: Map[DxName, (CwlType, CwlValue)])
       extends BlockContext {
-    private val step = block.target.get
+    private val step = block.target
     private lazy val runInputs = step.run.inputs.map { i =>
       CwlDxName.fromDecodedName(i.id.flatMap(_.frag).get) -> i
     }.toMap
@@ -447,9 +447,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
           minLevel = TraceLevel.VVerbose
       )
       val executableLink = getExecutableLink(step.run.name)
-      val targetCallInput = block.target
-        .map(t => Map(Target -> (TargetParam.dxType, VString(t.name))))
-        .getOrElse(Map.empty)
+      val targetCallInput = Map(Target -> (TargetParam.dxType, VString(block.target.name)))
       val callInputsIR = CwlUtils.toIR(callInputs) ++ targetCallInput
       val requirementEvaluator = RequirementEvaluator(
           block.targetRequirements,

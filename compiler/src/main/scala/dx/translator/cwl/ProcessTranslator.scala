@@ -4,8 +4,6 @@ import dx.api.{DxApi, DxPath}
 import dx.core.Constants
 import dx.core.io.DxWorkerPaths
 import dx.core.ir.RunSpec.{DefaultInstanceType, NoImage}
-import dx.core.ir.Type.TString
-import dx.core.ir.Value.VString
 import dx.core.ir.{
   Application,
   BlockKind,
@@ -407,7 +405,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         CwlDxName.fromSourceName(param.name) -> param
       }.toMap
       val inputs: Vector[StageInput] = callee.inputVars.map {
-        case param if param == TargetParam => StaticInput(VString(call.name))
+        case param if param == TargetParam => StaticInput(Value.VString(call.name))
         case param =>
           callInputToStageInput(callInputParams.get(param.name), param, env, locked, call.name)
       }
@@ -474,10 +472,10 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         case BlockKind.CallFragment | BlockKind.ConditionalOneCall =>
           // a block with no nested sub-blocks, and a single call, or
           // a conditional with exactly one call in the sub-block
-          (Some(block.target.get.run.name), None)
+          (Some(block.target.run.name), None)
         case BlockKind.ScatterOneCall =>
           // a scatter with exactly one call in the sub-block
-          val stepName = block.target.get.run.name
+          val stepName = block.target.run.name
           val newScatterPath = stepPath.map(p => s"${p}.${stepName}").getOrElse(stepName)
           (Some(stepName), Some(newScatterPath))
         case _ =>
@@ -548,27 +546,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       val (allStageInfo, stageEnv): (Vector[(Stage, Vector[Callable])], CallEnv) =
         subBlocks.zipWithIndex.foldLeft((Vector.empty[(Stage, Vector[Callable])], inputEnv)) {
           case ((stages, beforeEnv), (block: CwlBlock, blockNum: Int)) =>
-            if (block.kind == BlockKind.CallDirect) {
-              block.target match {
-                case Some(step) if CwlUtils.isSimpleCall(step) =>
-                  // The block contains exactly one call, with no extra variables.
-                  // All the variables are already in the environment, so there is no
-                  // need to do any extra work. Compile directly into a workflow stage.
-                  logger2.trace(s"Translating step ${step.name} as stage")
-                  val stage = translateCall(step, beforeEnv, locked)
-                  // Add bindings for the output variables. This allows later calls to refer
-                  // to these results.
-                  val afterEnv = stage.outputs.foldLeft(beforeEnv) {
-                    case (env, param: Parameter) =>
-                      val fqn = param.name.pushDecodedNamespace(step.name)
-                      val paramFqn = param.copy(name = fqn)
-                      env.add(fqn, (paramFqn, LinkInput(stage.dxStage, param)))
-                  }
-                  (stages :+ (stage, Vector.empty[Callable]), afterEnv)
-                case _ =>
-                  throw new Exception(s"invalid DirectCall block ${block}")
-              }
-            } else {
+            if (block.kind != BlockKind.CallDirect) {
               // A simple block that requires just one applet, OR
               // a complex block that needs a subworkflow
               val (stage, callable) =
@@ -578,6 +556,24 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
                   env.add(param.name, (param, LinkInput(stage.dxStage, param)))
               }
               (stages :+ (stage, Vector(callable)), afterEnv)
+            } else if (block.targetIsSimpleCall) {
+              val step = block.target
+              // The block contains exactly one call, with no extra variables.
+              // All the variables are already in the environment, so there is no
+              // need to do any extra work. Compile directly into a workflow stage.
+              logger2.trace(s"Translating step ${step.name} as stage")
+              val stage = translateCall(step, beforeEnv, locked)
+              // Add bindings for the output variables. This allows later calls to refer
+              // to these results.
+              val afterEnv = stage.outputs.foldLeft(beforeEnv) {
+                case (env, param: Parameter) =>
+                  val fqn = param.name.pushDecodedNamespace(step.name)
+                  val paramFqn = param.copy(name = fqn)
+                  env.add(fqn, (paramFqn, LinkInput(stage.dxStage, param)))
+              }
+              (stages :+ (stage, Vector.empty[Callable]), afterEnv)
+            } else {
+              throw new Exception(s"invalid DirectCall block ${block}")
             }
         }
 
@@ -644,8 +640,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         case CustomReorgSettings(_, _, true) if !isLocked =>
           val updatedOutputVars = outputParams :+ Parameter(
               Constants.ReorgStatus,
-              TString,
-              Some(VString(Constants.ReorgStatusCompleted))
+              Type.TString,
+              Some(Value.VString(Constants.ReorgStatusCompleted))
           )
           (ExecutableKindWfCustomReorgOutputs, updatedOutputVars)
         case _ =>
@@ -727,11 +723,13 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       // We need a common output stage for any of these reasons:
       // 1. we need to build an output manifest
       // 2. there are no workflow steps (unlikely, but there is at least one conformance
-      // test where this is the case), then the worklfow will consist of only the
+      // test where this is the case), then the workflow will consist of only the
       // output applet.
       val useOutputStage = useManifests || backboneStageInfo.isEmpty || {
         // 3. there are outputs that need to be merged
-        // 4. an output is used directly as an input
+        // 4. we are "downcasting" an output, e.g. the applet output is `Any` but
+        // the workflow output is `File`
+        // 5. an output is used directly as an input
         // For example, in the small workflow below, 'lane' is used in such a manner.
         //
         // workflow inner {
@@ -745,12 +743,16 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         //
         // In locked workflows, it is illegal to access a workflow input directly from
         // a workflow output. It is only allowed to access a stage input/output.
-        // In locked workflows, it is illegal to access a workflow input directly from
-        // a workflow output. It is only allowed to access a stage input/output.
         val inputNames = inputs.map(_.name).toSet
         outputs.exists { out =>
           out.sources.size > 1 ||
-          out.sources.exists(_.frag.exists(inputNames.contains))
+          out.sources.exists(_.frag.exists(inputNames.contains)) ||
+          out.sources.headOption.exists { sourceId =>
+            env.get(CwlDxName.fromDecodedName(sourceId.frag.get)).map(_._1).exists { stageParam =>
+              CwlUtils.requiresDowncast(CwlUtils.fromIRType(stageParam.dxType, isInput = false),
+                                        out.cwlType)
+            }
+          }
         }
       }
 

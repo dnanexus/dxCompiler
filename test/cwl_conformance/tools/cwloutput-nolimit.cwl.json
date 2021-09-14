@@ -23,6 +23,10 @@
                 "items": "string"
             },
             "id": "#main/filelist"
+        },
+        {
+            "type": "string",
+            "id": "#main/bigstring"
         }
     ],
     "arguments": [
