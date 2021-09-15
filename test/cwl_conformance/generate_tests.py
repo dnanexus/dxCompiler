@@ -79,8 +79,8 @@ def generate_tests(tests_path, cwl_path, tools_dir):
             generate_tests(cwl_path / test["$import"], cwl_path, tools_dir)
         else:
             tool_path = tests_path.parent / test["tool"]
-            if not os.path.exists(tools_dir / tool_path.name):
-                continue
+            #if not os.path.exists(tools_dir / tool_path.name):
+            #    continue
             if tool_path in test_dict:
                 test_list = test_dict[tool_path]
             else:
@@ -88,7 +88,7 @@ def generate_tests(tests_path, cwl_path, tools_dir):
                 test_dict[tool_path] = test_list
             test["basedir"] = tests_path.parent
             test_list.append(test)
-
+    print(test_dict)
     for tool_file, test_list in test_dict.items():
         if len(test_list) == 1:
             create_test(tool_file, test_list[0], -1, tools_dir)
@@ -99,5 +99,5 @@ def generate_tests(tests_path, cwl_path, tools_dir):
 
 if __name__ == "__main__":
     cwl_path = Path("../../../cwl-v1.2")
-    tools_dir = Path("workflows")
-    generate_tests(cwl_path / "conformance_tests.yaml", cwl_path, tools_dir)
+    tools_dir = Path("foo")
+    generate_tests(cwl_path / "tests" / "conditionals" / "test-index.yaml", cwl_path, tools_dir)

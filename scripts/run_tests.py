@@ -43,7 +43,8 @@ expected_failure = {
     "iwd-container-entryname2",
     "iwd-container-entryname3",
     "iwd-container-entryname4",
-    "loadContents-limit"
+    "loadContents-limit",
+    "cond-wf-003.3"
 }
 
 test_compilation_failing = {"import_passwd"}
