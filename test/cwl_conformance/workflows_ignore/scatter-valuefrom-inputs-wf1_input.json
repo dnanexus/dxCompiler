@@ -1,0 +1,16 @@
+{
+  "scatter-valuefrom-inputs-wf1.inp": [
+    {
+      "instr": "one"
+    },
+    {
+      "instr": "two"
+    },
+    {
+      "instr": "three"
+    },
+    {
+      "instr": "four"
+    }
+  ]
+}
