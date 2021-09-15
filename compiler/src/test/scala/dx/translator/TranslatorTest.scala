@@ -920,7 +920,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     }
     wf.stages.size shouldBe 2
     wf.stages.head.inputs shouldBe Vector(
-        WorkflowInput(
+        StageInputWorkflowLink(
             Parameter(WdlDxName.fromSourceName("sampleStruct"),
                       TSchema("SampleStruct", SeqMap("sample_name" -> TString, "id" -> TInt)),
                       None,
@@ -1606,12 +1606,12 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
         throw new Exception(s"expected Workflow not ${other}")
     }
     wf.inputs shouldBe Vector(
-        Parameter(CwlDxName.fromSourceName("file1"), TFile) -> WorkflowInput(
+        Parameter(CwlDxName.fromSourceName("file1"), TFile) -> StageInputWorkflowLink(
             Parameter(CwlDxName.fromSourceName("file1"), TFile)
         )
     )
     wf.outputs shouldBe Vector(
-        Parameter(CwlDxName.fromSourceName("count_output"), TInt) -> LinkInput(
+        Parameter(CwlDxName.fromSourceName("count_output"), TInt) -> StageInputStageLink(
             DxWorkflowStage("stage-1"),
             Parameter(CwlDxName.fromSourceName("output"), TInt)
         )
@@ -1620,8 +1620,8 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     wf.stages(0).dxStage.id shouldBe "stage-0"
     wf.stages(0).calleeName shouldBe "word-count"
     wf.stages(0).inputs shouldBe Vector(
-        WorkflowInput(Parameter(CwlDxName.fromSourceName("file1"), TFile)),
-        StaticInput(VString("step1"))
+        StageInputWorkflowLink(Parameter(CwlDxName.fromSourceName("file1"), TFile)),
+        StageInputStatic(VString("step1"))
     )
     wf.stages(0).outputs shouldBe Vector(
         Parameter(CwlDxName.fromSourceName("output"), TFile)
@@ -1629,8 +1629,9 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     wf.stages(1).dxStage.id shouldBe "stage-1"
     wf.stages(1).calleeName shouldBe "parseInt"
     wf.stages(1).inputs shouldBe Vector(
-        LinkInput(DxWorkflowStage("stage-0"), Parameter(CwlDxName.fromSourceName("output"), TFile)),
-        StaticInput(VString("step2"))
+        StageInputStageLink(DxWorkflowStage("stage-0"),
+                            Parameter(CwlDxName.fromSourceName("output"), TFile)),
+        StageInputStatic(VString("step2"))
     )
     wf.stages(1).outputs shouldBe Vector(
         Parameter(CwlDxName.fromSourceName("output"), TInt)

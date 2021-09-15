@@ -10,23 +10,23 @@ import dx.core.ir.{
   Callable,
   CallableAttribute,
   DxName,
-  EmptyInput,
+  StageInputEmpty,
   ExecutableKindApplet,
   ExecutableKindWfCustomReorgOutputs,
   ExecutableKindWfFragment,
   ExecutableKindWfOutputs,
   Level,
-  LinkInput,
+  StageInputStageLink,
   Parameter,
   ParameterAttribute,
   SourceCode,
   Stage,
   StageInput,
-  StaticInput,
+  StageInputStatic,
   Type,
   Value,
   Workflow,
-  WorkflowInput
+  StageInputWorkflowLink
 }
 import dx.core.languages.cwl.{
   CwlBlock,
@@ -359,14 +359,14 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           stepInput.default.map { d =>
             val cwlType = CwlUtils.fromIRType(calleeParam.dxType, isInput = true)
             val (_, cwlValue) = CwlUtils.toIRValue(d, cwlType)
-            StaticInput(cwlValue)
+            StageInputStatic(cwlValue)
           }
-        }.toOption.flatten.getOrElse(EmptyInput)
+        }.toOption.flatten.getOrElse(StageInputEmpty)
       }
 
       callInput match {
-        case None if Type.isOptional(calleeParam.dxType) => EmptyInput
-        case None if calleeParam.defaultValue.isDefined  => EmptyInput
+        case None if Type.isOptional(calleeParam.dxType) => StageInputEmpty
+        case None if calleeParam.defaultValue.isDefined  => StageInputEmpty
         case None if locked =>
           env.log()
           throw new Exception(
@@ -376,7 +376,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           )
         case None =>
           // the callee may not use the argument - defer until runtime
-          EmptyInput
+          StageInputEmpty
         case Some(inp) if inp.sources.size == 1 =>
           val dxName = CwlDxName.fromDecodedName(inp.sources.head.frag.get)
           try {
@@ -405,7 +405,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         CwlDxName.fromSourceName(param.name) -> param
       }.toMap
       val inputs: Vector[StageInput] = callee.inputVars.map {
-        case param if param == TargetParam => StaticInput(Value.VString(call.name))
+        case param if param == TargetParam => StageInputStatic(Value.VString(call.name))
         case param =>
           callInputToStageInput(callInputParams.get(param.name), param, env, locked, call.name)
       }
@@ -549,7 +549,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
                 translateWfFragment(wfName, block, blockPath :+ blockNum, stepPath, beforeEnv)
               val afterEnv = stage.outputs.foldLeft(beforeEnv) {
                 case (env, param) =>
-                  env.add(param.name, (param, LinkInput(stage.dxStage, param)))
+                  env.add(param.name, (param, StageInputStageLink(stage.dxStage, param)))
               }
               (stages :+ (stage, Vector(callable)), afterEnv)
             } else if (block.targetIsSimpleCall) {
@@ -565,7 +565,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
                 case (env, param: Parameter) =>
                   val fqn = param.name.pushDecodedNamespace(step.name)
                   val paramFqn = param.copy(name = fqn)
-                  env.add(fqn, (paramFqn, LinkInput(stage.dxStage, param)))
+                  env.add(fqn, (paramFqn, StageInputStageLink(stage.dxStage, param)))
               }
               (stages :+ (stage, Vector.empty[Callable]), afterEnv)
             } else {
@@ -685,11 +685,11 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         level: Level.Value
     ): (Workflow, Vector[Callable], Vector[(Parameter, StageInput)]) = {
       val wfInputParams = inputs.map(createWorkflowInput)
-      val wfInputLinks: Vector[LinkedVar] = wfInputParams.map(p => (p, WorkflowInput(p)))
+      val wfInputLinks: Vector[LinkedVar] = wfInputParams.map(p => (p, StageInputWorkflowLink(p)))
       val (backboneInputs, commonStageInfo) = if (useManifests) {
         // If we are using manifests, we need an initial applet to merge multiple
         // manifests into a single manifest.
-        val commonStageInputs = wfInputParams.map(p => WorkflowInput(p))
+        val commonStageInputs = wfInputParams.map(p => StageInputWorkflowLink(p))
         val inputOutputs: Vector[Parameter] = inputs.map { i =>
           val dxName = CwlDxName.fromSourceName(i.name)
           Parameter(dxName, CwlUtils.toIRType(i.cwlType))
@@ -697,7 +697,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         val (commonStage, commonApplet) =
           createCommonApplet(wfName, wfInputParams, commonStageInputs, inputOutputs, blockPath)
         val fauxWfInputs: Vector[LinkedVar] = commonStage.outputs.map { param =>
-          val link = LinkInput(commonStage.dxStage, param)
+          val link = StageInputStageLink(commonStage.dxStage, param)
           (param, link)
         }
         (fauxWfInputs, Vector((commonStage, Vector(commonApplet))))
@@ -757,7 +757,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       val (wfOutputs, finalStages, finalCallables) = if (useOutputStage) {
         val (outputStage, outputApplet) = createOutputStage(wfName, outputs, blockPath, env)
         val wfOutputs = outputStage.outputs.map { param =>
-          (param, LinkInput(outputStage.dxStage, param))
+          (param, StageInputStageLink(outputStage.dxStage, param))
         }
         (wfOutputs, stages :+ outputStage, auxCallables.flatten :+ outputApplet)
       } else {
@@ -811,11 +811,11 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       // they are references to the outputs of this first applet.
       val commonAppletInputs: Vector[Parameter] =
         inputs.map(input => createWorkflowInput(input))
-      val commonStageInputs: Vector[StageInput] = inputs.map(_ => EmptyInput)
+      val commonStageInputs: Vector[StageInput] = inputs.map(_ => StageInputEmpty)
       val (commonStg, commonApplet) =
         createCommonApplet(wf.name, commonAppletInputs, commonStageInputs, commonAppletInputs)
       val fauxWfInputs: Vector[LinkedVar] = commonStg.outputs.map { param =>
-        val stageInput = LinkInput(commonStg.dxStage, param)
+        val stageInput = StageInputStageLink(commonStg.dxStage, param)
         (param, stageInput)
       }
 
@@ -826,9 +826,9 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       // convert the outputs into an applet+stage
       val (outputStage, outputApplet) = createOutputStage(wf.name, outputs, Vector.empty, env)
 
-      val wfInputs = commonAppletInputs.map(param => (param, EmptyInput))
+      val wfInputs = commonAppletInputs.map(param => (param, StageInputEmpty))
       val wfOutputs =
-        outputStage.outputs.map(param => (param, LinkInput(outputStage.dxStage, param)))
+        outputStage.outputs.map(param => (param, StageInputStageLink(outputStage.dxStage, param)))
 
       val irwf = Workflow(
           wf.name,

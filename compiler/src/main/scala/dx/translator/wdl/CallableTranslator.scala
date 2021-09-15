@@ -308,10 +308,10 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       callInputExpr match {
         case None if isOptional(calleeParam.dxType) =>
           // optional argument that is not provided
-          EmptyInput
+          StageInputEmpty
         case None if calleeParam.defaultValue.isDefined =>
           // argument that has a default, it can be omitted in the call
-          EmptyInput
+          StageInputEmpty
         case None if locked =>
           env.log()
           throw new Exception(
@@ -322,7 +322,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         case None | Some(_: TAT.ValueNone) | Some(_: TAT.ValueNull) =>
           // Perhaps the callee is not going to use the argument, so wait until
           // runtime to determine whether to fail.
-          EmptyInput
+          StageInputEmpty
         case Some(expr) =>
           try {
             // try to evaluate the expression using the constant values from the env
@@ -334,7 +334,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                 dxName.decoded -> bindingValue
             })
             val value = evaluator.applyExprAndCoerce(expr, paramWdlType, bindings)
-            StaticInput(WdlUtils.toIRValue(value, paramWdlType))
+            StageInputStatic(WdlUtils.toIRValue(value, paramWdlType))
           } catch {
             case _: EvalException =>
               // if the expression is an identifier, look it up in the env
@@ -535,7 +535,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       lazy val envWithPrivateVars = env.addAll(
           block.prerequisiteVars.map {
             case (dxName, wdlType) =>
-              dxName -> (Parameter(dxName, WdlUtils.toIRType(wdlType)), EmptyInput)
+              dxName -> (Parameter(dxName, WdlUtils.toIRType(wdlType)), StageInputEmpty)
           }
       )
 
@@ -580,7 +580,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
             }
             val scatterIdentifier = WdlDxName.fromSourceName(scatter.identifier)
             val param = Parameter(scatterIdentifier, varType)
-            val innerEnv = envWithPrivateVars.add(scatterIdentifier, (param, EmptyInput))
+            val innerEnv = envWithPrivateVars.add(scatterIdentifier, (param, StageInputEmpty))
             val newScatterPath =
               scatterPath.map(p => s"${p}.${scatter.identifier}").getOrElse(scatter.identifier)
             val (callable, aux) =
@@ -698,7 +698,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                   case (env, param: Parameter) =>
                     val dxName = param.name.pushDecodedNamespace(call.actualName)
                     val paramFqn = param.copy(name = dxName)
-                    env.add(dxName, (paramFqn, LinkInput(stage.dxStage, param)))
+                    env.add(dxName, (paramFqn, StageInputStageLink(stage.dxStage, param)))
                 }
                 (stages :+ (stage, Vector.empty[Callable]), afterEnv)
               case _ =>
@@ -711,7 +711,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
               translateWfFragment(wfName, block, blockPath :+ blockNum, scatterPath, beforeEnv)
             val afterEnv = stage.outputs.foldLeft(beforeEnv) {
               case (env, param) =>
-                env.add(param.name, (param, LinkInput(stage.dxStage, param)))
+                env.add(param.name, (param, StageInputStageLink(stage.dxStage, param)))
             }
             (stages :+ (stage, auxCallables), afterEnv)
         }
@@ -741,7 +741,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         try {
           // try to evaluate the output as a constant
           val v = evaluator.applyConstAndCoerce(output.expr, output.wdlType)
-          StaticInput(WdlUtils.toIRValue(v, output.wdlType))
+          StageInputStatic(WdlUtils.toIRValue(v, output.wdlType))
         } catch {
           case _: EvalException =>
             output.expr match {
@@ -898,7 +898,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           throw new Exception(s"computed input parameter ${name} not allowed as workflow input")
       }.toVector
       val allWfInputParameters = wfInputParams ++ closureInputParams
-      val wfInputLinks: Vector[LinkedVar] = allWfInputParameters.map(p => (p, WorkflowInput(p)))
+      val wfInputLinks: Vector[LinkedVar] =
+        allWfInputParameters.map(p => (p, StageInputWorkflowLink(p)))
 
       val (backboneInputs, commonStageInfo) =
         if (useManifests || dynamicDefaults.exists(identity)) {
@@ -906,7 +907,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           // manifests into a single manifest.
           // If the workflow has inputs that are defined with complex expressions,
           // we need an initial applet to evaluate those.
-          val commonStageInputs = allWfInputParameters.map(p => WorkflowInput(p))
+          val commonStageInputs = allWfInputParameters.map(p => StageInputWorkflowLink(p))
           val inputOutputs: Vector[Parameter] = inputs.map { i =>
             // TODO: do we need to force the type to be non-optional in the case of
             //  OverridableBlockInputWithDynamicDefault?
@@ -919,7 +920,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                                inputOutputs ++ closureInputParams,
                                blockPath)
           val fauxWfInputs: Vector[LinkedVar] = commonStage.outputs.map { param =>
-            val link = LinkInput(commonStage.dxStage, param)
+            val link = StageInputStageLink(commonStage.dxStage, param)
             (param, link)
           }
           (fauxWfInputs, Vector((commonStage, Vector(commonApplet))))
@@ -991,7 +992,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       val (wfOutputs, finalStages, finalCallables) = if (useOutputStage) {
         val (outputStage, outputApplet) = createOutputStage(wfName, outputs, blockPath, env)
         val wfOutputs = outputStage.outputs.map { param =>
-          (param, LinkInput(outputStage.dxStage, param))
+          (param, StageInputStageLink(outputStage.dxStage, param))
         }
         (wfOutputs, stages :+ outputStage, auxCallables.flatten :+ outputApplet)
       } else {
@@ -1051,11 +1052,11 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       // they are references to the outputs of this first applet.
       val commonAppletInputs: Vector[Parameter] =
         inputs.map(input => createWorkflowInput(input)._1)
-      val commonStageInputs: Vector[StageInput] = inputs.map(_ => EmptyInput)
+      val commonStageInputs: Vector[StageInput] = inputs.map(_ => StageInputEmpty)
       val (commonStg, commonApplet) =
         createCommonApplet(wf.name, commonAppletInputs, commonStageInputs, commonAppletInputs)
       val fauxWfInputs: Vector[LinkedVar] = commonStg.outputs.map { param =>
-        val stageInput = LinkInput(commonStg.dxStage, param)
+        val stageInput = StageInputStageLink(commonStg.dxStage, param)
         (param, stageInput)
       }
 
@@ -1066,9 +1067,9 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       // convert the outputs into an applet+stage
       val (outputStage, outputApplet) = createOutputStage(wf.name, outputs, Vector.empty, env)
 
-      val wfInputs = commonAppletInputs.map(param => (param, EmptyInput))
+      val wfInputs = commonAppletInputs.map(param => (param, StageInputEmpty))
       val wfOutputs =
-        outputStage.outputs.map(param => (param, LinkInput(outputStage.dxStage, param)))
+        outputStage.outputs.map(param => (param, StageInputStageLink(outputStage.dxStage, param)))
       val wfAttr = meta.translate
       val wfSource = WdlWorkflowSource(wf, versionSupport)
 

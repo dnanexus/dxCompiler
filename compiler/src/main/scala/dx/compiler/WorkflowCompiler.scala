@@ -32,9 +32,9 @@ case class WorkflowCompiler(separateOutputs: Boolean,
     // The default value can come from the stage input or the workflow input
     def getDefault(stageInput: StageInput): Option[Option[Value]] = {
       stageInput match {
-        case WorkflowInput(wfParam) if wfParam != parameter => Some(wfParam.defaultValue)
-        case StaticInput(value)                             => Some(Some(value))
-        case ArrayInput(inputs) =>
+        case StageInputWorkflowLink(wfParam) if wfParam != parameter => Some(wfParam.defaultValue)
+        case StageInputStatic(value)                                 => Some(Some(value))
+        case StageInputArray(inputs) =>
           val inputValues = inputs.flatMap(getDefault)
           if (inputValues.isEmpty) {
             None
@@ -72,15 +72,15 @@ case class WorkflowCompiler(separateOutputs: Boolean,
 
     def createLink(stageInput: StageInput, dxType: Type): ParameterLink = {
       stageInput match {
-        case StaticInput(value) => parameterLinkSerializer.createLink(dxType, value)
-        case LinkInput(dxStage, param) =>
+        case StageInputStatic(value) => parameterLinkSerializer.createLink(dxType, value)
+        case StageInputStageLink(dxStage, param) =>
           ParameterLinkStage(dxStage, IORef.Output, param.name, dxType, param.dxType)
-        case WorkflowInput(wfParam) =>
+        case StageInputWorkflowLink(wfParam) =>
           // TODO: if the input has a non-static default, link to the value of the workflow input
           //  (either the user-specified value or the result of evaluting the expression)
           //  - right now this only links to the user-specified value
           ParameterLinkWorkflowInput(wfParam.name, dxType, wfParam.dxType)
-        case ArrayInput(stageInputs) =>
+        case StageInputArray(stageInputs) =>
           val itemType = dxType match {
             case Type.TArray(itemType, _) if Type.isNative(itemType, !complexPathValues) => itemType
             case _ =>
@@ -117,17 +117,17 @@ case class WorkflowCompiler(separateOutputs: Boolean,
   private def stageInputToNative(inputs: Vector[(Parameter, StageInput)]): JsValue = {
     def createLink(stageInput: StageInput, dxType: Type): Option[ParameterLink] = {
       stageInput match {
-        case EmptyInput =>
+        case StageInputEmpty =>
           // We do not have a value for this input at compile time. For compulsory applet inputs,
           // the user will have to fill in a value at runtime.
           None
-        case StaticInput(value) =>
+        case StageInputStatic(value) =>
           Some(parameterLinkSerializer.createLink(dxType, value))
-        case LinkInput(dxStage, param) =>
+        case StageInputStageLink(dxStage, param) =>
           Some(ParameterLinkStage(dxStage, IORef.Output, param.name, dxType, param.dxType))
-        case WorkflowInput(wfParam) =>
+        case StageInputWorkflowLink(wfParam) =>
           Some(ParameterLinkWorkflowInput(wfParam.name, dxType, wfParam.dxType))
-        case ArrayInput(stageInputs) =>
+        case StageInputArray(stageInputs) =>
           val itemType = dxType match {
             case Type.TArray(itemType, _) if Type.isNative(itemType, !complexPathValues) => itemType
             case _ =>
@@ -340,13 +340,13 @@ case class WorkflowCompiler(separateOutputs: Boolean,
           def getWorkflowInputValue(stageInput: StageInput,
                                     dxType: Type): (Set[DxWorkflowStage], Option[Value]) = {
             stageInput match {
-              case EmptyInput => (Set.empty, None)
-              case StaticInput(value) =>
+              case StageInputEmpty => (Set.empty, None)
+              case StageInputStatic(value) =>
                 (Set.empty, Some(Value.VHash(Constants.ValueKey.decoded -> value)))
-              case LinkInput(stageId, stageParam) =>
+              case StageInputStageLink(stageId, stageParam) =>
                 (Set(stageId),
                  Some(Value.VHash(stageId.id -> Value.VString(stageParam.name.decoded))))
-              case ArrayInput(inputs) =>
+              case StageInputArray(inputs) =>
                 val itemType = dxType match {
                   case Type.TArray(itemType, _) => itemType
                   case _ =>
@@ -361,7 +361,7 @@ case class WorkflowCompiler(separateOutputs: Boolean,
             }
           }
           val (inputStages, inputLinks) = workflow.inputs.map {
-            case (param, EmptyInput)
+            case (param, StageInputEmpty)
                 if workflow.level == Level.Top ||
                   param.defaultValue.isDefined ||
                   Type.isOptional(param.dxType) =>
@@ -370,12 +370,12 @@ case class WorkflowCompiler(separateOutputs: Boolean,
               // 2) a top-level workflow input - the value (if any) will be supplied in the
               //    input manifest
               (Set.empty, None)
-            case (param, EmptyInput) =>
+            case (param, StageInputEmpty) =>
               // empty required inputs are not allowed for nested locked workflows
               throw new Exception(
                   s"locked workflow ${workflow.name} has empty required input ${param.name}"
               )
-            case (param, WorkflowInput(wfParam)) if param == wfParam =>
+            case (param, StageInputWorkflowLink(wfParam)) if param == wfParam =>
               // this is one of:
               // 1) an optional input - the value will come from the default or will be null
               // 2) a top-level workflow input - the value (if any) will be supplied in the
@@ -387,16 +387,18 @@ case class WorkflowCompiler(separateOutputs: Boolean,
               val (inputStages, value) = getWorkflowInputValue(stageInput, param.dxType)
               (inputStages, value.map(v => param.name.decoded -> v))
           }.unzip
-          val stageManifestLinks: StageInput = ArrayInput(inputStages.flatten.toSet.map { stage =>
-            LinkInput(stage, ExecutableCompiler.OutputManifestParameter)
+          val stageManifestLinks: StageInput = StageInputArray(inputStages.flatten.toSet.map {
+            stage =>
+              StageInputStageLink(stage, ExecutableCompiler.OutputManifestParameter)
           }.toVector)
           Vector(
-              (ExecutableCompiler.InputManifestParameter, EmptyInput),
+              (ExecutableCompiler.InputManifestParameter, StageInputEmpty),
               (ExecutableCompiler.InputManfestFilesParameter, stageManifestLinks),
               (ExecutableCompiler.InputLinksParameter,
-               StaticInput(Value.VHash(inputLinks.flatten.to(SeqMap)))),
-              (ExecutableCompiler.OutputIdParameter, StaticInput(Value.VString(workflow.name))),
-              (ExecutableCompiler.CallNameParameter, EmptyInput)
+               StageInputStatic(Value.VHash(inputLinks.flatten.to(SeqMap)))),
+              (ExecutableCompiler.OutputIdParameter,
+               StageInputStatic(Value.VString(workflow.name))),
+              (ExecutableCompiler.CallNameParameter, StageInputEmpty)
           )
         } else {
           workflow.inputs
@@ -413,7 +415,7 @@ case class WorkflowCompiler(separateOutputs: Boolean,
           }
           Vector(
               (ExecutableCompiler.OutputManifestParameter,
-               LinkInput(outputStage.dxStage, ExecutableCompiler.OutputManifestParameter))
+               StageInputStageLink(outputStage.dxStage, ExecutableCompiler.OutputManifestParameter))
           )
         } else {
           workflow.outputs
@@ -448,10 +450,10 @@ case class WorkflowCompiler(separateOutputs: Boolean,
               dxType: Type
           ): (Boolean, Set[DxWorkflowStage], Option[Value]) = {
             stageInput match {
-              case EmptyInput => (false, Set.empty, None)
-              case StaticInput(value) =>
+              case StageInputEmpty => (false, Set.empty, None)
+              case StageInputStatic(value) =>
                 (false, Set.empty, Some(Value.VHash(Constants.ValueKey.decoded -> value)))
-              case WorkflowInput(wfParam) =>
+              case StageInputWorkflowLink(wfParam) =>
                 (true,
                  Set.empty,
                  Some(
@@ -459,11 +461,11 @@ case class WorkflowCompiler(separateOutputs: Boolean,
                          Constants.WorkflowKey.decoded -> Value.VString(wfParam.name.decoded)
                      )
                  ))
-              case LinkInput(sourceStage, sourceParam) =>
+              case StageInputStageLink(sourceStage, sourceParam) =>
                 (false,
                  Set(sourceStage),
                  Some(Value.VHash(sourceStage.id -> Value.VString(sourceParam.name.decoded))))
-              case ArrayInput(inputs) =>
+              case StageInputArray(inputs) =>
                 val itemType = dxType match {
                   case Type.TArray(itemType, _) => itemType
                   case _ =>
@@ -481,10 +483,10 @@ case class WorkflowCompiler(separateOutputs: Boolean,
           val (inputWorkflow, inputStages, inputLinks) = irExecutable.inputVars
             .zip(stage.inputs)
             .map {
-              case (param, EmptyInput)
+              case (param, StageInputEmpty)
                   if Type.isOptional(param.dxType) || param.defaultValue.isDefined =>
                 (false, Set.empty, None)
-              case (param, EmptyInput) =>
+              case (param, StageInputEmpty) =>
                 throw new Exception(
                     s"""no input specified for stage input ${stage}.${param.name}; overriding required
                        |call inputs at runtime is not supported when using manifests""".stripMargin
@@ -497,35 +499,36 @@ case class WorkflowCompiler(separateOutputs: Boolean,
             }
             .unzip3
           val inputStageManifests = inputStages.flatten.toSet.map { stage =>
-            LinkInput(stage, ExecutableCompiler.OutputManifestParameter)
+            StageInputStageLink(stage, ExecutableCompiler.OutputManifestParameter)
           }.toVector
           // the manifest ID for the output stage comes from the workflow
           val outputInputs = if (stage.description == Constants.OutputStage) {
             Vector(
                 (ExecutableCompiler.OutputIdParameter,
-                 WorkflowInput(ExecutableCompiler.OutputIdParameter)),
+                 StageInputWorkflowLink(ExecutableCompiler.OutputIdParameter)),
                 (ExecutableCompiler.CallNameParameter,
-                 WorkflowInput(ExecutableCompiler.CallNameParameter))
+                 StageInputWorkflowLink(ExecutableCompiler.CallNameParameter))
             )
           } else {
             Vector(
-                (ExecutableCompiler.OutputIdParameter, StaticInput(Value.VString(stage.dxStage.id)))
+                (ExecutableCompiler.OutputIdParameter,
+                 StageInputStatic(Value.VString(stage.dxStage.id)))
             )
           }
           val stageInputs = Vector(
-              (ExecutableCompiler.InputManfestFilesParameter, ArrayInput(inputStageManifests)),
+              (ExecutableCompiler.InputManfestFilesParameter, StageInputArray(inputStageManifests)),
               (ExecutableCompiler.InputLinksParameter,
-               StaticInput(Value.VHash(inputLinks.flatten.to(SeqMap))))
+               StageInputStatic(Value.VHash(inputLinks.flatten.to(SeqMap))))
           ) ++ outputInputs
           // if there are any workflow inputs, pass the workflow manifests and links to the stage
           val stageWorkflowInputs = if (inputWorkflow.exists(identity)) {
             Vector(
                 (ExecutableCompiler.WorkflowInputManifestParameter,
-                 WorkflowInput(ExecutableCompiler.InputManifestParameter)),
+                 StageInputWorkflowLink(ExecutableCompiler.InputManifestParameter)),
                 (ExecutableCompiler.WorkflowInputManfestFilesParameter,
-                 WorkflowInput(ExecutableCompiler.InputManfestFilesParameter)),
+                 StageInputWorkflowLink(ExecutableCompiler.InputManfestFilesParameter)),
                 (ExecutableCompiler.WorkflowInputLinksParameter,
-                 WorkflowInput(ExecutableCompiler.InputLinksParameter))
+                 StageInputWorkflowLink(ExecutableCompiler.InputLinksParameter))
             )
           } else {
             Vector.empty

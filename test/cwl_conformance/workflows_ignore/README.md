@@ -4,6 +4,11 @@ These are workflow tests that we are currently ignoring.
 
 * cond-wf-002*: it seems the workflow output should be optional
 * count-lines11-extra-step-wf-noET: the workflow input is optional but cat-tool input is not
+* input_schema-def: missing a.bam file referenced in input
+
+## Non-required tests that we currently can't support
+
+* dynresreq-workflow-stepdefault: Requires a step input to be linked to a workflow input and also to have a default value that is used if the workflow input is unspecified.
 
 ## Tests that can't be run due to bugs in cwltool or cwljava
 

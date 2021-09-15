@@ -13,7 +13,7 @@ import dx.core.ir.{
   Manifest,
   ParameterLinkDeserializer,
   ParameterLinkSerializer,
-  StaticInput,
+  StageInputStatic,
   Type,
   Value,
   ValueSerde,
@@ -315,7 +315,7 @@ abstract class InputTranslator(bundle: Bundle,
                           key,
                           Some(deserializationHandler)
                       )
-                      StaticInput(irValue)
+                      StageInputStatic(irValue)
                   }
                   (param, stageInputWithDefault)
               }
@@ -345,7 +345,7 @@ abstract class InputTranslator(bundle: Bundle,
                               key,
                               Some(deserializationHandler)
                           )
-                        StaticInput(irValue)
+                        StageInputStatic(irValue)
                     }
                 }
                 stage.copy(inputs = inputsWithDefaults)

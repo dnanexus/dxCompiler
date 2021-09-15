@@ -17,11 +17,11 @@ import dx.core.ir.{
   SourceCode,
   Stage,
   StageInput,
-  StaticInput,
+  StageInputStatic,
   Type,
   Value,
   Workflow,
-  WorkflowInput
+  StageInputWorkflowLink
 }
 import dx.util.Logger
 
@@ -109,9 +109,9 @@ abstract class WorkflowTranslator(wfName: String,
 
     def staticValues: Map[DxName, (Type, Value)] = {
       env.collect {
-        case (key, (Parameter(_, dxType, _, _), StaticInput(value))) =>
+        case (key, (Parameter(_, dxType, _, _), StageInputStatic(value))) =>
           key -> (dxType, value)
-        case (key, (_, WorkflowInput(Parameter(_, dxType, Some(value), _)))) =>
+        case (key, (_, StageInputWorkflowLink(Parameter(_, dxType, Some(value), _)))) =>
           key -> (dxType, value)
       }
     }
@@ -223,7 +223,7 @@ abstract class WorkflowTranslator(wfName: String,
     )
     // Link to the X.y original variables
     val inputs: Vector[StageInput] = configFile match {
-      case Some(x) => Vector(statusStageInput, StaticInput(x))
+      case Some(x) => Vector(statusStageInput, StageInputStatic(x))
       case _       => Vector(statusStageInput)
     }
     val stage =

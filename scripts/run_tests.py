@@ -1277,15 +1277,17 @@ def run_test_subset(
             test_exec_objs.extend(anl)
         except Exception as ex:
             if tname in test_compilation_failing:
-                print("Workflow {} execution failed as expected".format(tname))
+                cprint("Workflow {} execution failed as expected".format(tname))
                 continue
             elif delay_run_errors:
+                cprint(f"Workflow {tname} execution failed", "red")
                 traceback.print_exc()
                 errors.append(tname)
             else:
                 raise ex
 
     if errors:
+        write_failed(errors)
         raise RuntimeError(f"failed to run one or more tests {','.join(errors)}")
 
     print("executables: " + ", ".join([a[1].get_id() for a in test_exec_objs]))
@@ -1333,22 +1335,23 @@ def run_test_subset(
             print(
                 f"Tools failed results verification: {len(failed_verification)}:\n{fveri}"
             )
-        # write failed tests to a file so we can easily re-run them next time
-        # if a .failed file already exists, make a backup
-        if os.path.exists(".failed"):
-            bak_file = ".failed.bak"
-            i = 0
-            while os.path.exists(bak_file):
-                bak_file = f".failed.bak.{i}"
-                i += 1
-            shutil.copy(".failed", bak_file)
-        with open(".failed", "wt") as out:
-            all_failed = sorted(set(
-                tname.split(".")[0]
-                for tname in failed_execution + failed_verification
-            ))
-            out.write("\n".join(all_failed))
+        write_failed(failed_execution + failed_verification)
         raise RuntimeError("Failed")
+
+
+def write_failed(failed):
+    # write failed tests to a file so we can easily re-run them next time
+    # if a .failed file already exists, make a backup
+    if os.path.exists(".failed"):
+        bak_file = ".failed.bak"
+        i = 0
+        while os.path.exists(bak_file):
+            bak_file = f".failed.bak.{i}"
+            i += 1
+        shutil.copy(".failed", bak_file)
+    with open(".failed", "wt") as out:
+        failed_sorted = sorted(set(tname.split(".")[0] for tname in failed))
+        out.write("\n".join(failed_sorted))
 
 
 def print_test_list():
@@ -1615,6 +1618,7 @@ def compile_tests_to_project(
                     print("Workflow {} compilation failed as expected".format(tname))
                     continue
                 elif delay_compile_errors:
+                    cprint(f"Workflow {tname} compilation failed", "red")
                     traceback.print_exc()
                     errors.append(tname)
                 else:
@@ -1622,6 +1626,7 @@ def compile_tests_to_project(
         runnable[tname] = oid
         print("runnable({}) = {}".format(tname, oid))
     if errors:
+        write_failed(errors)
         raise RuntimeError(f"failed to compile one or more tests: {','.join(errors)}")
     return runnable
 
