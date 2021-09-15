@@ -1,9 +1,0 @@
-{
-  "io-file-default-wf.o": {
-    "class": "File",
-    "basename": "output",
-    "size": 1111,
-    "location": "Any",
-    "checksum": "sha1$327fc7aedf4f6b69a42a7c8b808dc5a7aff61376"
-  }
-}

@@ -11,9 +11,11 @@ import dx.cwl.{
   OutputParameter,
   Parameter,
   Requirement,
+  ScatterMethod,
   Workflow,
   WorkflowInputParameter,
   WorkflowStep,
+  WorkflowStepInput,
   WorkflowStepOutput
 }
 
@@ -25,6 +27,56 @@ sealed trait CwlBlockInput {
   val kind: InputKind.InputKind
 
   def cwlType: CwlType = source.cwlType
+}
+
+object CwlBlockInput {
+  def create(stepInput: WorkflowStepInput,
+             workflowSteps: Map[String, WorkflowStep],
+             workflowInputs: Map[DxName, WorkflowInputParameter]): Vector[CwlBlockInput] = {
+    // sources of this step input - either a workflow input (e.g. "file1") or a step output
+    // (e.g. "step1/file1")
+    val sources = stepInput.sources.map { src =>
+      (src, CwlDxName.fromDecodedName(src.frag.get))
+    }
+    val sourceParams = sources.foldLeft(SeqMap.empty[DxName, Parameter]) {
+      case (accu, (_, name)) if accu.contains(name) => accu
+      case (accu, (id, name)) if id.parent.isDefined =>
+        val srcStep = workflowSteps(id.parent.get)
+        val param = srcStep.outputs
+          .collectFirst {
+            case out if out.name == id.name.get =>
+              srcStep.run.outputs
+                .collectFirst {
+                  case srcOut if out.name == srcOut.name => srcOut
+                }
+                .getOrElse(
+                    throw new Exception(
+                        s"""process ${srcStep.run.name} does not define output parameter 
+                           |${out.name}""".stripMargin.replaceAll("\n", " ")
+                    )
+                )
+          }
+          .getOrElse(
+              throw new Exception(
+                  s"step ${id.parent.get} does not define output parameter ${id.name.get}"
+              )
+          )
+        accu + (name -> param)
+      case (accu, (_, name)) if workflowInputs.contains(name) =>
+        accu + (name -> workflowInputs(name))
+      case (_, (_, name)) =>
+        throw new Exception(s"invalid parameter source ${name}")
+    }
+    val hasDefault = stepInput.default.isDefined
+    sourceParams.map {
+      case (dxName, param) =>
+        if (hasDefault || CwlOptional.isOptional(param.cwlType)) {
+          OptionalBlockInput(dxName, param)
+        } else {
+          RequiredBlockInput(dxName, param)
+        }
+    }.toVector
+  }
 }
 
 case class RequiredBlockInput(name: DxName, source: Parameter) extends CwlBlockInput {
@@ -42,20 +94,53 @@ case class OptionalBlockInput(name: DxName, source: Parameter) extends CwlBlockI
 case class CwlBlockOutput(name: DxName, cwlType: CwlType, source: OutputParameter)
 
 object CwlBlockOutput {
+
+  /**
+    * The type that results from a workflow step depends on the number of scatter sources, the
+    * scatter method, the result type of the scatter target, and whether the step is conditional.
+    * - dotproduct: the input arrays must be of the same length N; the output array is single
+    *   dimension of length N
+    * - nested_crossproduct: there is one input array for every combination of inputs; the output
+    *   array is nested at depth M, where M is the number of input sources (i.e. the number of
+    *   levels of scattering)
+    * - flat_crossproduct: same as nested_crossproduct, but the output array is flattened to a
+    *   single dimension of length N * M
+    */
+  def getStepOutputType(step: WorkflowStep, itemType: CwlType): CwlType = {
+    val condItemType = if (step.when.isDefined) {
+      CwlOptional.ensureOptional(itemType)
+    } else {
+      itemType
+    }
+    if (step.scatter.isEmpty) {
+      condItemType
+    } else if (step.scatter.length == 1 || step.scatterMethod.get != ScatterMethod.NestedCrossproduct) {
+      CwlArray(condItemType)
+    } else {
+      step.scatter.indices.foldLeft(condItemType) {
+        case (t, _) => CwlArray(t)
+      }
+    }
+  }
+
   def create(step: WorkflowStep,
              stepOutput: WorkflowStepOutput,
-             targetParam: OutputParameter): CwlBlockOutput = {
+             processOutput: OutputParameter): CwlBlockOutput = {
     val dxName = CwlDxName.fromSourceName(stepOutput.name, namespace = Some(step.name))
-    val cwlType = (step.when.isDefined, step.scatter.nonEmpty) match {
-      case (true, true)   => CwlArray(CwlOptional.ensureOptional(targetParam.cwlType))
-      case (true, false)  => CwlOptional.ensureOptional(targetParam.cwlType)
-      case (false, true)  => CwlArray(targetParam.cwlType)
-      case (false, false) => targetParam.cwlType
-    }
-    CwlBlockOutput(dxName, cwlType, targetParam)
+    val cwlType = getStepOutputType(step, processOutput.cwlType)
+    CwlBlockOutput(dxName, cwlType, processOutput)
   }
 }
 
+/**
+  * A CwlBlock is (currently) a wrapper for a single workflow step. The block inputs
+  * and outputs map directly to the step inputs and outputs, which are derived from
+  * the inputs and outputs of the target process, possibly augmented by the step's
+  * scatter and/or conditional fields.
+  * TODO: bundle ExpressionTools with the next tool or workflow step - currently
+  *  they are their own step because cwltool can only execute a single workflow
+  *  step in isolation.
+  */
 case class CwlBlock(index: Int,
                     inputs: Vector[CwlBlockInput],
                     outputs: Vector[CwlBlockOutput],
@@ -64,9 +149,12 @@ case class CwlBlock(index: Int,
                     inheritedHints: Vector[Hint])
     extends Block[CwlBlock] {
   assert(steps.nonEmpty)
-
-  val prerequisites: Vector[WorkflowStep] = steps.dropRight(1)
+  // temporary assertion
+  assert(steps.size == 1)
+  // the target workflow step
   val target: WorkflowStep = steps.last
+  // currently empty/unused
+  val prerequisites: Vector[WorkflowStep] = steps.dropRight(1)
 
   /**
     * Returns true if `target` can be called directly:
@@ -85,8 +173,20 @@ case class CwlBlock(index: Int,
           stepInputs.get(callInput.name).exists { stepInput =>
             stepInput.sources.headOption.exists { src =>
               blockInputs.get(CwlDxName.fromDecodedName(src.frag.get)).exists { blockInput =>
+                val blockInputType =
+                  if (stepInput.linkMerge.isEmpty || CwlUtils.isArray(blockInput.cwlType)) {
+                    blockInput.cwlType
+                  } else {
+                    CwlArray(blockInput.cwlType)
+                  }
+                val callInputType =
+                  if (stepInput.default.isDefined || callInput.default.isDefined) {
+                    CwlOptional.ensureOptional(callInput.cwlType)
+                  } else {
+                    callInput.cwlType
+                  }
                 try {
-                  CwlUtils.requiresDowncast(blockInput.cwlType, callInput.cwlType)
+                  CwlUtils.requiresDowncast(blockInputType, callInputType)
                 } catch {
                   case cause: Throwable =>
                     throw new Exception(
@@ -218,10 +318,6 @@ object CwlBlock {
   def createBlocks(wf: Workflow,
                    inheritedRequirements: Vector[Requirement] = Vector.empty,
                    inheritedHints: Vector[Hint] = Vector.empty): Vector[CwlBlock] = {
-    // TODO: bundle ExpressionTools with the next tool or workflow step - currently
-    //  they are their own step because cwltool can only execute a single workflow
-    //  step in isolation
-
     val wfInputs: Map[DxName, WorkflowInputParameter] = wf.inputs.collect {
       case i if i.hasName =>
         CwlDxName.fromSourceName(i.name) -> i
@@ -260,52 +356,11 @@ object CwlBlock {
       orderedSteps.values.zipWithIndex.map {
         case (step, index) =>
           val blockInputs: Vector[CwlBlockInput] = {
-            val inputSources: Vector[CwlBlockInput] = step.inputs.flatMap { inp =>
-              // sources of this step input - either a workflow input
-              // like "file1" or a step output like "step1/file1"
-              val sources = inp.sources.map { src =>
-                (src, CwlDxName.fromDecodedName(src.frag.get))
+            step.inputs
+              .flatMap { inp =>
+                CwlBlockInput.create(inp, orderedSteps, wfInputs)
               }
-              val sourceParams = sources.foldLeft(SeqMap.empty[DxName, Parameter]) {
-                case (accu, (_, name)) if accu.contains(name) => accu
-                case (accu, (id, name)) if id.parent.isDefined =>
-                  val srcStep = orderedSteps(id.parent.get)
-                  val param = srcStep.outputs
-                    .collectFirst {
-                      case out if out.name == id.name.get =>
-                        srcStep.run.outputs
-                          .collectFirst {
-                            case srcOut if out.name == srcOut.name => srcOut
-                          }
-                          .getOrElse(
-                              throw new Exception(
-                                  s"""process ${srcStep.run.name} does not define output parameter 
-                                     |${out.name}""".stripMargin.replaceAll("\n", " ")
-                              )
-                          )
-                    }
-                    .getOrElse(
-                        throw new Exception(
-                            s"step ${id.parent.get} does not define output parameter ${id.name.get}"
-                        )
-                    )
-                  accu + (name -> param)
-                case (accu, (_, name)) if wfInputs.contains(name) =>
-                  accu + (name -> wfInputs(name))
-                case (_, (_, name)) =>
-                  throw new Exception(s"invalid parameter source ${name}")
-              }
-              val hasDefault = inp.default.isDefined
-              sourceParams.map {
-                case (dxName, param) =>
-                  if (hasDefault || CwlOptional.isOptional(param.cwlType)) {
-                    OptionalBlockInput(dxName, param)
-                  } else {
-                    RequiredBlockInput(dxName, param)
-                  }
-              }.toVector
-            }
-            inputSources.distinct
+              .distinct
               .foldLeft(
                   SeqMap.empty[DxName, (Option[RequiredBlockInput], Option[OptionalBlockInput])]
               )({

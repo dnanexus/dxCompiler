@@ -742,6 +742,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         val inputNames = inputs.map(_.name).toSet
         outputs.exists { out =>
           out.sources.size > 1 ||
+          out.linkMerge.isDefined ||
+          out.pickValue.isDefined ||
           out.sources.exists(_.frag.exists(inputNames.contains)) ||
           out.sources.headOption.exists { sourceId =>
             env.get(CwlDxName.fromDecodedName(sourceId.frag.get)).map(_._1).exists { stageParam =>

@@ -21,7 +21,6 @@ import dx.core.languages.cwl.{
 import dx.cwl.{
   ArrayValue,
   CwlArray,
-  CwlMulti,
   CwlOptional,
   CwlRecord,
   CwlType,
@@ -176,69 +175,69 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
             val dxName = CwlDxName.fromDecodedName(id.frag.get)
             jobInputs.getOrElse(dxName, (TMulti.Any, VNull))
           }
-        val isArray = param.cwlType match {
-          case _: CwlArray => true
-          case CwlMulti(types) =>
-            types.exists {
-              case _: CwlArray => true
-              case _           => false
-            }
-          case _ => false
-        }
-        val (irType, irValue) = if (sources.size == 1) {
-          sources.head
-        } else {
-          val mergedValues = if (isArray) {
-            param.linkMerge match {
-              case LinkMergeMethod.MergeNested => sources
-              case LinkMergeMethod.MergeFlattened =>
-                sources.flatMap {
-                  case (TArray(itemType, _), VArray(items)) =>
-                    Iterator.continually(itemType).zip(items).toVector
-                  case value => Vector(value)
-                }
-            }
-          } else {
-            sources
-          }
-          val pickedValues = if (param.pickValue.nonEmpty) {
-            val nonNull = mergedValues.filterNot(_._2 == VNull)
-            param.pickValue.get match {
-              case PickValueMethod.FirstNonNull =>
-                Vector(
-                    nonNull.headOption
-                      .getOrElse(
-                          throw new Exception(
-                              s"all source values are null for parameter ${param}"
-                          )
-                      )
-                )
-              case PickValueMethod.TheOnlyNonNull =>
-                if (nonNull.size == 1) {
-                  Vector(nonNull.head)
-                } else {
-                  throw new Exception(
-                      s"there is not exactly one non-null value for parameter ${param}"
-                  )
-                }
-              case PickValueMethod.AllNonNull => nonNull
-            }
-          } else {
-            mergedValues
-          }
-          if (isArray) {
-            val (types, values) = pickedValues.unzip
-            val irType = Type.merge(types)
-            (irType, Value.coerceTo(VArray(values), irType))
-          } else if (pickedValues.size == 1) {
-            pickedValues.head
-          } else if (pickedValues.size > 1) {
+        val isArray = CwlUtils.isArray(param.cwlType)
+        val (irType, irValue) = sources match {
+          case Vector(src) if param.linkMerge.isEmpty => src
+          case Vector((t, v: VArray))                 => (t, v)
+          case Vector((t, v)) if isArray              => (t, VArray(v))
+          case Vector(_) =>
             throw new Exception(
-                s"multiple output sources for non-array parameter ${param} that does not specify pickValue"
+                s"parameter ${param} has a linkMerge with a single source and a non-array type"
             )
-          } else {
-            (TMulti.Any, VNull)
-          }
+          case _ =>
+            val mergedValues = if (isArray) {
+              param.linkMerge match {
+                case LinkMergeMethod.MergeNested => sources
+                case LinkMergeMethod.MergeFlattened =>
+                  sources.flatMap {
+                    case (TArray(itemType, _), VArray(items)) =>
+                      Iterator.continually(itemType).zip(items).toVector
+                    case value => Vector(value)
+                  }
+                case _ =>
+                  throw new Exception("output type is array and no LinkMerge method is specified")
+              }
+            } else {
+              sources
+            }
+            val pickedValues = if (param.pickValue.nonEmpty) {
+              val nonNull = mergedValues.filterNot(_._2 == VNull)
+              param.pickValue.get match {
+                case PickValueMethod.FirstNonNull =>
+                  Vector(
+                      nonNull.headOption
+                        .getOrElse(
+                            throw new Exception(
+                                s"all source values are null for parameter ${param}"
+                            )
+                        )
+                  )
+                case PickValueMethod.TheOnlyNonNull =>
+                  if (nonNull.size == 1) {
+                    Vector(nonNull.head)
+                  } else {
+                    throw new Exception(
+                        s"there is not exactly one non-null value for parameter ${param}"
+                    )
+                  }
+                case PickValueMethod.AllNonNull => nonNull
+              }
+            } else {
+              mergedValues
+            }
+            if (isArray) {
+              val (types, values) = pickedValues.unzip
+              val irType = Type.merge(types)
+              (irType, Value.coerceTo(VArray(values), irType))
+            } else if (pickedValues.size == 1) {
+              pickedValues.head
+            } else if (pickedValues.size > 1) {
+              throw new Exception(
+                  s"multiple output sources for non-array parameter ${param} that does not specify pickValue"
+              )
+            } else {
+              (TMulti.Any, VNull)
+            }
         }
         dxName -> (irType, irValue)
       case (dxName, _, cwlType) if jobInputs.contains(dxName) =>
@@ -287,69 +286,70 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
       // if there are multiple sources, we need to merge and/or pick values
       val sources =
         stepInput.sources.map(src => fullEnv(CwlDxName.fromDecodedName(src.frag.get)))
-      val isArray = cwlType match {
-        case _: CwlArray => true
-        case CwlMulti(types) =>
-          types.exists {
-            case _: CwlArray => true
-            case _           => false
-          }
-        case _ => false
-      }
-      val (sourceType, sourceValue) = if (sources.size == 1) {
-        sources.head
-      } else {
-        val mergedValues = if (isArray) {
-          stepInput.linkMerge match {
-            case LinkMergeMethod.MergeNested => sources
-            case LinkMergeMethod.MergeFlattened =>
-              sources.flatMap {
-                case (array: CwlArray, ArrayValue(items)) =>
-                  items.map(i => (array.itemType, i))
-                case (t, value) =>
-                  Vector((t, value))
-              }
-          }
-        } else {
-          sources
-        }
-        val pickedValues = if (stepInput.pickValue.nonEmpty) {
-          val nonNull = mergedValues.filterNot(_._2 == NullValue)
-          stepInput.pickValue.get match {
-            case PickValueMethod.FirstNonNull =>
-              Vector(
-                  nonNull.headOption
-                    .getOrElse(
-                        throw new Exception(
-                            s"all source values are null for parameter ${stepInput.name}"
-                        )
-                    )
-              )
-            case PickValueMethod.TheOnlyNonNull =>
-              if (nonNull.size == 1) {
-                Vector(nonNull.head)
-              } else {
-                throw new Exception(
-                    s"there is not exactly one non-null value for parameter ${stepInput.name}"
-                )
-              }
-            case PickValueMethod.AllNonNull => nonNull
-          }
-        } else {
-          mergedValues
-        }
-        if (isArray) {
-          val (types, values) = pickedValues.unzip
-          (CwlType.flatten(types), ArrayValue(values))
-        } else if (pickedValues.size == 1) {
-          pickedValues.head
-        } else if (pickedValues.size > 1) {
+      val isArray = CwlUtils.isArray(cwlType)
+      val (sourceType, sourceValue) = sources match {
+        case Vector(src) if stepInput.linkMerge.isEmpty => src
+        case Vector((t, v: ArrayValue))                 => (t, v)
+        case Vector((t, v)) if isArray                  => (t, ArrayValue(Vector(v)))
+        case Vector(_) =>
           throw new Exception(
-              s"multiple output sources for non-array parameter ${stepInput.name} that does not specify pickValue"
+              s"parameter ${stepInput} has a linkMerge with a single source and a non-array type"
           )
-        } else {
-          (cwlType, NullValue)
-        }
+        case _ =>
+          val mergedValues = if (isArray) {
+            stepInput.linkMerge match {
+              case Some(LinkMergeMethod.MergeNested) => sources
+              case Some(LinkMergeMethod.MergeFlattened) =>
+                sources.flatMap {
+                  case (array: CwlArray, ArrayValue(items)) =>
+                    items.map(i => (array.itemType, i))
+                  case (t, value) =>
+                    Vector((t, value))
+                }
+              case _ =>
+                throw new Exception("output type is array and no LinkMerge method is specified")
+            }
+          } else {
+            sources
+          }
+          val pickedValues = if (stepInput.pickValue.nonEmpty) {
+            val nonNull = mergedValues.filterNot(_._2 == NullValue)
+            stepInput.pickValue.get match {
+              case PickValueMethod.FirstNonNull =>
+                Vector(
+                    nonNull.headOption
+                      .getOrElse(
+                          throw new Exception(
+                              s"all source values are null for parameter ${stepInput.name}"
+                          )
+                      )
+                )
+              case PickValueMethod.TheOnlyNonNull =>
+                if (nonNull.size == 1) {
+                  Vector(nonNull.head)
+                } else {
+                  throw new Exception(
+                      s"there is not exactly one non-null value for parameter ${stepInput.name}"
+                  )
+                }
+              case PickValueMethod.AllNonNull => nonNull
+            }
+          } else {
+            mergedValues
+          }
+          if (isArray) {
+            val (types, values) = pickedValues.unzip
+            (CwlType.flatten(types), ArrayValue(values))
+          } else if (pickedValues.size == 1) {
+            pickedValues.head
+          } else if (pickedValues.size > 1) {
+            throw new Exception(
+                s"""multiple output sources for non-array parameter ${stepInput.name} that does 
+                   |not specify pickValue""".stripMargin.replaceAll("\n", " ")
+            )
+          } else {
+            (cwlType, NullValue)
+          }
       }
       if (!sourceType.coercibleTo(cwlType)) {
         throw new Exception(

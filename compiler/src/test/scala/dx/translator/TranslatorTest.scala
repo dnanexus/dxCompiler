@@ -1664,4 +1664,10 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val args = path.toString :: cFlags
     Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
+
+  it should "translate a CWL workflow with multiple scatter sources" in {
+    val path = pathFromBasename("cwl", "scatter-valuefrom-wf2.cwl.json")
+    val args = path.toString :: cFlags
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
+  }
 }

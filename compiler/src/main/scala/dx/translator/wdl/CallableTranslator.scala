@@ -978,8 +978,6 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         //
         // In locked workflows, it is illegal to access a workflow input directly from
         // a workflow output. It is only allowed to access a stage input/output.
-        // In locked workflows, it is illegal to access a workflow input directly from
-        // a workflow output. It is only allowed to access a stage input/output.
         val (outputsToPass, outputsToEval) = outputs.partition(o => env.contains(o.name))
         val inputAsOutputNames = outputsToPass.map(_.name).toSet ++
           WdlUtils

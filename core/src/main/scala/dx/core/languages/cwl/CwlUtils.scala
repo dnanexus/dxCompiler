@@ -559,6 +559,18 @@ object CwlUtils {
     }
   }
 
+  def isArray(t: CwlType): Boolean = {
+    t match {
+      case _: CwlArray => true
+      case CwlMulti(types) =>
+        types.exists {
+          case _: CwlArray => true
+          case _           => false
+        }
+      case _ => false
+    }
+  }
+
   /**
     * Returns true if a down-cast is required for `from` to be compatible
     * with `to`. A down-cast is required to go from a wider type to a more
