@@ -1,0 +1,63 @@
+{
+  "search.outfile": {
+    "class": "File",
+    "checksum": "sha1$e2dc9daaef945ac15f01c238ed2f1660f60909a0",
+    "size": 142
+  },
+  "search.indexedfile": {
+    "class": "File",
+    "checksum": "sha1$327fc7aedf4f6b69a42a7c8b808dc5a7aff61376",
+    "secondaryFiles": [
+      {
+        "class": "File",
+        "checksum": "sha1$1f6fe811644355974cdd06d9eb695d6e859f3b44",
+        "size": 1500
+      },
+      {
+        "class": "File",
+        "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+        "size": 0
+      },
+      {
+        "class": "File",
+        "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+        "size": 0
+      },
+      {
+        "class": "File",
+        "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+        "size": 0
+      },
+      {
+        "class": "File",
+        "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+        "size": 0
+      },
+      {
+        "class": "File",
+        "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+        "size": 0
+      },
+      {
+        "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+        "class": "File",
+        "size": 0
+      },
+      {
+        "checksum": "sha1$47a013e660d408619d894b20806b1d5086aab03b",
+        "class": "File",
+        "size": 13
+      },
+      {
+        "class": "Directory",
+        "listing": [{
+          "basename": "index",
+          "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+          "class": "File",
+          "size": 0
+        }]
+      }
+    ],
+    "size": 1111
+  }
+}

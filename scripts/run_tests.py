@@ -1258,10 +1258,11 @@ def extract_outputs(tname, exec_obj) -> dict:
 
 
 def run_test_subset(
-    project, runnable, test_folder, debug_flag, delay_workspace_destruction
+    project, runnable, test_folder, debug_flag, delay_workspace_destruction, delay_run_errors
 ):
     # Run the workflows
     test_exec_objs = []
+    errors = [] if delay_run_errors else None
     for tname, oid in runnable.items():
         desc = test_files[tname]
         print("Running {} {} {}".format(desc.kind, desc.name, oid))
@@ -1269,10 +1270,24 @@ def run_test_subset(
             instance_type = None
         else:
             instance_type = default_instance_type
-        anl = run_executable(
-            project, test_folder, tname, oid, debug_flag, delay_workspace_destruction, instance_type
-        )
-        test_exec_objs.extend(anl)
+        try:
+            anl = run_executable(
+                project, test_folder, tname, oid, debug_flag, delay_workspace_destruction, instance_type
+            )
+            test_exec_objs.extend(anl)
+        except Exception as ex:
+            if tname in test_compilation_failing:
+                print("Workflow {} execution failed as expected".format(tname))
+                continue
+            elif delay_run_errors:
+                traceback.print_exc()
+                errors.append(tname)
+            else:
+                raise ex
+
+    if errors:
+        raise RuntimeError(f"failed to run one or more tests {','.join(errors)}")
+
     print("executables: " + ", ".join([a[1].get_id() for a in test_exec_objs]))
 
     # Wait for completion
@@ -1585,7 +1600,7 @@ def compile_tests_to_project(
     delay_compile_errors=False,
 ):
     runnable = {}
-    has_errors = False
+    errors = [] if delay_compile_errors else None
     for tname in test_names:
         specific_applet_folder = "{}/{}".format(applet_folder, tname)
         oid = None
@@ -1601,13 +1616,13 @@ def compile_tests_to_project(
                     continue
                 elif delay_compile_errors:
                     traceback.print_exc()
-                    has_errors = True
+                    errors.append(tname)
                 else:
                     raise
         runnable[tname] = oid
         print("runnable({}) = {}".format(tname, oid))
-    if has_errors:
-        raise RuntimeError("failed to compile one or more tests")
+    if errors:
+        raise RuntimeError(f"failed to compile one or more tests: {','.join(errors)}")
     return runnable
 
 
@@ -1676,6 +1691,12 @@ def main():
     )
     argparser.add_argument(
         "--delay-compile-errors",
+        help="Compile all tests before failing on any errors",
+        action="store_true",
+        default=False,
+    )
+    argparser.add_argument(
+        "--delay-run-errors",
         help="Compile all tests before failing on any errors",
         action="store_true",
         default=False,
@@ -1822,6 +1843,7 @@ def main():
                 test_folder,
                 args.debug,
                 args.delay_workspace_destruction,
+                args.delay_run_errors,
             )
     finally:
         if args.clean:

@@ -1,0 +1,14 @@
+{
+  "scatter-valuefrom-wf3.inp1": [
+    {
+      "instr": "one"
+    },
+    {
+      "instr": "two"
+    }
+  ],
+  "scatter-valuefrom-wf2.inp2": [
+    "three",
+    "four"
+  ]
+}
