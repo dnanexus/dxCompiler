@@ -1164,7 +1164,7 @@ def wait_for_completion(test_exec_objs):
         try:
             exec_obj.wait_on_done()
             print("Executable {}.{} succeeded".format(desc.name, i))
-            successes.append(exec_obj)
+            successes.append((i, exec_obj))
         except DXJobFailureError:
             if tname in expected_failure or "{}.{}".format(tname, i) in expected_failure:
                 print("Executable {}.{} failed as expected".format(desc.name, i))

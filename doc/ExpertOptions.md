@@ -1,12 +1,13 @@
 The reader is assumed to understand the [Workflow Description Language (WDL)](http://www.openwdl.org/), and have some experience using the [DNAnexus](http://www.dnanexus.com) platform.
 
-dxCompiler takes a pipeline written in WDL, and statically compiles it to an equivalent workflow on the DNAnexus platform.
+dxCompiler takes a pipeline written in WDL and statically compiles it to an equivalent workflow on the DNAnexus platform.
 
 - [Getting started](#getting-started)
 - [Extensions](#extensions)
   * [Runtime](#runtime)
   * [Streaming](#streaming)
 - [Task and workflow inputs](#task-and-workflow-inputs)
+  * [Directories](#directories)
 - [Task metadata](#task-metadata)
   * [meta section](#meta-section)
     + [Calling existing applets](#calling-existing-applets)
@@ -127,11 +128,86 @@ The workflow can then be run with the command:
 $ dx run files -f test/files_input.dx.json
 ```
 
+#### CWL Files
+
+In CWL, files have additional fields that necessitate all file inputs being passed using a specially formatted object, rather than a DNAnexus link. The value is represented in JSON using a special key (`___`)  and a value with the following fields:
+
+* `type`: Must be `"File"`.
+* `uri`: The `dx://` URI of the file.
+* `basename`: The name to use when localizing the file. Optional, defaults to the source file name.
+* `contents`: The contents of the file. Optional. If specified, `uri` is ignored and `basename` must be specified. A file is created on the worker having the given basename and contents.
+* `checksum`: The file checksum. Optional. If specified, the checkum of the localized file must match or the job will fail with an error.
+`secondaryFiles`: An array of files/directories that must be localized along side the primary file. The is identical in format to a directory listing (see the next section). Secondary files must be listed explicitly (patterns are not allowed).
+`format`: An IRI for the file format. See the [CWL specification](https://www.commonwl.org/v1.2/CommandLineTool.html#File). Optional.
+
+Simple example:
+
+```json
+{
+  "myapp.myfile": "dx://project-xxx:/path/to/file"
+}
+```
+
+is transformed into 
+
+```json
+{
+  "myfile": {
+    "___": {
+      "type": "File",
+      "uri": {
+        "$dnanexus_link": {
+          "id": "file-xxx",
+          "project": "project-xxx"
+        }
+      }
+    }
+  }
+}
+```
+
+More complex example:
+
+```json
+{
+  "myapp.myfile": {
+    "class": "File",
+    "basename": "foo.txt",
+    "contents": "This goes into the file"
+  }
+}
+```
+
+is transformed into:
+
+```json
+{
+  "myfile": {
+    "___": {
+      "type": "File",
+      "basename": "foo.txt",
+      "contents": "This goes into the file"
+    }
+  }
+}
+```
+
+which, on the worker, results in a file `foo.txt` being created in the inputs directory with the given contents. This file can be used like any other input file.
+
 #### Directories
 
 Both CWL and the development version of WDL have a `Directory` data type. Although DNAnexus does not treat folders as first-class objects, dxCompiler does support `Directory`-typed inputs and outputs, with some caveats.
 
-A folder within a DNAnexus project can be represented as a URI of the following form: `dx://project-xxx:/path/to/folder/`. This can be specified in a standard WDL JSON input file as:
+A folder within a DNAnexus project can be represented in a standard JSON/YAML input file as a URI of the following form: `dx://project-xxx:/path/to/folder/` (note that the trailing `/` is required). When this file is passed to dxCompiler via the `-inputs` option, it is transformed into DNAnexus input format. Directories always have an input class of `Hash`. The value is represented in JSON using a special key (`___`) and a value with the following fields:
+
+* Both WDL and CWL:
+  * `type`: must be `"Folder"`
+  * `uri`: the `dx://` URI of the folder
+* CWL only
+  * `basename`: the name to use when localizing the directory (defaults to the folder name if not specified) 
+  * `listing`: an array of `File` and/or `Folder` objects representing the directory structure. The listing can be nested to any level.
+
+For example, in a standard WDL JSON input file:
 
 ```json
 {
@@ -150,20 +226,18 @@ which, when passed to dxCompiler using the `-input` option, is transformed into 
 }
 ```
 
-The WDL specification states that a `Directory` input is to be treated as a snapshot of the directory at the time the job is executed. While this is generally true in the dxCompiler implementation, there is one important caveat: `Directory` inputs marked as streaming will update their local contents on the worker to remain in sync with the remote DNAnexus project, which can lead to non-deterministic behavior. There are two possible solutions:
-
-* Do not mark `Directory`-type inputs as streaming if there is a possibility the folder specified as input will be modified during the course of task execution.
-* Enact policies and practices to prevent modification of folders that will be used as input to a task that uses streaming.
+The WDL specification states that a `Directory` input is to be treated as a snapshot of the directory at the time the job is executed. To enforce this behavior, at the start of the the full (recursive) listing of the directory is retrieved, and only those files/subfolders are localized. This means that if a file is added to or removed from the directory in the DNAnexus project while the job is running, that change is not refleted in the local copy on the worker. However, if the same directory is used in multiple jobs, there is (currently) no way to guarantee that the contents are the same in both instances. We strongly recommend to enact policies and practices to prevent modification of folders that will be used as input to compiled WDL workflows.
 
 A second important caveat, which results from the fact that folders are not treated as first-class objects by DNAnexus, is that, if [job reuse](#job-reuse) is enabled, a job that is run with the same folder input as a previous job (and all other inputs the same) will reuse the previous job outputs regardless of whether the contents of the folder have changed. There are three possible solutions:
 
 * Disable job reuse when running executables with `Directory`-type inputs.
 * Enact policies and practices to prevent modification of folders that will be used as input to a task when job reuse is enabled.
-* If you are using CWL, you may specify the folder listing in your input file. A job will only be reused if both the folder and the listing are identical. The ordering of the listing is taken into consideration when making the comparison, so the listing must be generated deterministically. The default behavior of dxCompiler when using the `-input` option is to generate input files with full listings for all directories, unless the `-noListings` option is specified. An example of a folder with a listing is:
+
+CWL does provide a mechanism for ensuring reproducibility of jobs that take directory inputs, via the `listing` field. We strongly recommend that CWL users specify the folder listing for each directory input. A job will only be reused if both the folder and the listing are identical. The ordering of the listing is taken into consideration when making the comparison, so the listing must be generated deterministically. The default behavior of dxCompiler when using the `-input` option is to generate input files with full listings for all directories, unless the `-noListings` option is specified. An example of a folder with a listing is:
 
 ```json
 {
-  "mytask.dir": {
+  "dir": {
     "___": {
       "type": "Folder",
       "uri": "dx://project-xxx:/path/to/folder/",
@@ -172,16 +246,103 @@ A second important caveat, which results from the fact that folders are not trea
           "$dnanexus_link": {
             "id": "file-xxx",
             "project": "project-xxx"
-          },
-          "___": {
-             "type": "Folder",
-             "uri": "dx://project-xxx:/path/to/folder/subfolder/",
-             "listing": ...
           }
+        },
+        {
+          "___": {
+            "type": "Folder",
+            "uri": "dx://project-xxx:/path/to/folder/subfolder/",
+            "listing": ...
+          }
+        }
       ]
     }
   }
 }
+```
+
+In CWL, there is an additional data type available, `Listing`. A listing is similar to a folder, except that it does not have a `uri` and instead must have a `basename` and a `listing`. Importantly, the items in the listing do not need to be from the same source folder - a directory of the specified structure is constructed on the worker. If a CWL-style input JSON/YAML file is passed to the `-inputs` option of dxCompiler, a `Directory` input is automatically converted to a `Listing` input if it specifies a `listing` but not a `location`or `path`.
+
+For example:
+
+```json
+{
+  "mywf.mylisting": {
+    "class": "Directory",
+    "basename": "mydir",
+    "listing": [
+      {
+        "class": "File",
+        "location": "dx://project-xxx:/path/to/dir1/file1"
+      },
+      {
+        "class": "File",
+        "location": "dx://project-xxx:/path/to/dir2/file2"
+      },
+      {
+        "class": "Directory",
+        "location": "dx://project-xxx:/path/to/folder1"
+      },
+      {
+        "class": "Directory",
+        "location": "dx://project-xxx:/path/to/folder2"
+      },
+    ]
+  }
+}
+```
+
+is converted into:
+
+```json
+{
+  "mylisting": {
+    "___": {
+      "type": "Listing",
+      "basename": "mydir",
+      "listing": [
+        {
+          "$dnanexus_link": {
+            "id": "file-xxx",
+            "project": "project-xxx"
+          }
+        },
+        {
+          "$dnanexus_link": {
+            "id": "file-yyy",
+            "project": "project-xxx"
+          }
+        },
+        {
+          "___": {
+            "type": "Folder",
+            "uri": "dx://project-xxx:/path/to/folder1",
+            "listing": ...
+          }
+        },
+        {
+          "___": {
+            "type": "Folder",
+            "uri": "dx://project-xxx:/path/to/folder2",
+            "listing": ...
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+which results in the following directory structure being created on the worker:
+
+```
+mydir
+|_file1
+|_file2
+|_folder1
+| |_...
+|_folder2
+  |_...
 ```
 
 ### Defaults
