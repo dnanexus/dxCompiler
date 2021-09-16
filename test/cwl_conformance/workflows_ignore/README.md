@@ -4,7 +4,9 @@ These are workflow tests that we are currently ignoring.
 
 * cond-wf-002*: it seems the workflow output should be optional
 * count-lines11-extra-step-wf-noET: the workflow input is optional but cat-tool input is not
-* count-lines11-null-step-wf: The expression tool returns `null` but the return type is `Any`
+* The expression tool returns `null` but the return type is `Any`:
+  * count-lines11-null-step-wf
+  * count-lines11-null-step-wf-noET
 * input_schema-def: missing a.bam file referenced in input
 
 ## Non-required tests that we currently can't support

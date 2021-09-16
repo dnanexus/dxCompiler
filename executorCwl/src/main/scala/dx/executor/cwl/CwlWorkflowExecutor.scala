@@ -534,17 +534,17 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
     }
 
     private def getScatterValues: Vector[Option[(CwlType, Vector[CwlValue])]] = {
-      step.scatter.map { name =>
-        val dxName = CwlDxName.fromSourceName(name)
+      step.scatter.map { src =>
+        val dxName = CwlDxName.fromDecodedName(src.frag.get)
         cwlEnv.get(dxName) match {
           case Some((t, NullValue)) if CwlOptional.isOptional(t) => None
           case Some((_, ArrayValue(items))) if items.isEmpty     => None
           case Some((array: CwlArray, ArrayValue(items))) =>
             Some(array.itemType, items)
           case None =>
-            throw new Exception(s"scatter parameter ${name} is missing from env")
+            throw new Exception(s"scatter parameter ${src} is missing from env")
           case _ =>
-            throw new Exception(s"scatter parameter ${name} not of type array")
+            throw new Exception(s"scatter parameter ${src} not of type array")
         }
       }
     }
@@ -578,9 +578,11 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
             (scatterCollection.drop(jobMeta.scatterStart), None)
           }
         }
-      val childJobs = launchScatterCallJobs(step.scatter.map(CwlDxName.fromDecodedName),
-                                            itemTypes,
-                                            chunkCollection)
+      val childJobs = launchScatterCallJobs(
+          step.scatter.map(src => CwlDxName.fromDecodedName(src.frag.get)),
+          itemTypes,
+          chunkCollection
+      )
       next match {
         case Some(index) =>
           // there are remaining chunks - call a continue sub-job
