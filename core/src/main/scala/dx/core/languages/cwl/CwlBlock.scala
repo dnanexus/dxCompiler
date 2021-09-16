@@ -3,8 +3,13 @@ package dx.core.languages.cwl
 import dx.core.ir.{Block, BlockKind, DxName, InputKind}
 import dx.cwl.{
   CommandLineTool,
+  CwlAny,
   CwlArray,
+  CwlMulti,
+  CwlNull,
   CwlOptional,
+  CwlPath,
+  CwlSchema,
   CwlType,
   ExpressionTool,
   Hint,
@@ -19,7 +24,9 @@ import dx.cwl.{
   WorkflowStepOutput
 }
 
+import scala.annotation.tailrec
 import scala.collection.immutable.SeqMap
+import scala.util.{Failure, Success, Try}
 
 sealed trait CwlBlockInput {
   val name: DxName
@@ -163,14 +170,36 @@ case class CwlBlock(index: Int,
     * - step inputs do not require down-casting to be compatible with call inputs
     */
   lazy val targetIsSimpleCall: Boolean = {
+    // Whether `from` and `to` have the same native types. Assumes we've already determined that
+    // `from` and `to` are compatible.
+    @tailrec
+    def requireDifferentNativeTypes(from: CwlType, to: CwlType): Boolean = {
+      (from, to) match {
+        case (CwlNull, CwlNull)               => false
+        case (CwlNull, CwlOptional(_))        => false
+        case (CwlOptional(f), CwlOptional(t)) => requireDifferentNativeTypes(f, t)
+        case (f, t: CwlArray)                 =>
+          // it's allowed to pass P to array:P
+          requireDifferentNativeTypes(f, t.itemType)
+        case (CwlAny | _: CwlMulti | _: CwlPath | _: CwlSchema,
+              CwlAny | _: CwlMulti | _: CwlPath | _: CwlSchema) =>
+          // hash to hash
+          false
+        case (_, _: CwlMulti | CwlAny) => true
+        case _                         => false
+      }
+    }
+
     target.run match {
       case _: ExpressionTool | _: CommandLineTool if CwlUtils.isSimpleCall(target) =>
         val blockInputs = inputs.map(i => i.name -> i).toMap
         val stepInputs = target.inputs.map(i => i.name -> i).toMap
-        !target.run.inputs.exists { callInput =>
-          // check that the call input type is compatible with the block input type
-          // the call is not simple if a downcast is required (e.g. Any -> File)
-          stepInputs.get(callInput.name).exists { stepInput =>
+        !target.run.inputs.exists { targetInput =>
+          // Check that the target input type is compatible with the block input type.
+          // The call is not simple if a downcast is required from the block input to
+          // the target input (e.g. `Any` -> `File`), or if the target input must be given
+          // as a hash and the block input is not (e.g. `String` -> `Any`).
+          stepInputs.get(targetInput.name).exists { stepInput =>
             stepInput.sources.headOption.exists { src =>
               blockInputs.get(CwlDxName.fromDecodedName(src.frag.get)).exists { blockInput =>
                 val blockInputType =
@@ -179,18 +208,19 @@ case class CwlBlock(index: Int,
                   } else {
                     CwlArray(blockInput.cwlType)
                   }
-                val callInputType =
-                  if (stepInput.default.isDefined || callInput.default.isDefined) {
-                    CwlOptional.ensureOptional(callInput.cwlType)
+                val targetInputType =
+                  if (stepInput.default.isDefined || targetInput.default.isDefined) {
+                    CwlOptional.ensureOptional(targetInput.cwlType)
                   } else {
-                    callInput.cwlType
+                    targetInput.cwlType
                   }
-                try {
-                  CwlUtils.requiresDowncast(blockInputType, callInputType)
-                } catch {
-                  case cause: Throwable =>
+                Try(CwlUtils.requiresDowncast(blockInputType, targetInputType)) match {
+                  case Success(true) => true
+                  case Success(false) =>
+                    requireDifferentNativeTypes(blockInputType, targetInputType)
+                  case Failure(cause) =>
                     throw new Exception(
-                        s"block input ${blockInput} is not compatible with call input ${callInput}",
+                        s"block input ${blockInput} is not compatible with call input ${targetInput}",
                         cause
                     )
                 }
