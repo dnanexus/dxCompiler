@@ -8,10 +8,15 @@ These are workflow tests that we are currently ignoring.
 
 ## Non-required tests that we currently can't support
 
-* dynresreq-workflow-stepdefault: Requires a step input to be linked to a workflow input and also to have a default value that is used if the workflow input is unspecified.
+* Requires a step input to be linked to a workflow input and also to have a default value that is used if the workflow input is unspecified.
+    * dynresreq-workflow-stepdefault
+    * count-lines11-wf1 (inputs/results renamed with 'ignore_' prefix because the wf is still used for other tests)
 
 ## Tests that can't be run due to bugs in cwltool or cwljava
 
+* parse error
+    * record-in-secondaryFiles-wf
+    * schemadef-wf
 * anonymous processes with no ID: the auto-generated ID is not stable ([issue](https://github.com/common-workflow-language/cwltool/issues/1520))
     * count-lines2-wf
     * io-file-default-wf

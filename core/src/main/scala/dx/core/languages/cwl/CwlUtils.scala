@@ -123,7 +123,7 @@ object CwlUtils {
     }
   }
 
-  def toIRValue(cwlValue: CwlValue): (Type, Value) = {
+  private def toIRValue(cwlValue: CwlValue): (Type, Value) = {
     cwlValue match {
       case BooleanValue(b)   => (TBoolean, VBoolean(value = b))
       case IntValue(i)       => (TInt, VInt(i))
@@ -134,8 +134,7 @@ object CwlUtils {
       case f: FileValue      => (TFile, toIRPath(f))
       case d: DirectoryValue => (TDirectory, toIRPath(d))
       case NullValue         =>
-        // it is possible that the type is null (i.e. NullSchema)
-        // but much more likely to be CwlOptional
+        // it is possible that the type is null (i.e. NullSchema) but much more likely CwlOptional
         (TMulti.Any, VNull)
       case ArrayValue(items) =>
         val (itemTypes, itemValues, optional) =
@@ -145,19 +144,15 @@ object CwlUtils {
                 case NullValue => (types, values :+ VNull, true)
                 case _ =>
                   val (t, v) = toIRValue(item)
-                  if (types.isEmpty || types.contains(t)) {
-                    (types + t, values :+ v, optional)
-                  } else {
-                    throw new Exception(s"array ${items} contains values of multiple types")
-                  }
+                  (types + t, values :+ v, optional)
               }
           }
-        if (itemTypes.isEmpty) {
-          throw new Exception("cannot determine type of array with only null items")
-        }
-        val itemType = itemTypes.head match {
-          case t if optional => ensureOptional(t)
-          case t             => t
+        val itemType = itemTypes.toVector match {
+          case Vector()              => TMulti.Any
+          case Vector(t) if optional => ensureOptional(t)
+          case Vector(t)             => t
+          case bounds if optional    => TMulti(bounds.map(ensureOptional(_)))
+          case bounds                => TMulti(bounds)
         }
         (TArray(itemType), VArray(itemValues))
       case ObjectValue(m) =>
@@ -177,7 +172,9 @@ object CwlUtils {
 
   def toIRValue(cwlValue: CwlValue, cwlType: CwlType): (Type, Value) = {
     (cwlType, cwlValue) match {
-      case (CwlAny, _)          => (TMulti.Any, toIRValue(cwlValue)._2)
+      case (CwlAny, _) =>
+        // TODO: do we need to keep the type as Any or can we return the inferred type?
+        (TMulti.Any, toIRValue(cwlValue)._2)
       case (CwlNull, NullValue) => (NullSchema, VNull)
       case (CwlNull, _) =>
         throw new Exception("type 'null' only accepts a value of 'null'")

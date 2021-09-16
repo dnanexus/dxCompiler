@@ -1156,21 +1156,23 @@ def ensure_dir(path):
 
 def wait_for_completion(test_exec_objs):
     print("awaiting completion ...")
-    failures = set()
+    successes = []
+    failures = []
     for i, exec_obj in test_exec_objs:
         tname = find_test_from_exec(exec_obj)
         desc = test_files[tname]
         try:
             exec_obj.wait_on_done()
             print("Executable {}.{} succeeded".format(desc.name, i))
+            successes.append(exec_obj)
         except DXJobFailureError:
             if tname in expected_failure or "{}.{}".format(tname, i) in expected_failure:
                 print("Executable {}.{} failed as expected".format(desc.name, i))
             else:
                 cprint("Error: executable {}.{} failed".format(desc.name, i), "red")
-                failures.add(tname)
+                failures.append((tname, exec_obj))
     print("tools execution completed")
-    return list(failures)
+    return successes, failures
 
 
 # Run [workflow] on several inputs, return the analysis ID.
@@ -1290,10 +1292,10 @@ def run_test_subset(
         write_failed(errors)
         raise RuntimeError(f"failed to run one or more tests {','.join(errors)}")
 
-    print("executables: " + ", ".join([a[1].get_id() for a in test_exec_objs]))
+    print("executions: " + ", ".join([a[1].get_id() for a in test_exec_objs]))
 
     # Wait for completion
-    failed_execution = wait_for_completion(test_exec_objs)
+    successful_executions, failed_executions = wait_for_completion(test_exec_objs)
 
     print("Verifying results")
 
@@ -1312,31 +1314,36 @@ def run_test_subset(
                 if not validate_result(tname, exec_outputs, key, expected_val, project):
                     correct = False
                     break
-            anl_name = "{}.{}".format(tname, i)
             if correct:
-                print("Analysis {} passed".format(anl_name))
+                print("Analysis {} passed".format("{}.{}".format(tname, i)))
                 return None
             else:
-                return anl_name
+                return tname
 
-    failed_verification = []
-    for i, exec_obj in test_exec_objs:
+    failed_verifications = []
+    for i, exec_obj in successful_executions:
         failed_name = verify_test(exec_obj, i)
         if failed_name is not None:
-            failed_verification.append(failed_name)
+            failed_verifications.append(failed_name)
 
-    if failed_execution or failed_verification:
-        print("-----------------------------")
-        if failed_execution:
-            fexec = "\n".join(failed_execution)
-            print(f"Tools failed execution: {len(failed_execution)}:\n{fexec}")
-        if failed_verification:
-            fveri = "\n".join(failed_verification)
-            print(
-                f"Tools failed results verification: {len(failed_verification)}:\n{fveri}"
-            )
-        write_failed(failed_execution + failed_verification)
+    print("-----------------------------")
+    print(f"Total tests: {len(test_exec_objs)}")
+
+    if failed_executions or failed_verifications:
+        failed_tools = set(e[0] for e in failed_executions)
+        unverified_tools = set(failed_verifications)
+        if failed_executions:
+            fexec = "\n".join(failed_tools)
+            print(f"Failed executions: {len(failed_executions)}")
+            print(f"Tools failed execution:\n{fexec}")
+        if failed_verifications:
+            fveri = "\n".join(unverified_tools)
+            print(f"Failed verifications: {len(failed_verifications)}")
+            print(f"Tools failed results verification:\n{fveri}")
+        write_failed(failed_tools | unverified_tools)
         raise RuntimeError("Failed")
+    else:
+        print("All tests successful!")
 
 
 def write_failed(failed):

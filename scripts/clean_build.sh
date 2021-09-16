@@ -26,5 +26,5 @@ if [[ -z "$TEST" ]]; then
 elif [[ "$TEST" == "--failed" ]]; then
     ./scripts/run_tests.py --failed --delay-compile-errors
 else
-  ./scripts/run_tests.py --test "$TEST" --delay-compile-errors
+  ./scripts/run_tests.py --test "$TEST" --delay-compile-errors --delay-run-errors
 fi
