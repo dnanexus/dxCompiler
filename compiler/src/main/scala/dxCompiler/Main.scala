@@ -411,6 +411,23 @@ object Main {
       )
     }
 
+//    val wdlOptions = options
+//      .getValue[TypeCheckingRegime.TypeCheckingRegime]("wdlMode")
+//      .map(regime => WdlOptions(regime))
+//      .getOrElse(WdlOptions.default)
+    val wdlOptions = WdlOptions.default
+
+    if (wdlOptions.regime == TypeCheckingRegime.Lenient) {
+      logger.warning(
+          """You have enabled 'lenient' WDL mode, which allows the compilation of
+            |tasks and workflows that contain syntax that is not compliant with the
+            |WDL specification, but which may be used by some 'industry-standard'
+            |workflows. This may result in execution errors. Please report any
+            |issues that prevent you from using 'moderate' or 'strict' mode to the
+            |author of the non-compliant WDL.""".stripMargin
+      )
+    }
+
     val translator =
       try {
         val language = options.getValue[Language.Language]("language")
