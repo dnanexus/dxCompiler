@@ -467,6 +467,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         if (env.contains(innerName)) {
           Some(env(innerName)._2)
         } else {
+          // TODO: use dxName.popDecodedIdentifier
           innerName.decoded match {
             case qualifiedNameRegexp(lhs, rhs) =>
               inner(WdlDxName.fromDecodedName(lhs)).map {

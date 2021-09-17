@@ -256,20 +256,38 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
     }
   }
 
-  case class CwlBlockContext(block: CwlBlock, cwlEnv: Map[DxName, (CwlType, CwlValue)])
-      extends BlockContext {
+  case class CwlEnv(env: Map[DxName, (CwlType, CwlValue)]) {
+    def contains(name: DxName): Boolean = {
+      env.contains(name) || env.contains(name.dropNamespaces())
+    }
+
+    def lookup(name: DxName): Option[(CwlType, CwlValue)] = {
+      env.get(name).orElse(env.get(name.dropNamespaces()))
+    }
+
+    def apply(name: DxName): (CwlType, CwlValue) = {
+      lookup(name).get
+    }
+
+    def withoutNames(names: Iterable[DxName]): Map[DxName, (CwlType, CwlValue)] = {
+      val nameSet = names.toSet.flatMap(n => Set(n, n.dropNamespaces()))
+      env.view.filterKeys { k =>
+        !(nameSet.contains(k) || nameSet.contains(k.dropNamespaces()))
+      }.toMap
+    }
+  }
+
+  case class CwlBlockContext(block: CwlBlock, cwlEnv: CwlEnv) extends BlockContext {
     private val step = block.target
     private lazy val runInputs = step.run.inputs.map { i =>
       CwlDxName.fromDecodedName(i.id.flatMap(_.frag).get) -> i
     }.toMap
     private lazy val blockInputs = block.inputs.map(i => i.name -> i).toMap
 
-    override lazy val env: Map[DxName, (Type, Value)] = CwlUtils.toIR(cwlEnv)
+    override lazy val env: Map[DxName, (Type, Value)] = CwlUtils.toIR(cwlEnv.env)
 
-    private def evaluateStepInput(
-        stepInput: WorkflowStepInput,
-        fullEnv: Map[DxName, (CwlType, CwlValue)]
-    ): Option[(DxName, (CwlType, CwlValue))] = {
+    private def evaluateStepInput(stepInput: WorkflowStepInput,
+                                  fullEnv: CwlEnv): Option[(DxName, (CwlType, CwlValue))] = {
       val dxName = CwlDxName.fromSourceName(stepInput.name)
       val cwlType = runInputs
         .get(dxName)
@@ -277,7 +295,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
         .orElse(blockInputs.get(dxName).map(_.cwlType))
         .getOrElse {
           logger.warning(
-              s"""step input ${stepInput} is Znot represented in either callee or block inputs,
+              s"""step input ${stepInput} is not represented in either callee or block inputs,
                  |so will not be available for evaluation""".stripMargin.replaceAll("\n", " ")
           )
           return None
@@ -370,7 +388,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
         extraEnv: Map[DxName, (CwlType, CwlValue)] = Map.empty
     ): Map[DxName, (CwlType, CwlValue)] = {
       assert(step.scatter.isEmpty)
-      val fullEnv = cwlEnv ++ extraEnv
+      val fullEnv = CwlEnv(cwlEnv.env ++ extraEnv)
       // evaluate all the step inputs - there may be step inputs that
       // are not passed to the callee but are referred to in expressions
       // of other step inputs' valueFrom fields
@@ -507,7 +525,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
     private def launchScatterCallJobs(scatterParams: Vector[DxName],
                                       itemTypes: Vector[CwlType],
                                       collection: Vector[Vector[CwlValue]]): Vector[DxExecution] = {
-      val otherInputs = cwlEnv.view.filterKeys(!scatterParams.contains(_))
+      val otherInputs = cwlEnv.withoutNames(scatterParams)
       collection.map { item =>
         val callInputs = scatterParams.zip(itemTypes.zip(item)).toMap ++ otherInputs
         val callNameDetail = getScatterName(item)
@@ -535,8 +553,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
 
     private def getScatterValues: Vector[Option[(CwlType, Vector[CwlValue])]] = {
       step.scatter.map { src =>
-        val dxName = CwlDxName.fromDecodedName(src.frag.get)
-        cwlEnv.get(dxName) match {
+        cwlEnv.lookup(CwlDxName.fromDecodedName(src.frag.get)) match {
           case Some((t, NullValue)) if CwlOptional.isOptional(t) => None
           case Some((_, ArrayValue(items))) if items.isEmpty     => None
           case Some((array: CwlArray, ArrayValue(items))) =>
@@ -652,6 +669,6 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
       case param =>
         throw new Exception(s"missing required input ${param.name}")
     }.toMap
-    CwlBlockContext(block, env)
+    CwlBlockContext(block, CwlEnv(env))
   }
 }

@@ -166,6 +166,17 @@ abstract class DxName(private var encodedParts: Option[Vector[String]],
                        stage: Option[String],
                        suffix: Option[String]): DxName
 
+  def withStage(newStage: String): DxName = {
+    if (stage.isDefined) {
+      throw new Exception(s"${this} already has a stage")
+    }
+    create(encodedParts, decodedParts, Some(newStage), suffix)
+  }
+
+  def dropStage: DxName = {
+    create(encodedParts, decodedParts, None, suffix)
+  }
+
   /**
     * Copies this DxName and set suffix to `newSuffix`. Throws an exception
     * if suffix is already defined.
@@ -214,6 +225,42 @@ abstract class DxName(private var encodedParts: Option[Vector[String]],
     create(decodedParts = Some(Vector(ns) ++ getDecodedParts), stage = stage, suffix = suffix)
   }
 
+  /**
+    * Removes the first namespace part and returns it as a String along with the new name.
+    * Throws an Exception if there are no namespace parts.
+    */
+  def popDecodedNamespace(keepStage: Boolean = false): (String, DxName) = {
+    val decoded = getDecodedParts
+    if (decoded.size <= 1) {
+      throw new Exception("cannot pop identifier unless there is more than one part")
+    }
+    val newName = create(decodedParts = Some(decoded.drop(1)),
+                         stage = Option.when(keepStage)(stage).flatten,
+                         suffix = suffix)
+    (decoded.head, newName)
+  }
+
+  /**
+    * Returns a new DxName with only the identifier part and the suffix.
+    */
+  def dropNamespaces(keepStage: Boolean = false): DxName = {
+    if (numParts > 1) {
+      create(
+          encodedParts = encodedParts.map(v => Vector(v.last)),
+          decodedParts = decodedParts.map(v => Vector(v.last)),
+          stage = Option.when(keepStage)(stage).flatten,
+          suffix = suffix
+      )
+    } else {
+      this
+    }
+  }
+
+  /**
+    * Removes the identifier (the last part) and returns it as a String along with the new name.
+    * Throws an Exception if there are no namespace parts. The suffix is retained in the new name
+    * only if `keepSuffix=true`.
+    */
   def popDecodedIdentifier(keepSuffix: Boolean = false): (DxName, String) = {
     val decoded = getDecodedParts
     if (decoded.size <= 1) {
