@@ -2,7 +2,14 @@ package dx.translator.wdl
 
 import dx.api.{DxApi, DxPath, DxUtils, InstanceTypeRequest}
 import dx.core.ir.RunSpec._
-import dx.core.ir.{ExecutableKind, ExecutableKindNative, ExecutableType, RuntimeRequirement, Value}
+import dx.core.ir.{
+  ExecutableKind,
+  ExecutableKindNative,
+  ExecutableType,
+  InstanceTypeSelection,
+  RuntimeRequirement,
+  Value
+}
 import dx.core.languages.wdl.{DxRuntimeHint, IrToWdlValueBindings, Runtime, WdlUtils}
 
 import scala.util.Try
@@ -166,11 +173,17 @@ case class RuntimeTranslator(wdlVersion: WdlVersion,
     }
   }
 
-  def translateInstanceType: InstanceType = {
+  def translateInstanceType(
+      resolution: InstanceTypeSelection.InstanceTypeSelection
+  ): InstanceType = {
     runtime.safeParseInstanceType match {
-      case None                            => DynamicInstanceType
       case Some(InstanceTypeRequest.empty) => DefaultInstanceType
-      case Some(req: InstanceTypeRequest)  => StaticInstanceType(req)
+      case Some(req: InstanceTypeRequest)
+          if resolution == InstanceTypeSelection.Dynamic && req.dxInstanceType.isDefined =>
+        StaticInstanceType(InstanceTypeRequest(dxInstanceType = req.dxInstanceType))
+      case Some(_) if resolution == InstanceTypeSelection.Dynamic => DynamicInstanceType
+      case Some(req: InstanceTypeRequest)                         => StaticInstanceType(req)
+      case None                                                   => DynamicInstanceType
     }
   }
 

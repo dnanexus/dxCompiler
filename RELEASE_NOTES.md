@@ -3,7 +3,7 @@
 ## in develop
 
 * Implements `Directory` support for CWL and for WDL development/2.0
-* Implements CWL `secondaryFiles` support   
+* Implements CWL `secondaryFiles` support
 * Implements CWL workflow support
 * **Breaking Change**: the inputs folder is now modified to be read-only for non-streaming files (this has always been the case for streaming files). This means that tasks that create files in the inputs folder will no longer work. For example, a task that creates an index file in place for an input BAM file should be changed from:
     ```wdl
@@ -11,7 +11,7 @@
     samtools index ~{mybam}
     >>>
     ```
-    to
+  to
     ```wdl
     command <<<
     mkdir bams
@@ -19,8 +19,16 @@
     samtools index bams/~{basename(mybam)}
     >>>
     ```
-* Docker image dependencies that are DNAnexus platform files are included in applet's bundledDepends
 * Updates dxCommon, dxApi, dxFileAccessProtocols, wdlTools, and cwlScala dependencies
+
+## 2.5.0 2021-09-14
+
+* Docker image dependencies that are DNAnexus platform files are included in applet's bundledDepends
+* Adds `-instanceTypeSelection` compiler option to allow disabling compile-type instance type selection
+* Adds `-defaultInstanceType` option
+* Adds support for new London region, `aws:eu-west-2-g`
+* Fixes `-projectWideReuse`
+* Fixes evaluation of `outputs` when one declaration depends on another
 
 ## 2.4.10 2021-08-16
 

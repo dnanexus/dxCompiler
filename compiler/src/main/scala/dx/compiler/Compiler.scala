@@ -1,25 +1,21 @@
 package dx.compiler
 
 import java.nio.file.{Files, Path}
-
 import com.typesafe.config.{Config, ConfigFactory}
 import dx.api.{
-  DiskType,
   DxApi,
   DxApplet,
   DxAppletDescribe,
   DxDataObject,
   DxExecutable,
   DxFile,
-  DxInstanceType,
   DxPath,
   DxProject,
   DxRecord,
   DxUtils,
   DxWorkflow,
   DxWorkflowDescribe,
-  Field,
-  InstanceTypeDB
+  Field
 }
 import dx.core.{Constants, getVersion}
 import dx.core.io.{DxWorkerPaths, StreamFiles}
@@ -71,6 +67,8 @@ case class Compiler(extras: Option[Extras],
                     waitOnUpload: Boolean,
                     useManifests: Boolean,
                     complexPathValues: Boolean,
+                    instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
+                    defaultInstanceType: Option[String],
                     fileResolver: FileSourceResolver = FileSourceResolver.get,
                     dxApi: DxApi = DxApi.get,
                     logger: Logger = Logger.get) {
@@ -88,18 +86,6 @@ case class Compiler(extras: Option[Extras],
 
   private case class BundleCompiler(bundle: Bundle, project: DxProject, folder: String) {
     private val parameterLinkSerializer = ParameterLinkSerializer(fileResolver)
-    // database of available instance types for the user/org that owns the project
-    // Instance type filter:
-    // - Instance must support Ubuntu.
-    // - Instance is not an FPGA instance.
-    // - Instance does not have local HDD storage (those are older instance types).
-    private def instanceTypeFilter(instanceType: DxInstanceType): Boolean = {
-      instanceType.os.exists(_.release == Constants.OsRelease) &&
-      !instanceType.diskType.contains(DiskType.HDD) &&
-      !instanceType.name.contains("fpga")
-    }
-    private val instanceTypeDb =
-      InstanceTypeDB.create(project, instanceTypeFilter, Some(dxApi), logger)
     // directory of the currently existing applets - we don't want to build them
     // if we don't have to.
     private val executableDir =
@@ -181,11 +167,11 @@ case class Compiler(extras: Option[Extras],
 
               |""".stripMargin
       )
-      // We need to sort the hash-tables. They are natually unsorted,
+      // We need to sort the hash-tables. They are naturally unsorted,
       // causing the same object to have different checksums.
       val digest =
         CodecUtils.md5Checksum(JsUtils.makeDeterministic(JsObject(desc)).prettyPrint)
-      // Add the checksum to the properies
+      // Add the checksum to the properties
       val existingDetails: Map[String, JsValue] =
         desc.get("details") match {
           case Some(JsObject(details)) => details
@@ -320,7 +306,6 @@ case class Compiler(extras: Option[Extras],
       val appletCompiler =
         ApplicationCompiler(
             typeAliases = bundle.typeAliases,
-            instanceTypeDb = instanceTypeDb,
             runtimeAsset = runtimeAsset,
             runtimeJar = runtimeJar,
             runtimePathConfig = runtimePathConfig,
@@ -332,6 +317,8 @@ case class Compiler(extras: Option[Extras],
             parameterLinkSerializer = parameterLinkSerializer,
             useManifests = useManifests,
             complexPathValues = complexPathValues,
+            instanceTypeSelection = instanceTypeSelection,
+            defaultInstanceType,
             fileResolver = fileResolver,
             dxApi = dxApi,
             logger = logger2,

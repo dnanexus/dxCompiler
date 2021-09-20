@@ -1,15 +1,6 @@
 package dx.compiler
 
-import dx.api.{
-  DxAccessLevel,
-  DxApi,
-  DxFileDescribe,
-  DxInstanceType,
-  DxPath,
-  DxProject,
-  DxUtils,
-  InstanceTypeDB
-}
+import dx.api.{DxAccessLevel, DxApi, DxFileDescribe, DxPath, DxProject, DxUtils}
 import dx.core.Constants
 import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir._
@@ -39,7 +30,6 @@ object ApplicationCompiler {
 }
 
 case class ApplicationCompiler(typeAliases: Map[String, Type],
-                               instanceTypeDb: InstanceTypeDB,
                                runtimeAsset: Option[JsValue],
                                runtimeJar: String,
                                runtimePathConfig: DxWorkerPaths,
@@ -51,6 +41,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
                                parameterLinkSerializer: ParameterLinkSerializer,
                                useManifests: Boolean,
                                complexPathValues: Boolean,
+                               instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
+                               defaultInstanceType: Option[String],
                                fileResolver: FileSourceResolver,
                                dxApi: DxApi = DxApi.get,
                                logger: Logger = Logger.get,
@@ -61,6 +53,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
                                complexPathValues,
                                fileResolver,
                                dxApi) {
+  // database of available instance types for the user/org that owns the project
+  private lazy val instanceTypeDb = InstanceType.createDb(Some(project))
 
   // renderer for job script templates
   private lazy val renderer = Renderer()
@@ -163,9 +157,13 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
   }
 
   private def createRunSpec(applet: Application): (JsValue, Map[String, JsValue]) = {
-    val instanceType: DxInstanceType = applet.instanceType match {
-      case static: StaticInstanceType                => instanceTypeDb.apply(static.toInstanceTypeRequest)
-      case DefaultInstanceType | DynamicInstanceType => instanceTypeDb.defaultInstanceType
+    val instanceType: String = applet.instanceType match {
+      case static: StaticInstanceType =>
+        instanceTypeDb.apply(static.toInstanceTypeRequest).name
+      case DefaultInstanceType | DynamicInstanceType =>
+        // TODO: should we use the project default here rather than
+        //  picking one from the database?
+        defaultInstanceType.getOrElse(instanceTypeDb.defaultInstanceType.name)
     }
     // Generate the applet's job script
     val jobScript = generateJobScript(applet)
@@ -176,7 +174,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         "systemRequirements" ->
           JsObject(
               "main" ->
-                JsObject("instanceType" -> JsString(instanceType.name))
+                JsObject("instanceType" -> JsString(instanceType))
           ),
         "distribution" -> JsString(Constants.OsDistribution),
         "release" -> JsString(Constants.OsRelease),
@@ -560,9 +558,12 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       }
     // compress and base64 encode the source code
     val sourceEncoded = CodecUtils.gzipAndBase64Encode(applet.document.toString)
-    // serialize the pricing model, and make the prices opaque.
-    val dbOpaque = InstanceTypeDB.opaquePrices(instanceTypeDb)
-    val dbOpaqueEncoded = CodecUtils.gzipAndBase64Encode(dbOpaque.toJson.prettyPrint)
+    // compress and base64 encode the instance types, unless we specify that we want to
+    // resolve them at runtime, which requires that the user running the applet has
+    // permission to describe the project it is running in
+    val dbEncoded = Option.when(instanceTypeSelection == InstanceTypeSelection.Static) {
+      CodecUtils.gzipAndBase64Encode(instanceTypeDb.toJson.prettyPrint)
+    }
     // serilize default runtime attributes
     val defaultRuntimeAttributes = extras
       .flatMap(ex =>
@@ -571,7 +572,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     val auxDetails = Vector(
         Some(Constants.SourceCode -> JsString(sourceEncoded)),
         Some(Constants.ParseOptions -> applet.document.optionsToJson),
-        Some(Constants.InstanceTypeDb -> JsString(dbOpaqueEncoded)),
+        dbEncoded.map(db => Constants.InstanceTypeDb -> JsString(db)),
         defaultRuntimeAttributes.map(attr => Constants.RuntimeAttributes -> attr),
         Option.when(useManifests)(Constants.UseManifests -> JsBoolean(true)),
         Option.when(complexPathValues)(Constants.PathsAsObjects -> JsBoolean(true))
