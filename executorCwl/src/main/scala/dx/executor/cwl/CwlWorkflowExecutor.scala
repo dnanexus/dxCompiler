@@ -152,7 +152,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
     inputs
   }
 
-  private case class CwlEnv[T](env: Map[DxName, T]) {
+  case class CwlEnv[T](env: Map[DxName, T]) {
     def lookup(name: DxName): Option[T] = {
       env.get(name).orElse(env.get(name.dropNamespaces()))
     }

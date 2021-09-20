@@ -791,6 +791,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
         case JsNumber(i) => i.toIntExact
         case other       => throw new Exception(s"invalid output shape value ${other}")
       }
+    case other =>
+      throw new Exception(s"invalid ${Constants.OutputShape} value ${other}")
   }
 
   lazy val useManifests: Boolean = getExecutableDetail(Constants.UseManifests) match {

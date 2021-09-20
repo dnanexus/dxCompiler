@@ -157,10 +157,10 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
                                Vector(Constants.OsVersion))
       ),
       Some(DiskType.SSD),
-      Some(1.00f)
+      Some(1)
   )
   private val instanceTypeDB =
-    InstanceTypeDB(Map(ToolTestJobMeta.InstanceType -> unicornInstance), pricingAvailable = true)
+    InstanceTypeDB(Map(ToolTestJobMeta.InstanceType -> unicornInstance))
 
   private def pathFromBasename(basename: String): Option[Path] = {
     getClass.getResource(s"/tool_executor/${basename}") match {
