@@ -9,6 +9,7 @@ PROJECTS[dxCompiler_Amsterdam]=azure:westeurope
 PROJECTS[dxCompiler_Azure]=azure:westus
 PROJECTS[dxCompiler_Sydney]=aws:ap-southeast-2
 PROJECTS[dxCompiler_London]=aws:eu-west-2
+PROJECTS[dxCompiler_Europe_London]=aws:eu-west-2-g
 
 for i in "${!PROJECTS[@]}"; do
     proj_id=$(dx new project $i --region ${PROJECTS[$i]} --bill-to=org-dnanexus_apps --brief)

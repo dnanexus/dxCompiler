@@ -4,3 +4,4 @@ dxCompiler_Amsterdam project-FzyzJQ8B4k21XYK987kJzQ8f
 dxCompiler_Azure project-FzyzJV093v56fyfZ892pbzG2
 dxCompiler_Sydney project-FzyzJPQ59Vj508qq36J0QBQk
 dxCompiler_London project-FzyzJQ8Jp4gj2kKp899vfg97
+dxCompiler_Europe_London project-G4g4YypK6QBYjQ6q23Yj77b1

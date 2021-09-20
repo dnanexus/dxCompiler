@@ -7,7 +7,7 @@ import dx.compiler.{Compiler, ExecutableTree}
 import dx.core.getVersion
 import dx.core.CliUtils._
 import dx.core.io.{DxWorkerPaths, StreamFiles}
-import dx.core.ir.Bundle
+import dx.core.ir.{Bundle, InstanceTypeSelection}
 import dx.core.languages.Language
 import dx.core.Constants
 import dx.core.languages.wdl.WdlOptions
@@ -123,6 +123,15 @@ object Main {
     }
   }
 
+  private object InstanceTypeSelectionSpec
+      extends SingleValueOptionSpec[InstanceTypeSelection.InstanceTypeSelection](
+          choices = InstanceTypeSelection.values.toVector
+      ) {
+    override def parseValue(value: String): InstanceTypeSelection.InstanceTypeSelection = {
+      InstanceTypeSelection.withNameIgnoreCase(value)
+    }
+  }
+
 //  private object WdlRegimeOptionSpec
 //      extends SingleValueOptionSpec[TypeCheckingRegime.TypeCheckingRegime](
 //          choices = TypeCheckingRegime.values.toVector
@@ -136,10 +145,12 @@ object Main {
       "archive" -> FlagOptionSpec.default,
       "compileMode" -> CompilerModeOptionSpec(),
       "defaults" -> PathOptionSpec.mustExist,
+      "defaultInstanceType" -> StringOptionSpec(),
       "execTree" -> ExecTreeFormatOptionSpec(),
       "extras" -> PathOptionSpec.mustExist,
       "inputs" -> PathOptionSpec.listMustExist,
       "input" -> PathOptionSpec.listMustExist.copy(alias = Some("inputs")),
+      "instanceTypeSelection" -> InstanceTypeSelectionSpec,
       "locked" -> FlagOptionSpec.default,
       "leaveWorkflowsOpen" -> FlagOptionSpec.default,
       "imports" -> PathOptionSpec.listMustExist,
@@ -377,6 +388,11 @@ object Main {
         true
       case b => b
     }
+    val instanceTypeSelection =
+      options.getValueOrElse[InstanceTypeSelection.InstanceTypeSelection](
+          "instanceTypeSelection",
+          InstanceTypeSelection.Static
+      )
 
 //    val wdlOptions = options
 //      .getValue[TypeCheckingRegime.TypeCheckingRegime]("wdlMode")
@@ -408,6 +424,7 @@ object Main {
             locked,
             if (reorg) Some(true) else None,
             useManifests,
+            instanceTypeSelection,
             baseFileResolver
         )
       } catch {
@@ -504,6 +521,7 @@ object Main {
         case None if streamAllFiles => StreamFiles.All
         case None                   => StreamFiles.PerFile
       }
+      val defaultInstanceType = options.getValue[String]("defaultInstanceType")
       val compiler = Compiler(
           extras,
           dxPathConfig,
@@ -520,6 +538,8 @@ object Main {
           streamFiles,
           waitOnUpload,
           useManifests,
+          instanceTypeSelection,
+          defaultInstanceType,
           fileResolver
       )
       val results = compiler.apply(bundle, project, folder)
@@ -819,13 +839,27 @@ object Main {
         |      -archive               Archive older versions of applets.
         |      -compileMode <string>  Compilation mode - a debugging flag for internal use.
         |      -defaults <string>     JSON file with standard-formatted default values.
-        |      -destination <string>    Full platform path (project:/folder).
+        |      -defaultInstanceType <string>
+        |                             The default instance type to use for "helper" applets
+        |                             that perform runtime evaluation of instance type
+        |                             requirements. This instance type is also used when 
+        |                             the '-instanceTypeSelection dynamic' option is set.
+        |                             This value is overriden by any defaults set in extras.
+        |      -destination <string>  Full platform path (project:/folder).
         |      -execTree [json,pretty]    
         |                             Print a JSON representation of the workflow.
         |      -extras <string>       JSON file with extra options (see documentation).
         |      -inputs <string>       JSON file with standard-formatted input values. May be
         |                             specified multiple times. A DNAnexus JSON input file is
         |                             generated for each standard input file.
+        |      -instanceTypeSelection [static,dynamic]
+        |                             Whether to attempt to select instance types at compile time
+        |                             for tasks with runtime requirements that can all be statically
+        |                             evaluated (static, the default), or to defer all instance type
+        |                             selection to runtime (dynamic). Using static instance type
+        |                             selection can save time and cost, but it requires the user(s)
+        |                             running the applet/workflow to have access to the same instance
+        |                             types as the user who compiled it.
         |      -locked                Create a locked workflow. When running a locked workflow,
         |                             input values may only be specified for the top-level workflow.
         |      -leaveWorkflowsOpen    Leave created workflows open (otherwise they are closed).

@@ -1,5 +1,4 @@
 name: Unit Tests
-
 on:
   push:
     branches:
@@ -9,7 +8,9 @@ on:
     branches:
       - main
       - develop
-
+permissions:
+  contents: read
+  packages: read
 jobs:
   test:
     name: Scala Unit Tests (Staging)

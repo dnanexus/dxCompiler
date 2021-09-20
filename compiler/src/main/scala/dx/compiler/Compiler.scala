@@ -1,25 +1,21 @@
 package dx.compiler
 
 import java.nio.file.{Files, Path}
-
 import com.typesafe.config.{Config, ConfigFactory}
 import dx.api.{
-  DiskType,
   DxApi,
   DxApplet,
   DxAppletDescribe,
   DxDataObject,
   DxExecutable,
   DxFile,
-  DxInstanceType,
   DxPath,
   DxProject,
   DxRecord,
   DxUtils,
   DxWorkflow,
   DxWorkflowDescribe,
-  Field,
-  InstanceTypeDB
+  Field
 }
 import dx.core.{Constants, getVersion}
 import dx.core.io.{DxWorkerPaths, StreamFiles}
@@ -69,6 +65,8 @@ case class Compiler(extras: Option[Extras],
                     streamFiles: StreamFiles.StreamFiles,
                     waitOnUpload: Boolean,
                     useManifests: Boolean,
+                    instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
+                    defaultInstanceType: Option[String],
                     fileResolver: FileSourceResolver = FileSourceResolver.get,
                     dxApi: DxApi = DxApi.get,
                     logger: Logger = Logger.get) {
@@ -86,18 +84,6 @@ case class Compiler(extras: Option[Extras],
 
   private case class BundleCompiler(bundle: Bundle, project: DxProject, folder: String) {
     private val parameterLinkSerializer = ParameterLinkSerializer(fileResolver)
-    // database of available instance types for the user/org that owns the project
-    // Instance type filter:
-    // - Instance must support Ubuntu.
-    // - Instance is not an FPGA instance.
-    // - Instance does not have local HDD storage (those are older instance types).
-    private def instanceTypeFilter(instanceType: DxInstanceType): Boolean = {
-      instanceType.os.exists(_.release == Constants.OsRelease) &&
-      !instanceType.diskType.contains(DiskType.HDD) &&
-      !instanceType.name.contains("fpga")
-    }
-    private val instanceTypeDb =
-      InstanceTypeDB.create(project, instanceTypeFilter, Some(dxApi), logger)
     // directory of the currently existing applets - we don't want to build them
     // if we don't have to.
     private val executableDir =
@@ -180,11 +166,11 @@ case class Compiler(extras: Option[Extras],
 
               |""".stripMargin
       )
-      // We need to sort the hash-tables. They are natually unsorted,
+      // We need to sort the hash-tables. They are naturally unsorted,
       // causing the same object to have different checksums.
       val digest =
         CodecUtils.md5Checksum(JsUtils.makeDeterministic(JsObject(desc)).prettyPrint)
-      // Add the checksum to the properies
+      // Add the checksum to the properties
       val existingDetails: Map[String, JsValue] =
         desc.get("details") match {
           case Some(JsObject(details)) => details
@@ -318,20 +304,23 @@ case class Compiler(extras: Option[Extras],
       logger2.trace(s"Compiling applet ${applet.name}")
       val appletCompiler =
         ApplicationCompiler(
-            bundle.typeAliases,
-            instanceTypeDb,
-            runtimeAsset,
-            runtimeJar,
-            runtimePathConfig,
-            runtimeTraceLevel,
-            separateOutputs,
-            streamFiles,
-            waitOnUpload,
-            extras,
-            parameterLinkSerializer,
-            useManifests,
-            dxApi,
-            logger2
+            typeAliases = bundle.typeAliases,
+            runtimeAsset = runtimeAsset,
+            runtimeJar = runtimeJar,
+            runtimePathConfig = runtimePathConfig,
+            runtimeTraceLevel = runtimeTraceLevel,
+            separateOutputs = separateOutputs,
+            streamFiles = streamFiles,
+            waitOnUpload = waitOnUpload,
+            extras = extras,
+            parameterLinkSerializer = parameterLinkSerializer,
+            useManifests = useManifests,
+            instanceTypeSelection = instanceTypeSelection,
+            defaultInstanceType,
+            dxApi = dxApi,
+            logger = logger2,
+            project = project,
+            folder = folder
         )
       // limit the applet dictionary to actual dependencies
       val dependencies: Map[String, ExecutableLink] = applet.kind match {

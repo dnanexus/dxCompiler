@@ -100,10 +100,10 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
                                Vector(Constants.OsVersion))
       ),
       Some(DiskType.SSD),
-      Some(1.00f)
+      Some(1)
   )
   private val instanceTypeDB =
-    InstanceTypeDB(Map(TaskTestJobMeta.InstanceType -> unicornInstance), pricingAvailable = true)
+    InstanceTypeDB(Map(TaskTestJobMeta.InstanceType -> unicornInstance))
 
   // Note: if the file doesn't exist, this throws a null pointer exception
   private def pathFromBasename(basename: String): Option[Path] = {

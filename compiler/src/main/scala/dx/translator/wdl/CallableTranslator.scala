@@ -42,6 +42,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                               perWorkflowAttrs: Map[String, DxWorkflowAttrs],
                               defaultScatterChunkSize: Int,
                               useManifests: Boolean,
+                              instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
                               versionSupport: VersionSupport,
                               dxApi: DxApi = DxApi.get,
                               fileResolver: FileSourceResolver = FileSourceResolver.get,
@@ -180,14 +181,14 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       // the output declarations in a native applet stub have values only because they
       // are required for WDL parsing - they can be safely ignored
       val outputs = task.outputs.map(translateOutput(_, ignoreDefault = isNative))
-      val instanceType = runtime.translateInstanceType
+      val instanceType = runtime.translateInstanceType(instanceTypeSelection)
       val requirements = runtime.translateRequirements
       val staticFileDependencies = translateStaticFileDependencies(task.privateVariables)
       val attributes = meta.translate
       val container = runtime.translateContainer
       val cleanedTask: TAT.Task = container match {
         case DxFileDockerImage(_, dxFile) =>
-          val dxURL = DxUtils.dxDataObjectToUri(dxFile)
+          val dxURL = DxUtils.dxDataObjectToUri(dxObj = dxFile, includeProject = false)
           task.copy(runtime = task.runtime.map(rt => replaceContainer(rt, dxURL)))(task.loc)
         case _ => task
       }
@@ -569,11 +570,10 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         // get the input and output closures of the workflow statements -
         // these are the inputs that come from outside the block, and the
         // outputs that are exposed
-        val (statementClosureInputs, statementClosureOutputs) =
+        val (statementClosureInputs, outputs) =
           WdlUtils.getClosureInputsAndOutputs(statements, withField = true)
         // create block inputs for the closure inputs
         val allInputs = WdlBlockInput.create(statementClosureInputs)
-        val outputs = statementClosureOutputs.values.toVector
         // collect the sub-block inputs that are not workflow inputs or outputs -
         // these are additional inputs from outside the block that need to be
         // supplied as workflow inputs

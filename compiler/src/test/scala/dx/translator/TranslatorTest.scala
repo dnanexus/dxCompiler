@@ -62,6 +62,37 @@ class TranslatorTest extends AnyFlatSpec with Matchers {
     Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
+  it should "IR compile a single WDL task with dynamic instance type selection" in {
+    def compile(instanceTypeSelection: String): InstanceType = {
+      val path = pathFromBasename("compiler", "add.wdl")
+      val args = path.toString :: "-instanceTypeSelection" :: instanceTypeSelection :: cFlags
+      val bundle = Main.compile(args.toVector) match {
+        case SuccessfulCompileIR(bundle) => bundle
+        case other =>
+          throw new Exception(s"expected succss not ${other}")
+      }
+      val applet = bundle.primaryCallable match {
+        case Some(applet: Application) => applet
+        case other =>
+          throw new Exception(s"expected primary callable to be an applet not ${other}")
+      }
+      applet.instanceType
+    }
+    compile("static") shouldBe StaticInstanceType(
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        Some(ExecutionEnvironment("Ubuntu", "20.04", Vector("0")))
+    )
+    compile("dynamic") shouldBe DynamicInstanceType
+  }
+
   it should "IR compile a task with docker" in {
     val path = pathFromBasename("compiler", "BroadGenomicsDocker.wdl")
     val args = path.toString :: cFlags
@@ -918,7 +949,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
       case other =>
         throw new Exception(s"unexpected primary callable ${other}")
     }
-    wf.stages.size shouldBe 1
+    wf.stages.size shouldBe 2
     wf.stages.head.inputs shouldBe Vector(
         WorkflowInput(
             Parameter("sampleStruct",
@@ -978,7 +1009,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   it should "respect import -p flag" in {
     val path = pathFromBasename("compiler/imports", "A.wdl")
     val libraryPath = path.getParent.resolve("lib")
-    val args = path.toString :: "--p" :: libraryPath.toString :: cFlags
+    val args = path.toString :: "-p" :: libraryPath.toString :: cFlags
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileIR]
   }

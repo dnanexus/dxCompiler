@@ -1,5 +1,14 @@
 # Release Notes
 
+## 2.5.0 2021-09-14
+
+* Docker image dependencies that are DNAnexus platform files are included in applet's bundledDepends
+* Adds `-instanceTypeSelection` compiler option to allow disabling compile-type instance type selection
+* Adds `-defaultInstanceType` option
+* Adds support for new London region, `aws:eu-west-2-g`
+* Fixes `-projectWideReuse`
+* Fixes evaluation of `outputs` when one declaration depends on another
+
 ## 2.4.10 2021-08-16
 
 * Fixes issue with using `File` declarations in scatter/conditional blocks
