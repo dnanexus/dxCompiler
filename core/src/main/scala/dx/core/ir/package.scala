@@ -86,7 +86,7 @@ case object ExecutableKindApplet extends ExecutableKind
 
 /**
   * An applet that executes a workflow fragment.
-  * @param call names of calls made in the fragment
+  * @param call name of the call made in the fragment
   * @param blockPath path to the block represented by this fragment
   * @param inputs mapping of input name to type, where names are encoded
   *               such that any dots are replaced with '\_\_\_'

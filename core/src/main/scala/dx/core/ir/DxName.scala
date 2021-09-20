@@ -161,6 +161,10 @@ abstract class DxName(private var encodedParts: Option[Vector[String]],
     }
   }
 
+  def decodedIdentifier: String = {
+    getDecodedParts.last
+  }
+
   protected def create(encodedParts: Option[Vector[String]] = None,
                        decodedParts: Option[Vector[String]] = None,
                        stage: Option[String],

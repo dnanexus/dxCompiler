@@ -292,7 +292,8 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
       val allParents = parents :+ jobMeta.jobId
       val details = Vector(
           Some(WorkflowExecutor.ParentsKey -> JsArray(allParents.map(JsString(_)))),
-          nextStart.map(i => Constants.ContinueStart -> JsNumber(i))
+          nextStart.map(i => Constants.ContinueStart -> JsNumber(i)),
+          outputShape.map(v => Constants.OutputShape -> JsArray(v.map(JsNumber(_))))
       ).flatten.toMap
       JsObject(details)
     }
@@ -307,7 +308,8 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
       */
     protected def launchScatterContinue(
         childJobs: Vector[DxExecution],
-        nextStart: Int
+        nextStart: Int,
+        outputShape: Option[Vector[Int]] = None
     ): Map[DxName, ParameterLink] = {
       if (childJobs.nonEmpty) {
         // Run a sub-job with the "continue" entry point.
@@ -321,7 +323,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
             childJobs,
             jobMeta.delayWorkspaceDestruction,
             Some(s"continue_scatter($nextStart)"),
-            Some(createSubjobDetails(Some(nextStart)))
+            Some(createSubjobDetails(Some(nextStart), outputShape))
         )
         prepareScatterResults(dxSubJob)
       } else {
@@ -330,7 +332,8 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
     }
 
     protected def launchScatterCollect(
-        childJobs: Vector[DxExecution]
+        childJobs: Vector[DxExecution],
+        outputShape: Option[Vector[Int]] = None
     ): Map[DxName, ParameterLink] = {
       if (childJobs.nonEmpty) {
         // Run a sub-job with the "collect" entry point.
@@ -344,7 +347,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
             childJobs,
             jobMeta.delayWorkspaceDestruction,
             Some(s"collect_scatter"),
-            Some(createSubjobDetails())
+            Some(createSubjobDetails(outputShape = outputShape))
         )
         prepareScatterResults(dxSubJob)
       } else {
@@ -673,8 +676,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
             case (k, _) if block.outputNames.contains(k) => true
             case _                                       => false
           })
-        case BlockKind.CallDirect =>
-          throw new RuntimeException("unreachable state")
+        case _ => throw new RuntimeException("unreachable state")
       }
       prepareBlockOutputs(outputs)
     }
@@ -830,20 +832,13 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
 
   def apply(action: WorkflowAction.WorkflowAction): (Map[DxName, ParameterLink], String) = {
     val outputs: Map[DxName, ParameterLink] = action match {
-      case WorkflowAction.Inputs =>
-        evaluateInputs()
-      case WorkflowAction.Run =>
-        evaluateFragInputs().launch()
-      case WorkflowAction.Continue =>
-        evaluateFragInputs().continue()
-      case WorkflowAction.Collect =>
-        evaluateFragInputs().collect()
-      case WorkflowAction.Outputs =>
-        evaluateOutputs()
-      case WorkflowAction.CustomReorgOutputs =>
-        evaluateOutputs(addReorgStatus = true)
-      case WorkflowAction.OutputReorg =>
-        reorganizeOutputsDefault()
+      case WorkflowAction.Inputs             => evaluateInputs()
+      case WorkflowAction.Run                => evaluateFragInputs().launch()
+      case WorkflowAction.Continue           => evaluateFragInputs().continue()
+      case WorkflowAction.Collect            => evaluateFragInputs().collect()
+      case WorkflowAction.Outputs            => evaluateOutputs()
+      case WorkflowAction.CustomReorgOutputs => evaluateOutputs(addReorgStatus = true)
+      case WorkflowAction.OutputReorg        => reorganizeOutputsDefault()
       case _ =>
         throw new Exception(s"Illegal workflow fragment operation ${action}")
     }

@@ -1671,4 +1671,32 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val args = path.toString :: cFlags
     Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
+
+  it should "translate a CWL workflow with workflow input link of different name" in {
+    val path = pathFromBasename("cwl", "cond-wf-011_nojs.cwl.json")
+    val args = path.toString :: cFlags
+    val bundle = Main.compile(args.toVector) match {
+      case SuccessfulCompileIR(bundle) => bundle
+      case other                       => throw new Exception(s"expected success not ${other}")
+    }
+    val wf = bundle.primaryCallable match {
+      case Some(wf: Workflow) => wf
+      case other              => throw new Exception(s"expected workflow not ${other}")
+    }
+    val stageApplet = bundle.allCallables(wf.stages.head.calleeName) match {
+      case applet: Application => applet
+      case other               => throw new Exception(s"expected applet not ${other}")
+    }
+    val stageParams = stageApplet.inputs.map(param => param.name -> param).toMap
+    stageParams.keySet
+      .map(_.decodedIdentifier) shouldBe Set("in1", "in2", "in3", "test")
+    val targetApplet = stageApplet.kind match {
+      case ExecutableKindWfFragment(Some(call), _, _, _) => bundle.allCallables(call)
+      case other =>
+        throw new Exception(s"expetected fragment not ${other}")
+    }
+    val targetParams = targetApplet.inputVars.map(param => param.name -> param).toMap
+    targetParams.keySet
+      .map(_.decodedIdentifier) shouldBe Set("in1", "in2", "in3", "target")
+  }
 }

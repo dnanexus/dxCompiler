@@ -41,6 +41,7 @@ object Constants {
 
   // keys used in details of jobs of native applets
   val ContinueStart = "continue_start___"
+  val OutputShape = "output_shape___"
 
   // stages that the compiler uses in generated DNAx workflows
   val CommonStage = "common"

@@ -775,6 +775,14 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
       throw new Exception(s"Invalid value ${other} for ${Constants.ScatterChunkSize}")
   }
 
+  lazy val outputShape: Option[Vector[Int]] = getJobDetail(Constants.OutputShape).map {
+    case JsArray(arr) =>
+      arr.map {
+        case JsNumber(i) => i.toIntExact
+        case other       => throw new Exception(s"invalid output shape value ${other}")
+      }
+  }
+
   lazy val useManifests: Boolean = getExecutableDetail(Constants.UseManifests) match {
     case Some(JsBoolean(b)) => b
     case None               => false
