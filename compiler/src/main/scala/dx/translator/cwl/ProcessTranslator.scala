@@ -666,7 +666,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
 
     /**
       * Compile a locked workflow. This is called at the top level for locked workflows,
-      * and it is always called for nested workflows regarless of whether the top level
+      * and it is always called for nested workflows regardless of whether the top level
       * is locked.
       * @param wfName workflow name
       * @param inputs formal workflow inputs
