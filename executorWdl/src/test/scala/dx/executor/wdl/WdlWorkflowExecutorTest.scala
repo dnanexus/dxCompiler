@@ -116,11 +116,10 @@ class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
                                  Vector(Constants.OsVersion))
         ),
         Some(DiskType.SSD),
-        Some(1.00f)
+        Some(1)
     )
   private val instanceTypeDB = InstanceTypeDB(
-      Map(WorkflowTestJobMeta.InstanceType -> unicornInstance),
-      pricingAvailable = true
+      Map(WorkflowTestJobMeta.InstanceType -> unicornInstance)
   )
 
   private def setup(): DxWorkerPaths = {

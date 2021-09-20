@@ -15,6 +15,7 @@ import dx.core.ir.{
   ExecutableKindWfCustomReorgOutputs,
   ExecutableKindWfFragment,
   ExecutableKindWfOutputs,
+  InstanceTypeSelection,
   Level,
   StageInputStageLink,
   Parameter,
@@ -86,6 +87,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
                              perWorkflowAttrs: Map[String, DxWorkflowAttrs],
                              defaultScatterChunkSize: Int,
                              useManifests: Boolean,
+                             instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
                              dxApi: DxApi = DxApi.get,
                              fileResolver: FileSourceResolver = FileSourceResolver.get,
                              logger: Logger = Logger.get) {
@@ -277,7 +279,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           // Try to determine the instance type from the process requirements -
           // if any of the expressions fail to evaluate statically, then the instance
           // type will be determined at runtime.
-          requirementEvaluator.translateInstanceType,
+          requirementEvaluator.translateInstanceType(instanceTypeSelection),
           requirementEvaluator.translateContainer,
           ExecutableKindApplet,
           CwlSourceCode(docSource),

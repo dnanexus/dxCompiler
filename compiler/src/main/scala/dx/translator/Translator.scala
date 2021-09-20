@@ -52,6 +52,7 @@ trait TranslatorFactory {
              perWorkflowAttrs: Map[String, DxWorkflowAttrs],
              defaultScatterChunkSize: Int,
              useManifests: Boolean,
+             instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
              fileResolver: FileSourceResolver,
              dxApi: DxApi = DxApi.get,
              logger: Logger = Logger.get): Option[Translator]
@@ -66,6 +67,7 @@ object TranslatorFactory {
                        locked: Boolean = false,
                        reorgEnabled: Option[Boolean] = None,
                        useManifests: Boolean,
+                       instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
                        baseFileResolver: FileSourceResolver = FileSourceResolver.get,
                        dxApi: DxApi = DxApi.get,
                        logger: Logger = Logger.get): Translator = {
@@ -95,6 +97,7 @@ object TranslatorFactory {
             perWorkflowAttrs,
             defaultScatterChunkSize,
             useManifests,
+            instanceTypeSelection,
             fileResolver,
             dxApi,
             logger

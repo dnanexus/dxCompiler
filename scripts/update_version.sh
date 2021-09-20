@@ -15,4 +15,7 @@ CONF_FILES=(
 # https://stackoverflow.com/questions/19456518/invalid-command-code-despite-escaping-periods-using-sed/19457213#19457213
 for i in ${CONF_FILES[@]}; do
     sed -i'' -e "s/version.*$/version = \"${VERSION}\"/" $i
+
+    # Remove extra files that prev. cmd creates on macOS
+    rm "$i-e" || true
 done

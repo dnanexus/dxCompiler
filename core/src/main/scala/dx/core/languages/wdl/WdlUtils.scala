@@ -1032,9 +1032,8 @@ object WdlUtils {
           // get inputs for the scatter expression
           val exprInputs =
             getExpressionInputs(scatter.expr, typeHint = None, withField = innerWithField)
-          // recurse into body of the scatter
-          // if the scatter variable is referenced, ensure its kind is
-          // 'Computed' so it doesn't become a required input
+          // Recurse into body of the scatter. If the scatter variable is referenced, ensure its
+          // kind is 'Computed' so it doesn't become a required input.
           val scatterIdentifierRegexp = s"${scatter.identifier}([.\\[].+)?".r
           val bodyInputs = getInputs(scatter.body, innerWithField = true).map {
             case ref if scatterIdentifierRegexp.matches(ref.identifier.decoded) =>
