@@ -70,6 +70,7 @@ jobs:
           pip3 install termcolor dxpy $cwltool
           # install dxda
           sudo wget -O/usr/local/bin/dx-download-agent https://github.com/dnanexus/dxda/releases/download/v0.5.7/dx-download-agent-linux
+          chmod +x /usr/local/bin/dx-download-agent
       - name: Run tests
         if: ${{ github.event.inputs.should-run-tests == 'true' }}
         env:
