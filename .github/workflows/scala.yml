@@ -42,6 +42,9 @@ jobs:
           pip3 install dxpy $cwltool
           export PATH="$PATH:$HOME/.local/bin"
 
+          # install dxda
+          sudo wget -O/usr/local/bin/dx-download-agent https://github.com/dnanexus/dxda/releases/download/v0.5.7/dx-download-agent-linux
+
           # set up DNAnexus staging environment
           dx login --noprojects --staging --token $AUTH_TOKEN
           dx select dxCompiler_playground

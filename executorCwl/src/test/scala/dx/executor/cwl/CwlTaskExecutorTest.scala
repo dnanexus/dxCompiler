@@ -46,7 +46,8 @@ private case class ToolTestJobMeta(override val workerPaths: DxWorkerPaths,
                                    rawInstanceTypeDb: InstanceTypeDB,
                                    rawSourceCode: String,
                                    pathToDxFile: Map[Path, DxFile] = Map.empty,
-                                   useManifestInputs: Boolean = false)
+                                   useManifestInputs: Boolean = false,
+                                   downloadFiles: Boolean = true)
     extends JobMeta(workerPaths, CwlDxName, dxApi, logger) {
   var outputs: Option[Map[DxName, JsValue]] = None
 
@@ -75,7 +76,9 @@ private case class ToolTestJobMeta(override val workerPaths: DxWorkerPaths,
   override def runJobScriptFunction(name: String,
                                     successCodes: Option[Set[Int]] = Some(Set(0))): Unit = {
     name match {
-      case TaskExecutor.DownloadDxda if dxdaCallable =>
+      case TaskExecutor.DownloadDxda if downloadFiles && !dxdaCallable =>
+        throw new Exception("cannot call dxda")
+      case TaskExecutor.DownloadDxda if downloadFiles =>
         val dxdaManifest = workerPaths.getDxdaManifestFile().toString
         SysUtils.execCommand(
             s"""bzip2 ${dxdaManifest} &&
