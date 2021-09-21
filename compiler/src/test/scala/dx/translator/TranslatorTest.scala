@@ -1750,4 +1750,10 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
       case ExecutableKindWfFragment(Some("wc3-tool.cwl"), Vector(0), _, None) =>
     }
   }
+
+  it should "translate a WDL workflow with dx runtime attributes" in {
+    val path = pathFromBasename("bugs", "dx_runtime_keys.wdl")
+    val args = path.toString :: cFlags
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
+  }
 }
