@@ -129,7 +129,8 @@ private case class ToolTestJobMeta(override val workerPaths: DxWorkerPaths,
       ),
       Constants.SourceCode -> JsString(CodecUtils.gzipAndBase64Encode(rawSourceCode)),
       Constants.UseManifests -> JsBoolean(useManifestInputs),
-      Constants.PathsAsObjects -> JsTrue
+      Constants.PathsAsObjects -> JsTrue,
+      Constants.ArraysAsObjects -> JsTrue
   )
 
   override def getExecutableDetail(name: String): Option[JsValue] = {

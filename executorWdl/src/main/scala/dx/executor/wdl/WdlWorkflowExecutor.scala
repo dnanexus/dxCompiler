@@ -746,22 +746,6 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       }
     }
 
-    override protected def prepareScatterResults(
-        dxSubJob: DxExecution
-    ): Map[DxName, ParameterLink] = {
-      val resultTypes: Map[DxName, Type] = block.outputs.map {
-        case WdlBlockOutput(dxName, wdlType, _) => dxName -> WdlUtils.toIRType(wdlType)
-      }.toMap
-      // Return JBORs for all the outputs. Since the signature of the sub-job
-      // is exactly the same as the parent, we can immediately exit the parent job.
-      val links = jobMeta.createExecutionOutputLinks(dxSubJob, resultTypes)
-      if (logger.isVerbose) {
-        logger.traceLimited(s"resultTypes=${resultTypes}")
-        logger.traceLimited(s"promises=${links.mkString("\n")}")
-      }
-      links
-    }
-
     override protected def launchScatter(): Map[DxName, ParameterLink] = {
       val (identifier, itemType, collection, next) = block.target match {
         case Some(TAT.Scatter(identifier, expr, _)) =>
@@ -783,18 +767,17 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         case _ =>
           throw new RuntimeException(s"invalid scatter block ${block}")
       }
-      next match {
-        case Some(index) =>
-          // there are remaining chunks - call a continue sub-job
-          launchScatterContinue(childJobs, index)
-        case None =>
-          // this is the last chunk - call collect sub-job to gather all the results
-          launchScatterCollect(childJobs)
-      }
+      // if there are remaining chunks this calls a continue sub-job,
+      // otherwise it calls a collect sub-job
+      launchNextScatterChunk(childJobs, next)
     }
 
+    override protected lazy val outputTypes: Map[DxName, Type] = block.outputs.map {
+      case WdlBlockOutput(dxName, wdlType, _) => dxName -> WdlUtils.toIRType(wdlType)
+    }.toMap
+
     override protected def getScatterOutputs(
-        childOutputs: Vector[Map[DxName, JsValue]],
+        execOutputs: Vector[Option[Map[DxName, JsValue]]],
         execName: Option[String]
     ): Map[DxName, (Type, Value)] = {
       val outputTypes: Map[DxName, (DxName, Type)] = block.kind match {
@@ -817,7 +800,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       outputTypes.map {
         case (fqn, (name, irType)) =>
           val arrayType = TArray(irType)
-          val value = createScatterOutputArray(childOutputs, name, irType, execName)
+          val value = createScatterOutputArray(execOutputs, name, irType, execName)
           fqn -> (arrayType, value)
       }
     }

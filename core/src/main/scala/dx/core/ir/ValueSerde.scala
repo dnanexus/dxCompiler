@@ -96,6 +96,13 @@ object ValueSerde extends DefaultJsonProtocol {
     inner(path)
   }
 
+  def wrapArray(items: JsArray): JsObject = {
+    JsObject(
+        "type" -> JsString("Array"),
+        "items" -> items
+    )
+  }
+
   /**
     * Serializes a Value to JSON.
     * @param value the Value to serialize
@@ -103,6 +110,8 @@ object ValueSerde extends DefaultJsonProtocol {
     *                If Right(jsValue) is returned, then jsValue is the result of the
     *                transformation. If Left(newValue) is returned, then newValue is
     *                transformed according to the default rules.
+    * @param pathsAsObjects whether to serialize path types (File and Directory) as Objects
+    *                       rather than Strings.
     * @return
     */
   def serialize(value: Value,
@@ -130,7 +139,7 @@ object ValueSerde extends DefaultJsonProtocol {
   }
 
   /**
-    * Wrap value of associated with `Any` type.
+    * Wrap value for a multi-type (including `Any`)
     */
   def wrapValue(jsValue: JsValue, mustNotBeWrapped: Boolean = false): JsValue = {
     jsValue match {
@@ -198,15 +207,12 @@ object ValueSerde extends DefaultJsonProtocol {
         serialize(innerValue, handlerWrapper)
       } else {
         innerMultiType.bounds.iterator
-          .map { t =>
+          .collectFirstDefined { t =>
             try {
               Some(inner(innerValue, t))
             } catch {
               case _: Throwable => None
             }
-          }
-          .collectFirst {
-            case Some(t) => t
           }
           .getOrElse(
               throw new Exception(s"value ${value} not serializable to ${innerMultiType.bounds}")
@@ -214,7 +220,11 @@ object ValueSerde extends DefaultJsonProtocol {
       }
       wrapValue(jsValue)
     }
-    inner(value, irType)
+    // wrap any array that is not natively supported
+    (irType, inner(value, irType)) match {
+      case (a: TArray, items: JsArray) if !Type.isNative(a, !pathsAsObjects) => wrapArray(items)
+      case (_, jsv)                                                          => jsv
+    }
   }
 
   def serializeMap(values: Map[String, Value]): Map[String, JsValue] = {
@@ -320,6 +330,16 @@ object ValueSerde extends DefaultJsonProtocol {
     inner(jsv)
   }
 
+  def isArrayObject(jsv: JsValue): Boolean = {
+    jsv match {
+      case JsObject(fields) if fields.size == 1 =>
+        fields.get("type").contains(JsString("Array"))
+      case JsObject(fields) if fields.size == 2 =>
+        fields.get("type").contains(JsString("Array")) && fields.contains("items")
+      case _ => false
+    }
+  }
+
   /**
     * Deserializes a JsValue to a Value, in the absence of type information.
     *
@@ -352,6 +372,14 @@ object ValueSerde extends DefaultJsonProtocol {
         case JsArray(items)                                 => VArray(items.map(x => inner(x)))
         case obj: JsObject if isPathObject(obj) =>
           deserializePathObject(obj, dxApi, dxFileDescCache)
+        case obj @ JsObject(fields) if isArrayObject(obj) =>
+          fields
+            .get("items")
+            .map {
+              case JsArray(items) => VArray(items.map(x => inner(x)))
+              case other          => throw new Exception(s"invalid array items ${other}")
+            }
+            .getOrElse(VArray.empty)
         case obj: JsObject if DxFile.isLinkJson(obj) =>
           VFile(deserializeDxFileUri(obj, dxApi, dxFileDescCache))
         case JsObject(fields) => VHash(fields.view.mapValues(inner).to(SeqMap))
@@ -424,6 +452,22 @@ object ValueSerde extends DefaultJsonProtocol {
             case (x, index) =>
               inner(x, t, s"${innerName}[${index}]")
           })
+        case (TArray(t, nonEmpty), obj @ JsObject(fields)) if isArrayObject(obj) =>
+          fields.get("items") match {
+            case Some(JsArray(items)) if nonEmpty && items.isEmpty =>
+              throw ValueSerdeException(
+                  s"Cannot convert ${innerName} empty array to non-empty type ${innerType}"
+              )
+            case None if nonEmpty =>
+              throw ValueSerdeException(
+                  s"Cannot convert ${innerName} empty array to non-empty type ${innerType}"
+              )
+            case Some(JsArray(items)) =>
+              VArray(items.zipWithIndex.map {
+                case (x, index) =>
+                  inner(x, t, s"${innerName}[${index}]")
+              })
+          }
         case (TSchema(name, fieldTypes), JsObject(fields)) =>
           // ensure 1) fields keys are a subset of typeTypes keys, 2) fields
           // values are convertible to the corresponding types, and 3) any keys

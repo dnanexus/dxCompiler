@@ -52,6 +52,7 @@ import dx.util.TraceLevel
 import spray.json._
 
 import java.net.URI
+import scala.annotation.tailrec
 
 object CwlWorkflowExecutor {
   def create(jobMeta: JobMeta, separateOutputs: Boolean): CwlWorkflowExecutor = {
@@ -244,8 +245,9 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
       extends BlockContext {
     private val step = block.target
     private lazy val runInputs: Map[DxName, InputParameter] = step.run.inputs.map { i =>
-      CwlDxName.fromDecodedName(i.id.flatMap(_.frag).get) -> i
+      CwlDxName.fromSourceName(i.name) -> i
     }.toMap
+    private lazy val scatterNames = step.scatter.map(src => CwlDxName.fromSourceName(src.name.get))
     private lazy val eval = Evaluator.create(block.targetRequirements, block.targetHints)
 
     override lazy val env: Map[DxName, (Type, Value)] = CwlUtils.toIR(cwlEnv.env)
@@ -330,14 +332,20 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
       // evaluate valueFrom expressions - create the evaluator lazily since it might not be needed
       lazy val evalInputs: ObjectValue = createEvalInputs(stepInputs.values.toMap)
       val stepInputValues = stepInputs.map {
-        case (dxName, (param, (sourceType, sourceValue))) =>
-          val cwlType = runInputs.get(dxName).map(_.cwlType).getOrElse(sourceType)
+        case (dxName, (stepInput, (sourceType, sourceValue))) =>
+          val cwlType = runInputs
+            .get(dxName)
+            .map {
+              case runInput if scatterNames.contains(dxName) => CwlArray(runInput.cwlType)
+              case runInput                                  => runInput.cwlType
+            }
+            .getOrElse(sourceType)
           try {
-            if (param.valueFrom.isDefined) {
+            if (stepInput.valueFrom.isDefined) {
               val ctx = EvaluatorContext(sourceValue, evalInputs)
-              dxName -> (param, eval.evaluate(param.valueFrom.get, cwlType, ctx))
+              dxName -> (stepInput, eval.evaluate(stepInput.valueFrom.get, cwlType, ctx))
             } else {
-              dxName -> (param, (cwlType, sourceValue.coerceTo(cwlType)))
+              dxName -> (stepInput, (cwlType, sourceValue.coerceTo(cwlType)))
             }
           } catch {
             case cause: Throwable =>
@@ -491,27 +499,33 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
           case Some((_, (array: CwlArray, ArrayValue(items)))) =>
             Some(array.itemType, items)
           case None =>
-            throw new Exception(s"scatter parameter ${name} is missing from env")
-          case _ =>
-            throw new Exception(s"scatter parameter ${name} not of type array")
+            throw new Exception(s"scatter parameter ${name} is missing from step inputs")
+          case other =>
+            throw new Exception(s"scatter parameter ${name} type ${other} is not an array")
         }
       }
 
-      val scatterNames = step.scatter.map(src => CwlDxName.fromSourceName(src.name.get))
       val scatterValues = scatterNames.map(getScatterValue)
       if (scatterValues.exists(_.isEmpty)) {
         // at least one of the arrays is empty, so the scatter has no results
         return Map.empty
       }
       val (itemTypes, arrays) = scatterValues.flatten.unzip
+      // transform the input arrays into a single collection based on the scatter method
       val scatterCollection = step.scatterMethod match {
-        case ScatterMethod.Dotproduct if arrays.map(_.size).toSet.size == 1 =>
+        case _ if arrays.size == 1 => arrays.transpose
+        case Some(ScatterMethod.Dotproduct) if arrays.map(_.size).toSet.size == 1 =>
           arrays.transpose
-        case ScatterMethod.FlatCrossproduct | ScatterMethod.NestedCrossproduct =>
+        case Some(ScatterMethod.FlatCrossproduct) | Some(ScatterMethod.NestedCrossproduct) =>
           arrays.foldLeft(Vector(Vector.empty[CwlValue])) {
             case (accu, v) => accu.flatMap(i => v.map(j => i :+ j))
           }
+        case _ =>
+          throw new Exception(
+              "'scatterMethod' is required when there is more than one scatter variable"
+          )
       }
+      // select the subset of the collection for the current scatter chunk
       val (chunkCollection, next) =
         if (jobMeta.scatterStart == 0 && scatterCollection.size <= jobMeta.scatterSize) {
           (scatterCollection, None)
@@ -523,111 +537,123 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
             (scatterCollection.drop(jobMeta.scatterStart), None)
           }
         }
-
-      val finalChunkCollection = if (step.when.nonEmpty) {
-        val scatterInputs = scatterNames.map(dxName => stepInputs(dxName)._1).zip(itemTypes)
-        val nonScatterInputs = stepInputs.keySet
-          .diff(scatterNames.toSet)
-          .map(dxName => stepInputs(dxName))
-          .toMap
-        chunkCollection.flatMap { jobValues =>
-          val allInputs = nonScatterInputs ++ scatterInputs
-            .zip(jobValues)
-            .map {
-              case ((param, t), v) => param -> (t, v)
-            }
-          val ctx = EvaluatorContext(inputs = createEvalInputs(allInputs))
-          val (_, cond) = eval.evaluate(step.when.get, CwlBoolean, ctx)
-          cond match {
-            case BooleanValue(true) => Some(jobValues)
-            case _                  => None
-          }
-        }
-      } else {
-        chunkCollection
-      }
-      val nonScatterCallInputs = stepInputs.keySet
+      // merge the scatter and non-scatter call inputs
+      val nonScatterCallInputs = runInputs.keySet
         .diff(scatterNames.toSet)
         .map(dxName => dxName -> stepInputs(dxName)._2)
         .toMap
-      val childJobs = finalChunkCollection.map { item =>
-        val scatterCallInputs: Map[DxName, (CwlType, CwlValue)] = scatterNames
-          .zip(itemTypes.zip(item))
+      val (childJobs, skippedIndices) = if (step.when.nonEmpty) {
+        // Apply `when`, which may lead to some scatter collection items being null, for which we
+        // skip launching the scatter job. We keep track of which indices are null so that we can
+        // reconstruct the array with the correct shape later.
+        val scatterStepInputs = scatterNames.map(dxName => stepInputs(dxName)._1).zip(itemTypes)
+        val nonScatterStepInputs = stepInputs.keySet
+          .diff(scatterNames.toSet)
+          .map(dxName => stepInputs(dxName))
           .toMap
-        val callNameDetail = getScatterName(item)
-        val (dxExecution, _, _) =
-          launchCall(scatterCallInputs ++ nonScatterCallInputs, Some(callNameDetail))
-        dxExecution
+        val (childJobs, skippedIndices) =
+          chunkCollection.foldLeft(Vector.empty[DxExecution], Vector.empty[Int]) {
+            case ((execAccu, skipAccu), jobValues) =>
+              val allInputs = nonScatterStepInputs ++ scatterStepInputs
+                .zip(jobValues)
+                .map {
+                  case ((param, t), v) => param -> (t, v)
+                }
+              val ctx = EvaluatorContext(inputs = createEvalInputs(allInputs))
+              val (_, cond) = eval.evaluate(step.when.get, CwlBoolean, ctx)
+              cond match {
+                case BooleanValue(true) =>
+                  val scatterCallInputs: Map[DxName, (CwlType, CwlValue)] = scatterNames
+                    .zip(itemTypes.zip(jobValues))
+                    .filter {
+                      case (dxName, _) => runInputs.contains(dxName)
+                    }
+                    .toMap
+                  val callNameDetail = getScatterName(jobValues)
+                  val (dxExecution, _, _) =
+                    launchCall(scatterCallInputs ++ nonScatterCallInputs, Some(callNameDetail))
+                  (execAccu :+ dxExecution, skipAccu)
+                case _ =>
+                  (execAccu, skipAccu :+ nextScatterChunkIndex)
+              }
+          }
+        (childJobs, Option.when(skippedIndices.nonEmpty)(skippedIndices))
+      } else {
+        val childJobs = chunkCollection.map { item =>
+          val scatterCallInputs: Map[DxName, (CwlType, CwlValue)] = scatterNames
+            .zip(itemTypes.zip(item))
+            .filter {
+              case (dxName, _) => runInputs.contains(dxName)
+            }
+            .toMap
+          val callNameDetail = getScatterName(item)
+          val (dxExecution, _, _) =
+            launchCall(scatterCallInputs ++ nonScatterCallInputs, Some(callNameDetail))
+          dxExecution
+        }
+        (childJobs, None)
       }
+      // store the output shape in the job details so we don't have to recompute it during the
+      // collect step
       val outputShape = Option.when(step.scatterMethod.contains(ScatterMethod.NestedCrossproduct))(
           arrays.map(_.size)
       )
-      next match {
-        case Some(index) =>
-          // there are remaining chunks - call a continue sub-job
-          launchScatterContinue(childJobs, index, outputShape)
-        case None =>
-          // this is the last chunk - call collect sub-job to gather all the results
-          launchScatterCollect(childJobs, outputShape)
-      }
+      // if there are remaining chunks this calls a continue sub-job,
+      // otherwise it calls a collect sub-job
+      launchNextScatterChunk(childJobs, next, outputShape, skippedIndices)
     }
 
-    override protected def prepareScatterResults(
-        dxSubJob: DxExecution
-    ): Map[DxName, ParameterLink] = {
-      // Return JBORs for all the outputs. Since the signature of the sub-job is exactly the same
-      // as the parent, we can immediately exit the parent job.
-      val resultTypes: Map[DxName, Type] = block.outputs.map { param =>
-        param.name -> CwlUtils.toIRType(param.cwlType)
-      }.toMap
-      val links = jobMeta.createExecutionOutputLinks(dxSubJob, resultTypes)
-      if (logger.isVerbose) {
-        logger.trace(s"Scatter results for job ${dxSubJob.id}")
-        logger.traceLimited(s"Types: ${resultTypes}")
-        logger.traceLimited(s"Links: ${links.mkString("\n")}")
-      }
-      links
-    }
-
-    private def nestArrays(array: Vector[Value], sizes: Vector[Int]): Value = {
-      if (sizes.size == 1) {
-        assert(array.size == sizes.head)
-        VArray(array)
-      } else {
-        VArray(
-            array
-              .grouped(array.size / sizes.head)
-              .map(group => nestArrays(group, sizes.tail))
-              .toVector
-        )
-      }
-    }
+    override protected lazy val outputTypes: Map[DxName, Type] = block.outputs.map { param =>
+      param.name -> CwlUtils.toIRType(param.cwlType)
+    }.toMap
 
     override protected def getScatterOutputs(
-        childOutputs: Vector[Map[DxName, JsValue]],
+        execOutputs: Vector[Option[Map[DxName, JsValue]]],
         execName: Option[String]
     ): Map[DxName, (Type, Value)] = {
+      @tailrec
+      def nestArrayTypes(itemType: Type, levels: Int): Type = {
+        if (levels > 0) {
+          nestArrayTypes(TArray(itemType), levels - 1)
+        } else {
+          itemType
+        }
+      }
+      def nestArrayValues(array: VArray, sizes: Vector[Int]): Value = {
+        if (sizes.size == 1) {
+          assert(array.items.size == sizes.head)
+          array
+        } else {
+          VArray(
+              array.items
+                .grouped(array.items.size / sizes.head)
+                .map(group => nestArrayValues(VArray(group), sizes.tail))
+                .toVector
+          )
+        }
+      }
       val targetOutputs = step.run.outputs.map { param =>
         CwlDxName.fromSourceName(param.name) -> param.cwlType
       }.toMap
       val arraySizes = jobMeta.outputShape
       step.outputs.map { out =>
         val dxName = CwlDxName.fromSourceName(out.name)
-        val irType = CwlUtils.toIRType(targetOutputs(dxName))
+        val itemType = CwlUtils.toIRType(targetOutputs(dxName))
+        val arrayType = nestArrayTypes(itemType, arraySizes.map(_.size).getOrElse(1))
         val arrayValue =
           (createScatterOutputArray(
-               childOutputs,
+               execOutputs,
                CwlDxName.fromSourceName(out.name),
-               irType,
+               itemType,
                execName
            ),
            arraySizes) match {
-            case (VArray(a), Some(sizes)) => nestArrays(a, sizes)
-            case (a, None)                => a
+            case (a, Some(sizes)) => nestArrayValues(a, sizes)
+            case (a, None)        => a
             case (other, _) =>
               throw new Exception(s"invalid array value ${other}")
           }
-        dxName.pushDecodedNamespace(step.name) -> (irType, arrayValue)
+        dxName.pushDecodedNamespace(step.name) -> (arrayType, arrayValue)
       }.toMap
     }
   }

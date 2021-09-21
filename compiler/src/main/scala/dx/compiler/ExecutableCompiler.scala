@@ -68,28 +68,9 @@ class ExecutableCompiler(extras: Option[Extras],
     }
   }
 
-  private def defaultValueToNative(value: Value): JsValue = {
-    value match {
-      case VNull                            => JsNull
-      case VBoolean(b)                      => JsBoolean(b)
-      case VInt(i)                          => JsNumber(i)
-      case VFloat(f)                        => JsNumber(f)
-      case VString(s)                       => JsString(s)
-      case f: VFile if !complexPathValues   => dxApi.resolveFile(f.uri).asJson
-      case f: VFolder if !complexPathValues => JsString(f.uri)
-      case p: PathValue if complexPathValues =>
-        ValueSerde.serializePath(p, Some(fileResolver), pathsAsObjects = true)
-      case VArray(array) => JsArray(array.map(defaultValueToNative))
-      case VHash(obj) =>
-        JsObject(obj.map {
-          case (key, value) => key -> defaultValueToNative(value)
-        })
-      case _ => throw new Exception(s"unhandled value ${value}")
-    }
-  }
-
   // Create the IO Attributes
   private def parameterAttributesToNative(attrs: Vector[ParameterAttribute],
+                                          dxType: Type,
                                           excludeAttributes: Set[String]): Map[String, JsValue] = {
     attrs
       .flatMap {
@@ -166,7 +147,11 @@ class ExecutableCompiler(extras: Option[Extras],
         case ParameterAttributes.DefaultAttribute(value) =>
           // The default was specified in parameter_meta and was not specified in the
           // parameter specification
-          Some(DxIOSpec.Default -> defaultValueToNative(value))
+          Some(
+              DxIOSpec.Default -> ValueSerde.serializeWithType(value,
+                                                               dxType,
+                                                               fileResolver = Some(fileResolver))
+          )
         case _ => None
       }
       .toMap
@@ -224,7 +209,7 @@ class ExecutableCompiler(extras: Option[Extras],
       Set.empty
     }
     val attributes = defaultValueToNative(parameter.name) ++
-      parameterAttributesToNative(parameter.attributes, excludeAttributeNames)
+      parameterAttributesToNative(parameter.attributes, parameter.dxType, excludeAttributeNames)
     val (nativeType, optional) = TypeSerde.toNative(parameter.dxType, !complexPathValues)
     // TODO: I don't think the parameter should always be set to optional if it has a default
     val paramSpec = JsObject(
@@ -262,7 +247,7 @@ class ExecutableCompiler(extras: Option[Extras],
     */
   protected def outputParameterToNative(parameter: Parameter): Vector[JsObject] = {
     val attributes =
-      parameterAttributesToNative(parameter.attributes, InputOnlyKeys)
+      parameterAttributesToNative(parameter.attributes, parameter.dxType, InputOnlyKeys)
     val (nativeType, optional) = TypeSerde.toNative(parameter.dxType, !complexPathValues)
     val paramSpec = JsObject(
         Map(DxIOSpec.Name -> JsString(parameter.name.encoded),
