@@ -984,7 +984,7 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
             )
             return False
 
-        # Sorte two lists of dicts to make them comparable. Given lists of dicts a and b:
+        # Sort two lists of dicts to make them comparable. Given lists of dicts a and b:
         # 1. get the set of all keys in all dicts in both lists
         # 2. expand each dict into a list of tuples where the first element is the key and the
         # second element is the value (which may be None if the dict does not contain the key)

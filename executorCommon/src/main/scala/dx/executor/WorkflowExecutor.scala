@@ -369,8 +369,10 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
         case None =>
           throw new Exception(s"missing 'id' field in ${JsObject(fields).prettyPrint}")
       }
-      logger.traceLimited(s"parsing scatter job description ${desc} for ${exec}",
-                          minLevel = TraceLevel.VVerbose)
+      if (logger.isVerbose) {
+        logger.traceLimited(s"parsing scatter job description ${desc} for ${exec}",
+                            minLevel = TraceLevel.VVerbose)
+      }
       val (execName, details, output) =
         desc.getFields("executableName", "details", "output") match {
           case Seq(JsString(execName), JsObject(details), JsObject(jsOutput)) =>
@@ -436,32 +438,15 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
         }
         .toVector
         .flatten
-      val skippedJobs = parentJobId.flatMap { jobId =>
-        val desc = dxApi.job(jobId).describe(Set(Field.Details))
-        desc.details.flatMap {
-          case JsObject(fields) if fields.contains(Constants.SkippedIndices) =>
-            fields(Constants.SkippedIndices) match {
-              case JsArray(indices) =>
-                Some(indices.map {
-                  case JsNumber(n) if n.isValidInt => n.toIntExact
-                  case other =>
-                    throw new Exception(s"invalid skipped index value ${other}")
-                }.toSet)
-              case other =>
-                throw new Exception(s"invalid ${Constants.SkippedIndices} value ${other}")
-            }
-          case _ => None
-        }
-      }
-      skippedJobs
-        .map { indexes =>
+      jobMeta.scatterSkippedIndices
+        .map { indices =>
           val childExecsByIndex = childExecs.map(e => e.chunkIndex -> e).toMap
           Iterator
-            .range(0, childExecsByIndex.size + indexes.size)
+            .range(0, childExecsByIndex.size + indices.size)
             .map { i =>
-              if (childExecsByIndex.contains(i) && !indexes.contains(i)) {
+              if (childExecsByIndex.contains(i) && !indices.contains(i)) {
                 Some(childExecsByIndex(i))
-              } else if (indexes.contains(i) && !childExecsByIndex.contains(i)) {
+              } else if (indices.contains(i) && !childExecsByIndex.contains(i)) {
                 None
               } else {
                 throw new Exception(s"invalid or reused chunk index ${i}")
@@ -489,7 +474,9 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
           }
           findScatterExecutions(Some(parentJob.id), Set(jobMeta.jobId))
       }
-      logger.traceLimited(s"Scatter job results:\n  ${childExecutions.mkString("\n  ")}")
+      if (logger.isVerbose) {
+        logger.traceLimited(s"Scatter job results:\n  ${childExecutions.mkString("\n  ")}")
+      }
       if (jobMeta.useManifests) {
         // each job has an output manifest - we need to download them all
         childExecutions
@@ -579,6 +566,9 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
     private def collectScatter(): Map[DxName, ParameterLink] = {
       val (manifestId, execName, execOutputs) = aggregateScatterJobOutputs
       val arrayValues: Map[DxName, (Type, Value)] = getScatterOutputs(execOutputs, execName)
+      if (logger.isVerbose) {
+        logger.traceLimited(s"Scatter outputs:\n  ${arrayValues.mkString("\n  ")}")
+      }
       if (arrayValues.isEmpty) {
         Map.empty
       } else if (jobMeta.useManifests) {

@@ -180,28 +180,35 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
           (out.name, out.source, out.cwlType)
         }
     }
-    logger.trace(s"Evaluating output parameters:\n  ${outputParams.mkString("\n  ")}")
+    if (logger.isVerbose) {
+      logger.trace(s"Evaluating output parameters:\n  ${outputParams.mkString("\n  ")}")
+    }
     val env = CwlEnv(jobInputs)
     val irOutputs: Map[DxName, (Type, Value)] = outputParams.map {
-      case (dxName, param: WorkflowOutputParameter, _) if param.sources.nonEmpty =>
-        def itemsToArray(items: Vector[(Type, Value)]): (Type, Value) = {
-          val (types, values) = items.unzip
-          (TArray(Type.merge(types)), VArray(values))
-        }
+      case (dxName, param: WorkflowOutputParameter, cwlType) if param.sources.nonEmpty =>
         val sourceValues = param.sources.map(src =>
           env.lookup(CwlDxName.fromDecodedName(src.frag.get)).getOrElse((TMulti.Any, VNull))
         )
-        val (irType, irValue) = if (param.linkMerge.nonEmpty || param.pickValue.nonEmpty) {
+        val irValue = if (param.linkMerge.nonEmpty || param.pickValue.nonEmpty) {
           val mergedValues = if (param.linkMerge.contains(LinkMergeMethod.MergeFlattened)) {
             sourceValues.flatMap {
               case (TArray(itemType, _), VArray(items)) => items.map(i => (itemType, i))
               case (t, value)                           => Vector((t, value))
             }
+          } else if (param.linkMerge.isEmpty && sourceValues.size == 1) {
+            sourceValues.head match {
+              case (TArray(itemType, _), VArray(items)) => items.map(i => (itemType, i))
+              case other =>
+                throw new Exception(
+                    s"""when there is a single output source and no linkMerge method, the output 
+                       |source must be an array, not ${other}""".stripMargin.replaceAll("\n", " ")
+                )
+            }
           } else {
             sourceValues
           }
           if (param.pickValue.nonEmpty) {
-            val nonNull = mergedValues.filterNot(_._2 == VNull)
+            val nonNull = mergedValues.map(_._2).filterNot(_ == VNull)
             param.pickValue.get match {
               case PickValueMethod.FirstNonNull =>
                 nonNull.headOption.getOrElse(
@@ -214,21 +221,21 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
                 throw new Exception(
                     s"there is not exactly one non-null value for parameter ${param.name}"
                 )
-              case PickValueMethod.AllNonNull => itemsToArray(nonNull)
+              case PickValueMethod.AllNonNull => VArray(nonNull)
             }
           } else {
-            itemsToArray(mergedValues)
+            VArray(mergedValues.map(_._2))
           }
         } else if (sourceValues.size == 1) {
-          sourceValues.head
+          sourceValues.head._2
         } else {
-          itemsToArray(sourceValues)
+          VArray(sourceValues.map(_._2))
         }
-        dxName -> (irType, irValue)
+        val irType = CwlUtils.toIRType(cwlType)
+        dxName -> (irType, coerceTo(irValue, irType))
       case (dxName, _, cwlType) if jobInputs.contains(dxName) =>
         val irType = CwlUtils.toIRType(cwlType)
-        val irValue = coerceTo(jobInputs(dxName)._2, irType)
-        dxName -> (irType, irValue)
+        dxName -> (irType, coerceTo(jobInputs(dxName)._2, irType))
       case (dxName, _, cwlType) if CwlOptional.isOptional(cwlType) =>
         dxName -> (CwlUtils.toIRType(cwlType), VNull)
       case (dxName, _, _) =>
@@ -272,6 +279,15 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
               sourceValues.flatMap {
                 case (array: CwlArray, ArrayValue(items)) => items.map(i => (array.itemType, i))
                 case (t, value)                           => Vector((t, value))
+              }
+            } else if (stepInput.linkMerge.isEmpty && sourceValues.size == 1) {
+              sourceValues.head match {
+                case (array: CwlArray, ArrayValue(items)) => items.map(i => (array.itemType, i))
+                case other =>
+                  throw new Exception(
+                      s"""when there is a single output source and no linkMerge method, the output 
+                         |source must be an array, not ${other}""".stripMargin.replaceAll("\n", " ")
+                  )
               }
             } else {
               sourceValues
@@ -635,10 +651,14 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
       val targetOutputs = step.run.outputs.map { param =>
         CwlDxName.fromSourceName(param.name) -> param.cwlType
       }.toMap
-      val arraySizes = jobMeta.outputShape
+      val arraySizes = jobMeta.scatterOutputShape
       step.outputs.map { out =>
         val dxName = CwlDxName.fromSourceName(out.name)
-        val itemType = CwlUtils.toIRType(targetOutputs(dxName))
+        val itemType = if (step.when.nonEmpty) {
+          CwlUtils.toIRType(CwlOptional.ensureOptional(targetOutputs(dxName)))
+        } else {
+          CwlUtils.toIRType(targetOutputs(dxName))
+        }
         val arrayType = nestArrayTypes(itemType, arraySizes.map(_.size).getOrElse(1))
         val arrayValue =
           (createScatterOutputArray(
