@@ -168,7 +168,7 @@ case class WdlTaskExecutor(task: TAT.Task,
   override protected def getInstanceTypeRequest(
       inputs: Map[DxName, (Type, Value)]
   ): InstanceTypeRequest = {
-    val wdlInputs = WdlUtils.fromIR(inputs).map {
+    val wdlInputs = WdlUtils.fromIR(inputs, typeAliases.toMap).map {
       case (name, (_, value)) => name -> value
     }
     val env = evaluatePrivateVariables(wdlInputs)
