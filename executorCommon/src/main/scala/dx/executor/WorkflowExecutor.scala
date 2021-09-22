@@ -27,7 +27,7 @@ import dx.core.ir.{
   Value,
   ValueSerde
 }
-import dx.core.ir.Type.{TFile, TSchema}
+import dx.core.ir.Type.{TArray, TFile, TSchema, isOptional}
 import dx.core.ir.Value.{TransformHandler, VArray, VFile, VNull, VString, WalkHandler}
 import dx.util.{Enum, JsUtils, LocalFileSource, TraceLevel}
 import dx.util.CollectionUtils.IterableOnceExtensions
@@ -293,51 +293,58 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
         outputShape: Option[Vector[Int]] = None,
         skippedIndices: Option[Vector[Int]] = None
     ): Map[DxName, ParameterLink] = {
-      if (childJobs.nonEmpty) {
-        // Run a sub-job with the "continue" or "collect" entry point.
-        // We need to provide the exact same inputs.
-        val (entryPoint, jobName) = if (nextStart.isDefined) {
-          ("continue", s"continue_scatter($nextStart)")
-        } else {
-          ("collect", "collect_scatter")
-        }
-        // Stick the IDs of all the parent jobs and all the child jobs to exclude (i.e. the
-        // continue/collect jobs) into details - we'll use these in the collect step.
-        val parents = jobMeta.getJobDetail(WorkflowExecutor.ParentsKey) match {
-          case Some(JsArray(array)) => array.map(JsUtils.getString(_))
-          case _                    => Vector.empty
-        }
-        // add the current job to the list of parents
-        val allParents = parents :+ jobMeta.jobId
-        val details = Vector(
-            Some(WorkflowExecutor.ParentsKey -> JsArray(allParents.map(JsString(_)))),
-            nextStart.map(i => Constants.ContinueStart -> JsNumber(i)),
-            outputShape.map(v => Constants.OutputShape -> JsArray(v.map(JsNumber(_)))),
-            skippedIndices.map(v => Constants.SkippedIndices -> JsArray(v.map(JsNumber(_))))
-        ).flatten.toMap
-        val dxSubJob: DxExecution = dxApi.runSubJob(
-            entryPoint,
-            Some(jobMeta.instanceTypeDb.defaultInstanceType.name),
-            JsObject(jobMeta.rawJsInputs.map {
-              case (dxName, jsv) => dxName.encoded -> jsv
-            }),
-            childJobs,
-            jobMeta.delayWorkspaceDestruction,
-            Some(jobName),
-            Some(JsObject(details))
-        )
-        // Return JBORs for all the outputs. Since the signature of the sub-job
-        // is exactly the same as the parent, we can immediately exit the parent job.
-        val links = jobMeta.createExecutionOutputLinks(dxSubJob, outputTypes)
-        if (logger.isVerbose) {
-          logger.trace(s"Scatter results for job ${dxSubJob.id}")
-          logger.traceLimited(s"Types: ${outputTypes}")
-          logger.traceLimited(s"Links: ${links.mkString("\n")}")
-        }
-        links
+      // Run a sub-job with the "continue" or "collect" entry point.
+      // We need to provide the exact same inputs.
+      val (entryPoint, jobName) = if (nextStart.isDefined) {
+        ("continue", s"continue_scatter($nextStart)")
       } else {
-        Map.empty
+        ("collect", "collect_scatter")
       }
+      // Stick the IDs of all the parent jobs and all the child jobs to exclude (i.e. the
+      // continue/collect jobs) into details - we'll use these in the collect step.
+      val parents = jobMeta.getJobDetail(WorkflowExecutor.ParentsKey) match {
+        case Some(JsArray(array)) => array.map(JsUtils.getString(_))
+        case _                    => Vector.empty
+      }
+      // add the current job to the list of parents
+      val allParents = parents :+ jobMeta.jobId
+      val details = Vector(
+          Some(WorkflowExecutor.ParentsKey -> JsArray(allParents.map(JsString(_)))),
+          nextStart.map(i => Constants.ContinueStart -> JsNumber(i)),
+          outputShape.map(v => Constants.OutputShape -> JsArray(v.map(JsNumber(_)))),
+          skippedIndices.map(v => Constants.SkippedIndices -> JsArray(v.map(JsNumber(_))))
+      ).flatten.toMap
+      val dxSubJob: DxExecution = dxApi.runSubJob(
+          entryPoint,
+          Some(jobMeta.instanceTypeDb.defaultInstanceType.name),
+          JsObject(jobMeta.rawJsInputs.map {
+            case (dxName, jsv) => dxName.encoded -> jsv
+          }),
+          childJobs,
+          jobMeta.delayWorkspaceDestruction,
+          Some(jobName),
+          Some(JsObject(details))
+      )
+      // Return JBORs for all the outputs. Since the signature of the sub-job
+      // is exactly the same as the parent, we can immediately exit the parent job.
+      val links = jobMeta.createExecutionOutputLinks(dxSubJob, outputTypes)
+      if (logger.isVerbose) {
+        logger.trace(s"Scatter results for job ${dxSubJob.id}")
+        logger.traceLimited(s"Types: ${outputTypes}")
+        logger.traceLimited(s"Links: ${links.mkString("\n")}")
+      }
+      links
+    }
+
+    protected def createEmptyScatterOutputs(): Map[DxName, ParameterLink] = {
+      val outputs = outputTypes.collect {
+        case (dxName, t: TArray) => dxName -> (t, VArray())
+        case (dxName, t) if !isOptional(t) =>
+          throw new Exception(
+              s"scatter output ${dxName} is non-optional but there are no scatter results"
+          )
+      }
+      jobMeta.createOutputLinks(outputs, validate = false)
     }
 
     protected def launchScatter(): Map[DxName, ParameterLink]

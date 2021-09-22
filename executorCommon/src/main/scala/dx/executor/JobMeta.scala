@@ -868,7 +868,6 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths,
       logger.traceLimited(s"""Job script function ${name} exited with success code ${rc}
                              |stdout:
                              |${stdout}""".stripMargin)
-
     } else {
       logger.error(s"""Job script function ${name} exited with permanent fail code ${rc}
                       |stdout:

@@ -8,6 +8,7 @@ These are workflow tests that we are currently ignoring.
     * count-lines11-null-step-wf
     * count-lines11-null-step-wf-noET
 * input_schema-def: missing a.bam file referenced in input
+* cond-wf-011_nojs: the output type is `array[array[array[string]]]`, but the third-level array can contain nulls and thus should be optional 
 
 ## Non-required tests that we currently can't support
 

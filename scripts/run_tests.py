@@ -46,6 +46,15 @@ expected_failure = {
     "iwd-container-entryname4",
     "loadContents-limit",
     "cond-wf-003.3"
+    "cond-wf-004.1",
+    "cond-wf-005",
+    "cond-wf-006.1",
+    "cond-wf-012",
+    "cond-wf-003-1_nojs.3",
+    "cond-wf-004_nojs.1",
+    "cond-wf-005_nojs",
+    "cond-wf-006_nojs.1",
+    "cond-wf-012_nojs",
 }
 
 test_compilation_failing = {"import_passwd"}
@@ -1173,6 +1182,7 @@ def wait_for_completion(test_exec_objs):
         except DXJobFailureError:
             if tname in expected_failure or "{}.{}".format(tname, i) in expected_failure:
                 print("Executable {}.{} failed as expected".format(desc.name, i))
+                successes.append((i, exec_obj))
             else:
                 cprint("Error: executable {}.{} failed".format(desc.name, i), "red")
                 failures.append((tname, exec_obj))
@@ -1307,10 +1317,15 @@ def run_test_subset(
     def verify_test(exec_obj, i):
         exec_desc = exec_obj.describe()
         tname = find_test_from_exec(exec_obj)
-        if tname in expected_failure:
-            return None
         test_desc = test_files[tname]
-        exec_outputs = extract_outputs(tname, exec_desc)
+        try:
+            exec_outputs = extract_outputs(tname, exec_desc)
+        except:
+            if tname in expected_failure or "{}.{}".format(tname, i) in expected_failure:
+                print("Analysis {}.{} failed as expected".format(tname, i))
+                return None
+            else:
+                raise
         if len(test_desc.results) > i:
             shouldbe = read_json_file_maybe_empty(test_desc.results[i])
             correct = True
@@ -1320,10 +1335,22 @@ def run_test_subset(
                     correct = False
                     break
             if correct:
-                print("Analysis {} passed".format("{}.{}".format(tname, i)))
-                return None
+                if tname in expected_failure or "{}.{}".format(tname, i) in expected_failure:
+                    cprint(
+                        "Error: analysis {}.{} was expected to fail but its results are valid".format(desc.name, i),
+                        "red"
+                    )
+                    return tname
+                else:
+                    print("Analysis {}.{} results are valid".format(desc.name, i))
+                    return None
             else:
-                return tname
+                if tname in expected_failure or "{}.{}".format(tname, i) in expected_failure:
+                    print("Analysis {}.{} results are invalid as expected".format(desc.name, i))
+                    return None
+                else:
+                    cprint("Error: analysis {}.{} results are invalid".format(desc.name, i), "red")
+                    return tname
 
     failed_verifications = []
     for i, exec_obj in successful_executions:

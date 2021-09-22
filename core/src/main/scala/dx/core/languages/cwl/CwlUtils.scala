@@ -552,7 +552,10 @@ object CwlUtils {
     step.scatter.isEmpty && step.when.isEmpty && step.inputs.forall { inp =>
       // if there is more than one source, a fragment is required to merge them
       // if there is a valueFrom, a fragment is required to evaluate it
-      inp.sources.size <= 1 && inp.valueFrom.isEmpty
+      inp.sources.size <= 1 &&
+      inp.linkMerge.isEmpty &&
+      inp.pickValue.isEmpty &&
+      inp.valueFrom.isEmpty
     }
   }
 

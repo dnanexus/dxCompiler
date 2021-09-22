@@ -190,31 +190,29 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
           env.lookup(CwlDxName.fromDecodedName(src.frag.get)).getOrElse((TMulti.Any, VNull))
         )
         val irValue = if (param.linkMerge.nonEmpty || param.pickValue.nonEmpty) {
-          val mergedValues = if (param.linkMerge.contains(LinkMergeMethod.MergeFlattened)) {
-            sourceValues.flatMap {
-              case (TArray(itemType, _), VArray(items)) => items.map(i => (itemType, i))
-              case (t, value)                           => Vector((t, value))
-            }
-          } else if (param.linkMerge.isEmpty && sourceValues.size == 1) {
-            sourceValues.head match {
-              case (TArray(itemType, _), VArray(items)) => items.map(i => (itemType, i))
-              case other =>
-                throw new Exception(
-                    s"""when there is a single output source and no linkMerge method, the output 
-                       |source must be an array, not ${other}""".stripMargin.replaceAll("\n", " ")
-                )
-            }
-          } else {
-            sourceValues
+          val mergedValues = (sourceValues, param.linkMerge) match {
+            case (_, Some(LinkMergeMethod.MergeFlattened)) =>
+              sourceValues.flatMap {
+                case (TArray(itemType, _), VArray(items)) => items.map(i => (itemType, i))
+                case (t, value)                           => Vector((t, value))
+              }
+            case (Vector((t, v)), Some(LinkMergeMethod.MergeNested)) =>
+              Vector((TArray(t), VArray(v)))
+            case (Vector((TArray(itemType, _), VArray(items))), None) =>
+              items.map(i => (itemType, i))
+            case (Vector(other), None) =>
+              throw new Exception(
+                  s"""when there is a single output source and no linkMerge method, the output 
+                     |source must be an array, not ${other}""".stripMargin.replaceAll("\n", " ")
+              )
+            case _ => sourceValues
           }
           if (param.pickValue.nonEmpty) {
             val nonNull = mergedValues.map(_._2).filterNot(_ == VNull)
             param.pickValue.get match {
               case PickValueMethod.FirstNonNull =>
                 nonNull.headOption.getOrElse(
-                    throw new Exception(
-                        s"all source values are null for parameter ${param.name}"
-                    )
+                    throw new Exception(s"all source values are null for parameter ${param.name}")
                 )
               case PickValueMethod.TheOnlyNonNull if nonNull.size == 1 => nonNull.head
               case PickValueMethod.TheOnlyNonNull =>
@@ -275,22 +273,22 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
           stepInput.sources.map(src => fullEnv(CwlDxName.fromDecodedName(src.frag.get)))
         val (cwlType, cwlValue) =
           if (stepInput.linkMerge.nonEmpty || stepInput.pickValue.nonEmpty) {
-            val mergedValues = if (stepInput.linkMerge.contains(LinkMergeMethod.MergeFlattened)) {
-              sourceValues.flatMap {
-                case (array: CwlArray, ArrayValue(items)) => items.map(i => (array.itemType, i))
-                case (t, value)                           => Vector((t, value))
-              }
-            } else if (stepInput.linkMerge.isEmpty && sourceValues.size == 1) {
-              sourceValues.head match {
-                case (array: CwlArray, ArrayValue(items)) => items.map(i => (array.itemType, i))
-                case other =>
-                  throw new Exception(
-                      s"""when there is a single output source and no linkMerge method, the output 
-                         |source must be an array, not ${other}""".stripMargin.replaceAll("\n", " ")
-                  )
-              }
-            } else {
-              sourceValues
+            val mergedValues = (sourceValues, stepInput.linkMerge) match {
+              case (_, Some(LinkMergeMethod.MergeFlattened)) =>
+                sourceValues.flatMap {
+                  case (array: CwlArray, ArrayValue(items)) => items.map(i => (array.itemType, i))
+                  case (t, value)                           => Vector((t, value))
+                }
+              case (Vector((t, v)), Some(LinkMergeMethod.MergeNested)) =>
+                Vector((CwlArray(t), ArrayValue(Vector(v))))
+              case (Vector((array: CwlArray, ArrayValue(items))), None) =>
+                items.map(i => (array.itemType, i))
+              case (Vector(other), None) =>
+                throw new Exception(
+                    s"""when there is a single output source and no linkMerge method, the output 
+                       |source must be an array, not ${other}""".stripMargin.replaceAll("\n", " ")
+                )
+              case _ => sourceValues
             }
             if (stepInput.pickValue.nonEmpty) {
               val nonNull = mergedValues.filterNot(_._2 == NullValue)
@@ -502,6 +500,10 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
       items.map(formatItem).mkString(",")
     }
 
+    override protected lazy val outputTypes: Map[DxName, Type] = block.outputs.map { param =>
+      param.name -> CwlUtils.toIRType(param.cwlType)
+    }.toMap
+
     override protected def launchScatter(): Map[DxName, ParameterLink] = {
       assert(step.scatter.nonEmpty)
       // construct the scatter inputs and launch one job for each, such that the inputs for each
@@ -614,14 +616,15 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
       val outputShape = Option.when(step.scatterMethod.contains(ScatterMethod.NestedCrossproduct))(
           arrays.map(_.size)
       )
-      // if there are remaining chunks this calls a continue sub-job,
-      // otherwise it calls a collect sub-job
-      launchNextScatterChunk(childJobs, next, outputShape, skippedIndices)
+      if (childJobs.isEmpty) {
+        // no jobs were launched
+        createEmptyScatterOutputs()
+      } else {
+        // if there are remaining chunks this calls a continue sub-job,
+        // otherwise it calls a collect sub-job
+        launchNextScatterChunk(childJobs, next, outputShape, skippedIndices)
+      }
     }
-
-    override protected lazy val outputTypes: Map[DxName, Type] = block.outputs.map { param =>
-      param.name -> CwlUtils.toIRType(param.cwlType)
-    }.toMap
 
     override protected def getScatterOutputs(
         execOutputs: Vector[Option[Map[DxName, JsValue]]],

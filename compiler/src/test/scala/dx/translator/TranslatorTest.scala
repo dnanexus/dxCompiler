@@ -1730,4 +1730,24 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     targetParams.keySet
       .map(_.decodedIdentifier) shouldBe Set("in1", "in2", "in3", "target")
   }
+
+  it should "translate a CWL workflow with stage input with linkMerge" in {
+    val path = pathFromBasename("cwl", "count-lines-19-wf.cwl.json")
+    val args = path.toString :: cFlags
+    val bundle = Main.compile(args.toVector) match {
+      case SuccessfulCompileIR(bundle) => bundle
+      case other                       => throw new Exception(s"expected success not ${other}")
+    }
+    val wf = bundle.primaryCallable match {
+      case Some(wf: Workflow) => wf
+      case other              => throw new Exception(s"expected workflow not ${other}")
+    }
+    val stageApplet = bundle.allCallables(wf.stages.head.calleeName) match {
+      case applet: Application => applet
+      case other               => throw new Exception(s"expected applet not ${other}")
+    }
+    stageApplet.kind should matchPattern {
+      case ExecutableKindWfFragment(Some("wc3-tool.cwl"), Vector(0), _, None) =>
+    }
+  }
 }

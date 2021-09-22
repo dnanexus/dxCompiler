@@ -767,9 +767,14 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         case _ =>
           throw new RuntimeException(s"invalid scatter block ${block}")
       }
-      // if there are remaining chunks this calls a continue sub-job,
-      // otherwise it calls a collect sub-job
-      launchNextScatterChunk(childJobs, next)
+      if (childJobs.isEmpty) {
+        // no jobs were launched
+        createEmptyScatterOutputs()
+      } else {
+        // if there are remaining chunks this calls a continue sub-job,
+        // otherwise it calls a collect sub-job
+        launchNextScatterChunk(childJobs, next)
+      }
     }
 
     override protected lazy val outputTypes: Map[DxName, Type] = block.outputs.map {

@@ -289,7 +289,7 @@ For example:
       {
         "class": "Directory",
         "location": "dx://project-xxx:/path/to/folder2"
-      },
+      }
     ]
   }
 }

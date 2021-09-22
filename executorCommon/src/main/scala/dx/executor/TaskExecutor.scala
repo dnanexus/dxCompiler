@@ -1,7 +1,7 @@
 package dx.executor
 
 import java.nio.file.{Files, Path}
-import dx.api.{DxFile, DxJob, FileUpload, InstanceTypeRequest}
+import dx.api.{DxFile, DxJob, DxPath, FileUpload, InstanceTypeRequest}
 import dx.core.getVersion
 import dx.core.io.{
   DxdaManifest,
@@ -930,7 +930,20 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       Map.empty
     }
 
-    val uriToSourcePath = virtualUriToPath ++ localUriToPath ++ downloadUriToPath ++ streamUriToPath
+    val uriToSourcePath =
+      (virtualUriToPath ++ localUriToPath ++ downloadUriToPath ++ streamUriToPath).flatMap {
+        case (uri, path) =>
+          // add alternate forms of dx URIs that may be needed for lookup later
+          fileResolver.resolve(uri) match {
+            case fs: DxFileSource =>
+              Set(
+                  Some(uri),
+                  Some(s"${DxPath.DxUriPrefix}${fs.dxFile.id}"),
+                  fs.dxFile.project.map(proj => s"${DxPath.DxUriPrefix}${proj.id}:${fs.dxFile.id}")
+              ).flatten.map(uri => uri -> path)
+            case _ => Set(uri -> path)
+          }
+      }
 
     // Finalize all input files, folders, and listings.
     // - For a file that is not in the context of a folder:
