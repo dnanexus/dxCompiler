@@ -86,21 +86,6 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
     }
   }
 
-  /**
-    * def getHints(filter: Hint => Boolean): Option[(Vector[Hint], Boolean)] = {
-    val filteredRequirements = requirements.filter(filter)
-    if (filteredRequirements.nonEmpty) {
-      Some(filteredRequirements, false)
-    } else {
-      val filteredHints = hints.filter(filter)
-      if (filteredHints.nonEmpty) {
-        Some(filteredHints, true)
-      } else {
-        None
-      }
-    }
-  }
-    */
   private lazy val defaultResourceRequirement: ResourceRequirement = {
     val req = ResourceRequirement(
         defaultRuntimeAttrs.get("coresMin").map(_._2),

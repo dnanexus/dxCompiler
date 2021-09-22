@@ -125,7 +125,6 @@ object TypeSerde {
   def serializeMap(
       types: Map[String, Type],
       jsTypeDefs: Map[String, JsValue] = Map.empty
-      //encodeName: Boolean = true
   ): (SortedMap[String, JsValue], SortedMap[String, JsValue]) = {
     types.foldLeft((SortedMap.empty[String, JsValue], jsTypeDefs.to(SortedMap))) {
       case ((typeAccu, typeDefAccu), (name, t)) =>
@@ -277,7 +276,6 @@ object TypeSerde {
       jsTypes: Map[String, JsValue],
       typeDefs: Map[String, Type] = Map.empty,
       jsTypeDefs: Map[String, JsValue] = Map.empty
-      //decodeNames: Boolean = true
   ): (Map[String, Type], Map[String, Type]) = {
     jsTypes.foldLeft((Map.empty[String, Type], typeDefs)) {
       case ((typeAccu, typeDefAccu), (name, jsType)) =>
@@ -294,9 +292,7 @@ object TypeSerde {
     * @return mapping of variable names to deserialized Types
     */
   def deserializeSpec(jsValue: JsValue,
-                      typeDefs: Map[String, TSchema] = Map.empty
-                      //decodeNames: Boolean = true
-  ): Map[String, Type] = {
+                      typeDefs: Map[String, TSchema] = Map.empty): Map[String, Type] = {
     val (jsTypes, jsTypeDefs) = jsValue match {
       case obj: JsObject if obj.fields.contains(TypesKey) =>
         obj.getFields(TypesKey, DefinitionsKey) match {
