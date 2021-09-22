@@ -1730,4 +1730,10 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     targetParams.keySet
       .map(_.decodedIdentifier) shouldBe Set("in1", "in2", "in3", "target")
   }
+
+  it should "translate a WDL workflow with dx runtime attributes" in {
+    val path = pathFromBasename("bugs", "dx_runtime_keys.wdl")
+    val args = path.toString :: cFlags
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
+  }
 }
