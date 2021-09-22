@@ -634,7 +634,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
           case (path, dxFile) => path -> dxFile.asUri
         }
         // Replace the local paths in the output values with URIs. This requires
-        // two look-ups: first to get the absoulte Path associated with the file
+        // two look-ups: first to get the absolute Path associated with the file
         // value (which may be relative or absolute), and second to get the URI
         // associated with the Path. Returns an Optional[String] because optional
         // outputs may be null.
