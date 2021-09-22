@@ -956,8 +956,7 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
     # Extract the key. For example, for workflow "math" returning
     # output "count":
     #    'math.count' -> count
-    exec_name = key.split(".")[0]
-    field_name_parts = key.split(".")[1:]
+    (exec_name, *field_name_parts) = key.split(".")
 
     field_name1 = ".".join(field_name_parts)
     # convert dots to ___
