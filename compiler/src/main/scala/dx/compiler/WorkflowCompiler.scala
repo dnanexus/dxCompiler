@@ -175,13 +175,12 @@ case class WorkflowCompiler(separateOutputs: Boolean,
           extendedDescription = extendedDescription
       )
     val workflowMeta = workflow.attributes.collect {
+      case VersionAttribute(text) => "version" -> JsString(text)
       // These will be implemented in a future PR
       case _: CallNamesAttribute =>
         throw new NotImplementedError()
       case _: RunOnSingleNodeAttribute =>
         throw new NotImplementedError()
-      // These are currently ignored because they only apply to apps
-      //case VersionAttribute(text) => Some("version" -> JsString(text))
     }
     (commonMeta ++ workflowMeta, commonDetails)
   }
