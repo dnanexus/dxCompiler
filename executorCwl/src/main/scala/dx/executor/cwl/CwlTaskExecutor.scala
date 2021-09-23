@@ -214,7 +214,9 @@ case class CwlTaskExecutor(tool: Process,
         env,
         workerPaths,
         tool.inputs.map(i => i.name -> i).toMap,
-        defaultRuntimeAttrs
+        defaultRuntimeAttrs,
+        fileResolver = jobMeta.fileResolver,
+        dxApi = jobMeta.dxApi
     )
     reqEvaluator.parseInstanceType
   }

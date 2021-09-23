@@ -139,7 +139,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         inheritedHints ++ tool.hints,
         Map.empty,
         DxWorkerPaths.default,
-        defaultRuntimeAttrs = cwlDefaultRuntimeAttrs
+        defaultRuntimeAttrs = cwlDefaultRuntimeAttrs,
+        fileResolver = fileResolver
     )
     private lazy val dxHints = requirementEvaluator.getHintOfType[DxHints].map {
       case (dxHints: DxHints, _) => dxHints

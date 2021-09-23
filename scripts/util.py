@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 from collections import namedtuple
+from concurrent import futures
 import dxpy
 import json
 import os
 from pathlib import Path
-import pwd
 import re
 import shutil
 import subprocess
 import sys
 import time
+import threading
 import traceback
+
+from termcolor import cprint
 
 AssetDesc = namedtuple('AssetDesc', 'region asset_id project')
 
@@ -206,20 +209,26 @@ def _create_asset_spec(version_id, top_dir, language, dependencies=None):
 
 # Build a dx-asset from the runtime library.
 # Go to the applet_resources directory, before running "dx"
-def _build_asset(top_dir, language, destination):
+def _build_asset(top_dir, language, destination, lock):
     crnt_work_dir = os.getcwd()
     # build the platform asset
     os.chdir(os.path.join(os.path.abspath(top_dir), "applet_resources"))
     try:
-        subprocess.check_call(["dx", "build_asset", language.upper(), "--destination", destination])
+        proc = subprocess.run(
+            ["dx", "build_asset", language.upper(), "--destination", destination],
+            check=True
+        )
+        with lock:
+            print("Successfully built asset for language {}".format(language))
+            cprint(proc.stdout)
     except subprocess.CalledProcessError as e:
-        print(e.stdout)
-        print(e.stderr)
+        cprint(e.stdout)
+        cprint(e.stderr)
         raise e
     os.chdir(crnt_work_dir)
 
 
-def _make_prerequisites(project, folder, version_id, top_dir, language, resources, dependencies=None, env_vars=None):
+def _make_prerequisites(project, folder, version_id, top_dir, language, resources, lock, dependencies=None, env_vars=None):
     # Create a folder for the language-specific asset
     language_dir = os.path.join(top_dir, "applet_resources", language.upper())
     language_resources_dir = os.path.join(language_dir, "resources", "usr", "bin")
@@ -251,11 +260,16 @@ def _make_prerequisites(project, folder, version_id, top_dir, language, resource
     destination = "{}:{}/dx{}rt".format(project.get_id(), folder, language.upper())
     for i in range(0, max_num_retries):
         try:
-            info("Creating a runtime asset for {} (try {})".format(language, i))
-            _build_asset(top_dir, language, destination)
+            with lock:
+                info("Creating a runtime asset for {} (try {})".format(language, i))
+            _build_asset(top_dir, language, destination, lock)
             break
         except:
-            info("Error creating runtime asset; sleeping for 5 seconds before trying again", sys.exc_info())
+            with lock:
+                info(
+                    "Error creating runtime asset for {}; sleeping for 5 seconds before trying again".format(language),
+                    sys.exc_info()
+                )
             time.sleep(5)
     else:
         raise Exception("Failed to build the {} runtime asset".format(language))
@@ -351,13 +365,20 @@ def build(project, folder, version_id, top_dir, path_dict, dependencies=None, fo
 
         exec_depends = dependencies.get("execDepends", {})
         env_vars = dependencies.get("env", {})
-        assets = dict(
-            (lang, _make_prerequisites(
-                project, folder, version_id, top_dir, lang, resources,
-                exec_depends.get(lang.lower(), env_vars.get(lang.lower()))
-            ))
-            for lang in languages
-        )
+        # build assets in parallel
+        lock = threading.Lock()
+        with futures.ThreadPoolExecutor(max_workers=len(languages)) as executor:
+            future_to_lang = dict(
+                (executor.submit(
+                    _make_prerequisites, project, folder, version_id, top_dir, lang, resources, lock,
+                    exec_depends.get(lang.lower()), env_vars.get(lang.lower())
+                ), lang)
+                for lang in languages
+            )
+            assets = dict(
+                (future_to_lang[f], f.result())
+                for f in futures.as_completed(future_to_lang)
+            )
 
         for (prefix, jar_path) in jar_paths.items():
             # Move the file to the top level directory

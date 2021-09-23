@@ -45,7 +45,7 @@ expected_failure = {
     "iwd-container-entryname3",
     "iwd-container-entryname4",
     "loadContents-limit",
-    "cond-wf-003.3"
+    "cond-wf-003.3",
     "cond-wf-004.1",
     "cond-wf-005",
     "cond-wf-006.1",
@@ -55,6 +55,7 @@ expected_failure = {
     "cond-wf-005_nojs",
     "cond-wf-006_nojs.1",
     "cond-wf-012_nojs",
+    "fail-unconnected",
 }
 
 test_compilation_failing = {"import_passwd"}
@@ -1177,14 +1178,14 @@ def wait_for_completion(test_exec_objs):
         desc = test_files[tname]
         try:
             exec_obj.wait_on_done()
-            print("Executable {}.{} succeeded".format(desc.name, i))
+            print("Analysis {}.{} succeeded".format(desc.name, i))
             successes.append((i, exec_obj))
         except DXJobFailureError:
             if tname in expected_failure or "{}.{}".format(tname, i) in expected_failure:
-                print("Executable {}.{} failed as expected".format(desc.name, i))
+                print("Analysis {}.{} failed as expected".format(desc.name, i))
                 successes.append((i, exec_obj))
             else:
-                cprint("Error: executable {}.{} failed".format(desc.name, i), "red")
+                cprint("Error: analysis {}.{} failed".format(desc.name, i), "red")
                 failures.append((tname, exec_obj))
     print("tools execution completed")
     return successes, failures

@@ -1,6 +1,6 @@
 package dx.executor.cwl
 
-import dx.api.DxExecution
+import dx.api.{DxExecution, DxWorkflow}
 import dx.core.Constants
 import dx.core.ir.Type._
 import dx.core.ir.Value._
@@ -306,6 +306,8 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
                   )
                 case PickValueMethod.AllNonNull => itemsToArray(nonNull)
               }
+            } else if (mergedValues.size == 1) {
+              mergedValues.head
             } else {
               itemsToArray(mergedValues)
             }
@@ -335,40 +337,41 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
       }, fileResolver = jobMeta.fileResolver)
     }
 
-    private def evaluateAllStepInputs(
-        extraEnv: Map[DxName, (CwlType, CwlValue)] = Map.empty
-    ): Map[DxName, (WorkflowStepInput, (CwlType, CwlValue))] = {
-      val fullEnv = cwlEnv.update(extraEnv)
-      // Evaluate all the step inputs. There may be step inputs that are not passed to the callee
-      // but are referred to in expressions of other step inputs' valueFrom fields. Note that the
-      // step input's type here might not match the callee's input type if valueFrom is specified.
-      val stepInputs = step.inputs.map(evaluateStepInput(_, fullEnv)).toMap
+    private def evaluateCallStepInputs(): Map[DxName, (WorkflowStepInput, (CwlType, CwlValue))] = {
+      // Evaluate all the step inputs for a call. There may be step inputs that are not passed to
+      // the callee but are referred to in expressions of other step inputs' valueFrom fields. Note
+      // that the step input's type here might not match the callee's input type if valueFrom is
+      // specified.
+      val stepInputs = step.inputs.map(evaluateStepInput(_, cwlEnv)).toMap
       // evaluate valueFrom expressions - create the evaluator lazily since it might not be needed
       lazy val evalInputs: ObjectValue = createEvalInputs(stepInputs.values.toMap)
       val stepInputValues = stepInputs.map {
         case (dxName, (stepInput, (sourceType, sourceValue))) =>
-          val cwlType = runInputs
-            .get(dxName)
-            .map {
-              case runInput if scatterNames.contains(dxName) => CwlArray(runInput.cwlType)
-              case runInput                                  => runInput.cwlType
-            }
-            .getOrElse(sourceType)
-          try {
-            if (stepInput.valueFrom.isDefined) {
+          if (stepInput.valueFrom.isDefined) {
+            try {
+              val cwlType = runInputs.get(dxName).map(_.cwlType).getOrElse(sourceType)
               val ctx = EvaluatorContext(sourceValue, evalInputs)
               dxName -> (stepInput, eval.evaluate(stepInput.valueFrom.get, cwlType, ctx))
-            } else {
-              dxName -> (stepInput, (cwlType, sourceValue.coerceTo(cwlType)))
+            } catch {
+              case cause: Throwable =>
+                throw new Exception(
+                    s"error evaluating stepInput ${stepInput.name} valueFrom ${stepInput.valueFrom.get}",
+                    cause
+                )
             }
-          } catch {
-            case cause: Throwable =>
-              throw new Exception(
-                  s"""effective type ${sourceType} of input value ${sourceValue} to parameter
-                     |${dxName} is not coercible to expected type ${cwlType}""".stripMargin
-                    .replaceAll("\n", " "),
-                  cause
-              )
+          } else {
+            val cwlType = runInputs.get(dxName).map(_.cwlType).getOrElse(sourceType)
+            try {
+              dxName -> (stepInput, (cwlType, sourceValue.coerceTo(cwlType)))
+            } catch {
+              case cause: Throwable =>
+                throw new Exception(
+                    s"""effective type ${sourceType} of stepInput ${stepInput.name} value 
+                       |${sourceValue} to parameter ${dxName} is not coercible to expected type 
+                       |${cwlType}""".stripMargin.replaceAll("\n", " "),
+                    cause
+                )
+            }
           }
       }
       if (logger.isVerbose) {
@@ -376,24 +379,6 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
         logger.traceLimited(s"Inputs:\n  ${stepInputValues.mkString("\n  ")}")
       }
       stepInputValues
-    }
-
-    private def evaluateCallInputs(
-        stepInputs: Map[DxName, (WorkflowStepInput, (CwlType, CwlValue))]
-    ): Map[DxName, (CwlType, CwlValue)] = {
-      // collect all the step input values to pass to the callee
-      step.run.inputs.map { param =>
-        val dxName = CwlDxName.fromSourceName(param.name)
-        dxName -> stepInputs
-          .get(dxName)
-          .map(_._2)
-          .orElse(Option.when(CwlOptional.isOptional(param.cwlType))((param.cwlType, NullValue)))
-          .getOrElse {
-            throw new Exception(
-                s"missing required input ${dxName} to process ${step.run.name} at step ${step.name}"
-            )
-          }
-      }.toMap
     }
 
     private def launchCall(
@@ -408,7 +393,11 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
           minLevel = TraceLevel.VVerbose
       )
       val executableLink = getExecutableLink(step.run.name)
-      val targetCallInput = Map(Target -> (TargetParam.dxType, VString(block.target.name)))
+      // add the target step for app(let) calls
+      val targetCallInput = executableLink.dxExec match {
+        case _: DxWorkflow => Map.empty
+        case _             => Map(Target -> (TargetParam.dxType, VString(block.target.name)))
+      }
       val callInputsIR = CwlUtils.toIR(callInputs) ++ targetCallInput
       val requirementEvaluator = RequirementEvaluator(
           block.targetRequirements,
@@ -418,6 +407,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
           },
           jobMeta.workerPaths,
           step.run.inputs.map(i => i.name -> i).toMap,
+          fileResolver = jobMeta.fileResolver,
           dxApi = jobMeta.dxApi
       )
       val instanceType =
@@ -448,7 +438,19 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
 
     private def launchCall(stepInputs: Map[DxName, (WorkflowStepInput, (CwlType, CwlValue))],
                            blockIndex: Int): Map[DxName, ParameterLink] = {
-      val callInputs = evaluateCallInputs(stepInputs)
+      // collect all the step input values to pass to the callee
+      val callInputs: Map[DxName, (CwlType, CwlValue)] = step.run.inputs.map { param =>
+        val dxName = CwlDxName.fromSourceName(param.name)
+        dxName -> stepInputs
+          .get(dxName)
+          .map(_._2)
+          .orElse(Option.when(CwlOptional.isOptional(param.cwlType))((param.cwlType, NullValue)))
+          .getOrElse {
+            throw new Exception(
+                s"missing required input ${dxName} to process ${step.run.name} at step ${step.name}"
+            )
+          }
+      }.toMap
       val (dxExecution, executableLink, callName) =
         launchCall(callInputs, folder = Some(blockIndex.toString))
       jobMeta.createExecutionOutputLinks(dxExecution, executableLink.outputs, Some(callName))
@@ -457,13 +459,13 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
     override protected def launchCall(blockIndex: Int): Map[DxName, ParameterLink] = {
       assert(step.scatter.isEmpty)
       assert(step.when.isEmpty)
-      launchCall(evaluateAllStepInputs(), blockIndex)
+      launchCall(evaluateCallStepInputs(), blockIndex)
     }
 
     override protected def launchConditional(): Map[DxName, ParameterLink] = {
       assert(step.scatter.isEmpty)
       assert(step.when.nonEmpty)
-      val stepInputs = evaluateAllStepInputs()
+      val stepInputs = evaluateCallStepInputs()
       val ctx = EvaluatorContext(inputs = createEvalInputs(stepInputs.values.toMap))
       val (_, cond) = eval.evaluate(step.when.get, CwlBoolean, ctx)
       cond match {
@@ -506,9 +508,15 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
 
     override protected def launchScatter(): Map[DxName, ParameterLink] = {
       assert(step.scatter.nonEmpty)
-      // construct the scatter inputs and launch one job for each, such that the inputs for each
-      // job are an array of one element for each scattered variable
-      val stepInputs = evaluateAllStepInputs()
+
+      // Evaluate all the step inputs. There may be step inputs that are not passed to the callee
+      // but are referred to in expressions of other step inputs' valueFrom fields. Note that the
+      // step input's type here might not match the callee's input type if valueFrom is specified.
+      val stepInputs = step.inputs.map(evaluateStepInput(_, cwlEnv)).toMap
+      if (logger.isVerbose) {
+        logger.trace(s"Workflow step ${step.name} scattering over process ${step.run.name}")
+        logger.traceLimited(s"Inputs:\n  ${stepInputs.mkString("\n  ")}")
+      }
 
       def getScatterValue(name: DxName): Option[(CwlType, Vector[CwlValue])] = {
         stepInputs.get(name) match {
@@ -518,24 +526,30 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
             Some(array.itemType, items)
           case None =>
             throw new Exception(s"scatter parameter ${name} is missing from step inputs")
-          case other =>
-            throw new Exception(s"scatter parameter ${name} type ${other} is not an array")
+          case Some((_, (t, _))) =>
+            throw new Exception(s"scatter parameter ${name} type ${t} is not an array")
         }
       }
 
       val scatterValues = scatterNames.map(getScatterValue)
+      val outputShape = Option.when(step.scatterMethod.contains(ScatterMethod.NestedCrossproduct))(
+          scatterValues.map {
+            case None         => 0
+            case Some((_, v)) => v.size
+          }
+      )
       if (scatterValues.exists(_.isEmpty)) {
         // at least one of the arrays is empty, so the scatter has no results
-        return Map.empty
+        return createEmptyScatterOutputs(outputShape)
       }
-      val (itemTypes, arrays) = scatterValues.flatten.unzip
+      val (scatterItemTypes, scatterArrays) = scatterValues.flatten.unzip
       // transform the input arrays into a single collection based on the scatter method
       val scatterCollection = step.scatterMethod match {
-        case _ if arrays.size == 1 => arrays.transpose
-        case Some(ScatterMethod.Dotproduct) if arrays.map(_.size).toSet.size == 1 =>
-          arrays.transpose
+        case _ if scatterArrays.size == 1 => scatterArrays.transpose
+        case Some(ScatterMethod.Dotproduct) if scatterArrays.map(_.size).toSet.size == 1 =>
+          scatterArrays.transpose
         case Some(ScatterMethod.FlatCrossproduct) | Some(ScatterMethod.NestedCrossproduct) =>
-          arrays.foldLeft(Vector(Vector.empty[CwlValue])) {
+          scatterArrays.foldLeft(Vector(Vector.empty[CwlValue])) {
             case (accu, v) => accu.flatMap(i => v.map(j => i :+ j))
           }
         case _ =>
@@ -555,24 +569,65 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
             (scatterCollection.drop(jobMeta.scatterStart), None)
           }
         }
-      // merge the scatter and non-scatter call inputs
-      val nonScatterCallInputs = runInputs.keySet
-        .diff(scatterNames.toSet)
-        .map(dxName => dxName -> stepInputs(dxName)._2)
-        .toMap
+
+      val nonScatterStepInputs = stepInputs.filterNot(i => scatterNames.contains(i._1))
+
+      def launchScatterJob(scatterValues: Vector[CwlValue]): DxExecution = {
+        val callNameDetail = getScatterName(scatterValues)
+        val scatterInputs: Map[DxName, (WorkflowStepInput, (CwlType, CwlValue))] = scatterNames
+          .zip(scatterItemTypes.zip(scatterValues))
+          .map {
+            case (dxName, tv) => dxName -> (stepInputs(dxName)._1, tv)
+          }
+          .toMap
+        lazy val evalInputs: ObjectValue =
+          createEvalInputs((scatterInputs.values ++ nonScatterStepInputs.values).toMap)
+        val scatterJobInputs = runInputs.map {
+          case (dxName, param) =>
+            val (stepInput, (sourceType, sourceValue)) = if (scatterInputs.contains(dxName)) {
+              scatterInputs(dxName)
+            } else {
+              nonScatterStepInputs(dxName)
+            }
+            if (stepInput.valueFrom.isDefined) {
+              val ctx = EvaluatorContext(sourceValue, evalInputs)
+              try {
+                dxName -> eval.evaluate(stepInput.valueFrom.get, param.cwlType, ctx)
+              } catch {
+                case cause: Throwable =>
+                  throw new Exception(
+                      s"error evaluating stepInput ${stepInput.name} valueFrom ${stepInput.valueFrom.get}",
+                      cause
+                  )
+              }
+            } else {
+              try {
+                dxName -> (param.cwlType, sourceValue.coerceTo(param.cwlType))
+              } catch {
+                case cause: Throwable =>
+                  throw new Exception(
+                      s"""effective type ${sourceType} of stepInput ${stepInput.name} value
+                         |${sourceValue} to parameter ${dxName} is not coercible to expected type
+                         |${param.cwlType}""".stripMargin.replaceAll("\n", " "),
+                      cause
+                  )
+              }
+            }
+        }
+        val (dxExecution, _, _) = launchCall(scatterJobInputs, Some(callNameDetail))
+        dxExecution
+      }
+
       val (childJobs, skippedIndices) = if (step.when.nonEmpty) {
         // Apply `when`, which may lead to some scatter collection items being null, for which we
         // skip launching the scatter job. We keep track of which indices are null so that we can
         // reconstruct the array with the correct shape later.
-        val scatterStepInputs = scatterNames.map(dxName => stepInputs(dxName)._1).zip(itemTypes)
-        val nonScatterStepInputs = stepInputs.keySet
-          .diff(scatterNames.toSet)
-          .map(dxName => stepInputs(dxName))
-          .toMap
+        val scatterStepInputs =
+          scatterNames.map(dxName => stepInputs(dxName)._1).zip(scatterItemTypes)
         val (childJobs, skippedIndices) =
           chunkCollection.foldLeft(Vector.empty[DxExecution], Vector.empty[Int]) {
             case ((execAccu, skipAccu), jobValues) =>
-              val allInputs = nonScatterStepInputs ++ scatterStepInputs
+              val allInputs = nonScatterStepInputs.values.toMap ++ scatterStepInputs
                 .zip(jobValues)
                 .map {
                   case ((param, t), v) => param -> (t, v)
@@ -581,44 +636,18 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
               val (_, cond) = eval.evaluate(step.when.get, CwlBoolean, ctx)
               cond match {
                 case BooleanValue(true) =>
-                  val scatterCallInputs: Map[DxName, (CwlType, CwlValue)] = scatterNames
-                    .zip(itemTypes.zip(jobValues))
-                    .filter {
-                      case (dxName, _) => runInputs.contains(dxName)
-                    }
-                    .toMap
-                  val callNameDetail = getScatterName(jobValues)
-                  val (dxExecution, _, _) =
-                    launchCall(scatterCallInputs ++ nonScatterCallInputs, Some(callNameDetail))
-                  (execAccu :+ dxExecution, skipAccu)
+                  (execAccu :+ launchScatterJob(jobValues), skipAccu)
                 case _ =>
                   (execAccu, skipAccu :+ nextScatterChunkIndex)
               }
           }
         (childJobs, Option.when(skippedIndices.nonEmpty)(skippedIndices))
       } else {
-        val childJobs = chunkCollection.map { item =>
-          val scatterCallInputs: Map[DxName, (CwlType, CwlValue)] = scatterNames
-            .zip(itemTypes.zip(item))
-            .filter {
-              case (dxName, _) => runInputs.contains(dxName)
-            }
-            .toMap
-          val callNameDetail = getScatterName(item)
-          val (dxExecution, _, _) =
-            launchCall(scatterCallInputs ++ nonScatterCallInputs, Some(callNameDetail))
-          dxExecution
-        }
-        (childJobs, None)
+        (chunkCollection.map(launchScatterJob), None)
       }
-      // store the output shape in the job details so we don't have to recompute it during the
-      // collect step
-      val outputShape = Option.when(step.scatterMethod.contains(ScatterMethod.NestedCrossproduct))(
-          arrays.map(_.size)
-      )
       if (childJobs.isEmpty) {
         // no jobs were launched
-        createEmptyScatterOutputs()
+        createEmptyScatterOutputs(outputShape)
       } else {
         // if there are remaining chunks this calls a continue sub-job,
         // otherwise it calls a collect sub-job

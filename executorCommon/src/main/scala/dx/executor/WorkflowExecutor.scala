@@ -35,6 +35,7 @@ import dx.util.protocols.{DxFileSource, DxFolderSource}
 import spray.json._
 
 import java.nio.file.Files
+import scala.annotation.tailrec
 
 object WorkflowAction extends Enum {
   type WorkflowAction = Value
@@ -336,9 +337,21 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
       links
     }
 
-    protected def createEmptyScatterOutputs(): Map[DxName, ParameterLink] = {
+    protected def createEmptyScatterOutputs(
+        outputShape: Option[Vector[Int]] = None
+    ): Map[DxName, ParameterLink] = {
+      @tailrec
+      def nestedEmptyArray(t: TArray, depth: Int, v: VArray = VArray()): VArray = {
+        t.itemType match {
+          case i: TArray if depth > 1 => nestedEmptyArray(i, depth - 1, VArray(v))
+          case i: TArray              => throw new Exception(s"array type ${i} at depth 1")
+          case _ if depth > 1         => throw new Exception(s"non-array type ${t} at depth > 1")
+          case _                      => v
+        }
+      }
       val outputs = outputTypes.collect {
-        case (dxName, t: TArray) => dxName -> (t, VArray())
+        case (dxName, t: TArray) =>
+          dxName -> (t, nestedEmptyArray(t, outputShape.map(_.size).getOrElse(1)))
         case (dxName, t) if !isOptional(t) =>
           throw new Exception(
               s"scatter output ${dxName} is non-optional but there are no scatter results"

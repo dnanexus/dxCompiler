@@ -18,6 +18,7 @@ import dx.core.ir.RunSpec.{
 }
 import dx.core.ir.{InstanceTypeSelection, RuntimeRequirement}
 import dx.cwl._
+import dx.util.FileSourceResolver
 
 import scala.reflect.ClassTag
 
@@ -39,6 +40,7 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
                                 workerPaths: DxWorkerPaths,
                                 inputParameters: Map[String, InputParameter] = Map.empty,
                                 defaultRuntimeAttrs: Map[String, (CwlType, CwlValue)] = Map.empty,
+                                fileResolver: FileSourceResolver = FileSourceResolver.get,
                                 dxApi: DxApi = DxApi.get) {
   lazy val evaluator: Evaluator = Evaluator.create(requirements, hints)
   private lazy val runtime: Runtime = CwlUtils.createRuntime(workerPaths)
@@ -46,7 +48,8 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
     CwlUtils.createEvaluatorContext(runtime,
                                     env,
                                     inputParameters = inputParameters,
-                                    inputDir = workerPaths.getInputFilesDir())
+                                    inputDir = workerPaths.getInputFilesDir(),
+                                    fileResolver = fileResolver)
 
   /**
     * Returns the last (i.e. highest priority) Requirement or Hint matching
