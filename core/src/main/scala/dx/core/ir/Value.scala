@@ -92,11 +92,6 @@ object Value {
     def apply(fields: (String, Value)*): VHash = {
       new VHash(fields.to(SeqMap))
     }
-    inner(value, t, initialContext)
-  }
-
-  trait TransformHandler {
-    def apply(value: Value, t: Option[Type], optional: Boolean): Option[Value]
   }
 
   trait WalkHandler[T] {

@@ -13,8 +13,6 @@ import time
 import threading
 import traceback
 
-from termcolor import cprint
-
 AssetDesc = namedtuple('AssetDesc', 'region asset_id project')
 
 max_num_retries = 5
@@ -216,14 +214,18 @@ def _build_asset(top_dir, language, destination, lock):
     try:
         proc = subprocess.run(
             ["dx", "build_asset", language.upper(), "--destination", destination],
-            check=True
+            check=True,
+            universal_newlines=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
         )
         with lock:
             print("Successfully built asset for language {}".format(language))
-            cprint(proc.stdout)
+            # print(proc.stdout)
+            # print(proc.stderr)
     except subprocess.CalledProcessError as e:
-        cprint(e.stdout)
-        cprint(e.stderr)
+        print(e.stdout)
+        print(e.stderr)
         raise e
     os.chdir(crnt_work_dir)
 
@@ -231,18 +233,19 @@ def _build_asset(top_dir, language, destination, lock):
 def _make_prerequisites(project, folder, version_id, top_dir, language, resources, lock, dependencies=None, env_vars=None):
     # Create a folder for the language-specific asset
     language_dir = os.path.join(top_dir, "applet_resources", language.upper())
-    language_resources_dir = os.path.join(language_dir, "resources", "usr", "bin")
-    os.makedirs(language_resources_dir, exist_ok=True)
+    build_lang_res_dir = os.path.join(language_dir, "resources")
+    build_lang_bin_dir = os.path.join(build_lang_res_dir, "usr", "bin")
+    os.makedirs(build_lang_bin_dir, exist_ok=True)
 
     # Link in the shared resources
     for res in resources:
-        os.link(res, os.path.join(language_resources_dir, Path(res).name))
+        os.link(res, os.path.join(build_lang_bin_dir, Path(res).name))
 
     # Link in executor-specific resources, if any
-    lang_resources_dir = os.path.join(top_dir, "executor{}".format(language), "applet_resources")
-    if os.path.exists(lang_resources_dir):
-        for f in os.listdir(lang_resources_dir):
-            os.link(os.path.join(lang_resources_dir, f), os.path.join(language_dir, f))
+    source_lang_res_dir = os.path.join(top_dir, "executor{}".format(language), "applet_resources")
+    if os.path.exists(source_lang_res_dir):
+        for f in os.listdir(source_lang_res_dir):
+            os.link(os.path.join(source_lang_res_dir, f), os.path.join(language_dir, f))
 
     # Create the asset description file
     _create_asset_spec(version_id, top_dir, language, dependencies)
@@ -251,7 +254,9 @@ def _make_prerequisites(project, folder, version_id, top_dir, language, resource
     if env_vars:
         dot_env = "\n".join("{}={}".format(key, val) for key, val in env_vars.items())
         # files in home dir are not included in the final asset
-        dot_env_file = os.path.join(lang_resources_dir, "home", "dnanexus", ".env")
+        build_lang_home_dir = os.path.join(build_lang_res_dir, "home", "dnanexus")
+        os.makedirs(build_lang_home_dir, exist_ok=True)
+        dot_env_file = os.path.join(build_lang_home_dir, ".env")
         with open(dot_env_file, "wt") as out:
             out.write(dot_env)
 
