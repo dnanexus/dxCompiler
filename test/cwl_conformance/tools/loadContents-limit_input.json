@@ -1,6 +1,3 @@
 {
-  "loadContents-limit.filelist": {
-    "class": "File",
-    "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/inp-filelist.txt"
-  }
+  "loadContents-limit.filelist": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G159QBj0yzZqfxb74byF1jzQ"
 }

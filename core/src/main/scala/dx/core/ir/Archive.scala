@@ -7,7 +7,7 @@ import dx.core.ir.Value._
 import dx.util.{FileUtils, JsUtils, Logger, SysUtils}
 import spray.json._
 
-import scala.collection.immutable.TreeSeqMap
+import scala.collection.immutable.SeqMap
 
 /**
   * Interface for mounting or appending to a squashfs image.
@@ -241,6 +241,7 @@ trait Archive {
   val path: Path
   val irType: Type
   val irValue: Value
+  val typeAliases: Map[String, TSchema]
   val localized: Boolean
 }
 
@@ -266,33 +267,76 @@ object Archive {
     */
   def transformPaths(irValue: Value,
                      irType: Type,
-                     transformer: Path => Path): (Value, Map[Path, Path]) = {
-    def transformFile(path: String): (VFile, Map[Path, Path]) = {
-      val oldPath = Paths.get(path)
-      val newPath = transformer(oldPath)
-      (VFile(newPath.toString), TreeSeqMap(oldPath -> newPath))
+                     transformer: Path => Path): (Value, SeqMap[Path, Path]) = {
+    def transformFile(value: Value): (VFile, SeqMap[Path, Path]) = {
+      value match {
+        case f: VFile =>
+          val oldPath = Paths.get(f.uri)
+          val newPath = transformer(oldPath)
+          (f.copy(uri = newPath.toString), SeqMap(oldPath -> newPath))
+        case VString(s) =>
+          val oldPath = Paths.get(s)
+          val newPath = transformer(oldPath)
+          (VFile(newPath.toString), SeqMap(oldPath -> newPath))
+        case _ =>
+          throw new Exception(s"cannot transform ${value} to file")
+      }
     }
-    def transformNoType(innerValue: Value): (Value, Map[Path, Path]) = {
+    def transformDirectory(value: Value): (DirectoryValue, SeqMap[Path, Path]) = {
+      def transformListing(listing: Vector[PathValue]): (Vector[PathValue], SeqMap[Path, Path]) = {
+        val (newItems, nestedPaths) = listing.map {
+          case f: VFile          => transformFile(f)
+          case d: DirectoryValue => transformDirectory(d)
+        }.unzip
+        (newItems, nestedPaths.flatten.to(SeqMap))
+      }
+      value match {
+        case f @ VFolder(uri, _, items) =>
+          val oldPath = Paths.get(uri)
+          val newPath = transformer(oldPath)
+          val (newItems, itemPaths) = if (items.isDefined) {
+            val (newItems, itemPaths) = transformListing(items.get)
+            (Some(newItems), itemPaths)
+          } else {
+            (None, SeqMap.empty[Path, Path])
+          }
+          (f.copy(uri = newPath.toString, listing = newItems),
+           SeqMap(oldPath -> newPath) ++ itemPaths)
+        case l @ VListing(_, items) =>
+          val (newItems, nestedPaths) = transformListing(items)
+          (l.copy(items = newItems), nestedPaths)
+        case VString(s) =>
+          val oldPath = Paths.get(s)
+          val newPath = transformer(oldPath)
+          (VFolder(newPath.toString), SeqMap(oldPath -> newPath))
+        case _ =>
+          throw new Exception(s"cannot transform ${value} to directory")
+      }
+    }
+    def transformNoType(innerValue: Value): (Value, SeqMap[Path, Path]) = {
       innerValue match {
-        case VFile(s) => transformFile(s)
+        case f: VFile          => transformFile(f)
+        case d: DirectoryValue => transformDirectory(d)
         case VArray(items) =>
           val (transformedItems, paths) = items.map(transformNoType).unzip
-          (VArray(transformedItems), paths.flatten.toMap)
+          (VArray(transformedItems), paths.flatten.to(SeqMap))
         case VHash(fields) =>
           val (transformedFields, paths) = fields.map {
             case (k, v) =>
               val (value, paths) = transformNoType(v)
               (k -> value, paths)
           }.unzip
-          (VHash(transformedFields.to(TreeSeqMap)), paths.flatten.toMap)
+          (VHash(transformedFields.to(SeqMap)), paths.flatten.to(SeqMap))
         case _ =>
-          (innerValue, Map.empty)
+          (innerValue, SeqMap.empty)
       }
     }
-    def transformWithType(innerValue: Value, innerType: Type): (Value, Map[Path, Path]) = {
+    def transformWithType(innerValue: Value, innerType: Type): (Value, SeqMap[Path, Path]) = {
       (innerType, innerValue) match {
-        case (TFile, VFile(s))   => transformFile(s)
-        case (TFile, VString(s)) => transformFile(s)
+        case (TFile, f: VFile)               => transformFile(f)
+        case (TFile, s: VString)             => transformFile(s)
+        case (TDirectory, d: DirectoryValue) => transformDirectory(d)
+        case (TDirectory, s: VString)        => transformDirectory(s)
         case (_: TCollection, _: VFile) =>
           throw new RuntimeException("nested archive values are not allowed")
         case (TOptional(t), value) if value != VNull =>
@@ -300,18 +344,18 @@ object Archive {
           (v, paths)
         case (TArray(itemType, _), VArray(items)) =>
           val (transformedItems, paths) = items.map(transformWithType(_, itemType)).unzip
-          (VArray(transformedItems), paths.flatten.toMap)
-        case (TSchema(name, fieldTypes), VHash(fields)) =>
+          (VArray(transformedItems), paths.flatten.to(SeqMap))
+        case (TSchema(_, fieldTypes), VHash(fields)) =>
           val (transformedFields, paths) = fieldTypes.collect {
             case (name, t) if fields.contains(name) =>
               val (transformedValue, paths) = transformWithType(fields(name), t)
               (name -> transformedValue, paths)
           }.unzip
-          (VHash(transformedFields.to(TreeSeqMap)), paths.flatten.toMap)
+          (VHash(transformedFields.to(SeqMap)), paths.flatten.to(SeqMap))
         case (THash, _: VHash) =>
           transformNoType(innerValue)
         case _ =>
-          (innerValue, Map.empty)
+          (innerValue, SeqMap.empty)
       }
     }
     transformWithType(irValue, irType)
@@ -326,8 +370,9 @@ object Archive {
   * @param packedTypeAndValue the already localized type and value
   * @param mountDir parent dir in which to create the randomly named mount point
   */
-case class PackedArchive(path: Path, encoding: Charset = FileUtils.DefaultEncoding)(
-    typeAliases: Map[String, TSchema] = Map.empty,
+case class PackedArchive(path: Path,
+                         typeAliases: Map[String, TSchema] = Map.empty,
+                         encoding: Charset = FileUtils.DefaultEncoding)(
     packedTypeAndValue: Option[(Type, Value)] = None,
     mountDir: Option[Path] = None
 ) extends Archive {
@@ -389,7 +434,9 @@ case class PackedArchive(path: Path, encoding: Charset = FileUtils.DefaultEncodi
       archive.mount()
     }
     val localizedArchive =
-      LocalizedArchive(t, localizedValue)(Some(archive, v), Some(archive.mountPoint), name)
+      LocalizedArchive(t, localizedValue, typeAliases)(Some(archive, v),
+                                                       Some(archive.mountPoint),
+                                                       name)
     (localizedArchive, filePaths.values.toVector)
   }
 
@@ -420,6 +467,7 @@ case class PackedArchive(path: Path, encoding: Charset = FileUtils.DefaultEncodi
 case class LocalizedArchive(
     irType: Type,
     irValue: Value,
+    typeAliases: Map[String, TSchema] = Map.empty,
     encoding: Charset = FileUtils.DefaultEncoding
 )(packedArchiveAndValue: Option[(SquashFs, Value)] = None,
   parentDir: Option[Path] = None,
@@ -485,7 +533,7 @@ case class LocalizedArchive(
       createArchive(irType, delocalizedValue, filePaths, removeSourceFiles)
       delocalizedValue
     }
-    PackedArchive(path, encoding)(packedTypeAndValue = Some(irType, delocalizedValue))
+    PackedArchive(path, typeAliases, encoding)(Some(irType, delocalizedValue))
   }
 
   def isOpen: Boolean = {
@@ -502,6 +550,7 @@ case class LocalizedArchive(
     JsObject(
         "type" -> TypeSerde.serializeOne(irType),
         "value" -> ValueSerde.serialize(irValue),
+        "typeAliases" -> JsObject(TypeSerde.serializeSchemas(typeAliases)._1),
         "packedValue" -> packedArchiveAndValue
           .map {
             case (_, v) => ValueSerde.serialize(v)
@@ -518,11 +567,33 @@ case class LocalizedArchive(
 object LocalizedArchive {
   def fromJson(jsValue: JsValue, schemas: Map[String, TSchema]): LocalizedArchive = {
     jsValue.asJsObject
-      .getFields("type", "value", "packedValue", "fs", "encoding", "parentDir", "name") match {
-      case Seq(typeJs, valueJs, packedValueJs, fsJs, encodingJs, parentDirJs, nameJs) =>
+      .getFields("type",
+                 "value",
+                 "typeAliases",
+                 "packedValue",
+                 "fs",
+                 "encoding",
+                 "parentDir",
+                 "name") match {
+      case Seq(typeJs,
+               valueJs,
+               typeAliasesJs,
+               packedValueJs,
+               fsJs,
+               encodingJs,
+               parentDirJs,
+               nameJs) =>
         val (irType, _) = TypeSerde.deserializeOne(typeJs, schemas)
         val irValue = ValueSerde.deserializeWithType(valueJs, irType)
         val archive = SquashFs.fromJson(fsJs)
+        val typeAliases = typeAliasesJs match {
+          case JsObject(aliases) =>
+            TypeSerde.deserializeSchemas(aliases).collect {
+              case (name, schema: TSchema) => name -> schema
+            }
+          case other =>
+            throw new Exception(s"invalid typeAliases ${other}")
+        }
         val packedArchiveAndValue = packedValueJs match {
           case JsNull => None
           case v =>
@@ -540,7 +611,9 @@ object LocalizedArchive {
           case JsNull         => None
           case _              => throw new Exception(s"invalid name ${nameJs}")
         }
-        LocalizedArchive(irType, irValue, encoding)(packedArchiveAndValue, parentDir, name)
+        LocalizedArchive(irType, irValue, typeAliases, encoding)(packedArchiveAndValue,
+                                                                 parentDir,
+                                                                 name)
       case _ =>
         throw new Exception(s"invalid serialized LocalizedArchive value ${jsValue}")
     }

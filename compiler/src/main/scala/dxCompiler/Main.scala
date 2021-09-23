@@ -538,6 +538,7 @@ object Main {
           streamFiles,
           waitOnUpload,
           useManifests,
+          translator.complexPathValues,
           instanceTypeSelection,
           defaultInstanceType,
           fileResolver

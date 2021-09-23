@@ -6,6 +6,7 @@ import dx.Tags.EdgeTest
 import dx.api._
 import dxCompiler.Main.SuccessfulCompileIR
 import dx.core.CliUtils.Failure
+import dx.core.Constants
 import dx.util.{FileUtils, JsUtils}
 import dxCompiler.Main
 import org.scalatest.Inside._
@@ -19,27 +20,26 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
   assume(isLoggedIn)
 
   private def pathFromBasename(dirname: String, basename: String): Path = {
-    val p = getClass.getResource(s"/${dirname}/${basename}").getPath
-    Paths.get(p)
+    Paths.get(getClass.getResource(s"/${dirname}/${basename}").getPath)
   }
 
   private val cFlags =
-    List("--compileMode", "ir", "-quiet", "--project", DxApi.get.currentProjectId.get)
+    List("--compileMode", "ir", "--quiet", "--project", DxApi.get.currentProjectId.get)
 
   // make sure we are logged in
 
   it should "handle one task and two inputs" in {
-    val wdlCode = pathFromBasename("input_file", "add.wdl")
+    val sourceCode = pathFromBasename("input_file", "add.wdl")
     val inputs = pathFromBasename("input_file", "add_inputs.json")
-    val args = List(wdlCode.toString, "-inputs", inputs.toString) ++ cFlags
+    val args = List(sourceCode.toString, "--inputs", inputs.toString) ++ cFlags
     Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
   it should "deal with a locked workflow" in {
-    val wdlCode = pathFromBasename("input_file", "math.wdl")
+    val sourceCode = pathFromBasename("input_file", "math.wdl")
     val inputs = pathFromBasename("input_file", "math_inputs.json")
-    val args = List(wdlCode.toString,
-                    "-inputs",
+    val args = List(sourceCode.toString,
+                    "--inputs",
                     inputs.toString,
                     "--locked"
                     //, "--verbose", "--verboseKey", "GenerateIR"
@@ -48,20 +48,20 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
   }
 
   it should "not compile for several applets without a workflow" in {
-    val wdlCode = pathFromBasename("input_file", "several_tasks.wdl")
+    val sourceCode = pathFromBasename("input_file", "several_tasks.wdl")
     val inputs = pathFromBasename("input_file", "several_tasks_inputs.json")
-    val args = List(wdlCode.toString, "-inputs", inputs.toString) ++ cFlags
+    val args = List(sourceCode.toString, "--inputs", inputs.toString) ++ cFlags
     val retval = Main.compile(args.toVector)
     inside(retval) {
       case Failure(_, Some(e)) =>
-        e.getMessage should include("Cannot generate one input file for 2 tasks")
+        e.getMessage should include("cannot generate one input file for 2 tasks")
     }
   }
 
   it should "one input too many" in {
-    val wdlCode = pathFromBasename("input_file", "math.wdl")
+    val sourceCode = pathFromBasename("input_file", "math.wdl")
     val inputs = pathFromBasename("input_file", "math_inputs2.json")
-    val args = List(wdlCode.toString, "-inputs", inputs.toString, "--locked") ++ cFlags
+    val args = List(sourceCode.toString, "--inputs", inputs.toString, "--locked") ++ cFlags
     val retval = Main.compile(args.toVector)
     inside(retval) {
       case Failure(_, Some(e)) =>
@@ -70,26 +70,26 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
   }
 
   it should "build defaults into applet underneath workflow" in {
-    val wdlCode = pathFromBasename("input_file", "population.wdl")
+    val sourceCode = pathFromBasename("input_file", "population.wdl")
     val defaults = pathFromBasename("input_file", "population_inputs.json")
-    val args = List(wdlCode.toString, "-defaults", defaults.toString) ++ cFlags
+    val args = List(sourceCode.toString, "-defaults", defaults.toString) ++ cFlags
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileIR]
   }
 
   it should "handle inputs specified in the json file, but missing in the workflow" in {
-    val wdlCode = pathFromBasename("input_file", "missing_args.wdl")
+    val sourceCode = pathFromBasename("input_file", "missing_args.wdl")
     val inputs = pathFromBasename("input_file", "missing_args_inputs.json")
-    val args = List(wdlCode.toString, "-inputs", inputs.toString) ++ cFlags
+    val args = List(sourceCode.toString, "--inputs", inputs.toString) ++ cFlags
     Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
 
     // inputs as defaults
-    val args2 = List(wdlCode.toString, "-defaults", inputs.toString) ++ cFlags
+    val args2 = List(sourceCode.toString, "-defaults", inputs.toString) ++ cFlags
     Main.compile(args2.toVector) shouldBe a[SuccessfulCompileIR]
 
     // Input to an applet.
     // Missing argument in a locked workflow should throw an exception.
-    val args3 = List(wdlCode.toString, "-inputs", inputs.toString, "--locked") ++ cFlags
+    val args3 = List(sourceCode.toString, "--inputs", inputs.toString, "--locked") ++ cFlags
     val retval = Main.compile(args3.toVector)
     inside(retval) {
       case Failure(_, Some(e)) =>
@@ -97,47 +97,47 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
     }
 
     // Missing arguments are legal in an unlocked workflow
-    val args4 = List(wdlCode.toString, "-inputs", inputs.toString) ++ cFlags
+    val args4 = List(sourceCode.toString, "--inputs", inputs.toString) ++ cFlags
     Main.compile(args4.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
   it should "support struct inputs" in {
-    val wdlCode = pathFromBasename("struct", "Person.wdl")
+    val sourceCode = pathFromBasename("struct", "Person.wdl")
     val inputs = pathFromBasename("struct", "Person_input.json")
-    val args = List(wdlCode.toString, "-inputs", inputs.toString) ++ cFlags
+    val args = List(sourceCode.toString, "--inputs", inputs.toString) ++ cFlags
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileIR]
   }
 
   it should "support array of pairs" taggedAs EdgeTest in {
-    val wdlCode = pathFromBasename("input_file", "echo_pairs.wdl")
+    val sourceCode = pathFromBasename("input_file", "echo_pairs.wdl")
     val inputs = pathFromBasename("input_file", "echo_pairs_input.json")
-    val args = List(wdlCode.toString, "-inputs", inputs.toString) ++ cFlags
+    val args = List(sourceCode.toString, "--inputs", inputs.toString) ++ cFlags
     //        ++ List("--verbose", "--verboseKey", "GenerateIR")
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileIR]
   }
 
   it should "handle an array of structs" in {
-    val wdlCode = pathFromBasename("struct", "array_of_structs.wdl")
+    val sourceCode = pathFromBasename("struct", "array_of_structs.wdl")
     val inputs = pathFromBasename("struct", "array_of_structs_input.json")
-    val args = List(wdlCode.toString, "-inputs", inputs.toString) ++ cFlags
+    val args = List(sourceCode.toString, "--inputs", inputs.toString) ++ cFlags
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileIR]
   }
 
   it should "override default values in input file" in {
-    val wdlCode = pathFromBasename("input_file", "override.wdl")
+    val sourceCode = pathFromBasename("input_file", "override.wdl")
     val inputs = pathFromBasename("input_file", "override_input.json")
-    val args = List(wdlCode.toString, "-inputs", inputs.toString) ++ cFlags
+    val args = List(sourceCode.toString, "--inputs", inputs.toString) ++ cFlags
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileIR]
   }
 
   it should "WDL map input" in {
-    val wdlCode = pathFromBasename("input_file", "map_argument.wdl")
+    val sourceCode = pathFromBasename("input_file", "map_argument.wdl")
     val inputs = pathFromBasename("input_file", "map_argument_input.json")
-    val args = List(wdlCode.toString, "-inputs", inputs.toString) ++ cFlags
+    val args = List(sourceCode.toString, "--inputs", inputs.toString) ++ cFlags
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileIR]
 
@@ -167,9 +167,9 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
   }
 
   it should "WDL map input with file values" in {
-    val wdlCode = pathFromBasename("input_file", "map_argument2.wdl")
+    val sourceCode = pathFromBasename("input_file", "map_argument2.wdl")
     val inputs = pathFromBasename("input_file", "map_argument2_input.json")
-    val args = List(wdlCode.toString, "-inputs", inputs.toString) ++ cFlags
+    val args = List(sourceCode.toString, "--inputs", inputs.toString) ++ cFlags
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileIR]
 
@@ -216,25 +216,25 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
   }
 
   it should "allow file as WDL map key" in {
-    val wdlCode = pathFromBasename("input_file", "no_file_key.wdl")
+    val sourceCode = pathFromBasename("input_file", "no_file_key.wdl")
     val inputs = pathFromBasename("input_file", "no_file_key_input.json")
-    val args = List(wdlCode.toString, "-inputs", inputs.toString, "-verbose") ++ cFlags
+    val args = List(sourceCode.toString, "--inputs", inputs.toString) ++ cFlags
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileIR]
   }
 
   it should "translate manifest inputs" in {
-    val wdlCode = pathFromBasename("manifest", "simple_manifest.wdl")
+    val sourceCode = pathFromBasename("manifest", "simple_manifest.wdl")
     val inputs = pathFromBasename("manifest", "simple_manifest_input.json")
-    val args = List(wdlCode.toString, "-inputs", inputs.toString, "-verbose", "-useManifests") ++ cFlags
+    val args = List(sourceCode.toString, "--inputs", inputs.toString, "--useManifests") ++ cFlags
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileIR]
   }
 
   it should "handle parameter name with dot" in {
-    val cwlCode = pathFromBasename("input_file", "bwa-mem-tool.cwl")
+    val cwlCode = pathFromBasename("input_file", "bwa-mem-tool.cwl.json")
     val inputs = pathFromBasename("input_file", "bwa-mem-tool_input.json")
-    val args = List(cwlCode.toString, "-inputs", inputs.toString, "-verbose") ++ cFlags
+    val args = List(cwlCode.toString, "--inputs", inputs.toString) ++ cFlags
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileIR]
 
@@ -242,22 +242,37 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
     val jsInputs = JsUtils.jsFromFile(dxInputsFile)
     val fields = jsInputs.asJsObject.fields
     fields("reference") shouldBe JsObject(
-        "$dnanexus_link" -> JsObject(
-            "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
-            "id" -> JsString("file-G0G0V000yzZf6x1Y3vxzpg63")
+        "___" -> JsObject(
+            "checksum" -> JsString("sha1$hash"),
+            "size" -> JsNumber(123),
+            "type" -> JsString("File"),
+            "uri" -> JsObject(
+                "$dnanexus_link" -> JsObject(
+                    "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
+                    "id" -> JsString("file-G0G0V000yzZf6x1Y3vxzpg63")
+                )
+            )
         )
     )
-    fields("reads") shouldBe JsArray(
-        JsObject(
-            "$dnanexus_link" -> JsObject(
-                "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
-                "id" -> JsString("file-G0G0V0Q0yzZbyFF03xqgxv87")
-            )
-        ),
-        JsObject(
-            "$dnanexus_link" -> JsObject(
-                "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
-                "id" -> JsString("file-G0G0V0j0yzZV5q4q3vkQJJX5")
+    fields("reads") shouldBe JsObject(
+        "___" -> JsArray(
+            JsObject(
+                "type" -> JsString("File"),
+                "uri" -> JsObject(
+                    "$dnanexus_link" -> JsObject(
+                        "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
+                        "id" -> JsString("file-G0G0V0Q0yzZbyFF03xqgxv87")
+                    )
+                )
+            ),
+            JsObject(
+                "type" -> JsString("File"),
+                "uri" -> JsObject(
+                    "$dnanexus_link" -> JsObject(
+                        "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
+                        "id" -> JsString("file-G0G0V0j0yzZV5q4q3vkQJJX5")
+                    )
+                )
             )
         )
     )
@@ -268,10 +283,202 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
         JsNumber(4)
     )
     fields("minimum_seed_length") shouldBe JsNumber(3)
-    fields("args___py") shouldBe JsObject(
-        "$dnanexus_link" -> JsObject(
-            "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
-            "id" -> JsString("file-G0G3BZQ0yzZf6x1Y3vxzpgk6")
+    fields("args__46__py") shouldBe JsObject(
+        "___" -> JsObject(
+            "type" -> JsString("File"),
+            "uri" -> JsObject(
+                "$dnanexus_link" -> JsObject(
+                    "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
+                    "id" -> JsString("file-G0G3BZQ0yzZf6x1Y3vxzpgk6")
+                )
+            )
+        )
+    )
+  }
+
+  it should "translate cwl inputs" in {
+    val cwlCode = pathFromBasename("input_file", "initialwork-path.cwl.json")
+    val inputs = pathFromBasename("input_file", "initialwork-path_input.json")
+    val args = List(cwlCode.toString, "--inputs", inputs.toString) ++ cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileIR]
+  }
+
+  it should "translate cwl inputs with default file value" in {
+    val cwlCode = pathFromBasename("input_file", "bool-empty-inputbinding.cwl.json")
+    val inputs = pathFromBasename("input_file", "bool-empty-inputbinding_input.json")
+    val args = List(cwlCode.toString, "--inputs", inputs.toString) ++ cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileIR]
+  }
+
+  it should "translate cwl inputs for workflow with no steps" in {
+    val cwlCode = pathFromBasename("cwl", "any-type-compat.cwl.json")
+    val inputs = pathFromBasename("input_file", "any-type-compat_input.json")
+    val args = List(cwlCode.toString, "--inputs", inputs.toString) ++ cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileIR]
+    val dxInputsFile = inputs.getParent.resolve(FileUtils.replaceFileSuffix(inputs, ".dx.json"))
+    val jsInputs = JsUtils.jsFromFile(dxInputsFile)
+    val fields = jsInputs.asJsObject.fields
+    // the input types are all 'Any' so they should be treated as objects
+    fields.keySet shouldBe Set("input1",
+                               "input1___dxfiles",
+                               "input2",
+                               "input2___dxfiles",
+                               "input3",
+                               "input3___dxfiles")
+  }
+
+  it should "translate cwl directory input" in {
+    val cwlCode = pathFromBasename("input_file", "dir.cwl.json")
+    val inputs = pathFromBasename("input_file", "dir_input.json")
+    val args = List(cwlCode.toString, "--inputs", inputs.toString) ++ cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileIR]
+  }
+
+  it should "translate cwl directory listing I" in {
+    val cwlCode = pathFromBasename("input_file", "cat-from-dir.cwl.json")
+    val inputs = pathFromBasename("input_file", "cat-from-dir_input1.json")
+    val args = List(cwlCode.toString, "--inputs", inputs.toString) ++ cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileIR]
+
+    val dxInputsFile = inputs.getParent.resolve(FileUtils.replaceFileSuffix(inputs, ".dx.json"))
+    val jsInputs = JsUtils.jsFromFile(dxInputsFile)
+    val fields = jsInputs.asJsObject.fields
+    fields("dir1") shouldBe JsObject(
+        Constants.ComplexValueKey -> JsObject(
+            "type" -> JsString("Listing"),
+            "basename" -> JsString("cwl"),
+            "listing" -> JsArray(
+                JsObject(
+                    "type" -> JsString("File"),
+                    "uri" -> JsObject(
+                        "$dnanexus_link" -> JsObject(
+                            "id" -> JsString("file-G0G0V100yzZg3BBz3x4Y2Q69"),
+                            "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq")
+                        )
+                    )
+                )
+            )
+        )
+    )
+  }
+
+  it should "translate cwl directory listing II" in {
+    val cwlCode = pathFromBasename("input_file", "cat-from-dir.cwl.json")
+    val inputs = pathFromBasename("input_file", "cat-from-dir_input2.json")
+    val args = List(cwlCode.toString, "--inputs", inputs.toString) ++ cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileIR]
+
+    val dxInputsFile = inputs.getParent.resolve(FileUtils.replaceFileSuffix(inputs, ".dx.json"))
+    val jsInputs = JsUtils.jsFromFile(dxInputsFile)
+    val fields = jsInputs.asJsObject.fields
+    fields("dir1") shouldBe JsObject(
+        Constants.ComplexValueKey -> JsObject(
+            "type" -> JsString("Listing"),
+            "basename" -> JsString("cwl"),
+            "listing" -> JsArray(
+                JsObject(
+                    "type" -> JsString("File"),
+                    "uri" -> JsString("literal.txt"),
+                    "basename" -> JsString("literal.txt"),
+                    "contents" -> JsString("I'm a File literal; howdy!")
+                )
+            )
+        )
+    )
+  }
+
+  it should "translate cwl file with secondary files" in {
+    val cwlCode = pathFromBasename("input_file", "dir4.cwl.json")
+    val inputs = pathFromBasename("input_file", "dir4_input1.json")
+    val args = List(cwlCode.toString, "--inputs", inputs.toString) ++ cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileIR]
+
+    val dxInputsFile = inputs.getParent.resolve(FileUtils.replaceFileSuffix(inputs, ".dx.json"))
+    val jsInputs = JsUtils.jsFromFile(dxInputsFile)
+    val fields = jsInputs.asJsObject.fields
+    fields("inf") shouldBe JsObject(
+        Constants.ComplexValueKey -> JsObject(
+            "type" -> JsString("File"),
+            "uri" -> JsObject(
+                "$dnanexus_link" -> JsObject(
+                    "id" -> JsString("file-G0G0V0j0yzZbyFF03xqgxv89"),
+                    "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq")
+                )
+            ),
+            "secondaryFiles" -> JsArray(
+                JsObject(
+                    "type" -> JsString("File"),
+                    "uri" -> JsObject(
+                        "$dnanexus_link" -> JsObject(
+                            "id" -> JsString("file-G0G3BZQ0yzZZZXfx3xPK1BYF"),
+                            "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq")
+                        )
+                    )
+                ),
+                JsObject(
+                    "type" -> JsString("Folder"),
+                    "basename" -> JsString("xtestdir"),
+                    "uri" -> JsString("dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/test/")
+                )
+            )
+        )
+    )
+  }
+
+  it should "translate a WDL file with overrides" in {
+    val sourceCode = pathFromBasename("input_file", "runtime_override.wdl")
+    val inputs = pathFromBasename("input_file", "runtime_override_inputs.json")
+    val args = List(sourceCode.toString, "--inputs", inputs.toString) ++ cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileIR]
+
+    val dxInputsFile = inputs.getParent.resolve(FileUtils.replaceFileSuffix(inputs, ".dx.json"))
+    val jsInputs = JsUtils.jsFromFile(dxInputsFile)
+    val fields = jsInputs.asJsObject.fields
+    fields.size shouldBe 2
+    fields("s") shouldBe JsString("foo")
+    fields(Constants.Overrides.encoded) shouldBe JsObject(
+        "___" -> JsObject(
+            "runtime" -> JsObject(
+                "docker" -> JsString("debian:latest"),
+                "cpu" -> JsNumber(8)
+            )
+        )
+    )
+  }
+
+  it should "translate a CWL file with overrides" in {
+    val sourceCode = pathFromBasename("input_file", "env-tool.cwl.json")
+    val inputs = pathFromBasename("input_file", "env-tool_input.yaml")
+    val args = List(sourceCode.toString, "--inputs", inputs.toString) ++ cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileIR]
+
+    val dxInputsFile = inputs.getParent.resolve(FileUtils.replaceFileSuffix(inputs, ".dx.json"))
+    val jsInputs = JsUtils.jsFromFile(dxInputsFile)
+    val fields = jsInputs.asJsObject.fields
+    fields.size shouldBe 2
+    fields("in") shouldBe JsString("hello test env")
+    fields(Constants.Overrides.encoded) shouldBe JsObject(
+        "___" -> JsObject(
+            "requirements" -> JsArray(
+                JsObject(
+                    "class" -> JsString("EnvVarRequirement"),
+                    "envDef" -> JsArray(
+                        JsObject(
+                            "envName" -> JsString("TEST_ENV"),
+                            "envValue" -> JsString("$(inputs.in)")
+                        )
+                    )
+                )
+            )
         )
     )
   }

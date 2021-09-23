@@ -2,15 +2,15 @@
   "io-file-or-files.input": [
     {
       "class": "File",
-      "path": "empty.txt"
+      "location": "dx://file-G0G0V0j0yzZV5q4q3vkQJJX7"
     },
     {
       "class": "File",
-      "path": "whale.txt"
+      "location": "dx://file-G0G0V1Q0yzZZZXfx3xPK1B1Z"
     },
     {
       "class": "File",
-      "path": "number.txt"
+      "location": "dx://file-G0G0V180yzZf6x1Y3vxzpg67"
     }
   ]
 }

@@ -1,0 +1,24 @@
+{
+    "requirements": [
+        {
+            "class": "DockerRequirement",
+            "dockerPull": "debian:stretch-slim"
+        }
+    ],
+    "class": "CommandLineTool",
+    "inputs": [],
+    "baseCommand": [
+        "echo"
+    ],
+    "id": "#main",
+    "outputs": [
+        {
+            "id": "#main/OUTPUT",
+            "type": "File",
+            "outputBinding": {
+                "glob": "/etc/passwd"
+            }
+        }
+    ],
+    "cwlVersion": "v1.2"
+}

@@ -83,8 +83,7 @@ def get_project(project_name):
     except dxpy.DXError:
         pass
 
-    project = dxpy.find_projects(name=project_name, return_handler=True, level="VIEW")
-    project = [p for p in project]
+    project = list(dxpy.find_projects(name=project_name, return_handler=True, level="VIEW"))
     if len(project) == 0:
         info('Did not find project {0}'.format(project_name))
         return None
@@ -198,7 +197,8 @@ def _create_asset_spec(version_id, top_dir, language, dependencies=None):
         "distribution": "Ubuntu",
         "execDepends": exec_depends,
         "instanceType": "mem1_ssd1_v2_x4",
-        "description": "Prerequisites for running {} workflows compiled to the platform".format(language.upper())
+        "description": "Prerequisites for running {} workflows compiled to the platform".format(language.upper()),
+        "excludeResource": ["/dev/console"]
     }
     with open(os.path.join(top_dir, "applet_resources", language.upper(), "dxasset.json"), 'w') as fd:
         fd.write(json.dumps(asset_spec, indent=4))

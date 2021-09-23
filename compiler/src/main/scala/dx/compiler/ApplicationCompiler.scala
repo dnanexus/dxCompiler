@@ -8,7 +8,7 @@ import dx.core.ir.RunSpec._
 import dx.translator.{DockerRegistry, DxAccess, DxRunSpec, DxTimeout, Extras}
 import dx.translator.CallableAttributes._
 import dx.translator.ExtrasJsonProtocol._
-import dx.util.{CodecUtils, Logger}
+import dx.util.{CodecUtils, FileSourceResolver, Logger}
 import spray.json._
 import wdlTools.generators.Renderer
 import scala.util.{Failure, Success, Try}
@@ -18,10 +18,10 @@ object ApplicationCompiler {
   // templates
   private val GenericDockerPreambleTemplate = "templates/generic_docker_preamble.ssp"
   private val EcrDockerPreambleTemplate = "templates/ecr_docker_preamble.ssp"
-  private val DynamicAppletJobTemplate = "templates/dynamic_applet_script.ssp"
-  private val StaticAppletJobTemplate = "templates/static_applet_script.ssp"
+  private val DynamicAppletCommandTemplate = "templates/dynamic_applet_script.ssp"
+  private val StaticAppletCommandTemplate = "templates/static_applet_script.ssp"
   private val WorkflowFragmentTemplate = "templates/workflow_fragment_script.ssp"
-  private val CommandTemplate = "templates/workflow_command_script.ssp"
+  private val WorkflowCommandTemplate = "templates/workflow_command_script.ssp"
   // keys used in templates
   private val RegistryKey = "registry"
   private val CredentialsKey = "credentials"
@@ -29,25 +29,30 @@ object ApplicationCompiler {
   private val AwsRegionKey = "region"
 }
 
-case class ApplicationCompiler(
-    typeAliases: Map[String, Type],
-    runtimeAsset: Option[JsValue],
-    runtimeJar: String,
-    runtimePathConfig: DxWorkerPaths,
-    runtimeTraceLevel: Int,
-    separateOutputs: Boolean,
-    streamFiles: StreamFiles.StreamFiles,
-    waitOnUpload: Boolean,
-    extras: Option[Extras],
-    parameterLinkSerializer: ParameterLinkSerializer,
-    useManifests: Boolean,
-    instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
-    defaultInstanceType: Option[String],
-    dxApi: DxApi = DxApi.get,
-    logger: Logger = Logger.get,
-    project: DxProject,
-    folder: String
-) extends ExecutableCompiler(extras, parameterLinkSerializer, dxApi) {
+case class ApplicationCompiler(typeAliases: Map[String, Type],
+                               runtimeAsset: Option[JsValue],
+                               runtimeJar: String,
+                               runtimePathConfig: DxWorkerPaths,
+                               runtimeTraceLevel: Int,
+                               separateOutputs: Boolean,
+                               streamFiles: StreamFiles.StreamFiles,
+                               waitOnUpload: Boolean,
+                               extras: Option[Extras],
+                               parameterLinkSerializer: ParameterLinkSerializer,
+                               useManifests: Boolean,
+                               complexPathValues: Boolean,
+                               instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
+                               defaultInstanceType: Option[String],
+                               fileResolver: FileSourceResolver,
+                               dxApi: DxApi = DxApi.get,
+                               logger: Logger = Logger.get,
+                               project: DxProject,
+                               folder: String)
+    extends ExecutableCompiler(extras,
+                               parameterLinkSerializer,
+                               complexPathValues,
+                               fileResolver,
+                               dxApi) {
   // database of available instance types for the user/org that owns the project
   private lazy val instanceTypeDb = InstanceType.createDb(Some(project))
 
@@ -56,7 +61,7 @@ case class ApplicationCompiler(
 
   // Preamble required for accessing a private docker registry (if required)
   private lazy val dockerRegistry: Option[DockerRegistry] = extras.flatMap(_.dockerRegistry)
-  private lazy val dockerPreamble: String = {
+  private lazy val dockerPreamble: Option[String] = {
     def checkFile(uri: String, name: String): Unit = {
       try {
         logger.ignore(dxApi.resolveFile(uri))
@@ -70,9 +75,8 @@ case class ApplicationCompiler(
                                   |""".stripMargin)
       }
     }
-    dockerRegistry match {
-      case None                                                              => ""
-      case Some(DockerRegistry(registry, credentials, Some(username), None)) =>
+    dockerRegistry.map {
+      case DockerRegistry(registry, credentials, Some(username), None) =>
         // check that the credentials file is a valid platform path
         checkFile(credentials, ApplicationCompiler.CredentialsKey)
         // render the preamble
@@ -87,7 +91,7 @@ case class ApplicationCompiler(
                 )
             )
         )
-      case Some(DockerRegistry(registry, credentials, None, Some(awsRegion))) =>
+      case DockerRegistry(registry, credentials, None, Some(awsRegion)) =>
         checkFile(credentials, ApplicationCompiler.CredentialsKey)
         renderer.render(
             ApplicationCompiler.EcrDockerPreambleTemplate,
@@ -110,14 +114,13 @@ case class ApplicationCompiler(
         "runtimeJar" -> runtimeJar,
         "runtimeTraceLevel" -> runtimeTraceLevel,
         "streamFiles" -> streamFiles,
-        "waitOnUpload" -> waitOnUpload,
-        "includeEpilog" -> applet.outputs.nonEmpty
+        "waitOnUpload" -> waitOnUpload
     )
     applet.kind match {
       case ExecutableKindApplet =>
         val template = applet.instanceType match {
-          case DynamicInstanceType => ApplicationCompiler.DynamicAppletJobTemplate
-          case _                   => ApplicationCompiler.StaticAppletJobTemplate
+          case DynamicInstanceType => ApplicationCompiler.DynamicAppletCommandTemplate
+          case _                   => ApplicationCompiler.StaticAppletCommandTemplate
         }
         renderer.render(
             template,
@@ -130,15 +133,20 @@ case class ApplicationCompiler(
         renderer.render(
             ApplicationCompiler.WorkflowFragmentTemplate,
             templateAttrs ++ Map(
-                "separateOutputs" -> separateOutputs
+                "separateOutputs" -> separateOutputs,
+                "waitOnUpload" -> waitOnUpload
             )
         )
       case other =>
         ExecutableKind.getCommand(other) match {
           case Some(command) =>
             renderer.render(
-                ApplicationCompiler.CommandTemplate,
-                templateAttrs ++ Map("command" -> command, "separateOutputs" -> separateOutputs)
+                ApplicationCompiler.WorkflowCommandTemplate,
+                templateAttrs ++ Map(
+                    "command" -> command,
+                    "separateOutputs" -> separateOutputs,
+                    "waitOnUpload" -> waitOnUpload
+                )
             )
           case _ =>
             throw new RuntimeException(
@@ -415,6 +423,7 @@ case class ApplicationCompiler(
   ): Map[String, JsValue] = {
     logger.trace(s"Building /applet/new request for ${applet.name}")
     // convert inputs and outputs to dxapp inputSpec
+    // automatically add requirements and hints parameters
     val inputParams = if (useManifests) {
       Vector(
           ExecutableCompiler.InputManifestParameter,
@@ -424,10 +433,13 @@ case class ApplicationCompiler(
           ExecutableCompiler.WorkflowInputManfestFilesParameter,
           ExecutableCompiler.WorkflowInputLinksParameter,
           ExecutableCompiler.OutputIdParameter,
-          ExecutableCompiler.CallNameParameter
+          ExecutableCompiler.CallNameParameter,
+          ExecutableCompiler.OverridesParameter
       )
     } else {
-      applet.inputs
+      applet.inputs ++ Vector(
+          ExecutableCompiler.OverridesParameter
+      )
     }
     val inputSpec = inputParams
       .sortWith(_.name < _.name)
@@ -514,22 +526,34 @@ case class ApplicationCompiler(
           Map(
               Constants.ExecLinkInfo -> JsObject(linkInfo.toMap),
               Constants.BlockPath -> JsArray(blockPath.map(JsNumber(_))),
-              Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(inputs)
+              Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(inputs.map {
+                case (dxName, t) => dxName.decoded -> t
+              })
           ) ++ scatterChunkSize
             .map(chunkSize => Map(Constants.ScatterChunkSize -> JsNumber(chunkSize)))
             .getOrElse(Map.empty)
         case ExecutableKindWfInputs(blockPath) if blockPath.nonEmpty =>
           val types = applet.inputVars.map(p => p.name -> p.dxType).toMap
-          Map(Constants.BlockPath -> JsArray(blockPath.map(JsNumber(_))),
-              Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(types))
+          Map(
+              Constants.BlockPath -> JsArray(blockPath.map(JsNumber(_))),
+              Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(types.map {
+                case (dxName, t) => dxName.decoded -> t
+              })
+          )
         case ExecutableKindWfOutputs(blockPath) if blockPath.nonEmpty =>
           val types = applet.inputVars.map(p => p.name -> p.dxType).toMap
-          Map(Constants.BlockPath -> JsArray(blockPath.map(JsNumber(_))),
-              Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(types))
+          Map(
+              Constants.BlockPath -> JsArray(blockPath.map(JsNumber(_))),
+              Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(types.map {
+                case (dxName, t) => dxName.decoded -> t
+              })
+          )
         case _: ExecutableKindWfInputs | _: ExecutableKindWfOutputs |
             ExecutableKindWfCustomReorgOutputs | ExecutableKindWorkflowOutputReorg =>
           val types = applet.inputVars.map(p => p.name -> p.dxType).toMap
-          Map(Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(types))
+          Map(Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(types.map {
+            case (dxName, t) => dxName.decoded -> t
+          }))
         case _ => Map.empty
       }
     // compress and base64 encode the source code
@@ -541,26 +565,22 @@ case class ApplicationCompiler(
       CodecUtils.gzipAndBase64Encode(instanceTypeDb.toJson.prettyPrint)
     }
     // serilize default runtime attributes
-    val defaultRuntimeAttributes: JsValue = extras
+    val defaultRuntimeAttributes = extras
       .flatMap(ex =>
         ex.defaultRuntimeAttributes.map(attr => JsObject(ValueSerde.serializeMap(attr)))
       )
-      .getOrElse(JsNull)
     val auxDetails = Vector(
         Some(Constants.SourceCode -> JsString(sourceEncoded)),
         Some(Constants.ParseOptions -> applet.document.optionsToJson),
         dbEncoded.map(db => Constants.InstanceTypeDb -> JsString(db)),
-        Some(Constants.RuntimeAttributes -> defaultRuntimeAttributes)
+        defaultRuntimeAttributes.map(attr => Constants.RuntimeAttributes -> attr),
+        Option.when(useManifests)(Constants.UseManifests -> JsBoolean(true)),
+        Option.when(complexPathValues)(Constants.PathsAsObjects -> JsBoolean(true))
     ).flatten.toMap
-    val useManifestsDetails = if (useManifests) {
-      Map(Constants.UseManifests -> JsBoolean(true))
-    } else {
-      Map.empty
-    }
     // combine all details into a single Map
     val details: Map[String, JsValue] =
       taskDetails ++ runSpecDetails ++ delayDetails ++ dxLinks.toMap ++ metaDetails ++ auxDetails ++
-        useManifestsDetails ++ fileDependenciesDetails
+        fileDependenciesDetails
     // build the API request
     val requestRequired = Map(
         "name" -> JsString(applet.name),

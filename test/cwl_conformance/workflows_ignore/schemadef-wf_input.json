@@ -1,0 +1,6 @@
+{
+  "schemadef-wf.hello": {
+    "a": "hello",
+    "b": "world"
+  }
+}

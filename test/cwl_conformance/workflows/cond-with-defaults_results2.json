@@ -1,0 +1,11 @@
+{
+  "cond-with-defaults.out_file": [
+    {
+      "location": "filename_single",
+      "basename": "filename_single",
+      "class": "File",
+      "checksum": "sha1$648695b8ae770ae22b24ff7fe798801c9c370dc1",
+      "size": 12
+    }
+  ]
+}

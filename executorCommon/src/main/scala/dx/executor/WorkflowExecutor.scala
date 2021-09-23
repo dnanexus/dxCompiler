@@ -1,14 +1,40 @@
 package dx.executor
 
 import dx.AppInternalException
-import dx.api.{DxAnalysis, DxApp, DxApplet, DxExecution, DxFile, DxWorkflow, Field, FolderContents}
-import dx.core.getVersion
-import dx.core.ir.Type.TSchema
-import dx.core.Constants
-import dx.core.ir.{Block, ExecutableLink, Parameter, ParameterLink, Type, TypeSerde, Value}
-import spray.json._
-import dx.util.{Enum, LocalFileSource, TraceLevel}
+import dx.api.{
+  DxAnalysis,
+  DxApp,
+  DxApplet,
+  DxExecution,
+  DxFile,
+  DxObject,
+  DxPath,
+  DxWorkflow,
+  Field,
+  FileUpload,
+  FolderContents
+}
+import dx.core.{Constants, getVersion}
+import dx.core.ir.{
+  Block,
+  BlockKind,
+  DxName,
+  ExecutableLink,
+  Manifest,
+  ParameterLink,
+  Type,
+  TypeSerde,
+  Value,
+  ValueSerde
+}
+import dx.core.ir.Type.{TFile, TSchema}
+import dx.core.ir.Value.{TransformHandler, VArray, VFile, VString, WalkHandler}
+import dx.util.{Enum, JsUtils, LocalFileSource, TraceLevel}
 import dx.util.CollectionUtils.IterableOnceExtensions
+import dx.util.protocols.{DxFileSource, DxFolderSource}
+import spray.json._
+
+import java.nio.file.Files
 
 object WorkflowAction extends Enum {
   type WorkflowAction = Value
@@ -21,9 +47,35 @@ object WorkflowExecutor {
   val SeqNumber = "seqNumber"
   val JobNameLengthLimit = 50
   val ParentsKey = "parents___"
+
+  // this method is exposed for unit testing
+  def getComplexScatterName(items: Iterator[Option[String]],
+                            maxLength: Int = JobNameLengthLimit): String = {
+    // Create a name by concatenating the initial elements of the array.
+    // Limit the total size of the name.
+    val (_, strings, hasMore) =
+      items.foldLeftWhile((-1, Vector.empty[String], false))(_._1 < maxLength) {
+        case ((length, strings, _), Some(s)) =>
+          val newLength = length + s.length + 1
+          if (newLength > maxLength) {
+            (newLength, strings, true)
+          } else {
+            (newLength, strings :+ s, false)
+          }
+        case ((length, strings, _), None) =>
+          (length, strings, false)
+      }
+    val itemStr = strings.mkString(",")
+    if (hasMore) {
+      s"${itemStr},..."
+    } else {
+      itemStr
+    }
+  }
 }
 
 abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs: Boolean) {
+  private val dxNameFactory = jobMeta.dxNameFactory
   private val dxApi = jobMeta.dxApi
   private val logger = jobMeta.logger
   private val seqNumIter = Iterator.from(1)
@@ -35,16 +87,14 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
   protected def typeAliases: Map[String, TSchema]
 
   protected lazy val execLinkInfo: Map[String, ExecutableLink] =
-    jobMeta.getExecutableDetail("execLinkInfo") match {
+    jobMeta.getExecutableDetail(Constants.ExecLinkInfo) match {
       case Some(JsObject(fields)) =>
         fields.map {
           case (key, link) =>
-            key -> ExecutableLink.deserialize(link, typeAliases, jobMeta.dxApi)
+            key -> jobMeta.executableLinkDeserializer(link, typeAliases)
         }
-      case None =>
-        Map.empty
-      case other =>
-        throw new Exception(s"Bad value ${other}")
+      case None  => Map.empty
+      case other => throw new Exception(s"invalid ${Constants.ExecLinkInfo} value: ${other}")
     }
 
   protected def getExecutableLink(name: String): ExecutableLink = {
@@ -54,28 +104,31 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
     )
   }
 
-  protected lazy val fqnDictTypes: Map[String, Type] =
+  protected lazy val dxNameToType: Map[DxName, Type] =
     jobMeta.getExecutableDetail(Constants.WfFragmentInputTypes) match {
-      case Some(jsv) => TypeSerde.deserializeSpec(jsv, typeAliases)
-      case other     => throw new Exception(s"Bad value ${other}")
+      case Some(jsv) =>
+        TypeSerde.deserializeSpec(jsv, typeAliases).map {
+          case (encodedName, t) => dxNameFactory.fromDecodedName(encodedName) -> t
+        }
+      case other => throw new Exception(s"Bad value ${other}")
     }
 
-  private lazy val jobInputs: Map[String, (Type, Value)] = {
+  private lazy val jobInputs: Map[DxName, (Type, Value)] = {
     jobMeta.jsInputs.collect {
-      case (name, jsValue) if !name.endsWith(ParameterLink.FlatFilesSuffix) =>
-        val fqn = Parameter.decodeDots(name)
-        val irType = fqnDictTypes.getOrElse(
-            fqn,
-            throw new Exception(s"Did not find variable ${fqn} (${name}) in the block environment")
+      case (dxName, jsValue) if !dxName.suffix.exists(_.endsWith(Constants.FlatFilesSuffix)) =>
+        val irType = dxNameToType.getOrElse(
+            dxName,
+            throw new Exception(s"Did not find variable ${dxName} in the block environment")
         )
-        val irValue = jobMeta.inputDeserializer.deserializeInputWithType(jsValue, irType, fqn)
-        fqn -> (irType, irValue)
+        val irValue =
+          jobMeta.inputDeserializer.deserializeInputWithType(jsValue, irType, dxName.decoded)
+        dxName -> (irType, irValue)
     }
   }
 
-  protected def evaluateInputs(jobInputs: Map[String, (Type, Value)]): Map[String, (Type, Value)]
+  protected def evaluateInputs(jobInputs: Map[DxName, (Type, Value)]): Map[DxName, (Type, Value)]
 
-  private def evaluateInputs(): Map[String, ParameterLink] = {
+  private def evaluateInputs(): Map[DxName, ParameterLink] = {
     if (logger.isVerbose) {
       logger.traceLimited(s"dxCompiler version: ${getVersion}")
       logger.traceLimited(s"Environment: ${jobInputs}")
@@ -85,16 +138,19 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
     jobMeta.createOutputLinks(inputs)
   }
 
-  protected def evaluateOutputs(jobInputs: Map[String, (Type, Value)],
-                                addReorgStatus: Boolean): Map[String, (Type, Value)]
+  protected def evaluateOutputs(jobInputs: Map[DxName, (Type, Value)],
+                                addReorgStatus: Boolean): Map[DxName, (Type, Value)]
 
-  private def evaluateOutputs(addReorgStatus: Boolean = false): Map[String, ParameterLink] = {
+  private def evaluateOutputs(addReorgStatus: Boolean = false): Map[DxName, ParameterLink] = {
     if (logger.isVerbose) {
       logger.traceLimited(s"dxCompiler version: ${getVersion}")
       logger.traceLimited(s"Environment: ${jobInputs}")
       logger.traceLimited("Evaluating workflow outputs")
     }
     val outputs = evaluateOutputs(jobInputs, addReorgStatus)
+    if (logger.isVerbose) {
+      logger.traceLimited(s"Outputs: ${outputs}")
+    }
     jobMeta.createOutputLinks(outputs)
   }
 
@@ -112,23 +168,19 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
     */
   protected def launchJob(executableLink: ExecutableLink,
                           name: String,
-                          inputs: Map[String, (Type, Value)],
+                          inputs: Map[DxName, (Type, Value)],
                           nameDetail: Option[String] = None,
                           instanceType: Option[String] = None,
                           folder: Option[String] = None,
                           prefixOutputs: Boolean = false): (DxExecution, String) = {
     val jobName: String = nameDetail.map(hint => s"${name} ${hint}").getOrElse(name)
-    val outputFolder = if (separateOutputs) {
-      folder.orElse(Some(jobName)).map {
-        case f if !f.startsWith("/") => s"/${f}"
-        case f                       => f
-      }
-    } else {
-      None
-    }
+    val outputFolder =
+      Option.when(separateOutputs)(DxFolderSource.ensureEndsWithSlash(folder.getOrElse(jobName)))
 
     val prefix = if (prefixOutputs) Some(name) else None
-    val callInputsJs = JsObject(jobMeta.prepareSubjobInputs(inputs, executableLink, prefix))
+    val callInputsJs = JsObject(jobMeta.prepareSubjobInputs(inputs, executableLink, prefix).map {
+      case (dxName, jsv) => dxName.encoded -> jsv
+    })
     logger.traceLimited(s"""launchJob ${name} with arguments:
                            |${callInputsJs.prettyPrint}""".stripMargin,
                         minLevel = TraceLevel.VVerbose)
@@ -136,6 +188,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
     // We may need to run a collect subjob. Add the the sequence number to each invocation, so the
     // collect subjob will be able to put the results back together in the correct order.
     val seqNum: Int = nextSeqNum
+    val details = JsObject(WorkflowExecutor.SeqNumber -> JsNumber(seqNum))
 
     // If this is a task that specifies the instance type at runtime, launch it in the requested instance.
     val dxExecution = executableLink.dxExec match {
@@ -144,7 +197,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
             jobName,
             callInputsJs,
             instanceType = instanceType,
-            details = Some(JsObject(WorkflowExecutor.SeqNumber -> JsNumber(seqNum))),
+            details = Some(details),
             delayWorkspaceDestruction = jobMeta.delayWorkspaceDestruction,
             folder = outputFolder
         )
@@ -153,7 +206,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
             jobName,
             callInputsJs,
             instanceType = instanceType,
-            details = Some(JsObject(WorkflowExecutor.SeqNumber -> JsNumber(seqNum))),
+            details = Some(details),
             delayWorkspaceDestruction = jobMeta.delayWorkspaceDestruction,
             folder = outputFolder
         )
@@ -161,7 +214,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
         workflow.newRun(
             jobName,
             callInputsJs,
-            Some(JsObject(WorkflowExecutor.SeqNumber -> JsNumber(seqNum))),
+            Some(details),
             jobMeta.delayWorkspaceDestruction,
             folder = outputFolder
         )
@@ -174,64 +227,499 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
   protected trait BlockContext {
     def block: Block[B]
 
-    def launch(): Map[String, ParameterLink]
+    def env: Map[DxName, (Type, Value)]
 
-    def continue(): Map[String, ParameterLink]
+    protected def prepareBlockOutputs(
+        outputs: Map[DxName, ParameterLink]
+    ): Map[DxName, ParameterLink] = {
+      if (jobMeta.useManifests && outputs.contains(Constants.OutputManifest)) {
+        outputs
+      } else {
+        val outputNames = block.outputNames
+        logger.traceLimited(
+            s"""|prepareBlockOutputs
+                |  env = ${env.keys}
+                |  fragResults = ${outputs.keys}
+                |  exportedVars = ${outputNames}
+                |""".stripMargin,
+            minLevel = TraceLevel.Verbose
+        )
+        // Create output links from the values in the env, which came either
+        // from job inputs or from evaluating private variables. Ignore any
+        // variable in env that will be overridden by on in outputs.
+        val filteredEnv = env.filter {
+          case (k, _) if outputs.contains(k)           => false
+          case (k, _) if block.outputNames.contains(k) => true
+          case _                                       => false
+        }
+        val envLinks = jobMeta.createOutputLinks(filteredEnv, validate = false)
+        // create output links from the exposed outputs
+        val outputLink = outputs.view.filterKeys(outputNames.contains).toMap
+        envLinks ++ outputLink
+      }
+    }
 
-    def collect(): Map[String, ParameterLink]
+    protected def getFileName(path: String): String = {
+      jobMeta.fileResolver.resolve(path) match {
+        case local: LocalFileSource => local.canonicalPath.getFileName.toString
+        case dx: DxFileSource       => dx.dxFile.getName
+        case other                  => other.toString
+      }
+    }
 
-    def prettyFormat(): String
+    protected def truncate(scatterName: String): String = {
+      if (scatterName.length > WorkflowExecutor.JobNameLengthLimit) {
+        s"${scatterName.substring(0, WorkflowExecutor.JobNameLengthLimit - 3)}..."
+      } else {
+        scatterName
+      }
+    }
+
+    /**
+      * Stick the IDs of all the parent jobs and all the child jobs to exclude
+      * (i.e. the continue/collect jobs) into details - we'll use these in the
+      * collect step.
+      * @param nextStart index at which to start the next scatter
+      * @return
+      */
+    protected def createSubjobDetails(nextStart: Option[Int] = None,
+                                      outputShape: Option[Vector[Int]] = None): JsValue = {
+      val parents = jobMeta.getJobDetail(WorkflowExecutor.ParentsKey) match {
+        case Some(JsArray(array)) => array.map(JsUtils.getString(_))
+        case _                    => Vector.empty
+      }
+      // add the current job to the list of parents
+      val allParents = parents :+ jobMeta.jobId
+      val details = Vector(
+          Some(WorkflowExecutor.ParentsKey -> JsArray(allParents.map(JsString(_)))),
+          nextStart.map(i => Constants.ContinueStart -> JsNumber(i)),
+          outputShape.map(v => Constants.OutputShape -> JsArray(v.map(JsNumber(_))))
+      ).flatten.toMap
+      JsObject(details)
+    }
+
+    protected def prepareScatterResults(dxSubJob: DxExecution): Map[DxName, ParameterLink]
+
+    /**
+      * Lauch a job to continue a large scatter.
+      * @param childJobs child jobs on which the continue job will depend
+      * @param nextStart the index at which to continue the scatter
+      * @return
+      */
+    protected def launchScatterContinue(
+        childJobs: Vector[DxExecution],
+        nextStart: Int,
+        outputShape: Option[Vector[Int]] = None
+    ): Map[DxName, ParameterLink] = {
+      if (childJobs.nonEmpty) {
+        // Run a sub-job with the "continue" entry point.
+        // We need to provide the exact same inputs.
+        val dxSubJob: DxExecution = dxApi.runSubJob(
+            "continue",
+            Some(jobMeta.instanceTypeDb.defaultInstanceType.name),
+            JsObject(jobMeta.rawJsInputs.map {
+              case (dxName, jsv) => dxName.encoded -> jsv
+            }),
+            childJobs,
+            jobMeta.delayWorkspaceDestruction,
+            Some(s"continue_scatter($nextStart)"),
+            Some(createSubjobDetails(Some(nextStart), outputShape))
+        )
+        prepareScatterResults(dxSubJob)
+      } else {
+        Map.empty
+      }
+    }
+
+    protected def launchScatterCollect(
+        childJobs: Vector[DxExecution],
+        outputShape: Option[Vector[Int]] = None
+    ): Map[DxName, ParameterLink] = {
+      if (childJobs.nonEmpty) {
+        // Run a sub-job with the "collect" entry point.
+        // We need to provide the exact same inputs.
+        val dxSubJob: DxExecution = dxApi.runSubJob(
+            "collect",
+            Some(jobMeta.instanceTypeDb.defaultInstanceType.name),
+            JsObject(jobMeta.rawJsInputs.map {
+              case (dxName, jsv) => dxName.encoded -> jsv
+            }),
+            childJobs,
+            jobMeta.delayWorkspaceDestruction,
+            Some(s"collect_scatter"),
+            Some(createSubjobDetails(outputShape = outputShape))
+        )
+        prepareScatterResults(dxSubJob)
+      } else {
+        Map.empty
+      }
+    }
+
+    protected def launchCall(blockIndex: Int): Map[DxName, ParameterLink]
+
+    protected def launchConditional(): Map[DxName, ParameterLink]
+
+    protected def launchScatter(): Map[DxName, ParameterLink]
+
+    protected case class ChildExecution(execName: String,
+                                        seqNum: Int,
+                                        outputs: Map[DxName, JsValue],
+                                        exec: DxExecution)
+
+    private def parseOneResult(value: JsValue, excludeIds: Set[String]): Option[ChildExecution] = {
+      val fields = value.asJsObject.fields
+      val (exec, desc) = fields.get("id") match {
+        case Some(JsString(id)) if excludeIds.contains(id) =>
+          logger.trace(s"Ignoring result for job ${id}")
+          return None
+        case Some(JsString(id)) if id.startsWith("job-") =>
+          val job = dxApi.job(id)
+          val desc = fields("describe").asJsObject
+          (job, desc)
+        case Some(JsString(id)) if id.startsWith("analysis-") =>
+          val analysis = dxApi.analysis(id)
+          val desc = fields("describe").asJsObject
+          (analysis, desc)
+        case Some(other) =>
+          throw new Exception(s"malformed id field ${other.prettyPrint}")
+        case None =>
+          throw new Exception(s"field id not found in ${value.prettyPrint}")
+      }
+      logger.trace(s"parsing desc ${desc} for ${exec}")
+      val (execName, details, output) =
+        desc.getFields("executableName", "details", "output") match {
+          case Seq(JsString(execName), JsObject(details), JsObject(jsOutput)) =>
+            val output: Map[DxName, JsValue] = jsOutput.map {
+              case (name, jsv) => dxNameFactory.fromEncodedName(name) -> jsv
+            }
+            (execName, details, output)
+        }
+      val seqNum = details.get(WorkflowExecutor.SeqNumber) match {
+        case Some(JsNumber(i)) => i.toIntExact
+        case other             => throw new Exception(s"Invalid seqNumber ${other}")
+      }
+      Some(ChildExecution(execName, seqNum, output, exec))
+    }
+
+    private def submitRequest(
+        parentJobId: Option[String],
+        cursor: JsValue,
+        excludeIds: Set[String],
+        limit: Option[Int]
+    ): (Vector[ChildExecution], JsValue) = {
+      val parentField: Map[String, JsValue] = parentJobId match {
+        case None     => Map.empty
+        case Some(id) => Map("parentJob" -> JsString(id))
+      }
+      val cursorField: Map[String, JsValue] = cursor match {
+        case JsNull      => Map.empty
+        case cursorValue => Map("starting" -> cursorValue)
+      }
+      val limitField: Map[String, JsValue] = limit match {
+        case None    => Map.empty
+        case Some(i) => Map("limit" -> JsNumber(i))
+      }
+      val describeField: Map[String, JsValue] = Map(
+          "describe" -> JsObject(
+              "fields" -> DxObject
+                .requestFields(Set(Field.Output, Field.ExecutableName, Field.Details))
+          )
+      )
+      val response = dxApi.findExecutions(parentField ++ cursorField ++ limitField ++ describeField)
+      val results: Vector[ChildExecution] =
+        response.fields.get("results") match {
+          case Some(JsArray(results)) =>
+            results.flatMap(res => parseOneResult(res, excludeIds))
+          case Some(other) =>
+            throw new Exception(s"malformed results field ${other.prettyPrint}")
+          case None =>
+            throw new Exception(s"missing results field ${response}")
+        }
+      (results, response.fields("next"))
+    }
+
+    private def findChildExecutions(parentJobId: Option[String],
+                                    excludeIds: Set[String],
+                                    limit: Option[Int] = None): Vector[ChildExecution] = {
+      Iterator
+        .unfold[Vector[ChildExecution], Option[JsValue]](Some(JsNull)) {
+          case None => None
+          case Some(cursor: JsValue) =>
+            submitRequest(parentJobId, cursor, excludeIds, limit) match {
+              case (Vector(), _)     => None
+              case (results, JsNull) => Some(results, None)
+              case (results, next)   => Some(results, Some(next))
+            }
+        }
+        .toVector
+        .flatten
+        .sortWith(_.seqNum < _.seqNum)
+    }
+
+    protected def aggregateScatterJobOutputs
+        : (Option[String], Option[String], Vector[Map[DxName, JsValue]]) = {
+      val childExecutions = jobMeta.getJobDetail(WorkflowExecutor.ParentsKey) match {
+        case Some(JsArray(array)) =>
+          val parentJobIds = array.map(JsUtils.getString(_))
+          val excludeJobIds = parentJobIds.toSet + jobMeta.jobId
+          parentJobIds.flatMap { parentJobId =>
+            findChildExecutions(Some(parentJobId), excludeJobIds)
+          }
+        case _ =>
+          val parentJob = jobMeta.parentJob match {
+            case Some(job) => job
+            case None =>
+              throw new Exception(s"Can't get parent job for $jobMeta.jobDesc")
+          }
+          findChildExecutions(Some(parentJob.id), Set(jobMeta.jobId))
+      }
+      logger.trace(s"childExecs=${childExecutions}")
+      if (jobMeta.useManifests) {
+        // each job has an output manifest - we need to download them all
+        childExecutions
+          .foldLeft(Option.empty[String], Option.empty[String], Vector.empty[Map[DxName, JsValue]]) {
+            case ((id, execName, childOutputs), childExec) =>
+              val manifestFile = childExec.outputs.get(Constants.OutputManifest) match {
+                case Some(fileObj: JsObject) if DxFile.isLinkJson(fileObj) =>
+                  Some(DxFile.fromJson(dxApi, fileObj))
+                case Some(JsString(uri)) if uri.startsWith(DxPath.DxUriPrefix) =>
+                  Some(dxApi.resolveFile(uri))
+                case None =>
+                  // maybe the applet doesn't have any outputs
+                  None
+                case other =>
+                  throw new Exception(s"invalid manifest file value ${other}")
+              }
+              val (manifestId, manifestValues) = manifestFile
+                .map { dxFile =>
+                  val manifestJson = new String(dxApi.downloadBytes(dxFile)).parseJson
+                  val manifest = Manifest.parse(manifestJson, dxNameFactory)
+                  (manifest.id, manifest.jsValues)
+                }
+                .getOrElse((None, Map.empty[DxName, JsValue]))
+              // all scatter jobs manifests should have the same ID
+              val newId = (id, manifestId) match {
+                case (None, None)                         => None
+                case (None, Some(id))                     => Some(id)
+                case (Some(id), None)                     => Some(id)
+                case (Some(id1), Some(id2)) if id1 == id2 => Some(id1)
+                case (Some(id1), Some(id2)) =>
+                  throw new Exception(
+                      s"scatter job output manifests had different IDs: ${id1} != ${id2}"
+                  )
+              }
+              val newExecName = (execName, childExec.execName) match {
+                case (None, execName)                                       => Some(execName)
+                case (Some(execName1), execName2) if execName1 == execName2 => Some(execName1)
+                case (Some(execName1), execName2) =>
+                  throw new Exception(
+                      s"child execution names do not match: ${execName1} != ${execName2}"
+                  )
+              }
+              (newId, newExecName, childOutputs :+ manifestValues)
+          }
+      } else {
+        (None, None, childExecutions.map(_.outputs))
+      }
+    }
+
+    protected def createScatterOutputArray(
+        childOutputs: Vector[Map[DxName, JsValue]],
+        name: DxName,
+        irType: Type,
+        execName: Option[String]
+    ): Value = {
+      val encodedNames = Vector(Some(name), execName.map(name.pushDecodedNamespace)).flatten
+      VArray(childOutputs.flatMap { outputs =>
+        encodedNames
+          .collectFirst {
+            case name if outputs.contains(name) =>
+              jobMeta.inputDeserializer.deserializeInputWithType(outputs(name),
+                                                                 irType,
+                                                                 name.decoded)
+          }
+          .orElse {
+            Option.when(!Type.isOptional(irType))(
+                throw new Exception(s"missing required field <${name}> in results")
+            )
+          }
+      })
+    }
+
+    protected def getScatterOutputs(
+        childOutputs: Vector[Map[DxName, JsValue]],
+        execName: Option[String]
+    ): Map[DxName, (Type, Value)]
+
+    private def collectScatter(): Map[DxName, ParameterLink] = {
+      val (manifestId, execName, childOutputs) = aggregateScatterJobOutputs
+      val arrayValues: Map[DxName, (Type, Value)] = getScatterOutputs(childOutputs, execName)
+      if (arrayValues.isEmpty) {
+        Map.empty
+      } else if (jobMeta.useManifests) {
+        if (manifestId.isEmpty) {
+          throw new Exception("missing manifest Id")
+        }
+        // upload the merged manifest file
+        val outputJson = arrayValues.map {
+          case (dxName, (t, v)) => dxName -> ValueSerde.serializeWithType(v, t)
+        }
+        val manifest = Manifest(outputJson, id = manifestId)
+        val destination =
+          s"${jobMeta.manifestProjectAndFolder}/${jobMeta.jobId}_output.manifest.json"
+        val manifestDxFile = dxApi.uploadString(manifest.toJson().prettyPrint, destination)
+        val outputValues = Map(
+            Constants.OutputManifest -> (TFile, VFile(manifestDxFile.asUri))
+        )
+        jobMeta.createOutputLinks(outputValues, validate = false)
+      } else {
+        jobMeta.createOutputLinks(arrayValues, validate = false)
+      }
+    }
+
+    private object FileExtractor extends WalkHandler[Map[String, FileUpload]] {
+      private val defaultDestParent = if (jobMeta.useManifests) {
+        DxFolderSource.ensureEndsWithSlash(jobMeta.manifestProjectAndFolder)
+      } else {
+        "/"
+      }
+
+      def handleFile(uri: String,
+                     optional: Boolean,
+                     ctx: Map[String, FileUpload]): Map[String, FileUpload] = {
+        jobMeta.fileResolver.resolve(uri) match {
+          case local: LocalFileSource if optional && !Files.exists(local.canonicalPath) =>
+            // ignore optional, non-existent files
+            ctx
+          case local: LocalFileSource if !Files.exists(local.canonicalPath) =>
+            throw new Exception(
+                s"required output file does not exist at ${local.canonicalPath}"
+            )
+          case local: LocalFileSource =>
+            val destination = s"${defaultDestParent}${local.canonicalPath.getFileName.toString}"
+            ctx + (local.address -> FileUpload(local.canonicalPath, Some(destination)))
+          case _ => ctx
+        }
+      }
+
+      override def apply(value: Value,
+                         t: Option[Type],
+                         optional: Boolean,
+                         ctx: Map[String, FileUpload]): Option[Map[String, FileUpload]] = {
+        (t, value) match {
+          case (Some(TFile) | None, f: VFile) => Some(handleFile(f.uri, optional, ctx))
+          case (Some(TFile), VString(uri))    => Some(handleFile(uri, optional, ctx))
+          case _                              => None
+        }
+      }
+
+      def extractFiles(value: Value, t: Type): Map[String, FileUpload] = {
+        Value.walk(value, Some(t), Map.empty[String, FileUpload], FileExtractor)
+      }
+    }
 
     // private variables may create files that need to be uploaded
     protected def uploadPrivateVariablePaths(
-        env: Map[String, (Type, Value)]
-    ): Map[String, ParameterLink] = {
-      val filesToUpload = env.map {
-        case (name, (irType, irValue)) =>
-          name -> extractOutputFiles(name,
-                                     irValue,
-                                     irType,
-                                     jobMeta.fileResolver,
-                                     ignoreNonLocalFiles = true).map {
-            case local: LocalFileSource => local
-            case other =>
-              throw new Exception(s"unexpected non-local file ${other}")
-          }
-      }
+        env: Map[DxName, (Type, Value)]
+    ): Map[DxName, ParameterLink] = {
+      val filesToUpload = env.values.flatMap {
+        case (irType, irValue) => FileExtractor.extractFiles(irValue, irType)
+      }.toMap
+      // If there are any local files that were created as part of running this
+      // fragment, upload them and replace the local URI with the remote one.
+      // Otherwise just pass through env unchanged.
       val delocalizedOutputs = if (filesToUpload.nonEmpty) {
-        val delocalizedPathToUri = jobMeta
-          .uploadOutputFiles(filesToUpload.map {
-            case (name, localFileSources) => name -> localFileSources.map(_.canonicalPath)
-          })
-          .map {
-            case (path, dxFile) => path -> dxFile.asUri
-          }
+        // upload files
+        val localPathToRemoteUri = jobMeta.uploadFiles(filesToUpload.values).map {
+          case (path, dxFile) => path -> dxFile.asUri
+        }
         // Replace the local paths in the output values with URIs. This requires
         // two look-ups: first to get the absolute Path associated with the file
         // value (which may be relative or absolute), and second to get the URI
         // associated with the Path. Returns an Optional[String] because optional
         // outputs may be null.
-        val delocalizingUriToPath =
-          filesToUpload.values.flatten.map(local => local.address -> local.canonicalPath).toMap
-
-        def resolveUri(value: String): Option[String] = {
-          delocalizingUriToPath.get(value) match {
-            case Some(path) => delocalizedPathToUri.get(path)
-            case _          => None
+        object PathTranslator extends TransformHandler {
+          private val localUriToPath = filesToUpload.map {
+            case (uri, upload) => uri -> upload.source
+          }
+          override def apply(value: Value, t: Option[Type], optional: Boolean): Option[Value] = {
+            val uri = (t, value) match {
+              case (_, f: VFile)               => Some(f.uri)
+              case (Some(TFile), VString(uri)) => Some(uri)
+              case _                           => None
+            }
+            uri.flatMap(localUriToPath.get).flatMap(localPathToRemoteUri.get).map(VFile(_))
           }
         }
-
-        // the resolve function only handles URIs for files being uploaded,
-        // we want to ignore any files that are non-local
-        delocalizeOutputFiles(env, resolveUri, ignoreMissingUris = true)
+        env.map {
+          case (name, (t, v)) => name -> (t, Value.transform(v, Some(t), PathTranslator))
+        }
       } else {
         env
       }
       jobMeta.createOutputLinks(delocalizedOutputs)
     }
+
+    def launch(): Map[DxName, ParameterLink] = {
+      val outputs: Map[DxName, ParameterLink] = block.kind match {
+        case BlockKind.CallWithSubexpressions | BlockKind.CallFragment =>
+          launchCall(block.index)
+        case BlockKind.ConditionalOneCall | BlockKind.ConditionalComplex =>
+          launchConditional()
+        case BlockKind.ScatterOneCall | BlockKind.ScatterComplex =>
+          assert(jobMeta.scatterStart == 0)
+          launchScatter()
+        case BlockKind.ExpressionsOnly =>
+          // upload files associated with any private variables that are exposed as block outputs
+          uploadPrivateVariablePaths(env.filter {
+            case (k, _) if block.inputNames.contains(k)  => false
+            case (k, _) if block.outputNames.contains(k) => true
+            case _                                       => false
+          })
+        case _ => throw new RuntimeException("unreachable state")
+      }
+      prepareBlockOutputs(outputs)
+    }
+
+    def continue(): Map[DxName, ParameterLink] = {
+      val outputs: Map[DxName, ParameterLink] = block.kind match {
+        case BlockKind.ScatterOneCall | BlockKind.ScatterComplex =>
+          assert(jobMeta.scatterStart > 0)
+          launchScatter()
+        case _ =>
+          throw new RuntimeException(s"cannot continue non-scatter block ${block}")
+      }
+      prepareBlockOutputs(outputs)
+    }
+
+    def collect(): Map[DxName, ParameterLink] = {
+      val outputs: Map[DxName, ParameterLink] = block.kind match {
+        case BlockKind.ScatterOneCall | BlockKind.ScatterComplex =>
+          collectScatter()
+        case _ =>
+          throw new RuntimeException(s"cannot continue non-scatter block ${block}")
+      }
+      prepareBlockOutputs(outputs)
+    }
+
+    def prettyFormat(): String = {
+      val envStr = if (env.isEmpty) {
+        " <empty>"
+      } else {
+        "\n" + env
+          .map {
+            case (dxName, (t, v)) =>
+              s"  ${dxName}: ${TypeSerde.toString(t)} ${ValueSerde.toString(v)}"
+          }
+          .mkString("\n")
+      }
+      s"""${block.prettyFormat}
+         |Env:${envStr}
+         |""".stripMargin
+    }
   }
 
-  protected def evaluateBlockInputs(jobInputs: Map[String, (Type, Value)]): BlockContext
+  protected def evaluateBlockInputs(jobInputs: Map[DxName, (Type, Value)]): BlockContext
 
   private def evaluateFragInputs(): BlockContext = {
     if (logger.isVerbose) {
@@ -294,7 +782,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
     filteredAnalysisFiles
   }
 
-  private def reorganizeOutputsDefault(): Map[String, ParameterLink] = {
+  private def reorganizeOutputsDefault(): Map[DxName, ParameterLink] = {
     logger.traceLimited(s"dxCompiler version: ${getVersion}")
     val analysis = jobMeta.analysis.get
     val analysisFiles = getAnalysisOutputFiles(analysis)
@@ -303,12 +791,9 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
     } else {
       val outputIds: Set[String] = jobMeta.jsInputs
         .collect {
-          case (name, jsValue) if !name.endsWith(ParameterLink.FlatFilesSuffix) =>
-            val fqn = Parameter.decodeDots(name)
-            if (!fqnDictTypes.contains(fqn)) {
-              throw new Exception(
-                  s"Did not find variable ${fqn} (${name}) in the block environment"
-              )
+          case (dxName, jsValue) if !dxName.suffix.exists(_.endsWith(Constants.FlatFilesSuffix)) =>
+            if (!dxNameToType.contains(dxName)) {
+              throw new Exception(s"Did not find variable ${dxName} in the block environment")
             }
             DxFile.findFiles(dxApi, jsValue)
         }
@@ -345,32 +830,20 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
     Map.empty
   }
 
-  def apply(action: WorkflowAction.WorkflowAction): (Map[String, ParameterLink], String) = {
-    try {
-      val outputs: Map[String, ParameterLink] = action match {
-        case WorkflowAction.Inputs =>
-          evaluateInputs()
-        case WorkflowAction.Run =>
-          evaluateFragInputs().launch()
-        case WorkflowAction.Continue =>
-          evaluateFragInputs().continue()
-        case WorkflowAction.Collect =>
-          evaluateFragInputs().collect()
-        case WorkflowAction.Outputs =>
-          evaluateOutputs()
-        case WorkflowAction.CustomReorgOutputs =>
-          evaluateOutputs(addReorgStatus = true)
-        case WorkflowAction.OutputReorg =>
-          reorganizeOutputsDefault()
-        case _ =>
-          throw new Exception(s"Illegal workflow fragment operation ${action}")
-      }
-      jobMeta.writeOutputLinks(outputs)
-      (outputs, s"success ${action}")
-    } catch {
-      case e: Throwable =>
-        jobMeta.error(e)
-        throw e
+  def apply(action: WorkflowAction.WorkflowAction): (Map[DxName, ParameterLink], String) = {
+    val outputs: Map[DxName, ParameterLink] = action match {
+      case WorkflowAction.Inputs             => evaluateInputs()
+      case WorkflowAction.Run                => evaluateFragInputs().launch()
+      case WorkflowAction.Continue           => evaluateFragInputs().continue()
+      case WorkflowAction.Collect            => evaluateFragInputs().collect()
+      case WorkflowAction.Outputs            => evaluateOutputs()
+      case WorkflowAction.CustomReorgOutputs => evaluateOutputs(addReorgStatus = true)
+      case WorkflowAction.OutputReorg        => reorganizeOutputsDefault()
+      case _ =>
+        throw new Exception(s"Illegal workflow fragment operation ${action}")
     }
+    logger.traceLimited(s"outputLinks:\n  ${ParameterLink.prettyFormat(outputs)}")
+    jobMeta.writeOutputLinks(outputs)
+    (outputs, s"success ${action}")
   }
 }

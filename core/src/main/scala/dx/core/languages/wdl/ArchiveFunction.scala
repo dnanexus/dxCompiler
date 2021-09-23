@@ -121,7 +121,10 @@ object UnarchiveFunction extends GenericUserDefinedFunction("unarchive_.*".r) {
     val packedArchive = PackedArchive(path)()
     val (localizedArchive, _) = packedArchive.localize()
     mountedArchives :+= localizedArchive
-    val wdlType = WdlUtils.fromIRType(localizedArchive.irType)
+    val wdlTypeAliases = localizedArchive.typeAliases.map {
+      case (name, schema) => name -> WdlUtils.fromIRType(schema)
+    }
+    val wdlType = WdlUtils.fromIRType(localizedArchive.irType, wdlTypeAliases)
     WdlUtils.fromIRValue(localizedArchive.irValue, wdlType, "unknown")
   }
 

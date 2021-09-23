@@ -1,0 +1,18 @@
+{
+  "output-arrays-file-wf.o": [
+    {
+      "basename": "moo",
+      "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "class": "File",
+      "location": "Any",
+      "size": 0
+    },
+    {
+      "basename": "cow",
+      "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "class": "File",
+      "location": "Any",
+      "size": 0
+    }
+  ]
+}

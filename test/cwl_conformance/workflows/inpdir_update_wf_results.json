@@ -1,0 +1,16 @@
+{
+  "inpdir_update_wf.a": [
+    {
+      "basename": "blurb",
+      "class": "File",
+      "location": "blurb"
+    }
+  ],
+  "inpdir_update_wf.b": [
+    {
+      "basename": "blurb",
+      "class": "File",
+      "location": "blurb"
+    }
+  ]
+}

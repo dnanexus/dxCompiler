@@ -1,0 +1,14 @@
+{
+    "class": "CommandLineTool",
+    "inputs": [
+        {
+            "type": "File",
+            "loadContents": true,
+            "id": "#main/filelist"
+        }
+    ],
+    "baseCommand": "true",
+    "id": "#main",
+    "outputs": [],
+    "cwlVersion": "v1.2"
+}

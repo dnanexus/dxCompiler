@@ -18,7 +18,7 @@ object Type {
     * A directory maps to a DNAnexus folder, or to some other representation of
     * a hierarchy of files, e.g. a tar or zip archive.
     */
-  case object TDirectory extends PrimitiveType
+  case object TDirectory extends Type
 
   /**
     * Wrapper that indicates a type is optional.
@@ -76,15 +76,15 @@ object Type {
     }
   }
 
-  def isNativePrimitive(t: Type): Boolean = {
+  def isNativePrimitive(t: Type, pathsAreNative: Boolean = true): Boolean = {
     t match {
-      case TBoolean => true
-      case TInt     => true
-      case TFloat   => true
-      case TString  => true
-      case TFile    => true
-      // TODO: TDirectory
-      case _ => false
+      case TBoolean                     => true
+      case TInt                         => true
+      case TFloat                       => true
+      case TString                      => true
+      case TFile if pathsAreNative      => true
+      case TDirectory if pathsAreNative => true
+      case _                            => false
     }
   }
 
@@ -93,17 +93,21 @@ object Type {
     * DNAnexus only supports primitives, optionals of primitives, and arrays of primitives
     * (with no nested optional types).
     * @param t IR type
+    * @param pathsAreNative whether path types (TFile and TDirectory) should be treated
+    *                       as native types. This may be false in the case of languages
+    *                       like CWL that have parameterized File/Directory types that
+    *                       must be passed as hashes.
     * @return
     */
-  def isNative(t: Type): Boolean = {
+  def isNative(t: Type, pathsAreNative: Boolean = true): Boolean = {
     t match {
       case TOptional(TArray(inner, _)) =>
         // TODO: should an optional non-empty array be considered native? Currently it is
         //  allowed, and must always agree with the type conversion logic in TypeSerde.toNative.
-        isNativePrimitive(inner)
-      case TOptional(inner) => isNativePrimitive(inner)
-      case TArray(inner, _) => isNativePrimitive(inner)
-      case _                => isNativePrimitive(t)
+        isNativePrimitive(inner, pathsAreNative)
+      case TOptional(inner) => isNativePrimitive(inner, pathsAreNative)
+      case TArray(inner, _) => isNativePrimitive(inner, pathsAreNative)
+      case _                => isNativePrimitive(t, pathsAreNative)
     }
   }
 
@@ -163,6 +167,43 @@ object Type {
     }
     types.foldLeft(Map.empty[String, TSchema]) {
       case (accu, wdlType) => inner(wdlType, accu)
+    }
+  }
+
+  /**
+    * Merges multiple types into a single type.
+    */
+  def merge(types: Vector[Type]): Type = {
+    val distinct = types.flatMap {
+      case TMulti(types) => types.toSet
+      case t             => Set(t)
+    }
+    if (distinct.isEmpty) {
+      TMulti.Any
+    } else if (distinct.size == 1) {
+      distinct.head
+    } else {
+      def reduceTypes(t1: Type, t2: Type): Type = {
+        (t1, t2) match {
+          case (t1, TMulti.Any)         => t1
+          case (TMulti.Any, t2)         => t2
+          case (TMulti(t1), TMulti(t2)) => merge(t1 ++ t2)
+          case (t1, TMulti(t2))         => merge(t1 +: t2)
+          case (TMulti(t1), t2)         => merge(t1 :+ t2)
+          case (t1, TOptional(t2))      => TOptional(reduceTypes(t1, t2))
+          case (TOptional(t1), t2)      => TOptional(reduceTypes(t1, t2))
+          case (TInt, TFloat)           => TFloat
+          case (TFloat, TInt)           => TFloat
+          case (enum: TEnum, TString)   => enum
+          case (TString, enum: TEnum)   => enum
+          case (schema: TSchema, THash) => schema
+          case (THash, schema: TSchema) => schema
+          case (TArray(i1, n1), TArray(i2, n2)) =>
+            TArray(reduceTypes(i1, i2), n1 || n2)
+          case (t1, t2) => TMulti(Vector(t1, t2))
+        }
+      }
+      distinct.reduce(reduceTypes)
     }
   }
 }

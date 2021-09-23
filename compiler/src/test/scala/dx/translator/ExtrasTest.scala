@@ -2,9 +2,9 @@ package dx.translator
 
 import com.dnanexus.exceptions.ResourceNotFoundException
 import dx.Assumptions.isLoggedIn
-import dx.PermissionDeniedException
 import dx.Tags.{ApiTest, EdgeTest}
-import dx.api.{DxAccessLevel, DxApi, DxProject}
+import dx.PermissionDeniedException
+import dx.api.{DxAccessLevel, DxApi, DxPath, DxProject}
 import dx.core.ir.Value
 import dx.core.ir.Value.VString
 import dx.translator.ExtrasJsonProtocol._
@@ -367,7 +367,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
       Extras.parse(reorg)
     }
 
-    val fileId: String = inputs.replace("dx://", "")
+    val fileId: String = inputs.replace(DxPath.DxUriPrefix, "")
 
     thrown.getMessage should be(s""""${fileId}" is not a recognized ID""")
   }

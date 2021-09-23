@@ -92,7 +92,7 @@ case class RuntimeTranslator(wdlVersion: WdlVersion,
             runtimeSection,
             hintsSection,
             evaluator,
-            Some(IrToWdlValueBindings(defaultAttrs)))
+            defaultAttrs = Some(IrToWdlValueBindings(defaultAttrs)))
   private lazy val meta: Meta = Meta.create(wdlVersion, metaSection)
 
   def translate(id: String, wdlType: Option[T] = None): Option[Value] = {

@@ -1,0 +1,17 @@
+{
+  "dir4.inf": {
+    "class": "File",
+    "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/hello.tar",
+    "secondaryFiles": [
+      {
+        "class": "File",
+        "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G0G3BZQ0yzZZZXfx3xPK1BYF"
+      },
+      {
+        "class": "Directory",
+        "basename": "xtestdir",
+        "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/test/"
+      }
+    ]
+  }
+}

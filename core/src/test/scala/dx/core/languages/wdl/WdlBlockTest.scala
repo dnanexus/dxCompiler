@@ -1,10 +1,8 @@
 package dx.core.languages.wdl
 
 import java.nio.file.{Path, Paths}
-
-import dx.Tags.EdgeTest
-import dx.core.ir.{Block, BlockKind}
-import dx.core.languages.wdl.{WdlUtils => WdlUtils}
+import dx.core.Tags.EdgeTest
+import dx.core.ir.{Block, BlockKind, DxName}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
@@ -18,9 +16,9 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
     Paths.get(p)
   }
 
-  private def mapFromOutputs(outputs: Vector[TAT.OutputParameter]): Map[String, WdlTypes.T] = {
+  private def mapFromOutputs(outputs: Vector[WdlBlockOutput]): Map[DxName, WdlTypes.T] = {
     outputs.map {
-      case TAT.OutputParameter(name, wdlType, _) => name -> wdlType
+      case WdlBlockOutput(name, wdlType, _) => name -> wdlType
     }.toMap
   }
 
@@ -36,91 +34,92 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
 
   it should "calculate closure correctly" in {
     val blocks = getWorkflowBlocks("util", "block_closure.wdl")
-    /*System.out.println(s"""|block #0 =
-                               |${subBlocks(0).prettyPrintApproxWdl}}
-                               |""".stripMargin)*/
-    blocks(0).inputs.map(_.name).toSet should be(Set.empty)
-    blocks(1).inputs.map(_.name).toSet should be(Set("flag", "rain"))
-    blocks(2).inputs.map(_.name).toSet should be(Set("flag", "inc1.result"))
-    blocks(3).inputs.map(_.name).toSet should be(Set("rain"))
+    blocks(0).inputs.map(_.name.decoded).toSet shouldBe Set.empty
+    blocks(1).inputs.map(_.name.decoded).toSet shouldBe Set("flag", "rain")
+    blocks(2).inputs.map(_.name.decoded).toSet shouldBe Set("flag", "inc1.result")
+    blocks(3).inputs.map(_.name.decoded).toSet shouldBe Set("rain")
     blocks(4).inputs.flatMap {
       case _: ComputedBlockInput => None
-      case i                     => Some(i.name)
-    }.toSet should be(Set("rain", "inc1.result", "flag"))
+      case i                     => Some(i.name.decoded)
+    }.toSet shouldBe Set("rain", "inc1.result", "flag")
   }
 
   it should "calculate outputs correctly" in {
     val blocks = getWorkflowBlocks("util", "block_closure.wdl")
-    mapFromOutputs(blocks(1).outputs) should be(
-        Map("inc2.result" -> WdlTypes.T_Optional(WdlTypes.T_Int))
+    mapFromOutputs(blocks(1).outputs) shouldBe Map(
+        WdlDxName.fromDecodedName("inc2.result") -> WdlTypes.T_Optional(WdlTypes.T_Int)
     )
-    mapFromOutputs(blocks(2).outputs) should be(
-        Map("inc3.result" -> WdlTypes.T_Optional(WdlTypes.T_Int))
+    mapFromOutputs(blocks(2).outputs) shouldBe Map(
+        WdlDxName.fromDecodedName("inc3.result") -> WdlTypes.T_Optional(WdlTypes.T_Int)
     )
-    mapFromOutputs(blocks(3).outputs) should be(
-        Map("inc4.result" -> WdlTypes.T_Array(WdlTypes.T_Int, nonEmpty = true))
+    mapFromOutputs(blocks(3).outputs) shouldBe Map(
+        WdlDxName.fromDecodedName("inc4.result") -> WdlTypes.T_Array(WdlTypes.T_Int,
+                                                                     nonEmpty = true)
     )
-    mapFromOutputs(blocks(4).outputs) should be(
-        Map("x" -> WdlTypes.T_Array(WdlTypes.T_Int, nonEmpty = true),
-            "inc5.result" -> WdlTypes.T_Array(WdlTypes.T_Optional(WdlTypes.T_Int), nonEmpty = true))
+    mapFromOutputs(blocks(4).outputs) shouldBe Map(
+        WdlDxName.fromDecodedName("x") -> WdlTypes.T_Array(WdlTypes.T_Int, nonEmpty = true),
+        WdlDxName.fromDecodedName("inc5.result") -> WdlTypes
+          .T_Array(WdlTypes.T_Optional(WdlTypes.T_Int), nonEmpty = true)
     )
   }
 
   it should "calculate outputs correctly II" in {
     val blocks = getWorkflowBlocks("compiler", "wf_linear.wdl")
-    mapFromOutputs(blocks(1).outputs) should be(
-        Map("z" -> WdlTypes.T_Int, "mul.result" -> WdlTypes.T_Int)
+    mapFromOutputs(blocks(1).outputs) shouldBe Map(
+        WdlDxName.fromDecodedName("z") -> WdlTypes.T_Int,
+        WdlDxName.fromDecodedName("mul.result") -> WdlTypes.T_Int
     )
-    blocks(1).inputs.map(_.name).toSet should be(Set("add.result"))
+    blocks(1).inputs.map(_.name.decoded).toSet shouldBe Set("add.result")
   }
 
   it should "handle block zero" in {
     val blocks = getWorkflowBlocks("util", "block_zero.wdl")
-    mapFromOutputs(blocks(0).outputs) should be(
-        Map("rain" -> WdlTypes.T_Int, "inc.result" -> WdlTypes.T_Optional(WdlTypes.T_Int))
+    mapFromOutputs(blocks(0).outputs) shouldBe Map(
+        WdlDxName.fromDecodedName("rain") -> WdlTypes.T_Int,
+        WdlDxName.fromDecodedName("inc.result") -> WdlTypes.T_Optional(WdlTypes.T_Int)
     )
   }
 
   it should "block with two calls or more" in {
     val blocks = getWorkflowBlocks("util", "block_with_three_calls.wdl")
-    blocks.size should be(1)
+    blocks.size shouldBe 1
   }
 
   it should "split a block with an expression after a call" in {
     val blocks = getWorkflowBlocks("util", "expression_after_call.wdl")
-    blocks.size should be(2)
+    blocks.size shouldBe 2
   }
 
   it should "calculate closure correctly for WDL draft-2" in {
     val blocks = getWorkflowBlocks("draft2", "block_closure.wdl")
-    blocks(1).inputs.map(_.name).toSet should be(Set("flag", "rain"))
-    blocks(2).inputs.map(_.name).toSet should be(Set("flag", "inc1.result"))
-    blocks(3).inputs.map(_.name).toSet should be(Set("rain"))
+    blocks(1).inputs.map(_.name.decoded).toSet shouldBe Set("flag", "rain")
+    blocks(2).inputs.map(_.name.decoded).toSet shouldBe Set("flag", "inc1.result")
+    blocks(3).inputs.map(_.name.decoded).toSet shouldBe Set("rain")
     blocks(4).inputs.flatMap {
       case _: ComputedBlockInput => None
-      case i                     => Some(i.name)
-    }.toSet should be(Set("rain", "inc1.result", "flag"))
+      case i                     => Some(i.name.decoded)
+    }.toSet shouldBe Set("rain", "inc1.result", "flag")
   }
 
   it should "calculate closure correctly for WDL draft-2 II" in {
     val blocks = getWorkflowBlocks("draft2", "shapes.wdl")
     blocks(0).inputs.flatMap {
       case _: ComputedBlockInput => None
-      case i                     => Some(i.name)
-    }.toSet should be(Set("num"))
-    blocks(1).inputs.map(_.name).toSet should be(Set.empty)
+      case i                     => Some(i.name.decoded)
+    }.toSet shouldBe Set("num")
+    blocks(1).inputs.map(_.name).toSet shouldBe Set.empty
   }
 
   it should "calculate closure for a workflow with expression outputs" in {
     val doc = getDocument("compiler", "wf_with_output_expressions.wdl")
     val outputClosure = WdlUtils.getOutputClosure(doc.workflow.get.outputs)
-    outputClosure.keys.toSet should be(Set("a", "b"))
+    outputClosure.keys.map(_.decoded).toSet shouldBe Set("a", "b")
   }
 
   it should "calculate output closure for a workflow" in {
     val doc = getDocument("compiler", "cast.wdl")
     val outputClosure = WdlUtils.getOutputClosure(doc.workflow.get.outputs)
-    outputClosure.keys.toSet should be(
+    outputClosure.keys.map(_.decoded).toSet should be(
         Set("Add.result", "SumArray.result", "SumArray2.result", "JoinMisc.result")
     )
   }
@@ -170,28 +169,17 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
     val blocks = getWorkflowBlocks("draft2", "movies.wdl")
     // Find the fragment block to execute
     val block = Block.getSubBlockAt(blocks, Vector(0))
-
-    /*
-        val dbgBlock = block.nodes.map{
-            WdlPrettyPrintApproxWdl.apply(_)
-        }.mkString("\n")
-        System.out.println(s"""|Block:
-                               |${dbgBlock}
-                               |""".stripMargin)
-     */
-
     block.kind shouldBe BlockKind.CallDirect
   }
 
   it should "sort a block correctly in the presence of conditionals" taggedAs EdgeTest in {
     val blocks = getWorkflowBlocks("draft2", "conditionals3.wdl")
-    mapFromOutputs(blocks(0).outputs) should be(
-        Map(
-            "i1" -> WdlTypes.T_Optional(WdlTypes.T_Int),
-            "i2" -> WdlTypes.T_Optional(WdlTypes.T_Int),
-            "i3" -> WdlTypes.T_Optional(WdlTypes.T_Int),
-            "powers10" -> WdlTypes.T_Array(WdlTypes.T_Optional(WdlTypes.T_Int), nonEmpty = false)
-        )
+    mapFromOutputs(blocks(0).outputs) shouldBe Map(
+        WdlDxName.fromDecodedName("i1") -> WdlTypes.T_Optional(WdlTypes.T_Int),
+        WdlDxName.fromDecodedName("i2") -> WdlTypes.T_Optional(WdlTypes.T_Int),
+        WdlDxName.fromDecodedName("i3") -> WdlTypes.T_Optional(WdlTypes.T_Int),
+        WdlDxName.fromDecodedName("powers10") -> WdlTypes
+          .T_Array(WdlTypes.T_Optional(WdlTypes.T_Int), nonEmpty = false)
     )
   }
 
@@ -200,17 +188,13 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
     val scatters = blocks.filter { block =>
       Set(BlockKind.ScatterOneCall, BlockKind.ScatterComplex).contains(block.kind)
     }
-    scatters.size should be(1)
+    scatters.size shouldBe 1
   }
 
   it should "sort a subblock properly" in {
     val blocks = getWorkflowBlocks("draft2", "conditionals4.wdl")
     // Find the fragment block to execute
     val b = Block.getSubBlockAt(blocks, Vector(1))
-    /*        System.out.println(s"""|BLOCK #1 = [
-                               |${b.prettyPrintApproxWdl}
-                               |]
- |""".stripMargin) */
     logger.ignore(b)
   }
 
@@ -225,7 +209,7 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
     val inputs = wf.inputs.map(WdlBlockInput.translate)
     val inputsUsedAsOutputs =
       inputs.map(_.name).toSet.intersect(WdlUtils.getOutputClosure(wf.outputs).keySet)
-    inputsUsedAsOutputs shouldBe Set("lane")
+    inputsUsedAsOutputs shouldBe Set(WdlDxName.fromDecodedName("lane"))
   }
 
   // TODO: this seems like a useless test, or at least one that doesn't belong here
@@ -243,9 +227,6 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
 
     val b00 = Block.getSubBlockAt(blocks, Vector(0, 0))
 
-//    val bl33 = WdlPrettyPrintApproxWdl.apply(b00.nodes)
-//    System.out.println(bl33)
-
     b00.kind shouldBe BlockKind.ConditionalOneCall
   }
 
@@ -254,28 +235,27 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
     val blocks = WdlBlock.createBlocks(doc.workflow.get.body)
     blocks.size shouldBe 1
     blocks.head.inputs.iterator sameElements {
-      Vector(RequiredBlockInput("i", WdlTypes.T_Int),
-             ComputedBlockInput("x", WdlTypes.T_Int),
-             ComputedBlockInput("j", WdlTypes.T_Int))
+      Vector(
+          RequiredBlockInput(WdlDxName.fromSourceName("i"), WdlTypes.T_Int),
+          ComputedBlockInput(WdlDxName.fromSourceName("x"), WdlTypes.T_Int),
+          ComputedBlockInput(WdlDxName.fromSourceName("j"), WdlTypes.T_Int)
+      )
     }
-    blocks.head.outputs.sortWith(_.name < _.name) should matchPattern {
+    blocks.head.outputs.sortWith(_.name < _.name).map {
+      case WdlBlockOutput(dxName, wdlType, _) => (dxName.decoded, wdlType)
+    } should matchPattern {
       case Vector(
-          TAT.OutputParameter("foo.out", WdlTypes.T_Array(WdlTypes.T_String, true), _),
-          TAT.OutputParameter("indexes", WdlTypes.T_Array(WdlTypes.T_Int, true), _),
-          TAT.OutputParameter("n",
-                              WdlTypes.T_Array(WdlTypes.T_Array(WdlTypes.T_String, true), true),
-                              _),
-          TAT.OutputParameter("out",
-                              WdlTypes.T_Array(WdlTypes.T_Array(WdlTypes.T_String, true), true),
-                              _),
-          TAT.OutputParameter("s", WdlTypes.T_Array(WdlTypes.T_String, true), _),
-          TAT.OutputParameter("string",
-                              WdlTypes.T_Array(
-                                  WdlTypes.T_Array(WdlTypes.T_Array(WdlTypes.T_String, true), true),
-                                  true
-                              ),
-                              _),
-          TAT.OutputParameter("t", WdlTypes.T_Array(WdlTypes.T_String, true), _)
+          ("foo.out", WdlTypes.T_Array(WdlTypes.T_String, true)),
+          ("indexes", WdlTypes.T_Array(WdlTypes.T_Int, true)),
+          ("n", WdlTypes.T_Array(WdlTypes.T_Array(WdlTypes.T_String, true), true)),
+          ("out", WdlTypes.T_Array(WdlTypes.T_Array(WdlTypes.T_String, true), true)),
+          ("s", WdlTypes.T_Array(WdlTypes.T_String, true)),
+          ("string",
+           WdlTypes.T_Array(
+               WdlTypes.T_Array(WdlTypes.T_Array(WdlTypes.T_String, true), true),
+               true
+           )),
+          ("t", WdlTypes.T_Array(WdlTypes.T_String, true))
           ) =>
     }
   }
@@ -283,7 +263,8 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
   it should "handle inputs that are nested references" in {
     val subBlocks = getWorkflowBlocks("bugs", "apps-422.wdl")
     subBlocks.head.inputs shouldBe Vector(
-        OptionalBlockInput("wf_input", WdlTypes.T_Optional(WdlTypes.T_String))
+        OptionalBlockInput(WdlDxName.fromSourceName("wf_input"),
+                           WdlTypes.T_Optional(WdlTypes.T_String))
     )
   }
 }

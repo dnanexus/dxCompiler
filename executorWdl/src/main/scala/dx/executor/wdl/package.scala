@@ -1,7 +1,7 @@
 package dx.executor.wdl
 
 import dx.core.languages.wdl.DxMetaHints
-import wdlTools.eval.{Hints, Meta, WdlValues}
+import wdlTools.eval.{Hints, Meta, VBindings, WdlValues}
 import wdlTools.eval.WdlValues.{V, V_Boolean, V_Object, V_String}
 import wdlTools.syntax.WdlVersion
 import wdlTools.types.WdlTypes.T_Boolean
@@ -9,9 +9,11 @@ import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 
 case class HintResolver(wdlVersion: WdlVersion,
                         paramterMetaSection: Option[TAT.MetaSection],
-                        hintsSection: Option[TAT.MetaSection]) {
+                        hintsSection: Option[TAT.MetaSection],
+                        hintOverrides: Option[VBindings] = None) {
   private lazy val parameterMeta: Meta = Meta.create(wdlVersion, paramterMetaSection)
-  private lazy val hints: Meta = Meta.create(wdlVersion, hintsSection)
+  private lazy val hints: Meta =
+    Meta.create(wdlVersion, hintsSection, overrideValues = hintOverrides)
   private lazy val hintInputs: Option[Map[String, V]] =
     hints.get(Hints.InputsKey) match {
       case Some(V_Object(inputs)) => Some(inputs)

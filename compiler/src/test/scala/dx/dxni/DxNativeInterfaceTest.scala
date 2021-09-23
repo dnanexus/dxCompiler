@@ -144,7 +144,7 @@ class DxNativeInterfaceTest extends AnyFlatSpec with Matchers with BeforeAndAfte
 
   it should "build an interface to an applet specified by ID" taggedAs NativeTest in {
     val applet = dxApi.resolveDataObject(
-        s"${DxPath.DxUriPrefix}${dxTestProject.id}:${folderPath}/native_sum"
+        DxPath.format(dxTestProject.id, folderPath, "native_sum")
     ) match {
       case applet: DxApplet => applet
       case other            => throw new Exception(s"${other} not an applet")
