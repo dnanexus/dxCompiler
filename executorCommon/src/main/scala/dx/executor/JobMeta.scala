@@ -487,11 +487,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
     writeRawJsOutputs(rawOutputJs)
   }
 
-  lazy val outputSerializer: ParameterLinkSerializer = ParameterLinkSerializer(
-      fileResolver,
-      dxApi,
-      pathsAsObjects = pathsAsObjects
-  )
+  lazy val outputSerializer: ParameterLinkSerializer =
+    ParameterLinkSerializer(fileResolver, dxApi, pathsAsObjects = pathsAsObjects)
 
   lazy val executableLinkDeserializer: ExecutableLinkDeserializer =
     ExecutableLinkDeserializer(dxNameFactory, dxApi)
