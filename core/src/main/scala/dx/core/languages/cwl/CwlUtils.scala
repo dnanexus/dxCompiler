@@ -550,9 +550,15 @@ object CwlUtils {
     */
   def isSimpleCall(step: WorkflowStep): Boolean = {
     step.scatter.isEmpty && step.when.isEmpty && step.inputs.forall { inp =>
-      // if there is more than one source, a fragment is required to merge them
-      // if there is a valueFrom, a fragment is required to evaluate it
-      inp.sources.size <= 1 &&
+      // * if there is a default value and a source, they can't both go in the value
+      // for the stage input, so a fragment is required
+      // * if there is more than one source, a fragment is required to merge them
+      // * if there is a valueFrom, a fragment is required to evaluate it
+      if (inp.default.nonEmpty) {
+        inp.sources.isEmpty
+      } else {
+        inp.sources.size <= 1
+      } &&
       inp.linkMerge.isEmpty &&
       inp.pickValue.isEmpty &&
       inp.valueFrom.isEmpty

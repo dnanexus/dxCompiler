@@ -10,12 +10,6 @@ These are workflow tests that we are currently ignoring.
 * input_schema-def: missing a.bam file referenced in input
 * cond-wf-011* output type is `array[array[array[string]]]`, but the third-level array can contain nulls and thus should be optional
 
-## Non-required tests that we currently can't support
-
-* Requires a step input to be linked to a workflow input and also to have a default value that is used if the workflow input is unspecified.
-    * dynresreq-workflow-stepdefault
-    * count-lines11-wf.1 (inputs/results renamed with 'ignore_' prefix because the wf is still used for other tests)
-
 ## Tests that can't be run due to bugs in cwltool or cwljava
 
 * parse error

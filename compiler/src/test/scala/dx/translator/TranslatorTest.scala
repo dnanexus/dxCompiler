@@ -1756,4 +1756,25 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val args = path.toString :: cFlags
     Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
+
+  it should "translate a CWL workflow with a step input source and default value" in {
+    val path = pathFromBasename("cwl", "dynresreq-workflow-stepdefault.cwl.json")
+    val args = path.toString :: cFlags
+    val bundle = Main.compile(args.toVector) match {
+      case SuccessfulCompileIR(bundle) => bundle
+      case other                       => throw new Exception(s"expected success not ${other}")
+    }
+    val wf = bundle.primaryCallable match {
+      case Some(wf: Workflow) => wf
+      case other              => throw new Exception(s"expected workflow not ${other}")
+    }
+    wf.stages.size shouldBe 2
+    val stage0Applet = bundle.allCallables(wf.stages(0).calleeName) match {
+      case applet: Application => applet
+      case other               => throw new Exception(s"expected applet not ${other}")
+    }
+    stage0Applet.kind should matchPattern {
+      case ExecutableKindWfFragment(_, _, _, _) =>
+    }
+  }
 }
