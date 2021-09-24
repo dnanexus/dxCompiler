@@ -47,7 +47,7 @@ task D {
     Array[Int] D_in
   }
   command {
-    python -c 'print(~{sep = '+' D_in})'
+    python -c 'print(~{sep='+' D_in})'
   }
   runtime {
     docker: "python:2.7.15-slim-stretch"

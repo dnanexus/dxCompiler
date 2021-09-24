@@ -5,7 +5,7 @@ task hello {
     Array[String] person
   }
   command {
-    echo "hello ~{sep = "," person}"
+    echo "hello ~{sep="," person}"
   }
   output {
     String greeting = read_string(stdout())
@@ -20,7 +20,7 @@ task bonjour {
     Array[String]+ person
   }
   command {
-    echo "hello ~{sep = "," person}"
+    echo "hello ~{sep="," person}"
   }
   output {
     String greeting = read_string(stdout())

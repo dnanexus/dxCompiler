@@ -22,8 +22,8 @@ task goodbye {
     command {
         cat "${f}"
         cat "${f2}"
-        cat "${sep = " " files}"
-        cat "${sep = " " files2}"
+        cat "${sep=" " files}"
+        cat "${sep=" " files2}"
     }
     runtime {
             docker: "ubuntu:latest"
