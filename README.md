@@ -110,14 +110,14 @@ dxCompiler uses [wdlTools](https://github.com/dnanexus-rnd/wdlTools), a parser t
 
 * WDL and CWL
   * Calls with missing arguments have [limited support](doc/ExpertOptions.md#task-and-workflow-inputs).
-  * Workflows with forward references are not yet supported.
   * All task and workflow names must be unique across the entire import tree
     * For example, if `A.wdl` imports `B.wdl` and `A.wdl` defines `workflow foo`, then `B.wdl` could not have a workflow or task named `foo`
   * The `Directory` type is only supported in stand-alone tasks, not yet in workflows
 * WDL only
+  * Workflows with forward references (i.e. a variable referenced before it is declared) are not yet supported.
   * The [alternative workflow output syntax](https://github.com/openwdl/wdl/blob/main/versions/draft-2/SPEC.md#outputs) that has been deprecated since WDL draft2 is not supported
 * CWL only
-  * Nested workflows are not yet supported
+  * Nested workflows (i.e. a workflow step calling another workflow) are not yet supported
   * In-line processes in workflow steps must have explicit IDs
 
 ## Additional information
