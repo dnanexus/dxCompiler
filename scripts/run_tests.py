@@ -776,7 +776,6 @@ def compare_result_file(result, expected_val, field_name, tname, project, verbos
         if size is None and contents is not None:
             size = len(contents)
         if size != expected_val["size"]:
-            print(type(size), type(expected_val["size"]))
             if verbose:
                 cprint("Analysis {} gave unexpected results".format(tname), "red")
                 cprint(
@@ -1016,6 +1015,15 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
                 ]
             )
 
+        def sort_maybe_mixed(seq):
+            try:
+                # may fail if the lists contain mutliple types of values
+                return list(sorted(seq))
+            except:
+                d = dict((str(x), x) for x in seq)
+                sorted_keys = list(sorted(d.keys()))
+                return [d[k] for k in sorted_keys]
+
         def compare_values(expected, actual, field):
             if isinstance(actual, dict) and "___" in actual:
                 actual = actual["___"]
@@ -1045,8 +1053,9 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
                     if isinstance(actual[0], dict):
                         actual, expected = sort_dicts(actual, expected)
                     else:
-                        actual = list(sorted(actual))
-                        expected = list(sorted(expected))
+                        actual = sort_maybe_mixed(actual)
+                        expected = sort_maybe_mixed(expected)
+
                 for i, (e, a) in enumerate(zip(expected, actual)):
                     if not compare_values(e, a, "{}[{}]".format(field, i)):
                         return False
@@ -1180,11 +1189,11 @@ def wait_for_completion(test_exec_objs):
         try:
             exec_obj.wait_on_done()
             print("Analysis {}.{} succeeded".format(desc.name, i))
-            successes.append((i, exec_obj))
+            successes.append((i, exec_obj, True))
         except DXJobFailureError:
             if tname in expected_failure or "{}.{}".format(tname, i) in expected_failure:
                 print("Analysis {}.{} failed as expected".format(desc.name, i))
-                successes.append((i, exec_obj))
+                successes.append((i, exec_obj, False))
             else:
                 cprint("Error: analysis {}.{} failed".format(desc.name, i), "red")
                 failures.append((tname, exec_obj))
@@ -1209,19 +1218,19 @@ def run_executable(
             project.new_folder(test_folder, parents=True)
             if desc.kind == "workflow":
                 exec_obj = dxpy.DXWorkflow(project=project.get_id(), dxid=oid)
+                run_kwargs = {"ignore_reuse_stages": ["*"]}
             elif desc.kind == "applet":
                 exec_obj = dxpy.DXApplet(project=project.get_id(), dxid=oid)
+                run_kwargs = {"ignore_reuse": True}
             else:
                 raise RuntimeError("Unknown kind {}".format(desc.kind))
 
-            run_kwargs = {}
             if debug_flag:
-                run_kwargs = {
-                    "debug": {
-                        "debugOn": ["AppError", "AppInternalError", "ExecutionError"]
-                    },
-                    "allow_ssh": ["*"],
+                run_kwargs["debug"] = {
+                    "debugOn": ["AppError", "AppInternalError", "ExecutionError"]
                 }
+                run_kwargs["allow_ssh"] = ["*"]
+
             if delay_workspace_destruction:
                 run_kwargs["delay_workspace_destruction"] = True
             if instance_type:
@@ -1339,26 +1348,27 @@ def run_test_subset(
             if correct:
                 if tname in expected_failure or "{}.{}".format(tname, i) in expected_failure:
                     cprint(
-                        "Error: analysis {}.{} was expected to fail but its results are valid".format(desc.name, i),
+                        "Error: analysis {}.{} was expected to fail but its results are valid".format(test_desc.name, i),
                         "red"
                     )
                     return tname
                 else:
-                    print("Analysis {}.{} results are valid".format(desc.name, i))
+                    print("Analysis {}.{} results are valid".format(test_desc.name, i))
                     return None
             else:
                 if tname in expected_failure or "{}.{}".format(tname, i) in expected_failure:
-                    print("Analysis {}.{} results are invalid as expected".format(desc.name, i))
+                    print("Analysis {}.{} results are invalid as expected".format(test_desc.name, i))
                     return None
                 else:
-                    cprint("Error: analysis {}.{} results are invalid".format(desc.name, i), "red")
+                    cprint("Error: analysis {}.{} results are invalid".format(test_desc.name, i), "red")
                     return tname
 
     failed_verifications = []
-    for i, exec_obj in successful_executions:
-        failed_name = verify_test(exec_obj, i)
-        if failed_name is not None:
-            failed_verifications.append(failed_name)
+    for i, exec_obj, verify in successful_executions:
+        if verify:
+            failed_name = verify_test(exec_obj, i)
+            if failed_name is not None:
+                failed_verifications.append(failed_name)
 
     print("-----------------------------")
     print(f"Total tests: {len(test_exec_objs)}")

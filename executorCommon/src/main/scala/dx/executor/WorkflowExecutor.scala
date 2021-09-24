@@ -35,7 +35,6 @@ import dx.util.protocols.{DxFileSource, DxFolderSource}
 import spray.json._
 
 import java.nio.file.Files
-import scala.annotation.tailrec
 
 object WorkflowAction extends Enum {
   type WorkflowAction = Value
@@ -340,18 +339,22 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
     protected def createEmptyScatterOutputs(
         outputShape: Option[Vector[Int]] = None
     ): Map[DxName, ParameterLink] = {
-      @tailrec
-      def nestedEmptyArray(t: TArray, depth: Int, v: VArray = VArray()): VArray = {
-        t.itemType match {
-          case i: TArray if depth > 1 => nestedEmptyArray(i, depth - 1, VArray(v))
-          case i: TArray              => throw new Exception(s"array type ${i} at depth 1")
-          case _ if depth > 1         => throw new Exception(s"non-array type ${t} at depth > 1")
-          case _                      => v
+      def nestedEmptyArray(t: TArray, sizes: Vector[Int]): VArray = {
+        (t, sizes) match {
+          case (_: TArray, Vector()) =>
+            throw new Exception(s"array type is nested more deeply than the output shape")
+          case (TArray(_: TArray, _), Vector(_)) =>
+            throw new Exception(s"array type is nested more deeply than the output shape")
+          case (_: TArray, Vector(_)) => VArray()
+          case (TArray(i: TArray, _), v) =>
+            VArray(Iterator.fill(v.head)(nestedEmptyArray(i, v.tail)).toVector)
+          case _ =>
+            throw new Exception(s"array type is less more deeply than the output shape")
         }
       }
       val outputs = outputTypes.collect {
         case (dxName, t: TArray) =>
-          dxName -> (t, nestedEmptyArray(t, outputShape.map(_.size).getOrElse(1)))
+          dxName -> (t, nestedEmptyArray(t, outputShape.getOrElse(Vector(0))))
         case (dxName, t) if !isOptional(t) =>
           throw new Exception(
               s"scatter output ${dxName} is non-optional but there are no scatter results"

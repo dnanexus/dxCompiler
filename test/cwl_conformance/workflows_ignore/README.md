@@ -24,6 +24,9 @@ These are workflow tests that we are currently ignoring.
 * cwltool `--single-step` does not work for steps in nested workflows ([issue](https://github.com/common-workflow-language/cwltool/issues/1530))
     * count-lines8-wf
     * count-lines8-wf-noET
+* cwltool `--single-step` does not apply inherited requirements and hints
+    * env-wf2
+    * env-wf3
 * anonymous processes with no ID: the auto-generated ID is not stable ([issue](https://github.com/common-workflow-language/cwltool/issues/1520))
     * count-lines2-wf
     * io-file-default-wf

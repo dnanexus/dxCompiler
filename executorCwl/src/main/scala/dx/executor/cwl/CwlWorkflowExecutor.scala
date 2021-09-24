@@ -665,8 +665,10 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
               cond match {
                 case BooleanValue(true) =>
                   (execAccu :+ launchScatterJob(jobValues), skipAccu)
-                case _ =>
+                case BooleanValue(false) =>
                   (execAccu, skipAccu :+ nextScatterChunkIndex)
+                case other =>
+                  throw new Exception(s"invalid 'when' value ${other}")
               }
           }
         (childJobs, Option.when(skippedIndices.nonEmpty)(skippedIndices))
