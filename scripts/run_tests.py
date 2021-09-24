@@ -454,8 +454,8 @@ medium_test_list = (
     wdl_v1_list + wdl_v1_1_list + docker_test_list + special_flags_list + cwl_tools
 )
 large_test_list = (
-    medium_test_list + draft2_test_list + single_tasks_list + doc_tests_list + long_test_list + cwl_conformance_tools +
-    cromwell_tests_list
+    medium_test_list + draft2_test_list + single_tasks_list + doc_tests_list + long_test_list +
+    cwl_conformance_tools + cwl_conformance_workflows + cromwell_tests_list
 )
 
 test_suites = {

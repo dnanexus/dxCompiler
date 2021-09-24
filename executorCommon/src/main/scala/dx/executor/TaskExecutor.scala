@@ -218,7 +218,23 @@ abstract class TaskExecutor(jobMeta: JobMeta,
           }
           uri -> (TDirectory, resolved)
         case uri =>
-          val resolved = handler.apply(VFile(uri), Some(TFile)) match {
+          // update the URI to match the uri of a raw input to avoid downloading the same file twice
+          // e.g. the file is stored in the static dependencies and is also the default value in a
+          // field and is not overridden - we'd get the same file twice, but in the first case the
+          // uri is `dx://file-xxx::/path/to/file` and in the second it might be
+          // `dx://project-xxx:/path/to/file` or `dx://project-xxx:file-yyy`.
+          // TODO: a better way to handle duplicate files with different URIs would be to add
+          //  another layer of indirection, such that all URIs that resolve to the same file ID
+          //  map to the same "cannonical" AddressableFileSource
+          val uriToResolve = fileResolver.resolve(uri) match {
+            case fs: DxFileSource =>
+              DxFile.format(fs.dxFile.id,
+                            fs.dxFile.describe().folder,
+                            fs.dxFile.describe().name,
+                            None)
+            case _ => uri
+          }
+          val resolved = handler.apply(VFile(uriToResolve), Some(TFile)) match {
             case Some(f: VFile) => f
             case other          => throw new Exception(s"expected VFile, not ${other}")
           }

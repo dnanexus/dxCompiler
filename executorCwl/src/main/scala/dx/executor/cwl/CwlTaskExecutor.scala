@@ -327,7 +327,9 @@ case class CwlTaskExecutor(tool: Process,
       }
     }
     val updatedSource = inner(jobMeta.sourceCode.parseJson).prettyPrint
-    logger.traceLimited(s"updated source code:\n${updatedSource}")
+    if (logger.isVerbose) {
+      logger.trace(s"updated source code:\n${updatedSource}", minLevel = TraceLevel.VVerbose)
+    }
     updatedSource
   }
 
