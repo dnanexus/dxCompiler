@@ -771,6 +771,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
       throw new Exception(s"Invalid value ${other} for ${Constants.BlockPath}")
   }
 
+  lazy val isTopLevelOutputs: Boolean = getJobDetail(Constants.IsTopLevelOutputs).contains(JsTrue)
+
   lazy val scatterStart: Int = getJobDetail(Constants.ContinueStart) match {
     case Some(JsNumber(s)) => s.toIntExact
     case Some(other) =>

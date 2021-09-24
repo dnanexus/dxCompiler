@@ -1,6 +1,6 @@
 package dx.executor
 
-import java.nio.file.{Files, Path}
+import java.nio.file.{Files, Path, Paths}
 import dx.api.{DxFile, DxJob, DxPath, FileUpload, InstanceTypeRequest}
 import dx.core.getVersion
 import dx.core.io.{
@@ -167,29 +167,23 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         (t, value) match {
           case (Some(TFile) | None, file: VFile) if file.contents.nonEmpty =>
             virtualFiles :+= StringFileNode(file.contents.get, file.uri)
-            Some(file.copy(contents = None))
+            Some(file.copy(contents = None, secondaryFiles = updateListing(file.secondaryFiles)))
           case (Some(TFile) | None, file: VFile) =>
             handleFileUri(file.uri)
             Some(file.copy(secondaryFiles = updateListing(file.secondaryFiles)))
           case (Some(TFile), VString(uri)) =>
             handleFileUri(uri)
             Some(VFile(uri))
-          case (Some(TDirectory) | None, folder: VFolder) =>
+          case (Some(TDirectory) | None, folder: VFolder) if folder.listing.isEmpty =>
             // fill in the listing if it is not provided
-            Option
-              .when(folder.listing.isEmpty)(getFolderListing(folder.uri))
-              .filter(_.nonEmpty)
-              .map { listing =>
-                val updatedListing = createListing(listing)
-                folder.copy(listing = Some(updatedListing))
-              }
-              .orElse(Some(folder))
+            Some(folder.copy(listing = Some(createListing(getFolderListing(folder.uri)))))
+          case (Some(TDirectory) | None, folder: VFolder) =>
+            Some(folder.copy(listing = Some(updateListing(folder.listing.get))))
           case (Some(TDirectory), VString(uri)) =>
             val listing = Some(getFolderListing(uri)).filter(_.nonEmpty).map(createListing)
             Some(VFolder(uri, listing = listing))
           case (Some(TDirectory) | None, listing: VListing) =>
-            val updatedItems = updateListing(listing.items)
-            Some(listing.copy(items = updatedItems))
+            Some(listing.copy(items = updateListing(listing.items)))
           case _ => None
         }
       }
@@ -298,7 +292,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
           }
           pathToUri += (newPath -> f.uri)
           // recursively resolve the secondary files, linking them to be adjacent to the main file
-          val newSecondaryFiles = finalizeListing(f.secondaryFiles, parentDir)
+          val newSecondaryFiles = finalizeListing(f.secondaryFiles, newPath.getParent)
           Some(f.copy(uri = newPath.toString, secondaryFiles = newSecondaryFiles))
         case (Some(TDirectory) | None, f: VFolder) if f.listing.isDefined =>
           // link all the files/subdirectories in the listing into the parent folder
@@ -665,15 +659,27 @@ abstract class TaskExecutor(jobMeta: JobMeta,
                               uploadedDirectories: Map[Path, String],
                               localPathToUri: Map[Path, String],
                               listings: Listings): Map[DxName, (Type, Value)] = {
-    // For folders/listings, we have to determine the project output folder,
-    // because the platform won't automatically update directory URIs like
-    // it does for data object links. The output folder is either the manifest
-    // folder or the concatination of the job/analysis output folder and the
-    // container output folder.
-    // TODO: currently, this only works for one level of job nesting -
-    //  we probably need to get all the output folders all the way up
-    //  the job tree and join them all
-    val defaultFolderParent = DxFolderSource.ensureEndsWithSlash(jobMeta.projectOutputFolder)
+    // For folders/listings, we have to determine the project output folder, because the platform
+    // won't automatically update directory URIs like it does for data object links. The output
+    // folder is either the manifest folder or the concatination of the job/analysis output folder
+    // and the container output folder. If this task is running as part of an analysis, and we are
+    // not using manifests, then we use the container ID and folder in the folder URI and add the
+    // parent project folder, e.g. `dx://container-xxx:/path/to/folder/::/parent/project/folder/`.
+    // We expect there to be an output stage that will re-write the URL at the end of the workflow.
+    val parentProjectFolder = DxFolderSource.ensureEndsWithSlash(jobMeta.projectOutputFolder)
+    val useContainerFolders = jobMeta.analysis.isDefined && !jobMeta.useManifests
+
+    def getDirectoryUri(folder: String): String = {
+      if (useContainerFolders) {
+        val containerFolder =
+          s"/${Paths.get(parentProjectFolder).relativize(Paths.get(folder)).toString}"
+        DxFolderSource.format(dxApi.currentWorkspace.get,
+                              containerFolder,
+                              Some(parentProjectFolder))
+      } else {
+        DxFolderSource.format(dxApi.currentProject.get, folder)
+      }
+    }
 
     // replace local paths with remote URIs
     def handlePath(value: PathValue,
@@ -714,11 +720,11 @@ abstract class TaskExecutor(jobMeta: JobMeta,
               VNull
             case local: LocalFileSource if uploadedDirectories.contains(local.canonicalPath) =>
               // a folder that was uploaded
-              val folderParent = parent.getOrElse(defaultFolderParent)
+              val folderParent = parent.getOrElse(parentProjectFolder)
               val name = f.basename.getOrElse(local.canonicalPath.getFileName.toString)
               val folder = DxFolderSource.join(folderParent, name)
               VFolder(
-                  DxFolderSource.format(dxApi.currentProject.get, folder),
+                  getDirectoryUri(folder),
                   basename = Some(name),
                   listing = f.listing.map(_.map(handlePath(_, parent = Some(folder))).map {
                     case p: PathValue => p
@@ -735,10 +741,10 @@ abstract class TaskExecutor(jobMeta: JobMeta,
             case _ => f
           }
         case (Some(TDirectory) | None, l: VListing) =>
-          val folderParent = parent.getOrElse(defaultFolderParent)
+          val folderParent = parent.getOrElse(parentProjectFolder)
           val folder = DxFolderSource.join(folderParent, l.basename)
           VFolder(
-              DxFolderSource.format(dxApi.currentProject.get, folder),
+              getDirectoryUri(folder),
               basename = Some(l.basename),
               listing = Some(l.items.map(handlePath(_, parent = Some(folder))).map {
                 case p: PathValue => p

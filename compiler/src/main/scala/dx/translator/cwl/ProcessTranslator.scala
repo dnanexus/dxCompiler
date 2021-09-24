@@ -10,24 +10,24 @@ import dx.core.ir.{
   Callable,
   CallableAttribute,
   DxName,
-  StageInputEmpty,
   ExecutableKindApplet,
   ExecutableKindWfCustomReorgOutputs,
   ExecutableKindWfFragment,
   ExecutableKindWfOutputs,
   InstanceTypeSelection,
   Level,
-  StageInputStageLink,
   Parameter,
   ParameterAttribute,
   SourceCode,
   Stage,
   StageInput,
+  StageInputEmpty,
+  StageInputStageLink,
   StageInputStatic,
+  StageInputWorkflowLink,
   Type,
   Value,
-  Workflow,
-  StageInputWorkflowLink
+  Workflow
 }
 import dx.core.languages.cwl.{
   CwlBlock,
@@ -43,6 +43,12 @@ import dx.core.languages.cwl.{
 import dx.cwl.{
   CommandLineTool,
   CommandOutputParameter,
+  CwlAny,
+  CwlArray,
+  CwlDirectory,
+  CwlFile,
+  CwlMulti,
+  CwlRecord,
   CwlType,
   CwlValue,
   DirectoryValue,
@@ -255,8 +261,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
             fileUri ++ f.secondaryFiles.flatMap(extractPaths)
           case d: DirectoryValue if d.location.isDefined =>
             fileResolver.resolveDirectory(d.location.get) match {
-              case DxFolderSource(dxProject, dxFolder) =>
-                Vector(DxFolderSource.format(dxProject, dxFolder))
+              case fs: DxFolderSource => Vector(fs.address)
               case local: LocalFileSource =>
                 logger.warning(
                     s"""InitialWorkDirRequirement in ${tool.name} or one of its ancestors 
@@ -606,7 +611,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
     private def createOutputStage(wfName: String,
                                   outputs: Vector[WorkflowOutputParameter],
                                   blockPath: Vector[Int],
-                                  env: CallEnv): (Stage, Application) = {
+                                  env: CallEnv,
+                                  level: Level.Level): (Stage, Application) = {
       val paramNames: Set[DxName] = outputs.flatMap { param =>
         if (param.sources.isEmpty) {
           throw new Exception(
@@ -644,7 +650,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           )
           (ExecutableKindWfCustomReorgOutputs, updatedOutputVars)
         case _ =>
-          (ExecutableKindWfOutputs(blockPath), outputParams)
+          (ExecutableKindWfOutputs(blockPath, level), outputParams)
       }
       val application = Application(
           s"${wfName}_${Constants.OutputStage}",
@@ -719,6 +725,18 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       )
       val (stages, auxCallables) = (commonStageInfo ++ backboneStageInfo).unzip
 
+      def containsDirectoryType(cwlType: CwlType): Boolean = {
+        cwlType match {
+          case CwlDirectory    => true
+          case CwlFile         => true // the file may contain directories in its secondaryFiles
+          case a: CwlArray     => containsDirectoryType(a.itemType)
+          case s: CwlRecord    => s.fields.values.exists(f => containsDirectoryType(f.cwlType))
+          case CwlAny          => true
+          case CwlMulti(types) => types.exists(containsDirectoryType)
+          case _               => false
+        }
+      }
+
       // We need a common output stage for any of these reasons:
       // 1. we need to build an output manifest
       // 2. there are no workflow steps (unlikely, but there is at least one conformance
@@ -726,9 +744,11 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       // output applet.
       val useOutputStage = useManifests || backboneStageInfo.isEmpty || {
         // 3. there are outputs that need to be merged
-        // 4. we are "downcasting" an output, e.g. the applet output is `Any` but
+        // 4. this is a top-level workflow and there are directory outputs that will need their
+        //    urls re-written from using container-ids to project-ids
+        // 5. we are "downcasting" an output, e.g. the applet output is `Any` but
         // the workflow output is `File`
-        // 5. an output is used directly as an input
+        // 6. an output is used directly as an input
         // For example, in the small workflow below, 'lane' is used in such a manner.
         //
         // workflow inner {
@@ -744,6 +764,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         // a workflow output. It is only allowed to access a stage input/output.
         val inputNames = inputs.map(_.name).toSet
         outputs.exists { out =>
+          (level == Level.Top && containsDirectoryType(out.cwlType)) ||
           out.sources.size > 1 ||
           out.linkMerge.isDefined ||
           out.pickValue.isDefined ||
@@ -758,7 +779,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       }
 
       val (wfOutputs, finalStages, finalCallables) = if (useOutputStage) {
-        val (outputStage, outputApplet) = createOutputStage(wfName, outputs, blockPath, env)
+        val (outputStage, outputApplet) = createOutputStage(wfName, outputs, blockPath, env, level)
         val wfOutputs = outputStage.outputs.map { param =>
           (param, StageInputStageLink(outputStage.dxStage, param))
         }
@@ -827,7 +848,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       val (stages, auxCallables) = allStageInfo.unzip
 
       // convert the outputs into an applet+stage
-      val (outputStage, outputApplet) = createOutputStage(wf.name, outputs, Vector.empty, env)
+      val (outputStage, outputApplet) =
+        createOutputStage(wf.name, outputs, Vector.empty, env, Level.Top)
 
       val wfInputs = commonAppletInputs.map(param => (param, StageInputEmpty))
       val wfOutputs =

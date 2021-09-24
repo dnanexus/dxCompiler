@@ -266,9 +266,8 @@ case class CwlTaskExecutor(tool: Process,
                 .flatMap {
                   case JsString(uri) =>
                     jobMeta.fileResolver.resolveDirectory(uri) match {
-                      case DxFolderSource(dxProject, dxFolder) =>
-                        dependencies.get(DxFolderSource.format(dxProject, dxFolder))
-                      case _ => None
+                      case fs: DxFolderSource => dependencies.get(fs.address)
+                      case _                  => None
                     }
                   case other =>
                     throw new Exception(
