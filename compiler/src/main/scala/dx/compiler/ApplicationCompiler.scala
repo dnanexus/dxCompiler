@@ -539,14 +539,13 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
                 case (dxName, t) => dxName.decoded -> t
               })
           )
-        case ExecutableKindWfOutputs(blockPath, level) if blockPath.nonEmpty =>
+        case ExecutableKindWfOutputs(blockPath) if blockPath.nonEmpty =>
           val types = applet.inputVars.map(p => p.name -> p.dxType).toMap
           Map(
               Constants.BlockPath -> JsArray(blockPath.map(JsNumber(_))),
               Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(types.map {
                 case (dxName, t) => dxName.decoded -> t
-              }),
-              Constants.IsTopLevelOutputs -> JsBoolean(level == Level.Top)
+              })
           )
         case _: ExecutableKindWfInputs | _: ExecutableKindWfOutputs |
             ExecutableKindWfCustomReorgOutputs | ExecutableKindWorkflowOutputReorg =>

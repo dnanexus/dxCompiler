@@ -27,17 +27,8 @@ import dx.core.ir.{
   Value,
   ValueSerde
 }
-import dx.core.ir.Type.{TArray, TDirectory, TFile, TSchema, isOptional}
-import dx.core.ir.Value.{
-  PathValue,
-  TransformHandler,
-  VArray,
-  VFile,
-  VFolder,
-  VNull,
-  VString,
-  WalkHandler
-}
+import dx.core.ir.Type.{TArray, TFile, TSchema, isOptional}
+import dx.core.ir.Value.{TransformHandler, VArray, VFile, VNull, VString, WalkHandler}
 import dx.util.{Enum, JsUtils, LocalFileSource, TraceLevel}
 import dx.util.CollectionUtils.IterableOnceExtensions
 import dx.util.protocols.{DxFileSource, DxFolderSource}
@@ -149,33 +140,6 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
   protected def evaluateOutputs(jobInputs: Map[DxName, (Type, Value)],
                                 addReorgStatus: Boolean): Map[DxName, (Type, Value)]
 
-  private object DirectoryRewriteHandler extends TransformHandler {
-    private def rewriteDirectoryUri(uri: String): String = {
-      jobMeta.fileResolver.resolveDirectory(uri) match {
-        case fs: DxFolderSource if fs.parentProjectFolder.isDefined =>
-          DxFolderSource.format(dxApi.currentProject.get, fs.parentProjectFolder.get)
-        case _ => uri
-      }
-    }
-
-    override def apply(value: Value, t: Option[Type], optional: Boolean): Option[Value] = {
-      (t, value) match {
-        case (Some(TDirectory) | None, f: VFolder) =>
-          val newListing = f.listing.map { v =>
-            v.map { p =>
-              Value.transform(p, None, handler = this) match {
-                case p: PathValue => p
-                case other        => throw new Exception(s"expected PathValue not ${other}")
-              }
-            }
-          }
-          Some(f.copy(uri = rewriteDirectoryUri(f.uri), listing = newListing))
-        case (Some(TDirectory), VString(uri)) => Some(VString(rewriteDirectoryUri(uri)))
-        case _                                => None
-      }
-    }
-  }
-
   private def evaluateOutputs(addReorgStatus: Boolean = false): Map[DxName, ParameterLink] = {
     if (logger.isVerbose) {
       logger.traceLimited(s"dxCompiler version: ${getVersion}")
@@ -183,12 +147,6 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
       logger.traceLimited("Evaluating workflow outputs")
     }
     val outputs = evaluateOutputs(jobInputs, addReorgStatus)
-    if (jobMeta.isTopLevelOutputs) {
-      // re-write URIs in any Directory-type outputs
-      outputs.map {
-        case (dxName, (t, v)) => dxName -> (t, Value.transform(v, Some(t), DirectoryRewriteHandler))
-      }
-    }
     if (logger.isVerbose) {
       logger.traceLimited(s"Outputs: ${outputs}")
     }

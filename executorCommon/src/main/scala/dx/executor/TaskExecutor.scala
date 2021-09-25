@@ -1,6 +1,6 @@
 package dx.executor
 
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.{Files, Path}
 import dx.api.{DxFile, DxJob, DxPath, FileUpload, InstanceTypeRequest}
 import dx.core.getVersion
 import dx.core.io.{
@@ -152,21 +152,21 @@ abstract class TaskExecutor(jobMeta: JobMeta,
           }
         }
 
+        // gets the listing for a folder - if the folder does not exist, returns an empty listing
         def getFolderListing(uri: String): Vector[FileSource] = {
-          try {
-            fileResolver.resolveDirectory(uri) match {
-              case fs if !fs.exists =>
-                throw new Exception(s"Directory-type input does not exist: ${fs}")
-              case fs if !fs.isDirectory =>
-                throw new Exception(s"Directory-type input is not a directory: ${fs}")
-              case fs if !fs.isListable =>
-                throw new Exception(s"Cannot get listing for Directory-type input: ${fs}")
-              case fs => fs.listing(recursive = true)
+          val fs =
+            try {
+              fileResolver.resolveDirectory(uri)
+            } catch {
+              case _: Throwable => return Vector()
             }
-          } catch {
-            case _: Throwable if uri.contains("container-") =>
-              // edge case - an empty directory created by a previously workflow stage
-              Vector()
+          if (!fs.isDirectory) {
+            throw new Exception(s"Directory-type input is not a directory: ${fs}")
+          }
+          if (fs.exists && fs.isListable) {
+            fs.listing(recursive = true)
+          } else {
+            Vector()
           }
         }
 
@@ -668,24 +668,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     // For folders/listings, we have to determine the project output folder, because the platform
     // won't automatically update directory URIs like it does for data object links. The output
     // folder is either the manifest folder or the concatination of the job/analysis output folder
-    // and the container output folder. If this task is running as part of an analysis, and we are
-    // not using manifests, then we use the container ID and folder in the folder URI and add the
-    // parent project folder, e.g. `dx://container-xxx:/path/to/folder/::/parent/project/folder/`.
-    // We expect there to be an output stage that will re-write the URL at the end of the workflow.
+    // and the container output folder.
     val parentProjectFolder = DxFolderSource.ensureEndsWithSlash(jobMeta.projectOutputFolder)
-    val useContainerFolders = jobMeta.analysis.isDefined && !jobMeta.useManifests
-
-    def getDirectoryUri(folder: String): String = {
-      if (useContainerFolders) {
-        val containerFolder =
-          s"/${Paths.get(parentProjectFolder).relativize(Paths.get(folder)).toString}"
-        DxFolderSource.format(dxApi.currentWorkspace.get,
-                              containerFolder,
-                              Some(parentProjectFolder))
-      } else {
-        DxFolderSource.format(dxApi.currentProject.get, folder)
-      }
-    }
 
     // replace local paths with remote URIs
     def handlePath(value: PathValue,
@@ -730,7 +714,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
               val name = f.basename.getOrElse(local.canonicalPath.getFileName.toString)
               val folder = DxFolderSource.join(folderParent, name)
               VFolder(
-                  getDirectoryUri(folder),
+                  DxFolderSource.format(dxApi.currentProject.get, folder),
                   basename = Some(name),
                   listing = f.listing.map(_.map(handlePath(_, parent = Some(folder))).map {
                     case p: PathValue => p
@@ -750,7 +734,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
           val folderParent = parent.getOrElse(parentProjectFolder)
           val folder = DxFolderSource.join(folderParent, l.basename)
           VFolder(
-              getDirectoryUri(folder),
+              DxFolderSource.format(dxApi.currentProject.get, folder),
               basename = Some(l.basename),
               listing = Some(l.items.map(handlePath(_, parent = Some(folder))).map {
                 case p: PathValue => p

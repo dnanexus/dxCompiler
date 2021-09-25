@@ -100,8 +100,7 @@ case class ExecutableKindWfFragment(call: Option[String],
     extends ExecutableKind
 case class ExecutableKindWfInputs(blockPath: Vector[Int]) extends ExecutableKind
 // Output - default and custom reorg
-case class ExecutableKindWfOutputs(blockPath: Vector[Int], level: Level.Level)
-    extends ExecutableKind
+case class ExecutableKindWfOutputs(blockPath: Vector[Int]) extends ExecutableKind
 case object ExecutableKindWfCustomReorgOutputs extends ExecutableKind
 // Reorg - default and custom reorg
 case object ExecutableKindWorkflowOutputReorg extends ExecutableKind
