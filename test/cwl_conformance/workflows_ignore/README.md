@@ -21,6 +21,7 @@ These are workflow tests that we are currently ignoring.
 * cwltool `--single-step` does not apply inherited requirements and hints
     * env-wf2
     * env-wf3
+    * inpdir_update_wf
 * anonymous processes with no ID: the auto-generated ID is not stable ([issue](https://github.com/common-workflow-language/cwltool/issues/1520))
     * count-lines2-wf
     * io-file-default-wf
@@ -47,3 +48,4 @@ These are workflow tests that we are currently ignoring.
     * wf-loadContents3
     * wf-loadContents4
     * iwdr_with_nested_dirs
+    * inpdir_update_wf

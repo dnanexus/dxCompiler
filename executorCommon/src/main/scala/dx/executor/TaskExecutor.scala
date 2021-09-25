@@ -153,14 +153,20 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         }
 
         def getFolderListing(uri: String): Vector[FileSource] = {
-          fileResolver.resolveDirectory(uri) match {
-            case fs if !fs.exists =>
-              throw new Exception(s"Directory-type input does not exist: ${fs}")
-            case fs if !fs.isDirectory =>
-              throw new Exception(s"Directory-type input is not a directory: ${fs}")
-            case fs if !fs.isListable =>
-              throw new Exception(s"Cannot get listing for Directory-type input: ${fs}")
-            case fs => fs.listing(recursive = true)
+          try {
+            fileResolver.resolveDirectory(uri) match {
+              case fs if !fs.exists =>
+                throw new Exception(s"Directory-type input does not exist: ${fs}")
+              case fs if !fs.isDirectory =>
+                throw new Exception(s"Directory-type input is not a directory: ${fs}")
+              case fs if !fs.isListable =>
+                throw new Exception(s"Cannot get listing for Directory-type input: ${fs}")
+              case fs => fs.listing(recursive = true)
+            }
+          } catch {
+            case _: Throwable if uri.contains("container-") =>
+              // edge case - an empty directory created by a previously workflow stage
+              Vector()
           }
         }
 
