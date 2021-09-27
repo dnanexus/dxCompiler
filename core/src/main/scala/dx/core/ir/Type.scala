@@ -115,9 +115,8 @@ object Type {
     t match {
       case _: TOptional  => true
       case TMulti(types) =>
-        // a multi-type is considered optional if any of its
-        // alternative types is optional, regardless of whether
-        // it is wrapped in TOptional
+        // a multi-type is considered optional if any of its alternative types is optional,
+        // regardless of whether it is wrapped in TOptional
         types.exists(isOptional)
       case _ => false
     }
@@ -170,43 +169,29 @@ object Type {
     }
   }
 
-// TODO: currently unused - it has an undiscovered infinite recursion failure mode that must be
-//  fixed if it is used
-//
-//  /**
-//    * Merges multiple types into a single type.
-//    */
-//  def merge(types: Vector[Type]): Type = {
-//    val distinct = types.flatMap {
-//      case TMulti(types) => types.toSet
-//      case t             => Set(t)
-//    }
-//    if (distinct.isEmpty) {
-//      TMulti.Any
-//    } else if (distinct.size == 1) {
-//      distinct.head
-//    } else {
-//      def reduceTypes(t1: Type, t2: Type): Type = {
-//        (t1, t2) match {
-//          case (t1, TMulti.Any)         => t1
-//          case (TMulti.Any, t2)         => t2
-//          case (TMulti(t1), TMulti(t2)) => merge(t1 ++ t2)
-//          case (t1, TMulti(t2))         => merge(t1 +: t2)
-//          case (TMulti(t1), t2)         => merge(t1 :+ t2)
-//          case (t1, TOptional(t2))      => TOptional(reduceTypes(t1, t2))
-//          case (TOptional(t1), t2)      => TOptional(reduceTypes(t1, t2))
-//          case (TInt, TFloat)           => TFloat
-//          case (TFloat, TInt)           => TFloat
-//          case (enum: TEnum, TString)   => enum
-//          case (TString, enum: TEnum)   => enum
-//          case (schema: TSchema, THash) => schema
-//          case (THash, schema: TSchema) => schema
-//          case (TArray(i1, n1), TArray(i2, n2)) =>
-//            TArray(reduceTypes(i1, i2), n1 || n2)
-//          case (t1, t2) => TMulti(Vector(t1, t2))
-//        }
-//      }
-//      distinct.reduce(reduceTypes)
-//    }
-//  }
+  /**
+    * Merges multiple types into a single type.
+    */
+  def merge(types: Vector[Type]): Type = {
+    val distinct = types.flatMap {
+      case TMulti(types) => types.toSet
+      case t             => Set(t)
+    }
+    if (distinct.isEmpty) {
+      TMulti.Any
+    } else if (distinct.size == 1) {
+      distinct.head
+    } else {
+      val (nonOptTypes, optional) = distinct.foldLeft(Set.empty[Type], false) {
+        case ((accu, _), TOptional(t)) => (accu + t, true)
+        case ((accu, optional), t)     => (accu + t, optional)
+      }
+      (nonOptTypes.toVector, optional) match {
+        case (Vector(t), true) => TOptional(t)
+        case (Vector(t), _)    => t
+        case (v, true)         => TMulti(v.map(Type.ensureOptional(_)))
+        case (v, _)            => TMulti(v)
+      }
+    }
+  }
 }

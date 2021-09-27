@@ -151,8 +151,8 @@ object CwlUtils {
           case Vector()              => TMulti.Any
           case Vector(t) if optional => ensureOptional(t)
           case Vector(t)             => t
-          case bounds if optional    => TMulti(bounds.map(ensureOptional(_)))
-          case bounds                => TMulti(bounds)
+          case bounds if optional    => Type.merge(bounds.map(ensureOptional(_)))
+          case bounds                => Type.merge(bounds)
         }
         (TArray(itemType), VArray(itemValues))
       case ObjectValue(m) =>
