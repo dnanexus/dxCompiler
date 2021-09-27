@@ -189,7 +189,7 @@ object Type {
       (nonOptTypes.toVector, optional) match {
         case (Vector(t), true) => TOptional(t)
         case (Vector(t), _)    => t
-        case (v, true)         => TMulti(v.map(Type.ensureOptional(_)))
+        case (v, true)         => TMulti(v.map(TOptional))
         case (v, _)            => TMulti(v)
       }
     }
