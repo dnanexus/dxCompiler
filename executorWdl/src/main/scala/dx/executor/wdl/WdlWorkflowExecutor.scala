@@ -652,11 +652,11 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     private[wdl] def getScatterName(item: V, index: Int): String = {
       def inner(innerItem: V): Option[String] = {
         innerItem match {
-          case _ if EvalUtils.isPrimitive(innerItem) =>
-            Some(truncate(EvalUtils.formatPrimitive(innerItem)))
           case V_File(path)      => Some(truncate(getFileName(path)))
           case V_Directory(path) => Some(truncate(getFileName(path)))
           case V_Optional(x)     => inner(x)
+          case _ if EvalUtils.isPrimitive(innerItem) =>
+            Some(truncate(EvalUtils.formatPrimitive(innerItem)))
           case V_Pair(l, r) =>
             val ls = inner(l)
             val rs = inner(r)
@@ -701,8 +701,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
                 }
             )
             Some(s"${name} ${memberStr}")
-          case _ =>
-            None
+          case _ => None
         }
       }
       inner(item) match {
