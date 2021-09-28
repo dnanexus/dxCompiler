@@ -1,21 +1,40 @@
 import hashlib
+import logging
 import subprocess
 import sys
-from typing import TextIO
 
 
 class Log:
-    @staticmethod
-    def log(message: str, file=sys.stderr):
-        print(message, file=file)
+    _log = None
 
-    def __init__(self, verbose: bool = True, dryrun: bool = False):
+    @staticmethod
+    def init(file=None, verbose: bool = True, dryrun: bool = False):
+        Log._log = Log(file, verbose, dryrun)
+        return Log._log
+
+    @staticmethod
+    def get():
+        if Log._log:
+            return Log._log
+        else:
+            raise Exception("must call Log.init")
+
+    def __init__(self, file=None, verbose: bool = True, dryrun: bool = False):
+        if file:
+            config = {"filename": file}
+        else:
+            config = {"stream": sys.stderr}
+        if verbose or dryrun:
+            config["level"] = logging.DEBUG
+        else:
+            config["level"] = logging.INFO
+        logging.basicConfig(**config)
+        self.logger = logging.getLogger()
         self.verbose = verbose
         self.dryrun = dryrun
 
-    def debug(self, message: str, file: TextIO = sys.stderr):
-        if self.verbose or self.dryrun:
-            Log.log(message, file)
+    def __getattr__(self, item):
+        getattr(self.logger, item)
 
 
 def run_cmd(cmd: str, verbose: bool = False) -> str:
@@ -32,6 +51,10 @@ def run_cmd(cmd: str, verbose: bool = False) -> str:
 def get_checksum(file_path: str) -> str:
     with open(file_path, "rb") as f:
         file_hash = hashlib.md5()
-        while chunk := f.read(8192):
-            file_hash.update(chunk)
+        while True:
+            chunk = f.read(8192)
+            if chunk:
+                file_hash.update(chunk)
+            else:
+                break
     return file_hash.hexdigest()

@@ -42,7 +42,7 @@ def create_dx_output(job_id: str, process_file: str, outdir: str, dx: Dx) -> dic
     return results
 
 
-def write_output(file_name: str, results: str, print_output=True):
+def write_output(file_name: str, results: dict, print_output=True):
     js = json.dumps(results, indent=4)
     with open(file_name, "w") as result_file:
         result_file.write(js)

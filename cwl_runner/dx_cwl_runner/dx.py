@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from datetime import datetime
 import glob
 import json
@@ -7,11 +8,14 @@ try:
     from packaging.version import parse as parse_version
 except:
     parse_version = None
+import shutil
+import tempfile
+from typing import Optional, Tuple
 import urllib.request
 
 import dxpy
 
-from dx_cwl_runner import utils
+from dx_cwl_runner import input_utils, utils
 
 
 def get_latest_release():
@@ -139,6 +143,17 @@ class Dx:
 
     def _add_to_cache(self, local: str, remote: str):
         self.cache[local] = remote
+
+    @contextmanager
+    def tempdir(self):
+        path = tempfile.mkdtemp()
+        try:
+            yield path
+        finally:
+            try:
+                shutil.rmtree(path)
+            except IOError as ex:
+                self.log.error(f"Failed to clean up temp dir {path}", ex)
 
     def get_file_name(self, outdir: str, file_id: str) -> str:
         dx_file = dxpy.DXFile(file_id, project=self.current_dx_project)
@@ -268,3 +283,24 @@ class Dx:
             raise Exception(f"Outdir {dir} is not a directory!")
         elif not os.access(dir, os.W_OK):
             raise Exception(f"You need write access to the outdir repository ({dir})!")
+
+    def run_cwl(
+        self, processfile: str, dx_input_file: str
+    ) -> Tuple[Optional[str], Optional[str]]:
+        cmd = (
+            f"java -jar {self.compiler_jar} compile {processfile} -force -folder {self.test_folder} "
+            f"-project {self.current_dx_project} -locked -inputs {dx_input_file}"
+        )
+        if self.log.dryrun:
+            self.log.debug(f"compile command: {cmd}")
+            return None, None
+        else:
+            executable = utils.run_cmd(cmd)
+            new_dx_input = input_utils.get_new_dx_input(dx_input_file)
+
+            self.log.debug(f"Running {executable} with {new_dx_input} input.")
+            job_id = utils.run_cmd(f"dx run {executable} -f {new_dx_input} -y --brief")
+
+            self.log.debug(f"Waiting for {job_id} to finish...")
+            utils.run_cmd(f"dx wait {job_id}")
+            return job_id, utils.run_cmd(f"dx watch {job_id} --quiet")
