@@ -123,7 +123,7 @@ def create_dx_input(
         with open(process_file, "wt") as out:
             lib.write(dx_cwl, out)
 
-    return (process_file, dx_input_file)
+    return process_file, dx_input_file
 
 
 def write_dx_input(new_input: dict, jobfile: str, log: Log):

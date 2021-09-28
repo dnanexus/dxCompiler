@@ -2,25 +2,111 @@ from datetime import datetime
 import glob
 import json
 import os
+from pathlib import Path
+try:
+    from packaging.version import parse as parse_version
+except:
+    parse_version = None
+import urllib.request
 
 import dxpy
 
 from dx_cwl_runner import utils
 
 
-class Dx:
-    compiler_jar: str = os.environ.get("DX_COMPILER_JAR")
-    if compiler_jar is None:
+def get_latest_release():
+    with urllib.request.urlopen(
+            "https://api.github.com/repos/dnanexus/dxCompiler/releases/latest"
+    ) as url:
+        return json.loads(url.read().decode())
+
+
+def download_dx_compiler(release_json) -> Path:
+    asset = release_json["assets"][0]
+    filename = Path(asset["name"])
+    urllib.request.urlretrieve(asset["url"], filename)
+    return filename
+
+
+def pick_latest_version(jars) -> (Path, str):
+    if parse_version:
+        versions = dict(
+            (parse_version(utils.run_cmd(f"java -jar {jar} version")), jar)
+            for jar in jars
+        )
+        latest_version = list(sorted(versions.keys()))[-1]
+        return versions[latest_version], str(latest_version)
+    else:
+        # pick latest by timestamp
+        versions = dict((os.path.getmtime(jar), jar) for jar in jars)
+        latest_timestamp = list(sorted(versions.keys()))[-1]
+        latest_jar = versions[latest_timestamp]
+        latest_version = utils.run_cmd(f"java -jar {latest_jar} version")
+        return latest_jar, latest_version
+
+
+def get_compiler_jar(log) -> (Path, str):
+    try:
+        latest_release = get_latest_release()
+    except Exception as ex:
+        log.error(f"Error getting latest release from github", ex)
+        latest_release = None
+
+    compiler_jar_env: str = os.environ.get("DX_COMPILER_JAR")
+    force_update = False
+    if compiler_jar_env:
+        compiler_jar = Path(compiler_jar_env)
+        compiler_version = utils.run_cmd(f"java -jar {compiler_jar} version")
+    else:
         jars = glob.glob("dxCompiler*.jar")
         if len(jars) == 1:
             compiler_jar = jars[0]
+            compiler_version = utils.run_cmd(f"java -jar {compiler_jar} version")
+            force_update = True
+        elif len(jars) > 1:
+            compiler_jar, compiler_version = pick_latest_version(jars)
+            force_update = True
+        elif latest_release:
+            compiler_jar = download_dx_compiler(latest_release)
+            compiler_version = latest_release["tag"]
+            force_update = None
         else:
             raise Exception(
-                "either 'DX_COMPILER_JAR' environment variable must be set, or there must be a "
-                "single dxCompiler*.jar file in the current directory"
+                "dxCompiler JAR not found in the 'DX_COMPILER_JAR' environment variable, nor "
+                "in the current directory, and the latest version could not be retrieved from GitHub"
             )
 
-    compiler_version = utils.run_cmd(f"java -jar {compiler_jar} version")
+    if force_update is not None and latest_release:
+        latest_version_str = latest_release["tag_name"]
+        if parse_version:
+            current_version = parse_version(compiler_version)
+            latest_version = parse_version(latest_version_str)
+            if current_version < latest_version:
+                if force_update:
+                    compiler_jar = download_dx_compiler(latest_release)
+                    compiler_version = latest_version_str
+                else:
+                    log.warning(
+                        f"Your version of dxCompiler ({current_version}) is older than the"
+                        f"latest release ({latest_version}); you may want to upgrade."
+                    )
+        elif compiler_version != latest_version_str:
+            log.warning(
+                f"Your version of dxCompiler is {compiler_version}, but the latest version is "
+                f"{latest_version_str}; you may want to upgrade."
+            )
+
+    return compiler_jar, compiler_version
+
+
+class Dx:
+    _compiler_jar = None
+
+    @staticmethod
+    def _get_compiler_jar(log) -> Path:
+        if Dx._compiler_jar is None:
+            Dx._compiler_jar = get_compiler_jar(log)
+        return Dx._compiler_jar
 
     @staticmethod
     def dx_file_to_path(f: dxpy.DXFile) -> str:
@@ -29,6 +115,7 @@ class Dx:
 
     def __init__(self, config: utils.Log):
         self.log = config
+        self.compiler_jar = Dx._get_compiler_jar(config)
         self.cache = {}
         with open(
             f"{os.environ.get('HOME')}/.dnanexus_config/environment.json"

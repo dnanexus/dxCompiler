@@ -64,8 +64,8 @@ def main():
         # Compile and run the CWL
         log.debug("Compiling and running process file...")
         execution, execution_log = run_cwl(dx.compiler_jar, process_file, dx_input_file, dx)
-        if execution_log is not None:
-            log.debug(log)
+        # if execution_log is not None:
+        #    log.debug()
 
     # Convert dx to CWL outputs
     if not args.dryrun:
