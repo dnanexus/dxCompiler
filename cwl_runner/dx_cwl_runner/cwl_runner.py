@@ -2,6 +2,7 @@
 import os
 
 from dx_cwl_runner import arg_parser, input_utils, output_utils
+from dx_cwl_runner.compiler import CwlCompiler
 from dx_cwl_runner.dx import Dx
 from dx_cwl_runner.utils import Log
 
@@ -11,6 +12,7 @@ def main():
     log = Log.init(verbose=not args.quiet, dryrun=args.dryrun)
     dx = Dx(log)
     dx.check_outdir(args.outdir, create=not args.dryrun)
+    compiler = CwlCompiler(dx)
 
     # create a tempdir to write updated CWL and input files
     with dx.tempdir() as tmpdir:
@@ -19,12 +21,12 @@ def main():
         # upload them and replace with URIs.
         log.debug("Creating DNAnexus inputs...")
         process_file, dx_input_file = input_utils.create_dx_input(
-            args.processfile, args.jobfile, args.basedir, tmpdir, dx, log
+            args.processfile, args.jobfile, args.basedir, tmpdir, dx
         )
 
         # Compile and run the CWL
         log.debug("Compiling and running process file...")
-        execution, execution_log = dx.run_cwl(process_file, dx_input_file)
+        execution, execution_log = compiler.run(process_file, dx_input_file)
         # if execution_log is not None:
         #    log.debug()
 

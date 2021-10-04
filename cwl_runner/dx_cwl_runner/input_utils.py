@@ -1,8 +1,7 @@
 import json
 import os
-from posixpath import basename
 import yaml
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
 
 from dx_cwl_runner.dx import Dx
 from dx_cwl_runner.utils import Log, run_cmd
@@ -79,7 +78,7 @@ def get_modified_input(i, basedir: str, dx: Dx, cache: dict):
 
 
 def create_dx_input(
-    process_file: str, jobfile: str, basedir: str, tmpdir: str, dx: Dx, log: Log
+    process_file: str, jobfile: str, basedir: str, tmpdir: str, dx: Dx
 ) -> Tuple[str, str]:
     # issues:
     #   if file does not exist, exception is thrown and no json is generated, even if some
@@ -97,10 +96,10 @@ def create_dx_input(
             for k, v in inputs.items()
         )
         dx_input_file = os.path.join(tmpdir, os.path.basename(jobfile))
-        write_dx_input(dx_inputs, dx_input_file, log)
+        write_dx_input(dx_inputs, dx_input_file, dx.log)
     
     # check if the CWL has any hard-coded paths
-    paths_referenced = get_paths_referenced(process_file, log)
+    paths_referenced = get_paths_referenced(process_file)
     if paths_referenced:
         pathmap = dict(
             (
@@ -141,9 +140,9 @@ def get_new_dx_input(input_path: str) -> str:
     return new_input_filename
 
 
-def get_paths_referenced(process_file: str, log: Log) -> Optional[dict]:
+def get_paths_referenced(process_file: str) -> Optional[dict]:
     deps = json.loads(run_cmd(f"cwltool --print-deps {process_file}"))
-    deps.get("secondaryFiles")
+    return deps.get("secondaryFiles")
 
 
 def replace_paths(obj, pathmap):
@@ -154,7 +153,7 @@ def replace_paths(obj, pathmap):
                 obj["location"] = pathmap[key]
                 return obj
         else:
-            return dict((k, replace_paths(v)) for k, v in obj.items())
+            return dict((k, replace_paths(v, pathmap)) for k, v in obj.items())
     elif isinstance(obj, list):
         return [replace_paths(item, pathmap) for item in obj]
     else:
