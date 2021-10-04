@@ -767,7 +767,7 @@ task cgrep {
       dx_restart: object {
           default: 1,
           max: 5,
-          errors: {
+          errors: object {
               "UnresponsiveWorker": 2,
               "ExecutionError": 2,
           }
