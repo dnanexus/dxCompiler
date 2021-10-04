@@ -2,7 +2,7 @@ task concat_files {
   String? flags
   Array[File]+ files
   command {
-    cat ${default = "-s" flags} ${sep = " " files}
+    cat ${default="-s" flags} ${sep=" " files}
   }
   output {
     File concatenated = stdout()

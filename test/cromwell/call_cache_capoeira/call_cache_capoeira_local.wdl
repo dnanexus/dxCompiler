@@ -378,7 +378,7 @@ task read_array_files {
     Boolean ready
     Array[File] a
     Array[File] b
-    command { cat ${sep = " " a} ${sep = " " b} > out }
+    command { cat ${sep=" " a} ${sep=" " b} > out }
     output {
         Boolean done = true
         String s = read_string("out") }
