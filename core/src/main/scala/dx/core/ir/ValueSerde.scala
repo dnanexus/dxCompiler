@@ -431,6 +431,13 @@ object ValueSerde extends DefaultJsonProtocol {
           val keys1 = fields.keySet
           val keys2 = fieldTypes.keySet
           val extra = keys2.diff(keys1)
+          println("!!!!!")
+          println(keys1)
+          println("!!!!!1")
+          println(keys2)
+          println("!!!!!2")
+          println(extra)
+          println("!!!!!")
           if (extra.nonEmpty) {
             throw ValueSerdeException(
                 s"struct ${name} value has members that do not appear in the struct definition: ${extra}"
