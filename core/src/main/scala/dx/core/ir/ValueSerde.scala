@@ -431,7 +431,6 @@ object ValueSerde extends DefaultJsonProtocol {
           val keys1 = fields.keySet
           val keys2 = fieldTypes.keySet
           val extra = keys2.diff(keys1)
-          val isSubSet = keys1.subsetOf(keys2)
           println("!!!!!")
           println(keys1)
           println("!!!!!1")
