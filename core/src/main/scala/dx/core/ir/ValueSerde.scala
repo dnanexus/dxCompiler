@@ -176,9 +176,9 @@ object ValueSerde extends DefaultJsonProtocol {
           JsArray(items.map(inner(_, itemType)))
         case (TSchema(schemaName, fieldTypes), VHash(fields)) =>
           val extra = fieldTypes.keySet.diff(fields.keySet)
-          if (extra.nonEmpty) {
+          if (!fields.keySet.subsetOf(fieldTypes.keySet)) {
             throw ValueSerdeException(
-                s"invalid field(s) ${extra} in schema ${schemaName} value ${fields}"
+                s"${fields} contains invalid field(s) (schema ${schemaName})"
             )
           }
           JsObject(fieldTypes.collect {
