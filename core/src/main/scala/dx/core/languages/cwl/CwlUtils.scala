@@ -398,10 +398,9 @@ object CwlUtils {
           // in memberTypes that do not appear in members are optional
           val keys1 = fields.keySet
           val keys2 = record.fields.keySet
-          val extra = keys2.diff(keys1)
-          if (extra.nonEmpty) {
+          if (!keys1.subsetOf(keys2)) {
             throw new Exception(
-                s"struct ${record.name} value has members that do not appear in the struct definition: ${extra}"
+                s"struct definition: ${keys1}, has members that do not appear in struct ${record.name}"
             )
           }
           val missingNonOptional =

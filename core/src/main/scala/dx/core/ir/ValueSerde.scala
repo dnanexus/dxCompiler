@@ -440,7 +440,7 @@ object ValueSerde extends DefaultJsonProtocol {
           println("!!!!!")
           if (!keys1.subsetOf(keys2)) {
             throw ValueSerdeException(
-                s"struct definition: ${extra}, has members that do not appear in struct ${name}"
+                s"struct definition: ${keys1}, has members that do not appear in struct ${name}"
             )
           }
           val missingNonOptional = keys1.diff(keys2).map(key => key -> fieldTypes(key)).filterNot {
