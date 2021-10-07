@@ -431,6 +431,7 @@ object ValueSerde extends DefaultJsonProtocol {
           val keys1 = fields.keySet
           val keys2 = fieldTypes.keySet
           val extra = keys2.diff(keys1)
+          val isSubSet = keys1.subsetOf(keys2)
           println("!!!!!")
           println(keys1)
           println("!!!!!1")
@@ -438,9 +439,9 @@ object ValueSerde extends DefaultJsonProtocol {
           println("!!!!!2")
           println(extra)
           println("!!!!!")
-          if (extra.nonEmpty) {
+          if (!keys1.subsetOf(keys2)) {
             throw ValueSerdeException(
-                s"struct ${name} value has members that do not appear in the struct definition: ${extra}"
+                s"struct definition: ${extra}, has members that do not appear in struct ${name}"
             )
           }
           val missingNonOptional = keys1.diff(keys2).map(key => key -> fieldTypes(key)).filterNot {
