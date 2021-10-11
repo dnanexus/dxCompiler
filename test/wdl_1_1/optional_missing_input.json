@@ -1,7 +1,7 @@
 {
-  "stage-common.database": {
+  "test_workflow.database": {
     "database_name": "database1",
     "num_rows": 5 
   },
-  "stage-common.prefix": "mystring"
+  "test_workflow.prefix": "mystring"
 }
