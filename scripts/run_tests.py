@@ -118,12 +118,12 @@ wdl_v1_list = [
 
 wdl_v1_1_list = [
     "v1_1_dict",
+    "inputs_not_provided_optional",
+    "inputs_provided_optional",
 
     # bug regression tests
     "apps_579_boolean_flag_expr",
-    "apps_579_string_substitution_expr",
-    "inputs_not_provided_optional",
-    "inputs_provided_optional"
+    "apps_579_string_substitution_expr"
 ]
 
 # docker image tests
