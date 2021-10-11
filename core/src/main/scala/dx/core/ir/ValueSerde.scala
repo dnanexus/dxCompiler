@@ -429,7 +429,6 @@ object ValueSerde extends DefaultJsonProtocol {
           // in fieldTypes that do not appear in fields are optional
           val keys1 = fields.keySet
           val keys2 = fieldTypes.keySet
-          val extra = keys2.diff(keys1)
           if (!keys1.subsetOf(keys2)) {
             throw ValueSerdeException(
                 s"struct definition: ${keys1}, has members that do not appear in struct ${name}"
