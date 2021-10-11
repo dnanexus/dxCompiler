@@ -1,0 +1,7 @@
+{
+  "stage-common.database": {
+    "database_name": "database1",
+    "num_rows": 5 
+  },
+  "stage-common.prefix": "mystring"
+}
