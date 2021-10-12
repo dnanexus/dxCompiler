@@ -5,9 +5,9 @@ import dx.core.Constants
 import dx.core.ir.Value._
 import dx.core.ir.{
   Callable,
+  DxName,
   Parameter,
   ParameterAttribute,
-  ParameterLink,
   ParameterLinkSerializer,
   Type,
   TypeSerde,
@@ -24,6 +24,7 @@ import dx.translator.CallableAttributes.{
   TypesAttribute
 }
 import dx.translator.{Extras, ParameterAttributes}
+import dx.util.FileSourceResolver
 import spray.json._
 
 object ExecutableCompiler {
@@ -47,10 +48,14 @@ object ExecutableCompiler {
     Parameter(Constants.CallName, Type.TOptional(Type.TString))
   val OutputManifestParameter: Parameter =
     Parameter(Constants.OutputManifest, Type.TFile)
+  val OverridesParameter: Parameter =
+    Parameter(Constants.Overrides, Type.TOptional(Type.THash))
 }
 
 class ExecutableCompiler(extras: Option[Extras],
                          parameterLinkSerializer: ParameterLinkSerializer,
+                         complexPathValues: Boolean,
+                         fileResolver: FileSourceResolver,
                          dxApi: DxApi = DxApi.get) {
 
   private def typeConstraintToNative(constraint: DxConstraint): JsValue = {
@@ -63,22 +68,9 @@ class ExecutableCompiler(extras: Option[Extras],
     }
   }
 
-  private def defaultValueToNative(value: Value): JsValue = {
-    value match {
-      case VNull       => JsNull
-      case VBoolean(b) => JsBoolean(b)
-      case VInt(i)     => JsNumber(i)
-      case VFloat(f)   => JsNumber(f)
-      case VString(s)  => JsString(s)
-      case VFile(f)    => dxApi.resolveFile(f).asJson
-      // TODO: case VDirectory(d) =>
-      case VArray(array) => JsArray(array.map(defaultValueToNative))
-      case _             => throw new Exception(s"unhandled value ${value}")
-    }
-  }
-
   // Create the IO Attributes
   private def parameterAttributesToNative(attrs: Vector[ParameterAttribute],
+                                          dxType: Type,
                                           excludeAttributes: Set[String]): Map[String, JsValue] = {
     attrs
       .flatMap {
@@ -155,7 +147,11 @@ class ExecutableCompiler(extras: Option[Extras],
         case ParameterAttributes.DefaultAttribute(value) =>
           // The default was specified in parameter_meta and was not specified in the
           // parameter specification
-          Some(DxIOSpec.Default -> defaultValueToNative(value))
+          Some(
+              DxIOSpec.Default -> ValueSerde.serializeWithType(value,
+                                                               dxType,
+                                                               fileResolver = Some(fileResolver))
+          )
         case _ => None
       }
       .toMap
@@ -194,41 +190,42 @@ class ExecutableCompiler(extras: Option[Extras],
     * @return the DNAnexus inputDesc
     */
   protected def inputParameterToNative(parameter: Parameter): Vector[JsObject] = {
-    val name = parameter.dxName
-    val defaultValues: Map[String, JsValue] = parameter.defaultValue match {
+    val defaultValues: Map[DxName, JsValue] = parameter.defaultValue match {
       case Some(value) =>
-        parameterLinkSerializer.createFields(name, parameter.dxType, value).toMap
+        parameterLinkSerializer.createFields(parameter.name, parameter.dxType, value).toMap
       case None => Map.empty
     }
 
-    def defaultValueToNative(name: String): Map[String, JsValue] = {
+    def defaultValueToNative(name: DxName): Map[String, JsValue] = {
       defaultValues.get(name) match {
         case Some(jsv) => Map(DxIOSpec.Default -> jsv)
         case None      => Map.empty
       }
     }
 
-    val excludeAttributeNames: Set[String] = if (defaultValues.contains(name)) {
+    val excludeAttributeNames: Set[String] = if (defaultValues.contains(parameter.name)) {
       Set(DxIOSpec.Default)
     } else {
       Set.empty
     }
-    val attributes = defaultValueToNative(name) ++
-      parameterAttributesToNative(parameter.attributes, excludeAttributeNames)
-    val (nativeType, optional) = TypeSerde.toNative(parameter.dxType)
+    val attributes = defaultValueToNative(parameter.name) ++
+      parameterAttributesToNative(parameter.attributes, parameter.dxType, excludeAttributeNames)
+    val (nativeType, optional) = TypeSerde.toNative(parameter.dxType, !complexPathValues)
     // TODO: I don't think the parameter should always be set to optional if it has a default
     val paramSpec = JsObject(
-        Map(DxIOSpec.Name -> JsString(name), DxIOSpec.Class -> JsString(nativeType)) ++ attributes ++
-          optionalToNative(optional || attributes.contains(DxIOSpec.Default))
+        Map(DxIOSpec.Name -> JsString(parameter.name.encoded),
+            DxIOSpec.Class -> JsString(nativeType))
+          ++ attributes
+          ++ optionalToNative(optional || attributes.contains(DxIOSpec.Default))
     )
     if (nativeType == "hash") {
       // A JSON structure passed as a hash, and a vector of platform files
-      val filesName = s"${name}${ParameterLink.FlatFilesSuffix}"
+      val filesName = parameter.name.addSuffix(Constants.FlatFilesSuffix)
       Vector(
           paramSpec,
           JsObject(
               Map(
-                  DxIOSpec.Name -> JsString(filesName),
+                  DxIOSpec.Name -> JsString(filesName.encoded),
                   DxIOSpec.Class -> JsString("array:file"),
                   DxIOSpec.Optional -> JsTrue
               )
@@ -249,23 +246,23 @@ class ExecutableCompiler(extras: Option[Extras],
     * @return the DNAnexus outputDesc
     */
   protected def outputParameterToNative(parameter: Parameter): Vector[JsObject] = {
-    val name = parameter.dxName
     val attributes =
-      parameterAttributesToNative(parameter.attributes, InputOnlyKeys)
-    val (nativeType, optional) = TypeSerde.toNative(parameter.dxType)
+      parameterAttributesToNative(parameter.attributes, parameter.dxType, InputOnlyKeys)
+    val (nativeType, optional) = TypeSerde.toNative(parameter.dxType, !complexPathValues)
     val paramSpec = JsObject(
-        Map(DxIOSpec.Name -> JsString(name), DxIOSpec.Class -> JsString(nativeType))
+        Map(DxIOSpec.Name -> JsString(parameter.name.encoded),
+            DxIOSpec.Class -> JsString(nativeType))
           ++ optionalToNative(optional || parameter.defaultValue.isDefined)
           ++ attributes
     )
     if (nativeType == "hash") {
       // A JSON structure passed as a hash, and a vector of platform files
-      val filesName = s"${name}${ParameterLink.FlatFilesSuffix}"
+      val filesName = parameter.name.addSuffix(Constants.FlatFilesSuffix)
       Vector(
           paramSpec,
           JsObject(
               Map(
-                  DxIOSpec.Name -> JsString(filesName),
+                  DxIOSpec.Name -> JsString(filesName.encoded),
                   DxIOSpec.Class -> JsString("array:file"),
                   DxIOSpec.Optional -> JsTrue
               )
@@ -401,29 +398,28 @@ class ExecutableCompiler(extras: Option[Extras],
 
   protected def fileDependenciesFromParam(param: Parameter): Set[String] = {
     val default = param.defaultValue match {
-      case Some(Value.VFile(str)) => Vector(str)
-      case _                      => Vector.empty
+      case Some(f: Value.VFile) => Vector(f.uri)
+      case _                    => Vector.empty
     }
     val attrs = param.attributes
       .flatMap(attr =>
         attr match {
-          case ParameterAttributes.DefaultAttribute(Value.VFile(str)) => Vector(str)
+          case ParameterAttributes.DefaultAttribute(f: Value.VFile) => Vector(f.uri)
           case ParameterAttributes.ChoicesAttribute(choices) =>
             choices
               .collect {
-                case ParameterAttributes.SimpleChoice(Value.VFile(str)) => str
-                case ParameterAttributes.FileChoice(str, _)             => str
+                case ParameterAttributes.SimpleChoice(f: Value.VFile) => f.uri
+                case ParameterAttributes.FileChoice(str, _)           => str
               }
           case ParameterAttributes.SuggestionsAttribute(suggestions) =>
             suggestions
               .collect {
-                case ParameterAttributes.SimpleSuggestion(Value.VFile(str)) => str
+                case ParameterAttributes.SimpleSuggestion(f: Value.VFile)   => f.uri
                 case ParameterAttributes.FileSuggestion(Some(str), _, _, _) => str
               }
           case _ => Vector.empty
         }
       )
-      .toVector
 
     (default ++ attrs).filter(s => s.contains("://")).toSet
   }

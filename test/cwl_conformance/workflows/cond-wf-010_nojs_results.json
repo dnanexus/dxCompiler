@@ -1,0 +1,7 @@
+{
+  "cond-wf-010_nojs.out1": [
+    "foo 4",
+    "foo 5",
+    "foo 6"
+  ]
+}

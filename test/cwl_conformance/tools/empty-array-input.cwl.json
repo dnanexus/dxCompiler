@@ -1,0 +1,46 @@
+{
+    "class": "CommandLineTool",
+    "hints": [
+        {
+            "class": "DockerRequirement",
+            "dockerPull": "python:2-slim"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "#main/array",
+            "type": {
+                "type": "array",
+                "items": "int"
+            },
+            "inputBinding": {
+                "position": 1,
+                "prefix": "-I",
+                "itemSeparator": ","
+            }
+        },
+        {
+            "id": "#main/args.py",
+            "type": "File",
+            "default": {
+                "class": "File",
+                "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G0G3BZQ0yzZf6x1Y3vxzpgk6"
+            },
+            "inputBinding": {
+                "position": -1
+            }
+        }
+    ],
+    "outputs": [
+        {
+            "id": "#main/args",
+            "type": {
+                "type": "array",
+                "items": "string"
+            }
+        }
+    ],
+    "baseCommand": "python",
+    "id": "#main",
+    "cwlVersion": "v1.2"
+}

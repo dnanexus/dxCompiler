@@ -1,0 +1,64 @@
+{
+  "output_dir": {
+    "___": {
+      "basename": "work_dir",
+      "type": "Folder",
+      "listing": [
+        {
+          "basename": "a",
+          "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+          "type": "File",
+          "uri": {"$dnanexus_link":"file-G284G3Q0yzZjB9VK3vP1b95X"},
+          "size": 0
+        },
+        {
+          "basename": "b",
+          "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+          "type": "File",
+          "uri":{"$dnanexus_link":"file-G284G400yzZXfYxj3vqxVjfk"},
+          "size": 0
+        },
+        {
+          "basename": "c",
+          "type": "Folder",
+          "listing": [
+            {
+              "basename": "d",
+              "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+              "type": "File",
+              "uri": {"$dnanexus_link":"file-G284G400yzZgV8xg3vF1jgQp"},
+              "size": 0
+            }
+          ],
+          "uri": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/work_dir/c/"
+        },
+        {
+          "basename": "e",
+          "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+          "type": "File",
+          "uri": {"$dnanexus_link":"file-G4fVbpj0yzZb4yv626B5pgzj"},
+          "size": 0
+        }
+      ],
+      "uri": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/work_dir/"
+    }
+  },
+  "output_dir___dxfiles": [
+    {"$dnanexus_link":"file-G284G3Q0yzZjB9VK3vP1b95X"},
+    {"$dnanexus_link":"file-G284G400yzZXfYxj3vqxVjfk"},
+    {"$dnanexus_link":"file-G284G400yzZgV8xg3vF1jgQp"},
+    {"$dnanexus_link":"file-G4fVbpj0yzZb4yv626B5pgzj"}
+  ],
+  "test_result": {
+    "___": {
+      "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "type": "File",
+      "uri": {"$dnanexus_link":"file-G4fVbpj0yzZy3FPx5G50Q4F0"},
+      "basename":"output.txt",
+      "size": 0
+    }
+  },
+  "test_result___dxfiles": [
+    {"$dnanexus_link":"file-G4fVbpj0yzZy3FPx5G50Q4F0"}
+  ]
+}

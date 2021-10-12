@@ -1,0 +1,11 @@
+{
+  "infile": {
+    "class": "File",
+    "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/whale.txt"
+  },
+  "secondfile": {
+    "class": "File",
+    "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/hello.txt"
+  },
+  "term": "find"
+}

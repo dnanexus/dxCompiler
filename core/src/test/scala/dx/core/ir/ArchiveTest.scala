@@ -1,19 +1,19 @@
 package dx.core.ir
 
 import java.nio.file.{Files, Paths}
+import dx.core.Assumptions.isLinux
+import dx.core.Tags.LinuxOnly
 import dx.core.ir.Type._
 import dx.core.ir.Value._
 import dx.util.FileUtils
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import scala.collection.immutable.TreeSeqMap
+import scala.collection.immutable.SeqMap
 
 class ArchiveTest extends AnyFlatSpec with Matchers {
-  private val isLinux = System.getProperty("os.name").toLowerCase.startsWith("linux")
-  assume(isLinux)
-
-  it should "create a squashfs" in {
+  it should "create a squashfs" taggedAs LinuxOnly in {
+    assume(isLinux)
     val tmpDir = Files.createTempDirectory("archive")
     val file = tmpDir.resolve("file.txt")
     FileUtils.writeFileContent(file, "some text")
@@ -35,7 +35,8 @@ class ArchiveTest extends AnyFlatSpec with Matchers {
     fs.isMounted shouldBe false
   }
 
-  it should "create an archive" in {
+  it should "create an archive" taggedAs LinuxOnly in {
+    assume(isLinux)
     val tmpDir = Files.createTempDirectory("archive")
     val subDir1 = tmpDir.resolve("sub1")
     val file1 = subDir1.resolve("file1.txt")
@@ -45,9 +46,9 @@ class ArchiveTest extends AnyFlatSpec with Matchers {
     FileUtils.writeFileContent(file1, "file1")
     FileUtils.writeFileContent(file2, "file2")
     FileUtils.writeFileContent(file3, "file3")
-    val structType = TSchema("Files", TreeSeqMap("files" -> TArray(TFile)))
+    val structType = TSchema("Files", SeqMap("files" -> TArray(TFile)))
     val value = VHash(
-        TreeSeqMap(
+        SeqMap(
             "files" -> VArray(
                 Vector(VFile(file1.toString), VFile(file2.toString), VFile(file3.toString))
             )
@@ -61,7 +62,7 @@ class ArchiveTest extends AnyFlatSpec with Matchers {
     packed.localized shouldBe false
     packed.irType shouldBe structType
     packed.irValue shouldBe VHash(
-        TreeSeqMap(
+        SeqMap(
             "files" -> VArray(
                 Vector(
                     VFile(Paths.get("sub1").resolve("file1.txt").toString),
@@ -76,7 +77,7 @@ class ArchiveTest extends AnyFlatSpec with Matchers {
     packed2.localized shouldBe false
     packed2.irType shouldBe structType
     packed2.irValue shouldBe VHash(
-        TreeSeqMap(
+        SeqMap(
             "files" -> VArray(
                 Vector(
                     VFile(Paths.get("sub1").resolve("file1.txt").toString),
@@ -95,8 +96,8 @@ class ArchiveTest extends AnyFlatSpec with Matchers {
           m.get("files") match {
             case Some(VArray(files)) =>
               files.map {
-                case VFile(path) => path
-                case _           => throw new Exception("invalid localized value")
+                case f: VFile => f.uri
+                case _        => throw new Exception("invalid localized value")
               }
             case _ => throw new Exception("invalid localized value")
           }

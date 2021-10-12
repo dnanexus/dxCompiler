@@ -5,7 +5,7 @@ import dx.api.{DxApi, DxProject}
 import dx.core.ir._
 import dx.core.ir.Type.TSchema
 import dx.core.languages.Language
-import dx.core.languages.wdl.{VersionSupport, WdlBundle, WdlOptions, WdlUtils}
+import dx.core.languages.wdl.{VersionSupport, WdlBundle, WdlDxName, WdlOptions, WdlUtils}
 import dx.translator.{
   DxWorkflowAttrs,
   InputTranslator,
@@ -18,6 +18,13 @@ import spray.json.{JsArray, JsObject, JsString, JsValue}
 import wdlTools.syntax.NoSuchParserException
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 
+/**
+  * WDL input details
+  * - JSON only
+  * - For workflow invocation, inputs must be prefixed with workflow name
+  * - Namespaced inputs are allowed for unlocked workflows, e.g. `wf1.wf2.mytask.foo`
+  * - Runtime and hints can be overridden, e.g. `"wf.mytask.runtime.cpu": 2`
+  */
 case class WdlInputTranslator(bundle: Bundle,
                               inputs: Vector[Path],
                               defaults: Option[Path],
@@ -31,12 +38,66 @@ case class WdlInputTranslator(bundle: Bundle,
                             defaults,
                             project,
                             useManifests,
+                            complexPathValues = false,
+                            ignoreUnusedInputs = false,
+                            WdlDxName,
                             baseFileResolver,
                             dxApi,
                             logger) {
 
-  override protected def translateJsInput(jsv: JsValue, t: Type): JsValue = {
-    (t, jsv) match {
+  private val RuntimeRegex = "^(?:(.*)\\.)?runtime\\.(.+)$".r
+  private val HintsKey = "^(?:(.*)\\.)?hints\\.(.+)$".r
+
+  override protected def splitInputs(
+      rawInputs: Map[String, JsValue]
+  ): (Map[String, JsValue], Map[String, JsObject]) = {
+    val toolName = bundle.primaryCallable match {
+      case Some(app: Application) => Some(app.name)
+      case _                      => None
+    }
+    val (values, overrides) =
+      rawInputs.foldLeft(Map.empty[String, JsValue],
+                         Map.empty[String, (Map[String, JsValue], Map[String, JsValue])]) {
+        case ((values, overrides), (RuntimeRegex(prefix, key), value)) =>
+          val executable = Option(prefix)
+            .orElse(toolName)
+            .getOrElse(
+                throw new Exception(
+                    s"input prefix is required unless WDL contains a single task: runtime.${key}"
+                )
+            )
+          val (runtime, hints) =
+            overrides.getOrElse(executable,
+                                (Map.empty[String, JsValue], Map.empty[String, JsValue]))
+          (values, overrides + (executable -> (runtime + (key -> value), hints)))
+        case ((values, overrides), (HintsKey(prefix, key), value)) =>
+          val executable = Option(prefix)
+            .orElse(toolName)
+            .getOrElse(
+                throw new Exception(
+                    s"input prefix is required unless WDL contains a single task: hints.${key}"
+                )
+            )
+          val (runtime, hints) =
+            overrides.getOrElse(executable,
+                                (Map.empty[String, JsValue], Map.empty[String, JsValue]))
+          (values, overrides + (executable -> (runtime, hints + (key -> value))))
+        case ((values, overrides), (key, value)) =>
+          (values + (key -> value), overrides)
+      }
+    (values, overrides.map {
+      case (key, (runtime, hints)) =>
+        key -> JsObject(
+            Vector(
+                Option.when(runtime.nonEmpty)("runtime" -> JsObject(runtime)),
+                Option.when(hints.nonEmpty)("hints" -> JsObject(hints))
+            ).flatten.toMap
+        )
+    })
+  }
+
+  override protected def convertRawInput(rawInput: JsValue, t: Type): JsValue = {
+    (t, rawInput) match {
       case (pairType: TSchema, JsArray(pair))
           if WdlUtils.isPairSchema(pairType) && pair.size == 2 =>
         // pair represented as [left, right]
@@ -49,8 +110,7 @@ case class WdlInputTranslator(bundle: Bundle,
         }.unzip
         JsObject(WdlUtils.MapKeysKey -> JsArray(keys.toVector),
                  WdlUtils.MapValuesKey -> JsArray(values.toVector))
-      case _ =>
-        jsv
+      case _ => rawInput
     }
   }
 }
@@ -79,88 +139,10 @@ case class WdlTranslator(doc: TAT.Document,
 
   override val runtimeJar: String = "dxExecutorWdl.jar"
 
-  private def getUnqualifiedName(name: String): String = {
-    if (name contains ".") {
-      name.split("\\.").last
-    } else {
-      name
-    }
-  }
-
-  private def sortByDependencies(bundleInfo: WdlBundle,
-                                 traceLogger: Logger): Vector[TAT.Callable] = {
-    // We only need to figure out the dependency order of workflows. Tasks don't depend
-    // on anything else - they are at the bottom of the dependency tree.
-    val wfDeps: Map[String, Set[String]] = bundleInfo.workflows.map {
-      case (name, wf) =>
-        getUnqualifiedName(name) -> WdlUtils
-          .deepFindCalls(wf.body)
-          .map { call: TAT.Call =>
-            // The name is fully qualified, for example, lib.add, lib.concat.
-            // We need the task/workflow itself ("add", "concat"). We are
-            // assuming that the namespace can be flattened; there are
-            // no lib.add and lib2.add.
-            call.unqualifiedName
-          }
-          .toSet
-    }
-
-    // Iteratively identify executables for which all dependencies are satisfied -
-    // these can be compiled.
-    var remainingWorkflows = bundleInfo.workflows.values.toVector
-    var orderedWorkflows = Vector.empty[TAT.Workflow]
-    var orderedNames = bundleInfo.tasks.keySet
-    traceLogger.trace("Sorting workflows by dependency order")
-    while (remainingWorkflows.nonEmpty) {
-      if (traceLogger.isVerbose) {
-        traceLogger.trace(s"ordered: ${orderedWorkflows.map(_.name)}")
-        traceLogger.trace(s"remaining: ${remainingWorkflows.map(_.name)}")
-      }
-      // split the remaining workflows into those who have all dependencies satisfied
-      // and those who do not
-      val (satisfied, unsatisfied) =
-        remainingWorkflows.partition(wf => wfDeps(wf.name).subsetOf(orderedNames))
-      // no workflows were fully satisfied on this pass - we're stuck :(
-      if (satisfied.nonEmpty) {
-        if (traceLogger.isVerbose) {
-          satisfied.foreach { wf =>
-            traceLogger.trace(
-                s"Satisifed all workflow ${wf.name} dependencies ${wfDeps(wf.name)}"
-            )
-          }
-        }
-        orderedWorkflows ++= satisfied
-        orderedNames |= satisfied.map(_.name).toSet
-        remainingWorkflows = unsatisfied
-      } else {
-        val stuck = remainingWorkflows.map(_.name)
-        val stuckWaitingOn: Map[String, Set[String]] = stuck.map { name =>
-          name -> (wfDeps(name) -- orderedNames)
-        }.toMap
-        throw new Exception(s"""|Cannot find the next callable to compile.
-                                |ready = ${orderedNames}
-                                |stuck = ${stuck}
-                                |stuckWaitingOn =
-                                |${stuckWaitingOn.mkString("\n")}
-                                |""".stripMargin)
-      }
-    }
-    // ensure we've accounted for all the callables
-    assert(orderedNames == bundleInfo.callableNames)
-    // Add tasks to the beginning - it doesn't matter what order these are compiled
-    bundleInfo.tasks.values.toVector ++ orderedWorkflows
-  }
+  override val complexPathValues: Boolean = false
 
   override lazy val apply: Bundle = {
     val wdlBundle: WdlBundle = WdlBundle.create(doc)
-    // sort callables by dependencies
-    val logger2 = logger.withIncTraceIndent()
-    val depOrder: Vector[TAT.Callable] = sortByDependencies(wdlBundle, logger2)
-    if (logger2.isVerbose) {
-      logger2.trace(s"all tasks: ${wdlBundle.tasks.keySet}")
-      logger2.trace(s"all callables in dependency order: ${depOrder.map(_.name)}")
-    }
-    // translate callables
     val callableTranslator = CallableTranslator(
         wdlBundle,
         typeAliases,
@@ -176,6 +158,14 @@ case class WdlTranslator(doc: TAT.Document,
         fileResolver,
         logger
     )
+    // sort callables by dependencies
+    val logger2 = logger.withIncTraceIndent()
+    val depOrder: Vector[TAT.Callable] = wdlBundle.sortByDependencies(logger2)
+    if (logger2.isVerbose) {
+      logger2.trace(s"all tasks: ${wdlBundle.tasks.keySet}")
+      logger2.trace(s"all callables in dependency order: ${depOrder.map(_.name)}")
+    }
+    // translate each callable in order
     val (allCallables, sortedCallables) =
       depOrder.foldLeft((Map.empty[String, Callable], Vector.empty[Callable])) {
         case ((allCallables, sortedCallables), callable) =>
@@ -187,7 +177,7 @@ case class WdlTranslator(doc: TAT.Document,
       }
     val allCallablesSortedNames = sortedCallables.map(_.name).distinct
     val primaryCallable = wdlBundle.primaryCallable.map { callable =>
-      allCallables(getUnqualifiedName(callable.name))
+      allCallables(WdlUtils.getUnqualifiedName(callable.name))
     }
     if (logger2.isVerbose) {
       logger2.trace(s"allCallables: ${allCallables.keys}")

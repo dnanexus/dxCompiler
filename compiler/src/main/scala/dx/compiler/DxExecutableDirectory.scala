@@ -143,15 +143,16 @@ case class DxExecutableDirectory(bundle: Bundle,
   private lazy val initialExecDir: Map[String, Vector[DxExecutableInfo]] = findExecutablesInFolder()
   private var execDir: Option[Map[String, Vector[DxExecutableInfo]]] = None
 
-  // A map from checksum to dx:executable, across the entire project. It allows reusing dx:executables across the entire
-  // project, at the cost of a potentially expensive API call. It is not clear this is useful to the majority of users,
-  // so it is gated by the [projectWideReuse] flag.
+  // A map from checksum to dx:executable, across the entire project. It allows reusing executables
+  // across the entire project, at the cost of a potentially expensive API call. It is not clear
+  // this is useful to the majority of users, so it is gated by the [projectWideReuse] flag.
   private lazy val projectWideExecDir: Map[String, Vector[DxExecutableInfo]] = {
     if (projectWideReuse) {
-      // Scan the entire project for dx:workflows and dx:applets that we already created, and may be reused, instead of
-      // recompiling. This could be expensive. We limit it by filtering on the CHECKSUM property, which is attached only
-      // to generated applets and workflows. The maximal number of replies is (by default) 1000 so we may miss matches
-      // when we search. The cost would be creating a dx:executable again, which is acceptable.
+      // Scan the entire project for dx:workflows and dx:applets that we already created, and may be
+      // reused, instead of recompiling. This could be expensive. We limit it by filtering on the
+      // CHECKSUM property, which is attached only to generated applets and workflows. The maximal
+      // number of replies is (by default) 1000 so we may miss matches when we search. The cost
+      // would be creating a dx:executable again, which is acceptable.
       logger.trace(s"Querying for executables in project ${project}")
       val executables = findExecutables(recurse = true)
         .flatMap {

@@ -1,6 +1,5 @@
 package dx.core.languages.cwl
 
-import java.math.{MathContext, RoundingMode}
 import dx.api.{DxApi, InstanceTypeRequest}
 import dx.core.Constants
 import dx.core.io.DxWorkerPaths
@@ -19,25 +18,75 @@ import dx.core.ir.RunSpec.{
 }
 import dx.core.ir.{InstanceTypeSelection, RuntimeRequirement}
 import dx.cwl._
+import dx.util.FileSourceResolver
 
+import scala.reflect.ClassTag
+
+/**
+  * Evaluates requirements and hints.
+  * @param requirements Vector of Requirements in increasing priority order.
+  *                     This means if two instances of the same requirement
+  *                     are in the list, the latter takes presidence.
+  * @param hints Vector of Hints in increasing priority order
+  * @param env values to use for evaluation
+  * @param workerPaths DxWorkerPaths
+  * @param defaultRuntimeAttrs default values to use for attributes that
+  *                            are not given as Requirements or Hints.
+  * @param dxApi DxApi
+  */
 case class RequirementEvaluator(requirements: Vector[Requirement],
                                 hints: Vector[Hint],
                                 env: Map[String, (CwlType, CwlValue)],
                                 workerPaths: DxWorkerPaths,
+                                inputParameters: Map[String, InputParameter] = Map.empty,
                                 defaultRuntimeAttrs: Map[String, (CwlType, CwlValue)] = Map.empty,
+                                fileResolver: FileSourceResolver = FileSourceResolver.get,
                                 dxApi: DxApi = DxApi.get) {
   lazy val evaluator: Evaluator = Evaluator.create(requirements, hints)
   private lazy val runtime: Runtime = CwlUtils.createRuntime(workerPaths)
   private lazy val evaluatorContext: EvaluatorContext =
-    CwlUtils.createEvaluatorContext(runtime, env)
+    CwlUtils.createEvaluatorContext(runtime,
+                                    env,
+                                    inputParameters = inputParameters,
+                                    inputDir = workerPaths.getInputFilesDir(),
+                                    fileResolver = fileResolver)
 
   /**
-    * Returns the first Requirement or Hint matching the given filter.
+    * Returns the last (i.e. highest priority) Requirement or Hint matching
+    * the given filter.
     * @param filter the filter function to apply
     * @return Option[(hint, optional)]
     */
   def getHint(filter: Hint => Boolean): Option[(Hint, Boolean)] = {
-    requirements.find(filter).map((_, false)).orElse(hints.find(filter).map((_, true)))
+    requirements.findLast(filter).map((_, false)).orElse(hints.findLast(filter).map((_, true)))
+  }
+
+  def getHintOfType[T <: Hint: ClassTag]: Option[(T, Boolean)] = {
+    getHint {
+      case _: T => true
+      case _    => false
+    } match {
+      case Some((hint: T, b)) => Some((hint, b))
+      case _                  => None
+    }
+  }
+
+  /**
+    * Returns all Requirements and Hints matching the given filter.
+    * @param filter the filter function to apply
+    * @return Vector of hints
+    */
+  def getHints(filter: Hint => Boolean): Vector[Hint] = {
+    requirements.filter(filter) ++ hints.filter(filter)
+  }
+
+  def getHintsOfType[T <: Hint: ClassTag]: Vector[T] = {
+    getHints({
+      case _: T => true
+      case _    => false
+    }).map {
+      case hint: T => hint
+    }
   }
 
   private lazy val defaultResourceRequirement: ResourceRequirement = {
@@ -65,19 +114,19 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
     }
   }
 
-  private val MinMathContext = new MathContext(0, RoundingMode.FLOOR)
-  private val MaxMathContext = new MathContext(0, RoundingMode.CEILING)
+  private val MinRoundingMode = BigDecimal.RoundingMode.FLOOR
+  private val MaxRoundingMode = BigDecimal.RoundingMode.CEILING
   private val MiBtoGiB = Some(1024L)
-  private val CwlNumericTypes: Vector[CwlType] = Vector(CwlInt, CwlLong, CwlFloat, CwlDouble)
+  private val CwlNumericTypes = CwlMulti(Vector(CwlInt, CwlLong, CwlFloat, CwlDouble))
 
   private def evaluateNumeric(value: CwlValue,
-                              mc: MathContext,
+                              roundingMode: BigDecimal.RoundingMode.RoundingMode,
                               scale: Option[Long] = None): Long = {
     (evaluator.evaluate(value, CwlNumericTypes, evaluatorContext)._2, scale) match {
       case (num: NumericValue, Some(d)) =>
-        (num.decimalValue / d).round(mc).toLongExact
+        (num.decimalValue / d).setScale(0, roundingMode).toLongExact
       case (num: NumericValue, None) =>
-        num.decimalValue.round(mc).toLongExact
+        num.decimalValue.setScale(0, roundingMode).toLongExact
       case _ =>
         throw new Exception(s"${value} did not evaluate to a numeric value")
     }
@@ -86,9 +135,9 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
   def parseInstanceType: InstanceTypeRequest = {
     def getDiskGB(tmpdir: Option[CwlValue],
                   outdir: Option[CwlValue],
-                  ctx: MathContext): Option[Long] = {
-      val tmpGB = tmpdir.map(evaluateNumeric(_, ctx, MiBtoGiB))
-      val outGB = outdir.map(evaluateNumeric(_, ctx, MiBtoGiB))
+                  roundingMode: BigDecimal.RoundingMode.RoundingMode): Option[Long] = {
+      val tmpGB = tmpdir.map(evaluateNumeric(_, roundingMode, MiBtoGiB))
+      val outGB = outdir.map(evaluateNumeric(_, roundingMode, MiBtoGiB))
       if (tmpGB.isDefined || outGB.isDefined) {
         Some(tmpGB.getOrElse(0L) + outGB.getOrElse(0L))
       } else {
@@ -97,13 +146,13 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
     }
 
     InstanceTypeRequest(
-        minMemoryMB = resources.ramMin.map(evaluateNumeric(_, MinMathContext)),
-        maxMemoryMB = resources.ramMax.map(evaluateNumeric(_, MaxMathContext)),
+        minMemoryMB = resources.ramMin.map(evaluateNumeric(_, MinRoundingMode)),
+        maxMemoryMB = resources.ramMax.map(evaluateNumeric(_, MaxRoundingMode)),
         minDiskGB =
-          getDiskGB(resources.tmpdirMin, resources.outdirMin, MinMathContext).orElse(Some(0L)),
-        maxDiskGB = getDiskGB(resources.tmpdirMax, resources.outdirMax, MaxMathContext),
-        minCpu = resources.coresMin.map(evaluateNumeric(_, MinMathContext)),
-        maxCpu = resources.coresMax.map(evaluateNumeric(_, MaxMathContext)),
+          getDiskGB(resources.tmpdirMin, resources.outdirMin, MinRoundingMode).orElse(Some(0L)),
+        maxDiskGB = getDiskGB(resources.tmpdirMax, resources.outdirMax, MaxRoundingMode),
+        minCpu = resources.coresMin.map(evaluateNumeric(_, MinRoundingMode)),
+        maxCpu = resources.coresMax.map(evaluateNumeric(_, MaxRoundingMode)),
         os = Some(Constants.DefaultExecutionEnvironment),
         optional = resourcesOptional
     )
@@ -180,10 +229,25 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
         AccessRequirement(network = if (allow) Vector("*") else Vector.empty)
       case (ToolTimeLimitRequirement(timeLimit: NumericValue), _) =>
         TimeoutRequirement(minutes =
-          Some((timeLimit.decimalValue / 60).round(MaxMathContext).longValue)
+          Some((timeLimit.decimalValue / 60).setScale(0, MaxRoundingMode).toLongExact)
         )
       case (_: SoftwareRequirement, true) =>
         throw new Exception("SoftwareRequirement is not supported")
+      case (_: InplaceUpdateRequirement, true) =>
+        throw new Exception("InplaceUpdateRequirement is not supported")
+    }
+  }
+
+  def translatePathDependencies: Vector[PathValue] = {
+    getHints {
+      case _: InitialWorkDirRequirement => true
+      case _                            => false
+    }.flatMap {
+      case InitialWorkDirRequirement(listing) =>
+        listing.collect {
+          case ValueInitialWorkDirEntry(p: PathValue)     => p
+          case DirInitialWorkDirEntry(p: PathValue, _, _) => p
+        }
     }
   }
 }

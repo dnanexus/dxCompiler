@@ -1,5 +1,26 @@
 # Release Notes
 
+## 2.6.0 2021-10-11
+
+* Implements `Directory` support for CWL and for WDL development/2.0
+* Implements CWL `secondaryFiles` support
+* Implements CWL workflow support
+* **Breaking Change**: the inputs folder is now modified to be read-only for non-streaming files (this has always been the case for streaming files). This means that tasks that create files in the inputs folder will no longer work. For example, a task that creates an index file in place for an input BAM file should be changed from:
+    ```wdl
+    command <<<
+    samtools index ~{mybam}
+    >>>
+    ```
+  to
+    ```wdl
+    command <<<
+    mkdir bams
+    ln -s ~{mybam} bams/~{basename(mybam)}
+    samtools index bams/~{basename(mybam)}
+    >>>
+    ```
+* Updates dxCommon, dxApi, dxFileAccessProtocols, wdlTools, and cwlScala dependencies
+
 ## 2.5.0 2021-09-14
 
 * Docker image dependencies that are DNAnexus platform files are included in applet's bundledDepends
@@ -57,6 +78,7 @@
 * Fixes error when evaluating array element access for an optional value
 * Fixes localization of files in identically named folders in different projects
 * Fixes localization of files with the same name in the same folder
+* Encodes/decodes `dx://` URIs to handle project/file names with spaces
 
 ## 2.4.3 2021-04-23
 
@@ -131,6 +153,7 @@
 * Fixes issue with call arguments that access fields of private declarations
 * Fixes issue with passing null to optional call parameters
 * Fixes common applet naming issue with complex nested workflows
+* **Experimental**: * adds `-useManifests` option to generate applets and workflows whose inputs and outputs are manifest files
 
 ## 2.3.0 2021-02-23
 

@@ -10,7 +10,7 @@ import wdlTools.types.WdlTypes.T_Task
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 import dx.util.{FileSourceResolver, Logger, StringFileNode}
 
-import scala.collection.immutable.TreeSeqMap
+import scala.collection.immutable.SeqMap
 
 case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
                                        wdlOptions: WdlOptions = WdlOptions.default,
@@ -38,7 +38,7 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
     // DNAnexus allows '-' and '.' in app(let) names, WDL does not
     val normalizedName = appletName.replaceAll("[-.]", "_")
     val meta = TAT.MetaSection(
-        TreeSeqMap(
+        SeqMap(
             "type" -> TAT.MetaValueString("native", quoting = Quoting.Double)(loc),
             "id" -> TAT.MetaValueString(id, quoting = Quoting.Double)(loc)
         )
@@ -52,8 +52,8 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
                  .map {
                    case (name, wdlType) => name -> (wdlType, false)
                  }
-                 .to(TreeSeqMap),
-               outputSpec.to(TreeSeqMap),
+                 .to(SeqMap),
+               outputSpec.to(SeqMap),
                None),
         inputSpec.map {
           case (name, wdlType) =>

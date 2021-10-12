@@ -46,6 +46,7 @@ object Compiler {
   * @param streamFiles which files to stream vs download
   * @param waitOnUpload whether to wait for each file upload to complete
   * @param useManifests whether to use manifest files for all application inputs and outputs
+  * @param complexPathValues whether File and Directory values should be treated as objects
   * @param fileResolver the FileSourceResolver
   * @param dxApi the DxApi
   * @param logger the Logger
@@ -65,6 +66,7 @@ case class Compiler(extras: Option[Extras],
                     streamFiles: StreamFiles.StreamFiles,
                     waitOnUpload: Boolean,
                     useManifests: Boolean,
+                    complexPathValues: Boolean,
                     instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
                     defaultInstanceType: Option[String],
                     fileResolver: FileSourceResolver = FileSourceResolver.get,
@@ -83,7 +85,8 @@ case class Compiler(extras: Option[Extras],
   }
 
   private case class BundleCompiler(bundle: Bundle, project: DxProject, folder: String) {
-    private val parameterLinkSerializer = ParameterLinkSerializer(fileResolver)
+    private val parameterLinkSerializer =
+      ParameterLinkSerializer(fileResolver, dxApi = dxApi, pathsAsObjects = complexPathValues)
     // directory of the currently existing applets - we don't want to build them
     // if we don't have to.
     private val executableDir =
@@ -121,8 +124,7 @@ case class Compiler(extras: Option[Extras],
           throw new Exception(s"Bad syntax for destination ${assetSourcePath}")
       }
       val regionalProject = dxApi.resolveProject(regionalProjectName)
-      val assetUri =
-        s"${DxPath.DxUriPrefix}${regionalProject.id}:${assetFolder}/${runtimeAssetName}"
+      val assetUri = DxPath.format(regionalProject.id, assetFolder, runtimeAssetName)
       logger.trace(s"Looking for asset id at ${assetUri}")
       val dxAsset = dxApi.resolveDataObject(assetUri, Some(regionalProject)) match {
         case dxRecord: DxRecord => dxRecord
@@ -197,8 +199,8 @@ case class Compiler(extras: Option[Extras],
 
     // Create linking information for a dx:executable
     private def createLinkForCall(irCall: Callable, dxObj: DxExecutable): ExecutableLink = {
-      val callInputs: Map[String, Type] = irCall.inputVars.map(p => p.name -> p.dxType).toMap
-      val callOutputs: Map[String, Type] = irCall.outputVars.map(p => p.name -> p.dxType).toMap
+      val callInputs: Map[DxName, Type] = irCall.inputVars.map(p => p.name -> p.dxType).toMap
+      val callOutputs: Map[DxName, Type] = irCall.outputVars.map(p => p.name -> p.dxType).toMap
       ExecutableLink(irCall.name, callInputs, callOutputs, dxObj)
     }
 
@@ -315,8 +317,10 @@ case class Compiler(extras: Option[Extras],
             extras = extras,
             parameterLinkSerializer = parameterLinkSerializer,
             useManifests = useManifests,
+            complexPathValues = complexPathValues,
             instanceTypeSelection = instanceTypeSelection,
             defaultInstanceType,
+            fileResolver = fileResolver,
             dxApi = dxApi,
             logger = logger2,
             project = project,
@@ -324,8 +328,8 @@ case class Compiler(extras: Option[Extras],
         )
       // limit the applet dictionary to actual dependencies
       val dependencies: Map[String, ExecutableLink] = applet.kind match {
-        case ExecutableKindWfFragment(calls, _, _, _) =>
-          calls.map { name =>
+        case ExecutableKindWfFragment(call, _, _, _) =>
+          call.map { name =>
             val CompiledExecutable(irCall, dxObj, _, _) = dependencyDict(name)
             name -> createLinkForCall(irCall, dxObj)
           }.toMap
@@ -373,7 +377,14 @@ case class Compiler(extras: Option[Extras],
     ): (DxWorkflow, JsValue) = {
       logger2.trace(s"Compiling workflow ${workflow.name}")
       val workflowCompiler =
-        WorkflowCompiler(extras, parameterLinkSerializer, useManifests, dxApi, logger2)
+        WorkflowCompiler(separateOutputs,
+                         extras,
+                         parameterLinkSerializer,
+                         useManifests,
+                         complexPathValues,
+                         fileResolver,
+                         dxApi,
+                         logger2)
       // Calculate a checksum of the inputs that went into the making of the applet.
       val (workflowApiRequest, execTree) = workflowCompiler.apply(workflow, dependencyDict)
       val (requestWithChecksum, digest) = checksumRequest(workflow.name, workflowApiRequest)

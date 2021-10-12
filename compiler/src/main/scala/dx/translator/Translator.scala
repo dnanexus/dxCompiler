@@ -22,9 +22,11 @@ trait Translator {
     */
   def runtimeJar: String
 
-  def apply: Bundle
-
   def fileResolver: FileSourceResolver
+
+  def complexPathValues: Boolean
+
+  def apply: Bundle
 
   protected def createInputTranslator(bundle: Bundle,
                                       inputs: Vector[Path],

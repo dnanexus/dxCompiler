@@ -1,91 +1,25 @@
 package dx.core.ir
 
 import dx.api.DxWorkflowStage
-import dx.core.ir.RunSpec.{InstanceType, ContainerImage}
+import dx.core.ir.RunSpec.{ContainerImage, InstanceType}
 import dx.util.Enum
 
 trait ParameterAttribute
 
 /**
-  * Compile time representation of a variable. Used also as an applet argument.
-  *
-  * The fullyQualifiedName could contains dots. However dx does not allow dots
-  * in applet/workflow arugment names, this requires some kind of transform.
-  *
-  * The attributes are used to encode DNAx applet input/output specification
-  * fields, such as {help, suggestions, patterns}.
-  *
-  * @param name parameter name
+  * Compile-time representation of an input or output parameter.
+  * @param name the fully-qualified parameter name
   * @param dxType parameter data type
   * @param defaultValue default value
-  * @param attributes metadata
+  * @param attributes metadata used to encode DNAnexus applet input/output specification
+  *                   fields, such as {help, suggestions, patterns}.
   */
 case class Parameter(
-    name: String,
+    name: DxName,
     dxType: Type,
     defaultValue: Option[Value] = None,
     attributes: Vector[ParameterAttribute] = Vector.empty
-) {
-  // dx does not allow dots in variable names, so we
-  // convert them to underscores.
-  //
-  // TODO: check for collisions that are created this way.
-  def dxName: String = {
-    val nameNoDots = Parameter.encodeDots(name)
-    assert(!nameNoDots.contains("."))
-    nameNoDots
-  }
-}
-
-object Parameter {
-  val ComplexValueKey = "___"
-
-  /**
-    * Converts dots in parameter names to underscores.
-    * DNAnexus does not allow dots in variable names
-    * @param name parameter name
-    * @return
-    */
-  def encodeDots(name: String): String = {
-    if (name.endsWith(".")) {
-      throw new Exception(s"${name} ends with a '.'")
-    }
-    val parts = name.split("\\.")
-    if (parts.size == 1) {
-      return name
-    }
-    // check that none of the individual words start/end with '_',
-    // which will cause problems when decoding
-    if (parts.drop(1).exists(_.endsWith("_")) || parts.tail.exists(_.startsWith("_"))) {
-      throw new Exception(s"Cannot encode value ${name} - cannot have '_' next to '.'")
-    }
-    parts.mkString(ComplexValueKey)
-  }
-
-  def decodeDots(name: String): String = {
-    if (name.contains(".")) {
-      throw new Exception(s"Encoded value ${name} contains '.'")
-    }
-    val parts = name.split(ComplexValueKey)
-    if (parts.size == 1) {
-      return name
-    }
-    // check that none of the individual words start/end with '_'
-    if (parts.drop(1).exists(_.endsWith("_")) || parts.tail.exists(_.startsWith("_"))) {
-      throw new Exception(
-          s"Cannot decode value ${name} - more than three consecutive underscores"
-      )
-    }
-    val decoded = parts.mkString(".")
-    if (name.endsWith(ComplexValueKey)) {
-      // some special parameter names end with '___' - add this back on
-      // after decoding
-      s"${decoded}${ComplexValueKey}"
-    } else {
-      decoded
-    }
-  }
-}
+)
 
 trait CallableAttribute
 
@@ -152,16 +86,16 @@ case object ExecutableKindApplet extends ExecutableKind
 
 /**
   * An applet that executes a workflow fragment.
-  * @param calls names of calls made in the fragment
+  * @param call name of the call made in the fragment
   * @param blockPath path to the block represented by this fragment
   * @param inputs mapping of input name to type, where names are encoded
   *               such that any dots are replaced with '\_\_\_'
   * @param scatterChunkSize maximum number of scatter jobs that can be
   *                         run at the same time
   */
-case class ExecutableKindWfFragment(calls: Vector[String],
+case class ExecutableKindWfFragment(call: Option[String],
                                     blockPath: Vector[Int],
-                                    inputs: Map[String, Type],
+                                    inputs: Map[DxName, Type],
                                     scatterChunkSize: Option[Int])
     extends ExecutableKind
 case class ExecutableKindWfInputs(blockPath: Vector[Int]) extends ExecutableKind
@@ -220,7 +154,7 @@ case class Application(name: String,
                        instanceType: InstanceType,
                        container: ContainerImage,
                        kind: ExecutableKind,
-                       document: DocumentSource,
+                       document: SourceCode,
                        attributes: Vector[CallableAttribute] = Vector.empty,
                        requirements: Vector[RuntimeRequirement] = Vector.empty,
                        tags: Set[String] = Set.empty,
@@ -237,17 +171,22 @@ case class Application(name: String,
   * or a workflow input.
   */
 sealed trait StageInput
-case object EmptyInput extends StageInput
-case class StaticInput(value: Value) extends StageInput
-case class LinkInput(stageId: DxWorkflowStage, paramName: String) extends StageInput
-case class WorkflowInput(param: Parameter) extends StageInput
-case class ArrayInput(stageInputs: Vector[StageInput]) extends StageInput
+case object StageInputEmpty extends StageInput
+case class StageInputStatic(value: Value) extends StageInput
+case class StageInputStageLink(stageId: DxWorkflowStage, param: Parameter) extends StageInput
+case class StageInputWorkflowLink(param: Parameter) extends StageInput
+case class StageInputArray(stageInputs: Vector[StageInput]) extends StageInput
+// TODO: the following is not supported directly by DNAnexus, but is needed by at least one
+//  CWL conformance test (dynresreq-workflow-stepdefault). We could implement it by making the main
+//  stage input optional and using an additional step input to holds the default value.
+//case class StageInputWithDefault(stageInput: StageInput, default: Value)
 
-// A stage can call an application or a workflow.
-//
-// Note: the description may contain dots, parentheses, and other special
-// symbols. It is shown to the user on the UI. The dxStage.id is unique
-// across the workflow.
+/**
+  * A stage can call an application or a workflow.
+  * @note the description may contain dots, parentheses, and other special
+  * symbols. It is shown to the user on the UI. The dxStage.id is unique
+  * across the workflow.
+  */
 case class Stage(description: String,
                  dxStage: DxWorkflowStage,
                  calleeName: String,
@@ -270,7 +209,7 @@ case class Workflow(name: String,
                     inputs: Vector[(Parameter, StageInput)],
                     outputs: Vector[(Parameter, StageInput)],
                     stages: Vector[Stage],
-                    document: WorkflowSource,
+                    document: SourceCode,
                     locked: Boolean,
                     level: Level.Level,
                     attributes: Vector[CallableAttribute] = Vector.empty,
@@ -278,6 +217,6 @@ case class Workflow(name: String,
                     properties: Map[String, String] = Map.empty,
                     staticFileDependencies: Set[String] = Set.empty)
     extends Callable {
-  def inputVars: Vector[Parameter] = inputs.map { case (cVar, _)   => cVar }
-  def outputVars: Vector[Parameter] = outputs.map { case (cVar, _) => cVar }
+  def inputVars: Vector[Parameter] = inputs.map(_._1)
+  def outputVars: Vector[Parameter] = outputs.map(_._1)
 }

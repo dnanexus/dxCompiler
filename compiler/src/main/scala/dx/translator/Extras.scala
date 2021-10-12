@@ -235,7 +235,7 @@ case class DxAccess(network: Option[Vector[String]],
 }
 
 case class DxExecPolicy(restartOn: Option[Map[String, Long]], maxRestarts: Option[Long]) {
-  restartOn.map { r =>
+  restartOn.foreach { r =>
     val unsupported = r.keySet.diff(DxExecPolicy.RunSpecExecPolicyRestartOnAttrs)
     if (unsupported.nonEmpty) {
       deserializationError(s"unsupported field(s) ${unsupported.mkString(",")} in restart policy")
@@ -316,7 +316,7 @@ case class DxAppJson(runSpec: Option[DxRunSpec], details: Option[DxDetails]) {
   * @param chunkSize maximum number of scatter jobs to run at once
   */
 case class DxScatterAttrs(chunkSize: Option[Int] = None) {
-  chunkSize.map { size =>
+  chunkSize.foreach { size =>
     if (size > Constants.JobsPerScatterLimit) {
       deserializationError(
           s"The number of jobs per scatter must be between 1-${Constants.JobsPerScatterLimit}"
@@ -361,7 +361,7 @@ case class Extras(defaultRuntimeAttributes: Option[Map[String, Value]],
                   customReorgAttributes: Option[CustomReorgSettings],
                   ignoreReuse: Option[Boolean],
                   delayWorkspaceDestruction: Option[Boolean]) {
-  defaultRuntimeAttributes.map { attrs =>
+  defaultRuntimeAttributes.foreach { attrs =>
     val unsupportedRuntimeAttrs = attrs.keySet.diff(Extras.RuntimeAttrs)
     if (unsupportedRuntimeAttrs.nonEmpty) {
       deserializationError(

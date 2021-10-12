@@ -4,12 +4,13 @@ import java.nio.file.{Path, Paths}
 import dx.Tags.EdgeTest
 import dx.api._
 import dx.core.Constants
+import dx.core.CliUtils.{Failure, UnsuccessfulTermination}
 import dx.core.ir.{Parameter, _}
 import dx.core.ir.RunSpec._
 import dx.core.ir.Type._
 import dx.core.ir.Value._
-import dx.core.CliUtils.{Failure, UnsuccessfulTermination}
-import dx.core.languages.wdl.WdlDocumentSource
+import dx.core.languages.cwl.{CwlDxName, TargetParam}
+import dx.core.languages.wdl.{WdlDocumentSource, WdlDxName}
 import dx.translator.CallableAttributes._
 import dx.translator.ParameterAttributes._
 import dx.util.Logger
@@ -20,7 +21,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import wdlTools.generators.code.WdlGenerator
 
-import scala.collection.immutable.TreeSeqMap
+import scala.collection.immutable.SeqMap
 
 // These tests involve compilation -without- access to the platform.
 //
@@ -28,8 +29,7 @@ class TranslatorTest extends AnyFlatSpec with Matchers {
   private val dxApi = DxApi()(Logger.Quiet)
 
   private def pathFromBasename(dir: String, basename: String): Path = {
-    val p = getClass.getResource(s"/${dir}/${basename}").getPath
-    Paths.get(p)
+    Paths.get(getClass.getResource(s"/${dir}/${basename}").getPath)
   }
 
   private val dxProjectId = dxApi.currentProjectId.get
@@ -310,15 +310,15 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     }
     val outerScatter = bundle.allCallables("nested_scatter_frag_stage-3")
     outerScatter.inputVars should contain theSameElementsAs Vector(
-        Parameter("x", TInt),
-        Parameter("ints1", TArray(TInt)),
-        Parameter("ints2", TArray(TInt))
+        Parameter(WdlDxName.fromSourceName("x"), TInt),
+        Parameter(WdlDxName.fromSourceName("ints1"), TArray(TInt)),
+        Parameter(WdlDxName.fromSourceName("ints2"), TArray(TInt))
     )
     val innerScatter = bundle.allCallables("nested_scatter_block_0_0")
     innerScatter.inputVars should contain theSameElementsAs Vector(
-        Parameter("x", TInt),
-        Parameter("y", TInt),
-        Parameter("ints1", TArray(TInt))
+        Parameter(WdlDxName.fromSourceName("x"), TInt),
+        Parameter(WdlDxName.fromSourceName("y"), TInt),
+        Parameter(WdlDxName.fromSourceName("ints1"), TArray(TInt))
     )
   }
 
@@ -336,7 +336,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val cgrepApplication = getApplicationByName("pattern_params_cgrep", bundle)
     cgrepApplication.inputs.iterator sameElements Vector(
         Parameter(
-            "in_file",
+            WdlDxName.fromSourceName("in_file"),
             Type.TFile,
             None,
             Vector(
@@ -347,7 +347,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
             )
         ),
         Parameter(
-            "pattern",
+            WdlDxName.fromSourceName("pattern"),
             TString,
             None,
             Vector(
@@ -358,9 +358,9 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
         )
     )
     cgrepApplication.outputs.iterator sameElements Vector(
-        Parameter("count", TInt, None, Vector.empty),
+        Parameter(WdlDxName.fromSourceName("count"), TInt, None, Vector.empty),
         Parameter(
-            "out_file",
+            WdlDxName.fromSourceName("out_file"),
             TFile,
             None,
             Vector(
@@ -386,7 +386,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val cgrepApplication = getApplicationByName("pattern_params_obj_cgrep", bundle)
     cgrepApplication.inputs.iterator sameElements Vector(
         Parameter(
-            "in_file",
+            WdlDxName.fromSourceName("in_file"),
             TFile,
             None,
             Vector(
@@ -403,7 +403,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
             )
         ),
         Parameter(
-            "pattern",
+            WdlDxName.fromSourceName("pattern"),
             TString,
             None,
             Vector(
@@ -414,9 +414,9 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
         )
     )
     cgrepApplication.outputs.iterator sameElements Vector(
-        Parameter("count", TInt, None, Vector.empty),
+        Parameter(WdlDxName.fromSourceName("count"), TInt, None, Vector.empty),
         Parameter(
-            "out_file",
+            WdlDxName.fromSourceName("out_file"),
             TFile,
             None,
             Vector(
@@ -442,7 +442,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val cgrepApplication = getApplicationByName("choice_values_cgrep", bundle)
     cgrepApplication.inputs.iterator sameElements Vector(
         Parameter(
-            "in_file",
+            WdlDxName.fromSourceName("in_file"),
             TFile,
             None,
             Vector(
@@ -461,7 +461,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
             )
         ),
         Parameter(
-            "pattern",
+            WdlDxName.fromSourceName("pattern"),
             TString,
             None,
             Vector(
@@ -490,7 +490,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val cgrepApplication = getApplicationByName("choice_values_cgrep", bundle)
     cgrepApplication.inputs.iterator sameElements Vector(
         Parameter(
-            "in_file",
+            WdlDxName.fromSourceName("in_file"),
             TFile,
             None,
             Vector(
@@ -509,7 +509,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
             )
         ),
         Parameter(
-            "pattern",
+            WdlDxName.fromSourceName("pattern"),
             TString,
             None,
             Vector(
@@ -547,7 +547,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val cgrepApplication = getApplicationByName("suggestion_values_cgrep", bundle)
     cgrepApplication.inputs.iterator sameElements Vector(
         Parameter(
-            "in_file",
+            WdlDxName.fromSourceName("in_file"),
             TFile,
             None,
             Vector(
@@ -570,7 +570,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
             )
         ),
         Parameter(
-            "pattern",
+            WdlDxName.fromSourceName("pattern"),
             TString,
             None,
             Vector(
@@ -599,7 +599,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val cgrepApplication = getApplicationByName("suggestion_values_cgrep", bundle)
     cgrepApplication.inputs.iterator sameElements Vector(
         Parameter(
-            "in_file",
+            WdlDxName.fromSourceName("in_file"),
             TFile,
             None,
             Vector(
@@ -622,7 +622,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
             )
         ),
         Parameter(
-            "pattern",
+            WdlDxName.fromSourceName("pattern"),
             TString,
             None,
             Vector(
@@ -669,7 +669,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val cgrepApplication = getApplicationByName("add_dx_type", bundle)
     cgrepApplication.inputs shouldBe Vector(
         Parameter(
-            "a",
+            WdlDxName.fromSourceName("a"),
             TFile,
             None,
             Vector(
@@ -677,7 +677,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
             )
         ),
         Parameter(
-            "b",
+            WdlDxName.fromSourceName("b"),
             TFile,
             None,
             Vector(
@@ -724,13 +724,13 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val cgrepApplication = getApplicationByName("add_default", bundle)
     cgrepApplication.inputs shouldBe Vector(
         Parameter(
-            "a",
+            WdlDxName.fromSourceName("a"),
             TInt,
             Some(VInt(1)),
             Vector.empty
         ),
         Parameter(
-            "b",
+            WdlDxName.fromSourceName("b"),
             TOptional(TInt),
             None,
             Vector(DefaultAttribute(VInt(2)))
@@ -762,7 +762,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val cgrepApplication = getApplicationByName("help_input_params_cgrep", bundle)
     cgrepApplication.inputs.iterator sameElements Vector(
         Parameter(
-            "s",
+            WdlDxName.fromSourceName("s"),
             TString,
             None,
             Vector(
@@ -770,7 +770,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
             )
         ),
         Parameter(
-            "in_file",
+            WdlDxName.fromSourceName("in_file"),
             TFile,
             None,
             Vector(
@@ -780,7 +780,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
             )
         ),
         Parameter(
-            "pattern",
+            WdlDxName.fromSourceName("pattern"),
             TString,
             None,
             Vector(
@@ -809,7 +809,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val cgrepApplication = getApplicationByName("help_output_params_cgrep", bundle)
     cgrepApplication.outputs.iterator sameElements Vector(
         Parameter(
-            "count",
+            WdlDxName.fromSourceName("count"),
             TInt,
             None,
             Vector.empty
@@ -854,7 +854,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
                   "whatsNew" -> VArray(
                       Vector(
                           VHash(
-                              TreeSeqMap(
+                              SeqMap(
                                   "version" -> VString("1.1"),
                                   "changes" -> VArray(
                                       Vector(
@@ -865,7 +865,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
                               )
                           ),
                           VHash(
-                              TreeSeqMap(
+                              SeqMap(
                                   "version" -> VString("1.0"),
                                   "changes" -> VArray(
                                       Vector(
@@ -951,9 +951,9 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     }
     wf.stages.size shouldBe 2
     wf.stages.head.inputs shouldBe Vector(
-        WorkflowInput(
-            Parameter("sampleStruct",
-                      TSchema("SampleStruct", TreeSeqMap("sample_name" -> TString, "id" -> TInt)),
+        StageInputWorkflowLink(
+            Parameter(WdlDxName.fromSourceName("sampleStruct"),
+                      TSchema("SampleStruct", SeqMap("sample_name" -> TString, "id" -> TInt)),
                       None,
                       Vector())
         )
@@ -1118,7 +1118,9 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     wfs.length shouldBe 1
     val wf = wfs.head
 
-    val samtools = wf.inputs.find { case (cVar, _) => cVar.name == "samtools_memory" }
+    val samtools = wf.inputs.find {
+      case (cVar, _) => cVar.name.decoded == "samtools_memory"
+    }
     inside(samtools) {
       /*case Some((cVar, _)) =>
        cVar.wdlType shouldBe (TOptional(TString))*/
@@ -1202,7 +1204,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     }
     input_cvars.sortWith(_.name < _.name) shouldBe Vector(
         Parameter(
-            "x",
+            WdlDxName.fromSourceName("x"),
             TInt,
             Some(VInt(3)),
             Vector(
@@ -1211,7 +1213,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
             )
         ),
         Parameter(
-            "y",
+            WdlDxName.fromSourceName("y"),
             TInt,
             Some(VInt(5)),
             Vector(
@@ -1501,9 +1503,9 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val innerName = outerScatterApplet.kind match {
       case frag: ExecutableKindWfFragment =>
         frag.scatterChunkSize shouldBe Some(10)
-        frag.calls match {
-          case Vector(innerName) => innerName
-          case _                 => throw new Exception(s"wrong calls ${frag.calls}")
+        frag.call match {
+          case Some(innerName) => innerName
+          case _               => throw new Exception(s"wrong calls ${frag.call}")
         }
       case _ => throw new Exception(s"wrong applet kind ${outerScatterApplet.kind}")
     }
@@ -1543,9 +1545,9 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val innerName = outerScatterApplet.kind match {
       case frag: ExecutableKindWfFragment =>
         frag.scatterChunkSize shouldBe Some(Constants.JobPerScatterDefault)
-        frag.calls match {
-          case Vector(innerName) => innerName
-          case _                 => throw new Exception(s"wrong calls ${frag.calls}")
+        frag.call match {
+          case Some(innerName) => innerName
+          case _               => throw new Exception(s"wrong calls ${frag.call}")
         }
       case _ => throw new Exception(s"wrong applet kind ${outerScatterApplet.kind}")
     }
@@ -1560,8 +1562,8 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     }
   }
 
-  it should "translate a simple CWL task" in {
-    val path = pathFromBasename("cwl", "cat.cwl")
+  it should "translate a simple CWL tool" in {
+    val path = pathFromBasename("cwl", "cat.cwl.json")
     val args = path.toString :: cFlags
     Main.compile(args.toVector) match {
       case SuccessfulCompileIR(bundle) =>
@@ -1575,29 +1577,106 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
         applet.kind shouldBe ExecutableKindApplet
         applet.attributes shouldBe Vector(DescriptionAttribute("Write a file to stdout using cat"))
         applet.container shouldBe NoImage
-        applet.inputs shouldBe Vector(Parameter("file", TFile))
-        applet.outputs shouldBe Vector(Parameter("contents", TFile))
+        applet.inputs shouldBe Vector(Parameter(CwlDxName.fromSourceName("file"), TFile),
+                                      TargetParam)
+        applet.outputs shouldBe Vector(Parameter(CwlDxName.fromSourceName("contents"), TFile))
       case other =>
         throw new AssertionError(s"expected SuccessfulCompileIR, not ${other}")
     }
   }
 
-  it should "translate a simple CWL task with JS expressions" in {
-    val path = pathFromBasename("cwl", "params.cwl")
+  it should "translate a simple CWL tool with JS expressions" in {
+    val path = pathFromBasename("cwl", "params.cwl.json")
     val args = path.toString :: cFlags
     Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
-  it should "translate a simple CWL task with Any type input" in {
-    val path = pathFromBasename("cwl", "params2.cwl")
+  it should "translate a simple CWL tool with Any type input" in {
+    val path = pathFromBasename("cwl", "params2.cwl.json")
     val args = path.toString :: cFlags
     Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
+  }
+
+  it should "translate a CWL tool with inline record type" in {
+    val path = pathFromBasename("cwl", "record-in-format.cwl.json")
+    val args = path.toString :: cFlags
+    val result = Main.compile(args.toVector) match {
+      case SuccessfulCompileIR(bundle) => bundle
+      case other =>
+        throw new AssertionError(s"expected SuccessfulCompileIR, not ${other}")
+    }
+    val tool = result.primaryCallable match {
+      case Some(tool: Application) => tool
+      case other =>
+        throw new Exception(s"expected compilation result to be a tool, not ${other}")
+    }
+    tool.inputs
+      .collectFirst {
+        case inp if inp.name.decoded == "record_input" => inp
+      }
+      .getOrElse(throw new Exception("missing field record_input"))
   }
 
   it should "translate a workflow with scatter inside conditional" in {
     val path = pathFromBasename("bugs", "scatter_inside_if.wdl")
     val args = path.toString :: cFlags
     Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
+  }
+
+  it should "translate a simple CWL workflow" in {
+    val path = pathFromBasename("cwl", "count-lines1-wf.cwl.json")
+    val args = path.toString :: cFlags
+    val result = Main.compile(args.toVector) match {
+      case SuccessfulCompileIR(bundle) => bundle
+      case other =>
+        throw new Exception(s"expected success not ${other}")
+    }
+    val wf = result.primaryCallable match {
+      case Some(wf: Workflow) => wf
+      case other =>
+        throw new Exception(s"expected Workflow not ${other}")
+    }
+    wf.inputs shouldBe Vector(
+        Parameter(CwlDxName.fromSourceName("file1"), TFile) -> StageInputWorkflowLink(
+            Parameter(CwlDxName.fromSourceName("file1"), TFile)
+        )
+    )
+    wf.outputs shouldBe Vector(
+        Parameter(CwlDxName.fromSourceName("count_output"), TInt) -> StageInputStageLink(
+            DxWorkflowStage("stage-1"),
+            Parameter(CwlDxName.fromSourceName("output"), TInt)
+        )
+    )
+    wf.stages.size shouldBe 2
+    wf.stages(0).dxStage.id shouldBe "stage-0"
+    wf.stages(0).calleeName shouldBe "word-count"
+    wf.stages(0).inputs shouldBe Vector(
+        StageInputWorkflowLink(Parameter(CwlDxName.fromSourceName("file1"), TFile)),
+        StageInputStatic(VString("step1"))
+    )
+    wf.stages(0).outputs shouldBe Vector(
+        Parameter(CwlDxName.fromSourceName("output"), TFile)
+    )
+    wf.stages(1).dxStage.id shouldBe "stage-1"
+    wf.stages(1).calleeName shouldBe "parseInt"
+    wf.stages(1).inputs shouldBe Vector(
+        StageInputStageLink(DxWorkflowStage("stage-0"),
+                            Parameter(CwlDxName.fromSourceName("output"), TFile)),
+        StageInputStatic(VString("step2"))
+    )
+    wf.stages(1).outputs shouldBe Vector(
+        Parameter(CwlDxName.fromSourceName("output"), TInt)
+    )
+  }
+
+  it should "translate a packed CWL workflow" in {
+    val path = pathFromBasename("cwl", "any-type-compat.cwl.json")
+    val args = path.toString :: cFlags
+    Main.compile(args.toVector) match {
+      case SuccessfulCompileIR(bundle) => bundle
+      case other =>
+        throw new Exception(s"expected success not ${other}")
+    }
   }
 
   it should "translate a workflow with struct field as call argument" in {
@@ -1610,5 +1689,92 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val path = pathFromBasename("draft2", "output_references.wdl")
     val args = path.toString :: cFlags
     Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
+  }
+
+  it should "translate a CWL workflow with JavaScript expressions" in {
+    val path = pathFromBasename("cwl", "timelimit2-wf.cwl.json")
+    val args = path.toString :: cFlags
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
+  }
+
+  it should "translate a CWL workflow with multiple scatter sources" in {
+    val path = pathFromBasename("cwl", "scatter-valuefrom-wf2.cwl.json")
+    val args = path.toString :: cFlags
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
+  }
+
+  it should "translate a CWL workflow with workflow input link of different name" in {
+    val path = pathFromBasename("cwl", "cond-wf-011_nojs.cwl.json")
+    val args = path.toString :: cFlags
+    val bundle = Main.compile(args.toVector) match {
+      case SuccessfulCompileIR(bundle) => bundle
+      case other                       => throw new Exception(s"expected success not ${other}")
+    }
+    val wf = bundle.primaryCallable match {
+      case Some(wf: Workflow) => wf
+      case other              => throw new Exception(s"expected workflow not ${other}")
+    }
+    val stageApplet = bundle.allCallables(wf.stages.head.calleeName) match {
+      case applet: Application => applet
+      case other               => throw new Exception(s"expected applet not ${other}")
+    }
+    val stageParams = stageApplet.inputs.map(param => param.name -> param).toMap
+    stageParams.keySet
+      .map(_.decodedIdentifier) shouldBe Set("in1", "in2", "in3", "test")
+    val targetApplet = stageApplet.kind match {
+      case ExecutableKindWfFragment(Some(call), _, _, _) => bundle.allCallables(call)
+      case other =>
+        throw new Exception(s"expetected fragment not ${other}")
+    }
+    val targetParams = targetApplet.inputVars.map(param => param.name -> param).toMap
+    targetParams.keySet
+      .map(_.decodedIdentifier) shouldBe Set("in1", "in2", "in3", "target")
+  }
+
+  it should "translate a CWL workflow with stage input with linkMerge" in {
+    val path = pathFromBasename("cwl", "count-lines-19-wf.cwl.json")
+    val args = path.toString :: cFlags
+    val bundle = Main.compile(args.toVector) match {
+      case SuccessfulCompileIR(bundle) => bundle
+      case other                       => throw new Exception(s"expected success not ${other}")
+    }
+    val wf = bundle.primaryCallable match {
+      case Some(wf: Workflow) => wf
+      case other              => throw new Exception(s"expected workflow not ${other}")
+    }
+    val stageApplet = bundle.allCallables(wf.stages.head.calleeName) match {
+      case applet: Application => applet
+      case other               => throw new Exception(s"expected applet not ${other}")
+    }
+    stageApplet.kind should matchPattern {
+      case ExecutableKindWfFragment(Some("wc3-tool.cwl"), Vector(0), _, None) =>
+    }
+  }
+
+  it should "translate a WDL workflow with dx runtime attributes" in {
+    val path = pathFromBasename("bugs", "dx_runtime_keys.wdl")
+    val args = path.toString :: cFlags
+    Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
+  }
+
+  it should "translate a CWL workflow with a step input source and default value" in {
+    val path = pathFromBasename("cwl", "dynresreq-workflow-stepdefault.cwl.json")
+    val args = path.toString :: cFlags
+    val bundle = Main.compile(args.toVector) match {
+      case SuccessfulCompileIR(bundle) => bundle
+      case other                       => throw new Exception(s"expected success not ${other}")
+    }
+    val wf = bundle.primaryCallable match {
+      case Some(wf: Workflow) => wf
+      case other              => throw new Exception(s"expected workflow not ${other}")
+    }
+    wf.stages.size shouldBe 2
+    val stage0Applet = bundle.allCallables(wf.stages(0).calleeName) match {
+      case applet: Application => applet
+      case other               => throw new Exception(s"expected applet not ${other}")
+    }
+    stage0Applet.kind should matchPattern {
+      case ExecutableKindWfFragment(_, _, _, _) =>
+    }
   }
 }

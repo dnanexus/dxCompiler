@@ -1,0 +1,12 @@
+{
+  "scatter-valuefrom-wf2.out": [
+    [
+      "foo one one three",
+      "foo one one four"
+    ],
+    [
+      "foo one two three",
+      "foo one two four"
+    ]
+  ]
+}

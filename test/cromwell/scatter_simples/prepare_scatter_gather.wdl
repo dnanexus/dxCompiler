@@ -44,7 +44,7 @@ task do_gather {
       Array[File] input_files
     }
     command <<<
-        cat ~{sep = ' ' input_files} | awk '{s+=$1} END {print s}'
+        cat ~{sep=' ' input_files} | awk '{s+=$1} END {print s}'
     >>>
     output {
       Int sum = read_int(stdout())

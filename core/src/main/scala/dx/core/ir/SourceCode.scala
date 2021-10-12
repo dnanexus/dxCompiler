@@ -24,6 +24,3 @@ trait SourceCode {
     */
   def optionsToJson: JsValue = JsNull
 }
-
-trait DocumentSource extends SourceCode
-trait WorkflowSource extends SourceCode
