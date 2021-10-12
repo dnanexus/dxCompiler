@@ -17,6 +17,7 @@ class ParameterLinkTest extends AnyFlatSpec with Matchers {
   private val dxApi = DxApi()(Logger.Quiet)
   private val dxProtocol = DxFileAccessProtocol(dxApi)
   private val fileResolver = FileSourceResolver.create(userProtocols = Vector(dxProtocol))
+  // TODO: test pathsAsObjects = true
   private val parameterLinkSerializer = ParameterLinkSerializer(fileResolver, dxApi)
   private val parameterLinkDeserializer = ParameterLinkDeserializer(DxFileDescCache.empty, dxApi)
 

@@ -3,14 +3,12 @@
     "checksum": "sha1$301a72c82a835e1737caf30f94d0eec210c4d9f1",
     "class": "File",
     "size": 5,
-    "location": "Any",
-    "path": "Any"
+    "path": "out.txt"
   },
   "basename-fields-test.rootFile": {
     "checksum": "sha1$b4a583c391e234cf210e1d576f68f674c8ad7ecd",
     "class": "File",
     "size": 10,
-    "location": "Any",
-    "path": "Any"
+    "path": "out.txt"
   }
 }

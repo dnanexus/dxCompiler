@@ -15,7 +15,6 @@ Prerequisites:
 
 Make sure you've installed the dx-toolkit CLI, and initialized it with `dx login`. Download the latest compiler jar file from the [releases](https://github.com/dnanexus/dxCompiler/releases) page.
 
-
 ## Example workflow
 
 The `bam_chrom_counter` workflow is written in WDL. Task `slice_bam` splits a bam file into an array of sub-files. Task
@@ -109,12 +108,17 @@ dxCompiler uses [wdlTools](https://github.com/dnanexus-rnd/wdlTools), a parser t
 
 ## Limitations
 
-* Calls with missing arguments have [limited support](doc/ExpertOptions.md#task-and-workflow-inputs).
-* WDL Workflows with forward references are not yet supported.
-* The new `Directory` type in WDL development/2.0 is not yet supported.
-* All task and workflow names must be unique across the entire import tree
-  * For example, if `A.wdl` imports `B.wdl` and `A.wdl` defines `workflow foo`, then `B.wdl` could not have a workflow or task named `foo`
-* The [alternative workflow output syntax](https://github.com/openwdl/wdl/blob/main/versions/draft-2/SPEC.md#outputs) that has been deprecated since WDL draft2 is not supported
+* WDL and CWL
+  * Calls with missing arguments have [limited support](doc/ExpertOptions.md#task-and-workflow-inputs).
+  * All task and workflow names must be unique across the entire import tree
+    * For example, if `A.wdl` imports `B.wdl` and `A.wdl` defines `workflow foo`, then `B.wdl` could not have a workflow or task named `foo`
+  * The `Directory` type is only supported in stand-alone tasks, not yet in workflows
+* WDL only
+  * Workflows with forward references (i.e. a variable referenced before it is declared) are not yet supported.
+  * The [alternative workflow output syntax](https://github.com/openwdl/wdl/blob/main/versions/draft-2/SPEC.md#outputs) that has been deprecated since WDL draft2 is not supported
+* CWL only
+  * Nested workflows (i.e. a workflow step calling another workflow) are not yet supported
+  * In-line processes in workflow steps must have explicit IDs
 
 ## Additional information
 

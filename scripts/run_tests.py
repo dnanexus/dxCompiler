@@ -45,7 +45,18 @@ expected_failure = {
     "iwd-container-entryname3",
     "iwd-container-entryname4",
     "loadContents-limit",
-    "cond-wf-003.3"
+    "cond-wf-003.3",
+    "cond-wf-004.1",
+    "cond-wf-005",
+    "cond-wf-006.1",
+    "cond-wf-012",
+    "cond-wf-003-1.1",
+    "cond-wf-003-1_nojs.1",
+    "cond-wf-004_nojs.1",
+    "cond-wf-005_nojs",
+    "cond-wf-006_nojs.1",
+    "cond-wf-012_nojs",
+    "fail-unconnected",
 }
 
 test_compilation_failing = {"import_passwd"}
@@ -443,8 +454,8 @@ medium_test_list = (
     wdl_v1_list + wdl_v1_1_list + docker_test_list + special_flags_list + cwl_tools
 )
 large_test_list = (
-    medium_test_list + draft2_test_list + single_tasks_list + doc_tests_list + long_test_list + cwl_conformance_tools +
-    cromwell_tests_list
+    medium_test_list + draft2_test_list + single_tasks_list + doc_tests_list + long_test_list +
+    cwl_conformance_tools + cwl_conformance_workflows + cromwell_tests_list
 )
 
 test_suites = {
@@ -765,7 +776,6 @@ def compare_result_file(result, expected_val, field_name, tname, project, verbos
         if size is None and contents is not None:
             size = len(contents)
         if size != expected_val["size"]:
-            print(type(size), type(expected_val["size"]))
             if verbose:
                 cprint("Analysis {} gave unexpected results".format(tname), "red")
                 cprint(
@@ -956,8 +966,7 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
     # Extract the key. For example, for workflow "math" returning
     # output "count":
     #    'math.count' -> count
-    exec_name = key.split(".")[0]
-    field_name_parts = key.split(".")[1:]
+    (exec_name, *field_name_parts) = key.split(".")
 
     field_name1 = ".".join(field_name_parts)
     # convert dots to ___
@@ -984,7 +993,7 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
             )
             return False
 
-        # Sorte two lists of dicts to make them comparable. Given lists of dicts a and b:
+        # Sort two lists of dicts to make them comparable. Given lists of dicts a and b:
         # 1. get the set of all keys in all dicts in both lists
         # 2. expand each dict into a list of tuples where the first element is the key and the
         # second element is the value (which may be None if the dict does not contain the key)
@@ -1005,6 +1014,15 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
                     for x in list(sorted([(k, j.get(k)) for k in all_keys] for j in b))
                 ]
             )
+
+        def sort_maybe_mixed(seq):
+            try:
+                # may fail if the lists contain mutliple types of values
+                return list(sorted(seq))
+            except:
+                d = dict((str(x), x) for x in seq)
+                sorted_keys = list(sorted(d.keys()))
+                return [d[k] for k in sorted_keys]
 
         def compare_values(expected, actual, field):
             if isinstance(actual, dict) and "___" in actual:
@@ -1035,8 +1053,9 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
                     if isinstance(actual[0], dict):
                         actual, expected = sort_dicts(actual, expected)
                     else:
-                        actual = list(sorted(actual))
-                        expected = list(sorted(expected))
+                        actual = sort_maybe_mixed(actual)
+                        expected = sort_maybe_mixed(expected)
+
                 for i, (e, a) in enumerate(zip(expected, actual)):
                     if not compare_values(e, a, "{}[{}]".format(field, i)):
                         return False
@@ -1169,13 +1188,14 @@ def wait_for_completion(test_exec_objs):
         desc = test_files[tname]
         try:
             exec_obj.wait_on_done()
-            print("Executable {}.{} succeeded".format(desc.name, i))
-            successes.append((i, exec_obj))
+            print("Analysis {}.{} succeeded".format(desc.name, i))
+            successes.append((i, exec_obj, True))
         except DXJobFailureError:
             if tname in expected_failure or "{}.{}".format(tname, i) in expected_failure:
-                print("Executable {}.{} failed as expected".format(desc.name, i))
+                print("Analysis {}.{} failed as expected".format(desc.name, i))
+                successes.append((i, exec_obj, False))
             else:
-                cprint("Error: executable {}.{} failed".format(desc.name, i), "red")
+                cprint("Error: analysis {}.{} failed".format(desc.name, i), "red")
                 failures.append((tname, exec_obj))
     print("tools execution completed")
     return successes, failures
@@ -1198,19 +1218,19 @@ def run_executable(
             project.new_folder(test_folder, parents=True)
             if desc.kind == "workflow":
                 exec_obj = dxpy.DXWorkflow(project=project.get_id(), dxid=oid)
+                run_kwargs = {"ignore_reuse_stages": ["*"]}
             elif desc.kind == "applet":
                 exec_obj = dxpy.DXApplet(project=project.get_id(), dxid=oid)
+                run_kwargs = {"ignore_reuse": True}
             else:
                 raise RuntimeError("Unknown kind {}".format(desc.kind))
 
-            run_kwargs = {}
             if debug_flag:
-                run_kwargs = {
-                    "debug": {
-                        "debugOn": ["AppError", "AppInternalError", "ExecutionError"]
-                    },
-                    "allow_ssh": ["*"],
+                run_kwargs["debug"] = {
+                    "debugOn": ["AppError", "AppInternalError", "ExecutionError"]
                 }
+                run_kwargs["allow_ssh"] = ["*"]
+
             if delay_workspace_destruction:
                 run_kwargs["delay_workspace_destruction"] = True
             if instance_type:
@@ -1308,10 +1328,15 @@ def run_test_subset(
     def verify_test(exec_obj, i):
         exec_desc = exec_obj.describe()
         tname = find_test_from_exec(exec_obj)
-        if tname in expected_failure:
-            return None
         test_desc = test_files[tname]
-        exec_outputs = extract_outputs(tname, exec_desc)
+        try:
+            exec_outputs = extract_outputs(tname, exec_desc)
+        except:
+            if tname in expected_failure or "{}.{}".format(tname, i) in expected_failure:
+                print("Analysis {}.{} failed as expected".format(tname, i))
+                return None
+            else:
+                raise
         if len(test_desc.results) > i:
             shouldbe = read_json_file_maybe_empty(test_desc.results[i])
             correct = True
@@ -1321,16 +1346,29 @@ def run_test_subset(
                     correct = False
                     break
             if correct:
-                print("Analysis {} passed".format("{}.{}".format(tname, i)))
-                return None
+                if tname in expected_failure or "{}.{}".format(tname, i) in expected_failure:
+                    cprint(
+                        "Error: analysis {}.{} was expected to fail but its results are valid".format(test_desc.name, i),
+                        "red"
+                    )
+                    return tname
+                else:
+                    print("Analysis {}.{} results are valid".format(test_desc.name, i))
+                    return None
             else:
-                return tname
+                if tname in expected_failure or "{}.{}".format(tname, i) in expected_failure:
+                    print("Analysis {}.{} results are invalid as expected".format(test_desc.name, i))
+                    return None
+                else:
+                    cprint("Error: analysis {}.{} results are invalid".format(test_desc.name, i), "red")
+                    return tname
 
     failed_verifications = []
-    for i, exec_obj in successful_executions:
-        failed_name = verify_test(exec_obj, i)
-        if failed_name is not None:
-            failed_verifications.append(failed_name)
+    for i, exec_obj, verify in successful_executions:
+        if verify:
+            failed_name = verify_test(exec_obj, i)
+            if failed_name is not None:
+                failed_verifications.append(failed_name)
 
     print("-----------------------------")
     print(f"Total tests: {len(test_exec_objs)}")

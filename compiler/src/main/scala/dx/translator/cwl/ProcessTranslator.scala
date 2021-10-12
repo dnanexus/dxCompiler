@@ -10,24 +10,24 @@ import dx.core.ir.{
   Callable,
   CallableAttribute,
   DxName,
-  StageInputEmpty,
   ExecutableKindApplet,
   ExecutableKindWfCustomReorgOutputs,
   ExecutableKindWfFragment,
   ExecutableKindWfOutputs,
   InstanceTypeSelection,
   Level,
-  StageInputStageLink,
   Parameter,
   ParameterAttribute,
   SourceCode,
   Stage,
   StageInput,
+  StageInputEmpty,
+  StageInputStageLink,
   StageInputStatic,
+  StageInputWorkflowLink,
   Type,
   Value,
-  Workflow,
-  StageInputWorkflowLink
+  Workflow
 }
 import dx.core.languages.cwl.{
   CwlBlock,
@@ -139,7 +139,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         inheritedHints ++ tool.hints,
         Map.empty,
         DxWorkerPaths.default,
-        defaultRuntimeAttrs = cwlDefaultRuntimeAttrs
+        defaultRuntimeAttrs = cwlDefaultRuntimeAttrs,
+        fileResolver = fileResolver
     )
     private lazy val dxHints = requirementEvaluator.getHintOfType[DxHints].map {
       case (dxHints: DxHints, _) => dxHints
@@ -254,8 +255,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
             fileUri ++ f.secondaryFiles.flatMap(extractPaths)
           case d: DirectoryValue if d.location.isDefined =>
             fileResolver.resolveDirectory(d.location.get) match {
-              case DxFolderSource(dxProject, dxFolder) =>
-                Vector(DxFolderSource.format(dxProject, dxFolder))
+              case fs: DxFolderSource => Vector(fs.address)
               case local: LocalFileSource =>
                 logger.warning(
                     s"""InitialWorkDirRequirement in ${tool.name} or one of its ancestors 
@@ -826,7 +826,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       val (stages, auxCallables) = allStageInfo.unzip
 
       // convert the outputs into an applet+stage
-      val (outputStage, outputApplet) = createOutputStage(wf.name, outputs, Vector.empty, env)
+      val (outputStage, outputApplet) =
+        createOutputStage(wf.name, outputs, Vector.empty, env)
 
       val wfInputs = commonAppletInputs.map(param => (param, StageInputEmpty))
       val wfOutputs =

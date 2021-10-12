@@ -33,10 +33,10 @@ object Type {
     * same type. Some languages (e.g. WDL) have a quantifier to specify that
     * the array must be non-empty - this does not change how the array is
     * represented, but an error may be thrown if the array value is empty.
-    * @param t inner type
+    * @param itemType inner type
     * @param nonEmpty whether the array must not be empty
     */
-  case class TArray(t: Type, nonEmpty: Boolean = false) extends TCollection
+  case class TArray(itemType: Type, nonEmpty: Boolean = false) extends TCollection
 
   /**
     * A JSON object.
@@ -115,9 +115,8 @@ object Type {
     t match {
       case _: TOptional  => true
       case TMulti(types) =>
-        // a multi-type is considered optional if any of its
-        // alternative types is optional, regardless of whether
-        // it is wrapped in TOptional
+        // a multi-type is considered optional if any of its alternative types is optional,
+        // regardless of whether it is wrapped in TOptional
         types.exists(isOptional)
       case _ => false
     }
@@ -183,27 +182,16 @@ object Type {
     } else if (distinct.size == 1) {
       distinct.head
     } else {
-      def reduceTypes(t1: Type, t2: Type): Type = {
-        (t1, t2) match {
-          case (t1, TMulti.Any)         => t1
-          case (TMulti.Any, t2)         => t2
-          case (TMulti(t1), TMulti(t2)) => merge(t1 ++ t2)
-          case (t1, TMulti(t2))         => merge(t1 +: t2)
-          case (TMulti(t1), t2)         => merge(t1 :+ t2)
-          case (t1, TOptional(t2))      => TOptional(reduceTypes(t1, t2))
-          case (TOptional(t1), t2)      => TOptional(reduceTypes(t1, t2))
-          case (TInt, TFloat)           => TFloat
-          case (TFloat, TInt)           => TFloat
-          case (enum: TEnum, TString)   => enum
-          case (TString, enum: TEnum)   => enum
-          case (schema: TSchema, THash) => schema
-          case (THash, schema: TSchema) => schema
-          case (TArray(i1, n1), TArray(i2, n2)) =>
-            TArray(reduceTypes(i1, i2), n1 || n2)
-          case (t1, t2) => TMulti(Vector(t1, t2))
-        }
+      val (nonOptTypes, optional) = distinct.foldLeft(Set.empty[Type], false) {
+        case ((accu, _), TOptional(t)) => (accu + t, true)
+        case ((accu, optional), t)     => (accu + t, optional)
       }
-      distinct.reduce(reduceTypes)
+      (nonOptTypes.toVector, optional) match {
+        case (Vector(t), true) => TOptional(t)
+        case (Vector(t), _)    => t
+        case (v, true)         => TMulti(v.map(TOptional))
+        case (v, _)            => TMulti(v)
+      }
     }
   }
 }
