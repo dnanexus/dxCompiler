@@ -2,6 +2,7 @@ package dx.executor.cwl
 
 import dx.api.{DxFile, InstanceTypeRequest}
 import dx.core.Constants
+import dx.core.io.StreamFiles
 import dx.cwl._
 import dx.cwl.Document.Document
 import dx.core.io.StreamFiles

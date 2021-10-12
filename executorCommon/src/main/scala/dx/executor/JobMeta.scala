@@ -375,6 +375,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
 
   protected lazy val dxFileDescCache: DxFileDescCache = DxFileDescCache(allFilesReferenced)
 
+  protected lazy val dxFileDescCache: DxFileDescCache = DxFileDescCache(allFilesReferenced)
+
   lazy val inputDeserializer: ParameterLinkDeserializer =
     ParameterLinkDeserializer(dxFileDescCache, dxApi)
 
@@ -523,6 +525,35 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
       requiredInputs ++ callNameInputs
     } else {
       inputsJs
+    }
+  }
+
+  def waitOnUpload: Boolean = true
+
+  def uploadOutputFiles(
+      localFiles: Map[String, Vector[Path]],
+      tagsAndProperties: Map[String, (Set[String], Map[String, String])] = Map.empty
+  ): Map[Path, DxFile] = {
+    if (localFiles.isEmpty) {
+      Map.empty
+    } else {
+      val filesToUpload = localFiles.flatMap {
+        case (name, paths) =>
+          val (tags, properties) =
+            tagsAndProperties.getOrElse(name, (Set.empty[String], Map.empty[String, String]))
+          paths.map { path =>
+            // if using manifests, we need to upload the files directly to the project
+            val dest = if (useManifests) {
+              Some(s"${manifestFolder}/${path.getFileName.toString}")
+            } else {
+              None
+            }
+            path -> FileUpload(path, dest, tags, properties)
+          }.toMap
+      }
+      dxApi.uploadFiles(filesToUpload.values.toSet,
+                        waitOnUpload = waitOnUpload,
+                        maxConcurrent = JobMeta.MaxConcurrentUploads)
     }
   }
 
