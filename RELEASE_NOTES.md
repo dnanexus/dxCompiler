@@ -1,6 +1,6 @@
 # Release Notes
 
-## 2.6.0 2021-09-24
+## 2.6.0 2021-10-11
 
 * Implements `Directory` support for CWL and for WDL development/2.0
 * Implements CWL `secondaryFiles` support
