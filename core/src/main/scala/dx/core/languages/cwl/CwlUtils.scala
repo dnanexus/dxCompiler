@@ -400,7 +400,7 @@ object CwlUtils {
           val keys2 = record.fields.keySet
           if (!keys1.subsetOf(keys2)) {
             throw new Exception(
-                s"struct definition: ${keys1}, has members that do not appear in struct ${record.name}"
+                s"keys (${keys1}) have members that do not appear in struct ${record.name}"
             )
           }
           val missingNonOptional =
