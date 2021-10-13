@@ -8,18 +8,20 @@ These are workflow tests that we are currently ignoring.
     * count-lines11-null-step-wf
     * count-lines11-null-step-wf-noET
 * input_schema-def: missing a.bam file referenced in input
-
-## Non-required tests that we currently can't support
-
-* Requires a step input to be linked to a workflow input and also to have a default value that is used if the workflow input is unspecified.
-    * dynresreq-workflow-stepdefault
-    * count-lines11-wf1 (inputs/results renamed with 'ignore_' prefix because the wf is still used for other tests)
+* cond-wf-011* output type is `array[array[array[string]]]`, but the third-level array can contain nulls and thus should be optional
 
 ## Tests that can't be run due to bugs in cwltool or cwljava
 
 * parse error
     * record-in-secondaryFiles-wf
     * schemadef-wf
+* cwltool `--single-step` does not work for steps in nested workflows ([issue](https://github.com/common-workflow-language/cwltool/issues/1530))
+    * count-lines8-wf
+    * count-lines8-wf-noET
+* cwltool `--single-step` does not apply inherited requirements and hints
+    * env-wf2
+    * env-wf3
+    * inpdir_update_wf
 * anonymous processes with no ID: the auto-generated ID is not stable ([issue](https://github.com/common-workflow-language/cwltool/issues/1520))
     * count-lines2-wf
     * io-file-default-wf
@@ -45,3 +47,5 @@ These are workflow tests that we are currently ignoring.
     * wf-loadContents2
     * wf-loadContents3
     * wf-loadContents4
+    * iwdr_with_nested_dirs
+    * inpdir_update_wf

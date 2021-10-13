@@ -1066,7 +1066,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       val (stages, auxCallables) = allStageInfo.unzip
 
       // convert the outputs into an applet+stage
-      val (outputStage, outputApplet) = createOutputStage(wf.name, outputs, Vector.empty, env)
+      val (outputStage, outputApplet) =
+        createOutputStage(wf.name, outputs, Vector.empty, env)
 
       val wfInputs = commonAppletInputs.map(param => (param, StageInputEmpty))
       val wfOutputs =

@@ -76,6 +76,8 @@ object Value {
   case class VArray(items: Vector[Value]) extends Value
 
   object VArray {
+    val empty: VArray = VArray(Vector())
+
     def apply(items: Value*): VArray = {
       VArray(items.toVector)
     }

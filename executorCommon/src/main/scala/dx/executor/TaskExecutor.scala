@@ -1,7 +1,7 @@
 package dx.executor
 
 import java.nio.file.{Files, Path}
-import dx.api.{DxFile, DxJob, FileUpload, InstanceTypeRequest}
+import dx.api.{DxFile, DxJob, DxPath, FileUpload, InstanceTypeRequest}
 import dx.core.getVersion
 import dx.core.io.{
   DxdaManifest,
@@ -152,44 +152,44 @@ abstract class TaskExecutor(jobMeta: JobMeta,
           }
         }
 
+        // gets the listing for a folder - if the folder does not exist, returns an empty listing
         def getFolderListing(uri: String): Vector[FileSource] = {
-          fileResolver.resolveDirectory(uri) match {
-            case fs if !fs.exists =>
-              throw new Exception(s"Directory-type input does not exist: ${fs}")
-            case fs if !fs.isDirectory =>
-              throw new Exception(s"Directory-type input is not a directory: ${fs}")
-            case fs if !fs.isListable =>
-              throw new Exception(s"Cannot get listing for Directory-type input: ${fs}")
-            case fs => fs.listing(recursive = true)
+          val fs =
+            try {
+              fileResolver.resolveDirectory(uri)
+            } catch {
+              case _: Throwable => return Vector()
+            }
+          if (!fs.isDirectory) {
+            throw new Exception(s"Directory-type input is not a directory: ${fs}")
+          }
+          if (fs.exists && fs.isListable) {
+            fs.listing(recursive = true)
+          } else {
+            Vector()
           }
         }
 
         (t, value) match {
           case (Some(TFile) | None, file: VFile) if file.contents.nonEmpty =>
             virtualFiles :+= StringFileNode(file.contents.get, file.uri)
-            Some(file.copy(contents = None))
+            Some(file.copy(contents = None, secondaryFiles = updateListing(file.secondaryFiles)))
           case (Some(TFile) | None, file: VFile) =>
             handleFileUri(file.uri)
             Some(file.copy(secondaryFiles = updateListing(file.secondaryFiles)))
           case (Some(TFile), VString(uri)) =>
             handleFileUri(uri)
             Some(VFile(uri))
-          case (Some(TDirectory) | None, folder: VFolder) =>
+          case (Some(TDirectory) | None, folder: VFolder) if folder.listing.isEmpty =>
             // fill in the listing if it is not provided
-            Option
-              .when(folder.listing.isEmpty)(getFolderListing(folder.uri))
-              .filter(_.nonEmpty)
-              .map { listing =>
-                val updatedListing = createListing(listing)
-                folder.copy(listing = Some(updatedListing))
-              }
-              .orElse(Some(folder))
+            Some(folder.copy(listing = Some(createListing(getFolderListing(folder.uri)))))
+          case (Some(TDirectory) | None, folder: VFolder) =>
+            Some(folder.copy(listing = Some(updateListing(folder.listing.get))))
           case (Some(TDirectory), VString(uri)) =>
             val listing = Some(getFolderListing(uri)).filter(_.nonEmpty).map(createListing)
             Some(VFolder(uri, listing = listing))
           case (Some(TDirectory) | None, listing: VListing) =>
-            val updatedItems = updateListing(listing.items)
-            Some(listing.copy(items = updatedItems))
+            Some(listing.copy(items = updateListing(listing.items)))
           case _ => None
         }
       }
@@ -218,7 +218,23 @@ abstract class TaskExecutor(jobMeta: JobMeta,
           }
           uri -> (TDirectory, resolved)
         case uri =>
-          val resolved = handler.apply(VFile(uri), Some(TFile)) match {
+          // update the URI to match the uri of a raw input to avoid downloading the same file twice
+          // e.g. the file is stored in the static dependencies and is also the default value in a
+          // field and is not overridden - we'd get the same file twice, but in the first case the
+          // uri is `dx://file-xxx::/path/to/file` and in the second it might be
+          // `dx://project-xxx:/path/to/file` or `dx://project-xxx:file-yyy`.
+          // TODO: a better way to handle duplicate files with different URIs would be to add
+          //  another layer of indirection, such that all URIs that resolve to the same file ID
+          //  map to the same "cannonical" AddressableFileSource
+          val uriToResolve = fileResolver.resolve(uri) match {
+            case fs: DxFileSource =>
+              DxFile.format(fs.dxFile.id,
+                            fs.dxFile.describe().folder,
+                            fs.dxFile.describe().name,
+                            None)
+            case _ => uri
+          }
+          val resolved = handler.apply(VFile(uriToResolve), Some(TFile)) match {
             case Some(f: VFile) => f
             case other          => throw new Exception(s"expected VFile, not ${other}")
           }
@@ -282,7 +298,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
           }
           pathToUri += (newPath -> f.uri)
           // recursively resolve the secondary files, linking them to be adjacent to the main file
-          val newSecondaryFiles = finalizeListing(f.secondaryFiles, parentDir)
+          val newSecondaryFiles = finalizeListing(f.secondaryFiles, newPath.getParent)
           Some(f.copy(uri = newPath.toString, secondaryFiles = newSecondaryFiles))
         case (Some(TDirectory) | None, f: VFolder) if f.listing.isDefined =>
           // link all the files/subdirectories in the listing into the parent folder
@@ -649,15 +665,11 @@ abstract class TaskExecutor(jobMeta: JobMeta,
                               uploadedDirectories: Map[Path, String],
                               localPathToUri: Map[Path, String],
                               listings: Listings): Map[DxName, (Type, Value)] = {
-    // For folders/listings, we have to determine the project output folder,
-    // because the platform won't automatically update directory URIs like
-    // it does for data object links. The output folder is either the manifest
-    // folder or the concatination of the job/analysis output folder and the
-    // container output folder.
-    // TODO: currently, this only works for one level of job nesting -
-    //  we probably need to get all the output folders all the way up
-    //  the job tree and join them all
-    val defaultFolderParent = DxFolderSource.ensureEndsWithSlash(jobMeta.projectOutputFolder)
+    // For folders/listings, we have to determine the project output folder, because the platform
+    // won't automatically update directory URIs like it does for data object links. The output
+    // folder is either the manifest folder or the concatination of the job/analysis output folder
+    // and the container output folder.
+    val parentProjectFolder = DxFolderSource.ensureEndsWithSlash(jobMeta.projectOutputFolder)
 
     // replace local paths with remote URIs
     def handlePath(value: PathValue,
@@ -698,7 +710,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
               VNull
             case local: LocalFileSource if uploadedDirectories.contains(local.canonicalPath) =>
               // a folder that was uploaded
-              val folderParent = parent.getOrElse(defaultFolderParent)
+              val folderParent = parent.getOrElse(parentProjectFolder)
               val name = f.basename.getOrElse(local.canonicalPath.getFileName.toString)
               val folder = DxFolderSource.join(folderParent, name)
               VFolder(
@@ -719,7 +731,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
             case _ => f
           }
         case (Some(TDirectory) | None, l: VListing) =>
-          val folderParent = parent.getOrElse(defaultFolderParent)
+          val folderParent = parent.getOrElse(parentProjectFolder)
           val folder = DxFolderSource.join(folderParent, l.basename)
           VFolder(
               DxFolderSource.format(dxApi.currentProject.get, folder),
@@ -930,7 +942,20 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       Map.empty
     }
 
-    val uriToSourcePath = virtualUriToPath ++ localUriToPath ++ downloadUriToPath ++ streamUriToPath
+    val uriToSourcePath =
+      (virtualUriToPath ++ localUriToPath ++ downloadUriToPath ++ streamUriToPath).flatMap {
+        case (uri, path) =>
+          // add alternate forms of dx URIs that may be needed for lookup later
+          fileResolver.resolve(uri) match {
+            case fs: DxFileSource =>
+              Set(
+                  Some(uri),
+                  Some(s"${DxPath.DxUriPrefix}${fs.dxFile.id}"),
+                  fs.dxFile.project.map(proj => s"${DxPath.DxUriPrefix}${proj.id}:${fs.dxFile.id}")
+              ).flatten.map(uri => uri -> path)
+            case _ => Set(uri -> path)
+          }
+      }
 
     // Finalize all input files, folders, and listings.
     // - For a file that is not in the context of a folder:

@@ -103,6 +103,8 @@ object ValueSerde extends DefaultJsonProtocol {
     *                If Right(jsValue) is returned, then jsValue is the result of the
     *                transformation. If Left(newValue) is returned, then newValue is
     *                transformed according to the default rules.
+    * @param pathsAsObjects whether to serialize path types (File and Directory) as Objects
+    *                       rather than Strings.
     * @return
     */
   def serialize(value: Value,
@@ -130,7 +132,7 @@ object ValueSerde extends DefaultJsonProtocol {
   }
 
   /**
-    * Wrap value of associated with `Any` type.
+    * Wrap value for a multi-type (including `Any`)
     */
   def wrapValue(jsValue: JsValue, mustNotBeWrapped: Boolean = false): JsValue = {
     jsValue match {
@@ -197,15 +199,12 @@ object ValueSerde extends DefaultJsonProtocol {
         serialize(innerValue, handlerWrapper)
       } else {
         innerMultiType.bounds.iterator
-          .map { t =>
+          .collectFirstDefined { t =>
             try {
               Some(inner(innerValue, t))
             } catch {
               case _: Throwable => None
             }
-          }
-          .collectFirst {
-            case Some(t) => t
           }
           .getOrElse(
               throw new Exception(s"value ${value} not serializable to ${innerMultiType.bounds}")
