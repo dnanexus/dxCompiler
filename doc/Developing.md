@@ -208,9 +208,7 @@ dxCompiler can be released from Github. The release pipeline (optionally) runs l
 
 If you encounter any additional issues while creating the release, you will need to make the fixes in `develop` and then merge them into the release branch.
 
-To complete the release, open a PR to merge the release branch into main. You can then delete the release branch.
-
-Following the release, it is also nice to bump the SNAPSHOT versions in the `develop` branch.
+Following the release, you need to merge `RELEASE_NOTES.md` from the release branch into develop. If you released from `HEAD`, then you also need to bump the SNAPSHOT versions in the `develop` branch using the `scripts/update_versions.sh` script.
 
 ### Releasing manually
 
