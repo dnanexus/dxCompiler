@@ -1731,9 +1731,50 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
       .map(_.decodedIdentifier) shouldBe Set("in1", "in2", "in3", "target")
   }
 
+  it should "translate a CWL workflow with stage input with linkMerge" in {
+    val path = pathFromBasename("cwl", "count-lines-19-wf.cwl.json")
+    val args = path.toString :: cFlags
+    val bundle = Main.compile(args.toVector) match {
+      case SuccessfulCompileIR(bundle) => bundle
+      case other                       => throw new Exception(s"expected success not ${other}")
+    }
+    val wf = bundle.primaryCallable match {
+      case Some(wf: Workflow) => wf
+      case other              => throw new Exception(s"expected workflow not ${other}")
+    }
+    val stageApplet = bundle.allCallables(wf.stages.head.calleeName) match {
+      case applet: Application => applet
+      case other               => throw new Exception(s"expected applet not ${other}")
+    }
+    stageApplet.kind should matchPattern {
+      case ExecutableKindWfFragment(Some("wc3-tool.cwl"), Vector(0), _, None) =>
+    }
+  }
+
   it should "translate a WDL workflow with dx runtime attributes" in {
     val path = pathFromBasename("bugs", "dx_runtime_keys.wdl")
     val args = path.toString :: cFlags
     Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
+  }
+
+  it should "translate a CWL workflow with a step input source and default value" in {
+    val path = pathFromBasename("cwl", "dynresreq-workflow-stepdefault.cwl.json")
+    val args = path.toString :: cFlags
+    val bundle = Main.compile(args.toVector) match {
+      case SuccessfulCompileIR(bundle) => bundle
+      case other                       => throw new Exception(s"expected success not ${other}")
+    }
+    val wf = bundle.primaryCallable match {
+      case Some(wf: Workflow) => wf
+      case other              => throw new Exception(s"expected workflow not ${other}")
+    }
+    wf.stages.size shouldBe 2
+    val stage0Applet = bundle.allCallables(wf.stages(0).calleeName) match {
+      case applet: Application => applet
+      case other               => throw new Exception(s"expected applet not ${other}")
+    }
+    stage0Applet.kind should matchPattern {
+      case ExecutableKindWfFragment(_, _, _, _) =>
+    }
   }
 }

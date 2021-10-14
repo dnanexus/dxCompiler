@@ -85,7 +85,8 @@ case class Compiler(extras: Option[Extras],
   }
 
   private case class BundleCompiler(bundle: Bundle, project: DxProject, folder: String) {
-    private val parameterLinkSerializer = ParameterLinkSerializer(fileResolver)
+    private val parameterLinkSerializer =
+      ParameterLinkSerializer(fileResolver, dxApi = dxApi, pathsAsObjects = complexPathValues)
     // directory of the currently existing applets - we don't want to build them
     // if we don't have to.
     private val executableDir =

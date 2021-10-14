@@ -29,6 +29,7 @@ object Constants {
   val ParseOptions = "parseOptions"
   val Language = "language"
   val ScatterChunkSize = "scatterChunkSize"
+  val ScatterChunkIndex = "scatterChunkIndex"
   val Checksum = "checksum"
   val Version = "version"
   val DockerImage = "dockerImage"
@@ -42,6 +43,7 @@ object Constants {
   // keys used in details of jobs of native applets
   val ContinueStart = "continue_start___"
   val OutputShape = "output_shape___"
+  val SkippedIndices = "skipped_indices___"
 
   // stages that the compiler uses in generated DNAx workflows
   val CommonStage = "common"

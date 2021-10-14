@@ -785,7 +785,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
       throw new Exception(s"Invalid value ${other} for ${Constants.ScatterChunkSize}")
   }
 
-  lazy val outputShape: Option[Vector[Int]] = getJobDetail(Constants.OutputShape).map {
+  lazy val scatterOutputShape: Option[Vector[Int]] = getJobDetail(Constants.OutputShape).map {
     case JsArray(arr) =>
       arr.map {
         case JsNumber(i) => i.toIntExact
@@ -793,6 +793,17 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
       }
     case other =>
       throw new Exception(s"invalid ${Constants.OutputShape} value ${other}")
+  }
+
+  lazy val scatterSkippedIndices: Option[Set[Int]] = getJobDetail(Constants.SkippedIndices).map {
+    case JsArray(indices) =>
+      indices.map {
+        case JsNumber(n) if n.isValidInt => n.toIntExact
+        case other =>
+          throw new Exception(s"invalid skipped index value ${other}")
+      }.toSet
+    case other =>
+      throw new Exception(s"invalid ${Constants.SkippedIndices} value ${other}")
   }
 
   lazy val useManifests: Boolean = getExecutableDetail(Constants.UseManifests) match {
@@ -854,7 +865,6 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths,
       logger.traceLimited(s"""Job script function ${name} exited with success code ${rc}
                              |stdout:
                              |${stdout}""".stripMargin)
-
     } else {
       logger.error(s"""Job script function ${name} exited with permanent fail code ${rc}
                       |stdout:

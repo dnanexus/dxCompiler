@@ -295,12 +295,11 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     )
     val applicationMeta = applet.attributes.collect {
       case DeveloperNotesAttribute(text) => "developerNotes" -> JsString(text)
-      // These are currently ignored because they only apply to apps
-      //case VersionAttribute(text) => Some("version" -> JsString(text))
-      //case OpenSourceAttribute(isOpenSource) =>
-      //  Some("openSource" -> JsBoolean(isOpenSource))
-      //case CategoriesAttribute(categories) =>
-      //  Some("categories" -> categories.mapValues(anyToJs))
+      case VersionAttribute(text)        => "version" -> JsString(text)
+      case OpenSourceAttribute(isOpenSource) =>
+        "openSource" -> JsBoolean(isOpenSource)
+      case CategoriesAttribute(categories) =>
+        "categories" -> JsArray(categories.map(JsString(_)))
     }
     // Default details and those specified in the source file can be overridden
     // by task-specific extras
