@@ -118,7 +118,7 @@ wdl_v1_list = [
 
 wdl_v1_1_list = [
     "v1_1_dict",
-    "inputs_not_provided_optional",
+    "optional_missing",
     "inputs_provided_optional",
 
     # bug regression tests
