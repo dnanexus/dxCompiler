@@ -21,6 +21,25 @@
     ```
 * Updates dxCommon, dxApi, dxFileAccessProtocols, wdlTools, and cwlScala dependencies
 
+### Dependency updates
+
+dxCommon 0.8.0
+* Adds `getTargetDir` methods to `LocalizationDisambiguator`
+* Fixes use of `localizationDir` together with `force` in `SafeLocalizationDisambiguator`
+* Adds `FileSource.resolveDirectory` as a separate method from `resolve`
+
+dxApi 0.10.0
+* Removes price-based selection of instance types in favor of rank-based selection
+* Fixes parsing of non-file-type default values that are reference-type links
+* Fixes parsing of parameter defaults/suggestions/choices that are of type `Hash`
+
+dxFileAccessProtocols 0.5.0
+* Implements `resolveDirectory` method
+
+wdlTools
+
+cwlScala
+
 ## 2.5.0 2021-09-14
 
 * Docker image dependencies that are DNAnexus platform files are included in applet's bundledDepends
