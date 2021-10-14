@@ -36,7 +36,10 @@ dxApi 0.10.0
 dxFileAccessProtocols 0.5.0
 * Implements `resolveDirectory` method
 
-wdlTools
+wdlTools 0.17.1
+* Fixes parsing of placeholder options in draft-2 and 1.0 such that `default` and `sep` are no longer treated as reserved words
+* **Breaking Change** `Eval.applyMap` is changed to `Eval.applyAll` and takes a `Vector` rather than `Map` argument. This is done to ensure the expressions are evaluated in order in case there are dependencies between them.
+* Fixes parsing of `runtime.returnCodes`
 
 cwlScala
 
