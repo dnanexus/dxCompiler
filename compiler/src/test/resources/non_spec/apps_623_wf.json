@@ -1,0 +1,208 @@
+{
+    "id": "workflow-G63xF5j016p6P0YK9jqY1v5x",
+    "project": "project-G51b1Y8016pGB21VKf46f6ZK",
+    "class": "workflow",
+    "sponsored": false,
+    "name": "apps_623_wf",
+    "types": [],
+    "state": "closed",
+    "hidden": false,
+    "links": [
+        "applet-G63xF38016pJGp1233fqFJFp",
+        "applet-G63xF30016p7bq895qPQKYJq"
+    ],
+    "folder": "/wf",
+    "tags": [
+        "dxCompiler"
+    ],
+    "created": 1636291991000,
+    "modified": 1636291991717,
+    "createdBy": {
+        "user": "user-rnathans"
+    },
+    "properties": {},
+    "details": {
+        "link_apps_623_t1": {
+            "$dnanexus_link": "applet-G63xF30016p7bq895qPQKYJq"
+        },
+        "sourceCode": "H4sIAAAAAAAAAHWMQQrCMBBF9znFpxSqCGJacCG4cecpSpAEgyEJydQsQu7uWARBcDfzeP89dco2eMi9FKKE9DAuFKgY83wcp7kYVAFcQnBaeRDOoLRoRldPsPzyDLAGG9quKnBTzn0LJBm2t/TDx49ufVzotJ5ApsTNrq9cJNBdewx9ldjBtgHaZY1D6/4UJ9FeTf7A/88AAAA=",
+        "version": "2.6.1-SNAPSHOT",
+        "checksum": "8BCFFA753BC0C6AD690A8D0E88110B76",
+        "link_apps_623_t2": {
+            "$dnanexus_link": "applet-G63xF38016pJGp1233fqFJFp"
+        },
+        "execTree": "H4sIAAAAAAAAAJ2SXW+CMBSG/4rp1ZZgAu348tILyPBikCyLZjGkYiF8FyngQvjvQyUygWm223NOz/M+bWsQ+skeLECVHkI3SivAgQTHpK1gSnNbgsiu3LaYM+yRHCw+a+DgKCLtRA38/WUuImyuS+iovSi8INGVp4kWEjfSB1qa7dkO8ZrQguWTANtJ4zhNQNOB7G7kWv5JJUfiFAzvoi7PKAXiTynkXaaoYmZaq42R9SnecR5OZGACaLbchFFw2mXoVIAIuZlmaGW/SztgLyYJm3Zy26591pnzIzPfnT2x5z+bKcM09LEZnDYTz7cETSUoVWttwKUZ/sMMjsxOzdkNnbv/Zy6vJXvZWg1ENZD18rETGmFve3eJojIkfvXEt4L9/k3TrjmEX+vb5hueb7eOUgMAAA==",
+        "parseOptions": {
+            "regime": "Moderate"
+        }
+    },
+    "editVersion": 0,
+    "title": "apps_623_wf",
+    "summary": "",
+    "description": "# This workflow requires access to the following dependencies that are not packaged with the workflow\n## Task apps_623_t2\n* Network Docker image\n    * `ubuntu:20.04`\n## Task apps_623_t1\n* Network Docker image\n    * `ubuntu:20.04`",
+    "outputFolder": null,
+    "temporary": false,
+    "inputs": null,
+    "outputs": null,
+    "stages": [
+        {
+            "id": "stage-common",
+            "name": "common",
+            "executable": "applet-G63xF48016pKgF5Q35Y6V3BP",
+            "folder": null,
+            "input": {},
+            "executionPolicy": {},
+            "systemRequirements": {},
+            "accessible": true
+        },
+        {
+            "id": "stage-1",
+            "name": "if (t)",
+            "executable": "applet-G63xF4j016pJGp1233fqFJFv",
+            "folder": null,
+            "input": {},
+            "executionPolicy": {},
+            "systemRequirements": {},
+            "accessible": true
+        },
+        {
+            "id": "stage-3",
+            "name": "frag apps_623_t2",
+            "executable": "applet-G63xF50016p2P8jv9QXJ2BPk",
+            "folder": null,
+            "input": {
+                "t": {
+                    "$dnanexus_link": {
+                        "outputField": "t",
+                        "stage": "stage-1"
+                    }
+                },
+                "i": {
+                    "$dnanexus_link": {
+                        "outputField": "i",
+                        "stage": "stage-1"
+                    }
+                }
+            },
+            "executionPolicy": {},
+            "systemRequirements": {},
+            "accessible": true
+        },
+        {
+            "id": "stage-4",
+            "name": "apps_623_t3",
+            "executable": "applet-G63xF40016p77gqX9j59j7Gv",
+            "folder": null,
+            "input": {},
+            "executionPolicy": {},
+            "systemRequirements": {},
+            "accessible": true
+        },
+        {
+            "id": "stage-outputs",
+            "name": "outputs",
+            "executable": "applet-G63xF58016p77gqX9j59j7Gy",
+            "folder": null,
+            "input": {},
+            "executionPolicy": {},
+            "systemRequirements": {},
+            "accessible": true
+        }
+    ],
+    "inputSpec": [
+        {
+            "name": "stage-common.overrides___",
+            "class": "hash",
+            "optional": true,
+            "group": "stage-common"
+        },
+        {
+            "name": "stage-common.overrides______dxfiles",
+            "class": "array:file",
+            "optional": true,
+            "group": "stage-common"
+        },
+        {
+            "name": "stage-1.overrides___",
+            "class": "hash",
+            "optional": true,
+            "group": "stage-1"
+        },
+        {
+            "name": "stage-1.overrides______dxfiles",
+            "class": "array:file",
+            "optional": true,
+            "group": "stage-1"
+        },
+        {
+            "name": "stage-3.i",
+            "class": "int",
+            "group": "stage-3",
+            "default": {
+                "$dnanexus_link": {
+                    "outputField": "i",
+                    "stage": "stage-1"
+                }
+            }
+        },
+        {
+            "name": "stage-3.overrides___",
+            "class": "hash",
+            "optional": true,
+            "group": "stage-3"
+        },
+        {
+            "name": "stage-3.overrides______dxfiles",
+            "class": "array:file",
+            "optional": true,
+            "group": "stage-3"
+        },
+        {
+            "name": "stage-3.t",
+            "class": "boolean",
+            "group": "stage-3",
+            "default": {
+                "$dnanexus_link": {
+                    "outputField": "t",
+                    "stage": "stage-1"
+                }
+            }
+        },
+        {
+            "name": "stage-4.overrides___",
+            "class": "hash",
+            "optional": true,
+            "group": "stage-4"
+        },
+        {
+            "name": "stage-4.overrides______dxfiles",
+            "class": "array:file",
+            "optional": true,
+            "group": "stage-4"
+        },
+        {
+            "name": "stage-outputs.overrides___",
+            "class": "hash",
+            "optional": true,
+            "group": "stage-outputs"
+        },
+        {
+            "name": "stage-outputs.overrides______dxfiles",
+            "class": "array:file",
+            "optional": true,
+            "group": "stage-outputs"
+        }
+    ],
+    "outputSpec": [
+        {
+            "name": "stage-1.i",
+            "class": "int",
+            "group": "stage-1"
+        },
+        {
+            "name": "stage-1.t",
+            "class": "boolean",
+            "group": "stage-1"
+        }
+    ]
+}

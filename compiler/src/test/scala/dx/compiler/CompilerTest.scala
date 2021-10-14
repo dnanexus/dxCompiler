@@ -787,6 +787,34 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     }
   }
 
+  it should "add clonable dependencies to bundledDepends" in {
+    val path = pathFromBasename("non_spec", "apps_623_wf.wdl")
+    val args = path.toString :: cFlags
+    val wfId = Main.compile(args.toVector) match {
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
+    }
+
+    // Describe workflow, get stages
+    val wf = dxApi.workflow(wfId)
+    val desc = wf.describe(Set(Field.Stages))
+
+    desc.stages match {
+      case Some(s) => {
+        // TODO get stage-1, wrapping t1
+        // executable = applet-xxxx
+
+        // TODO get stage-3, wrapping t2
+        // executable = applet-xxxx
+
+        // TODO get stage-4, Docker image applet
+        // executable = applet-xxxx
+      }
+      case _ => throw new Exception(s"Expected ${wfId} to have stages")
+    }
+  }
+
   it should "deep nesting" taggedAs NativeTest in {
     val path = pathFromBasename("compiler", "environment_passing_deep_nesting.wdl")
     val args = path.toString :: cFlags

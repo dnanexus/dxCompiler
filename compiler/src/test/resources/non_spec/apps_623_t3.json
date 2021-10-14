@@ -1,0 +1,119 @@
+{
+    "id": "applet-G63xF40016p77gqX9j59j7Gv",
+    "project": "project-G51b1Y8016pGB21VKf46f6ZK",
+    "class": "applet",
+    "sponsored": false,
+    "name": "apps_623_t3",
+    "types": [],
+    "state": "closed",
+    "hidden": false,
+    "links": [
+        "file-G62YYf00qFvg6687F9pf9x10",
+        "file-G51b4F8016p804xB309zVFpB"
+    ],
+    "folder": "/wf",
+    "tags": [
+        "dxCompiler"
+    ],
+    "created": 1636291984000,
+    "modified": 1636291984768,
+    "createdBy": {
+        "user": "user-rnathans"
+    },
+    "properties": {},
+    "details": {
+        "instanceTypeDB": "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",
+        "sourceCode": "H4sIAAAAAAAAAEWNQQ6CMBRE9z3FD3uEChIkhAUxeAO35AsfbYC2aYshGu5uceNqMpO8Ny8yVigJ/MAZc2hHQK1tmx2T1iXwYQCdmmeUPZRl6ZslByEtqwItNA0oJj9S91QQXFQ3kgEx44NgEBMBWk9Lh0KSCXYVOojIdZGyoaGJ0JJfq6piPswinZjp9wl/roCgX4so2oXh9cTvaZPHPNN5nK51Ep/ft0bXu3xj2xfTNKR8zQAAAA==",
+        "version": "2.6.1-SNAPSHOT",
+        "parseOptions": {
+            "regime": "Moderate"
+        },
+        "dockerImage": {
+            "$dnanexus_link": {
+                "id": "file-G51b4F8016p804xB309zVFpB",
+                "project": "project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"
+            }
+        },
+        "checksum": "90BC7E87B8C3DD1566C89823A97F169A"
+    },
+    "runSpec": {
+        "interpreter": "bash",
+        "bundledDependsByRegion": {
+            "aws:us-east-1": [
+                {
+                    "name": "dxWDLrt.tar.gz",
+                    "id": {
+                        "$dnanexus_link": "file-G62YYf00qFvg6687F9pf9x10"
+                    }
+                },
+                {
+                    "name": "ubuntu_20_04.tar.gz",
+                    "id": {
+                        "$dnanexus_link": "file-G51b4F8016p804xB309zVFpB"
+                    },
+                    "stages": []
+                }
+            ]
+        },
+        "systemRequirements": {
+            "main": {
+                "instanceType": "mem1_ssd1_x2"
+            }
+        },
+        "executionPolicy": {},
+        "timeoutPolicy": {
+            "*": {
+                "days": 2,
+                "hours": 0,
+                "minutes": 0
+            }
+        },
+        "bundledDepends": [
+            {
+                "name": "dxWDLrt.tar.gz",
+                "id": {
+                    "$dnanexus_link": "file-G62YYf00qFvg6687F9pf9x10"
+                }
+            },
+            {
+                "name": "ubuntu_20_04.tar.gz",
+                "id": {
+                    "$dnanexus_link": "file-G51b4F8016p804xB309zVFpB"
+                },
+                "stages": []
+            }
+        ],
+        "distribution": "Ubuntu",
+        "release": "20.04",
+        "version": "0",
+        "systemRequirementsByRegion": {
+            "aws:us-east-1": {
+                "main": {
+                    "instanceType": "mem1_ssd1_x2"
+                }
+            }
+        }
+    },
+    "inputSpec": [
+        {
+            "name": "overrides___",
+            "class": "hash",
+            "optional": true
+        },
+        {
+            "name": "overrides______dxfiles",
+            "class": "array:file",
+            "optional": true
+        }
+    ],
+    "outputSpec": [],
+    "title": "apps_623_t3",
+    "summary": "",
+    "description": "",
+    "developerNotes": "",
+    "access": {
+        "network": []
+    },
+    "dxapi": "1.0.0",
+    "ignoreReuse": false
+}
