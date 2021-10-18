@@ -48,6 +48,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                               dxApi: DxApi = DxApi.get,
                               fileResolver: FileSourceResolver = FileSourceResolver.get,
                               logger: Logger = Logger.get) {
+  logger.warning(defaultRuntimeAttrs.toString())
 
   private lazy val evaluator: Eval =
     Eval(DefaultEvalPaths.empty, Some(wdlBundle.version), Vector.empty, fileResolver, logger)
@@ -60,13 +61,15 @@ case class CallableTranslator(wdlBundle: WdlBundle,
 
     // TODO: also consider files nested in arrays, structs
 
-    privateVariables.collect {
+    val e = privateVariables.collect {
       case TAT.PrivateVariable(_, WdlTypes.T_File, ValueFile(value, _)) if value.contains("://") =>
         value
       case TAT.PrivateVariable(_, WdlTypes.T_File, ValueString(value, _, _))
           if value.contains("://") =>
         value
     }.toSet
+    logger.warning(e)
+    e
   }
 
   private case class WdlTaskTranslator(task: TAT.Task) {
