@@ -19,7 +19,45 @@
     samtools index bams/~{basename(mybam)}
     >>>
     ```
-* Updates dxCommon, dxApi, dxFileAccessProtocols, wdlTools, and cwlScala dependencies
+
+### Dependency updates
+
+wdlTools 0.17.1
+* Fixes parsing of placeholder options in draft-2 and 1.0 such that `default` and `sep` are no longer treated as reserved words
+
+cwlScala 0.7.0
+* **Breaking Change**: `Sink.linkMerge` is now `Option`al
+* Introduces `ParserResult` class, which is returned from all `Parser.parse*` methods
+* For packed workflows, parses out `$schemas` and `$namespaces`
+* Updates to latest cwljava, which fixes several parsing errors
+* Fixes `CwlType.flatten` to correctly handle duplicate types
+* Treats scatter sources as identifiers
+* Automatically renames the `main` process if its name collides with another process
+* Fixes evalution of compound parameter references
+* Set `CommandLineTool.successCodes` to `Set(0)` if not specified
+* Fixes deserialization of optional fields
+* Uses the source file name as the process name when processing a `$graph` where the top-level element ID is 'main'
+* Fixes evaluation for Directory-type values with listings
+* Fixes parsing of LoadListingEnum values
+* Adds option to `Parser.parseFile` and `Parser.parseString` to specify that the CWL file is in "packed" form
+* Updates to latest cwljava, which fixes parsing of anonymous schemas in packed documents
+* Correctly handles identifiers with namespaces from imported documents
+* Fixes error when trying to finalize a File value without location or path
+* Updates dxCommon to 0.2.15-SNAPSHOT
+* Uses `FileSource.listing` to determine directory listing during finalization
+* Updates to dxCommon 0.7.0
+* *Breaking change*: schema types now have `id: Option[Identifier]` rather than `name: Option[String]`
+* Parser can now handle `$graph` style CWL documents
+* Adds dependency on `dxCommon` library  
+* Improves finalization of file values
+* Fixes coercion of StringValue to CwlEnum
+* other bugfixes
+* Adds `EvaluatorContext.createInputs` to create an `EvaluatorContext` from input values
+* Performs "finalization" of input values (setting of missing attributes on File and Directory values) when using `EvaluatorContext.createInputs` or `EvaluatorContext.createStaticInputs`
+* Parser bugfixes
+* Incorporate `cwljava/39`, which fixes workflow parsing issues
+* Allow duplicate Requirements/Hints and specify priority rules
+* *Breaking change*: added new `CwlMulti` type and removed all uses of `Vector[CwlType]`
 
 ## 2.5.0 2021-09-14
 
@@ -29,6 +67,25 @@
 * Adds support for new London region, `aws:eu-west-2-g`
 * Fixes `-projectWideReuse`
 * Fixes evaluation of `outputs` when one declaration depends on another
+
+### Dependency updates
+
+dxCommon 0.8.0
+* Adds `getTargetDir` methods to `LocalizationDisambiguator`
+* Fixes use of `localizationDir` together with `force` in `SafeLocalizationDisambiguator`
+* Adds `FileSource.resolveDirectory` as a separate method from `resolve`
+
+dxApi 0.10.0
+* Removes price-based selection of instance types in favor of rank-based selection
+* Fixes parsing of non-file-type default values that are reference-type links
+* Fixes parsing of parameter defaults/suggestions/choices that are of type `Hash`
+
+dxFileAccessProtocols 0.5.0
+* Implements `resolveDirectory` method
+
+wdlTools 0.17.0
+* **Breaking Change** `Eval.applyMap` is changed to `Eval.applyAll` and takes a `Vector` rather than `Map` argument. This is done to ensure the expressions are evaluated in order in case there are dependencies between them.
+* Fixes parsing of `runtime.returnCodes`
 
 ## 2.4.10 2021-08-16
 
