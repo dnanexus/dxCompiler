@@ -1,0 +1,6 @@
+{
+  "mainworkflow.input_bool" : false,
+  "mainworkflow.input_string" : "string_given",
+  "mainworkflow.input_int" : 1000,
+  "mainworkflow.input_int_not_default_in_subworkflow2" : 10000
+}

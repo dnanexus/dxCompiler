@@ -1,0 +1,7 @@
+{
+  "workflow_with_subworkflow.string_result": "string_given",
+  "workflow_with_subworkflow.integer_result": 1000,
+  "workflow_with_subworkflow.integer_result_not_default" : 10000,
+  "workflow_with_subworkflow.boolean_result": false
+}
+

@@ -124,7 +124,8 @@ wdl_v1_list = [
     "view_and_count_manifest",
 
     # workflow with output files created by expressions
-    "upload_workflow_files"
+    "upload_workflow_files",
+    "subworkflow_with_task"
 ]
 
 wdl_v1_1_list = [
