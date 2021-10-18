@@ -68,7 +68,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           if value.contains("://") =>
         value
     }.toSet
-    logger.warning(e)
+    logger.warning(e.toString())
     e
   }
 
