@@ -91,6 +91,7 @@ case class WdlTaskExecutor(task: TAT.Task,
     // array inputs, so we treat a null value for a non-optional
     // array that is allowed to be empty as the empty array.
     trace("Evaluating default values for inputs")
+    logger.warning(inputWdlValues.toString())
     val wdlInputs: Map[DxName, V] = taskIO
       .inputsFromValues(inputWdlValues.map {
         case (dxName, v) => dxName.decoded -> v
