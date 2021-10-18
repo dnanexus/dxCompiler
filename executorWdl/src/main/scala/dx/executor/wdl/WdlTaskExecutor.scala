@@ -27,7 +27,8 @@ object WdlTaskExecutor {
       checkInstanceType: Boolean
   ): WdlTaskExecutor = {
     val wdlOptions = jobMeta.parserOptions.map(WdlOptions.fromJson).getOrElse(WdlOptions.default)
-    logger.warning(wdlOptions.toString())
+    println("WDLOPTIONS HERE!")
+    println(wdlOptions.toString())
     val (doc, typeAliases, versionSupport) =
       VersionSupport.fromSourceString(jobMeta.sourceCode, wdlOptions, jobMeta.fileResolver)
     if (doc.workflow.isDefined) {
@@ -36,7 +37,8 @@ object WdlTaskExecutor {
     val tasks = doc.elements.collect {
       case task: TAT.Task => task.name -> task
     }.toMap
-    logger.warning(tasks.toString())
+    println("TASKS HERE!")
+    println(tasks.toString())
     if (tasks.isEmpty) {
       throw new Exception("no tasks in this WDL program")
     }
