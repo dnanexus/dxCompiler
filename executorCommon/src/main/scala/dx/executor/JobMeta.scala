@@ -398,6 +398,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
       case (dxName, value) if useManifests =>
         dxName -> inputDeserializer.deserializeInput(value)
       case (dxName, value) =>
+        logger.warning("inputsSPEC are HERE2")
+        logger.warning(inputSpec)
         val irValue = inputSpec.get(dxName.encoded) match {
           case None =>
             logger.warning(s"inputSpec is missing field ${dxName}")
@@ -422,6 +424,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
         .mkString("\n  ")
       logger.traceLimited(s"Deserialized inputs:\n  ${inputStr}")
     }
+    logger.warning("inputs are HERE1")
+    logger.warning(inputs)
     inputs
   }
 
