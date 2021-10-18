@@ -177,10 +177,9 @@ object ValueSerde extends DefaultJsonProtocol {
         case (TArray(itemType, _), VArray(items)) =>
           JsArray(items.map(inner(_, itemType)))
         case (TSchema(schemaName, fieldTypes), VHash(fields)) =>
-          val extra = fieldTypes.keySet.diff(fields.keySet)
-          if (extra.nonEmpty) {
+          if (!fields.keySet.subsetOf(fieldTypes.keySet)) {
             throw ValueSerdeException(
-                s"invalid field(s) ${extra} in schema ${schemaName} value ${fields}"
+                s"${fields} contains invalid field(s) (schema ${schemaName})"
             )
           }
           JsObject(fieldTypes.collect {
@@ -429,10 +428,9 @@ object ValueSerde extends DefaultJsonProtocol {
           // in fieldTypes that do not appear in fields are optional
           val keys1 = fields.keySet
           val keys2 = fieldTypes.keySet
-          val extra = keys2.diff(keys1)
-          if (extra.nonEmpty) {
+          if (!keys1.subsetOf(keys2)) {
             throw ValueSerdeException(
-                s"struct ${name} value has members that do not appear in the struct definition: ${extra}"
+                s"keys (${keys1}) have members that do not appear in struct ${name}"
             )
           }
           val missingNonOptional = keys1.diff(keys2).map(key => key -> fieldTypes(key)).filterNot {
