@@ -425,7 +425,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
       logger.traceLimited(s"Deserialized inputs:\n  ${inputStr}")
     }
     logger.warning("inputs are HERE1")
-    logger.warning(inputs)
+    logger.warning(inputs.toString())
     inputs
   }
 
