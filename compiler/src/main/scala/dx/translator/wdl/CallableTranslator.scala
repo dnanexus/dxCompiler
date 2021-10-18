@@ -48,6 +48,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                               dxApi: DxApi = DxApi.get,
                               fileResolver: FileSourceResolver = FileSourceResolver.get,
                               logger: Logger = Logger.get) {
+  logger.warning("THIS IS RUNTIME ATTR")
   logger.warning(defaultRuntimeAttrs.toString())
 
   private lazy val evaluator: Eval =
@@ -68,6 +69,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           if value.contains("://") =>
         value
     }.toSet
+    logger.warning("THIS IS PRIVATEVARIABLES")
     logger.warning(e.toString())
     e
   }
