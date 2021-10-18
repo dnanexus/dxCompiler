@@ -399,7 +399,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
         dxName -> inputDeserializer.deserializeInput(value)
       case (dxName, value) =>
         logger.warning("inputsSPEC are HERE2")
-        logger.warning(inputSpec)
+        logger.warning(inputSpec.toString())
         val irValue = inputSpec.get(dxName.encoded) match {
           case None =>
             logger.warning(s"inputSpec is missing field ${dxName}")
