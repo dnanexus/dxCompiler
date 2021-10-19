@@ -328,20 +328,28 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           }
         val outputTypes: Map[DxName, T] = getBlockOutputs(body)
         val outputNames: Vector[DxName] = outputTypes.keys.toVector
-        // iterate on the collection, evaluate the body N times,
-        // transpose the results into M vectors of N items
-        val outputValues: Vector[Vector[V]] =
-          collection.map { v =>
-            val envInner = accu ++ env + (WdlDxName.fromSourceName(id) -> (expr.wdlType, v))
-            val bodyValues = evaluateWorkflowElementVariables(body, envInner)
-            outputNames.map(bodyValues(_)._2)
-          }.transpose
-        // Add the WDL array type to each vector
-        val results = outputNames.zip(outputValues).map {
-          case (name, values) =>
+        val results = if (collection.isEmpty) {
+          // empty scatter - return an empty array for each name
+          outputNames.map { name =>
             val arrayType = T_Array(outputTypes(name), nonEmpty = false)
-            val arrayValue = V_Array(values)
-            name -> (arrayType, arrayValue)
+            name -> (arrayType, V_Array())
+          }
+        } else {
+          // iterate on the collection, evaluate the body N times, transpose the results into M
+          // vectors of N items
+          val outputValues: Vector[Vector[V]] =
+            collection.map { v =>
+              val envInner = accu ++ env + (WdlDxName.fromSourceName(id) -> (expr.wdlType, v))
+              val bodyValues = evaluateWorkflowElementVariables(body, envInner)
+              outputNames.map(bodyValues(_)._2)
+            }.transpose
+          // Add the WDL array type to each vector
+          outputNames.zip(outputValues).map {
+            case (name, values) =>
+              val arrayType = T_Array(outputTypes(name), nonEmpty = false)
+              val arrayValue = V_Array(values)
+              name -> (arrayType, arrayValue)
+          }
         }
         accu ++ results
       case (_, other) =>
