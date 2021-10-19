@@ -1,5 +1,9 @@
 # Release Notes
 
+## in develop
+
+* Handles empty scatters in WDL workflows
+
 ## 2.6.0 2021-10-11
 
 * Implements `Directory` support for CWL and for WDL development/2.0
