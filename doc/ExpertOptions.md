@@ -137,7 +137,7 @@ In CWL, files have additional fields that necessitate all file inputs being pass
 * `basename`: The name to use when localizing the file. Optional, defaults to the source file name.
 * `contents`: The contents of the file. Optional. If specified, `uri` is ignored and `basename` must be specified. A file is created on the worker having the given basename and contents.
 * `checksum`: The file checksum. Optional. If specified, the checkum of the localized file must match or the job will fail with an error.
-`secondaryFiles`: An array of files/directories that must be localized along side the primary file. The is identical in format to a directory listing (see the next section). Secondary files must be listed explicitly (patterns are not allowed).
+* `secondaryFiles`: An array of files/directories that must be localized along side the primary file. The is identical in format to a directory listing (see the next section). Secondary files must be listed explicitly (patterns are not allowed).
 `format`: An IRI for the file format. See the [CWL specification](https://www.commonwl.org/v1.2/CommandLineTool.html#File). Optional.
 
 Simple example:
