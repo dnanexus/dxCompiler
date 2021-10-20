@@ -414,11 +414,11 @@ case class WdlWorkflowExecutor(docSource: FileNode,
             case (dxName, (t, v)) if !dxName.suffix.exists(_.endsWith(Constants.FlatFilesSuffix)) =>
               val wdlType = WdlUtils.fromIRType(t, wdlTypeAliases)
               logger.warning("WdlUtils.fromIRValue(v, wdlType, dxName.decoded) dxname wdl")
-              logger.warning(WdlUtils.fromIRValue(v, wdlType, dxName.decoded))
+              logger.warning(WdlUtils.fromIRValue(v, wdlType, dxName.decoded).toString())
               dxName -> WdlUtils.fromIRValue(v, wdlType, dxName.decoded)
           }
           logger.warning("constants flat files suffix")
-          logger.warning(Constants.FlatFilesSuffix)
+          logger.warning(Constants.FlatFilesSuffix.toString())
 
           logger.warning("inputWdlValues.toString() workflow WDL")
           logger.warning(inputWdlValues.toString())
