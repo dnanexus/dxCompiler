@@ -853,7 +853,7 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths,
   private val rootDir = workerPaths.getRootDir()
   private val inputPath = rootDir.resolve(JobMeta.InputFile)
   logger.warning("jobmeta - inputpath")
-  logger.warning(inputPath)
+  logger.warning(inputPath.toString())
   private val outputPath = rootDir.resolve(JobMeta.OutputFile)
   private val jobInfoPath = rootDir.resolve(JobMeta.JobInfoFile)
   private val executableInfoPath = rootDir.resolve(JobMeta.ExecutableInfoFile)
