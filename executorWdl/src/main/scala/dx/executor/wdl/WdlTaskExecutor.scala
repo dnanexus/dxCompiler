@@ -85,6 +85,8 @@ case class WdlTaskExecutor(task: TAT.Task,
 
   private def wdlInputs: Map[DxName, V] = {
     // convert IR to WDL values; discard auxiliary fields
+    logger.warning("converting IR to WDL, discarding auxiliary")
+    logger.warning(jobMeta.primaryInputs.map.toString())
     val inputWdlValues: Map[DxName, V] = jobMeta.primaryInputs.map {
       case (dxName, value) =>
         dxName -> WdlUtils.fromIRValue(value, inputTypes(dxName), dxName.decoded)
@@ -94,7 +96,7 @@ case class WdlTaskExecutor(task: TAT.Task,
     // DNAnexus does not distinguish between null and empty for
     // array inputs, so we treat a null value for a non-optional
     // array that is allowed to be empty as the empty array.
-    trace("Evaluating default values for inputs")
+    trace("values for inputs")
     logger.warning(inputWdlValues.toString())
     val wdlInputs: Map[DxName, V] = taskIO
       .inputsFromValues(inputWdlValues.map {
