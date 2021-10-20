@@ -409,11 +409,20 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           None
         } else {
           val callIO = TaskInputOutput(task, logger)
+          logger.warning("HERE!!!111")
           val inputWdlValues: Map[DxName, V] = callInputsIR.collect {
             case (dxName, (t, v)) if !dxName.suffix.exists(_.endsWith(Constants.FlatFilesSuffix)) =>
               val wdlType = WdlUtils.fromIRType(t, wdlTypeAliases)
+              logger.warning("WdlUtils.fromIRValue(v, wdlType, dxName.decoded) dxname wdl")
+              logger.warning(WdlUtils.fromIRValue(v, wdlType, dxName.decoded))
               dxName -> WdlUtils.fromIRValue(v, wdlType, dxName.decoded)
           }
+          logger.warning("constants flat files suffix")
+          logger.warning(Constants.FlatFilesSuffix)
+
+          logger.warning("inputWdlValues.toString() workflow WDL")
+          logger.warning(inputWdlValues.toString())
+
           // add default values for any missing inputs
           val callInputs =
             callIO.inputsFromValues(inputWdlValues.map {
