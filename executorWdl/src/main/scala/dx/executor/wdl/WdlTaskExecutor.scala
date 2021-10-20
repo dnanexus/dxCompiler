@@ -86,7 +86,7 @@ case class WdlTaskExecutor(task: TAT.Task,
   private def wdlInputs: Map[DxName, V] = {
     // convert IR to WDL values; discard auxiliary fields
     logger.warning("converting IR to WDL, discarding auxiliary")
-    logger.warning(jobMeta.primaryInputs.map.toString())
+    logger.warning(jobMeta.primaryInputs.toString())
     val inputWdlValues: Map[DxName, V] = jobMeta.primaryInputs.map {
       case (dxName, value) =>
         dxName -> WdlUtils.fromIRValue(value, inputTypes(dxName), dxName.decoded)
