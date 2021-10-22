@@ -124,7 +124,7 @@ abstract class WorkflowTranslator(wfName: String,
       }.toMap)
     }
     Logger.get.warning("CALLENV FROMLINKEDVARS")
-    Logger.get.warning(a)
+    Logger.get.warning(a.toString())
     a
   }
 
