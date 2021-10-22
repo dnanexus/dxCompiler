@@ -65,10 +65,9 @@ download_dxfuse() {
        echo "mounting dxfuse on ${dxPathConfig.getDxfuseMountDir().toString}"
        dxfuse_err_code=0
        dxfuse -readOnly "${dxPathConfig.getDxfuseMountDir().toString}" "${dxPathConfig.getDxfuseManifestFile().toString}" || dxfuse_err_code=${bashDollar}? && true
-
+       dxfuse_log=/root/.dxfuse/dxfuse.log
        if [[ ${bashDollar}dxfuse_err_code != 0 ]]; then
            echo "error starting dxfuse, rc=${bashDollar}dxfuse_err_code"
-           dxfuse_log=/root/.dxfuse/dxfuse.log
            # wait a second for the log to sync
            sleep 1
            if [[ -f ${bashDollar}dxfuse_log ]]; then
