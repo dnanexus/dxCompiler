@@ -27,8 +27,6 @@ object WdlTaskExecutor {
       checkInstanceType: Boolean
   ): WdlTaskExecutor = {
     val wdlOptions = jobMeta.parserOptions.map(WdlOptions.fromJson).getOrElse(WdlOptions.default)
-    println("WDLOPTIONS HERE!")
-    println(wdlOptions.toJson.toString())
     val (doc, typeAliases, versionSupport) =
       VersionSupport.fromSourceString(jobMeta.sourceCode, wdlOptions, jobMeta.fileResolver)
     if (doc.workflow.isDefined) {

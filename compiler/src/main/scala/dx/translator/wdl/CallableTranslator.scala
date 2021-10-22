@@ -376,6 +376,11 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       */
     private def translateCall(call: TAT.Call, env: CallEnv, locked: Boolean): Stage = {
       // Find the callee
+
+      Logger.get().warning("CallEnv HERE!:")
+      Logger.get().warning(CallEnv.toString())
+      Logger.get().warning("call HERE!:")
+      Logger.get().warning(call.toString())
       val calleeName = call.unqualifiedName
       val callee: Callable = availableDependencies.get(calleeName) match {
         case Some(x) => x
@@ -394,6 +399,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                              locked,
                              call.fullyQualifiedName)
       }
+      Logger.get().warning("INPUTS HERE............")
+      Logger.get().warning(inputs.toString())
       Stage(call.actualName, getStage(), calleeName, inputs, callee.outputVars)
     }
 
