@@ -457,7 +457,7 @@ object Main {
       return SuccessfulCompileIR(rawBundle)
     }
     logger.warning("RAWBUNDLE.allCallables HERE:")
-    logger.warning(rawBundle.allCallables)
+    logger.warning(rawBundle.allCallables.toString())
     // for everything past this point, the user needs to be logged in
     if (!dxApi.isLoggedIn) {
       return Failure(s"You must be logged in to compile using mode ${compileMode}")
