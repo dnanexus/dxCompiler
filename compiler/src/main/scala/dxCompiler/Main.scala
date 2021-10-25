@@ -446,12 +446,13 @@ object Main {
     // if there are defaults, they need to be "embedded" in the bundle
     val defaults: Option[Path] = options.getValue[Path]("defaults")
     val hasInputs = inputs.nonEmpty || defaults.nonEmpty
-
+    logger.warning("HERE1")
     // quit here if the target is IR and there are no inputs to translate
     if (!hasInputs && compileMode == CompilerMode.IR) {
       if (logger.isVerbose) {
         logger.trace(rawBundle.toString)
       }
+      logger.warning("HERE2 - succ ir")
       return SuccessfulCompileIR(rawBundle)
     }
 
@@ -473,6 +474,7 @@ object Main {
       }
 
     val (bundle, fileResolver) = if (hasInputs) {
+      logger.warning("HERE - has inputs!")
       val (bundleWithDefaults, fileResolver) =
         try {
           translator.translateInputs(rawBundle, inputs, defaults, project)
@@ -489,6 +491,7 @@ object Main {
       }
       (bundleWithDefaults, fileResolver)
     } else {
+      logger.warning("HERE - does not have inputs!")
       (rawBundle, baseFileResolver)
     }
 

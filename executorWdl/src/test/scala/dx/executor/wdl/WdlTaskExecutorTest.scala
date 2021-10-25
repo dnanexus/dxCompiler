@@ -225,9 +225,6 @@ class TaskExecutorTest extends AnyFlatSpec with Matchers {
   ): (WdlTaskExecutor, TaskTestJobMeta) = {
     val wdlFile: Path = pathFromBasename(s"${wdlName}.wdl").get
     val inputs = getInputs(wdlName)
-    logger.warning("CREATE TASK EXECUTOR - wdlName and inputs")
-    logger.warning(wdlName.toString())
-    logger.warning(inputs.toString())
     // Create a clean temp directory for the task to use
     val jobRootDir: Path = Files.createTempDirectory("dxcompiler_applet_test")
     jobRootDir.toFile.deleteOnExit()

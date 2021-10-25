@@ -35,8 +35,6 @@ object WdlTaskExecutor {
     val tasks = doc.elements.collect {
       case task: TAT.Task => task.name -> task
     }.toMap
-    println("TASKS HERE!")
-    println(tasks.toString())
     if (tasks.isEmpty) {
       throw new Exception("no tasks in this WDL program")
     }

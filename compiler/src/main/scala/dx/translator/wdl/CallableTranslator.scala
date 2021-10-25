@@ -48,8 +48,6 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                               dxApi: DxApi = DxApi.get,
                               fileResolver: FileSourceResolver = FileSourceResolver.get,
                               logger: Logger = Logger.get) {
-  logger.warning("THIS IS RUNTIME ATTR")
-  logger.warning(defaultRuntimeAttrs.toString())
 
   private lazy val evaluator: Eval =
     Eval(DefaultEvalPaths.empty, Some(wdlBundle.version), Vector.empty, fileResolver, logger)
@@ -62,16 +60,13 @@ case class CallableTranslator(wdlBundle: WdlBundle,
 
     // TODO: also consider files nested in arrays, structs
 
-    val e = privateVariables.collect {
+    privateVariables.collect {
       case TAT.PrivateVariable(_, WdlTypes.T_File, ValueFile(value, _)) if value.contains("://") =>
         value
       case TAT.PrivateVariable(_, WdlTypes.T_File, ValueString(value, _, _))
           if value.contains("://") =>
         value
     }.toSet
-    logger.warning("THIS IS PRIVATEVARIABLES")
-    logger.warning(e.toString())
-    e
   }
 
   private case class WdlTaskTranslator(task: TAT.Task) {
@@ -377,10 +372,6 @@ case class CallableTranslator(wdlBundle: WdlBundle,
     private def translateCall(call: TAT.Call, env: CallEnv, locked: Boolean): Stage = {
       // Find the callee
 
-      Logger.get.warning("CallEnv HERE!:")
-      Logger.get.warning(CallEnv.toString())
-      Logger.get.warning("call HERE!:")
-      Logger.get.warning(call.toString())
       val calleeName = call.unqualifiedName
       val callee: Callable = availableDependencies.get(calleeName) match {
         case Some(x) => x
@@ -399,8 +390,6 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                              locked,
                              call.fullyQualifiedName)
       }
-      Logger.get.warning("INPUTS HERE............")
-      Logger.get.warning(inputs.toString())
       Stage(call.actualName, getStage(), calleeName, inputs, callee.outputVars)
     }
 
