@@ -36,6 +36,8 @@ case class WorkflowCompiler(separateOutputs: Boolean,
     logger.warning(stageInput.toString())
     // The default value can come from the stage input or the workflow input
     def getDefault(stageInput: StageInput): Option[Option[Value]] = {
+      logger.warning("getdefault, stageinput ->>HERE:")
+      logger.warning(stageInput.toString())
       stageInput match {
         case StageInputWorkflowLink(wfParam) if wfParam != parameter => Some(wfParam.defaultValue)
         case StageInputStatic(value)                                 => Some(Some(value))
