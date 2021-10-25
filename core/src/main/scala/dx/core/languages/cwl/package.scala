@@ -1,11 +1,10 @@
-package dx.core.languages.cwl
+package dx.core.languages
 
-import dx.core.ir.DocumentSource
-import dx.util.FileUtils
+import dx.core.Constants
+import dx.core.ir.{DxName, Parameter, SimpleDxName}
+import dx.core.ir.Type.{TOptional, TString}
 
-import java.nio.file.Path
-
-case class CwlDocumentSource(source: Path) extends DocumentSource {
-  override val language: String = "cwl"
-  override def toString: String = FileUtils.readFileContent(source)
+package object cwl {
+  val Target: DxName = SimpleDxName.fromSourceName("target", Some(Constants.ComplexValueKey))
+  val TargetParam: Parameter = Parameter(Target, TOptional(TString))
 }

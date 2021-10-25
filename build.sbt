@@ -13,7 +13,8 @@ ThisBuild / developers := List(
               "commandlinegirl",
               "azalcman@dnanexus.com",
               url("https://github.com/dnanexus")),
-    Developer("mhrvol", "mhrvol", "mhrvol-cf@dnanexus.com", url("https://github.com/dnanexus"))
+    Developer("mhrvol", "mhrvol", "mhrvol-cf@dnanexus.com", url("https://github.com/dnanexus")),
+    Developer("r-i-v-a", "r-i-v-a", "rnathans-cf@dnanexus.com", url("https://github.com/dnanexus"))
 )
 ThisBuild / homepage := Some(url("https://github.com/dnanexus/dxCompiler"))
 ThisBuild / scmInfo := Some(
@@ -25,7 +26,10 @@ ThisBuild / licenses += ("Apache-2.0", url("http://www.apache.org/licenses/LICEN
 
 lazy val root = project.in(file("."))
 lazy val global = root
-  .settings(settings)
+  .settings(
+      settings,
+      skip in publish := true
+  )
   .disablePlugins(AssemblyPlugin)
   .aggregate(
       core,
@@ -65,7 +69,8 @@ val compiler = project
       libraryDependencies ++= commonDependencies ++ Seq(
           dependencies.typesafe,
           dependencies.wdlTools,
-          dependencies.cwlScala
+          dependencies.cwlScala,
+          dependencies.dxYaml
       ),
       assemblyJarName in assembly := "dxCompiler.jar",
       assemblyOutputPath in assembly := file("applet_resources/dxCompiler.jar")
@@ -124,19 +129,21 @@ val githubDxCompilerResolver = Resolver.githubPackages("dnanexus", "dxCompiler")
 
 lazy val dependencies =
   new {
-    val dxCommonVersion = "0.3.0"
-    val dxApiVersion = "0.3.0"
-    val dxFileAccessProtocolsVersion = "0.2.0"
-    val wdlToolsVersion = "0.12.11"
-    val cwlScalaVersion = "0.3.4"
-    val typesafeVersion = "1.3.3"
-    val sprayVersion = "1.3.5"
-    val scalatestVersion = "3.1.1"
-    val logbackVersion = "1.2.3"
+    val dxCommonVersion = "0.8.0"
+    val dxApiVersion = "0.10.1-SNAPSHOT"
+    val dxFileAccessProtocolsVersion = "0.5.0"
+    val dxYamlVersion = "0.1.0"
+    val wdlToolsVersion = "0.17.1"
+    val cwlScalaVersion = "0.7.1-SNAPSHOT"
+    val typesafeVersion = "1.4.1"
+    val sprayVersion = "1.3.6"
+    val scalatestVersion = "3.2.9"
+    val logbackVersion = "1.2.6"
 
     val dxCommon = "com.dnanexus" % "dxcommon" % dxCommonVersion
     val dxApi = "com.dnanexus" % "dxapi" % dxApiVersion
     val dxFileAccessProtocols = "com.dnanexus" % "dxfileaccessprotocols" % dxFileAccessProtocolsVersion
+    val dxYaml = "com.dnanexus" % "dxyaml" % dxYamlVersion
     val wdlTools = "com.dnanexus" % "wdltools" % wdlToolsVersion
     val cwlScala = "com.dnanexus" % "cwlscala" % cwlScalaVersion
     val typesafe = "com.typesafe" % "config" % typesafeVersion
@@ -156,6 +163,13 @@ lazy val commonDependencies = Seq(
 
 // SETTINGS
 
+// exclude tests tagged 'linuxOnly' unless we're on a Linux OS
+val isLinux = System.getProperty("os.name").toLowerCase.contains("linux")
+val scalatestArgs = if (isLinux) {
+  Seq("-oFK")
+} else {
+  Seq("-oFK", "-l", "linuxOnly")
+}
 lazy val settings = Seq(
     scalacOptions ++= compilerOptions,
     // javac
@@ -189,7 +203,8 @@ lazy val settings = Seq(
     // Tests
     // If an exception is thrown during tests, show the full
     // stack trace, by adding the "-oF" option to the list.
-    Test / testOptions += Tests.Argument("-oF"),
+    // Ignore cancelled tests (-oK)
+    Test / testOptions += Tests.Argument(scalatestArgs: _*),
     Test / parallelExecution := false
     // Coverage
     //

@@ -29,12 +29,35 @@ A WDL workflow is compiled into an equivalent DNAnexus workflow, enabling runnin
 * Each scatters or conditional block is compiled into workflow stages, plus an auxiliary applet
     - Nested scatters/conditionals may result in nested workflows 
 
-The mapping from WDL to native DNAnexus objects requires overcomming two key obstacles:
+The mapping from WDL to native DNAnexus objects requires overcoming two key obstacles:
 
 * We wish to avoid creating a controlling applet that would run and manage a WDL workflow. Such an
 applet might get killed due to temporary resource shortage, causing an
 expensive workflow to fail. 
 * We want to minimize the context that needs to be kept around for the WDL workflow, because it limits job manager scalability.
+
+### Examining compilation output
+
+After compiling your workflow to a project, you will see the compiled workflows and applets in
+the project like this:
+
+```
+my_task_1
+my_task_2
+my_workflow
+my_workflow_common
+my_workflow_outputs
+```
+To look inside the generated job script for an applet, you can run e.g. `dx get my_task_1`. This will
+download a folder called `my_task_1` with the applet job script inside `my_task_1/src`.
+
+The workflow source code (afer some processing during compilation, not necessarily matching the input
+WDL/CWL) can be extracted from a compiled workflow / compiled task applets using
+`scripts/extract_source_code.sh` (First have installed: `base64`, `jq`, `gzip`).
+
+After compiling, you will also see `dxWDLrt : record-xxxx` in the project. This record points to
+the asset bundle of resources published to the platform during each dxCompiler release. It contains
+`dxExecutorWdl.jar` (or `dxExecutorCwl.jar` for CWL), which is needed during workflow execution.
 
 ## Type mapping
 
@@ -422,10 +445,17 @@ The Executor has two branches: TaskExecutor, for executing individual tasks, and
 The command line interface for the Executor is fairly simple:
 
 ```
-java -jar dxCompiler.jar <task|workflow> <action> <rootdir> [options]
+java -jar dxExecutorWdl.jar <task|workflow> <action> <rootdir> [options]
 
 Options:
-    -streamAllFiles        Mount all files with dxfuse, do not use the download agent
+    -streamFiles [all,none,perfile]
+                           Whether to mount all files with dxfuse (do not use the
+                           download agent), to mount no files with dxfuse (only use
+                           download agent), or to allow streaming to be set on a
+                           per-file basis (the default).
+    -separateOutputs       Whether to put output files in a separate folder based on
+                           the job name. If not specified, then all outputs go to the
+                           parent job's output folder.
     -traceLevel [0,1,2]    How much debug information to write to the
                            job log at runtime. Zero means write the minimum,
                            one is the default, and two is for internal debugging.
@@ -433,7 +463,8 @@ Options:
     -verbose               Print detailed progress reports
     -verboseKey <module>   Detailed information for a specific module
     -logFile <path>        File to use for logging output; defaults to stderr
-``` 
+    -waitOnUpload          Whether to wait for each file upload to complete.
+```
 
 On a DNAnexus worker, `rootdir` is always `/home/dnanexus`.
 
@@ -441,7 +472,7 @@ The `streamAllFiles` option overrides any streaming settings in the compiled app
 
 ### TaskExecutor
 
-The TaskExecutor implements the commands called in the [job script]() generated for each task applet by the compiler. The progression of events is:
+The TaskExecutor (`dxExecutorWdl.jar`, `dxExecutorCwl.jar`) implements the commands called in the [job script](#examining-compilation-output) generated for each task applet by the compiler. The progression of events is:
 
 * TaskExecutor prolog:
     * Evaluate all job inputs

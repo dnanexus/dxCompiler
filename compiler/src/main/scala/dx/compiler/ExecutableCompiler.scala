@@ -1,13 +1,13 @@
 package dx.compiler
 
-import dx.api.{ConstraintOper, DxApi, DxConstraint, DxIOSpec}
+import dx.api.{DxApi, DxConstraint, DxConstraintBool, DxConstraintString, DxIOSpec}
 import dx.core.Constants
 import dx.core.ir.Value._
 import dx.core.ir.{
   Callable,
+  DxName,
   Parameter,
   ParameterAttribute,
-  ParameterLink,
   ParameterLinkSerializer,
   Type,
   TypeSerde,
@@ -24,6 +24,7 @@ import dx.translator.CallableAttributes.{
   TypesAttribute
 }
 import dx.translator.{Extras, ParameterAttributes}
+import dx.util.FileSourceResolver
 import spray.json._
 
 object ExecutableCompiler {
@@ -47,41 +48,29 @@ object ExecutableCompiler {
     Parameter(Constants.CallName, Type.TOptional(Type.TString))
   val OutputManifestParameter: Parameter =
     Parameter(Constants.OutputManifest, Type.TFile)
+  val OverridesParameter: Parameter =
+    Parameter(Constants.Overrides, Type.TOptional(Type.THash))
 }
 
 class ExecutableCompiler(extras: Option[Extras],
                          parameterLinkSerializer: ParameterLinkSerializer,
+                         complexPathValues: Boolean,
+                         fileResolver: FileSourceResolver,
                          dxApi: DxApi = DxApi.get) {
 
-  private def constraintToNative(constraint: ParameterAttributes.Constraint): JsValue = {
+  private def typeConstraintToNative(constraint: DxConstraint): JsValue = {
     constraint match {
-      case ParameterAttributes.StringConstraint(s) => JsString(s)
-      case ParameterAttributes.CompoundConstraint(oper, constraints) =>
-        val dxOper = oper match {
-          case ConstraintOper.And => DxConstraint.And
-          case ConstraintOper.Or  => DxConstraint.Or
-          case _                  => throw new Exception(s"Invalid operation ${oper}")
-        }
-        JsObject(Map(dxOper -> JsArray(constraints.map(constraintToNative))))
-    }
-  }
-
-  private def defaultValueToNative(value: Value): JsValue = {
-    value match {
-      case VNull       => JsNull
-      case VBoolean(b) => JsBoolean(b)
-      case VInt(i)     => JsNumber(i)
-      case VFloat(f)   => JsNumber(f)
-      case VString(s)  => JsString(s)
-      case VFile(f)    => dxApi.resolveFile(f).asJson
-      // TODO: case VDirectory(d) =>
-      case VArray(array) => JsArray(array.map(defaultValueToNative))
-      case _             => throw new Exception(s"unhandled value ${value}")
+      case DxConstraintString(s) => JsString(s)
+      case DxConstraintBool(oper, array) =>
+        JsObject(Map(oper.name -> JsArray(array.constraints.map(typeConstraintToNative))))
+      case other =>
+        throw new Exception(s"invalid type constraint ${other}")
     }
   }
 
   // Create the IO Attributes
   private def parameterAttributesToNative(attrs: Vector[ParameterAttribute],
+                                          dxType: Type,
                                           excludeAttributes: Set[String]): Map[String, JsValue] = {
     attrs
       .flatMap {
@@ -154,11 +143,15 @@ class ExecutableCompiler(extras: Option[Extras],
             // TODO: ParameterAttributes.DirectorySuggestion
           }))
         case ParameterAttributes.TypeAttribute(constraint) =>
-          Some(DxIOSpec.Type -> constraintToNative(constraint))
+          Some(DxIOSpec.Type -> typeConstraintToNative(constraint))
         case ParameterAttributes.DefaultAttribute(value) =>
           // The default was specified in parameter_meta and was not specified in the
           // parameter specification
-          Some(DxIOSpec.Default -> defaultValueToNative(value))
+          Some(
+              DxIOSpec.Default -> ValueSerde.serializeWithType(value,
+                                                               dxType,
+                                                               fileResolver = Some(fileResolver))
+          )
         case _ => None
       }
       .toMap
@@ -197,41 +190,42 @@ class ExecutableCompiler(extras: Option[Extras],
     * @return the DNAnexus inputDesc
     */
   protected def inputParameterToNative(parameter: Parameter): Vector[JsObject] = {
-    val name = parameter.dxName
-    val defaultValues: Map[String, JsValue] = parameter.defaultValue match {
+    val defaultValues: Map[DxName, JsValue] = parameter.defaultValue match {
       case Some(value) =>
-        parameterLinkSerializer.createFields(name, parameter.dxType, value).toMap
+        parameterLinkSerializer.createFields(parameter.name, parameter.dxType, value).toMap
       case None => Map.empty
     }
 
-    def defaultValueToNative(name: String): Map[String, JsValue] = {
+    def defaultValueToNative(name: DxName): Map[String, JsValue] = {
       defaultValues.get(name) match {
         case Some(jsv) => Map(DxIOSpec.Default -> jsv)
         case None      => Map.empty
       }
     }
 
-    val excludeAttributeNames: Set[String] = if (defaultValues.contains(name)) {
+    val excludeAttributeNames: Set[String] = if (defaultValues.contains(parameter.name)) {
       Set(DxIOSpec.Default)
     } else {
       Set.empty
     }
-    val attributes = defaultValueToNative(name) ++
-      parameterAttributesToNative(parameter.attributes, excludeAttributeNames)
-    val (nativeType, optional) = TypeSerde.toNative(parameter.dxType)
+    val attributes = defaultValueToNative(parameter.name) ++
+      parameterAttributesToNative(parameter.attributes, parameter.dxType, excludeAttributeNames)
+    val (nativeType, optional) = TypeSerde.toNative(parameter.dxType, !complexPathValues)
     // TODO: I don't think the parameter should always be set to optional if it has a default
     val paramSpec = JsObject(
-        Map(DxIOSpec.Name -> JsString(name), DxIOSpec.Class -> JsString(nativeType)) ++ attributes ++
-          optionalToNative(optional || attributes.contains(DxIOSpec.Default))
+        Map(DxIOSpec.Name -> JsString(parameter.name.encoded),
+            DxIOSpec.Class -> JsString(nativeType))
+          ++ attributes
+          ++ optionalToNative(optional || attributes.contains(DxIOSpec.Default))
     )
     if (nativeType == "hash") {
       // A JSON structure passed as a hash, and a vector of platform files
-      val filesName = s"${name}${ParameterLink.FlatFilesSuffix}"
+      val filesName = parameter.name.addSuffix(Constants.FlatFilesSuffix)
       Vector(
           paramSpec,
           JsObject(
               Map(
-                  DxIOSpec.Name -> JsString(filesName),
+                  DxIOSpec.Name -> JsString(filesName.encoded),
                   DxIOSpec.Class -> JsString("array:file"),
                   DxIOSpec.Optional -> JsTrue
               )
@@ -252,23 +246,23 @@ class ExecutableCompiler(extras: Option[Extras],
     * @return the DNAnexus outputDesc
     */
   protected def outputParameterToNative(parameter: Parameter): Vector[JsObject] = {
-    val name = parameter.dxName
     val attributes =
-      parameterAttributesToNative(parameter.attributes, InputOnlyKeys)
-    val (nativeType, optional) = TypeSerde.toNative(parameter.dxType)
+      parameterAttributesToNative(parameter.attributes, parameter.dxType, InputOnlyKeys)
+    val (nativeType, optional) = TypeSerde.toNative(parameter.dxType, !complexPathValues)
     val paramSpec = JsObject(
-        Map(DxIOSpec.Name -> JsString(name), DxIOSpec.Class -> JsString(nativeType))
+        Map(DxIOSpec.Name -> JsString(parameter.name.encoded),
+            DxIOSpec.Class -> JsString(nativeType))
           ++ optionalToNative(optional || parameter.defaultValue.isDefined)
           ++ attributes
     )
     if (nativeType == "hash") {
       // A JSON structure passed as a hash, and a vector of platform files
-      val filesName = s"${name}${ParameterLink.FlatFilesSuffix}"
+      val filesName = parameter.name.addSuffix(Constants.FlatFilesSuffix)
       Vector(
           paramSpec,
           JsObject(
               Map(
-                  DxIOSpec.Name -> JsString(filesName),
+                  DxIOSpec.Name -> JsString(filesName.encoded),
                   DxIOSpec.Class -> JsString("array:file"),
                   DxIOSpec.Optional -> JsTrue
               )
@@ -297,6 +291,17 @@ class ExecutableCompiler(extras: Option[Extras],
         }
         Map("summary" -> JsString(descSummary))
       case _ => Map.empty
+    }
+  }
+
+  // Merge initial description & extended description
+  private def descriptionToNative(description: Option[String],
+                                  extendedDescription: Option[String]): Map[String, JsValue] = {
+    (description, extendedDescription) match {
+      case (Some(d), Some(e)) => Map("description" -> JsString(s"${d}\n\n${e}"))
+      case (Some(d), _)       => Map("description" -> JsString(d))
+      case (_, Some(e))       => Map("description" -> JsString(e))
+      case (_, _)             => Map.empty
     }
   }
 
@@ -335,7 +340,8 @@ class ExecutableCompiler(extras: Option[Extras],
   // Convert the applet meta to JSON, and overlay details from task-specific extras
   protected def callableAttributesToNative(
       callable: Callable,
-      defaultTags: Set[String]
+      defaultTags: Set[String],
+      extendedDescription: Option[String]
   ): (Map[String, JsValue], Map[String, JsValue]) = {
     val metaDefaults = Map(
         "title" -> JsString(callable.name),
@@ -348,10 +354,9 @@ class ExecutableCompiler(extras: Option[Extras],
         //"openSource" -> JsBoolean(false),
     )
     val meta = callable.attributes.collect {
-      case TitleAttribute(text)       => "title" -> JsString(text)
-      case DescriptionAttribute(text) => "description" -> JsString(text)
-      case TypesAttribute(array)      => "types" -> JsArray(array.map(JsString(_)))
-      case TagsAttribute(array)       =>
+      case TitleAttribute(text)  => "title" -> JsString(text)
+      case TypesAttribute(array) => "types" -> JsArray(array.map(JsString(_)))
+      case TagsAttribute(array)  =>
         // merge default and user-specified tags
         "tags" -> JsArray((array.toSet ++ defaultTags ++ callable.tags).map(JsString(_)).toVector)
       case PropertiesAttribute(props) =>
@@ -367,6 +372,8 @@ class ExecutableCompiler(extras: Option[Extras],
     // default summary to the first line of the description
     val summary =
       summaryToNative(meta2.get("summary"), meta2.get("description"))
+    // Merge initial description & extended description
+    val description = descriptionToNative(meta2.get("description"), extendedDescription)
     // extract the details to return separately
     val metaDetails = callable.attributes
       .collectFirst {
@@ -378,7 +385,7 @@ class ExecutableCompiler(extras: Option[Extras],
       .getOrElse(Map.empty)
     // get the whatsNew section from the details
     val whatsNew = whatsNewToNative(metaDetails.get("whatsNew"))
-    (metaDefaults ++ meta ++ summary, metaDetails ++ whatsNew)
+    (metaDefaults ++ meta ++ summary ++ description, metaDetails ++ whatsNew)
   }
 
   protected def delayWorkspaceDestructionToNative: Map[String, JsValue] = {
@@ -387,5 +394,53 @@ class ExecutableCompiler(extras: Option[Extras],
     } else {
       Map.empty
     }
+  }
+
+  protected def fileDependenciesFromParam(param: Parameter): Set[String] = {
+    val default = param.defaultValue match {
+      case Some(f: Value.VFile) => Vector(f.uri)
+      case _                    => Vector.empty
+    }
+    val attrs = param.attributes
+      .flatMap(attr =>
+        attr match {
+          case ParameterAttributes.DefaultAttribute(f: Value.VFile) => Vector(f.uri)
+          case ParameterAttributes.ChoicesAttribute(choices) =>
+            choices
+              .collect {
+                case ParameterAttributes.SimpleChoice(f: Value.VFile) => f.uri
+                case ParameterAttributes.FileChoice(str, _)           => str
+              }
+          case ParameterAttributes.SuggestionsAttribute(suggestions) =>
+            suggestions
+              .collect {
+                case ParameterAttributes.SimpleSuggestion(f: Value.VFile)   => f.uri
+                case ParameterAttributes.FileSuggestion(Some(str), _, _, _) => str
+              }
+          case _ => Vector.empty
+        }
+      )
+
+    (default ++ attrs).filter(s => s.contains("://")).toSet
+  }
+
+  // TODO: Use templates for Markdown dependency report
+
+  /**
+    * Markdown helper method for 1st-level list item
+    * @param s text string
+    * @return Markdown list item of text string
+    */
+  protected def listMd(s: String): String = {
+    s"\n* ${s}"
+  }
+
+  /**
+    * Markdown helper method for 2nd-level indented list item, as code
+    * @param s text string
+    * @return Markdown 2nd-level list item of text string, as code
+    */
+  protected def listMd2(s: String): String = {
+    s"\n    * `${s}`"
   }
 }

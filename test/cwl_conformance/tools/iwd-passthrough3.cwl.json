@@ -1,0 +1,32 @@
+{
+    "class": "CommandLineTool",
+    "requirements": [
+        {
+            "listing": [
+                {
+                    "entryname": "renamed-filelist.txt",
+                    "entry": "$(inputs.filelist)"
+                }
+            ],
+            "class": "InitialWorkDirRequirement"
+        }
+    ],
+    "inputs": [
+        {
+            "type": "File",
+            "id": "#main/filelist"
+        }
+    ],
+    "baseCommand": "true",
+    "id": "#main",
+    "outputs": [
+        {
+            "type": "File",
+            "outputBinding": {
+                "glob": "renamed-filelist.txt"
+            },
+            "id": "#main/filelist"
+        }
+    ],
+    "cwlVersion": "v1.2"
+}

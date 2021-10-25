@@ -5,14 +5,13 @@ import java.nio.file.{Path, Paths}
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID.randomUUID
-
 import dx.Assumptions.{isLoggedIn, toolkitCallable}
 import dx.Tags.NativeTest
 import dx.api._
 import dx.core.Constants
 import dx.core.ir.Callable
 import dx.core.CliUtils.Termination
-import dx.util.{FileUtils, Logger, SysUtils}
+import dx.util.{FileUtils, JsUtils, Logger, SysUtils}
 import dxCompiler.Main
 import dxCompiler.Main.{SuccessfulCompileIR, SuccessfulCompileNativeNoTree}
 import org.scalatest.BeforeAndAfterAll
@@ -20,11 +19,8 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spray.json._
 
-// This test module requires being logged in to the platform.
-// It compiles WDL scripts without the runtime library.
-// This tests the compiler Native mode, however, it creates
-// dnanexus applets and workflows that are not runnable.
-
+// This test module requires being logged in to the platform. It compiles WDL scripts without the runtime library.
+// This tests the compiler Native mode, however, it creates DNAnexus applets and workflows that are not runnable.
 class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
   assume(isLoggedIn)
   assume(toolkitCallable)
@@ -38,7 +34,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
   val testProject = "dxCompiler_playground"
 
-  private lazy val dxTestProject =
+  private val dxTestProject =
     try {
       dxApi.resolveProject(testProject)
     } catch {
@@ -49,70 +45,53 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         )
     }
 
-  private lazy val username = dxApi.whoami()
-  private lazy val unitTestsPath = s"unit_tests/${username}"
-  private lazy val cFlagsBase: List[String] = List(
+  private val username = dxApi.whoami()
+  private val unitTestsPath = {
+    val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm")
+    val test_time = dateFormatter.format(LocalDateTime.now)
+    s"/unit_tests/${username}/CompilerTest/${test_time}_${randomUUID().toString.substring(24)}"
+  }
+  private val reorgAppletFolder = s"${unitTestsPath}/reorg_applets"
+  private val unitTestsReusePath = s"${unitTestsPath}/reuse"
+  private var reorgAppletId: Option[String] = None
+
+  private val cFlagsBase: List[String] = List(
       "-project",
       dxTestProject.id,
       "-quiet",
       "-force"
   )
-  private lazy val cFlags: List[String] = cFlagsBase ++ List("-compileMode",
-                                                             "NativeWithoutRuntimeAsset",
-                                                             "-folder",
-                                                             s"/${unitTestsPath}",
-                                                             "-locked")
-  private lazy val cFlagsReorgIR: List[String] = cFlagsBase ++
+  private val cFlags: List[String] = cFlagsBase ++ List("-compileMode",
+                                                        "NativeWithoutRuntimeAsset",
+                                                        "-folder",
+                                                        unitTestsPath,
+                                                        "-locked")
+  private val cFlagsReorgIR: List[String] = cFlagsBase ++
     List("-compileMode", "IR", "-folder", "/reorg_tests")
-  private lazy val cFlagsReorgCompile: List[String] = cFlagsBase ++
+  private val cFlagsReorgCompile: List[String] = cFlagsBase ++
     List("-compileMode", "NativeWithoutRuntimeAsset", "-folder", "/reorg_tests")
-
-  private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm")
-  private val test_time = dateFormatter.format(LocalDateTime.now)
-
-  private val reorgAppletFolder =
-    s"/${unitTestsPath}/reorg_applets_${test_time}_${randomUUID().toString.substring(24)}/"
-  private val reorgAppletPath = s"${reorgAppletFolder}/functional_reorg_test"
+  private lazy val cFlagsReuse: List[String] = cFlagsBase ++
+    List("-compileMode",
+         "NativeWithoutRuntimeAsset",
+         "-folder",
+         unitTestsReusePath,
+         "-projectWideReuse")
 
   override def beforeAll(): Unit = {
     // build the directory with the native applets
     dxTestProject.newFolder(reorgAppletFolder, parents = true)
     // building necessary applets before starting the tests
-    val nativeApplets = Vector("functional_reorg_test")
     val topDir = Paths.get(System.getProperty("user.dir"))
-    nativeApplets.foreach { app =>
-      try {
-        SysUtils.execCommand(
-            s"dx build $topDir/test/applets/$app --destination ${testProject}:${reorgAppletFolder}"
-        )
-      } catch {
-        case _: Throwable =>
-      }
-    }
+    val (_, appletIdJs, _) = SysUtils.execCommand(
+        s"dx build $topDir/test/applets/functional_reorg_test --destination ${testProject}:${reorgAppletFolder} --brief"
+    )
+    val JsString(appletId) = JsUtils.jsFromString(appletIdJs).asJsObject.fields("id")
+    reorgAppletId = Some(appletId)
   }
 
   override def afterAll(): Unit = {
-    dxTestProject.removeFolder(reorgAppletFolder, recurse = true)
+    dxTestProject.removeFolder(unitTestsPath, recurse = true)
   }
-
-  private def getAppletId(path: String): String = {
-    val folder = Paths.get(path).getParent.toAbsolutePath.toString
-    val basename = Paths.get(path).getFileName.toString
-    val results = DxFindDataObjects(dxApi, Some(10)).apply(
-        Some(dxTestProject),
-        Some(folder),
-        recurse = false,
-        classRestriction = None,
-        withTags = Vector.empty,
-        nameConstraints = Vector(basename),
-        withInputOutputSpec = false
-    )
-    results.size shouldBe 1
-    val desc = results.values.head
-    desc.id
-  }
-
-  private lazy val reorgAppletId = getAppletId(reorgAppletPath)
 
   private object WithExtras {
     def apply(extrasContent: String)(f: String => Termination): Termination = {
@@ -124,6 +103,22 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         tmpExtras.delete()
       }
     }
+  }
+
+  it should "compile a task with dynamic instance type selection" in {
+    def compile(instanceTypeSelection: String): Map[String, JsValue] = {
+      val path = pathFromBasename("compiler", "add.wdl")
+      val args = path.toString :: "-instanceTypeSelection" :: instanceTypeSelection :: cFlags
+      val retval = Main.compile(args.toVector)
+      val appletId = retval match {
+        case SuccessfulCompileNativeNoTree(_, Vector(appletId)) => appletId
+        case other =>
+          throw new Exception(s"expected successful compilation of a single applet not ${other}")
+      }
+      dxApi.applet(appletId).describe(Set(Field.Details)).details.get.asJsObject.fields
+    }
+    compile("static") should contain key Constants.InstanceTypeDb
+    compile("dynamic") shouldNot contain key Constants.InstanceTypeDb
   }
 
   it should "Native compile a linear WDL workflow" taggedAs NativeTest in {
@@ -165,17 +160,19 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
     val dxApplet = dxApi.applet(appId)
     val inputSpec = dxApplet.describe(Set(Field.InputSpec))
-    val (in_file, pattern) = inputSpec.inputSpec match {
-      case Some(x) => (x(0), x(1))
+    val params = inputSpec.inputSpec match {
+      case Some(x) => x.map(p => p.name -> p).toMap
       case other   => throw new Exception(s"Unexpected result ${other}")
     }
+    val pattern = params("pattern")
     pattern.help shouldBe Some("The pattern to use to search in_file")
     pattern.group shouldBe Some("Common")
     pattern.label shouldBe Some("Search pattern")
-    in_file.patterns shouldBe Some(IOParameterPatternArray(Vector("*.txt", "*.tsv")))
-    in_file.help shouldBe Some("The input file to be searched")
-    in_file.group shouldBe Some("Common")
-    in_file.label shouldBe Some("Input file")
+    val inFile = params("in_file")
+    inFile.patterns shouldBe Some(IOParameterPatternArray(Vector("*.txt", "*.tsv")))
+    inFile.help shouldBe Some("The input file to be searched")
+    inFile.group shouldBe Some("Common")
+    inFile.label shouldBe Some("Input file")
     // TODO: fix this
     // out_file would be part of the outputSpec, but wom currently doesn't
     // support parameter_meta for output vars
@@ -193,21 +190,23 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
     val dxApplet = dxApi.applet(appId)
     val inputSpec = dxApplet.describe(Set(Field.InputSpec))
-    val (in_file, pattern) = inputSpec.inputSpec match {
-      case Some(x) => (x(0), x(1))
+    val params = inputSpec.inputSpec match {
+      case Some(x) => x.map(p => p.name -> p).toMap
       case other   => throw new Exception(s"Unexpected result ${other}")
     }
+    val pattern = params("pattern")
     pattern.help shouldBe Some("The pattern to use to search in_file")
     pattern.group shouldBe Some("Common")
     pattern.label shouldBe Some("Search pattern")
-    in_file.patterns shouldBe Some(
+    val inFile = params("in_file")
+    inFile.patterns shouldBe Some(
         IOParameterPatternObject(Some(Vector("*.txt", "*.tsv")),
                                  Some("file"),
                                  Some(Vector("foo", "bar")))
     )
-    in_file.help shouldBe Some("The input file to be searched")
-    in_file.group shouldBe Some("Common")
-    in_file.label shouldBe Some("Input file")
+    inFile.help shouldBe Some("The input file to be searched")
+    inFile.group shouldBe Some("Common")
+    inFile.label shouldBe Some("Input file")
     // TODO: fix this
     // out_file would be part of the outputSpec, but wom currently doesn't
     // support parameter_meta for output vars
@@ -225,26 +224,20 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
     val dxApplet = dxApi.applet(appId)
     val inputSpec = dxApplet.describe(Set(Field.InputSpec))
-    val (in_file, pattern) = inputSpec.inputSpec match {
-      case Some(x) => (x(0), x(1))
+    val params = inputSpec.inputSpec match {
+      case Some(x) => x.map(p => p.name -> p).toMap
       case other   => throw new Exception(s"Unexpected result ${other}")
     }
-    pattern.choices shouldBe Some(
+    params("pattern").choices shouldBe Some(
         Vector(
-            IOParameterChoiceString(value = "A"),
-            IOParameterChoiceString(value = "B")
+            IOParameterValueString(value = "A"),
+            IOParameterValueString(value = "B")
         )
     )
-    in_file.choices shouldBe Some(
+    params("in_file").choices shouldBe Some(
         Vector(
-            IOParameterChoiceFile(
-                name = None,
-                value = dxApi.file("file-Fg5PgBQ0ffP7B8bg3xqB115G")
-            ),
-            IOParameterChoiceFile(
-                name = None,
-                value = dxApi.file("file-Fg5PgBj0ffPP0Jjv3zfv0yxq")
-            )
+            IOParameterValueDataObject("file-Fg5PgBQ0ffP7B8bg3xqB115G"),
+            IOParameterValueDataObject("file-Fg5PgBj0ffPP0Jjv3zfv0yxq")
         )
     )
   }
@@ -260,25 +253,25 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
     val dxApplet = dxApi.applet(appId)
     val inputSpec = dxApplet.describe(Set(Field.InputSpec))
-    val (in_file, pattern) = inputSpec.inputSpec match {
-      case Some(x) => (x(0), x(1))
+    val params = inputSpec.inputSpec match {
+      case Some(x) => x.map(p => p.name -> p).toMap
       case other   => throw new Exception(s"Unexpected result ${other}")
     }
-    pattern.choices shouldBe Some(
+    params("pattern").choices shouldBe Some(
         Vector(
-            IOParameterChoiceString(value = "A"),
-            IOParameterChoiceString(value = "B")
+            IOParameterValueString(value = "A"),
+            IOParameterValueString(value = "B")
         )
     )
-    in_file.choices shouldBe Some(
+    params("in_file").choices shouldBe Some(
         Vector(
-            IOParameterChoiceFile(
-                name = Some("file1"),
-                value = dxApi.file("file-Fg5PgBQ0ffP7B8bg3xqB115G")
+            IOParameterValueDataObject(
+                id = "file-Fg5PgBQ0ffP7B8bg3xqB115G",
+                name = Some("file1")
             ),
-            IOParameterChoiceFile(
-                name = Some("file2"),
-                value = dxApi.file("file-Fg5PgBj0ffPP0Jjv3zfv0yxq")
+            IOParameterValueDataObject(
+                id = "file-Fg5PgBj0ffPP0Jjv3zfv0yxq",
+                name = Some("file2")
             )
         )
     )
@@ -295,30 +288,20 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
     val dxApplet = dxApi.applet(appId)
     val inputSpec = dxApplet.describe(Set(Field.InputSpec))
-    val (in_file, pattern) = inputSpec.inputSpec match {
-      case Some(x) => (x(0), x(1))
+    val params = inputSpec.inputSpec match {
+      case Some(x) => x.map(p => p.name -> p).toMap
       case other   => throw new Exception(s"Unexpected result ${other}")
     }
-    pattern.suggestions shouldBe Some(
+    params("pattern").suggestions shouldBe Some(
         Vector(
-            IOParameterSuggestionString(value = "A"),
-            IOParameterSuggestionString(value = "B")
+            IOParameterValueString("A"),
+            IOParameterValueString("B")
         )
     )
-    in_file.suggestions shouldBe Some(
+    params("in_file").suggestions shouldBe Some(
         Vector(
-            IOParameterSuggestionFile(
-                name = None,
-                value = Some(dxApi.file("file-Fg5PgBQ0ffP7B8bg3xqB115G")),
-                project = None,
-                path = None
-            ),
-            IOParameterSuggestionFile(
-                name = None,
-                value = Some(dxApi.file("file-Fg5PgBj0ffPP0Jjv3zfv0yxq")),
-                project = None,
-                path = None
-            )
+            IOParameterValueDataObject("file-Fg5PgBQ0ffP7B8bg3xqB115G"),
+            IOParameterValueDataObject("file-Fg5PgBj0ffPP0Jjv3zfv0yxq")
         )
     )
   }
@@ -334,29 +317,26 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
     val dxApplet = dxApi.applet(appId)
     val inputSpec = dxApplet.describe(Set(Field.InputSpec))
-    val (in_file, pattern) = inputSpec.inputSpec match {
-      case Some(x) => (x(0), x(1))
+    val params = inputSpec.inputSpec match {
+      case Some(x) => x.map(p => p.name -> p).toMap
       case other   => throw new Exception(s"Unexpected result ${other}")
     }
-    pattern.suggestions shouldBe Some(
+    params("pattern").suggestions shouldBe Some(
         Vector(
-            IOParameterSuggestionString(value = "A"),
-            IOParameterSuggestionString(value = "B")
+            IOParameterValueString("A"),
+            IOParameterValueString("B")
         )
     )
-    in_file.suggestions shouldBe Some(
+    params("in_file").suggestions shouldBe Some(
         Vector(
-            IOParameterSuggestionFile(
-                name = Some("file1"),
-                value = Some(dxApi.file("file-Fg5PgBQ0ffP7B8bg3xqB115G")),
-                project = None,
-                path = None
+            IOParameterValueDataObject(
+                id = "file-Fg5PgBQ0ffP7B8bg3xqB115G",
+                name = Some("file1")
             ),
-            IOParameterSuggestionFile(
-                name = Some("file2"),
-                value = None,
-                project = Some(dxApi.project("project-FGpfqjQ0ffPF1Q106JYP2j3v")),
-                path = Some("/test_data/f2.txt.gz")
+            DxIoParameterValuePath(
+                project = "project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq",
+                path = "/test_data/f2.txt.gz",
+                name = Some("file2")
             )
         )
     )
@@ -377,17 +357,17 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       case Some(x) => (x(0), x(1))
       case other   => throw new Exception(s"Unexpected result ${other}")
     }
-    file_a.dx_type shouldBe Some(IOParameterTypeConstraintString("fastq"))
-    file_b.dx_type shouldBe Some(
-        IOParameterTypeConstraintOper(
-            ConstraintOper.And,
-            Vector(
-                IOParameterTypeConstraintString("fastq"),
-                IOParameterTypeConstraintOper(
-                    ConstraintOper.Or,
-                    Vector(
-                        IOParameterTypeConstraintString("Read1"),
-                        IOParameterTypeConstraintString("Read2")
+    file_a.dxType shouldBe Some(DxConstraintString("fastq"))
+    file_b.dxType shouldBe Some(
+        DxConstraintBool(
+            DxConstraintOper.And,
+            DxConstraintArray(
+                DxConstraintString("fastq"),
+                DxConstraintBool(
+                    DxConstraintOper.Or,
+                    DxConstraintArray(
+                        DxConstraintString("Read1"),
+                        DxConstraintString("Read2")
                     )
                 )
             )
@@ -410,8 +390,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       case Some(x) => (x(0), x(1))
       case other   => throw new Exception(s"Unexpected result ${other}")
     }
-    int_a.default shouldBe Some(IOParameterDefaultNumber(1))
-    int_b.default shouldBe Some(IOParameterDefaultNumber(2))
+    int_a.default shouldBe Some(IOParameterValueNumber(1))
+    int_b.default shouldBe Some(IOParameterValueNumber(2))
   }
 
   it should "be able to include help information in inputSpec" in {
@@ -541,6 +521,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
           case (Constants.Version, JsString(_))                    => () // ignore
           case (Constants.Checksum, JsString(_))                   => () // ignore
           case (Constants.SourceCode, JsString(_))                 => () // ignore
+          case (Constants.ParseOptions, JsObject(_))               => () // ignore
           // old values for sourceCode - can probalby delete these
           case ("womSourceCode", JsString(_)) => () // ignore
           case ("wdlSourceCode", JsString(_)) => () // ignore
@@ -737,6 +718,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
           case (Constants.Version, JsString(_))            => () // ignore
           case (Constants.Checksum, JsString(_))           => () // ignore
           case (Constants.SourceCode, JsString(_))         => () // ignore
+          case (Constants.ParseOptions, JsObject(_))       => () // ignore
           // old values for sourceCode - can probalby delete these
           case ("womSourceCode", JsString(_)) => ()
           case ("wdlSourceCode", JsString(_)) => ()
@@ -770,9 +752,39 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       case other   => throw new Exception(s"Unexpected result ${other}")
     }
     x.label shouldBe Some("Left-hand side")
-    x.default shouldBe Some(IOParameterDefaultNumber(3))
+    x.default shouldBe Some(IOParameterValueNumber(3))
     y.label shouldBe Some("Right-hand side")
-    y.default shouldBe Some(IOParameterDefaultNumber(5))
+    y.default shouldBe Some(IOParameterValueNumber(5))
+  }
+
+  it should "dependency report should be added to WF description" in {
+    val path = pathFromBasename("non_spec", "dependency_report_wf1.wdl")
+    val extraPath = pathFromBasename("non_spec", "dependency_report_extras.json")
+    val args = path.toString :: "-extras" :: extraPath.toString :: cFlags
+    val wfId = Main.compile(args.toVector) match {
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
+    }
+
+    val dxWorkflow = dxApi.workflow(wfId)
+    val desc = dxWorkflow.describe(Set(Field.Description))
+    desc.description match {
+      case Some(d) => {
+        d should include("app-BZ9ZQzQ02VP5gpkP54b96pYY")
+        d should include("file-G4BV6180yzZyvZ124KB0q46P")
+        d should include("file-G4BV61j0yzZgf6JQKxP4gQ3Y")
+        d should include("file-G4BV61Q0yzZq60Jj4K5vfG92")
+        d should include("file-G4BV6280yzZq60Jj4K5vfG96")
+        d should include("file-G4BV6200yzZq60Jj4K5vfG94")
+        d should include("file-G4BV6280yzZkpgjj4Jx6Fjj9")
+        d should include("file-G4BV6100yzZz17bx4JkQkybb")
+        d should include("alpine:3.14")
+        d should include("ubuntu:20.04")
+        d should include("mem1_ssd2_x4")
+      }
+      case _ => throw new Exception(s"Expected ${wfId} to have a description.")
+    }
   }
 
   it should "deep nesting" taggedAs NativeTest in {
@@ -852,8 +864,6 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       case Some(JsString(x)) => x
       case other             => throw new Exception(s"Unexpected result ${other}")
     }
-
-    //System.out.println(s"instanceType = ${instanceType}")
     instanceType should include("_gpu")
   }
 
@@ -862,7 +872,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val extrasContent =
       s"""|{
           | "custom_reorg" : {
-          |    "app_id" : "${reorgAppletId}",
+          |    "app_id" : "${reorgAppletId.get}",
           |    "conf" : null
           |  }
           |}
@@ -886,7 +896,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val reorgStage = wfStages.last
 
     reorgStage.id shouldBe "stage-reorg"
-    reorgStage.executable shouldBe reorgAppletId
+    reorgStage.executable shouldBe reorgAppletId.get
 
     // There should be 3 inputs, the output from output stage and the custom reorg config file.
     val reorgInput: JsObject = reorgStage.input match {
@@ -896,7 +906,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
     // no reorg conf input. only status.
     reorgInput.fields.size shouldBe 1
-    reorgInput.fields.keys shouldBe Set(Constants.ReorgStatus)
+    reorgInput.fields.keys should contain theSameElementsAs Set(Constants.ReorgStatus.encoded)
   }
 
   // ignore for now as the test will fail in staging
@@ -911,7 +921,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val extrasContent =
       s"""|{
           | "custom_reorg" : {
-          |    "app_id" : "${reorgAppletId}",
+          |    "app_id" : "${reorgAppletId.get}",
           |    "conf" : "dx://$fileId"
           |  }
           |}
@@ -938,7 +948,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     }
     // no reorg conf input. only status.
     reorgInput.fields.size shouldBe 2
-    reorgInput.fields.keys shouldBe Set(Constants.ReorgStatus, Constants.ReorgConfig)
+    reorgInput.fields.keys should contain theSameElementsAs Set(Constants.ReorgStatus.encoded,
+                                                                Constants.ReorgConfig.encoded)
   }
 
   it should "ensure subworkflow with custom reorg app does not contain reorg attribute" in {
@@ -947,7 +958,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val extrasContent =
       s"""|{
           | "custom_reorg" : {
-          |    "app_id" : "${reorgAppletId}",
+          |    "app_id" : "${reorgAppletId.get}",
           |    "conf" : null
           |  }
           |}
@@ -956,8 +967,6 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       val args = path.toString :: "-extras" :: extrasPath :: cFlagsReorgIR
       Main.compile(args.toVector)
     }
-    retval shouldBe a[SuccessfulCompileIR]
-
     val bundle = retval match {
       case SuccessfulCompileIR(bundle) => bundle
       case _                           => throw new Exception("unexpected")
@@ -1088,7 +1097,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
   }
 
   it should "Native compile a CWL tool" taggedAs NativeTest in {
-    val path = pathFromBasename("cwl", "cat.cwl")
+    val path = pathFromBasename("cwl", "cat.cwl.json")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileNativeNoTree]
@@ -1109,34 +1118,36 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     input.keySet shouldBe Set(
         Constants.InputManifestFiles,
         Constants.InputManifest,
-        s"${Constants.InputManifest}___dxfiles",
+        Constants.InputManifest.addSuffix(Constants.FlatFilesSuffix),
         Constants.InputLinks,
-        s"${Constants.InputLinks}___dxfiles",
+        Constants.InputLinks.addSuffix(Constants.FlatFilesSuffix),
         Constants.WorkflowInputManifest,
-        s"${Constants.WorkflowInputManifest}___dxfiles",
+        Constants.WorkflowInputManifest.addSuffix(Constants.FlatFilesSuffix),
         Constants.WorkflowInputManifestFiles,
         Constants.WorkflowInputLinks,
-        s"${Constants.WorkflowInputLinks}___dxfiles",
+        Constants.WorkflowInputLinks.addSuffix(Constants.FlatFilesSuffix),
         Constants.OutputId,
-        Constants.CallName
-    )
-    input(Constants.InputManifest).ioClass shouldBe DxIOClass.Hash
-    input(Constants.InputManifest).optional shouldBe true
-    input(Constants.InputManifestFiles).ioClass shouldBe DxIOClass.FileArray
-    input(Constants.InputLinks).ioClass shouldBe DxIOClass.Hash
-    input(Constants.InputLinks).optional shouldBe true
-    input(Constants.WorkflowInputManifest).ioClass shouldBe DxIOClass.Hash
-    input(Constants.WorkflowInputManifest).optional shouldBe true
-    input(Constants.WorkflowInputManifestFiles).ioClass shouldBe DxIOClass.FileArray
-    input(Constants.WorkflowInputLinks).ioClass shouldBe DxIOClass.Hash
-    input(Constants.WorkflowInputLinks).optional shouldBe true
-    input(Constants.OutputId).ioClass shouldBe DxIOClass.String
-    input(Constants.CallName).ioClass shouldBe DxIOClass.String
-    input(Constants.CallName).optional shouldBe true
+        Constants.CallName,
+        Constants.Overrides,
+        Constants.Overrides.addSuffix(Constants.FlatFilesSuffix)
+    ).map(_.encoded)
+    input(Constants.InputManifest.encoded).ioClass shouldBe DxIOClass.Hash
+    input(Constants.InputManifest.encoded).optional shouldBe true
+    input(Constants.InputManifestFiles.encoded).ioClass shouldBe DxIOClass.FileArray
+    input(Constants.InputLinks.encoded).ioClass shouldBe DxIOClass.Hash
+    input(Constants.InputLinks.encoded).optional shouldBe true
+    input(Constants.WorkflowInputManifest.encoded).ioClass shouldBe DxIOClass.Hash
+    input(Constants.WorkflowInputManifest.encoded).optional shouldBe true
+    input(Constants.WorkflowInputManifestFiles.encoded).ioClass shouldBe DxIOClass.FileArray
+    input(Constants.WorkflowInputLinks.encoded).ioClass shouldBe DxIOClass.Hash
+    input(Constants.WorkflowInputLinks.encoded).optional shouldBe true
+    input(Constants.OutputId.encoded).ioClass shouldBe DxIOClass.String
+    input(Constants.CallName.encoded).ioClass shouldBe DxIOClass.String
+    input(Constants.CallName.encoded).optional shouldBe true
 
     val output = desc.outputSpec.get.map(i => i.name -> i).toMap
-    output.keySet shouldBe Set(Constants.OutputManifest)
-    output(Constants.OutputManifest).ioClass shouldBe DxIOClass.File
+    output.keySet shouldBe Set(Constants.OutputManifest.encoded)
+    output(Constants.OutputManifest.encoded).ioClass shouldBe DxIOClass.File
   }
 
   it should "compile a workflow with a native app with file output" taggedAs NativeTest in {
@@ -1145,4 +1156,74 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileNativeNoTree]
   }
+
+  it should "compile a packed CWL workflow" in {
+    val path = pathFromBasename("cwl", "basename-fields-test.cwl.json")
+    val args = path.toString :: cFlags
+    Main.compile(args.toVector) match {
+      case _: SuccessfulCompileNativeNoTree => ()
+      case other =>
+        throw new Exception(s"expected success not ${other}")
+    }
+  }
+
+  it should "compile a workflow with only an output section" in {
+    val path = pathFromBasename("draft2", "output_only.wdl")
+    val args = path.toString :: cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileNativeNoTree]
+  }
+
+  it should "compile a CWL workflow with a file default" in {
+    val path = pathFromBasename("cwl", "count-lines9-wf-noET.cwl.json")
+    val args = path.toString :: cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileNativeNoTree]
+  }
+
+  it should "compile a CWL workflow with a stage input unconnected to process input" in {
+    val path = pathFromBasename("cwl", "pass-unconnected.cwl.json")
+    val args = path.toString :: cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileNativeNoTree]
+  }
+
+  it should "compile a CWL workflow with downcasted tool output" in {
+    val path = pathFromBasename("cwl", "count-lines11-null-step-wf-noET.cwl.json")
+    val args = path.toString :: cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileNativeNoTree]
+  }
+
+  it should "compile a CWL workflow with a scatter" in {
+    val path = pathFromBasename("cwl", "scatter-wf4.cwl.json")
+    val args = path.toString :: cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileNativeNoTree]
+  }
+
+  it should "reuse identical tasks" in {
+    val path = pathFromBasename("bugs", "apps-788.wdl")
+    val args = path.toString :: cFlags
+    val appletId = Main.compile(args.toVector) match {
+      case SuccessfulCompileNativeNoTree(_, Vector(appletId)) => appletId
+      case other =>
+        throw new Exception(s"expected single applet not ${other}")
+    }
+    // compiling a second time into a different folder with -projectWideReuse should reuse the same applet
+    val args2 = path.toString :: cFlagsReuse
+    val appletId2 = Main.compile(args2.toVector) match {
+      case SuccessfulCompileNativeNoTree(_, Vector(appletId)) => appletId
+      case other =>
+        throw new Exception(s"expected single applet not ${other}")
+    }
+    appletId shouldBe appletId2
+  }
+
+//  it should "compile a task with a string + int concatenation" taggedAs NativeTest in {
+//    val path = pathFromBasename("non_spec", "string_int_concat.wdl")
+//    val args = path.toString :: "-wdlMode" :: "lenient" :: cFlags
+//    val retval = Main.compile(args.toVector)
+//    retval shouldBe a[SuccessfulCompileNativeNoTree]
+//  }
 }

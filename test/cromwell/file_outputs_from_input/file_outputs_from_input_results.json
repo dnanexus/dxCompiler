@@ -1,0 +1,5 @@
+{
+    "file_outputs_from_input_wf.baz": "baz", 
+    "file_outputs_from_input_wf.bar": "bar", 
+    "file_outputs_from_input_wf.foo": "foo"
+}

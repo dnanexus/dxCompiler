@@ -1,12 +1,15 @@
 {
-  "dxda": "v0.5.4",
-  "dxfuse": "v0.24.1",
+  "dxda": "v0.5.7",
+  "dxfuse": "v0.24.2",
   "awscli": "2.1.32",
   "execDepends": {
     "cwl": [
       {
-        "name": "cwltool==3.0.20201203173111",
-        "package_manager": "pip3"
+        "name": "cwltool",
+        "package_manager": "git",
+        "url": "https://github.com/common-workflow-language/cwltool.git",
+        "tag": "3cf62d85e746790b811ab333814228beffec4d1c",
+        "build_commands": "make install"
       }
     ]
   },

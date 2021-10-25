@@ -4,15 +4,23 @@
 package dx.core.io
 
 import java.nio.file.Path
-
 import dx.api.{DxApi, DxArchivalState, DxFile}
+import dx.util.Logger
 import spray.json._
 
 case class DxfuseManifest(value: JsValue)
 
-case class DxfuseManifestBuilder(dxApi: DxApi) {
-  def apply(fileToLocalMapping: Map[DxFile, Path],
-            workerPaths: DxWorkerPaths): Option[DxfuseManifest] = {
+// TODO: support using folder listings to restrict which files/subdirs
+//  are synced for a given remote folder - this requires a change in
+//  dxfuse
+case class DxfuseManifestBuilder(workerPaths: DxWorkerPaths,
+                                 dxApi: DxApi,
+                                 logger: Logger = Logger.get) {
+  def apply(
+      fileToLocalMapping: Map[DxFile, Path] = Map.empty,
+      folderToLocalMapping: Map[(String, String), Path] = Map.empty,
+      folderListings: Map[(String, String), Set[Path]] = Map.empty
+  ): Option[DxfuseManifest] = {
     if (fileToLocalMapping.isEmpty) {
       return None
     }
@@ -38,16 +46,25 @@ case class DxfuseManifestBuilder(dxApi: DxApi) {
             "file_id" -> JsString(dxFile.id),
             "parent" -> JsString(relParentDir),
             "proj_id" -> JsString(desc.project),
-            "fname" -> JsString(desc.name),
+            "fname" -> JsString(path.getFileName.toString),
             "size" -> JsNumber(desc.size),
             "ctime" -> JsNumber(desc.created),
             "mtime" -> JsNumber(desc.modified)
         )
     }.toVector
 
+    val folders = folderToLocalMapping.map {
+      case ((project, folder), path) =>
+        JsObject(
+            "proj_id" -> JsString(project),
+            "folder" -> JsString(folder),
+            "dirname" -> JsString(path.toString)
+        )
+    }.toVector
+
     Some(
         DxfuseManifest(
-            JsObject("files" -> JsArray(files), "directories" -> JsArray(Vector.empty))
+            JsObject("files" -> JsArray(files), "directories" -> JsArray(folders))
         )
     )
   }

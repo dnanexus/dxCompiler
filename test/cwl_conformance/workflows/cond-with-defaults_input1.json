@@ -1,0 +1,10 @@
+{
+  "cond-with-defaults.forward_reads": {
+    "class": "File",
+    "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/example_human_Illumina.pe_1.fastq"
+  },
+  "cond-with-defaults.reverse_reads": {
+    "class": "File",
+    "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/example_human_Illumina.pe_2.fastq"
+  }
+}

@@ -1,20 +1,25 @@
 package dx.executor
 
 import java.nio.file.{InvalidPathException, Paths}
-
 import dx.core.CliUtils._
 import dx.core.io.{DxWorkerPaths, StreamFiles}
+import dx.core.ir.DxNameFactory
 import dx.util.Enum
+
+object BaseCli {
+  val MaxConcurrentUploads: Int = 8
+}
 
 abstract class BaseCli {
   val jarName: String
 
-  def createTaskExecutor(meta: JobMeta,
-                         fileUploader: FileUploader,
-                         streamFiles: StreamFiles.StreamFiles,
-                         waitOnUpload: Boolean): TaskExecutor
+  protected def dxNameFactory: DxNameFactory
 
-  def createWorkflowExecutor(meta: JobMeta, separateOutputs: Boolean): WorkflowExecutor[_]
+  protected def createTaskExecutor(meta: JobMeta,
+                                   streamFiles: StreamFiles.StreamFiles,
+                                   checkInstanceType: Boolean): TaskExecutor
+
+  protected def createWorkflowExecutor(meta: JobMeta, separateOutputs: Boolean): WorkflowExecutor[_]
 
   private object StreamFilesOptionSpec
       extends SingleValueOptionSpec[StreamFiles.StreamFiles](choices = StreamFiles.values.toVector) {
@@ -23,10 +28,15 @@ abstract class BaseCli {
   }
 
   private val CommonOptions: Map[String, OptionSpec] = Map(
+      "waitOnUpload" -> FlagOptionSpec.default
+  )
+  private val TaskOptions: Map[String, OptionSpec] = CommonOptions ++ Map(
       "streamFiles" -> StreamFilesOptionSpec,
       "streamAllFiles" -> FlagOptionSpec.default,
-      "separateOutputs" -> FlagOptionSpec.default,
-      "waitOnUpload" -> FlagOptionSpec.default
+      "checkInstanceType" -> FlagOptionSpec.default
+  )
+  private val WorkflowOptions: Map[String, OptionSpec] = CommonOptions ++ Map(
+      "separateOutputs" -> FlagOptionSpec.default
   )
 
   object ExecutorKind extends Enum {
@@ -49,37 +59,34 @@ abstract class BaseCli {
       }
     val options =
       try {
-        parseCommandLine(args.drop(3), CommonOptions)
+        val optionSpec = if (kind == ExecutorKind.Task) TaskOptions else WorkflowOptions
+        parseCommandLine(args.drop(3), optionSpec)
       } catch {
         case e: OptionParseException =>
           return BadUsageTermination("Error parsing command line options", Some(e))
       }
     val logger = initLogger(options)
+    val waitOnUpload = options.getFlag("waitOnUpload")
+    logger.traceLimited(s"Creating JobMeta: rootDir ${rootDir}, waitOnUpload: ${waitOnUpload}")
+    val jobMeta =
+      WorkerJobMeta(DxWorkerPaths(rootDir), waitOnUpload, dxNameFactory, logger = logger)
     try {
-      val jobMeta = WorkerJobMeta(DxWorkerPaths(rootDir))
       kind match {
         case ExecutorKind.Task =>
-          val taskAction = {
-            try {
-              TaskAction.withNameIgnoreCase(action)
-            } catch {
-              case _: NoSuchElementException =>
-                return BadUsageTermination(s"Unknown action ${action}")
-            }
-          }
-          val fileUploader = SerialFileUploader()
           val streamFiles = options.getValue[StreamFiles.StreamFiles]("streamFiles") match {
             case Some(value)                               => value
             case None if options.getFlag("streamAllFiles") => StreamFiles.All
             case None                                      => StreamFiles.PerFile
           }
-          val waitOnUpload = options.getFlag("waitOnUpload")
-          logger.traceLimited(
-              s"Creating TaskExecutor: streamFiles ${streamFiles}, waitOnUpload ${waitOnUpload}"
+          val checkInstanceType = options.getFlag("checkInstanceType")
+          logger.trace(
+              s"Creating TaskExecutor: streamFiles ${streamFiles} checkInstanceType ${checkInstanceType}"
           )
-          val taskExecutor = createTaskExecutor(jobMeta, fileUploader, streamFiles, waitOnUpload)
-          val successMessage = taskExecutor.apply(taskAction)
-          Success(successMessage)
+          val taskExecutor = createTaskExecutor(jobMeta, streamFiles, checkInstanceType)
+          taskExecutor.apply() match {
+            case TaskExecutorResult.Success  => Success("task executed successfully")
+            case TaskExecutorResult.Relaunch => Success("task relaunched")
+          }
         case ExecutorKind.Workflow =>
           val separateOutputs = options.getFlag("separateOutputs")
           val workflowAction =
@@ -89,15 +96,18 @@ abstract class BaseCli {
               case _: NoSuchElementException =>
                 return BadUsageTermination(s"Unknown action ${args(0)}")
             }
+          logger.trace(
+              s"Creating WorkflowExecutor: separateOutputs ${separateOutputs}, waitOnUpload ${waitOnUpload}"
+          )
           val executor = createWorkflowExecutor(jobMeta, separateOutputs)
           val (_, successMessage) = executor.apply(workflowAction)
           Success(successMessage)
-        case _ =>
-          BadUsageTermination()
+        case _ => BadUsageTermination()
       }
     } catch {
       case e: Throwable =>
-        Failure(s"failure executing action '${action}'", Some(e))
+        jobMeta.error(e)
+        Failure(s"failure executing ${kind} action '${action}'", Some(e))
     }
   }
 

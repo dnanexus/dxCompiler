@@ -5,12 +5,12 @@
     "secondaryFiles": [
       {
         "class": "File",
-        "location": "index.py"
+        "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G0G3BZQ0yzZZZXfx3xPK1BYF"
       },
       {
         "class": "Directory",
         "basename": "xtestdir",
-        "location": "testdir"
+        "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/testdir/"
       }
     ]
   }

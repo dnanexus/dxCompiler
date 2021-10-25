@@ -1,25 +1,21 @@
 package dx.compiler
 
 import java.nio.file.{Files, Path}
-
 import com.typesafe.config.{Config, ConfigFactory}
 import dx.api.{
-  DiskType,
   DxApi,
   DxApplet,
   DxAppletDescribe,
   DxDataObject,
   DxExecutable,
   DxFile,
-  DxInstanceType,
   DxPath,
   DxProject,
   DxRecord,
   DxUtils,
   DxWorkflow,
   DxWorkflowDescribe,
-  Field,
-  InstanceTypeDB
+  Field
 }
 import dx.core.{Constants, getVersion}
 import dx.core.io.{DxWorkerPaths, StreamFiles}
@@ -50,6 +46,7 @@ object Compiler {
   * @param streamFiles which files to stream vs download
   * @param waitOnUpload whether to wait for each file upload to complete
   * @param useManifests whether to use manifest files for all application inputs and outputs
+  * @param complexPathValues whether File and Directory values should be treated as objects
   * @param fileResolver the FileSourceResolver
   * @param dxApi the DxApi
   * @param logger the Logger
@@ -69,6 +66,9 @@ case class Compiler(extras: Option[Extras],
                     streamFiles: StreamFiles.StreamFiles,
                     waitOnUpload: Boolean,
                     useManifests: Boolean,
+                    complexPathValues: Boolean,
+                    instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
+                    defaultInstanceType: Option[String],
                     fileResolver: FileSourceResolver = FileSourceResolver.get,
                     dxApi: DxApi = DxApi.get,
                     logger: Logger = Logger.get) {
@@ -85,19 +85,8 @@ case class Compiler(extras: Option[Extras],
   }
 
   private case class BundleCompiler(bundle: Bundle, project: DxProject, folder: String) {
-    private val parameterLinkSerializer = ParameterLinkSerializer(fileResolver)
-    // database of available instance types for the user/org that owns the project
-    // Instance type filter:
-    // - Instance must support Ubuntu.
-    // - Instance is not an FPGA instance.
-    // - Instance does not have local HDD storage (those are older instance types).
-    private def instanceTypeFilter(instanceType: DxInstanceType): Boolean = {
-      instanceType.os.exists(_.release == Constants.OsRelease) &&
-      !instanceType.diskType.contains(DiskType.HDD) &&
-      !instanceType.name.contains("fpga")
-    }
-    private val instanceTypeDb =
-      InstanceTypeDB.create(project, instanceTypeFilter, Some(dxApi), logger)
+    private val parameterLinkSerializer =
+      ParameterLinkSerializer(fileResolver, dxApi = dxApi, pathsAsObjects = complexPathValues)
     // directory of the currently existing applets - we don't want to build them
     // if we don't have to.
     private val executableDir =
@@ -135,8 +124,7 @@ case class Compiler(extras: Option[Extras],
           throw new Exception(s"Bad syntax for destination ${assetSourcePath}")
       }
       val regionalProject = dxApi.resolveProject(regionalProjectName)
-      val assetUri =
-        s"${DxPath.DxUriPrefix}${regionalProject.id}:${assetFolder}/${runtimeAssetName}"
+      val assetUri = DxPath.format(regionalProject.id, assetFolder, runtimeAssetName)
       logger.trace(s"Looking for asset id at ${assetUri}")
       val dxAsset = dxApi.resolveDataObject(assetUri, Some(regionalProject)) match {
         case dxRecord: DxRecord => dxRecord
@@ -180,11 +168,11 @@ case class Compiler(extras: Option[Extras],
 
               |""".stripMargin
       )
-      // We need to sort the hash-tables. They are natually unsorted,
+      // We need to sort the hash-tables. They are naturally unsorted,
       // causing the same object to have different checksums.
       val digest =
         CodecUtils.md5Checksum(JsUtils.makeDeterministic(JsObject(desc)).prettyPrint)
-      // Add the checksum to the properies
+      // Add the checksum to the properties
       val existingDetails: Map[String, JsValue] =
         desc.get("details") match {
           case Some(JsObject(details)) => details
@@ -211,8 +199,8 @@ case class Compiler(extras: Option[Extras],
 
     // Create linking information for a dx:executable
     private def createLinkForCall(irCall: Callable, dxObj: DxExecutable): ExecutableLink = {
-      val callInputs: Map[String, Type] = irCall.inputVars.map(p => p.name -> p.dxType).toMap
-      val callOutputs: Map[String, Type] = irCall.outputVars.map(p => p.name -> p.dxType).toMap
+      val callInputs: Map[DxName, Type] = irCall.inputVars.map(p => p.name -> p.dxType).toMap
+      val callOutputs: Map[DxName, Type] = irCall.outputVars.map(p => p.name -> p.dxType).toMap
       ExecutableLink(irCall.name, callInputs, callOutputs, dxObj)
     }
 
@@ -274,10 +262,20 @@ case class Compiler(extras: Option[Extras],
 
       if (archive) {
         // archive the applet/workflow(s)
-        executableDir.archive(existingExecutables)
+        try {
+          executableDir.archive(existingExecutables)
+        } catch {
+          case t: Throwable =>
+            throw new Exception(s"unable to archive existing executables ${existingExecutables}", t)
+        }
       } else if (force) {
         // remove all existing executables
-        executableDir.remove(existingExecutables)
+        try {
+          executableDir.remove(existingExecutables)
+        } catch {
+          case t: Throwable =>
+            throw new Exception(s"unable to remove existing executables ${existingExecutables}", t)
+        }
       } else {
         val dxClass = existingExecutables.head.dxClass
         throw new Exception(s"${dxClass} ${name} already exists in ${project.id}:${folder}")
@@ -308,25 +306,30 @@ case class Compiler(extras: Option[Extras],
       logger2.trace(s"Compiling applet ${applet.name}")
       val appletCompiler =
         ApplicationCompiler(
-            bundle.typeAliases,
-            instanceTypeDb,
-            runtimeAsset,
-            runtimeJar,
-            runtimePathConfig,
-            runtimeTraceLevel,
-            separateOutputs,
-            streamFiles,
-            waitOnUpload,
-            extras,
-            parameterLinkSerializer,
-            useManifests,
-            dxApi,
-            logger2
+            typeAliases = bundle.typeAliases,
+            runtimeAsset = runtimeAsset,
+            runtimeJar = runtimeJar,
+            runtimePathConfig = runtimePathConfig,
+            runtimeTraceLevel = runtimeTraceLevel,
+            separateOutputs = separateOutputs,
+            streamFiles = streamFiles,
+            waitOnUpload = waitOnUpload,
+            extras = extras,
+            parameterLinkSerializer = parameterLinkSerializer,
+            useManifests = useManifests,
+            complexPathValues = complexPathValues,
+            instanceTypeSelection = instanceTypeSelection,
+            defaultInstanceType,
+            fileResolver = fileResolver,
+            dxApi = dxApi,
+            logger = logger2,
+            project = project,
+            folder = folder
         )
       // limit the applet dictionary to actual dependencies
       val dependencies: Map[String, ExecutableLink] = applet.kind match {
-        case ExecutableKindWfFragment(calls, _, _, _) =>
-          calls.map { name =>
+        case ExecutableKindWfFragment(call, _, _, _) =>
+          call.map { name =>
             val CompiledExecutable(irCall, dxObj, _, _) = dependencyDict(name)
             name -> createLinkForCall(irCall, dxObj)
           }.toMap
@@ -374,7 +377,14 @@ case class Compiler(extras: Option[Extras],
     ): (DxWorkflow, JsValue) = {
       logger2.trace(s"Compiling workflow ${workflow.name}")
       val workflowCompiler =
-        WorkflowCompiler(extras, parameterLinkSerializer, useManifests, dxApi, logger2)
+        WorkflowCompiler(separateOutputs,
+                         extras,
+                         parameterLinkSerializer,
+                         useManifests,
+                         complexPathValues,
+                         fileResolver,
+                         dxApi,
+                         logger2)
       // Calculate a checksum of the inputs that went into the making of the applet.
       val (workflowApiRequest, execTree) = workflowCompiler.apply(workflow, dependencyDict)
       val (requestWithChecksum, digest) = checksumRequest(workflow.name, workflowApiRequest)

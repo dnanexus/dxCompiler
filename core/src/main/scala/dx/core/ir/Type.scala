@@ -18,7 +18,7 @@ object Type {
     * A directory maps to a DNAnexus folder, or to some other representation of
     * a hierarchy of files, e.g. a tar or zip archive.
     */
-  case object TDirectory extends PrimitiveType
+  case object TDirectory extends Type
 
   /**
     * Wrapper that indicates a type is optional.
@@ -33,10 +33,10 @@ object Type {
     * same type. Some languages (e.g. WDL) have a quantifier to specify that
     * the array must be non-empty - this does not change how the array is
     * represented, but an error may be thrown if the array value is empty.
-    * @param t inner type
+    * @param itemType inner type
     * @param nonEmpty whether the array must not be empty
     */
-  case class TArray(t: Type, nonEmpty: Boolean = false) extends TCollection
+  case class TArray(itemType: Type, nonEmpty: Boolean = false) extends TCollection
 
   /**
     * A JSON object.
@@ -76,15 +76,15 @@ object Type {
     }
   }
 
-  def isNativePrimitive(t: Type): Boolean = {
+  def isNativePrimitive(t: Type, pathsAreNative: Boolean = true): Boolean = {
     t match {
-      case TBoolean => true
-      case TInt     => true
-      case TFloat   => true
-      case TString  => true
-      case TFile    => true
-      // TODO: TDirectory
-      case _ => false
+      case TBoolean                     => true
+      case TInt                         => true
+      case TFloat                       => true
+      case TString                      => true
+      case TFile if pathsAreNative      => true
+      case TDirectory if pathsAreNative => true
+      case _                            => false
     }
   }
 
@@ -93,17 +93,21 @@ object Type {
     * DNAnexus only supports primitives, optionals of primitives, and arrays of primitives
     * (with no nested optional types).
     * @param t IR type
+    * @param pathsAreNative whether path types (TFile and TDirectory) should be treated
+    *                       as native types. This may be false in the case of languages
+    *                       like CWL that have parameterized File/Directory types that
+    *                       must be passed as hashes.
     * @return
     */
-  def isNative(t: Type): Boolean = {
+  def isNative(t: Type, pathsAreNative: Boolean = true): Boolean = {
     t match {
       case TOptional(TArray(inner, _)) =>
         // TODO: should an optional non-empty array be considered native? Currently it is
         //  allowed, and must always agree with the type conversion logic in TypeSerde.toNative.
-        isNativePrimitive(inner)
-      case TOptional(inner) => isNativePrimitive(inner)
-      case TArray(inner, _) => isNativePrimitive(inner)
-      case _                => isNativePrimitive(t)
+        isNativePrimitive(inner, pathsAreNative)
+      case TOptional(inner) => isNativePrimitive(inner, pathsAreNative)
+      case TArray(inner, _) => isNativePrimitive(inner, pathsAreNative)
+      case _                => isNativePrimitive(t, pathsAreNative)
     }
   }
 
@@ -111,9 +115,8 @@ object Type {
     t match {
       case _: TOptional  => true
       case TMulti(types) =>
-        // a multi-type is considered optional if any of its
-        // alternative types is optional, regardless of whether
-        // it is wrapped in TOptional
+        // a multi-type is considered optional if any of its alternative types is optional,
+        // regardless of whether it is wrapped in TOptional
         types.exists(isOptional)
       case _ => false
     }
@@ -163,6 +166,32 @@ object Type {
     }
     types.foldLeft(Map.empty[String, TSchema]) {
       case (accu, wdlType) => inner(wdlType, accu)
+    }
+  }
+
+  /**
+    * Merges multiple types into a single type.
+    */
+  def merge(types: Vector[Type]): Type = {
+    val distinct = types.flatMap {
+      case TMulti(types) => types.toSet
+      case t             => Set(t)
+    }
+    if (distinct.isEmpty) {
+      TMulti.Any
+    } else if (distinct.size == 1) {
+      distinct.head
+    } else {
+      val (nonOptTypes, optional) = distinct.foldLeft(Set.empty[Type], false) {
+        case ((accu, _), TOptional(t)) => (accu + t, true)
+        case ((accu, optional), t)     => (accu + t, optional)
+      }
+      (nonOptTypes.toVector, optional) match {
+        case (Vector(t), true) => TOptional(t)
+        case (Vector(t), _)    => t
+        case (v, true)         => TMulti(v.map(TOptional))
+        case (v, _)            => TMulti(v)
+      }
     }
   }
 }

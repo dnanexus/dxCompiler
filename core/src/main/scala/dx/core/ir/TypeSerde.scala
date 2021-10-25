@@ -4,7 +4,7 @@ import dx.core.ir.Type._
 import spray.json._
 import dx.util.JsUtils
 
-import scala.collection.immutable.{SeqMap, SortedMap, TreeSeqMap}
+import scala.collection.immutable.{SeqMap, SortedMap}
 
 /**
   * Functions for serialization and deserialization of types. Note that SortedMap is
@@ -106,6 +106,17 @@ object TypeSerde {
     }
   }
 
+  def serializeSchemas(
+      typeAliases: Map[String, TSchema],
+      jsTypeDefs: Map[String, JsValue] = Map.empty
+  ): (SortedMap[String, JsValue], SortedMap[String, JsValue]) = {
+    typeAliases.foldLeft((SortedMap.empty[String, JsValue], jsTypeDefs.to(SortedMap))) {
+      case ((typeAccu, typeDefAccu), (name, t)) =>
+        val (typeJs, newTypeDefs) = serialize(t, typeDefAccu)
+        (typeAccu + (name -> typeJs), newTypeDefs)
+    }
+  }
+
   /**
     * Serializes a mapping of variable names to Types.
     * @param types mapping of variable names to Types
@@ -113,29 +124,22 @@ object TypeSerde {
     */
   def serializeMap(
       types: Map[String, Type],
-      jsTypeDefs: Map[String, JsValue] = Map.empty,
-      encodeDots: Boolean = true
+      jsTypeDefs: Map[String, JsValue] = Map.empty
   ): (SortedMap[String, JsValue], SortedMap[String, JsValue]) = {
     types.foldLeft((SortedMap.empty[String, JsValue], jsTypeDefs.to(SortedMap))) {
       case ((typeAccu, typeDefAccu), (name, t)) =>
-        val nameEncoded = if (encodeDots) {
-          Parameter.encodeDots(name)
-        } else {
-          name
-        }
         val (typeJs, newTypeDefs) = serialize(t, typeDefAccu)
-        (typeAccu + (nameEncoded -> typeJs), newTypeDefs)
+        (typeAccu + (name -> typeJs), newTypeDefs)
     }
   }
 
   /**
     * Serializes a parameter specification.
     * @param parameters parameter types
-    * @param encodeDots whether to encode dots in input names
     * @return JsObject containing the input specification
     */
-  def serializeSpec(parameters: Map[String, Type], encodeDots: Boolean = true): JsValue = {
-    val (typesJs, schemasJs) = serializeMap(parameters, encodeDots = encodeDots)
+  def serializeSpec(parameters: Map[String, Type]): JsValue = {
+    val (typesJs, schemasJs) = serializeMap(parameters)
     JsObject(
         Map(
             TypesKey -> JsObject(typesJs),
@@ -171,7 +175,7 @@ object TypeSerde {
           val (t, newTypeDefs) = deserialize(jsType, typeDefAccu, jsTypeDefs)
           (fieldAccu + (name -> t), newTypeDefs)
       }
-    newTypeDefs + (schemaName -> TSchema(schemaName, fieldTypes.to(TreeSeqMap)))
+    newTypeDefs + (schemaName -> TSchema(schemaName, fieldTypes.to(SeqMap)))
   }
 
   def deserializeSchemas(
@@ -251,7 +255,7 @@ object TypeSerde {
             throw TypeSerdeException(s"invalid type field value ${jsValue}")
         }
         if (fields.get(OptionalKey).exists(JsUtils.getBoolean(_))) {
-          (TOptional(t), newTypeDefs)
+          (Type.ensureOptional(t), newTypeDefs)
         } else {
           (t, newTypeDefs)
         }
@@ -266,24 +270,17 @@ object TypeSerde {
     * @param typeDefs type definitions that may be referenced by the types
     * @param jsTypeDefs serialized type definitions that we only deserialize
     *                   if they are referenced
-    * @param decodeDots whether to decode dots in parameter names
     * @return (parameter types, updated type definitions)
     */
   def deserializeMap(
       jsTypes: Map[String, JsValue],
       typeDefs: Map[String, Type] = Map.empty,
-      jsTypeDefs: Map[String, JsValue] = Map.empty,
-      decodeDots: Boolean = true
+      jsTypeDefs: Map[String, JsValue] = Map.empty
   ): (Map[String, Type], Map[String, Type]) = {
     jsTypes.foldLeft((Map.empty[String, Type], typeDefs)) {
       case ((typeAccu, typeDefAccu), (name, jsType)) =>
-        val nameDecoded = if (decodeDots) {
-          Parameter.decodeDots(name)
-        } else {
-          name
-        }
         val (t, newTypeDefs) = deserialize(jsType, typeDefAccu, jsTypeDefs)
-        (typeAccu + (nameDecoded -> t), newTypeDefs)
+        (typeAccu + (name -> t), newTypeDefs)
     }
   }
 
@@ -292,12 +289,10 @@ object TypeSerde {
     * `serializeSpec` function.
     * @param jsValue the value to deserialize
     * @param typeDefs initial set of schemas (i.e. type aliases)
-    * @param decodeDots whether to decode dots in variable names
     * @return mapping of variable names to deserialized Types
     */
   def deserializeSpec(jsValue: JsValue,
-                      typeDefs: Map[String, TSchema] = Map.empty,
-                      decodeDots: Boolean = true): Map[String, Type] = {
+                      typeDefs: Map[String, TSchema] = Map.empty): Map[String, Type] = {
     val (jsTypes, jsTypeDefs) = jsValue match {
       case obj: JsObject if obj.fields.contains(TypesKey) =>
         obj.getFields(TypesKey, DefinitionsKey) match {
@@ -313,7 +308,10 @@ object TypeSerde {
       case _ =>
         throw TypeSerdeException(s"invalid serialized spec ${jsValue}")
     }
-    val (types, _) = deserializeMap(jsTypes, typeDefs, jsTypeDefs, decodeDots)
+    val dxJsTypes = jsTypes.map {
+      case (encodedName, jsv) => encodedName -> jsv
+    }
+    val (types, _) = deserializeMap(dxJsTypes, typeDefs, jsTypeDefs)
     types
   }
 
@@ -338,29 +336,30 @@ object TypeSerde {
     deserialize(jsType, typeDefs, jsTypeDefs)
   }
 
-  private def toNativePrimitive(t: Type): String = {
+  private def toNativePrimitive(t: Type, pathsAreNative: Boolean): String = {
     t match {
-      case TBoolean => "boolean"
-      case TInt     => "int"
-      case TFloat   => "float"
-      case TString  => "string"
-      case TFile    => "file"
-      // TODO: case TDirectory =>
-      case _ => throw TypeSerdeException(s"not a primitive type")
+      case TBoolean                     => "boolean"
+      case TInt                         => "int"
+      case TFloat                       => "float"
+      case TString                      => "string"
+      case TFile if pathsAreNative      => "file"
+      case TDirectory if pathsAreNative => "file"
+      case TFile | TDirectory           => "hash"
+      case _                            => throw TypeSerdeException(s"not a primitive type")
     }
   }
 
-  def toNative(t: Type): (String, Boolean) = {
+  def toNative(t: Type, pathsAreNative: Boolean = true): (String, Boolean) = {
     val (innerType, optional) = t match {
       case TOptional(innerType) => (innerType, true)
       case _                    => (t, false)
     }
     innerType match {
-      case _ if Type.isNativePrimitive(innerType) =>
-        (toNativePrimitive(innerType), optional)
-      case TArray(memberType, nonEmpty) if Type.isNativePrimitive(memberType) =>
+      case _ if Type.isNativePrimitive(innerType, pathsAreNative) =>
+        (toNativePrimitive(innerType, pathsAreNative), optional)
+      case TArray(memberType, nonEmpty) if Type.isNativePrimitive(memberType, pathsAreNative) =>
         // arrays of primitives translate to e.g. 'array:file' -
-        val nativeInnerType = toNativePrimitive(memberType)
+        val nativeInnerType = toNativePrimitive(memberType, pathsAreNative)
         (s"array:${nativeInnerType}", !nonEmpty || optional)
       case _ =>
         // everything else is a complex type represented as a hash
@@ -387,7 +386,7 @@ object TypeSerde {
       fromNativeNonArray(cls)
     }
     if (optional) {
-      TOptional(t)
+      Type.ensureOptional(t)
     } else {
       t
     }
@@ -418,7 +417,7 @@ object TypeSerde {
         case other =>
           throw TypeSerdeException(s"invalid native input/output spec field ${other}")
       }
-      .to(TreeSeqMap)
+      .to(SeqMap)
   }
 
   // Get a human readable type name
@@ -465,10 +464,8 @@ object TypeSerde {
       case "Hash"      => THash
       case _ if s.endsWith("?") =>
         simpleFromString(s.dropRight(1)) match {
-          case TOptional(_) =>
-            throw TypeSerdeException(s"nested optional type ${s}")
-          case inner =>
-            TOptional(inner)
+          case TOptional(_) => throw TypeSerdeException(s"nested optional type ${s}")
+          case inner        => TOptional(inner)
         }
       case s if s.contains("[") =>
         throw TypeSerdeException(s"type ${s} is not primitive")

@@ -1,0 +1,93 @@
+{
+    "class": "Workflow",
+    "inputs": [
+        {
+            "type": "File",
+            "id": "#main/file1"
+        }
+    ],
+    "outputs": [
+        {
+            "type": "int",
+            "outputSource": "#main/step2/output",
+            "id": "#main/count_output"
+        }
+    ],
+    "steps": [
+        {
+            "run": {
+                "class": "CommandLineTool",
+                "id": "#main/step1/run/word-count",
+                "inputs": [
+                    {
+                        "type": "File",
+                        "id": "#main/step1/run/word-count/file1"
+                    }
+                ],
+                "outputs": [
+                    {
+                        "type": "File",
+                        "outputBinding": {
+                            "glob": "output"
+                        },
+                        "id": "#main/step1/run/word-count/output"
+                    }
+                ],
+                "baseCommand": [
+                    "wc",
+                    "-l"
+                ],
+                "stdin": "$(inputs.file1.path)",
+                "stdout": "output"
+            },
+            "in": [
+                {
+                    "source": "#main/file1",
+                    "id": "#main/step1/file1"
+                }
+            ],
+            "out": [
+                "#main/step1/output"
+            ],
+            "id": "#main/step1"
+        },
+        {
+            "run": {
+                "class": "ExpressionTool",
+                "id": "#main/step2/run/parseInt",
+                "requirements": [
+                    {
+                        "class": "InlineJavascriptRequirement"
+                    }
+                ],
+                "cwlVersion": "v1.2",
+                "inputs": [
+                    {
+                        "type": "File",
+                        "loadContents": true,
+                        "id": "#main/step2/run/parseInt/file1"
+                    }
+                ],
+                "outputs": [
+                    {
+                        "type": "int",
+                        "id": "#main/step2/run/parseInt/output"
+                    }
+                ],
+                "expression": "$({'output': parseInt(inputs.file1.contents)})"
+            },
+            "in": [
+                {
+                    "source": "#main/step1/output",
+                    "id": "#main/step2/file1"
+                }
+            ],
+            "out": [
+                "#main/step2/output"
+            ],
+            "id": "#main/step2"
+        }
+    ],
+    "id": "#main",
+    "cwlVersion": "v1.2"
+}

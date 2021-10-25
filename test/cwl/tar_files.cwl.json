@@ -1,0 +1,84 @@
+{
+    "requirements": [
+        {
+            "class": "DockerRequirement",
+            "dockerPull": "ubuntu:focal-20200423"
+        },
+        {
+            "class": "InlineJavascriptRequirement"
+        },
+        {
+            "class": "ShellCommandRequirement"
+        }
+    ],
+    "class": "CommandLineTool",
+    "inputs": [
+        {
+            "id": "#main/create",
+            "type": "boolean",
+            "default": true,
+            "inputBinding": {
+                "prefix": "--create",
+                "position": 0
+            }
+        },
+        {
+            "id": "#main/dirname",
+            "type": "string"
+        },
+        {
+            "id": "#main/gzip",
+            "type": "boolean",
+            "default": false,
+            "inputBinding": {
+                "prefix": "--gzip",
+                "position": 2
+            }
+        },
+        {
+            "id": "#main/transform",
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        {
+            "id": "#main/input",
+            "type": {
+                "type": "array",
+                "items": "File"
+            }
+        }
+    ],
+    "arguments": [
+        {
+            "valueFrom": "$(inputs.dirname).tar",
+            "prefix": "--file",
+            "position": 1
+        },
+        {
+            "valueFrom": "${\n  var inp_str = \"\";\n  for (var i = 0; i < inputs.input.length; i++) {\n    var cmd = \" -C \" + inputs.input[i].dirname + \" \" + inputs.input[i].basename;\n    inp_str = inp_str.concat(cmd);\n   }\n  return inp_str; \n }\n",
+            "position": 99,
+            "shellQuote": false
+        },
+        {
+            "valueFrom": "${\n    var cmd = \"--transform 's,^,\" + inputs.dirname + \"/,'\";\n    return cmd;\n}\n",
+            "position": 90,
+            "shellQuote": false
+        }
+    ],
+    "outputs": [
+        {
+            "id": "#main/output",
+            "type": "File",
+            "outputBinding": {
+                "glob": "$(inputs.dirname).tar"
+            }
+        }
+    ],
+    "baseCommand": [
+        "tar"
+    ],
+    "id": "#main",
+    "cwlVersion": "v1.2"
+}
