@@ -456,8 +456,8 @@ object Main {
       logger.warning("HERE2 - succ ir")
       return SuccessfulCompileIR(rawBundle)
     }
-    logger.warning("RAWBUNDLE.allCallables HERE:")
-    logger.warning(rawBundle.allCallables.toString())
+//    logger.warning("RAWBUNDLE.allCallables HERE:")
+//    logger.warning(rawBundle.allCallables.toString())
     // for everything past this point, the user needs to be logged in
     if (!dxApi.isLoggedIn) {
       return Failure(s"You must be logged in to compile using mode ${compileMode}")
@@ -549,6 +549,8 @@ object Main {
           fileResolver
       )
       val results = compiler.apply(bundle, project, folder)
+      logger.warning("results HERE!:")
+      logger.warning(results.toString())
       // generate the execution tree if requested
       (results.primary, options.getValue[ExecTreeFormat.ExecTreeFormat]("execTree")) match {
         case (Some(primary), Some(format)) =>
