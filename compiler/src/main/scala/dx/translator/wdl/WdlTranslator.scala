@@ -175,6 +175,8 @@ case class WdlTranslator(doc: TAT.Document,
               sortedCallables ++ translatedCallables
           )
       }
+    logger2.warning("allCallables:")
+    logger2.warning(allCallables.toString())
     val allCallablesSortedNames = sortedCallables.map(_.name).distinct
     val primaryCallable = wdlBundle.primaryCallable.map { callable =>
       allCallables(WdlUtils.getUnqualifiedName(callable.name))

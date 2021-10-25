@@ -1,0 +1,6 @@
+{
+  "subworkflow.bool_input" : false,
+  "subworkflow.string_input" : "string_given",
+  "subworkflow.int_default" : 41,
+  "subworkflow.int_not_default" : 4
+}

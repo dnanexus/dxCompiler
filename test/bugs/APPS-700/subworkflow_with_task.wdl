@@ -9,10 +9,10 @@ workflow subworkflow {
         Int int_default = 2222
         Int int_not_default
     }
-
+    String test_string = string_input
     call test_task.test_task as subtask {
         input:
-            string = string_input,
+            string = test_string,
             boolean = bool_input,
             integer1 = int_default,
             integer2 = int_not_default
