@@ -102,7 +102,7 @@ object ExecutableTree {
     }
   }
 
-  private def processWorkflow(prefix: String, TreeJS: JsObject): String = {
+  private def prettyPrintWorkflow(prefix: String, TreeJS: JsObject): String = {
     TreeJS.getFields("name", "stages") match {
       case Seq(JsString(wfName), JsArray(stages)) => {
         val stageLines = stages.zipWithIndex.map {
@@ -111,7 +111,7 @@ object ExecutableTree {
             val wholePrefix = generateWholePrefix(prefix, isLast)
             val (stageName, callee) = stage.asJsObject.getFields("stage_name", "callee") match {
               case Seq(JsString(stageName), callee: JsObject) => (stageName, callee)
-              case x                                          => throw new Exception(s"something is wrong ${x}")
+              case x                                          => throw new Exception(s"Malformed stage ${x} in exec tree.")
             }
             prettyPrint(callee, Some(stageName), wholePrefix)
           }
@@ -121,9 +121,9 @@ object ExecutableTree {
     }
   }
 
-  private def processApplets(prefix: String,
-                             stageDesc: Option[String],
-                             TreeJS: JsObject): String = {
+  private def prettyPrintApplets(prefix: String,
+                                 stageDesc: Option[String],
+                                 TreeJS: JsObject): String = {
     TreeJS.getFields("name", "id", "kind", "executables") match {
       case Seq(JsString(stageName), JsString(_), JsString(kind)) => {
         val name = getDisplayName(stageDesc, stageName)
@@ -145,7 +145,7 @@ object ExecutableTree {
     }
   }
 
-  /** Recursivly traverse the exec tree and generate an appropriate name + color based on the node type.
+  /** Recursively traverse the exec tree and generate an appropriate name + color based on the node type.
     * The prefix is built up as recursive calls happen. This allows for mainaining the locations of branches
     * in the tree. When a prefix made for a current node, it undergoes a transformation to strip out any
     * extra characters from previous calls. This maintains the indenation level and tree branches.
@@ -175,10 +175,45 @@ object ExecutableTree {
                   stageDesc: Option[String] = None,
                   prefix: String = ""): String = {
     TreeJS.fields.get("kind") match {
-      case Some(JsString("workflow")) => processWorkflow(prefix, TreeJS)
-      case Some(JsString(_))          => processApplets(prefix, stageDesc, TreeJS)
+      case Some(JsString("workflow")) => prettyPrintWorkflow(prefix, TreeJS)
+      case Some(JsString(_))          => prettyPrintApplets(prefix, stageDesc, TreeJS)
       case _                          => throw new Exception(s"Missing 'kind' field to be in execTree's entry ${TreeJS}.")
     }
+  }
+
+  private def extractWorkflowNames(TreeJS: JsObject, namesAcc: Set[String]): Set[String] = {
+    TreeJS.getFields("name", "stages") match {
+      case Seq(JsString(wfName), JsArray(stages)) => {
+        stages
+          .flatMap(s =>
+            s.asJsObject.getFields("callee") match {
+              case Seq(c: JsObject) => extractExecutableNames(c, namesAcc)
+              case x                => throw new Exception(s"Malformed stage ${x} in exec tree.")
+            }
+          )
+          .toSet + wfName
+      }
+      case _ => throw new Exception(s"Missing name or stages in ${TreeJS}.")
+    }
+  }
+
+  private def extractAppletNames(TreeJS: JsObject, namesAcc: Set[String]): Set[String] = {
+    TreeJS.getFields("name", "executables") match {
+      case Seq(JsString(stageName)) => namesAcc + stageName
+      case Seq(JsString(stageName), JsArray(executables)) =>
+        executables.flatMap(e => extractExecutableNames(e.asJsObject, namesAcc)).toSet + stageName
+      case _ => throw new Exception(s"Missing name in ${TreeJS}.")
+    }
+  }
+
+  // Return set of names of all executables in the tree
+  def extractExecutableNames(TreeJS: JsObject, namesAcc: Set[String] = Set.empty): Set[String] = {
+    val names = TreeJS.fields.get("kind") match {
+      case Some(JsString("workflow")) => extractWorkflowNames(TreeJS, namesAcc)
+      case Some(JsString(_))          => extractAppletNames(TreeJS, namesAcc)
+      case _                          => throw new Exception(s"Missing kind in ${TreeJS}.")
+    }
+    namesAcc ++ names
   }
 
   def fromDxWorkflow(workflow: DxWorkflow): JsValue = {

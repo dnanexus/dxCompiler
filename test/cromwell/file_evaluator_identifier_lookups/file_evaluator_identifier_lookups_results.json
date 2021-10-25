@@ -1,0 +1,7 @@
+{
+    "file_evaluator_identifier_lookups.index_access.zero": "ZERO", 
+    "file_evaluator_identifier_lookups.identifier_member_access.left": "LEFT", 
+    "file_evaluator_identifier_lookups.identifier_member_access.right": "RIGHT", 
+    "file_evaluator_identifier_lookups.identifier.id": "OK", 
+    "file_evaluator_identifier_lookups.index_access.one": "ONE"
+}

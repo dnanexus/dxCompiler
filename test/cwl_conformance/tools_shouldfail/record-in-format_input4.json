@@ -1,0 +1,26 @@
+{
+  "record-in-format.regular_input": {
+    "class": "File",
+    "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/rec/D",
+    "format": "http://example.com/format1"
+  },
+  "record-in-format.record_input": {
+    "f1": {
+      "class": "File",
+      "location": "dx://file-G15vQ8Q0yzZkg6424fGVf61v",
+      "format": "http://example.com/format1"
+    },
+    "f2": [
+      {
+        "class": "File",
+        "location": "dx://file-G15vQ980yzZk76KjKX6GQQpJ",
+        "format": "http://example.com/format2"
+      },
+      {
+        "class": "File",
+        "location": "dx://file-G15vQB00yzZqvYj297Y3Z5FP",
+        "format": "http://example.com/formatZ"
+      }
+    ]
+  }
+}

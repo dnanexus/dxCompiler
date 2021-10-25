@@ -2,6 +2,8 @@ package dx.core.languages.wdl
 
 import java.nio.file.{Files, Paths}
 
+import dx.core.Assumptions.isLinux
+import dx.core.Tags.LinuxOnly
 import dx.core.ir.{LocalizedArchive, PackedArchive, Type, Value}
 import dx.util.FileUtils
 import org.scalatest.flatspec.AnyFlatSpec
@@ -11,7 +13,8 @@ import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 import wdlTools.syntax.{SourceLocation, WdlVersion}
 
 class ArchiveFunctionTest extends AnyFlatSpec with Matchers {
-  it should "evaluate archive function" in {
+  it should "evaluate archive function" taggedAs LinuxOnly in {
+    assume(isLinux)
     val inputType1 = WdlTypes.T_Array(WdlTypes.T_File, nonEmpty = false)
     val inputType2 = WdlTypes.T_Optional(WdlTypes.T_Boolean)
     val prototype =
@@ -31,14 +34,16 @@ class ArchiveFunctionTest extends AnyFlatSpec with Matchers {
         prototype,
         Vector(
             TAT.ExprArray(
-                Vector(TAT.ValueFile(file1.toString, WdlTypes.T_File, SourceLocation.empty),
-                       TAT.ValueFile(file2.toString, WdlTypes.T_File, SourceLocation.empty)),
-                WdlTypes.T_Array(WdlTypes.T_File, nonEmpty = false),
+                Vector(TAT.ValueFile(file1.toString, WdlTypes.T_File)(SourceLocation.empty),
+                       TAT.ValueFile(file2.toString, WdlTypes.T_File)(SourceLocation.empty)),
+                WdlTypes.T_Array(WdlTypes.T_File, nonEmpty = false)
+            )(
                 SourceLocation.empty
             ),
-            TAT.ValueBoolean(value = true, WdlTypes.T_Boolean, SourceLocation.empty)
+            TAT.ValueBoolean(value = true, WdlTypes.T_Boolean)(SourceLocation.empty)
         ),
-        WdlTypes.T_File,
+        WdlTypes.T_File
+    )(
         SourceLocation.empty
     )
     val value = evaluator.applyExpr(expr)
@@ -54,9 +59,9 @@ class ArchiveFunctionTest extends AnyFlatSpec with Matchers {
     val (localized, _) = packed.localize()
     try {
       localized.irValue match {
-        case Value.VArray(Vector(Value.VFile(file1), Value.VFile(file2))) =>
-          FileUtils.readFileContent(Paths.get(file1)) shouldBe "file1"
-          FileUtils.readFileContent(Paths.get(file2)) shouldBe "file2"
+        case Value.VArray(Vector(file1: Value.VFile, file2: Value.VFile)) =>
+          FileUtils.readFileContent(Paths.get(file1.uri)) shouldBe "file1"
+          FileUtils.readFileContent(Paths.get(file2.uri)) shouldBe "file2"
         case _ =>
           throw new Exception(s"unexpected IR value ${localized.irValue}")
       }
@@ -65,7 +70,8 @@ class ArchiveFunctionTest extends AnyFlatSpec with Matchers {
     }
   }
 
-  it should "evaluate unarchive function" in {
+  it should "evaluate unarchive function" taggedAs LinuxOnly in {
+    assume(isLinux)
     val paths = DefaultEvalPaths.createFromTemp()
     val file1 = paths.getRootDir(ensureExists = true).resolve("file1.txt")
     FileUtils.writeFileContent(file1, "file1")
@@ -88,9 +94,10 @@ class ArchiveFunctionTest extends AnyFlatSpec with Matchers {
         "unarchive_file_array",
         prototype,
         Vector(
-            TAT.ValueFile(packedArchive.path.toString, WdlTypes.T_File, SourceLocation.empty)
+            TAT.ValueFile(packedArchive.path.toString, WdlTypes.T_File)(SourceLocation.empty)
         ),
-        WdlTypes.T_Any,
+        WdlTypes.T_Any
+    )(
         SourceLocation.empty
     )
     evaluator.applyExpr(expr) match {

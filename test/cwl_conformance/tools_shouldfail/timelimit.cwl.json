@@ -1,0 +1,21 @@
+{
+    "class": "CommandLineTool",
+    "inputs": [],
+    "requirements": [
+        {
+            "timelimit": 3,
+            "class": "ToolTimeLimit"
+        },
+        {
+            "enableReuse": false,
+            "class": "WorkReuse"
+        }
+    ],
+    "baseCommand": [
+        "sleep",
+        "15"
+    ],
+    "id": "#main",
+    "outputs": [],
+    "cwlVersion": "v1.2"
+}

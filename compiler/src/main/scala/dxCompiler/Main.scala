@@ -7,14 +7,16 @@ import dx.compiler.{Compiler, ExecutableTree}
 import dx.core.getVersion
 import dx.core.CliUtils._
 import dx.core.io.{DxWorkerPaths, StreamFiles}
-import dx.core.ir.Bundle
+import dx.core.ir.{Bundle, InstanceTypeSelection}
 import dx.core.languages.Language
 import dx.core.Constants
+import dx.core.languages.wdl.WdlOptions
 import dx.dxni.DxNativeInterface
 import dx.translator.{Extras, TranslatorFactory}
 import dx.util.protocols.DxFileAccessProtocol
 import dx.util.{Enum, FileSourceResolver, FileUtils, Logger, TraceLevel}
 import spray.json.{JsNull, JsValue}
+import wdlTools.types.TypeCheckingRegime
 
 /**
   * Compiler CLI.
@@ -116,18 +118,39 @@ object Main {
 
   private object StreamFilesOptionSpec
       extends SingleValueOptionSpec[StreamFiles.StreamFiles](choices = StreamFiles.values.toVector) {
-    override def parseValue(value: String): StreamFiles.StreamFiles =
+    override def parseValue(value: String): StreamFiles.StreamFiles = {
       StreamFiles.withNameIgnoreCase(value)
+    }
   }
+
+  private object InstanceTypeSelectionSpec
+      extends SingleValueOptionSpec[InstanceTypeSelection.InstanceTypeSelection](
+          choices = InstanceTypeSelection.values.toVector
+      ) {
+    override def parseValue(value: String): InstanceTypeSelection.InstanceTypeSelection = {
+      InstanceTypeSelection.withNameIgnoreCase(value)
+    }
+  }
+
+//  private object WdlRegimeOptionSpec
+//      extends SingleValueOptionSpec[TypeCheckingRegime.TypeCheckingRegime](
+//          choices = TypeCheckingRegime.values.toVector
+//      ) {
+//    override def parseValue(value: String): TypeCheckingRegime.TypeCheckingRegime = {
+//      TypeCheckingRegime.withNameIgnoreCase(value)
+//    }
+//  }
 
   private def CompileOptions: InternalOptions = Map(
       "archive" -> FlagOptionSpec.default,
       "compileMode" -> CompilerModeOptionSpec(),
       "defaults" -> PathOptionSpec.mustExist,
+      "defaultInstanceType" -> StringOptionSpec(),
       "execTree" -> ExecTreeFormatOptionSpec(),
       "extras" -> PathOptionSpec.mustExist,
       "inputs" -> PathOptionSpec.listMustExist,
       "input" -> PathOptionSpec.listMustExist.copy(alias = Some("inputs")),
+      "instanceTypeSelection" -> InstanceTypeSelectionSpec,
       "locked" -> FlagOptionSpec.default,
       "leaveWorkflowsOpen" -> FlagOptionSpec.default,
       "imports" -> PathOptionSpec.listMustExist,
@@ -141,6 +164,7 @@ object Main {
       "scatterChunkSize" -> IntOptionSpec.one,
       "useManifests" -> FlagOptionSpec.default,
       "waitOnUpload" -> FlagOptionSpec.default
+      //"wdlMode" -> WdlRegimeOptionSpec
   )
 
   private val DeprecatedCompileOptions = Set(
@@ -290,14 +314,22 @@ object Main {
       override val executableIds: Vector[String],
       override val prettyTree: String
   ) extends SuccessfulCompileNative
-      with SuccessfulPrettyTree
+      with SuccessfulPrettyTree {
+    override def message: String = {
+      s"${prettyTree}\n${executableIds.mkString(",")}"
+    }
+  }
 
   case class SuccessfulCompileNativeWithJsonTree(
       override val compilerMode: CompilerMode.CompilerMode,
       override val executableIds: Vector[String],
       override val jsonTree: JsValue
   ) extends SuccessfulCompileNative
-      with SuccessfulJsonTree
+      with SuccessfulJsonTree {
+    override def message: String = {
+      s"${jsonTree.prettyPrint}\n${executableIds.mkString(",")}"
+    }
+  }
 
   def compile(args: Vector[String]): Termination = {
     val sourceFile: Path = args.headOption
@@ -331,8 +363,7 @@ object Main {
 
     val defaultScatterChunkSize: Int = options.getValue[Int]("scatterChunkSize") match {
       case None => Constants.JobPerScatterDefault
-      case Some(x) =>
-        val size = x.toInt
+      case Some(size) =>
         if (size < 1) {
           Constants.JobPerScatterDefault
         } else if (size > Constants.JobsPerScatterLimit) {
@@ -357,6 +388,28 @@ object Main {
         true
       case b => b
     }
+    val instanceTypeSelection =
+      options.getValueOrElse[InstanceTypeSelection.InstanceTypeSelection](
+          "instanceTypeSelection",
+          InstanceTypeSelection.Static
+      )
+
+//    val wdlOptions = options
+//      .getValue[TypeCheckingRegime.TypeCheckingRegime]("wdlMode")
+//      .map(regime => WdlOptions(regime))
+//      .getOrElse(WdlOptions.default)
+    val wdlOptions = WdlOptions.default
+
+    if (wdlOptions.regime == TypeCheckingRegime.Lenient) {
+      logger.warning(
+          """You have enabled 'lenient' WDL mode, which allows the compilation of
+            |tasks and workflows that contain syntax that is not compliant with the
+            |WDL specification, but which may be used by some 'industry-standard'
+            |workflows. This may result in execution errors. Please report any
+            |issues that prevent you from using 'moderate' or 'strict' mode to the
+            |author of the non-compliant WDL.""".stripMargin
+      )
+    }
 
     val translator =
       try {
@@ -365,11 +418,13 @@ object Main {
         TranslatorFactory.createTranslator(
             sourceFile,
             language,
+            wdlOptions,
             extras,
             defaultScatterChunkSize,
             locked,
             if (reorg) Some(true) else None,
             useManifests,
+            instanceTypeSelection,
             baseFileResolver
         )
       } catch {
@@ -394,6 +449,9 @@ object Main {
 
     // quit here if the target is IR and there are no inputs to translate
     if (!hasInputs && compileMode == CompilerMode.IR) {
+      if (logger.isVerbose) {
+        logger.trace(rawBundle.toString)
+      }
       return SuccessfulCompileIR(rawBundle)
     }
 
@@ -424,6 +482,9 @@ object Main {
         }
       if (compileMode == CompilerMode.IR) {
         // if we're only performing translation to IR, we can quit early
+        if (logger.isVerbose) {
+          logger.trace(rawBundle.toString)
+        }
         return SuccessfulCompileIR(bundleWithDefaults)
       }
       (bundleWithDefaults, fileResolver)
@@ -460,6 +521,7 @@ object Main {
         case None if streamAllFiles => StreamFiles.All
         case None                   => StreamFiles.PerFile
       }
+      val defaultInstanceType = options.getValue[String]("defaultInstanceType")
       val compiler = Compiler(
           extras,
           dxPathConfig,
@@ -476,6 +538,9 @@ object Main {
           streamFiles,
           waitOnUpload,
           useManifests,
+          translator.complexPathValues,
+          instanceTypeSelection,
+          defaultInstanceType,
           fileResolver
       )
       val results = compiler.apply(bundle, project, folder)
@@ -501,7 +566,6 @@ object Main {
       case e: Throwable =>
         Failure(exception = Some(e))
     }
-
   }
 
   // DxNI
@@ -744,6 +808,16 @@ object Main {
     }
   }
 
+  /*
+   Add the following if/when wdlMode is enabled
+
+         -wdlMode [lenient,moderate,strict]
+                             Strictness to use when parsing WDL documents. The default
+                             ('moderate') will suffice for all workflows that are
+                             compliant with the WDL specification, while 'lenient' will
+                             enable compilation of third-party workflows with
+                             non-compliant syntax.
+   */
   private val usageMessage =
     s"""|java -jar dxCompiler.jar <action> <parameters> [options]
         |
@@ -766,13 +840,27 @@ object Main {
         |      -archive               Archive older versions of applets.
         |      -compileMode <string>  Compilation mode - a debugging flag for internal use.
         |      -defaults <string>     JSON file with standard-formatted default values.
-        |      -destination <string>    Full platform path (project:/folder).
+        |      -defaultInstanceType <string>
+        |                             The default instance type to use for "helper" applets
+        |                             that perform runtime evaluation of instance type
+        |                             requirements. This instance type is also used when 
+        |                             the '-instanceTypeSelection dynamic' option is set.
+        |                             This value is overriden by any defaults set in extras.
+        |      -destination <string>  Full platform path (project:/folder).
         |      -execTree [json,pretty]    
         |                             Print a JSON representation of the workflow.
         |      -extras <string>       JSON file with extra options (see documentation).
         |      -inputs <string>       JSON file with standard-formatted input values. May be
         |                             specified multiple times. A DNAnexus JSON input file is
         |                             generated for each standard input file.
+        |      -instanceTypeSelection [static,dynamic]
+        |                             Whether to attempt to select instance types at compile time
+        |                             for tasks with runtime requirements that can all be statically
+        |                             evaluated (static, the default), or to defer all instance type
+        |                             selection to runtime (dynamic). Using static instance type
+        |                             selection can save time and cost, but it requires the user(s)
+        |                             running the applet/workflow to have access to the same instance
+        |                             types as the user who compiled it.
         |      -locked                Create a locked workflow. When running a locked workflow,
         |                             input values may only be specified for the top-level workflow.
         |      -leaveWorkflowsOpen    Leave created workflows open (otherwise they are closed).
@@ -803,8 +891,9 @@ object Main {
         |    calling existing platform executables without modification.
         |    options:
         |      -apps [include,exclude,only]
-        |                             Whether to 'include' apps, 'exclude' apps (the default), or 
-        |                             'only' generate app stubs.
+        |                             Option 'include' includes both apps and applets, 'exclude'
+        |                             excludes apps and generates applet stubs only, 'only'
+        |                             generates app stubs only.
         |      -f | force             Delete any existing output file.
         |      -o <path>              Destination file for WDL task definitions (defaults to 
         |                             stdout).

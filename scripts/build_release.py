@@ -36,7 +36,8 @@ RELEASE_DICT = {
     "azure:westus" : "dxCompiler_Azure",
     "azure:westeurope" : "dxCompiler_Amsterdam",
     "aws:eu-central-1" : "dxCompiler_Berlin",
-    "aws:eu-west-2": "dxCompiler_London"
+    "aws:eu-west-2": "dxCompiler_London",
+    "aws:eu-west-2-g": "dxCompiler_Europe_London"
 }
 
 # 1. Use the clone-asset app to copy the file into [region].

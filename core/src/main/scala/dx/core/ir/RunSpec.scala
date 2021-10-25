@@ -1,7 +1,23 @@
 package dx.core.ir
 
 import dx.api.DiskType.DiskType
-import dx.api.{DxFile, ExecutionEnvironment, InstanceTypeRequest}
+import dx.api.{
+  DiskType,
+  DxApi,
+  DxFile,
+  DxInstanceType,
+  DxProject,
+  ExecutionEnvironment,
+  InstanceTypeDB,
+  InstanceTypeRequest
+}
+import dx.core.Constants
+import dx.util.Enum
+
+object InstanceTypeSelection extends Enum {
+  type InstanceTypeSelection = Value
+  val Static, Dynamic = Value
+}
 
 /**
   * Representation of the parts of dxapp.json `runSpec` that can be specified.
@@ -36,6 +52,23 @@ object RunSpec {
     *           start another job on the correct instance type.
     */
   sealed trait InstanceType
+
+  object InstanceType {
+    // Instance type filter:
+    // - Instance must support Ubuntu.
+    // - Instance is not an FPGA instance.
+    // - Instance does not have local HDD storage (those are older instance types).
+    private def instanceTypeFilter(instanceType: DxInstanceType): Boolean = {
+      instanceType.os.exists(_.release == Constants.OsRelease) &&
+      !instanceType.diskType.contains(DiskType.HDD) &&
+      !instanceType.name.contains("fpga")
+    }
+
+    def createDb(project: Option[DxProject] = None, dxApi: DxApi = DxApi.get): InstanceTypeDB = {
+      InstanceTypeDB.create(project.getOrElse(dxApi.currentProject.get), instanceTypeFilter)
+    }
+  }
+
   case object DefaultInstanceType extends InstanceType
   case object DynamicInstanceType extends InstanceType
   case class StaticInstanceType(
@@ -60,7 +93,7 @@ object RunSpec {
                           minCpu,
                           maxCpu,
                           gpu,
-                          os)
+                          os.orElse(Some(Constants.DefaultExecutionEnvironment)))
     }
   }
 
@@ -81,14 +114,17 @@ object RunSpec {
 
   /**
     * A task may specify a container image to run under. Currently, DNAnexus only
-    * supports Docker images. There are three supported options:
-    *   None:    no image
+    * supports Docker images. There are four supported options:
+    *   None: no image
+    *   Dynamic: Image determined dynamically at runtime, may reside on a
+    *   network site or on the platform
     *   Network: the image resides on a network site and requires download
     *   DxFile: the image is a platform file
     * TODO: add a collection type that can contain multiple ContainerImage values
     */
   sealed trait ContainerImage
   case object NoImage extends ContainerImage
-  case object NetworkDockerImage extends ContainerImage
+  case object DynamicDockerImage extends ContainerImage
+  case class NetworkDockerImage(pullName: String) extends ContainerImage
   case class DxFileDockerImage(uri: String, tarball: DxFile) extends ContainerImage
 }

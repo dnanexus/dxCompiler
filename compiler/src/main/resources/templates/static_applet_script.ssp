@@ -1,7 +1,8 @@
-<%@ val dockerPreamble: String %>
+<%@ val dockerPreamble: Option[String] %>
 set -exo pipefail
-${dockerPreamble}
+
+${include("applet_script.ssp")}
 
 main() {
-${include("applet_script.ssp")}
+    body
 }

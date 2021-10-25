@@ -20,6 +20,6 @@ case class DxuaManifestBuilder(dxApi: DxApi) {
                "name" -> JsString(name),
                "folder" -> JsString("/"))
     }.toVector
-    DxuaManifest(JsObject(dxApi.currentProject.id -> JsArray(entries)))
+    DxuaManifest(JsObject(dxApi.currentProjectId.get -> JsArray(entries)))
   }
 }

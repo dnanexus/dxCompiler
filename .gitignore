@@ -32,6 +32,7 @@ test/scratch
 compiler/src/main/resources/dxCompiler_runtime.conf
 *.tmp
 venv/
+.failed*
 
 # IntelliJ
 .idea
@@ -50,3 +51,9 @@ metals.sbt
 # antlr generated code
 src/main/java/Wdl*Lexer*
 src/main/java/Wdl*Parser*
+
+# Applet test-dxcompiler-in-project
+test-dxcompiler-in-project/resources/home/dnanexus/
+
+# Corpora
+compiler/src/test/resources/corpora/

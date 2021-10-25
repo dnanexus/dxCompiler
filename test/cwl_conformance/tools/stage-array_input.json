@@ -6,7 +6,13 @@
   "stage-array.input_list": [
     {
       "class": "File",
-      "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/hello.txt"
+      "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/hello.txt",
+      "secondaryFiles": [
+        {
+          "class": "File",
+          "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/hello.tar"
+        }
+      ]
     }
   ]
 }

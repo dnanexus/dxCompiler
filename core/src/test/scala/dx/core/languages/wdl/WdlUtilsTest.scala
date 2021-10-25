@@ -1,6 +1,6 @@
 package dx.core.languages.wdl
 
-import dx.Tags.EdgeTest
+import dx.core.Tags.EdgeTest
 import dx.core.ir.{Type, Value}
 import dx.util.{Bindings, FileSourceResolver}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -8,13 +8,13 @@ import org.scalatest.matchers.should.Matchers
 import wdlTools.eval.WdlValues
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 
-import scala.collection.immutable.TreeSeqMap
+import scala.collection.immutable.SeqMap
 
 class WdlUtilsTest extends AnyFlatSpec with Matchers {
   private def validateTaskMeta(task: TAT.Task): Unit = {
     val kvs = task.meta match {
-      case Some(TAT.MetaSection(kvs, _)) => kvs
-      case _                             => throw new Exception("unexpected")
+      case Some(TAT.MetaSection(kvs)) => kvs
+      case _                          => throw new Exception("unexpected")
     }
     kvs.get("type") should matchPattern {
       case Some(TAT.MetaValueString("native", _)) =>
@@ -28,7 +28,8 @@ class WdlUtilsTest extends AnyFlatSpec with Matchers {
       sourceCode: String,
       fileResolver: FileSourceResolver = FileSourceResolver.get
   ): (TAT.Task, Bindings[String, WdlTypes.T_Struct], TAT.Document) = {
-    val (doc, typeAliases) = WdlUtils.parseAndCheckSourceString(sourceCode, "test", fileResolver)
+    val (doc, typeAliases) =
+      WdlUtils.parseAndCheckSourceString(sourceCode, "test", fileResolver = fileResolver)
     if (doc.workflow.isDefined) {
       throw new Exception("a workflow shouldn't be a member of this document")
     }
@@ -118,7 +119,7 @@ class WdlUtilsTest extends AnyFlatSpec with Matchers {
   it should "convert map schema" in {
     val irType = Type.TSchema(
         "Map___[File, String]",
-        TreeSeqMap(
+        SeqMap(
             "keys" -> Type.TArray(Type.TFile),
             "values" -> Type.TArray(Type.TString)
         )
@@ -126,7 +127,7 @@ class WdlUtilsTest extends AnyFlatSpec with Matchers {
     WdlUtils.isMapSchema(irType) shouldBe true
 
     val irValue = Value.VHash(
-        TreeSeqMap(
+        SeqMap(
             "keys" -> Value.VArray(Vector(Value.VFile("/path/to/file"))),
             "values" -> Value.VArray(Vector(Value.VString("this is a string")))
         )

@@ -1,7 +1,7 @@
 package dx.core.io
 
-import dx.Assumptions.isLoggedIn
-import dx.Tags.ApiTest
+import dx.core.Assumptions.isLoggedIn
+import dx.core.Tags.ApiTest
 import dx.core.languages.wdl.WdlUtils
 import dx.util.FileSourceResolver
 import dx.util.protocols.DxFileAccessProtocol
@@ -33,7 +33,7 @@ class DxFileAccessProtocolTest extends AnyFlatSpec with Matchers {
     val fileResolver = FileSourceResolver.create(userProtocols = Vector(DxFileAccessProtocol()))
     val evaluator = Eval(DefaultEvalPaths.empty, Some(WdlVersion.V1), Vector.empty, fileResolver)
     privateVariables.foreach {
-      case TAT.PrivateVariable(_, wdlType, expr, _) =>
+      case TAT.PrivateVariable(_, wdlType, expr) =>
         // applies the default validation, which tries to resolve files and
         // throws an exception on failure
         evaluator.applyConstAndCoerce(expr, wdlType)

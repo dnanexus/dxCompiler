@@ -1,0 +1,25 @@
+{
+    "class": "CommandLineTool",
+    "inputs": [
+        {
+            "type": "Directory",
+            "id": "#main/dir1"
+        }
+    ],
+    "outputs": [
+        {
+            "type": "File",
+            "id": "#main/output",
+            "outputBinding": {
+                "glob": "5994eb8fbb137d0e32d876aab4d66b2d5521bb60"
+            }
+        }
+    ],
+    "baseCommand": [
+        "cat"
+    ],
+    "stdin": "$(inputs.dir1.listing[0].path)",
+    "id": "#main",
+    "stdout": "5994eb8fbb137d0e32d876aab4d66b2d5521bb60",
+    "cwlVersion": "v1.2"
+}

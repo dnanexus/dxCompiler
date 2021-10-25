@@ -2,55 +2,56 @@
 <%@ val credentials: String %>
 <%@ val region: String %>
 <%@ val bashDollar: String = "$" %>
-# If we need to pull from ECR, download the credentials file and login.
-# Do not expose the credentials to the logs or to stdout.
 
-export DOCKER_REGISTRY=${registry}
-export AWS_CREDENTIALS=${credentials}
-export AWS_REGION=${region}
+    # If we need to pull from ECR, download the credentials file and login.
+    # Do not expose the credentials to the logs or to stdout.
 
-echo "Logging in to ECR ${bashDollar}{DOCKER_REGISTRY} in region ${bashDollar}{AWS_REGION}"
+    export DOCKER_REGISTRY=${registry}
+    export AWS_CREDENTIALS=${credentials}
+    export AWS_REGION=${region}
 
-# download the config and credentials files to ~/.aws
-mkdir -p ${bashDollar}{HOME}/.aws
+    echo "Logging in to ECR ${bashDollar}{DOCKER_REGISTRY} in region ${bashDollar}{AWS_REGION}"
 
-# there has to be a single credentials file
-num_lines=${bashDollar}(dx ls ${bashDollar}{AWS_CREDENTIALS} | wc --lines)
-if [[ ${bashDollar}num_lines != 1 ]]; then
-    echo "There has to be exactly one credentials file, found ${bashDollar}num_lines."
-    dx ls -l ${bashDollar}{AWS_CREDENTIALS}
-    exit 1
-fi
-dx download ${bashDollar}{AWS_CREDENTIALS} -o ${bashDollar}{HOME}/.aws/credentials
+    # download the config and credentials files to ~/.aws
+    mkdir -p ${bashDollar}{HOME}/.aws
 
-# disable echo to avoid logging password
-set +x
-
-# install the aws client to /usr/local/bin
-unzip -q /usr/bin/awscliv2.zip && ./aws/install && rm -Rf ./aws
-
-# get the password from the aws client
-password=${bashDollar}(aws ecr get-login-password --region ${bashDollar}{AWS_REGION})
-
-# Log into docker. Retry several times.
-i=0
-while [[ ${bashDollar}i -le 5 ]]; do
-    # don't exit if docker command fails - retry instead
-    set +e
-    # TODO: use credential helper instead https://docs.docker.com/engine/reference/commandline/login/
-    echo ${bashDollar}{password} | docker login ${bashDollar}{DOCKER_REGISTRY} --username AWS --password-stdin
-    rc=${bashDollar}?
-    set -e
-    if [[ ${bashDollar}rc == 0 ]]; then
-        break
+    # there has to be a single credentials file
+    num_lines=${bashDollar}(dx ls ${bashDollar}{AWS_CREDENTIALS} | wc --lines)
+    if [[ ${bashDollar}num_lines != 1 ]]; then
+        echo "There has to be exactly one credentials file, found ${bashDollar}num_lines."
+        dx ls -l ${bashDollar}{AWS_CREDENTIALS}
+        exit 1
     fi
-    i=${bashDollar}((i + 1))
-    sleep 3
-    echo "retry docker login (${bashDollar}i)"
-done
+    dx download ${bashDollar}{AWS_CREDENTIALS} -o ${bashDollar}{HOME}/.aws/credentials
 
-set -x
+    # install the aws client to /usr/local/bin
+    unzip -q /usr/bin/awscliv2.zip && ./aws/install && rm -Rf ./aws
 
-# cleanup
-apt autoclean -y && apt purge -y awscli
-rm -rf ${bashDollar}{HOME}/.aws
+    # disable echo to avoid logging password
+    set +x
+
+    # get the password from the aws client
+    password=${bashDollar}(aws ecr get-login-password --region ${bashDollar}{AWS_REGION})
+
+    # Log into docker. Retry several times.
+    i=0
+    while [[ ${bashDollar}i -le 5 ]]; do
+        # don't exit if docker command fails - retry instead
+        set +e
+        # TODO: use credential helper instead https://docs.docker.com/engine/reference/commandline/login/
+        echo ${bashDollar}{password} | docker login ${bashDollar}{DOCKER_REGISTRY} --username AWS --password-stdin
+        rc=${bashDollar}?
+        set -e
+        if [[ ${bashDollar}rc == 0 ]]; then
+            break
+        fi
+        i=${bashDollar}((i + 1))
+        sleep 3
+        echo "retry docker login (${bashDollar}i)"
+    done
+
+    set -x
+
+    # cleanup
+    apt autoclean -y && apt purge -y awscli
+    rm -rf ${bashDollar}{HOME}/.aws

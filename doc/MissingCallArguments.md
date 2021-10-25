@@ -48,7 +48,7 @@ argument `c`, then, it is possible to set it from a file:
 
 This means that workflow `trivial` actually has four inputs: `{x,
 add.a, add.b, add.c}`. A large realistic workflow makes many calls,
-and has many hidden arguments. To implement this with a dnanexus
+and has many hidden arguments. To implement this with a DNAnexus
 workflow, we need to materialize all these inputs, they cannot remain
 hidden. The resulting platform workflow could easily have tens or
 hundreds of inputs, making the user interface ungainly.

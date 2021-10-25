@@ -2,13 +2,13 @@ package dx.compiler
 
 import java.time.{LocalDateTime, ZoneId}
 import java.time.format.DateTimeFormatter
-
 import dx.api.{
   DxApi,
   DxApp,
   DxApplet,
   DxDataObject,
   DxFindDataObjects,
+  DxFindDataObjectsConstraints,
   DxObjectDescribe,
   DxProject,
   DxWorkflow,
@@ -75,21 +75,26 @@ case class DxExecutableDirectory(bundle: Bundle,
     val desc: Option[DxObjectDescribe] = Some(dxDesc)
   }
 
-  private def findExecutables(folder: Option[String]): Vector[(DxDataObject, DxObjectDescribe)] = {
+  private def findExecutables(
+      folder: Option[String] = None,
+      recurse: Boolean = false
+  ): Vector[(DxDataObject, DxObjectDescribe)] = {
     Vector("applet", "workflow")
       .flatMap { dxClass =>
+        val constraints = DxFindDataObjectsConstraints(
+            project = Some(project),
+            folder = folder,
+            recurse = recurse,
+            objectClass = Some(dxClass),
+            tags = Set(Constants.CompilerTag),
+            names = allExecutableNames
+        )
         val t0 = System.nanoTime()
-        val dxObjectsInFolder: Map[DxDataObject, DxObjectDescribe] =
-          dxFind.apply(
-              Some(project),
-              folder,
-              recurse = false,
-              Some(dxClass),
-              Vector(Constants.CompilerTag),
-              allExecutableNames.toVector,
-              withInputOutputSpec = false,
-              extraFields = Set(Field.Details)
-          )
+        val dxObjectsInFolder: Map[DxDataObject, DxObjectDescribe] = dxFind.query(
+            constraints,
+            withInputOutputSpec = false,
+            extraFields = Set(Field.Details)
+        )
         val t1 = System.nanoTime()
         val diffMSec = (t1 - t0) / (1000 * 1000)
         logger.trace(
@@ -138,40 +143,25 @@ case class DxExecutableDirectory(bundle: Bundle,
   private lazy val initialExecDir: Map[String, Vector[DxExecutableInfo]] = findExecutablesInFolder()
   private var execDir: Option[Map[String, Vector[DxExecutableInfo]]] = None
 
-  /**
-    * Scan the entire project for dx:workflows and dx:applets that we already created,
-    * and may be reused, instead of recompiling.
-    *
-    * Note: This could be expensive, and the maximal number of replies is (by default)
-    * 1000. Since the index is limited, we may miss matches when we search. The cost
-    * would be creating a dx:executable again, which is acceptable.
-    *
-    * findDataObjects can be an expensive call, both on the server and client sides.
-    * We limit it by filtering on the CHECKSUM property, which is attached only to
-    * generated applets and workflows.
-    *
-    * @return
-    */
-  private def findExecutablesInProject(): Map[String, Vector[DxExecutableInfo]] = {
-    findExecutables(None)
-      .flatMap {
-        case (obj, desc) =>
-          getChecksum(desc) match {
-            case Some(checksum) => Some(DxExecutableWithDesc(obj, desc, Some(checksum)))
-            case None           => None
-          }
-      }
-      .groupBy(_.checksum.get)
-  }
-
-  // A map from checksum to dx:executable, across the entire
-  // project.  It allows reusing dx:executables across the entire
-  // project, at the cost of a potentially expensive API call. It is
-  // not clear this is useful to the majority of users, so it is
-  // gated by the [projectWideReuse] flag.
+  // A map from checksum to dx:executable, across the entire project. It allows reusing executables
+  // across the entire project, at the cost of a potentially expensive API call. It is not clear
+  // this is useful to the majority of users, so it is gated by the [projectWideReuse] flag.
   private lazy val projectWideExecDir: Map[String, Vector[DxExecutableInfo]] = {
     if (projectWideReuse) {
-      findExecutablesInProject()
+      // Scan the entire project for dx:workflows and dx:applets that we already created, and may be
+      // reused, instead of recompiling. This could be expensive. We limit it by filtering on the
+      // CHECKSUM property, which is attached only to generated applets and workflows. The maximal
+      // number of replies is (by default) 1000 so we may miss matches when we search. The cost
+      // would be creating a dx:executable again, which is acceptable.
+      logger.trace(s"Querying for executables in project ${project}")
+      val executables = findExecutables(recurse = true)
+        .flatMap {
+          case (obj, desc) =>
+            getChecksum(desc).map(checksum => DxExecutableWithDesc(obj, desc, Some(checksum)))
+        }
+        .groupBy(_.checksum.get)
+      logger.trace(s"Found ${executables.size} executables")
+      executables
     } else {
       Map.empty
     }
@@ -291,7 +281,7 @@ case class DxExecutableDirectory(bundle: Bundle,
     */
   def remove(execInfos: Vector[DxExecutableInfo]): Unit = {
     val objs = execInfos.map(_.dataObj)
-    logger.trace(s"Removing old ${execInfos.head.name} ${objs.map(_.id)}")
-    project.removeObjects(objs)
+    logger.trace(s"Removing old executables ${objs.map(_.id)}")
+    project.removeObjects(objs, force = true)
   }
 }

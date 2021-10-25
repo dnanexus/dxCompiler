@@ -1,7 +1,6 @@
 package dx.core.io
 
 import java.nio.file.{Path, Paths}
-
 import dx.util.{BaseEvalPaths, ExecPaths, Logger}
 
 object DxWorkerPaths {
@@ -19,14 +18,13 @@ object DxWorkerPaths {
   val ContainerId = "containerId"
   val InputFilesDir = "inputs"
   val OutputFilesDir = "outputs"
+  val VirtualFilesDir = "virtual"
   val InstanceTypeDbFile = "instance_type_db.json"
   val SourceEncodedFile = "source.wdl.uu64"
-  val SetupStreamsFile = "setup_streams"
   val DxdaManifestFile = "dxdaManifest.json"
   val DxfuseManifestFile = "dxfuseManifest.json"
   val DxuaManifestFile = "dxuaManifest.json"
   val DxfuseMountDir = "mnt"
-  val TaskEnvFile = "taskEnv.json"
 
   lazy val default: DxWorkerPaths = DxWorkerPaths(RootDir)
 }
@@ -119,6 +117,12 @@ case class DxWorkerPaths(rootDir: Path) extends BaseEvalPaths with ExecPaths {
                    ensureExists)
   }
 
+  def getVirtualFilesDir(ensureExists: Boolean = false): Path = {
+    getOrCreateDir(DxWorkerPaths.VirtualFilesDir,
+                   getRootDir(ensureExists).resolve(DxWorkerPaths.VirtualFilesDir),
+                   ensureExists)
+  }
+
   /**
     * Where a JSON representation of the instance data base is stored.
     */
@@ -134,13 +138,6 @@ case class DxWorkerPaths(rootDir: Path) extends BaseEvalPaths with ExecPaths {
   def getSourceEncodedFile(ensureParentExists: Boolean = false): Path = {
     // TODO: any reason we can't put this in meta dir?
     getRootDir(ensureParentExists).resolve(DxWorkerPaths.SourceEncodedFile)
-  }
-
-  /**
-    * Bash commands for streaming files with 'dx cat' are located here.
-    */
-  def getSetupStreamsFile(ensureParentExists: Boolean = false): Path = {
-    getMetaDir(ensureParentExists).resolve(DxWorkerPaths.SetupStreamsFile)
   }
 
   /**
@@ -161,13 +158,6 @@ case class DxWorkerPaths(rootDir: Path) extends BaseEvalPaths with ExecPaths {
 
   def getDxuaManifestFile(ensureParentExists: Boolean = false): Path = {
     getMetaDir(ensureParentExists).resolve(DxWorkerPaths.DxuaManifestFile)
-  }
-
-  /**
-    * File for storing the state between prolog and epilog of the task runner.
-    */
-  def getTaskEnvFile(ensureParentExists: Boolean = false): Path = {
-    getMetaDir(ensureParentExists).resolve(DxWorkerPaths.SetupStreamsFile)
   }
 
   // create all the directory paths, so we can start using them.

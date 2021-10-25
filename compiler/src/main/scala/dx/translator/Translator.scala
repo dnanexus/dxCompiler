@@ -4,6 +4,7 @@ import java.nio.file.Path
 import dx.api.{DxApi, DxProject}
 import dx.core.ir._
 import dx.core.languages.Language.Language
+import dx.core.languages.wdl.WdlOptions
 import dx.translator.wdl.WdlTranslatorFactory
 import dx.translator.cwl.CwlTranslatorFactory
 import dx.util.{FileSourceResolver, FileUtils, Logger}
@@ -21,9 +22,11 @@ trait Translator {
     */
   def runtimeJar: String
 
-  def apply: Bundle
-
   def fileResolver: FileSourceResolver
+
+  def complexPathValues: Boolean
+
+  def apply: Bundle
 
   protected def createInputTranslator(bundle: Bundle,
                                       inputs: Vector[Path],
@@ -49,24 +52,22 @@ trait TranslatorFactory {
              perWorkflowAttrs: Map[String, DxWorkflowAttrs],
              defaultScatterChunkSize: Int,
              useManifests: Boolean,
+             instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
              fileResolver: FileSourceResolver,
              dxApi: DxApi = DxApi.get,
              logger: Logger = Logger.get): Option[Translator]
 }
 
 object TranslatorFactory {
-  private val translatorFactories: Vector[TranslatorFactory] = Vector(
-      WdlTranslatorFactory(),
-      CwlTranslatorFactory()
-  )
-
   def createTranslator(source: Path,
                        language: Option[Language] = None,
+                       wdlOptions: WdlOptions = WdlOptions.default,
                        extras: Option[Extras] = None,
                        defaultScatterChunkSize: Int,
                        locked: Boolean = false,
                        reorgEnabled: Option[Boolean] = None,
                        useManifests: Boolean,
+                       instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
                        baseFileResolver: FileSourceResolver = FileSourceResolver.get,
                        dxApi: DxApi = DxApi.get,
                        logger: Logger = Logger.get): Translator = {
@@ -81,19 +82,26 @@ object TranslatorFactory {
       case (None, None)          => DefaultReorgSettings(false)
     }
     val perWorkflowAttrs = extras.flatMap(_.perWorkflowDxAttributes).getOrElse(Map.empty)
+    val translatorFactories = Vector(
+        WdlTranslatorFactory(wdlOptions),
+        CwlTranslatorFactory()
+    )
     translatorFactories
       .collectFirst { factory =>
-        factory.create(sourceAbsPath,
-                       language,
-                       locked,
-                       defaultRuntimeAttrs,
-                       reorgAttrs,
-                       perWorkflowAttrs,
-                       defaultScatterChunkSize,
-                       useManifests,
-                       fileResolver,
-                       dxApi,
-                       logger) match {
+        factory.create(
+            sourceAbsPath,
+            language,
+            locked,
+            defaultRuntimeAttrs,
+            reorgAttrs,
+            perWorkflowAttrs,
+            defaultScatterChunkSize,
+            useManifests,
+            instanceTypeSelection,
+            fileResolver,
+            dxApi,
+            logger
+        ) match {
           case Some(translator) => translator
         }
       }

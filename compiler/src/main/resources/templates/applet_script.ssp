@@ -2,49 +2,57 @@
 <%@ val runtimeJar: String %>
 <%@ val runtimeTraceLevel: Int %>
 <%@ val streamFiles: dx.core.io.StreamFiles.StreamFiles %>
-<%@ val includeEpilog: Boolean %>
+<%@ val waitOnUpload: Boolean %>
+<%@ val dockerPreamble: Option[String] %>
 <% val bashDollar: String = "$" %>
-    # evaluate input arguments, and download input files
-    java -jar ${bashDollar}{DX_FS_ROOT}/${runtimeJar} task prolog ${bashDollar}{HOME} -traceLevel ${runtimeTraceLevel} -streamFiles ${streamFiles.toString}
 
-    echo "Using dxda version: ${bashDollar}(dx-download-agent version)"
-    echo "Using dxfuse version: ${bashDollar}(dxfuse -version)"
+body() {
+    java -jar ${bashDollar}{DX_FS_ROOT}/${runtimeJar} task run ${bashDollar}{HOME} -traceLevel ${runtimeTraceLevel} \
+      -streamFiles ${streamFiles.toString} ${if (waitOnUpload) "-waitOnUpload"}
+}
 
+download_dxda() {
     # run the dx-download-agent (dxda) on a manifest of files
-    if [[ -e ${dxPathConfig.getDxdaManifestFile().toString} ]]; then
-       head -n 20 ${dxPathConfig.getDxdaManifestFile().toString}
-       bzip2 ${dxPathConfig.getDxdaManifestFile().toString}
+    if [[ -f "${dxPathConfig.getDxdaManifestFile().toString}" ]]; then
+       echo "Using dxda version: ${bashDollar}(dx-download-agent version)"
+       head -n 20 "${dxPathConfig.getDxdaManifestFile().toString}"
+       echo ""
+       bzip2 "${dxPathConfig.getDxdaManifestFile().toString}"
 
-       # run the download agent, and store the return code; do not exit on error.
-       # we need to run it from the root directory, because it uses relative paths.
+       # Run the download agent, and store the return code; do not exit on error.
+       # We need to run it from the root directory, because it uses relative paths.
        cd /
        dxda_error_code=0
-       dx-download-agent download ${dxPathConfig.getDxdaManifestFile().toString}.bz2 || dxda_error_code=${bashDollar}? && true
+       dx-download-agent download "${dxPathConfig.getDxdaManifestFile().toString}.bz2" || dxda_error_code=${bashDollar}? && true
 
        # if there was an error during download, print out the download log
        if [[ ${bashDollar}dxda_error_code != 0 ]]; then
            echo "download agent failed rc=${bashDollar}dxda_error_code"
-           if [[ -e ${dxPathConfig.getDxdaManifestFile().toString}.bz2.download.log ]]; then
+           if [[ -f "${dxPathConfig.getDxdaManifestFile().toString}.bz2.download.log" ]]; then
               echo "The download log is:"
-              cat ${dxPathConfig.getDxdaManifestFile().toString}.bz2.download.log
+              cat "${dxPathConfig.getDxdaManifestFile().toString}.bz2.download.log"
            fi
            exit ${bashDollar}dxda_error_code
        fi
 
        # The download was ok, check file integrity on disk
-       dx-download-agent inspect ${dxPathConfig.getDxdaManifestFile().toString}.bz2
+       dx-download-agent inspect "${dxPathConfig.getDxdaManifestFile().toString}.bz2"
 
        # go back to root directory
-       cd ${dxPathConfig.getRootDir().toString}
+       cd "${dxPathConfig.getRootDir().toString}"
     fi
+}
 
-    # run dxfuse on a manifest of files. It will provide remote access
+download_dxfuse() {
+    # Run dxfuse on a manifest of files. It will provide remote access
     # to DNAx files.
-    if [[ -e ${dxPathConfig.getDxfuseManifestFile().toString} ]]; then
-       head -n 20 ${dxPathConfig.getDxfuseManifestFile().toString}
+    if [[ -f "${dxPathConfig.getDxfuseManifestFile().toString}" ]]; then
+       echo "Using dxfuse version: ${bashDollar}(dxfuse -version)"
+       head -n 20 "${dxPathConfig.getDxfuseManifestFile().toString}"
+       echo ""
 
        # make sure the mountpoint exists
-       mkdir -p ${dxPathConfig.getDxfuseMountDir().toString}
+       mkdir -p "${dxPathConfig.getDxfuseMountDir().toString}"
 
        # don't leak the token to stdout. We need the DNAx token to be accessible
        # in the environment, so that dxfuse could get it.
@@ -56,11 +64,10 @@
        # run dxfuse so that it will not exit after the bash script exists.
        echo "mounting dxfuse on ${dxPathConfig.getDxfuseMountDir().toString}"
        dxfuse_err_code=0
-       dxfuse -readOnly ${dxPathConfig.getDxfuseMountDir().toString} ${dxPathConfig.getDxfuseManifestFile().toString} || dxfuse_err_code=${bashDollar}? && true
-
+       dxfuse -readOnly "${dxPathConfig.getDxfuseMountDir().toString}" "${dxPathConfig.getDxfuseManifestFile().toString}" || dxfuse_err_code=${bashDollar}? && true
+       dxfuse_log=/root/.dxfuse/dxfuse.log
        if [[ ${bashDollar}dxfuse_err_code != 0 ]]; then
            echo "error starting dxfuse, rc=${bashDollar}dxfuse_err_code"
-           dxfuse_log=/root/.dxfuse/dxfuse.log
            # wait a second for the log to sync
            sleep 1
            if [[ -f ${bashDollar}dxfuse_log ]]; then
@@ -70,38 +77,81 @@
        fi
 
        echo ""
-       ls -Rl ${dxPathConfig.getDxfuseMountDir().toString}
+       ls -Rl "${dxPathConfig.getDxfuseMountDir().toString}"
     fi
+}
 
-    # construct the bash command and write it to a file
-    java -jar ${bashDollar}{DX_FS_ROOT}/${runtimeJar} task instantiateCommand ${bashDollar}{HOME} -traceLevel ${runtimeTraceLevel} -streamFiles ${streamFiles.toString}
+before_command() {
+    # Make the inputs folder read-only
+    mkdir -p "${dxPathConfig.getInputFilesDir()}"
+    chmod -R 500 "${dxPathConfig.getInputFilesDir()}"
+<% if (dockerPreamble.nonEmpty) { %>
+${dockerPreamble.get}
+<% } else { %>
+    echo "No container specified; executing task in the worker environment"
+<% } %>
+}
 
+run_command() {
     echo "bash command encapsulation script:"
-    cat ${dxPathConfig.getCommandFile().toString}
+    cat "${dxPathConfig.getCommandFile().toString}"
 
-    # Run the shell script generated by the prolog.
+    # Run the shell script generated by instantiateCommand.
     # Capture the stderr/stdout in files
-    if [[ -e ${dxPathConfig.getContainerCommandFile().toString} ]]; then
+    if [[ -f "${dxPathConfig.getContainerCommandFile().toString}" ]]; then
         echo "docker submit script:"
-        cat ${dxPathConfig.getContainerCommandFile().toString}
+        cat "${dxPathConfig.getContainerCommandFile().toString}"
         ${dxPathConfig.getContainerCommandFile().toString}
     else
         whoami
-        /bin/bash ${dxPathConfig.getCommandFile().toString}
+        /bin/bash "${dxPathConfig.getCommandFile().toString}"
     fi
 
-    #  check return code of the script
-    rc=`cat ${dxPathConfig.getReturnCodeFile().toString}`
+    # check return code of the script
+    rc=1
+    if [[ -f "${dxPathConfig.getReturnCodeFile().toString}" ]]; then
+        file_rc=`cat "${dxPathConfig.getReturnCodeFile().toString}"`
+        if [[ -z "${bashDollar}file_rc" ]]; then
+            # the rc file exists but is empty, perhaps due to lack of disk space
+            echo "return code file exists but is empty"
+        else
+            rc=${bashDollar}file_rc
+        fi
+    else
+        # the rc file does not exist, perhaps due to lack of disk space
+        echo "command completed but no return code file"
+    fi
     if [[ ${bashDollar}rc != 0 ]]; then
-        if [[ -f ${bashDollar}dxfuse_log ]]; then
+        if [[ -f "${bashDollar}dxfuse_log" ]]; then
             echo "=== dxfuse filesystem log === "
             cat ${bashDollar}dxfuse_log
         fi
         exit ${bashDollar}rc
     fi
-    <% if (includeEpilog) { %>${include("epilog_script.ssp")}<% } %>
-    # unmount dxfuse
-    if [[ -e ${dxPathConfig.getDxfuseManifestFile().toString} ]]; then
-        echo "unmounting dxfuse"
-        umount ${dxPathConfig.getDxfuseMountDir().toString}
+}
+
+upload_files() {
+    # Upload files using UA
+    if [[ -f "${dxPathConfig.getDxuaManifestFile().toString}" ]]; then
+        rc=0
+        ua --manifest "${dxPathConfig.getDxuaManifestFile().toString}" >/root/ua.log 2>&1 || rc=${bashDollar}? && true
+
+        # if there was an error during upload, print out the log
+        if [[ ${bashDollar}rc != 0 ]]; then
+            echo "upload agent failed rc=${bashDollar}rc"
+            if [[ -f /root/ua.log ]]; then
+                echo "The upload log is:"
+                cat /root/ua.log
+            fi
+            exit ${bashDollar}rc
+        fi
     fi
+}
+
+cleanup() {
+    # unmount dxfuse
+    if [[ -f "${dxPathConfig.getDxfuseManifestFile().toString}" ]]; then
+        echo "unmounting dxfuse"
+        umount "${dxPathConfig.getDxfuseMountDir().toString}"
+    fi
+}

@@ -2,11 +2,23 @@
   "stage_file_array.input_list": [
     {
       "class": "File",
-      "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/sfa-1.txt"
+      "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/sfa-1.txt",
+      "secondaryFiles": [
+        {
+          "class": "File",
+          "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/sfa-1.txt.sec"
+        }
+      ]
     },
     {
       "class": "File",
-      "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/sfa-2.txt"
+      "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/sfa-2.txt",
+      "secondaryFiles": [
+        {
+          "class": "File",
+          "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/sfa-2.txt.sec"
+        }
+      ]
     }
   ]
 }

@@ -1,0 +1,11 @@
+{
+  "any-type-compat.output1": [
+    "hello",
+    "world"
+  ],
+  "any-type-compat.output2": [
+    "foo",
+    "bar"
+  ],
+  "any-type-compat.output3": "hello"
+}
