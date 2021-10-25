@@ -425,7 +425,7 @@ case class Compiler(extras: Option[Extras],
           bundle.allCallables(name) match {
             case application: Application =>
               logger.warning("application kind HERE!")
-              logger.warning(application.kind)
+              logger.warning(application.kind.toString())
               val execRecord = application.kind match {
                 case _: ExecutableKindNative if useManifests =>
                   throw new Exception("cannot use manifest files with native app(let)s")
