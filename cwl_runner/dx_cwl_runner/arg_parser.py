@@ -1,12 +1,14 @@
 import argparse
 import os
 
-from dx_cwl_runner.dx import Dx
+from dx_cwl_runner.compiler import get_compiler_jar
 
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="""This tool implements the cwl-runner interface to run a Common Workflow Language tool or workflow from the command line. This is primarily used for testing conformance to the standard."""
+        description="This tool implements the cwl-runner interface to run a Common Workflow Language "
+                    "tool or workflow from the command line. This is primarily used for testing "
+                    "conformance to the standard."
     )
     parser.add_argument(
         "--outdir",
@@ -20,7 +22,7 @@ def parse_args():
     parser.add_argument(
         "--version",
         action="version",
-        version=f"%(prog)s {Dx.compiler_version}",
+        version=f"%(prog)s {get_compiler_jar(download=False)[1]}",
         help="Report the name & version, then quit without further processing",
     )
     parser.add_argument(
@@ -38,7 +40,8 @@ def parse_args():
     parser.add_argument(
         "processfile",
         nargs="?",
-        help="""The CommandLineTool, ExpressionTool, or Workflow description to run. Optional if the jobfile has a `cwl:tool` field to indicate which process description to run.""",
+        help="The CommandLineTool, ExpressionTool, or Workflow description to run. Optional if the "
+             "jobfile has a `cwl:tool` field to indicate which process description to run.",
     )
-    parser.add_argument("jobfile", help="""The input job document.""")
+    parser.add_argument("jobfile", help="The input job document.")
     return parser.parse_args()

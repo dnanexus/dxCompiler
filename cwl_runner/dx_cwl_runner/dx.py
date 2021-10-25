@@ -1,13 +1,11 @@
-from contextlib import contextmanager
 from datetime import datetime
 import json
 import os
-import shutil
-import tempfile
 
 import dxpy
 
 from dx_cwl_runner import utils
+from dx_cwl_runner.utils import Log
 
 
 def dx_file_to_path(f: dxpy.DXFile) -> str:
@@ -16,7 +14,7 @@ def dx_file_to_path(f: dxpy.DXFile) -> str:
 
 
 class Dx:
-    def __init__(self, log: utils.Log):
+    def __init__(self, log: Log = Log.get()):
         self.log = log
         self._check_tools()
         self._cache = {}
@@ -28,11 +26,13 @@ class Dx:
         self.current_dx_project = dxpy.PROJECT_CONTEXT_ID
         self.test_folder = os.path.join(
             self.current_dx_folder,
-            f"cwl_runner_{datetime.now().strftime('%Y.%d.%m_%H-%M-%S')}",
+            f"cwl_runner_{datetime.now().strftime('%Y-%d-%m_%H-%M-%S')}",
         )
-        mk_folder_cmd = f"dx mkdir -p {self.current_dx_project}:{self.test_folder}"
+        self.inputs_folder = os.path.join(self.test_folder, "inputs")
+        self.outputs_folder = os.path.join(self.test_folder, "outputs")
+        mk_folder_cmd = f"dx mkdir -p {self.current_dx_project}:{self.inputs_folder}"
         if log.dryrun:
-            log.log(f"creating folder using command: {mk_folder_cmd}")
+            log.log(f"creating inputs folder using command: {mk_folder_cmd}")
         else:
             utils.run_cmd(mk_folder_cmd, log.verbose)
 
@@ -45,17 +45,6 @@ class Dx:
 
     def _add_to_cache(self, local: str, remote: str):
         self._cache[local] = remote
-
-    @contextmanager
-    def tempdir(self):
-        path = tempfile.mkdtemp()
-        try:
-            yield path
-        finally:
-            try:
-                shutil.rmtree(path)
-            except IOError as ex:
-                self.log.error(f"Failed to clean up temp dir {path}", ex)
 
     def get_file_name(self, outdir: str, file_id: str) -> str:
         dx_file = dxpy.DXFile(file_id, project=self.current_dx_project)
@@ -79,7 +68,7 @@ class Dx:
             dxpy.find_data_objects(
                 classname="file",
                 project=self.current_dx_project,
-                folder=self.test_folder,
+                folder=self.inputs_folder,
                 properties={"checksum": checksum},
                 describe=True,
             )
@@ -88,17 +77,17 @@ class Dx:
             dx_file = existing[0]
         elif len(existing) > 1:
             raise Exception(
-                f"found multiple files in {self.test_folder} with the same checksum: {existing}"
+                f"found multiple files in {self.inputs_folder} with the same checksum: {existing}"
             )
         else:
-            self.log.debug(f"uploading {file} to {self.test_folder}")
+            self.log.debug(f"uploading {file} to {self.inputs_folder}")
             if self.log.dryrun:
                 dx_file = dxpy.DXFile(
                     "file-XXXXXXXXXXXXXXXXXXXXXXXX", self.current_dx_project
                 )
             else:
                 dx_file = dxpy.upload_local_file(
-                    file, folder=self.test_folder, properties={"checksum": checksum}
+                    file, folder=self.inputs_folder, properties={"checksum": checksum}
                 )
         dx_uri = f"dx://{dx_file.get_proj_id()}:{dx_file.get_id()}"
         self._add_to_cache(file, dx_uri)
@@ -123,7 +112,7 @@ class Dx:
         # if so, make sure the contents are identical; if not,
         # create a new folder with a unique name
         basename = os.path.basename(dir)
-        base_folder = os.path.join(self.test_folder, basename)
+        base_folder = os.path.join(self.inputs_folder, basename)
         dx_files = dict(
             (os.path.relpath(dx_file_to_path(f), base_folder), f)
             for f in dxpy.find_data_objects(
@@ -175,13 +164,3 @@ class Dx:
                     )
 
         return f"dx://{self.current_dx_project}:{base_folder}"
-
-    def check_outdir(self, dir: str, create: bool = True):
-        if not os.path.exists(dir):
-            self.log.log(f"Creating output directory {dir}")
-            if create:
-                os.mkdir(dir)
-        elif not os.path.isdir(dir):
-            raise Exception(f"Outdir {dir} is not a directory!")
-        elif not os.access(dir, os.W_OK):
-            raise Exception(f"You need write access to the outdir repository ({dir})!")

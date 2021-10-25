@@ -22,10 +22,9 @@ class Log:
 
     @staticmethod
     def get():
-        if Log._log:
-            return Log._log
-        else:
-            raise Exception("must call Log.init")
+        if Log._log is None:
+            Log._log = Log()
+        return Log._log
 
     def __init__(self, file=None, verbose: bool = True, dryrun: bool = False):
         if file:

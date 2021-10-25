@@ -13,7 +13,7 @@ cwltool = "^3.1.20210922203925"
 cwl-upgrader= "^1.2"
 
 [tool.poetry.dev-dependencies]
-dxpy = "^0.308.0"
+dxpy = "^0.314.0"
 
 [tool.poetry.scripts]
 dx-cwl-runner = 'dx_cwl_runner.cwl_runner:main'
