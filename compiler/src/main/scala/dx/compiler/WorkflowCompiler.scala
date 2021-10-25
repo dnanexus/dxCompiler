@@ -29,6 +29,11 @@ case class WorkflowCompiler(separateOutputs: Boolean,
 
   private def workflowInputParameterToNative(parameter: Parameter,
                                              stageInput: StageInput): Vector[JsValue] = {
+    logger.warning("workflowInputParameterToNative - > HERE ")
+    logger.warning("PARAMETEr HERE ")
+    logger.warning(parameter.toString())
+    logger.warning("STAGE INPUT HERE ")
+    logger.warning(stageInput.toString())
     // The default value can come from the stage input or the workflow input
     def getDefault(stageInput: StageInput): Option[Option[Value]] = {
       stageInput match {
@@ -400,6 +405,8 @@ case class WorkflowCompiler(separateOutputs: Boolean,
               (ExecutableCompiler.CallNameParameter, StageInputEmpty)
           )
         } else {
+          logger.warning("HERE .. workflowinputs")
+          logger.warning(workflow.inputs.toString())
           workflow.inputs
         }
 

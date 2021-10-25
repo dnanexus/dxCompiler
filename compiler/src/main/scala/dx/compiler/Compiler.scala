@@ -424,6 +424,8 @@ case class Compiler(extras: Option[Extras],
         case (accu, name) =>
           bundle.allCallables(name) match {
             case application: Application =>
+              logger.warning("application kind HERE!")
+              logger.warning(application.kind)
               val execRecord = application.kind match {
                 case _: ExecutableKindNative if useManifests =>
                   throw new Exception("cannot use manifest files with native app(let)s")
@@ -444,6 +446,7 @@ case class Compiler(extras: Option[Extras],
               }
               accu + (application.name -> execRecord)
             case wf: Workflow =>
+              logger.warning("it is workflow! HERE")
               val (dxWorkflow, execTree) = maybeBuildWorkflow(wf, accu)
               accu + (wf.name -> CompiledExecutable(wf, dxWorkflow, execTree = Some(execTree)))
           }

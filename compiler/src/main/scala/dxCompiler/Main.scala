@@ -549,8 +549,6 @@ object Main {
           fileResolver
       )
       val results = compiler.apply(bundle, project, folder)
-      logger.warning("results HERE!:")
-      logger.warning(results.toString())
       // generate the execution tree if requested
       (results.primary, options.getValue[ExecTreeFormat.ExecTreeFormat]("execTree")) match {
         case (Some(primary), Some(format)) =>
