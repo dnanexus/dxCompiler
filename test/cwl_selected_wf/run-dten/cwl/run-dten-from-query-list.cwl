@@ -43,7 +43,7 @@ requirements:
 
 steps:
   download-file:
-    run: https://raw.githubusercontent.com/Sage-Bionetworks/synapse-client-cwl-tools/master/synapse-query-tool.cwl
+    run: https://raw.githubusercontent.com/Sage-Bionetworks-Workflows/cwl-tool-synapseclient/main/cwl/synapse-query-tool.cwl
     scatter: query
     in:
       query: queries
@@ -58,7 +58,7 @@ steps:
     out:
       [protein-lists]
   store-prots:
-    run: https://raw.githubusercontent.com/Sage-Bionetworks/synapse-client-cwl-tools/master/synapse-store-tool.cwl
+    run: https://raw.githubusercontent.com/Sage-Bionetworks-Workflows/cwl-tool-synapseclient/main/cwl/synapse-store-tool.cwl
     scatter: file_to_store
     in:
       file_to_store:  get-prots/protein-lists
