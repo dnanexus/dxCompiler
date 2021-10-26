@@ -1,0 +1,12 @@
+input-file-id: syn18550423
+synapse-config:
+  class: File
+  path: /home/sgosline/.synapseConfig
+gene-id-type: entrez
+beta-params: [1,2,5,10,20,30]
+mu-params: [0.1,0.01,0.001,0.0001,10e-5]
+w-params: [1,10,100,0.1,0.01]
+output-parent-id: syn18812771
+output-project-id: syn16941818
+name: TCGA Results
+metaviper-store-id: syn18918343
