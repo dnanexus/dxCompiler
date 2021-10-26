@@ -1,5 +1,5 @@
 #!/usr/bin/env cwl-runner
-cwlVersion: v1.1
+cwlVersion: v1.2
 class: CommandLineTool
 id: run-network-with-params
 label: run-network-with-params

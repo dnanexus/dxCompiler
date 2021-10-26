@@ -1,19 +1,20 @@
-cwlVersion: v1.0
+#!/usr/bin/env cwl-runner
+cwlVersion: v1.2
 class: CommandLineTool
-label: get-mv-samples
 id: get-mv-samples
-
-baseCommand: ['Rscript','/usr/local/bin/subSampleTumorTypes.R']
-stdout: message
-
+label: get-mv-samples
 requirements:
-  - class: DockerRequirement
-    dockerPull: sgosline/dten
-  - class: InlineJavascriptRequirement
-  - class: InitialWorkDirRequirement
-    listing:
-     - entry: $(inputs.synapse_config)
-
+- class: DockerRequirement
+  dockerPull: sgosline/dten
+- class: InlineJavascriptRequirement
+- class: InitialWorkDirRequirement
+  listing:
+  - entry: $(inputs.synapse_config)
+hints:
+  NetworkAcess:
+    networkAccess: true
+  LoadListingRequirement:
+    loadListing: deep_listing
 inputs:
   synapse_config:
     type: File
@@ -29,12 +30,12 @@ inputs:
     type: string
     inputBinding:
       prefix: "--n"
-
+baseCommand: ['Rscript', '/usr/local/bin/subSampleTumorTypes.R']
+stdout: message
 outputs:
   synids:
     type: string[]
     outputBinding:
-       glob: message
-       loadContents: true
-       outputEval: $(self[0].contents.split('\n'))
-
+      glob: message
+      loadContents: true
+      outputEval: $(self[0].contents.split('\n'))

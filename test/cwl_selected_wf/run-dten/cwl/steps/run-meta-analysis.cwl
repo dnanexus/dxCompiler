@@ -1,20 +1,20 @@
-label: run-network-with-params
-id: run-network-with-params
-cwlVersion: v1.0
+#!/usr/bin/env cwl-runner
+cwlVersion: v1.2
 class: CommandLineTool
-
-baseCommand: ['Rscript','/usr/local/bin/metaNetworkComparisons.R']
-
-
+id: run-network-with-params
+label: run-network-with-params
 requirements:
-  - class: DockerRequirement
-    dockerPull: sgosline/dten
-  - class: InlineJavascriptRequirement
-  - class: InitialWorkDirRequirement
-    listing:
-      - entry: $(inputs.synapse_config)
-
-
+- class: DockerRequirement
+  dockerPull: sgosline/dten
+- class: InlineJavascriptRequirement
+- class: InitialWorkDirRequirement
+  listing:
+  - entry: $(inputs.synapse_config)
+hints:
+  NetworkAcess:
+    networkAccess: true
+  LoadListingRequirement:
+    loadListing: deep_listing
 inputs:
   synapse_config:
     type: File
@@ -35,7 +35,7 @@ inputs:
     type: string
     inputBinding:
       prefix: '-f'
-
+baseCommand: ['Rscript', '/usr/local/bin/metaNetworkComparisons.R']
 outputs:
   nodefile:
     type: File

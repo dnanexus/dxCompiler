@@ -1,14 +1,16 @@
-label: store-tables
-id: store-tables
-cwlVersion: v1.0
+#!/usr/bin/env cwl-runner
+cwlVersion: v1.2
 class: CommandLineTool
-
+id: store-tables
+label: store-tables
 requirements:
-  - class: DockerRequirement
-    dockerPull: sage-bionetworks/synapse
-
-baseCommand: ['synapse store']
-
+- class: DockerRequirement
+  dockerPull: sage-bionetworks/synapse
+hints:
+  NetworkAcess:
+    networkAccess: true
+  LoadListingRequirement:
+    loadListing: deep_listing
 inputs:
   nodeTable:
     type: File
@@ -18,6 +20,5 @@ inputs:
     type: string
   synapse_config:
     type: File
-
-outputs:
-  []
+baseCommand: ['synapse store']
+outputs: []

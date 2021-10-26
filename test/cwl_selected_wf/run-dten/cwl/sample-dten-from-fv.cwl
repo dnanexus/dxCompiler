@@ -1,8 +1,12 @@
-label: sample-dten-from-fv
-id: sample-dten-from-fv
-cwlVersion: v1.0
+#!/usr/bin/env cwl-runner
+cwlVersion: v1.2
 class: Workflow
-
+id: sample-dten-from-fv
+label: sample-dten-from-fv
+requirements:
+- class: ScatterFeatureRequirement
+- class: SubworkflowFeatureRequirement
+- class: MultipleInputFeatureRequirement
 inputs:
   input-fileview:
     type: string
@@ -24,21 +28,6 @@ inputs:
     type: string
   name:
     type: string
-
-outputs:
-  out:
-    type:
-      type: array
-      items:
-        type: array
-        items: File
-    outputSource: build-networks/network-file
-
-requirements:
-  - class: ScatterFeatureRequirement
-  - class: SubworkflowFeatureRequirement
-  - class: MultipleInputFeatureRequirement
-
 steps:
   get-prots-from-query:
     run: steps/get-mv-samples.cwl
@@ -47,16 +36,14 @@ steps:
       parent-folder: metaviper-folder
       fileview: input-fileview
       num-samps: num-samps
-    out:
-      [synids]
+    out: [synids]
   get-prot-files:
-    run: https://raw.githubusercontent.com/Sage-Bionetworks-Workflows/cwl-tool-synapseclient/main/cwl/synapse-get-tool.cwl
+    run: cwl/synapse-get-tool.cwl
     scatter: synapseid
     in:
       synapseid: get-prots-from-query/synids
       synapse_config: synapse-config
-    out:
-      [filepath]
+    out: [filepath]
   build-networks:
     scatter: [beta, mu, w]
     scatterMethod: flat_crossproduct
@@ -70,5 +57,12 @@ steps:
       output-folder-id: output-parent-id
       synapse_config: synapse-config
       net-name: name
-    out:
-      [network-file]
+    out: [network-file]
+outputs:
+  out:
+    type:
+      type: array
+      items:
+        type: array
+        items: File
+    outputSource: build-networks/network-file

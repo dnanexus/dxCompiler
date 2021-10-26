@@ -1,9 +1,8 @@
-label: network-and-store
-id: network-and-store
-cwlVersion: v1.0
+#!/usr/bin/env cwl-runner
+cwlVersion: v1.2
 class: Workflow
-
-
+id: network-and-store
+label: network-and-store
 inputs:
   beta:
     type: double
@@ -19,12 +18,6 @@ inputs:
     type: string
   synapse_config:
     type: File
-
-outputs:
-  - id: network-file
-    type: File
-    outputSource: run-network/network-file
-
 steps:
   run-network:
     in:
@@ -33,14 +26,16 @@ steps:
       w: w
       protein-list: protein-list
       condition: condition
-    out:
-      network-file
+    out: network-file
     run: steps/run-network-with-params.cwl
   store-network:
     in:
       file_to_store: run-network/network-file
       parentid: output-folder-id
       synapse_config: synapse_config
-    run: https://raw.githubusercontent.com/Sage-Bionetworks-Workflows/cwl-tool-synapseclient/main/cwl/synapse-store-tool.cwl
-    out:
-      []
+    run: cwl/synapse-store-tool.cwl
+    out: []
+outputs:
+- id: network-file
+  type: File
+  outputSource: run-network/network-file

@@ -1,8 +1,12 @@
-label: run-dten
-id: run-dten
-cwlVersion: v1.0
+#!/usr/bin/env cwl-runner
+cwlVersion: v1.2
 class: Workflow
-
+id: run-dten
+label: run-dten
+requirements:
+- class: ScatterFeatureRequirement
+- class: SubworkflowFeatureRequirement
+- class: MultipleInputFeatureRequirement
 inputs:
   input-query-list:
     type: string[]
@@ -24,24 +28,9 @@ inputs:
     type: string
   name:
     type: string
-
-outputs:
-  out:
-    type:
-      type: array
-      items:
-        type: array
-        items: File
-    outputSource: build-networks/network-file
-
-requirements:
-  - class: ScatterFeatureRequirement
-  - class: SubworkflowFeatureRequirement
-  - class: MultipleInputFeatureRequirement
-
 steps:
   download-file:
-    run: https://raw.githubusercontent.com/Sage-Bionetworks-Workflows/cwl-tool-synapseclient/main/cwl/synapse-query-tool.cwl
+    run: cwl/synapse-query-tool.cwl
     scatter: query
     in:
       query: input-query-list
@@ -52,17 +41,15 @@ steps:
     in:
       gene-data: download-file/query_result
       id-type: gene-id-type
-    out:
-      [protein-lists]
+    out: [protein-lists]
   store-prots:
-    run: https://raw.githubusercontent.com/Sage-Bionetworks-Workflows/cwl-tool-synapseclient/main/cwl/synapse-store-tool.cwl
+    run: cwl/synapse-store-tool.cwl
     scatter: file_to_store
     in:
-      file_to_store:  get-prots/protein-lists
+      file_to_store: get-prots/protein-lists
       synapse_config: synapse-config
       parentid: metaviper-store-id
-    out:
-      []
+    out: []
   build-networks:
     scatter: [beta, mu, w]
     scatterMethod: flat_crossproduct
@@ -76,5 +63,12 @@ steps:
       output-folder-id: output-parent-id
       synapse_config: synapse-config
       net-name: name
-    out:
-      [network-file]
+    out: [network-file]
+outputs:
+  out:
+    type:
+      type: array
+      items:
+        type: array
+        items: File
+    outputSource: build-networks/network-file
