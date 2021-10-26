@@ -78,7 +78,7 @@ See below on how to run unit and integration tests. To recompile dxCompiler with
 2. Create a new branch with your changes. Name it something meaningful, like `APPS-123-download-bug`.
 3. If the current snapshot version matches the release version, increment the snapshot version.
 - For example, if the current release is `1.0.0` and the current snapshot version is `1.0.0-SNAPSHOT`, increment the snapshot version to `1.0.1-SNAPSHOT`.
-- You can use a script to update the version simultaneously in all of the sub-packages: `scripts/update_version.md <version>`
+- You can use a script to update the version simultaneously in all of the sub-packages: `scripts/update_version.sh <version>`
 4. Make your changes. Test locally using `sbt test`.
 5. Update the release notes under the top-most header (which should be "in develop").
 6. If the current snapshot version only differs from the release version by a patch, and you added any new functionality (vs just fixing a bug), increment the minor version instead.
@@ -188,7 +188,7 @@ dxCompiler can be released from Github. The release pipeline (optionally) runs l
 1. Checkout the develop branch (either HEAD or the specific commit you want to release)
 2. Create a release branch named with the version number, e.g. `release-2.4.2`
 3. Update the version numbers in application.conf files by removing `-SNAPSHOT`
-    - Run `scripts/update_version.md <version>`
+    - Run `scripts/update_version.sh <version>`
     - If you want to update the versions manually, there are 5 of them:
         * [compiler](https://github.com/dnanexus/dxCompiler/blob/main/compiler/src/main/resources/application.conf)
         * [core](https://github.com/dnanexus/dxCompiler/blob/main/core/src/main/resources/application.conf)
