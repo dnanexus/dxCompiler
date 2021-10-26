@@ -1,0 +1,12 @@
+reference_genome:  # type "File"
+    class: File
+    path: a/file/path
+reads2:  # type "File" (optional)
+    class: File
+    path: a/file/path
+reads1:  # type "File"
+    class: File
+    path: a/file/path
+read_length: 150  # default value of type "long".
+output_name: genome  # default value of type "string".
+estimated_genome_size: 3200000000  # default value of type "long".

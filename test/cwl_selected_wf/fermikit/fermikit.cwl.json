@@ -1,0 +1,132 @@
+{
+    "class": "CommandLineTool",
+    "id": "#main",
+    "label": "fermikit",
+    "requirements": [
+        {
+            "class": "DockerRequirement",
+            "dockerOutputDirectory": "/data/out",
+            "dockerPull": "pfda2dockstore/fermikit:8"
+        }
+    ],
+    "hints": [
+        {
+            "loadListing": "deep_listing",
+            "class": "LoadListingRequirement"
+        },
+        {
+            "networkAccess": true,
+            "class": "file:///Users/yshi/Documents/dnanexus/dxCompiler/test/cwl_selected_wf/fermikit/NetworkAcess"
+        }
+    ],
+    "inputs": [
+        {
+            "default": 3200000000,
+            "doc": "",
+            "inputBinding": {
+                "position": 5,
+                "prefix": "--estimated_genome_size"
+            },
+            "type": "long",
+            "id": "#main/estimated_genome_size"
+        },
+        {
+            "default": "genome",
+            "doc": "",
+            "inputBinding": {
+                "position": 6,
+                "prefix": "--output_name"
+            },
+            "type": "string",
+            "id": "#main/output_name"
+        },
+        {
+            "default": 150,
+            "doc": "",
+            "inputBinding": {
+                "position": 4,
+                "prefix": "--read_length"
+            },
+            "type": "long",
+            "id": "#main/read_length"
+        },
+        {
+            "doc": "gzipped FASTQ reads",
+            "inputBinding": {
+                "position": 1,
+                "prefix": "--reads1"
+            },
+            "type": "File",
+            "id": "#main/reads1"
+        },
+        {
+            "doc": "gzipped FASTQ reads",
+            "inputBinding": {
+                "position": 2,
+                "prefix": "--reads2"
+            },
+            "type": [
+                "null",
+                "File"
+            ],
+            "id": "#main/reads2"
+        },
+        {
+            "doc": "gzipped FASTA reference genome",
+            "inputBinding": {
+                "position": 3,
+                "prefix": "--reference_genome"
+            },
+            "type": "File",
+            "id": "#main/reference_genome"
+        }
+    ],
+    "baseCommand": [],
+    "s:author": {
+        "class": "s:Person",
+        "s:name": "Mike Lin"
+    },
+    "outputs": [
+        {
+            "doc": "",
+            "outputBinding": {
+                "glob": "filtered_vcf/*"
+            },
+            "type": "File",
+            "id": "#main/filtered_vcf"
+        },
+        {
+            "doc": "",
+            "outputBinding": {
+                "glob": "logs/*"
+            },
+            "type": "File",
+            "id": "#main/logs"
+        },
+        {
+            "doc": "",
+            "outputBinding": {
+                "glob": "raw_vcf/*"
+            },
+            "type": "File",
+            "id": "#main/raw_vcf"
+        },
+        {
+            "doc": "",
+            "outputBinding": {
+                "glob": "sv_vcf/*"
+            },
+            "type": "File",
+            "id": "#main/sv_vcf"
+        },
+        {
+            "doc": "",
+            "outputBinding": {
+                "glob": "unitigs_bam/*"
+            },
+            "type": "File",
+            "id": "#main/unitigs_bam"
+        }
+    ],
+    "cwlVersion": "v1.2"
+}
