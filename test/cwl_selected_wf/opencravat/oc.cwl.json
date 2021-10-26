@@ -1,0 +1,108 @@
+{
+    "class": "CommandLineTool",
+    "requirements": [
+        {
+            "class": "ShellCommandRequirement"
+        },
+        {
+            "class": "EnvVarRequirement",
+            "envDef": [
+                {
+                    "envValue": "/tmp",
+                    "envName": "TMPDIR"
+                }
+            ]
+        }
+    ],
+    "hints": [
+        {
+            "dockerPull": "karchinlab/opencravat",
+            "class": "DockerRequirement"
+        },
+        {
+            "loadListing": "deep_listing",
+            "class": "LoadListingRequirement"
+        },
+        {
+            "networkAccess": true,
+            "class": "file:///Users/yshi/Documents/dnanexus/dxCompiler/test/cwl_selected_wf/opencravat/NetworkAcess"
+        }
+    ],
+    "inputs": [
+        {
+            "type": {
+                "type": "enum",
+                "symbols": [
+                    "#main/genome/hg38",
+                    "#main/genome/hg19"
+                ]
+            },
+            "inputBinding": {
+                "prefix": "-l",
+                "position": 3,
+                "shellQuote": false
+            },
+            "default": "hg38",
+            "id": "#main/genome"
+        },
+        {
+            "type": "File",
+            "inputBinding": {
+                "position": 1,
+                "shellQuote": false
+            },
+            "id": "#main/input"
+        },
+        {
+            "type": "Directory",
+            "inputBinding": {
+                "prefix": "--system-option modules_dir=",
+                "separate": false,
+                "position": 2,
+                "shellQuote": false
+            },
+            "id": "#main/modulesDirectory"
+        }
+    ],
+    "baseCommand": [
+        "oc",
+        "run"
+    ],
+    "arguments": [
+        {
+            "prefix": "-d",
+            "valueFrom": ".",
+            "shellQuote": false
+        },
+        {
+            "prefix": "--endat",
+            "valueFrom": "postaggregator",
+            "shellQuote": false
+        }
+    ],
+    "id": "#main",
+    "outputs": [
+        {
+            "type": "File",
+            "outputBinding": {
+                "glob": "$(inputs.input.basename).sqlite"
+            },
+            "id": "#main/db"
+        },
+        {
+            "type": "File",
+            "outputBinding": {
+                "glob": "$(inputs.input.basename).err"
+            },
+            "id": "#main/err"
+        },
+        {
+            "type": "File",
+            "outputBinding": {
+                "glob": "$(inputs.input.basename).log"
+            },
+            "id": "#main/log"
+        }
+    ],
+    "cwlVersion": "v1.2"
+}
