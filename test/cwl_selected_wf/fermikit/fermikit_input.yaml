@@ -1,12 +1,12 @@
 reference_genome:  # type "File"
     class: File
-    path: a/file/path
+    path: dx://project-BQpp3Y804Y0xbyG4GJPQ01xv:file-BQbY9Bj015pB7JJVX0vQ7vj5
 reads2:  # type "File" (optional)
     class: File
-    path: a/file/path
+    path: dx://project-BzQf6k80V3bJk7x0yv6z82j7:file-F69bkyj0xG8bG1Jq29v3BjPG
 reads1:  # type "File"
     class: File
-    path: a/file/path
+    path: dx://project-BzQf6k80V3bJk7x0yv6z82j7:file-F69bp1Q0xG8v79K429jffKPZ
 read_length: 150  # default value of type "long".
 output_name: genome  # default value of type "string".
 estimated_genome_size: 3200000000  # default value of type "long".
