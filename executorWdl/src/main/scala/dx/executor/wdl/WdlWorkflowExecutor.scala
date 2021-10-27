@@ -465,6 +465,8 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       val callInputs = evaluateCallInputs()
       val (dxExecution, executableLink, callName) =
         launchCall(callInputs, Some(blockIndex.toString))
+      // TODO: right now, we export all outputs of the executable, which may include intermediate
+      //  outputs. Should we filter executable outputs using call.wdlType.output?
       jobMeta.createExecutionOutputLinks(dxExecution, executableLink.outputs, Some(callName))
     }
 

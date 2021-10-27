@@ -14,7 +14,7 @@ def dx_file_to_path(f: dxpy.DXFile) -> str:
 
 
 class Dx:
-    def __init__(self, log: Log = Log.get()):
+    def __init__(self, log: Log):
         self.log = log
         self._check_tools()
         self._cache = {}
@@ -32,12 +32,12 @@ class Dx:
         self.outputs_folder = os.path.join(self.test_folder, "outputs")
         mk_folder_cmd = f"dx mkdir -p {self.current_dx_project}:{self.inputs_folder}"
         if log.dryrun:
-            log.log(f"creating inputs folder using command: {mk_folder_cmd}")
+            log.info(f"creating inputs folder using command: {mk_folder_cmd}")
         else:
-            utils.run_cmd(mk_folder_cmd, log.verbose)
+            utils.run_cmd(mk_folder_cmd, log)
 
     def _check_tools(self):
-        utils.check_tool("dx", "dx v([\\d.]+)", "dnanexus/dx-toolkit", self.log)
+        utils.check_tool("dx", "dx v([\\d.]+)", "dnanexus/dx-toolkit", self.log, lib="dxpy")
 
     def _get_cache(self, location: str) -> str:
         if location in self._cache:
@@ -46,15 +46,9 @@ class Dx:
     def _add_to_cache(self, local: str, remote: str):
         self._cache[local] = remote
 
-    def get_file_name(self, outdir: str, file_id: str) -> str:
+    def get_file_name(self, file_id: str) -> str:
         dx_file = dxpy.DXFile(file_id, project=self.current_dx_project)
-        platform_file_name = dx_file.describe(fields={"name": True}).get("name")
-        file_name = os.path.join(outdir, platform_file_name)
-        counter = 0
-        while os.path.exists(file_name):
-            counter += 1
-            file_name = f"{os.path.join(outdir, platform_file_name)}({counter})"
-        return file_name
+        return dx_file.describe(fields={"name": True}).get("name")
 
     def find_or_upload_file(self, file: str) -> str:
         # the file may have been resolved previously
@@ -164,3 +158,17 @@ class Dx:
                     )
 
         return f"dx://{self.current_dx_project}:{base_folder}"
+
+    def download_file(self, file_id, output_path):
+        utils.run_cmd(
+            f"dx download {file_id} --output '{output_path}' --no-progress",
+            self.log
+        )
+
+    def download_folder(self, project_id, folder, outdir):
+        try:
+            dxpy.download_folder(project_id, outdir, folder, overwrite=False)
+        except:
+            self.log.error(
+                f"Error downloading folder {project_id}:{folder} to {outdir}", exc_info=True
+            )

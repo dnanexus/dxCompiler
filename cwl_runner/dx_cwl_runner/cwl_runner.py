@@ -7,7 +7,7 @@ from dx_cwl_runner.utils import Log
 
 def main():
     args = arg_parser.parse_args()
-    log = Log.init(verbose=not args.quiet, dryrun=args.dryrun)
+    log = Log(verbose=not args.quiet, dryrun=args.dryrun)
     compiler = CwlCompiler(Dx(log))
     compiler.run_test(args.processfile, args.jobfile, args.basedir, args.outdir)
 

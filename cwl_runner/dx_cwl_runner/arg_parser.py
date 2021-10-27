@@ -2,6 +2,7 @@ import argparse
 import os
 
 from dx_cwl_runner.compiler import get_compiler_jar
+from dx_cwl_runner.utils import ErrorLog
 
 
 def parse_args():
@@ -22,7 +23,7 @@ def parse_args():
     parser.add_argument(
         "--version",
         action="version",
-        version=f"%(prog)s {get_compiler_jar(download=False)[1]}",
+        version=f"%(prog)s {get_compiler_jar(ErrorLog.get(), False)[1]}",
         help="Report the name & version, then quit without further processing",
     )
     parser.add_argument(

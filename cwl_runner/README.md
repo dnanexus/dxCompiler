@@ -7,6 +7,7 @@ This is the DNAnexus implementation of the [cwl-runner](https://www.commonwl.org
 * Java 8
 * Python 3.6+
 * [poetry](https://python-poetry.org/) (`pip install poetry`)
+* NodeJS
 
 ## Installation
 
