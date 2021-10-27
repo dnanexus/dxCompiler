@@ -306,8 +306,8 @@ abstract class InputTranslator(bundle: Bundle,
               val inputsWithDefaults = workflow.inputs.map {
                 case (param, stageInput) =>
                   val key = s"${workflow.name}.${param.name.decoded}"
+                  logger.warning("inputtranslator: bundlewithDefaults: irvalue HERE!")
                   val stageInputWithDefault = defaultsExactlyOnce.get(key) match {
-                      logger.warning("inputtranslator: bundlewithDefaults: irvalue HERE!")
                     case None => stageInput
                     case Some(default: JsValue) =>
                       val irValue = parameterLinkDeserializer.deserializeInputWithType(
