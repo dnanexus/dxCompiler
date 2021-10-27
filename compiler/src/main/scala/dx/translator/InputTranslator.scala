@@ -307,6 +307,7 @@ abstract class InputTranslator(bundle: Bundle,
                 case (param, stageInput) =>
                   val key = s"${workflow.name}.${param.name.decoded}"
                   val stageInputWithDefault = defaultsExactlyOnce.get(key) match {
+                      logger.warning("inputtranslator: bundlewithDefaults: irvalue HERE!")
                     case None => stageInput
                     case Some(default: JsValue) =>
                       val irValue = parameterLinkDeserializer.deserializeInputWithType(
@@ -315,6 +316,8 @@ abstract class InputTranslator(bundle: Bundle,
                           key,
                           Some(deserializationHandler)
                       )
+                      logger.warning("irValue")
+                      logger.warning(irValue.toString())
                       StageInputStatic(irValue)
                   }
                   (param, stageInputWithDefault)
@@ -332,6 +335,8 @@ abstract class InputTranslator(bundle: Bundle,
                   s"${workflow.name}.${stage.description}"
                 }
                 val inputsWithDefaults = stage.inputs.zipWithIndex.map {
+                  logger.warning("inputtranslator2: bundlewithDefaults2: irvalue HERE!")
+
                   case (stageInput, idx) =>
                     val param = callee.inputVars(idx)
                     val key = s"${prefix}.${param.name.decoded}"
@@ -345,6 +350,8 @@ abstract class InputTranslator(bundle: Bundle,
                               key,
                               Some(deserializationHandler)
                           )
+                        logger.warning("irValue2")
+                        logger.warning(irValue.toString())
                         StageInputStatic(irValue)
                     }
                 }

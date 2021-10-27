@@ -335,6 +335,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                 dxName.decoded -> bindingValue
             })
             val value = evaluator.applyExprAndCoerce(expr, paramWdlType, bindings)
+            logger.warning("CALLABLE TRANSLATPOR: HERE 5 stageinput static...wdlutilstoirvalue")
+            logger.warning(WdlUtils.toIRValue(value, paramWdlType).toString())
             StageInputStatic(WdlUtils.toIRValue(value, paramWdlType))
           } catch {
             case _: EvalException =>
@@ -743,6 +745,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         try {
           // try to evaluate the output as a constant
           val v = evaluator.applyConstAndCoerce(output.expr, output.wdlType)
+          logger.warning("workflow output create simple7 HERE ")
+          logger.warning(WdlUtils.toIRValue(v, output.wdlType).toString())
           StageInputStatic(WdlUtils.toIRValue(v, output.wdlType))
         } catch {
           case _: EvalException =>
