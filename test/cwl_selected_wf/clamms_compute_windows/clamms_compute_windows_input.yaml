@@ -1,0 +1,16 @@
+targets_bed_file:  # type "File"
+    class: File
+    path: a/file/path
+special_regions_bed_file:  # type "File"
+    class: File
+    path: a/file/path
+mappability_bed_file:  # type "File"
+    class: File
+    path: a/file/path
+insert_size: 200  # default value of type "long".
+genome_fasta_index:  # type "File" (optional)
+    class: File
+    path: a/file/path
+genome_fasta:  # type "File" (optional)
+    class: File
+    path: a/file/path
