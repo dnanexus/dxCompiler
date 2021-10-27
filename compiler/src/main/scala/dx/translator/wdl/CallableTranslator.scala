@@ -691,11 +691,16 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         subBlocks.zipWithIndex.foldLeft((Vector.empty[(Stage, Vector[Callable])], inputEnv)) {
           case ((stages, beforeEnv), (block: WdlBlock, _: Int))
               if block.kind == BlockKind.CallDirect =>
+            logger.warning(block.target.toString())
+            logger.warning((call.afters.isEmpty.toString()))
             block.target match {
               case Some(call: TAT.Call) if call.afters.isEmpty =>
                 // The block contains exactly one call with no dependencies and with
                 // no extra variables. Compile directly into a workflow stage.
                 logger2.trace(s"Translating call ${call.actualName} as stage")
+                logger2.info(call.toString())
+                logger2.info(beforeEnv.toString())
+                logger2.info(locked.toString())
                 val stage = translateCall(call, beforeEnv, locked)
                 // Add bindings for the output variables. This allows later calls to refer
                 // to these results.
