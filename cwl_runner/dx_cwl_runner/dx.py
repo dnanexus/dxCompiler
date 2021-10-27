@@ -1,6 +1,7 @@
 from datetime import datetime
 import json
 import os
+from typing import Tuple
 
 import dxpy
 
@@ -30,11 +31,11 @@ class Dx:
         )
         self.inputs_folder = os.path.join(self.test_folder, "inputs")
         self.outputs_folder = os.path.join(self.test_folder, "outputs")
-        mk_folder_cmd = f"dx mkdir -p {self.current_dx_project}:{self.inputs_folder}"
         if log.dryrun:
-            log.info(f"creating inputs folder using command: {mk_folder_cmd}")
+            log.info(f"creating inputs folder {self.inputs_folder}")
         else:
-            utils.run_cmd(mk_folder_cmd, log)
+            proj = dxpy.DXProject(self.current_dx_project)
+            proj.new_folder(self.inputs_folder, parents=True)
 
     def _check_tools(self):
         utils.check_tool("dx", "dx v([\\d.]+)", "dnanexus/dx-toolkit", self.log, lib="dxpy")
@@ -159,16 +160,22 @@ class Dx:
 
         return f"dx://{self.current_dx_project}:{base_folder}"
 
-    def download_file(self, file_id, output_path):
-        utils.run_cmd(
-            f"dx download {file_id} --output '{output_path}' --no-progress",
-            self.log
+    def download_file(self, file_id, output_path, project_id=None):
+        dxpy.download_dxfile(
+            file_id, output_path, project=project_id or self.current_dx_project
         )
 
-    def download_folder(self, project_id, folder, outdir):
-        try:
-            dxpy.download_folder(project_id, outdir, folder, overwrite=False)
-        except:
-            self.log.error(
-                f"Error downloading folder {project_id}:{folder} to {outdir}", exc_info=True
-            )
+    def download_folder(self, folder, outdir, project_id=None):
+        dxpy.download_folder(
+            project_id or self.current_dx_project, outdir, folder, overwrite=False
+        )
+
+    def run_executable(self, id, inputs: dict) -> Tuple[dict, str]:
+        handler: dxpy.DXApplet = dxpy.get_handler(id)
+        exe: dxpy.DXJob = handler.run(inputs, folder=self.outputs_folder)
+        self.log.debug(f"Waiting for {exe.id} to finish...")
+        exe.wait_on_done()
+        desc = exe.describe()
+        # TODO: is there an equivalent dxpy function?
+        log = utils.run_cmd(f"dx watch {exe.id} --quiet", self.log)
+        return desc, log

@@ -189,19 +189,14 @@ class Compiler:
         else:
             executable = utils.run_cmd(cmd, self.dx.log)
             self.dx.log.debug(f"Compiled {process_file} to {executable}")
-            new_dx_input = os.path.join(
+            new_dx_input_file = os.path.join(
                 os.path.dirname(input_file),
                 f"{os.path.splitext(os.path.basename(input_file))[0]}.dx.json"
             )
-            self.dx.log.debug(f"Running {executable} with {new_dx_input} input.")
-            execution_id = utils.run_cmd(
-                f"dx run {executable} --destination {self.dx.outputs_folder} -f {new_dx_input} -y --brief",
-                self.dx.log
-            )
-            self.dx.log.debug(f"Waiting for {execution_id} to finish...")
-            utils.run_cmd(f"dx wait {execution_id}", self.dx.log)
-            description = json.loads(utils.run_cmd(f"dx describe {execution_id} --json", self.dx.log))
-            execution_log = utils.run_cmd(f"dx watch {execution_id} --quiet", self.dx.log)
+            self.dx.log.debug(f"Running {executable} with {new_dx_input_file} input.")
+            with open(new_dx_input_file, "r") as inp:
+                new_dx_input = json.load(inp)
+            description, execution_log = self.dx.run_executable(executable, new_dx_input)
             if description.get("state") == "done":
                 if self.dx.log.verbose and execution_log:
                     self.dx.log.debug(execution_log)
@@ -548,7 +543,7 @@ class CwlCompiler(Compiler):
                         for x in output["listing"]
                     ]
                 else:
-                    self.dx.download_folder(project, folder, folder_outdir)
+                    self.dx.download_folder(folder, folder_outdir, project)
                     listing = dir_to_listing(folder_outdir)
                 return {
                     "class": "Directory",
