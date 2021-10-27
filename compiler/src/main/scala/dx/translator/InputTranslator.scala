@@ -335,9 +335,8 @@ abstract class InputTranslator(bundle: Bundle,
                   s"${workflow.name}.${stage.description}"
                 }
                 val inputsWithDefaults = stage.inputs.zipWithIndex.map {
-                  logger.warning("inputtranslator2: bundlewithDefaults2: irvalue HERE!")
-
                   case (stageInput, idx) =>
+                    logger.warning("inputtranslator2: bundlewithDefaults2: irvalue HERE!")
                     val param = callee.inputVars(idx)
                     val key = s"${prefix}.${param.name.decoded}"
                     defaultsExactlyOnce.get(key) match {
