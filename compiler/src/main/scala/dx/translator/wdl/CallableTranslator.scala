@@ -305,7 +305,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
             )
         }
       }
-
+      logger.warning("CALLINPUTEXPR HEREEEEEE")
+      logger.warning(callInputExpr.toString())
       callInputExpr match {
         case None if isOptional(calleeParam.dxType) =>
           // optional argument that is not provided
