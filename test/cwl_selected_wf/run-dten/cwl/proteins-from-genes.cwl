@@ -8,7 +8,7 @@ requirements:
   dockerPull: sgosline/dten
 - class: InlineJavascriptRequirement
 hints:
-  NetworkAcess:
+  NetworkAccess:
     networkAccess: true
   LoadListingRequirement:
     loadListing: deep_listing

@@ -7,7 +7,7 @@ requirements:
 - class: DockerRequirement
   dockerPull: sage-bionetworks/synapse
 hints:
-  NetworkAcess:
+  NetworkAccess:
     networkAccess: true
   LoadListingRequirement:
     loadListing: deep_listing

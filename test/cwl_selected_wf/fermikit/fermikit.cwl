@@ -8,7 +8,7 @@ requirements:
   dockerOutputDirectory: /data/out
   dockerPull: pfda2dockstore/fermikit:8
 hints:
-  NetworkAcess:
+  NetworkAccess:
     networkAccess: true
   LoadListingRequirement:
     loadListing: deep_listing

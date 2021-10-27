@@ -11,7 +11,7 @@ requirements:
   listing:
   - entry: $(inputs.synapse_config)
 hints:
-  NetworkAcess:
+  NetworkAccess:
     networkAccess: true
   LoadListingRequirement:
     loadListing: deep_listing

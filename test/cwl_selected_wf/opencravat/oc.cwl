@@ -9,7 +9,7 @@ requirements:
 hints:
   DockerRequirement:
     dockerPull: karchinlab/opencravat
-  NetworkAcess:
+  NetworkAccess:
     networkAccess: true
   LoadListingRequirement:
     loadListing: deep_listing

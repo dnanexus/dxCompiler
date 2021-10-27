@@ -11,7 +11,7 @@ requirements:
 hints:
   DockerRequirement:
     dockerPull: sagebionetworks/synapsepythonclient:v2.4.0
-  NetworkAcess:
+  NetworkAccess:
     networkAccess: true
   LoadListingRequirement:
     loadListing: deep_listing

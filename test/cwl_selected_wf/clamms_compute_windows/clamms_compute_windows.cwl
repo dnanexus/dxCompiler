@@ -8,7 +8,7 @@ requirements:
   dockerOutputDirectory: /data/out
   dockerPull: pfda2dockstore/clamms_compute_windows:16
 hints:
-  NetworkAcess:
+  NetworkAccess:
     networkAccess: true
   LoadListingRequirement:
     loadListing: deep_listing

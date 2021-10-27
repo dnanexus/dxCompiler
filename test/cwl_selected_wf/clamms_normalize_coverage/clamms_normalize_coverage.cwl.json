@@ -16,7 +16,7 @@
         },
         {
             "networkAccess": true,
-            "class": "file:///Users/yshi/Documents/dnanexus/dxCompiler/test/cwl_selected_wf/clamms_normalize_coverage/NetworkAcess"
+            "class": "NetworkAccess"
         }
     ],
     "inputs": [
