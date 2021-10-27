@@ -33,6 +33,7 @@ compiler/src/main/resources/dxCompiler_runtime.conf
 *.tmp
 venv/
 .failed*
+poetry.lock
 
 # IntelliJ
 .idea
