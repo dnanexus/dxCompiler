@@ -1,0 +1,769 @@
+{
+    "$graph": [
+        {
+            "class": "Workflow",
+            "id": "#build-store-networks-with-params.cwl",
+            "label": "build-store-networks-with-params",
+            "requirements": [
+                {
+                    "class": "ScatterFeatureRequirement"
+                },
+                {
+                    "class": "SubworkflowFeatureRequirement"
+                },
+                {
+                    "class": "InlineJavascriptRequirement"
+                }
+            ],
+            "inputs": [
+                {
+                    "type": "double",
+                    "id": "#build-store-networks-with-params.cwl/build-store-networks-with-params/beta"
+                },
+                {
+                    "type": "double",
+                    "id": "#build-store-networks-with-params.cwl/build-store-networks-with-params/mu"
+                },
+                {
+                    "type": "string",
+                    "id": "#build-store-networks-with-params.cwl/build-store-networks-with-params/net-name"
+                },
+                {
+                    "type": "string",
+                    "id": "#build-store-networks-with-params.cwl/build-store-networks-with-params/output-folder-id"
+                },
+                {
+                    "type": "string",
+                    "id": "#build-store-networks-with-params.cwl/build-store-networks-with-params/output-project-id"
+                },
+                {
+                    "type": {
+                        "type": "array",
+                        "items": "File"
+                    },
+                    "id": "#build-store-networks-with-params.cwl/build-store-networks-with-params/protein-lists"
+                },
+                {
+                    "type": "File",
+                    "id": "#build-store-networks-with-params.cwl/build-store-networks-with-params/synapse_config"
+                },
+                {
+                    "type": "double",
+                    "id": "#build-store-networks-with-params.cwl/build-store-networks-with-params/w"
+                }
+            ],
+            "steps": [
+                {
+                    "in": [
+                        {
+                            "source": "#build-store-networks-with-params.cwl/build-store-networks-with-params/output-folder-id",
+                            "id": "#build-store-networks-with-params.cwl/build-store-networks-with-params/meta-analysis/folder"
+                        },
+                        {
+                            "source": "#build-store-networks-with-params.cwl/build-store-networks-with-params/run-networks/network-file",
+                            "id": "#build-store-networks-with-params.cwl/build-store-networks-with-params/meta-analysis/input"
+                        },
+                        {
+                            "source": "#build-store-networks-with-params.cwl/build-store-networks-with-params/net-name",
+                            "id": "#build-store-networks-with-params.cwl/build-store-networks-with-params/meta-analysis/output"
+                        },
+                        {
+                            "source": "#build-store-networks-with-params.cwl/build-store-networks-with-params/output-project-id",
+                            "id": "#build-store-networks-with-params.cwl/build-store-networks-with-params/meta-analysis/project"
+                        },
+                        {
+                            "source": "#build-store-networks-with-params.cwl/build-store-networks-with-params/synapse_config",
+                            "id": "#build-store-networks-with-params.cwl/build-store-networks-with-params/meta-analysis/synapse_config"
+                        }
+                    ],
+                    "run": "#run-meta-analysis.cwl",
+                    "out": [
+                        "#build-store-networks-with-params.cwl/build-store-networks-with-params/meta-analysis/nodefile",
+                        "#build-store-networks-with-params.cwl/build-store-networks-with-params/meta-analysis/termfile"
+                    ],
+                    "id": "#build-store-networks-with-params.cwl/build-store-networks-with-params/meta-analysis"
+                },
+                {
+                    "in": [
+                        {
+                            "source": "#build-store-networks-with-params.cwl/build-store-networks-with-params/beta",
+                            "id": "#build-store-networks-with-params.cwl/build-store-networks-with-params/run-networks/beta"
+                        },
+                        {
+                            "source": "#build-store-networks-with-params.cwl/build-store-networks-with-params/mu",
+                            "id": "#build-store-networks-with-params.cwl/build-store-networks-with-params/run-networks/mu"
+                        },
+                        {
+                            "source": "#build-store-networks-with-params.cwl/build-store-networks-with-params/protein-lists",
+                            "id": "#build-store-networks-with-params.cwl/build-store-networks-with-params/run-networks/protein-list"
+                        },
+                        {
+                            "source": "#build-store-networks-with-params.cwl/build-store-networks-with-params/synapse_config",
+                            "id": "#build-store-networks-with-params.cwl/build-store-networks-with-params/run-networks/synapse_config"
+                        },
+                        {
+                            "source": "#build-store-networks-with-params.cwl/build-store-networks-with-params/w",
+                            "id": "#build-store-networks-with-params.cwl/build-store-networks-with-params/run-networks/w"
+                        }
+                    ],
+                    "scatter": [
+                        "#build-store-networks-with-params.cwl/build-store-networks-with-params/run-networks/protein-list"
+                    ],
+                    "scatterMethod": "dotproduct",
+                    "run": "#run-network-with-params.cwl",
+                    "out": [
+                        "#build-store-networks-with-params.cwl/build-store-networks-with-params/run-networks/network-file"
+                    ],
+                    "id": "#build-store-networks-with-params.cwl/build-store-networks-with-params/run-networks"
+                }
+            ],
+            "outputs": [
+                {
+                    "id": "#build-store-networks-with-params.cwl/build-store-networks-with-params/network-file",
+                    "type": {
+                        "type": "array",
+                        "items": "File"
+                    },
+                    "outputSource": "#build-store-networks-with-params.cwl/build-store-networks-with-params/run-networks/network-file"
+                }
+            ]
+        },
+        {
+            "class": "CommandLineTool",
+            "id": "#synapse-get-tool.cwl",
+            "label": "Synapse Get Tool",
+            "requirements": [
+                {
+                    "listing": [
+                        {
+                            "entryname": ".synapseConfig",
+                            "entry": "$(inputs.synapse_config)"
+                        }
+                    ],
+                    "class": "InitialWorkDirRequirement"
+                }
+            ],
+            "hints": [
+                {
+                    "dockerPull": "sagebionetworks/synapsepythonclient:v2.4.0",
+                    "class": "DockerRequirement"
+                },
+                {
+                    "loadListing": "deep_listing",
+                    "class": "LoadListingRequirement"
+                },
+                {
+                    "networkAccess": true,
+                    "class": "NetworkAccess"
+                }
+            ],
+            "inputs": [
+                {
+                    "id": "#synapse-get-tool.cwl/synapse-get/synapse_config",
+                    "type": "File"
+                },
+                {
+                    "id": "#synapse-get-tool.cwl/synapse-get/synapseid",
+                    "type": "string"
+                }
+            ],
+            "baseCommand": "synapse",
+            "arguments": [
+                {
+                    "valueFrom": "get"
+                },
+                {
+                    "valueFrom": "$(inputs.synapseid)"
+                }
+            ],
+            "outputs": [
+                {
+                    "id": "#synapse-get-tool.cwl/synapse-get/filepath",
+                    "type": {
+                        "type": "array",
+                        "items": "File"
+                    },
+                    "outputBinding": {
+                        "glob": "*"
+                    }
+                }
+            ],
+            "https://schema.org/author": [
+                {
+                    "class": "https://schema.org/Person",
+                    "https://schema.org/identifier": "https://orcid.org/0000-0002-5841-0198",
+                    "https://schema.org/email": "thomas.yu@sagebionetworks.org",
+                    "https://schema.org/name": "Thomas Yu"
+                }
+            ]
+        },
+        {
+            "class": "CommandLineTool",
+            "id": "#synapse-store-tool.cwl",
+            "label": "Synapse command line client subcommand for storing a file.",
+            "requirements": [
+                {
+                    "class": "InlineJavascriptRequirement"
+                },
+                {
+                    "class": "InitialWorkDirRequirement",
+                    "listing": [
+                        {
+                            "entryname": ".synapseConfig",
+                            "entry": "$(inputs.synapse_config)"
+                        }
+                    ]
+                }
+            ],
+            "hints": [
+                {
+                    "dockerPull": "sagebionetworks/synapsepythonclient:v2.4.0",
+                    "class": "DockerRequirement"
+                },
+                {
+                    "loadListing": "deep_listing",
+                    "class": "LoadListingRequirement"
+                },
+                {
+                    "networkAccess": true,
+                    "class": "NetworkAccess"
+                }
+            ],
+            "inputs": [
+                {
+                    "id": "#synapse-store-tool.cwl/synapse-store/synapse_config",
+                    "type": "File"
+                },
+                {
+                    "id": "#synapse-store-tool.cwl/synapse-store/file_to_store",
+                    "type": "File"
+                },
+                {
+                    "id": "#synapse-store-tool.cwl/synapse-store/parentid",
+                    "type": "string"
+                },
+                {
+                    "id": "#synapse-store-tool.cwl/synapse-store/name",
+                    "type": [
+                        "null",
+                        "string"
+                    ]
+                },
+                {
+                    "id": "#synapse-store-tool.cwl/synapse-store/used",
+                    "type": [
+                        "null",
+                        {
+                            "type": "array",
+                            "items": "string"
+                        }
+                    ]
+                },
+                {
+                    "id": "#synapse-store-tool.cwl/synapse-store/executed",
+                    "type": [
+                        "null",
+                        {
+                            "type": "array",
+                            "items": "string"
+                        }
+                    ]
+                }
+            ],
+            "baseCommand": "synapse",
+            "arguments": [
+                {
+                    "valueFrom": "store"
+                },
+                {
+                    "valueFrom": "$(inputs.parentid)",
+                    "prefix": "--parentId"
+                },
+                {
+                    "valueFrom": "$(inputs.used)",
+                    "prefix": "--used"
+                },
+                {
+                    "valueFrom": "$(inputs.executed)",
+                    "prefix": "--executed"
+                },
+                {
+                    "valueFrom": "$(inputs.name)",
+                    "prefix": "--name"
+                },
+                {
+                    "valueFrom": "$(inputs.file_to_store.path)",
+                    "prefix": "--"
+                }
+            ],
+            "stdout": "stdout.txt",
+            "outputs": [
+                {
+                    "id": "#synapse-store-tool.cwl/synapse-store/stdout",
+                    "type": "File",
+                    "outputBinding": {
+                        "glob": "stdout.txt"
+                    }
+                },
+                {
+                    "id": "#synapse-store-tool.cwl/synapse-store/file_id",
+                    "type": "string",
+                    "outputBinding": {
+                        "glob": "stdout.txt",
+                        "loadContents": true,
+                        "outputEval": "$(self[0].contents.split(\"\\n\")[5].split(/(\\s+)/)[4])"
+                    }
+                }
+            ],
+            "https://schema.org/author": [
+                {
+                    "class": "https://schema.org/Person",
+                    "https://schema.org/identifier": "https://orcid.org/0000-0001-5729-7376",
+                    "https://schema.org/email": "kenneth.daily@sagebionetworks.org",
+                    "https://schema.org/name": "Kenneth Daily"
+                }
+            ],
+            "https://schema.org/contributor": [
+                {
+                    "class": "https://schema.org/Person",
+                    "https://schema.org/identifier": "https://orcid.org/0000-0002-0326-7494",
+                    "https://schema.org/email": "andrew.lamb@sagebase.org",
+                    "https://schema.org/name": "Andrew Lamb"
+                },
+                {
+                    "class": "https://schema.org/Person",
+                    "https://schema.org/identifier": "https://orcid.org/0000-0002-5841-0198",
+                    "https://schema.org/email": "thomas.yu@sagebase.org",
+                    "https://schema.org/name": "Thomas Yu"
+                }
+            ]
+        },
+        {
+            "class": "Workflow",
+            "id": "#main",
+            "label": "run-dten",
+            "requirements": [
+                {
+                    "class": "ScatterFeatureRequirement"
+                },
+                {
+                    "class": "SubworkflowFeatureRequirement"
+                },
+                {
+                    "class": "MultipleInputFeatureRequirement"
+                }
+            ],
+            "inputs": [
+                {
+                    "type": {
+                        "type": "array",
+                        "items": "double"
+                    },
+                    "id": "#main/beta-params"
+                },
+                {
+                    "type": "string",
+                    "id": "#main/gene-id-type"
+                },
+                {
+                    "type": "string",
+                    "id": "#main/input-file-id"
+                },
+                {
+                    "type": "string",
+                    "id": "#main/metaviper-store-id"
+                },
+                {
+                    "type": {
+                        "type": "array",
+                        "items": "double"
+                    },
+                    "id": "#main/mu-params"
+                },
+                {
+                    "type": "string",
+                    "id": "#main/name"
+                },
+                {
+                    "type": "string",
+                    "id": "#main/output-parent-id"
+                },
+                {
+                    "type": "string",
+                    "id": "#main/output-project-id"
+                },
+                {
+                    "type": "File",
+                    "id": "#main/synapse-config"
+                },
+                {
+                    "type": {
+                        "type": "array",
+                        "items": "double"
+                    },
+                    "id": "#main/w-params"
+                }
+            ],
+            "steps": [
+                {
+                    "scatter": [
+                        "#main/build-networks/beta",
+                        "#main/build-networks/mu",
+                        "#main/build-networks/w"
+                    ],
+                    "scatterMethod": "flat_crossproduct",
+                    "run": "#build-store-networks-with-params.cwl",
+                    "in": [
+                        {
+                            "source": "#main/beta-params",
+                            "id": "#main/build-networks/beta"
+                        },
+                        {
+                            "source": "#main/mu-params",
+                            "id": "#main/build-networks/mu"
+                        },
+                        {
+                            "source": "#main/name",
+                            "id": "#main/build-networks/net-name"
+                        },
+                        {
+                            "source": "#main/output-parent-id",
+                            "id": "#main/build-networks/output-folder-id"
+                        },
+                        {
+                            "source": "#main/output-project-id",
+                            "id": "#main/build-networks/output-project-id"
+                        },
+                        {
+                            "source": "#main/get-prots/protein-lists",
+                            "id": "#main/build-networks/protein-lists"
+                        },
+                        {
+                            "source": "#main/synapse-config",
+                            "id": "#main/build-networks/synapse_config"
+                        },
+                        {
+                            "source": "#main/w-params",
+                            "id": "#main/build-networks/w"
+                        }
+                    ],
+                    "out": [
+                        "#main/build-networks/network-file"
+                    ],
+                    "id": "#main/build-networks"
+                },
+                {
+                    "run": "#synapse-get-tool.cwl",
+                    "in": [
+                        {
+                            "source": "#main/synapse-config",
+                            "id": "#main/download-file/synapse_config"
+                        },
+                        {
+                            "source": "#main/input-file-id",
+                            "id": "#main/download-file/synapseid"
+                        }
+                    ],
+                    "out": [
+                        "#main/download-file/filepath"
+                    ],
+                    "id": "#main/download-file"
+                },
+                {
+                    "run": "#proteins-from-genes.cwl",
+                    "in": [
+                        {
+                            "source": "#main/download-file/filepath",
+                            "id": "#main/get-prots/gene-data"
+                        },
+                        {
+                            "source": "#main/gene-id-type",
+                            "id": "#main/get-prots/id-type"
+                        }
+                    ],
+                    "out": [
+                        "#main/get-prots/protein-lists"
+                    ],
+                    "id": "#main/get-prots"
+                },
+                {
+                    "run": "#synapse-store-tool.cwl",
+                    "scatter": "#main/store-prots/file_to_store",
+                    "in": [
+                        {
+                            "source": "#main/get-prots/protein-lists",
+                            "id": "#main/store-prots/file_to_store"
+                        },
+                        {
+                            "source": "#main/metaviper-store-id",
+                            "id": "#main/store-prots/parentid"
+                        },
+                        {
+                            "source": "#main/synapse-config",
+                            "id": "#main/store-prots/synapse_config"
+                        }
+                    ],
+                    "out": [],
+                    "id": "#main/store-prots"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": {
+                        "type": "array",
+                        "items": {
+                            "type": "array",
+                            "items": "File"
+                        }
+                    },
+                    "outputSource": "#main/build-networks/network-file",
+                    "id": "#main/out"
+                }
+            ]
+        },
+        {
+            "class": "CommandLineTool",
+            "id": "#proteins-from-genes.cwl",
+            "label": "proteins-from-genes",
+            "requirements": [
+                {
+                    "class": "DockerRequirement",
+                    "dockerPull": "sgosline/dten"
+                },
+                {
+                    "class": "InlineJavascriptRequirement"
+                }
+            ],
+            "hints": [
+                {
+                    "loadListing": "deep_listing",
+                    "class": "LoadListingRequirement"
+                },
+                {
+                    "networkAccess": true,
+                    "class": "NetworkAccess"
+                }
+            ],
+            "inputs": [
+                {
+                    "type": [
+                        "null",
+                        {
+                            "type": "array",
+                            "items": "string"
+                        }
+                    ],
+                    "inputBinding": {
+                        "prefix": "-c",
+                        "itemSeparator": ","
+                    },
+                    "id": "#proteins-from-genes.cwl/proteins-from-genes/condition"
+                },
+                {
+                    "type": {
+                        "type": "array",
+                        "items": "File"
+                    },
+                    "inputBinding": {
+                        "prefix": "-i",
+                        "itemSeparator": ","
+                    },
+                    "id": "#proteins-from-genes.cwl/proteins-from-genes/gene-data"
+                },
+                {
+                    "type": "string",
+                    "inputBinding": {
+                        "prefix": "-d"
+                    },
+                    "id": "#proteins-from-genes.cwl/proteins-from-genes/id-type"
+                }
+            ],
+            "baseCommand": [
+                "Rscript",
+                "/usr/local/bin/runMetaViper.R"
+            ],
+            "outputs": [
+                {
+                    "type": {
+                        "type": "array",
+                        "items": "File"
+                    },
+                    "outputBinding": {
+                        "glob": "*.tsv"
+                    },
+                    "id": "#proteins-from-genes.cwl/proteins-from-genes/protein-lists"
+                }
+            ]
+        },
+        {
+            "class": "CommandLineTool",
+            "id": "#run-meta-analysis.cwl",
+            "label": "run-meta-analysis",
+            "requirements": [
+                {
+                    "class": "DockerRequirement",
+                    "dockerPull": "sgosline/dten"
+                },
+                {
+                    "class": "InlineJavascriptRequirement"
+                },
+                {
+                    "class": "InitialWorkDirRequirement",
+                    "listing": [
+                        {
+                            "entry": "$(inputs.synapse_config)"
+                        }
+                    ]
+                }
+            ],
+            "hints": [
+                {
+                    "loadListing": "deep_listing",
+                    "class": "LoadListingRequirement"
+                },
+                {
+                    "networkAccess": true,
+                    "class": "NetworkAccess"
+                }
+            ],
+            "inputs": [
+                {
+                    "type": "string",
+                    "inputBinding": {
+                        "prefix": "-f"
+                    },
+                    "id": "#run-meta-analysis.cwl/run-meta-analysis/folder"
+                },
+                {
+                    "type": {
+                        "type": "array",
+                        "items": "File"
+                    },
+                    "inputBinding": {
+                        "prefix": "-i",
+                        "itemSeparator": ","
+                    },
+                    "id": "#run-meta-analysis.cwl/run-meta-analysis/input"
+                },
+                {
+                    "type": "string",
+                    "inputBinding": {
+                        "prefix": "-o"
+                    },
+                    "id": "#run-meta-analysis.cwl/run-meta-analysis/output"
+                },
+                {
+                    "type": "string",
+                    "inputBinding": {
+                        "prefix": "-p"
+                    },
+                    "id": "#run-meta-analysis.cwl/run-meta-analysis/project"
+                },
+                {
+                    "type": "File",
+                    "id": "#run-meta-analysis.cwl/run-meta-analysis/synapse_config"
+                }
+            ],
+            "baseCommand": [
+                "Rscript",
+                "/usr/local/bin/metaNetworkComparisons.R"
+            ],
+            "outputs": [
+                {
+                    "type": "File",
+                    "outputBinding": {
+                        "glob": "*nodeOutput.tsv"
+                    },
+                    "id": "#run-meta-analysis.cwl/run-meta-analysis/nodefile"
+                },
+                {
+                    "type": "File",
+                    "outputBinding": {
+                        "glob": "*termOutput.tsv"
+                    },
+                    "id": "#run-meta-analysis.cwl/run-meta-analysis/termfile"
+                }
+            ]
+        },
+        {
+            "class": "CommandLineTool",
+            "id": "#run-network-with-params.cwl",
+            "label": "run-network-with-params",
+            "requirements": [
+                {
+                    "class": "DockerRequirement",
+                    "dockerPull": "sgosline/dten"
+                },
+                {
+                    "class": "InlineJavascriptRequirement"
+                },
+                {
+                    "class": "InitialWorkDirRequirement",
+                    "listing": [
+                        {
+                            "entry": "$(inputs.synapse_config)"
+                        }
+                    ]
+                }
+            ],
+            "hints": [
+                {
+                    "loadListing": "deep_listing",
+                    "class": "LoadListingRequirement"
+                },
+                {
+                    "networkAccess": true,
+                    "class": "NetworkAccess"
+                }
+            ],
+            "inputs": [
+                {
+                    "type": "double",
+                    "inputBinding": {
+                        "prefix": "-b"
+                    },
+                    "id": "#run-network-with-params.cwl/run-network-with-params/beta"
+                },
+                {
+                    "type": "double",
+                    "inputBinding": {
+                        "prefix": "-m"
+                    },
+                    "id": "#run-network-with-params.cwl/run-network-with-params/mu"
+                },
+                {
+                    "type": "File",
+                    "inputBinding": {
+                        "prefix": "-i"
+                    },
+                    "id": "#run-network-with-params.cwl/run-network-with-params/protein-list"
+                },
+                {
+                    "type": "File",
+                    "id": "#run-network-with-params.cwl/run-network-with-params/synapse_config"
+                },
+                {
+                    "type": "double",
+                    "inputBinding": {
+                        "prefix": "-w"
+                    },
+                    "id": "#run-network-with-params.cwl/run-network-with-params/w"
+                }
+            ],
+            "baseCommand": [
+                "Rscript",
+                "/usr/local/bin/runNetworkFromGenes.R"
+            ],
+            "outputs": [
+                {
+                    "type": "File",
+                    "outputBinding": {
+                        "glob": "*.rds"
+                    },
+                    "id": "#run-network-with-params.cwl/run-network-with-params/network-file"
+                }
+            ]
+        }
+    ],
+    "cwlVersion": "v1.2"
+}

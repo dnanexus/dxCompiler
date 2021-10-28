@@ -1,0 +1,15 @@
+w-params:  # array of type "double"
+  - 0.1
+synapse-config:  # type "File"
+    class: File
+    path: a/file/path
+output-project-id: a_string  # type "string"
+output-parent-id: a_string  # type "string"
+name: a_string  # type "string"
+mu-params:  # array of type "double"
+  - 0.1
+metaviper-store-id: a_string  # type "string"
+input-file-id: a_string  # type "string"
+gene-id-type: a_string  # type "string"
+beta-params:  # array of type "double"
+  - 0.1
