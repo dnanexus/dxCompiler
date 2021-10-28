@@ -1,8 +1,8 @@
 #!/usr/bin/env cwl-runner
 cwlVersion: v1.2
 class: CommandLineTool
-id: run-network-with-params
-label: run-network-with-params
+id: run-meta-analysis
+label: run-meta-analysis
 requirements:
 - class: DockerRequirement
   dockerPull: sgosline/dten

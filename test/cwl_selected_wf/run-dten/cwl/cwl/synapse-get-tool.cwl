@@ -26,7 +26,7 @@ arguments:
 - valueFrom: $(inputs.synapseid)
 outputs:
 - id: filepath
-  type: File
+  type: File[]
   outputBinding:
     glob: '*'
 $namespaces:
