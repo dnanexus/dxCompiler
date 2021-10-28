@@ -1,10 +1,11 @@
-cwlVersion: v1.0
+#!/usr/bin/env cwl-runner
+cwlVersion: v1.2
 $graph:
   id: hello
   class: CommandLineTool
   requirements:
-    - class: DockerRequirement
-      dockerPull: ubuntu:latest
+  - class: DockerRequirement
+    dockerPull: ubuntu:latest
   baseCommand: echo
   inputs:
     message:
@@ -13,9 +14,14 @@ $graph:
         position: 1
   stdout: hello-stdout.txt
   outputs:
-    - id: salutation
-      type: string
-      outputBinding:
-        glob: hello-stdout.txt
-        loadContents: true
-        outputEval: $(self[0].contents.trim())
+  - id: salutation
+    type: string
+    outputBinding:
+      glob: hello-stdout.txt
+      loadContents: true
+      outputEval: $(self[0].contents.trim())
+  hints:
+    NetworkAccess:
+      networkAccess: true
+    LoadListingRequirement:
+      loadListing: deep_listing

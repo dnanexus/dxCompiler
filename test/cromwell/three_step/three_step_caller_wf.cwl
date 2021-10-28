@@ -1,20 +1,12 @@
 #!/usr/bin/env cwl-runner
+cwlVersion: v1.2
 class: Workflow
-cwlVersion: v1.0
-
+requirements:
+- class: SubworkflowFeatureRequirement
 inputs:
 - id: pin
   type: string
   default: "v"
-
-outputs:
-    count_output:
-      type: int
-      outputSource: threestep/wc-count
-
-requirements:
-  - class: SubworkflowFeatureRequirement
-
 steps:
   threestep:
     run: three_step.cwl
@@ -22,3 +14,7 @@ steps:
     - id: pattern
       source: pin
     out: [wc-count]
+outputs:
+  count_output:
+    type: int
+    outputSource: threestep/wc-count

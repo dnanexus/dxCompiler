@@ -1,20 +1,13 @@
-cwlVersion: v1.0
+#!/usr/bin/env cwl-runner
+cwlVersion: v1.2
 class: Workflow
 id: three_step
-# Workflow-level DockerRequirement
 hints:
   DockerRequirement:
     dockerPull: "ubuntu:latest"
 inputs:
 - id: pattern
   type: string
-outputs:
-- id: cgrep-count
-  outputSource: "#cgrep/cgrep-count"
-  type: int
-- id: wc-count
-  outputSource: "#wc/wc-count"
-  type: int
 steps:
 - id: ps
   in: []
@@ -36,6 +29,11 @@ steps:
         dockerPull: "ubuntu:bionic"
     baseCommand: ps
     stdout: ps-stdOut.txt
+    hints:
+      NetworkAccess:
+        networkAccess: true
+      LoadListingRequirement:
+        loadListing: deep_listing
 - id: cgrep
   in:
   - id: pattern
@@ -44,7 +42,6 @@ steps:
     source: "#ps/ps-stdOut"
   out:
   - id: cgrep-count
-  # Workflow step-level DockerRequirement
   requirements:
     DockerRequirement:
       dockerPull: "debian:jessie"
@@ -79,6 +76,11 @@ steps:
     - valueFrom: -l
       shellQuote: false
     stdout: cgrep-stdOut.txt
+    hints:
+      NetworkAccess:
+        networkAccess: true
+      LoadListingRequirement:
+        loadListing: deep_listing
 - id: wc
   in:
   - id: file
@@ -112,3 +114,15 @@ steps:
     - valueFrom: -l
       shellQuote: false
     stdout: wc-stdOut.txt
+    hints:
+      NetworkAccess:
+        networkAccess: true
+      LoadListingRequirement:
+        loadListing: deep_listing
+outputs:
+- id: cgrep-count
+  outputSource: "#cgrep/cgrep-count"
+  type: int
+- id: wc-count
+  outputSource: "#wc/wc-count"
+  type: int
