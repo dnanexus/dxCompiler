@@ -374,6 +374,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       */
     private def translateCall(call: TAT.Call, env: CallEnv, locked: Boolean): Stage = {
       // Find the callee
+      logger.warning("translateCall called... call below")
+      logger.warning(call.toString())
 
       val calleeName = call.unqualifiedName
       val callee: Callable = availableDependencies.get(calleeName) match {
@@ -385,6 +387,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                 .replaceAll("\n", " ")
           )
       }
+      logger.warning("still here...")
       // Extract the input values/links from the environment
       val inputs: Vector[StageInput] = callee.inputVars.map { param =>
         callExprToStageInput(call.inputs.get(param.name.decoded),
@@ -698,7 +701,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                 // The block contains exactly one call with no dependencies and with
                 // no extra variables. Compile directly into a workflow stage.
                 logger.warning(" callafters HERE")
-                logger.warning((call.afters.isEmpty.toString()))
+                logger.warning(call.afters.isEmpty.toString())
                 logger2.trace(s"Translating call ${call.actualName} as stage")
                 logger2.info(call.toString())
                 logger2.info(beforeEnv.toString())
