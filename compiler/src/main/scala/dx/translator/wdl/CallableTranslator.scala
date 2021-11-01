@@ -295,6 +295,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                                      callFqn: String): StageInput = {
 
       def lookup(key: DxName): StageInput = {
+        logger.warning("stage inputs here.. !!")
+        logger.warning(env.get(key).toString())
         env.get(key) match {
           case Some((_, stageInput)) => stageInput
           case None =>
@@ -627,7 +629,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       // inside the block - we ignore these. Note that the stage inputs must
       // be in the same order as the fragment inputs.
       logger.warning("block inputs here.. !!")
-      logger.warning(env.lookup(block.inputs.head.name))
+      logger.warning(env.lookup(block.inputs.head.name).toString())
       val (inputParams, stageInputs) = block.inputs
         .flatMap(i => env.lookup(i.name))
         .distinct
