@@ -626,6 +626,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       // variables may be undefined because they are optional or defined
       // inside the block - we ignore these. Note that the stage inputs must
       // be in the same order as the fragment inputs.
+      logger.warning("block inputs here.. !!")
+      logger.warning(env.lookup(block.inputs.head.name))
       val (inputParams, stageInputs) = block.inputs
         .flatMap(i => env.lookup(i.name))
         .distinct
