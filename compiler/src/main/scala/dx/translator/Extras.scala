@@ -170,14 +170,14 @@ object ExtrasJsonProtocol extends DefaultJsonProtocol {
   implicit val timeoutPolicyFormat: RootJsonFormat[DxTimeout] = jsonFormat3(DxTimeout)
   implicit val licenseFormat: RootJsonFormat[DxLicense] = jsonFormat6(DxLicense)
   implicit val detailsFormat: RootJsonFormat[DxDetails] = jsonFormat1(DxDetails)
-  implicit val dxAppFormat: RootJsonFormat[DxAppJson] = jsonFormat2(DxAppJson)
+  implicit val dxAppFormat: RootJsonFormat[DxAppJson] = jsonFormat12(DxAppJson)
   implicit val scatterAttrsFormat: RootJsonFormat[DxScatterAttrs] = jsonFormat1(DxScatterAttrs)
-  implicit val workflowAttrsFormat: RootJsonFormat[DxWorkflowAttrs] = jsonFormat2(DxWorkflowAttrs)
+  implicit val workflowAttrsFormat: RootJsonFormat[DxWorkflowAttrs] = jsonFormat11(DxWorkflowAttrs)
   implicit val dockerRegistryFormat: RootJsonFormat[DockerRegistry] = jsonFormat4(DockerRegistry)
   implicit val defaultReorgSettingsFormat: RootJsonFormat[DefaultReorgSettings] = jsonFormat1(
       DefaultReorgSettings
   )
-  implicit val extrasFormat: RootJsonFormat[Extras] = jsonFormat8(Extras.apply)
+  implicit val extrasFormat: RootJsonFormat[Extras] = jsonFormat9(Extras.apply)
 }
 
 import ExtrasJsonProtocol._
@@ -298,7 +298,62 @@ case class DxLicense(name: String,
 
 case class DxDetails(upstreamProjects: Option[Vector[DxLicense]])
 
-case class DxAppJson(runSpec: Option[DxRunSpec], details: Option[DxDetails]) {
+abstract class DxMeta(title: Option[String],
+                      summary: Option[String],
+                      description: Option[String],
+                      developerNotes: Option[String],
+                      version: Option[String],
+                      categories: Option[Vector[String]],
+                      types: Option[Vector[String]],
+                      tags: Option[Vector[String]],
+                      properties: Option[Map[String, String]]) {
+  def getMetaJson: Map[String, JsValue] = {
+    Vector(
+        title.map(t => "title" -> JsString(t)),
+        description.map(d => "description" -> JsString(d)),
+        summary.map(s => "summary" -> JsString(s)),
+        developerNotes.map(d => "developerNotes" -> JsString(d)),
+        version.map(v => "version" -> JsString(v)),
+        categories.map(c => "categories" -> JsArray(c.map(JsString(_)))),
+        types.map(t => "types" -> JsArray(t.map(JsString(_)))),
+        tags.map(t => "tags" -> JsArray(t.map(JsString(_)))),
+        properties.map(p =>
+          "properties" -> JsObject(p.map {
+            case (key, value) => key -> JsString(value)
+          })
+        )
+    ).flatten.toMap
+  }
+}
+
+case class DxAppJson(runSpec: Option[DxRunSpec],
+                     details: Option[DxDetails],
+                     title: Option[String],
+                     summary: Option[String],
+                     description: Option[String],
+                     developerNotes: Option[String],
+                     version: Option[String],
+                     categories: Option[Vector[String]],
+                     types: Option[Vector[String]],
+                     tags: Option[Vector[String]],
+                     properties: Option[Map[String, String]],
+                     openSource: Option[Boolean])
+    extends DxMeta(title,
+                   summary,
+                   description,
+                   developerNotes,
+                   version,
+                   categories,
+                   types,
+                   tags,
+                   properties) {
+
+  override def getMetaJson: Map[String, JsValue] = {
+    super.getMetaJson ++ Vector(
+        openSource.map(o => "openSource" -> JsBoolean(o))
+    ).flatten.toMap
+  }
+
   def getApiRunSpecJson: Map[String, JsValue] = {
     runSpec.map(DxRunSpec.toApiJson).getOrElse(Map.empty)
   }
@@ -331,7 +386,25 @@ case class DxScatterAttrs(chunkSize: Option[Int] = None) {
   * @param scatters scatter attributes that apply to individual scatter blocks
   */
 case class DxWorkflowAttrs(scatterDefaults: Option[DxScatterAttrs],
-                           scatters: Option[Map[String, DxScatterAttrs]])
+                           scatters: Option[Map[String, DxScatterAttrs]],
+                           title: Option[String],
+                           summary: Option[String],
+                           description: Option[String],
+                           developerNotes: Option[String],
+                           version: Option[String],
+                           categories: Option[Vector[String]],
+                           types: Option[Vector[String]],
+                           tags: Option[Vector[String]],
+                           properties: Option[Map[String, String]])
+    extends DxMeta(title,
+                   summary,
+                   description,
+                   developerNotes,
+                   version,
+                   categories,
+                   types,
+                   tags,
+                   properties)
 
 case class DockerRegistry(registry: String,
                           credentials: String,
@@ -356,6 +429,7 @@ case class CustomReorgSettings(appUri: String,
 case class Extras(defaultRuntimeAttributes: Option[Map[String, Value]],
                   defaultTaskDxAttributes: Option[DxAppJson],
                   perTaskDxAttributes: Option[Map[String, DxAppJson]],
+                  defaultWorkflowDxAttributes: Option[DxWorkflowAttrs],
                   perWorkflowDxAttributes: Option[Map[String, DxWorkflowAttrs]],
                   dockerRegistry: Option[DockerRegistry],
                   customReorgAttributes: Option[CustomReorgSettings],

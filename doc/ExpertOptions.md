@@ -975,10 +975,13 @@ In order to override the defaults for specific tasks, you can add the `perTaskDx
 
 will override the default timeout for tasks `Add` and `Inc`. It will also provide `UPLOAD` instead of `VIEW` project access to `Inc`.
 
-You are also able to add citations or licenses information using for each task at the `perTaskDxAttributes` section. For example
+You are also able to specify metadata for tasks in the `defaultTaskDxAttributes` and `perTaskDxAttributes` sections, including adding citation or license information. For example:
 
 ```json
 {
+  "defaultTaskDxAttributes": {
+    "version": "1.0.0"
+  },
   "perTaskDxAttributes" : {
     "Add": {
       "runSpec": {
@@ -1000,7 +1003,7 @@ You are also able to add citations or licenses information using for each task a
           }
         ]
       }
-    },
+    }
   }
 }
 ```
