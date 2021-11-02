@@ -694,6 +694,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       logger2.trace(s"inputs: ${inputEnv.keys}")
 
       // link together all the stages into a linear workflow
+      logger.warning("subBlocks.toString() HERE!..")
+      logger.warning(subBlocks.toString())
       val (allStageInfo, stageEnv): (Vector[(Stage, Vector[Callable])], CallEnv) =
         subBlocks.zipWithIndex.foldLeft((Vector.empty[(Stage, Vector[Callable])], inputEnv)) {
           case ((stages, beforeEnv), (block: WdlBlock, _: Int))
