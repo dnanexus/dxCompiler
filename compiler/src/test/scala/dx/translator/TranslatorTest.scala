@@ -1491,11 +1491,17 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     // there are two scatters - one should have its chunkSize set
     // by the global default and the other should have it set by
     // a per-scatter override
-    val stages = bundle.primaryCallable match {
-      case Some(wf: Workflow) => wf.stages
+    val wf = bundle.primaryCallable match {
+      case Some(wf: Workflow) => wf
       case _                  => throw new Exception("missing primary workflow")
     }
-    val scatter = stages(1)
+    val version = wf.attributes
+      .collectFirst {
+        case VersionAttribute(v) => v
+      }
+      .getOrElse("Expected version to be set from extras defaultWorkflowDxAttributes")
+    version shouldBe "0.2.1"
+    val scatter = wf.stages(1)
     val outerScatterApplet = bundle.allCallables.get(scatter.calleeName) match {
       case Some(applet: Application) => applet
       case _                         => throw new Exception(s"missing applet for stage ${scatter}")

@@ -1,5 +1,8 @@
 {
-  "per_workflow_dx_attributes": {
+  "defaultWorkflowDxAttributes": {
+    "version": "0.2.1"
+  },
+  "perWorkflowDxAttributes": {
     "four_levels": {
       "scatterDefaults": {
         "chunkSize": 10
