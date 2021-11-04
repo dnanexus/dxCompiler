@@ -310,7 +310,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         }
       }
 
-      private def evaluateConst(expr: TAT.Expr, calleeParam: Parameter): StageInput = {
+      def evaluateConst(expr: TAT.Expr, calleeParam: Parameter): StageInput = {
         val paramWdlType = WdlUtils.fromIRType(calleeParam.dxType, typeAliases)
         val bindings = WdlValueBindings(env.staticValues.map {
           case (dxName, (dxType, value)) =>
@@ -323,7 +323,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         StageInputStatic(WdlUtils.toIRValue(value, paramWdlType))
       }
 
-      private def lookupExpr(expr: TAT.Expr, calleeParam: Parameter, env: CallEnv): StageInput = {
+      def lookupExpr(expr: TAT.Expr, calleeParam: Parameter, env: CallEnv): StageInput = {
         expr match {
           case TAT.ExprIdentifier(id, _) =>
             lookup(WdlDxName.fromSourceName(id))
