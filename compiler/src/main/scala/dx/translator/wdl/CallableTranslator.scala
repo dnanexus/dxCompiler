@@ -288,6 +288,34 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       }
     }
 
+    private def evaluateConst(expr: TAT.Expr, env: CallEnv): StageInput = {
+      val paramWdlType = WdlUtils.fromIRType(calleeParam.dxType, typeAliases)
+      val bindings = WdlValueBindings(env.staticValues.map {
+        case (dxName, (dxType, value)) =>
+          val bindingWdlType = WdlUtils.fromIRType(dxType, typeAliases)
+          val bindingValue = WdlUtils.fromIRValue(value, bindingWdlType, dxName.decoded)
+          dxName.decoded -> bindingValue
+      })
+      val value = evaluator.applyExprAndCoerce(expr, paramWdlType, bindings)
+      // do not evaluate if expression is an identifier
+      StageInputStatic(WdlUtils.toIRValue(value, paramWdlType))
+    }
+    private def lookupExpr(expr: TAT.Expr, env: CallEnv): StageInput = {
+      expr match {
+        case TAT.ExprIdentifier(id, _) =>
+          lookup(WdlDxName.fromSourceName(id))
+        case TAT.ExprGetName(TAT.ExprIdentifier(id, _), field, _) =>
+          lookup(WdlDxName.fromSourceName(field, Some(id)))
+        case _ =>
+          env.log()
+          throw new Exception(
+            s"""|value of input <${calleeParam.name}, ${calleeParam.dxType}> to call <${callFqn}>
+                |cannot be statically evaluated from expression ${expr}.""".stripMargin
+              .replaceAll("\n", " ")
+          )
+      }
+    }
+
     private def callExprToStageInput(callInputExpr: Option[TAT.Expr],
                                      calleeParam: Parameter,
                                      env: CallEnv,
@@ -327,36 +355,15 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           // Perhaps the callee is not going to use the argument, so wait until
           // runtime to determine whether to fail.
           StageInputEmpty
+        case Some(expr: TAT.ExprIdentifier) => lookupExpr(expr, env)
         case Some(expr) =>
           try {
-            // try to evaluate the expression using the constant values from the env
-            val paramWdlType = WdlUtils.fromIRType(calleeParam.dxType, typeAliases)
-            val bindings = WdlValueBindings(env.staticValues.map {
-              case (dxName, (dxType, value)) =>
-                val bindingWdlType = WdlUtils.fromIRType(dxType, typeAliases)
-                val bindingValue = WdlUtils.fromIRValue(value, bindingWdlType, dxName.decoded)
-                dxName.decoded -> bindingValue
-            })
-            val value = evaluator.applyExprAndCoerce(expr, paramWdlType, bindings)
-            logger.warning("CALLABLE TRANSLATPOR: HERE 5 stageinput static...wdlutilstoirvalue")
-            logger.warning(WdlUtils.toIRValue(value, paramWdlType).toString())
-            StageInputStatic(WdlUtils.toIRValue(value, paramWdlType))
+            evaluateConst(expr)
+            // when to create stageinputstatic and when to create workflow lionk... the default should be taken from workflow input if not given in the link.
           } catch {
             case _: EvalException =>
               // if the expression is an identifier, look it up in the env
-              expr match {
-                case TAT.ExprIdentifier(id, _) =>
-                  lookup(WdlDxName.fromSourceName(id))
-                case TAT.ExprGetName(TAT.ExprIdentifier(id, _), field, _) =>
-                  lookup(WdlDxName.fromSourceName(field, Some(id)))
-                case _ =>
-                  env.log()
-                  throw new Exception(
-                      s"""|value of input <${calleeParam.name}, ${calleeParam.dxType}> to call <${callFqn}>
-                          |cannot be statically evaluated from expression ${expr}.""".stripMargin
-                        .replaceAll("\n", " ")
-                  )
-              }
+              lookupExpr(expr, env)
           }
       }
     }
@@ -389,7 +396,6 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                 .replaceAll("\n", " ")
           )
       }
-      logger.warning("still here...")
       // Extract the input values/links from the environment
       val inputs: Vector[StageInput] = callee.inputVars.map { param =>
         callExprToStageInput(call.inputs.get(param.name.decoded),
@@ -706,12 +712,12 @@ case class CallableTranslator(wdlBundle: WdlBundle,
               case Some(call: TAT.Call) if call.afters.isEmpty =>
                 // The block contains exactly one call with no dependencies and with
                 // no extra variables. Compile directly into a workflow stage.
-                logger.warning(" callafters HERE")
+                logger.warning("callafters HERE")
                 logger.warning(call.afters.isEmpty.toString())
                 logger2.trace(s"Translating call ${call.actualName} as stage")
-                logger2.info(call.toString())
-                logger2.info(beforeEnv.toString())
-                logger2.info(locked.toString())
+//                logger2.info(call.toString())
+//                logger2.info(beforeEnv.toString())
+//                logger2.info(locked.toString())
                 val stage = translateCall(call, beforeEnv, locked)
                 // Add bindings for the output variables. This allows later calls to refer
                 // to these results.
