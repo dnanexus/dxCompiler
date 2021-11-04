@@ -422,7 +422,6 @@ case class WdlWorkflowExecutor(docSource: FileNode,
               val wdlType = WdlUtils.fromIRType(t, wdlTypeAliases)
               dxName -> WdlUtils.fromIRValue(v, wdlType, dxName.decoded)
           }
-
           // add default values for any missing inputs
           val callInputs =
             callIO.inputsFromValues(inputWdlValues.map {
