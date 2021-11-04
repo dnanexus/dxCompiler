@@ -268,7 +268,7 @@ A summary of changes in the 2.0.0 version of dxCompiler comparing to the dxWDL v
 
 User-facing changes:
 * Changed the name and all references from dxWDL to dxCompiler, dxCompiler-\*.jar is now used to compile an application or a workflow
-* Replaced Cromwell WOM (parser, type checker and evaluator) with [wdlTools](https://github.com/dnanexus-rnd/wdlTools), a library maintained by DNAnexus
+* Replaced Cromwell WOM (parser, type checker and evaluator) with [wdlTools](https://github.com/dnanexus/wdlTools), a library maintained by DNAnexus
 * Added support for per-workflow and per-scatter chunk size settings to extras.json
 * Added `streamFiles` compile option
 * Updated the mechanism of comparing instance types to select the cheapest one for execution
