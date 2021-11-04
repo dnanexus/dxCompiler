@@ -1,0 +1,9 @@
+{
+  "test_workflow.database": {
+      "database_name": "database1",
+      "num_columns": 8734,
+      "num_rows": 5,
+      "value_types": "numeric"
+  },
+  "test_workflow.prefix": "mystring"
+}

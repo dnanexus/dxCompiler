@@ -488,10 +488,9 @@ object WdlUtils {
     // in memberTypes that do not appear in members are optional
     val keys1 = fieldValues.keySet
     val keys2 = fieldTypes.keySet
-    val extra = keys2.diff(keys1)
-    if (extra.nonEmpty) {
+    if (!keys1.subsetOf(keys2)) {
       throw new Exception(
-          s"struct ${name} value has members that do not appear in the struct definition: ${extra}"
+          s"keys (${keys1}) have members that do not appear in struct ${name}"
       )
     }
     val missingNonOptional = keys1.diff(keys2).map(key => key -> fieldTypes(key)).filterNot {
@@ -602,10 +601,9 @@ object WdlUtils {
         // in memberTypes that do not appear in members are optional
         val keys1 = members.keySet
         val keys2 = memberTypes.keySet
-        val extra = keys2.diff(keys1)
-        if (extra.nonEmpty) {
+        if (!keys1.subsetOf(keys2)) {
           throw new Exception(
-              s"struct ${structName} value has members that do not appear in the struct definition: ${extra}"
+              s"keys (${keys1}) have members that do not appear in struct ${structName}"
           )
         }
         val missingNonOptional = keys1.diff(keys2).map(key => key -> memberTypes(key)).filterNot {
