@@ -288,33 +288,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       }
     }
 
-    private def evaluateConst(expr: TAT.Expr, env: CallEnv): StageInput = {
-      val paramWdlType = WdlUtils.fromIRType(calleeParam.dxType, typeAliases)
-      val bindings = WdlValueBindings(env.staticValues.map {
-        case (dxName, (dxType, value)) =>
-          val bindingWdlType = WdlUtils.fromIRType(dxType, typeAliases)
-          val bindingValue = WdlUtils.fromIRValue(value, bindingWdlType, dxName.decoded)
-          dxName.decoded -> bindingValue
-      })
-      val value = evaluator.applyExprAndCoerce(expr, paramWdlType, bindings)
-      // do not evaluate if expression is an identifier
-      StageInputStatic(WdlUtils.toIRValue(value, paramWdlType))
-    }
-    private def lookupExpr(expr: TAT.Expr, env: CallEnv): StageInput = {
-      expr match {
-        case TAT.ExprIdentifier(id, _) =>
-          lookup(WdlDxName.fromSourceName(id))
-        case TAT.ExprGetName(TAT.ExprIdentifier(id, _), field, _) =>
-          lookup(WdlDxName.fromSourceName(field, Some(id)))
-        case _ =>
-          env.log()
-          throw new Exception(
-            s"""|value of input <${calleeParam.name}, ${calleeParam.dxType}> to call <${callFqn}>
-                |cannot be statically evaluated from expression ${expr}.""".stripMargin
-              .replaceAll("\n", " ")
-          )
-      }
-    }
+
 
     private def callExprToStageInput(callInputExpr: Option[TAT.Expr],
                                      calleeParam: Parameter,
@@ -335,6 +309,36 @@ case class CallableTranslator(wdlBundle: WdlBundle,
             )
         }
       }
+
+      private def evaluateConst(expr: TAT.Expr, calleeParam: Parameter): StageInput = {
+        val paramWdlType = WdlUtils.fromIRType(calleeParam.dxType, typeAliases)
+        val bindings = WdlValueBindings(env.staticValues.map {
+          case (dxName, (dxType, value)) =>
+            val bindingWdlType = WdlUtils.fromIRType(dxType, typeAliases)
+            val bindingValue = WdlUtils.fromIRValue(value, bindingWdlType, dxName.decoded)
+            dxName.decoded -> bindingValue
+        })
+        val value = evaluator.applyExprAndCoerce(expr, paramWdlType, bindings)
+        // do not evaluate if expression is an identifier
+        StageInputStatic(WdlUtils.toIRValue(value, paramWdlType))
+      }
+
+      private def lookupExpr(expr: TAT.Expr, calleeParam: Parameter, env: CallEnv): StageInput = {
+        expr match {
+          case TAT.ExprIdentifier(id, _) =>
+            lookup(WdlDxName.fromSourceName(id))
+          case TAT.ExprGetName(TAT.ExprIdentifier(id, _), field, _) =>
+            lookup(WdlDxName.fromSourceName(field, Some(id)))
+          case _ =>
+            env.log()
+            throw new Exception(
+              s"""|value of input <${calleeParam.name}, ${calleeParam.dxType}> to call <${callFqn}>
+                  |cannot be statically evaluated from expression ${expr}.""".stripMargin
+                .replaceAll("\n", " ")
+            )
+        }
+      }
+
       logger.warning("CALLINPUTEXPR HEREEEEEE")
       logger.warning(callInputExpr.toString())
       callInputExpr match {
@@ -355,15 +359,15 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           // Perhaps the callee is not going to use the argument, so wait until
           // runtime to determine whether to fail.
           StageInputEmpty
-        case Some(expr: TAT.ExprIdentifier) => lookupExpr(expr, env)
+        case Some(expr: TAT.ExprIdentifier) => lookupExpr(expr, calleeParam, env)
         case Some(expr) =>
           try {
-            evaluateConst(expr)
+            evaluateConst(expr, calleeParam)
             // when to create stageinputstatic and when to create workflow lionk... the default should be taken from workflow input if not given in the link.
           } catch {
             case _: EvalException =>
               // if the expression is an identifier, look it up in the env
-              lookupExpr(expr, env)
+              lookupExpr(expr, calleeParam, env)
           }
       }
     }
