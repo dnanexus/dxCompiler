@@ -288,8 +288,6 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       }
     }
 
-
-
     private def callExprToStageInput(callInputExpr: Option[TAT.Expr],
                                      calleeParam: Parameter,
                                      env: CallEnv,
@@ -297,8 +295,6 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                                      callFqn: String): StageInput = {
 
       def lookup(key: DxName): StageInput = {
-        logger.warning("stage inputs here.. !!")
-        logger.warning(env.get(key).toString())
         env.get(key) match {
           case Some((_, stageInput)) => stageInput
           case None =>
@@ -319,7 +315,6 @@ case class CallableTranslator(wdlBundle: WdlBundle,
             dxName.decoded -> bindingValue
         })
         val value = evaluator.applyExprAndCoerce(expr, paramWdlType, bindings)
-        // do not evaluate if expression is an identifier
         StageInputStatic(WdlUtils.toIRValue(value, paramWdlType))
       }
 
@@ -339,8 +334,6 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         }
       }
 
-      logger.warning("CALLINPUTEXPR HEREEEEEE")
-      logger.warning(callInputExpr.toString())
       callInputExpr match {
         case None if isOptional(calleeParam.dxType) =>
           // optional argument that is not provided
@@ -363,7 +356,6 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         case Some(expr) =>
           try {
             evaluateConst(expr, calleeParam)
-            // when to create stageinputstatic and when to create workflow lionk... the default should be taken from workflow input if not given in the link.
           } catch {
             case _: EvalException =>
               // if the expression is an identifier, look it up in the env
@@ -387,9 +379,6 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       */
     private def translateCall(call: TAT.Call, env: CallEnv, locked: Boolean): Stage = {
       // Find the callee
-      logger.warning("translateCall called... call below")
-      logger.warning(call.toString())
-
       val calleeName = call.unqualifiedName
       val callee: Callable = availableDependencies.get(calleeName) match {
         case Some(x) => x
@@ -638,8 +627,6 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       // variables may be undefined because they are optional or defined
       // inside the block - we ignore these. Note that the stage inputs must
       // be in the same order as the fragment inputs.
-      logger.warning("block inputs here.. !!")
-      logger.warning(env.lookup(block.inputs.head.name).toString())
       val (inputParams, stageInputs) = block.inputs
         .flatMap(i => env.lookup(i.name))
         .distinct
@@ -704,24 +691,15 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       logger2.trace(s"inputs: ${inputEnv.keys}")
 
       // link together all the stages into a linear workflow
-      logger.warning("subBlocks.toString() HERE!..")
-      logger.warning(subBlocks.toString())
       val (allStageInfo, stageEnv): (Vector[(Stage, Vector[Callable])], CallEnv) =
         subBlocks.zipWithIndex.foldLeft((Vector.empty[(Stage, Vector[Callable])], inputEnv)) {
           case ((stages, beforeEnv), (block: WdlBlock, _: Int))
               if block.kind == BlockKind.CallDirect =>
-                logger.warning("block target HERE!")
-                logger.warning(block.target.toString())
                 block.target match {
               case Some(call: TAT.Call) if call.afters.isEmpty =>
                 // The block contains exactly one call with no dependencies and with
                 // no extra variables. Compile directly into a workflow stage.
-                logger.warning("callafters HERE")
-                logger.warning(call.afters.isEmpty.toString())
                 logger2.trace(s"Translating call ${call.actualName} as stage")
-//                logger2.info(call.toString())
-//                logger2.info(beforeEnv.toString())
-//                logger2.info(locked.toString())
                 val stage = translateCall(call, beforeEnv, locked)
                 // Add bindings for the output variables. This allows later calls to refer
                 // to these results.
@@ -772,8 +750,6 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         try {
           // try to evaluate the output as a constant
           val v = evaluator.applyConstAndCoerce(output.expr, output.wdlType)
-          logger.warning("workflow output create simple7 HERE ")
-          logger.warning(WdlUtils.toIRValue(v, output.wdlType).toString())
           StageInputStatic(WdlUtils.toIRValue(v, output.wdlType))
         } catch {
           case _: EvalException =>

@@ -119,12 +119,9 @@ abstract class WorkflowTranslator(wfName: String,
 
   protected object CallEnv {
     def fromLinkedVars(lvars: Vector[LinkedVar]): CallEnv = {
-      val a = CallEnv(lvars.map {
+      CallEnv(lvars.map {
         case (parameter, stageInput) => parameter.name -> (parameter, stageInput)
       }.toMap)
-      Logger.get.warning("CALLENV FROMLINKEDVARS")
-      Logger.get.warning(a.toString())
-      a
     }
   }
 

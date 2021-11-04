@@ -446,18 +446,13 @@ object Main {
     // if there are defaults, they need to be "embedded" in the bundle
     val defaults: Option[Path] = options.getValue[Path]("defaults")
     val hasInputs = inputs.nonEmpty || defaults.nonEmpty
-    logger.warning("HERE1")
-    logger.warning(inputs.toString())
     // quit here if the target is IR and there are no inputs to translate
     if (!hasInputs && compileMode == CompilerMode.IR) {
       if (logger.isVerbose) {
         logger.trace(rawBundle.toString)
       }
-      logger.warning("HERE2 - succ ir")
       return SuccessfulCompileIR(rawBundle)
     }
-//    logger.warning("RAWBUNDLE.allCallables HERE:")
-//    logger.warning(rawBundle.allCallables.toString())
     // for everything past this point, the user needs to be logged in
     if (!dxApi.isLoggedIn) {
       return Failure(s"You must be logged in to compile using mode ${compileMode}")
@@ -476,7 +471,6 @@ object Main {
       }
 
     val (bundle, fileResolver) = if (hasInputs) {
-      logger.warning("HERE - has inputs!")
       val (bundleWithDefaults, fileResolver) =
         try {
           translator.translateInputs(rawBundle, inputs, defaults, project)
@@ -493,7 +487,6 @@ object Main {
       }
       (bundleWithDefaults, fileResolver)
     } else {
-      logger.warning("HERE - does not have inputs!")
       (rawBundle, baseFileResolver)
     }
 

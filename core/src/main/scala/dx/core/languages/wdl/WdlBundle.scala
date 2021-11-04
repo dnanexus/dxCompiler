@@ -109,8 +109,6 @@ object WdlBundle {
         }
         checkVariableName(allVars)
       case task: TAT.Task =>
-        println("task.inputs!")
-        println(task.inputs.toString())
         checkVariableName(task.inputs)
         checkVariableName(task.outputs)
     }

@@ -29,15 +29,8 @@ case class WorkflowCompiler(separateOutputs: Boolean,
 
   private def workflowInputParameterToNative(parameter: Parameter,
                                              stageInput: StageInput): Vector[JsValue] = {
-    logger.warning("workflowInputParameterToNative - > HERE ")
-    logger.warning("PARAMETEr HERE ")
-    logger.warning(parameter.toString())
-    logger.warning("STAGE INPUT HERE ")
-    logger.warning(stageInput.toString())
     // The default value can come from the stage input or the workflow input
     def getDefault(stageInput: StageInput): Option[Option[Value]] = {
-      logger.warning("getdefault, stageinput ->>HERE:")
-      logger.warning(stageInput.toString())
       stageInput match {
         case StageInputWorkflowLink(wfParam) if wfParam != parameter => Some(wfParam.defaultValue)
         case StageInputStatic(value)                                 => Some(Some(value))
@@ -407,8 +400,6 @@ case class WorkflowCompiler(separateOutputs: Boolean,
               (ExecutableCompiler.CallNameParameter, StageInputEmpty)
           )
         } else {
-          logger.warning("HERE .. workflowinputs")
-          logger.warning(workflow.inputs.toString())
           workflow.inputs
         }
 
@@ -518,13 +509,11 @@ case class WorkflowCompiler(separateOutputs: Boolean,
                  StageInputWorkflowLink(ExecutableCompiler.CallNameParameter))
             )
           } else {
-            logger.warning("STAGEINPUT HERE 1")
             Vector(
                 (ExecutableCompiler.OutputIdParameter,
                  StageInputStatic(Value.VString(stage.dxStage.id)))
             )
           }
-          logger.warning("STAGEINPUT2STATIC HERE")
           val stageInputs = Vector(
               (ExecutableCompiler.InputManfestFilesParameter, StageInputArray(inputStageManifests)),
               (ExecutableCompiler.InputLinksParameter,
