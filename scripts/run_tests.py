@@ -130,6 +130,9 @@ wdl_v1_list = [
 
 wdl_v1_1_list = [
     "v1_1_dict",
+    "apps_847_scatter_empty",
+    "optional_missing",
+    "inputs_provided_optional",
 
     # bug regression tests
     "apps_579_boolean_flag_expr",
