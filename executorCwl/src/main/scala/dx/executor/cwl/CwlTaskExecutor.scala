@@ -385,7 +385,10 @@ case class CwlTaskExecutor(tool: Process,
       .getOrElse(overridesJs)
     val overridesOpt = if (finalOverrides.nonEmpty) {
       val overridesDocJs = JsObject(
-          "cwltool:overrides" -> JsObject("#main" -> JsObject(finalOverrides))
+          "cwltool:overrides" -> JsObject(
+              "#main" -> JsObject(finalOverrides),
+              s"#${tool.name}" -> JsObject(finalOverrides)
+          )
       )
       val overridesDocPath = metaDir.resolve("overrides.json")
       if (logger.isVerbose) {
