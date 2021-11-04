@@ -1,6 +1,0 @@
-{
-    "stage-common.input_bool": false,
-    "stage-common.input_string": "string_given",
-    "stage-common.input_int": 1000,
-    "stage-common.input_int_not_default_in_subworkflow2": 10000
-}
