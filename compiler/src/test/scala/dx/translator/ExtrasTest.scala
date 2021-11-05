@@ -47,7 +47,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
 
     val extras = Extras.parse(runtimeAttrs)
     extras.defaultTaskDxAttributes should be(
-        Some(DxAppJson(Some(DxRunSpec(None, None, Some("all"), None)), None))
+        Some(DxAppJson(Some(DxRunSpec(None, None, Some("all"), None))))
     )
   }
 
