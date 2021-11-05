@@ -126,7 +126,7 @@ wdl_v1_list = [
     # workflow with output files created by expressions
     "upload_workflow_files",
     "subworkflow_with_task",
-    "workflow_with_subworkflow"
+    "apps_700"
 ]
 
 wdl_v1_1_list = [
