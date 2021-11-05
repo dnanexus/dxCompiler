@@ -124,7 +124,7 @@ val executorCwl = project
 
 val githubDxScalaResolver = Resolver.githubPackages("dnanexus", "dxScala")
 val githubCwlScalaResolver = Resolver.githubPackages("dnanexus", "cwlScala")
-val githubWdlToolsResolver = Resolver.githubPackages("dnanexus-rnd", "wdlTools")
+val githubWdlToolsResolver = Resolver.githubPackages("dnanexus", "wdlTools")
 val githubDxCompilerResolver = Resolver.githubPackages("dnanexus", "dxCompiler")
 
 lazy val dependencies =
