@@ -2,7 +2,7 @@ version 1.0
 
 import "subworkflow_with_task.wdl" as subworkflow
 
-workflow mainworkflow {
+workflow apps_700 {
 
     input {
         Boolean input_bool
