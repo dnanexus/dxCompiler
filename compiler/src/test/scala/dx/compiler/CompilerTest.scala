@@ -787,6 +787,13 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     }
   }
 
+  def validateBundledDepends(appletId: String, bundledName: String): Unit = {
+    // TODO dx describe applet
+    val applet = dxApi.applet(appletId)
+
+    // TODO assert applet's bundledDepends contains name
+  }
+
   it should "add clonable dependencies to bundledDepends" in {
     val path = pathFromBasename("non_spec", "apps_623_wf.wdl")
     val args = path.toString :: cFlags
@@ -802,14 +809,30 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
     desc.stages match {
       case Some(s) => {
-        // TODO get stage-1, wrapping t1
-        // executable = applet-xxxx
+        // TODO bundledDepends expected name
+        val t1_frag = s.find(stageDesc => stageDesc.id == "stage-1")
+        validateBundledDepends(
+            t1_frag
+              .getOrElse(throw new Exception(s"Expected to find stage-1 in ${wfId}"))
+              .executable,
+            "TODO name"
+        )
 
-        // TODO get stage-3, wrapping t2
-        // executable = applet-xxxx
+        // TODO bundledDepends expected name
+        val t2_frag = s.find(stageDesc => stageDesc.id == "stage-3")
+        validateBundledDepends(
+            t2_frag
+              .getOrElse(throw new Exception(s"Expected to find stage-3 in ${wfId}"))
+              .executable,
+            "TODO name"
+        )
 
-        // TODO get stage-4, Docker image applet
-        // executable = applet-xxxx
+        // TODO bundledDepends expected name
+        val t3 = s.find(stageDesc => stageDesc.id == "stage-4")
+        validateBundledDepends(
+            t3.getOrElse(throw new Exception(s"Expected to find stage-4 in ${wfId}")).executable,
+            "TODO name"
+        )
       }
       case _ => throw new Exception(s"Expected ${wfId} to have stages")
     }
