@@ -3,6 +3,7 @@
 ## in develop
 
 * Handles empty scatters in WDL workflows
+* Enables other metadata (title, description, version, etc) to be set via extras.json
 
 ## 2.6.0 2021-10-11
 
