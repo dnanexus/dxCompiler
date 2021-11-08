@@ -3,6 +3,7 @@
 ## in develop
 
 * Handles empty scatters in WDL workflows
+* When using manifests, passes any expression values from the helper applet to the called applet workflow so they are added to the output manifest
 
 ## 2.6.0 2021-10-11
 
