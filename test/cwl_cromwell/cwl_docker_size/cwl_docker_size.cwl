@@ -41,5 +41,5 @@ $graph:
         }
 
       }
-  outputs: stdout
+  out: stdout
   baseCommand: []
