@@ -509,21 +509,24 @@ case class WorkflowCompiler(separateOutputs: Boolean,
             StageInputStageLink(stage, ExecutableCompiler.OutputManifestParameter)
           }.toVector
           // the manifest ID for the output stage comes from the workflow
-          val outputInputs = if (stage.description == Constants.OutputStage) {
-            Vector(
-                (ExecutableCompiler.OutputIdParameter,
-                 StageInputWorkflowLink(ExecutableCompiler.OutputIdParameter)),
-                (ExecutableCompiler.ExtraOutputsParameter,
-                 StageInputWorkflowLink(ExecutableCompiler.ExtraOutputsParameter)),
-                (ExecutableCompiler.CallNameParameter,
-                 StageInputWorkflowLink(ExecutableCompiler.CallNameParameter))
-            )
-          } else {
-            Vector(
-                (ExecutableCompiler.OutputIdParameter,
-                 StageInputStatic(Value.VString(stage.dxStage.id)))
-            )
-          }
+          val outputInputs: Vector[(Parameter, StageInput)] =
+            if (stage.description == Constants.OutputStage) {
+              Vector(
+                  Some(ExecutableCompiler.OutputIdParameter,
+                       StageInputWorkflowLink(ExecutableCompiler.OutputIdParameter)),
+                  Option.when(workflow.level != Level.Top)(
+                      ExecutableCompiler.ExtraOutputsParameter,
+                      StageInputWorkflowLink(ExecutableCompiler.ExtraOutputsParameter)
+                  ),
+                  Some(ExecutableCompiler.CallNameParameter,
+                       StageInputWorkflowLink(ExecutableCompiler.CallNameParameter))
+              ).flatten
+            } else {
+              Vector(
+                  (ExecutableCompiler.OutputIdParameter,
+                   StageInputStatic(Value.VString(stage.dxStage.id)))
+              )
+            }
           val stageInputs = Vector(
               (ExecutableCompiler.InputManfestFilesParameter, StageInputArray(inputStageManifests)),
               (ExecutableCompiler.InputLinksParameter,
