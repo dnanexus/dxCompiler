@@ -57,6 +57,12 @@ object Assumptions {
   lazy val cwltoolCallable: Boolean = {
     val (retcode, stdout, _) = SysUtils.execCommand("cwltool --version", exceptionOnFailure = false)
     // TODO: pull the min cwl version from the bundled_dependencies.json file
+
+    // Logging for debugging APPS-910
+    logger.error(s"--> retcode ${retcode}")
+    logger.error(s"--> stdout ${stdout}")
+    logger.error(s"--> stdout, processed ${stdout.trim.split('.').last.toLong}")
+
     retcode == 0 && stdout.trim.split('.').last.toLong >= 20210628163208L
   }
 }
