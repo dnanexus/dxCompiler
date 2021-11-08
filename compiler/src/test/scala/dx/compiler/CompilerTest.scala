@@ -1128,6 +1128,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         Constants.WorkflowInputLinks.addSuffix(Constants.FlatFilesSuffix),
         Constants.OutputId,
         Constants.ExtraOutputs,
+        Constants.ExtraOutputs.addSuffix(Constants.FlatFilesSuffix),
         Constants.CallName,
         Constants.Overrides,
         Constants.Overrides.addSuffix(Constants.FlatFilesSuffix)
