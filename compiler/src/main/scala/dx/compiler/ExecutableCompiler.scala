@@ -23,33 +23,46 @@ import dx.translator.CallableAttributes.{
   TitleAttribute,
   TypesAttribute
 }
+import dx.translator.ParameterAttributes.GroupAttribute
 import dx.translator.{Extras, ParameterAttributes}
 import dx.util.FileSourceResolver
 import spray.json._
 
 object ExecutableCompiler {
-  // these parameters are used for applets and workflows that are generated
-  // with useManifests=true.
+  // these parameters are used for applets and workflows that are generated with useManifests=true.
+  val ReservedParameterAttributes = Vector(GroupAttribute("Reserved"))
   val InputManifestParameter: Parameter =
     Parameter(Constants.InputManifest, Type.TOptional(Type.THash))
   val InputManfestFilesParameter: Parameter =
     Parameter(Constants.InputManifestFiles, Type.TArray(Type.TFile))
   val InputLinksParameter: Parameter =
-    Parameter(Constants.InputLinks, Type.TOptional(Type.THash))
+    Parameter(Constants.InputLinks,
+              Type.TOptional(Type.THash),
+              attributes = ReservedParameterAttributes)
   val WorkflowInputManifestParameter: Parameter =
-    Parameter(Constants.WorkflowInputManifest, Type.TOptional(Type.THash))
+    Parameter(Constants.WorkflowInputManifest,
+              Type.TOptional(Type.THash),
+              attributes = ReservedParameterAttributes)
   val WorkflowInputManfestFilesParameter: Parameter =
-    Parameter(Constants.WorkflowInputManifestFiles, Type.TArray(Type.TFile))
+    Parameter(Constants.WorkflowInputManifestFiles,
+              Type.TArray(Type.TFile),
+              attributes = ReservedParameterAttributes)
   val WorkflowInputLinksParameter: Parameter =
-    Parameter(Constants.WorkflowInputLinks, Type.TOptional(Type.THash))
+    Parameter(Constants.WorkflowInputLinks,
+              Type.TOptional(Type.THash),
+              attributes = ReservedParameterAttributes)
   val OutputIdParameter: Parameter =
     Parameter(Constants.OutputId, Type.TString)
   val CallNameParameter: Parameter =
-    Parameter(Constants.CallName, Type.TOptional(Type.TString))
+    Parameter(Constants.CallName,
+              Type.TOptional(Type.TString),
+              attributes = ReservedParameterAttributes)
   val OutputManifestParameter: Parameter =
     Parameter(Constants.OutputManifest, Type.TFile)
   val OverridesParameter: Parameter =
-    Parameter(Constants.Overrides, Type.TOptional(Type.THash))
+    Parameter(Constants.Overrides,
+              Type.TOptional(Type.THash),
+              attributes = ReservedParameterAttributes)
 }
 
 class ExecutableCompiler(extras: Option[Extras],
