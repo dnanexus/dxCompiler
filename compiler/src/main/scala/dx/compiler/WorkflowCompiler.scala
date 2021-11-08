@@ -513,6 +513,8 @@ case class WorkflowCompiler(separateOutputs: Boolean,
             Vector(
                 (ExecutableCompiler.OutputIdParameter,
                  StageInputWorkflowLink(ExecutableCompiler.OutputIdParameter)),
+                (ExecutableCompiler.ExtraOutputsParameter,
+                 StageInputWorkflowLink(ExecutableCompiler.ExtraOutputsParameter)),
                 (ExecutableCompiler.CallNameParameter,
                  StageInputWorkflowLink(ExecutableCompiler.CallNameParameter))
             )

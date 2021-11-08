@@ -8,9 +8,10 @@ workflow complex_manifest {
   }
 
   scatter (sample in as_pairs(samples)) {
+    String sample_id = sample.left
     call tn.wf as tumor {
       input:
-        id = sample.left,
+        id = sample_id,
         file = sample.right[0]
     }
 
@@ -23,6 +24,7 @@ workflow complex_manifest {
     }
   }
 
+  String sample_ids = sep(sample_id, ",")
   call report {
     input:
       tumor = tumor.out,
@@ -33,6 +35,7 @@ workflow complex_manifest {
     Array[File] tumor_result = tumor.out
     Array[File?] normal_result = normal.out
     File report_result = report.out
+    String sample_ids_output = sample_ids
   }
 }
 
