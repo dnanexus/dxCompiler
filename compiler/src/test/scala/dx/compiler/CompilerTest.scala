@@ -790,8 +790,13 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
   def validateBundledDepends(appletId: String, bundledName: String): Unit = {
     // TODO dx describe applet
     val applet = dxApi.applet(appletId)
+    val desc = applet.describe(Set(Field.RunSpec))
 
-    // TODO assert applet's bundledDepends contains name
+    desc.runSpec match {
+      // TODO assert applet's bundledDepends contains name
+      case Some(rs) => {}
+      case _        => throw new Exception(s"Expected ${appletId} to have runSpec")
+    }
   }
 
   it should "add clonable dependencies to bundledDepends" in {
