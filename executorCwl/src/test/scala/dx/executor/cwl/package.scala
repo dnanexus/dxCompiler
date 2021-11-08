@@ -1,7 +1,7 @@
 package dx.executor.cwl
 
 import dx.api.DxApi
-import dx.util.SysUtils
+import dx.util.{Logger, SysUtils}
 import org.scalatest.Tag
 
 // test that requires being logged into DNAnexus
@@ -20,6 +20,7 @@ object Tags {
 }
 
 object Assumptions {
+  private val logger = Logger.get
   private val dxApi = DxApi.get
 
   /**
