@@ -104,7 +104,7 @@ The compiled workflow can be executed via the DNAnexus command line client or we
 
 ## Strict syntax
 
-dxCompiler uses [wdlTools](https://github.com/dnanexus-rnd/wdlTools), a parser that adheres strictly to the WDL specifications. Most of the problematic automatic type conversions that are allowed by some other WDL runtime engines are not allowed by dxCompiler. Please use the command line tools in wdlTools (e.g. `check` and `lint`) to validate your WDL files before trying to compile them with dxCompiler.
+dxCompiler uses [wdlTools](https://github.com/dnanexus/wdlTools), a parser that adheres strictly to the WDL specifications. Most of the problematic automatic type conversions that are allowed by some other WDL runtime engines are not allowed by dxCompiler. Please use the command line tools in wdlTools (e.g. `check` and `lint`) to validate your WDL files before trying to compile them with dxCompiler.
 
 ## Limitations
 

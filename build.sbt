@@ -14,7 +14,7 @@ ThisBuild / developers := List(
               "azalcman@dnanexus.com",
               url("https://github.com/dnanexus")),
     Developer("mhrvol", "mhrvol", "mhrvol-cf@dnanexus.com", url("https://github.com/dnanexus")),
-    Developer("r-i-v-a", "r-i-v-a", "rnathans-cf@dnanexus.com", url("https://github.com/dnanexus"))
+    Developer("r-i-v-a", "Riva Nathans", "rnathans-cf@dnanexus.com", url("https://github.com/dnanexus"))
 )
 ThisBuild / homepage := Some(url("https://github.com/dnanexus/dxCompiler"))
 ThisBuild / scmInfo := Some(
@@ -124,7 +124,7 @@ val executorCwl = project
 
 val githubDxScalaResolver = Resolver.githubPackages("dnanexus", "dxScala")
 val githubCwlScalaResolver = Resolver.githubPackages("dnanexus", "cwlScala")
-val githubWdlToolsResolver = Resolver.githubPackages("dnanexus-rnd", "wdlTools")
+val githubWdlToolsResolver = Resolver.githubPackages("dnanexus", "wdlTools")
 val githubDxCompilerResolver = Resolver.githubPackages("dnanexus", "dxCompiler")
 
 lazy val dependencies =
