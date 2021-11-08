@@ -807,31 +807,27 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val wf = dxApi.workflow(wfId)
     val desc = wf.describe(Set(Field.Stages))
 
+    // Validate bundledDepends contents of applets
     desc.stages match {
       case Some(s) => {
-        // TODO bundledDepends expected name
         val t1_frag = s.find(stageDesc => stageDesc.id == "stage-1")
         validateBundledDepends(
             t1_frag
               .getOrElse(throw new Exception(s"Expected to find stage-1 in ${wfId}"))
               .executable,
-            "TODO name"
+            "apps_623_t1"
         )
-
-        // TODO bundledDepends expected name
         val t2_frag = s.find(stageDesc => stageDesc.id == "stage-3")
         validateBundledDepends(
             t2_frag
               .getOrElse(throw new Exception(s"Expected to find stage-3 in ${wfId}"))
               .executable,
-            "TODO name"
+            "apps_623_t2"
         )
-
-        // TODO bundledDepends expected name
         val t3 = s.find(stageDesc => stageDesc.id == "stage-4")
         validateBundledDepends(
             t3.getOrElse(throw new Exception(s"Expected to find stage-4 in ${wfId}")).executable,
-            "TODO name"
+            "ubuntu_20_04.tar.gz"
         )
       }
       case _ => throw new Exception(s"Expected ${wfId} to have stages")
