@@ -4,6 +4,7 @@
 
 * Handles empty scatters in WDL workflows
 * When using manifests, passes any expression values from the helper applet to the called applet workflow so they are added to the output manifest
+* Enables other metadata (title, description, version, etc) to be set via extras.json
 
 ## 2.6.0 2021-10-11
 
