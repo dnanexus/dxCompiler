@@ -788,14 +788,25 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
   }
 
   def validateBundledDepends(appletId: String, bundledName: String): Unit = {
-    // TODO dx describe applet
     val applet = dxApi.applet(appletId)
     val desc = applet.describe(Set(Field.RunSpec))
 
     desc.runSpec match {
-      // TODO assert applet's bundledDepends contains name
-      case Some(rs) => {}
-      case _        => throw new Exception(s"Expected ${appletId} to have runSpec")
+      case Some(rs) => {
+        val bundledDepends = rs.asJsObject.fields
+          .get("bundledDepends")
+          .getOrElse(throw new Exception(s"Expected ${appletId} to have bundledDepends"))
+        // Assert bundledDepends contains item with expected name
+        bundledDepends match {
+          case JsArray(items) => {
+            val searchItem = items.find(v => v.asJsObject.fields.get("name").toString == bundledName
+            )
+            searchItem should not be empty
+          }
+          case _ => throw new Exception("Expected bundledDepends to be array")
+        }
+      }
+      case _ => throw new Exception(s"Expected ${appletId} to have runSpec")
     }
   }
 
