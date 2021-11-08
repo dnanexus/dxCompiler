@@ -1,10 +1,15 @@
-cwlVersion: v1.0
+#!/usr/bin/env cwl-runner
+cwlVersion: v1.2
 class: CommandLineTool
 requirements:
-  - class: InlineJavascriptRequirement
+- class: InlineJavascriptRequirement
 hints:
   DockerRequirement:
     dockerPull: "debian:stretch-slim"
+  NetworkAccess:
+    networkAccess: true
+  LoadListingRequirement:
+    loadListing: deep_listing
 inputs: []
 baseCommand: [touch, z, y, x, w, c, b, a]
 outputs:

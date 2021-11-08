@@ -2,4 +2,4 @@
 reference:
   class: File
   #format: edam:format_1930
-  path: "centaur/src/main/resources/standardTestCases/cwl_format/foo.fastq"
+  path: "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/cwl_format_test/foo.fastq"

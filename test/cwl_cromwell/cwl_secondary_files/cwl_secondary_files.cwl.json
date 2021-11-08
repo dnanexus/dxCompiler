@@ -1,0 +1,107 @@
+{
+    "id": "#main",
+    "class": "CommandLineTool",
+    "hints": [
+        {
+            "dockerPull": "debian:stretch-slim",
+            "class": "DockerRequirement"
+        },
+        {
+            "loadListing": "deep_listing",
+            "class": "LoadListingRequirement"
+        },
+        {
+            "networkAccess": true,
+            "class": "NetworkAccess"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "#main/command",
+            "type": "string"
+        },
+        {
+            "id": "#main/f",
+            "type": "File",
+            "inputBinding": {
+                "position": 2
+            },
+            "secondaryFiles": [
+                {
+                    "pattern": ".also",
+                    "required": null
+                }
+            ]
+        },
+        {
+            "id": "#main/of",
+            "type": [
+                "null",
+                "File"
+            ],
+            "inputBinding": {
+                "position": 3
+            },
+            "secondaryFiles": [
+                {
+                    "pattern": ".also",
+                    "required": null
+                }
+            ]
+        },
+        {
+            "id": "#main/fs",
+            "type": {
+                "type": "array",
+                "items": "File",
+                "inputBinding": {
+                    "position": 4
+                }
+            },
+            "secondaryFiles": [
+                {
+                    "pattern": ".also",
+                    "required": null
+                }
+            ]
+        },
+        {
+            "id": "#main/fr",
+            "secondaryFiles": [
+                {
+                    "pattern": ".also",
+                    "required": null
+                }
+            ],
+            "type": {
+                "type": "record",
+                "name": "#main/fr/foo",
+                "fields": [
+                    {
+                        "name": "#main/fr/foo/a",
+                        "type": "File",
+                        "inputBinding": {
+                            "position": 5
+                        }
+                    }
+                ]
+            }
+        }
+    ],
+    "baseCommand": [],
+    "arguments": [
+        "bash",
+        "-c",
+        "$(inputs.command)"
+    ],
+    "outputs": [
+        {
+            "type": "string",
+            "outputBinding": {
+                "outputEval": "${ return \"$(\" + 42 + \")\"; }"
+            },
+            "id": "#main/the_answer"
+        }
+    ],
+    "cwlVersion": "v1.2"
+}

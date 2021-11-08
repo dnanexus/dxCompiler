@@ -1,0 +1,57 @@
+{
+    "id": "#main/cwl_secondary_files_workflow_tool",
+    "class": "CommandLineTool",
+    "hints": [
+        {
+            "dockerPull": "debian:stretch-slim",
+            "class": "DockerRequirement"
+        },
+        {
+            "loadListing": "deep_listing",
+            "class": "LoadListingRequirement"
+        },
+        {
+            "networkAccess": true,
+            "class": "NetworkAccess"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "#main/cwl_secondary_files_workflow_tool/command",
+            "type": "string"
+        },
+        {
+            "id": "#main/cwl_secondary_files_workflow_tool/f",
+            "type": "File",
+            "inputBinding": {
+                "position": 2
+            }
+        },
+        {
+            "id": "#main/cwl_secondary_files_workflow_tool/fs",
+            "type": {
+                "type": "array",
+                "items": "File",
+                "inputBinding": {
+                    "position": 3
+                }
+            }
+        }
+    ],
+    "baseCommand": [],
+    "arguments": [
+        "bash",
+        "-c",
+        "$(inputs.command)"
+    ],
+    "outputs": [
+        {
+            "type": "string",
+            "outputBinding": {
+                "outputEval": "${ return \"$(\" + 42 + \")\"; }"
+            },
+            "id": "#main/cwl_secondary_files_workflow_tool/the_answer"
+        }
+    ],
+    "cwlVersion": "v1.2"
+}

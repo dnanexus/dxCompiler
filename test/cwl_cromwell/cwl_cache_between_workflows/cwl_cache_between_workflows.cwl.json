@@ -1,0 +1,72 @@
+{
+    "$graph": [
+        {
+            "id": "#main/average",
+            "class": "CommandLineTool",
+            "inputs": [
+                {
+                    "type": "int",
+                    "default": 9,
+                    "id": "#main/average/base1"
+                },
+                {
+                    "type": "int",
+                    "default": 13,
+                    "id": "#main/average/base2"
+                }
+            ],
+            "arguments": [
+                {
+                    "valueFrom": "echo $((inputs.base1 + inputs.base2) / 2)",
+                    "shellQuote": false
+                }
+            ],
+            "stdout": "stdout.txt",
+            "outputs": [
+                {
+                    "type": "float",
+                    "outputBinding": {
+                        "glob": "stdout.txt",
+                        "loadContents": true,
+                        "outputEval": "$(parseFloat(self[0].contents))"
+                    },
+                    "id": "#main/average/baseAverage"
+                }
+            ]
+        },
+        {
+            "id": "#main/height-product",
+            "class": "CommandLineTool",
+            "inputs": [
+                {
+                    "type": "float",
+                    "id": "#main/height-product/baseAverage"
+                },
+                {
+                    "type": "float",
+                    "default": 7.0,
+                    "id": "#main/height-product/height"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "long",
+                    "outputBinding": {
+                        "glob": "stdout.txt",
+                        "loadContents": true,
+                        "outputEval": "$(parseFloat(self[0].contents))"
+                    },
+                    "id": "#main/height-product/trapezoidalArea"
+                }
+            ],
+            "arguments": [
+                {
+                    "valueFrom": "echo $(inputs.baseAverage * inputs.height)",
+                    "shellQuote": false
+                }
+            ],
+            "stdout": "stdout.txt"
+        }
+    ],
+    "cwlVersion": "v1.0"
+}

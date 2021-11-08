@@ -1,0 +1,49 @@
+{
+    "id": "#main",
+    "class": "CommandLineTool",
+    "inputs": [
+        {
+            "id": "#main/reference",
+            "type": "File",
+            "format": "http://galaxyproject.org/formats/fasta",
+            "inputBinding": {
+                "position": 2
+            }
+        }
+    ],
+    "baseCommand": [
+        "wc",
+        "-l"
+    ],
+    "stdout": "stdout",
+    "hints": [
+        {
+            "loadListing": "deep_listing",
+            "class": "LoadListingRequirement"
+        },
+        {
+            "networkAccess": true,
+            "class": "NetworkAccess"
+        }
+    ],
+    "outputs": [
+        {
+            "id": "#main/lineCount",
+            "type": "int",
+            "outputBinding": {
+                "glob": "stdout",
+                "loadContents": true,
+                "outputEval": "$(parseInt(self[0].contents))"
+            }
+        }
+    ],
+    "cwlVersion": "v1.2",
+    "$schemas": [
+        "file:../resources/cwl/ontology/gx_edam.ttl",
+        "file:../resources/cwl/ontology/EDAM.owl"
+    ],
+    "$namespaces": {
+        "edam": "http://edamontology.org/",
+        "gx": "http://galaxyproject.org/formats/"
+    }
+}

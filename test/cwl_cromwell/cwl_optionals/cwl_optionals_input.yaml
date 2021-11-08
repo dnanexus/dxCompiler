@@ -1,0 +1,4 @@
+unsupplied_optional:  # array of type "string" (optional)
+  - a_string
+message:  # array of type "string" (optional)
+  - a_string

@@ -1,0 +1,3 @@
+inp2: a_string  # type "string"
+inp:  # array of type "string"
+  - a_string

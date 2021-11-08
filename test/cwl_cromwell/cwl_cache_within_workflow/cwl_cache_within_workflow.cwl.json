@@ -1,0 +1,104 @@
+{
+    "$graph": [
+        {
+            "id": "#main/one",
+            "class": "CommandLineTool",
+            "inputs": [
+                {
+                    "type": "float",
+                    "id": "#main/one/r"
+                }
+            ],
+            "arguments": [
+                {
+                    "valueFrom": "echo $(inputs.r * inputs.r)",
+                    "shellQuote": false
+                }
+            ],
+            "stdout": "stdout.txt",
+            "outputs": [
+                {
+                    "type": "float",
+                    "outputBinding": {
+                        "outputEval": "$(inputs.r)"
+                    },
+                    "id": "#main/one/rCopy"
+                },
+                {
+                    "type": "float",
+                    "outputBinding": {
+                        "glob": "stdout.txt",
+                        "loadContents": true,
+                        "outputEval": "$(parseFloat(self[0].contents))"
+                    },
+                    "id": "#main/one/rSquared"
+                }
+            ]
+        },
+        {
+            "id": "#main/three",
+            "class": "ExpressionTool",
+            "inputs": [
+                {
+                    "type": "float",
+                    "id": "#main/three/pi"
+                },
+                {
+                    "type": "float",
+                    "id": "#main/three/rSquared"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "int",
+                    "id": "#main/three/area"
+                },
+                {
+                    "type": "float",
+                    "id": "#main/three/rSquaredCopy"
+                }
+            ],
+            "expression": "${\nreturn {\"area\": parseInt(inputs.pi * inputs.rSquared),\n        \"rSquaredCopy\": inputs.rSquared };\n}\n"
+        },
+        {
+            "id": "#main/two",
+            "class": "CommandLineTool",
+            "inputs": [
+                {
+                    "type": "float",
+                    "id": "#main/two/pi"
+                },
+                {
+                    "type": "float",
+                    "id": "#main/two/rSquared"
+                }
+            ],
+            "outputs": [
+                {
+                    "outputBinding": {
+                        "glob": "stdout.txt",
+                        "loadContents": true,
+                        "outputEval": "$(parseInt(self[0].contents))"
+                    },
+                    "type": "int",
+                    "id": "#main/two/area"
+                },
+                {
+                    "outputBinding": {
+                        "outputEval": "$(inputs.rSquared)"
+                    },
+                    "type": "float",
+                    "id": "#main/two/rSquaredCopy"
+                }
+            ],
+            "arguments": [
+                {
+                    "valueFrom": "echo $(inputs.rSquared * inputs.pi)",
+                    "shellQuote": false
+                }
+            ],
+            "stdout": "stdout.txt"
+        }
+    ],
+    "cwlVersion": "v1.0"
+}

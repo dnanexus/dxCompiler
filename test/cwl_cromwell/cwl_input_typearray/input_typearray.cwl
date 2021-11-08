@@ -1,4 +1,5 @@
-cwlVersion: v1.0
+#!/usr/bin/env cwl-runner
+cwlVersion: v1.2
 $graph:
 - id: input_typearray
   cwlVersion: v1.0
@@ -10,20 +11,20 @@ $graph:
     dockerPull: "ubuntu:latest"
   - class: InlineJavascriptRequirement
   arguments:
-      - position: 3
-        valueFrom: "sentinel"
+  - position: 3
+    valueFrom: "sentinel"
   inputs:
     value_f:
       type:
-        - string
-        - File
+      - string
+      - File
       inputBinding:
         position: 1
       doc: "an input to test with a File value"
     value_s:
       type:
-        - string
-        - File
+      - string
+      - File
       inputBinding:
         position: 2
       doc: "an input to test with a string value"
@@ -40,3 +41,8 @@ $graph:
         glob: response.txt
         loadContents: true
         outputEval: $(self[0].contents.split(" ")[1].split("/").slice(-1)[0])
+  hints:
+    NetworkAccess:
+      networkAccess: true
+    LoadListingRequirement:
+      loadListing: deep_listing

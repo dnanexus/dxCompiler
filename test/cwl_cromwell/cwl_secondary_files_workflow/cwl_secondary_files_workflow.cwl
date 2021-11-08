@@ -1,4 +1,5 @@
-cwlVersion: v1.0
+#!/usr/bin/env cwl-runner
+cwlVersion: v1.2
 $graph:
 # The inputs of the workflow specify secondary files but NOT of the tool
 # Verify that they are still propagated through
@@ -33,23 +34,27 @@ $graph:
   hints:
     DockerRequirement:
       dockerPull: "debian:stretch-slim"
+    NetworkAccess:
+      networkAccess: true
+    LoadListingRequirement:
+      loadListing: deep_listing
   inputs:
-    - id: command
-      type: string
-    - id: f
-      type: File
+  - id: command
+    type: string
+  - id: f
+    type: File
+    inputBinding:
+      position: 2
+  - id: fs
+    type:
+      type: array
+      items: File
       inputBinding:
-        position: 2
-    - id: fs
-      type:
-        type: array
-        items: File
-        inputBinding:
-          position: 3
+        position: 3
   outputs:
     the_answer:
       type: string
       outputBinding:
-        outputEval: ${ return "$(" + 42 + ")"; }
+        outputEval: ${ return "\$(" + 42 + ")"; }
   baseCommand: []
   arguments: ["bash", "-c", $(inputs.command)]

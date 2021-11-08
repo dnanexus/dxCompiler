@@ -1,25 +1,27 @@
-cwlVersion: v1.0
+#!/usr/bin/env cwl-runner
+cwlVersion: v1.2
 $graph:
 - id: interpolatedStrings
   class: CommandLineTool
   cwlVersion: v1.0
   requirements:
-    - class: ShellCommandRequirement
+  - class: ShellCommandRequirement
   hints:
     DockerRequirement:
       dockerPull: "debian:stretch-slim"
-
+    NetworkAccess:
+      networkAccess: true
+    LoadListingRequirement:
+      loadListing: deep_listing
   inputs:
-    - id: bar
-      type: string
-    - id: qux
-      type: string
-
+  - id: bar
+    type: string
+  - id: qux
+    type: string
   outputs:
-    - id: rfc3092
-      type: string
-
+  - id: rfc3092
+    type: string
   arguments:
-     - valueFrom: >
-         echo '{ "rfc3092": "foo $(inputs.bar) baz $(inputs.qux) quux" }' > cwl.output.json
-       shellQuote: false
+  - valueFrom: |
+      echo '{ "rfc3092": "foo $(inputs.bar) baz $(inputs.qux) quux" }' > cwl.output.json
+    shellQuote: false
