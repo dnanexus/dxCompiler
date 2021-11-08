@@ -42,7 +42,8 @@ jobs:
           pip3 install dxpy $cwltool
           export PATH="$PATH:$HOME/.local/bin"
 
-          # For debugging APPS-910
+          # Logging for debugging APPS-910
+          echo "--> cwltool --version"
           cwltool --version
 
           # install dxda
