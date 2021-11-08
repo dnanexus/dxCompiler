@@ -764,7 +764,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val wfId = Main.compile(args.toVector) match {
       case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
       case other =>
-        throw new Exception(s"unexpected result ${other}")
+        throw new Exception(s"Unexpected compilation result ${other}")
     }
 
     val dxWorkflow = dxApi.workflow(wfId)
@@ -816,7 +816,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val wfId = Main.compile(args.toVector) match {
       case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
       case other =>
-        throw new Exception(s"unexpected result ${other}")
+        throw new Exception(s"Unexpected compilation result ${other}")
     }
 
     // Describe workflow, get stages
