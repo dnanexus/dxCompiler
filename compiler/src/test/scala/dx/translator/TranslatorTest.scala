@@ -1495,12 +1495,6 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
       case Some(wf: Workflow) => wf
       case _                  => throw new Exception("missing primary workflow")
     }
-    val version = wf.attributes
-      .collectFirst {
-        case VersionAttribute(v) => v
-      }
-      .getOrElse("Expected version to be set from extras defaultWorkflowDxAttributes")
-    version shouldBe "0.2.1"
     val scatter = wf.stages(1)
     val outerScatterApplet = bundle.allCallables.get(scatter.calleeName) match {
       case Some(applet: Application) => applet
