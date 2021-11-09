@@ -369,17 +369,50 @@ class CwlCompiler(Compiler):
         utils.check_tool("cwltool", ".+ ([\\d.]+)", "common-workflow-language/cwltool", self.dx.log)
         utils.check_tool("cwl-upgrader", None, "common-workflow-language/cwl-upgrader", self.dx.log)
 
-    def expand_inputs(self, process_file, job_file) -> dict:
-        input_deps = json.loads(
-            utils.run_cmd(f"cwltool --print-input-deps {process_file} {job_file}")
+    @staticmethod
+    def expand_inputs(process_file, job_file) -> dict:
+        def get_key(path_obj):
+            key = path_obj.get("location", path_obj.get("path"))
+            if not key:
+                cls = path_obj.get("class")
+                if cls == "File":
+                    key = path_obj.get("contents")
+                elif cls == "Directory":
+                    key = path_obj.get("basename")
+            if not key:
+                raise Exception(f"invalid path object {path_obj}")
+            return key
+
+        input_deps = dict(
+            (get_key(entry), entry)
+            for entry in json.loads(
+                utils.run_cmd(f"cwltool --print-input-deps {process_file} {job_file}")
+            ).get("secondaryFiles", [])
         )
 
         with open(job_file) as input_file:
             inputs = json.load(input_file)
             if input_deps:
                 # add any missing secondary files
+                def add_if_missing(cur_sf, new_sf):
+                    cur_sf_dict = dict((get_key(entry), entry) for entry in cur_sf)
+                    new_sf_dict = dict((get_key(entry), entry) for entry in new_sf)
+                    new_sf_dict.update(cur_sf_dict)
+                    return list(new_sf_dict.values())
+
                 def update_input(value):
-                    pass
+                    if isinstance(value, list):
+                        return [update_input(item) for item in value]
+
+                    if isinstance(value, dict) and value.get("class") in {"File", "Directory"}:
+                        key = get_key(value)
+                        secondary_files = value.get("secondaryFiles", [])
+                        if key in input_deps:
+                            secondary_files = add_if_missing(secondary_files, input_deps[key])
+                        if secondary_files:
+                            value["secondaryFiles"] = [update_input(sf) for sf in secondary_files]
+
+                    return value
 
                 inputs = dict(
                     (key, update_input(value))
