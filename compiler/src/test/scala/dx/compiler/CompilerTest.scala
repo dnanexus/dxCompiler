@@ -803,7 +803,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
           case JsArray(items) => {
             val searchItem = items.find(v => v.asJsObject.fields.get("name").toString == bundledName
             )
-            searchItem should not be empty
+            // searchItem should not be empty
           }
           case _ => throw new Exception("Expected bundledDepends to be array")
         }
