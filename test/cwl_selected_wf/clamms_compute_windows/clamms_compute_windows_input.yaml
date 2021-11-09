@@ -3,7 +3,7 @@ targets_bed_file:  # type "File"
     path: a/file/path
 special_regions_bed_file:  # type "File"
     class: File
-    path: a/file/path
+    path: dx://project-G2bvXbj0F1K8yg0fPqpqVzy1:file-G5vJ4F80F1K0Bz294qP8JvV0
 mappability_bed_file:  # type "File"
     class: File
     path: a/file/path

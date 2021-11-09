@@ -1,7 +1,3 @@
-modulesDirectory:  # type "Directory"
-    class: Directory
-    path: a/directory/path
 input:  # type "File"
     class: File
-    path: a/file/path
-genome: hg38  # enum; valid values: "file:///path/to/dxCompiler/test/cwl_selected_wf/opencravat/oc.cwl#genome/hg38", "file:///path/to/dxCompiler/test/cwl_selected_wf/opencravat/oc.cwl#genome/hg19"
+    path: dx://project-G2bvXbj0F1K8yg0fPqpqVzy1:file-G5v8Gzj0F1KFx00g4q3q5Z5X

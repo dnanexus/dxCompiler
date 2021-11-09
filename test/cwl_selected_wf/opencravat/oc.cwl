@@ -20,7 +20,7 @@ inputs:
       position: 1
       shellQuote: false
   modulesDirectory:
-    type: Directory
+    type: Directory?
     inputBinding:
       prefix: '--system-option modules_dir='
       separate: false
@@ -28,7 +28,8 @@ inputs:
       shellQuote: false
   genome:
     type:
-      type: enum
+    - "null"
+    - type: enum
       symbols:
       - hg38
       - hg19

@@ -30,13 +30,16 @@
     ],
     "inputs": [
         {
-            "type": {
-                "type": "enum",
-                "symbols": [
-                    "#main/genome/hg38",
-                    "#main/genome/hg19"
-                ]
-            },
+            "type": [
+                "null",
+                {
+                    "type": "enum",
+                    "symbols": [
+                        "#main/genome/hg38",
+                        "#main/genome/hg19"
+                    ]
+                }
+            ],
             "inputBinding": {
                 "prefix": "-l",
                 "position": 3,
@@ -54,7 +57,10 @@
             "id": "#main/input"
         },
         {
-            "type": "Directory",
+            "type": [
+                "null",
+                "Directory"
+            ],
             "inputBinding": {
                 "prefix": "--system-option modules_dir=",
                 "separate": false,
