@@ -7,7 +7,6 @@ import java.time.format.DateTimeFormatter
 import java.util.UUID.randomUUID
 import dx.Assumptions.{isLoggedIn, toolkitCallable}
 import dx.Tags.NativeTest
-import dx.Tags.RivaTest
 import dx.api._
 import dx.core.Constants
 import dx.core.ir.Callable
@@ -814,7 +813,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     }
   }
 
-  it should "add clonable dependencies to bundledDepends" taggedAs RivaTest in {
+  it should "add clonable dependencies to bundledDepends" in {
     val path = pathFromBasename("non_spec", "apps_623_wf.wdl")
     val args = path.toString :: cFlags
     val wfId = Main.compile(args.toVector) match {

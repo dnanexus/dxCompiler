@@ -17,7 +17,6 @@ object Tags {
   object ProdTest extends DxTag("prod")
   // marker for an edge case
   object EdgeTest extends Tag("edge")
-  object RivaTest extends Tag("riva") // TODO revert this
 }
 
 object Assumptions {
