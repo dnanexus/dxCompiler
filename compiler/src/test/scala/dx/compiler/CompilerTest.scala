@@ -794,13 +794,13 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
     desc.runSpec match {
       case Some(rs) => {
-        logger.error(s"--> runSpec ${rs.toString}")
         val bundledDepends = rs.asJsObject.fields
           .get("bundledDepends")
           .getOrElse(throw new Exception(s"Expected ${appletId} to have bundledDepends"))
         // Assert bundledDepends contains item with expected name
         bundledDepends match {
           case JsArray(items) => {
+            logger.error(s"--> bundledDepends items ${items.toString}")
             val searchItem = items.find(v => v.asJsObject.fields.get("name").toString == bundledName
             )
             // searchItem should not be empty
@@ -830,7 +830,6 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     desc.stages match {
       case Some(s) => {
         val t1_frag = s.find(stageDesc => stageDesc.id == "stage-1")
-        logger.error(s"--> t1_frag ${t1_frag.get.toString}")
         validateBundledDepends(
             t1_frag
               .getOrElse(throw new Exception(s"Expected to find stage-1 in ${wfId}"))
@@ -838,7 +837,6 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
             "apps_623_t1"
         )
         val t2_frag = s.find(stageDesc => stageDesc.id == "stage-3")
-        logger.error(s"--> t2_frag ${t2_frag.get.toString}")
         validateBundledDepends(
             t2_frag
               .getOrElse(throw new Exception(s"Expected to find stage-3 in ${wfId}"))
@@ -846,7 +844,6 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
             "apps_623_t2"
         )
         val t3 = s.find(stageDesc => stageDesc.id == "stage-4")
-        logger.error(s"--> t3 ${t3.get.toString}")
         validateBundledDepends(
             t3.getOrElse(throw new Exception(s"Expected to find stage-4 in ${wfId}")).executable,
             "ubuntu_20_04.tar.gz"
