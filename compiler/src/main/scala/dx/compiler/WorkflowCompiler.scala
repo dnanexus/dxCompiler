@@ -406,7 +406,13 @@ case class WorkflowCompiler(separateOutputs: Boolean,
               (ExecutableCompiler.OutputIdParameter,
                StageInputStatic(Value.VString(workflow.name))),
               (ExecutableCompiler.CallNameParameter, StageInputEmpty)
-          )
+          ) ++ Option
+            .when(workflow.level != Level.Top)(
+                Vector(
+                    (ExecutableCompiler.ExtraOutputsParameter, StageInputEmpty)
+                )
+            )
+            .getOrElse(Vector.empty)
         } else {
           workflow.inputs
         }
@@ -512,15 +518,20 @@ case class WorkflowCompiler(separateOutputs: Boolean,
           val outputInputs: Vector[(Parameter, StageInput)] =
             if (stage.description == Constants.OutputStage) {
               Vector(
-                  Some(ExecutableCompiler.OutputIdParameter,
-                       StageInputWorkflowLink(ExecutableCompiler.OutputIdParameter)),
-                  Option.when(workflow.level != Level.Top)(
-                      ExecutableCompiler.ExtraOutputsParameter,
-                      StageInputWorkflowLink(ExecutableCompiler.ExtraOutputsParameter)
-                  ),
-                  Some(ExecutableCompiler.CallNameParameter,
-                       StageInputWorkflowLink(ExecutableCompiler.CallNameParameter))
-              ).flatten
+                  (ExecutableCompiler.OutputIdParameter,
+                   StageInputWorkflowLink(ExecutableCompiler.OutputIdParameter)),
+                  (ExecutableCompiler.CallNameParameter,
+                   StageInputWorkflowLink(ExecutableCompiler.CallNameParameter))
+              ) ++ Option
+                .when(workflow.level != Level.Top)(
+                    Vector(
+                        (
+                            ExecutableCompiler.ExtraOutputsParameter,
+                            StageInputWorkflowLink(ExecutableCompiler.ExtraOutputsParameter)
+                        )
+                    )
+                )
+                .getOrElse(Vector.empty)
             } else {
               Vector(
                   (ExecutableCompiler.OutputIdParameter,
