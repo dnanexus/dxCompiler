@@ -414,10 +414,7 @@ class CwlCompiler(Compiler):
 
                     return value
 
-                inputs = dict(
-                    (key, update_input(value))
-                    for key, value in inputs.items()
-                )
+                inputs = dict((key, update_input(value)) for key, value in inputs.items())
 
         return inputs
 
