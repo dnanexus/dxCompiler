@@ -3,6 +3,7 @@
 ## in develop
 
 * Handles empty scatters in WDL workflows
+* Where applet calls executables, adds executables to bundledDepends to support cloning of workflows
 
 ## 2.6.0 2021-10-11
 
