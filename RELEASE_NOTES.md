@@ -4,6 +4,7 @@
 
 * Handles empty scatters in WDL workflows
 * Where applet calls executables, adds executables to bundledDepends to support cloning of workflows
+* Creates hard- rather than soft-links in the input directory, so that linked files are accessible from within containers
 
 ## 2.6.0 2021-10-11
 
