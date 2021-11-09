@@ -54,4 +54,6 @@ jobs:
           # run unit tests
           cd ${GITHUB_WORKSPACE}
           pwd
-          sbt version && sbt compile && sbt "testOnly -- -l prod"
+
+          # TODO revert this
+          sbt version && sbt compile && sbt "testOnly dx.compiler.CompilerTest -- -z 'add clonable dependencies to bundledDepends'"
