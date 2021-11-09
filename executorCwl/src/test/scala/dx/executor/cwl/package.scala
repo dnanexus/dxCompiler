@@ -54,7 +54,8 @@ object Assumptions {
   }
 
   lazy val cwltoolCallable: Boolean = {
-    val (retcode, stdout, _) = SysUtils.execCommand("cwltool --version", exceptionOnFailure = false)
+    val (retcode, stdout, stderr) =
+      SysUtils.execCommand("cwltool --version", exceptionOnFailure = false)
     // TODO: pull the min cwl version from the bundled_dependencies.json file
     if (retcode != 0) {
       throw new Exception(
