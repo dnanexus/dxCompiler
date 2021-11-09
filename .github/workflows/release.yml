@@ -65,9 +65,6 @@ jobs:
           sudo apt-get install -y apt-transport-https wget git openssh-server tree python3 python3-pip python3-venv
           cwltool=`jq -r '.execDepends.cwl[0].name' scripts/bundled_dependencies.json`
           pip3 install --upgrade pip setuptools
-          # must use specific setuptools because cwltool depends on rdflib-jsonld, which has the
-          # use_2to3 keyword in its setup.py, which is no longer allowed as of setuptools 58.0.2+
-          pip3 install "setuptools<58.0.2" wheel
           pip3 install termcolor dxpy $cwltool
           # install dxda
           sudo wget -O/usr/local/bin/dx-download-agent https://github.com/dnanexus/dxda/releases/download/v0.5.7/dx-download-agent-linux
