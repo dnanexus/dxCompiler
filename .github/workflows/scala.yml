@@ -56,4 +56,4 @@ jobs:
           pwd
 
           # TODO revert this
-          sbt version && sbt compile && sbt "testOnly dx.compiler.CompilerTest"
+          sbt version && sbt compile && sbt "testOnly -- -n riva"
