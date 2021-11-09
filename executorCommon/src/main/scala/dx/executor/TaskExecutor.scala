@@ -284,14 +284,14 @@ abstract class TaskExecutor(jobMeta: JobMeta,
               val newPath = localizer
                 .getLocalPath(fileResolver.fromPath(pathToLocalize, isDirectory = Some(false)),
                               parent)
-              Files.createSymbolicLink(newPath, path)
+              Files.createLink(newPath, path)
               sourceToFinalFile += (f -> newPath)
               newPath
             case None if path.startsWith(streamingDir) && localizer.getTargetDir(fs).isDefined =>
               // we have streaming and non-streaming files from the same source container -
               // link the streaming file into the download dir
               val newPath = localizer.getLocalPath(fs)
-              Files.createSymbolicLink(newPath, path)
+              Files.createLink(newPath, path)
               sourceToFinalFile += (f -> newPath)
               newPath
             case _ => path
