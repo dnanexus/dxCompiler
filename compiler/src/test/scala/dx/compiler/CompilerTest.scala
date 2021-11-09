@@ -787,7 +787,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     }
   }
 
-  def validateBundledDepends(appletId: String, bundledName: String): Unit = {
+  private def validateBundledDepends(appletId: String, bundledName: String): Unit = {
     val applet = dxApi.applet(appletId)
     val desc = applet.describe(Set(Field.RunSpec))
 
