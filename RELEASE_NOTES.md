@@ -3,6 +3,7 @@
 ## in develop
 
 * Handles empty scatters in WDL workflows
+* Creates hard- rather than soft-links in the input directory, so that linked files are accessible from within containers
 
 ## 2.6.0 2021-10-11
 
