@@ -5,6 +5,7 @@
 * Handles empty scatters in WDL workflows
 * Enables other metadata (title, description, version, etc) to be set via extras.json
 * When using manifests, passes any expression values from the helper applet to the called applet workflow so they are added to the output manifest
+* Creates hard- rather than soft-links in the input directory, so that linked files are accessible from within containers
 
 ## 2.6.0 2021-10-11
 
