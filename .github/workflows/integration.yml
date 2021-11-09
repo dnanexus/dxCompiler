@@ -42,7 +42,7 @@ jobs:
           pip3 install "setuptools<58.0.2" wheel
           # cwltool sometimes fails to install due to multiple entries for pyparsing in setup.py,
           # so we force it to install the correct one
-          pip3 install pyparsing<3
+          pip3 install "pyparsing<3"
           pip3 install termcolor dxpy $cwltool
           # install dxda
           sudo wget -O/usr/local/bin/dx-download-agent https://github.com/dnanexus/dxda/releases/download/v0.5.7/dx-download-agent-linux

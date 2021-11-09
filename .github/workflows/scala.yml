@@ -42,7 +42,7 @@ jobs:
           pip3 install "setuptools<58.0.2" wheel
           # cwltool sometimes fails to install due to multiple entries for pyparsing in setup.py,
           # so we force it to install the correct one
-          pip3 install pyparsing<3
+          pip3 install "pyparsing<3"
           pip3 install dxpy $cwltool
           export PATH="$PATH:$HOME/.local/bin"
 
