@@ -24,7 +24,7 @@ workflow complex_manifest {
     }
   }
 
-  String sample_ids = sep(sample_id, ",")
+  String sample_ids = sep(",", sample_id)
   call report {
     input:
       tumor = tumor.out,
