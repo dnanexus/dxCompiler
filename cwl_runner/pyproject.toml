@@ -1,4 +1,4 @@
-c[tool.poetry]
+[tool.poetry]
 name = "dx_cwl_runner"
 version = "0.1.0"
 description = "DNAnexus implementation of cwl-runner interface"
