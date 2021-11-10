@@ -168,12 +168,16 @@ case class WorkflowCompiler(separateOutputs: Boolean,
       defaultTags: Set[String],
       extendedDescription: Option[String]
   ): (Map[String, JsValue], Map[String, JsValue]) = {
-    val (commonMeta, commonDetails) =
-      callableAttributesToNative(
-          callable = workflow,
-          defaultTags = defaultTags,
-          extendedDescription = extendedDescription
-      )
+    // Default attributes from extras
+    val defaultMeta = extras
+      .flatMap(_.defaultWorkflowDxAttributes)
+      .map(_.getMetaJson)
+      .getOrElse(Map.empty[String, JsValue])
+    val (commonMeta, commonDetails) = callableAttributesToNative(
+        callable = workflow,
+        defaultTags = defaultTags,
+        extendedDescription = extendedDescription
+    )
     val workflowMeta = workflow.attributes.collect {
       case VersionAttribute(text) => "version" -> JsString(text)
       // These will be implemented in a future PR
@@ -182,7 +186,11 @@ case class WorkflowCompiler(separateOutputs: Boolean,
       case _: RunOnSingleNodeAttribute =>
         throw new NotImplementedError()
     }
-    (commonMeta ++ workflowMeta, commonDetails)
+    val workflowSpecificMeta = extras
+      .flatMap(_.perWorkflowDxAttributes.flatMap(_.get(workflow.name)))
+      .map(_.getMetaJson)
+      .getOrElse(Map.empty[String, JsValue])
+    (defaultMeta ++ commonMeta ++ workflowMeta ++ workflowSpecificMeta, commonDetails)
   }
 
   // Summarize reportable dependencies from details of a workflow
@@ -397,6 +405,7 @@ case class WorkflowCompiler(separateOutputs: Boolean,
                StageInputStatic(Value.VHash(inputLinks.flatten.to(SeqMap)))),
               (ExecutableCompiler.OutputIdParameter,
                StageInputStatic(Value.VString(workflow.name))),
+              (ExecutableCompiler.ExtraOutputsParameter, StageInputEmpty),
               (ExecutableCompiler.CallNameParameter, StageInputEmpty)
           )
         } else {
@@ -501,19 +510,22 @@ case class WorkflowCompiler(separateOutputs: Boolean,
             StageInputStageLink(stage, ExecutableCompiler.OutputManifestParameter)
           }.toVector
           // the manifest ID for the output stage comes from the workflow
-          val outputInputs = if (stage.description == Constants.OutputStage) {
-            Vector(
-                (ExecutableCompiler.OutputIdParameter,
-                 StageInputWorkflowLink(ExecutableCompiler.OutputIdParameter)),
-                (ExecutableCompiler.CallNameParameter,
-                 StageInputWorkflowLink(ExecutableCompiler.CallNameParameter))
-            )
-          } else {
-            Vector(
-                (ExecutableCompiler.OutputIdParameter,
-                 StageInputStatic(Value.VString(stage.dxStage.id)))
-            )
-          }
+          val outputInputs: Vector[(Parameter, StageInput)] =
+            if (stage.description == Constants.OutputStage) {
+              Vector(
+                  (ExecutableCompiler.OutputIdParameter,
+                   StageInputWorkflowLink(ExecutableCompiler.OutputIdParameter)),
+                  (ExecutableCompiler.ExtraOutputsParameter,
+                   StageInputWorkflowLink(ExecutableCompiler.ExtraOutputsParameter)),
+                  (ExecutableCompiler.CallNameParameter,
+                   StageInputWorkflowLink(ExecutableCompiler.CallNameParameter))
+              )
+            } else {
+              Vector(
+                  (ExecutableCompiler.OutputIdParameter,
+                   StageInputStatic(Value.VString(stage.dxStage.id)))
+              )
+            }
           val stageInputs = Vector(
               (ExecutableCompiler.InputManfestFilesParameter, StageInputArray(inputStageManifests)),
               (ExecutableCompiler.InputLinksParameter,
@@ -566,8 +578,9 @@ case class WorkflowCompiler(separateOutputs: Boolean,
         val CompiledExecutable(_, _, dependencies, _) = executableDict(stage.calleeName)
         dependencies
       }
-    // link to applets used by the fragments. This notifies the platform that they
-    // need to be cloned when copying workflows.
+
+    // Link to applets used by the fragment applets.
+    // Note: this doesn't seem to ensure cloning when copying workflow.
     val dxLinks = transitiveDependencies.map {
       case ExecutableLink(name, _, _, dxExec) =>
         s"link_${name}" -> JsObject(DxUtils.DxLinkKey -> JsString(dxExec.id))

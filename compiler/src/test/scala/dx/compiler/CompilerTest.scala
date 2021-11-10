@@ -531,7 +531,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     }
     desc.developerNotes shouldBe Some("Check out my sick bash expression! Three dolla signs!!!")
     desc.properties match {
-      case Some(m) => m shouldBe Map("foo" -> "bar")
+      case Some(m) => m shouldBe Map("baz" -> "blorf")
       case _       => throw new Exception("No properties")
     }
     desc.summary shouldBe Some("Adds two int together")
@@ -764,7 +764,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val wfId = Main.compile(args.toVector) match {
       case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
       case other =>
-        throw new Exception(s"unexpected result ${other}")
+        throw new Exception(s"Unexpected compilation result ${other}")
     }
 
     val dxWorkflow = dxApi.workflow(wfId)
@@ -784,6 +784,67 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         d should include("mem1_ssd2_x4")
       }
       case _ => throw new Exception(s"Expected ${wfId} to have a description.")
+    }
+  }
+
+  private def validateBundledDepends(appletId: String, bundledName: String): Unit = {
+    val applet = dxApi.applet(appletId)
+    val desc = applet.describe(Set(Field.RunSpec))
+
+    desc.runSpec match {
+      case Some(rs) => {
+        val bundledDepends = rs.asJsObject.fields
+          .get("bundledDepends")
+          .getOrElse(throw new Exception(s"Expected ${appletId} to have bundledDepends"))
+        bundledDepends match {
+          case JsArray(items) => {
+            val searchItem = items.find(v => v.asJsObject.toString.contains(bundledName))
+            searchItem should not be empty
+          }
+          case _ => throw new Exception("Expected bundledDepends to be array")
+        }
+      }
+      case _ => throw new Exception(s"Expected ${appletId} to have runSpec")
+    }
+  }
+
+  it should "add clonable dependencies to bundledDepends" in {
+    val path = pathFromBasename("non_spec", "apps_623_wf.wdl")
+    val args = path.toString :: cFlags
+    val wfId = Main.compile(args.toVector) match {
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"Unexpected compilation result ${other}")
+    }
+
+    // Describe workflow, get stages
+    val wf = dxApi.workflow(wfId)
+    val desc = wf.describe(Set(Field.Stages))
+
+    // Validate bundledDepends contents of applets
+    desc.stages match {
+      case Some(s) => {
+        val t1_frag = s.find(stageDesc => stageDesc.id == "stage-1")
+        validateBundledDepends(
+            t1_frag
+              .getOrElse(throw new Exception(s"Expected to find stage-1 in ${wfId}"))
+              .executable,
+            "apps_623_t1"
+        )
+        val t2_frag = s.find(stageDesc => stageDesc.id == "stage-3")
+        validateBundledDepends(
+            t2_frag
+              .getOrElse(throw new Exception(s"Expected to find stage-3 in ${wfId}"))
+              .executable,
+            "apps_623_t2"
+        )
+        val t3 = s.find(stageDesc => stageDesc.id == "stage-4")
+        validateBundledDepends(
+            t3.getOrElse(throw new Exception(s"Expected to find stage-4 in ${wfId}")).executable,
+            "ubuntu_20_04.tar.gz"
+        )
+      }
+      case _ => throw new Exception(s"Expected ${wfId} to have stages")
     }
   }
 
@@ -1127,6 +1188,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         Constants.WorkflowInputLinks,
         Constants.WorkflowInputLinks.addSuffix(Constants.FlatFilesSuffix),
         Constants.OutputId,
+        Constants.ExtraOutputs,
+        Constants.ExtraOutputs.addSuffix(Constants.FlatFilesSuffix),
         Constants.CallName,
         Constants.Overrides,
         Constants.Overrides.addSuffix(Constants.FlatFilesSuffix)
@@ -1142,6 +1205,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     input(Constants.WorkflowInputLinks.encoded).ioClass shouldBe DxIOClass.Hash
     input(Constants.WorkflowInputLinks.encoded).optional shouldBe true
     input(Constants.OutputId.encoded).ioClass shouldBe DxIOClass.String
+    input(Constants.ExtraOutputs.encoded).ioClass shouldBe DxIOClass.Hash
+    input(Constants.ExtraOutputs.encoded).optional shouldBe true
     input(Constants.CallName.encoded).ioClass shouldBe DxIOClass.String
     input(Constants.CallName.encoded).optional shouldBe true
 
