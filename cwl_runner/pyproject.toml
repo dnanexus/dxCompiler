@@ -9,7 +9,7 @@ authors = [
 
 [tool.poetry.dependencies]
 python = "^3.6"
-cwltool = "^3.1.20210922203925"
+cwltool = "^3.1.20211107152837"
 cwl-upgrader= "^1.2"
 
 [tool.poetry.dev-dependencies]

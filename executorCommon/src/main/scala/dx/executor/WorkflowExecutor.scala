@@ -159,6 +159,8 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
     * @param executableLink the executable to launch
     * @param name the job name
     * @param inputs the job inputs
+    * @param extraManifestOutputs expression values that need to be added to the output manifest of
+    *                             the called job; ignored when useManifests=false
     * @param nameDetail: a suffix to add to the job name
     * @param instanceType the instance type to use for the new job
     * @param folder optional output folder
@@ -168,6 +170,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
   protected def launchJob(executableLink: ExecutableLink,
                           name: String,
                           inputs: Map[DxName, (Type, Value)],
+                          extraManifestOutputs: Option[Map[DxName, (Type, Value)]] = None,
                           nameDetail: Option[String] = None,
                           instanceType: Option[String] = None,
                           folder: Option[String] = None,
@@ -177,9 +180,11 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
       Option.when(separateOutputs)(DxFolderSource.ensureEndsWithSlash(folder.getOrElse(jobName)))
 
     val prefix = if (prefixOutputs) Some(name) else None
-    val callInputsJs = JsObject(jobMeta.prepareSubjobInputs(inputs, executableLink, prefix).map {
-      case (dxName, jsv) => dxName.encoded -> jsv
-    })
+    val callInputsJs = JsObject(
+        jobMeta.prepareSubjobInputs(inputs, extraManifestOutputs, executableLink, prefix).map {
+          case (dxName, jsv) => dxName.encoded -> jsv
+        }
+    )
     logger.traceLimited(s"""launchJob ${name} with arguments:
                            |${callInputsJs.prettyPrint}""".stripMargin,
                         minLevel = TraceLevel.VVerbose)
@@ -581,25 +586,32 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
       VArray(items)
     }
 
+    /**
+      * Returns the aggregated IR scatter outputs, and optionally any extra outputs that need to
+      * be added to the output manifest.
+      */
     protected def getScatterOutputs(
         execOutputs: Vector[Option[Map[DxName, JsValue]]],
         execName: Option[String]
-    ): Map[DxName, (Type, Value)]
+    ): (Map[DxName, (Type, Value)], Option[Map[DxName, (Type, Value)]])
 
     private def collectScatter(): Map[DxName, ParameterLink] = {
       val (manifestId, execName, execOutputs) = aggregateScatterJobOutputs
-      val arrayValues: Map[DxName, (Type, Value)] = getScatterOutputs(execOutputs, execName)
+      val (scatterOutputs, extraManifestOutputs) = getScatterOutputs(execOutputs, execName)
       if (logger.isVerbose) {
-        logger.traceLimited(s"Scatter outputs:\n  ${arrayValues.mkString("\n  ")}")
+        logger.traceLimited(s"Scatter outputs:\n  ${scatterOutputs.mkString("\n  ")}")
       }
-      if (arrayValues.isEmpty) {
+      if (scatterOutputs.isEmpty && (
+              !jobMeta.useManifests || extraManifestOutputs.forall(_.isEmpty)
+          )) {
         Map.empty
       } else if (jobMeta.useManifests) {
         if (manifestId.isEmpty) {
           throw new Exception("missing manifest Id")
         }
         // upload the merged manifest file
-        val outputJson = arrayValues.map {
+        val allOutputs = scatterOutputs ++ extraManifestOutputs.getOrElse(Map.empty)
+        val outputJson = allOutputs.map {
           case (dxName, (t, v)) => dxName -> ValueSerde.serializeWithType(v, t)
         }
         val manifest = Manifest(outputJson, id = manifestId)
@@ -611,7 +623,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
         )
         jobMeta.createOutputLinks(outputValues, validate = false)
       } else {
-        jobMeta.createOutputLinks(arrayValues, validate = false)
+        jobMeta.createOutputLinks(scatterOutputs, validate = false)
       }
     }
 

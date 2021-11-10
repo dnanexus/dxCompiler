@@ -383,10 +383,14 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     }
   }
 
-  case class WdlBlockContext(block: WdlBlock, wdlEnv: Map[DxName, (T, V)]) extends BlockContext {
+  case class WdlBlockContext(block: WdlBlock,
+                             inputEnv: Map[DxName, (T, V)],
+                             prereqEnv: Map[DxName, (T, V)])
+      extends BlockContext {
     private def call: TAT.Call = block.call
-
-    override lazy val env: Map[DxName, (Type, Value)] = WdlUtils.toIR(wdlEnv)
+    private lazy val wdlEnv = inputEnv ++ prereqEnv
+    private lazy val prereqIrEnv = WdlUtils.toIR(prereqEnv)
+    override lazy val env: Map[DxName, (Type, Value)] = WdlUtils.toIR(inputEnv) ++ prereqIrEnv
 
     private def evaluateCallInputs(
         extraEnv: Map[DxName, (T, V)] = Map.empty
@@ -451,13 +455,16 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       }
 
       val (dxExecution, execName) =
-        launchJob(executableLink,
-                  call.actualName,
-                  callInputsIR,
-                  nameDetail,
-                  instanceType.map(_.name),
-                  folder = folder,
-                  prefixOutputs = true)
+        launchJob(
+            executableLink,
+            call.actualName,
+            callInputsIR,
+            extraManifestOutputs = Option.when(prereqEnv.nonEmpty)(prereqIrEnv),
+            nameDetail = nameDetail,
+            instanceType = instanceType.map(_.name),
+            folder = folder,
+            prefixOutputs = true
+        )
       (dxExecution, executableLink, execName)
     }
 
@@ -565,6 +572,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
             launchJob(executableLink,
                       executableLink.name,
                       callInputs,
+                      extraManifestOutputs = Option.when(prereqEnv.nonEmpty)(prereqIrEnv),
                       folder = Some(block.index.toString))
           jobMeta.createExecutionOutputLinks(dxExecution, executableLink.outputs)
         case (V_Boolean(false), _) => Map.empty
@@ -749,7 +757,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
             launchJob(executableLink,
                       executableLink.name,
                       callInputs,
-                      Some(callNameDetail),
+                      nameDetail = Some(callNameDetail),
                       folder = Some((jobMeta.scatterStart + index).toString))
           dxExecution
       }
@@ -793,7 +801,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     override protected def getScatterOutputs(
         execOutputs: Vector[Option[Map[DxName, JsValue]]],
         execName: Option[String]
-    ): Map[DxName, (Type, Value)] = {
+    ): (Map[DxName, (Type, Value)], Option[Map[DxName, (Type, Value)]]) = {
       val outputTypes: Map[DxName, (DxName, Type)] = block.kind match {
         case BlockKind.ScatterOneCall =>
           call.callee.output.map {
@@ -811,12 +819,13 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         case _ =>
           throw new RuntimeException(s"invalid block ${block}")
       }
-      outputTypes.map {
+      val arrayOutputs = outputTypes.map {
         case (fqn, (name, irType)) =>
           val arrayType = TArray(irType)
           val value = createScatterOutputArray(execOutputs, name, irType, execName)
           fqn -> (arrayType, value)
       }
+      (arrayOutputs, Option.when(prereqEnv.nonEmpty)(prereqIrEnv))
     }
   }
 
@@ -861,6 +870,6 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         accu + (name -> (wdlType, V_Null))
     }
     val prereqEnv = evaluateWorkflowElementVariables(block.prerequisites, inputEnv)
-    WdlBlockContext(block, inputEnv ++ prereqEnv)
+    WdlBlockContext(block, inputEnv, prereqEnv)
   }
 }

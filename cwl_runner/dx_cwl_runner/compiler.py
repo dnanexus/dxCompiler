@@ -369,6 +369,55 @@ class CwlCompiler(Compiler):
         utils.check_tool("cwltool", ".+ ([\\d.]+)", "common-workflow-language/cwltool", self.dx.log)
         utils.check_tool("cwl-upgrader", None, "common-workflow-language/cwl-upgrader", self.dx.log)
 
+    @staticmethod
+    def expand_inputs(process_file, job_file) -> dict:
+        def get_key(path_obj):
+            key = path_obj.get("location", path_obj.get("path"))
+            if not key:
+                cls = path_obj.get("class")
+                if cls == "File":
+                    key = path_obj.get("contents")
+                elif cls == "Directory":
+                    key = path_obj.get("basename")
+            if not key:
+                raise Exception(f"invalid path object {path_obj}")
+            return key
+
+        input_deps = dict(
+            (get_key(entry), entry)
+            for entry in json.loads(
+                utils.run_cmd(f"cwltool --print-input-deps {process_file} {job_file}")
+            ).get("secondaryFiles", [])
+        )
+
+        with open(job_file) as input_file:
+            inputs = json.load(input_file)
+            if input_deps:
+                # add any missing secondary files
+                def add_if_missing(cur_sf, new_sf):
+                    cur_sf_dict = dict((get_key(entry), entry) for entry in cur_sf)
+                    new_sf_dict = dict((get_key(entry), entry) for entry in new_sf)
+                    new_sf_dict.update(cur_sf_dict)
+                    return list(new_sf_dict.values())
+
+                def update_input(value):
+                    if isinstance(value, list):
+                        return [update_input(item) for item in value]
+
+                    if isinstance(value, dict) and value.get("class") in {"File", "Directory"}:
+                        key = get_key(value)
+                        secondary_files = value.get("secondaryFiles", [])
+                        if key in input_deps:
+                            secondary_files = add_if_missing(secondary_files, input_deps[key])
+                        if secondary_files:
+                            value["secondaryFiles"] = [update_input(sf) for sf in secondary_files]
+
+                    return value
+
+                inputs = dict((key, update_input(value)) for key, value in inputs.items())
+
+        return inputs
+
     def get_modified_input(self, i, basedir: str):
         if type(i) is list:
             return [self.get_modified_input(x, basedir) for x in i]
@@ -406,35 +455,6 @@ class CwlCompiler(Compiler):
 
         return i
 
-    # def expand_patterns(self, i: dict, value, schema_defs: dict):
-    #     def get_schema_type(t):
-    #         if isinstance(t, str):
-    #             schema_defs.get(t)
-    #         elif isinstance(t, dict) and t.get("type") == "array":
-    #             get_schema_type(t["items"])
-    #         elif isinstance(t, list):
-    #             schema_types = list(filter(None, [get_schema_type(x) for x in t]))
-    #             if len(schema_types) == 1:
-    #                 return schema_types[0]
-    #             elif len(schema_types) > 1:
-    #                 raise Exception("more than one schema type")
-    #
-    #     if (
-    #         isinstance(value, dict)
-    #         and value.get("class") in {"File", "Directory"}
-    #         and "secondaryFiles" not in value
-    #     ):
-    #         # we only care about file inputs that don't already have secondaryFiles defined
-    #         if "secondaryFiles" in i:
-    #             for sf in i["secondaryFiles"]:
-    #                 pass # TODO
-    #         else:
-    #             t = get_schema_type(i.get("type"))
-    #             if t:
-    #                 pass # TODO
-    #     else:
-    #         return value
-
     def create_compiler_input(
         self, process_file: str, job_file: str, basedir: str, tmpdir: str
     ) -> Tuple[str, str]:
@@ -442,17 +462,19 @@ class CwlCompiler(Compiler):
         #   if file does not exist, exception is thrown and no json is generated, even if some
         #   files were uploaded
 
+        # expand any secondaryFile patterns in the main process inputs with the inputs file
+        inputs = self.expand_inputs(process_file, job_file)
+
         # parse the inputs file
-        with open(job_file) as input_file:
-            inputs = json.load(input_file)
-            if "cwl:tool" in inputs:
-                tool = inputs.pop("cwl:tool")
-                if process_file is None:
-                    process_file = tool
-            modified_inputs = dict(
-                (k, self.get_modified_input(v, basedir))
-                for k, v in inputs.items()
-            )
+        if "cwl:tool" in inputs:
+            tool = inputs.pop("cwl:tool")
+            if process_file is None:
+                process_file = tool
+
+        modified_inputs = dict(
+            (k, self.get_modified_input(v, basedir))
+            for k, v in inputs.items()
+        )
 
         # try to pack the file
         packed_file = os.path.join(tmpdir, os.path.basename(process_file))
@@ -472,17 +494,6 @@ class CwlCompiler(Compiler):
         # read the CWL
         with open(packed_file, "rt") as inp:
             cwl = json.load(inp)
-
-        # expand any patterns in input secondaryFiles
-        # TODO: we may not need this if cwltool can implement an option to print this information
-        #  https://github.com/common-workflow-language/cwltool/issues/1556
-        # main_process = get_main_process(cwl)
-        # schema_defs = get_schema_defs(cwl)
-        # for i in main_process.get("inputs", []):
-        #     assert i["id"].startswith("#main/")
-        #     name = i["id"][6:]
-        #     if name in modified_inputs:
-        #         modified_inputs[name] = self.expand_patterns(i, modified_inputs[name], schema_defs)
 
         # write out the modified jobfile
         modified_jobfile = os.path.join(tmpdir, os.path.basename(job_file))

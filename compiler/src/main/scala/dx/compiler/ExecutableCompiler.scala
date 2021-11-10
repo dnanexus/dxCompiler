@@ -23,33 +23,96 @@ import dx.translator.CallableAttributes.{
   TitleAttribute,
   TypesAttribute
 }
+import dx.translator.ParameterAttributes.GroupAttribute
 import dx.translator.{Extras, ParameterAttributes}
 import dx.util.FileSourceResolver
 import spray.json._
 
 object ExecutableCompiler {
-  // these parameters are used for applets and workflows that are generated
-  // with useManifests=true.
+  // Parameters used for applets and workflows that are generated with useManifests=true.
+
+  /**
+    * Parameter for the input manifest specified as a hash.
+    */
   val InputManifestParameter: Parameter =
     Parameter(Constants.InputManifest, Type.TOptional(Type.THash))
+
+  /**
+    * Parameter for the input manifest specified as a file.
+    */
   val InputManfestFilesParameter: Parameter =
     Parameter(Constants.InputManifestFiles, Type.TArray(Type.TFile))
+
+  // group for reserved input parameters
+  private val ReservedParameterAttributes = Vector(GroupAttribute("Reserved for dxCompiler"))
+
+  /**
+    * Parameter for the manifest linking object.
+    */
   val InputLinksParameter: Parameter =
-    Parameter(Constants.InputLinks, Type.TOptional(Type.THash))
+    Parameter(Constants.InputLinks,
+              Type.TOptional(Type.THash),
+              attributes = ReservedParameterAttributes)
+
+  /**
+    * Parameter for workflow manifest object passed to an app.
+    */
   val WorkflowInputManifestParameter: Parameter =
-    Parameter(Constants.WorkflowInputManifest, Type.TOptional(Type.THash))
+    Parameter(Constants.WorkflowInputManifest,
+              Type.TOptional(Type.THash),
+              attributes = ReservedParameterAttributes)
+
+  /**
+    * Parameter for workflow manifest files passed to an app.
+    */
   val WorkflowInputManfestFilesParameter: Parameter =
-    Parameter(Constants.WorkflowInputManifestFiles, Type.TArray(Type.TFile))
+    Parameter(Constants.WorkflowInputManifestFiles,
+              Type.TArray(Type.TFile),
+              attributes = ReservedParameterAttributes)
+
+  /**
+    * Parameter for the workflow manifest linking object.
+    */
   val WorkflowInputLinksParameter: Parameter =
-    Parameter(Constants.WorkflowInputLinks, Type.TOptional(Type.THash))
+    Parameter(Constants.WorkflowInputLinks,
+              Type.TOptional(Type.THash),
+              attributes = ReservedParameterAttributes)
+
+  /**
+    * Parameter for the output ID to add to the manifest.
+    */
   val OutputIdParameter: Parameter =
-    Parameter(Constants.OutputId, Type.TString)
+    Parameter(Constants.OutputId, Type.TString, attributes = ReservedParameterAttributes)
+
+  /**
+    * Parameter for extra outputs that need to be merged into the output manifest.
+    */
+  val ExtraOutputsParameter: Parameter =
+    Parameter(Constants.ExtraOutputs,
+              Type.TOptional(Type.THash),
+              attributes = ReservedParameterAttributes)
+
+  /**
+    * Parameter for the call name that may be needed as a prefix when resolving variables in the manifest.
+    */
   val CallNameParameter: Parameter =
-    Parameter(Constants.CallName, Type.TOptional(Type.TString))
+    Parameter(Constants.CallName,
+              Type.TOptional(Type.TString),
+              attributes = ReservedParameterAttributes)
+
+  /**
+    * Parameter for requirements and hints to be specified at runtime and override compile-time values.
+    */
+  val OverridesParameter: Parameter =
+    Parameter(Constants.Overrides,
+              Type.TOptional(Type.THash),
+              attributes = ReservedParameterAttributes)
+
+  /**
+    * Parameter for the output manifest file.
+    */
   val OutputManifestParameter: Parameter =
     Parameter(Constants.OutputManifest, Type.TFile)
-  val OverridesParameter: Parameter =
-    Parameter(Constants.Overrides, Type.TOptional(Type.THash))
 }
 
 class ExecutableCompiler(extras: Option[Extras],
@@ -337,7 +400,7 @@ class ExecutableCompiler(extras: Option[Extras],
     }
   }
 
-  // Convert the applet meta to JSON, and overlay details from task-specific extras
+  // Convert the common meta attributes to JSON
   protected def callableAttributesToNative(
       callable: Callable,
       defaultTags: Set[String],
@@ -348,10 +411,9 @@ class ExecutableCompiler(extras: Option[Extras],
         "tags" -> JsArray((defaultTags ++ callable.tags).map(JsString(_)).toVector),
         "properties" -> JsObject(callable.properties.map {
           case (name, value) => name -> JsString(value)
-        })
-        // These are currently ignored because they only apply to apps
-        //"version" -> JsString("0.0.1"),
-        //"openSource" -> JsBoolean(false),
+        }),
+        "version" -> JsString("0.0.1"),
+        "openSource" -> JsBoolean(false)
     )
     val meta = callable.attributes.collect {
       case TitleAttribute(text)  => "title" -> JsString(text)
