@@ -85,8 +85,8 @@ case class WorkflowCompiler(separateOutputs: Boolean,
             case Type.TArray(itemType, _) if Type.isNative(itemType, !complexPathValues) => itemType
             case _ =>
               throw new Exception(
-                  s"""ArrayInput for workflow output parameter ${parameter.name} with type ${dxType}
-                     |that is not a natively supported array type""".stripMargin
+                  s"""Array input with type ${dxType} for workflow output parameter ${parameter.name}
+                     |with type ${parameter.dxType} that is not a natively supported array type""".stripMargin
                     .replaceAll("\n", " ")
               )
           }
