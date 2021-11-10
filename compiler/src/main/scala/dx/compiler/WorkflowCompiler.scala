@@ -574,8 +574,9 @@ case class WorkflowCompiler(separateOutputs: Boolean,
         val CompiledExecutable(_, _, dependencies, _) = executableDict(stage.calleeName)
         dependencies
       }
-    // link to applets used by the fragments. This notifies the platform that they
-    // need to be cloned when copying workflows.
+
+    // Link to applets used by the fragment applets.
+    // Note: this doesn't seem to ensure cloning when copying workflow.
     val dxLinks = transitiveDependencies.map {
       case ExecutableLink(name, _, _, dxExec) =>
         s"link_${name}" -> JsObject(DxUtils.DxLinkKey -> JsString(dxExec.id))

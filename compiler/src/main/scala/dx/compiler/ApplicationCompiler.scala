@@ -157,7 +157,10 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     }
   }
 
-  private def createRunSpec(applet: Application): (JsValue, Map[String, JsValue]) = {
+  private def createRunSpec(
+      applet: Application,
+      executableDict: Map[String, ExecutableLink]
+  ): (JsValue, Map[String, JsValue]) = {
     val instanceType: String = applet.instanceType match {
       case static: StaticInstanceType =>
         instanceTypeDb.apply(static.toInstanceTypeRequest).name
@@ -251,11 +254,26 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       }
       case _ => None
     }
+
+    // Add executables called by this applet to bundledDepends to ensure cloning
+    val bundledDependsExec: Vector[JsValue] = executableDict.map {
+      case (name, link) =>
+        JsObject(
+            Constants.BundledDependsNameKey -> JsString(name),
+            Constants.BundledDependsIdKey -> JsObject(
+                DxUtils.DxLinkKey -> JsString(link.dxExec.id)
+            ),
+            Constants.BundledDependsStagesKey -> JsArray(Vector.empty)
+        )
+    }.toVector
+
     // Include runtimeAsset in bundledDepends
-    val bundledDepends = Vector(runtimeAsset, bundledDependsDocker).flatten match {
-      case Vector()            => Map.empty
-      case bundledDependsItems => Map(Constants.BundledDependsKey -> JsArray(bundledDependsItems))
-    }
+    val bundledDepends =
+      Vector(runtimeAsset, bundledDependsDocker, bundledDependsExec).flatten match {
+        case Vector()            => Map.empty
+        case bundledDependsItems => Map(Constants.BundledDependsKey -> JsArray(bundledDependsItems))
+      }
+
     val runSpec = JsObject(
         runSpecRequired ++
           defaultTimeout ++
@@ -495,8 +513,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         }
       }
     // build the dxapp runSpec
-    val (runSpec, runSpecDetails) = createRunSpec(applet)
-    // A fragemnt is hidden, not visible under default settings. This
+    val (runSpec, runSpecDetails) = createRunSpec(applet, executableDict)
+    // A fragment is hidden, not visible under default settings. This
     // allows the workflow copying code to traverse it, and link to
     // anything it calls.
     val hidden: Boolean =
@@ -504,9 +522,11 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         case _: ExecutableKindWfFragment => true
         case _                           => false
       }
-    // create linking information - results in two maps, one that's added to the
+
+    // Create linking information: results in two maps, one that's added to the
     // application details, and one with links to applets that could get called
     // at runtime (if this applet is copied, we need to maintain referential integrity)
+    // Note: this doesn't seem to ensure cloning when copying workflow.
     val (dxLinks, linkInfo) = executableDict.map {
       case (name, link) =>
         val linkName = s"link_${name}"

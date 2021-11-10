@@ -16,15 +16,13 @@ if [[ $rc -ne 0 ]]; then
   exit $rc
 fi
 dx rm -r "dxCompiler_playground:/builds/$username"
-dx rm -r "dxCompiler_playground:/builds/user-$username"
 dx rm -r "dxCompiler_playground:/unit_tests/$username"
-dx rm -r "dxCompiler_playground:/unit_tests/user-$username"
 
-# Run 1 integration test to re-build, upload
+# Run tests if argument specified, otherwise only build
 if [[ -z "$TEST" ]]; then
   ./scripts/run_tests.py --build only
 elif [[ "$TEST" == "--failed" ]]; then
-    ./scripts/run_tests.py --failed --delay-compile-errors
+  ./scripts/run_tests.py --failed --delay-compile-errors
 else
   ./scripts/run_tests.py --test "$TEST" --delay-compile-errors --delay-run-errors
 fi
