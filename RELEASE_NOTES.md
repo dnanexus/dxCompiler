@@ -8,6 +8,7 @@
 * Where applet calls executables, adds executables to bundledDepends to support cloning of workflows
 * Enables other metadata (title, description, version, etc) to be set via extras.json
 * Creates hard- rather than soft-links in the input directory, so that linked files are accessible from within containers
+* Fixes bug where default input values were not overridden for task inside subworkflow
 
 ## 2.6.0 2021-10-11
 
