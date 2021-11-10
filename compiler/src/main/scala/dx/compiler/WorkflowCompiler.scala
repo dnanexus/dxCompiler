@@ -405,14 +405,9 @@ case class WorkflowCompiler(separateOutputs: Boolean,
                StageInputStatic(Value.VHash(inputLinks.flatten.to(SeqMap)))),
               (ExecutableCompiler.OutputIdParameter,
                StageInputStatic(Value.VString(workflow.name))),
+              (ExecutableCompiler.ExtraOutputsParameter, StageInputEmpty),
               (ExecutableCompiler.CallNameParameter, StageInputEmpty)
-          ) ++ Option
-            .when(workflow.level != Level.Top)(
-                Vector(
-                    (ExecutableCompiler.ExtraOutputsParameter, StageInputEmpty)
-                )
-            )
-            .getOrElse(Vector.empty)
+          )
         } else {
           workflow.inputs
         }
@@ -520,18 +515,11 @@ case class WorkflowCompiler(separateOutputs: Boolean,
               Vector(
                   (ExecutableCompiler.OutputIdParameter,
                    StageInputWorkflowLink(ExecutableCompiler.OutputIdParameter)),
+                  (ExecutableCompiler.ExtraOutputsParameter,
+                   StageInputWorkflowLink(ExecutableCompiler.ExtraOutputsParameter)),
                   (ExecutableCompiler.CallNameParameter,
                    StageInputWorkflowLink(ExecutableCompiler.CallNameParameter))
-              ) ++ Option
-                .when(workflow.level != Level.Top)(
-                    Vector(
-                        (
-                            ExecutableCompiler.ExtraOutputsParameter,
-                            StageInputWorkflowLink(ExecutableCompiler.ExtraOutputsParameter)
-                        )
-                    )
-                )
-                .getOrElse(Vector.empty)
+              )
             } else {
               Vector(
                   (ExecutableCompiler.OutputIdParameter,
