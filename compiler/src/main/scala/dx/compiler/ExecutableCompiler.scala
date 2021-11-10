@@ -337,7 +337,7 @@ class ExecutableCompiler(extras: Option[Extras],
     }
   }
 
-  // Convert the applet meta to JSON, and overlay details from task-specific extras
+  // Convert the common meta attributes to JSON
   protected def callableAttributesToNative(
       callable: Callable,
       defaultTags: Set[String],
@@ -348,10 +348,9 @@ class ExecutableCompiler(extras: Option[Extras],
         "tags" -> JsArray((defaultTags ++ callable.tags).map(JsString(_)).toVector),
         "properties" -> JsObject(callable.properties.map {
           case (name, value) => name -> JsString(value)
-        })
-        // These are currently ignored because they only apply to apps
-        //"version" -> JsString("0.0.1"),
-        //"openSource" -> JsBoolean(false),
+        }),
+        "version" -> JsString("0.0.1"),
+        "openSource" -> JsBoolean(false)
     )
     val meta = callable.attributes.collect {
       case TitleAttribute(text)  => "title" -> JsString(text)
