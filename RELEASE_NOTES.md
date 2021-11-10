@@ -4,6 +4,7 @@
 
 * Handles empty scatters in WDL workflows
 * Reserved parameters are now placed in the "Reserved for dxCompiler" parameter group (only affects the display of the app/workflow in the UI)
+* Creates hard- rather than soft-links in the input directory, so that linked files are accessible from within containers
 
 ## 2.6.0 2021-10-11
 

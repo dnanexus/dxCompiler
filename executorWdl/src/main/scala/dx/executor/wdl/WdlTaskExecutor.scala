@@ -100,7 +100,6 @@ case class WdlTaskExecutor(task: TAT.Task,
         case (name, v) => WdlDxName.fromSourceName(name) -> v
       }
     if (logger.isVerbose) {
-      if (logger.isVerbose) {
         val inputStr = task.inputs
           .map { inputDef =>
             val value = wdlInputs.get(WdlDxName.fromSourceName(inputDef.name))
@@ -108,7 +107,6 @@ case class WdlTaskExecutor(task: TAT.Task,
           }
           .mkString("\n  ")
         logger.traceLimited(s"WDL inputs:\n  ${inputStr}")
-      }
     }
     wdlInputs
   }
