@@ -3,6 +3,7 @@
 ## in develop
 
 * Handles empty scatters in WDL workflows
+* Reserved parameters are now placed in the "Reserved for dxCompiler" parameter group (only affects the display of the app/workflow in the UI)
 * Enables other metadata (title, description, version, etc) to be set via extras.json
 * When using manifests, passes any expression values from the helper applet to the called applet workflow so they are added to the output manifest
 * Where applet calls executables, adds executables to bundledDepends to support cloning of workflows
