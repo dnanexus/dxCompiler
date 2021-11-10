@@ -168,12 +168,16 @@ case class WorkflowCompiler(separateOutputs: Boolean,
       defaultTags: Set[String],
       extendedDescription: Option[String]
   ): (Map[String, JsValue], Map[String, JsValue]) = {
-    val (commonMeta, commonDetails) =
-      callableAttributesToNative(
-          callable = workflow,
-          defaultTags = defaultTags,
-          extendedDescription = extendedDescription
-      )
+    // Default attributes from extras
+    val defaultMeta = extras
+      .flatMap(_.defaultWorkflowDxAttributes)
+      .map(_.getMetaJson)
+      .getOrElse(Map.empty[String, JsValue])
+    val (commonMeta, commonDetails) = callableAttributesToNative(
+        callable = workflow,
+        defaultTags = defaultTags,
+        extendedDescription = extendedDescription
+    )
     val workflowMeta = workflow.attributes.collect {
       case VersionAttribute(text) => "version" -> JsString(text)
       // These will be implemented in a future PR
@@ -182,7 +186,11 @@ case class WorkflowCompiler(separateOutputs: Boolean,
       case _: RunOnSingleNodeAttribute =>
         throw new NotImplementedError()
     }
-    (commonMeta ++ workflowMeta, commonDetails)
+    val workflowSpecificMeta = extras
+      .flatMap(_.perWorkflowDxAttributes.flatMap(_.get(workflow.name)))
+      .map(_.getMetaJson)
+      .getOrElse(Map.empty[String, JsValue])
+    (defaultMeta ++ commonMeta ++ workflowMeta ++ workflowSpecificMeta, commonDetails)
   }
 
   // Summarize reportable dependencies from details of a workflow

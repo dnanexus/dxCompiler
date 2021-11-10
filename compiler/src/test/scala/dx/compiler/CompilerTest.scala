@@ -531,7 +531,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     }
     desc.developerNotes shouldBe Some("Check out my sick bash expression! Three dolla signs!!!")
     desc.properties match {
-      case Some(m) => m shouldBe Map("foo" -> "bar")
+      case Some(m) => m shouldBe Map("baz" -> "blorf")
       case _       => throw new Exception("No properties")
     }
     desc.summary shouldBe Some("Adds two int together")
