@@ -306,6 +306,21 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         }
       }
 
+      def lookupExpr(expr: TAT.Expr, calleeParam: Parameter, env: CallEnv): StageInput = {
+        expr match {
+          case TAT.ExprIdentifier(id, _) => lookup(WdlDxName.fromSourceName(id))
+          case TAT.ExprGetName(TAT.ExprIdentifier(id, _), field, _) =>
+            lookup(WdlDxName.fromSourceName(field, Some(id)))
+          case _ =>
+            env.log()
+            throw new Exception(
+                s"""|value of input <${calleeParam.name}, ${calleeParam.dxType}> to call <${callFqn}>
+                    |cannot be statically evaluated from expression ${expr}.""".stripMargin
+                  .replaceAll("\n", " ")
+            )
+        }
+      }
+
       callInputExpr match {
         case None if isOptional(calleeParam.dxType) =>
           // optional argument that is not provided
@@ -324,9 +339,9 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           // Perhaps the callee is not going to use the argument, so wait until
           // runtime to determine whether to fail.
           StageInputEmpty
+        case Some(expr: TAT.ExprIdentifier) => lookupExpr(expr, calleeParam, env)
         case Some(expr) =>
           try {
-            // try to evaluate the expression using the constant values from the env
             val paramWdlType = WdlUtils.fromIRType(calleeParam.dxType, typeAliases)
             val bindings = WdlValueBindings(env.staticValues.map {
               case (dxName, (dxType, value)) =>
@@ -339,19 +354,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           } catch {
             case _: EvalException =>
               // if the expression is an identifier, look it up in the env
-              expr match {
-                case TAT.ExprIdentifier(id, _) =>
-                  lookup(WdlDxName.fromSourceName(id))
-                case TAT.ExprGetName(TAT.ExprIdentifier(id, _), field, _) =>
-                  lookup(WdlDxName.fromSourceName(field, Some(id)))
-                case _ =>
-                  env.log()
-                  throw new Exception(
-                      s"""|value of input <${calleeParam.name}, ${calleeParam.dxType}> to call <${callFqn}>
-                          |cannot be statically evaluated from expression ${expr}.""".stripMargin
-                        .replaceAll("\n", " ")
-                  )
-              }
+              lookupExpr(expr, calleeParam, env)
           }
       }
     }
