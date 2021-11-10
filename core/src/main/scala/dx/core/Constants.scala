@@ -89,7 +89,7 @@ object Constants {
   val VersionPropertyDeprecated = "dxCompiler_version"
 
   // Limits imposed on native apps.
-  val JobsPerScatterLimit = 1000
+  val JobsPerScatterLimit = 2000
   val JobPerScatterDefault = 500
 
   /**
