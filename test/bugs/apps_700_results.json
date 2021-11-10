@@ -1,0 +1,7 @@
+{
+  "apps_700.string_result": "string_given",
+  "apps_700.integer_result": 1000,
+  "apps_700.integer_result_not_default" : 10000,
+  "apps_700.boolean_result": false
+}
+
