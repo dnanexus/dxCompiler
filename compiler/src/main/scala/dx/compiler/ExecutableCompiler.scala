@@ -30,7 +30,7 @@ import spray.json._
 
 object ExecutableCompiler {
   // these parameters are used for applets and workflows that are generated with useManifests=true.
-  val ReservedParameterAttributes = Vector(GroupAttribute("Reserved"))
+  val ReservedParameterAttributes = Vector(GroupAttribute("Reserved for dxCompiler"))
   val InputManifestParameter: Parameter =
     Parameter(Constants.InputManifest, Type.TOptional(Type.THash))
   val InputManfestFilesParameter: Parameter =
@@ -59,6 +59,7 @@ object ExecutableCompiler {
               attributes = ReservedParameterAttributes)
   val OutputManifestParameter: Parameter =
     Parameter(Constants.OutputManifest, Type.TFile)
+  // allows requirements and hints to be specified at runtime and override compile-time values
   val OverridesParameter: Parameter =
     Parameter(Constants.Overrides,
               Type.TOptional(Type.THash),

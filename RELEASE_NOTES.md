@@ -3,7 +3,7 @@
 ## in develop
 
 * Handles empty scatters in WDL workflows
-* Reserved parameters are now placed in the "Reserved" parameter group (only affects the display of the app/workflow in the UI)
+* Reserved parameters are now placed in the "Reserved for dxCompiler" parameter group (only affects the display of the app/workflow in the UI)
 
 ## 2.6.0 2021-10-11
 
