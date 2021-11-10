@@ -1188,6 +1188,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         Constants.WorkflowInputLinks,
         Constants.WorkflowInputLinks.addSuffix(Constants.FlatFilesSuffix),
         Constants.OutputId,
+        Constants.ExtraOutputs,
+        Constants.ExtraOutputs.addSuffix(Constants.FlatFilesSuffix),
         Constants.CallName,
         Constants.Overrides,
         Constants.Overrides.addSuffix(Constants.FlatFilesSuffix)
@@ -1203,6 +1205,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     input(Constants.WorkflowInputLinks.encoded).ioClass shouldBe DxIOClass.Hash
     input(Constants.WorkflowInputLinks.encoded).optional shouldBe true
     input(Constants.OutputId.encoded).ioClass shouldBe DxIOClass.String
+    input(Constants.ExtraOutputs.encoded).ioClass shouldBe DxIOClass.Hash
+    input(Constants.ExtraOutputs.encoded).optional shouldBe true
     input(Constants.CallName.encoded).ioClass shouldBe DxIOClass.String
     input(Constants.CallName.encoded).optional shouldBe true
 

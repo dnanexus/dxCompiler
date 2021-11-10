@@ -54,8 +54,18 @@ object Assumptions {
   }
 
   lazy val cwltoolCallable: Boolean = {
-    val (retcode, stdout, _) = SysUtils.execCommand("cwltool --version", exceptionOnFailure = false)
+    val (retcode, stdout, stderr) =
+      SysUtils.execCommand("cwltool --version", exceptionOnFailure = false)
     // TODO: pull the min cwl version from the bundled_dependencies.json file
-    retcode == 0 && stdout.trim.split('.').last.toLong >= 20210628163208L
+    if (retcode != 0) {
+      throw new Exception(
+          f"cwltool --version failed with return code ${retcode}\nstdout:\n${stdout}\nstderr:\n${stderr}"
+      )
+    }
+    val installedVersion = stdout.trim.split('.').last.toLong
+    if (installedVersion < 20210628163208L) {
+      throw new Exception(f"wrong cwltool version installed ${installedVersion}")
+    }
+    true
   }
 }

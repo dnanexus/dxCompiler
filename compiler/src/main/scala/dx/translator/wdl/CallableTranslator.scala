@@ -943,7 +943,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       )
       val (stages, auxCallables) = (commonStageInfo ++ backboneStageInfo).unzip
 
-      // We need a common output stage for any of three reasons:
+      // We need a common output stage for any of several reasons:
       // 1. we need to build an output manifest
       val useOutputStage = useManifests || {
         // 2. any output expressions cannot be resolved without by linking to
