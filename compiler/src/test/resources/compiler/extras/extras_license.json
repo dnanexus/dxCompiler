@@ -10,6 +10,9 @@
   },
   "per_task_dx_attributes" : {
     "add": {
+      "properties": {
+        "baz": "blorf"
+      },
       "details": {
         "upstreamProjects": [
           {
