@@ -43,33 +43,45 @@ Make sure you've installed the dx-toolkit CLI, and initialized it with `dx login
 
 To compile a workflow:
 ```console
-$ java -jar dxCompiler-xxx.jar compile /path/to/foo.wdl -project project-xxxx
+$ java -jar dxCompiler-xxx.jar compile /path/to/foo.wdl -project project-xxxx -folder /my/workflows/
 ```
-This compiles `foo.wdl` to platform workflow `foo` in dx's current project and folder. The generated workflow can then be run as usual using `dx run`. For example, if the workflow takes string argument `X`, then: ``` dx run foo -i0.X="hello world" ```
+This compiles `foo.wdl` to platform workflow `foo` in specified dx's project and folder (defaults to currently selected project and '/'). The generated workflow can then be run as usual using `dx run`. For example, if the workflow takes string argument `X`, then: ``` dx run foo -i0.X="hello world" ```
 
 Compilation can be controled with several parameters.
 
 | Option   |  Description |
 | ------   | ------------ |
-| archive  | Archive older versions of applets and workflows |
-| defaults | A file with default parameter settings. The syntax is Cromwell style. |
-| destination | Set the output folder on the platform |
-| execTree | Prints a JSON or text representation of the compiled workflow |
-| extras   | JSON formatted file with additional options |
-| force    | Overwrite existing applets/workflows if they have changed |
-| inputs   | A cromwell style inputs file |
-| imports  | Directory to search for imported WDL files |
-| locked   | Create a locked-down workflow |
+| archive  | Archive older versions of applets.|
+| compileMode \<string\> | Compilation mode - a debugging flag for internal use.|
+| defaults \<string\> | JSON file with standard-formatted default values. |
+| defaultInstanceType \<string\> | The default instance type to use for "helper" applets that perform runtime evaluation of instance type requirements. This instance type is also used when the '-instanceTypeSelection dynamic' option is set. This value is overriden by any defaults set in extras. |
+| destination \<string\> | Full platform path (project:/folder) |
+| execTree \[json,pretty\] | Print a JSON representation of the workflow. |
+| extras \<string\> | JSON file with extra options (see documentation). |
+| inputs \<string\> | JSON file with standard-formatted input values. May be specified multiple times. A DNAnexus JSON input file is generated for each standard input file. |
+| instanceTypeSelection \[static,dynamic\] |  Whether to attempt to select instance types at compile time or tasks with runtime requirements that can all be statically valuated (static, the default), or to defer all instance type election to runtime (dynamic). Using static instance type election can save time and cost, but it requires the user(s) unning the applet/workflow to have access to the same instance ypes as the user who compiled it.
+| imports \<string\> | Directory to search for imported WDL files. May be specified multiple times. |
+| locked   | Create a locked workflow. When running a locked workflow, input values may only be specified for the top-level workflow. |
+| leaveWorkflowsOpen | Leave created workflows open (otherwise they are closed). |
 | noListings | CWL-specific option to prevent full folder listings in generated input files |
 | projectWideReuse | Look for existing applets/workflows in the entire project before generating new ones. The default search scope is the target folder only. |
-| reorg    | Move workflow intermediate results into a separate subdirectory |
+| reorg    | Reorganize workflow output files. |
+| runtimeDebugLevel \[0,1,2\] | How much debug information to write to the job log at runtime. Log the minimum (0), intermediate (1, the default), or all debug information (2, for internal debugging).
 | separateOutputs | Store the output files of each call in a separate folder. The default behavior is to put all outputs in the same folder. |
-| streamFiles | Whether to mount all files with dxfuse (do not use the download agent), to mount no files with dxfuse (only use download agent), or to respect the per-file settings in WDL parameter_meta sections (default). |
-| useManifests | Use [manifests](#manifests) files for all workflow and applet inputs and  outputs. Implies -locked. |
+| streamFiles \[all,none,perfile\]| Whether to mount all files with dxfuse (do not use the download agent), to mount no files with dxfuse (only use download agent), or to respect the per-file settings in WDL parameter_meta sections (default). |
+| useManifests | Use [manifests](#manifests) files for all workflow and applet inputs and outputs. Implies -locked. |
 | waitOnUpload | Whether to wait for each file upload to complete. |
-| verbose  | Print detailed progress information |
-| leaveWorkflowsOpen | Keep compiled workflow in `open` state |
 
+The following common options can also be specified when compiling a workflow.
+| Options | Description |
+| ------- | ----------- |
+| folder \<string> | Platform folder (defaults to '/'). |
+| project \<string\> | Platform project (defaults to currently selected project).
+| language \<string\> \[ver\] | Which language to use? May be WDL or CWL. You can optionally specify a version. Currently, WDL draft-2, 1.0, and 1.1 are fully supported and WDL development and CWL 1.2 are partially supported. The default is to auto-detect the language from the source file.
+| quiet | Do not print warnings or informational outputs.
+| verbose | Print detailed logging.
+| verboseKey \<module\> | Print verbose output only for a specific module. May be specified multiple times.
+| logFile \<path\> | File to use for logging output; defaults to stderr.
 ### Inputs
 
 The `-inputs` option allows specifying a Cromwell JSON [format](https://software.broadinstitute.org/wdl/documentation/inputs.php) inputs file. An equivalent DNAnexus format inputs file is generated from it. For example, workflow [files](https://github.com/dnanexus/dxCompiler/blob/main/test/draft2/files.wdl) has input file
@@ -88,7 +100,7 @@ Note that the project ID should always be specified in dx URIs. This will speed 
 The command
 
 ```console
-java -jar dxCompiler-2.0.0.jar compile test/files.wdl -project project-xxxx -inputs test/files_input.json
+java -jar dxCompiler-xxx.jar compile test/files.wdl -project project-xxxx -inputs test/files_input.json
 ```
 
 generates a `test/files_input.dx.json` file that looks like this:
@@ -228,7 +240,7 @@ which, when passed to dxCompiler using the `-input` option, is transformed into 
 }
 ```
 
-The WDL specification states that a `Directory` input is to be treated as a snapshot of the directory at the time the job is executed. To enforce this behavior, at the start of the job the full (recursive) listing of the directory is retrieved, and only those files/subfolders are localized to the worker. This means that if a file is added to or removed from the directory in the DNAnexus project while the job is running, that change is not refleted in the local copy on the worker. However, if the same directory is used in multiple jobs, there is (currently) no way to guarantee that the contents are the same between workers. We strongly recommend to enact policies and practices to prevent modification of folders that will be used as input to compiled WDL workflows.
+The WDL specification states that a `Directory` input is to be treated as a snapshot of the directory at the time the job is executed. To enforce this behavior, at the start of the job the full (recursive) listing of the directory is retrieved, and only those files/subfolders are localized to the worker. This means that if a file is added to or removed from the directory in the DNAnexus project while the job is running, that change is not reflected in the local copy on the worker. However, if the same directory is used in multiple jobs, there is (currently) no way to guarantee that the contents are the same between workers. We strongly recommend to enact policies and practices to prevent modification of folders that will be used as input to compiled WDL workflows.
 
 A second important caveat, which results from the fact that folders are not treated as first-class objects by DNAnexus, is that, if [job reuse](#job-reuse) is enabled, a job that is run with the same folder input as a previous job (and all other inputs the same) will reuse the previous job outputs regardless of whether the contents of the folder have changed. There are two possible solutions:
 
@@ -357,7 +369,7 @@ and compiles them as defaults into the workflow. If the `files.wdl` worklow is c
 `-defaults` instead of `-inputs`
 
 ```console
-$ java -jar dxCompiler-2.0.0.jar compile test/files.wdl -project project-xxxx -defaults test/files_input.json
+$ java -jar dxCompiler-xxx.jar compile test/files.wdl -project project-xxxx -defaults test/files_input.json
 ```
 
 It can be run without parameters, for an equivalent execution.
@@ -385,7 +397,7 @@ Then adding it to the compilation command line will add the `atac-seq` docker im
 tasks by default.
 
 ```console
-$ java -jar dxCompiler-2.0.0.jar compile test/files.wdl -project project-xxxx -defaults test/files_input.json -extras extraOptions.json
+$ java -jar dxCompiler-xxx.jar compile test/files.wdl -project project-xxxx -defaults test/files_input.json -extras extraOptions.json
 ```
 
 ## Describe WDL workflow to obtain execution tree
@@ -397,13 +409,13 @@ To obtain execution tree from a dxCompiler compiled workflow:
 1. JSON - [example](./examples/four_levels.exectree.json)
 
 ```bash
-java -jar dxCompiler-2.0.0.jar describe <workflow_id> 
+java -jar dxCompiler-xxx.jar describe <workflow_id> 
 ```
 
 2. prettyPrint - [example](./examples/four_levels.exectree.pretty.txt)
 
 ```bash
-java -jar dxCompiler-2.0.0.jar describe <workflow_id> -pretty 
+java -jar dxCompiler-xxx.jar describe <workflow_id> -pretty 
 ```
    
 # Extensions
@@ -435,7 +447,7 @@ runtime {
 ## Streaming
 
 Normally, a file used in a task is downloaded to the instance, and
-then used locally (*locallized*). If the file only needs to be
+then used locally (*localized*). If the file only needs to be
 examined once in sequential order, then this can be optimized by
 streaming instead. The Unix `cat`, `wc`, and `head` commands are of
 this nature. To specify that a file is to be streamed, mark it as such
@@ -591,7 +603,7 @@ The following keys are also recognized but currently unused, as they only apply 
 Sometimes, it is desirable to call an existing dx:applet from a WDL workflow. For example, when porting a native workflow, we can leave the applets as is, without rewriting them in WDL. The `dxni` subcommand, short for *Dx Native Interface*, is dedicated to this use case. It searchs a platform folder and generates a WDL wrapper task for each applet. For example, the command:
 
 ```console
-$ java -jar dxCompiler.jar dxni --project project-xxxx --folder /A/B/C --output dx_extern.wdl
+$ java -jar dxCompiler-xxx.jar dxni -project project-xxxx -folder /A/B/C --output dx_extern.wdl
 ```
 
 will find native applets in the `/A/B/C` folder, generate tasks for
@@ -623,8 +635,10 @@ The WDL definition file will be:
 
 ```wdl
 task concat {
-  String a
-  String b
+  input {
+    String a
+    String b
+  }
   command {}
   output {
     String c = ""
@@ -1340,7 +1354,7 @@ as an argument. For example, if `taskAttrs.json` is this file:
 Then adding it to the compilation command line will add the `atac-seq` docker image to all tasks by default.
 
 ```console
-$ java -jar dxCompiler-2.0.0.jar compile files.wdl -project project-xxxx -defaults files_input.json -extras taskAttrs.json
+$ java -jar dxCompiler-xxx.jar compile files.wdl -project project-xxxx -defaults files_input.json -extras taskAttrs.json
 ```
 
 ## Private registries
