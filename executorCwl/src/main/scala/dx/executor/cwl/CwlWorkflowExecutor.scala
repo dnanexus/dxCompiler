@@ -453,8 +453,8 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
         launchJob(executableLink,
                   step.name,
                   callInputsIR,
-                  nameDetail,
-                  instanceType.map(_.name),
+                  nameDetail = nameDetail,
+                  instanceType = instanceType.map(_.name),
                   folder = folder,
                   prefixOutputs = true)
       (dxExecution, executableLink, execName)
@@ -690,7 +690,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
     override protected def getScatterOutputs(
         execOutputs: Vector[Option[Map[DxName, JsValue]]],
         execName: Option[String]
-    ): Map[DxName, (Type, Value)] = {
+    ): (Map[DxName, (Type, Value)], Option[Map[DxName, (Type, Value)]]) = {
       @tailrec
       def nestArrayTypes(itemType: Type, depth: Int): Type = {
         if (depth > 0) {
@@ -715,7 +715,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
       val targetOutputs = step.run.outputs.map { param =>
         CwlDxName.fromSourceName(param.name) -> param.cwlType
       }.toMap
-      step.outputs.map { out =>
+      val scatterOutputs = step.outputs.map { out =>
         val dxName = CwlDxName.fromSourceName(out.name)
         val itemType = if (step.when.nonEmpty) {
           CwlUtils.toIRType(CwlOptional.ensureOptional(targetOutputs(dxName)))
@@ -736,6 +736,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
           .getOrElse((TArray(itemType), flatArrayValue))
         dxName.pushDecodedNamespace(step.name) -> (arrayType, arrayValue)
       }.toMap
+      (scatterOutputs, None)
     }
   }
 
