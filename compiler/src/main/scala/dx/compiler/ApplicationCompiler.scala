@@ -461,6 +461,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
           ExecutableCompiler.WorkflowInputManfestFilesParameter,
           ExecutableCompiler.WorkflowInputLinksParameter,
           ExecutableCompiler.OutputIdParameter,
+          ExecutableCompiler.ExtraOutputsParameter,
           ExecutableCompiler.CallNameParameter,
           ExecutableCompiler.OverridesParameter
       )
