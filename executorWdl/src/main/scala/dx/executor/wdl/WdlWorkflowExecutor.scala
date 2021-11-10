@@ -24,7 +24,7 @@ import dx.core.languages.wdl.{
 import dx.executor.{JobMeta, WorkflowExecutor}
 import dx.util.{DefaultBindings, FileNode, Logger, TraceLevel}
 import spray.json.JsValue
-import wdlTools.eval.{Eval, EvalUtils, Meta, WdlValueBindings}
+import wdlTools.eval.{Eval, EvalUtils, WdlValueBindings}
 import wdlTools.eval.WdlValues._
 import wdlTools.exec.{InputOutput, TaskInputOutput}
 import wdlTools.types.{TypeUtils, TypedAbstractSyntax => TAT}
@@ -412,11 +412,14 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       val executableLink = getExecutableLink(call.callee.name)
       val callInputsIR = WdlUtils.toIR(callInputs)
       val instanceType = tasks.get(call.callee.name).flatMap { task =>
-        val meta: Meta = Meta.create(versionSupport.version, task.meta)
-        val isNative = meta.get("type", Vector(T_Boolean)) match {
-          case Some(V_Boolean(b)) => b
-          case _                  => false
-        }
+        val isNative = task.meta.exists(_.kvs.get("type") match {
+          case Some(TAT.MetaValueString("native", _)) => true
+          case _                                      => false
+        }) || task.runtime.exists(_.kvs.contains("dx_app")) || task.hints
+          .exists(_.kvs.get("dnanexus") match {
+            case Some(TAT.MetaValueObject(fields)) => fields.contains("app")
+            case _                                 => false
+          })
         if (isNative) {
           None
         } else {
