@@ -11,6 +11,7 @@ import dx.translator.ExtrasJsonProtocol._
 import dx.util.{CodecUtils, FileSourceResolver, Logger}
 import spray.json._
 import wdlTools.generators.Renderer
+
 import scala.util.{Failure, Success, Try}
 
 object ApplicationCompiler {
@@ -197,10 +198,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       )
     // Start with the default dx-attribute section, and override
     // any field that is specified in the runtime hints or the individual task section.
-    val extrasOverrides = extras.flatMap(_.defaultTaskDxAttributes) match {
-      case Some(dta) => dta.getApiRunSpecJson
-      case None      => Map.empty
-    }
+    val extrasOverrides =
+      extras.flatMap(_.defaultTaskDxAttributes).map(_.getApiRunSpecJson).getOrElse(Map.empty)
     // runtime hints in the task override defaults from extras
     val taskOverrides: Map[String, JsValue] = applet.requirements.collect {
       case RestartRequirement(maxRestarts, default, errors) =>
@@ -225,7 +224,6 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         }
       case _ => Map.empty
     }
-
     // Add platform Docker image dependency to bundledDepends
     val bundledDependsDocker: Option[JsValue] = applet.container match {
       case DxFileDockerImage(_, dxfile) => {
@@ -277,16 +275,19 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       }
 
     val runSpec = JsObject(
-        runSpecRequired ++ defaultTimeout ++ extrasOverrides ++ taskOverrides ++ taskSpecificOverrides ++ bundledDepends
+        runSpecRequired ++
+          defaultTimeout ++
+          extrasOverrides ++
+          taskOverrides ++
+          taskSpecificOverrides ++
+          bundledDepends
     )
-
     // Add hard-coded instance type info to details
     val instanceTypeDetails: Map[String, JsValue] = applet.instanceType match {
       case StaticInstanceType(Some(staticInstanceType), _, _, _, _, _, _, _, _, _) =>
         Map(Constants.StaticInstanceType -> JsString(staticInstanceType))
       case _ => Map.empty
     }
-
     // Add Docker image info to details
     val dockerImageDetails: Map[String, JsValue] = applet.container match {
       case DxFileDockerImage(_, dxfile) => Map(Constants.DockerImage -> dxfile.asJson)
@@ -294,37 +295,50 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       case DynamicDockerImage           => Map(Constants.DynamicDockerImage -> JsBoolean(true))
       case NoImage                      => Map.empty
     }
-
     (runSpec, instanceTypeDetails ++ dockerImageDetails)
   }
 
-  // Convert the applet meta to JSON, and overlay details from task-specific extras
+  // Convert the applet meta to JSON, and overlay details from default and task-specific extras
   private def applicationAttributesToNative(
       applet: Application,
       defaultTags: Set[String],
       extendedDescription: Option[String]
   ): (Map[String, JsValue], Map[String, JsValue]) = {
+    // Default attributes from extras
+    val (defaultMeta, defaultDetails) =
+      extras
+        .flatMap(_.defaultTaskDxAttributes)
+        .map { attr =>
+          (attr.getMetaJson, attr.getDetailsJson)
+        }
+        .getOrElse((Map.empty[String, JsValue], Map.empty[String, JsValue]))
+    // Attributes specified in WDL meta section
     val (commonMeta, commonDetails) = callableAttributesToNative(
         callable = applet,
         defaultTags = defaultTags,
         extendedDescription = extendedDescription
     )
     val applicationMeta = applet.attributes.collect {
-      case DeveloperNotesAttribute(text) => "developerNotes" -> JsString(text)
-      case VersionAttribute(text)        => "version" -> JsString(text)
-      case OpenSourceAttribute(isOpenSource) =>
-        "openSource" -> JsBoolean(isOpenSource)
-      case CategoriesAttribute(categories) =>
-        "categories" -> JsArray(categories.map(JsString(_)))
+      case DeveloperNotesAttribute(text)     => "developerNotes" -> JsString(text)
+      case VersionAttribute(text)            => "version" -> JsString(text)
+      case OpenSourceAttribute(isOpenSource) => "openSource" -> JsBoolean(isOpenSource)
+      case CategoriesAttribute(categories)   => "categories" -> JsArray(categories.map(JsString(_)))
     }
-    // Default details and those specified in the source file can be overridden
-    // by task-specific extras
-    val taskSpecificDetails = (applet.kind match {
-      case ExecutableKindApplet =>
-        extras.flatMap(_.perTaskDxAttributes.flatMap(_.get(applet.name)).map(_.getDetailsJson))
-      case _ => None
-    }).getOrElse(Map.empty)
-    (commonMeta ++ applicationMeta, commonDetails ++ taskSpecificDetails)
+    // Defaults and those specified in WDL meta can be overridden by task-specific extras
+    val (taskSpecificMeta, taskSpecificDetails) = Option
+      .when(applet.kind == ExecutableKindApplet) {
+        extras
+          .flatMap(
+              _.perTaskDxAttributes.flatMap(_.get(applet.name))
+          )
+          .map { attr =>
+            (attr.getMetaJson, attr.getDetailsJson)
+          }
+      }
+      .flatten
+      .getOrElse((Map.empty[String, JsValue], Map.empty[String, JsValue]))
+    (defaultMeta ++ commonMeta ++ applicationMeta ++ taskSpecificMeta,
+     defaultDetails ++ commonDetails ++ taskSpecificDetails)
   }
 
   // TODO: Use templates for Markdown dependency report
@@ -437,8 +451,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       executableDict: Map[String, ExecutableLink]
   ): Map[String, JsValue] = {
     logger.trace(s"Building /applet/new request for ${applet.name}")
-    // convert inputs and outputs to dxapp inputSpec
-    // automatically add requirements and hints parameters
+    // convert inputs and outputs to dxapp inputSpec, automatically add requirements/hints parameters
     val inputParams = if (useManifests) {
       Vector(
           ExecutableCompiler.InputManifestParameter,
@@ -469,7 +482,6 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
             )
         }
       }
-
     // Collect file dependencies from inputs & private variables
     val fileDependencies = (
         applet.inputs
@@ -481,7 +493,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
           Map(Constants.FileDependencies -> JsArray(fileDependencies.map(s => JsString(s))))
       )
       .getOrElse(Map.empty)
-
+    // convert outputs to outputSpec
     val outputParams = if (useManifests) {
       Vector(Parameter(Constants.OutputManifest, Type.TFile))
     } else {
@@ -500,7 +512,6 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
             )
         }
       }
-
     // build the dxapp runSpec
     val (runSpec, runSpecDetails) = createRunSpec(applet, executableDict)
     // A fragment is hidden, not visible under default settings. This
@@ -526,7 +537,6 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     }.unzip
     // build the details JSON
     val defaultTags = Set(Constants.CompilerTag)
-
     // Build extended description with dependency report
     val extendedDescription = summarizeReportableDependencies(
         fileDependencies = fileDependencies,
@@ -534,7 +544,6 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     )
     val (taskMeta, taskDetails) =
       applicationAttributesToNative(applet, defaultTags, extendedDescription)
-
     val delayDetails = delayWorkspaceDestructionToNative
     // meta information used for running workflow fragments
     val metaDetails: Map[String, JsValue] =
@@ -596,7 +605,12 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     ).flatten.toMap
     // combine all details into a single Map
     val details: Map[String, JsValue] =
-      taskDetails ++ runSpecDetails ++ delayDetails ++ dxLinks.toMap ++ metaDetails ++ auxDetails ++
+      taskDetails ++
+        runSpecDetails ++
+        delayDetails ++
+        dxLinks.toMap ++
+        metaDetails ++
+        auxDetails ++
         fileDependenciesDetails
     // build the API request
     val requestRequired = Map(
