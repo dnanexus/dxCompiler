@@ -29,43 +29,90 @@ import dx.util.FileSourceResolver
 import spray.json._
 
 object ExecutableCompiler {
-  // these parameters are used for applets and workflows that are generated with useManifests=true.
-  val ReservedParameterAttributes = Vector(GroupAttribute("Reserved for dxCompiler"))
+  // Parameters used for applets and workflows that are generated with useManifests=true.
+
+  /**
+    * Parameter for the input manifest specified as a hash.
+    */
   val InputManifestParameter: Parameter =
     Parameter(Constants.InputManifest, Type.TOptional(Type.THash))
+
+  /**
+    * Parameter for the input manifest specified as a file.
+    */
   val InputManfestFilesParameter: Parameter =
     Parameter(Constants.InputManifestFiles, Type.TArray(Type.TFile))
+
+  // group for reserved input parameters
+  private val ReservedParameterAttributes = Vector(GroupAttribute("Reserved for dxCompiler"))
+
+  /**
+    * Parameter for the manifest linking object.
+    */
   val InputLinksParameter: Parameter =
     Parameter(Constants.InputLinks,
               Type.TOptional(Type.THash),
               attributes = ReservedParameterAttributes)
+
+  /**
+    * Parameter for workflow manifest object passed to an app.
+    */
   val WorkflowInputManifestParameter: Parameter =
     Parameter(Constants.WorkflowInputManifest,
               Type.TOptional(Type.THash),
               attributes = ReservedParameterAttributes)
+
+  /**
+    * Parameter for workflow manifest files passed to an app.
+    */
   val WorkflowInputManfestFilesParameter: Parameter =
     Parameter(Constants.WorkflowInputManifestFiles,
               Type.TArray(Type.TFile),
               attributes = ReservedParameterAttributes)
+
+  /**
+    * Parameter for the workflow manifest linking object.
+    */
   val WorkflowInputLinksParameter: Parameter =
     Parameter(Constants.WorkflowInputLinks,
               Type.TOptional(Type.THash),
               attributes = ReservedParameterAttributes)
+
+  /**
+    * Parameter for the output ID to add to the manifest.
+    */
   val OutputIdParameter: Parameter =
-    Parameter(Constants.OutputId, Type.TString)
+    Parameter(Constants.OutputId, Type.TString, attributes = ReservedParameterAttributes)
+
+  /**
+    * Parameter for extra outputs that need to be merged into the output manifest.
+    */
   val ExtraOutputsParameter: Parameter =
-    Parameter(Constants.ExtraOutputs, Type.TOptional(Type.THash))
+    Parameter(Constants.ExtraOutputs,
+              Type.TOptional(Type.THash),
+              attributes = ReservedParameterAttributes)
+
+  /**
+    * Parameter for the call name that may be needed as a prefix when resolving variables in the manifest.
+    */
   val CallNameParameter: Parameter =
     Parameter(Constants.CallName,
               Type.TOptional(Type.TString),
               attributes = ReservedParameterAttributes)
-  val OutputManifestParameter: Parameter =
-    Parameter(Constants.OutputManifest, Type.TFile)
-  // allows requirements and hints to be specified at runtime and override compile-time values
+
+  /**
+    * Parameter for requirements and hints to be specified at runtime and override compile-time values.
+    */
   val OverridesParameter: Parameter =
     Parameter(Constants.Overrides,
               Type.TOptional(Type.THash),
               attributes = ReservedParameterAttributes)
+
+  /**
+    * Parameter for the output manifest file.
+    */
+  val OutputManifestParameter: Parameter =
+    Parameter(Constants.OutputManifest, Type.TFile)
 }
 
 class ExecutableCompiler(extras: Option[Extras],
