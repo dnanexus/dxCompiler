@@ -142,6 +142,7 @@ case class RuntimeTranslator(wdlVersion: WdlVersion,
       }
   }
 
+  // TODO don't evaluate statically
   def translateInstanceType(
       resolution: InstanceTypeSelection.InstanceTypeSelection
   ): InstanceType = {

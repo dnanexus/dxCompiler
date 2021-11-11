@@ -105,20 +105,18 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     }
   }
 
-  it should "compile a task with dynamic instance type selection" in {
-    def compile(instanceTypeSelection: String): Map[String, JsValue] = {
-      val path = pathFromBasename("compiler", "add.wdl")
-      val args = path.toString :: "-instanceTypeSelection" :: instanceTypeSelection :: cFlags
-      val retval = Main.compile(args.toVector)
-      val appletId = retval match {
-        case SuccessfulCompileNativeNoTree(_, Vector(appletId)) => appletId
-        case other =>
-          throw new Exception(s"expected successful compilation of a single applet not ${other}")
-      }
-      dxApi.applet(appletId).describe(Set(Field.Details)).details.get.asJsObject.fields
+  it should "compile with dynamic instance type by default" in {
+    val path = pathFromBasename("compiler", "add.wdl")
+    val args = path.toString :: cFlags
+    val retval = Main.compile(args.toVector)
+    val appletId = retval match {
+      case SuccessfulCompileNativeNoTree(_, Vector(appletId)) => appletId
+      case other =>
+        throw new Exception(s"expected successful compilation of a single applet not ${other}")
     }
-    compile("static") should contain key Constants.InstanceTypeDb
-    compile("dynamic") shouldNot contain key Constants.InstanceTypeDb
+    val appletDetails =
+      dxApi.applet(appletId).describe(Set(Field.Details)).details.get.asJsObject.fields
+    appletDetails shouldNot contain key Constants.InstanceTypeDb
   }
 
   it should "Native compile a linear WDL workflow" taggedAs NativeTest in {

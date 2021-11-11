@@ -30,26 +30,27 @@ object ApplicationCompiler {
   private val AwsRegionKey = "region"
 }
 
-case class ApplicationCompiler(typeAliases: Map[String, Type],
-                               runtimeAsset: Option[JsValue],
-                               runtimeJar: String,
-                               runtimePathConfig: DxWorkerPaths,
-                               runtimeTraceLevel: Int,
-                               separateOutputs: Boolean,
-                               streamFiles: StreamFiles.StreamFiles,
-                               waitOnUpload: Boolean,
-                               extras: Option[Extras],
-                               parameterLinkSerializer: ParameterLinkSerializer,
-                               useManifests: Boolean,
-                               complexPathValues: Boolean,
-                               instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
-                               defaultInstanceType: Option[String],
-                               fileResolver: FileSourceResolver,
-                               dxApi: DxApi = DxApi.get,
-                               logger: Logger = Logger.get,
-                               project: DxProject,
-                               folder: String)
-    extends ExecutableCompiler(extras,
+case class ApplicationCompiler(
+    typeAliases: Map[String, Type],
+    runtimeAsset: Option[JsValue],
+    runtimeJar: String,
+    runtimePathConfig: DxWorkerPaths,
+    runtimeTraceLevel: Int,
+    separateOutputs: Boolean,
+    streamFiles: StreamFiles.StreamFiles,
+    waitOnUpload: Boolean,
+    extras: Option[Extras],
+    parameterLinkSerializer: ParameterLinkSerializer,
+    useManifests: Boolean,
+    complexPathValues: Boolean,
+    instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection, // TODO remove
+    defaultInstanceType: Option[String],
+    fileResolver: FileSourceResolver,
+    dxApi: DxApi = DxApi.get,
+    logger: Logger = Logger.get,
+    project: DxProject,
+    folder: String
+) extends ExecutableCompiler(extras,
                                parameterLinkSerializer,
                                complexPathValues,
                                fileResolver,
@@ -588,6 +589,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     // compress and base64 encode the instance types, unless we specify that we want to
     // resolve them at runtime, which requires that the user running the applet has
     // permission to describe the project it is running in
+    // TODO stop caching instance type DB
     val dbEncoded = Option.when(instanceTypeSelection == InstanceTypeSelection.Static) {
       CodecUtils.gzipAndBase64Encode(instanceTypeDb.toJson.prettyPrint)
     }

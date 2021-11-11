@@ -120,20 +120,21 @@ case class WdlInputTranslator(bundle: Bundle,
   * TODO: remove limitation that two callables cannot have the same name
   * TODO: rewrite sortByDependencies using a graph data structure
   */
-case class WdlTranslator(doc: TAT.Document,
-                         typeAliases: Map[String, WdlTypes.T_Struct],
-                         locked: Boolean,
-                         defaultRuntimeAttrs: Map[String, Value],
-                         reorgAttrs: ReorgSettings,
-                         perWorkflowAttrs: Map[String, DxWorkflowAttrs],
-                         defaultScatterChunkSize: Int,
-                         useManifests: Boolean,
-                         instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
-                         versionSupport: VersionSupport,
-                         fileResolver: FileSourceResolver = FileSourceResolver.get,
-                         dxApi: DxApi = DxApi.get,
-                         logger: Logger = Logger.get)
-    extends Translator {
+case class WdlTranslator(
+    doc: TAT.Document,
+    typeAliases: Map[String, WdlTypes.T_Struct],
+    locked: Boolean,
+    defaultRuntimeAttrs: Map[String, Value],
+    reorgAttrs: ReorgSettings,
+    perWorkflowAttrs: Map[String, DxWorkflowAttrs],
+    defaultScatterChunkSize: Int,
+    useManifests: Boolean,
+    instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection, // TODO remove
+    versionSupport: VersionSupport,
+    fileResolver: FileSourceResolver = FileSourceResolver.get,
+    dxApi: DxApi = DxApi.get,
+    logger: Logger = Logger.get
+) extends Translator {
 
   override val runtimeAssetName: String = "dxWDLrt"
 
@@ -199,18 +200,20 @@ case class WdlTranslator(doc: TAT.Document,
 
 case class WdlTranslatorFactory(wdlOptions: WdlOptions = WdlOptions.default)
     extends TranslatorFactory {
-  override def create(sourceFile: Path,
-                      language: Option[Language.Language],
-                      locked: Boolean,
-                      defaultRuntimeAttrs: Map[String, Value],
-                      reorgAttrs: ReorgSettings,
-                      perWorkflowAttrs: Map[String, DxWorkflowAttrs],
-                      defaultScatterChunkSize: Int,
-                      useManifests: Boolean,
-                      instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
-                      fileResolver: FileSourceResolver,
-                      dxApi: DxApi = DxApi.get,
-                      logger: Logger = Logger.get): Option[WdlTranslator] = {
+  override def create(
+      sourceFile: Path,
+      language: Option[Language.Language],
+      locked: Boolean,
+      defaultRuntimeAttrs: Map[String, Value],
+      reorgAttrs: ReorgSettings,
+      perWorkflowAttrs: Map[String, DxWorkflowAttrs],
+      defaultScatterChunkSize: Int,
+      useManifests: Boolean,
+      instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection, // TODO remove
+      fileResolver: FileSourceResolver,
+      dxApi: DxApi = DxApi.get,
+      logger: Logger = Logger.get
+  ): Option[WdlTranslator] = {
     val (doc, typeAliases, versionSupport) =
       try {
         VersionSupport.fromSourceFile(sourceFile, wdlOptions, fileResolver, dxApi, logger)
@@ -234,7 +237,7 @@ case class WdlTranslatorFactory(wdlOptions: WdlOptions = WdlOptions.default)
             perWorkflowAttrs,
             defaultScatterChunkSize,
             useManifests,
-            instanceTypeSelection,
+            instanceTypeSelection, // TODO remove
             versionSupport,
             fileResolver,
             dxApi,

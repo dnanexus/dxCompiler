@@ -130,20 +130,21 @@ case class CwlInputTranslator(bundle: Bundle,
   override protected val lockedWorkflowPrefixOptional: Boolean = true
 }
 
-case class CwlTranslator(process: Process,
-                         sourceFile: Path,
-                         cwlSchemas: Option[JsValue],
-                         locked: Boolean,
-                         defaultRuntimeAttrs: Map[String, Value],
-                         reorgAttrs: ReorgSettings,
-                         perWorkflowAttrs: Map[String, DxWorkflowAttrs],
-                         defaultScatterChunkSize: Int,
-                         useManifests: Boolean,
-                         instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
-                         fileResolver: FileSourceResolver = FileSourceResolver.get,
-                         dxApi: DxApi = DxApi.get,
-                         logger: Logger = Logger.get)
-    extends Translator {
+case class CwlTranslator(
+    process: Process,
+    sourceFile: Path,
+    cwlSchemas: Option[JsValue],
+    locked: Boolean,
+    defaultRuntimeAttrs: Map[String, Value],
+    reorgAttrs: ReorgSettings,
+    perWorkflowAttrs: Map[String, DxWorkflowAttrs],
+    defaultScatterChunkSize: Int,
+    useManifests: Boolean,
+    instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection, // TODO remove
+    fileResolver: FileSourceResolver = FileSourceResolver.get,
+    dxApi: DxApi = DxApi.get,
+    logger: Logger = Logger.get
+) extends Translator {
 
   override val runtimeAssetName: String = "dxCWLrt"
 
@@ -162,7 +163,7 @@ case class CwlTranslator(process: Process,
         perWorkflowAttrs,
         defaultScatterChunkSize,
         useManifests,
-        instanceTypeSelection,
+        instanceTypeSelection, // TODO remove
         dxApi,
         fileResolver,
         logger
@@ -207,18 +208,20 @@ case class CwlTranslator(process: Process,
 }
 
 case class CwlTranslatorFactory() extends TranslatorFactory {
-  override def create(sourceFile: Path,
-                      language: Option[Language],
-                      locked: Boolean,
-                      defaultRuntimeAttrs: Map[String, Value],
-                      reorgAttrs: ReorgSettings,
-                      perWorkflowAttrs: Map[String, DxWorkflowAttrs],
-                      defaultScatterChunkSize: Int,
-                      useManifests: Boolean,
-                      instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
-                      fileResolver: FileSourceResolver,
-                      dxApi: DxApi,
-                      logger: Logger): Option[Translator] = {
+  override def create(
+      sourceFile: Path,
+      language: Option[Language],
+      locked: Boolean,
+      defaultRuntimeAttrs: Map[String, Value],
+      reorgAttrs: ReorgSettings,
+      perWorkflowAttrs: Map[String, DxWorkflowAttrs],
+      defaultScatterChunkSize: Int,
+      useManifests: Boolean,
+      instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection, // TODO remove
+      fileResolver: FileSourceResolver,
+      dxApi: DxApi,
+      logger: Logger
+  ): Option[Translator] = {
     // TODO: we need to require that the source file be "packed" before compiling, because
     //  we cannot include auxiliary files (e.g. a JavaScript or YAML import) with the CWL.
     //  Then we shouldn't use a base URI and instead let parsing errors due to unsatisfied
@@ -274,7 +277,7 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
             perWorkflowAttrs,
             defaultScatterChunkSize,
             useManifests,
-            instanceTypeSelection,
+            instanceTypeSelection, // TODO remove
             fileResolver,
             dxApi,
             logger

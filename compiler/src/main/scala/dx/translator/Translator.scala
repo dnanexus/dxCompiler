@@ -52,25 +52,27 @@ trait TranslatorFactory {
              perWorkflowAttrs: Map[String, DxWorkflowAttrs],
              defaultScatterChunkSize: Int,
              useManifests: Boolean,
-             instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
+             instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection, // TODO remove
              fileResolver: FileSourceResolver,
              dxApi: DxApi = DxApi.get,
              logger: Logger = Logger.get): Option[Translator]
 }
 
 object TranslatorFactory {
-  def createTranslator(source: Path,
-                       language: Option[Language] = None,
-                       wdlOptions: WdlOptions = WdlOptions.default,
-                       extras: Option[Extras] = None,
-                       defaultScatterChunkSize: Int,
-                       locked: Boolean = false,
-                       reorgEnabled: Option[Boolean] = None,
-                       useManifests: Boolean,
-                       instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
-                       baseFileResolver: FileSourceResolver = FileSourceResolver.get,
-                       dxApi: DxApi = DxApi.get,
-                       logger: Logger = Logger.get): Translator = {
+  def createTranslator(
+      source: Path,
+      language: Option[Language] = None,
+      wdlOptions: WdlOptions = WdlOptions.default,
+      extras: Option[Extras] = None,
+      defaultScatterChunkSize: Int,
+      locked: Boolean = false,
+      reorgEnabled: Option[Boolean] = None,
+      useManifests: Boolean,
+      instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection, // TODO remove
+      baseFileResolver: FileSourceResolver = FileSourceResolver.get,
+      dxApi: DxApi = DxApi.get,
+      logger: Logger = Logger.get
+  ): Translator = {
     val sourceAbsPath = FileUtils.absolutePath(source)
     val fileResolver = baseFileResolver.addToLocalSearchPath(Vector(sourceAbsPath.getParent))
     // load defaults from extras
@@ -97,7 +99,7 @@ object TranslatorFactory {
             perWorkflowAttrs,
             defaultScatterChunkSize,
             useManifests,
-            instanceTypeSelection,
+            instanceTypeSelection, // TODO remove
             fileResolver,
             dxApi,
             logger

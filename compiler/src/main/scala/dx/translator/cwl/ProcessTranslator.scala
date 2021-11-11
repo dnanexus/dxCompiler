@@ -79,18 +79,20 @@ case class CwlSourceCode(source: Path) extends SourceCode {
   override def toString: String = FileUtils.readFileContent(source)
 }
 
-case class ProcessTranslator(cwlBundle: CwlBundle,
-                             cwlSchemas: Option[JsValue],
-                             locked: Boolean,
-                             defaultRuntimeAttrs: Map[String, Value],
-                             reorgAttrs: ReorgSettings,
-                             perWorkflowAttrs: Map[String, DxWorkflowAttrs],
-                             defaultScatterChunkSize: Int,
-                             useManifests: Boolean,
-                             instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
-                             dxApi: DxApi = DxApi.get,
-                             fileResolver: FileSourceResolver = FileSourceResolver.get,
-                             logger: Logger = Logger.get) {
+case class ProcessTranslator(
+    cwlBundle: CwlBundle,
+    cwlSchemas: Option[JsValue],
+    locked: Boolean,
+    defaultRuntimeAttrs: Map[String, Value],
+    reorgAttrs: ReorgSettings,
+    perWorkflowAttrs: Map[String, DxWorkflowAttrs],
+    defaultScatterChunkSize: Int,
+    useManifests: Boolean,
+    instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection, // TODO remove
+    dxApi: DxApi = DxApi.get,
+    fileResolver: FileSourceResolver = FileSourceResolver.get,
+    logger: Logger = Logger.get
+) {
 
   private lazy val schemaStaticDependencies = cwlSchemas match {
     case Some(JsArray(schemas)) =>
@@ -279,7 +281,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           // Try to determine the instance type from the process requirements -
           // if any of the expressions fail to evaluate statically, then the instance
           // type will be determined at runtime.
-          requirementEvaluator.translateInstanceType(instanceTypeSelection),
+          requirementEvaluator
+            .translateInstanceType(instanceTypeSelection), // TODO don't evaluate statically
           requirementEvaluator.translateContainer,
           ExecutableKindApplet,
           CwlSourceCode(docSource),

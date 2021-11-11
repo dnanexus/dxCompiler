@@ -1151,9 +1151,6 @@ def build_test(tname, project, folder, version_id, compiler_flags):
     desc = test_files[tname]
     print("build {} {}".format(desc.kind, desc.name))
     print("Compiling {} to a {}".format(desc.source_file, desc.kind))
-    # both static and dynamic instance type selection should work,
-    # so we can test them at random
-    instance_type_selection = random.choice(["static", "dynamic"])
     cmdline = [
         "java",
         "-jar",
@@ -1165,8 +1162,6 @@ def build_test(tname, project, folder, version_id, compiler_flags):
         folder,
         "-project",
         project.get_id(),
-        "-instanceTypeSelection",
-        instance_type_selection
     ]
     if "manifest" in desc.source_file:
         cmdline.append("-useManifests")

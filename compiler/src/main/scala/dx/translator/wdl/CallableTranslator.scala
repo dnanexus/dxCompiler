@@ -35,19 +35,21 @@ import scala.annotation.tailrec
 import wdlTools.types.TypedAbstractSyntax.ValueString
 import wdlTools.types.TypedAbstractSyntax.ValueFile
 
-case class CallableTranslator(wdlBundle: WdlBundle,
-                              typeAliases: Map[String, T_Struct],
-                              locked: Boolean,
-                              defaultRuntimeAttrs: Map[String, Value],
-                              reorgAttrs: ReorgSettings,
-                              perWorkflowAttrs: Map[String, DxWorkflowAttrs],
-                              defaultScatterChunkSize: Int,
-                              useManifests: Boolean,
-                              instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
-                              versionSupport: VersionSupport,
-                              dxApi: DxApi = DxApi.get,
-                              fileResolver: FileSourceResolver = FileSourceResolver.get,
-                              logger: Logger = Logger.get) {
+case class CallableTranslator(
+    wdlBundle: WdlBundle,
+    typeAliases: Map[String, T_Struct],
+    locked: Boolean,
+    defaultRuntimeAttrs: Map[String, Value],
+    reorgAttrs: ReorgSettings,
+    perWorkflowAttrs: Map[String, DxWorkflowAttrs],
+    defaultScatterChunkSize: Int,
+    useManifests: Boolean,
+    instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection, // TODO remove
+    versionSupport: VersionSupport,
+    dxApi: DxApi = DxApi.get,
+    fileResolver: FileSourceResolver = FileSourceResolver.get,
+    logger: Logger = Logger.get
+) {
 
   private lazy val evaluator: Eval =
     Eval(DefaultEvalPaths.empty, Some(wdlBundle.version), Vector.empty, fileResolver, logger)
@@ -184,7 +186,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       // the output declarations in a native applet stub have values only because they
       // are required for WDL parsing - they can be safely ignored
       val outputs = task.outputs.map(translateOutput(_, ignoreDefault = isNative))
-      val instanceType = runtime.translateInstanceType(instanceTypeSelection)
+      val instanceType = runtime.translateInstanceType(instanceTypeSelection) // TODO don't evaluate statically
       val requirements = runtime.translateRequirements
       val staticFileDependencies = translateStaticFileDependencies(task.privateVariables)
       val attributes = meta.translate

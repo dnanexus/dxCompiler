@@ -14,6 +14,7 @@ import dx.api.{
 import dx.core.Constants
 import dx.util.Enum
 
+// TODO remove
 object InstanceTypeSelection extends Enum {
   type InstanceTypeSelection = Value
   val Static, Dynamic = Value

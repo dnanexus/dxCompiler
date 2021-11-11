@@ -123,6 +123,7 @@ object Main {
     }
   }
 
+  // TODO remove
   private object InstanceTypeSelectionSpec
       extends SingleValueOptionSpec[InstanceTypeSelection.InstanceTypeSelection](
           choices = InstanceTypeSelection.values.toVector
@@ -150,7 +151,7 @@ object Main {
       "extras" -> PathOptionSpec.mustExist,
       "inputs" -> PathOptionSpec.listMustExist,
       "input" -> PathOptionSpec.listMustExist.copy(alias = Some("inputs")),
-      "instanceTypeSelection" -> InstanceTypeSelectionSpec,
+      "instanceTypeSelection" -> InstanceTypeSelectionSpec, // TODO remove
       "locked" -> FlagOptionSpec.default,
       "leaveWorkflowsOpen" -> FlagOptionSpec.default,
       "imports" -> PathOptionSpec.listMustExist,
@@ -388,6 +389,8 @@ object Main {
         true
       case b => b
     }
+
+    // TODO remove
     val instanceTypeSelection =
       options.getValueOrElse[InstanceTypeSelection.InstanceTypeSelection](
           "instanceTypeSelection",
@@ -424,7 +427,7 @@ object Main {
             locked,
             if (reorg) Some(true) else None,
             useManifests,
-            instanceTypeSelection,
+            instanceTypeSelection, // TODO remove
             baseFileResolver
         )
       } catch {
@@ -539,7 +542,7 @@ object Main {
           waitOnUpload,
           useManifests,
           translator.complexPathValues,
-          instanceTypeSelection,
+          instanceTypeSelection, // TODO remove
           defaultInstanceType,
           fileResolver
       )
@@ -818,6 +821,7 @@ object Main {
                              enable compilation of third-party workflows with
                              non-compliant syntax.
    */
+  // TODO remove flag from documentation
   private val usageMessage =
     s"""|java -jar dxCompiler.jar <action> <parameters> [options]
         |

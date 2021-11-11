@@ -51,27 +51,29 @@ object Compiler {
   * @param dxApi the DxApi
   * @param logger the Logger
   */
-case class Compiler(extras: Option[Extras],
-                    runtimePathConfig: DxWorkerPaths,
-                    runtimeTraceLevel: Int,
-                    includeAsset: Boolean,
-                    runtimeAssetName: String,
-                    runtimeJar: String,
-                    archive: Boolean,
-                    force: Boolean,
-                    leaveWorkflowsOpen: Boolean,
-                    locked: Boolean,
-                    projectWideReuse: Boolean,
-                    separateOutputs: Boolean,
-                    streamFiles: StreamFiles.StreamFiles,
-                    waitOnUpload: Boolean,
-                    useManifests: Boolean,
-                    complexPathValues: Boolean,
-                    instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
-                    defaultInstanceType: Option[String],
-                    fileResolver: FileSourceResolver = FileSourceResolver.get,
-                    dxApi: DxApi = DxApi.get,
-                    logger: Logger = Logger.get) {
+case class Compiler(
+    extras: Option[Extras],
+    runtimePathConfig: DxWorkerPaths,
+    runtimeTraceLevel: Int,
+    includeAsset: Boolean,
+    runtimeAssetName: String,
+    runtimeJar: String,
+    archive: Boolean,
+    force: Boolean,
+    leaveWorkflowsOpen: Boolean,
+    locked: Boolean,
+    projectWideReuse: Boolean,
+    separateOutputs: Boolean,
+    streamFiles: StreamFiles.StreamFiles,
+    waitOnUpload: Boolean,
+    useManifests: Boolean,
+    complexPathValues: Boolean,
+    instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection, // TODO remove
+    defaultInstanceType: Option[String],
+    fileResolver: FileSourceResolver = FileSourceResolver.get,
+    dxApi: DxApi = DxApi.get,
+    logger: Logger = Logger.get
+) {
   // logger for extra trace info
   private val logger2: Logger = logger.withTraceIfContainsKey("Native")
 
@@ -318,7 +320,7 @@ case class Compiler(extras: Option[Extras],
             parameterLinkSerializer = parameterLinkSerializer,
             useManifests = useManifests,
             complexPathValues = complexPathValues,
-            instanceTypeSelection = instanceTypeSelection,
+            instanceTypeSelection = instanceTypeSelection, // TODO remove
             defaultInstanceType,
             fileResolver = fileResolver,
             dxApi = dxApi,

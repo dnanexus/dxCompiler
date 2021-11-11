@@ -168,6 +168,7 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
     }
   }
 
+  // TODO don't evaluate statically
   def translateInstanceType(
       resolution: InstanceTypeSelection.InstanceTypeSelection
   ): InstanceType = {

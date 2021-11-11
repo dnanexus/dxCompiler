@@ -62,35 +62,20 @@ class TranslatorTest extends AnyFlatSpec with Matchers {
     Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
-  it should "IR compile a single WDL task with dynamic instance type selection" in {
-    def compile(instanceTypeSelection: String): InstanceType = {
-      val path = pathFromBasename("compiler", "add.wdl")
-      val args = path.toString :: "-instanceTypeSelection" :: instanceTypeSelection :: cFlags
-      val bundle = Main.compile(args.toVector) match {
-        case SuccessfulCompileIR(bundle) => bundle
-        case other =>
-          throw new Exception(s"expected succss not ${other}")
-      }
-      val applet = bundle.primaryCallable match {
-        case Some(applet: Application) => applet
-        case other =>
-          throw new Exception(s"expected primary callable to be an applet not ${other}")
-      }
-      applet.instanceType
+  it should "IR compile a single WDL task with dynamic instance type by default" in {
+    val path = pathFromBasename("compiler", "add.wdl")
+    val args = path.toString :: cFlags
+    val bundle = Main.compile(args.toVector) match {
+      case SuccessfulCompileIR(bundle) => bundle
+      case other =>
+        throw new Exception(s"expected succss not ${other}")
     }
-    compile("static") shouldBe StaticInstanceType(
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        Some(ExecutionEnvironment("Ubuntu", "20.04", Vector("0")))
-    )
-    compile("dynamic") shouldBe DynamicInstanceType
+    val applet = bundle.primaryCallable match {
+      case Some(applet: Application) => applet
+      case other =>
+        throw new Exception(s"expected primary callable to be an applet not ${other}")
+    }
+    applet.instanceType shouldBe DynamicInstanceType
   }
 
   it should "IR compile a task with docker" in {
