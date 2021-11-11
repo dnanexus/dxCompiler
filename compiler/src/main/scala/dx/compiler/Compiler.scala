@@ -432,11 +432,22 @@ case class Compiler(extras: Option[Extras],
                                           _,
                                           _,
                                           _) =>
-                  // native applets do not depend on other data-objects
+                  // native app(let)s do not depend on other data-objects
                   CompiledExecutable(application, dxApi.executable(id))
+                case ExecutableKindNative(ExecutableType.Applet, _, _, project, Some(path)) =>
+                  val applet = dxApi.resolveDataObject(path, project.map(dxApi.project)) match {
+                    case applet: DxApplet => applet
+                    case _ =>
+                      throw new Exception(
+                          s"${path} in ${project.getOrElse("current project")} is not an applet"
+                      )
+                  }
+                  CompiledExecutable(application, applet)
+                case ExecutableKindNative(ExecutableType.App, _, Some(name), _, _) =>
+                  CompiledExecutable(application, dxApi.resolveApp(name))
                 case ExecutableKindWorkflowCustomReorg(id) =>
-                  // for now, we assume the user has built their reorg applet to
-                  // handle manifest input if useManifests = true
+                  // for now, we assume the user has built their reorg applet to handle manifest
+                  // input if useManifests = true
                   CompiledExecutable(application, dxApi.executable(id))
                 case _ =>
                   val (dxApplet, dependencies) = maybeBuildApplet(application, accu)
