@@ -1,14 +1,14 @@
-import "subworkflow.wdl" as subworkflow
+import "subworkflow_ii.wdl" as subworkflow_ii
 
 workflow subworkflows_in_ifs {
 
   if (true) {
     Array[Int] ts = range(3)
-    call subworkflow.subwf as subwfTrue { input: is = ts }
+    call subworkflow_ii.subwf_ii as subwfTrue { input: is = ts }
   }
   if (false) {
     Array[Int] fs = range(3)
-    call subworkflow.subwf as subwfFalse { input: is = fs }
+    call subworkflow_ii.subwf_ii as subwfFalse { input: is = fs }
   }
 
   output {

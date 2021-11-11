@@ -61,7 +61,19 @@ object Type {
     * Represents a collection of equally valid types. If bounds
     * is empty, then any type is allowed.
     */
-  case class TMulti(bounds: Vector[Type]) extends Type
+  case class TMulti(bounds: Vector[Type]) extends Type {
+    def contains(t: Type): Boolean = {
+      if (bounds.isEmpty) {
+        true
+      } else {
+        bounds.exists {
+          case b if b == t            => true
+          case TOptional(b) if b == t => true
+          case _                      => false
+        }
+      }
+    }
+  }
 
   object TMulti {
     val Any: TMulti = TMulti(Vector())
