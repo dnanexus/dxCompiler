@@ -10,6 +10,7 @@
 * Executor creates hard- rather than soft-links in the input directory, so that linked files are accessible from within containers
 * Fixes bug where default input values were not overridden for task inside subworkflow
 * Adds support for specifying native app(let) in `runtime` section
+* Fixes some type conversion bugs related to CWL `Any` type
 
 ### Dependency updates
 
