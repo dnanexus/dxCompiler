@@ -323,7 +323,7 @@ cromwell_tests_list = [
     "gcs_path_ending_with_newline",
     "readFromCache",
     "sizerelativepath",
-    "subworkflow",
+    "subworkflow_wt",
     "b",
     "c",
     "a",
