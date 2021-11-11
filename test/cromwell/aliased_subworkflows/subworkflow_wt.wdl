@@ -11,7 +11,7 @@ task increment {
   }
 }
 
-workflow subwf {
+workflow subwf_wt {
   Array[Int] is
   scatter (i in is) {
     call increment { input: i = i }

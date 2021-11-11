@@ -285,6 +285,7 @@ object Value {
       case (TEnum(symbols), s: VString) if symbols.contains(s.value) => s
       case (TEnum(symbols), _) =>
         throw new Exception(s"${value} is not one of allowed symbols ${symbols.mkString(",")}")
+      case (TMulti.Any, _) => value
       case (TMulti(bounds), _) =>
         bounds.iterator
           .collectFirstDefined { t =>
