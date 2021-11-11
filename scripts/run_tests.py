@@ -442,7 +442,7 @@ cromwell_tests_list = [
     "importer_ok",
     "read_write_map",
     "docker_image_cache_unspecified",
-    "subworkflow",
+    #"subworkflow",
     "defined_function",
     "workflow_engine_functions",
     "empty_scatter",
