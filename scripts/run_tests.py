@@ -126,7 +126,8 @@ wdl_v1_list = [
     # workflow with output files created by expressions
     "upload_workflow_files",
     "subworkflow_with_task",
-    "apps_700"
+    "apps_700",
+    "apps_864"
 ]
 
 wdl_v1_1_list = [
@@ -634,9 +635,7 @@ def register_test(dir_path, tname, ext):
 
     # Verify the input file, and add it (if it exists)
     test_input = os.path.join(dir_path, tname + "_input.json")
-    print(f"TEST INPUT HERE {test_input}")
     if os.path.exists(test_input):
-        print("and it does exist...")
         verify_json_file(test_input)
         desc.raw_input.append(test_input)
         desc.dx_input.append(os.path.join(dir_path, tname + "_input.dx.json"))
