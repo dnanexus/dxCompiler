@@ -903,6 +903,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     timeout shouldBe JsObject("*" -> JsObject("hours" -> JsNumber(3)))
   }
 
+  // TODO ask about this test, see ApplicationCompiler.createRunSpec
   it should "allow choosing GPU instances" taggedAs NativeTest in {
     val path = pathFromBasename("compiler", "GPU2.wdl")
     val args = path.toString :: cFlags

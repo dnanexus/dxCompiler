@@ -168,6 +168,10 @@ case class ApplicationCompiler(
       case DefaultInstanceType | DynamicInstanceType =>
         // TODO: should we use the project default here rather than
         //  picking one from the database?
+        // TODO question about this; I think it is causing CompilerTest
+        // "allow choosing GPU instance types" to fail, since it now compiles
+        // with DynamicInstanceType and that results here in default instance type
+        // (at compilation).
         defaultInstanceType.getOrElse(instanceTypeDb.defaultInstanceType.name)
     }
     // Generate the applet's job script
