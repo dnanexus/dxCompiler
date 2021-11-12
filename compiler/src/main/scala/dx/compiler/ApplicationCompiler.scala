@@ -167,11 +167,14 @@ case class ApplicationCompiler(
         instanceTypeDb.apply(static.toInstanceTypeRequest).name
       case DefaultInstanceType | DynamicInstanceType =>
         // TODO: should we use the project default here rather than
-        //  picking one from the database?
+        // picking one from the database?
         // TODO question about this; I think it is causing CompilerTest
         // "allow choosing GPU instance types" to fail, since it now compiles
         // with DynamicInstanceType and that results here in default instance type
         // (at compilation).
+        // Doesn't that start the job on default instance type, and relaunch if
+        // needed, so for workflow GPU2.wdl, the GPU instance would still be
+        // picked eventually at runtime?
         defaultInstanceType.getOrElse(instanceTypeDb.defaultInstanceType.name)
     }
     // Generate the applet's job script
