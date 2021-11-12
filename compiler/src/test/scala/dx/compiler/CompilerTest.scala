@@ -116,7 +116,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     }
     val appletDetails =
       dxApi.applet(appletId).describe(Set(Field.Details)).details.get.asJsObject.fields
-    appletDetails shouldNot contain key Constants.InstanceTypeDb
+    appletDetails shouldNot contain key "instanceTypeDB"
   }
 
   it should "Native compile a linear WDL workflow" taggedAs NativeTest in {
@@ -513,7 +513,6 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
           case ("upstreamProjects", array: JsArray) =>
             array shouldBe expectedUpstreamProjects
           case ("whatsNew", JsString(value))                       => value shouldBe expectedWhatsNew
-          case (Constants.InstanceTypeDb, JsString(_))             => () // ignore
           case (Constants.Language, JsString(_))                   => () // ignore
           case (Constants.RuntimeAttributes, JsNull | JsObject(_)) => () // ignore
           case (Constants.Version, JsString(_))                    => () // ignore
