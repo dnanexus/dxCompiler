@@ -168,7 +168,10 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
     }
   }
 
-  // TODO don't evaluate statically
+  // TODO If the InstanceTypeRequest has dxInstanceType defined, it should still result in
+  // StaticInstanceType (case where dx instance type string is hard-coded).
+  // Otherwise, it should be DynamicInstanceType. Edit conditions handled in
+  // RequirementEvaluator.translateInstanceType accordingly.
   def translateInstanceType(
       resolution: InstanceTypeSelection.InstanceTypeSelection
   ): InstanceType = {
