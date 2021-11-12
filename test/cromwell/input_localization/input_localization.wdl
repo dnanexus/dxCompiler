@@ -36,7 +36,7 @@ task localize_with_docker {
     output {
         String ls = read_string(stdout())
     }
-    runtime { docker: "ubuntu:latest" }
+    runtime { docker: "dx://file-G66qpGj0yzZq02K9313pJg5G" }
 }
 
 task echo_int_with_docker {
@@ -45,7 +45,7 @@ task echo_int_with_docker {
     echo ${int} > out
   }
   output {File out = "out"}
-  runtime { docker: "ubuntu:latest" }
+  runtime { docker: "dx://file-G66qpGj0yzZq02K9313pJg5G" }
 }
 
 workflow wf {

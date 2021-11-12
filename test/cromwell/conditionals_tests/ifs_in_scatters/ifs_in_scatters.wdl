@@ -7,7 +7,7 @@ task validate_int {
     Boolean validation = read_int(stdout()) == 1
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 }
 
@@ -20,7 +20,7 @@ task mirror {
     Int out = read_int(stdout())
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 }
 

@@ -9,7 +9,7 @@ task source {
         File resultFile = stdout()
     }
     runtime {
-      docker: "ubuntu:latest"
+      docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
     }
 }
 
@@ -21,7 +21,7 @@ task consume {
     output {
         String out = read_string(stdout())
     }
-    runtime {docker: "ubuntu:latest"}
+    runtime {docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"}
 }
 
 task consumeFiles {
@@ -32,7 +32,7 @@ task consumeFiles {
     output {
         String x = read_string(stdout())
     }
-    runtime {docker: "ubuntu:latest"}
+    runtime {docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"}
 }
 
 workflow multplesourcedarray {

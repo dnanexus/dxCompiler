@@ -5,7 +5,7 @@ task echo {
   output {
     File out = stdout()
   }
-  runtime {docker: "ubuntu:precise-20161209"}
+  runtime {docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"}
 }
 
 task find {
@@ -17,7 +17,7 @@ task find {
   output {
     Int count = read_int(stdout())
   }
-  runtime {docker: "ubuntu:precise-20161209"}
+  runtime {docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"}
 }
 
 workflow floating_tags {
