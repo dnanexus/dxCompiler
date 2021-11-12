@@ -281,8 +281,7 @@ case class ProcessTranslator(
           // Try to determine the instance type from the process requirements -
           // if any of the expressions fail to evaluate statically, then the instance
           // type will be determined at runtime.
-          requirementEvaluator
-            .translateInstanceType(instanceTypeSelection), // TODO don't evaluate statically
+          requirementEvaluator.translateInstanceType,
           requirementEvaluator.translateContainer,
           ExecutableKindApplet,
           CwlSourceCode(docSource),

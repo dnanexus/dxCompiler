@@ -186,7 +186,7 @@ case class CallableTranslator(
       // the output declarations in a native applet stub have values only because they
       // are required for WDL parsing - they can be safely ignored
       val outputs = task.outputs.map(translateOutput(_, ignoreDefault = isNative))
-      val instanceType = runtime.translateInstanceType(instanceTypeSelection) // TODO don't evaluate statically
+      val instanceType = runtime.translateInstanceType
       val requirements = runtime.translateRequirements
       val staticFileDependencies = translateStaticFileDependencies(task.privateVariables)
       val attributes = meta.translate

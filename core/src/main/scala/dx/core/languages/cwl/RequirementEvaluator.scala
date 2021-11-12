@@ -16,7 +16,7 @@ import dx.core.ir.RunSpec.{
   StaticInstanceType,
   TimeoutRequirement
 }
-import dx.core.ir.{InstanceTypeSelection, RuntimeRequirement}
+import dx.core.ir.{RuntimeRequirement}
 import dx.cwl._
 import dx.util.FileSourceResolver
 
@@ -168,21 +168,12 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
     }
   }
 
-  // TODO If the InstanceTypeRequest has dxInstanceType defined, it should still result in
-  // StaticInstanceType (case where dx instance type string is hard-coded).
-  // Otherwise, it should be DynamicInstanceType. Edit conditions handled in
-  // RequirementEvaluator.translateInstanceType accordingly.
-  def translateInstanceType(
-      resolution: InstanceTypeSelection.InstanceTypeSelection
-  ): InstanceType = {
+  def translateInstanceType: InstanceType = {
     safeParseInstanceType match {
       case Some(InstanceTypeRequest.empty) => DefaultInstanceType
-      case Some(req: InstanceTypeRequest)
-          if resolution == InstanceTypeSelection.Dynamic && req.dxInstanceType.isDefined =>
+      case Some(req: InstanceTypeRequest) if req.dxInstanceType.isDefined =>
         StaticInstanceType(InstanceTypeRequest(dxInstanceType = req.dxInstanceType))
-      case Some(_) if resolution == InstanceTypeSelection.Dynamic => DynamicInstanceType
-      case Some(req: InstanceTypeRequest)                         => StaticInstanceType(req)
-      case None                                                   => DynamicInstanceType
+      case _ => DynamicInstanceType
     }
   }
 
