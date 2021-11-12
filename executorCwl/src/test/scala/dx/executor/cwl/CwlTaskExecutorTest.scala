@@ -122,11 +122,6 @@ private case class ToolTestJobMeta(override val workerPaths: DxWorkerPaths,
   }
 
   private val executableDetails: Map[String, JsValue] = Map(
-      Constants.InstanceTypeDb -> JsString(
-          CodecUtils.gzipAndBase64Encode(
-              rawInstanceTypeDb.toJson.prettyPrint
-          )
-      ),
       Constants.SourceCode -> JsString(CodecUtils.gzipAndBase64Encode(rawSourceCode)),
       Constants.UseManifests -> JsBoolean(useManifestInputs),
       Constants.PathsAsObjects -> JsTrue
