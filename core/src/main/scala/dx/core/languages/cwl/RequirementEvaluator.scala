@@ -16,7 +16,7 @@ import dx.core.ir.RunSpec.{
   StaticInstanceType,
   TimeoutRequirement
 }
-import dx.core.ir.{RuntimeRequirement}
+import dx.core.ir.RuntimeRequirement
 import dx.cwl._
 import dx.util.FileSourceResolver
 
