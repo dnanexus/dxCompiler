@@ -757,14 +757,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
       InstanceType.createDb(dxApi = dxApi)
     } catch {
       case _: Throwable =>
-        // fall back to the cached database if available
-        getExecutableDetail(Constants.InstanceTypeDb) match {
-          case Some(JsString(s)) =>
-            val js = CodecUtils.base64DecodeAndGunzip(s)
-            js.parseJson.convertTo[InstanceTypeDB]
-          case other =>
-            throw new Exception(s"unexpected ${Constants.InstanceTypeDb} value ${other}")
-        }
+        throw new Exception("Unable to retrieve instance types for current project")
     }
   }
 

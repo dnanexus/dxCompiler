@@ -19,7 +19,6 @@ object Constants {
   val ExecLinkInfo = "execLinkInfo"
   val BlockPath = "blockPath"
   val WfFragmentInputTypes = "fqnDictTypes"
-  val InstanceTypeDb = "instanceTypeDB"
   val StaticInstanceType = "staticInstanceType"
   val DelayWorkspaceDestruction = "delayWorkspaceDestruction"
   val RuntimeAttributes = "runtimeAttrs"

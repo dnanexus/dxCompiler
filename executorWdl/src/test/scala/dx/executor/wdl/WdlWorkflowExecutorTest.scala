@@ -69,11 +69,6 @@ private case class WorkflowTestJobMeta(override val workerPaths: DxWorkerPaths,
 
   private val executableDetails: Map[String, JsValue] = Map(
       Constants.BlockPath -> JsArray(rawBlockPath.map(JsNumber(_))),
-      Constants.InstanceTypeDb -> JsString(
-          CodecUtils.gzipAndBase64Encode(
-              rawInstanceTypeDb.toJson.prettyPrint
-          )
-      ),
       Constants.SourceCode -> JsString(CodecUtils.gzipAndBase64Encode(rawSourceCode)),
       Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(
           WdlUtils
