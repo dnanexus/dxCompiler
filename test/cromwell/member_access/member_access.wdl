@@ -7,7 +7,7 @@ task echo_str {
     Pair[String, Int] left = (read_string(stdout()), 27)
   }
   runtime { 
-   docker: "ubuntu:latest"
+   docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 }
 

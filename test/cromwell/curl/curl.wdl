@@ -20,7 +20,7 @@ task news_reader {
       wc -l < ${news}
     }
     output { Int news_size = read_int(stdout()) }
-    runtime { docker: "ubuntu:latest" }
+    runtime { docker: "dx://file-G66qpGj0yzZq02K9313pJg5G" }
 }
 
 workflow curl_wf {

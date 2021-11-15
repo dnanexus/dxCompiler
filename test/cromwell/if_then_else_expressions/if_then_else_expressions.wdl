@@ -14,7 +14,7 @@ task expression_locations {
     String maxOrMin = if (i % 2 == 0) then read_string("max.txt") else read_string("min.txt")
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 }
 
@@ -30,7 +30,7 @@ task only_evaluate_correct_side {
     String only_rhs_works = if !b then read_int("f") else read_string("f")
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 }
 

@@ -4,7 +4,7 @@ task array_literal_locations_i {
     command { 
       echo ${sep=":" array} > out
     }
-    runtime { docker: "ubuntu:latest" }
+    runtime { docker: "dx://file-G66qpGj0yzZq02K9313pJg5G" }
     output { String out = read_string("out") }
 }
 
@@ -14,7 +14,7 @@ task array_literal_locations_ii {
       echo ${x} > out
     }
     runtime {
-        docker: "ubuntu:latest"
+        docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
         continueOnReturnCode: [ 0, 1, 2 ]
     }
     output { String out = read_string("out") }

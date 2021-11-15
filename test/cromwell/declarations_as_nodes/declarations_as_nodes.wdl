@@ -4,7 +4,7 @@ task t {
         echo "${i}"
     }
     runtime {
-        docker: "ubuntu:latest"
+        docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
     }
     output {
         String o = read_string(stdout())

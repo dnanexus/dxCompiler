@@ -7,7 +7,7 @@ task A {
   }
   runtime {
     continueOnReturnCode: false
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 }
 
@@ -17,7 +17,7 @@ task B {
     echo ${B_in}
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 }
 

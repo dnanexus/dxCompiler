@@ -3,7 +3,7 @@ version 1.0
 task transubstantiation {
 
     runtime {
-        docker: "ubuntu"
+        docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
     }
 
     command {
