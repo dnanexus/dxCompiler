@@ -14,7 +14,10 @@ ThisBuild / developers := List(
               "azalcman@dnanexus.com",
               url("https://github.com/dnanexus")),
     Developer("mhrvol", "mhrvol", "mhrvol-cf@dnanexus.com", url("https://github.com/dnanexus")),
-    Developer("r-i-v-a", "Riva Nathans", "rnathans-cf@dnanexus.com", url("https://github.com/dnanexus"))
+    Developer("r-i-v-a",
+              "Riva Nathans",
+              "rnathans-cf@dnanexus.com",
+              url("https://github.com/dnanexus"))
 )
 ThisBuild / homepage := Some(url("https://github.com/dnanexus/dxCompiler"))
 ThisBuild / scmInfo := Some(
@@ -129,7 +132,7 @@ val githubDxCompilerResolver = Resolver.githubPackages("dnanexus", "dxCompiler")
 
 lazy val dependencies =
   new {
-    val dxCommonVersion = "0.8.0"
+    val dxCommonVersion = "0.8.1-SNAPSHOT"
     val dxApiVersion = "0.10.1-SNAPSHOT"
     val dxFileAccessProtocolsVersion = "0.5.0"
     val dxYamlVersion = "0.1.0"
