@@ -885,9 +885,9 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths,
     logger.trace(s"Running job script function ${name}")
     val (rc, stdout, stderr) = SysUtils.execCommand(command, exceptionOnFailure = false)
     if (successCodes.forall(_.contains(rc))) {
-      logger.trace(s"""Job script function ${name} exited with success code ${rc}
-                      |stdout:
-                      |${stdout}""".stripMargin)
+      logger.traceLimited(s"""Job script function ${name} exited with success code ${rc}
+                             |stdout:
+                             |${stdout}""".stripMargin)
     } else {
       logger.error(s"""Job script function ${name} exited with permanent fail code ${rc}
                       |stdout:
