@@ -1,3 +1,5 @@
+DXCOMPILER_VERSION=2.6.0
+
 all:
 	mkdir -p resources/home/dnanexus
-	./replace_dxcompiler_jar.sh
+	wget https://github.com/dnanexus/dxCompiler/releases/download/${DXCOMPILER_VERSION}/dxCompiler-${DXCOMPILER_VERSION}.jar -O resources/home/dnanexus/dxCompiler.jar

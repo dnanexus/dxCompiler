@@ -16,7 +16,7 @@ Applet `test-dxcompiler-in-project` can be built and deployed in customer-provid
 
 ## Building & Running the Applet
 
-- Upload regional dxCompiler assets to the platform. This can be done by running the release GitHub action.
-- Download dxCompiler.jar from the GitHub draft release page and move it to `dxCompiler` folder on your computer.
+- Run the dxCompiler release GitHub workflow; this uploads dxCompiler assets to the platform.
+- Set the dxCompiler version in `test-dxcompiler-in-project/Makefile`.
 - `dx select` the project for testing.
 - `dx build` and `dx run` this applet.
