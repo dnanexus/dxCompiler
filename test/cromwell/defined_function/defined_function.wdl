@@ -1,14 +1,14 @@
 task cat {
   File f
   command { cat ${f} }
-  runtime { docker: "ubuntu:latest" }
+  runtime { docker: "dx://file-G66qpGj0yzZq02K9313pJg5G" }
   output { String out = read_string(stdout()) }
 }
 
 task mk_file {
   Int index
   command { echo "file_${index}" > out }
-  runtime { docker: "ubuntu:latest" }
+  runtime { docker: "dx://file-G66qpGj0yzZq02K9313pJg5G" }
   output { File f = "out" }
 }
 
@@ -19,7 +19,7 @@ task defined_in_task {
     ${true="cat" false="echo no file" is_defined} ${f}
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
   output {
     String out = read_string(stdout())

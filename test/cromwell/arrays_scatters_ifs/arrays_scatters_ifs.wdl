@@ -3,7 +3,7 @@ task printInt {
 
   command { echo "${int}" > out.txt }
   output { Int out = read_int("out.txt") }
-  runtime { docker: "ubuntu:latest" }
+  runtime { docker: "dx://file-G66qpGj0yzZq02K9313pJg5G" }
 }
 
 workflow arrays_scatters_ifs {

@@ -5,7 +5,7 @@ task mkFile {
     output {
         File sick_sheep = stdout()
     }
-    runtime { docker: "ubuntu:latest" }
+    runtime { docker: "dx://file-G66qpGj0yzZq02K9313pJg5G" }
 }
 
 task input_mirror {
@@ -17,7 +17,7 @@ task input_mirror {
         File outFile = inFile
         String out = read_string(outFile)
     }
-    runtime { docker: "ubuntu:latest" }
+    runtime { docker: "dx://file-G66qpGj0yzZq02K9313pJg5G" }
 }
 
 workflow mirror_mirror_on_the_wall {

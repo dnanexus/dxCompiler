@@ -6,7 +6,7 @@ task readString {
      String out = read_string("file_256k")
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 }
 
@@ -19,7 +19,7 @@ task readBoolean {
      Boolean out = read_boolean("file_256k")
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 }
 
@@ -31,7 +31,7 @@ task readLines {
      Array[String] out = read_lines("file_256k")
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 }
 
@@ -43,7 +43,7 @@ task readTsv {
      Array[Array[String]] out = read_tsv("file_256k")
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 }
 
@@ -55,7 +55,7 @@ task readJson {
      Object out = read_json("file_256k")
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 }
 
@@ -67,7 +67,7 @@ task readObject {
      Object out = read_object("file_256k")
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 }
 
@@ -79,7 +79,7 @@ task readObjects {
      Array[Object] out = read_objects("file_256k")
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 }
 
@@ -91,7 +91,7 @@ task readMap {
      Map[String, String] out = read_map("file_256k")
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 } 
 
@@ -103,7 +103,7 @@ task readInt {
      Int out = read_int("file_256k")
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 } 
 
@@ -115,7 +115,7 @@ task readFloat {
      Float out = read_float("file_256k")
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 } 
 
