@@ -7,7 +7,7 @@ task echo_sleep_exit {
     }
     runtime {
         continueOnReturnCode: [0, 2, 4]
-        docker: "ubuntu:latest"
+        docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
     }
     output {
         String o = read_string(stdout())

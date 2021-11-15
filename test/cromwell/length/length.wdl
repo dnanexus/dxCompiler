@@ -6,7 +6,7 @@ task lens {
     Array[String] someStrings = ["foo", "bar", "baz"]
     Array[Int] someInts = [1, 2, 3]
   }
-  runtime { docker: "ubuntu:latest" }
+  runtime { docker: "dx://file-G66qpGj0yzZq02K9313pJg5G" }
 }
 
 workflow length {

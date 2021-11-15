@@ -21,7 +21,7 @@ task diskspace_exhauster {
     Array[File] outFiles = glob("tmp_folder/*")
   }
   runtime {
-    docker: "ubuntu:20.04"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
     dx_instance_type: "mem3_ssd1_x2"
   }
 }

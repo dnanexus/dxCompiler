@@ -13,7 +13,7 @@ task hello {
     Pair[File, File] pair_out = ("left.out", "right.out")
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 }
 

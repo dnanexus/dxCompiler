@@ -8,7 +8,7 @@ task concat_files {
     File concatenated = stdout()
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 }
 
@@ -21,7 +21,7 @@ task count_lines {
     Int count = read_int(stdout())
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 }
 
@@ -34,7 +34,7 @@ task serialize {
     String contents = read_string(stdout())
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 }
 
@@ -42,7 +42,7 @@ task mk_file {
   Int index
   command { echo "file-${index}" > i }
   output { File out = "i" }
-  runtime { docker: "ubuntu:latest" }
+  runtime { docker: "dx://file-G66qpGj0yzZq02K9313pJg5G" }
 }
 
 workflow array_io {

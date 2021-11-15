@@ -3,7 +3,7 @@ task create_file {
     echo "Test file" > testfile.txt
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
   output {
     File testFile = "testfile.txt"
@@ -17,7 +17,7 @@ task read_file_with_newline_added_to_the_end_of_the_path {
     cat ${fileWithModifiedPath}
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
   output {
     String out = read_string(stdout())

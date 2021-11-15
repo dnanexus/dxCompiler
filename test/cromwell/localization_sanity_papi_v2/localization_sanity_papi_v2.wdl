@@ -15,7 +15,7 @@ task make_files {
     Array[File] files = ["a/dummy.txt", "a/a.txt", "b/dummy.txt", "b/b.txt", "c/dummy.txt", "c/c.txt"]
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 }
 
@@ -34,7 +34,7 @@ task sanity_check {
     Array[String] lines = read_lines(stdout())
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 }
 

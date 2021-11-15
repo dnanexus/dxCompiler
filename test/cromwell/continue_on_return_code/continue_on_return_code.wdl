@@ -11,7 +11,7 @@ task continueOnRC1 {
         File ohno = stdout()
     }
     runtime {
-        docker: "ubuntu:latest"
+        docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
         returnCodes: [1]
     }
 }
@@ -27,7 +27,7 @@ task continueOnRC2 {
         String ohno = read_string(stdout())
     }
     runtime {
-        docker: "ubuntu:latest"
+        docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
         returnCodes: [12]
     }
 }
@@ -43,7 +43,7 @@ task continueOnRC3 {
         String ohno = read_string(stdout())
     }
     runtime {
-        docker: "ubuntu:latest"
+        docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
         returnCodes: [1, 12, 123, 23, 3]
     }
 }
@@ -61,7 +61,7 @@ task finisher {
         String finished = read_string(stdout())
     }
     runtime {
-        docker: "ubuntu:latest"
+        docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
         returnCodes: [0]
     }
 }
