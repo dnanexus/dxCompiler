@@ -33,18 +33,23 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
       appletName: String,
       inputSpec: Map[String, WdlTypes.T],
       outputSpec: Map[String, WdlTypes.T],
+      appVersion: String = "",
       loc: SourceLocation = WdlUtils.locPlaceholder
   ): TAT.Task = {
     // DNAnexus allows '-' and '.' in app(let) names, WDL does not
     val normalizedName = appletName.replaceAll("[-.]", "_")
-    val meta = TAT.MetaSection(
-        SeqMap(
-            "type" -> TAT.MetaValueString("native", quoting = Quoting.Double)(loc),
-            "id" -> TAT.MetaValueString(id, quoting = Quoting.Double)(loc)
-        )
-    )(
-        loc
+    val nameWithVersion = if (!"".equals(appVersion)) normalizedName + "/" + appVersion else normalizedName
+    System.out.println(normalizedName)
+    def makeString(s: String): TAT.Expr =
+      TAT.ValueString(s, WdlTypes.T_String, Quoting.Double)(loc)
+    val app = SeqMap(
+      makeString("name") -> makeString(nameWithVersion),
+      makeString("id") -> makeString(id),
     )
+    val runtime = TAT.RuntimeSection(
+      SeqMap(
+        "dx_app" -> TAT.ExprObject(app, WdlTypes.T_Object)(loc)
+    ))(loc)
     TAT.Task(
         normalizedName,
         T_Task(normalizedName,
@@ -66,9 +71,9 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
         }.toVector,
         TAT.CommandSection(Vector.empty)(loc),
         Vector.empty,
-        Some(meta),
+        None,
         parameterMeta = None,
-        runtime = None,
+        runtime = Some(runtime),
         hints = None
     )(
         loc = loc
@@ -151,7 +156,7 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
             s"Parameters ${bothStr} used as both input and output in applet ${dxAppDesc.name}"
         )
       }
-      Some(createDnanexusStub(dxAppDesc.id, dxAppDesc.name, inputSpec, outputSpec))
+      Some(createDnanexusStub(dxAppDesc.id, dxAppDesc.name, inputSpec, outputSpec, dxAppDesc.version))
     } catch {
       case e: Throwable =>
         logger.warning(
