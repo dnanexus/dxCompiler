@@ -12,7 +12,7 @@ task check_preemption {
   runtime {
     preemptible: "${set_preemptible}"
     # includes curl
-    docker: "python:latest"
+    docker: "dx://file-G66qz3Q0yzZfy6pg5q3yK3Kz"
   }
 }
 

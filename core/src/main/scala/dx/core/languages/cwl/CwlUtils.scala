@@ -229,6 +229,8 @@ object CwlUtils {
         })
         (irType, VArray(irItems))
       case (record: CwlRecord, ObjectValue(fields)) =>
+        // generate a random name for anonymous schemas
+        val name = if (record.hasName) record.name else UUID.randomUUID().toString
         val (types, values) =
           fields.foldLeft(SeqMap.empty[String, Type], SeqMap.empty[String, Value]) {
             case ((types, values), (name, value)) if record.fields.contains(name) =>
@@ -237,12 +239,7 @@ object CwlUtils {
             case (name, _) =>
               throw new Exception(s"invalid field ${name}")
           }
-        val irType = if (record.hasName) {
-          TSchema(record.name, types)
-        } else {
-          THash
-        }
-        (irType, VHash(values))
+        (TSchema(name, types), VHash(values))
       case (enum: CwlEnum, StringValue(s)) if enum.symbols.contains(s) =>
         (TEnum(enum.symbols), VString(s))
       case _ => throw new Exception(s"Invalid CWL value ${cwlValue})")
@@ -371,7 +368,6 @@ object CwlUtils {
     @tailrec
     def inner(innerValue: Value, innerType: CwlType, innerName: String): CwlValue = {
       (innerType, innerValue) match {
-        case (CwlAny, _)                       => fromIRValue(innerValue, Some(name), isInput)._2
         case (CwlOptional(_) | CwlNull, VNull) => NullValue
         case (CwlOptional(t), _)               => inner(innerValue, t, innerName)
         case (CwlNull, _) =>
@@ -390,7 +386,8 @@ object CwlUtils {
         case (CwlDirectory, d: IRDirectoryValue) => fromIRPath(d)
         case (array: CwlArray, VArray(items)) =>
           ArrayValue(items.zipWithIndex.map {
-            case (item, i) => innerMulti(item, array.itemType, s"${innerName}[${i}]")._2
+            case (item, i) =>
+              innerMulti(item, array.itemType, s"${innerName}[${i}]")._2
           })
         case (record: CwlRecord, VHash(fields)) =>
           // ensure 1) members keys are a subset of memberTypes keys, 2) members
@@ -434,20 +431,28 @@ object CwlUtils {
               case CwlAny => None
               case t =>
                 try {
-                  Some(t, inner(value, t, name))
+                  Some(t, inner(innerValue, t, innerName))
                 } catch {
                   case _: Throwable => None
                 }
             }
             .getOrElse(
                 if (types.contains(CwlAny)) {
-                  fromIRValue(innerValue, Some(name), isInput)
+                  fromIRValue(innerValue, Some(innerName), isInput)
                 } else {
                   throw new Exception(
-                      s"cannot convert ${name} ${value} to CWL value of any type ${types.mkString(",")}"
+                      s"""cannot convert ${innerName} ${innerValue} to CWL value of any type 
+                         |${types.mkString(",")}""".stripMargin.replaceAll("\n", " ")
                   )
                 }
             )
+        case CwlOptional(t: CwlMulti) =>
+          val (cwlType, cwlValue) = innerMulti(innerValue, t, innerName)
+          (CwlOptional.ensureOptional(cwlType), cwlValue)
+        case CwlAny => fromIRValue(innerValue, Some(innerName), isInput)
+        case CwlOptional(CwlAny) =>
+          val (cwlType, cwlValue) = fromIRValue(innerValue, Some(innerName), isInput)
+          (CwlOptional.ensureOptional(cwlType), cwlValue)
         case _ => (innerType, inner(innerValue, innerType, innerName))
       }
     }

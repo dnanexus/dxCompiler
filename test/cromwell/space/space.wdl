@@ -4,7 +4,7 @@ task hello {
         echo "Hello world" > 'out%20with%20.uxu'
     }
     runtime {
-        docker: "ubuntu:latest"
+        docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
     }
     output {
         File singleSpace = "out with space.txt"
@@ -26,7 +26,7 @@ task goodbye {
         cat "${sep=" " files2}"
     }
     runtime {
-            docker: "ubuntu:latest"
+            docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
     }
     output {
         Array[String] out = read_lines(stdout())

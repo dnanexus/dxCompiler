@@ -28,7 +28,7 @@ task make_2_byte_file {
   output {
     File f = "ab.txt"
   }
-  runtime { docker: "ubuntu:latest" }
+  runtime { docker: "dx://file-G66qpGj0yzZq02K9313pJg5G" }
 }
 
 workflow runtime_attribute_expressions {

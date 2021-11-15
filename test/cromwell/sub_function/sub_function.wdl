@@ -5,7 +5,7 @@ task make_a_file {
   output {
     File a_file = "myfilename.bam"
   }
-  runtime {docker: "ubuntu:latest"}
+  runtime {docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"}
 }
 
 task sub {
@@ -21,7 +21,7 @@ task sub {
     }
 
     runtime {
-        docker: "ubuntu:latest"
+        docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
     }
 
     output {

@@ -9,6 +9,6 @@ task MY_TASK {
     sleep 1
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 }
