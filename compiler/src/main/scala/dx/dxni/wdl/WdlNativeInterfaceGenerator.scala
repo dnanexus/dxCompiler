@@ -22,32 +22,38 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
 
   /**
     * Generate a WDL stub fore a DNAnexus applet.
-    * @param id the applet ID
-    * @param appletName the applet name
+    * @param id the app(let) ID
+    * @param name the app(let) name
     * @param inputSpec the applet inputs
     * @param outputSpec the applet outputs
+    * @param appVersion the version of this app, if `name` is an app name
     * @return an AST.Task
     */
   private def createDnanexusStub(
       id: String,
-      appletName: String,
+      name: String,
       inputSpec: Map[String, WdlTypes.T],
       outputSpec: Map[String, WdlTypes.T],
+      appVersion: Option[String] = None,
       loc: SourceLocation = WdlUtils.locPlaceholder
   ): TAT.Task = {
     // DNAnexus allows '-' and '.' in app(let) names, WDL does not
-    val normalizedName = appletName.replaceAll("[-.]", "_")
-    val meta = TAT.MetaSection(
-        SeqMap(
-            "type" -> TAT.MetaValueString("native", quoting = Quoting.Double)(loc),
-            "id" -> TAT.MetaValueString(id, quoting = Quoting.Double)(loc)
-        )
-    )(
-        loc
-    )
+    val taskName = name.replaceAll("[-.]", "_")
+
+    val (objectType, _) = DxUtils.parseObjectId(id)
+    val nativeName = (objectType, appVersion) match {
+      case ("app", Some(version)) => s"${name}/${version}"
+      case (_, None)              => name
+      case _                      => throw new Exception("cannot specify version with applet")
+    }
+
+    def stringValue(s: String): TAT.Expr = {
+      TAT.ValueString(s, WdlTypes.T_String, Quoting.Double)(loc)
+    }
+
     TAT.Task(
-        normalizedName,
-        T_Task(normalizedName,
+        taskName,
+        T_Task(taskName,
                inputSpec
                  .map {
                    case (name, wdlType) => name -> (wdlType, false)
@@ -66,9 +72,23 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
         }.toVector,
         TAT.CommandSection(Vector.empty)(loc),
         Vector.empty,
-        Some(meta),
+        None,
         parameterMeta = None,
-        runtime = None,
+        runtime = Some(
+            TAT.RuntimeSection(
+                SeqMap(
+                    "dx_app" -> TAT
+                      .ExprObject(
+                          SeqMap(
+                              stringValue("type") -> stringValue(objectType),
+                              stringValue("id") -> stringValue(id),
+                              stringValue("name") -> stringValue(nativeName)
+                          ),
+                          WdlTypes.T_Object
+                      )(loc)
+                )
+            )(loc)
+        ),
         hints = None
     )(
         loc = loc
@@ -151,7 +171,13 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
             s"Parameters ${bothStr} used as both input and output in applet ${dxAppDesc.name}"
         )
       }
-      Some(createDnanexusStub(dxAppDesc.id, dxAppDesc.name, inputSpec, outputSpec))
+      Some(
+          createDnanexusStub(dxAppDesc.id,
+                             dxAppDesc.name,
+                             inputSpec,
+                             outputSpec,
+                             Some(dxAppDesc.version))
+      )
     } catch {
       case e: Throwable =>
         logger.warning(
