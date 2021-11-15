@@ -542,7 +542,6 @@ object Main {
           waitOnUpload,
           useManifests,
           translator.complexPathValues,
-          instanceTypeSelection, // TODO remove
           defaultInstanceType,
           fileResolver
       )

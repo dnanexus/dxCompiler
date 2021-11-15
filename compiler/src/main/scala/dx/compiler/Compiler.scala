@@ -68,7 +68,6 @@ case class Compiler(
     waitOnUpload: Boolean,
     useManifests: Boolean,
     complexPathValues: Boolean,
-    instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection, // TODO remove
     defaultInstanceType: Option[String],
     fileResolver: FileSourceResolver = FileSourceResolver.get,
     dxApi: DxApi = DxApi.get,
@@ -320,7 +319,6 @@ case class Compiler(
             parameterLinkSerializer = parameterLinkSerializer,
             useManifests = useManifests,
             complexPathValues = complexPathValues,
-            instanceTypeSelection = instanceTypeSelection, // TODO remove
             defaultInstanceType,
             fileResolver = fileResolver,
             dxApi = dxApi,

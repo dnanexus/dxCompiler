@@ -43,7 +43,6 @@ case class ApplicationCompiler(
     parameterLinkSerializer: ParameterLinkSerializer,
     useManifests: Boolean,
     complexPathValues: Boolean,
-    instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection, // TODO remove
     defaultInstanceType: Option[String],
     fileResolver: FileSourceResolver,
     dxApi: DxApi = DxApi.get,
