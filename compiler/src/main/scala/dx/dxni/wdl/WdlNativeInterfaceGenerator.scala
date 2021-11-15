@@ -38,12 +38,12 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
       loc: SourceLocation = WdlUtils.locPlaceholder
   ): TAT.Task = {
     // DNAnexus allows '-' and '.' in app(let) names, WDL does not
-    val normalizedName = name.replaceAll("[-.]", "_")
+    val taskName = name.replaceAll("[-.]", "_")
 
     val (objectType, _) = DxUtils.parseObjectId(id)
-    val nameWithVersion = (objectType, appVersion) match {
-      case ("app", Some(version)) => s"${normalizedName}/${version}"
-      case (_, None)              => normalizedName
+    val nativeName = (objectType, appVersion) match {
+      case ("app", Some(version)) => s"${name}/${version}"
+      case (_, None)              => name
       case _                      => throw new Exception("cannot specify version with applet")
     }
 
@@ -52,8 +52,8 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
     }
 
     TAT.Task(
-        normalizedName,
-        T_Task(normalizedName,
+        taskName,
+        T_Task(taskName,
                inputSpec
                  .map {
                    case (name, wdlType) => name -> (wdlType, false)
@@ -82,7 +82,7 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
                           SeqMap(
                               stringValue("type") -> stringValue(objectType),
                               stringValue("id") -> stringValue(id),
-                              stringValue("name") -> stringValue(nameWithVersion)
+                              stringValue("name") -> stringValue(nativeName)
                           ),
                           WdlTypes.T_Object
                       )(loc)
