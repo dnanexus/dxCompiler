@@ -44,7 +44,6 @@ case class CallableTranslator(
     perWorkflowAttrs: Map[String, DxWorkflowAttrs],
     defaultScatterChunkSize: Int,
     useManifests: Boolean,
-    instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection, // TODO remove
     versionSupport: VersionSupport,
     dxApi: DxApi = DxApi.get,
     fileResolver: FileSourceResolver = FileSourceResolver.get,

@@ -14,7 +14,6 @@ import dx.core.ir.{
   ExecutableKindWfCustomReorgOutputs,
   ExecutableKindWfFragment,
   ExecutableKindWfOutputs,
-  InstanceTypeSelection,
   Level,
   Parameter,
   ParameterAttribute,
@@ -88,7 +87,6 @@ case class ProcessTranslator(
     perWorkflowAttrs: Map[String, DxWorkflowAttrs],
     defaultScatterChunkSize: Int,
     useManifests: Boolean,
-    instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection, // TODO remove
     dxApi: DxApi = DxApi.get,
     fileResolver: FileSourceResolver = FileSourceResolver.get,
     logger: Logger = Logger.get

@@ -1,15 +1,7 @@
 package dx.translator.cwl
 
 import dx.api.{DxApi, DxProject}
-import dx.core.ir.{
-  Bundle,
-  Callable,
-  InstanceTypeSelection,
-  Type,
-  Value,
-  ValueSerde,
-  Workflow => IRWorkflow
-}
+import dx.core.ir.{Bundle, Callable, Type, Value, ValueSerde, Workflow => IRWorkflow}
 import dx.core.languages.Language
 import dx.core.languages.Language.Language
 import dx.core.languages.cwl.{CwlBundle, CwlDxName, CwlUtils, DxHintSchema}
@@ -140,7 +132,6 @@ case class CwlTranslator(
     perWorkflowAttrs: Map[String, DxWorkflowAttrs],
     defaultScatterChunkSize: Int,
     useManifests: Boolean,
-    instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection, // TODO remove
     fileResolver: FileSourceResolver = FileSourceResolver.get,
     dxApi: DxApi = DxApi.get,
     logger: Logger = Logger.get
@@ -163,7 +154,6 @@ case class CwlTranslator(
         perWorkflowAttrs,
         defaultScatterChunkSize,
         useManifests,
-        instanceTypeSelection, // TODO remove
         dxApi,
         fileResolver,
         logger
@@ -217,7 +207,6 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
       perWorkflowAttrs: Map[String, DxWorkflowAttrs],
       defaultScatterChunkSize: Int,
       useManifests: Boolean,
-      instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection, // TODO remove
       fileResolver: FileSourceResolver,
       dxApi: DxApi,
       logger: Logger
@@ -277,7 +266,6 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
             perWorkflowAttrs,
             defaultScatterChunkSize,
             useManifests,
-            instanceTypeSelection, // TODO remove
             fileResolver,
             dxApi,
             logger

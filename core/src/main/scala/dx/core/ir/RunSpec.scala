@@ -12,13 +12,6 @@ import dx.api.{
   InstanceTypeRequest
 }
 import dx.core.Constants
-import dx.util.Enum
-
-// TODO remove
-object InstanceTypeSelection extends Enum {
-  type InstanceTypeSelection = Value
-  val Static, Dynamic = Value
-}
 
 /**
   * Representation of the parts of dxapp.json `runSpec` that can be specified.
@@ -41,6 +34,7 @@ object RunSpec {
       extends RuntimeRequirement
   final case class StreamingRequirement(value: Boolean) extends RuntimeRequirement
 
+  // TODO update documentation comment
   /**
     * Specification of instance type.
     *  An instance could be:

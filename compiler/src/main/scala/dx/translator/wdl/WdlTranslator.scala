@@ -129,7 +129,6 @@ case class WdlTranslator(
     perWorkflowAttrs: Map[String, DxWorkflowAttrs],
     defaultScatterChunkSize: Int,
     useManifests: Boolean,
-    instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection, // TODO remove
     versionSupport: VersionSupport,
     fileResolver: FileSourceResolver = FileSourceResolver.get,
     dxApi: DxApi = DxApi.get,
@@ -153,7 +152,6 @@ case class WdlTranslator(
         perWorkflowAttrs,
         defaultScatterChunkSize,
         useManifests,
-        instanceTypeSelection,
         versionSupport,
         dxApi,
         fileResolver,
@@ -209,7 +207,6 @@ case class WdlTranslatorFactory(wdlOptions: WdlOptions = WdlOptions.default)
       perWorkflowAttrs: Map[String, DxWorkflowAttrs],
       defaultScatterChunkSize: Int,
       useManifests: Boolean,
-      instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection, // TODO remove
       fileResolver: FileSourceResolver,
       dxApi: DxApi = DxApi.get,
       logger: Logger = Logger.get
@@ -237,7 +234,6 @@ case class WdlTranslatorFactory(wdlOptions: WdlOptions = WdlOptions.default)
             perWorkflowAttrs,
             defaultScatterChunkSize,
             useManifests,
-            instanceTypeSelection, // TODO remove
             versionSupport,
             fileResolver,
             dxApi,
