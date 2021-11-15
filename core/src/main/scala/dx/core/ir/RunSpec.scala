@@ -34,17 +34,17 @@ object RunSpec {
       extends RuntimeRequirement
   final case class StreamingRequirement(value: Boolean) extends RuntimeRequirement
 
-  // TODO update documentation comment
   /**
     * Specification of instance type.
     *  An instance could be:
     *  Default: the platform default, useful for auxiliary calculations.
-    *  Static:  instance type is known at compile time. We can start the
-    *           job directly on the correct instance type.
-    *  Dynamic: WDL specifies a calculation for the instance type, based
-    *           on information known only at runtime. The generated app(let)
-    *           will need to evalulate the expressions at runtime, and then
-    *           start another job on the correct instance type.
+    *  Static:  instance type is hard-coded, and therefore known at compile time.
+    *           We can start the job directly on the correct instance type.
+    *  Dynamic: instance type is specified using requirements and depends on the
+    *           available instance types in the runtime project, or depends on
+    *           a calculation at runtime. The generated app(let) will need to
+    *           determine the correct instance type and re-launch the job if the
+    *           initial instance type is not sufficient.
     */
   sealed trait InstanceType
 
