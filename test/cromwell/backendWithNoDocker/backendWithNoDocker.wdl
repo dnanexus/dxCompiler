@@ -3,7 +3,7 @@ task dockerhub {
         echo "bonjour tout le monde !"
     }
     runtime {
-        docker: "ubuntu:precise-20161209"
+        docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
         backend: "LocalNoDocker"
     }
 }

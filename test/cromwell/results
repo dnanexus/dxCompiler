@@ -13,7 +13,7 @@ sub && sub_sub --
 [error] Error translating /Users/mhrvol-cf/Desktop/projects/dxCompiler/test/cromwell/sub_sub/sub_sub.wdl to IR
 java.lang.Exception: callable(s) Set(wf) appears multiple times with different definitions
 
-string_interpolation_optional.wdl, none_literal --  invalid runtime keyword docker at 17:4-17:27 - `docker: "ubuntu:latest"`
+string_interpolation_optional.wdl, none_literal --  invalid runtime keyword docker at 17:4-17:27 - `docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"`
 
 
 large_final_workflow_outputs_dir.wdl, input_expressions -

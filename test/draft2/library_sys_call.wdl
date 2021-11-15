@@ -62,7 +62,7 @@ task diff {
         b : "stream"
     }
     runtime {
-        docker: "ubuntu:16.04"
+        docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
     }
     command {
         diff ${a} ${b} | wc -l
