@@ -1,5 +1,9 @@
 # Release Notes
 
+## in develop
+
+* Fixes issue where jobs fail due to out-of-disk error due to excessive logging
+
 ## 2.7.0 2021-11-10
 
 * Handles empty scatters in WDL workflows
