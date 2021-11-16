@@ -189,8 +189,7 @@ abstract class InputTranslator(bundle: Bundle,
 
     val updatedValue = convertRawInput(rawInput, t)
     (t, updatedValue) match {
-      case (_, JsNull) if Type.isOptional(t) =>
-        Vector.empty
+      case (_, JsNull) if Type.isOptional(t) => Vector.empty
       case (TOptional(inner), _) =>
         extractDxFiles(updatedValue, inner)
       case (TFile, uri: JsString) if uri.value.startsWith(DxPath.DxUriPrefix) =>

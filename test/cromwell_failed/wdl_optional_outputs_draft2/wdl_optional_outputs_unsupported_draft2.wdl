@@ -10,7 +10,7 @@ task unsupported_pairs {
         Pair[File?, File] one_optional = ("no", "yes")
     }
     runtime {
-        docker: "ubuntu:latest"
+        docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
     }
 }
 

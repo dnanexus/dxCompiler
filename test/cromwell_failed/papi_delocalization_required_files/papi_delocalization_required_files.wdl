@@ -13,7 +13,7 @@ task do_it {
         String value = read_string("oops.txt")
     }
     runtime {
-        docker: "ubuntu:latest"
+        docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
     }
 }
 
@@ -30,7 +30,7 @@ task check_it {
         String value = read_string("file.txt")
     }
     runtime {
-        docker: "ubuntu:latest"
+        docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
     }
 }
 

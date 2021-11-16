@@ -7,7 +7,7 @@ task write_map {
     String contents = read_string(stdout())
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 }
 
@@ -22,7 +22,7 @@ task read_map {
     Map[String, Int] out_map = read_map(stdout())
   }
   runtime {
-    docker: "python:3.5.0"
+    docker: "dx://file-G66qz3Q0yzZfy6pg5q3yK3Kz"
   }
 }
 

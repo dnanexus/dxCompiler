@@ -36,43 +36,16 @@ object RuntimeTranslator {
   val AppletProject = "project"
   val AppletPath = "path"
 
-  case object Access
-      extends DxRuntimeHint(
-          Some("dx_access"),
-          "access",
-          Vector(T_Object)
-      )
-  case object App
-      extends DxRuntimeHint(
-          None,
-          "app",
-          Vector(T_String, T_Object)
-      )
+  case object Access extends DxRuntimeHint(Some("dx_access"), "access", Vector(T_Object))
+  case object App extends DxRuntimeHint(Some("dx_app"), "app", Vector(T_String, T_Object))
   case object IgnoreReuse
-      extends DxRuntimeHint(
-          Some("dx_ignore_reuse"),
-          "ignore_reuse",
-          Vector(T_Boolean)
-      )
-  case object Restart
-      extends DxRuntimeHint(
-          Some("dx_restart"),
-          "restart",
-          Vector(T_Int, T_Object)
-      )
+      extends DxRuntimeHint(Some("dx_ignore_reuse"), "ignore_reuse", Vector(T_Boolean))
+  case object Restart extends DxRuntimeHint(Some("dx_restart"), "restart", Vector(T_Int, T_Object))
   // TODO: this is an input file hint
 //  case object Stream
-//      extends DxRuntimeHint(
-//          Some("dx_stream"),
-//          "stream",
-//          Vector(T_Boolean)
-//      )
+//      extends DxRuntimeHint(Some("dx_stream"), "stream", Vector(T_Boolean))
   case object Timeout
-      extends DxRuntimeHint(
-          Some("dx_timeout"),
-          "timeout",
-          Vector(T_String, T_Object)
-      )
+      extends DxRuntimeHint(Some("dx_timeout"), "timeout", Vector(T_String, T_Object))
   // TODO: case object Regions
   /**
     * This key is used in the restart object value to represent "*"
@@ -98,12 +71,9 @@ case class RuntimeTranslator(wdlVersion: WdlVersion,
   def translate(id: String, wdlType: Option[T] = None): Option[Value] = {
     try {
       (runtime.get(id), wdlType) match {
-        case (Some(value), None) =>
-          Some(WdlUtils.toIRValue(value))
-        case (Some(value), Some(t)) =>
-          Some(WdlUtils.toIRValue(value, t))
-        case other =>
-          throw new Exception(s"invalid value ${other}")
+        case (Some(value), None)    => Some(WdlUtils.toIRValue(value))
+        case (Some(value), Some(t)) => Some(WdlUtils.toIRValue(value, t))
+        case other                  => throw new Exception(s"invalid value ${other}")
       }
     } catch {
       case _: EvalException =>
@@ -113,25 +83,25 @@ case class RuntimeTranslator(wdlVersion: WdlVersion,
   }
 
   def translateExecutableKind: Option[ExecutableKind] = {
-    def kindFromId(id: String): Option[ExecutableKind] = {
+    def kindFromId(id: String): ExecutableKind = {
       val (executableType, _) = DxUtils.parseExecutableId(id)
-      Some(ExecutableKindNative(ExecutableType.withNameIgnoreCase(executableType), Some(id)))
+      ExecutableKindNative(ExecutableType.withNameIgnoreCase(executableType), Some(id))
     }
-    if (wdlVersion >= WdlVersion.V2) {
-      runtime.getDxHint(RuntimeTranslator.App) match {
-        case None => ()
-        case Some(V_String(id)) =>
-          return try {
+    runtime
+      .getDxHint(RuntimeTranslator.App)
+      .map {
+        case V_String(id) =>
+          try {
             kindFromId(id)
           } catch {
             case _: IllegalArgumentException =>
               if (id.startsWith("/")) {
-                Some(ExecutableKindNative(ExecutableType.Applet, path = Some(id)))
+                ExecutableKindNative(ExecutableType.Applet, path = Some(id))
               } else {
-                Some(ExecutableKindNative(ExecutableType.App, name = Some(id)))
+                ExecutableKindNative(ExecutableType.App, name = Some(id))
               }
           }
-        case Some(V_Object(fields)) =>
+        case V_Object(fields) =>
           def getStringField(name: String): Option[String] = {
             fields.get(name) match {
               case Some(V_String(s)) => Some(s)
@@ -145,32 +115,31 @@ case class RuntimeTranslator(wdlVersion: WdlVersion,
           val path = getStringField(RuntimeTranslator.AppletPath)
           getStringField(RuntimeTranslator.ExecutableTypeKey) match {
             case Some(executableType) =>
-              Some(
-                  ExecutableKindNative(
-                      ExecutableType.withNameIgnoreCase(executableType),
-                      id,
-                      name,
-                      project,
-                      path
-                  )
+              ExecutableKindNative(
+                  ExecutableType.withNameIgnoreCase(executableType),
+                  id,
+                  name,
+                  project,
+                  path
               )
+
             case None if name.isDefined =>
-              Some(ExecutableKindNative(ExecutableType.App, id, name))
+              ExecutableKindNative(ExecutableType.App, id, name)
             case None if project.isDefined || path.isDefined =>
-              Some(ExecutableKindNative(ExecutableType.Applet, id, project = project, path = path))
-            case None if id.isDefined =>
-              kindFromId(id.get)
+              ExecutableKindNative(ExecutableType.Applet, id, project = project, path = path)
+            case None if id.isDefined => kindFromId(id.get)
             case _ =>
               throw new Exception("Not enough information to determine native app(let)")
           }
         case other => throw new Exception(s"invalid app value ${other}")
       }
-    }
-    (meta.get(RuntimeTranslator.ExecutableTypeKey), meta.get(RuntimeTranslator.ExecutableId)) match {
-      case (Some(V_String(RuntimeTranslator.ExecutableTypeNative)), Some(V_String(id))) =>
-        kindFromId(id)
-      case _ => None
-    }
+      .orElse {
+        (meta.get(RuntimeTranslator.ExecutableTypeKey), meta.get(RuntimeTranslator.ExecutableId)) match {
+          case (Some(V_String(RuntimeTranslator.ExecutableTypeNative)), Some(V_String(id))) =>
+            Some(kindFromId(id))
+          case _ => None
+        }
+      }
   }
 
   def translateInstanceType(

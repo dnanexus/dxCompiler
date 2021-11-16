@@ -6,7 +6,7 @@ task failOnStderr {
         String ohno = read_string(stderr())
     }
     runtime {
-        docker: "ubuntu:latest"
+        docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
         failOnStderr: true
     }
 }

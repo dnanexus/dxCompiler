@@ -93,8 +93,17 @@ case class CwlInputTranslator(bundle: Bundle,
       case (Type.TFile, obj: JsObject) if obj.fields.get("class").contains(JsString("File")) =>
         val (_, cwlValue) = CwlUtils.toIRValue(FileValue.deserialize(obj), CwlFile)
         ValueSerde.serialize(cwlValue, fileResolver = Some(baseFileResolver), pathsAsObjects = true)
+      case (m: Type.TMulti, obj: JsObject)
+          if m.contains(Type.TFile) && obj.fields.get("class").contains(JsString("File")) =>
+        val (_, cwlValue) = CwlUtils.toIRValue(FileValue.deserialize(obj), CwlFile)
+        ValueSerde.serialize(cwlValue, fileResolver = Some(baseFileResolver), pathsAsObjects = true)
       case (Type.TDirectory, obj: JsObject)
           if obj.fields.get("class").contains(JsString("Directory")) =>
+        val (_, cwlValue) = CwlUtils.toIRValue(DirectoryValue.deserialize(obj), CwlDirectory)
+        ValueSerde.serialize(cwlValue, fileResolver = Some(baseFileResolver), pathsAsObjects = true)
+      case (m: Type.TMulti, obj: JsObject)
+          if m.contains(Type.TDirectory) &&
+            obj.fields.get("class").contains(JsString("Directory")) =>
         val (_, cwlValue) = CwlUtils.toIRValue(DirectoryValue.deserialize(obj), CwlDirectory)
         ValueSerde.serialize(cwlValue, fileResolver = Some(baseFileResolver), pathsAsObjects = true)
       case _ => rawInput

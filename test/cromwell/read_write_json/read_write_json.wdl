@@ -43,7 +43,7 @@ task round_trip {
     Object round_tripped = read_json("output.json")
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 }
 
@@ -65,7 +65,7 @@ task make_some_json {
     Object output_json = read_json(stdout())
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 }
 
@@ -79,6 +79,6 @@ task success {
     String result = read_string(stdout())
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 }

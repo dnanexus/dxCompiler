@@ -304,6 +304,30 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
     retval shouldBe a[SuccessfulCompileIR]
   }
 
+  it should "translate cwl file inputs" in {
+    val cwlCode = pathFromBasename("input_file", "io-any-wf.cwl.json")
+    val inputs = pathFromBasename("input_file", "io-any-wf_input3.json")
+    val args = List(cwlCode.toString, "--locked", "--inputs", inputs.toString) ++ cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileIR]
+    val dxInputsFile = inputs.getParent.resolve(FileUtils.replaceFileSuffix(inputs, ".dx.json"))
+    val jsInputs = JsUtils.jsFromFile(dxInputsFile).asJsObject.fields
+    jsInputs.size shouldBe 2
+    jsInputs.keySet shouldBe Set("bar", "bar___dxfiles")
+    val fileObj =
+      jsInputs("bar").asJsObject.fields("___").asJsObject.fields("wrapped___").asJsObject.fields
+    fileObj("type") shouldBe JsString("File")
+    fileObj("uri") match {
+      case JsObject(fields) if fields.contains("$dnanexus_link") =>
+        fields("$dnanexus_link") shouldBe JsObject(
+            "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
+            "id" -> JsString("file-G0G0V1Q0yzZZZXfx3xPK1B1Z")
+        )
+      case other =>
+        throw new Exception(s"expected dx link not ${other}")
+    }
+  }
+
   it should "translate cwl inputs with default file value" in {
     val cwlCode = pathFromBasename("input_file", "bool-empty-inputbinding.cwl.json")
     val inputs = pathFromBasename("input_file", "bool-empty-inputbinding_input.json")

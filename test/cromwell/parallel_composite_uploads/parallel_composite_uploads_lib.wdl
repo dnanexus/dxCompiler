@@ -10,7 +10,7 @@ task make_a_fake_bam_parallel_composite_uploads_off_in_config {
       File bam = "fake.bam"
     }
     runtime {
-      docker: "ubuntu:latest"
+      docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
       backend: "Papiv2"
     }
 }
@@ -24,7 +24,7 @@ task make_a_fake_bam_parallel_composite_uploads_on_in_config {
       File bam = "fake.bam"
     }
     runtime {
-      docker: "ubuntu:latest"
+      docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
       backend: "Papiv2ParallelCompositeUploads"
     }
 }
