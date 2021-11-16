@@ -1,16 +1,16 @@
 targets_bed_file:  # type "File"
     class: File
-    path: a/file/path
+    path: dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/pseudoautosomal.hg19.bed
 special_regions_bed_file:  # type "File"
     class: File
-    path: dx://project-G2bvXbj0F1K8yg0fPqpqVzy1:file-G5vJ4F80F1K0Bz294qP8JvV0
+    path: dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/clamms_special_regions.hg19.bed
 mappability_bed_file:  # type "File"
     class: File
-    path: a/file/path
+    path: dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/mappability.bed
 insert_size: 200  # default value of type "long".
 genome_fasta_index:  # type "File" (optional)
     class: File
-    path: a/file/path
+    path: dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/chr20.fa
 genome_fasta:  # type "File" (optional)
     class: File
-    path: a/file/path
+    path: dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/example_human_Illumina.pe_1.fastq

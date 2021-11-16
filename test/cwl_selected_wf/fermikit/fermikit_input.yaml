@@ -1,12 +1,12 @@
 reference_genome:  # type "File"
     class: File
-    path: dx://project-BQpp3Y804Y0xbyG4GJPQ01xv:file-BQbY9Bj015pB7JJVX0vQ7vj5
+    path: dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/chr20.fa
 reads2:  # type "File" (optional)
     class: File
-    path: dx://project-BzQf6k80V3bJk7x0yv6z82j7:file-F69bkyj0xG8bG1Jq29v3BjPG
+    path: dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/example_human_Illumina.pe_1.fastq
 reads1:  # type "File"
     class: File
-    path: dx://project-BzQf6k80V3bJk7x0yv6z82j7:file-F69bp1Q0xG8v79K429jffKPZ
+    path: dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/example_human_Illumina.pe_2.fastq
 read_length: 150  # default value of type "long".
 output_name: genome  # default value of type "string".
-estimated_genome_size: 3200000000  # default value of type "long".
+estimated_genome_size: 32000  # default value of type "long".

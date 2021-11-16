@@ -2,7 +2,7 @@ w-params:  # array of type "double"
   - 0.1
 synapse-config:  # type "File"
     class: File
-    path: a/file/path
+    path: dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/.synapseConfig
 output-project-id: a_string  # type "string"
 output-parent-id: a_string  # type "string"
 name: a_string  # type "string"
