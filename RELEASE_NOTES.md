@@ -1,8 +1,9 @@
 # Release Notes
 
-## in develop
+## 2.7.1 2021-11-15
 
 * Fixes issue where jobs fail due to out-of-disk error due to excessive logging
+* Adds option to specify native app information in `runtime` section (or `hints` for WDL 2.0)
 
 ## 2.7.0 2021-11-10
 
