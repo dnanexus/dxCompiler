@@ -69,7 +69,31 @@ jobs:
           # install dxda
           sudo wget -O/usr/local/bin/dx-download-agent https://github.com/dnanexus/dxda/releases/download/v0.5.7/dx-download-agent-linux
           sudo chmod +x /usr/local/bin/dx-download-agent
-      - name: Run tests
+      - name: Run unit tests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AUTH_TOKEN: ${{ secrets.DX_STAGING_TOKEN }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y apt-transport-https wget git openssh-server tree python3 python3-pip python3-venv
+          cwltool=`jq -r '.execDepends.cwl[0].name' scripts/bundled_dependencies.json`
+          pip3 install --upgrade pip setuptools
+          pip3 install termcolor dxpy $cwltool
+          export PATH="$PATH:$HOME/.local/bin"
+
+          # install dxda
+          sudo wget -O/usr/local/bin/dx-download-agent https://github.com/dnanexus/dxda/releases/download/v0.5.7/dx-download-agent-linux
+          sudo chmod +x /usr/local/bin/dx-download-agent
+
+          # set up DNAnexus staging environment
+          dx login --noprojects --staging --token $AUTH_TOKEN
+          dx select dxCompiler_playground
+
+          # run unit tests
+          cd ${GITHUB_WORKSPACE}
+          pwd
+          sbt version && sbt compile && sbt "testOnly -- -l prod"
+      - name: Run integration tests
         if: ${{ github.event.inputs.should-run-tests == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
