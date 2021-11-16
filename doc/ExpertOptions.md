@@ -63,7 +63,6 @@ Compilation can be controled with several parameters.
 | imports \<string\> | Directory to search for imported WDL files. May be specified multiple times. |
 | locked   | Create a locked workflow. When running a locked workflow, input values may only be specified for the top-level workflow. |
 | leaveWorkflowsOpen | Leave created workflows open (otherwise they are closed). |
-| noListings | CWL-specific option to prevent full folder listings in generated input files |
 | projectWideReuse | Look for existing applets/workflows in the entire project before generating new ones. The default search scope is the target folder only. |
 | reorg    | Reorganize workflow output files. |
 | runtimeDebugLevel \[0,1,2\] | How much debug information to write to the job log at runtime. Log the minimum (0), intermediate (1, the default), or all debug information (2, for internal debugging).
@@ -247,7 +246,7 @@ A second important caveat, which results from the fact that folders are not trea
 * Disable job reuse when running executables with `Directory`-type inputs.
 * Enact policies and practices to prevent modification of folders that will be used as input when job reuse is enabled.
 
-CWL does provide a mechanism for ensuring reproducibility of jobs that take directory inputs, via the `listing` field. We strongly recommend that CWL users specify the folder listing for each directory input. A job will only be reused if both the folder and the listing are identical. The ordering of the listing is taken into consideration when making the comparison, so the listing must be generated deterministically. The default behavior of dxCompiler when using the `-input` option is to generate input files with full listings for all directories, unless the `-noListings` option is specified. An example of a folder with a listing is:
+CWL does provide a mechanism for ensuring reproducibility of jobs that take directory inputs, via the `listing` field. We strongly recommend that CWL users specify the folder listing for each directory input. A job will only be reused if both the folder and the listing are identical. The ordering of the listing is taken into consideration when making the comparison, so the listing must be generated deterministically. The default behavior of dxCompiler when using the `-input` option is to generate input files with full listings for all directories. An example of a folder with a listing is:
 
 ```json
 {
