@@ -3,7 +3,7 @@ cwlVersion: v1.2
 $namespaces:
   dx: https://www.dnanexus.com/cwl#
 $graph:
-- id: inputdir_zero_doesnt_localize
+- id: main
   class: Workflow
   hints:
   - class: ShellCommandRequirement
@@ -26,6 +26,8 @@ $graph:
     - id: echoMaybeOut
     run:
       class: CommandLineTool
+      requirements:
+      - class: InlineJavascriptRequirement
       inputs: []
       outputs:
       - id: echoOut
@@ -76,13 +78,13 @@ $graph:
   - id: findFile
     in:
     - id: f
-      source: "#inputdir_zero_doesnt_localize/echo/echoOut"
+      source: "echo/echoOut"
     - id: g
-      source: "#inputdir_zero_doesnt_localize/echo/echoArrayOut"
+      source: "echo/echoArrayOut"
     - id: h
-      source: "#inputdir_zero_doesnt_localize/echo/echoRecordOut"
+      source: "echo/echoRecordOut"
     - id: i
-      source: "#inputdir_zero_doesnt_localize/echo/echoMaybeOut"
+      source: "echo/echoMaybeOut"
     out:
     - id: errors
     run:
@@ -108,7 +110,7 @@ $graph:
             type: File
       outputs:
       - id: errors
-        type: string
+        type: File
         outputBinding:
           glob: errors.txt
           loadContents: true

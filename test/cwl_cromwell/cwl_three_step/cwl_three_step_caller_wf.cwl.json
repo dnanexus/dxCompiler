@@ -1,0 +1,281 @@
+{
+    "$graph": [
+        {
+            "class": "Workflow",
+            "id": "#cwl_three_step.cwl",
+            "hints": [
+                {
+                    "dockerPull": "ubuntu:latest",
+                    "class": "DockerRequirement"
+                }
+            ],
+            "inputs": [
+                {
+                    "id": "#cwl_three_step.cwl/three_step/pattern",
+                    "type": "string"
+                }
+            ],
+            "steps": [
+                {
+                    "id": "#cwl_three_step.cwl/three_step/ps",
+                    "in": [],
+                    "out": [
+                        {
+                            "id": "#cwl_three_step.cwl/three_step/ps/ps-stdOut"
+                        }
+                    ],
+                    "run": {
+                        "inputs": [],
+                        "outputs": [
+                            {
+                                "id": "#cwl_three_step.cwl/three_step/ps/run/ps-stdOut",
+                                "outputBinding": {
+                                    "glob": "ps-stdOut.txt"
+                                },
+                                "type": "File"
+                            }
+                        ],
+                        "class": "CommandLineTool",
+                        "requirements": [
+                            {
+                                "dockerPull": "ubuntu:bionic",
+                                "class": "DockerRequirement"
+                            }
+                        ],
+                        "baseCommand": "ps",
+                        "stdout": "ps-stdOut.txt",
+                        "hints": [
+                            {
+                                "loadListing": "deep_listing",
+                                "class": "LoadListingRequirement"
+                            },
+                            {
+                                "networkAccess": true,
+                                "class": "NetworkAccess"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "id": "#cwl_three_step.cwl/three_step/cgrep",
+                    "in": [
+                        {
+                            "id": "#cwl_three_step.cwl/three_step/cgrep/pattern",
+                            "source": "#cwl_three_step.cwl/three_step/pattern"
+                        },
+                        {
+                            "id": "#cwl_three_step.cwl/three_step/cgrep/file",
+                            "source": "#cwl_three_step.cwl/three_step/ps/ps-stdOut"
+                        }
+                    ],
+                    "out": [
+                        {
+                            "id": "#cwl_three_step.cwl/three_step/cgrep/cgrep-count"
+                        }
+                    ],
+                    "requirements": [
+                        {
+                            "dockerPull": "debian:jessie",
+                            "class": "DockerRequirement"
+                        }
+                    ],
+                    "run": {
+                        "inputs": [
+                            {
+                                "id": "#cwl_three_step.cwl/three_step/cgrep/run/pattern",
+                                "type": "string"
+                            },
+                            {
+                                "id": "#cwl_three_step.cwl/three_step/cgrep/run/file",
+                                "type": "File"
+                            }
+                        ],
+                        "outputs": [
+                            {
+                                "id": "#cwl_three_step.cwl/three_step/cgrep/run/cgrep-count",
+                                "outputBinding": {
+                                    "glob": "cgrep-stdOut.txt",
+                                    "loadContents": true,
+                                    "outputEval": "$(parseInt(self[0].contents))"
+                                },
+                                "type": "int"
+                            }
+                        ],
+                        "class": "CommandLineTool",
+                        "requirements": [
+                            {
+                                "class": "ShellCommandRequirement"
+                            },
+                            {
+                                "class": "InlineJavascriptRequirement"
+                            }
+                        ],
+                        "arguments": [
+                            {
+                                "valueFrom": "grep",
+                                "shellQuote": false
+                            },
+                            {
+                                "valueFrom": "$(inputs.pattern)",
+                                "shellQuote": false
+                            },
+                            {
+                                "valueFrom": "${return inputs.file}",
+                                "shellQuote": false
+                            },
+                            {
+                                "valueFrom": "|",
+                                "shellQuote": false
+                            },
+                            {
+                                "valueFrom": "wc",
+                                "shellQuote": false
+                            },
+                            {
+                                "valueFrom": "-l",
+                                "shellQuote": false
+                            }
+                        ],
+                        "stdout": "cgrep-stdOut.txt",
+                        "hints": [
+                            {
+                                "loadListing": "deep_listing",
+                                "class": "LoadListingRequirement"
+                            },
+                            {
+                                "networkAccess": true,
+                                "class": "NetworkAccess"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "id": "#cwl_three_step.cwl/three_step/wc",
+                    "in": [
+                        {
+                            "id": "#cwl_three_step.cwl/three_step/wc/file",
+                            "source": "#cwl_three_step.cwl/three_step/ps/ps-stdOut"
+                        }
+                    ],
+                    "out": [
+                        {
+                            "id": "#cwl_three_step.cwl/three_step/wc/wc-count"
+                        }
+                    ],
+                    "run": {
+                        "inputs": [
+                            {
+                                "id": "#cwl_three_step.cwl/three_step/wc/run/file",
+                                "type": "File"
+                            }
+                        ],
+                        "outputs": [
+                            {
+                                "id": "#cwl_three_step.cwl/three_step/wc/run/wc-count",
+                                "outputBinding": {
+                                    "glob": "wc-stdOut.txt",
+                                    "loadContents": true,
+                                    "outputEval": "$(parseInt(self[0].contents))"
+                                },
+                                "type": "int"
+                            }
+                        ],
+                        "class": "CommandLineTool",
+                        "requirements": [
+                            {
+                                "class": "ShellCommandRequirement"
+                            },
+                            {
+                                "class": "InlineJavascriptRequirement"
+                            }
+                        ],
+                        "arguments": [
+                            {
+                                "valueFrom": "cat",
+                                "shellQuote": false
+                            },
+                            {
+                                "valueFrom": "$(inputs.file)",
+                                "shellQuote": false
+                            },
+                            {
+                                "valueFrom": "|",
+                                "shellQuote": false
+                            },
+                            {
+                                "valueFrom": "wc",
+                                "shellQuote": false
+                            },
+                            {
+                                "valueFrom": "-l",
+                                "shellQuote": false
+                            }
+                        ],
+                        "stdout": "wc-stdOut.txt",
+                        "hints": [
+                            {
+                                "loadListing": "deep_listing",
+                                "class": "LoadListingRequirement"
+                            },
+                            {
+                                "networkAccess": true,
+                                "class": "NetworkAccess"
+                            }
+                        ]
+                    }
+                }
+            ],
+            "outputs": [
+                {
+                    "id": "#cwl_three_step.cwl/three_step/cgrep-count",
+                    "outputSource": "#cwl_three_step.cwl/three_step/cgrep/cgrep-count",
+                    "type": "int"
+                },
+                {
+                    "id": "#cwl_three_step.cwl/three_step/wc-count",
+                    "outputSource": "#cwl_three_step.cwl/three_step/wc/wc-count",
+                    "type": "int"
+                }
+            ]
+        },
+        {
+            "class": "Workflow",
+            "requirements": [
+                {
+                    "class": "SubworkflowFeatureRequirement"
+                }
+            ],
+            "inputs": [
+                {
+                    "id": "#main/pin",
+                    "type": "string",
+                    "default": "v"
+                }
+            ],
+            "steps": [
+                {
+                    "run": "#cwl_three_step.cwl",
+                    "in": [
+                        {
+                            "id": "#main/threestep/pattern",
+                            "source": "#main/pin"
+                        }
+                    ],
+                    "out": [
+                        "#main/threestep/wc-count"
+                    ],
+                    "id": "#main/threestep"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "int",
+                    "outputSource": "#main/threestep/wc-count",
+                    "id": "#main/count_output"
+                }
+            ],
+            "id": "#main"
+        }
+    ],
+    "cwlVersion": "v1.2"
+}

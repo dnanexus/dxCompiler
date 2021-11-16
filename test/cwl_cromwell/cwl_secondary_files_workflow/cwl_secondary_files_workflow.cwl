@@ -3,7 +3,7 @@ cwlVersion: v1.2
 $graph:
 # The inputs of the workflow specify secondary files but NOT of the tool
 # Verify that they are still propagated through
-- id: cwl_secondary_files_workflow
+- id: main
   class: Workflow
   inputs:
   - id: command
@@ -31,6 +31,8 @@ $graph:
     - id: the_answer
 - id: cwl_secondary_files_workflow_tool
   class: CommandLineTool
+  requirements:
+    - class: InlineJavascriptRequirement 
   hints:
     DockerRequirement:
       dockerPull: "debian:stretch-slim"

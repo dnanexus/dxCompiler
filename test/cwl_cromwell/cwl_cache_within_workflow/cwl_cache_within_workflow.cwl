@@ -1,12 +1,14 @@
-cwlVersion: v1.0
+#!/usr/bin/env cwl-runner
+cwlVersion: v1.2
 $graph:
 - id: one
   class: CommandLineTool
-
+  requirements:
+  - class: InlineJavascriptRequirement
+  - class: ShellCommandRequirement
   inputs:
     r:
       type: float
-
   outputs:
     rSquared:
       type: float
@@ -18,20 +20,23 @@ $graph:
       type: float
       outputBinding:
         outputEval: $(inputs.r)
-
   arguments:
   - valueFrom: "echo $(inputs.r * inputs.r)"
     shellQuote: false
-
   stdout: stdout.txt
-
+  hints:
+    NetworkAccess:
+      networkAccess: true
+    LoadListingRequirement:
+      loadListing: deep_listing
 - id: two
   class: CommandLineTool
-
+  requirements:
+  - class: InlineJavascriptRequirement
+  - class: ShellCommandRequirement
   inputs:
     rSquared: float
     pi: float
-
   outputs:
     area:
       outputBinding:
@@ -43,47 +48,39 @@ $graph:
       outputBinding:
         outputEval: $(inputs.rSquared)
       type: float
-
   arguments:
   - valueFrom: "echo $(inputs.rSquared * inputs.pi)"
     shellQuote: false
-
   stdout: stdout.txt
-
-# Throwing in some ExpressionTools for fun. Currently these not only don't cache but aren't even listed in the metadata
-# except in the original workflow blob (see #3499). The current thinking is that these should appear in metadata with a
-# call-like presentation but that they don't need to be eligible for caching since ExpressionTools are supposed to be
-# very lightweight and not worth the expense of hashing and potential cache hit copying.
+  hints:
+    NetworkAccess:
+      networkAccess: true
+    LoadListingRequirement:
+      loadListing: deep_listing
 - id: three
   class: ExpressionTool
-
+  requirements:
+  - class: InlineJavascriptRequirement
   inputs:
     rSquared: float
     pi: float
-
   outputs:
     area: int
     rSquaredCopy: float
-
   expression: |
     ${
     return {"area": parseInt(inputs.pi * inputs.rSquared),
             "rSquaredCopy": inputs.rSquared };
     }
-
-
-- id: cwl-cache-within-workflow
+- id: main
   class: Workflow
-
   requirements:
   - class: DockerRequirement
     dockerPull: "ubuntu:latest"
   - class: ShellCommandRequirement
-
   inputs:
     radius: float
     pi: float
-
   outputs:
     area:
       type: int
@@ -91,39 +88,38 @@ $graph:
     area-expression:
       type: int
       outputSource: re-baz/area
-
   steps:
-    foo:
-      run: "#one"
-      in:
-        r: radius
-        pi: pi
-      out: [rSquared, rCopy]
+  - id: foo
+    run: "#one"
+    in:
+      r: radius
+      pi: pi
+    out: [rSquared, rCopy]
 
-    bar:
-      run: "#two"
-      in:
-        rSquared: "foo/rSquared"
-        pi: pi
-      out: [area, rSquaredCopy]
+  - id: bar
+    run: "#two"
+    in:
+      rSquared: "foo/rSquared"
+      pi: pi
+    out: [area, rSquaredCopy]
 
-    re-bar:
-      run: "#two"
-      in:
-        rSquared: "bar/rSquaredCopy"
-        pi: pi
-      out: [area, rSquaredCopy]
+  - id: re-bar
+    run: "#two"
+    in:
+      rSquared: "bar/rSquaredCopy"
+      pi: pi
+    out: [area, rSquaredCopy]
 
-    baz:
-      run: "#three"
-      in:
-        rSquared: "foo/rSquared"
-        pi: pi
-      out: [area, rSquaredCopy]
+  - id: baz
+    run: "#three"
+    in:
+      rSquared: "foo/rSquared"
+      pi: pi
+    out: [area, rSquaredCopy]
 
-    re-baz:
-      run: "#three"
-      in:
-        rSquared: "baz/rSquaredCopy"
-        pi: pi
-      out: [area, rSquaredCopy]
+  - id: re-baz
+    run: "#three"
+    in:
+      rSquared: "baz/rSquaredCopy"
+      pi: pi
+    out: [area, rSquaredCopy]

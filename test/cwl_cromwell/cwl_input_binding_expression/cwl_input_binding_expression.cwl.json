@@ -1,0 +1,50 @@
+{
+    "id": "#main",
+    "class": "CommandLineTool",
+    "requirements": [
+        {
+            "class": "InlineJavascriptRequirement"
+        }
+    ],
+    "hints": [
+        {
+            "dockerPull": "debian:stretch-slim",
+            "class": "DockerRequirement"
+        },
+        {
+            "loadListing": "deep_listing",
+            "class": "LoadListingRequirement"
+        },
+        {
+            "networkAccess": true,
+            "class": "NetworkAccess"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "#main/hello",
+            "type": "string",
+            "inputBinding": {
+                "valueFrom": "$(self + \" world\")",
+                "position": 1
+            }
+        }
+    ],
+    "stdout": "stdout",
+    "baseCommand": [],
+    "arguments": [
+        "echo"
+    ],
+    "outputs": [
+        {
+            "type": "string",
+            "outputBinding": {
+                "loadContents": true,
+                "glob": "stdout",
+                "outputEval": "$(self[0].contents.trim())"
+            },
+            "id": "#main/b"
+        }
+    ],
+    "cwlVersion": "v1.2"
+}

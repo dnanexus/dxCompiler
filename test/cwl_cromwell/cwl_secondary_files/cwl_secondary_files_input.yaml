@@ -1,17 +1,32 @@
 # This command will stat the secondaryFiles and if they're missing bad times
-command: stat \$(echo \$* | sed 's/.txt/.txt.also/g') > /dev/null
+command: stat $(echo $* | sed 's/.txt/.txt.also/g') > /dev/null
 f:
   class: File
   path: "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/cwl_secondary_files/foo.txt"
+  secondaryFiles:
+    - class: File
+      path: "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/cwl_secondary_files/foo.txt.also"
 of:
   class: File
   path: "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/cwl_secondary_files/bim.txt"
+  secondaryFiles:
+    - class: File
+      path: "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/cwl_secondary_files/bim.txt.also"
 fs:
   - class: File
     path: "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/cwl_secondary_files/bar.txt"
+    secondaryFiles:
+      - class: File
+        path: "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/cwl_secondary_files/bar.txt.also"
   - class: File
     path: "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/cwl_secondary_files/baz.txt"
+    secondaryFiles:
+      - class: File
+        path: "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/cwl_secondary_files/baz.txt.also"
 fr:
   a:
     class: File
     path: "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/cwl_secondary_files/bam.txt"
+    secondaryFiles:
+      - class: File
+        path: "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/cwl_secondary_files/bam.txt.also"

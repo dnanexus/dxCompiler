@@ -1,6 +1,7 @@
-cwlVersion: v1.0
+#!/usr/bin/env cwl-runner
+cwlVersion: v1.2
 $graph:
-- id: cwl_input_json
+- id: main
   class: Workflow
   inputs: []
   outputs:
@@ -8,17 +9,16 @@ $graph:
       type: File
       outputSource: round/output_file
   steps:
-    make:
-      run: "#makefile"
-      in: []
-      out: [fileoutput]
-    round:
-      run: "#roundtrip"
-      in:
-        input_record: 
-          source: "make/fileoutput"
-      out: [output_file]
-          
+  - id: make
+    run: "#makefile"
+    in: []
+    out: [fileoutput]
+  - id: round
+    run: "#roundtrip"
+    in:
+      input_record:
+        source: "make/fileoutput"
+    out: [output_file]
 - id: makefile
   class: CommandLineTool
   requirements:
@@ -36,15 +36,23 @@ $graph:
         name: input_record
         type: record
   arguments:
-    - valueFrom: >
-         echo foo > foo && echo '{ "fileoutput": { "input_file": {"path": "$(runtime.outdir)/foo", "class": "File"} } }' > cwl.output.json
-      shellQuote: false
-
+  - valueFrom: |
+      echo foo > foo && echo '{ "fileoutput": { "input_file": {"path": "$(runtime.outdir)/foo", "class": "File"} } }' > cwl.output.json
+    shellQuote: false
+  hints:
+    NetworkAccess:
+      networkAccess: true
+    LoadListingRequirement:
+      loadListing: deep_listing
 - id: roundtrip
   class: CommandLineTool
   hints:
   - class: DockerRequirement
     dockerPull: "stedolan/jq:latest"
+  - class: NetworkAccess
+    networkAccess: true
+  - class: LoadListingRequirement
+    loadListing: deep_listing
   inputs:
   - id: input_record
     type:
@@ -65,6 +73,6 @@ $graph:
       entryname: cwl.inputs.json
   arguments:
   # Round-trips the file referenced in cwl.input.json to cwl.output.json. Also ls it in the command to make sure it's there.
-    - valueFrom: >
-         INPUT_FILE=\$(cat cwl.inputs.json | jq -r '.. | .path? // empty') && ls $INPUT_FILE && echo "{\"output_file\": {\"path\": \"\$INPUT_FILE\", \"class\": \"File\"} }" > cwl.output.json
-      shellQuote: false
+  - valueFrom: |
+      INPUT_FILE=\$(cat cwl.inputs.json | jq -r '.. | .path? // empty') && ls $INPUT_FILE && echo "{\"output_file\": {\"path\": \"\$INPUT_FILE\", \"class\": \"File\"} }" > cwl.output.json
+    shellQuote: false

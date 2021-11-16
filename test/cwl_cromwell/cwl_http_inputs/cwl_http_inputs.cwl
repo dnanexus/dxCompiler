@@ -1,20 +1,20 @@
 #!/usr/bin/env cwl-runner
 cwlVersion: v1.2
 $graph:
-- id: http_inputs
+- id: main
   class: Workflow
   inputs:
   - id: jamie
     type: File
   outputs:
   - id: md5
-    outputSource: "#http_inputs/sum/md5"
-    type: int
+    outputSource: "sum/md5"
+    type: string
   steps:
   - id: sum
     in:
     - id: jamie
-      source: "#http_inputs/jamie"
+      source: "jamie"
     out:
     - id: md5
     requirements:

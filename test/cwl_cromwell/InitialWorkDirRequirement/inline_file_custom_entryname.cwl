@@ -1,7 +1,7 @@
 #!/usr/bin/env cwl-runner
 cwlVersion: v1.2
 $graph:
-- id: iwdr_inline_file
+- id: main
   class: CommandLineTool
   baseCommand: ['python3']
   requirements:

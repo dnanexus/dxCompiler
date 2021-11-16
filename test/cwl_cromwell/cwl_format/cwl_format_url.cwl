@@ -5,12 +5,14 @@ $namespaces:
   gx: http://galaxyproject.org/formats/
 $schemas:
   # Relative path:
-- ../resources/cwl/ontology/EDAM.owl
+- "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/EDAM.owl"
   # Absolute (remote) path:
 - https://raw.githubusercontent.com/broadinstitute/cromwell/develop/cwl/src/test/resources/cwl/ontology/gx_edam.ttl
 $graph:
 - id: main
   class: CommandLineTool
+  requirements:
+  - class: InlineJavascriptRequirement
   cwlVersion: v1.0
   inputs:
   - id: reference

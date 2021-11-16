@@ -1,7 +1,7 @@
 #!/usr/bin/env cwl-runner
 cwlVersion: v1.2
 $graph:
-- id: interpolatedStrings
+- id: main
   class: CommandLineTool
   cwlVersion: v1.0
   requirements:

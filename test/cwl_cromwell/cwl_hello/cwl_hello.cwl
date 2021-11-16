@@ -1,11 +1,12 @@
 #!/usr/bin/env cwl-runner
 cwlVersion: v1.2
 $graph:
-  id: hello
+  id: main
   class: CommandLineTool
   requirements:
   - class: DockerRequirement
     dockerPull: ubuntu:latest
+  - class: InlineJavascriptRequirement
   baseCommand: echo
   inputs:
     message:

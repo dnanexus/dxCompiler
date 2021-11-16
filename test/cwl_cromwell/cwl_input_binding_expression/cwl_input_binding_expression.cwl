@@ -1,7 +1,7 @@
 #!/usr/bin/env cwl-runner
 cwlVersion: v1.2
 $graph:
-- id: cwl_input_binding_expression
+- id: main
   class: CommandLineTool
   requirements:
   - class: InlineJavascriptRequirement

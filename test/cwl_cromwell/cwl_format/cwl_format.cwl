@@ -4,11 +4,13 @@ $namespaces:
   edam: http://edamontology.org/
   gx: http://galaxyproject.org/formats/
 $schemas:
-- file:../resources/cwl/ontology/EDAM.owl
-- file:../resources/cwl/ontology/gx_edam.ttl
+- dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/EDAM.owl
+- dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/gx_edam.ttl
 $graph:
 - id: main
   class: CommandLineTool
+  requirements:
+  - class: InlineJavascriptRequirement
   cwlVersion: v1.0
   inputs:
   - id: reference

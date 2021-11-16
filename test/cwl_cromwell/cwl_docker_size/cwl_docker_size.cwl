@@ -3,6 +3,8 @@ cwlVersion: v1.2
 $graph:
 - id: main
   class: CommandLineTool
+  requirements:
+  - class: InlineJavascriptRequirement
   hints:
     DockerRequirement:
       dockerPull: "debian:stretch-slim"
@@ -41,5 +43,5 @@ $graph:
         }
 
       }
-  out: stdout
+
   baseCommand: []

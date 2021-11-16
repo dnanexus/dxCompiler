@@ -1,0 +1,63 @@
+{
+    "id": "#main",
+    "class": "CommandLineTool",
+    "hints": [
+        {
+            "class": "DockerRequirement",
+            "dockerPull": "python:2-slim"
+        },
+        {
+            "class": "NetworkAccess",
+            "networkAccess": true
+        },
+        {
+            "class": "LoadListingRequirement",
+            "loadListing": "deep_listing"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "#main/reference",
+            "type": "File",
+            "inputBinding": {
+                "position": 2
+            }
+        },
+        {
+            "id": "#main/reads",
+            "type": {
+                "type": "array",
+                "items": "File",
+                "inputBinding": {
+                    "prefix": "-YYY"
+                }
+            },
+            "inputBinding": {
+                "position": 3,
+                "prefix": "-XXX"
+            }
+        },
+        {
+            "id": "#main/args.py",
+            "type": "File",
+            "inputBinding": {
+                "position": -1
+            }
+        }
+    ],
+    "baseCommand": "python",
+    "arguments": [
+        "bwa",
+        "mem"
+    ],
+    "outputs": [
+        {
+            "type": {
+                "type": "array",
+                "items": "string"
+            },
+            "id": "#main/args"
+        }
+    ],
+    "cwlVersion": "v1.2"
+}

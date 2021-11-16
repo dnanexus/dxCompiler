@@ -5,6 +5,9 @@
         {
             "class": "DockerRequirement",
             "dockerPull": "ubuntu:latest"
+        },
+        {
+            "class": "InlineJavascriptRequirement"
         }
     ],
     "baseCommand": "echo",

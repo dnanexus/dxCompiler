@@ -1,3 +1,4 @@
 reference:  # type "File"
     class: File
+    format: edam:format_1929
     path: "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/cwl_format_test/foo.fasta"

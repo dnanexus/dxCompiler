@@ -1,16 +1,17 @@
 #!/usr/bin/env cwl-runner
 cwlVersion: v1.2
 $graph:
-- id: machineTypeTool
+- id: main
   class: CommandLineTool
   cwlVersion: v1.0
   doc: "Asks for CPU and Memory minimums"
   requirements:
-    ResourceRequirement:
-      coresMin: 2
-      coresMax: 2
-      ramMin: 7GB
-      ramMax: 7GB
+  - class: InlineJavascriptRequirement
+  - class: ResourceRequirement
+    coresMin: 2
+    coresMax: 2
+    ramMin: 6675.72
+    ramMax: 6675.72
   hints:
     DockerRequirement:
       dockerPull: python:latest

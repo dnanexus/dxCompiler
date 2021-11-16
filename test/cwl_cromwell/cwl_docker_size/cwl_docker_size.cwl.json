@@ -1,6 +1,11 @@
 {
     "id": "#main",
     "class": "CommandLineTool",
+    "requirements": [
+        {
+            "class": "InlineJavascriptRequirement"
+        }
+    ],
     "hints": [
         {
             "dockerPull": "debian:stretch-slim",
@@ -30,7 +35,6 @@
             "valueFrom": "${\n  if (inputs.INPUT.length == 0) {\n    var cmd = ['echo', \"no inputs\"];\n    return cmd\n  }\n  else {\n    var cmd = [\"echo\", \"execute\"];\n    var use_input = [];\n    for (var i = 0; i < inputs.INPUT.length; i++) {\n      var filesize = inputs.INPUT[i].size;\n      use_input.push(\"order=\".concat(filesize));\n    }\n\n    var run_cmd = cmd.concat(use_input);\n    return run_cmd\n  }\n\n}\n"
         }
     ],
-    "out": "file:///Users/yshi/Documents/dnanexus/dxCompiler/test/cwl_cromwell/cwl_docker_size/cwl_docker_size.cwl#stdout",
     "baseCommand": [],
     "outputs": [
         {

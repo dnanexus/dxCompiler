@@ -9,7 +9,7 @@ inputs:
   default: "v"
 steps:
   threestep:
-    run: three_step.cwl
+    run: cwl_three_step.cwl
     in:
     - id: pattern
       source: pin

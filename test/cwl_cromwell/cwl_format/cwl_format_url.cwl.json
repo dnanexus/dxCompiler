@@ -1,6 +1,11 @@
 {
     "id": "#main",
     "class": "CommandLineTool",
+    "requirements": [
+        {
+            "class": "InlineJavascriptRequirement"
+        }
+    ],
     "inputs": [
         {
             "id": "#main/reference",
@@ -39,8 +44,8 @@
     ],
     "cwlVersion": "v1.2",
     "$schemas": [
-        "https://raw.githubusercontent.com/broadinstitute/cromwell/develop/cwl/src/test/resources/cwl/ontology/gx_edam.ttl",
-        "../resources/cwl/ontology/EDAM.owl"
+        "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/EDAM.owl",
+        "https://raw.githubusercontent.com/broadinstitute/cromwell/develop/cwl/src/test/resources/cwl/ontology/gx_edam.ttl"
     ],
     "$namespaces": {
         "edam": "http://edamontology.org/",

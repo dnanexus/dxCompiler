@@ -1,7 +1,7 @@
 #!/usr/bin/env cwl-runner
 cwlVersion: v1.2
 $graph:
-- id: globSort
+- id: main
   cwlVersion: v1.0
   class: CommandLineTool
   requirements:

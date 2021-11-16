@@ -1,7 +1,7 @@
 #!/usr/bin/env cwl-runner
 cwlVersion: v1.2
 $graph:
-- id: cwl_stdout_expression
+- id: main
   class: CommandLineTool
   hints:
     DockerRequirement:

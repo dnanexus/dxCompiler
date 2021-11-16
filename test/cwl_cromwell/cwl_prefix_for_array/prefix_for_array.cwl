@@ -1,7 +1,7 @@
 #!/usr/bin/env cwl-runner
 cwlVersion: v1.2
 $graph:
-- id: prefix-for-array
+- id: main
   cwlVersion: v1.0
   class: CommandLineTool
   baseCommand: ['/bin/echo']

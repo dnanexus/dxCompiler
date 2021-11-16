@@ -1,6 +1,11 @@
 {
     "id": "#main",
     "class": "CommandLineTool",
+    "requirements": [
+        {
+            "class": "InlineJavascriptRequirement"
+        }
+    ],
     "hints": [
         {
             "dockerPull": "debian:stretch-slim",

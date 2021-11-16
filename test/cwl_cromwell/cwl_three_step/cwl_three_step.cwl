@@ -66,7 +66,7 @@ steps:
     - valueFrom: grep
       shellQuote: false
     - valueFrom: $(inputs.pattern)
-      shellQuote: false
+      shellQuote: true
     - valueFrom: ${return inputs.file}
       shellQuote: false
     - valueFrom: '|'
@@ -106,7 +106,7 @@ steps:
     - valueFrom: cat
       shellQuote: false
     - valueFrom: $(inputs.file)
-      shellQuote: false
+      shellQuote: true
     - valueFrom: '|'
       shellQuote: false
     - valueFrom: wc
