@@ -18,6 +18,6 @@ pwd
 for p in ${TEST_PROJECTS[@]}; do
   # TODO: build, run applet in project
   dx select $p
-  echo "Building test applet in $p"
-  dx build -f
+  echo "Building and running test applet in $p"
+  dx build -f --run
 done
