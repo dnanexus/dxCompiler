@@ -17,6 +17,6 @@ Applet `test-dxcompiler-in-project` can be built and deployed in customer-provid
 ## Building & Running the Applet
 
 - Run the dxCompiler release GitHub workflow; this uploads dxCompiler assets to the platform.
-- Set the dxCompiler version in `test-dxcompiler-in-project/Makefile`.
-- `dx select` the project for testing.
-- `dx build` and `dx run` this applet.
+- Set the dxCompiler download URL in `test-dxcompiler-in-project/Makefile`.
+- Run the script `scripts/run_customer_tests`.
+- You will need to be a member of `org-dnanexus_apps_customer_testers` to access the projects.

@@ -1,5 +1,5 @@
-DXCOMPILER_VERSION=2.7.1
+DXCOMPILER_JAR_URL=https://github.com/dnanexus/dxCompiler/releases/download/untagged-1eb939065196d3b70fd5/dxCompiler-2.7.1.jar
 
 all:
 	mkdir -p resources/home/dnanexus
-	wget https://github.com/dnanexus/dxCompiler/releases/download/${DXCOMPILER_VERSION}/dxCompiler-${DXCOMPILER_VERSION}.jar -O resources/home/dnanexus/dxCompiler.jar
+	wget ${DXCOMPILER_JAR_URL} -O resources/home/dnanexus/dxCompiler.jar
