@@ -1,4 +1,4 @@
-DXCOMPILER_VERSION=2.6.0
+DXCOMPILER_VERSION=2.7.1
 
 all:
 	mkdir -p resources/home/dnanexus
