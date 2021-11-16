@@ -8,7 +8,7 @@ task output_table {
      Array[Array[String]] table = read_tsv(stdout())
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 }
 
@@ -25,7 +25,7 @@ task output_file_table {
      Array[Array[File]] table = read_tsv(stdout())
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 }
 
@@ -39,7 +39,7 @@ task output_matrix {
      Array[Array[Int]] matrix = read_tsv(stdout())
   }
   runtime {
-   docker: "ubuntu:latest"
+   docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 }
 

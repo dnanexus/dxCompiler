@@ -10,7 +10,7 @@ task mkFile {
     echo "small file contents" > out.txt
   }
   output { File out = "out.txt" }
-  runtime { docker: "ubuntu:latest" }
+  runtime { docker: "dx://file-G66qpGj0yzZq02K9313pJg5G" }
 }
 
 task consumeFile {
@@ -21,7 +21,7 @@ task consumeFile {
     cat ${in_file} > ${out_name}
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
   output {
     File out_interpolation = "${out_name}"

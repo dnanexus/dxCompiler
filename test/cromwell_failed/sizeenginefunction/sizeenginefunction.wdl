@@ -6,7 +6,7 @@ task make_a_file {
   output {
     File a_file = "a_file"
   }
-  runtime {docker: "ubuntu:latest"}
+  runtime {docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"}
 }
 
 task size {
@@ -43,7 +43,7 @@ task size {
     Float created_file_size_in_tib = size("created_file", "TiB")
   }
 
-  runtime {docker: "ubuntu:latest"}
+  runtime {docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"}
 }
 
 

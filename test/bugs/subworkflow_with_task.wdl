@@ -1,7 +1,7 @@
 version 1.0
 import "test_task.wdl" as test_task
 
-workflow subworkflow {
+workflow apps_700_subworkflow {
 
     input {
         String string_input = "test-string-2"

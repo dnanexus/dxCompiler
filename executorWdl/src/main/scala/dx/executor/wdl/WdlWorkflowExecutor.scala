@@ -24,7 +24,7 @@ import dx.core.languages.wdl.{
 import dx.executor.{JobMeta, WorkflowExecutor}
 import dx.util.{DefaultBindings, FileNode, Logger, TraceLevel}
 import spray.json.JsValue
-import wdlTools.eval.{Eval, EvalUtils, Meta, WdlValueBindings}
+import wdlTools.eval.{Eval, EvalUtils, WdlValueBindings}
 import wdlTools.eval.WdlValues._
 import wdlTools.exec.{InputOutput, TaskInputOutput}
 import wdlTools.types.{TypeUtils, TypedAbstractSyntax => TAT}
@@ -383,10 +383,14 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     }
   }
 
-  case class WdlBlockContext(block: WdlBlock, wdlEnv: Map[DxName, (T, V)]) extends BlockContext {
+  case class WdlBlockContext(block: WdlBlock,
+                             inputEnv: Map[DxName, (T, V)],
+                             prereqEnv: Map[DxName, (T, V)])
+      extends BlockContext {
     private def call: TAT.Call = block.call
-
-    override lazy val env: Map[DxName, (Type, Value)] = WdlUtils.toIR(wdlEnv)
+    private lazy val wdlEnv = inputEnv ++ prereqEnv
+    private lazy val prereqIrEnv = WdlUtils.toIR(prereqEnv)
+    override lazy val env: Map[DxName, (Type, Value)] = WdlUtils.toIR(inputEnv) ++ prereqIrEnv
 
     private def evaluateCallInputs(
         extraEnv: Map[DxName, (T, V)] = Map.empty
@@ -408,11 +412,14 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       val executableLink = getExecutableLink(call.callee.name)
       val callInputsIR = WdlUtils.toIR(callInputs)
       val instanceType = tasks.get(call.callee.name).flatMap { task =>
-        val meta: Meta = Meta.create(versionSupport.version, task.meta)
-        val isNative = meta.get("type", Vector(T_Boolean)) match {
-          case Some(V_Boolean(b)) => b
-          case _                  => false
-        }
+        val isNative = task.meta.exists(_.kvs.get("type") match {
+          case Some(TAT.MetaValueString("native", _)) => true
+          case _                                      => false
+        }) || task.runtime.exists(_.kvs.contains("dx_app")) || task.hints
+          .exists(_.kvs.get("dnanexus") match {
+            case Some(TAT.MetaValueObject(fields)) => fields.contains("app")
+            case _                                 => false
+          })
         if (isNative) {
           None
         } else {
@@ -451,13 +458,16 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       }
 
       val (dxExecution, execName) =
-        launchJob(executableLink,
-                  call.actualName,
-                  callInputsIR,
-                  nameDetail,
-                  instanceType.map(_.name),
-                  folder = folder,
-                  prefixOutputs = true)
+        launchJob(
+            executableLink,
+            call.actualName,
+            callInputsIR,
+            extraManifestOutputs = Option.when(prereqEnv.nonEmpty)(prereqIrEnv),
+            nameDetail = nameDetail,
+            instanceType = instanceType.map(_.name),
+            folder = folder,
+            prefixOutputs = true
+        )
       (dxExecution, executableLink, execName)
     }
 
@@ -565,6 +575,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
             launchJob(executableLink,
                       executableLink.name,
                       callInputs,
+                      extraManifestOutputs = Option.when(prereqEnv.nonEmpty)(prereqIrEnv),
                       folder = Some(block.index.toString))
           jobMeta.createExecutionOutputLinks(dxExecution, executableLink.outputs)
         case (V_Boolean(false), _) => Map.empty
@@ -749,7 +760,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
             launchJob(executableLink,
                       executableLink.name,
                       callInputs,
-                      Some(callNameDetail),
+                      nameDetail = Some(callNameDetail),
                       folder = Some((jobMeta.scatterStart + index).toString))
           dxExecution
       }
@@ -793,7 +804,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     override protected def getScatterOutputs(
         execOutputs: Vector[Option[Map[DxName, JsValue]]],
         execName: Option[String]
-    ): Map[DxName, (Type, Value)] = {
+    ): (Map[DxName, (Type, Value)], Option[Map[DxName, (Type, Value)]]) = {
       val outputTypes: Map[DxName, (DxName, Type)] = block.kind match {
         case BlockKind.ScatterOneCall =>
           call.callee.output.map {
@@ -811,12 +822,13 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         case _ =>
           throw new RuntimeException(s"invalid block ${block}")
       }
-      outputTypes.map {
+      val arrayOutputs = outputTypes.map {
         case (fqn, (name, irType)) =>
           val arrayType = TArray(irType)
           val value = createScatterOutputArray(execOutputs, name, irType, execName)
           fqn -> (arrayType, value)
       }
+      (arrayOutputs, Option.when(prereqEnv.nonEmpty)(prereqIrEnv))
     }
   }
 
@@ -861,6 +873,6 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         accu + (name -> (wdlType, V_Null))
     }
     val prereqEnv = evaluateWorkflowElementVariables(block.prerequisites, inputEnv)
-    WdlBlockContext(block, inputEnv ++ prereqEnv)
+    WdlBlockContext(block, inputEnv, prereqEnv)
   }
 }

@@ -4,7 +4,7 @@ task countTo {
         seq 0 1 ${value}
     }
     runtime {
-          docker: "ubuntu:latest"
+          docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
       }
     output {
         File range = stdout()
@@ -17,7 +17,7 @@ task filterEvens {
         grep '[02468]$' ${numbers} > evens
     }
     runtime {
-          docker: "ubuntu:latest"
+          docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
       }
     output {
         File evens = "evens"

@@ -3,7 +3,7 @@ task let_me_run {
         echo "I'm alive !!"
     }
     runtime {
-       docker: "ubuntu:latest"
+       docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
     }
     output {
         Boolean done = true
@@ -19,7 +19,7 @@ task aborted {
         sleep 12
     }
     runtime {
-       docker: "ubuntu:latest"
+       docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
     }
     output {
             Boolean done = true
@@ -32,7 +32,7 @@ task lost_in_space {
         echo "Forgotten task"
     }
     runtime {
-       docker: "ubuntu:latest"
+       docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
     }
 }
 

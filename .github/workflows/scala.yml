@@ -8,6 +8,10 @@ on:
     branches:
       - main
       - develop
+    types:
+      - opened
+      - synchronize
+      - labeled
   workflow_dispatch:
 permissions:
   contents: read
@@ -15,6 +19,7 @@ permissions:
 jobs:
   test:
     name: Scala Unit Tests (Staging)
+    if: "!contains(github.event.pull_request.labels.*.name, 'minor')"
     runs-on: ubuntu-20.04
     steps:
       - name: Git Checkout

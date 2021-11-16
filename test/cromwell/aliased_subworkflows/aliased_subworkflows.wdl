@@ -1,12 +1,12 @@
-import "subworkflow.wdl" as subworkflow
+import "subworkflow_wt.wdl" as subworkflow
 
 workflow aliased_subworkflows {
 
   Array[Int] ts = range(3)
-  call subworkflow.subwf as subwfT { input: is = ts }
+  call subworkflow.subwf_wt as subwfT { input: is = ts }
 
   Array[Int] fs = subwfT.js
-  call subworkflow.subwf as subwfF { input: is = fs }
+  call subworkflow.subwf_wt as subwfF { input: is = fs }
 
   output {
     Array[Int] initial = ts

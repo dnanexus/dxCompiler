@@ -459,7 +459,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
 
   protected def writeRawJsOutputs(outputJs: Map[DxName, JsValue]): Unit
 
-  def writeJsOutputs(outputJs: Map[DxName, JsValue]): Unit = {
+  def writeJsOutputs(outputJs: Map[DxName, JsValue],
+                     skipExtraManifestOutputs: Boolean = false): Unit = {
     val rawOutputJs = if (useManifests && !outputJs.contains(Constants.OutputManifest)) {
       val manifestId = rawJsInputs.get(Constants.OutputId) match {
         case Some(JsString(id)) => id
@@ -475,7 +476,19 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
         case other =>
           throw new Exception(s"invalid callName ${other}")
       }
-      val manifest = Manifest(manifestValues, id = Some(manifestId))
+      val extraManifestOutputJs = Option
+        .when(!skipExtraManifestOutputs) {
+          rawJsInputs.get(Constants.ExtraOutputs).map {
+            case JsObject(fields) =>
+              fields.map {
+                case (key, value) => dxNameFactory.fromDecodedName(key) -> value
+              }
+            case other => throw new Exception(s"invalid extra_outputs___ value ${other}")
+          }
+        }
+        .flatten
+        .getOrElse(Map.empty)
+      val manifest = Manifest(manifestValues ++ extraManifestOutputJs, id = Some(manifestId))
       val destination = s"${manifestProjectAndFolder}/${jobId}_output.manifest.json"
       val manifestDxFile = dxApi.uploadString(manifest.toJson().prettyPrint, destination)
       outputSerializer
@@ -497,11 +510,14 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
     * Prepares the inputs for a subjob. If using manifests, creates a manifest
     * with the same output ID as the current job.
     * @param inputs raw subjob inputs
+    * @param extraManifestOutputs extra outputs that need to be added to the output manifest of the
+    *                             called job; ignored if useManifests=false
     * @param executableLink the subjob executable
     * @param callName the (unencoded) call name to use to prefix the subjob outputs
     * @return serialized subjob inputs
     */
   def prepareSubjobInputs(inputs: Map[DxName, (Type, Value)],
+                          extraManifestOutputs: Option[Map[DxName, (Type, Value)]] = None,
                           executableLink: ExecutableLink,
                           callName: Option[String] = None): Map[DxName, JsValue] = {
     val inputsJs = outputSerializer.createFieldsFromMap(inputs)
@@ -512,12 +528,19 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
       logger.warning(s"Missing argument ${argName} to call ${executableLink.name}", force = true)
     }
     if (useManifests) {
-      val requiredInputs = Map(
-          Constants.InputManifest -> JsObject(inputsJs.map {
+      val requiredInputs = Vector(
+          Some(Constants.InputManifest -> JsObject(inputsJs.map {
             case (dxName, jsv) => dxName.decoded -> jsv
-          }),
-          Constants.OutputId -> rawJsInputs(Constants.OutputId)
-      )
+          })),
+          extraManifestOutputs.map { extraOutputs =>
+            Constants.ExtraOutputs -> JsObject(
+                outputSerializer.createFieldsFromMap(extraOutputs).map {
+                  case (dxName, jsv) => dxName.decoded -> jsv
+                }
+            )
+          },
+          Some(Constants.OutputId -> rawJsInputs(Constants.OutputId))
+      ).flatten.toMap
       val callNameInputs =
         callName.map(name => Map(Constants.CallName -> JsString(name))).getOrElse(Map.empty)
       requiredInputs ++ callNameInputs
@@ -669,7 +692,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
         case (_, null | JsNull) => false
         case _                  => true
       }
-    writeJsOutputs(serializedLinks)
+    writeJsOutputs(serializedLinks, skipExtraManifestOutputs = true)
   }
 
   /**
@@ -862,9 +885,13 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths,
     logger.trace(s"Running job script function ${name}")
     val (rc, stdout, stderr) = SysUtils.execCommand(command, exceptionOnFailure = false)
     if (successCodes.forall(_.contains(rc))) {
-      logger.trace(s"""Job script function ${name} exited with success code ${rc}
-                      |stdout:
-                      |${stdout}""".stripMargin)
+      logger.traceLimited(
+          s"""Job script function ${name} exited with success code ${rc}
+             |stdout:
+             |${stdout}""".stripMargin,
+          showBeginning = true,
+          showEnd = true
+      )
     } else {
       logger.error(s"""Job script function ${name} exited with permanent fail code ${rc}
                       |stdout:

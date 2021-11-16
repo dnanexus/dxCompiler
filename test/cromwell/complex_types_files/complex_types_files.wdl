@@ -7,7 +7,7 @@ task make_file {
     echo Now theyre fishing the fissure for Fisher >> out
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
   output {
     File out = "out"
@@ -24,7 +24,7 @@ task maybe_cats {
     ${ "cat " + opt_file_pair.right + " > right"}
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
   output {
     Pair[String, String] result = (read_string("left"), read_string("right"))
@@ -38,7 +38,7 @@ task array_cat {
     cat ${sep=" " file_arr}
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
   output {
     String result = read_string(stdout())
@@ -54,7 +54,7 @@ task map_cat {
     ${ "cat " + file_map["untruth"] }
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
   output {
     String result = read_string(stdout())

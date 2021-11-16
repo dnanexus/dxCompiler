@@ -11,7 +11,7 @@ task hello {
     String salutation = read_string(stdout())
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
     disks: "10 HDD" # This disk specification string is malformed but Cromwell should handle that gracefully (i.e. fail not hang).
   }
 }

@@ -13,7 +13,7 @@ task strings {
     String? out_coerced_string = coerced_string
   }
   runtime {
-    docker: "ubuntu:latest"
+    docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
   }
 }
 

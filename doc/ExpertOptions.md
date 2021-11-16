@@ -600,14 +600,13 @@ The following keys are also recognized but currently unused, as they only apply 
 
 ### Calling existing applets
 
-Sometimes, it is desirable to call an existing dx:applet from a WDL workflow. For example, when porting a native workflow, we can leave the applets as is, without rewriting them in WDL. The `dxni` subcommand, short for *Dx Native Interface*, is dedicated to this use case. It searchs a platform folder and generates a WDL wrapper task for each applet. For example, the command:
+Sometimes, it is desirable to call an existing DNAnexus applet from a WDL workflow. For example, when porting a native workflow, we can leave the applets as is, without rewriting them in WDL. The `dxni` subcommand, short for *Dx Native Interface*, is dedicated to this use case. It searchs a platform folder and generates a WDL wrapper task for each applet. For example, the command:
 
 ```console
 $ java -jar dxCompiler-xxx.jar dxni -project project-xxxx -folder /A/B/C --output dx_extern.wdl
 ```
 
-will find native applets in the `/A/B/C` folder, generate tasks for
-them, and write to local file `dx_extern.wdl`. If an
+will find native applets in the `/A/B/C` folder, generate tasks for them, and write to local file `dx_extern.wdl`. If an
 applet has the `dxapp.json` signature:
 
 ```
@@ -634,6 +633,8 @@ applet has the `dxapp.json` signature:
 The WDL definition file will be:
 
 ```wdl
+version 1.0
+  
 task concat {
   input {
     String a
@@ -643,15 +644,16 @@ task concat {
   output {
     String c = ""
   }
-  meta {
-    type: "native"
-    id: "applet-xxxx"
+  runtime {
+    dx_app: {
+      "id": "applet-xxxx",
+      "type": "applet" 
+    }
   }
 }
 ```
 
-The meta section includes the applet-id, which will be called at runtime. A WDL file can
-call the `concat` task as follows:
+The meta section includes the applet-id, which will be called at runtime. A WDL file can call the `concat` task as follows:
 
 ```wdl
 import "dx_extern.wdl" as lib
@@ -674,8 +676,58 @@ To generate WDL calling apps instead of applets, use
 $ java -jar dxCompiler.jar dxni -apps only -o my_apps.wdl
 ```
 
-The compiler will search for all the apps you can call, and create WDL
-tasks for them.
+The compiler will search for all the apps you can call, and create WDL tasks for them. The WDL definition file look like be:
+
+```wdl
+version 1.0
+  
+task concat {
+  ...
+    
+  runtime {
+    dx_app: {
+      "id": "app-xxxx",
+      "type": "app"
+    }
+  }
+}
+```
+
+You can also use `dx_app_name` rather than `dx_app_id` to specify the app by name, e.g.
+
+```wdl
+version 1.0
+  
+task concat {
+  ...
+    
+  runtime {
+    dx_app: {
+      "name": "concat_native/1.0.0",
+      "type": "app"
+    }
+  }
+}
+```
+
+Note: in version `development` (aka `2.0`), the `runtime` section no longer allows arbitrary keys. Instead, use the hints section:
+
+```wdl
+version development
+  
+task concat {
+  ...
+    
+  hints {
+    dnanexus: {
+      "app": {
+        "name": "concat_native/1.0.0",
+        "type": "app"
+      }
+    }
+  }
+}
+```
 
 ## parameter_meta section
 
@@ -989,10 +1041,29 @@ In order to override the defaults for specific tasks, you can add the `perTaskDx
 
 will override the default timeout for tasks `Add` and `Inc`. It will also provide `UPLOAD` instead of `VIEW` project access to `Inc`.
 
-You are also able to add citations or licenses information using for each task at the `perTaskDxAttributes` section. For example
+You are also able to specify metadata for tasks in the `defaultTaskDxAttributes` and `perTaskDxAttributes` sections, including adding citation or license information.
+
+The full set of attributes that may be specified are:
+
+* title
+* summary
+* description
+* developerNotes
+* version
+* categories
+* types
+* tags
+* properties
+* details
+* openSource
+
+For example:
 
 ```json
 {
+  "defaultTaskDxAttributes": {
+    "version": "1.0.0"
+  },
   "perTaskDxAttributes" : {
     "Add": {
       "runSpec": {
@@ -1014,7 +1085,7 @@ You are also able to add citations or licenses information using for each task a
           }
         ]
       }
-    },
+    }
   }
 }
 ```

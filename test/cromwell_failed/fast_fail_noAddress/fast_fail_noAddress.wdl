@@ -5,7 +5,7 @@ task task_with_noAddress {
     output { String s = read_string(stdout()) }
 
     runtime {
-      docker: "ubuntu:latest"
+      docker: "dx://file-G66qpGj0yzZq02K9313pJg5G"
       # Our network is not configured specially, so this should cause this task to fail almost immediately.
       noAddress: true
     }
