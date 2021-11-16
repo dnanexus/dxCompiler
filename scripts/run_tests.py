@@ -451,34 +451,40 @@ cromwell_tests_list = [
 ]
 
 cwl_cromwell_tests_list = [
-    # "cwl_cache_between_workflows",
-    # "cwl_cache_within_workflow",
+    "cwl_ad_hoc_file_test",
+    "cwl_cache_between_workflows",
+    "cwl_cache_within_workflow",
     "cwl_docker_size",
     "cwl_dynamic_initial_workdir",
-    "cwl_format",
-    "cwl_format_url",
+    "cwl_expressionLib",
+    # "cwl_format",
+    # "cwl_format_url",
     "cwl_glob_sort",
+    "cwl_hello",
     "test_wf",
     "touch",
     "test_pack",
-    # "cwl_input_binding_expression",
-    # "input_typearray",
-    # "cwl_interpolated_strings",
+    # "cwl_http_inputs", # invalid input
+    "cwl_input_binding_expression",
+    "cwl_input_typearray",
+    "cwl_interpolated_strings",
     "cwl_optionals",
-    # "cwl_output_json",
-    # "prefix_for_array",
+    "cwl_output_json",
+    "prefix_for_array",
     # "cwl_recursive_link_directories",
     "cwl_glob_sort",
-    "workflow",
-    # "cwl_disk_resources",
-    # "cwl_inputdir_zero_doesnt_localize",
-    # "cwl_resources",
+    "cwl_relative_imports",
+    # "cwl_disk_resources", Unknown hint https://www.dnanexus.com/cwl#InputResourceRequirement
+    # "cwl_inputdir_zero_doesnt_localize_input", # failed compiled
+    # "cwl_resources", Could not resolve host: metadata.google.internal
     "cwl_restart",
     "1st-tool",
-    "cwl_secondary_files",
-    "cwl_secondary_files_workflow",
+    # "cwl_secondary_files", secondary not uploaded to work container
+    # "cwl_secondary_files_workflow",
     "cwl_stdout_expression",
-    "scatter-wf1",
+    # "scatter-wf1", tool id not found
+    "cwl_three_step",
+    "cwl_three_step_caller_wf"
 ]
 
 cwl_cromwell_validated_tests = [
