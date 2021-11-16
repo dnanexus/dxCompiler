@@ -19,5 +19,5 @@ for p in ${TEST_PROJECTS[@]}; do
   # TODO: build, run applet in project
   dx select $p
   echo "Building and running test applet in $p"
-  dx build -f --run
+  dx build -f --run --priority normal
 done
