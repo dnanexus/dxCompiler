@@ -85,7 +85,6 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
       case WdlValues.V_File(value) => TAT.ValueFile(value, WdlTypes.T_File)(SourceLocation.empty)
       case WdlValues.V_Directory(value) =>
         TAT.ValueDirectory(value, WdlTypes.T_Directory)(SourceLocation.empty)
-
       // compound values
       case WdlValues.V_Pair(l, r) =>
         val lExpr = wdlValueToExpr(l)
@@ -103,7 +102,6 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
             keyExprs.zip(valueExprs).to(SeqMap),
             WdlTypes.T_Map(seqToType(keyExprs), seqToType(valueExprs))
         )(SourceLocation.empty)
-
       case WdlValues.V_Optional(value) => wdlValueToExpr(value)
       case WdlValues.V_Struct(name, members) =>
         val memberExprs: Map[TAT.Expr, TAT.Expr] = members.map {
@@ -118,7 +116,6 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
         TAT.ExprMap(memberExprs.to(SeqMap), WdlTypes.T_Struct(name, memberTypes.to(SeqMap)))(
             SourceLocation.empty
         )
-
       case WdlValues.V_Object(members) =>
         val memberExprs = members.map {
           case (name, value) =>
@@ -126,53 +123,46 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
             key -> wdlValueToExpr(value)
         }
         TAT.ExprObject(memberExprs.to(SeqMap), WdlTypes.T_Object)(SourceLocation.empty)
-
-      case other =>
-        throw new Exception(s"Unhandled value ${other}")
+      case other => throw new Exception(s"Unhandled value ${other}")
     }
   }
 
   /*
-  Create a header for a task/workflow. This is an empty task
-  that includes the input and output definitions. It is used
-  to
+  Create a header for a task/workflow. This is an empty task that includes the input and output
+  definitions. It is used to
   (1) allow linking to native DNAx applets (and workflows in the future).
   (2) make a WDL file stand-alone, without imports
 
   For example, the stub for the Add task:
+
   task Add {
-      input {
-        Int a
-        Int b
-      }
-      command {
-      command <<<
-          python -c "print(${a} + ${b})"
-      >>>
-      output {
-          Int result = read_int(stdout())
-      }
+    input {
+      Int a
+      Int b
+    }
+    command <<<
+    python -c "print(${a} + ${b})"
+    >>>
+    output {
+      Int result = read_int(stdout())
+    }
   }
 
   is:
-  task Add {
-     input {
-       Int a
-       Int b
-     }
-     command {}
-     output {
-         Int result
-     }
-    }
-   */
-  private def createTaskStub(callable: Callable, native: Boolean = false): TAT.Task = {
-    /*Utils.trace(verbose.on,
-                    s"""|taskHeader  callable=${callable.name}
-                        |  inputs= ${callable.inputVars.map(_.name)}
-                        |  outputs= ${callable.outputVars.map(_.name)}"""
-                        .stripMargin)*/
 
+  task Add {
+    input {
+      Int a
+      Int b
+    }
+    command {}
+    output {
+      Int result
+    }
+  }
+   */
+  private def createTaskStub(callable: Callable,
+                             native: Option[ExecutableKindNative] = None): TAT.Task = {
     // Sort the inputs by name, so the result will be deterministic.
     val inputs: Vector[TAT.InputParameter] =
       callable.inputVars
@@ -190,7 +180,6 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
               )(SourceLocation.empty)
           }
         }
-
     val outputs: Vector[TAT.OutputParameter] =
       callable.outputVars
         .sortWith(_.name < _.name)
@@ -199,19 +188,16 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
           val defaultVal = WdlUtils.getDefaultValueOfType(wdlType)
           TAT.OutputParameter(parameter.name.decoded, wdlType, defaultVal)(SourceLocation.empty)
         }
-
-    val meta = if (native) {
-      Some(
-          TAT.MetaSection(
-              SeqMap("type" -> TAT.MetaValueBoolean(value = true)(SourceLocation.empty))
-          )(
-              SourceLocation.empty
-          )
+    val meta = native.map { n =>
+      TAT.MetaSection(
+          Vector(
+              Some("type" -> TAT.MetaValueString("native")(SourceLocation.empty)),
+              n.id.map(id => "id" -> TAT.MetaValueString(id)(SourceLocation.empty))
+          ).flatten.to(SeqMap)
+      )(
+          SourceLocation.empty
       )
-    } else {
-      None
     }
-
     TAT.Task(
         callable.name,
         WdlTypes.T_Task(
@@ -252,15 +238,6 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
                        appletName: String,
                        inputSpec: Map[String, WdlTypes.T],
                        outputSpec: Map[String, WdlTypes.T]): TAT.Task = {
-
-    val meta = TAT.MetaSection(
-        SeqMap(
-            "type" -> TAT.MetaValueString("native", Quoting.Double)(SourceLocation.empty),
-            "id" -> TAT.MetaValueString(id, Quoting.Double)(SourceLocation.empty)
-        )
-    )(
-        SourceLocation.empty
-    )
     TAT.Task(
         appletName,
         WdlTypes.T_Task(appletName,
@@ -281,7 +258,16 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
         }.toVector,
         TAT.CommandSection(Vector.empty)(SourceLocation.empty),
         Vector.empty,
-        Some(meta),
+        Some(
+            TAT.MetaSection(
+                SeqMap(
+                    "type" -> TAT.MetaValueString("native", Quoting.Double)(SourceLocation.empty),
+                    "id" -> TAT.MetaValueString(id, Quoting.Double)(SourceLocation.empty)
+                )
+            )(
+                SourceLocation.empty
+            )
+        ),
         parameterMeta = None,
         runtime = None,
         hints = None
@@ -300,24 +286,26 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
     )
   }
 
-  // A workflow can import other libraries:
-  //
-  // import "library.wdl" as lib
-  // workflow foo {
-  //   call lib.Multiply as mul { ... }
-  //   call lib.Add { ... }
-  //   call lib.Nice as nice { ... }
-  //   call lib.Hello
-  // }
-  //
-  // rewrite the workflow, and remove the calls to external libraries.
-  //
-  // workflow foo {
-  //   call Multiply as mul { ... }
-  //   call Add { ... }
-  //   call Nice as nice { ... }
-  //   call Hello
-  // }
+  /*
+   A workflow can import other libraries:
+
+   import "library.wdl" as lib
+   workflow foo {
+     call lib.Multiply as mul { ... }
+     call lib.Add { ... }
+     call lib.Nice as nice { ... }
+     call lib.Hello
+   }
+
+   rewrite the workflow, and remove the calls to external libraries.
+
+   workflow foo {
+     call Multiply as mul { ... }
+     call Add { ... }
+     call Nice as nice { ... }
+     call Hello
+   }
+   */
   private def unqualifyCallNames(body: Vector[TAT.WorkflowElement]): Vector[TAT.WorkflowElement] = {
     body.map {
       case call: TAT.Call =>
@@ -331,11 +319,10 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
   }
 
   /**
-    * A workflow must have definitions for all the tasks it calls. However, a scatter
-    * calls tasks that are missing from the WDL file we generate. To ameliorate this,
-    * we add stubs for called tasks. The generated tasks are named by their unqualified
-    * names, not their fully-qualified names. This works because the WDL workflow must
-    * be "flattenable".
+    * A workflow must have definitions for all the tasks it calls. However, a scatter calls tasks
+    * that are missing from the WDL file we generate. To ameliorate this, we add stubs for called
+    * tasks. The generated tasks are named by their unqualified names, not their fully-qualified
+    * names. This works because the WDL workflow must be "flattenable".
     * @param wf the workflow
     * @param callables the callables to add to the workflow
     * @return
@@ -368,13 +355,9 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
                   }
                   assert(tasks.size == 1)
                   tasks.head
-                case app: Application =>
-                  val native = app.kind match {
-                    case _: ExecutableKindNative => true
-                    case _                       => false
-                  }
+                case Application(_, _, _, _, _, native: ExecutableKindNative, _, _, _, _, _, _) =>
                   // no existing stub, create it - specify whether the target app(let) is native
-                  createTaskStub(callable, native = native)
+                  createTaskStub(callable, native = Some(native))
                 case _ =>
                   // no existing stub, create it
                   createTaskStub(callable)
