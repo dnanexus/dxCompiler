@@ -191,8 +191,8 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
     val meta = native.map { n =>
       TAT.MetaSection(
           Vector(
-              Some("type" -> TAT.MetaValueString("native")(SourceLocation.empty)),
-              n.id.map(id => "id" -> TAT.MetaValueString(id)(SourceLocation.empty))
+              Some("type" -> TAT.MetaValueString("native", Quoting.Double)(SourceLocation.empty)),
+              n.id.map(id => "id" -> TAT.MetaValueString(id, Quoting.Double)(SourceLocation.empty))
           ).flatten.to(SeqMap)
       )(
           SourceLocation.empty
