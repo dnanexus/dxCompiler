@@ -16,6 +16,8 @@ jobs:
   run-release:
     name: dxCompiler Release (Staging and Prod)
     runs-on: ubuntu-20.04
+    env:
+      PROJECT: dxCompiler_playground
     steps:
       - name: Git checkout
         uses: actions/checkout@v2
@@ -87,7 +89,7 @@ jobs:
 
           # set up DNAnexus staging environment
           dx login --noprojects --staging --token $AUTH_TOKEN
-          dx select dxCompiler_playground
+          dx select $PROJECT
 
           # run unit tests
           cd ${GITHUB_WORKSPACE}
@@ -103,7 +105,6 @@ jobs:
 
           # set up DNAnexus staging environment
           dx login --noprojects --staging --token $AUTH_TOKEN
-          PROJECT=dxCompiler_playground
           dx select $PROJECT
 
           # run tests
