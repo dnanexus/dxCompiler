@@ -411,8 +411,9 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       )
       val executableLink = getExecutableLink(call.callee.name)
       val callInputsIR = WdlUtils.toIR(callInputs)
-      val instanceType = tasks.get(call.callee.name).flatMap { task =>
-        val isNative = task.meta.exists(_.kvs.get("type") match {
+      val callee = tasks.get(call.callee.name)
+      val isNative = callee.map { task =>
+        task.meta.exists(_.kvs.get("type") match {
           case Some(TAT.MetaValueString("native", _)) => true
           case _                                      => false
         }) || task.runtime.exists(_.kvs.contains("dx_app")) || task.hints
@@ -420,9 +421,9 @@ case class WdlWorkflowExecutor(docSource: FileNode,
             case Some(TAT.MetaValueObject(fields)) => fields.contains("app")
             case _                                 => false
           })
-        if (isNative) {
-          None
-        } else {
+      }
+      val instanceType = (callee, isNative) match {
+        case (Some(task), Some(false)) =>
           val callIO = TaskInputOutput(task, logger)
           val inputWdlValues: Map[DxName, V] = callInputsIR.collect {
             case (dxName, (t, v)) if !dxName.suffix.exists(_.endsWith(Constants.FlatFilesSuffix)) =>
@@ -454,20 +455,27 @@ case class WdlWorkflowExecutor(docSource: FileNode,
               )
               None
           }
-        }
+        case _ => None
       }
-
-      val (dxExecution, execName) =
-        launchJob(
-            executableLink,
-            call.actualName,
-            callInputsIR,
-            extraManifestOutputs = Option.when(prereqEnv.nonEmpty)(prereqIrEnv),
-            nameDetail = nameDetail,
-            instanceType = instanceType.map(_.name),
-            folder = folder,
-            prefixOutputs = true
+      val (dxExecution, execName) = launchJob(
+          executableLink,
+          call.actualName,
+          callInputsIR,
+          extraManifestOutputs = Option.when(prereqEnv.nonEmpty)(prereqIrEnv),
+          nameDetail = nameDetail,
+          instanceType = instanceType.map(_.name),
+          folder = folder,
+          prefixOutputs = true
+      )
+      if (logger.isVerbose) {
+        logger.trace(
+            s"""launched call ${call.actualName} to ${call.callee.name}
+               |  executable: ${executableLink}
+               |  native?: ${isNative}
+               |  execution: ${dxExecution.id}
+               |  instance type: ${instanceType}""".stripMargin
         )
+      }
       (dxExecution, executableLink, execName)
     }
 
