@@ -1,6 +1,6 @@
 # Release Notes
 
-## 2.7.2 2021-11-18
+## in develop
 
 * Increases number of retries when downloading manifests
 
