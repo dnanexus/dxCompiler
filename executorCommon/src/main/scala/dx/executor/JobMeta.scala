@@ -539,10 +539,12 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
       val manifestInputJs = if (manifestJsStr.length <= MaxManifestJsLength) {
         Map(Constants.InputManifest -> manifestValuesJs)
       } else {
-        // for large subjob inputs, put them in a compact manifest file and upload it
-        val filenameDetail = nameDetail.map(d => s"_${d}").getOrElse("")
-        val destination =
-          s"${manifestProjectAndFolder}/${jobId}_subjob${filenameDetail}.manifest.json"
+        // For large subjob inputs, put them in a compact manifest file and upload it.
+        // If there is a name detail, there are probably going to be a large number of manifest
+        // files, so put them in a subfolder.
+        val filename =
+          s"${jobId}_subjob${nameDetail.map(d => s"/${d}").getOrElse("")}.manifest.json"
+        val destination = s"${manifestProjectAndFolder}/${filename}"
         val manifestDxFile = dxApi.uploadString(manifestJsStr, destination)
         Map(Constants.InputManifestFiles -> JsArray(manifestDxFile.asJson))
       }
