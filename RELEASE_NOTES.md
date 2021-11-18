@@ -1,9 +1,25 @@
 # Release Notes
 
-## 2.7.1 2021-11-15
+## 2.7.1 2021-11-??
 
 * Fixes issue where jobs fail due to out-of-disk error due to excessive logging
 * Adds option to specify native app information in `runtime` section (or `hints` for WDL 2.0)
+* Fixes regression where default instance type was overridden when calling a native app
+
+### Dependency updates
+
+#### dxCommon 0.9.0
+
+* Adds option to `Logger.trace*` to show beginning and/or end of log when limiting trace length
+
+#### dxApi 0.11.0
+
+* Fixes `DxApi.resolveApp` to handle app name with with version (e.g. `bwa_mem/1.0.0`)
+* Adds `version` field to `DxAppDescribe`
+
+#### wdlTools 0.17.4
+
+* Fixes `eval.Meta.get` to respect override values
 
 ## 2.7.0 2021-11-10
 
