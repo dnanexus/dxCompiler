@@ -56,6 +56,7 @@ object JobMeta {
   // this file has all the information about the executable
   val ExecutableInfoFile = "dnanexus-executable.json"
   val MaxConcurrentUploads = 8
+  // max subjob input manifest document size for which a hash is used
   val MaxManifestJsLength = 100_000
 
   /**
