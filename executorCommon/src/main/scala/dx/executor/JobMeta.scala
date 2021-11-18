@@ -39,6 +39,7 @@ import dx.core.ir.{
   ValueSerde
 }
 import dx.core.languages.Language
+import dx.executor.JobMeta.MaxManifestJsLength
 import dx.util.{CodecUtils, FileSourceResolver, FileUtils, JsUtils, Logger, SysUtils, TraceLevel}
 import dx.util.protocols.DxFileAccessProtocol
 import spray.json._
@@ -55,6 +56,7 @@ object JobMeta {
   // this file has all the information about the executable
   val ExecutableInfoFile = "dnanexus-executable.json"
   val MaxConcurrentUploads = 8
+  val MaxManifestJsLength = 100_000
 
   /**
     * Report an error, since this is called from a bash script, we can't simply
@@ -520,7 +522,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
   def prepareSubjobInputs(inputs: Map[DxName, (Type, Value)],
                           extraManifestOutputs: Option[Map[DxName, (Type, Value)]] = None,
                           executableLink: ExecutableLink,
-                          callName: Option[String] = None): Map[DxName, JsValue] = {
+                          callName: Option[String] = None,
+                          nameDetail: Option[String] = None): Map[DxName, JsValue] = {
     val inputsJs = outputSerializer.createFieldsFromMap(inputs)
     // Check that we have all the compulsory arguments.
     // Note that we don't have the information here to tell difference between optional and non-
@@ -529,10 +532,22 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
       logger.warning(s"Missing argument ${argName} to call ${executableLink.name}", force = true)
     }
     if (useManifests) {
-      val requiredInputs = Vector(
-          Some(Constants.InputManifest -> JsObject(inputsJs.map {
-            case (dxName, jsv) => dxName.decoded -> jsv
-          })),
+      val manifestValuesJs = JsObject(inputsJs.map {
+        case (dxName, jsv) => dxName.decoded -> jsv
+      })
+      val manifestJsStr = manifestValuesJs.compactPrint
+      val manifestInputJs = if (manifestJsStr.length <= MaxManifestJsLength) {
+        Map(Constants.InputManifest -> manifestValuesJs)
+      } else {
+        // for large subjob inputs, put them in a compact manifest file and upload it
+        val filenameDetail = nameDetail.map(d => s"_${d}").getOrElse("")
+        val destination =
+          s"${manifestProjectAndFolder}/${jobId}_subjob${filenameDetail}.manifest.json"
+        val manifestDxFile = dxApi.uploadString(manifestJsStr, destination)
+        Map(Constants.InputManifestFiles -> JsArray(manifestDxFile.asJson))
+      }
+      val commonInputsJs = Vector(
+          Some(Constants.OutputId -> rawJsInputs(Constants.OutputId)),
           extraManifestOutputs.map { extraOutputs =>
             Constants.ExtraOutputs -> JsObject(
                 outputSerializer.createFieldsFromMap(extraOutputs).map {
@@ -540,11 +555,9 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
                 }
             )
           },
-          Some(Constants.OutputId -> rawJsInputs(Constants.OutputId))
+          callName.map(name => Constants.CallName -> JsString(name))
       ).flatten.toMap
-      val callNameInputs =
-        callName.map(name => Map(Constants.CallName -> JsString(name))).getOrElse(Map.empty)
-      requiredInputs ++ callNameInputs
+      manifestInputJs + commonInputsJs
     } else {
       inputsJs
     }
