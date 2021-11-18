@@ -1,6 +1,6 @@
 # Release Notes
 
-## in develop
+## 2.7.2 2021-11-18
 
 * Increases number of retries when downloading manifests
 * Uses manifest files for large subjob inputs
