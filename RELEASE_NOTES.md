@@ -3,6 +3,7 @@
 ## in develop
 
 * Increases number of retries when downloading manifests
+* Uses manifest files for large subjob inputs
 
 ### Dependency updates
 
