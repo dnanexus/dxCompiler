@@ -560,7 +560,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
           },
           callName.map(name => Constants.CallName -> JsString(name))
       ).flatten.toMap
-      manifestInputJs + commonInputsJs
+      manifestInputJs ++ commonInputsJs
     } else {
       inputsJs
     }
