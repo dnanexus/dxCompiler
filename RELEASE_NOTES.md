@@ -5,6 +5,7 @@
 * Fixes issue where jobs fail due to out-of-disk error due to excessive logging
 * Adds option to specify native app information in `runtime` section (or `hints` for WDL 2.0)
 * Fixes regression where default instance type was overridden when calling a native app
+* Increases number of retries when downloading manifests
 
 ### Dependency updates
 
@@ -12,10 +13,11 @@
 
 * Adds option to `Logger.trace*` to show beginning and/or end of log when limiting trace length
 
-#### dxApi 0.11.0
+#### dxApi 0.11.1
 
 * Fixes `DxApi.resolveApp` to handle app name with with version (e.g. `bwa_mem/1.0.0`)
 * Adds `version` field to `DxAppDescribe`
+* Enables `retryLimit` to be set for `DxApi.uploadFile` and `DxApi.downloadFile`
 
 #### wdlTools 0.17.4
 
