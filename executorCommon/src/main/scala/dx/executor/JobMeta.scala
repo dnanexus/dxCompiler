@@ -186,7 +186,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
         case (None, Vector())         => None
         case (Some(inputs), Vector()) => Some(inputs)
         case (None, Vector(manifestFile)) =>
-          Some(new String(dxApi.downloadBytes(manifestFile)).parseJson)
+          Some(new String(dxApi.downloadBytes(manifestFile, retryLimit = 10)).parseJson)
         case _ =>
           throw new Exception(
               "manifest links are required when there is more than one manifest file"
@@ -200,7 +200,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
         // download manifest bytes, convert to JSON, and parse into Manifest object
         val manifests = files
           .map(dxFile =>
-            Manifest.parse(new String(dxApi.downloadBytes(dxFile)).parseJson, dxNameFactory)
+            Manifest.parse(new String(dxApi.downloadBytes(dxFile, retryLimit = 10)).parseJson,
+                           dxNameFactory)
           )
         // if there is more than one manifest, check that they all have IDs
         if (manifests.size > 1) {
