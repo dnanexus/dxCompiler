@@ -544,8 +544,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
         // files, so put them in a subfolder.
         val filename =
           s"${jobId}_subjob${nameDetail.map(d => s"/${d}").getOrElse("")}.manifest.json"
-        val destination = s"${manifestProjectAndFolder}/${filename}"
-        val manifestDxFile = dxApi.uploadString(manifestJsStr, destination)
+        val manifestDxFile =
+          dxApi.uploadString(manifestJsStr, s"${manifestProjectAndFolder}/${filename}")
         Map(Constants.InputManifestFiles -> JsArray(manifestDxFile.asJson))
       }
       val commonInputsJs = Vector(
