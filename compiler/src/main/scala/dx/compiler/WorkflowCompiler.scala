@@ -19,6 +19,7 @@ case class WorkflowCompiler(separateOutputs: Boolean,
                             useManifests: Boolean,
                             complexPathValues: Boolean,
                             fileResolver: FileSourceResolver,
+                            instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
                             dxApi: DxApi = DxApi.get,
                             logger: Logger = Logger.get)
     extends ExecutableCompiler(extras,
@@ -262,7 +263,16 @@ case class WorkflowCompiler(separateOutputs: Boolean,
           case Some(JsString(s)) => s"${listMd("Hard-coded instance type")}${listMd2(s)}"
           case _                 => ""
         }
-        s"${filesMd}${networkDockerImageMd}${dynamicDockerImageMd}${staticInstanceTypeMd}"
+        val staticInstanceTypeSelectionMd = instanceTypeSelection match {
+          case InstanceTypeSelection.Static =>
+            s"${listMd(
+                "Available instance types determined during WDL compilation will be " +
+                  "used to select instance types during workflow execution"
+            )}"
+          case _ => ""
+        }
+        s"${filesMd}${networkDockerImageMd}${dynamicDockerImageMd}${staticInstanceTypeMd}" +
+          s"${staticInstanceTypeSelectionMd}"
       }
       case _ => ""
     }
