@@ -676,9 +676,17 @@ case class WorkflowCompiler(separateOutputs: Boolean,
     val (wfMeta, wfMetaDetails) =
       workflowAttributesToNative(workflow, defaultTags, extendedDescription)
 
+    // If static instance type selection is used at compilation
+    val staticInstanceTypeSelectionDetails = instanceTypeSelection match {
+      case InstanceTypeSelection.Static =>
+        Map(Constants.StaticInstanceTypeSelection -> JsBoolean(true))
+      case _ => Map.empty
+    }
+
     // Collect details
     val details = wfMetaDetails ++ sourceDetails ++ dxLinks ++ delayDetails ++ execTreeDetails ++
-      nativeAppDependenciesDetails ++ fileDependenciesDetails ++ dockerRegistryCredentialsUriDetails
+      nativeAppDependenciesDetails ++ fileDependenciesDetails ++ dockerRegistryCredentialsUriDetails ++
+      staticInstanceTypeSelectionDetails
     val isTopLevel = workflow.level == Level.Top
     // required arguments for API call
     val required = Map(
