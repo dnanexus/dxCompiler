@@ -99,7 +99,7 @@ private object WorkflowTestJobMeta {
 // It compiles WDL scripts without the runtime library.
 // This tests the compiler Native mode, however, it creates
 // dnanexus applets and workflows that are not runnable.
-class WorkflowExecutorTest extends AnyFlatSpec with Matchers {
+class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
   assume(isLoggedIn)
   private val logger = Logger.Quiet
   private val dxApi = DxApi()(logger)
