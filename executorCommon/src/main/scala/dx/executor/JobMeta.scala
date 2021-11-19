@@ -218,7 +218,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
           val manifestFileToPath = DxFindDataObjects(dxApi, logger = logger)
             .query(
                 DxFindDataObjectsConstraints(
-                    ids = Set(files.map(_.id))
+                    ids = files.map(_.id).toSet
                 ),
                 describe = true,
                 defaultFields = true,
