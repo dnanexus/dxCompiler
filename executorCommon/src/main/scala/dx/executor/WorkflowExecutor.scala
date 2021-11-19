@@ -181,9 +181,11 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
 
     val prefix = if (prefixOutputs) Some(name) else None
     val callInputsJs = JsObject(
-        jobMeta.prepareSubjobInputs(inputs, extraManifestOutputs, executableLink, prefix).map {
-          case (dxName, jsv) => dxName.encoded -> jsv
-        }
+        jobMeta
+          .prepareSubjobInputs(inputs, extraManifestOutputs, executableLink, prefix, nameDetail)
+          .map {
+            case (dxName, jsv) => dxName.encoded -> jsv
+          }
     )
     logger.traceLimited(s"""launchJob ${name} with arguments:
                            |${callInputsJs.prettyPrint}""".stripMargin,

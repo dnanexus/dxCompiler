@@ -1,6 +1,18 @@
 # Release Notes
 
-## 2.7.1 2021-11-??
+## in develop
+
+* Increases number of retries when downloading manifests
+* Uses manifest files for large subjob inputs
+* Fixes error when parsing a field name with multiple `stage-*` prefixes
+
+### Dependency updates
+
+#### dxApi 0.12.0
+
+* Enables `retryLimit` to be set for `DxApi.uploadFile` and `DxApi.downloadFile`
+
+## 2.7.1 2021-11-18
 
 * Fixes issue where jobs fail due to out-of-disk error due to excessive logging
 * Adds option to specify native app information in `runtime` section (or `hints` for WDL 2.0)

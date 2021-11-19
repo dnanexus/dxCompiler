@@ -579,12 +579,13 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           val callInputs = prepareSubworkflowInputs(executableLink)
           // there is no good human-readable name for a conditional, so we just
           // use the current block index
-          val (dxExecution, _) =
-            launchJob(executableLink,
-                      executableLink.name,
-                      callInputs,
-                      extraManifestOutputs = Option.when(prereqEnv.nonEmpty)(prereqIrEnv),
-                      folder = Some(block.index.toString))
+          val (dxExecution, _) = launchJob(
+              executableLink,
+              executableLink.name,
+              callInputs,
+              extraManifestOutputs = Option.when(prereqEnv.nonEmpty)(prereqIrEnv),
+              folder = Some(block.index.toString)
+          )
           jobMeta.createExecutionOutputLinks(dxExecution, executableLink.outputs)
         case (V_Boolean(false), _) => Map.empty
         case _ =>
@@ -764,12 +765,13 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           val callInputs =
             prepareSubworkflowInputs(executableLink, Map(identifier -> (itemType, item)))
           val callNameDetail = getScatterName(item, jobMeta.scatterStart + index)
-          val (dxExecution, _) =
-            launchJob(executableLink,
-                      executableLink.name,
-                      callInputs,
-                      nameDetail = Some(callNameDetail),
-                      folder = Some((jobMeta.scatterStart + index).toString))
+          val (dxExecution, _) = launchJob(
+              executableLink,
+              executableLink.name,
+              callInputs,
+              nameDetail = Some(callNameDetail),
+              folder = Some((jobMeta.scatterStart + index).toString)
+          )
           dxExecution
       }
     }
