@@ -3,7 +3,11 @@
 <%@ val runtimeTraceLevel: Int %>
 <%@ val separateOutputs: Boolean %>
 <%@ val waitOnUpload: Boolean %>
+<%@ val dxPathConfig: dx.core.io.DxWorkerPaths %>
 <%@ val bashDollar: String = "$" %>
+
+${include("workflow_script.ssp")}
+
 main() {
     java -jar ${bashDollar}{DX_FS_ROOT}/${runtimeJar} workflow ${command} ${bashDollar}{HOME} -traceLevel ${runtimeTraceLevel} ${if (separateOutputs) "-separateOutputs"} ${if (waitOnUpload) "-waitOnUpload"}
 }

@@ -135,7 +135,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
             ApplicationCompiler.WorkflowFragmentTemplate,
             templateAttrs ++ Map(
                 "separateOutputs" -> separateOutputs,
-                "waitOnUpload" -> waitOnUpload
+                "waitOnUpload" -> waitOnUpload,
+                "dxPathConfig" -> runtimePathConfig
             )
         )
       case other =>
@@ -146,7 +147,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
                 templateAttrs ++ Map(
                     "command" -> command,
                     "separateOutputs" -> separateOutputs,
-                    "waitOnUpload" -> waitOnUpload
+                    "waitOnUpload" -> waitOnUpload,
+                    "dxPathConfig" -> runtimePathConfig
                 )
             )
           case _ =>

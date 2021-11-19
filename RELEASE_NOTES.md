@@ -2,8 +2,9 @@
 
 ## in develop
 
-* Increases number of retries when downloading manifests
 * Uses manifest files for large subjob inputs
+* Uses dxda to bulk-download manifest files
+* Increases number of retries when downloading single manifest files
 
 ### Dependency updates
 
