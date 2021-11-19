@@ -564,6 +564,8 @@ object WdlUtils {
       case (T_Float, VFloat(f))         => V_Float(f)
       case (T_Float, VInt(i))           => V_Float(i.toDouble)
       case (T_String, VString(s))       => V_String(s)
+      case (T_String, f: VFile)         => V_String(f.uri)
+      case (T_String, d: VFolder)       => V_String(d.uri)
       case (T_File, VString(path))      => V_File(path)
       case (T_File, f: VFile)           => V_File(f.uri)
       case (T_Directory, VString(path)) => V_Directory(path)
