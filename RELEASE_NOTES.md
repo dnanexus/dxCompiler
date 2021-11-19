@@ -4,6 +4,7 @@
 
 * Increases number of retries when downloading manifests
 * Uses manifest files for large subjob inputs
+* Fixes error when parsing a field name with multiple `stage-*` prefixes
 
 ### Dependency updates
 
