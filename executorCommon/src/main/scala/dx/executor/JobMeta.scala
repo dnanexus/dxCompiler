@@ -207,7 +207,9 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
       def downloadAndParseManifests(files: Vector[DxFile],
                                     dxdaManifestFile: Path,
                                     downloadFunction: String): Vector[Manifest] = {
-        if (files.size == 1) {
+        if (files.isEmpty) {
+          Vector.empty
+        } else if (files.size == 1) {
           // download manifest bytes, convert to JSON, and parse into Manifest object
           Vector(
               Manifest.parse(new String(dxApi.downloadBytes(files.head, retryLimit = 10)).parseJson,
@@ -218,6 +220,9 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
           val manifestFileToPath = DxFindDataObjects(dxApi, logger = logger)
             .query(
                 DxFindDataObjectsConstraints(
+                    project = dxApi.currentProject,
+                    objectClass = Some("file"),
+                    state = Some(DxState.Closed),
                     ids = files.map(_.id).toSet
                 ),
                 describe = true,
@@ -230,6 +235,9 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
                 dxFile -> workerPaths.getManifestFilesDir().resolve(dxFile.getName)
             }
             .toMap
+          if (manifestFileToPath.size != files.size) {
+            throw new Exception("failed to describe one or more manifest file(s)")
+          }
           // write the dxda manifest to a file
           FileUtils.writeFileContent(
               dxdaManifestFile,
