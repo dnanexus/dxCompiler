@@ -1,5 +1,5 @@
 {
-  "apps_936.foo" {
+  "apps_936.foo": {
     "docker_image": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G66qpGj0yzZq02K9313pJg5G"
   }
 }
