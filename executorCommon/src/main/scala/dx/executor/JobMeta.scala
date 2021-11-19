@@ -222,7 +222,6 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
                 DxFindDataObjectsConstraints(
                     project = dxApi.currentProject,
                     objectClass = Some("file"),
-                    state = Some(DxState.Closed),
                     ids = files.map(_.id).toSet
                 ),
                 describe = true,
@@ -233,6 +232,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
             .map {
               case dxFile: DxFile =>
                 dxFile -> workerPaths.getManifestFilesDir().resolve(dxFile.getName)
+              case other => throw new Exception(s"unexpected result ${other}")
             }
             .toMap
           if (manifestFileToPath.size != files.size) {
