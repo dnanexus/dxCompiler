@@ -3,7 +3,6 @@
 <%@ val separateOutputs: Boolean %>
 <%@ val waitOnUpload: Boolean %>
 <%@ val bashDollar: String = "$" %>
-<%@ val dxPathConfig: dx.core.io.DxWorkerPaths %>
 
 ${include("workflow_script.ssp")}
 

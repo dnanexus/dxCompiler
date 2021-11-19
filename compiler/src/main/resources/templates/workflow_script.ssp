@@ -1,65 +1,59 @@
-<%@ val dxPathConfig: dx.core.io.DxWorkerPaths %>
+<%@ val runtimePathConfig: dx.core.io.DxWorkerPaths %>
 <%@ val bashDollar: String = "$" %>
 manifest_download_dxda() {
     # run the dx-download-agent (dxda) on a manifest of manifest files
-    if [[ -f "${dxPathConfig.getDxdaManifestDownloadManifestFile().toString}" ]]; then
+    if [[ -f "${runtimePathConfig.getDxdaManifestDownloadManifestFile().toString}" ]]; then
        echo "Using dxda version: ${bashDollar}(dx-download-agent version)"
-       head -n 20 "${dxPathConfig.getDxdaManifestDownloadManifestFile().toString}"
+       head -n 20 "${runtimePathConfig.getDxdaManifestDownloadManifestFile().toString}"
        echo ""
-       bzip2 "${dxPathConfig.getDxdaManifestDownloadManifestFile().toString}"
+       bzip2 "${runtimePathConfig.getDxdaManifestDownloadManifestFile().toString}"
 
        # Run the download agent, and store the return code; do not exit on error.
        # We need to run it from the root directory, because it uses relative paths.
        cd /
        dxda_error_code=0
-       dx-download-agent download "${dxPathConfig.getDxdaManifestDownloadManifestFile().toString}.bz2" || dxda_error_code=${bashDollar}? && true
+       dx-download-agent download "${runtimePathConfig.getDxdaManifestDownloadManifestFile().toString}.bz2" || dxda_error_code=${bashDollar}? && true
 
        # if there was an error during download, print out the download log
        if [[ ${bashDollar}dxda_error_code != 0 ]]; then
            echo "download agent failed rc=${bashDollar}dxda_error_code"
-           if [[ -f "${dxPathConfig.getDxdaManifestDownloadManifestFile().toString}.bz2.download.log" ]]; then
+           if [[ -f "${runtimePathConfig.getDxdaManifestDownloadManifestFile().toString}.bz2.download.log" ]]; then
               echo "The download log is:"
-              cat "${dxPathConfig.getDxdaManifestDownloadManifestFile().toString}.bz2.download.log"
+              cat "${runtimePathConfig.getDxdaManifestDownloadManifestFile().toString}.bz2.download.log"
            fi
            exit ${bashDollar}dxda_error_code
        fi
 
        # The download was ok, check file integrity on disk
-       dx-download-agent inspect "${dxPathConfig.getDxdaManifestDownloadManifestFile().toString}.bz2"
-
-       # go back to root directory
-       cd "${dxPathConfig.getRootDir().toString}"
+       dx-download-agent inspect "${runtimePathConfig.getDxdaManifestDownloadManifestFile().toString}.bz2"
     fi
 }
 
 workflow_manifest_download_dxda() {
     # run the dx-download-agent (dxda) on a manifest of workflow manifest files
-    if [[ -f "${dxPathConfig.getDxdaWorkflowManifestDownloadManifestFile().toString}" ]]; then
+    if [[ -f "${runtimePathConfig.getDxdaWorkflowManifestDownloadManifestFile().toString}" ]]; then
        echo "Using dxda version: ${bashDollar}(dx-download-agent version)"
-       head -n 20 "${dxPathConfig.getDxdaWorkflowManifestDownloadManifestFile().toString}"
+       head -n 20 "${runtimePathConfig.getDxdaWorkflowManifestDownloadManifestFile().toString}"
        echo ""
-       bzip2 "${dxPathConfig.getDxdaWorkflowManifestDownloadManifestFile().toString}"
+       bzip2 "${runtimePathConfig.getDxdaWorkflowManifestDownloadManifestFile().toString}"
 
        # Run the download agent, and store the return code; do not exit on error.
        # We need to run it from the root directory, because it uses relative paths.
        cd /
        dxda_error_code=0
-       dx-download-agent download "${dxPathConfig.getDxdaWorkflowManifestDownloadManifestFile().toString}.bz2" || dxda_error_code=${bashDollar}? && true
+       dx-download-agent download "${runtimePathConfig.getDxdaWorkflowManifestDownloadManifestFile().toString}.bz2" || dxda_error_code=${bashDollar}? && true
 
        # if there was an error during download, print out the download log
        if [[ ${bashDollar}dxda_error_code != 0 ]]; then
            echo "download agent failed rc=${bashDollar}dxda_error_code"
-           if [[ -f "${dxPathConfig.getDxdaWorkflowManifestDownloadManifestFile().toString}.bz2.download.log" ]]; then
+           if [[ -f "${runtimePathConfig.getDxdaWorkflowManifestDownloadManifestFile().toString}.bz2.download.log" ]]; then
               echo "The download log is:"
-              cat "${dxPathConfig.getDxdaWorkflowManifestDownloadManifestFile().toString}.bz2.download.log"
+              cat "${runtimePathConfig.getDxdaWorkflowManifestDownloadManifestFile().toString}.bz2.download.log"
            fi
            exit ${bashDollar}dxda_error_code
        fi
 
        # The download was ok, check file integrity on disk
-       dx-download-agent inspect "${dxPathConfig.getDxdaWorkflowManifestDownloadManifestFile().toString}.bz2"
-
-       # go back to root directory
-       cd "${dxPathConfig.getRootDir().toString}"
+       dx-download-agent inspect "${runtimePathConfig.getDxdaWorkflowManifestDownloadManifestFile().toString}.bz2"
     fi
 }

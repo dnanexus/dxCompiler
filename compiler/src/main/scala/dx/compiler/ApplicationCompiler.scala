@@ -127,7 +127,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
             template,
             templateAttrs ++ Map(
                 "dockerPreamble" -> dockerPreamble,
-                "dxPathConfig" -> runtimePathConfig
+                "runtimePathConfig" -> runtimePathConfig
             )
         )
       case _: ExecutableKindWfFragment =>
@@ -136,7 +136,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
             templateAttrs ++ Map(
                 "separateOutputs" -> separateOutputs,
                 "waitOnUpload" -> waitOnUpload,
-                "dxPathConfig" -> runtimePathConfig
+                "runtimePathConfig" -> runtimePathConfig
             )
         )
       case other =>
@@ -148,7 +148,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
                     "command" -> command,
                     "separateOutputs" -> separateOutputs,
                     "waitOnUpload" -> waitOnUpload,
-                    "dxPathConfig" -> runtimePathConfig
+                    "runtimePathConfig" -> runtimePathConfig
                 )
             )
           case _ =>
