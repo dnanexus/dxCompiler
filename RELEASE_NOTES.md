@@ -5,6 +5,7 @@
 * Uses manifest files for large subjob inputs
 * Uses dxda to bulk-download manifest files
 * Increases number of retries when downloading single manifest files
+* Fixes error when parsing a field name with multiple `stage-*` prefixes
 
 ### Dependency updates
 
