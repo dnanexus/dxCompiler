@@ -236,7 +236,12 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
             }
             .toMap
           if (manifestFileToPath.size != files.size) {
-            throw new Exception("failed to describe one or more manifest file(s)")
+            throw new Exception(
+                s"""failed to describe one or more manifest file(s)
+                   |${files}
+                   |vs
+                   |${manifestFileToPath}""".stripMargin
+            )
           }
           // write the dxda manifest to a file
           FileUtils.writeFileContent(
