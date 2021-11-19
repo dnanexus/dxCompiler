@@ -115,6 +115,17 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
 
   def rawJsInputs: Map[DxName, JsValue]
 
+  val manifestRootFolder = "/.d"
+  lazy val manifestFolder = s"${manifestRootFolder}/${jobId}"
+  lazy val manifestProjectAndFolder: String = s"${dxApi.currentProjectId.get}:${manifestFolder}"
+  lazy val projectOutputFolder: String = {
+    if (useManifests) {
+      manifestFolder
+    } else {
+      folder
+    }
+  }
+
   /**
     * If the task/workflow was compiled with -useManifests, then the job inputs
     * will be manifest files, rather than the actual inputs expected by the
@@ -221,6 +232,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
             .query(
                 DxFindDataObjectsConstraints(
                     project = dxApi.currentProject,
+                    folder = Some(manifestRootFolder),
+                    recurse = true,
                     objectClass = Some("file"),
                     ids = files.map(_.id).toSet
                 ),
@@ -498,17 +511,6 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
   }
 
   def uploadFiles(filesToUpload: Iterable[FileUpload]): Map[Path, DxFile]
-
-  lazy val manifestFolder = s"/.d/${jobId}"
-  lazy val manifestProjectAndFolder: String = s"${dxApi.currentProjectId.get}:${manifestFolder}"
-
-  lazy val projectOutputFolder: String = {
-    if (useManifests) {
-      manifestFolder
-    } else {
-      folder
-    }
-  }
 
   protected def writeRawJsOutputs(outputJs: Map[DxName, JsValue]): Unit
 
