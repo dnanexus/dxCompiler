@@ -9,6 +9,8 @@ import dx.api.{
   DxExecution,
   DxFile,
   DxFileDescCache,
+  DxFindDataObjects,
+  DxFindDataObjectsConstraints,
   DxJob,
   DxJobDescribe,
   DxPath,
@@ -20,7 +22,7 @@ import dx.api.{
   InstanceTypeDB
 }
 import dx.core.Constants
-import dx.core.io.DxWorkerPaths
+import dx.core.io.{DxWorkerPaths, DxdaManifestBuilder}
 import dx.core.ir.RunSpec.InstanceType
 import dx.core.ir.Value.VNull
 import dx.core.ir.{
@@ -58,6 +60,9 @@ object JobMeta {
   val MaxConcurrentUploads = 8
   // max subjob input manifest document size for which a hash is used
   val MaxManifestJsLength = 100_000
+  // functions used to download manifest files
+  val ManifestDownloadDxda = "manifest_download_dxda"
+  val WorkflowManifestDownloadDxda = "workflow_manifest_download_dxda"
 
   /**
     * Report an error, since this is called from a bash script, we can't simply
@@ -109,6 +114,17 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
   def runJobScriptFunction(name: String, successCodes: Option[Set[Int]] = Some(Set(0))): Unit
 
   def rawJsInputs: Map[DxName, JsValue]
+
+  val manifestRootFolder = "/.d"
+  lazy val manifestFolder = s"${manifestRootFolder}/${jobId}"
+  lazy val manifestProjectAndFolder: String = s"${dxApi.currentProjectId.get}:${manifestFolder}"
+  lazy val projectOutputFolder: String = {
+    if (useManifests) {
+      manifestFolder
+    } else {
+      folder
+    }
+  }
 
   /**
     * If the task/workflow was compiled with -useManifests, then the job inputs
@@ -199,29 +215,73 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
         .map(Manifest.parse(_, dxNameFactory).jsValues)
         .getOrElse(Map.empty[DxName, JsValue])
     } else {
-      def downloadAndParseManifests(files: Vector[DxFile]): Vector[Manifest] = {
-        // download manifest bytes, convert to JSON, and parse into Manifest object
-        val manifests = files
-          .map(dxFile =>
-            Manifest.parse(new String(dxApi.downloadBytes(dxFile, retryLimit = 10)).parseJson,
-                           dxNameFactory)
+      def downloadAndParseManifests(files: Vector[DxFile],
+                                    dxdaManifestFile: Path,
+                                    downloadFunction: String): Vector[Manifest] = {
+        if (files.isEmpty) {
+          Vector.empty
+        } else if (files.size == 1) {
+          // download manifest bytes, convert to JSON, and parse into Manifest object
+          Vector(
+              Manifest.parse(new String(dxApi.downloadBytes(files.head, retryLimit = 10)).parseJson,
+                             dxNameFactory)
           )
-        // if there is more than one manifest, check that they all have IDs
-        if (manifests.size > 1) {
-          manifests.foreach {
-            case manifest: Manifest if manifest.id.isDefined => ()
-            case _ =>
-              throw new Exception("when there are multiple manifests, all manifests must have ID")
+        } else {
+          // bulk describe manifest files
+          val manifestFileToPath = DxFindDataObjects(dxApi, logger = logger)
+            .query(
+                DxFindDataObjectsConstraints(
+                    project = dxApi.currentProject,
+                    folder = Some(manifestRootFolder),
+                    recurse = true,
+                    objectClass = Some("file"),
+                    ids = files.map(_.id).toSet
+                ),
+                describe = true,
+                defaultFields = true,
+                extraFields = Set(Field.Parts)
+            )
+            .keys
+            .map {
+              case dxFile: DxFile =>
+                dxFile -> workerPaths.getManifestFilesDir().resolve(dxFile.getName)
+              case other => throw new Exception(s"unexpected result ${other}")
+            }
+            .toMap
+          if (manifestFileToPath.size != files.size) {
+            throw new Exception(
+                s"""failed to describe one or more manifest file(s)
+                   |${files}
+                   |vs
+                   |${manifestFileToPath}""".stripMargin
+            )
           }
+          // write the dxda manifest to a file
+          FileUtils.writeFileContent(
+              dxdaManifestFile,
+              DxdaManifestBuilder(dxApi, logger).apply(manifestFileToPath).get.value.prettyPrint
+          )
+          // run dxda via a subprocess
+          runJobScriptFunction(downloadFunction)
+          // read the manifest files
+          manifestFileToPath.values.map { localManifestFile =>
+            val manifest = Manifest.parseFile(localManifestFile, dxNameFactory)
+            // there is more than one manifest so check that they all have IDs
+            if (manifest.id.isEmpty) {
+              throw new Exception("when there are multiple manifests, all manifests must have ID")
+            }
+            manifest
+          }.toVector
         }
-        manifests
       }
 
       // parse all the manifests and combine into a single Vector
       val manifests = manifestHash
         .map(h => Vector(Manifest.parse(h, dxNameFactory)))
         .getOrElse(Vector.empty) ++
-        downloadAndParseManifests(manifestFiles)
+        downloadAndParseManifests(manifestFiles,
+                                  workerPaths.getDxdaManifestDownloadManifestFile(),
+                                  JobMeta.ManifestDownloadDxda)
       // create lookup function for manifests
       val manifestLookup: (String, DxName) => Option[JsValue] = manifests.size match {
         case 0 => (_: String, _: DxName) => None
@@ -254,7 +314,9 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
         val workflowManifests = workflowManifestHash
           .map(h => Vector(Manifest.parse(h, dxNameFactory)))
           .getOrElse(Vector.empty) ++
-          downloadAndParseManifests(workflowManifestFiles)
+          downloadAndParseManifests(workflowManifestFiles,
+                                    workerPaths.getDxdaWorkflowManifestDownloadManifestFile(),
+                                    JobMeta.WorkflowManifestDownloadDxda)
         val workflowManifestLinks: Map[DxName, JsValue] =
           (rawInputs.get(Constants.WorkflowInputLinks) match {
             case Some(JsObject(fields)) if fields.contains(Constants.ComplexValueKey) =>
@@ -449,17 +511,6 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
   }
 
   def uploadFiles(filesToUpload: Iterable[FileUpload]): Map[Path, DxFile]
-
-  lazy val manifestFolder = s"/.d/${jobId}"
-  lazy val manifestProjectAndFolder: String = s"${dxApi.currentProjectId.get}:${manifestFolder}"
-
-  lazy val projectOutputFolder: String = {
-    if (useManifests) {
-      manifestFolder
-    } else {
-      folder
-    }
-  }
 
   protected def writeRawJsOutputs(outputJs: Map[DxName, JsValue]): Unit
 

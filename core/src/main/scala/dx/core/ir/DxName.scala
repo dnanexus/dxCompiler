@@ -288,7 +288,7 @@ trait DxNameFactory {
 object DxNameFactory {
   // standard suffixes to parse
   val suffixes = Set(Constants.ComplexValueKey, Constants.FlatFilesSuffix)
-  private val stageRegex = "^(?:(stage-[^.]+)\\.)?(.+)$".r
+  private val stageRegex = "^(?:((?:stage-[^.]\\.)*stage-[^.]+)\\.)?(.+)$".r
 
   // the default Regex.split method does not return parts with empty strings -
   // we need those for validation

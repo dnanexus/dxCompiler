@@ -16,13 +16,16 @@ object DxWorkerPaths {
   val ReturnCode = "returnCode"
   val ContainerRunScript = "containerRunScript"
   val ContainerId = "containerId"
+  val ManifestFilesDir = "manifests"
   val InputFilesDir = "inputs"
   val OutputFilesDir = "outputs"
   val VirtualFilesDir = "virtual"
   val InstanceTypeDbFile = "instance_type_db.json"
   val SourceEncodedFile = "source.wdl.uu64"
-  val DxdaManifestFile = "dxdaManifest.json"
-  val DxfuseManifestFile = "dxfuseManifest.json"
+  val DxdaManifestDownloadManifestFile = "dxdaManifestDownloadManifest.json"
+  val DxdaWorkflowManifestDownloadManifestFile = "dxdaWorkflowManifestDownloadManifest.json"
+  val DxdaManifestFile = "dxdaFileDownloadManifest.json"
+  val DxfuseManifestFile = "dxfuseDownloadManifest.json"
   val DxuaManifestFile = "dxuaManifest.json"
   val DxfuseMountDir = "mnt"
 
@@ -93,6 +96,12 @@ case class DxWorkerPaths(rootDir: Path) extends BaseEvalPaths with ExecPaths {
     getMetaDir(ensureParentExists).resolve(DxWorkerPaths.ContainerId)
   }
 
+  def getManifestFilesDir(ensureExists: Boolean = false): Path = {
+    getOrCreateDir(DxWorkerPaths.ManifestFilesDir,
+                   getRootDir(ensureExists).resolve(DxWorkerPaths.ManifestFilesDir),
+                   ensureExists)
+  }
+
   /**
     * Running applets download files from the platform to this location.
     */
@@ -138,6 +147,14 @@ case class DxWorkerPaths(rootDir: Path) extends BaseEvalPaths with ExecPaths {
   def getSourceEncodedFile(ensureParentExists: Boolean = false): Path = {
     // TODO: any reason we can't put this in meta dir?
     getRootDir(ensureParentExists).resolve(DxWorkerPaths.SourceEncodedFile)
+  }
+
+  def getDxdaManifestDownloadManifestFile(ensureParentExists: Boolean = false): Path = {
+    getMetaDir(ensureParentExists).resolve(DxWorkerPaths.DxdaManifestDownloadManifestFile)
+  }
+
+  def getDxdaWorkflowManifestDownloadManifestFile(ensureParentExists: Boolean = false): Path = {
+    getMetaDir(ensureParentExists).resolve(DxWorkerPaths.DxdaWorkflowManifestDownloadManifestFile)
   }
 
   /**
