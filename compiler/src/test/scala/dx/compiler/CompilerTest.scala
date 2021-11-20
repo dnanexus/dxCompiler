@@ -782,6 +782,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         d should include("alpine:3.14")
         d should include("ubuntu:20.04")
         d should include("mem1_ssd2_x4")
+        d should include(
+            "Available instance types determined during WDL compilation will be used"
+        )
       }
       case _ => throw new Exception(s"Expected ${wfId} to have a description.")
     }
