@@ -501,6 +501,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         )
     )
 
+    // TODO: description should start with
     desc.description shouldBe Some(
         "Adds two int together. This app adds together two integers and returns the sum"
     )
@@ -706,6 +707,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         )
     )
 
+    // TODO: description should start with
     desc.description shouldBe Some("This is a workflow that defines some metadata")
     desc.details match {
       case Some(JsObject(fields)) =>
