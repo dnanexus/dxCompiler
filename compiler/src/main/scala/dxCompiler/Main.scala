@@ -854,13 +854,16 @@ object Main {
         |                             specified multiple times. A DNAnexus JSON input file is
         |                             generated for each standard input file.
         |      -instanceTypeSelection [static,dynamic]
-        |                             Whether to attempt to select instance types at compile time
-        |                             for tasks with runtime requirements that can all be statically
-        |                             evaluated (static, the default), or to defer all instance type
-        |                             selection to runtime (dynamic). Using static instance type
-        |                             selection can save time and cost, but it requires the user(s)
-        |                             running the applet/workflow to have access to the same instance
-        |                             types as the user who compiled it.
+        |                             Whether to select instance types at compile time for tasks with
+        |                             runtime requirements that can all be statically evaluated
+        |                             (the default "static" option), or to defer instance type
+        |                             selection in such cases to runtime (the "dynamic" option).
+        |                             Using static instance type selection can save time, but it
+        |                             requires the same set of instances to be accessible during WDL
+        |                             compilation and during the runtime of the generated applets and
+        |                             workflows. Use the "dynamic" option if you plan on creating global
+        |                             DNAnexus workflows or cloning the generated workflows between
+        |                             DNAnexus organizations with different available instance types.
         |      -locked                Create a locked workflow. When running a locked workflow,
         |                             input values may only be specified for the top-level workflow.
         |      -leaveWorkflowsOpen    Leave created workflows open (otherwise they are closed).
