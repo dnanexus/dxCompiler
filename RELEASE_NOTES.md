@@ -6,6 +6,7 @@
 * Uses dxda to bulk-download manifest files
 * Increases number of retries when downloading single manifest files
 * Fixes error when parsing a field name with multiple `stage-*` prefixes
+* Allows file-to-string coercion for WDL inputs
 
 ### Dependency updates
 
