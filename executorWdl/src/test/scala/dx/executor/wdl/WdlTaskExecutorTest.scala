@@ -325,7 +325,7 @@ class WdlTaskExecutorTest extends AnyFlatSpec with Matchers {
               // block here until the file is closed
               if (!Iterator.range(0, 10).exists { i =>
                     if (i > 0) {
-                      Thread.sleep(3000)
+                      Thread.sleep(6000)
                     }
                     val desc =
                       dxApi.fileDescribe(manifestFile.id,
@@ -335,7 +335,7 @@ class WdlTaskExecutorTest extends AnyFlatSpec with Matchers {
                       case _                        => false
                     }
                   }) {
-                throw new Exception("manifest file did not close within 30 seconds")
+                throw new Exception("manifest file did not close within 60 seconds")
               }
               Manifest
                 .parse(
