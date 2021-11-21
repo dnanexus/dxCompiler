@@ -1,6 +1,6 @@
 # Release Notes
 
-## 2.7.2 2021-11-18
+## 2.7.2 2021-11-20
 
 * Uses manifest files for large subjob inputs
 * Uses dxda to bulk-download manifest files
