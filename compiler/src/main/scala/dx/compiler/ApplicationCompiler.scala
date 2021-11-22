@@ -372,10 +372,10 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     }
     val staticInstanceTypeSelectionMd = instanceTypeSelection match {
       case InstanceTypeSelection.Static =>
-        s"${listMd(
+        listMd(
             "Available instance types determined during WDL compilation will be " +
               "used to select instance types during workflow execution"
-        )}"
+        )
       case _ => ""
     }
     val md =
