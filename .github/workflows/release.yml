@@ -5,8 +5,12 @@ on:
       release-version:
         description: 'Release version'
         required: true
-      should-run-tests:
-        description: 'Should run large integration tests (false/true; default: true)'
+      should-run-integration-tests:
+        description: 'Should run large integration test suite (false/true; default: true)'
+        required: false
+        default: 'true'
+      should-run-customer-tests:
+        description: 'Should run customer test workflows (false/true; default: true)'
         required: false
         default: 'true'
 permissions:
@@ -84,6 +88,7 @@ jobs:
           export PATH="$PATH:$HOME/.local/bin"
 
           # install dxda
+          # TODO: get dxda version from scripts/bundled_dependencies.json
           sudo wget -O/usr/local/bin/dx-download-agent https://github.com/dnanexus/dxda/releases/download/v0.5.7/dx-download-agent-linux
           sudo chmod +x /usr/local/bin/dx-download-agent
 
@@ -96,9 +101,8 @@ jobs:
           pwd
           sbt version && sbt compile && sbt "testOnly -- -l prod"
       - name: Run integration tests
-        if: ${{ github.event.inputs.should-run-tests == 'true' }}
+        if: ${{ github.event.inputs.should-run-integration-tests == 'true' }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           AUTH_TOKEN: ${{ secrets.DX_STAGING_TOKEN }}
         run: |
           export PATH="$PATH:$HOME/.local/bin"
@@ -112,8 +116,9 @@ jobs:
           FOLDER=/builds/test_gha_dxcompiler_$(date +%s)_$RANDOM
           dx mkdir $FOLDER
           python3 scripts/run_tests.py --test L --folder $FOLDER --project $PROJECT
-          #TODO: also remove the folder when the tests fail
+          # TODO: also remove the folder when the tests fail
           dx rm -rf $FOLDER
+          dx logout && dx clearenv
       - name: Run the release script
         env:
           DX_STAGING_RELEASE_TOKEN: ${{ secrets.DX_STAGING_RELEASE_TOKEN }}
@@ -130,6 +135,45 @@ jobs:
               --docker-password $DOCKERHUB_TOKEN \
               --force \
               --branch $TARGET_BRANCH
+      - name: Run customer 1 workflows
+        if: ${{ github.event.inputs.should-run-customer-tests == 'true' }}
+        env:
+          CUSTOMER1_AUTH_TOKEN: ${{ secrets.CUSTOMER1_TOKEN }}
+          CUSTOMER1_PROJECT: ${{ secrets.CUSTOMER1_PROJECT }}
+          CUSTOMER1_WORKFLOW1_NAME: ${{ secrets.CUSTOMER1_WORKFLOW1_NAME }}
+          CUSTOMER1_WORKFLOW2_NAME: ${{ secrets.CUSTOMER1_WORKFLOW2_NAME }}
+        run:
+          export PATH="$PATH:$HOME/.local/bin"
+
+          # set up DNAnexus production environment for customer 1
+          dx login --noprojects --token CUSTOMER1_AUTH_TOKEN
+          dx select $CUSTOMER1_PROJECT
+
+          # download, compile, and run workflows
+          dx download -r /workflow_1
+          cd workflow_1
+          $workflow1=$(java -jar ./dxCompiler-${{ github.event.inputs.release-version }}.jar compile \
+            ${{ CUSTOMER1_WORKFLOW1_Name }} -defaults defaults.json -extras extras.json)
+          $job1=$(dx run /test/run_workflow_1 $workflow1 -y --brief)
+
+          cd ..
+          dx download -r /workflow_2
+          cd workflow_2
+          $workflow2=$(java -jar ./dxCompiler-${{ github.event.inputs.release-version }}.jar compile \
+            ${{ CUSTOMER1_WORKFLOW2_Name }} -defaults defaults.json -extras extras.json)
+          $job2=$(dx run /test/run_workflow_2 $workflow2 -y --brief)
+
+          # check that the workflows completed successfully
+          $rc1=$(dx watch $job1 > /dev/null)
+          if [[ "$?" != "0" ]]; then
+            echo "workflow 1 failed"
+            exit 1
+          fi
+          $rc2=$(dx watch $job2 > /dev/null)
+          if [[ "$?" != "0" ]]; then
+            echo "workflow 2 failed"
+            exit 1
+          fi
       - name: Extract release notes
         id: update-release
         run: |
