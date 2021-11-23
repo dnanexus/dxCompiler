@@ -1,3 +1,4 @@
-inp2: a_string  # type "string"
+inp2: baz  # type "string"
 inp:  # array of type "string"
-  - a_string
+  - foo
+  - bar

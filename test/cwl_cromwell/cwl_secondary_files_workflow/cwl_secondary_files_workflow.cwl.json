@@ -32,7 +32,13 @@
                     "type": "File",
                     "inputBinding": {
                         "position": 2
-                    }
+                    },
+                    "secondaryFiles": [
+                        {
+                        "pattern": ".also",
+                        "required": null
+                        }
+                    ]
                 },
                 {
                     "id": "#cwl_secondary_files_workflow_tool/fs",
@@ -42,7 +48,13 @@
                         "inputBinding": {
                             "position": 3
                         }
-                    }
+                    },
+                    "secondaryFiles": [
+                        {
+                            "pattern": ".also",
+                            "required": null
+                        }
+                    ]
                 }
             ],
             "baseCommand": [],
@@ -78,10 +90,6 @@
                     "type": {
                         "type": "array",
                         "items": "File"
-                    },
-                    "secondaryFiles": {
-                        "pattern": ".also",
-                        "required": null
                     }
                 }
             ],

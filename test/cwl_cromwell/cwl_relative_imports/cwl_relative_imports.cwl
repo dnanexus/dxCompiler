@@ -11,5 +11,5 @@ $graph:
   steps:
     globSort:
       in: []
-      run: cwl_glob_sort.cwl
+      run: cwl_relative_imports_glob_sort.cwl
       out: [letters]
