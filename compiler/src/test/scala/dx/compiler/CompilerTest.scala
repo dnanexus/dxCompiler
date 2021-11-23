@@ -501,7 +501,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         )
     )
 
-    desc.description shouldBe Some(
+    desc.description.get should startWith(
         "Adds two int together. This app adds together two integers and returns the sum"
     )
     desc.details match {
@@ -706,7 +706,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         )
     )
 
-    desc.description shouldBe Some("This is a workflow that defines some metadata")
+    desc.description.get should startWith("This is a workflow that defines some metadata")
     desc.details match {
       case Some(JsObject(fields)) =>
         fields.foreach {
@@ -720,9 +720,10 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
           case (Constants.SourceCode, JsString(_))         => () // ignore
           case (Constants.ParseOptions, JsObject(_))       => () // ignore
           // old values for sourceCode - can probalby delete these
-          case ("womSourceCode", JsString(_)) => ()
-          case ("wdlSourceCode", JsString(_)) => ()
-          case other                          => throw new Exception(s"Unexpected result ${other}")
+          case ("womSourceCode", JsString(_))                   => ()
+          case ("wdlSourceCode", JsString(_))                   => ()
+          case ("staticInstanceTypeSelection", JsBoolean(true)) => ()
+          case other                                            => throw new Exception(s"Unexpected result ${other}")
         }
       case other => throw new Exception(s"Unexpected result ${other}")
     }
@@ -782,6 +783,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         d should include("alpine:3.14")
         d should include("ubuntu:20.04")
         d should include("mem1_ssd2_x4")
+        d should include(
+            "Available instance types determined during WDL compilation will be used"
+        )
       }
       case _ => throw new Exception(s"Expected ${wfId} to have a description.")
     }

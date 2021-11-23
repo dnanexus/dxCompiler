@@ -1,5 +1,10 @@
 # Release Notes
 
+## in develop
+
+* Indicates whether static instance type selection was used in workflow description annotations and metadata
+* Supports cloning workflows between projects, a prerequisite for publishing global workflows
+
 ## 2.7.2 2021-11-20
 
 * Uses manifest files for large subjob inputs
