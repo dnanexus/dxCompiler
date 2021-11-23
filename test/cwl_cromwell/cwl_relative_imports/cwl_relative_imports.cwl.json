@@ -32,7 +32,7 @@
                 "b",
                 "a"
             ],
-            "id": "#cwl_glob_sort.cwl",
+            "id": "#cwl_relative_imports_glob_sort.cwl",
             "outputs": [
                 {
                     "type": "string",
@@ -40,7 +40,7 @@
                         "glob": "?",
                         "outputEval": "${ return self.sort(function(a,b) { return a.location > b.location ? 1 : (a.location < b.location ? -1 : 0) }).map(f => f.basename).join(\" \") }\n"
                     },
-                    "id": "#cwl_glob_sort.cwl/letters"
+                    "id": "#cwl_relative_imports_glob_sort.cwl/letters"
                 }
             ]
         },
@@ -58,7 +58,7 @@
             "steps": [
                 {
                     "in": [],
-                    "run": "#cwl_glob_sort.cwl",
+                    "run": "#cwl_relative_imports_glob_sort.cwl",
                     "out": [
                         "#main/globSort/letters"
                     ],
