@@ -117,6 +117,7 @@ wdl_v1_list = [
     "apps_612",
     "nested_optional",
     "struct_deref",  # APPS-615
+    "apps_936",
 
     # manifests
     "simple_manifest",
@@ -457,49 +458,34 @@ cwl_cromwell_tests_list = [
     "cwl_docker_size",
     "cwl_dynamic_initial_workdir",
     "cwl_expressionLib",
-    # "cwl_format",
-    # "cwl_format_url",
+    "cwl_format",
+    "cwl_format_url",
     "cwl_glob_sort",
     "cwl_hello",
+    "cwl_http_inputs", # invalid input
     "test_wf",
     "touch",
     "test_pack",
-    # "cwl_http_inputs", # invalid input
     "cwl_input_binding_expression",
     "cwl_input_typearray",
     "cwl_interpolated_strings",
     "cwl_optionals",
     "cwl_output_json",
     "prefix_for_array",
-    # "cwl_recursive_link_directories",
-    "cwl_glob_sort",
+    "cwl_recursive_link_directories",
+    "cwl_relative_imports_glob_sort",
     "cwl_relative_imports",
-    # "cwl_disk_resources", Unknown hint https://www.dnanexus.com/cwl#InputResourceRequirement
-    # "cwl_inputdir_zero_doesnt_localize_input", # failed compiled
-    # "cwl_resources", Could not resolve host: metadata.google.internal
-    "cwl_restart",
-    "1st-tool",
-    # "cwl_secondary_files", secondary not uploaded to work container
-    # "cwl_secondary_files_workflow",
-    "cwl_stdout_expression",
-    # "scatter-wf1", tool id not found
-    "cwl_three_step",
-    "cwl_three_step_caller_wf"
-]
-
-cwl_cromwell_validated_tests = [
-    "cwl_dynamic_initial_workdir",
-    #"cwl_format",
-    #"cwl_format_url",
-    #"test_wf",
-    "touch",
-    #"test_pack",
-    "cwl_optionals",
-    "cwl_glob_sort",
+    "cwl_disk_resources", # Unknown hint https://www.dnanexus.com/cwl#InputResourceRequirement
+    "cwl_inputdir_zero_doesnt_localize_input", # failed compiled
+    "cwl_resources", # Could not resolve host: metadata.google.internal
     "cwl_restart",
     "1st-tool",
     "cwl_secondary_files",
-    "scatter-wf1"
+    "cwl_secondary_files_workflow",
+    "cwl_stdout_expression",
+    "scatter-wf1", # tool id not found
+    "cwl_three_step",
+    "cwl_three_step_caller_wf"
 ]
 
 # these are tests that take a long time to run
@@ -528,7 +514,6 @@ test_suites = {
     "cwl_workflows": cwl_conformance_workflows,
     'cromwell': cromwell_tests_list,
     "cwl_cromwell": cwl_cromwell_tests_list,
-    'cwl_cromwell_validated_tests': cwl_cromwell_validated_tests
 }
 
 # Tests with the reorg flags
@@ -670,10 +655,10 @@ def register_test(dir_path, tname, ext):
         raise RuntimeError("Test file {} does not exist".format(source_file))
     if ext == ".wdl":
         metadata = get_wdl_metadata(source_file)
-    # elif ext == ".cwl":
-    #     metadata = get_cwl_metadata(source_file, tname)
     elif ext == ".cwl.json":
         metadata = get_cwl_json_metadata(source_file, tname)
+    elif ext == ".cwl":
+         metadata = get_cwl_metadata(source_file, tname)
     else:
         raise RuntimeError("unsupported file type {}".format(ext))
     desc = TestDesc(
