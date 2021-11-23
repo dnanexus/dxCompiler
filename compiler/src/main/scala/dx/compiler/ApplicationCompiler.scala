@@ -127,7 +127,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
             template,
             templateAttrs ++ Map(
                 "dockerPreamble" -> dockerPreamble,
-                "dxPathConfig" -> runtimePathConfig
+                "runtimePathConfig" -> runtimePathConfig
             )
         )
       case _: ExecutableKindWfFragment =>
@@ -135,7 +135,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
             ApplicationCompiler.WorkflowFragmentTemplate,
             templateAttrs ++ Map(
                 "separateOutputs" -> separateOutputs,
-                "waitOnUpload" -> waitOnUpload
+                "waitOnUpload" -> waitOnUpload,
+                "runtimePathConfig" -> runtimePathConfig
             )
         )
       case other =>
@@ -146,7 +147,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
                 templateAttrs ++ Map(
                     "command" -> command,
                     "separateOutputs" -> separateOutputs,
-                    "waitOnUpload" -> waitOnUpload
+                    "waitOnUpload" -> waitOnUpload,
+                    "runtimePathConfig" -> runtimePathConfig
                 )
             )
           case _ =>
@@ -368,7 +370,17 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       case Some(JsString(s)) => s"${listMd("Hard-coded instance type")}${listMd2(s)}"
       case _                 => ""
     }
-    val md = s"${filesMd}${networkDockerImageMd}${dynamicDockerImageMd}${staticInstanceTypeMd}"
+    val staticInstanceTypeSelectionMd = instanceTypeSelection match {
+      case InstanceTypeSelection.Static =>
+        listMd(
+            "Available instance types determined during WDL compilation will be " +
+              "used to select instance types during workflow execution"
+        )
+      case _ => ""
+    }
+    val md =
+      s"${filesMd}${networkDockerImageMd}${dynamicDockerImageMd}${staticInstanceTypeMd}" +
+        s"${staticInstanceTypeSelectionMd}"
     Option.when(md.nonEmpty)(s"${headerMd}${md}")
   }
 
