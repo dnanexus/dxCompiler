@@ -149,18 +149,29 @@ jobs:
           dx login --noprojects --token CUSTOMER1_AUTH_TOKEN
           dx select $CUSTOMER1_PROJECT
 
+          # Timestamp for unique test run folder names
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+
           # download, compile, and run workflows
           dx download -r /workflow_1
           cd workflow_1
-          $workflow1=$(java -jar ./dxCompiler-${{ github.event.inputs.release-version }}.jar compile \
-            ${{ CUSTOMER1_WORKFLOW1_Name }} -defaults defaults.json -extras extras.json)
+          # Set up test output folder for workflow
+          WORKFLOW1_DIR=/test_out/workflow_1_$TIMESTAMP
+          dx mkdir -p $WORKFLOW1_DIR
+          $workflow1=$(java -jar ./dxCompiler-${{ github.event.inputs.release-version }}.jar \
+            compile ${{ CUSTOMER1_WORKFLOW1_NAME }} \
+            -defaults defaults.json -extras extras.json -folder $WORKFLOW1_DIR)
           $job1=$(dx run /test/run_workflow_1 $workflow1 -y --brief)
 
           cd ..
           dx download -r /workflow_2
           cd workflow_2
-          $workflow2=$(java -jar ./dxCompiler-${{ github.event.inputs.release-version }}.jar compile \
-            ${{ CUSTOMER1_WORKFLOW2_Name }} -defaults defaults.json -extras extras.json)
+          # Set up test output folder for workflow
+          WORKFLOW2_DIR=/test_out/workflow_2_$TIMESTAMP
+          dx mkdir -p $WORKFLOW2_DIR
+          $workflow2=$(java -jar ./dxCompiler-${{ github.event.inputs.release-version }}.jar \
+            compile ${{ CUSTOMER1_WORKFLOW2_NAME }} \
+            -defaults defaults.json -extras extras.json -folder $WORKFLOW2_DIR)
           $job2=$(dx run /test/run_workflow_2 $workflow2 -y --brief)
 
           # check that the workflows completed successfully
