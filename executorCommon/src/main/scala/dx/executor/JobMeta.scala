@@ -221,12 +221,12 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
                                     downloadFunction: String): Vector[Manifest] = {
         if (files.isEmpty) {
           Vector.empty
-        } else if (files.size == 1) {
-          // download manifest bytes, convert to JSON, and parse into Manifest object
-          Vector(
-              Manifest.parse(new String(dxApi.downloadBytes(files.head, retryLimit = 10)).parseJson,
-                             dxNameFactory)
-          )
+//        } else if (files.size == 1) {
+//          // download manifest bytes, convert to JSON, and parse into Manifest object
+//          Vector(
+//              Manifest.parse(new String(dxApi.downloadBytes(files.head, retryLimit = 10)).parseJson,
+//                             dxNameFactory)
+//          )
         } else {
           // bulk describe manifest files
           val manifestFileToPath = DxFindDataObjects(dxApi, logger = logger)
@@ -268,7 +268,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
           manifestFileToPath.values.map { localManifestFile =>
             val manifest = Manifest.parseFile(localManifestFile, dxNameFactory)
             // there is more than one manifest so check that they all have IDs
-            if (manifest.id.isEmpty) {
+            if (files.size > 1 && manifest.id.isEmpty) {
               throw new Exception("when there are multiple manifests, all manifests must have ID")
             }
             manifest
@@ -562,6 +562,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
   lazy val executableLinkDeserializer: ExecutableLinkDeserializer =
     ExecutableLinkDeserializer(dxNameFactory, dxApi)
 
+  private val detailToFilenameRegex = "[^\\w_]".r
+
   /**
     * Prepares the inputs for a subjob. If using manifests, creates a manifest
     * with the same output ID as the current job.
@@ -595,10 +597,12 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
         // For large subjob inputs, put them in a compact manifest file and upload it.
         // If there is a name detail, there are probably going to be a large number of manifest
         // files, so put them in a subfolder.
+        val manifestDetail =
+          nameDetail.map(d => s"/${detailToFilenameRegex.replaceAllIn(d, "_")}").getOrElse("")
         val manifestFilename =
-          s"${jobId}_subjob${nameDetail.map(d => s"/${d}").getOrElse("")}.manifest.json"
+          s"${manifestProjectAndFolder}/${jobId}_subjob${manifestDetail}.manifest.json"
         val manifestDxFile =
-          dxApi.uploadString(manifestJsStr, s"${manifestProjectAndFolder}/${manifestFilename}")
+          dxApi.uploadString(manifestJsStr, manifestFilename)
         Map(Constants.InputManifestFiles -> JsArray(manifestDxFile.asJson))
       }
       val commonInputsJs = Vector(
