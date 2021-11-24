@@ -12,6 +12,9 @@
         {
             "class": "InitialWorkDirRequirement",
             "listing": "$(inputs.files)"
+        },
+        {
+            "class": "InlineJavascriptRequirement"
         }
     ],
     "stdout": "file_list",
@@ -23,7 +26,7 @@
                 "items": "File"
             },
             "default": [
-                "/Users/chrisl/Downloads/cwl/allRequirements.txt"
+                "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/cwl_secondary_files/foo.txt"
             ]
         }
     ],

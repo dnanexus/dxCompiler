@@ -9,13 +9,14 @@ $graph:
     dockerPull: "python:3.5.0"
   - class: InitialWorkDirRequirement
     listing: $(inputs.files)
+  - class: InlineJavascriptRequirement
   stdout: file_list
   inputs:
   - id: files
     type:
       type: array
       items: File
-    default: ["/Users/chrisl/Downloads/cwl/allRequirements.txt"]
+    default: ["dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/cwl_secondary_files/foo.txt"]
   arguments: ["*.txt"]
   outputs:
   - id: file_list
