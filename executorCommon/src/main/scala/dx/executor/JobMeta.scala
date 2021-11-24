@@ -59,8 +59,7 @@ object JobMeta {
   val ExecutableInfoFile = "dnanexus-executable.json"
   val MaxConcurrentUploads = 8
   // max subjob input manifest document size for which a hash is used
-  // TODO: temporarily setting this to 0 so we always use dxda for manifests
-  val MaxManifestJsLength = 0
+  val MaxManifestJsLength = 100_000
   // functions used to download manifest files
   val ManifestDownloadDxda = "manifest_download_dxda"
   val WorkflowManifestDownloadDxda = "workflow_manifest_download_dxda"
@@ -221,12 +220,12 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
                                     downloadFunction: String): Vector[Manifest] = {
         if (files.isEmpty) {
           Vector.empty
-//        } else if (files.size == 1) {
-//          // download manifest bytes, convert to JSON, and parse into Manifest object
-//          Vector(
-//              Manifest.parse(new String(dxApi.downloadBytes(files.head, retryLimit = 10)).parseJson,
-//                             dxNameFactory)
-//          )
+        } else if (files.size == 1) {
+          // download manifest bytes, convert to JSON, and parse into Manifest object
+          Vector(
+              Manifest.parse(new String(dxApi.downloadBytes(files.head, retryLimit = 10)).parseJson,
+                             dxNameFactory)
+          )
         } else {
           // bulk describe manifest files
           val manifestFileToPath = DxFindDataObjects(dxApi, logger = logger)
@@ -268,7 +267,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
           manifestFileToPath.values.map { localManifestFile =>
             val manifest = Manifest.parseFile(localManifestFile, dxNameFactory)
             // there is more than one manifest so check that they all have IDs
-            if (files.size > 1 && manifest.id.isEmpty) {
+            if (manifest.id.isEmpty) {
               throw new Exception("when there are multiple manifests, all manifests must have ID")
             }
             manifest
@@ -597,6 +596,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
         // For large subjob inputs, put them in a compact manifest file and upload it.
         // If there is a name detail, there are probably going to be a large number of manifest
         // files, so put them in a subfolder.
+        // TODO: it is unclear if we'll ever need a manifest id here, and if so, what the id should be
         val manifestDetail =
           nameDetail.map(d => s"/${detailToFilenameRegex.replaceAllIn(d, "_")}").getOrElse("")
         val manifestFilename =
