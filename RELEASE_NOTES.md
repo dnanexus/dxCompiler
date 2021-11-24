@@ -1,5 +1,9 @@
 # Release Notes
 
+## in develop
+
+* Fix dxda manifest downloads for tasks
+
 ## 2.7.2 2021-11-20
 
 * Uses manifest files for large subjob inputs
