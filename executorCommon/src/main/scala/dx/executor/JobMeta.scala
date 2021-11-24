@@ -59,7 +59,8 @@ object JobMeta {
   val ExecutableInfoFile = "dnanexus-executable.json"
   val MaxConcurrentUploads = 8
   // max subjob input manifest document size for which a hash is used
-  val MaxManifestJsLength = 100_000
+  // TODO: temporarily setting this to 0 so we always use dxda for manifests
+  val MaxManifestJsLength = 0
   // functions used to download manifest files
   val ManifestDownloadDxda = "manifest_download_dxda"
   val WorkflowManifestDownloadDxda = "workflow_manifest_download_dxda"
