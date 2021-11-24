@@ -383,6 +383,7 @@ case class Compiler(extras: Option[Extras],
                          useManifests,
                          complexPathValues,
                          fileResolver,
+                         instanceTypeSelection,
                          dxApi,
                          logger2)
       // Calculate a checksum of the inputs that went into the making of the applet.

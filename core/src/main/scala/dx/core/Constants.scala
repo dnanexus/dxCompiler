@@ -21,6 +21,7 @@ object Constants {
   val WfFragmentInputTypes = "fqnDictTypes"
   val InstanceTypeDb = "instanceTypeDB"
   val StaticInstanceType = "staticInstanceType"
+  val StaticInstanceTypeSelection = "staticInstanceTypeSelection"
   val DelayWorkspaceDestruction = "delayWorkspaceDestruction"
   val RuntimeAttributes = "runtimeAttrs"
   val PathsAsObjects = "pathsAsObjects"
