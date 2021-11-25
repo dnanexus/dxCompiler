@@ -1,4 +1,4 @@
-name: dxCompiler Release (Staging and Prod)
+name: Release dxCompiler
 on:
   workflow_dispatch:
     inputs:
