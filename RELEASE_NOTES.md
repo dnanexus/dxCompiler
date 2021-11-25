@@ -4,6 +4,7 @@
 
 * Indicates whether static instance type selection was used in workflow description annotations and metadata
 * Supports cloning workflows between projects, a prerequisite for publishing global workflows
+* Fix dxda manifest downloads for tasks
 
 ## 2.7.2 2021-11-20
 
