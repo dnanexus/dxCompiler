@@ -401,7 +401,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
   def createAccess(applet: Application): JsValue = {
     // defaults are taken from
     // extras global defaults < task runtime section < task-specific extras
-    val defaultAccess: DxAccess = extras.map(_.getDefaultAccess).getOrElse(DxAccess.empty)
+    val extrasDefaultAccess: DxAccess = extras.map(_.getDefaultAccess).getOrElse(DxAccess.empty)
     val taskAccess: DxAccess = applet.requirements
       .collectFirst {
         case AccessRequirement(network, project, allProjects, developer, projectCreation) =>
@@ -422,8 +422,14 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         extras.map(_.getTaskAccess(applet.name))
       case _ => None
     }).getOrElse(DxAccess.empty)
-    // If we are using a private docker registry, add the allProjects: VIEW
-    // access to tasks.
+    // TODO: What is desired behavior when using a private Docker registry?
+    // Currently, runtime access to the credentials file is needed since it
+    // may not be in the same project and is not cloned with the workflow.
+    val projectAccess: DxAccess = dockerRegistry match {
+      case None    => DxAccess.empty.copy(project = Some(DxAccessLevel.Denied))
+      case Some(_) => DxAccess.empty.copy(project = Some(DxAccessLevel.View))
+    }
+    // TODO: Should allProjects also be NONE unless using private Docker registry?
     val allProjectsAccess: DxAccess = dockerRegistry match {
       case None    => DxAccess.empty
       case Some(_) => DxAccess.empty.copy(allProjects = Some(DxAccessLevel.View))
@@ -452,9 +458,10 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       None
     }
     // merge all
-    val access = defaultAccess
+    val access = extrasDefaultAccess
       .merge(taskAccess)
       .merge(taskSpecificAccess)
+      .merge(projectAccess)
       .merge(allProjectsAccess)
       .mergeOpt(appletKindAccess)
       .mergeOpt(manifestAccess)
