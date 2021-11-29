@@ -59,6 +59,8 @@ expected_failure = {
     "fail-unconnected",
 }
 
+reuse_jobs={"reuse_nested_manifest"}
+
 test_compilation_failing = {"import_passwd"}
 
 wdl_v1_list = [
@@ -128,7 +130,8 @@ wdl_v1_list = [
     "upload_workflow_files",
     "subworkflow_with_task",
     "apps_700",
-    "apps_864"
+    "apps_864",
+    "reuse_nested_manifest"
 ]
 
 wdl_v1_1_list = [
@@ -1148,6 +1151,9 @@ def lookup_dataobj(tname, project, folder):
 # folder         destination folder on the platform
 def build_test(tname, project, folder, version_id, compiler_flags):
     desc = test_files[tname]
+    # use_manifests=""
+    # if tname in use_manifests_tests:
+    #     use_manifests="-useManifests"
     print("build {} {}".format(desc.kind, desc.name))
     print("Compiling {} to a {}".format(desc.source_file, desc.kind))
     # both static and dynamic instance type selection should work,
@@ -1160,6 +1166,7 @@ def build_test(tname, project, folder, version_id, compiler_flags):
         "compile",
         desc.source_file,
         "-force",
+        # use_manifests,
         "-folder",
         folder,
         "-project",
@@ -1194,6 +1201,10 @@ def wait_for_completion(test_exec_objs):
         desc = test_files[tname]
         try:
             exec_obj.wait_on_done()
+            if tname in reuse_jobs:
+                full_desc=exec_obj.describe()
+                if full_desc["stages"][0]["execution"].get("rootExecution",full_desc.get("id")) == full_desc.get("id"):
+                    raise DXJobFailureError("Reuse was not used properly")
             print("Analysis {}.{} succeeded".format(desc.name, i))
             successes.append((i, exec_obj, True))
         except DXJobFailureError:
@@ -1209,12 +1220,14 @@ def wait_for_completion(test_exec_objs):
 
 # Run [workflow] on several inputs, return the analysis ID.
 def run_executable(
-    project, test_folder, tname, oid, debug_flag, delay_workspace_destruction, instance_type=default_instance_type
+    project, test_folder, tname, oid, debug_flag, delay_workspace_destruction,
+        instance_type=default_instance_type, reuse=False
 ):
     desc = test_files[tname]
 
     def once(i):
         try:
+            run_kwargs = {}
             if tname in test_defaults or i < 0:
                 print("  with empty input")
                 inputs = {}
@@ -1224,10 +1237,12 @@ def run_executable(
             project.new_folder(test_folder, parents=True)
             if desc.kind == "workflow":
                 exec_obj = dxpy.DXWorkflow(project=project.get_id(), dxid=oid)
-                run_kwargs = {"ignore_reuse_stages": ["*"]}
+                if not reuse:
+                    run_kwargs = {"ignore_reuse_stages": ["*"]}
             elif desc.kind == "applet":
                 exec_obj = dxpy.DXApplet(project=project.get_id(), dxid=oid)
-                run_kwargs = {"ignore_reuse": True}
+                if not reuse:
+                    run_kwargs = {"ignore_reuse": True}
             else:
                 raise RuntimeError("Unknown kind {}".format(desc.kind))
 
@@ -1305,8 +1320,14 @@ def run_test_subset(
         else:
             instance_type = default_instance_type
         try:
+            reuse = tname in reuse_jobs
+            if reuse:
+                # we need to run the workflow twice, so that it can be reused
+                run_executable(
+                    project, test_folder, tname, oid, debug_flag, delay_workspace_destruction, instance_type
+                )
             anl = run_executable(
-                project, test_folder, tname, oid, debug_flag, delay_workspace_destruction, instance_type
+                project, test_folder, tname, oid, debug_flag, delay_workspace_destruction, instance_type, reuse=reuse
             )
             test_exec_objs.extend(anl)
         except Exception as ex:
@@ -1669,6 +1690,7 @@ def compile_tests_to_project(
         if oid is None:
             c_flags = compiler_flags[:] + compiler_per_test_flags(tname)
             try:
+                # TODO: HERE - in case of reuse build another test
                 oid = build_test(tname, trg_proj, specific_applet_folder, version_id, c_flags)
             except subprocess.CalledProcessError:
                 if tname in test_compilation_failing:
