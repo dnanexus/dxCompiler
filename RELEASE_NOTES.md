@@ -1,5 +1,9 @@
 # Release Notes
 
+## in develop
+
+* Localizes files decleared in WDL task private variables 
+
 ## 2.8.0 2021-11-29
 
 * Indicates whether static instance type selection was used in workflow description annotations and metadata
