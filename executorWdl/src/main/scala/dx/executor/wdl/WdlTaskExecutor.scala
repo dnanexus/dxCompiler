@@ -76,7 +76,9 @@ case class WdlTaskExecutor(task: TAT.Task,
   }
 
   private lazy val inputTypes: Map[DxName, T] = {
-    task.inputs.map(d => WdlDxName.fromSourceName(d.name) -> d.wdlType).toMap
+    (task.inputs ++ task.privateVariables)
+      .map(d => WdlDxName.fromSourceName(d.name) -> d.wdlType)
+      .toMap
   }
 
   private def wdlInputs: Map[DxName, V] = {
@@ -111,12 +113,6 @@ case class WdlTaskExecutor(task: TAT.Task,
     wdlInputs
   }
 
-  override protected def getInputsWithDefaults: Map[DxName, (Type, Value)] = {
-    WdlUtils.toIR(wdlInputs.map {
-      case (k, v) => k -> (inputTypes(k), v)
-    })
-  }
-
   private def evaluatePrivateVariables(inputs: Map[DxName, V]): Map[DxName, V] = {
     // evaluate the private variables using the inputs
     val init: Bindings[String, V] = WdlValueBindings(inputs.map {
@@ -132,6 +128,13 @@ case class WdlTaskExecutor(task: TAT.Task,
       .map {
         case (name, v) => WdlDxName.fromSourceName(name) -> v
       }
+  }
+
+  override protected def getInputVariables: Map[DxName, (Type, Value)] = {
+    val wdlPrivateVariableValues = evaluatePrivateVariables(wdlInputs)
+    WdlUtils.toIR((wdlInputs ++ wdlPrivateVariableValues).map {
+      case (k, v) => k -> (inputTypes(k), v)
+    })
   }
 
   lazy val (runtimeOverrides, hintOverrides) = {
@@ -189,25 +192,17 @@ case class WdlTaskExecutor(task: TAT.Task,
   override protected def writeCommandScript(
       localizedInputs: Map[DxName, (Type, Value)],
       localizedDependencies: Option[Map[String, (Type, Value)]]
-  ): (Map[DxName, (Type, Value)], Boolean, Option[Set[Int]]) = {
-    val inputs = WdlUtils.fromIR(localizedInputs, typeAliases.toMap)
-    val inputValues = inputs.map {
+  ): (Boolean, Option[Set[Int]]) = {
+    val wdlInputs = WdlUtils.fromIR(localizedInputs, typeAliases.toMap).map {
       case (name, (_, v)) => name -> v
     }
-    val inputsWithPrivateVars = evaluatePrivateVariables(inputValues)
-    val inputAndPrivateVarTypes = inputTypes ++ task.privateVariables
-      .map(d => WdlDxName.fromSourceName(d.name) -> d.wdlType)
-      .toMap
-    val updatedInputs = WdlUtils.toIR(inputsWithPrivateVars.map {
-      case (name, value) => name -> (inputAndPrivateVarTypes(name), value)
-    })
-    evaluator.applyCommand(task.command, WdlValueBindings(inputsWithPrivateVars.map {
+    evaluator.applyCommand(task.command, WdlValueBindings(wdlInputs.map {
       case (dxName, v) => dxName.decoded -> v
     })) match {
-      case command if command.trim.isEmpty => (updatedInputs, false, None)
+      case command if command.trim.isEmpty => (false, None)
       case command =>
         val generator = TaskCommandFileGenerator(logger)
-        val runtime = createRuntime(inputsWithPrivateVars)
+        val runtime = createRuntime(wdlInputs)
         val dockerUtils = DockerUtils(fileResolver, logger)
         val container = runtime.container match {
           case Vector() => None
@@ -221,7 +216,7 @@ case class WdlTaskExecutor(task: TAT.Task,
             Some(resolvedImage, jobMeta.workerPaths)
         }
         generator.apply(Some(command), jobMeta.workerPaths, container)
-        (updatedInputs, true, runtime.returnCodes)
+        (true, runtime.returnCodes)
     }
   }
 
