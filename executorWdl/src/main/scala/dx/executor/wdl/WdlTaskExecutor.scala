@@ -113,12 +113,12 @@ case class WdlTaskExecutor(task: TAT.Task,
     wdlInputs
   }
 
-  private def evaluatePrivateVariables(inputs: Map[DxName, V]): Map[DxName, V] = {
+  override protected def getInputVariables: Map[DxName, (Type, Value)] = {
     // evaluate the private variables using the inputs
-    val init: Bindings[String, V] = WdlValueBindings(inputs.map {
+    val init: Bindings[String, V] = WdlValueBindings(wdlInputs.map {
       case (dxName, v) => dxName.decoded -> v
     })
-    task.privateVariables
+    val wdlInputVariables: Map[DxName, (T, V)] = task.privateVariables
       .foldLeft(init) {
         case (env, TAT.PrivateVariable(name, wdlType, expr)) =>
           val wdlValue = evaluator.applyExprAndCoerce(expr, wdlType, env)
@@ -126,15 +126,11 @@ case class WdlTaskExecutor(task: TAT.Task,
       }
       .toMap
       .map {
-        case (name, v) => WdlDxName.fromSourceName(name) -> v
+        case (name, v) =>
+          val dxName = WdlDxName.fromSourceName(name)
+          dxName -> (inputTypes(dxName), v)
       }
-  }
-
-  override protected def getInputVariables: Map[DxName, (Type, Value)] = {
-    val wdlPrivateVariableValues = evaluatePrivateVariables(wdlInputs)
-    WdlUtils.toIR((wdlInputs ++ wdlPrivateVariableValues).map {
-      case (k, v) => k -> (inputTypes(k), v)
-    })
+    WdlUtils.toIR(wdlInputVariables)
   }
 
   lazy val (runtimeOverrides, hintOverrides) = {
@@ -169,12 +165,9 @@ case class WdlTaskExecutor(task: TAT.Task,
   override protected def getInstanceTypeRequest(
       inputs: Map[DxName, (Type, Value)]
   ): InstanceTypeRequest = {
-    val wdlInputs = WdlUtils.fromIR(inputs, typeAliases.toMap).map {
+    createRuntime(WdlUtils.fromIR(inputs, typeAliases.toMap).map {
       case (name, (_, value)) => name -> value
-    }
-    val env = evaluatePrivateVariables(wdlInputs)
-    val runtime = createRuntime(env)
-    runtime.parseInstanceType
+    }).parseInstanceType
   }
 
   private lazy val hints =
