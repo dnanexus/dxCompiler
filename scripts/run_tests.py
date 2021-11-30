@@ -467,6 +467,7 @@ cwl_cromwell_tests_list = [
     "touch",
     "test_pack",
     "cwl_input_binding_expression",
+    "cwl_input_json",
     "cwl_input_typearray",
     "cwl_interpolated_strings",
     "cwl_optionals",
@@ -1369,7 +1370,7 @@ def run_test_subset(
         write_failed(errors)
         # raise RuntimeError(f"failed to run one or more tests {','.join(errors)}")
         cprint((f"failed to run one or more tests {','.join(errors)}"), "red")
-        
+
     print("executions: " + ", ".join([a[1].get_id() for a in test_exec_objs]))
 
     # Wait for completion
