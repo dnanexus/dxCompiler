@@ -561,6 +561,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
   lazy val executableLinkDeserializer: ExecutableLinkDeserializer =
     ExecutableLinkDeserializer(dxNameFactory, dxApi)
 
+  private val detailToFilenameRegex = "[^\\w_]".r
+
   /**
     * Prepares the inputs for a subjob. If using manifests, creates a manifest
     * with the same output ID as the current job.
@@ -594,10 +596,13 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
         // For large subjob inputs, put them in a compact manifest file and upload it.
         // If there is a name detail, there are probably going to be a large number of manifest
         // files, so put them in a subfolder.
+        // TODO: it is unclear if we'll ever need a manifest id here, and if so, what the id should be
+        val manifestDetail =
+          nameDetail.map(d => s"/${detailToFilenameRegex.replaceAllIn(d, "_")}").getOrElse("")
         val manifestFilename =
-          s"${jobId}_subjob${nameDetail.map(d => s"/${d}").getOrElse("")}.manifest.json"
+          s"${manifestProjectAndFolder}/${jobId}_subjob${manifestDetail}.manifest.json"
         val manifestDxFile =
-          dxApi.uploadString(manifestJsStr, s"${manifestProjectAndFolder}/${manifestFilename}")
+          dxApi.uploadString(manifestJsStr, manifestFilename)
         Map(Constants.InputManifestFiles -> JsArray(manifestDxFile.asJson))
       }
       val commonInputsJs = Vector(
