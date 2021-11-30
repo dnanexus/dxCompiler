@@ -140,6 +140,7 @@ wdl_v1_1_list = [
     # bug regression tests
     "apps_579_boolean_flag_expr",
     "apps_579_string_substitution_expr"
+    "apps_965_private_var_local"
 ]
 
 # docker image tests
