@@ -6,6 +6,8 @@
 <%@ val dockerPreamble: Option[String] %>
 <% val bashDollar: String = "$" %>
 
+${include("manifest_dxda_script.ssp")}
+
 body() {
     java -jar ${bashDollar}{DX_FS_ROOT}/${runtimeJar} task run ${bashDollar}{HOME} -traceLevel ${runtimeTraceLevel} \
       -streamFiles ${streamFiles.toString} ${if (waitOnUpload) "-waitOnUpload"}

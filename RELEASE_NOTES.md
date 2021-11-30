@@ -1,9 +1,10 @@
 # Release Notes
 
-## 2.8.0 2021-11-24
+## 2.8.0 2021-11-29
 
 * Indicates whether static instance type selection was used in workflow description annotations and metadata
 * Supports cloning workflows between projects, a prerequisite for publishing global workflows
+* Fixes dxda manifest downloads for tasks
 
 ## 2.7.2 2021-11-20
 
