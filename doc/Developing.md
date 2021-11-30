@@ -186,9 +186,9 @@ sbt keeps the cache of downloaded jar files in `${HOME}/.ivy2/cache`. For exampl
 dxCompiler can be released from Github. The release pipeline (optionally) runs large integration tests, builds the release on staging, runs multi-region tests on staging (one test per region), builds on production, and creates a Docker image, which is pushed to DockerHub.
 
 1. Checkout the develop branch (either HEAD or the specific commit you want to release)
-2. Create a release branch named with the version number, e.g. `release-1.2.3`. Use [semver](https://semver.org/) to decide on the version number.
-3. Update the application.conf files with the release version number.
-    - Run `scripts/update_version.md <version>`
+2. Create a release branch named with the version number, e.g. `release-X.Y.Z`. Use [semver](https://semver.org/) to decide on the version number.
+3. Update the application.conf files with the release version number, without -SNAPSHOT.
+    - Run `scripts/update_version.md X.Y.Z`
     - If you want to update the versions manually, there are 5 of them:
         * [compiler](https://github.com/dnanexus/dxCompiler/blob/main/compiler/src/main/resources/application.conf)
         * [core](https://github.com/dnanexus/dxCompiler/blob/main/core/src/main/resources/application.conf)
