@@ -58,7 +58,7 @@ jobs:
           cd ${GITHUB_WORKSPACE}
           FOLDER=/builds/test_gha_dxcompiler_$(date +%s)_$RANDOM
           dx mkdir $FOLDER
-          TEST=cwl_cromwell_tests_list
+          TEST=cwl_cromwell
           python3 scripts/run_tests.py --test $TEST --folder $FOLDER --project $PROJECT
       - name: Upload artifact
         uses: actions/upload-artifact@v2
