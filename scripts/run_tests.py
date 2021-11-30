@@ -1367,8 +1367,9 @@ def run_test_subset(
 
     if errors:
         write_failed(errors)
-        raise RuntimeError(f"failed to run one or more tests {','.join(errors)}")
-
+        # raise RuntimeError(f"failed to run one or more tests {','.join(errors)}")
+        cprint((f"failed to run one or more tests {','.join(errors)}"), "red")
+        
     print("executions: " + ", ".join([a[1].get_id() for a in test_exec_objs]))
 
     # Wait for completion
@@ -1725,8 +1726,9 @@ def compile_tests_to_project(
                     errors.append(tname)
                 else:
                     raise
-        runnable[tname] = oid
-        print("runnable({}) = {}".format(tname, oid))
+        if oid:
+            runnable[tname] = oid
+            print("runnable({}) = {}".format(tname, oid))
     if errors:
         write_failed(errors)
         cprint(f"failed to compile one or more tests: {','.join(errors)}", "red")
