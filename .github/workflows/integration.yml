@@ -59,9 +59,4 @@ jobs:
           FOLDER=/builds/test_gha_dxcompiler_$(date +%s)_$RANDOM
           dx mkdir $FOLDER
           TEST=cwl_cromwell
-          python3 scripts/run_tests.py --test $TEST --folder $FOLDER --project $PROJECT --delay-compile-errors --delay-run-errors
-      - name: Upload artifact
-        uses: actions/upload-artifact@v2
-        with:
-          path: ./dx*.jar
-          retention-days: 2
+          python3 scripts/run_tests.py --test M --folder $FOLDER --project $PROJECT
