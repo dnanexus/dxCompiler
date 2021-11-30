@@ -473,10 +473,9 @@ cwl_cromwell_tests_list = [
     "cwl_output_json",
     "prefix_for_array",
     "cwl_recursive_link_directories",
-    "cwl_relative_imports_glob_sort",
     "cwl_relative_imports",
     "cwl_disk_resources", # Unknown hint https://www.dnanexus.com/cwl#InputResourceRequirement
-    "cwl_inputdir_zero_doesnt_localize_input", # failed compiled
+    "cwl_inputdir_zero_doesnt_localize", # failed compiled
     "cwl_resources", # Could not resolve host: metadata.google.internal
     "cwl_restart",
     "1st-tool",
