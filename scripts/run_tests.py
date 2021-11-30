@@ -1729,7 +1729,10 @@ def compile_tests_to_project(
         print("runnable({}) = {}".format(tname, oid))
     if errors:
         write_failed(errors)
-        raise RuntimeError(f"failed to compile one or more tests: {','.join(errors)}")
+        cprint(f"failed to compile one or more tests: {','.join(errors)}", "red")
+        # raise RuntimeError(f"failed to compile one or more tests: {','.join(errors)}")
+    if runnable:
+        cprint(f"succeed to compile one or more tests: {','.join(runnable.keys())}", "red")
     return runnable
 
 
