@@ -210,7 +210,7 @@ dxCompiler can be released from Github. The release pipeline (optionally) runs l
     - Create branch `post-release-X.Y.Z` based on branch `release-X.Y.Z`
     - Run `scripts/update_version.md X.Y.(Z+1)-SNAPSHOT` to increment the working version from e.g. `1.2.3-SNAPSHOT` to `1.2.4-SNAPSHOT`
     - Open pull request from branch `post-release-X.Y.Z` to `develop`. Fix release notes and resolve conflicts as needed.
-11. Move released Jira tickets to `In Production`
+11. Move released Jira tickets to `Done / In Prod` column
 
 If you encounter any additional issues while creating the release, you will need to make the fixes in `develop` and then merge them into the release branch.
 
