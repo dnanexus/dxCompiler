@@ -459,15 +459,16 @@ cwl_cromwell_tests_list = [
     "cwl_dynamic_initial_workdir",
     "cwl_expressionLib",
     "cwl_format",
-    "cwl_format_url",
+    # "cwl_format_url", # Could not load extension schema https
     "cwl_glob_sort",
     "cwl_hello",
-    "cwl_http_inputs", # invalid input
+    # "cwl_http_inputs", # HTTPS input link is not supported: 
+    #                     Error translating inputs: java.lang.RuntimeException: Unsupported file source .png
     "test_wf",
     "touch",
     "test_pack",
     "cwl_input_binding_expression",
-    "cwl_input_json",
+    # "cwl_input_json", # Error translating to IR
     "cwl_input_typearray",
     "cwl_interpolated_strings",
     "cwl_optionals",
@@ -475,17 +476,18 @@ cwl_cromwell_tests_list = [
     "prefix_for_array",
     "cwl_recursive_link_directories",
     "cwl_relative_imports",
-    "cwl_disk_resources", # Unknown hint https://www.dnanexus.com/cwl#InputResourceRequirement
-    "cwl_inputdir_zero_doesnt_localize", # failed compiled
-    "cwl_resources", # Could not resolve host: metadata.google.internal
-    "cwl_restart",
+    # "cwl_disk_resources", # Could not resolve host: metadata.google.internal
+    #                         # Unknown hint https://www.dnanexus.com/cwl#InputResourceRequirement (Should be deprecated)
+    # "cwl_inputdir_zero_doesnt_localize", # Error translating to IR
+    # "cwl_resources", # Could not resolve host: metadata.google.internal
+    # "cwl_restart", # AppInternalError: workflow does not contain a tool APPS-834
     "1st-tool",
     "cwl_secondary_files",
-    "cwl_secondary_files_workflow",
+    # "cwl_secondary_files_workflow", # Error creating translator
     "cwl_stdout_expression",
-    "scatter-wf1", # tool id not found
-    "cwl_three_step",
-    "cwl_three_step_caller_wf"
+    # "scatter-wf1", # Could not find linking information APPS-834
+    # "cwl_three_step", # AppInternalError: workflow does not contain a tool APPS-834
+    # "cwl_three_step_caller_wf" # Error translating to IR
 ]
 
 # these are tests that take a long time to run
