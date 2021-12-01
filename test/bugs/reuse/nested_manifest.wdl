@@ -1,4 +1,5 @@
 version 1.0
+
 task test_inner1 {
     input {
         String test_in
@@ -22,7 +23,8 @@ task test_inner2 {
     }
 }
 
-workflow nested_inner {
+
+workflow nested_manifest {
     input {
         String s
     }

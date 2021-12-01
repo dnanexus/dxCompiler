@@ -28,7 +28,7 @@ task s_to_file {
 }
 
 
-workflow scatterFile {
+workflow scatter_file_manifest {
     input {
         Array[String] strings
     }

@@ -14,7 +14,7 @@ task s_double {
 }
 
 
-workflow reuseSomeFromScatter {
+workflow from_scatter_manifest {
     input {
         Array[String] strings
     }

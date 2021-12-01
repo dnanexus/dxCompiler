@@ -59,7 +59,7 @@ expected_failure = {
     "fail-unconnected",
 }
 
-reuse_jobs={"reuse_nested_manifest"}
+reuse_jobs={"nested_manifest", "from_scatter_manifest", "scatter_file_manifest"}
 
 test_compilation_failing = {"import_passwd"}
 
@@ -131,7 +131,9 @@ wdl_v1_list = [
     "subworkflow_with_task",
     "apps_700",
     "apps_864",
-    "reuse_nested_manifest"
+    "nested_manifest",
+    "from_scatter_manifest",
+    "scatter_file_manifest"
 ]
 
 wdl_v1_1_list = [
@@ -512,7 +514,7 @@ test_import_dirs = ["A"]
 TestMetaData = namedtuple("TestMetaData", ["name", "kind"])
 TestDesc = namedtuple(
     "TestDesc",
-    ["name", "kind", "source_file", "raw_input", "dx_input", "results", "extras"],
+    ["name", "kind", "source_file", "raw_input", "dx_input", "results", "extras", "reuse_file", "reuse_name", "reuse_input", "reuse_dx_input"],
 )
 
 # Test with -waitOnUpload flag
@@ -626,6 +628,13 @@ def register_test(dir_path, tname, ext):
         metadata = get_cwl_json_metadata(source_file, tname)
     else:
         raise RuntimeError("unsupported file type {}".format(ext))
+    reuse_file = reuse_name = ""
+    if tname in reuse_jobs:
+        reuse_file = os.path.join(dir_path, "reuse_" + tname + ext)
+        if not os.path.exists(reuse_file):
+            reuse_file = os.path.join(dir_path, tname + ext)
+        reuse_name = reuse_file.rsplit("/", 1)[-1].split(".", 1)[0]
+
     desc = TestDesc(
         name=metadata.name,
         kind=metadata.kind,
@@ -634,7 +643,12 @@ def register_test(dir_path, tname, ext):
         dx_input=[],
         results=[],
         extras=None,
+        reuse_file=reuse_file,
+        reuse_name=reuse_name,
+        reuse_input=[],
+        reuse_dx_input=[]
     )
+
 
     # Verify the input file, and add it (if it exists)
     test_input = os.path.join(dir_path, tname + "_input.json")
@@ -643,6 +657,12 @@ def register_test(dir_path, tname, ext):
         desc.raw_input.append(test_input)
         desc.dx_input.append(os.path.join(dir_path, tname + "_input.dx.json"))
         desc.results.append(os.path.join(dir_path, tname + "_results.json"))
+    if tname in reuse_jobs:
+        reuse_input = os.path.join(dir_path, "reuse_" + tname + "_input.json")
+        if os.path.exists(reuse_input):
+            verify_json_file(reuse_input)
+            desc.reuse_input.append(reuse_input)
+            desc.reuse_dx_input.append(os.path.join(dir_path, tname + "reuse_input.dx.json"))
 
     # check if the alternate naming scheme is used for tests with multiple inputs
     i = 1
@@ -1149,13 +1169,32 @@ def lookup_dataobj(tname, project, folder):
 # wf             workflow name
 # classpath      java classpath needed for running compilation
 # folder         destination folder on the platform
-def build_test(tname, project, folder, version_id, compiler_flags):
+def build_test(tname, project, folder, version_id, compiler_flags, reuse=False):
+    def update_flags(compiler_flags, new_inputs):
+        change = False
+        flags = []
+        for i in compiler_flags:
+            if i == "-inputs":
+                change = True
+            elif change:
+                change = False
+                flags.append(new_inputs)
+                continue
+            flags.append(i)
+        return flags
+
     desc = test_files[tname]
-    # use_manifests=""
-    # if tname in use_manifests_tests:
-    #     use_manifests="-useManifests"
-    print("build {} {}".format(desc.kind, desc.name))
-    print("Compiling {} to a {}".format(desc.source_file, desc.kind))
+    force_build = "-force"
+    if not reuse:
+        print("build {} {}".format(desc.kind, desc.name))
+        print("Compiling {} to a {}".format(desc.source_file, desc.kind))
+        source_file = desc.source_file
+        flags = compiler_flags
+    else:
+        print("Compiling workflow for reuse purposes...")
+        source_file = desc.reuse_file
+        force_build = ""
+        flags = update_flags(compiler_flags, desc.reuse_input[0])
     # both static and dynamic instance type selection should work,
     # so we can test them at random
     instance_type_selection = random.choice(["static", "dynamic"])
@@ -1164,9 +1203,8 @@ def build_test(tname, project, folder, version_id, compiler_flags):
         "-jar",
         os.path.join(top_dir, "dxCompiler-{}.jar".format(version_id)),
         "compile",
-        desc.source_file,
-        "-force",
-        # use_manifests,
+        source_file,
+        force_build,
         "-folder",
         folder,
         "-project",
@@ -1176,14 +1214,20 @@ def build_test(tname, project, folder, version_id, compiler_flags):
     ]
     if "manifest" in desc.source_file:
         cmdline.append("-useManifests")
-    cmdline += compiler_flags
+    cmdline += flags
     print(" ".join(cmdline))
     try:
         oid = subprocess.check_output(cmdline).strip()
     except subprocess.CalledProcessError as cpe:
         print(f"error compiling {desc.source_file}\n  stdout: {cpe.stdout}\n  stderr: {cpe.stderr}")
         raise
-    return oid.decode("ascii")
+    reuse_oid = None
+    if tname in reuse_jobs and not reuse:
+        if desc.reuse_file != desc.source_file:
+            reuse_oid, _ = build_test(tname, project, folder, version_id, compiler_flags, reuse=True)
+        else:
+            reuse_oid = oid.decode("ascii")
+    return oid.decode("ascii"), reuse_oid if reuse_oid else None
 
 
 def ensure_dir(path):
@@ -1224,7 +1268,6 @@ def run_executable(
         instance_type=default_instance_type, reuse=False
 ):
     desc = test_files[tname]
-
     def once(i):
         try:
             run_kwargs = {}
@@ -1307,7 +1350,7 @@ def extract_outputs(tname, exec_obj) -> dict:
 
 
 def run_test_subset(
-    project, runnable, test_folder, debug_flag, delay_workspace_destruction, delay_run_errors
+    project, runnable, test_folder, debug_flag, delay_workspace_destruction, delay_run_errors, reuse=False
 ):
     # Run the workflows
     test_exec_objs = []
@@ -1320,12 +1363,6 @@ def run_test_subset(
         else:
             instance_type = default_instance_type
         try:
-            reuse = tname in reuse_jobs
-            if reuse:
-                # we need to run the workflow twice, so that it can be reused
-                run_executable(
-                    project, test_folder, tname, oid, debug_flag, delay_workspace_destruction, instance_type
-                )
             anl = run_executable(
                 project, test_folder, tname, oid, debug_flag, delay_workspace_destruction, instance_type, reuse=reuse
             )
@@ -1346,7 +1383,9 @@ def run_test_subset(
         raise RuntimeError(f"failed to run one or more tests {','.join(errors)}")
 
     print("executions: " + ", ".join([a[1].get_id() for a in test_exec_objs]))
-
+    if reuse:
+        # we dont care about the results when running jobs that should be reused
+        return
     # Wait for completion
     successful_executions, failed_executions = wait_for_completion(test_exec_objs)
 
@@ -1680,18 +1719,20 @@ def compile_tests_to_project(
     lazy_flag,
     delay_compile_errors=False,
 ):
+    global test_files
+    reuse_oids = {}
     runnable = {}
     errors = [] if delay_compile_errors else None
     for tname in test_names:
+        desc = test_files[tname]
         specific_applet_folder = "{}/{}".format(applet_folder, tname)
-        oid = None
+        oid = reuse_oid = None
         if lazy_flag:
             oid = lookup_dataobj(tname, trg_proj, specific_applet_folder)
         if oid is None:
             c_flags = compiler_flags[:] + compiler_per_test_flags(tname)
             try:
-                # TODO: HERE - in case of reuse build another test
-                oid = build_test(tname, trg_proj, specific_applet_folder, version_id, c_flags)
+                oid, reuse_oid = build_test(tname, trg_proj, specific_applet_folder, version_id, c_flags)
             except subprocess.CalledProcessError:
                 if tname in test_compilation_failing:
                     print("Workflow {} compilation failed as expected".format(tname))
@@ -1702,12 +1743,17 @@ def compile_tests_to_project(
                     errors.append(tname)
                 else:
                     raise
+        else:
+            if desc.reuse_name:
+                reuse_oid = lookup_dataobj(desc.reuse_name, trg_proj, specific_applet_folder)
         runnable[tname] = oid
+        if reuse_oid:
+            reuse_oids[desc.reuse_name] = reuse_oid
         print("runnable({}) = {}".format(tname, oid))
     if errors:
         write_failed(errors)
         raise RuntimeError(f"failed to compile one or more tests: {','.join(errors)}")
-    return runnable
+    return runnable, reuse_oids
 
 
 def main():
@@ -1911,7 +1957,7 @@ def main():
 
     try:
         # Compile the WDL files to dx:workflows and dx:applets
-        runnable = compile_tests_to_project(
+        runnable, reuse_runnables = compile_tests_to_project(
             project,
             test_names,
             applet_folder,
@@ -1921,6 +1967,17 @@ def main():
             args.delay_compile_errors,
         )
         if not args.compile_only:
+            if reuse_runnables:
+                print("Running jobs that should be reused later.")
+                run_test_subset(
+                    project,
+                    reuse_runnables,
+                    test_folder,
+                    args.debug,
+                    args.delay_workspace_destruction,
+                    args.delay_run_errors,
+                    reuse=True
+                )
             run_test_subset(
                 project,
                 runnable,
