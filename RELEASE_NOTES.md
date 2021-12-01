@@ -1,5 +1,9 @@
 # Release Notes
 
+## in develop
+
+* Excludes apps from `bundledDepends`
+
 ## 2.8.0 2021-11-24
 
 * Indicates whether static instance type selection was used in workflow description annotations and metadata

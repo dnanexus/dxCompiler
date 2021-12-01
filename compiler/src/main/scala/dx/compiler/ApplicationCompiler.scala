@@ -1,6 +1,6 @@
 package dx.compiler
 
-import dx.api.{DxAccessLevel, DxApi, DxFileDescribe, DxPath, DxProject, DxUtils}
+import dx.api.{DxAccessLevel, DxApi, DxApplet, DxFileDescribe, DxPath, DxProject, DxUtils}
 import dx.core.Constants
 import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir._
@@ -259,11 +259,11 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
 
     // Add executables called by this applet to bundledDepends to ensure cloning
     val bundledDependsExec: Vector[JsValue] = executableDict.map {
-      case (name, link) =>
+      case (name, ExecutableLink(_, _, _, applet: DxApplet)) =>
         JsObject(
             Constants.BundledDependsNameKey -> JsString(name),
             Constants.BundledDependsIdKey -> JsObject(
-                DxUtils.DxLinkKey -> JsString(link.dxExec.id)
+                DxUtils.DxLinkKey -> JsString(applet.id)
             ),
             Constants.BundledDependsStagesKey -> JsArray(Vector.empty)
         )
