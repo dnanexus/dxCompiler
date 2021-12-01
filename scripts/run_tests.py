@@ -139,7 +139,8 @@ wdl_v1_1_list = [
 
     # bug regression tests
     "apps_579_boolean_flag_expr",
-    "apps_579_string_substitution_expr"
+    "apps_579_string_substitution_expr",
+    "apps_956_private_var_local"
 ]
 
 # docker image tests
@@ -464,6 +465,8 @@ large_test_list = (
     cwl_conformance_tools + cwl_conformance_workflows + cromwell_tests_list
 )
 
+manifest_test_list = ("simple_manifest", "complex_manifest", "view_and_count_manifest")
+
 test_suites = {
     "CI": ci_test_list,
     "M": medium_test_list,
@@ -476,6 +479,7 @@ test_suites = {
     "cwl_tools": cwl_conformance_tools,
     "cwl_workflows": cwl_conformance_workflows,
     'cromwell': cromwell_tests_list,
+    'manifests': manifest_test_list
 }
 
 # Tests with the reorg flags
