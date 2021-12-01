@@ -1728,9 +1728,8 @@ def compile_tests_to_project(
                     errors.append(tname)
                 else:
                     raise
-        if oid:
-            runnable[tname] = oid
-            print("runnable({}) = {}".format(tname, oid))
+        runnable[tname] = oid
+        print("runnable({}) = {}".format(tname, oid))
     if errors:
         write_failed(errors)
         raise RuntimeError(f"failed to compile one or more tests: {','.join(errors)}")
