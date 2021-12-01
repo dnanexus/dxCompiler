@@ -1,6 +1,15 @@
 package dx.compiler
 
-import dx.api.{DxAccessLevel, DxApi, DxApplet, DxFileDescribe, DxPath, DxProject, DxUtils}
+import dx.api.{
+  DxAccessLevel,
+  DxApi,
+  DxApplet,
+  DxFileDescribe,
+  DxPath,
+  DxProject,
+  DxUtils,
+  DxWorkflow
+}
 import dx.core.Constants
 import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir._
@@ -258,16 +267,20 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     }
 
     // Add executables called by this applet to bundledDepends to ensure cloning
-    val bundledDependsExec: Vector[JsValue] = executableDict.map {
-      case (name, ExecutableLink(_, _, _, applet: DxApplet)) =>
-        JsObject(
-            Constants.BundledDependsNameKey -> JsString(name),
-            Constants.BundledDependsIdKey -> JsObject(
-                DxUtils.DxLinkKey -> JsString(applet.id)
-            ),
-            Constants.BundledDependsStagesKey -> JsArray(Vector.empty)
-        )
-    }.toVector
+    val bundledDependsExec: Vector[JsValue] = executableDict
+      .collect {
+        case (name, ExecutableLink(_, _, _, applet: DxApplet))     => (name, applet.id)
+        case (name, ExecutableLink(_, _, _, workflow: DxWorkflow)) => (name, workflow.id)
+      }
+      .map {
+        case (name, id) =>
+          JsObject(
+              Constants.BundledDependsNameKey -> JsString(name),
+              Constants.BundledDependsIdKey -> JsObject(DxUtils.DxLinkKey -> JsString(id)),
+              Constants.BundledDependsStagesKey -> JsArray(Vector.empty)
+          )
+      }
+      .toVector
 
     // Include runtimeAsset in bundledDepends
     val bundledDepends =
