@@ -1144,12 +1144,13 @@ def lookup_dataobj(tname, project, folder):
         return objs[0]["id"]
     return None
 
-
 # Build a workflow.
 #
-# wf             workflow name
-# classpath      java classpath needed for running compilation
-# folder         destination folder on the platform
+# tname             Test name, should match workflow name
+# project           Destination project
+# folder            Destination folder
+# version_id        dxCompiler version
+# compiler_flags    dxCompiler flags
 def build_test(tname, project, folder, version_id, compiler_flags):
     desc = test_files[tname]
     print("build {} {}".format(desc.kind, desc.name))
@@ -1695,7 +1696,7 @@ def compile_tests_to_project(
 def main():
     global test_unlocked
     argparser = argparse.ArgumentParser(
-        description="Run WDL compiler tests on the platform"
+        description="Run dxCompiler tests on the platform"
     )
     argparser.add_argument(
         "--archive", help="Archive old applets", action="store_true", default=False
