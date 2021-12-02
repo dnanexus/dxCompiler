@@ -2,6 +2,7 @@
 
 ## in develop
 
+* Excludes apps from `bundledDepends`
 * Localizes files declared in WDL task private variables
 
 ## 2.8.0 2021-11-29
