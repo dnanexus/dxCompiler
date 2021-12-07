@@ -644,9 +644,9 @@ task concat {
     String c = ""
   }
   runtime {
-    dx_app: {
-      "id": "applet-xxxx",
-      "type": "applet" 
+    dx_app: object {
+      id: "applet-xxxx",
+      type: "applet" 
     }
   }
 }
@@ -684,9 +684,9 @@ task concat {
   ...
     
   runtime {
-    dx_app: {
-      "id": "app-xxxx",
-      "type": "app"
+    dx_app: object {
+      id: "app-xxxx",
+      type: "app"
     }
   }
 }
@@ -701,9 +701,9 @@ task concat {
   ...
     
   runtime {
-    dx_app: {
-      "name": "concat_native/1.0.0",
-      "type": "app"
+    dx_app: object {
+      name: "concat_native/1.0.0",
+      type: "app"
     }
   }
 }
