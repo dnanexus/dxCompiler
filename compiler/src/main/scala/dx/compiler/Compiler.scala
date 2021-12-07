@@ -241,8 +241,8 @@ case class Compiler(extras: Option[Extras],
                       .replaceAll("\n", " ")
                 )
                 val sorted = matching.sortBy(_.createdDate)
-                (Some(sorted.last), nonMatching ++ sorted.dropRight(1))
-              case (Vector(matching), nonMatching) => (Some(matching), nonMatching)
+                (Some(sorted.last.dataObj), nonMatching ++ sorted.dropRight(1))
+              case (Vector(matching), nonMatching) => (Some(matching.dataObj), nonMatching)
               case (_, nonMatching)                => (None, nonMatching)
             }
 
@@ -282,7 +282,7 @@ case class Compiler(extras: Option[Extras],
           }
 
           matching.foreach { m =>
-            logger.trace(s"Existing executable ${m.dataObj.id} with name ${name} has not changed")
+            logger.trace(s"Existing executable ${m.id} with name ${name} has not changed")
           }
 
           matching
