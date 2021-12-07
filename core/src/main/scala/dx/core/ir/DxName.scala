@@ -78,7 +78,7 @@ abstract class DxName(private var encodedParts: Option[Vector[String]],
         )
         illegalDecodedSequencesRegex.foreach { r =>
           r.findFirstIn(part).map { seq =>
-            throw new Exception(s"decoded part ${part} contains illegal sequences ${seq}")
+            throw new Exception(s"decoded part ${part} contains illegal sequences '${seq}'")
           }
         }
     }

@@ -68,10 +68,10 @@ abstract class TaskExecutor(jobMeta: JobMeta,
   }
 
   /**
-    * Returns the IR type and value for each task input, including default values
-    * for any missing optional parameters.
+    * Returns the IR type and value for all task input variables, including default values for any
+    * missing optional parameters.
     */
-  protected def getInputsWithDefaults: Map[DxName, (Type, Value)]
+  protected def getInputVariables: Map[DxName, (Type, Value)]
 
   /**
     * Returns the minimal (i.e. cheapest) instance type that is
@@ -376,7 +376,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
   protected def writeCommandScript(
       localizedInputs: Map[DxName, (Type, Value)],
       localizedDependencies: Option[Map[String, (Type, Value)]]
-  ): (Map[DxName, (Type, Value)], Boolean, Option[Set[Int]])
+  ): (Boolean, Option[Set[Int]])
 
   /**
     * Evaluates the outputs of the task. Returns mapping of output parameter
@@ -809,7 +809,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     //  we rely on DockerUtils to download the image (via DxFileSource, which uses the dx API
     //  to download the file).
     val pathsToLocalize = new PathsToLocalize
-    val inputs = pathsToLocalize.updateListingsAndExtractFiles(getInputsWithDefaults)
+    val inputs = pathsToLocalize.updateListingsAndExtractFiles(getInputVariables)
 
     if (checkInstanceType) {
       // calculate the required instance type
@@ -972,7 +972,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     // - For streaming files, if the source container is the same as one managed by
     //   download localizer, link the streaming file into the download directory.
     val inputFinalizer = new InputFinalizer(uriToSourcePath, localizer)
-    val (finalizedInputs, localPathToUri) = inputFinalizer.finalizeInputs(inputs)
+    val (localizedInputs, localPathToUri) = inputFinalizer.finalizeInputs(inputs)
+    logFields(localizedInputs, "Localized inputs")
 
     // Finalize any static dependencies and update the task source code if necessary
     val finalizedDependencies = staticDependencies.map(inputFinalizer.finalizeStaticDependencies)
@@ -983,9 +984,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     // Evaluate the command script and writes it to disk. Inputs are supplemented with
     // any local file paths created when evaluating the command script and are serialized
     // for use in the next phase.
-    val (localizedInputs, hasCommand, successCodes) =
-      writeCommandScript(finalizedInputs, finalizedDependencies)
-    logFields(localizedInputs, "Localized inputs")
+    val (hasCommand, successCodes) = writeCommandScript(localizedInputs, finalizedDependencies)
     if (hasCommand) {
       // run the command script
       jobMeta.runJobScriptFunction(TaskExecutor.RunCommand, successCodes)
