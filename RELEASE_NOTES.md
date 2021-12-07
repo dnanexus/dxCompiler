@@ -4,6 +4,7 @@
 
 * Excludes apps from `bundledDepends`
 * Localizes files declared in WDL task private variables
+* Respects runtime definition in native task stub
 * Fixes archiving of executables - tags them as "archived" rather than renaming them
 
 ## 2.8.0 2021-11-29

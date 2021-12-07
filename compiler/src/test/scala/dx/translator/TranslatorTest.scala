@@ -79,16 +79,16 @@ class TranslatorTest extends AnyFlatSpec with Matchers {
       applet.instanceType
     }
     compile("static") shouldBe StaticInstanceType(
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        Some(ExecutionEnvironment("Ubuntu", "20.04", Vector("0")))
+        InstanceTypeRequest(None,
+                            None,
+                            None,
+                            None,
+                            None,
+                            None,
+                            None,
+                            None,
+                            None,
+                            Some(ExecutionEnvironment("Ubuntu", "20.04", Vector("0"))))
     )
     compile("dynamic") shouldBe DynamicInstanceType
   }
@@ -1085,16 +1085,18 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
         val (_, callable) = bundle.allCallables.head
         callable shouldBe a[Application]
         val task = callable.asInstanceOf[Application]
-        task.instanceType shouldBe StaticInstanceType(Some("mem3_ssd1_gpu_x8"),
-                                                      None,
-                                                      None,
-                                                      None,
-                                                      None,
-                                                      None,
-                                                      None,
-                                                      None,
-                                                      None,
-                                                      None)
+        task.instanceType shouldBe StaticInstanceType(
+            InstanceTypeRequest(Some("mem3_ssd1_gpu_x8"),
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None)
+        )
     }
   }
 
