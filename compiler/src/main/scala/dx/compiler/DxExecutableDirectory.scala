@@ -225,7 +225,9 @@ case class DxExecutableDirectory(bundle: Bundle,
   def archive(execInfo: DxExecutableInfo): Unit = {
     logger.trace(s"Archiving ${execInfo.name} ${execInfo.dataObj.id}")
     // tag the object
-    dxApi.addTags(execInfo.dataObj, Vector(DxExecutableDirectory.ArchivedTag))
+    dxApi.addTags(execInfo.dataObj,
+                  Vector(DxExecutableDirectory.ArchivedTag),
+                  project = Some(project))
     // move the object to the new location
     val archiveName = execInfo.createdDate match {
       case Some(dt) => s"${execInfo.name} ${dt.format(dateFormatter)}"
