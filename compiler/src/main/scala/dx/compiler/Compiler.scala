@@ -215,73 +215,78 @@ case class Compiler(extras: Option[Extras],
       */
     private def getExistingExecutable(name: String, digest: String): Option[DxDataObject] = {
       // return the application if it already exists in the project
-      executableDir.lookupInProject(name, digest) match {
-        case None => ()
-        case Some(executable) =>
-          (executable.dxClass, executable.desc) match {
-            case ("App", _) =>
-              logger.trace(s"Found existing version of app ${name}")
-            case ("Applet", Some(desc: DxAppletDescribe)) =>
+      executableDir
+        .lookupInProject(name, digest)
+        .map { executable =>
+          executable.desc match {
+            case Some(desc: DxAppletDescribe) =>
               logger.trace(
-                  s"Found existing version of applet ${name} in folder ${desc.folder}"
+                  s"Found existing applet ${desc.id} with name ${name} in folder ${desc.folder}"
               )
-            case ("Workflow", Some(desc: DxWorkflowDescribe)) =>
+            case Some(desc: DxWorkflowDescribe) =>
               logger.trace(
-                  s"Found existing version of workflow ${name} in folder ${desc.folder}"
+                  s"Found existing workflow ${desc.id} with name ${name} in folder ${desc.folder}"
               )
-            case other =>
-              throw new Exception(s"bad object ${other}")
+            case _ => throw new Exception(s"invalid executable ${executable}")
           }
-          return Some(executable.dataObj)
-      }
+          executable.dataObj
+        }
+        .orElse {
+          val (matching, nonMatching) =
+            executableDir.lookup(name).partition(_.checksum.contains(digest)) match {
+              case (matching, nonMatching) if matching.size > 1 =>
+                logger.trace(
+                    s"""Existing executable(s) ${matching.map(_.dataObj.id).mkString(",")} 
+                       |with ${name} have the same digest; selecting most recent""".stripMargin
+                      .replaceAll("\n", " ")
+                )
+                val sorted = matching.sortBy(_.createdDate)
+                (Some(sorted.last), nonMatching ++ sorted.dropRight(1))
+              case (Vector(matching), nonMatching) => (Some(matching), nonMatching)
+              case (_, nonMatching)                => (None, nonMatching)
+            }
 
-      val existingExecutables = executableDir.lookup(name)
-
-      existingExecutables match {
-        case Vector() =>
-          // a rebuild is required and there are no existing executables to clean up
-          return None
-        case Vector(existingInfo) =>
-          // Check if applet code has changed
-          existingInfo.checksum match {
-            case None =>
-              throw new Exception(s"There is an existing non-dxCompiler applet ${name}")
-            case Some(existingDigest) if digest != existingDigest =>
+          if (nonMatching.nonEmpty) {
+            val idStr = nonMatching.map(_.dataObj.id).mkString(",")
+            if (archive) {
               logger.trace(
-                  s"${existingInfo.dxClass} ${name} has changed, rebuild required"
+                  s"""Executable(s) ${idStr} with name ${name} have changed;
+                     |archiving existing executable(s) before rebuiding""".stripMargin
+                    .replaceAll("\n", " ")
               )
-            case _ =>
-              logger.trace(s"${existingInfo.dxClass} ${name} has not changed")
-              return Some(existingInfo.dataObj)
+              try {
+                executableDir.archive(nonMatching)
+              } catch {
+                case t: Throwable =>
+                  throw new Exception(s"unable to archive existing executable(s) ${idStr}", t)
+              }
+            } else if (force) {
+              logger.trace(
+                  s"""Executable(s) ${idStr} with name ${name} have changed;
+                     |deleting existing executable(s) before rebuiding""".stripMargin
+                    .replaceAll("\n", " ")
+              )
+              try {
+                executableDir.remove(nonMatching)
+              } catch {
+                case t: Throwable =>
+                  throw new Exception(s"unable to delete existing executable(s) ${idStr}", t)
+              }
+            } else {
+              throw new Exception(
+                  s"""executable(s) ${idStr} with name ${name} exist in ${project.id}:${folder};
+                     |compile with the -a flag to archive them or -f to delete them""".stripMargin
+                    .replaceAll("\n", " ")
+              )
+            }
           }
-        case v =>
-          logger.warning(
-              s"More than one ${v.head.dxClass} ${name} found in path ${project.id}:${folder}"
-          )
-      }
 
-      if (archive) {
-        // archive the applet/workflow(s)
-        try {
-          executableDir.archive(existingExecutables)
-        } catch {
-          case t: Throwable =>
-            throw new Exception(s"unable to archive existing executables ${existingExecutables}", t)
-        }
-      } else if (force) {
-        // remove all existing executables
-        try {
-          executableDir.remove(existingExecutables)
-        } catch {
-          case t: Throwable =>
-            throw new Exception(s"unable to remove existing executables ${existingExecutables}", t)
-        }
-      } else {
-        val dxClass = existingExecutables.head.dxClass
-        throw new Exception(s"${dxClass} ${name} already exists in ${project.id}:${folder}")
-      }
+          matching.foreach { m =>
+            logger.trace(s"Existing executable ${m.dataObj.id} with name ${name} has not changed")
+          }
 
-      None
+          matching
+        }
     }
 
     private def getIdFromResponse(response: JsObject): String = {
