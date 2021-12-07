@@ -8,7 +8,8 @@ import dx.api.{
   DxPath,
   DxProject,
   DxUtils,
-  DxWorkflow
+  DxWorkflow,
+  InstanceTypeRequest
 }
 import dx.core.Constants
 import dx.core.io.{DxWorkerPaths, StreamFiles}
@@ -173,11 +174,9 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       executableDict: Map[String, ExecutableLink]
   ): (JsValue, Map[String, JsValue]) = {
     val instanceType: String = applet.instanceType match {
-      case static: StaticInstanceType =>
-        instanceTypeDb.apply(static.toInstanceTypeRequest).name
+      case static: StaticInstanceType                => instanceTypeDb.apply(static.req).name
       case DefaultInstanceType | DynamicInstanceType =>
-        // TODO: should we use the project default here rather than
-        //  picking one from the database?
+        // TODO: should we use the project default here rather than picking one from the database?
         defaultInstanceType.getOrElse(instanceTypeDb.defaultInstanceType.name)
     }
     // Generate the applet's job script
@@ -299,7 +298,9 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     )
     // Add hard-coded instance type info to details
     val instanceTypeDetails: Map[String, JsValue] = applet.instanceType match {
-      case StaticInstanceType(Some(staticInstanceType), _, _, _, _, _, _, _, _, _) =>
+      case StaticInstanceType(
+          InstanceTypeRequest(Some(staticInstanceType), _, _, _, _, _, _, _, _, _, _)
+          ) =>
         Map(Constants.StaticInstanceType -> JsString(staticInstanceType))
       case _ => Map.empty
     }

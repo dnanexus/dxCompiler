@@ -4,6 +4,7 @@
 
 * Excludes apps from `bundledDepends`
 * Localizes files declared in WDL task private variables
+* Respects runtime definition in native task stub
 
 ## 2.8.0 2021-11-29
 

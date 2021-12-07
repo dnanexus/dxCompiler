@@ -1,13 +1,11 @@
 package dx.core.ir
 
-import dx.api.DiskType.DiskType
 import dx.api.{
   DiskType,
   DxApi,
   DxFile,
   DxInstanceType,
   DxProject,
-  ExecutionEnvironment,
   InstanceTypeDB,
   InstanceTypeRequest
 }
@@ -71,44 +69,15 @@ object RunSpec {
 
   case object DefaultInstanceType extends InstanceType
   case object DynamicInstanceType extends InstanceType
-  case class StaticInstanceType(
-      dxInstanceType: Option[String],
-      minMemoryMB: Option[Long],
-      maxMemoryMB: Option[Long],
-      minDiskGB: Option[Long],
-      maxDiskGB: Option[Long],
-      diskType: Option[DiskType],
-      minCpu: Option[Long],
-      maxCpu: Option[Long],
-      gpu: Option[Boolean],
-      os: Option[ExecutionEnvironment]
-  ) extends InstanceType {
-    def toInstanceTypeRequest: InstanceTypeRequest = {
-      InstanceTypeRequest(dxInstanceType,
-                          minMemoryMB,
-                          maxMemoryMB,
-                          minDiskGB,
-                          maxDiskGB,
-                          diskType,
-                          minCpu,
-                          maxCpu,
-                          gpu,
-                          os.orElse(Some(Constants.DefaultExecutionEnvironment)))
-    }
-  }
+  case class StaticInstanceType(req: InstanceTypeRequest) extends InstanceType
 
   object StaticInstanceType {
     def apply(req: InstanceTypeRequest): StaticInstanceType = {
-      StaticInstanceType(req.dxInstanceType,
-                         req.minMemoryMB,
-                         req.maxMemoryMB,
-                         req.minDiskGB,
-                         req.maxDiskGB,
-                         req.diskType,
-                         req.minCpu,
-                         req.maxCpu,
-                         req.gpu,
-                         req.os)
+      if (req.os.isEmpty) {
+        new StaticInstanceType(req.copy(os = Some(Constants.DefaultExecutionEnvironment)))
+      } else {
+        new StaticInstanceType(req)
+      }
     }
   }
 
