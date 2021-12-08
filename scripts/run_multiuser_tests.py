@@ -94,13 +94,17 @@ def test_global_wf_from_wdl():
     tname = "global_wf_from_wdl"
     wf_source = os.path.join(os.path.abspath(test_dir), "multi_user", "{}.wdl".format(tname))
     compiler_flags = ["-instanceTypeSelection dynamic"]
-    workflow_id = build_workflow(
-        wf_source=wf_source,
-        project=PROJECT_ID,
-        folder=specific_applet_folder(tname),
-        version_id=VERSION_ID,
-        compiler_flags=compiler_flags
+    full_workflow_id = "{}:{}".format(
+        PROJECT_ID,
+        build_workflow(
+            wf_source=wf_source,
+            project=PROJECT_ID,
+            folder=specific_applet_folder(tname),
+            version_id=VERSION_ID,
+            compiler_flags=compiler_flags
+        )
     )
+    print("Compiled {}".format(full_workflow_id))
 
     # TODO determine incremented version
 
