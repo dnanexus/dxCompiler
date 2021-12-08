@@ -93,10 +93,7 @@ def test_global_wf_from_wdl():
 
     tname = "global_wf_from_wdl"
     wf_source = os.path.join(os.path.abspath(test_dir), "multi_user", "{}.wdl".format(tname))
-
-    # TODO flags, use -instanceTypeSelection "dynamic"
-    compiler_flags = []
-
+    compiler_flags = ["-instanceTypeSelection dynamic"]
     workflow_id = build_workflow(
         wf_source=wf_source,
         project=PROJECT_ID,
