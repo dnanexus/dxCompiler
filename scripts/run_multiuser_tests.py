@@ -18,6 +18,8 @@ ALICE_SECURITY_CONTEXT = {
 BOB_SECURITY_CONTEXT = {
     "auth_token_type": "Bearer"
 }
+VERSION_ID = ""
+PROJECT_ID = ""
 APPLET_FOLDER = ""
 TEST_FOLDER = ""
 
@@ -26,6 +28,18 @@ def register_tokens(alice_token, bob_token):
     ALICE_SECURITY_CONTEXT["auth_token"] = alice_token
     global BOB_SECURITY_CONTEXT
     BOB_SECURITY_CONTEXT["auth_token"] = bob_token
+
+def register_version(version_id):
+    global VERSION_ID
+    VERSION_ID = version_id
+
+def register_project(project_id, applet_folder, test_folder):
+    global PROJECT_ID
+    PROJECT_ID = project_id
+    global APPLET_FOLDER
+    APPLET_FOLDER = applet_folder
+    global TEST_FOLDER
+    TEST_FOLDER = test_folder
 
 def login_alice():
     dxpy.set_api_server_info(host="stagingapi.dnanexus.com")
@@ -36,12 +50,6 @@ def login_bob():
     dxpy.set_api_server_info(host="stagingapi.dnanexus.com")
     dxpy.set_security_context(BOB_SECURITY_CONTEXT)
     print("Logged in as {}".format(dxpy.bindings.whoami()))
-
-def register_folders(applet_folder, test_folder):
-    global APPLET_FOLDER
-    APPLET_FOLDER = applet_folder
-    global TEST_FOLDER
-    TEST_FOLDER = test_folder
 
 def specific_applet_folder(tname):
     return "{}/{}".format(APPLET_FOLDER, tname)
@@ -83,11 +91,19 @@ def test_global_wf_from_wdl():
     # As Alice, compile workflow and create global workflow
     login_alice()
 
-    # TODO compile workflow
+    tname = "global_wf_from_wdl"
+    wf_source = os.path.join(os.path.abspath(test_dir), "multi_user", "{}.wdl".format(tname))
 
-    # TODO use specific applet folder
+    # TODO flags, use -instanceTypeSelection "dynamic"
+    compiler_flags = []
 
-    # TODO use -instanceTypeSelection "dynamic"
+    workflow_id = build_workflow(
+        wf_source=wf_source,
+        project=PROJECT_ID,
+        folder=specific_applet_folder(tname),
+        version_id=VERSION_ID,
+        compiler_flags=compiler_flags
+    )
 
     # TODO determine incremented version
 
@@ -132,10 +148,12 @@ def main():
 
     register_tokens(args.alice_token, args.bob_token)
 
+    version_id = util.get_version_id(top_dir)
+    register_version(version_id)
+
     # Do folder setup as Alice
     login_alice()
 
-    version_id = util.get_version_id(top_dir)
     project = util.get_project(args.project)
     if project is None:
         raise RuntimeError("Could not find project {}".format(args.project))
@@ -150,7 +168,7 @@ def main():
     print("folder: {}".format(base_folder))
     applet_folder = base_folder + "/applets"
     test_folder = base_folder + "/test"
-    register_folders(applet_folder, test_folder)
+    register_project(project.get_id(), applet_folder, test_folder)
 
     test_dict = {"aws:us-east-1": project.name + ":" + base_folder}
 
