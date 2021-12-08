@@ -28,7 +28,7 @@ trait DxExecutableInfo {
 }
 
 object DxExecutableDirectory {
-  val ArchivedTag = "archived"
+  val ArchivedTag = "dxCompilerArchived"
 }
 
 /**
@@ -218,7 +218,7 @@ case class DxExecutableDirectory(bundle: Bundle,
   /**
     * Moves an executable into an archive directory. For example if the applet is /A/B/C/GLnexus,
     * moves it to /A/B/C/.archive/GLnexus {date}/GLnexus. The archived executable is tagged with
-    * "archived" so that it can be filtered out when searching for existing applets.
+    * "dxCompilerArchived" so that it can be filtered out when searching for existing applets.
     * TODO: need to update the execInfo in the directory
     * @param execInfo the object to archive
     */
