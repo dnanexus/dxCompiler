@@ -57,11 +57,11 @@ def specific_applet_folder(tname):
 # Build a workflow.
 #
 # wf_source         Path to workflow source file
-# project           Destination project
+# project_id        Destination project id
 # folder            Destination folder
 # version_id        dxCompiler version
 # compiler_flags    dxCompiler flags
-def build_workflow(wf_source, project, folder, version_id, compiler_flags):
+def build_workflow(wf_source, project_id, folder, version_id, compiler_flags):
     print("Compiling {}".format(wf_source))
     cmdline = [
         "java",
@@ -73,7 +73,7 @@ def build_workflow(wf_source, project, folder, version_id, compiler_flags):
         "-folder",
         folder,
         "-project",
-        project.get_id()
+        project_id
     ]
     cmdline += compiler_flags
     print(" ".join(cmdline))
@@ -98,7 +98,7 @@ def test_global_wf_from_wdl():
         PROJECT_ID,
         build_workflow(
             wf_source=wf_source,
-            project=PROJECT_ID,
+            project_id=PROJECT_ID,
             folder=specific_applet_folder(tname),
             version_id=VERSION_ID,
             compiler_flags=compiler_flags
