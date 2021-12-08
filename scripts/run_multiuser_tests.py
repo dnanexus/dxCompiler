@@ -41,11 +41,34 @@ def register_folders(applet_folder, test_folder):
     global TEST_FOLDER
     TEST_FOLDER = test_folder
 
-def specific_applet_folder(test_name):
-    return "{}/{}".format(APPLET_FOLDER, test_name)
+def specific_applet_folder(tname):
+    return "{}/{}".format(APPLET_FOLDER, tname)
 
-# TODO compile workflow
-def compile_workflow(test_name, project, version_id, c_flags):
+# Build a workflow.
+#
+# wf_source         Path to workflow source file
+# project           Destination project
+# folder            Destination folder
+# version_id        dxCompiler version
+# compiler_flags    dxCompiler flags
+def build_workflow(wf_source, project, folder, version_id, compiler_flags):
+    print("Compiling {}".format(wf_source))
+    cmdline = [
+        "java",
+        "-jar",
+        os.path.join(top_dir, "dxCompiler-{}.jar".format(version_id)),
+        "compile",
+        wf_source,
+        "-force",
+        "-folder",
+        folder,
+        "-project",
+        project.get_id()
+    ]
+    cmdline += compiler_flags
+    print(" ".join(cmdline))
+
+    # TODO try compile workflow, see run_tests.py:1179
     
 # TODO run workflow
 # def run_workflow(workflow_id):
@@ -55,6 +78,8 @@ def test_global_wf_from_wdl():
     login_alice()
 
     # TODO compile workflow
+
+    # TODO use -instanceTypeSelection "dynamic"
 
     # TODO determine incremented version
 
