@@ -79,6 +79,8 @@ def test_global_wf_from_wdl():
 
     # TODO compile workflow
 
+    # TODO use specific applet folder
+
     # TODO use -instanceTypeSelection "dynamic"
 
     # TODO determine incremented version
