@@ -549,7 +549,7 @@ task add {
 workflow math {
     call add { input: a = 3 }
     output {
-       add.result
+       Int result = add.result
     }
 }
 ```
@@ -662,7 +662,7 @@ workflow w {
     input: a="double", b="espresso"
   }
   output {
-    concat.c
+    String result = concat.c
   }
 }
 ```
