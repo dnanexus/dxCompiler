@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 import argparse
-import dxpy
 import os
+import subprocess
 import sys
+
+import dxpy
 
 import util
 
@@ -67,8 +69,12 @@ def build_workflow(wf_source, project, folder, version_id, compiler_flags):
     ]
     cmdline += compiler_flags
     print(" ".join(cmdline))
-
-    # TODO try compile workflow, see run_tests.py:1179
+    try:
+        oid = subprocess.check_output(cmdline).strip()
+    except subprocess.CalledProcessError as cpe:
+        print("Error compiling {}\n  stdout: {}\n  stderr: {}".format(wf_source, cpe.stdout, cpe.stderr))
+        raise
+    return oid.decode("ascii")
     
 # TODO run workflow
 # def run_workflow(workflow_id):
