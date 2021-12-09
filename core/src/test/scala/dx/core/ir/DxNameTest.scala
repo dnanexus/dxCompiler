@@ -92,6 +92,13 @@ class DxNameTest extends AnyFlatSpec with Matchers {
     dxName3.withSuffix("___dxfiles") shouldBe dxName
   }
 
+  it should "decode a WDL name with multiple stages" in {
+    val dxName = WdlDxName.fromEncodedName("stage-14.stage-22.a___dxfiles")
+    dxName.stage shouldBe Some("stage-14.stage-22")
+    dxName.getDecodedParts shouldBe Vector("a")
+    dxName.suffix shouldBe Some("___dxfiles")
+  }
+
   it should "not encode WDL names with illegal characters" in {
     assertThrows[Throwable] {
       WdlDxName.fromDecodedName("  ")
