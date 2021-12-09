@@ -175,7 +175,7 @@ def main():
 
     # Build the dxCompiler jar file, only on us-east-1
     assets = util.build(project, base_folder, version_id, top_dir, test_dict,
-                        force=args.build is not None)
+                        force=False)
     print("assets: {}".format(assets))
 
     # Run tests
