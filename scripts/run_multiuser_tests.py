@@ -3,6 +3,7 @@ import argparse
 import os
 import subprocess
 import sys
+import time
 
 import dxpy
 
@@ -106,7 +107,9 @@ def test_global_wf_from_wdl():
     )
     print("Compiled {}".format(full_workflow_id))
 
-    # TODO determine incremented version
+    # Strictly increasing global WF version
+    global_workflow_version = "1.0.{}".format(int(time.time()))
+    print("Global workflow version {}".format(global_workflow_version))
 
     # TODO make globalworkflow from workflow
 
