@@ -118,7 +118,10 @@ def test_global_wf_from_wdl():
 
     # TODO use full_workflow_id after
     # https://jira.internal.dnanexus.com/browse/APPS-975 is fixed
+
+    # TODO revert _DX_DEBUG=2
     global_workflow_cmd = [
+        "_DX_DEBUG=2",
         "dx",
         "build",
         "--globalworkflow",
