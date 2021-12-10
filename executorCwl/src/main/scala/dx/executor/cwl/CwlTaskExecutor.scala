@@ -337,7 +337,7 @@ case class CwlTaskExecutor(tool: Process,
       localizedDependencies: Option[Map[String, (Type, Value)]]
   ): (Boolean, Option[Set[Int]]) = {
     val inputs = CwlUtils.fromIR(localizedInputs, typeAliases, isInput = true)
-    val metaDir = workerPaths.getMetaDir(ensureExists = true)
+    val metaDir = workerPaths.getMetaDir(ensureExists = true).asJavaPath
     // update the source code if necessary
     val sourceCode = localizedDependencies.map(updateSourceCode).getOrElse(jobMeta.sourceCode)
     // write the CWL and input files
@@ -423,7 +423,7 @@ case class CwlTaskExecutor(tool: Process,
          |sync
          |""".stripMargin
     FileUtils.writeFileContent(
-        workerPaths.getCommandFile(ensureParentExists = true),
+        workerPaths.getCommandFile(ensureParentExists = true).asJavaPath,
         command,
         makeExecutable = true
     )
@@ -446,7 +446,7 @@ case class CwlTaskExecutor(tool: Process,
       localizedInputs: Map[DxName, (Type, Value)]
   ): (Map[DxName, (Type, Value)], Map[DxName, (Set[String], Map[String, String])]) = {
     // the outputs were written to stdout
-    val stdoutFile = workerPaths.getStdoutFile()
+    val stdoutFile = workerPaths.getStdoutFile().asJavaPath
     val localizedOutputs = if (Files.exists(stdoutFile)) {
       val allOutputs: Map[DxName, JsValue] = JsUtils.jsFromFile(stdoutFile) match {
         case JsObject(outputs) =>

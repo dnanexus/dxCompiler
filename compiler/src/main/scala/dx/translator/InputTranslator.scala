@@ -538,10 +538,8 @@ abstract class InputTranslator(bundle: Bundle,
           JsObject(translatedInputs ++ translatedOverrides)
         }
         val fileName = FileUtils.replaceFileSuffix(path, ".dx.json")
-        val dxInputFile = path.getParent match {
-          case null   => Paths.get(fileName)
-          case parent => parent.resolve(fileName)
-        }
+        val dxInputFile =
+          Option(path.getParent).map(_.resolve(fileName)).getOrElse(Paths.get(fileName))
         logger.trace(s"Writing DNAnexus JSON input file ${dxInputFile}")
         JsUtils.jsToFile(jsValues, dxInputFile)
     }
@@ -553,10 +551,8 @@ abstract class InputTranslator(bundle: Bundle,
         logger.trace(s"Translating input file ${path}")
         val (dxInputs, dxOverrides) = translate(inp, allRawOverrides.get(path))
         val fileName = FileUtils.replaceFileSuffix(path, ".manifest.json")
-        val manifestFile = path.getParent match {
-          case null   => Paths.get(fileName)
-          case parent => parent.resolve(fileName)
-        }
+        val manifestFile =
+          Option(path.getParent).map(_.resolve(fileName)).getOrElse(Paths.get(fileName))
         val (types, values) = dxInputs.map {
           case (_, dxName, t, v) =>
             (dxName -> t, dxName -> ValueSerde.serializeWithType(v, t))

@@ -48,7 +48,7 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
     CwlUtils.createEvaluatorContext(runtime,
                                     env,
                                     inputParameters = inputParameters,
-                                    inputDir = workerPaths.getInputFilesDir(),
+                                    inputDir = workerPaths.getInputFilesDir().asJavaPath,
                                     fileResolver = fileResolver)
 
   /**
