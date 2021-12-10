@@ -11,7 +11,7 @@ Prerequisites:
 * [dx-toolkit](https://documentation.dnanexus.com/downloads)
 * java 8+
 * python 3.x
-* [docker](https://docs.docker.com/get-docker/) if you want to invoke dxCompiler with the [run-dxcompiler-docker](https://github.com/dnanexus/dxCompiler/blob/main/scripts/compiler_image/run-dxcompiler-docker) script using a public `dnanexus/dxcompiler` docker cointainer.
+* [docker](https://docs.docker.com/get-docker/) if you want to invoke dxCompiler with the [run-dxcompiler-docker](https://github.com/dnanexus/dxCompiler/blob/main/scripts/compiler_image/run-dxcompiler-docker) script using a public `dnanexus/dxcompiler` docker container.
 
 Make sure you've installed the dx-toolkit CLI, and initialized it with `dx login`. Download the latest compiler jar file from the [releases](https://github.com/dnanexus/dxCompiler/releases) page.
 

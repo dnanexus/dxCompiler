@@ -1,20 +1,19 @@
 package dx.core.io
 
 import java.nio.file.{Files, Path}
-
 import dx.core.Assumptions.isLoggedIn
 import dx.core.Tags.ApiTest
 import dx.api.{DxApi, DxFile, DxProject}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import dx.util.Logger
+import dx.util.{Logger, PosixPath}
 
 class DxfuseManifestTest extends AnyFlatSpec with Matchers {
   assume(isLoggedIn)
   private val dxApi: DxApi = DxApi()(Logger.Quiet)
   private val rootDir = Files.createTempDirectory("root")
   rootDir.toFile.deleteOnExit()
-  private val dxPathConfig = DxWorkerPaths(rootDir)
+  private val dxPathConfig = DxWorkerPaths(PosixPath(rootDir.toString))
   private val ArchivedProj = "ArchivedStuff"
   private lazy val dxArchivedProj: DxProject = dxApi.resolveProject(ArchivedProj)
 
@@ -22,9 +21,16 @@ class DxfuseManifestTest extends AnyFlatSpec with Matchers {
     val fileDir: Map[String, Path] = Map(
         s"dx://${ArchivedProj}:/Catch22.txt" -> dxPathConfig
           .getDxfuseMountDir()
-          .resolve("inputs/A"),
-        s"dx://${ArchivedProj}:/LICENSE" -> dxPathConfig.getDxfuseMountDir().resolve("inputs/B"),
-        s"dx://${ArchivedProj}:/README" -> dxPathConfig.getDxfuseMountDir().resolve("inputs/C")
+          .resolve("inputs/A")
+          .asJavaPath,
+        s"dx://${ArchivedProj}:/LICENSE" -> dxPathConfig
+          .getDxfuseMountDir()
+          .resolve("inputs/B")
+          .asJavaPath,
+        s"dx://${ArchivedProj}:/README" -> dxPathConfig
+          .getDxfuseMountDir()
+          .resolve("inputs/C")
+          .asJavaPath
     )
 
     // resolve the paths

@@ -4,7 +4,7 @@ import java.nio.file.{InvalidPathException, Paths}
 import dx.core.CliUtils._
 import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir.DxNameFactory
-import dx.util.Enum
+import dx.util.{Enum, FileUtils, PosixPath}
 
 object BaseCli {
   val MaxConcurrentUploads: Int = 8
@@ -52,7 +52,7 @@ abstract class BaseCli {
     val action = args(1).replaceAll("_", "")
     val rootDir =
       try {
-        Paths.get(args(2))
+        PosixPath(FileUtils.absolutePath(Paths.get(args(2))).toString)
       } catch {
         case _: InvalidPathException =>
           return BadUsageTermination(s"${args(1)} is not a valid root directory")
