@@ -111,7 +111,9 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
 
   def jobId: String
 
-  def runJobScriptFunction(name: String, successCodes: Option[Set[Int]] = Some(Set(0))): Unit
+  def runJobScriptFunction(name: String,
+                           successCodes: Option[Set[Int]] = Some(Set(0)),
+                           truncateLogs: Boolean = true): Unit
 
   def rawJsInputs: Map[DxName, JsValue]
 
@@ -953,24 +955,29 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths,
   }
 
   override def runJobScriptFunction(name: String,
-                                    successCodes: Option[Set[Int]] = Some(Set(0))): Unit = {
+                                    successCodes: Option[Set[Int]] = Some(Set(0)),
+                                    truncateLogs: Boolean = true): Unit = {
     val command = s"bash -c 'source ${codeFile} && ${name}'"
     logger.trace(s"Running job script function ${name}")
     val (rc, stdout, stderr) = SysUtils.execCommand(command, exceptionOnFailure = false)
     if (successCodes.forall(_.contains(rc))) {
-      logger.traceLimited(
+      val limit = if (truncateLogs) Some(1000) else None
+      logger.trace(
           s"""Job script function ${name} exited with success code ${rc}
-             |stdout:
-             |${stdout}""".stripMargin,
+             |----- stdout -----
+             |${stdout}
+             |------------------""".stripMargin,
+          maxLength = limit,
           showBeginning = true,
           showEnd = true
       )
     } else {
       logger.error(s"""Job script function ${name} exited with permanent fail code ${rc}
-                      |stdout:
+                      |----- stdout -----:
                       |${stdout}
-                      |stderr:
-                      |${stderr}""".stripMargin)
+                      |----- stderr-----:
+                      |${stderr}
+                      |-----------------""".stripMargin)
       throw new Exception(s"job script function ${name} exited with permanent fail code ${rc}")
     }
   }

@@ -186,16 +186,20 @@ case class WdlTaskExecutor(task: TAT.Task,
       localizedInputs: Map[DxName, (Type, Value)],
       localizedDependencies: Option[Map[String, (Type, Value)]]
   ): (Boolean, Option[Set[Int]]) = {
-    val wdlInputs = WdlUtils.fromIR(localizedInputs, typeAliases.toMap).map {
+    val wdlInputs = WdlUtils.fromIR(localizedInputs, typeAliases.toMap)
+    val wdlValues = wdlInputs.map {
       case (name, (_, v)) => name -> v
     }
-    evaluator.applyCommand(task.command, WdlValueBindings(wdlInputs.map {
+    if (logger.isVerbose) {
+      logger.traceLimited(s"writeCommandScript env:\n  ${WdlUtils.prettyFormatEnv(wdlInputs)}")
+    }
+    evaluator.applyCommand(task.command, WdlValueBindings(wdlValues.map {
       case (dxName, v) => dxName.decoded -> v
     })) match {
       case command if command.trim.isEmpty => (false, None)
       case command =>
         val generator = TaskCommandFileGenerator(logger)
-        val runtime = createRuntime(wdlInputs)
+        val runtime = createRuntime(wdlValues)
         val dockerUtils = DockerUtils(fileResolver, logger)
         val container = runtime.container match {
           case Vector() => None
