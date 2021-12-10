@@ -100,16 +100,14 @@ def test_global_wf_from_wdl():
     tname = "global_wf_from_wdl"
     wf_source = os.path.join(os.path.abspath(test_dir), "multi_user", "{}.wdl".format(tname))
     compiler_flags = ["-instanceTypeSelection", "dynamic"]
-    full_workflow_id = "{}:{}".format(
-        PROJECT_ID,
-        build_workflow(
-            wf_source=wf_source,
-            project_id=PROJECT_ID,
-            folder=specific_applet_folder(tname),
-            version_id=VERSION_ID,
-            compiler_flags=compiler_flags
-        )
+    workflow_id = build_workflow(
+        wf_source=wf_source,
+        project_id=PROJECT_ID,
+        folder=specific_applet_folder(tname),
+        version_id=VERSION_ID,
+        compiler_flags=compiler_flags
     )
+    full_workflow_id = "{}:{}".format(PROJECT_ID, workflow_id)
     print("Compiled {}".format(full_workflow_id))
 
     # Strictly increasing global WF version
@@ -117,11 +115,14 @@ def test_global_wf_from_wdl():
     print("Global workflow version {}".format(global_workflow_version))
 
     # Build global workflow from workflow
+
+    # TODO use full_workflow_id after
+    # https://jira.internal.dnanexus.com/browse/APPS-975 is fixed
     global_workflow_cmd = [
         "dx build",
         "--globalworkflow",
         "--from",
-        full_workflow_id,
+        workflow_id,
         "--version",
         global_workflow_version,
         "--bill-to",
@@ -133,7 +134,7 @@ def test_global_wf_from_wdl():
         subprocess.call(global_workflow_cmd)
     except subprocess.CalledProcessError as cpe:
         print("Error building global workflow from {}\n stdout: {}\n stderr: {}".format(
-            full_workflow_id,
+            workflow_id,
             cpe.stdout,
             cpe.stderr
         ))
