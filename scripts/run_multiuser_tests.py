@@ -82,7 +82,11 @@ def build_workflow(wf_source, project_id, folder, version_id, compiler_flags):
     try:
         oid = subprocess.check_output(cmdline).strip()
     except subprocess.CalledProcessError as cpe:
-        print("Error compiling {}\n  stdout: {}\n  stderr: {}".format(wf_source, cpe.stdout, cpe.stderr))
+        print("Error compiling {}\n stdout: {}\n stderr: {}".format(
+            wf_source,
+            cpe.stdout,
+            cpe.stderr
+        ))
         raise
     return oid.decode("ascii")
     
@@ -112,8 +116,8 @@ def test_global_wf_from_wdl():
     global_workflow_version = "1.0.{}".format(int(time.time()))
     print("Global workflow version {}".format(global_workflow_version))
 
-    # TODO make globalworkflow from workflow
-    globalworkflow_cmd = [
+    # Build global workflow from workflow
+    global_workflow_cmd = [
         "dx build",
         "--globalworkflow",
         "--from",
@@ -123,7 +127,17 @@ def test_global_wf_from_wdl():
         "--bill-to",
         BILLING_ORG
     ]
-    print(" ".join(globalworkflow_cmd))
+    print(" ".join(global_workflow_cmd))
+
+    try:
+        subprocess.call(global_workflow_cmd)
+    except subprocess.CalledProcessError as cpe:
+        print("Error building global workflow from {}\n stdout: {}\n stderr: {}".format(
+            full_workflow_id,
+            cpe.stdout,
+            cpe.stderr
+        ))
+        raise
 
     # TODO test developer actions on global workflow
 
