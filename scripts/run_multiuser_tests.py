@@ -119,7 +119,8 @@ def test_global_wf_from_wdl():
     # TODO use full_workflow_id after
     # https://jira.internal.dnanexus.com/browse/APPS-975 is fixed
     global_workflow_cmd = [
-        "dx build",
+        "dx",
+        "build",
         "--globalworkflow",
         "--from",
         workflow_id,
