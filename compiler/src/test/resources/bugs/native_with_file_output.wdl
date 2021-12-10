@@ -42,8 +42,11 @@ task aws_s3_to_platform_files {
     Array[File]+ transferred_files = ["placeholder.txt"]
   }
 
-  meta {
-    type: "native"
-    id: "app-F0px8Y005x8p3Z3B8pzx3VfZ"
+  runtime {
+    dx_app: object {
+      id: "app-F0px8Y005x8p3Z3B8pzx3VfZ",
+      type: "app"
+    }
+    dx_instance_type: "mem1_ssd1_v2_x8"
   }
 }
