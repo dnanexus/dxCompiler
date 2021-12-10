@@ -1224,7 +1224,18 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val path = pathFromBasename("bugs", "native_with_file_output.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessfulCompileNativeNoTree]
+    val wfId = retval match {
+      case SuccessfulCompileNativeNoTree(_, Vector(wfId)) => wfId
+      case other                                          => throw new Exception(s"expected single workflow not ${other}")
+    }
+    // the native app has an instance type of x2, but the WDL task specifies dx_instance_type
+    // of x8, so make sure the stage overrides the instance type
+    val stages = dxApi.workflow(wfId).describe().stages.get
+    stages.size shouldBe 2
+    stages.head.executable shouldBe "app-aws_s3_to_platform_files/1.0.2"
+    stages.head.systemRequirements shouldBe JsObject(
+        "*" -> JsObject("instanceType" -> JsString("mem1_ssd1_v2_x8"))
+    )
   }
 
   it should "compile a packed CWL workflow" in {
