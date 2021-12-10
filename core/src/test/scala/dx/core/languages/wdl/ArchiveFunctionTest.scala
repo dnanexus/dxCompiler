@@ -23,9 +23,9 @@ class ArchiveFunctionTest extends AnyFlatSpec with Matchers {
       .getPrototype("archive_file_array", Vector(inputType1, inputType2)) shouldBe Some(prototype)
 
     val paths = DefaultEvalPaths.createFromTemp()
-    val file1 = paths.getRootDir().resolve("file1.txt")
+    val file1 = paths.getRootDir().resolve("file1.txt").asJavaPath
     FileUtils.writeFileContent(file1, "file1")
-    val file2 = paths.getRootDir().resolve("file2.txt")
+    val file2 = paths.getRootDir().resolve("file2.txt").asJavaPath
     FileUtils.writeFileContent(file2, "file2")
 
     val evaluator = Eval(paths, Some(WdlVersion.V1), Vector(ArchiveFunction))
@@ -73,15 +73,17 @@ class ArchiveFunctionTest extends AnyFlatSpec with Matchers {
   it should "evaluate unarchive function" taggedAs LinuxOnly in {
     assume(isLinux)
     val paths = DefaultEvalPaths.createFromTemp()
-    val file1 = paths.getRootDir(ensureExists = true).resolve("file1.txt")
+    val file1 = paths.getRootDir(ensureExists = true).resolve("file1.txt").asJavaPath
     FileUtils.writeFileContent(file1, "file1")
-    val file2 = paths.getRootDir(ensureExists = true).resolve("file2.txt")
+    val file2 = paths.getRootDir(ensureExists = true).resolve("file2.txt").asJavaPath
     FileUtils.writeFileContent(file2, "file2")
 
     val irType = Type.TArray(Type.TFile)
     val irValue = Value.VArray(Vector(Value.VFile(file1.toString), Value.VFile(file2.toString)))
     val archive =
-      LocalizedArchive(irType, irValue)(parentDir = Some(paths.getRootDir(ensureExists = true)))
+      LocalizedArchive(irType, irValue)(parentDir =
+        Some(paths.getRootDir(ensureExists = true).asJavaPath)
+      )
     val packedArchive = archive.pack()
 
     val prototype =

@@ -2,9 +2,9 @@
 //
 package dx.core.io
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.Path
 import dx.api._
-import dx.util.Logger
+import dx.util.{Logger, PosixPath}
 import spray.json._
 
 import scala.annotation.tailrec
@@ -60,7 +60,7 @@ case class DxdaManifestBuilder(dxApi: DxApi, logger: Logger = Logger.get) {
   private def createFolderEntry(projectId: String,
                                 folder: String,
                                 destination: Path,
-                                listing: Option[Set[Path]]): Vector[JsValue] = {
+                                listing: Option[Set[PosixPath]]): Vector[JsValue] = {
     // dxda manifest doesn't support folders so we have to list the folder contents and add
     // all the files to the manifest
     val findDataObjects = DxFindDataObjects(dxApi)
@@ -76,21 +76,20 @@ case class DxdaManifestBuilder(dxApi: DxApi, logger: Logger = Logger.get) {
       )
       .keys
       .map {
-        case dxFile: DxFile => (dxFile, Paths.get(dxFile.getFolder), dxFile.getName)
+        case dxFile: DxFile => (dxFile, PosixPath(dxFile.getFolder), dxFile.getName)
         case other          => throw new Exception(s"not a file: ${other}")
       }
       .toVector
 
-    val folderPath = Paths.get(folder)
+    val folderPath = PosixPath(folder)
 
-    // if there is a listing, use it to select only the files that
-    // appear in the listing, or that have an ancestor folder that
-    // appears in the listing
+    // if there is a listing, use it to select only the files that appear in the listing, or that
+    // have an ancestor folder that appears in the listing
     listing
       .map { listingPaths =>
         @tailrec
-        def containsAncestor(child: Path): Boolean = {
-          Option(child.getParent) match {
+        def containsAncestor(child: PosixPath): Boolean = {
+          child.getParent match {
             case Some(parent) => listingPaths.contains(parent) || containsAncestor(parent)
             case None         => false
           }
@@ -106,7 +105,7 @@ case class DxdaManifestBuilder(dxApi: DxApi, logger: Logger = Logger.get) {
       .map {
         case (dxFile, fileFolder, fileName) =>
           val fileRelFolder = folderPath.relativize(fileFolder)
-          val fileDest = destination.resolve(fileRelFolder).resolve(fileName)
+          val fileDest = destination.resolve(fileRelFolder.toString).resolve(fileName)
           createFileEntry(dxFile, fileDest)
       }
   }
@@ -116,9 +115,11 @@ case class DxdaManifestBuilder(dxApi: DxApi, logger: Logger = Logger.get) {
     * @param fileToLocalMapping mapping of
     * @return
     */
-  def apply(fileToLocalMapping: Map[DxFile, Path] = Map.empty,
-            folderToLocalMapping: Map[(String, String), Path] = Map.empty,
-            folderListings: Map[(String, String), Set[Path]] = Map.empty): Option[DxdaManifest] = {
+  def apply(
+      fileToLocalMapping: Map[DxFile, Path] = Map.empty,
+      folderToLocalMapping: Map[(String, String), Path] = Map.empty,
+      folderListings: Map[(String, String), Set[PosixPath]] = Map.empty
+  ): Option[DxdaManifest] = {
     if (fileToLocalMapping.isEmpty && folderToLocalMapping.isEmpty) {
       return None
     }

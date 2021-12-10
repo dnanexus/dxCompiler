@@ -5,21 +5,20 @@ package dx.core.io
 
 import java.nio.file.Path
 import dx.api.{DxApi, DxArchivalState, DxFile}
-import dx.util.Logger
+import dx.util.{Logger, PosixPath}
 import spray.json._
 
 case class DxfuseManifest(value: JsValue)
 
-// TODO: support using folder listings to restrict which files/subdirs
-//  are synced for a given remote folder - this requires a change in
-//  dxfuse
+// TODO: support using folder listings to restrict which files/subdirs are synced for a given remote
+//  folder - this requires a change in dxfuse
 case class DxfuseManifestBuilder(workerPaths: DxWorkerPaths,
                                  dxApi: DxApi,
                                  logger: Logger = Logger.get) {
   def apply(
       fileToLocalMapping: Map[DxFile, Path] = Map.empty,
       folderToLocalMapping: Map[(String, String), Path] = Map.empty,
-      folderListings: Map[(String, String), Set[Path]] = Map.empty
+      folderListings: Map[(String, String), Set[PosixPath]] = Map.empty
   ): Option[DxfuseManifest] = {
     if (fileToLocalMapping.isEmpty) {
       return None
@@ -37,7 +36,7 @@ case class DxfuseManifestBuilder(workerPaths: DxWorkerPaths,
         val parentDir = path.getParent
         // remove the mountpoint from the directory. We need
         // paths that are relative to the mount point.
-        val mountDir = workerPaths.getDxfuseMountDir()
+        val mountDir = workerPaths.getDxfuseMountDir().asJavaPath
         assert(parentDir.startsWith(mountDir))
         val relParentDir = s"/${mountDir.relativize(parentDir)}"
 

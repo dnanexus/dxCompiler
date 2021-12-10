@@ -2,7 +2,7 @@ package dx.translator
 
 import dx.api.DxApi
 import dx.core.CliUtils.UnsuccessfulTermination
-import dx.util.{FileSourceResolver, JsUtils, LocalFileSource, Logger}
+import dx.util.{FileSourceResolver, JsUtils, LocalFileSource, Logger, PosixPath}
 import dxCompiler.Main
 import dxCompiler.Main.SuccessfulCompileIR
 import org.scalatest.matchers.should.Matchers
@@ -60,7 +60,7 @@ class CorporaTest extends AnyWordSpec with Matchers {
     "corpora test" should {
       corpora.map(JsUtils.getFields(_)).foreach { corpus =>
         val uri = URI.create(JsUtils.getString(corpus("url")))
-        val repo = Paths.get(uri.getPath).getFileName.toString match {
+        val repo = PosixPath(uri.getPath).getName.get match {
           case s if s.endsWith(".git") => s.dropRight(4)
           case s                       => s
         }
