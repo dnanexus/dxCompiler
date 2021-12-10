@@ -6,6 +6,7 @@
 * Localizes files declared in WDL task private variables
 * Respects runtime definition in native task stub
 * Fixes error when parsing a field name with multiple `stage-*` prefixes (specifically with stage number >= 10)
+* Logs full output of command execution 
 
 ## 2.8.0 2021-11-29
 
