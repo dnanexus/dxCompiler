@@ -29,7 +29,7 @@ import dx.core.ir.{
 }
 import dx.core.languages.wdl.{CodeGenerator, VersionSupport, WdlDxName, WdlOptions, WdlUtils}
 import dx.executor.{JobMeta, TaskExecutor, TaskExecutorResult}
-import dx.util.{CodecUtils, FileSourceResolver, FileUtils, JsUtils, Logger, SysUtils}
+import dx.util.{CodecUtils, FileSourceResolver, FileUtils, JsUtils, Logger, PosixPath, SysUtils}
 import dx.util.protocols.DxFileAccessProtocol
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -87,11 +87,11 @@ private case class TaskTestJobMeta(override val workerPaths: DxWorkerPaths,
               .replaceAll("\n", " ")
         )
       case TaskExecutor.RunCommand =>
-        val script: Path = workerPaths.getCommandFile()
+        val script: Path = workerPaths.getCommandFile().asJavaPath
         if (Files.exists(script)) {
           val (_, stdout, stderr) =
             SysUtils.execCommand(script.toString, exceptionOnFailure = false)
-          val rc = FileUtils.readFileContent(workerPaths.getReturnCodeFile()).trim.toInt
+          val rc = FileUtils.readFileContent(workerPaths.getReturnCodeFile().asJavaPath).trim.toInt
           if (!successCodes.forall(_.contains(rc))) {
             throw new Exception(
                 s"job script ${script} failed with return code ${rc}\nstdout:\n${stdout}\nstderr:\n${stderr}"
@@ -286,7 +286,7 @@ class WdlTaskExecutorTest extends AnyFlatSpec with Matchers {
 
     // create JobMeta
     val jobMeta =
-      TaskTestJobMeta(DxWorkerPaths(jobRootDir),
+      TaskTestJobMeta(DxWorkerPaths(PosixPath(jobRootDir.toString)),
                       dxApi,
                       logger,
                       finalInputs,
@@ -389,7 +389,8 @@ class WdlTaskExecutorTest extends AnyFlatSpec with Matchers {
       createTaskExecutor("two_files", StreamFiles.None, downloadFiles = false)
     taskExecutor.apply() shouldBe TaskExecutorResult.Success
     // make sure the download manifest has two different folders
-    val manifestJs = JsUtils.jsFromFile(jobMeta.workerPaths.getDxdaManifestFile()).asJsObject.fields
+    val manifestJs =
+      JsUtils.jsFromFile(jobMeta.workerPaths.getDxdaManifestFile().asJavaPath).asJsObject.fields
     manifestJs.size shouldBe 1
     val folders = manifestJs.values.head match {
       case JsArray(array) =>

@@ -9,7 +9,7 @@ import dx.core.io.DxWorkerPaths
 import dx.core.ir.{DxName, ParameterLinkSerializer, ParameterLinkValue, Type, TypeSerde}
 import dx.core.languages.wdl.{WdlBlock, WdlBundle, WdlDxName, WdlUtils}
 import dx.executor.{JobMeta, WorkflowAction, WorkflowExecutor}
-import dx.util.{CodecUtils, FileSourceResolver, FileUtils, Logger}
+import dx.util.{CodecUtils, FileSourceResolver, FileUtils, Logger, PosixPath}
 import dx.util.protocols.DxFileAccessProtocol
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -126,7 +126,8 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
   private def setup(): DxWorkerPaths = {
     // Create a clean temp directory for the task to use
     val jobRootDir: Path = Files.createTempDirectory("dxcompiler_applet_test")
-    val workerPaths = DxWorkerPaths(jobRootDir)
+    jobRootDir.toFile.deleteOnExit()
+    val workerPaths = DxWorkerPaths(PosixPath(jobRootDir.toString))
     workerPaths.createCleanDirs()
     workerPaths
   }
@@ -146,7 +147,7 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
   private def createFileResolver(workerPaths: DxWorkerPaths): FileSourceResolver = {
     val dxProtocol = DxFileAccessProtocol(dxApi)
     FileSourceResolver.create(
-        localDirectories = Vector(workerPaths.getWorkDir()),
+        localDirectories = Vector(workerPaths.getWorkDir().asJavaPath),
         userProtocols = Vector(dxProtocol),
         logger = logger
     )

@@ -243,8 +243,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     }
   }
 
-  private val streamingDir = workerPaths.getDxfuseMountDir()
-  private val localizationDirs = Vector(workerPaths.getInputFilesDir(), streamingDir)
+  private val streamingDir = workerPaths.getDxfuseMountDir().asJavaPath
+  private val localizationDirs = Vector(workerPaths.getInputFilesDir().asJavaPath, streamingDir)
 
   private class InputFinalizer(
       uriToPath: Map[String, Path],
@@ -537,7 +537,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     }
 
     def addVirtualFile(content: String, uri: String, destination: String): Unit = {
-      val localPath = workerPaths.getVirtualFilesDir(ensureExists = true).resolve(uri)
+      val localPath = workerPaths.getVirtualFilesDir(ensureExists = true).resolve(uri).asJavaPath
       val canonicalPath = FileUtils.writeFileContent(localPath, content)
       virtualFiles += (uri -> canonicalPath)
       addFile(canonicalPath, destination)
@@ -864,7 +864,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     // localize virtual files to /home/dnanexus/virtual
     trace(s"Virtual files = ${pathsToLocalize.virtualFiles}")
     val virtualUriToPath = pathsToLocalize.virtualFiles.map { fs =>
-      val localPath = fs.localizeToDir(workerPaths.getVirtualFilesDir(ensureExists = true))
+      val localPath =
+        fs.localizeToDir(workerPaths.getVirtualFilesDir(ensureExists = true).asJavaPath)
       fs.name -> localPath
     }.toMap
 
@@ -876,7 +877,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     // collisions in the manner specified by the WDL spec. All remote input files except those
     // streamed by dxfuse are placed in subfolders of the /home/dnanexus/inputs directory.
     val localizer = SafeLocalizationDisambiguator.create(
-        rootDir = workerPaths.getInputFilesDir(),
+        rootDir = workerPaths.getInputFilesDir().asJavaPath,
         separateDirsBySource = true,
         createDirs = true,
         disambiguationDirLimit = TaskExecutor.MaxDisambiguationDirs,
@@ -901,7 +902,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         .foreach {
           case DxdaManifest(manifestJs) =>
             // write the manifest to a file
-            FileUtils.writeFileContent(workerPaths.getDxdaManifestFile(), manifestJs.prettyPrint)
+            FileUtils.writeFileContent(workerPaths.getDxdaManifestFile().asJavaPath,
+                                       manifestJs.prettyPrint)
             // run dxda via a subprocess
             jobMeta.runJobScriptFunction(TaskExecutor.DownloadDxda)
         }
@@ -915,7 +917,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       trace(s"Files to stream: ${pathsToLocalize.filesToStream}")
       // use a different localizer for the dxfuse mount point
       val streamingLocalizer = SafeLocalizationDisambiguator.create(
-          rootDir = workerPaths.getDxfuseMountDir(),
+          rootDir = workerPaths.getDxfuseMountDir().asJavaPath,
           existingPaths = localizer.getLocalizedPaths,
           separateDirsBySource = true,
           createDirs = false,
@@ -933,7 +935,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         })
         .foreach {
           case DxfuseManifest(manifestJs) =>
-            FileUtils.writeFileContent(workerPaths.getDxfuseManifestFile(), manifestJs.prettyPrint)
+            FileUtils.writeFileContent(workerPaths.getDxfuseManifestFile().asJavaPath,
+                                       manifestJs.prettyPrint)
             // run dxfuse via a subprocess
             jobMeta.runJobScriptFunction(TaskExecutor.DownloadDxfuse)
         }
