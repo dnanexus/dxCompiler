@@ -139,12 +139,15 @@ def test_global_wf_from_wdl():
         ))
         raise
 
+    global_workflow_name = "{}/{}".format(tname, global_workflow_version)
+    print(global_workflow_name)
+
     # TODO test developer actions on global workflow
 
     # As Bob, run global workflow
     login_bob()
 
-    # TODO run global workflow
+    # TODO as Bob, run global workflow
 
     # TODO handle reporting success / failure; use pytest?
 
