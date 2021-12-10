@@ -23,6 +23,7 @@ VERSION_ID = ""
 PROJECT_ID = ""
 APPLET_FOLDER = ""
 TEST_FOLDER = ""
+BILLING_ORG = "org-dnanexus_apps"
 
 def register_tokens(alice_token, bob_token):
     global ALICE_SECURITY_CONTEXT
@@ -112,6 +113,17 @@ def test_global_wf_from_wdl():
     print("Global workflow version {}".format(global_workflow_version))
 
     # TODO make globalworkflow from workflow
+    globalworkflow_cmd = [
+        "dx build",
+        "--globalworkflow",
+        "--from",
+        full_workflow_id,
+        "--version",
+        global_workflow_version,
+        "--bill-to",
+        BILLING_ORG
+    ]
+    print(" ".join(globalworkflow_cmd))
 
     # TODO test developer actions on global workflow
 
