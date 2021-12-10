@@ -55,7 +55,7 @@ object ArchiveFunction extends GenericUserDefinedFunction("archive_.*".r) {
       }
       val irType = WdlUtils.toIRType(inputValueType)
       val irValue = WdlUtils.toIRValue(ctx.args(0), inputValueType)
-      val parentDir = ctx.paths.getRootDir(true)
+      val parentDir = ctx.paths.getRootDir(true).asJavaPath
       val archive = LocalizedArchive(irType, irValue)(parentDir = Some(parentDir))
       val packedArchive = archive.pack(removeSourceFiles)
       WdlValues.V_File(packedArchive.path.toString)

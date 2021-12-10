@@ -219,7 +219,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         case i if i.default.isDefined => i.name -> (i.cwlType, i.default.get)
       }.toMap
       // translate outputs and evaluate any static expressions
-      val inputDir = tool.source.map(Paths.get(_).getParent).getOrElse(Paths.get("."))
+      val inputDir =
+        tool.source.flatMap(src => Option(Paths.get(src).getParent)).getOrElse(Paths.get("."))
       val outputCtx =
         CwlUtils.createEvaluatorContext(Runtime.empty,
                                         defaults,
@@ -231,8 +232,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       }
       val docSource = tool.source.orElse(cwlBundle.primaryProcess.source) match {
         case Some(path) => Paths.get(path)
-        case None =>
-          throw new Exception(s"no source code for tool ${name}")
+        case None       => throw new Exception(s"no source code for tool ${name}")
       }
 
       def extractPaths(p: PathValue): Vector[String] = {
@@ -316,8 +316,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
     override protected def standAloneWorkflow: SourceCode = {
       val docSource = wf.source.orElse(cwlBundle.primaryProcess.source) match {
         case Some(path) => Paths.get(path)
-        case None =>
-          throw new Exception(s"no source code for tool ${wf.name}")
+        case None       => throw new Exception(s"no source code for tool ${wf.name}")
       }
       CwlSourceCode(docSource)
     }

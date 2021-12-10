@@ -616,8 +616,8 @@ object CwlUtils {
 
   def createRuntime(workerPaths: DxWorkerPaths): Runtime = {
     Runtime.create(
-        outdir = workerPaths.getOutputFilesDir(ensureExists = true),
-        tmpdir = workerPaths.getTempDir(ensureExists = true)
+        outdir = workerPaths.getOutputFilesDir(ensureExists = true).asJavaPath,
+        tmpdir = workerPaths.getTempDir(ensureExists = true).asJavaPath
     )
   }
 
