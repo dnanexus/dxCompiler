@@ -797,9 +797,10 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
     desc.runSpec match {
       case Some(rs) => {
-        val bundledDepends = rs.asJsObject.fields
-          .get("bundledDepends")
-          .getOrElse(throw new Exception(s"Expected ${appletId} to have bundledDepends"))
+        val bundledDepends = rs.asJsObject.fields.getOrElse(
+            "bundledDepends",
+            throw new Exception(s"Expected ${appletId} to have bundledDepends")
+        )
         bundledDepends match {
           case JsArray(items) => {
             val searchItem = items.find(v => v.asJsObject.toString.contains(bundledName))
@@ -1223,7 +1224,18 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val path = pathFromBasename("bugs", "native_with_file_output.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessfulCompileNativeNoTree]
+    val wfId = retval match {
+      case SuccessfulCompileNativeNoTree(_, Vector(wfId)) => wfId
+      case other                                          => throw new Exception(s"expected single workflow not ${other}")
+    }
+    // the native app has an instance type of x2, but the WDL task specifies dx_instance_type
+    // of x8, so make sure the stage overrides the instance type
+    val stages = dxApi.workflow(wfId).describe().stages.get
+    stages.size shouldBe 2
+    stages.head.executable shouldBe "app-aws_s3_to_platform_files/1.0.2"
+    stages.head.systemRequirements shouldBe JsObject(
+        "*" -> JsObject("instanceType" -> JsString("mem1_ssd1_v2_x8"))
+    )
   }
 
   it should "compile a packed CWL workflow" in {
@@ -1269,6 +1281,37 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileNativeNoTree]
+  }
+
+  it should "archive an identical task" in {
+    val folder = s"${unitTestsPath}/testArchive"
+    val flags = cFlagsBase ++ List("-compileMode",
+                                   "NativeWithoutRuntimeAsset",
+                                   "-folder",
+                                   folder,
+                                   "-locked")
+    val path1 = pathFromBasename("compiler", "add.wdl")
+    val args1 = path1.toString :: flags
+    // compile once
+    val appletId1 = Main.compile(args1.toVector) match {
+      case SuccessfulCompileNativeNoTree(_, Vector(appletId)) => appletId
+      case other =>
+        throw new Exception(s"expected single applet not ${other}")
+    }
+    // compile slightly changed version with archive flag
+    val path2 = pathFromBasename("compiler", "add_changed.wdl")
+    val args2 = path2.toString :: "-archive" :: flags
+    val appletId2 = Main.compile(args2.toVector) match {
+      case SuccessfulCompileNativeNoTree(_, Vector(appletId)) => appletId
+      case other =>
+        throw new Exception(s"expected single applet not ${other}")
+    }
+    appletId1 should not be appletId2
+    // check that first applet has moved to a .archive folder and tagged with "archived"
+    val desc = dxApi.applet(appletId1).describe(Set(Field.Tags))
+    desc.folder should startWith(s"${folder}/.archive")
+    desc.tags should not be empty
+    desc.tags.get should contain(DxExecutableDirectory.ArchivedTag)
   }
 
   it should "reuse identical tasks" in {

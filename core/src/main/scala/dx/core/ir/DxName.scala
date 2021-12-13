@@ -78,7 +78,7 @@ abstract class DxName(private var encodedParts: Option[Vector[String]],
         )
         illegalDecodedSequencesRegex.foreach { r =>
           r.findFirstIn(part).map { seq =>
-            throw new Exception(s"decoded part ${part} contains illegal sequences ${seq}")
+            throw new Exception(s"decoded part ${part} contains illegal sequences '${seq}'")
           }
         }
     }
@@ -288,7 +288,7 @@ trait DxNameFactory {
 object DxNameFactory {
   // standard suffixes to parse
   val suffixes = Set(Constants.ComplexValueKey, Constants.FlatFilesSuffix)
-  private val stageRegex = "^(?:((?:stage-[^.]\\.)*stage-[^.]+)\\.)?(.+)$".r
+  private val stageRegex = "^(?:((?:stage-[^.]+\\.)*stage-[^.]+)\\.)?(.+)$".r
 
   // the default Regex.split method does not return parts with empty strings -
   // we need those for validation

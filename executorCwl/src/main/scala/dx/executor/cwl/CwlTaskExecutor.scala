@@ -186,7 +186,7 @@ case class CwlTaskExecutor(tool: Process,
     (cwlInputs, target)
   }
 
-  override protected def getInputsWithDefaults: Map[DxName, (Type, Value)] = {
+  override protected def getInputVariables: Map[DxName, (Type, Value)] = {
     CwlUtils.toIR(cwlInputs)
   }
 
@@ -335,9 +335,9 @@ case class CwlTaskExecutor(tool: Process,
   override protected def writeCommandScript(
       localizedInputs: Map[DxName, (Type, Value)],
       localizedDependencies: Option[Map[String, (Type, Value)]]
-  ): (Map[DxName, (Type, Value)], Boolean, Option[Set[Int]]) = {
+  ): (Boolean, Option[Set[Int]]) = {
     val inputs = CwlUtils.fromIR(localizedInputs, typeAliases, isInput = true)
-    val metaDir = workerPaths.getMetaDir(ensureExists = true)
+    val metaDir = workerPaths.getMetaDir(ensureExists = true).asJavaPath
     // update the source code if necessary
     val sourceCode = localizedDependencies.map(updateSourceCode).getOrElse(jobMeta.sourceCode)
     // write the CWL and input files
@@ -423,13 +423,13 @@ case class CwlTaskExecutor(tool: Process,
          |sync
          |""".stripMargin
     FileUtils.writeFileContent(
-        workerPaths.getCommandFile(ensureParentExists = true),
+        workerPaths.getCommandFile(ensureParentExists = true).asJavaPath,
         command,
         makeExecutable = true
     )
     // We are testing the return code of cwltool, not the tool it is running, so we
     // don't need to worry about success/temporaryFail/permanentFail codes.
-    (localizedInputs, true, Some(Set(0)))
+    (true, Some(Set(0)))
   }
 
   private lazy val outputParams: Map[DxName, OutputParameter] = {
@@ -446,7 +446,7 @@ case class CwlTaskExecutor(tool: Process,
       localizedInputs: Map[DxName, (Type, Value)]
   ): (Map[DxName, (Type, Value)], Map[DxName, (Set[String], Map[String, String])]) = {
     // the outputs were written to stdout
-    val stdoutFile = workerPaths.getStdoutFile()
+    val stdoutFile = workerPaths.getStdoutFile().asJavaPath
     val localizedOutputs = if (Files.exists(stdoutFile)) {
       val allOutputs: Map[DxName, JsValue] = JsUtils.jsFromFile(stdoutFile) match {
         case JsObject(outputs) =>

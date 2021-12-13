@@ -198,9 +198,9 @@ sbt keeps the cache of downloaded jar files in `${HOME}/.ivy2/cache`. For exampl
 dxCompiler can be released from Github. The release pipeline (optionally) runs large integration tests, builds the release on staging, runs multi-region tests on staging (one test per region), builds on production, and creates a Docker image, which is pushed to DockerHub.
 
 1. Checkout the develop branch (either HEAD or the specific commit you want to release)
-2. Create a release branch named with the version number, e.g. `release-2.4.2`
-3. Update the version numbers in application.conf files by removing `-SNAPSHOT`
-    - Run `scripts/update_version.md <version>`
+2. Create a release branch named with the version number, e.g. `release-X.Y.Z`. Use [semver](https://semver.org/) to decide on the version number.
+3. Update the application.conf files with the release version number, without -SNAPSHOT.
+    - Run `scripts/update_version.md X.Y.Z`
     - If you want to update the versions manually, there are 5 of them:
         * [compiler](https://github.com/dnanexus/dxCompiler/blob/main/compiler/src/main/resources/application.conf)
         * [core](https://github.com/dnanexus/dxCompiler/blob/main/core/src/main/resources/application.conf)
@@ -213,11 +213,16 @@ dxCompiler can be released from Github. The release pipeline (optionally) runs l
     - Add release notes of updated library dependencies to [Release Notes](https://github.com/dnanexus/dxCompiler/blob/main/RELEASE_NOTES.md)
 6. Push the release branch to GitHub.
 7. Run the release pipeline:
-    1. Go to `Actions` > `dxCompiler Release (Staging and Prod)` and click `Run workflow` on the right side.
-    2. Make sure the `release-xxx` branch is selected (default setting).
-    3. Once finished, the pipeline will create a draft release page on GitHub.
+    - Go to `Actions` > `Release dxCompiler` and click `Run workflow` on the right side.
+    - Make sure the `release-X.Y.Z` branch is selected. Run with default settings.
+    - Once finished, the pipeline will create a draft release page on GitHub.
 8. Test in customer projects: build and run the applet [test-dxcompiler-in-project](/test-dxcompiler-in-project) in customer projects that are shared with `org-dnanexus_apps_customer_testers`.
 9. Publish the draft [release](https://github.com/dnanexus/dxCompiler/releases). The compressed source code (in `zip` and `tar.gz`) will be added to the release page automatically.
+10. Post-release PR to `develop` branch
+    - Create branch `post-release-X.Y.Z` based on branch `release-X.Y.Z`
+    - Run `scripts/update_version.md X.Y.(Z+1)-SNAPSHOT` to increment the working version from e.g. `1.2.3-SNAPSHOT` to `1.2.4-SNAPSHOT`
+    - Open pull request from branch `post-release-X.Y.Z` to `develop`. Fix release notes and resolve conflicts as needed.
+11. Move released Jira tickets to `Done / In Prod` column
 
 If you encounter any additional issues while creating the release, you will need to make the fixes in `develop` and then merge them into the release branch.
 

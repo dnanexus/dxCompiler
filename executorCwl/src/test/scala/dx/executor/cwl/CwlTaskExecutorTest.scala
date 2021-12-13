@@ -30,7 +30,7 @@ import dx.core.languages.cwl.{CwlDxName, CwlUtils, DxHintSchema}
 import dx.cwl.{CommandInputParameter, CommandLineTool, Parser, ParserResult}
 import dx.executor.{JobMeta, TaskExecutor, TaskExecutorResult}
 import dx.util.protocols.DxFileAccessProtocol
-import dx.util.{CodecUtils, FileSourceResolver, FileUtils, JsUtils, Logger, SysUtils}
+import dx.util.{CodecUtils, FileSourceResolver, FileUtils, JsUtils, Logger, PosixPath, SysUtils}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spray.json._
@@ -74,7 +74,8 @@ private case class ToolTestJobMeta(override val workerPaths: DxWorkerPaths,
   override lazy val jobId: String = s"job-${Random.alphanumeric.take(24).mkString}"
 
   override def runJobScriptFunction(name: String,
-                                    successCodes: Option[Set[Int]] = Some(Set(0))): Unit = {
+                                    successCodes: Option[Set[Int]] = Some(Set(0)),
+                                    truncateLogs: Boolean = false): Unit = {
     name match {
       case TaskExecutor.DownloadDxda if downloadFiles && !dxdaCallable =>
         throw new Exception("cannot call dxda")
@@ -87,13 +88,13 @@ private case class ToolTestJobMeta(override val workerPaths: DxWorkerPaths,
               .replaceAll("\n", " ")
         )
       case TaskExecutor.RunCommand =>
-        val script: Path = workerPaths.getCommandFile()
+        val script: Path = workerPaths.getCommandFile().asJavaPath
         if (Files.exists(script)) {
           // this will never fail due to the way the command script is written - instead
           // we need to read the return code file
           val (_, stdout, stderr) =
             SysUtils.execCommand(script.toString, exceptionOnFailure = false)
-          val rc = FileUtils.readFileContent(workerPaths.getReturnCodeFile()).trim.toInt
+          val rc = FileUtils.readFileContent(workerPaths.getReturnCodeFile().asJavaPath).trim.toInt
           if (!successCodes.forall(_.contains(rc))) {
             throw new Exception(
                 s"job script ${script} failed with return code ${rc}\nstdout:\n${stdout}\nstderr:\n${stderr}"
@@ -218,7 +219,7 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
     // Create a clean temp directory for the task to use
     val jobRootDir: Path = Files.createTempDirectory("dxcompiler_applet_test")
     jobRootDir.toFile.deleteOnExit()
-    val workerPaths = DxWorkerPaths(jobRootDir)
+    val workerPaths = DxWorkerPaths(PosixPath(jobRootDir.toString))
     workerPaths.createCleanDirs()
 
     // create FileSourceResolver
@@ -267,15 +268,17 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
 
     // create JobMeta
     val jobMeta =
-      ToolTestJobMeta(DxWorkerPaths(jobRootDir),
-                      dxApi,
-                      logger,
-                      irInputs,
-                      tool.name,
-                      instanceTypeDB,
-                      FileUtils.readFileContent(cwlFile),
-                      pathToDxFile,
-                      useManifests)
+      ToolTestJobMeta(
+          DxWorkerPaths(PosixPath(jobRootDir.toString)),
+          dxApi,
+          logger,
+          irInputs,
+          tool.name,
+          instanceTypeDB,
+          FileUtils.readFileContent(cwlFile),
+          pathToDxFile,
+          useManifests
+      )
 
     // create TaskExecutor
     (CwlTaskExecutor.create(jobMeta, streamFiles = StreamFiles.None, checkInstanceType = false),

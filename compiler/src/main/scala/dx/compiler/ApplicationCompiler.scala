@@ -1,6 +1,16 @@
 package dx.compiler
 
-import dx.api.{DxAccessLevel, DxApi, DxFileDescribe, DxPath, DxProject, DxUtils}
+import dx.api.{
+  DxAccessLevel,
+  DxApi,
+  DxApplet,
+  DxFileDescribe,
+  DxPath,
+  DxProject,
+  DxUtils,
+  DxWorkflow,
+  InstanceTypeRequest
+}
 import dx.core.Constants
 import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir._
@@ -164,11 +174,9 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       executableDict: Map[String, ExecutableLink]
   ): (JsValue, Map[String, JsValue]) = {
     val instanceType: String = applet.instanceType match {
-      case static: StaticInstanceType =>
-        instanceTypeDb.apply(static.toInstanceTypeRequest).name
+      case static: StaticInstanceType                => instanceTypeDb.apply(static.req).name
       case DefaultInstanceType | DynamicInstanceType =>
-        // TODO: should we use the project default here rather than
-        //  picking one from the database?
+        // TODO: should we use the project default here rather than picking one from the database?
         defaultInstanceType.getOrElse(instanceTypeDb.defaultInstanceType.name)
     }
     // Generate the applet's job script
@@ -258,16 +266,20 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     }
 
     // Add executables called by this applet to bundledDepends to ensure cloning
-    val bundledDependsExec: Vector[JsValue] = executableDict.map {
-      case (name, link) =>
-        JsObject(
-            Constants.BundledDependsNameKey -> JsString(name),
-            Constants.BundledDependsIdKey -> JsObject(
-                DxUtils.DxLinkKey -> JsString(link.dxExec.id)
-            ),
-            Constants.BundledDependsStagesKey -> JsArray(Vector.empty)
-        )
-    }.toVector
+    val bundledDependsExec: Vector[JsValue] = executableDict
+      .collect {
+        case (name, ExecutableLink(_, _, _, applet: DxApplet))     => (name, applet.id)
+        case (name, ExecutableLink(_, _, _, workflow: DxWorkflow)) => (name, workflow.id)
+      }
+      .map {
+        case (name, id) =>
+          JsObject(
+              Constants.BundledDependsNameKey -> JsString(name),
+              Constants.BundledDependsIdKey -> JsObject(DxUtils.DxLinkKey -> JsString(id)),
+              Constants.BundledDependsStagesKey -> JsArray(Vector.empty)
+          )
+      }
+      .toVector
 
     // Include runtimeAsset in bundledDepends
     val bundledDepends =
@@ -286,7 +298,9 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     )
     // Add hard-coded instance type info to details
     val instanceTypeDetails: Map[String, JsValue] = applet.instanceType match {
-      case StaticInstanceType(Some(staticInstanceType), _, _, _, _, _, _, _, _, _) =>
+      case StaticInstanceType(
+          InstanceTypeRequest(Some(staticInstanceType), _, _, _, _, _, _, _, _, _, _)
+          ) =>
         Map(Constants.StaticInstanceType -> JsString(staticInstanceType))
       case _ => Map.empty
     }

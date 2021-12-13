@@ -4,7 +4,7 @@
 <%@ val waitOnUpload: Boolean %>
 <%@ val bashDollar: String = "$" %>
 
-${include("workflow_script.ssp")}
+${include("manifest_dxda_script.ssp")}
 
 main() {
     java -jar ${bashDollar}{DX_FS_ROOT}/${runtimeJar} workflow run ${bashDollar}{HOME} -traceLevel ${runtimeTraceLevel} ${if (separateOutputs) "-separateOutputs"} ${if (waitOnUpload) "-waitOnUpload"}

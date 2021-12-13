@@ -1,6 +1,6 @@
 package dx.compiler
 
-import dx.api.{DxApi, DxUtils, DxWorkflowStage, Field}
+import dx.api.{DxApi, DxApplet, DxUtils, DxWorkflow, DxWorkflowStage, Field, InstanceTypeRequest}
 import dx.core.Constants
 import dx.core.ir._
 import dx.translator.CallableAttributes._
@@ -10,8 +10,7 @@ import spray.json._
 
 import scala.collection.immutable.SeqMap
 import dx.translator.DockerRegistry
-import dx.api.DxWorkflow
-import dx.api.DxApplet
+import dx.core.ir.RunSpec.StaticInstanceType
 
 case class WorkflowCompiler(separateOutputs: Boolean,
                             extras: Option[Extras],
@@ -558,20 +557,45 @@ case class WorkflowCompiler(separateOutputs: Boolean,
         } else {
           irExecutable.inputVars.zip(stage.inputs)
         }
-        val stageAttrs = Vector(
-            "id" -> JsString(stage.dxStage.id),
-            "executable" -> JsString(dxExec.id),
-            "name" -> JsString(stage.description),
-            "input" -> stageInputToNative(linkedInputs)
-        )
-        val folderAttr = if (separateOutputs) {
-          val folderName = s"${workflow.name}_${stage.dxStage.id}"
-          Vector("folder" -> JsString(folderName))
-        } else {
-          Vector.empty
+        val systemRequirements = irExecutable match {
+          // specify the instance type for native app stubs that specify it in the runtime section
+          case Application(
+              _,
+              _,
+              _,
+              StaticInstanceType(
+                  InstanceTypeRequest(Some(staticInstanceType), _, _, _, _, _, _, _, _, _, _)
+              ),
+              _,
+              _: ExecutableKindNative,
+              _,
+              _,
+              _,
+              _,
+              _,
+              _
+              ) =>
+            Some(
+                "systemRequirements" -> JsObject(
+                    "*" -> JsObject(
+                        "instanceType" -> JsString(staticInstanceType)
+                    )
+                )
+            )
+          case _ => None
         }
-        // convert the per-stage metadata into JSON
-        JsObject((stageAttrs ++ folderAttr).toMap)
+        JsObject(
+            Vector(
+                Some("id" -> JsString(stage.dxStage.id)),
+                Some("executable" -> JsString(dxExec.id)),
+                Some("name" -> JsString(stage.description)),
+                Some("input" -> stageInputToNative(linkedInputs)),
+                Option.when(separateOutputs)(
+                    "folder" -> JsString(s"${workflow.name}_${stage.dxStage.id}")
+                ),
+                systemRequirements
+            ).flatten.toMap
+        )
       }
     // build the details JSON
     val defaultTags = Set(Constants.CompilerTag)

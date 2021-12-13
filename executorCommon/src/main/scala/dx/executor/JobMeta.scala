@@ -111,7 +111,9 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
 
   def jobId: String
 
-  def runJobScriptFunction(name: String, successCodes: Option[Set[Int]] = Some(Set(0))): Unit
+  def runJobScriptFunction(name: String,
+                           successCodes: Option[Set[Int]] = Some(Set(0)),
+                           truncateLogs: Boolean = true): Unit
 
   def rawJsInputs: Map[DxName, JsValue]
 
@@ -244,7 +246,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
             .keys
             .map {
               case dxFile: DxFile =>
-                dxFile -> workerPaths.getManifestFilesDir().resolve(dxFile.getName)
+                dxFile -> workerPaths.getManifestFilesDir().resolve(dxFile.getName).asJavaPath
               case other => throw new Exception(s"unexpected result ${other}")
             }
             .toMap
@@ -280,7 +282,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
         .map(h => Vector(Manifest.parse(h, dxNameFactory)))
         .getOrElse(Vector.empty) ++
         downloadAndParseManifests(manifestFiles,
-                                  workerPaths.getDxdaManifestDownloadManifestFile(),
+                                  workerPaths.getDxdaManifestDownloadManifestFile().asJavaPath,
                                   JobMeta.ManifestDownloadDxda)
       // create lookup function for manifests
       val manifestLookup: (String, DxName) => Option[JsValue] = manifests.size match {
@@ -314,9 +316,11 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
         val workflowManifests = workflowManifestHash
           .map(h => Vector(Manifest.parse(h, dxNameFactory)))
           .getOrElse(Vector.empty) ++
-          downloadAndParseManifests(workflowManifestFiles,
-                                    workerPaths.getDxdaWorkflowManifestDownloadManifestFile(),
-                                    JobMeta.WorkflowManifestDownloadDxda)
+          downloadAndParseManifests(
+              workflowManifestFiles,
+              workerPaths.getDxdaWorkflowManifestDownloadManifestFile().asJavaPath,
+              JobMeta.WorkflowManifestDownloadDxda
+          )
         val workflowManifestLinks: Map[DxName, JsValue] =
           (rawInputs.get(Constants.WorkflowInputLinks) match {
             case Some(JsObject(fields)) if fields.contains(Constants.ComplexValueKey) =>
@@ -502,7 +506,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
     logger.trace(s"Creating FileSourceResolver localDirectories = ${workerPaths.getWorkDir()}")
     val dxProtocol = DxFileAccessProtocol(dxApi, dxFileDescCache)
     val fileResolver = FileSourceResolver.create(
-        localDirectories = Vector(workerPaths.getWorkDir()),
+        localDirectories = Vector(workerPaths.getWorkDir().asJavaPath),
         userProtocols = Vector(dxProtocol),
         logger = logger
     )
@@ -561,6 +565,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
   lazy val executableLinkDeserializer: ExecutableLinkDeserializer =
     ExecutableLinkDeserializer(dxNameFactory, dxApi)
 
+  private val detailToFilenameRegex = "[^\\w_]".r
+
   /**
     * Prepares the inputs for a subjob. If using manifests, creates a manifest
     * with the same output ID as the current job.
@@ -594,10 +600,13 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
         // For large subjob inputs, put them in a compact manifest file and upload it.
         // If there is a name detail, there are probably going to be a large number of manifest
         // files, so put them in a subfolder.
+        // TODO: it is unclear if we'll ever need a manifest id here, and if so, what the id should be
+        val manifestDetail =
+          nameDetail.map(d => s"/${detailToFilenameRegex.replaceAllIn(d, "_")}").getOrElse("")
         val manifestFilename =
-          s"${jobId}_subjob${nameDetail.map(d => s"/${d}").getOrElse("")}.manifest.json"
+          s"${manifestProjectAndFolder}/${jobId}_subjob${manifestDetail}.manifest.json"
         val manifestDxFile =
-          dxApi.uploadString(manifestJsStr, s"${manifestProjectAndFolder}/${manifestFilename}")
+          dxApi.uploadString(manifestJsStr, manifestFilename)
         Map(Constants.InputManifestFiles -> JsArray(manifestDxFile.asJson))
       }
       val commonInputsJs = Vector(
@@ -937,35 +946,40 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths,
   lazy val project: DxProject =
     dxApi.currentProject.getOrElse(throw new Exception("no current project"))
 
-  private val rootDir = workerPaths.getRootDir()
+  private val rootDir = workerPaths.getRootDir().asJavaPath
   private val inputPath = rootDir.resolve(JobMeta.InputFile)
   private val outputPath = rootDir.resolve(JobMeta.OutputFile)
   private val jobInfoPath = rootDir.resolve(JobMeta.JobInfoFile)
   private val executableInfoPath = rootDir.resolve(JobMeta.ExecutableInfoFile)
 
   def codeFile: Path = {
-    workerPaths.getRootDir().resolve(s"${jobId}.code.sh")
+    workerPaths.getRootDir().resolve(s"${jobId}.code.sh").asJavaPath
   }
 
   override def runJobScriptFunction(name: String,
-                                    successCodes: Option[Set[Int]] = Some(Set(0))): Unit = {
+                                    successCodes: Option[Set[Int]] = Some(Set(0)),
+                                    truncateLogs: Boolean = true): Unit = {
     val command = s"bash -c 'source ${codeFile} && ${name}'"
     logger.trace(s"Running job script function ${name}")
     val (rc, stdout, stderr) = SysUtils.execCommand(command, exceptionOnFailure = false)
     if (successCodes.forall(_.contains(rc))) {
-      logger.traceLimited(
+      val limit = if (truncateLogs) Some(1000) else None
+      logger.trace(
           s"""Job script function ${name} exited with success code ${rc}
-             |stdout:
-             |${stdout}""".stripMargin,
+             |----- stdout -----
+             |${stdout}
+             |------------------""".stripMargin,
+          maxLength = limit,
           showBeginning = true,
           showEnd = true
       )
     } else {
       logger.error(s"""Job script function ${name} exited with permanent fail code ${rc}
-                      |stdout:
+                      |----- stdout -----:
                       |${stdout}
-                      |stderr:
-                      |${stderr}""".stripMargin)
+                      |----- stderr-----:
+                      |${stderr}
+                      |-----------------""".stripMargin)
       throw new Exception(s"job script function ${name} exited with permanent fail code ${rc}")
     }
   }

@@ -1,9 +1,19 @@
 # Release Notes
 
-## 2.8.0 2021-11-24
+## in develop
+
+* Excludes apps from `bundledDepends`
+* Localizes files declared in WDL task private variables
+* Respects runtime definition in native task stub
+* Fixes archiving of executables - tags them as "dxCompilerArchived" rather than renaming them
+* Fixes error when parsing a field name with multiple `stage-*` prefixes (specifically with stage number >= 10)
+* Logs full output of command execution 
+
+## 2.8.0 2021-11-29
 
 * Indicates whether static instance type selection was used in workflow description annotations and metadata
 * Supports cloning workflows between projects, a prerequisite for publishing global workflows
+* Fixes dxda manifest downloads for tasks
 
 ## 2.7.2 2021-11-20
 
