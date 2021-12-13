@@ -1092,8 +1092,8 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
                     return True
 
             if isinstance(expected, dict) and (
-                    expected.get("class") in {"File", "Directory"} or
-                    expected.get("type") in {"File", "Folder"}
+                expected.get("class") in {"File", "Directory"} or
+                expected.get("type") in {"File", "Folder"}
             ):
                 return compare_result_path(actual, expected, field_name1, tname, project)
 
