@@ -59,7 +59,7 @@ expected_failure = {
     "fail-unconnected",
 }
 
-reuse_jobs={"nested_manifest":["*"], "from_scatter_manifest":["*"], "scatter_file_manifest":["*"], "nested_outer":["*"]}
+reuse_jobs={"nested_manifest":["*"], "from_scatter_manifest":["*"], "scatter_file_manifest":["*"], "nested_outer2":["*"]}
 
 test_compilation_failing = {"import_passwd"}
 
@@ -133,7 +133,8 @@ wdl_v1_list = [
     "apps_864",
     "nested_manifest",
     "from_scatter_manifest",
-    "scatter_file_manifest"
+    "scatter_file_manifest",
+    "nested_outer2"
 ]
 
 wdl_v1_1_list = [
@@ -663,7 +664,6 @@ def register_test(dir_path, tname, ext):
             verify_json_file(reuse_input)
             desc.reuse_input.append(reuse_input)
             desc.reuse_dx_input.append(os.path.join(dir_path, tname + "_reuse_input.dx.json"))
-
     # check if the alternate naming scheme is used for tests with multiple inputs
     i = 1
     while True:
@@ -1992,7 +1992,7 @@ def main():
                     args.delay_run_errors,
                     reuse=True
                 )
-                time.sleep(5) # without this, jobs wouldn't be reused occasionally - they would be started too quickly after each other
+                time.sleep(5)  # without this, jobs wouldn't be sometimes reused - they would be started too quickly
         run_test_subset(
             project,
             runnable,

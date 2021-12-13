@@ -169,6 +169,18 @@ It's also possible to specify one test to run from the [/test](/test) directory 
 
 Check the test runner script `--help` for more options.
 
+### Adding integration tests
+
+* Create workflow file and put it somewhere into `/test` folder
+* In `/scripts/run_tests.py` add test name (without extension) to an appropriate test list - these are on top of the file
+
+#### Integration tests - special cases
+
+There are some special cases in `run_tests.py` script. If your test is supposed to do one of the following, follow the steps.
+* FAIL DURING COMPILATION: add the test name to the `test_compilation_failing` list
+* FAIL: add the test name to `expected_failure` list
+* BE REUSED: add the test name as a key to `reuse_jobs` dictionary - value should be list of stage ids that should fail, or `*` if everything should be reused. If there is `reuse_<file_name>.<ext>` workflow and `<file_name>_reuse_inputs.json` input present in the same folder, it will be run before the test that is checked for reuse. If there are no such files, the test file with be run twice.
+
 ### Test data on platform
 
 Any files that tests rely on should be stored in `dxCompiler_playground:/test_data/` on `staging`.
