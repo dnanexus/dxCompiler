@@ -7,6 +7,7 @@
 * Respects runtime definition in native task stub
 * Fixes archiving of executables - tags them as "dxCompilerArchived" rather than renaming them
 * Fixes error when parsing a field name with multiple `stage-*` prefixes (specifically with stage number >= 10)
+* Logs full output of command execution 
 
 ## 2.8.0 2021-11-29
 

@@ -53,7 +53,8 @@ private case class WorkflowTestJobMeta(override val workerPaths: DxWorkerPaths,
   override val jobId: String = null
 
   override def runJobScriptFunction(name: String,
-                                    successCodes: Option[Set[Int]] = Some(Set(0))): Unit = ()
+                                    successCodes: Option[Set[Int]] = Some(Set(0)),
+                                    truncateLogs: Boolean = true): Unit = ()
 
   override val analysis: Option[DxAnalysis] = None
 

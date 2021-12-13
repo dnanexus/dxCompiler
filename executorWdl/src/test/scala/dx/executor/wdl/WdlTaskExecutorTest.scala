@@ -73,7 +73,8 @@ private case class TaskTestJobMeta(override val workerPaths: DxWorkerPaths,
   override lazy val jobId: String = s"job-${Random.alphanumeric.take(24).mkString}"
 
   override def runJobScriptFunction(name: String,
-                                    successCodes: Option[Set[Int]] = Some(Set(0))): Unit = {
+                                    successCodes: Option[Set[Int]] = Some(Set(0)),
+                                    truncateLogs: Boolean = false): Unit = {
     name match {
       case TaskExecutor.DownloadDxda if downloadFiles && !dxdaCallable =>
         throw new Exception("cannot call dxda")
