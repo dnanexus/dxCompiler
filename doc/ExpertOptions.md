@@ -32,6 +32,7 @@ dxCompiler takes a pipeline written in WDL and statically compiles it to an equi
 - [Debugging an applet](#debugging-an-applet)
   * [Getting WDL sources](#getting-wdl-sources)
 - [Recompilation](#recompilation)
+- [Publishing global workflows](#publishing-global-workflows)
 
 # Getting started
 
@@ -1555,3 +1556,71 @@ dx describe /builds/1.02/applets/hello --json --details | jq '.details | .wdlSou
 # Recompilation
 
 Any significant WDL workflow is compiled into multiple DNAnexus applets and workflows. Naively, any modification to the WDL source would necessitate recompilation of all the constituent objects, which is expensive. To optimize this use case, all generated platform objects are checksumed. If a dx:object has not changed, it is not recompiled, and the existing version can be used. The checksum covers the WDL source code, the DNAnexus runtime specification, and any other attributes. There are two exceptions: the project name, and the folder. This allows moving WDL workflows in the folder hierarchy without recompilation.
+
+# Publishing global workflows
+
+Publishing a dxCompiler WDL workflow as a global workflow is supported from dxCompiler >= `v2.8.0`
+and dxpy >= `v0.318.0`
+
+Example: compiling a WDL workflow for later use as a global workflow.
+```
+java -jar dxCompiler.jar compile <workflow name>.wdl -instanceTypeSelection dynamic
+```
+
+Example: publishing a global workflow from a compiled workflow. The global workflow's name will
+match the WDL workflow name. The global workflow's version must be set with `--version`, since
+a non-global workflow has no such property. If `--bill-to` is not specified, the publishing
+user's default billTo will be assumed.
+```
+dx build --globalworkflow --from <workflow id> --version <version> --bill-to <user-xxxx | org-yyyy>
+dx publish globalworkflow-<workflow name>/<version>
+```
+
+Example: adding authorized users to a global workflow
+```
+dx add users globalworkflow-<workflow name> <user-xxxx | org-yyyy | PUBLIC>
+```
+
+See [Limitations](#limitations) below for more details on which parts of the workflow will be
+automatically included in the global workflow.
+
+## Recommendations
+
+- _TODO_ Developers should not store any credentials and passwords in the source code of the gwf as authorized users can download any applets referenced by the gwf
+
+- _TODO_ Developers should use simple types for input/output interfaces for global workflows for better platform experience.
+
+- _TODO_ Specify runtime resources using memory, disk, cpu requirements (not hard-coded instance types `dx_instance_type`) for better compatibility across runtime projects.
+
+- _TODO_ Compile with `-instanceTypeSelection dynamic` for better compatibility across runtime projects, but expect longer runtime.
+
+- _TODO_ The developer of a global WDL-based workflow should include a pointer to WDL git repo commit that the workflow is based on for informational purposes by updating the "description" metadata field of the global workflow to include it.
+
+## Limitations
+
+- _TODO_ Currently only supported for WDL workflows, not workflows created from other languages, like CWL.
+
+- _TODO_ What will be cloned with the workflow
+
+- _TODO_ What will not be cloned with the workflow
+
+For some types of workflow dependencies, the user must have access to them at runtime in order to be able to use the global workflow. These include
+
+- Apps on the platform (user needs permission to use the apps)
+- Files referenced by file paths in workflow inputs or body (user needs access to the files)
+- Credentials file for a private Docker registry (user needs access to the file)
+- Docker containers that are external, or dynamically specified at runtime
+- Hard-coded `dx_instance_type` (runtime project needs to support the instance type; using numeric resource requirements is preferred)
+
+Any usage of the above in a workflow (including in its tasks and sub-workflows) will produce a warning in the workflow's `description` metadata field, which can be viewed using:
+```
+dx describe globalworkflow-<name>/<version> --json | jq -rc '.description | tostring'
+```
+
+This also works for a regular workflow:
+```
+dx describe <project-xxxx>:<workflow-yyyy> --json | jq -rc '.description | tostring'
+```
+
+- _TODO_ Currently single-region (same region that original WF was compiled in)
+>>>>>>> a6040db5... Initial work, documentation to-dos.
