@@ -463,11 +463,11 @@ long_test_list = [
 ]
 
 medium_test_list = (
-        wdl_v1_list + wdl_v1_1_list + docker_test_list + special_flags_list + cwl_tools
+    wdl_v1_list + wdl_v1_1_list + docker_test_list + special_flags_list + cwl_tools
 )
 large_test_list = (
-        medium_test_list + draft2_test_list + single_tasks_list + doc_tests_list + long_test_list +
-        cwl_conformance_tools + cwl_conformance_workflows + cromwell_tests_list
+    medium_test_list + draft2_test_list + single_tasks_list + doc_tests_list + long_test_list +
+    cwl_conformance_tools + cwl_conformance_workflows + cromwell_tests_list
 )
 
 test_suites = {
@@ -571,7 +571,7 @@ def get_wdl_metadata(filename):
     if len(tasks) == 1:
         return TestMetaData(name=tasks[0], kind="applet")
     if os.path.basename(filename).startswith("library") or os.path.basename(
-            filename
+        filename
     ).endswith("_extern"):
         return
     raise RuntimeError(
@@ -1725,13 +1725,13 @@ def native_call_app_setup(version_id, verbose):
 # delay_compile_errors: whether to aggregate all compilation errors
 #   and only raise an Exception after trying to compile all the tests
 def compile_tests_to_project(
-        trg_proj,
-        test_names,
-        applet_folder,
-        compiler_flags,
-        version_id,
-        lazy_flag,
-        delay_compile_errors=False,
+    trg_proj,
+    test_names,
+    applet_folder,
+    compiler_flags,
+    version_id,
+    lazy_flag,
+    delay_compile_errors=False,
 ):
     global test_files
     reuse_oids = {}
