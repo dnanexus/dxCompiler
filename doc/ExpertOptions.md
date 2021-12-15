@@ -549,7 +549,7 @@ task add {
 workflow math {
     call add { input: a = 3 }
     output {
-       add.result
+       Int result = add.result
     }
 }
 ```
@@ -644,9 +644,9 @@ task concat {
     String c = ""
   }
   runtime {
-    dx_app: {
-      "id": "applet-xxxx",
-      "type": "applet" 
+    dx_app: object {
+      id: "applet-xxxx",
+      type: "applet" 
     }
   }
 }
@@ -662,7 +662,7 @@ workflow w {
     input: a="double", b="espresso"
   }
   output {
-    concat.c
+    String result = concat.c
   }
 }
 ```
@@ -684,9 +684,9 @@ task concat {
   ...
     
   runtime {
-    dx_app: {
-      "id": "app-xxxx",
-      "type": "app"
+    dx_app: object {
+      id: "app-xxxx",
+      type: "app"
     }
   }
 }
@@ -701,9 +701,9 @@ task concat {
   ...
     
   runtime {
-    dx_app: {
-      "name": "concat_native/1.0.0",
-      "type": "app"
+    dx_app: object {
+      name: "concat_native/1.0.0",
+      type: "app"
     }
   }
 }
