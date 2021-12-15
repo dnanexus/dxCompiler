@@ -460,10 +460,10 @@ cwl_cromwell_tests_list = [
     "cwl_dynamic_initial_workdir",
     "cwl_expressionLib",
     "cwl_format",
-    # "cwl_format_url", # Could not load extension schema https
+    # "cwl_format_url", # APPS-961 Could not load extension schema https
     "cwl_glob_sort",
     "cwl_hello",
-    # "cwl_http_inputs", # HTTPS input link is not supported: 
+    # "cwl_http_inputs", # APPS-961 HTTPS input link is not supported: 
     #                     Error translating inputs: java.lang.RuntimeException: Unsupported file source .png
     "test_wf",
     "touch",
@@ -477,17 +477,17 @@ cwl_cromwell_tests_list = [
     "prefix_for_array",
     "cwl_recursive_link_directories",
     "cwl_relative_imports",
-    # "cwl_disk_resources", # Could not resolve host: metadata.google.internal
-    #                         # Unknown hint https://www.dnanexus.com/cwl#InputResourceRequirement (Should be deprecated)
+    # "cwl_disk_resources", # APPS-961 Could not resolve host: metadata.google.internal
+    #                       # Unknown hint https://www.dnanexus.com/cwl#InputResourceRequirement (Should be deprecated)
     # "cwl_inputdir_zero_doesnt_localize", # Error translating to IR
-    # "cwl_resources", # Could not resolve host: metadata.google.internal
-    # "cwl_restart", # AppInternalError: workflow does not contain a tool APPS-834
+    # "cwl_resources", # APPS-961 Could not resolve host: metadata.google.internal
+    # "cwl_restart", # APPS-834 AppInternalError: workflow does not contain a tool 
     "1st-tool",
     "cwl_secondary_files",
     # "cwl_secondary_files_workflow", # Error creating translator
     "cwl_stdout_expression",
-    # "scatter-wf1", # Could not find linking information APPS-834
-    # "cwl_three_step", # AppInternalError: workflow does not contain a tool APPS-834
+    # "scatter-wf1", # APPS-834 Could not find linking information 
+    # "cwl_three_step", # APPS-834 AppInternalError: workflow does not contain a tool 
     # "cwl_three_step_caller_wf" # Error translating to IR
 ]
 
