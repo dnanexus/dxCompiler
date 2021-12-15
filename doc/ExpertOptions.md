@@ -10,11 +10,11 @@ dxCompiler takes a pipeline written in WDL and statically compiles it to an equi
   * [Directories](#directories)
 - [Task metadata](#task-metadata)
   * [meta section](#meta-section)
-    + [Calling existing applets](#calling-existing-applets)
-    + [Calling apps](#calling-apps)
   * [parameter_meta section](#parameter_meta-section)
   * [Runtime hints](#runtime-hints)
   * [Example task with DNAnexus-specific metadata and runtime](#example-task-with-dnanexus-specific-metadata-and-runtime)
+- [Calling existing applets](#calling-existing-applets)
+  * [Calling apps](#calling-apps)
 - [Setting DNAnexus-specific attributes in extras.json](#setting-dnanexus-specific-attributes-in-extrasjson)
   * [Job reuse](#job-reuse)
   * [Delay workspace destruction](#delay-workspace-destruction)
@@ -597,137 +597,6 @@ The following keys are also recognized but currently unused, as they only apply 
 * `open_source`: Whether the generated app should be open-source
 * `version`: The app version
 
-### Calling existing applets
-
-Sometimes, it is desirable to call an existing DNAnexus applet from a WDL workflow. For example, when porting a native workflow, we can leave the applets as is, without rewriting them in WDL. The `dxni` subcommand, short for *Dx Native Interface*, is dedicated to this use case. It searchs a platform folder and generates a WDL wrapper task for each applet. For example, the command:
-
-```console
-$ java -jar dxCompiler-xxx.jar dxni -project project-xxxx -folder /A/B/C --output dx_extern.wdl
-```
-
-will find native applets in the `/A/B/C` folder, generate tasks for them, and write to local file `dx_extern.wdl`. If an
-applet has the `dxapp.json` signature:
-
-```
-{
-  "name": concat,
-  "inputSpec": [
-    {
-      "name": "a",
-      "class": "string"
-    },
-    {
-      "name": "b",
-      "class": "string"
-    }
-  ],
-  "outputSpec": [
-    {
-      "name": "result",
-      "class": "string"
-    }]
-}
-```
-
-The WDL definition file will be:
-
-```wdl
-version 1.0
-  
-task concat {
-  input {
-    String a
-    String b
-  }
-  command {}
-  output {
-    String c = ""
-  }
-  runtime {
-    dx_app: object {
-      id: "applet-xxxx",
-      type: "applet" 
-    }
-  }
-}
-```
-
-The meta section includes the applet-id, which will be called at runtime. A WDL file can call the `concat` task as follows:
-
-```wdl
-import "dx_extern.wdl" as lib
-
-workflow w {
-  call lib.concat as concat {
-    input: a="double", b="espresso"
-  }
-  output {
-    String result = concat.c
-  }
-}
-```
-
-### Calling apps
-
-To generate WDL calling apps instead of applets, use
-
-```console
-$ java -jar dxCompiler.jar dxni -apps only -o my_apps.wdl
-```
-
-The compiler will search for all the apps you can call, and create WDL tasks for them. The WDL definition file look like be:
-
-```wdl
-version 1.0
-  
-task concat {
-  ...
-    
-  runtime {
-    dx_app: object {
-      id: "app-xxxx",
-      type: "app"
-    }
-  }
-}
-```
-
-You can also use `dx_app_name` rather than `dx_app_id` to specify the app by name, e.g.
-
-```wdl
-version 1.0
-  
-task concat {
-  ...
-    
-  runtime {
-    dx_app: object {
-      name: "concat_native/1.0.0",
-      type: "app"
-    }
-  }
-}
-```
-
-Note: in version `development` (aka `2.0`), the `runtime` section no longer allows arbitrary keys. Instead, use the hints section:
-
-```wdl
-version development
-  
-task concat {
-  ...
-    
-  hints {
-    dnanexus: {
-      "app": {
-        "name": "concat_native/1.0.0",
-        "type": "app"
-      }
-    }
-  }
-}
-```
-
 ## parameter_meta section
 
 The [WDL Spec](https://github.com/openwdl/wdl/blob/master/versions/1.0/SPEC.md#parameter-metadata-section) defines a `parameter_meta` section that may contain key value pairs to assoicate metadata with input and output variables. Currently, the following keywords are supported:
@@ -970,6 +839,160 @@ task bwa_mem {
 ```
 
 \* Note the comma seperating the members of the objects within meta and paramter_meta
+
+# Calling existing app(let)s
+
+The DNAnexus tools library provides apps for many existing bioinformatics tools, and you may have already developed app(let)s of your own. You may want to use these existing app(let)s rather than rewriting them in WDL. Calling a native app(let) from WDL can be done using a native task wrapper. The dxCompiler `dxni` subcommand is provided to generate native task wrappers automatically. It can generate a wrapper for a specific app(let), all apps, and/or all applets in a specific platform folder. For example, the command:
+
+```console
+$ java -jar dxCompiler-xxx.jar dxni -project project-xxxx -folder /A/B/C --output dx_extern.wdl
+```
+
+will find native applets in the `/A/B/C` folder, generate tasks for them, and write to local file `dx_extern.wdl`. If an applet has the `dxapp.json` signature:
+
+```
+{
+  "name": concat,
+  "inputSpec": [
+    {
+      "name": "a",
+      "class": "string"
+    },
+    {
+      "name": "b",
+      "class": "string"
+    }
+  ],
+  "outputSpec": [
+    {
+      "name": "result",
+      "class": "string"
+    }]
+}
+```
+
+The WDL definition file will be:
+
+```wdl
+version 1.0
+  
+task concat {
+  input {
+    String a
+    String b
+  }
+  command {}
+  output {
+    String c = ""
+  }
+  runtime {
+    dx_app: object {
+      id: "applet-xxxx",
+      type: "applet" 
+    }
+  }
+}
+```
+
+The runtime section includes the ID of the app(let) that will be called at runtime.
+
+A WDL workflow can call the `concat` task as follows:
+
+```wdl
+import "dx_extern.wdl" as lib
+
+workflow w {
+  call lib.concat as concat {
+    input: a="double", b="espresso"
+  }
+  output {
+    String result = concat.c
+  }
+}
+```
+
+## Calling apps
+
+To generate WDL calling apps instead of applets, use
+
+```console
+$ java -jar dxCompiler.jar dxni -apps only -o my_apps.wdl
+```
+
+The compiler will search for all the apps you can call and create WDL tasks for them. The WDL task will look like:
+
+```wdl
+version 1.0
+  
+task concat {
+  ...
+    
+  runtime {
+    dx_app: object {
+      id: "app-xxxx",
+      type: "app"
+    }
+  }
+}
+```
+
+You can also use `dx_app.name` rather than `dx_app.id` to specify the app by name, e.g.
+
+```wdl
+version 1.0
+  
+task concat {
+  ...
+    
+  runtime {
+    dx_app: object {
+      name: "concat_native/1.0.0",
+      type: "app"
+    }
+  }
+}
+```
+
+## Calling app(let)s using WDL `development`
+
+In version `development` (aka `2.0`), the `runtime` section no longer allows arbitrary keys. Instead, use the hints section:
+
+```wdl
+version development
+  
+task concat {
+  ...
+    
+  hints {
+    dnanexus: {
+      "app": {
+        "name": "concat_native/1.0.0",
+        "type": "app"
+      }
+    }
+  }
+}
+```
+
+## Overriding the native app(let) instance type
+
+By default, when a native app(let) is called it is run using its default instance type. This can be overridden in a native task wrapper just as it can with a regular task:
+
+```wdl
+version 1.0
+  
+task concat {
+  ...
+    
+  runtime {
+    dx_app: object {
+      name: "concat_native/1.0.0",
+      type: "app"
+    }
+    dx_instance_type: "mem1_ssd1_v2_x4"
+  }
+}
+```
 
 # Setting DNAnexus-specific attributes in extras.json
 
