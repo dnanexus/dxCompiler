@@ -118,8 +118,8 @@ val executorCwl = project
           dependencies.typesafe,
           dependencies.cwlScala
       ),
-      assemblyJarName in assembly := "dxExecutorCwl.jar",
-      assemblyOutputPath in assembly := file("applet_resources/CWL/resources/dxExecutorCwl.jar")
+      assembly / assemblyJarName := "dxExecutorCwl.jar",
+      assembly / assemblyOutputPath := file("applet_resources/CWL/resources/dxExecutorCwl.jar")
   )
   .dependsOn(core, executorCommon)
 
