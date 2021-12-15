@@ -1182,28 +1182,17 @@ The workflow `parameter_meta` section supports the same attributes as the task `
 
 # Handling intermediate workflow outputs
 
-A workflow may create a large number of files, taking up significant
-disk space, and incurring storage costs. Some of the files are
-workflow outputs, but many of them may be intermediate results that
-are not needed once the workflow completes. By default, all outputs
-are stored in one platform folder. With the `--reorg` flag, the
-intermediate results are moved into a subfolder named
-"intermediate". This is achieved by adding a stage to the workflow
-that reorganizes the output folder, it uses `CONTRIBUTE` access to
-reach into the parent project, create a subfolder, and move files into
-it.
+A workflow may create a large number of files, taking up significant disk space, and incurring storage costs. Some of the files are workflow outputs, but many of them may be intermediate results that are not needed once the workflow completes. By default, all outputs are stored in one platform folder. With the `--reorg` flag, the intermediate results are moved into a subfolder named "intermediate". This is achieved by adding a stage to the workflow that reorganizes the output folder, it uses `CONTRIBUTE` access to reach into the parent project, create a subfolder, and move files into it.
 
 ## Use your own applet
 
-You may want to use a different applet than the one provided with `--reorg`. To
-do that, write a native applet, and call it at the end your workflow.
+You may want to use a different applet than the one provided with `--reorg`. To do that, write a native applet, and call it at the end your workflow.
 
-Writing your own applet for reorganization purposes is tricky. If you are not careful,
-it may misplace or outright delete files. The applet:
-1. requires `CONTRIBUTE` project access, so it can move files and folders around.
-2. has to be idempotent, so that if the instance it runs on crashes, it can safely restart.
-3. has to be careful about inputs that are *also* outputs. Normally, these should not be moved.
-4. should use bulk object operations, so as not to overload the API server. 
+Writing your own applet for reorganization purposes is tricky. If you are not careful, it may misplace or outright delete files. The applet:
+1. Requires `CONTRIBUTE` project access, so it can move files and folders around.
+2. Has to be idempotent, so that if the instance it runs on crashes, it can safely restart.
+3. Has to be careful about inputs that are *also* outputs. Normally, these should not be moved.
+4. Should use bulk object operations, so as not to overload the API server. 
    
 You must also be aware that the analysis information is updated in the platform's database asynchronously, so the result of calling `dx describe` on the analysis may not be up-to-date. The most reliable method for making sure you have an up-to-date analysis description is to call `dx describe` in a loop (waiting at least 3 seconds between iterations), and exit the loop when the `dependsOn` field returns an array that contains exactly one item - the ID of the reorg job itself. See the [example](CustomReorgAppletExample.md).
 
