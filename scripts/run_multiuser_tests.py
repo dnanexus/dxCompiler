@@ -82,7 +82,9 @@ def build_workflow(wf_source, project_id, folder, version_id, compiler_flags):
         project_id
     ]
     cmdline += compiler_flags
-    print(" ".join(cmdline))
+    # print(" ".join(cmdline))
+    # debug
+    print(cmdline[9])
     try:
         oid = subprocess.check_output(cmdline).strip()
     except subprocess.CalledProcessError as cpe:
@@ -222,7 +224,7 @@ def main():
     if project is None:
         raise RuntimeError("Could not find project {}".format(args.project))
     print("Project {} ({})".format(project.name, project.get_id()))
-    register_project(project.get_id)
+    register_project(project.get_id())
 
     # Do folder setup as Alice
     login_alice()
