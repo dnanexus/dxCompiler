@@ -35,9 +35,11 @@ def register_version(version_id):
     global VERSION_ID
     VERSION_ID = version_id
 
-def register_project(project_id, applet_folder, test_folder):
+def register_project(project_id):
     global PROJECT_ID
     PROJECT_ID = project_id
+
+def register_folders(applet_folder, test_folder):
     global APPLET_FOLDER
     APPLET_FOLDER = applet_folder
     global TEST_FOLDER
@@ -46,11 +48,13 @@ def register_project(project_id, applet_folder, test_folder):
 def login_alice():
     dxpy.set_api_server_info(host="stagingapi.dnanexus.com")
     dxpy.set_security_context(ALICE_SECURITY_CONTEXT)
+    dxpy.set_project_context(PROJECT_ID)
     print("Logged in as {}".format(dxpy.bindings.whoami()))
 
 def login_bob():
     dxpy.set_api_server_info(host="stagingapi.dnanexus.com")
     dxpy.set_security_context(BOB_SECURITY_CONTEXT)
+    dxpy.set_project_context(PROJECT_ID)
     print("Logged in as {}".format(dxpy.bindings.whoami()))
 
 def specific_applet_folder(tname):
@@ -122,6 +126,7 @@ def test_global_wf_from_wdl():
         "dx",
         "build",
         "--globalworkflow",
+        "--publish",
         "--from",
         workflow_id,
         "--version",
@@ -141,10 +146,37 @@ def test_global_wf_from_wdl():
         ))
         raise
 
-    global_workflow_name = "{}/{}".format(tname, global_workflow_version)
-    print(global_workflow_name)
+    global_workflow_name = "globalworkflow-{}".format(tname)
+    print("Global workflow name {}".format(global_workflow_name))
 
-    # TODO test developer actions on global workflow
+    # Do some developer actions on global workflow
+    add_developers_cmd = [
+        "dx",
+        "add",
+        "developers",
+        global_workflow_name,
+        "org-dnanexus_apps"
+    ]
+    add_users_cmd = [
+        "dx",
+        "add",
+        "users",
+        global_workflow_name,
+        "user-dnanexus_apps_test_robot"
+    ]
+
+    try:
+        subprocess.call(add_developers_cmd)
+        subprocess.call(add_users_cmd)
+    except subprocess.CalledProcessError as cpe:
+        print("Error during developer actions on {}\n stdout: {}\n stderr: {}".format(
+            global_workflow_name,
+            cpe.stdout,
+            cpe.stderr
+        ))
+        raise
+
+    # TODO test some more developer actions as Alice
 
     # As Bob, run global workflow
     login_bob()
@@ -186,28 +218,28 @@ def main():
     version_id = util.get_version_id(top_dir)
     register_version(version_id)
 
-    # Do folder setup as Alice
-    login_alice()
-
     project = util.get_project(args.project)
     if project is None:
         raise RuntimeError("Could not find project {}".format(args.project))
+    print("Project {} ({})".format(project.name, project.get_id()))
+    register_project(project.get_id)
+
+    # Do folder setup as Alice
+    login_alice()
+
     if args.folder is None:
         base_folder = util.create_build_dirs(project, version_id)
     else:
         # Use existing prebuilt base folder
         base_folder = args.folder
         util.create_build_subdirs(project, base_folder)
-    
-    print("project: {} ({})".format(project.name, project.get_id()))
-    print("folder: {}".format(base_folder))
+    print("Base folder {}".format(base_folder))
     applet_folder = base_folder + "/applets"
     test_folder = base_folder + "/test"
-    register_project(project.get_id(), applet_folder, test_folder)
-
-    test_dict = {"aws:us-east-1": project.name + ":" + base_folder}
+    register_folders(applet_folder, test_folder)
 
     # Build the dxCompiler jar file, only on us-east-1
+    test_dict = {"aws:us-east-1": project.name + ":" + base_folder}
     assets = util.build(project, base_folder, version_id, top_dir, test_dict,
                         force=False)
     print("assets: {}".format(assets))
