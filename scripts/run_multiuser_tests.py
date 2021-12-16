@@ -119,7 +119,7 @@ def test_global_wf_from_wdl():
     print("Global workflow version {}".format(global_workflow_version))
 
     # Build global workflow from workflow
-    global_workflow_name = "globalworkflow-{}/{}".format(tname, global_workflow_version)
+    global_workflow_name = "globalworkflow-{}".format(tname)
     print("Global workflow name {}".format(global_workflow_name))
 
     # TODO use full_workflow_id after
@@ -138,7 +138,7 @@ def test_global_wf_from_wdl():
     global_wf_publish_cmd = [
         "dx",
         "publish",
-        global_workflow_name
+        "{}/{}".format(global_workflow_name, global_workflow_version)
     ]
     try:
         print(" ".join(global_wf_build_cmd))
