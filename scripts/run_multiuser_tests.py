@@ -168,9 +168,10 @@ def test_global_wf_from_wdl():
         global_workflow_name,
         "user-dnanexus_apps_test_robot"
     ]
-
     try:
+        print(" ".join(add_developers_cmd))
         subprocess.call(add_developers_cmd)
+        print(" ".join(add_users_cmd))
         subprocess.call(add_users_cmd)
     except subprocess.CalledProcessError as cpe:
         print("Error during developer actions on {}\n stdout: {}\n stderr: {}".format(
