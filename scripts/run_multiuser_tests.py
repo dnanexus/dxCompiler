@@ -82,8 +82,8 @@ def build_workflow(wf_source, project_id, folder, version_id, compiler_flags):
         project_id
     ]
     cmdline += compiler_flags
-    print(" ".join(cmdline))
     try:
+        print(" ".join(cmdline))
         oid = subprocess.check_output(cmdline).strip()
     except subprocess.CalledProcessError as cpe:
         print("Error compiling {}\n stdout: {}\n stderr: {}".format(
@@ -119,14 +119,15 @@ def test_global_wf_from_wdl():
     print("Global workflow version {}".format(global_workflow_version))
 
     # Build global workflow from workflow
+    global_workflow_name = "globalworkflow-{}/{}".format(tname, global_workflow_version)
+    print("Global workflow name {}".format(global_workflow_name))
 
     # TODO use full_workflow_id after
     # https://jira.internal.dnanexus.com/browse/APPS-975 is fixed
-    global_workflow_cmd = [
+    global_wf_build_cmd = [
         "dx",
         "build",
         "--globalworkflow",
-        "--publish",
         "--from",
         workflow_id,
         "--version",
@@ -134,10 +135,16 @@ def test_global_wf_from_wdl():
         "--bill-to",
         BILLING_ORG
     ]
-    print(" ".join(global_workflow_cmd))
-
+    global_wf_publish_cmd = [
+        "dx",
+        "publish",
+        global_workflow_name
+    ]
     try:
-        subprocess.call(global_workflow_cmd)
+        print(" ".join(global_wf_build_cmd))
+        subprocess.call(global_wf_build_cmd)
+        print(" ".join(global_wf_publish_cmd))
+        subprocess.call(global_wf_publish_cmd)
     except subprocess.CalledProcessError as cpe:
         print("Error building global workflow from {}\n stdout: {}\n stderr: {}".format(
             workflow_id,
@@ -145,9 +152,6 @@ def test_global_wf_from_wdl():
             cpe.stderr
         ))
         raise
-
-    global_workflow_name = "globalworkflow-{}".format(tname)
-    print("Global workflow name {}".format(global_workflow_name))
 
     # Do some developer actions on global workflow
     add_developers_cmd = [
