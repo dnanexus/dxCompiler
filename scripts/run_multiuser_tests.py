@@ -82,9 +82,7 @@ def build_workflow(wf_source, project_id, folder, version_id, compiler_flags):
         project_id
     ]
     cmdline += compiler_flags
-    # print(" ".join(cmdline))
-    # debug
-    print(cmdline[9])
+    print(" ".join(cmdline))
     try:
         oid = subprocess.check_output(cmdline).strip()
     except subprocess.CalledProcessError as cpe:
