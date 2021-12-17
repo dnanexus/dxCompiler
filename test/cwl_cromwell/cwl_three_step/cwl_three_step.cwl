@@ -1,7 +1,6 @@
 #!/usr/bin/env cwl-runner
 cwlVersion: v1.2
 class: Workflow
-id: three_step
 hints:
   DockerRequirement:
     dockerPull: "ubuntu:latest"
@@ -66,7 +65,7 @@ steps:
     - valueFrom: grep
       shellQuote: false
     - valueFrom: $(inputs.pattern)
-      shellQuote: true
+      shellQuote: false
     - valueFrom: ${return inputs.file}
       shellQuote: false
     - valueFrom: '|'
@@ -106,7 +105,7 @@ steps:
     - valueFrom: cat
       shellQuote: false
     - valueFrom: $(inputs.file)
-      shellQuote: true
+      shellQuote: false
     - valueFrom: '|'
       shellQuote: false
     - valueFrom: wc

@@ -2,7 +2,6 @@
     "$graph": [
         {
             "class": "Workflow",
-            "id": "#cwl_three_step.cwl",
             "hints": [
                 {
                     "dockerPull": "ubuntu:latest",
@@ -11,24 +10,24 @@
             ],
             "inputs": [
                 {
-                    "id": "#cwl_three_step.cwl/three_step/pattern",
+                    "id": "#cwl_three_step.cwl/pattern",
                     "type": "string"
                 }
             ],
             "steps": [
                 {
-                    "id": "#cwl_three_step.cwl/three_step/ps",
+                    "id": "#cwl_three_step.cwl/ps",
                     "in": [],
                     "out": [
                         {
-                            "id": "#cwl_three_step.cwl/three_step/ps/ps-stdOut"
+                            "id": "#cwl_three_step.cwl/ps/ps-stdOut"
                         }
                     ],
                     "run": {
                         "inputs": [],
                         "outputs": [
                             {
-                                "id": "#cwl_three_step.cwl/three_step/ps/run/ps-stdOut",
+                                "id": "#cwl_three_step.cwl/ps/run/ps-stdOut",
                                 "outputBinding": {
                                     "glob": "ps-stdOut.txt"
                                 },
@@ -57,20 +56,20 @@
                     }
                 },
                 {
-                    "id": "#cwl_three_step.cwl/three_step/cgrep",
+                    "id": "#cwl_three_step.cwl/cgrep",
                     "in": [
                         {
-                            "id": "#cwl_three_step.cwl/three_step/cgrep/pattern",
-                            "source": "#cwl_three_step.cwl/three_step/pattern"
+                            "id": "#cwl_three_step.cwl/cgrep/pattern",
+                            "source": "#cwl_three_step.cwl/pattern"
                         },
                         {
-                            "id": "#cwl_three_step.cwl/three_step/cgrep/file",
-                            "source": "#cwl_three_step.cwl/three_step/ps/ps-stdOut"
+                            "id": "#cwl_three_step.cwl/cgrep/file",
+                            "source": "#cwl_three_step.cwl/ps/ps-stdOut"
                         }
                     ],
                     "out": [
                         {
-                            "id": "#cwl_three_step.cwl/three_step/cgrep/cgrep-count"
+                            "id": "#cwl_three_step.cwl/cgrep/cgrep-count"
                         }
                     ],
                     "requirements": [
@@ -82,17 +81,17 @@
                     "run": {
                         "inputs": [
                             {
-                                "id": "#cwl_three_step.cwl/three_step/cgrep/run/pattern",
+                                "id": "#cwl_three_step.cwl/cgrep/run/pattern",
                                 "type": "string"
                             },
                             {
-                                "id": "#cwl_three_step.cwl/three_step/cgrep/run/file",
+                                "id": "#cwl_three_step.cwl/cgrep/run/file",
                                 "type": "File"
                             }
                         ],
                         "outputs": [
                             {
-                                "id": "#cwl_three_step.cwl/three_step/cgrep/run/cgrep-count",
+                                "id": "#cwl_three_step.cwl/cgrep/run/cgrep-count",
                                 "outputBinding": {
                                     "glob": "cgrep-stdOut.txt",
                                     "loadContents": true,
@@ -150,28 +149,28 @@
                     }
                 },
                 {
-                    "id": "#cwl_three_step.cwl/three_step/wc",
+                    "id": "#cwl_three_step.cwl/wc",
                     "in": [
                         {
-                            "id": "#cwl_three_step.cwl/three_step/wc/file",
-                            "source": "#cwl_three_step.cwl/three_step/ps/ps-stdOut"
+                            "id": "#cwl_three_step.cwl/wc/file",
+                            "source": "#cwl_three_step.cwl/ps/ps-stdOut"
                         }
                     ],
                     "out": [
                         {
-                            "id": "#cwl_three_step.cwl/three_step/wc/wc-count"
+                            "id": "#cwl_three_step.cwl/wc/wc-count"
                         }
                     ],
                     "run": {
                         "inputs": [
                             {
-                                "id": "#cwl_three_step.cwl/three_step/wc/run/file",
+                                "id": "#cwl_three_step.cwl/wc/run/file",
                                 "type": "File"
                             }
                         ],
                         "outputs": [
                             {
-                                "id": "#cwl_three_step.cwl/three_step/wc/run/wc-count",
+                                "id": "#cwl_three_step.cwl/wc/run/wc-count",
                                 "outputBinding": {
                                     "glob": "wc-stdOut.txt",
                                     "loadContents": true,
@@ -225,15 +224,16 @@
                     }
                 }
             ],
+            "id": "#cwl_three_step.cwl",
             "outputs": [
                 {
-                    "id": "#cwl_three_step.cwl/three_step/cgrep-count",
-                    "outputSource": "#cwl_three_step.cwl/three_step/cgrep/cgrep-count",
+                    "id": "#cwl_three_step.cwl/cgrep-count",
+                    "outputSource": "#cwl_three_step.cwl/cgrep/cgrep-count",
                     "type": "int"
                 },
                 {
-                    "id": "#cwl_three_step.cwl/three_step/wc-count",
-                    "outputSource": "#cwl_three_step.cwl/three_step/wc/wc-count",
+                    "id": "#cwl_three_step.cwl/wc-count",
+                    "outputSource": "#cwl_three_step.cwl/wc/wc-count",
                     "type": "int"
                 }
             ]
