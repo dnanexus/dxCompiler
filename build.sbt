@@ -252,7 +252,8 @@ val compilerOptions = Seq(
 
 // Assembly
 lazy val assemblySettings = Seq(
-    assembly / logLevel := Level.Info,
+    // TODO revert after debugging
+    assembly / logLevel := Level.Debug,
     // comment out this line to enable tests in assembly
     assembly / test := {},
     assembly / assemblyMergeStrategy := customMergeStrategy.value
