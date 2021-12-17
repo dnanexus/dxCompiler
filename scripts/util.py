@@ -456,7 +456,13 @@ def build_executable(source_file, project, folder, top_dir, version_id, compiler
 # 
 # return    List of tuples (input #, analysis or job id)
 # 
-# params    TODO documentation...
+# oid                           Id of executable to run
+# project                       Destination project on platform
+# test_folder                   Destination folder on platform
+# test_inputs                   Inputs for running, if non-default
+# debug_flag                    Keep jobs open for debugging?
+# delay_workspace_destruction   Delay workspace destruction?
+# instance_type                 Instance type, if non-default
 def run_executable(
     oid,
     project,
@@ -470,10 +476,10 @@ def run_executable(
     def once(i):
         try:
             if len(test_inputs) == 0 or i < 0:
-                print("  with empty input")
+                print("Running with empty input")
                 inputs = {}
             else:
-                print("  with input file: {}".format(test_inputs[i]))
+                print("Running with input file: {}".format(test_inputs[i]))
                 inputs = read_json_file(test_inputs[i])
             project.new_folder(test_folder, parents=True)
             if "workflow-" in oid:
