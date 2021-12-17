@@ -454,7 +454,7 @@ def build_executable(source_file, project, folder, top_dir, version_id, compiler
 
 # Run an executable on 0-many inputs.
 # 
-# return    List of tuples (input #, analysis or job id)
+# return                        List of tuples (input #, analysis or job id)
 # 
 # oid                           Id of executable to run
 # project                       Destination project on platform
