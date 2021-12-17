@@ -990,7 +990,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     val (hasCommand, successCodes) = writeCommandScript(localizedInputs, finalizedDependencies)
     if (hasCommand) {
       // run the command script
-      jobMeta.runJobScriptFunction(TaskExecutor.RunCommand, successCodes, truncateLogs = false)
+      jobMeta.runJobScriptFunction(TaskExecutor.RunCommand, successCodes)
     }
 
     // evaluate output expressions
