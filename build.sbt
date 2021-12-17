@@ -33,7 +33,7 @@ lazy val global = root
       settings,
       publish / skip := true
   )
-//  .disablePlugins(AssemblyPlugin)
+  .disablePlugins(AssemblyPlugin)
   .aggregate(
       core,
       compiler,
