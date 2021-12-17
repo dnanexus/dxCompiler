@@ -37,11 +37,11 @@ object Merging {
       path map {
         _.toLowerCase
       } match {
-        case "spring.tooling" :: _ =>
+        case "spring.tooling" :: xs =>
           MergeStrategy.discard
         case "io.netty.versions.properties" :: Nil =>
           MergeStrategy.first
-        case "maven" :: "com.google.guava" :: _ =>
+        case "maven" :: "com.google.guava" :: xs =>
           MergeStrategy.first
         case _ :+ ("asm-license.txt" | "module-info.class" | "overview.html" |
             "cobertura.properties") =>
@@ -49,7 +49,7 @@ object Merging {
         case _ :+ ("generated-layer.xml" | "namedservices.index" | "java.lang.runnable") =>
           MergeStrategy.discard
         case _ =>
-          val oldStrategy = (assembly / assemblyMergeStrategy).value
+          val oldStrategy = (assemblyMergeStrategy in assembly).value
           oldStrategy(x)
       }
     case x @ PathList("OSGI-INF", path @ _*) =>
@@ -59,7 +59,7 @@ object Merging {
         case "l10n" :: "bundle.properties" :: Nil =>
           MergeStrategy.concat
         case _ =>
-          val oldStrategy = (assembly / assemblyMergeStrategy).value
+          val oldStrategy = (assemblyMergeStrategy in assembly).value
           oldStrategy(x)
       }
     case PathList(
@@ -69,7 +69,7 @@ object Merging {
     case PathList("mime.types") =>
       MergeStrategy.last
     case x =>
-      val oldStrategy = (assembly / assemblyMergeStrategy).value
+      val oldStrategy = (assemblyMergeStrategy in assembly).value
       OnErrorMergeStrategy(oldStrategy(x), MergeStrategy.first)
   }
 }

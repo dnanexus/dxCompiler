@@ -31,7 +31,7 @@ lazy val root = project.in(file("."))
 lazy val global = root
   .settings(
       settings,
-      publish / skip := true
+      skip in publish := true
   )
   .disablePlugins(AssemblyPlugin)
   .aggregate(
@@ -75,8 +75,8 @@ val compiler = project
           dependencies.cwlScala,
           dependencies.dxYaml
       ),
-      assembly / assemblyJarName := "dxCompiler.jar",
-      assembly / assemblyOutputPath := file("applet_resources/dxCompiler.jar")
+      assemblyJarName in assembly := "dxCompiler.jar",
+      assemblyOutputPath in assembly := file("applet_resources/dxCompiler.jar")
   )
   .dependsOn(core)
 
@@ -102,8 +102,8 @@ val executorWdl = project
           dependencies.typesafe,
           dependencies.wdlTools
       ),
-      assembly / assemblyJarName := "dxExecutorWdl.jar",
-      assembly / assemblyOutputPath := file("applet_resources/WDL/resources/dxExecutorWdl.jar")
+      assemblyJarName in assembly := "dxExecutorWdl.jar",
+      assemblyOutputPath in assembly := file("applet_resources/WDL/resources/dxExecutorWdl.jar")
   )
   .dependsOn(core, executorCommon)
 
@@ -118,8 +118,8 @@ val executorCwl = project
           dependencies.typesafe,
           dependencies.cwlScala
       ),
-      assembly / assemblyJarName := "dxExecutorCwl.jar",
-      assembly / assemblyOutputPath := file("applet_resources/CWL/resources/dxExecutorCwl.jar")
+      assemblyJarName in assembly := "dxExecutorCwl.jar",
+      assemblyOutputPath in assembly := file("applet_resources/CWL/resources/dxExecutorCwl.jar")
   )
   .dependsOn(core, executorCommon)
 
@@ -252,8 +252,8 @@ val compilerOptions = Seq(
 
 // Assembly
 lazy val assemblySettings = Seq(
-    assembly / logLevel := Level.Info,
+    logLevel in assembly := Level.Info,
     // comment out this line to enable tests in assembly
-    assembly / test := {},
-    assembly / assemblyMergeStrategy := customMergeStrategy.value
+    test in assembly := {},
+    assemblyMergeStrategy in assembly := customMergeStrategy.value
 )
