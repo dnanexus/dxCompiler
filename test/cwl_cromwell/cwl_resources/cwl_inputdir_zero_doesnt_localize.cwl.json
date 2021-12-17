@@ -61,6 +61,12 @@
                             "glob": "*.txt*",
                             "outputEval": "$([self[0]])"
                         },
+                        "secondaryFiles": [
+                            {
+                                "pattern": ".also",
+                                "required": null
+                            }
+                        ],
                         "type": {
                             "items": "File",
                             "type": "array"
@@ -209,7 +215,7 @@
                 "outputs": [
                     {
                         "id": "#main/findFile/run/errors",
-                        "type": "File",
+                        "type": "string",
                         "outputBinding": {
                             "glob": "errors.txt",
                             "loadContents": true,
@@ -248,7 +254,7 @@
     "outputs": [
         {
             "id": "#main/errors",
-            "type": "File",
+            "type": "string",
             "outputSource": "#main/findFile/errors"
         }
     ],

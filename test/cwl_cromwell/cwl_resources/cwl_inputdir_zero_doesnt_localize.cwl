@@ -14,7 +14,7 @@ $graph:
   inputs: []
   outputs:
   - id: errors
-    type: File
+    type: string
     outputSource: findFile/errors
   steps:
   - id: echo
@@ -39,6 +39,7 @@ $graph:
         outputBinding:
           glob: '*.txt*'
           outputEval: $([self[0]])
+        secondaryFiles: [.also]
         type:
           items: File
           type: array
@@ -110,7 +111,7 @@ $graph:
             type: File
       outputs:
       - id: errors
-        type: File
+        type: string
         outputBinding:
           glob: errors.txt
           loadContents: true
