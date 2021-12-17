@@ -1,5 +1,5 @@
 addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "1.1.0")
-addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.8")
+addSbtPlugin("com.github.sbt" % "sbt-release" % "1.1.0")
 //addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.5.1")
 addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.4.3")
 // sbt-github-packages plugin used to publish snapshot versions to github packages
