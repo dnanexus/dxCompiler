@@ -469,7 +469,7 @@ cwl_cromwell_tests_list = [
     "touch",
     "test_pack",
     "cwl_input_binding_expression",
-    # "cwl_input_json", # Error translating to IR
+    # "cwl_input_json", # APPS-1008: Error translating to IR, downcasting failed
     "cwl_input_typearray",
     "cwl_interpolated_strings",
     "cwl_optionals",
@@ -479,16 +479,16 @@ cwl_cromwell_tests_list = [
     "cwl_relative_imports",
     # "cwl_disk_resources", # APPS-961 Could not resolve host: metadata.google.internal
     #                       # Unknown hint https://www.dnanexus.com/cwl#InputResourceRequirement (Should be deprecated)
-    # "cwl_inputdir_zero_doesnt_localize", # Error translating to IR
+    # "cwl_inputdir_zero_doesnt_localize", # APPS-1008: Error translating to IR, downcasting failed
     # "cwl_resources", # APPS-961 Could not resolve host: metadata.google.internal
     # "cwl_restart", # APPS-834 AppInternalError: workflow does not contain a tool 
     "1st-tool",
     "cwl_secondary_files",
-    # "cwl_secondary_files_workflow", # Error creating translator
+    # "cwl_secondary_files_workflow", # APPS-1005 Error creating translator
     "cwl_stdout_expression",
     # "scatter-wf1", # APPS-834 Could not find linking information 
     # "cwl_three_step", # APPS-834 AppInternalError: workflow does not contain a tool 
-    # "cwl_three_step_caller_wf" # Error translating to IR
+    # "cwl_three_step_caller_wf" # APPS-834 AppInternalError: workflow does not contain a tool (raised from calling cwl_three_step)
 ]
 
 # these are tests that take a long time to run
