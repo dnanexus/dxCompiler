@@ -337,7 +337,7 @@ def _sbt_assembly(top_dir):
         raise e
     for jar_path in jar_paths.values():
         if not os.path.exists(jar_path):
-            raise Exception("sbt assembly failed")
+            raise Exception(f"sbt assembly failed: {jar_path} not found")
     return jar_paths
 
 

@@ -1,6 +1,5 @@
 import Merging.customMergeStrategy
 import sbt.Keys._
-import sbtassembly.AssemblyPlugin.autoImport.{assemblyMergeStrategy, _}
 import com.typesafe.config._
 
 name := "dxc"
@@ -27,13 +26,12 @@ ThisBuild / licenses += ("Apache-2.0", url("http://www.apache.org/licenses/LICEN
 
 // PROJECTS
 
-lazy val root = project.in(file("."))
-lazy val global = root
+lazy val root = project
+  .in(file("."))
   .settings(
       settings,
       publish / skip := true
   )
-  .disablePlugins(AssemblyPlugin)
   .aggregate(
       core,
       compiler,
@@ -41,6 +39,7 @@ lazy val global = root
       executorWdl,
       executorCwl
   )
+  .disablePlugins(AssemblyPlugin)
 
 val dxCompilerVersion: String = {
   val confPath = s"core/src/main/resources/application.conf"
@@ -141,7 +140,7 @@ lazy val dependencies =
     val typesafeVersion = "1.4.1"
     val sprayVersion = "1.3.6"
     val scalatestVersion = "3.2.9"
-    val logbackVersion = "1.2.7"
+    val logbackVersion = "1.2.8"
 
     val dxCommon = "com.dnanexus" % "dxcommon" % dxCommonVersion
     val dxApi = "com.dnanexus" % "dxapi" % dxApiVersion
@@ -180,7 +179,7 @@ lazy val settings = Seq(
     // reduce the maximum number of errors shown by the Scala compiler
     maxErrors := 20,
     // scalafmt
-    scalafmtConfig := root.base / ".scalafmt.conf",
+    scalafmtConfig := baseDirectory.value / ".scalafmt.conf",
     // Publishing
     // disable publish with scala version, otherwise artifact name will include scala version
     // e.g dxScala_2.11
@@ -252,8 +251,6 @@ val compilerOptions = Seq(
 
 // Assembly
 lazy val assemblySettings = Seq(
-    // TODO revert after debugging
-    assembly / logLevel := Level.Debug,
     // comment out this line to enable tests in assembly
     assembly / test := {},
     assembly / assemblyMergeStrategy := customMergeStrategy.value
