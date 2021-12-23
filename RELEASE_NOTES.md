@@ -1,5 +1,9 @@
 # Release Notes
 
+## in develop
+
+* Fixes issue where task without `runtime` section succeeds even when command block results in a failure code
+
 ## 2.8.1 2021-12-13
 
 * Excludes apps from `bundledDepends`

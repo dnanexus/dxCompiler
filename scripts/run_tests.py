@@ -57,6 +57,7 @@ expected_failure = {
     "cond-wf-006_nojs.1",
     "cond-wf-012_nojs",
     "fail-unconnected",
+    "apps_1014"
 }
 
 test_compilation_failing = {"import_passwd"}
@@ -118,6 +119,7 @@ wdl_v1_list = [
     "nested_optional",
     "struct_deref",  # APPS-615
     "apps_936",
+    "apps_1014",
 
     # manifests
     "simple_manifest",
