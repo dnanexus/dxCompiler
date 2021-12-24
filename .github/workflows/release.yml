@@ -75,7 +75,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           AUTH_TOKEN: ${{ secrets.DX_STAGING_TOKEN }}
-          SBT_OPTS: "-XX:+CMSClassUnloadingEnabled -XX:MaxPermSize=2G -Xmx2G -Xms1G"
+          SBT_OPTS: "-XX:+CMSClassUnloadingEnabled -Xmx2G -Xms1G"
         run: |
           sudo apt-get update
           sudo apt-get install -y apt-transport-https wget git openssh-server tree python3 python3-pip python3-venv
