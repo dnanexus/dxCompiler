@@ -29,7 +29,7 @@ jobs:
       - name: Install Java
         uses: actions/setup-java@v1
         with:
-          java-version: 1.8
+          java-version: 11
       - name: Clone corpora
         run: |
           cd compiler/src/test/resources
@@ -54,6 +54,8 @@ jobs:
           dx login --noprojects --staging --token $AUTH_TOKEN
           dx select dxCompiler_playground
 
+          # check formatting
+          sbt scalafmtCheckAll
           # run unit tests
           cd ${GITHUB_WORKSPACE}
           pwd
