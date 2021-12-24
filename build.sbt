@@ -1,6 +1,5 @@
 import Merging.customMergeStrategy
 import sbt.Keys._
-import sbtassembly.AssemblyPlugin.autoImport.{assemblyMergeStrategy, _}
 import com.typesafe.config._
 
 name := "dxc"
@@ -33,7 +32,6 @@ lazy val root = project
       settings,
       publish / skip := true
   )
-  .disablePlugins(AssemblyPlugin)
   .aggregate(
       core,
       compiler,
@@ -41,6 +39,7 @@ lazy val root = project
       executorWdl,
       executorCwl
   )
+  .disablePlugins(AssemblyPlugin)
 
 val dxCompilerVersion: String = {
   val confPath = s"core/src/main/resources/application.conf"
@@ -251,7 +250,6 @@ val compilerOptions = Seq(
 
 // Assembly
 lazy val assemblySettings = Seq(
-    assembly / logLevel := Level.Info,
     // comment out this line to enable tests in assembly
     assembly / test := {},
     assembly / assemblyMergeStrategy := customMergeStrategy.value
