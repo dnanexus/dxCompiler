@@ -6,7 +6,7 @@ import com.typesafe.config._
 name := "dxc"
 
 ThisBuild / organization := "com.dnanexus"
-ThisBuild / scalaVersion := "2.13.2"
+ThisBuild / scalaVersion := "2.13.7"
 ThisBuild / developers := List(
     Developer("jdidion", "jdidion", "jdidion@dnanexus.com", url("https://github.com/dnanexus")),
     Developer("commandlinegirl",
@@ -27,8 +27,8 @@ ThisBuild / licenses += ("Apache-2.0", url("http://www.apache.org/licenses/LICEN
 
 // PROJECTS
 
-lazy val root = project.in(file("."))
-lazy val global = root
+lazy val root = project
+  .in(file("."))
   .settings(
       settings,
       publish / skip := true
@@ -141,7 +141,7 @@ lazy val dependencies =
     val typesafeVersion = "1.4.1"
     val sprayVersion = "1.3.6"
     val scalatestVersion = "3.2.9"
-    val logbackVersion = "1.2.7"
+    val logbackVersion = "1.2.9"
 
     val dxCommon = "com.dnanexus" % "dxcommon" % dxCommonVersion
     val dxApi = "com.dnanexus" % "dxapi" % dxApiVersion
@@ -180,7 +180,7 @@ lazy val settings = Seq(
     // reduce the maximum number of errors shown by the Scala compiler
     maxErrors := 20,
     // scalafmt
-    scalafmtConfig := root.base / ".scalafmt.conf",
+    scalafmtConfig := baseDirectory.value / ".scalafmt.conf",
     // Publishing
     // disable publish with scala version, otherwise artifact name will include scala version
     // e.g dxScala_2.11
@@ -234,7 +234,6 @@ val compilerOptions = Seq(
     "-Xlint:doc-detached",
     "-Xlint:inaccessible",
     "-Xlint:infer-any",
-    "-Xlint:nullary-override",
     "-Xlint:nullary-unit",
     "-Xlint:option-implicit",
     "-Xlint:package-object-classes",

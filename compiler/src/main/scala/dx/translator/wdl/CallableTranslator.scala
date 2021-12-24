@@ -878,12 +878,11 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         scatterPath: Option[String],
         level: Level.Level
     ): (Workflow, Vector[Callable], Vector[LinkedVar]) = {
-      // translate workflow inputs, and also get a Vector of any non-constant
-      // expressions that need to be evaluated in the common stage
+      // translate workflow inputs, and also get a Vector of any non-constant expressions that need
+      // to be evaluated in the common stage
       val (wfInputParams, dynamicDefaults): (Vector[Parameter], Vector[Boolean]) =
         inputs.map(createWorkflowInput).unzip
-      // inputs that are a result of accessing variables in an encompassing
-      // WDL workflow.
+      // inputs that are a result of accessing variables in an encompassing WDL workflow
       val closureInputParams: Vector[Parameter] = closureInputs.map {
         case (name, (wdlType, InputKind.Required)) =>
           // no default value
@@ -900,6 +899,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           Parameter(name, Type.ensureOptional(irType))
         case (name, (_, InputKind.Computed)) =>
           throw new Exception(s"computed input parameter ${name} not allowed as workflow input")
+        case (_, (_, other)) => throw new Exception(s"unexpected kind ${other}")
       }.toVector
       val allWfInputParameters = wfInputParams ++ closureInputParams
       val wfInputLinks: Vector[LinkedVar] =
