@@ -172,6 +172,8 @@ object WdlBlockInput {
       case (name, (wdlType, InputKind.Required)) => RequiredBlockInput(name, wdlType)
       case (name, (wdlType, InputKind.Computed)) => ComputedBlockInput(name, wdlType)
       case (name, (wdlType, InputKind.Optional)) => OptionalBlockInput(name, wdlType)
+      case (_, (_, other)) =>
+        throw new Exception(s"unexpected InputKind ${other}")
     }
   }
 
@@ -244,23 +246,17 @@ case class WdlBlock(index: Int,
 
   override lazy val kind: BlockKind.BlockKind = {
     elements.last match {
-      case e if WdlUtils.deepFindCalls(Vector(e)).isEmpty =>
-        // The block comprises expressions only
-        BlockKind.ExpressionsOnly
-      case _ if WdlBlock.isTrivialCall(elements) =>
-        BlockKind.CallDirect
-      case _ if WdlBlock.isSimpleCall(elements) =>
-        BlockKind.CallWithSubexpressions
-      case _: TAT.Call =>
-        BlockKind.CallFragment
-      case condNode: TAT.Conditional if WdlBlock.isSimpleCall(condNode.body) =>
+      case e if WdlUtils.deepFindCalls(Vector(e)).isEmpty => BlockKind.ExpressionsOnly
+      case _ if WdlBlock.isTrivialCall(elements)          => BlockKind.CallDirect
+      case _ if WdlBlock.isSimpleCall(elements)           => BlockKind.CallWithSubexpressions
+      case _: TAT.Call                                    => BlockKind.CallFragment
+      case conditional: TAT.Conditional if WdlBlock.isSimpleCall(conditional.body) =>
         BlockKind.ConditionalOneCall
-      case _: TAT.Conditional =>
-        BlockKind.ConditionalComplex
-      case sctNode: TAT.Scatter if WdlBlock.isSimpleCall(sctNode.body) =>
+      case _: TAT.Conditional => BlockKind.ConditionalComplex
+      case scatter: TAT.Scatter if WdlBlock.isSimpleCall(scatter.body) =>
         BlockKind.ScatterOneCall
-      case _: TAT.Scatter =>
-        BlockKind.ScatterComplex
+      case _: TAT.Scatter => BlockKind.ScatterComplex
+      case other          => throw new Exception(s"unexpected element ${other}")
     }
   }
 
