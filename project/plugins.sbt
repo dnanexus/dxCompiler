@@ -7,7 +7,7 @@ addSbtPlugin("com.codecommit" % "sbt-github-packages" % "0.5.2")
 addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "0.10.0-RC1")
 
 // workaround for missing static SLF4J binder for logback
-libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.8"
+libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.9"
 // only load git plugin if we're actually in a git repo
 libraryDependencies ++= {
   if ((baseDirectory.value / "../.git").isDirectory)
