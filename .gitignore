@@ -2,6 +2,7 @@
 project/project
 project/target
 target/
+.bsp/
 
 # Cromwell runtime
 execution/
@@ -34,6 +35,7 @@ compiler/src/main/resources/dxCompiler_runtime.conf
 venv/
 .failed*
 poetry.lock
+.java-version
 
 # IntelliJ
 .idea
