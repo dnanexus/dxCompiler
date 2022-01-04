@@ -29,7 +29,7 @@ jobs:
       - name: Install Java
         uses: actions/setup-java@v1
         with:
-          java-version: 1.8
+          java-version: 11
       - name: Clone corpora
         run: |
           cd compiler/src/test/resources
@@ -38,6 +38,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           AUTH_TOKEN: ${{ secrets.DX_STAGING_TOKEN }}
+          SBT_OPTS: "-XX:+CMSClassUnloadingEnabled -Xmx2G -Xms1G"
         run: |
           sudo apt-get update
           sudo apt-get install -y apt-transport-https wget git openssh-server tree python3 python3-pip python3-venv
@@ -54,6 +55,8 @@ jobs:
           dx login --noprojects --staging --token $AUTH_TOKEN
           dx select dxCompiler_playground
 
+          # check formatting
+          sbt scalafmtCheckAll
           # run unit tests
           cd ${GITHUB_WORKSPACE}
           pwd

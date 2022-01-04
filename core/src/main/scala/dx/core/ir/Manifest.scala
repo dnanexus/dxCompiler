@@ -67,6 +67,7 @@ object Manifest {
                 throw new Exception(
                     s"mismatch between '${name}' actual and expected type definition: ${t} != ${types(name)}"
                 )
+              case _ => ()
             }
         }
         (Some(types), Some(definitions))
@@ -162,6 +163,7 @@ case class Manifest(jsValues: Map[DxName, JsValue],
         case (accu, (name, schema: TSchema)) =>
           val (schemaJs, newJsDefinitions) = TypeSerde.serializeSchema(schema, accu)
           newJsDefinitions + (name -> schemaJs)
+        case (_, (_, other)) => throw new Exception(s"invalid schema ${other}")
       }))
     } else {
       None

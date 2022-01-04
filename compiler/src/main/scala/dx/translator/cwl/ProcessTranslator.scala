@@ -269,6 +269,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
               case _ => Vector.empty
             }
           case d: DirectoryValue => d.listing.flatMap(extractPaths)
+          case _                 => Vector.empty
         }
       }
 

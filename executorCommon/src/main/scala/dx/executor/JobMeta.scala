@@ -867,6 +867,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
     getExecutableDetail(Constants.DelayWorkspaceDestruction) match {
       case Some(JsBoolean(flag)) => Some(flag)
       case None                  => None
+      case other =>
+        throw new Exception(s"invalid ${Constants.DelayWorkspaceDestruction} value ${other}")
     }
 
   lazy val blockPath: Vector[Int] = getExecutableDetail(Constants.BlockPath) match {
