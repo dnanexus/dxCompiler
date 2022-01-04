@@ -329,7 +329,6 @@ cromwell_tests_list = [
     "hello_delete",
     "sub_workflow_delete_import",
     "no_cache_delete",
-    "gcs_path_ending_with_newline",
     "readFromCache",
     "sizerelativepath",
     "subworkflow_wt",

@@ -31,7 +31,7 @@ lazy val root = project.in(file("."))
 lazy val global = root
   .settings(
       settings,
-      skip in publish := true
+      publish / skip := true
   )
   .disablePlugins(AssemblyPlugin)
   .aggregate(
@@ -75,8 +75,8 @@ val compiler = project
           dependencies.cwlScala,
           dependencies.dxYaml
       ),
-      assemblyJarName in assembly := "dxCompiler.jar",
-      assemblyOutputPath in assembly := file("applet_resources/dxCompiler.jar")
+      assembly / assemblyJarName := "dxCompiler.jar",
+      assembly / assemblyOutputPath := file("applet_resources/dxCompiler.jar")
   )
   .dependsOn(core)
 
@@ -102,8 +102,8 @@ val executorWdl = project
           dependencies.typesafe,
           dependencies.wdlTools
       ),
-      assemblyJarName in assembly := "dxExecutorWdl.jar",
-      assemblyOutputPath in assembly := file("applet_resources/WDL/resources/dxExecutorWdl.jar")
+      assembly / assemblyJarName := "dxExecutorWdl.jar",
+      assembly / assemblyOutputPath := file("applet_resources/WDL/resources/dxExecutorWdl.jar")
   )
   .dependsOn(core, executorCommon)
 
@@ -118,8 +118,8 @@ val executorCwl = project
           dependencies.typesafe,
           dependencies.cwlScala
       ),
-      assemblyJarName in assembly := "dxExecutorCwl.jar",
-      assemblyOutputPath in assembly := file("applet_resources/CWL/resources/dxExecutorCwl.jar")
+      assembly / assemblyJarName := "dxExecutorCwl.jar",
+      assembly / assemblyOutputPath := file("applet_resources/CWL/resources/dxExecutorCwl.jar")
   )
   .dependsOn(core, executorCommon)
 
@@ -132,7 +132,7 @@ val githubDxCompilerResolver = Resolver.githubPackages("dnanexus", "dxCompiler")
 
 lazy val dependencies =
   new {
-    val dxCommonVersion = "0.10.1-SNAPSHOT"
+    val dxCommonVersion = "0.10.1"
     val dxApiVersion = "0.13.0"
     val dxFileAccessProtocolsVersion = "0.5.2"
     val dxYamlVersion = "0.1.0"
@@ -252,8 +252,8 @@ val compilerOptions = Seq(
 
 // Assembly
 lazy val assemblySettings = Seq(
-    logLevel in assembly := Level.Info,
+    assembly / logLevel := Level.Info,
     // comment out this line to enable tests in assembly
-    test in assembly := {},
-    assemblyMergeStrategy in assembly := customMergeStrategy.value
+    assembly / test := {},
+    assembly / assemblyMergeStrategy := customMergeStrategy.value
 )
