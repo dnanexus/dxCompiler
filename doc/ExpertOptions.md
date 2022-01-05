@@ -1595,7 +1595,7 @@ Developers should use simple types for input/output interfaces for global workfl
 platform experience.
 
 For better portability across projects where the workflow will be run, developers should specify
-runtime resources using memory, disk, cpu requirements (not hard-coded instance types using the key
+runtime resources using memory, disk, CPU requirements (not hard-coded instance types using the key
 `dx_instance_type`). Developers should compile WDL workflows with `-instanceTypeSelection dynamic`.
 Expect slightly longer runtimes due to the need to pick instance types at runtime, but this ensures
 the workflow will always use instance types that are supported for the project where it runs.
