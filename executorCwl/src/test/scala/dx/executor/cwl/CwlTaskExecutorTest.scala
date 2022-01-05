@@ -75,7 +75,8 @@ private case class ToolTestJobMeta(override val workerPaths: DxWorkerPaths,
 
   override def runJobScriptFunction(name: String,
                                     successCodes: Option[Set[Int]] = Some(Set(0)),
-                                    truncateLogs: Boolean = false): Unit = {
+                                    truncateLogs: Boolean = false,
+                                    forwardStd: Boolean = false): Unit = {
     name match {
       case TaskExecutor.DownloadDxda if downloadFiles && !dxdaCallable =>
         throw new Exception("cannot call dxda")
