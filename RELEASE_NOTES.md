@@ -2,12 +2,35 @@
 
 ## in develop
 
+* Fixes issue where task without `runtime` section succeeds even when command block results in a failure code
+
+## 2.8.1 2021-12-13
+
 * Excludes apps from `bundledDepends`
 * Localizes files declared in WDL task private variables
 * Respects runtime definition in native task stub
 * Fixes archiving of executables - tags them as "dxCompilerArchived" rather than renaming them
 * Fixes error when parsing a field name with multiple `stage-*` prefixes (specifically with stage number >= 10)
 * Logs full output of command execution 
+
+### Dependency updates
+
+#### dxCommon 0.10.1
+
+* Adds `PosixPath` class for working with POSIX-style paths
+* Changes Paths to use `PosixPath` rather than `java.nio.Path`
+* Prettifies truncated log messages
+
+#### dxApi 0.13.0
+
+* Adds `DxApi.addTags` method
+* Fixes `DxFindDataObjects` when used with `tags` constraint
+* Handles record results in `DxFindDataObjects`
+* Adds `systemRequirements` to `DxWorkflowStageDesc`
+
+#### dxFileAccessProtocols 0.5.2
+
+* Uses `PosixPath` rather than `java.nio.Path` for manipulating remote paths
 
 ## 2.8.0 2021-11-29
 

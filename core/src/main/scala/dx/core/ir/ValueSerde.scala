@@ -341,7 +341,8 @@ object ValueSerde extends DefaultJsonProtocol {
       v match {
         case _ if isWrappedValue(v)                         => inner(unwrapValue(v))
         case JsNull                                         => VNull
-        case JsBoolean(b)                                   => VBoolean(b.booleanValue)
+        case JsTrue                                         => VBoolean(true)
+        case JsFalse                                        => VBoolean(false)
         case JsNumber(value) if value.isValidLong           => VInt(value.toLongExact)
         case JsNumber(value)                                => VFloat(value.toDouble)
         case JsString(s) if DxFileSource.isDxFileUri(s)     => VFile(s)

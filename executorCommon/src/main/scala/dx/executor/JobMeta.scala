@@ -857,6 +857,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
     getExecutableDetail(Constants.DelayWorkspaceDestruction) match {
       case Some(JsBoolean(flag)) => Some(flag)
       case None                  => None
+      case other =>
+        throw new Exception(s"invalid ${Constants.DelayWorkspaceDestruction} value ${other}")
     }
 
   lazy val blockPath: Vector[Int] = getExecutableDetail(Constants.BlockPath) match {
@@ -951,6 +953,7 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths,
   private val outputPath = rootDir.resolve(JobMeta.OutputFile)
   private val jobInfoPath = rootDir.resolve(JobMeta.JobInfoFile)
   private val executableInfoPath = rootDir.resolve(JobMeta.ExecutableInfoFile)
+  private val LogLimit = 1_000_000
 
   def codeFile: Path = {
     workerPaths.getRootDir().resolve(s"${jobId}.code.sh").asJavaPath
@@ -963,7 +966,7 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths,
     logger.trace(s"Running job script function ${name}")
     val (rc, stdout, stderr) = SysUtils.execCommand(command, exceptionOnFailure = false)
     if (successCodes.forall(_.contains(rc))) {
-      val limit = if (truncateLogs) Some(1000) else None
+      val limit = if (truncateLogs) Some(LogLimit) else None
       logger.trace(
           s"""Job script function ${name} exited with success code ${rc}
              |----- stdout -----
