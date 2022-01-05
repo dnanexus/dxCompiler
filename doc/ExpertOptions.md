@@ -1605,9 +1605,9 @@ the original source code. They can add this to the "description" metadata field 
 
 ## Limitations
 
-- _TODO_ Currently only supported for WDL workflows, not workflows created from other languages, like CWL.
+Publishing a dxCompiler workflow as a global workflow is currently only supported for WDL.
 
-- _TODO_ Currently single-region (same region that original WF was compiled in)
+The global workflow will currently only support a single region (matching the region in which the original workflow was compiled).
 
 - _TODO_ What will be cloned with the workflow
 
