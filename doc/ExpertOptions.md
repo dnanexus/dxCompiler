@@ -1617,15 +1617,15 @@ the global workflow will not require additional permissions. These include
 - Native applets referenced by the workflow
 - Docker images that are stored as platform files
 
-- _TODO_ What will not be cloned with the workflow
-
-For some types of workflow dependencies, the user must have access to them at runtime in order to be able to use the global workflow. These include
-
+Some dependencies of the original workflow will not be automatically included in the global workflow,
+i.e. the user may need additional permissions to access them. These include
 - Native apps referenced by the workflow (user needs permission to use the apps)
 - Files referenced by file paths in workflow inputs or body (user needs access to the files)
 - Credentials file for a private Docker registry (user needs access to the file)
-- Docker images in external registries, or dynamically specified at runtime
-- Hard-coded `dx_instance_type` (runtime project needs to support the instance type; using numeric resource requirements is preferred)
+- Docker images in external registries, or dynamically specified at runtime (these will be pulled
+at runtime)
+- Hard-coded `dx_instance_type` (runtime project needs to support the instance type; using numeric
+resource requirements is preferred)
 
 <!-- TODO mention URL when the UI supports global workflows -->
 Any usage of the above in a workflow (including in its tasks and sub-workflows) will produce a warning in the workflow's `description` metadata field, which can be viewed using:
