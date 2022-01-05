@@ -1594,11 +1594,11 @@ the global workflow.
 Developers should use simple types for input/output interfaces for global workflows for better
 platform experience.
 
-Developers should runtime resources using memory, disk, cpu requirements (not hard-coded instance
-types using the key `dx_instance_type`) for better compatibility across any projects where the
-workflow will be run.
-
-- _TODO_ Compile with `-instanceTypeSelection dynamic` for better compatibility across runtime projects, but expect longer runtime.
+For better portability across projects where the workflow will be run, developers should specify
+runtime resources using memory, disk, cpu requirements (not hard-coded instance types using the key
+`dx_instance_type`). Developers should compile WDL workflows with `-instanceTypeSelection dynamic`.
+Expect slightly longer runtimes due to the need to pick instance types at runtime, but this ensures
+the workflow will always use instance types that are supported for the project where it runs.
 
 - _TODO_ The developer of a global WDL-based workflow should include a pointer to WDL git repo commit that the workflow is based on for informational purposes by updating the "description" metadata field of the global workflow to include it.
 
