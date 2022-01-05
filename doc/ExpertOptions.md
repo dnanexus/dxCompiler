@@ -1559,8 +1559,9 @@ Any significant WDL workflow is compiled into multiple DNAnexus applets and work
 
 # Publishing global workflows
 
+<!-- TODO supported version pending release w/ APPS-989 -->
 Publishing a dxCompiler WDL workflow as a global workflow is supported from dxCompiler >= `v2.8.0`
-and dxpy >= `v0.318.0`
+and dxpy >= `v<supported version here>`
 
 Example: compiling a WDL workflow for later use as a global workflow.
 ```
