@@ -1587,11 +1587,16 @@ automatically included in the global workflow.
 
 ## Recommendations
 
-- _TODO_ Developers should not store any credentials and passwords in the source code of the gwf as authorized users can download any applets referenced by the gwf
+Developers should not store any credentials (passwords, keys, etc.) in the source code of the global
+workflow, as authorized users will have permission to download and view any applets referenced in
+the global workflow.
 
-- _TODO_ Developers should use simple types for input/output interfaces for global workflows for better platform experience.
+Developers should use simple types for input/output interfaces for global workflows for better
+platform experience.
 
-- _TODO_ Specify runtime resources using memory, disk, cpu requirements (not hard-coded instance types `dx_instance_type`) for better compatibility across runtime projects.
+Developers should runtime resources using memory, disk, cpu requirements (not hard-coded instance
+types using the key `dx_instance_type`) for better compatibility across any projects where the
+workflow will be run.
 
 - _TODO_ Compile with `-instanceTypeSelection dynamic` for better compatibility across runtime projects, but expect longer runtime.
 
