@@ -136,11 +136,11 @@ lazy val dependencies =
     val dxFileAccessProtocolsVersion = "0.5.3"
     val dxYamlVersion = "0.1.1"
     val wdlToolsVersion = "0.17.6"
-    val cwlScalaVersion = "0.7.3"
+    val cwlScalaVersion = "0.7.4"
     val typesafeVersion = "1.4.1"
     val sprayVersion = "1.3.6"
     val scalatestVersion = "3.2.9"
-    val logbackVersion = "1.2.9"
+    val logbackVersion = "1.2.10"
 
     val dxCommon = "com.dnanexus" % "dxcommon" % dxCommonVersion
     val dxApi = "com.dnanexus" % "dxapi" % dxApiVersion
