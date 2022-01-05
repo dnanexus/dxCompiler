@@ -1621,6 +1621,7 @@ For some types of workflow dependencies, the user must have access to them at ru
 - Docker containers that are external, or dynamically specified at runtime
 - Hard-coded `dx_instance_type` (runtime project needs to support the instance type; using numeric resource requirements is preferred)
 
+<!-- TODO mention URL when the UI supports global workflows -->
 Any usage of the above in a workflow (including in its tasks and sub-workflows) will produce a warning in the workflow's `description` metadata field, which can be viewed using:
 ```
 dx describe globalworkflow-<name>/<version> --json | jq -rc '.description | tostring'
