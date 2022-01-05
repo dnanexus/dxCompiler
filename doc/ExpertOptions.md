@@ -1600,11 +1600,14 @@ runtime resources using memory, disk, cpu requirements (not hard-coded instance 
 Expect slightly longer runtimes due to the need to pick instance types at runtime, but this ensures
 the workflow will always use instance types that are supported for the project where it runs.
 
-- _TODO_ The developer of a global WDL-based workflow should include a pointer to WDL git repo commit that the workflow is based on for informational purposes by updating the "description" metadata field of the global workflow to include it.
+For informational purposes, developers should include a reference to a git repo commit containing
+the original source code. They can add this to the "description" metadata field of the global workflow.
 
 ## Limitations
 
 - _TODO_ Currently only supported for WDL workflows, not workflows created from other languages, like CWL.
+
+- _TODO_ Currently single-region (same region that original WF was compiled in)
 
 - _TODO_ What will be cloned with the workflow
 
@@ -1627,6 +1630,3 @@ This also works for a regular workflow:
 ```
 dx describe <project-xxxx>:<workflow-yyyy> --json | jq -rc '.description | tostring'
 ```
-
-- _TODO_ Currently single-region (same region that original WF was compiled in)
->>>>>>> a6040db5... Initial work, documentation to-dos.
