@@ -1610,16 +1610,19 @@ Publishing a dxCompiler workflow as a global workflow is currently only supporte
 
 The global workflow will currently only support a single region (matching the region in which the original workflow was compiled).
 
-- _TODO_ What will be cloned with the workflow
+Some dependencies of the original workflow will be automatically included in the global workflow, i.e. they will be cloned into the global workflow's resource container and authorized users of the global workflow will not require additional permissions. These include
+- Applets and sub-workflows that were part of the original workflow
+- Native applets referenced by the workflow
+- Docker images that are stored as platform files
 
 - _TODO_ What will not be cloned with the workflow
 
 For some types of workflow dependencies, the user must have access to them at runtime in order to be able to use the global workflow. These include
 
-- Apps on the platform (user needs permission to use the apps)
+- Native apps referenced by the workflow (user needs permission to use the apps)
 - Files referenced by file paths in workflow inputs or body (user needs access to the files)
 - Credentials file for a private Docker registry (user needs access to the file)
-- Docker containers that are external, or dynamically specified at runtime
+- Docker images in external registries, or dynamically specified at runtime
 - Hard-coded `dx_instance_type` (runtime project needs to support the instance type; using numeric resource requirements is preferred)
 
 <!-- TODO mention URL when the UI supports global workflows -->
