@@ -1142,9 +1142,7 @@ If you want the default scatter chunk size for this workflow to be 100, but you 
 
 ## Job reuse
 
-By default, job results are [reused](https://documentation.dnanexus.com/user/running-apps-and-workflows/job-reuse). This is an optimization whereby when a job is run a second time, the results from the previous execution are returned, skipping job execution entirely. Reuses of subworkflows and subtasks used from different workflow files are not supported.
-
-Sometimes, it is desirable to disable this behavior. To do so use:
+By default, job results are [reused](https://documentation.dnanexus.com/user/running-apps-and-workflows/job-reuse). This is an optimization whereby when a job is run a second time, the results from the previous execution are returned, skipping job execution entirely. Sometimes, it is desirable to disable this behavior. To do so use:
 
 ```
 {

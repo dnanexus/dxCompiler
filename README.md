@@ -113,6 +113,7 @@ dxCompiler uses [wdlTools](https://github.com/dnanexus/wdlTools), a parser that 
   * All task and workflow names must be unique across the entire import tree
     * For example, if `A.wdl` imports `B.wdl` and `A.wdl` defines `workflow foo`, then `B.wdl` could not have a workflow or task named `foo`
   * The `Directory` type is only supported in stand-alone tasks, not yet in workflows
+  * Compilation of subworkflows(subtasks) used from different workflow files will create new workflows(applets), thus reuse is not available between built workflows.
 * WDL only
   * Workflows with forward references (i.e. a variable referenced before it is declared) are not yet supported.
   * The [alternative workflow output syntax](https://github.com/openwdl/wdl/blob/main/versions/draft-2/SPEC.md#outputs) that has been deprecated since WDL draft2 is not supported
