@@ -42,7 +42,16 @@ import dx.core.ir.{
 }
 import dx.core.languages.Language
 import dx.executor.JobMeta.MaxManifestJsLength
-import dx.util.{CodecUtils, FileSourceResolver, FileUtils, JsUtils, Logger, SysUtils, TraceLevel}
+import dx.util.{
+  CodecUtils,
+  FileSourceResolver,
+  FileUtils,
+  JsUtils,
+  Logger,
+  StdMode,
+  SysUtils,
+  TraceLevel
+}
 import dx.util.protocols.DxFileAccessProtocol
 import spray.json._
 
@@ -113,7 +122,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
 
   def runJobScriptFunction(name: String,
                            successCodes: Option[Set[Int]] = Some(Set(0)),
-                           truncateLogs: Boolean = true): Unit
+                           truncateLogs: Boolean = true,
+                           forwardStd: Boolean = false): Unit
 
   def rawJsInputs: Map[DxName, JsValue]
 
@@ -961,29 +971,40 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths,
 
   override def runJobScriptFunction(name: String,
                                     successCodes: Option[Set[Int]] = Some(Set(0)),
-                                    truncateLogs: Boolean = true): Unit = {
+                                    truncateLogs: Boolean = true,
+                                    forwardStd: Boolean = false): Unit = {
     val command = s"bash -c 'source ${codeFile} && ${name}'"
     logger.trace(s"Running job script function ${name}")
-    val (rc, stdout, stderr) = SysUtils.execCommand(command, exceptionOnFailure = false)
-    if (successCodes.forall(_.contains(rc))) {
-      val limit = if (truncateLogs) Some(LogLimit) else None
-      logger.trace(
-          s"""Job script function ${name} exited with success code ${rc}
-             |----- stdout -----
-             |${stdout}
-             |------------------""".stripMargin,
-          maxLength = limit,
-          showBeginning = true,
-          showEnd = true
-      )
+    if (forwardStd) {
+      val (rc, _, _) = SysUtils.runCommand(command,
+                                           exceptionOnFailure = false,
+                                           stdoutMode = StdMode.Forward,
+                                           stderrMode = StdMode.Forward)
+      if (!successCodes.forall(_.contains(rc))) {
+        throw new Exception(s"job script function ${name} exited with permanent fail code ${rc}")
+      }
     } else {
-      logger.error(s"""Job script function ${name} exited with permanent fail code ${rc}
-                      |----- stdout -----:
-                      |${stdout}
-                      |----- stderr-----:
-                      |${stderr}
-                      |-----------------""".stripMargin)
-      throw new Exception(s"job script function ${name} exited with permanent fail code ${rc}")
+      val (rc, stdout, stderr) = SysUtils.execCommand(command, exceptionOnFailure = false)
+      if (successCodes.forall(_.contains(rc))) {
+        val limit = if (truncateLogs) Some(LogLimit) else None
+        logger.trace(
+            s"""Job script function ${name} exited with success code ${rc}
+               |----- stdout -----
+               |${stdout}
+               |------------------""".stripMargin,
+            maxLength = limit,
+            showBeginning = true,
+            showEnd = true
+        )
+      } else {
+        logger.error(s"""Job script function ${name} exited with permanent fail code ${rc}
+                        |----- stdout -----:
+                        |${stdout}
+                        |----- stderr-----:
+                        |${stderr}
+                        |-----------------""".stripMargin)
+        throw new Exception(s"job script function ${name} exited with permanent fail code ${rc}")
+      }
     }
   }
 
