@@ -142,6 +142,6 @@ case class Runtime(wdlVersion: WdlVersion,
   }
 
   def returnCodes: Option[Set[Int]] = {
-    runtimeAttrs.runtime.flatMap(_.returnCodes)
+    runtimeAttrs.runtime.map(_.returnCodes).getOrElse(Some(WdlRuntime.ReturnCodesDefault))
   }
 }

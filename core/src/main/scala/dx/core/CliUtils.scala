@@ -54,7 +54,7 @@ object CliUtils {
     }
 
     // TODO: is there a way to do this without resorting to asInstanceOf?
-    def getList[T: ClassTag](name: String): Vector[T] = {
+    def getList[T](name: String): Vector[T] = {
       options.get(name) match {
         case Some(list: ListOption[_]) => list.value.asInstanceOf[Vector[T]]
         case None                      => Vector.empty[T]
@@ -139,12 +139,10 @@ object CliUtils {
         )
       }
       (curValue, multiple) match {
-        case (Some(ListOption(values: Vector[T])), true) =>
-          ListOption[T](values :+ value)
-        case (None, true) =>
-          ListOption[T](Vector(value))
-        case (None, false) =>
-          SingleValueOption[T](value)
+        case (Some(ListOption(values: Vector[_])), true) =>
+          ListOption[T](values.asInstanceOf[Vector[T]] :+ value)
+        case (None, true)  => ListOption[T](Vector(value))
+        case (None, false) => SingleValueOption[T](value)
         case _ =>
           throw OptionParseException(s"Unexpected value ${value} to option ${name}")
       }
@@ -321,8 +319,8 @@ object CliUtils {
       case (s, Some(e)) if s.nonEmpty =>
         s"""${message}
            |${e}""".stripMargin
-      case ("", Some(e)) => e
-      case (s, None)     => s
+      case (_, Some(e)) => e
+      case (s, None)    => s
     }
   }
 
