@@ -1560,8 +1560,7 @@ Any significant WDL workflow is compiled into multiple DNAnexus applets and work
 # Publishing global workflows
 
 <!-- TODO supported version pending release w/ APPS-989 -->
-Publishing a dxCompiler WDL workflow as a global workflow is supported from dxCompiler >= `v2.8.0`
-and dxpy >= `v<supported version here>`
+Publishing a dxCompiler WDL workflow as a global workflow is supported from dxCompiler >= `v2.8.0` and dxpy >= `v<supported version here>`
 
 Example: compiling a WDL workflow for later use as a global workflow.
 ```
@@ -1569,10 +1568,7 @@ java -jar dxCompiler.jar compile <workflow name>.wdl -instanceTypeSelection dyna
 ```
 
 <!-- TODO edit example to use <project id>:<workflow id> once dxpy supports that -->
-Example: publishing a global workflow from a compiled workflow. The global workflow's name will
-match the WDL workflow name. The global workflow's version must be set with `--version`, since
-a non-global workflow has no such property. If `--bill-to` is not specified, the publishing
-user's default billTo will be assumed.
+Example: publishing a global workflow from a compiled workflow. The global workflow's name will match the WDL workflow name. The global workflow's version must be set with `--version`, since a non-global workflow has no such property. If `--bill-to` is not specified, the publishing user's default billTo will be assumed.
 ```
 dx build --globalworkflow --from <workflow id> --version <version> --bill-to <user-xxxx | org-yyyy>
 dx publish globalworkflow-<workflow name>/<version>
@@ -1583,26 +1579,17 @@ Example: adding authorized users to a global workflow
 dx add users globalworkflow-<workflow name> <user-xxxx | org-yyyy | PUBLIC>
 ```
 
-See [Limitations](#limitations) below for more details on which parts of the workflow will be
-automatically included in the global workflow.
+See [Limitations](#limitations) below for more details on which parts of the workflow will be automatically included in the global workflow.
 
 ## Recommendations
 
-Developers should not store any credentials (passwords, keys, etc.) in the source code of the global
-workflow, as authorized users will have permission to download and view any applets referenced in
-the global workflow.
+Developers should not store any credentials (passwords, keys, etc.) in the source code of the global workflow, as authorized users will have permission to download and view any applets referenced in the global workflow.
 
-Developers should use simple types for input/output interfaces for global workflows for better
-platform experience.
+Developers should use simple types for input/output interfaces for global workflows for better platform experience.
 
-For better portability across projects where the workflow will be run, developers should specify
-runtime resources using memory, disk, CPU requirements (not hard-coded instance types using the key
-`dx_instance_type`). Developers should compile WDL workflows with `-instanceTypeSelection dynamic`.
-Expect slightly longer runtimes due to the need to pick instance types at runtime, but this ensures
-the workflow will always use instance types that are supported for the project where it runs.
+For better portability across projects where the workflow will be run, developers should specify runtime resources using memory, disk, CPU requirements (not hard-coded instance types using the key `dx_instance_type`). Developers should compile WDL workflows with `-instanceTypeSelection dynamic`. Expect slightly longer runtimes due to the need to pick instance types at runtime, but this ensures the workflow will always use instance types that are supported for the project where it runs.
 
-For informational purposes, developers should include a reference to a git repo commit containing
-the original source code. They can add this to the "description" metadata field of the global workflow.
+For informational purposes, developers should include a reference to a git repo commit containing the original source code. They can add this to the "description" metadata field of the global workflow.
 
 ## Limitations
 
@@ -1610,22 +1597,17 @@ Publishing a dxCompiler workflow as a global workflow is currently only supporte
 
 The global workflow will currently only support a single region (matching the region in which the original workflow was compiled).
 
-Some dependencies of the original workflow will be automatically included in the global workflow,
-i.e. they will be cloned into the global workflow's resource container and authorized users of
-the global workflow will not require additional permissions. These include
+Some dependencies of the original workflow will be automatically included in the global workflow, i.e. they will be cloned into the global workflow's resource container and authorized users of the global workflow will not require additional permissions. These include
 - Applets and sub-workflows that were part of the original workflow
 - Native applets referenced by the workflow
 - Docker images that are stored as platform files
 
-Some dependencies of the original workflow will not be automatically included in the global workflow,
-i.e. the user may need additional permissions to access them. These include
+Some dependencies of the original workflow will not be automatically included in the global workflow, i.e. the user may need additional permissions to access them. These include
 - Native apps referenced by the workflow (user needs permission to use the apps)
 - Files referenced by file paths in workflow inputs or body (user needs access to the files)
 - Credentials file for a private Docker registry (user needs access to the file)
-- Docker images in external registries, or dynamically specified at runtime (these will be pulled
-at runtime)
-- Hard-coded `dx_instance_type` (runtime project needs to support the instance type; using numeric
-resource requirements is preferred)
+- Docker images in external registries, or dynamically specified at runtime (these will be pulled at runtime)
+- Hard-coded `dx_instance_type` (runtime project needs to support the instance type; using numeric resource requirements is preferred)
 
 <!-- TODO mention URL when the UI supports global workflows -->
 Any usage of the above in a workflow (including in its tasks and sub-workflows) will produce a warning in the workflow's `description` metadata field, which can be viewed using:
