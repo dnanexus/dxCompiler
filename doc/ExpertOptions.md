@@ -1610,7 +1610,9 @@ Publishing a dxCompiler workflow as a global workflow is currently only supporte
 
 The global workflow will currently only support a single region (matching the region in which the original workflow was compiled).
 
-Some dependencies of the original workflow will be automatically included in the global workflow, i.e. they will be cloned into the global workflow's resource container and authorized users of the global workflow will not require additional permissions. These include
+Some dependencies of the original workflow will be automatically included in the global workflow,
+i.e. they will be cloned into the global workflow's resource container and authorized users of
+the global workflow will not require additional permissions. These include
 - Applets and sub-workflows that were part of the original workflow
 - Native applets referenced by the workflow
 - Docker images that are stored as platform files
