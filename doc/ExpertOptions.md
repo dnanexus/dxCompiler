@@ -1533,18 +1533,20 @@ $ java -jar dxCompiler.jar compile ...
 
 # Debugging an applet
 
-If you build an applet on the platform with dxCompiler, and want to inspect
-it, use: ```dx get --omit-resources <applet path>```. This will
-refrain from downloading the large resource files that go into the
-applet.
+## Logging
+
+dxCompiler forwards all of the output (stdout and stderr) from the WDL command to the job log. There is the possibility that excessive logging could cause an out-of-disk-space error. If this occurs, you will need to either use a larger instance type, or reduce the output. To completely ignore output from a command, you can redirect it to `/dev/null`:
+
+```
+mycommand > /dev/null 2> /dev/null
+```
+
+## Getting applet sources
+If you build an applet on the platform with dxCompiler, and want to inspect it, use: ```dx get --omit-resources <applet path>```. This will refrain from downloading the large resource files that go into the applet.
 
 ## Getting WDL sources
 
-Compiled workflows and tasks include the original WDL source code in
-the details field. For example, examine workflow `foo` that was
-compiled from `foo.wdl`.  The platform object `foo` includes a details
-field that contains the WDL source, in compressed, uuencoded
-form. To extract it you can do:
+Compiled workflows and tasks include the original WDL source code in the details field. For example, examine workflow `foo` that was compiled from `foo.wdl`.  The platform object `foo` includes a details field that contains the WDL source, in compressed, uuencoded form. To extract it you can do:
 
 ```
 dx describe /builds/1.02/applets/hello --json --details | jq '.details | .wdlSourceCode' | sed 's/"//g' | base64 --decode | gunzip
@@ -1552,12 +1554,4 @@ dx describe /builds/1.02/applets/hello --json --details | jq '.details | .wdlSou
 
 # Recompilation
 
-Any significant WDL workflow is compiled into multiple DNAnexus applets
-and workflows. Naively, any modification to the WDL source would
-necessitate recompilation of all the constituent objects, which is
-expensive. To optimize this use case, all generated platform objects are
-checksumed. If a dx:object has not changed, it is not recompiled, and
-the existing version can be used. The checksum covers the WDL source
-code, the DNAnexus runtime specification, and any other attributes. There
-are two exceptions: the project name, and the folder. This allows
-moving WDL workflows in the folder hierarchy without recompilation.
+Any significant WDL workflow is compiled into multiple DNAnexus applets and workflows. Naively, any modification to the WDL source would necessitate recompilation of all the constituent objects, which is expensive. To optimize this use case, all generated platform objects are checksumed. If a dx:object has not changed, it is not recompiled, and the existing version can be used. The checksum covers the WDL source code, the DNAnexus runtime specification, and any other attributes. There are two exceptions: the project name, and the folder. This allows moving WDL workflows in the folder hierarchy without recompilation.

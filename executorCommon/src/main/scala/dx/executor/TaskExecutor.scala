@@ -478,6 +478,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
                     )
                   case _ => false
                 }
+              case other => throw new Exception(s"unexpected item ${other}")
             }
           }
 

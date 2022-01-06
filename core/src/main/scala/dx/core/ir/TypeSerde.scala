@@ -211,9 +211,9 @@ object TypeSerde {
           case obj: JsObject =>
             val newTypeDefs = deserializeSchema(obj, typeDefs, jsTypeDefs, Some(name))
             (newTypeDefs(name), newTypeDefs)
+          case other => throw new Exception(s"invalid type definition ${other}")
         }
-      case JsString(name) =>
-        (simpleFromString(name), typeDefs)
+      case JsString(name) => (simpleFromString(name), typeDefs)
       case JsObject(fields) =>
         val (t, newTypeDefs) = fields(TypeKey) match {
           case JsString(ArrayTypeName) =>
@@ -238,21 +238,17 @@ object TypeSerde {
                     val (t, newTypeDefs) = deserialize(jsValue, typeDefAccu, jsTypeDefs)
                     (typeAccu :+ t, newTypeDefs)
                 }
-              case Some(JsNull) | None =>
-                (Vector.empty[Type], typeDefs)
+              case Some(JsNull) | None => (Vector.empty[Type], typeDefs)
               case other =>
                 throw TypeSerdeException(s"invalid multi-type array ${other}")
             }
             (TMulti(choices), newTypeDefs)
-          case JsString(name) if typeDefs.contains(name) =>
-            (typeDefs(name), typeDefs)
+          case JsString(name) if typeDefs.contains(name) => (typeDefs(name), typeDefs)
           case JsString(name) if jsTypeDefs.contains(name) =>
             val newTypeDefs = deserializeSchema(jsTypeDefs(name), typeDefs, jsTypeDefs)
             (newTypeDefs(name), newTypeDefs)
-          case JsString(name) =>
-            (simpleFromString(name), typeDefs)
-          case _ =>
-            throw TypeSerdeException(s"invalid type field value ${jsValue}")
+          case JsString(name) => (simpleFromString(name), typeDefs)
+          case _              => throw TypeSerdeException(s"invalid type field value ${jsValue}")
         }
         if (fields.get(OptionalKey).exists(JsUtils.getBoolean(_))) {
           (Type.ensureOptional(t), newTypeDefs)
