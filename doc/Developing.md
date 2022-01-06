@@ -6,7 +6,7 @@
     * On mac with [homebrew](https://brew.sh/) installed:
     ```
     $ brew tap AdoptOpenJDK/openjdk
-    $ brew cask install adoptopenjdk11
+    $ brew install adoptopenjdk11 --cask
     # Use java_home to find the location of JAVA_HOME to set
     $ /usr/libexec/java_home -V
     $ export JAVA_HOME=/Library/Java/...
