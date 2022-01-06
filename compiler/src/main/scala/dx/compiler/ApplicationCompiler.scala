@@ -422,17 +422,15 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         extras.map(_.getTaskAccess(applet.name))
       case _ => None
     }).getOrElse(DxAccess.empty)
-    // TODO: What is desired behavior when using a private Docker registry?
-    // Currently, runtime access to the credentials file is needed since it
-    // may not be in the same project and is not cloned with the workflow.
+    // Default to no project access, unless private Docker registry is
+    // specified in extras.json
     val projectAccess: DxAccess = dockerRegistry match {
       case None    => DxAccess.empty.copy(project = Some(DxAccessLevel.Denied))
       case Some(_) => DxAccess.empty.copy(project = Some(DxAccessLevel.View))
     }
-    // TODO: Should allProjects also be NONE unless using private Docker registry?
     val allProjectsAccess: DxAccess = dockerRegistry match {
-      case None    => DxAccess.empty
-      case Some(_) => DxAccess.empty.copy(allProjects = Some(DxAccessLevel.View))
+      case None    => DxAccess.empty.copy(project = Some(DxAccessLevel.Denied))
+      case Some(_) => DxAccess.empty.copy(project = Some(DxAccessLevel.View))
     }
     // update depending on applet type
     val appletKindAccess = applet.kind match {
