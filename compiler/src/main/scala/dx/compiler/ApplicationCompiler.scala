@@ -422,8 +422,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         extras.map(_.getTaskAccess(applet.name))
       case _ => None
     }).getOrElse(DxAccess.empty)
-    // Default to no project access, unless private Docker registry is
-    // specified in extras.json
+    // Default to no project access; if private Docker registry is specified
+    // in extras.json, then VIEW projects
     val projectAccess: DxAccess = dockerRegistry match {
       case None    => DxAccess.empty.copy(project = Some(DxAccessLevel.Denied))
       case Some(_) => DxAccess.empty.copy(project = Some(DxAccessLevel.View))
