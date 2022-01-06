@@ -2,69 +2,44 @@
 
 ## Setting up your development environment
 
-### Install JDK 8
-
-* On macOS with [homebrew](https://brew.sh/) installed:
-  ```
-  $ brew tap AdoptOpenJDK/openjdk
-  $ brew cask install adoptopenjdk8
-  ```
-  Find the path to set for JAVA_HOME
-  ```
-  $ /usr/libexec/java_home -V
-  ```
-  Set the following in `~/.zshenv`
-  ```
-  # Java
-  export JAVA_HOME=<path>
-
-  # Mitigation for log4j2
-  export JAVA_OPTS=-Dlog4j2.formatMsgNoLookups=true
-  ```
-
-* On Linux (assuming Ubuntu 20.04)
-  ```
-  $ sudo apt install openjdk-8-jre-headless
-  ```
-  Set the following in `~/.bash_profile`
-  ```
-  # Java
-  export JAVA_HOME=<path>
-
-  # Mitigation for log4j2
-  export JAVA_OPTS=-Dlog4j2.formatMsgNoLookups=true
-  ```
-
-* Scala will compile with JDK 11, but the JDK on DNAnexus worker instances is JDK 8 and will not be able to run a JAR file with classes compiled by a later version of Java
-
-### Install Scala & sbt
-
+* Install JDK 11
+    * On mac with [homebrew](https://brew.sh/) installed:
+    ```
+    $ brew tap AdoptOpenJDK/openjdk
+    $ brew install adoptopenjdk11 --cask
+    # Use java_home to find the location of JAVA_HOME to set
+    $ /usr/libexec/java_home -V
+    $ export JAVA_HOME=/Library/Java/...
+    ```
+    * On Linux (assuming Ubuntu 16.04)
+    ```
+    $ sudo apt install openjdk-11-jre-headless
+    ```
+    * Note that dxCompiler will compile with JDK8 or JDK11 and that JDK8 is used as the build target so the resulting JAR file can be executed with JRE8 or later.
 * Install [sbt](https://www.scala-sbt.org/), which also installs Scala. Sbt is a make-like utility that works with the ```scala``` language.
     * On MacOS: `brew install sbt`
     * On Linux:
-      ```
-      $ wget www.scala-lang.org/files/archive/scala-2.12.1.deb
-      $ sudo dpkg -i scala-2.12.1.deb
-      $ echo "deb https://dl.bintray.com/sbt/debian /" | sudo tee -a /etc/apt/sources.list.d/sbt.list
-      $ sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2EE0EA64E40A89B84B2DF73499E82A75642AC823
-      $ sudo apt-get update
-      $ sudo apt-get install sbt
-      ```
+    ```
+    $ wget www.scala-lang.org/files/archive/scala-2.13.7.deb
+    $ sudo dpkg -i scala-2.13.7.deb
+    $ echo "deb https://dl.bintray.com/sbt/debian /" | sudo tee -a /etc/apt/sources.list.d/sbt.list
+    $ sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2EE0EA64E40A89B84B2DF73499E82A75642AC823
+    $ sudo apt-get update
+    $ sudo apt-get install sbt
+    ```
     * Running sbt for the first time takes several minutes, because it downloads all required packages.
 * We also recommend to install [Metals](https://scalameta.org/metals/), which enables better integration with your IDE
     * For VSCode, install the "Scala (Metals)" and "Scala Syntax (official)" plugins
-* You will also need Python installed (we recommend version 3.6+) and dx-toolkit (`pip install dxpy`)
-
-### Additional developer setup
-
-* You will also need to create a GitHub personal access token (this is required by the sbt-github-packages plugin). In GitHub settings, go to "Developer settings > Personal access token" and create a new token with "write:packages" and "read:packages" scopes only. Then, export the `GITHUB_TOKEN` environment variable with this token as the value. For example, in your `.profile`:
-  ```bash
-  export GITHUB_TOKEN=<your personal access token>
-  ```
+* You will need to create a GitHub personal access token (this is required by the sbt-github-packages plugin).
+    * In GitHub settings, go to "Developer settings > Personal access token" and create a new token with "write:packages" and "read:packages" scopes only.
+    * Export the `GITHUB_TOKEN` environment variable with this token as the value. For example, in your `.profile`:
+    ```bash
+    export GITHUB_TOKEN=<your personal access token>
+    ```
     * On macOS, you may also want to add this token into your global environment so it is visible to your IDE:
-  ```bash
-  launchctl setenv GITHUB_TOKEN $GITHUB_TOKEN
-  ```
+    ```bash
+    launchctl setenv GITHUB_TOKEN $GITHUB_TOKEN
+    ```
 
 ## Getting the source code
 
