@@ -429,8 +429,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       case Some(_) => DxAccess.empty.copy(project = Some(DxAccessLevel.View))
     }
     val allProjectsAccess: DxAccess = dockerRegistry match {
-      case None    => DxAccess.empty.copy(project = Some(DxAccessLevel.Denied))
-      case Some(_) => DxAccess.empty.copy(project = Some(DxAccessLevel.View))
+      case None    => DxAccess.empty.copy(allProjects = Some(DxAccessLevel.Denied))
+      case Some(_) => DxAccess.empty.copy(allProjects = Some(DxAccessLevel.View))
     }
     // update depending on applet type
     val appletKindAccess = applet.kind match {
