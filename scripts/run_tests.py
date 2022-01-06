@@ -18,7 +18,7 @@ import traceback
 from typing import List
 import yaml
 from dxpy.exceptions import DXJobFailureError
-
+import time
 import util
 
 here = os.path.dirname(sys.argv[0])
@@ -60,8 +60,8 @@ expected_failure = {
     "apps_1014"
 }
 
-reuse_jobs={"nested_manifest":["*"], "from_scatter_manifest":["*"], "scatter_file_manifest":["*"], "nested_outer2":["*"]}
-
+reuse_jobs={"nested_manifest":[], "from_scatter_manifest":["*"], "scatter_file_manifest":["*"], "nested_outer2":[]}
+delete_reuse_results={"nested_outer2","nested_manifest"}
 test_compilation_failing = {"import_passwd"}
 
 wdl_v1_list = [
@@ -135,8 +135,7 @@ wdl_v1_list = [
     "apps_864",
     "nested_manifest",
     "from_scatter_manifest",
-    "scatter_file_manifest",
-    "nested_outer2"
+    "scatter_file_manifest"
 ]
 
 wdl_v1_1_list = [
@@ -522,6 +521,7 @@ TestDesc = namedtuple(
     "TestDesc",
     ["name", "kind", "source_file", "raw_input", "dx_input", "results", "extras", "reuse_file", "reuse_name", "reuse_input", "reuse_dx_input"],
 )
+File = namedtuple("File",["id", "proj"])
 
 # Test with -waitOnUpload flag
 test_upload_wait = {
@@ -1285,10 +1285,25 @@ def wait_for_completion(test_exec_objs):
 # Run [workflow] on several inputs, return the analysis ID.
 def run_executable(
         project, test_folder, tname, oid, debug_flag, delay_workspace_destruction,
-        instance_type=default_instance_type, reuse=False
+        instance_type=default_instance_type, reuse=False, wait_and_destroy=False
 ):
     desc = test_files[tname]
     def once(i):
+        def destroy_outputs(job:dxpy.DXJob):
+            ids_to_delete = set()
+            outputs = job.describe().get("output",{})
+            for o in outputs:
+                output_id = outputs[o].get("$dnanexus_link", None)
+                if type(output_id) is dict:
+                    output_id = outputs[o].get("$dnanexus_link",{}).get("id")
+                output_proj = dxpy.describe(output_id).get("project")
+                if output_id:
+                    output_desc = dxpy.describe(output_id)
+                    # safety check, not to delete something older than 1800s by accident (files should be newly created)
+                    if time.time()*1000.0 - int(output_desc.get("created")) < 1800000:
+                        ids_to_delete.add(File(id=output_id, proj=output_proj))
+            for o in ids_to_delete:
+                dxpy.DXFile(dxid=o.id, project=o.proj).remove()
         try:
             run_kwargs = {}
             if tname in test_defaults or i < 0:
@@ -1313,19 +1328,21 @@ def run_executable(
                     "debugOn": ["AppError", "AppInternalError", "ExecutionError"]
                 }
                 run_kwargs["allow_ssh"] = ["*"]
-
             if delay_workspace_destruction:
                 run_kwargs["delay_workspace_destruction"] = True
             if instance_type:
                 run_kwargs["instance_type"] = instance_type
-
-            return exec_obj.run(
+            job = exec_obj.run(
                 inputs,
                 project=project.get_id(),
                 folder=test_folder,
                 name="{} {}".format(desc.name, git_revision),
                 **run_kwargs,
             )
+            if wait_and_destroy:
+                job.wait_on_done()
+                destroy_outputs(job)
+            return job
         except Exception as e:
             print("exception message={}".format(e))
             return None
@@ -1381,9 +1398,10 @@ def run_test_subset(
             instance_type = None
         else:
             instance_type = default_instance_type
+        wait_and_destroy = tname in delete_reuse_results and reuse
         try:
             anl = run_executable(
-                project, test_folder, tname, oid, debug_flag, delay_workspace_destruction, instance_type, reuse=reuse
+                project, test_folder, tname, oid, debug_flag, delay_workspace_destruction, instance_type, reuse=reuse, wait_and_destroy=wait_and_destroy
             )
             test_exec_objs.extend(anl)
         except Exception as ex:
