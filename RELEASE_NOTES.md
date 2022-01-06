@@ -1,8 +1,28 @@
 # Release Notes
 
-## in develop
+## 2.8.2 2022-01-05
 
 * Fixes issue where task without `runtime` section succeeds even when command block results in a failure code
+* Forwards command output to the job log rather than buffering it until after command completion
+* Updates code to compile with JDK11
+* Updates build environment to JDK11, Scala 2.13.7, and SBT 1.5.7
+
+### Dependency updates
+
+#### dxCommon 0.11.0
+
+* Adds `SysUtils.runCommand`, which exposes options for how to handle stdin/stdout/stderr.
+* Adds `Paths.BaseEvalPaths.isLocal` attribute to differentiate local from remote paths.
+* **Breaking** removes `SysUtils.execScript`. Use `runCommand` with the script path as the argument instead.
+* Adds validation of path characters to `FileUtils.getUriScheme`
+
+#### dxFileAccessProtocols 0.5.3
+
+* Handles `ResourceNotFoundException` in `DxFileSource.exists`
+
+#### wdlTools 0.17.6
+
+* Fixes `stderr()` function - previously it was returning the file for stdout
 
 ## 2.8.1 2021-12-13
 
