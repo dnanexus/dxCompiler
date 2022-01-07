@@ -111,7 +111,7 @@ dxCompiler uses [wdlTools](https://github.com/dnanexus/wdlTools), a parser that 
 * WDL and CWL
   * Calls with missing arguments have [limited support](doc/ExpertOptions.md#task-and-workflow-inputs).
   * All task and workflow names must be unique across the entire import tree
-    * For example, if `A.wdl` imports `B.wdl` and `A.wdl` defines `workflow foo`, then `B.wdl` could not have a workflow or task named `foo`
+    * For example, if `A.wdl` imports `B.wdl` and `A.wdl` defines workflow `foo`, then `B.wdl` could not have a workflow or task named `foo`
   * The `Directory` type is only supported in stand-alone tasks, not yet in workflows
   * Compilation of subworkflows(subtasks) used from different workflow files will create new workflows(applets), thus reuse is not available between built workflows.
 * WDL only
