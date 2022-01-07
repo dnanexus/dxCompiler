@@ -1,5 +1,9 @@
 # Release Notes
 
+## in develop
+
+* Update dxCommon and wdlTools
+
 ## 2.8.2 2022-01-05
 
 * Fixes issue where task without `runtime` section succeeds even when command block results in a failure code
