@@ -1,0 +1,98 @@
+{
+    "class": "Workflow",
+    "requirements": [
+        {
+            "class": "ScatterFeatureRequirement"
+        },
+        {
+            "class": "DockerRequirement",
+            "dockerPull": "ubuntu:latest"
+        }
+    ],
+    "inputs": [
+        {
+            "type": {
+                "type": "array",
+                "items": "string"
+            },
+            "id": "#main/inp"
+        },
+        {
+            "type": "string",
+            "id": "#main/inp2"
+        }
+    ],
+    "steps": [
+        {
+            "in": [
+                {
+                    "source": "#main/inp",
+                    "id": "#main/step1/echo_in"
+                },
+                {
+                    "source": "#main/inp2",
+                    "id": "#main/step1/echo_in2"
+                }
+            ],
+            "out": [
+                "#main/step1/echo_out"
+            ],
+            "scatter": "#main/step1/echo_in",
+            "run": {
+                "class": "CommandLineTool",
+                "inputs": [
+                    {
+                        "type": "string",
+                        "inputBinding": {},
+                        "id": "#main/step1/run/echo_in"
+                    },
+                    {
+                        "type": "string",
+                        "inputBinding": {},
+                        "id": "#main/step1/run/echo_in2"
+                    }
+                ],
+                "outputs": [
+                    {
+                        "type": "string",
+                        "outputBinding": {
+                            "glob": "step1_out",
+                            "loadContents": true,
+                            "outputEval": "$(self[0].contents)"
+                        },
+                        "id": "#main/step1/run/echo_out"
+                    }
+                ],
+                "baseCommand": "echo",
+                "arguments": [
+                    "-n",
+                    "foo"
+                ],
+                "stdout": "step1_out",
+                "hints": [
+                    {
+                        "loadListing": "deep_listing",
+                        "class": "LoadListingRequirement"
+                    },
+                    {
+                        "networkAccess": true,
+                        "class": "NetworkAccess"
+                    }
+                ]
+            },
+            "id": "#main/step1"
+        }
+    ],
+    "id": "#main",
+    "outputs": [
+        {
+            "type": {
+                "type": "array",
+                "items": "string"
+            },
+            "outputSource": "#main/step1/echo_out",
+            "id": "#main/out"
+        }
+    ],
+    "cwlVersion": "v1.2"
+}

@@ -1,0 +1,2 @@
+qux: qux  # type "string"
+bar: bar  # type "string"

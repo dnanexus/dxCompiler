@@ -1,0 +1,160 @@
+{
+    "$graph": [
+        {
+            "id": "#average",
+            "class": "CommandLineTool",
+            "requirements": [
+                {
+                    "class": "InlineJavascriptRequirement"
+                },
+                {
+                    "class": "ShellCommandRequirement"
+                }
+            ],
+            "inputs": [
+                {
+                    "type": "int",
+                    "default": 9,
+                    "id": "#average/base1"
+                },
+                {
+                    "type": "int",
+                    "default": 13,
+                    "id": "#average/base2"
+                }
+            ],
+            "arguments": [
+                {
+                    "valueFrom": "echo $((inputs.base1 + inputs.base2) / 2)",
+                    "shellQuote": false
+                }
+            ],
+            "stdout": "stdout.txt",
+            "hints": [
+                {
+                    "loadListing": "deep_listing",
+                    "class": "LoadListingRequirement"
+                },
+                {
+                    "networkAccess": true,
+                    "class": "NetworkAccess"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "float",
+                    "outputBinding": {
+                        "glob": "stdout.txt",
+                        "loadContents": true,
+                        "outputEval": "$(parseFloat(self[0].contents))"
+                    },
+                    "id": "#average/baseAverage"
+                }
+            ]
+        },
+        {
+            "id": "#height-product",
+            "class": "CommandLineTool",
+            "requirements": [
+                {
+                    "class": "InlineJavascriptRequirement"
+                },
+                {
+                    "class": "ShellCommandRequirement"
+                }
+            ],
+            "inputs": [
+                {
+                    "type": "float",
+                    "id": "#height-product/baseAverage"
+                },
+                {
+                    "type": "float",
+                    "default": 7.0,
+                    "id": "#height-product/height"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "long",
+                    "outputBinding": {
+                        "glob": "stdout.txt",
+                        "loadContents": true,
+                        "outputEval": "$(parseFloat(self[0].contents))"
+                    },
+                    "id": "#height-product/trapezoidalArea"
+                }
+            ],
+            "arguments": [
+                {
+                    "valueFrom": "echo $(inputs.baseAverage * inputs.height)",
+                    "shellQuote": false
+                }
+            ],
+            "stdout": "stdout.txt",
+            "hints": [
+                {
+                    "loadListing": "deep_listing",
+                    "class": "LoadListingRequirement"
+                },
+                {
+                    "networkAccess": true,
+                    "class": "NetworkAccess"
+                }
+            ]
+        },
+        {
+            "id": "#main",
+            "class": "Workflow",
+            "requirements": [
+                {
+                    "class": "DockerRequirement",
+                    "dockerPull": "ubuntu:latest"
+                },
+                {
+                    "class": "ShellCommandRequirement"
+                },
+                {
+                    "class": "InlineJavascriptRequirement"
+                }
+            ],
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "float",
+                    "outputSource": "#main/step-average/baseAverage",
+                    "id": "#main/baseAverage"
+                },
+                {
+                    "type": "long",
+                    "outputSource": "#main/step-product/trapezoidalArea",
+                    "id": "#main/trapezoidalArea"
+                }
+            ],
+            "steps": [
+                {
+                    "id": "#main/step-average",
+                    "run": "#average",
+                    "in": [],
+                    "out": [
+                        "#main/step-average/baseAverage"
+                    ]
+                },
+                {
+                    "id": "#main/step-product",
+                    "run": "#height-product",
+                    "in": [
+                        {
+                            "source": "#main/step-average/baseAverage",
+                            "id": "#main/step-product/baseAverage"
+                        }
+                    ],
+                    "out": [
+                        "#main/step-product/trapezoidalArea"
+                    ]
+                }
+            ]
+        }
+    ],
+    "cwlVersion": "v1.2"
+}
