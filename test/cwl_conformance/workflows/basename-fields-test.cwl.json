@@ -1,101 +1,101 @@
 {
-    "$graph": [
+  "$graph": [
+    {
+      "class": "Workflow",
+      "id": "#main",
+      "inputs": [
         {
-            "class": "Workflow",
-            "requirements": [
-                {
-                    "class": "StepInputExpressionRequirement"
-                }
-            ],
-            "inputs": [
-                {
-                    "type": "File",
-                    "id": "#main/tool"
-                }
-            ],
-            "outputs": [
-                {
-                    "type": "File",
-                    "outputSource": "#main/ext/out",
-                    "id": "#main/extFile"
-                },
-                {
-                    "type": "File",
-                    "outputSource": "#main/root/out",
-                    "id": "#main/rootFile"
-                }
-            ],
-            "steps": [
-                {
-                    "run": "#echo-file-tool.cwl",
-                    "in": [
-                        {
-                            "valueFrom": "$(inputs.tool.nameext)",
-                            "id": "#main/ext/in"
-                        },
-                        {
-                            "source": "#main/tool",
-                            "id": "#main/ext/tool"
-                        }
-                    ],
-                    "out": [
-                        "#main/ext/out"
-                    ],
-                    "id": "#main/ext"
-                },
-                {
-                    "run": "#echo-file-tool.cwl",
-                    "in": [
-                        {
-                            "valueFrom": "$(inputs.tool.nameroot)",
-                            "id": "#main/root/in"
-                        },
-                        {
-                            "source": "#main/tool",
-                            "id": "#main/root/tool"
-                        }
-                    ],
-                    "out": [
-                        "#main/root/out"
-                    ],
-                    "id": "#main/root"
-                }
-            ],
-            "id": "#main"
+          "id": "#main/tool",
+          "type": "File"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "#main/extFile",
+          "outputSource": "#main/ext/out",
+          "type": "File"
         },
         {
-            "class": "CommandLineTool",
-            "baseCommand": [
-                "echo"
-            ],
-            "inputs": [
-                {
-                    "type": "string",
-                    "inputBinding": {
-                        "position": 1
-                    },
-                    "id": "#echo-file-tool.cwl/in"
-                },
-                {
-                    "type": [
-                        "null",
-                        "string"
-                    ],
-                    "id": "#echo-file-tool.cwl/name"
-                }
-            ],
-            "stdout": "out.txt",
-            "outputs": [
-                {
-                    "type": "File",
-                    "id": "#echo-file-tool.cwl/out",
-                    "outputBinding": {
-                        "glob": "out.txt"
-                    }
-                }
-            ],
-            "id": "#echo-file-tool.cwl"
+          "id": "#main/rootFile",
+          "outputSource": "#main/root/out",
+          "type": "File"
         }
-    ],
-    "cwlVersion": "v1.2"
+      ],
+      "requirements": [
+        {
+          "class": "StepInputExpressionRequirement"
+        }
+      ],
+      "steps": [
+        {
+          "id": "#main/ext",
+          "in": [
+            {
+              "id": "#main/ext/in",
+              "valueFrom": "$(inputs.tool.nameext)"
+            },
+            {
+              "id": "#main/ext/tool",
+              "source": "#main/tool"
+            }
+          ],
+          "out": [
+            "#main/ext/out"
+          ],
+          "run": "#echo-file-tool.cwl"
+        },
+        {
+          "id": "#main/root",
+          "in": [
+            {
+              "id": "#main/root/in",
+              "valueFrom": "$(inputs.tool.nameroot)"
+            },
+            {
+              "id": "#main/root/tool",
+              "source": "#main/tool"
+            }
+          ],
+          "out": [
+            "#main/root/out"
+          ],
+          "run": "#echo-file-tool.cwl"
+        }
+      ]
+    },
+    {
+      "baseCommand": [
+        "echo"
+      ],
+      "class": "CommandLineTool",
+      "id": "#echo-file-tool.cwl",
+      "inputs": [
+        {
+          "id": "#echo-file-tool.cwl/in",
+          "inputBinding": {
+            "position": 1
+          },
+          "type": "string"
+        },
+        {
+          "id": "#echo-file-tool.cwl/name",
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "id": "#echo-file-tool.cwl/out",
+          "outputBinding": {
+            "glob": "out.txt"
+          },
+          "type": "File"
+        }
+      ],
+      "stdout": "out.txt"
+    }
+  ],
+  "cwlVersion": "v1.2"
 }

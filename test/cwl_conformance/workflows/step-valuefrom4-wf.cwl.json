@@ -1,56 +1,56 @@
 {
-    "class": "Workflow",
-    "requirements": [
+  "class": "Workflow",
+  "cwlVersion": "v1.2",
+  "id": "#main",
+  "inputs": [],
+  "outputs": [
+    {
+      "id": "#main/val",
+      "outputSource": "#main/step1/echo_out",
+      "type": "string"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "StepInputExpressionRequirement"
+    }
+  ],
+  "steps": [
+    {
+      "id": "#main/step1",
+      "in": [
         {
-            "class": "StepInputExpressionRequirement"
+          "id": "#main/step1/a",
+          "valueFrom": "moocow"
         }
-    ],
-    "inputs": [],
-    "outputs": [
-        {
-            "type": "string",
-            "outputSource": "#main/step1/echo_out",
-            "id": "#main/val"
-        }
-    ],
-    "steps": [
-        {
-            "run": {
-                "id": "#main/step1/run/echo",
-                "class": "CommandLineTool",
-                "inputs": [
-                    {
-                        "type": "string",
-                        "inputBinding": {},
-                        "id": "#main/step1/run/echo/a"
-                    }
-                ],
-                "outputs": [
-                    {
-                        "type": "string",
-                        "outputBinding": {
-                            "glob": "step1_out",
-                            "loadContents": true,
-                            "outputEval": "$(self[0].contents)"
-                        },
-                        "id": "#main/step1/run/echo/echo_out"
-                    }
-                ],
-                "baseCommand": "echo",
-                "stdout": "step1_out"
+      ],
+      "out": [
+        "#main/step1/echo_out"
+      ],
+      "run": {
+        "baseCommand": "echo",
+        "class": "CommandLineTool",
+        "id": "#main/step1/run/echo",
+        "inputs": [
+          {
+            "id": "#main/step1/run/echo/a",
+            "inputBinding": {},
+            "type": "string"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "#main/step1/run/echo/echo_out",
+            "outputBinding": {
+              "glob": "step1_out",
+              "loadContents": true,
+              "outputEval": "$(self[0].contents)"
             },
-            "in": [
-                {
-                    "valueFrom": "moocow",
-                    "id": "#main/step1/a"
-                }
-            ],
-            "out": [
-                "#main/step1/echo_out"
-            ],
-            "id": "#main/step1"
-        }
-    ],
-    "id": "#main",
-    "cwlVersion": "v1.2"
+            "type": "string"
+          }
+        ],
+        "stdout": "step1_out"
+      }
+    }
+  ]
 }
