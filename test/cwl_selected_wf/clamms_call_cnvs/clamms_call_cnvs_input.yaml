@@ -1,0 +1,8 @@
+sex: a_string  # type "string" (optional)
+sample_normalized_coverage_bed_file:  # type "File"
+    class: File
+    path: a/file/path
+reference_model_file:  # type "File"
+    class: File
+    path: a/file/path
+cnv_rate: 1.0e-07  # default value of type "double". (optional)

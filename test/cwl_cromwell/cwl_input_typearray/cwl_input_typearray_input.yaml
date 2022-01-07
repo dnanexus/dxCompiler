@@ -1,0 +1,4 @@
+value_f:
+  class: File
+  path: "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/cwl_secondary_files/foo.txt"
+value_s: "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/cwl_secondary_files/bar.txt"

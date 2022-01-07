@@ -1,0 +1,329 @@
+{
+    "analysis": [
+        "variant2",
+        "variant2"
+    ],
+    "config__algorithm__align_split_size": [
+        "null",
+        "null"
+    ],
+    "config__algorithm__aligner": [
+        "bwa",
+        "bwa"
+    ],
+    "config__algorithm__bam_clean": [
+        "False",
+        "False"
+    ],
+    "config__algorithm__coverage": [
+        {
+            "class": "File",
+            "path": "brad_cwl_gvcf:/testdata/automated/coverage_transcripts-bam.bed"
+        },
+        "null"
+    ],
+    "config__algorithm__coverage_interval": [
+        "null",
+        "null"
+    ],
+    "config__algorithm__mark_duplicates": [
+        "True",
+        "True"
+    ],
+    "config__algorithm__nomap_split_size": [
+        250,
+        250
+    ],
+    "config__algorithm__nomap_split_targets": [
+        200,
+        200
+    ],
+    "config__algorithm__qc": [
+        [
+            "fastqc",
+            "samtools",
+            "qsignature",
+            "coverage",
+            "variants",
+            "picard",
+            "peddy"
+        ],
+        [
+            "fastqc",
+            "samtools",
+            "qsignature",
+            "coverage",
+            "variants",
+            "picard",
+            "peddy"
+        ]
+    ],
+    "config__algorithm__recalibrate": [
+        "True",
+        "True"
+    ],
+    "config__algorithm__tools_off": [
+        [
+            "gemini"
+        ],
+        [
+            "gemini"
+        ]
+    ],
+    "config__algorithm__tools_on": [
+        [
+            "gatk4",
+            "gvcf"
+        ],
+        [
+            "gatk4",
+            "gvcf"
+        ]
+    ],
+    "config__algorithm__validate": [
+        {
+            "class": "File",
+            "path": "brad_cwl_gvcf:/testdata/reference_material/7_100326_FC6107FAAXX-grade.vcf"
+        },
+        "null"
+    ],
+    "config__algorithm__validate_regions": [
+        {
+            "class": "File",
+            "path": "brad_cwl_gvcf:/testdata/automated/variant_regions-bam.bed"
+        },
+        "null"
+    ],
+    "config__algorithm__variant_regions": [
+        {
+            "class": "File",
+            "path": "brad_cwl_gvcf:/testdata/automated/variant_regions-bam.bed"
+        },
+        {
+            "class": "File",
+            "path": "brad_cwl_gvcf:/testdata/automated/variant_regions-bam.bed"
+        }
+    ],
+    "config__algorithm__variantcaller": [
+        [
+            "gatk-haplotype"
+        ],
+        [
+            "gatk-haplotype"
+        ]
+    ],
+    "description": [
+        "Test1",
+        "Test2"
+    ],
+    "files": [
+        [
+            {
+                "class": "File",
+                "path": "brad_cwl_gvcf:/testdata/100326_FC6107FAAXX/7_100326_FC6107FAAXX.bam",
+                "secondaryFiles": [
+                    {
+                        "class": "File",
+                        "path": "brad_cwl_gvcf:/testdata/100326_FC6107FAAXX/7_100326_FC6107FAAXX.bam.bai"
+                    }
+                ]
+            }
+        ],
+        [
+            {
+                "class": "File",
+                "path": "brad_cwl_gvcf:/testdata/100326_FC6107FAAXX/6_100326_FC6107FAAXX.bam",
+                "secondaryFiles": [
+                    {
+                        "class": "File",
+                        "path": "brad_cwl_gvcf:/testdata/100326_FC6107FAAXX/6_100326_FC6107FAAXX.bam.bai"
+                    }
+                ]
+            }
+        ]
+    ],
+    "genome_build": [
+        "hg19",
+        "hg19"
+    ],
+    "genome_resources__aliases__ensembl": [
+        "homo_sapiens_vep_83_GRCh37",
+        "homo_sapiens_vep_83_GRCh37"
+    ],
+    "genome_resources__aliases__human": [
+        "True",
+        "True"
+    ],
+    "genome_resources__aliases__snpeff": [
+        "hg19",
+        "hg19"
+    ],
+    "genome_resources__rnaseq__gene_bed": [
+        {
+            "class": "File",
+            "path": "brad_cwl_gvcf:/testdata/genomes/hg19/rnaseq/ref-transcripts.bed"
+        },
+        {
+            "class": "File",
+            "path": "brad_cwl_gvcf:/testdata/genomes/hg19/rnaseq/ref-transcripts.bed"
+        }
+    ],
+    "genome_resources__variation__cosmic": [
+        {
+            "class": "File",
+            "path": "brad_cwl_gvcf:/testdata/genomes/hg19/variation/cosmic-v68-hg19.vcf.gz",
+            "secondaryFiles": [
+                {
+                    "class": "File",
+                    "path": "brad_cwl_gvcf:/testdata/genomes/hg19/variation/cosmic-v68-hg19.vcf.gz.tbi"
+                }
+            ]
+        },
+        {
+            "class": "File",
+            "path": "brad_cwl_gvcf:/testdata/genomes/hg19/variation/cosmic-v68-hg19.vcf.gz",
+            "secondaryFiles": [
+                {
+                    "class": "File",
+                    "path": "brad_cwl_gvcf:/testdata/genomes/hg19/variation/cosmic-v68-hg19.vcf.gz.tbi"
+                }
+            ]
+        }
+    ],
+    "genome_resources__variation__dbsnp": [
+        {
+            "class": "File",
+            "path": "brad_cwl_gvcf:/testdata/genomes/hg19/variation/dbsnp_132.vcf.gz",
+            "secondaryFiles": [
+                {
+                    "class": "File",
+                    "path": "brad_cwl_gvcf:/testdata/genomes/hg19/variation/dbsnp_132.vcf.gz.tbi"
+                }
+            ]
+        },
+        {
+            "class": "File",
+            "path": "brad_cwl_gvcf:/testdata/genomes/hg19/variation/dbsnp_132.vcf.gz",
+            "secondaryFiles": [
+                {
+                    "class": "File",
+                    "path": "brad_cwl_gvcf:/testdata/genomes/hg19/variation/dbsnp_132.vcf.gz.tbi"
+                }
+            ]
+        }
+    ],
+    "metadata__batch": [
+        "b1",
+        "b1"
+    ],
+    "metadata__phenotype": [
+        "",
+        ""
+    ],
+    "reference__bwa__indexes": [
+        {
+            "class": "File",
+            "path": "brad_cwl_gvcf:/testdata/genomes/hg19/bwa-wf.tar.gz"
+        },
+        {
+            "class": "File",
+            "path": "brad_cwl_gvcf:/testdata/genomes/hg19/bwa-wf.tar.gz"
+        }
+    ],
+    "reference__fasta__base": [
+        {
+            "class": "File",
+            "path": "brad_cwl_gvcf:/testdata/genomes/hg19/seq/hg19.fa",
+            "secondaryFiles": [
+                {
+                    "class": "File",
+                    "path": "brad_cwl_gvcf:/testdata/genomes/hg19/seq/hg19.fa.fai"
+                },
+                {
+                    "class": "File",
+                    "path": "brad_cwl_gvcf:/testdata/genomes/hg19/seq/hg19.dict"
+                }
+            ]
+        },
+        {
+            "class": "File",
+            "path": "brad_cwl_gvcf:/testdata/genomes/hg19/seq/hg19.fa",
+            "secondaryFiles": [
+                {
+                    "class": "File",
+                    "path": "brad_cwl_gvcf:/testdata/genomes/hg19/seq/hg19.fa.fai"
+                },
+                {
+                    "class": "File",
+                    "path": "brad_cwl_gvcf:/testdata/genomes/hg19/seq/hg19.dict"
+                }
+            ]
+        }
+    ],
+    "reference__genome_context": [
+        [],
+        []
+    ],
+    "reference__rtg": [
+        {
+            "class": "File",
+            "path": "brad_cwl_gvcf:/testdata/genomes/hg19/rtg--hg19.sdf-wf.tar.gz"
+        },
+        {
+            "class": "File",
+            "path": "brad_cwl_gvcf:/testdata/genomes/hg19/rtg--hg19.sdf-wf.tar.gz"
+        }
+    ],
+    "reference__snpeff__hg19": [
+        {
+            "class": "File",
+            "path": "brad_cwl_gvcf:/testdata/genomes/hg19/snpeff--hg19-wf.tar.gz"
+        },
+        {
+            "class": "File",
+            "path": "brad_cwl_gvcf:/testdata/genomes/hg19/snpeff--hg19-wf.tar.gz"
+        }
+    ],
+    "reference__twobit": [
+        {
+            "class": "File",
+            "path": "brad_cwl_gvcf:/testdata/genomes/hg19/ucsc/hg19.2bit"
+        },
+        {
+            "class": "File",
+            "path": "brad_cwl_gvcf:/testdata/genomes/hg19/ucsc/hg19.2bit"
+        }
+    ],
+    "resources": [
+        "{}",
+        "{}"
+    ],
+    "rgnames__lane": [
+        "Test1",
+        "Test2"
+    ],
+    "rgnames__lb": [
+        "null",
+        "null"
+    ],
+    "rgnames__pl": [
+        "illumina",
+        "illumina"
+    ],
+    "rgnames__pu": [
+        "Test1",
+        "Test2"
+    ],
+    "rgnames__rg": [
+        "Test1",
+        "Test2"
+    ],
+    "rgnames__sample": [
+        "Test1",
+        "Test2"
+    ],
+    "vrn_file": [
+        "null",
+        "null"
+    ]
+}

@@ -1,0 +1,3409 @@
+{
+  "requirements": [],
+  "sbg:revisionsInfo": [
+    {
+      "sbg:revision": 0,
+      "sbg:modifiedBy": "tsang",
+      "sbg:modifiedOn": 1538178591,
+      "sbg:revisionNotes": "Copy of Durga/rna-seq-ccbr/ccbr-rna-seq-de-2/5"
+    },
+    {
+      "sbg:revision": 1,
+      "sbg:modifiedBy": "tsang",
+      "sbg:modifiedOn": 1538178901,
+      "sbg:revisionNotes": "create workflow"
+    },
+    {
+      "sbg:revision": 2,
+      "sbg:modifiedBy": "tsang",
+      "sbg:modifiedOn": 1538178933,
+      "sbg:revisionNotes": "add parameteres for rsemcounts"
+    },
+    {
+      "sbg:revision": 3,
+      "sbg:modifiedBy": "tsang",
+      "sbg:modifiedOn": 1538178953,
+      "sbg:revisionNotes": "correct rsemcount parameters"
+    },
+    {
+      "sbg:revision": 4,
+      "sbg:modifiedBy": "tsang",
+      "sbg:modifiedOn": 1538179040,
+      "sbg:revisionNotes": "correct rsemcounts parameters"
+    },
+    {
+      "sbg:revision": 5,
+      "sbg:modifiedBy": "tsang",
+      "sbg:modifiedOn": 1538182285,
+      "sbg:revisionNotes": "save RSEM Calc Exp parameters"
+    },
+    {
+      "sbg:revision": 6,
+      "sbg:modifiedBy": "tsang",
+      "sbg:modifiedOn": 1538265603,
+      "sbg:revisionNotes": "scatter reads for RSEM Calc Exp"
+    },
+    {
+      "sbg:revision": 7,
+      "sbg:modifiedBy": "tsang",
+      "sbg:modifiedOn": 1538408114,
+      "sbg:revisionNotes": "update to lowercase Cntrl"
+    },
+    {
+      "sbg:revision": 8,
+      "sbg:modifiedBy": "Durga",
+      "sbg:modifiedOn": 1538443776,
+      "sbg:revisionNotes": "Added Deseq and parameters"
+    },
+    {
+      "sbg:revision": 9,
+      "sbg:modifiedBy": "Durga",
+      "sbg:modifiedOn": 1538531263,
+      "sbg:revisionNotes": "edited rsemcalculate-expression parameters, checked no_bam_output and seed 12345"
+    },
+    {
+      "sbg:revision": 10,
+      "sbg:modifiedBy": "Durga",
+      "sbg:modifiedOn": 1538592453,
+      "sbg:revisionNotes": "updated rsemcounts and input genes file"
+    }
+  ],
+  "description": "",
+  "sbg:publisher": "sbg",
+  "cwlVersion": "v1.2",
+  "steps": [
+    {
+      "id": "#rsem_merge",
+      "run": {
+        "requirements": [
+          {
+            "requirements": [
+              {
+                "dockerPull": "rabix/js-engine",
+                "class": "DockerRequirement"
+              }
+            ],
+            "id": "#cwl-js-engine",
+            "class": "ExpressionEngineRequirement"
+          }
+        ],
+        "sbg:revisionsInfo": [
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1532965233,
+            "sbg:revisionNotes": null,
+            "sbg:revision": 0
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1532975321,
+            "sbg:revisionNotes": "create tool",
+            "sbg:revision": 1
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1536083854,
+            "sbg:revisionNotes": null,
+            "sbg:revision": 2
+          },
+          {
+            "sbg:modifiedBy": "Durga",
+            "sbg:modifiedOn": 1537885662,
+            "sbg:revisionNotes": "updated base command- changed *.RSEM.genes.results to *.genes.results\n*.RSEM.isoforms.results to *.isoforms.results according to the output fields in RSEM-calculate-expression",
+            "sbg:revision": 3
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1537956491,
+            "sbg:revisionNotes": "copy inputs",
+            "sbg:revision": 4
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1537956879,
+            "sbg:revisionNotes": "correct type isoforms",
+            "sbg:revision": 5
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1537957616,
+            "sbg:revisionNotes": "add ens2gene to command line",
+            "sbg:revision": 6
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1537974845,
+            "sbg:revisionNotes": "output from genes_results and isoforms_results folders",
+            "sbg:revision": 7
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1537975132,
+            "sbg:revisionNotes": "glob array of files",
+            "sbg:revision": 8
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1537975799,
+            "sbg:revisionNotes": "copy output files to .",
+            "sbg:revision": 9
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1537976795,
+            "sbg:revisionNotes": "add basename to RSEM merge outputs",
+            "sbg:revision": 10
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1537978542,
+            "sbg:revisionNotes": "update command renaming files",
+            "sbg:revision": 11
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1537978886,
+            "sbg:revisionNotes": "change to one single output, first copy from genes_results and isoforms_results then globing *.txt",
+            "sbg:revision": 12
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1537979965,
+            "sbg:revisionNotes": "removing output name parsing",
+            "sbg:revision": 13
+          }
+        ],
+        "sbg:publisher": "sbg",
+        "cwlVersion": "v1.2",
+        "arguments": [
+          {
+            "valueFrom": {
+              "engine": "#cwl-js-engine",
+              "script": "\"./genes_results ./isoforms_results && cp genes_results/*.txt . && cp isoforms_results/*.txt .\"\n\n",
+              "class": "Expression"
+            },
+            "separate": true,
+            "position": 2
+          }
+        ],
+        "stdout": "",
+        "sbg:revisionNotes": "removing output name parsing",
+        "sbg:cmdPreview": "mkdir -p ./genes_results && mkdir -p ./isoforms_results && mv *.genes.results ./genes_results && mv *.isoforms.results ./isoforms_results && python /opt/merge_rsem_results.py  ./genes_results ./isoforms_results && cp genes_results/*.txt . && cp isoforms_results/*.txt .",
+        "sbg:revision": 13,
+        "stdin": "",
+        "sbg:job": {
+          "allocatedResources": {
+            "cpu": 1,
+            "mem": 1000
+          },
+          "inputs": {
+            "RSEM_genes_results": [
+              {
+                "path": "/path/to/Rbfox1_S25.RSEM.genes.results",
+                "size": 0,
+                "secondaryFiles": [],
+                "class": "File"
+              },
+              {
+                "path": "/path/to/RSEM_genes_results-2.ext",
+                "size": 0,
+                "secondaryFiles": [],
+                "class": "File"
+              }
+            ],
+            "RSEM_isoforms_results": [
+              {
+                "path": "/path/to/RSEM_isoforms_results-1.ext",
+                "size": 0,
+                "secondaryFiles": [],
+                "class": "File"
+              },
+              {
+                "path": "/path/to/RSEM_isoforms_results-2.ext",
+                "size": 0,
+                "secondaryFiles": [],
+                "class": "File"
+              }
+            ],
+            "ens2gene": {
+              "path": "/path/to/ens2gene.ext",
+              "size": 0,
+              "secondaryFiles": [],
+              "class": "File"
+            }
+          }
+        },
+        "temporaryFailCodes": [],
+        "sbg:project": "Durga/rna-seq-ccbr",
+        "sbg:modifiedOn": 1537979965,
+        "baseCommand": [
+          "mkdir",
+          "-p",
+          "./genes_results",
+          "&&",
+          "mkdir",
+          "-p",
+          "./isoforms_results",
+          "&&",
+          "mv",
+          "*.genes.results",
+          "./genes_results",
+          "&&",
+          "mv",
+          "*.isoforms.results",
+          "./isoforms_results",
+          "&&",
+          "python",
+          "/opt/merge_rsem_results.py"
+        ],
+        "successCodes": [],
+        "y": 310.64207272557155,
+        "outputs": [
+          {
+            "id": "#output_files",
+            "outputBinding": {
+              "sbg:inheritMetadataFrom": "#RSEM_genes_results",
+              "glob": "*.txt"
+            },
+            "description": "Two output files - isoform/gene",
+            "type": [
+              "null",
+              {
+                "items": "File",
+                "type": "array"
+              }
+            ],
+            "sbg:fileTypes": "TXT"
+          }
+        ],
+        "sbg:latestRevision": 13,
+        "label": "rsem_merge",
+        "sbg:appVersion": [
+          "sbg:draft-2"
+        ],
+        "description": "rule rsem_merge:\n   input:\n    files=expand(join(workpath,rsemg_dir,\"{name}.RSEM.genes.results\"), name=samples),\n    files2=expand(join(workpath,rsemi_dir,\"{name}.RSEM.isoforms.results\"), name=samples),\n   output: \n    join(workpath,rsemg_dir,\"RSEM.genes.FPKM.all_samples.txt\"),\n    join(workpath,rsemi_dir,\"RSEM.isoforms.FPKM.all_samples.txt\"),\n   params: \n    rname='pl:rsem_merge',\n    pythonver=config['bin'][pfamily]['tool_versions']['PYTHONVER'],\n    annotate=config['references'][pfamily]['ANNOTATE'],\n    pythonscript=join(workpath,\"Scripts\",\"merge_rsem_results.py\"),\n   shell: \"\"\"\nmodule load {params.pythonver}\npython {params.pythonscript} {params.annotate} {rsemg_dir} {rsemi_dir}",
+        "sbg:projectName": "CCBR_RNA-Seq",
+        "sbg:validationErrors": [],
+        "id": "Durga/rna-seq-ccbr/rsem-merge/13",
+        "$namespaces": {
+          "sbg": "https://sevenbridges.com"
+        },
+        "sbg:createdBy": "tsang",
+        "x": 892.9168915194072,
+        "sbg:image_url": null,
+        "hints": [
+          {
+            "value": 1,
+            "class": "sbg:CPURequirement"
+          },
+          {
+            "value": 1000,
+            "class": "sbg:MemRequirement"
+          },
+          {
+            "dockerPull": "stevetsa/pyscript:latest",
+            "dockerImageId": "",
+            "class": "DockerRequirement"
+          }
+        ],
+        "sbg:createdOn": 1532965233,
+        "sbg:id": "Durga/rna-seq-ccbr/rsem-merge/13",
+        "sbg:contributors": [
+          "tsang",
+          "Durga"
+        ],
+        "sbg:modifiedBy": "tsang",
+        "sbg:sbgMaintained": false,
+        "inputs": [
+          {
+            "id": "#ens2gene",
+            "required": false,
+            "type": [
+              "null",
+              "File"
+            ],
+            "inputBinding": {
+              "sbg:cmdInclude": true,
+              "separate": true,
+              "position": 1
+            }
+          },
+          {
+            "id": "#RSEM_isoforms_results",
+            "sbg:toolDefaultValue": "results",
+            "sbg:stageInput": "copy",
+            "required": false,
+            "type": [
+              "null",
+              {
+                "items": "File",
+                "type": "array"
+              }
+            ]
+          },
+          {
+            "id": "#RSEM_genes_results",
+            "sbg:fileTypes": "results",
+            "required": false,
+            "type": [
+              "null",
+              {
+                "items": "File",
+                "type": "array"
+              }
+            ],
+            "sbg:stageInput": "copy"
+          }
+        ],
+        "class": "CommandLineTool"
+      },
+      "outputs": [
+        {
+          "id": "#rsem_merge.output_files"
+        }
+      ],
+      "inputs": [
+        {
+          "id": "#rsem_merge.ens2gene",
+          "source": [
+            "#genesfile"
+          ]
+        },
+        {
+          "id": "#rsem_merge.RSEM_isoforms_results",
+          "source": [
+            "#RSEM_Calculate_Expression.sample_name_isoforms_results"
+          ]
+        },
+        {
+          "id": "#rsem_merge.RSEM_genes_results",
+          "source": [
+            "#RSEM_Calculate_Expression.sample_name_genes_results"
+          ]
+        }
+      ],
+      "sbg:y": 310.64207272557155,
+      "sbg:x": 892.9168915194072
+    },
+    {
+      "id": "#EBSeq_Isoform_Final",
+      "run": {
+        "requirements": [
+          {
+            "id": "#cwl-js-engine",
+            "requirements": [
+              {
+                "dockerPull": "rabix/js-engine",
+                "class": "DockerRequirement"
+              }
+            ],
+            "class": "ExpressionEngineRequirement"
+          }
+        ],
+        "sbg:revisionsInfo": [
+          {
+            "sbg:modifiedBy": "Durga",
+            "sbg:modifiedOn": 1538153314,
+            "sbg:revisionNotes": "Copy of Durga/rna-seq-ccbr/ebseq-isoform2/1",
+            "sbg:revision": 0
+          },
+          {
+            "sbg:modifiedBy": "Durga",
+            "sbg:modifiedOn": 1538153361,
+            "sbg:revisionNotes": null,
+            "sbg:revision": 1
+          }
+        ],
+        "sbg:publisher": "sbg",
+        "cwlVersion": "v1.2",
+        "arguments": [
+          {
+            "valueFrom": {
+              "engine": "#cwl-js-engine",
+              "script": "\"\\'isoform\\'\"",
+              "class": "Expression"
+            },
+            "separate": false,
+            "position": 5
+          }
+        ],
+        "stdout": "",
+        "sbg:revisionNotes": null,
+        "sbg:cmdPreview": "mkdir -p outdir && python /opt/EBSeq.py 'outdir'  'Rbfox1_S25.RSEM.genes.results Rbfox1_S26.RSEM.genes.results'  'sampletable.txt'  'Rbfox cntrl'  'mouse_gencode.transcripts.ngvec' 'isoform'  'Mm10_M12_geness.txt'",
+        "sbg:revision": 1,
+        "stdin": "",
+        "sbg:job": {
+          "allocatedResources": {
+            "cpu": 1,
+            "mem": 1000
+          },
+          "inputs": {
+            "isoformsfile": {
+              "path": "/path/to/Mm10_M12_geness.txt",
+              "size": 0,
+              "secondaryFiles": [],
+              "class": "File"
+            },
+            "ngvec": {
+              "path": "/path/to/mouse_gencode.transcripts.ngvec",
+              "size": 0,
+              "secondaryFiles": [],
+              "class": "File"
+            },
+            "samtab": {
+              "path": "/path/to/sampletable.txt",
+              "size": 0,
+              "secondaryFiles": [],
+              "class": "File"
+            },
+            "contrast": "Rbfox cntrl",
+            "igfiles": [
+              {
+                "path": "/path/to/Rbfox1_S25.RSEM.genes.results",
+                "size": 0,
+                "secondaryFiles": [],
+                "class": "File"
+              },
+              {
+                "path": "/path/to/Rbfox1_S26.RSEM.genes.results",
+                "size": 0,
+                "secondaryFiles": [],
+                "class": "File"
+              }
+            ]
+          }
+        },
+        "temporaryFailCodes": [],
+        "sbg:project": "Durga/rna-seq-ccbr",
+        "sbg:modifiedOn": 1538153361,
+        "baseCommand": [
+          "mkdir",
+          "-p",
+          "outdir",
+          "&&",
+          "python",
+          "/opt/EBSeq.py",
+          "'outdir'"
+        ],
+        "successCodes": [],
+        "y": 46.34957498491875,
+        "outputs": [
+          {
+            "id": "#EBSeq_isoform_completed",
+            "outputBinding": {
+              "glob": "outdir/*"
+            },
+            "description": "EBSeq_isoform_completed.txt",
+            "type": [
+              "null",
+              {
+                "items": "File",
+                "type": "array"
+              }
+            ],
+            "sbg:fileTypes": "TXT"
+          }
+        ],
+        "sbg:latestRevision": 1,
+        "label": "EBSeq_Isoform-Final",
+        "sbg:appVersion": [
+          "sbg:draft-2"
+        ],
+        "description": "#### Clarify inputs\n   contrasts=\" \".join(config['project']['contrasts']['rcontrasts']),\n    rsemref=config['references'][pfamily]['RSEMREF'],\n    rsem=config['bin'][pfamily]['RSEM'],\n    annotate=config['references'][pfamily]['ANNOTATE'],\n\n####\n\nrule EBSeq_gene:\n  input: \n    samtab=join(workpath,star_dir,\"sampletable.txt\"),\n    igfiles=expand(join(workpath,rsemg_dir,\"{name}.RSEM.genes.results\"), name=samples),\n  output: \n    join(workpath,rsemg_dir,\"EBSeq_gene_completed.txt\")\n  params:\n    rname='pl:EBSeq_gene',\n    batch='--mem=128g --cpus-per-task=8 --time=10:00:00',\n    outdir=join(workpath,rsemg_dir),\n    contrasts=\" \".join(config['project']['contrasts']['rcontrasts']),\n    rsemref=config['references'][pfamily]['RSEMREF'],\n    rsem=config['bin'][pfamily]['RSEM'],\n    annotate=config['references'][pfamily]['ANNOTATE'],\n    pythonver=config['bin'][pfamily]['tool_versions']['PYTHONVER'],\n    rsemver=config['bin'][pfamily]['tool_versions']['RSEMVER'],\n    script1=join(workpath,\"Scripts\",\"EBSeq.py\"),\n  shell: \"\"\"\ncd {params.outdir}\nmodule load {params.pythonver}\nmodule load {params.rsemver}\npython {params.script1} '{params.outdir}' '{input.igfiles}' '{input.samtab}' '{params.contrasts}' '{params.rsemref}' 'gene' '{params.annotate}'\n\"\"\"",
+        "sbg:projectName": "CCBR_RNA-Seq",
+        "sbg:validationErrors": [],
+        "id": "Durga/rna-seq-ccbr/ebseq-isoform-final/1",
+        "$namespaces": {
+          "sbg": "https://sevenbridges.com"
+        },
+        "sbg:createdBy": "Durga",
+        "x": 766.1766776051109,
+        "sbg:image_url": null,
+        "hints": [
+          {
+            "value": 1,
+            "class": "sbg:CPURequirement"
+          },
+          {
+            "value": 1000,
+            "class": "sbg:MemRequirement"
+          },
+          {
+            "dockerPull": "stevetsa/pyscript:latest",
+            "dockerImageId": "",
+            "class": "DockerRequirement"
+          }
+        ],
+        "sbg:createdOn": 1538153314,
+        "sbg:id": "Durga/rna-seq-ccbr/ebseq-isoform-final/1",
+        "sbg:contributors": [
+          "Durga"
+        ],
+        "sbg:modifiedBy": "Durga",
+        "sbg:sbgMaintained": false,
+        "inputs": [
+          {
+            "required": true,
+            "inputBinding": {
+              "valueFrom": {
+                "engine": "#cwl-js-engine",
+                "script": "\"\\'\" + $job.inputs.samtab.path.split('/').pop() + \"\\'\"",
+                "class": "Expression"
+              },
+              "sbg:cmdInclude": true,
+              "separate": true,
+              "position": 2
+            },
+            "sbg:stageInput": "copy",
+            "id": "#samtab",
+            "sbg:fileTypes": "TXT",
+            "description": "sampletable.txt",
+            "type": [
+              "File"
+            ]
+          },
+          {
+            "required": true,
+            "inputBinding": {
+              "valueFrom": {
+                "engine": "#cwl-js-engine",
+                "script": "\"\\'\" + $job.inputs.ngvec.path.split('/').pop() + \"\\'\"",
+                "class": "Expression"
+              },
+              "sbg:cmdInclude": true,
+              "separate": true,
+              "position": 4
+            },
+            "sbg:stageInput": "copy",
+            "id": "#ngvec",
+            "sbg:fileTypes": "ngvec",
+            "type": [
+              "File"
+            ]
+          },
+          {
+            "required": true,
+            "inputBinding": {
+              "valueFrom": {
+                "engine": "#cwl-js-engine",
+                "script": "\"\\'\" + $job.inputs.isoformsfile.path.split('/').pop() + \"\\'\"",
+                "class": "Expression"
+              },
+              "sbg:cmdInclude": true,
+              "separate": true,
+              "position": 6
+            },
+            "sbg:stageInput": "copy",
+            "id": "#isoformsfile",
+            "sbg:fileTypes": "TXT",
+            "type": [
+              "File"
+            ]
+          },
+          {
+            "required": true,
+            "inputBinding": {
+              "valueFrom": {
+                "engine": "#cwl-js-engine",
+                "script": "{\n  \n  reads = [].concat($job.inputs.igfiles)\n  names = []\n \n  for (i=0; i<reads.length; i++)\n  {\n    filename = reads[i].path.split('/').slice(-1)[0];\n    names.push(filename); \n  }\n  var str = \"'\" + names.join(\" \") + \"'\"\n  return str\n}",
+                "class": "Expression"
+              },
+              "sbg:cmdInclude": true,
+              "separate": true,
+              "position": 1,
+              "itemSeparator": null
+            },
+            "sbg:stageInput": "copy",
+            "id": "#igfiles",
+            "sbg:fileTypes": "results",
+            "type": [
+              {
+                "items": "File",
+                "type": "array"
+              }
+            ]
+          },
+          {
+            "id": "#contrast",
+            "description": "Rbfox cntrl",
+            "type": [
+              "string"
+            ],
+            "inputBinding": {
+              "valueFrom": {
+                "engine": "#cwl-js-engine",
+                "script": "\"\\'\" + $job.inputs.contrast + \"\\'\"",
+                "class": "Expression"
+              },
+              "sbg:cmdInclude": true,
+              "separate": true,
+              "position": 3
+            }
+          }
+        ],
+        "class": "CommandLineTool"
+      },
+      "outputs": [
+        {
+          "id": "#EBSeq_Isoform_Final.EBSeq_isoform_completed"
+        }
+      ],
+      "inputs": [
+        {
+          "id": "#EBSeq_Isoform_Final.samtab",
+          "source": [
+            "#samtab"
+          ]
+        },
+        {
+          "id": "#EBSeq_Isoform_Final.ngvec",
+          "source": [
+            "#ngvec"
+          ]
+        },
+        {
+          "id": "#EBSeq_Isoform_Final.isoformsfile",
+          "source": [
+            "#isoformsfile"
+          ]
+        },
+        {
+          "id": "#EBSeq_Isoform_Final.igfiles",
+          "source": [
+            "#RSEM_Calculate_Expression.sample_name_isoforms_results"
+          ]
+        },
+        {
+          "id": "#EBSeq_Isoform_Final.contrast",
+          "default": "Rbfox cntrl"
+        }
+      ],
+      "sbg:y": 46.34957498491875,
+      "sbg:x": 766.1766776051109
+    },
+    {
+      "id": "#EBSeq_gene_1",
+      "run": {
+        "requirements": [
+          {
+            "id": "#cwl-js-engine",
+            "requirements": [
+              {
+                "dockerPull": "rabix/js-engine",
+                "class": "DockerRequirement"
+              }
+            ],
+            "class": "ExpressionEngineRequirement"
+          }
+        ],
+        "sbg:revisionsInfo": [
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1538014544,
+            "sbg:revisionNotes": "Copy of Durga/rna-seq-ccbr/ebseq-gene/1",
+            "sbg:revision": 0
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1538015158,
+            "sbg:revisionNotes": "change output glob and command line for testing",
+            "sbg:revision": 1
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1538015543,
+            "sbg:revisionNotes": "update base command and \"gene\"",
+            "sbg:revision": 2
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1538049739,
+            "sbg:revisionNotes": "update javascript to single quote around igfiles",
+            "sbg:revision": 3
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1538052830,
+            "sbg:revisionNotes": "add single quote around all arguments",
+            "sbg:revision": 4
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1538059390,
+            "sbg:revisionNotes": "mkdir outdir",
+            "sbg:revision": 5
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1538081868,
+            "sbg:revisionNotes": "modified command line",
+            "sbg:revision": 6
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1538082213,
+            "sbg:revisionNotes": "glob all outputs",
+            "sbg:revision": 7
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1538082573,
+            "sbg:revisionNotes": "remove touch file",
+            "sbg:revision": 8
+          }
+        ],
+        "sbg:publisher": "sbg",
+        "cwlVersion": "v1.2",
+        "arguments": [
+          {
+            "valueFrom": {
+              "engine": "#cwl-js-engine",
+              "script": "\"\\'gene\\'\"",
+              "class": "Expression"
+            },
+            "separate": false,
+            "position": 5
+          }
+        ],
+        "stdout": "",
+        "sbg:revisionNotes": "remove touch file",
+        "sbg:cmdPreview": "mkdir -p outdir && python /opt/EBSeq.py 'outdir'  'Rbfox1_S25.RSEM.genes.results Rbfox1_S26.RSEM.genes.results'  'sampletable.txt'  'Rbfox cntrl'  'mouse_gencode.transcripts.ngvec' 'gene'  'Mm10_M12_geness.txt'",
+        "sbg:revision": 8,
+        "stdin": "",
+        "sbg:job": {
+          "allocatedResources": {
+            "cpu": 1,
+            "mem": 1000
+          },
+          "inputs": {
+            "ngvec": {
+              "path": "/path/to/mouse_gencode.transcripts.ngvec",
+              "size": 0,
+              "secondaryFiles": [],
+              "class": "File"
+            },
+            "contrast": "Rbfox cntrl",
+            "samtab": {
+              "path": "/path/to/sampletable.txt",
+              "size": 0,
+              "secondaryFiles": [],
+              "class": "File"
+            },
+            "genesfile": {
+              "path": "/path/to/Mm10_M12_geness.txt",
+              "size": 0,
+              "secondaryFiles": [],
+              "class": "File"
+            },
+            "igfiles": [
+              {
+                "path": "/path/to/Rbfox1_S25.RSEM.genes.results",
+                "size": 0,
+                "secondaryFiles": [],
+                "class": "File"
+              },
+              {
+                "path": "/path/to/Rbfox1_S26.RSEM.genes.results",
+                "size": 0,
+                "secondaryFiles": [],
+                "class": "File"
+              }
+            ]
+          }
+        },
+        "temporaryFailCodes": [],
+        "sbg:project": "Durga/rna-seq-ccbr",
+        "sbg:modifiedOn": 1538082573,
+        "baseCommand": [
+          "mkdir",
+          "-p",
+          "outdir",
+          "&&",
+          "python",
+          "/opt/EBSeq.py",
+          "'outdir'"
+        ],
+        "successCodes": [],
+        "y": 170.26414069383227,
+        "outputs": [
+          {
+            "id": "#EBSeq_gene_completed",
+            "outputBinding": {
+              "glob": "outdir/*"
+            },
+            "description": "EBSeq_gene_completed.txt",
+            "type": [
+              "null",
+              {
+                "items": "File",
+                "type": "array"
+              }
+            ],
+            "sbg:fileTypes": "TXT"
+          }
+        ],
+        "sbg:latestRevision": 8,
+        "label": "EBSeq_gene",
+        "sbg:appVersion": [
+          "sbg:draft-2"
+        ],
+        "description": "#### Clarify inputs\n   contrasts=\" \".join(config['project']['contrasts']['rcontrasts']),\n    rsemref=config['references'][pfamily]['RSEMREF'],\n    rsem=config['bin'][pfamily]['RSEM'],\n    annotate=config['references'][pfamily]['ANNOTATE'],\n\n####\n\nrule EBSeq_gene:\n  input: \n    samtab=join(workpath,star_dir,\"sampletable.txt\"),\n    igfiles=expand(join(workpath,rsemg_dir,\"{name}.RSEM.genes.results\"), name=samples),\n  output: \n    join(workpath,rsemg_dir,\"EBSeq_gene_completed.txt\")\n  params:\n    rname='pl:EBSeq_gene',\n    batch='--mem=128g --cpus-per-task=8 --time=10:00:00',\n    outdir=join(workpath,rsemg_dir),\n    contrasts=\" \".join(config['project']['contrasts']['rcontrasts']),\n    rsemref=config['references'][pfamily]['RSEMREF'],\n    rsem=config['bin'][pfamily]['RSEM'],\n    annotate=config['references'][pfamily]['ANNOTATE'],\n    pythonver=config['bin'][pfamily]['tool_versions']['PYTHONVER'],\n    rsemver=config['bin'][pfamily]['tool_versions']['RSEMVER'],\n    script1=join(workpath,\"Scripts\",\"EBSeq.py\"),\n  shell: \"\"\"\ncd {params.outdir}\nmodule load {params.pythonver}\nmodule load {params.rsemver}\npython {params.script1} '{params.outdir}' '{input.igfiles}' '{input.samtab}' '{params.contrasts}' '{params.rsemref}' 'gene' '{params.annotate}'\n\"\"\"",
+        "sbg:projectName": "CCBR_RNA-Seq",
+        "sbg:validationErrors": [],
+        "id": "Durga/rna-seq-ccbr/ebseq-gene2/8",
+        "$namespaces": {
+          "sbg": "https://sevenbridges.com"
+        },
+        "sbg:createdBy": "tsang",
+        "x": 877.9168910558153,
+        "sbg:image_url": null,
+        "hints": [
+          {
+            "value": 1,
+            "class": "sbg:CPURequirement"
+          },
+          {
+            "value": 1000,
+            "class": "sbg:MemRequirement"
+          },
+          {
+            "dockerPull": "stevetsa/pyscript:latest",
+            "dockerImageId": "",
+            "class": "DockerRequirement"
+          }
+        ],
+        "sbg:createdOn": 1538014544,
+        "sbg:id": "Durga/rna-seq-ccbr/ebseq-gene2/8",
+        "sbg:contributors": [
+          "tsang"
+        ],
+        "sbg:modifiedBy": "tsang",
+        "sbg:sbgMaintained": false,
+        "inputs": [
+          {
+            "required": true,
+            "inputBinding": {
+              "valueFrom": {
+                "engine": "#cwl-js-engine",
+                "script": "\"\\'\" + $job.inputs.samtab.path.split('/').pop() + \"\\'\"",
+                "class": "Expression"
+              },
+              "sbg:cmdInclude": true,
+              "separate": true,
+              "position": 2
+            },
+            "sbg:stageInput": "copy",
+            "id": "#samtab",
+            "sbg:fileTypes": "TXT",
+            "description": "sampletable.txt",
+            "type": [
+              "File"
+            ]
+          },
+          {
+            "required": true,
+            "inputBinding": {
+              "valueFrom": {
+                "engine": "#cwl-js-engine",
+                "script": "\"\\'\" + $job.inputs.ngvec.path.split('/').pop() + \"\\'\"",
+                "class": "Expression"
+              },
+              "sbg:cmdInclude": true,
+              "separate": true,
+              "position": 4
+            },
+            "sbg:stageInput": "copy",
+            "id": "#ngvec",
+            "sbg:fileTypes": "ngvec",
+            "type": [
+              "File"
+            ]
+          },
+          {
+            "required": true,
+            "inputBinding": {
+              "valueFrom": {
+                "engine": "#cwl-js-engine",
+                "script": "{\n  \n  reads = [].concat($job.inputs.igfiles)\n  names = []\n \n  for (i=0; i<reads.length; i++)\n  {\n    filename = reads[i].path.split('/').slice(-1)[0];\n    names.push(filename); \n  }\n  var str = \"'\" + names.join(\" \") + \"'\"\n  return str\n}",
+                "class": "Expression"
+              },
+              "sbg:cmdInclude": true,
+              "separate": true,
+              "position": 1,
+              "itemSeparator": null
+            },
+            "sbg:stageInput": "copy",
+            "id": "#igfiles",
+            "sbg:fileTypes": "results",
+            "type": [
+              {
+                "items": "File",
+                "type": "array"
+              }
+            ]
+          },
+          {
+            "required": true,
+            "inputBinding": {
+              "valueFrom": {
+                "engine": "#cwl-js-engine",
+                "script": "\"\\'\" + $job.inputs.genesfile.path.split('/').pop() + \"\\'\"",
+                "class": "Expression"
+              },
+              "sbg:cmdInclude": true,
+              "separate": true,
+              "position": 6
+            },
+            "sbg:stageInput": "copy",
+            "id": "#genesfile",
+            "sbg:fileTypes": "TXT",
+            "type": [
+              "File"
+            ]
+          },
+          {
+            "id": "#contrast",
+            "description": "Rbfox cntrl",
+            "type": [
+              "string"
+            ],
+            "inputBinding": {
+              "valueFrom": {
+                "engine": "#cwl-js-engine",
+                "script": "\"\\'\" + $job.inputs.contrast + \"\\'\"",
+                "class": "Expression"
+              },
+              "sbg:cmdInclude": true,
+              "separate": true,
+              "position": 3
+            }
+          }
+        ],
+        "class": "CommandLineTool"
+      },
+      "outputs": [
+        {
+          "id": "#EBSeq_gene_1.EBSeq_gene_completed"
+        }
+      ],
+      "inputs": [
+        {
+          "id": "#EBSeq_gene_1.samtab",
+          "source": [
+            "#samtab"
+          ]
+        },
+        {
+          "id": "#EBSeq_gene_1.ngvec",
+          "source": [
+            "#ngvec"
+          ]
+        },
+        {
+          "id": "#EBSeq_gene_1.igfiles",
+          "source": [
+            "#RSEM_Calculate_Expression.sample_name_genes_results"
+          ]
+        },
+        {
+          "id": "#EBSeq_gene_1.genesfile",
+          "source": [
+            "#genesfile"
+          ]
+        },
+        {
+          "id": "#EBSeq_gene_1.contrast",
+          "default": "Rbfox cntrl"
+        }
+      ],
+      "sbg:y": 170.26414069383227,
+      "sbg:x": 877.9168910558153
+    },
+    {
+      "scatter": "#RSEM_Calculate_Expression.read_files",
+      "id": "#RSEM_Calculate_Expression",
+      "run": {
+        "requirements": [
+          {
+            "id": "#cwl-js-engine",
+            "requirements": [
+              {
+                "dockerPull": "rabix/js-engine",
+                "class": "DockerRequirement"
+              }
+            ],
+            "class": "ExpressionEngineRequirement"
+          }
+        ],
+        "sbg:revisionsInfo": [
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1537413756,
+            "sbg:revision": 0,
+            "sbg:revisionNotes": "Copy of admin/sbg-public-data/rsem-calculate-expression-1-2-31/29"
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1537983523,
+            "sbg:revision": 1,
+            "sbg:revisionNotes": "update to add \"RSEM\" into output file names"
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1538178491,
+            "sbg:revision": 2,
+            "sbg:revisionNotes": "modified typo in rename..."
+          }
+        ],
+        "sbg:publisher": "sbg",
+        "cwlVersion": "v1.2",
+        "appUrl": "/u/Durga/rna-seq-ccbr/apps/#Durga/rna-seq-ccbr/rsem-calculate-expression-1-2-31/2",
+        "sbg:cmdPreview": "ulimit -v unlimited && tar -xf hg19.human_prepare_reference_archive.tar.gz && rsem-calculate-expression --sort-bam-memory-per-thread 1500M --num-threads 32  hg19.human  SampleA  && ls | grep ^SampleA. | tar cf rsem_calculate_expression_archive.SampleA.tar -T -   && rename 's/genes.results/RSEM.genes.results/' *.genes.results && rename 's/isoforms.results/RSEM.isoforms.results/' *.isoforms.results",
+        "sbg:validationErrors": [],
+        "sbg:project": "Durga/rna-seq-ccbr",
+        "sbg:modifiedOn": 1538178491,
+        "baseCommand": [
+          "ulimit",
+          "-v",
+          "unlimited",
+          "&&",
+          "tar",
+          "-xf",
+          {
+            "engine": "#cwl-js-engine",
+            "script": "{\nvar str = [].concat($job.inputs.rsem_prepare_reference_archive)[0].path.split(\"/\").pop();\nreturn str\n\n}",
+            "class": "Expression"
+          },
+          "&&",
+          "rsem-calculate-expression"
+        ],
+        "sbg:license": "GNU General Public License v3.0 only",
+        "sbg:latestRevision": 2,
+        "sbg:appVersion": [
+          "sbg:draft-2"
+        ],
+        "description": "RSEM Calculate Expression aligns input reads against a reference transcriptome with a specified aligner and calculates expression values using the alignments. It is based on the Expectation-Maximization algorithm for quantifying abundances of the transcripts from single-end or paired-end RNA-Seq data. It fractionally assigns reads (also correctly handles multi-reads) mapped to a transcriptome for estimation of isoform expression levels; these are later further used to estimate gene expression levels. This tool does not require a reference genome and is therefore of particular interest for studying species without sequenced genomes.\n\nThe aligners that RSEM can internally call are Bowtie 1.1.2, Bowtie2 2.2.6 and STAR 2.5.1b. \n\n###Common issues###\n\n1. Users must run 'rsem-prepare-reference' with the appropriate reference before using this program.\n\n2. For single-end data, it is strongly recommended that the user provide the fragment length distribution parameters (--fragment-length-mean and --fragment-length-sd).  For paired-end data, RSEM will automatically learn a fragment length distribution from the data.\n\n3. Some aligner parameters have default values different from their original settings.\n\n4. With the '--calc-pme' option, posterior mean estimates will be calculated in addition to maximum likelihood estimates.\n\n5. With the '--calc-ci' option, 95% credibility intervals and posterior mean estimates will be calculated in addition to maximum likelihood estimates.\n\n6. The temporary directory and all intermediate files will be removed when RSEM finishes unless '--keep-intermediate-files' is specified.\n\n7. If \"STAR\" parameter is set, a larger instance will be required by the tool. \n\n8. In case of paired-end alignment it is crucial to set metadata 'paired-end' field to 1/2.\n\n9. For FASTQ reads in multi-file format (i.e. two FASTQ files for paired-end 1 and two FASTQ files for paired-end2), the proper metadata needs to be set (the following hierarchy is valid: sample_id/library_id/platform_unit_id/file_segment_number).",
+        "sbg:projectName": "CCBR_RNA-Seq",
+        "sbg:toolkitVersion": "1.2.31",
+        "id": "Durga/rna-seq-ccbr/rsem-calculate-expression-1-2-31/2",
+        "sbg:id": "Durga/rna-seq-ccbr/rsem-calculate-expression-1-2-31/2",
+        "sbg:contributors": [
+          "tsang"
+        ],
+        "sbg:categories": [
+          "RNA",
+          "Alignment"
+        ],
+        "sbg:job": {
+          "allocatedResources": {
+            "cpu": 32,
+            "mem": 60000
+          },
+          "inputs": {
+            "append_names": false,
+            "seed": null,
+            "ci_memory": null,
+            "estimate_rspd": false,
+            "bowtie_n": null,
+            "rsem_prepare_reference_archive": {
+              "path": "/path/to/hg19.human_prepare_reference_archive.tar.gz",
+              "size": 0,
+              "metadata": {
+                "reference_name": "hg19.human"
+              },
+              "secondaryFiles": [],
+              "class": "File"
+            },
+            "bowtie2_k": null,
+            "gibbs_number_of_samples": null,
+            "read_files": [
+              {
+                "path": "/path/to/control_S23.p2.Aligned.toTranscriptome.out.bam",
+                "size": 0,
+                "metadata": {
+                  "paired_end": "1",
+                  "sample_id": "SampleA",
+                  "platform_unit_id": "1"
+                },
+                "secondaryFiles": [],
+                "class": "File"
+              }
+            ],
+            "calc_ci": false,
+            "output_genome_bam": false,
+            "keep_intermediate_files": false,
+            "star_output_genome_bam": false,
+            "star": true,
+            "ci_number_of_samples_per_count_vector": null,
+            "sort_bam_by_coordinate": true,
+            "strand_specific": false,
+            "num_rspd_bins": null,
+            "forward_prob": null,
+            "ci_credibility_level": null,
+            "tag": "",
+            "paired_end_alignment": false,
+            "fragment_length_min": null,
+            "no_qualities": false,
+            "calc_pme": false,
+            "fragment_length_sd": null,
+            "fragment_length_max": null,
+            "time": false,
+            "sampling_for_bam": false,
+            "bowtie_e": null,
+            "solexa_quals": false,
+            "bowtie2": false,
+            "single_cell_prior": false,
+            "gibbs_burnin": null,
+            "no_bam_output": false,
+            "bowtie_chunkmbs": null,
+            "bowtie_m": null,
+            "gibbs_sampling_gap": null,
+            "phred64_quals": false,
+            "bowtie2_sensitivity_level": "",
+            "sort_bam_by_read_name": false,
+            "seed_length": null,
+            "phred33_quals": false,
+            "fragment_length_mean": null,
+            "bowtie2_mismatch_rate": null
+          }
+        },
+        "sbg:sbgMaintained": false,
+        "class": "CommandLineTool",
+        "arguments": [
+          {
+            "valueFrom": {
+              "engine": "#cwl-js-engine",
+              "script": "[].concat($job.inputs.rsem_prepare_reference_archive)[0].metadata.reference_name",
+              "class": "Expression"
+            },
+            "prefix": "",
+            "separate": true,
+            "position": 99
+          },
+          {
+            "valueFrom": "1500M",
+            "prefix": "--sort-bam-memory-per-thread",
+            "separate": true,
+            "position": 0
+          },
+          {
+            "valueFrom": {
+              "engine": "#cwl-js-engine",
+              "script": "$job.inputs.star==true ? 32 : 16",
+              "class": "Expression"
+            },
+            "prefix": "--num-threads",
+            "separate": true,
+            "position": 0
+          },
+          {
+            "valueFrom": {
+              "engine": "#cwl-js-engine",
+              "script": "{\n  function sharedStart(array){\n  var A= array.concat().sort(), \n      a1= A[0], a2= A[A.length-1], L= a1.length, i= 0;\n  while(i<L && a1.charAt(i)=== a2.charAt(i)) i++;\n  return a1.substring(0, i);\n  }\n  \n  \n  var arr = [].concat($job.inputs.read_files)\n  var ext = arr[0].path.split('.').pop().toLowerCase()\n  var cmd = \"\"\n  \n  if (arr[0].metadata && arr[0].metadata.sample_id) {\n    var x = arr[0].metadata.sample_id\n    cmd = \"&& ls | grep ^\" + x + \". | tar cf rsem_calculate_expression_archive.\" + x + \".tar -T - \"\n    return cmd\n  }\n  \n  if (ext=='bam' || ext=='sam' || ext=='cram') {\n    var x =  arr[0].path.split(\"/\").pop().split(\".\")[0]\n    cmd = \"&& ls | grep ^\" + x + \". | tar cf rsem_calculate_expression_archive.\" + x + \".tar -T - \"\n    return cmd\n  } else {\n  \n    if (arr.length==1) {\n      common_prefix = arr[0].path.split('/').pop().split('.')[0]\n    } else {\n      path_list = []\n      arr.forEach(function(f){return path_list.push(f.path.replace(/\\\\/g,'/').replace( /.*\\//, '' ))})\n      common_prefix = sharedStart(path_list)\n    }\n    var x = common_prefix.replace( /\\-$|\\_$|\\.$/, '' )\n    cmd = \"&& ls | grep ^\" + x + \". | tar cf rsem_calculate_expression_archive.\" + x + \".tar -T - \"\n    return cmd\n  }\n   \n}",
+              "class": "Expression"
+            },
+            "separate": true,
+            "position": 156
+          },
+          {
+            "valueFrom": {
+              "engine": "#cwl-js-engine",
+              "script": "{\n  function sharedStart(array){\n  var A= array.concat().sort(), \n      a1= A[0], a2= A[A.length-1], L= a1.length, i= 0;\n  while(i<L && a1.charAt(i)=== a2.charAt(i)) i++;\n  return a1.substring(0, i);\n  }\n  \n  var arr = [].concat($job.inputs.read_files)\n  var ext = arr[0].path.split('.').pop().toLowerCase()\n  \n  if (arr[0].metadata && arr[0].metadata.sample_id) {\n    return arr[0].metadata.sample_id\n  } else {\n  \n  if (ext=='bam' || ext=='sam' || ext=='cram') {\n    return arr[0].path.split(\"/\").pop().split(\".\")[0]\n  } else {\n    \n  if (arr.length==1) {\n    return arr[0].path.split('/').pop().split('.')[0]\n  } else {\n    path_list = []\n    arr.forEach(function(f){return path_list.push(f.path.replace(/\\\\/g,'/').replace( /.*\\//, '' ))})\n    common_prefix = sharedStart(path_list)\n    return common_prefix.replace( /\\-$|\\_$|\\.$/, '' )\n  }\n  }\n  }\n}",
+              "class": "Expression"
+            },
+            "separate": true,
+            "position": 100
+          },
+          {
+            "valueFrom": {
+              "engine": "#cwl-js-engine",
+              "script": "\"&& rename \\'s/genes.results/RSEM.genes.results/\\' *.genes.results && \\\nrename \\'s/isoforms.results/RSEM.isoforms.results/\\' *.isoforms.results\"",
+              "class": "Expression"
+            },
+            "prefix": "",
+            "separate": true,
+            "position": 200
+          }
+        ],
+        "stdout": "",
+        "sbg:revisionNotes": "modified typo in rename...",
+        "sbg:revision": 2,
+        "stdin": "",
+        "temporaryFailCodes": [],
+        "sbg:links": [
+          {
+            "id": "http://deweylab.github.io/RSEM/",
+            "label": "RSEM Homepage"
+          },
+          {
+            "id": "https://github.com/deweylab/RSEM",
+            "label": "RSEM Source Code"
+          },
+          {
+            "id": "https://github.com/deweylab/RSEM/archive/v1.2.31.tar.gz",
+            "label": "RSEM Download"
+          },
+          {
+            "id": "https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-12-323",
+            "label": "RSEM Publications"
+          },
+          {
+            "id": "http://deweylab.github.io/RSEM/README.html",
+            "label": "RSEM Documentation"
+          }
+        ],
+        "sbg:modifiedBy": "tsang",
+        "y": 453.3334501783118,
+        "outputs": [
+          {
+            "outputBinding": {
+              "sbg:inheritMetadataFrom": "#read_files",
+              "glob": "*.temp/*Log*.out"
+            },
+            "description": "Log files produced during STAR alignment. STAR log files are outputted only if 'STAR' option is set and 'Keep Intermediate Files' option is set. These logs are useful for further downstream analysis with tools such as MultiQC.",
+            "sbg:fileTypes": "OUT",
+            "id": "#star_log_files",
+            "type": [
+              "null",
+              {
+                "name": "star_log_files",
+                "items": "File",
+                "type": "array"
+              }
+            ],
+            "label": "STAR log files"
+          },
+          {
+            "outputBinding": {
+              "sbg:inheritMetadataFrom": "#read_files",
+              "glob": {
+                "engine": "#cwl-js-engine",
+                "script": "{\n  if ($job.inputs.sort_bam_by_coordinate) {\n    return \"*.transcript.sorted.bam\" \n  } else {\n    return \"*.transcript.bam\"\n  }\n}",
+                "class": "Expression"
+              },
+              "secondaryFiles": [
+                ".bai"
+              ],
+              "sbg:metadata": {
+                "reference_genome": {
+                  "engine": "#cwl-js-engine",
+                  "script": "[].concat($job.inputs.rsem_prepare_reference_archive)[0].metadata.reference_name",
+                  "class": "Expression"
+                }
+              }
+            },
+            "description": "BAM file in transcript coordinates. By default this file is unsorted, but it can be sorted if the parameter \"Sort BAM by coordinate' is turned on.",
+            "sbg:fileTypes": "BAM",
+            "id": "#sample_name_transcript_bam",
+            "type": [
+              "null",
+              "File"
+            ],
+            "label": "BAM in transcript coordinates"
+          },
+          {
+            "id": "#sample_name_isoforms_results",
+            "outputBinding": {
+              "sbg:inheritMetadataFrom": "#read_files",
+              "glob": "*.isoforms.results"
+            },
+            "description": "File containing isoform level expression estimates.",
+            "type": [
+              "null",
+              "File"
+            ],
+            "label": "Isoform level expression estimates"
+          },
+          {
+            "outputBinding": {
+              "sbg:inheritMetadataFrom": "#read_files",
+              "glob": {
+                "engine": "#cwl-js-engine",
+                "script": "{\n  if ($job.inputs.sort_bam_by_coordinate) {\n    return \"*.genome.sorted.bam\" \n  } else {\n    return \"*.genome.bam\"\n  }\n}",
+                "class": "Expression"
+              },
+              "secondaryFiles": [
+                ".bai"
+              ],
+              "sbg:metadata": {
+                "reference_genome": {
+                  "engine": "#cwl-js-engine",
+                  "script": "[].concat($job.inputs.rsem_prepare_reference_archive)[0].metadata.reference_name",
+                  "class": "Expression"
+                }
+              }
+            },
+            "description": "BAM file in genome coordinates. By default this file is unsorted, but it can be sorted if the parameter \"Sort BAM by coordinate' is turned on.",
+            "sbg:fileTypes": "BAM",
+            "id": "#sample_name_genome_bam",
+            "type": [
+              "null",
+              "File"
+            ],
+            "label": "BAM in genome coordinates"
+          },
+          {
+            "id": "#sample_name_genes_results",
+            "outputBinding": {
+              "sbg:inheritMetadataFrom": "#read_files",
+              "glob": "*.genes.results"
+            },
+            "description": "File containing gene level expression estimates.",
+            "type": [
+              "null",
+              "File"
+            ],
+            "label": "Gene level expression estimates"
+          },
+          {
+            "id": "#sample_name_alleles_results",
+            "outputBinding": {
+              "sbg:inheritMetadataFrom": "#read_files",
+              "glob": "*.alleles.results"
+            },
+            "description": "File containing gene level expression estimates. This file contains allele level expression estimates for allele-specific expression calculation.",
+            "type": [
+              "null",
+              "File"
+            ],
+            "label": "Allele level expression estimates"
+          },
+          {
+            "outputBinding": {
+              "sbg:inheritMetadataFrom": "#read_files",
+              "glob": "rsem_calculate_expression_archive*",
+              "sbg:metadata": {
+                "sample_name": {
+                  "engine": "#cwl-js-engine",
+                  "script": "{\n  function sharedStart(array){\n  var A= array.concat().sort(), \n      a1= A[0], a2= A[A.length-1], L= a1.length, i= 0;\n  while(i<L && a1.charAt(i)=== a2.charAt(i)) i++;\n  return a1.substring(0, i);\n  }\n  \n  var arr = [].concat($job.inputs.read_files)\n  var ext = arr[0].path.split('.').pop().toLowerCase()\n  \n  if (arr[0].metadata && arr[0].metadata.sample_id) {\n    return arr[0].metadata.sample_id\n  } else {\n  \n  if (ext=='bam' || ext=='sam' || ext=='cram') {\n    return arr[0].path.split(\"/\").pop().split(\".\")[0]\n  } else {\n    \n  if (arr.length==1) {\n    return arr[0].path.split('/').pop().split('.')[0]\n  } else {\n    path_list = []\n    arr.forEach(function(f){return path_list.push(f.path.replace(/\\\\/g,'/').replace( /.*\\//, '' ))})\n    common_prefix = sharedStart(path_list)\n    return common_prefix.replace( /\\-$|\\_$|\\.$/, '' )\n  }\n  }\n  }\n}",
+                  "class": "Expression"
+                }
+              }
+            },
+            "description": "Bundle of files outputed by 'RSEM Calculate Expression', to be used by other tools in the RSEM toolkit.",
+            "sbg:fileTypes": "TAR",
+            "id": "#rsem_calculate_expression_archive",
+            "type": [
+              "null",
+              "File"
+            ],
+            "label": "Archive of all files outputed by 'RSEM Calculate Expression'"
+          }
+        ],
+        "label": "RSEM Calculate Expression",
+        "sbg:toolAuthor": "Bo Li, Colin Dewey",
+        "$namespaces": {
+          "sbg": "https://sevenbridges.com"
+        },
+        "sbg:createdBy": "tsang",
+        "x": 266.6667323907251,
+        "sbg:image_url": null,
+        "hints": [
+          {
+            "value": {
+              "engine": "#cwl-js-engine",
+              "script": "$job.inputs.star==true ? 60000 : 30000",
+              "class": "Expression"
+            },
+            "class": "sbg:MemRequirement"
+          },
+          {
+            "dockerPull": "images.sbgenomics.com/uros_sipetic/rsem:1.2.31",
+            "dockerImageId": "67d3a6c01e92210f43c8ef809c2a245a75bf7d5a52762823cdc3b2e784de576c",
+            "class": "DockerRequirement"
+          },
+          {
+            "value": {
+              "engine": "#cwl-js-engine",
+              "script": "$job.inputs.star==true ? 32 : 16",
+              "class": "Expression"
+            },
+            "class": "sbg:CPURequirement"
+          }
+        ],
+        "sbg:createdOn": 1537413756,
+        "sbg:toolkit": "RSEM",
+        "inputs": [
+          {
+            "sbg:toolDefaultValue": "off",
+            "description": "Output time consumed by each step of RSEM to 'sample_name.time'.",
+            "inputBinding": {
+              "prefix": "--time",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Advanced options",
+            "id": "#time",
+            "required": false,
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "label": "Time"
+          },
+          {
+            "sbg:toolDefaultValue": "None",
+            "description": "The name of the optional field used in the SAM input for identifying a read with too many valid alignments. The field should have the format <tagName>:i:<value>, where a <value> bigger than 0 indicates a read with too many alignments.",
+            "inputBinding": {
+              "prefix": "--tag",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Advanced options",
+            "id": "#tag",
+            "required": false,
+            "type": [
+              "null",
+              "string"
+            ],
+            "label": "Tag name"
+          },
+          {
+            "sbg:toolDefaultValue": "off",
+            "description": "The RNA-Seq protocol used to generate the reads is strand specific, i.e. all (upstream) reads are derived from the forward strand. With this option set, if RSEM runs the Bowtie/Bowtie 2 aligner, the '--norc' Bowtie/Bowtie 2 option will be used, which disables alignment to the reverse strand of transcripts.",
+            "inputBinding": {
+              "prefix": "--strand-specific",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Basic options",
+            "id": "#strand_specific",
+            "required": false,
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "label": "Strand specific"
+          },
+          {
+            "sbg:toolDefaultValue": "off",
+            "description": "(STAR parameter) Save the BAM file from STAR alignment under genomic coordinate to 'sample_name.STAR.genome.bam'. This file is NOT sorted by genomic coordinate. In this file, according to STAR's manual, 'paired ends of an alignment are always adjacent, and multiple alignments of a read are adjacent as well'.",
+            "inputBinding": {
+              "prefix": "--star-output-genome-bam",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Aligner options",
+            "id": "#star_output_genome_bam",
+            "required": false,
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "label": "Output STAR genome BAM"
+          },
+          {
+            "sbg:toolDefaultValue": "off",
+            "description": "Use STAR to align reads. Alignment parameters are from ENCODE3's STAR-RSEM pipeline. To save computational time and memory resources, STAR's Output BAM file is unsorted. It is stored in RSEM's temporary directory with the name as 'sample_name.bam'. Each STAR job will have its own private copy of the genome in memory.",
+            "inputBinding": {
+              "valueFrom": {
+                "engine": "#cwl-js-engine",
+                "script": "{ \n  var arr = [].concat($job.inputs.read_files)\n  var ext = arr[0].path.split('.').pop().toLowerCase()\n\n  if (ext=='bam' || ext=='sam' || ext=='cram') {\n    return \"\"\n  } else if ($job.inputs.star) {\n    return \"--star\"\n  }\n}",
+                "class": "Expression"
+              },
+              "sbg:cmdInclude": true,
+              "separate": true,
+              "position": 0
+            },
+            "sbg:category": "Basic options",
+            "id": "#star",
+            "required": false,
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "label": "STAR"
+          },
+          {
+            "sbg:toolDefaultValue": "off",
+            "description": "Sort BAM file aligned under transcript coordidate by read name. Setting this option on will produce determinstic maximum likelihood estimations from independet runs. Note that sorting will take long time and lots of memory.",
+            "inputBinding": {
+              "prefix": "--sort-bam-by-read-name",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Output options",
+            "id": "#sort_bam_by_read_name",
+            "required": false,
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "label": "Sort BAM by read name"
+          },
+          {
+            "sbg:toolDefaultValue": "off",
+            "description": "Sort RSEM generated transcript and genome BAM files by coordinates and build associated indices.",
+            "inputBinding": {
+              "prefix": "--sort-bam-by-coordinate",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Output options",
+            "id": "#sort_bam_by_coordinate",
+            "required": false,
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "label": "Sort BAM by coordinate"
+          },
+          {
+            "sbg:toolDefaultValue": "off",
+            "description": "Input quality scores are solexa encoded.",
+            "inputBinding": {
+              "prefix": "--solexa-quals",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Aligner options",
+            "id": "#solexa_quals",
+            "required": false,
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "label": "Solexa qualities"
+          },
+          {
+            "sbg:toolDefaultValue": "off",
+            "description": "By default, RSEM uses Dirichlet(1) as the prior to calculate posterior mean estimates and credibility intervals. However, much less genes are expressed in single cell RNA-Seq data. Thus, if you want to compute posterior mean estimates and/or credibility intervals and you have single-cell RNA-Seq data, you are recommended to turn on this option. RSEM will then use Dirichlet(0.1) as the prior which encourage the sparsity of the expression levels.",
+            "inputBinding": {
+              "prefix": "--single-cell-prior",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Basic options",
+            "id": "#single_cell_prior",
+            "required": false,
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "label": "Single cell prior"
+          },
+          {
+            "sbg:toolDefaultValue": "25",
+            "description": "Seed length used by the read aligner.  Providing the correct value is important for RSEM. If RSEM runs Bowtie, it uses this value for Bowtie's seed length parameter. Any read with its or at least one of its mates' (for paired-end reads) length less than this value will be ignored. If the references are not added poly(A) tails, the minimum allowed value is 5, otherwise, the minimum allowed value is 25.",
+            "inputBinding": {
+              "prefix": "-seed-length",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Aligner options",
+            "id": "#seed_length",
+            "required": false,
+            "type": [
+              "null",
+              "int"
+            ],
+            "label": "Seed length"
+          },
+          {
+            "sbg:toolDefaultValue": "off",
+            "description": "Set the seed for the random number generators used in calculating posterior mean estimates and credibility intervals. The seed must be a non-negative 32 bit interger.",
+            "inputBinding": {
+              "prefix": "--seed",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Basic options",
+            "id": "#seed",
+            "required": false,
+            "type": [
+              "null",
+              "int"
+            ],
+            "label": "Random number generator seed"
+          },
+          {
+            "sbg:toolDefaultValue": "off",
+            "description": "When RSEM generates a BAM file, instead of outputing all alignments a read has with their posterior probabilities, one alignment is sampled according to the posterior probabilities. The sampling procedure includes the alignment to the \"noise\" transcript, which does not appear in the BAM file. Only the sampled alignment has a weight of 1. All other alignments have the weight of 0. If the \"noise\" transcript is sampled, all alignments appeared in the BAM file should have weight 0.",
+            "inputBinding": {
+              "prefix": "--sampling-for-bam",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Output options",
+            "id": "#sampling_for_bam",
+            "required": false,
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "label": "Sampling for BAM"
+          },
+          {
+            "sbg:stageInput": "link",
+            "required": true,
+            "sbg:fileTypes": "TAR",
+            "id": "#rsem_prepare_reference_archive",
+            "description": "Bundle of files outputed by RSEM prepare reference, including (if specified) Bowtie/Bowtie2/STAR indices.",
+            "label": "Archive of all files outputed by RSEM prepare reference",
+            "type": [
+              "File"
+            ]
+          },
+          {
+            "required": false,
+            "inputBinding": {
+              "valueFrom": {
+                "engine": "#cwl-js-engine",
+                "script": "{\n  if ($job.inputs.read_files) {\n   \n  function get_meta_map(m, file, meta) {\n    if (meta in file.metadata) {\n      return m[file.metadata[meta]]\n    } else {\n      return m['Undefined']\n    }\n  }\n\n  function create_new_map(map, file, meta) {\n    if (meta in file.metadata) {\n      map[file.metadata[meta]] = {}\n      return map[file.metadata[meta]]\n    } else {\n      map['Undefined'] = {}\n      return map['Undefined']\n    }\n  }\n    \n  var list = [].concat($job.inputs.read_files)\n  var ext = list[0].path.split('.').pop().toLowerCase()\n  \n  if (ext=='bam' || ext=='sam' || ext=='cram') {\n    if ($job.inputs.paired_end_alignment) {\n      return \"--alignments --paired-end \" + list[0].path\n    } else {\n      return \"--alignments \" + list[0].path\n    }\n  }\n    \n    \n  if ($job.inputs.star && ext=='gz') {\n    var zip_pref = \"--star-gzipped-read-file \"\n  } else if ($job.inputs.star && ext=='bz2') {\n    var zip_pref = \"--star-bzipped-read-file \"\n  } else {\n    var zip_pref = \"\"\n  }\n  \n  arr = list\n    map = {}\n    \n    if (arr.length==1) {\n      return zip_pref + arr[0].path\n    }\n\n    for (i in arr) {\n\n        sm_map = get_meta_map(map, arr[i], 'sample_id')\n        if (!sm_map) sm_map = create_new_map(map, arr[i], 'sample_id')\n\n        lb_map = get_meta_map(sm_map, arr[i], 'library_id')\n        if (!lb_map) lb_map = create_new_map(sm_map, arr[i], 'library_id')\n\n        pu_map = get_meta_map(lb_map, arr[i], 'platform_unit_id')\n        if (!pu_map) pu_map = create_new_map(lb_map, arr[i], 'platform_unit_id')\n\n        if ('file_segment_number' in arr[i].metadata) {\n            if (pu_map[arr[i].metadata['file_segment_number']]) {\n                a = pu_map[arr[i].metadata['file_segment_number']]\n                ar = [].concat(a)\n                ar = ar.concat(arr[i])\n                pu_map[arr[i].metadata['file_segment_number']] = ar\n            } else pu_map[arr[i].metadata['file_segment_number']] = [].concat(arr[i])\n        } else {\n            if (pu_map['Undefined']) {\n                a = pu_map['Undefined']\n                ar = [].concat(a)\n                ar = ar.concat(arr[i])\n                pu_map['Undefined'] = ar\n            } else {\n                pu_map['Undefined'] = [].concat(arr[i])\n            }\n        }\n    }\n    tuple_list = []\n    for (sm in map)\n        for (lb in map[sm])\n            for (pu in map[sm][lb]) {\n                list = []\n                for (fsm in map[sm][lb][pu]){\n                    list = map[sm][lb][pu][fsm]\n                \ttuple_list.push(list)\n                }\n            }\n    \n  pe_1 = []\n  pe_2 = []\n  se = []\n\n  if (tuple_list[0].length==1) {\n    for (i=0; i<tuple_list.length; i++) {\n      se = se.concat(tuple_list[i][0].path)\n    }\n  }\n  for (i=0; i<tuple_list.length; i++) {\n    for (j=0; j<tuple_list[i].length; j++) {\n      if (tuple_list[i][j].metadata.paired_end==1) {\n        pe_1 = pe_1.concat(tuple_list[i][j].path)\n      } else if (tuple_list[i][j].metadata.paired_end==2) {\n        pe_2 = pe_2.concat(tuple_list[i][j].path)\n      }\n    }\n  }\n  \n  //return tuple_list\n  //return pe_1\n  \n  if(pe_2.length == 0){\n      if (se.length > 0) {\n        tmp = se\n      } else if (pe_1.length > 0) {\n        tmp = pe_1\n      }\n      return zip_pref + tmp\n  \t} else if (pe_2.length > 0) {\n      return zip_pref + \"--paired-end \" + pe_1 + \" \" + pe_2\n    } else {\n      return \"\"\n    }\n  }\n  \n}",
+                "class": "Expression"
+              },
+              "sbg:cmdInclude": true,
+              "separate": true,
+              "position": 98,
+              "itemSeparator": ","
+            },
+            "sbg:fileTypes": "FASTA, FASTQ, FA, FQ, FASTQ.GZ, FQ.GZ, FASTQ.BZ2, FQ.BZ2, BAM, SAM, CRAM",
+            "id": "#read_files",
+            "description": "List of files containing single-end or paired-end data. By default, these files are assumed to be in FASTQ format. If 'No qualities' option is set, FASTA format is expected. Also, 'paired-end' metadata field in the input files should be properly set on the platform('1' and '2' for paired end or ' - ' for single end).",
+            "label": "Read files",
+            "type": [
+              "null",
+              {
+                "items": "File",
+                "type": "array"
+              }
+            ]
+          },
+          {
+            "sbg:toolDefaultValue": "off",
+            "description": "Input quality scores are encoded as Phred+64.",
+            "inputBinding": {
+              "prefix": "--phred64-quals",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Aligner options",
+            "id": "#phred64_quals",
+            "required": false,
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "label": "Phred+64 qualities"
+          },
+          {
+            "sbg:toolDefaultValue": "on",
+            "description": "Input quality scores are encoded as Phred+33.",
+            "inputBinding": {
+              "prefix": "--phred33-quals",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Aligner options",
+            "id": "#phred33_quals",
+            "required": false,
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "label": "Phred+33 qualities"
+          },
+          {
+            "sbg:toolDefaultValue": "off",
+            "description": "Specify this option if you are supplying aligned BAM/SAM/CRAM file as input instead of FASTQ reads and your aligned file came from paired end data. For paired-end reads, RSEM also requires the two mates of any alignment to be adjacent.",
+            "sbg:category": "Basic options",
+            "id": "#paired_end_alignment",
+            "required": false,
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "label": "Paired End Alignment"
+          },
+          {
+            "sbg:toolDefaultValue": "off",
+            "description": "Generate a BAM file, 'sample_name.genome.bam', with alignments mapped to genomic coordinates and annotated with their posterior probabilities. In addition, RSEM will call samtools (included in RSEM package) to sort and index the bam file. 'sample_name.genome.sorted.bam' and 'sample_name.genome.sorted.bam.bai' will be generated.",
+            "inputBinding": {
+              "prefix": "--output-genome-bam",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Output options",
+            "id": "#output_genome_bam",
+            "required": false,
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "label": "Output genome BAM"
+          },
+          {
+            "sbg:toolDefaultValue": "20",
+            "description": "Only relevant when '-Estimate RSPD' option is specified.  Use of the default setting is recommended.",
+            "inputBinding": {
+              "prefix": "--num-rspd-bins",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Advanced options",
+            "id": "#num_rspd_bins",
+            "required": false,
+            "type": [
+              "null",
+              "int"
+            ],
+            "label": "Number of bins in the RSPD"
+          },
+          {
+            "sbg:toolDefaultValue": "off",
+            "description": "Input reads do not contain quality scores.",
+            "inputBinding": {
+              "prefix": "--no-qualities",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Basic options",
+            "id": "#no_qualities",
+            "required": false,
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "label": "No qualities"
+          },
+          {
+            "sbg:toolDefaultValue": "off",
+            "description": "Do not output any BAM file.",
+            "inputBinding": {
+              "prefix": "--no-bam-output",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Output options",
+            "id": "#no_bam_output",
+            "required": false,
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "label": "No BAM output"
+          },
+          {
+            "sbg:toolDefaultValue": "off",
+            "description": "RSEM creates a temporary directory, 'sample_name.temp', into which it puts all intermediate output files. If this directory already exists, RSEM overwrites all files generated by previous RSEM runs inside of it. By default, after RSEM finishes, the temporary directory is deleted.  Set this option to prevent the deletion of this directory and the intermediate files inside of it.",
+            "inputBinding": {
+              "prefix": "--keep-intermediate-files",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Advanced options",
+            "id": "#keep_intermediate_files",
+            "required": false,
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "label": "Keep temporary files generated by RSEM"
+          },
+          {
+            "sbg:toolDefaultValue": "1",
+            "description": "The number of rounds between two succinct count vectors RSEM collects. If the count vector after round N is collected, the count vector after round N + <inputed_integer> will also be collected.",
+            "inputBinding": {
+              "prefix": "--gibbs-sampling-gap",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Advanced options",
+            "id": "#gibbs_sampling_gap",
+            "required": false,
+            "type": [
+              "null",
+              "int"
+            ],
+            "label": "Gibbs sampling gap"
+          },
+          {
+            "sbg:toolDefaultValue": "1000",
+            "description": "The total number of count vectors RSEM will collect from its Gibbs samplers.",
+            "inputBinding": {
+              "prefix": "--gibbs-number-of-samples",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Advanced options",
+            "id": "#gibbs_number_of_samples",
+            "required": false,
+            "type": [
+              "null",
+              "int"
+            ],
+            "label": "Gibbs number of samples"
+          },
+          {
+            "sbg:toolDefaultValue": "200",
+            "description": "The number of burn-in rounds for RSEM's Gibbs sampler. Each round passes over the entire data set once. If RSEM can use multiple threads, multiple Gibbs samplers will start at the same time and all samplers share the same burn-in number.",
+            "inputBinding": {
+              "prefix": "--gibbs-burnin",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Advanced options",
+            "id": "#gibbs_burnin",
+            "required": false,
+            "type": [
+              "null",
+              "int"
+            ],
+            "label": "Gibbs burn-in"
+          },
+          {
+            "sbg:toolDefaultValue": "0, which assumes that all fragments are of the same length,            given by the rounded value of 'Mean fragment length'",
+            "description": "For single-end data only. The standard deviation of the fragment length distribution, which is assumed to be a Gaussian.",
+            "inputBinding": {
+              "prefix": "--fragment-length-sd",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Advanced options",
+            "id": "#fragment_length_sd",
+            "required": false,
+            "type": [
+              "null",
+              "float"
+            ],
+            "label": "Fragment length standard deviation"
+          },
+          {
+            "sbg:toolDefaultValue": "1",
+            "description": "Minimum read/insert length allowed. This is also the value for the Bowtie/Bowtie2 -I option.",
+            "inputBinding": {
+              "prefix": "--fragment-length-min",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Advanced options",
+            "id": "#fragment_length_min",
+            "required": false,
+            "type": [
+              "null",
+              "int"
+            ],
+            "label": "Minimum fragment length"
+          },
+          {
+            "sbg:toolDefaultValue": "-1, which disables use of the fragment length distribution",
+            "description": "For single-end data only. The mean of the fragment length distribution, which is assumed to be a Gaussian.",
+            "inputBinding": {
+              "prefix": "--fragment-length-mean",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Advanced options",
+            "id": "#fragment_length_mean",
+            "required": false,
+            "type": [
+              "null",
+              "float"
+            ],
+            "label": "Mean fragment length"
+          },
+          {
+            "sbg:toolDefaultValue": "1000",
+            "description": "Maximum read/insert length allowed. This is also the value for the Bowtie/Bowtie 2 -X option.",
+            "inputBinding": {
+              "prefix": "--fragment-length-max",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Advanced options",
+            "id": "#fragment_length_max",
+            "required": false,
+            "type": [
+              "null",
+              "int"
+            ],
+            "label": "Maximum fragment length"
+          },
+          {
+            "sbg:toolDefaultValue": "0.5",
+            "description": "Probability of generating a read from the forward strand of a transcript. Set to 1 for a strand-specific protocol where all (upstream) reads are derived from the forward strand, 0 for a strand-specific protocol where all (upstream) read are derived from the reverse strand, or 0.5 for a non-strand-specific protocol.",
+            "inputBinding": {
+              "prefix": "--forward-prob",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Advanced options",
+            "id": "#forward_prob",
+            "required": false,
+            "type": [
+              "null",
+              "float"
+            ],
+            "label": "Forward probability"
+          },
+          {
+            "required": false,
+            "inputBinding": {
+              "prefix": "--fai",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:fileTypes": "FAI",
+            "id": "#fai",
+            "description": "RSEM reads header information from the SAM input by default. If this input is supplied, header information is read from the specified file. For the format of the FAI file, please refer to the SAM official website.",
+            "label": "SAM header info",
+            "type": [
+              "null",
+              "File"
+            ]
+          },
+          {
+            "sbg:toolDefaultValue": "off",
+            "description": "Set this option if you want to estimate the read start position distribution (RSPD) from data. Otherwise, RSEM will use a uniform RSPD.",
+            "inputBinding": {
+              "prefix": "--estimate-rspd",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Advanced options",
+            "id": "#estimate_rspd",
+            "required": false,
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "label": "Estimate RSPD"
+          },
+          {
+            "sbg:toolDefaultValue": "50",
+            "description": "The number of read generating probability vectors sampled per sampled count vector. The crebility intervals are calculated by first sampling P(C|D) and then sampling P(Theta|C) for each sampled count vector. This option controls how many Theta vectors are sampled per sampled count vector.",
+            "inputBinding": {
+              "prefix": "--ci-number-of-samples-per-count-vector",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Advanced options",
+            "id": "#ci_number_of_samples_per_count_vector",
+            "required": false,
+            "type": [
+              "null",
+              "int"
+            ],
+            "label": "Credibility intervals number of samples per count vector"
+          },
+          {
+            "sbg:toolDefaultValue": "1024",
+            "description": "Maximum size (in memory, MB) of the auxiliary buffer used for computing credibility intervals (CI).",
+            "inputBinding": {
+              "prefix": "--ci-memory",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Advanced options",
+            "id": "#ci_memory",
+            "required": false,
+            "type": [
+              "null",
+              "int"
+            ],
+            "label": "Credibility intervals memory"
+          },
+          {
+            "sbg:toolDefaultValue": "0.95",
+            "description": "The credibility level for credibility intervals.",
+            "inputBinding": {
+              "prefix": "--ci-credibility-level",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Advanced options",
+            "id": "#ci_credibility_level",
+            "required": false,
+            "type": [
+              "null",
+              "float"
+            ],
+            "label": "Credibility intervals credibility level"
+          },
+          {
+            "sbg:toolDefaultValue": "off",
+            "description": "Dirichlet(0.1) as the prior which encourage the sparsity of the expression levels.",
+            "inputBinding": {
+              "prefix": "--calc-pme",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Basic options",
+            "id": "#calc_pme",
+            "required": false,
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "label": "Calculate posterior mean estimates"
+          },
+          {
+            "sbg:toolDefaultValue": "off",
+            "description": "Calculate 95% credibility intervals and posterior mean estimates. The credibility level can be changed in advanced options under 'CI credibility levels'.",
+            "inputBinding": {
+              "prefix": "--calc-ci",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Basic options",
+            "id": "#calc_ci",
+            "required": false,
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "label": "Calculate credibility intervals"
+          },
+          {
+            "sbg:toolDefaultValue": "2",
+            "description": "Bowtie parameter. Maximum number of mismatches in the seed (Range: 0-3).",
+            "inputBinding": {
+              "prefix": "--bowtie-n",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Aligner options",
+            "id": "#bowtie_n",
+            "required": false,
+            "type": [
+              "null",
+              "int"
+            ],
+            "label": "Bowtie N"
+          },
+          {
+            "sbg:toolDefaultValue": "200",
+            "description": "Bowtie parameter. Suppress all alignments for a read if more than M valid alignments exist.",
+            "inputBinding": {
+              "prefix": "--bowtie-m",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Aligner options",
+            "id": "#bowtie_m",
+            "required": false,
+            "type": [
+              "null",
+              "int"
+            ],
+            "label": "Bowtie M"
+          },
+          {
+            "sbg:toolDefaultValue": "99999999",
+            "description": "Bowtie parameter. Maximum sum of mismatch quality scores across the alignment.",
+            "inputBinding": {
+              "prefix": "--bowtie-e",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Aligner options",
+            "id": "#bowtie_e",
+            "required": false,
+            "type": [
+              "null",
+              "int"
+            ],
+            "label": "Bowtie E"
+          },
+          {
+            "sbg:toolDefaultValue": "0",
+            "description": "Bowtie parameter. Memory allocated for best first alignment calculation.",
+            "inputBinding": {
+              "prefix": "--bowtie-chunkmbs",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Aligner options",
+            "id": "#bowtie_chunkmbs",
+            "required": false,
+            "type": [
+              "null",
+              "int"
+            ],
+            "label": "Bowtie chunk MBs"
+          },
+          {
+            "sbg:toolDefaultValue": "\"sensitive\"",
+            "description": "Bowtie 2 parameter. Set Bowtie 2's preset options in 'end-to-end' mode. This option controls how hard Bowtie 2 tries to find alignments. The input string must be one of \"very_fast\", \"fast\", \"sensitive\" and \"very_sensitive\".",
+            "inputBinding": {
+              "prefix": "--bowtie2-sensitivity-level",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Aligner options",
+            "id": "#bowtie2_sensitivity_level",
+            "required": false,
+            "type": [
+              "null",
+              "string"
+            ],
+            "label": "Bowtie 2 sensitivity level"
+          },
+          {
+            "sbg:toolDefaultValue": "0.1",
+            "description": "Bowtie 2 parameter. Maximum mismatch rate allowed.",
+            "inputBinding": {
+              "prefix": "--bowtie2-mismatch-rate",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Aligner options",
+            "id": "#bowtie2_mismatch_rate",
+            "required": false,
+            "type": [
+              "null",
+              "float"
+            ],
+            "label": "Bowtie 2 mismatch rate"
+          },
+          {
+            "sbg:toolDefaultValue": "200",
+            "description": "Bowtie 2 parameter. Find up to K alignments per read.",
+            "inputBinding": {
+              "prefix": "--bowtie2-k",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Aligner options",
+            "id": "#bowtie2_k",
+            "required": false,
+            "type": [
+              "null",
+              "int"
+            ],
+            "label": "Bowtie 2 K"
+          },
+          {
+            "sbg:toolDefaultValue": "off",
+            "description": "Use Bowtie 2 instead of Bowtie to align reads. Since currently RSEM does not handle indel, local and discordant alignments, the Bowtie2 parameters are set in a way to avoid those alignments.",
+            "inputBinding": {
+              "valueFrom": {
+                "engine": "#cwl-js-engine",
+                "script": "{ \n  var arr = [].concat($job.inputs.read_files)\n  var ext = arr[0].path.split('.').pop().toLowerCase()\n\n  if (ext=='bam' || ext=='sam' || ext=='cram') {\n    return \"\"\n  } else if ($job.inputs.bowtie2) {\n    return \"--bowtie2\"\n  }\n}",
+                "class": "Expression"
+              },
+              "sbg:cmdInclude": true,
+              "separate": true,
+              "position": 0
+            },
+            "sbg:category": "Basic options",
+            "id": "#bowtie2",
+            "required": false,
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "label": "Bowtie 2"
+          },
+          {
+            "sbg:toolDefaultValue": "off",
+            "description": "If 'gene_name'/'transcript_name' is available, append it to the end of 'gene_id'/'transcript_id' (separated by '_') in files 'sample_name.isoforms.results' and 'sample_name.genes.results'.",
+            "inputBinding": {
+              "prefix": "--append-names",
+              "separate": true,
+              "position": 0,
+              "sbg:cmdInclude": true
+            },
+            "sbg:category": "Basic options",
+            "id": "#append_names",
+            "required": false,
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "label": "Append names"
+          }
+        ],
+        "successCodes": []
+      },
+      "outputs": [
+        {
+          "id": "#RSEM_Calculate_Expression.star_log_files"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.sample_name_transcript_bam"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.sample_name_isoforms_results"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.sample_name_genome_bam"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.sample_name_genes_results"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.sample_name_alleles_results"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.rsem_calculate_expression_archive"
+        }
+      ],
+      "inputs": [
+        {
+          "id": "#RSEM_Calculate_Expression.time",
+          "default": true
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.tag"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.strand_specific"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.star_output_genome_bam"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.star"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.sort_bam_by_read_name"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.sort_bam_by_coordinate"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.solexa_quals"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.single_cell_prior"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.seed_length"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.seed",
+          "default": 12345
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.sampling_for_bam"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.rsem_prepare_reference_archive",
+          "source": [
+            "#rsem_prepare_reference_archive"
+          ]
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.read_files",
+          "source": [
+            "#read_files"
+          ]
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.phred64_quals"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.phred33_quals"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.paired_end_alignment",
+          "default": true
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.output_genome_bam"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.num_rspd_bins"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.no_qualities"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.no_bam_output",
+          "default": true
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.keep_intermediate_files",
+          "default": true
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.gibbs_sampling_gap"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.gibbs_number_of_samples"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.gibbs_burnin"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.fragment_length_sd"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.fragment_length_min"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.fragment_length_mean"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.fragment_length_max"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.forward_prob"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.fai"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.estimate_rspd"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.ci_number_of_samples_per_count_vector"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.ci_memory"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.ci_credibility_level"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.calc_pme"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.calc_ci",
+          "default": true
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.bowtie_n"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.bowtie_m"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.bowtie_e"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.bowtie_chunkmbs"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.bowtie2_sensitivity_level"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.bowtie2_mismatch_rate"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.bowtie2_k"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.bowtie2"
+        },
+        {
+          "id": "#RSEM_Calculate_Expression.append_names"
+        }
+      ],
+      "sbg:y": 453.3334501783118,
+      "sbg:x": 266.6667323907251
+    },
+    {
+      "id": "#Deseq2",
+      "run": {
+        "requirements": [
+          {
+            "fileDef": [
+              {
+                "fileContent": "## Wrapper script to grab args\n## Example USAGE: Rscript deseq2call.R 'sampletable.txt' 'RawCountFile_Subread_junctions_filtered.txt' 'TCWT TGWT TCWT HCWT TGWT HGWT TCWT TCKO TGWT TGKO TCKO TGKO TCKO HCKO TGKO HGKO' 'mm10' 'projectid' 'Project Description.' 'Subread_junctions' \nargs <- commandArgs(trailingOnly = TRUE)\n#Sys.setenv(RSTUDIO_PANDOC=\"/path/to/pandoc/installation\") #You may need to add this to point to pandocs locatation\nrmarkdown::render(\"Deseq2Report.Rmd\", \n  params = list(\n    sampleinfo = args[1],\n    data = args[2],\n    contrasts = args[3],\n    species = args[4],\n    projectId = args[5],\n    projectDesc = args[6],\n    dtype = args[7]))",
+                "filename": "deseq2call.R"
+              },
+              {
+                "fileContent": "---\ntitle: \"DESeq2 results\"\nauthor: \"CCBR RNAseq pipeline\"\noutput: html_document\nparams:\n  sampleinfo: sampletable.txt\n  data: RawCountFile_genes_filtered.txt\n  contrasts: \"GN GP\"\n  species: mm10\n  projectId: \"<projectId>\"\n  projectDesc: \"<desc>\"\n  dtype: \"<count type>\"\n---\n```{r, include=FALSE, warning=FALSE, message=FALSE}\ncountMethod <- \"subread\"\nif(grepl(\"RSEM\",params$data)){\n  countMethod <- \"rsem\"\n}\nprojectId<-params$projectId\nprojectDesc<-params$projectDesc\ndateandtime<-format(Sys.time(), \"%a %b %d %Y - %X\")\n```\n### **Project:**\n####    *`r projectId`*\n### **Description:** \n####    *`r projectDesc`*\n###  **Count method:** \n####    *`r countMethod`* \n### **Report generated:** \n####    *`r dateandtime`* \n## **Histogram after normalization**\n```{r setup, echo=FALSE, warning=FALSE,message=FALSE}\nlibrary(rgl)\nlibrary(knitr)\nlibrary('DESeq2')\nlibrary('statmod')\nlibrary('RColorBrewer')\nlibrary('gplots')\nlibrary('reshape')\nlibrary('ggplot2')\nlibrary('ggfortify')\nlibrary(amap)\nlibrary(DT)\nlibrary(plotly)\nlibrary('geneplotter')\nknit_hooks$set(rgl = function(before, options, envir) {\n  if (!before) {\n    ## after a chunk has been evaluated\n    if (rgl.cur() == 0) return()  # no active device\n    name = paste(options$fig.path, options$label, sep = '')\n    rgl.snapshot(paste(name, '.png', sep = ''), fmt = 'png')\n    return(paste('\\\\includegraphics{', name, '}\\n', sep = ''))\n  }\n})\nknit_hooks$set(webgl = hook_webgl)\n```\n```{r, echo=FALSE, warning=FALSE,message=FALSE}\n## grab args & normalization\nFILE1 <- params$sampleinfo\nFILE2 <- params$data\nCONTRASTS <- params$contrasts\nSPECIES <-params$species\nsampleinfo=read.delim(FILE1)\nsampleFiles=as.character(sampleinfo[,2])\nx = read.delim(FILE2,row.names=1)\ncolnames(x)=as.character(sampleinfo[,4])\n#\nddsHTSeq<-DESeqDataSetFromMatrix(countData=x,colData=sampleinfo, design=~condition)\ndds<-DESeq(ddsHTSeq)\nndata=as.data.frame(counts(dds,normalized=TRUE))\ncolnames(ndata)=colnames(x)\nrn=rownames(ndata)\nensID=apply(array(as.character(rn)),1,function(z) unlist(strsplit(z, \"\\\\|\"))[1])\ngene=apply(array(as.character(rn)),1,function(z) unlist(strsplit(z, \"\\\\|\"))[2])\nmydata=cbind(ensID,gene,ndata)\nwrite.table(mydata,file=\"DESeq2_normalized_counts.txt\",sep=\"\\t\",col.names=NA)\n#png(\"HistDesq2normFilter.png\")\ndf.m <- melt(as.data.frame(ndata))\nprint(ggplot(df.m) + geom_density(aes(x = value, colour = variable)) + labs(x = NULL) + theme(legend.position='right') + scale_x_log10())\n# dev.off() \n#\n## transformation\nrld <- rlogTransformation(dds, blind=TRUE)\nrldm=assay(rld)\ncolnames(rldm)=colnames(x)\nmydata=cbind(ensID,gene,rldm)\nwrite.table(mydata,file=\"DESeq2_normalized_rld.txt\",sep=\"\\t\",col.names=NA)\n```\n```{r, echo=FALSE, warning=FALSE,message=FALSE,include=FALSE}\npng(\"DESeq2_PCA.png\")\nprint(plotPCA(rld, intgroup=c(\"condition\")))\n## dev.copy(png,\"DESeq2_PCA.png\")\ndev.off()\npng(\"DESeq2_PCA_details.png\")\n# print(plotPCA(rld, intgroup=c(\"condition\",\"fileName\")))\nprint(plotPCA(rld, intgroup=c(\"condition\",\"label\")))\n## dev.copy(png,\"DESeq2_PCA_details.png\")\ndev.off()\n```\n## **Boxplot and PCA**\n```{r, echo=FALSE,webgl=TRUE,message=FALSE}\n## Boxplot and PCA\ndf.m <- melt(as.data.frame(rldm))\n#dev.off()\npar(mar=c(10,7,1,1))\nboxplot(value~variable,las=2,data=df.m,main=\"Normalized Signal\",\n        ylab=\"Counts\",col=as.numeric(as.factor(sampleinfo$condition)))\nedf=rldm\ntedf= t(edf)\npca=prcomp(tedf,scale.=T)\ntedf1 = data.frame(tedf)\nPhenotype=sampleinfo$condition\ncell_rep=sampleinfo$label\ntedf1$group = as.factor(Phenotype)\npc1 = round(pca$sdev[1]^2/sum(pca$sdev^2)*100,2)\npc2 = round(pca$sdev[2]^2/sum(pca$sdev^2)*100,2)\npc3 = round(pca$sdev[3]^2/sum(pca$sdev^2)*100,2)\npcafactor = as.factor(sampleinfo$condition)\nlibrary(RColorBrewer)\ncol <- brewer.pal(nlevels(pcafactor), \"Paired\")\np <- plot_ly(as.data.frame(pca$x[,1:3]), x = ~PC1, y = ~PC2, z = ~PC3, color = pcafactor, colors = col, hoverinfo=\"text\",\n             hovertext = ~sampleinfo$label) %>%\n  add_markers() %>%\n  layout(title = \"PCA plot\", \n         scene = list(xaxis = list(title = paste0(\"PC1 (\",pc1,\"%)\")),\n                      yaxis = list(title = paste0(\"PC2 (\",pc2,\"%)\")),\n                      zaxis = list(title = paste0(\"PC3 (\",pc3,\"%)\"))))\np\n# plot(pca,type=\"lines\")  #Decide how many PC's are relevant for plotting\n  #pca$x[,1:3]  #look at first 3 PC's\n#plot3d(pca$x[,1:3],col = as.integer(tedf1$group),type=\"s\",size=2)\n#group.v<-as.vector(cell_rep)\n#text3d(pca$x, pca$y, pca$z, group.v, cex=1.0, adj = 1.2)\n# rgl.postscript(\"pca3d_DESeq2.pdf\",\"pdf\")\n```\n## **Similarity Heatmap**\n```{r, echo=FALSE, warning=FALSE,message=FALSE,include=FALSE}\n## clustering / heatmap\nhmcol <- colorRampPalette(brewer.pal(9, \"GnBu\"))(100)\ndistsRL <- dist(t(assay(rld)))\nmat <- as.matrix(distsRL)\nrownames(mat) <- colnames(mat) <- with(colData(dds),paste(condition,sampleFiles , sep=\" : \"))\n#if you just want the conditions use this line : rownames(mat) <- colnames(mat) <- with(colData(dds),condition)\npng(\"DESeq2_heatmaps_samplebysample.png\")\nheatmap.2(mat, trace=\"none\", col = rev(hmcol), margin=c(16, 16))\n## dev.copy(png,\"DESeq2_heatmaps_samplebysample.png\")\ndev.off()\n```\n```{r, echo=FALSE,warning=FALSE,message=FALSE}\nd=Dist(tedf,method=\"pearson\",diag=TRUE)\nm=as.matrix(d)\nnew.palette=colorRampPalette(c(\"black\",\"red\",\"yellow\",\"white\"),space=\"rgb\")\n#levelplot(m[1:ncol(m),ncol(m):1],col.regions=new.palette(20))\nheatmap(m,symm=TRUE,col=new.palette(20))\n```\n## **Differentially expressed genes (DEG) for all contrasts: Volcano plots, Pathways and DEG tables**\n```{r, echo=FALSE, warning=FALSE,message=FALSE,results='asis'}\n## differentially expressed genes -----\ncontras=unlist(strsplit(CONTRASTS, split=\" \"))        \ncat(contras,\"\\t\",length(contras),\"\\t\",contras[1],\"\\t\",contras[2],\"\\n\",file=\"readcontra.txt\")\nmfc=c()\nmpval=c()\ncons=c()\nl <- htmltools::tagList()\npup = htmltools::tagList()\npdw = htmltools::tagList()\nfor(i in seq(1, length(contras), by = 2))\n{{\nres<-results(dds,contrast=c(\"condition\",as.character(contras[i]),as.character(contras[i+1])))\n## res<-res[order(res$padj),] for now\nres1=as.data.frame(res)\n# mfc=cbind(mfc,res1$log2FoldChange)\n# mpval=cbind(mpval,res1$pvalue)\ncons=c(cons,paste(contras[i],\"-\",contras[i+1],sep=\"\"))\nrestmp=res1\nrestmp$FoldChange <- ifelse(restmp$log2FoldChange<0, -1/(2^restmp$log2FoldChange), 2^restmp$log2FoldChange)\nmfc=cbind(mfc,restmp$FoldChange)\nmpval=cbind(mpval,restmp$pvalue)\nfinal=restmp\nx=rownames(restmp)\nensID=apply(array(as.character(x)),1,function(z) unlist(strsplit(z, \"\\\\|\"))[1])\ngene=apply(array(as.character(x)),1,function(z) unlist(strsplit(z, \"\\\\|\"))[2])\nrestmp=cbind(ensID,gene,restmp)\nwrite.table(restmp,file=paste(\"DESeq2_deg_\",contras[i],\"_vs_\",contras[i+1],\".txt\",sep=\"\"),sep=\"\\t\",col.names=NA) \n## pathway enrichment --------------------------------------------\nif (SPECIES==\"hg19_SKIP_L2P\" | SPECIES==\"mm10_SKIP_L2P\" | SPECIES==\"hg38_SKIP_L2P\")\n{\niup=which(final$pvalue<0.05 & final$FoldChange >=0)\nidw=which(final$pvalue<0.05 & final$FoldChange <0)\nfin.up=final[iup,]\nif (length(iup) > 500)\n  {\n   fin.up=fin.up[order(fin.up$pvalue),]\n   fin.up=fin.up[1:500,]\n  }\nx2=rownames(fin.up)\ngup=apply(array(as.character(x2)),1,function(z) unlist(strsplit(z, \"\\\\|\"))[2])\nfin.dw=final[idw,]\nif (length(idw) > 500)\n  {\n   fin.dw=fin.dw[order(fin.dw$pvalue),]\n   fin.dw=fin.dw[1:500,]\n  }\nx2=rownames(fin.dw)\ngdw=apply(array(as.character(x2)),1,function(z) unlist(strsplit(z, \"\\\\|\"))[2])\nextension=paste0(\"_\",contras[i],\"_vs_\",contras[i+1],\".txt\")\nif (SPECIES==\"hg19\" | SPECIES==\"hg38\")\n{\nwrite.table(gup,paste0(\"DESeq2_gene_up_path\",extension),quote=F,row.names=F,col.names=F)\nwrite.table(gdw,paste0(\"DESeq2_gene_dw_path\",extension),quote=F,row.names=F,col.names=F)\n}\nelse\n{\nwrite.table(gup,\"DESeq2_temp_up.txt\",quote=F,row.names=F,col.names=F)\nwrite.table(gdw,\"DESeq2_temp_dw.txt\",quote=F,row.names=F,col.names=F)\nsystem(paste0(\"cat DESeq2_temp_up.txt | grep -v \\\"^NA\\\" | /data/CCBR_Pipeliner/db/PipeDB/bin/L2P/m2h | grep -v XXXX | cut -f2 -d\\\" \\\"  >DESeq2_gene_up_path\",extension))\nsystem(paste0(\"cat DESeq2_temp_dw.txt | grep -v \\\"^NA\\\" | /data/CCBR_Pipeliner/db/PipeDB/bin/L2P/m2h | grep -v XXXX | cut -f2 -d\\\" \\\"  >DESeq2_gene_dw_path\",extension))\n}\n# extension=paste0(\"_\",contras[i],\"_vs_\",contras[i+1],\".txt\")\nsystem(paste0(\"cat DESeq2_gene_up_path\",extension,\" |sort | uniq | /data/CCBR_Pipeliner/db/PipeDB/bin/L2P/l2p >DESeq2_res_path_up\",extension))\nsystem(paste0(\"cat DESeq2_gene_dw_path\",extension,\" |sort | uniq | /data/CCBR_Pipeliner/db/PipeDB/bin/L2P/l2p >DESeq2_res_path_dw\",extension))\nmup=read.delim(paste0(\"DESeq2_res_path_up\",extension),header=F)\nmdw=read.delim(paste0(\"DESeq2_res_path_dw\",extension),header=F)\ncolnames(mup)=c(\"pval\",\"fdr\",\"ratio\",\"nb.hits\",\"nb.genes.path\",\"nb.user.genes\",\"tot.back.genes\",\"path_id\",\"source\",\"description\",\"type\",\"gene.list\")\ncolnames(mdw)=c(\"pval\",\"fdr\",\"ratio\",\"nb.hits\",\"nb.genes.path\",\"nb.user.genes\",\"tot.back.genes\",\"path_id\",\"source\",\"description\",\"type\",\"gene.list\")\n#mup=mup[which(mup[,1]<0.05),]\n#mdw=mdw[which(mdw[,1]<0.05),]\nmup=mup[which(mup[,1]<0.05 & mup[,4]>=5),]\nmdw=mdw[which(mdw[,1]<0.05 & mdw[,4]>=5),]\nmup=mup[order(mup[,1]),]\nmdw=mdw[order(mdw[,1]),]\nmup=mup[,c(8,9,10,11,1:7,12)]\nmdw=mdw[,c(8,9,10,11,1:7,12)]\npup[[i]] <- DT::datatable(mup, caption=htmltools::tags$caption(paste0(\"Pathways for top 500 up-regulated genes \",contras[i],\"_vs_\",contras[i+1]) ,style=\"color:red; font-size: 18px\" ),rownames=F)\npdw[[i]] <- DT::datatable(mdw, caption=htmltools::tags$caption(paste0(\"Pathways for top 500 down-regulated genes \",contras[i],\"_vs_\",contras[i+1]) ,style=\"color:green; font-size: 18px\" ),rownames=F )\n}\n## ------------------------------------------------------------------\nx=res1$log2FoldChange[which(!is.na(res1$log2FoldChange))] \npng(paste(\"MAplot_\",contras[i],\"_vs_\",contras[i+1],\".png\",sep=\"\"))\nplotMA(res,ylim=range(x),main=paste(\"MAplot_\",contras[i],\"_vs_\",contras[i+1],sep=\"\"))\n##dev.copy(png,paste(\"DESeq2_MAplot_\",contras[i],\"_vs_\",contras[i+1],\".png\",sep=\"\"))\ndev.off()\n# Volcano\nlog_FC=res1$log2FoldChange\nlog_pval=-log10(res1$pvalue)\nSignificant=rep(\"NotSignificant\",length(log_FC))\nSignificant[which(res1$pvalue<0.05 & abs(res1$log2FoldChange)>=1)]=\"Significant&LogFoldChange\"\nSignificant[which(res1$pvalue<0.05 & abs(res1$log2FoldChange)<1)]=\"Significant\"\nSignificant[which(res1$pvalue>=0.05 & abs(res1$log2FoldChange)>=1)]=\"LogFoldChange\"\ngene=rownames(res1)\nvolcano_data=as.data.frame(cbind(gene,log_FC,log_pval,Significant))\nl[[i]] <- plot_ly(data = volcano_data, x = log_FC, y = log_pval, text = gene, mode = \"markers\", color = Significant) %>% layout(title =paste(\"Volcano Plot for \",contras[i],\"_vs_\",contras[i+1],sep=\"\"),xaxis=list(title=\"Fold Change\",range =c(-5,5),tickvals=c(-5,-4,-3,-2,-1,0,1,2,3,4,5),ticktext=c('-32','-16','-8','-4','-2','1','2','4','8','16','32')),yaxis=list(title=\"-Log10 pvalue\",range =c(0,10)))\n#l[[i]] <- plot_ly(data = volcano_data, x = log_FC, y = log_pval, text = gene, mode = \"markers\", color = Significant) %>% layout(title =paste(\"Volcano Plot for \",contras[i],\"_vs_\",contras[i+1],sep=\"\"),xaxis=list(title=\"Log2_FC\",range =c(-10,10)),yaxis=list(title=\"-Log10_pvalue\",range=c(0,10)))\n#  %>% layout(annotations = a)\n}}\ncolnames(mfc)=paste(cons,\"FC\",sep=\"_\")\ncolnames(mpval)=paste(cons,\"pval\",sep=\"_\")\nres=as.data.frame(cbind(mfc,mpval))\nrownames(res)=rownames(res1)\nwrite.table(res,file=\"DESeq2_res_all_contrasts.txt\",sep=\"\\t\",col.names=NA)\nl\npup\npdw\nDT::datatable(res, caption=htmltools::tags$caption(\"DEG for all contrasts\",style=\"color:blue; font-size: 18px\" ))\n```\n```{r, echo=TRUE, message=FALSE, warning=FALSE}\nsessionInfo()\n```",
+                "filename": "Deseq2Report.Rmd"
+              },
+              {
+                "fileContent": "params <-\nlist(folder = \"result\", sampleinfo = \"sampletable.txt\", data = \"RawCountFile_genes_filtered.txt\", \n    contrasts = \"GN GP\", species = \"hg19\", projectId = \"<projectId>\", \n    projectDesc = \"<desc>\", gtffile = \"gencode.v19.annotation.gtf\", \n    dtype = \"<count type>\", karyobeds = \"path/to/karyobedfiles\")\n\n#' ---\n#' title: \"DESeq2 results\"\n#' author: \"CCBR RNAseq pipeline\"\n#' output: html_document\n#' params:\n#'   folder: result\n#'   sampleinfo: sampletable.txt\n#'   data: RawCountFile_genes_filtered.txt\n#'   contrasts: \"GN GP\"\n#'   species: hg19\n#'   projectId: \"<projectId>\"\n#'   projectDesc: \"<desc>\"\n#'   gtffile: \"gencode.v19.annotation.gtf\"\n#'   dtype: \"<count type>\"\n#'   karyobeds: \"path/to/karyobedfiles\"\n#' ---\n#' \n## ---- include=FALSE, warning=FALSE, message=FALSE------------------------\ncountMethod <- \"subread\"\nif(grepl(\"RSEM\",params$data)){\n  countMethod <- \"rsem\"\n}\nprojectId<-params$projectId\nprojectDesc<-params$projectDesc\ndateandtime<-format(Sys.time(), \"%a %b %d %Y - %X\")\n\n#' ### **Project:**\n#' ####    *`r projectId`*\n#' ### **Description:** \n#' ####    *`r projectDesc`*\n#' ###  **Count method:** \n#' ####    *`r countMethod`* \n#' ### **Report generated:** \n#' ####    *`r dateandtime`* \n#' \n#' ## **Histogram after normalization**\n#' \n## ----setup, echo=FALSE, warning=FALSE,message=FALSE----------------------\n\nlibrary(rgl)\nlibrary(knitr)\nlibrary('DESeq2')\nlibrary('statmod')\nlibrary('RColorBrewer')\nlibrary('gplots')\nlibrary('reshape')\nlibrary('ggplot2')\nlibrary('ggfortify')\nlibrary(amap)\nlibrary(DT)\nlibrary(plotly)\nlibrary('geneplotter')\n\nknit_hooks$set(rgl = function(before, options, envir) {\n  if (!before) {\n    ## after a chunk has been evaluated\n    if (rgl.cur() == 0) return()  # no active device\n    name = paste(options$fig.path, options$label, sep = '')\n    rgl.snapshot(paste(name, '.png', sep = ''), fmt = 'png')\n    return(paste('\\\\includegraphics{', name, '}\\n', sep = ''))\n  }\n})\n\nknit_hooks$set(webgl = hook_webgl)\n\n#' \n## ---- echo=FALSE, warning=FALSE,message=FALSE----------------------------\n\n## grab args & normalization\n\nDIR <- params$folder\nFILE1 <- params$sampleinfo\nFILE2 <- params$data\nCONTRASTS <- params$contrasts\nSPECIES <-params$species\nKARYOBEDS <-params$karyobeds\n# ANNOTATE <- args[4]\n\n#\n## setwd(DIR)\n## Sys.setenv(\"DISPLAY\"=\":0.0\")\nsampleinfo=read.delim(FILE1)\nsampleFiles=as.character(sampleinfo[,2])\nx = read.delim(FILE2,row.names=1)\ncolnames(x)=as.character(sampleinfo[,4])\n## read annotation file\n## ann=read.delim(ANNOTATE)\n#\nddsHTSeq<-DESeqDataSetFromMatrix(countData=x,colData=sampleinfo, design=~condition)\ndds<-DESeq(ddsHTSeq)\nndata=as.data.frame(counts(dds,normalized=TRUE))\ncolnames(ndata)=colnames(x)\n\nrn=rownames(ndata)\nensID=apply(array(as.character(rn)),1,function(z) unlist(strsplit(z, \"\\\\|\"))[1])\ngene=apply(array(as.character(rn)),1,function(z) unlist(strsplit(z, \"\\\\|\"))[2])\nmydata=cbind(ensID,gene,ndata)\n\nwrite.table(mydata,file=\"DESeq2_normalized_counts.txt\",sep=\"\\t\",col.names=NA)\n#png(\"HistDesq2normFilter.png\")\ndf.m <- melt(as.data.frame(ndata))\nprint(ggplot(df.m) + geom_density(aes(x = value, colour = variable)) + labs(x = NULL) + theme(legend.position='right') + scale_x_log10())\n# dev.off() \n#\n## transformation\nrld <- rlogTransformation(dds, blind=TRUE)\nrldm=assay(rld)\ncolnames(rldm)=colnames(x)\n\nmydata=cbind(ensID,gene,rldm)\nwrite.table(mydata,file=\"DESeq2_normalized_rld.txt\",sep=\"\\t\",col.names=NA)\n\n\n## ---- echo=FALSE, warning=FALSE,message=FALSE,include=FALSE--------------\npng(\"DESeq2_PCA.png\")\nprint(plotPCA(rld, intgroup=c(\"condition\")))\n## dev.copy(png,\"DESeq2_PCA.png\")\ndev.off()\npng(\"DESeq2_PCA_details.png\")\n# print(plotPCA(rld, intgroup=c(\"condition\",\"fileName\")))\nprint(plotPCA(rld, intgroup=c(\"condition\",\"label\")))\n## dev.copy(png,\"DESeq2_PCA_details.png\")\ndev.off()\n\n\n#' ## **Boxplot and PCA**\n#' \n## ---- echo=FALSE,webgl=TRUE,message=FALSE--------------------------------\n\n## Boxplot and PCA\ndf.m <- melt(as.data.frame(rldm))\n\n#dev.off()\npar(mar=c(10,7,1,1))\nboxplot(value~variable,las=2,data=df.m,main=\"Normalized Signal\",\n        ylab=\"Counts\",col=as.numeric(as.factor(sampleinfo$condition)))\n\nedf=rldm\ntedf= t(edf)\npca=prcomp(tedf,scale.=T)\ntedf1 = data.frame(tedf)\nPhenotype=sampleinfo$condition\ncell_rep=sampleinfo$label\ntedf1$group = as.factor(Phenotype)\n\n# plot(pca,type=\"lines\")  #Decide how many PC's are relevant for plotting\n  #pca$x[,1:3]  #look at first 3 PC's\n\nplot3d(pca$x[,1:3],col = as.integer(tedf1$group),type=\"s\",size=2)\ngroup.v<-as.vector(cell_rep)\ntext3d(pca$x, pca$y, pca$z, group.v, cex=1.0, adj = 1.2)\n# rgl.postscript(\"pca3d_DESeq2.pdf\",\"pdf\")\n\n\n#' ## **Similarity Heatmap**\n#' \n## ---- echo=FALSE, warning=FALSE,message=FALSE,include=FALSE--------------\n## clustering / heatmap\nhmcol <- colorRampPalette(brewer.pal(9, \"GnBu\"))(100)\ndistsRL <- dist(t(assay(rld)))\nmat <- as.matrix(distsRL)\nrownames(mat) <- colnames(mat) <- with(colData(dds),paste(condition,sampleFiles , sep=\" : \"))\n#if you just want the conditions use this line : rownames(mat) <- colnames(mat) <- with(colData(dds),condition)\npng(\"DESeq2_heatmaps_samplebysample.png\")\nheatmap.2(mat, trace=\"none\", col = rev(hmcol), margin=c(16, 16))\n## dev.copy(png,\"DESeq2_heatmaps_samplebysample.png\")\ndev.off()\n\n#' \n## ---- echo=FALSE,warning=FALSE,message=FALSE-----------------------------\nd=Dist(tedf,method=\"pearson\",diag=TRUE)\nm=as.matrix(d)\n\nnew.palette=colorRampPalette(c(\"black\",\"red\",\"yellow\",\"white\"),space=\"rgb\")\n#levelplot(m[1:ncol(m),ncol(m):1],col.regions=new.palette(20))\nheatmap(m,symm=TRUE,col=new.palette(20))\n\n\n#' \n#' ## **Differentially expressed genes (DEG) for all contrasts: Volcano plots, Pathways and DEG tables**\n#' \n## ---- echo=FALSE, warning=FALSE,message=FALSE,results='asis'-------------\n\n## differentially expressed genes -----\ncontras=unlist(strsplit(CONTRASTS, split=\" \"))        \ncat(contras,\"\\t\",length(contras),\"\\t\",contras[1],\"\\t\",contras[2],\"\\n\",file=\"readcontra.txt\")\nmfc=c()\nmpval=c()\ncons=c()\nl <- htmltools::tagList()\npup = htmltools::tagList()\npdw = htmltools::tagList()\n\n#if ((grepl(\"hg\",SPECIES)||grepl(\"mm\",SPECIES))&&(grepl(\"genes\",params$dtype)))\n#{\n#system(paste0(\"cd \",getwd(),\"; perl ../Scripts/gtf2bed.pl \",params$gtffile,\" |sort -k1,1 -k2,2n > karyobed.bed\"))\n#system(paste0(\"cd \",getwd(),\"; cut -f1 karyobed.bed|uniq > chrs.txt; while read a ;do cat karyobed.bed | awk -F \\\"\\\\t\\\" -v a=$a \\'{if ($1==a) {print}}\\' > karyobed.${a}.bed;done < chrs.txt\"))\n#}\n\nfor(i in seq(1, length(contras), by = 2))\n{{\nres<-results(dds,contrast=c(\"condition\",as.character(contras[i]),as.character(contras[i+1])))\n## res<-res[order(res$padj),] for now\nres1=as.data.frame(res)\n# mfc=cbind(mfc,res1$log2FoldChange)\n# mpval=cbind(mpval,res1$pvalue)\ncons=c(cons,paste(contras[i],\"-\",contras[i+1],sep=\"\"))\n\nrestmp=res1\nrestmp$FoldChange <- ifelse(restmp$log2FoldChange<0, -1/(2^restmp$log2FoldChange), 2^restmp$log2FoldChange)\nmfc=cbind(mfc,restmp$FoldChange)\nmpval=cbind(mpval,restmp$pvalue)\nfinal=restmp\nx=rownames(restmp)\nensID=apply(array(as.character(x)),1,function(z) unlist(strsplit(z, \"\\\\|\"))[1])\ngene=apply(array(as.character(x)),1,function(z) unlist(strsplit(z, \"\\\\|\"))[2])\nrestmp=cbind(ensID,gene,restmp)\nwrite.table(restmp,file=paste(\"DESeq2_deg_\",contras[i],\"_vs_\",contras[i+1],\".txt\",sep=\"\"),sep=\"\\t\",col.names=NA) \n\n## pathway enrichment --------------------------------------------\nif (SPECIES==\"hg19\" | SPECIES==\"mm10\" | SPECIES==\"hg38\")\n{\niup=which(final$pvalue<0.05 & final$FoldChange >=0)\nidw=which(final$pvalue<0.05 & final$FoldChange <0)\nfin.up=final[iup,]\nif (length(iup) > 500)\n  {\n   fin.up=fin.up[order(fin.up$pvalue),]\n   fin.up=fin.up[1:500,]\n  }\nx2=rownames(fin.up)\ngup=apply(array(as.character(x2)),1,function(z) unlist(strsplit(z, \"\\\\|\"))[2])\n\nfin.dw=final[idw,]\nif (length(idw) > 500)\n  {\n   fin.dw=fin.dw[order(fin.dw$pvalue),]\n   fin.dw=fin.dw[1:500,]\n  }\nx2=rownames(fin.dw)\ngdw=apply(array(as.character(x2)),1,function(z) unlist(strsplit(z, \"\\\\|\"))[2])\n\nextension=paste0(\"_\",contras[i],\"_vs_\",contras[i+1],\".txt\")\nif (SPECIES==\"hg19\" | SPECIES==\"hg38\")\n{\nwrite.table(gup,paste0(\"DESeq2_gene_up_path\",extension),quote=F,row.names=F,col.names=F)\nwrite.table(gdw,paste0(\"DESeq2_gene_dw_path\",extension),quote=F,row.names=F,col.names=F)\n}\nelse\n{\nwrite.table(gup,\"DESeq2_temp_up.txt\",quote=F,row.names=F,col.names=F)\nwrite.table(gdw,\"DESeq2_temp_dw.txt\",quote=F,row.names=F,col.names=F)\nsystem(paste0(\"cat DESeq2_temp_up.txt | grep -v \\\"^NA\\\" | /data/CCBR_Pipeliner/db/PipeDB/bin/L2P/m2h | grep -v XXXX | cut -f2 -d\\\" \\\"  >DESeq2_gene_up_path\",extension))\nsystem(paste0(\"cat DESeq2_temp_dw.txt | grep -v \\\"^NA\\\" | /data/CCBR_Pipeliner/db/PipeDB/bin/L2P/m2h | grep -v XXXX | cut -f2 -d\\\" \\\"  >DESeq2_gene_dw_path\",extension))\n}\n# extension=paste0(\"_\",contras[i],\"_vs_\",contras[i+1],\".txt\")\nsystem(paste0(\"cat DESeq2_gene_up_path\",extension,\" |sort | uniq | /data/CCBR_Pipeliner/db/PipeDB/bin/L2P/l2p >DESeq2_res_path_up\",extension))\nsystem(paste0(\"cat DESeq2_gene_dw_path\",extension,\" |sort | uniq | /data/CCBR_Pipeliner/db/PipeDB/bin/L2P/l2p >DESeq2_res_path_dw\",extension))\n\nmup=read.delim(paste0(\"DESeq2_res_path_up\",extension),header=F)\nmdw=read.delim(paste0(\"DESeq2_res_path_dw\",extension),header=F)\ncolnames(mup)=c(\"pval\",\"fdr\",\"ratio\",\"nb.hits\",\"nb.genes.path\",\"nb.user.genes\",\"tot.back.genes\",\"path_id\",\"source\",\"description\",\"type\",\"gene.list\")\ncolnames(mdw)=c(\"pval\",\"fdr\",\"ratio\",\"nb.hits\",\"nb.genes.path\",\"nb.user.genes\",\"tot.back.genes\",\"path_id\",\"source\",\"description\",\"type\",\"gene.list\")\n\n#mup=mup[which(mup[,1]<0.05),]\n#mdw=mdw[which(mdw[,1]<0.05),]\n\nmup=mup[which(mup[,1]<0.05 & mup[,4]>=5),]\nmdw=mdw[which(mdw[,1]<0.05 & mdw[,4]>=5),]\n\nmup=mup[order(mup[,1]),]\nmdw=mdw[order(mdw[,1]),]\nmup=mup[,c(8,9,10,11,1:7,12)]\nmdw=mdw[,c(8,9,10,11,1:7,12)]\n\n\npup[[i]] <- DT::datatable(mup, caption=htmltools::tags$caption(paste0(\"Pathways for top 500 up-regulated genes \",contras[i],\"_vs_\",contras[i+1]) ,style=\"color:red; font-size: 18px\" ),rownames=F)\npdw[[i]] <- DT::datatable(mdw, caption=htmltools::tags$caption(paste0(\"Pathways for top 500 down-regulated genes \",contras[i],\"_vs_\",contras[i+1]) ,style=\"color:green; font-size: 18px\" ),rownames=F )\n\n}\n## ------------------------------------------------------------------\n\n\nx=res1$log2FoldChange[which(!is.na(res1$log2FoldChange))] \npng(paste(\"MAplot_\",contras[i],\"_vs_\",contras[i+1],\".png\",sep=\"\"))\nplotMA(res,ylim=range(x),main=paste(\"MAplot_\",contras[i],\"_vs_\",contras[i+1],sep=\"\"))\n##dev.copy(png,paste(\"DESeq2_MAplot_\",contras[i],\"_vs_\",contras[i+1],\".png\",sep=\"\"))\ndev.off()\n# Volcano\n\nlog_FC=res1$log2FoldChange\nlog_pval=-log10(res1$pvalue)\nSignificant=rep(\"NotSignificant\",length(log_FC))\nSignificant[which(res1$pvalue<0.05 & abs(res1$log2FoldChange)>=1)]=\"Significant&LogFoldChange\"\nSignificant[which(res1$pvalue<0.05 & abs(res1$log2FoldChange)<1)]=\"Significant\"\nSignificant[which(res1$pvalue>=0.05 & abs(res1$log2FoldChange)>=1)]=\"LogFoldChange\"\ngene=rownames(res1)\nvolcano_data=as.data.frame(cbind(gene,log_FC,log_pval,Significant))\nl[[i]] <- plot_ly(data = volcano_data, x = log_FC, y = log_pval, text = gene, mode = \"markers\", color = Significant) %>% layout(title =paste(\"Volcano Plot for \",contras[i],\"_vs_\",contras[i+1],sep=\"\"),xaxis=list(title=\"Fold Change\",range =c(-5,5),tickvals=c(-5,-4,-3,-2,-1,0,1,2,3,4,5),ticktext=c('-32','-16','-8','-4','-2','1','2','4','8','16','32')),yaxis=list(title=\"-Log10 pvalue\",range =c(0,10)))\n\n#l[[i]] <- plot_ly(data = volcano_data, x = log_FC, y = log_pval, text = gene, mode = \"markers\", color = Significant) %>% layout(title =paste(\"Volcano Plot for \",contras[i],\"_vs_\",contras[i+1],sep=\"\"),xaxis=list(title=\"Log2_FC\",range =c(-10,10)),yaxis=list(title=\"-Log10_pvalue\",range=c(0,10)))\n#  %>% layout(annotations = a)\n\nif ((grepl(\"hg\",SPECIES)||grepl(\"mm\",SPECIES))&&(grepl(\"genes\",params$dtype)))\n{\nsystem(paste0(\"cd \",getwd(),\"; python ../Scripts/FC2karyo.py DESeq2_deg_\",contras[i],\"_vs_\",contras[i+1],\".txt 2 4 \",SPECIES,\" \",KARYOBEDS,\" > DESeq2_deg_\",contras[i],\"_vs_\",contras[i+1],\".input.karyo\"))\nsystem(paste0(\"cd \",getwd(),\"; python ../Scripts/karyoplot.py DESeq2_deg_\",contras[i],\"_vs_\",contras[i+1],\".input.karyo \",SPECIES))\nki1=paste0(\"DESeq2_deg_\",contras[i],\"_vs_\",contras[i+1],\".input.karyo1.png\")\nki2=paste0(\"DESeq2_deg_\",contras[i],\"_vs_\",contras[i+1],\".input.karyo2.png\")\ncat(\"\\n###KARYO PLOT\",contras[i],\"_vs_\",contras[i+1],\"\\n\")\ncat(\"![](\",ki1,\")\")\ncat(\"\\n\")\ncat(\"![](\",ki2,\")\")\ncat(\"\\n\\n\")\n}\n\n}}\n\ncolnames(mfc)=paste(cons,\"FC\",sep=\"_\")\ncolnames(mpval)=paste(cons,\"pval\",sep=\"_\")\nres=as.data.frame(cbind(mfc,mpval))\nrownames(res)=rownames(res1)\nwrite.table(res,file=\"DESeq2_res_all_contrasts.txt\",sep=\"\\t\",col.names=NA)\n\nl\n\npup\n\npdw\n\nDT::datatable(res, caption=htmltools::tags$caption(\"DEG for all contrasts\",style=\"color:blue; font-size: 18px\" ))\n\n#' \n## ---- echo=TRUE, message=FALSE, warning=FALSE----------------------------\n\nsessionInfo()",
+                "filename": "Deseq2Report.R"
+              }
+            ],
+            "class": "CreateFileRequirement"
+          },
+          {
+            "id": "#cwl-js-engine",
+            "requirements": [
+              {
+                "dockerPull": "rabix/js-engine",
+                "class": "DockerRequirement"
+              }
+            ],
+            "class": "ExpressionEngineRequirement"
+          }
+        ],
+        "sbg:job": {
+          "allocatedResources": {
+            "cpu": 1,
+            "mem": 1000
+          },
+          "inputs": {
+            "projectID": "projectID-string-value",
+            "genomeAssembly": "Genome_Assembly-string-value",
+            "RawCountFile_RSEM_genes_filtered": {
+              "path": "/path/to/RawCountFile_Rsem_filtered.ext",
+              "size": 0,
+              "secondaryFiles": [],
+              "class": "File"
+            },
+            "sampletable": {
+              "path": "/path/to/sample_table.ext",
+              "size": 0,
+              "secondaryFiles": [],
+              "class": "File"
+            },
+            "projectDescription": "ProjectDescription-string-value",
+            "contrasts": "ContrastsForDEG-string-value",
+            "RSEM": "RSEM-string-value"
+          }
+        },
+        "sbg:publisher": "sbg",
+        "cwlVersion": "v1.2",
+        "arguments": [],
+        "stdout": "",
+        "sbg:revisionNotes": null,
+        "sbg:cmdPreview": "Rscript deseq2call.R /path/to/sample_table.ext /path/to/RawCountFile_Rsem_filtered.ext 'ContrastsForDEG-string-value' 'Genome_Assembly-string-value'  'projectID-string-value'",
+        "sbg:revision": 4,
+        "stdin": "",
+        "temporaryFailCodes": [],
+        "sbg:project": "Durga/rna-seq-ccbr",
+        "sbg:modifiedOn": 1538425510,
+        "baseCommand": [
+          "Rscript",
+          "deseq2call.R"
+        ],
+        "successCodes": [],
+        "y": 483.923735207464,
+        "outputs": [
+          {
+            "id": "#DESeq2_txt",
+            "outputBinding": {
+              "glob": "*.txt"
+            },
+            "type": [
+              "null",
+              {
+                "items": "File",
+                "type": "array"
+              }
+            ],
+            "label": "DESeq2_text_Files",
+            "sbg:fileTypes": "TXT"
+          },
+          {
+            "id": "#DESeq2_png",
+            "outputBinding": {
+              "glob": "*.png"
+            },
+            "type": [
+              "null",
+              {
+                "items": "File",
+                "type": "array"
+              }
+            ],
+            "label": "DESeq2_PNG_Files",
+            "sbg:fileTypes": "PNG"
+          },
+          {
+            "id": "#DESeq2_HTML",
+            "outputBinding": {
+              "glob": "*.html"
+            },
+            "type": [
+              "null",
+              {
+                "items": "File",
+                "type": "array"
+              }
+            ],
+            "label": "DESeq2_HTML_Files",
+            "sbg:fileTypes": "HTML"
+          }
+        ],
+        "sbg:latestRevision": 4,
+        "label": "Deseq2",
+        "sbg:appVersion": [
+          "sbg:draft-2"
+        ],
+        "description": "",
+        "sbg:projectName": "CCBR_RNA-Seq",
+        "sbg:validationErrors": [],
+        "abg:revisionNotes": null,
+        "$namespaces": {
+          "sbg": "https://sevenbridges.com"
+        },
+        "sbg:createdBy": "Durga",
+        "x": 973.3335477744935,
+        "sbg:image_url": null,
+        "id": "Durga/rna-seq-ccbr/deseq2report/4",
+        "hints": [
+          {
+            "value": 1,
+            "class": "sbg:CPURequirement"
+          },
+          {
+            "value": 1000,
+            "class": "sbg:MemRequirement"
+          },
+          {
+            "dockerPull": "stevetsa/rscripts:latest",
+            "dockerImageId": "",
+            "class": "DockerRequirement"
+          }
+        ],
+        "sbg:createdOn": 1534543248,
+        "sbg:revisionsInfo": [
+          {
+            "sbg:modifiedBy": "Durga",
+            "sbg:modifiedOn": 1534543248,
+            "sbg:revision": 0,
+            "sbg:revisionNotes": "Copy of Durga/durgatemp/deseq2report/18"
+          },
+          {
+            "sbg:modifiedBy": "Durga",
+            "sbg:modifiedOn": 1534546254,
+            "sbg:revision": 1,
+            "sbg:revisionNotes": "Copy of Durga/durgatemp/deseq2report/21"
+          },
+          {
+            "sbg:modifiedBy": "Durga",
+            "sbg:modifiedOn": 1534993930,
+            "sbg:revision": 2,
+            "sbg:revisionNotes": "Copy of Durga/durgatemp/deseq2report/22"
+          },
+          {
+            "sbg:modifiedBy": "Durga",
+            "sbg:modifiedOn": 1534994429,
+            "sbg:revision": 3,
+            "sbg:revisionNotes": null
+          },
+          {
+            "sbg:modifiedBy": "Durga",
+            "sbg:modifiedOn": 1538425510,
+            "sbg:revision": 4,
+            "sbg:revisionNotes": null
+          }
+        ],
+        "sbg:id": "Durga/rna-seq-ccbr/deseq2report/4",
+        "sbg:contributors": [
+          "Durga"
+        ],
+        "sbg:modifiedBy": "Durga",
+        "sbg:sbgMaintained": false,
+        "inputs": [
+          {
+            "required": true,
+            "inputBinding": {
+              "sbg:cmdInclude": true,
+              "separate": false
+            },
+            "sbg:fileTypes": "TXT",
+            "id": "#sampletable",
+            "type": [
+              "File"
+            ],
+            "label": "sampletable.txt"
+          },
+          {
+            "id": "#projectID",
+            "description": "Input string should be single quotes",
+            "label": "Project ID",
+            "type": [
+              "string"
+            ],
+            "inputBinding": {
+              "valueFrom": {
+                "engine": "#cwl-js-engine",
+                "script": "\"\\'\" + $job.inputs.projectID + \"\\'\"",
+                "class": "Expression"
+              },
+              "sbg:cmdInclude": true,
+              "separate": true,
+              "position": 4
+            }
+          },
+          {
+            "id": "#projectDescription",
+            "description": "Input string should be single quotes",
+            "label": "Project Description",
+            "type": [
+              "null",
+              "string"
+            ],
+            "inputBinding": {
+              "valueFrom": {
+                "engine": "#cwl-js-engine",
+                "script": "\"\\'\" + $job.inputs.projectDescription + \"\\'\"",
+                "class": "Expression"
+              },
+              "sbg:cmdInclude": true,
+              "separate": false,
+              "position": 5
+            }
+          },
+          {
+            "id": "#genomeAssembly",
+            "description": "Input string should be single quotes",
+            "label": "Genome_Assembly",
+            "type": [
+              "string"
+            ],
+            "inputBinding": {
+              "valueFrom": {
+                "engine": "#cwl-js-engine",
+                "script": "\"\\'\" + $job.inputs.genomeAssembly + \"\\'\"",
+                "class": "Expression"
+              },
+              "sbg:cmdInclude": true,
+              "separate": false,
+              "position": 3
+            }
+          },
+          {
+            "id": "#contrasts",
+            "description": "Input string should be single quotes",
+            "label": "Contrasts For DEG",
+            "type": [
+              "string"
+            ],
+            "inputBinding": {
+              "valueFrom": {
+                "engine": "#cwl-js-engine",
+                "script": "\"\\'\" + $job.inputs.contrasts + \"\\'\"",
+                "class": "Expression"
+              },
+              "sbg:cmdInclude": true,
+              "separate": false,
+              "position": 2
+            }
+          },
+          {
+            "required": true,
+            "inputBinding": {
+              "sbg:cmdInclude": true,
+              "separate": false,
+              "position": 1
+            },
+            "sbg:fileTypes": "TXT",
+            "id": "#RawCountFile_RSEM_genes_filtered",
+            "type": [
+              "File"
+            ],
+            "label": "RawCountFile_RSEM_genes_filtered.txt"
+          },
+          {
+            "id": "#RSEM",
+            "description": "Input string should be single quotes",
+            "label": "RSEM",
+            "type": [
+              "null",
+              "string"
+            ],
+            "inputBinding": {
+              "valueFrom": {
+                "engine": "#cwl-js-engine",
+                "script": "\"\\'\" + $job.inputs.RSEM + \"\\'\"",
+                "class": "Expression"
+              },
+              "sbg:cmdInclude": true,
+              "separate": false,
+              "position": 6
+            }
+          }
+        ],
+        "class": "CommandLineTool"
+      },
+      "outputs": [
+        {
+          "id": "#Deseq2.DESeq2_txt"
+        },
+        {
+          "id": "#Deseq2.DESeq2_png"
+        },
+        {
+          "id": "#Deseq2.DESeq2_HTML"
+        }
+      ],
+      "inputs": [
+        {
+          "id": "#Deseq2.sampletable",
+          "source": [
+            "#samtab"
+          ]
+        },
+        {
+          "id": "#Deseq2.projectID",
+          "default": "hirotestold"
+        },
+        {
+          "id": "#Deseq2.projectDescription",
+          "default": "this is project description"
+        },
+        {
+          "id": "#Deseq2.genomeAssembly",
+          "default": "mm10"
+        },
+        {
+          "id": "#Deseq2.contrasts",
+          "default": "Rbfox cntrl"
+        },
+        {
+          "id": "#Deseq2.RawCountFile_RSEM_genes_filtered",
+          "source": [
+            "#rsemcounts.outputRSEMfiltered"
+          ]
+        },
+        {
+          "id": "#Deseq2.RSEM",
+          "default": "RSEM"
+        }
+      ],
+      "sbg:y": 483.923735207464,
+      "sbg:x": 973.3335477744935
+    },
+    {
+      "id": "#rsemcounts",
+      "run": {
+        "requirements": [
+          {
+            "id": "#cwl-js-engine",
+            "requirements": [
+              {
+                "dockerPull": "rabix/js-engine",
+                "class": "DockerRequirement"
+              }
+            ],
+            "class": "ExpressionEngineRequirement"
+          }
+        ],
+        "sbg:revisionsInfo": [
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1532960652,
+            "sbg:revision": 0,
+            "sbg:revisionNotes": null
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1532962452,
+            "sbg:revision": 1,
+            "sbg:revisionNotes": "create tool"
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1532962644,
+            "sbg:revision": 2,
+            "sbg:revisionNotes": null
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1532964246,
+            "sbg:revision": 3,
+            "sbg:revisionNotes": null
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1538171444,
+            "sbg:revision": 4,
+            "sbg:revisionNotes": "modify command line to add mincount, minsample and annotation files, globing all outdir/"
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1538172047,
+            "sbg:revision": 5,
+            "sbg:revisionNotes": "add quotes around arguments"
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1538172546,
+            "sbg:revision": 6,
+            "sbg:revisionNotes": "add Rscript"
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1538173082,
+            "sbg:revision": 7,
+            "sbg:revisionNotes": "add mkdir"
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1538173545,
+            "sbg:revision": 8,
+            "sbg:revisionNotes": "from Revision 4 add mkdir and Rscript"
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1538173974,
+            "sbg:revision": 9,
+            "sbg:revisionNotes": "copy input files"
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1538175650,
+            "sbg:revision": 10,
+            "sbg:revisionNotes": "quote around gene_results and glob Raw* RSEM*"
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1538176040,
+            "sbg:revision": 11,
+            "sbg:revisionNotes": "change output glob to Raw*, remove mkdir outdir"
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1538176361,
+            "sbg:revision": 12,
+            "sbg:revisionNotes": "output glob Raw*"
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1538480833,
+            "sbg:revision": 13,
+            "sbg:revisionNotes": "add port to output *filtered.txt"
+          },
+          {
+            "sbg:modifiedBy": "tsang",
+            "sbg:modifiedOn": 1538481146,
+            "sbg:revision": 14,
+            "sbg:revisionNotes": "corrected output port type outRSEMfiltered"
+          }
+        ],
+        "sbg:publisher": "sbg",
+        "cwlVersion": "v1.2",
+        "arguments": [],
+        "stdout": "",
+        "sbg:revisionNotes": "corrected output port type outRSEMfiltered",
+        "sbg:cmdPreview": "Rscript /opt/rsemcounts.R . 'rsem_gene_results-1.ext rsem_gene_results-2.ext'  0.5  1  /path/to/annotation.ext",
+        "sbg:revision": 14,
+        "stdin": "",
+        "temporaryFailCodes": [],
+        "sbg:project": "Durga/rna-seq-ccbr",
+        "sbg:modifiedOn": 1538481146,
+        "baseCommand": [
+          "Rscript",
+          "/opt/rsemcounts.R",
+          "."
+        ],
+        "successCodes": [],
+        "outputs": [
+          {
+            "id": "#outputRaw",
+            "outputBinding": {
+              "sbg:inheritMetadataFrom": "#rsem_gene_results",
+              "glob": "Raw*"
+            },
+            "type": [
+              {
+                "items": "File",
+                "type": "array"
+              }
+            ],
+            "sbg:fileTypes": "TXT"
+          },
+          {
+            "id": "#outputRSEM",
+            "outputBinding": {
+              "sbg:inheritMetadataFrom": "#rsem_gene_results",
+              "glob": "RSEM*"
+            },
+            "type": [
+              "null",
+              {
+                "items": "File",
+                "type": "array"
+              }
+            ]
+          },
+          {
+            "id": "#outputRSEMfiltered",
+            "outputBinding": {
+              "sbg:inheritMetadataFrom": "#rsem_gene_results",
+              "glob": "*filtered.txt"
+            },
+            "type": [
+              "null",
+              "File"
+            ],
+            "sbg:fileTypes": "TXT"
+          }
+        ],
+        "sbg:latestRevision": 14,
+        "label": "rsemcounts",
+        "sbg:appVersion": [
+          "sbg:draft-2"
+        ],
+        "description": "https://github.com/CCBR/Pipeliner/blob/centosOS7/Rules/rnaseq.snakefile\noutdir omitted - simply grabbing output from working directory - outdir a placeholder\nappend input {name} to output\n\n#### Need to clarify \n\nmincount=config['project']['MINCOUNTGENES'],\n    minsamples=config['project']['MINSAMPLES'],\n    annotate=config['references'][pfamily]['ANNOTATE'],\n\n\n####\n\nrule rsemcounts:\n   input:\n    files=expand(join(workpath,rsemg_dir,\"{name}.RSEM.genes.results\"), name=samples),\n   output: \n    join(workpath,rsemg_dir,\"RawCountFile_RSEM_genes_filtered.txt\"),\n   params: \n    rname='pl:rsemcounts',\n    batch='--mem=8g --time=10:00:00',\n    outdir=join(workpath,rsemg_dir),\n    mincount=config['project']['MINCOUNTGENES'],\n    minsamples=config['project']['MINSAMPLES'],\n    annotate=config['references'][pfamily]['ANNOTATE'],\n    rver=config['bin'][pfamily]['tool_versions']['RVER'],\n    rscript=join(workpath,\"Scripts\",\"rsemcounts.R\")\n   shell: \"\"\"\ncd {params.outdir}\nmodule load {params.rver}\nRscript {params.rscript} '{params.outdir}' '{input.files}' '{params.mincount}' '{params.minsamples}' '{params.annotate}'",
+        "sbg:projectName": "CCBR_RNA-Seq",
+        "sbg:validationErrors": [],
+        "id": "https://cgc-api.sbgenomics.com/v2/apps/Durga/rna-seq-ccbr/rsemcounts/14/raw/",
+        "$namespaces": {
+          "sbg": "https://sevenbridges.com"
+        },
+        "sbg:createdBy": "tsang",
+        "sbg:image_url": null,
+        "hints": [
+          {
+            "value": 1,
+            "class": "sbg:CPURequirement"
+          },
+          {
+            "value": 1000,
+            "class": "sbg:MemRequirement"
+          },
+          {
+            "dockerPull": "stevetsa/rscripts:latest",
+            "dockerImageId": "",
+            "class": "DockerRequirement"
+          }
+        ],
+        "sbg:createdOn": 1532960652,
+        "sbg:id": "Durga/rna-seq-ccbr/rsemcounts/14",
+        "sbg:contributors": [
+          "tsang"
+        ],
+        "sbg:job": {
+          "allocatedResources": {
+            "cpu": 1,
+            "mem": 1000
+          },
+          "inputs": {
+            "rsem_gene_results": [
+              {
+                "path": "/path/to/rsem_gene_results-1.ext",
+                "size": 0,
+                "secondaryFiles": [],
+                "class": "File"
+              },
+              {
+                "path": "/path/to/rsem_gene_results-2.ext",
+                "size": 0,
+                "secondaryFiles": [],
+                "class": "File"
+              }
+            ],
+            "MINCOUNT": 0.5,
+            "annotation": {
+              "path": "/path/to/annotation.ext",
+              "size": 0,
+              "secondaryFiles": [],
+              "class": "File"
+            },
+            "MINSAMPLE": 1
+          }
+        },
+        "sbg:sbgMaintained": false,
+        "class": "CommandLineTool",
+        "inputs": [
+          {
+            "id": "#rsem_gene_results",
+            "sbg:stageInput": "copy",
+            "type": [
+              {
+                "items": "File",
+                "type": "array"
+              }
+            ],
+            "inputBinding": {
+              "valueFrom": {
+                "engine": "#cwl-js-engine",
+                "script": "{\n  \n  reads = [].concat($job.inputs.rsem_gene_results)\n  names = []\n \n  for (i=0; i<reads.length; i++)\n  {\n    filename = reads[i].path.split('/').slice(-1)[0];\n    names.push(filename); \n  }\n  var str = \"'\" + names.join(\" \") + \"'\"\n  return str\n}",
+                "class": "Expression"
+              },
+              "sbg:cmdInclude": true,
+              "separate": false,
+              "position": 1,
+              "itemSeparator": " "
+            },
+            "sbg:fileTypes": "RSEM.genes.results"
+          },
+          {
+            "id": "#MINCOUNT",
+            "description": "0.5",
+            "type": [
+              "float"
+            ],
+            "inputBinding": {
+              "sbg:cmdInclude": true,
+              "separate": true,
+              "position": 3
+            }
+          },
+          {
+            "id": "#MINSAMPLE",
+            "type": [
+              "int"
+            ],
+            "inputBinding": {
+              "sbg:cmdInclude": true,
+              "separate": true,
+              "position": 4
+            }
+          },
+          {
+            "sbg:stageInput": "copy",
+            "inputBinding": {
+              "sbg:cmdInclude": true,
+              "separate": true,
+              "position": 5
+            },
+            "sbg:fileTypes": "TXT",
+            "id": "#annotation",
+            "description": "Mm10_M12_genes.txt",
+            "type": [
+              "File"
+            ]
+          }
+        ],
+        "sbg:modifiedBy": "tsang"
+      },
+      "outputs": [
+        {
+          "id": "#rsemcounts.outputRaw"
+        },
+        {
+          "id": "#rsemcounts.outputRSEM"
+        },
+        {
+          "id": "#rsemcounts.outputRSEMfiltered"
+        }
+      ],
+      "inputs": [
+        {
+          "id": "#rsemcounts.rsem_gene_results",
+          "source": [
+            "#RSEM_Calculate_Expression.sample_name_genes_results"
+          ]
+        },
+        {
+          "id": "#rsemcounts.MINCOUNT",
+          "default": 0.5
+        },
+        {
+          "id": "#rsemcounts.MINSAMPLE",
+          "default": 1
+        },
+        {
+          "id": "#rsemcounts.annotation",
+          "source": [
+            "#genesfile"
+          ]
+        }
+      ],
+      "sbg:y": 648.3334628111854,
+      "sbg:x": 560.000165879736
+    }
+  ],
+  "outputs": [
+    {
+      "required": false,
+      "sbg:includeInPorts": true,
+      "sbg:fileTypes": "TXT",
+      "id": "#output_files",
+      "source": [
+        "#rsem_merge.output_files"
+      ],
+      "sbg:x": 1338.6112469760415,
+      "sbg:y": 276.46829566304456,
+      "label": "output_files",
+      "type": [
+        "null",
+        {
+          "items": "File",
+          "type": "array"
+        }
+      ]
+    },
+    {
+      "required": false,
+      "sbg:includeInPorts": true,
+      "sbg:fileTypes": "TXT",
+      "id": "#EBSeq_isoform_completed",
+      "source": [
+        "#EBSeq_Isoform_Final.EBSeq_isoform_completed"
+      ],
+      "sbg:x": 1124.5835730210079,
+      "type": [
+        "null",
+        {
+          "items": "File",
+          "type": "array"
+        }
+      ],
+      "label": "EBSeq_isoform_completed",
+      "sbg:y": 73.27386233459248
+    },
+    {
+      "required": false,
+      "sbg:includeInPorts": true,
+      "sbg:fileTypes": "TXT",
+      "id": "#EBSeq_gene_completed",
+      "source": [
+        "#EBSeq_gene_1.EBSeq_gene_completed"
+      ],
+      "sbg:x": 1275.1787933533508,
+      "type": [
+        "null",
+        {
+          "items": "File",
+          "type": "array"
+        }
+      ],
+      "label": "EBSeq_gene_completed",
+      "sbg:y": 159.6429182241396
+    },
+    {
+      "sbg:y": 680.0000462432714,
+      "required": false,
+      "sbg:includeInPorts": true,
+      "source": [
+        "#RSEM_Calculate_Expression.sample_name_genes_results"
+      ],
+      "id": "#sample_name_genes_results_1",
+      "type": [
+        "null",
+        "File"
+      ],
+      "label": "sample_name_genes_results_1",
+      "sbg:x": 1556.6667517357425
+    },
+    {
+      "sbg:y": 369.9999928871787,
+      "required": false,
+      "sbg:includeInPorts": true,
+      "source": [
+        "#RSEM_Calculate_Expression.sample_name_isoforms_results"
+      ],
+      "id": "#sample_name_isoforms_results_1",
+      "type": [
+        "null",
+        "File"
+      ],
+      "label": "sample_name_isoforms_results_1",
+      "sbg:x": 1219.9999959336378
+    },
+    {
+      "sbg:y": 828.3334070444125,
+      "required": false,
+      "sbg:includeInPorts": true,
+      "source": [
+        "#rsemcounts.outputRSEM"
+      ],
+      "id": "#outputRSEM",
+      "type": [
+        "null",
+        {
+          "items": "File",
+          "type": "array"
+        }
+      ],
+      "label": "outputRSEM",
+      "sbg:x": 1285.0002277791632
+    },
+    {
+      "type": [
+        {
+          "items": "File",
+          "type": "array"
+        }
+      ],
+      "required": true,
+      "sbg:includeInPorts": true,
+      "sbg:fileTypes": "TXT",
+      "id": "#outputRaw",
+      "source": [
+        "#rsemcounts.outputRaw"
+      ],
+      "sbg:y": 768.3334068126167,
+      "label": "outputRaw",
+      "sbg:x": 1418.3334190977967
+    },
+    {
+      "sbg:y": 413.33332451515525,
+      "required": false,
+      "sbg:includeInPorts": true,
+      "sbg:fileTypes": "TXT",
+      "id": "#DESeq2_txt",
+      "source": [
+        "#Deseq2.DESeq2_txt"
+      ],
+      "type": [
+        "null",
+        {
+          "items": "File",
+          "type": "array"
+        }
+      ],
+      "label": "DESeq2_txt",
+      "sbg:x": 1473.333478669329
+    },
+    {
+      "sbg:y": 499.9999627768947,
+      "required": false,
+      "sbg:includeInPorts": true,
+      "sbg:fileTypes": "PNG",
+      "id": "#DESeq2_png",
+      "source": [
+        "#Deseq2.DESeq2_png"
+      ],
+      "type": [
+        "null",
+        {
+          "items": "File",
+          "type": "array"
+        }
+      ],
+      "label": "DESeq2_png",
+      "sbg:x": 1576.6666490104387
+    },
+    {
+      "sbg:y": 554.999977380033,
+      "required": false,
+      "sbg:includeInPorts": true,
+      "sbg:fileTypes": "HTML",
+      "id": "#DESeq2_HTML",
+      "source": [
+        "#Deseq2.DESeq2_HTML"
+      ],
+      "type": [
+        "null",
+        {
+          "items": "File",
+          "type": "array"
+        }
+      ],
+      "label": "DESeq2_HTML",
+      "sbg:x": 1448.3333181109613
+    }
+  ],
+  "label": "CCBR_RNA-Seq_DE-2",
+  "sbg:canvas_y": 37,
+  "sbg:projectName": "CCBR_RNA-Seq",
+  "sbg:canvas_x": 41,
+  "sbg:image_url": "https://cgc.sbgenomics.com/ns/brood/images/Durga/rna-seq-ccbr/ccbr-rna-seq-de-3/10.png",
+  "hints": [],
+  "sbg:canvas_zoom": 0.8499999999999999,
+  "inputs": [
+    {
+      "sbg:fileTypes": "TXT",
+      "id": "#samtab",
+      "sbg:x": 75.83336115380285,
+      "type": [
+        "File"
+      ],
+      "label": "samtab",
+      "sbg:y": 219.58338940888964
+    },
+    {
+      "sbg:fileTypes": "ngvec",
+      "id": "#ngvec",
+      "sbg:x": 203.75003416588083,
+      "type": [
+        "File"
+      ],
+      "label": "ngvec",
+      "sbg:y": 129.58336593459222
+    },
+    {
+      "sbg:fileTypes": "TXT",
+      "id": "#isoformsfile",
+      "sbg:x": 103.75001702954293,
+      "type": [
+        "File"
+      ],
+      "label": "isoformsfile",
+      "sbg:y": 72.49997361997791
+    },
+    {
+      "sbg:fileTypes": "TXT",
+      "id": "#genesfile",
+      "sbg:x": 171.6666568683242,
+      "type": [
+        "File"
+      ],
+      "label": "genesfile",
+      "sbg:y": 287.0833574690758
+    },
+    {
+      "sbg:y": 381.6666971478205,
+      "sbg:fileTypes": "TAR",
+      "id": "#rsem_prepare_reference_archive",
+      "type": [
+        "File"
+      ],
+      "label": "rsem_prepare_reference_archive",
+      "sbg:x": 64.52378599842217
+    },
+    {
+      "sbg:y": 520.714313891199,
+      "sbg:fileTypes": "FASTA, FASTQ, FA, FQ, FASTQ.GZ, FQ.GZ, FASTQ.BZ2, FQ.BZ2, BAM, SAM, CRAM",
+      "id": "#read_files",
+      "type": [
+        "null",
+        {
+          "items": "File",
+          "type": "array"
+        }
+      ],
+      "label": "read_files",
+      "sbg:x": 65.95236444473144
+    }
+  ],
+  "class": "Workflow",
+  "$namespaces": {
+    "sbg": "https://sevenbridges.com"
+  },
+  "sbg:appVersion": [
+    "sbg:draft-2"
+  ],
+  "id": "https://cgc-api.sbgenomics.com/v2/apps/Durga/rna-seq-ccbr/ccbr-rna-seq-de-3/10/raw/",
+  "sbg:id": "Durga/rna-seq-ccbr/ccbr-rna-seq-de-3/10",
+  "sbg:revision": 10,
+  "sbg:revisionNotes": "updated rsemcounts and input genes file",
+  "sbg:modifiedOn": 1538592453,
+  "sbg:modifiedBy": "Durga",
+  "sbg:createdOn": 1538178591,
+  "sbg:createdBy": "tsang",
+  "sbg:project": "Durga/rna-seq-ccbr",
+  "sbg:sbgMaintained": false,
+  "sbg:validationErrors": [],
+  "sbg:contributors": [
+    "Durga",
+    "tsang"
+  ],
+  "sbg:latestRevision": 10
+}
