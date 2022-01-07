@@ -1265,10 +1265,13 @@ def wait_for_completion(test_exec_objs):
                     if "*" in stages_to_reuse or stage_id in stages_to_reuse:
                         if stage["execution"].get("rootExecution",full_desc.get("id")) == full_desc.get("id"):
                             print("Reuse was not used!")
-                            raise DXJobFailureError("Reuse was not used properly")
+                            raise DXJobFailureError("Reuse was not used!")
                         reused_stages.append(stage_id)
-                if len(reused_stages) == 0 or (not all(s in reused_stages for s in stages_to_reuse) and "*" not in stages_to_reuse):
-                    raise DXJobFailureError("Reuse was not used properly")
+                if (len(stages_to_reuse) == 0 and len(reused_stages) > 0) or \
+                        len(reused_stages) == 0 or \
+                        (not all(s in reused_stages for s in stages_to_reuse) and "*" not in stages_to_reuse):
+                    print("Reuse was not used properly!")
+                    raise DXJobFailureError("Reuse was not used properly!")
             print("Analysis {}.{} succeeded".format(desc.name, i))
             successes.append((i, exec_obj, True))
         except DXJobFailureError:
