@@ -6,7 +6,7 @@
             "type": "File",
             "default": {
                 "class": "File",
-                "path": "file:///Users/jdidion/projects/dxCompiler/test/cwl_conformance/tools/whale.txt"
+                "path": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/whale.txt"
             }
         }
     ],

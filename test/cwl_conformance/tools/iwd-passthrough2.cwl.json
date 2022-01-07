@@ -25,7 +25,7 @@
             "type": "File",
             "default": {
                 "class": "File",
-                "location": "file:///Users/jdidion/projects/dxCompiler/test/cwl_conformance/tools/loadit.py"
+                "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G0G3K4j0yzZzxBKJJ35z1gV9"
             },
             "id": "#main/script"
         }
