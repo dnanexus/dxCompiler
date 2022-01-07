@@ -1,40 +1,40 @@
 {
-    "class": "CommandLineTool",
-    "requirements": [
+  "baseCommand": [
+    "bash",
+    "script.sh"
+  ],
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "id": "#main",
+  "inputs": [
+    {
+      "default": "liberty",
+      "id": "#main/liberty",
+      "type": [
+        "null",
+        "string"
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "id": "#main/out",
+      "outputBinding": {
+        "glob": "out.txt"
+      },
+      "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InitialWorkDirRequirement",
+      "listing": [
         {
-            "listing": [
-                {
-                    "entryname": "script.sh",
-                    "entry": "echo \\\n  \"My country, 'tis of thee,\" \\\n  \"Sweet land of $(inputs.liberty)\"\n"
-                }
-            ],
-            "class": "InitialWorkDirRequirement"
+          "entry": "echo \\\n  \"My country, 'tis of thee,\" \\\n  \"Sweet land of $(inputs.liberty)\"\n",
+          "entryname": "script.sh"
         }
-    ],
-    "baseCommand": [
-        "bash",
-        "script.sh"
-    ],
-    "inputs": [
-        {
-            "type": [
-                "null",
-                "string"
-            ],
-            "default": "liberty",
-            "id": "#main/liberty"
-        }
-    ],
-    "outputs": [
-        {
-            "type": "File",
-            "id": "#main/out",
-            "outputBinding": {
-                "glob": "out.txt"
-            }
-        }
-    ],
-    "stdout": "out.txt",
-    "id": "#main",
-    "cwlVersion": "v1.2"
+      ]
+    }
+  ],
+  "stdout": "out.txt"
 }
