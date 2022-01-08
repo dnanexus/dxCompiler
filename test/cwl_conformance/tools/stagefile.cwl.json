@@ -1,43 +1,43 @@
 {
-    "class": "CommandLineTool",
-    "hints": [
+  "arguments": [
+    "-c",
+    "f = open(\"bob.txt\", \"r+\")\nf.seek(8)\nf.write(\"Bob.    \")\nf.close()\n"
+  ],
+  "baseCommand": "python",
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "hints": [
+    {
+      "class": "DockerRequirement",
+      "dockerPull": "python:2-slim"
+    }
+  ],
+  "id": "#main",
+  "inputs": [
+    {
+      "id": "#main/infile",
+      "type": "File"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "#main/outfile",
+      "outputBinding": {
+        "glob": "bob.txt"
+      },
+      "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InitialWorkDirRequirement",
+      "listing": [
         {
-            "class": "DockerRequirement",
-            "dockerPull": "python:2-slim"
+          "entry": "$(inputs.infile)",
+          "entryname": "bob.txt",
+          "writable": true
         }
-    ],
-    "requirements": [
-        {
-            "listing": [
-                {
-                    "entry": "$(inputs.infile)",
-                    "entryname": "bob.txt",
-                    "writable": true
-                }
-            ],
-            "class": "InitialWorkDirRequirement"
-        }
-    ],
-    "inputs": [
-        {
-            "type": "File",
-            "id": "#main/infile"
-        }
-    ],
-    "outputs": [
-        {
-            "type": "File",
-            "outputBinding": {
-                "glob": "bob.txt"
-            },
-            "id": "#main/outfile"
-        }
-    ],
-    "baseCommand": "python",
-    "arguments": [
-        "-c",
-        "f = open(\"bob.txt\", \"r+\")\nf.seek(8)\nf.write(\"Bob.    \")\nf.close()\n"
-    ],
-    "id": "#main",
-    "cwlVersion": "v1.2"
+      ]
+    }
+  ]
 }

@@ -1,0 +1,12 @@
+dnanexus:
+  project: brad_cwl_gvcf
+  ref: /testdata/genomes
+  inputs:
+    - /testdata
+    - /testdata/reference_material
+    - /testdata/automated
+resources:
+  default: {cores: 2, memory: 2G}
+  bwa: {cores: 2, memory: 2G}
+  gatk:
+    jvm_opts: [-Xms750m, -Xmx2500m]

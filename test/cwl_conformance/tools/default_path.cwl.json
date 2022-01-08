@@ -1,20 +1,20 @@
 {
-    "class": "CommandLineTool",
-    "inputs": [
-        {
-            "id": "#main/file1",
-            "type": "File",
-            "default": {
-                "class": "File",
-                "path": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/whale.txt"
-            }
-        }
-    ],
-    "outputs": [],
-    "arguments": [
-        "cat",
-        "$(inputs.file1.path)"
-    ],
-    "id": "#main",
-    "cwlVersion": "v1.2"
+  "arguments": [
+    "cat",
+    "$(inputs.file1.path)"
+  ],
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "id": "#main",
+  "inputs": [
+    {
+      "default": {
+        "class": "File",
+        "path": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/whale.txt"
+      },
+      "id": "#main/file1",
+      "type": "File"
+    }
+  ],
+  "outputs": []
 }

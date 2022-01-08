@@ -1,35 +1,35 @@
 {
-    "class": "CommandLineTool",
-    "requirements": [
-        {
-            "class": "InlineJavascriptRequirement"
-        },
-        {
-            "coresMin": "$(inputs.dir.listing[0].size)",
-            "coresMax": "$(inputs.dir.listing[0].size)",
-            "class": "ResourceRequirement"
-        }
-    ],
-    "inputs": [
-        {
-            "type": "Directory",
-            "id": "#main/dir"
-        }
-    ],
-    "outputs": [
-        {
-            "type": "File",
-            "id": "#main/output",
-            "outputBinding": {
-                "glob": "cores.txt"
-            }
-        }
-    ],
-    "baseCommand": "echo",
-    "stdout": "cores.txt",
-    "arguments": [
-        "$(runtime.cores)"
-    ],
-    "id": "#main",
-    "cwlVersion": "v1.2"
+  "arguments": [
+    "$(runtime.cores)"
+  ],
+  "baseCommand": "echo",
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "id": "#main",
+  "inputs": [
+    {
+      "id": "#main/dir",
+      "type": "Directory"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "#main/output",
+      "outputBinding": {
+        "glob": "cores.txt"
+      },
+      "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
+    },
+    {
+      "class": "ResourceRequirement",
+      "coresMax": "$(inputs.dir.listing[0].size)",
+      "coresMin": "$(inputs.dir.listing[0].size)"
+    }
+  ],
+  "stdout": "cores.txt"
 }

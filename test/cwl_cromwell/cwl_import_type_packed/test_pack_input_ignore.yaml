@@ -1,0 +1,2 @@
+capture_kit: file:///Users/yshi/Documents/dnanexus/dxCompiler/test/cwl_cromwell/cwl_import_type_packed/test_pack.cwl#capture_kit.yml/capture_kit  # type "file:///Users/yshi/Documents/dnanexus/dxCompiler/test/cwl_cromwell/cwl_import_type_packed/test_pack.cwl#capture_kit.yml/capture_kit"
+bam: a_string  # type "string"

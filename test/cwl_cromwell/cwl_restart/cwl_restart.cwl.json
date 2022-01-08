@@ -1,0 +1,276 @@
+{
+    "class": "Workflow",
+    "id": "#main",
+    "requirements": [
+        {
+            "dockerPull": "ubuntu:latest",
+            "class": "DockerRequirement"
+        }
+    ],
+    "inputs": [],
+    "steps": [
+        {
+            "id": "#main/first_step",
+            "in": [],
+            "out": [
+                {
+                    "id": "#main/first_step/firstfoofile"
+                },
+                {
+                    "id": "#main/first_step/first-bar-file"
+                }
+            ],
+            "run": {
+                "inputs": [],
+                "outputs": [
+                    {
+                        "id": "#main/first_step/run/firstfoofile",
+                        "outputBinding": {
+                            "glob": "out.txt"
+                        },
+                        "type": "File"
+                    },
+                    {
+                        "id": "#main/first_step/run/first-bar-file",
+                        "outputBinding": {
+                            "glob": "out.txt"
+                        },
+                        "type": "File"
+                    }
+                ],
+                "class": "CommandLineTool",
+                "requirements": [
+                    {
+                        "class": "ShellCommandRequirement"
+                    }
+                ],
+                "arguments": [
+                    {
+                        "valueFrom": "echo"
+                    },
+                    {
+                        "valueFrom": "I have a bad feeling about this"
+                    },
+                    {
+                        "valueFrom": ">",
+                        "shellQuote": false
+                    },
+                    {
+                        "valueFrom": "out.txt"
+                    }
+                ],
+                "hints": [
+                    {
+                        "loadListing": "deep_listing",
+                        "class": "LoadListingRequirement"
+                    },
+                    {
+                        "networkAccess": true,
+                        "class": "NetworkAccess"
+                    }
+                ]
+            }
+        },
+        {
+            "id": "#main/cromwell_killer",
+            "in": [
+                {
+                    "id": "#main/cromwell_killer/fooinput",
+                    "source": "#main/first_step/firstfoofile"
+                },
+                {
+                    "id": "#main/cromwell_killer/bar-input",
+                    "source": "#main/first_step/first-bar-file"
+                }
+            ],
+            "out": [
+                {
+                    "id": "#main/cromwell_killer/footxt"
+                },
+                {
+                    "id": "#main/cromwell_killer/bar-txt"
+                }
+            ],
+            "run": {
+                "inputs": [
+                    {
+                        "id": "#main/cromwell_killer/run/fooinput",
+                        "type": "File"
+                    },
+                    {
+                        "id": "#main/cromwell_killer/run/bar-input",
+                        "type": "File"
+                    }
+                ],
+                "outputs": [
+                    {
+                        "id": "#main/cromwell_killer/run/footxt",
+                        "outputBinding": {
+                            "glob": "foo.txt"
+                        },
+                        "type": "File"
+                    },
+                    {
+                        "id": "#main/cromwell_killer/run/bar-txt",
+                        "outputBinding": {
+                            "glob": "bar.txt"
+                        },
+                        "type": "File"
+                    }
+                ],
+                "class": "CommandLineTool",
+                "requirements": [
+                    {
+                        "class": "ShellCommandRequirement"
+                    }
+                ],
+                "arguments": [
+                    {
+                        "valueFrom": "sleep"
+                    },
+                    {
+                        "valueFrom": "60"
+                    },
+                    {
+                        "valueFrom": "&&",
+                        "shellQuote": false
+                    },
+                    {
+                        "valueFrom": "echo"
+                    },
+                    {
+                        "valueFrom": "foo"
+                    },
+                    {
+                        "valueFrom": ">",
+                        "shellQuote": false
+                    },
+                    {
+                        "valueFrom": "foo.txt"
+                    },
+                    {
+                        "valueFrom": "&&",
+                        "shellQuote": false
+                    },
+                    {
+                        "valueFrom": "echo"
+                    },
+                    {
+                        "valueFrom": "bar"
+                    },
+                    {
+                        "valueFrom": ">",
+                        "shellQuote": false
+                    },
+                    {
+                        "valueFrom": "bar.txt"
+                    }
+                ],
+                "hints": [
+                    {
+                        "loadListing": "deep_listing",
+                        "class": "LoadListingRequirement"
+                    },
+                    {
+                        "networkAccess": true,
+                        "class": "NetworkAccess"
+                    }
+                ]
+            }
+        },
+        {
+            "id": "#main/third_step",
+            "in": [
+                {
+                    "id": "#main/third_step/foo",
+                    "source": "#main/cromwell_killer/footxt"
+                },
+                {
+                    "id": "#main/third_step/bar",
+                    "source": "#main/cromwell_killer/bar-txt"
+                }
+            ],
+            "out": [
+                {
+                    "id": "#main/third_step/flag"
+                }
+            ],
+            "run": {
+                "inputs": [
+                    {
+                        "id": "#main/third_step/run/foo",
+                        "type": "File"
+                    },
+                    {
+                        "id": "#main/third_step/run/bar",
+                        "type": "File"
+                    }
+                ],
+                "outputs": [
+                    {
+                        "id": "#main/third_step/run/flag",
+                        "outputBinding": {
+                            "outputEval": "$(true)"
+                        },
+                        "type": "boolean"
+                    }
+                ],
+                "class": "CommandLineTool",
+                "requirements": [
+                    {
+                        "class": "InlineJavascriptRequirement"
+                    },
+                    {
+                        "class": "ShellCommandRequirement"
+                    }
+                ],
+                "arguments": [
+                    {
+                        "valueFrom": "echo"
+                    },
+                    {
+                        "valueFrom": "Are we alive???"
+                    },
+                    {
+                        "valueFrom": "&&",
+                        "shellQuote": false
+                    },
+                    {
+                        "valueFrom": "echo"
+                    },
+                    {
+                        "valueFrom": "$(inputs.foo)"
+                    },
+                    {
+                        "valueFrom": "&&",
+                        "shellQuote": false
+                    },
+                    {
+                        "valueFrom": "echo"
+                    },
+                    {
+                        "valueFrom": "$(inputs.bar)"
+                    }
+                ],
+                "hints": [
+                    {
+                        "loadListing": "deep_listing",
+                        "class": "LoadListingRequirement"
+                    },
+                    {
+                        "networkAccess": true,
+                        "class": "NetworkAccess"
+                    }
+                ]
+            }
+        }
+    ],
+    "outputs": [
+        {
+            "id": "#main/flag",
+            "outputSource": "#main/third_step/flag",
+            "type": "boolean"
+        }
+    ],
+    "cwlVersion": "v1.2"
+}
