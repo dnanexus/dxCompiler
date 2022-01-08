@@ -1,0 +1,51 @@
+{
+  "$graph": [
+    {
+      "baseCommand": [
+        "echo",
+        "first"
+      ],
+      "class": "CommandLineTool",
+      "id": "first",
+      "inputs": {
+        "in": {
+          "type": "Any"
+        }
+      },
+      "outputs": {
+        "out": {
+          "outputBinding": {
+            "glob": "out.txt",
+            "loadContents": true,
+            "outputEval": "$(self[0].contents)"
+          },
+          "type": "string"
+        }
+      },
+      "stdout": "out.txt"
+    },
+    {
+      "baseCommand": "echo",
+      "class": "CommandLineTool",
+      "id": "main",
+      "inputs": {
+        "in": {
+          "inputBinding": {},
+          "type": "Any"
+        }
+      },
+      "outputs": {
+        "out": {
+          "outputBinding": {
+            "glob": "out.txt",
+            "loadContents": true,
+            "outputEval": "$(self[0].contents)"
+          },
+          "type": "string"
+        }
+      },
+      "stdout": "out.txt"
+    }
+  ],
+  "cwlVersion": "v1.2"
+}
