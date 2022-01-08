@@ -2,10 +2,9 @@
   "baseCommand": "echo",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
   "inputs": [
     {
-      "id": "#main/letters",
+      "id": "letters",
       "inputBinding": {
         "position": 1
       },
@@ -20,11 +19,13 @@
   ],
   "outputs": [
     {
-      "id": "#main/echo",
-      "outputBinding": {
-        "glob": "echo.txt"
-      },
-      "type": "File"
+      "id": "echo",
+      "type": "stdout"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ],
   "stdout": "echo.txt"

@@ -2,11 +2,10 @@
   "baseCommand": "true",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
   "inputs": [],
   "outputs": [
     {
-      "id": "#main/filelist",
+      "id": "filelist",
       "outputBinding": {
         "glob": "out-filelist.txt"
       },
@@ -15,6 +14,9 @@
   ],
   "requirements": [
     {
+      "class": "InlineJavascriptRequirement"
+    },
+    {
       "class": "InitialWorkDirRequirement",
       "listing": [
         {
@@ -22,9 +24,6 @@
           "entryname": "out-filelist.txt"
         }
       ]
-    },
-    {
-      "class": "InlineJavascriptRequirement"
     }
   ]
 }

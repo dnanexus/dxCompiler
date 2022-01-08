@@ -7,11 +7,10 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
   "inputs": [],
   "outputs": [
     {
-      "id": "#main/directories",
+      "id": "directories",
       "outputBinding": {
         "glob": "[a,b,c]_dir"
       },
@@ -19,6 +18,11 @@
         "items": "Directory",
         "type": "array"
       }
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ]
 }

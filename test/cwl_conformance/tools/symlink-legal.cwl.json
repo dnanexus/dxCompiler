@@ -24,17 +24,15 @@
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
   "doc": "Create a file under adir/, symlink it to working directory (./) and glob symlink. The executor should resolve this symlink",
-  "hints": [
-    {
-      "class": "DockerRequirement",
+  "hints": {
+    "DockerRequirement": {
       "dockerPull": "alpine"
     }
-  ],
-  "id": "#main",
+  },
   "inputs": [],
   "outputs": [
     {
-      "id": "#main/output_file",
+      "id": "output_file",
       "outputBinding": {
         "glob": "symlink.txt"
       },
@@ -44,6 +42,9 @@
   "requirements": [
     {
       "class": "ShellCommandRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ]
 }

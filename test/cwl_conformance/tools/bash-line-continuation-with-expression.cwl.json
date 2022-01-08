@@ -5,11 +5,10 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
   "inputs": [
     {
       "default": "liberty",
-      "id": "#main/liberty",
+      "id": "liberty",
       "type": [
         "null",
         "string"
@@ -18,11 +17,8 @@
   ],
   "outputs": [
     {
-      "id": "#main/out",
-      "outputBinding": {
-        "glob": "out.txt"
-      },
-      "type": "File"
+      "id": "out",
+      "type": "stdout"
     }
   ],
   "requirements": [
@@ -34,6 +30,9 @@
           "entryname": "script.sh"
         }
       ]
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ],
   "stdout": "out.txt"

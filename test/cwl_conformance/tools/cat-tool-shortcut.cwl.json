@@ -4,16 +4,15 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
   "inputs": [
     {
-      "id": "#main/file1",
-      "type": "File"
+      "id": "file1",
+      "type": "stdin"
     }
   ],
   "outputs": [
     {
-      "id": "#main/output",
+      "id": "output",
       "outputBinding": {
         "glob": "output"
       },
@@ -24,8 +23,10 @@
     {
       "class": "DockerRequirement",
       "dockerPull": "debian:stretch-slim"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ],
-  "stdin": "$(inputs.file1.path)",
   "stdout": "output"
 }

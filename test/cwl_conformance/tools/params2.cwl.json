@@ -2,7 +2,6 @@
   "baseCommand": "true",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
   "inputs": [
     {
       "default": {
@@ -16,202 +15,202 @@
           "c"
         ]
       },
-      "id": "#main/bar",
+      "id": "bar",
       "type": "Any"
     }
   ],
   "outputs": [
     {
-      "id": "#main/t1",
+      "id": "t1",
       "outputBinding": {
         "outputEval": "$(inputs)"
       },
       "type": "Any"
     },
     {
-      "id": "#main/t2",
+      "id": "t2",
       "outputBinding": {
         "outputEval": "$(inputs.bar)"
       },
       "type": "Any"
     },
     {
-      "id": "#main/t3",
+      "id": "t3",
       "outputBinding": {
         "outputEval": "$(inputs['bar'])"
       },
       "type": "Any"
     },
     {
-      "id": "#main/t4",
+      "id": "t4",
       "outputBinding": {
         "outputEval": "$(inputs[\"bar\"])"
       },
       "type": "Any"
     },
     {
-      "id": "#main/t5",
+      "id": "t5",
       "outputBinding": {
         "outputEval": "$(inputs.bar.baz)"
       },
       "type": "Any"
     },
     {
-      "id": "#main/t6",
+      "id": "t6",
       "outputBinding": {
         "outputEval": "$(inputs['bar'].baz)"
       },
       "type": "Any"
     },
     {
-      "id": "#main/t7",
+      "id": "t7",
       "outputBinding": {
         "outputEval": "$(inputs['bar'][\"baz\"])"
       },
       "type": "Any"
     },
     {
-      "id": "#main/t8",
+      "id": "t8",
       "outputBinding": {
         "outputEval": "$(inputs.bar['baz'])"
       },
       "type": "Any"
     },
     {
-      "id": "#main/t9",
+      "id": "t9",
       "outputBinding": {
         "outputEval": "$(inputs.bar['b az'])"
       },
       "type": "Any"
     },
     {
-      "id": "#main/t10",
+      "id": "t10",
       "outputBinding": {
         "outputEval": "$(inputs.bar['b\\'az'])"
       },
       "type": "Any"
     },
     {
-      "id": "#main/t11",
+      "id": "t11",
       "outputBinding": {
         "outputEval": "$(inputs.bar[\"b'az\"])"
       },
       "type": "Any"
     },
     {
-      "id": "#main/t12",
+      "id": "t12",
       "outputBinding": {
         "outputEval": "$(inputs.bar['b\"az'])"
       },
       "type": "null"
     },
     {
-      "id": "#main/t13",
+      "id": "t13",
       "outputBinding": {
         "outputEval": "-$(inputs.bar.baz)"
       },
       "type": "Any"
     },
     {
-      "id": "#main/t14",
+      "id": "t14",
       "outputBinding": {
         "outputEval": "-$(inputs['bar'].baz)"
       },
       "type": "Any"
     },
     {
-      "id": "#main/t15",
+      "id": "t15",
       "outputBinding": {
         "outputEval": "-$(inputs['bar'][\"baz\"])"
       },
       "type": "Any"
     },
     {
-      "id": "#main/t16",
+      "id": "t16",
       "outputBinding": {
         "outputEval": "-$(inputs.bar['baz'])"
       },
       "type": "Any"
     },
     {
-      "id": "#main/t17",
+      "id": "t17",
       "outputBinding": {
         "outputEval": "$(inputs.bar.baz) $(inputs.bar.baz)"
       },
       "type": "Any"
     },
     {
-      "id": "#main/t18",
+      "id": "t18",
       "outputBinding": {
         "outputEval": "$(inputs['bar'].baz) $(inputs['bar'].baz)"
       },
       "type": "Any"
     },
     {
-      "id": "#main/t19",
+      "id": "t19",
       "outputBinding": {
         "outputEval": "$(inputs['bar'][\"baz\"]) $(inputs['bar'][\"baz\"])"
       },
       "type": "Any"
     },
     {
-      "id": "#main/t20",
+      "id": "t20",
       "outputBinding": {
         "outputEval": "$(inputs.bar['baz']) $(inputs.bar['baz'])"
       },
       "type": "Any"
     },
     {
-      "id": "#main/t21",
+      "id": "t21",
       "outputBinding": {
         "outputEval": "$(inputs.bar['b az']) $(inputs.bar['b az'])"
       },
       "type": "Any"
     },
     {
-      "id": "#main/t22",
+      "id": "t22",
       "outputBinding": {
         "outputEval": "$(inputs.bar['b\\'az']) $(inputs.bar['b\\'az'])"
       },
       "type": "Any"
     },
     {
-      "id": "#main/t23",
+      "id": "t23",
       "outputBinding": {
         "outputEval": "$(inputs.bar[\"b'az\"]) $(inputs.bar[\"b'az\"])"
       },
       "type": "Any"
     },
     {
-      "id": "#main/t24",
+      "id": "t24",
       "outputBinding": {
         "outputEval": "$(inputs.bar['b\"az']) $(inputs.bar['b\"az'])"
       },
       "type": "Any"
     },
     {
-      "id": "#main/t25",
+      "id": "t25",
       "outputBinding": {
         "outputEval": "$(inputs.bar.buz[1])"
       },
       "type": "Any"
     },
     {
-      "id": "#main/t26",
+      "id": "t26",
       "outputBinding": {
         "outputEval": "$(inputs.bar.buz[1]) $(inputs.bar.buz[1])"
       },
       "type": "Any"
     },
     {
-      "id": "#main/t27",
+      "id": "t27",
       "outputBinding": {
         "outputEval": "$(null)"
       },
       "type": "null"
     },
     {
-      "id": "#main/t28",
+      "id": "t28",
       "outputBinding": {
         "outputEval": "$(inputs.bar.buz.length)"
       },

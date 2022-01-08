@@ -7,27 +7,23 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
   "inputs": [
     {
-      "id": "#main/input_dir",
+      "id": "input_dir",
       "type": "Directory"
     }
   ],
   "outputs": [
     {
-      "id": "#main/output_dir",
+      "id": "output_dir",
       "outputBinding": {
         "glob": "work_dir"
       },
       "type": "Directory"
     },
     {
-      "id": "#main/test_result",
-      "outputBinding": {
-        "glob": "output.txt"
-      },
-      "type": "File"
+      "id": "test_result",
+      "type": "stdout"
     }
   ],
   "requirements": [
@@ -43,6 +39,9 @@
     },
     {
       "class": "ShellCommandRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ],
   "stdout": "output.txt"

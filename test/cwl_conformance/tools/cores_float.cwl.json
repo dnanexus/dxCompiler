@@ -5,15 +5,11 @@
   "baseCommand": "echo",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
   "inputs": [],
   "outputs": [
     {
-      "id": "#main/output",
-      "outputBinding": {
-        "glob": "cores.txt"
-      },
-      "type": "File"
+      "id": "output",
+      "type": "stdout"
     }
   ],
   "requirements": [
@@ -21,6 +17,9 @@
       "class": "ResourceRequirement",
       "coresMax": 1.75,
       "coresMin": 1.25
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ],
   "stdout": "cores.txt"

@@ -11,11 +11,10 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
   "inputs": [],
   "outputs": [
     {
-      "id": "#main/letters",
+      "id": "letters",
       "outputBinding": {
         "glob": "*"
       },
@@ -23,6 +22,11 @@
         "items": "File",
         "type": "array"
       }
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ]
 }

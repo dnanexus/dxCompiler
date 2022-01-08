@@ -6,20 +6,24 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
   "inputs": [
     {
-      "id": "#main/in",
+      "id": "in",
       "type": "string"
     }
   ],
   "outputs": [
     {
-      "id": "#main/out",
+      "id": "out",
       "outputBinding": {
         "glob": "out"
       },
       "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ],
   "stdout": "out"

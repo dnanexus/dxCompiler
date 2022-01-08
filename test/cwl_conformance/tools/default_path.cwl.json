@@ -5,16 +5,20 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
   "inputs": [
     {
       "default": {
         "class": "File",
-        "path": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/whale.txt"
+        "path": "whale.txt"
       },
-      "id": "#main/file1",
+      "id": "file1",
       "type": "File"
     }
   ],
-  "outputs": []
+  "outputs": [],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ]
 }

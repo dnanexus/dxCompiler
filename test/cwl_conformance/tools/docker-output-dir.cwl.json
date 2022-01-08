@@ -5,11 +5,10 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
   "inputs": [],
   "outputs": [
     {
-      "id": "#main/thing",
+      "id": "thing",
       "outputBinding": {
         "glob": "thing"
       },
@@ -21,6 +20,9 @@
       "class": "DockerRequirement",
       "dockerOutputDirectory": "/other",
       "dockerPull": "debian:stretch-slim"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ]
 }

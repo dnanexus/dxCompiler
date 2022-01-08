@@ -6,29 +6,23 @@
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
   "doc": "Ensure that `shellQuote: true` is the default behavior when\nShellCommandRequirement is in effect.\n",
-  "id": "#main",
   "inputs": [],
   "outputs": [
     {
-      "id": "#main/stderr_file",
-      "outputBinding": {
-        "glob": "c6146505b5b146e6778f547c7accf7fb79a1f0c3"
-      },
-      "type": "File"
+      "id": "stdout_file",
+      "type": "stdout"
     },
     {
-      "id": "#main/stdout_file",
-      "outputBinding": {
-        "glob": "6476baa474e2ba0c55b43b31e36ab8553b8ffdc4"
-      },
-      "type": "File"
+      "id": "stderr_file",
+      "type": "stderr"
     }
   ],
   "requirements": [
     {
       "class": "ShellCommandRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
-  ],
-  "stderr": "c6146505b5b146e6778f547c7accf7fb79a1f0c3",
-  "stdout": "6476baa474e2ba0c55b43b31e36ab8553b8ffdc4"
+  ]
 }

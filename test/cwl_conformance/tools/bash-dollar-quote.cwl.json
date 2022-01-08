@@ -5,24 +5,23 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
   "inputs": [
     {
       "default": "val",
-      "id": "#main/val",
+      "id": "val",
       "type": "string"
     }
   ],
   "outputs": [
     {
-      "id": "#main/out",
-      "outputBinding": {
-        "glob": "out.txt"
-      },
-      "type": "File"
+      "id": "out",
+      "type": "stdout"
     }
   ],
   "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
+    },
     {
       "class": "InitialWorkDirRequirement",
       "listing": [
@@ -31,9 +30,6 @@
           "entryname": "script.sh"
         }
       ]
-    },
-    {
-      "class": "InlineJavascriptRequirement"
     }
   ],
   "stdout": "out.txt"

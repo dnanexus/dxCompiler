@@ -14,10 +14,9 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
   "inputs": [
     {
-      "id": "#main/indir",
+      "id": "indir",
       "inputBinding": {
         "position": -1,
         "prefix": "cd"
@@ -27,7 +26,7 @@
   ],
   "outputs": [
     {
-      "id": "#main/outlist",
+      "id": "outlist",
       "outputBinding": {
         "glob": "output.txt"
       },
@@ -37,6 +36,9 @@
   "requirements": [
     {
       "class": "ShellCommandRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ],
   "stdout": "output.txt"

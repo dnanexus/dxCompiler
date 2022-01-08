@@ -5,20 +5,16 @@
   "baseCommand": "echo",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
   "inputs": [
     {
-      "id": "#main/dir",
+      "id": "dir",
       "type": "Directory"
     }
   ],
   "outputs": [
     {
-      "id": "#main/output",
-      "outputBinding": {
-        "glob": "cores.txt"
-      },
-      "type": "File"
+      "id": "output",
+      "type": "stdout"
     }
   ],
   "requirements": [

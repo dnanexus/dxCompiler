@@ -8,20 +8,21 @@
   "baseCommand": [],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
   "inputs": [
     {
-      "id": "#main/file1",
+      "id": "file1",
       "type": "File"
     }
   ],
   "outputs": [
     {
-      "id": "#main/b",
-      "outputBinding": {
-        "glob": "$(inputs.file1.nameroot).xtx"
-      },
-      "type": "File"
+      "id": "b",
+      "type": "stdout"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ],
   "stdout": "$(inputs.file1.nameroot).xtx"

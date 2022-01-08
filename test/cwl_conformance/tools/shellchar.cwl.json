@@ -9,24 +9,20 @@
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
   "doc": "Ensure that arguments containing shell directives are not interpreted and\nthat `shellQuote: false` has no effect when ShellCommandRequirement is not in\neffect.\n",
-  "id": "#main",
   "inputs": [],
   "outputs": [
     {
-      "id": "#main/stderr_file",
-      "outputBinding": {
-        "glob": "93416edd825d2561858457a99dce03bbbeaedb00"
-      },
-      "type": "File"
+      "id": "stdout_file",
+      "type": "stdout"
     },
     {
-      "id": "#main/stdout_file",
-      "outputBinding": {
-        "glob": "3407952f038cc03fe249629cff9be668684a8007"
-      },
-      "type": "File"
+      "id": "stderr_file",
+      "type": "stderr"
     }
   ],
-  "stderr": "93416edd825d2561858457a99dce03bbbeaedb00",
-  "stdout": "3407952f038cc03fe249629cff9be668684a8007"
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ]
 }

@@ -8,11 +8,10 @@
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
   "doc": "Test of capturing stderr output.",
-  "id": "#main",
   "inputs": [],
   "outputs": [
     {
-      "id": "#main/output_file",
+      "id": "output_file",
       "outputBinding": {
         "glob": "error.txt"
       },
@@ -22,6 +21,9 @@
   "requirements": [
     {
       "class": "ShellCommandRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ],
   "stderr": "error.txt"

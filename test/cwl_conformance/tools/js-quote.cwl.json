@@ -5,18 +5,17 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
   "inputs": [
     {
       "default": "Hello",
-      "id": "#main/quote",
+      "id": "quote",
       "type": "string"
     }
   ],
   "label": "Check for a JS quoting bug",
   "outputs": [
     {
-      "id": "#main/out",
+      "id": "out",
       "outputBinding": {
         "glob": "file.txt"
       },

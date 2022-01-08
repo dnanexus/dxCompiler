@@ -11,11 +11,10 @@
       "dockerPull": "alpine"
     }
   ],
-  "id": "#main",
   "inputs": [],
   "outputs": [
     {
-      "id": "#main/out",
+      "id": "out",
       "outputBinding": {
         "glob": "emptyWritableDir"
       },

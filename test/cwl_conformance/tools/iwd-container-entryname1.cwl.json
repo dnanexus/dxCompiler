@@ -8,16 +8,15 @@
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
   "doc": "When executing in a container, entryname can have an absolute path\nto a mount location inside the container.\n",
-  "id": "#main",
   "inputs": [
     {
-      "id": "#main/filelist",
+      "id": "filelist",
       "type": "File"
     }
   ],
   "outputs": [
     {
-      "id": "#main/head",
+      "id": "head",
       "outputBinding": {
         "glob": "head.txt"
       },
@@ -41,6 +40,9 @@
     },
     {
       "class": "ShellCommandRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ]
 }

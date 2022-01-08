@@ -16,16 +16,15 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
   "inputs": [
     {
-      "id": "#main/inf",
+      "id": "inf",
       "type": "File"
     }
   ],
   "outputs": [
     {
-      "id": "#main/outlist",
+      "id": "outlist",
       "outputBinding": {
         "glob": "output.txt"
       },
@@ -35,6 +34,9 @@
   "requirements": [
     {
       "class": "ShellCommandRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ],
   "stdout": "output.txt"

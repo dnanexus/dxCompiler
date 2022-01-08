@@ -4,11 +4,10 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
   "inputs": [],
   "outputs": [
     {
-      "id": "#main/filelist",
+      "id": "filelist",
       "outputBinding": {
         "glob": "out-filelist.json"
       },
@@ -17,6 +16,9 @@
   ],
   "requirements": [
     {
+      "class": "InlineJavascriptRequirement"
+    },
+    {
       "class": "InitialWorkDirRequirement",
       "listing": [
         {
@@ -24,9 +26,6 @@
           "entryname": "out-filelist.json"
         }
       ]
-    },
-    {
-      "class": "InlineJavascriptRequirement"
     }
   ]
 }

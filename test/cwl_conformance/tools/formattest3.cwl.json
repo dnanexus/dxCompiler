@@ -4,24 +4,22 @@
     "gx": "http://galaxyproject.org/formats/"
   },
   "$schemas": [
-    "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G4gFG7Q0yzZjk476FKy3jjf8",
-    "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G0G0V1Q0yzZg3BBz3x4Y2Q6F"
+    "EDAM.owl",
+    "gx_edam.ttl"
   ],
   "baseCommand": "rev",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
   "doc": "Reverse each line using the `rev` command",
-  "hints": [
-    {
-      "class": "DockerRequirement",
+  "hints": {
+    "DockerRequirement": {
       "dockerPull": "debian:stretch-slim"
     }
-  ],
-  "id": "#main",
+  },
   "inputs": [
     {
-      "format": "http://galaxyproject.org/formats/fasta",
-      "id": "#main/input",
+      "format": "gx:fasta",
+      "id": "input",
       "inputBinding": {},
       "type": "File"
     }
@@ -29,11 +27,16 @@
   "outputs": [
     {
       "format": "$(inputs.input.format)",
-      "id": "#main/output",
+      "id": "output",
       "outputBinding": {
         "glob": "output.txt"
       },
       "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ],
   "stdout": "output.txt"

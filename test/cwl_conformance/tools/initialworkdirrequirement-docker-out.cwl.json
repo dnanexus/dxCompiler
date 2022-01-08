@@ -10,24 +10,20 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
   "inputs": [
     {
-      "id": "#main/INPUT",
+      "id": "INPUT",
       "type": "File"
     }
   ],
   "outputs": [
     {
-      "id": "#main/OUTPUT",
+      "id": "OUTPUT",
       "outputBinding": {
         "glob": "$(inputs.INPUT.basename)"
       },
       "secondaryFiles": [
-        {
-          "pattern": ".fai",
-          "required": null
-        }
+        ".fai"
       ],
       "type": "File"
     }
@@ -42,6 +38,9 @@
       "listing": [
         "$(inputs.INPUT)"
       ]
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ]
 }

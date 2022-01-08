@@ -6,16 +6,15 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
   "inputs": [
     {
-      "id": "#main/in",
+      "id": "in",
       "type": "string"
     }
   ],
   "outputs": [
     {
-      "id": "#main/out",
+      "id": "out",
       "outputBinding": {
         "glob": "out"
       },
@@ -25,12 +24,12 @@
   "requirements": [
     {
       "class": "EnvVarRequirement",
-      "envDef": [
-        {
-          "envName": "TEST_ENV",
-          "envValue": "$(inputs.in)"
-        }
-      ]
+      "envDef": {
+        "TEST_ENV": "$(inputs.in)"
+      }
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ],
   "stdout": "out"

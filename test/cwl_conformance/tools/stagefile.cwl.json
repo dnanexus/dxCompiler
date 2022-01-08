@@ -12,16 +12,15 @@
       "dockerPull": "python:2-slim"
     }
   ],
-  "id": "#main",
   "inputs": [
     {
-      "id": "#main/infile",
+      "id": "infile",
       "type": "File"
     }
   ],
   "outputs": [
     {
-      "id": "#main/outfile",
+      "id": "outfile",
       "outputBinding": {
         "glob": "bob.txt"
       },
@@ -38,6 +37,9 @@
           "writable": true
         }
       ]
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ]
 }

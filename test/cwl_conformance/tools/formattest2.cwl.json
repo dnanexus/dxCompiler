@@ -3,23 +3,21 @@
     "edam": "http://edamontology.org/"
   },
   "$schemas": [
-    "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G4gFG7Q0yzZjk476FKy3jjf8"
+    "EDAM.owl"
   ],
   "baseCommand": "rev",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
   "doc": "Reverse each line using the `rev` command",
-  "hints": [
-    {
-      "class": "DockerRequirement",
+  "hints": {
+    "DockerRequirement": {
       "dockerPull": "debian:stretch-slim"
     }
-  ],
-  "id": "#main",
+  },
   "inputs": [
     {
-      "format": "http://edamontology.org/format_2330",
-      "id": "#main/input",
+      "format": "edam:format_2330",
+      "id": "input",
       "inputBinding": {},
       "type": "File"
     }
@@ -27,11 +25,16 @@
   "outputs": [
     {
       "format": "$(inputs.input.format)",
-      "id": "#main/output",
+      "id": "output",
       "outputBinding": {
         "glob": "output.txt"
       },
       "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ],
   "stdout": "output.txt"

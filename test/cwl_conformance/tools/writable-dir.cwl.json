@@ -5,11 +5,10 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
   "inputs": [],
   "outputs": [
     {
-      "id": "#main/out",
+      "id": "out",
       "outputBinding": {
         "glob": "emptyWritableDir"
       },
@@ -17,6 +16,9 @@
     }
   ],
   "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
+    },
     {
       "class": "InitialWorkDirRequirement",
       "listing": [
@@ -26,9 +28,6 @@
           "writable": true
         }
       ]
-    },
-    {
-      "class": "InlineJavascriptRequirement"
     }
   ]
 }

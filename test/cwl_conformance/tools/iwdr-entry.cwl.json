@@ -5,16 +5,15 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
   "inputs": [
     {
-      "id": "#main/message",
+      "id": "message",
       "type": "string"
     }
   ],
   "outputs": [
     {
-      "id": "#main/out",
+      "id": "out",
       "outputBinding": {
         "glob": "example.conf"
       },
@@ -30,6 +29,9 @@
           "entryname": "example.conf"
         }
       ]
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ]
 }

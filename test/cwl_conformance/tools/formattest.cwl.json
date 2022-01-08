@@ -6,23 +6,27 @@
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
   "doc": "Reverse each line using the `rev` command",
-  "id": "#main",
   "inputs": [
     {
-      "format": "http://edamontology.org/format_2330",
-      "id": "#main/input",
+      "format": "edam:format_2330",
+      "id": "input",
       "inputBinding": {},
       "type": "File"
     }
   ],
   "outputs": [
     {
-      "format": "http://edamontology.org/format_2330",
-      "id": "#main/output",
+      "format": "edam:format_2330",
+      "id": "output",
       "outputBinding": {
         "glob": "output.txt"
       },
       "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ],
   "stdout": "output.txt"

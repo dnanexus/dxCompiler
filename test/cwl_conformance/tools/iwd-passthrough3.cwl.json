@@ -2,16 +2,15 @@
   "baseCommand": "true",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
   "inputs": [
     {
-      "id": "#main/filelist",
+      "id": "filelist",
       "type": "File"
     }
   ],
   "outputs": [
     {
-      "id": "#main/filelist",
+      "id": "filelist",
       "outputBinding": {
         "glob": "renamed-filelist.txt"
       },
@@ -27,6 +26,9 @@
           "entryname": "renamed-filelist.txt"
         }
       ]
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ]
 }

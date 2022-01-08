@@ -12,45 +12,35 @@
   "baseCommand": "test",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
   "inputs": [
     {
-      "id": "#main/record_input",
-      "type": "#main/RecordTestType"
+      "id": "record_input",
+      "type": {
+        "doc": "Type test record",
+        "fields": [
+          {
+            "name": "f1",
+            "secondaryFiles": ".s2",
+            "type": "File"
+          },
+          {
+            "name": "f2",
+            "secondaryFiles": ".s3",
+            "type": {
+              "items": "File",
+              "type": "array"
+            }
+          }
+        ],
+        "name": "user_type_2",
+        "type": "record"
+      }
     }
   ],
   "outputs": [],
   "requirements": [
     {
-      "class": "SchemaDefRequirement",
-      "types": [
-        {
-          "doc": "Type test record",
-          "fields": [
-            {
-              "name": "#main/RecordTestType/f1",
-              "secondaryFiles": {
-                "pattern": ".s2",
-                "required": null
-              },
-              "type": "File"
-            },
-            {
-              "name": "#main/RecordTestType/f2",
-              "secondaryFiles": {
-                "pattern": ".s3",
-                "required": null
-              },
-              "type": {
-                "items": "File",
-                "type": "array"
-              }
-            }
-          ],
-          "name": "#main/RecordTestType",
-          "type": "record"
-        }
-      ]
+      "class": "InlineJavascriptRequirement"
     }
   ]
 }

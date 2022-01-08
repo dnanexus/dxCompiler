@@ -5,7 +5,6 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
   "inputs": [],
   "outputs": [],
   "requirements": [
@@ -16,6 +15,9 @@
     {
       "class": "WorkReuse",
       "enableReuse": false
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ]
 }

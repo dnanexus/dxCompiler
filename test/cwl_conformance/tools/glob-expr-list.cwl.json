@@ -2,10 +2,9 @@
   "baseCommand": "touch",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
   "inputs": [
     {
-      "id": "#main/ids",
+      "id": "ids",
       "inputBinding": {
         "position": 1
       },
@@ -17,7 +16,7 @@
   ],
   "outputs": [
     {
-      "id": "#main/files",
+      "id": "files",
       "outputBinding": {
         "glob": "$(inputs.ids)"
       },
@@ -25,6 +24,11 @@
         "items": "File",
         "type": "array"
       }
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ]
 }
