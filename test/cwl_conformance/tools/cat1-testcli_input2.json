@@ -1,0 +1,7 @@
+{
+  "cat1-testcli.file1": {
+    "class": "File",
+    "location": "hello.txt"
+  },
+  "cat1-testcli.numbering": true
+}
