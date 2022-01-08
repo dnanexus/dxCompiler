@@ -1,73 +1,73 @@
 {
-    "class": "CommandLineTool",
-    "id": "#main",
-    "arguments": [
+  "arguments": [
+    {
+      "shellQuote": false,
+      "valueFrom": "ls | grep -v lsout"
+    }
+  ],
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "id": "#main",
+  "inputs": [
+    {
+      "id": "#main/input_file",
+      "type": "File"
+    },
+    {
+      "id": "#main/optional_file",
+      "type": [
+        "null",
+        "File"
+      ]
+    },
+    {
+      "id": "#main/input_list",
+      "secondaryFiles": [
         {
-            "shellQuote": false,
-            "valueFrom": "ls | grep -v lsout"
+          "pattern": "^.tar",
+          "required": null
         }
-    ],
-    "inputs": [
+      ],
+      "type": {
+        "items": "File",
+        "type": "array"
+      }
+    }
+  ],
+  "label": "stage-array.cwl",
+  "outputs": [
+    {
+      "id": "#main/output",
+      "outputBinding": {
+        "glob": "lsout"
+      },
+      "type": [
+        "null",
+        "File"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InitialWorkDirRequirement",
+      "listing": [
+        "$(inputs.input_file)",
+        "$(inputs.optional_file)",
         {
-            "id": "#main/input_file",
-            "type": "File"
+          "entry": "$(inputs.input_list)"
         },
         {
-            "id": "#main/optional_file",
-            "type": [
-                "null",
-                "File"
-            ]
+          "entry": "$(null)"
         },
         {
-            "id": "#main/input_list",
-            "type": {
-                "type": "array",
-                "items": "File"
-            },
-            "secondaryFiles": [
-                {
-                    "pattern": "^.tar",
-                    "required": null
-                }
-            ]
+          "entry": "b",
+          "entryname": "a"
         }
-    ],
-    "stdout": "lsout",
-    "outputs": [
-        {
-            "id": "#main/output",
-            "type": [
-                "null",
-                "File"
-            ],
-            "outputBinding": {
-                "glob": "lsout"
-            }
-        }
-    ],
-    "label": "stage-array.cwl",
-    "requirements": [
-        {
-            "class": "InitialWorkDirRequirement",
-            "listing": [
-                "$(inputs.input_file)",
-                "$(inputs.optional_file)",
-                {
-                    "entry": "$(inputs.input_list)"
-                },
-                {
-                    "entry": "$(null)"
-                },
-                {
-                    "entryname": "a",
-                    "entry": "b"
-                }
-            ]
-        },
-        {
-            "class": "ShellCommandRequirement"
-        }
-    ],
-    "cwlVersion": "v1.2"
+      ]
+    },
+    {
+      "class": "ShellCommandRequirement"
+    }
+  ],
+  "stdout": "lsout"
 }

@@ -1,39 +1,39 @@
 {
-    "class": "CommandLineTool",
-    "doc": "Can have a file declared directly in InitialWorkDir",
-    "requirements": [
+  "baseCommand": "true",
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "doc": "Can have a file declared directly in InitialWorkDir",
+  "id": "#main",
+  "inputs": [],
+  "outputs": [
+    {
+      "id": "#main/filelist",
+      "outputBinding": {
+        "glob": "inp-filelist.txt"
+      },
+      "type": "File"
+    },
+    {
+      "id": "#main/testdir",
+      "outputBinding": {
+        "glob": "testdir"
+      },
+      "type": "Directory"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InitialWorkDirRequirement",
+      "listing": [
         {
-            "listing": [
-                {
-                    "class": "File",
-                    "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/loadContents/inp-filelist.txt"
-                },
-                {
-                    "class": "Directory",
-                    "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/testdir/"
-                }
-            ],
-            "class": "InitialWorkDirRequirement"
-        }
-    ],
-    "inputs": [],
-    "outputs": [
-        {
-            "type": "File",
-            "outputBinding": {
-                "glob": "inp-filelist.txt"
-            },
-            "id": "#main/filelist"
+          "class": "File",
+          "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/loadContents/inp-filelist.txt"
         },
         {
-            "type": "Directory",
-            "outputBinding": {
-                "glob": "testdir"
-            },
-            "id": "#main/testdir"
+          "class": "Directory",
+          "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/testdir/"
         }
-    ],
-    "baseCommand": "true",
-    "id": "#main",
-    "cwlVersion": "v1.2"
+      ]
+    }
+  ]
 }

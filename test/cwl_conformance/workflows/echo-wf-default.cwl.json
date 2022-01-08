@@ -1,62 +1,62 @@
 {
-    "$graph": [
+  "$graph": [
+    {
+      "baseCommand": [
+        "echo",
+        "-n"
+      ],
+      "class": "CommandLineTool",
+      "id": "#echo-tool-default.cwl",
+      "inputs": [
         {
-            "class": "CommandLineTool",
-            "inputs": [
-                {
-                    "type": "string",
-                    "default": "tool_default",
-                    "inputBinding": {
-                        "position": 1
-                    },
-                    "id": "#echo-tool-default.cwl/in"
-                }
-            ],
-            "outputs": [
-                {
-                    "type": "string",
-                    "outputBinding": {
-                        "glob": "out.txt",
-                        "loadContents": true,
-                        "outputEval": "$(self[0].contents)"
-                    },
-                    "id": "#echo-tool-default.cwl/out"
-                }
-            ],
-            "baseCommand": [
-                "echo",
-                "-n"
-            ],
-            "stdout": "out.txt",
-            "id": "#echo-tool-default.cwl"
-        },
-        {
-            "class": "Workflow",
-            "inputs": [],
-            "steps": [
-                {
-                    "run": "#echo-tool-default.cwl",
-                    "in": [
-                        {
-                            "default": "workflow_default",
-                            "id": "#main/step1/in"
-                        }
-                    ],
-                    "out": [
-                        "#main/step1/out"
-                    ],
-                    "id": "#main/step1"
-                }
-            ],
-            "outputs": [
-                {
-                    "type": "string",
-                    "outputSource": "#main/step1/out",
-                    "id": "#main/default_output"
-                }
-            ],
-            "id": "#main"
+          "default": "tool_default",
+          "id": "#echo-tool-default.cwl/in",
+          "inputBinding": {
+            "position": 1
+          },
+          "type": "string"
         }
-    ],
-    "cwlVersion": "v1.2"
+      ],
+      "outputs": [
+        {
+          "id": "#echo-tool-default.cwl/out",
+          "outputBinding": {
+            "glob": "out.txt",
+            "loadContents": true,
+            "outputEval": "$(self[0].contents)"
+          },
+          "type": "string"
+        }
+      ],
+      "stdout": "out.txt"
+    },
+    {
+      "class": "Workflow",
+      "id": "#main",
+      "inputs": [],
+      "outputs": [
+        {
+          "id": "#main/default_output",
+          "outputSource": "#main/step1/out",
+          "type": "string"
+        }
+      ],
+      "steps": [
+        {
+          "id": "#main/step1",
+          "in": [
+            {
+              "default": "workflow_default",
+              "id": "#main/step1/in"
+            }
+          ],
+          "out": [
+            "#main/step1/out"
+          ],
+          "run": "#echo-tool-default.cwl"
+        }
+      ]
+    }
+  ],
+  "cwlVersion": "v1.2"
 }

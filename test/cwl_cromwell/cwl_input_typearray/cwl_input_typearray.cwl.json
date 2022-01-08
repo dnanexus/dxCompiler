@@ -1,0 +1,78 @@
+{
+    "id": "#main",
+    "class": "CommandLineTool",
+    "baseCommand": [
+        "/bin/echo"
+    ],
+    "stdout": "response.txt",
+    "requirements": [
+        {
+            "class": "DockerRequirement",
+            "dockerPull": "ubuntu:latest"
+        },
+        {
+            "class": "InlineJavascriptRequirement"
+        }
+    ],
+    "arguments": [
+        {
+            "position": 3,
+            "valueFrom": "sentinel"
+        }
+    ],
+    "inputs": [
+        {
+            "type": [
+                "string",
+                "File"
+            ],
+            "inputBinding": {
+                "position": 1
+            },
+            "doc": "an input to test with a File value",
+            "id": "#main/value_f"
+        },
+        {
+            "type": [
+                "string",
+                "File"
+            ],
+            "inputBinding": {
+                "position": 2
+            },
+            "doc": "an input to test with a string value",
+            "id": "#main/value_s"
+        }
+    ],
+    "hints": [
+        {
+            "loadListing": "deep_listing",
+            "class": "LoadListingRequirement"
+        },
+        {
+            "networkAccess": true,
+            "class": "NetworkAccess"
+        }
+    ],
+    "outputs": [
+        {
+            "type": "string",
+            "outputBinding": {
+                "glob": "response.txt",
+                "loadContents": true,
+                "outputEval": "$(self[0].contents.split(\" \")[0].split(\"/\").slice(-1)[0])"
+            },
+            "id": "#main/response_f"
+        },
+        {
+            "type": "string",
+            "outputBinding": {
+                "glob": "response.txt",
+                "loadContents": true,
+                "outputEval": "$(self[0].contents.split(\" \")[1].split(\"/\").slice(-1)[0])"
+            },
+            "id": "#main/response_s"
+        }
+    ],
+    "cwlVersion": "v1.2"
+}

@@ -125,7 +125,7 @@ dxCompiler uses [wdlTools](https://github.com/dnanexus/wdlTools), a parser that 
 - [Advanced options](doc/ExpertOptions.md) explains additional compiler options
 - [Internals](doc/Internals.md) describes current compiler structure (_work in progress_)
 - [Tips](doc/Tips.md) examples for how to write good WDL code
-- A high-level [list of changes](doc/WdlVersionChanges.md) between WDL draft-2 and version 1.0
+- A high-level [list of changes](https://github.com/openwdl/wdl/blob/main/versions/Differences.md#draft-2-to-10) between WDL draft-2 and version 1.0
 
 ## Contributing to dxCompiler
 
