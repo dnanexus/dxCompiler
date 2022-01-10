@@ -1,0 +1,60 @@
+{
+  "class": "Workflow",
+  "cwlVersion": "v1.2",
+  "inputs": [],
+  "outputs": [
+    {
+      "id": "out",
+      "outputSource": "step1/output",
+      "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "ResourceRequirement",
+      "coresMax": 4,
+      "coresMin": 4
+    },
+    {
+      "class": "SubworkflowFeatureRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step1",
+      "in": [],
+      "out": [
+        "output"
+      ],
+      "requirements": {
+        "ResourceRequirement": {
+          "coresMax": 1,
+          "coresMin": 1
+        }
+      },
+      "run": {
+        "arguments": [
+          "$(runtime.cores)"
+        ],
+        "baseCommand": "echo",
+        "class": "CommandLineTool",
+        "inputs": [],
+        "outputs": [
+          {
+            "id": "output",
+            "type": "stdout"
+          }
+        ],
+        "requirements": [
+          {
+            "class": "InlineJavascriptRequirement"
+          }
+        ],
+        "stdout": "cores.txt"
+      }
+    }
+  ]
+}

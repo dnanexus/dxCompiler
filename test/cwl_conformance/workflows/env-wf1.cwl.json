@@ -1,84 +1,80 @@
 {
-  "$graph": [
+  "class": "Workflow",
+  "cwlVersion": "v1.2",
+  "inputs": [
     {
-      "baseCommand": [
-        "/bin/sh",
-        "-c",
-        "echo $TEST_ENV"
-      ],
-      "class": "CommandLineTool",
-      "id": "#env-tool3.cwl",
-      "inputs": [
-        {
-          "id": "#env-tool3.cwl/in",
-          "type": "string"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "#env-tool3.cwl/out",
-          "outputBinding": {
-            "glob": "out"
-          },
-          "type": "File"
-        }
-      ],
-      "requirements": [
-        {
-          "class": "EnvVarRequirement",
-          "envDef": [
-            {
-              "envName": "TEST_ENV",
-              "envValue": "$(inputs.in)"
-            }
-          ]
-        }
-      ],
-      "stdout": "out"
-    },
-    {
-      "class": "Workflow",
-      "id": "#main",
-      "inputs": [
-        {
-          "id": "#main/in",
-          "type": "string"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "#main/out",
-          "outputSource": "#main/step1/out",
-          "type": "File"
-        }
-      ],
-      "requirements": [
-        {
-          "class": "EnvVarRequirement",
-          "envDef": [
-            {
-              "envName": "TEST_ENV",
-              "envValue": "override"
-            }
-          ]
-        }
-      ],
-      "steps": [
-        {
-          "id": "#main/step1",
-          "in": [
-            {
-              "id": "#main/step1/in",
-              "source": "#main/in"
-            }
-          ],
-          "out": [
-            "#main/step1/out"
-          ],
-          "run": "#env-tool3.cwl"
-        }
-      ]
+      "id": "in",
+      "type": "string"
     }
   ],
-  "cwlVersion": "v1.2"
+  "outputs": [
+    {
+      "id": "out",
+      "outputSource": "step1/out",
+      "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "EnvVarRequirement",
+      "envDef": {
+        "TEST_ENV": "override"
+      }
+    },
+    {
+      "class": "SubworkflowFeatureRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step1",
+      "in": [
+        {
+          "id": "in",
+          "source": "in"
+        }
+      ],
+      "out": [
+        "out"
+      ],
+      "run": {
+        "baseCommand": [
+          "/bin/sh",
+          "-c",
+          "echo $TEST_ENV"
+        ],
+        "class": "CommandLineTool",
+        "inputs": [
+          {
+            "id": "in",
+            "type": "string"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "out",
+            "outputBinding": {
+              "glob": "out"
+            },
+            "type": "File"
+          }
+        ],
+        "requirements": [
+          {
+            "class": "EnvVarRequirement",
+            "envDef": {
+              "TEST_ENV": "$(inputs.in)"
+            }
+          },
+          {
+            "class": "InlineJavascriptRequirement"
+          }
+        ],
+        "stdout": "out"
+      }
+    }
+  ]
 }

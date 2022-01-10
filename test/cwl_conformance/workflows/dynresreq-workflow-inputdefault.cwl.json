@@ -1,109 +1,113 @@
 {
-  "$graph": [
+  "class": "Workflow",
+  "cwlVersion": "v1.2",
+  "inputs": [
     {
-      "baseCommand": [
-        "cat"
-      ],
-      "class": "CommandLineTool",
-      "id": "#cat-tool.cwl",
-      "inputs": [
-        {
-          "id": "#cat-tool.cwl/file1",
-          "type": "File"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "#cat-tool.cwl/output",
-          "outputBinding": {
-            "glob": "output"
-          },
-          "type": "File"
-        }
-      ],
-      "stdin": "$(inputs.file1.path)",
-      "stdout": "output"
-    },
-    {
-      "class": "Workflow",
-      "id": "#main",
-      "inputs": [
-        {
-          "default": {
-            "class": "File",
-            "location": "dx://file-G1353z00yzZYkb2V4j4g7yb9"
-          },
-          "id": "#main/special_file",
-          "type": "File"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "#main/cores",
-          "outputSource": "#main/report/output",
-          "type": "File"
-        }
-      ],
-      "steps": [
-        {
-          "id": "#main/count",
-          "in": [
-            {
-              "id": "#main/count/special_file",
-              "source": "#main/special_file"
-            }
-          ],
-          "out": [
-            "#main/count/output"
-          ],
-          "run": "#dynresreq.cwl"
-        },
-        {
-          "id": "#main/report",
-          "in": [
-            {
-              "id": "#main/report/file1",
-              "source": "#main/count/output"
-            }
-          ],
-          "out": [
-            "#main/report/output"
-          ],
-          "run": "#cat-tool.cwl"
-        }
-      ]
-    },
-    {
-      "arguments": [
-        "$(runtime.cores)"
-      ],
-      "baseCommand": "echo",
-      "class": "CommandLineTool",
-      "id": "#dynresreq.cwl",
-      "inputs": [
-        {
-          "id": "#dynresreq.cwl/special_file",
-          "type": "File"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "#dynresreq.cwl/output",
-          "outputBinding": {
-            "glob": "cores.txt"
-          },
-          "type": "File"
-        }
-      ],
-      "requirements": [
-        {
-          "class": "ResourceRequirement",
-          "coresMax": "$(inputs.special_file.size)",
-          "coresMin": "$(inputs.special_file.size)"
-        }
-      ],
-      "stdout": "cores.txt"
+      "default": {
+        "class": "File",
+        "path": "special_file"
+      },
+      "id": "special_file",
+      "type": "File"
     }
   ],
-  "cwlVersion": "v1.2"
+  "outputs": [
+    {
+      "id": "cores",
+      "outputSource": "report/output",
+      "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "SubworkflowFeatureRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ],
+  "steps": [
+    {
+      "id": "count",
+      "in": [
+        {
+          "id": "special_file",
+          "source": "special_file"
+        }
+      ],
+      "out": [
+        "output"
+      ],
+      "run": {
+        "arguments": [
+          "$(runtime.cores)"
+        ],
+        "baseCommand": "echo",
+        "class": "CommandLineTool",
+        "inputs": [
+          {
+            "id": "special_file",
+            "type": "File"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "output",
+            "type": "stdout"
+          }
+        ],
+        "requirements": [
+          {
+            "class": "ResourceRequirement",
+            "coresMax": "$(inputs.special_file.size)",
+            "coresMin": "$(inputs.special_file.size)"
+          },
+          {
+            "class": "InlineJavascriptRequirement"
+          }
+        ],
+        "stdout": "cores.txt"
+      }
+    },
+    {
+      "id": "report",
+      "in": [
+        {
+          "id": "file1",
+          "source": "count/output"
+        }
+      ],
+      "out": [
+        "output"
+      ],
+      "run": {
+        "baseCommand": [
+          "cat"
+        ],
+        "class": "CommandLineTool",
+        "inputs": [
+          {
+            "id": "file1",
+            "type": "File"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "output",
+            "outputBinding": {
+              "glob": "output"
+            },
+            "type": "File"
+          }
+        ],
+        "requirements": [
+          {
+            "class": "InlineJavascriptRequirement"
+          }
+        ],
+        "stdin": "$(inputs.file1.path)",
+        "stdout": "output"
+      }
+    }
+  ]
 }

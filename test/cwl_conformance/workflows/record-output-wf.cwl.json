@@ -1,147 +1,151 @@
 {
-  "$graph": [
+  "class": "Workflow",
+  "cwlVersion": "v1.2",
+  "inputs": [
     {
-      "class": "Workflow",
-      "id": "#main",
-      "inputs": [
-        {
-          "id": "#main/irec",
-          "type": {
-            "fields": [
-              {
-                "name": "#main/irec/irec/ifoo",
-                "type": "File"
-              },
-              {
-                "name": "#main/irec/irec/ibar",
-                "type": "File"
-              }
-            ],
-            "name": "#main/irec/irec",
-            "type": "record"
+      "id": "irec",
+      "type": {
+        "fields": [
+          {
+            "name": "ifoo",
+            "type": "File"
+          },
+          {
+            "name": "ibar",
+            "type": "File"
           }
-        }
-      ],
-      "outputs": [
-        {
-          "id": "#main/orec",
-          "outputSource": "#main/step1/orec",
-          "type": {
-            "fields": [
-              {
-                "name": "#main/orec/orec/ofoo",
-                "type": "File"
-              },
-              {
-                "name": "#main/orec/orec/obar",
-                "type": "File"
-              }
-            ],
-            "name": "#main/orec/orec",
-            "type": "record"
-          }
-        }
-      ],
-      "steps": [
-        {
-          "id": "#main/step1",
-          "in": [
-            {
-              "id": "#main/step1/irec",
-              "source": "#main/irec"
-            }
-          ],
-          "out": [
-            "#main/step1/orec"
-          ],
-          "run": "#record-output.cwl"
-        }
-      ]
-    },
-    {
-      "arguments": [
-        {
-          "position": 1,
-          "valueFrom": "cat"
-        },
-        {
-          "position": 3,
-          "shellQuote": false,
-          "valueFrom": "> foo"
-        },
-        {
-          "position": 4,
-          "shellQuote": false,
-          "valueFrom": "&&"
-        },
-        {
-          "position": 5,
-          "valueFrom": "cat"
-        },
-        {
-          "position": 7,
-          "shellQuote": false,
-          "valueFrom": "> bar"
-        }
-      ],
-      "class": "CommandLineTool",
-      "id": "#record-output.cwl",
-      "inputs": [
-        {
-          "id": "#record-output.cwl/irec",
-          "type": {
-            "fields": [
-              {
-                "inputBinding": {
-                  "position": 2
-                },
-                "name": "#record-output.cwl/irec/irec/ifoo",
-                "type": "File"
-              },
-              {
-                "inputBinding": {
-                  "position": 6
-                },
-                "name": "#record-output.cwl/irec/irec/ibar",
-                "type": "File"
-              }
-            ],
-            "name": "#record-output.cwl/irec/irec",
-            "type": "record"
-          }
-        }
-      ],
-      "outputs": [
-        {
-          "id": "#record-output.cwl/orec",
-          "type": {
-            "fields": [
-              {
-                "name": "#record-output.cwl/orec/orec/ofoo",
-                "outputBinding": {
-                  "glob": "foo"
-                },
-                "type": "File"
-              },
-              {
-                "name": "#record-output.cwl/orec/orec/obar",
-                "outputBinding": {
-                  "glob": "bar"
-                },
-                "type": "File"
-              }
-            ],
-            "name": "#record-output.cwl/orec/orec",
-            "type": "record"
-          }
-        }
-      ],
-      "requirements": [
-        {
-          "class": "ShellCommandRequirement"
-        }
-      ]
+        ],
+        "name": "irec",
+        "type": "record"
+      }
     }
   ],
-  "cwlVersion": "v1.2"
+  "outputs": [
+    {
+      "id": "orec",
+      "outputSource": "step1/orec",
+      "type": {
+        "fields": [
+          {
+            "name": "ofoo",
+            "type": "File"
+          },
+          {
+            "name": "obar",
+            "type": "File"
+          }
+        ],
+        "name": "orec",
+        "type": "record"
+      }
+    }
+  ],
+  "requirements": [
+    {
+      "class": "SubworkflowFeatureRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step1",
+      "in": [
+        {
+          "id": "irec",
+          "source": "irec"
+        }
+      ],
+      "out": [
+        "orec"
+      ],
+      "run": {
+        "arguments": [
+          {
+            "position": 1,
+            "valueFrom": "cat"
+          },
+          {
+            "position": 3,
+            "shellQuote": false,
+            "valueFrom": "> foo"
+          },
+          {
+            "position": 4,
+            "shellQuote": false,
+            "valueFrom": "&&"
+          },
+          {
+            "position": 5,
+            "valueFrom": "cat"
+          },
+          {
+            "position": 7,
+            "shellQuote": false,
+            "valueFrom": "> bar"
+          }
+        ],
+        "class": "CommandLineTool",
+        "inputs": [
+          {
+            "id": "irec",
+            "type": {
+              "fields": [
+                {
+                  "inputBinding": {
+                    "position": 2
+                  },
+                  "name": "ifoo",
+                  "type": "File"
+                },
+                {
+                  "inputBinding": {
+                    "position": 6
+                  },
+                  "name": "ibar",
+                  "type": "File"
+                }
+              ],
+              "name": "irec",
+              "type": "record"
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "id": "orec",
+            "type": {
+              "fields": [
+                {
+                  "name": "ofoo",
+                  "outputBinding": {
+                    "glob": "foo"
+                  },
+                  "type": "File"
+                },
+                {
+                  "name": "obar",
+                  "outputBinding": {
+                    "glob": "bar"
+                  },
+                  "type": "File"
+                }
+              ],
+              "name": "orec",
+              "type": "record"
+            }
+          }
+        ],
+        "requirements": [
+          {
+            "class": "ShellCommandRequirement"
+          },
+          {
+            "class": "InlineJavascriptRequirement"
+          }
+        ]
+      }
+    }
+  ]
 }

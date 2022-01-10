@@ -7,33 +7,29 @@
       ],
       "baseCommand": "echo",
       "class": "CommandLineTool",
-      "id": "#echo",
-      "inputs": [
-        {
-          "id": "#echo/echo_in1",
+      "id": "echo",
+      "inputs": {
+        "echo_in1": {
           "inputBinding": {
             "position": 2
           },
           "type": "string"
         },
-        {
-          "id": "#echo/echo_in2",
+        "echo_in2": {
           "inputBinding": {
             "position": 3
           },
           "type": "string"
         },
-        {
-          "id": "#echo/first",
+        "first": {
           "inputBinding": {
             "position": 1
           },
           "type": "string"
         }
-      ],
-      "outputs": [
-        {
-          "id": "#echo/echo_out",
+      },
+      "outputs": {
+        "echo_out": {
           "outputBinding": {
             "glob": "step1_out",
             "loadContents": true,
@@ -41,47 +37,44 @@
           },
           "type": "string"
         }
-      ],
+      },
       "stdout": "step1_out"
     },
     {
       "class": "Workflow",
-      "id": "#main",
-      "inputs": [
-        {
-          "id": "#main/inp1",
+      "id": "main",
+      "inputs": {
+        "inp1": {
           "type": {
             "items": {
               "fields": [
                 {
-                  "name": "#main/inp1/instr/instr",
+                  "name": "instr",
                   "type": "string"
                 }
               ],
-              "name": "#main/inp1/instr",
+              "name": "instr",
               "type": "record"
             },
             "type": "array"
           }
         },
-        {
-          "id": "#main/inp2",
+        "inp2": {
           "type": {
             "items": "string",
             "type": "array"
           }
         }
-      ],
-      "outputs": [
-        {
-          "id": "#main/out",
-          "outputSource": "#main/step1/echo_out",
+      },
+      "outputs": {
+        "out": {
+          "outputSource": "step1/echo_out",
           "type": {
             "items": "string",
             "type": "array"
           }
         }
-      ],
+      },
       "requirements": [
         {
           "class": "ScatterFeatureRequirement"
@@ -90,36 +83,30 @@
           "class": "StepInputExpressionRequirement"
         }
       ],
-      "steps": [
-        {
-          "id": "#main/step1",
-          "in": [
-            {
-              "id": "#main/step1/echo_in1",
-              "source": "#main/inp1",
+      "steps": {
+        "step1": {
+          "in": {
+            "echo_in1": {
+              "source": "inp1",
               "valueFrom": "$(self.instr)"
             },
-            {
-              "id": "#main/step1/echo_in2",
-              "source": "#main/inp2"
-            },
-            {
-              "id": "#main/step1/first",
-              "source": "#main/inp1",
+            "echo_in2": "inp2",
+            "first": {
+              "source": "inp1",
               "valueFrom": "$(self[0].instr)"
             }
-          ],
+          },
           "out": [
-            "#main/step1/echo_out"
+            "echo_out"
           ],
           "run": "#echo",
           "scatter": [
-            "#main/step1/echo_in1",
-            "#main/step1/echo_in2"
+            "echo_in1",
+            "echo_in2"
           ],
           "scatterMethod": "flat_crossproduct"
         }
-      ]
+      }
     }
   ],
   "cwlVersion": "v1.2"

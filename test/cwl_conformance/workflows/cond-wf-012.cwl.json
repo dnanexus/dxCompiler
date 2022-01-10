@@ -1,72 +1,73 @@
 {
-  "$graph": [
+  "class": "Workflow",
+  "cwlVersion": "v1.2",
+  "inputs": [
     {
-      "class": "Workflow",
-      "id": "#main",
-      "inputs": [
-        {
-          "id": "#main/val",
-          "type": "int"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "#main/out1",
-          "outputSource": "#main/step1/out1",
-          "type": [
-            "null",
-            "string"
-          ]
-        }
-      ],
-      "requirements": [
-        {
-          "class": "InlineJavascriptRequirement"
-        }
-      ],
-      "steps": [
-        {
-          "id": "#main/step1",
-          "in": [
-            {
-              "id": "#main/step1/a_new_var",
-              "source": "#main/val"
-            },
-            {
-              "id": "#main/step1/in1",
-              "source": "#main/val"
-            }
-          ],
-          "out": [
-            "#main/step1/out1"
-          ],
-          "run": "#foo.cwl",
-          "when": "$(inputs.a_new_var % 2)"
-        }
-      ]
-    },
+      "id": "val",
+      "type": "int"
+    }
+  ],
+  "outputs": [
     {
-      "baseCommand": [
-        "echo"
-      ],
-      "class": "CommandLineTool",
-      "id": "#foo.cwl",
-      "inputs": [
-        {
-          "id": "#foo.cwl/in1",
-          "type": "int"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "#foo.cwl/out1",
-          "outputBinding": {
-            "outputEval": "foo $(inputs.in1)"
-          },
-          "type": "string"
-        }
+      "id": "out1",
+      "outputSource": "step1/out1",
+      "type": [
+        "null",
+        "string"
       ]
     }
   ],
-  "cwlVersion": "v1.2"
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
+    },
+    {
+      "class": "SubworkflowFeatureRequirement"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step1",
+      "in": [
+        {
+          "id": "in1",
+          "source": "val"
+        },
+        {
+          "id": "a_new_var",
+          "source": "val"
+        }
+      ],
+      "out": [
+        "out1"
+      ],
+      "run": {
+        "baseCommand": [
+          "echo"
+        ],
+        "class": "CommandLineTool",
+        "inputs": [
+          {
+            "id": "in1",
+            "type": "int"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "out1",
+            "outputBinding": {
+              "outputEval": "foo $(inputs.in1)"
+            },
+            "type": "string"
+          }
+        ],
+        "requirements": [
+          {
+            "class": "InlineJavascriptRequirement"
+          }
+        ]
+      },
+      "when": "$(inputs.a_new_var % 2)"
+    }
+  ]
 }
