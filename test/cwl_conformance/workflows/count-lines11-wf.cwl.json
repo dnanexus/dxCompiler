@@ -32,7 +32,7 @@
         {
           "default": {
             "class": "File",
-            "location": "whale.txt"
+            "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G0G0V1Q0yzZZZXfx3xPK1B1Z"
           },
           "id": "file1",
           "source": "file1"
