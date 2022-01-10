@@ -4,8 +4,8 @@
     "foaf": "http://xmlns.com/foaf/0.1/"
   },
   "$schemas": [
-    "foaf.rdf",
-    "dcterms.rdf"
+    "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/dcterms.rdf",
+    "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/foaf.rdf"
   ],
   "baseCommand": "cat",
   "class": "CommandLineTool",

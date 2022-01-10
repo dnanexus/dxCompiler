@@ -1,0 +1,30 @@
+{
+  "tmap-tool.args": {
+    "args": [
+      "tmap",
+      "mapall",
+      "stage1",
+      "map1",
+      "--min-seq-length",
+      "20",
+      "map2",
+      "--min-seq-length",
+      "20",
+      "stage2",
+      "map1",
+      "--max-seq-length",
+      "20",
+      "--min-seq-length",
+      "10",
+      "--seed-length",
+      "16",
+      "map2",
+      "--max-seed-hits",
+      "-1",
+      "--max-seq-length",
+      "20",
+      "--min-seq-length",
+      "10"
+    ]
+  }
+}

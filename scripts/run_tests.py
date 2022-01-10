@@ -64,7 +64,10 @@ expected_failure = {
     "networkaccess2",
     "timelimit",
     "timelimit2",
-    "timelimit4"
+    "timelimit4",
+    "record-in-format.1",
+    "record-in-format.2",
+    "record-in-format.3",
 }
 
 test_compilation_failing = {"import_passwd"}
