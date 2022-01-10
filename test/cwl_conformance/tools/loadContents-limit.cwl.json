@@ -2,13 +2,17 @@
   "baseCommand": "true",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
   "inputs": [
     {
-      "id": "#main/filelist",
+      "id": "filelist",
       "loadContents": true,
       "type": "File"
     }
   ],
-  "outputs": []
+  "outputs": [],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ]
 }

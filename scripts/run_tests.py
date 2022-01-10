@@ -57,7 +57,9 @@ expected_failure = {
     "cond-wf-006_nojs.1",
     "cond-wf-012_nojs",
     "fail-unconnected",
-    "apps_1014"
+    "apps_1014",
+    "echo-tool.1",
+    "echo-tool.2"
 }
 
 test_compilation_failing = {"import_passwd"}
