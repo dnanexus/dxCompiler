@@ -1,5 +1,9 @@
 # Release Notes
 
+## in develop
+
+* Command file is now echoed to stderr rather than stdout
+
 ## 2.8.3 2022-01-07
 
 * Update dxCommon and wdlTools - fixes forwarding of stdout/stderr to job log fpr commands run in docker
