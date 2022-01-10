@@ -59,7 +59,12 @@ expected_failure = {
     "fail-unconnected",
     "apps_1014",
     "echo-tool.1",
-    "echo-tool.2"
+    "echo-tool.2",
+    "glob-path-error",
+    "networkaccess2",
+    "timelimit",
+    "timelimit2",
+    "timelimit4"
 }
 
 test_compilation_failing = {"import_passwd"}
