@@ -1,50 +1,50 @@
 {
-    "class": "CommandLineTool",
-    "id": "#main",
-    "label": "Stage File Array",
-    "arguments": [
-        "ls"
-    ],
-    "inputs": [
+  "arguments": [
+    "ls"
+  ],
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "id": "#main",
+  "inputs": [
+    {
+      "id": "#main/input_list",
+      "secondaryFiles": [
         {
-            "id": "#main/input_list",
-            "type": {
-                "type": "array",
-                "items": "File"
-            },
-            "secondaryFiles": [
-                {
-                    "pattern": ".sec",
-                    "required": null
-                }
-            ]
+          "pattern": ".sec",
+          "required": null
         }
-    ],
-    "outputs": [
+      ],
+      "type": {
+        "items": "File",
+        "type": "array"
+      }
+    }
+  ],
+  "label": "Stage File Array",
+  "outputs": [
+    {
+      "id": "#main/output",
+      "outputBinding": {
+        "glob": "input_dir/*"
+      },
+      "type": {
+        "items": "File",
+        "type": "array"
+      }
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
+    },
+    {
+      "class": "InitialWorkDirRequirement",
+      "listing": [
         {
-            "id": "#main/output",
-            "type": {
-                "type": "array",
-                "items": "File"
-            },
-            "outputBinding": {
-                "glob": "input_dir/*"
-            }
+          "entry": "${ return {class: 'Directory', listing: inputs.input_list} }",
+          "entryname": "input_dir"
         }
-    ],
-    "requirements": [
-        {
-            "class": "InlineJavascriptRequirement"
-        },
-        {
-            "class": "InitialWorkDirRequirement",
-            "listing": [
-                {
-                    "entryname": "input_dir",
-                    "entry": "${ return {class: 'Directory', listing: inputs.input_list} }"
-                }
-            ]
-        }
-    ],
-    "cwlVersion": "v1.2"
+      ]
+    }
+  ]
 }
