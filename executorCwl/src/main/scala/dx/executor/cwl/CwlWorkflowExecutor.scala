@@ -61,7 +61,7 @@ object CwlWorkflowExecutor {
     // it doesn't matter what it is
     val parser = Parser.create(Some(URI.create("file:/null")), hintSchemas = Vector(DxHintSchema))
     parser.detectVersionAndClass(jobMeta.sourceCode) match {
-      case Some((version, "Workflow")) if Language.parse(version) == Language.CwlV1_2 =>
+      case (version, Some("Workflow")) if Language.parse(version) == Language.CwlV1_2 =>
         ()
       case _ =>
         throw new Exception(
@@ -74,8 +74,8 @@ object CwlWorkflowExecutor {
       case _                    => throw new Exception("missing executable name")
     }
     val workflow =
-      parser.parseString(jobMeta.sourceCode, defaultFrag = Some(wfName), isPacked = true) match {
-        case ParserResult(wf: Workflow, _, _, _) => wf
+      parser.parseString(jobMeta.sourceCode, defaultFrag = Some(wfName)) match {
+        case ParserResult(Some(wf: Workflow), _, _, _) => wf
         case other =>
           throw new Exception(s"expected CWL document to contain a Workflow, not ${other}")
       }
@@ -188,7 +188,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
     val irOutputs: Map[DxName, (Type, Value)] = outputParams.map {
       case (dxName, param: WorkflowOutputParameter, cwlType) if param.sources.nonEmpty =>
         val sourceValues = param.sources.map(src =>
-          env.lookup(CwlDxName.fromDecodedName(src.frag.get)).getOrElse((TMulti.Any, VNull))
+          env.lookup(CwlDxName.fromDecodedName(src.frag)).getOrElse((TMulti.Any, VNull))
         )
         val irValue = if (param.linkMerge.nonEmpty || param.pickValue.nonEmpty) {
           val mergedValues = (sourceValues, param.linkMerge) match {
@@ -253,7 +253,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
     private lazy val runInputs: Map[DxName, InputParameter] = step.run.inputs.map { i =>
       CwlDxName.fromSourceName(i.name) -> i
     }.toMap
-    private lazy val scatterNames = step.scatter.map(src => CwlDxName.fromSourceName(src.name.get))
+    private lazy val scatterNames = step.scatter.map(src => CwlDxName.fromSourceName(src.name))
     private lazy val eval = Evaluator.create(block.targetRequirements, block.targetHints)
 
     override lazy val env: Map[DxName, (Type, Value)] = CwlUtils.toIR(cwlEnv.env)
@@ -272,7 +272,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
             (CwlArray(CwlType.flatten(types.distinct)), ArrayValue(values))
           }
           val sourceValues =
-            stepInput.sources.map(src => fullEnv(CwlDxName.fromDecodedName(src.frag.get)))
+            stepInput.sources.map(src => fullEnv(CwlDxName.fromDecodedName(src.frag)))
           val (cwlType, cwlValue) =
             if (stepInput.linkMerge.nonEmpty || stepInput.pickValue.nonEmpty) {
               val mergedValues = (sourceValues, stepInput.linkMerge) match {

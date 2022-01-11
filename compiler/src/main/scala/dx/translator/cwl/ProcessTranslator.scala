@@ -174,7 +174,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           }
         case None => None
       }
-      val dxName = CwlDxName.fromSourceName(input.id.flatMap(_.name).get)
+      val dxName = CwlDxName.fromSourceName(input.id.get.name)
       val attrs = translateParameterAttributes(input, hintParameterAttrs)
       Parameter(dxName, CwlUtils.toIRType(input.cwlType), irDefaultValue, attrs)
     }
@@ -198,7 +198,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
             })
         case _ => None
       }
-      val dxName = CwlDxName.fromSourceName(output.id.flatMap(_.name).get)
+      val dxName = CwlDxName.fromSourceName(output.id.get.name)
       val attrs = translateParameterAttributes(output, hintParameterAttrs)
       Parameter(dxName, CwlUtils.toIRType(output.cwlType), irValue, attrs)
     }
@@ -210,7 +210,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       val name = tool.name
       // translate inputs and evaluate any static default values
       val inputParams = tool.inputs.collect {
-        case i if i.id.exists(_.name.isDefined) => i.name -> i
+        case i if i.id.isDefined => i.name -> i
       }.toMap
       val inputCtx = CwlUtils.createEvaluatorContext(Runtime.empty)
       // cwl applications always have a "target___" parameter
@@ -228,7 +228,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
                                         inputDir = inputDir,
                                         fileResolver = fileResolver)
       val outputs = tool.outputs.collect {
-        case i if i.id.exists(_.name.isDefined) => translateOutput(i, outputCtx)
+        case i if i.id.isDefined => translateOutput(i, outputCtx)
       }
       val docSource = tool.source.orElse(cwlBundle.primaryProcess.source) match {
         case Some(path) => Paths.get(path)
@@ -380,7 +380,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           // the callee may not use the argument - defer until runtime
           StageInputEmpty
         case Some(inp) if inp.sources.size == 1 =>
-          val dxName = CwlDxName.fromDecodedName(inp.sources.head.frag.get)
+          val dxName = CwlDxName.fromDecodedName(inp.sources.head.frag)
           try {
             lookup(dxName)
           } catch {
@@ -612,7 +612,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
               s"there must be at least one 'outputSource' for parameter ${param.name}"
           )
         }
-        param.sources.map(source => CwlDxName.fromDecodedName(source.frag.get))
+        param.sources.map(source => CwlDxName.fromDecodedName(source.frag))
       }.toSet
       logger.trace(s"paramNames: ${paramNames}")
       val (applicationInputs, stageInputs) = paramNames.map { name =>
@@ -746,9 +746,9 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           out.sources.size > 1 ||
           out.linkMerge.isDefined ||
           out.pickValue.isDefined ||
-          out.sources.exists(_.frag.exists(inputNames.contains)) ||
+          out.sources.exists(i => inputNames.contains(i.frag)) ||
           out.sources.headOption.exists { sourceId =>
-            env.get(CwlDxName.fromDecodedName(sourceId.frag.get)).map(_._1).exists { stageParam =>
+            env.get(CwlDxName.fromDecodedName(sourceId.frag)).map(_._1).exists { stageParam =>
               CwlUtils.requiresDowncast(CwlUtils.fromIRType(stageParam.dxType, isInput = false),
                                         out.cwlType)
             }
@@ -768,7 +768,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           val outputStage = env.get(dxName).map(_._2).getOrElse {
             // we know there is only one output source otherwise we'd be
             // using an output stage
-            val outputSource = CwlDxName.fromDecodedName(out.sources.head.frag.get)
+            val outputSource = CwlDxName.fromDecodedName(out.sources.head.frag)
             env
               .lookup(outputSource)
               .map(_._2._2)

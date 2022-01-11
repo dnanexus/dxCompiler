@@ -249,17 +249,17 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
       }
     } else {
       // otherwise make sure the file is parseable as CWL
-      parser.detectVersionAndClass(sourceFile) match {
-        case Some((version, _)) if Language.parse(version, Some("cwl")) == Language.CwlV1_2 => ()
+      parser.detectVersionAndClassFromFile(sourceFile) match {
+        case (version, _) if Language.parse(version, Some("cwl")) == Language.CwlV1_2 => ()
         case _ =>
           return None
       }
     }
     // CWL file is required to be packed
-    val (process, schemas) = parser.parseFile(sourceFile, isPacked = true) match {
-      case ParserResult(tool: CommandLineTool, _, _, schemas) => (tool, schemas)
-      case ParserResult(tool: ExpressionTool, _, _, schemas)  => (tool, schemas)
-      case ParserResult(wf: Workflow, _, _, schemas)          => (wf, schemas)
+    val (process, schemas) = parser.parseFile(sourceFile) match {
+      case ParserResult(Some(tool: CommandLineTool), _, _, schemas) => (tool, schemas)
+      case ParserResult(Some(tool: ExpressionTool), _, _, schemas)  => (tool, schemas)
+      case ParserResult(Some(wf: Workflow), _, _, schemas)          => (wf, schemas)
       case _ =>
         throw new Exception(s"Not a tool or workflow: ${sourceFile}")
     }

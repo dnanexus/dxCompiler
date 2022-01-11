@@ -152,10 +152,10 @@ object CwlBundle {
               throw new Exception(s"duplicate name ${wf.name}")
           }
         val requirementsByName = requirements.map {
-          case (id, reqs) => id.name.get -> reqs
+          case (id, reqs) => id.name -> reqs
         }
         val hintsByName = hints.map {
-          case (id, hints) => id.name.get -> hints
+          case (id, hints) => id.name -> hints
         }
         CwlBundle(version,
                   wf,

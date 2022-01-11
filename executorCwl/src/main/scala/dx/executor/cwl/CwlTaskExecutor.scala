@@ -24,7 +24,7 @@ object CwlTaskExecutor {
     // it doesn't matter what it is
     val parser = Parser.create(Some(URI.create("file:/null")), hintSchemas = Vector(DxHintSchema))
     parser.detectVersionAndClass(cwl) match {
-      case Some((version, "CommandLineTool" | "ExpressionTool" | "Workflow"))
+      case (version, Some("CommandLineTool" | "ExpressionTool" | "Workflow"))
           if Language.parse(version) == Language.CwlV1_2 =>
         ()
       case _ =>
@@ -40,7 +40,7 @@ object CwlTaskExecutor {
     // we update the ID to use the tool name as the fragment; otherwise it is
     // a workflow and we look up the tool by name in the Map of processes nested
     // within the workflow.
-    parser.parseString(cwl, Some(DefaultFrag), isPacked = true)
+    parser.parseString(cwl, Some(DefaultFrag))
   }
 
   def create(jobMeta: JobMeta,
@@ -52,12 +52,12 @@ object CwlTaskExecutor {
     }
     jobMeta.logger.trace(s"toolName: ${toolName}")
     val tool = parseString(jobMeta.sourceCode) match {
-      case ParserResult(tool: CommandLineTool, _, _, _) if tool.frag == DefaultFrag =>
-        tool.copy(id = Some(Identifier(namespace = None, frag = Some(toolName))))
-      case ParserResult(tool: CommandLineTool, _, _, _) => tool
-      case ParserResult(tool: ExpressionTool, _, _, _) if tool.frag == DefaultFrag =>
-        tool.copy(id = Some(Identifier(namespace = None, frag = Some(toolName))))
-      case ParserResult(tool: ExpressionTool, _, _, _) => tool
+      case ParserResult(Some(tool: CommandLineTool), _, _, _) if tool.frag == DefaultFrag =>
+        tool.copy(id = Some(Identifier(namespace = None, frag = toolName)))
+      case ParserResult(Some(tool: CommandLineTool), _, _, _) => tool
+      case ParserResult(Some(tool: ExpressionTool), _, _, _) if tool.frag == DefaultFrag =>
+        tool.copy(id = Some(Identifier(namespace = None, frag = toolName)))
+      case ParserResult(Some(tool: ExpressionTool), _, _, _) => tool
       case ParserResult(_, doc: Document, _, _) =>
         doc.values.toVector.collect {
           case tool: CommandLineTool if tool.name == toolName => tool
@@ -92,8 +92,8 @@ case class CwlTaskExecutor(tool: Process,
 
   private lazy val inputParams: Map[DxName, InputParameter] = {
     tool.inputs.collect {
-      case param if param.id.forall(_.name.isDefined) =>
-        CwlDxName.fromSourceName(param.id.flatMap(_.name).get) -> param
+      case param if param.id.isDefined =>
+        CwlDxName.fromSourceName(param.id.get.name) -> param
     }.toMap
   }
 
@@ -119,7 +119,7 @@ case class CwlTaskExecutor(tool: Process,
           "outputs" -> JsArray()
       )
       CwlTaskExecutor.parseString(JsObject(doc).prettyPrint) match {
-        case ParserResult(overridesTool: CommandLineTool, _, _, _) =>
+        case ParserResult(Some(overridesTool: CommandLineTool), _, _, _) =>
           (overridesTool.requirements ++ tool.requirements, overridesTool.hints ++ tool.hints)
         case other =>
           throw new Exception(s"expected CommandLineTool, not ${other}")
@@ -163,7 +163,7 @@ case class CwlTaskExecutor(tool: Process,
     if (logger.isVerbose) {
       val inputStr = tool.inputs
         .flatMap { param =>
-          param.id.flatMap(_.name) match {
+          param.id.map(_.name) match {
             case Some(name) =>
               val dxName = CwlDxName.fromSourceName(name)
               cwlInputs.get(dxName) match {
@@ -434,7 +434,7 @@ case class CwlTaskExecutor(tool: Process,
 
   private lazy val outputParams: Map[DxName, OutputParameter] = {
     val outputParams: Map[DxName, OutputParameter] = tool.outputs.flatMap { param =>
-      param.id.flatMap(_.name).map(CwlDxName.fromSourceName(_) -> param)
+      param.id.map(_.name).map(CwlDxName.fromSourceName(_) -> param)
     }.toMap
     if (logger.isVerbose) {
       logger.traceLimited(s"outputParams=${outputParams}")
