@@ -250,7 +250,10 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
     } else {
       // otherwise make sure the file is parseable as CWL
       parser.detectVersionAndClass(sourceFile) match {
-        case Some((version, _)) if Language.parse(version) == Language.CwlV1_2 => ()
+        case Some((version, _)) => 
+          val ver = Language.parse(version)
+          if (ver == Language.CwlV1_2) () 
+          else throw new Exception(s"dxCompiler does not support CWL version ${ver}")
         case _ =>
           return None
       }
