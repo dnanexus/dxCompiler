@@ -2,16 +2,34 @@
   "record-out-format.record_input": {
     "f1": {
       "class": "File",
-      "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/rec/A"
+      "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/rec/A",
+      "secondaryFiles": [
+        {
+          "class": "File",
+          "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/rec/A.s2"
+        }
+      ]
     },
     "f2": [
       {
         "class": "File",
-        "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/rec/B"
+        "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/rec/B",
+        "secondaryFiles": [
+          {
+            "class": "File",
+            "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/rec/B.s3"
+          }
+        ]
       },
       {
         "class": "File",
-        "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/rec/C"
+        "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/rec/C",
+        "secondaryFiles": [
+          {
+            "class": "File",
+            "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/rec/C.s3"
+          }
+        ]
       }
     ]
   }

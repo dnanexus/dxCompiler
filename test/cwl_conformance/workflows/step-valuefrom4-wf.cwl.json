@@ -1,52 +1,62 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
-  "id": "#main",
   "inputs": [],
   "outputs": [
     {
-      "id": "#main/val",
-      "outputSource": "#main/step1/echo_out",
+      "id": "val",
+      "outputSource": "step1/echo_out",
       "type": "string"
     }
   ],
   "requirements": [
     {
       "class": "StepInputExpressionRequirement"
+    },
+    {
+      "class": "SubworkflowFeatureRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ],
   "steps": [
     {
-      "id": "#main/step1",
+      "id": "step1",
       "in": [
         {
-          "id": "#main/step1/a",
+          "id": "a",
           "valueFrom": "moocow"
         }
       ],
       "out": [
-        "#main/step1/echo_out"
+        "echo_out"
       ],
       "run": {
         "baseCommand": "echo",
         "class": "CommandLineTool",
-        "id": "#main/step1/run/echo",
+        "id": "echo",
         "inputs": [
           {
-            "id": "#main/step1/run/echo/a",
+            "id": "a",
             "inputBinding": {},
             "type": "string"
           }
         ],
         "outputs": [
           {
-            "id": "#main/step1/run/echo/echo_out",
+            "id": "echo_out",
             "outputBinding": {
               "glob": "step1_out",
               "loadContents": true,
               "outputEval": "$(self[0].contents)"
             },
             "type": "string"
+          }
+        ],
+        "requirements": [
+          {
+            "class": "InlineJavascriptRequirement"
           }
         ],
         "stdout": "step1_out"

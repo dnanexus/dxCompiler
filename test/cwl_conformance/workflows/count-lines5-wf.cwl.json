@@ -1,70 +1,71 @@
 {
-  "$graph": [
+  "class": "Workflow",
+  "cwlVersion": "v1.2",
+  "inputs": [
     {
-      "class": "Workflow",
-      "id": "#main",
-      "inputs": [
-        {
-          "default": {
-            "class": "File",
-            "location": "dx://file-G0G0V100yzZg3BBz3x4Y2Q69"
-          },
-          "id": "#main/file1",
-          "type": "File"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "#main/count_output",
-          "outputSource": "#main/step1/output",
-          "type": "int"
-        }
-      ],
-      "steps": [
-        {
-          "id": "#main/step1",
-          "in": [
-            {
-              "id": "#main/step1/file1",
-              "source": "#main/file1"
-            }
-          ],
-          "out": [
-            "#main/step1/output"
-          ],
-          "run": "#wc2-tool.cwl"
-        }
-      ]
-    },
-    {
-      "baseCommand": "wc",
-      "class": "CommandLineTool",
-      "id": "#wc2-tool.cwl",
-      "inputs": [
-        {
-          "id": "#wc2-tool.cwl/file1",
-          "inputBinding": {},
-          "type": "File"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "#wc2-tool.cwl/output",
-          "outputBinding": {
-            "glob": "output.txt",
-            "loadContents": true,
-            "outputEval": "$(parseInt(self[0].contents))"
-          },
-          "type": "int"
-        }
-      ],
-      "requirements": [
-        {
-          "class": "InlineJavascriptRequirement"
-        }
-      ],
-      "stdout": "output.txt"
+      "default": {
+        "class": "File",
+        "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G0G0V100yzZg3BBz3x4Y2Q69"
+      },
+      "id": "file1",
+      "type": "File"
     }
   ],
-  "cwlVersion": "v1.2"
+  "outputs": [
+    {
+      "id": "count_output",
+      "outputSource": "step1/output",
+      "type": "int"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "SubworkflowFeatureRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step1",
+      "in": [
+        {
+          "id": "file1",
+          "source": "file1"
+        }
+      ],
+      "out": [
+        "output"
+      ],
+      "run": {
+        "baseCommand": "wc",
+        "class": "CommandLineTool",
+        "inputs": [
+          {
+            "id": "file1",
+            "inputBinding": {},
+            "type": "File"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "output",
+            "outputBinding": {
+              "glob": "output.txt",
+              "loadContents": true,
+              "outputEval": "$(parseInt(self[0].contents))"
+            },
+            "type": "int"
+          }
+        ],
+        "requirements": [
+          {
+            "class": "InlineJavascriptRequirement"
+          }
+        ],
+        "stdout": "output.txt"
+      }
+    }
+  ]
 }

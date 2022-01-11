@@ -1,0 +1,81 @@
+{
+  "class": "Workflow",
+  "cwlVersion": "v1.2",
+  "inputs": [
+    {
+      "id": "inp",
+      "type": {
+        "items": "string",
+        "type": "array"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "out",
+      "outputSource": "step1/echo_out",
+      "type": {
+        "items": "string",
+        "type": "array"
+      }
+    }
+  ],
+  "requirements": [
+    {
+      "class": "ScatterFeatureRequirement"
+    },
+    {
+      "class": "SubworkflowFeatureRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step1",
+      "in": [
+        {
+          "id": "echo_in",
+          "source": "inp"
+        }
+      ],
+      "out": [
+        "echo_out"
+      ],
+      "run": {
+        "arguments": [
+          "-n",
+          "foo"
+        ],
+        "baseCommand": "echo",
+        "class": "CommandLineTool",
+        "inputs": [
+          {
+            "id": "echo_in",
+            "inputBinding": {},
+            "type": "string"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "echo_out",
+            "outputBinding": {
+              "glob": "step1_out",
+              "loadContents": true,
+              "outputEval": "$(self[0].contents)"
+            },
+            "type": "string"
+          }
+        ],
+        "requirements": [
+          {
+            "class": "InlineJavascriptRequirement"
+          }
+        ],
+        "stdout": "step1_out"
+      },
+      "scatter": "echo_in"
+    }
+  ]
+}

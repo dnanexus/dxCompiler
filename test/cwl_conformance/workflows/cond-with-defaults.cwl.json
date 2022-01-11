@@ -1,150 +1,176 @@
 {
-  "$graph": [
+  "class": "Workflow",
+  "cwlVersion": "v1.2",
+  "inputs": [
     {
-      "arguments": [
-        "echo",
-        "$(inputs.initial_file.basename)"
-      ],
-      "class": "CommandLineTool",
-      "id": "#action.cwl",
-      "inputs": [
-        {
-          "id": "#action.cwl/initial_file",
-          "type": "File"
-        },
-        {
-          "id": "#action.cwl/out_file_name",
-          "type": "string"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "#action.cwl/processed_file",
-          "outputBinding": {
-            "glob": "$(inputs.out_file_name)"
-          },
-          "type": "File"
-        }
-      ],
-      "stdout": "$(inputs.out_file_name)"
+      "id": "forward_reads",
+      "type": [
+        "null",
+        "File"
+      ]
     },
     {
-      "class": "Workflow",
-      "id": "#main",
-      "inputs": [
-        {
-          "id": "#main/forward_reads",
-          "type": [
-            "null",
-            "File"
-          ]
-        },
-        {
-          "id": "#main/reverse_reads",
-          "type": [
-            "null",
-            "File"
-          ]
-        },
-        {
-          "id": "#main/single_reads",
-          "type": [
-            "null",
-            "File"
-          ]
-        }
-      ],
-      "outputs": [
-        {
-          "id": "#main/out_file",
-          "linkMerge": "merge_flattened",
-          "outputSource": [
-            "#main/step_paired/processed_file",
-            "#main/step_single/processed_file"
-          ],
-          "pickValue": "all_non_null",
-          "type": {
-            "items": "File",
-            "type": "array"
-          }
-        }
-      ],
-      "requirements": [
-        {
-          "class": "InlineJavascriptRequirement"
-        },
-        {
-          "class": "MultipleInputFeatureRequirement"
-        },
-        {
-          "class": "ScatterFeatureRequirement"
-        },
-        {
-          "class": "StepInputExpressionRequirement"
-        }
-      ],
-      "steps": [
-        {
-          "id": "#main/step_paired",
-          "in": [
-            {
-              "id": "#main/step_paired/initial_file",
-              "source": [
-                "#main/forward_reads",
-                "#main/reverse_reads"
-              ]
-            },
-            {
-              "id": "#main/step_paired/out_file_name",
-              "valueFrom": "filename_paired$(inputs.suffix)"
-            },
-            {
-              "id": "#main/step_paired/single",
-              "source": "#main/single_reads"
-            },
-            {
-              "default": [
-                "1",
-                "2"
-              ],
-              "id": "#main/step_paired/suffix"
-            }
-          ],
-          "out": [
-            "#main/step_paired/processed_file"
-          ],
-          "run": "#action.cwl",
-          "scatter": [
-            "#main/step_paired/initial_file",
-            "#main/step_paired/suffix"
-          ],
-          "scatterMethod": "dotproduct",
-          "when": "$(inputs.single === null)"
-        },
-        {
-          "id": "#main/step_single",
-          "in": [
-            {
-              "id": "#main/step_single/initial_file",
-              "source": "#main/single_reads"
-            },
-            {
-              "default": "filename_single",
-              "id": "#main/step_single/out_file_name"
-            },
-            {
-              "id": "#main/step_single/single",
-              "source": "#main/single_reads"
-            }
-          ],
-          "out": [
-            "#main/step_single/processed_file"
-          ],
-          "run": "#action.cwl",
-          "when": "$(inputs.single !== null)"
-        }
+      "id": "reverse_reads",
+      "type": [
+        "null",
+        "File"
+      ]
+    },
+    {
+      "id": "single_reads",
+      "type": [
+        "null",
+        "File"
       ]
     }
   ],
-  "cwlVersion": "v1.2"
+  "outputs": [
+    {
+      "id": "out_file",
+      "linkMerge": "merge_flattened",
+      "outputSource": [
+        "step_paired/processed_file",
+        "step_single/processed_file"
+      ],
+      "pickValue": "all_non_null",
+      "type": {
+        "items": "File",
+        "type": "array"
+      }
+    }
+  ],
+  "requirements": [
+    {
+      "class": "MultipleInputFeatureRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
+    },
+    {
+      "class": "StepInputExpressionRequirement"
+    },
+    {
+      "class": "ScatterFeatureRequirement"
+    },
+    {
+      "class": "SubworkflowFeatureRequirement"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step_paired",
+      "in": [
+        {
+          "id": "single",
+          "source": "single_reads"
+        },
+        {
+          "default": [
+            "1",
+            "2"
+          ],
+          "id": "suffix"
+        },
+        {
+          "id": "initial_file",
+          "source": [
+            "forward_reads",
+            "reverse_reads"
+          ]
+        },
+        {
+          "id": "out_file_name",
+          "valueFrom": "filename_paired$(inputs.suffix)"
+        }
+      ],
+      "out": [
+        "processed_file"
+      ],
+      "run": {
+        "arguments": [
+          "echo",
+          "$(inputs.initial_file.basename)"
+        ],
+        "class": "CommandLineTool",
+        "inputs": [
+          {
+            "id": "initial_file",
+            "type": "File"
+          },
+          {
+            "id": "out_file_name",
+            "type": "string"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "processed_file",
+            "type": "stdout"
+          }
+        ],
+        "requirements": [
+          {
+            "class": "InlineJavascriptRequirement"
+          }
+        ],
+        "stdout": "$(inputs.out_file_name)"
+      },
+      "scatter": [
+        "initial_file",
+        "suffix"
+      ],
+      "scatterMethod": "dotproduct",
+      "when": "$(inputs.single === null)"
+    },
+    {
+      "id": "step_single",
+      "in": [
+        {
+          "id": "single",
+          "source": "single_reads"
+        },
+        {
+          "id": "initial_file",
+          "source": "single_reads"
+        },
+        {
+          "default": "filename_single",
+          "id": "out_file_name"
+        }
+      ],
+      "out": [
+        "processed_file"
+      ],
+      "run": {
+        "arguments": [
+          "echo",
+          "$(inputs.initial_file.basename)"
+        ],
+        "class": "CommandLineTool",
+        "inputs": [
+          {
+            "id": "initial_file",
+            "type": "File"
+          },
+          {
+            "id": "out_file_name",
+            "type": "string"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "processed_file",
+            "type": "stdout"
+          }
+        ],
+        "requirements": [
+          {
+            "class": "InlineJavascriptRequirement"
+          }
+        ],
+        "stdout": "$(inputs.out_file_name)"
+      },
+      "when": "$(inputs.single !== null)"
+    }
+  ]
 }

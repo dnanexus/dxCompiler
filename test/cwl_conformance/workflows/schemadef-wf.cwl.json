@@ -1,0 +1,93 @@
+{
+  "class": "Workflow",
+  "cwlVersion": "v1.2",
+  "inputs": [
+    {
+      "id": "hello",
+      "type": {
+        "fields": [
+          {
+            "name": "a",
+            "type": "string"
+          },
+          {
+            "name": "b",
+            "type": "string"
+          }
+        ],
+        "name": "user_type_2",
+        "type": "record"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "output",
+      "outputSource": "step1/output",
+      "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "SubworkflowFeatureRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step1",
+      "in": [
+        {
+          "id": "hello",
+          "source": "hello"
+        }
+      ],
+      "out": [
+        "output"
+      ],
+      "run": {
+        "baseCommand": "echo",
+        "class": "CommandLineTool",
+        "inputs": [
+          {
+            "id": "hello",
+            "inputBinding": {
+              "valueFrom": "$(self.a)/$(self.b)"
+            },
+            "type": {
+              "fields": [
+                {
+                  "name": "a",
+                  "type": "string"
+                },
+                {
+                  "name": "b",
+                  "type": "string"
+                }
+              ],
+              "name": "user_type_8",
+              "type": "record"
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "id": "output",
+            "outputBinding": {
+              "glob": "output.txt"
+            },
+            "type": "File"
+          }
+        ],
+        "requirements": [
+          {
+            "class": "InlineJavascriptRequirement"
+          }
+        ],
+        "stdout": "output.txt"
+      }
+    }
+  ]
+}
