@@ -100,7 +100,7 @@
           {
             "default": {
               "class": "File",
-              "location": "updateval.py"
+              "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/updateval.py"
             },
             "id": "script",
             "type": "File"

@@ -1,5 +1,5 @@
 {
-  "record-out-format.record_input": {
+  "record-in-secondaryFiles-missing-wf.record_input": {
     "f1": {
       "class": "File",
       "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/rec/A",

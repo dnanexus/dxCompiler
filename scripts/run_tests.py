@@ -68,6 +68,7 @@ expected_failure = {
     "record-in-format.1",
     "record-in-format.2",
     "record-in-format.3",
+    "record-in-secondaryFiles-missing-wf"
 }
 
 test_compilation_failing = {"import_passwd"}
