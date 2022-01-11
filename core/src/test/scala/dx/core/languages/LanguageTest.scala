@@ -17,22 +17,22 @@ class LanguageTest extends AnyFlatSpec with Matchers {
     var thrown = intercept[Exception] {
       Language.parse("v1.0", Some("cwl"))
     }
-    thrown.getMessage() should include (
-      s"Unrecognized/unsupported language"
+    thrown.getMessage() should include(
+        s"Unrecognized/unsupported language"
     )
-    
+
     thrown = intercept[Exception] {
       Language.parse("v1.1", Some("cwl"))
     }
-    thrown.getMessage() should include (
-      s"Unrecognized/unsupported language"
+    thrown.getMessage() should include(
+        s"Unrecognized/unsupported language"
     )
-    
+
     thrown = intercept[Exception] {
       Language.parse("cwl1.0", Some("cwl"))
     }
-    thrown.getMessage() should include (
-      s"Unrecognized/unsupported language"
+    thrown.getMessage() should include(
+        s"Unrecognized/unsupported language"
     )
   }
 }
