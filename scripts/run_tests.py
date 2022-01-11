@@ -449,6 +449,45 @@ cromwell_tests_list = [
     "exit",
 ]
 
+cwl_cromwell_tests_list = [
+    "cwl_ad_hoc_file_test",
+    "cwl_cache_between_workflows",
+    "cwl_cache_within_workflow",
+    "cwl_docker_size",
+    "cwl_dynamic_initial_workdir",
+    "cwl_expressionLib",
+    "cwl_format",
+    # "cwl_format_url", # APPS-961 Could not load extension schema https
+    "cwl_glob_sort",
+    "cwl_hello",
+    # "cwl_http_inputs", # APPS-961 HTTPS input link is not supported: 
+    #                     Error translating inputs: java.lang.RuntimeException: Unsupported file source .png
+    "test_wf",
+    "touch",
+    "test_pack",
+    "cwl_input_binding_expression",
+    # "cwl_input_json", # APPS-1008: Error translating to IR, downcasting failed
+    "cwl_input_typearray",
+    "cwl_interpolated_strings",
+    "cwl_optionals",
+    "cwl_output_json",
+    "prefix_for_array",
+    "cwl_recursive_link_directories",
+    "cwl_relative_imports",
+    # "cwl_disk_resources", # APPS-961 Could not resolve host: metadata.google.internal
+    #                       # Unknown hint https://www.dnanexus.com/cwl#InputResourceRequirement (Should be deprecated)
+    # "cwl_inputdir_zero_doesnt_localize", # APPS-1008: Error translating to IR, downcasting failed
+    # "cwl_resources", # APPS-961 Could not resolve host: metadata.google.internal
+    # "cwl_restart", # APPS-834 AppInternalError: workflow does not contain a tool 
+    "1st-tool",
+    "cwl_secondary_files",
+    # "cwl_secondary_files_workflow", # APPS-1005 Error creating translator
+    "cwl_stdout_expression",
+    # "scatter-wf1", # APPS-834 Could not find linking information 
+    # "cwl_three_step", # APPS-834 AppInternalError: workflow does not contain a tool 
+    # "cwl_three_step_caller_wf" # APPS-834 AppInternalError: workflow does not contain a tool (raised from calling cwl_three_step)
+]
+
 # these are tests that take a long time to run
 long_test_list = [
     "diskspace_exhauster"  # APPS-749
@@ -476,6 +515,7 @@ test_suites = {
     "cwl_tools": cwl_conformance_tools,
     "cwl_workflows": cwl_conformance_workflows,
     'cromwell': cromwell_tests_list,
+    "cwl_cromwell": cwl_cromwell_tests_list,
     'manifests': manifest_test_list
 }
 
@@ -602,10 +642,10 @@ def register_test(dir_path, tname, ext):
         raise RuntimeError("Test file {} does not exist".format(source_file))
     if ext == ".wdl":
         metadata = get_wdl_metadata(source_file)
-    elif ext == ".cwl":
-        metadata = get_cwl_metadata(source_file, tname)
     elif ext == ".cwl.json":
         metadata = get_cwl_json_metadata(source_file, tname)
+    elif ext == ".cwl":
+         metadata = get_cwl_metadata(source_file, tname)
     else:
         raise RuntimeError("unsupported file type {}".format(ext))
     desc = TestDesc(
@@ -623,6 +663,11 @@ def register_test(dir_path, tname, ext):
     if os.path.exists(test_input):
         util.verify_json_file(test_input)
         desc.raw_input.append(test_input)
+        desc.dx_input.append(os.path.join(dir_path, tname + "_input.dx.json"))
+        desc.results.append(os.path.join(dir_path, tname + "_results.json"))
+    elif os.path.exists(os.path.join(dir_path, tname + "_input.yaml")):
+        test_yaml = os.path.join(dir_path, tname + "_input.yaml")
+        desc.raw_input.append(test_yaml)
         desc.dx_input.append(os.path.join(dir_path, tname + "_input.dx.json"))
         desc.results.append(os.path.join(dir_path, tname + "_results.json"))
 

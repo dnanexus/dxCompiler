@@ -1,0 +1,28 @@
+#!/usr/bin/env cwl-runner
+cwlVersion: v1.2
+$graph:
+  id: main
+  class: CommandLineTool
+  requirements:
+  - class: DockerRequirement
+    dockerPull: ubuntu:latest
+  - class: InlineJavascriptRequirement
+  baseCommand: echo
+  inputs:
+    message:
+      type: string
+      inputBinding:
+        position: 1
+  stdout: hello-stdout.txt
+  outputs:
+  - id: salutation
+    type: string
+    outputBinding:
+      glob: hello-stdout.txt
+      loadContents: true
+      outputEval: $(self[0].contents.trim())
+  hints:
+    NetworkAccess:
+      networkAccess: true
+    LoadListingRequirement:
+      loadListing: deep_listing

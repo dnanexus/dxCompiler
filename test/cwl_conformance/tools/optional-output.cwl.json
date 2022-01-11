@@ -1,50 +1,50 @@
 {
-    "class": "CommandLineTool",
-    "doc": "Print the contents of a file to stdout using 'cat' running in a docker container.",
-    "hints": [
+  "baseCommand": "cat",
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "doc": "Print the contents of a file to stdout using 'cat' running in a docker container.",
+  "hints": [
+    {
+      "class": "DockerRequirement",
+      "dockerPull": "debian:stretch-slim"
+    }
+  ],
+  "id": "#main",
+  "inputs": [
+    {
+      "doc": "The file that will be copied using 'cat'",
+      "id": "#main/file1",
+      "inputBinding": {
+        "position": 1
+      },
+      "label": "Input File",
+      "type": "File"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "#main/optional_file",
+      "outputBinding": {
+        "glob": "bumble.txt"
+      },
+      "type": [
+        "null",
+        "File"
+      ]
+    },
+    {
+      "id": "#main/output_file",
+      "outputBinding": {
+        "glob": "output.txt"
+      },
+      "secondaryFiles": [
         {
-            "dockerPull": "debian:stretch-slim",
-            "class": "DockerRequirement"
+          "pattern": ".idx",
+          "required": null
         }
-    ],
-    "inputs": [
-        {
-            "type": "File",
-            "label": "Input File",
-            "doc": "The file that will be copied using 'cat'",
-            "inputBinding": {
-                "position": 1
-            },
-            "id": "#main/file1"
-        }
-    ],
-    "outputs": [
-        {
-            "type": [
-                "null",
-                "File"
-            ],
-            "outputBinding": {
-                "glob": "bumble.txt"
-            },
-            "id": "#main/optional_file"
-        },
-        {
-            "type": "File",
-            "outputBinding": {
-                "glob": "output.txt"
-            },
-            "secondaryFiles": [
-                {
-                    "pattern": ".idx",
-                    "required": null
-                }
-            ],
-            "id": "#main/output_file"
-        }
-    ],
-    "baseCommand": "cat",
-    "stdout": "output.txt",
-    "id": "#main",
-    "cwlVersion": "v1.2"
+      ],
+      "type": "File"
+    }
+  ],
+  "stdout": "output.txt"
 }

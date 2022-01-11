@@ -1,60 +1,60 @@
 {
-    "$graph": [
+  "$graph": [
+    {
+      "class": "Workflow",
+      "id": "#main",
+      "inputs": [],
+      "outputs": [
         {
-            "class": "Workflow",
-            "inputs": [],
-            "outputs": [
-                {
-                    "type": "File",
-                    "outputSource": "#main/step1/output",
-                    "id": "#main/wc_output"
-                }
-            ],
-            "steps": [
-                {
-                    "run": "#wc-tool.cwl",
-                    "in": [
-                        {
-                            "default": {
-                                "class": "File",
-                                "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G0G0V1Q0yzZZZXfx3xPK1B1Z"
-                            },
-                            "id": "#main/step1/file1"
-                        }
-                    ],
-                    "out": [
-                        "#main/step1/output"
-                    ],
-                    "id": "#main/step1"
-                }
-            ],
-            "id": "#main"
-        },
-        {
-            "class": "CommandLineTool",
-            "inputs": [
-                {
-                    "type": "File",
-                    "id": "#wc-tool.cwl/file1"
-                }
-            ],
-            "outputs": [
-                {
-                    "type": "File",
-                    "outputBinding": {
-                        "glob": "output"
-                    },
-                    "id": "#wc-tool.cwl/output"
-                }
-            ],
-            "baseCommand": [
-                "wc",
-                "-l"
-            ],
-            "stdin": "$(inputs.file1.path)",
-            "stdout": "output",
-            "id": "#wc-tool.cwl"
+          "id": "#main/wc_output",
+          "outputSource": "#main/step1/output",
+          "type": "File"
         }
-    ],
-    "cwlVersion": "v1.2"
+      ],
+      "steps": [
+        {
+          "id": "#main/step1",
+          "in": [
+            {
+              "default": {
+                "class": "File",
+                "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G0G0V1Q0yzZZZXfx3xPK1B1Z"
+              },
+              "id": "#main/step1/file1"
+            }
+          ],
+          "out": [
+            "#main/step1/output"
+          ],
+          "run": "#wc-tool.cwl"
+        }
+      ]
+    },
+    {
+      "baseCommand": [
+        "wc",
+        "-l"
+      ],
+      "class": "CommandLineTool",
+      "id": "#wc-tool.cwl",
+      "inputs": [
+        {
+          "id": "#wc-tool.cwl/file1",
+          "type": "File"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "#wc-tool.cwl/output",
+          "outputBinding": {
+            "glob": "output"
+          },
+          "type": "File"
+        }
+      ],
+      "stdin": "$(inputs.file1.path)",
+      "stdout": "output"
+    }
+  ],
+  "cwlVersion": "v1.2"
 }

@@ -1,81 +1,81 @@
 {
-    "$graph": [
+  "$graph": [
+    {
+      "class": "Workflow",
+      "id": "#main",
+      "inputs": [
         {
-            "class": "Workflow",
-            "inputs": [
-                {
-                    "type": "string",
-                    "default": "Direct",
-                    "id": "#main/def"
-                },
-                {
-                    "type": "int",
-                    "id": "#main/val"
-                }
-            ],
-            "steps": [
-                {
-                    "in": [
-                        {
-                            "source": "#main/val",
-                            "id": "#main/step1/a_new_var"
-                        },
-                        {
-                            "source": "#main/val",
-                            "id": "#main/step1/in1"
-                        }
-                    ],
-                    "run": "#foo.cwl",
-                    "when": "$(inputs.a_new_var > 2)",
-                    "out": [
-                        "#main/step1/out1"
-                    ],
-                    "id": "#main/step1"
-                }
-            ],
-            "outputs": [
-                {
-                    "type": "string",
-                    "outputSource": [
-                        "#main/step1/out1",
-                        "#main/def"
-                    ],
-                    "pickValue": "all_non_null",
-                    "id": "#main/out1"
-                }
-            ],
-            "requirements": [
-                {
-                    "class": "InlineJavascriptRequirement"
-                },
-                {
-                    "class": "MultipleInputFeatureRequirement"
-                }
-            ],
-            "id": "#main"
+          "default": "Direct",
+          "id": "#main/def",
+          "type": "string"
         },
         {
-            "class": "CommandLineTool",
-            "inputs": [
-                {
-                    "type": "int",
-                    "id": "#foo.cwl/in1"
-                }
-            ],
-            "baseCommand": [
-                "echo"
-            ],
-            "outputs": [
-                {
-                    "type": "string",
-                    "outputBinding": {
-                        "outputEval": "foo $(inputs.in1)"
-                    },
-                    "id": "#foo.cwl/out1"
-                }
-            ],
-            "id": "#foo.cwl"
+          "id": "#main/val",
+          "type": "int"
         }
-    ],
-    "cwlVersion": "v1.2"
+      ],
+      "outputs": [
+        {
+          "id": "#main/out1",
+          "outputSource": [
+            "#main/step1/out1",
+            "#main/def"
+          ],
+          "pickValue": "all_non_null",
+          "type": "string"
+        }
+      ],
+      "requirements": [
+        {
+          "class": "InlineJavascriptRequirement"
+        },
+        {
+          "class": "MultipleInputFeatureRequirement"
+        }
+      ],
+      "steps": [
+        {
+          "id": "#main/step1",
+          "in": [
+            {
+              "id": "#main/step1/a_new_var",
+              "source": "#main/val"
+            },
+            {
+              "id": "#main/step1/in1",
+              "source": "#main/val"
+            }
+          ],
+          "out": [
+            "#main/step1/out1"
+          ],
+          "run": "#foo.cwl",
+          "when": "$(inputs.a_new_var > 2)"
+        }
+      ]
+    },
+    {
+      "baseCommand": [
+        "echo"
+      ],
+      "class": "CommandLineTool",
+      "id": "#foo.cwl",
+      "inputs": [
+        {
+          "id": "#foo.cwl/in1",
+          "type": "int"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "#foo.cwl/out1",
+          "outputBinding": {
+            "outputEval": "foo $(inputs.in1)"
+          },
+          "type": "string"
+        }
+      ]
+    }
+  ],
+  "cwlVersion": "v1.2"
 }

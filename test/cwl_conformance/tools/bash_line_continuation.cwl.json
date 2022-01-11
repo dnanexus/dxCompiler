@@ -1,31 +1,31 @@
 {
-    "class": "CommandLineTool",
-    "requirements": [
+  "baseCommand": [
+    "bash",
+    "script.sh"
+  ],
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "id": "#main",
+  "inputs": [],
+  "outputs": [
+    {
+      "id": "#main/out",
+      "outputBinding": {
+        "glob": "out.txt"
+      },
+      "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InitialWorkDirRequirement",
+      "listing": [
         {
-            "listing": [
-                {
-                    "entryname": "script.sh",
-                    "entry": "echo \\\n  \"My country, 'tis of thee,\" \\\n  \"Sweet land of liberty\"\n"
-                }
-            ],
-            "class": "InitialWorkDirRequirement"
+          "entry": "echo \\\n  \"My country, 'tis of thee,\" \\\n  \"Sweet land of liberty\"\n",
+          "entryname": "script.sh"
         }
-    ],
-    "baseCommand": [
-        "bash",
-        "script.sh"
-    ],
-    "inputs": [],
-    "outputs": [
-        {
-            "type": "File",
-            "id": "#main/out",
-            "outputBinding": {
-                "glob": "out.txt"
-            }
-        }
-    ],
-    "stdout": "out.txt",
-    "id": "#main",
-    "cwlVersion": "v1.2"
+      ]
+    }
+  ],
+  "stdout": "out.txt"
 }
