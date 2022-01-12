@@ -420,8 +420,6 @@ def verify_json_file(path):
     except:
         raise RuntimeError("Error verifying JSON file {}".format(path))
 
-# TODO fix usage in run_tests.py
-
 # Build an executable
 # 
 # return            Id of the compiled executable

@@ -1189,7 +1189,14 @@ def build_test(tname, project, folder, version_id, compiler_flags):
     ]
     if "manifest" in desc.source_file:
         compiler_flags.append("-useManifests")
-    return util.build_executable(desc.source_file, project, folder, top_dir, version_id, compiler_flags)
+    return util.build_executable(
+        source_file=desc.source_file,
+        project_id=project.get_id(),
+        folder=folder,
+        top_dir=top_dir,
+        version_id=version_id,
+        compiler_flags=compiler_flags
+    )
 
 def ensure_dir(path):
     print("making sure that {} exists".format(path))
