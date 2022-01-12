@@ -1,0 +1,59 @@
+{
+    "id": "#main",
+    "class": "CommandLineTool",
+    "doc": "Asks for disk minimums",
+    "requirements": [
+        {
+            "class": "ResourceRequirement",
+            "outdirMin": 10240,
+            "tmpdirMin": 10240
+        },
+        {
+            "class": "ShellCommandRequirement"
+        },
+        {
+            "class": "InlineJavascriptRequirement"
+        }
+    ],
+    "hints": [
+        {
+            "class": "DockerRequirement",
+            "dockerPull": "gcr.io/google.com/cloudsdktool/cloud-sdk:slim"
+        },
+        {
+            "class": "https://www.dnanexus.com/cwl#InputResourceRequirement",
+            "indirMin": 10240
+        },
+        {
+            "class": "NetworkAccess",
+            "networkAccess": true
+        },
+        {
+            "class": "LoadListingRequirement",
+            "loadListing": "deep_listing"
+        }
+    ],
+    "inputs": [],
+    "arguments": [
+        {
+            "valueFrom": "apt-get install --assume-yes jq > /dev/null && NAME=`curl -s -H \"Metadata-Flavor: Google\" http://metadata.google.internal/computeMetadata/v1/instance/name` && ZONE=`basename \\`curl -s -H \"Metadata-Flavor: Google\" http://metadata.google.internal/computeMetadata/v1/instance/zone\\`` && PROJECT=`curl -s -H \"Metadata-Flavor: Google\" http://metadata.google.internal/computeMetadata/v1/project/project-id` && curl -s -H \"Authorization: Bearer `gcloud auth print-access-token`\" \"https://www.googleapis.com/compute/v1/projects/${PROJECT}/zones/${ZONE}/disks/${NAME}-1?fields=sizeGb\" | jq -r '.sizeGb'\n",
+            "shellQuote": false
+        }
+    ],
+    "stdout": "stdout",
+    "outputs": [
+        {
+            "type": "int",
+            "outputBinding": {
+                "glob": "stdout",
+                "loadContents": true,
+                "outputEval": "$(parseInt(self[0].contents.trim()))"
+            },
+            "id": "#main/disk_size"
+        }
+    ],
+    "cwlVersion": "v1.2",
+    "$namespaces": {
+        "dx": "https://www.dnanexus.com/cwl#"
+    }
+}

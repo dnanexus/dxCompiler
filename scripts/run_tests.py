@@ -24,11 +24,7 @@ import util
 here = os.path.dirname(sys.argv[0])
 top_dir = os.path.dirname(os.path.abspath(here))
 test_dir = os.path.join(os.path.abspath(top_dir), "test")
-default_instance_type = "mem1_ssd1_v2_x4"
 
-git_revision = subprocess.check_output(
-    ["git", "describe", "--always", "--dirty", "--tags"]
-).strip()
 test_files = {}
 
 expected_failure = {
@@ -453,6 +449,45 @@ cromwell_tests_list = [
     "exit",
 ]
 
+cwl_cromwell_tests_list = [
+    "cwl_ad_hoc_file_test",
+    "cwl_cache_between_workflows",
+    "cwl_cache_within_workflow",
+    "cwl_docker_size",
+    "cwl_dynamic_initial_workdir",
+    "cwl_expressionLib",
+    "cwl_format",
+    # "cwl_format_url", # APPS-961 Could not load extension schema https
+    "cwl_glob_sort",
+    "cwl_hello",
+    # "cwl_http_inputs", # APPS-961 HTTPS input link is not supported: 
+    #                     Error translating inputs: java.lang.RuntimeException: Unsupported file source .png
+    "test_wf",
+    "touch",
+    "test_pack",
+    "cwl_input_binding_expression",
+    # "cwl_input_json", # APPS-1008: Error translating to IR, downcasting failed
+    "cwl_input_typearray",
+    "cwl_interpolated_strings",
+    "cwl_optionals",
+    "cwl_output_json",
+    "prefix_for_array",
+    "cwl_recursive_link_directories",
+    "cwl_relative_imports",
+    # "cwl_disk_resources", # APPS-961 Could not resolve host: metadata.google.internal
+    #                       # Unknown hint https://www.dnanexus.com/cwl#InputResourceRequirement (Should be deprecated)
+    # "cwl_inputdir_zero_doesnt_localize", # APPS-1008: Error translating to IR, downcasting failed
+    # "cwl_resources", # APPS-961 Could not resolve host: metadata.google.internal
+    # "cwl_restart", # APPS-834 AppInternalError: workflow does not contain a tool 
+    "1st-tool",
+    "cwl_secondary_files",
+    # "cwl_secondary_files_workflow", # APPS-1005 Error creating translator
+    "cwl_stdout_expression",
+    # "scatter-wf1", # APPS-834 Could not find linking information 
+    # "cwl_three_step", # APPS-834 AppInternalError: workflow does not contain a tool 
+    # "cwl_three_step_caller_wf" # APPS-834 AppInternalError: workflow does not contain a tool (raised from calling cwl_three_step)
+]
+
 # these are tests that take a long time to run
 long_test_list = [
     "diskspace_exhauster"  # APPS-749
@@ -480,6 +515,7 @@ test_suites = {
     "cwl_tools": cwl_conformance_tools,
     "cwl_workflows": cwl_conformance_workflows,
     'cromwell': cromwell_tests_list,
+    "cwl_cromwell": cwl_cromwell_tests_list,
     'manifests': manifest_test_list
 }
 
@@ -524,22 +560,6 @@ test_upload_wait = {
 
 # use the applet's default instance type rather than the default (mem1_ssd1_x4)
 test_instance_type = ["diskspace_exhauster"]
-
-
-# Read a JSON file
-def read_json_file(path):
-    with open(path, "r") as fd:
-        data = fd.read()
-        d = json.loads(data)
-        return d
-
-
-def verify_json_file(path):
-    try:
-        read_json_file(path)
-    except:
-        raise RuntimeError("Error verifying JSON file {}".format(path))
-
 
 # Search a WDL file with a python regular expression.
 # Note this is not 100% accurate.
@@ -622,10 +642,10 @@ def register_test(dir_path, tname, ext):
         raise RuntimeError("Test file {} does not exist".format(source_file))
     if ext == ".wdl":
         metadata = get_wdl_metadata(source_file)
-    elif ext == ".cwl":
-        metadata = get_cwl_metadata(source_file, tname)
     elif ext == ".cwl.json":
         metadata = get_cwl_json_metadata(source_file, tname)
+    elif ext == ".cwl":
+         metadata = get_cwl_metadata(source_file, tname)
     else:
         raise RuntimeError("unsupported file type {}".format(ext))
     desc = TestDesc(
@@ -641,8 +661,13 @@ def register_test(dir_path, tname, ext):
     # Verify the input file, and add it (if it exists)
     test_input = os.path.join(dir_path, tname + "_input.json")
     if os.path.exists(test_input):
-        verify_json_file(test_input)
+        util.verify_json_file(test_input)
         desc.raw_input.append(test_input)
+        desc.dx_input.append(os.path.join(dir_path, tname + "_input.dx.json"))
+        desc.results.append(os.path.join(dir_path, tname + "_results.json"))
+    elif os.path.exists(os.path.join(dir_path, tname + "_input.yaml")):
+        test_yaml = os.path.join(dir_path, tname + "_input.yaml")
+        desc.raw_input.append(test_yaml)
         desc.dx_input.append(os.path.join(dir_path, tname + "_input.dx.json"))
         desc.results.append(os.path.join(dir_path, tname + "_results.json"))
 
@@ -651,7 +676,7 @@ def register_test(dir_path, tname, ext):
     while True:
         test_input = os.path.join(dir_path, tname + "_input{}.json".format(i))
         if os.path.exists(test_input):
-            verify_json_file(test_input)
+            util.verify_json_file(test_input)
             desc.raw_input.append(test_input)
             desc.dx_input.append(
                 os.path.join(dir_path, tname + "_input{}.dx.json".format(i))
@@ -679,7 +704,7 @@ def read_json_file_maybe_empty(path):
     if not os.path.exists(path):
         return {}
     else:
-        return read_json_file(path)
+        return util.read_json_file(path)
 
 
 def find_test_from_exec(exec_obj):
@@ -1145,50 +1170,31 @@ def lookup_dataobj(tname, project, folder):
         return objs[0]["id"]
     return None
 
-
-# Build a workflow.
+# Build executable for test.
 #
-# wf             workflow name
-# classpath      java classpath needed for running compilation
-# folder         destination folder on the platform
+# tname             Test name
+# project           Destination project on platform
+# folder            Destination folder on platform
+# version_id        dxCompiler version
+# compiler_flags    Additional dxCompiler flags
 def build_test(tname, project, folder, version_id, compiler_flags):
     desc = test_files[tname]
     print("build {} {}".format(desc.kind, desc.name))
     print("Compiling {} to a {}".format(desc.source_file, desc.kind))
-    # both static and dynamic instance type selection should work,
+    # Both static and dynamic instance type selection should work,
     # so we can test them at random
-    instance_type_selection = random.choice(["static", "dynamic"])
-    cmdline = [
-        "java",
-        "-jar",
-        os.path.join(top_dir, "dxCompiler-{}.jar".format(version_id)),
-        "compile",
-        desc.source_file,
-        "-force",
-        "-folder",
-        folder,
-        "-project",
-        project.get_id(),
+    compiler_flags += [
         "-instanceTypeSelection",
-        instance_type_selection
+        random.choice(["static", "dynamic"])
     ]
     if "manifest" in desc.source_file:
-        cmdline.append("-useManifests")
-    cmdline += compiler_flags
-    print(" ".join(cmdline))
-    try:
-        oid = subprocess.check_output(cmdline).strip()
-    except subprocess.CalledProcessError as cpe:
-        print(f"error compiling {desc.source_file}\n  stdout: {cpe.stdout}\n  stderr: {cpe.stderr}")
-        raise
-    return oid.decode("ascii")
-
+        compiler_flags.append("-useManifests")
+    return util.build_executable(desc.source_file, project, folder, top_dir, version_id, compiler_flags)
 
 def ensure_dir(path):
     print("making sure that {} exists".format(path))
     if not os.path.exists(path):
         os.makedirs(path)
-
 
 def wait_for_completion(test_exec_objs):
     print("awaiting completion ...")
@@ -1210,70 +1216,6 @@ def wait_for_completion(test_exec_objs):
                 failures.append((tname, exec_obj))
     print("tools execution completed")
     return successes, failures
-
-
-# Run [workflow] on several inputs, return the analysis ID.
-def run_executable(
-    project, test_folder, tname, oid, debug_flag, delay_workspace_destruction, instance_type=default_instance_type
-):
-    desc = test_files[tname]
-
-    def once(i):
-        try:
-            if tname in test_defaults or i < 0:
-                print("  with empty input")
-                inputs = {}
-            else:
-                print("  with input file: {}".format(desc.dx_input[i]))
-                inputs = read_json_file(desc.dx_input[i])
-            project.new_folder(test_folder, parents=True)
-            if desc.kind == "workflow":
-                exec_obj = dxpy.DXWorkflow(project=project.get_id(), dxid=oid)
-                run_kwargs = {"ignore_reuse_stages": ["*"]}
-            elif desc.kind == "applet":
-                exec_obj = dxpy.DXApplet(project=project.get_id(), dxid=oid)
-                run_kwargs = {"ignore_reuse": True}
-            else:
-                raise RuntimeError("Unknown kind {}".format(desc.kind))
-
-            if debug_flag:
-                run_kwargs["debug"] = {
-                    "debugOn": ["AppError", "AppInternalError", "ExecutionError"]
-                }
-                run_kwargs["allow_ssh"] = ["*"]
-
-            if delay_workspace_destruction:
-                run_kwargs["delay_workspace_destruction"] = True
-            if instance_type:
-                run_kwargs["instance_type"] = instance_type
-
-            return exec_obj.run(
-                inputs,
-                project=project.get_id(),
-                folder=test_folder,
-                name="{} {}".format(desc.name, git_revision),
-                **run_kwargs,
-            )
-        except Exception as e:
-            print("exception message={}".format(e))
-            return None
-
-    def run(i):
-        for _ in range(1, 5):
-            retval = once(i)
-            if retval is not None:
-                return retval
-            print("Sleeping for 5 seconds before trying again")
-            time.sleep(5)
-        else:
-            raise RuntimeError("running workflow")
-
-    n = len(desc.dx_input)
-    if n == 0:
-        return [(0, run(-1))]
-    else:
-        return [(i, run(i)) for i in range(n)]
-
 
 def extract_outputs(tname, exec_obj) -> dict:
     desc = test_files[tname]
@@ -1308,10 +1250,17 @@ def run_test_subset(
         if tname in test_instance_type:
             instance_type = None
         else:
-            instance_type = default_instance_type
+            instance_type = util.DEFAULT_INSTANCE_TYPE
         try:
-            anl = run_executable(
-                project, test_folder, tname, oid, debug_flag, delay_workspace_destruction, instance_type
+            anl = util.run_executable(
+                oid=oid,
+                project=project,
+                test_folder=test_folder,
+                test_name=desc.name,
+                test_inputs=desc.dx_input,
+                debug_flag=debug_flag,
+                delay_workspace_destruction=delay_workspace_destruction,
+                instance_type=instance_type
             )
             test_exec_objs.extend(anl)
         except Exception as ex:

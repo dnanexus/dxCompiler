@@ -1,33 +1,33 @@
 {
-    "class": "CommandLineTool",
-    "requirements": [
-        {
-            "listing": [
-                "$(inputs.src)"
-            ],
-            "class": "InitialWorkDirRequirement"
-        }
-    ],
-    "inputs": [
-        {
-            "type": "File",
-            "inputBinding": {
-                "position": 1,
-                "valueFrom": "$(self.nameroot).class"
-            },
-            "id": "#main/src"
-        }
-    ],
-    "baseCommand": "touch",
-    "outputs": [
-        {
-            "type": "File",
-            "outputBinding": {
-                "glob": "*.class"
-            },
-            "id": "#main/classfile"
-        }
-    ],
-    "id": "#main",
-    "cwlVersion": "v1.2"
+  "baseCommand": "touch",
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "id": "#main",
+  "inputs": [
+    {
+      "id": "#main/src",
+      "inputBinding": {
+        "position": 1,
+        "valueFrom": "$(self.nameroot).class"
+      },
+      "type": "File"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "#main/classfile",
+      "outputBinding": {
+        "glob": "*.class"
+      },
+      "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InitialWorkDirRequirement",
+      "listing": [
+        "$(inputs.src)"
+      ]
+    }
+  ]
 }

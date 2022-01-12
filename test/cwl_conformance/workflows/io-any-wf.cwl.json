@@ -1,62 +1,62 @@
 {
-    "$graph": [
+  "$graph": [
+    {
+      "baseCommand": "true",
+      "class": "CommandLineTool",
+      "id": "#io-any-1.cwl",
+      "inputs": [
         {
-            "class": "CommandLineTool",
-            "requirements": [
-                {
-                    "class": "InlineJavascriptRequirement"
-                }
-            ],
-            "inputs": [
-                {
-                    "id": "#io-any-1.cwl/bar",
-                    "type": "Any"
-                }
-            ],
-            "outputs": [
-                {
-                    "id": "#io-any-1.cwl/t1",
-                    "type": "Any",
-                    "outputBinding": {
-                        "outputEval": "$(inputs.bar.class || inputs.bar)"
-                    }
-                }
-            ],
-            "baseCommand": "true",
-            "id": "#io-any-1.cwl"
-        },
-        {
-            "class": "Workflow",
-            "inputs": [
-                {
-                    "type": "Any",
-                    "id": "#main/bar"
-                }
-            ],
-            "outputs": [
-                {
-                    "type": "Any",
-                    "outputSource": "#main/step1/t1",
-                    "id": "#main/t1"
-                }
-            ],
-            "steps": [
-                {
-                    "in": [
-                        {
-                            "source": "#main/bar",
-                            "id": "#main/step1/bar"
-                        }
-                    ],
-                    "out": [
-                        "#main/step1/t1"
-                    ],
-                    "run": "#io-any-1.cwl",
-                    "id": "#main/step1"
-                }
-            ],
-            "id": "#main"
+          "id": "#io-any-1.cwl/bar",
+          "type": "Any"
         }
-    ],
-    "cwlVersion": "v1.2"
+      ],
+      "outputs": [
+        {
+          "id": "#io-any-1.cwl/t1",
+          "outputBinding": {
+            "outputEval": "$(inputs.bar.class || inputs.bar)"
+          },
+          "type": "Any"
+        }
+      ],
+      "requirements": [
+        {
+          "class": "InlineJavascriptRequirement"
+        }
+      ]
+    },
+    {
+      "class": "Workflow",
+      "id": "#main",
+      "inputs": [
+        {
+          "id": "#main/bar",
+          "type": "Any"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "#main/t1",
+          "outputSource": "#main/step1/t1",
+          "type": "Any"
+        }
+      ],
+      "steps": [
+        {
+          "id": "#main/step1",
+          "in": [
+            {
+              "id": "#main/step1/bar",
+              "source": "#main/bar"
+            }
+          ],
+          "out": [
+            "#main/step1/t1"
+          ],
+          "run": "#io-any-1.cwl"
+        }
+      ]
+    }
+  ],
+  "cwlVersion": "v1.2"
 }
