@@ -102,7 +102,7 @@
           "echo"
         ],
         "class": "CommandLineTool",
-        "id": "cond-wf-011_nojs.cwl:step_step1:cat.cwl",
+        "id": "cond-wf-011_nojs.cwl@step_step1@cat.cwl",
         "inputs": [
           {
             "id": "in1",

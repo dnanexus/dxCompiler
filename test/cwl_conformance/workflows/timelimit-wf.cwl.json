@@ -51,7 +51,7 @@
           "10"
         ],
         "class": "CommandLineTool",
-        "id": "timelimit-wf.cwl:step_step1:run",
+        "id": "timelimit-wf.cwl@step_step1@run",
         "inputs": [
           {
             "id": "i",

@@ -52,7 +52,7 @@
           "$(inputs.in2)"
         ],
         "class": "CommandLineTool",
-        "id": "fail-unconnected.cwl:step_step1:fail-unspecified-input.cwl",
+        "id": "fail-unconnected.cwl@step_step1@fail-unspecified-input.cwl",
         "inputs": [
           {
             "id": "in",

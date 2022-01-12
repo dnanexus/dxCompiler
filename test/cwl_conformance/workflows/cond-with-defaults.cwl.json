@@ -93,7 +93,7 @@
           "$(inputs.initial_file.basename)"
         ],
         "class": "CommandLineTool",
-        "id": "cond-with-defaults.cwl:step_step_paired:action.cwl",
+        "id": "cond-with-defaults.cwl@step_step_paired@action.cwl",
         "inputs": [
           {
             "id": "initial_file",
@@ -149,7 +149,7 @@
           "$(inputs.initial_file.basename)"
         ],
         "class": "CommandLineTool",
-        "id": "cond-with-defaults.cwl:step_step_single:action.cwl",
+        "id": "cond-with-defaults.cwl@step_step_single@action.cwl",
         "inputs": [
           {
             "id": "initial_file",

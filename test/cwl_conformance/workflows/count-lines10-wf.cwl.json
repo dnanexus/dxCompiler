@@ -37,7 +37,7 @@
       ],
       "run": {
         "class": "Workflow",
-        "id": "count-lines10-wf.cwl:step_step0:run",
+        "id": "count-lines10-wf.cwl@step_step0@run",
         "inputs": [
           {
             "id": "file1",

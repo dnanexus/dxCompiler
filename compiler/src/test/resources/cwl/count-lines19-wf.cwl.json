@@ -41,7 +41,7 @@
       "run": {
         "baseCommand": "wc",
         "class": "CommandLineTool",
-        "id": "count-lines19-wf.cwl:step_step1:wc3-tool.cwl",
+        "id": "count-lines19-wf.cwl@step_step1@wc3-tool.cwl",
         "inputs": [
           {
             "id": "file1",

@@ -51,7 +51,7 @@
       "run": {
         "baseCommand": "echo",
         "class": "CommandLineTool",
-        "id": "schemadef-wf.cwl:step_step1:schemadef-tool.cwl",
+        "id": "schemadef-wf.cwl@step_step1@schemadef-tool.cwl",
         "inputs": [
           {
             "id": "hello",

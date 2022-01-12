@@ -78,7 +78,7 @@
           "echo"
         ],
         "class": "CommandLineTool",
-        "id": "cond-wf-011.cwl:step_step1:cat.cwl",
+        "id": "cond-wf-011.cwl@step_step1@cat.cwl",
         "inputs": [
           {
             "id": "in1",

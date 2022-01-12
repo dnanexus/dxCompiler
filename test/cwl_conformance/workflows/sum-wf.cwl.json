@@ -58,7 +58,7 @@
       "run": {
         "class": "ExpressionTool",
         "expression": "${\n  return {\"result\": inputs.data};\n}\n",
-        "id": "sum-wf.cwl:step_sum:run",
+        "id": "sum-wf.cwl@step_sum@run",
         "inputs": [
           {
             "id": "data",

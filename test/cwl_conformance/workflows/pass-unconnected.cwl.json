@@ -48,7 +48,7 @@
       "run": {
         "baseCommand": "echo",
         "class": "CommandLineTool",
-        "id": "pass-unconnected.cwl:step_step1:echo-tool.cwl",
+        "id": "pass-unconnected.cwl@step_step1@echo-tool.cwl",
         "inputs": [
           {
             "id": "in",

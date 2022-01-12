@@ -28,7 +28,7 @@
       "run": {
         "class": "ExpressionTool",
         "expression": "$({'output': null })",
-        "id": "count-lines11-null-step-wf.cwl:step_step0:null-expression3-tool.cwl",
+        "id": "count-lines11-null-step-wf.cwl@step_step0@null-expression3-tool.cwl",
         "inputs": [],
         "outputs": [
           {
@@ -64,7 +64,7 @@
           "-l"
         ],
         "class": "CommandLineTool",
-        "id": "count-lines11-null-step-wf.cwl:step_step1:wc-tool.cwl",
+        "id": "count-lines11-null-step-wf.cwl@step_step1@wc-tool.cwl",
         "inputs": [
           {
             "id": "file1",
@@ -103,7 +103,7 @@
       "run": {
         "class": "ExpressionTool",
         "expression": "$({'output': parseInt(inputs.file1.contents)})",
-        "id": "count-lines11-null-step-wf.cwl:step_step2:parseInt-tool.cwl",
+        "id": "count-lines11-null-step-wf.cwl@step_step2@parseInt-tool.cwl",
         "inputs": [
           {
             "id": "file1",

@@ -40,7 +40,7 @@
           "echo"
         ],
         "class": "CommandLineTool",
-        "id": "inp_update_wf.cwl:step_step1:echo-file-tool.cwl",
+        "id": "inp_update_wf.cwl@step_step1@echo-file-tool.cwl",
         "inputs": [
           {
             "id": "in",
@@ -94,7 +94,7 @@
             "dockerPull": "python:2.7.15-alpine3.7"
           }
         },
-        "id": "inp_update_wf.cwl:step_step2:updateval_inplace.cwl",
+        "id": "inp_update_wf.cwl@step_step2@updateval_inplace.cwl",
         "inputs": [
           {
             "id": "r",
@@ -156,7 +156,7 @@
       "run": {
         "class": "ExpressionTool",
         "expression": "$({'output': parseInt(inputs.file1.contents)})",
-        "id": "inp_update_wf.cwl:step_step3:parseInt-tool.cwl",
+        "id": "inp_update_wf.cwl@step_step3@parseInt-tool.cwl",
         "inputs": [
           {
             "id": "file1",
@@ -191,7 +191,7 @@
       "run": {
         "class": "ExpressionTool",
         "expression": "$({'output': parseInt(inputs.file1.contents)})",
-        "id": "inp_update_wf.cwl:step_step4:parseInt-tool.cwl",
+        "id": "inp_update_wf.cwl@step_step4@parseInt-tool.cwl",
         "inputs": [
           {
             "id": "file1",

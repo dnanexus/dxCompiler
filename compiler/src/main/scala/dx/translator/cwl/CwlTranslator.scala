@@ -256,7 +256,7 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
       }
     }
     // CWL file is required to be packed
-    val (process, schemas) = parser.parseFile(sourceFile) match {
+    val (process, schemas) = parser.parseFile(sourceFile, simplifyProcessAutoIds = true) match {
       case ParserResult(Some(tool: CommandLineTool), _, _, schemas) => (tool, schemas)
       case ParserResult(Some(tool: ExpressionTool), _, _, schemas)  => (tool, schemas)
       case ParserResult(Some(wf: Workflow), _, _, schemas)          => (wf, schemas)

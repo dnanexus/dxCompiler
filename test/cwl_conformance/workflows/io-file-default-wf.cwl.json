@@ -45,7 +45,7 @@
           "$(inputs.catfile1.path)"
         ],
         "class": "CommandLineTool",
-        "id": "io-file-default-wf.cwl:step_step1:run",
+        "id": "io-file-default-wf.cwl@step_step1@run",
         "inputs": [
           {
             "id": "catfile1",

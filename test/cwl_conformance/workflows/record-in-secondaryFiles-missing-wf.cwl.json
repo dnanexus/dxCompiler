@@ -55,7 +55,7 @@
         ],
         "baseCommand": "test",
         "class": "CommandLineTool",
-        "id": "record-in-secondaryFiles-missing-wf.cwl:step_step1:record-in-secondaryFiles.cwl",
+        "id": "record-in-secondaryFiles-missing-wf.cwl@step_step1@record-in-secondaryFiles.cwl",
         "inputs": [
           {
             "id": "record_input",

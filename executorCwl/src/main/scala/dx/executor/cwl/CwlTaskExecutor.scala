@@ -40,7 +40,7 @@ object CwlTaskExecutor {
     // we update the ID to use the tool name as the fragment; otherwise it is
     // a workflow and we look up the tool by name in the Map of processes nested
     // within the workflow.
-    parser.parseString(cwl, Some(DefaultFrag))
+    parser.parseString(cwl, Some(DefaultFrag), simplifyProcessAutoIds = true)
   }
 
   def create(jobMeta: JobMeta,

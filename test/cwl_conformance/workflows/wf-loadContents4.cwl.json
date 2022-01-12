@@ -43,7 +43,7 @@
       "run": {
         "class": "ExpressionTool",
         "expression": "${ return { \"my_int\": inputs.my_number }; }\n",
-        "id": "wf-loadContents4.cwl:step_one:run",
+        "id": "wf-loadContents4.cwl@step_one@run",
         "inputs": [
           {
             "id": "my_number",

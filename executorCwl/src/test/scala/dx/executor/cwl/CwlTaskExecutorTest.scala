@@ -243,7 +243,7 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
                |${cwlFile}""".stripMargin
         )
     }
-    val tool = parser.parseFile(cwlFile) match {
+    val tool = parser.parseFile(cwlFile, simplifyProcessAutoIds = true) match {
       case ParserResult(Some(tool: CommandLineTool), _, _, _) => tool
       case other =>
         throw new Exception(s"expected CWL document to contain a CommandLineTool, not ${other}")

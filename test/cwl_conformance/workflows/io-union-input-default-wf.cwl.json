@@ -43,7 +43,7 @@
       "run": {
         "class": "ExpressionTool",
         "expression": "${return {'o': (inputs.i.class || inputs.i)};}\n",
-        "id": "io-union-input-default-wf.cwl:step_step1:run",
+        "id": "io-union-input-default-wf.cwl@step_step1@run",
         "inputs": [
           {
             "id": "i",

@@ -48,7 +48,7 @@
       "run": {
         "baseCommand": "echo",
         "class": "CommandLineTool",
-        "id": "step-valuefrom5-wf.cwl:step_step1:run",
+        "id": "step-valuefrom5-wf.cwl@step_step1@run",
         "inputs": [
           {
             "id": "name",
@@ -97,7 +97,7 @@
       "run": {
         "baseCommand": "echo",
         "class": "CommandLineTool",
-        "id": "step-valuefrom5-wf.cwl:step_step2:run",
+        "id": "step-valuefrom5-wf.cwl@step_step2@run",
         "inputs": [
           {
             "id": "name",

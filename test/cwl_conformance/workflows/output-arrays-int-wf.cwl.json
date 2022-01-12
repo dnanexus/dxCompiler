@@ -38,7 +38,7 @@
       "run": {
         "class": "ExpressionTool",
         "expression": "${return {'o': Array.apply(null, {length: inputs.i}).map(Number.call, Number)};}\n",
-        "id": "output-arrays-int-wf.cwl:step_step1:run",
+        "id": "output-arrays-int-wf.cwl@step_step1@run",
         "inputs": [
           {
             "id": "i",
@@ -75,7 +75,7 @@
       "run": {
         "class": "ExpressionTool",
         "expression": "${return {'o': inputs.i.map(function(x) { return (x + 1) * 2; })};}\n",
-        "id": "output-arrays-int-wf.cwl:step_step2:run",
+        "id": "output-arrays-int-wf.cwl@step_step2@run",
         "inputs": [
           {
             "id": "i",
@@ -115,7 +115,7 @@
       "run": {
         "class": "ExpressionTool",
         "expression": "${return {'o': inputs.i.reduce(function(a, b) { return a + b; })};}\n",
-        "id": "output-arrays-int-wf.cwl:step_step3:run",
+        "id": "output-arrays-int-wf.cwl@step_step3@run",
         "inputs": [
           {
             "id": "i",

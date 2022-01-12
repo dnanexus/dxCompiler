@@ -41,7 +41,7 @@
       "run": {
         "class": "ExpressionTool",
         "expression": "${return {'o': (inputs.i || 2) * 2};}\n",
-        "id": "io-int-optional-wf.cwl:step_step1:run",
+        "id": "io-int-optional-wf.cwl@step_step1@run",
         "inputs": [
           {
             "id": "i",

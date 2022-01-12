@@ -41,7 +41,7 @@
       "run": {
         "class": "ExpressionTool",
         "expression": "${return {'o': inputs.i.contents.split(\" \")};}\n",
-        "id": "output-arrays-file-wf.cwl:step_step1:run",
+        "id": "output-arrays-file-wf.cwl@step_step1@run",
         "inputs": [
           {
             "id": "i",
@@ -79,7 +79,7 @@
       "run": {
         "baseCommand": "touch",
         "class": "CommandLineTool",
-        "id": "output-arrays-file-wf.cwl:step_step2:run",
+        "id": "output-arrays-file-wf.cwl@step_step2@run",
         "inputs": [
           {
             "id": "i",

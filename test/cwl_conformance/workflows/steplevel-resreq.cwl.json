@@ -42,7 +42,7 @@
         ],
         "baseCommand": "echo",
         "class": "CommandLineTool",
-        "id": "steplevel-resreq.cwl:step_step1:run",
+        "id": "steplevel-resreq.cwl@step_step1@run",
         "inputs": [],
         "outputs": [
           {

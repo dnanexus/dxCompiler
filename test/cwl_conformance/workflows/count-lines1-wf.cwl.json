@@ -41,7 +41,7 @@
           "-l"
         ],
         "class": "CommandLineTool",
-        "id": "count-lines1-wf.cwl:step_step1:wc-tool.cwl",
+        "id": "count-lines1-wf.cwl@step_step1@wc-tool.cwl",
         "inputs": [
           {
             "id": "file1",
@@ -80,7 +80,7 @@
       "run": {
         "class": "ExpressionTool",
         "expression": "$({'output': parseInt(inputs.file1.contents)})",
-        "id": "count-lines1-wf.cwl:step_step2:parseInt-tool.cwl",
+        "id": "count-lines1-wf.cwl@step_step2@parseInt-tool.cwl",
         "inputs": [
           {
             "id": "file1",

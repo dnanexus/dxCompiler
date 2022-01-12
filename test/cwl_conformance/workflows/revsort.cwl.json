@@ -54,7 +54,7 @@
         "baseCommand": "rev",
         "class": "CommandLineTool",
         "doc": "Reverse each line using the `rev` command",
-        "id": "revsort.cwl:step_rev:revtool.cwl",
+        "id": "revsort.cwl@step_rev@revtool.cwl",
         "inputs": [
           {
             "id": "input",
@@ -98,7 +98,7 @@
         "baseCommand": "sort",
         "class": "CommandLineTool",
         "doc": "Sort lines using the `sort` command",
-        "id": "revsort.cwl:step_sorted:sorttool.cwl",
+        "id": "revsort.cwl@step_sorted@sorttool.cwl",
         "inputs": [
           {
             "id": "reverse",

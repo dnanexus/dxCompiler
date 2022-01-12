@@ -1651,7 +1651,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     )
     wf.stages.size shouldBe 2
     wf.stages(0).dxStage.id shouldBe "stage-0"
-    wf.stages(0).calleeName shouldBe "word-count"
+    wf.stages(0).calleeName shouldBe "wc-tool"
     wf.stages(0).inputs shouldBe Vector(
         StageInputWorkflowLink(Parameter(CwlDxName.fromSourceName("file1"), TFile)),
         StageInputStatic(VString("step1"))
@@ -1749,7 +1749,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
       case other               => throw new Exception(s"expected applet not ${other}")
     }
     stageApplet.kind should matchPattern {
-      case ExecutableKindWfFragment(Some("wc3-tool.cwl"), Vector(0), _, None) =>
+      case ExecutableKindWfFragment(Some("wc3-tool"), Vector(0), _, None) =>
     }
   }
 

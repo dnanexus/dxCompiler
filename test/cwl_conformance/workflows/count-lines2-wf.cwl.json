@@ -77,7 +77,7 @@
       "run": {
         "class": "ExpressionTool",
         "expression": "${return {'parseInt_output': parseInt(inputs.parseInt_file1.contents)};}\n",
-        "id": "count-lines2-wf.cwl:step_step2:run",
+        "id": "count-lines2-wf.cwl@step_step2@run",
         "inputs": [
           {
             "id": "parseInt_file1",

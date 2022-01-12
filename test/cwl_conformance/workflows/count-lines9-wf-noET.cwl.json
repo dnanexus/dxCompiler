@@ -39,7 +39,7 @@
           "-l"
         ],
         "class": "CommandLineTool",
-        "id": "count-lines9-wf-noET.cwl:step_step1:wc-tool.cwl",
+        "id": "count-lines9-wf-noET.cwl@step_step1@wc-tool.cwl",
         "inputs": [
           {
             "id": "file1",

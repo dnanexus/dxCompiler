@@ -74,7 +74,9 @@ object CwlWorkflowExecutor {
       case _                    => throw new Exception("missing executable name")
     }
     val workflow =
-      parser.parseString(jobMeta.sourceCode, defaultFrag = Some(wfName)) match {
+      parser.parseString(jobMeta.sourceCode,
+                         defaultFrag = Some(wfName),
+                         simplifyProcessAutoIds = true) match {
         case ParserResult(Some(wf: Workflow), _, _, _) => wf
         case other =>
           throw new Exception(s"expected CWL document to contain a Workflow, not ${other}")

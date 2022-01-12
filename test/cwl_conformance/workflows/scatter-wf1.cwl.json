@@ -51,7 +51,7 @@
         ],
         "baseCommand": "echo",
         "class": "CommandLineTool",
-        "id": "scatter-wf1.cwl:step_step1:run",
+        "id": "scatter-wf1.cwl@step_step1@run",
         "inputs": [
           {
             "id": "echo_in",

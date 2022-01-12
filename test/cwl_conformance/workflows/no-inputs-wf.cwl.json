@@ -38,7 +38,7 @@
             "dockerPull": "debian:stretch-slim"
           }
         },
-        "id": "no-inputs-wf.cwl:step_step0:run",
+        "id": "no-inputs-wf.cwl@step_step0@run",
         "inputs": [],
         "outputs": [
           {
