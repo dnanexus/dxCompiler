@@ -12,6 +12,7 @@ task global_wf_from_wdl_multiply {
     Int product = 0
   }
 
+  # Applet source code test/multi_user/global_wf_from_wdl_multiply/
   runtime {
     dx_app: object {
       type: "applet",
