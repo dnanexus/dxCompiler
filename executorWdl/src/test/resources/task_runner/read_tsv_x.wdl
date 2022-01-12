@@ -8,7 +8,7 @@ task read_tsv_x {
     for l in ll:
       tsv_list.append('\t'.join(l))
     tsv_string = '\n'.join(tsv_list)
-    print tsv_string
+    print(tsv_string)
     CODE
     >>>
 

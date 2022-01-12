@@ -1,26 +1,26 @@
 {
-    "class": "CommandLineTool",
-    "requirements": [
-        {
-            "dockerPull": "debian:stretch-slim",
-            "dockerOutputDirectory": "/other",
-            "class": "DockerRequirement"
-        }
-    ],
-    "inputs": [],
-    "outputs": [
-        {
-            "type": "File",
-            "outputBinding": {
-                "glob": "thing"
-            },
-            "id": "#main/thing"
-        }
-    ],
-    "baseCommand": [
-        "touch",
-        "/other/thing"
-    ],
-    "id": "#main",
-    "cwlVersion": "v1.2"
+  "baseCommand": [
+    "touch",
+    "/other/thing"
+  ],
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "id": "#main",
+  "inputs": [],
+  "outputs": [
+    {
+      "id": "#main/thing",
+      "outputBinding": {
+        "glob": "thing"
+      },
+      "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "DockerRequirement",
+      "dockerOutputDirectory": "/other",
+      "dockerPull": "debian:stretch-slim"
+    }
+  ]
 }

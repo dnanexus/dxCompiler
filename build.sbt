@@ -1,12 +1,11 @@
 import Merging.customMergeStrategy
 import sbt.Keys._
-import sbtassembly.AssemblyPlugin.autoImport.{assemblyMergeStrategy, _}
 import com.typesafe.config._
 
 name := "dxc"
 
 ThisBuild / organization := "com.dnanexus"
-ThisBuild / scalaVersion := "2.13.2"
+ThisBuild / scalaVersion := "2.13.7"
 ThisBuild / developers := List(
     Developer("jdidion", "jdidion", "jdidion@dnanexus.com", url("https://github.com/dnanexus")),
     Developer("commandlinegirl",
@@ -27,13 +26,12 @@ ThisBuild / licenses += ("Apache-2.0", url("http://www.apache.org/licenses/LICEN
 
 // PROJECTS
 
-lazy val root = project.in(file("."))
-lazy val global = root
+lazy val root = project
+  .in(file("."))
   .settings(
       settings,
-      skip in publish := true
+      publish / skip := true
   )
-  .disablePlugins(AssemblyPlugin)
   .aggregate(
       core,
       compiler,
@@ -41,6 +39,7 @@ lazy val global = root
       executorWdl,
       executorCwl
   )
+  .disablePlugins(AssemblyPlugin)
 
 val dxCompilerVersion: String = {
   val confPath = s"core/src/main/resources/application.conf"
@@ -75,8 +74,8 @@ val compiler = project
           dependencies.cwlScala,
           dependencies.dxYaml
       ),
-      assemblyJarName in assembly := "dxCompiler.jar",
-      assemblyOutputPath in assembly := file("applet_resources/dxCompiler.jar")
+      assembly / assemblyJarName := "dxCompiler.jar",
+      assembly / assemblyOutputPath := file("applet_resources/dxCompiler.jar")
   )
   .dependsOn(core)
 
@@ -102,8 +101,8 @@ val executorWdl = project
           dependencies.typesafe,
           dependencies.wdlTools
       ),
-      assemblyJarName in assembly := "dxExecutorWdl.jar",
-      assemblyOutputPath in assembly := file("applet_resources/WDL/resources/dxExecutorWdl.jar")
+      assembly / assemblyJarName := "dxExecutorWdl.jar",
+      assembly / assemblyOutputPath := file("applet_resources/WDL/resources/dxExecutorWdl.jar")
   )
   .dependsOn(core, executorCommon)
 
@@ -118,8 +117,8 @@ val executorCwl = project
           dependencies.typesafe,
           dependencies.cwlScala
       ),
-      assemblyJarName in assembly := "dxExecutorCwl.jar",
-      assemblyOutputPath in assembly := file("applet_resources/CWL/resources/dxExecutorCwl.jar")
+      assembly / assemblyJarName := "dxExecutorCwl.jar",
+      assembly / assemblyOutputPath := file("applet_resources/CWL/resources/dxExecutorCwl.jar")
   )
   .dependsOn(core, executorCommon)
 
@@ -132,16 +131,16 @@ val githubDxCompilerResolver = Resolver.githubPackages("dnanexus", "dxCompiler")
 
 lazy val dependencies =
   new {
-    val dxCommonVersion = "0.10.1-SNAPSHOT"
-    val dxApiVersion = "0.13.0"
-    val dxFileAccessProtocolsVersion = "0.5.2"
-    val dxYamlVersion = "0.1.0"
-    val wdlToolsVersion = "0.17.5"
-    val cwlScalaVersion = "0.7.2"
+    val dxCommonVersion = "0.11.1"
+    val dxApiVersion = "0.13.1"
+    val dxFileAccessProtocolsVersion = "0.5.3"
+    val dxYamlVersion = "0.1.1"
+    val wdlToolsVersion = "0.17.7"
+    val cwlScalaVersion = "0.7.4"
     val typesafeVersion = "1.4.1"
     val sprayVersion = "1.3.6"
     val scalatestVersion = "3.2.9"
-    val logbackVersion = "1.2.7"
+    val logbackVersion = "1.2.10"
 
     val dxCommon = "com.dnanexus" % "dxcommon" % dxCommonVersion
     val dxApi = "com.dnanexus" % "dxapi" % dxApiVersion
@@ -180,7 +179,7 @@ lazy val settings = Seq(
     // reduce the maximum number of errors shown by the Scala compiler
     maxErrors := 20,
     // scalafmt
-    scalafmtConfig := root.base / ".scalafmt.conf",
+    scalafmtConfig := file(".") / ".scalafmt.conf",
     // Publishing
     // disable publish with scala version, otherwise artifact name will include scala version
     // e.g dxScala_2.11
@@ -234,7 +233,6 @@ val compilerOptions = Seq(
     "-Xlint:doc-detached",
     "-Xlint:inaccessible",
     "-Xlint:infer-any",
-    "-Xlint:nullary-override",
     "-Xlint:nullary-unit",
     "-Xlint:option-implicit",
     "-Xlint:package-object-classes",
@@ -252,8 +250,7 @@ val compilerOptions = Seq(
 
 // Assembly
 lazy val assemblySettings = Seq(
-    logLevel in assembly := Level.Info,
     // comment out this line to enable tests in assembly
-    test in assembly := {},
-    assemblyMergeStrategy in assembly := customMergeStrategy.value
+    assembly / test := {},
+    assembly / assemblyMergeStrategy := customMergeStrategy.value
 )

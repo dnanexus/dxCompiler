@@ -1,0 +1,3 @@
+input:  # type "File"
+    class: File
+    path: dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/oc_hg38.vcf

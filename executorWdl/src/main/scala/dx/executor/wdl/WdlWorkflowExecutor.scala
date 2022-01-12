@@ -24,7 +24,7 @@ import dx.core.languages.wdl.{
 import dx.executor.{JobMeta, WorkflowExecutor}
 import dx.util.{DefaultBindings, FileNode, Logger, TraceLevel}
 import spray.json.JsValue
-import wdlTools.eval.{Eval, EvalUtils, WdlValueBindings}
+import wdlTools.eval.{Eval, EvalException, EvalUtils, WdlValueBindings}
 import wdlTools.eval.WdlValues._
 import wdlTools.exec.{InputOutput, TaskInputOutput}
 import wdlTools.types.{TypeUtils, TypedAbstractSyntax => TAT}
@@ -370,7 +370,26 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           } else {
             TypeUtils.unwrapOptional(wdlType)
           }
-          val value = evaluateExpression(call.inputs(name), optType, env)
+          val value =
+            try {
+              evaluateExpression(call.inputs(name), optType, env)
+            } catch {
+              case ee: EvalException =>
+                call.inputs(name) match {
+                  case _: TAT.ValueNull if !TypeUtils.isOptional(optType) =>
+                    throw new Exception(
+                        s"""missing/null value for non-optional input ${name} to call 
+                           |${call.fullyQualifiedName}""".stripMargin.replaceAll("\n", " "),
+                        ee
+                    )
+                  case _ =>
+                    throw new Exception(
+                        s"""Error evaluating input ${name} value ${call.inputs(name)} to call 
+                           |${call.fullyQualifiedName}""".stripMargin.replaceAll("\n", " "),
+                        ee
+                    )
+                }
+            }
           Some(dxName -> (optType, value))
         case (name, (_, optional)) if optional =>
           logger.trace(s"no input for optional input ${name} to call ${call.fullyQualifiedName}")
@@ -412,53 +431,73 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       val executableLink = getExecutableLink(call.callee.name)
       val callInputsIR = WdlUtils.toIR(callInputs)
       val callee = tasks.get(call.callee.name)
-      val isNative = callee.map { task =>
-        task.meta.exists(_.kvs.get("type") match {
-          case Some(TAT.MetaValueString("native", _)) => true
-          case _                                      => false
-        }) || task.runtime.exists(_.kvs.contains("dx_app")) || task.hints
-          .exists(_.kvs.get("dnanexus") match {
-            case Some(TAT.MetaValueObject(fields)) => fields.contains("app")
-            case _                                 => false
-          })
-      }
-      val instanceType = callee.flatMap { task =>
-        val callIO = TaskInputOutput(task, logger)
-        val inputWdlValues: Map[DxName, V] = callInputsIR.collect {
-          case (dxName, (t, v)) if !dxName.suffix.exists(_.endsWith(Constants.FlatFilesSuffix)) =>
-            val wdlType = WdlUtils.fromIRType(t, wdlTypeAliases)
-            dxName -> WdlUtils.fromIRValue(v, wdlType, dxName.decoded)
-        }
-        // add default values for any missing inputs
-        val callInputs =
-          callIO.inputsFromValues(inputWdlValues.map {
-            case (dxName, v) => dxName.decoded -> v
-          }, evaluator, ignoreDefaultEvalError = false)
-        val runtime =
-          Runtime(versionSupport.version,
-                  task.runtime,
-                  task.hints,
-                  evaluator,
-                  ctx = Some(callInputs))
-        try {
-          val request = runtime.parseInstanceType
-          if (request.isEmpty && isNative.contains(true)) {
-            None
-          } else {
-            val instanceType = jobMeta.instanceTypeDb.apply(request)
-            logger.traceLimited(s"Precalculated instance type for ${task.name}: ${instanceType}")
-            Some(instanceType)
+      val (instanceType, isNative) = callee
+        .map { task =>
+          val runtimeIsNative = task.runtime.exists(runtime => runtime.kvs.contains("dx_app"))
+          val hintsDx = task.hints.flatMap { hints =>
+            hints.kvs.get("dnanexus").flatMap {
+              case TAT.MetaValueObject(fields) => Some(fields)
+              case _                           => None
+            }
           }
-        } catch {
-          case e: Throwable =>
-            logger.traceLimited(
-                s"""|Failed to precalculate the instance type for task ${task.name}.
-                    |${e}
-                    |""".stripMargin
-            )
+          val hintsIsNative = hintsDx.exists(_.contains("app"))
+          val isNative = runtimeIsNative || hintsIsNative || task.meta.exists { meta =>
+            meta.kvs.get("type") match {
+              case Some(TAT.MetaValueString("native", _)) => true
+              case _                                      => false
+            }
+          }
+          val hasResources = task.runtime.exists(_.kvs.size > (if (runtimeIsNative) 1 else 0)) ||
+            hintsDx.exists(_.size > (if (hintsIsNative) 1 else 0))
+          val instanceType = if (hasResources) {
+            val callIO = TaskInputOutput(task, logger)
+            val inputWdlValues: Map[DxName, V] = callInputsIR.collect {
+              case (dxName, (t, v))
+                  if !dxName.suffix.exists(_.endsWith(Constants.FlatFilesSuffix)) =>
+                val wdlType = WdlUtils.fromIRType(t, wdlTypeAliases)
+                dxName -> WdlUtils.fromIRValue(v, wdlType, dxName.decoded)
+            }
+            // add default values for any missing inputs
+            val callInputs = callIO.inputsFromValues(inputWdlValues.map {
+              case (dxName, v) => dxName.decoded -> v
+            }, evaluator, ignoreDefaultEvalError = false)
+            val runtime = Runtime(versionSupport.version,
+                                  task.runtime,
+                                  task.hints,
+                                  evaluator,
+                                  ctx = Some(callInputs))
+            try {
+              val request = runtime.parseInstanceType
+              if (request.isEmpty && isNative) {
+                // TODO: this will never happen - request always get's filled in with default values.
+                //  Currently we're relying on the task wrapper not having a runtime or hints section.
+                //  We should change `isEmpty` to something like `isDefault`, which would return true
+                //  if the request only consists of default values.
+                None
+              } else {
+                val instanceType = jobMeta.instanceTypeDb.apply(request)
+                logger.trace(s"Precalculated instance type for ${task.name}: ${instanceType.name}")
+                Some(instanceType)
+              }
+            } catch {
+              case e: Throwable =>
+                logger.trace(
+                    s"""|Failed to precalculate the instance type for task ${task.name}.
+                        |${e}
+                        |""".stripMargin
+                )
+                None
+            }
+          } else {
+            // no need to evaluate the runtime requirements; just use app(let)'s default instance type
             None
+          }
+          (instanceType, isNative)
         }
-      }
+        .getOrElse((None, false))
+      // TODO: in the case where instanceType is None, we need to signal to the target that it
+      //  needs to try to calculate it's own instance type (unless it's a native app(let)), which
+      //  probably means adding an additional input parameter.
       val (dxExecution, execName) = launchJob(
           executableLink,
           call.actualName,
@@ -469,15 +508,13 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           folder = folder,
           prefixOutputs = true
       )
-      if (logger.isVerbose) {
-        logger.trace(
-            s"""launched call ${call.actualName} to ${call.callee.name}
-               |  executable: ${executableLink}
-               |  native?: ${isNative}
-               |  execution: ${dxExecution.id}
-               |  instance type: ${instanceType}""".stripMargin
-        )
-      }
+      logger.trace(
+          s"""launched call ${call.actualName} to ${call.callee.name}
+             |  executable: ${executableLink}
+             |  native?: ${isNative}
+             |  execution: ${dxExecution.id}
+             |  instance type: ${instanceType.map(_.name)}""".stripMargin
+      )
       (dxExecution, executableLink, execName)
     }
 

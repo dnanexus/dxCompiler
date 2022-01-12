@@ -1,0 +1,125 @@
+#!/usr/bin/env cwl-runner
+cwlVersion: v1.2
+$graph:
+- id: one
+  class: CommandLineTool
+  requirements:
+  - class: InlineJavascriptRequirement
+  - class: ShellCommandRequirement
+  inputs:
+    r:
+      type: float
+  outputs:
+    rSquared:
+      type: float
+      outputBinding:
+        glob: stdout.txt
+        loadContents: true
+        outputEval: $(parseFloat(self[0].contents))
+    rCopy:
+      type: float
+      outputBinding:
+        outputEval: $(inputs.r)
+  arguments:
+  - valueFrom: "echo $(inputs.r * inputs.r)"
+    shellQuote: false
+  stdout: stdout.txt
+  hints:
+    NetworkAccess:
+      networkAccess: true
+    LoadListingRequirement:
+      loadListing: deep_listing
+- id: two
+  class: CommandLineTool
+  requirements:
+  - class: InlineJavascriptRequirement
+  - class: ShellCommandRequirement
+  inputs:
+    rSquared: float
+    pi: float
+  outputs:
+    area:
+      outputBinding:
+        glob: stdout.txt
+        loadContents: true
+        outputEval: $(parseInt(self[0].contents))
+      type: int
+    rSquaredCopy:
+      outputBinding:
+        outputEval: $(inputs.rSquared)
+      type: float
+  arguments:
+  - valueFrom: "echo $(inputs.rSquared * inputs.pi)"
+    shellQuote: false
+  stdout: stdout.txt
+  hints:
+    NetworkAccess:
+      networkAccess: true
+    LoadListingRequirement:
+      loadListing: deep_listing
+- id: three
+  class: ExpressionTool
+  requirements:
+  - class: InlineJavascriptRequirement
+  inputs:
+    rSquared: float
+    pi: float
+  outputs:
+    area: int
+    rSquaredCopy: float
+  expression: |
+    ${
+    return {"area": parseInt(inputs.pi * inputs.rSquared),
+            "rSquaredCopy": inputs.rSquared };
+    }
+- id: main
+  class: Workflow
+  requirements:
+  - class: DockerRequirement
+    dockerPull: "ubuntu:latest"
+  - class: ShellCommandRequirement
+  inputs:
+    radius: float
+    pi: float
+  outputs:
+    area:
+      type: int
+      outputSource: re-bar/area
+    area-expression:
+      type: int
+      outputSource: re-baz/area
+  steps:
+  - id: foo
+    run: "#one"
+    in:
+      r: radius
+      pi: pi
+    out: [rSquared, rCopy]
+
+  - id: bar
+    run: "#two"
+    in:
+      rSquared: "foo/rSquared"
+      pi: pi
+    out: [area, rSquaredCopy]
+
+  - id: re-bar
+    run: "#two"
+    in:
+      rSquared: "bar/rSquaredCopy"
+      pi: pi
+    out: [area, rSquaredCopy]
+
+  - id: baz
+    run: "#three"
+    in:
+      rSquared: "foo/rSquared"
+      pi: pi
+    out: [area, rSquaredCopy]
+
+  - id: re-baz
+    run: "#three"
+    in:
+      rSquared: "baz/rSquaredCopy"
+      pi: pi
+    out: [area, rSquaredCopy]

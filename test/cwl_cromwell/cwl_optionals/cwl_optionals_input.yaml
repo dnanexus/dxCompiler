@@ -1,0 +1,6 @@
+unsupplied_optional:  # array of type "string" (optional)
+  - baz
+  - bim
+message:  # array of type "string" (optional)
+  - foo
+  - bar

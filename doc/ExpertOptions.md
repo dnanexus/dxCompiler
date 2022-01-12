@@ -10,11 +10,11 @@ dxCompiler takes a pipeline written in WDL and statically compiles it to an equi
   * [Directories](#directories)
 - [Task metadata](#task-metadata)
   * [meta section](#meta-section)
-    + [Calling existing applets](#calling-existing-applets)
-    + [Calling apps](#calling-apps)
   * [parameter_meta section](#parameter_meta-section)
   * [Runtime hints](#runtime-hints)
   * [Example task with DNAnexus-specific metadata and runtime](#example-task-with-dnanexus-specific-metadata-and-runtime)
+- [Calling existing applets](#calling-existing-applets)
+  * [Calling apps](#calling-apps)
 - [Setting DNAnexus-specific attributes in extras.json](#setting-dnanexus-specific-attributes-in-extrasjson)
   * [Job reuse](#job-reuse)
   * [Delay workspace destruction](#delay-workspace-destruction)
@@ -597,137 +597,6 @@ The following keys are also recognized but currently unused, as they only apply 
 * `open_source`: Whether the generated app should be open-source
 * `version`: The app version
 
-### Calling existing applets
-
-Sometimes, it is desirable to call an existing DNAnexus applet from a WDL workflow. For example, when porting a native workflow, we can leave the applets as is, without rewriting them in WDL. The `dxni` subcommand, short for *Dx Native Interface*, is dedicated to this use case. It searchs a platform folder and generates a WDL wrapper task for each applet. For example, the command:
-
-```console
-$ java -jar dxCompiler-xxx.jar dxni -project project-xxxx -folder /A/B/C --output dx_extern.wdl
-```
-
-will find native applets in the `/A/B/C` folder, generate tasks for them, and write to local file `dx_extern.wdl`. If an
-applet has the `dxapp.json` signature:
-
-```
-{
-  "name": concat,
-  "inputSpec": [
-    {
-      "name": "a",
-      "class": "string"
-    },
-    {
-      "name": "b",
-      "class": "string"
-    }
-  ],
-  "outputSpec": [
-    {
-      "name": "result",
-      "class": "string"
-    }]
-}
-```
-
-The WDL definition file will be:
-
-```wdl
-version 1.0
-  
-task concat {
-  input {
-    String a
-    String b
-  }
-  command {}
-  output {
-    String c = ""
-  }
-  runtime {
-    dx_app: object {
-      id: "applet-xxxx",
-      type: "applet" 
-    }
-  }
-}
-```
-
-The meta section includes the applet-id, which will be called at runtime. A WDL file can call the `concat` task as follows:
-
-```wdl
-import "dx_extern.wdl" as lib
-
-workflow w {
-  call lib.concat as concat {
-    input: a="double", b="espresso"
-  }
-  output {
-    String result = concat.c
-  }
-}
-```
-
-### Calling apps
-
-To generate WDL calling apps instead of applets, use
-
-```console
-$ java -jar dxCompiler.jar dxni -apps only -o my_apps.wdl
-```
-
-The compiler will search for all the apps you can call, and create WDL tasks for them. The WDL definition file look like be:
-
-```wdl
-version 1.0
-  
-task concat {
-  ...
-    
-  runtime {
-    dx_app: object {
-      id: "app-xxxx",
-      type: "app"
-    }
-  }
-}
-```
-
-You can also use `dx_app_name` rather than `dx_app_id` to specify the app by name, e.g.
-
-```wdl
-version 1.0
-  
-task concat {
-  ...
-    
-  runtime {
-    dx_app: object {
-      name: "concat_native/1.0.0",
-      type: "app"
-    }
-  }
-}
-```
-
-Note: in version `development` (aka `2.0`), the `runtime` section no longer allows arbitrary keys. Instead, use the hints section:
-
-```wdl
-version development
-  
-task concat {
-  ...
-    
-  hints {
-    dnanexus: {
-      "app": {
-        "name": "concat_native/1.0.0",
-        "type": "app"
-      }
-    }
-  }
-}
-```
-
 ## parameter_meta section
 
 The [WDL Spec](https://github.com/openwdl/wdl/blob/master/versions/1.0/SPEC.md#parameter-metadata-section) defines a `parameter_meta` section that may contain key value pairs to assoicate metadata with input and output variables. Currently, the following keywords are supported:
@@ -971,6 +840,160 @@ task bwa_mem {
 
 \* Note the comma seperating the members of the objects within meta and paramter_meta
 
+# Calling existing app(let)s
+
+The DNAnexus tools library provides apps for many existing bioinformatics tools, and you may have already developed app(let)s of your own. You may want to use these existing app(let)s rather than rewriting them in WDL. Calling a native app(let) from WDL can be done using a native task wrapper. The dxCompiler `dxni` subcommand is provided to generate native task wrappers automatically. It can generate a wrapper for a specific app(let), all apps, and/or all applets in a specific platform folder. For example, the command:
+
+```console
+$ java -jar dxCompiler-xxx.jar dxni -project project-xxxx -folder /A/B/C --output dx_extern.wdl
+```
+
+will find native applets in the `/A/B/C` folder, generate tasks for them, and write to local file `dx_extern.wdl`. If an applet has the `dxapp.json` signature:
+
+```
+{
+  "name": concat,
+  "inputSpec": [
+    {
+      "name": "a",
+      "class": "string"
+    },
+    {
+      "name": "b",
+      "class": "string"
+    }
+  ],
+  "outputSpec": [
+    {
+      "name": "result",
+      "class": "string"
+    }]
+}
+```
+
+The WDL definition file will be:
+
+```wdl
+version 1.0
+  
+task concat {
+  input {
+    String a
+    String b
+  }
+  command {}
+  output {
+    String c = ""
+  }
+  runtime {
+    dx_app: object {
+      id: "applet-xxxx",
+      type: "applet" 
+    }
+  }
+}
+```
+
+The runtime section includes the ID of the app(let) that will be called at runtime.
+
+A WDL workflow can call the `concat` task as follows:
+
+```wdl
+import "dx_extern.wdl" as lib
+
+workflow w {
+  call lib.concat as concat {
+    input: a="double", b="espresso"
+  }
+  output {
+    String result = concat.c
+  }
+}
+```
+
+## Calling apps
+
+To generate WDL calling apps instead of applets, use
+
+```console
+$ java -jar dxCompiler.jar dxni -apps only -o my_apps.wdl
+```
+
+The compiler will search for all the apps you can call and create WDL tasks for them. The WDL task will look like:
+
+```wdl
+version 1.0
+  
+task concat {
+  ...
+    
+  runtime {
+    dx_app: object {
+      id: "app-xxxx",
+      type: "app"
+    }
+  }
+}
+```
+
+You can also use `dx_app.name` rather than `dx_app.id` to specify the app by name, e.g.
+
+```wdl
+version 1.0
+  
+task concat {
+  ...
+    
+  runtime {
+    dx_app: object {
+      name: "concat_native/1.0.0",
+      type: "app"
+    }
+  }
+}
+```
+
+## Calling app(let)s using WDL `development`
+
+In version `development` (aka `2.0`), the `runtime` section no longer allows arbitrary keys. Instead, use the hints section:
+
+```wdl
+version development
+  
+task concat {
+  ...
+    
+  hints {
+    dnanexus: {
+      "app": {
+        "name": "concat_native/1.0.0",
+        "type": "app"
+      }
+    }
+  }
+}
+```
+
+## Overriding the native app(let) instance type
+
+By default, when a native app(let) is called it is run using its default instance type. This can be overridden in a native task wrapper just as it can with a regular task:
+
+```wdl
+version 1.0
+  
+task concat {
+  ...
+    
+  runtime {
+    dx_app: object {
+      name: "concat_native/1.0.0",
+      type: "app"
+    }
+    dx_instance_type: "mem1_ssd1_v2_x4"
+  }
+}
+```
+
 # Setting DNAnexus-specific attributes in extras.json
 
 When writing a DNAnexus applet the user can specify options through the [dxapp.json](https://documentation.dnanexus.com/developer/apps/app-metadata#annotated-example) file. The dxCompiler equivalent is the *extras* file, specified with the `extras` command line option.
@@ -1182,28 +1205,17 @@ The workflow `parameter_meta` section supports the same attributes as the task `
 
 # Handling intermediate workflow outputs
 
-A workflow may create a large number of files, taking up significant
-disk space, and incurring storage costs. Some of the files are
-workflow outputs, but many of them may be intermediate results that
-are not needed once the workflow completes. By default, all outputs
-are stored in one platform folder. With the `--reorg` flag, the
-intermediate results are moved into a subfolder named
-"intermediate". This is achieved by adding a stage to the workflow
-that reorganizes the output folder, it uses `CONTRIBUTE` access to
-reach into the parent project, create a subfolder, and move files into
-it.
+A workflow may create a large number of files, taking up significant disk space, and incurring storage costs. Some of the files are workflow outputs, but many of them may be intermediate results that are not needed once the workflow completes. By default, all outputs are stored in one platform folder. With the `--reorg` flag, the intermediate results are moved into a subfolder named "intermediate". This is achieved by adding a stage to the workflow that reorganizes the output folder, it uses `CONTRIBUTE` access to reach into the parent project, create a subfolder, and move files into it.
 
 ## Use your own applet
 
-You may want to use a different applet than the one provided with `--reorg`. To
-do that, write a native applet, and call it at the end your workflow.
+You may want to use a different applet than the one provided with `--reorg`. To do that, write a native applet, and call it at the end your workflow.
 
-Writing your own applet for reorganization purposes is tricky. If you are not careful,
-it may misplace or outright delete files. The applet:
-1. requires `CONTRIBUTE` project access, so it can move files and folders around.
-2. has to be idempotent, so that if the instance it runs on crashes, it can safely restart.
-3. has to be careful about inputs that are *also* outputs. Normally, these should not be moved.
-4. should use bulk object operations, so as not to overload the API server. 
+Writing your own applet for reorganization purposes is tricky. If you are not careful, it may misplace or outright delete files. The applet:
+1. Requires `CONTRIBUTE` project access, so it can move files and folders around.
+2. Has to be idempotent, so that if the instance it runs on crashes, it can safely restart.
+3. Has to be careful about inputs that are *also* outputs. Normally, these should not be moved.
+4. Should use bulk object operations, so as not to overload the API server. 
    
 You must also be aware that the analysis information is updated in the platform's database asynchronously, so the result of calling `dx describe` on the analysis may not be up-to-date. The most reliable method for making sure you have an up-to-date analysis description is to call `dx describe` in a loop (waiting at least 3 seconds between iterations), and exit the loop when the `dependsOn` field returns an array that contains exactly one item - the ID of the reorg job itself. See the [example](CustomReorgAppletExample.md).
 
@@ -1521,18 +1533,20 @@ $ java -jar dxCompiler.jar compile ...
 
 # Debugging an applet
 
-If you build an applet on the platform with dxCompiler, and want to inspect
-it, use: ```dx get --omit-resources <applet path>```. This will
-refrain from downloading the large resource files that go into the
-applet.
+## Logging
+
+dxCompiler forwards all of the output (stdout and stderr) from the WDL command to the job log. There is the possibility that excessive logging could cause an out-of-disk-space error. If this occurs, you will need to either use a larger instance type, or reduce the output. To completely ignore output from a command, you can redirect it to `/dev/null`:
+
+```
+mycommand > /dev/null 2> /dev/null
+```
+
+## Getting applet sources
+If you build an applet on the platform with dxCompiler, and want to inspect it, use: ```dx get --omit-resources <applet path>```. This will refrain from downloading the large resource files that go into the applet.
 
 ## Getting WDL sources
 
-Compiled workflows and tasks include the original WDL source code in
-the details field. For example, examine workflow `foo` that was
-compiled from `foo.wdl`.  The platform object `foo` includes a details
-field that contains the WDL source, in compressed, uuencoded
-form. To extract it you can do:
+Compiled workflows and tasks include the original WDL source code in the details field. For example, examine workflow `foo` that was compiled from `foo.wdl`.  The platform object `foo` includes a details field that contains the WDL source, in compressed, uuencoded form. To extract it you can do:
 
 ```
 dx describe /builds/1.02/applets/hello --json --details | jq '.details | .wdlSourceCode' | sed 's/"//g' | base64 --decode | gunzip
@@ -1540,12 +1554,4 @@ dx describe /builds/1.02/applets/hello --json --details | jq '.details | .wdlSou
 
 # Recompilation
 
-Any significant WDL workflow is compiled into multiple DNAnexus applets
-and workflows. Naively, any modification to the WDL source would
-necessitate recompilation of all the constituent objects, which is
-expensive. To optimize this use case, all generated platform objects are
-checksumed. If a dx:object has not changed, it is not recompiled, and
-the existing version can be used. The checksum covers the WDL source
-code, the DNAnexus runtime specification, and any other attributes. There
-are two exceptions: the project name, and the folder. This allows
-moving WDL workflows in the folder hierarchy without recompilation.
+Any significant WDL workflow is compiled into multiple DNAnexus applets and workflows. Naively, any modification to the WDL source would necessitate recompilation of all the constituent objects, which is expensive. To optimize this use case, all generated platform objects are checksumed. If a dx:object has not changed, it is not recompiled, and the existing version can be used. The checksum covers the WDL source code, the DNAnexus runtime specification, and any other attributes. There are two exceptions: the project name, and the folder. This allows moving WDL workflows in the folder hierarchy without recompilation.

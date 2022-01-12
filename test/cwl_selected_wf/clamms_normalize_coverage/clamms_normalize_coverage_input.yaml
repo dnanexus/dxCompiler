@@ -1,0 +1,9 @@
+targets_bed_file:  # type "File"
+    class: File
+    path: a/file/path
+clamms_windows_bed_file:  # type "File"
+    class: File
+    path: a/file/path
+bam_file:  # type "File"
+    class: File
+    path: a/file/path
