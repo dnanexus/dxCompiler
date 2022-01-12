@@ -6,7 +6,7 @@
     {
       "default": {
         "class": "File",
-        "location": "hello.txt"
+        "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G0G0V100yzZg3BBz3x4Y2Q69"
       },
       "id": "file1",
       "type": "File"

@@ -103,7 +103,7 @@
           {
             "default": {
               "class": "File",
-              "location": "updateval.py"
+              "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G0G3BZj0yzZg3BBz3x4Y2Qkq"
             },
             "id": "script",
             "type": "File"
