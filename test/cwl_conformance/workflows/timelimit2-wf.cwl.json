@@ -1,6 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
+  "id": "timelimit2-wf.cwl",
   "inputs": [
     {
       "id": "i",
@@ -50,6 +51,7 @@
           "3"
         ],
         "class": "CommandLineTool",
+        "id": "timelimit2-wf.cwl:step_step1:run",
         "inputs": [
           {
             "id": "i",
@@ -95,6 +97,7 @@
           "3"
         ],
         "class": "CommandLineTool",
+        "id": "timelimit2-wf.cwl:step_step2:run",
         "inputs": [
           {
             "id": "i",

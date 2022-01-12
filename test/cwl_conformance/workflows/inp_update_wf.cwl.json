@@ -1,6 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
+  "id": "inp_update_wf.cwl",
   "inputs": [],
   "outputs": [
     {
@@ -39,6 +40,7 @@
           "echo"
         ],
         "class": "CommandLineTool",
+        "id": "inp_update_wf.cwl:step_step1:echo-file-tool.cwl",
         "inputs": [
           {
             "id": "in",
@@ -92,6 +94,7 @@
             "dockerPull": "python:2.7.15-alpine3.7"
           }
         },
+        "id": "inp_update_wf.cwl:step_step2:updateval_inplace.cwl",
         "inputs": [
           {
             "id": "r",
@@ -100,7 +103,7 @@
           {
             "default": {
               "class": "File",
-              "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/updateval.py"
+              "location": "updateval.py"
             },
             "id": "script",
             "type": "File"
@@ -153,6 +156,7 @@
       "run": {
         "class": "ExpressionTool",
         "expression": "$({'output': parseInt(inputs.file1.contents)})",
+        "id": "inp_update_wf.cwl:step_step3:parseInt-tool.cwl",
         "inputs": [
           {
             "id": "file1",
@@ -187,6 +191,7 @@
       "run": {
         "class": "ExpressionTool",
         "expression": "$({'output': parseInt(inputs.file1.contents)})",
+        "id": "inp_update_wf.cwl:step_step4:parseInt-tool.cwl",
         "inputs": [
           {
             "id": "file1",

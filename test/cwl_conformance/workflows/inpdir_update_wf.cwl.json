@@ -1,6 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
+  "id": "inpdir_update_wf.cwl",
   "inputs": [],
   "outputs": [
     {
@@ -46,6 +47,7 @@
           "$(inputs.dirname)"
         ],
         "class": "CommandLineTool",
+        "id": "inpdir_update_wf.cwl:step_step1:mkdir.cwl",
         "inputs": [
           {
             "id": "dirname",
@@ -85,6 +87,7 @@
           "inp/blurb"
         ],
         "class": "CommandLineTool",
+        "id": "inpdir_update_wf.cwl:step_step2:updatedir_inplace.cwl",
         "inputs": [
           {
             "id": "r",
@@ -140,6 +143,7 @@
       "run": {
         "class": "ExpressionTool",
         "expression": "$({d1out: inputs.d1.listing, d2out: inputs.d2.listing})",
+        "id": "inpdir_update_wf.cwl:step_step3:run",
         "inputs": [
           {
             "id": "d1",

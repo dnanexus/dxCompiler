@@ -12,6 +12,7 @@
   "baseCommand": "echo",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
+  "id": "anon_enum_inside_array.cwl",
   "inputs": [
     {
       "id": "first",

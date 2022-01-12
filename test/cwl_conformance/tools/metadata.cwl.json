@@ -4,8 +4,8 @@
     "foaf": "http://xmlns.com/foaf/0.1/"
   },
   "$schemas": [
-    "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/dcterms.rdf",
-    "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/foaf.rdf"
+    "foaf.rdf",
+    "dcterms.rdf"
   ],
   "baseCommand": "cat",
   "class": "CommandLineTool",
@@ -22,6 +22,7 @@
       "dockerPull": "debian:stretch-slim"
     }
   },
+  "id": "metadata.cwl",
   "inputs": [
     {
       "id": "file1",

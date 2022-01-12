@@ -1,86 +1,93 @@
 {
-    "$graph": [
+  "class": "Workflow",
+  "cwlVersion": "v1.2",
+  "id": "count-lines11-null-step-wf-noET.cwl",
+  "inputs": [],
+  "outputs": [
+    {
+      "id": "wc_output",
+      "outputSource": "step1/output",
+      "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "SubworkflowFeatureRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step0",
+      "in": [],
+      "out": [
+        "output"
+      ],
+      "run": {
+        "class": "ExpressionTool",
+        "expression": "$({'output': null })",
+        "id": "count-lines11-null-step-wf-noET.cwl:step_step0:null-expression3-tool.cwl",
+        "inputs": [],
+        "outputs": [
+          {
+            "id": "output",
+            "type": "Any"
+          }
+        ],
+        "requirements": [
+          {
+            "class": "InlineJavascriptRequirement"
+          }
+        ]
+      }
+    },
+    {
+      "id": "step1",
+      "in": [
         {
-            "class": "Workflow",
-            "inputs": [],
-            "outputs": [
-                {
-                    "type": "File",
-                    "outputSource": "#main/step1/output",
-                    "id": "#main/wc_output"
-                }
-            ],
-            "steps": [
-                {
-                    "run": "#null-expression3-tool.cwl",
-                    "in": [],
-                    "out": [
-                        "#main/step0/output"
-                    ],
-                    "id": "#main/step0"
-                },
-                {
-                    "run": "#wc-tool.cwl",
-                    "in": [
-                        {
-                            "source": "#main/step0/output",
-                            "default": {
-                                "class": "File",
-                                "location": "dx://file-G0G0V1Q0yzZZZXfx3xPK1B1Z"
-                            },
-                            "id": "#main/step1/file1"
-                        }
-                    ],
-                    "out": [
-                        "#main/step1/output"
-                    ],
-                    "id": "#main/step1"
-                }
-            ],
-            "id": "#main"
-        },
-        {
-            "class": "ExpressionTool",
-            "requirements": [
-                {
-                    "class": "InlineJavascriptRequirement"
-                }
-            ],
-            "inputs": [],
-            "outputs": [
-                {
-                    "type": "Any",
-                    "id": "#null-expression3-tool.cwl/output"
-                }
-            ],
-            "expression": "$({'output': null })",
-            "id": "#null-expression3-tool.cwl"
-        },
-        {
-            "class": "CommandLineTool",
-            "inputs": [
-                {
-                    "type": "File",
-                    "id": "#wc-tool.cwl/file1"
-                }
-            ],
-            "outputs": [
-                {
-                    "type": "File",
-                    "outputBinding": {
-                        "glob": "output"
-                    },
-                    "id": "#wc-tool.cwl/output"
-                }
-            ],
-            "baseCommand": [
-                "wc",
-                "-l"
-            ],
-            "stdin": "$(inputs.file1.path)",
-            "stdout": "output",
-            "id": "#wc-tool.cwl"
+          "default": {
+            "class": "File",
+            "location": "whale.txt"
+          },
+          "id": "file1",
+          "source": "step0/output"
         }
-    ],
-    "cwlVersion": "v1.2"
+      ],
+      "out": [
+        "output"
+      ],
+      "run": {
+        "baseCommand": [
+          "wc",
+          "-l"
+        ],
+        "class": "CommandLineTool",
+        "id": "count-lines11-null-step-wf-noET.cwl:step_step1:wc-tool.cwl",
+        "inputs": [
+          {
+            "id": "file1",
+            "type": "File"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "output",
+            "outputBinding": {
+              "glob": "output"
+            },
+            "type": "File"
+          }
+        ],
+        "requirements": [
+          {
+            "class": "InlineJavascriptRequirement"
+          }
+        ],
+        "stdin": "$(inputs.file1.path)",
+        "stdout": "output"
+      }
+    }
+  ]
 }

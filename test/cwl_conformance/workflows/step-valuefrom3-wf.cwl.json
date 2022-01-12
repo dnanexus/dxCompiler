@@ -1,6 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
+  "id": "step-valuefrom3-wf.cwl",
   "inputs": [
     {
       "id": "a",

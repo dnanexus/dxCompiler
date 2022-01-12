@@ -21,7 +21,7 @@
         "index.py": {
           "default": {
             "class": "File",
-            "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/index.py"
+            "location": "index.py"
           },
           "inputBinding": {
             "position": 0
@@ -92,7 +92,7 @@
         "search.py": {
           "default": {
             "class": "File",
-            "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/search.py"
+            "location": "search.py"
           },
           "inputBinding": {
             "position": 0

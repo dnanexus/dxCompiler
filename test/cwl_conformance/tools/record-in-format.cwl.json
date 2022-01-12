@@ -4,6 +4,7 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
+  "id": "record-in-format.cwl",
   "inputs": [
     {
       "format": "http://example.com/format1",

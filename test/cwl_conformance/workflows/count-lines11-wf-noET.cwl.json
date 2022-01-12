@@ -1,6 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
+  "id": "count-lines11-wf-noET.cwl",
   "inputs": [
     {
       "id": "file1",
@@ -32,7 +33,7 @@
         {
           "default": {
             "class": "File",
-            "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G0G0V1Q0yzZZZXfx3xPK1B1Z"
+            "location": "whale.txt"
           },
           "id": "file1",
           "source": "file1"
@@ -47,6 +48,7 @@
           "-l"
         ],
         "class": "CommandLineTool",
+        "id": "count-lines11-wf-noET.cwl:step_step1:wc-tool.cwl",
         "inputs": [
           {
             "id": "file1",

@@ -1,6 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
+  "id": "cond-wf-013_nojs.cwl",
   "inputs": [
     {
       "default": [
@@ -98,6 +99,7 @@
           "echo"
         ],
         "class": "CommandLineTool",
+        "id": "cond-wf-013_nojs.cwl:step_step1:foo.cwl",
         "inputs": [
           {
             "id": "in1",
@@ -146,6 +148,7 @@
           "echo"
         ],
         "class": "CommandLineTool",
+        "id": "cond-wf-013_nojs.cwl:step_step2:bar.cwl",
         "inputs": [
           {
             "id": "in1",

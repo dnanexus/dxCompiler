@@ -1,11 +1,12 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
+  "id": "io-file-default-wf.cwl",
   "inputs": [
     {
       "default": {
         "class": "File",
-        "path": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G0G0V1Q0yzZZZXfx3xPK1B1Z"
+        "path": "whale.txt"
       },
       "id": "file1",
       "type": "File"
@@ -44,6 +45,7 @@
           "$(inputs.catfile1.path)"
         ],
         "class": "CommandLineTool",
+        "id": "io-file-default-wf.cwl:step_step1:run",
         "inputs": [
           {
             "id": "catfile1",

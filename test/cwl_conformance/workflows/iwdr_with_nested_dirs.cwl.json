@@ -1,6 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
+  "id": "iwdr_with_nested_dirs.cwl",
   "inputs": [],
   "outputs": [
     {
@@ -31,6 +32,7 @@
           "deeply/nested/dir/structure"
         ],
         "class": "CommandLineTool",
+        "id": "iwdr_with_nested_dirs.cwl:step_first:run",
         "inputs": [],
         "outputs": [
           {
@@ -65,6 +67,7 @@
           "deeply/nested/dir/structure/ya"
         ],
         "class": "CommandLineTool",
+        "id": "iwdr_with_nested_dirs.cwl:step_second:run",
         "inputs": [
           {
             "id": "dir",

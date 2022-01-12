@@ -1,6 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
+  "id": "scatter-valuefrom-wf6.cwl",
   "inputs": [
     {
       "id": "scattered_messages",
@@ -53,6 +54,7 @@
       "run": {
         "baseCommand": "echo",
         "class": "CommandLineTool",
+        "id": "scatter-valuefrom-wf6.cwl:step_step1:scatter-valueFrom-tool.cwl",
         "inputs": [
           {
             "id": "scattered_message",

@@ -8,6 +8,7 @@
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
   "doc": "When executing in a container, entryname can have an absolute path\nto a mount location inside the container.\n",
+  "id": "iwd-container-entryname1.cwl",
   "inputs": [
     {
       "id": "filelist",

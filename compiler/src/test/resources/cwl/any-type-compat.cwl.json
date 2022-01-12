@@ -1,46 +1,54 @@
 {
-    "class": "Workflow",
-    "steps": [],
-    "inputs": [
-        {
-            "type": "Any",
-            "id": "#main/input1"
-        },
-        {
-            "type": {
-                "type": "array",
-                "items": "Any"
-            },
-            "id": "#main/input2"
-        },
-        {
-            "type": "Any",
-            "id": "#main/input3"
-        }
-    ],
-    "outputs": [
-        {
-            "id": "#main/output1",
-            "type": {
-                "type": "array",
-                "items": "string"
-            },
-            "outputSource": "#main/input1"
-        },
-        {
-            "id": "#main/output2",
-            "type": {
-                "type": "array",
-                "items": "string"
-            },
-            "outputSource": "#main/input2"
-        },
-        {
-            "id": "#main/output3",
-            "type": "string",
-            "outputSource": "#main/input3"
-        }
-    ],
-    "id": "#main",
-    "cwlVersion": "v1.2"
+  "class": "Workflow",
+  "cwlVersion": "v1.2",
+  "id": "any-type-compat.cwl",
+  "inputs": [
+    {
+      "id": "input1",
+      "type": "Any"
+    },
+    {
+      "id": "input2",
+      "type": {
+        "items": "Any",
+        "type": "array"
+      }
+    },
+    {
+      "id": "input3",
+      "type": "Any"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "output1",
+      "outputSource": "input1",
+      "type": {
+        "items": "string",
+        "type": "array"
+      }
+    },
+    {
+      "id": "output2",
+      "outputSource": "input2",
+      "type": {
+        "items": "string",
+        "type": "array"
+      }
+    },
+    {
+      "id": "output3",
+      "outputSource": "input3",
+      "type": "string"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "SubworkflowFeatureRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ],
+  "steps": []
 }

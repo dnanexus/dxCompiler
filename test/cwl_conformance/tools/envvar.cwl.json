@@ -30,6 +30,7 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
+  "id": "envvar.cwl",
   "inputs": [],
   "outputs": [],
   "requirements": [

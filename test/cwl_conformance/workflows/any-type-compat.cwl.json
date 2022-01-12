@@ -1,6 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
+  "id": "any-type-compat.cwl",
   "inputs": [
     {
       "id": "input1",

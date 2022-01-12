@@ -1,6 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
+  "id": "record-in-secondaryFiles-missing-wf.cwl",
   "inputs": [
     {
       "id": "record_input",
@@ -54,6 +55,7 @@
         ],
         "baseCommand": "test",
         "class": "CommandLineTool",
+        "id": "record-in-secondaryFiles-missing-wf.cwl:step_step1:record-in-secondaryFiles.cwl",
         "inputs": [
           {
             "id": "record_input",

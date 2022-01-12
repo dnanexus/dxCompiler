@@ -1,6 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
+  "id": "steplevel-resreq.cwl",
   "inputs": [],
   "outputs": [
     {
@@ -41,6 +42,7 @@
         ],
         "baseCommand": "echo",
         "class": "CommandLineTool",
+        "id": "steplevel-resreq.cwl:step_step1:run",
         "inputs": [],
         "outputs": [
           {

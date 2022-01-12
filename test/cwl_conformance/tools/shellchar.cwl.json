@@ -9,6 +9,7 @@
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
   "doc": "Ensure that arguments containing shell directives are not interpreted and\nthat `shellQuote: false` has no effect when ShellCommandRequirement is not in\neffect.\n",
+  "id": "shellchar.cwl",
   "inputs": [],
   "outputs": [
     {

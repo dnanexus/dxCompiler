@@ -12,6 +12,7 @@
       "dockerPull": "debian:stretch-slim"
     }
   },
+  "id": "test-cwl-out.cwl",
   "inputs": [],
   "outputs": [
     {

@@ -21,6 +21,7 @@
       "dockerPull": "debian:stretch-slim"
     }
   },
+  "id": "dir2.cwl",
   "inputs": [
     {
       "id": "indir",

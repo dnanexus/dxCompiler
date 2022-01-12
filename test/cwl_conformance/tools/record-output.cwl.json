@@ -26,6 +26,7 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
+  "id": "record-output.cwl",
   "inputs": [
     {
       "id": "irec",

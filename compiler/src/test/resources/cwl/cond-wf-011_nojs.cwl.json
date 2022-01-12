@@ -1,138 +1,144 @@
 {
-  "$graph": [
+  "class": "Workflow",
+  "cwlVersion": "v1.2",
+  "id": "cond-wf-011_nojs.cwl",
+  "inputs": [
     {
-      "class": "CommandLineTool",
-      "inputs": [
-        {
-          "type": "int",
-          "id": "#cat.cwl/in1"
-        },
-        {
-          "type": "int",
-          "id": "#cat.cwl/in2"
-        },
-        {
-          "type": "int",
-          "id": "#cat.cwl/in3"
-        }
+      "default": [
+        1,
+        2
       ],
-      "baseCommand": [
-        "echo"
-      ],
-      "outputs": [
-        {
-          "type": "string",
-          "outputBinding": {
-            "outputEval": "$(inputs.in1)$(inputs.in2)$(inputs.in3)"
-          },
-          "id": "#cat.cwl/out1"
-        }
-      ],
-      "id": "#cat.cwl"
+      "id": "in1",
+      "type": {
+        "items": "int",
+        "type": "array"
+      }
     },
     {
-      "class": "Workflow",
-      "inputs": [
-        {
-          "type": {
-            "type": "array",
-            "items": "int"
-          },
-          "default": [
-            1,
-            2
-          ],
-          "id": "#main/in1"
-        },
-        {
-          "type": {
-            "type": "array",
-            "items": "int"
-          },
-          "default": [
-            1,
-            2,
-            3
-          ],
-          "id": "#main/in2"
-        },
-        {
-          "type": "int",
-          "default": 23,
-          "id": "#main/in3"
-        },
-        {
-          "type": {
-            "type": "array",
-            "items": "boolean"
-          },
-          "default": [
-            false,
-            true,
-            false,
-            true
-          ],
-          "id": "#main/test"
-        }
+      "default": [
+        1,
+        2,
+        3
       ],
-      "steps": [
-        {
-          "in": [
-            {
-              "source": "#main/test",
-              "id": "#main/step1/another_input"
-            },
-            {
-              "source": "#main/in1",
-              "id": "#main/step1/in1"
-            },
-            {
-              "source": "#main/in2",
-              "id": "#main/step1/in2"
-            },
-            {
-              "source": "#main/in3",
-              "id": "#main/step1/in3"
-            }
-          ],
-          "run": "#cat.cwl",
-          "when": "$(inputs.another_input)",
-          "out": [
-            "#main/step1/out1"
-          ],
-          "scatter": [
-            "#main/step1/in1",
-            "#main/step1/in2",
-            "#main/step1/another_input"
-          ],
-          "scatterMethod": "nested_crossproduct",
-          "id": "#main/step1"
-        }
+      "id": "in2",
+      "type": {
+        "items": "int",
+        "type": "array"
+      }
+    },
+    {
+      "default": 23,
+      "id": "in3",
+      "type": "int"
+    },
+    {
+      "default": [
+        false,
+        true,
+        false,
+        true
       ],
-      "outputs": [
-        {
-          "type": {
-            "type": "array",
-            "items": {
-              "type": "array",
-              "items": {
-                "type": "array",
-                "items": "string"
-              }
-            }
-          },
-          "outputSource": "#main/step1/out1",
-          "pickValue": "all_non_null",
-          "id": "#main/out1"
-        }
-      ],
-      "requirements": [
-        {
-          "class": "ScatterFeatureRequirement"
-        }
-      ],
-      "id": "#main"
+      "id": "test",
+      "type": {
+        "items": "boolean",
+        "type": "array"
+      }
     }
   ],
-  "cwlVersion": "v1.2"
+  "outputs": [
+    {
+      "id": "out1",
+      "outputSource": "step1/out1",
+      "pickValue": "all_non_null",
+      "type": {
+        "items": {
+          "items": {
+            "items": "string",
+            "type": "array"
+          },
+          "type": "array"
+        },
+        "type": "array"
+      }
+    }
+  ],
+  "requirements": [
+    {
+      "class": "ScatterFeatureRequirement"
+    },
+    {
+      "class": "SubworkflowFeatureRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step1",
+      "in": [
+        {
+          "id": "in1",
+          "source": "in1"
+        },
+        {
+          "id": "in2",
+          "source": "in2"
+        },
+        {
+          "id": "in3",
+          "source": "in3"
+        },
+        {
+          "id": "another_input",
+          "source": "test"
+        }
+      ],
+      "out": [
+        "out1"
+      ],
+      "run": {
+        "baseCommand": [
+          "echo"
+        ],
+        "class": "CommandLineTool",
+        "id": "cond-wf-011_nojs.cwl:step_step1:cat.cwl",
+        "inputs": [
+          {
+            "id": "in1",
+            "type": "int"
+          },
+          {
+            "id": "in2",
+            "type": "int"
+          },
+          {
+            "id": "in3",
+            "type": "int"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "out1",
+            "outputBinding": {
+              "outputEval": "$(inputs.in1)$(inputs.in2)$(inputs.in3)"
+            },
+            "type": "string"
+          }
+        ],
+        "requirements": [
+          {
+            "class": "InlineJavascriptRequirement"
+          }
+        ]
+      },
+      "scatter": [
+        "in1",
+        "in2",
+        "another_input"
+      ],
+      "scatterMethod": "nested_crossproduct",
+      "when": "$(inputs.another_input)"
+    }
+  ]
 }

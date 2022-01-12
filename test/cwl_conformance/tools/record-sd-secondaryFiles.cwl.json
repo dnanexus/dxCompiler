@@ -12,6 +12,7 @@
   "baseCommand": "test",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
+  "id": "record-sd-secondaryFiles.cwl",
   "inputs": [
     {
       "id": "record_input",

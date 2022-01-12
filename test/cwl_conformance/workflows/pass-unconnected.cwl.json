@@ -1,6 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
+  "id": "pass-unconnected.cwl",
   "inputs": [
     {
       "default": "hello inp1",
@@ -47,6 +48,7 @@
       "run": {
         "baseCommand": "echo",
         "class": "CommandLineTool",
+        "id": "pass-unconnected.cwl:step_step1:echo-tool.cwl",
         "inputs": [
           {
             "id": "in",

@@ -8,6 +8,7 @@
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
   "doc": "Test of capturing stderr output.",
+  "id": "stderr-shortcut.cwl",
   "inputs": [],
   "outputs": [
     {

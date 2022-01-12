@@ -5,6 +5,7 @@
   "baseCommand": "echo",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
+  "id": "cores_float.cwl",
   "inputs": [],
   "outputs": [
     {

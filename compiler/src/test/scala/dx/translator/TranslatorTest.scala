@@ -1734,7 +1734,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
   it should "translate a CWL workflow with stage input with linkMerge" in {
-    val path = pathFromBasename("cwl", "count-lines-19-wf.cwl.json")
+    val path = pathFromBasename("cwl", "count-lines19-wf.cwl.json")
     val args = path.toString :: cFlags
     val bundle = Main.compile(args.toVector) match {
       case SuccessfulCompileIR(bundle) => bundle

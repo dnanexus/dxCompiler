@@ -2,6 +2,7 @@
   "baseCommand": "false",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
+  "id": "exit-success.cwl",
   "inputs": [],
   "outputs": [],
   "permanentFailCodes": [

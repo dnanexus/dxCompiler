@@ -1,6 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
+  "id": "io-union-input-default-wf.cwl",
   "inputs": [
     {
       "default": "the default value",
@@ -42,6 +43,7 @@
       "run": {
         "class": "ExpressionTool",
         "expression": "${return {'o': (inputs.i.class || inputs.i)};}\n",
+        "id": "io-union-input-default-wf.cwl:step_step1:run",
         "inputs": [
           {
             "id": "i",

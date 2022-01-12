@@ -2,6 +2,7 @@
   "baseCommand": "echo",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
+  "id": "echo-tool.cwl",
   "inputs": [
     {
       "id": "in",

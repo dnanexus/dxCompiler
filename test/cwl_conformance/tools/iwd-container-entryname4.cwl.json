@@ -8,6 +8,7 @@
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
   "doc": "Must fail if entryname starts with ../\n",
+  "id": "iwd-container-entryname4.cwl",
   "inputs": [
     {
       "id": "filelist",

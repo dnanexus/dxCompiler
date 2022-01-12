@@ -1,6 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
+  "id": "basename-fields-test.cwl",
   "inputs": [
     {
       "id": "tool",
@@ -51,6 +52,7 @@
           "echo"
         ],
         "class": "CommandLineTool",
+        "id": "basename-fields-test.cwl:step_root:echo-file-tool.cwl",
         "inputs": [
           {
             "id": "in",
@@ -101,6 +103,7 @@
           "echo"
         ],
         "class": "CommandLineTool",
+        "id": "basename-fields-test.cwl:step_ext:echo-file-tool.cwl",
         "inputs": [
           {
             "id": "in",

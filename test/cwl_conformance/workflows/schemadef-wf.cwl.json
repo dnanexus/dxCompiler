@@ -1,6 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
+  "id": "schemadef-wf.cwl",
   "inputs": [
     {
       "id": "hello",
@@ -50,6 +51,7 @@
       "run": {
         "baseCommand": "echo",
         "class": "CommandLineTool",
+        "id": "schemadef-wf.cwl:step_step1:schemadef-tool.cwl",
         "inputs": [
           {
             "id": "hello",

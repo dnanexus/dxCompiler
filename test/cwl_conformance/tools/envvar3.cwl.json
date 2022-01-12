@@ -12,6 +12,7 @@
       "dockerPull": "debian:stretch-slim"
     }
   },
+  "id": "envvar3.cwl",
   "inputs": [],
   "outputs": [
     {

@@ -1,6 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
+  "id": "env-wf1.cwl",
   "inputs": [
     {
       "id": "in",
@@ -47,6 +48,7 @@
           "echo $TEST_ENV"
         ],
         "class": "CommandLineTool",
+        "id": "env-wf1.cwl:step_step1:env-tool1.cwl",
         "inputs": [
           {
             "id": "in",

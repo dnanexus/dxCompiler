@@ -5,6 +5,7 @@
   "baseCommand": "echo",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
+  "id": "dynresreq.cwl",
   "inputs": [
     {
       "id": "special_file",

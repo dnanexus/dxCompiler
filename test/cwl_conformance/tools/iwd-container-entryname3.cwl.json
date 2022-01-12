@@ -14,6 +14,7 @@
       "dockerPull": "debian:10"
     }
   },
+  "id": "iwd-container-entryname3.cwl",
   "inputs": [
     {
       "id": "filelist",

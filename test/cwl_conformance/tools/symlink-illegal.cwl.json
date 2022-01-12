@@ -23,6 +23,7 @@
       "dockerPull": "alpine"
     }
   },
+  "id": "symlink-illegal.cwl",
   "inputs": [],
   "outputs": [
     {

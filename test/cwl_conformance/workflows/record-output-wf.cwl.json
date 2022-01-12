@@ -1,6 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
+  "id": "record-output-wf.cwl",
   "inputs": [
     {
       "id": "irec",
@@ -87,6 +88,7 @@
           }
         ],
         "class": "CommandLineTool",
+        "id": "record-output-wf.cwl:step_step1:record-output.cwl",
         "inputs": [
           {
             "id": "irec",

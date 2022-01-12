@@ -5,11 +5,12 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
+  "id": "cwloutput-nolimit.cwl",
   "inputs": [
     {
       "default": {
         "class": "File",
-        "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G0G3GvQ0yzZV5q4q3vkQJK4y"
+        "location": "mkfilelist.py"
       },
       "id": "script",
       "type": "File"

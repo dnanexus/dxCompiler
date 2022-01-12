@@ -7,6 +7,7 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
+  "id": "initialwork-path.cwl",
   "inputs": [
     {
       "id": "file1",

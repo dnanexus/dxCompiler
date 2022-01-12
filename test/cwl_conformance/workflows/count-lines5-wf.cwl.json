@@ -1,11 +1,12 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
+  "id": "count-lines5-wf.cwl",
   "inputs": [
     {
       "default": {
         "class": "File",
-        "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G0G0V100yzZg3BBz3x4Y2Q69"
+        "location": "hello.txt"
       },
       "id": "file1",
       "type": "File"
@@ -41,6 +42,7 @@
       "run": {
         "baseCommand": "wc",
         "class": "CommandLineTool",
+        "id": "count-lines5-wf.cwl:step_step1:wc2-tool.cwl",
         "inputs": [
           {
             "id": "file1",

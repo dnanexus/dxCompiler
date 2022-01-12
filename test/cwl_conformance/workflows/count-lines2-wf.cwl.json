@@ -1,6 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
+  "id": "count-lines2-wf.cwl",
   "inputs": [
     {
       "id": "file1",
@@ -76,6 +77,7 @@
       "run": {
         "class": "ExpressionTool",
         "expression": "${return {'parseInt_output': parseInt(inputs.parseInt_file1.contents)};}\n",
+        "id": "count-lines2-wf.cwl:step_step2:run",
         "inputs": [
           {
             "id": "parseInt_file1",

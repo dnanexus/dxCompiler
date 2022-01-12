@@ -8,6 +8,7 @@
       "dockerPull": "debian:stretch-slim"
     }
   },
+  "id": "cat4-tool.cwl",
   "inputs": [
     {
       "id": "file1",

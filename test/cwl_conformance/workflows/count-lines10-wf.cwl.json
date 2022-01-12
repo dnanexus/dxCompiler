@@ -1,6 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
+  "id": "count-lines10-wf.cwl",
   "inputs": [
     {
       "id": "file1",
@@ -36,6 +37,7 @@
       ],
       "run": {
         "class": "Workflow",
+        "id": "count-lines10-wf.cwl:step_step0:run",
         "inputs": [
           {
             "id": "file1",

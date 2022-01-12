@@ -5,6 +5,7 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
+  "id": "docker-run-cmd.cwl",
   "inputs": [],
   "outputs": [
     {
