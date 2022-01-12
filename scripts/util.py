@@ -420,17 +420,19 @@ def verify_json_file(path):
     except:
         raise RuntimeError("Error verifying JSON file {}".format(path))
 
+# TODO fix usage in run_tests.py
+
 # Build an executable
 # 
 # return            Id of the compiled executable
 #
 # source_file       Workflow source file
-# project           Destination project on platform
+# project_id        Destination project on platform
 # folder            Destination folder on platform
 # top_dir           Local folder containing dxCompiler.jar
 # version_id        dxCompiler version
 # compiler_flags    Additional dxCompiler flags
-def build_executable(source_file, project, folder, top_dir, version_id, compiler_flags=[]):
+def build_executable(source_file, project_id, folder, top_dir, version_id, compiler_flags=[]):
     cmdline = [
         "java",
         "-jar",
@@ -441,7 +443,7 @@ def build_executable(source_file, project, folder, top_dir, version_id, compiler
         "-folder",
         folder,
         "-project",
-        project.get_id()
+        project_id
     ]
     cmdline += compiler_flags
     try:

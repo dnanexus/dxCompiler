@@ -9,9 +9,9 @@ import dxpy
 
 import util
 
-here = os.path.dirname(sys.argv[0])
-top_dir = os.path.dirname(os.path.abspath(here))
-test_dir = os.path.join(os.path.abspath(top_dir), "test")
+HERE = os.path.dirname(sys.argv[0])
+TOP_DIR = os.path.dirname(os.path.abspath(HERE))
+TEST_DIR = os.path.join(os.path.abspath(TOP_DIR), "test")
 
 ALICE_SECURITY_CONTEXT = {
     "auth_token_type": "Bearer"
@@ -60,57 +60,20 @@ def login_bob():
 def specific_applet_folder(tname):
     return "{}/{}".format(APPLET_FOLDER, tname)
 
-# Build a workflow.
-#
-# wf_source         Path to workflow source file
-# project_id        Destination project id
-# folder            Destination folder
-# version_id        dxCompiler version
-# compiler_flags    dxCompiler flags
-def build_workflow(wf_source, project_id, folder, version_id, compiler_flags):
-    print("Compiling {}".format(wf_source))
-    cmdline = [
-        "java",
-        "-jar",
-        os.path.join(top_dir, "dxCompiler-{}.jar".format(version_id)),
-        "compile",
-        wf_source,
-        "-force",
-        "-folder",
-        folder,
-        "-project",
-        project_id
-    ]
-    cmdline += compiler_flags
-    try:
-        print(" ".join(cmdline))
-        oid = subprocess.check_output(cmdline).strip()
-    except subprocess.CalledProcessError as cpe:
-        print("Error compiling {}\n stdout: {}\n stderr: {}".format(
-            wf_source,
-            cpe.stdout,
-            cpe.stderr
-        ))
-        raise
-    return oid.decode("ascii")
-    
-# TODO run workflow
-# def run_workflow(workflow_id):
-
 def test_global_wf_from_wdl():
     # As Alice, compile workflow and create global workflow
     login_alice()
 
     tname = "global_wf_from_wdl"
-    wf_source = os.path.join(os.path.abspath(test_dir), "multi_user", "{}.wdl".format(tname))
+    wf_source = os.path.join(os.path.abspath(TEST_DIR), "multi_user", "{}.wdl".format(tname))
     compiler_flags = ["-instanceTypeSelection", "dynamic"]
-    workflow_id = build_workflow(
-        wf_source=wf_source,
+    workflow_id = util.build_executable(
+        source_file=wf_source,
         project_id=PROJECT_ID,
         folder=specific_applet_folder(tname),
+        top_dir=TOP_DIR,
         version_id=VERSION_ID,
-        compiler_flags=compiler_flags
-    )
+        compiler_flags=compiler_flags)
     full_workflow_id = "{}:{}".format(PROJECT_ID, workflow_id)
     print("Compiled {}".format(full_workflow_id))
 
@@ -220,7 +183,7 @@ def main():
 
     register_tokens(args.alice_token, args.bob_token)
 
-    version_id = util.get_version_id(top_dir)
+    version_id = util.get_version_id(TOP_DIR)
     register_version(version_id)
 
     project = util.get_project(args.project)
@@ -245,7 +208,7 @@ def main():
 
     # Build the dxCompiler jar file, only on us-east-1
     test_dict = {"aws:us-east-1": project.name + ":" + base_folder}
-    assets = util.build(project, base_folder, version_id, top_dir, test_dict,
+    assets = util.build(project, base_folder, version_id, TOP_DIR, test_dict,
                         force=False)
     print("assets: {}".format(assets))
 
