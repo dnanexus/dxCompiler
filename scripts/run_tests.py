@@ -1191,7 +1191,7 @@ def build_test(tname, project, folder, version_id, compiler_flags):
         compiler_flags.append("-useManifests")
     return util.build_executable(
         source_file=desc.source_file,
-        project_id=project,
+        project=project,
         folder=folder,
         top_dir=top_dir,
         version_id=version_id,
