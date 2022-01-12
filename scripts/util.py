@@ -425,12 +425,12 @@ def verify_json_file(path):
 # return            Id of the compiled executable
 #
 # source_file       Workflow source file
-# project_id        Destination project on platform
+# project           Destination project on platform
 # folder            Destination folder on platform
 # top_dir           Local folder containing dxCompiler.jar
 # version_id        dxCompiler version
 # compiler_flags    Additional dxCompiler flags
-def build_executable(source_file, project_id, folder, top_dir, version_id, compiler_flags=[]):
+def build_executable(source_file, project, folder, top_dir, version_id, compiler_flags=[]):
     cmdline = [
         "java",
         "-jar",
@@ -441,7 +441,7 @@ def build_executable(source_file, project_id, folder, top_dir, version_id, compi
         "-folder",
         folder,
         "-project",
-        project_id
+        project.get_id()
     ]
     cmdline += compiler_flags
     try:
@@ -459,6 +459,7 @@ def build_executable(source_file, project_id, folder, top_dir, version_id, compi
 # oid                           Id of executable to run
 # project                       Destination project on platform
 # test_folder                   Destination folder on platform
+# test_name                     Test name
 # test_inputs                   Inputs for running, if non-default
 # debug_flag                    Keep jobs open for debugging?
 # delay_workspace_destruction   Delay workspace destruction?
@@ -482,6 +483,8 @@ def run_executable(
                 print("Running with input file: {}".format(test_inputs[i]))
                 inputs = read_json_file(test_inputs[i])
             project.new_folder(test_folder, parents=True)
+
+            # TODO handle running global workflow
             if "workflow-" in oid:
                 exec_obj = dxpy.DXWorkflow(project=project.get_id(), dxid=oid)
                 run_kwargs = {"ignore_reuse_stages": ["*"]}

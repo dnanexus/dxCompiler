@@ -20,7 +20,7 @@ BOB_SECURITY_CONTEXT = {
     "auth_token_type": "Bearer"
 }
 VERSION_ID = ""
-PROJECT_ID = ""
+PROJECT = None
 APPLET_FOLDER = ""
 TEST_FOLDER = ""
 BILLING_ORG = "org-dnanexus_apps"
@@ -35,9 +35,9 @@ def register_version(version_id):
     global VERSION_ID
     VERSION_ID = version_id
 
-def register_project(project_id):
-    global PROJECT_ID
-    PROJECT_ID = project_id
+def register_project(project):
+    global PROJECT
+    PROJECT = project
 
 def register_folders(applet_folder, test_folder):
     global APPLET_FOLDER
@@ -48,13 +48,13 @@ def register_folders(applet_folder, test_folder):
 def login_alice():
     dxpy.set_api_server_info(host="stagingapi.dnanexus.com")
     dxpy.set_security_context(ALICE_SECURITY_CONTEXT)
-    dxpy.set_project_context(PROJECT_ID)
+    dxpy.set_project_context(PROJECT.get_id())
     print("Logged in as {}".format(dxpy.bindings.whoami()))
 
 def login_bob():
     dxpy.set_api_server_info(host="stagingapi.dnanexus.com")
     dxpy.set_security_context(BOB_SECURITY_CONTEXT)
-    dxpy.set_project_context(PROJECT_ID)
+    dxpy.set_project_context(PROJECT.get_id())
     print("Logged in as {}".format(dxpy.bindings.whoami()))
 
 def specific_applet_folder(tname):
@@ -69,12 +69,12 @@ def test_global_wf_from_wdl():
     compiler_flags = ["-instanceTypeSelection", "dynamic"]
     workflow_id = util.build_executable(
         source_file=wf_source,
-        project_id=PROJECT_ID,
+        project=PROJECT,
         folder=specific_applet_folder(tname),
         top_dir=TOP_DIR,
         version_id=VERSION_ID,
         compiler_flags=compiler_flags)
-    full_workflow_id = "{}:{}".format(PROJECT_ID, workflow_id)
+    full_workflow_id = "{}:{}".format(PROJECT.get_id(), workflow_id)
     print("Compiled {}".format(full_workflow_id))
 
     # Strictly increasing global WF version
@@ -149,9 +149,14 @@ def test_global_wf_from_wdl():
     # As Bob, run global workflow
     login_bob()
 
-    # TODO as Bob, run global workflow
+    analysis = util.run_executable(
+        oid=global_workflow_name,
+        project=PROJECT,
+        test_folder=specific_applet_folder(tname),
+        test_name=tname
+    )
 
-    # TODO handle reporting success / failure; use pytest?
+    # TODO check on analysis; handle reporting success / failure
 
 def main():
     argparser = argparse.ArgumentParser(
@@ -190,7 +195,7 @@ def main():
     if project is None:
         raise RuntimeError("Could not find project {}".format(args.project))
     print("Project {} ({})".format(project.name, project.get_id()))
-    register_project(project.get_id())
+    register_project(project)
 
     # Do folder setup as Alice
     login_alice()
