@@ -483,8 +483,6 @@ def run_executable(
                 print("Running with input file: {}".format(test_inputs[i]))
                 inputs = read_json_file(test_inputs[i])
             project.new_folder(test_folder, parents=True)
-
-            # TODO handle running global workflow
             if "globalworkflow-" in oid:
                 global_workflow_name = oid.replace("globalworkflow-", "")
                 exec_obj = dxpy.DXGlobalWorkflow(name=global_workflow_name)
