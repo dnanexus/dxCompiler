@@ -78,6 +78,12 @@ def wait_for_completion(exec_objs):
 
     return successes, failures
 
+def report_test_success(tname):
+    print("Test {} succeeded".format(tname))
+
+def report_test_failure(tname):
+    print("Test {} failed".format(tname))
+
 def test_global_wf_from_wdl():
     # As Alice, compile workflow and create global workflow
     login_alice()
@@ -173,11 +179,13 @@ def test_global_wf_from_wdl():
         test_folder=specific_applet_folder(tname),
         test_name=tname
     )
-    successes, failures = wait_for_completion(exec_objs)
 
-    # TODO check on analysis; handle reporting success / failure
-    print("Successes {}".format(len(successes)))
-    print("Failures {}".format(len(failures)))
+    successes, failures = wait_for_completion(exec_objs)
+    if len(successes) > 0:
+        report_test_success(tname)
+    elif len(failures) > 0:
+        report_test_failure(tname)
+        raise RuntimeError("Analysis failed in test {}".format(tname))
 
 def main():
     argparser = argparse.ArgumentParser(
@@ -237,6 +245,8 @@ def main():
     assets = util.build(project, base_folder, version_id, TOP_DIR, test_dict,
                         force=False)
     print("assets: {}".format(assets))
+
+    # TODO APPS-1030 Improve this script by using pytest
 
     # Run tests
     try:
