@@ -6,6 +6,7 @@ import sys
 import time
 
 import dxpy
+from dxpy.exceptions import DXJobFailureError
 
 import util
 
@@ -59,6 +60,23 @@ def login_bob():
 
 def specific_applet_folder(tname):
     return "{}/{}".format(APPLET_FOLDER, tname)
+
+def wait_for_completion(exec_objs):
+    successes = []
+    failures = []
+    for i, exec_obj in exec_objs:
+        dx_desc = exec_obj.describe()
+        exec_name = dx_desc["name"].split(" ")[0]
+        print("Awaiting completion {}.{}".format(exec_name, i))
+        try:
+            exec_obj.wait_on_done()
+            print("Analysis succeeded {}.{}".format(exec_name, i))
+            successes.append((exec_name, exec_obj, i))
+        except DXJobFailureError:
+            print("Error: analysis failed {}.{}".format(exec_name, i))
+            failures.append((exec_name, exec_obj, i))
+
+    return successes, failures
 
 def test_global_wf_from_wdl():
     # As Alice, compile workflow and create global workflow
@@ -149,14 +167,17 @@ def test_global_wf_from_wdl():
     # As Bob, run global workflow
     login_bob()
 
-    analysis = util.run_executable(
+    exec_objs = util.run_executable(
         oid=global_workflow_name,
         project=PROJECT,
         test_folder=specific_applet_folder(tname),
         test_name=tname
     )
+    successes, failures = wait_for_completion(exec_objs)
 
     # TODO check on analysis; handle reporting success / failure
+    print("Successes {}".format(len(successes)))
+    print("Failures {}".format(len(failures)))
 
 def main():
     argparser = argparse.ArgumentParser(
