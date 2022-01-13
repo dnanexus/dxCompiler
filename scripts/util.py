@@ -485,7 +485,11 @@ def run_executable(
             project.new_folder(test_folder, parents=True)
 
             # TODO handle running global workflow
-            if "workflow-" in oid:
+            if "globalworkflow-" in oid:
+                global_workflow_name = oid.replace("globalworkflow-", "")
+                exec_obj = dxpy.DXGlobalWorkflow(name=global_workflow_name)
+                run_kwargs = {"ignore_reuse_stages": ["*"]}
+            elif "workflow-" in oid:
                 exec_obj = dxpy.DXWorkflow(project=project.get_id(), dxid=oid)
                 run_kwargs = {"ignore_reuse_stages": ["*"]}
             elif "applet-" in oid:
