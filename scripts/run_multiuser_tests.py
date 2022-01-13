@@ -155,6 +155,9 @@ def test_global_wf_from_wdl():
         global_workflow_name,
         "user-dnanexus_apps_test_robot"
     ]
+
+    # TODO Test more developer actions; question APPS-1031
+
     try:
         print(" ".join(add_developers_cmd))
         subprocess.call(add_developers_cmd)
@@ -167,8 +170,6 @@ def test_global_wf_from_wdl():
             cpe.stderr
         ))
         raise
-
-    # TODO test some more developer actions as Alice
 
     # As Bob, run global workflow
     login_bob()
