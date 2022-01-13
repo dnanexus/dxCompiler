@@ -51,15 +51,15 @@ object CwlTaskExecutor {
       case _                    => throw new Exception("missing executable name")
     }
     jobMeta.logger.trace(s"toolName: ${toolName}")
-    val tool = parseString(jobMeta.sourceCode) match {
+    val (tool, root) = parseString(jobMeta.sourceCode) match {
       case ParserResult(tool: CommandLineTool, _, _, _) if tool.frag == DefaultFrag =>
-        tool.copy(id = Some(Identifier(namespace = None, frag = Some(toolName))))
-      case ParserResult(tool: CommandLineTool, _, _, _) => tool
+        (tool.copy(id = Some(Identifier(namespace = None, frag = Some(toolName)))), None)
+      case ParserResult(tool: CommandLineTool, _, _, _) => (tool, None)
       case ParserResult(tool: ExpressionTool, _, _, _) if tool.frag == DefaultFrag =>
-        tool.copy(id = Some(Identifier(namespace = None, frag = Some(toolName))))
-      case ParserResult(tool: ExpressionTool, _, _, _) => tool
-      case ParserResult(_, doc: Document, _, _) =>
-        doc.values.toVector.collect {
+        (tool.copy(id = Some(Identifier(namespace = None, frag = Some(toolName)))), None)
+      case ParserResult(tool: ExpressionTool, _, _, _) => (tool, None)
+      case ParserResult(wf: Workflow, doc: Document, _, _) =>
+        val tool = doc.values.toVector.collect {
           case tool: CommandLineTool if tool.name == toolName => tool
           case tool: ExpressionTool if tool.name == toolName  => tool
         } match {
@@ -69,8 +69,9 @@ object CwlTaskExecutor {
           case v =>
             throw new Exception(s"more than one tool with name ${toolName}: ${v.mkString("\n")}")
         }
+        (tool, Some(wf))
     }
-    CwlTaskExecutor(tool, jobMeta, streamFiles, checkInstanceType)
+    CwlTaskExecutor(tool, root, jobMeta, streamFiles, checkInstanceType)
   }
 }
 
@@ -79,6 +80,7 @@ object CwlTaskExecutor {
 //  properties on the uploaded files so they can be propagated to downstream
 //  CWL inputs
 case class CwlTaskExecutor(tool: Process,
+                           root: Option[Workflow],
                            jobMeta: JobMeta,
                            streamFiles: StreamFiles.StreamFiles,
                            checkInstanceType: Boolean)
@@ -141,6 +143,20 @@ case class CwlTaskExecutor(tool: Process,
     if (missingTypes.nonEmpty) {
       throw new Exception(s"no type information given for input(s) ${missingTypes.mkString(",")}")
     }
+    // if this is a step in a workflow, get default values from step inputs
+    val stepDefaults = Option
+      .when(target.isDefined && root.isDefined) {
+        root.get.steps.collectFirst {
+          case step if step.id.flatMap(_.frag).contains(target.get) =>
+            val stepDefaults: Map[DxName, CwlValue] = step.inputs.collect {
+              case inp if inp.default.isDefined =>
+                CwlDxName.fromSourceName(inp.id.flatMap(_.name).get) -> inp.default.get
+            }.toMap
+            stepDefaults
+        }
+      }
+      .flatten
+      .getOrElse(Map.empty)
     // convert IR to CWL values; discard auxiliary fields
     val evaluator = Evaluator.create(requirements, hints)
     val cwlInputs = inputParams.foldLeft(Map.empty[DxName, (CwlType, CwlValue)]) {
@@ -148,6 +164,11 @@ case class CwlTaskExecutor(tool: Process,
         val (cwlType: CwlType, cwlValue: CwlValue) = irInputs.get(name) match {
           case Some(irValue) =>
             CwlUtils.fromIRValue(irValue, param.cwlType, name.decoded, isInput = true)
+          case None if stepDefaults.contains(name) =>
+            val ctx = CwlUtils.createEvaluatorContext(runtime, env.map {
+              case (dxName, tv) => dxName.decoded -> tv
+            })
+            evaluator.evaluate(stepDefaults(name), param.cwlType, ctx)
           case None if param.default.isDefined =>
             val ctx = CwlUtils.createEvaluatorContext(runtime, env.map {
               case (dxName, tv) => dxName.decoded -> tv
