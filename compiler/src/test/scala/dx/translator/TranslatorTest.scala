@@ -1660,7 +1660,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
         Parameter(CwlDxName.fromSourceName("output"), TFile)
     )
     wf.stages(1).dxStage.id shouldBe "stage-1"
-    wf.stages(1).calleeName shouldBe "parseInt"
+    wf.stages(1).calleeName shouldBe "parseInt-tool"
     wf.stages(1).inputs shouldBe Vector(
         StageInputStageLink(DxWorkflowStage("stage-0"),
                             Parameter(CwlDxName.fromSourceName("output"), TFile)),
