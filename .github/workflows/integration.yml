@@ -51,7 +51,7 @@ jobs:
           export PATH="$PATH:$HOME/.local/bin"
 
           # Set up DNAnexus staging environment, folder
-          dx login --noprojects --staging --token $TEST_ROBOT_TOKEN
+          dx login --noprojects --staging --token $ROBOT_TOKEN
           PROJECT=dxCompiler_playground
           dx select $PROJECT
           cd ${GITHUB_WORKSPACE}
