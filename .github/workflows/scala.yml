@@ -34,10 +34,10 @@ jobs:
         run: |
           cd compiler/src/test/resources
           ./clone-corpora.sh
-      - name: Run Tests
+      - name: Run unit tests
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          AUTH_TOKEN: ${{ secrets.DX_STAGING_TOKEN }}
+          AUTH_TOKEN: ${{ secrets.DX_STAGING_TEST_ROBOT_TOKEN }}
           SBT_OPTS: "-XX:+CMSClassUnloadingEnabled -Xmx2G -Xms1G"
         run: |
           sudo apt-get update

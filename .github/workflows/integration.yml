@@ -42,10 +42,10 @@ jobs:
           # install dxda
           sudo wget -O/usr/local/bin/dx-download-agent https://github.com/dnanexus/dxda/releases/download/v0.5.7/dx-download-agent-linux
           sudo chmod +x /usr/local/bin/dx-download-agent
-      - name: Run tests
+      - name: Run integration tests
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          AUTH_TOKEN: ${{ secrets.DX_STAGING_TOKEN }}
+          AUTH_TOKEN: ${{ secrets.DX_STAGING_TEST_ROBOT_TOKEN }}
         run: |
           export PATH="$PATH:$HOME/.local/bin"
 
@@ -60,3 +60,9 @@ jobs:
           dx mkdir $FOLDER
           python3 scripts/run_tests.py --test M --folder $FOLDER --project $PROJECT
           dx rm -rf $FOLDER
+      - name: Run multi-user tests
+        env:
+          ALICE_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
+          BOB_TOKEN: ${{ secrets.DX_STAGING_TEST_ROBOT_TOKEN }}
+        run:
+          # TODO Run multi-user tests
