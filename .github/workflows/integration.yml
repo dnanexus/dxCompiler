@@ -45,24 +45,25 @@ jobs:
       - name: Run integration tests
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          AUTH_TOKEN: ${{ secrets.DX_STAGING_TEST_ROBOT_TOKEN }}
+          ROBOT_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
+          TEST_ROBOT_TOKEN: ${{ secrets.DX_STAGING_TEST_ROBOT_TOKEN }}
         run: |
           export PATH="$PATH:$HOME/.local/bin"
 
-          # set up DNAnexus staging environment
-          dx login --noprojects --staging --token $AUTH_TOKEN
+          # Set up DNAnexus staging environment, folder
+          dx login --noprojects --staging --token $TEST_ROBOT_TOKEN
           PROJECT=dxCompiler_playground
           dx select $PROJECT
-
-          # run tests
           cd ${GITHUB_WORKSPACE}
           FOLDER=/builds/test_gha_dxcompiler_$(date +%s)_$RANDOM
           dx mkdir $FOLDER
-          python3 scripts/run_tests.py --test M --folder $FOLDER --project $PROJECT
+
+          # Run tests
+          python3 scripts/run_tests.py --folder $FOLDER --project $PROJECT \
+          --test M
+          python3 scripts/run_multiuser_tests.py --folder $FOLDER --project $PROJECT \
+          --alice-token $ROBOT_TOKEN \
+          --bob-token $TEST_ROBOT_TOKEN
+
+          # TODO Also ensure folder is removed when tests fail
           dx rm -rf $FOLDER
-      - name: Run multi-user tests
-        env:
-          ALICE_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
-          BOB_TOKEN: ${{ secrets.DX_STAGING_TEST_ROBOT_TOKEN }}
-        run:
-          # TODO Run multi-user tests

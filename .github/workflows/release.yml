@@ -96,7 +96,7 @@ jobs:
           cd ${GITHUB_WORKSPACE}
           pwd
           sbt version && sbt compile && sbt "testOnly -- -l prod"
-      - name: Run integration tests
+      - name: Run integration tests # TODO add multi-user tests here
         if: ${{ github.event.inputs.should-run-tests == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -115,12 +115,6 @@ jobs:
           python3 scripts/run_tests.py --test L --folder $FOLDER --project $PROJECT
           #TODO: also remove the folder when the tests fail
           dx rm -rf $FOLDER
-      - name: Run multi-user tests
-        env:
-          ALICE_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
-          BOB_TOKEN: ${{ secrets.DX_STAGING_TEST_ROBOT_TOKEN }}
-        run:
-          # TODO Run multi-user tests
       - name: Run the release script
         env:
           DX_STAGING_RELEASE_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
