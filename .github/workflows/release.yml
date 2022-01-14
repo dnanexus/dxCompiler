@@ -96,24 +96,31 @@ jobs:
           cd ${GITHUB_WORKSPACE}
           pwd
           sbt version && sbt compile && sbt "testOnly -- -l prod"
-      - name: Run integration tests # TODO add multi-user tests here
+      - name: Run integration tests
         if: ${{ github.event.inputs.should-run-tests == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          AUTH_TOKEN: ${{ secrets.DX_STAGING_TEST_ROBOT_TOKEN }}
+          ROBOT_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
+          TEST_ROBOT_TOKEN: ${{ secrets.DX_STAGING_TEST_ROBOT_TOKEN }}
         run: |
           export PATH="$PATH:$HOME/.local/bin"
 
-          # set up DNAnexus staging environment
-          dx login --noprojects --staging --token $AUTH_TOKEN
+          # Set up DNAnexus staging environment, folder
+          dx login --noprojects --staging --token $ROBOT_TOKEN
+          PROJECT=dxCompiler_playground
           dx select $PROJECT
-
-          # run tests
           cd ${GITHUB_WORKSPACE}
           FOLDER=/builds/test_gha_dxcompiler_$(date +%s)_$RANDOM
           dx mkdir $FOLDER
-          python3 scripts/run_tests.py --test L --folder $FOLDER --project $PROJECT
-          #TODO: also remove the folder when the tests fail
+
+          # Run tests
+          python3 scripts/run_tests.py --folder $FOLDER --project $PROJECT \
+          --test L
+          python3 scripts/run_multiuser_tests.py --folder $FOLDER --project $PROJECT \
+          --alice-token $ROBOT_TOKEN \
+          --bob-token $TEST_ROBOT_TOKEN
+
+          # TODO Also ensure folder is removed when tests fail
           dx rm -rf $FOLDER
       - name: Run the release script
         env:
