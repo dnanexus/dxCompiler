@@ -652,15 +652,22 @@ def get_cwl_json_metadata(filename, tname):
         # the id in a packed CWL file is always "main" so we use the test name instead
         if doc["class"] == "Workflow":
             return TestMetaData(name=tname, kind="workflow")
-        elif doc["class"] == "CommandLineTool":
+        else:
             return TestMetaData(name=tname, kind="applet")
     elif "$graph" in doc:
-        for proc in doc["$graph"]:
-            if proc["id"] == "#main":
-                if proc["class"] == "Workflow":
-                    return TestMetaData(name=tname, kind="workflow")
-                else:
+        if len(doc["$graph"]) == 1:
+            main_proc = doc["$graph"][0]
+        else:
+            for proc in doc["$graph"]:
+                if proc["id"] in ("main", "#main"):
+                    main_proc = proc
                     break
+            else:
+                main_proc = None
+
+        if main_proc:
+            kind = "workflow" if main_proc["class"] == "Workflow" else "applet"
+            return TestMetaData(name=tname, kind=kind)
 
     raise RuntimeError("{} is not a valid CWL workflow test".format(filename))
 
@@ -680,7 +687,7 @@ def register_test(dir_path, tname, ext):
     elif ext == ".cwl.json":
         metadata = get_cwl_json_metadata(source_file, tname)
     elif ext == ".cwl":
-         metadata = get_cwl_metadata(source_file, tname)
+        metadata = get_cwl_metadata(source_file, tname)
     else:
         raise RuntimeError("unsupported file type {}".format(ext))
     desc = TestDesc(
