@@ -31,6 +31,17 @@ git_revision = subprocess.check_output(
 ).strip()
 test_files = {}
 
+# these tests generally have syntax errors and are expected to fail at the compile step
+test_compilation_failing = {
+    "import_passwd",
+}
+
+# these tests generally have missing inputs and are expected to fail at the run step
+test_run_failing = {
+    "null-expression2-tool.0",
+}
+
+# these tests are expected to fail at runtime
 expected_failure = {
     "bad_status",
     "bad_status2",
@@ -69,13 +80,10 @@ expected_failure = {
     "record-in-format.2",
     "record-in-format.3",
     "record-in-secondaryFiles-missing-wf",
-    "null-expression2-tool.0",
     "null-expression2-tool.1",
     "timelimit-wf",
     "timelimit4-wf",
 }
-
-test_compilation_failing = {"import_passwd"}
 
 wdl_v1_list = [
     # calling native dx applets/apps
@@ -750,6 +758,8 @@ def read_json_file_maybe_empty(path):
 
 
 def find_test_from_exec(exec_obj):
+    if isinstance(exec_obj, str):
+        return exec_obj
     dx_desc = exec_obj.describe()
     exec_name = dx_desc["name"].split(" ")[0]
     for tname, desc in test_files.items():
@@ -1262,7 +1272,17 @@ def wait_for_completion(test_exec_objs):
     successes = []
     failures = []
     for i, exec_obj in test_exec_objs:
+        if exec_obj is None:
+            continue
         tname = find_test_from_exec(exec_obj)
+        expect_run_failure = tname in test_run_failing or "{}.{}".format(tname, i) in test_run_failing
+        if expect_run_failure:
+            if exec_obj is None:
+                successes.append((i, exec_obj, False))
+            else:
+                failures.append((tname, exec_obj))
+            continue
+
         desc = test_files[tname]
         try:
             exec_obj.wait_on_done()
@@ -1333,7 +1353,11 @@ def run_executable(
             print("Sleeping for 5 seconds before trying again")
             time.sleep(5)
         else:
-            raise RuntimeError("running workflow")
+            if tname in test_run_failing or "{}.{}".format(tname, i) in test_run_failing:
+                print("Analysis {}.{} failed as expected".format(desc.name, i))
+                return None
+            else:
+                raise RuntimeError("running workflow")
 
     n = len(desc.dx_input)
     if n == 0:
@@ -1383,7 +1407,7 @@ def run_test_subset(
             test_exec_objs.extend(anl)
         except Exception as ex:
             if tname in test_compilation_failing:
-                cprint("Workflow {} execution failed as expected".format(tname))
+                cprint("Workflow {} compilation failed as expected".format(tname))
                 continue
             elif delay_run_errors:
                 cprint(f"Workflow {tname} execution failed", "red")
@@ -1396,7 +1420,7 @@ def run_test_subset(
         write_failed(errors)
         raise RuntimeError(f"failed to run one or more tests {','.join(errors)}")
 
-    print("executions: " + ", ".join([a[1].get_id() for a in test_exec_objs]))
+    print("executions: " + ", ".join([a[1].get_id() for a in test_exec_objs if a[1] is not None]))
 
     # Wait for completion
     successful_executions, failed_executions = wait_for_completion(test_exec_objs)

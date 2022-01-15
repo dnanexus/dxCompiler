@@ -1,10 +1,12 @@
 {
-  "rename-inputs.inputWithSecondary": {
+  "InputSecondaryFileConformanceTest.inputWithSecondary": {
     "class": "File",
-    "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G7QBF980yzZgJ4zj3B598Z34"
-  },
-  "rename-inputs.accessory": {
-    "class": "File",
-    "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G7QBFBj0yzZkZxFJ39KKGb84"
+    "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G7QBF980yzZgJ4zj3B598Z34",
+    "secondaryFiles": [
+      {
+        "class": "File",
+        "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G7QBFBj0yzZkZxFJ39KKGb84"
+      }
+    ]
   }
 }

@@ -7,18 +7,18 @@
   "record-in-format.record_input": {
     "f1": {
       "class": "File",
-      "location": "dx://file-G15vQ8Q0yzZkg6424fGVf61v",
+      "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/rec/A",
       "format": "http://example.com/format1"
     },
     "f2": [
       {
         "class": "File",
-        "location": "dx://file-G15vQ980yzZk76KjKX6GQQpJ",
+        "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/rec/B",
         "format": "http://example.com/format2"
       },
       {
         "class": "File",
-        "location": "dx://file-G15vQB00yzZqvYj297Y3Z5FP",
+        "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/rec/C",
         "format": "http://example.com/format2"
       }
     ]

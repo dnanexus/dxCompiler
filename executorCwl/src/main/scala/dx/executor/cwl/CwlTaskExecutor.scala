@@ -340,6 +340,12 @@ case class CwlTaskExecutor(tool: Process,
     val metaDir = workerPaths.getMetaDir(ensureExists = true).asJavaPath
     // update the source code if necessary
     val sourceCode = localizedDependencies.map(updateSourceCode).getOrElse(jobMeta.sourceCode)
+    if (logger.isVerbose) {
+      logger.trace(
+          s"""Executing CWL:
+             |${sourceCode}""".stripMargin
+      )
+    }
     // write the CWL and input files
     val cwlPath = metaDir.resolve(s"tool.cwl")
     FileUtils.writeFileContent(cwlPath, sourceCode)

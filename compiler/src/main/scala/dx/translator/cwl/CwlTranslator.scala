@@ -110,10 +110,10 @@ case class CwlInputTranslator(bundle: Bundle,
     }
   }
 
-  // CWL packed workflows always use 'main' as the main process name -
-  // this enables CwlInputTranslator to replace it with the filename.
-  // TODO: the right solution to this is to have the pre-processing
-  //  script change #main to #<filename>
+  // CWL packed workflows in $graph format use 'main' as the main process name - this enables
+  // CwlInputTranslator to replace it with the filename.
+  // TODO: the right solution to this is to have the pre-processing script change
+  //  #main to #<filename>
   override protected val mainPrefix: Option[String] = {
     bundle.primaryCallable match {
       case Some(wf: IRWorkflow) if wf.name == "main" =>

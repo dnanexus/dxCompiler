@@ -86,8 +86,6 @@ before_command() {
     chmod -R 500 "${runtimePathConfig.getInputFilesDir()}"
 <% if (dockerPreamble.nonEmpty) { %>
 ${dockerPreamble.get}
-<% } else { %>
-    echo "No container specified; executing task in the worker environment"
 <% } %>
 }
 

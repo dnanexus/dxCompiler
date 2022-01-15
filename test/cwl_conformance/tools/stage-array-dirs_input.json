@@ -1,5 +1,5 @@
 {
-  "stage-array-dirs.input_list": [
+  "stage_array_dirs.input_list": [
     {
       "class": "Directory",
       "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/testdir/"
