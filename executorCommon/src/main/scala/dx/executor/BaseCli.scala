@@ -22,7 +22,9 @@ abstract class BaseCli {
   protected def createWorkflowExecutor(meta: JobMeta, separateOutputs: Boolean): WorkflowExecutor[_]
 
   private object StreamFilesOptionSpec
-      extends SingleValueOptionSpec[StreamFiles.StreamFiles](choices = StreamFiles.values.toVector) {
+      extends SingleValueOptionSpec[StreamFiles.StreamFiles](
+          choices = StreamFiles.values.toVector
+      ) {
     override def parseValue(value: String): StreamFiles.StreamFiles =
       StreamFiles.withNameIgnoreCase(value)
   }

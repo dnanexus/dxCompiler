@@ -106,7 +106,7 @@ object CwlBundle {
         // the version does not get set when parsing packed workflows, so
         // for now we assume v1.2 and hope for the best
         CWLVersion.V1_2
-        //throw new Exception(s"top-level process does not have a version ${process}")
+        // throw new Exception(s"top-level process does not have a version ${process}")
     )
     process match {
       case tool: CommandLineTool =>

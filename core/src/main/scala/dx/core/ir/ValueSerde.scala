@@ -404,11 +404,11 @@ object ValueSerde extends DefaultJsonProtocol {
                     s"${innerName} value ${unwrappedValue} does not match any of ${bounds}"
                 )
             )
-        case (TBoolean, JsBoolean(b))                                         => VBoolean(b.booleanValue)
-        case (TInt, JsNumber(value)) if value.isValidLong                     => VInt(value.toLongExact)
-        case (TFloat, JsNumber(value))                                        => VFloat(value.toDouble)
-        case (TString, JsString(s))                                           => VString(s)
-        case (TFile, JsString(uri))                                           => VFile(uri)
+        case (TBoolean, JsBoolean(b))                     => VBoolean(b.booleanValue)
+        case (TInt, JsNumber(value)) if value.isValidLong => VInt(value.toLongExact)
+        case (TFloat, JsNumber(value))                    => VFloat(value.toDouble)
+        case (TString, JsString(s))                       => VString(s)
+        case (TFile, JsString(uri))                       => VFile(uri)
         case (TDirectory, JsString(uri)) if DxFolderSource.isDxFolderUri(uri) => VFolder(uri)
         case (TFile | TDirectory, obj: JsObject) if isPathObject(obj) =>
           deserializePathObject(obj, dxApi, dxFileDescCache)

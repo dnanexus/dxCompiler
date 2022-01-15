@@ -91,8 +91,7 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
         WdlRuntime.DisksKey -> disks.map(makeString),
         WdlRuntime.CpuKey -> cpu.map(makeString),
         WdlRuntime.GpuKey -> gpu.map(b =>
-          TAT.ValueBoolean(b, WdlTypes.T_Boolean)(SourceLocation.empty)
-        )
+          TAT.ValueBoolean(b, WdlTypes.T_Boolean)(SourceLocation.empty))
     ).collect {
       case (key, Some(value)) => key -> value
     }
@@ -114,7 +113,9 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
       case Some(instanceType: DxInstanceType) if instanceType.name == "mem1_ssd1_x8" =>
     }
     testDb
-      .selectOptimal(InstanceTypeRequest(minMemoryMB = Some(2 * 1024), minDiskGB = Some(20))) should matchPattern {
+      .selectOptimal(
+          InstanceTypeRequest(minMemoryMB = Some(2 * 1024), minDiskGB = Some(20))
+      ) should matchPattern {
       case Some(instanceType: DxInstanceType) if instanceType.name == "mem1_ssd1_x2" =>
     }
     testDb.selectOptimal(
@@ -128,22 +129,38 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
 
     testDb
       .apply(
-          createRuntime(None, Some("3 GB"), Some("local-disk 10 HDD"), Some("1"), None).parseInstanceType
+          createRuntime(None,
+                        Some("3 GB"),
+                        Some("local-disk 10 HDD"),
+                        Some("1"),
+                        None).parseInstanceType
       )
       .name should equal("mem1_ssd1_x2")
     testDb
       .apply(
-          createRuntime(None, Some("37 GB"), Some("local-disk 10 HDD"), Some("6"), None).parseInstanceType
+          createRuntime(None,
+                        Some("37 GB"),
+                        Some("local-disk 10 HDD"),
+                        Some("6"),
+                        None).parseInstanceType
       )
       .name should equal("mem3_ssd1_x8")
     testDb
       .apply(
-          createRuntime(None, Some("2 GB"), Some("local-disk 100 HDD"), None, None).parseInstanceType
+          createRuntime(None,
+                        Some("2 GB"),
+                        Some("local-disk 100 HDD"),
+                        None,
+                        None).parseInstanceType
       )
       .name should equal("mem1_ssd1_x8")
     testDb
       .apply(
-          createRuntime(None, Some("2.1GB"), Some("local-disk 100 HDD"), None, None).parseInstanceType
+          createRuntime(None,
+                        Some("2.1GB"),
+                        Some("local-disk 100 HDD"),
+                        None,
+                        None).parseInstanceType
       )
       .name should equal("mem1_ssd1_x8")
 
@@ -155,7 +172,11 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
 
     testDb
       .apply(
-          createRuntime(None, Some("235 GB"), Some("local-disk 550 HDD"), Some("32"), None).parseInstanceType
+          createRuntime(None,
+                        Some("235 GB"),
+                        Some("local-disk 550 HDD"),
+                        Some("32"),
+                        None).parseInstanceType
       )
       .name should equal("mem3_ssd1_x32")
     testDb
@@ -278,7 +299,11 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
         minCpu = Some(1),
         os = Some(Constants.DefaultExecutionEnvironment)
     )
-    createRuntime(None, None, None, Some("1.2"), None).parseInstanceType shouldBe InstanceTypeRequest(
+    createRuntime(None,
+                  None,
+                  None,
+                  Some("1.2"),
+                  None).parseInstanceType shouldBe InstanceTypeRequest(
         minMemoryMB = Some(2048),
         minDiskGB = Some(1),
         minCpu = Some(2),

@@ -85,15 +85,16 @@ case class WdlInputTranslator(bundle: Bundle,
         case ((values, overrides), (key, value)) =>
           (values + (key -> value), overrides)
       }
-    (values, overrides.map {
-      case (key, (runtime, hints)) =>
-        key -> JsObject(
-            Vector(
-                Option.when(runtime.nonEmpty)("runtime" -> JsObject(runtime)),
-                Option.when(hints.nonEmpty)("hints" -> JsObject(hints))
-            ).flatten.toMap
-        )
-    })
+    (values,
+     overrides.map {
+       case (key, (runtime, hints)) =>
+         key -> JsObject(
+             Vector(
+                 Option.when(runtime.nonEmpty)("runtime" -> JsObject(runtime)),
+                 Option.when(hints.nonEmpty)("hints" -> JsObject(hints))
+             ).flatten.toMap
+         )
+     })
   }
 
   override protected def convertRawInput(rawInput: JsValue, t: Type): JsValue = {

@@ -42,7 +42,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
                     "--inputs",
                     inputs.toString,
                     "--locked"
-                    //, "--verbose", "--verboseKey", "GenerateIR"
+                    // , "--verbose", "--verboseKey", "GenerateIR"
     ) ++ cFlags
     Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }

@@ -95,8 +95,11 @@ case class WdlTaskExecutor(task: TAT.Task,
     trace("Evaluating default values for inputs")
     val wdlInputs: Map[DxName, V] = taskIO
       .inputsFromValues(inputWdlValues.map {
-        case (dxName, v) => dxName.decoded -> v
-      }, evaluator, ignoreDefaultEvalError = false, nullCollectionAsEmpty = true)
+                          case (dxName, v) => dxName.decoded -> v
+                        },
+                        evaluator,
+                        ignoreDefaultEvalError = false,
+                        nullCollectionAsEmpty = true)
       .toMap
       .map {
         case (name, v) => WdlDxName.fromSourceName(name) -> v
@@ -207,9 +210,10 @@ case class WdlTaskExecutor(task: TAT.Task,
     if (logger.isVerbose) {
       logger.traceLimited(s"writeCommandScript env:\n  ${WdlUtils.prettyFormatEnv(wdlInputs)}")
     }
-    evaluator.applyCommand(task.command, WdlValueBindings(wdlValues.map {
-      case (dxName, v) => dxName.decoded -> v
-    })) match {
+    evaluator.applyCommand(task.command,
+                           WdlValueBindings(wdlValues.map {
+                             case (dxName, v) => dxName.decoded -> v
+                           })) match {
       case command if command.trim.isEmpty => (false, None)
       case command =>
         val generator = TaskCommandFileGenerator(logger)

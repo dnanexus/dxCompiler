@@ -111,7 +111,7 @@ object ExecutableTree {
             val wholePrefix = generateWholePrefix(prefix, isLast)
             val (stageName, callee) = stage.asJsObject.getFields("stage_name", "callee") match {
               case Seq(JsString(stageName), callee: JsObject) => (stageName, callee)
-              case x                                          => throw new Exception(s"Malformed stage ${x} in exec tree.")
+              case x => throw new Exception(s"Malformed stage ${x} in exec tree.")
             }
             prettyPrint(callee, Some(stageName), wholePrefix)
           }
@@ -177,7 +177,7 @@ object ExecutableTree {
     TreeJS.fields.get("kind") match {
       case Some(JsString("workflow")) => prettyPrintWorkflow(prefix, TreeJS)
       case Some(JsString(_))          => prettyPrintApplets(prefix, stageDesc, TreeJS)
-      case _                          => throw new Exception(s"Missing 'kind' field to be in execTree's entry ${TreeJS}.")
+      case _ => throw new Exception(s"Missing 'kind' field to be in execTree's entry ${TreeJS}.")
     }
   }
 
@@ -189,8 +189,7 @@ object ExecutableTree {
             s.asJsObject.getFields("callee") match {
               case Seq(c: JsObject) => extractExecutableNames(c, namesAcc)
               case x                => throw new Exception(s"Malformed stage ${x} in exec tree.")
-            }
-          )
+            })
           .toSet + wfName
       }
       case _ => throw new Exception(s"Missing name or stages in ${TreeJS}.")
@@ -221,7 +220,7 @@ object ExecutableTree {
       case Some(x: JsValue) =>
         x.asJsObject.fields.get("execTree") match {
           case Some(JsString(execString)) => execString
-          case _                          => throw new Exception(s"${CannotFindExecTree} for ${workflow.id}")
+          case _ => throw new Exception(s"${CannotFindExecTree} for ${workflow.id}")
         }
       case None => throw new Exception(s"${CannotFindExecTree} for ${workflow.id}")
     }

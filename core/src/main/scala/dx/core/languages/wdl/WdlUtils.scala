@@ -309,9 +309,10 @@ object WdlUtils {
   }
 
   def toIRSchema(wdlStruct: T_Struct): TSchema = {
-    TSchema(wdlStruct.name, wdlStruct.members.map {
-      case (key, value) => key -> toIRType(value)
-    })
+    TSchema(wdlStruct.name,
+            wdlStruct.members.map {
+              case (key, value) => key -> toIRType(value)
+            })
   }
 
   def toIRType(wdlType: T): Type = {

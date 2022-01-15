@@ -23,8 +23,10 @@ object ExecutableLink {
       case (dxName, t) => dxName.decoded -> t
     })
     val (outputTypes, inputAndOutputSchemas) = TypeSerde.serializeMap(link.outputs.map {
-      case (dxName, t) => dxName.decoded -> t
-    }, inputSchemas)
+                                                                        case (dxName, t) =>
+                                                                          dxName.decoded -> t
+                                                                      },
+                                                                      inputSchemas)
     JsObject(
         "name" -> JsString(link.name),
         "id" -> JsString(link.dxExec.id),

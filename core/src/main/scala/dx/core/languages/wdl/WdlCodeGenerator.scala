@@ -111,7 +111,7 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
         }
         val memberTypes = memberExprs.map {
           case (name: TAT.ValueString, value) => name.value -> value.wdlType
-          case other                          => throw new RuntimeException(s"Unexpected member ${other}")
+          case other => throw new RuntimeException(s"Unexpected member ${other}")
         }
         TAT.ExprMap(memberExprs.to(SeqMap), WdlTypes.T_Struct(name, memberTypes.to(SeqMap)))(
             SourceLocation.empty

@@ -79,7 +79,8 @@ class CorporaTest extends AnyWordSpec with Matchers {
                 compile(root, path, fix, importDirs)
               }
             } else {
-              val dir = JsUtils.getOptionalString(example, "dir").map(root.resolve).getOrElse(root)
+              val dir =
+                JsUtils.getOptionalString(example, "dir").map(root.resolve).getOrElse(root)
               val include = JsUtils
                 .getOptionalValues(example, "include")
                 .map(_.map(i => Paths.get(JsUtils.getString(i))).toSet)

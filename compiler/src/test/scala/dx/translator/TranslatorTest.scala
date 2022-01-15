@@ -1513,7 +1513,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     }
     val innerScatterApplet = bundle.allCallables.get(innerName) match {
       case Some(applet: Application) => applet
-      case _                         => throw new Exception(s"missing applet for stage ${innerName}")
+      case _ => throw new Exception(s"missing applet for stage ${innerName}")
     }
     innerScatterApplet.kind match {
       case frag: ExecutableKindWfFragment =>
@@ -1555,7 +1555,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     }
     val innerScatterApplet = bundle.allCallables.get(innerName) match {
       case Some(applet: Application) => applet
-      case _                         => throw new Exception(s"missing applet for stage ${innerName}")
+      case _ => throw new Exception(s"missing applet for stage ${innerName}")
     }
     innerScatterApplet.kind match {
       case frag: ExecutableKindWfFragment =>

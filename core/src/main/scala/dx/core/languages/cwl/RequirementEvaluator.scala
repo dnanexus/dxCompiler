@@ -229,8 +229,7 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
         AccessRequirement(network = if (allow) Vector("*") else Vector.empty)
       case (ToolTimeLimitRequirement(timeLimit: NumericValue), _) =>
         TimeoutRequirement(minutes =
-          Some((timeLimit.decimalValue / 60).setScale(0, MaxRoundingMode).toLongExact)
-        )
+          Some((timeLimit.decimalValue / 60).setScale(0, MaxRoundingMode).toLongExact))
       case (_: SoftwareRequirement, true) =>
         throw new Exception("SoftwareRequirement is not supported")
       case (_: InplaceUpdateRequirement, true) =>

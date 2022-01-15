@@ -117,7 +117,9 @@ object Main {
   }
 
   private object StreamFilesOptionSpec
-      extends SingleValueOptionSpec[StreamFiles.StreamFiles](choices = StreamFiles.values.toVector) {
+      extends SingleValueOptionSpec[StreamFiles.StreamFiles](
+          choices = StreamFiles.values.toVector
+      ) {
     override def parseValue(value: String): StreamFiles.StreamFiles = {
       StreamFiles.withNameIgnoreCase(value)
     }
@@ -164,7 +166,7 @@ object Main {
       "scatterChunkSize" -> IntOptionSpec.one,
       "useManifests" -> FlagOptionSpec.default,
       "waitOnUpload" -> FlagOptionSpec.default
-      //"wdlMode" -> WdlRegimeOptionSpec
+      // "wdlMode" -> WdlRegimeOptionSpec
   )
 
   private val DeprecatedCompileOptions = Set(

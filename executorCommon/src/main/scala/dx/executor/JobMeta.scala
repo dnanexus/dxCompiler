@@ -167,8 +167,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
   private def unpackManifests(rawInputs: Map[DxName, JsValue]): Map[DxName, JsValue] = {
     logger.traceLimited(s"""Unpacking manifests from raw inputs:
                            |${JsObject(rawInputs.map {
-                             case (dxName, jsv) => dxName.decoded -> jsv
-                           }).prettyPrint}""".stripMargin)
+      case (dxName, jsv) => dxName.decoded -> jsv
+    }).prettyPrint}""".stripMargin)
 
     // resolve a file input to a DxFile
     def resolveManifestFiles(key: DxName): Vector[DxFile] = {
@@ -1026,8 +1026,9 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths,
 
   def writeRawJsOutputs(outputJs: Map[DxName, JsValue]): Unit = {
     JsUtils.jsToFile(JsObject(outputJs.map {
-      case (dxName, jsv) => dxName.encoded -> jsv
-    }), outputPath)
+                       case (dxName, jsv) => dxName.encoded -> jsv
+                     }),
+                     outputPath)
   }
 
   private lazy val jobInfo: Map[String, JsValue] = {

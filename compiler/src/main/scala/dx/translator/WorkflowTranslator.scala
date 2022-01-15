@@ -74,9 +74,9 @@ abstract class WorkflowTranslator(wfName: String,
 
     def apply(key: DxName): LinkedVar = {
       env.getOrElse(key, {
-        log()
-        throw new Exception(s"${key} does not exist in the environment.")
-      })
+                      log()
+                      throw new Exception(s"${key} does not exist in the environment.")
+                    })
     }
 
     /**

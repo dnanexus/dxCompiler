@@ -248,7 +248,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
               }
             } match {
               case Success(project) => project
-              case Failure(ex)      => throw new RuntimeException(s"Unable to locate file ${id}", ex)
+              case Failure(ex) => throw new RuntimeException(s"Unable to locate file ${id}", ex)
             }
         )
 
@@ -299,7 +299,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     // Add hard-coded instance type info to details
     val instanceTypeDetails: Map[String, JsValue] = applet.instanceType match {
       case StaticInstanceType(
-          InstanceTypeRequest(Some(staticInstanceType), _, _, _, _, _, _, _, _, _, _)
+              InstanceTypeRequest(Some(staticInstanceType), _, _, _, _, _, _, _, _, _, _)
           ) =>
         Map(Constants.StaticInstanceType -> JsString(staticInstanceType))
       case _ => Map.empty
@@ -620,8 +620,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     // serilize default runtime attributes
     val defaultRuntimeAttributes = extras
       .flatMap(ex =>
-        ex.defaultRuntimeAttributes.map(attr => JsObject(ValueSerde.serializeMap(attr)))
-      )
+        ex.defaultRuntimeAttributes.map(attr => JsObject(ValueSerde.serializeMap(attr))))
     val auxDetails = Vector(
         Some(Constants.SourceCode -> JsString(sourceEncoded)),
         Some(Constants.ParseOptions -> applet.document.optionsToJson),

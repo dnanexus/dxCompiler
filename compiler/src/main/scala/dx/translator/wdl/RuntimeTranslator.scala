@@ -134,7 +134,8 @@ case class RuntimeTranslator(wdlVersion: WdlVersion,
         case other => throw new Exception(s"invalid app value ${other}")
       }
       .orElse {
-        (meta.get(RuntimeTranslator.ExecutableTypeKey), meta.get(RuntimeTranslator.ExecutableId)) match {
+        (meta.get(RuntimeTranslator.ExecutableTypeKey),
+         meta.get(RuntimeTranslator.ExecutableId)) match {
           case (Some(V_String(RuntimeTranslator.ExecutableTypeNative)), Some(V_String(id))) =>
             Some(kindFromId(id))
           case _ => None
@@ -247,7 +248,7 @@ case class RuntimeTranslator(wdlVersion: WdlVersion,
   }
 
   private val durationRegexp = s"^(?:(\\d+)D)?(?:(\\d+)H)?(?:(\\d+)M)?".r
-  //val durationFields = Vector("days", "hours", "minutes")
+  // val durationFields = Vector("days", "hours", "minutes")
 
   private def parseDuration(duration: String): TimeoutRequirement = {
     durationRegexp.findFirstMatchIn(duration) match {

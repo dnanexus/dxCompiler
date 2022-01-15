@@ -91,8 +91,9 @@ case class WorkflowCompiler(separateOutputs: Boolean,
               )
           }
           ParameterLinkValue(JsArray(stageInputs.map { i =>
-            parameterLinkSerializer.serializeSimpleLink(createLink(i, itemType))
-          }), dxType)
+                               parameterLinkSerializer.serializeSimpleLink(createLink(i, itemType))
+                             }),
+                             dxType)
         case other =>
           throw new Exception(s"Bad value for stage input ${other}")
       }
@@ -403,10 +404,11 @@ case class WorkflowCompiler(separateOutputs: Boolean,
               val (inputStages, value) = getWorkflowInputValue(stageInput, param.dxType)
               (inputStages, value.map(v => param.name.decoded -> v))
           }.unzip
-          val stageManifestLinks: StageInput = StageInputArray(inputStages.flatten.toSet.map {
-            stage =>
-              StageInputStageLink(stage, ExecutableCompiler.OutputManifestParameter)
-          }.toVector)
+          val stageManifestLinks: StageInput = StageInputArray(
+              inputStages.flatten.toSet.map { stage =>
+                StageInputStageLink(stage, ExecutableCompiler.OutputManifestParameter)
+              }.toVector
+          )
           Vector(
               (ExecutableCompiler.InputManifestParameter, StageInputEmpty),
               (ExecutableCompiler.InputManfestFilesParameter, stageManifestLinks),
@@ -560,20 +562,20 @@ case class WorkflowCompiler(separateOutputs: Boolean,
         val systemRequirements = irExecutable match {
           // specify the instance type for native app stubs that specify it in the runtime section
           case Application(
-              _,
-              _,
-              _,
-              StaticInstanceType(
-                  InstanceTypeRequest(Some(staticInstanceType), _, _, _, _, _, _, _, _, _, _)
-              ),
-              _,
-              _: ExecutableKindNative,
-              _,
-              _,
-              _,
-              _,
-              _,
-              _
+                  _,
+                  _,
+                  _,
+                  StaticInstanceType(
+                      InstanceTypeRequest(Some(staticInstanceType), _, _, _, _, _, _, _, _, _, _)
+                  ),
+                  _,
+                  _: ExecutableKindNative,
+                  _,
+                  _,
+                  _,
+                  _,
+                  _,
+                  _
               ) =>
             Some(
                 "systemRequirements" -> JsObject(
@@ -634,21 +636,21 @@ case class WorkflowCompiler(separateOutputs: Boolean,
               .collect { stage =>
                 executableDict(stage.calleeName) match {
                   case CompiledExecutable(
-                      Application(_,
-                                  _,
-                                  _,
-                                  _,
-                                  _,
-                                  ExecutableKindNative(_, _, _, _, _),
-                                  _,
-                                  _,
-                                  _,
-                                  _,
-                                  _,
-                                  _),
-                      dxExec,
-                      _,
-                      _
+                          Application(_,
+                                      _,
+                                      _,
+                                      _,
+                                      _,
+                                      ExecutableKindNative(_, _, _, _, _),
+                                      _,
+                                      _,
+                                      _,
+                                      _,
+                                      _,
+                                      _),
+                          dxExec,
+                          _,
+                          _
                       ) =>
                     dxExec.id
                 }

@@ -49,11 +49,9 @@ case class Runtime(wdlVersion: WdlVersion,
                         evaluator,
                         ctx,
                         overrideValues = runtimeOverrides,
-                        defaultValues = defaultAttrs)
-    )
+                        defaultValues = defaultAttrs))
     val hints = hintsSection.map(h =>
-      Hints.create(Some(h), overrideValues = hintOverrides, userDefaultValues = defaultAttrs)
-    )
+      Hints.create(Some(h), overrideValues = hintOverrides, userDefaultValues = defaultAttrs))
     WdlRuntimeAttributes(runtime, hints)
   }
 

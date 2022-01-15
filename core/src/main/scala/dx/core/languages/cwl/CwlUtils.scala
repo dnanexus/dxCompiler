@@ -159,12 +159,11 @@ object CwlUtils {
         (THash,
          VHash(
              m.map {
-                 case (key, NullValue) => key -> VNull
-                 case (key, value) =>
-                   val (_, v) = toIRValue(value)
-                   key -> v
-               }
-               .to(SeqMap)
+               case (key, NullValue) => key -> VNull
+               case (key, value) =>
+                 val (_, v) = toIRValue(value)
+                 key -> v
+             }.to(SeqMap)
          ))
       case _ => throw new Exception(s"Invalid CWL value ${cwlValue})")
     }
@@ -272,12 +271,14 @@ object CwlUtils {
           typeAliases(name)
         case TSchema(name, fields) if isInput =>
           CwlInputRecord(fields.map {
-            case (name, t) => name -> CwlInputRecordField(name, inner(t))
-          }, Some(Identifier(namespace = None, frag = Some(name))))
+                           case (name, t) => name -> CwlInputRecordField(name, inner(t))
+                         },
+                         Some(Identifier(namespace = None, frag = Some(name))))
         case TSchema(name, members) =>
           CwlOutputRecord(members.map {
-            case (name, t) => name -> CwlOutputRecordField(name, inner(t))
-          }, Some(Identifier(namespace = None, frag = Some(name))))
+                            case (name, t) => name -> CwlOutputRecordField(name, inner(t))
+                          },
+                          Some(Identifier(namespace = None, frag = Some(name))))
         case TEnum(symbols) => CwlEnum(symbols)
         case _ =>
           throw new Exception(s"Cannot convert IR type ${irType} to CWL")

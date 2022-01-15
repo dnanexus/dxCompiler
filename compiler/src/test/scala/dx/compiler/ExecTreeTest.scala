@@ -126,7 +126,7 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
     }
   }
 
-  //able to describe linear workflow using Tree
+  // able to describe linear workflow using Tree
   it should "Get execTree from a compiled workflow" taggedAs NativeTest in {
     val path = pathFromBasename("compiler", "wf_linear_no_expr.wdl")
     val args = path.toString +: cFlagsLocked
@@ -261,17 +261,18 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
     }
 
     // remove colours
-    pretty.replaceAll("\u001B\\[[;\\d]*m", "") shouldBe """Workflow: four_levels
-                                                          |├───App Inputs: common
-                                                          |├───App Fragment: if (username == "a")
-                                                          |│   └───Workflow: four_levels_block_0
-                                                          |│       ├───App Task: c1
-                                                          |│       └───App Task: c2
-                                                          |├───App Fragment: scatter (i in [1, 4, 9])
-                                                          |│   └───App Fragment: four_levels_frag_stage-6
-                                                          |│       └───App Fragment: four_levels_frag_stage-4
-                                                          |│           └───App Task: concat
-                                                          |└───App Outputs: outputs""".stripMargin
+    pretty.replaceAll("\u001B\\[[;\\d]*m",
+                      "") shouldBe """Workflow: four_levels
+                                     |├───App Inputs: common
+                                     |├───App Fragment: if (username == "a")
+                                     |│   └───Workflow: four_levels_block_0
+                                     |│       ├───App Task: c1
+                                     |│       └───App Task: c2
+                                     |├───App Fragment: scatter (i in [1, 4, 9])
+                                     |│   └───App Fragment: four_levels_frag_stage-6
+                                     |│       └───App Fragment: four_levels_frag_stage-4
+                                     |│           └───App Task: concat
+                                     |└───App Outputs: outputs""".stripMargin
   }
 
   it should "Display pretty print of tree with deep nesting" taggedAs NativeTest in {
@@ -289,16 +290,17 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
     }
 
     // remove colours
-    pretty.replaceAll("\u001B\\[[;\\d]*m", "") shouldBe """Workflow: four_levels
-                                                          |├───App Inputs: common
-                                                          |├───App Fragment: if (username == "a")
-                                                          |│   └───Workflow: four_levels_block_0
-                                                          |│       ├───App Task: c1
-                                                          |│       └───App Task: c2
-                                                          |├───App Fragment: scatter (i in [1, 4, 9])
-                                                          |│   └───App Fragment: four_levels_frag_stage-6
-                                                          |│       └───App Fragment: four_levels_frag_stage-4
-                                                          |│           └───App Task: concat
-                                                          |└───App Outputs: outputs""".stripMargin
+    pretty.replaceAll("\u001B\\[[;\\d]*m",
+                      "") shouldBe """Workflow: four_levels
+                                     |├───App Inputs: common
+                                     |├───App Fragment: if (username == "a")
+                                     |│   └───Workflow: four_levels_block_0
+                                     |│       ├───App Task: c1
+                                     |│       └───App Task: c2
+                                     |├───App Fragment: scatter (i in [1, 4, 9])
+                                     |│   └───App Fragment: four_levels_frag_stage-6
+                                     |│       └───App Fragment: four_levels_frag_stage-4
+                                     |│           └───App Task: concat
+                                     |└───App Outputs: outputs""".stripMargin
   }
 }

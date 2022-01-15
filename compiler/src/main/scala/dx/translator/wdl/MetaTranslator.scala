@@ -424,7 +424,7 @@ object ParameterMetaTranslator {
             val wt = MetaUtils.unwrapWdlArrayType(wdlType)
             wt match {
               case T_File => ParameterAttributes.TypeAttribute(metaConstraintToIR(dxType))
-              case _      => throw new Exception("'dx_type' can only be specified for File parameters")
+              case _ => throw new Exception("'dx_type' can only be specified for File parameters")
             }
           case (Default, default: V) =>
             ParameterAttributes.DefaultAttribute(metaDefaultToIR(default, wdlType))

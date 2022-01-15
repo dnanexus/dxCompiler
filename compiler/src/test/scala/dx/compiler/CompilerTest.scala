@@ -176,7 +176,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     // TODO: fix this
     // out_file would be part of the outputSpec, but wom currently doesn't
     // support parameter_meta for output vars
-    //out_file.pattern shouldBe Some(Vector("*.txt", "*.tsv"))
+    // out_file.pattern shouldBe Some(Vector("*.txt", "*.tsv"))
   }
 
   it should "be able to include pattern object information in inputSpec" in {
@@ -210,7 +210,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     // TODO: fix this
     // out_file would be part of the outputSpec, but wom currently doesn't
     // support parameter_meta for output vars
-    //out_file.pattern shouldBe Some(Vector("*.txt", "*.tsv"))
+    // out_file.pattern shouldBe Some(Vector("*.txt", "*.tsv"))
   }
 
   it should "be able to include choices information in inputSpec" in {
@@ -480,7 +480,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val path = pathFromBasename("compiler", "add_app_meta.wdl")
     val extraPath = pathFromBasename("compiler/extras", "extras_license.json")
     val args = path.toString :: "--extras" :: extraPath.toString :: cFlags
-    //:: "--verbose"
+    // :: "--verbose"
     val appId = Main.compile(args.toVector) match {
       case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
       case other =>
@@ -514,9 +514,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
           case ("upstreamLicenses", JsArray(array)) => array shouldBe Vector(JsString("MIT"))
           case ("upstreamProjects", array: JsArray) =>
             array shouldBe expectedUpstreamProjects
-          case ("whatsNew", JsString(value))                       => value shouldBe expectedWhatsNew
-          case (Constants.InstanceTypeDb, JsString(_))             => () // ignore
-          case (Constants.Language, JsString(_))                   => () // ignore
+          case ("whatsNew", JsString(value))           => value shouldBe expectedWhatsNew
+          case (Constants.InstanceTypeDb, JsString(_)) => () // ignore
+          case (Constants.Language, JsString(_))       => () // ignore
           case (Constants.RuntimeAttributes, JsNull | JsObject(_)) => () // ignore
           case (Constants.Version, JsString(_))                    => () // ignore
           case (Constants.Checksum, JsString(_))                   => () // ignore
@@ -601,7 +601,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val extraPath = pathFromBasename("compiler/extras", "short_timeout.json")
     val args = path.toString :: "--extras" :: extraPath.toString :: cFlags
 
-    //:: "--verbose"
+    // :: "--verbose"
     val appId = Main.compile(args.toVector) match {
       case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
       case other =>
@@ -636,7 +636,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val path = pathFromBasename("compiler", "add_runtime_hints.wdl")
     val extraPath = pathFromBasename("compiler/extras", "task_specific_short_timeout.json")
     val args = path.toString :: "--extras" :: extraPath.toString :: cFlags
-    //:: "--verbose"
+    // :: "--verbose"
     val appId = Main.compile(args.toVector) match {
       case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
       case other =>
@@ -723,7 +723,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
           case ("womSourceCode", JsString(_))                   => ()
           case ("wdlSourceCode", JsString(_))                   => ()
           case ("staticInstanceTypeSelection", JsBoolean(true)) => ()
-          case other                                            => throw new Exception(s"Unexpected result ${other}")
+          case other => throw new Exception(s"Unexpected result ${other}")
         }
       case other => throw new Exception(s"Unexpected result ${other}")
     }
@@ -1226,7 +1226,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val retval = Main.compile(args.toVector)
     val wfId = retval match {
       case SuccessfulCompileNativeNoTree(_, Vector(wfId)) => wfId
-      case other                                          => throw new Exception(s"expected single workflow not ${other}")
+      case other => throw new Exception(s"expected single workflow not ${other}")
     }
     // the native app has an instance type of x2, but the WDL task specifies dx_instance_type
     // of x8, so make sure the stage overrides the instance type
@@ -1285,11 +1285,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
   it should "archive an identical task" in {
     val folder = s"${unitTestsPath}/testArchive"
-    val flags = cFlagsBase ++ List("-compileMode",
-                                   "NativeWithoutRuntimeAsset",
-                                   "-folder",
-                                   folder,
-                                   "-locked")
+    val flags =
+      cFlagsBase ++ List("-compileMode", "NativeWithoutRuntimeAsset", "-folder", folder, "-locked")
     val path1 = pathFromBasename("compiler", "add.wdl")
     val args1 = path1.toString :: flags
     // compile once

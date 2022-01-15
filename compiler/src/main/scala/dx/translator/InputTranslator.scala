@@ -241,8 +241,7 @@ abstract class InputTranslator(bundle: Bundle,
         allInputs.flatMap(m =>
           m.get(key)
             .map(jsv => extractDxFiles(jsv, param.dxType))
-            .getOrElse(Vector.empty)
-        )
+            .getOrElse(Vector.empty))
       }
     }
     val (dxFiles, dxPaths) = fileJs.foldLeft((Vector.empty[DxFile], Vector.empty[String])) {

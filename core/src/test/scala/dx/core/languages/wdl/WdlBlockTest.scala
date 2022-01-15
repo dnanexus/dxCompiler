@@ -245,17 +245,17 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
       case WdlBlockOutput(dxName, wdlType, _) => (dxName.decoded, wdlType)
     } should matchPattern {
       case Vector(
-          ("foo.out", WdlTypes.T_Array(WdlTypes.T_String, true)),
-          ("indexes", WdlTypes.T_Array(WdlTypes.T_Int, true)),
-          ("n", WdlTypes.T_Array(WdlTypes.T_Array(WdlTypes.T_String, true), true)),
-          ("out", WdlTypes.T_Array(WdlTypes.T_Array(WdlTypes.T_String, true), true)),
-          ("s", WdlTypes.T_Array(WdlTypes.T_String, true)),
-          ("string",
-           WdlTypes.T_Array(
-               WdlTypes.T_Array(WdlTypes.T_Array(WdlTypes.T_String, true), true),
-               true
-           )),
-          ("t", WdlTypes.T_Array(WdlTypes.T_String, true))
+              ("foo.out", WdlTypes.T_Array(WdlTypes.T_String, true)),
+              ("indexes", WdlTypes.T_Array(WdlTypes.T_Int, true)),
+              ("n", WdlTypes.T_Array(WdlTypes.T_Array(WdlTypes.T_String, true), true)),
+              ("out", WdlTypes.T_Array(WdlTypes.T_Array(WdlTypes.T_String, true), true)),
+              ("s", WdlTypes.T_Array(WdlTypes.T_String, true)),
+              ("string",
+               WdlTypes.T_Array(
+                   WdlTypes.T_Array(WdlTypes.T_Array(WdlTypes.T_String, true), true),
+                   true
+               )),
+              ("t", WdlTypes.T_Array(WdlTypes.T_String, true))
           ) =>
     }
   }

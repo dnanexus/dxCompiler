@@ -105,10 +105,10 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
           logger.trace(
               s"""input parameters:
                  |${workflow.inputs
-                   .map { inp =>
-                     s"  ${CwlUtils.prettyFormatType(inp.cwlType)} ${inp.name}"
-                   }
-                   .mkString("\n")}""".stripMargin
+                .map { inp =>
+                  s"  ${CwlUtils.prettyFormatType(inp.cwlType)} ${inp.name}"
+                }
+                .mkString("\n")}""".stripMargin
           )
         }
         jobInputs
@@ -125,11 +125,11 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
           logger.trace(
               s"""input parameters:
                  |${inputTypes
-                   .map {
-                     case (name, irType) =>
-                       s"  ${TypeSerde.toString(irType)} ${name}"
-                   }
-                   .mkString("\n")}""".stripMargin
+                .map {
+                  case (name, irType) =>
+                    s"  ${TypeSerde.toString(irType)} ${name}"
+                }
+                .mkString("\n")}""".stripMargin
           )
         }
         jobInputs.collect {
@@ -144,11 +144,11 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
       logger.trace(
           s"""input values:
              |${inputs
-               .map {
-                 case (name, (t, v)) =>
-                   s"${TypeSerde.toString(t)} ${name} = ${ValueSerde.toString(v)}}"
-               }
-               .mkString("\n")}""".stripMargin
+            .map {
+              case (name, (t, v)) =>
+                s"${TypeSerde.toString(t)} ${name} = ${ValueSerde.toString(v)}}"
+            }
+            .mkString("\n")}""".stripMargin
       )
     }
     inputs
@@ -188,8 +188,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
     val irOutputs: Map[DxName, (Type, Value)] = outputParams.map {
       case (dxName, param: WorkflowOutputParameter, cwlType) if param.sources.nonEmpty =>
         val sourceValues = param.sources.map(src =>
-          env.lookup(CwlDxName.fromDecodedName(src.frag.get)).getOrElse((TMulti.Any, VNull))
-        )
+          env.lookup(CwlDxName.fromDecodedName(src.frag.get)).getOrElse((TMulti.Any, VNull)))
         val irValue = if (param.linkMerge.nonEmpty || param.pickValue.nonEmpty) {
           val mergedValues = (sourceValues, param.linkMerge) match {
             case (_, Some(LinkMergeMethod.MergeFlattened)) =>
@@ -319,11 +318,12 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
             } else {
               itemsToArray(sourceValues)
             }
-          (cwlType, if (cwlValue == NullValue && stepInput.default.isDefined) {
-            stepInput.default.get
-          } else {
-            cwlValue
-          })
+          (cwlType,
+           if (cwlValue == NullValue && stepInput.default.isDefined) {
+             stepInput.default.get
+           } else {
+             cwlValue
+           })
         })
         .map {
           case (cwlType, NullValue) if stepInput.default.isDefined =>
@@ -344,10 +344,11 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
         inputs: Map[WorkflowStepInput, (CwlType, CwlValue)]
     ): ObjectValue = {
       EvaluatorContext.createInputs(inputs.map {
-        case (param, tv) =>
-          val p: Identifiable with Loadable = param
-          p -> tv
-      }, fileResolver = jobMeta.fileResolver)
+                                      case (param, tv) =>
+                                        val p: Identifiable with Loadable = param
+                                        p -> tv
+                                    },
+                                    fileResolver = jobMeta.fileResolver)
     }
 
     private def evaluateCallStepInputs(

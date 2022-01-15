@@ -246,14 +246,14 @@ case class ParameterLinkSerializer(fileResolver: FileSourceResolver = FileSource
   def createFields(bindName: DxName,
                    t: Type,
                    v: Value
-                   //encodeName: Boolean = true
+                   // encodeName: Boolean = true
   ): Vector[(DxName, JsValue)] = {
     createFieldsFromLink(createLink(t, v), bindName)
   }
 
   def createFieldsFromMap(
       values: Map[DxName, (Type, Value)]
-      //encodeName: Boolean = true
+      // encodeName: Boolean = true
   ): Map[DxName, JsValue] = {
     values.flatMap {
       case (name, (t, v)) => createFields(name, t, v)

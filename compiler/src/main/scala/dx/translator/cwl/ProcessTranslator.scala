@@ -288,9 +288,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           requirementEvaluator.translateApplicationRequirements,
           tags = Set("cwl"),
           // extract all paths that are hard-coded in the CWL
-          staticFileDependencies =
-            schemaStaticDependencies ++
-              requirementEvaluator.translatePathDependencies.flatMap(extractPaths).toSet
+          staticFileDependencies = schemaStaticDependencies ++
+            requirementEvaluator.translatePathDependencies.flatMap(extractPaths).toSet
       )
     }
   }

@@ -293,7 +293,7 @@ class ExecutableCompiler(extras: Option[Extras],
                   DxIOSpec.Optional -> JsTrue
               )
                 ++ defaultValueToNative(filesName)
-              // some attributes don't makes sense for the files input
+                // some attributes don't makes sense for the files input
                 ++ attributes.filterNot(x => InputOnlyKeys.contains(x._1))
           )
       )
@@ -480,8 +480,7 @@ class ExecutableCompiler(extras: Option[Extras],
                 case ParameterAttributes.FileSuggestion(Some(str), _, _, _) => str
               }
           case _ => Vector.empty
-        }
-      )
+        })
 
     (default ++ attrs).filter(s => s.contains("://")).toSet
   }

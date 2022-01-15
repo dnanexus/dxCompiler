@@ -111,8 +111,8 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           if (logger.isVerbose) {
             logger.trace(s"""input parameters:
                             |${workflow.inputs
-                              .map(TypeUtils.prettyFormatInput(_))
-                              .mkString("\n")}
+              .map(TypeUtils.prettyFormatInput(_))
+              .mkString("\n")}
                             |input values:
                             |${WdlUtils.prettyFormatValues(inputValues)}""".stripMargin)
           }
@@ -121,12 +121,18 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           // array inputs, so we treat a null value for a non-optional
           // array that is allowed to be empty as the empty array.
           val inputBindings =
-            InputOutput.inputsFromValues(workflow.name, workflow.inputs, inputValues.map {
-              case (dxName, v) => dxName.decoded -> v
-            }, evaluator, ignoreDefaultEvalError = false, nullCollectionAsEmpty = true)
-          (inputTypes, inputBindings.toMap.map {
-            case (name, v) => WdlDxName.fromSourceName(name) -> v
-          })
+            InputOutput.inputsFromValues(workflow.name,
+                                         workflow.inputs,
+                                         inputValues.map {
+                                           case (dxName, v) => dxName.decoded -> v
+                                         },
+                                         evaluator,
+                                         ignoreDefaultEvalError = false,
+                                         nullCollectionAsEmpty = true)
+          (inputTypes,
+           inputBindings.toMap.map {
+             case (name, v) => WdlDxName.fromSourceName(name) -> v
+           })
         case path =>
           val block: WdlBlock =
             Block.getSubBlockAt(WdlBlock.createBlocks(workflow.body), path)
@@ -154,10 +160,10 @@ case class WdlWorkflowExecutor(docSource: FileNode,
             logger.trace(
                 s"""input parameters:
                    |${inputTypes
-                     .map {
-                       case (name, wdlType) => s"  ${TypeUtils.prettyFormatType(wdlType)} ${name}"
-                     }
-                     .mkString("\n")}
+                  .map {
+                    case (name, wdlType) => s"  ${TypeUtils.prettyFormatType(wdlType)} ${name}"
+                  }
+                  .mkString("\n")}
                    |input values:
                    |${WdlUtils.prettyFormatValues(inputValues)}""".stripMargin
             )
@@ -252,8 +258,9 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     })
     val evaluatedOutputValues = evaluator
       .applyAll(outputParams.map {
-        case (dxName, te) => (dxName.decoded, te)
-      }, env)
+                  case (dxName, te) => (dxName.decoded, te)
+                },
+                env)
       .toMap
       .map {
         case (name, value) => WdlDxName.fromDecodedName(name) -> value
@@ -274,9 +281,11 @@ case class WdlWorkflowExecutor(docSource: FileNode,
   }
 
   private def evaluateExpression(expr: TAT.Expr, wdlType: T, env: Map[DxName, (T, V)]): V = {
-    evaluator.applyExprAndCoerce(expr, wdlType, Eval.createBindingsFromEnv(env.map {
-      case (dxName, tv) => dxName.decoded -> tv
-    }))
+    evaluator.applyExprAndCoerce(expr,
+                                 wdlType,
+                                 Eval.createBindingsFromEnv(env.map {
+                                   case (dxName, tv) => dxName.decoded -> tv
+                                 }))
   }
 
   private def getBlockOutputs(elements: Vector[TAT.WorkflowElement]): Map[DxName, T] = {
@@ -459,8 +468,10 @@ case class WdlWorkflowExecutor(docSource: FileNode,
             }
             // add default values for any missing inputs
             val callInputs = callIO.inputsFromValues(inputWdlValues.map {
-              case (dxName, v) => dxName.decoded -> v
-            }, evaluator, ignoreDefaultEvalError = false)
+                                                       case (dxName, v) => dxName.decoded -> v
+                                                     },
+                                                     evaluator,
+                                                     ignoreDefaultEvalError = false)
             val runtime = Runtime(versionSupport.version,
                                   task.runtime,
                                   task.hints,
@@ -906,9 +917,12 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       case (accu, RequiredBlockInput(dxName, wdlType))
           if compoundNameRegexp.matches(dxName.decoded) =>
         // the input name is a compound reference - evaluate it as an identifier
-        val expr = versionSupport.parseExpression(dxName.decoded, DefaultBindings(accu.map {
-          case (dxName, (wdlType, _)) => dxName.decoded -> wdlType
-        }), docSource)
+        val expr = versionSupport.parseExpression(dxName.decoded,
+                                                  DefaultBindings(accu.map {
+                                                    case (dxName, (wdlType, _)) =>
+                                                      dxName.decoded -> wdlType
+                                                  }),
+                                                  docSource)
         accu + (dxName -> (wdlType, evaluateExpression(expr, wdlType, accu)))
       case (_, RequiredBlockInput(name, _)) =>
         throw new Exception(s"missing required input ${name}")

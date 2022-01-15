@@ -429,7 +429,7 @@ class WdlTaskExecutorTest extends AnyFlatSpec with Matchers {
 
   it should "optimize task with an empty command section" in {
     val _ = runTask("empty_command_section")
-    //task.commandSectionEmpty should be(true)
+    // task.commandSectionEmpty should be(true)
   }
 
   it should "handle structs" taggedAs EdgeTest in {

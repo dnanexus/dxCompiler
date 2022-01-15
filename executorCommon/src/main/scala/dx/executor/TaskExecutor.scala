@@ -474,8 +474,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
                 fileResolver.resolveDirectory(f.uri) match {
                   case local: LocalFileSource =>
                     inputPaths.contains(local.canonicalPath) && f.listing.forall(listing =>
-                      listingsEqual(local.canonicalPath, listing)
-                    )
+                      listingsEqual(local.canonicalPath, listing))
                   case _ => false
                 }
               case other => throw new Exception(s"unexpected item ${other}")
@@ -682,10 +681,11 @@ abstract class TaskExecutor(jobMeta: JobMeta,
           // a virtual file that was uploaded - replace the URI with the dx URI and
           // unset the contents
           val dxFile = uploadedFiles(uploadedVirtualFiles(f.uri))
-          VFile(dxFile.asUri, secondaryFiles = f.secondaryFiles.map(handlePath(_)).map {
-            case p: PathValue => p
-            case other        => throw new Exception(s"not a PathValue ${other}")
-          })
+          VFile(dxFile.asUri,
+                secondaryFiles = f.secondaryFiles.map(handlePath(_)).map {
+                  case p: PathValue => p
+                  case other        => throw new Exception(s"not a PathValue ${other}")
+                })
         case (Some(TFile) | None, f: VFile) =>
           val newSecondaryFiles = f.secondaryFiles.map(handlePath(_)).map {
             case p: PathValue => p

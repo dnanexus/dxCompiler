@@ -284,7 +284,9 @@ object DxRunSpec {
                              hours: Option[Long],
                              minutes: Option[Long]): (String, JsValue) = {
     DxRunSpec.TimeoutPolicy -> JsObject(
-        "*" -> DxTimeout(days.orElse(Some(0)), hours.orElse(Some(0)), minutes.orElse(Some(0))).toJson
+        "*" -> DxTimeout(days.orElse(Some(0)),
+                         hours.orElse(Some(0)),
+                         minutes.orElse(Some(0))).toJson
     )
   }
 }
@@ -320,8 +322,7 @@ abstract class DxMeta(title: Option[String],
         properties.map(p =>
           "properties" -> JsObject(p.map {
             case (key, value) => key -> JsString(value)
-          })
-        )
+          }))
     ).flatten.toMap
   }
 }
@@ -474,9 +475,10 @@ object Extras {
   private val camelizeRegexp = "_([a-z\\d])".r
 
   private def camelize(s: String): String = {
-    camelizeRegexp.replaceAllIn(s, { m =>
-      m.group(1).toUpperCase()
-    })
+    camelizeRegexp.replaceAllIn(s,
+                                { m =>
+                                  m.group(1).toUpperCase()
+                                })
   }
 
   private def camelizeKeys(jsv: JsValue): JsValue = {

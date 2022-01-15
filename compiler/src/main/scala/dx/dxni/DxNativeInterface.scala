@@ -128,7 +128,7 @@ case class DxNativeInterface(fileResolver: FileSourceResolver = FileSourceResolv
       case (Some(folder), None, None) => (searchApplets(dxProject, folder, recursive), folder)
       case (None, Some(path), None)   => (Vector(getApplet(dxProject, path)), path)
       case (None, None, Some(applet)) => (Vector(applet), applet.id)
-      case _                          => throw new Exception("must specify exactly one of (folder, path)")
+      case _ => throw new Exception("must specify exactly one of (folder, path)")
     }
     if (apps.nonEmpty || applets.nonEmpty) {
       (apps, applets, generator.generate(apps, applets, appletsHeader(dxProject, search)))

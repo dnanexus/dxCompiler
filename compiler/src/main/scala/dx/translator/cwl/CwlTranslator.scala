@@ -77,15 +77,16 @@ case class CwlInputTranslator(bundle: Bundle,
         case ((values, overrides), (key, value)) =>
           (values + (key -> value), overrides)
       }
-    (values, if (overrides.nonEmpty) {
-      val overridesObj = JsObject(overrides)
-      bundle.primaryCallable match {
-        case Some(c: Callable) => Map(c.name -> overridesObj)
-        case _                 => bundle.allCallables.keys.map(_ -> overridesObj).toMap
-      }
-    } else {
-      Map.empty[String, JsObject]
-    })
+    (values,
+     if (overrides.nonEmpty) {
+       val overridesObj = JsObject(overrides)
+       bundle.primaryCallable match {
+         case Some(c: Callable) => Map(c.name -> overridesObj)
+         case _                 => bundle.allCallables.keys.map(_ -> overridesObj).toMap
+       }
+     } else {
+       Map.empty[String, JsObject]
+     })
   }
 
   override protected def convertRawInput(rawInput: JsValue, t: Type): JsValue = {

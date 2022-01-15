@@ -149,9 +149,10 @@ case class CwlTaskExecutor(tool: Process,
           case Some(irValue) =>
             CwlUtils.fromIRValue(irValue, param.cwlType, name.decoded, isInput = true)
           case None if param.default.isDefined =>
-            val ctx = CwlUtils.createEvaluatorContext(runtime, env.map {
-              case (dxName, tv) => dxName.decoded -> tv
-            })
+            val ctx = CwlUtils.createEvaluatorContext(runtime,
+                                                      env.map {
+                                                        case (dxName, tv) => dxName.decoded -> tv
+                                                      })
             evaluator.evaluate(param.default.get, param.cwlType, ctx)
           case None if CwlOptional.isOptional(param.cwlType) =>
             (param.cwlType, NullValue)
@@ -206,8 +207,9 @@ case class CwlTaskExecutor(tool: Process,
     val cwlInputs = CwlUtils.fromIR(inputs, typeAliases, isInput = true)
     val ctx = CwlUtils.createEvaluatorContext(runtime)
     val env = cwlEvaluator.evaluateMap(cwlInputs.map {
-      case (dxName, tv) => dxName.decoded -> tv
-    }, ctx)
+                                         case (dxName, tv) => dxName.decoded -> tv
+                                       },
+                                       ctx)
     val reqEvaluator = RequirementEvaluator(
         requirements,
         hints,
