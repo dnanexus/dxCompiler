@@ -1577,7 +1577,7 @@ dx publish globalworkflow-<workflow name>/<version>
 
 Example: adding authorized users to a global workflow
 ```
-dx add users globalworkflow-<workflow name> <user-xxxx | org-yyyy | PUBLIC>
+dx add users globalworkflow-<workflow name> <user-xxxx | org-yyyy>
 ```
 
 See [Limitations](#limitations) below for more details on which parts of the workflow will be automatically included in the global workflow.
