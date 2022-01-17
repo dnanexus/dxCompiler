@@ -1580,11 +1580,11 @@ Example: adding authorized users to a global workflow
 dx add users globalworkflow-<workflow name> <user-xxxx | org-yyyy>
 ```
 
-See [Limitations](#limitations) below for more details on which parts of the workflow will be automatically included in the global workflow.
+See [Limitations](#limitations) below for more details on which dependencies of the workflow will be automatically included in the global workflow.
 
 ## Recommendations
 
-Developers should not store any credentials (passwords, keys, etc.) in the source code of the global workflow, as authorized users will have permission to download and view any applets referenced in the global workflow.
+Developers should not store any credentials (passwords, keys, etc.) in the source code of the global workflow, as authorized users will have permission to download and view any applets and their data referenced in the global workflow.
 
 Developers should use simple types for input/output interfaces for global workflows for better platform experience.
 
