@@ -1592,7 +1592,7 @@ Developers should not store any credentials (passwords, keys, etc.) in the sourc
 
 Developers should use simple types for input/output interfaces for global workflows for better platform experience.
 
-For better portability across projects where the workflow will be run, developers should specify runtime resources using memory, disk, CPU requirements (not hard-coded instance types using the key `dx_instance_type`). Developers should compile WDL workflows with `-instanceTypeSelection dynamic`. Expect slightly longer runtimes due to the need to pick instance types at runtime, but this ensures the workflow will always use instance types that are supported for the project where it runs.
+For better portability across projects where the workflow will be run, hard-coding instance types using the key `dx_instance_type` should be avoided for global workflows. You should specify runtime resources using numeric requirements for memory, disk, CPU, etc. and compile WDL workflows with the flag `-instanceTypeSelection dynamic`. This option ensures that instance types for jobs will always be selected at runtime, based on the actual instance types available in the runtime project. While this option can result in longer runtimes, it is better for portability because it will never attempt to start a job on an instance type that is not supported.
 
 For informational purposes, developers should include a reference to a git repo commit containing the original source code. They can add this to the "description" metadata field of the global workflow.
 
