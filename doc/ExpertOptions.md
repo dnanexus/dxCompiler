@@ -1580,6 +1580,10 @@ Example: adding authorized users to a global workflow
 dx add users globalworkflow-<workflow name> <user-xxxx | org-yyyy>
 ```
 
+<!-- TODO Add examples of how to update the WF metadata (title, summary, description, tags, categories) by API call after the global WF is published. -->
+
+<!-- TODO For updating description, note that they should remember to include the original description text, because dependency warnings are there -->
+
 See [Limitations](#limitations) below for more details on which dependencies of the workflow will be automatically included in the global workflow.
 
 ## Recommendations
