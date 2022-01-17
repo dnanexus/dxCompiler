@@ -1604,11 +1604,11 @@ The global workflow will currently only support a single region (matching the re
 
 Some dependencies of the original workflow will be automatically included in the global workflow, i.e. they will be cloned into the global workflow's resource container and authorized users of the global workflow will not require additional permissions. These include
 - Applets and sub-workflows that were part of the original workflow
-- Native applets referenced by the workflow
+- Native applets included in the workflow via `dxni`
 - Docker images that are stored as platform files
 
 Some dependencies of the original workflow will not be automatically included in the global workflow, i.e. the user may need additional permissions to access them. These include
-- Native apps referenced by the workflow (user needs permission to use the apps)
+- Native apps included in the workflow via `dxni` (user needs permission to use the apps)
 - Files referenced by file paths in workflow inputs or body (user needs access to the files)
 - Credentials file for a private Docker registry (user needs access to the file)
 - Docker images in external registries, or dynamically specified at runtime (these will be pulled at runtime)
