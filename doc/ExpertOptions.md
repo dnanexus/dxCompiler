@@ -1588,7 +1588,7 @@ See [Limitations](#limitations) below for more details on which dependencies of 
 
 ## Recommendations
 
-Developers should not store any credentials (passwords, keys, etc.) in the source code of the global workflow, as authorized users will have permission to download and view any applets and their data referenced in the global workflow.
+Developers should not store any credentials (passwords, keys, etc.) in the source code of the global workflow, as authorized users will have permission to download (via `dx get`) and view any applets and their data referenced in the global workflow.
 
 Developers should use simple types for input/output interfaces for global workflows for better platform experience.
 
