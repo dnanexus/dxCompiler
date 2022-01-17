@@ -1614,6 +1614,8 @@ Some dependencies of the original workflow will not be automatically included in
 - Docker images in external registries, or dynamically specified at runtime (these will be pulled at runtime)
 - Hard-coded `dx_instance_type` (runtime project needs to support the instance type; using numeric resource requirements is preferred)
 
+Authorized users will have permission to download (via `dx get`) and view any applets and their data referenced in the global workflow.
+
 <!-- TODO mention URL when the UI supports global workflows -->
 Any usage of the above in a workflow (including in its tasks and sub-workflows) will produce a warning in the workflow's `description` metadata field, which can be viewed using:
 ```
