@@ -1609,7 +1609,7 @@ Some dependencies of the original workflow will be automatically included in the
 
 Some dependencies of the original workflow will not be automatically included in the global workflow, i.e. the user may need additional permissions to access them. These include
 - Native apps included in the workflow via `dxni` (user needs permission to use the apps, which can be granted by running `dx add users <app> <user or org>` if you are a developer of the app)
-- Files referenced by file paths in workflow inputs or body (user needs access to the files)
+- Platform files referenced in workflow parameters (e.g. default or suggested inputs) or in the workflow body (user needs access to the files)
 - Credentials file for a private Docker registry (user needs access to the file)
 - Docker images in external registries, or dynamically specified at runtime (these will be pulled at runtime)
 - Hard-coded `dx_instance_type` (runtime project needs to support the instance type; using numeric resource requirements, as mentioned under Recommendations, is preferred)
