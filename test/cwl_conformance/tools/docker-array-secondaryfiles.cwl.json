@@ -9,7 +9,7 @@
   "baseCommand": [],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "docker-array-secondaryfiles.cwl",
+  "id": "docker-array-secondaryfiles",
   "inputs": [
     {
       "id": "fasta_path",

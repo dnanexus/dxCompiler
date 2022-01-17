@@ -2,7 +2,7 @@
   "baseCommand": "cat",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "cat3-from-dir.cwl",
+  "id": "cat3-from-dir",
   "inputs": [
     {
       "id": "dir1",

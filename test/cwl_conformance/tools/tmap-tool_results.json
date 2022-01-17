@@ -1,6 +1,5 @@
 {
-  "tmap-tool.args": {
-    "args": [
+  "tmap-tool.args": [
       "tmap",
       "mapall",
       "stage1",
@@ -26,5 +25,4 @@
       "--min-seq-length",
       "10"
     ]
-  }
 }

@@ -6,7 +6,7 @@
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
   "doc": "Ensure that `shellQuote: true` is the default behavior when\nShellCommandRequirement is in effect.\n",
-  "id": "shellchar2.cwl",
+  "id": "shellchar2",
   "inputs": [],
   "outputs": [
     {

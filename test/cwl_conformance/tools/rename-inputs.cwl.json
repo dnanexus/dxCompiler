@@ -28,7 +28,7 @@
       "networkAccess": true
     }
   },
-  "id": "InputSecondaryFileConformanceTest",
+  "id": "rename-inputs",
   "inputs": [
     {
       "doc": "This input will with a secondary file `.accessory`. You could create these files (and its accessory) with:\n```bash\ntouch secondary_file_test.txt\ntouch secondary_file_test.txt.accessory\n```\n",

@@ -8,7 +8,7 @@
       "dockerPull": "debian:stretch-slim"
     }
   },
-  "id": "optional-output.cwl",
+  "id": "optional-output",
   "inputs": [
     {
       "doc": "The file that will be copied using 'cat'",

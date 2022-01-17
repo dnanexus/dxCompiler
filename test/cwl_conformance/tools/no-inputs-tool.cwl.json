@@ -11,7 +11,7 @@
       "dockerPull": "debian:stretch-slim"
     }
   },
-  "id": "no-inputs-tool.cwl",
+  "id": "no-inputs-tool",
   "inputs": [],
   "outputs": [
     {

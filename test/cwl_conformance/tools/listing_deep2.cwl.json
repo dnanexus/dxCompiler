@@ -2,7 +2,7 @@
   "baseCommand": "true",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "listing_deep2.cwl",
+  "id": "listing_deep2",
   "inputs": [
     {
       "id": "d",

@@ -8,7 +8,7 @@
   "baseCommand": "python",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "networkaccess2.cwl",
+  "id": "networkaccess2",
   "inputs": [],
   "outputs": [],
   "requirements": [

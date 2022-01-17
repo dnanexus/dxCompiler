@@ -7,7 +7,7 @@
   "baseCommand": "echo",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "storage_float.cwl",
+  "id": "storage_float",
   "inputs": [],
   "outputs": [
     {

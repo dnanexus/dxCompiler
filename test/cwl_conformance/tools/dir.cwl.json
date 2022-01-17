@@ -16,7 +16,7 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "dir.cwl",
+  "id": "dir",
   "inputs": [
     {
       "id": "indir",

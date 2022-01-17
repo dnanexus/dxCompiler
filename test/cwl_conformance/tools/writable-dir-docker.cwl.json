@@ -11,7 +11,7 @@
       "dockerPull": "alpine"
     }
   ],
-  "id": "writable-dir-docker.cwl",
+  "id": "writable-dir-docker",
   "inputs": [],
   "outputs": [
     {

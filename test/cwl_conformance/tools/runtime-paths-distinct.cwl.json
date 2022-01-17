@@ -7,7 +7,7 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "runtime-paths-distinct.cwl",
+  "id": "runtime-paths-distinct",
   "inputs": [],
   "outputs": [
     {

@@ -3,7 +3,7 @@
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
   "doc": "Can have a file declared directly in InitialWorkDir",
-  "id": "iwd-fileobjs2.cwl",
+  "id": "iwd-fileobjs2",
   "inputs": [],
   "outputs": [
     {

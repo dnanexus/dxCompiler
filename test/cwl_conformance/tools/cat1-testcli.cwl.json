@@ -12,7 +12,7 @@
       "dockerPull": "python:2-slim"
     }
   ],
-  "id": "cat1-testcli.cwl",
+  "id": "cat1-testcli",
   "inputs": [
     {
       "id": "file1",

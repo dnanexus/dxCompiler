@@ -4,7 +4,7 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "stage_array_dirs",
+  "id": "stage-array-dirs",
   "inputs": [
     {
       "id": "input_list",

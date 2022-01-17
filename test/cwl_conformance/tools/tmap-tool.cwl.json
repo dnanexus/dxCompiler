@@ -12,7 +12,7 @@
       "dockerPull": "python:2-slim"
     }
   ],
-  "id": "tmap-tool.cwl",
+  "id": "tmap-tool",
   "inputs": [
     {
       "id": "reads",

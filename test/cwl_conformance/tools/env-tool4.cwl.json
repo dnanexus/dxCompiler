@@ -6,7 +6,7 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "env-tool4.cwl",
+  "id": "env-tool4",
   "inputs": [
     {
       "id": "in",

@@ -10,7 +10,7 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "initialworkdirrequirement-docker-out.cwl",
+  "id": "initialworkdirrequirement-docker-out",
   "inputs": [
     {
       "id": "INPUT",

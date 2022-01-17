@@ -4,7 +4,7 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "record-out-format.cwl",
+  "id": "record-out-format",
   "inputs": [
     {
       "id": "record_input",

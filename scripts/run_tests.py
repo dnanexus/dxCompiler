@@ -447,15 +447,15 @@ cromwell_tests_list = [
     "passingfiles",
     "referencingpreviousinputsandoutputs",
     "engine_functions",
-    #"string_interpolation_optional",  # pending wdlTools 170
-    #"none_literal",  # pending wdlTools 170
+    # "string_interpolation_optional",  # pending wdlTools 170
+    # "none_literal",  # pending wdlTools 170
     "sub_workflow_interactions_scatter",
     "sub_workflow_one_output_import",
     "sub_workflow_var_refs",
     "sub_workflow_var_refs_import",
-    #"globbingBehavior",  # pending dxCompiler 87
-    #"object_access",  # pending wdlTools 171
-    #"read_write_json",  # pending wdlTools 171
+    # "globbingBehavior",  # pending dxCompiler 87
+    # "object_access",  # pending wdlTools 171
+    # "read_write_json",  # pending wdlTools 171
     "no_task_no_output_delete",
     "if_then_else_expressions",
     "sub_workflow_no_output_block_import",
@@ -512,7 +512,8 @@ cwl_cromwell_tests_list = [
     "cwl_stdout_expression",
     # "scatter-wf1", # APPS-834 Could not find linking information 
     # "cwl_three_step", # APPS-834 AppInternalError: workflow does not contain a tool 
-    # "cwl_three_step_caller_wf" # APPS-834 AppInternalError: workflow does not contain a tool (raised from calling cwl_three_step)
+    # "cwl_three_step_caller_wf" # APPS-834 AppInternalError: workflow does not contain a tool
+    #                              (raised from calling cwl_three_step)
 ]
 
 # these are tests that take a long time to run
@@ -600,7 +601,7 @@ def read_json_file(path):
 def verify_json_file(path):
     try:
         read_json_file(path)
-    except:
+    except Exception:
         raise RuntimeError("Error verifying JSON file {}".format(path))
 
 
@@ -1107,7 +1108,7 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
             try:
                 # may fail if the lists contain mutliple types of values
                 return list(sorted(seq))
-            except:
+            except Exception:
                 d = dict((str(x), x) for x in seq)
                 sorted_keys = list(sorted(d.keys()))
                 return [d[k] for k in sorted_keys]
@@ -1192,7 +1193,7 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
             return True
 
         return compare_values(expected_val, result, field_name1)
-    except:
+    except Exception:
         traceback.print_exc()
         return False
 
@@ -1203,7 +1204,7 @@ def get_checksum(contents, algo):
         m.update(contents)
         checksum = m.digest()
         return f"{algo}${checksum}"
-    except:
+    except Exception:
         print("python does not support digest algorithm {}".format(algo))
         return None
 
@@ -1388,7 +1389,7 @@ def extract_outputs(tname, exec_obj) -> dict:
 
 
 def run_test_subset(
-    project, runnable, test_folder, debug_flag, delay_workspace_destruction, delay_run_errors
+    project, runnable, test_folder, debug_flag, delay_workspace_destruction, delay_run_errors, delay_verification_errors
 ):
     # Run the workflows
     test_exec_objs = []
@@ -1433,7 +1434,7 @@ def run_test_subset(
         test_desc = test_files[tname]
         try:
             exec_outputs = extract_outputs(tname, exec_desc)
-        except:
+        except Exception:
             if tname in expected_failure or "{}.{}".format(tname, i) in expected_failure:
                 print("Analysis {}.{} failed as expected".format(tname, i))
                 return None
@@ -1450,7 +1451,7 @@ def run_test_subset(
             if correct:
                 if tname in expected_failure or "{}.{}".format(tname, i) in expected_failure:
                     cprint(
-                        "Error: analysis {}.{} was expected to fail but its results are valid".format(test_desc.name, i),
+                        f"Error: analysis {test_desc}.{i} was expected to fail but its results are valid",
                         "red"
                     )
                     return tname
@@ -1466,11 +1467,25 @@ def run_test_subset(
                     return tname
 
     failed_verifications = []
+    verification_errors = []
     for i, exec_obj, verify in successful_executions:
         if verify:
-            failed_name = verify_test(exec_obj, i)
+            failed_name = None
+            try:
+                failed_name = verify_test(exec_obj, i)
+            except Exception as e:
+                if delay_verification_errors:
+                    verification_errors.append(e)
+                else:
+                    raise
             if failed_name is not None:
                 failed_verifications.append(failed_name)
+
+    if verification_errors:
+        raise Exception(
+            "Failed to verify one or more results\n"
+            "\n".join(str(e) for e in verification_errors)
+        )
 
     print("-----------------------------")
     print(f"Total tests: {len(test_exec_objs)}")
@@ -1860,6 +1875,12 @@ def main():
         default=False,
     )
     argparser.add_argument(
+        "--delay-verification-errors",
+        help="Verify all results before failing on any errors",
+        action="store_true",
+        default=False
+    )
+    argparser.add_argument(
         "--failed",
         help="Run the tests that failed previously (requires a .failed file in the current directory)",
         action="store_true",
@@ -2002,6 +2023,7 @@ def main():
                 args.debug,
                 args.delay_workspace_destruction,
                 args.delay_run_errors,
+                args.delay_verification_errors
             )
     finally:
         if args.clean:

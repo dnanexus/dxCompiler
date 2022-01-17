@@ -1,5 +1,5 @@
 {
-  "InputSecondaryFileConformanceTest.inputWithSecondary": {
+  "rename-inputs.inputWithSecondary": {
     "class": "File",
     "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G7QBF980yzZgJ4zj3B598Z34",
     "secondaryFiles": [

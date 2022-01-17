@@ -5,7 +5,7 @@
   "baseCommand": "echo",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "dynresreq-dir.cwl",
+  "id": "dynresreq-dir",
   "inputs": [
     {
       "id": "dir",

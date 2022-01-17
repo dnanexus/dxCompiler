@@ -3,7 +3,7 @@
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
   "doc": "Print the contents of a file to stdout using 'cat'.",
-  "id": "cat3-nodocker.cwl",
+  "id": "cat3-nodocker",
   "inputs": [
     {
       "doc": "The file that will be copied using 'cat'",

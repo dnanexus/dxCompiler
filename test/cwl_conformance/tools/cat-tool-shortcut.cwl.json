@@ -4,7 +4,7 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "cat-tool-shortcut.cwl",
+  "id": "cat-tool-shortcut",
   "inputs": [
     {
       "id": "file1",

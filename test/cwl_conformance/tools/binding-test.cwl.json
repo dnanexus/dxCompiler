@@ -12,7 +12,7 @@
       "dockerPull": "python:2-slim"
     }
   ],
-  "id": "binding-test.cwl",
+  "id": "binding-test",
   "inputs": [
     {
       "id": "reference",

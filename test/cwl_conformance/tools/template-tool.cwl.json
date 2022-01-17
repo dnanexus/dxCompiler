@@ -10,7 +10,7 @@
       "dockerPull": "debian:stretch-slim"
     }
   },
-  "id": "template-tool.cwl",
+  "id": "template-tool",
   "inputs": [
     {
       "id": "file1",

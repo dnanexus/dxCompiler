@@ -8,7 +8,7 @@
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
   "doc": "Must fail if entryname is an absolute path and DockerRequirement is\nnot in the 'requirements' section.\n",
-  "id": "iwd-container-entryname2.cwl",
+  "id": "iwd-container-entryname2",
   "inputs": [
     {
       "id": "filelist",

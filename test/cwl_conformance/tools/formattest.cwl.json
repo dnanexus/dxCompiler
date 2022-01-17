@@ -6,7 +6,7 @@
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
   "doc": "Reverse each line using the `rev` command",
-  "id": "formattest.cwl",
+  "id": "formattest",
   "inputs": [
     {
       "format": "edam:format_2330",

@@ -10,7 +10,7 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "initialworkdir-glob-fullpath.cwl",
+  "id": "initialworkdir-glob-fullpath",
   "inputs": [
     {
       "id": "INPUT",

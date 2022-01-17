@@ -12,7 +12,7 @@
       "dockerPull": "python:2-slim"
     }
   ],
-  "id": "stagefile.cwl",
+  "id": "stagefile",
   "inputs": [
     {
       "id": "infile",

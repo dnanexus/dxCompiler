@@ -2,7 +2,7 @@
   "baseCommand": "wc",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "wc2-tool.cwl",
+  "id": "wc2-tool",
   "inputs": [
     {
       "id": "file1",

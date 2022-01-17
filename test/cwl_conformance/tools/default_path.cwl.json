@@ -5,7 +5,7 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "default_path.cwl",
+  "id": "default_path",
   "inputs": [
     {
       "default": {

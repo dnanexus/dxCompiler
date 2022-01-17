@@ -10,7 +10,7 @@
   "baseCommand": "touch",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "record-out-secondaryFiles.cwl",
+  "id": "record-out-secondaryFiles",
   "inputs": [],
   "outputs": [
     {

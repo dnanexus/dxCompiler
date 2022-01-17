@@ -5,7 +5,7 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "timelimit4.cwl",
+  "id": "timelimit4",
   "inputs": [],
   "outputs": [],
   "requirements": [

@@ -8,7 +8,7 @@
       "dockerPull": "python:2-slim"
     }
   ],
-  "id": "valueFrom-constant.cwl",
+  "id": "valueFrom-constant",
   "inputs": [
     {
       "id": "array_input",

@@ -7,7 +7,7 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "recursive-input-directory.cwl",
+  "id": "recursive-input-directory",
   "inputs": [
     {
       "id": "input_dir",

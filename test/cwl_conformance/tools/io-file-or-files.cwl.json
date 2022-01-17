@@ -7,7 +7,7 @@
   "baseCommand": [],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "io-file-or-files.cwl",
+  "id": "io-file-or-files",
   "inputs": [
     {
       "id": "input",

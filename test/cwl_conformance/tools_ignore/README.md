@@ -1,1 +1,0 @@
-* cat-tool-shortcut fails due to https://github.com/common-workflow-language/cwltool/issues/1590

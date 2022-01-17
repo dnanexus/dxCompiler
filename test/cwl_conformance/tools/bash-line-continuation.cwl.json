@@ -5,7 +5,7 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "bash-line-continuation.cwl",
+  "id": "bash-line-continuation",
   "inputs": [],
   "outputs": [
     {

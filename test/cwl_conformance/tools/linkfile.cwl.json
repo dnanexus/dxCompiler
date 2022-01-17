@@ -2,7 +2,7 @@
   "baseCommand": "touch",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "linkfile.cwl",
+  "id": "linkfile",
   "inputs": [
     {
       "id": "src",

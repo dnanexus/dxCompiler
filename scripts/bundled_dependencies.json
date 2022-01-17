@@ -8,7 +8,7 @@
         "name": "cwltool",
         "package_manager": "git",
         "url": "https://github.com/common-workflow-language/cwltool.git",
-        "tag": "0209b0b7ce66f03c8498b5a686f8d31690a2acb3",
+        "tag": "73e52959aa2adbca87948b964b8b9121ca9fe2a7",
         "build_commands": "make install"
       }
     ]

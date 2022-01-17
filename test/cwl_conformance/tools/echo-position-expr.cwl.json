@@ -12,7 +12,7 @@
   "baseCommand": "echo",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "echo-position-expr.cwl",
+  "id": "echo-position-expr",
   "inputs": [
     {
       "id": "one",

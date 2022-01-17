@@ -1,9 +1,9 @@
 {
-  "stage_array.input_file": {
+  "stage-array.input_file": {
     "class": "File",
     "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/whale.txt"
   },
-  "stage_array.input_list": [
+  "stage-array.input_list": [
     {
       "class": "File",
       "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/hello.txt",

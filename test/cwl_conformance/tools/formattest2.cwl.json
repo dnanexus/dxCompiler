@@ -3,7 +3,7 @@
     "edam": "http://edamontology.org/"
   },
   "$schemas": [
-    "EDAM.owl"
+    "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G4gFG7Q0yzZjk476FKy3jjf8"
   ],
   "baseCommand": "rev",
   "class": "CommandLineTool",
@@ -14,7 +14,7 @@
       "dockerPull": "debian:stretch-slim"
     }
   },
-  "id": "formattest2.cwl",
+  "id": "formattest2",
   "inputs": [
     {
       "format": "edam:format_2330",

@@ -11,7 +11,7 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "glob_test.cwl",
+  "id": "glob_test",
   "inputs": [],
   "outputs": [
     {

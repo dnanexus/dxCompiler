@@ -8,7 +8,7 @@
   "baseCommand": [],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "nameroot.cwl",
+  "id": "nameroot",
   "inputs": [
     {
       "id": "file1",

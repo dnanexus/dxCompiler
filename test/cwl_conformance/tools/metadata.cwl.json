@@ -22,7 +22,7 @@
       "dockerPull": "debian:stretch-slim"
     }
   },
-  "id": "metadata.cwl",
+  "id": "metadata",
   "inputs": [
     {
       "id": "file1",

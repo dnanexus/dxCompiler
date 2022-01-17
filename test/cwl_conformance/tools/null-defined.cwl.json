@@ -5,7 +5,7 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "null-defined.cwl",
+  "id": "null-defined",
   "inputs": [
     {
       "id": "file1",

@@ -7,7 +7,7 @@
   "baseCommand": [],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "size-expression-tool.cwl",
+  "id": "size-expression-tool",
   "inputs": [
     {
       "id": "input",

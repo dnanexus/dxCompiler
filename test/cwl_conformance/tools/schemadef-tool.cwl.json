@@ -2,7 +2,7 @@
   "baseCommand": "echo",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "schemadef-tool.cwl",
+  "id": "schemadef-tool",
   "inputs": [
     {
       "id": "hello",

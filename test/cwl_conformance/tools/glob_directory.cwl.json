@@ -7,7 +7,7 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "glob_directory.cwl",
+  "id": "glob_directory",
   "inputs": [],
   "outputs": [
     {

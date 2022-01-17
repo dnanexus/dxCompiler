@@ -5,7 +5,7 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "optional-numerical-output-0.cwl",
+  "id": "optional-numerical-output-0",
   "inputs": [],
   "outputs": [
     {

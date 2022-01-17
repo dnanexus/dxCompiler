@@ -4,8 +4,8 @@
     "gx": "http://galaxyproject.org/formats/"
   },
   "$schemas": [
-    "EDAM.owl",
-    "gx_edam.ttl"
+    "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G4gFG7Q0yzZjk476FKy3jjf8",
+    "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G0G0V1Q0yzZg3BBz3x4Y2Q6F"
   ],
   "baseCommand": "rev",
   "class": "CommandLineTool",
@@ -16,7 +16,7 @@
       "dockerPull": "debian:stretch-slim"
     }
   },
-  "id": "formattest3.cwl",
+  "id": "formattest3",
   "inputs": [
     {
       "format": "gx:fasta",

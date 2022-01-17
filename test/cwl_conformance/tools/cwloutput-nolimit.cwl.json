@@ -5,7 +5,7 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "cwloutput-nolimit.cwl",
+  "id": "cwloutput-nolimit",
   "inputs": [
     {
       "default": {

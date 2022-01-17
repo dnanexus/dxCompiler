@@ -3,7 +3,7 @@
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
   "doc": "Print the contents of a file to stdout using 'cat' running in a docker container.",
-  "id": "cat3-tool-shortcut.cwl",
+  "id": "cat3-tool-shortcut",
   "inputs": [
     {
       "doc": "The file that will be copied using 'cat'",

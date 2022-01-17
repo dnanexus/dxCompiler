@@ -29,7 +29,7 @@
       "dockerPull": "alpine"
     }
   },
-  "id": "symlink-legal.cwl",
+  "id": "symlink-legal",
   "inputs": [],
   "outputs": [
     {

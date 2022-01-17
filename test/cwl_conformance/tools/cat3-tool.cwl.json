@@ -8,7 +8,7 @@
       "dockerPull": "debian:stretch-slim"
     }
   },
-  "id": "cat3-tool.cwl",
+  "id": "cat3-tool",
   "inputs": [
     {
       "doc": "The file that will be copied using 'cat'",

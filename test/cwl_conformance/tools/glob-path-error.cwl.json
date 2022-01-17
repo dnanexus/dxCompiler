@@ -4,7 +4,7 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "glob-path-error.cwl",
+  "id": "glob-path-error",
   "inputs": [],
   "outputs": [
     {

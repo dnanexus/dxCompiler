@@ -8,7 +8,7 @@
       "dockerPull": "python:2-slim"
     }
   ],
-  "id": "empty-array-input.cwl",
+  "id": "empty-array-input",
   "inputs": [
     {
       "id": "array",

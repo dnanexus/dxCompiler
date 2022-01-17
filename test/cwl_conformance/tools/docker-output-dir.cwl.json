@@ -5,7 +5,7 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "docker-output-dir.cwl",
+  "id": "docker-output-dir",
   "inputs": [],
   "outputs": [
     {

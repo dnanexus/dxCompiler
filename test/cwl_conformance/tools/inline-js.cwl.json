@@ -30,7 +30,7 @@
       "dockerPull": "python:2-slim"
     }
   ],
-  "id": "inline-js.cwl",
+  "id": "inline-js",
   "inputs": [
     {
       "default": {

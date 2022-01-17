@@ -4,7 +4,7 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "iwd-jsondump1-nl.cwl",
+  "id": "iwd-jsondump1-nl",
   "inputs": [],
   "outputs": [
     {

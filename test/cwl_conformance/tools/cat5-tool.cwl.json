@@ -14,7 +14,7 @@
       "fakeField": "fraggleFroogle"
     }
   },
-  "id": "cat5-tool.cwl",
+  "id": "cat5-tool",
   "inputs": [
     {
       "doc": "The file that will be copied using 'cat'",
