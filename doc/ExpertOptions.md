@@ -1612,7 +1612,7 @@ Some dependencies of the original workflow will not be automatically included in
 - Files referenced by file paths in workflow inputs or body (user needs access to the files)
 - Credentials file for a private Docker registry (user needs access to the file)
 - Docker images in external registries, or dynamically specified at runtime (these will be pulled at runtime)
-- Hard-coded `dx_instance_type` (runtime project needs to support the instance type; using numeric resource requirements is preferred)
+- Hard-coded `dx_instance_type` (runtime project needs to support the instance type; using numeric resource requirements, as mentioned under Recommendations, is preferred)
 
 Authorized users will have permission to download (via `dx get`) and view any applets and their data referenced in the global workflow.
 
