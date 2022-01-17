@@ -1559,7 +1559,9 @@ Any significant WDL workflow is compiled into multiple DNAnexus applets and work
 
 # Publishing global workflows
 
-A [global workflow](https://documentation.dnanexus.com/developer/workflows/version-and-publish-workflows#about-workflows-and-global-workflows) is an executable that can be versioned and published to other users. Publishing global workflows may facilitate collaboration across multiple projects, compared with local, project-based workflows. Publishing a dxCompiler WDL workflow as a global workflow is supported from dxCompiler >= `v2.8.0` and dxpy >= `v0.319.0`
+A [global workflow](https://documentation.dnanexus.com/developer/workflows/version-and-publish-workflows#about-workflows-and-global-workflows) is an executable that can be versioned and published to other users. Publishing global workflows may facilitate collaboration across multiple projects, compared with local, project-based workflows.
+
+Publishing a dxCompiler WDL workflow as a global workflow is supported from dxCompiler >= `v2.8.0` and dxpy >= `v0.319.0`. This is done in two steps. First, use `dxCompiler` to compile a workflow from WDL source to a local workflow in a project. Second, use `dx-toolkit` to publish the local workflow as a global workflow. Once the global workflow is published, you can add authorized users.
 
 Example: compiling a WDL workflow for later use as a global workflow.
 ```
@@ -1567,7 +1569,7 @@ java -jar dxCompiler.jar compile <workflow name>.wdl -instanceTypeSelection dyna
 ```
 
 <!-- TODO edit example to use <project id>:<workflow id> once dxpy supports that -->
-Example: publishing a global workflow from a compiled workflow. The global workflow's name will match the WDL workflow name. The global workflow's version must be set with `--version`, since a non-global workflow has no such property. If `--bill-to` is not specified, the publishing user's default billTo will be assumed.
+Example: publishing a global workflow from a local workflow. The global workflow's name will match the WDL workflow name. The global workflow's version must be set with `--version`, since a local workflow does not have a `version` property. If `--bill-to` is not specified, your default billing account will be assumed.
 ```
 dx build --globalworkflow --from <workflow id> --version <version> --bill-to <user-xxxx | org-yyyy>
 dx publish globalworkflow-<workflow name>/<version>
