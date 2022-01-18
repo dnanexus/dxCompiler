@@ -41,8 +41,7 @@ jobs:
           pip3 install termcolor $cwltool
 
           # TODO revert; temporary for testing unreleased dxpy
-          # python3 -m pip install -U "git+https://github.com/dnanexus/dx-toolkit.git@master#egg=dxpy&subdirectory=src/python"
-          python3 -m pip install -U "git+https://github.com/dnanexus/dx-toolkit.git@ebaf319447d59a796#egg=dxpy&subdirectory=src/python"
+          python3 -m pip install -U "git+https://github.com/dnanexus/dx-toolkit.git@master#egg=dxpy&subdirectory=src/python"
 
           # install dxda
           sudo wget -O/usr/local/bin/dx-download-agent https://github.com/dnanexus/dxda/releases/download/v0.5.7/dx-download-agent-linux
