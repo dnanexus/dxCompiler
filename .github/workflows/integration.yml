@@ -59,8 +59,9 @@ jobs:
           dx mkdir $FOLDER
 
           # Run tests
-          python3 scripts/run_tests.py --folder $FOLDER --project $PROJECT \
-          --test M
+          # TODO revert
+          # python3 scripts/run_tests.py --folder $FOLDER --project $PROJECT \
+          # --test M
           python3 scripts/run_multiuser_tests.py --folder $FOLDER --project $PROJECT \
           --alice-token $ROBOT_TOKEN \
           --bob-token $TEST_ROBOT_TOKEN
