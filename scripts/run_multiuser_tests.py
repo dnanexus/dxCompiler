@@ -155,20 +155,6 @@ def test_global_wf_from_wdl():
         global_workflow_name,
         "user-dnanexus_apps_test_robot"
     ]
-    add_tags_cmd = [
-        "dx",
-        "api",
-        "{}/{}".format(global_workflow_name, global_workflow_version),
-        "addTags",
-        '{"tags":["tag_1", "tag_2"]}'
-    ]
-    remove_tags_cmd = [
-        "dx",
-        "api",
-        "{}/{}".format(global_workflow_name, global_workflow_version),
-        "removeTags",
-        '{"tags":["tag_1", "tag_2"]}'
-    ]
     add_categories_cmd = [
         "dx",
         "api",
@@ -183,6 +169,27 @@ def test_global_wf_from_wdl():
         "removeCategories",
         '{"categories":["category_1", "category_2"]}'
     ]
+    add_tags_cmd = [
+        "dx",
+        "api",
+        "{}/{}".format(global_workflow_name, global_workflow_version),
+        "addTags",
+        '{"tags":["tag_1", "tag_2"]}'
+    ]
+    remove_tags_cmd = [
+        "dx",
+        "api",
+        "{}/{}".format(global_workflow_name, global_workflow_version),
+        "removeTags",
+        '{"tags":["tag_1", "tag_2"]}'
+    ]
+    update_metadata_cmd = [
+        "dx",
+        "api",
+        "{}/{}".format(global_workflow_name, global_workflow_version),
+        "update",
+        '{"title":"Global WF from WDL 1", "summary":"Summary 1", "developerNotes":"Notes 1"}'
+    ]
 
     # TODO Test more developer actions; question APPS-1031
 
@@ -191,14 +198,16 @@ def test_global_wf_from_wdl():
         subprocess.call(add_developers_cmd)
         print(" ".join(add_users_cmd))
         subprocess.call(add_users_cmd)
-        print(" ".join(add_tags_cmd))
-        subprocess.call(add_tags_cmd)
-        print(" ".join(remove_tags_cmd))
-        subprocess.call(remove_tags_cmd)
         print(" ".join(add_categories_cmd))
         subprocess.call(add_categories_cmd)
         print(" ".join(remove_categories_cmd))
         subprocess.call(remove_categories_cmd)
+        print(" ".join(add_tags_cmd))
+        subprocess.call(add_tags_cmd)
+        print(" ".join(remove_tags_cmd))
+        subprocess.call(remove_tags_cmd)
+        print(" ".join(update_metadata_cmd))
+        subprocess.call(update_metadata_cmd)
     except subprocess.CalledProcessError as cpe:
         print("Error during developer actions on {}\n stdout: {}\n stderr: {}".format(
             global_workflow_name,
