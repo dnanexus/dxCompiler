@@ -158,14 +158,14 @@ def test_global_wf_from_wdl():
     add_tags_cmd = [
         "dx",
         "api",
-        global_workflow_name,
+        "{}/{}".format(global_workflow_name, global_workflow_version),
         "addTags",
         '{"tags":["tag_1", "tag_2"]}'
     ]
     remove_tags_cmd = [
         "dx",
         "api",
-        global_workflow_name,
+        "{}/{}".format(global_workflow_name, global_workflow_version),
         "removeTags",
         '{"tags":["tag_1", "tag_2"]}'
     ]
