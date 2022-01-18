@@ -131,10 +131,7 @@ def test_global_wf_from_wdl():
         print(" ".join(global_wf_build_cmd))
         subprocess.check_call(global_wf_build_cmd)
         print(" ".join(global_wf_publish_cmd))
-
-        # TODO debug return code
-        retcode = subprocess.check_call(global_wf_publish_cmd)
-        print("--> RETCODE IS {}".format(retcode))
+        subprocess.check_call(global_wf_publish_cmd)
     except subprocess.CalledProcessError as cpe:
         print("Error building global workflow from {}\n stdout: {}\n stderr: {}".format(
             workflow_id,
@@ -196,19 +193,19 @@ def test_global_wf_from_wdl():
 
     try:
         print(" ".join(add_developers_cmd))
-        subprocess.call(add_developers_cmd)
+        subprocess.check_call(add_developers_cmd)
         print(" ".join(add_users_cmd))
-        subprocess.call(add_users_cmd)
+        subprocess.check_call(add_users_cmd)
         print(" ".join(add_categories_cmd))
-        subprocess.call(add_categories_cmd)
+        subprocess.check_call(add_categories_cmd)
         print(" ".join(remove_categories_cmd))
-        subprocess.call(remove_categories_cmd)
+        subprocess.check_call(remove_categories_cmd)
         print(" ".join(add_tags_cmd))
-        subprocess.call(add_tags_cmd)
+        subprocess.check_call(add_tags_cmd)
         print(" ".join(remove_tags_cmd))
-        subprocess.call(remove_tags_cmd)
+        subprocess.check_call(remove_tags_cmd)
         print(" ".join(update_metadata_cmd))
-        subprocess.call(update_metadata_cmd)
+        subprocess.check_call(update_metadata_cmd)
     except subprocess.CalledProcessError as cpe:
         print("Error during developer actions on {}\n stdout: {}\n stderr: {}".format(
             global_workflow_name,
