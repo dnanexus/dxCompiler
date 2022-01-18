@@ -131,7 +131,10 @@ def test_global_wf_from_wdl():
         print(" ".join(global_wf_build_cmd))
         subprocess.call(global_wf_build_cmd)
         print(" ".join(global_wf_publish_cmd))
-        subprocess.call(global_wf_publish_cmd)
+
+        # TODO debug return code
+        retcode = subprocess.call(global_wf_publish_cmd)
+        print("--> RETCODE IS {}".format(retcode))
     except subprocess.CalledProcessError as cpe:
         print("Error building global workflow from {}\n stdout: {}\n stderr: {}".format(
             workflow_id,
@@ -139,6 +142,8 @@ def test_global_wf_from_wdl():
             cpe.stderr
         ))
         raise
+
+    # TODO fail test if new version does not exist
 
     # Do some developer actions on global workflow
     add_developers_cmd = [
