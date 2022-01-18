@@ -191,8 +191,6 @@ def test_global_wf_from_wdl():
         '{"title":"Global WF from WDL 1", "summary":"Summary 1", "developerNotes":"Notes 1"}'
     ]
 
-    # TODO Test more developer actions; question APPS-1031
-
     try:
         print(" ".join(add_developers_cmd))
         subprocess.call(add_developers_cmd)
