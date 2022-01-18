@@ -108,15 +108,12 @@ def test_global_wf_from_wdl():
     # Build global workflow from workflow
     global_workflow_name = "globalworkflow-{}".format(tname)
     print("Global workflow name {}".format(global_workflow_name))
-
-    # TODO use full_workflow_id after
-    # https://jira.internal.dnanexus.com/browse/APPS-975 is fixed
     global_wf_build_cmd = [
         "dx",
         "build",
         "--globalworkflow",
         "--from",
-        workflow_id,
+        full_workflow_id,
         "--version",
         global_workflow_version,
         "--bill-to",
