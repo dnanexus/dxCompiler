@@ -155,6 +155,34 @@ def test_global_wf_from_wdl():
         global_workflow_name,
         "user-dnanexus_apps_test_robot"
     ]
+    add_tags_cmd = [
+        "dx",
+        "api",
+        global_workflow_name,
+        "addTags",
+        '{"tags":["tag_1", "tag_2"]}'
+    ]
+    remove_tags_cmd = [
+        "dx",
+        "api",
+        global_workflow_name,
+        "removeTags",
+        '{"tags":["tag_1", "tag_2"]}'
+    ]
+    add_categories_cmd = [
+        "dx",
+        "api",
+        global_workflow_name,
+        "addCategories",
+        '{"categories":["category_1", "category_2"]}'
+    ]
+    remove_categories_cmd = [
+        "dx",
+        "api",
+        global_workflow_name,
+        "removeCategories",
+        '{"categories":["category_1", "category_2"]}'
+    ]
 
     # TODO Test more developer actions; question APPS-1031
 
@@ -163,6 +191,14 @@ def test_global_wf_from_wdl():
         subprocess.call(add_developers_cmd)
         print(" ".join(add_users_cmd))
         subprocess.call(add_users_cmd)
+        print(" ".join(add_tags_cmd))
+        subprocess.call(add_tags_cmd)
+        print(" ".join(remove_tags_cmd))
+        subprocess.call(remove_tags_cmd)
+        print(" ".join(add_categories_cmd))
+        subprocess.call(add_categories_cmd)
+        print(" ".join(remove_categories_cmd))
+        subprocess.call(remove_categories_cmd)
     except subprocess.CalledProcessError as cpe:
         print("Error during developer actions on {}\n stdout: {}\n stderr: {}".format(
             global_workflow_name,
