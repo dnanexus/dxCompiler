@@ -4,7 +4,7 @@
 
 * Command file is now echoed to stderr rather than stdout
 * Updates build environment to SBT 1.6.1
-* Updates sbt-scalafmt plugin to 2.4.6 and scalafmt to 3.3.1
+
 ## 2.8.3 2022-01-07
 
 * Update dxCommon and wdlTools - fixes forwarding of stdout/stderr to job log fpr commands run in docker
