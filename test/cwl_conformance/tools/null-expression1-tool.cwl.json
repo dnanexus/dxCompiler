@@ -2,6 +2,7 @@
   "class": "ExpressionTool",
   "cwlVersion": "v1.2",
   "expression": "$({'output': (inputs.i1 == 'the-default' ? 1 : 2)})",
+  "id": "null-expression1-tool",
   "inputs": [
     {
       "default": "the-default",

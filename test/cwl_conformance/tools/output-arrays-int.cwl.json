@@ -2,6 +2,7 @@
   "class": "ExpressionTool",
   "cwlVersion": "v1.2",
   "expression": "${return {'o': Array.apply(null, {length: inputs.i}).map(Number.call, Number)};}\n",
+  "id": "output-arrays-int",
   "inputs": [
     {
       "id": "i",

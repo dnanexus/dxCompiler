@@ -2,6 +2,7 @@
   "class": "ExpressionTool",
   "cwlVersion": "v1.2",
   "expression": "${\nreturn {\"dir\": {\"class\": \"Directory\", \"basename\": \"a_directory\", \"listing\": inputs.files}};\n}",
+  "id": "dir7",
   "inputs": [
     {
       "id": "files",

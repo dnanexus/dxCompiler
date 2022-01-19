@@ -2,6 +2,7 @@
   "class": "ExpressionTool",
   "cwlVersion": "v1.2",
   "expression": "$({'output': parseInt(inputs.file1.contents)})",
+  "id": "parseInt-tool",
   "inputs": [
     {
       "id": "file1",

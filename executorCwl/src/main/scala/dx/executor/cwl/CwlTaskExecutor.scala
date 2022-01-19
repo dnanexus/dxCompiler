@@ -95,13 +95,14 @@ case class CwlTaskExecutor(tool: Process,
       throw new Exception(s"invalid overrides ${other}")
   }
 
-  // the requreements and hints for the tool, which may be augmented by runtime overrides
+  // the requirements and hints for the tool, which may be augmented by runtime overrides
   private lazy val (requirements, hints) = {
     if (overridesJs.nonEmpty) {
       // create a minimal document and then parse it to get the AST values
       val doc = overridesJs ++ Map(
           "cwlVersion" -> JsString("v1.2"),
           "class" -> JsString("CommandLineTool"),
+          "id" -> JsString("overrides"),
           "inputs" -> JsArray(),
           "outputs" -> JsArray()
       )
