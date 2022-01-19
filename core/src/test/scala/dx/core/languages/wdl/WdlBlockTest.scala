@@ -17,8 +17,8 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
   }
 
   private def mapFromOutputs(outputs: Vector[WdlBlockOutput]): Map[DxName, WdlTypes.T] = {
-    outputs.map {
-      case WdlBlockOutput(name, wdlType, _) => name -> wdlType
+    outputs.map { case WdlBlockOutput(name, wdlType, _) =>
+      name -> wdlType
     }.toMap
   }
 
@@ -54,7 +54,8 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
     )
     mapFromOutputs(blocks(3).outputs) shouldBe Map(
         WdlDxName.fromDecodedName("inc4.result") -> WdlTypes.T_Array(WdlTypes.T_Int,
-                                                                     nonEmpty = true)
+                                                                     nonEmpty = true
+        )
     )
     mapFromOutputs(blocks(4).outputs) shouldBe Map(
         WdlDxName.fromDecodedName("x") -> WdlTypes.T_Array(WdlTypes.T_Int, nonEmpty = true),
@@ -241,8 +242,8 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
           ComputedBlockInput(WdlDxName.fromSourceName("j"), WdlTypes.T_Int)
       )
     }
-    blocks.head.outputs.sortWith(_.name < _.name).map {
-      case WdlBlockOutput(dxName, wdlType, _) => (dxName.decoded, wdlType)
+    blocks.head.outputs.sortWith(_.name < _.name).map { case WdlBlockOutput(dxName, wdlType, _) =>
+      (dxName.decoded, wdlType)
     } should matchPattern {
       case Vector(
               ("foo.out", WdlTypes.T_Array(WdlTypes.T_String, true)),
@@ -254,7 +255,8 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
                WdlTypes.T_Array(
                    WdlTypes.T_Array(WdlTypes.T_Array(WdlTypes.T_String, true), true),
                    true
-               )),
+               )
+              ),
               ("t", WdlTypes.T_Array(WdlTypes.T_String, true))
           ) =>
     }
@@ -264,7 +266,8 @@ class WdlBlockTest extends AnyFlatSpec with Matchers {
     val subBlocks = getWorkflowBlocks("bugs", "apps-422.wdl")
     subBlocks.head.inputs shouldBe Vector(
         OptionalBlockInput(WdlDxName.fromSourceName("wf_input"),
-                           WdlTypes.T_Optional(WdlTypes.T_String))
+                           WdlTypes.T_Optional(WdlTypes.T_String)
+        )
     )
   }
 }

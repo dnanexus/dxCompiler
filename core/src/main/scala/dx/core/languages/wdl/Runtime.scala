@@ -24,7 +24,8 @@ object DxMetaHints {
 
 abstract class DxRuntimeHint(val runtimeKey: Option[String],
                              val hintsKey: String,
-                             val wdlTypes: Vector[T])
+                             val wdlTypes: Vector[T]
+)
 
 object Runtime {
   val MiB: Double = 1024 * 1024
@@ -42,16 +43,20 @@ case class Runtime(wdlVersion: WdlVersion,
                    runtimeOverrides: Option[VBindings] = None,
                    hintOverrides: Option[VBindings] = None,
                    defaultAttrs: Option[VBindings] = None,
-                   ctx: Option[Bindings[String, V]] = None) {
+                   ctx: Option[Bindings[String, V]] = None
+) {
   private lazy val runtimeAttrs: WdlRuntimeAttributes = {
     val runtime = runtimeSection.map(r =>
       WdlRuntime.create(Some(r),
                         evaluator,
                         ctx,
                         overrideValues = runtimeOverrides,
-                        defaultValues = defaultAttrs))
+                        defaultValues = defaultAttrs
+      )
+    )
     val hints = hintsSection.map(h =>
-      Hints.create(Some(h), overrideValues = hintOverrides, userDefaultValues = defaultAttrs))
+      Hints.create(Some(h), overrideValues = hintOverrides, userDefaultValues = defaultAttrs)
+    )
     WdlRuntimeAttributes(runtime, hints)
   }
 
@@ -125,7 +130,8 @@ case class Runtime(wdlVersion: WdlVersion,
                             diskType = diskType,
                             minCpu = cpu,
                             gpu = gpu,
-                            os = Some(Constants.DefaultExecutionEnvironment))
+                            os = Some(Constants.DefaultExecutionEnvironment)
+        )
       }
   }
 

@@ -27,24 +27,25 @@ object CwlDxName extends DxNameFactory {
     new CwlDxName(decodedParts = Some(parts), stage = stage, suffix = suffix)
   }
 
-  /**
-    * Creates a ComplexDxName from a parameter name coming directly from a
-    * language AST, with optional namespace.
+  /** Creates a ComplexDxName from a parameter name coming directly from a language AST, with
+    * optional namespace.
     */
   def fromSourceName(identifier: String,
                      namespace: Option[String] = None,
-                     suffix: Option[String] = None): CwlDxName = {
+                     suffix: Option[String] = None
+  ): CwlDxName = {
     new CwlDxName(decodedParts = Some(namespace.toVector ++ Vector(identifier)),
                   stage = None,
-                  suffix = suffix)
+                  suffix = suffix
+    )
   }
 }
 
 class CwlDxName(encodedParts: Option[Vector[String]] = None,
                 decodedParts: Option[Vector[String]] = None,
                 stage: Option[String] = None,
-                suffix: Option[String] = None)
-    extends DxName(encodedParts, decodedParts, stage, suffix) {
+                suffix: Option[String] = None
+) extends DxName(encodedParts, decodedParts, stage, suffix) {
 
   override protected def illegalDecodedSequencesRegex: Option[Regex] =
     Some(CwlDxName.illegalDecodedSequencesRegex)
@@ -54,14 +55,16 @@ class CwlDxName(encodedParts: Option[Vector[String]] = None,
   override protected def create(encodedParts: Option[Vector[String]] = None,
                                 decodedParts: Option[Vector[String]] = None,
                                 stage: Option[String],
-                                suffix: Option[String]): CwlDxName = {
+                                suffix: Option[String]
+  ): CwlDxName = {
     new CwlDxName(encodedParts, decodedParts, stage, suffix)
   }
 
   private def makeNewPart(name: String,
                           starts: Vector[Int],
                           ends: Vector[Int],
-                          delims: Vector[String]): String = {
+                          delims: Vector[String]
+  ): String = {
     (Vector(0) ++ starts)
       .zip(ends ++ Vector(name.length))
       .map {
@@ -75,19 +78,19 @@ class CwlDxName(encodedParts: Option[Vector[String]] = None,
         case (start, end) => name.substring(start, end)
       }
       .zipAll(delims, "", "")
-      .map {
-        case (part, delim) => s"${part}${delim}"
+      .map { case (part, delim) =>
+        s"${part}${delim}"
       }
       .mkString
   }
 
-  /**
-    * Encodes disallowed characters in a part. In addition to DxName restrictions,
-    * we also disallow parts with consecutive underscores, e.g. {{{"foo__bar"}}}.
-    * @param part the decoded prefix
-    * @return the encoded parameter name with each illegal character
-    *         replaced with {{{"__ord(x)__"}}}, where `ord(x)` is the ordinal
-    *         value of the illegal character.
+  /** Encodes disallowed characters in a part. In addition to DxName restrictions, we also disallow
+    * parts with consecutive underscores, e.g. {{{"foo__bar"}}}.
+    * @param part
+    *   the decoded prefix
+    * @return
+    *   the encoded parameter name with each illegal character replaced with {{{"__ord(x)__"}}},
+    *   where `ord(x)` is the ordinal value of the illegal character.
     */
   override protected def encodePart(part: String): String = {
     DxName.disallowedCharsRegex.findAllMatchIn(part).toVector match {

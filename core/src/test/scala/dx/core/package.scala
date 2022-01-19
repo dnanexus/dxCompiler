@@ -24,14 +24,12 @@ object Tags {
 object Assumptions {
   private val dxApi = DxApi.get
 
-  /**
-    * Tests that the user is logged in.
+  /** Tests that the user is logged in.
     * @return
     */
   def isLoggedIn: Boolean = dxApi.isLoggedIn
 
-  /**
-    * Tests that the dx toolkit is installed and in the path.
+  /** Tests that the dx toolkit is installed and in the path.
     * @return
     */
   lazy val toolkitCallable: Boolean = {

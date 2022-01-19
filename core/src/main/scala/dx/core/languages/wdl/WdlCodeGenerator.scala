@@ -29,7 +29,8 @@ case class WdlWorkflowSource(workflow: TAT.Workflow, versionSupport: VersionSupp
 
 case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
                          wdlVersion: WdlVersion,
-                         logger: Logger = Logger.get) {
+                         logger: Logger = Logger.get
+) {
   // A self contained WDL workflow
   private val outputWdlVersion: WdlVersion = {
     if (wdlVersion == WdlVersion.Draft_2) {
@@ -57,9 +58,8 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
           }
         }
     }
-    ordered.map {
-      case (name, wdlType) =>
-        TAT.StructDefinition(name, wdlType, wdlType.members)(SourceLocation.empty)
+    ordered.map { case (name, wdlType) =>
+      TAT.StructDefinition(name, wdlType, wdlType.members)(SourceLocation.empty)
     }
   }
 
@@ -117,10 +117,9 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
             SourceLocation.empty
         )
       case WdlValues.V_Object(members) =>
-        val memberExprs = members.map {
-          case (name, value) =>
-            val key: TAT.Expr = TAT.ValueString(name, WdlTypes.T_String)(SourceLocation.empty)
-            key -> wdlValueToExpr(value)
+        val memberExprs = members.map { case (name, value) =>
+          val key: TAT.Expr = TAT.ValueString(name, WdlTypes.T_String)(SourceLocation.empty)
+          key -> wdlValueToExpr(value)
         }
         TAT.ExprObject(memberExprs.to(SeqMap), WdlTypes.T_Object)(SourceLocation.empty)
       case other => throw new Exception(s"Unhandled value ${other}")
@@ -162,7 +161,8 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
   }
    */
   private def createTaskStub(callable: Callable,
-                             native: Option[ExecutableKindNative] = None): TAT.Task = {
+                             native: Option[ExecutableKindNative] = None
+  ): TAT.Task = {
     // Sort the inputs by name, so the result will be deterministic.
     val inputs: Vector[TAT.InputParameter] =
       callable.inputVars
@@ -226,35 +226,40 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
     )
   }
 
-  /**
-    * Generate a WDL stub for a DNAnexus applet.
-    * @param id the applet ID
-    * @param appletName the applet name
-    * @param inputSpec the applet inputs
-    * @param outputSpec the applet outputs
-    * @return an AST.Task
+  /** Generate a WDL stub for a DNAnexus applet.
+    * @param id
+    *   the applet ID
+    * @param appletName
+    *   the applet name
+    * @param inputSpec
+    *   the applet inputs
+    * @param outputSpec
+    *   the applet outputs
+    * @return
+    *   an AST.Task
     */
   def createAppletStub(id: String,
                        appletName: String,
                        inputSpec: Map[String, WdlTypes.T],
-                       outputSpec: Map[String, WdlTypes.T]): TAT.Task = {
+                       outputSpec: Map[String, WdlTypes.T]
+  ): TAT.Task = {
     TAT.Task(
         appletName,
         WdlTypes.T_Task(appletName,
                         inputSpec
-                          .map {
-                            case (name, wdlType) => name -> (wdlType, false)
+                          .map { case (name, wdlType) =>
+                            name -> (wdlType, false)
                           }
                           .to(SeqMap),
                         outputSpec.to(SeqMap),
-                        None),
-        inputSpec.map {
-          case (name, wdlType) => TAT.RequiredInputParameter(name, wdlType)(SourceLocation.empty)
+                        None
+        ),
+        inputSpec.map { case (name, wdlType) =>
+          TAT.RequiredInputParameter(name, wdlType)(SourceLocation.empty)
         }.toVector,
-        outputSpec.map {
-          case (name, wdlType) =>
-            val expr = WdlUtils.getDefaultValueOfType(wdlType)
-            TAT.OutputParameter(name, wdlType, expr)(SourceLocation.empty)
+        outputSpec.map { case (name, wdlType) =>
+          val expr = WdlUtils.getDefaultValueOfType(wdlType)
+          TAT.OutputParameter(name, wdlType, expr)(SourceLocation.empty)
         }.toVector,
         TAT.CommandSection(Vector.empty)(SourceLocation.empty),
         Vector.empty,
@@ -281,7 +286,8 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
                  TAT.Version(outputWdlVersion)(SourceLocation.empty),
                  structDefs :+ task,
                  None,
-                 CommentMap.empty)(
+                 CommentMap.empty
+    )(
         SourceLocation.empty
     )
   }
@@ -318,52 +324,53 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
     }
   }
 
-  /**
-    * A workflow must have definitions for all the tasks it calls. However, a scatter calls tasks
+  /** A workflow must have definitions for all the tasks it calls. However, a scatter calls tasks
     * that are missing from the WDL file we generate. To ameliorate this, we add stubs for called
     * tasks. The generated tasks are named by their unqualified names, not their fully-qualified
     * names. This works because the WDL workflow must be "flattenable".
-    * @param wf the workflow
-    * @param callables the callables to add to the workflow
+    * @param wf
+    *   the workflow
+    * @param callables
+    *   the callables to add to the workflow
     * @return
     */
   def standAloneWorkflow(wf: TAT.Workflow, callables: Vector[Callable]): TAT.Document = {
     val tasks: Vector[TAT.Task] =
       callables
-        .foldLeft(Map.empty[String, TAT.Task]) {
-          case (accu, callable) =>
-            if (accu contains callable.name) {
-              // we have already created a stub for this call
-              accu
-            } else {
-              val stub: TAT.Task = callable match {
-                case Application(_,
-                                 _,
-                                 _,
-                                 _,
-                                 _,
-                                 ExecutableKindApplet,
-                                 WdlDocumentSource(doc, _),
-                                 _,
-                                 _,
-                                 _,
-                                 _,
-                                 _) =>
-                  // This is a task, include its source instead of a header.
-                  val tasks = doc.elements.collect {
-                    case t: TAT.Task => t
-                  }
-                  assert(tasks.size == 1)
-                  tasks.head
-                case Application(_, _, _, _, _, native: ExecutableKindNative, _, _, _, _, _, _) =>
-                  // no existing stub, create it - specify whether the target app(let) is native
-                  createTaskStub(callable, native = Some(native))
-                case _ =>
-                  // no existing stub, create it
-                  createTaskStub(callable)
-              }
-              accu + (callable.name -> stub)
+        .foldLeft(Map.empty[String, TAT.Task]) { case (accu, callable) =>
+          if (accu contains callable.name) {
+            // we have already created a stub for this call
+            accu
+          } else {
+            val stub: TAT.Task = callable match {
+              case Application(_,
+                               _,
+                               _,
+                               _,
+                               _,
+                               ExecutableKindApplet,
+                               WdlDocumentSource(doc, _),
+                               _,
+                               _,
+                               _,
+                               _,
+                               _
+                  ) =>
+                // This is a task, include its source instead of a header.
+                val tasks = doc.elements.collect { case t: TAT.Task =>
+                  t
+                }
+                assert(tasks.size == 1)
+                tasks.head
+              case Application(_, _, _, _, _, native: ExecutableKindNative, _, _, _, _, _, _) =>
+                // no existing stub, create it - specify whether the target app(let) is native
+                createTaskStub(callable, native = Some(native))
+              case _ =>
+                // no existing stub, create it
+                createTaskStub(callable)
             }
+            accu + (callable.name -> stub)
+          }
         }
         // sort the task order by name, so the generated code will be deterministic
         .toVector

@@ -56,7 +56,8 @@ class TypeSerializationTest extends AnyFlatSpec with Matchers {
       JsString("placeholder"),
       JsObject("type" -> JsString("Map"),
                "keys" -> JsString("Int"),
-               "values" -> JsString("UnrealFile"))
+               "values" -> JsString("UnrealFile")
+      )
   )
 
   it should "detect bad type descriptions" in {

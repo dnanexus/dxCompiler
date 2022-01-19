@@ -14,7 +14,8 @@ case class DxfuseManifest(value: JsValue)
 //  folder - this requires a change in dxfuse
 case class DxfuseManifestBuilder(workerPaths: DxWorkerPaths,
                                  dxApi: DxApi,
-                                 logger: Logger = Logger.get) {
+                                 logger: Logger = Logger.get
+) {
   def apply(
       fileToLocalMapping: Map[DxFile, Path] = Map.empty,
       folderToLocalMapping: Map[(String, String), Path] = Map.empty,
@@ -24,41 +25,39 @@ case class DxfuseManifestBuilder(workerPaths: DxWorkerPaths,
       return None
     }
 
-    val files = fileToLocalMapping.map {
-      case (dxFile, path) =>
-        // we expect that the files will have already been bulk described
-        assert(dxFile.hasCachedDesc)
-        // check that the files are not archived
-        if (dxFile.describe().archivalState != DxArchivalState.Live) {
-          throw new Exception(s"file ${dxFile} is not live")
-        }
+    val files = fileToLocalMapping.map { case (dxFile, path) =>
+      // we expect that the files will have already been bulk described
+      assert(dxFile.hasCachedDesc)
+      // check that the files are not archived
+      if (dxFile.describe().archivalState != DxArchivalState.Live) {
+        throw new Exception(s"file ${dxFile} is not live")
+      }
 
-        val parentDir = path.getParent
-        // remove the mountpoint from the directory. We need
-        // paths that are relative to the mount point.
-        val mountDir = workerPaths.getDxfuseMountDir().asJavaPath
-        assert(parentDir.startsWith(mountDir))
-        val relParentDir = s"/${mountDir.relativize(parentDir)}"
+      val parentDir = path.getParent
+      // remove the mountpoint from the directory. We need
+      // paths that are relative to the mount point.
+      val mountDir = workerPaths.getDxfuseMountDir().asJavaPath
+      assert(parentDir.startsWith(mountDir))
+      val relParentDir = s"/${mountDir.relativize(parentDir)}"
 
-        val desc = dxFile.describe()
-        JsObject(
-            "file_id" -> JsString(dxFile.id),
-            "parent" -> JsString(relParentDir),
-            "proj_id" -> JsString(desc.project),
-            "fname" -> JsString(path.getFileName.toString),
-            "size" -> JsNumber(desc.size),
-            "ctime" -> JsNumber(desc.created),
-            "mtime" -> JsNumber(desc.modified)
-        )
+      val desc = dxFile.describe()
+      JsObject(
+          "file_id" -> JsString(dxFile.id),
+          "parent" -> JsString(relParentDir),
+          "proj_id" -> JsString(desc.project),
+          "fname" -> JsString(path.getFileName.toString),
+          "size" -> JsNumber(desc.size),
+          "ctime" -> JsNumber(desc.created),
+          "mtime" -> JsNumber(desc.modified)
+      )
     }.toVector
 
-    val folders = folderToLocalMapping.map {
-      case ((project, folder), path) =>
-        JsObject(
-            "proj_id" -> JsString(project),
-            "folder" -> JsString(folder),
-            "dirname" -> JsString(path.toString)
-        )
+    val folders = folderToLocalMapping.map { case ((project, folder), path) =>
+      JsObject(
+          "proj_id" -> JsString(project),
+          "folder" -> JsString(folder),
+          "dirname" -> JsString(path.toString)
+      )
     }.toVector
 
     Some(

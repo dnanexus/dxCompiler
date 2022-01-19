@@ -32,11 +32,10 @@ class DxFileAccessProtocolTest extends AnyFlatSpec with Matchers {
     }
     val fileResolver = FileSourceResolver.create(userProtocols = Vector(DxFileAccessProtocol()))
     val evaluator = Eval(DefaultEvalPaths.empty, Some(WdlVersion.V1), Vector.empty, fileResolver)
-    privateVariables.foreach {
-      case TAT.PrivateVariable(_, wdlType, expr) =>
-        // applies the default validation, which tries to resolve files and
-        // throws an exception on failure
-        evaluator.applyConstAndCoerce(expr, wdlType)
+    privateVariables.foreach { case TAT.PrivateVariable(_, wdlType, expr) =>
+      // applies the default validation, which tries to resolve files and
+      // throws an exception on failure
+      evaluator.applyConstAndCoerce(expr, wdlType)
     }
   }
 }

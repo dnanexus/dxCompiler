@@ -39,12 +39,11 @@ case class DxdaManifestBuilder(dxApi: DxApi, logger: Logger = Logger.get) {
       .describe()
       .parts
       .map { parts =>
-        Map("parts" -> JsObject(parts.map {
-          case (idx, part) =>
-            idx.toString -> JsObject(
-                "size" -> JsNumber(part.size),
-                "md5" -> JsString(part.md5)
-            )
+        Map("parts" -> JsObject(parts.map { case (idx, part) =>
+          idx.toString -> JsObject(
+              "size" -> JsNumber(part.size),
+              "md5" -> JsString(part.md5)
+          )
         }))
       }
       .getOrElse(Map.empty)
@@ -60,7 +59,8 @@ case class DxdaManifestBuilder(dxApi: DxApi, logger: Logger = Logger.get) {
   private def createFolderEntry(projectId: String,
                                 folder: String,
                                 destination: Path,
-                                listing: Option[Set[PosixPath]]): Vector[JsValue] = {
+                                listing: Option[Set[PosixPath]]
+  ): Vector[JsValue] = {
     // dxda manifest doesn't support folders so we have to list the folder contents and add
     // all the files to the manifest
     val findDataObjects = DxFindDataObjects(dxApi)
@@ -95,24 +95,21 @@ case class DxdaManifestBuilder(dxApi: DxApi, logger: Logger = Logger.get) {
           }
         }
 
-        result.filter {
-          case (_, fileFolder, fileName) =>
-            val path = fileFolder.resolve(fileName)
-            listingPaths.contains(path) || containsAncestor(path)
+        result.filter { case (_, fileFolder, fileName) =>
+          val path = fileFolder.resolve(fileName)
+          listingPaths.contains(path) || containsAncestor(path)
         }
       }
       .getOrElse(result)
-      .map {
-        case (dxFile, fileFolder, fileName) =>
-          val fileRelFolder = folderPath.relativize(fileFolder)
-          val fileDest = destination.resolve(fileRelFolder.toString).resolve(fileName)
-          createFileEntry(dxFile, fileDest)
+      .map { case (dxFile, fileFolder, fileName) =>
+        val fileRelFolder = folderPath.relativize(fileFolder)
+        val fileDest = destination.resolve(fileRelFolder.toString).resolve(fileName)
+        createFileEntry(dxFile, fileDest)
       }
   }
 
-  /**
-    *
-    * @param fileToLocalMapping mapping of
+  /** @param fileToLocalMapping
+    *   mapping of
     * @return
     */
   def apply(
@@ -137,8 +134,8 @@ case class DxdaManifestBuilder(dxApi: DxApi, logger: Logger = Logger.get) {
       }
 
     val foldersByContainer: Map[DxProject, Vector[String]] =
-      folderToLocalMapping.keys.toVector.groupBy(_._1).map {
-        case (projectId, folders) => dxApi.project(projectId) -> folders.map(_._2)
+      folderToLocalMapping.keys.toVector.groupBy(_._1).map { case (projectId, folders) =>
+        dxApi.project(projectId) -> folders.map(_._2)
       }
 
     val manifest: Map[String, JsValue] =
@@ -155,7 +152,8 @@ case class DxdaManifestBuilder(dxApi: DxApi, logger: Logger = Logger.get) {
             createFolderEntry(dxContainer.id,
                               folder,
                               folderToLocalMapping(key),
-                              folderListings.get(key))
+                              folderListings.get(key)
+            )
           }
         dxContainer.id -> JsArray(containerFilesToLocalPath ++ containerFolderFilesToLocalPath)
       }.toMap

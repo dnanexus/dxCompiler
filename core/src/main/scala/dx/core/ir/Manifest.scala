@@ -19,7 +19,8 @@ object Manifest {
 
   def keysToNames[T](values: Map[String, T],
                      dxNameFactory: DxNameFactory,
-                     encoded: Boolean = false): Map[DxName, T] = {
+                     encoded: Boolean = false
+  ): Map[DxName, T] = {
     values.map {
       case (name, value) if encoded => dxNameFactory.fromEncodedName(name) -> value
       case (name, value)            => dxNameFactory.fromDecodedName(name) -> value
@@ -29,7 +30,8 @@ object Manifest {
   def parseFullManifest(jsValue: JsValue,
                         dxNameFactory: DxNameFactory,
                         irTypes: Option[Map[DxName, Type]] = None,
-                        typeAliases: Map[String, Type] = Map.empty): Manifest = {
+                        typeAliases: Map[String, Type] = Map.empty
+  ): Manifest = {
     val fields = jsValue.asJsObject.fields
     val id = fields.get(Manifest.IdKey) match {
       case Some(JsString(id)) => Some(id)
@@ -81,7 +83,8 @@ object Manifest {
   def parse(jsValue: JsValue,
             dxNameFactory: DxNameFactory,
             types: Option[Map[DxName, Type]] = None,
-            typeAliases: Map[String, Type] = Map.empty): Manifest = {
+            typeAliases: Map[String, Type] = Map.empty
+  ): Manifest = {
     jsValue match {
       case JsObject(fields)
           if fields.contains(Manifest.ValuesKey) &&
@@ -99,7 +102,8 @@ object Manifest {
   def parseFile(path: Path,
                 dxNameFactory: DxNameFactory,
                 types: Option[Map[DxName, Type]] = None,
-                typeAliases: Map[String, Type] = Map.empty): Manifest = {
+                typeAliases: Map[String, Type] = Map.empty
+  ): Manifest = {
     parse(JsUtils.jsFromFile(path), dxNameFactory, types, typeAliases)
   }
 }
@@ -107,7 +111,8 @@ object Manifest {
 case class Manifest(jsValues: Map[DxName, JsValue],
                     types: Option[Map[DxName, Type]] = None,
                     definitions: Option[Map[String, Type]] = None,
-                    id: Option[String] = None) {
+                    id: Option[String] = None
+) {
   types.foreach { t =>
     jsValues.keySet.diff(t.keySet) match {
       case d if d.nonEmpty =>
@@ -117,7 +122,8 @@ case class Manifest(jsValues: Map[DxName, JsValue],
   }
 
   def deserialize(dxFileDescCache: DxFileDescCache = DxFileDescCache.empty,
-                  dxApi: DxApi = DxApi.get): Map[DxName, Value] = {
+                  dxApi: DxApi = DxApi.get
+  ): Map[DxName, Value] = {
     val deserializer = ParameterLinkDeserializer(dxFileDescCache, dxApi)
     jsValues.map {
       case (dxName, jsv) if types.isDefined =>
@@ -141,14 +147,16 @@ case class Manifest(jsValues: Map[DxName, JsValue],
         val (jsTypes, allDefinitions, jsDefinitions) =
           types.foldLeft(SortedMap.empty[String, JsValue],
                          definitions.getOrElse(Map.empty),
-                         SortedMap.empty[String, JsValue]) {
+                         SortedMap.empty[String, JsValue]
+          ) {
             case ((typeAccu, defAccu, defJsAccu), (dxName, t: TSchema))
                 if defAccu.contains(t.name) =>
               (typeAccu + (dxNameToString(dxName) -> JsString(t.name)), defAccu, defJsAccu)
             case ((typeAccu, defAccu, defJsAccu), (dxName, t: TSchema)) =>
               (typeAccu + (dxNameToString(dxName) -> JsString(t.name)),
                defAccu + (t.name -> t),
-               defJsAccu)
+               defJsAccu
+              )
             case ((typeAccu, defAccu, defJsAccu), (dxName, t)) =>
               val (jsType, newDefJs) = TypeSerde.serialize(t, defJsAccu)
               (typeAccu + (dxNameToString(dxName) -> jsType), defAccu, newDefJs)
@@ -171,8 +179,8 @@ case class Manifest(jsValues: Map[DxName, JsValue],
     val fields = Vector(
         definitionsField,
         typesField,
-        Some(Manifest.ValuesKey -> JsObject(jsValues.map {
-          case (dxName, jsv) => dxNameToString(dxName) -> jsv
+        Some(Manifest.ValuesKey -> JsObject(jsValues.map { case (dxName, jsv) =>
+          dxNameToString(dxName) -> jsv
         })),
         id.map(id => Manifest.IdKey -> JsString(id)),
         Some(Manifest.EncodedKey -> JsBoolean(encodeNames))

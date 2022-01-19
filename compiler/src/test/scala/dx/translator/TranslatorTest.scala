@@ -48,7 +48,8 @@ class TranslatorTest extends AnyFlatSpec with Matchers {
                       "GenerateIR",
                       "--locked",
                       "--project",
-                      dxProjectId)
+                      dxProjectId
+  )
 
   private def getApplicationByName(name: String, bundle: Bundle): Application =
     bundle.allCallables(name) match {
@@ -88,7 +89,8 @@ class TranslatorTest extends AnyFlatSpec with Matchers {
                             None,
                             None,
                             None,
-                            Some(ExecutionEnvironment("Ubuntu", "20.04", Vector("0"))))
+                            Some(ExecutionEnvironment("Ubuntu", "20.04", Vector("0")))
+        )
     )
     compile("dynamic") shouldBe DynamicInstanceType
   }
@@ -955,7 +957,8 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
             Parameter(WdlDxName.fromSourceName("sampleStruct"),
                       TSchema("SampleStruct", SeqMap("sample_name" -> TString, "id" -> TInt)),
                       None,
-                      Vector())
+                      Vector()
+            )
         )
     )
   }
@@ -971,9 +974,8 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val path = pathFromBasename("compiler", "reserved.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
-    inside(retval) {
-      case Failure(_, Some(e)) =>
-        e.getMessage should include("using the substring '___'")
+    inside(retval) { case Failure(_, Some(e)) =>
+      e.getMessage should include("using the substring '___'")
     }
   }
 
@@ -1048,19 +1050,18 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
          |  >>>
          |""".stripMargin
 
-    inside(retval) {
-      case SuccessfulCompileIR(bundle) =>
-        bundle.allCallables.size shouldBe 1
-        val (_, callable) = bundle.allCallables.head
-        callable shouldBe a[Application]
-        val task = callable.asInstanceOf[Application]
-        val generator = WdlGenerator()
-        val wdlDoc = task.document match {
-          case WdlDocumentSource(doc, _) => doc
-          case _                         => throw new Exception("expected a WDL document")
-        }
-        val taskSource = generator.generateDocument(wdlDoc).mkString("\n")
-        taskSource should include(commandSection)
+    inside(retval) { case SuccessfulCompileIR(bundle) =>
+      bundle.allCallables.size shouldBe 1
+      val (_, callable) = bundle.allCallables.head
+      callable shouldBe a[Application]
+      val task = callable.asInstanceOf[Application]
+      val generator = WdlGenerator()
+      val wdlDoc = task.document match {
+        case WdlDocumentSource(doc, _) => doc
+        case _                         => throw new Exception("expected a WDL document")
+      }
+      val taskSource = generator.generateDocument(wdlDoc).mkString("\n")
+      taskSource should include(commandSection)
     }
   }
 
@@ -1079,24 +1080,24 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileIR]
 
-    inside(retval) {
-      case SuccessfulCompileIR(bundle) =>
-        bundle.allCallables.size shouldBe 1
-        val (_, callable) = bundle.allCallables.head
-        callable shouldBe a[Application]
-        val task = callable.asInstanceOf[Application]
-        task.instanceType shouldBe StaticInstanceType(
-            InstanceTypeRequest(Some("mem3_ssd1_gpu_x8"),
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None,
-                                None)
-        )
+    inside(retval) { case SuccessfulCompileIR(bundle) =>
+      bundle.allCallables.size shouldBe 1
+      val (_, callable) = bundle.allCallables.head
+      callable shouldBe a[Application]
+      val task = callable.asInstanceOf[Application]
+      task.instanceType shouldBe StaticInstanceType(
+          InstanceTypeRequest(Some("mem3_ssd1_gpu_x8"),
+                              None,
+                              None,
+                              None,
+                              None,
+                              None,
+                              None,
+                              None,
+                              None,
+                              None
+          )
+      )
     }
   }
 
@@ -1120,8 +1121,8 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     wfs.length shouldBe 1
     val wf = wfs.head
 
-    val samtools = wf.inputs.find {
-      case (cVar, _) => cVar.name.decoded == "samtools_memory"
+    val samtools = wf.inputs.find { case (cVar, _) =>
+      cVar.name.decoded == "samtools_memory"
     }
     inside(samtools) {
       /*case Some((cVar, _)) =>
@@ -1580,7 +1581,8 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
         applet.attributes shouldBe Vector(DescriptionAttribute("Write a file to stdout using cat"))
         applet.container shouldBe NoImage
         applet.inputs shouldBe Vector(Parameter(CwlDxName.fromSourceName("file"), TFile),
-                                      TargetParam)
+                                      TargetParam
+        )
         applet.outputs shouldBe Vector(Parameter(CwlDxName.fromSourceName("contents"), TFile))
       case other =>
         throw new AssertionError(s"expected SuccessfulCompileIR, not ${other}")
@@ -1663,7 +1665,8 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     wf.stages(1).calleeName shouldBe "parseInt"
     wf.stages(1).inputs shouldBe Vector(
         StageInputStageLink(DxWorkflowStage("stage-0"),
-                            Parameter(CwlDxName.fromSourceName("output"), TFile)),
+                            Parameter(CwlDxName.fromSourceName("output"), TFile)
+        ),
         StageInputStatic(VString("step2"))
     )
     wf.stages(1).outputs shouldBe Vector(
@@ -1775,8 +1778,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
       case applet: Application => applet
       case other               => throw new Exception(s"expected applet not ${other}")
     }
-    stage0Applet.kind should matchPattern {
-      case ExecutableKindWfFragment(_, _, _, _) =>
+    stage0Applet.kind should matchPattern { case ExecutableKindWfFragment(_, _, _, _) =>
     }
   }
 }

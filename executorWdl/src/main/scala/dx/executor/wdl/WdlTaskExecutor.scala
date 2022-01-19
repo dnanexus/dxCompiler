@@ -32,8 +32,8 @@ object WdlTaskExecutor {
     if (doc.workflow.isDefined) {
       throw new Exception("a workflow shouldn't be a member of this document")
     }
-    val tasks = doc.elements.collect {
-      case task: TAT.Task => task.name -> task
+    val tasks = doc.elements.collect { case task: TAT.Task =>
+      task.name -> task
     }.toMap
     if (tasks.isEmpty) {
       throw new Exception("no tasks in this WDL program")
@@ -46,7 +46,8 @@ object WdlTaskExecutor {
                     typeAliases,
                     jobMeta,
                     streamFiles,
-                    checkInstanceType)
+                    checkInstanceType
+    )
   }
 }
 
@@ -55,8 +56,8 @@ case class WdlTaskExecutor(task: TAT.Task,
                            typeAliases: Bindings[String, T_Struct],
                            jobMeta: JobMeta,
                            streamFiles: StreamFiles.StreamFiles,
-                           checkInstanceType: Boolean)
-    extends TaskExecutor(jobMeta, streamFiles, checkInstanceType) {
+                           checkInstanceType: Boolean
+) extends TaskExecutor(jobMeta, streamFiles, checkInstanceType) {
 
   private val fileResolver = jobMeta.fileResolver
   private val logger = jobMeta.logger
@@ -83,9 +84,8 @@ case class WdlTaskExecutor(task: TAT.Task,
 
   private def wdlInputs: Map[DxName, V] = {
     // convert IR to WDL values; discard auxiliary fields
-    val inputWdlValues: Map[DxName, V] = jobMeta.primaryInputs.map {
-      case (dxName, value) =>
-        dxName -> WdlUtils.fromIRValue(value, inputTypes(dxName), dxName.decoded)
+    val inputWdlValues: Map[DxName, V] = jobMeta.primaryInputs.map { case (dxName, value) =>
+      dxName -> WdlUtils.fromIRValue(value, inputTypes(dxName), dxName.decoded)
     }
     // add default values for any missing inputs
     // Enable special handling for unset array values -
@@ -94,15 +94,16 @@ case class WdlTaskExecutor(task: TAT.Task,
     // array that is allowed to be empty as the empty array.
     trace("Evaluating default values for inputs")
     val wdlInputs: Map[DxName, V] = taskIO
-      .inputsFromValues(inputWdlValues.map {
-                          case (dxName, v) => dxName.decoded -> v
+      .inputsFromValues(inputWdlValues.map { case (dxName, v) =>
+                          dxName.decoded -> v
                         },
                         evaluator,
                         ignoreDefaultEvalError = false,
-                        nullCollectionAsEmpty = true)
+                        nullCollectionAsEmpty = true
+      )
       .toMap
-      .map {
-        case (name, v) => WdlDxName.fromSourceName(name) -> v
+      .map { case (name, v) =>
+        WdlDxName.fromSourceName(name) -> v
       }
     if (logger.isVerbose) {
       val inputStr = task.inputs
@@ -131,21 +132,19 @@ case class WdlTaskExecutor(task: TAT.Task,
     //    cat ~{file_names}
     //    >>>
     // }
-    val init: Bindings[String, V] = WdlValueBindings(wdlInputs.map {
-      case (dxName, v) => dxName.decoded -> v
+    val init: Bindings[String, V] = WdlValueBindings(wdlInputs.map { case (dxName, v) =>
+      dxName.decoded -> v
     })
     // evaluate the private variables using the inputs
     val wdlInputVariables: Map[DxName, (T, V)] = task.privateVariables
-      .foldLeft(init) {
-        case (env, TAT.PrivateVariable(name, wdlType, expr)) =>
-          val wdlValue = evaluator.applyExprAndCoerce(expr, wdlType, env)
-          env.add(name, wdlValue)
+      .foldLeft(init) { case (env, TAT.PrivateVariable(name, wdlType, expr)) =>
+        val wdlValue = evaluator.applyExprAndCoerce(expr, wdlType, env)
+        env.add(name, wdlValue)
       }
       .toMap
-      .map {
-        case (name, v) =>
-          val dxName = WdlDxName.fromSourceName(name)
-          dxName -> (inputTypes(dxName), v)
+      .map { case (name, v) =>
+        val dxName = WdlDxName.fromSourceName(name)
+        dxName -> (inputTypes(dxName), v)
       }
     WdlUtils.toIR(wdlInputVariables)
   }
@@ -154,14 +153,16 @@ case class WdlTaskExecutor(task: TAT.Task,
     val (runtimeOverridesJs, hintOverridesJs) = jobMeta.jsOverrides match {
       case Some(JsObject(fields)) if fields.contains("runtime") || fields.contains("hints") =>
         (fields.get("runtime").map(_.asJsObject.fields),
-         fields.get("hints").map(_.asJsObject.fields))
+         fields.get("hints").map(_.asJsObject.fields)
+        )
       case Some(JsObject(fields)) => (Some(fields), None)
       case None                   => (None, None)
       case Some(other) =>
         throw new Exception(s"invalid overrides ${other}")
     }
     (runtimeOverridesJs.map(o => IrToWdlValueBindings(ValueSerde.deserializeMap(o))),
-     hintOverridesJs.map(o => IrToWdlValueBindings(ValueSerde.deserializeMap(o))))
+     hintOverridesJs.map(o => IrToWdlValueBindings(ValueSerde.deserializeMap(o)))
+    )
   }
 
   private def createRuntime(env: Map[DxName, V]): Runtime = {
@@ -173,8 +174,8 @@ case class WdlTaskExecutor(task: TAT.Task,
         runtimeOverrides,
         hintOverrides,
         Some(IrToWdlValueBindings(jobMeta.defaultRuntimeAttrs)),
-        Some(WdlValueBindings(env.map {
-          case (dxName, v) => dxName.decoded -> v
+        Some(WdlValueBindings(env.map { case (dxName, v) =>
+          dxName.decoded -> v
         }))
     )
   }
@@ -182,18 +183,17 @@ case class WdlTaskExecutor(task: TAT.Task,
   override protected def getInstanceTypeRequest(
       inputs: Map[DxName, (Type, Value)]
   ): InstanceTypeRequest = {
-    createRuntime(WdlUtils.fromIR(inputs, typeAliases.toMap).map {
-      case (name, (_, value)) => name -> value
+    createRuntime(WdlUtils.fromIR(inputs, typeAliases.toMap).map { case (name, (_, value)) =>
+      name -> value
     }).parseInstanceType
   }
 
   private lazy val hints =
     HintResolver(versionSupport.version, task.parameterMeta, task.hints, hintOverrides)
 
-  /**
-    * Should we try to stream the file(s) associated with the given input parameter?
-    * This can be set at the parameter level (in parameters_meta or hints.inputs) or
-    * at the global level (at the hints top level).
+  /** Should we try to stream the file(s) associated with the given input parameter? This can be set
+    * at the parameter level (in parameters_meta or hints.inputs) or at the global level (at the
+    * hints top level).
     */
   override protected def streamFileForInput(parameterName: DxName): Boolean = {
     hints.isLocalizationOptional(parameterName.decoded)
@@ -204,16 +204,17 @@ case class WdlTaskExecutor(task: TAT.Task,
       localizedDependencies: Option[Map[String, (Type, Value)]]
   ): (Boolean, Option[Set[Int]]) = {
     val wdlInputs = WdlUtils.fromIR(localizedInputs, typeAliases.toMap)
-    val wdlValues = wdlInputs.map {
-      case (name, (_, v)) => name -> v
+    val wdlValues = wdlInputs.map { case (name, (_, v)) =>
+      name -> v
     }
     if (logger.isVerbose) {
       logger.traceLimited(s"writeCommandScript env:\n  ${WdlUtils.prettyFormatEnv(wdlInputs)}")
     }
     evaluator.applyCommand(task.command,
-                           WdlValueBindings(wdlValues.map {
-                             case (dxName, v) => dxName.decoded -> v
-                           })) match {
+                           WdlValueBindings(wdlValues.map { case (dxName, v) =>
+                             dxName.decoded -> v
+                           })
+    ) match {
       case command if command.trim.isEmpty => (false, None)
       case command =>
         val generator = TaskCommandFileGenerator(logger)
@@ -245,15 +246,14 @@ case class WdlTaskExecutor(task: TAT.Task,
           .evaluateOutputs(
               evaluator,
               WdlValueBindings(
-                  WdlUtils.fromIR(localizedInputs, typeAliases.toMap).map {
-                    case (dxName, (_, v)) => dxName.decoded -> v
+                  WdlUtils.fromIR(localizedInputs, typeAliases.toMap).map { case (dxName, (_, v)) =>
+                    dxName.decoded -> v
                   }
               )
           )
           .toMap
-          .map {
-            case (name, value) =>
-              WdlDxName.fromSourceName(name) -> (outputTypes(name), value)
+          .map { case (name, value) =>
+            WdlDxName.fromSourceName(name) -> (outputTypes(name), value)
           }
     )
     val tagsAndProperties = localizedOutputs.keys.map { name =>

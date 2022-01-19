@@ -93,9 +93,7 @@ object Constants {
   val JobsPerScatterLimit = 1000
   val JobPerScatterDefault = 500
 
-  /**
-    * Very long strings cause problems with bash and the UI, so we set
-    * a max limit of 32k characters
+  /** Very long strings cause problems with bash and the UI, so we set a max limit of 32k characters
     */
   val StringLengthLimit: Int = 32 * 1024
 

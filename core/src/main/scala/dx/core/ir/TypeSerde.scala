@@ -6,11 +6,10 @@ import dx.util.JsUtils
 
 import scala.collection.immutable.{SeqMap, SortedMap}
 
-/**
-  * Functions for serialization and deserialization of types. Note that SortedMap is
-  * used for all object types in JSON, which ensures that fields have a consistent
-  * (lexicographic) ordering. This means that object values that are serialized and
-  * then deserialized may have their fields reordered.
+/** Functions for serialization and deserialization of types. Note that SortedMap is used for all
+  * object types in JSON, which ensures that fields have a consistent (lexicographic) ordering. This
+  * means that object values that are serialized and then deserialized may have their fields
+  * reordered.
   */
 object TypeSerde {
   val TypeKey = "type"
@@ -43,14 +42,17 @@ object TypeSerde {
          TypeKey -> JsString(t.name),
          FieldsKey -> JsObject(fieldsJs)
      ),
-     newTypeDefs)
+     newTypeDefs
+    )
   }
 
-  /**
-    * Serialize a single type.
-    * @param t the type to serialize
-    * @param typeDefs type definitions that might be referenced by t
-    * @return (serialized type, updated serialized type defs)
+  /** Serialize a single type.
+    * @param t
+    *   the type to serialize
+    * @param typeDefs
+    *   type definitions that might be referenced by t
+    * @return
+    *   (serialized type, updated serialized type defs)
     */
   def serialize(
       t: Type,
@@ -78,13 +80,15 @@ object TypeSerde {
              ItemsKey -> typeJs,
              NonEmptyKey -> JsBoolean(nonEmpty)
          ),
-         updatedTypeDefs)
+         updatedTypeDefs
+        )
       case TEnum(symbols) =>
         (JsObject(
              TypeKey -> JsString(EnumTypeName),
              SymbolsKey -> JsArray(symbols.map(JsString(_)))
          ),
-         newTypeDefs)
+         newTypeDefs
+        )
       case TOptional(inner) =>
         serialize(inner, newTypeDefs) match {
           case (name: JsString, updatedTypeDefs) =>
@@ -102,7 +106,8 @@ object TypeSerde {
               (serializedTypeAccu :+ serializedType, updatedTypeDefs)
           }
         (JsObject(TypeKey -> JsString(MultiTypeName), ChoicesKey -> JsArray(serializedTypes)),
-         updatedTypeDefs)
+         updatedTypeDefs
+        )
     }
   }
 
@@ -117,10 +122,11 @@ object TypeSerde {
     }
   }
 
-  /**
-    * Serializes a mapping of variable names to Types.
-    * @param types mapping of variable names to Types
-    * @return (parameter types, updated type definitions)
+  /** Serializes a mapping of variable names to Types.
+    * @param types
+    *   mapping of variable names to Types
+    * @return
+    *   (parameter types, updated type definitions)
     */
   def serializeMap(
       types: Map[String, Type],
@@ -133,10 +139,11 @@ object TypeSerde {
     }
   }
 
-  /**
-    * Serializes a parameter specification.
-    * @param parameters parameter types
-    * @return JsObject containing the input specification
+  /** Serializes a parameter specification.
+    * @param parameters
+    *   parameter types
+    * @return
+    *   JsObject containing the input specification
     */
   def serializeSpec(parameters: Map[String, Type]): JsValue = {
     val (typesJs, schemasJs) = serializeMap(parameters)
@@ -148,11 +155,13 @@ object TypeSerde {
     )
   }
 
-  /**
-    * Serialize and create a specification for a single type.
-    * @param t the type
-    * @param typeDefs type definitions that may be referenced by `t`
-    * @return JsObject containing the specification
+  /** Serialize and create a specification for a single type.
+    * @param t
+    *   the type
+    * @param typeDefs
+    *   type definitions that may be referenced by `t`
+    * @return
+    *   JsObject containing the specification
     */
   def serializeOne(t: Type, typeDefs: Map[String, JsValue] = Map.empty): JsObject = {
     val (typeJs, newTypeDefs) = serialize(t, typeDefs)
@@ -162,7 +171,8 @@ object TypeSerde {
   private def deserializeSchema(jsSchema: JsValue,
                                 typeDefs: Map[String, Type],
                                 jsTypeDefs: Map[String, JsValue],
-                                name: Option[String] = None): Map[String, Type] = {
+                                name: Option[String] = None
+  ): Map[String, Type] = {
     val (schemaName, fieldsJs) = jsSchema.asJsObject.getFields(FieldsKey, TypeKey) match {
       case Seq(JsObject(fieldsJs), JsString(name))   => (name, fieldsJs)
       case Seq(JsObject(fieldsJs)) if name.isDefined => (name.get, fieldsJs)
@@ -183,18 +193,20 @@ object TypeSerde {
       typeDefs: Map[String, Type] = Map.empty
   ): Map[String, Type] = {
     jsSchemas.values
-      .foldLeft(typeDefs) {
-        case (schemaAccu, jsSchema) => deserializeSchema(jsSchema, schemaAccu, jsSchemas)
+      .foldLeft(typeDefs) { case (schemaAccu, jsSchema) =>
+        deserializeSchema(jsSchema, schemaAccu, jsSchemas)
       }
   }
 
-  /**
-    * Deserializes a serialized type value.
-    * @param jsValue the serialized values
-    * @param typeDefs type definitions that the may be referenced by jsValue
-    * @param jsTypeDefs serialized type definitions that we only deserialize if
-    *                  they are referenced
-    * @return (type, updated type definition map)
+  /** Deserializes a serialized type value.
+    * @param jsValue
+    *   the serialized values
+    * @param typeDefs
+    *   type definitions that the may be referenced by jsValue
+    * @param jsTypeDefs
+    *   serialized type definitions that we only deserialize if they are referenced
+    * @return
+    *   (type, updated type definition map)
     */
   def deserialize(
       jsValue: JsValue,
@@ -260,13 +272,15 @@ object TypeSerde {
     }
   }
 
-  /**
-    * Deserializes a map on parameter names to serialized values.
-    * @param jsTypes types to deserialize
-    * @param typeDefs type definitions that may be referenced by the types
-    * @param jsTypeDefs serialized type definitions that we only deserialize
-    *                   if they are referenced
-    * @return (parameter types, updated type definitions)
+  /** Deserializes a map on parameter names to serialized values.
+    * @param jsTypes
+    *   types to deserialize
+    * @param typeDefs
+    *   type definitions that may be referenced by the types
+    * @param jsTypeDefs
+    *   serialized type definitions that we only deserialize if they are referenced
+    * @return
+    *   (parameter types, updated type definitions)
     */
   def deserializeMap(
       jsTypes: Map[String, JsValue],
@@ -280,15 +294,17 @@ object TypeSerde {
     }
   }
 
-  /**
-    * Deserializes a parameter specification that was serialized using the
-    * `serializeSpec` function.
-    * @param jsValue the value to deserialize
-    * @param typeDefs initial set of schemas (i.e. type aliases)
-    * @return mapping of variable names to deserialized Types
+  /** Deserializes a parameter specification that was serialized using the `serializeSpec` function.
+    * @param jsValue
+    *   the value to deserialize
+    * @param typeDefs
+    *   initial set of schemas (i.e. type aliases)
+    * @return
+    *   mapping of variable names to deserialized Types
     */
   def deserializeSpec(jsValue: JsValue,
-                      typeDefs: Map[String, TSchema] = Map.empty): Map[String, Type] = {
+                      typeDefs: Map[String, TSchema] = Map.empty
+  ): Map[String, Type] = {
     val (jsTypes, jsTypeDefs) = jsValue match {
       case obj: JsObject if obj.fields.contains(TypesKey) =>
         obj.getFields(TypesKey, DefinitionsKey) match {
@@ -304,21 +320,24 @@ object TypeSerde {
       case _ =>
         throw TypeSerdeException(s"invalid serialized spec ${jsValue}")
     }
-    val dxJsTypes = jsTypes.map {
-      case (encodedName, jsv) => encodedName -> jsv
+    val dxJsTypes = jsTypes.map { case (encodedName, jsv) =>
+      encodedName -> jsv
     }
     val (types, _) = deserializeMap(dxJsTypes, typeDefs, jsTypeDefs)
     types
   }
 
-  /**
-    * Deserialize a single JsValue that was serialized using the `serializeOne` function.
-    * @param jsValue the value to deserialize
-    * @param typeDefs initial set of type definitions
-    * @return (deserialized type, updated type definitions)
+  /** Deserialize a single JsValue that was serialized using the `serializeOne` function.
+    * @param jsValue
+    *   the value to deserialize
+    * @param typeDefs
+    *   initial set of type definitions
+    * @return
+    *   (deserialized type, updated type definitions)
     */
   def deserializeOne(jsValue: JsValue,
-                     typeDefs: Map[String, Type] = Map.empty): (Type, Map[String, Type]) = {
+                     typeDefs: Map[String, Type] = Map.empty
+  ): (Type, Map[String, Type]) = {
     val (jsType, jsTypeDefs) = jsValue match {
       case obj: JsObject if obj.fields.contains(TypeKey) =>
         obj.getFields(TypeKey, DefinitionsKey) match {
@@ -443,10 +462,9 @@ object TypeSerde {
     }
   }
 
-  /**
-    * Convert a String to a simple (non-compound) type, i.e. TArray and TMap
-    * are not supported.
-    * @param s type string
+  /** Convert a String to a simple (non-compound) type, i.e. TArray and TMap are not supported.
+    * @param s
+    *   type string
     * @return
     */
   def simpleFromString(s: String): Type = {

@@ -50,12 +50,13 @@ object Language extends Enum {
 
   private val languageRegexp = s"(cwl|wdl)[_ ]?(.*)".r
 
-  /**
-    * Parses a version string.
-    * @param version The version specifier. Should be "<language> <version>", but the language may be omitted if
-    *                `hint` is specified, or if the version is unambiguous.
-    * @param languageHint Hint about which language is being used, when `version`
-    *                     does not include the language specifier.
+  /** Parses a version string.
+    * @param version
+    *   The version specifier. Should be "<language> <version>", but the language may be omitted if
+    *   `hint` is specified, or if the version is unambiguous.
+    * @param languageHint
+    *   Hint about which language is being used, when `version` does not include the language
+    *   specifier.
     * @return
     */
   def parse(version: String, languageHint: Option[String] = None): Value = {

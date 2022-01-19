@@ -13,22 +13,18 @@ object IORef extends Enum {
   val Input, Output = Value
 }
 
-/**
-  * A union of all the different ways of building a value from JSON passed
-  * by the platform. A complex value is a WDL values that does not map to
-  * a native dx:type. Such values may also have files embedded in them.
-  * For example:
-  * - Ragged file array:  Array\[Array\[File\]\]
-  * - Object with file elements
-  * - Map of files:     Map[String, File]
-  * A complex value is implemented as a json structure, and an array of
-  * all the files it references.
+/** A union of all the different ways of building a value from JSON passed by the platform. A
+  * complex value is a WDL values that does not map to a native dx:type. Such values may also have
+  * files embedded in them. For example:
+  *   - Ragged file array: Array\[Array\[File\]\]
+  *   - Object with file elements
+  *   - Map of files: Map[String, File] A complex value is implemented as a json structure, and an
+  *     array of all the files it references.
   */
 sealed trait ParameterLink {
   val dxType: Type
 
-  /**
-    * Copy this ParameterLink, replacing dxType with its optional equivalent.
+  /** Copy this ParameterLink, replacing dxType with its optional equivalent.
     * @return
     */
   def makeOptional: ParameterLink
@@ -51,15 +47,13 @@ case class ParameterLinkValue(jsv: JsValue, dxType: Type) extends ParameterLink 
   }
 }
 
-/**
-  * A ParameterLink that is a reference to another parameter.
+/** A ParameterLink that is a reference to another parameter.
   */
 sealed trait ParameterLinkReference extends ParameterLink {
 
-  /**
-    * The type of the parameter source, which is usually, but not always,
-    * the same as `dxType`. For example, a workflow input with type `String`
-    * may be connected to a stage input with type `Any`.
+  /** The type of the parameter source, which is usually, but not always, the same as `dxType`. For
+    * example, a workflow input with type `String` may be connected to a stage input with type
+    * `Any`.
     */
   val sourceType: Type
 }
@@ -68,8 +62,8 @@ case class ParameterLinkStage(dxStage: DxWorkflowStage,
                               ioRef: IORef.Value,
                               dxName: DxName,
                               dxType: Type,
-                              sourceType: Type)
-    extends ParameterLinkReference {
+                              sourceType: Type
+) extends ParameterLinkReference {
   def makeOptional: ParameterLinkStage = {
     copy(dxType = Type.ensureOptional(dxType))
   }
@@ -85,8 +79,8 @@ case class ParameterLinkWorkflowInput(dxName: DxName, dxType: Type, sourceType: 
 case class ParameterLinkExec(dxExecution: DxExecution,
                              dxName: DxName,
                              dxType: Type,
-                             sourceType: Type)
-    extends ParameterLinkReference {
+                             sourceType: Type
+) extends ParameterLinkReference {
   def makeOptional: ParameterLinkExec = {
     copy(dxType = Type.ensureOptional(dxType))
   }
@@ -100,14 +94,16 @@ object ParameterLinkExec {
 
 case class ParameterLinkSerializer(fileResolver: FileSourceResolver = FileSourceResolver.get,
                                    dxApi: DxApi = DxApi.get,
-                                   pathsAsObjects: Boolean = false) {
+                                   pathsAsObjects: Boolean = false
+) {
 
-  /**
-    * Serialize a complex value into a JSON value. The value could potentially point
-    * to many files. The assumption is that files are already in DNAnexus format,
-    * so not requiring upload/download or any special conversion.
-    * @param t the type
-    * @param v the value
+  /** Serialize a complex value into a JSON value. The value could potentially point to many files.
+    * The assumption is that files are already in DNAnexus format, so not requiring upload/download
+    * or any special conversion.
+    * @param t
+    *   the type
+    * @param v
+    *   the value
     * @return
     */
   private def serialize(t: Type, v: Value): JsValue = {
@@ -143,11 +139,12 @@ case class ParameterLinkSerializer(fileResolver: FileSourceResolver = FileSource
     ValueSerde.serializeWithType(v, t, Some(handler))
   }
 
-  /**
-    * Create a link from a WDL value.
+  /** Create a link from a WDL value.
     *
-    * @param t the WDL type
-    * @param v the WDL value
+    * @param t
+    *   the WDL type
+    * @param v
+    *   the WDL value
     * @return
     */
   def createLink(t: Type, v: Value): ParameterLink = {
@@ -255,8 +252,8 @@ case class ParameterLinkSerializer(fileResolver: FileSourceResolver = FileSource
       values: Map[DxName, (Type, Value)]
       // encodeName: Boolean = true
   ): Map[DxName, JsValue] = {
-    values.flatMap {
-      case (name, (t, v)) => createFields(name, t, v)
+    values.flatMap { case (name, (t, v)) =>
+      createFields(name, t, v)
     }
   }
 }
@@ -274,12 +271,13 @@ case class ParameterLinkDeserializer(dxFileDescCache: DxFileDescCache, dxApi: Dx
   def deserializeInput(jsv: JsValue): Value = {
     ValueSerde.deserialize(unwrapComplex(jsv),
                            dxApi = dxApi,
-                           dxFileDescCache = Some(dxFileDescCache))
+                           dxFileDescCache = Some(dxFileDescCache)
+    )
   }
 
   def deserializeInputMap(inputs: Map[DxName, JsValue]): Map[DxName, Value] = {
-    inputs.map {
-      case (name, jsv) => name -> deserializeInput(jsv)
+    inputs.map { case (name, jsv) =>
+      name -> deserializeInput(jsv)
     }
   }
 
@@ -294,6 +292,7 @@ case class ParameterLinkDeserializer(dxFileDescCache: DxFileDescCache, dxApi: Dx
                                    name,
                                    handler,
                                    dxApi,
-                                   Some(dxFileDescCache))
+                                   Some(dxFileDescCache)
+    )
   }
 }

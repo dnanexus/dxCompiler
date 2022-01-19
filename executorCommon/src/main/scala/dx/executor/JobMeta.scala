@@ -73,11 +73,12 @@ object JobMeta {
   val ManifestDownloadDxda = "manifest_download_dxda"
   val WorkflowManifestDownloadDxda = "workflow_manifest_download_dxda"
 
-  /**
-    * Report an error, since this is called from a bash script, we can't simply
-    * raise an exception. Instead, we write the error to a standard JSON file.
-    * @param rootDir the directory that contains the error file
-    * @param e the exception
+  /** Report an error, since this is called from a bash script, we can't simply raise an exception.
+    * Instead, we write the error to a standard JSON file.
+    * @param rootDir
+    *   the directory that contains the error file
+    * @param e
+    *   the exception
     */
   def writeError(rootDir: Path, e: Throwable): Unit = {
     val jobErrorPath = rootDir.resolve(ErrorFile)
@@ -101,19 +102,20 @@ object JobMeta {
   }
 }
 
-/**
-  * Encapsulates all the metadata used by the executor, including:
-  * 1. metadata files on the worker
-  * 2. job details
-  * 3. application details
-  * @param workerPaths DxWorkerPaths
-  * @param dxApi DxApi
-  * @param logger Logger
+/** Encapsulates all the metadata used by the executor, including:
+  *   1. metadata files on the worker 2. job details 3. application details
+  * @param workerPaths
+  *   DxWorkerPaths
+  * @param dxApi
+  *   DxApi
+  * @param logger
+  *   Logger
   */
 abstract class JobMeta(val workerPaths: DxWorkerPaths,
                        val dxNameFactory: DxNameFactory,
                        val dxApi: DxApi,
-                       val logger: Logger) {
+                       val logger: Logger
+) {
   def project: DxProject
 
   lazy val projectDesc: DxProjectDescribe = project.describe()
@@ -123,7 +125,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
   def runJobScriptFunction(name: String,
                            successCodes: Option[Set[Int]] = Some(Set(0)),
                            truncateLogs: Boolean = true,
-                           forwardStd: Boolean = false): Unit
+                           forwardStd: Boolean = false
+  ): Unit
 
   def rawJsInputs: Map[DxName, JsValue]
 
@@ -138,36 +141,29 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
     }
   }
 
-  /**
-    * If the task/workflow was compiled with -useManifests, then the job inputs
-    * will be manifest files, rather than the actual inputs expected by the
-    * task/workflow. The inputs will be:
-    * 1. At least one manifest file and/or a manifest as a JSON hash
-    * 2. A linking hash (required if there is more than one manifest)
-    * 3. Zero or more workflow manifest files and/or a workflow manifest as a
-    *    JSON hash
-    * 4. A linking hash for the workflow manifest files (required if there is
-    *    more than one workflow manifest)
-    * We need to:
-    * 1. Download and parse all the manifest files
-    * 2. If there is no linking hash, then just return the values from the
-    *    single manifest
-    * 3. Otherwise, resolve all the links. A link maps a task/workflow input
-    *    name to a value. The link value is one of the following:
-    *    * { "value\_\_\_": <value> } - a constant value
-    *    * { "<manifest_id>": "<manifest_param_name>" } - a reference to a
-    *      parameter that is looked up in the manifest(s)
-    *    * { "workflow\_\_\_": "<workflow_param_name>" } - a reference to a
-    *      workflow input parameter that is looked up in the workflow
-    *      manifest(s)
-    * All missing parameters are ignored since they may be optional.
-    * @param rawInputs raw job inputs
-    * @return the actual task/workflow inputs extracted from the manifest
+  /** If the task/workflow was compiled with -useManifests, then the job inputs will be manifest
+    * files, rather than the actual inputs expected by the task/workflow. The inputs will be:
+    *   1. At least one manifest file and/or a manifest as a JSON hash 2. A linking hash (required
+    *      if there is more than one manifest) 3. Zero or more workflow manifest files and/or a
+    *      workflow manifest as a JSON hash 4. A linking hash for the workflow manifest files
+    *      (required if there is more than one workflow manifest) We need to:
+    *   1. Download and parse all the manifest files 2. If there is no linking hash, then just
+    *      return the values from the single manifest 3. Otherwise, resolve all the links. A link
+    *      maps a task/workflow input name to a value. The link value is one of the following: * {
+    *      "value\_\_\_": <value> } - a constant value * { "<manifest_id>": "<manifest_param_name>"
+    *      } - a reference to a parameter that is looked up in the manifest(s) * { "workflow\_\_\_":
+    *      "<workflow_param_name>" } - a reference to a workflow input parameter that is looked up
+    *      in the workflow manifest(s) All missing parameters are ignored since they may be
+    *      optional.
+    * @param rawInputs
+    *   raw job inputs
+    * @return
+    *   the actual task/workflow inputs extracted from the manifest
     */
   private def unpackManifests(rawInputs: Map[DxName, JsValue]): Map[DxName, JsValue] = {
     logger.traceLimited(s"""Unpacking manifests from raw inputs:
-                           |${JsObject(rawInputs.map {
-      case (dxName, jsv) => dxName.decoded -> jsv
+                           |${JsObject(rawInputs.map { case (dxName, jsv) =>
+      dxName.decoded -> jsv
     }).prettyPrint}""".stripMargin)
 
     // resolve a file input to a DxFile
@@ -206,8 +202,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
       case None                   => Map.empty[String, JsValue]
       case other =>
         throw new Exception(s"invalid manifest links ${other}")
-    }).map {
-      case (name, jsv) => dxNameFactory.fromDecodedName(name) -> jsv
+    }).map { case (name, jsv) =>
+      dxNameFactory.fromDecodedName(name) -> jsv
     }
 
     if (manifestLinks.isEmpty) {
@@ -229,14 +225,16 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
     } else {
       def downloadAndParseManifests(files: Vector[DxFile],
                                     dxdaManifestFile: Path,
-                                    downloadFunction: String): Vector[Manifest] = {
+                                    downloadFunction: String
+      ): Vector[Manifest] = {
         if (files.isEmpty) {
           Vector.empty
         } else if (files.size == 1) {
           // download manifest bytes, convert to JSON, and parse into Manifest object
           Vector(
               Manifest.parse(new String(dxApi.downloadBytes(files.head, retryLimit = 10)).parseJson,
-                             dxNameFactory)
+                             dxNameFactory
+              )
           )
         } else {
           // bulk describe manifest files
@@ -293,7 +291,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
         .getOrElse(Vector.empty) ++
         downloadAndParseManifests(manifestFiles,
                                   workerPaths.getDxdaManifestDownloadManifestFile().asJavaPath,
-                                  JobMeta.ManifestDownloadDxda)
+                                  JobMeta.ManifestDownloadDxda
+        )
       // create lookup function for manifests
       val manifestLookup: (String, DxName) => Option[JsValue] = manifests.size match {
         case 0 => (_: String, _: DxName) => None
@@ -339,8 +338,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
             case None                   => Map.empty[String, JsValue]
             case other =>
               throw new Exception(s"invalid workflow manifest links ${other}")
-          }).map {
-            case (name, jsv) => dxNameFactory.fromDecodedName(name) -> jsv
+          }).map { case (name, jsv) =>
+            dxNameFactory.fromDecodedName(name) -> jsv
           }
         if (workflowManifests.isEmpty) {
           throw new Exception("there are no workflow manifest files")
@@ -405,8 +404,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
 
   lazy val (jsInputs: Map[DxName, JsValue], jsOverrides: Option[JsValue]) = {
     // pop the overrides off the rest of the inputs
-    val (rawOverrides, rawInputs) = rawJsInputs.partition {
-      case (dxName, _) => dxName == Constants.Overrides
+    val (rawOverrides, rawInputs) = rawJsInputs.partition { case (dxName, _) =>
+      dxName == Constants.Overrides
     }
     val jsInputs = if (useManifests) {
       unpackManifests(rawInputs)
@@ -422,8 +421,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
       if (jsInputs.isEmpty) {
         logger.trace("No inputs")
       } else {
-        logger.traceLimited(s"Raw inputs:\n${JsObject(jsInputs.map {
-          case (dxName, jsv) => dxName.decoded -> jsv
+        logger.traceLimited(s"Raw inputs:\n${JsObject(jsInputs.map { case (dxName, jsv) =>
+          dxName.decoded -> jsv
         }).prettyPrint}")
       }
       if (jsOverrides.isEmpty) {
@@ -496,8 +495,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
     }
     if (logger.isVerbose && inputs.nonEmpty) {
       val inputStr = inputs
-        .map {
-          case (name, value) => s"${name}: ${ValueSerde.toString(value)}"
+        .map { case (name, value) =>
+          s"${name}: ${ValueSerde.toString(value)}"
         }
         .mkString("\n  ")
       logger.traceLimited(s"Deserialized inputs:\n  ${inputStr}")
@@ -507,8 +506,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
 
   lazy val primaryInputs: Map[DxName, Value] = {
     // discard auxiliary fields
-    inputs.filter {
-      case (dxName, _) => !dxName.suffix.exists(_.endsWith(Constants.FlatFilesSuffix))
+    inputs.filter { case (dxName, _) =>
+      !dxName.suffix.exists(_.endsWith(Constants.FlatFilesSuffix))
     }
   }
 
@@ -529,7 +528,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
   protected def writeRawJsOutputs(outputJs: Map[DxName, JsValue]): Unit
 
   def writeJsOutputs(outputJs: Map[DxName, JsValue],
-                     skipExtraManifestOutputs: Boolean = false): Unit = {
+                     skipExtraManifestOutputs: Boolean = false
+  ): Unit = {
     val rawOutputJs = if (useManifests && !outputJs.contains(Constants.OutputManifest)) {
       val manifestId = rawJsInputs.get(Constants.OutputId) match {
         case Some(JsString(id)) => id
@@ -538,8 +538,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
       }
       val manifestValues = rawJsInputs.get(Constants.CallName) match {
         case Some(JsString(callName)) =>
-          outputJs.map {
-            case (dxName, value) => dxName.pushDecodedNamespace(callName) -> value
+          outputJs.map { case (dxName, value) =>
+            dxName.pushDecodedNamespace(callName) -> value
           }
         case None => outputJs
         case other =>
@@ -549,8 +549,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
         .when(!skipExtraManifestOutputs) {
           rawJsInputs.get(Constants.ExtraOutputs).map {
             case JsObject(fields) =>
-              fields.map {
-                case (key, value) => dxNameFactory.fromDecodedName(key) -> value
+              fields.map { case (key, value) =>
+                dxNameFactory.fromDecodedName(key) -> value
               }
             case other => throw new Exception(s"invalid extra_outputs___ value ${other}")
           }
@@ -577,21 +577,26 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
 
   private val detailToFilenameRegex = "[^\\w_]".r
 
-  /**
-    * Prepares the inputs for a subjob. If using manifests, creates a manifest
-    * with the same output ID as the current job.
-    * @param inputs raw subjob inputs
-    * @param extraManifestOutputs extra outputs that need to be added to the output manifest of the
-    *                             called job; ignored if useManifests=false
-    * @param executableLink the subjob executable
-    * @param callName the (unencoded) call name to use to prefix the subjob outputs
-    * @return serialized subjob inputs
+  /** Prepares the inputs for a subjob. If using manifests, creates a manifest with the same output
+    * ID as the current job.
+    * @param inputs
+    *   raw subjob inputs
+    * @param extraManifestOutputs
+    *   extra outputs that need to be added to the output manifest of the called job; ignored if
+    *   useManifests=false
+    * @param executableLink
+    *   the subjob executable
+    * @param callName
+    *   the (unencoded) call name to use to prefix the subjob outputs
+    * @return
+    *   serialized subjob inputs
     */
   def prepareSubjobInputs(inputs: Map[DxName, (Type, Value)],
                           extraManifestOutputs: Option[Map[DxName, (Type, Value)]] = None,
                           executableLink: ExecutableLink,
                           callName: Option[String] = None,
-                          nameDetail: Option[String] = None): Map[DxName, JsValue] = {
+                          nameDetail: Option[String] = None
+  ): Map[DxName, JsValue] = {
     val inputsJs = outputSerializer.createFieldsFromMap(inputs)
     // Check that we have all the compulsory arguments.
     // Note that we don't have the information here to tell difference between optional and non-
@@ -600,8 +605,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
       logger.warning(s"Missing argument ${argName} to call ${executableLink.name}", force = true)
     }
     if (useManifests) {
-      val manifestValuesJs = JsObject(inputsJs.map {
-        case (dxName, jsv) => dxName.decoded -> jsv
+      val manifestValuesJs = JsObject(inputsJs.map { case (dxName, jsv) =>
+        dxName.decoded -> jsv
       })
       val manifestJsStr = manifestValuesJs.compactPrint
       val manifestInputJs = if (manifestJsStr.length <= MaxManifestJsLength) {
@@ -623,8 +628,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
           Some(Constants.OutputId -> rawJsInputs(Constants.OutputId)),
           extraManifestOutputs.map { extraOutputs =>
             Constants.ExtraOutputs -> JsObject(
-                outputSerializer.createFieldsFromMap(extraOutputs).map {
-                  case (dxName, jsv) => dxName.decoded -> jsv
+                outputSerializer.createFieldsFromMap(extraOutputs).map { case (dxName, jsv) =>
+                  dxName.decoded -> jsv
                 }
             )
           },
@@ -666,7 +671,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
 
   private def validateOutput(dxName: DxName,
                              actualType: Type,
-                             value: Option[Value] = None): Type = {
+                             value: Option[Value] = None
+  ): Type = {
     outputSpec.get(dxName.encoded) match {
       case Some(expectedType) if outputTypesEqual(expectedType, actualType) =>
         actualType
@@ -705,8 +711,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
     // If we are using manifests, then the outputSpec won't match the task outputs.
     // Otherwise, if we have access to the outputSpec, use it to validate the outputs.
     if (!useManifests) {
-      outputs.foreach {
-        case (name, (actualType, value)) => validateOutput(name, actualType, Some(value))
+      outputs.foreach { case (name, (actualType, value)) =>
+        validateOutput(name, actualType, Some(value))
       }
     }
     // write outputs, ignore null values - these could occur for optional
@@ -722,7 +728,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
   }
 
   def createOutputLinks(outputs: Map[DxName, (Type, Value)],
-                        validate: Boolean = true): Map[DxName, ParameterLink] = {
+                        validate: Boolean = true
+  ): Map[DxName, ParameterLink] = {
     outputs.collect {
       case (name, (actualType, value)) if value != VNull =>
         val validatedType = if (validate) {
@@ -736,8 +743,8 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
 
   def writeOutputLinks(outputs: Map[DxName, ParameterLink]): Unit = {
     val serializedLinks = outputs
-      .map {
-        case (name, link) => outputSerializer.createFieldsFromLink(link, name)
+      .map { case (name, link) =>
+        outputSerializer.createFieldsFromLink(link, name)
       }
       .flatten
       .toMap
@@ -747,33 +754,34 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
   def createExecutionOutputLinks(execution: DxExecution,
                                  irOutputFields: Map[DxName, Type],
                                  prefix: Option[String] = None,
-                                 validate: Boolean = false): Map[DxName, ParameterLink] = {
+                                 validate: Boolean = false
+  ): Map[DxName, ParameterLink] = {
     if (useManifests) {
       Map(
           Constants.OutputManifest -> ParameterLinkExec.create(execution,
                                                                Constants.OutputManifest,
-                                                               Type.TFile)
+                                                               Type.TFile
+          )
       )
     } else {
-      irOutputFields.map {
-        case (fieldDxName, actualType) =>
-          val fqn = prefix
-            .map(fieldDxName.pushDecodedNamespace)
-            .getOrElse(fieldDxName)
-          val validatedType = if (validate) {
-            validateOutput(fieldDxName, actualType)
-          } else {
-            actualType
-          }
-          fqn -> ParameterLinkExec.create(execution, fieldDxName, validatedType)
+      irOutputFields.map { case (fieldDxName, actualType) =>
+        val fqn = prefix
+          .map(fieldDxName.pushDecodedNamespace)
+          .getOrElse(fieldDxName)
+        val validatedType = if (validate) {
+          validateOutput(fieldDxName, actualType)
+        } else {
+          actualType
+        }
+        fqn -> ParameterLinkExec.create(execution, fieldDxName, validatedType)
       }
     }
   }
 
   def writeExecutionOutputLinks(execution: DxExecution, irOutputFields: Map[DxName, Type]): Unit = {
     val serializedLinks = createExecutionOutputLinks(execution, irOutputFields)
-      .flatMap {
-        case (name, link) => outputSerializer.createFieldsFromLink(link, name)
+      .flatMap { case (name, link) =>
+        outputSerializer.createFieldsFromLink(link, name)
       }
       .filter {
         case (_, null | JsNull) => false
@@ -782,23 +790,19 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
     writeJsOutputs(serializedLinks, skipExtraManifestOutputs = true)
   }
 
-  /**
-    * The parent analysis of the current job.
+  /** The parent analysis of the current job.
     */
   def analysis: Option[DxAnalysis]
 
-  /**
-    * The parent job of the current job.
+  /** The parent job of the current job.
     */
   def parentJob: Option[DxJob]
 
-  /**
-    * The current instance type.
+  /** The current instance type.
     */
   def instanceType: Option[String]
 
-  /**
-    * The job output folder.
+  /** The job output folder.
     */
   def folder: String
 
@@ -953,8 +957,8 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths,
                          waitOnUpload: Boolean,
                          override val dxNameFactory: DxNameFactory,
                          override val dxApi: DxApi = DxApi.get,
-                         override val logger: Logger = Logger.get)
-    extends JobMeta(workerPaths, dxNameFactory, dxApi, logger) {
+                         override val logger: Logger = Logger.get
+) extends JobMeta(workerPaths, dxNameFactory, dxApi, logger) {
   lazy val project: DxProject =
     dxApi.currentProject.getOrElse(throw new Exception("no current project"))
 
@@ -972,14 +976,16 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths,
   override def runJobScriptFunction(name: String,
                                     successCodes: Option[Set[Int]] = Some(Set(0)),
                                     truncateLogs: Boolean = true,
-                                    forwardStd: Boolean = false): Unit = {
+                                    forwardStd: Boolean = false
+  ): Unit = {
     val command = s"bash -c 'source ${codeFile} && ${name}'"
     logger.trace(s"Running job script function ${name}")
     if (forwardStd) {
       val (rc, _, _) = SysUtils.runCommand(command,
                                            exceptionOnFailure = false,
                                            stdoutMode = StdMode.Forward,
-                                           stderrMode = StdMode.Forward)
+                                           stderrMode = StdMode.Forward
+      )
       if (!successCodes.forall(_.contains(rc))) {
         throw new Exception(s"job script function ${name} exited with permanent fail code ${rc}")
       }
@@ -1011,8 +1017,8 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths,
   lazy override val rawJsInputs: Map[DxName, JsValue] = {
     if (Files.exists(inputPath)) {
       logger.trace(s"Loading raw JSON input from ${inputPath}")
-      JsUtils.getFields(JsUtils.jsFromFile(inputPath)).map {
-        case (name, jsv) => dxNameFactory.fromEncodedName(name) -> jsv
+      JsUtils.getFields(JsUtils.jsFromFile(inputPath)).map { case (name, jsv) =>
+        dxNameFactory.fromEncodedName(name) -> jsv
       }
     } else {
       logger.warning(s"input meta-file ${inputPath} does not exist")
@@ -1025,10 +1031,11 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths,
   }
 
   def writeRawJsOutputs(outputJs: Map[DxName, JsValue]): Unit = {
-    JsUtils.jsToFile(JsObject(outputJs.map {
-                       case (dxName, jsv) => dxName.encoded -> jsv
+    JsUtils.jsToFile(JsObject(outputJs.map { case (dxName, jsv) =>
+                       dxName.encoded -> jsv
                      }),
-                     outputPath)
+                     outputPath
+    )
   }
 
   private lazy val jobInfo: Map[String, JsValue] = {

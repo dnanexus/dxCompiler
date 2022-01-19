@@ -47,8 +47,8 @@ class DxfuseManifestTest extends AnyFlatSpec with Matchers {
     val describedFiles = dxApi.describeFilesBulk(resolvedFiles.toVector)
     val filesInManifest: Map[DxFile, Path] = uris
       .zip(describedFiles)
-      .map {
-        case (dxUri, dxFile: DxFile) => dxFile -> fileDir(dxUri)
+      .map { case (dxUri, dxFile: DxFile) =>
+        dxFile -> fileDir(dxUri)
       }
       .toMap
 

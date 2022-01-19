@@ -46,27 +46,27 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
   // Create an availble instance list based on a hard coded list
   private lazy val testDb: InstanceTypeDB = {
     val allInstances: Map[String, JsValue] = instanceList.parseJson.asJsObject.fields
-    val db = allInstances.map {
-      case (name, v) =>
-        val fields: Map[String, JsValue] = v.asJsObject.fields
-        val traits = fields("traits").asJsObject.fields
-        val minMemoryMB = JsUtils.getInt(traits, "totalminMemoryMB")
-        val diskGB = JsUtils.getInt(traits, "ephemeralStorageGB")
-        val cpu = JsUtils.getInt(traits, "numCores")
-        val priceRank = JsUtils.getInt(traits, "rank")
-        val diskType = name.toLowerCase match {
-          case s if s.contains("_ssd") => Some(DiskType.SSD)
-          case s if s.contains("_hdd") => Some(DiskType.HDD)
-          case _                       => None
-        }
-        name -> DxInstanceType(name,
-                               minMemoryMB,
-                               diskGB,
-                               cpu,
-                               gpu = false,
-                               Vector(Constants.DefaultExecutionEnvironment),
-                               diskType,
-                               Some(priceRank))
+    val db = allInstances.map { case (name, v) =>
+      val fields: Map[String, JsValue] = v.asJsObject.fields
+      val traits = fields("traits").asJsObject.fields
+      val minMemoryMB = JsUtils.getInt(traits, "totalminMemoryMB")
+      val diskGB = JsUtils.getInt(traits, "ephemeralStorageGB")
+      val cpu = JsUtils.getInt(traits, "numCores")
+      val priceRank = JsUtils.getInt(traits, "rank")
+      val diskType = name.toLowerCase match {
+        case s if s.contains("_ssd") => Some(DiskType.SSD)
+        case s if s.contains("_hdd") => Some(DiskType.HDD)
+        case _                       => None
+      }
+      name -> DxInstanceType(name,
+                             minMemoryMB,
+                             diskGB,
+                             cpu,
+                             gpu = false,
+                             Vector(Constants.DefaultExecutionEnvironment),
+                             diskType,
+                             Some(priceRank)
+      )
     }
     InstanceTypeDB(db)
   }
@@ -76,13 +76,15 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
          Some(WdlVersion.V1),
          Vector.empty,
          FileSourceResolver.get,
-         Logger.get)
+         Logger.get
+    )
 
   private def createRuntime(dxInstanceType: Option[String],
                             memory: Option[String],
                             disks: Option[String],
                             cpu: Option[String],
-                            gpu: Option[Boolean]): Runtime = {
+                            gpu: Option[Boolean]
+  ): Runtime = {
     def makeString(s: String): TAT.Expr =
       TAT.ValueString(s, WdlTypes.T_String, Quoting.Double)(SourceLocation.empty)
     val rt = SeqMap(
@@ -91,9 +93,10 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
         WdlRuntime.DisksKey -> disks.map(makeString),
         WdlRuntime.CpuKey -> cpu.map(makeString),
         WdlRuntime.GpuKey -> gpu.map(b =>
-          TAT.ValueBoolean(b, WdlTypes.T_Boolean)(SourceLocation.empty))
-    ).collect {
-      case (key, Some(value)) => key -> value
+          TAT.ValueBoolean(b, WdlTypes.T_Boolean)(SourceLocation.empty)
+        )
+    ).collect { case (key, Some(value)) =>
+      key -> value
     }
     Runtime(
         WdlVersion.V1,
@@ -133,7 +136,8 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
                         Some("3 GB"),
                         Some("local-disk 10 HDD"),
                         Some("1"),
-                        None).parseInstanceType
+                        None
+          ).parseInstanceType
       )
       .name should equal("mem1_ssd1_x2")
     testDb
@@ -142,7 +146,8 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
                         Some("37 GB"),
                         Some("local-disk 10 HDD"),
                         Some("6"),
-                        None).parseInstanceType
+                        None
+          ).parseInstanceType
       )
       .name should equal("mem3_ssd1_x8")
     testDb
@@ -151,7 +156,8 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
                         Some("2 GB"),
                         Some("local-disk 100 HDD"),
                         None,
-                        None).parseInstanceType
+                        None
+          ).parseInstanceType
       )
       .name should equal("mem1_ssd1_x8")
     testDb
@@ -160,7 +166,8 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
                         Some("2.1GB"),
                         Some("local-disk 100 HDD"),
                         None,
-                        None).parseInstanceType
+                        None
+          ).parseInstanceType
       )
       .name should equal("mem1_ssd1_x8")
 
@@ -176,7 +183,8 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
                         Some("235 GB"),
                         Some("local-disk 550 HDD"),
                         Some("32"),
-                        None).parseInstanceType
+                        None
+          ).parseInstanceType
       )
       .name should equal("mem3_ssd1_x32")
     testDb
@@ -228,7 +236,8 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
       InstanceTypeRequest(minMemoryMB = Some(230),
                           minDiskGB = Some(1),
                           minCpu = Some(1),
-                          os = Some(Constants.DefaultExecutionEnvironment))
+                          os = Some(Constants.DefaultExecutionEnvironment)
+      )
 
     createRuntime(None, Some("230GB"), None, None, None).parseInstanceType shouldBe
       InstanceTypeRequest(
@@ -244,7 +253,8 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
       InstanceTypeRequest(minMemoryMB = Some(230 * 1024),
                           minDiskGB = Some(1),
                           minCpu = Some(1),
-                          os = Some(Constants.DefaultExecutionEnvironment))
+                          os = Some(Constants.DefaultExecutionEnvironment)
+      )
 
     createRuntime(None, Some("1000 TB"), None, None, None).parseInstanceType shouldBe
       InstanceTypeRequest(
@@ -259,7 +269,8 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
       InstanceTypeRequest(minMemoryMB = Some(1000L * 1024L * 1024L),
                           minDiskGB = Some(1),
                           minCpu = Some(1),
-                          os = Some(Constants.DefaultExecutionEnvironment))
+                          os = Some(Constants.DefaultExecutionEnvironment)
+      )
 
     assertThrows[Exception] {
       createRuntime(None, Some("230 44 34 GB"), None, None, None).parseInstanceType
@@ -303,7 +314,8 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
                   None,
                   None,
                   Some("1.2"),
-                  None).parseInstanceType shouldBe InstanceTypeRequest(
+                  None
+    ).parseInstanceType shouldBe InstanceTypeRequest(
         minMemoryMB = Some(2048),
         minDiskGB = Some(1),
         minCpu = Some(2),
@@ -320,14 +332,16 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
                           minDiskGB = Some(1),
                           minCpu = Some(1),
                           gpu = Some(true),
-                          os = Some(Constants.DefaultExecutionEnvironment))
+                          os = Some(Constants.DefaultExecutionEnvironment)
+      )
 
     createRuntime(None, None, None, None, Some(false)).parseInstanceType shouldBe
       InstanceTypeRequest(minMemoryMB = Some(2048),
                           minDiskGB = Some(1),
                           minCpu = Some(1),
                           gpu = Some(false),
-                          os = Some(Constants.DefaultExecutionEnvironment))
+                          os = Some(Constants.DefaultExecutionEnvironment)
+      )
   }
 
   // TODO: we have requested that v2 instance types be enabled for the staging org -

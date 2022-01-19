@@ -149,7 +149,8 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
                                      Some(DxAccessLevel.Contribute),
                                      Some(DxAccessLevel.View),
                                      Some(true),
-                                     None)
+                                     None
+                            )
                         ),
                         Some(DxExecPolicy(Some(Map("*" -> 3)), None)),
                         None,
@@ -520,7 +521,8 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
                               Some(DxTimeout(None, Some(12), None))
                           )
                       ),
-                      None)
+                      None
+            )
         )
     )
     extras.perTaskDxAttributes should be(
@@ -607,7 +609,8 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
                               Some(DxTimeout(None, Some(12), None))
                           )
                       ),
-                      None)
+                      None
+            )
         )
     )
 
@@ -625,7 +628,8 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
                                               "GATK-4.0.1.2",
                                               "BSD-3-Clause",
                                               "https://github.com/broadinstitute/LICENSE.TXT",
-                                              "Broad Institute")
+                                              "Broad Institute"
+                                    )
                                 )
                             )
                         )
@@ -701,7 +705,8 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
                                               "GATK-4.0.1.2",
                                               "BSD-3-Clause",
                                               "https://github.com/broadinstitute/LICENSE.TXT",
-                                              "Broad Institute")
+                                              "Broad Institute"
+                                    )
                                 )
                             )
                         )
@@ -729,7 +734,8 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
             DockerRegistry("foo.bar.dnanexus.com",
                            "The Bandersnatch has gotten loose",
                            Some("perkins"),
-                           None)
+                           None
+            )
         )
     )
   }
@@ -867,7 +873,8 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
                                   "GATK-4.0.1.2",
                                   "BSD-3-Clause",
                                   "https://github.com/broadinstitute/LICENSE.TXT",
-                                  "Broad Institute")
+                                  "Broad Institute"
+                        )
                     )
                 )
             )

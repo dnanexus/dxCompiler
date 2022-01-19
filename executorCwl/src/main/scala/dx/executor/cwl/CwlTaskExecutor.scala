@@ -45,7 +45,8 @@ object CwlTaskExecutor {
 
   def create(jobMeta: JobMeta,
              streamFiles: StreamFiles.StreamFiles = StreamFiles.PerFile,
-             checkInstanceType: Boolean): CwlTaskExecutor = {
+             checkInstanceType: Boolean
+  ): CwlTaskExecutor = {
     val toolName = jobMeta.getExecutableAttribute("name") match {
       case Some(JsString(name)) => name
       case _                    => throw new Exception("missing executable name")
@@ -81,8 +82,8 @@ object CwlTaskExecutor {
 case class CwlTaskExecutor(tool: Process,
                            jobMeta: JobMeta,
                            streamFiles: StreamFiles.StreamFiles,
-                           checkInstanceType: Boolean)
-    extends TaskExecutor(jobMeta, streamFiles, checkInstanceType) {
+                           checkInstanceType: Boolean
+) extends TaskExecutor(jobMeta, streamFiles, checkInstanceType) {
 
   private val dxApi = jobMeta.dxApi
   private val logger = jobMeta.logger
@@ -150,9 +151,10 @@ case class CwlTaskExecutor(tool: Process,
             CwlUtils.fromIRValue(irValue, param.cwlType, name.decoded, isInput = true)
           case None if param.default.isDefined =>
             val ctx = CwlUtils.createEvaluatorContext(runtime,
-                                                      env.map {
-                                                        case (dxName, tv) => dxName.decoded -> tv
-                                                      })
+                                                      env.map { case (dxName, tv) =>
+                                                        dxName.decoded -> tv
+                                                      }
+            )
             evaluator.evaluate(param.default.get, param.cwlType, ctx)
           case None if CwlOptional.isOptional(param.cwlType) =>
             (param.cwlType, NullValue)
@@ -206,10 +208,11 @@ case class CwlTaskExecutor(tool: Process,
     val cwlEvaluator = Evaluator.create(requirements, hints)
     val cwlInputs = CwlUtils.fromIR(inputs, typeAliases, isInput = true)
     val ctx = CwlUtils.createEvaluatorContext(runtime)
-    val env = cwlEvaluator.evaluateMap(cwlInputs.map {
-                                         case (dxName, tv) => dxName.decoded -> tv
+    val env = cwlEvaluator.evaluateMap(cwlInputs.map { case (dxName, tv) =>
+                                         dxName.decoded -> tv
                                        },
-                                       ctx)
+                                       ctx
+    )
     val reqEvaluator = RequirementEvaluator(
         requirements,
         hints,
@@ -228,8 +231,8 @@ case class CwlTaskExecutor(tool: Process,
   }
 
   override protected def getSchemas: Map[String, Type.TSchema] = {
-    typeAliases.collect {
-      case (name, record: CwlRecord) => name -> CwlUtils.toIRSchema(record)
+    typeAliases.collect { case (name, record: CwlRecord) =>
+      name -> CwlUtils.toIRSchema(record)
     }
   }
 
@@ -452,15 +455,15 @@ case class CwlTaskExecutor(tool: Process,
     val localizedOutputs = if (Files.exists(stdoutFile)) {
       val allOutputs: Map[DxName, JsValue] = JsUtils.jsFromFile(stdoutFile) match {
         case JsObject(outputs) =>
-          outputs.map {
-            case (name, jsv) => CwlDxName.fromDecodedName(name) -> jsv
+          outputs.map { case (name, jsv) =>
+            CwlDxName.fromDecodedName(name) -> jsv
           }
         case JsNull => Map.empty[DxName, JsValue]
         case other  => throw new Exception(s"unexpected cwltool outputs ${other}")
       }
       if (logger.isVerbose) {
-        trace(s"cwltool outputs:\n${JsObject(allOutputs.map {
-          case (dxName, jsv) => dxName.decoded -> jsv
+        trace(s"cwltool outputs:\n${JsObject(allOutputs.map { case (dxName, jsv) =>
+          dxName.decoded -> jsv
         }).prettyPrint}")
       }
       val cwlOutputs = outputParams.map {
@@ -479,8 +482,8 @@ case class CwlTaskExecutor(tool: Process,
   }
 
   override protected def outputTypes: Map[DxName, Type] = {
-    outputParams.map {
-      case (name, param) => name -> CwlUtils.toIRType(param.cwlType)
+    outputParams.map { case (name, param) =>
+      name -> CwlUtils.toIRType(param.cwlType)
     }
   }
 }

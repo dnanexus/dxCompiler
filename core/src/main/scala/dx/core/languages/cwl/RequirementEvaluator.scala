@@ -22,17 +22,20 @@ import dx.util.FileSourceResolver
 
 import scala.reflect.ClassTag
 
-/**
-  * Evaluates requirements and hints.
-  * @param requirements Vector of Requirements in increasing priority order.
-  *                     This means if two instances of the same requirement
-  *                     are in the list, the latter takes presidence.
-  * @param hints Vector of Hints in increasing priority order
-  * @param env values to use for evaluation
-  * @param workerPaths DxWorkerPaths
-  * @param defaultRuntimeAttrs default values to use for attributes that
-  *                            are not given as Requirements or Hints.
-  * @param dxApi DxApi
+/** Evaluates requirements and hints.
+  * @param requirements
+  *   Vector of Requirements in increasing priority order. This means if two instances of the same
+  *   requirement are in the list, the latter takes presidence.
+  * @param hints
+  *   Vector of Hints in increasing priority order
+  * @param env
+  *   values to use for evaluation
+  * @param workerPaths
+  *   DxWorkerPaths
+  * @param defaultRuntimeAttrs
+  *   default values to use for attributes that are not given as Requirements or Hints.
+  * @param dxApi
+  *   DxApi
   */
 case class RequirementEvaluator(requirements: Vector[Requirement],
                                 hints: Vector[Hint],
@@ -41,7 +44,8 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
                                 inputParameters: Map[String, InputParameter] = Map.empty,
                                 defaultRuntimeAttrs: Map[String, (CwlType, CwlValue)] = Map.empty,
                                 fileResolver: FileSourceResolver = FileSourceResolver.get,
-                                dxApi: DxApi = DxApi.get) {
+                                dxApi: DxApi = DxApi.get
+) {
   lazy val evaluator: Evaluator = Evaluator.create(requirements, hints)
   private lazy val runtime: Runtime = CwlUtils.createRuntime(workerPaths)
   private lazy val evaluatorContext: EvaluatorContext =
@@ -49,13 +53,14 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
                                     env,
                                     inputParameters = inputParameters,
                                     inputDir = workerPaths.getInputFilesDir().asJavaPath,
-                                    fileResolver = fileResolver)
+                                    fileResolver = fileResolver
+    )
 
-  /**
-    * Returns the last (i.e. highest priority) Requirement or Hint matching
-    * the given filter.
-    * @param filter the filter function to apply
-    * @return Option[(hint, optional)]
+  /** Returns the last (i.e. highest priority) Requirement or Hint matching the given filter.
+    * @param filter
+    *   the filter function to apply
+    * @return
+    *   Option[(hint, optional)]
     */
   def getHint(filter: Hint => Boolean): Option[(Hint, Boolean)] = {
     requirements.findLast(filter).map((_, false)).orElse(hints.findLast(filter).map((_, true)))
@@ -71,10 +76,11 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
     }
   }
 
-  /**
-    * Returns all Requirements and Hints matching the given filter.
-    * @param filter the filter function to apply
-    * @return Vector of hints
+  /** Returns all Requirements and Hints matching the given filter.
+    * @param filter
+    *   the filter function to apply
+    * @return
+    *   Vector of hints
     */
   def getHints(filter: Hint => Boolean): Vector[Hint] = {
     requirements.filter(filter) ++ hints.filter(filter)
@@ -84,8 +90,8 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
     getHints({
       case _: T => true
       case _    => false
-    }).map {
-      case hint: T => hint
+    }).map { case hint: T =>
+      hint
     }
   }
 
@@ -121,7 +127,8 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
 
   private def evaluateNumeric(value: CwlValue,
                               roundingMode: BigDecimal.RoundingMode.RoundingMode,
-                              scale: Option[Long] = None): Long = {
+                              scale: Option[Long] = None
+  ): Long = {
     (evaluator.evaluate(value, CwlNumericTypes, evaluatorContext)._2, scale) match {
       case (num: NumericValue, Some(d)) =>
         (num.decimalValue / d).setScale(0, roundingMode).toLongExact
@@ -135,7 +142,8 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
   def parseInstanceType: InstanceTypeRequest = {
     def getDiskGB(tmpdir: Option[CwlValue],
                   outdir: Option[CwlValue],
-                  roundingMode: BigDecimal.RoundingMode.RoundingMode): Option[Long] = {
+                  roundingMode: BigDecimal.RoundingMode.RoundingMode
+    ): Option[Long] = {
       val tmpGB = tmpdir.map(evaluateNumeric(_, roundingMode, MiBtoGiB))
       val outGB = outdir.map(evaluateNumeric(_, roundingMode, MiBtoGiB))
       if (tmpGB.isDefined || outGB.isDefined) {
@@ -229,7 +237,8 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
         AccessRequirement(network = if (allow) Vector("*") else Vector.empty)
       case (ToolTimeLimitRequirement(timeLimit: NumericValue), _) =>
         TimeoutRequirement(minutes =
-          Some((timeLimit.decimalValue / 60).setScale(0, MaxRoundingMode).toLongExact))
+          Some((timeLimit.decimalValue / 60).setScale(0, MaxRoundingMode).toLongExact)
+        )
       case (_: SoftwareRequirement, true) =>
         throw new Exception("SoftwareRequirement is not supported")
       case (_: InplaceUpdateRequirement, true) =>
@@ -241,12 +250,11 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
     getHints {
       case _: InitialWorkDirRequirement => true
       case _                            => false
-    }.flatMap {
-      case InitialWorkDirRequirement(listing) =>
-        listing.collect {
-          case ValueInitialWorkDirEntry(p: PathValue)     => p
-          case DirInitialWorkDirEntry(p: PathValue, _, _) => p
-        }
+    }.flatMap { case InitialWorkDirRequirement(listing) =>
+      listing.collect {
+        case ValueInitialWorkDirEntry(p: PathValue)     => p
+        case DirInitialWorkDirEntry(p: PathValue, _, _) => p
+      }
     }
   }
 }

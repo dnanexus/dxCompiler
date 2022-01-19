@@ -32,24 +32,39 @@ object Compiler {
   val RegionToProjectFile = "dxCompiler.regionToProject"
 }
 
-/**
-  * Compile IR to native applets and workflows.
-  * @param extras extra configuration
-  * @param runtimePathConfig path configuration on the runtime environment
-  * @param runtimeTraceLevel trace level to use at runtime
-  * @param includeAsset whether to package the runtime asset with generated applications
-  * @param archive whether to archive existing applications
-  * @param force whether to delete existing executables
-  * @param leaveWorkflowsOpen whether to leave generated workflows in the open state
-  * @param locked whether to generate locked workflows
-  * @param projectWideReuse whether to allow project-wide reuse of applications
-  * @param streamFiles which files to stream vs download
-  * @param waitOnUpload whether to wait for each file upload to complete
-  * @param useManifests whether to use manifest files for all application inputs and outputs
-  * @param complexPathValues whether File and Directory values should be treated as objects
-  * @param fileResolver the FileSourceResolver
-  * @param dxApi the DxApi
-  * @param logger the Logger
+/** Compile IR to native applets and workflows.
+  * @param extras
+  *   extra configuration
+  * @param runtimePathConfig
+  *   path configuration on the runtime environment
+  * @param runtimeTraceLevel
+  *   trace level to use at runtime
+  * @param includeAsset
+  *   whether to package the runtime asset with generated applications
+  * @param archive
+  *   whether to archive existing applications
+  * @param force
+  *   whether to delete existing executables
+  * @param leaveWorkflowsOpen
+  *   whether to leave generated workflows in the open state
+  * @param locked
+  *   whether to generate locked workflows
+  * @param projectWideReuse
+  *   whether to allow project-wide reuse of applications
+  * @param streamFiles
+  *   which files to stream vs download
+  * @param waitOnUpload
+  *   whether to wait for each file upload to complete
+  * @param useManifests
+  *   whether to use manifest files for all application inputs and outputs
+  * @param complexPathValues
+  *   whether File and Directory values should be treated as objects
+  * @param fileResolver
+  *   the FileSourceResolver
+  * @param dxApi
+  *   the DxApi
+  * @param logger
+  *   the Logger
   */
 case class Compiler(extras: Option[Extras],
                     runtimePathConfig: DxWorkerPaths,
@@ -71,7 +86,8 @@ case class Compiler(extras: Option[Extras],
                     defaultInstanceType: Option[String],
                     fileResolver: FileSourceResolver = FileSourceResolver.get,
                     dxApi: DxApi = DxApi.get,
-                    logger: Logger = Logger.get) {
+                    logger: Logger = Logger.get
+) {
   // logger for extra trace info
   private val logger2: Logger = logger.withTraceIfContainsKey("Native")
 
@@ -161,7 +177,8 @@ case class Compiler(extras: Option[Extras],
 
     // Add a checksum to a request
     private def checksumRequest(name: String,
-                                desc: Map[String, JsValue]): (Map[String, JsValue], String) = {
+                                desc: Map[String, JsValue]
+    ): (Map[String, JsValue], String) = {
       logger2.trace(
           s"""|${name} -> checksum request
               |fields = ${JsObject(desc).prettyPrint}
@@ -204,14 +221,14 @@ case class Compiler(extras: Option[Extras],
       ExecutableLink(irCall.name, callInputs, callOutputs, dxObj)
     }
 
-    /**
-      * Get an existing application if one exists with the given name and matching the
-      * given digest.
-      * @param name the application name
-      * @param digest the application digest
-      * @return the existing executable, or None if the executable does not exist, has
-      *         change, or a there are multiple executables that cannot be resolved
-      *         unambiguously to a single executable.
+    /** Get an existing application if one exists with the given name and matching the given digest.
+      * @param name
+      *   the application name
+      * @param digest
+      *   the application digest
+      * @return
+      *   the existing executable, or None if the executable does not exist, has change, or a there
+      *   are multiple executables that cannot be resolved unambiguously to a single executable.
       */
     private def getExistingExecutable(name: String, digest: String): Option[DxDataObject] = {
       // return the application if it already exists in the project
@@ -297,11 +314,12 @@ case class Compiler(extras: Option[Extras],
       }
     }
 
-    /**
-      * Builds an applet if it doesn't exist or has changed since the last
-      * compilation, otherwise returns the existing applet.
-      * @param applet the applet IR
-      * @param dependencyDict previously compiled executables that can be linked
+    /** Builds an applet if it doesn't exist or has changed since the last compilation, otherwise
+      * returns the existing applet.
+      * @param applet
+      *   the applet IR
+      * @param dependencyDict
+      *   previously compiled executables that can be linked
       * @return
       */
     private def maybeBuildApplet(
@@ -349,7 +367,8 @@ case class Compiler(extras: Option[Extras],
       if (logger2.traceLevel >= TraceLevel.Verbose) {
         val requestFile = s"${applet.name}_req.json"
         FileUtils.writeFileContent(appCompileDirPath.resolve(requestFile),
-                                   JsObject(appletApiRequest).prettyPrint)
+                                   JsObject(appletApiRequest).prettyPrint
+        )
       }
       // fetch existing applet or build a new one
       val dxApplet = getExistingExecutable(applet.name, digest) match {
@@ -369,11 +388,12 @@ case class Compiler(extras: Option[Extras],
       (dxApplet, dependencies.values.toVector)
     }
 
-    /**
-      * Builds a workflow if it doesn't exist or has changed since the last
-      * compilation, otherwise returns the existing workflow.
-      * @param workflow the workflow to compile
-      * @param dependencyDict previously compiled executables that can be linked
+    /** Builds a workflow if it doesn't exist or has changed since the last compilation, otherwise
+      * returns the existing workflow.
+      * @param workflow
+      *   the workflow to compile
+      * @param dependencyDict
+      *   previously compiled executables that can be linked
       * @return
       */
     private def maybeBuildWorkflow(
@@ -390,7 +410,8 @@ case class Compiler(extras: Option[Extras],
                          fileResolver,
                          instanceTypeSelection,
                          dxApi,
-                         logger2)
+                         logger2
+        )
       // Calculate a checksum of the inputs that went into the making of the applet.
       val (workflowApiRequest, execTree) = workflowCompiler.apply(workflow, dependencyDict)
       val (requestWithChecksum, digest) = checksumRequest(workflow.name, workflowApiRequest)
@@ -437,7 +458,8 @@ case class Compiler(extras: Option[Extras],
                                           Some(id),
                                           _,
                                           _,
-                                          _) =>
+                                          _
+                    ) =>
                   // native app(let)s do not depend on other data-objects
                   CompiledExecutable(application, dxApi.executable(id))
                 case ExecutableKindNative(ExecutableType.Applet, _, _, project, Some(path)) =>
@@ -472,11 +494,13 @@ case class Compiler(extras: Option[Extras],
     }
   }
 
-  /**
-    * Compile the IR bundle to a native applet or workflow.
-    * @param bundle the IR bundle
-    * @param project the destination project
-    * @param folder the destination folder
+  /** Compile the IR bundle to a native applet or workflow.
+    * @param bundle
+    *   the IR bundle
+    * @param project
+    *   the destination project
+    * @param folder
+    *   the destination folder
     */
   def apply(bundle: Bundle, project: DxProject, folder: String): CompilerResults = {
     BundleCompiler(bundle, project, folder).apply

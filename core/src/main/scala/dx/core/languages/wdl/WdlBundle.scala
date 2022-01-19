@@ -13,23 +13,23 @@ case class WdlBundle(version: WdlVersion,
                      workflows: Map[String, TAT.Workflow],
                      callableNames: Set[String],
                      sources: Map[String, TAT.Document],
-                     adjunctFiles: Map[String, Vector[Adjuncts.AdjunctFile]]) {
+                     adjunctFiles: Map[String, Vector[Adjuncts.AdjunctFile]]
+) {
 
   def sortByDependencies(logger: Logger = Logger.get): Vector[TAT.Callable] = {
     // We only need to figure out the dependency order of workflows. Tasks don't depend
     // on anything else - they are at the bottom of the dependency tree.
-    val wfDeps: Map[String, Set[String]] = workflows.map {
-      case (name, wf) =>
-        WdlUtils.getUnqualifiedName(name) -> WdlUtils
-          .deepFindCalls(wf.body)
-          .map { call: TAT.Call =>
-            // The name is fully qualified, for example, lib.add, lib.concat.
-            // We need the task/workflow itself ("add", "concat"). We are
-            // assuming that the namespace can be flattened; there are
-            // no lib.add and lib2.add.
-            call.unqualifiedName
-          }
-          .toSet
+    val wfDeps: Map[String, Set[String]] = workflows.map { case (name, wf) =>
+      WdlUtils.getUnqualifiedName(name) -> WdlUtils
+        .deepFindCalls(wf.body)
+        .map { call: TAT.Call =>
+          // The name is fully qualified, for example, lib.add, lib.concat.
+          // We need the task/workflow itself ("add", "concat"). We are
+          // assuming that the namespace can be flattened; there are
+          // no lib.add and lib2.add.
+          call.unqualifiedName
+        }
+        .toSet
     }
 
     // Iteratively identify executables for which all dependencies are satisfied -
@@ -81,8 +81,7 @@ case class WdlBundle(version: WdlVersion,
 
 object WdlBundle {
 
-  /**
-    * Check that a variable name is not any dx-reserved names.
+  /** Check that a variable name is not any dx-reserved names.
     */
   private def checkVariableName(variables: Vector[TAT.Variable]): Unit = {
     val invalidNames = variables.map(_.name).filter(_.contains(Constants.ComplexValueKey))
@@ -104,8 +103,8 @@ object WdlBundle {
         }
         checkVariableName(wf.inputs)
         checkVariableName(wf.outputs)
-        val allVars: Vector[TAT.PrivateVariable] = wf.body.collect {
-          case d: TAT.PrivateVariable => d
+        val allVars: Vector[TAT.PrivateVariable] = wf.body.collect { case d: TAT.PrivateVariable =>
+          d
         }
         checkVariableName(allVars)
       case task: TAT.Task =>
@@ -126,10 +125,9 @@ object WdlBundle {
         val sources = Map(fs.toString -> doc)
         (sources, Map.empty[String, Vector[Adjuncts.AdjunctFile]])
     }
-    val tasks: Map[String, TAT.Task] = doc.elements.collect {
-      case x: TAT.Task =>
-        validateVariableNames(x)
-        x.name -> x
+    val tasks: Map[String, TAT.Task] = doc.elements.collect { case x: TAT.Task =>
+      validateVariableNames(x)
+      x.name -> x
     }.toMap
     val workflows = doc.workflow.map { x =>
       validateVariableNames(x)
@@ -146,7 +144,8 @@ object WdlBundle {
               workflows,
               tasks.keySet ++ workflows.keySet,
               sources,
-              adjunctFiles)
+              adjunctFiles
+    )
   }
 
   private def mergeBundleInfo(accu: WdlBundle, from: WdlBundle): WdlBundle = {
@@ -161,19 +160,18 @@ object WdlBundle {
         val bCallable = from.tasks.getOrElse(name, from.workflows(name))
         name -> (aCallable, bCallable)
       }
-      .filter {
-        case (_, (ac, bc)) => ac != bc
+      .filter { case (_, (ac, bc)) =>
+        ac != bc
       }
       .toMap
     if (intersection.nonEmpty) {
-      intersection.foreach {
-        case (name, (ac, bc)) =>
-          Logger.error(s"""|name ${name} appears with two different callable definitions
-                           |1)
-                           |${ac}
-                           |2)
-                           |${bc}
-                           |""".stripMargin)
+      intersection.foreach { case (name, (ac, bc)) =>
+        Logger.error(s"""|name ${name} appears with two different callable definitions
+                         |1)
+                         |${ac}
+                         |2)
+                         |${bc}
+                         |""".stripMargin)
       }
       throw new Exception(
           s"callable(s) ${intersection.keySet} appears multiple times with different definitions"
@@ -195,13 +193,12 @@ object WdlBundle {
   // merge everything into one bundle.
   def create(doc: TAT.Document): WdlBundle = {
     val topLevelInfo = bundleInfoFromDoc(doc)
-    val imports: Vector[TAT.ImportDoc] = doc.elements.collect {
-      case x: TAT.ImportDoc => x
+    val imports: Vector[TAT.ImportDoc] = doc.elements.collect { case x: TAT.ImportDoc =>
+      x
     }
-    imports.foldLeft(topLevelInfo) {
-      case (accu: WdlBundle, imp) =>
-        val flatImportInfo = create(imp.doc)
-        mergeBundleInfo(accu, flatImportInfo)
+    imports.foldLeft(topLevelInfo) { case (accu: WdlBundle, imp) =>
+      val flatImportInfo = create(imp.doc)
+      mergeBundleInfo(accu, flatImportInfo)
     }
   }
 }

@@ -16,18 +16,23 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
                                        wdlOptions: WdlOptions = WdlOptions.default,
                                        fileResolver: FileSourceResolver = FileSourceResolver.get,
                                        dxApi: DxApi = DxApi.get,
-                                       logger: Logger = Logger.get)
-    extends NativeInterfaceGenerator {
+                                       logger: Logger = Logger.get
+) extends NativeInterfaceGenerator {
   private lazy val wdl = VersionSupport(wdlVersion, wdlOptions, fileResolver, dxApi, logger)
 
-  /**
-    * Generate a WDL stub fore a DNAnexus applet.
-    * @param id the app(let) ID
-    * @param name the app(let) name
-    * @param inputSpec the applet inputs
-    * @param outputSpec the applet outputs
-    * @param appVersion the version of this app, if `name` is an app name
-    * @return an AST.Task
+  /** Generate a WDL stub fore a DNAnexus applet.
+    * @param id
+    *   the app(let) ID
+    * @param name
+    *   the app(let) name
+    * @param inputSpec
+    *   the applet inputs
+    * @param outputSpec
+    *   the applet outputs
+    * @param appVersion
+    *   the version of this app, if `name` is an app name
+    * @return
+    *   an AST.Task
     */
   private def createDnanexusStub(
       id: String,
@@ -55,20 +60,19 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
         taskName,
         T_Task(taskName,
                inputSpec
-                 .map {
-                   case (name, wdlType) => name -> (wdlType, false)
+                 .map { case (name, wdlType) =>
+                   name -> (wdlType, false)
                  }
                  .to(SeqMap),
                outputSpec.to(SeqMap),
-               None),
-        inputSpec.map {
-          case (name, wdlType) =>
-            TAT.RequiredInputParameter(name, wdlType)(loc)
+               None
+        ),
+        inputSpec.map { case (name, wdlType) =>
+          TAT.RequiredInputParameter(name, wdlType)(loc)
         }.toVector,
-        outputSpec.map {
-          case (name, wdlType) =>
-            val expr = WdlUtils.getDefaultValueOfType(wdlType)
-            TAT.OutputParameter(name, wdlType, expr)(loc)
+        outputSpec.map { case (name, wdlType) =>
+          val expr = WdlUtils.getDefaultValueOfType(wdlType)
+          TAT.OutputParameter(name, wdlType, expr)(loc)
         }.toVector,
         TAT.CommandSection(Vector.empty)(loc),
         Vector.empty,
@@ -99,7 +103,8 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
                                  argName: String,
                                  ioClass: DxIOClass.Value,
                                  isOptional: Boolean,
-                                 hasDefault: Boolean): Option[WdlTypes.T] = {
+                                 hasDefault: Boolean
+  ): Option[WdlTypes.T] = {
     if (ioClass == DxIOClass.Other) {
       if (isOptional || hasDefault) {
         logger.warning(s"ignoring applet ${appletName} optional non-file object input ${argName}")
@@ -146,7 +151,8 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
                              ioSpec.name,
                              ioSpec.ioClass,
                              ioSpec.optional,
-                             ioSpec.default.isDefined).map(
+                             ioSpec.default.isDefined
+          ).map(
               ioSpec.name -> _
           )
         }.toMap
@@ -156,7 +162,8 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
                              ioSpec.name,
                              ioSpec.ioClass,
                              ioSpec.optional,
-                             ioSpec.default.isDefined).map(
+                             ioSpec.default.isDefined
+          ).map(
               ioSpec.name -> _
           )
         }.toMap
@@ -176,7 +183,8 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
                              dxAppDesc.name,
                              inputSpec,
                              outputSpec,
-                             Some(dxAppDesc.version))
+                             Some(dxAppDesc.version)
+          )
       )
     } catch {
       case e: Throwable =>
@@ -203,7 +211,8 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
                            ioSpec.name,
                            ioSpec.ioClass,
                            ioSpec.optional,
-                           ioSpec.default.isDefined).map(
+                           ioSpec.default.isDefined
+        ).map(
             ioSpec.name -> _
         )
       }.toMap
@@ -213,7 +222,8 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
                            ioSpec.name,
                            ioSpec.ioClass,
                            ioSpec.optional,
-                           ioSpec.default.isDefined).map(
+                           ioSpec.default.isDefined
+        ).map(
             ioSpec.name -> _
         )
       }.toMap
@@ -273,13 +283,15 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
                                                taskDoc.source.toString,
                                                wdlOptions,
                                                fileResolver,
-                                               logger)
+                                               logger
+            )
         )
         Some(task)
       } catch {
         case e: Throwable =>
           logger.warning(s"Unable to construct a WDL interface for applet ${task.name}",
-                         exception = Some(e))
+                         exception = Some(e)
+          )
           None
       }
     }
@@ -288,7 +300,8 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
 
   override def generate(apps: Vector[DxApp],
                         applets: Vector[DxApplet],
-                        headerLines: Vector[String]): Vector[String] = {
+                        headerLines: Vector[String]
+  ): Vector[String] = {
     val appTasks: Vector[TAT.Task] = apps.map(_.describe()).flatMap(appToWdlInterface)
     val appletTasks: Vector[TAT.Task] = applets.map(_.describe()).flatMap(appletToWdlInterface)
     val tasks: Vector[TAT.Task] = appTasks ++ appletTasks
@@ -303,15 +316,16 @@ case class WdlNativeInterfaceGenerator(wdlVersion: WdlVersion,
 
 case class WdlDxNativeInterfaceFactory(fileResolver: FileSourceResolver = FileSourceResolver.get,
                                        dxApi: DxApi = DxApi.get,
-                                       logger: Logger = Logger.get)
-    extends NativeInterfaceGeneratorFactory {
+                                       logger: Logger = Logger.get
+) extends NativeInterfaceGeneratorFactory {
   private def create(wdlVersion: WdlVersion): WdlNativeInterfaceGenerator = {
     wdlVersion match {
       case WdlVersion.V1 =>
         WdlNativeInterfaceGenerator(WdlVersion.V1,
                                     fileResolver = fileResolver,
                                     dxApi = dxApi,
-                                    logger = logger)
+                                    logger = logger
+        )
       case _ =>
         throw new Exception(s"DxNI not supported for WDL version ${wdlVersion}")
     }

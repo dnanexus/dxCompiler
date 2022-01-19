@@ -28,7 +28,8 @@ import dx.util.Logger
 abstract class WorkflowTranslator(wfName: String,
                                   availableDependencies: Map[String, Callable],
                                   reorgAttrs: ReorgSettings,
-                                  logger: Logger) {
+                                  logger: Logger
+) {
   type LinkedVar = (Parameter, StageInput)
 
   protected def isLocked: Boolean
@@ -65,9 +66,8 @@ abstract class WorkflowTranslator(wfName: String,
       if (logger.isVerbose) {
         logger.trace("env:")
         val logger2 = logger.withIncTraceIndent()
-        stageInputs.map {
-          case (name, stageInput) =>
-            logger2.trace(s"$name -> ${stageInput}")
+        stageInputs.map { case (name, stageInput) =>
+          logger2.trace(s"$name -> ${stageInput}")
         }
       }
     }
@@ -76,19 +76,18 @@ abstract class WorkflowTranslator(wfName: String,
       env.getOrElse(key, {
                       log()
                       throw new Exception(s"${key} does not exist in the environment.")
-                    })
+                    }
+      )
     }
 
-    /**
-      * Returns the value associated with a name or any of its "ancestors".
-      * For example, if `dxName` is "A.B.C", then we look up "A.B.C", "A.B",
-      * and "A", in that order, and return the first non-empty result.
-      * @example {{{
-      * env = {"p": Pair(1, 2), "p.right": 2}
-      * env.lookup("p.left") -> Pair(1, 2)
-      * env.lookup("p.right") -> 2
-      * }}}
-      * @param dxName fully-qualified name
+    /** Returns the value associated with a name or any of its "ancestors". For example, if `dxName`
+      * is "A.B.C", then we look up "A.B.C", "A.B", and "A", in that order, and return the first
+      * non-empty result.
+      * @example
+      *   {{{ env = {"p": Pair(1, 2), "p.right": 2} env.lookup("p.left") -> Pair(1, 2)
+      *   env.lookup("p.right") -> 2 }}}
+      * @param dxName
+      *   fully-qualified name
       */
     def lookup(dxName: DxName): Option[(DxName, LinkedVar)] = {
       env.get(dxName).map((dxName, _)).orElse {
@@ -102,8 +101,8 @@ abstract class WorkflowTranslator(wfName: String,
     }
 
     def stageInputs: Map[DxName, StageInput] = {
-      env.map {
-        case (key, (_, stageInput)) => key -> stageInput
+      env.map { case (key, (_, stageInput)) =>
+        key -> stageInput
       }
     }
 
@@ -119,28 +118,32 @@ abstract class WorkflowTranslator(wfName: String,
 
   protected object CallEnv {
     def fromLinkedVars(lvars: Vector[LinkedVar]): CallEnv = {
-      CallEnv(lvars.map {
-        case (parameter, stageInput) => parameter.name -> (parameter, stageInput)
+      CallEnv(lvars.map { case (parameter, stageInput) =>
+        parameter.name -> (parameter, stageInput)
       }.toMap)
     }
   }
 
   def translate: (Workflow, Vector[Callable], Vector[LinkedVar])
 
-  /**
-    * Create a preliminary applet to handle workflow input/outputs. This is
-    * used only in the absence of workflow-level inputs/outputs.
-    * @param wfName the workflow name
-    * @param appletInputs the common applet inputs
-    * @param stageInputs the common stage inputs
-    * @param outputs the outputs
+  /** Create a preliminary applet to handle workflow input/outputs. This is used only in the absence
+    * of workflow-level inputs/outputs.
+    * @param wfName
+    *   the workflow name
+    * @param appletInputs
+    *   the common applet inputs
+    * @param stageInputs
+    *   the common stage inputs
+    * @param outputs
+    *   the outputs
     * @return
     */
   protected def createCommonApplet(wfName: String,
                                    appletInputs: Vector[Parameter],
                                    stageInputs: Vector[StageInput],
                                    outputs: Vector[Parameter],
-                                   blockPath: Vector[Int] = Vector.empty): (Stage, Application) = {
+                                   blockPath: Vector[Int] = Vector.empty
+  ): (Stage, Application) = {
     val applet = Application(
         s"${wfName}_${Constants.CommonStage}",
         appletInputs,
@@ -161,17 +164,18 @@ abstract class WorkflowTranslator(wfName: String,
     (stage, applet)
   }
 
-  /**
-    * Creates an applet to reorganize the output files. We want to
-    * move the intermediate results to a subdirectory.  The applet
-    * needs to process all the workflow outputs, to find the files
-    * that belong to the final results.
-    * @param wfName workflow name
-    * @param wfOutputs workflow outputs
+  /** Creates an applet to reorganize the output files. We want to move the intermediate results to
+    * a subdirectory. The applet needs to process all the workflow outputs, to find the files that
+    * belong to the final results.
+    * @param wfName
+    *   workflow name
+    * @param wfOutputs
+    *   workflow outputs
     * @return
     */
   private def createReorgStage(wfName: String,
-                               wfOutputs: Vector[LinkedVar]): (Stage, Application) = {
+                               wfOutputs: Vector[LinkedVar]
+  ): (Stage, Application) = {
     val applet = Application(
         s"${wfName}_${Constants.ReorgStage}",
         wfOutputs.map(_._1),
@@ -189,16 +193,18 @@ abstract class WorkflowTranslator(wfName: String,
             getStage(Some(Constants.ReorgStage)),
             applet.name,
             inputs,
-            Vector.empty[Parameter])
+            Vector.empty[Parameter]
+      )
     (stage, applet)
   }
 
   private def createCustomReorgStage(wfOutputs: Vector[LinkedVar],
                                      appletId: String,
-                                     reorgConfigFile: Option[String]): (Stage, Application) = {
+                                     reorgConfigFile: Option[String]
+  ): (Stage, Application) = {
     logger.trace(s"Creating custom output reorganization applet ${appletId}")
-    val (statusParam, statusStageInput): LinkedVar = wfOutputs.filter {
-      case (x, _) => x.name == ReorgStatus
+    val (statusParam, statusStageInput): LinkedVar = wfOutputs.filter { case (x, _) =>
+      x.name == ReorgStatus
     } match {
       case Vector(lvar) => lvar
       case other =>
@@ -231,7 +237,8 @@ abstract class WorkflowTranslator(wfName: String,
             getStage(Some(Constants.ReorgStage)),
             applet.name,
             inputs,
-            Vector.empty[Parameter])
+            Vector.empty[Parameter]
+      )
     (stage, applet)
   }
 

@@ -46,7 +46,8 @@ object TaskExecutorResult extends Enum {
 abstract class TaskExecutor(jobMeta: JobMeta,
                             streamFiles: StreamFiles.StreamFiles = StreamFiles.PerFile,
                             checkInstanceType: Boolean,
-                            traceLengthLimit: Int = 10000) {
+                            traceLengthLimit: Int = 10000
+) {
 
   private val workerPaths = jobMeta.workerPaths
   private val fileResolver = jobMeta.fileResolver
@@ -67,30 +68,25 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     }
   }
 
-  /**
-    * Returns the IR type and value for all task input variables, including default values for any
+  /** Returns the IR type and value for all task input variables, including default values for any
     * missing optional parameters.
     */
   protected def getInputVariables: Map[DxName, (Type, Value)]
 
-  /**
-    * Returns the minimal (i.e. cheapest) instance type that is
-    * sufficient to the task's resource requirements.
+  /** Returns the minimal (i.e. cheapest) instance type that is sufficient to the task's resource
+    * requirements.
     */
   protected def getInstanceTypeRequest(inputs: Map[DxName, (Type, Value)]): InstanceTypeRequest
 
-  /**
-    * Returns a mapping of output field names IR types.
+  /** Returns a mapping of output field names IR types.
     */
   protected def outputTypes: Map[DxName, Type]
 
-  /**
-    * Should we try to stream the file(s) associated with the given input parameter?
+  /** Should we try to stream the file(s) associated with the given input parameter?
     */
   protected def streamFileForInput(parameterName: DxName): Boolean
 
-  /**
-    * Returns all schema types referenced in the inputs.
+  /** Returns all schema types referenced in the inputs.
     */
   protected def getSchemas: Map[String, TSchema]
 
@@ -198,13 +194,12 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     def updateListingsAndExtractFiles(
         inputs: Map[DxName, (Type, Value)]
     ): Map[DxName, (Type, Value)] = {
-      inputs.map {
-        case (dxName, (t, v)) =>
-          // whether to stream all the files/directories associated with this input
-          val stream = streamFiles == StreamFiles.All ||
-            (streamFiles == StreamFiles.PerFile && streamFileForInput(dxName))
-          val handler = new Handler(stream)
-          dxName -> (t, Value.transform(v, Some(t), handler))
+      inputs.map { case (dxName, (t, v)) =>
+        // whether to stream all the files/directories associated with this input
+        val stream = streamFiles == StreamFiles.All ||
+          (streamFiles == StreamFiles.PerFile && streamFileForInput(dxName))
+        val handler = new Handler(stream)
+        dxName -> (t, Value.transform(v, Some(t), handler))
       }
     }
 
@@ -231,7 +226,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
               DxFile.format(fs.dxFile.id,
                             fs.dxFile.describe().folder,
                             fs.dxFile.describe().name,
-                            None)
+                            None
+              )
             case _ => uri
           }
           val resolved = handler.apply(VFile(uriToResolve), Some(TFile)) match {
@@ -283,7 +279,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
               val pathToLocalize = f.basename.map(parentDir.resolve).getOrElse(path)
               val newPath = localizer
                 .getLocalPath(fileResolver.fromPath(pathToLocalize, isDirectory = Some(false)),
-                              parent)
+                              parent
+                )
               Files.createLink(newPath, path)
               sourceToFinalFile += (f -> newPath)
               newPath
@@ -342,9 +339,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     def finalizeInputs(
         inputs: Map[DxName, (Type, Value)]
     ): (Map[DxName, (Type, Value)], Map[Path, String]) = {
-      val finalizedInputs = inputs.map {
-        case (dxName, (t, v)) =>
-          dxName -> (t, Value.transform(v, Some(t), this))
+      val finalizedInputs = inputs.map { case (dxName, (t, v)) =>
+        dxName -> (t, Value.transform(v, Some(t), this))
       }
       (finalizedInputs, pathToUri)
     }
@@ -352,37 +348,35 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     def finalizeStaticDependencies(
         deps: Map[String, (Type, Value)]
     ): Map[String, (Type, Value)] = {
-      deps.map {
-        case (uri, (t, v)) =>
-          uri -> (t, Value.transform(v, Some(t), this))
+      deps.map { case (uri, (t, v)) =>
+        uri -> (t, Value.transform(v, Some(t), this))
       }
     }
   }
 
-  /**
-    * Generates and writes command script(s) to disk.
-    * @param localizedInputs task inputs with localized files
-    * @param localizedDependencies mapping of URI to (type, value) for any static
-    *                              dependencies that may need to be updated in
-    *                              the source code.
-    * @return (updatedInputs, hasCommand, successCodes) where updated
-    *         inputs is localizedInputs updated with any additional (non-input)
-    *         variables that may be required to evaluate the outputs, hasCommand
-    *         is whether a command script was actually written, and successCodes
-    *         are the return codes that indicate the script was executed
-    *         successfully. If successCodes is None, then all return codes are
-    *         considered successful.
+  /** Generates and writes command script(s) to disk.
+    * @param localizedInputs
+    *   task inputs with localized files
+    * @param localizedDependencies
+    *   mapping of URI to (type, value) for any static dependencies that may need to be updated in
+    *   the source code.
+    * @return
+    *   (updatedInputs, hasCommand, successCodes) where updated inputs is localizedInputs updated
+    *   with any additional (non-input) variables that may be required to evaluate the outputs,
+    *   hasCommand is whether a command script was actually written, and successCodes are the return
+    *   codes that indicate the script was executed successfully. If successCodes is None, then all
+    *   return codes are considered successful.
     */
   protected def writeCommandScript(
       localizedInputs: Map[DxName, (Type, Value)],
       localizedDependencies: Option[Map[String, (Type, Value)]]
   ): (Boolean, Option[Set[Int]])
 
-  /**
-    * Evaluates the outputs of the task. Returns mapping of output parameter
-    * name to (type, value) and to (Set of tags, and Map of properties), where tags
-    * and properites only apply to output files (or collections thereof).
-    * @param localizedInputs the job inputs, with files localized to the worker
+  /** Evaluates the outputs of the task. Returns mapping of output parameter name to (type, value)
+    * and to (Set of tags, and Map of properties), where tags and properites only apply to output
+    * files (or collections thereof).
+    * @param localizedInputs
+    *   the job inputs, with files localized to the worker
     */
   protected def evaluateOutputs(
       localizedInputs: Map[DxName, (Type, Value)]
@@ -398,8 +392,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
               case local: LocalFileSource =>
                 val foldersWithListing = f.listing
                   .map { listing =>
-                    listing.foldLeft(folders) {
-                      case (accu, path) => handlePath(path, accu)
+                    listing.foldLeft(folders) { case (accu, path) =>
+                      handlePath(path, accu)
                     }
                   }
                   .getOrElse(folders)
@@ -413,7 +407,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       def apply(value: Value,
                 t: Option[Type],
                 optional: Boolean,
-                folders: Map[Path, VFolder]): Option[Map[Path, VFolder]] = {
+                folders: Map[Path, VFolder]
+      ): Option[Map[Path, VFolder]] = {
         (t, value) match {
           case (Some(TDirectory) | None, f: VFolder) => Some(handlePath(f, folders))
           case _                                     => None
@@ -422,8 +417,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     }
 
     lazy val localPathToInputFolder: Map[Path, VFolder] = {
-      localizedInputs.foldLeft(Map.empty[Path, VFolder]) {
-        case (accu, (_, (t, v))) => Value.walk(v, Some(t), accu, ListingWalkHandler)
+      localizedInputs.foldLeft(Map.empty[Path, VFolder]) { case (accu, (_, (t, v))) =>
+        Value.walk(v, Some(t), accu, ListingWalkHandler)
       }
     }
 
@@ -474,7 +469,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
                 fileResolver.resolveDirectory(f.uri) match {
                   case local: LocalFileSource =>
                     inputPaths.contains(local.canonicalPath) && f.listing.forall(listing =>
-                      listingsEqual(local.canonicalPath, listing))
+                      listingsEqual(local.canonicalPath, listing)
+                    )
                   case _ => false
                 }
               case other => throw new Exception(s"unexpected item ${other}")
@@ -518,8 +514,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     }
 
     def finalizeOutputs(outputs: Map[DxName, (Type, Value)]): Map[DxName, (Type, Value)] = {
-      outputs.map {
-        case (dxName, (t, v)) => dxName -> (t, Value.transform(v, Some(t), ListingTransformHandler))
+      outputs.map { case (dxName, (t, v)) =>
+        dxName -> (t, Value.transform(v, Some(t), ListingTransformHandler))
       }
     }
   }
@@ -533,7 +529,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       files :+= FileUpload(source = localPath,
                            destination = Some(destination),
                            tags = tags,
-                           properties = properties)
+                           properties = properties
+      )
     }
 
     def addVirtualFile(content: String, uri: String, destination: String): Unit = {
@@ -576,7 +573,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     def apply(value: Value, t: Option[Type], optional: Boolean, ctx: Uploads): Option[Uploads] = {
       def handlePath(innerValue: PathValue,
                      innerType: Option[Type],
-                     parent: Option[String] = None): Unit = {
+                     parent: Option[String] = None
+      ): Unit = {
         (innerType, innerValue) match {
           case (Some(TFile) | None, f: VFile) if f.contents.isDefined =>
             // a file literal
@@ -649,11 +647,10 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     }
 
     def extractFiles: (Iterable[FileUpload], Map[String, Path], Map[Path, String]) = {
-      val (filesToUpload, virtualFiles, directories) = finalizedOutputs.map {
-        case (name, (t, v)) =>
-          val (tags, properties) =
-            tagsAndProperties.getOrElse(name, (Set.empty[String], Map.empty[String, String]))
-          Value.walk(v, Some(t), new Uploads(tags, properties), this).asTuple
+      val (filesToUpload, virtualFiles, directories) = finalizedOutputs.map { case (name, (t, v)) =>
+        val (tags, properties) =
+          tagsAndProperties.getOrElse(name, (Set.empty[String], Map.empty[String, String]))
+        Value.walk(v, Some(t), new Uploads(tags, properties), this).asTuple
       }.unzip3
       (filesToUpload.flatten, virtualFiles.flatten.toMap, directories.flatten.toMap)
     }
@@ -664,7 +661,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
                               uploadedVirtualFiles: Map[String, Path],
                               uploadedDirectories: Map[Path, String],
                               localPathToUri: Map[Path, String],
-                              listings: Listings): Map[DxName, (Type, Value)] = {
+                              listings: Listings
+  ): Map[DxName, (Type, Value)] = {
     // For folders/listings, we have to determine the project output folder, because the platform
     // won't automatically update directory URIs like it does for data object links. The output
     // folder is either the manifest folder or the concatination of the job/analysis output folder
@@ -675,7 +673,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     def handlePath(value: PathValue,
                    t: Option[Type] = None,
                    optional: Boolean = false,
-                   parent: Option[String] = None): Value = {
+                   parent: Option[String] = None
+    ): Value = {
       (t, value) match {
         case (Some(TFile) | None, f: VFile) if f.contents.isDefined =>
           // a virtual file that was uploaded - replace the URI with the dx URI and
@@ -685,7 +684,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
                 secondaryFiles = f.secondaryFiles.map(handlePath(_)).map {
                   case p: PathValue => p
                   case other        => throw new Exception(s"not a PathValue ${other}")
-                })
+                }
+          )
         case (Some(TFile) | None, f: VFile) =>
           val newSecondaryFiles = f.secondaryFiles.map(handlePath(_)).map {
             case p: PathValue => p
@@ -697,7 +697,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
             case local: LocalFileSource if uploadedFiles.contains(local.canonicalPath) =>
               // an output file that was uploaded
               f.copy(uri = uploadedFiles(local.canonicalPath).asUri,
-                     secondaryFiles = newSecondaryFiles)
+                     secondaryFiles = newSecondaryFiles
+              )
             case local: LocalFileSource if localPathToUri.contains(local.canonicalPath) =>
               // an output file that was an input file
               f.copy(uri = localPathToUri(local.canonicalPath), secondaryFiles = newSecondaryFiles)
@@ -726,7 +727,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
                 if localPathToUri.contains(local.canonicalPath) && parent.isEmpty =>
               // an output folder that was an input folder
               VFolder(localPathToUri(local.canonicalPath),
-                      listing = listings.getInputListing(local.canonicalPath))
+                      listing = listings.getInputListing(local.canonicalPath)
+              )
             case _: LocalFileSource =>
               throw new Exception(s"folder was not delocalized: ${f}")
             case _ => f
@@ -755,35 +757,30 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       }
     }
 
-    outputs.map {
-      case (dxName, (t, v)) =>
-        dxName -> (t, Value.transform(v, Some(t), delocalizePaths))
+    outputs.map { case (dxName, (t, v)) =>
+      dxName -> (t, Value.transform(v, Some(t), delocalizePaths))
     }
   }
 
   private def logFields(fields: Map[DxName, (Type, Value)], description: String): Unit = {
     if (logger.isVerbose) {
       val inputStr = fields
-        .map {
-          case (dxName, (t, v)) =>
-            s"${dxName}: (${TypeSerde.toString(t)}, ${ValueSerde.toString(v, verbose = true)})"
+        .map { case (dxName, (t, v)) =>
+          s"${dxName}: (${TypeSerde.toString(t)}, ${ValueSerde.toString(v, verbose = true)})"
         }
         .mkString("\n  ")
       trace(s"${description}:\n  ${inputStr}")
     }
   }
 
-  /**
-    * Executes the task. This implements the full lifecycle of task execution:
-    * 1. If the instance type is determined dynamically, computes the instance
-    *    requirements and checks whether the current instance type meets/exceeds
-    *    those requirements. If not, relaunches the task with a new instance type.
-    * 2. Evaluate inputs.
-    * 3. Localize input files.
-    * 4. Evaluate and run the command script.
-    * 5. Evaluate outputs.
-    * 6. Delocalize output files.
-    * @return true if the task was executed successfully, or false if was relaunched
+  /** Executes the task. This implements the full lifecycle of task execution:
+    *   1. If the instance type is determined dynamically, computes the instance requirements and
+    *      checks whether the current instance type meets/exceeds those requirements. If not,
+    *      relaunches the task with a new instance type. 2. Evaluate inputs. 3. Localize input
+    *      files. 4. Evaluate and run the command script. 5. Evaluate outputs. 6. Delocalize output
+    *      files.
+    * @return
+    *   true if the task was executed successfully, or false if was relaunched
     */
   // TODO: handle output parameter tags and properties
   def apply(): TaskExecutorResult.TaskExecutorResult = {
@@ -832,7 +829,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         } catch {
           case ex: Throwable =>
             logger.warning("Error comparing current and requested instance types",
-                           exception = Some(ex))
+                           exception = Some(ex)
+            )
             false
         }
       if (isSufficient) {
@@ -845,8 +843,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         val dxSubJob: DxJob = dxApi.runSubJob(
             "body",
             Some(requestedInstanceType),
-            JsObject(jobMeta.rawJsInputs.map {
-              case (dxName, jsv) => dxName.encoded -> jsv
+            JsObject(jobMeta.rawJsInputs.map { case (dxName, jsv) =>
+              dxName.encoded -> jsv
             }),
             Vector.empty,
             jobMeta.delayWorkspaceDestruction
@@ -893,20 +891,19 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       trace(s"Files to download: ${pathsToLocalize.filesToDownload}")
       val downloadFileSourceToPath: Map[AddressableFileSource, Path] =
         localizer.getLocalPaths(pathsToLocalize.filesToDownload)
-      val downloadUriToPath = downloadFileSourceToPath.map {
-        case (fs, path) => fs.address -> path
+      val downloadUriToPath = downloadFileSourceToPath.map { case (fs, path) =>
+        fs.address -> path
       }
       DxdaManifestBuilder(dxApi, logger)
-        .apply(downloadFileSourceToPath.collect {
-          case (dxFs: DxFileSource, localPath) => dxFs.dxFile -> localPath
+        .apply(downloadFileSourceToPath.collect { case (dxFs: DxFileSource, localPath) =>
+          dxFs.dxFile -> localPath
         })
-        .foreach {
-          case DxdaManifest(manifestJs) =>
-            // write the manifest to a file
-            FileUtils.writeFileContent(workerPaths.getDxdaManifestFile().asJavaPath,
-                                       manifestJs.prettyPrint)
-            // run dxda via a subprocess
-            jobMeta.runJobScriptFunction(TaskExecutor.DownloadDxda)
+        .foreach { case DxdaManifest(manifestJs) =>
+          // write the manifest to a file
+          FileUtils
+            .writeFileContent(workerPaths.getDxdaManifestFile().asJavaPath, manifestJs.prettyPrint)
+          // run dxda via a subprocess
+          jobMeta.runJobScriptFunction(TaskExecutor.DownloadDxda)
         }
       downloadUriToPath
     } else {
@@ -927,19 +924,19 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       )
       val streamFileSourceToPath: Map[AddressableFileSource, Path] =
         streamingLocalizer.getLocalPaths(pathsToLocalize.filesToStream)
-      val streamUriToPath = streamFileSourceToPath.map {
-        case (fs, path) => fs.address -> path
+      val streamUriToPath = streamFileSourceToPath.map { case (fs, path) =>
+        fs.address -> path
       }
       DxfuseManifestBuilder(workerPaths, dxApi, logger)
-        .apply(streamFileSourceToPath.collect {
-          case (dxFs: DxFileSource, localPath) => dxFs.dxFile -> localPath
+        .apply(streamFileSourceToPath.collect { case (dxFs: DxFileSource, localPath) =>
+          dxFs.dxFile -> localPath
         })
-        .foreach {
-          case DxfuseManifest(manifestJs) =>
-            FileUtils.writeFileContent(workerPaths.getDxfuseManifestFile().asJavaPath,
-                                       manifestJs.prettyPrint)
-            // run dxfuse via a subprocess
-            jobMeta.runJobScriptFunction(TaskExecutor.DownloadDxfuse)
+        .foreach { case DxfuseManifest(manifestJs) =>
+          FileUtils.writeFileContent(workerPaths.getDxfuseManifestFile().asJavaPath,
+                                     manifestJs.prettyPrint
+          )
+          // run dxfuse via a subprocess
+          jobMeta.runJobScriptFunction(TaskExecutor.DownloadDxfuse)
         }
       streamUriToPath
     } else {
@@ -1020,7 +1017,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
                                             tagsAndProperties,
                                             uriToSourcePath,
                                             localPathToUri,
-                                            listings)
+                                            listings
+      )
       val (filesToUpload, virtualFiles, directories) = fileExtractor.extractFiles
 
       // upload files
@@ -1042,7 +1040,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
                                                virtualFiles,
                                                directories,
                                                localPathToUri,
-                                               listings)
+                                               listings
+      )
 
       logFields(delocalizedOutputs, "Delocalized outputs")
 

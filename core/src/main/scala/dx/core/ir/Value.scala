@@ -6,9 +6,8 @@ import dx.util.protocols.DxFolderSource
 
 import scala.collection.immutable.SeqMap
 
-/**
-  * A language-independent representation of values used as input to/output from
-  * DNAnexus applications and workflows.
+/** A language-independent representation of values used as input to/output from DNAnexus
+  * applications and workflows.
   */
 sealed trait Value
 
@@ -22,16 +21,20 @@ object Value {
 
   sealed trait PathValue extends PrimitiveValue
 
-  /**
-    * Represents a local or remote file. If `contents` is set,
-    * this is a virtual file can be localized by writing its
-    * contents to a local path.
-    * @param uri the local file path or remote URI
-    * @param basename the name to use when localizing the file
-    * @param contents the file contents
-    * @param checksum the file checksum
-    * @param size the file size
-    * @param secondaryFiles additional files that must accompany this file
+  /** Represents a local or remote file. If `contents` is set, this is a virtual file can be
+    * localized by writing its contents to a local path.
+    * @param uri
+    *   the local file path or remote URI
+    * @param basename
+    *   the name to use when localizing the file
+    * @param contents
+    *   the file contents
+    * @param checksum
+    *   the file checksum
+    * @param size
+    *   the file size
+    * @param secondaryFiles
+    *   additional files that must accompany this file
     */
   case class VFile(uri: String,
                    basename: Option[String] = None,
@@ -39,39 +42,39 @@ object Value {
                    checksum: Option[String] = None,
                    size: Option[Long] = None,
                    secondaryFiles: Vector[PathValue] = Vector.empty,
-                   format: Option[String] = None)
-      extends PathValue
+                   format: Option[String] = None
+  ) extends PathValue
 
   sealed trait DirectoryValue extends PathValue
 
-  /**
-    * A local directory or remote DNAnexus folder.
-    * @param uri local path or dx://project-xxx:/path/to/folder/ URI
-    * @param basename the name to use when localizing the directory
-    * @param listing an Optional Vector of files/subfolders in this folder.
-    *              If specified, only these files/subfolders will be
-    *              localized.
+  /** A local directory or remote DNAnexus folder.
+    * @param uri
+    *   local path or dx://project-xxx:/path/to/folder/ URI
+    * @param basename
+    *   the name to use when localizing the directory
+    * @param listing
+    *   an Optional Vector of files/subfolders in this folder. If specified, only these
+    *   files/subfolders will be localized.
     */
   case class VFolder(uri: String,
                      basename: Option[String] = None,
-                     listing: Option[Vector[PathValue]] = None)
-      extends DirectoryValue
+                     listing: Option[Vector[PathValue]] = None
+  ) extends DirectoryValue
 
-  /**
-    * A synthetic directory consisting of specific platform files/folders.
-    * @param basename the name to use when localizing the directory
-    * @param items a Vector of files/subdirectories in this directory
+  /** A synthetic directory consisting of specific platform files/folders.
+    * @param basename
+    *   the name to use when localizing the directory
+    * @param items
+    *   a Vector of files/subdirectories in this directory
     */
   case class VListing(basename: String, items: Vector[PathValue] = Vector.empty)
       extends DirectoryValue
 
-  /**
-    * Represents the empty value for an optional field.
+  /** Represents the empty value for an optional field.
     */
   case object VNull extends Value
 
-  /**
-    * An array of values
+  /** An array of values
     */
   case class VArray(items: Vector[Value]) extends Value
 
@@ -83,8 +86,7 @@ object Value {
     }
   }
 
-  /**
-    * A JSON object. Fields are stored in a SeqMap to preserve their order.
+  /** A JSON object. Fields are stored in a SeqMap to preserve their order.
     */
   case class VHash(fields: SeqMap[String, Value]) extends Value
 
@@ -126,12 +128,12 @@ object Value {
           case (Some(TArray(_, true)), VArray(Vector())) =>
             throw new Exception("empty array for non-empty array type")
           case (Some(TArray(itemType, _)), VArray(items)) =>
-            items.foldLeft(innerContext) {
-              case (ctx, item) => inner(item, Some(itemType), ctx)
+            items.foldLeft(innerContext) { case (ctx, item) =>
+              inner(item, Some(itemType), ctx)
             }
           case (_, VArray(items)) =>
-            items.foldLeft(innerContext) {
-              case (ctx, item) => inner(item, None, ctx)
+            items.foldLeft(innerContext) { case (ctx, item) =>
+              inner(item, None, ctx)
             }
           case (Some(TSchema(name, fieldTypes)), VHash(fields)) =>
             fields.foldLeft(innerContext) {
@@ -140,8 +142,8 @@ object Value {
               case (ctx, (k, v)) => inner(v, Some(fieldTypes(k)), ctx)
             }
           case (_, VHash(fields)) =>
-            fields.foldLeft(innerContext) {
-              case (ctx, (_, v)) => inner(v, None, ctx)
+            fields.foldLeft(innerContext) { case (ctx, (_, v)) =>
+              inner(v, None, ctx)
             }
           case (Some(TEnum(symbols)), s: VString) if symbols.contains(s.value) => innerContext
           case (Some(TEnum(symbols)), other) =>
@@ -172,18 +174,19 @@ object Value {
     def apply(value: Value, t: Option[Type], optional: Boolean): Option[Value]
   }
 
-  /**
-    * Transforms a Value to another Value, applying the `handler` function
-    * at each level of nesting. The default rules handle recursively
-    * descending into parameterized types (VArray, VHash) but otherwise
-    * leave the original value unchanged.
-    * @param value the Value to transform
-    * @param t an optional Type to which the value should be transformed
-    * @param handler a function that may transform a Value to another Value.
-    *                If the function returns Some(newValue), then newValue is
-    *                the result of the transformation, otherwise the default
-    *                transformation rules are applied.
-    * @return the transformed Value
+  /** Transforms a Value to another Value, applying the `handler` function at each level of nesting.
+    * The default rules handle recursively descending into parameterized types (VArray, VHash) but
+    * otherwise leave the original value unchanged.
+    * @param value
+    *   the Value to transform
+    * @param t
+    *   an optional Type to which the value should be transformed
+    * @param handler
+    *   a function that may transform a Value to another Value. If the function returns
+    *   Some(newValue), then newValue is the result of the transformation, otherwise the default
+    *   transformation rules are applied.
+    * @return
+    *   the transformed Value
     */
   def transform(value: Value, t: Option[Type], handler: TransformHandler): Value = {
     def transformPaths(paths: Vector[PathValue]): Vector[PathValue] = {

@@ -22,20 +22,21 @@ case class CwlBundle(version: CWLVersion,
                      workflows: Map[String, Workflow],
                      requirements: Map[String, Vector[Requirement]],
                      hints: Map[String, Vector[Hint]],
-                     processNames: Set[String]) {
+                     processNames: Set[String]
+) {
 
   lazy val typeAliases: Map[String, CwlSchema] =
     HintUtils.getSchemaDefs(primaryProcess.requirements)
 
   def sortByDependencies: Vector[Process] = {
     def inner(wfs: Iterable[Workflow],
-              deps: SeqMap[String, Workflow] = SeqMap.empty): SeqMap[String, Workflow] = {
-      wfs.foldLeft(deps) {
-        case (accu, wf) =>
-          val unsatisfied = wf.steps.map(_.run).collect {
-            case wf: Workflow if !accu.contains(wf.name) => wf
-          }
-          inner(unsatisfied, accu) + (wf.name -> wf)
+              deps: SeqMap[String, Workflow] = SeqMap.empty
+    ): SeqMap[String, Workflow] = {
+      wfs.foldLeft(deps) { case (accu, wf) =>
+        val unsatisfied = wf.steps.map(_.run).collect {
+          case wf: Workflow if !accu.contains(wf.name) => wf
+        }
+        inner(unsatisfied, accu) + (wf.name -> wf)
       }
     }
     // tools have no dependencies so they come first and their ordering doesn't matter
@@ -57,7 +58,8 @@ object CwlBundle {
       Map[Identifier, ExpressionTool],
       Map[Identifier, Workflow],
       Map[Identifier, Vector[Requirement]],
-      Map[Identifier, Vector[Hint]]) = {
+      Map[Identifier, Vector[Hint]]
+  ) = {
     if (process.id.isEmpty) {
       throw new Exception(s"missing id for process ${process}")
     }
@@ -93,7 +95,8 @@ object CwlBundle {
                          reqAccu,
                          hintAccu,
                          inheritedRequirements ++ wf.requirements,
-                         inheritedHints ++ wf.hints)
+                         inheritedHints ++ wf.hints
+            )
         }
       case _ =>
         throw new Exception(s"unsupported process ${process}")
@@ -117,7 +120,8 @@ object CwlBundle {
                   Map.empty,
                   Map.empty,
                   Map.empty,
-                  Set(tool.name))
+                  Set(tool.name)
+        )
       case tool: ExpressionTool =>
         CwlBundle(version,
                   tool,
@@ -126,7 +130,8 @@ object CwlBundle {
                   Map.empty,
                   Map.empty,
                   Map.empty,
-                  Set(tool.name))
+                  Set(tool.name)
+        )
       case wf: Workflow =>
         val (tools, expressions, workflows, requirements, hints) = getProcesses(wf)
         // check that there are no name collisions
@@ -151,11 +156,11 @@ object CwlBundle {
             case (_, wf) =>
               throw new Exception(s"duplicate name ${wf.name}")
           }
-        val requirementsByName = requirements.map {
-          case (id, reqs) => id.name.get -> reqs
+        val requirementsByName = requirements.map { case (id, reqs) =>
+          id.name.get -> reqs
         }
-        val hintsByName = hints.map {
-          case (id, hints) => id.name.get -> hints
+        val hintsByName = hints.map { case (id, hints) =>
+          id.name.get -> hints
         }
         CwlBundle(version,
                   wf,
@@ -164,7 +169,8 @@ object CwlBundle {
                   workflowsByName,
                   requirementsByName,
                   hintsByName,
-                  allNames3)
+                  allNames3
+        )
     }
   }
 }

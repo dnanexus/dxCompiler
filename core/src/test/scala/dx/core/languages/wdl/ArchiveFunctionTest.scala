@@ -35,7 +35,8 @@ class ArchiveFunctionTest extends AnyFlatSpec with Matchers {
         Vector(
             TAT.ExprArray(
                 Vector(TAT.ValueFile(file1.toString, WdlTypes.T_File)(SourceLocation.empty),
-                       TAT.ValueFile(file2.toString, WdlTypes.T_File)(SourceLocation.empty)),
+                       TAT.ValueFile(file2.toString, WdlTypes.T_File)(SourceLocation.empty)
+                ),
                 WdlTypes.T_Array(WdlTypes.T_File, nonEmpty = false)
             )(
                 SourceLocation.empty
@@ -82,7 +83,8 @@ class ArchiveFunctionTest extends AnyFlatSpec with Matchers {
     val irValue = Value.VArray(Vector(Value.VFile(file1.toString), Value.VFile(file2.toString)))
     val archive =
       LocalizedArchive(irType, irValue)(parentDir =
-        Some(paths.getRootDir(ensureExists = true).asJavaPath))
+        Some(paths.getRootDir(ensureExists = true).asJavaPath)
+      )
     val packedArchive = archive.pack()
 
     val prototype =

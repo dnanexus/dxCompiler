@@ -70,8 +70,8 @@ class DxNativeInterfaceTest extends AnyFlatSpec with Matchers with BeforeAndAfte
       wfSource: String
   ): (Map[String, TAT.Task], Map[String, WdlTypes.T], TAT.Document) = {
     val (tDoc, typeAliases) = WdlUtils.parseAndCheckSourceString(wfSource, "test")
-    val tasks = tDoc.elements.collect {
-      case task: TAT.Task => task.name -> task
+    val tasks = tDoc.elements.collect { case task: TAT.Task =>
+      task.name -> task
     }.toMap
     (tasks, typeAliases.toMap, tDoc)
   }
@@ -101,7 +101,8 @@ class DxNativeInterfaceTest extends AnyFlatSpec with Matchers with BeforeAndAfte
                       "-language",
                       "wdl_1_0",
                       "-apps",
-                      "exclude")
+                      "exclude"
+    )
     val tasks = runDxni(args)
     tasks.keySet shouldBe Set(
         "native_sum",
@@ -158,7 +159,8 @@ class DxNativeInterfaceTest extends AnyFlatSpec with Matchers with BeforeAndAfte
                       "-language",
                       "wdl_1_0",
                       "-apps",
-                      "exclude")
+                      "exclude"
+    )
     val tasks = runDxni(args)
     tasks.keySet shouldBe Set("native_sum")
   }

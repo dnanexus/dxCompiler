@@ -30,10 +30,8 @@ import scala.collection.immutable.SeqMap
 
 object CwlUtils {
 
-  /**
-    * CWL has a "null" type. When used alone, it means the field
-    * only accepts a null value. This is not able to be represented
-    * natively, so instead we use an optional schema type.
+  /** CWL has a "null" type. When used alone, it means the field only accepts a null value. This is
+    * not able to be represented natively, so instead we use an optional schema type.
     */
   val NullSchema: Type = TOptional(TSchema("null", SeqMap.empty))
 
@@ -51,8 +49,8 @@ object CwlUtils {
     }
     TSchema(
         cwlRecord.name,
-        cwlRecord.fields.map {
-          case (key, value) => key -> toIRType(value.cwlType)
+        cwlRecord.fields.map { case (key, value) =>
+          key -> toIRType(value.cwlType)
         }
     )
   }
@@ -92,7 +90,8 @@ object CwlUtils {
                          size,
                          secondaryFiles,
                          format,
-                         contents) =>
+                         contents
+          ) =>
         VFile(
             location
               .orElse(path)
@@ -164,7 +163,8 @@ object CwlUtils {
                  val (_, v) = toIRValue(value)
                  key -> v
              }.to(SeqMap)
-         ))
+         )
+        )
       case _ => throw new Exception(s"Invalid CWL value ${cwlValue})")
     }
   }
@@ -246,14 +246,15 @@ object CwlUtils {
   }
 
   def toIR(cwl: Map[DxName, (CwlType, CwlValue)]): Map[DxName, (Type, Value)] = {
-    cwl.map {
-      case (name, (cwlType, cwlValue)) => name -> toIRValue(cwlValue, cwlType)
+    cwl.map { case (name, (cwlType, cwlValue)) =>
+      name -> toIRValue(cwlValue, cwlType)
     }
   }
 
   def fromIRType(irType: Type,
                  typeAliases: Map[String, CwlSchema] = Map.empty,
-                 isInput: Boolean): CwlType = {
+                 isInput: Boolean
+  ): CwlType = {
     def inner(innerType: Type): CwlType = {
       innerType match {
         case TOptional(t)  => CwlOptional(inner(t))
@@ -270,15 +271,17 @@ object CwlUtils {
         case TSchema(name, _) if typeAliases.contains(name) =>
           typeAliases(name)
         case TSchema(name, fields) if isInput =>
-          CwlInputRecord(fields.map {
-                           case (name, t) => name -> CwlInputRecordField(name, inner(t))
+          CwlInputRecord(fields.map { case (name, t) =>
+                           name -> CwlInputRecordField(name, inner(t))
                          },
-                         Some(Identifier(namespace = None, frag = Some(name))))
+                         Some(Identifier(namespace = None, frag = Some(name)))
+          )
         case TSchema(name, members) =>
-          CwlOutputRecord(members.map {
-                            case (name, t) => name -> CwlOutputRecordField(name, inner(t))
+          CwlOutputRecord(members.map { case (name, t) =>
+                            name -> CwlOutputRecordField(name, inner(t))
                           },
-                          Some(Identifier(namespace = None, frag = Some(name))))
+                          Some(Identifier(namespace = None, frag = Some(name)))
+          )
         case TEnum(symbols) => CwlEnum(symbols)
         case _ =>
           throw new Exception(s"Cannot convert IR type ${irType} to CWL")
@@ -296,11 +299,13 @@ object CwlUtils {
                   size = f.size,
                   contents = f.contents,
                   secondaryFiles = f.secondaryFiles.map(fromIRPath),
-                  format = f.format)
+                  format = f.format
+        )
       case VFolder(uri, basename, listing) =>
         DirectoryValue(location = Some(uri),
                        basename = basename,
-                       listing = listing.map(_.map(fromIRPath)).getOrElse(Vector.empty[PathValue]))
+                       listing = listing.map(_.map(fromIRPath)).getOrElse(Vector.empty[PathValue])
+        )
       case VListing(basename, listing) =>
         DirectoryValue(basename = Some(basename), listing = listing.map(fromIRPath))
     }
@@ -317,30 +322,29 @@ object CwlUtils {
         case f: VFile            => (CwlFile, fromIRPath(f))
         case d: IRDirectoryValue => (CwlDirectory, fromIRPath(d))
         case VArray(array) =>
-          val (types, values) = array.zipWithIndex.map {
-            case (v, i) => inner(v, innerName.map(n => s"${n}[${i}]"))
+          val (types, values) = array.zipWithIndex.map { case (v, i) =>
+            inner(v, innerName.map(n => s"${n}[${i}]"))
           }.unzip
           (CwlArray(CwlType.flatten(types.distinct)), ArrayValue(values))
         case VHash(fields) =>
-          val (types, values) = fields.map {
-            case (key, value) =>
-              val (cwlType, cwlValue) = inner(value, innerName.map(n => s"${n}[${key}]"))
-              (key -> cwlType, key -> cwlValue)
+          val (types, values) = fields.map { case (key, value) =>
+            val (cwlType, cwlValue) = inner(value, innerName.map(n => s"${n}[${key}]"))
+            (key -> cwlType, key -> cwlValue)
           }.unzip
           // create an anonymous record schema
           val schemaType = if (isInput) {
             CwlInputRecord(
                 types
-                  .map {
-                    case (name, t) => name -> CwlInputRecordField(name, t)
+                  .map { case (name, t) =>
+                    name -> CwlInputRecordField(name, t)
                   }
                   .to(SeqMap)
             )
           } else {
             CwlOutputRecord(
                 types
-                  .map {
-                    case (name, t) => name -> CwlOutputRecordField(name, t)
+                  .map { case (name, t) =>
+                    name -> CwlOutputRecordField(name, t)
                   }
                   .to(SeqMap)
             )
@@ -356,16 +360,18 @@ object CwlUtils {
   }
 
   def fromIRValues(values: Map[String, Value],
-                   isInput: Boolean): Map[String, (CwlType, CwlValue)] = {
-    values.map {
-      case (name, value) => name -> fromIRValue(value, Some(name), isInput)
+                   isInput: Boolean
+  ): Map[String, (CwlType, CwlValue)] = {
+    values.map { case (name, value) =>
+      name -> fromIRValue(value, Some(name), isInput)
     }
   }
 
   def fromIRValue(value: Value,
                   cwlType: CwlType,
                   name: String,
-                  isInput: Boolean): (CwlType, CwlValue) = {
+                  isInput: Boolean
+  ): (CwlType, CwlValue) = {
     @tailrec
     def inner(innerValue: Value, innerType: CwlType, innerName: String): CwlValue = {
       (innerType, innerValue) match {
@@ -386,9 +392,8 @@ object CwlUtils {
         case (CwlDirectory, VString(path))       => DirectoryValue(path)
         case (CwlDirectory, d: IRDirectoryValue) => fromIRPath(d)
         case (array: CwlArray, VArray(items)) =>
-          ArrayValue(items.zipWithIndex.map {
-            case (item, i) =>
-              innerMulti(item, array.itemType, s"${innerName}[${i}]")._2
+          ArrayValue(items.zipWithIndex.map { case (item, i) =>
+            innerMulti(item, array.itemType, s"${innerName}[${i}]")._2
           })
         case (record: CwlRecord, VHash(fields)) =>
           // ensure 1) members keys are a subset of memberTypes keys, 2) members
@@ -412,9 +417,8 @@ object CwlUtils {
             )
           }
           ObjectValue(
-              fields.map {
-                case (key, value) =>
-                  key -> innerMulti(value, record.fields(key).cwlType, s"${innerName}[${key}]")._2
+              fields.map { case (key, value) =>
+                key -> innerMulti(value, record.fields(key).cwlType, s"${innerName}[${key}]")._2
               }
           )
         case (enum: CwlEnum, VString(s)) if enum.symbols.contains(s) => StringValue(s)
@@ -424,7 +428,8 @@ object CwlUtils {
     }
     def innerMulti(innerValue: Value,
                    innerType: CwlType,
-                   innerName: String): (CwlType, CwlValue) = {
+                   innerName: String
+    ): (CwlType, CwlValue) = {
       innerType match {
         case CwlMulti(types) =>
           types
@@ -462,11 +467,11 @@ object CwlUtils {
 
   def fromIR(values: Map[DxName, (Type, Value)],
              typeAliases: Map[String, CwlSchema] = Map.empty,
-             isInput: Boolean): Map[DxName, (CwlType, CwlValue)] = {
-    values.map {
-      case (dxName, (t, v)) =>
-        val cwlType = fromIRType(t, typeAliases, isInput)
-        dxName -> fromIRValue(v, cwlType, dxName.decoded, isInput)
+             isInput: Boolean
+  ): Map[DxName, (CwlType, CwlValue)] = {
+    values.map { case (dxName, (t, v)) =>
+      val cwlType = fromIRType(t, typeAliases, isInput)
+      dxName -> fromIRValue(v, cwlType, dxName.decoded, isInput)
     }
   }
 
@@ -522,13 +527,13 @@ object CwlUtils {
       case ArrayValue(items)                     => s"[${items.map(prettyFormatValue(_))}]"
       case ObjectValue(fields) if fields.isEmpty => "{}"
       case ObjectValue(fields) if verbose =>
-        val fieldStrs = fields.map {
-          case (name, value) => s"${name}: ${prettyFormatValue(value, verbose = true, indent + 2)}"
+        val fieldStrs = fields.map { case (name, value) =>
+          s"${name}: ${prettyFormatValue(value, verbose = true, indent + 2)}"
         }
         s"{\n${indentStr}${fieldStrs.mkString("\n")}\n${indentStr}}"
       case ObjectValue(fields) =>
-        val fieldStrs = fields.map {
-          case (name, value) => s"${name}: ${prettyFormatValue(value)}"
+        val fieldStrs = fields.map { case (name, value) =>
+          s"${name}: ${prettyFormatValue(value)}"
         }
         s"{${fieldStrs.mkString(",")}}"
       case _ => throw new Exception(s"unrecognized CWL value ${value})")
@@ -538,19 +543,18 @@ object CwlUtils {
 
   def prettyFormatEnv(env: Map[String, (CwlType, CwlValue)],
                       verbose: Boolean = false,
-                      indent: Int = 2): String = {
+                      indent: Int = 2
+  ): String = {
     env
-      .map {
-        case (name, (t, v)) =>
-          s"${" " * indent}${name}: ${prettyFormatType(t)} ${prettyFormatValue(v, verbose)}"
+      .map { case (name, (t, v)) =>
+        s"${" " * indent}${name}: ${prettyFormatType(t)} ${prettyFormatValue(v, verbose)}"
       }
       .mkString("\n")
   }
 
-  /**
-    * Does a WorkflowStep represent a simple call - i.e. with no
-    * scatter or conditional?
-    * @param step the WorkflowStep
+  /** Does a WorkflowStep represent a simple call - i.e. with no scatter or conditional?
+    * @param step
+    *   the WorkflowStep
     * @return
     */
   def isSimpleCall(step: WorkflowStep): Boolean = {
@@ -582,11 +586,9 @@ object CwlUtils {
     }
   }
 
-  /**
-    * Returns true if a down-cast is required for `from` to be compatible
-    * with `to`. A down-cast is required to go from a wider type to a more
-    * narrow type, for example `Any` -> `File`. Throws an exception of the
-    * types are not compatible at all.
+  /** Returns true if a down-cast is required for `from` to be compatible with `to`. A down-cast is
+    * required to go from a wider type to a more narrow type, for example `Any` -> `File`. Throws an
+    * exception of the types are not compatible at all.
     */
   def requiresDowncast(from: CwlType, to: CwlType): Boolean = {
     (from, to) match {
@@ -610,8 +612,8 @@ object CwlUtils {
   }
 
   def toJson(values: Map[DxName, (CwlType, CwlValue)]): JsObject = {
-    JsObject(values.map {
-      case (dxName, (_, v)) => dxName.decoded -> v.toJson
+    JsObject(values.map { case (dxName, (_, v)) =>
+      dxName.decoded -> v.toJson
     })
   }
 

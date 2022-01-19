@@ -77,10 +77,9 @@ import dx.core.ir.{Block, BlockKind, DxName, InputKind}
 import wdlTools.eval.{Eval, EvalException, EvalUtils, WdlValues}
 import wdlTools.types.{TypeUtils, WdlTypes, TypedAbstractSyntax => TAT}
 
-/**
-  * An input to a Block. These are simlar to the TAT.InputParameters, but there is
-  * an extra type to disinguish between inputs with constant and dynamic default
-  * values, and there is no SourceLocation.
+/** An input to a Block. These are simlar to the TAT.InputParameters, but there is an extra type to
+  * disinguish between inputs with constant and dynamic default values, and there is no
+  * SourceLocation.
   */
 sealed trait WdlBlockInput {
   val name: DxName
@@ -88,46 +87,39 @@ sealed trait WdlBlockInput {
   val kind: InputKind.InputKind
 }
 
-/**
-  * A compulsory input that has no default, and must be provided by the caller.
+/** A compulsory input that has no default, and must be provided by the caller.
   */
 case class RequiredBlockInput(name: DxName, wdlType: WdlTypes.T) extends WdlBlockInput {
   val kind: InputKind.InputKind = InputKind.Required
 }
 
-/**
-  * An input that is required, but it is computed from other
-  * inputs rather than being provided/overridable by the user.
-  * Currently, this is only used for the scatter variable.
+/** An input that is required, but it is computed from other inputs rather than being
+  * provided/overridable by the user. Currently, this is only used for the scatter variable.
   */
 case class ComputedBlockInput(name: DxName, wdlType: WdlTypes.T) extends WdlBlockInput {
   val kind: InputKind.InputKind = InputKind.Computed
 }
 
-/**
-  * An input that has a constant default value and may be skipped by the caller.
+/** An input that has a constant default value and may be skipped by the caller.
   */
 case class OverridableBlockInputWithStaticDefault(name: DxName,
                                                   wdlType: WdlTypes.T,
-                                                  defaultValue: WdlValues.V)
-    extends WdlBlockInput {
+                                                  defaultValue: WdlValues.V
+) extends WdlBlockInput {
   val kind: InputKind.InputKind = InputKind.Optional
 }
 
-/**
-  * An input that has a default value that is an expression that must be evaluated at runtime,
+/** An input that has a default value that is an expression that must be evaluated at runtime,
   * unless a value is specified by the called.
   */
 case class OverridableBlockInputWithDynamicDefault(name: DxName,
                                                    wdlType: WdlTypes.T,
-                                                   defaultExpr: TAT.Expr)
-    extends WdlBlockInput {
+                                                   defaultExpr: TAT.Expr
+) extends WdlBlockInput {
   val kind: InputKind.InputKind = InputKind.Optional
 }
 
-/**
-  * An input that may be omitted by the caller. In that case the value will
-  * be null (or None).
+/** An input that may be omitted by the caller. In that case the value will be null (or None).
   */
 case class OptionalBlockInput(name: DxName, wdlType: WdlTypes.T) extends WdlBlockInput {
   val kind: InputKind.InputKind = InputKind.Optional
@@ -160,9 +152,9 @@ object WdlBlockInput {
     }
   }
 
-  /**
-    * Creates block inputs.
-    * @param inputs a mapping of input name to (type, kind) tuple
+  /** Creates block inputs.
+    * @param inputs
+    *   a mapping of input name to (type, kind) tuple
     * @return
     */
   def create(
@@ -197,8 +189,8 @@ case class WdlBlockOutput(name: DxName, wdlType: WdlTypes.T, expr: TAT.Expr)
 
 object WdlBlockOutput {
   def create(outputs: Vector[(DxName, (WdlTypes.T, TAT.Expr))]): Vector[WdlBlockOutput] = {
-    outputs.map {
-      case (dxName, (wdlType, expr)) => WdlBlockOutput(dxName, wdlType, expr)
+    outputs.map { case (dxName, (wdlType, expr)) =>
+      WdlBlockOutput(dxName, wdlType, expr)
     }
   }
 
@@ -211,36 +203,30 @@ object WdlBlockOutput {
   }
 }
 
-/**
-  * A contiguous list of workflow elements from a user workflow.
+/** A contiguous list of workflow elements from a user workflow.
   *
-  * @param inputs all the inputs required for a block (i.e. the Block's closure)
-  * @param outputs all the outputs from a sequence of WDL statements - includes
-  *                only variables that are used after the block completes.
-  * @param elements the elements in the block
+  * @param inputs
+  *   all the inputs required for a block (i.e. the Block's closure)
+  * @param outputs
+  *   all the outputs from a sequence of WDL statements - includes only variables that are used
+  *   after the block completes.
+  * @param elements
+  *   the elements in the block
   * @example
-  * In the workflow:
+  *   In the workflow:
   *
-  *  workflow optionals {
-  *    input {
-  *      Boolean flag
-  *    }
-  *    Int? rain = 13
-  *    if (flag) {
-  *      call opt_MaybeInt as mi3 { input: a=rain }
-  *    }
-  *  }
+  * workflow optionals { input { Boolean flag } Int? rain = 13 if (flag) { call opt_MaybeInt as mi3
+  * { input: a=rain } } }
   *
-  *  The conditional block requires "flag" and "rain".
-  *  Note: The type outside a scatter/conditional block is *different* than the
-  *  type in the block.  For example, 'Int x' declared inside a scatter, is
-  *  'Array[Int] x' outside the scatter.
+  * The conditional block requires "flag" and "rain". Note: The type outside a scatter/conditional
+  * block is *different* than the type in the block. For example, 'Int x' declared inside a scatter,
+  * is 'Array[Int] x' outside the scatter.
   */
 case class WdlBlock(index: Int,
                     inputs: Vector[WdlBlockInput],
                     outputs: Vector[WdlBlockOutput],
-                    elements: Vector[TAT.WorkflowElement])
-    extends Block[WdlBlock] {
+                    elements: Vector[TAT.WorkflowElement]
+) extends Block[WdlBlock] {
   assert(elements.nonEmpty)
   assert(WdlUtils.deepFindCalls(elements.dropRight(1)).isEmpty)
 
@@ -301,15 +287,16 @@ case class WdlBlock(index: Int,
   def call: TAT.Call = {
     val calls = (kind, target) match {
       case (BlockKind.CallDirect | BlockKind.CallWithSubexpressions | BlockKind.CallFragment,
-            Some(call: TAT.Call)) =>
+            Some(call: TAT.Call)
+          ) =>
         Vector(call)
       case (BlockKind.ConditionalOneCall, Some(cond: TAT.Conditional)) =>
-        cond.body.collect {
-          case call: TAT.Call => call
+        cond.body.collect { case call: TAT.Call =>
+          call
         }
       case (BlockKind.ScatterOneCall, Some(scatter: TAT.Scatter)) =>
-        scatter.body.collect {
-          case call: TAT.Call => call
+        scatter.body.collect { case call: TAT.Call =>
+          call
         }
       case _ =>
         throw new Exception(s"block ${this} does not contain a single call")
@@ -321,7 +308,8 @@ case class WdlBlock(index: Int,
   def conditional: TAT.Conditional = {
     (kind, target) match {
       case (BlockKind.ConditionalOneCall | BlockKind.ConditionalComplex,
-            Some(cond: TAT.Conditional)) =>
+            Some(cond: TAT.Conditional)
+          ) =>
         cond
       case _ =>
         throw new Exception(s"block ${this} is not a conditional")
@@ -341,7 +329,8 @@ case class WdlBlock(index: Int,
     (kind, target) match {
       case (BlockKind.ConditionalOneCall | BlockKind.ConditionalComplex | BlockKind.ScatterOneCall |
             BlockKind.ScatterComplex,
-            Some(block: TAT.BlockElement)) =>
+            Some(block: TAT.BlockElement)
+          ) =>
         block.body
       case _ =>
         throw new Exception(
@@ -373,11 +362,10 @@ case class WdlBlock(index: Int,
 
 object WdlBlock {
 
-  /**
-    * A block of nodes that represents a call with no subexpressions. These
-    * can be compiled directly into a dx:workflow stage. For example, the WDL code:
-    *  call add { input: a=x, b=y }
-    * @param elements WorkflowElements
+  /** A block of nodes that represents a call with no subexpressions. These can be compiled directly
+    * into a dx:workflow stage. For example, the WDL code: call add { input: a=x, b=y }
+    * @param elements
+    *   WorkflowElements
     * @return
     */
   private def isSimpleCall(elements: Vector[TAT.WorkflowElement]): Boolean = {
@@ -387,9 +375,9 @@ object WdlBlock {
     }
   }
 
-  /**
-    * A simple call that also only has trivial inputs.
-    * @param elements WorkflowElements
+  /** A simple call that also only has trivial inputs.
+    * @param elements
+    *   WorkflowElements
     * @return
     */
   private def isTrivialCall(elements: Vector[TAT.WorkflowElement]): Boolean = {
@@ -400,9 +388,9 @@ object WdlBlock {
     }
   }
 
-  /**
-    * Splits a sequence of statements into blocks.
-    * @param elements the elements to split
+  /** Splits a sequence of statements into blocks.
+    * @param elements
+    *   the elements to split
     * @return
     */
   def createBlocks(elements: Vector[TAT.WorkflowElement]): Vector[WdlBlock] = {
@@ -410,7 +398,8 @@ object WdlBlock {
     // if startNew = true, also add a new fresh Vector to the end
     def addToLastPart(parts: Vector[Vector[TAT.WorkflowElement]],
                       elem: TAT.WorkflowElement,
-                      startNew: Boolean = false): Vector[Vector[TAT.WorkflowElement]] = {
+                      startNew: Boolean = false
+    ): Vector[Vector[TAT.WorkflowElement]] = {
       val allButLast = parts.dropRight(1)
       val last = parts.last :+ elem
       if (startNew) {
@@ -439,10 +428,9 @@ object WdlBlock {
     }
 
     // convert to blocks - keep only non-empty blocks
-    parts.filter(_.nonEmpty).zipWithIndex.map {
-      case (v, index) =>
-        val (inputs, outputs) = WdlUtils.getClosureInputsAndOutputs(v, withField = true)
-        WdlBlock(index, WdlBlockInput.create(inputs), WdlBlockOutput.create(outputs), v)
+    parts.filter(_.nonEmpty).zipWithIndex.map { case (v, index) =>
+      val (inputs, outputs) = WdlUtils.getClosureInputsAndOutputs(v, withField = true)
+      WdlBlock(index, WdlBlockInput.create(inputs), WdlBlockOutput.create(outputs), v)
     }
   }
 }

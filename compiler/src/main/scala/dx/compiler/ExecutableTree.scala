@@ -8,10 +8,12 @@ import spray.json._
 case class CompiledExecutable(callable: Callable,
                               dxExec: DxExecutable,
                               links: Vector[ExecutableLink] = Vector.empty,
-                              execTree: Option[JsValue] = None)
+                              execTree: Option[JsValue] = None
+)
 
 case class CompilerResults(primary: Option[CompiledExecutable],
-                           executables: Map[String, CompiledExecutable]) {
+                           executables: Map[String, CompiledExecutable]
+) {
   def executableIds: Vector[String] = {
     primary match {
       case None      => executables.values.map(_.dxExec.id).toVector
@@ -20,8 +22,7 @@ case class CompilerResults(primary: Option[CompiledExecutable],
   }
 }
 
-/**
-  * Describe the workflow in a tree representation
+/** Describe the workflow in a tree representation
   */
 case class ExecutableTree(executableDict: Map[String, CompiledExecutable]) {
   def apply(workflow: Workflow): JsValue = {
@@ -39,7 +40,8 @@ case class ExecutableTree(executableDict: Map[String, CompiledExecutable]) {
       case application: Application if primary.links.isEmpty =>
         JsObject("name" -> JsString(application.name),
                  "id" -> JsString(primary.dxExec.id),
-                 "kind" -> JsString(ExecutableKind.toString(application.kind)))
+                 "kind" -> JsString(ExecutableKind.toString(application.kind))
+        )
       case application: Application =>
         // applet that calls other applets/workflows at runtime.
         // recursively describe all called elements.
@@ -63,7 +65,8 @@ case class ExecutableTree(executableDict: Map[String, CompiledExecutable]) {
         JsObject("name" -> JsString(workflow.name),
                  "id" -> JsString(primary.dxExec.id),
                  "kind" -> JsString("workflow"),
-                 "stages" -> stages)
+                 "stages" -> stages
+        )
     }
   }
 }
@@ -93,7 +96,8 @@ object ExecutableTree {
   private def generateTreeBlock(prefix: String,
                                 links: Vector[String],
                                 title: String,
-                                name: String): String = {
+                                name: String
+  ): String = {
     if (links.nonEmpty) {
       prefix + Console.CYAN + title + name + Console.RESET + "\n" + links
         .mkString("\n")
@@ -123,7 +127,8 @@ object ExecutableTree {
 
   private def prettyPrintApplets(prefix: String,
                                  stageDesc: Option[String],
-                                 TreeJS: JsObject): String = {
+                                 TreeJS: JsObject
+  ): String = {
     TreeJS.getFields("name", "id", "kind", "executables") match {
       case Seq(JsString(stageName), JsString(_), JsString(kind)) => {
         val name = getDisplayName(stageDesc, stageName)
@@ -145,35 +150,40 @@ object ExecutableTree {
     }
   }
 
-  /** Recursively traverse the exec tree and generate an appropriate name + color based on the node type.
-    * The prefix is built up as recursive calls happen. This allows for mainaining the locations of branches
-    * in the tree. When a prefix made for a current node, it undergoes a transformation to strip out any
-    * extra characters from previous calls. This maintains the indenation level and tree branches.
+  /** Recursively traverse the exec tree and generate an appropriate name + color based on the node
+    * type. The prefix is built up as recursive calls happen. This allows for mainaining the
+    * locations of branches in the tree. When a prefix made for a current node, it undergoes a
+    * transformation to strip out any extra characters from previous calls. This maintains the
+    * indenation level and tree branches.
     *
-    * Color scheme:
-    *   'types' are in CYAN, types being Workflow, App, Task etc
-    *   'names' are in WHITE for all app types, and YELLOW for workflow types
+    * Color scheme: 'types' are in CYAN, types being Workflow, App, Task etc 'names' are in WHITE
+    * for all app types, and YELLOW for workflow types
     *
     * Step by step:
     *
-    *       TREE                                            LEVEL               prettyPrint calls (approx)                                                         NOTES
-    * Workflow: four_levels                                 0. Workflow         0a. prettyPrint(IR.Workflow, None)
-    * ├───App Inputs: common                                1. App              1a. prettyPrint(IR.App, Some("common"), 3, "├───")
-    * ├───App Fragment: if ((username == "a"))              1. App              1b. prettyPrint(IR.AppFrag, Some("if ((username == "a"))", 3, "├───")              The starting prefix for 6 would be ├───└───, that combo gets fixed to be what you actually see by the replace rules
-    * │   └───Workflow: four_levels_block_0                 2. Workflow         2a. prettyPrint(IR.Workflow, None, 3, "│   └───")
-    * │       ├───App Task: c1                              3. App              3a. prettyPrint(IR.App, None, 3, "│       ├───")                                   The prefix in the step before this would have looked like "│   └───├───"
-    * │       └───App Task: c2                              3. App              3b. pretyyPrint(IR.App, None, 3, "│       └───")
-    * ├───App Fragment: scatter (i in [1, 4, 9])            1. App              1c. prettyPrint(IR.AppFrag, Some("scatter (i in [1, 4, 9])", 3, "├───")
-    * │   └───App Fragment: four_levels_frag_4              2. App              2b. prettyPrint(IR.AppFrag, Some("four_levels_frag_4"), 3, "├───├───")
-    * │       └───Workflow: four_levels_block_1_0           3. Workflow          3c. prettyPrint(IR.Workflow, None, 3, "│       └───")
-    * │           ├───App Fragment: if ((j == "john"))      4. App              4a. prettyPrint(IR.AppFrag, Some("if ((j == "john"))"), 3, "│           ├───")
-    * │           │   └───App Task: concat                  5. App              5a. prettyPrint(IR.App, None, 3, "│           │   └───")                           The prefix that would be 'fixed', into this was "│           ├───└───"
-    * │           └───App Fragment: if ((j == "clease"))    4. App              4b. prettyPrint(IR.AppFrag, Some("if ((j == "clease"))"), 3, "│           └───")
-    * └───App Outputs: outputs                              1. App              1d. prettyPrint(IR.AppFrag, Some("outputs"), 3, "└───")
-    * */
+    * TREE LEVEL prettyPrint calls (approx) NOTES Workflow: four_levels 0. Workflow 0a.
+    * prettyPrint(IR.Workflow, None) ├───App Inputs: common 1. App 1a. prettyPrint(IR.App,
+    * Some("common"), 3, "├───") ├───App Fragment: if ((username == "a")) 1. App 1b.
+    * prettyPrint(IR.AppFrag, Some("if ((username == "a"))", 3, "├───") The starting prefix for 6
+    * would be ├───└───, that combo gets fixed to be what you actually see by the replace rules │
+    * └───Workflow: four_levels_block_0 2. Workflow 2a. prettyPrint(IR.Workflow, None, 3, "│ └───")
+    * │ ├───App Task: c1 3. App 3a. prettyPrint(IR.App, None, 3, "│ ├───") The prefix in the step
+    * before this would have looked like "│ └───├───" │ └───App Task: c2 3. App 3b.
+    * pretyyPrint(IR.App, None, 3, "│ └───") ├───App Fragment: scatter (i in [1, 4, 9]) 1. App 1c.
+    * prettyPrint(IR.AppFrag, Some("scatter (i in [1, 4, 9])", 3, "├───") │ └───App Fragment:
+    * four_levels_frag_4 2. App 2b. prettyPrint(IR.AppFrag, Some("four_levels_frag_4"), 3,
+    * "├───├───") │ └───Workflow: four_levels_block_1_0 3. Workflow 3c. prettyPrint(IR.Workflow,
+    * None, 3, "│ └───") │ ├───App Fragment: if ((j == "john")) 4. App 4a. prettyPrint(IR.AppFrag,
+    * Some("if ((j == "john"))"), 3, "│ ├───") │ │ └───App Task: concat 5. App 5a.
+    * prettyPrint(IR.App, None, 3, "│ │ └───") The prefix that would be 'fixed', into this was "│
+    * ├───└───" │ └───App Fragment: if ((j == "clease")) 4. App 4b. prettyPrint(IR.AppFrag, Some("if
+    * ((j == "clease"))"), 3, "│ └───") └───App Outputs: outputs 1. App 1d. prettyPrint(IR.AppFrag,
+    * Some("outputs"), 3, "└───")
+    */
   def prettyPrint(TreeJS: JsObject,
                   stageDesc: Option[String] = None,
-                  prefix: String = ""): String = {
+                  prefix: String = ""
+  ): String = {
     TreeJS.fields.get("kind") match {
       case Some(JsString("workflow")) => prettyPrintWorkflow(prefix, TreeJS)
       case Some(JsString(_))          => prettyPrintApplets(prefix, stageDesc, TreeJS)
@@ -189,7 +199,8 @@ object ExecutableTree {
             s.asJsObject.getFields("callee") match {
               case Seq(c: JsObject) => extractExecutableNames(c, namesAcc)
               case x                => throw new Exception(s"Malformed stage ${x} in exec tree.")
-            })
+            }
+          )
           .toSet + wfName
       }
       case _ => throw new Exception(s"Missing name or stages in ${TreeJS}.")

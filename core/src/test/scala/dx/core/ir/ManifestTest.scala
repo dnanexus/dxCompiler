@@ -142,7 +142,8 @@ class ManifestTest extends AnyFlatSpec with Matchers {
                              SeqMap(
                                  "name" -> nameType,
                                  "age" -> TInt
-                             ))
+                             )
+    )
     val pairType = TSchema("Pair___(Int, Int)", SeqMap("left" -> TInt, "right" -> TInt))
     val types: Map[DxName, Type] = Map(
         SimpleDxName.fromSourceName("person") -> personType,
@@ -219,13 +220,15 @@ class ManifestTest extends AnyFlatSpec with Matchers {
                              SeqMap(
                                  "name" -> nameType,
                                  "age" -> TInt
-                             ))
+                             )
+    )
     val pairType = TSchema("Pair___(Int, Int)", SeqMap("left" -> TInt, "right" -> TInt))
     val manifest = Manifest(
         SeqMap(
             SimpleDxName.fromSourceName("bank_account") -> JsString("1234567890"),
             SimpleDxName.fromSourceName("height_ft_in") -> JsObject("left" -> JsNumber(6),
-                                                                    "right" -> JsNumber(1)),
+                                                                    "right" -> JsNumber(1)
+            ),
             SimpleDxName.fromSourceName("person") -> JsObject(
                 "age" -> JsNumber(42),
                 "name" -> JsObject(

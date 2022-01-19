@@ -4,29 +4,34 @@ import dx.api.{DxApi, DxExecutable}
 import dx.core.ir.Type.TSchema
 import spray.json.{JsObject, JsString, JsValue}
 
-/**
-  * Information used to link applets that call other applets. For example, a scatter
-  * applet calls applets that implement tasks.
-  * @param name executable name
-  * @param inputs executable inputs
-  * @param outputs exectuable outputs
-  * @param dxExec API Object
+/** Information used to link applets that call other applets. For example, a scatter applet calls
+  * applets that implement tasks.
+  * @param name
+  *   executable name
+  * @param inputs
+  *   executable inputs
+  * @param outputs
+  *   exectuable outputs
+  * @param dxExec
+  *   API Object
   */
 case class ExecutableLink(name: String,
                           inputs: Map[DxName, Type],
                           outputs: Map[DxName, Type],
-                          dxExec: DxExecutable)
+                          dxExec: DxExecutable
+)
 
 object ExecutableLink {
   def serialize(link: ExecutableLink): JsObject = {
-    val (inputTypes, inputSchemas) = TypeSerde.serializeMap(link.inputs.map {
-      case (dxName, t) => dxName.decoded -> t
+    val (inputTypes, inputSchemas) = TypeSerde.serializeMap(link.inputs.map { case (dxName, t) =>
+      dxName.decoded -> t
     })
-    val (outputTypes, inputAndOutputSchemas) = TypeSerde.serializeMap(link.outputs.map {
-                                                                        case (dxName, t) =>
-                                                                          dxName.decoded -> t
-                                                                      },
-                                                                      inputSchemas)
+    val (outputTypes, inputAndOutputSchemas) = TypeSerde.serializeMap(
+        link.outputs.map { case (dxName, t) =>
+          dxName.decoded -> t
+        },
+        inputSchemas
+    )
     JsObject(
         "name" -> JsString(link.name),
         "id" -> JsString(link.dxExec.id),
@@ -50,11 +55,11 @@ case class ExecutableLinkDeserializer(dxNameFactory: DxNameFactory, dxApi: DxApi
         val (outputTypes, _) = TypeSerde.deserializeMap(jsOutputs, inputSchemas, jsSchemas)
         ExecutableLink(
             name,
-            inputTypes.map {
-              case (name, t) => dxNameFactory.fromDecodedName(name) -> t
+            inputTypes.map { case (name, t) =>
+              dxNameFactory.fromDecodedName(name) -> t
             },
-            outputTypes.map {
-              case (name, t) => dxNameFactory.fromDecodedName(name) -> t
+            outputTypes.map { case (name, t) =>
+              dxNameFactory.fromDecodedName(name) -> t
             },
             dxApi.executable(id)
         )

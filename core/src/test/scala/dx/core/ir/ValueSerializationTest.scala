@@ -23,15 +23,15 @@ class ValueSerializationTest extends AnyFlatSpec with Matchers {
       (THash, VHash(SeqMap("A" -> VInt(1), "C" -> VInt(4), "G" -> VInt(5), "T" -> VInt(5)))),
       // structs
       (TSchema("Person", SeqMap("name" -> TString, "age" -> TInt)),
-       VHash(SeqMap("name" -> VString("Bradly"), "age" -> VInt(42))))
+       VHash(SeqMap("name" -> VString("Bradly"), "age" -> VInt(42)))
+      )
   )
 
   it should "work on a variety of values" in {
-    valueTestCases.foreach {
-      case (t, v) =>
-        val jsv = ValueSerde.serialize(v)
-        val irValue = ValueSerde.deserializeWithType(jsv, t)
-        irValue shouldBe v
+    valueTestCases.foreach { case (t, v) =>
+      val jsv = ValueSerde.serialize(v)
+      val irValue = ValueSerde.deserializeWithType(jsv, t)
+      irValue shouldBe v
     }
   }
 }

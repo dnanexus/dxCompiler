@@ -11,14 +11,11 @@ import dx.util.{FileSourceResolver, FileUtils, Logger}
 
 trait Translator {
 
-  /**
-    * The name of the runtime asset the compiler must bundle
-    * with generated applets.
+  /** The name of the runtime asset the compiler must bundle with generated applets.
     */
   def runtimeAssetName: String
 
-  /**
-    * The executor JAR file.
+  /** The executor JAR file.
     */
   def runtimeJar: String
 
@@ -31,12 +28,14 @@ trait Translator {
   protected def createInputTranslator(bundle: Bundle,
                                       inputs: Vector[Path],
                                       defaults: Option[Path],
-                                      project: DxProject): InputTranslator
+                                      project: DxProject
+  ): InputTranslator
 
   def translateInputs(bundle: Bundle,
                       inputs: Vector[Path],
                       defaults: Option[Path],
-                      project: DxProject): (Bundle, FileSourceResolver) = {
+                      project: DxProject
+  ): (Bundle, FileSourceResolver) = {
     val inputTranslator = createInputTranslator(bundle, inputs, defaults, project)
     inputTranslator.writeTranslatedInputs()
     (inputTranslator.bundleWithDefaults, inputTranslator.fileResolver)
@@ -55,7 +54,8 @@ trait TranslatorFactory {
              instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
              fileResolver: FileSourceResolver,
              dxApi: DxApi = DxApi.get,
-             logger: Logger = Logger.get): Option[Translator]
+             logger: Logger = Logger.get
+  ): Option[Translator]
 }
 
 object TranslatorFactory {
@@ -70,7 +70,8 @@ object TranslatorFactory {
                        instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
                        baseFileResolver: FileSourceResolver = FileSourceResolver.get,
                        dxApi: DxApi = DxApi.get,
-                       logger: Logger = Logger.get): Translator = {
+                       logger: Logger = Logger.get
+  ): Translator = {
     val sourceAbsPath = FileUtils.absolutePath(source)
     val fileResolver = baseFileResolver.addToLocalSearchPath(Vector(sourceAbsPath.getParent))
     // load defaults from extras

@@ -47,7 +47,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                               versionSupport: VersionSupport,
                               dxApi: DxApi = DxApi.get,
                               fileResolver: FileSourceResolver = FileSourceResolver.get,
-                              logger: Logger = Logger.get) {
+                              logger: Logger = Logger.get
+) {
 
   private lazy val evaluator: Eval =
     Eval(DefaultEvalPaths.empty, Some(wdlBundle.version), Vector.empty, fileResolver, logger)
@@ -77,7 +78,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                         task.meta,
                         defaultRuntimeAttrs,
                         evaluator,
-                        dxApi)
+                        dxApi
+      )
     private lazy val adjunctFiles: Vector[Adjuncts.AdjunctFile] =
       wdlBundle.adjunctFiles.getOrElse(task.name, Vector.empty)
     private lazy val meta = ApplicationMetaTranslator(wdlBundle.version, task.meta, adjunctFiles)
@@ -113,7 +115,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                 Parameter(WdlDxName.fromSourceName(name),
                           irType,
                           Some(WdlUtils.toIRValue(defaultValue, wdlType)),
-                          attrs)
+                          attrs
+                )
             }
           } catch {
             // This is a task input parameter definition of the form:
@@ -157,7 +160,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       // the dxURLs in the runtime section to avoid a runtime lookup. For example:
       //   dx://dxCompiler_playground:/glnexus_internal -> dx://project-xxxx:record-yyyy
       def replaceContainer(runtime: TAT.RuntimeSection,
-                           newContainer: String): TAT.RuntimeSection = {
+                           newContainer: String
+      ): TAT.RuntimeSection = {
         Set("docker", "container").foreach { key =>
           if (runtime.kvs.contains(key)) {
             return TAT.RuntimeSection(
@@ -214,8 +218,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
 
   private case class WdlWorkflowTranslator(wf: TAT.Workflow,
                                            availableDependencies: Map[String, Callable],
-                                           workflowAttrs: Option[DxWorkflowAttrs])
-      extends WorkflowTranslator(wf.name, availableDependencies, reorgAttrs, logger) {
+                                           workflowAttrs: Option[DxWorkflowAttrs]
+  ) extends WorkflowTranslator(wf.name, availableDependencies, reorgAttrs, logger) {
     private lazy val adjunctFiles: Vector[Adjuncts.AdjunctFile] =
       wdlBundle.adjunctFiles.getOrElse(wf.name, Vector.empty)
     private lazy val meta = WorkflowMetaTranslator(wdlBundle.version, wf.meta, adjunctFiles)
@@ -237,21 +241,17 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       }
     }
 
-    /**
-      * Represents each workflow input with:
-      * 1. Parameter, for type declarations
-      * 2. StageInput, connecting it to the source of the input
+    /** Represents each workflow input with:
+      *   1. Parameter, for type declarations 2. StageInput, connecting it to the source of the
+      *      input
       *
-      * It is possible to provide a default value to a workflow input.
-      * For example:
-      *  workflow w {
-      *    Int? x = 3
-      *    String s = "glasses"
-      *    ...
-      *  }
+      * It is possible to provide a default value to a workflow input. For example: workflow w {
+      * Int? x = 3 String s = "glasses" ... }
       *
-      * @param input the workflow input
-      * @return (parameter, isDynamic)
+      * @param input
+      *   the workflow input
+      * @return
+      *   (parameter, isDynamic)
       */
     private def createWorkflowInput(input: WdlBlockInput): (Parameter, Boolean) = {
       val wdlType = input.wdlType
@@ -274,7 +274,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
               (Parameter(name, irType, None, attr), true)
             case _ =>
               (Parameter(name, irType, Some(WdlUtils.toIRValue(defaultValue, wdlType)), attr),
-               false)
+               false
+              )
           }
         case OverridableBlockInputWithDynamicDefault(name, _, _) =>
           // If the default value is an expression that requires evaluation (i.e. not a constant),
@@ -292,7 +293,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                                      calleeParam: Parameter,
                                      env: CallEnv,
                                      locked: Boolean,
-                                     callFqn: String): StageInput = {
+                                     callFqn: String
+    ): StageInput = {
 
       def lookup(key: DxName): StageInput = {
         env.get(key) match {
@@ -343,11 +345,10 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         case Some(expr) =>
           try {
             val paramWdlType = WdlUtils.fromIRType(calleeParam.dxType, typeAliases)
-            val bindings = WdlValueBindings(env.staticValues.map {
-              case (dxName, (dxType, value)) =>
-                val bindingWdlType = WdlUtils.fromIRType(dxType, typeAliases)
-                val bindingValue = WdlUtils.fromIRValue(value, bindingWdlType, dxName.decoded)
-                dxName.decoded -> bindingValue
+            val bindings = WdlValueBindings(env.staticValues.map { case (dxName, (dxType, value)) =>
+              val bindingWdlType = WdlUtils.fromIRType(dxType, typeAliases)
+              val bindingValue = WdlUtils.fromIRValue(value, bindingWdlType, dxName.decoded)
+              dxName.decoded -> bindingValue
             })
             val value = evaluator.applyExprAndCoerce(expr, paramWdlType, bindings)
             StageInputStatic(WdlUtils.toIRValue(value, paramWdlType))
@@ -359,17 +360,15 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       }
     }
 
-    /**
-      * Compile a call into a stage in an IR Workflow.
-      * In a call like:
-      *    call lib.native_mk_list as mk_list {
-      *      input: a=x, b=5
-      *    }
-      * it maps callee input `a` to expression `x`. The expressions are
+    /** Compile a call into a stage in an IR Workflow. In a call like: call lib.native_mk_list as
+      * mk_list { input: a=x, b=5 } it maps callee input `a` to expression `x`. The expressions are
       * trivial because this is a case where we can directly call an applet.
-      * @param call the WDL Call object
-      * @param env the environment in which the Callee is being called
-      * @param locked whether the workflow is locked
+      * @param call
+      *   the WDL Call object
+      * @param env
+      *   the environment in which the Callee is being called
+      * @param locked
+      *   whether the workflow is locked
       * @return
       */
     private def translateCall(call: TAT.Call, env: CallEnv, locked: Boolean): Stage = {
@@ -390,31 +389,39 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                              param,
                              env,
                              locked,
-                             call.fullyQualifiedName)
+                             call.fullyQualifiedName
+        )
       }
       Stage(call.actualName, getStage(), calleeName, inputs, callee.outputVars)
     }
 
-    /**
-      * A block inside a conditional or scatter. If it is simple, we can use a
-      * direct call. Otherwise, recursively call into the asssemble-backbone
-      * method, and get a locked subworkflow.
-      * @param wfName workflow name
-      * @param statements statements in the Block
-      * @param blockPath block path
-      * @param env env
-      * @return the generated callable and a Vector of any auxillary callables
+    /** A block inside a conditional or scatter. If it is simple, we can use a direct call.
+      * Otherwise, recursively call into the asssemble-backbone method, and get a locked
+      * subworkflow.
+      * @param wfName
+      *   workflow name
+      * @param statements
+      *   statements in the Block
+      * @param blockPath
+      *   block path
+      * @param env
+      *   env
+      * @return
+      *   the generated callable and a Vector of any auxillary callables
       */
     private def translateNestedBlock(wfName: String,
                                      statements: Vector[TAT.WorkflowElement],
                                      blockPath: Vector[Int],
                                      scatterPath: Option[String],
-                                     env: CallEnv): (Callable, Vector[Callable]) = {
+                                     env: CallEnv
+    ): (Callable, Vector[Callable]) = {
       val subBlocks = WdlBlock.createBlocks(statements)
       if (subBlocks.size == 1) {
         val block = subBlocks.head
-        if (Set(BlockKind.CallDirect, BlockKind.CallWithSubexpressions)
-              .contains(block.kind)) {
+        if (
+            Set(BlockKind.CallDirect, BlockKind.CallWithSubexpressions)
+              .contains(block.kind)
+        ) {
           throw new RuntimeException("Single call not expected in nested block")
         }
         // At runtime, we will need to execute a workflow fragment. This requires an applet.
@@ -507,23 +514,27 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       }
     }
 
-    /**
-      * Builds an applet to evaluate a WDL workflow fragment.
+    /** Builds an applet to evaluate a WDL workflow fragment.
       *
-      * @param wfName the workflow name
-      * @param block the Block to translate into a WfFragment
-      * @param blockPath keeps track of which block this fragment represents;
-      *                   a top level block is a number. A sub-block of a top-level
-      *                   block is a vector of two numbers, etc.
-      * @param scatterPath all of the parent scatters this fragment is nested within
-      * @param env the environment
+      * @param wfName
+      *   the workflow name
+      * @param block
+      *   the Block to translate into a WfFragment
+      * @param blockPath
+      *   keeps track of which block this fragment represents; a top level block is a number. A
+      *   sub-block of a top-level block is a vector of two numbers, etc.
+      * @param scatterPath
+      *   all of the parent scatters this fragment is nested within
+      * @param env
+      *   the environment
       * @return
       */
     private def translateWfFragment(wfName: String,
                                     block: WdlBlock,
                                     blockPath: Vector[Int],
                                     scatterPath: Option[String],
-                                    env: CallEnv): (Stage, Vector[Callable]) = {
+                                    env: CallEnv
+    ): (Stage, Vector[Callable]) = {
       val stageName = block.getName.getOrElse(Constants.EvalStage)
       logger.trace(s"Compiling fragment <$stageName> as stage")
       logger
@@ -537,9 +548,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       // Complex conditional and scatter blocks may have private variables
       // that need to be added to the environment for use in nested blocks.
       lazy val envWithPrivateVars = env.addAll(
-          block.prerequisiteVars.map {
-            case (dxName, wdlType) =>
-              dxName -> (Parameter(dxName, WdlUtils.toIRType(wdlType)), StageInputEmpty)
+          block.prerequisiteVars.map { case (dxName, wdlType) =>
+            dxName -> (Parameter(dxName, WdlUtils.toIRType(wdlType)), StageInputEmpty)
           }
       )
 
@@ -572,7 +582,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                                                        conditional.body,
                                                        blockPath,
                                                        scatterPath,
-                                                       envWithPrivateVars)
+                                                       envWithPrivateVars
+            )
             (Some(callable.name), aux :+ callable, None)
           case BlockKind.ScatterComplex =>
             val scatter = block.scatter
@@ -625,8 +636,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       val (inputParams, stageInputs) = block.inputs
         .flatMap(i => env.lookup(i.name))
         .distinct
-        .map {
-          case (fqn, (param, stageInput)) => (param.copy(name = fqn), stageInput)
+        .map { case (fqn, (param, stageInput)) =>
+          (param.copy(name = fqn), stageInput)
         }
         .unzip
 
@@ -653,22 +664,26 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       (Stage(stageName, getStage(), applet.name, stageInputs, outputParams), auxCallables :+ applet)
     }
 
-    /**
-      * Assembles the backbone of a workflow, having compiled the independent tasks.
-      * This is shared between locked and unlocked workflows. Some of the inputs may
-      * have default values that are complex expressions, necessitating an initial
-      * fragment that performs the evaluation - this only applies to locked workflows,
-      * since unlocked workflows always have a "common" applet to handle such expressions.
+    /** Assembles the backbone of a workflow, having compiled the independent tasks. This is shared
+      * between locked and unlocked workflows. Some of the inputs may have default values that are
+      * complex expressions, necessitating an initial fragment that performs the evaluation - this
+      * only applies to locked workflows, since unlocked workflows always have a "common" applet to
+      * handle such expressions.
       *
-      * @param wfName workflow name
-      * @param wfInputs workflow inputs
-      * @param blockPath the path to the current (sub)workflow, as a vector of block indices
-      * @param subBlocks the sub-blocks of the current block
-      * @param locked whether the workflow is locked
-      * @return A tuple (Vector[(Stage, Vector[Callable])], CallEnv), whose first element
-      *         is a Vector of stages and the callables included in each stage, and the
-      *         second element is a Map of all the input and output variables of the
-      *         workflow and its stages.
+      * @param wfName
+      *   workflow name
+      * @param wfInputs
+      *   workflow inputs
+      * @param blockPath
+      *   the path to the current (sub)workflow, as a vector of block indices
+      * @param subBlocks
+      *   the sub-blocks of the current block
+      * @param locked
+      *   whether the workflow is locked
+      * @return
+      *   A tuple (Vector[(Stage, Vector[Callable])], CallEnv), whose first element is a Vector of
+      *   stages and the callables included in each stage, and the second element is a Map of all
+      *   the input and output variables of the workflow and its stages.
       */
     private def createWorkflowStages(
         wfName: String,
@@ -698,11 +713,10 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                 val stage = translateCall(call, beforeEnv, locked)
                 // Add bindings for the output variables. This allows later calls to refer
                 // to these results.
-                val afterEnv = stage.outputs.foldLeft(beforeEnv) {
-                  case (env, param: Parameter) =>
-                    val dxName = param.name.pushDecodedNamespace(call.actualName)
-                    val paramFqn = param.copy(name = dxName)
-                    env.add(dxName, (paramFqn, StageInputStageLink(stage.dxStage, param)))
+                val afterEnv = stage.outputs.foldLeft(beforeEnv) { case (env, param: Parameter) =>
+                  val dxName = param.name.pushDecodedNamespace(call.actualName)
+                  val paramFqn = param.copy(name = dxName)
+                  env.add(dxName, (paramFqn, StageInputStageLink(stage.dxStage, param)))
                 }
                 (stages :+ (stage, Vector.empty[Callable]), afterEnv)
               case _ =>
@@ -713,9 +727,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
             // before the target applet/workflow can be launched.
             val (stage, auxCallables) =
               translateWfFragment(wfName, block, blockPath :+ blockNum, scatterPath, beforeEnv)
-            val afterEnv = stage.outputs.foldLeft(beforeEnv) {
-              case (env, param) =>
-                env.add(param.name, (param, StageInputStageLink(stage.dxStage, param)))
+            val afterEnv = stage.outputs.foldLeft(beforeEnv) { case (env, param) =>
+              env.add(param.name, (param, StageInputStageLink(stage.dxStage, param)))
             }
             (stages :+ (stage, auxCallables), afterEnv)
         }
@@ -723,11 +736,10 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       if (logger2.containsKey("GenerateIR")) {
         logger2.trace(s"stages for workflow $wfName = [")
         val logger3 = logger2.withTraceIfContainsKey("GenerateIR", indentInc = 1)
-        allStageInfo.foreach {
-          case (stage, _) =>
-            logger3.trace(
-                s"${stage.description}, ${stage.dxStage.id} -> callee=${stage.calleeName}"
-            )
+        allStageInfo.foreach { case (stage, _) =>
+          logger3.trace(
+              s"${stage.description}, ${stage.dxStage.id} -> callee=${stage.calleeName}"
+          )
         }
         logger2.trace("]")
       }
@@ -768,22 +780,24 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       (param, stageInput)
     }
 
-    /**
-      * Build an applet + workflow stage for evaluating outputs. There are two reasons
-      * to be build a special output section:
-      * 1. Locked workflow: some of the workflow outputs are expressions.
-      *    We need an extra applet+stage to evaluate them.
-      * 2. Unlocked workflow: there are no workflow outputs, so we create
-      *    them artificially with a separate stage that collects the outputs.
-      * @param wfName the workflow name
-      * @param outputs the outputs
-      * @param env the environment
+    /** Build an applet + workflow stage for evaluating outputs. There are two reasons to be build a
+      * special output section:
+      *   1. Locked workflow: some of the workflow outputs are expressions. We need an extra
+      *      applet+stage to evaluate them. 2. Unlocked workflow: there are no workflow outputs, so
+      *      we create them artificially with a separate stage that collects the outputs.
+      * @param wfName
+      *   the workflow name
+      * @param outputs
+      *   the outputs
+      * @param env
+      *   the environment
       * @return
       */
     private def createOutputStage(wfName: String,
                                   outputs: Vector[WdlBlockOutput],
                                   blockPath: Vector[Int],
-                                  env: CallEnv): (Stage, Application) = {
+                                  env: CallEnv
+    ): (Stage, Application) = {
       // split outputs into those that are passed through directly from inputs vs
       // those that require evaluation
       val (outputsToPass, outputsToEval) = outputs.partition(o => env.contains(o.name))
@@ -793,8 +807,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       // which includes (recursively) all the variables in the output node expressions
       val outputsToEvalClosureEnv: Map[DxName, LinkedVar] = {
         WdlUtils
-          .getOutputClosure(outputsToEval.map {
-            case WdlBlockOutput(dxName, wdlType, expr) => dxName -> (wdlType, expr)
+          .getOutputClosure(outputsToEval.map { case WdlBlockOutput(dxName, wdlType, expr) =>
+            dxName -> (wdlType, expr)
           }.toMap)
           .keySet
           .map(name => name -> env(name))
@@ -854,18 +868,24 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       (stage, application)
     }
 
-    /**
-      * Compile a locked workflow. This is called at the top level for locked workflows,
-      * and it is always called for nested workflows regardless of whether the top level
-      * is locked.
-      * @param wfName workflow name
-      * @param inputs formal workflow inputs
-      * @param closureInputs inputs depended on by `inputs`; mapping of name to (type, optional)
-      * @param outputs workflow outputs
-      * @param blockPath the path to the current (sub)workflow, as a vector of block indices
-      * @param subBlocks the sub-blocks of the current block
-      * @param scatterPath all of the parent scatters this fragment is nested within
-      * @param level the workflow level
+    /** Compile a locked workflow. This is called at the top level for locked workflows, and it is
+      * always called for nested workflows regardless of whether the top level is locked.
+      * @param wfName
+      *   workflow name
+      * @param inputs
+      *   formal workflow inputs
+      * @param closureInputs
+      *   inputs depended on by `inputs`; mapping of name to (type, optional)
+      * @param outputs
+      *   workflow outputs
+      * @param blockPath
+      *   the path to the current (sub)workflow, as a vector of block indices
+      * @param subBlocks
+      *   the sub-blocks of the current block
+      * @param scatterPath
+      *   all of the parent scatters this fragment is nested within
+      * @param level
+      *   the workflow level
       * @return
       */
     private def translateWorkflowLocked(
@@ -922,7 +942,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                                allWfInputParameters,
                                commonStageInputs,
                                inputOutputs ++ closureInputParams,
-                               blockPath)
+                               blockPath
+            )
           val fauxWfInputs: Vector[LinkedVar] = commonStage.outputs.map { param =>
             val link = StageInputStageLink(commonStage.dxStage, param)
             (param, link)
@@ -986,8 +1007,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         val (outputsToPass, outputsToEval) = outputs.partition(o => env.contains(o.name))
         val inputAsOutputNames = outputsToPass.map(_.name).toSet ++
           WdlUtils
-            .getOutputClosure(outputsToEval.map {
-              case WdlBlockOutput(dxName, wdlType, expr) => dxName -> (wdlType, expr)
+            .getOutputClosure(outputsToEval.map { case WdlBlockOutput(dxName, wdlType, expr) =>
+              dxName -> (wdlType, expr)
             }.toMap)
             .keySet
         inputs.map(_.name).toSet.intersect(inputAsOutputNames).nonEmpty
@@ -1004,8 +1025,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         (wfOutputs, stages, auxCallables.flatten)
       }
 
-      val privateVariables = wf.body.collect {
-        case e: TAT.PrivateVariable => e
+      val privateVariables = wf.body.collect { case e: TAT.PrivateVariable =>
+        e
       }
       val staticFileDependencies = translateStaticFileDependencies(privateVariables)
 
@@ -1021,11 +1042,11 @@ case class CallableTranslator(wdlBundle: WdlBundle,
            staticFileDependencies = staticFileDependencies
        ),
        finalCallables,
-       wfOutputs)
+       wfOutputs
+      )
     }
 
-    /**
-      * Compile a top-level locked workflow.
+    /** Compile a top-level locked workflow.
       */
     private def translateTopWorkflowLocked(
         inputs: Vector[WdlBlockInput],
@@ -1039,12 +1060,12 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                               Vector.empty,
                               subBlocks,
                               None,
-                              Level.Top)
+                              Level.Top
+      )
     }
 
-    /**
-      * Compile a "regular" (i.e. unlocked) workflow. This function only gets
-      * called at the top-level.
+    /** Compile a "regular" (i.e. unlocked) workflow. This function only gets called at the
+      * top-level.
       */
     private def translateTopWorkflowUnlocked(
         inputs: Vector[WdlBlockInput],
@@ -1078,8 +1099,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       val wfAttr = meta.translate
       val wfSource = WdlWorkflowSource(wf, versionSupport)
 
-      val privateVariables = wf.body.collect {
-        case e: TAT.PrivateVariable => e
+      val privateVariables = wf.body.collect { case e: TAT.PrivateVariable =>
+        e
       }
       val staticFileDependencies = translateStaticFileDependencies(privateVariables)
 
@@ -1113,14 +1134,17 @@ case class CallableTranslator(wdlBundle: WdlBundle,
     }
   }
 
-  /**
-    * Translates a WDL Callable to IR.
-    * @param callable the TAT.Callable to translate
-    * @param availableDependencies the available Callables upon which `callable` may depend
-    * @return ir.Callable
+  /** Translates a WDL Callable to IR.
+    * @param callable
+    *   the TAT.Callable to translate
+    * @param availableDependencies
+    *   the available Callables upon which `callable` may depend
+    * @return
+    *   ir.Callable
     */
   def translateCallable(callable: TAT.Callable,
-                        availableDependencies: Map[String, Callable]): Vector[Callable] = {
+                        availableDependencies: Map[String, Callable]
+  ): Vector[Callable] = {
     callable match {
       case task: TAT.Task =>
         val taskTranslator = WdlTaskTranslator(task)

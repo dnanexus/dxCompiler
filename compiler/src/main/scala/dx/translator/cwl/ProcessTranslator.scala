@@ -90,7 +90,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
                              instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
                              dxApi: DxApi = DxApi.get,
                              fileResolver: FileSourceResolver = FileSourceResolver.get,
-                             logger: Logger = Logger.get) {
+                             logger: Logger = Logger.get
+) {
 
   private lazy val schemaStaticDependencies = cwlSchemas match {
     case Some(JsArray(schemas)) =>
@@ -188,7 +189,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
                 val (actualType, actualValue) =
                   requirementEvaluator.evaluator.evaluate(cwlValue,
                                                           output.cwlType,
-                                                          evaluatorContext)
+                                                          evaluatorContext
+                  )
                 val (_, value) = CwlUtils.toIRValue(actualValue, actualType)
                 Some(value)
               } catch {
@@ -226,7 +228,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
                                         defaults,
                                         inputParameters = inputParams,
                                         inputDir = inputDir,
-                                        fileResolver = fileResolver)
+                                        fileResolver = fileResolver
+        )
       val outputs = tool.outputs.collect {
         case i if i.id.exists(_.name.isDefined) => translateOutput(i, outputCtx)
       }
@@ -341,7 +344,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
                                       calleeParam: Parameter,
                                       env: CallEnv,
                                       locked: Boolean,
-                                      callName: String): StageInput = {
+                                      callName: String
+    ): StageInput = {
 
       def lookup(key: DxName): StageInput = {
         env.get(key) match {
@@ -413,23 +417,27 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       Stage(call.name, getStage(), calleeName, inputs, callee.outputVars)
     }
 
-    /**
-      * Builds an applet to evaluate a WDL workflow fragment.
+    /** Builds an applet to evaluate a WDL workflow fragment.
       *
-      * @param wfName the workflow name
-      * @param block the Block to translate into a WfFragment
-      * @param blockPath keeps track of which block this fragment represents;
-      *                   a top level block is a number. A sub-block of a top-level
-      *                   block is a vector of two numbers, etc.
-      * @param stepPath the workflow steps that led to this fragment.
-      * @param env the environment
+      * @param wfName
+      *   the workflow name
+      * @param block
+      *   the Block to translate into a WfFragment
+      * @param blockPath
+      *   keeps track of which block this fragment represents; a top level block is a number. A
+      *   sub-block of a top-level block is a vector of two numbers, etc.
+      * @param stepPath
+      *   the workflow steps that led to this fragment.
+      * @param env
+      *   the environment
       * @return
       */
     private def translateWfFragment(wfName: String,
                                     block: CwlBlock,
                                     blockPath: Vector[Int],
                                     stepPath: Option[String],
-                                    env: CallEnv): (Stage, Callable) = {
+                                    env: CallEnv
+    ): (Stage, Callable) = {
       val stageName = block.getName match {
         case None       => Constants.EvalStage
         case Some(name) => name
@@ -455,8 +463,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
               throw new Exception(s"missing required input ${name}")
           }
         case OptionalBlockInput(name, _) =>
-          env.lookup(name).map {
-            case (fqn, (param, stageInput)) => (param.copy(name = fqn), stageInput)
+          env.lookup(name).map { case (fqn, (param, stageInput)) =>
+            (param.copy(name = fqn), stageInput)
           }
       }.unzip
 
@@ -548,9 +556,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
               // a complex block that needs a subworkflow
               val (stage, callable) =
                 translateWfFragment(wfName, block, blockPath :+ blockNum, stepPath, beforeEnv)
-              val afterEnv = stage.outputs.foldLeft(beforeEnv) {
-                case (env, param) =>
-                  env.add(param.name, (param, StageInputStageLink(stage.dxStage, param)))
+              val afterEnv = stage.outputs.foldLeft(beforeEnv) { case (env, param) =>
+                env.add(param.name, (param, StageInputStageLink(stage.dxStage, param)))
               }
               (stages :+ (stage, Vector(callable)), afterEnv)
             } else if (block.targetIsSimpleCall) {
@@ -562,11 +569,10 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
               val stage = translateCall(step, beforeEnv, locked)
               // Add bindings for the output variables. This allows later calls to refer
               // to these results.
-              val afterEnv = stage.outputs.foldLeft(beforeEnv) {
-                case (env, param: Parameter) =>
-                  val fqn = param.name.pushDecodedNamespace(step.name)
-                  val paramFqn = param.copy(name = fqn)
-                  env.add(fqn, (paramFqn, StageInputStageLink(stage.dxStage, param)))
+              val afterEnv = stage.outputs.foldLeft(beforeEnv) { case (env, param: Parameter) =>
+                val fqn = param.name.pushDecodedNamespace(step.name)
+                val paramFqn = param.copy(name = fqn)
+                env.add(fqn, (paramFqn, StageInputStageLink(stage.dxStage, param)))
               }
               (stages :+ (stage, Vector.empty[Callable]), afterEnv)
             } else {
@@ -577,11 +583,10 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       if (logger2.containsKey("GenerateIR")) {
         logger2.trace(s"stages for workflow $wfName = [")
         val logger3 = logger2.withTraceIfContainsKey("GenerateIR", indentInc = 1)
-        allStageInfo.foreach {
-          case (stage, _) =>
-            logger3.trace(
-                s"${stage.description}, ${stage.dxStage.id} -> callee=${stage.calleeName}"
-            )
+        allStageInfo.foreach { case (stage, _) =>
+          logger3.trace(
+              s"${stage.description}, ${stage.dxStage.id} -> callee=${stage.calleeName}"
+          )
         }
         logger2.trace("]")
       }
@@ -589,22 +594,24 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       (allStageInfo, stageEnv)
     }
 
-    /**
-      * Build an applet + workflow stage for evaluating outputs. There are two reasons
-      * to be build a special output section:
-      * 1. Locked workflow: some of the workflow outputs are expressions.
-      *    We need an extra applet+stage to evaluate them.
-      * 2. Unlocked workflow: there are no workflow outputs, so we create
-      *    them artificially with a separate stage that collects the outputs.
-      * @param wfName the workflow name
-      * @param outputs the outputs
-      * @param env the environment
+    /** Build an applet + workflow stage for evaluating outputs. There are two reasons to be build a
+      * special output section:
+      *   1. Locked workflow: some of the workflow outputs are expressions. We need an extra
+      *      applet+stage to evaluate them. 2. Unlocked workflow: there are no workflow outputs, so
+      *      we create them artificially with a separate stage that collects the outputs.
+      * @param wfName
+      *   the workflow name
+      * @param outputs
+      *   the outputs
+      * @param env
+      *   the environment
       * @return
       */
     private def createOutputStage(wfName: String,
                                   outputs: Vector[WorkflowOutputParameter],
                                   blockPath: Vector[Int],
-                                  env: CallEnv): (Stage, Application) = {
+                                  env: CallEnv
+    ): (Stage, Application) = {
       val paramNames: Set[DxName] = outputs.flatMap { param =>
         if (param.sources.isEmpty) {
           throw new Exception(
@@ -663,17 +670,22 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       (stage, application)
     }
 
-    /**
-      * Compile a locked workflow. This is called at the top level for locked workflows,
-      * and it is always called for nested workflows regardless of whether the top level
-      * is locked.
-      * @param wfName workflow name
-      * @param inputs formal workflow inputs
-      * @param outputs workflow outputs
-      * @param blockPath the path to the current (sub)workflow, as a vector of block indices
-      * @param subBlocks the sub-blocks of the current block
-      * @param stepPath the workflow steps that led to this fragment.
-      * @param level the workflow level
+    /** Compile a locked workflow. This is called at the top level for locked workflows, and it is
+      * always called for nested workflows regardless of whether the top level is locked.
+      * @param wfName
+      *   workflow name
+      * @param inputs
+      *   formal workflow inputs
+      * @param outputs
+      *   workflow outputs
+      * @param blockPath
+      *   the path to the current (sub)workflow, as a vector of block indices
+      * @param subBlocks
+      *   the sub-blocks of the current block
+      * @param stepPath
+      *   the workflow steps that led to this fragment.
+      * @param level
+      *   the workflow level
       * @return
       */
     def translateWorkflowLocked(
@@ -749,7 +761,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           out.sources.headOption.exists { sourceId =>
             env.get(CwlDxName.fromDecodedName(sourceId.frag.get)).map(_._1).exists { stageParam =>
               CwlUtils.requiresDowncast(CwlUtils.fromIRType(stageParam.dxType, isInput = false),
-                                        out.cwlType)
+                                        out.cwlType
+              )
             }
           }
         }
@@ -789,9 +802,11 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
                 finalStages,
                 standAloneWorkflow,
                 locked = true,
-                level),
+                level
+       ),
        finalCallables,
-       wfOutputs)
+       wfOutputs
+      )
     }
 
     private def translateTopWorkflowLocked(
@@ -859,14 +874,16 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
 
   def translateProcess(process: Process,
                        availableDependencies: Map[String, Callable],
-                       isPrimary: Boolean): Vector[Callable] = {
+                       isPrimary: Boolean
+  ): Vector[Callable] = {
     process match {
       case tool: CommandLineTool =>
         val toolTranslator =
           CwlToolTranslator(tool,
                             isPrimary = isPrimary,
                             cwlBundle.requirements.getOrElse(tool.name, Vector.empty),
-                            cwlBundle.hints.getOrElse(tool.name, Vector.empty))
+                            cwlBundle.hints.getOrElse(tool.name, Vector.empty)
+          )
         Vector(toolTranslator.apply)
       case tool: ExpressionTool =>
         val toolTranslator = CwlToolTranslator(

@@ -190,13 +190,15 @@ case class DxAccess(network: Option[Vector[String]],
                     project: Option[DxAccessLevel],
                     allProjects: Option[DxAccessLevel],
                     developer: Option[Boolean],
-                    projectCreation: Option[Boolean]) {
+                    projectCreation: Option[Boolean]
+) {
 
   // Merge with an additional set of access requirments.
   // Take the maximum for each field, and merge the network.
   def merge(from: DxAccess): DxAccess = {
     def mergeAccessLevels(al1: Option[DxAccessLevel],
-                          al2: Option[DxAccessLevel]): Option[DxAccessLevel] = {
+                          al2: Option[DxAccessLevel]
+    ): Option[DxAccessLevel] = {
       Vector(al1, al2).flatten match {
         case Vector(x)    => Some(x)
         case Vector(x, y) => Some(Vector(x, y).max)
@@ -259,7 +261,8 @@ case class DxTimeout(days: Option[Long], hours: Option[Long], minutes: Option[Lo
 case class DxRunSpec(access: Option[DxAccess],
                      executionPolicy: Option[DxExecPolicy],
                      restartableEntryPoints: Option[String],
-                     timeoutPolicy: Option[DxTimeout]) {}
+                     timeoutPolicy: Option[DxTimeout]
+) {}
 
 object DxRunSpec {
   val Access = "access"
@@ -276,17 +279,20 @@ object DxRunSpec {
   }
 
   def createApiExecutionPolicy(restartOn: Option[Map[String, Long]],
-                               maxRestarts: Option[Long]): (String, JsValue) = {
+                               maxRestarts: Option[Long]
+  ): (String, JsValue) = {
     DxRunSpec.ExecutionPolicy -> DxExecPolicy(restartOn, maxRestarts).toJson
   }
 
   def createApiTimeoutPolicy(days: Option[Long],
                              hours: Option[Long],
-                             minutes: Option[Long]): (String, JsValue) = {
+                             minutes: Option[Long]
+  ): (String, JsValue) = {
     DxRunSpec.TimeoutPolicy -> JsObject(
         "*" -> DxTimeout(days.orElse(Some(0)),
                          hours.orElse(Some(0)),
-                         minutes.orElse(Some(0))).toJson
+                         minutes.orElse(Some(0))
+        ).toJson
     )
   }
 }
@@ -296,7 +302,8 @@ case class DxLicense(name: String,
                      version: String,
                      license: String,
                      licenseUrl: String,
-                     author: String)
+                     author: String
+)
 
 case class DxDetails(upstreamProjects: Option[Vector[DxLicense]])
 
@@ -308,7 +315,8 @@ abstract class DxMeta(title: Option[String],
                       categories: Option[Vector[String]],
                       types: Option[Vector[String]],
                       tags: Option[Vector[String]],
-                      properties: Option[Map[String, String]]) {
+                      properties: Option[Map[String, String]]
+) {
   def getMetaJson: Map[String, JsValue] = {
     Vector(
         title.map(t => "title" -> JsString(t)),
@@ -320,9 +328,10 @@ abstract class DxMeta(title: Option[String],
         types.map(t => "types" -> JsArray(t.map(JsString(_)))),
         tags.map(t => "tags" -> JsArray(t.map(JsString(_)))),
         properties.map(p =>
-          "properties" -> JsObject(p.map {
-            case (key, value) => key -> JsString(value)
-          }))
+          "properties" -> JsObject(p.map { case (key, value) =>
+            key -> JsString(value)
+          })
+        )
     ).flatten.toMap
   }
 }
@@ -338,16 +347,17 @@ case class DxAppJson(runSpec: Option[DxRunSpec] = None,
                      types: Option[Vector[String]] = None,
                      tags: Option[Vector[String]] = None,
                      properties: Option[Map[String, String]] = None,
-                     openSource: Option[Boolean] = None)
-    extends DxMeta(title,
-                   summary,
-                   description,
-                   developerNotes,
-                   version,
-                   categories,
-                   types,
-                   tags,
-                   properties) {
+                     openSource: Option[Boolean] = None
+) extends DxMeta(title,
+                 summary,
+                 description,
+                 developerNotes,
+                 version,
+                 categories,
+                 types,
+                 tags,
+                 properties
+    ) {
 
   override def getMetaJson: Map[String, JsValue] = {
     super.getMetaJson ++ Vector(
@@ -367,9 +377,9 @@ case class DxAppJson(runSpec: Option[DxRunSpec] = None,
   }
 }
 
-/**
-  * Runtime attributes for scatter blocks.
-  * @param chunkSize maximum number of scatter jobs to run at once
+/** Runtime attributes for scatter blocks.
+  * @param chunkSize
+  *   maximum number of scatter jobs to run at once
   */
 case class DxScatterAttrs(chunkSize: Option[Int] = None) {
   chunkSize.foreach { size =>
@@ -381,10 +391,11 @@ case class DxScatterAttrs(chunkSize: Option[Int] = None) {
   }
 }
 
-/**
-  * Runtime attributes set at a per-workflow level.
-  * @param scatterDefaults default scatter attributes that apply to an entire workflow
-  * @param scatters scatter attributes that apply to individual scatter blocks
+/** Runtime attributes set at a per-workflow level.
+  * @param scatterDefaults
+  *   default scatter attributes that apply to an entire workflow
+  * @param scatters
+  *   scatter attributes that apply to individual scatter blocks
   */
 case class DxWorkflowAttrs(scatterDefaults: Option[DxScatterAttrs],
                            scatters: Option[Map[String, DxScatterAttrs]],
@@ -396,21 +407,23 @@ case class DxWorkflowAttrs(scatterDefaults: Option[DxScatterAttrs],
                            categories: Option[Vector[String]],
                            types: Option[Vector[String]],
                            tags: Option[Vector[String]],
-                           properties: Option[Map[String, String]])
-    extends DxMeta(title,
-                   summary,
-                   description,
-                   developerNotes,
-                   version,
-                   categories,
-                   types,
-                   tags,
-                   properties)
+                           properties: Option[Map[String, String]]
+) extends DxMeta(title,
+                 summary,
+                 description,
+                 developerNotes,
+                 version,
+                 categories,
+                 types,
+                 tags,
+                 properties
+    )
 
 case class DockerRegistry(registry: String,
                           credentials: String,
                           username: Option[String],
-                          awsRegion: Option[String]) {
+                          awsRegion: Option[String]
+) {
   if (!(username.isDefined || awsRegion.isDefined)) {
     deserializationError(
         "either 'username' or 'awsRegion' must be defined in Extras.dockerRegistry"
@@ -424,8 +437,8 @@ sealed trait ReorgSettings {
 case class DefaultReorgSettings(enabled: Boolean) extends ReorgSettings
 case class CustomReorgSettings(appUri: String,
                                configFile: Option[String] = None,
-                               enabled: Boolean = true)
-    extends ReorgSettings
+                               enabled: Boolean = true
+) extends ReorgSettings
 
 case class Extras(defaultRuntimeAttributes: Option[Map[String, Value]],
                   defaultTaskDxAttributes: Option[DxAppJson],
@@ -435,7 +448,8 @@ case class Extras(defaultRuntimeAttributes: Option[Map[String, Value]],
                   dockerRegistry: Option[DockerRegistry],
                   customReorgAttributes: Option[CustomReorgSettings],
                   ignoreReuse: Option[Boolean],
-                  delayWorkspaceDestruction: Option[Boolean]) {
+                  delayWorkspaceDestruction: Option[Boolean]
+) {
   defaultRuntimeAttributes.foreach { attrs =>
     val unsupportedRuntimeAttrs = attrs.keySet.diff(Extras.RuntimeAttrs)
     if (unsupportedRuntimeAttrs.nonEmpty) {
@@ -478,14 +492,15 @@ object Extras {
     camelizeRegexp.replaceAllIn(s,
                                 { m =>
                                   m.group(1).toUpperCase()
-                                })
+                                }
+    )
   }
 
   private def camelizeKeys(jsv: JsValue): JsValue = {
     jsv match {
       case JsObject(fields) =>
-        JsObject(fields.map {
-          case (key, value) => camelize(key) -> value
+        JsObject(fields.map { case (key, value) =>
+          camelize(key) -> value
         })
       case JsArray(values) => JsArray(values.map(camelizeKeys))
       case _               => jsv

@@ -67,8 +67,8 @@ class DxdaManifestTest extends AnyFlatSpec with Matchers {
       }
       .toMap
 
-    val filesInManifest: Map[DxFile, Path] = describedFiles.map {
-      case (dxUri, dxFile: DxFile) => dxFile -> fileDir(dxUri)
+    val filesInManifest: Map[DxFile, Path] = describedFiles.map { case (dxUri, dxFile: DxFile) =>
+      dxFile -> fileDir(dxUri)
     }
 
     // create a manifest
@@ -77,17 +77,16 @@ class DxdaManifestTest extends AnyFlatSpec with Matchers {
 
     // compare to data obtained with dx-toolkit
     val expected: Vector[JsValue] = describedFiles
-      .map {
-        case (dxUri, dxFile) =>
-          val local: Path = fileDir(dxUri)
+      .map { case (dxUri, dxFile) =>
+        val local: Path = fileDir(dxUri)
 
-          // add the target folder and name
-          val fields = Map(
-              "id" -> JsString(dxFile.id),
-              "name" -> JsString(local.toFile.getName),
-              "folder" -> JsString(local.toFile.getParent)
-          )
-          JsObject(fields)
+        // add the target folder and name
+        val fields = Map(
+            "id" -> JsString(dxFile.id),
+            "name" -> JsString(local.toFile.getName),
+            "folder" -> JsString(local.toFile.getParent)
+        )
+        JsObject(fields)
       }
       .toVector
       .reverse
@@ -122,8 +121,8 @@ class DxdaManifestTest extends AnyFlatSpec with Matchers {
     val describedFiles = dxApi.describeFilesBulk(resolvedFiles.toVector)
     val filesInManifest: Map[DxFile, Path] = uris
       .zip(describedFiles)
-      .map {
-        case (dxUri, dxFile: DxFile) => dxFile -> fileDir(dxUri)
+      .map { case (dxUri, dxFile: DxFile) =>
+        dxFile -> fileDir(dxUri)
       }
       .toMap
 

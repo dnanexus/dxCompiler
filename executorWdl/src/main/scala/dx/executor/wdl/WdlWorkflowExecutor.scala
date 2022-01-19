@@ -39,8 +39,8 @@ object WdlWorkflowExecutor {
     val workflow = doc.workflow.getOrElse(
         throw new RuntimeException("This document should have a workflow")
     )
-    val tasks = doc.elements.collect {
-      case task: TAT.Task => task.name -> task
+    val tasks = doc.elements.collect { case task: TAT.Task =>
+      task.name -> task
     }.toMap
     WdlWorkflowExecutor(doc.source,
                         workflow,
@@ -48,20 +48,26 @@ object WdlWorkflowExecutor {
                         tasks,
                         typeAliases.toMap,
                         jobMeta,
-                        separateOutputs)
+                        separateOutputs
+    )
   }
 }
 
 // TODO: implement graph building from workflow - input and output parameters
 //  should be ordered in calls to InputOutput.*
-/**
-  * Executor for WDL workflows.
-  * @param docSource the FileNode from which the workflow source originated.
-  * @param workflow the Workflow object.
-  * @param versionSupport WDL version-specific functions.
-  * @param tasks the WDL tasks called by the workflow.
-  * @param wdlTypeAliases Struct definitions.
-  * @param jobMeta functions to access job and executable metadata.
+/** Executor for WDL workflows.
+  * @param docSource
+  *   the FileNode from which the workflow source originated.
+  * @param workflow
+  *   the Workflow object.
+  * @param versionSupport
+  *   WDL version-specific functions.
+  * @param tasks
+  *   the WDL tasks called by the workflow.
+  * @param wdlTypeAliases
+  *   Struct definitions.
+  * @param jobMeta
+  *   functions to access job and executable metadata.
   */
 case class WdlWorkflowExecutor(docSource: FileNode,
                                workflow: TAT.Workflow,
@@ -69,8 +75,8 @@ case class WdlWorkflowExecutor(docSource: FileNode,
                                tasks: Map[String, TAT.Task],
                                wdlTypeAliases: Map[String, T_Struct],
                                jobMeta: JobMeta,
-                               separateOutputs: Boolean)
-    extends WorkflowExecutor[WdlBlock](jobMeta = jobMeta, separateOutputs = separateOutputs) {
+                               separateOutputs: Boolean
+) extends WorkflowExecutor[WdlBlock](jobMeta = jobMeta, separateOutputs = separateOutputs) {
   private val logger = jobMeta.logger
   private lazy val evaluator = Eval(
       jobMeta.workerPaths,
@@ -123,16 +129,18 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           val inputBindings =
             InputOutput.inputsFromValues(workflow.name,
                                          workflow.inputs,
-                                         inputValues.map {
-                                           case (dxName, v) => dxName.decoded -> v
+                                         inputValues.map { case (dxName, v) =>
+                                           dxName.decoded -> v
                                          },
                                          evaluator,
                                          ignoreDefaultEvalError = false,
-                                         nullCollectionAsEmpty = true)
+                                         nullCollectionAsEmpty = true
+            )
           (inputTypes,
-           inputBindings.toMap.map {
-             case (name, v) => WdlDxName.fromSourceName(name) -> v
-           })
+           inputBindings.toMap.map { case (name, v) =>
+             WdlDxName.fromSourceName(name) -> v
+           }
+          )
         case path =>
           val block: WdlBlock =
             Block.getSubBlockAt(WdlBlock.createBlocks(workflow.body), path)
@@ -145,8 +153,8 @@ case class WdlWorkflowExecutor(docSource: FileNode,
             .map { e =>
               val (inputs, _) =
                 WdlUtils.getClosureInputsAndOutputs(Vector(e), withField = true)
-              inputs.map {
-                case (dxName, (wdlType, _)) => dxName -> wdlType
+              inputs.map { case (dxName, (wdlType, _)) =>
+                dxName -> wdlType
               }.toMap
             }
             .getOrElse(Map.empty[DxName, T])
@@ -160,8 +168,8 @@ case class WdlWorkflowExecutor(docSource: FileNode,
             logger.trace(
                 s"""input parameters:
                    |${inputTypes
-                  .map {
-                    case (name, wdlType) => s"  ${TypeUtils.prettyFormatType(wdlType)} ${name}"
+                  .map { case (name, wdlType) =>
+                    s"  ${TypeUtils.prettyFormatType(wdlType)} ${name}"
                   }
                   .mkString("\n")}
                    |input values:
@@ -171,12 +179,11 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           (inputTypes, inputValues)
       }
     // convert back to IR
-    inputValues.map {
-      case (name, value) =>
-        val wdlType = inputTypes(name)
-        val irType = WdlUtils.toIRType(wdlType)
-        val irValue = WdlUtils.toIRValue(value, wdlType)
-        name -> (irType, irValue)
+    inputValues.map { case (name, value) =>
+      val wdlType = inputTypes(name)
+      val irType = WdlUtils.toIRType(wdlType)
+      val irValue = WdlUtils.toIRValue(value, wdlType)
+      name -> (irType, irValue)
     }
   }
 
@@ -189,9 +196,8 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     // scatter, in which case we only need the outputs of the body statements.
     val outputParams: Vector[(DxName, (T, TAT.Expr))] = jobMeta.blockPath match {
       case Vector() =>
-        workflow.outputs.map {
-          case TAT.OutputParameter(name, wdlType, expr) =>
-            WdlDxName.fromSourceName(name) -> (wdlType, expr)
+        workflow.outputs.map { case TAT.OutputParameter(name, wdlType, expr) =>
+          WdlDxName.fromSourceName(name) -> (wdlType, expr)
         }
       case path =>
         val block: WdlBlock =
@@ -211,8 +217,8 @@ case class WdlWorkflowExecutor(docSource: FileNode,
             val inputNames = block.inputs.map(_.name).toSet
             block.outputs
               .filterNot(o => inputNames.contains(o.name))
-              .map {
-                case WdlBlockOutput(name, wdlType, expr) => name -> (wdlType, expr)
+              .map { case WdlBlockOutput(name, wdlType, expr) =>
+                name -> (wdlType, expr)
               }
         }
     }
@@ -239,9 +245,8 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       }
     if (logger.isVerbose) {
       val paramStrs = outputParams
-        .map {
-          case (dxName, (wdlType, expr)) =>
-            s"${TypeUtils.prettyFormatType(wdlType)} ${dxName} = ${TypeUtils.prettyFormatExpr(expr)}"
+        .map { case (dxName, (wdlType, expr)) =>
+          s"${TypeUtils.prettyFormatType(wdlType)} ${dxName} = ${TypeUtils.prettyFormatExpr(expr)}"
         }
         .mkString("\n  ")
       logger.trace(
@@ -253,25 +258,25 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       )
     }
     // evaluate
-    val env = WdlValueBindings((inputWdlValues ++ outputWdlValues).map {
-      case (dxName, v) => dxName.decoded -> v
+    val env = WdlValueBindings((inputWdlValues ++ outputWdlValues).map { case (dxName, v) =>
+      dxName.decoded -> v
     })
     val evaluatedOutputValues = evaluator
-      .applyAll(outputParams.map {
-                  case (dxName, te) => (dxName.decoded, te)
+      .applyAll(outputParams.map { case (dxName, te) =>
+                  (dxName.decoded, te)
                 },
-                env)
+                env
+      )
       .toMap
-      .map {
-        case (name, value) => WdlDxName.fromDecodedName(name) -> value
+      .map { case (name, value) =>
+        WdlDxName.fromDecodedName(name) -> value
       }
     // convert back to IR
-    val irOutputs: Map[DxName, (Type, Value)] = evaluatedOutputValues.map {
-      case (name, value) =>
-        val wdlType = outputParamMap(name)._1
-        val irType = WdlUtils.toIRType(wdlType)
-        val irValue = WdlUtils.toIRValue(value, wdlType)
-        name -> (irType, irValue)
+    val irOutputs: Map[DxName, (Type, Value)] = evaluatedOutputValues.map { case (name, value) =>
+      val wdlType = outputParamMap(name)._1
+      val irType = WdlUtils.toIRType(wdlType)
+      val irValue = WdlUtils.toIRValue(value, wdlType)
+      name -> (irType, irValue)
     }
     if (addReorgStatus) {
       irOutputs + (Constants.ReorgStatus -> (TString, VString(Constants.ReorgStatusCompleted)))
@@ -283,24 +288,27 @@ case class WdlWorkflowExecutor(docSource: FileNode,
   private def evaluateExpression(expr: TAT.Expr, wdlType: T, env: Map[DxName, (T, V)]): V = {
     evaluator.applyExprAndCoerce(expr,
                                  wdlType,
-                                 Eval.createBindingsFromEnv(env.map {
-                                   case (dxName, tv) => dxName.decoded -> tv
-                                 }))
+                                 Eval.createBindingsFromEnv(env.map { case (dxName, tv) =>
+                                   dxName.decoded -> tv
+                                 })
+    )
   }
 
   private def getBlockOutputs(elements: Vector[TAT.WorkflowElement]): Map[DxName, T] = {
     val (_, outputs) = WdlUtils.getClosureInputsAndOutputs(elements, withField = false)
-    outputs.map {
-      case (dxName, (wdlType, _)) => dxName -> wdlType
+    outputs.map { case (dxName, (wdlType, _)) =>
+      dxName -> wdlType
     }.toMap
   }
 
-  /**
-    * Recursively evaluate PrivateVariables in WorkflowElements.
-    * This method is exposed so that we can unit-test it.
-    * @param elements WorkflowElements
-    * @param env initial environment
-    * @return values from all nested variables (not including the initial env)
+  /** Recursively evaluate PrivateVariables in WorkflowElements. This method is exposed so that we
+    * can unit-test it.
+    * @param elements
+    *   WorkflowElements
+    * @param env
+    *   initial environment
+    * @return
+    *   values from all nested variables (not including the initial env)
     */
   private[wdl] def evaluateWorkflowElementVariables(
       elements: Seq[TAT.WorkflowElement],
@@ -316,13 +324,13 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           evaluateExpression(expr, expr.wdlType, accu ++ env) match {
             case V_Boolean(true) =>
               // condition is true, evaluate the internal block.
-              evaluateWorkflowElementVariables(body, accu ++ env).map {
-                case (key, (t, value)) => key -> (T_Optional(t), V_Optional(value))
+              evaluateWorkflowElementVariables(body, accu ++ env).map { case (key, (t, value)) =>
+                key -> (T_Optional(t), V_Optional(value))
               }
             case V_Boolean(false) =>
               // condition is false, return V_Null for all the values
-              getBlockOutputs(body).map {
-                case (key, wdlType) => key -> (T_Optional(wdlType), V_Null)
+              getBlockOutputs(body).map { case (key, wdlType) =>
+                key -> (T_Optional(wdlType), V_Null)
               }
             case other =>
               throw new AppInternalException(s"Unexpected condition expression value ${other}")
@@ -353,11 +361,10 @@ case class WdlWorkflowExecutor(docSource: FileNode,
               outputNames.map(bodyValues(_)._2)
             }.transpose
           // Add the WDL array type to each vector
-          outputNames.zip(outputValues).map {
-            case (name, values) =>
-              val arrayType = T_Array(outputTypes(name), nonEmpty = false)
-              val arrayValue = V_Array(values)
-              name -> (arrayType, arrayValue)
+          outputNames.zip(outputValues).map { case (name, values) =>
+            val arrayType = T_Array(outputTypes(name), nonEmpty = false)
+            val arrayValue = V_Array(values)
+            name -> (arrayType, arrayValue)
           }
         }
         accu ++ results
@@ -413,8 +420,8 @@ case class WdlWorkflowExecutor(docSource: FileNode,
 
   case class WdlBlockContext(block: WdlBlock,
                              inputEnv: Map[DxName, (T, V)],
-                             prereqEnv: Map[DxName, (T, V)])
-      extends BlockContext {
+                             prereqEnv: Map[DxName, (T, V)]
+  ) extends BlockContext {
     private def call: TAT.Call = block.call
     private lazy val wdlEnv = inputEnv ++ prereqEnv
     private lazy val prereqIrEnv = WdlUtils.toIR(prereqEnv)
@@ -467,16 +474,18 @@ case class WdlWorkflowExecutor(docSource: FileNode,
                 dxName -> WdlUtils.fromIRValue(v, wdlType, dxName.decoded)
             }
             // add default values for any missing inputs
-            val callInputs = callIO.inputsFromValues(inputWdlValues.map {
-                                                       case (dxName, v) => dxName.decoded -> v
+            val callInputs = callIO.inputsFromValues(inputWdlValues.map { case (dxName, v) =>
+                                                       dxName.decoded -> v
                                                      },
                                                      evaluator,
-                                                     ignoreDefaultEvalError = false)
+                                                     ignoreDefaultEvalError = false
+            )
             val runtime = Runtime(versionSupport.version,
                                   task.runtime,
                                   task.hints,
                                   evaluator,
-                                  ctx = Some(callInputs))
+                                  ctx = Some(callInputs)
+            )
             try {
               val request = runtime.parseInstanceType
               if (request.isEmpty && isNative) {
@@ -585,14 +594,13 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       )
       // Missing inputs may be optional or have a default value. If they are
       // actually missing, it will result in a platform error.
-      executableLink.inputs.flatMap {
-        case (dxName, t) =>
-          val value = lookup(dxName, inputEnv)
-          logger.traceLimited(s"lookupInEnv(${dxName} = ${value})", minLevel = TraceLevel.VVerbose)
-          value.map { value =>
-            val wdlType = WdlUtils.fromIRType(t, wdlTypeAliases)
-            dxName -> (t, WdlUtils.toIRValue(value, wdlType))
-          }
+      executableLink.inputs.flatMap { case (dxName, t) =>
+        val value = lookup(dxName, inputEnv)
+        logger.traceLimited(s"lookupInEnv(${dxName} = ${value})", minLevel = TraceLevel.VVerbose)
+        value.map { value =>
+          val wdlType = WdlUtils.fromIRType(t, wdlTypeAliases)
+          dxName -> (t, WdlUtils.toIRValue(value, wdlType))
+        }
       }
     }
 
@@ -642,8 +650,8 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           throw new Exception(s"invalid conditional value ${cond}")
       }
       // Add optional modifier to the return types.
-      links.map {
-        case (key, link) => key -> link.makeOptional
+      links.map { case (key, link) =>
+        key -> link.makeOptional
       }
     }
 
@@ -750,34 +758,31 @@ case class WdlWorkflowExecutor(docSource: FileNode,
             Some(s"[${itemStr}]")
           case V_Map(members) =>
             val memberStr = WorkflowExecutor.getComplexScatterName(
-                members.iterator.map {
-                  case (k, v) =>
-                    (inner(k), inner(v)) match {
-                      case (Some(keyStr), Some(valStr)) => Some(s"${keyStr}: ${valStr}")
-                      case _                            => None
-                    }
+                members.iterator.map { case (k, v) =>
+                  (inner(k), inner(v)) match {
+                    case (Some(keyStr), Some(valStr)) => Some(s"${keyStr}: ${valStr}")
+                    case _                            => None
+                  }
                 }
             )
             Some(s"{${memberStr}}")
           case V_Object(members) =>
             val memberStr = WorkflowExecutor.getComplexScatterName(
-                members.iterator.map {
-                  case (k, v) =>
-                    inner(v) match {
-                      case Some(valStr) => Some(s"${k}: ${valStr}")
-                      case _            => None
-                    }
+                members.iterator.map { case (k, v) =>
+                  inner(v) match {
+                    case Some(valStr) => Some(s"${k}: ${valStr}")
+                    case _            => None
+                  }
                 }
             )
             Some(s"{${memberStr}}")
           case V_Struct(name, members) =>
             val memberStr = WorkflowExecutor.getComplexScatterName(
-                members.iterator.map {
-                  case (k, v) =>
-                    inner(v) match {
-                      case Some(valStr) => Some(s"${k}: ${valStr}")
-                      case _            => None
-                    }
+                members.iterator.map { case (k, v) =>
+                  inner(v) match {
+                    case Some(valStr) => Some(s"${k}: ${valStr}")
+                    case _            => None
+                  }
                 }
             )
             Some(s"${name} ${memberStr}")
@@ -792,37 +797,38 @@ case class WdlWorkflowExecutor(docSource: FileNode,
 
     private def launchScatterCallJobs(identifier: DxName,
                                       itemType: T,
-                                      collection: Vector[V]): Vector[DxExecution] = {
-      collection.zipWithIndex.map {
-        case (item, index) =>
-          val callInputs = evaluateCallInputs(Map(identifier -> (itemType, item)))
-          val callNameDetail = getScatterName(item, jobMeta.scatterStart + index)
-          val (dxExecution, _, _) =
-            launchCall(callInputs,
-                       Some((jobMeta.scatterStart + index).toString),
-                       Some(callNameDetail))
-          dxExecution
+                                      collection: Vector[V]
+    ): Vector[DxExecution] = {
+      collection.zipWithIndex.map { case (item, index) =>
+        val callInputs = evaluateCallInputs(Map(identifier -> (itemType, item)))
+        val callNameDetail = getScatterName(item, jobMeta.scatterStart + index)
+        val (dxExecution, _, _) =
+          launchCall(callInputs,
+                     Some((jobMeta.scatterStart + index).toString),
+                     Some(callNameDetail)
+          )
+        dxExecution
       }
     }
 
     private def launchScatterSubblockJobs(identifier: DxName,
                                           itemType: T,
-                                          collection: Vector[V]): Vector[DxExecution] = {
+                                          collection: Vector[V]
+    ): Vector[DxExecution] = {
       assert(execLinkInfo.size == 1)
       val executableLink = execLinkInfo.values.head
-      collection.zipWithIndex.map {
-        case (item, index) =>
-          val callInputs =
-            prepareSubworkflowInputs(executableLink, Map(identifier -> (itemType, item)))
-          val callNameDetail = getScatterName(item, jobMeta.scatterStart + index)
-          val (dxExecution, _) = launchJob(
-              executableLink,
-              executableLink.name,
-              callInputs,
-              nameDetail = Some(callNameDetail),
-              folder = Some((jobMeta.scatterStart + index).toString)
-          )
-          dxExecution
+      collection.zipWithIndex.map { case (item, index) =>
+        val callInputs =
+          prepareSubworkflowInputs(executableLink, Map(identifier -> (itemType, item)))
+        val callNameDetail = getScatterName(item, jobMeta.scatterStart + index)
+        val (dxExecution, _) = launchJob(
+            executableLink,
+            executableLink.name,
+            callInputs,
+            nameDetail = Some(callNameDetail),
+            folder = Some((jobMeta.scatterStart + index).toString)
+        )
+        dxExecution
       }
     }
 
@@ -867,26 +873,24 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     ): (Map[DxName, (Type, Value)], Option[Map[DxName, (Type, Value)]]) = {
       val outputTypes: Map[DxName, (DxName, Type)] = block.kind match {
         case BlockKind.ScatterOneCall =>
-          call.callee.output.map {
-            case (name, wdlType) =>
-              val dxName = WdlDxName.fromSourceName(name)
-              val fqn = dxName.pushDecodedNamespace(call.actualName)
-              val irType = WdlUtils.toIRType(wdlType)
-              fqn -> (dxName, irType)
+          call.callee.output.map { case (name, wdlType) =>
+            val dxName = WdlDxName.fromSourceName(name)
+            val fqn = dxName.pushDecodedNamespace(call.actualName)
+            val irType = WdlUtils.toIRType(wdlType)
+            fqn -> (dxName, irType)
           }
         case BlockKind.ScatterComplex =>
           assert(execLinkInfo.size == 1)
-          execLinkInfo.values.head.outputs.map {
-            case (name, irType) => name -> (name, irType)
+          execLinkInfo.values.head.outputs.map { case (name, irType) =>
+            name -> (name, irType)
           }
         case _ =>
           throw new RuntimeException(s"invalid block ${block}")
       }
-      val arrayOutputs = outputTypes.map {
-        case (fqn, (name, irType)) =>
-          val arrayType = TArray(irType)
-          val value = createScatterOutputArray(execOutputs, name, irType, execName)
-          fqn -> (arrayType, value)
+      val arrayOutputs = outputTypes.map { case (fqn, (name, irType)) =>
+        val arrayType = TArray(irType)
+        val value = createScatterOutputArray(execOutputs, name, irType, execName)
+        fqn -> (arrayType, value)
       }
       (arrayOutputs, Option.when(prereqEnv.nonEmpty)(prereqIrEnv))
     }
@@ -900,11 +904,10 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     val block: WdlBlock =
       Block.getSubBlockAt(WdlBlock.createBlocks(workflow.body), jobMeta.blockPath)
     // convert the inputs to WDL
-    val initEnv = jobInputs.map {
-      case (dxName, (irType, irValue)) =>
-        val wdlType = WdlUtils.fromIRType(irType, wdlTypeAliases)
-        val wdlValue = WdlUtils.fromIRValue(irValue, wdlType, dxName.decoded)
-        dxName -> (wdlType, wdlValue)
+    val initEnv = jobInputs.map { case (dxName, (irType, irValue)) =>
+      val wdlType = WdlUtils.fromIRType(irType, wdlTypeAliases)
+      val wdlValue = WdlUtils.fromIRValue(irValue, wdlType, dxName.decoded)
+      dxName -> (wdlType, wdlValue)
     }
     val inputEnv = block.inputs.foldLeft(initEnv) {
       case (accu, blockInput: WdlBlockInput) if accu.contains(blockInput.name) =>
@@ -917,12 +920,13 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       case (accu, RequiredBlockInput(dxName, wdlType))
           if compoundNameRegexp.matches(dxName.decoded) =>
         // the input name is a compound reference - evaluate it as an identifier
-        val expr = versionSupport.parseExpression(dxName.decoded,
-                                                  DefaultBindings(accu.map {
-                                                    case (dxName, (wdlType, _)) =>
-                                                      dxName.decoded -> wdlType
-                                                  }),
-                                                  docSource)
+        val expr =
+          versionSupport.parseExpression(dxName.decoded,
+                                         DefaultBindings(accu.map { case (dxName, (wdlType, _)) =>
+                                           dxName.decoded -> wdlType
+                                         }),
+                                         docSource
+          )
         accu + (dxName -> (wdlType, evaluateExpression(expr, wdlType, accu)))
       case (_, RequiredBlockInput(name, _)) =>
         throw new Exception(s"missing required input ${name}")

@@ -18,23 +18,17 @@ import dx.util.{Enum, FileSourceResolver, FileUtils, Logger, TraceLevel}
 import spray.json.{JsNull, JsValue}
 import wdlTools.types.TypeCheckingRegime
 
-/**
-  * Compiler CLI.
+/** Compiler CLI.
   */
 object Main {
   private val DefaultRuntimeTraceLevel: Int = TraceLevel.Verbose
 
-  /**
-    * OptionSpec that parses the string argument(s) to -language.
+  /** OptionSpec that parses the string argument(s) to -language.
     */
   private case class LanguageOptionSpec() extends OptionSpec {
 
-    /**
-      * Parses a language argument. Accepts the following:
-      *  'cwl'
-      *  'cwlv1.2'
-      *  'cwl 1.2'
-      *  'draft2' -> WDL draft2
+    /** Parses a language argument. Accepts the following: 'cwl' 'cwlv1.2' 'cwl 1.2' 'draft2' -> WDL
+      * draft2
       */
     override def parseValues(name: String, values: Vector[String], curValue: Option[Opt]): Opt = {
       if (curValue.nonEmpty) {
@@ -62,13 +56,14 @@ object Main {
       "language" -> LanguageOptionSpec()
   )
 
-  /**
-    * Initialize objects used commonly by multiple commands.
-    * - creates a FileSourceResolver that looks for local files in any configured -imports
-    *   directories and has a DxFileAccessProtocol
-    * - initializes a Logger
-    * @param options parsed options
-    * @return (FileSourceResolver, Logger)
+  /** Initialize objects used commonly by multiple commands.
+    *   - creates a FileSourceResolver that looks for local files in any configured -imports
+    *     directories and has a DxFileAccessProtocol
+    *   - initializes a Logger
+    * @param options
+    *   parsed options
+    * @return
+    *   (FileSourceResolver, Logger)
     */
   private def initCommon(options: Options): (FileSourceResolver, Logger) = {
     val logger = initLogger(options)
@@ -224,7 +219,8 @@ object Main {
 
   private def resolveOrCreatePath(dxApi: DxApi,
                                   project: String,
-                                  folder: String): (DxProject, String) = {
+                                  folder: String
+  ): (DxProject, String) = {
     resolvePath(dxApi, Some(project), Some(folder), create = true) match {
       case (dxProject, Left(folder)) => (dxProject, folder)
       case _                         => throw new Exception("expected folder")
@@ -308,8 +304,8 @@ object Main {
   }
 
   case class SuccessfulCompileNativeNoTree(override val compilerMode: CompilerMode.CompilerMode,
-                                           override val executableIds: Vector[String])
-      extends SuccessfulCompileNative
+                                           override val executableIds: Vector[String]
+  ) extends SuccessfulCompileNative
 
   case class SuccessfulCompileNativeWithPrettyTree(
       override val compilerMode: CompilerMode.CompilerMode,
@@ -559,7 +555,8 @@ object Main {
             case ExecTreeFormat.Pretty =>
               SuccessfulCompileNativeWithPrettyTree(compileMode,
                                                     results.executableIds,
-                                                    ExecutableTree.prettyPrint(treeJs.asJsObject))
+                                                    ExecutableTree.prettyPrint(treeJs.asJsObject)
+              )
           }
         case _ =>
           SuccessfulCompileNativeNoTree(compileMode, results.executableIds)
@@ -590,8 +587,8 @@ object Main {
 
   case class SuccessfulDxNI(appsOption: AppsOption.AppsOption,
                             apps: Vector[DxApp],
-                            applets: Vector[DxApplet])
-      extends CompilerSuccessfulTermination {
+                            applets: Vector[DxApplet]
+  ) extends CompilerSuccessfulTermination {
     override val compilerAction: CompilerAction.CompilerAction = CompilerAction.DxNI
 
     override def message: String = {
@@ -698,7 +695,8 @@ object Main {
                        dxProject,
                        folder = Some(folder),
                        recursive = recursive,
-                       includeApps = includeApps)
+                       includeApps = includeApps
+            )
           case Right(applet: DxApplet) =>
             dxni.apply(language, dxProject, applet = Some(applet), includeApps = includeApps)
           case _ =>

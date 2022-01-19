@@ -21,8 +21,7 @@ import wdlTools.types.{TypedAbstractSyntax => TAT}
 
 import scala.util.matching.Regex
 
-/**
-  * A unification of WDL Runtime and Hints, with version-specific support.
+/** A unification of WDL Runtime and Hints, with version-specific support.
   */
 object RuntimeTranslator {
   // This is the parent key for the object containing all DNAnexus-specific
@@ -47,8 +46,7 @@ object RuntimeTranslator {
   case object Timeout
       extends DxRuntimeHint(Some("dx_timeout"), "timeout", Vector(T_String, T_Object))
   // TODO: case object Regions
-  /**
-    * This key is used in the restart object value to represent "*"
+  /** This key is used in the restart object value to represent "*"
     */
   val AllKey = "All"
 }
@@ -59,13 +57,15 @@ case class RuntimeTranslator(wdlVersion: WdlVersion,
                              metaSection: Option[TAT.MetaSection],
                              defaultAttrs: Map[String, Value],
                              evaluator: Eval,
-                             dxApi: DxApi = DxApi.get) {
+                             dxApi: DxApi = DxApi.get
+) {
   private lazy val runtime =
     Runtime(wdlVersion,
             runtimeSection,
             hintsSection,
             evaluator,
-            defaultAttrs = Some(IrToWdlValueBindings(defaultAttrs)))
+            defaultAttrs = Some(IrToWdlValueBindings(defaultAttrs))
+    )
   private lazy val meta: Meta = Meta.create(wdlVersion, metaSection)
 
   def translate(id: String, wdlType: Option[T] = None): Option[Value] = {
@@ -135,7 +135,8 @@ case class RuntimeTranslator(wdlVersion: WdlVersion,
       }
       .orElse {
         (meta.get(RuntimeTranslator.ExecutableTypeKey),
-         meta.get(RuntimeTranslator.ExecutableId)) match {
+         meta.get(RuntimeTranslator.ExecutableId)
+        ) match {
           case (Some(V_String(RuntimeTranslator.ExecutableTypeNative)), Some(V_String(id))) =>
             Some(kindFromId(id))
           case _ => None

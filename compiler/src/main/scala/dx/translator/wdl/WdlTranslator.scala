@@ -18,12 +18,11 @@ import spray.json.{JsArray, JsObject, JsString, JsValue}
 import wdlTools.syntax.NoSuchParserException
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 
-/**
-  * WDL input details
-  * - JSON only
-  * - For workflow invocation, inputs must be prefixed with workflow name
-  * - Namespaced inputs are allowed for unlocked workflows, e.g. `wf1.wf2.mytask.foo`
-  * - Runtime and hints can be overridden, e.g. `"wf.mytask.runtime.cpu": 2`
+/** WDL input details
+  *   - JSON only
+  *   - For workflow invocation, inputs must be prefixed with workflow name
+  *   - Namespaced inputs are allowed for unlocked workflows, e.g. `wf1.wf2.mytask.foo`
+  *   - Runtime and hints can be overridden, e.g. `"wf.mytask.runtime.cpu": 2`
   */
 case class WdlInputTranslator(bundle: Bundle,
                               inputs: Vector[Path],
@@ -32,18 +31,19 @@ case class WdlInputTranslator(bundle: Bundle,
                               useManifests: Boolean,
                               baseFileResolver: FileSourceResolver = FileSourceResolver.get,
                               dxApi: DxApi = DxApi.get,
-                              logger: Logger = Logger.get)
-    extends InputTranslator(bundle,
-                            inputs,
-                            defaults,
-                            project,
-                            useManifests,
-                            complexPathValues = false,
-                            ignoreUnusedInputs = false,
-                            WdlDxName,
-                            baseFileResolver,
-                            dxApi,
-                            logger) {
+                              logger: Logger = Logger.get
+) extends InputTranslator(bundle,
+                          inputs,
+                          defaults,
+                          project,
+                          useManifests,
+                          complexPathValues = false,
+                          ignoreUnusedInputs = false,
+                          WdlDxName,
+                          baseFileResolver,
+                          dxApi,
+                          logger
+    ) {
 
   private val RuntimeRegex = "^(?:(.*)\\.)?runtime\\.(.+)$".r
   private val HintsKey = "^(?:(.*)\\.)?hints\\.(.+)$".r
@@ -57,7 +57,8 @@ case class WdlInputTranslator(bundle: Bundle,
     }
     val (values, overrides) =
       rawInputs.foldLeft(Map.empty[String, JsValue],
-                         Map.empty[String, (Map[String, JsValue], Map[String, JsValue])]) {
+                         Map.empty[String, (Map[String, JsValue], Map[String, JsValue])]
+      ) {
         case ((values, overrides), (RuntimeRegex(prefix, key), value)) =>
           val executable = Option(prefix)
             .orElse(toolName)
@@ -68,7 +69,8 @@ case class WdlInputTranslator(bundle: Bundle,
             )
           val (runtime, hints) =
             overrides.getOrElse(executable,
-                                (Map.empty[String, JsValue], Map.empty[String, JsValue]))
+                                (Map.empty[String, JsValue], Map.empty[String, JsValue])
+            )
           (values, overrides + (executable -> (runtime + (key -> value), hints)))
         case ((values, overrides), (HintsKey(prefix, key), value)) =>
           val executable = Option(prefix)
@@ -80,21 +82,22 @@ case class WdlInputTranslator(bundle: Bundle,
             )
           val (runtime, hints) =
             overrides.getOrElse(executable,
-                                (Map.empty[String, JsValue], Map.empty[String, JsValue]))
+                                (Map.empty[String, JsValue], Map.empty[String, JsValue])
+            )
           (values, overrides + (executable -> (runtime, hints + (key -> value))))
         case ((values, overrides), (key, value)) =>
           (values + (key -> value), overrides)
       }
     (values,
-     overrides.map {
-       case (key, (runtime, hints)) =>
-         key -> JsObject(
-             Vector(
-                 Option.when(runtime.nonEmpty)("runtime" -> JsObject(runtime)),
-                 Option.when(hints.nonEmpty)("hints" -> JsObject(hints))
-             ).flatten.toMap
-         )
-     })
+     overrides.map { case (key, (runtime, hints)) =>
+       key -> JsObject(
+           Vector(
+               Option.when(runtime.nonEmpty)("runtime" -> JsObject(runtime)),
+               Option.when(hints.nonEmpty)("hints" -> JsObject(hints))
+           ).flatten.toMap
+       )
+     }
+    )
   }
 
   override protected def convertRawInput(rawInput: JsValue, t: Type): JsValue = {
@@ -106,20 +109,19 @@ case class WdlInputTranslator(bundle: Bundle,
       case (mapType: TSchema, JsObject(fields))
           if WdlUtils.isMapSchema(mapType) && !WdlUtils.isMapValue(fields) =>
         // map represented as a JSON object (i.e. has keys that are coercible from String)
-        val (keys, values) = fields.map {
-          case (key, value) => (JsString(key), value)
+        val (keys, values) = fields.map { case (key, value) =>
+          (JsString(key), value)
         }.unzip
         JsObject(WdlUtils.MapKeysKey -> JsArray(keys.toVector),
-                 WdlUtils.MapValuesKey -> JsArray(values.toVector))
+                 WdlUtils.MapValuesKey -> JsArray(values.toVector)
+        )
       case _ => rawInput
     }
   }
 }
 
-/**
-  * Compiles WDL to IR.
-  * TODO: remove limitation that two callables cannot have the same name
-  * TODO: rewrite sortByDependencies using a graph data structure
+/** Compiles WDL to IR. TODO: remove limitation that two callables cannot have the same name TODO:
+  * rewrite sortByDependencies using a graph data structure
   */
 case class WdlTranslator(doc: TAT.Document,
                          typeAliases: Map[String, WdlTypes.T_Struct],
@@ -133,8 +135,8 @@ case class WdlTranslator(doc: TAT.Document,
                          versionSupport: VersionSupport,
                          fileResolver: FileSourceResolver = FileSourceResolver.get,
                          dxApi: DxApi = DxApi.get,
-                         logger: Logger = Logger.get)
-    extends Translator {
+                         logger: Logger = Logger.get
+) extends Translator {
 
   override val runtimeAssetName: String = "dxWDLrt"
 
@@ -184,8 +186,8 @@ case class WdlTranslator(doc: TAT.Document,
       logger2.trace(s"allCallables: ${allCallables.keys}")
       logger2.trace(s"allCallablesSorted: ${allCallablesSortedNames}")
     }
-    val irTypeAliases = typeAliases.map {
-      case (name, struct: WdlTypes.T_Struct) => name -> WdlUtils.toIRType(struct)
+    val irTypeAliases = typeAliases.map { case (name, struct: WdlTypes.T_Struct) =>
+      name -> WdlUtils.toIRType(struct)
     }
     Bundle(primaryCallable, allCallables, allCallablesSortedNames, irTypeAliases)
   }
@@ -193,7 +195,8 @@ case class WdlTranslator(doc: TAT.Document,
   override protected def createInputTranslator(bundle: Bundle,
                                                inputs: Vector[Path],
                                                defaults: Option[Path],
-                                               project: DxProject): InputTranslator = {
+                                               project: DxProject
+  ): InputTranslator = {
     WdlInputTranslator(bundle, inputs, defaults, project, useManifests, fileResolver)
   }
 }
@@ -211,7 +214,8 @@ case class WdlTranslatorFactory(wdlOptions: WdlOptions = WdlOptions.default)
                       instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
                       fileResolver: FileSourceResolver,
                       dxApi: DxApi = DxApi.get,
-                      logger: Logger = Logger.get): Option[WdlTranslator] = {
+                      logger: Logger = Logger.get
+  ): Option[WdlTranslator] = {
     val (doc, typeAliases, versionSupport) =
       try {
         VersionSupport.fromSourceFile(sourceFile, wdlOptions, fileResolver, dxApi, logger)

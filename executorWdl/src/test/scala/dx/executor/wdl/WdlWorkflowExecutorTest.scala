@@ -27,8 +27,8 @@ private case class WorkflowTestJobMeta(override val workerPaths: DxWorkerPaths,
                                        rawBlockPath: Vector[Int],
                                        rawInstanceTypeDb: InstanceTypeDB,
                                        rawSourceCode: String,
-                                       pathToDxFile: Map[Path, DxFile] = Map.empty)
-    extends JobMeta(workerPaths, WdlDxName, dxApi, logger) {
+                                       pathToDxFile: Map[Path, DxFile] = Map.empty
+) extends JobMeta(workerPaths, WdlDxName, dxApi, logger) {
   override val project: DxProject = null
 
   override val rawJsInputs: Map[DxName, JsValue] =
@@ -55,7 +55,8 @@ private case class WorkflowTestJobMeta(override val workerPaths: DxWorkerPaths,
   override def runJobScriptFunction(name: String,
                                     successCodes: Option[Set[Int]] = Some(Set(0)),
                                     truncateLogs: Boolean = true,
-                                    forwardStd: Boolean = false): Unit = ()
+                                    forwardStd: Boolean = false
+  ): Unit = ()
 
   override val analysis: Option[DxAnalysis] = None
 
@@ -79,11 +80,11 @@ private case class WorkflowTestJobMeta(override val workerPaths: DxWorkerPaths,
       Constants.SourceCode -> JsString(CodecUtils.gzipAndBase64Encode(rawSourceCode)),
       Constants.WfFragmentInputTypes -> TypeSerde.serializeSpec(
           WdlUtils
-            .toIRTypeMap(rawEnv.map {
-              case (dxName, (t, _)) => dxName -> t
+            .toIRTypeMap(rawEnv.map { case (dxName, (t, _)) =>
+              dxName -> t
             })
-            .map {
-              case (dxName, t) => dxName.encoded -> t
+            .map { case (dxName, t) =>
+              dxName.encoded -> t
             }
       )
   )
@@ -115,7 +116,8 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
         Vector(
             ExecutionEnvironment(Constants.OsDistribution,
                                  Constants.OsRelease,
-                                 Vector(Constants.OsVersion))
+                                 Vector(Constants.OsVersion)
+            )
         ),
         Some(DiskType.SSD),
         Some(1)
@@ -156,7 +158,8 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
 
   private def createEvaluator(workerPaths: DxWorkerPaths,
                               wdlVersion: WdlVersion,
-                              fileResolver: FileSourceResolver): Eval = {
+                              fileResolver: FileSourceResolver
+  ): Eval = {
     Eval(workerPaths, Some(wdlVersion), Vector.empty, fileResolver, logger)
   }
 
@@ -216,13 +219,15 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
     results should be(
         Map(
             WdlDxName.fromSourceName("names") -> (WdlTypes.T_Array(WdlTypes.T_String,
-                                                                   nonEmpty = false),
+                                                                   nonEmpty = false
+            ),
             WdlValues.V_Array(
                 Vector(WdlValues.V_String("Michael"),
                        WdlValues.V_String("Lukas"),
                        WdlValues.V_String("Martin"),
                        WdlValues.V_String("Shelly"),
-                       WdlValues.V_String("Amy"))
+                       WdlValues.V_String("Amy")
+                )
             )),
             WdlDxName.fromSourceName("full_name") ->
               (WdlTypes.T_Array(WdlTypes.T_String, nonEmpty = false),
@@ -279,7 +284,8 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
     val results: Map[DxName, (WdlTypes.T, WdlValues.V)] = wfExecutor match {
       case exe: WdlWorkflowExecutor =>
         exe.evaluateWorkflowElementVariables(block.elements,
-                                             Map.empty[DxName, (WdlTypes.T, WdlValues.V)])
+                                             Map.empty[DxName, (WdlTypes.T, WdlValues.V)]
+        )
       case _ => throw new Exception("expected WdlWorkflowSupport")
     }
     results should be(
@@ -298,8 +304,8 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
       case Some(wf: TAT.Workflow) => wf
       case _                      => throw new Exception("unexpected")
     }
-    val scatters = wf.body.collect {
-      case x: TAT.Scatter => x
+    val scatters = wf.body.collect { case x: TAT.Scatter =>
+      x
     }
     scatters.size shouldBe 1
     val scatterNode = scatters.head
@@ -357,7 +363,8 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
     val results: Map[DxName, (WdlTypes.T, WdlValues.V)] = wfExecutor match {
       case exe: WdlWorkflowExecutor =>
         exe.evaluateWorkflowElementVariables(subBlocks(0).elements,
-                                             Map.empty[DxName, (WdlTypes.T, WdlValues.V)])
+                                             Map.empty[DxName, (WdlTypes.T, WdlValues.V)]
+        )
       case _ => throw new Exception("expected WdlWorkflowSupport")
     }
     results.keys.map(_.decoded) should be(Set("powers10", "i1", "i2", "i3"))
@@ -375,8 +382,10 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
          WdlValues.V_Array(
              Vector(WdlValues.V_Optional(WdlValues.V_Int(1)),
                     WdlValues.V_Null,
-                    WdlValues.V_Optional(WdlValues.V_Int(100)))
-         ))
+                    WdlValues.V_Optional(WdlValues.V_Int(100))
+             )
+         )
+        )
     )
   }
 
@@ -437,7 +446,8 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
           call2,
           Map(
               WdlDxName.fromSourceName("powers10") -> (WdlTypes.T_Array(WdlTypes.T_Int,
-                                                                        nonEmpty = false),
+                                                                        nonEmpty = false
+              ),
               WdlValues.V_Array(Vector(WdlValues.V_Int(1), WdlValues.V_Int(10))))
           )
       )
@@ -519,7 +529,8 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
     }
     val results =
       wfSupport.evaluateWorkflowElementVariables(subBlocks(0).elements,
-                                                 Map.empty[DxName, (WdlTypes.T, WdlValues.V)])
+                                                 Map.empty[DxName, (WdlTypes.T, WdlValues.V)]
+      )
     results.keys shouldBe Set(
         "a",
         "b",
@@ -535,7 +546,9 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
                           SeqMap("height" -> WdlTypes.T_Int,
                                  "num_floors" -> WdlTypes.T_Int,
                                  "street" -> WdlTypes.T_String,
-                                 "city" -> WdlTypes.T_String)),
+                                 "city" -> WdlTypes.T_String
+                          )
+        ),
         WdlValues.V_Struct(
             "House",
             SeqMap(
@@ -578,7 +591,8 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
     wfExecutor.jobMeta.outputSerializer
       .createFieldsFromLink(results(WdlDxName.fromSourceName("bam_lane1")), paramName) shouldBe
       Vector(paramName -> JsObject("___" -> JsArray(JsString("1_ACGT_1.bam"), JsNull)),
-             paramName.withSuffix(Constants.FlatFilesSuffix) -> JsArray())
+             paramName.withSuffix(Constants.FlatFilesSuffix) -> JsArray()
+      )
   }
 
   it should "handle pair field access (left/right)" taggedAs (NativeTest, EdgeTest) in {
@@ -593,13 +607,15 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
                 JsString("Lukas_9"),
                 JsString("Martin_13"),
                 JsString("Shelly_67"),
-                JsString("Amy_2")),
+                JsString("Amy_2")
+        ),
         Type.TArray(Type.TString)
     )
   }
 
   def getComplexScatterName(items: Vector[Any],
-                            maxLength: Int = WorkflowExecutor.JobNameLengthLimit): String = {
+                            maxLength: Int = WorkflowExecutor.JobNameLengthLimit
+  ): String = {
     WorkflowExecutor.getComplexScatterName(items.map(i => Some(i.toString)).iterator, maxLength)
   }
 

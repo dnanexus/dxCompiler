@@ -47,8 +47,8 @@ private case class ToolTestJobMeta(override val workerPaths: DxWorkerPaths,
                                    rawSourceCode: String,
                                    pathToDxFile: Map[Path, DxFile] = Map.empty,
                                    useManifestInputs: Boolean = false,
-                                   downloadFiles: Boolean = true)
-    extends JobMeta(workerPaths, CwlDxName, dxApi, logger) {
+                                   downloadFiles: Boolean = true
+) extends JobMeta(workerPaths, CwlDxName, dxApi, logger) {
   var outputs: Option[Map[DxName, JsValue]] = None
 
   override val project: DxProject = null
@@ -76,7 +76,8 @@ private case class ToolTestJobMeta(override val workerPaths: DxWorkerPaths,
   override def runJobScriptFunction(name: String,
                                     successCodes: Option[Set[Int]] = Some(Set(0)),
                                     truncateLogs: Boolean = false,
-                                    forwardStd: Boolean = false): Unit = {
+                                    forwardStd: Boolean = false
+  ): Unit = {
     name match {
       case TaskExecutor.DownloadDxda if downloadFiles && !dxdaCallable =>
         throw new Exception("cannot call dxda")
@@ -159,7 +160,8 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
       Vector(
           ExecutionEnvironment(Constants.OsDistribution,
                                Constants.OsRelease,
-                               Vector(Constants.OsVersion))
+                               Vector(Constants.OsVersion)
+          )
       ),
       Some(DiskType.SSD),
       Some(1)
@@ -193,8 +195,8 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
   private def getInputs(cwlName: String): Map[DxName, JsValue] = {
     pathFromBasename(s"${cwlName}_input.json") match {
       case Some(path) if Files.exists(path) =>
-        JsUtils.getFields(JsUtils.jsFromFile(path)).map {
-          case (name, jsv) => CwlDxName.fromEncodedName(name) -> jsv
+        JsUtils.getFields(JsUtils.jsFromFile(path)).map { case (name, jsv) =>
+          CwlDxName.fromEncodedName(name) -> jsv
         }
       case _ => Map.empty
     }
@@ -203,8 +205,8 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
   private def getExpectedOutputs(cwlName: String): Option[Map[DxName, JsValue]] = {
     pathFromBasename(s"${cwlName}_output.json") match {
       case Some(path) if Files.exists(path) =>
-        Some(JsUtils.getFields(JsUtils.jsFromFile(path)).map {
-          case (name, jsv) => CwlDxName.fromDecodedName(name) -> jsv
+        Some(JsUtils.getFields(JsUtils.jsFromFile(path)).map { case (name, jsv) =>
+          CwlDxName.fromDecodedName(name) -> jsv
         })
       case _ => None
     }
@@ -283,7 +285,8 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
 
     // create TaskExecutor
     (CwlTaskExecutor.create(jobMeta, streamFiles = StreamFiles.None, checkInstanceType = false),
-     jobMeta)
+     jobMeta
+    )
   }
 
   def compareJsv(x: JsValue, y: JsValue, assertEqual: Boolean = true): Int = {
@@ -298,8 +301,8 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
           fields1.keys.toVector.sorted
             .zip(fields2.keys.toVector.sorted)
             .iterator
-            .map {
-              case (k1, k2) => k1.compare(k2)
+            .map { case (k1, k2) =>
+              k1.compare(k2)
             }
             .collectFirst {
               case cmp if cmp != 0 => cmp
@@ -312,11 +315,10 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
           fields1.size.compare(fields2.size)
         } else {
           fields1.iterator
-            .map {
-              case (key, jsv) =>
-                withClue(key) {
-                  compareJsv(jsv, fields2(key), assertEqual)
-                }
+            .map { case (key, jsv) =>
+              withClue(key) {
+                compareJsv(jsv, fields2(key), assertEqual)
+              }
             }
             .collectFirst {
               case cmp if cmp != 0 => cmp
@@ -330,19 +332,18 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
           }
         }
         items1
-          .sortWith {
-            case (j1, j2) => compareJsv(j1, j2, assertEqual = false) < 0
+          .sortWith { case (j1, j2) =>
+            compareJsv(j1, j2, assertEqual = false) < 0
           }
-          .zip(items2.sortWith {
-            case (j1, j2) => compareJsv(j1, j2, assertEqual = false) < 0
+          .zip(items2.sortWith { case (j1, j2) =>
+            compareJsv(j1, j2, assertEqual = false) < 0
           })
           .iterator
           .zipWithIndex
-          .map {
-            case ((i1, i2), idx) =>
-              withClue(idx) {
-                compareJsv(i1, i2, assertEqual)
-              }
+          .map { case ((i1, i2), idx) =>
+            withClue(idx) {
+              compareJsv(i1, i2, assertEqual)
+            }
           }
           .collectFirst {
             case cmp if cmp != 0 => cmp
@@ -373,11 +374,10 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
     withClue("outputs") {
       outputs.size shouldBe expected.size
       outputs.keys shouldBe expected.keys
-      outputs.foreach {
-        case (key, value) =>
-          withClue(key) {
-            compareJsv(value, expected(key))
-          }
+      outputs.foreach { case (key, value) =>
+        withClue(key) {
+          compareJsv(value, expected(key))
+        }
       }
     }
   }
@@ -386,7 +386,8 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
   // run the tool, and compare the outputs to the expected values (if any).
   private def runTask(cwlName: String,
                       useManifests: Boolean = false,
-                      pathToDxFile: Map[Path, DxFile] = Map.empty): Unit = {
+                      pathToDxFile: Map[Path, DxFile] = Map.empty
+  ): Unit = {
     val (taskExecutor, jobMeta) =
       createTaskExecutor(cwlName, useManifests = useManifests, pathToDxFile = pathToDxFile)
     val outputsExpected = getExpectedOutputs(cwlName)
@@ -409,18 +410,21 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
               }
               // sometimes it takes a while for the output file to close -
               // block here until the file is closed
-              if (!Iterator.range(0, 10).exists { i =>
+              if (
+                  !Iterator.range(0, 10).exists { i =>
                     if (i > 0) {
                       Thread.sleep(1000)
                     }
                     val desc =
                       dxApi.fileDescribe(manifestFile.id,
-                                         Map("fields" -> JsObject("state" -> JsBoolean(true))))
+                                         Map("fields" -> JsObject("state" -> JsBoolean(true)))
+                      )
                     desc.fields.get("state") match {
                       case Some(JsString("closed")) => true
                       case _                        => false
                     }
-                  }) {
+                  }
+              ) {
                 throw new Exception("manifest file did not close within 10 seconds")
               }
               Manifest

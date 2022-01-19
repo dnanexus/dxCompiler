@@ -31,39 +31,48 @@ object DxExecutableDirectory {
   val ArchivedTag = "dxCompilerArchived"
 }
 
-/**
-  * Takes a snapshot of the platform target path before the build starts. Provides methods for
+/** Takes a snapshot of the platform target path before the build starts. Provides methods for
   * querying and updating the directory.
-  * @param bundle an IR bundle
-  * @param project the project to search
-  * @param folder the folder to search
-  * @param projectWideReuse whether to allow project-wide reuse
-  * @param dxApi the Dx API
-  * @param logger the logger
+  * @param bundle
+  *   an IR bundle
+  * @param project
+  *   the project to search
+  * @param folder
+  *   the folder to search
+  * @param projectWideReuse
+  *   whether to allow project-wide reuse
+  * @param dxApi
+  *   the Dx API
+  * @param logger
+  *   the logger
   */
 case class DxExecutableDirectory(bundle: Bundle,
                                  project: DxProject,
                                  folder: String,
                                  projectWideReuse: Boolean = false,
                                  dxApi: DxApi = DxApi.get,
-                                 logger: Logger = Logger.get) {
+                                 logger: Logger = Logger.get
+) {
 
   // a list of all dx:workflow and dx:applet names used in this WDL workflow
   private val allExecutableNames: Set[String] = bundle.allCallables.keySet
   private val dxFind = DxFindDataObjects(dxApi)
 
-  /**
-    * Information about a Dx data object.
-    * @param dataObj the actual data object
-    * @param dxDesc the object description
-    * @param checksum the object checksum
-    * @param createdDate created date
+  /** Information about a Dx data object.
+    * @param dataObj
+    *   the actual data object
+    * @param dxDesc
+    *   the object description
+    * @param checksum
+    *   the object checksum
+    * @param createdDate
+    *   created date
     */
   case class DxExecutableWithDesc(dataObj: DxDataObject,
                                   dxDesc: DxObjectDescribe,
                                   checksum: Option[String],
-                                  createdDate: Option[LocalDateTime] = None)
-      extends DxExecutableInfo {
+                                  createdDate: Option[LocalDateTime] = None
+  ) extends DxExecutableInfo {
     def name: String = dxDesc.name
     val desc: Option[DxObjectDescribe] = Some(dxDesc)
   }
@@ -118,15 +127,14 @@ case class DxExecutableDirectory(bundle: Bundle,
    */
   private lazy val initialExecDir: Map[String, Vector[DxExecutableInfo]] = {
     findExecutables(Some(folder))
-      .map {
-        case (dxObj, desc) =>
-          val creationDate = new java.util.Date(desc.created)
-          val creationTime: LocalDateTime =
-            LocalDateTime.ofInstant(creationDate.toInstant, ZoneId.systemDefault())
-          // checksum is stored in details, but used to be stored as a property, so
-          // look in both places
-          val checksum = getChecksum(desc)
-          DxExecutableWithDesc(dxObj, desc, checksum, Some(creationTime))
+      .map { case (dxObj, desc) =>
+        val creationDate = new java.util.Date(desc.created)
+        val creationTime: LocalDateTime =
+          LocalDateTime.ofInstant(creationDate.toInstant, ZoneId.systemDefault())
+        // checksum is stored in details, but used to be stored as a property, so
+        // look in both places
+        val checksum = getChecksum(desc)
+        DxExecutableWithDesc(dxObj, desc, checksum, Some(creationTime))
       }
       .groupBy(_.name)
   }
@@ -144,9 +152,8 @@ case class DxExecutableDirectory(bundle: Bundle,
       // would be creating a dx:executable again, which is acceptable.
       logger.trace(s"Querying for executables in project ${project}")
       val executables = findExecutables(recurse = true)
-        .flatMap {
-          case (obj, desc) =>
-            getChecksum(desc).map(checksum => DxExecutableWithDesc(obj, desc, Some(checksum)))
+        .flatMap { case (obj, desc) =>
+          getChecksum(desc).map(checksum => DxExecutableWithDesc(obj, desc, Some(checksum)))
         }
         .groupBy(_.checksum.get)
       logger.trace(s"Found ${executables.size} executables")
@@ -156,21 +163,22 @@ case class DxExecutableDirectory(bundle: Bundle,
     }
   }
 
-  /**
-    * Gets information about all executables with the given name.
-    * @param name the executable name
+  /** Gets information about all executables with the given name.
+    * @param name
+    *   the executable name
     * @return
     */
   def lookup(name: String): Vector[DxExecutableInfo] = {
     execDir.getOrElse(initialExecDir).getOrElse(name, Vector.empty)
   }
 
-  /**
-    * Searches for an executable with a specific checksum anywhere in the project. In case of
+  /** Searches for an executable with a specific checksum anywhere in the project. In case of
     * checksum collision (i.e. multiple results for the same checksum), returns only the executable
     * that starts with the name we are looking for.
-    * @param name the executable name to look up
-    * @param digest the executable's checksum
+    * @param name
+    *   the executable name to look up
+    * @param digest
+    *   the executable's checksum
     * @return
     */
   def lookupInProject(name: String, digest: String): Option[DxExecutableInfo] = {
@@ -188,11 +196,13 @@ case class DxExecutableDirectory(bundle: Bundle,
     override val desc: Option[DxObjectDescribe] = None
   }
 
-  /**
-    * Insert an executable into the directory.
-    * @param name the executable name
-    * @param dxExec the data object
-    * @param digest the checksum
+  /** Insert an executable into the directory.
+    * @param name
+    *   the executable name
+    * @param dxExec
+    *   the data object
+    * @param digest
+    *   the checksum
     */
   def insert(name: String, dxExec: DxDataObject, digest: String): Unit = {
     val info = DxExecutableInserted(name, dxExec, Some(digest))
@@ -205,8 +215,7 @@ case class DxExecutableDirectory(bundle: Bundle,
   private lazy val dateFormatter = DateTimeFormatter.ofPattern("EE MMM dd kk:mm:ss yyyy")
   private var folders: Set[String] = Set.empty
 
-  /**
-    * Creates a folder if it does not already exist.
+  /** Creates a folder if it does not already exist.
     */
   private def ensureFolder(fullPath: String): Unit = {
     if (!folders.contains(fullPath)) {
@@ -215,19 +224,20 @@ case class DxExecutableDirectory(bundle: Bundle,
     }
   }
 
-  /**
-    * Moves an executable into an archive directory. For example if the applet is /A/B/C/GLnexus,
+  /** Moves an executable into an archive directory. For example if the applet is /A/B/C/GLnexus,
     * moves it to /A/B/C/.archive/GLnexus {date}/GLnexus. The archived executable is tagged with
-    * "dxCompilerArchived" so that it can be filtered out when searching for existing applets.
-    * TODO: need to update the execInfo in the directory
-    * @param execInfo the object to archive
+    * "dxCompilerArchived" so that it can be filtered out when searching for existing applets. TODO:
+    * need to update the execInfo in the directory
+    * @param execInfo
+    *   the object to archive
     */
   def archive(execInfo: DxExecutableInfo): Unit = {
     logger.trace(s"Archiving ${execInfo.name} ${execInfo.dataObj.id}")
     // tag the object
     dxApi.addTags(execInfo.dataObj,
                   Vector(DxExecutableDirectory.ArchivedTag),
-                  project = Some(project))
+                  project = Some(project)
+    )
     // move the object to the new location
     val archiveName = execInfo.createdDate match {
       case Some(dt) => s"${execInfo.name} ${dt.format(dateFormatter)}"
@@ -238,18 +248,18 @@ case class DxExecutableDirectory(bundle: Bundle,
     project.moveObjects(Vector(execInfo.dataObj), destFolder)
   }
 
-  /**
-    * Archive multiple executables.
-    * @param execInfos the executables to archive
+  /** Archive multiple executables.
+    * @param execInfos
+    *   the executables to archive
     */
   def archive(execInfos: Vector[DxExecutableInfo]): Unit = {
     execInfos.foreach(archive)
   }
 
-  /**
-    * Remove executables from the project and update the directory.
-    * TODO: need to remove the execInfos in the directory
-    * @param execInfos the executables to remove
+  /** Remove executables from the project and update the directory. TODO: need to remove the
+    * execInfos in the directory
+    * @param execInfos
+    *   the executables to remove
     */
   def remove(execInfos: Vector[DxExecutableInfo]): Unit = {
     val objs = execInfos.map(_.dataObj)

@@ -90,8 +90,8 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
   override val executorName: String = "dxExecutorCwl"
 
   override protected lazy val typeAliases: Map[String, Type.TSchema] = {
-    HintUtils.getSchemaDefs(workflow.requirements).collect {
-      case (name, schema: CwlRecord) => name -> CwlUtils.toIRSchema(schema)
+    HintUtils.getSchemaDefs(workflow.requirements).collect { case (name, schema: CwlRecord) =>
+      name -> CwlUtils.toIRSchema(schema)
     }
   }
 
@@ -125,9 +125,8 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
           logger.trace(
               s"""input parameters:
                  |${inputTypes
-                .map {
-                  case (name, irType) =>
-                    s"  ${TypeSerde.toString(irType)} ${name}"
+                .map { case (name, irType) =>
+                  s"  ${TypeSerde.toString(irType)} ${name}"
                 }
                 .mkString("\n")}""".stripMargin
           )
@@ -144,9 +143,8 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
       logger.trace(
           s"""input values:
              |${inputs
-            .map {
-              case (name, (t, v)) =>
-                s"${TypeSerde.toString(t)} ${name} = ${ValueSerde.toString(v)}}"
+            .map { case (name, (t, v)) =>
+              s"${TypeSerde.toString(t)} ${name} = ${ValueSerde.toString(v)}}"
             }
             .mkString("\n")}""".stripMargin
       )
@@ -169,7 +167,8 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
   }
 
   override protected def evaluateOutputs(jobInputs: Map[DxName, (Type, Value)],
-                                         addReorgStatus: Boolean): Map[DxName, (Type, Value)] = {
+                                         addReorgStatus: Boolean
+  ): Map[DxName, (Type, Value)] = {
     // This might be the output for the entire workflow or just a subblock.
     val outputParams = jobMeta.blockPath match {
       case Vector() =>
@@ -188,7 +187,8 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
     val irOutputs: Map[DxName, (Type, Value)] = outputParams.map {
       case (dxName, param: WorkflowOutputParameter, cwlType) if param.sources.nonEmpty =>
         val sourceValues = param.sources.map(src =>
-          env.lookup(CwlDxName.fromDecodedName(src.frag.get)).getOrElse((TMulti.Any, VNull)))
+          env.lookup(CwlDxName.fromDecodedName(src.frag.get)).getOrElse((TMulti.Any, VNull))
+        )
         val irValue = if (param.linkMerge.nonEmpty || param.pickValue.nonEmpty) {
           val mergedValues = (sourceValues, param.linkMerge) match {
             case (_, Some(LinkMergeMethod.MergeFlattened)) =>
@@ -323,7 +323,8 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
              stepInput.default.get
            } else {
              cwlValue
-           })
+           }
+          )
         })
         .map {
           case (cwlType, NullValue) if stepInput.default.isDefined =>
@@ -343,12 +344,12 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
     private def createEvalInputs(
         inputs: Map[WorkflowStepInput, (CwlType, CwlValue)]
     ): ObjectValue = {
-      EvaluatorContext.createInputs(inputs.map {
-                                      case (param, tv) =>
-                                        val p: Identifiable with Loadable = param
-                                        p -> tv
+      EvaluatorContext.createInputs(inputs.map { case (param, tv) =>
+                                      val p: Identifiable with Loadable = param
+                                      p -> tv
                                     },
-                                    fileResolver = jobMeta.fileResolver)
+                                    fileResolver = jobMeta.fileResolver
+      )
     }
 
     private def evaluateCallStepInputs(
@@ -427,8 +428,8 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
       val requirementEvaluator = RequirementEvaluator(
           block.targetRequirements,
           block.targetHints,
-          callInputs.map {
-            case (dxName, tv) => dxName.decoded -> tv
+          callInputs.map { case (dxName, tv) =>
+            dxName.decoded -> tv
           },
           jobMeta.workerPaths,
           step.run.inputs.map(i => i.name -> i).toMap,
@@ -457,12 +458,14 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
                   nameDetail = nameDetail,
                   instanceType = instanceType.map(_.name),
                   folder = folder,
-                  prefixOutputs = true)
+                  prefixOutputs = true
+        )
       (dxExecution, executableLink, execName)
     }
 
     private def launchCall(stepInputs: Map[DxName, (WorkflowStepInput, (CwlType, CwlValue))],
-                           blockIndex: Int): Map[DxName, ParameterLink] = {
+                           blockIndex: Int
+    ): Map[DxName, ParameterLink] = {
       // collect all the step input values to pass to the callee
       val callInputs: Map[DxName, (CwlType, CwlValue)] = step.run.inputs.map { param =>
         val dxName = CwlDxName.fromSourceName(param.name)
@@ -495,8 +498,8 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
       val (_, cond) = eval.evaluate(step.when.get, CwlBoolean, ctx)
       cond match {
         case BooleanValue(true) =>
-          launchCall(stepInputs, block.index).map {
-            case (key, link) => key -> link.makeOptional
+          launchCall(stepInputs, block.index).map { case (key, link) =>
+            key -> link.makeOptional
           }
         case _ => Map.empty
       }
@@ -516,8 +519,8 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
             s"[${itemStr}]"
           case o: ObjectValue =>
             val memberStr = WorkflowExecutor.getComplexScatterName(
-                o.fields.iterator.map {
-                  case (k, v) => Some(s"${k}: ${formatItem(v)}")
+                o.fields.iterator.map { case (k, v) =>
+                  Some(s"${k}: ${formatItem(v)}")
                 }
             )
             s"{${memberStr}}"
@@ -575,8 +578,8 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
         case Some(ScatterMethod.Dotproduct) if scatterArrays.map(_.size).toSet.size == 1 =>
           scatterArrays.transpose
         case Some(ScatterMethod.FlatCrossproduct) | Some(ScatterMethod.NestedCrossproduct) =>
-          scatterArrays.foldLeft(Vector(Vector.empty[CwlValue])) {
-            case (accu, v) => accu.flatMap(i => v.map(j => i :+ j))
+          scatterArrays.foldLeft(Vector(Vector.empty[CwlValue])) { case (accu, v) =>
+            accu.flatMap(i => v.map(j => i :+ j))
           }
         case _ =>
           throw new Exception(
@@ -603,45 +606,44 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
         val allStepInputs: Map[DxName, (WorkflowStepInput, (CwlType, CwlValue))] =
           nonScatterStepInputs ++ scatterNames
             .zip(scatterItemTypes.zip(scatterValues))
-            .map {
-              case (dxName, tv) => dxName -> (stepInputs(dxName)._1, tv)
+            .map { case (dxName, tv) =>
+              dxName -> (stepInputs(dxName)._1, tv)
             }
             .toMap
         lazy val evalInputs: ObjectValue = createEvalInputs(allStepInputs.values.toMap)
-        val scatterJobInputs = runInputs.map {
-          case (dxName, param) =>
-            val (stepInput, (sourceType, sourceValue)) = allStepInputs(dxName)
-            if (stepInput.valueFrom.isDefined) {
-              val ctx = EvaluatorContext(sourceValue, evalInputs)
-              try {
-                dxName -> eval.evaluate(stepInput.valueFrom.get, param.cwlType, ctx)
-              } catch {
-                case cause: Throwable =>
-                  throw new Exception(
-                      s"error evaluating stepInput ${stepInput.name} valueFrom ${stepInput.valueFrom.get}",
-                      cause
-                  )
-              }
-            } else {
-              val cwlType = if (step.when.isDefined && CwlOptional.isOptional(sourceType)) {
-                // if the source type is optional, it may be used in the 'when' expression of a
-                // conditional, so we force the dest type to be optional
-                CwlOptional.ensureOptional(param.cwlType)
-              } else {
-                param.cwlType
-              }
-              try {
-                dxName -> (cwlType, sourceValue.coerceTo(cwlType))
-              } catch {
-                case cause: Throwable =>
-                  throw new Exception(
-                      s"""effective type ${sourceType} of stepInput ${stepInput.name} value
-                         |${sourceValue} to parameter ${dxName} is not coercible to expected type
-                         |${param.cwlType}""".stripMargin.replaceAll("\n", " "),
-                      cause
-                  )
-              }
+        val scatterJobInputs = runInputs.map { case (dxName, param) =>
+          val (stepInput, (sourceType, sourceValue)) = allStepInputs(dxName)
+          if (stepInput.valueFrom.isDefined) {
+            val ctx = EvaluatorContext(sourceValue, evalInputs)
+            try {
+              dxName -> eval.evaluate(stepInput.valueFrom.get, param.cwlType, ctx)
+            } catch {
+              case cause: Throwable =>
+                throw new Exception(
+                    s"error evaluating stepInput ${stepInput.name} valueFrom ${stepInput.valueFrom.get}",
+                    cause
+                )
             }
+          } else {
+            val cwlType = if (step.when.isDefined && CwlOptional.isOptional(sourceType)) {
+              // if the source type is optional, it may be used in the 'when' expression of a
+              // conditional, so we force the dest type to be optional
+              CwlOptional.ensureOptional(param.cwlType)
+            } else {
+              param.cwlType
+            }
+            try {
+              dxName -> (cwlType, sourceValue.coerceTo(cwlType))
+            } catch {
+              case cause: Throwable =>
+                throw new Exception(
+                    s"""effective type ${sourceType} of stepInput ${stepInput.name} value
+                       |${sourceValue} to parameter ${dxName} is not coercible to expected type
+                       |${param.cwlType}""".stripMargin.replaceAll("\n", " "),
+                    cause
+                )
+            }
+          }
         }
         val (dxExecution, _, _) = launchCall(scatterJobInputs, Some(getScatterName(scatterValues)))
         dxExecution
@@ -658,8 +660,8 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
             case ((execAccu, skipAccu), jobValues) =>
               val allInputs = nonScatterStepInputs.values.toMap ++ scatterStepInputs
                 .zip(jobValues)
-                .map {
-                  case ((param, t), v) => param -> (t, v)
+                .map { case ((param, t), v) =>
+                  param -> (t, v)
                 }
               val ctx = EvaluatorContext(inputs = createEvalInputs(allInputs))
               val (_, cond) = eval.evaluate(step.when.get, CwlBoolean, ctx)

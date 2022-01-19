@@ -58,12 +58,13 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
                                dxApi: DxApi = DxApi.get,
                                logger: Logger = Logger.get,
                                project: DxProject,
-                               folder: String)
-    extends ExecutableCompiler(extras,
-                               parameterLinkSerializer,
-                               complexPathValues,
-                               fileResolver,
-                               dxApi) {
+                               folder: String
+) extends ExecutableCompiler(extras,
+                             parameterLinkSerializer,
+                             complexPathValues,
+                             fileResolver,
+                             dxApi
+    ) {
   // database of available instance types for the user/org that owns the project
   private lazy val instanceTypeDb = InstanceType.createDb(Some(project))
 
@@ -271,13 +272,12 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         case (name, ExecutableLink(_, _, _, applet: DxApplet))     => (name, applet.id)
         case (name, ExecutableLink(_, _, _, workflow: DxWorkflow)) => (name, workflow.id)
       }
-      .map {
-        case (name, id) =>
-          JsObject(
-              Constants.BundledDependsNameKey -> JsString(name),
-              Constants.BundledDependsIdKey -> JsObject(DxUtils.DxLinkKey -> JsString(id)),
-              Constants.BundledDependsStagesKey -> JsArray(Vector.empty)
-          )
+      .map { case (name, id) =>
+        JsObject(
+            Constants.BundledDependsNameKey -> JsString(name),
+            Constants.BundledDependsIdKey -> JsObject(DxUtils.DxLinkKey -> JsString(id)),
+            Constants.BundledDependsStagesKey -> JsArray(Vector.empty)
+        )
       }
       .toVector
 
@@ -354,7 +354,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       .flatten
       .getOrElse((Map.empty[String, JsValue], Map.empty[String, JsValue]))
     (defaultMeta ++ commonMeta ++ applicationMeta ++ taskSpecificMeta,
-     defaultDetails ++ commonDetails ++ taskSpecificDetails)
+     defaultDetails ++ commonDetails ++ taskSpecificDetails
+    )
   }
 
   // TODO: Use templates for Markdown dependency report
@@ -414,7 +415,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
                    project.map(DxAccessLevel.withName),
                    allProjects.map(DxAccessLevel.withName),
                    developer,
-                   projectCreation)
+                   projectCreation
+          )
       }
       .getOrElse(DxAccess.empty)
     val taskSpecificAccess: DxAccess = (applet.kind match {
@@ -464,12 +466,12 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     }
   }
 
-  /**
-    * Builds an '/applet/new' request.
-    * For applets that call other applets, we pass a directory of the callees,
-    * so they can be found at runtime.
-    * @param applet applet IR
-    * @param executableDict mapping of callable names to executables
+  /** Builds an '/applet/new' request. For applets that call other applets, we pass a directory of
+    * the callees, so they can be found at runtime.
+    * @param applet
+    *   applet IR
+    * @param executableDict
+    *   mapping of callable names to executables
     * @return
     */
   def apply(
@@ -554,13 +556,12 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     // application details, and one with links to applets that could get called
     // at runtime (if this applet is copied, we need to maintain referential integrity)
     // Note: this doesn't seem to ensure cloning when copying workflow.
-    val (dxLinks, linkInfo) = executableDict.map {
-      case (name, link) =>
-        val linkName = s"link_${name}"
-        (
-            linkName -> JsObject(DxUtils.DxLinkKey -> JsString(link.dxExec.id)),
-            name -> ExecutableLink.serialize(link)
-        )
+    val (dxLinks, linkInfo) = executableDict.map { case (name, link) =>
+      val linkName = s"link_${name}"
+      (
+          linkName -> JsObject(DxUtils.DxLinkKey -> JsString(link.dxExec.id)),
+          name -> ExecutableLink.serialize(link)
+      )
     }.unzip
     // build the details JSON
     val defaultTags = Set(Constants.CompilerTag)
@@ -620,7 +621,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     // serilize default runtime attributes
     val defaultRuntimeAttributes = extras
       .flatMap(ex =>
-        ex.defaultRuntimeAttributes.map(attr => JsObject(ValueSerde.serializeMap(attr))))
+        ex.defaultRuntimeAttributes.map(attr => JsObject(ValueSerde.serializeMap(attr)))
+      )
     val auxDetails = Vector(
         Some(Constants.SourceCode -> JsString(sourceEncoded)),
         Some(Constants.ParseOptions -> applet.document.optionsToJson),
@@ -650,8 +652,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     )
     // look for ignoreReuse in runtime hints and in extras - the later overrides the former
     val ignoreReuse = applet.requirements
-      .collectFirst {
-        case IgnoreReuseRequirement(value) => value
+      .collectFirst { case IgnoreReuseRequirement(value) =>
+        value
       }
       .orElse(
           extras.flatMap(_.ignoreReuse)

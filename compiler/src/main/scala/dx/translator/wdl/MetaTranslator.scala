@@ -53,7 +53,8 @@ object MetaTranslator {
 
 abstract class MetaTranslator(wdlVersion: WdlVersion,
                               metaSection: Option[TAT.MetaSection],
-                              adjunctFiles: Vector[Adjuncts.AdjunctFile]) {
+                              adjunctFiles: Vector[Adjuncts.AdjunctFile]
+) {
   private lazy val meta: Meta = Meta.create(wdlVersion, metaSection)
 
   protected def translate(name: String, value: V): Option[CallableAttribute] = {
@@ -68,8 +69,8 @@ abstract class MetaTranslator(wdlVersion: WdlVersion,
       case (MetaTranslator.Version, V_String(text)) =>
         Some(CallableAttributes.VersionAttribute(text))
       case (MetaTranslator.Details, V_Object(fields)) =>
-        Some(CallableAttributes.DetailsAttribute(fields.map {
-          case (name, wdlValue) => name -> wdl.WdlUtils.toIRValue(wdlValue)
+        Some(CallableAttributes.DetailsAttribute(fields.map { case (name, wdlValue) =>
+          name -> wdl.WdlUtils.toIRValue(wdlValue)
         }))
       case (MetaTranslator.Categories, V_Array(array)) =>
         Some(CallableAttributes.CategoriesAttribute(array.map {
@@ -121,8 +122,8 @@ abstract class MetaTranslator(wdlVersion: WdlVersion,
 
 case class ApplicationMetaTranslator(wdlVersion: WdlVersion,
                                      metaSection: Option[TAT.MetaSection] = None,
-                                     adjunctFiles: Vector[Adjuncts.AdjunctFile] = Vector.empty)
-    extends MetaTranslator(wdlVersion, metaSection, adjunctFiles) {
+                                     adjunctFiles: Vector[Adjuncts.AdjunctFile] = Vector.empty
+) extends MetaTranslator(wdlVersion, metaSection, adjunctFiles) {
   override protected def translate(name: String, value: V): Option[CallableAttribute] = {
     (name, value) match {
       case (MetaTranslator.OpenSource, V_Boolean(b)) =>
@@ -134,8 +135,8 @@ case class ApplicationMetaTranslator(wdlVersion: WdlVersion,
 
 case class WorkflowMetaTranslator(wdlVersion: WdlVersion,
                                   metaSection: Option[TAT.MetaSection] = None,
-                                  adjunctFiles: Vector[Adjuncts.AdjunctFile] = Vector.empty)
-    extends MetaTranslator(wdlVersion, metaSection, adjunctFiles) {
+                                  adjunctFiles: Vector[Adjuncts.AdjunctFile] = Vector.empty
+) extends MetaTranslator(wdlVersion, metaSection, adjunctFiles) {
   override protected def translate(name: String, value: V): Option[CallableAttribute] = {
     (name, value) match {
       case (MetaTranslator.CallNames, V_Object(fields)) =>
@@ -196,7 +197,8 @@ object ParameterMetaTranslator {
 
   private def metaChoiceValueToIR(wdlType: T,
                                   value: V,
-                                  name: Option[V] = None): ParameterAttributes.Choice = {
+                                  name: Option[V] = None
+  ): ParameterAttributes.Choice = {
     (TypeUtils.unwrapOptional(wdlType), value) match {
       case (T_String, V_String(str)) =>
         ParameterAttributes.SimpleChoice(VString(str))
@@ -238,7 +240,8 @@ object ParameterMetaTranslator {
   // OR
   // choices: [{name: 'file1', value: "dx://file-XXX"}, {name: 'file2', value: "dx://file-YYY"}]
   private def metaChoicesArrayToIR(array: Vector[V],
-                                   wdlType: T): Vector[ParameterAttributes.Choice] = {
+                                   wdlType: T
+  ): Vector[ParameterAttributes.Choice] = {
     if (array.isEmpty) {
       Vector.empty
     } else {
@@ -266,7 +269,8 @@ object ParameterMetaTranslator {
                                       value: Option[V],
                                       name: Option[V] = None,
                                       project: Option[V] = None,
-                                      path: Option[V] = None): ParameterAttributes.Suggestion = {
+                                      path: Option[V] = None
+  ): ParameterAttributes.Suggestion = {
     (wdlType, value) match {
       case (T_String, Some(V_String(s)))   => ParameterAttributes.SimpleSuggestion(VString(s))
       case (T_Int, Some(V_Int(i)))         => ParameterAttributes.SimpleSuggestion(VInt(i))
@@ -278,14 +282,14 @@ object ParameterMetaTranslator {
               case V_String(path) => path
               case V_File(path)   => path
             },
-            name.collect {
-              case V_String(str) => str
+            name.collect { case V_String(str) =>
+              str
             },
-            project.collect {
-              case V_String(str) => str
+            project.collect { case V_String(str) =>
+              str
             },
-            path.collect {
-              case V_String(str) => str
+            path.collect { case V_String(str) =>
+              str
             }
         )
         if (s.value.isEmpty && (s.project.isEmpty || s.path.isEmpty)) {
@@ -316,7 +320,8 @@ object ParameterMetaTranslator {
   // suggestions: [
   //  {name: 'file1', value: "dx://file-XXX"}, {name: 'file2', value: "dx://file-YYY"}]
   private def metaSuggestionsArrayToIR(array: Vector[V],
-                                       wdlType: T): Vector[ParameterAttributes.Suggestion] = {
+                                       wdlType: T
+  ): Vector[ParameterAttributes.Suggestion] = {
     if (array.isEmpty) {
       Vector()
     } else {
@@ -438,7 +443,8 @@ object ParameterMetaTranslator {
 
 case class ParameterMetaTranslator(wdlVersion: WdlVersion,
                                    parameterMetaSection: Option[TAT.MetaSection],
-                                   hintsSection: Option[TAT.MetaSection] = None) {
+                                   hintsSection: Option[TAT.MetaSection] = None
+) {
   private lazy val parameterMeta: Meta = Meta.create(wdlVersion, parameterMetaSection)
   private lazy val hints: Meta = Meta.create(wdlVersion, hintsSection)
   private lazy val hintInputs: Option[Map[String, V]] =

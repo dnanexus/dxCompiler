@@ -20,15 +20,17 @@ case class WorkflowCompiler(separateOutputs: Boolean,
                             fileResolver: FileSourceResolver,
                             instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
                             dxApi: DxApi = DxApi.get,
-                            logger: Logger = Logger.get)
-    extends ExecutableCompiler(extras,
-                               parameterLinkSerializer,
-                               complexPathValues,
-                               fileResolver,
-                               dxApi) {
+                            logger: Logger = Logger.get
+) extends ExecutableCompiler(extras,
+                             parameterLinkSerializer,
+                             complexPathValues,
+                             fileResolver,
+                             dxApi
+    ) {
 
   private def workflowInputParameterToNative(parameter: Parameter,
-                                             stageInput: StageInput): Vector[JsValue] = {
+                                             stageInput: StageInput
+  ): Vector[JsValue] = {
     // The default value can come from the stage input or the workflow input
     def getDefault(stageInput: StageInput): Option[Option[Value]] = {
       stageInput match {
@@ -50,16 +52,18 @@ case class WorkflowCompiler(separateOutputs: Boolean,
     inputParameterToNative(paramWithDefault)
   }
 
-  /**
-    * Converts a workflow output paramter to outputSpec JSON. A complex output
-    * will generate two output specs - one for the value and one for an array
-    * of files that are nested within the complex value.
-    * @param parameter the workflow output Parameter
-    * @param stageInput the StageInput from which the workflow output is derived
+  /** Converts a workflow output paramter to outputSpec JSON. A complex output will generate two
+    * output specs - one for the value and one for an array of files that are nested within the
+    * complex value.
+    * @param parameter
+    *   the workflow output Parameter
+    * @param stageInput
+    *   the StageInput from which the workflow output is derived
     * @return
     */
   private def workflowOutputParameterToNative(parameter: Parameter,
-                                              stageInput: StageInput): Vector[JsValue] = {
+                                              stageInput: StageInput
+  ): Vector[JsValue] = {
     val outputSpec: Map[String, Map[String, JsValue]] =
       outputParameterToNative(parameter).map { obj =>
         val name = obj.fields.get("name") match {
@@ -93,7 +97,8 @@ case class WorkflowCompiler(separateOutputs: Boolean,
           ParameterLinkValue(JsArray(stageInputs.map { i =>
                                parameterLinkSerializer.serializeSimpleLink(createLink(i, itemType))
                              }),
-                             dxType)
+                             dxType
+          )
         case other =>
           throw new Exception(s"Bad value for stage input ${other}")
       }
@@ -101,18 +106,18 @@ case class WorkflowCompiler(separateOutputs: Boolean,
 
     val outputSources: Vector[(DxName, JsValue)] =
       parameterLinkSerializer.createFieldsFromLink(createLink(stageInput, parameter.dxType),
-                                                   parameter.name)
+                                                   parameter.name
+      )
 
     // merge the specification and the output sources
-    outputSources.map {
-      case (fieldName, output) =>
-        JsObject(outputSpec(fieldName.encoded) ++ Map("outputSource" -> output))
+    outputSources.map { case (fieldName, output) =>
+      JsObject(outputSpec(fieldName.encoded) ++ Map("outputSource" -> output))
     }
   }
 
-  /**
-    * Translates stage inputs to native input spec.
-    * @param inputs stage inputs
+  /** Translates stage inputs to native input spec.
+    * @param inputs
+    *   stage inputs
     * @return
     */
   private def stageInputToNative(inputs: Vector[(Parameter, StageInput)]): JsValue = {
@@ -149,16 +154,15 @@ case class WorkflowCompiler(separateOutputs: Boolean,
     // sort the inputs, to make the request deterministic
     JsObject(
         inputs
-          .flatMap {
-            case (parameter, stageInput) =>
-              createLink(stageInput, parameter.dxType)
-                .map { link =>
-                  parameterLinkSerializer.createFieldsFromLink(link, parameter.name)
-                }
-                .getOrElse(Vector.empty)
+          .flatMap { case (parameter, stageInput) =>
+            createLink(stageInput, parameter.dxType)
+              .map { link =>
+                parameterLinkSerializer.createFieldsFromLink(link, parameter.name)
+              }
+              .getOrElse(Vector.empty)
           }
-          .map {
-            case (dxName, jsv) => dxName.encoded -> jsv
+          .map { case (dxName, jsv) =>
+            dxName.encoded -> jsv
           }
           .to(SeqMap)
     )
@@ -304,7 +308,8 @@ case class WorkflowCompiler(separateOutputs: Boolean,
         ),
         Option.when(dockerRegistryCredentialsUri.nonEmpty)(
             Vector(listMd("Docker registry credentials file"),
-                   listMd2(dockerRegistryCredentialsUri.get))
+                   listMd2(dockerRegistryCredentialsUri.get)
+            )
         )
     ).flatten.flatten.mkString
 
@@ -312,9 +317,8 @@ case class WorkflowCompiler(separateOutputs: Boolean,
     val executables = executableNames.collect(executableDict.get(_)).flatten
 
     val subWorkflowsMd = executables
-      .collect {
-        case CompiledExecutable(_: Workflow, dxExec: DxWorkflow, _, _) =>
-          dxExec
+      .collect { case CompiledExecutable(_: Workflow, dxExec: DxWorkflow, _, _) =>
+        dxExec
       }
       .flatMap(reportableDependenciesFromWorkflow)
       .mkString
@@ -324,7 +328,8 @@ case class WorkflowCompiler(separateOutputs: Boolean,
         case CompiledExecutable(Application(_, _, _, _, _, ExecutableKindApplet, _, _, _, _, _, _),
                                 dxExec: DxApplet,
                                 _,
-                                _) =>
+                                _
+            ) =>
           dxExec
       }
       .flatMap(reportableDependenciesFromApplication)
@@ -355,14 +360,16 @@ case class WorkflowCompiler(separateOutputs: Boolean,
           //   a single field mapping the stage ID to the value. A value can also be an
           //   array of nested value/link hashes.
           def getWorkflowInputValue(stageInput: StageInput,
-                                    dxType: Type): (Set[DxWorkflowStage], Option[Value]) = {
+                                    dxType: Type
+          ): (Set[DxWorkflowStage], Option[Value]) = {
             stageInput match {
               case StageInputEmpty => (Set.empty, None)
               case StageInputStatic(value) =>
                 (Set.empty, Some(Value.VHash(Constants.ValueKey.decoded -> value)))
               case StageInputStageLink(stageId, stageParam) =>
                 (Set(stageId),
-                 Some(Value.VHash(stageId.id -> Value.VString(stageParam.name.decoded))))
+                 Some(Value.VHash(stageId.id -> Value.VString(stageParam.name.decoded)))
+                )
               case StageInputArray(inputs) =>
                 val itemType = dxType match {
                   case Type.TArray(itemType, _) => itemType
@@ -413,9 +420,11 @@ case class WorkflowCompiler(separateOutputs: Boolean,
               (ExecutableCompiler.InputManifestParameter, StageInputEmpty),
               (ExecutableCompiler.InputManfestFilesParameter, stageManifestLinks),
               (ExecutableCompiler.InputLinksParameter,
-               StageInputStatic(Value.VHash(inputLinks.flatten.to(SeqMap)))),
+               StageInputStatic(Value.VHash(inputLinks.flatten.to(SeqMap)))
+              ),
               (ExecutableCompiler.OutputIdParameter,
-               StageInputStatic(Value.VString(workflow.name))),
+               StageInputStatic(Value.VString(workflow.name))
+              ),
               (ExecutableCompiler.ExtraOutputsParameter, StageInputEmpty),
               (ExecutableCompiler.CallNameParameter, StageInputEmpty)
           )
@@ -434,7 +443,8 @@ case class WorkflowCompiler(separateOutputs: Boolean,
           }
           Vector(
               (ExecutableCompiler.OutputManifestParameter,
-               StageInputStageLink(outputStage.dxStage, ExecutableCompiler.OutputManifestParameter))
+               StageInputStageLink(outputStage.dxStage, ExecutableCompiler.OutputManifestParameter)
+              )
           )
         } else {
           workflow.outputs
@@ -442,13 +452,13 @@ case class WorkflowCompiler(separateOutputs: Boolean,
 
         val wfInputSpec: Vector[JsValue] = inputParams
           .sortWith(_._1.name < _._1.name)
-          .flatMap {
-            case (parameter, stageInput) => workflowInputParameterToNative(parameter, stageInput)
+          .flatMap { case (parameter, stageInput) =>
+            workflowInputParameterToNative(parameter, stageInput)
           }
         val wfOutputSpec: Vector[JsValue] = outputParams
           .sortWith(_._1.name < _._1.name)
-          .flatMap {
-            case (parameter, stageInput) => workflowOutputParameterToNative(parameter, stageInput)
+          .flatMap { case (parameter, stageInput) =>
+            workflowOutputParameterToNative(parameter, stageInput)
           }
         Map("inputs" -> JsArray(wfInputSpec), "outputs" -> JsArray(wfOutputSpec))
       } else {
@@ -479,11 +489,13 @@ case class WorkflowCompiler(separateOutputs: Boolean,
                      Value.VHash(
                          Constants.WorkflowKey.decoded -> Value.VString(wfParam.name.decoded)
                      )
-                 ))
+                 )
+                )
               case StageInputStageLink(sourceStage, sourceParam) =>
                 (false,
                  Set(sourceStage),
-                 Some(Value.VHash(sourceStage.id -> Value.VString(sourceParam.name.decoded))))
+                 Some(Value.VHash(sourceStage.id -> Value.VString(sourceParam.name.decoded)))
+                )
               case StageInputArray(inputs) =>
                 val itemType = dxType match {
                   case Type.TArray(itemType, _) => itemType
@@ -496,7 +508,8 @@ case class WorkflowCompiler(separateOutputs: Boolean,
                   inputs.map(getStageInputValue(_, itemType)).unzip3
                 (inputWorkflow.exists(identity),
                  inputStages.flatten.toSet,
-                 Some(Value.VArray(values.flatten)))
+                 Some(Value.VArray(values.flatten))
+                )
             }
           }
           val (inputWorkflow, inputStages, inputLinks) = irExecutable.inputVars
@@ -525,32 +538,40 @@ case class WorkflowCompiler(separateOutputs: Boolean,
             if (stage.description == Constants.OutputStage) {
               Vector(
                   (ExecutableCompiler.OutputIdParameter,
-                   StageInputWorkflowLink(ExecutableCompiler.OutputIdParameter)),
+                   StageInputWorkflowLink(ExecutableCompiler.OutputIdParameter)
+                  ),
                   (ExecutableCompiler.ExtraOutputsParameter,
-                   StageInputWorkflowLink(ExecutableCompiler.ExtraOutputsParameter)),
+                   StageInputWorkflowLink(ExecutableCompiler.ExtraOutputsParameter)
+                  ),
                   (ExecutableCompiler.CallNameParameter,
-                   StageInputWorkflowLink(ExecutableCompiler.CallNameParameter))
+                   StageInputWorkflowLink(ExecutableCompiler.CallNameParameter)
+                  )
               )
             } else {
               Vector(
                   (ExecutableCompiler.OutputIdParameter,
-                   StageInputStatic(Value.VString(stage.dxStage.id)))
+                   StageInputStatic(Value.VString(stage.dxStage.id))
+                  )
               )
             }
           val stageInputs = Vector(
               (ExecutableCompiler.InputManfestFilesParameter, StageInputArray(inputStageManifests)),
               (ExecutableCompiler.InputLinksParameter,
-               StageInputStatic(Value.VHash(inputLinks.flatten.to(SeqMap))))
+               StageInputStatic(Value.VHash(inputLinks.flatten.to(SeqMap)))
+              )
           ) ++ outputInputs
           // if there are any workflow inputs, pass the workflow manifests and links to the stage
           val stageWorkflowInputs = if (inputWorkflow.exists(identity)) {
             Vector(
                 (ExecutableCompiler.WorkflowInputManifestParameter,
-                 StageInputWorkflowLink(ExecutableCompiler.InputManifestParameter)),
+                 StageInputWorkflowLink(ExecutableCompiler.InputManifestParameter)
+                ),
                 (ExecutableCompiler.WorkflowInputManfestFilesParameter,
-                 StageInputWorkflowLink(ExecutableCompiler.InputManfestFilesParameter)),
+                 StageInputWorkflowLink(ExecutableCompiler.InputManfestFilesParameter)
+                ),
                 (ExecutableCompiler.WorkflowInputLinksParameter,
-                 StageInputWorkflowLink(ExecutableCompiler.InputLinksParameter))
+                 StageInputWorkflowLink(ExecutableCompiler.InputLinksParameter)
+                )
             )
           } else {
             Vector.empty
@@ -617,9 +638,8 @@ case class WorkflowCompiler(separateOutputs: Boolean,
 
     // Link to applets used by the fragment applets.
     // Note: this doesn't seem to ensure cloning when copying workflow.
-    val dxLinks = transitiveDependencies.map {
-      case ExecutableLink(name, _, _, dxExec) =>
-        s"link_${name}" -> JsObject(DxUtils.DxLinkKey -> JsString(dxExec.id))
+    val dxLinks = transitiveDependencies.map { case ExecutableLink(name, _, _, dxExec) =>
+      s"link_${name}" -> JsObject(DxUtils.DxLinkKey -> JsString(dxExec.id))
     }.toMap
     val delayDetails = delayWorkspaceDestructionToNative
     // generate the executable tree
@@ -647,7 +667,8 @@ case class WorkflowCompiler(separateOutputs: Boolean,
                                       _,
                                       _,
                                       _,
-                                      _),
+                                      _
+                          ),
                           dxExec,
                           _,
                           _

@@ -52,9 +52,8 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
     val inputs = pathFromBasename("input_file", "several_tasks_inputs.json")
     val args = List(sourceCode.toString, "--inputs", inputs.toString) ++ cFlags
     val retval = Main.compile(args.toVector)
-    inside(retval) {
-      case Failure(_, Some(e)) =>
-        e.getMessage should include("cannot generate one input file for 2 tasks")
+    inside(retval) { case Failure(_, Some(e)) =>
+      e.getMessage should include("cannot generate one input file for 2 tasks")
     }
   }
 
@@ -63,9 +62,8 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
     val inputs = pathFromBasename("input_file", "math_inputs2.json")
     val args = List(sourceCode.toString, "--inputs", inputs.toString, "--locked") ++ cFlags
     val retval = Main.compile(args.toVector)
-    inside(retval) {
-      case Failure(_, Some(e)) =>
-        e.getMessage should include("Could not map all input fields")
+    inside(retval) { case Failure(_, Some(e)) =>
+      e.getMessage should include("Could not map all input fields")
     }
   }
 
@@ -91,9 +89,8 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
     // Missing argument in a locked workflow should throw an exception.
     val args3 = List(sourceCode.toString, "--inputs", inputs.toString, "--locked") ++ cFlags
     val retval = Main.compile(args3.toVector)
-    inside(retval) {
-      case Failure(_, Some(e)) =>
-        e.getMessage should include("Could not map all input fields")
+    inside(retval) { case Failure(_, Some(e)) =>
+      e.getMessage should include("Could not map all input fields")
     }
 
     // Missing arguments are legal in an unlocked workflow
@@ -351,7 +348,8 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
                                "input2",
                                "input2___dxfiles",
                                "input3",
-                               "input3___dxfiles")
+                               "input3___dxfiles"
+    )
   }
 
   it should "translate cwl directory input" in {

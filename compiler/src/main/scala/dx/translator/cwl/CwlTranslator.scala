@@ -39,11 +39,10 @@ import spray.json._
 
 import java.nio.file.Path
 
-/**
-  * CWL input details:
-  * - YAML or JSON
-  * - Only top-level inputs can be specified
-  * - `cwl` namespace is supported - ignore any keys other than `cwl:requirements` and `cwl:hints`
+/** CWL input details:
+  *   - YAML or JSON
+  *   - Only top-level inputs can be specified
+  *   - `cwl` namespace is supported - ignore any keys other than `cwl:requirements` and `cwl:hints`
   */
 case class CwlInputTranslator(bundle: Bundle,
                               inputs: Vector[Path],
@@ -52,18 +51,19 @@ case class CwlInputTranslator(bundle: Bundle,
                               useManifests: Boolean,
                               baseFileResolver: FileSourceResolver = FileSourceResolver.get,
                               dxApi: DxApi = DxApi.get,
-                              logger: Logger = Logger.get)
-    extends InputTranslator(bundle,
-                            inputs,
-                            defaults,
-                            project,
-                            useManifests,
-                            complexPathValues = true,
-                            ignoreUnusedInputs = true,
-                            CwlDxName,
-                            baseFileResolver,
-                            dxApi,
-                            logger) {
+                              logger: Logger = Logger.get
+) extends InputTranslator(bundle,
+                          inputs,
+                          defaults,
+                          project,
+                          useManifests,
+                          complexPathValues = true,
+                          ignoreUnusedInputs = true,
+                          CwlDxName,
+                          baseFileResolver,
+                          dxApi,
+                          logger
+    ) {
 
   private val CwlRegex = "^(?:.*\\.)?cwl:(.+)$".r
 
@@ -86,7 +86,8 @@ case class CwlInputTranslator(bundle: Bundle,
        }
      } else {
        Map.empty[String, JsObject]
-     })
+     }
+    )
   }
 
   override protected def convertRawInput(rawInput: JsValue, t: Type): JsValue = {
@@ -143,8 +144,8 @@ case class CwlTranslator(process: Process,
                          instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
                          fileResolver: FileSourceResolver = FileSourceResolver.get,
                          dxApi: DxApi = DxApi.get,
-                         logger: Logger = Logger.get)
-    extends Translator {
+                         logger: Logger = Logger.get
+) extends Translator {
 
   override val runtimeAssetName: String = "dxCWLrt"
 
@@ -193,8 +194,8 @@ case class CwlTranslator(process: Process,
       logger2.trace(s"allCallables: ${allCallables.keys}")
       logger2.trace(s"allCallablesSorted: ${allCallablesSortedNames}")
     }
-    val irTypeAliases = cwlBundle.typeAliases.collect {
-      case (name, record: CwlRecord) => name -> CwlUtils.toIRType(record)
+    val irTypeAliases = cwlBundle.typeAliases.collect { case (name, record: CwlRecord) =>
+      name -> CwlUtils.toIRType(record)
     }
     Bundle(Some(primaryCallable), allCallables, allCallablesSortedNames, irTypeAliases)
   }
@@ -202,7 +203,8 @@ case class CwlTranslator(process: Process,
   override protected def createInputTranslator(bundle: Bundle,
                                                inputs: Vector[Path],
                                                defaults: Option[Path],
-                                               project: DxProject): InputTranslator = {
+                                               project: DxProject
+  ): InputTranslator = {
     CwlInputTranslator(bundle, inputs, defaults, project, useManifests, fileResolver)
   }
 }
@@ -219,7 +221,8 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
                       instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
                       fileResolver: FileSourceResolver,
                       dxApi: DxApi,
-                      logger: Logger): Option[Translator] = {
+                      logger: Logger
+  ): Option[Translator] = {
     // TODO: we need to require that the source file be "packed" before compiling, because
     //  we cannot include auxiliary files (e.g. a JavaScript or YAML import) with the CWL.
     //  Then we shouldn't use a base URI and instead let parsing errors due to unsatisfied

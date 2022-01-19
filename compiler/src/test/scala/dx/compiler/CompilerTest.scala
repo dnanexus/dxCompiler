@@ -65,7 +65,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
                                                         "NativeWithoutRuntimeAsset",
                                                         "-folder",
                                                         unitTestsPath,
-                                                        "-locked")
+                                                        "-locked"
+  )
   private val cFlagsReorgIR: List[String] = cFlagsBase ++
     List("-compileMode", "IR", "-folder", "/reorg_tests")
   private val cFlagsReorgCompile: List[String] = cFlagsBase ++
@@ -75,7 +76,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
          "NativeWithoutRuntimeAsset",
          "-folder",
          unitTestsReusePath,
-         "-projectWideReuse")
+         "-projectWideReuse"
+    )
 
   override def beforeAll(): Unit = {
     // build the directory with the native applets
@@ -202,7 +204,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     inFile.patterns shouldBe Some(
         IOParameterPatternObject(Some(Vector("*.txt", "*.tsv")),
                                  Some("file"),
-                                 Some(Vector("foo", "bar")))
+                                 Some(Vector("foo", "bar"))
+        )
     )
     inFile.help shouldBe Some("The input file to be searched")
     inFile.group shouldBe Some("Common")
@@ -1015,7 +1018,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     // no reorg conf input. only status.
     reorgInput.fields.size shouldBe 2
     reorgInput.fields.keys should contain theSameElementsAs Set(Constants.ReorgStatus.encoded,
-                                                                Constants.ReorgConfig.encoded)
+                                                                Constants.ReorgConfig.encoded
+    )
   }
 
   it should "ensure subworkflow with custom reorg app does not contain reorg attribute" in {

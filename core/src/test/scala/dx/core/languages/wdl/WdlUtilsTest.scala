@@ -16,11 +16,9 @@ class WdlUtilsTest extends AnyFlatSpec with Matchers {
       case Some(TAT.MetaSection(kvs)) => kvs
       case _                          => throw new Exception("unexpected")
     }
-    kvs.get("type") should matchPattern {
-      case Some(TAT.MetaValueString("native", _)) =>
+    kvs.get("type") should matchPattern { case Some(TAT.MetaValueString("native", _)) =>
     }
-    kvs.get("id") should matchPattern {
-      case Some(TAT.MetaValueString("applet-xxxx", _)) =>
+    kvs.get("id") should matchPattern { case Some(TAT.MetaValueString("applet-xxxx", _)) =>
     }
   }
 
@@ -33,8 +31,8 @@ class WdlUtilsTest extends AnyFlatSpec with Matchers {
     if (doc.workflow.isDefined) {
       throw new Exception("a workflow shouldn't be a member of this document")
     }
-    val tasks = doc.elements.collect {
-      case task: TAT.Task => task.name -> task
+    val tasks = doc.elements.collect { case task: TAT.Task =>
+      task.name -> task
     }.toMap
     if (tasks.isEmpty) {
       throw new Exception("no tasks in this WDL program")

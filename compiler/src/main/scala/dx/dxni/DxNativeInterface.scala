@@ -10,7 +10,8 @@ import dx.util.{FileSourceResolver, Logger}
 trait NativeInterfaceGenerator {
   def generate(apps: Vector[DxApp] = Vector.empty,
                applets: Vector[DxApplet] = Vector.empty,
-               headerLines: Vector[String]): Vector[String]
+               headerLines: Vector[String]
+  ): Vector[String]
 }
 
 trait NativeInterfaceGeneratorFactory {
@@ -19,7 +20,8 @@ trait NativeInterfaceGeneratorFactory {
 
 case class DxNativeInterface(fileResolver: FileSourceResolver = FileSourceResolver.get,
                              dxApi: DxApi = DxApi.get,
-                             logger: Logger = Logger.get) {
+                             logger: Logger = Logger.get
+) {
 
   private val generatorFactories = Vector(
       WdlDxNativeInterfaceFactory(fileResolver = fileResolver, dxApi = dxApi, logger = logger)
@@ -50,7 +52,8 @@ case class DxNativeInterface(fileResolver: FileSourceResolver = FileSourceResolv
 
   private def searchApplets(dxProject: DxProject,
                             folder: String,
-                            recursive: Boolean): Vector[DxApplet] = {
+                            recursive: Boolean
+  ): Vector[DxApplet] = {
     val applets: Vector[DxApplet] =
       DxFindDataObjects(dxApi)
         .apply(Some(dxProject),
@@ -58,7 +61,8 @@ case class DxNativeInterface(fileResolver: FileSourceResolver = FileSourceResolv
                recursive,
                classRestriction = Some("applet"),
                withInputOutputSpec = true,
-               extraFields = Set(Field.Tags))
+               extraFields = Set(Field.Tags)
+        )
         .collect {
           // ignore any applets with the compiler tag set - it indicates an applet
           // that was compiled with dxCompiler (and thus not "native")
@@ -91,8 +95,7 @@ case class DxNativeInterface(fileResolver: FileSourceResolver = FileSourceResolv
       "These are interfaces to apps."
   )
 
-  /**
-    * Generate only apps.
+  /** Generate only apps.
     */
   def apply(language: Language, appId: Option[String]): (Vector[DxApp], Vector[String]) = {
     val generator = getGenerator(language)
@@ -117,7 +120,8 @@ case class DxNativeInterface(fileResolver: FileSourceResolver = FileSourceResolv
             path: Option[String] = None,
             applet: Option[DxApplet] = None,
             recursive: Boolean = false,
-            includeApps: Boolean = true): (Vector[DxApp], Vector[DxApplet], Vector[String]) = {
+            includeApps: Boolean = true
+  ): (Vector[DxApp], Vector[DxApplet], Vector[String]) = {
     val generator = getGenerator(language)
     val apps = if (includeApps) {
       searchApps

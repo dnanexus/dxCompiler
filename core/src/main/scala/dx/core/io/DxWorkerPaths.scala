@@ -31,15 +31,14 @@ object DxWorkerPaths {
   lazy val default: DxWorkerPaths = DxWorkerPaths(RootDir)
 }
 
-/**
-  * Important paths on a DNAnexus worker.
-  * This is used in several distinct and seemingly disjoint cases:
-  *  - generating applets (compile time)
-  *  - localizing/delocalizing files and evaluating expressions (task/workflow runtime)
-  *  - unit tests
-  * Note that if a task in a container, the container will need access to temporary
-  * files created with stdlib calls like "write_lines".
-  * @param rootDir the root directory - typically the user's home directory
+/** Important paths on a DNAnexus worker. This is used in several distinct and seemingly disjoint
+  * cases:
+  *   - generating applets (compile time)
+  *   - localizing/delocalizing files and evaluating expressions (task/workflow runtime)
+  *   - unit tests Note that if a task in a container, the container will need access to temporary
+  *     files created with stdlib calls like "write_lines".
+  * @param rootDir
+  *   the root directory - typically the user's home directory
   */
 case class DxWorkerPaths(rootDir: PosixPath) extends BaseEvalPaths with ExecPaths {
   def getRootDir(ensureExists: Boolean = false): PosixPath = {
@@ -50,30 +49,29 @@ case class DxWorkerPaths(rootDir: PosixPath) extends BaseEvalPaths with ExecPath
     getOrCreateDir("temp", getRootDir(ensureExists).resolve(DxWorkerPaths.TempDir), ensureExists)
   }
 
-  /**
-    * The execution directory - used as the base dir for relative paths (e.g. for glob search).
+  /** The execution directory - used as the base dir for relative paths (e.g. for glob search).
     */
   def getWorkDir(ensureExists: Boolean = false): PosixPath = {
     getOrCreateDir(DxWorkerPaths.WorkDir,
                    getRootDir(ensureExists).resolve(DxWorkerPaths.WorkDir),
-                   ensureExists)
+                   ensureExists
+    )
   }
 
   def getMetaDir(ensureExists: Boolean = false): PosixPath = {
     getOrCreateDir(DxWorkerPaths.MetaDir,
                    getRootDir(ensureExists).resolve(DxWorkerPaths.MetaDir),
-                   ensureExists)
+                   ensureExists
+    )
   }
 
-  /**
-    * The file that has a copy of standard output.
+  /** The file that has a copy of standard output.
     */
   def getStdoutFile(ensureParentExists: Boolean = false): PosixPath = {
     getMetaDir(ensureParentExists).resolve(DxWorkerPaths.StdoutFile)
   }
 
-  /**
-    * The file that has a copy of standard error.
+  /** The file that has a copy of standard error.
     */
   def getStderrFile(ensureParentExists: Boolean = false): PosixPath = {
     getMetaDir(ensureParentExists).resolve(DxWorkerPaths.StderrFile)
@@ -98,50 +96,51 @@ case class DxWorkerPaths(rootDir: PosixPath) extends BaseEvalPaths with ExecPath
   def getManifestFilesDir(ensureExists: Boolean = false): PosixPath = {
     getOrCreateDir(DxWorkerPaths.ManifestFilesDir,
                    getRootDir(ensureExists).resolve(DxWorkerPaths.ManifestFilesDir),
-                   ensureExists)
+                   ensureExists
+    )
   }
 
-  /**
-    * Running applets download files from the platform to this location.
+  /** Running applets download files from the platform to this location.
     */
   def getInputFilesDir(ensureExists: Boolean = false): PosixPath = {
     getOrCreateDir(DxWorkerPaths.InputFilesDir,
                    getRootDir(ensureExists).resolve(DxWorkerPaths.InputFilesDir),
-                   ensureExists)
+                   ensureExists
+    )
   }
 
-  /**
-    * Running applets place output files in this location.
+  /** Running applets place output files in this location.
     */
   def getOutputFilesDir(ensureExists: Boolean = false): PosixPath = {
     getOrCreateDir(DxWorkerPaths.OutputFilesDir,
                    getRootDir(ensureExists).resolve(DxWorkerPaths.OutputFilesDir),
-                   ensureExists)
+                   ensureExists
+    )
   }
 
   def getDxfuseMountDir(ensureExists: Boolean = false): PosixPath = {
     getOrCreateDir(DxWorkerPaths.DxfuseMountDir,
                    getRootDir(ensureExists).resolve(DxWorkerPaths.DxfuseMountDir),
-                   ensureExists)
+                   ensureExists
+    )
   }
 
   def getVirtualFilesDir(ensureExists: Boolean = false): PosixPath = {
     getOrCreateDir(DxWorkerPaths.VirtualFilesDir,
                    getRootDir(ensureExists).resolve(DxWorkerPaths.VirtualFilesDir),
-                   ensureExists)
+                   ensureExists
+    )
   }
 
-  /**
-    * Where a JSON representation of the instance data base is stored.
+  /** Where a JSON representation of the instance data base is stored.
     */
   def getInstanceTypeDbFile(ensureParentExists: Boolean = false): PosixPath = {
     // TODO: any reason we can't put this in meta dir?
     getRootDir(ensureParentExists).resolve(DxWorkerPaths.InstanceTypeDbFile)
   }
 
-  /**
-    * Source WDL code. We could get it from the details field, but that
-    * would require an additional API call. This is a private copy.
+  /** Source WDL code. We could get it from the details field, but that would require an additional
+    * API call. This is a private copy.
     */
   def getSourceEncodedFile(ensureParentExists: Boolean = false): PosixPath = {
     // TODO: any reason we can't put this in meta dir?
@@ -158,17 +157,14 @@ case class DxWorkerPaths(rootDir: PosixPath) extends BaseEvalPaths with ExecPath
     getMetaDir(ensureParentExists).resolve(DxWorkerPaths.DxdaWorkflowManifestDownloadManifestFile)
   }
 
-  /**
-    * Location of dx download agent (dxda) manifest. It will download all these
-    * files, if the file is non empty.
+  /** Location of dx download agent (dxda) manifest. It will download all these files, if the file
+    * is non empty.
     */
   def getDxdaManifestFile(ensureParentExists: Boolean = false): PosixPath = {
     getMetaDir(ensureParentExists).resolve(DxWorkerPaths.DxdaManifestFile)
   }
 
-  /**
-    * Location of dxfuse manifest. It will mount all these  files, if the file
-    * is non empty.
+  /** Location of dxfuse manifest. It will mount all these files, if the file is non empty.
     */
   def getDxfuseManifestFile(ensureParentExists: Boolean = false): PosixPath = {
     getMetaDir(ensureParentExists).resolve(DxWorkerPaths.DxfuseManifestFile)

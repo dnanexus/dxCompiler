@@ -32,27 +32,28 @@ import wdlTools.types.WdlTypes._
 
 import scala.collection.immutable.SeqMap
 
-/**
-  * A reference to a block input variable.
-  * @param identifierParts the parts of the identifier name
-  * @param fieldName the fieldName within the call/object
-  *                  referred to by the identifier, if any
-  * @param wdlType the variable's type
-  * @param kind the variable's kind
+/** A reference to a block input variable.
+  * @param identifierParts
+  *   the parts of the identifier name
+  * @param fieldName
+  *   the fieldName within the call/object referred to by the identifier, if any
+  * @param wdlType
+  *   the variable's type
+  * @param kind
+  *   the variable's kind
   */
 private case class WdlInputRef(identifierParts: Vector[String],
                                fieldName: Option[String],
                                wdlType: T,
-                               kind: InputKind.InputKind) {
+                               kind: InputKind.InputKind
+) {
   lazy val identifier: DxName = WdlDxName.fromDecodedName(identifierParts.mkString("."))
 
   lazy val fullyQualifiedName: DxName = {
     WdlDxName.fromDecodedName((identifierParts ++ fieldName.toVector).mkString("."))
   }
 
-  /**
-    * Returns an Iterator over all the nested identifiers
-    * represented by this reference.
+  /** Returns an Iterator over all the nested identifiers represented by this reference.
     */
   lazy val names: Vector[DxName] = {
     (identifierParts ++ fieldName.toVector).reverse.tails.collect {
@@ -68,7 +69,8 @@ object WdlUtils {
 
   def parseSource(sourceCode: FileNode,
                   parser: WdlParser,
-                  logger: Logger = Logger.get): AST.Document = {
+                  logger: Logger = Logger.get
+  ): AST.Document = {
     try {
       parser.parseDocument(sourceCode)
     } catch {
@@ -119,16 +121,19 @@ object WdlUtils {
     parseAndCheckSource(node, parser, wdlOptions, fileResolver, logger)
   }
 
-  /**
-    * Parses a top-level WDL file and all its imports.
-    * @param path the path to the WDL file
-    * @param wdlOptions WDL parsing options
-    * @param fileResolver FileSourceResolver
-    * @param logger Logger
-    * @return (document, aliases), where aliases is a mapping of all the (fully-qualified)
-    *         alias names to values. Aliases include Structs defined in any file (which are
-    *         *not* namespaced) and all aliases defined in import statements of all documents
-    *         (which *are* namespaced).
+  /** Parses a top-level WDL file and all its imports.
+    * @param path
+    *   the path to the WDL file
+    * @param wdlOptions
+    *   WDL parsing options
+    * @param fileResolver
+    *   FileSourceResolver
+    * @param logger
+    *   Logger
+    * @return
+    *   (document, aliases), where aliases is a mapping of all the (fully-qualified) alias names to
+    *   values. Aliases include Structs defined in any file (which are *not* namespaced) and all
+    *   aliases defined in import statements of all documents (which *are* namespaced).
     */
   def parseAndCheckSourceFile(
       path: Path,
@@ -157,7 +162,8 @@ object WdlUtils {
                 section: Section.Section = Section.Other,
                 fileResolver: FileSourceResolver = FileSourceResolver.get,
                 regime: TypeCheckingRegime.TypeCheckingRegime = TypeCheckingRegime.Moderate,
-                logger: Logger = Logger.get): TAT.Expr = {
+                logger: Logger = Logger.get
+  ): TAT.Expr = {
     val expr = parser.parseExpr(exprStr)
     try {
       TypeInfer(regime, fileResolver = fileResolver, logger = logger)
@@ -213,10 +219,9 @@ object WdlUtils {
         TAT.ExprPair(getDefaultValueOfType(lType), getDefaultValueOfType(rType), wdlType)(loc)
 
       case T_Struct(_, typeMap) =>
-        val members = typeMap.map {
-          case (fieldName, t) =>
-            val key: TAT.Expr = TAT.ValueString(fieldName, T_String)(loc)
-            key -> getDefaultValueOfType(t)
+        val members = typeMap.map { case (fieldName, t) =>
+          val key: TAT.Expr = TAT.ValueString(fieldName, T_String)(loc)
+          key -> getDefaultValueOfType(t)
         }
         TAT.ExprObject(members, wdlType)(loc)
 
@@ -233,18 +238,15 @@ object WdlUtils {
   // 'right' for Pair, 'keys' and 'values' for Map). We define
   // a special TSchema for each of these types.
 
-  /**
-    * Name prefix for Pair-type schemas.
+  /** Name prefix for Pair-type schemas.
     */
   val PairSchemaPrefix = "Pair___"
 
-  /**
-    * Pair.left key that can be used in WDL input files.
+  /** Pair.left key that can be used in WDL input files.
     */
   val PairLeftKey = "left"
 
-  /**
-    * Pair.right key that can be used in WDL input files.
+  /** Pair.right key that can be used in WDL input files.
     */
   val PairRightKey = "right"
 
@@ -264,18 +266,15 @@ object WdlUtils {
     fields.size == 2 && fields.keySet == Set(PairLeftKey, PairRightKey)
   }
 
-  /**
-    * Name prefix for Map-type schemas.
+  /** Name prefix for Map-type schemas.
     */
   val MapSchemaPrefix = "Map___"
 
-  /**
-    * Map.keys key that can be used in WDL input files.
+  /** Map.keys key that can be used in WDL input files.
     */
   val MapKeysKey = "keys"
 
-  /**
-    * Map.values key that can be used in WDL  input files.
+  /** Map.values key that can be used in WDL input files.
     */
   val MapValuesKey = "values"
 
@@ -310,9 +309,10 @@ object WdlUtils {
 
   def toIRSchema(wdlStruct: T_Struct): TSchema = {
     TSchema(wdlStruct.name,
-            wdlStruct.members.map {
-              case (key, value) => key -> toIRType(value)
-            })
+            wdlStruct.members.map { case (key, value) =>
+              key -> toIRType(value)
+            }
+    )
   }
 
   def toIRType(wdlType: T): Type = {
@@ -342,14 +342,14 @@ object WdlUtils {
   }
 
   def toIRTypeMap(wdlTypes: Map[DxName, T]): Map[DxName, Type] = {
-    wdlTypes.map {
-      case (name, t) => name -> toIRType(t)
+    wdlTypes.map { case (name, t) =>
+      name -> toIRType(t)
     }
   }
 
   def toIRSchemaMap(wdlTypes: Map[String, T_Struct]): Map[String, TSchema] = {
-    wdlTypes.map {
-      case (name, t) => name -> toIRSchema(t)
+    wdlTypes.map { case (name, t) =>
+      name -> toIRSchema(t)
     }
   }
 
@@ -410,8 +410,8 @@ object WdlUtils {
         )
       case V_Map(members) =>
         // encode this as a hash with 'keys' and 'values' keys
-        val (keys, values) = members.map {
-          case (k, v) => (toIRValue(k), toIRValue(v))
+        val (keys, values) = members.map { case (k, v) =>
+          (toIRValue(k), toIRValue(v))
         }.unzip
         VHash(
             SeqMap(
@@ -420,12 +420,12 @@ object WdlUtils {
             )
         )
       case V_Object(fields) =>
-        VHash(fields.map {
-          case (key, value) => key -> toIRValue(value)
+        VHash(fields.map { case (key, value) =>
+          key -> toIRValue(value)
         })
       case V_Struct(_, fields) =>
-        VHash(fields.map {
-          case (key, value) => key -> toIRValue(value)
+        VHash(fields.map { case (key, value) =>
+          key -> toIRValue(value)
         })
       case _ =>
         throw new Exception(s"Invalid WDL value ${wdlValue})")
@@ -463,8 +463,8 @@ object WdlUtils {
         )
       case (T_Map(keyType, valueType), V_Map(members)) =>
         // encode this as a hash with 'keys' and 'values' keys
-        val (keys, values) = members.map {
-          case (k, v) => (toIRValue(k, keyType), toIRValue(v, valueType))
+        val (keys, values) = members.map { case (k, v) =>
+          (toIRValue(k, keyType), toIRValue(v, valueType))
         }.unzip
         VHash(
             SeqMap(
@@ -483,7 +483,8 @@ object WdlUtils {
 
   private def structToIRValue(name: String,
                               fieldValues: SeqMap[String, V],
-                              fieldTypes: SeqMap[String, T]): VHash = {
+                              fieldTypes: SeqMap[String, T]
+  ): VHash = {
     // ensure 1) members keys are a subset of memberTypes keys, 2) members
     // values are convertable to the corresponding types, and 3) any keys
     // in memberTypes that do not appear in members are optional
@@ -510,11 +511,10 @@ object WdlUtils {
   }
 
   def toIR(wdl: Map[DxName, (T, V)]): Map[DxName, (Type, Value)] = {
-    wdl.map {
-      case (name, (wdlType, wdlValue)) =>
-        val irType = toIRType(wdlType)
-        val irValue = toIRValue(wdlValue, wdlType)
-        name -> (irType, irValue)
+    wdl.map { case (name, (wdlType, wdlValue)) =>
+      val irType = toIRType(wdlType)
+      val irValue = toIRValue(wdlValue, wdlType)
+      name -> (irType, irValue)
     }
   }
 
@@ -528,8 +528,8 @@ object WdlUtils {
       case f: VFile    => V_File(f.uri)
       case f: VFolder  => V_Directory(f.uri)
       case VArray(array) =>
-        V_Array(array.zipWithIndex.map {
-          case (v, i) => fromIRValue(v, name.map(n => s"${n}[${i}]"))
+        V_Array(array.zipWithIndex.map { case (v, i) =>
+          fromIRValue(v, name.map(n => s"${n}[${i}]"))
         })
       case VHash(fields) if isPairValue(fields) =>
         V_Pair(
@@ -547,8 +547,8 @@ object WdlUtils {
             throw new Exception(s"invalid map value ${other}")
         }
       case VHash(fields) =>
-        V_Object(fields.map {
-          case (key, value) => key -> fromIRValue(value, name.map(n => s"${n}[${key}]"))
+        V_Object(fields.map { case (key, value) =>
+          key -> fromIRValue(value, name.map(n => s"${n}[${key}]"))
         })
       case _ =>
         throw new Exception(
@@ -578,8 +578,8 @@ object WdlUtils {
             s"Empty array with non-empty (+) quantifier"
         )
       case (T_Array(t, _), VArray(array)) =>
-        V_Array(array.zipWithIndex.map {
-          case (v, i) => fromIRValue(v, t, s"${name}[${i}]")
+        V_Array(array.zipWithIndex.map { case (v, i) =>
+          fromIRValue(v, t, s"${name}[${i}]")
         })
       case (T_Pair(leftType, rightType), VHash(fields)) if isPairValue(fields) =>
         V_Pair(
@@ -618,8 +618,8 @@ object WdlUtils {
               s"struct ${structName} value is missing non-optional members ${missingNonOptional}"
           )
         }
-        V_Object(members.map {
-          case (key, value) => key -> fromIRValue(value, memberTypes(key), s"${name}[${key}]")
+        V_Object(members.map { case (key, value) =>
+          key -> fromIRValue(value, memberTypes(key), s"${name}[${key}]")
         })
       case _ =>
         throw new Exception(
@@ -629,12 +629,12 @@ object WdlUtils {
   }
 
   def fromIR(ir: Map[DxName, (Type, Value)],
-             typeAliases: Map[String, T] = Map.empty): Map[DxName, (T, V)] = {
-    ir.map {
-      case (dxName, (t, v)) =>
-        val wdlType = fromIRType(t, typeAliases)
-        val wdlValue = fromIRValue(v, wdlType, dxName.decoded)
-        dxName -> (wdlType, wdlValue)
+             typeAliases: Map[String, T] = Map.empty
+  ): Map[DxName, (T, V)] = {
+    ir.map { case (dxName, (t, v)) =>
+      val wdlType = fromIRType(t, typeAliases)
+      val wdlValue = fromIRValue(v, wdlType, dxName.decoded)
+      dxName -> (wdlType, wdlValue)
     }
   }
 
@@ -680,8 +680,8 @@ object WdlUtils {
         }
       case VHash(members) =>
         val m: SeqMap[TAT.Expr, TAT.Expr] = members
-          .map {
-            case (key, value) => TAT.ValueString(key, T_String)(loc) -> irValueToExpr(value)
+          .map { case (key, value) =>
+            TAT.ValueString(key, T_String)(loc) -> irValueToExpr(value)
           }
           .to(SeqMap)
         TAT.ExprObject(m, T_Object)(loc)
@@ -699,8 +699,8 @@ object WdlUtils {
       case T_Map(k, v)   => isPathType(k) | isPathType(v)
       case T_Pair(l, r)  => isPathType(l) | isPathType(r)
       case T_Struct(_, members) =>
-        members.exists {
-          case (_, t) => isPathType(t)
+        members.exists { case (_, t) =>
+          isPathType(t)
         }
       case T_Object | T_Any =>
         // no way to know if an object/Any will contain a path type,
@@ -710,12 +710,11 @@ object WdlUtils {
     }
   }
 
-  /**
-    * A trivial expression has no operators and it is either a constant
-    * or a single identifier or an access to a call field.
-    * For example, `5`, `['a', 'b', 'c']`, and `true` are trivial.
-    * 'x + y'  is not.
-    * @param expr expression
+  /** A trivial expression has no operators and it is either a constant or a single identifier or an
+    * access to a call field. For example, `5`, `['a', 'b', 'c']`, and `true` are trivial. 'x + y'
+    * is not.
+    * @param expr
+    *   expression
     * @return
     */
   def isTrivialExpression(expr: TAT.Expr): Boolean = {
@@ -726,8 +725,8 @@ object WdlUtils {
       case TAT.ExprPair(l, r, _)   => Vector(l, r).forall(TypeUtils.isPrimitiveValue)
       case TAT.ExprArray(value, _) => value.forall(TypeUtils.isPrimitiveValue)
       case TAT.ExprMap(value, _) =>
-        value.forall {
-          case (k, v) => TypeUtils.isPrimitiveValue(k) && TypeUtils.isPrimitiveValue(v)
+        value.forall { case (k, v) =>
+          TypeUtils.isPrimitiveValue(k) && TypeUtils.isPrimitiveValue(v)
         }
       case TAT.ExprObject(value, _) => value.values.forall(TypeUtils.isPrimitiveValue)
       // Access a field in a call
@@ -744,9 +743,9 @@ object WdlUtils {
     file.value.startsWith(DxPath.DxUriPrefix)
   }
 
-  /**
-    * Deep search for all calls in WorkflowElements.
-    * @param elements WorkflowElements
+  /** Deep search for all calls in WorkflowElements.
+    * @param elements
+    *   WorkflowElements
     * @return
     */
   def deepFindCalls(elements: Vector[TAT.WorkflowElement]): Vector[TAT.Call] = {
@@ -761,28 +760,26 @@ object WdlUtils {
     }
   }
 
-  /**
-    * Returns the variables used in an expression. Nested references do
-    * not include members, except when the identifier refers to a call or
-    * `withField` is true.
-    * @param expr the expression
-    * @param typeHint type to use if the actual type is T_Any
-    * @param withField whether to append the field name of a terminal
-    *                  GetName expression to the LHS (requires the LHS
-    *                  to be a Pair, object, or struct; always true if
-    *                  the LHS is a call).
-    * @return Vector of (name, type, optional) tuples
+  /** Returns the variables used in an expression. Nested references do not include members, except
+    * when the identifier refers to a call or `withField` is true.
+    * @param expr
+    *   the expression
+    * @param typeHint
+    *   type to use if the actual type is T_Any
+    * @param withField
+    *   whether to append the field name of a terminal GetName expression to the LHS (requires the
+    *   LHS to be a Pair, object, or struct; always true if the LHS is a call).
+    * @return
+    *   Vector of (name, type, optional) tuples
     * @example
-    * expression   inputs
-    *   1 + 2        Vector.empty
-    *   x + y        Vector(('x', None), ('y', None))
-    *   foo.y        Vector(('foo', Some('y')))    [foo is a call]
-    *   bar.left     Vector(('bar', None))         [bar is a Pair, withField = false]
-    *   bar.left     Vector(('bar', Some('left'))) [bar is a Pair, withField = true]
+    *   expression inputs 1 + 2 Vector.empty x + y Vector(('x', None), ('y', None)) foo.y
+    *   Vector(('foo', Some('y'))) [foo is a call] bar.left Vector(('bar', None)) [bar is a Pair,
+    *   withField = false] bar.left Vector(('bar', Some('left'))) [bar is a Pair, withField = true]
     */
   private def getExpressionInputs(expr: TAT.Expr,
                                   typeHint: Option[T],
-                                  withField: Boolean): Vector[WdlInputRef] = {
+                                  withField: Boolean
+  ): Vector[WdlInputRef] = {
     def inner(
         innerExpr: TAT.Expr,
         innerTypeHint: Option[T]
@@ -950,9 +947,9 @@ object WdlUtils {
     inner(expr, typeHint)
   }
 
-  /**
-    * Get all inputs and outputs for a block of statements.
-    * @param elements the block elements
+  /** Get all inputs and outputs for a block of statements.
+    * @param elements
+    *   the block elements
     * @return
     */
   def getClosureInputsAndOutputs(
@@ -970,16 +967,15 @@ object WdlUtils {
         case TAT.PrivateVariable(name, wdlType, expr) =>
           Vector((WdlDxName.fromSourceName(name), wdlType, expr))
         case call: TAT.Call =>
-          call.callee.output.map {
-            case (name, wdlType) =>
-              val dxName =
-                WdlDxName.fromSourceName(name, namespace = Some(call.actualName))
-              val expr = TAT.ExprIdentifier(dxName.decoded, wdlType)(call.loc)
-              (dxName, wdlType, expr)
+          call.callee.output.map { case (name, wdlType) =>
+            val dxName =
+              WdlDxName.fromSourceName(name, namespace = Some(call.actualName))
+            val expr = TAT.ExprIdentifier(dxName.decoded, wdlType)(call.loc)
+            (dxName, wdlType, expr)
           }.toVector
         case cond: TAT.Conditional =>
-          getOutputs(cond.body).map {
-            case (dxName, wdlType, expr) => (dxName, TypeUtils.ensureOptional(wdlType), expr)
+          getOutputs(cond.body).map { case (dxName, wdlType, expr) =>
+            (dxName, TypeUtils.ensureOptional(wdlType), expr)
           }
         case scatter: TAT.Scatter =>
           // make outputs arrays, remove the collection iteration variable
@@ -1005,22 +1001,21 @@ object WdlUtils {
         case v: TAT.PrivateVariable =>
           getExpressionInputs(v.expr, typeHint = Some(v.wdlType), withField = innerWithField)
         case call: TAT.Call =>
-          call.callee.input.flatMap {
-            case (name: String, (wdlType: T, optional: Boolean)) =>
-              call.inputs
-                .get(name)
-                .map { expr =>
-                  val exprInputs =
-                    getExpressionInputs(expr, typeHint = Some(wdlType), withField = true)
-                  if (optional) {
-                    exprInputs.map { ref =>
-                      ref.copy(kind = InputKind.Optional)
-                    }
-                  } else {
-                    exprInputs
+          call.callee.input.flatMap { case (name: String, (wdlType: T, optional: Boolean)) =>
+            call.inputs
+              .get(name)
+              .map { expr =>
+                val exprInputs =
+                  getExpressionInputs(expr, typeHint = Some(wdlType), withField = true)
+                if (optional) {
+                  exprInputs.map { ref =>
+                    ref.copy(kind = InputKind.Optional)
                   }
+                } else {
+                  exprInputs
                 }
-                .getOrElse(Vector.empty)
+              }
+              .getOrElse(Vector.empty)
           }.toVector
         case cond: TAT.Conditional =>
           // get inputs for the conditional expression
@@ -1048,8 +1043,8 @@ object WdlUtils {
     // first convert outputs - we need to do this prior to inputs because WDL allows forward
     // references, and we need to be able to distinguish block inputs from variables that are
     // defined within the block
-    val outputs = getOutputs(elements).distinct.map {
-      case (dxName, t, expr) => (dxName, (t, expr))
+    val outputs = getOutputs(elements).distinct.map { case (dxName, t, expr) =>
+      (dxName, (t, expr))
     }
     val outputNames = outputs.map(_._1).foldLeft(Set.empty[DxName]) {
       case (accu, dxName) if accu.contains(dxName) =>
@@ -1064,43 +1059,39 @@ object WdlUtils {
     val inputs = getInputs(elements, withField)
       .filterNot(i => i.names.exists(outputNames.contains))
       .distinct
-      .foldLeft(SeqMap.empty[DxName, SeqMap[InputKind.InputKind, Set[T]]]) {
-        case (accu, ref) =>
-          val kinds =
-            accu.getOrElse(ref.fullyQualifiedName, SeqMap.empty[InputKind.InputKind, Set[T]])
-          val types = kinds.getOrElse(ref.kind, Set.empty[T])
-          accu + (ref.fullyQualifiedName -> (kinds + (ref.kind -> (types + ref.wdlType))))
+      .foldLeft(SeqMap.empty[DxName, SeqMap[InputKind.InputKind, Set[T]]]) { case (accu, ref) =>
+        val kinds =
+          accu.getOrElse(ref.fullyQualifiedName, SeqMap.empty[InputKind.InputKind, Set[T]])
+        val types = kinds.getOrElse(ref.kind, Set.empty[T])
+        accu + (ref.fullyQualifiedName -> (kinds + (ref.kind -> (types + ref.wdlType))))
       }
       .toVector
-      .map {
-        case (dxName, kinds) =>
-          // if there are multiple references to the same variable from different kinds of
-          // input - sort by InputKind, pick the one with the highest priority (lowest
-          // value), and make sure if there are multiple with the same kind that they're
-          // all of the same type
-          val (kind, types) = kinds.toVector.sortWith(_._1 < _._1).head
-          if (types.size > 1) {
-            throw new Exception(
-                s"""multiple references to the same paramter with different types:
-                   |${dxName} ${kind} ${types.mkString(",")}""".stripMargin
-            )
-          }
-          (dxName, (types.head, kind))
+      .map { case (dxName, kinds) =>
+        // if there are multiple references to the same variable from different kinds of
+        // input - sort by InputKind, pick the one with the highest priority (lowest
+        // value), and make sure if there are multiple with the same kind that they're
+        // all of the same type
+        val (kind, types) = kinds.toVector.sortWith(_._1 < _._1).head
+        if (types.size > 1) {
+          throw new Exception(
+              s"""multiple references to the same paramter with different types:
+                 |${dxName} ${kind} ${types.mkString(",")}""".stripMargin
+          )
+        }
+        (dxName, (types.head, kind))
       }
 
     (inputs, outputs)
   }
 
-  /**
-    * Collects all the variables referenced in the expressions of the output parameters.
+  /** Collects all the variables referenced in the expressions of the output parameters.
     */
   def getOutputClosure(outputs: Map[DxName, (T, TAT.Expr)]): Map[DxName, T] = {
     // create inputs from all the expressions that go into outputs
     // exclude any inputs that are references to other output parameters
     outputs.values
-      .flatMap {
-        case (wdlType, expr) =>
-          getExpressionInputs(expr, Some(wdlType), withField = false)
+      .flatMap { case (wdlType, expr) =>
+        getExpressionInputs(expr, Some(wdlType), withField = false)
       }
       .filterNot(i => outputs.contains(i.identifier))
       .groupBy(_.fullyQualifiedName)
@@ -1119,8 +1110,7 @@ object WdlUtils {
       }
   }
 
-  /**
-    * Collects all the variables referenced in the expressions of the output parameters.
+  /** Collects all the variables referenced in the expressions of the output parameters.
     */
   def getOutputClosure(outputs: Vector[TAT.OutputParameter]): Map[DxName, T] = {
     val dxOutputs: Map[DxName, (T, TAT.Expr)] = outputs.map {
@@ -1158,9 +1148,8 @@ object WdlUtils {
 
       case call: TAT.Call =>
         val inputNames = call.inputs
-          .map {
-            case (key, expr) =>
-              s"${key} = ${TypeUtils.prettyFormatExpr(expr)}"
+          .map { case (key, expr) =>
+            s"${key} = ${TypeUtils.prettyFormatExpr(expr)}"
           }
           .mkString(",")
         val inputs =
@@ -1180,18 +1169,16 @@ object WdlUtils {
 
   def prettyFormatEnv(env: Map[DxName, (T, V)], indent: String = "  "): String = {
     env
-      .map {
-        case (name, (t, v)) =>
-          s"${indent}${name}: ${TypeUtils.prettyFormatType(t)} ${EvalUtils.prettyFormat(v)}"
+      .map { case (name, (t, v)) =>
+        s"${indent}${name}: ${TypeUtils.prettyFormatType(t)} ${EvalUtils.prettyFormat(v)}"
       }
       .mkString("\n")
   }
 
   def prettyFormatValues(env: Map[DxName, V], indent: String = "  "): String = {
     env
-      .map {
-        case (name, v) =>
-          s"${indent}${name}: ${EvalUtils.prettyFormat(v)}"
+      .map { case (name, v) =>
+        s"${indent}${name}: ${EvalUtils.prettyFormat(v)}"
       }
       .mkString("\n")
   }

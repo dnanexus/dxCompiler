@@ -17,7 +17,8 @@ abstract class BaseCli {
 
   protected def createTaskExecutor(meta: JobMeta,
                                    streamFiles: StreamFiles.StreamFiles,
-                                   checkInstanceType: Boolean): TaskExecutor
+                                   checkInstanceType: Boolean
+  ): TaskExecutor
 
   protected def createWorkflowExecutor(meta: JobMeta, separateOutputs: Boolean): WorkflowExecutor[_]
 

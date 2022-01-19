@@ -41,7 +41,8 @@ case class VersionSupport(version: WdlVersion,
                           fileResolver: FileSourceResolver = FileSourceResolver.get,
                           dxApi: DxApi = DxApi.get,
                           logger: Logger = Logger.get,
-                          wdlParser: Option[WdlParser] = None) {
+                          wdlParser: Option[WdlParser] = None
+) {
   private lazy val parser = wdlParser.getOrElse(
       Parsers(followImports = true, fileResolver = fileResolver, logger = logger).getParser(version)
   )
@@ -75,7 +76,8 @@ case class VersionSupport(version: WdlVersion,
   def parseExpression(exprStr: String,
                       bindings: Bindings[String, WdlTypes.T],
                       docSource: FileNode,
-                      section: Section.Section = Section.Other): TAT.Expr = {
+                      section: Section.Section = Section.Other
+  ): TAT.Expr = {
     WdlUtils.parseExpr(exprStr, version, parser, docSource, bindings, section)
   }
 
@@ -96,7 +98,8 @@ case class VersionSupport(version: WdlVersion,
                                            doc.source.toString,
                                            wdlOptions,
                                            fileResolver,
-                                           logger)
+                                           logger
+        )
     )
     sourceString
   }

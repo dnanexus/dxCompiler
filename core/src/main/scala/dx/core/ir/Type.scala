@@ -14,52 +14,49 @@ object Type {
   case object TString extends PrimitiveType
   case object TFile extends PrimitiveType
 
-  /**
-    * A directory maps to a DNAnexus folder, or to some other representation of
-    * a hierarchy of files, e.g. a tar or zip archive.
+  /** A directory maps to a DNAnexus folder, or to some other representation of a hierarchy of
+    * files, e.g. a tar or zip archive.
     */
   case object TDirectory extends Type
 
-  /**
-    * Wrapper that indicates a type is optional.
-    * @param t wrapped type
+  /** Wrapper that indicates a type is optional.
+    * @param t
+    *   wrapped type
     */
   case class TOptional(t: Type) extends Type
 
   sealed trait TCollection extends Type
 
-  /**
-    * Array of primitive or file values - all items in an array must be of the
-    * same type. Some languages (e.g. WDL) have a quantifier to specify that
-    * the array must be non-empty - this does not change how the array is
-    * represented, but an error may be thrown if the array value is empty.
-    * @param itemType inner type
-    * @param nonEmpty whether the array must not be empty
+  /** Array of primitive or file values - all items in an array must be of the same type. Some
+    * languages (e.g. WDL) have a quantifier to specify that the array must be non-empty - this does
+    * not change how the array is represented, but an error may be thrown if the array value is
+    * empty.
+    * @param itemType
+    *   inner type
+    * @param nonEmpty
+    *   whether the array must not be empty
     */
   case class TArray(itemType: Type, nonEmpty: Boolean = false) extends TCollection
 
-  /**
-    * A JSON object.
+  /** A JSON object.
     */
   case object THash extends TCollection
 
-  /**
-    * Represents a user-defined type. Values of this type are represented
-    * as VHash. Fields are stored in a SeqMap to preserve their order.
-    * @param name type name
+  /** Represents a user-defined type. Values of this type are represented as VHash. Fields are
+    * stored in a SeqMap to preserve their order.
+    * @param name
+    *   type name
     */
   case class TSchema(name: String, fields: SeqMap[String, Type]) extends TCollection
 
-  /**
-    * Represents a String that is restricted to the specified symbols.
-    * Symbols are stored in a Vector to preserve their order.
-    * @param symbols set of allowed symbols in enum
+  /** Represents a String that is restricted to the specified symbols. Symbols are stored in a
+    * Vector to preserve their order.
+    * @param symbols
+    *   set of allowed symbols in enum
     */
   case class TEnum(symbols: Vector[String]) extends PrimitiveType
 
-  /**
-    * Represents a collection of equally valid types. If bounds
-    * is empty, then any type is allowed.
+  /** Represents a collection of equally valid types. If bounds is empty, then any type is allowed.
     */
   case class TMulti(bounds: Vector[Type]) extends Type {
     def contains(t: Type): Boolean = {
@@ -100,15 +97,14 @@ object Type {
     }
   }
 
-  /**
-    * Is this an IR type that maps to a native DX type?
-    * DNAnexus only supports primitives, optionals of primitives, and arrays of primitives
-    * (with no nested optional types).
-    * @param t IR type
-    * @param pathsAreNative whether path types (TFile and TDirectory) should be treated
-    *                       as native types. This may be false in the case of languages
-    *                       like CWL that have parameterized File/Directory types that
-    *                       must be passed as hashes.
+  /** Is this an IR type that maps to a native DX type? DNAnexus only supports primitives, optionals
+    * of primitives, and arrays of primitives (with no nested optional types).
+    * @param t
+    *   IR type
+    * @param pathsAreNative
+    *   whether path types (TFile and TDirectory) should be treated as native types. This may be
+    *   false in the case of languages like CWL that have parameterized File/Directory types that
+    *   must be passed as hashes.
     * @return
     */
   def isNative(t: Type, pathsAreNative: Boolean = true): Boolean = {
@@ -134,10 +130,11 @@ object Type {
     }
   }
 
-  /**
-    * Makes a type optional.
-    * @param t the type
-    * @param force if true, then `t` will be made optional even if it is already optional.
+  /** Makes a type optional.
+    * @param t
+    *   the type
+    * @param force
+    *   if true, then `t` will be made optional even if it is already optional.
     * @return
     */
   def ensureOptional(t: Type, force: Boolean = false): TOptional = {
@@ -176,13 +173,12 @@ object Type {
         case _                         => schemas
       }
     }
-    types.foldLeft(Map.empty[String, TSchema]) {
-      case (accu, wdlType) => inner(wdlType, accu)
+    types.foldLeft(Map.empty[String, TSchema]) { case (accu, wdlType) =>
+      inner(wdlType, accu)
     }
   }
 
-  /**
-    * Merges multiple types into a single type.
+  /** Merges multiple types into a single type.
     */
   def merge(types: Vector[Type]): Type = {
     val distinct = types.flatMap {

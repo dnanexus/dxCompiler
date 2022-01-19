@@ -10,7 +10,8 @@ import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 case class HintResolver(wdlVersion: WdlVersion,
                         paramterMetaSection: Option[TAT.MetaSection],
                         hintsSection: Option[TAT.MetaSection],
-                        hintOverrides: Option[VBindings] = None) {
+                        hintOverrides: Option[VBindings] = None
+) {
   private lazy val parameterMeta: Meta = Meta.create(wdlVersion, paramterMetaSection)
   private lazy val hints: Meta =
     Meta.create(wdlVersion, hintsSection, overrideValues = hintOverrides)
@@ -58,7 +59,8 @@ case class HintResolver(wdlVersion: WdlVersion,
           .filterKeys(
               Set(DxMetaHints.ParameterMetaStream,
                   DxMetaHints.ParameterHintStream,
-                  Hints.LocalizationOptionalKey)
+                  Hints.LocalizationOptionalKey
+              )
           )
           .values
           .exists {

@@ -9,14 +9,15 @@ import spray.json._
 
 import scala.collection.immutable.SeqMap
 
-/**
-  * Interface for mounting or appending to a squashfs image.
-  * @param image path to the image file
-  * @param mountDir directory where to mount the file system - if Right, is
-  *                 used as the actual mount point; if Left, is the parent
-  *                 directory of a randomly named mount point; if null, a
-  *                 random mount point is created in tmp
-  * @param logger Logger
+/** Interface for mounting or appending to a squashfs image.
+  * @param image
+  *   path to the image file
+  * @param mountDir
+  *   directory where to mount the file system - if Right, is used as the actual mount point; if
+  *   Left, is the parent directory of a randomly named mount point; if null, a random mount point
+  *   is created in tmp
+  * @param logger
+  *   Logger
   */
 case class SquashFs(image: Path)(
     mountDir: Option[Either[Path, Path]] = None,
@@ -52,8 +53,7 @@ case class SquashFs(image: Path)(
     mounted = true
   }
 
-  /**
-    * Mounts the archive if it has not already been mounted.
+  /** Mounts the archive if it has not already been mounted.
     */
   def mount(): Unit = {
     if (!mounted) {
@@ -80,8 +80,7 @@ case class SquashFs(image: Path)(
     mounted = false
   }
 
-  /**
-    * Unmounts the archive if it has previously been mounted.
+  /** Unmounts the archive if it has previously been mounted.
     */
   def unmount(): Unit = {
     if (isMounted) {
@@ -101,15 +100,13 @@ case class SquashFs(image: Path)(
     }
   }
 
-  /**
-    * Resolves the given relative path within the mounted directory.
+  /** Resolves the given relative path within the mounted directory.
     */
   def resolve(path: String): Path = {
     mountPoint.resolve(path)
   }
 
-  /**
-    * Resolves the given relative path within the mounted directory.
+  /** Resolves the given relative path within the mounted directory.
     */
   def resolve(path: Path): Path = {
     mountPoint.resolve(path)
@@ -117,19 +114,20 @@ case class SquashFs(image: Path)(
 
   private lazy val appendDir: Path = Files.createTempDirectory("append")
 
-  /**
-    * Appends a file to the archive. Throws an exception if the archive has already been
-    * mounted. We *could* simply unmount and remount the file system after the append,
-    * but this might cause problems for another thread/process trying to access the file
-    * system.
-    * @param files map from absolute source path to target name
-    * @param subdir optional subdir to place the files in within the archive
-    * @param removeSource remove the original file after it has been added to the
-    *                       archive
+  /** Appends a file to the archive. Throws an exception if the archive has already been mounted. We
+    * *could* simply unmount and remount the file system after the append, but this might cause
+    * problems for another thread/process trying to access the file system.
+    * @param files
+    *   map from absolute source path to target name
+    * @param subdir
+    *   optional subdir to place the files in within the archive
+    * @param removeSource
+    *   remove the original file after it has been added to the archive
     */
   def appendAll(files: Vector[Path],
                 subdir: Option[Path] = None,
-                removeSource: Boolean = false): Unit = {
+                removeSource: Boolean = false
+  ): Unit = {
     if (isMounted) {
       throw new RuntimeException("cannot append to an archive that is mounted")
     }
@@ -173,7 +171,8 @@ case class SquashFs(image: Path)(
           } catch {
             case ex: Throwable =>
               logger.error(s"error deleting ${srcPath} after adding it to archive ${image}",
-                           Some(ex))
+                           Some(ex)
+              )
           }
       }
     }
@@ -183,9 +182,8 @@ case class SquashFs(image: Path)(
     appendAll(Vector(file), subdir, removeSource)
   }
 
-  /**
-    * Note that it is only safe to use this for temporary serialization within
-    * the same worker session.
+  /** Note that it is only safe to use this for temporary serialization within the same worker
+    * session.
     */
   def toJson: JsValue = {
     val (mountPointJs, mountDirJs) = if (mounted) {
@@ -230,12 +228,10 @@ object SquashFs {
   }
 }
 
-/**
-  * An Archive is a squashfs image that contains 1) a JSON file (called manifest.json)
-  * with the serialized representation of a complex value, along with its serialized
-  * type information, and 2) the files referenced by all of the VFile values nested
-  * within the complex value.
-  * TODO: add option to support compressing the file system
+/** An Archive is a squashfs image that contains 1) a JSON file (called manifest.json) with the
+  * serialized representation of a complex value, along with its serialized type information, and 2)
+  * the files referenced by all of the VFile values nested within the complex value. TODO: add
+  * option to support compressing the file system
   */
 trait Archive {
   val path: Path
@@ -255,19 +251,22 @@ object Archive {
     name.startsWith(ArchiveFilePrefix) && name.endsWith(ArchiveFileSuffix)
   }
 
-  /**
-    * Transforms the paths of File-typed values, which may be contained in
-    * a (possibly nested) collection.
-    * @param irValue the WdlValue to transform
-    * @param irType the WdlType of the value
-    * @param transformer function to transform one Path to another
-    * @return (updatedValue, pathMap), where the updatedValue is identical
-    *         to `irValue` except with all paths of file-typed values updated,
-    *         and pathMap is a mapping from old to new paths
+  /** Transforms the paths of File-typed values, which may be contained in a (possibly nested)
+    * collection.
+    * @param irValue
+    *   the WdlValue to transform
+    * @param irType
+    *   the WdlType of the value
+    * @param transformer
+    *   function to transform one Path to another
+    * @return
+    *   (updatedValue, pathMap), where the updatedValue is identical to `irValue` except with all
+    *   paths of file-typed values updated, and pathMap is a mapping from old to new paths
     */
   def transformPaths(irValue: Value,
                      irType: Type,
-                     transformer: Path => Path): (Value, SeqMap[Path, Path]) = {
+                     transformer: Path => Path
+  ): (Value, SeqMap[Path, Path]) = {
     def transformFile(value: Value): (VFile, SeqMap[Path, Path]) = {
       value match {
         case f: VFile =>
@@ -301,7 +300,8 @@ object Archive {
             (None, SeqMap.empty[Path, Path])
           }
           (f.copy(uri = newPath.toString, listing = newItems),
-           SeqMap(oldPath -> newPath) ++ itemPaths)
+           SeqMap(oldPath -> newPath) ++ itemPaths
+          )
         case l @ VListing(_, items) =>
           val (newItems, nestedPaths) = transformListing(items)
           (l.copy(items = newItems), nestedPaths)
@@ -321,10 +321,9 @@ object Archive {
           val (transformedItems, paths) = items.map(transformNoType).unzip
           (VArray(transformedItems), paths.flatten.to(SeqMap))
         case VHash(fields) =>
-          val (transformedFields, paths) = fields.map {
-            case (k, v) =>
-              val (value, paths) = transformNoType(v)
-              (k -> value, paths)
+          val (transformedFields, paths) = fields.map { case (k, v) =>
+            val (value, paths) = transformNoType(v)
+            (k -> value, paths)
           }.unzip
           (VHash(transformedFields.to(SeqMap)), paths.flatten.to(SeqMap))
         case _ =>
@@ -362,17 +361,22 @@ object Archive {
   }
 }
 
-/**
-  * An Archive that is not localized.
-  * @param path path to the archive (.img) file
-  * @param encoding character encoding
-  * @param typeAliases type aliases
-  * @param packedTypeAndValue the already localized type and value
-  * @param mountDir parent dir in which to create the randomly named mount point
+/** An Archive that is not localized.
+  * @param path
+  *   path to the archive (.img) file
+  * @param encoding
+  *   character encoding
+  * @param typeAliases
+  *   type aliases
+  * @param packedTypeAndValue
+  *   the already localized type and value
+  * @param mountDir
+  *   parent dir in which to create the randomly named mount point
   */
 case class PackedArchive(path: Path,
                          typeAliases: Map[String, TSchema] = Map.empty,
-                         encoding: Charset = FileUtils.DefaultEncoding)(
+                         encoding: Charset = FileUtils.DefaultEncoding
+)(
     packedTypeAndValue: Option[(Type, Value)] = None,
     mountDir: Option[Path] = None
 ) extends Archive {
@@ -406,7 +410,8 @@ case class PackedArchive(path: Path,
     val irValue =
       ValueSerde.deserializeWithType(manifestJs.fields(Archive.ManifestValueKey),
                                      irType,
-                                     Archive.ManifestValueKey)
+                                     Archive.ManifestValueKey
+      )
     (irType, irValue)
   }
 
@@ -414,15 +419,18 @@ case class PackedArchive(path: Path,
     packedTypeAndValue.getOrElse(readManifest)
   }
 
-  /**
-    * Unpacks the files in the archive relative to the given parent dir, and updates
-    * the paths within `irValue` and returns a new Archive object.
-    * @param mount whether to mount the filesystem
-    * @param name the name of the variable associated with this archive
-    * @return the updated Archive object and a Vector of localized paths
+  /** Unpacks the files in the archive relative to the given parent dir, and updates the paths
+    * within `irValue` and returns a new Archive object.
+    * @param mount
+    *   whether to mount the filesystem
+    * @param name
+    *   the name of the variable associated with this archive
+    * @return
+    *   the updated Archive object and a Vector of localized paths
     */
   def localize(mount: Boolean = true,
-               name: Option[String] = None): (LocalizedArchive, Vector[Path]) = {
+               name: Option[String] = None
+  ): (LocalizedArchive, Vector[Path]) = {
     def transformer(relPath: Path): Path = {
       archive.resolve(relPath)
     }
@@ -436,7 +444,8 @@ case class PackedArchive(path: Path,
     val localizedArchive =
       LocalizedArchive(t, localizedValue, typeAliases)(Some(archive, v),
                                                        Some(archive.mountPoint),
-                                                       name)
+                                                       name
+      )
     (localizedArchive, filePaths.values.toVector)
   }
 
@@ -449,20 +458,23 @@ case class PackedArchive(path: Path,
   }
 }
 
-/**
-  * Represents an archive file that has been localized, i.e. the files referenced
-  * in its `irValue` have absolute paths to files within a squashfs image that is
-  * mounted on disk. It could be a previously packed archive or a new archive.
-  * @param irType WdlType
-  * @param irValue WdlValue
-  * @param encoding character encoding of contained files
-  * @param packedArchiveAndValue optional archive file and delocalized value of a
-  *                              PackedArchive from which this LocalizedArchive
-  *                              was created
-  * @param parentDir optional Path to which files in the archive are relativeized
-  *                  when packing.
-  * @param name an optional name that will be used to prefix the randomly-generated
-  *             archive name, if `originalPath` is `None`
+/** Represents an archive file that has been localized, i.e. the files referenced in its `irValue`
+  * have absolute paths to files within a squashfs image that is mounted on disk. It could be a
+  * previously packed archive or a new archive.
+  * @param irType
+  *   WdlType
+  * @param irValue
+  *   WdlValue
+  * @param encoding
+  *   character encoding of contained files
+  * @param packedArchiveAndValue
+  *   optional archive file and delocalized value of a PackedArchive from which this
+  *   LocalizedArchive was created
+  * @param parentDir
+  *   optional Path to which files in the archive are relativeized when packing.
+  * @param name
+  *   an optional name that will be used to prefix the randomly-generated archive name, if
+  *   `originalPath` is `None`
   */
 case class LocalizedArchive(
     irType: Type,
@@ -471,8 +483,8 @@ case class LocalizedArchive(
     encoding: Charset = FileUtils.DefaultEncoding
 )(packedArchiveAndValue: Option[(SquashFs, Value)] = None,
   parentDir: Option[Path] = None,
-  name: Option[String] = None)
-    extends Archive {
+  name: Option[String] = None
+) extends Archive {
   assert(packedArchiveAndValue.isDefined || parentDir.isDefined)
   override val localized: Boolean = true
 
@@ -482,7 +494,8 @@ case class LocalizedArchive(
       .getOrElse(
           SquashFs(
               Files.createTempFile(name.getOrElse(Archive.ArchiveFilePrefix),
-                                   Archive.ArchiveFileSuffix)
+                                   Archive.ArchiveFileSuffix
+              )
           )()
       )
   }
@@ -492,7 +505,8 @@ case class LocalizedArchive(
   private def createArchive(t: Type,
                             v: Value,
                             files: Map[Path, Path],
-                            removeSourceFiles: Boolean): Unit = {
+                            removeSourceFiles: Boolean
+  ): Unit = {
     val manifest = JsObject(
         TypeSerde.serializeOne(t).fields ++ Map(Archive.ManifestValueKey -> ValueSerde.serialize(v))
     )
@@ -505,9 +519,8 @@ case class LocalizedArchive(
       archive.append(manifestPath, removeSource = removeSourceFiles)
       // write each group of files, where files are grouped
       // by their target subdirectory within the archive
-      files.groupMap(_._2.getParent)(_._1).foreach {
-        case (relParent, srcFiles) =>
-          archive.appendAll(srcFiles.toVector, Option(relParent), removeSource = removeSourceFiles)
+      files.groupMap(_._2.getParent)(_._1).foreach { case (relParent, srcFiles) =>
+        archive.appendAll(srcFiles.toVector, Option(relParent), removeSource = removeSourceFiles)
       }
     } catch {
       case ex: Throwable =>
@@ -552,8 +565,8 @@ case class LocalizedArchive(
         "value" -> ValueSerde.serialize(irValue),
         "typeAliases" -> JsObject(TypeSerde.serializeSchemas(typeAliases)._1),
         "packedValue" -> packedArchiveAndValue
-          .map {
-            case (_, v) => ValueSerde.serialize(v)
+          .map { case (_, v) =>
+            ValueSerde.serialize(v)
           }
           .getOrElse(JsNull),
         "fs" -> archive.toJson,
@@ -574,7 +587,8 @@ object LocalizedArchive {
                  "fs",
                  "encoding",
                  "parentDir",
-                 "name") match {
+                 "name"
+      ) match {
       case Seq(typeJs,
                valueJs,
                typeAliasesJs,
@@ -582,14 +596,15 @@ object LocalizedArchive {
                fsJs,
                encodingJs,
                parentDirJs,
-               nameJs) =>
+               nameJs
+          ) =>
         val (irType, _) = TypeSerde.deserializeOne(typeJs, schemas)
         val irValue = ValueSerde.deserializeWithType(valueJs, irType)
         val archive = SquashFs.fromJson(fsJs)
         val typeAliases = typeAliasesJs match {
           case JsObject(aliases) =>
-            TypeSerde.deserializeSchemas(aliases).collect {
-              case (name, schema: TSchema) => name -> schema
+            TypeSerde.deserializeSchemas(aliases).collect { case (name, schema: TSchema) =>
+              name -> schema
             }
           case other =>
             throw new Exception(s"invalid typeAliases ${other}")
@@ -613,7 +628,8 @@ object LocalizedArchive {
         }
         LocalizedArchive(irType, irValue, typeAliases, encoding)(packedArchiveAndValue,
                                                                  parentDir,
-                                                                 name)
+                                                                 name
+        )
       case _ =>
         throw new Exception(s"invalid serialized LocalizedArchive value ${jsValue}")
     }

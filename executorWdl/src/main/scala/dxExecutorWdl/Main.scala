@@ -13,12 +13,14 @@ object Main extends BaseCli {
 
   override def createTaskExecutor(meta: JobMeta,
                                   streamFiles: StreamFiles.StreamFiles,
-                                  checkInstanceType: Boolean): WdlTaskExecutor = {
+                                  checkInstanceType: Boolean
+  ): WdlTaskExecutor = {
     WdlTaskExecutor.create(meta, streamFiles, checkInstanceType)
   }
 
   override def createWorkflowExecutor(meta: JobMeta,
-                                      separateOutputs: Boolean): WdlWorkflowExecutor = {
+                                      separateOutputs: Boolean
+  ): WdlWorkflowExecutor = {
     WdlWorkflowExecutor.create(meta, separateOutputs)
   }
 }

@@ -72,7 +72,8 @@ object ArchiveFunction extends GenericUserDefinedFunction("archive_.*".r) {
       case f: WdlTypes.T_Function2 => f.arg1
       case _ =>
         throw new EvalException(s"invalid prototype for generic archive function ${prototype.name}",
-                                loc)
+                                loc
+        )
     }
     args match {
       case Vector(_) =>
@@ -104,9 +105,11 @@ object UnarchiveFunction extends GenericUserDefinedFunction("unarchive_.*".r) {
       input: SeqMap[String, (WdlTypes.T, Boolean)],
       output: SeqMap[String, WdlTypes.T]
   ): Option[(WdlTypes.T_Function, Vector[String])] = {
-    if (input.size == 1 &&
+    if (
+        input.size == 1 &&
         input.values.head == (inputType, false) &&
-        output.size == 1) {
+        output.size == 1
+    ) {
       Some((WdlTypes.T_Function1(taskName, inputType, output.values.head), Vector(input.keys.head)))
     } else {
       None
@@ -121,8 +124,8 @@ object UnarchiveFunction extends GenericUserDefinedFunction("unarchive_.*".r) {
     val packedArchive = PackedArchive(path)()
     val (localizedArchive, _) = packedArchive.localize()
     mountedArchives :+= localizedArchive
-    val wdlTypeAliases = localizedArchive.typeAliases.map {
-      case (name, schema) => name -> WdlUtils.fromIRType(schema)
+    val wdlTypeAliases = localizedArchive.typeAliases.map { case (name, schema) =>
+      name -> WdlUtils.fromIRType(schema)
     }
     val wdlType = WdlUtils.fromIRType(localizedArchive.irType, wdlTypeAliases)
     WdlUtils.fromIRValue(localizedArchive.irValue, wdlType, "unknown")

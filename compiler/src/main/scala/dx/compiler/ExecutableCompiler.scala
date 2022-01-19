@@ -31,14 +31,12 @@ import spray.json._
 object ExecutableCompiler {
   // Parameters used for applets and workflows that are generated with useManifests=true.
 
-  /**
-    * Parameter for the input manifest specified as a hash.
+  /** Parameter for the input manifest specified as a hash.
     */
   val InputManifestParameter: Parameter =
     Parameter(Constants.InputManifest, Type.TOptional(Type.THash))
 
-  /**
-    * Parameter for the input manifest specified as a file.
+  /** Parameter for the input manifest specified as a file.
     */
   val InputManfestFilesParameter: Parameter =
     Parameter(Constants.InputManifestFiles, Type.TArray(Type.TFile))
@@ -46,70 +44,70 @@ object ExecutableCompiler {
   // group for reserved input parameters
   private val ReservedParameterAttributes = Vector(GroupAttribute("Reserved for dxCompiler"))
 
-  /**
-    * Parameter for the manifest linking object.
+  /** Parameter for the manifest linking object.
     */
   val InputLinksParameter: Parameter =
     Parameter(Constants.InputLinks,
               Type.TOptional(Type.THash),
-              attributes = ReservedParameterAttributes)
+              attributes = ReservedParameterAttributes
+    )
 
-  /**
-    * Parameter for workflow manifest object passed to an app.
+  /** Parameter for workflow manifest object passed to an app.
     */
   val WorkflowInputManifestParameter: Parameter =
     Parameter(Constants.WorkflowInputManifest,
               Type.TOptional(Type.THash),
-              attributes = ReservedParameterAttributes)
+              attributes = ReservedParameterAttributes
+    )
 
-  /**
-    * Parameter for workflow manifest files passed to an app.
+  /** Parameter for workflow manifest files passed to an app.
     */
   val WorkflowInputManfestFilesParameter: Parameter =
     Parameter(Constants.WorkflowInputManifestFiles,
               Type.TArray(Type.TFile),
-              attributes = ReservedParameterAttributes)
+              attributes = ReservedParameterAttributes
+    )
 
-  /**
-    * Parameter for the workflow manifest linking object.
+  /** Parameter for the workflow manifest linking object.
     */
   val WorkflowInputLinksParameter: Parameter =
     Parameter(Constants.WorkflowInputLinks,
               Type.TOptional(Type.THash),
-              attributes = ReservedParameterAttributes)
+              attributes = ReservedParameterAttributes
+    )
 
-  /**
-    * Parameter for the output ID to add to the manifest.
+  /** Parameter for the output ID to add to the manifest.
     */
   val OutputIdParameter: Parameter =
     Parameter(Constants.OutputId, Type.TString, attributes = ReservedParameterAttributes)
 
-  /**
-    * Parameter for extra outputs that need to be merged into the output manifest.
+  /** Parameter for extra outputs that need to be merged into the output manifest.
     */
   val ExtraOutputsParameter: Parameter =
     Parameter(Constants.ExtraOutputs,
               Type.TOptional(Type.THash),
-              attributes = ReservedParameterAttributes)
+              attributes = ReservedParameterAttributes
+    )
 
-  /**
-    * Parameter for the call name that may be needed as a prefix when resolving variables in the manifest.
+  /** Parameter for the call name that may be needed as a prefix when resolving variables in the
+    * manifest.
     */
   val CallNameParameter: Parameter =
     Parameter(Constants.CallName,
               Type.TOptional(Type.TString),
-              attributes = ReservedParameterAttributes)
+              attributes = ReservedParameterAttributes
+    )
 
-  /**
-    * Parameter for requirements and hints to be specified at runtime and override compile-time values.
+  /** Parameter for requirements and hints to be specified at runtime and override compile-time
+    * values.
     */
   val OverridesParameter: Parameter =
     Parameter(Constants.Overrides,
               Type.TOptional(Type.THash),
-              attributes = ReservedParameterAttributes)
+              attributes = ReservedParameterAttributes
+    )
 
-  /**
-    * Parameter for the output manifest file.
+  /** Parameter for the output manifest file.
     */
   val OutputManifestParameter: Parameter =
     Parameter(Constants.OutputManifest, Type.TFile)
@@ -119,7 +117,8 @@ class ExecutableCompiler(extras: Option[Extras],
                          parameterLinkSerializer: ParameterLinkSerializer,
                          complexPathValues: Boolean,
                          fileResolver: FileSourceResolver,
-                         dxApi: DxApi = DxApi.get) {
+                         dxApi: DxApi = DxApi.get
+) {
 
   private def typeConstraintToNative(constraint: DxConstraint): JsValue = {
     constraint match {
@@ -134,7 +133,8 @@ class ExecutableCompiler(extras: Option[Extras],
   // Create the IO Attributes
   private def parameterAttributesToNative(attrs: Vector[ParameterAttribute],
                                           dxType: Type,
-                                          excludeAttributes: Set[String]): Map[String, JsValue] = {
+                                          excludeAttributes: Set[String]
+  ): Map[String, JsValue] = {
     attrs
       .flatMap {
         case ParameterAttributes.GroupAttribute(text) =>
@@ -213,13 +213,14 @@ class ExecutableCompiler(extras: Option[Extras],
           Some(
               DxIOSpec.Default -> ValueSerde.serializeWithType(value,
                                                                dxType,
-                                                               fileResolver = Some(fileResolver))
+                                                               fileResolver = Some(fileResolver)
+              )
           )
         case _ => None
       }
       .toMap
-      .filterNot {
-        case (key, _) => excludeAttributes.contains(key)
+      .filterNot { case (key, _) =>
+        excludeAttributes.contains(key)
       }
   }
 
@@ -235,22 +236,19 @@ class ExecutableCompiler(extras: Option[Extras],
     Set(DxIOSpec.Default, DxIOSpec.Choices, DxIOSpec.Suggestions)
   }
 
-  /**
-    * Converts an IR Paramter to a native input/output spec.
-    * - For primitive types, and arrays of such types, we can map directly
-    *   to the equivalent dx types. For example,
-    *     Int  -> int
-    *     Array[String] -> array:string
-    * - Arrays can be empty, which is why they are always marked "optional".
-    *   This notifies the platform runtime system not to throw an exception
-    *   for an empty input/output array.
-    * - Ragged arrays, maps, and objects, cannot be mapped in such a trivial way.
-    *   These are called "Complex Types", or "Complex". They are handled
-    *   by passing a JSON structure and a vector of dx:files.
-    * - For parameters with defaults, we always set them to optional regardless
-    *   of their WdlType.
-    * @param parameter the input Parameter
-    * @return the DNAnexus inputDesc
+  /** Converts an IR Paramter to a native input/output spec.
+    *   - For primitive types, and arrays of such types, we can map directly to the equivalent dx
+    *     types. For example, Int -> int Array[String] -> array:string
+    *   - Arrays can be empty, which is why they are always marked "optional". This notifies the
+    *     platform runtime system not to throw an exception for an empty input/output array.
+    *   - Ragged arrays, maps, and objects, cannot be mapped in such a trivial way. These are called
+    *     "Complex Types", or "Complex". They are handled by passing a JSON structure and a vector
+    *     of dx:files.
+    *   - For parameters with defaults, we always set them to optional regardless of their WdlType.
+    * @param parameter
+    *   the input Parameter
+    * @return
+    *   the DNAnexus inputDesc
     */
   protected def inputParameterToNative(parameter: Parameter): Vector[JsObject] = {
     val defaultValues: Map[DxName, JsValue] = parameter.defaultValue match {
@@ -277,7 +275,8 @@ class ExecutableCompiler(extras: Option[Extras],
     // TODO: I don't think the parameter should always be set to optional if it has a default
     val paramSpec = JsObject(
         Map(DxIOSpec.Name -> JsString(parameter.name.encoded),
-            DxIOSpec.Class -> JsString(nativeType))
+            DxIOSpec.Class -> JsString(nativeType)
+        )
           ++ attributes
           ++ optionalToNative(optional || attributes.contains(DxIOSpec.Default))
     )
@@ -302,11 +301,12 @@ class ExecutableCompiler(extras: Option[Extras],
     }
   }
 
-  /**
-    * Similar to inputParameterToNative, but output parameters don't allow some
-    * fields: default, suggestions, choices.
-    * @param parameter the output Parameter
-    * @return the DNAnexus outputDesc
+  /** Similar to inputParameterToNative, but output parameters don't allow some fields: default,
+    * suggestions, choices.
+    * @param parameter
+    *   the output Parameter
+    * @return
+    *   the DNAnexus outputDesc
     */
   protected def outputParameterToNative(parameter: Parameter): Vector[JsObject] = {
     val attributes =
@@ -314,7 +314,8 @@ class ExecutableCompiler(extras: Option[Extras],
     val (nativeType, optional) = TypeSerde.toNative(parameter.dxType, !complexPathValues)
     val paramSpec = JsObject(
         Map(DxIOSpec.Name -> JsString(parameter.name.encoded),
-            DxIOSpec.Class -> JsString(nativeType))
+            DxIOSpec.Class -> JsString(nativeType)
+        )
           ++ optionalToNative(optional || parameter.defaultValue.isDefined)
           ++ attributes
     )
@@ -342,7 +343,8 @@ class ExecutableCompiler(extras: Option[Extras],
   private lazy val firstLineRegex = s"^([^.]{1,${MaxSummaryLength}}).*".r
 
   private def summaryToNative(summary: Option[String],
-                              description: Option[String]): Map[String, JsValue] = {
+                              description: Option[String]
+  ): Map[String, JsValue] = {
     (summary, description) match {
       case (Some(text), _) if text.nonEmpty                 => Map("summary" -> JsString(text))
       case (_, Some(firstLineRegex(line))) if line.nonEmpty =>
@@ -359,7 +361,8 @@ class ExecutableCompiler(extras: Option[Extras],
 
   // Merge initial description & extended description
   private def descriptionToNative(description: Option[String],
-                                  extendedDescription: Option[String]): Map[String, JsValue] = {
+                                  extendedDescription: Option[String]
+  ): Map[String, JsValue] = {
     (description, extendedDescription) match {
       case (Some(d), Some(e)) => Map("description" -> JsString(s"${d}\n\n${e}"))
       case (Some(d), _)       => Map("description" -> JsString(d))
@@ -386,7 +389,8 @@ class ExecutableCompiler(extras: Option[Extras],
                              case other =>
                                throw new Exception(s"Invalid change list item: ${other}")
                            }
-                           .mkString("\n"))
+                           .mkString("\n")
+                    )
                   case _ => None
                 }
                 .flatten
@@ -409,8 +413,8 @@ class ExecutableCompiler(extras: Option[Extras],
     val metaDefaults = Map(
         "title" -> JsString(callable.name),
         "tags" -> JsArray((defaultTags ++ callable.tags).map(JsString(_)).toVector),
-        "properties" -> JsObject(callable.properties.map {
-          case (name, value) => name -> JsString(value)
+        "properties" -> JsObject(callable.properties.map { case (name, value) =>
+          name -> JsString(value)
         }),
         "version" -> JsString("0.0.1"),
         "openSource" -> JsBoolean(false)
@@ -422,8 +426,8 @@ class ExecutableCompiler(extras: Option[Extras],
         // merge default and user-specified tags
         "tags" -> JsArray((array.toSet ++ defaultTags ++ callable.tags).map(JsString(_)).toVector)
       case PropertiesAttribute(props) =>
-        "properties" -> JsObject((props ++ callable.properties).map {
-          case (k, v) => k -> JsString(v)
+        "properties" -> JsObject((props ++ callable.properties).map { case (k, v) =>
+          k -> JsString(v)
         })
     }.toMap
     // String attributes that need special handling
@@ -438,11 +442,10 @@ class ExecutableCompiler(extras: Option[Extras],
     val description = descriptionToNative(meta2.get("description"), extendedDescription)
     // extract the details to return separately
     val metaDetails = callable.attributes
-      .collectFirst {
-        case DetailsAttribute(details) =>
-          details.map {
-            case (k, v) => k -> ValueSerde.serialize(v)
-          }
+      .collectFirst { case DetailsAttribute(details) =>
+        details.map { case (k, v) =>
+          k -> ValueSerde.serialize(v)
+        }
       }
       .getOrElse(Map.empty)
     // get the whatsNew section from the details
@@ -480,26 +483,29 @@ class ExecutableCompiler(extras: Option[Extras],
                 case ParameterAttributes.FileSuggestion(Some(str), _, _, _) => str
               }
           case _ => Vector.empty
-        })
+        }
+      )
 
     (default ++ attrs).filter(s => s.contains("://")).toSet
   }
 
   // TODO: Use templates for Markdown dependency report
 
-  /**
-    * Markdown helper method for 1st-level list item
-    * @param s text string
-    * @return Markdown list item of text string
+  /** Markdown helper method for 1st-level list item
+    * @param s
+    *   text string
+    * @return
+    *   Markdown list item of text string
     */
   protected def listMd(s: String): String = {
     s"\n* ${s}"
   }
 
-  /**
-    * Markdown helper method for 2nd-level indented list item, as code
-    * @param s text string
-    * @return Markdown 2nd-level list item of text string, as code
+  /** Markdown helper method for 2nd-level indented list item, as code
+    * @param s
+    *   text string
+    * @return
+    *   Markdown 2nd-level list item of text string, as code
     */
   protected def listMd2(s: String): String = {
     s"\n    * `${s}`"

@@ -46,8 +46,8 @@ private case class TaskTestJobMeta(override val workerPaths: DxWorkerPaths,
                                    rawSourceCode: String,
                                    pathToDxFile: Map[Path, DxFile] = Map.empty,
                                    useManifestInputs: Boolean = false,
-                                   downloadFiles: Boolean = true)
-    extends JobMeta(workerPaths, WdlDxName, dxApi, logger) {
+                                   downloadFiles: Boolean = true
+) extends JobMeta(workerPaths, WdlDxName, dxApi, logger) {
   var outputs: Option[Map[DxName, JsValue]] = None
 
   override val project: DxProject = null
@@ -75,7 +75,8 @@ private case class TaskTestJobMeta(override val workerPaths: DxWorkerPaths,
   override def runJobScriptFunction(name: String,
                                     successCodes: Option[Set[Int]] = Some(Set(0)),
                                     truncateLogs: Boolean = false,
-                                    forwardStd: Boolean = false): Unit = {
+                                    forwardStd: Boolean = false
+  ): Unit = {
     name match {
       case TaskExecutor.DownloadDxda if downloadFiles && !dxdaCallable =>
         throw new Exception("cannot call dxda")
@@ -150,7 +151,8 @@ class WdlTaskExecutorTest extends AnyFlatSpec with Matchers {
       Vector(
           ExecutionEnvironment(Constants.OsDistribution,
                                Constants.OsRelease,
-                               Vector(Constants.OsVersion))
+                               Vector(Constants.OsVersion)
+          )
       ),
       Some(DiskType.SSD),
       Some(1)
@@ -201,8 +203,8 @@ class WdlTaskExecutorTest extends AnyFlatSpec with Matchers {
   private def getInputs(wdlName: String): Map[DxName, JsValue] = {
     pathFromBasename(s"${wdlName}_input.json") match {
       case Some(path) if Files.exists(path) =>
-        JsUtils.getFields(JsUtils.jsFromFile(path)).map {
-          case (name, jsv) => WdlDxName.fromEncodedName(name) -> jsv
+        JsUtils.getFields(JsUtils.jsFromFile(path)).map { case (name, jsv) =>
+          WdlDxName.fromEncodedName(name) -> jsv
         }
       case _ => Map.empty
     }
@@ -211,8 +213,8 @@ class WdlTaskExecutorTest extends AnyFlatSpec with Matchers {
   private def getExpectedOutputs(wdlName: String): Option[Map[DxName, JsValue]] = {
     pathFromBasename(s"${wdlName}_output.json") match {
       case Some(path) if Files.exists(path) =>
-        Some(JsUtils.getFields(JsUtils.jsFromFile(path)).map {
-          case (name, jsv) => WdlDxName.fromDecodedName(name) -> jsv
+        Some(JsUtils.getFields(JsUtils.jsFromFile(path)).map { case (name, jsv) =>
+          WdlDxName.fromDecodedName(name) -> jsv
         })
       case _ => None
     }
@@ -247,8 +249,8 @@ class WdlTaskExecutorTest extends AnyFlatSpec with Matchers {
     val (doc, typeAliases, versionSupport) =
       VersionSupport.fromSourceFile(wdlFile, wdlOptions, fileResolver)
     val codegen = CodeGenerator(typeAliases.toMap, doc.version.value, logger)
-    val tasks: Vector[TAT.Task] = doc.elements.collect {
-      case task: TAT.Task => task
+    val tasks: Vector[TAT.Task] = doc.elements.collect { case task: TAT.Task =>
+      task
     }
     tasks.size shouldBe 1
     val task = tasks.head
@@ -277,8 +279,8 @@ class WdlTaskExecutorTest extends AnyFlatSpec with Matchers {
     val finalInputs = updatedInputs match {
       case i if useManifests =>
         Map(
-            Constants.InputManifest -> JsObject(i.map {
-              case (dxName, jsv) => dxName.decoded -> jsv
+            Constants.InputManifest -> JsObject(i.map { case (dxName, jsv) =>
+              dxName.decoded -> jsv
             }),
             Constants.OutputId -> JsString("test")
         )
@@ -295,7 +297,8 @@ class WdlTaskExecutorTest extends AnyFlatSpec with Matchers {
                       standAloneTaskSource,
                       pathToDxFile,
                       useManifests,
-                      downloadFiles)
+                      downloadFiles
+      )
 
     // create TaskExecutor
     (WdlTaskExecutor.create(jobMeta, streamFiles = streamFiles, checkInstanceType = false), jobMeta)
@@ -325,18 +328,21 @@ class WdlTaskExecutorTest extends AnyFlatSpec with Matchers {
               }
               // sometimes it takes a while for the output file to close -
               // block here until the file is closed
-              if (!Iterator.range(0, 10).exists { i =>
+              if (
+                  !Iterator.range(0, 10).exists { i =>
                     if (i > 0) {
                       Thread.sleep(6000)
                     }
                     val desc =
                       dxApi.fileDescribe(manifestFile.id,
-                                         Map("fields" -> JsObject("state" -> JsBoolean(true))))
+                                         Map("fields" -> JsObject("state" -> JsBoolean(true)))
+                      )
                     desc.fields.get("state") match {
                       case Some(JsString("closed")) => true
                       case _                        => false
                     }
-                  }) {
+                  }
+              ) {
                 throw new Exception("manifest file did not close within 60 seconds")
               }
               Manifest

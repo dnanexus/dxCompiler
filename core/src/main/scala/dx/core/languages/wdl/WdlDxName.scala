@@ -19,27 +19,27 @@ object WdlDxName extends DxNameFactory {
     new WdlDxName(decodedParts = Some(parts), stage = stage, suffix = suffix)
   }
 
-  /**
-    * Creates a WdlDxName from an identifier that does not contain any disallowed characters.
+  /** Creates a WdlDxName from an identifier that does not contain any disallowed characters.
     */
   def fromSourceName(identifier: String,
                      namespace: Option[String] = None,
-                     suffix: Option[String] = None): WdlDxName = {
+                     suffix: Option[String] = None
+  ): WdlDxName = {
     new WdlDxName(decodedParts = Some(namespace.toVector ++ Vector(identifier)),
                   stage = None,
-                  suffix = suffix)
+                  suffix = suffix
+    )
   }
 }
 
-/**
-  * Simplified decoding for parameter names that conform to DNAnexus character
-  * restrictions, with the possible exception of containg dots.
+/** Simplified decoding for parameter names that conform to DNAnexus character restrictions, with
+  * the possible exception of containg dots.
   */
 class WdlDxName(encodedParts: Option[Vector[String]] = None,
                 decodedParts: Option[Vector[String]] = None,
                 stage: Option[String] = None,
-                suffix: Option[String] = None)
-    extends DxName(encodedParts, decodedParts, stage, suffix) {
+                suffix: Option[String] = None
+) extends DxName(encodedParts, decodedParts, stage, suffix) {
 
   override protected def illegalDecodedSequencesRegex: Option[Regex] =
     Some(DxName.disallowedCharsRegex)
@@ -49,7 +49,8 @@ class WdlDxName(encodedParts: Option[Vector[String]] = None,
   override protected def create(encodedParts: Option[Vector[String]] = None,
                                 decodedParts: Option[Vector[String]] = None,
                                 stage: Option[String],
-                                suffix: Option[String]): WdlDxName = {
+                                suffix: Option[String]
+  ): WdlDxName = {
     new WdlDxName(encodedParts, decodedParts, stage, suffix)
   }
 }

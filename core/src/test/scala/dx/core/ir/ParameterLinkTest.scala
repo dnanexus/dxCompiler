@@ -31,8 +31,8 @@ class ParameterLinkTest extends AnyFlatSpec with Matchers {
     val dxName = WdlDxName.fromSourceName(prefix + elem.name)
     val allDxFields1: Vector[(DxName, JsValue)] =
       parameterLinkSerializer.createFieldsFromLink(link, dxName)
-    val allDxFields2 = allDxFields1.filter {
-      case (key, _) => !key.suffix.contains(Constants.FlatFilesSuffix)
+    val allDxFields2 = allDxFields1.filter { case (key, _) =>
+      !key.suffix.contains(Constants.FlatFilesSuffix)
     }
     allDxFields2.size should be(1)
     val (name2, jsv) = allDxFields2.head
@@ -58,7 +58,8 @@ class ParameterLinkTest extends AnyFlatSpec with Matchers {
     val testCases = Vector(
         // optional
         makeElement(Type.TOptional(Type.TFile),
-                    Value.VFile(Paths.get("ddd").toAbsolutePath.toString)),
+                    Value.VFile(Paths.get("ddd").toAbsolutePath.toString)
+        ),
         // arrays
         makeElement(
             Type.TArray(Type.TBoolean),
@@ -122,7 +123,8 @@ class ParameterLinkTest extends AnyFlatSpec with Matchers {
       Value.VHash(
           SeqMap("person" -> lucy,
                  "zipcode" -> Value.VInt(94043),
-                 "type" -> Value.VString("town house"))
+                 "type" -> Value.VString("town house")
+          )
       )
 
     val testCases = Vector(makeElement(houseType, learCastle), makeElement(houseType, lucyHouse))

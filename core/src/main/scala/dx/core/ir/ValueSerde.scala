@@ -15,17 +15,20 @@ object ValueSerde extends DefaultJsonProtocol {
 
   case class ValueSerdeException(message: String) extends Exception(message)
 
-  /**
-    * Serialize a PathValue (VFile or VDirectory). If `fileResolver` is specified,
-    * file URIs are resolved and serialized as dx link objects.
-    * @param path PathValue to serialize
-    * @param fileResolver FileSourceResolver
-    * @param pathsAsObjects whether PathValues should be serialized as JsObject or JsString
+  /** Serialize a PathValue (VFile or VDirectory). If `fileResolver` is specified, file URIs are
+    * resolved and serialized as dx link objects.
+    * @param path
+    *   PathValue to serialize
+    * @param fileResolver
+    *   FileSourceResolver
+    * @param pathsAsObjects
+    *   whether PathValues should be serialized as JsObject or JsString
     * @return
     */
   def serializePath(path: PathValue,
                     fileResolver: Option[FileSourceResolver] = None,
-                    pathsAsObjects: Boolean = false): JsValue = {
+                    pathsAsObjects: Boolean = false
+  ): JsValue = {
     def serializeFileUri(uri: String): JsValue = {
       fileResolver
         .map { res =>
@@ -96,21 +99,22 @@ object ValueSerde extends DefaultJsonProtocol {
     inner(path)
   }
 
-  /**
-    * Serializes a Value to JSON.
-    * @param value the Value to serialize
-    * @param handler an optional function to perform special handling of certain values.
-    *                If Right(jsValue) is returned, then jsValue is the result of the
-    *                transformation. If Left(newValue) is returned, then newValue is
-    *                transformed according to the default rules.
-    * @param pathsAsObjects whether to serialize path types (File and Directory) as Objects
-    *                       rather than Strings.
+  /** Serializes a Value to JSON.
+    * @param value
+    *   the Value to serialize
+    * @param handler
+    *   an optional function to perform special handling of certain values. If Right(jsValue) is
+    *   returned, then jsValue is the result of the transformation. If Left(newValue) is returned,
+    *   then newValue is transformed according to the default rules.
+    * @param pathsAsObjects
+    *   whether to serialize path types (File and Directory) as Objects rather than Strings.
     * @return
     */
   def serialize(value: Value,
                 handler: Option[Value => Either[Value, JsValue]] = None,
                 fileResolver: Option[FileSourceResolver] = None,
-                pathsAsObjects: Boolean = false): JsValue = {
+                pathsAsObjects: Boolean = false
+  ): JsValue = {
     def inner(innerValue: Value): JsValue = {
       val v = handler.map(_(innerValue)) match {
         case Some(Right(result))  => return result
@@ -131,8 +135,7 @@ object ValueSerde extends DefaultJsonProtocol {
     inner(value)
   }
 
-  /**
-    * Wrap value for a multi-type (including `Any`)
+  /** Wrap value for a multi-type (including `Any`)
     */
   def wrapValue(jsValue: JsValue, mustNotBeWrapped: Boolean = false): JsValue = {
     jsValue match {
@@ -216,8 +219,8 @@ object ValueSerde extends DefaultJsonProtocol {
   }
 
   def serializeMap(values: Map[String, Value]): Map[String, JsValue] = {
-    values.map {
-      case (name, value) => name -> serialize(value)
+    values.map { case (name, value) =>
+      name -> serialize(value)
     }
   }
 
@@ -252,7 +255,8 @@ object ValueSerde extends DefaultJsonProtocol {
 
   def deserializeDxFileUri(uri: JsValue,
                            dxApi: DxApi = DxApi.get,
-                           dxFileDescCache: Option[DxFileDescCache] = None): String = {
+                           dxFileDescCache: Option[DxFileDescCache] = None
+  ): String = {
     uri match {
       case JsString(s) => s
       case obj: JsObject if DxFile.isLinkJson(obj) =>
@@ -265,7 +269,8 @@ object ValueSerde extends DefaultJsonProtocol {
 
   def deserializePathObject(jsv: JsValue,
                             dxApi: DxApi = DxApi.get,
-                            dxFileDescCache: Option[DxFileDescCache] = None): PathValue = {
+                            dxFileDescCache: Option[DxFileDescCache] = None
+  ): PathValue = {
     def deserializeListing(fields: Map[String, JsValue]): Option[Vector[PathValue]] = {
       JsUtils
         .getOptionalValues(fields, "listing")
@@ -318,20 +323,21 @@ object ValueSerde extends DefaultJsonProtocol {
     inner(jsv)
   }
 
-  /**
-    * Deserializes a JsValue to a Value, in the absence of type information.
+  /** Deserializes a JsValue to a Value, in the absence of type information.
     *
-    * @param jsValue the JsValue
-    * @param handler an optional function to perform special handling of certain values.
-    *                If Right(value) is returned, then value is the result of the
-    *                transformation. If Left(newJsValue) is returned, then newJsValue is
-    *                transformed according to the default rules.
+    * @param jsValue
+    *   the JsValue
+    * @param handler
+    *   an optional function to perform special handling of certain values. If Right(value) is
+    *   returned, then value is the result of the transformation. If Left(newJsValue) is returned,
+    *   then newJsValue is transformed according to the default rules.
     * @return
     */
   def deserialize(jsValue: JsValue,
                   handler: Option[JsValue => Either[JsValue, Value]] = None,
                   dxApi: DxApi = DxApi.get,
-                  dxFileDescCache: Option[DxFileDescCache] = None): Value = {
+                  dxFileDescCache: Option[DxFileDescCache] = None
+  ): Value = {
     def inner(innerValue: JsValue): Value = {
       val v = handler.map(_(innerValue)) match {
         case Some(Right(result))    => return result
@@ -359,14 +365,15 @@ object ValueSerde extends DefaultJsonProtocol {
     inner(jsValue)
   }
 
-  /**
-    * Deserializes a JsValue to a Value of the specified type.
-    * @param jsValue the JsValue
-    * @param t the Type
-    * @param handler an optional function to perform special handling of certain values.
-    *                If Right(value) is returned, then value is the result of the
-    *                transformation. If Left(newJsValue) is returned, then newJsValue is
-    *                transformed according to the default rules.
+  /** Deserializes a JsValue to a Value of the specified type.
+    * @param jsValue
+    *   the JsValue
+    * @param t
+    *   the Type
+    * @param handler
+    *   an optional function to perform special handling of certain values. If Right(value) is
+    *   returned, then value is the result of the transformation. If Left(newJsValue) is returned,
+    *   then newJsValue is transformed according to the default rules.
     * @return
     */
   def deserializeWithType(
@@ -419,9 +426,8 @@ object ValueSerde extends DefaultJsonProtocol {
               s"Cannot convert ${innerName} empty array to non-empty type ${innerType}"
           )
         case (TArray(t, _), JsArray(items)) =>
-          VArray(items.zipWithIndex.map {
-            case (x, index) =>
-              inner(x, t, s"${innerName}[${index}]")
+          VArray(items.zipWithIndex.map { case (x, index) =>
+            inner(x, t, s"${innerName}[${index}]")
           })
         case (TSchema(name, fieldTypes), JsObject(fields)) =>
           // ensure 1) fields keys are a subset of typeTypes keys, 2) fields
@@ -450,8 +456,8 @@ object ValueSerde extends DefaultJsonProtocol {
         case (THash, JsObject(fields)) =>
           VHash(
               fields
-                .map {
-                  case (key, value) => key -> deserialize(value)
+                .map { case (key, value) =>
+                  key -> deserialize(value)
                 }
                 .to(SeqMap)
           )
@@ -467,8 +473,8 @@ object ValueSerde extends DefaultJsonProtocol {
   }
 
   def deserializeMap(m: Map[String, JsValue]): Map[String, Value] = {
-    m.map {
-      case (k, v) => k -> deserialize(v)
+    m.map { case (k, v) =>
+      k -> deserialize(v)
     }
   }
 

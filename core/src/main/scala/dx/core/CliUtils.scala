@@ -68,26 +68,23 @@ object CliUtils {
     lazy val empty: Options = Options(Map.empty[String, Opt])
   }
 
-  /**
-    * Specification for a command line option to parse.
+  /** Specification for a command line option to parse.
     */
   trait OptionSpec {
 
-    /**
-      * Whether the option may be specified multiple times
+    /** Whether the option may be specified multiple times
       */
     val multiple: Boolean = false
 
-    /**
-      * Alias for this option
+    /** Alias for this option
       */
     val alias: Option[String] = None
 
-    /**
-      * Parse the option and return the real name (e.g. if this
-      * option is aliased) and value.
-      * @param name the user-specified option name
-      * @param values the command-line values
+    /** Parse the option and return the real name (e.g. if this option is aliased) and value.
+      * @param name
+      *   the user-specified option name
+      * @param values
+      *   the command-line values
       * @return
       */
     def parse(name: String, values: Vector[String], curValue: Option[Opt]): (String, Opt) = {
@@ -100,8 +97,7 @@ object CliUtils {
     def parseValues(name: String, values: Vector[String], curValue: Option[Opt]): Opt
   }
 
-  /**
-    * Specification for a flag (boolean) option
+  /** Specification for a flag (boolean) option
     */
   case class FlagOptionSpec(override val alias: Option[String] = None) extends OptionSpec {
     def parseValues(name: String, values: Vector[String], curValue: Option[Opt]): Flag = {
@@ -121,8 +117,8 @@ object CliUtils {
 
   abstract class SingleValueOptionSpec[T](override val alias: Option[String] = None,
                                           choices: Vector[T] = Vector.empty,
-                                          override val multiple: Boolean = false)
-      extends OptionSpec {
+                                          override val multiple: Boolean = false
+  ) extends OptionSpec {
     def parseValues(name: String, values: Vector[String], curValue: Option[Opt]): Opt = {
       if (values.size != 1) {
         throw OptionParseException(
@@ -151,14 +147,14 @@ object CliUtils {
     def parseValue(value: String): T
   }
 
-  /**
-    * Specification for a String option that takes a single value
-    * @param choices (optional) set of allowed values
+  /** Specification for a String option that takes a single value
+    * @param choices
+    *   (optional) set of allowed values
     */
   case class StringOptionSpec(override val alias: Option[String] = None,
                               choices: Vector[String] = Vector.empty,
-                              override val multiple: Boolean = false)
-      extends SingleValueOptionSpec[String](alias, choices, multiple) {
+                              override val multiple: Boolean = false
+  ) extends SingleValueOptionSpec[String](alias, choices, multiple) {
     def parseValue(value: String): String = value
   }
 
@@ -169,8 +165,8 @@ object CliUtils {
 
   case class IntOptionSpec(override val alias: Option[String] = None,
                            choices: Vector[Int] = Vector.empty,
-                           override val multiple: Boolean = false)
-      extends SingleValueOptionSpec[Int](alias, choices, multiple) {
+                           override val multiple: Boolean = false
+  ) extends SingleValueOptionSpec[Int](alias, choices, multiple) {
     def parseValue(value: String): Int = value.toInt
   }
 
@@ -181,8 +177,8 @@ object CliUtils {
 
   case class PathOptionSpec(mustExist: Boolean = false,
                             override val alias: Option[String] = None,
-                            override val multiple: Boolean = false)
-      extends SingleValueOptionSpec[Path](alias, multiple = multiple) {
+                            override val multiple: Boolean = false
+  ) extends SingleValueOptionSpec[Path](alias, multiple = multiple) {
     def parseValue(value: String): Path = {
       val path = Paths.get(value)
       if (Files.exists(path)) {
@@ -225,7 +221,8 @@ object CliUtils {
   //
   def parseCommandLine(args: Vector[String],
                        specs: InternalOptions,
-                       deprecated: Set[String] = Set.empty): Options = {
+                       deprecated: Set[String] = Set.empty
+  ): Options = {
     def isOption(word: String): Boolean = word.startsWith("-")
 
     val OptionRegexp = "^-+(.+)$".r
@@ -337,11 +334,11 @@ object CliUtils {
     override def toString: String = failureMessage(message, exception)
   }
   case class Failure(override val message: String = "",
-                     override val exception: Option[Throwable] = None)
-      extends UnsuccessfulTermination
+                     override val exception: Option[Throwable] = None
+  ) extends UnsuccessfulTermination
   case class BadUsageTermination(override val message: String = "",
-                                 override val exception: Option[Throwable] = None)
-      extends UnsuccessfulTermination
+                                 override val exception: Option[Throwable] = None
+  ) extends UnsuccessfulTermination
 
   def terminate(termination: Termination, usageMessage: String): Unit = {
     val rc = termination match {

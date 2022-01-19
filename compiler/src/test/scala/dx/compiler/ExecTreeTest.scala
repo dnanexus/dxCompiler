@@ -56,7 +56,8 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
                                            "-folder",
                                            "/" + unitTestsPath,
                                            "-force",
-                                           "-quiet")
+                                           "-quiet"
+  )
   private lazy val cFlagsLocked = cFlagsUnlocked :+ "-locked"
 
   // linear workflow
@@ -222,15 +223,14 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
     val describeRet = Main.describe(Vector(wfID))
     describeRet shouldBe a[SuccessfulDescribeJsonTree]
 
-    inside(describeRet) {
-      case SuccessfulDescribeJsonTree(treeJs: JsValue) =>
-        treeJs.asJsObject.getFields("name", "kind", "stages", "id") match {
-          case Seq(JsString(name), JsString(kind), JsArray(stages), JsString(id)) =>
-            name shouldBe "four_levels"
-            kind shouldBe "workflow"
-            stages.size shouldBe 4
-            id shouldBe wfID
-        }
+    inside(describeRet) { case SuccessfulDescribeJsonTree(treeJs: JsValue) =>
+      treeJs.asJsObject.getFields("name", "kind", "stages", "id") match {
+        case Seq(JsString(name), JsString(kind), JsArray(stages), JsString(id)) =>
+          name shouldBe "four_levels"
+          kind shouldBe "workflow"
+          stages.size shouldBe 4
+          id shouldBe wfID
+      }
     }
   }
 
@@ -262,17 +262,18 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
 
     // remove colours
     pretty.replaceAll("\u001B\\[[;\\d]*m",
-                      "") shouldBe """Workflow: four_levels
-                                     |├───App Inputs: common
-                                     |├───App Fragment: if (username == "a")
-                                     |│   └───Workflow: four_levels_block_0
-                                     |│       ├───App Task: c1
-                                     |│       └───App Task: c2
-                                     |├───App Fragment: scatter (i in [1, 4, 9])
-                                     |│   └───App Fragment: four_levels_frag_stage-6
-                                     |│       └───App Fragment: four_levels_frag_stage-4
-                                     |│           └───App Task: concat
-                                     |└───App Outputs: outputs""".stripMargin
+                      ""
+    ) shouldBe """Workflow: four_levels
+                 |├───App Inputs: common
+                 |├───App Fragment: if (username == "a")
+                 |│   └───Workflow: four_levels_block_0
+                 |│       ├───App Task: c1
+                 |│       └───App Task: c2
+                 |├───App Fragment: scatter (i in [1, 4, 9])
+                 |│   └───App Fragment: four_levels_frag_stage-6
+                 |│       └───App Fragment: four_levels_frag_stage-4
+                 |│           └───App Task: concat
+                 |└───App Outputs: outputs""".stripMargin
   }
 
   it should "Display pretty print of tree with deep nesting" taggedAs NativeTest in {
@@ -291,16 +292,17 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
 
     // remove colours
     pretty.replaceAll("\u001B\\[[;\\d]*m",
-                      "") shouldBe """Workflow: four_levels
-                                     |├───App Inputs: common
-                                     |├───App Fragment: if (username == "a")
-                                     |│   └───Workflow: four_levels_block_0
-                                     |│       ├───App Task: c1
-                                     |│       └───App Task: c2
-                                     |├───App Fragment: scatter (i in [1, 4, 9])
-                                     |│   └───App Fragment: four_levels_frag_stage-6
-                                     |│       └───App Fragment: four_levels_frag_stage-4
-                                     |│           └───App Task: concat
-                                     |└───App Outputs: outputs""".stripMargin
+                      ""
+    ) shouldBe """Workflow: four_levels
+                 |├───App Inputs: common
+                 |├───App Fragment: if (username == "a")
+                 |│   └───Workflow: four_levels_block_0
+                 |│       ├───App Task: c1
+                 |│       └───App Task: c2
+                 |├───App Fragment: scatter (i in [1, 4, 9])
+                 |│   └───App Fragment: four_levels_frag_stage-6
+                 |│       └───App Fragment: four_levels_frag_stage-4
+                 |│           └───App Task: concat
+                 |└───App Outputs: outputs""".stripMargin
   }
 }
