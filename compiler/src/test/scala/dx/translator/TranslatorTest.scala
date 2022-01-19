@@ -1705,6 +1705,15 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
+  it should "translate a CWL workflow with auto-generated embedded process IDs" in {
+    val path = pathFromBasename("cwl", "cond-wf-003_nojs.cwl.json")
+    val args = path.toString :: cFlags
+    Main.compile(args.toVector) match {
+      case SuccessfulCompileIR(bundle) => ()
+      case other                       => throw new Exception(s"expected success not ${other}")
+    }
+  }
+
   it should "translate a CWL workflow with workflow input link of different name" in {
     val path = pathFromBasename("cwl", "cond-wf-011_nojs.cwl.json")
     val args = path.toString :: cFlags

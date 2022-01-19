@@ -1,7 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
-  "id": "step-valuefrom5-wf.cwl",
+  "id": "step-valuefrom5-wf",
   "inputs": [
     {
       "id": "file1",
@@ -48,7 +48,7 @@
       "run": {
         "baseCommand": "echo",
         "class": "CommandLineTool",
-        "id": "step-valuefrom5-wf.cwl@step_step1@run",
+        "id": "run",
         "inputs": [
           {
             "id": "name",
@@ -97,7 +97,7 @@
       "run": {
         "baseCommand": "echo",
         "class": "CommandLineTool",
-        "id": "step-valuefrom5-wf.cwl@step_step2@run",
+        "id": "run",
         "inputs": [
           {
             "id": "name",

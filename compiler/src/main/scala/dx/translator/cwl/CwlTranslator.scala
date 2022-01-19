@@ -1,15 +1,7 @@
 package dx.translator.cwl
 
 import dx.api.{DxApi, DxProject}
-import dx.core.ir.{
-  Bundle,
-  Callable,
-  InstanceTypeSelection,
-  Type,
-  Value,
-  ValueSerde,
-  Workflow => IRWorkflow
-}
+import dx.core.ir.{Bundle, Callable, InstanceTypeSelection, Type, Value, ValueSerde}
 import dx.core.languages.Language
 import dx.core.languages.Language.Language
 import dx.core.languages.cwl.{CwlBundle, CwlDxName, CwlUtils, DxHintSchema}
@@ -33,7 +25,7 @@ import dx.translator.{
   Translator,
   TranslatorFactory
 }
-import dx.util.{FileSourceResolver, FileUtils, Logger}
+import dx.util.{FileSourceResolver, Logger}
 import org.w3id.cwl.cwl1_2.CWLVersion
 import spray.json._
 
@@ -107,23 +99,6 @@ case class CwlInputTranslator(bundle: Bundle,
         val (_, cwlValue) = CwlUtils.toIRValue(DirectoryValue.deserialize(obj), CwlDirectory)
         ValueSerde.serialize(cwlValue, fileResolver = Some(baseFileResolver), pathsAsObjects = true)
       case _ => rawInput
-    }
-  }
-
-  // CWL packed workflows in $graph format use 'main' as the main process name - this enables
-  // CwlInputTranslator to replace it with the filename.
-  // TODO: the right solution to this is to have the pre-processing script change
-  //  #main to #<filename>
-  override protected val mainPrefix: Option[String] = {
-    bundle.primaryCallable match {
-      case Some(wf: IRWorkflow) if wf.name == "main" =>
-        // a packed workflow - use the source file name
-        wf.document match {
-          case CwlSourceCode(source) if source.getFileName.toString.endsWith(".cwl.json") =>
-            Some(FileUtils.changeFileExt(source.getFileName.toString, dropExt = ".cwl.json"))
-          case _ => throw new Exception("expected CwlSourceCode")
-        }
-      case _ => None
     }
   }
 
@@ -256,7 +231,7 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
       }
     }
     // CWL file is required to be packed
-    val (process, schemas) = parser.parseFile(sourceFile, simplifyProcessAutoIds = true) match {
+    val (process, schemas) = parser.parseFile(sourceFile) match {
       case ParserResult(Some(tool: CommandLineTool), _, _, schemas) => (tool, schemas)
       case ParserResult(Some(tool: ExpressionTool), _, _, schemas)  => (tool, schemas)
       case ParserResult(Some(wf: Workflow), _, _, schemas)          => (wf, schemas)

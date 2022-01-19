@@ -1,7 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
-  "id": "timelimit2-wf.cwl",
+  "id": "timelimit2-wf",
   "inputs": [
     {
       "id": "i",

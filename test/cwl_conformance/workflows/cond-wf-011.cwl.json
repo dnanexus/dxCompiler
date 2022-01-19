@@ -1,7 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
-  "id": "cond-wf-011.cwl",
+  "id": "cond-wf-011",
   "inputs": [
     {
       "id": "in1",
@@ -78,7 +78,7 @@
           "echo"
         ],
         "class": "CommandLineTool",
-        "id": "cond-wf-011.cwl@step_step1@cat.cwl",
+        "id": "cat.cwl",
         "inputs": [
           {
             "id": "in1",

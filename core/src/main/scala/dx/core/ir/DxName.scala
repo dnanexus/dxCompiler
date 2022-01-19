@@ -244,6 +244,14 @@ abstract class DxName(private var encodedParts: Option[Vector[String]],
     (decoded.head, newName)
   }
 
+  def dropNamespaceIter(keepStage: Boolean = false): Iterator[DxName] = {
+    Iterator.unfold[DxName, Option[DxName]](Some(this)) {
+      case Some(n) if n.numParts > 1 => Some((n, Some(n.popDecodedNamespace(keepStage)._2)))
+      case Some(n)                   => Some((n, None))
+      case _                         => None
+    }
+  }
+
   /**
     * Returns a new DxName with only the identifier part and the suffix.
     */

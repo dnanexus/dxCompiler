@@ -1,7 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
-  "id": "count-lines11-wf.cwl",
+  "id": "count-lines11-wf",
   "inputs": [
     {
       "id": "file1",
@@ -48,7 +48,7 @@
           "-l"
         ],
         "class": "CommandLineTool",
-        "id": "count-lines11-wf.cwl@step_step1@wc-tool.cwl",
+        "id": "wc-tool.cwl",
         "inputs": [
           {
             "id": "file1",
@@ -87,7 +87,7 @@
       "run": {
         "class": "ExpressionTool",
         "expression": "$({'output': parseInt(inputs.file1.contents)})",
-        "id": "count-lines11-wf.cwl@step_step2@parseInt-tool.cwl",
+        "id": "parseInt-tool.cwl",
         "inputs": [
           {
             "id": "file1",

@@ -1,7 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
-  "id": "scatter-valuefrom-wf2.cwl",
+  "id": "scatter-valuefrom-wf2",
   "inputs": [
     {
       "id": "inp1",

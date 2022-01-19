@@ -1,7 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
-  "id": "count-lines5-wf.cwl",
+  "id": "count-lines5-wf",
   "inputs": [
     {
       "default": {
@@ -42,7 +42,7 @@
       "run": {
         "baseCommand": "wc",
         "class": "CommandLineTool",
-        "id": "count-lines5-wf.cwl@step_step1@wc2-tool.cwl",
+        "id": "wc2-tool.cwl",
         "inputs": [
           {
             "id": "file1",

@@ -21,5 +21,6 @@
             }
         }
     ],
-    "cwlVersion": "v1.2"
+    "cwlVersion": "v1.2",
+    "id": "cat"
 }

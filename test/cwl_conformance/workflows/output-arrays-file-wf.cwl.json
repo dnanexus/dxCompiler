@@ -1,7 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
-  "id": "output-arrays-file-wf.cwl",
+  "id": "output-arrays-file-wf",
   "inputs": [
     {
       "id": "i",
@@ -41,7 +41,7 @@
       "run": {
         "class": "ExpressionTool",
         "expression": "${return {'o': inputs.i.contents.split(\" \")};}\n",
-        "id": "output-arrays-file-wf.cwl@step_step1@run",
+        "id": "run",
         "inputs": [
           {
             "id": "i",
@@ -79,7 +79,7 @@
       "run": {
         "baseCommand": "touch",
         "class": "CommandLineTool",
-        "id": "output-arrays-file-wf.cwl@step_step2@run",
+        "id": "run",
         "inputs": [
           {
             "id": "i",

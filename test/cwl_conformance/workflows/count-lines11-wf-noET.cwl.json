@@ -1,7 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
-  "id": "count-lines11-wf-noET.cwl",
+  "id": "count-lines11-wf-noET",
   "inputs": [
     {
       "id": "file1",
@@ -48,7 +48,7 @@
           "-l"
         ],
         "class": "CommandLineTool",
-        "id": "count-lines11-wf-noET.cwl@step_step1@wc-tool.cwl",
+        "id": "wc-tool.cwl",
         "inputs": [
           {
             "id": "file1",

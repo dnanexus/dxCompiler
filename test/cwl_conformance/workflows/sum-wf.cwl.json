@@ -1,7 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
-  "id": "sum-wf.cwl",
+  "id": "sum-wf",
   "inputs": [
     {
       "id": "int_1",
@@ -58,7 +58,7 @@
       "run": {
         "class": "ExpressionTool",
         "expression": "${\n  return {\"result\": inputs.data};\n}\n",
-        "id": "sum-wf.cwl@step_sum@run",
+        "id": "run",
         "inputs": [
           {
             "id": "data",

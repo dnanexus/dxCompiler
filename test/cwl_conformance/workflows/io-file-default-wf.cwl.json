@@ -1,7 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
-  "id": "io-file-default-wf.cwl",
+  "id": "io-file-default-wf",
   "inputs": [
     {
       "default": {
@@ -45,7 +45,7 @@
           "$(inputs.catfile1.path)"
         ],
         "class": "CommandLineTool",
-        "id": "io-file-default-wf.cwl@step_step1@run",
+        "id": "run",
         "inputs": [
           {
             "id": "catfile1",

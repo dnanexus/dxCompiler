@@ -664,15 +664,23 @@ def get_cwl_json_metadata(filename, tname):
         else:
             return TestMetaData(name=tname, kind="applet")
     elif "$graph" in doc:
+        main_proc = None
         if len(doc["$graph"]) == 1:
             main_proc = doc["$graph"][0]
         else:
+            wf_procs = []
             for proc in doc["$graph"]:
                 if proc["id"] in ("main", "#main"):
                     main_proc = proc
                     break
-            else:
-                main_proc = None
+                elif proc["class"] == "Workflow":
+                    wf_procs.append(proc)
+
+            if main_proc is None:
+                if len(wf_procs) == 1:
+                    main_proc = wf_procs[0]
+                else:
+                    raise Exception("no process has ID 'main' and there are multiple Workflow processes")
 
         if main_proc:
             kind = "workflow" if main_proc["class"] == "Workflow" else "applet"

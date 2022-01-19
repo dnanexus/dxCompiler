@@ -4,7 +4,7 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "cat-from-dir.cwl",
+  "id": "cat-from-dir",
   "inputs": [
     {
       "id": "dir1",

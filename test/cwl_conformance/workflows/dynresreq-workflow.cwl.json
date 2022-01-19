@@ -1,7 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
-  "id": "dynresreq-workflow.cwl",
+  "id": "dynresreq-workflow",
   "inputs": [
     {
       "id": "special_file",
@@ -41,7 +41,7 @@
         ],
         "baseCommand": "echo",
         "class": "CommandLineTool",
-        "id": "dynresreq-workflow.cwl@step_count@dynresreq.cwl",
+        "id": "dynresreq.cwl",
         "inputs": [
           {
             "id": "special_file",
@@ -83,7 +83,7 @@
           "cat"
         ],
         "class": "CommandLineTool",
-        "id": "dynresreq-workflow.cwl@step_report@cat-tool.cwl",
+        "id": "cat-tool.cwl",
         "inputs": [
           {
             "id": "file1",

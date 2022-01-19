@@ -1,7 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
-  "id": "io-int-wf.cwl",
+  "id": "io-int-wf",
   "inputs": [
     {
       "id": "i",
@@ -38,7 +38,7 @@
       "run": {
         "class": "ExpressionTool",
         "expression": "${return {'o': inputs.i * 2};}\n",
-        "id": "io-int-wf.cwl@step_step1@run",
+        "id": "run",
         "inputs": [
           {
             "id": "i",

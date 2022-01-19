@@ -1,7 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
-  "id": "fail-unconnected.cwl",
+  "id": "fail-unconnected",
   "inputs": [
     {
       "default": "hello inp1",
@@ -52,7 +52,7 @@
           "$(inputs.in2)"
         ],
         "class": "CommandLineTool",
-        "id": "fail-unconnected.cwl@step_step1@fail-unspecified-input.cwl",
+        "id": "fail-unspecified-input.cwl",
         "inputs": [
           {
             "id": "in",

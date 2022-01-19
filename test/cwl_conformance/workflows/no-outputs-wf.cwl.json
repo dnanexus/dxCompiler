@@ -2,7 +2,7 @@
   "class": "Workflow",
   "cwlVersion": "v1.2",
   "doc": "Workflow without outputs.",
-  "id": "no-outputs-wf.cwl",
+  "id": "no-outputs-wf",
   "inputs": [
     {
       "id": "file1",
@@ -37,7 +37,7 @@
             "dockerPull": "debian:stretch-slim"
           }
         },
-        "id": "no-outputs-wf.cwl@step_step0@run",
+        "id": "run",
         "inputs": [
           {
             "id": "file1",

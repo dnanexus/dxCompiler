@@ -1,7 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
-  "id": "wf-loadContents2.cwl",
+  "id": "wf-loadContents2",
   "inputs": [
     {
       "id": "my_file",
@@ -43,7 +43,7 @@
       "run": {
         "class": "ExpressionTool",
         "expression": "${ return { \"my_int\": inputs.my_number }; }\n",
-        "id": "wf-loadContents2.cwl@step_one@run",
+        "id": "run",
         "inputs": [
           {
             "id": "my_number",

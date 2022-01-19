@@ -1,7 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
-  "id": "env-wf2.cwl",
+  "id": "env-wf2",
   "inputs": [
     {
       "id": "in",
@@ -55,7 +55,7 @@
             }
           }
         },
-        "id": "env-wf2.cwl@step_step1@env-tool2.cwl",
+        "id": "env-tool2.cwl",
         "inputs": [
           {
             "id": "in",

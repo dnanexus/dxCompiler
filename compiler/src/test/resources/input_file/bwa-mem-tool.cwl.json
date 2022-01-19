@@ -21,7 +21,7 @@
       "dockerPull": "python:2-slim"
     }
   ],
-  "id": "bwa-mem-tool.cwl",
+  "id": "bwa-mem-tool",
   "inputs": [
     {
       "id": "reference",

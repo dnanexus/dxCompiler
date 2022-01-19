@@ -174,7 +174,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           }
         case None => None
       }
-      val dxName = CwlDxName.fromSourceName(input.id.get.name)
+      val dxName = CwlDxName.fromSourceName(input.name)
       val attrs = translateParameterAttributes(input, hintParameterAttrs)
       Parameter(dxName, CwlUtils.toIRType(input.cwlType), irDefaultValue, attrs)
     }
@@ -198,7 +198,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
             })
         case _ => None
       }
-      val dxName = CwlDxName.fromSourceName(output.id.get.name)
+      val dxName = CwlDxName.fromSourceName(output.name)
       val attrs = translateParameterAttributes(output, hintParameterAttrs)
       Parameter(dxName, CwlUtils.toIRType(output.cwlType), irValue, attrs)
     }
@@ -345,15 +345,21 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
                                       callName: String): StageInput = {
 
       def lookup(key: DxName): StageInput = {
-        env.get(key) match {
-          case Some((_, stageInput)) => stageInput
-          case None =>
-            throw new Exception(
-                s"""|input <${calleeParam.name}, ${calleeParam.dxType}> to call <${callName}>
-                    |is missing from the environment. We don't have '${key}' in the environment.
-                    |""".stripMargin.replaceAll("\n", " ")
-            )
-        }
+        // the key may be prefixed by a workflow or stage namespace - we start with the full name
+        // and remove the namespaces successively (left to right) until we find a match
+        key
+          .dropNamespaceIter()
+          .map(env.get)
+          .collectFirst {
+            case Some((_, stageInput)) => stageInput
+          }
+          .getOrElse(
+              throw new Exception(
+                  s"""|input <${calleeParam.name}, ${calleeParam.dxType}> to call <${callName}>
+                      |is missing from the environment. We don't have '${key}' in the environment.
+                      |""".stripMargin.replaceAll("\n", " ")
+              )
+          )
       }
 
       def getDefaultInput(stepInput: WorkflowStepInput): StageInput = {
@@ -393,7 +399,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
     }
 
     private def translateCall(call: WorkflowStep, env: CallEnv, locked: Boolean): Stage = {
-      val calleeName = call.run.name
+      val calleeName = call.run.simpleName
       val callee: Callable = availableDependencies.getOrElse(
           calleeName,
           throw new Exception(
@@ -471,10 +477,10 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         case BlockKind.CallFragment | BlockKind.ConditionalOneCall =>
           // a block with no nested sub-blocks, and a single call, or
           // a conditional with exactly one call in the sub-block
-          (Some(block.target.run.name), None)
+          (Some(block.target.run.simpleName), None)
         case BlockKind.ScatterOneCall =>
           // a scatter with exactly one call in the sub-block
-          val stepName = block.target.run.name
+          val stepName = block.target.run.simpleName
           val newScatterPath = stepPath.map(p => s"${p}.${stepName}").getOrElse(stepName)
           (Some(stepName), Some(newScatterPath))
         case _ =>

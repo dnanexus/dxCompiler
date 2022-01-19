@@ -1,7 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
-  "id": "step-valuefrom4-wf.cwl",
+  "id": "step-valuefrom4-wf",
   "inputs": [],
   "outputs": [
     {

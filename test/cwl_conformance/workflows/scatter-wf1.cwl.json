@@ -1,7 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
-  "id": "scatter-wf1.cwl",
+  "id": "scatter-wf1",
   "inputs": [
     {
       "id": "inp",
@@ -51,7 +51,7 @@
         ],
         "baseCommand": "echo",
         "class": "CommandLineTool",
-        "id": "scatter-wf1.cwl@step_step1@run",
+        "id": "run",
         "inputs": [
           {
             "id": "echo_in",

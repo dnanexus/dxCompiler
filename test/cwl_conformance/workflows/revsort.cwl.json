@@ -8,7 +8,7 @@
       "dockerPull": "debian:stretch-slim"
     }
   ],
-  "id": "revsort.cwl",
+  "id": "revsort",
   "inputs": [
     {
       "doc": "The input file to be processed.",
@@ -54,7 +54,7 @@
         "baseCommand": "rev",
         "class": "CommandLineTool",
         "doc": "Reverse each line using the `rev` command",
-        "id": "revsort.cwl@step_rev@revtool.cwl",
+        "id": "revtool.cwl",
         "inputs": [
           {
             "id": "input",
@@ -98,7 +98,7 @@
         "baseCommand": "sort",
         "class": "CommandLineTool",
         "doc": "Sort lines using the `sort` command",
-        "id": "revsort.cwl@step_sorted@sorttool.cwl",
+        "id": "sorttool.cwl",
         "inputs": [
           {
             "id": "reverse",

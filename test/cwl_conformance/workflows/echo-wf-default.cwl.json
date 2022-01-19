@@ -1,7 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
-  "id": "echo-wf-default.cwl",
+  "id": "echo-wf-default",
   "inputs": [],
   "outputs": [
     {
@@ -36,7 +36,7 @@
           "-n"
         ],
         "class": "CommandLineTool",
-        "id": "echo-wf-default.cwl@step_step1@echo-tool-default.cwl",
+        "id": "echo-tool-default.cwl",
         "inputs": [
           {
             "default": "tool_default",

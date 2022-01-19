@@ -9,7 +9,7 @@
       "dockerPull": "python:2-slim"
     }
   ],
-  "id": "bool-empty-inputbinding.cwl",
+  "id": "bool-empty-inputbinding",
   "inputs": [
     {
       "id": "flag",

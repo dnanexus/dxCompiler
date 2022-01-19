@@ -1,7 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
-  "id": "count-lines11-null-step-wf-noET.cwl",
+  "id": "count-lines11-null-step-wf-noET",
   "inputs": [],
   "outputs": [
     {
@@ -28,7 +28,7 @@
       "run": {
         "class": "ExpressionTool",
         "expression": "$({'output': null })",
-        "id": "count-lines11-null-step-wf-noET.cwl@step_step0@null-expression3-tool.cwl",
+        "id": "null-expression3-tool.cwl",
         "inputs": [],
         "outputs": [
           {
@@ -64,7 +64,7 @@
           "-l"
         ],
         "class": "CommandLineTool",
-        "id": "count-lines11-null-step-wf-noET.cwl@step_step1@wc-tool.cwl",
+        "id": "wc-tool.cwl",
         "inputs": [
           {
             "id": "file1",

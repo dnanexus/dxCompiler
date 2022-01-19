@@ -17,11 +17,8 @@ import java.net.URI
 import java.nio.file.Files
 
 object CwlTaskExecutor {
-  val DefaultFrag = "___"
-
   def parseString(cwl: String): ParserResult = {
-    // when parsing a packed workflow as a String, we need to use a baseuri -
-    // it doesn't matter what it is
+    // when parsing a packed workflow as a String, we need to use a baseuri - it doesn't matter what
     val parser = Parser.create(Some(URI.create("file:/null")), hintSchemas = Vector(DxHintSchema))
     parser.detectVersionAndClass(cwl) match {
       case (version, Some("CommandLineTool" | "ExpressionTool" | "Workflow"))
@@ -34,13 +31,7 @@ object CwlTaskExecutor {
                |${cwl}""".stripMargin
         )
     }
-    // The main process may or may not have an ID. In the case it does not,
-    // we supply a default ID fragment that is unlikely to be taken by the
-    // user. Then, if the main process is a CommandLineTool or ExpressionTool,
-    // we update the ID to use the tool name as the fragment; otherwise it is
-    // a workflow and we look up the tool by name in the Map of processes nested
-    // within the workflow.
-    parser.parseString(cwl, Some(DefaultFrag), simplifyProcessAutoIds = true)
+    parser.parseString(cwl)
   }
 
   def create(jobMeta: JobMeta,
@@ -52,16 +43,12 @@ object CwlTaskExecutor {
     }
     jobMeta.logger.trace(s"toolName: ${toolName}")
     val tool = parseString(jobMeta.sourceCode) match {
-      case ParserResult(Some(tool: CommandLineTool), _, _, _) if tool.frag == DefaultFrag =>
-        tool.copy(id = Some(Identifier(namespace = None, frag = toolName)))
       case ParserResult(Some(tool: CommandLineTool), _, _, _) => tool
-      case ParserResult(Some(tool: ExpressionTool), _, _, _) if tool.frag == DefaultFrag =>
-        tool.copy(id = Some(Identifier(namespace = None, frag = toolName)))
-      case ParserResult(Some(tool: ExpressionTool), _, _, _) => tool
+      case ParserResult(Some(expr: ExpressionTool), _, _, _)  => expr
       case ParserResult(_, doc: Document, _, _) =>
         doc.values.toVector.collect {
-          case tool: CommandLineTool if tool.name == toolName => tool
-          case tool: ExpressionTool if tool.name == toolName  => tool
+          case tool: CommandLineTool if tool.simpleName == toolName => tool
+          case expr: ExpressionTool if expr.simpleName == toolName  => expr
         } match {
           case Vector(tool) => tool
           case Vector() =>
@@ -93,7 +80,7 @@ case class CwlTaskExecutor(tool: Process,
   private lazy val inputParams: Map[DxName, InputParameter] = {
     tool.inputs.collect {
       case param if param.id.isDefined =>
-        CwlDxName.fromSourceName(param.id.get.name) -> param
+        CwlDxName.fromSourceName(param.name) -> param
     }.toMap
   }
 
@@ -156,7 +143,7 @@ case class CwlTaskExecutor(tool: Process,
           case None if CwlOptional.isOptional(param.cwlType) =>
             (param.cwlType, NullValue)
           case _ =>
-            throw new Exception(s"Missing required input ${name} to tool ${tool.id}")
+            throw new Exception(s"Missing required input ${name} to tool ${tool.simpleName}")
         }
         env + (name -> (cwlType, cwlValue))
     }
@@ -393,7 +380,7 @@ case class CwlTaskExecutor(tool: Process,
       val overridesDocJs = JsObject(
           "cwltool:overrides" -> JsObject(
               "#main" -> JsObject(finalOverrides),
-              s"#${tool.name}" -> JsObject(finalOverrides)
+              s"#${tool.frag}" -> JsObject(finalOverrides)
           )
       )
       val overridesDocPath = metaDir.resolve("overrides.json")
