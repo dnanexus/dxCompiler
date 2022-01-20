@@ -1568,10 +1568,9 @@ Example: compiling a WDL workflow for later use as a global workflow.
 java -jar dxCompiler.jar compile <workflow name>.wdl -instanceTypeSelection dynamic
 ```
 
-<!-- TODO edit example to use <project id>:<workflow id> once dxpy supports that -->
 Example: publishing a global workflow from a local workflow. The global workflow's name will match the WDL workflow name. The global workflow's version must be set with `--version`, since a local workflow does not have a `version` property. If `--bill-to` is not specified, your default billing account will be assumed.
 ```
-dx build --globalworkflow --from <workflow id> --version <version> --bill-to <user-xxxx | org-yyyy>
+dx build --globalworkflow --from <project id>:<workflow id> --version <version> --bill-to <user-xxxx | org-yyyy>
 dx publish globalworkflow-<workflow name>/<version>
 ```
 
