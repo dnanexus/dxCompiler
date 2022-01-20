@@ -1574,14 +1574,30 @@ dx build --globalworkflow --from <project id>:<workflow id> --version <version> 
 dx publish globalworkflow-<workflow name>/<version>
 ```
 
-Example: adding authorized users to a global workflow
+Example: adding and removing authorized users
 ```
 dx add users globalworkflow-<workflow name> <user-xxxx | org-yyyy>
+
+dx remove users globalworkflow-<workflow name> <user-xxxx | org-yyyy>
 ```
 
-<!-- TODO Add examples of how to update the WF metadata (title, summary, description, tags, categories) by API call after the global WF is published. -->
+Example: adding and removing tags
+```
+dx api globalworkflow-global_wf_from_wdl addTags '{"tags":["<tag 1>", "<tag 2>"]}'
 
-<!-- TODO For updating description, note that they should remember to include the original description text, because dependency warnings are there -->
+dx api globalworkflow-global_wf_from_wdl removeTags '{"tags":["<tag 1>", "<tag 2>"]}'
+```
+
+Example: adding and removing categories
+```
+dx api globalworkflow-global_wf_from_wdl addCategories '{"categories":["<category 1>", "<category 2>"]}'
+
+dx api globalworkflow-global_wf_from_wdl removeCategories '{"categories":["<category 1>", "<category 2>"]}'
+```
+
+<!-- TODO finish example for updating title, summary, developer notes -->
+
+Example: updating title, summary, and developer notes
 
 See [Limitations](#limitations) below for more details on which dependencies of the workflow will be automatically included in the global workflow.
 
