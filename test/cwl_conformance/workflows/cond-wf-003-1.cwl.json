@@ -1,7 +1,7 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
-  "id": "cond-wf-003.1",
+  "id": "cond-wf-003-1",
   "inputs": [
     {
       "id": "val",

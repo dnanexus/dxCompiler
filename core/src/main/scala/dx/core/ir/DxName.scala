@@ -18,6 +18,21 @@ object DxName {
       }
       .getOrElse(a.size.compare(b.size))
   }
+
+  def lookup[T](key: DxName, map: Map[DxName, T]): Option[(DxName, T)] = {
+    // the key may be prefixed one or more namespaces - we start with the full name
+    // and remove the namespaces successively (left to right) until we find a match
+    key
+      .dropNamespaceIter()
+      .map { key =>
+        map.get(key).map(value => (key, value))
+      }
+      .find {
+        case Some(_) => true
+        case _       => false
+      }
+      .flatten
+  }
 }
 
 /**

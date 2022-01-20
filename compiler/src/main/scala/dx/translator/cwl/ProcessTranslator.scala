@@ -320,18 +320,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       }
 
       override def lookup(dxName: DxName): Option[(DxName, (Parameter, StageInput))] = {
-        // the key may be prefixed by a workflow or stage namespace - we start with the full name
-        // and remove the namespaces successively (left to right) until we find a match
-        dxName
-          .dropNamespaceIter()
-          .map { key =>
-            env.get(key).map(value => (key, value))
-          }
-          .find {
-            case Some(_) => true
-            case _       => false
-          }
-          .flatten
+        DxName.lookup(dxName, env)
       }
     }
 
@@ -590,9 +579,9 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
               (stages :+ (stage, Vector(callable)), afterEnv)
             } else if (block.targetIsSimpleCall) {
               val step = block.target
-              // The block contains exactly one call, with no extra variables.
-              // All the variables are already in the environment, so there is no
-              // need to do any extra work. Compile directly into a workflow stage.
+              // The block contains exactly one call, with no extra variables. All the variables are
+              // already in the environment, so there is no need to do any extra work. Compile
+              // directly into a workflow stage.
               logger2.trace(s"Translating step ${step.name} as stage")
               val stage = translateCall(step, beforeEnv, locked)
               // Add bindings for the output variables. This allows later calls to refer

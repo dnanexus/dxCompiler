@@ -1,6 +1,6 @@
 {
-  "import_schema-def.bam": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/a.bam",
-  "import_schema-def.capture_kit": {
+  "main.bam": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/a.bam",
+  "main.capture_kit": {
     "bait": "abait"
   }
 }

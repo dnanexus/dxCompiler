@@ -206,29 +206,30 @@ case class CwlBlock(index: Int,
           // as a hash and the block input is not (e.g. `String` -> `Any`).
           stepInputs.get(targetInput.name).exists { stepInput =>
             stepInput.sources.headOption.exists { src =>
-              blockInputs.get(CwlDxName.fromDecodedName(src.frag)).exists { blockInput =>
-                val blockInputType =
-                  if (stepInput.linkMerge.isEmpty || CwlUtils.isArray(blockInput.cwlType)) {
-                    blockInput.cwlType
-                  } else {
-                    CwlArray(blockInput.cwlType)
+              DxName.lookup(CwlDxName.fromDecodedName(src.frag), blockInputs).exists {
+                case (_, blockInput) =>
+                  val blockInputType =
+                    if (stepInput.linkMerge.isEmpty || CwlUtils.isArray(blockInput.cwlType)) {
+                      blockInput.cwlType
+                    } else {
+                      CwlArray(blockInput.cwlType)
+                    }
+                  val targetInputType =
+                    if (stepInput.default.isDefined || targetInput.default.isDefined) {
+                      CwlOptional.ensureOptional(targetInput.cwlType)
+                    } else {
+                      targetInput.cwlType
+                    }
+                  Try(CwlUtils.requiresDowncast(blockInputType, targetInputType)) match {
+                    case Success(true) => true
+                    case Success(false) =>
+                      requireDifferentNativeTypes(blockInputType, targetInputType)
+                    case Failure(cause) =>
+                      throw new Exception(
+                          s"block input ${blockInput} is not compatible with call input ${targetInput}",
+                          cause
+                      )
                   }
-                val targetInputType =
-                  if (stepInput.default.isDefined || targetInput.default.isDefined) {
-                    CwlOptional.ensureOptional(targetInput.cwlType)
-                  } else {
-                    targetInput.cwlType
-                  }
-                Try(CwlUtils.requiresDowncast(blockInputType, targetInputType)) match {
-                  case Success(true) => true
-                  case Success(false) =>
-                    requireDifferentNativeTypes(blockInputType, targetInputType)
-                  case Failure(cause) =>
-                    throw new Exception(
-                        s"block input ${blockInput} is not compatible with call input ${targetInput}",
-                        cause
-                    )
-                }
               }
             }
           }
