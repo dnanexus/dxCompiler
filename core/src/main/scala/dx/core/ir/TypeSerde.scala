@@ -357,7 +357,7 @@ object TypeSerde {
         // arrays of primitives translate to e.g. 'array:file' -
         val nativeInnerType = toNativePrimitive(memberType, pathsAreNative)
         (s"array:${nativeInnerType}", !nonEmpty || optional)
-      case TEnum(symbols) => 
+      case TEnum(symbols) =>
         (toNativePrimitive(TString, pathsAreNative), optional)
       case _ =>
         // everything else is a complex type represented as a hash
