@@ -135,7 +135,7 @@
 #### dxApi 0.10.1
 
 * Fixes `resolveProject` to handle `container-` objects
-* Improves error message when API call failes due to connection error
+* Improves error message when API call fails due to connection error
 
 #### cwlScala 0.7.1
 
