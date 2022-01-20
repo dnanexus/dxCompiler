@@ -99,14 +99,19 @@ object CwlBundle {
         val newWorkflows = workflows + (wf.name -> wf)
         wf.steps.foldLeft(tools, expressions, newWorkflows, newReqs, newHints) {
           case ((toolAccu, exprAccu, wfAccu, reqAccu, hintAccu), step) =>
-            getProcesses(step.run.copySimplifyId,
-                         toolAccu,
-                         exprAccu,
-                         wfAccu,
-                         reqAccu,
-                         hintAccu,
-                         inheritedRequirements ++ wf.requirements,
-                         inheritedHints ++ wf.hints)
+            getProcesses(
+                step.run.copySimplifyIds(dropNamespace = true,
+                                         replacePrefix = (Left(true), None),
+                                         simplifyAutoNames = true,
+                                         dropCwlExtension = true),
+                toolAccu,
+                exprAccu,
+                wfAccu,
+                reqAccu,
+                hintAccu,
+                inheritedRequirements ++ wf.requirements,
+                inheritedHints ++ wf.hints
+            )
         }
       case _ =>
         throw new Exception(s"unsupported process ${process}")
@@ -123,7 +128,10 @@ object CwlBundle {
     )
     // get a copy of the process with the ID simplified so that two processes that are identical
     // except for their ID namespace will compare as equal
-    process.copySimplifyId match {
+    process.copySimplifyIds(dropNamespace = true,
+                            replacePrefix = (Left(true), None),
+                            simplifyAutoNames = true,
+                            dropCwlExtension = true) match {
       case tool: CommandLineTool =>
         CwlBundle(version,
                   tool,

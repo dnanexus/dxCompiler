@@ -51,6 +51,9 @@ abstract class DxName(private var encodedParts: Option[Vector[String]],
                       val stage: Option[String],
                       val suffix: Option[String])
     extends Ordered[DxName] {
+
+  protected def illegalDecodedSequencesRegex: Option[Regex] = None
+
   assert(
       encodedParts.isEmpty || decodedParts.isEmpty || encodedParts.get.size == decodedParts.get.size,
       s"""encoded and decoded parts are not the same size:
@@ -65,7 +68,6 @@ abstract class DxName(private var encodedParts: Option[Vector[String]],
       }
     }
   }
-  protected def illegalDecodedSequencesRegex: Option[Regex] = None
   decodedParts.foreach { d =>
     assert(d.nonEmpty, s"there must be at least one decoded part")
     d.zipWithIndex.foreach {

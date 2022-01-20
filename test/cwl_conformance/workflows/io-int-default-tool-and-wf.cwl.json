@@ -39,7 +39,7 @@
       "run": {
         "class": "ExpressionTool",
         "expression": "${return {'o': (inputs.i || 2)};}\n",
-        "id": "run",
+        "id": "io-int-default-tool-and-wf.cwl@step_step1@run",
         "inputs": [
           {
             "id": "i",
@@ -73,7 +73,7 @@
       "run": {
         "class": "ExpressionTool",
         "expression": "${return {'o': inputs.i * 2 + inputs.i2};}\n",
-        "id": "run",
+        "id": "io-int-default-tool-and-wf.cwl@step_step2@run",
         "inputs": [
           {
             "id": "i",

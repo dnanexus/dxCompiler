@@ -72,7 +72,7 @@ object CwlUtils {
       case CwlFile         => TFile
       case CwlDirectory    => TDirectory
       case a: CwlArray     => TArray(toIRType(a.itemType))
-      case e: CwlEnum      => TEnum(e.symbols)
+      case e: CwlEnum      => TEnum(e.symbolNames)
       case r: CwlRecord if r.hasName =>
         toIRSchema(r)
       case _ =>
@@ -240,8 +240,8 @@ object CwlUtils {
               throw new Exception(s"invalid field ${name}")
           }
         (TSchema(name, types), VHash(values))
-      case (enum: CwlEnum, StringValue(s)) if enum.symbols.contains(s) =>
-        (TEnum(enum.symbols), VString(s))
+      case (enum: CwlEnum, StringValue(s)) if enum.symbolNames.contains(s) =>
+        (TEnum(enum.symbolNames), VString(s))
       case _ => throw new Exception(s"Invalid CWL value ${cwlValue})")
     }
   }
@@ -416,7 +416,7 @@ object CwlUtils {
                   key -> innerMulti(value, record.fields(key).cwlType, s"${innerName}[${key}]")._2
               }
           )
-        case (enum: CwlEnum, VString(s)) if enum.symbols.contains(s) => StringValue(s)
+        case (enum: CwlEnum, VString(s)) if enum.symbolNames.contains(s) => StringValue(s)
         case _ =>
           throw new Exception(s"cannot translate ${innerValue} to CwlValue of type ${innerType}")
       }
@@ -494,7 +494,7 @@ object CwlUtils {
       case e: CwlEnum if e.hasName =>
         e.name
       case e: CwlEnum =>
-        s"enum<${e.symbols.mkString(",")}>"
+        s"enum<${e.symbolNames.mkString(",")}>"
     }
   }
 

@@ -37,7 +37,7 @@
       ],
       "run": {
         "class": "Workflow",
-        "id": "run",
+        "id": "count-lines16-wf.cwl@step_step1@run",
         "inputs": [
           {
             "id": "file1",
@@ -77,6 +77,7 @@
                 "-l"
               ],
               "class": "CommandLineTool",
+              "id": "count-lines16-wf.cwl@step_step1@run@step_step1@run",
               "inputs": [
                 {
                   "id": "file1",
@@ -114,6 +115,7 @@
             ],
             "run": {
               "class": "Workflow",
+              "id": "count-lines18-wf.cwl@step_step1@run@step_step2@run",
               "inputs": [
                 {
                   "id": "file1",
@@ -150,6 +152,7 @@
                   "run": {
                     "class": "ExpressionTool",
                     "expression": "$({'output': parseInt(inputs.file1.contents)})",
+                    "id": "count-lines18-wf.cwl@step_step1@run@step_step2@run@step_step1@run",
                     "inputs": [
                       {
                         "id": "file1",

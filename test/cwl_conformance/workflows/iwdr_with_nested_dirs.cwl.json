@@ -32,7 +32,7 @@
           "deeply/nested/dir/structure"
         ],
         "class": "CommandLineTool",
-        "id": "run",
+        "id": "iwdr_with_nested_dirs.cwl@step_first@run",
         "inputs": [],
         "outputs": [
           {
@@ -67,7 +67,7 @@
           "deeply/nested/dir/structure/ya"
         ],
         "class": "CommandLineTool",
-        "id": "run",
+        "id": "iwdr_with_nested_dirs.cwl@step_second@run",
         "inputs": [
           {
             "id": "dir",

@@ -314,6 +314,35 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
 
     private lazy val evaluator: Evaluator = Evaluator.default
 
+    private case class CwlCallEnv(env: Map[DxName, LinkedVar]) extends CallEnv(env) {
+      override protected def create(env: Map[DxName, (Parameter, StageInput)]): CallEnv = {
+        CwlCallEnv(env)
+      }
+
+      override def lookup(dxName: DxName): Option[(DxName, (Parameter, StageInput))] = {
+        // the key may be prefixed by a workflow or stage namespace - we start with the full name
+        // and remove the namespaces successively (left to right) until we find a match
+        dxName
+          .dropNamespaceIter()
+          .map { key =>
+            env.get(key).map(value => (key, value))
+          }
+          .find {
+            case Some(_) => true
+            case _       => false
+          }
+          .flatten
+      }
+    }
+
+    private object CwlCallEnv {
+      def fromLinkedVars(lvars: Vector[LinkedVar]): CallEnv = {
+        CwlCallEnv(lvars.map {
+          case (parameter, stageInput) => parameter.name -> (parameter, stageInput)
+        }.toMap)
+      }
+    }
+
     override protected def standAloneWorkflow: SourceCode = {
       val docSource = wf.source.orElse(cwlBundle.primaryProcess.source) match {
         case Some(path) => Paths.get(path)
@@ -347,11 +376,10 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       def lookup(key: DxName): StageInput = {
         // the key may be prefixed by a workflow or stage namespace - we start with the full name
         // and remove the namespaces successively (left to right) until we find a match
-        key
-          .dropNamespaceIter()
-          .map(env.get)
-          .collectFirst {
-            case Some((_, stageInput)) => stageInput
+        env
+          .lookup(key)
+          .map {
+            case (_, (_, stageInput)) => stageInput
           }
           .getOrElse(
               throw new Exception(
@@ -541,7 +569,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
     ): (Vector[(Stage, Vector[Callable])], CallEnv) = {
       logger.trace(s"Assembling workflow backbone $wfName")
 
-      val inputEnv: CallEnv = CallEnv.fromLinkedVars(wfInputs)
+      val inputEnv: CallEnv = CwlCallEnv.fromLinkedVars(wfInputs)
 
       val logger2 = logger.withIncTraceIndent()
       logger2.trace(s"inputs: ${inputEnv.keys}")
@@ -755,8 +783,18 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           out.sources.exists(i => inputNames.contains(i.frag)) ||
           out.sources.headOption.exists { sourceId =>
             env.get(CwlDxName.fromDecodedName(sourceId.frag)).map(_._1).exists { stageParam =>
-              CwlUtils.requiresDowncast(CwlUtils.fromIRType(stageParam.dxType, isInput = false),
-                                        out.cwlType)
+              try {
+                CwlUtils.requiresDowncast(CwlUtils.fromIRType(stageParam.dxType, isInput = false),
+                                          out.cwlType)
+              } catch {
+                case _: Throwable =>
+                  // There is an edge case in CWL where a stage output may be optional due to the
+                  // stage having a `when` clause, but it is referenced by a non-optional workflow
+                  // output. The expectation is that there will be a runtime error when the condition
+                  // is false (see https://github.com/common-workflow-language/cwl-v1.2/issues/146).
+                  // We handle that in the output applet.
+                  true
+              }
             }
           }
         }
