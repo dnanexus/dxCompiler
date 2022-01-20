@@ -1,0 +1,73 @@
+{
+    "$graph": [
+        {
+            "class": "Workflow",
+            "inputs": [],
+            "steps": [
+                {
+                    "run": "#task.cwl",
+                    "in": [
+                        {
+                            "default": "string1",
+                            "id": "#main/step1/example_in"
+                        }
+                    ],
+                    "out": [
+                        "#main/step1/example_out"
+                    ],
+                    "id": "#main/step1"
+                }
+            ],
+            "id": "#main",
+            "outputs": [
+                {
+                    "type": "File",
+                    "outputSource": "#main/step1/example_out",
+                    "id": "#main/wf_out"
+                }
+            ]
+        },
+        {
+            "class": "CommandLineTool",
+            "requirements": [
+                {
+                    "class": "InlineJavascriptRequirement"
+                }
+            ],
+            "stdout": "output.txt",
+            "inputs": [
+                {
+                    "type": [
+                        "null",
+                        {
+                            "type": "enum",
+                            "symbols": [
+                                "#task.cwl/example_in/string1",
+                                "#task.cwl/example_in/string2"
+                            ]
+                        }
+                    ],
+                    "inputBinding": {
+                        "prefix": "--example-string",
+                        "position": 0
+                    },
+                    "id": "#task.cwl/example_in"
+                }
+            ],
+            "baseCommand": [
+                "echo"
+            ],
+            "outputs": [
+                {
+                    "type": "File",
+                    "id": "#task.cwl/example_out",
+                    "outputBinding": {
+                        "glob": "output.txt"
+                    }
+                }
+            ],
+            "id": "#task.cwl"
+        }
+    ],
+    "cwlVersion": "v1.2"
+}
