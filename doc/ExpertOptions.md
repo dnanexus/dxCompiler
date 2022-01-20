@@ -1574,28 +1574,28 @@ dx build --globalworkflow --from <project id>:<workflow id> --version <version> 
 dx publish globalworkflow-<workflow name>/<version>
 ```
 
-Example: adding and removing authorized users
+Example: [adding and removing authorized users](https://documentation.dnanexus.com/user/helpstrings-of-sdk-command-line-utilities#add-users)
 ```
 dx add users globalworkflow-<workflow name> <user-xxxx | org-yyyy>
 
 dx remove users globalworkflow-<workflow name> <user-xxxx | org-yyyy>
 ```
 
-Example: adding and removing tags
+Example: [adding and removing tags](https://documentation.dnanexus.com/developer/api/running-analyses/global-workflows#api-method-globalworkflow-xxxx-yyyy-addtags)
 ```
 dx api globalworkflow-<workflow name> addTags '{"tags":["<tag 1>", "<tag 2>"]}'
 
 dx api globalworkflow-<workflow name> removeTags '{"tags":["<tag 1>", "<tag 2>"]}'
 ```
 
-Example: adding and removing categories
+Example: [adding and removing categories](https://documentation.dnanexus.com/developer/api/running-analyses/global-workflows#api-method-globalworkflow-xxxx-yyyy-addcategories)
 ```
 dx api globalworkflow-<workflow name> addCategories '{"categories":["<category 1>", "<category 2>"]}'
 
 dx api globalworkflow-<workflow name> removeCategories '{"categories":["<category 1>", "<category 2>"]}'
 ```
 
-Example: updating title, summary, and/or developer notes
+Example: [updating title, summary, and/or developer notes](https://documentation.dnanexus.com/developer/api/running-analyses/global-workflows#api-method-globalworkflow-xxxx-yyyy-update)
 ```
 dx api globalworkflow-<workflow name> update '{"title":"<new title>", "summary":"<new summary>", "developerNotes":"<new developer notes>"}'
 ```
