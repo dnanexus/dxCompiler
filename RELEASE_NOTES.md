@@ -126,6 +126,9 @@
 * Adds support for specifying native app(let) in `runtime` section
 * Fixes some type conversion bugs related to CWL `Any` type
 * Affected by a bug for workflows that include a native platform app via `dxni`. Bug fixed in v2.8.1.
+* Logs entire contents of WDL command at runtime
+
+*Warning*: we discovered a regression in this release that may cause tasks to fail with out-of-disk errors due to excessive logging. Please update to 2.7.1 or later.
 
 ### Dependency updates
 
