@@ -387,7 +387,10 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
             try {
               val cwlType = runInputs.get(dxName).map(_.cwlType).getOrElse(sourceType)
               val ctx = EvaluatorContext(sourceValue, evalInputs)
-              dxName -> (stepInput, eval.evaluate(stepInput.valueFrom.get, cwlType, ctx))
+              dxName -> (stepInput, eval.evaluate(stepInput.valueFrom.get,
+                                                  cwlType,
+                                                  ctx,
+                                                  coerce = true))
             } catch {
               case cause: Throwable =>
                 throw new Exception(
@@ -514,7 +517,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
       assert(step.when.nonEmpty)
       val stepInputs = evaluateCallStepInputs(isConditinal = true)
       val ctx = EvaluatorContext(inputs = createEvalInputs(stepInputs.values.toMap))
-      val (_, cond) = eval.evaluate(step.when.get, CwlBoolean, ctx)
+      val (_, cond) = eval.evaluate(step.when.get, CwlBoolean, ctx, coerce = true)
       cond match {
         case BooleanValue(true) =>
           launchCall(stepInputs, block.index).map {
@@ -636,7 +639,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
             if (stepInput.valueFrom.isDefined) {
               val ctx = EvaluatorContext(sourceValue, evalInputs)
               try {
-                dxName -> eval.evaluate(stepInput.valueFrom.get, param.cwlType, ctx)
+                dxName -> eval.evaluate(stepInput.valueFrom.get, param.cwlType, ctx, coerce = true)
               } catch {
                 case cause: Throwable =>
                   throw new Exception(
@@ -684,7 +687,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
                   case ((param, t), v) => param -> (t, v)
                 }
               val ctx = EvaluatorContext(inputs = createEvalInputs(allInputs))
-              val (_, cond) = eval.evaluate(step.when.get, CwlBoolean, ctx)
+              val (_, cond) = eval.evaluate(step.when.get, CwlBoolean, ctx, coerce = true)
               cond match {
                 case BooleanValue(true) =>
                   (execAccu :+ launchScatterJob(jobValues), skipAccu)

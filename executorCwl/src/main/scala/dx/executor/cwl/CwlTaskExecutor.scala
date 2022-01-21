@@ -140,7 +140,7 @@ case class CwlTaskExecutor(tool: Process,
             val ctx = CwlUtils.createEvaluatorContext(runtime, env.map {
               case (dxName, tv) => dxName.decoded -> tv
             })
-            evaluator.evaluate(param.default.get, param.cwlType, ctx)
+            evaluator.evaluate(param.default.get, param.cwlType, ctx, coerce = true)
           case None if CwlOptional.isOptional(param.cwlType) =>
             (param.cwlType, NullValue)
           case _ =>

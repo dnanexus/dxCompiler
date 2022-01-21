@@ -6,7 +6,7 @@
 
 ## 2.8.3 2022-01-07
 
-* Update dxCommon and wdlTools - fixes forwarding of stdout/stderr to job log fpr commands run in docker
+* Update dxCommon and wdlTools - fixes forwarding of stdout/stderr to job log for commands run in docker
 
 ### Dependency updates
 

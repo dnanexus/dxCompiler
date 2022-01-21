@@ -159,7 +159,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         case Some(default) =>
           try {
             val (actualType, defaultValue) =
-              requirementEvaluator.evaluator.evaluate(default, input.cwlType, evaluatorContext)
+              requirementEvaluator.evaluator
+                .evaluate(default, input.cwlType, evaluatorContext, coerce = true)
             defaultValue match {
               case file: FileValue if !CwlUtils.isDxFile(file) =>
                 // cannot specify a local file as default - the default will
@@ -188,7 +189,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
                 val (actualType, actualValue) =
                   requirementEvaluator.evaluator.evaluate(cwlValue,
                                                           output.cwlType,
-                                                          evaluatorContext)
+                                                          evaluatorContext,
+                                                          coerce = true)
                 val (_, value) = CwlUtils.toIRValue(actualValue, actualType)
                 Some(value)
               } catch {
@@ -347,7 +349,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       val default = input.default
         .flatMap { d =>
           try {
-            val (_, staticValue) = evaluator.evaluate(d, cwlType, EvaluatorContext.empty)
+            val (_, staticValue) =
+              evaluator.evaluate(d, cwlType, EvaluatorContext.empty, coerce = true)
             Some(staticValue)
           } catch {
             case _: Throwable => None

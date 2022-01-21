@@ -116,6 +116,7 @@ dxCompiler uses [wdlTools](https://github.com/dnanexus/wdlTools), a parser that 
 * WDL only
   * Workflows with forward references (i.e. a variable referenced before it is declared) are not yet supported.
   * The [alternative workflow output syntax](https://github.com/openwdl/wdl/blob/main/versions/draft-2/SPEC.md#outputs) that has been deprecated since WDL draft2 is not supported
+  * The `call ... after` syntax introduced in WDL 1.1 is not yet supported 
 * CWL only
   * Nested workflows (i.e. a workflow step calling another workflow) are not yet supported
   * In-line processes in workflow steps must have explicit IDs

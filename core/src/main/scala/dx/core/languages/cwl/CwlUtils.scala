@@ -242,7 +242,11 @@ object CwlUtils {
         (TSchema(name, types), VHash(values))
       case (enum: CwlEnum, StringValue(s)) if enum.symbolNames.contains(s) =>
         (TEnum(enum.symbolNames), VString(s))
-      case _ => throw new Exception(s"Invalid CWL value ${cwlValue})")
+      case _ =>
+        throw new Exception(
+            s"""Cannot convert CWL value ${prettyFormatValue(cwlValue, withType = true)}
+               |to type ${prettyFormatType(cwlType)})""".stripMargin.replaceAll("\n", " ")
+        )
     }
   }
 
@@ -498,41 +502,76 @@ object CwlUtils {
     }
   }
 
-  def prettyFormatValue(value: CwlValue, verbose: Boolean = false, indent: Int = 0): String = {
+  def prettyFormatPrimitiveValue(value: PrimitiveValue,
+                                 verbose: Boolean = false,
+                                 withType: Boolean = false): String = {
+    val pretty = value match {
+      case BooleanValue(b)              => b.toString
+      case IntValue(i)                  => i.toString
+      case LongValue(l)                 => l.toString
+      case FloatValue(f)                => f.toString
+      case DoubleValue(d)               => d.toString
+      case StringValue(s)               => s
+      case f: FileValue if verbose      => f.toJson.prettyPrint
+      case f: FileValue                 => f.toString
+      case d: DirectoryValue if verbose => d.toJson.prettyPrint
+      case d: DirectoryValue            => d.toString
+      case _ =>
+        throw new Exception(s"unexpected primitive value ${value}")
+    }
+    if (withType) {
+      s"${prettyFormatType(value.cwlType)}(${pretty})"
+    } else {
+      pretty
+    }
+  }
+
+  def prettyFormatValue(value: CwlValue,
+                        verbose: Boolean = false,
+                        indent: Int = 0,
+                        withType: Boolean = false): String = {
     val indentStr = " " * indent
-    val s = value match {
-      case NullValue                          => "null"
-      case BooleanValue(true)                 => "true"
-      case BooleanValue(false)                => "false"
-      case IntValue(i)                        => i.toString
-      case LongValue(l)                       => l.toString
-      case FloatValue(f)                      => f.toString
-      case DoubleValue(d)                     => d.toString
-      case StringValue(s)                     => s
-      case f: FileValue if verbose            => f.toJson.prettyPrint
-      case f: FileValue                       => f.toString
-      case d: DirectoryValue if verbose       => d.toJson.prettyPrint
-      case d: DirectoryValue                  => d.toString
-      case ArrayValue(items) if items.isEmpty => "[]"
-      case ArrayValue(items) if verbose =>
-        s"[\n${indentStr}${items
-          .map(prettyFormatValue(_, verbose = true, indent + 2))
-          .mkString(s"\n")}\n${indentStr}]"
-      case ArrayValue(items)                     => s"[${items.map(prettyFormatValue(_))}]"
-      case ObjectValue(fields) if fields.isEmpty => "{}"
-      case ObjectValue(fields) if verbose =>
-        val fieldStrs = fields.map {
-          case (name, value) => s"${name}: ${prettyFormatValue(value, verbose = true, indent + 2)}"
+    val pretty = value match {
+      case NullValue         => "null"
+      case p: PrimitiveValue => prettyFormatPrimitiveValue(p, verbose, withType)
+      case ArrayValue(items) =>
+        val pretty = if (items.isEmpty) {
+          "[]"
+        } else if (verbose) {
+          s"[\n${indentStr}${items
+            .map(prettyFormatValue(_, verbose = true, indent + 2))
+            .mkString(s"\n")}\n${indentStr}]"
+        } else {
+          s"[${items.map(prettyFormatValue(_))}]"
         }
-        s"{\n${indentStr}${fieldStrs.mkString("\n")}\n${indentStr}}"
+        if (withType) {
+          s"array(${pretty})"
+        } else {
+          pretty
+        }
       case ObjectValue(fields) =>
-        val fieldStrs = fields.map {
-          case (name, value) => s"${name}: ${prettyFormatValue(value)}"
+        val pretty = if (fields.isEmpty) {
+          "{}"
+        } else if (verbose) {
+          val fieldStrs = fields.map {
+            case (name, value) =>
+              s"${name}: ${prettyFormatValue(value, verbose = true, indent + 2)}"
+          }
+          s"{\n${indentStr}${fieldStrs.mkString("\n")}\n${indentStr}}"
+        } else {
+          val fieldStrs = fields.map {
+            case (name, value) => s"${name}: ${prettyFormatValue(value)}"
+          }
+          s"{${fieldStrs.mkString(",")}}"
         }
-        s"{${fieldStrs.mkString(",")}}"
+        if (withType) {
+          s"object(${pretty})"
+        } else {
+          pretty
+        }
       case _ => throw new Exception(s"unrecognized CWL value ${value})")
     }
-    s"${indentStr}${s}"
+    s"${indentStr}${pretty}"
   }
 
   def prettyFormatEnv(env: Map[String, (CwlType, CwlValue)],

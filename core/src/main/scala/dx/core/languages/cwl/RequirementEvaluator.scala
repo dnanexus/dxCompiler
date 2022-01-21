@@ -122,7 +122,7 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
   private def evaluateNumeric(value: CwlValue,
                               roundingMode: BigDecimal.RoundingMode.RoundingMode,
                               scale: Option[Long] = None): Long = {
-    (evaluator.evaluate(value, CwlNumericTypes, evaluatorContext)._2, scale) match {
+    (evaluator.evaluate(value, CwlNumericTypes, evaluatorContext, coerce = true)._2, scale) match {
       case (num: NumericValue, Some(d)) =>
         (num.decimalValue / d).setScale(0, roundingMode).toLongExact
       case (num: NumericValue, None) =>
