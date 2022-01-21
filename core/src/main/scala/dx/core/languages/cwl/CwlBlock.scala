@@ -27,7 +27,7 @@ import dx.cwl.{
 
 import scala.annotation.tailrec
 import scala.collection.immutable.SeqMap
-import scala.util.{Failure, Success, Try}
+import scala.util.{Success, Try}
 
 sealed trait CwlBlockInput {
   val name: DxName
@@ -221,14 +221,13 @@ case class CwlBlock(index: Int,
                       targetInput.cwlType
                     }
                   Try(CwlUtils.requiresDowncast(blockInputType, targetInputType)) match {
-                    case Success(true) => true
                     case Success(false) =>
                       requireDifferentNativeTypes(blockInputType, targetInputType)
-                    case Failure(cause) =>
-                      throw new Exception(
-                          s"block input ${blockInput} is not compatible with call input ${targetInput}",
-                          cause
-                      )
+                    case _ =>
+                      // this may fail due to the need to cast an optional step input to a
+                      // non-optional process input, in which case we need a fragment to perform
+                      // the type casting
+                      true
                   }
               }
             }
