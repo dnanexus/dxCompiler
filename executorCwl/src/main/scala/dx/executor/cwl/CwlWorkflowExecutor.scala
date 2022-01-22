@@ -85,11 +85,11 @@ object CwlWorkflowExecutor {
         parserResult.mainProcess match {
           case Some(wf: Workflow) => wf
           case _ =>
-            throw new Exception(s"expected CWL document to contain a Workflow named ${wfName}")
+            throw new Exception(s"expected CWL document to contain a workflow named ${wfName}")
         }
       case _ =>
         throw new Exception(
-            s"CWL document contains multiple Workflows with name ${wfName}"
+            s"CWL document contains multiple workflows with name ${wfName}"
         )
     }
     CwlWorkflowExecutor(workflow, jobMeta, separateOutputs)

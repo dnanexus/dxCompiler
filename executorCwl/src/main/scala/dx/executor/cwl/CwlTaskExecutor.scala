@@ -57,9 +57,11 @@ object CwlTaskExecutor {
           .toVector match {
           case Vector(tool) => tool
           case Vector() =>
-            throw new Exception(s"workflow does not contain a tool named ${toolName}")
+            throw new Exception(s"CWL document does not contain a tool named ${toolName}")
           case v =>
-            throw new Exception(s"more than one tool with name ${toolName}: ${v.mkString("\n")}")
+            throw new Exception(
+                s"CWL document contains more than one tool with name ${toolName}: ${v.mkString("\n")}"
+            )
         }
     }
     CwlTaskExecutor(tool, jobMeta, streamFiles, checkInstanceType)
