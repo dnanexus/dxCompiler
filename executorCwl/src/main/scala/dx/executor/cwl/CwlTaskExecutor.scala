@@ -46,10 +46,15 @@ object CwlTaskExecutor {
       case ParserResult(Some(tool: CommandLineTool), _, _, _) => tool
       case ParserResult(Some(expr: ExpressionTool), _, _, _)  => expr
       case ParserResult(_, doc: Document, _, _) =>
-        doc.values.toVector.collect {
-          case tool: CommandLineTool if tool.simpleName == toolName => tool
-          case expr: ExpressionTool if expr.simpleName == toolName  => expr
-        } match {
+        doc.values
+          .foldLeft(Set.empty[Process]) {
+            case (accu, tool: CommandLineTool) if tool.simpleName == toolName =>
+              accu + CwlUtils.simplifyProcess(tool)
+            case (accu, expr: ExpressionTool) if expr.simpleName == toolName =>
+              accu + CwlUtils.simplifyProcess(expr)
+            case (accu, _) => accu
+          }
+          .toVector match {
           case Vector(tool) => tool
           case Vector() =>
             throw new Exception(s"workflow does not contain a tool named ${toolName}")
@@ -137,9 +142,9 @@ case class CwlTaskExecutor(tool: Process,
           case Some(irValue) =>
             CwlUtils.fromIRValue(irValue, param.cwlType, name.decoded, isInput = true)
           case None if param.default.isDefined =>
-            val ctx = CwlUtils.createEvaluatorContext(runtime, env.map {
+            val ctx = CwlUtils.createEvaluatorContext(env = env.map {
               case (dxName, tv) => dxName.decoded -> tv
-            })
+            }, runtime = runtime)
             evaluator.evaluate(param.default.get, param.cwlType, ctx, coerce = true)
           case None if CwlOptional.isOptional(param.cwlType) =>
             (param.cwlType, NullValue)
@@ -192,7 +197,7 @@ case class CwlTaskExecutor(tool: Process,
     logger.traceLimited("calcInstanceType", minLevel = TraceLevel.VVerbose)
     val cwlEvaluator = Evaluator.create(requirements, hints)
     val cwlInputs = CwlUtils.fromIR(inputs, typeAliases, isInput = true)
-    val ctx = CwlUtils.createEvaluatorContext(runtime)
+    val ctx = CwlUtils.createEvaluatorContext(runtime = runtime)
     val env = cwlEvaluator.evaluateMap(cwlInputs.map {
       case (dxName, tv) => dxName.decoded -> tv
     }, ctx)

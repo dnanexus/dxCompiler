@@ -45,11 +45,11 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
   lazy val evaluator: Evaluator = Evaluator.create(requirements, hints)
   private lazy val runtime: Runtime = CwlUtils.createRuntime(workerPaths)
   private lazy val evaluatorContext: EvaluatorContext =
-    CwlUtils.createEvaluatorContext(runtime,
-                                    env,
+    CwlUtils.createEvaluatorContext(env = env,
                                     inputParameters = inputParameters,
                                     inputDir = workerPaths.getInputFilesDir().asJavaPath,
-                                    fileResolver = fileResolver)
+                                    fileResolver = fileResolver,
+                                    runtime = runtime)
 
   /**
     * Returns the last (i.e. highest priority) Requirement or Hint matching

@@ -214,7 +214,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       val inputParams = tool.inputs.collect {
         case i if i.id.isDefined => i.name -> i
       }.toMap
-      val inputCtx = CwlUtils.createEvaluatorContext(Runtime.empty)
+      val inputCtx = CwlUtils.createEvaluatorContext(runtime = Runtime.empty)
       // cwl applications always have a "target___" parameter
       val inputs = inputParams.values.map(i => translateInput(i, inputCtx)).toVector :+ TargetParam
       val defaults = inputParams.values.collect {
@@ -223,12 +223,11 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       // translate outputs and evaluate any static expressions
       val inputDir =
         tool.source.flatMap(src => Option(Paths.get(src).getParent)).getOrElse(Paths.get("."))
-      val outputCtx =
-        CwlUtils.createEvaluatorContext(Runtime.empty,
-                                        defaults,
-                                        inputParameters = inputParams,
-                                        inputDir = inputDir,
-                                        fileResolver = fileResolver)
+      val outputCtx = CwlUtils.createEvaluatorContext(env = defaults,
+                                                      inputParameters = inputParams,
+                                                      inputDir = inputDir,
+                                                      fileResolver = fileResolver,
+                                                      runtime = Runtime.empty)
       val outputs = tool.outputs.collect {
         case i if i.id.isDefined => translateOutput(i, outputCtx)
       }

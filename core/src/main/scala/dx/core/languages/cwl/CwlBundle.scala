@@ -100,10 +100,7 @@ object CwlBundle {
         wf.steps.foldLeft(tools, expressions, newWorkflows, newReqs, newHints) {
           case ((toolAccu, exprAccu, wfAccu, reqAccu, hintAccu), step) =>
             getProcesses(
-                step.run.copySimplifyIds(dropNamespace = true,
-                                         replacePrefix = (Left(true), None),
-                                         simplifyAutoNames = true,
-                                         dropCwlExtension = true),
+                CwlUtils.simplifyProcess(step.run),
                 toolAccu,
                 exprAccu,
                 wfAccu,
@@ -128,10 +125,7 @@ object CwlBundle {
     )
     // get a copy of the process with the ID simplified so that two processes that are identical
     // except for their ID namespace will compare as equal
-    process.copySimplifyIds(dropNamespace = true,
-                            replacePrefix = (Left(true), None),
-                            simplifyAutoNames = true,
-                            dropCwlExtension = true) match {
+    CwlUtils.simplifyProcess(process) match {
       case tool: CommandLineTool =>
         CwlBundle(version,
                   tool,

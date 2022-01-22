@@ -653,6 +653,13 @@ object CwlUtils {
     })
   }
 
+  def simplifyProcess(process: Process): Process = {
+    process.copySimplifyIds(dropNamespace = true,
+                            replacePrefix = (Left(true), None),
+                            simplifyAutoNames = true,
+                            dropCwlExtension = true)
+  }
+
   def createRuntime(workerPaths: DxWorkerPaths): Runtime = {
     Runtime.create(
         outdir = workerPaths.getOutputFilesDir(ensureExists = true).asJavaPath,
@@ -660,15 +667,27 @@ object CwlUtils {
     )
   }
 
-  def createEvaluatorContext(
-      runtime: Runtime,
-      env: Map[String, (CwlType, CwlValue)] = Map.empty,
-      self: CwlValue = NullValue,
-      inputParameters: Map[String, InputParameter] = Map.empty,
-      inputDir: Path = Paths.get("."),
-      fileResolver: FileSourceResolver = FileSourceResolver.get
-  ): EvaluatorContext = {
-    val values = env
+  def createEvaluatorContext(selfValue: CwlValue = NullValue,
+                             selfType: Option[CwlType] = None,
+                             selfParam: Option[Identifiable with Loadable] = None,
+                             env: Map[String, (CwlType, CwlValue)] = Map.empty,
+                             inputParameters: Map[String, InputParameter] = Map.empty,
+                             inputDir: Path = Paths.get("."),
+                             fileResolver: FileSourceResolver = FileSourceResolver.get,
+                             runtime: Runtime = Runtime.empty): EvaluatorContext = {
+    val selfFinal = selfParam
+      .map { param =>
+        val t = selfType.getOrElse {
+          param match {
+            case p: Parameter => p.cwlType
+            case _ =>
+              throw new Exception(s"cannot determine self type from paramemter ${param}")
+          }
+        }
+        EvaluatorContext.finalizeInputValue(selfValue, t, param, inputDir, fileResolver)
+      }
+      .getOrElse(selfValue)
+    val valuesFinal = env
       .map {
         case (key, (_, value)) if inputParameters.contains(key) =>
           val param = inputParameters(key)
@@ -677,6 +696,6 @@ object CwlUtils {
         case (key, (_, value)) => key -> value
       }
       .to(SeqMap)
-    EvaluatorContext(self, ObjectValue(values), runtime)
+    EvaluatorContext(selfFinal, ObjectValue(valuesFinal), runtime)
   }
 }
