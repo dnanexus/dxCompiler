@@ -1,0 +1,40 @@
+{
+    "id": "#main",
+    "class": "CommandLineTool",
+    "requirements": [
+        {
+            "class": "ShellCommandRequirement"
+        }
+    ],
+    "hints": [
+        {
+            "class": "DockerRequirement",
+            "dockerPull": "ubuntu:latest"
+        },
+        {
+            "class": "NetworkAccess",
+            "networkAccess": true
+        },
+        {
+            "class": "LoadListingRequirement",
+            "loadListing": "deep_listing"
+        }
+    ],
+    "inputs": [],
+    "arguments": [
+        {
+            "shellQuote": false,
+            "valueFrom": "mkdir work_dir && ln -s .. work_dir/link"
+        }
+    ],
+    "outputs": [
+        {
+            "type": "Directory",
+            "outputBinding": {
+                "glob": "work_dir"
+            },
+            "id": "#main/output_dir"
+        }
+    ],
+    "cwlVersion": "v1.2"
+}

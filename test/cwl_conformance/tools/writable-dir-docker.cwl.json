@@ -1,40 +1,40 @@
 {
-    "class": "CommandLineTool",
-    "requirements": [
+  "arguments": [
+    "touch",
+    "emptyWritableDir/blurg"
+  ],
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "hints": [
+    {
+      "class": "DockerRequirement",
+      "dockerPull": "alpine"
+    }
+  ],
+  "id": "#main",
+  "inputs": [],
+  "outputs": [
+    {
+      "id": "#main/out",
+      "outputBinding": {
+        "glob": "emptyWritableDir"
+      },
+      "type": "Directory"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
+    },
+    {
+      "class": "InitialWorkDirRequirement",
+      "listing": [
         {
-            "class": "InlineJavascriptRequirement"
-        },
-        {
-            "class": "InitialWorkDirRequirement",
-            "listing": [
-                {
-                    "entryname": "emptyWritableDir",
-                    "entry": "$({class: 'Directory', listing: []})",
-                    "writable": true
-                }
-            ]
+          "entry": "$({class: 'Directory', listing: []})",
+          "entryname": "emptyWritableDir",
+          "writable": true
         }
-    ],
-    "hints": [
-        {
-            "class": "DockerRequirement",
-            "dockerPull": "alpine"
-        }
-    ],
-    "inputs": [],
-    "outputs": [
-        {
-            "type": "Directory",
-            "outputBinding": {
-                "glob": "emptyWritableDir"
-            },
-            "id": "#main/out"
-        }
-    ],
-    "arguments": [
-        "touch",
-        "emptyWritableDir/blurg"
-    ],
-    "id": "#main",
-    "cwlVersion": "v1.2"
+      ]
+    }
+  ]
 }

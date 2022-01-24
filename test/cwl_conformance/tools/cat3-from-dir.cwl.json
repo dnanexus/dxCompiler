@@ -1,25 +1,25 @@
 {
-    "class": "CommandLineTool",
-    "inputs": [
-        {
-            "type": "Directory",
-            "inputBinding": {
-                "valueFrom": "$(self.listing[0].path)"
-            },
-            "id": "#main/dir1"
-        }
-    ],
-    "outputs": [
-        {
-            "type": "File",
-            "outputBinding": {
-                "glob": "output.txt"
-            },
-            "id": "#main/output_file"
-        }
-    ],
-    "baseCommand": "cat",
-    "stdout": "output.txt",
-    "id": "#main",
-    "cwlVersion": "v1.2"
+  "baseCommand": "cat",
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "id": "#main",
+  "inputs": [
+    {
+      "id": "#main/dir1",
+      "inputBinding": {
+        "valueFrom": "$(self.listing[0].path)"
+      },
+      "type": "Directory"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "#main/output_file",
+      "outputBinding": {
+        "glob": "output.txt"
+      },
+      "type": "File"
+    }
+  ],
+  "stdout": "output.txt"
 }

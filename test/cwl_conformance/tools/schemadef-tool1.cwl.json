@@ -1,46 +1,46 @@
 {
-    "class": "CommandLineTool",
-    "requirements": [
+  "baseCommand": "echo",
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "id": "#main",
+  "inputs": [
+    {
+      "id": "#main/hello",
+      "inputBinding": {
+        "valueFrom": "$(self.a)/$(self.b)"
+      },
+      "type": "#main/HelloType"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "#main/output",
+      "outputBinding": {
+        "glob": "output.txt"
+      },
+      "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "SchemaDefRequirement",
+      "types": [
         {
-            "class": "SchemaDefRequirement",
-            "types": [
-                {
-                    "name": "#main/HelloType",
-                    "type": "record",
-                    "fields": [
-                        {
-                            "name": "#main/HelloType/a",
-                            "type": "string"
-                        },
-                        {
-                            "name": "#main/HelloType/b",
-                            "type": "string"
-                        }
-                    ]
-                }
-            ]
-        }
-    ],
-    "inputs": [
-        {
-            "id": "#main/hello",
-            "type": "#main/HelloType",
-            "inputBinding": {
-                "valueFrom": "$(self.a)/$(self.b)"
+          "fields": [
+            {
+              "name": "#main/HelloType/a",
+              "type": "string"
+            },
+            {
+              "name": "#main/HelloType/b",
+              "type": "string"
             }
+          ],
+          "name": "#main/HelloType",
+          "type": "record"
         }
-    ],
-    "outputs": [
-        {
-            "id": "#main/output",
-            "type": "File",
-            "outputBinding": {
-                "glob": "output.txt"
-            }
-        }
-    ],
-    "stdout": "output.txt",
-    "baseCommand": "echo",
-    "id": "#main",
-    "cwlVersion": "v1.2"
+      ]
+    }
+  ],
+  "stdout": "output.txt"
 }

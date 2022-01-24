@@ -1,0 +1,9 @@
+reference_panel_normcov_beds_tarball:  # type "File"
+    class: File
+    path: a/file/path
+reference_panel_config_file:  # type "File"
+    class: File
+    path: a/file/path
+clamms_windows_bed_file:  # type "File"
+    class: File
+    path: a/file/path

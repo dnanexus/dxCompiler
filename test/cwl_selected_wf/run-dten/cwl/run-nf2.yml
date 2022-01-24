@@ -1,0 +1,29 @@
+conditions:
+  - Brigatinib
+  - Dasatinib
+  - Simvastatin
+  - CUDC-907
+  - Panobinostat
+  - GSK2126458
+  - MK2206
+  - INK128
+query-list:
+  - SELECT zScore as "counts", Symbol as gene, specimenID as "sample", experimentalCondition as "conditions" FROM syn20449214 WHERE ( ( "studyName" = 'Synodos NF2' ) ) and individualID in ('HS01','HS11','Syn1','Syn5','Syn6') and experimentalCondition in ('DMSO', 'Brigatinib')
+  - SELECT zScore as "counts", Symbol as gene, specimenID as "sample", experimentalCondition as "conditions" FROM syn20449214 WHERE ( ( "studyName" = 'Synodos NF2' ) ) and individualID in ('HS01','HS11','Syn1','Syn5','Syn6') and experimentalCondition in ('DMSO', 'Dasatinib')
+  - SELECT zScore as "counts", Symbol as gene, specimenID as "sample", experimentalCondition as "conditions" FROM syn20449214 WHERE ( ( "studyName" = 'Synodos NF2' ) ) and individualID in ('HS01','HS11','Syn1','Syn5','Syn6') and experimentalCondition in ('DMSO', 'Simvastatin')
+  - SELECT zScore as "counts", Symbol as gene, specimenID as "sample", experimentalCondition as "conditions" FROM syn20449214 WHERE ( ( "studyName" = 'Synodos NF2' ) ) and individualID in ('HS01','HS11','Syn1','Syn5','Syn6') and experimentalCondition in ('DMSO', '100 nM CUDC-907')
+  - SELECT zScore as "counts", Symbol as gene, specimenID as "sample", experimentalCondition as "conditions" FROM syn20449214 WHERE ( ( "studyName" = 'Synodos NF2' ) ) and individualID in ('HS01','HS11','Syn1','Syn5','Syn6') and experimentalCondition in ('DMSO', '100 nM Panobinostat')
+  - SELECT zScore as "counts", Symbol as gene, specimenID as "sample", experimentalCondition as "conditions" FROM syn20449214 WHERE ( ( "studyName" = 'Synodos NF2' ) ) and individualID in ('HS01','HS11','Syn1','Syn5','Syn6') and experimentalCondition in ('DMSO', '100 nM GSK2126458')
+  - SELECT zScore as "counts", Symbol as gene, specimenID as "sample", experimentalCondition as "conditions" FROM syn20449214 WHERE ( ( "studyName" = 'Synodos NF2' ) ) and individualID in ('HS01','HS11','Syn1','Syn5','Syn6') and experimentalCondition in ('DMSO', 'MK2206')
+  - SELECT zScore as "counts", Symbol as gene, specimenID as "sample", experimentalCondition as "conditions" FROM syn20449214 WHERE ( ( "studyName" = 'Synodos NF2' ) ) and individualID in ('HS01','HS11','Syn1','Syn5','Syn6') and experimentalCondition in ('DMSO', 'INK128')
+synapse-config:
+  class: File
+  path: /Users/sgosline/.synapseConfig
+gene-id-type: hugo
+beta-params: [1,2,5,10,20,30]
+mu-params: [0.1,0.01,0.001,0.0001,10e-5]
+w-params: [1,10,100,0.1,0.01]
+output-parent-id: syn20734744
+output-project-id: syn16941818
+name: NF2 Drug Treatment Networks
+metaviper-store-id: syn18459908

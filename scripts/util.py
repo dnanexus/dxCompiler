@@ -24,6 +24,10 @@ max_num_retries = 5
 # - asset name = "dx{}rt".format(lang.upper())
 languages = ["Wdl", "Cwl"]
 
+DEFAULT_INSTANCE_TYPE = "mem1_ssd1_v2_x4"
+GIT_REVISION = subprocess.check_output(
+    ["git", "describe", "--always", "--dirty", "--tags"]
+).strip()
 
 def info(msg, ex=None):
     print(msg, file=sys.stderr)
@@ -401,3 +405,126 @@ def build(project, folder, version_id, top_dir, path_dict, dependencies=None, fo
     )
 
     return asset_descs
+
+# Read a JSON file
+def read_json_file(path):
+    with open(path, "r") as fd:
+        data = fd.read()
+        d = json.loads(data)
+        return d
+
+# Verify a JSON file
+def verify_json_file(path):
+    try:
+        read_json_file(path)
+    except:
+        raise RuntimeError("Error verifying JSON file {}".format(path))
+
+# Build an executable
+# 
+# return            Id of the compiled executable
+#
+# source_file       Workflow source file
+# project           Destination project on platform
+# folder            Destination folder on platform
+# top_dir           Local folder containing dxCompiler.jar
+# version_id        dxCompiler version
+# compiler_flags    Additional dxCompiler flags
+def build_executable(source_file, project, folder, top_dir, version_id, compiler_flags=[]):
+    cmdline = [
+        "java",
+        "-jar",
+        os.path.join(top_dir, "dxCompiler-{}.jar".format(version_id)),
+        "compile",
+        source_file,
+        "-force",
+        "-folder",
+        folder,
+        "-project",
+        project.get_id()
+    ]
+    cmdline += compiler_flags
+    try:
+        print(" ".join(cmdline))
+        oid = subprocess.check_output(cmdline).strip()
+    except subprocess.CalledProcessError as cpe:
+        print("Error compiling {}\nstdout: {}\nstderr: {}".format(source_file, cpe.stdout, cpe.stderr))
+        raise
+    return oid.decode("ascii")
+
+# Run an executable on 0-many inputs.
+# 
+# return                        List of tuples (input #, analysis or job id)
+# 
+# oid                           Id of executable to run
+# project                       Destination project on platform
+# test_folder                   Destination folder on platform
+# test_inputs                   Inputs for running, if non-default
+# debug_flag                    Keep jobs open for debugging?
+# delay_workspace_destruction   Delay workspace destruction?
+# instance_type                 Instance type, if non-default
+def run_executable(
+    oid,
+    project,
+    test_folder,
+    test_name,
+    test_inputs=[],
+    debug_flag=False,
+    delay_workspace_destruction=False,
+    instance_type=DEFAULT_INSTANCE_TYPE
+):
+    def once(i):
+        try:
+            if len(test_inputs) == 0 or i < 0:
+                print("Running with empty input")
+                inputs = {}
+            else:
+                print("Running with input file: {}".format(test_inputs[i]))
+                inputs = read_json_file(test_inputs[i])
+            project.new_folder(test_folder, parents=True)
+            if "workflow-" in oid:
+                exec_obj = dxpy.DXWorkflow(project=project.get_id(), dxid=oid)
+                run_kwargs = {"ignore_reuse_stages": ["*"]}
+            elif "applet-" in oid:
+                exec_obj = dxpy.DXApplet(project=project.get_id(), dxid=oid)
+                run_kwargs = {"ignore_reuse": True}
+            else:
+                raise RuntimeError("Unable to determine executable kind for {}".format(oid))
+
+            if debug_flag:
+                run_kwargs["debug"] = {
+                    "debugOn": ["AppError", "AppInternalError", "ExecutionError"]
+                }
+                run_kwargs["allow_ssh"] = ["*"]
+
+            if delay_workspace_destruction:
+                run_kwargs["delay_workspace_destruction"] = True
+            if instance_type:
+                run_kwargs["instance_type"] = instance_type
+
+            return exec_obj.run(
+                inputs,
+                project=project.get_id(),
+                folder=test_folder,
+                name="{} {}".format(test_name, GIT_REVISION),
+                **run_kwargs,
+            )
+        except Exception as e:
+            print("Exception message {}".format(e))
+            return None
+
+    def run(i):
+        for _ in range(1, 5):
+            retval = once(i)
+            if retval is not None:
+                return retval
+            print("Sleeping for 5 seconds before trying again")
+            time.sleep(5)
+        else:
+            raise RuntimeError("Error running workflow {}".format(oid))
+
+    n = len(test_inputs)
+    if n == 0:
+        return [(0, run(-1))]
+    else:
+        return [(i, run(i)) for i in range(n)]

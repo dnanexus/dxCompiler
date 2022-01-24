@@ -1,0 +1,3 @@
+INPUT:
+  - class: File
+    path: "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/cwl_docker_size_input.txt"

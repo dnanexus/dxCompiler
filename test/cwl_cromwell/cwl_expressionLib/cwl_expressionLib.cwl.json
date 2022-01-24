@@ -1,0 +1,42 @@
+{
+    "class": "CommandLineTool",
+    "requirements": [
+        {
+            "expressionLib": [
+                "function foo() { return 2; }"
+            ],
+            "class": "InlineJavascriptRequirement"
+        }
+    ],
+    "hints": [
+        {
+            "dockerPull": "ubuntu:latest",
+            "class": "DockerRequirement"
+        },
+        {
+            "loadListing": "deep_listing",
+            "class": "LoadListingRequirement"
+        },
+        {
+            "networkAccess": true,
+            "class": "NetworkAccess"
+        }
+    ],
+    "inputs": [],
+    "arguments": [
+        "echo",
+        "$(foo())"
+    ],
+    "stdout": "whatever.txt",
+    "id": "#main",
+    "outputs": [
+        {
+            "type": "File",
+            "id": "#main/out",
+            "outputBinding": {
+                "glob": "whatever.txt"
+            }
+        }
+    ],
+    "cwlVersion": "v1.2"
+}

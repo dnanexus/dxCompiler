@@ -1,35 +1,35 @@
 {
-    "class": "CommandLineTool",
-    "baseCommand": [
-        "cat",
-        "example.conf"
-    ],
-    "requirements": [
+  "baseCommand": [
+    "cat",
+    "example.conf"
+  ],
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "id": "#main",
+  "inputs": [
+    {
+      "id": "#main/message",
+      "type": "string"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "#main/out",
+      "outputBinding": {
+        "glob": "example.conf"
+      },
+      "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InitialWorkDirRequirement",
+      "listing": [
         {
-            "listing": [
-                {
-                    "entryname": "example.conf",
-                    "entry": "CONFIGVAR=$(inputs.message)\n"
-                }
-            ],
-            "class": "InitialWorkDirRequirement"
+          "entry": "CONFIGVAR=$(inputs.message)\n",
+          "entryname": "example.conf"
         }
-    ],
-    "inputs": [
-        {
-            "type": "string",
-            "id": "#main/message"
-        }
-    ],
-    "outputs": [
-        {
-            "type": "File",
-            "outputBinding": {
-                "glob": "example.conf"
-            },
-            "id": "#main/out"
-        }
-    ],
-    "id": "#main",
-    "cwlVersion": "v1.2"
+      ]
+    }
+  ]
 }

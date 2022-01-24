@@ -1,32 +1,32 @@
 {
-    "class": "CommandLineTool",
-    "requirements": [
+  "arguments": [
+    {
+      "shellQuote": false,
+      "valueFrom": "test \"$(inputs.file1.path)\" = \"$(runtime.outdir)/bob.txt\"\n"
+    }
+  ],
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "id": "#main",
+  "inputs": [
+    {
+      "id": "#main/file1",
+      "type": "File"
+    }
+  ],
+  "outputs": [],
+  "requirements": [
+    {
+      "class": "InitialWorkDirRequirement",
+      "listing": [
         {
-            "listing": [
-                {
-                    "entry": "$(inputs.file1)",
-                    "entryname": "bob.txt"
-                }
-            ],
-            "class": "InitialWorkDirRequirement"
-        },
-        {
-            "class": "ShellCommandRequirement"
+          "entry": "$(inputs.file1)",
+          "entryname": "bob.txt"
         }
-    ],
-    "inputs": [
-        {
-            "type": "File",
-            "id": "#main/file1"
-        }
-    ],
-    "outputs": [],
-    "arguments": [
-        {
-            "shellQuote": false,
-            "valueFrom": "test \"$(inputs.file1.path)\" = \"$(runtime.outdir)/bob.txt\"\n"
-        }
-    ],
-    "id": "#main",
-    "cwlVersion": "v1.2"
+      ]
+    },
+    {
+      "class": "ShellCommandRequirement"
+    }
+  ]
 }

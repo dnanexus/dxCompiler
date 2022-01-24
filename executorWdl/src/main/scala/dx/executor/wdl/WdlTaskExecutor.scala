@@ -114,10 +114,24 @@ case class WdlTaskExecutor(task: TAT.Task,
   }
 
   override protected def getInputVariables: Map[DxName, (Type, Value)] = {
-    // evaluate the private variables using the inputs
+    // TODO: there is an edge case here that we currently don't handle - if a File is converted to
+    //  a String in the expression of an input or private variable, the value will be the remote
+    //  path rather than the local one as might be expected. For example, the following task will
+    //  output a list of remote paths:
+    //  task foo {
+    //    input {
+    //      File file1
+    //      File file2
+    //      File file_names = write_lines(["${file1}", "${file2}"])
+    //    }
+    //    command <<<
+    //    cat ~{file_names}
+    //    >>>
+    // }
     val init: Bindings[String, V] = WdlValueBindings(wdlInputs.map {
       case (dxName, v) => dxName.decoded -> v
     })
+    // evaluate the private variables using the inputs
     val wdlInputVariables: Map[DxName, (T, V)] = task.privateVariables
       .foldLeft(init) {
         case (env, TAT.PrivateVariable(name, wdlType, expr)) =>

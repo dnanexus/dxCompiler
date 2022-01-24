@@ -1,75 +1,75 @@
 {
-    "class": "Workflow",
-    "requirements": [
+  "class": "Workflow",
+  "cwlVersion": "v1.2",
+  "id": "#main",
+  "inputs": [
+    {
+      "id": "#main/a",
+      "type": "int"
+    },
+    {
+      "id": "#main/b",
+      "type": "int"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "#main/val",
+      "outputSource": "#main/step1/echo_out",
+      "type": "string"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "StepInputExpressionRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
+    },
+    {
+      "class": "MultipleInputFeatureRequirement"
+    }
+  ],
+  "steps": [
+    {
+      "id": "#main/step1",
+      "in": [
         {
-            "class": "StepInputExpressionRequirement"
-        },
-        {
-            "class": "InlineJavascriptRequirement"
-        },
-        {
-            "class": "MultipleInputFeatureRequirement"
+          "id": "#main/step1/c",
+          "source": [
+            "#main/a",
+            "#main/b"
+          ],
+          "valueFrom": "$(self[0] + self[1])"
         }
-    ],
-    "inputs": [
-        {
-            "type": "int",
-            "id": "#main/a"
-        },
-        {
-            "type": "int",
-            "id": "#main/b"
-        }
-    ],
-    "outputs": [
-        {
-            "type": "string",
-            "outputSource": "#main/step1/echo_out",
-            "id": "#main/val"
-        }
-    ],
-    "steps": [
-        {
-            "run": {
-                "id": "#main/step1/run/echo",
-                "class": "CommandLineTool",
-                "inputs": [
-                    {
-                        "type": "int",
-                        "inputBinding": {},
-                        "id": "#main/step1/run/echo/c"
-                    }
-                ],
-                "outputs": [
-                    {
-                        "type": "string",
-                        "outputBinding": {
-                            "glob": "step1_out",
-                            "loadContents": true,
-                            "outputEval": "$(self[0].contents)"
-                        },
-                        "id": "#main/step1/run/echo/echo_out"
-                    }
-                ],
-                "baseCommand": "echo",
-                "stdout": "step1_out"
+      ],
+      "out": [
+        "#main/step1/echo_out"
+      ],
+      "run": {
+        "baseCommand": "echo",
+        "class": "CommandLineTool",
+        "id": "#main/step1/run/echo",
+        "inputs": [
+          {
+            "id": "#main/step1/run/echo/c",
+            "inputBinding": {},
+            "type": "int"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "#main/step1/run/echo/echo_out",
+            "outputBinding": {
+              "glob": "step1_out",
+              "loadContents": true,
+              "outputEval": "$(self[0].contents)"
             },
-            "in": [
-                {
-                    "source": [
-                        "#main/a",
-                        "#main/b"
-                    ],
-                    "valueFrom": "$(self[0] + self[1])",
-                    "id": "#main/step1/c"
-                }
-            ],
-            "out": [
-                "#main/step1/echo_out"
-            ],
-            "id": "#main/step1"
-        }
-    ],
-    "id": "#main",
-    "cwlVersion": "v1.2"
+            "type": "string"
+          }
+        ],
+        "stdout": "step1_out"
+      }
+    }
+  ]
 }

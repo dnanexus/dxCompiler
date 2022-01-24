@@ -1,85 +1,85 @@
 {
-    "requirements": [
+  "arguments": [
+    {
+      "position": 1,
+      "shellQuote": false,
+      "valueFrom": "${ var fai_list = \"\"; for (var i = 0; i < inputs.fasta_path.length; i ++) { fai_list += \" cat \" + inputs.fasta_path[i].path +\".fai\" + \" >> fai.list && \" } return fai_list.slice(0,-3) }"
+    }
+  ],
+  "baseCommand": [],
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "id": "#main",
+  "inputs": [
+    {
+      "id": "#main/fasta_path",
+      "secondaryFiles": [
         {
-            "class": "DockerRequirement",
-            "dockerPull": "debian:stretch-slim"
+          "pattern": ".fai",
+          "required": true
         },
         {
-            "class": "InlineJavascriptRequirement"
+          "pattern": ".crai",
+          "required": false
         },
         {
-            "class": "ShellCommandRequirement"
-        }
-    ],
-    "class": "CommandLineTool",
-    "inputs": [
-        {
-            "type": {
-                "type": "array",
-                "items": "File"
-            },
-            "secondaryFiles": [
-                {
-                    "pattern": ".fai",
-                    "required": true
-                },
-                {
-                    "pattern": ".crai",
-                    "required": false
-                },
-                {
-                    "pattern": ".bai",
-                    "required": false
-                },
-                {
-                    "pattern": "${ if (inputs.require_dat) {return '.dat'} else {return null} }",
-                    "required": null
-                },
-                {
-                    "pattern": "${ return null; }",
-                    "required": null
-                },
-                {
-                    "pattern": ".dat2",
-                    "required": "$(inputs.require_dat)"
-                }
-            ],
-            "id": "#main/fasta_path"
+          "pattern": ".bai",
+          "required": false
         },
         {
-            "type": [
-                "null",
-                "boolean"
-            ],
-            "id": "#main/require_dat"
-        }
-    ],
-    "outputs": [
+          "pattern": "${ if (inputs.require_dat) {return '.dat'} else {return null} }",
+          "required": null
+        },
         {
-            "type": "File",
-            "outputBinding": {
-                "glob": "fai.list"
-            },
-            "secondaryFiles": [
-                {
-                    "pattern": ".bai",
-                    "required": false
-                },
-                {
-                    "pattern": "${ return null }"
-                }
-            ],
-            "id": "#main/bai_list"
-        }
-    ],
-    "arguments": [
+          "pattern": "${ return null; }",
+          "required": null
+        },
         {
-            "valueFrom": "${ var fai_list = \"\"; for (var i = 0; i < inputs.fasta_path.length; i ++) { fai_list += \" cat \" + inputs.fasta_path[i].path +\".fai\" + \" >> fai.list && \" } return fai_list.slice(0,-3) }",
-            "position": 1,
-            "shellQuote": false
+          "pattern": ".dat2",
+          "required": "$(inputs.require_dat)"
         }
-    ],
-    "baseCommand": [],
-    "id": "#main",
-    "cwlVersion": "v1.2"
+      ],
+      "type": {
+        "items": "File",
+        "type": "array"
+      }
+    },
+    {
+      "id": "#main/require_dat",
+      "type": [
+        "null",
+        "boolean"
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "id": "#main/bai_list",
+      "outputBinding": {
+        "glob": "fai.list"
+      },
+      "secondaryFiles": [
+        {
+          "pattern": ".bai",
+          "required": false
+        },
+        {
+          "pattern": "${ return null }"
+        }
+      ],
+      "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "DockerRequirement",
+      "dockerPull": "debian:stretch-slim"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
+    },
+    {
+      "class": "ShellCommandRequirement"
+    }
+  ]
 }

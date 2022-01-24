@@ -1,0 +1,32 @@
+# gVCF joint variant calling workflow for bcbio testing
+---
+details:
+ - algorithm:
+     aligner: bwa
+     recalibrate: true
+     variantcaller: gatk-haplotype
+     tools_on: [gatk4, gvcf]
+     tools_off: [gemini]
+     validate: reference_material/7_100326_FC6107FAAXX-grade.vcf
+     validate_regions: automated/variant_regions-bam.bed
+     variant_regions: variant_regions-bam.bed
+     coverage: automated/coverage_transcripts-bam.bed
+   metadata:
+     batch: b1
+   analysis: variant2
+   description: Test1
+   genome_build: hg19
+   files: 100326_FC6107FAAXX/7_100326_FC6107FAAXX.bam
+ - algorithm:
+     aligner: bwa
+     recalibrate: true
+     variantcaller: gatk-haplotype
+     tools_on: [gatk4, gvcf]
+     tools_off: [gemini]
+     variant_regions: automated/variant_regions-bam.bed
+   metadata:
+     batch: b1
+   analysis: variant2
+   description: Test2
+   genome_build: hg19
+   files: 100326_FC6107FAAXX/6_100326_FC6107FAAXX.bam
