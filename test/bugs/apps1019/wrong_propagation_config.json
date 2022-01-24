@@ -1,0 +1,4 @@
+{
+  "wdlEntryPoint" : "nested_outer",
+  "dxCompilerOptions": "-archive -verbose -projectWideReuse -execTree json"
+}
