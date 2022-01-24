@@ -33,7 +33,7 @@
       "type": {
         "items": {
           "items": {
-            "items": "string",
+            "items": ["null","string"],
             "type": "array"
           },
           "type": "array"

@@ -17,7 +17,7 @@
     {
       "id": "out1",
       "outputSource": "step1/out1",
-      "type": "string"
+      "type": "string?"
     }
   ],
   "requirements": [
