@@ -1681,6 +1681,16 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     }
   }
 
+  it should "translate a CWL $graph workflow with multiple top-level processes" in {
+    val path = pathFromBasename("cwl", "js-expr-req-wf.cwl.json")
+    val args = path.toString :: cFlags
+    Main.compile(args.toVector) match {
+      case SuccessfulCompileIR(bundle) => bundle
+      case other =>
+        throw new Exception(s"expected success not ${other}")
+    }
+  }
+
   it should "translate a CWL workflow with nested workflow" in {
     val path = pathFromBasename("cwl", "count-lines18-wf.cwl.json")
     val args = path.toString :: cFlags

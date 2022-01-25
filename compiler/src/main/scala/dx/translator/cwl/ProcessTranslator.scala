@@ -447,7 +447,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
     }
 
     private def translateCall(call: WorkflowStep, env: CallEnv, locked: Boolean): Stage = {
-      val calleeName = call.run.simpleName
+      val calleeName = call.run.name
       val callee: Callable = availableDependencies.getOrElse(
           calleeName,
           throw new Exception(
@@ -461,7 +461,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         CwlDxName.fromSourceName(param.name) -> param
       }.toMap
       val inputs: Vector[StageInput] = callee.inputVars.map {
-        case param if param == TargetParam => StageInputStatic(Value.VString(call.name))
+        case param if param == TargetParam =>
+          StageInputStatic(Value.VString(CwlUtils.formatTarget(call.id.get)))
         case param =>
           callInputToStageInput(callInputParams.get(param.name), param, env, locked, call.name)
       }

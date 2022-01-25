@@ -509,7 +509,8 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
       // add the target step for app(let) calls
       val targetCallInput = executableLink.dxExec match {
         case _: DxWorkflow => Map.empty
-        case _             => Map(Target -> (TargetParam.dxType, VString(block.target.name)))
+        case _ =>
+          Map(Target -> (TargetParam.dxType, VString(CwlUtils.formatTarget(block.target.id.get))))
       }
       val callInputsIR = CwlUtils.toIR(callInputs) ++ targetCallInput
       val requirementEvaluator = RequirementEvaluator(

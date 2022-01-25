@@ -4,6 +4,8 @@ import dx.api.DxWorkflowStage
 import dx.core.ir.RunSpec.{ContainerImage, InstanceType}
 import dx.util.Enum
 
+import scala.util.matching.Regex
+
 trait ParameterAttribute
 
 /**
@@ -37,6 +39,14 @@ trait Callable {
   def tags: Set[String]
   def properties: Map[String, String]
   def staticFileDependencies: Set[String]
+
+  lazy val dxName: String = {
+    Callable.dxNameRegex.replaceAllIn(name, "_")
+  }
+}
+
+object Callable {
+  val dxNameRegex: Regex = "[^a-zA-Z0-9._-]".r
 }
 
 /**

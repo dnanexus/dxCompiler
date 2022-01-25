@@ -703,11 +703,21 @@ object CwlUtils {
     })
   }
 
+  def formatTarget(id: Identifier): String = {
+    val dxName = CwlDxName.fromDecodedName(id.frag)
+    if (dxName.numParts == 1) {
+      id.name
+    } else {
+      val (process, step) = dxName.popDecodedNamespace()
+      s"${process}#${step.toString}"
+    }
+  }
+
   def simplifyProcess(process: Process): Process = {
     process.copySimplifyIds(dropNamespace = true,
                             replacePrefix = (Left(true), None),
-                            simplifyAutoNames = true,
-                            dropCwlExtension = true)
+                            simplifyAutoNames = false,
+                            dropCwlExtension = false)
   }
 
   def createRuntime(workerPaths: DxWorkerPaths): Runtime = {

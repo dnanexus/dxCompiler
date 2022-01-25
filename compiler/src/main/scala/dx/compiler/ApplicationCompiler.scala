@@ -641,7 +641,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         fileDependenciesDetails
     // build the API request
     val requestRequired = Map(
-        "name" -> JsString(applet.name),
+        "name" -> JsString(applet.dxName),
         "inputSpec" -> JsArray(inputSpec),
         "outputSpec" -> JsArray(outputSpec),
         "runSpec" -> runSpec,
