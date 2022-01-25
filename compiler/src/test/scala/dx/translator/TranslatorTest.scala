@@ -1778,6 +1778,21 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
+  it should "translate a CWL workflow with a multi-type default value" in {
+    val path = pathFromBasename("cwl", "io-union-input-default-wf.cwl.json")
+    val args = path.toString :: cFlags
+    val bundle = Main.compile(args.toVector) match {
+      case SuccessfulCompileIR(bundle) => bundle
+      case other                       => throw new Exception(s"expected success not ${other}")
+    }
+    val wf = bundle.primaryCallable match {
+      case Some(wf: Workflow) => wf
+      case other              => throw new Exception(s"expected workflow not ${other}")
+    }
+    wf.inputs.size shouldBe 1
+    wf.inputs.head._1.defaultValue shouldBe Some(VString("the default value"))
+  }
+
   it should "translate a CWL workflow with a step input source and default value" in {
     val path = pathFromBasename("cwl", "dynresreq-workflow-stepdefault.cwl.json")
     val args = path.toString :: cFlags

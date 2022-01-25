@@ -43,6 +43,10 @@ import dx.core.languages.cwl.{
 import dx.cwl.{
   CommandLineTool,
   CommandOutputParameter,
+  CwlDirectory,
+  CwlFile,
+  CwlMulti,
+  CwlOptional,
   CwlType,
   CwlValue,
   DirectoryValue,
@@ -52,11 +56,13 @@ import dx.cwl.{
   FileValue,
   Hint,
   InputParameter,
+  LoadListing,
   OutputParameter,
   PathValue,
   Process,
   Requirement,
   Runtime,
+  StringValue,
   WorkflowInputParameter,
   WorkflowOutputParameter,
   WorkflowStep,
@@ -128,6 +134,55 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
     metaAttrs ++ hintAttrs
   }
 
+  private def evaluateDefault(
+      default: CwlValue,
+      cwlType: CwlType,
+      evaluator: Evaluator,
+      evaluatorContext: EvaluatorContext = EvaluatorContext.empty
+  ): Option[Value] = {
+    // We need to deal with the case where a default value is a string and it's type is File or
+    // Directory (or a multi-type that contains File/Directory). Only remote files can be specified
+    // as default values. If the string represents a remote file, then it's treated as a file,
+    // otherwise its coerced to a different type if possible (in the multi-type case), otherwise None.
+    val result =
+      try {
+        evaluator.evaluate(default, cwlType, evaluatorContext) match {
+          case (CwlMulti(types), s: StringValue)
+              if types.map(CwlOptional.unwrapOptional).contains(CwlFile) =>
+            if (s.value.startsWith(DxPath.DxUriPrefix)) {
+              Some(s.coerceTo(CwlFile))
+            } else if (types.size > 1) {
+              Some(
+                  s.coerceTo(CwlMulti(types.filter(t => CwlOptional.unwrapOptional(t) != CwlFile)))
+              )
+            } else {
+              None
+            }
+          case (CwlMulti(types), s: StringValue)
+              if types.map(CwlOptional.unwrapOptional).contains(CwlDirectory) =>
+            if (s.value.startsWith(DxPath.DxUriPrefix)) {
+              Some(s.coerceTo(CwlDirectory))
+            } else if (types.size > 1) {
+              Some(
+                  s.coerceTo(
+                      CwlMulti(types.filter(t => CwlOptional.unwrapOptional(t) != CwlDirectory))
+                  )
+              )
+            } else {
+              None
+            }
+          case (_, file: FileValue) if !CwlUtils.isDxPath(file)    => None
+          case (_, dir: DirectoryValue) if !CwlUtils.isDxPath(dir) => None
+          case (t, v)                                              => Some(v.coerceTo(t))
+        }
+      } catch {
+        case _: Throwable => None
+      }
+    result.map {
+      case (actualType, defaultValue) => CwlUtils.toIRValue(defaultValue, actualType)._2
+    }
+  }
+
   private case class CwlToolTranslator(
       tool: Process,
       isPrimary: Boolean,
@@ -155,26 +210,9 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
     }
 
     def translateInput(input: InputParameter, evaluatorContext: EvaluatorContext): Parameter = {
-      val irDefaultValue = input.default match {
-        case Some(default) =>
-          try {
-            val (actualType, defaultValue) =
-              requirementEvaluator.evaluator
-                .evaluate(default, input.cwlType, evaluatorContext, coerce = true)
-            defaultValue match {
-              case file: FileValue if !CwlUtils.isDxFile(file) =>
-                // cannot specify a local file as default - the default will
-                // be resolved at runtime
-                None
-              case _ =>
-                val (_, value) = CwlUtils.toIRValue(defaultValue, actualType)
-                Some(value)
-            }
-          } catch {
-            case _: Throwable => None
-          }
-        case None => None
-      }
+      val irDefaultValue = input.default.flatMap(
+          evaluateDefault(_, input.cwlType, requirementEvaluator.evaluator, evaluatorContext)
+      )
       val dxName = CwlDxName.fromSourceName(input.name)
       val attrs = translateParameterAttributes(input, hintParameterAttrs)
       Parameter(dxName, CwlUtils.toIRType(input.cwlType), irDefaultValue, attrs)
@@ -345,17 +383,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       val dxName = CwlDxName.fromSourceName(input.name)
       val cwlType = input.cwlType
       val irType = CwlUtils.toIRType(cwlType)
-      val default = input.default
-        .flatMap { d =>
-          try {
-            val (_, staticValue) =
-              evaluator.evaluate(d, cwlType, EvaluatorContext.empty, coerce = true)
-            Some(staticValue)
-          } catch {
-            case _: Throwable => None
-          }
-        }
-      Parameter(dxName, irType, default.map(CwlUtils.toIRValue(_, cwlType)._2), Vector.empty)
+      val default = input.default.flatMap(evaluateDefault(_, cwlType, evaluator))
+      Parameter(dxName, irType, default, Vector.empty)
     }
 
     private def callInputToStageInput(callInput: Option[WorkflowStepInput],
@@ -713,7 +742,9 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
     ): (Workflow, Vector[Callable], Vector[(Parameter, StageInput)]) = {
       val wfInputParams = inputs.map(createWorkflowInput)
       val wfInputLinks: Vector[LinkedVar] = wfInputParams.map(p => (p, StageInputWorkflowLink(p)))
-      val (backboneInputs, commonStageInfo) = if (useManifests) {
+      val loadAnyInputs =
+        inputs.iterator.exists(i => i.loadContents || i.loadListing != LoadListing.No)
+      val (backboneInputs, commonStageInfo) = if (useManifests || loadAnyInputs) {
         // If we are using manifests, we need an initial applet to merge multiple
         // manifests into a single manifest.
         val commonStageInputs = wfInputParams.map(p => StageInputWorkflowLink(p))
@@ -843,9 +874,9 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         outputs: Vector[WorkflowOutputParameter],
         subBlocks: Vector[CwlBlock]
     ): (Workflow, Vector[Callable], Vector[LinkedVar]) = {
-      // Create a special applet+stage for the inputs. This is a substitute for
-      // workflow inputs. We now call the workflow inputs, "fauxWfInputs" since
-      // they are references to the outputs of this first applet.
+      // Create a special applet+stage for the inputs. This is a substitute for workflow inputs. We
+      // now call the workflow inputs, "fauxWfInputs" since they are references to the outputs of
+      // this first applet.
       val commonAppletInputs: Vector[Parameter] =
         inputs.map(input => createWorkflowInput(input))
       val commonStageInputs: Vector[StageInput] = inputs.map(_ => StageInputEmpty)

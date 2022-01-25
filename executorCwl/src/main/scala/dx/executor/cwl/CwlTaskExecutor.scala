@@ -142,7 +142,11 @@ case class CwlTaskExecutor(tool: Process,
       case (env, (name, param)) =>
         val (cwlType: CwlType, cwlValue: CwlValue) = irInputs.get(name) match {
           case Some(irValue) =>
-            CwlUtils.fromIRValue(irValue, param.cwlType, name.decoded, isInput = true)
+            CwlUtils.fromIRValueWithType(irValue,
+                                         param.cwlType,
+                                         name.decoded,
+                                         isInput = true,
+                                         fileResolver = jobMeta.fileResolver)
           case None if param.default.isDefined =>
             val ctx = CwlUtils.createEvaluatorContext(env = env.map {
               case (dxName, tv) => dxName.decoded -> tv
@@ -190,7 +194,9 @@ case class CwlTaskExecutor(tool: Process,
   }
 
   private lazy val defaultRuntimeAttrs: Map[String, (CwlType, CwlValue)] = {
-    CwlUtils.fromIRValues(jobMeta.defaultRuntimeAttrs, isInput = true)
+    CwlUtils.fromIRValues(jobMeta.defaultRuntimeAttrs,
+                          isInput = true,
+                          fileResolver = jobMeta.fileResolver)
   }
 
   override protected def getInstanceTypeRequest(
@@ -198,7 +204,8 @@ case class CwlTaskExecutor(tool: Process,
   ): InstanceTypeRequest = {
     logger.traceLimited("calcInstanceType", minLevel = TraceLevel.VVerbose)
     val cwlEvaluator = Evaluator.create(requirements, hints)
-    val cwlInputs = CwlUtils.fromIR(inputs, typeAliases, isInput = true)
+    val cwlInputs =
+      CwlUtils.fromIR(inputs, typeAliases, isInput = true, fileResolver = jobMeta.fileResolver)
     val ctx = CwlUtils.createEvaluatorContext(runtime = runtime)
     val env = cwlEvaluator.evaluateMap(cwlInputs.map {
       case (dxName, tv) => dxName.decoded -> tv
@@ -243,7 +250,12 @@ case class CwlTaskExecutor(tool: Process,
                       case DxFileSource(dxFile, _) =>
                         dependencies.get(dxFile.asUri).map {
                           case (Type.TFile, f: Value.VFile) =>
-                            val (_, cwlValue) = CwlUtils.fromIRValue(f, CwlFile, "", isInput = true)
+                            val (_, cwlValue) =
+                              CwlUtils.fromIRValueWithType(f,
+                                                           CwlFile,
+                                                           "",
+                                                           isInput = true,
+                                                           fileResolver = jobMeta.fileResolver)
                             cwlValue.toJson
                           case other =>
                             throw new Exception(s"expected file value for uri ${uri}, not ${other}")
@@ -270,7 +282,12 @@ case class CwlTaskExecutor(tool: Process,
                     )
                 } match {
                 case Some((Type.TDirectory, f: Value.VFolder)) =>
-                  val (_, cwlValue) = CwlUtils.fromIRValue(f, CwlDirectory, "", isInput = true)
+                  val (_, cwlValue) =
+                    CwlUtils.fromIRValueWithType(f,
+                                                 CwlDirectory,
+                                                 "",
+                                                 isInput = true,
+                                                 fileResolver = jobMeta.fileResolver)
                   cwlValue.toJson
                 case Some(other) =>
                   throw new Exception(s"expected directory URI to be a VFolder, not ${other}")
@@ -331,7 +348,10 @@ case class CwlTaskExecutor(tool: Process,
       localizedInputs: Map[DxName, (Type, Value)],
       localizedDependencies: Option[Map[String, (Type, Value)]]
   ): (Boolean, Option[Set[Int]]) = {
-    val inputs = CwlUtils.fromIR(localizedInputs, typeAliases, isInput = true)
+    val inputs = CwlUtils.fromIR(localizedInputs,
+                                 typeAliases,
+                                 isInput = true,
+                                 fileResolver = jobMeta.fileResolver)
     val metaDir = workerPaths.getMetaDir(ensureExists = true).asJavaPath
     // update the source code if necessary
     val sourceCode = localizedDependencies.map(updateSourceCode).getOrElse(jobMeta.sourceCode)
