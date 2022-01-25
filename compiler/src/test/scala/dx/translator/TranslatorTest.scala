@@ -1692,12 +1692,34 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
   it should "translate a CWL workflow with nested workflow" in {
-    val path = pathFromBasename("cwl", "count-lines18-wf.cwl.json")
+    val path = pathFromBasename("cwl", "count-lines17-wf.cwl.json")
     val args = path.toString :: cFlags
-    Main.compile(args.toVector) match {
+    val bundle = Main.compile(args.toVector) match {
       case SuccessfulCompileIR(bundle) => bundle
       case other =>
         throw new Exception(s"expected success not ${other}")
+    }
+    val wf = bundle.primaryCallable match {
+      case Some(wf: Workflow) => wf
+      case other              => throw new Exception(s"expected Workflow not ${other}")
+    }
+    wf.name shouldBe "count-lines17-wf"
+    wf.stages.size shouldBe 1
+    wf.stages.head.calleeName shouldBe "count-lines17-wf_frag_stage-0"
+
+    val subWf = bundle.allCallables.get("count-lines17-wf.cwl@step_step1@run") match {
+      case Some(wf: Workflow) => wf
+      case other              => throw new Exception(s"expected Workflow, not ${other}")
+    }
+    subWf.stages.size shouldBe 2
+    subWf.stages(0).calleeName shouldBe "count-lines17-wf.cwl@step_step1@run_frag_stage-0"
+    subWf.stages(1).calleeName shouldBe "count-lines17-wf.cwl@step_step1@run@step_step2@run"
+
+    subWf.stages(1).inputs.size shouldBe 2
+    subWf.stages(1).inputs(1) match {
+      case StageInputStatic(value) =>
+        value shouldBe VString("count-lines17-wf#step1/count-lines17-wf.cwl@step_step1@run/step2")
+      case other => throw new Exception(s"expected static value not ${other}")
     }
   }
 

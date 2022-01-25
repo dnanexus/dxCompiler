@@ -446,6 +446,14 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       }
     }
 
+    private def getTarget(calleeName: String): String = {
+      cwlBundle.processParents.get(calleeName) match {
+        case None | Some(Vector()) => throw new Exception(s"process not found ${calleeName}")
+        case Some(Vector(target))  => target
+        case Some(target)          => s"${target.head}#${target.drop(1).mkString("/")}"
+      }
+    }
+
     private def translateCall(call: WorkflowStep, env: CallEnv, locked: Boolean): Stage = {
       val calleeName = call.run.name
       val callee: Callable = availableDependencies.getOrElse(
@@ -461,10 +469,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         CwlDxName.fromSourceName(param.name) -> param
       }.toMap
       val inputs: Vector[StageInput] = callee.inputVars.map {
-        case param if param == TargetParam =>
-          StageInputStatic(
-              Value.VString(CwlUtils.formatTarget(call.id.get, cwlBundle.processParents(call.name)))
-          )
+        case param if param == TargetParam => StageInputStatic(Value.VString(getTarget(calleeName)))
         case param =>
           callInputToStageInput(callInputParams.get(param.name), param, env, locked, call.name)
       }

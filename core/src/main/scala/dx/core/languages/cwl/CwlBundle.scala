@@ -21,7 +21,7 @@ case class CwlBundle(version: CWLVersion,
                      workflows: Map[String, Workflow],
                      requirements: Map[String, Vector[Requirement]],
                      hints: Map[String, Vector[Hint]],
-                     processParents: Map[String, Option[String]]) {
+                     processParents: Map[String, Vector[String]]) {
 
   lazy val typeAliases: Map[String, CwlSchema] =
     HintUtils.getSchemaDefs(primaryProcess.requirements)
@@ -45,13 +45,13 @@ case class CwlBundle(version: CWLVersion,
 object CwlBundle {
   private def getProcesses(
       process: Process,
-      currentParent: Option[String] = None,
+      currentParent: Vector[String] = Vector.empty,
       tools: Map[String, CommandLineTool] = Map.empty,
       expressions: Map[String, ExpressionTool] = Map.empty,
       workflows: Map[String, Workflow] = Map.empty,
       requirements: Map[String, Vector[Requirement]] = Map.empty,
       hints: Map[String, Vector[Hint]] = Map.empty,
-      parents: Map[String, Option[String]] = Map.empty,
+      parents: Map[String, Vector[String]] = Map.empty,
       inheritedRequirements: Vector[Requirement] = Vector.empty,
       inheritedHints: Vector[Hint] = Vector.empty
   ): (Map[String, CommandLineTool],
@@ -59,7 +59,7 @@ object CwlBundle {
       Map[String, Workflow],
       Map[String, Vector[Requirement]],
       Map[String, Vector[Hint]],
-      Map[String, Option[String]]) = {
+      Map[String, Vector[String]]) = {
     if (process.id.isEmpty) {
       throw new Exception(s"missing id for process ${process}")
     }
@@ -107,7 +107,7 @@ object CwlBundle {
         val newWorkflows = workflows + (wf.name -> wf)
         wf.steps.foldLeft(tools, expressions, newWorkflows, newReqs, newHints, newParents) {
           case ((toolAccu, exprAccu, wfAccu, reqAccu, hintAccu, parentAccu), step) =>
-            val newParent = Some(s"${currentParent.map(p => s"${p}/").getOrElse("")}${step.frag}")
+            val newParent = currentParent ++ CwlDxName.fromDecodedName(step.frag).getDecodedParts
             getProcesses(
                 CwlUtils.simplifyProcess(step.run),
                 newParent,
@@ -145,7 +145,7 @@ object CwlBundle {
                   Map.empty,
                   Map.empty,
                   Map.empty,
-                  Map(tool.name -> None))
+                  Map(tool.name -> Vector.empty[String]))
       case tool: ExpressionTool =>
         CwlBundle(version,
                   tool,
@@ -154,7 +154,7 @@ object CwlBundle {
                   Map.empty,
                   Map.empty,
                   Map.empty,
-                  Map(tool.name -> None))
+                  Map(tool.name -> Vector.empty[String]))
       case wf: Workflow =>
         val (tools, expressions, workflows, requirements, hints, parents) = getProcesses(wf)
         CwlBundle(version, wf, tools, expressions, workflows, requirements, hints, parents)

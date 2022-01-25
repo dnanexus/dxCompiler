@@ -34,6 +34,7 @@ import dx.cwl.{
   FileValue,
   HintUtils,
   Identifiable,
+  Identifier,
   InputParameter,
   LinkMergeMethod,
   LoadListing,
@@ -76,17 +77,23 @@ object CwlWorkflowExecutor {
       case _                    => throw new Exception("missing executable name")
     }
     val parserResult = parser.parseString(jobMeta.sourceCode)
-    val workflow = parserResult.document.values
-      .foldLeft(Set.empty[Process]) {
+    // A CWL workflow may contain nested workflows, and we may be executing the top-level workflow
+    // or one nested at any level. Here we find all (sub-)workflows with a matching name and
+    // simplify them, which makes them comparable. This is necessary because the same workflow may
+    // be imported multiple times, and as long as two workflows are identical we don't care which
+    // version we execute. We also track the full id of the workflow because we will need this to
+    // fully specify the target step when launching the target applet.
+    val (workflow, parentId) = parserResult.document.values
+      .foldLeft(Map.empty[Process, Identifier]) {
         case (accu, wf: Workflow) if wf.name == wfName =>
-          accu + CwlUtils.simplifyProcess(wf)
+          accu + (CwlUtils.simplifyProcess(wf) -> wf.id.get)
         case (accu, _) => accu
       }
       .toVector match {
-      case Vector(wf: Workflow) => wf
+      case Vector((wf: Workflow, id: Identifier)) => (wf, id)
       case Vector() =>
         parserResult.mainProcess match {
-          case Some(wf: Workflow) => wf
+          case Some(wf: Workflow) => (wf, wf.id.get)
           case _ =>
             throw new Exception(s"expected CWL document to contain a workflow named ${wfName}")
         }
@@ -95,13 +102,17 @@ object CwlWorkflowExecutor {
             s"CWL document contains multiple workflows with name ${wfName}"
         )
     }
-    CwlWorkflowExecutor(workflow, jobMeta, separateOutputs)
+    CwlWorkflowExecutor(workflow, parentId, jobMeta, separateOutputs)
   }
 }
 
-case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOutputs: Boolean)
+case class CwlWorkflowExecutor(workflow: Workflow,
+                               parentId: Identifier,
+                               jobMeta: JobMeta,
+                               separateOutputs: Boolean)
     extends WorkflowExecutor[CwlBlock](jobMeta, separateOutputs) {
   private val logger = jobMeta.logger
+  private lazy val parent = CwlDxName.fromDecodedName(parentId.frag).getDecodedParts
 
   override val executorName: String = "dxExecutorCwl"
 
@@ -494,6 +505,23 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
       stepInputValues
     }
 
+    /*
+     * Format an identifier as the target workflow step to execute. A target is in the format
+     * {proc}#{path}, where proc is the top-level process name and path is the path from the
+     * top-level process to the target. For example, if the top-level workflow is 'wf' and we want
+     * to run a step in a sub-workflow, it might be 'wf#step1/nested/step2'.
+     */
+    private lazy val target: String = {
+      val targetId = block.target.id.get
+      val dxName = CwlDxName.fromDecodedName(targetId.frag).pushDecodedNamespaces(parent)
+      if (dxName.numParts == 1) {
+        targetId.name
+      } else {
+        val (process, step) = dxName.popDecodedNamespace()
+        s"${process}#${step.toString}"
+      }
+    }
+
     private def launchCall(
         callInputs: Map[DxName, (CwlType, CwlValue)],
         nameDetail: Option[String] = None,
@@ -509,8 +537,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
       // add the target step for app(let) calls
       val targetCallInput = executableLink.dxExec match {
         case _: DxWorkflow => Map.empty
-        case _ =>
-          Map(Target -> (TargetParam.dxType, VString(CwlUtils.formatTarget(block.target.id.get))))
+        case _             => Map(Target -> (TargetParam.dxType, VString(target)))
       }
       val callInputsIR = CwlUtils.toIR(callInputs) ++ targetCallInput
       val requirementEvaluator = RequirementEvaluator(
