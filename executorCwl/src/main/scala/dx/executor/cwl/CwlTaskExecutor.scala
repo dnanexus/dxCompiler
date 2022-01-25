@@ -70,8 +70,9 @@ object CwlTaskExecutor {
             throw new Exception(s"more than one tool with name ${toolName}: ${v.mkString("\n")}")
         }
         (tool, Some(wf))
-      case ParserResult(p: Process, _, _, _) => throw new Exception(s"process type ${p.name} is not supported.")
-      }
+      case ParserResult(p: Process, _, _, _) =>
+        throw new Exception(s"process type ${p.name} is not supported.")
+    }
     CwlTaskExecutor(tool, root, jobMeta, streamFiles, checkInstanceType)
   }
 }
