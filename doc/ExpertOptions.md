@@ -1561,7 +1561,7 @@ Any significant WDL workflow is compiled into multiple DNAnexus applets and work
 
 A [global workflow](https://documentation.dnanexus.com/developer/workflows/version-and-publish-workflows#about-workflows-and-global-workflows) is an executable that can be versioned and published to other users. Publishing global workflows may facilitate collaboration across multiple projects, compared with local, project-based workflows.
 
-Publishing a dxCompiler WDL workflow as a global workflow is supported from dxCompiler >= `v2.8.0` and dxpy >= `v0.319.0`. This is done in two steps. First, use `dxCompiler` to compile a workflow from WDL source to a local workflow in a project. Second, use `dx-toolkit` to publish the local workflow as a global workflow. Once the global workflow is published, you can add authorized users.
+Publishing a dxCompiler WDL workflow as a global workflow is supported from dxCompiler >= `v2.8.0` and dxpy >= `v0.319.2`. This is done in two steps. First, use `dxCompiler` to compile a workflow from WDL source to a local workflow in a project. Second, use `dx-toolkit` to publish the local workflow as a global workflow. Once the global workflow is published, you can add authorized users.
 
 Example: compiling a WDL workflow for later use as a global workflow.
 ```
