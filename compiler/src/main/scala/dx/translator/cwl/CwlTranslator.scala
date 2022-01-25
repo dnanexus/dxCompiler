@@ -250,7 +250,7 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
     } else {
       // otherwise make sure the file is parseable as CWL
       parser.detectVersionAndClass(sourceFile) match {
-        case Some((version, _)) if Language.parse(version) == Language.CwlV1_2 => ()
+        case Some((version, _)) if Language.parse(version, Some("cwl")) == Language.CwlV1_2 => ()
         case _ =>
           return None
       }
