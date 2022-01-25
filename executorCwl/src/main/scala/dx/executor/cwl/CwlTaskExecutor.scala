@@ -37,7 +37,7 @@ object CwlTaskExecutor {
   def create(jobMeta: JobMeta,
              streamFiles: StreamFiles.StreamFiles = StreamFiles.PerFile,
              checkInstanceType: Boolean): CwlTaskExecutor = {
-    val toolName = jobMeta.getExecutableAttribute("name") match {
+    val toolName = jobMeta.getExecutableDetail(Constants.OriginalName) match {
       case Some(JsString(name)) => name
       case _                    => throw new Exception("missing executable name")
     }
@@ -48,9 +48,9 @@ object CwlTaskExecutor {
       case ParserResult(_, doc: Document, _, _) =>
         doc.values
           .foldLeft(Set.empty[Process]) {
-            case (accu, tool: CommandLineTool) if tool.simpleName == toolName =>
+            case (accu, tool: CommandLineTool) if tool.name == toolName =>
               accu + CwlUtils.simplifyProcess(tool)
-            case (accu, expr: ExpressionTool) if expr.simpleName == toolName =>
+            case (accu, expr: ExpressionTool) if expr.name == toolName =>
               accu + CwlUtils.simplifyProcess(expr)
             case (accu, _) => accu
           }
@@ -161,7 +161,7 @@ case class CwlTaskExecutor(tool: Process,
           case None if CwlOptional.isOptional(param.cwlType) =>
             (param.cwlType, NullValue)
           case _ =>
-            throw new Exception(s"Missing required input ${name} to tool ${tool.simpleName}")
+            throw new Exception(s"Missing required input ${name} to tool ${tool.name}")
         }
         env + (name -> (cwlType, cwlValue))
     }

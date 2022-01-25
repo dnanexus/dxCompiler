@@ -523,9 +523,10 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
           case (Constants.SourceCode, JsString(_))                 => () // ignore
           case (Constants.ParseOptions, JsObject(_))               => () // ignore
           // old values for sourceCode - can probalby delete these
-          case ("womSourceCode", JsString(_)) => () // ignore
-          case ("wdlSourceCode", JsString(_)) => () // ignore
-          case other                          => throw new Exception(s"Unexpected result ${other}")
+          case ("womSourceCode", JsString(_))        => () // ignore
+          case ("wdlSourceCode", JsString(_))        => () // ignore
+          case (Constants.OriginalName, JsString(_)) => () // ignore
+          case other                                 => throw new Exception(s"Unexpected result ${other}")
         }
       case other => throw new Exception(s"Unexpected result ${other}")
     }
@@ -723,6 +724,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
           case ("womSourceCode", JsString(_))                   => ()
           case ("wdlSourceCode", JsString(_))                   => ()
           case ("staticInstanceTypeSelection", JsBoolean(true)) => ()
+          case (Constants.OriginalName, JsString(_))            => ()
           case other                                            => throw new Exception(s"Unexpected result ${other}")
         }
       case other => throw new Exception(s"Unexpected result ${other}")

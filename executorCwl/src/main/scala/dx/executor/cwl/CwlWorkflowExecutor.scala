@@ -71,14 +71,14 @@ object CwlWorkflowExecutor {
                |${jobMeta.sourceCode}""".stripMargin
         )
     }
-    val wfName = jobMeta.getExecutableAttribute("name") match {
+    val wfName = jobMeta.getExecutableDetail(Constants.OriginalName) match {
       case Some(JsString(name)) => name
       case _                    => throw new Exception("missing executable name")
     }
     val parserResult = parser.parseString(jobMeta.sourceCode)
     val workflow = parserResult.document.values
       .foldLeft(Set.empty[Process]) {
-        case (accu, wf: Workflow) if wf.simpleName == wfName =>
+        case (accu, wf: Workflow) if wf.name == wfName =>
           accu + CwlUtils.simplifyProcess(wf)
         case (accu, _) => accu
       }
@@ -488,7 +488,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
           }
       }
       if (logger.isVerbose) {
-        logger.trace(s"Workflow step ${step.name} calling process ${step.run.simpleName}")
+        logger.trace(s"Workflow step ${step.name} calling process ${step.run.name}")
         logger.traceLimited(s"Inputs:\n  ${stepInputValues.mkString("\n  ")}")
       }
       stepInputValues
@@ -505,7 +505,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
               |""".stripMargin,
           minLevel = TraceLevel.VVerbose
       )
-      val executableLink = getExecutableLink(step.run.simpleName)
+      val executableLink = getExecutableLink(step.run.name)
       // add the target step for app(let) calls
       val targetCallInput = executableLink.dxExec match {
         case _: DxWorkflow => Map.empty
@@ -529,13 +529,13 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
           val request = requirementEvaluator.parseInstanceType
           val instanceType = jobMeta.instanceTypeDb.apply(request)
           logger.traceLimited(
-              s"Precalculated instance type for ${step.run.simpleName}: ${instanceType}"
+              s"Precalculated instance type for ${step.run.name}: ${instanceType}"
           )
           Some(instanceType)
         } catch {
           case e: Throwable =>
             logger.traceLimited(
-                s"""|Failed to precalculate the instance type for task ${step.run.simpleName}.
+                s"""|Failed to precalculate the instance type for task ${step.run.name}.
                     |${e}
                     |""".stripMargin
             )
@@ -563,7 +563,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
           .orElse(Option.when(CwlOptional.isOptional(param.cwlType))((param.cwlType, NullValue)))
           .getOrElse {
             throw new Exception(
-                s"missing required input ${dxName} to process ${step.run.simpleName} at step ${step.name}"
+                s"missing required input ${dxName} to process ${step.run.name} at step ${step.name}"
             )
           }
       }.toMap
@@ -629,7 +629,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
       // step input's type here might not match the callee's input type if valueFrom is specified.
       val stepInputs = step.inputs.map(evaluateStepInput(_, cwlEnv)).toMap
       if (logger.isVerbose) {
-        logger.trace(s"Workflow step ${step.name} scattering over process ${step.run.simpleName}")
+        logger.trace(s"Workflow step ${step.name} scattering over process ${step.run.name}")
         logger.traceLimited(s"Inputs:\n  ${stepInputs.mkString("\n  ")}")
       }
 

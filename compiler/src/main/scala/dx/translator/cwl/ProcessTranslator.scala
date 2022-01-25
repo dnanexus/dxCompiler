@@ -462,7 +462,9 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       }.toMap
       val inputs: Vector[StageInput] = callee.inputVars.map {
         case param if param == TargetParam =>
-          StageInputStatic(Value.VString(CwlUtils.formatTarget(call.id.get)))
+          StageInputStatic(
+              Value.VString(CwlUtils.formatTarget(call.id.get, cwlBundle.processParents(call.name)))
+          )
         case param =>
           callInputToStageInput(callInputParams.get(param.name), param, env, locked, call.name)
       }
@@ -526,10 +528,10 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         case BlockKind.CallFragment | BlockKind.ConditionalOneCall =>
           // a block with no nested sub-blocks, and a single call, or
           // a conditional with exactly one call in the sub-block
-          (Some(block.target.run.simpleName), None)
+          (Some(block.target.run.name), None)
         case BlockKind.ScatterOneCall =>
           // a scatter with exactly one call in the sub-block
-          val stepName = block.target.run.simpleName
+          val stepName = block.target.run.name
           val newScatterPath = stepPath.map(p => s"${p}.${stepName}").getOrElse(stepName)
           (Some(stepName), Some(newScatterPath))
         case _ =>

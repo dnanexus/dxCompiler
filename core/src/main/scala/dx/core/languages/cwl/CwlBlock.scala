@@ -63,7 +63,7 @@ object CwlBlockInput {
                 }
                 .getOrElse(
                     throw new Exception(
-                        s"""process ${srcStep.run.simpleName} does not define output parameter 
+                        s"""process ${srcStep.run.name} does not define output parameter 
                            |${out.name}""".stripMargin.replaceAll("\n", " ")
                     )
                 )
@@ -306,9 +306,9 @@ case class CwlBlock(index: Int,
         } else None,
         Some(
             step.run match {
-              case tool: CommandLineTool => s"tool ${tool.simpleName}"
-              case expr: ExpressionTool  => s"expr ${expr.simpleName}"
-              case wf: Workflow          => s"workflow ${wf.simpleName}"
+              case tool: CommandLineTool => s"tool ${tool.name}"
+              case expr: ExpressionTool  => s"expr ${expr.name}"
+              case wf: Workflow          => s"workflow ${wf.name}"
               case other =>
                 throw new Exception(s"unexpected process ${other}")
             },

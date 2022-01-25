@@ -246,6 +246,10 @@ abstract class DxName(private var encodedParts: Option[Vector[String]],
     create(decodedParts = Some(Vector(ns) ++ getDecodedParts), stage = stage, suffix = suffix)
   }
 
+  def pushDecodedNamespaces(namespaces: Vector[String]): DxName = {
+    create(decodedParts = Some(namespaces ++ getDecodedParts), stage = stage, suffix = suffix)
+  }
+
   /**
     * Removes the first namespace part and returns it as a String along with the new name.
     * Throws an Exception if there are no namespace parts.

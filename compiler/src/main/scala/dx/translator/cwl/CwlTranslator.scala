@@ -194,11 +194,10 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
                       fileResolver: FileSourceResolver,
                       dxApi: DxApi,
                       logger: Logger): Option[Translator] = {
-    // TODO: we need to require that the source file be "packed" before compiling, because
-    //  we cannot include auxiliary files (e.g. a JavaScript or YAML import) with the CWL.
-    //  Then we shouldn't use a base URI and instead let parsing errors due to unsatisfied
-    //  imports (which shouldn't happen) bubble up. We should also print a warning if the
-    //  user tries to specify any import directories for CWL.
+    // TODO: we require that the source file be "packed" before compiling, because we cannot include
+    //  auxiliary files (e.g. a JavaScript or YAML import) with the CWL. Then we shouldn't use a
+    //  base URI and instead let parsing errors due to unsatisfied imports (which shouldn't happen)
+    //  bubble up. We should also print a warning if the user tries to specify any import directories.
     lazy val basePath = fileResolver.localSearchPath match {
       case Vector()     => sourceFile.toAbsolutePath.getParent
       case Vector(path) => path
@@ -230,7 +229,10 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
           return None
       }
     }
-    // CWL file is required to be packed
+    // TODO: in the case of a document with a $graph element, if there are multiple top-level
+    //  processes we first look for a process called 'main', and then we look for a single workflow.
+    //  If we cannot determine the top-level process we fail with an error. We should also add an
+    //  option for the user to specify the process name at compile time.
     val (process, schemas) = parser.parseFile(sourceFile) match {
       case ParserResult(Some(tool: CommandLineTool), _, _, schemas) => (tool, schemas)
       case ParserResult(Some(tool: ExpressionTool), _, _, schemas)  => (tool, schemas)

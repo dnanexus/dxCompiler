@@ -116,12 +116,7 @@ private case class ToolTestJobMeta(override val workerPaths: DxWorkerPaths,
 
   override def getJobDetail(name: String): Option[JsValue] = None
 
-  override def getExecutableAttribute(name: String): Option[JsValue] = {
-    name match {
-      case "name" => Some(JsString(toolName))
-      case _      => None
-    }
-  }
+  override def getExecutableAttribute(name: String): Option[JsValue] = None
 
   private val executableDetails: Map[String, JsValue] = Map(
       Constants.InstanceTypeDb -> JsString(
@@ -131,7 +126,8 @@ private case class ToolTestJobMeta(override val workerPaths: DxWorkerPaths,
       ),
       Constants.SourceCode -> JsString(CodecUtils.gzipAndBase64Encode(rawSourceCode)),
       Constants.UseManifests -> JsBoolean(useManifestInputs),
-      Constants.PathsAsObjects -> JsTrue
+      Constants.PathsAsObjects -> JsTrue,
+      Constants.OriginalName -> JsString(toolName)
   )
 
   override def getExecutableDetail(name: String): Option[JsValue] = {

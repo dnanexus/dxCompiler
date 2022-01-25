@@ -703,12 +703,28 @@ object CwlUtils {
     })
   }
 
-  def formatTarget(id: Identifier): String = {
+  /**
+    * Format an identifier as the target workflow step to execute. A target is in the format
+    * {proc}#{path}, where proc is the top-level process name and path is the path from the
+    * top-level process to the target. For example, if the top-level workflow is 'wf' and we want
+    * to run a step in a sub-workflow, it might be 'wf#step1/nested/step2'.
+    * @param id the identifier to format
+    * @param parent the process parent - if non-empty, is prepended to the identifier before
+    *               splitting off the top-level workflow name.
+    * @return
+    */
+  def formatTarget(id: Identifier, parent: Option[String] = None): String = {
     val dxName = CwlDxName.fromDecodedName(id.frag)
-    if (dxName.numParts == 1) {
+    val fullDxName = if (parent.nonEmpty) {
+      val parentName = dxName.pushDecodedNamespace(parent.get)
+      dxName.pushDecodedNamespaces(parentName.getDecodedParts)
+    } else {
+      dxName
+    }
+    if (fullDxName.numParts == 1) {
       id.name
     } else {
-      val (process, step) = dxName.popDecodedNamespace()
+      val (process, step) = fullDxName.popDecodedNamespace()
       s"${process}#${step.toString}"
     }
   }
