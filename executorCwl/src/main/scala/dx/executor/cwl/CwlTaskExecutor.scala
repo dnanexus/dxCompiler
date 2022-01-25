@@ -124,13 +124,19 @@ case class CwlTaskExecutor(tool: Process,
     }
   }
 
-  private lazy val (cwlInputs: Map[DxName, (CwlType, CwlValue)], target: Option[String]) = {
-    val (irInputs, target) =
-      jobMeta.primaryInputs.foldLeft(Map.empty[DxName, Value], Option.empty[String]) {
-        case ((accu, None), (Target, Value.VString(targetName))) =>
-          (accu, Some(targetName))
-        case ((accu, target), (dxName, value)) =>
-          (accu + (dxName -> value), target)
+  private val targetRegex = "(?:(.+)#)?(.+)".r
+
+  private lazy val (cwlInputs: Map[DxName, (CwlType, CwlValue)],
+                    targetProcess: Option[String],
+                    targetStep: Option[String]) = {
+    val (irInputs, targetProcess, targetStep) =
+      jobMeta.primaryInputs.foldLeft(Map.empty[DxName, Value],
+                                     Option.empty[String],
+                                     Option.empty[String]) {
+        case ((accu, None, None), (Target, Value.VString(targetRegex(targetWf, targetStep)))) =>
+          (accu, Option(targetWf), Some(targetStep))
+        case ((accu, targetProcess, targetStep), (dxName, value)) =>
+          (accu + (dxName -> value), targetProcess, targetStep)
       }
     val missingTypes = irInputs.keySet.diff(inputParams.keySet)
     if (missingTypes.nonEmpty) {
@@ -182,7 +188,7 @@ case class CwlTaskExecutor(tool: Process,
         .mkString("\n  ")
       logger.traceLimited(s"inputs:\n  ${inputStr}")
     }
-    (cwlInputs, target)
+    (cwlInputs, targetProcess, targetStep)
   }
 
   override protected def getInputVariables: Map[DxName, (Type, Value)] = {
@@ -364,17 +370,17 @@ case class CwlTaskExecutor(tool: Process,
     // write the CWL and input files
     val cwlPath = metaDir.resolve(s"tool.cwl")
     FileUtils.writeFileContent(cwlPath, sourceCode)
-    val inputPath = metaDir.resolve(s"tool_input.json")
+    val cwlPathStr = targetProcess.map(p => s"${cwlPath}#${p}").getOrElse(cwlPath.toString)
+    val inputPath = metaDir.resolve("tool_input.json")
     val inputJson = CwlUtils.toJson(inputs)
     if (logger.isVerbose) {
       logger.trace(s"input JSON ${inputPath}:\n${inputJson.prettyPrint}")
     }
     JsUtils.jsToFile(inputJson, inputPath)
-    // if a target is specified (a specific workflow step), add the
-    // --single-process option
-    val targetOpt = target.map(t => s"--single-process ${t}").getOrElse("")
-    // if a dx:// URI is specified for the Docker container, download it
-    // and create an overrides file to override the value in the CWL file
+    // if a target is specified (a specific workflow step), add the --single-process option
+    val targetOpt = targetStep.map(t => s"--single-process ${t}").getOrElse("")
+    // if a dx:// URI is specified for the Docker container, download it and create an overrides
+    // file to override the value in the CWL file
     val requirementOverrides =
       JsUtils.getOptionalValues(overridesJs, "requirements").getOrElse(Vector.empty)
     val finalOverrides = Option
@@ -431,7 +437,7 @@ case class CwlTaskExecutor(tool: Process,
          |    --move-outputs \\
          |    --rm-container \\
          |    --rm-tmpdir \\
-         |    ${targetOpt} ${overridesOpt} ${cwlPath.toString} ${inputPath.toString}
+         |    ${targetOpt} ${overridesOpt} ${cwlPathStr} ${inputPath.toString}
          |) \\
          |> >( tee ${workerPaths.getStdoutFile(ensureParentExists = true)} ) \\
          |2> >( tee ${workerPaths.getStderrFile(ensureParentExists = true)} >&2 )
@@ -448,8 +454,8 @@ case class CwlTaskExecutor(tool: Process,
         command,
         makeExecutable = true
     )
-    // We are testing the return code of cwltool, not the tool it is running, so we
-    // don't need to worry about success/temporaryFail/permanentFail codes.
+    // We are testing the return code of cwltool, not the tool it is running, so we don't need to
+    // worry about success/temporaryFail/permanentFail codes.
     (true, Some(Set(0)))
   }
 

@@ -694,7 +694,7 @@ object CwlUtils {
   }
 
   def isDxPath(path: PathValue): Boolean = {
-    path.location.exists(_.startsWith(DxPath.DxUriPrefix))
+    path.location.orElse(path.path).exists(_.startsWith(DxPath.DxUriPrefix))
   }
 
   def toJson(values: Map[DxName, (CwlType, CwlValue)]): JsObject = {

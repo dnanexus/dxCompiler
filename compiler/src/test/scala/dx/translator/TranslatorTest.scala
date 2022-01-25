@@ -1772,6 +1772,23 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     }
   }
 
+  it should "translate a CWL workflow with workflow input default value" in {
+    val path = pathFromBasename("cwl", "io-file-default-wf.cwl.json")
+    val args = path.toString :: cFlags
+    val bundle = Main.compile(args.toVector) match {
+      case SuccessfulCompileIR(bundle) => bundle
+      case other                       => throw new Exception(s"expected success not ${other}")
+    }
+    val wf = bundle.primaryCallable match {
+      case Some(wf: Workflow) => wf
+      case other              => throw new Exception(s"expected workflow not ${other}")
+    }
+    wf.inputs.size shouldBe 1
+    wf.inputs.head._1.defaultValue shouldBe Some(
+        VFile("dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G0G0V1Q0yzZZZXfx3xPK1B1Z")
+    )
+  }
+
   it should "translate a WDL workflow with dx runtime attributes" in {
     val path = pathFromBasename("bugs", "dx_runtime_keys.wdl")
     val args = path.toString :: cFlags
