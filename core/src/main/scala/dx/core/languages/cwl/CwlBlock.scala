@@ -43,7 +43,7 @@ object CwlBlockInput {
     // sources of this step input - either a workflow input (e.g. "file1") or a step output
     // (e.g. "step1/file1")
     val sources = stepInput.sources.map { src =>
-      (src, CwlDxName.fromDecodedName(src.frag.get))
+      (src, CwlDxName.fromDecodedName(src.frag))
     }
     val sourceParams = sources.foldLeft(SeqMap.empty[DxName, Parameter]) {
       case (accu, (_, name)) if accu.contains(name) => accu
@@ -51,7 +51,7 @@ object CwlBlockInput {
         val srcStep = workflowSteps(id.parent.get)
         val param = srcStep.outputs
           .collectFirst {
-            case out if out.name == id.name.get =>
+            case out if out.name == id.name =>
               srcStep.run.outputs
                 .collectFirst {
                   case srcOut if out.name == srcOut.name => srcOut
@@ -65,7 +65,7 @@ object CwlBlockInput {
           }
           .getOrElse(
               throw new Exception(
-                  s"step ${id.parent.get} does not define output parameter ${id.name.get}"
+                  s"step ${id.parent.get} does not define output parameter ${id.name}"
               )
           )
         accu + (name -> param)
@@ -201,7 +201,7 @@ case class CwlBlock(index: Int,
           // as a hash and the block input is not (e.g. `String` -> `Any`).
           stepInputs.get(targetInput.name).exists { stepInput =>
             stepInput.sources.headOption.exists { src =>
-              blockInputs.get(CwlDxName.fromDecodedName(src.frag.get)).exists { blockInput =>
+              blockInputs.get(CwlDxName.fromDecodedName(src.frag)).exists { blockInput =>
                 val blockInputType =
                   if (stepInput.linkMerge.isEmpty || CwlUtils.isArray(blockInput.cwlType)) {
                     blockInput.cwlType
@@ -364,7 +364,7 @@ object CwlBlock {
             inp.sources.forall {
               case id if id.parent.isDefined => deps.contains(id.parent.get)
               case id =>
-                wfInputs.contains(CwlDxName.fromSourceName(id.name.get))
+                wfInputs.contains(CwlDxName.fromSourceName(id.name))
             }
           }
         }

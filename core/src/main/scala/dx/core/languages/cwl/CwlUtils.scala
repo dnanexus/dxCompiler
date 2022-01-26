@@ -72,7 +72,7 @@ object CwlUtils {
       case CwlFile         => TFile
       case CwlDirectory    => TDirectory
       case a: CwlArray     => TArray(toIRType(a.itemType))
-      case e: CwlEnum      => TEnum(e.symbols)
+      case e: CwlEnum      => TEnum(e.symbolNames)
       case r: CwlRecord if r.hasName =>
         toIRSchema(r)
       case _ =>
@@ -207,7 +207,7 @@ object CwlUtils {
       case (CwlLong, LongValue(l))           => (TInt, VInt(l))
       case (CwlFloat, FloatValue(f))         => (TFloat, VFloat(f))
       case (CwlDouble, DoubleValue(d))       => (TFloat, VFloat(d))
-      case (t: CwlNumber, n: NumericValue)   => toIRValue(n.coerceTo(t), t)
+      case (t: CwlNumber, n: NumericValue)   => toIRValue(n.coerceTo(t)._2, t)
       case (CwlString, StringValue(s))       => (TString, VString(s))
       case (CwlFile, f: FileValue)           => (TFile, toIRPath(f))
       case (CwlFile, StringValue(s))         => (TFile, VFile(s))
@@ -240,8 +240,10 @@ object CwlUtils {
               throw new Exception(s"invalid field ${name}")
           }
         (TSchema(name, types), VHash(values))
-      case (enum: CwlEnum, StringValue(s)) if enum.symbols.contains(s) =>
+      case (enum: CwlEnum, StringValue(s)) if enum.symbols.contains(s) || enum.symbolNames.contains(s) =>
         (TEnum(enum.symbols), VString(s))
+      case (enum: CwlEnum, StringValue(s)) if enum.symbols.contains(s.trim) || enum.symbolNames.contains(s.trim) =>
+        (TEnum(enum.symbols), VString(s.trim))
       case _ => throw new Exception(s"Invalid CWL value ${cwlValue})")
     }
   }
@@ -273,11 +275,11 @@ object CwlUtils {
         case TSchema(name, fields) if isInput =>
           CwlInputRecord(fields.map {
             case (name, t) => name -> CwlInputRecordField(name, inner(t))
-          }, Some(Identifier(namespace = None, frag = Some(name))))
+          }, Some(Identifier(namespace = None, frag = name)))
         case TSchema(name, members) =>
           CwlOutputRecord(members.map {
             case (name, t) => name -> CwlOutputRecordField(name, inner(t))
-          }, Some(Identifier(namespace = None, frag = Some(name))))
+          }, Some(Identifier(namespace = None, frag = name)))
         case TEnum(symbols) => CwlEnum(symbols)
         case _ =>
           throw new Exception(s"Cannot convert IR type ${irType} to CWL")
