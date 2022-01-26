@@ -6,6 +6,8 @@ dxCompiler takes a pipeline written in the
 
 ## Setup
 
+test
+
 Prerequisites:
 * [DNAnexus platform](https://platform.dnanexus.com) account
 * [dx-toolkit](https://documentation.dnanexus.com/downloads)
