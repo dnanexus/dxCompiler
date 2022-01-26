@@ -456,7 +456,7 @@ def build_executable(source_file, project, folder, top_dir, version_id, compiler
 # 
 # return                        List of tuples (input #, analysis or job id)
 # 
-# oid                           Id of executable to run
+# oid                           Id of executable to run, or name for global workflow
 # project                       Destination project on platform
 # test_folder                   Destination folder on platform
 # test_name                     Test name
