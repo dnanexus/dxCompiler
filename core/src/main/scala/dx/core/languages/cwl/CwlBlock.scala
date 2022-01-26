@@ -362,7 +362,7 @@ object CwlBlock {
         steps.partition { step =>
           step.inputs.forall { inp =>
             inp.sources.forall {
-              case id if id.parent.isDefined => deps.contains(id.parent.get)
+              case id if id.hasParent => deps.contains(id.parent.get)
               case id =>
                 wfInputs.contains(CwlDxName.fromSourceName(id.name))
             }
