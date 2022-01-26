@@ -50,20 +50,23 @@ jobs:
         run: |
           export PATH="$PATH:$HOME/.local/bin"
 
-          # Set up DNAnexus staging environment, folder
+          # Set up DNAnexus staging environment
           dx login --noprojects --staging --token $ROBOT_TOKEN
           PROJECT=dxCompiler_playground
           dx select $PROJECT
           cd ${GITHUB_WORKSPACE}
+
+          # Run integration tests
           FOLDER=/builds/test_gha_dxcompiler_$(date +%s)_$RANDOM
           dx mkdir $FOLDER
-
-          # Run tests
           python3 scripts/run_tests.py --folder $FOLDER --project $PROJECT \
+          --clean \ # Removes folder in finally block
           --test M
+
+          # Run multi-user tests
+          FOLDER=/builds/test_gha_dxcompiler_$(date +%s)_$RANDOM
+          dx mkdir $FOLDER
           python3 scripts/run_multiuser_tests.py --folder $FOLDER --project $PROJECT \
+          --clean \ # Removes folder in finally block
           --alice-token $ROBOT_TOKEN \
           --bob-token $TEST_ROBOT_TOKEN
-
-          # TODO Also ensure folder is removed when tests fail
-          dx rm -rf $FOLDER
