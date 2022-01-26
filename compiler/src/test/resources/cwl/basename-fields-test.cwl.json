@@ -1,101 +1,138 @@
 {
-    "$graph": [
+    "cwlVersion": "v1.2",
+    "class": "Workflow",
+    "requirements": [
         {
-            "class": "Workflow",
-            "requirements": [
-                {
-                    "class": "StepInputExpressionRequirement"
-                }
-            ],
-            "inputs": [
-                {
-                    "type": "File",
-                    "id": "#main/tool"
-                }
-            ],
-            "outputs": [
-                {
-                    "type": "File",
-                    "outputSource": "#main/ext/out",
-                    "id": "#main/extFile"
-                },
-                {
-                    "type": "File",
-                    "outputSource": "#main/root/out",
-                    "id": "#main/rootFile"
-                }
-            ],
-            "steps": [
-                {
-                    "run": "#echo-file-tool.cwl",
-                    "in": [
-                        {
-                            "valueFrom": "$(inputs.tool.nameext)",
-                            "id": "#main/ext/in"
-                        },
-                        {
-                            "source": "#main/tool",
-                            "id": "#main/ext/tool"
-                        }
-                    ],
-                    "out": [
-                        "#main/ext/out"
-                    ],
-                    "id": "#main/ext"
-                },
-                {
-                    "run": "#echo-file-tool.cwl",
-                    "in": [
-                        {
-                            "valueFrom": "$(inputs.tool.nameroot)",
-                            "id": "#main/root/in"
-                        },
-                        {
-                            "source": "#main/tool",
-                            "id": "#main/root/tool"
-                        }
-                    ],
-                    "out": [
-                        "#main/root/out"
-                    ],
-                    "id": "#main/root"
-                }
-            ],
-            "id": "#main"
+            "class": "StepInputExpressionRequirement"
         },
         {
-            "class": "CommandLineTool",
-            "baseCommand": [
-                "echo"
-            ],
-            "inputs": [
-                {
-                    "type": "string",
-                    "inputBinding": {
-                        "position": 1
-                    },
-                    "id": "#echo-file-tool.cwl/in"
-                },
-                {
-                    "type": [
-                        "null",
-                        "string"
-                    ],
-                    "id": "#echo-file-tool.cwl/name"
-                }
-            ],
-            "stdout": "out.txt",
-            "outputs": [
-                {
-                    "type": "File",
-                    "id": "#echo-file-tool.cwl/out",
-                    "outputBinding": {
-                        "glob": "out.txt"
-                    }
-                }
-            ],
-            "id": "#echo-file-tool.cwl"
+            "class": "SubworkflowFeatureRequirement"
+        },
+        {
+            "class": "InlineJavascriptRequirement"
         }
     ],
-    "cwlVersion": "v1.2"
+    "inputs": [
+        {
+            "type": "File",
+            "id": "tool"
+        }
+    ],
+    "outputs": [
+        {
+            "type": "File",
+            "outputSource": "root/out",
+            "id": "rootFile"
+        },
+        {
+            "type": "File",
+            "outputSource": "ext/out",
+            "id": "extFile"
+        }
+    ],
+    "steps": [
+        {
+            "run": {
+                "class": "CommandLineTool",
+                "baseCommand": [
+                    "echo"
+                ],
+                "inputs": [
+                    {
+                        "type": "string",
+                        "inputBinding": {
+                            "position": 1
+                        },
+                        "id": "in"
+                    },
+                    {
+                        "type": [
+                            "null",
+                            "string"
+                        ],
+                        "id": "name"
+                    }
+                ],
+                "stdout": "out.txt",
+                "outputs": [
+                    {
+                        "type": "stdout",
+                        "id": "out"
+                    }
+                ],
+                "requirements": [
+                    {
+                        "class": "InlineJavascriptRequirement"
+                    }
+                ],
+                "id": "basename-fields-test.cwl@step_root@echo-file-tool.cwl"
+            },
+            "in": [
+                {
+                    "source": "tool",
+                    "id": "tool"
+                },
+                {
+                    "valueFrom": "$(inputs.tool.nameroot)",
+                    "id": "in"
+                }
+            ],
+            "out": [
+                "out"
+            ],
+            "id": "root"
+        },
+        {
+            "run": {
+                "class": "CommandLineTool",
+                "baseCommand": [
+                    "echo"
+                ],
+                "inputs": [
+                    {
+                        "type": "string",
+                        "inputBinding": {
+                            "position": 1
+                        },
+                        "id": "in"
+                    },
+                    {
+                        "type": [
+                            "null",
+                            "string"
+                        ],
+                        "id": "name"
+                    }
+                ],
+                "stdout": "out.txt",
+                "outputs": [
+                    {
+                        "type": "stdout",
+                        "id": "out"
+                    }
+                ],
+                "requirements": [
+                    {
+                        "class": "InlineJavascriptRequirement"
+                    }
+                ],
+                "id": "basename-fields-test.cwl@step_ext@echo-file-tool.cwl"
+            },
+            "in": [
+                {
+                    "source": "tool",
+                    "id": "tool"
+                },
+                {
+                    "valueFrom": "$(inputs.tool.nameext)",
+                    "id": "in"
+                }
+            ],
+            "out": [
+                "out"
+            ],
+            "id": "ext"
+        }
+    ],
+    "id": "basename-fields-test.cwl"
 }

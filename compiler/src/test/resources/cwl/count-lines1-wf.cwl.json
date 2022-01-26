@@ -1,27 +1,27 @@
 {
     "class": "Workflow",
+    "cwlVersion": "v1.2",
     "inputs": [
         {
             "type": "File",
-            "id": "#main/file1"
+            "id": "file1"
         }
     ],
     "outputs": [
         {
             "type": "int",
-            "outputSource": "#main/step2/output",
-            "id": "#main/count_output"
+            "outputSource": "step2/output",
+            "id": "count_output"
         }
     ],
     "steps": [
         {
             "run": {
                 "class": "CommandLineTool",
-                "id": "#main/step1/run/word-count",
                 "inputs": [
                     {
                         "type": "File",
-                        "id": "#main/step1/run/word-count/file1"
+                        "id": "file1"
                     }
                 ],
                 "outputs": [
@@ -30,7 +30,7 @@
                         "outputBinding": {
                             "glob": "output"
                         },
-                        "id": "#main/step1/run/word-count/output"
+                        "id": "output"
                     }
                 ],
                 "baseCommand": [
@@ -38,56 +38,68 @@
                     "-l"
                 ],
                 "stdin": "$(inputs.file1.path)",
-                "stdout": "output"
-            },
-            "in": [
-                {
-                    "source": "#main/file1",
-                    "id": "#main/step1/file1"
-                }
-            ],
-            "out": [
-                "#main/step1/output"
-            ],
-            "id": "#main/step1"
-        },
-        {
-            "run": {
-                "class": "ExpressionTool",
-                "id": "#main/step2/run/parseInt",
+                "stdout": "output",
                 "requirements": [
                     {
                         "class": "InlineJavascriptRequirement"
                     }
                 ],
-                "cwlVersion": "v1.2",
+                "id": "count-lines1-wf.cwl@step_step1@wc-tool.cwl"
+            },
+            "in": [
+                {
+                    "source": "file1",
+                    "id": "file1"
+                }
+            ],
+            "out": [
+                "output"
+            ],
+            "id": "step1"
+        },
+        {
+            "run": {
+                "class": "ExpressionTool",
+                "requirements": [
+                    {
+                        "class": "InlineJavascriptRequirement"
+                    }
+                ],
                 "inputs": [
                     {
                         "type": "File",
                         "loadContents": true,
-                        "id": "#main/step2/run/parseInt/file1"
+                        "id": "file1"
                     }
                 ],
                 "outputs": [
                     {
                         "type": "int",
-                        "id": "#main/step2/run/parseInt/output"
+                        "id": "output"
                     }
                 ],
-                "expression": "$({'output': parseInt(inputs.file1.contents)})"
+                "expression": "$({'output': parseInt(inputs.file1.contents)})",
+                "id": "count-lines1-wf.cwl@step_step2@parseInt-tool.cwl"
             },
             "in": [
                 {
-                    "source": "#main/step1/output",
-                    "id": "#main/step2/file1"
+                    "source": "step1/output",
+                    "id": "file1"
                 }
             ],
             "out": [
-                "#main/step2/output"
+                "output"
             ],
-            "id": "#main/step2"
+            "id": "step2"
         }
     ],
-    "id": "#main",
-    "cwlVersion": "v1.2"
+    "requirements": [
+        {
+            "class": "SubworkflowFeatureRequirement"
+        },
+        {
+            "class": "InlineJavascriptRequirement"
+        }
+    ],
+    "id": "count-lines1-wf.cwl"
 }

@@ -1,112 +1,119 @@
 {
-  "$graph": [
-    {
-      "class": "CommandLineTool",
-      "inputs": [
+    "class": "Workflow",
+    "cwlVersion": "v1.2",
+    "inputs": [
         {
-          "type": "File",
-          "id": "#cat-tool.cwl/file1"
+            "type": [
+                "null",
+                "File"
+            ],
+            "id": "special_file"
         }
-      ],
-      "outputs": [
+    ],
+    "outputs": [
         {
-          "type": "File",
-          "outputBinding": {
-            "glob": "output"
-          },
-          "id": "#cat-tool.cwl/output"
+            "type": "File",
+            "outputSource": "report/output",
+            "id": "cores"
         }
-      ],
-      "baseCommand": [
-        "cat"
-      ],
-      "stdin": "$(inputs.file1.path)",
-      "stdout": "output",
-      "id": "#cat-tool.cwl"
-    },
-    {
-      "class": "Workflow",
-      "inputs": [
+    ],
+    "steps": [
         {
-          "type": [
-            "null",
-            "File"
-          ],
-          "id": "#main/special_file"
-        }
-      ],
-      "outputs": [
-        {
-          "type": "File",
-          "outputSource": "#main/report/output",
-          "id": "#main/cores"
-        }
-      ],
-      "steps": [
-        {
-          "in": [
-            {
-              "source": "#main/special_file",
-              "default": {
-                "class": "File",
-                "location": "dx://file-G1353z00yzZYkb2V4j4g7yb9"
-              },
-              "id": "#main/count/special_file"
-            }
-          ],
-          "out": [
-            "#main/count/output"
-          ],
-          "run": "#dynresreq.cwl",
-          "id": "#main/count"
+            "in": [
+                {
+                    "source": "special_file",
+                    "default": {
+                        "class": "File",
+                        "location": "special_file"
+                    },
+                    "id": "special_file"
+                }
+            ],
+            "out": [
+                "output"
+            ],
+            "run": {
+                "class": "CommandLineTool",
+                "requirements": [
+                    {
+                        "coresMin": "$(inputs.special_file.size)",
+                        "coresMax": "$(inputs.special_file.size)",
+                        "class": "ResourceRequirement"
+                    },
+                    {
+                        "class": "InlineJavascriptRequirement"
+                    }
+                ],
+                "inputs": [
+                    {
+                        "type": "File",
+                        "id": "special_file"
+                    }
+                ],
+                "outputs": [
+                    {
+                        "type": "stdout",
+                        "id": "output"
+                    }
+                ],
+                "baseCommand": "echo",
+                "stdout": "cores.txt",
+                "arguments": [
+                    "$(runtime.cores)"
+                ],
+                "id": "dynresreq-workflow-stepdefault.cwl@step_count@dynresreq.cwl"
+            },
+            "id": "count"
         },
         {
-          "in": [
-            {
-              "source": "#main/count/output",
-              "id": "#main/report/file1"
-            }
-          ],
-          "out": [
-            "#main/report/output"
-          ],
-          "run": "#cat-tool.cwl",
-          "id": "#main/report"
+            "in": [
+                {
+                    "source": "count/output",
+                    "id": "file1"
+                }
+            ],
+            "out": [
+                "output"
+            ],
+            "run": {
+                "class": "CommandLineTool",
+                "inputs": [
+                    {
+                        "type": "File",
+                        "id": "file1"
+                    }
+                ],
+                "outputs": [
+                    {
+                        "type": "File",
+                        "outputBinding": {
+                            "glob": "output"
+                        },
+                        "id": "output"
+                    }
+                ],
+                "baseCommand": [
+                    "cat"
+                ],
+                "stdin": "$(inputs.file1.path)",
+                "stdout": "output",
+                "requirements": [
+                    {
+                        "class": "InlineJavascriptRequirement"
+                    }
+                ],
+                "id": "dynresreq-workflow-stepdefault.cwl@step_report@cat-tool.cwl"
+            },
+            "id": "report"
         }
-      ],
-      "id": "#main"
-    },
-    {
-      "class": "CommandLineTool",
-      "requirements": [
+    ],
+    "requirements": [
         {
-          "coresMin": "$(inputs.special_file.size)",
-          "coresMax": "$(inputs.special_file.size)",
-          "class": "ResourceRequirement"
-        }
-      ],
-      "inputs": [
+            "class": "SubworkflowFeatureRequirement"
+        },
         {
-          "type": "File",
-          "id": "#dynresreq.cwl/special_file"
+            "class": "InlineJavascriptRequirement"
         }
-      ],
-      "outputs": [
-        {
-          "type": "File",
-          "id": "#dynresreq.cwl/output",
-          "outputBinding": {
-            "glob": "cores.txt"
-          }
-        }
-      ],
-      "baseCommand": "echo",
-      "stdout": "cores.txt",
-      "arguments": [
-        "$(runtime.cores)"
-      ],
-      "id": "#dynresreq.cwl"
-    }
-  ],
-  "cwlVersion": "v1.2"
+    ],
+    "id": "dynresreq-workflow-stepdefault.cwl"
 }

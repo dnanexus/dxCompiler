@@ -1,12 +1,16 @@
 {
     "class": "Workflow",
+    "cwlVersion": "v1.2",
     "requirements": [
+        {
+            "timelimit": 5,
+            "class": "ToolTimeLimit"
+        },
         {
             "class": "InlineJavascriptRequirement"
         },
         {
-            "timelimit": 5,
-            "class": "ToolTimeLimit"
+            "class": "SubworkflowFeatureRequirement"
         }
     ],
     "inputs": [
@@ -15,7 +19,7 @@
                 "null",
                 "string"
             ],
-            "id": "#main/i"
+            "id": "i"
         }
     ],
     "outputs": [
@@ -24,20 +28,20 @@
                 "null",
                 "string"
             ],
-            "outputSource": "#main/step2/o",
-            "id": "#main/o"
+            "outputSource": "step2/o",
+            "id": "o"
         }
     ],
     "steps": [
         {
             "in": [
                 {
-                    "source": "#main/i",
-                    "id": "#main/step1/i"
+                    "source": "i",
+                    "id": "i"
                 }
             ],
             "out": [
-                "#main/step1/o"
+                "o"
             ],
             "run": {
                 "class": "CommandLineTool",
@@ -51,7 +55,7 @@
                             "null",
                             "string"
                         ],
-                        "id": "#main/step1/run/i"
+                        "id": "i"
                     }
                 ],
                 "outputs": [
@@ -63,21 +67,27 @@
                         "outputBinding": {
                             "outputEval": "$(\"time passed\")"
                         },
-                        "id": "#main/step1/run/o"
+                        "id": "o"
                     }
-                ]
+                ],
+                "requirements": [
+                    {
+                        "class": "InlineJavascriptRequirement"
+                    }
+                ],
+                "id": "timelimit2-wf.cwl@step_step1@run"
             },
-            "id": "#main/step1"
+            "id": "step1"
         },
         {
             "in": [
                 {
-                    "source": "#main/step1/o",
-                    "id": "#main/step2/i"
+                    "source": "step1/o",
+                    "id": "i"
                 }
             ],
             "out": [
-                "#main/step2/o"
+                "o"
             ],
             "run": {
                 "class": "CommandLineTool",
@@ -91,7 +101,7 @@
                             "null",
                             "string"
                         ],
-                        "id": "#main/step2/run/i"
+                        "id": "i"
                     }
                 ],
                 "outputs": [
@@ -103,13 +113,18 @@
                         "outputBinding": {
                             "outputEval": "$(\"time passed\")"
                         },
-                        "id": "#main/step2/run/o"
+                        "id": "o"
                     }
-                ]
+                ],
+                "requirements": [
+                    {
+                        "class": "InlineJavascriptRequirement"
+                    }
+                ],
+                "id": "timelimit2-wf.cwl@step_step2@run"
             },
-            "id": "#main/step2"
+            "id": "step2"
         }
     ],
-    "id": "#main",
-    "cwlVersion": "v1.2"
+    "id": "timelimit2-wf.cwl"
 }

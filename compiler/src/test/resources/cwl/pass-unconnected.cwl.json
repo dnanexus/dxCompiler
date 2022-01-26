@@ -1,71 +1,79 @@
 {
-    "$graph": [
+    "class": "Workflow",
+    "cwlVersion": "v1.2",
+    "inputs": [
         {
-            "class": "CommandLineTool",
-            "inputs": [
-                {
-                    "type": "Any",
-                    "inputBinding": {},
-                    "id": "#echo-tool.cwl/in"
-                }
-            ],
-            "outputs": [
-                {
-                    "type": "string",
-                    "outputBinding": {
-                        "glob": "out.txt",
-                        "loadContents": true,
-                        "outputEval": "$(self[0].contents)"
-                    },
-                    "id": "#echo-tool.cwl/out"
-                }
-            ],
-            "baseCommand": "echo",
-            "stdout": "out.txt",
-            "id": "#echo-tool.cwl"
+            "type": "string",
+            "default": "hello inp1",
+            "id": "inp1"
         },
         {
-            "class": "Workflow",
-            "inputs": [
-                {
-                    "type": "string",
-                    "default": "hello inp1",
-                    "id": "#main/inp1"
-                },
-                {
-                    "type": "string",
-                    "default": "hello inp2",
-                    "id": "#main/inp2"
-                }
-            ],
-            "outputs": [
-                {
-                    "type": "string",
-                    "outputSource": "#main/step1/out",
-                    "id": "#main/out"
-                }
-            ],
-            "steps": [
-                {
-                    "in": [
-                        {
-                            "source": "#main/inp1",
-                            "id": "#main/step1/in"
-                        },
-                        {
-                            "source": "#main/inp2",
-                            "id": "#main/step1/in2"
-                        }
-                    ],
-                    "out": [
-                        "#main/step1/out"
-                    ],
-                    "run": "#echo-tool.cwl",
-                    "id": "#main/step1"
-                }
-            ],
-            "id": "#main"
+            "type": "string",
+            "default": "hello inp2",
+            "id": "inp2"
         }
     ],
-    "cwlVersion": "v1.2"
+    "outputs": [
+        {
+            "type": "string",
+            "outputSource": "step1/out",
+            "id": "out"
+        }
+    ],
+    "steps": [
+        {
+            "in": [
+                {
+                    "source": "inp1",
+                    "id": "in"
+                },
+                {
+                    "source": "inp2",
+                    "id": "in2"
+                }
+            ],
+            "out": [
+                "out"
+            ],
+            "run": {
+                "class": "CommandLineTool",
+                "inputs": [
+                    {
+                        "type": "Any",
+                        "inputBinding": {},
+                        "id": "in"
+                    }
+                ],
+                "outputs": [
+                    {
+                        "type": "string",
+                        "outputBinding": {
+                            "glob": "out.txt",
+                            "loadContents": true,
+                            "outputEval": "$(self[0].contents)"
+                        },
+                        "id": "out"
+                    }
+                ],
+                "baseCommand": "echo",
+                "stdout": "out.txt",
+                "requirements": [
+                    {
+                        "class": "InlineJavascriptRequirement"
+                    }
+                ],
+                "id": "pass-unconnected.cwl@step_step1@echo-tool.cwl"
+            },
+            "id": "step1"
+        }
+    ],
+    "requirements": [
+        {
+            "class": "SubworkflowFeatureRequirement"
+        },
+        {
+            "class": "InlineJavascriptRequirement"
+        }
+    ],
+    "id": "pass-unconnected.cwl"
 }
