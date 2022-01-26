@@ -235,8 +235,8 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
     )
 
     val parser = Parser.create(hintSchemas = Vector(DxHintSchema))
-    parser.detectVersionAndClass(cwlFile) match {
-      case Some((version, "CommandLineTool")) if Language.parse(version) == Language.CwlV1_2 => ()
+    parser.detectVersionAndClassFromFile(cwlFile) match {
+      case (version, Some("CommandLineTool")) if Language.parse(version) == Language.CwlV1_2 => ()
       case _ =>
         throw new Exception(
             s"""source code does not appear to be a CWL CommandLineTool document of a supported version
@@ -244,7 +244,7 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
         )
     }
     val tool = parser.parseFile(cwlFile) match {
-      case ParserResult(tool: CommandLineTool, _, _, _) => tool
+      case ParserResult(Some(tool: CommandLineTool), _, _, _) => tool
       case other =>
         throw new Exception(s"expected CWL document to contain a CommandLineTool, not ${other}")
     }
