@@ -746,7 +746,9 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           out.sources.size > 1 ||
           out.linkMerge.isDefined ||
           out.pickValue.isDefined ||
-          out.sources.exists(sourceId => inputNames.contains(sourceId.frag)) ||
+          out.sources.exists { sourceId =>
+            inputNames.contains(sourceId.frag)
+          } ||
           out.sources.headOption.exists { sourceId =>
             env.get(CwlDxName.fromDecodedName(sourceId.frag)).map(_._1).exists { stageParam =>
               CwlUtils.requiresDowncast(CwlUtils.fromIRType(stageParam.dxType, isInput = false),
