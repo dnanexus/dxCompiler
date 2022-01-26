@@ -1690,7 +1690,7 @@ def main():
         default=False,
     )
     argparser.add_argument(
-        "--folder", help="Use an existing folder, instead of building dxCompiler"
+        "--folder", help="Use an existing folder with dxCompiler assets, instead of building dxCompiler"
     )
     argparser.add_argument(
         "--lazy",
@@ -1797,7 +1797,7 @@ def main():
     if args.folder is None:
         base_folder = util.create_build_dirs(project, version_id)
     else:
-        # Use existing prebuilt base folder
+        # Use an existing folder with dxCompiler assets, instead of building dxCompiler
         base_folder = args.folder
         util.create_build_subdirs(project, base_folder)
     applet_folder = base_folder + "/applets"

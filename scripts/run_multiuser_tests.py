@@ -243,7 +243,7 @@ def main():
         required=True,
     )
     argparser.add_argument(
-        "--folder", help="Use an existing folder, instead of building dxCompiler"
+        "--folder", help="Use an existing folder with dxCompiler assets, instead of building dxCompiler"
     )
     argparser.add_argument(
         "--project", help="DNAnexus project ID", default="dxCompiler_playground"
@@ -273,7 +273,7 @@ def main():
     if args.folder is None:
         base_folder = util.create_build_dirs(project, version_id)
     else:
-        # Use existing prebuilt base folder
+        # Use an existing folder with dxCompiler assets, instead of building dxCompiler
         base_folder = args.folder
         util.create_build_subdirs(project, base_folder)
     print("Base folder {}".format(base_folder))
