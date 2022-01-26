@@ -56,7 +56,7 @@ object CwlTaskExecutor {
         (tool.copy(id = Some(Identifier(namespace = None, frag = toolName))), None)
       case ParserResult(Some(tool: CommandLineTool), _, _, _) => (tool, None)
       case ParserResult(Some(tool: ExpressionTool), _, _, _) if tool.frag == DefaultFrag =>
-        (tool.copy(id = Some(Identifier(namespace = None, frag =toolName))), None)
+        (tool.copy(id = Some(Identifier(namespace = None, frag = toolName))), None)
       case ParserResult(Some(tool: ExpressionTool), _, _, _) => (tool, None)
       case ParserResult(Some(wf: Workflow), doc: Document, _, _) =>
         val tool = doc.values.toVector.collect {

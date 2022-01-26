@@ -240,9 +240,11 @@ object CwlUtils {
               throw new Exception(s"invalid field ${name}")
           }
         (TSchema(name, types), VHash(values))
-      case (enum: CwlEnum, StringValue(s)) if enum.symbols.contains(s) || enum.symbolNames.contains(s) =>
+      case (enum: CwlEnum, StringValue(s))
+          if enum.symbols.contains(s) || enum.symbolNames.contains(s) =>
         (TEnum(enum.symbols), VString(s))
-      case (enum: CwlEnum, StringValue(s)) if enum.symbols.contains(s.trim) || enum.symbolNames.contains(s.trim) =>
+      case (enum: CwlEnum, StringValue(s))
+          if enum.symbols.contains(s.trim) || enum.symbolNames.contains(s.trim) =>
         (TEnum(enum.symbols), VString(s.trim))
       case _ => throw new Exception(s"Invalid CWL value ${cwlValue})")
     }
