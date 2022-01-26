@@ -61,6 +61,9 @@ def login_bob():
 def specific_applet_folder(tname):
     return "{}/{}".format(APPLET_FOLDER, tname)
 
+def specific_test_folder(tname):
+    return "{}/{}".format(TEST_FOLDER, tname)
+
 def wait_for_completion(exec_objs):
     successes = []
     failures = []
@@ -217,7 +220,7 @@ def test_global_wf_from_wdl():
     exec_objs = util.run_executable(
         oid=global_workflow_name,
         project=PROJECT,
-        test_folder=specific_applet_folder(tname),
+        test_folder=specific_test_folder(tname),
         test_name=tname
     )
 
