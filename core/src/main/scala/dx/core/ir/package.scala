@@ -46,7 +46,7 @@ trait Callable {
 }
 
 object Callable {
-  val dxNameRegex: Regex = "[^a-zA-Z0-9._-]".r
+  val dxNameRegex: Regex = "[^a-zA-Z0-9_-]".r
 }
 
 /**

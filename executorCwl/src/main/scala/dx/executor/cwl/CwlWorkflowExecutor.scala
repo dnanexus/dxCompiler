@@ -59,6 +59,8 @@ import java.net.URI
 import scala.annotation.tailrec
 
 object CwlWorkflowExecutor {
+  private val nameRegex = "(.+)_frag_stage-.+".r
+
   def create(jobMeta: JobMeta, separateOutputs: Boolean): CwlWorkflowExecutor = {
     // when parsing a packed workflow as a String, we need to use a baseuri -
     // it doesn't matter what it is
@@ -73,8 +75,9 @@ object CwlWorkflowExecutor {
         )
     }
     val wfName = jobMeta.getExecutableDetail(Constants.OriginalName) match {
-      case Some(JsString(name)) => name
-      case _                    => throw new Exception("missing executable name")
+      case Some(JsString(nameRegex(name))) => name
+      case Some(JsString(name))            => name
+      case _                               => throw new Exception("missing executable name")
     }
     val parserResult = parser.parseString(jobMeta.sourceCode)
     // A CWL workflow may contain nested workflows, and we may be executing the top-level workflow
