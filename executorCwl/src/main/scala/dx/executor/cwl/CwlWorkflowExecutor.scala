@@ -516,11 +516,16 @@ case class CwlWorkflowExecutor(workflow: Workflow,
      */
     private lazy val target: String = {
       val targetId = block.target.id.get
-      val dxName = CwlDxName.fromDecodedName(targetId.frag).pushDecodedNamespaces(parent)
-      if (dxName.numParts == 1) {
+      val dxName = CwlDxName.fromDecodedName(targetId.frag)
+      val fullDxName = if (!dxName.getDecodedParts.startsWith(parent)) {
+        dxName.pushDecodedNamespaces(parent)
+      } else {
+        dxName
+      }
+      if (fullDxName.numParts == 1) {
         targetId.name
       } else {
-        val (process, step) = dxName.popDecodedNamespace()
+        val (process, step) = fullDxName.popDecodedNamespace()
         s"${process}#${step.toString}"
       }
     }
