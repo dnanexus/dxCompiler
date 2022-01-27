@@ -3,6 +3,7 @@
 ## in develop
 
 * Command file is now echoed to stderr rather than stdout
+* Adds support for publishing global workflows from WDL workflows; see [documentation](https://github.com/dnanexus/dxCompiler/blob/develop/doc/ExpertOptions.md#publishing-global-workflows)
 
 ## 2.8.3 2022-01-07
 
