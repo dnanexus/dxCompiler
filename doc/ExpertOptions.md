@@ -1612,7 +1612,9 @@ For better execution stability and to reduce dependence on third-party infrastru
 
 For better portability across projects where the workflow will be run, hard-coding instance types using the key `dx_instance_type` should be avoided for global workflows. You should specify runtime resources using numeric requirements for memory / disk / CPU and compile WDL workflows with the flag `-instanceTypeSelection dynamic`. This option ensures that instance types for jobs will always be selected at runtime, based on the actual instance types available in the runtime project. While this option can result in longer runtimes, it is better for portability because it will never attempt to start a job on an instance type that is not supported.
 
-For informational purposes, include a reference to a git repo commit containing the original source code in the `developerNotes` metadata field (see above example how to update developer notes).
+For informational purposes, include a reference to a git repo commit containing the original workflow source code in the `developerNotes` metadata field (see above example how to update developer notes).
+
+Grant appropriate permissions to users authorized to run the global workflow the dependencies of the  global workflow that are not bundled with the global workflow.  These include credentials for external docker registries, DNAnexus apps called within the workflow, and other dependencies discussed in the [Limitations section](#global-workflows-limitations)
 
 ## Limitations
 
