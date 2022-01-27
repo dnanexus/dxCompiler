@@ -1604,7 +1604,7 @@ dx api globalworkflow-<workflow name> update '{"title":"<new title>", "summary":
 
 See [Limitations](#limitations) below for more details on which dependencies of the workflow will be automatically included in the global workflow.
 
-## Recommendations
+## Global Workflows Recommendations
 
 Avoid storing credentials (passwords, keys, etc.) in the source code of the global workflow, as authorized users will have permission to download (via `dx get`) and view all dxCompiler-generated applets used in the global workflow.
 
