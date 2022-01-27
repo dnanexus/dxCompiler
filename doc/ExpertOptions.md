@@ -1628,7 +1628,7 @@ Some dependencies of the original workflow will be automatically included in the
 - Docker images that are stored as platform files
 
 Some dependencies of the original workflow will not be automatically included in the global workflow, so the user may need additional permissions to access and run the workflow. These include
-- Native apps included in the workflow via `dxni` (user needs permission to use the apps, which can be granted by running `dx add users <app> <user or org>` if you are a developer of the app)
+- Publicly inaccessible  DNAnexus apps included in the workflow via `dxni`.   User must have permission to run such  apps, which should be granted with `dx add users <app> <user or org>` by apps' developers.
 - Platform files referenced in workflow parameters (e.g. default or suggested inputs) or in the workflow body (user needs access to the files)
 - Credentials file for a private Docker registry (user needs access to the file)
 - Docker images in external registries, or dynamically specified at runtime (these will be pulled at runtime)
