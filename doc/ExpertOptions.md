@@ -33,6 +33,8 @@ dxCompiler takes a pipeline written in WDL and statically compiles it to an equi
   * [Getting WDL sources](#getting-wdl-sources)
 - [Recompilation](#recompilation)
 - [Publishing global workflows](#publishing-global-workflows)
+  * [Recommendations] [#global-workflows-recommendations]
+  * [Limitations] [#global-workflows-limitations]
 
 # Getting started
 
