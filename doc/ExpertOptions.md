@@ -1627,7 +1627,7 @@ Some dependencies of the original workflow will be automatically included in the
 - Native applets included in the workflow via `dxni`
 - Docker images that are stored as platform files
 
-Some dependencies of the original workflow will not be automatically included in the global workflow, i.e. the user may need additional permissions to access them. These include
+Some dependencies of the original workflow will not be automatically included in the global workflow, so the user may need additional permissions to access and run the workflow. These include
 - Native apps included in the workflow via `dxni` (user needs permission to use the apps, which can be granted by running `dx add users <app> <user or org>` if you are a developer of the app)
 - Platform files referenced in workflow parameters (e.g. default or suggested inputs) or in the workflow body (user needs access to the files)
 - Credentials file for a private Docker registry (user needs access to the file)
