@@ -1618,7 +1618,7 @@ Grant appropriate permissions to users authorized to run the global workflow the
 
 ## Limitations
 
-Publishing a dxCompiler workflow as a global workflow is currently only supported for WDL.
+Publishing a dxCompiler-generated workflow as a global workflow is currently only supported for WDL.
 
 The global workflow will currently only support a single region (matching the region in which the original workflow was compiled).
 
