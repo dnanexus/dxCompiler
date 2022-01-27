@@ -340,17 +340,6 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
     }
   }
 
-  it should "translate cwl file inputs II" in {
-    val cwlCode = pathFromBasename("input_file", "count-lines3-wf.cwl.json")
-    val inputs = pathFromBasename("input_file", "count-lines3_input.json")
-    val args = List(cwlCode.toString, "--locked", "--inputs", inputs.toString) ++ cFlags
-    val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessfulCompileIR]
-    val dxInputsFile = inputs.getParent.resolve(FileUtils.replaceFileSuffix(inputs, ".dx.json"))
-    val jsInputs = JsUtils.jsFromFile(dxInputsFile).asJsObject.fields
-    jsInputs.size shouldBe 1
-  }
-
   it should "translate cwl inputs with default file value" in {
     val cwlCode = pathFromBasename("input_file", "bool-empty-inputbinding.cwl.json")
     val inputs = pathFromBasename("input_file", "bool-empty-inputbinding_input.json")

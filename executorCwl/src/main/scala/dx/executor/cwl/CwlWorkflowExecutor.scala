@@ -23,6 +23,7 @@ import dx.cwl.{
   CwlAny,
   CwlArray,
   CwlBoolean,
+  CwlMulti,
   CwlOptional,
   CwlRecord,
   CwlType,
@@ -465,7 +466,6 @@ case class CwlWorkflowExecutor(workflow: Workflow,
                   stepInput,
                   fileResolver = jobMeta.fileResolver
               )
-              println(s"eval ${CwlUtils.prettyFormatValue(selfValue, verbose = true)}")
               dxName -> (stepInput, eval.evaluate(stepInput.valueFrom.get,
                                                   cwlType,
                                                   EvaluatorContext(selfValue, evalInputs),
@@ -488,17 +488,32 @@ case class CwlWorkflowExecutor(workflow: Workflow,
                 case inp => inp.cwlType
               }
               .getOrElse(sourceType)
-            try {
-              dxName -> (stepInput, sourceValue.coerceTo(cwlType))
-            } catch {
-              case cause: Throwable =>
-                throw new Exception(
-                    s"""effective type ${sourceType} of stepInput ${stepInput.name} value 
-                       |${sourceValue} to parameter ${dxName} is not coercible to expected type 
-                       |${cwlType}""".stripMargin.replaceAll("\n", " "),
-                    cause
-                )
-            }
+            val (callType, callValue) =
+              try {
+                cwlType match {
+                  case CwlAny =>
+                    // if the process input has type Any but the step input is a more specific type,
+                    // the call input type needs to be Any so that the value will be serialized as a
+                    // hash
+                    (CwlAny, sourceValue)
+                  case _: CwlMulti =>
+                    // if the process input has multiple allowed types but the step input is a more
+                    // specific type, coerce the value but leave the call input type as CwlMulti
+                    // so that the value will be serialized as a hash
+                    val (_, coercedValue) = sourceValue.coerceTo(cwlType)
+                    (cwlType, coercedValue)
+                  case _ => sourceValue.coerceTo(cwlType)
+                }
+              } catch {
+                case cause: Throwable =>
+                  throw new Exception(
+                      s"""effective type ${sourceType} of stepInput ${stepInput.name} value 
+                         |${sourceValue} to parameter ${dxName} is not coercible to expected type 
+                         |${cwlType}""".stripMargin.replaceAll("\n", " "),
+                      cause
+                  )
+              }
+            dxName -> (stepInput, (callType, callValue))
           }
       }
       if (logger.isVerbose) {

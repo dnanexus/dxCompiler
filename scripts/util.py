@@ -576,8 +576,8 @@ def run_executable(
     instance_type=DEFAULT_INSTANCE_TYPE,
     expected_failures=None,
 ):
-    test_inputs |= []
-    expected_failures |= set()
+    test_inputs = test_inputs or []
+    expected_failures = expected_failures or set()
 
     def once(i):
         try:
