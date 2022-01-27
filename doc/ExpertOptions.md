@@ -1618,7 +1618,7 @@ For informational purposes, include a reference to a git repo commit containing 
 
 Grant appropriate permissions to users authorized to run the global workflow the dependencies of the  global workflow that are not bundled with the global workflow.  These include credentials for external docker registries, DNAnexus apps called within the workflow, and other dependencies discussed in the [Limitations section](#global-workflows-limitations)
 
-## Limitations
+## Global Workflows Limitations
 
 Publishing a dxCompiler-generated workflow as a global workflow is currently only supported for WDL.
 
