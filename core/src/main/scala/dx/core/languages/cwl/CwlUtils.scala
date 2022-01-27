@@ -366,7 +366,7 @@ object CwlUtils {
           (schemaType, ObjectValue(values.to(SeqMap)))
         case _ =>
           throw new Exception(
-              s"cannot convert ${name.getOrElse("IR")} value ${value} to WDL value"
+              s"cannot convert ${name.getOrElse("IR")} value ${value} to CWL value"
           )
       }
     }
