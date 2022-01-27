@@ -1604,7 +1604,7 @@ See [Limitations](#limitations) below for more details on which dependencies of 
 
 ## Recommendations
 
-Avoid storing credentials (passwords, keys, etc.) in the source code of the global workflow, as authorized users will have permission to download (via `dx get`) and view any applets and their data referenced in the global workflow.
+Avoid storing credentials (passwords, keys, etc.) in the source code of the global workflow, as authorized users will have permission to download (via `dx get`) and view all dxCompiler-generated applets used in the global workflow.
 
 Use simple data types in inputs and outputs of global workflows for better usability on the platform.
 
