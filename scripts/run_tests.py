@@ -24,9 +24,24 @@ import util
 here = os.path.dirname(sys.argv[0])
 top_dir = os.path.dirname(os.path.abspath(here))
 test_dir = os.path.join(os.path.abspath(top_dir), "test")
+default_instance_type = "mem1_ssd1_v2_x4"
 
+git_revision = subprocess.check_output(
+    ["git", "describe", "--always", "--dirty", "--tags"]
+).strip()
 test_files = {}
 
+# these tests generally have syntax errors and are expected to fail at the compile step
+test_compilation_failing = {
+    "import_passwd",
+}
+
+# these tests generally have missing inputs and are expected to fail at the run step
+test_run_failing = {
+    "null-expression2-tool.0",
+}
+
+# these tests are expected to fail at runtime
 expected_failure = {
     "bad_status",
     "bad_status2",
@@ -53,10 +68,22 @@ expected_failure = {
     "cond-wf-006_nojs.1",
     "cond-wf-012_nojs",
     "fail-unconnected",
-    "apps_1014"
+    "apps_1014",
+    "echo-tool.1",
+    "echo-tool.2",
+    "glob-path-error",
+    "networkaccess2",
+    "timelimit",
+    "timelimit2",
+    "timelimit4",
+    "record-in-format.1",
+    "record-in-format.2",
+    "record-in-format.3",
+    "record-in-secondaryFiles-missing-wf",
+    "null-expression2-tool.1",
+    "timelimit-wf",
+    "timelimit4-wf",
 }
-
-test_compilation_failing = {"import_passwd"}
 
 wdl_v1_list = [
     # calling native dx applets/apps
@@ -420,15 +447,15 @@ cromwell_tests_list = [
     "passingfiles",
     "referencingpreviousinputsandoutputs",
     "engine_functions",
-    #"string_interpolation_optional",  # pending wdlTools 170
-    #"none_literal",  # pending wdlTools 170
+    # "string_interpolation_optional",  # pending wdlTools 170
+    # "none_literal",  # pending wdlTools 170
     "sub_workflow_interactions_scatter",
     "sub_workflow_one_output_import",
     "sub_workflow_var_refs",
     "sub_workflow_var_refs_import",
-    #"globbingBehavior",  # pending dxCompiler 87
-    #"object_access",  # pending wdlTools 171
-    #"read_write_json",  # pending wdlTools 171
+    # "globbingBehavior",  # pending dxCompiler 87
+    # "object_access",  # pending wdlTools 171
+    # "read_write_json",  # pending wdlTools 171
     "no_task_no_output_delete",
     "if_then_else_expressions",
     "sub_workflow_no_output_block_import",
@@ -485,7 +512,8 @@ cwl_cromwell_tests_list = [
     "cwl_stdout_expression",
     # "scatter-wf1", # APPS-834 Could not find linking information 
     # "cwl_three_step", # APPS-834 AppInternalError: workflow does not contain a tool 
-    # "cwl_three_step_caller_wf" # APPS-834 AppInternalError: workflow does not contain a tool (raised from calling cwl_three_step)
+    # "cwl_three_step_caller_wf" # APPS-834 AppInternalError: workflow does not contain a tool
+    #                              (raised from calling cwl_three_step)
 ]
 
 # these are tests that take a long time to run
@@ -561,6 +589,22 @@ test_upload_wait = {
 # use the applet's default instance type rather than the default (mem1_ssd1_x4)
 test_instance_type = ["diskspace_exhauster"]
 
+
+# Read a JSON file
+def read_json_file(path):
+    with open(path, "r") as fd:
+        data = fd.read()
+        d = json.loads(data)
+        return d
+
+
+def verify_json_file(path):
+    try:
+        read_json_file(path)
+    except Exception:
+        raise RuntimeError("Error verifying JSON file {}".format(path))
+
+
 # Search a WDL file with a python regular expression.
 # Note this is not 100% accurate.
 #
@@ -617,15 +661,30 @@ def get_cwl_json_metadata(filename, tname):
         # the id in a packed CWL file is always "main" so we use the test name instead
         if doc["class"] == "Workflow":
             return TestMetaData(name=tname, kind="workflow")
-        elif doc["class"] == "CommandLineTool":
+        else:
             return TestMetaData(name=tname, kind="applet")
     elif "$graph" in doc:
-        for proc in doc["$graph"]:
-            if proc["id"] == "#main":
-                if proc["class"] == "Workflow":
-                    return TestMetaData(name=tname, kind="workflow")
-                else:
+        main_proc = None
+        if len(doc["$graph"]) == 1:
+            main_proc = doc["$graph"][0]
+        else:
+            wf_procs = []
+            for proc in doc["$graph"]:
+                if proc["id"] in ("main", "#main"):
+                    main_proc = proc
                     break
+                elif proc["class"] == "Workflow":
+                    wf_procs.append(proc)
+
+            if main_proc is None:
+                if len(wf_procs) == 1:
+                    main_proc = wf_procs[0]
+                else:
+                    raise Exception("no process has ID 'main' and there are multiple Workflow processes")
+
+        if main_proc:
+            kind = "workflow" if main_proc["class"] == "Workflow" else "applet"
+            return TestMetaData(name=tname, kind=kind)
 
     raise RuntimeError("{} is not a valid CWL workflow test".format(filename))
 
@@ -645,7 +704,7 @@ def register_test(dir_path, tname, ext):
     elif ext == ".cwl.json":
         metadata = get_cwl_json_metadata(source_file, tname)
     elif ext == ".cwl":
-         metadata = get_cwl_metadata(source_file, tname)
+        metadata = get_cwl_metadata(source_file, tname)
     else:
         raise RuntimeError("unsupported file type {}".format(ext))
     desc = TestDesc(
@@ -661,7 +720,7 @@ def register_test(dir_path, tname, ext):
     # Verify the input file, and add it (if it exists)
     test_input = os.path.join(dir_path, tname + "_input.json")
     if os.path.exists(test_input):
-        util.verify_json_file(test_input)
+        verify_json_file(test_input)
         desc.raw_input.append(test_input)
         desc.dx_input.append(os.path.join(dir_path, tname + "_input.dx.json"))
         desc.results.append(os.path.join(dir_path, tname + "_results.json"))
@@ -676,7 +735,7 @@ def register_test(dir_path, tname, ext):
     while True:
         test_input = os.path.join(dir_path, tname + "_input{}.json".format(i))
         if os.path.exists(test_input):
-            util.verify_json_file(test_input)
+            verify_json_file(test_input)
             desc.raw_input.append(test_input)
             desc.dx_input.append(
                 os.path.join(dir_path, tname + "_input{}.dx.json".format(i))
@@ -704,10 +763,12 @@ def read_json_file_maybe_empty(path):
     if not os.path.exists(path):
         return {}
     else:
-        return util.read_json_file(path)
+        return read_json_file(path)
 
 
 def find_test_from_exec(exec_obj):
+    if isinstance(exec_obj, str):
+        return exec_obj
     dx_desc = exec_obj.describe()
     exec_name = dx_desc["name"].split(" ")[0]
     for tname, desc in test_files.items():
@@ -1055,7 +1116,7 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
             try:
                 # may fail if the lists contain mutliple types of values
                 return list(sorted(seq))
-            except:
+            except Exception:
                 d = dict((str(x), x) for x in seq)
                 sorted_keys = list(sorted(d.keys()))
                 return [d[k] for k in sorted_keys]
@@ -1140,7 +1201,7 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
             return True
 
         return compare_values(expected_val, result, field_name1)
-    except:
+    except Exception:
         traceback.print_exc()
         return False
 
@@ -1151,7 +1212,7 @@ def get_checksum(contents, algo):
         m.update(contents)
         checksum = m.digest()
         return f"{algo}${checksum}"
-    except:
+    except Exception:
         print("python does not support digest algorithm {}".format(algo))
         return None
 
@@ -1170,38 +1231,67 @@ def lookup_dataobj(tname, project, folder):
         return objs[0]["id"]
     return None
 
-# Build executable for test.
+
+# Build a workflow.
 #
-# tname             Test name
-# project           Destination project on platform
-# folder            Destination folder on platform
-# version_id        dxCompiler version
-# compiler_flags    Additional dxCompiler flags
+# wf             workflow name
+# classpath      java classpath needed for running compilation
+# folder         destination folder on the platform
 def build_test(tname, project, folder, version_id, compiler_flags):
     desc = test_files[tname]
     print("build {} {}".format(desc.kind, desc.name))
     print("Compiling {} to a {}".format(desc.source_file, desc.kind))
-    # Both static and dynamic instance type selection should work,
+    # both static and dynamic instance type selection should work,
     # so we can test them at random
-    compiler_flags += [
+    instance_type_selection = random.choice(["static", "dynamic"])
+    cmdline = [
+        "java",
+        "-jar",
+        os.path.join(top_dir, "dxCompiler-{}.jar".format(version_id)),
+        "compile",
+        desc.source_file,
+        "-force",
+        "-folder",
+        folder,
+        "-project",
+        project.get_id(),
         "-instanceTypeSelection",
-        random.choice(["static", "dynamic"])
+        instance_type_selection
     ]
     if "manifest" in desc.source_file:
-        compiler_flags.append("-useManifests")
-    return util.build_executable(desc.source_file, project, folder, top_dir, version_id, compiler_flags)
+        cmdline.append("-useManifests")
+    cmdline += compiler_flags
+    print(" ".join(cmdline))
+    try:
+        oid = subprocess.check_output(cmdline).strip()
+    except subprocess.CalledProcessError as cpe:
+        print(f"error compiling {desc.source_file}\n  stdout: {cpe.stdout}\n  stderr: {cpe.stderr}")
+        raise
+    return oid.decode("ascii")
+
 
 def ensure_dir(path):
     print("making sure that {} exists".format(path))
     if not os.path.exists(path):
         os.makedirs(path)
 
+
 def wait_for_completion(test_exec_objs):
     print("awaiting completion ...")
     successes = []
     failures = []
     for i, exec_obj in test_exec_objs:
+        if exec_obj is None:
+            continue
         tname = find_test_from_exec(exec_obj)
+        expect_run_failure = tname in test_run_failing or "{}.{}".format(tname, i) in test_run_failing
+        if expect_run_failure:
+            if exec_obj is None:
+                successes.append((i, exec_obj, False))
+            else:
+                failures.append((tname, exec_obj))
+            continue
+
         desc = test_files[tname]
         try:
             exec_obj.wait_on_done()
@@ -1216,6 +1306,74 @@ def wait_for_completion(test_exec_objs):
                 failures.append((tname, exec_obj))
     print("tools execution completed")
     return successes, failures
+
+
+# Run [workflow] on several inputs, return the analysis ID.
+def run_executable(
+    project, test_folder, tname, oid, debug_flag, delay_workspace_destruction, instance_type=default_instance_type
+):
+    desc = test_files[tname]
+
+    def once(i):
+        try:
+            if tname in test_defaults or i < 0:
+                print("  with empty input")
+                inputs = {}
+            else:
+                print("  with input file: {}".format(desc.dx_input[i]))
+                inputs = read_json_file(desc.dx_input[i])
+            project.new_folder(test_folder, parents=True)
+            if desc.kind == "workflow":
+                exec_obj = dxpy.DXWorkflow(project=project.get_id(), dxid=oid)
+                run_kwargs = {"ignore_reuse_stages": ["*"]}
+            elif desc.kind == "applet":
+                exec_obj = dxpy.DXApplet(project=project.get_id(), dxid=oid)
+                run_kwargs = {"ignore_reuse": True}
+            else:
+                raise RuntimeError("Unknown kind {}".format(desc.kind))
+
+            if debug_flag:
+                run_kwargs["debug"] = {
+                    "debugOn": ["AppError", "AppInternalError", "ExecutionError"]
+                }
+                run_kwargs["allow_ssh"] = ["*"]
+
+            if delay_workspace_destruction:
+                run_kwargs["delay_workspace_destruction"] = True
+            if instance_type:
+                run_kwargs["instance_type"] = instance_type
+
+            return exec_obj.run(
+                inputs,
+                project=project.get_id(),
+                folder=test_folder,
+                name="{} {}".format(desc.name, git_revision),
+                **run_kwargs,
+            )
+        except Exception as e:
+            print("exception message={}".format(e))
+            return None
+
+    def run(i):
+        for _ in range(1, 5):
+            retval = once(i)
+            if retval is not None:
+                return retval
+            print("Sleeping for 5 seconds before trying again")
+            time.sleep(5)
+        else:
+            if tname in test_run_failing or "{}.{}".format(tname, i) in test_run_failing:
+                print("Analysis {}.{} failed as expected".format(desc.name, i))
+                return None
+            else:
+                raise RuntimeError("running workflow")
+
+    n = len(desc.dx_input)
+    if n == 0:
+        return [(0, run(-1))]
+    else:
+        return [(i, run(i)) for i in range(n)]
+
 
 def extract_outputs(tname, exec_obj) -> dict:
     desc = test_files[tname]
@@ -1239,7 +1397,7 @@ def extract_outputs(tname, exec_obj) -> dict:
 
 
 def run_test_subset(
-    project, runnable, test_folder, debug_flag, delay_workspace_destruction, delay_run_errors
+    project, runnable, test_folder, debug_flag, delay_workspace_destruction, delay_run_errors, delay_verification_errors
 ):
     # Run the workflows
     test_exec_objs = []
@@ -1250,22 +1408,15 @@ def run_test_subset(
         if tname in test_instance_type:
             instance_type = None
         else:
-            instance_type = util.DEFAULT_INSTANCE_TYPE
+            instance_type = default_instance_type
         try:
-            anl = util.run_executable(
-                oid=oid,
-                project=project,
-                test_folder=test_folder,
-                test_name=desc.name,
-                test_inputs=desc.dx_input,
-                debug_flag=debug_flag,
-                delay_workspace_destruction=delay_workspace_destruction,
-                instance_type=instance_type
+            anl = run_executable(
+                project, test_folder, tname, oid, debug_flag, delay_workspace_destruction, instance_type
             )
             test_exec_objs.extend(anl)
         except Exception as ex:
             if tname in test_compilation_failing:
-                cprint("Workflow {} execution failed as expected".format(tname))
+                cprint("Workflow {} compilation failed as expected".format(tname))
                 continue
             elif delay_run_errors:
                 cprint(f"Workflow {tname} execution failed", "red")
@@ -1278,7 +1429,7 @@ def run_test_subset(
         write_failed(errors)
         raise RuntimeError(f"failed to run one or more tests {','.join(errors)}")
 
-    print("executions: " + ", ".join([a[1].get_id() for a in test_exec_objs]))
+    print("executions: " + ", ".join([a[1].get_id() for a in test_exec_objs if a[1] is not None]))
 
     # Wait for completion
     successful_executions, failed_executions = wait_for_completion(test_exec_objs)
@@ -1291,7 +1442,7 @@ def run_test_subset(
         test_desc = test_files[tname]
         try:
             exec_outputs = extract_outputs(tname, exec_desc)
-        except:
+        except Exception:
             if tname in expected_failure or "{}.{}".format(tname, i) in expected_failure:
                 print("Analysis {}.{} failed as expected".format(tname, i))
                 return None
@@ -1308,7 +1459,7 @@ def run_test_subset(
             if correct:
                 if tname in expected_failure or "{}.{}".format(tname, i) in expected_failure:
                     cprint(
-                        "Error: analysis {}.{} was expected to fail but its results are valid".format(test_desc.name, i),
+                        f"Error: analysis {test_desc}.{i} was expected to fail but its results are valid",
                         "red"
                     )
                     return tname
@@ -1324,11 +1475,25 @@ def run_test_subset(
                     return tname
 
     failed_verifications = []
+    verification_errors = []
     for i, exec_obj, verify in successful_executions:
         if verify:
-            failed_name = verify_test(exec_obj, i)
+            failed_name = None
+            try:
+                failed_name = verify_test(exec_obj, i)
+            except Exception as e:
+                if delay_verification_errors:
+                    verification_errors.append(e)
+                else:
+                    raise
             if failed_name is not None:
                 failed_verifications.append(failed_name)
+
+    if verification_errors:
+        raise Exception(
+            "Failed to verify one or more results\n"
+            "\n".join(str(e) for e in verification_errors)
+        )
 
     print("-----------------------------")
     print(f"Total tests: {len(test_exec_objs)}")
@@ -1718,6 +1883,12 @@ def main():
         default=False,
     )
     argparser.add_argument(
+        "--delay-verification-errors",
+        help="Verify all results before failing on any errors",
+        action="store_true",
+        default=False
+    )
+    argparser.add_argument(
         "--failed",
         help="Run the tests that failed previously (requires a .failed file in the current directory)",
         action="store_true",
@@ -1860,6 +2031,7 @@ def main():
                 args.debug,
                 args.delay_workspace_destruction,
                 args.delay_run_errors,
+                args.delay_verification_errors
             )
     finally:
         if args.clean:

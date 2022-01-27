@@ -1,54 +1,54 @@
 {
-    "cwlVersion": "v1.2",
-    "class": "Workflow",
-    "steps": [],
-    "inputs": [
-        {
-            "type": "Any",
-            "id": "input1"
-        },
-        {
-            "type": {
-                "type": "array",
-                "items": "Any"
-            },
-            "id": "input2"
-        },
-        {
-            "type": "Any",
-            "id": "input3"
-        }
-    ],
-    "outputs": [
-        {
-            "id": "output1",
-            "type": {
-                "type": "array",
-                "items": "string"
-            },
-            "outputSource": "input1"
-        },
-        {
-            "id": "output2",
-            "type": {
-                "type": "array",
-                "items": "string"
-            },
-            "outputSource": "input2"
-        },
-        {
-            "id": "output3",
-            "type": "string",
-            "outputSource": "input3"
-        }
-    ],
-    "requirements": [
-        {
-            "class": "SubworkflowFeatureRequirement"
-        },
-        {
-            "class": "InlineJavascriptRequirement"
-        }
-    ],
-    "id": "any-type-compat.cwl"
+  "class": "Workflow",
+  "cwlVersion": "v1.2",
+  "id": "any-type-compat",
+  "inputs": [
+    {
+      "id": "input1",
+      "type": "Any"
+    },
+    {
+      "id": "input2",
+      "type": {
+        "items": "Any",
+        "type": "array"
+      }
+    },
+    {
+      "id": "input3",
+      "type": "Any"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "output1",
+      "outputSource": "input1",
+      "type": {
+        "items": "string",
+        "type": "array"
+      }
+    },
+    {
+      "id": "output2",
+      "outputSource": "input2",
+      "type": {
+        "items": "string",
+        "type": "array"
+      }
+    },
+    {
+      "id": "output3",
+      "outputSource": "input3",
+      "type": "string"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "SubworkflowFeatureRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ],
+  "steps": []
 }

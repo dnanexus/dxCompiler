@@ -8,7 +8,6 @@ import dx.core.ir.{Block, DxName, ExecutableLink, ParameterLink, Type, TypeSerde
 import dx.core.languages.Language
 import dx.core.languages.cwl.{
   CwlBlock,
-  CwlBlockInput,
   CwlDxName,
   CwlUtils,
   DxHintSchema,
@@ -35,27 +34,33 @@ import dx.cwl.{
   FileValue,
   HintUtils,
   Identifiable,
+  Identifier,
   InputParameter,
   LinkMergeMethod,
+  LoadListing,
   Loadable,
   NullValue,
   ObjectValue,
+  Parameter,
   Parser,
-  ParserResult,
   PickValueMethod,
+  Process,
   ScatterMethod,
   Workflow,
+  WorkflowInputParameter,
   WorkflowOutputParameter,
   WorkflowStepInput
 }
 import dx.executor.{JobMeta, WorkflowExecutor}
-import dx.util.TraceLevel
+import dx.util.{AddressableFileSource, FileSource, LocalFileSource, TraceLevel}
 import spray.json._
 
 import java.net.URI
 import scala.annotation.tailrec
 
 object CwlWorkflowExecutor {
+  private val nameRegex = "(.+)_frag_stage-.+".r
+
   def create(jobMeta: JobMeta, separateOutputs: Boolean): CwlWorkflowExecutor = {
     // when parsing a packed workflow as a String, we need to use a baseuri -
     // it doesn't matter what it is
@@ -69,23 +74,48 @@ object CwlWorkflowExecutor {
                |${jobMeta.sourceCode}""".stripMargin
         )
     }
-    val wfName = jobMeta.getExecutableAttribute("name") match {
-      case Some(JsString(name)) => name
-      case _                    => throw new Exception("missing executable name")
+    val wfName = jobMeta.getExecutableDetail(Constants.OriginalName) match {
+      case Some(JsString(nameRegex(name))) => name
+      case Some(JsString(name))            => name
+      case _                               => throw new Exception("missing executable name")
     }
-    val workflow =
-      parser.parseString(jobMeta.sourceCode, defaultMainFrag = Some(wfName)) match {
-        case ParserResult(Some(wf: Workflow), _, _, _) => wf
-        case other =>
-          throw new Exception(s"expected CWL document to contain a Workflow, not ${other}")
+    val parserResult = parser.parseString(jobMeta.sourceCode)
+    // A CWL workflow may contain nested workflows, and we may be executing the top-level workflow
+    // or one nested at any level. Here we find all (sub-)workflows with a matching name and
+    // simplify them, which makes them comparable. This is necessary because the same workflow may
+    // be imported multiple times, and as long as two workflows are identical we don't care which
+    // version we execute. We also track the full id of the workflow because we will need this to
+    // fully specify the target step when launching the target applet.
+    val (workflow, parentId) = parserResult.document.values
+      .foldLeft(Map.empty[Process, Identifier]) {
+        case (accu, wf: Workflow) if wf.name == wfName =>
+          accu + (CwlUtils.simplifyProcess(wf) -> wf.id.get)
+        case (accu, _) => accu
       }
-    CwlWorkflowExecutor(workflow, jobMeta, separateOutputs)
+      .toVector match {
+      case Vector((wf: Workflow, id: Identifier)) => (wf, id)
+      case Vector() =>
+        parserResult.mainProcess match {
+          case Some(wf: Workflow) => (wf, wf.id.get)
+          case _ =>
+            throw new Exception(s"expected CWL document to contain a workflow named ${wfName}")
+        }
+      case _ =>
+        throw new Exception(
+            s"CWL document contains multiple workflows with name ${wfName}"
+        )
+    }
+    CwlWorkflowExecutor(workflow, parentId, jobMeta, separateOutputs)
   }
 }
 
-case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOutputs: Boolean)
+case class CwlWorkflowExecutor(workflow: Workflow,
+                               parentId: Identifier,
+                               jobMeta: JobMeta,
+                               separateOutputs: Boolean)
     extends WorkflowExecutor[CwlBlock](jobMeta, separateOutputs) {
   private val logger = jobMeta.logger
+  private lazy val parent = CwlDxName.fromDecodedName(parentId.frag).getDecodedParts
 
   override val executorName: String = "dxExecutorCwl"
 
@@ -95,39 +125,93 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
     }
   }
 
+  // gets the listing for a folder - if the folder does not exist, returns an empty listing
+  private def getFolderListing(uri: String, recursive: Boolean): Vector[FileSource] = {
+    val fs =
+      try {
+        jobMeta.fileResolver.resolveDirectory(uri)
+      } catch {
+        case _: Throwable => return Vector()
+      }
+    if (!fs.isDirectory) {
+      throw new Exception(s"Directory-type input is not a directory: ${fs}")
+    }
+    if (fs.exists && fs.isListable) {
+      fs.listing(recursive)
+    } else {
+      Vector()
+    }
+  }
+
+  // creates a listing of VFile/VFolders from a nested listing of FileSources
+  private def createListing(value: Vector[FileSource]): Vector[PathValue] = {
+    value.map {
+      case fs: AddressableFileSource if fs.isDirectory && fs.isListable =>
+        val items = createListing(fs.listing())
+        VFolder(fs.address, listing = Some(items))
+      case fs: AddressableFileSource if fs.isDirectory => VFolder(fs.address)
+      case fs: LocalFileSource                         => VFile(fs.address)
+      case fs: AddressableFileSource                   => VFile(fs.address)
+    }
+  }
+
   override protected def evaluateInputs(
       jobInputs: Map[DxName, (Type, Value)]
   ): Map[DxName, (Type, Value)] = {
     // this might be the input for the entire workflow or just a subblock
     val inputs = jobMeta.blockPath match {
       case Vector() =>
+        val workflowInputs: Map[DxName, WorkflowInputParameter] =
+          workflow.inputs.map(param => CwlDxName.fromSourceName(param.name) -> param).toMap
         if (logger.isVerbose) {
           logger.trace(
               s"""input parameters:
-                 |${workflow.inputs
-                   .map { inp =>
-                     s"  ${CwlUtils.prettyFormatType(inp.cwlType)} ${inp.name}"
+                 |${workflowInputs
+                   .map {
+                     case (name, inp) =>
+                       s"  ${CwlUtils.prettyFormatType(inp.cwlType)} ${name}"
                    }
                    .mkString("\n")}""".stripMargin
           )
         }
-        jobInputs
+        jobInputs.map {
+          case (name, (irType, file: VFile))
+              if workflowInputs(name).loadContents && file.contents.isEmpty =>
+            name -> (irType, file
+              .copy(contents = Some(jobMeta.fileResolver.resolve(file.uri).readString)))
+          case (name, (irType, dir: VFolder))
+              if workflowInputs(name).loadListing != LoadListing.No && dir.listing.isEmpty =>
+            val listing = createListing(
+                getFolderListing(dir.uri,
+                                 recursive = workflowInputs(name).loadListing == LoadListing.Deep)
+            )
+            name -> (irType, dir.copy(listing = Some(listing)))
+          case i => i
+        }
       case path =>
         val block: CwlBlock = Block.getSubBlockAt(CwlBlock.createBlocks(workflow), path)
         val inputTypes = block.inputs.map {
+          case RequiredBlockInput(name, param: Parameter with Loadable) =>
+            name -> (CwlUtils.toIRType(param.cwlType), param.loadContents, param.loadListing)
           case RequiredBlockInput(name, param) =>
-            name -> CwlUtils.toIRType(param.cwlType)
+            name -> (CwlUtils.toIRType(param.cwlType), false, LoadListing.No)
+          case OptionalBlockInput(name, param: Parameter with Loadable) =>
+            val irType = Type.ensureOptional(CwlUtils.toIRType(param.cwlType))
+            name -> (irType, param.loadContents, param.loadListing)
           case OptionalBlockInput(name, param) =>
-            val irType = CwlUtils.toIRType(param.cwlType)
-            name -> Type.ensureOptional(irType)
+            name -> (Type.ensureOptional(CwlUtils.toIRType(param.cwlType)), false, LoadListing.No)
         }.toMap
         if (logger.isVerbose) {
           logger.trace(
               s"""input parameters:
                  |${inputTypes
                    .map {
-                     case (name, irType) =>
+                     case (name, (irType, true, _)) =>
                        s"  ${TypeSerde.toString(irType)} ${name}"
+                     case (name, (irType, _, loadListing)) if loadListing != LoadListing.No =>
+                       s"  ${TypeSerde.toString(irType)} ${name} (loadListing=${loadListing})"
+                     case (name, (irType, _, _)) =>
+                       s"  ${TypeSerde.toString(irType)} ${name} (loadContents=true)"
                    }
                    .mkString("\n")}""".stripMargin
           )
@@ -135,8 +219,18 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
         jobInputs.collect {
           case (name, (_, v)) if inputTypes.contains(name) =>
             // coerce the input value to the target type
-            val irType = inputTypes(name)
-            name -> (irType, coerceTo(v, irType))
+            val (irType, loadContents, loadListing) = inputTypes(name)
+            val irValue = coerceTo(v, irType) match {
+              case file: VFile if loadContents && file.contents.isEmpty =>
+                file.copy(contents = Some(jobMeta.fileResolver.resolve(file.uri).readString))
+              case dir: VFolder if loadListing != LoadListing.No && dir.listing.isEmpty =>
+                val listing = createListing(
+                    getFolderListing(dir.uri, recursive = loadListing == LoadListing.Deep)
+                )
+                dir.copy(listing = Some(listing))
+              case value => value
+            }
+            name -> (irType, irValue)
           case i => i
         }
     }
@@ -146,7 +240,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
              |${inputs
                .map {
                  case (name, (t, v)) =>
-                   s"${TypeSerde.toString(t)} ${name} = ${ValueSerde.toString(v)}}"
+                   s"${TypeSerde.toString(t)} ${name} = ${ValueSerde.toString(v, verbose = true)}}"
                }
                .mkString("\n")}""".stripMargin
       )
@@ -328,7 +422,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
         .map {
           case (cwlType, NullValue) if stepInput.default.isDefined =>
             // use the default if the value produced by source is null
-            (cwlType, stepInput.default.get.coerceTo(cwlType)._2)
+            stepInput.default.get.coerceTo(cwlType)
           case other => other
         }
         .orElse(Option.when(stepInput.default.isDefined) {
@@ -365,8 +459,17 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
           if (stepInput.valueFrom.isDefined) {
             try {
               val cwlType = runInputs.get(dxName).map(_.cwlType).getOrElse(sourceType)
-              val ctx = EvaluatorContext(sourceValue, evalInputs)
-              dxName -> (stepInput, eval.evaluate(stepInput.valueFrom.get, cwlType, ctx))
+              val selfValue = EvaluatorContext.finalizeInputValue(
+                  sourceValue,
+                  sourceType,
+                  stepInput,
+                  fileResolver = jobMeta.fileResolver
+              )
+              println(s"eval ${CwlUtils.prettyFormatValue(selfValue, verbose = true)}")
+              dxName -> (stepInput, eval.evaluate(stepInput.valueFrom.get,
+                                                  cwlType,
+                                                  EvaluatorContext(selfValue, evalInputs),
+                                                  coerce = true))
             } catch {
               case cause: Throwable =>
                 throw new Exception(
@@ -386,7 +489,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
               }
               .getOrElse(sourceType)
             try {
-              dxName -> (stepInput, (cwlType, sourceValue.coerceTo(cwlType)._2))
+              dxName -> (stepInput, sourceValue.coerceTo(cwlType))
             } catch {
               case cause: Throwable =>
                 throw new Exception(
@@ -405,6 +508,23 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
       stepInputValues
     }
 
+    /*
+     * Format an identifier as the target workflow step to execute. A target is in the format
+     * {proc}#{path}, where proc is the top-level process name and path is the path from the
+     * top-level process to the target. For example, if the top-level workflow is 'wf' and we want
+     * to run a step in a sub-workflow, it might be 'wf#step1/nested/step2'.
+     */
+    private lazy val target: String = {
+      val targetId = block.target.id.get
+      val dxName = CwlDxName.fromDecodedName(targetId.frag).pushDecodedNamespaces(parent)
+      if (dxName.numParts == 1) {
+        targetId.name
+      } else {
+        val (process, step) = dxName.popDecodedNamespace()
+        s"${process}#${step.toString}"
+      }
+    }
+
     private def launchCall(
         callInputs: Map[DxName, (CwlType, CwlValue)],
         nameDetail: Option[String] = None,
@@ -420,7 +540,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
       // add the target step for app(let) calls
       val targetCallInput = executableLink.dxExec match {
         case _: DxWorkflow => Map.empty
-        case _             => Map(Target -> (TargetParam.dxType, VString(block.target.name)))
+        case _             => Map(Target -> (TargetParam.dxType, VString(target)))
       }
       val callInputsIR = CwlUtils.toIR(callInputs) ++ targetCallInput
       val requirementEvaluator = RequirementEvaluator(
@@ -438,7 +558,9 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
         try {
           val request = requirementEvaluator.parseInstanceType
           val instanceType = jobMeta.instanceTypeDb.apply(request)
-          logger.traceLimited(s"Precalculated instance type for ${step.run.name}: ${instanceType}")
+          logger.traceLimited(
+              s"Precalculated instance type for ${step.run.name}: ${instanceType}"
+          )
           Some(instanceType)
         } catch {
           case e: Throwable =>
@@ -491,7 +613,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
       assert(step.when.nonEmpty)
       val stepInputs = evaluateCallStepInputs(isConditinal = true)
       val ctx = EvaluatorContext(inputs = createEvalInputs(stepInputs.values.toMap))
-      val (_, cond) = eval.evaluate(step.when.get, CwlBoolean, ctx)
+      val (_, cond) = eval.evaluate(step.when.get, CwlBoolean, ctx, coerce = true)
       cond match {
         case BooleanValue(true) =>
           launchCall(stepInputs, block.index).map {
@@ -611,9 +733,17 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
           case (dxName, param) =>
             val (stepInput, (sourceType, sourceValue)) = allStepInputs(dxName)
             if (stepInput.valueFrom.isDefined) {
-              val ctx = EvaluatorContext(sourceValue, evalInputs)
+              val selfValue = EvaluatorContext.finalizeInputValue(
+                  sourceValue,
+                  sourceType,
+                  stepInput,
+                  fileResolver = jobMeta.fileResolver
+              )
               try {
-                dxName -> eval.evaluate(stepInput.valueFrom.get, param.cwlType, ctx)
+                dxName -> eval.evaluate(stepInput.valueFrom.get,
+                                        param.cwlType,
+                                        EvaluatorContext(selfValue, evalInputs),
+                                        coerce = true)
               } catch {
                 case cause: Throwable =>
                   throw new Exception(
@@ -630,7 +760,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
                 param.cwlType
               }
               try {
-                dxName -> (cwlType, sourceValue.coerceTo(cwlType)._2)
+                dxName -> sourceValue.coerceTo(cwlType)
               } catch {
                 case cause: Throwable =>
                   throw new Exception(
@@ -661,7 +791,7 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
                   case ((param, t), v) => param -> (t, v)
                 }
               val ctx = EvaluatorContext(inputs = createEvalInputs(allInputs))
-              val (_, cond) = eval.evaluate(step.when.get, CwlBoolean, ctx)
+              val (_, cond) = eval.evaluate(step.when.get, CwlBoolean, ctx, coerce = true)
               cond match {
                 case BooleanValue(true) =>
                   (execAccu :+ launchScatterJob(jobValues), skipAccu)
@@ -744,14 +874,17 @@ case class CwlWorkflowExecutor(workflow: Workflow, jobMeta: JobMeta, separateOut
       jobInputs: Map[DxName, (Type, Value)]
   ): CwlBlockContext = {
     val block = Block.getSubBlockAt(CwlBlock.createBlocks(workflow), jobMeta.blockPath)
-    val env: Map[DxName, (CwlType, CwlValue)] = block.inputs.map {
-      case inp: CwlBlockInput if jobInputs.contains(inp.name) =>
-        val (_, irValue) = jobInputs(inp.name)
-        inp.name -> CwlUtils.fromIRValue(irValue, inp.cwlType, inp.name.decoded, isInput = true)
-      case OptionalBlockInput(name, param) =>
-        name -> (param.cwlType, NullValue)
-      case param =>
-        throw new Exception(s"missing required input ${param.name}")
+    val env: Map[DxName, (CwlType, CwlValue)] = block.inputs.map { inp =>
+      (inp, DxName.lookup(inp.name, jobInputs)) match {
+        case (_, Some((_, (_, irValue)))) =>
+          inp.name -> CwlUtils.fromIRValueWithType(irValue,
+                                                   inp.cwlType,
+                                                   inp.name.decoded,
+                                                   isInput = true)
+        case (OptionalBlockInput(name, param), None) =>
+          name -> (param.cwlType, NullValue)
+        case _ => throw new Exception(s"missing required input ${inp.name}")
+      }
     }.toMap
     CwlBlockContext(block, CwlEnv(env))
   }

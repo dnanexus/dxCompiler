@@ -1,24 +1,18 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
-  "id": "pass-unconnected",
+  "id": "count-lines19-wf",
   "inputs": [
     {
-      "default": "hello inp1",
-      "id": "inp1",
-      "type": "string"
-    },
-    {
-      "default": "hello inp2",
-      "id": "inp2",
-      "type": "string"
+      "id": "file1",
+      "type": "File"
     }
   ],
   "outputs": [
     {
-      "id": "out",
-      "outputSource": "step1/out",
-      "type": "string"
+      "id": "count_output",
+      "outputSource": "step1/output",
+      "type": "int"
     }
   ],
   "requirements": [
@@ -34,37 +28,39 @@
       "id": "step1",
       "in": [
         {
-          "id": "in",
-          "source": "inp1"
-        },
-        {
-          "id": "in2",
-          "source": "inp2"
+          "id": "file1",
+          "linkMerge": "merge_nested",
+          "source": [
+            "file1"
+          ]
         }
       ],
       "out": [
-        "out"
+        "output"
       ],
       "run": {
-        "baseCommand": "echo",
+        "baseCommand": "wc",
         "class": "CommandLineTool",
-        "id": "echo-tool.cwl",
+        "id": "wc3-tool.cwl",
         "inputs": [
           {
-            "id": "in",
+            "id": "file1",
             "inputBinding": {},
-            "type": "Any"
+            "type": {
+              "items": "File",
+              "type": "array"
+            }
           }
         ],
         "outputs": [
           {
-            "id": "out",
+            "id": "output",
             "outputBinding": {
-              "glob": "out.txt",
+              "glob": "output.txt",
               "loadContents": true,
-              "outputEval": "$(self[0].contents)"
+              "outputEval": "${\n  var s = self[0].contents.split(/\\r?\\n/);\n  return parseInt(s[s.length-2]);\n}\n"
             },
-            "type": "string"
+            "type": "int"
           }
         ],
         "requirements": [
@@ -72,7 +68,7 @@
             "class": "InlineJavascriptRequirement"
           }
         ],
-        "stdout": "out.txt"
+        "stdout": "output.txt"
       }
     }
   ]

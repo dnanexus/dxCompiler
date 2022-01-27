@@ -45,11 +45,11 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
   lazy val evaluator: Evaluator = Evaluator.create(requirements, hints)
   private lazy val runtime: Runtime = CwlUtils.createRuntime(workerPaths)
   private lazy val evaluatorContext: EvaluatorContext =
-    CwlUtils.createEvaluatorContext(runtime,
-                                    env,
+    CwlUtils.createEvaluatorContext(env = env,
                                     inputParameters = inputParameters,
                                     inputDir = workerPaths.getInputFilesDir().asJavaPath,
-                                    fileResolver = fileResolver)
+                                    fileResolver = fileResolver,
+                                    runtime = runtime)
 
   /**
     * Returns the last (i.e. highest priority) Requirement or Hint matching
@@ -122,7 +122,7 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
   private def evaluateNumeric(value: CwlValue,
                               roundingMode: BigDecimal.RoundingMode.RoundingMode,
                               scale: Option[Long] = None): Long = {
-    (evaluator.evaluate(value, CwlNumericTypes, evaluatorContext)._2, scale) match {
+    (evaluator.evaluate(value, CwlNumericTypes, evaluatorContext, coerce = true)._2, scale) match {
       case (num: NumericValue, Some(d)) =>
         (num.decimalValue / d).setScale(0, roundingMode).toLongExact
       case (num: NumericValue, None) =>

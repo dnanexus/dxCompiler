@@ -1,68 +1,68 @@
 {
-    "class": "Workflow",
-    "cwlVersion": "v1.2",
-    "inputs": [],
-    "outputs": [
+  "class": "Workflow",
+  "cwlVersion": "v1.2",
+  "id": "count-lines9-wf-noET",
+  "inputs": [],
+  "outputs": [
+    {
+      "id": "wc_output",
+      "outputSource": "step1/output",
+      "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "SubworkflowFeatureRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step1",
+      "in": [
         {
-            "type": "File",
-            "outputSource": "step1/output",
-            "id": "wc_output"
+          "default": {
+            "class": "File",
+            "location": "whale.txt"
+          },
+          "id": "file1"
         }
-    ],
-    "steps": [
-        {
-            "run": {
-                "class": "CommandLineTool",
-                "inputs": [
-                    {
-                        "type": "File",
-                        "id": "file1"
-                    }
-                ],
-                "outputs": [
-                    {
-                        "type": "File",
-                        "outputBinding": {
-                            "glob": "output"
-                        },
-                        "id": "output"
-                    }
-                ],
-                "baseCommand": [
-                    "wc",
-                    "-l"
-                ],
-                "stdin": "$(inputs.file1.path)",
-                "stdout": "output",
-                "requirements": [
-                    {
-                        "class": "InlineJavascriptRequirement"
-                    }
-                ],
-                "id": "count-lines9-wf-noET.cwl@step_step1@wc-tool.cwl"
+      ],
+      "out": [
+        "output"
+      ],
+      "run": {
+        "baseCommand": [
+          "wc",
+          "-l"
+        ],
+        "class": "CommandLineTool",
+        "id": "wc-tool.cwl",
+        "inputs": [
+          {
+            "id": "file1",
+            "type": "File"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "output",
+            "outputBinding": {
+              "glob": "output"
             },
-            "in": [
-                {
-                    "default": {
-                        "class": "File",
-                        "location": "whale.txt"
-                    },
-                    "id": "file1"
-                }
-            ],
-            "out": [
-                "output"
-            ],
-            "id": "step1"
-        }
-    ],
-    "requirements": [
-        {
-            "class": "SubworkflowFeatureRequirement"
-        },
-        {
+            "type": "File"
+          }
+        ],
+        "requirements": [
+          {
             "class": "InlineJavascriptRequirement"
-        }
-    ],
-    "id": "count-lines9-wf-noET.cwl"
+          }
+        ],
+        "stdin": "$(inputs.file1.path)",
+        "stdout": "output"
+      }
+    }
+  ]
 }

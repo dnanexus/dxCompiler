@@ -1,75 +1,75 @@
 {
-    "cwlVersion": "v1.2",
-    "$graph": [
-        {
-            "id": "echo",
-            "class": "CommandLineTool",
-            "inputs": {
-                "echo_in1": {
-                    "type": "string",
-                    "inputBinding": {}
-                },
-                "echo_in2": {
-                    "type": "string",
-                    "inputBinding": {}
-                }
-            },
-            "outputs": {
-                "echo_out": {
-                    "type": "string",
-                    "outputBinding": {
-                        "glob": "step1_out",
-                        "loadContents": true,
-                        "outputEval": "$(self[0].contents)"
-                    }
-                }
-            },
-            "baseCommand": "echo",
-            "arguments": [
-                "-n",
-                "foo"
-            ],
-            "stdout": "step1_out"
+  "$graph": [
+    {
+      "arguments": [
+        "-n",
+        "foo"
+      ],
+      "baseCommand": "echo",
+      "class": "CommandLineTool",
+      "id": "echo",
+      "inputs": {
+        "echo_in1": {
+          "inputBinding": {},
+          "type": "string"
         },
-        {
-            "id": "main",
-            "class": "Workflow",
-            "inputs": {
-                "inp1": "string[]",
-                "inp2": "string[]"
-            },
-            "requirements": [
-                {
-                    "class": "ScatterFeatureRequirement"
-                }
-            ],
-            "steps": {
-                "step1": {
-                    "scatter": [
-                        "echo_in1",
-                        "echo_in2"
-                    ],
-                    "scatterMethod": "dotproduct",
-                    "in": {
-                        "echo_in1": "inp1",
-                        "echo_in2": "inp2"
-                    },
-                    "out": [
-                        "echo_out"
-                    ],
-                    "run": "#echo"
-                }
-            },
-            "outputs": [
-                {
-                    "id": "out",
-                    "outputSource": "step1/echo_out",
-                    "type": {
-                        "type": "array",
-                        "items": "string"
-                    }
-                }
-            ]
+        "echo_in2": {
+          "inputBinding": {},
+          "type": "string"
         }
-    ]
+      },
+      "outputs": {
+        "echo_out": {
+          "outputBinding": {
+            "glob": "step1_out",
+            "loadContents": true,
+            "outputEval": "$(self[0].contents)"
+          },
+          "type": "string"
+        }
+      },
+      "stdout": "step1_out"
+    },
+    {
+      "class": "Workflow",
+      "id": "main",
+      "inputs": {
+        "inp1": "string[]",
+        "inp2": "string[]"
+      },
+      "outputs": [
+        {
+          "id": "out",
+          "outputSource": "step1/echo_out",
+          "type": {
+            "items": "string",
+            "type": "array"
+          }
+        }
+      ],
+      "requirements": [
+        {
+          "class": "ScatterFeatureRequirement"
+        }
+      ],
+      "steps": {
+        "step1": {
+          "in": {
+            "echo_in1": "inp1",
+            "echo_in2": "inp2"
+          },
+          "out": [
+            "echo_out"
+          ],
+          "run": "#echo",
+          "scatter": [
+            "echo_in1",
+            "echo_in2"
+          ],
+          "scatterMethod": "dotproduct"
+        }
+      }
+    }
+  ],
+  "cwlVersion": "v1.2"
 }

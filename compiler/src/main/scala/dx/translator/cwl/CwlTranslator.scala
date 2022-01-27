@@ -1,15 +1,7 @@
 package dx.translator.cwl
 
 import dx.api.{DxApi, DxProject}
-import dx.core.ir.{
-  Bundle,
-  Callable,
-  InstanceTypeSelection,
-  Type,
-  Value,
-  ValueSerde,
-  Workflow => IRWorkflow
-}
+import dx.core.ir.{Bundle, Callable, InstanceTypeSelection, Type, Value, ValueSerde}
 import dx.core.languages.Language
 import dx.core.languages.Language.Language
 import dx.core.languages.cwl.{CwlBundle, CwlDxName, CwlUtils, DxHintSchema}
@@ -33,7 +25,7 @@ import dx.translator.{
   Translator,
   TranslatorFactory
 }
-import dx.util.{FileSourceResolver, FileUtils, Logger}
+import dx.util.{FileSourceResolver, Logger}
 import org.w3id.cwl.cwl1_2.CWLVersion
 import spray.json._
 
@@ -107,23 +99,6 @@ case class CwlInputTranslator(bundle: Bundle,
         val (_, cwlValue) = CwlUtils.toIRValue(DirectoryValue.deserialize(obj), CwlDirectory)
         ValueSerde.serialize(cwlValue, fileResolver = Some(baseFileResolver), pathsAsObjects = true)
       case _ => rawInput
-    }
-  }
-
-  // CWL packed workflows always use 'main' as the main process name -
-  // this enables CwlInputTranslator to replace it with the filename.
-  // TODO: the right solution to this is to have the pre-processing
-  //  script change #main to #<filename>
-  override protected val mainPrefix: Option[String] = {
-    bundle.primaryCallable match {
-      case Some(wf: IRWorkflow) if wf.name == "main" =>
-        // a packed workflow - use the source file name
-        wf.document match {
-          case CwlSourceCode(source) if source.getFileName.toString.endsWith(".cwl.json") =>
-            Some(FileUtils.changeFileExt(source.getFileName.toString, dropExt = ".cwl.json"))
-          case _ => throw new Exception("expected CwlSourceCode")
-        }
-      case _ => None
     }
   }
 
@@ -219,11 +194,10 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
                       fileResolver: FileSourceResolver,
                       dxApi: DxApi,
                       logger: Logger): Option[Translator] = {
-    // TODO: we need to require that the source file be "packed" before compiling, because
-    //  we cannot include auxiliary files (e.g. a JavaScript or YAML import) with the CWL.
-    //  Then we shouldn't use a base URI and instead let parsing errors due to unsatisfied
-    //  imports (which shouldn't happen) bubble up. We should also print a warning if the
-    //  user tries to specify any import directories for CWL.
+    // TODO: we require that the source file be "packed" before compiling, because we cannot include
+    //  auxiliary files (e.g. a JavaScript or YAML import) with the CWL. Then we shouldn't use a
+    //  base URI and instead let parsing errors due to unsatisfied imports (which shouldn't happen)
+    //  bubble up. We should also print a warning if the user tries to specify any import directories.
     lazy val basePath = fileResolver.localSearchPath match {
       case Vector()     => sourceFile.toAbsolutePath.getParent
       case Vector(path) => path
@@ -255,7 +229,10 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
           return None
       }
     }
-    // CWL file is required to be packed
+    // TODO: in the case of a document with a $graph element, if there are multiple top-level
+    //  processes we first look for a process called 'main', and then we look for a single workflow.
+    //  If we cannot determine the top-level process we fail with an error. We should also add an
+    //  option for the user to specify the process name at compile time.
     val (process, schemas) = parser.parseFile(sourceFile) match {
       case ParserResult(Some(tool: CommandLineTool), _, _, schemas) => (tool, schemas)
       case ParserResult(Some(tool: ExpressionTool), _, _, schemas)  => (tool, schemas)

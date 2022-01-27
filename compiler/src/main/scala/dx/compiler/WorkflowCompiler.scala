@@ -413,7 +413,7 @@ case class WorkflowCompiler(separateOutputs: Boolean,
               (ExecutableCompiler.InputLinksParameter,
                StageInputStatic(Value.VHash(inputLinks.flatten.to(SeqMap)))),
               (ExecutableCompiler.OutputIdParameter,
-               StageInputStatic(Value.VString(workflow.name))),
+               StageInputStatic(Value.VString(workflow.dxName))),
               (ExecutableCompiler.ExtraOutputsParameter, StageInputEmpty),
               (ExecutableCompiler.CallNameParameter, StageInputEmpty)
           )
@@ -714,7 +714,7 @@ case class WorkflowCompiler(separateOutputs: Boolean,
     val isTopLevel = workflow.level == Level.Top
     // required arguments for API call
     val required = Map(
-        "name" -> JsString(workflow.name),
+        "name" -> JsString(workflow.dxName),
         "stages" -> JsArray(stages),
         "details" -> JsObject(details),
         // Sub-workflow are compiled to hidden objects.

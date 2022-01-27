@@ -237,6 +237,42 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       }
     }
 
+    private case class WdlCallEnv(env: Map[DxName, LinkedVar]) extends CallEnv(env) {
+      override protected def create(env: Map[DxName, (Parameter, StageInput)]): CallEnv = {
+        WdlCallEnv(env)
+      }
+
+      /**
+        * Returns the value associated with a name or any of its "ancestors".
+        * For example, if `dxName` is "A.B.C", then we look up "A.B.C", "A.B",
+        * and "A", in that order, and return the first non-empty result.
+        * @example {{{
+        * env = {"p": Pair(1, 2), "p.right": 2}
+        * env.lookup("p.left") -> Pair(1, 2)
+        * env.lookup("p.right") -> 2
+        * }}}
+        * @param dxName fully-qualified name
+        */
+      def lookup(dxName: DxName): Option[(DxName, LinkedVar)] = {
+        env.get(dxName).map((dxName, _)).orElse {
+          if (dxName.numParts > 1) {
+            val (prefix, _) = dxName.popDecodedIdentifier()
+            lookup(prefix)
+          } else {
+            None
+          }
+        }
+      }
+    }
+
+    private object WdlCallEnv {
+      def fromLinkedVars(lvars: Vector[LinkedVar]): CallEnv = {
+        WdlCallEnv(lvars.map {
+          case (parameter, stageInput) => parameter.name -> (parameter, stageInput)
+        }.toMap)
+      }
+    }
+
     /**
       * Represents each workflow input with:
       * 1. Parameter, for type declarations
@@ -680,7 +716,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
     ): (Vector[(Stage, Vector[Callable])], CallEnv) = {
       logger.trace(s"Assembling workflow backbone $wfName")
 
-      val inputEnv: CallEnv = CallEnv.fromLinkedVars(wfInputs)
+      val inputEnv: CallEnv = WdlCallEnv.fromLinkedVars(wfInputs)
 
       val logger2 = logger.withIncTraceIndent()
       logger2.trace(s"inputs: ${inputEnv.keys}")

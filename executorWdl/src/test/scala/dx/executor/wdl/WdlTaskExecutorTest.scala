@@ -139,7 +139,7 @@ private object TaskTestJobMeta {
 // This test module requires being logged in to the platform.
 class WdlTaskExecutorTest extends AnyFlatSpec with Matchers {
   assume(isLoggedIn)
-  private val logger = Logger.Verbose
+  private val logger = Logger.Quiet
   private val dxApi = DxApi()(logger)
   private val unicornInstance = DxInstanceType(
       TaskTestJobMeta.InstanceType,

@@ -1,27 +1,38 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
-  "id": "pass-unconnected",
+  "id": "cond-wf-003_nojs",
   "inputs": [
     {
-      "default": "hello inp1",
-      "id": "inp1",
-      "type": "string"
+      "default": 23,
+      "id": "val",
+      "type": "int"
     },
     {
-      "default": "hello inp2",
-      "id": "inp2",
+      "id": "test",
+      "type": "boolean"
+    },
+    {
+      "default": "Direct",
+      "id": "def",
       "type": "string"
     }
   ],
   "outputs": [
     {
-      "id": "out",
-      "outputSource": "step1/out",
+      "id": "out1",
+      "outputSource": [
+        "step1/out1",
+        "def"
+      ],
+      "pickValue": "first_non_null",
       "type": "string"
     }
   ],
   "requirements": [
+    {
+      "class": "MultipleInputFeatureRequirement"
+    },
     {
       "class": "SubworkflowFeatureRequirement"
     },
@@ -34,35 +45,34 @@
       "id": "step1",
       "in": [
         {
-          "id": "in",
-          "source": "inp1"
+          "id": "in1",
+          "source": "val"
         },
         {
-          "id": "in2",
-          "source": "inp2"
+          "id": "a_new_var",
+          "source": "test"
         }
       ],
       "out": [
-        "out"
+        "out1"
       ],
       "run": {
-        "baseCommand": "echo",
+        "baseCommand": [
+          "echo"
+        ],
         "class": "CommandLineTool",
-        "id": "echo-tool.cwl",
+        "id": "foo.cwl",
         "inputs": [
           {
-            "id": "in",
-            "inputBinding": {},
-            "type": "Any"
+            "id": "in1",
+            "type": "int"
           }
         ],
         "outputs": [
           {
-            "id": "out",
+            "id": "out1",
             "outputBinding": {
-              "glob": "out.txt",
-              "loadContents": true,
-              "outputEval": "$(self[0].contents)"
+              "outputEval": "foo $(inputs.in1)"
             },
             "type": "string"
           }
@@ -71,9 +81,9 @@
           {
             "class": "InlineJavascriptRequirement"
           }
-        ],
-        "stdout": "out.txt"
-      }
+        ]
+      },
+      "when": "$(inputs.a_new_var)"
     }
   ]
 }

@@ -1,18 +1,22 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
-  "id": "io-any-wf",
+  "id": "io-file-default-wf",
   "inputs": [
     {
-      "id": "bar",
-      "type": "Any"
+      "default": {
+        "class": "File",
+        "path": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G0G0V1Q0yzZZZXfx3xPK1B1Z"
+      },
+      "id": "file1",
+      "type": "File"
     }
   ],
   "outputs": [
     {
-      "id": "t1",
-      "outputSource": "step1/t1",
-      "type": "Any"
+      "id": "o",
+      "outputSource": "step1/o",
+      "type": "File"
     }
   ],
   "requirements": [
@@ -28,37 +32,41 @@
       "id": "step1",
       "in": [
         {
-          "id": "bar",
-          "source": "bar"
+          "id": "catfile1",
+          "source": "file1"
         }
       ],
       "out": [
-        "t1"
+        "o"
       ],
       "run": {
-        "baseCommand": "true",
+        "arguments": [
+          "cat",
+          "$(inputs.catfile1.path)"
+        ],
         "class": "CommandLineTool",
-        "id": "io-any-1.cwl",
+        "id": "run",
         "inputs": [
           {
-            "id": "bar",
-            "type": "Any"
+            "id": "catfile1",
+            "type": "File"
           }
         ],
         "outputs": [
           {
-            "id": "t1",
+            "id": "o",
             "outputBinding": {
-              "outputEval": "$(inputs.bar.class || inputs.bar)"
+              "glob": "output"
             },
-            "type": "Any"
+            "type": "File"
           }
         ],
         "requirements": [
           {
             "class": "InlineJavascriptRequirement"
           }
-        ]
+        ],
+        "stdout": "output"
       }
     }
   ]

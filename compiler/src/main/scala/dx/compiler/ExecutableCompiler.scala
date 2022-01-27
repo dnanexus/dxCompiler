@@ -436,6 +436,8 @@ class ExecutableCompiler(extras: Option[Extras],
       summaryToNative(meta2.get("summary"), meta2.get("description"))
     // Merge initial description & extended description
     val description = descriptionToNative(meta2.get("description"), extendedDescription)
+    // store the callable's original name, since the actual app name will be a sanitized version
+    val originalName = Map(Constants.OriginalName -> JsString(callable.name))
     // extract the details to return separately
     val metaDetails = callable.attributes
       .collectFirst {
@@ -447,7 +449,7 @@ class ExecutableCompiler(extras: Option[Extras],
       .getOrElse(Map.empty)
     // get the whatsNew section from the details
     val whatsNew = whatsNewToNative(metaDetails.get("whatsNew"))
-    (metaDefaults ++ meta ++ summary ++ description, metaDetails ++ whatsNew)
+    (metaDefaults ++ meta ++ summary ++ description, originalName ++ metaDetails ++ whatsNew)
   }
 
   protected def delayWorkspaceDestructionToNative: Map[String, JsValue] = {
