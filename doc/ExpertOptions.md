@@ -33,8 +33,8 @@ dxCompiler takes a pipeline written in WDL and statically compiles it to an equi
   * [Getting WDL sources](#getting-wdl-sources)
 - [Recompilation](#recompilation)
 - [Publishing global workflows](#publishing-global-workflows)
-  * [Recommendations] [#global-workflows-recommendations]
-  * [Limitations] [#global-workflows-limitations]
+  * [Global workflow recommendations](#global-workflow-recommendations)
+  * [Global workflow limitations](#global-workflow-limitations)
 
 # Getting started
 
@@ -1604,7 +1604,7 @@ dx api globalworkflow-<workflow name> update '{"title":"<new title>", "summary":
 
 See [Limitations](#limitations) below for more details on which dependencies of the workflow will be automatically included in the global workflow.
 
-## Global Workflows Recommendations
+## Global workflow recommendations
 
 Avoid storing credentials (passwords, keys, etc.) in the source code of the global workflow, as authorized users will have permission to download (via `dx get`) and view all dxCompiler-generated applets used in the global workflow.
 
@@ -1618,7 +1618,7 @@ For informational purposes, include a reference to a git repo commit containing 
 
 Grant appropriate permissions to users authorized to run the global workflow the dependencies of the  global workflow that are not bundled with the global workflow.  These include credentials for external docker registries, DNAnexus apps called within the workflow, and other dependencies discussed in the [Limitations section](#global-workflows-limitations)
 
-## Global Workflows Limitations
+## Global workflow limitations
 
 Publishing a dxCompiler-generated workflow as a global workflow is currently only supported for WDL.
 
