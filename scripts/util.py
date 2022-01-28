@@ -24,6 +24,10 @@ max_num_retries = 5
 # - asset name = "dx{}rt".format(lang.upper())
 languages = ["Wdl", "Cwl"]
 
+DEFAULT_INSTANCE_TYPE = "mem1_ssd1_v2_x4"
+GIT_REVISION = subprocess.check_output(
+    ["git", "describe", "--always", "--dirty", "--tags"]
+).strip()
 
 
 def info(msg, ex=None):
