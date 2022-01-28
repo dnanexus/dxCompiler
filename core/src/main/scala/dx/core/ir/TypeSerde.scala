@@ -338,6 +338,7 @@ object TypeSerde {
       case TInt                         => "int"
       case TFloat                       => "float"
       case TString                      => "string"
+      case TEnum(_)                     => "string"
       case TFile if pathsAreNative      => "file"
       case TDirectory if pathsAreNative => "file"
       case TFile | TDirectory           => "hash"
@@ -357,8 +358,6 @@ object TypeSerde {
         // arrays of primitives translate to e.g. 'array:file' -
         val nativeInnerType = toNativePrimitive(memberType, pathsAreNative)
         (s"array:${nativeInnerType}", !nonEmpty || optional)
-      case TEnum(symbols) =>
-        (toNativePrimitive(TString, pathsAreNative), optional)
       case _ =>
         // everything else is a complex type represented as a hash
         ("hash", optional)
