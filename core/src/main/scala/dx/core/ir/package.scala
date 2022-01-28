@@ -186,10 +186,6 @@ case class StageInputStatic(value: Value) extends StageInput
 case class StageInputStageLink(stageId: DxWorkflowStage, param: Parameter) extends StageInput
 case class StageInputWorkflowLink(param: Parameter) extends StageInput
 case class StageInputArray(stageInputs: Vector[StageInput]) extends StageInput
-// TODO: the following is not supported directly by DNAnexus, but is needed by at least one
-//  CWL conformance test (dynresreq-workflow-stepdefault). We could implement it by making the main
-//  stage input optional and using an additional step input to holds the default value.
-//case class StageInputWithDefault(stageInput: StageInput, default: Value)
 
 /**
   * A stage can call an application or a workflow.

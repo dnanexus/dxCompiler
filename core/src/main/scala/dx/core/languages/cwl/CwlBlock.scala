@@ -145,13 +145,11 @@ object CwlBlockOutput {
 }
 
 /**
-  * A CwlBlock is (currently) a wrapper for a single workflow step. The block inputs
-  * and outputs map directly to the step inputs and outputs, which are derived from
-  * the inputs and outputs of the target process, possibly augmented by the step's
-  * scatter and/or conditional fields.
-  * TODO: bundle ExpressionTools with the next tool or workflow step - currently
-  *  they are their own step because cwltool can only execute a single workflow
-  *  step in isolation.
+  * A CwlBlock is (currently) a wrapper for a single workflow step. The block inputs and outputs map
+  * directly to the step inputs and outputs, which are derived from the inputs and outputs of the
+  * target process, possibly augmented by the step's scatter and/or conditional fields.
+  * TODO: bundle ExpressionTools with the next tool or workflow step - currently they are their own
+  *  step because cwltool can only execute a single workflow step in isolation.
   */
 case class CwlBlock(index: Int,
                     inputs: Vector[CwlBlockInput],

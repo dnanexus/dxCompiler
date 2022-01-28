@@ -172,9 +172,7 @@ object CwlUtils {
 
   def toIRValue(cwlValue: CwlValue, cwlType: CwlType): (Type, Value) = {
     (cwlType, cwlValue) match {
-      case (CwlAny, _) =>
-        // TODO: do we need to keep the type as Any or can we return the inferred type?
-        (TMulti.Any, toIRValue(cwlValue)._2)
+      case (CwlAny, _)          => (TMulti.Any, toIRValue(cwlValue)._2)
       case (CwlNull, NullValue) => (NullSchema, VNull)
       case (CwlNull, _) =>
         throw new Exception("type 'null' only accepts a value of 'null'")

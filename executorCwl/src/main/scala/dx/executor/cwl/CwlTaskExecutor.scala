@@ -69,9 +69,8 @@ object CwlTaskExecutor {
 }
 
 // TODO: add compile-time option for --non-strict
-// TODO: SHA1 checksums are computed for all outputs - we need to add these as
-//  properties on the uploaded files so they can be propagated to downstream
-//  CWL inputs
+// TODO: SHA1 checksums are computed for all outputs - we need to add these as properties on the
+//  uploaded files so they can be propagated to downstream CWL inputs
 case class CwlTaskExecutor(tool: Process,
                            jobMeta: JobMeta,
                            streamFiles: StreamFiles.StreamFiles,
