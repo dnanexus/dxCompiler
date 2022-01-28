@@ -278,7 +278,7 @@ case class WorkflowCompiler(separateOutputs: Boolean,
     Option.when(md.nonEmpty)(s"${headerMd}${md}")
   }
 
-  // TODO: Use templates for Markdown dependency report
+  // TODO: Use SSP templates for Markdown dependency report
 
   // Summarize dependencies that are not bundled for cloning
   // with the workflow for adding to description in Markdown

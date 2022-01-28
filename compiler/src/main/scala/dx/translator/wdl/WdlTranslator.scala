@@ -117,8 +117,6 @@ case class WdlInputTranslator(bundle: Bundle,
 
 /**
   * Compiles WDL to IR.
-  * TODO: remove limitation that two callables cannot have the same name
-  * TODO: rewrite sortByDependencies using a graph data structure
   */
 case class WdlTranslator(doc: TAT.Document,
                          typeAliases: Map[String, WdlTypes.T_Struct],

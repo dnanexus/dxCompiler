@@ -172,9 +172,8 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
   }
 
   it should "catch parsing errors" in {
-    // TODO: due to coercion, an int value is able to be coerced to
-    //  a string, so this doesn't actually throw an exception at
-    //  parse time, though it will throw an exception when the value
+    // TODO: due to coercion, an int value is able to be coerced to a string, so this doesn't
+    //  actually throw an exception at parse time, though it will throw an exception when the value
     //  is not found in the instance type DB
     //    assertThrows[Exception] {
     //      // illegal request format
@@ -305,9 +304,6 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
                           os = Some(Constants.DefaultExecutionEnvironment))
   }
 
-  // TODO: we have requested that v2 instance types be enabled for the staging org -
-  //  this test will break when that happens as the selected instance type should be
-  //  mem1_ssd1_v2_x8
   it should "get required instance type" in {
     val db = InstanceType.createDb(Some(DxApi.get.project("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq")))
     // query: memory=Some(2048) disk=Some(1) diskType=None cores=Some(5) gpu=None  os=None instancetype=None
@@ -326,6 +322,8 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
         None
     )
     val request = runtime.parseInstanceType
+    // TODO: we have requested that v2 instance types be enabled for the staging org - this test
+    //  will break when that happens as the selected instance type should be mem1_ssd1_v2_x8
     db.apply(request).name shouldBe "mem1_ssd1_x8"
   }
 }

@@ -13,7 +13,6 @@ import sys
 import subprocess
 import tempfile
 from termcolor import cprint
-import time
 import traceback
 from typing import List
 import yaml
@@ -143,17 +142,15 @@ wdl_v1_list = [
     "struct_deref",  # APPS-615
     "apps_936",
     "apps_1014",
-
     # manifests
     "simple_manifest",
     "complex_manifest",
     "view_and_count_manifest",
-
     # workflow with output files created by expressions
     "upload_workflow_files",
     "subworkflow_with_task",
     "apps_700",
-    "apps_864"
+    "apps_864",
 ]
 
 wdl_v1_1_list = [
@@ -161,11 +158,10 @@ wdl_v1_1_list = [
     "apps_847_scatter_empty",
     "optional_missing",
     "inputs_provided_optional",
-
     # bug regression tests
     "apps_579_boolean_flag_expr",
     "apps_579_string_substitution_expr",
-    "apps_956_private_var_local"
+    "apps_956_private_var_local",
 ]
 
 # docker image tests
@@ -196,7 +192,6 @@ draft2_test_list = [
     # this test cannot be enabled yet, because we
     # don't yet support overriding task inputs
     # "population",
-
     # multiple library imports in one WDL workflow
     "multiple_imports",
     # subworkflows
@@ -232,11 +227,15 @@ cwl_tools = [
 
 cwl_conformance_tools = [
     os.path.basename(path)[:-9]
-    for path in glob.glob(os.path.join(test_dir, "cwl_conformance", "tools", "*.cwl.json"))
+    for path in glob.glob(
+        os.path.join(test_dir, "cwl_conformance", "tools", "*.cwl.json")
+    )
 ]
 cwl_conformance_workflows = [
     os.path.basename(path)[:-9]
-    for path in glob.glob(os.path.join(test_dir, "cwl_conformance", "workflows", "*.cwl.json"))
+    for path in glob.glob(
+        os.path.join(test_dir, "cwl_conformance", "workflows", "*.cwl.json")
+    )
 ]
 
 # Tests run in continuous integration. We remove the native app test,
@@ -260,9 +259,7 @@ special_flags_list = [
 ]
 
 # these are the examples from the documentation
-doc_tests_list = [
-    "bwa_mem"
-]
+doc_tests_list = ["bwa_mem"]
 
 cromwell_key_error_list = [
     "http_inputs",
@@ -487,7 +484,7 @@ cwl_cromwell_tests_list = [
     # "cwl_format_url", # APPS-961 Could not load extension schema https
     "cwl_glob_sort",
     "cwl_hello",
-    # "cwl_http_inputs", # APPS-961 HTTPS input link is not supported: 
+    # "cwl_http_inputs", # APPS-961 HTTPS input link is not supported:
     #                     Error translating inputs: java.lang.RuntimeException: Unsupported file source .png
     "test_wf",
     "touch",
@@ -505,28 +502,32 @@ cwl_cromwell_tests_list = [
     #                       # Unknown hint https://www.dnanexus.com/cwl#InputResourceRequirement (Should be deprecated)
     # "cwl_inputdir_zero_doesnt_localize", # APPS-1008: Error translating to IR, downcasting failed
     # "cwl_resources", # APPS-961 Could not resolve host: metadata.google.internal
-    # "cwl_restart", # APPS-834 AppInternalError: workflow does not contain a tool 
+    # "cwl_restart", # APPS-834 AppInternalError: workflow does not contain a tool
     "1st-tool",
     "cwl_secondary_files",
     # "cwl_secondary_files_workflow", # APPS-1005 Error creating translator
     "cwl_stdout_expression",
-    # "scatter-wf1", # APPS-834 Could not find linking information 
-    # "cwl_three_step", # APPS-834 AppInternalError: workflow does not contain a tool 
+    # "scatter-wf1", # APPS-834 Could not find linking information
+    # "cwl_three_step", # APPS-834 AppInternalError: workflow does not contain a tool
     # "cwl_three_step_caller_wf" # APPS-834 AppInternalError: workflow does not contain a tool
     #                              (raised from calling cwl_three_step)
 ]
 
 # these are tests that take a long time to run
-long_test_list = [
-    "diskspace_exhauster"  # APPS-749
-]
+long_test_list = ["diskspace_exhauster"]  # APPS-749
 
 medium_test_list = (
     wdl_v1_list + wdl_v1_1_list + docker_test_list + special_flags_list + cwl_tools
 )
 large_test_list = (
-    medium_test_list + draft2_test_list + single_tasks_list + doc_tests_list + long_test_list +
-    cwl_conformance_tools + cwl_conformance_workflows + cromwell_tests_list
+    medium_test_list
+    + draft2_test_list
+    + single_tasks_list
+    + doc_tests_list
+    + long_test_list
+    + cwl_conformance_tools
+    + cwl_conformance_workflows
+    + cromwell_tests_list
 )
 
 manifest_test_list = ("simple_manifest", "complex_manifest", "view_and_count_manifest")
@@ -542,18 +543,13 @@ test_suites = {
     "docs": doc_tests_list,
     "cwl_tools": cwl_conformance_tools,
     "cwl_workflows": cwl_conformance_workflows,
-    'cromwell': cromwell_tests_list,
+    "cromwell": cromwell_tests_list,
     "cwl_cromwell": cwl_cromwell_tests_list,
-    'manifests': manifest_test_list
+    "manifests": manifest_test_list,
 }
 
 # Tests with the reorg flags
-test_reorg = {
-    "dict",
-    "strings",
-    "test_reorg",
-    "test_reorg_no_config"
-}
+test_reorg = {"dict", "strings", "test_reorg", "test_reorg_no_config"}
 test_defaults = set()
 test_unlocked = {
     "array_structs",
@@ -564,15 +560,10 @@ test_unlocked = {
     "path_not_taken",
     "optionals",
     "shapes",
-    "population"
+    "population",
 }
-test_project_wide_reuse = {
-    "add2",
-    "add_many"
-}
-test_separate_outputs = {
-    "localization"
-}
+test_project_wide_reuse = {"add2", "add_many"}
+test_separate_outputs = {"localization"}
 
 test_import_dirs = ["A"]
 TestMetaData = namedtuple("TestMetaData", ["name", "kind"])
@@ -582,28 +573,10 @@ TestDesc = namedtuple(
 )
 
 # Test with -waitOnUpload flag
-test_upload_wait = {
-    "upload_wait"
-}
+test_upload_wait = {"upload_wait"}
 
 # use the applet's default instance type rather than the default (mem1_ssd1_x4)
 test_instance_type = ["diskspace_exhauster"]
-
-
-# Read a JSON file
-def read_json_file(path):
-    with open(path, "r") as fd:
-        data = fd.read()
-        d = json.loads(data)
-        return d
-
-
-def verify_json_file(path):
-    try:
-        read_json_file(path)
-    except Exception:
-        raise RuntimeError("Error verifying JSON file {}".format(path))
-
 
 # Search a WDL file with a python regular expression.
 # Note this is not 100% accurate.
@@ -654,7 +627,7 @@ def get_cwl_metadata(filename, tname):
 
 
 def get_cwl_json_metadata(filename, tname):
-    with open(filename, 'r') as fd:
+    with open(filename, "r") as fd:
         doc = json.load(fd)
 
     if "class" in doc:
@@ -680,7 +653,9 @@ def get_cwl_json_metadata(filename, tname):
                 if len(wf_procs) == 1:
                     main_proc = wf_procs[0]
                 else:
-                    raise Exception("no process has ID 'main' and there are multiple Workflow processes")
+                    raise Exception(
+                        "no process has ID 'main' and there are multiple Workflow processes"
+                    )
 
         if main_proc:
             kind = "workflow" if main_proc["class"] == "Workflow" else "applet"
@@ -829,7 +804,9 @@ def compare_result_file(result, expected_val, field_name, tname, project, verbos
         location = result.get("location", result.get("path", result.get("uri")))
         if isinstance(location, dict) and "$dnanexus_link" in location:
             dxfile = link_to_dxfile(location, project)
-            location = os.path.join(dxfile.describe()["folder"], dxfile.describe()["name"])
+            location = os.path.join(
+                dxfile.describe()["folder"], dxfile.describe()["name"]
+            )
             if contents is None:
                 contents = download_dxfile(dxfile)
         size = result.get("size")
@@ -843,7 +820,9 @@ def compare_result_file(result, expected_val, field_name, tname, project, verbos
         raise Exception("unsupported file value {}".format(result))
 
     expected_location = expected_val.get("location", expected_val.get("path"))
-    expected_basename = expected_val.get("basename", os.path.basename(expected_location) if expected_location else None)
+    expected_basename = expected_val.get(
+        "basename", os.path.basename(expected_location) if expected_location else None
+    )
     if expected_basename:
         basename = os.path.basename(location) if location else None
         if basename != expected_basename:
@@ -853,7 +832,7 @@ def compare_result_file(result, expected_val, field_name, tname, project, verbos
                     "Field {} should have location/path with basename ({}), actual = ({})".format(
                         field_name, expected_basename, basename
                     ),
-                    "red"
+                    "red",
                 )
             return False
 
@@ -865,7 +844,7 @@ def compare_result_file(result, expected_val, field_name, tname, project, verbos
                 "Field {} should have contents ({}), actual = ({})".format(
                     field_name, expected_val["contents"], result.get("contents")
                 ),
-                "red"
+                "red",
             )
         return False
 
@@ -879,7 +858,7 @@ def compare_result_file(result, expected_val, field_name, tname, project, verbos
                     "Field {} should have size ({}), actual: ({})".format(
                         field_name, expected_val["size"], size
                     ),
-                    "red"
+                    "red",
                 )
             return False
 
@@ -892,7 +871,7 @@ def compare_result_file(result, expected_val, field_name, tname, project, verbos
                     "Field {} should have checksum ({}), actual = ({})".format(
                         field_name, expected_checksum, checksum
                     ),
-                    "red"
+                    "red",
                 )
             return False
 
@@ -906,14 +885,19 @@ def compare_result_file(result, expected_val, field_name, tname, project, verbos
                     "Field {} should have secondaryFiles ({}), actual = ({})".format(
                         field_name, expected_secondary_files, secondary_files
                     ),
-                    "red"
+                    "red",
                 )
             return False
         # TODO: sort both lists rather than doing an all-by-all comparison
         for expected in expected_secondary_files:
             for actual in secondary_files:
                 if compare_result_path(
-                        actual, expected, "{}.secondaryFiles".format(field_name), tname, project, verbose=False
+                    actual,
+                    expected,
+                    "{}.secondaryFiles".format(field_name),
+                    tname,
+                    project,
+                    verbose=False,
                 ):
                     secondary_files.remove(actual)
                     break
@@ -924,7 +908,7 @@ def compare_result_file(result, expected_val, field_name, tname, project, verbos
                         "Field {} is missing secondaryFile ({}) from ({})".format(
                             field_name, expected, secondary_files
                         ),
-                        "red"
+                        "red",
                     )
                 return False
 
@@ -959,7 +943,9 @@ def list_dx_folder(project, folder):
 # expected_val is a serialized CwlDirectory (an object with class="Directory")
 # result may be a serialized CwlDirectory or a serialized VFolder (an object
 #   with type="Folder")
-def compare_result_directory(result, expected_val, field_name, tname, project, verbose=True):
+def compare_result_directory(
+    result, expected_val, field_name, tname, project, verbose=True
+):
     location = result.get("location", result.get("path", result.get("uri")))
     if location is not None and location.startswith("dx://"):
         project_id, folder = location[5:].split(":")
@@ -975,7 +961,9 @@ def compare_result_directory(result, expected_val, field_name, tname, project, v
         basename = None
 
     expected_location = expected_val.get("location", expected_val.get("path"))
-    expected_basename = expected_val.get("basename", os.path.basename(expected_location) if expected_location else None)
+    expected_basename = expected_val.get(
+        "basename", os.path.basename(expected_location) if expected_location else None
+    )
     if expected_basename:
         if basename != expected_basename:
             if verbose:
@@ -984,7 +972,7 @@ def compare_result_directory(result, expected_val, field_name, tname, project, v
                     "Field {} should have location/path with basename ({}), actual = ({})".format(
                         field_name, expected_basename, basename
                     ),
-                    "red"
+                    "red",
                 )
             return False
 
@@ -995,7 +983,12 @@ def compare_result_directory(result, expected_val, field_name, tname, project, v
         elif not folder:
             if verbose:
                 cprint("Analysis {} gave unexpected results".format(tname), "red")
-                cprint("Field {} is missing a folder, actual = ({})".format(field_name, result), "red")
+                cprint(
+                    "Field {} is missing a folder, actual = ({})".format(
+                        field_name, result
+                    ),
+                    "red",
+                )
             return False
         else:
             listing = list_dx_folder(project, folder)
@@ -1007,13 +1000,18 @@ def compare_result_directory(result, expected_val, field_name, tname, project, v
                     "Field {} should have listing ({}), actual = ({})".format(
                         field_name, expected_listing, listing
                     ),
-                    "red"
+                    "red",
                 )
             return False
         for expected in expected_listing:
             for actual in listing:
                 if compare_result_path(
-                        actual, expected, "{}.listing".format(field_name), tname, project, verbose=False
+                    actual,
+                    expected,
+                    "{}.listing".format(field_name),
+                    tname,
+                    project,
+                    verbose=False,
                 ):
                     listing.remove(actual)
                     break
@@ -1024,7 +1022,7 @@ def compare_result_directory(result, expected_val, field_name, tname, project, v
                         "Field {} is missing item ({}) from listing ({})".format(
                             field_name, expected, listing
                         ),
-                        "red"
+                        "red",
                     )
                 return False
 
@@ -1035,9 +1033,13 @@ def compare_result_path(result, expected_val, field_name, tname, project, verbos
     cls = result.get("class", result.get("type"))
     expected_cls = expected_val.get("class", expected_val.get("type"))
     if cls == "File" and expected_cls == "File":
-        return compare_result_file(result, expected_val, field_name, tname, project, verbose)
+        return compare_result_file(
+            result, expected_val, field_name, tname, project, verbose
+        )
     elif cls in {"Directory", "Folder"} and expected_cls in {"Directory", "Folder"}:
-        return compare_result_directory(result, expected_val, field_name, tname, project, verbose)
+        return compare_result_directory(
+            result, expected_val, field_name, tname, project, verbose
+        )
     else:
         cprint("Analysis {} gave unexpected results".format(tname), "red")
         cprint(
@@ -1098,9 +1100,12 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
         # 4. remove the tuples with None values from each list
         # 5. turn each list of tuples back into a list of dicts.
         def sort_dicts(a, b):
-            all_keys = list(sorted(
-                set(k for x in a for k in x.keys()) | set(k for x in b for k in x.keys())
-            ))
+            all_keys = list(
+                sorted(
+                    set(k for x in a for k in x.keys())
+                    | set(k for x in b for k in x.keys())
+                )
+            )
             return (
                 [
                     dict((k, v) for k, v in x if v is not None)
@@ -1109,7 +1114,7 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
                 [
                     dict((k, v) for k, v in x if v is not None)
                     for x in list(sorted([(k, j.get(k)) for k in all_keys] for j in b))
-                ]
+                ],
             )
 
         def sort_maybe_mixed(seq):
@@ -1160,12 +1165,18 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
                     return True
 
             if isinstance(expected, dict) and (
-                expected.get("class") in {"File", "Directory"} or
-                expected.get("type") in {"File", "Folder"}
+                expected.get("class") in {"File", "Directory"}
+                or expected.get("type") in {"File", "Folder"}
             ):
-                return compare_result_path(actual, expected, field_name1, tname, project)
+                return compare_result_path(
+                    actual, expected, field_name1, tname, project
+                )
 
-            if isinstance(actual, dict) and actual.get("type") == "File" and "uri" in actual:
+            if (
+                isinstance(actual, dict)
+                and actual.get("type") == "File"
+                and "uri" in actual
+            ):
                 actual = actual["uri"]
             if isinstance(actual, dict) and "$dnanexus_link" in actual:
                 actual = download_dxfile(link_to_dxfile(actual, project))
@@ -1183,7 +1194,9 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
                     )
                     return False
                 for k in expected_keys:
-                    if not compare_values(expected[k], actual[k], "{}[{}]".format(field, k)):
+                    if not compare_values(
+                        expected[k], actual[k], "{}[{}]".format(field, k)
+                    ):
                         return False
                 else:
                     return True
@@ -1232,7 +1245,7 @@ def lookup_dataobj(tname, project, folder):
     return None
 
 
-# Build a workflow.
+# Build executable for test.
 #
 # wf             workflow name
 # classpath      java classpath needed for running compilation
@@ -1243,31 +1256,12 @@ def build_test(tname, project, folder, version_id, compiler_flags):
     print("Compiling {} to a {}".format(desc.source_file, desc.kind))
     # both static and dynamic instance type selection should work,
     # so we can test them at random
-    instance_type_selection = random.choice(["static", "dynamic"])
-    cmdline = [
-        "java",
-        "-jar",
-        os.path.join(top_dir, "dxCompiler-{}.jar".format(version_id)),
-        "compile",
-        desc.source_file,
-        "-force",
-        "-folder",
-        folder,
-        "-project",
-        project.get_id(),
-        "-instanceTypeSelection",
-        instance_type_selection
-    ]
+    compiler_flags += ["-instanceTypeSelection", random.choice(["static", "dynamic"])]
     if "manifest" in desc.source_file:
-        cmdline.append("-useManifests")
-    cmdline += compiler_flags
-    print(" ".join(cmdline))
-    try:
-        oid = subprocess.check_output(cmdline).strip()
-    except subprocess.CalledProcessError as cpe:
-        print(f"error compiling {desc.source_file}\n  stdout: {cpe.stdout}\n  stderr: {cpe.stderr}")
-        raise
-    return oid.decode("ascii")
+        compiler_flags.append("-useManifests")
+    return util.build_executable(
+        desc.source_file, project, folder, top_dir, version_id, compiler_flags
+    )
 
 
 def ensure_dir(path):
@@ -1284,7 +1278,9 @@ def wait_for_completion(test_exec_objs):
         if exec_obj is None:
             continue
         tname = find_test_from_exec(exec_obj)
-        expect_run_failure = tname in test_run_failing or "{}.{}".format(tname, i) in test_run_failing
+        expect_run_failure = (
+            tname in test_run_failing or "{}.{}".format(tname, i) in test_run_failing
+        )
         if expect_run_failure:
             if exec_obj is None:
                 successes.append((i, exec_obj, False))
@@ -1298,7 +1294,10 @@ def wait_for_completion(test_exec_objs):
             print("Analysis {}.{} succeeded".format(desc.name, i))
             successes.append((i, exec_obj, True))
         except DXJobFailureError:
-            if tname in expected_failure or "{}.{}".format(tname, i) in expected_failure:
+            if (
+                tname in expected_failure
+                or "{}.{}".format(tname, i) in expected_failure
+            ):
                 print("Analysis {}.{} failed as expected".format(desc.name, i))
                 successes.append((i, exec_obj, False))
             else:
@@ -1306,73 +1305,6 @@ def wait_for_completion(test_exec_objs):
                 failures.append((tname, exec_obj))
     print("tools execution completed")
     return successes, failures
-
-
-# Run [workflow] on several inputs, return the analysis ID.
-def run_executable(
-    project, test_folder, tname, oid, debug_flag, delay_workspace_destruction, instance_type=default_instance_type
-):
-    desc = test_files[tname]
-
-    def once(i):
-        try:
-            if tname in test_defaults or i < 0:
-                print("  with empty input")
-                inputs = {}
-            else:
-                print("  with input file: {}".format(desc.dx_input[i]))
-                inputs = read_json_file(desc.dx_input[i])
-            project.new_folder(test_folder, parents=True)
-            if desc.kind == "workflow":
-                exec_obj = dxpy.DXWorkflow(project=project.get_id(), dxid=oid)
-                run_kwargs = {"ignore_reuse_stages": ["*"]}
-            elif desc.kind == "applet":
-                exec_obj = dxpy.DXApplet(project=project.get_id(), dxid=oid)
-                run_kwargs = {"ignore_reuse": True}
-            else:
-                raise RuntimeError("Unknown kind {}".format(desc.kind))
-
-            if debug_flag:
-                run_kwargs["debug"] = {
-                    "debugOn": ["AppError", "AppInternalError", "ExecutionError"]
-                }
-                run_kwargs["allow_ssh"] = ["*"]
-
-            if delay_workspace_destruction:
-                run_kwargs["delay_workspace_destruction"] = True
-            if instance_type:
-                run_kwargs["instance_type"] = instance_type
-
-            return exec_obj.run(
-                inputs,
-                project=project.get_id(),
-                folder=test_folder,
-                name="{} {}".format(desc.name, git_revision),
-                **run_kwargs,
-            )
-        except Exception as e:
-            print("exception message={}".format(e))
-            return None
-
-    def run(i):
-        for _ in range(1, 5):
-            retval = once(i)
-            if retval is not None:
-                return retval
-            print("Sleeping for 5 seconds before trying again")
-            time.sleep(5)
-        else:
-            if tname in test_run_failing or "{}.{}".format(tname, i) in test_run_failing:
-                print("Analysis {}.{} failed as expected".format(desc.name, i))
-                return None
-            else:
-                raise RuntimeError("running workflow")
-
-    n = len(desc.dx_input)
-    if n == 0:
-        return [(0, run(-1))]
-    else:
-        return [(i, run(i)) for i in range(n)]
 
 
 def extract_outputs(tname, exec_obj) -> dict:
@@ -1397,7 +1329,13 @@ def extract_outputs(tname, exec_obj) -> dict:
 
 
 def run_test_subset(
-    project, runnable, test_folder, debug_flag, delay_workspace_destruction, delay_run_errors, delay_verification_errors
+    project,
+    runnable,
+    test_folder,
+    debug_flag,
+    delay_workspace_destruction,
+    delay_run_errors,
+    delay_verification_errors,
 ):
     # Run the workflows
     test_exec_objs = []
@@ -1410,8 +1348,16 @@ def run_test_subset(
         else:
             instance_type = default_instance_type
         try:
-            anl = run_executable(
-                project, test_folder, tname, oid, debug_flag, delay_workspace_destruction, instance_type
+            anl = util.run_executable(
+                oid=oid,
+                project=project,
+                test_folder=test_folder,
+                test_name=desc.name,
+                test_inputs=desc.dx_input,
+                debug_flag=debug_flag,
+                delay_workspace_destruction=delay_workspace_destruction,
+                instance_type=instance_type,
+                expected_failures=test_run_failing,
             )
             test_exec_objs.extend(anl)
         except Exception as ex:
@@ -1429,7 +1375,10 @@ def run_test_subset(
         write_failed(errors)
         raise RuntimeError(f"failed to run one or more tests {','.join(errors)}")
 
-    print("executions: " + ", ".join([a[1].get_id() for a in test_exec_objs if a[1] is not None]))
+    print(
+        "executions: "
+        + ", ".join([a[1].get_id() for a in test_exec_objs if a[1] is not None])
+    )
 
     # Wait for completion
     successful_executions, failed_executions = wait_for_completion(test_exec_objs)
@@ -1443,7 +1392,10 @@ def run_test_subset(
         try:
             exec_outputs = extract_outputs(tname, exec_desc)
         except Exception:
-            if tname in expected_failure or "{}.{}".format(tname, i) in expected_failure:
+            if (
+                tname in expected_failure
+                or "{}.{}".format(tname, i) in expected_failure
+            ):
                 print("Analysis {}.{} failed as expected".format(tname, i))
                 return None
             else:
@@ -1457,21 +1409,36 @@ def run_test_subset(
                     correct = False
                     break
             if correct:
-                if tname in expected_failure or "{}.{}".format(tname, i) in expected_failure:
+                if (
+                    tname in expected_failure
+                    or "{}.{}".format(tname, i) in expected_failure
+                ):
                     cprint(
                         f"Error: analysis {test_desc}.{i} was expected to fail but its results are valid",
-                        "red"
+                        "red",
                     )
                     return tname
                 else:
                     print("Analysis {}.{} results are valid".format(test_desc.name, i))
                     return None
             else:
-                if tname in expected_failure or "{}.{}".format(tname, i) in expected_failure:
-                    print("Analysis {}.{} results are invalid as expected".format(test_desc.name, i))
+                if (
+                    tname in expected_failure
+                    or "{}.{}".format(tname, i) in expected_failure
+                ):
+                    print(
+                        "Analysis {}.{} results are invalid as expected".format(
+                            test_desc.name, i
+                        )
+                    )
                     return None
                 else:
-                    cprint("Error: analysis {}.{} results are invalid".format(test_desc.name, i), "red")
+                    cprint(
+                        "Error: analysis {}.{} results are invalid".format(
+                            test_desc.name, i
+                        ),
+                        "red",
+                    )
                     return tname
 
     failed_verifications = []
@@ -1559,7 +1526,9 @@ def choose_tests(name):
 # directory. A test file must have some support files.
 def register_all_tests(verbose: bool) -> None:
     for root, dirs, files in os.walk(test_dir):
-        if os.path.basename(root).endswith("_ignore") or os.path.basename(root).endswith("_notimplemented"):
+        if os.path.basename(root).endswith("_ignore") or os.path.basename(
+            root
+        ).endswith("_notimplemented"):
             continue
         for t_file in files:
             if t_file.endswith(".wdl") or t_file.endswith(".cwl"):
@@ -1788,7 +1757,9 @@ def compile_tests_to_project(
         if oid is None:
             c_flags = compiler_flags[:] + compiler_per_test_flags(tname)
             try:
-                oid = build_test(tname, trg_proj, specific_applet_folder, version_id, c_flags)
+                oid = build_test(
+                    tname, trg_proj, specific_applet_folder, version_id, c_flags
+                )
             except subprocess.CalledProcessError:
                 if tname in test_compilation_failing:
                     print("Workflow {} compilation failed as expected".format(tname))
@@ -1818,9 +1789,9 @@ def main():
     argparser.add_argument(
         "--build",
         help="force: remove existing dxCompiler JAR and rebuild; only: only build dxCompiler, "
-             "do not run any tests; if not specified, dxCompiler will be built only if there is "
-             "not already a dxCompiler asset in the project",
-        default=None
+        "do not run any tests; if not specified, dxCompiler will be built only if there is "
+        "not already a dxCompiler asset in the project",
+        default=None,
     )
     argparser.add_argument(
         "--compile-only",
@@ -1886,13 +1857,13 @@ def main():
         "--delay-verification-errors",
         help="Verify all results before failing on any errors",
         action="store_true",
-        default=False
+        default=False,
     )
     argparser.add_argument(
         "--failed",
         help="Run the tests that failed previously (requires a .failed file in the current directory)",
         action="store_true",
-        default=False
+        default=False,
     )
     argparser.add_argument(
         "--locked",
@@ -1972,8 +1943,14 @@ def main():
     test_dict = {"aws:us-east-1": project.name + ":" + base_folder}
 
     # build the dxCompiler jar file, only on us-east-1
-    assets = util.build(project, base_folder, version_id, top_dir, test_dict,
-                        force=args.build is not None)
+    assets = util.build(
+        project,
+        base_folder,
+        version_id,
+        top_dir,
+        test_dict,
+        force=args.build is not None,
+    )
     print("assets: {}".format(assets))
 
     if args.build == "only":
@@ -2031,7 +2008,7 @@ def main():
                 args.debug,
                 args.delay_workspace_destruction,
                 args.delay_run_errors,
-                args.delay_verification_errors
+                args.delay_verification_errors,
             )
     finally:
         if args.clean:

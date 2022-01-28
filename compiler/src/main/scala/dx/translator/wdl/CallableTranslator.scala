@@ -57,9 +57,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
   private def translateStaticFileDependencies(
       privateVariables: Vector[TAT.PrivateVariable]
   ): Set[String] = {
-
     // TODO: also consider files nested in arrays, structs
-
     privateVariables.collect {
       case TAT.PrivateVariable(_, WdlTypes.T_File, ValueFile(value, _)) if value.contains("://") =>
         value
@@ -510,7 +508,6 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           }
         }
 
-        // TODO: will there ever be block inputs that are not included in closureInputs?
         val closureInputs = subBlocks.flatMap { block =>
           block.inputs.collect {
             case blockInput if !containsName(blockInput.name) =>
@@ -579,13 +576,11 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           }
       )
 
-      // The fragment runner can only handle a single call. If the block contains
-      // a scatter/conditional with several calls, then we compile the inner
-      // block into a sub-workflow. We also need the name of the callable so
-      // we can link with it when we get to the compile phase.
-      // TODO: handle call.afters - we need to bundle some metadata with the applet
-      //  so that it can launch the call execution with dependencies on the right
-      //  upstream executions.
+      // The fragment runner can only handle a single call. If the block contains a
+      // scatter/conditional with several calls, then we compile the inner block into a sub-workflow.
+      // We also need the name of the callable so  we can link with it when in the compile phase.
+      // TODO: handle call.afters - we need to bundle some metadata with the applet so that it can
+      //  launch the call execution with dependencies on the right upstream executions.
       val (innerCall, auxCallables, newScatterPath) =
         block.kind match {
           case BlockKind.ExpressionsOnly => (None, Vector.empty, None)
@@ -943,9 +938,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
 
       val (backboneInputs, commonStageInfo) =
         if (useManifests || dynamicDefaults.exists(identity)) {
-          // If we are using manifests, we need an initial applet to merge multiple
-          // manifests into a single manifest.
-          // If the workflow has inputs that are defined with complex expressions,
+          // If we are using manifests, we need an initial applet to merge multiple manifests into
+          // a single manifest. If the workflow has inputs that are defined with complex expressions,
           // we need an initial applet to evaluate those.
           val commonStageInputs = allWfInputParameters.map(p => StageInputWorkflowLink(p))
           val inputOutputs: Vector[Parameter] = inputs.map { i =>

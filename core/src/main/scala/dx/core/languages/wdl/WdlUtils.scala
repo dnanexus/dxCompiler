@@ -731,9 +731,8 @@ object WdlUtils {
       case TAT.ExprObject(value, _) => value.values.forall(TypeUtils.isPrimitiveValue)
       // Access a field in a call
       //   Int z = eliminateDuplicate.fields
-      // TODO: this will work for structs as well, if we are able to make
-      //  struct fields part of the output closure (see comment in
-      //  getClosureInputsAndOutputs)
+      // TODO: this would work for structs as well if we were able to make struct fields part of the
+      //  output closure (see comment in getClosureInputsAndOutputs)
       case TAT.ExprGetName(TAT.ExprIdentifier(_, _: T_Call), _, _) => true
       case _                                                       => false
     }
@@ -962,17 +961,15 @@ object WdlUtils {
         innerElements: Vector[TAT.WorkflowElement]
     ): Vector[(DxName, T, TAT.Expr)] = {
       innerElements.flatMap {
-        // TODO: in the case of private variables where the expression access a
-        //  struct field, it may be possible to create an output for the field
-        //  value, to avoid having to use a fragment in the downstream app to
-        //  dereference the struct.
+        // TODO: in the case of private variables where the expression accesses a struct field, it
+        //  may be possible to create an output for the field value, to avoid having to use a
+        //  fragment in the downstream app to dereference the struct.
         case TAT.PrivateVariable(name, wdlType, expr) =>
           Vector((WdlDxName.fromSourceName(name), wdlType, expr))
         case call: TAT.Call =>
           call.callee.output.map {
             case (name, wdlType) =>
-              val dxName =
-                WdlDxName.fromSourceName(name, namespace = Some(call.actualName))
+              val dxName = WdlDxName.fromSourceName(name, namespace = Some(call.actualName))
               val expr = TAT.ExprIdentifier(dxName.decoded, wdlType)(call.loc)
               (dxName, wdlType, expr)
           }.toVector

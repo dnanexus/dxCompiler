@@ -202,8 +202,8 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
   }
 
   def translateApplicationRequirements: Vector[RuntimeRequirement] = {
-    // here we only consider the requirements that need to be applied
-    // at compile time - the rest are evaluated at runtime
+    // here we only consider the requirements that need to be applied at compile time - the rest are
+    // evaluated at runtime
     Vector(
         getHint {
           case _: WorkReuseRequirement => true
@@ -225,7 +225,7 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
       case (WorkReuseRequirement(BooleanValue(allow)), _) =>
         IgnoreReuseRequirement(!allow)
       case (NetworkAccessRequirement(BooleanValue(allow)), _) =>
-        // TODO: optional should have some effect here
+        // TODO: the second value (optional) should probably have some effect here
         AccessRequirement(network = if (allow) Vector("*") else Vector.empty)
       case (ToolTimeLimitRequirement(timeLimit: NumericValue), _) =>
         TimeoutRequirement(minutes =
