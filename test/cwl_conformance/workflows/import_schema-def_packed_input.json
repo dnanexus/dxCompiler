@@ -1,0 +1,6 @@
+{
+  "main.bam": "a.bam",
+  "main.capture_kit": {
+    "bait": "abait"
+  }
+}

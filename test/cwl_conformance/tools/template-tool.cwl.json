@@ -5,22 +5,21 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "hints": [
-    {
-      "class": "DockerRequirement",
+  "hints": {
+    "DockerRequirement": {
       "dockerPull": "debian:stretch-slim"
     }
-  ],
-  "id": "#main",
+  },
+  "id": "template-tool",
   "inputs": [
     {
-      "id": "#main/file1",
+      "id": "file1",
       "type": "File"
     }
   ],
   "outputs": [
     {
-      "id": "#main/foo",
+      "id": "foo",
       "outputBinding": {
         "glob": "foo.txt"
       },

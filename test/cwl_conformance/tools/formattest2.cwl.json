@@ -9,17 +9,16 @@
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
   "doc": "Reverse each line using the `rev` command",
-  "hints": [
-    {
-      "class": "DockerRequirement",
+  "hints": {
+    "DockerRequirement": {
       "dockerPull": "debian:stretch-slim"
     }
-  ],
-  "id": "#main",
+  },
+  "id": "formattest2",
   "inputs": [
     {
-      "format": "http://edamontology.org/format_2330",
-      "id": "#main/input",
+      "format": "edam:format_2330",
+      "id": "input",
       "inputBinding": {},
       "type": "File"
     }
@@ -27,11 +26,16 @@
   "outputs": [
     {
       "format": "$(inputs.input.format)",
-      "id": "#main/output",
+      "id": "output",
       "outputBinding": {
         "glob": "output.txt"
       },
       "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ],
   "stdout": "output.txt"

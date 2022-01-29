@@ -1,0 +1,6 @@
+{
+  "schemadef-tool.hello": {
+    "a": "hello",
+    "b": "world"
+  }
+}

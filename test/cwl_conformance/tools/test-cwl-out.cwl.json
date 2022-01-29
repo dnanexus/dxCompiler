@@ -7,23 +7,25 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "hints": [
-    {
-      "class": "DockerRequirement",
+  "hints": {
+    "DockerRequirement": {
       "dockerPull": "debian:stretch-slim"
     }
-  ],
-  "id": "#main",
+  },
+  "id": "test-cwl-out",
   "inputs": [],
   "outputs": [
     {
-      "id": "#main/foo",
+      "id": "foo",
       "type": "File"
     }
   ],
   "requirements": [
     {
       "class": "ShellCommandRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ]
 }

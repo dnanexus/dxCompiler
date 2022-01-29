@@ -1,0 +1,8 @@
+{
+  "js-expr-req-wf.out": {
+    "checksum": "sha1$7448d8798a4380162d4b56f9b452e2f6f9e24e7a",
+    "location": "whatever.txt",
+    "class": "File",
+    "size": 2
+  }
+}

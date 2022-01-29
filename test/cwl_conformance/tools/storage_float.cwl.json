@@ -7,15 +7,12 @@
   "baseCommand": "echo",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
+  "id": "storage_float",
   "inputs": [],
   "outputs": [
     {
-      "id": "#main/output",
-      "outputBinding": {
-        "glob": "values.txt"
-      },
-      "type": "File"
+      "id": "output",
+      "type": "stdout"
     }
   ],
   "requirements": [
@@ -27,6 +24,9 @@
       "ramMin": 254.1,
       "tmpdirMax": 255.9,
       "tmpdirMin": 255.1
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ],
   "stdout": "values.txt"

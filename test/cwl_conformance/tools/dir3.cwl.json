@@ -5,10 +5,10 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
+  "id": "dir3",
   "inputs": [
     {
-      "id": "#main/inf",
+      "id": "inf",
       "inputBinding": {
         "position": 1
       },
@@ -17,11 +17,16 @@
   ],
   "outputs": [
     {
-      "id": "#main/outdir",
+      "id": "outdir",
       "outputBinding": {
         "glob": "."
       },
       "type": "Directory"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ]
 }

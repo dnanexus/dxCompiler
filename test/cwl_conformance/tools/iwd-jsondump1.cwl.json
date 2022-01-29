@@ -4,11 +4,11 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
+  "id": "iwd-jsondump1",
   "inputs": [],
   "outputs": [
     {
-      "id": "#main/filelist",
+      "id": "filelist",
       "outputBinding": {
         "glob": "out-filelist.json"
       },
@@ -17,6 +17,9 @@
   ],
   "requirements": [
     {
+      "class": "InlineJavascriptRequirement"
+    },
+    {
       "class": "InitialWorkDirRequirement",
       "listing": [
         {
@@ -24,9 +27,6 @@
           "entryname": "out-filelist.json"
         }
       ]
-    },
-    {
-      "class": "InlineJavascriptRequirement"
     }
   ]
 }

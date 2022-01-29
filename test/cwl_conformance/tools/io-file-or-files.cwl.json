@@ -7,10 +7,10 @@
   "baseCommand": [],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
+  "id": "io-file-or-files",
   "inputs": [
     {
-      "id": "#main/input",
+      "id": "input",
       "type": [
         "null",
         "File",
@@ -23,7 +23,7 @@
   ],
   "outputs": [
     {
-      "id": "#main/output_file",
+      "id": "output_file",
       "outputBinding": {
         "glob": "output.txt"
       },

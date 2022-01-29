@@ -357,7 +357,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
      defaultDetails ++ commonDetails ++ taskSpecificDetails)
   }
 
-  // TODO: Use templates for Markdown dependency report
+  // TODO: Use SSP templates for Markdown dependency report
 
   // Summarize dependencies that are not bundled for cloning
   // with the app/let for adding to description in Markdown
@@ -641,7 +641,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         fileDependenciesDetails
     // build the API request
     val requestRequired = Map(
-        "name" -> JsString(applet.name),
+        "name" -> JsString(applet.dxName),
         "inputSpec" -> JsArray(inputSpec),
         "outputSpec" -> JsArray(outputSpec),
         "runSpec" -> runSpec,

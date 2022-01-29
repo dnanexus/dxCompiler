@@ -16,22 +16,21 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "hints": [
-    {
-      "class": "DockerRequirement",
+  "hints": {
+    "DockerRequirement": {
       "dockerPull": "debian:stretch-slim"
     }
-  ],
-  "id": "#main",
+  },
+  "id": "dir2",
   "inputs": [
     {
-      "id": "#main/indir",
+      "id": "indir",
       "type": "Directory"
     }
   ],
   "outputs": [
     {
-      "id": "#main/outlist",
+      "id": "outlist",
       "outputBinding": {
         "glob": "output.txt"
       },
@@ -41,6 +40,9 @@
   "requirements": [
     {
       "class": "ShellCommandRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ],
   "stdout": "output.txt"

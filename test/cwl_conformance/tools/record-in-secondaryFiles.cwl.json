@@ -12,26 +12,20 @@
   "baseCommand": "test",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
+  "id": "record-in-secondaryFiles",
   "inputs": [
     {
-      "id": "#main/record_input",
+      "id": "record_input",
       "type": {
         "fields": [
           {
-            "name": "#main/record_input/f1",
-            "secondaryFiles": {
-              "pattern": ".s2",
-              "required": null
-            },
+            "name": "f1",
+            "secondaryFiles": ".s2",
             "type": "File"
           },
           {
-            "name": "#main/record_input/f2",
-            "secondaryFiles": {
-              "pattern": ".s3",
-              "required": null
-            },
+            "name": "f2",
+            "secondaryFiles": ".s3",
             "type": {
               "items": "File",
               "type": "array"
@@ -42,5 +36,10 @@
       }
     }
   ],
-  "outputs": []
+  "outputs": [],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ]
 }

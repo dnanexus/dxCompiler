@@ -5,11 +5,11 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
+  "id": "docker-run-cmd",
   "inputs": [],
   "outputs": [
     {
-      "id": "#main/cow",
+      "id": "cow",
       "outputBinding": {
         "glob": "cow"
       },
@@ -20,6 +20,9 @@
     {
       "class": "DockerRequirement",
       "dockerPull": "bash:4.4.12"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ]
 }

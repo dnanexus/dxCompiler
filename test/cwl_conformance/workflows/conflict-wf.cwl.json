@@ -1,0 +1,101 @@
+  {
+    "$graph": [
+      {
+        "baseCommand": "echo",
+        "class": "CommandLineTool",
+        "id": "echo",
+        "inputs": {
+          "text": {
+            "inputBinding": {},
+            "type": "string"
+          }
+        },
+        "outputs": {
+          "fileout": {
+            "outputBinding": {
+              "glob": "out.txt"
+            },
+            "type": "File"
+          }
+        },
+        "stdout": "out.txt"
+      },
+      {
+        "baseCommand": "cat",
+        "class": "CommandLineTool",
+        "id": "cat",
+        "inputs": {
+          "file1": {
+            "inputBinding": {
+              "position": 1
+            },
+            "type": "File"
+          },
+          "file2": {
+            "inputBinding": {
+              "position": 2
+            },
+            "type": "File"
+          }
+        },
+        "outputs": {
+          "fileout": {
+            "outputBinding": {
+              "glob": "out.txt"
+            },
+            "type": "File"
+          }
+        },
+        "stdout": "out.txt"
+      },
+      {
+        "class": "Workflow",
+        "id": "collision",
+        "inputs": {
+          "input_1": "string",
+          "input_2": "string"
+        },
+        "outputs": {
+          "fileout": {
+            "outputSource": "cat_step/fileout",
+            "type": "File"
+          }
+        },
+        "steps": {
+          "cat_step": {
+            "in": {
+              "file1": {
+                "source": "echo_1/fileout"
+              },
+              "file2": {
+                "source": "echo_2/fileout"
+              }
+            },
+            "out": [
+              "fileout"
+            ],
+            "run": "#cat"
+          },
+          "echo_1": {
+            "in": {
+              "text": "input_1"
+            },
+            "out": [
+              "fileout"
+            ],
+            "run": "#echo"
+          },
+          "echo_2": {
+            "in": {
+              "text": "input_2"
+            },
+            "out": [
+              "fileout"
+            ],
+            "run": "#echo"
+          }
+        }
+      }
+    ],
+    "cwlVersion": "v1.2"
+  }

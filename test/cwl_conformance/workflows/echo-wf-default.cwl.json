@@ -1,62 +1,70 @@
 {
-  "$graph": [
+  "class": "Workflow",
+  "cwlVersion": "v1.2",
+  "id": "echo-wf-default",
+  "inputs": [],
+  "outputs": [
     {
-      "baseCommand": [
-        "echo",
-        "-n"
-      ],
-      "class": "CommandLineTool",
-      "id": "#echo-tool-default.cwl",
-      "inputs": [
-        {
-          "default": "tool_default",
-          "id": "#echo-tool-default.cwl/in",
-          "inputBinding": {
-            "position": 1
-          },
-          "type": "string"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "#echo-tool-default.cwl/out",
-          "outputBinding": {
-            "glob": "out.txt",
-            "loadContents": true,
-            "outputEval": "$(self[0].contents)"
-          },
-          "type": "string"
-        }
-      ],
-      "stdout": "out.txt"
-    },
-    {
-      "class": "Workflow",
-      "id": "#main",
-      "inputs": [],
-      "outputs": [
-        {
-          "id": "#main/default_output",
-          "outputSource": "#main/step1/out",
-          "type": "string"
-        }
-      ],
-      "steps": [
-        {
-          "id": "#main/step1",
-          "in": [
-            {
-              "default": "workflow_default",
-              "id": "#main/step1/in"
-            }
-          ],
-          "out": [
-            "#main/step1/out"
-          ],
-          "run": "#echo-tool-default.cwl"
-        }
-      ]
+      "id": "default_output",
+      "outputSource": "step1/out",
+      "type": "string"
     }
   ],
-  "cwlVersion": "v1.2"
+  "requirements": [
+    {
+      "class": "SubworkflowFeatureRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step1",
+      "in": [
+        {
+          "default": "workflow_default",
+          "id": "in"
+        }
+      ],
+      "out": [
+        "out"
+      ],
+      "run": {
+        "baseCommand": [
+          "echo",
+          "-n"
+        ],
+        "class": "CommandLineTool",
+        "id": "echo-tool-default.cwl",
+        "inputs": [
+          {
+            "default": "tool_default",
+            "id": "in",
+            "inputBinding": {
+              "position": 1
+            },
+            "type": "string"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "out",
+            "outputBinding": {
+              "glob": "out.txt",
+              "loadContents": true,
+              "outputEval": "$(self[0].contents)"
+            },
+            "type": "string"
+          }
+        ],
+        "requirements": [
+          {
+            "class": "InlineJavascriptRequirement"
+          }
+        ],
+        "stdout": "out.txt"
+      }
+    }
+  ]
 }

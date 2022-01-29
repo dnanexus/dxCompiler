@@ -1,98 +1,105 @@
 {
-  "$graph": [
+  "class": "Workflow",
+  "cwlVersion": "v1.2",
+  "id": "count-lines1-wf",
+  "inputs": [
     {
-      "class": "Workflow",
-      "id": "#main",
-      "inputs": [
-        {
-          "id": "#main/file1",
-          "type": "File"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "#main/count_output",
-          "outputSource": "#main/step2/output",
-          "type": "int"
-        }
-      ],
-      "steps": [
-        {
-          "id": "#main/step1",
-          "in": [
-            {
-              "id": "#main/step1/file1",
-              "source": "#main/file1"
-            }
-          ],
-          "out": [
-            "#main/step1/output"
-          ],
-          "run": "#wc-tool.cwl"
-        },
-        {
-          "id": "#main/step2",
-          "in": [
-            {
-              "id": "#main/step2/file1",
-              "source": "#main/step1/output"
-            }
-          ],
-          "out": [
-            "#main/step2/output"
-          ],
-          "run": "#parseInt-tool.cwl"
-        }
-      ]
-    },
-    {
-      "class": "ExpressionTool",
-      "expression": "$({'output': parseInt(inputs.file1.contents)})",
-      "id": "#parseInt-tool.cwl",
-      "inputs": [
-        {
-          "id": "#parseInt-tool.cwl/file1",
-          "loadContents": true,
-          "type": "File"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "#parseInt-tool.cwl/output",
-          "type": "int"
-        }
-      ],
-      "requirements": [
-        {
-          "class": "InlineJavascriptRequirement"
-        }
-      ]
-    },
-    {
-      "baseCommand": [
-        "wc",
-        "-l"
-      ],
-      "class": "CommandLineTool",
-      "id": "#wc-tool.cwl",
-      "inputs": [
-        {
-          "id": "#wc-tool.cwl/file1",
-          "type": "File"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "#wc-tool.cwl/output",
-          "outputBinding": {
-            "glob": "output"
-          },
-          "type": "File"
-        }
-      ],
-      "stdin": "$(inputs.file1.path)",
-      "stdout": "output"
+      "id": "file1",
+      "type": "File"
     }
   ],
-  "cwlVersion": "v1.2"
+  "outputs": [
+    {
+      "id": "count_output",
+      "outputSource": "step2/output",
+      "type": "int"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "SubworkflowFeatureRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step1",
+      "in": [
+        {
+          "id": "file1",
+          "source": "file1"
+        }
+      ],
+      "out": [
+        "output"
+      ],
+      "run": {
+        "baseCommand": [
+          "wc",
+          "-l"
+        ],
+        "class": "CommandLineTool",
+        "id": "wc-tool.cwl",
+        "inputs": [
+          {
+            "id": "file1",
+            "type": "File"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "output",
+            "outputBinding": {
+              "glob": "output"
+            },
+            "type": "File"
+          }
+        ],
+        "requirements": [
+          {
+            "class": "InlineJavascriptRequirement"
+          }
+        ],
+        "stdin": "$(inputs.file1.path)",
+        "stdout": "output"
+      }
+    },
+    {
+      "id": "step2",
+      "in": [
+        {
+          "id": "file1",
+          "source": "step1/output"
+        }
+      ],
+      "out": [
+        "output"
+      ],
+      "run": {
+        "class": "ExpressionTool",
+        "expression": "$({'output': parseInt(inputs.file1.contents)})",
+        "id": "parseInt-tool.cwl",
+        "inputs": [
+          {
+            "id": "file1",
+            "loadContents": true,
+            "type": "File"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "output",
+            "type": "int"
+          }
+        ],
+        "requirements": [
+          {
+            "class": "InlineJavascriptRequirement"
+          }
+        ]
+      }
+    }
+  ]
 }

@@ -290,16 +290,19 @@ object ParameterMetaTranslator {
         )
         if (s.value.isEmpty && (s.project.isEmpty || s.path.isEmpty)) {
           throw new Exception(
-              "If 'value' is not defined for a file-type suggestion, then both 'project' and 'path' "
-                + "must be defined"
+              s"""If 'value' is not defined for a file-type suggestion, then both 'project' and 
+                 |'path' must be defined""".stripMargin.replaceAll("\n", " ")
           )
         }
         s
-      // TODO: (T_Directory, dir)
+      case (T_Directory, Some(V_Directory(dir))) =>
+        ParameterAttributes.SimpleSuggestion(VString(dir))
+      case (T_Directory, Some(V_String(dir))) =>
+        ParameterAttributes.SimpleSuggestion(VString(dir))
       case _ =>
         throw new Exception(
-            "Suggestion keyword is only valid for primitive- and file-type parameters, and types "
-              + "must match between parameter and suggestions"
+            s"""Suggestion keyword is only valid for primitive- and file-type parameters, and types 
+               |must match between parameter and suggestions""".stripMargin.replaceAll("\n", " ")
         )
     }
   }
