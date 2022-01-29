@@ -1,0 +1,8 @@
+{
+  "conflict-wf.fileout": {
+    "location": "out.txt",
+    "checksum": "sha1$a2d8d6e7b28295dc9977dc3bdb652ddd480995f0",
+    "class": "File",
+    "size": 25
+  }
+}

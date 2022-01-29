@@ -22,7 +22,7 @@ dx rm -r "dxCompiler_playground:/unit_tests/$username"
 if [[ -z "$TEST" ]]; then
   ./scripts/run_tests.py --build only
 elif [[ "$TEST" == "--failed" ]]; then
-  ./scripts/run_tests.py --failed --delay-compile-errors
+  ./scripts/run_tests.py --failed --delay-compile-errors --delay-run-errors --delay-verification-errors
 else
-  ./scripts/run_tests.py --test "$TEST" --delay-compile-errors --delay-run-errors
+  ./scripts/run_tests.py --test "$TEST" --delay-compile-errors --delay-run-errors --delay-verification-errors
 fi

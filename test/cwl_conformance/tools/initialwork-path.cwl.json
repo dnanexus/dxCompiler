@@ -7,10 +7,10 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
+  "id": "initialwork-path",
   "inputs": [
     {
-      "id": "#main/file1",
+      "id": "file1",
       "type": "File"
     }
   ],
@@ -27,6 +27,9 @@
     },
     {
       "class": "ShellCommandRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ]
 }

@@ -15,71 +15,39 @@
           "dockerPull": "python:2-slim"
         }
       ],
-      "id": "#index",
-      "inputs": [
-        {
-          "id": "#index/file",
-          "type": "File"
-        },
-        {
+      "id": "index",
+      "inputs": {
+        "file": "File",
+        "index.py": {
           "default": {
             "class": "File",
-            "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/index.py"
+            "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G0G3BZQ0yzZZZXfx3xPK1BYF"
           },
-          "id": "#index/index.py",
           "inputBinding": {
             "position": 0
           },
           "type": "File"
         },
-        {
-          "id": "#index/secondfile",
-          "type": "File"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "#index/result",
+        "secondfile": "File"
+      },
+      "outputs": {
+        "result": {
           "outputBinding": {
             "glob": "input.txt"
           },
           "secondaryFiles": [
-            {
-              "pattern": ".idx1",
-              "required": null
-            },
-            {
-              "pattern": "^.idx2",
-              "required": null
-            },
-            {
-              "pattern": "$(self.basename).idx3",
-              "required": null
-            },
-            {
-              "pattern": "${ return self.basename+\".idx4\"; }",
-              "required": null
-            },
-            {
-              "pattern": "$({\"path\": self.path+\".idx5\", \"class\": \"File\"})",
-              "required": null
-            },
-            {
-              "pattern": "$(self.nameroot).idx6$(self.nameext)",
-              "required": null
-            },
-            {
-              "pattern": "${ return [self.basename+\".idx7\", inputs.secondfile]; }",
-              "required": null
-            },
-            {
-              "pattern": "_idx8",
-              "required": null
-            }
+            ".idx1",
+            "^.idx2",
+            "$(self.basename).idx3",
+            "${ return self.basename+\".idx4\"; }",
+            "$({\"path\": self.path+\".idx5\", \"class\": \"File\"})",
+            "$(self.nameroot).idx6$(self.nameext)",
+            "${ return [self.basename+\".idx7\", inputs.secondfile]; }",
+            "_idx8"
           ],
           "type": "File"
         }
-      ],
+      },
       "requirements": [
         {
           "class": "InitialWorkDirRequirement",
@@ -96,72 +64,6 @@
       ]
     },
     {
-      "class": "Workflow",
-      "id": "#main",
-      "inputs": [
-        {
-          "id": "#main/infile",
-          "type": "File"
-        },
-        {
-          "id": "#main/secondfile",
-          "type": "File"
-        },
-        {
-          "id": "#main/term",
-          "type": "string"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "#main/indexedfile",
-          "outputSource": "#main/index/result",
-          "type": "File"
-        },
-        {
-          "id": "#main/outfile",
-          "outputSource": "#main/search/result",
-          "type": "File"
-        }
-      ],
-      "steps": [
-        {
-          "id": "#main/index",
-          "in": [
-            {
-              "id": "#main/index/file",
-              "source": "#main/infile"
-            },
-            {
-              "id": "#main/index/secondfile",
-              "source": "#main/secondfile"
-            }
-          ],
-          "out": [
-            "#main/index/result"
-          ],
-          "run": "#index"
-        },
-        {
-          "id": "#main/search",
-          "in": [
-            {
-              "id": "#main/search/file",
-              "source": "#main/index/result"
-            },
-            {
-              "id": "#main/search/term",
-              "source": "#main/term"
-            }
-          ],
-          "out": [
-            "#main/search/result"
-          ],
-          "run": "#search"
-        }
-      ]
-    },
-    {
       "baseCommand": "python",
       "class": "CommandLineTool",
       "hints": [
@@ -170,79 +72,95 @@
           "dockerPull": "python:2-slim"
         }
       ],
-      "id": "#search",
-      "inputs": [
-        {
-          "id": "#search/file",
+      "id": "search",
+      "inputs": {
+        "file": {
           "inputBinding": {
             "position": 1
           },
           "secondaryFiles": [
-            {
-              "pattern": ".idx1",
-              "required": null
-            },
-            {
-              "pattern": "^.idx2",
-              "required": null
-            },
-            {
-              "pattern": "$(self.basename).idx3",
-              "required": null
-            },
-            {
-              "pattern": "${ return self.basename+\".idx4\"; }",
-              "required": null
-            },
-            {
-              "pattern": "$(self.nameroot).idx6$(self.nameext)",
-              "required": null
-            },
-            {
-              "pattern": "${ return [self.basename+\".idx7\"]; }",
-              "required": null
-            },
-            {
-              "pattern": "_idx8",
-              "required": null
-            }
+            ".idx1",
+            "^.idx2",
+            "$(self.basename).idx3",
+            "${ return self.basename+\".idx4\"; }",
+            "$(self.nameroot).idx6$(self.nameext)",
+            "${ return [self.basename+\".idx7\"]; }",
+            "_idx8"
           ],
           "type": "File"
         },
-        {
+        "search.py": {
           "default": {
             "class": "File",
-            "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/search.py"
+            "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G0G3BZQ0yzZV5q4q3vkQJK4V"
           },
-          "id": "#search/search.py",
           "inputBinding": {
             "position": 0
           },
           "type": "File"
         },
-        {
-          "id": "#search/term",
+        "term": {
           "inputBinding": {
             "position": 2
           },
           "type": "string"
         }
-      ],
-      "outputs": [
-        {
-          "id": "#search/result",
+      },
+      "outputs": {
+        "result": {
           "outputBinding": {
             "glob": "result.txt"
           },
           "type": "File"
         }
-      ],
+      },
       "requirements": [
         {
           "class": "InlineJavascriptRequirement"
         }
       ],
       "stdout": "result.txt"
+    },
+    {
+      "class": "Workflow",
+      "id": "main",
+      "inputs": {
+        "infile": "File",
+        "secondfile": "File",
+        "term": "string"
+      },
+      "outputs": {
+        "indexedfile": {
+          "outputSource": "index/result",
+          "type": "File"
+        },
+        "outfile": {
+          "outputSource": "search/result",
+          "type": "File"
+        }
+      },
+      "steps": {
+        "index": {
+          "in": {
+            "file": "infile",
+            "secondfile": "secondfile"
+          },
+          "out": [
+            "result"
+          ],
+          "run": "#index"
+        },
+        "search": {
+          "in": {
+            "file": "index/result",
+            "term": "term"
+          },
+          "out": [
+            "result"
+          ],
+          "run": "#search"
+        }
+      }
     }
   ],
   "cwlVersion": "v1.2"

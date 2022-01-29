@@ -1,0 +1,84 @@
+{
+  "class": "Workflow",
+  "cwlVersion": "v1.2",
+  "id": "sum-wf-noET",
+  "inputs": [
+    {
+      "id": "int_1",
+      "type": [
+        "int",
+        "string"
+      ]
+    },
+    {
+      "id": "int_2",
+      "type": [
+        "int",
+        "string"
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "id": "result",
+      "outputSource": "sum/result",
+      "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "StepInputExpressionRequirement"
+    },
+    {
+      "class": "MultipleInputFeatureRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
+    },
+    {
+      "class": "SubworkflowFeatureRequirement"
+    }
+  ],
+  "steps": [
+    {
+      "id": "sum",
+      "in": [
+        {
+          "id": "data",
+          "source": [
+            "int_1",
+            "int_2"
+          ],
+          "valueFrom": "${\n  var sum = 0;\n  for (var i = 0; i < self.length; i++){\n    sum += self[i];\n  };\n  return sum;\n}\n"
+        }
+      ],
+      "out": [
+        "result"
+      ],
+      "run": {
+        "baseCommand": "echo",
+        "class": "CommandLineTool",
+        "id": "run",
+        "inputs": [
+          {
+            "id": "data",
+            "inputBinding": {},
+            "type": "int"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "result",
+            "type": "stdout"
+          }
+        ],
+        "requirements": [
+          {
+            "class": "InlineJavascriptRequirement"
+          }
+        ],
+        "stdout": "result.txt"
+      }
+    }
+  ]
+}

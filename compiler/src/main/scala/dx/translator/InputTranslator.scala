@@ -375,12 +375,6 @@ abstract class InputTranslator(bundle: Bundle,
   }.toVector
 
   /**
-    * The prefix to add to the field name when looking up the field
-    * in the inputs.
-    */
-  protected val mainPrefix: Option[String] = None
-
-  /**
     * Whether it is optional for the input to a locked workflow to
     * be prefixed with the workflow name.
     */
@@ -454,12 +448,12 @@ abstract class InputTranslator(bundle: Bundle,
         case None if applications.size > 1 =>
           throw new Exception(s"cannot generate one input file for ${applications.size} tasks")
         case None =>
-          bind(applications.head, inputPrefix = mainPrefix, inputPrefixOptional = true)
+          bind(applications.head, inputPrefixOptional = true)
         case Some(app: Application) =>
-          bind(app, inputPrefix = mainPrefix, inputPrefixOptional = true)
+          bind(app, inputPrefixOptional = true)
         case Some(wf: Workflow) if wf.locked =>
           // locked workflow - user can only set workflow-level inputs
-          bind(wf, inputPrefix = mainPrefix, inputPrefixOptional = lockedWorkflowPrefixOptional)
+          bind(wf, inputPrefixOptional = lockedWorkflowPrefixOptional)
         case Some(wf: Workflow) if useManifests =>
           throw new Exception(s"cannot use manifests with unlocked workflow ${wf.name}")
         case Some(wf: Workflow) =>

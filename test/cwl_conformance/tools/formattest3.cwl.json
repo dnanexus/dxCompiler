@@ -11,17 +11,16 @@
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
   "doc": "Reverse each line using the `rev` command",
-  "hints": [
-    {
-      "class": "DockerRequirement",
+  "hints": {
+    "DockerRequirement": {
       "dockerPull": "debian:stretch-slim"
     }
-  ],
-  "id": "#main",
+  },
+  "id": "formattest3",
   "inputs": [
     {
-      "format": "http://galaxyproject.org/formats/fasta",
-      "id": "#main/input",
+      "format": "gx:fasta",
+      "id": "input",
       "inputBinding": {},
       "type": "File"
     }
@@ -29,11 +28,16 @@
   "outputs": [
     {
       "format": "$(inputs.input.format)",
-      "id": "#main/output",
+      "id": "output",
       "outputBinding": {
         "glob": "output.txt"
       },
       "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ],
   "stdout": "output.txt"

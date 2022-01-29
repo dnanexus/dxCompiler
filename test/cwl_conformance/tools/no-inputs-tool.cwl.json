@@ -6,21 +6,25 @@
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
   "doc": "CommandLineTool without inputs.",
-  "hints": [
-    {
-      "class": "DockerRequirement",
+  "hints": {
+    "DockerRequirement": {
       "dockerPull": "debian:stretch-slim"
     }
-  ],
-  "id": "#main",
+  },
+  "id": "no-inputs-tool",
   "inputs": [],
   "outputs": [
     {
-      "id": "#main/output",
+      "id": "output",
       "outputBinding": {
         "glob": "output"
       },
       "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ],
   "stdout": "output"

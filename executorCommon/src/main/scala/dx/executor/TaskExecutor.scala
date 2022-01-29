@@ -785,7 +785,6 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     * 6. Delocalize output files.
     * @return true if the task was executed successfully, or false if was relaunched
     */
-  // TODO: handle output parameter tags and properties
   def apply(): TaskExecutorResult.TaskExecutorResult = {
     // setup the utility directories that the task-runner employs
     workerPaths.createCleanDirs()
@@ -963,18 +962,16 @@ abstract class TaskExecutor(jobMeta: JobMeta,
 
     // Finalize all input files, folders, and listings.
     // - For a file that is not in the context of a folder:
-    //   - If it is a local file, we link it into a disambiguation dir, naming it with
-    //     its basename if it has one.
-    //   - Otherwise, if it has a basename, we create a link with the new name in
-    //     the same folder to the original file, throwing an exception if there is
-    //     a naming collision.
-    //   - If it has secondary files, they are linked into the same directory as
-    //     the main file, creating any subfolders, and throwing an exception if there
-    //     is a naming collision.
-    // - For a directory or listing, we create a new disambiguation dir and recursively
-    //   link in all the files it contains, creating any subfolders.
-    // - For streaming files, if the source container is the same as one managed by
-    //   download localizer, link the streaming file into the download directory.
+    //   - If it is a local file, we link it into a disambiguation dir, naming it with its basename
+    //     if it has one.
+    //   - Otherwise, if it has a basename, we create a link with the new name in the same folder to
+    //     the original file, throwing an exception if there is a naming collision.
+    //   - If it has secondary files, they are linked into the same directory as the main file,
+    //     creating any subfolders, and throwing an exception if there is a naming collision.
+    // - For a directory or listing, we create a new disambiguation dir and recursively link in all
+    //   the files it contains, creating any subfolders.
+    // - For streaming files, if the source container is the same as one managed by download
+    //   localizer, link the streaming file into the download directory.
     val inputFinalizer = new InputFinalizer(uriToSourcePath, localizer)
     val (localizedInputs, localPathToUri) = inputFinalizer.finalizeInputs(inputs)
     logFields(localizedInputs, "Localized inputs")
@@ -985,9 +982,9 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     // make the inputs folder read-only
     jobMeta.runJobScriptFunction(TaskExecutor.BeforeCommand)
 
-    // Evaluate the command script and writes it to disk. Inputs are supplemented with
-    // any local file paths created when evaluating the command script and are serialized
-    // for use in the next phase.
+    // Evaluate the command script and writes it to disk. Inputs are supplemented with any local
+    // file paths created when evaluating the command script and are serialized for use in the next
+    // phase.
     val (hasCommand, successCodes) = writeCommandScript(localizedInputs, finalizedDependencies)
     if (hasCommand) {
       // run the command script
@@ -998,12 +995,11 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     val (localizedOutputs, tagsAndProperties) = evaluateOutputs(localizedInputs)
     logFields(localizedOutputs, "Localized outputs")
 
-    // Upload output files/directories and replace local paths with remote URIs
-    // in the output values. An output file/folder may have been created on the
-    // worker or it may be an input that originated either on the worker or from
-    // the platform. We don't want to reupload files/directories that already
-    // have an identical copy at the specified output location on the platform,
-    // but otherwise we need to upload them.
+    // Upload output files/directories and replace local paths with remote URIs in the output
+    // values. An output file/folder may have been created on the worker or it may be an input that
+    // originated either on the worker or from the platform. We don't want to reupload
+    // files/directories that already have an identical copy at the specified output location on
+    // the platform, but otherwise we need to upload them.
     if (localizedOutputs.nonEmpty) {
       if (logger.isVerbose) {
         trace(s"Delocalizing outputs")
@@ -1024,6 +1020,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       val (filesToUpload, virtualFiles, directories) = fileExtractor.extractFiles
 
       // upload files
+      // TODO: handle output parameter tags and properties
       val uploadedFiles = if (filesToUpload.nonEmpty) {
         if (logger.isVerbose) {
           trace(s"Uploading files:\n  ${filesToUpload.map(_.source).mkString("\n")}")

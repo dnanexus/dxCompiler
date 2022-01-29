@@ -1,26 +1,26 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
-  "id": "#main",
+  "id": "scatter-valuefrom-wf2",
   "inputs": [
     {
-      "id": "#main/inp1",
+      "id": "inp1",
       "type": {
         "items": {
           "fields": [
             {
-              "name": "#main/inp1/instr/instr",
+              "name": "instr",
               "type": "string"
             }
           ],
-          "name": "#main/inp1/instr",
+          "name": "instr",
           "type": "record"
         },
         "type": "array"
       }
     },
     {
-      "id": "#main/inp2",
+      "id": "inp2",
       "type": {
         "items": "string",
         "type": "array"
@@ -29,8 +29,8 @@
   ],
   "outputs": [
     {
-      "id": "#main/out",
-      "outputSource": "#main/step1/echo_out",
+      "id": "out",
+      "outputSource": "step1/echo_out",
       "type": {
         "items": {
           "items": "string",
@@ -46,29 +46,35 @@
     },
     {
       "class": "StepInputExpressionRequirement"
+    },
+    {
+      "class": "SubworkflowFeatureRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ],
   "steps": [
     {
-      "id": "#main/step1",
+      "id": "step1",
       "in": [
         {
-          "id": "#main/step1/echo_in1",
-          "source": "#main/inp1",
+          "id": "echo_in1",
+          "source": "inp1",
           "valueFrom": "$(self.instr)"
         },
         {
-          "id": "#main/step1/echo_in2",
-          "source": "#main/inp2"
+          "id": "echo_in2",
+          "source": "inp2"
         },
         {
-          "id": "#main/step1/first",
-          "source": "#main/inp1",
+          "id": "first",
+          "source": "inp1",
           "valueFrom": "$(self[0].instr)"
         }
       ],
       "out": [
-        "#main/step1/echo_out"
+        "echo_out"
       ],
       "run": {
         "arguments": [
@@ -77,33 +83,33 @@
         ],
         "baseCommand": "echo",
         "class": "CommandLineTool",
-        "id": "#main/step1/run/step1command",
+        "id": "step1command",
         "inputs": [
           {
-            "id": "#main/step1/run/step1command/echo_in1",
+            "id": "first",
+            "inputBinding": {
+              "position": 1
+            },
+            "type": "string"
+          },
+          {
+            "id": "echo_in1",
             "inputBinding": {
               "position": 2
             },
             "type": "string"
           },
           {
-            "id": "#main/step1/run/step1command/echo_in2",
+            "id": "echo_in2",
             "inputBinding": {
               "position": 3
-            },
-            "type": "string"
-          },
-          {
-            "id": "#main/step1/run/step1command/first",
-            "inputBinding": {
-              "position": 1
             },
             "type": "string"
           }
         ],
         "outputs": [
           {
-            "id": "#main/step1/run/step1command/echo_out",
+            "id": "echo_out",
             "outputBinding": {
               "glob": "step1_out",
               "loadContents": true,
@@ -112,11 +118,16 @@
             "type": "string"
           }
         ],
+        "requirements": [
+          {
+            "class": "InlineJavascriptRequirement"
+          }
+        ],
         "stdout": "step1_out"
       },
       "scatter": [
-        "#main/step1/echo_in1",
-        "#main/step1/echo_in2"
+        "echo_in1",
+        "echo_in2"
       ],
       "scatterMethod": "nested_crossproduct"
     }

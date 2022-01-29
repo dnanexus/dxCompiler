@@ -1,0 +1,42 @@
+{
+  "baseCommand": "true",
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "doc": "Can have a file declared directly in InitialWorkDir",
+  "id": "iwd-fileobjs1",
+  "inputs": [],
+  "outputs": [
+    {
+      "id": "filelist",
+      "outputBinding": {
+        "glob": "inp-filelist.txt"
+      },
+      "type": "File"
+    },
+    {
+      "id": "testdir",
+      "outputBinding": {
+        "glob": "testdir"
+      },
+      "type": "Directory"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InitialWorkDirRequirement",
+      "listing": [
+        {
+          "class": "File",
+          "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G4KYV580yzZvZ542Kz63y20J"
+        },
+        {
+          "class": "Directory",
+          "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/testdir/"
+        }
+      ]
+    },
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ]
+}

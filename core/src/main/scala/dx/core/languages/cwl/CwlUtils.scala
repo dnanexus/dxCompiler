@@ -20,7 +20,7 @@ import dx.core.ir.Value.{
 }
 import dx.cwl._
 import dx.util.CollectionUtils.IterableOnceExtensions
-import dx.util.FileSourceResolver
+import dx.util.{FileSourceResolver, LocalFileSource}
 import spray.json._
 
 import java.nio.file.{Path, Paths}
@@ -72,7 +72,7 @@ object CwlUtils {
       case CwlFile         => TFile
       case CwlDirectory    => TDirectory
       case a: CwlArray     => TArray(toIRType(a.itemType))
-      case e: CwlEnum      => TEnum(e.symbols)
+      case e: CwlEnum      => TEnum(e.symbolNames)
       case r: CwlRecord if r.hasName =>
         toIRSchema(r)
       case _ =>
@@ -172,9 +172,7 @@ object CwlUtils {
 
   def toIRValue(cwlValue: CwlValue, cwlType: CwlType): (Type, Value) = {
     (cwlType, cwlValue) match {
-      case (CwlAny, _) =>
-        // TODO: do we need to keep the type as Any or can we return the inferred type?
-        (TMulti.Any, toIRValue(cwlValue)._2)
+      case (CwlAny, _)          => (TMulti.Any, toIRValue(cwlValue)._2)
       case (CwlNull, NullValue) => (NullSchema, VNull)
       case (CwlNull, _) =>
         throw new Exception("type 'null' only accepts a value of 'null'")
@@ -207,7 +205,7 @@ object CwlUtils {
       case (CwlLong, LongValue(l))           => (TInt, VInt(l))
       case (CwlFloat, FloatValue(f))         => (TFloat, VFloat(f))
       case (CwlDouble, DoubleValue(d))       => (TFloat, VFloat(d))
-      case (t: CwlNumber, n: NumericValue)   => toIRValue(n.coerceTo(t), t)
+      case (t: CwlNumber, n: NumericValue)   => toIRValue(n.coerceTo(t)._2, t)
       case (CwlString, StringValue(s))       => (TString, VString(s))
       case (CwlFile, f: FileValue)           => (TFile, toIRPath(f))
       case (CwlFile, StringValue(s))         => (TFile, VFile(s))
@@ -240,9 +238,13 @@ object CwlUtils {
               throw new Exception(s"invalid field ${name}")
           }
         (TSchema(name, types), VHash(values))
-      case (enum: CwlEnum, StringValue(s)) if enum.symbols.contains(s) =>
-        (TEnum(enum.symbols), VString(s))
-      case _ => throw new Exception(s"Invalid CWL value ${cwlValue})")
+      case (enum: CwlEnum, StringValue(s)) if enum.symbolNames.contains(s) =>
+        (TEnum(enum.symbolNames), VString(s))
+      case _ =>
+        throw new Exception(
+            s"""Cannot convert CWL value ${prettyFormatValue(cwlValue, withType = true)}
+               |to type ${prettyFormatType(cwlType)})""".stripMargin.replaceAll("\n", " ")
+        )
     }
   }
 
@@ -273,11 +275,11 @@ object CwlUtils {
         case TSchema(name, fields) if isInput =>
           CwlInputRecord(fields.map {
             case (name, t) => name -> CwlInputRecordField(name, inner(t))
-          }, Some(Identifier(namespace = None, frag = Some(name))))
+          }, Some(Identifier(namespace = None, frag = name)))
         case TSchema(name, members) =>
           CwlOutputRecord(members.map {
             case (name, t) => name -> CwlOutputRecordField(name, inner(t))
-          }, Some(Identifier(namespace = None, frag = Some(name))))
+          }, Some(Identifier(namespace = None, frag = name)))
         case TEnum(symbols) => CwlEnum(symbols)
         case _ =>
           throw new Exception(s"Cannot convert IR type ${irType} to CWL")
@@ -305,14 +307,29 @@ object CwlUtils {
     }
   }
 
-  def fromIRValue(value: Value, name: Option[String], isInput: Boolean): (CwlType, CwlValue) = {
+  def fromIRValue(
+      value: Value,
+      name: Option[String],
+      isInput: Boolean,
+      fileResolver: FileSourceResolver = FileSourceResolver.get,
+      resolveLocalPaths: Boolean = false
+  ): (CwlType, CwlValue) = {
     def inner(innerValue: Value, innerName: Option[String]): (CwlType, CwlValue) = {
       innerValue match {
-        case VNull               => (CwlOptional(CwlAny), NullValue)
-        case VBoolean(b)         => (CwlBoolean, BooleanValue(b))
-        case VInt(i)             => (CwlLong, LongValue(i))
-        case VFloat(f)           => (CwlDouble, DoubleValue(f))
-        case VString(s)          => (CwlString, StringValue(s))
+        case VNull       => (CwlOptional(CwlAny), NullValue)
+        case VBoolean(b) => (CwlBoolean, BooleanValue(b))
+        case VInt(i)     => (CwlLong, LongValue(i))
+        case VFloat(f)   => (CwlDouble, DoubleValue(f))
+        case VString(s) =>
+          fileResolver.resolve(s) match {
+            case local: LocalFileSource if resolveLocalPaths && local.exists && local.isDirectory =>
+              (CwlDirectory, DirectoryValue(s))
+            case local: LocalFileSource if resolveLocalPaths && local.exists =>
+              (CwlFile, FileValue(s))
+            case _: LocalFileSource   => (CwlString, StringValue(s))
+            case fs if fs.isDirectory => (CwlDirectory, DirectoryValue(s))
+            case _                    => (CwlFile, FileValue(s))
+          }
         case f: VFile            => (CwlFile, fromIRPath(f))
         case d: IRDirectoryValue => (CwlDirectory, fromIRPath(d))
         case VArray(array) =>
@@ -354,17 +371,36 @@ object CwlUtils {
     inner(value, name)
   }
 
-  def fromIRValues(values: Map[String, Value],
-                   isInput: Boolean): Map[String, (CwlType, CwlValue)] = {
+  def fromIRValues(
+      values: Map[String, Value],
+      isInput: Boolean,
+      fileResolver: FileSourceResolver = FileSourceResolver.get,
+      resolveLocalPaths: Boolean = false
+  ): Map[String, (CwlType, CwlValue)] = {
     values.map {
-      case (name, value) => name -> fromIRValue(value, Some(name), isInput)
+      case (name, value) =>
+        name -> fromIRValue(value,
+                            Some(name),
+                            isInput,
+                            fileResolver = fileResolver,
+                            resolveLocalPaths = resolveLocalPaths)
     }
   }
 
-  def fromIRValue(value: Value,
-                  cwlType: CwlType,
-                  name: String,
-                  isInput: Boolean): (CwlType, CwlValue) = {
+  def fromIRValueWithType(
+      value: Value,
+      cwlType: CwlType,
+      name: String,
+      isInput: Boolean,
+      fileResolver: FileSourceResolver = FileSourceResolver.get,
+      resolveLocalPaths: Boolean = false
+  ): (CwlType, CwlValue) = {
+    def isPath(path: String): Boolean = {
+      fileResolver.resolve(path) match {
+        case local: LocalFileSource => resolveLocalPaths && local.exists
+        case _                      => true
+      }
+    }
     @tailrec
     def inner(innerValue: Value, innerType: CwlType, innerName: String): CwlValue = {
       (innerType, innerValue) match {
@@ -372,18 +408,18 @@ object CwlUtils {
         case (CwlOptional(t), _)               => inner(innerValue, t, innerName)
         case (CwlNull, _) =>
           throw new Exception("type 'null' only accepts a value of 'null'")
-        case (CwlBoolean, VBoolean(b))           => BooleanValue(b)
-        case (CwlInt, VInt(i)) if i.isValidInt   => IntValue(i)
-        case (CwlLong, VInt(l))                  => LongValue(l)
-        case (CwlFloat, VFloat(f))               => FloatValue(f.toFloat)
-        case (CwlFloat, VInt(i))                 => FloatValue(i.toFloat)
-        case (CwlDouble, VFloat(f))              => FloatValue(f)
-        case (CwlDouble, VInt(i))                => FloatValue(i.toDouble)
-        case (CwlString, VString(s))             => StringValue(s)
-        case (CwlFile, VString(path))            => FileValue(path)
-        case (CwlFile, f: VFile)                 => fromIRPath(f)
-        case (CwlDirectory, VString(path))       => DirectoryValue(path)
-        case (CwlDirectory, d: IRDirectoryValue) => fromIRPath(d)
+        case (CwlBoolean, VBoolean(b))                     => BooleanValue(b)
+        case (CwlInt, VInt(i)) if i.isValidInt             => IntValue(i)
+        case (CwlLong, VInt(l))                            => LongValue(l)
+        case (CwlFloat, VFloat(f))                         => FloatValue(f.toFloat)
+        case (CwlFloat, VInt(i))                           => FloatValue(i.toFloat)
+        case (CwlDouble, VFloat(f))                        => FloatValue(f)
+        case (CwlDouble, VInt(i))                          => FloatValue(i.toDouble)
+        case (CwlString, VString(s))                       => StringValue(s)
+        case (CwlFile, VString(path)) if isPath(path)      => FileValue(path)
+        case (CwlFile, f: VFile)                           => fromIRPath(f)
+        case (CwlDirectory, VString(path)) if isPath(path) => DirectoryValue(path)
+        case (CwlDirectory, d: IRDirectoryValue)           => fromIRPath(d)
         case (array: CwlArray, VArray(items)) =>
           ArrayValue(items.zipWithIndex.map {
             case (item, i) =>
@@ -416,7 +452,7 @@ object CwlUtils {
                   key -> innerMulti(value, record.fields(key).cwlType, s"${innerName}[${key}]")._2
               }
           )
-        case (enum: CwlEnum, VString(s)) if enum.symbols.contains(s) => StringValue(s)
+        case (enum: CwlEnum, VString(s)) if enum.symbolNames.contains(s) => StringValue(s)
         case _ =>
           throw new Exception(s"cannot translate ${innerValue} to CwlValue of type ${innerType}")
       }
@@ -438,7 +474,11 @@ object CwlUtils {
             }
             .getOrElse(
                 if (types.contains(CwlAny)) {
-                  fromIRValue(innerValue, Some(innerName), isInput)
+                  fromIRValue(innerValue,
+                              Some(innerName),
+                              isInput,
+                              fileResolver = fileResolver,
+                              resolveLocalPaths = resolveLocalPaths)
                 } else {
                   throw new Exception(
                       s"""cannot convert ${innerName} ${innerValue} to CWL value of any type 
@@ -449,9 +489,18 @@ object CwlUtils {
         case CwlOptional(t: CwlMulti) =>
           val (cwlType, cwlValue) = innerMulti(innerValue, t, innerName)
           (CwlOptional.ensureOptional(cwlType), cwlValue)
-        case CwlAny => fromIRValue(innerValue, Some(innerName), isInput)
+        case CwlAny =>
+          fromIRValue(innerValue,
+                      Some(innerName),
+                      isInput,
+                      fileResolver = fileResolver,
+                      resolveLocalPaths = resolveLocalPaths)
         case CwlOptional(CwlAny) =>
-          val (cwlType, cwlValue) = fromIRValue(innerValue, Some(innerName), isInput)
+          val (cwlType, cwlValue) = fromIRValue(innerValue,
+                                                Some(innerName),
+                                                isInput,
+                                                fileResolver = fileResolver,
+                                                resolveLocalPaths = resolveLocalPaths)
           (CwlOptional.ensureOptional(cwlType), cwlValue)
         case _ => (innerType, inner(innerValue, innerType, innerName))
       }
@@ -459,13 +508,16 @@ object CwlUtils {
     innerMulti(value, cwlType, name)
   }
 
-  def fromIR(values: Map[DxName, (Type, Value)],
-             typeAliases: Map[String, CwlSchema] = Map.empty,
-             isInput: Boolean): Map[DxName, (CwlType, CwlValue)] = {
+  def fromIR(
+      values: Map[DxName, (Type, Value)],
+      typeAliases: Map[String, CwlSchema] = Map.empty,
+      isInput: Boolean,
+      fileResolver: FileSourceResolver = FileSourceResolver.get
+  ): Map[DxName, (CwlType, CwlValue)] = {
     values.map {
       case (dxName, (t, v)) =>
         val cwlType = fromIRType(t, typeAliases, isInput)
-        dxName -> fromIRValue(v, cwlType, dxName.decoded, isInput)
+        dxName -> fromIRValueWithType(v, cwlType, dxName.decoded, isInput, fileResolver)
     }
   }
 
@@ -494,45 +546,80 @@ object CwlUtils {
       case e: CwlEnum if e.hasName =>
         e.name
       case e: CwlEnum =>
-        s"enum<${e.symbols.mkString(",")}>"
+        s"enum<${e.symbolNames.mkString(",")}>"
     }
   }
 
-  def prettyFormatValue(value: CwlValue, verbose: Boolean = false, indent: Int = 0): String = {
+  def prettyFormatPrimitiveValue(value: PrimitiveValue,
+                                 verbose: Boolean = false,
+                                 withType: Boolean = false): String = {
+    val pretty = value match {
+      case BooleanValue(b)              => b.toString
+      case IntValue(i)                  => i.toString
+      case LongValue(l)                 => l.toString
+      case FloatValue(f)                => f.toString
+      case DoubleValue(d)               => d.toString
+      case StringValue(s)               => s
+      case f: FileValue if verbose      => f.toJson.prettyPrint
+      case f: FileValue                 => f.toString
+      case d: DirectoryValue if verbose => d.toJson.prettyPrint
+      case d: DirectoryValue            => d.toString
+      case _ =>
+        throw new Exception(s"unexpected primitive value ${value}")
+    }
+    if (withType) {
+      s"${prettyFormatType(value.cwlType)}(${pretty})"
+    } else {
+      pretty
+    }
+  }
+
+  def prettyFormatValue(value: CwlValue,
+                        verbose: Boolean = false,
+                        indent: Int = 0,
+                        withType: Boolean = false): String = {
     val indentStr = " " * indent
-    val s = value match {
-      case NullValue                          => "null"
-      case BooleanValue(true)                 => "true"
-      case BooleanValue(false)                => "false"
-      case IntValue(i)                        => i.toString
-      case LongValue(l)                       => l.toString
-      case FloatValue(f)                      => f.toString
-      case DoubleValue(d)                     => d.toString
-      case StringValue(s)                     => s
-      case f: FileValue if verbose            => f.toJson.prettyPrint
-      case f: FileValue                       => f.toString
-      case d: DirectoryValue if verbose       => d.toJson.prettyPrint
-      case d: DirectoryValue                  => d.toString
-      case ArrayValue(items) if items.isEmpty => "[]"
-      case ArrayValue(items) if verbose =>
-        s"[\n${indentStr}${items
-          .map(prettyFormatValue(_, verbose = true, indent + 2))
-          .mkString(s"\n")}\n${indentStr}]"
-      case ArrayValue(items)                     => s"[${items.map(prettyFormatValue(_))}]"
-      case ObjectValue(fields) if fields.isEmpty => "{}"
-      case ObjectValue(fields) if verbose =>
-        val fieldStrs = fields.map {
-          case (name, value) => s"${name}: ${prettyFormatValue(value, verbose = true, indent + 2)}"
+    val pretty = value match {
+      case NullValue         => "null"
+      case p: PrimitiveValue => prettyFormatPrimitiveValue(p, verbose, withType)
+      case ArrayValue(items) =>
+        val pretty = if (items.isEmpty) {
+          "[]"
+        } else if (verbose) {
+          s"[\n${indentStr}${items
+            .map(prettyFormatValue(_, verbose = true, indent + 2))
+            .mkString(s"\n")}\n${indentStr}]"
+        } else {
+          s"[${items.map(prettyFormatValue(_))}]"
         }
-        s"{\n${indentStr}${fieldStrs.mkString("\n")}\n${indentStr}}"
+        if (withType) {
+          s"array(${pretty})"
+        } else {
+          pretty
+        }
       case ObjectValue(fields) =>
-        val fieldStrs = fields.map {
-          case (name, value) => s"${name}: ${prettyFormatValue(value)}"
+        val pretty = if (fields.isEmpty) {
+          "{}"
+        } else if (verbose) {
+          val fieldStrs = fields.map {
+            case (name, value) =>
+              s"${name}: ${prettyFormatValue(value, verbose = true, indent + 2)}"
+          }
+          s"{\n${indentStr}${fieldStrs.mkString("\n")}\n${indentStr}}"
+        } else {
+          val fieldStrs = fields.map {
+            case (name, value) => s"${name}: ${prettyFormatValue(value)}"
+          }
+          s"{${fieldStrs.mkString(",")}}"
         }
-        s"{${fieldStrs.mkString(",")}}"
+        if (withType) {
+          s"object(${pretty})"
+        } else {
+          pretty
+        }
       case _ => throw new Exception(s"unrecognized CWL value ${value})")
     }
-    s"${indentStr}${s}"
+    s"${indentStr}${pretty}"
   }
 
   def prettyFormatEnv(env: Map[String, (CwlType, CwlValue)],
@@ -604,14 +691,21 @@ object CwlUtils {
     }
   }
 
-  def isDxFile(file: FileValue): Boolean = {
-    file.location.exists(_.startsWith(DxPath.DxUriPrefix))
+  def isDxPath(path: PathValue): Boolean = {
+    path.location.orElse(path.path).exists(_.startsWith(DxPath.DxUriPrefix))
   }
 
   def toJson(values: Map[DxName, (CwlType, CwlValue)]): JsObject = {
     JsObject(values.map {
       case (dxName, (_, v)) => dxName.decoded -> v.toJson
     })
+  }
+
+  def simplifyProcess(process: Process): Process = {
+    process.copySimplifyIds(dropNamespace = true,
+                            replacePrefix = (Left(true), None),
+                            simplifyAutoNames = false,
+                            dropCwlExtension = false)
   }
 
   def createRuntime(workerPaths: DxWorkerPaths): Runtime = {
@@ -621,15 +715,27 @@ object CwlUtils {
     )
   }
 
-  def createEvaluatorContext(
-      runtime: Runtime,
-      env: Map[String, (CwlType, CwlValue)] = Map.empty,
-      self: CwlValue = NullValue,
-      inputParameters: Map[String, InputParameter] = Map.empty,
-      inputDir: Path = Paths.get("."),
-      fileResolver: FileSourceResolver = FileSourceResolver.get
-  ): EvaluatorContext = {
-    val values = env
+  def createEvaluatorContext(selfValue: CwlValue = NullValue,
+                             selfType: Option[CwlType] = None,
+                             selfParam: Option[Identifiable with Loadable] = None,
+                             env: Map[String, (CwlType, CwlValue)] = Map.empty,
+                             inputParameters: Map[String, InputParameter] = Map.empty,
+                             inputDir: Path = Paths.get("."),
+                             fileResolver: FileSourceResolver = FileSourceResolver.get,
+                             runtime: Runtime = Runtime.empty): EvaluatorContext = {
+    val selfFinal = selfParam
+      .map { param =>
+        val t = selfType.getOrElse {
+          param match {
+            case p: Parameter => p.cwlType
+            case _ =>
+              throw new Exception(s"cannot determine self type from paramemter ${param}")
+          }
+        }
+        EvaluatorContext.finalizeInputValue(selfValue, t, param, inputDir, fileResolver)
+      }
+      .getOrElse(selfValue)
+    val valuesFinal = env
       .map {
         case (key, (_, value)) if inputParameters.contains(key) =>
           val param = inputParameters(key)
@@ -638,6 +744,6 @@ object CwlUtils {
         case (key, (_, value)) => key -> value
       }
       .to(SeqMap)
-    EvaluatorContext(self, ObjectValue(values), runtime)
+    EvaluatorContext(selfFinal, ObjectValue(valuesFinal), runtime)
   }
 }
