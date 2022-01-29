@@ -339,7 +339,7 @@ object TypeSerde {
       case TFloat                       => "float"
       case TString                      => "string"
       case TFile if pathsAreNative      => "file"
-      case TDirectory if pathsAreNative => "file"
+      case TDirectory if pathsAreNative => "string"
       case TFile | TDirectory           => "hash"
       case _                            => throw TypeSerdeException(s"not a primitive type")
     }

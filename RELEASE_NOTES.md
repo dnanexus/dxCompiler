@@ -3,6 +3,7 @@
 ## in develop
 
 * Command file is now echoed to stderr rather than stdout
+* Fixes a bug where directory support was broken for WDL; directories in WDL are represented as strings
 
 ## 2.8.3 2022-01-07
 
