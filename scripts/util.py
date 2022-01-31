@@ -557,7 +557,7 @@ def build_executable(
 # Run an executable on 0-many inputs.
 #
 # return                        List of tuples (input #, analysis or job id)
-# 
+#
 # oid                           Id of executable to run, or name for global workflow
 # project                       Destination project on platform
 # test_folder                   Destination folder on platform
