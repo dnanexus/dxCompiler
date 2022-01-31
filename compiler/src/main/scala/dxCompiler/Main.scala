@@ -197,23 +197,18 @@ object Main {
       }
     val folderOrPath = (folder, path) match {
       case (Some(f), None) =>
-        // Validate the folder.
-        // TODO: check for folder existance rather than listing the contents, which could
-        //   be very large.
         if (create) {
           dxProject.newFolder(f, parents = true)
         } else {
+          // validate that the folder exists - the onLy way to do this is by listing it
           dxProject.listFolder(f)
         }
         Left(f)
       case (None, Some(p)) =>
-        // validate the file
-        val dataObj = dxApi.resolveDataObject(p, Some(dxProject))
-        Right(dataObj)
-      case (None, None) =>
-        Left("/")
-      case _ =>
-        throw OptionParseException("must specify only one of (folder, path)")
+        // validate that the file exists
+        Right(dxApi.resolveDataObject(p, Some(dxProject)))
+      case (None, None) => Left("/")
+      case _            => throw OptionParseException("must specify only one of (folder, path)")
     }
     Logger.get.trace(s"""|project ID: ${dxProject.id}
                          |path: ${folderOrPath}""".stripMargin)

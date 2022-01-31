@@ -1,13 +1,11 @@
 {
   "shellchar2.stderr_file": {
     "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
-    "location": "c6146505b5b146e6778f547c7accf7fb79a1f0c3",
     "class": "File",
     "size": 0
   },
   "shellchar2.stdout_file": {
     "checksum": "sha1$1555252d52d4ec3262538a4426a83a99cfff4402",
-    "location": "6476baa474e2ba0c55b43b31e36ab8553b8ffdc4",
     "class": "File",
     "size": 9
   }

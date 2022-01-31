@@ -13,7 +13,7 @@ import time
 import threading
 import traceback
 
-AssetDesc = namedtuple('AssetDesc', 'region asset_id project')
+AssetDesc = namedtuple("AssetDesc", "region asset_id project")
 
 max_num_retries = 5
 # enumeration of supported languages
@@ -29,6 +29,7 @@ GIT_REVISION = subprocess.check_output(
     ["git", "describe", "--always", "--dirty", "--tags"]
 ).strip()
 
+
 def info(msg, ex=None):
     print(msg, file=sys.stderr)
     if ex:
@@ -37,11 +38,13 @@ def info(msg, ex=None):
 
 # Extract version_id from configuration file
 def get_version_id(top_dir):
-    appl_conf_path = os.path.join(top_dir, "core", "src", "main", "resources", "application.conf")
+    appl_conf_path = os.path.join(
+        top_dir, "core", "src", "main", "resources", "application.conf"
+    )
     pattern = re.compile(r"^(\s*)(version)(\s*)(=)(\s*)(\S+)(\s*)$")
-    with open(appl_conf_path, 'r') as fd:
+    with open(appl_conf_path, "r") as fd:
         for line in fd:
-            line_clean = line.replace("\"", "").replace("'", "")
+            line_clean = line.replace('"', "").replace("'", "")
             m = re.match(pattern, line_clean)
             if m is not None:
                 return m.group(6).strip()
@@ -51,16 +54,24 @@ def get_version_id(top_dir):
 def find_asset(project, folder, language):
     # get asset_id
     asset_name = "dx{}rt".format(language.upper())
-    assets = list(dxpy.search.find_data_objects(classname="record",
-                                                project=project.get_id(),
-                                                name=asset_name,
-                                                folder=folder,
-                                                return_handler=True))
+    assets = list(
+        dxpy.search.find_data_objects(
+            classname="record",
+            project=project.get_id(),
+            name=asset_name,
+            folder=folder,
+            return_handler=True,
+        )
+    )
     if len(assets) == 0:
         return None
     if len(assets) == 1:
         return assets[0]
-    raise Exception("More than one asset with name {} found in {}:{}".format(asset_name, project, folder))
+    raise Exception(
+        "More than one asset with name {} found in {}:{}".format(
+            asset_name, project, folder
+        )
+    )
 
 
 def create_build_subdirs(project, base_folder):
@@ -88,14 +99,16 @@ def get_project(project_name):
     except dxpy.DXError:
         pass
 
-    project = list(dxpy.find_projects(name=project_name, return_handler=True, level="VIEW"))
+    project = list(
+        dxpy.find_projects(name=project_name, return_handler=True, level="VIEW")
+    )
     if len(project) == 0:
-        info('Did not find project {0}'.format(project_name))
+        info("Did not find project {0}".format(project_name))
         return None
     elif len(project) == 1:
         return project[0]
     else:
-        raise Exception('Found more than 1 project matching {0}'.format(project_name))
+        raise Exception("Found more than 1 project matching {0}".format(project_name))
 
 
 # download dxda for linux, and place it in the resources
@@ -113,24 +126,39 @@ def _download_dxda_into_resources(top_dir, dxda_version):
             if dxda_version.startswith("v"):
                 # A proper download-agent release, it starts with a "v"
 
-                    subprocess.check_call([
+                subprocess.check_call(
+                    [
                         "wget",
-                        "https://github.com/dnanexus/dxda/releases/download/{}/dx-download-agent-linux".format(dxda_version),
+                        "https://github.com/dnanexus/dxda/releases/download/{}/dx-download-agent-linux".format(
+                            dxda_version
+                        ),
                         "-O",
-                        "dx-download-agent"])
+                        "dx-download-agent",
+                    ]
+                )
             else:
                 # A snapshot of the download-agent development branch
                 snapshot_dxda_tar = "resources/dx-download-agent-linux.tar"
                 command = """sudo docker run --rm --entrypoint=\'\' dnanexus/dxda:{} cat /builds/dx-download-agent-linux.tar > {}""".format(
-                    dxda_version, snapshot_dxda_tar)
-                p = subprocess.Popen(command, universal_newlines=True, shell=True,
-                                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                    dxda_version, snapshot_dxda_tar
+                )
+                p = subprocess.Popen(
+                    command,
+                    universal_newlines=True,
+                    shell=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                )
                 text = p.stdout.read()
                 retcode = p.wait()
                 info("downloading dxda {} {}".format(retcode, text))
-                subprocess.check_call(["tar", "-C", "resources", "-xvf", snapshot_dxda_tar])
-                os.rename("resources/dx-download-agent-linux/dx-download-agent",
-                          "dx-download-agent")
+                subprocess.check_call(
+                    ["tar", "-C", "resources", "-xvf", snapshot_dxda_tar]
+                )
+                os.rename(
+                    "resources/dx-download-agent-linux/dx-download-agent",
+                    "dx-download-agent",
+                )
                 os.remove(snapshot_dxda_tar)
                 shutil.rmtree("resources/dx-download-agent-linux")
         except subprocess.CalledProcessError as e:
@@ -152,11 +180,16 @@ def _download_dxfuse_to_resources(top_dir, dxfuse_version):
         os.makedirs(dxfuse_dir, exist_ok=True)
         info("downloading dxfuse {} to {}".format(dxfuse_version, dxfuse_exe))
         try:
-            subprocess.check_call([
-                "wget",
-                "https://github.com/dnanexus/dxfuse/releases/download/{}/dxfuse-linux".format(dxfuse_version),
-                "-O",
-                dxfuse_exe])
+            subprocess.check_call(
+                [
+                    "wget",
+                    "https://github.com/dnanexus/dxfuse/releases/download/{}/dxfuse-linux".format(
+                        dxfuse_version
+                    ),
+                    "-O",
+                    dxfuse_exe,
+                ]
+            )
         except subprocess.CalledProcessError as e:
             print(e.stdout)
             print(e.stderr)
@@ -175,11 +208,16 @@ def _download_awscli_to_resources(top_dir, awscli_version):
         os.makedirs(awscli_dir, exist_ok=True)
         info("downloading awscli {} to {}".format(awscli_version, awscli_zip))
         try:
-            subprocess.check_call([
-                "wget",
-                "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-{}.zip".format(awscli_version),
-                "-O",
-                awscli_zip])
+            subprocess.check_call(
+                [
+                    "wget",
+                    "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-{}.zip".format(
+                        awscli_version
+                    ),
+                    "-O",
+                    awscli_zip,
+                ]
+            )
         except subprocess.CalledProcessError as e:
             print(e.stdout)
             print(e.stderr)
@@ -187,12 +225,13 @@ def _download_awscli_to_resources(top_dir, awscli_version):
 
     return awscli_zip
 
+
 def _create_asset_spec(version_id, top_dir, language, dependencies=None):
     # TODO: update to 20.04 - just waiting for staging to catch up to prod
     exec_depends = [
         {"name": "openjdk-8-jre-headless"},
         {"name": "bzip2"},
-        {"name": "jq"}
+        {"name": "jq"},
     ] + (dependencies or [])
     asset_spec = {
         "version": version_id,
@@ -202,10 +241,14 @@ def _create_asset_spec(version_id, top_dir, language, dependencies=None):
         "distribution": "Ubuntu",
         "execDepends": exec_depends,
         "instanceType": "mem1_ssd1_v2_x4",
-        "description": "Prerequisites for running {} workflows compiled to the platform".format(language.upper()),
-        "excludeResource": ["/dev/console"]
+        "description": "Prerequisites for running {} workflows compiled to the platform".format(
+            language.upper()
+        ),
+        "excludeResource": ["/dev/console"],
     }
-    with open(os.path.join(top_dir, "applet_resources", language.upper(), "dxasset.json"), 'w') as fd:
+    with open(
+        os.path.join(top_dir, "applet_resources", language.upper(), "dxasset.json"), "w"
+    ) as fd:
         fd.write(json.dumps(asset_spec, indent=4))
 
 
@@ -216,7 +259,7 @@ def _build_asset(top_dir, language, destination, lock):
     # build the platform asset
     os.chdir(os.path.join(os.path.abspath(top_dir), "applet_resources"))
     try:
-        proc = subprocess.run(
+        subprocess.run(
             ["dx", "build_asset", language.upper(), "--destination", destination],
             check=True,
             universal_newlines=True,
@@ -234,7 +277,17 @@ def _build_asset(top_dir, language, destination, lock):
     os.chdir(crnt_work_dir)
 
 
-def _make_prerequisites(project, folder, version_id, top_dir, language, resources, lock, dependencies=None, env_vars=None):
+def _make_prerequisites(
+    project,
+    folder,
+    version_id,
+    top_dir,
+    language,
+    resources,
+    lock,
+    dependencies=None,
+    env_vars=None,
+):
     # Create a folder for the language-specific asset
     language_dir = os.path.join(top_dir, "applet_resources", language.upper())
     build_lang_res_dir = os.path.join(language_dir, "resources")
@@ -246,7 +299,9 @@ def _make_prerequisites(project, folder, version_id, top_dir, language, resource
         os.link(res, os.path.join(build_lang_bin_dir, Path(res).name))
 
     # Link in executor-specific resources, if any
-    source_lang_res_dir = os.path.join(top_dir, "executor{}".format(language), "applet_resources")
+    source_lang_res_dir = os.path.join(
+        top_dir, "executor{}".format(language), "applet_resources"
+    )
     if os.path.exists(source_lang_res_dir):
         for f in os.listdir(source_lang_res_dir):
             os.link(os.path.join(source_lang_res_dir, f), os.path.join(language_dir, f))
@@ -273,11 +328,11 @@ def _make_prerequisites(project, folder, version_id, top_dir, language, resource
                 info("Creating a runtime asset for {} (try {})".format(language, i))
             _build_asset(top_dir, language, destination, lock)
             break
-        except:
+        except Exception:
             with lock:
                 info(
-                    "Error creating runtime asset for {}; sleeping for 5 seconds before trying again".format(language),
-                    sys.exc_info()
+                    f"Error creating runtime asset for {language}; sleeping for 5 seconds before trying again",
+                    sys.exc_info(),
                 )
             time.sleep(5)
     else:
@@ -286,7 +341,9 @@ def _make_prerequisites(project, folder, version_id, top_dir, language, resource
     # make sure the asset exists and is findable
     asset = find_asset(project, folder, language)
     if asset is None:
-        raise Exception("unable to discover the asset created at {}".format(destination))
+        raise Exception(
+            "unable to discover the asset created at {}".format(destination)
+        )
     return asset
 
 
@@ -298,25 +355,33 @@ def _gen_config_file(top_dir, project_dict):
     region_project_hocon = []
     all_regions = []
     for region, dx_path in project_dict.items():
-        record = "\n".join(["    {",
-                            '      region = "{}"'.format(region),
-                            '      path = "{}"'.format(dx_path),
-                            "    }"])
+        record = "\n".join(
+            [
+                "    {",
+                '      region = "{}"'.format(region),
+                '      path = "{}"'.format(dx_path),
+                "    }",
+            ]
+        )
         region_project_hocon.append(record)
         all_regions.append(region)
 
     buf = "\n".join(region_project_hocon)
-    conf = "\n".join(["dxCompiler {",
-                      "  regionToProject = [\n{}\n  ]".format(buf),
-                      "}"])
+    conf = "\n".join(
+        ["dxCompiler {", "  regionToProject = [\n{}\n  ]".format(buf), "}"]
+    )
 
-    rt_conf_path = os.path.join(top_dir, "compiler", "src", "main", "resources", "dxCompiler_runtime.conf")
+    rt_conf_path = os.path.join(
+        top_dir, "compiler", "src", "main", "resources", "dxCompiler_runtime.conf"
+    )
     if os.path.exists(rt_conf_path):
         os.remove(rt_conf_path)
-    with open(rt_conf_path, 'w') as fd:
+    with open(rt_conf_path, "w") as fd:
         fd.write(conf)
     all_regions_str = ", ".join(all_regions)
-    info("Built configuration regions [{}] into {}".format(all_regions_str, rt_conf_path))
+    info(
+        "Built configuration regions [{}] into {}".format(all_regions_str, rt_conf_path)
+    )
 
 
 # Build a fat jar file using sbt-assembly.
@@ -324,11 +389,21 @@ def _gen_config_file(top_dir, project_dict):
 def _sbt_assembly(top_dir):
     os.chdir(os.path.abspath(top_dir))
     jar_paths = dict(
-        ("dxExecutor{}".format(lang), os.path.join(
-            top_dir, "applet_resources", lang.upper(), "resources", "dxExecutor{}.jar".format(lang)
-        )) for lang in languages
+        (
+            "dxExecutor{}".format(lang),
+            os.path.join(
+                top_dir,
+                "applet_resources",
+                lang.upper(),
+                "resources",
+                "dxExecutor{}.jar".format(lang),
+            ),
+        )
+        for lang in languages
     )
-    jar_paths.update({"dxCompiler": os.path.join(top_dir, "applet_resources", "dxCompiler.jar")})
+    jar_paths.update(
+        {"dxCompiler": os.path.join(top_dir, "applet_resources", "dxCompiler.jar")}
+    )
     for jar_path in jar_paths.values():
         if os.path.exists(jar_path):
             os.remove(jar_path)
@@ -345,7 +420,9 @@ def _sbt_assembly(top_dir):
     return jar_paths
 
 
-def build(project, folder, version_id, top_dir, path_dict, dependencies=None, force=False):
+def build(
+    project, folder, version_id, top_dir, path_dict, dependencies=None, force=False
+):
     assets = dict((lang, find_asset(project, folder, lang)) for lang in languages)
     build_assets = force or not all(assets.values())
 
@@ -356,7 +433,9 @@ def build(project, folder, version_id, top_dir, path_dict, dependencies=None, fo
                 shutil.rmtree(language_dir)
 
         if dependencies is None:
-            with open(os.path.join(top_dir, "scripts/bundled_dependencies.json"), "rt") as inp:
+            with open(
+                os.path.join(top_dir, "scripts/bundled_dependencies.json"), "rt"
+            ) as inp:
                 dependencies = json.load(inp)
 
         # get a copy of the download agent (dxda)
@@ -378,10 +457,21 @@ def build(project, folder, version_id, top_dir, path_dict, dependencies=None, fo
         lock = threading.Lock()
         with futures.ThreadPoolExecutor(max_workers=len(languages)) as executor:
             future_to_lang = dict(
-                (executor.submit(
-                    _make_prerequisites, project, folder, version_id, top_dir, lang, resources, lock,
-                    exec_depends.get(lang.lower()), env_vars.get(lang.lower())
-                ), lang)
+                (
+                    executor.submit(
+                        _make_prerequisites,
+                        project,
+                        folder,
+                        version_id,
+                        top_dir,
+                        lang,
+                        resources,
+                        lock,
+                        exec_depends.get(lang.lower()),
+                        env_vars.get(lang.lower()),
+                    ),
+                    lang,
+                )
                 for lang in languages
             )
             assets = dict(
@@ -391,20 +481,23 @@ def build(project, folder, version_id, top_dir, path_dict, dependencies=None, fo
 
         for (prefix, jar_path) in jar_paths.items():
             # Move the file to the top level directory
-            all_in_one_jar = os.path.join(top_dir, "{}-{}.jar".format(prefix, version_id))
+            all_in_one_jar = os.path.join(
+                top_dir, "{}-{}.jar".format(prefix, version_id)
+            )
             shutil.move(jar_path, all_in_one_jar)
 
         # delete the language-specific dirs
         for lang in languages:
             shutil.rmtree(os.path.join(top_dir, "applet_resources", lang.upper()))
 
-    region = dxpy.describe(project.get_id())['region']
+    region = dxpy.describe(project.get_id())["region"]
     asset_descs = dict(
         (lang, AssetDesc(region, asset.get_id(), project))
         for (lang, asset) in assets.items()
     )
 
     return asset_descs
+
 
 # Read a JSON file
 def read_json_file(path):
@@ -413,15 +506,17 @@ def read_json_file(path):
         d = json.loads(data)
         return d
 
+
 # Verify a JSON file
 def verify_json_file(path):
     try:
         read_json_file(path)
-    except:
+    except Exception:
         raise RuntimeError("Error verifying JSON file {}".format(path))
 
+
 # Build an executable
-# 
+#
 # return            Id of the compiled executable
 #
 # source_file       Workflow source file
@@ -430,7 +525,9 @@ def verify_json_file(path):
 # top_dir           Local folder containing dxCompiler.jar
 # version_id        dxCompiler version
 # compiler_flags    Additional dxCompiler flags
-def build_executable(source_file, project, folder, top_dir, version_id, compiler_flags=[]):
+def build_executable(
+    source_file, project, folder, top_dir, version_id, compiler_flags=None
+):
     cmdline = [
         "java",
         "-jar",
@@ -441,19 +538,24 @@ def build_executable(source_file, project, folder, top_dir, version_id, compiler
         "-folder",
         folder,
         "-project",
-        project.get_id()
+        project.get_id(),
     ]
-    cmdline += compiler_flags
+    cmdline += compiler_flags or []
     try:
         print(" ".join(cmdline))
         oid = subprocess.check_output(cmdline).strip()
     except subprocess.CalledProcessError as cpe:
-        print("Error compiling {}\nstdout: {}\nstderr: {}".format(source_file, cpe.stdout, cpe.stderr))
+        print(
+            "Error compiling {}\nstdout: {}\nstderr: {}".format(
+                source_file, cpe.stdout, cpe.stderr
+            )
+        )
         raise
     return oid.decode("ascii")
 
+
 # Run an executable on 0-many inputs.
-# 
+#
 # return                        List of tuples (input #, analysis or job id)
 # 
 # oid                           Id of executable to run, or name for global workflow
@@ -469,11 +571,15 @@ def run_executable(
     project,
     test_folder,
     test_name,
-    test_inputs=[],
+    test_inputs=None,
     debug_flag=False,
     delay_workspace_destruction=False,
-    instance_type=DEFAULT_INSTANCE_TYPE
+    instance_type=DEFAULT_INSTANCE_TYPE,
+    expected_failures=None,
 ):
+    test_inputs = test_inputs or []
+    expected_failures = expected_failures or set()
+
     def once(i):
         try:
             if len(test_inputs) == 0 or i < 0:
@@ -494,7 +600,9 @@ def run_executable(
                 exec_obj = dxpy.DXApplet(project=project.get_id(), dxid=oid)
                 run_kwargs = {"ignore_reuse": True}
             else:
-                raise RuntimeError("Unable to determine executable kind for {}".format(oid))
+                raise RuntimeError(
+                    "Unable to determine executable kind for {}".format(oid)
+                )
 
             if debug_flag:
                 run_kwargs["debug"] = {
@@ -526,7 +634,14 @@ def run_executable(
             print("Sleeping for 5 seconds before trying again")
             time.sleep(5)
         else:
-            raise RuntimeError("Error running workflow {}".format(oid))
+            if (
+                test_name in expected_failures
+                or "{}.{}".format(test_name, i) in expected_failures
+            ):
+                print("Analysis {}.{} failed as expected".format(test_name, i))
+                return None
+            else:
+                raise RuntimeError("Error running workflow {}".format(oid))
 
     n = len(test_inputs)
     if n == 0:

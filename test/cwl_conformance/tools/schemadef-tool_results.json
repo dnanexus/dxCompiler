@@ -1,0 +1,8 @@
+{
+  "schemadef-tool.output": {
+    "location": "output.txt",
+    "size": 12,
+    "class": "File",
+    "checksum": "sha1$f12e6cfe70f3253f70b0dbde17c692e7fb0f1e5e"
+  }
+}

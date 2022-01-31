@@ -4,22 +4,23 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
+  "id": "cat-from-dir",
   "inputs": [
     {
-      "id": "#main/dir1",
+      "id": "dir1",
       "type": "Directory"
     }
   ],
   "outputs": [
     {
-      "id": "#main/output",
-      "outputBinding": {
-        "glob": "70fe574a99e64cf2efb175c38294199efbcc23d5"
-      },
-      "type": "File"
+      "id": "output",
+      "type": "stdout"
     }
   ],
-  "stdin": "$(inputs.dir1.listing[0].path)",
-  "stdout": "70fe574a99e64cf2efb175c38294199efbcc23d5"
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ],
+  "stdin": "$(inputs.dir1.listing[0].path)"
 }

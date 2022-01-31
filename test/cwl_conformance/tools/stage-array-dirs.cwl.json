@@ -4,10 +4,10 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
+  "id": "stage-array-dirs",
   "inputs": [
     {
-      "id": "#main/input_list",
+      "id": "input_list",
       "type": {
         "items": "Directory",
         "type": "array"
@@ -17,7 +17,7 @@
   "label": "stage-array-dirs.cwl",
   "outputs": [
     {
-      "id": "#main/output",
+      "id": "output",
       "outputBinding": {
         "glob": [
           "testdir/a",
@@ -36,6 +36,9 @@
       "listing": [
         "$(inputs.input_list)"
       ]
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ]
 }

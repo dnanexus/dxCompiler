@@ -7,17 +7,20 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
+  "id": "runtime-paths-distinct",
   "inputs": [],
   "outputs": [
     {
-      "id": "#main/foo",
+      "id": "foo",
       "type": "File"
     }
   ],
   "requirements": [
     {
       "class": "ShellCommandRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ]
 }

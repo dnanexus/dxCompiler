@@ -30,14 +30,14 @@
       "dockerPull": "python:2-slim"
     }
   ],
-  "id": "#main",
+  "id": "inline-js",
   "inputs": [
     {
       "default": {
         "class": "File",
         "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G0G3BZQ0yzZf6x1Y3vxzpgk6"
       },
-      "id": "#main/args.py",
+      "id": "args.py",
       "inputBinding": {
         "position": -1
       },
@@ -46,7 +46,7 @@
   ],
   "outputs": [
     {
-      "id": "#main/args",
+      "id": "args",
       "type": {
         "items": "string",
         "type": "array"

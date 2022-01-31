@@ -8,20 +8,20 @@
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
   "doc": "Test of capturing stderr output in a docker container.",
-  "id": "#main",
+  "id": "stderr-mediumcut",
   "inputs": [],
   "outputs": [
     {
-      "id": "#main/output_file",
-      "outputBinding": {
-        "glob": "std.err"
-      },
-      "type": "File"
+      "id": "output_file",
+      "type": "stderr"
     }
   ],
   "requirements": [
     {
       "class": "ShellCommandRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ],
   "stderr": "std.err"

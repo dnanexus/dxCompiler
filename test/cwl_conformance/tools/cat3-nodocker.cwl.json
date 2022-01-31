@@ -3,11 +3,11 @@
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
   "doc": "Print the contents of a file to stdout using 'cat'.",
-  "id": "#main",
+  "id": "cat3-nodocker",
   "inputs": [
     {
       "doc": "The file that will be copied using 'cat'",
-      "id": "#main/file1",
+      "id": "file1",
       "inputBinding": {
         "position": 1
       },
@@ -17,11 +17,16 @@
   ],
   "outputs": [
     {
-      "id": "#main/output_file",
+      "id": "output_file",
       "outputBinding": {
         "glob": "output.txt"
       },
       "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ],
   "stdout": "output.txt"

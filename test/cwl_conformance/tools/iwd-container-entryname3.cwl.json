@@ -8,23 +8,22 @@
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
   "doc": "Must fail if entryname is an absolute path and DockerRequirement is\nnot in the 'requirements' section.\n",
-  "hints": [
-    {
-      "class": "DockerRequirement",
+  "hints": {
+    "DockerRequirement": {
       "dockerOutputDirectory": "/output",
       "dockerPull": "debian:10"
     }
-  ],
-  "id": "#main",
+  },
+  "id": "iwd-container-entryname3",
   "inputs": [
     {
-      "id": "#main/filelist",
+      "id": "filelist",
       "type": "File"
     }
   ],
   "outputs": [
     {
-      "id": "#main/head",
+      "id": "head",
       "outputBinding": {
         "glob": "head.txt"
       },
@@ -43,6 +42,9 @@
     },
     {
       "class": "ShellCommandRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ]
 }

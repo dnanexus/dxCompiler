@@ -102,12 +102,6 @@ object ParameterAttributes {
       project: Option[String],
       path: Option[String]
   ) extends Suggestion
-  sealed case class DirectorySuggestion(
-      value: Option[String],
-      name: Option[String],
-      project: Option[String],
-      path: Option[String]
-  ) extends Suggestion
 
   /**
     * Compile time representaiton of supported parameter_meta section

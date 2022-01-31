@@ -4,15 +4,12 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
+  "id": "stage_file_array_basename_and_entryname",
   "inputs": [
     {
-      "id": "#main/input_list",
+      "id": "input_list",
       "secondaryFiles": [
-        {
-          "pattern": ".sec",
-          "required": null
-        }
+        ".sec"
       ],
       "type": {
         "items": "File",
@@ -23,7 +20,7 @@
   "label": "Stage File Array (with Directory Basename AND entryname)",
   "outputs": [
     {
-      "id": "#main/output",
+      "id": "output",
       "outputBinding": {
         "glob": "input_dir/*"
       },

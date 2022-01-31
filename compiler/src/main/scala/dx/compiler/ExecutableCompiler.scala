@@ -203,7 +203,6 @@ class ExecutableCompiler(extras: Option[Extras],
                 )
               }
             }
-            // TODO: ParameterAttributes.DirectorySuggestion
           }))
         case ParameterAttributes.TypeAttribute(constraint) =>
           Some(DxIOSpec.Type -> typeConstraintToNative(constraint))
@@ -274,7 +273,7 @@ class ExecutableCompiler(extras: Option[Extras],
     val attributes = defaultValueToNative(parameter.name) ++
       parameterAttributesToNative(parameter.attributes, parameter.dxType, excludeAttributeNames)
     val (nativeType, optional) = TypeSerde.toNative(parameter.dxType, !complexPathValues)
-    // TODO: I don't think the parameter should always be set to optional if it has a default
+    // TODO: should the parameter always be set to optional if it has a default?
     val paramSpec = JsObject(
         Map(DxIOSpec.Name -> JsString(parameter.name.encoded),
             DxIOSpec.Class -> JsString(nativeType))
@@ -436,6 +435,8 @@ class ExecutableCompiler(extras: Option[Extras],
       summaryToNative(meta2.get("summary"), meta2.get("description"))
     // Merge initial description & extended description
     val description = descriptionToNative(meta2.get("description"), extendedDescription)
+    // store the callable's original name, since the actual app name will be a sanitized version
+    val originalName = Map(Constants.OriginalName -> JsString(callable.name))
     // extract the details to return separately
     val metaDetails = callable.attributes
       .collectFirst {
@@ -447,7 +448,7 @@ class ExecutableCompiler(extras: Option[Extras],
       .getOrElse(Map.empty)
     // get the whatsNew section from the details
     val whatsNew = whatsNewToNative(metaDetails.get("whatsNew"))
-    (metaDefaults ++ meta ++ summary ++ description, metaDetails ++ whatsNew)
+    (metaDefaults ++ meta ++ summary ++ description, originalName ++ metaDetails ++ whatsNew)
   }
 
   protected def delayWorkspaceDestructionToNative: Map[String, JsValue] = {
@@ -486,7 +487,7 @@ class ExecutableCompiler(extras: Option[Extras],
     (default ++ attrs).filter(s => s.contains("://")).toSet
   }
 
-  // TODO: Use templates for Markdown dependency report
+  // TODO: Use SSP templates for Markdown dependency report
 
   /**
     * Markdown helper method for 1st-level list item
