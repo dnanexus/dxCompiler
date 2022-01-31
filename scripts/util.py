@@ -566,6 +566,7 @@ def build_executable(
 # debug_flag                    Keep jobs open for debugging?
 # delay_workspace_destruction   Delay workspace destruction?
 # instance_type                 Instance type, if non-default
+# expected_failures             List of test names where failure is expected
 def run_executable(
     oid,
     project,
