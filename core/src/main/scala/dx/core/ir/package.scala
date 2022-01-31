@@ -146,6 +146,9 @@ object ExecutableKind {
   */
 trait RuntimeRequirement
 
+// TODO case class Application defined here
+// document = where to set source code
+
 /**
   * An app or applet.
   * @param name name of application
