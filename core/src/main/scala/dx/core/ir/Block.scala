@@ -14,6 +14,8 @@ object InputKind extends Enum {
   val Required, Computed, Optional = Value
 }
 
+// TODO these are the types of fragments to cover
+
 /**
   * These are the kinds of blocks that are run by the workflow-fragment-runner.
   * A block can have expressions, input ports, and output ports in the beginning.
