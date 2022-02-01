@@ -23,11 +23,7 @@ import util
 here = os.path.dirname(sys.argv[0])
 top_dir = os.path.dirname(os.path.abspath(here))
 test_dir = os.path.join(os.path.abspath(top_dir), "test")
-default_instance_type = "mem1_ssd1_v2_x4"
 
-git_revision = subprocess.check_output(
-    ["git", "describe", "--always", "--dirty", "--tags"]
-).strip()
 test_files = {}
 
 # these tests generally have syntax errors and are expected to fail at the compile step
@@ -695,7 +691,7 @@ def register_test(dir_path, tname, ext):
     # Verify the input file, and add it (if it exists)
     test_input = os.path.join(dir_path, tname + "_input.json")
     if os.path.exists(test_input):
-        verify_json_file(test_input)
+        util.verify_json_file(test_input)
         desc.raw_input.append(test_input)
         desc.dx_input.append(os.path.join(dir_path, tname + "_input.dx.json"))
         desc.results.append(os.path.join(dir_path, tname + "_results.json"))
@@ -710,7 +706,7 @@ def register_test(dir_path, tname, ext):
     while True:
         test_input = os.path.join(dir_path, tname + "_input{}.json".format(i))
         if os.path.exists(test_input):
-            verify_json_file(test_input)
+            util.verify_json_file(test_input)
             desc.raw_input.append(test_input)
             desc.dx_input.append(
                 os.path.join(dir_path, tname + "_input{}.dx.json".format(i))
@@ -738,7 +734,7 @@ def read_json_file_maybe_empty(path):
     if not os.path.exists(path):
         return {}
     else:
-        return read_json_file(path)
+        return util.read_json_file(path)
 
 
 def find_test_from_exec(exec_obj):
@@ -1247,14 +1243,16 @@ def lookup_dataobj(tname, project, folder):
 
 # Build executable for test.
 #
-# wf             workflow name
-# classpath      java classpath needed for running compilation
-# folder         destination folder on the platform
+# tname             Test name
+# project           Destination project on platform
+# folder            Destination folder on platform
+# version_id        dxCompiler version
+# compiler_flags    Additional dxCompiler flags
 def build_test(tname, project, folder, version_id, compiler_flags):
     desc = test_files[tname]
     print("build {} {}".format(desc.kind, desc.name))
     print("Compiling {} to a {}".format(desc.source_file, desc.kind))
-    # both static and dynamic instance type selection should work,
+    # Both static and dynamic instance type selection should work,
     # so we can test them at random
     compiler_flags += ["-instanceTypeSelection", random.choice(["static", "dynamic"])]
     if "manifest" in desc.source_file:
@@ -1346,7 +1344,7 @@ def run_test_subset(
         if tname in test_instance_type:
             instance_type = None
         else:
-            instance_type = default_instance_type
+            instance_type = util.DEFAULT_INSTANCE_TYPE
         try:
             anl = util.run_executable(
                 oid=oid,

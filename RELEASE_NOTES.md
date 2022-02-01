@@ -78,6 +78,7 @@
 * Indicates whether static instance type selection was used in workflow description annotations and metadata
 * Supports cloning workflows between projects, a prerequisite for publishing global workflows
 * Fixes dxda manifest downloads for tasks
+* Affected by a bug for workflows that include a native platform app via `dxni`. Bug fixed in v2.8.1.
 
 ## 2.7.2 2021-11-20
 
@@ -86,6 +87,7 @@
 * Increases number of retries when downloading single manifest files
 * Fixes error when parsing a field name with multiple `stage-*` prefixes
 * Allows file-to-string coercion for WDL inputs
+* Affected by a bug for workflows that include a native platform app via `dxni`. Bug fixed in v2.8.1.
 
 ### Dependency updates
 
@@ -98,6 +100,7 @@
 * Fixes issue where jobs fail due to out-of-disk error due to excessive logging
 * Adds option to specify native app information in `runtime` section (or `hints` for WDL 2.0)
 * Fixes regression where default instance type was overridden when calling a native app
+* Affected by a bug for workflows that include a native platform app via `dxni`. Bug fixed in v2.8.1.
 
 ### Dependency updates
 
@@ -125,13 +128,17 @@
 * Fixes bug where default input values were not overridden for task inside subworkflow
 * Adds support for specifying native app(let) in `runtime` section
 * Fixes some type conversion bugs related to CWL `Any` type
+* Affected by a bug for workflows that include a native platform app via `dxni`. Bug fixed in v2.8.1.
+* Logs entire contents of WDL command at runtime
+
+*Warning*: we discovered a regression in this release that may cause tasks to fail with out-of-disk errors due to excessive logging. Please update to 2.7.1 or later.
 
 ### Dependency updates
 
 #### dxApi 0.10.1
 
 * Fixes `resolveProject` to handle `container-` objects
-* Improves error message when API call failes due to connection error
+* Improves error message when API call fails due to connection error
 
 #### cwlScala 0.7.1
 
