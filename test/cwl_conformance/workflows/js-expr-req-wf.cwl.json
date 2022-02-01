@@ -1,0 +1,52 @@
+{
+  "$graph": [
+    {
+      "arguments": [
+        "echo",
+        "$(foo())"
+      ],
+      "class": "CommandLineTool",
+      "id": "tool",
+      "inputs": [],
+      "outputs": {
+        "out": "stdout"
+      },
+      "requirements": {
+        "InlineJavascriptRequirement": {
+          "expressionLib": [
+            "function foo() { return 2; }"
+          ]
+        }
+      },
+      "stdout": "whatever.txt"
+    },
+    {
+      "class": "Workflow",
+      "id": "wf",
+      "inputs": [],
+      "outputs": {
+        "out": {
+          "outputSource": "tool/out",
+          "type": "File"
+        }
+      },
+      "requirements": {
+        "InlineJavascriptRequirement": {
+          "expressionLib": [
+            "function bar() { return 1; }"
+          ]
+        }
+      },
+      "steps": {
+        "tool": {
+          "in": {},
+          "out": [
+            "out"
+          ],
+          "run": "#tool"
+        }
+      }
+    }
+  ],
+  "cwlVersion": "v1.2"
+}

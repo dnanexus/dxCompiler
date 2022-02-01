@@ -2,11 +2,16 @@
   "baseCommand": "false",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
+  "id": "exit-success",
   "inputs": [],
   "outputs": [],
   "permanentFailCodes": [
     0
+  ],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
+    }
   ],
   "successCodes": [
     1

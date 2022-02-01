@@ -3,26 +3,30 @@
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
   "doc": "Print the contents of a file to stdout using 'cat' running in a docker container if docker is available.",
-  "hints": [
-    {
-      "class": "DockerRequirement",
+  "hints": {
+    "DockerRequirement": {
       "dockerPull": "debian:stretch-slim"
     }
-  ],
-  "id": "#main",
+  },
+  "id": "cat4-tool",
   "inputs": [
     {
-      "id": "#main/file1",
+      "id": "file1",
       "type": "File"
     }
   ],
   "outputs": [
     {
-      "id": "#main/output_txt",
+      "id": "output_txt",
       "outputBinding": {
         "glob": "output.txt"
       },
       "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ],
   "stdin": "$(inputs.file1.path)",

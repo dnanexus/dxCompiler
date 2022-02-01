@@ -1,69 +1,77 @@
 {
-  "$graph": [
+  "class": "Workflow",
+  "cwlVersion": "v1.2",
+  "id": "count-lines11-wf-noET",
+  "inputs": [
     {
-      "class": "Workflow",
-      "id": "#main",
-      "inputs": [
-        {
-          "id": "#main/file1",
-          "type": [
-            "null",
-            "File"
-          ]
-        }
-      ],
-      "outputs": [
-        {
-          "id": "#main/wc_output",
-          "outputSource": "#main/step1/output",
-          "type": "File"
-        }
-      ],
-      "steps": [
-        {
-          "id": "#main/step1",
-          "in": [
-            {
-              "default": {
-                "class": "File",
-                "location": "dx://file-G0G0V1Q0yzZZZXfx3xPK1B1Z"
-              },
-              "id": "#main/step1/file1",
-              "source": "#main/file1"
-            }
-          ],
-          "out": [
-            "#main/step1/output"
-          ],
-          "run": "#wc-tool.cwl"
-        }
+      "id": "file1",
+      "type": [
+        "null",
+        "File"
       ]
-    },
-    {
-      "baseCommand": [
-        "wc",
-        "-l"
-      ],
-      "class": "CommandLineTool",
-      "id": "#wc-tool.cwl",
-      "inputs": [
-        {
-          "id": "#wc-tool.cwl/file1",
-          "type": "File"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "#wc-tool.cwl/output",
-          "outputBinding": {
-            "glob": "output"
-          },
-          "type": "File"
-        }
-      ],
-      "stdin": "$(inputs.file1.path)",
-      "stdout": "output"
     }
   ],
-  "cwlVersion": "v1.2"
+  "outputs": [
+    {
+      "id": "wc_output",
+      "outputSource": "step1/output",
+      "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "SubworkflowFeatureRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step1",
+      "in": [
+        {
+          "default": {
+            "class": "File",
+            "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G0G0V1Q0yzZZZXfx3xPK1B1Z"
+          },
+          "id": "file1",
+          "source": "file1"
+        }
+      ],
+      "out": [
+        "output"
+      ],
+      "run": {
+        "baseCommand": [
+          "wc",
+          "-l"
+        ],
+        "class": "CommandLineTool",
+        "id": "wc-tool.cwl",
+        "inputs": [
+          {
+            "id": "file1",
+            "type": "File"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "output",
+            "outputBinding": {
+              "glob": "output"
+            },
+            "type": "File"
+          }
+        ],
+        "requirements": [
+          {
+            "class": "InlineJavascriptRequirement"
+          }
+        ],
+        "stdin": "$(inputs.file1.path)",
+        "stdout": "output"
+      }
+    }
+  ]
 }

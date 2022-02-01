@@ -66,6 +66,10 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
                                                         "-folder",
                                                         unitTestsPath,
                                                         "-locked")
+//  private val cFlagsUnlocked: List[String] = cFlagsBase ++ List("-compileMode",
+//                                                                "NativeWithoutRuntimeAsset",
+//                                                                "-folder",
+//                                                                unitTestsPath)
   private val cFlagsReorgIR: List[String] = cFlagsBase ++
     List("-compileMode", "IR", "-folder", "/reorg_tests")
   private val cFlagsReorgCompile: List[String] = cFlagsBase ++
@@ -126,6 +130,25 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileNativeNoTree]
+  }
+
+  it should "compile a WDL file with a directory input" in {
+    val sourceCode = pathFromBasename("input_file", "wdldir.wdl")
+    val inputs = pathFromBasename("input_file", "wdldir_input.json")
+    val args = List(sourceCode.toString, "--inputs", inputs.toString) ++ cFlags
+    val wfId = Main.compile(args.toVector) match {
+      case SuccessfulCompileNativeNoTree(_, Vector(id)) => id
+      case other                                        => throw new Exception(s"expected success, not ${other}")
+    }
+    val dxInputsFile = inputs.getParent.resolve(FileUtils.replaceFileSuffix(inputs, ".dx.json"))
+    val jsInputs = JsUtils.jsFromFile(dxInputsFile)
+    val fields = jsInputs.asJsObject.fields
+    fields.size shouldBe 1
+    fields("WorkingDir") shouldBe JsString("dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/tmp/")
+    val wf = dxApi.workflow(wfId)
+    val params = wf.describe(Set(Field.InputSpec)).inputs.get
+    params.size shouldBe 1
+    params.head.ioClass shouldBe DxIOClass.String
   }
 
   it should "Native compile a workflow with a scatter without a call" taggedAs NativeTest in {

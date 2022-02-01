@@ -7,22 +7,19 @@
       ],
       "baseCommand": "echo",
       "class": "CommandLineTool",
-      "id": "#echo",
-      "inputs": [
-        {
-          "id": "#echo/echo_in1",
+      "id": "echo",
+      "inputs": {
+        "echo_in1": {
           "inputBinding": {},
           "type": "string"
         },
-        {
-          "id": "#echo/echo_in2",
+        "echo_in2": {
           "inputBinding": {},
           "type": "string"
         }
-      ],
-      "outputs": [
-        {
-          "id": "#echo/echo_out",
+      },
+      "outputs": {
+        "echo_out": {
           "outputBinding": {
             "glob": "step1_out",
             "loadContents": true,
@@ -30,67 +27,47 @@
           },
           "type": "string"
         }
-      ],
+      },
       "stdout": "step1_out"
     },
     {
       "class": "Workflow",
-      "id": "#main",
-      "inputs": [
-        {
-          "id": "#main/inp1",
-          "type": {
-            "items": "string",
-            "type": "array"
-          }
-        },
-        {
-          "id": "#main/inp2",
-          "type": {
-            "items": "string",
-            "type": "array"
-          }
-        }
-      ],
-      "outputs": [
-        {
-          "id": "#main/out",
-          "outputSource": "#main/step1/echo_out",
+      "id": "main",
+      "inputs": {
+        "inp1": "string[]",
+        "inp2": "string[]"
+      },
+      "outputs": {
+        "out": {
+          "outputSource": "step1/echo_out",
           "type": {
             "items": "string",
             "type": "array"
           }
         }
-      ],
+      },
       "requirements": [
         {
           "class": "ScatterFeatureRequirement"
         }
       ],
-      "steps": [
-        {
-          "id": "#main/step1",
-          "in": [
-            {
-              "id": "#main/step1/echo_in1",
-              "source": "#main/inp1"
-            },
-            {
-              "id": "#main/step1/echo_in2",
-              "source": "#main/inp2"
-            }
-          ],
+      "steps": {
+        "step1": {
+          "in": {
+            "echo_in1": "inp1",
+            "echo_in2": "inp2"
+          },
           "out": [
-            "#main/step1/echo_out"
+            "echo_out"
           ],
           "run": "#echo",
           "scatter": [
-            "#main/step1/echo_in1",
-            "#main/step1/echo_in2"
+            "echo_in1",
+            "echo_in2"
           ],
           "scatterMethod": "flat_crossproduct"
         }
-      ]
+      }
     }
   ],
   "cwlVersion": "v1.2"

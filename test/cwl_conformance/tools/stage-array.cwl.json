@@ -7,26 +7,23 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
+  "id": "stage-array",
   "inputs": [
     {
-      "id": "#main/input_file",
+      "id": "input_file",
       "type": "File"
     },
     {
-      "id": "#main/optional_file",
+      "id": "optional_file",
       "type": [
         "null",
         "File"
       ]
     },
     {
-      "id": "#main/input_list",
+      "id": "input_list",
       "secondaryFiles": [
-        {
-          "pattern": "^.tar",
-          "required": null
-        }
+        "^.tar"
       ],
       "type": {
         "items": "File",
@@ -37,7 +34,7 @@
   "label": "stage-array.cwl",
   "outputs": [
     {
-      "id": "#main/output",
+      "id": "output",
       "outputBinding": {
         "glob": "lsout"
       },
@@ -67,6 +64,9 @@
     },
     {
       "class": "ShellCommandRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ],
   "stdout": "lsout"

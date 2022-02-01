@@ -17,15 +17,17 @@
       ]
     }
   ],
-  "id": "#main",
+  "id": "imported-hint",
   "inputs": [],
   "outputs": [
     {
-      "id": "#main/out",
-      "outputBinding": {
-        "glob": "out"
-      },
-      "type": "File"
+      "id": "out",
+      "type": "stdout"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ],
   "stdout": "out"

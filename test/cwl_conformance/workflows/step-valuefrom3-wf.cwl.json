@@ -1,21 +1,21 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
-  "id": "#main",
+  "id": "step-valuefrom3-wf",
   "inputs": [
     {
-      "id": "#main/a",
+      "id": "a",
       "type": "int"
     },
     {
-      "id": "#main/b",
+      "id": "b",
       "type": "int"
     }
   ],
   "outputs": [
     {
-      "id": "#main/val",
-      "outputSource": "#main/step1/echo_out",
+      "id": "val",
+      "outputSource": "step1/echo_out",
       "type": "string"
     }
   ],
@@ -25,48 +25,56 @@
     },
     {
       "class": "InlineJavascriptRequirement"
+    },
+    {
+      "class": "SubworkflowFeatureRequirement"
     }
   ],
   "steps": [
     {
-      "id": "#main/step1",
+      "id": "step1",
       "in": [
         {
-          "id": "#main/step1/a",
-          "source": "#main/a"
+          "id": "a",
+          "source": "a"
         },
         {
-          "id": "#main/step1/b",
-          "source": "#main/b"
+          "id": "b",
+          "source": "b"
         },
         {
-          "id": "#main/step1/c",
+          "id": "c",
           "valueFrom": "$(inputs.a + inputs.b)"
         }
       ],
       "out": [
-        "#main/step1/echo_out"
+        "echo_out"
       ],
       "run": {
         "baseCommand": "echo",
         "class": "CommandLineTool",
-        "id": "#main/step1/run/echo",
+        "id": "echo",
         "inputs": [
           {
-            "id": "#main/step1/run/echo/c",
+            "id": "c",
             "inputBinding": {},
             "type": "int"
           }
         ],
         "outputs": [
           {
-            "id": "#main/step1/run/echo/echo_out",
+            "id": "echo_out",
             "outputBinding": {
               "glob": "step1_out",
               "loadContents": true,
               "outputEval": "$(self[0].contents)"
             },
             "type": "string"
+          }
+        ],
+        "requirements": [
+          {
+            "class": "InlineJavascriptRequirement"
           }
         ],
         "stdout": "step1_out"

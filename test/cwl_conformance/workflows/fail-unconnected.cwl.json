@@ -1,74 +1,82 @@
 {
-  "$graph": [
+  "class": "Workflow",
+  "cwlVersion": "v1.2",
+  "id": "fail-unconnected",
+  "inputs": [
     {
-      "class": "Workflow",
-      "id": "#main",
-      "inputs": [
-        {
-          "default": "hello inp1",
-          "id": "#main/inp1",
-          "type": "string"
-        },
-        {
-          "default": "hello inp2",
-          "id": "#main/inp2",
-          "type": "string"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "#main/out",
-          "outputSource": "#main/step1/out",
-          "type": "string"
-        }
-      ],
-      "steps": [
-        {
-          "id": "#main/step1",
-          "in": [
-            {
-              "id": "#main/step1/in",
-              "source": "#main/inp1"
-            },
-            {
-              "id": "#main/step1/in2",
-              "source": "#main/inp2"
-            }
-          ],
-          "out": [
-            "#main/step1/out"
-          ],
-          "run": "#fail-unspecified-input.cwl"
-        }
-      ]
+      "default": "hello inp1",
+      "id": "inp1",
+      "type": "string"
     },
     {
-      "arguments": [
-        "echo",
-        "$(inputs.in)",
-        "$(inputs.in2)"
-      ],
-      "class": "CommandLineTool",
-      "id": "#fail-unspecified-input.cwl",
-      "inputs": [
-        {
-          "id": "#fail-unspecified-input.cwl/in",
-          "type": "string"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "#fail-unspecified-input.cwl/out",
-          "outputBinding": {
-            "glob": "out.txt",
-            "loadContents": true,
-            "outputEval": "$(self[0].contents)"
-          },
-          "type": "string"
-        }
-      ],
-      "stdout": "out.txt"
+      "default": "hello inp2",
+      "id": "inp2",
+      "type": "string"
     }
   ],
-  "cwlVersion": "v1.2"
+  "outputs": [
+    {
+      "id": "out",
+      "outputSource": "step1/out",
+      "type": "string"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "SubworkflowFeatureRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step1",
+      "in": [
+        {
+          "id": "in",
+          "source": "inp1"
+        },
+        {
+          "id": "in2",
+          "source": "inp2"
+        }
+      ],
+      "out": [
+        "out"
+      ],
+      "run": {
+        "arguments": [
+          "echo",
+          "$(inputs.in)",
+          "$(inputs.in2)"
+        ],
+        "class": "CommandLineTool",
+        "id": "fail-unspecified-input.cwl",
+        "inputs": [
+          {
+            "id": "in",
+            "type": "string"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "out",
+            "outputBinding": {
+              "glob": "out.txt",
+              "loadContents": true,
+              "outputEval": "$(self[0].contents)"
+            },
+            "type": "string"
+          }
+        ],
+        "requirements": [
+          {
+            "class": "InlineJavascriptRequirement"
+          }
+        ],
+        "stdout": "out.txt"
+      }
+    }
+  ]
 }
