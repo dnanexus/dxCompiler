@@ -23,6 +23,8 @@ jobs:
     name: WDL Integration Tests (Staging)
     if: contains(github.event.pull_request.labels.*.name, 'integration')
     runs-on: ubuntu-20.04
+    env:
+      PROJECT: dxCompiler_playground
     steps:
       - name: Git checkout
         uses: actions/checkout@v2
@@ -52,7 +54,6 @@ jobs:
 
           # Set up DNAnexus staging environment
           dx login --noprojects --staging --token $ROBOT_TOKEN
-          PROJECT=dxCompiler_playground
           dx select $PROJECT
           cd ${GITHUB_WORKSPACE}
 
