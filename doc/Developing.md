@@ -82,9 +82,9 @@ See below on how to run unit and integration tests. To recompile dxCompiler with
 - If the current snapshot version only differs from the release version by a patch, and you added any new functionality (vs just fixing a bug), increment the minor version instead.
 - For example, when you first created the branch you set the version to `1.0.1-SNAPSHOT`, but then you realized you needed to add a new function to the public API, change the version to `1.1.0-SNAPSHOT`.
 - You can use a script to update the version simultaneously in all of the sub-packages: `scripts/update_version.sh <version>`
-5. Make your changes. Test locally using `sbt test`.
-6. Update the [release notes](RELEASE_NOTES.md) under the top-most header (which should be "in develop").
-7. When you are done, create a pull request against the `develop` branch.
+4. Make your changes. Test locally using `sbt test`.
+5. Update the [release notes](RELEASE_NOTES.md) under the top-most header (which should be "in develop").
+6. When you are done, create a pull request against the `develop` branch.
 
 While developing, make sure you do the following:
 
