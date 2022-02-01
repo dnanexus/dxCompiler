@@ -140,6 +140,10 @@ The results will be available in the [Actions](https://github.com/dnanexus/dxCom
 
 Note that only DNAnexus developers can set up a label on a PR so let us know when you'd like to request a review and we'll start them for you.
 
+#### Skipping running all tests on GitHub
+
+In order to skip unit and intergration tests add a `minor` label to the PR.
+
 ### Running integration tests locally
 
 First, you need to an account on the DNAnexus staging environment, and you need to be added to the projects that have been setup for testing. Next, log into the DNAnexus staging environment using dx-toolkit: `dx login --staging`. Note that very often your login will timeout while the integration tests are running unless you are actively using the platform in another session, and this will cause the tests to fail. To avoid, this, generate a token via the web UI and use that token to log in on the command line: `dx login --staging --token <token>`.
