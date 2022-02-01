@@ -3,11 +3,14 @@
 ## in develop
 
 * Command file is now echoed to stderr rather than stdout
+* Fixes a bug where directory support was broken for WDL; directories in WDL are represented as strings
+* Switches from using cwltool to cwlpack
 * Adds support for publishing global workflows from dxCompiler-generated WDL workflows; see [documentation](https://github.com/dnanexus/dxCompiler/blob/develop/doc/ExpertOptions.md#publishing-global-workflows)
 
 ## 2.8.3 2022-01-07
 
-* Update dxCommon and wdlTools - fixes forwarding of stdout/stderr to job log fpr commands run in docker
+* Update dxCommon and wdlTools - fixes forwarding of stdout/stderr to job log for commands run in docker
+* Improves error message when input to call is missing/null
 
 ### Dependency updates
 

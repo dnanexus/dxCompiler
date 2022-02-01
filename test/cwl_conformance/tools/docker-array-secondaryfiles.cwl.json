@@ -9,10 +9,10 @@
   "baseCommand": [],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
+  "id": "docker-array-secondaryfiles",
   "inputs": [
     {
-      "id": "#main/fasta_path",
+      "id": "fasta_path",
       "secondaryFiles": [
         {
           "pattern": ".fai",
@@ -22,18 +22,9 @@
           "pattern": ".crai",
           "required": false
         },
-        {
-          "pattern": ".bai",
-          "required": false
-        },
-        {
-          "pattern": "${ if (inputs.require_dat) {return '.dat'} else {return null} }",
-          "required": null
-        },
-        {
-          "pattern": "${ return null; }",
-          "required": null
-        },
+        ".bai?",
+        "${ if (inputs.require_dat) {return '.dat'} else {return null} }",
+        "${ return null; }",
         {
           "pattern": ".dat2",
           "required": "$(inputs.require_dat)"
@@ -45,7 +36,7 @@
       }
     },
     {
-      "id": "#main/require_dat",
+      "id": "require_dat",
       "type": [
         "null",
         "boolean"
@@ -54,15 +45,12 @@
   ],
   "outputs": [
     {
-      "id": "#main/bai_list",
+      "id": "bai_list",
       "outputBinding": {
         "glob": "fai.list"
       },
       "secondaryFiles": [
-        {
-          "pattern": ".bai",
-          "required": false
-        },
+        ".bai?",
         {
           "pattern": "${ return null }"
         }

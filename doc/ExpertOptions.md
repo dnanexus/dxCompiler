@@ -212,16 +212,43 @@ which, on the worker, results in a file `foo.txt` being created in the inputs di
 
 Both CWL and the development version of WDL have a `Directory` data type. Although DNAnexus does not treat folders as first-class objects, dxCompiler does support `Directory`-typed inputs and outputs, with some caveats.
 
-A folder within a DNAnexus project can be represented in a standard JSON/YAML input file as a URI of the following form: `dx://project-xxx:/path/to/folder/` (note that the trailing `/` is required). When this file is passed to dxCompiler via the `-inputs` option, it is transformed into DNAnexus input format. Directories always have an input class of `Hash`. The value is represented in JSON using a special key (`___`) and a value with the following fields:
+A folder within a DNAnexus project can be represented in a standard JSON/YAML input file as a URI of the following form: `dx://project-xxx:/path/to/folder/` (note that the trailing `/` is required). When this file is passed to dxCompiler via the `-inputs` option, it is transformed into DNAnexus input format. 
 
-* Both WDL and CWL:
-  * `type`: must be `"Folder"`
-  * `uri`: the `dx://` URI of the folder
-* CWL only
-  * `basename`: the name to use when localizing the directory (defaults to the folder name if not specified) 
-  * `listing`: an array of `File` and/or `Folder` objects representing the directory structure. The listing can be nested to any level.
+##### WDL
 
-For example, in a standard WDL JSON input file:
+In WDL, directories are represented as strings. For example, if the following directory input in a standard JSON input file:
+
+```json
+{
+  "mytask.dir": "dx://project-xxx:/path/to/folder/"
+}
+```
+
+is passed to dxCompiler using the `-input` option, it is transformed into the following DNAnexus JSON input file:
+
+```json
+{
+  "dir": "dx://project-xxx:/path/to/folder/"
+}
+```
+
+The WDL specification states that a `Directory` input is to be treated as a snapshot of the directory at the time the job is executed. To enforce this behavior, at the start of the job the full (recursive) listing of the directory is retrieved, and only those files/subfolders are localized to the worker. This means that if a file is added to or removed from the directory in the DNAnexus project while the job is running, that change is not reflected in the local copy on the worker. However, if the same directory is used in multiple jobs, there is (currently) no way to guarantee that the contents are the same between workers. We strongly recommend to enact policies and practices to prevent modification of folders that will be used as input to compiled WDL workflows.
+
+A second important caveat, which results from the fact that folders are not treated as first-class objects by DNAnexus, is that, if [job reuse](#job-reuse) is enabled, a job that is run with the same folder input as a previous job (and all other inputs the same) will reuse the previous job outputs regardless of whether the contents of the folder have changed. There are two possible solutions:
+
+* Disable job reuse when running executables with `Directory`-type inputs.
+* Enact policies and practices to prevent modification of folders that will be used as input when job reuse is enabled.
+
+##### CWL
+
+Directories always have an input class of `Hash`. The value is represented in JSON using a special key (`___`) and a value with the following fields:
+
+* `type`: must be `"Folder"`
+* `uri`: the `dx://` URI of the folder
+* `basename`: the name to use when localizing the directory (defaults to the folder name if not specified) 
+* `listing`: an array of `File` and/or `Folder` objects representing the directory structure. The listing can be nested to any level.
+
+For example, in a standard JSON input file:
 
 ```json
 {
@@ -242,14 +269,7 @@ which, when passed to dxCompiler using the `-input` option, is transformed into 
 }
 ```
 
-The WDL specification states that a `Directory` input is to be treated as a snapshot of the directory at the time the job is executed. To enforce this behavior, at the start of the job the full (recursive) listing of the directory is retrieved, and only those files/subfolders are localized to the worker. This means that if a file is added to or removed from the directory in the DNAnexus project while the job is running, that change is not reflected in the local copy on the worker. However, if the same directory is used in multiple jobs, there is (currently) no way to guarantee that the contents are the same between workers. We strongly recommend to enact policies and practices to prevent modification of folders that will be used as input to compiled WDL workflows.
-
-A second important caveat, which results from the fact that folders are not treated as first-class objects by DNAnexus, is that, if [job reuse](#job-reuse) is enabled, a job that is run with the same folder input as a previous job (and all other inputs the same) will reuse the previous job outputs regardless of whether the contents of the folder have changed. There are two possible solutions:
-
-* Disable job reuse when running executables with `Directory`-type inputs.
-* Enact policies and practices to prevent modification of folders that will be used as input when job reuse is enabled.
-
-CWL does provide a mechanism for ensuring reproducibility of jobs that take directory inputs, via the `listing` field. We strongly recommend that CWL users specify the folder listing for each directory input. A job will only be reused if both the folder and the listing are identical. The ordering of the listing is taken into consideration when making the comparison, so the listing must be generated deterministically. The default behavior of dxCompiler when using the `-input` option is to generate input files with full listings for all directories. An example of a folder with a listing is:
+CWL provides a mechanism for ensuring reproducibility of jobs that take directory inputs, via the `listing` field. We strongly recommend that CWL users specify the folder listing for each directory input. A job will only be reused if both the folder and the listing are identical. The ordering of the listing is taken into consideration when making the comparison, so the listing must be generated deterministically. The default behavior of dxCompiler when using the `-input` option is to generate input files with full listings for all directories. An example of a folder with a listing is:
 
 ```json
 {

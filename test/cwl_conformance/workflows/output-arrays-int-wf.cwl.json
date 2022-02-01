@@ -1,0 +1,142 @@
+{
+  "class": "Workflow",
+  "cwlVersion": "v1.2",
+  "id": "output-arrays-int-wf",
+  "inputs": [
+    {
+      "id": "i",
+      "type": "int"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "o",
+      "outputSource": "step3/o",
+      "type": "int"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
+    },
+    {
+      "class": "SubworkflowFeatureRequirement"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step1",
+      "in": [
+        {
+          "id": "i",
+          "source": "i"
+        }
+      ],
+      "out": [
+        "o"
+      ],
+      "run": {
+        "class": "ExpressionTool",
+        "expression": "${return {'o': Array.apply(null, {length: inputs.i}).map(Number.call, Number)};}\n",
+        "id": "output-arrays-int-wf.cwl@step_step1@run",
+        "inputs": [
+          {
+            "id": "i",
+            "type": "int"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "o",
+            "type": {
+              "items": "int",
+              "type": "array"
+            }
+          }
+        ],
+        "requirements": [
+          {
+            "class": "InlineJavascriptRequirement"
+          }
+        ]
+      }
+    },
+    {
+      "id": "step2",
+      "in": [
+        {
+          "id": "i",
+          "source": "step1/o"
+        }
+      ],
+      "out": [
+        "o"
+      ],
+      "run": {
+        "class": "ExpressionTool",
+        "expression": "${return {'o': inputs.i.map(function(x) { return (x + 1) * 2; })};}\n",
+        "id": "output-arrays-int-wf.cwl@step_step2@run",
+        "inputs": [
+          {
+            "id": "i",
+            "type": {
+              "items": "int",
+              "type": "array"
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "id": "o",
+            "type": {
+              "items": "int",
+              "type": "array"
+            }
+          }
+        ],
+        "requirements": [
+          {
+            "class": "InlineJavascriptRequirement"
+          }
+        ]
+      }
+    },
+    {
+      "id": "step3",
+      "in": [
+        {
+          "id": "i",
+          "source": "step2/o"
+        }
+      ],
+      "out": [
+        "o"
+      ],
+      "run": {
+        "class": "ExpressionTool",
+        "expression": "${return {'o': inputs.i.reduce(function(a, b) { return a + b; })};}\n",
+        "id": "output-arrays-int-wf.cwl@step_step3@run",
+        "inputs": [
+          {
+            "id": "i",
+            "type": {
+              "items": "int",
+              "type": "array"
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "id": "o",
+            "type": "int"
+          }
+        ],
+        "requirements": [
+          {
+            "class": "InlineJavascriptRequirement"
+          }
+        ]
+      }
+    }
+  ]
+}

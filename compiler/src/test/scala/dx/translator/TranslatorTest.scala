@@ -1651,20 +1651,20 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     )
     wf.stages.size shouldBe 2
     wf.stages(0).dxStage.id shouldBe "stage-0"
-    wf.stages(0).calleeName shouldBe "word-count"
+    wf.stages(0).calleeName shouldBe "wc-tool.cwl"
     wf.stages(0).inputs shouldBe Vector(
         StageInputWorkflowLink(Parameter(CwlDxName.fromSourceName("file1"), TFile)),
-        StageInputStatic(VString("step1"))
+        StageInputStatic(VString("count-lines1-wf#step1"))
     )
     wf.stages(0).outputs shouldBe Vector(
         Parameter(CwlDxName.fromSourceName("output"), TFile)
     )
     wf.stages(1).dxStage.id shouldBe "stage-1"
-    wf.stages(1).calleeName shouldBe "parseInt"
+    wf.stages(1).calleeName shouldBe "parseInt-tool.cwl"
     wf.stages(1).inputs shouldBe Vector(
         StageInputStageLink(DxWorkflowStage("stage-0"),
                             Parameter(CwlDxName.fromSourceName("output"), TFile)),
-        StageInputStatic(VString("step2"))
+        StageInputStatic(VString("count-lines1-wf#step2"))
     )
     wf.stages(1).outputs shouldBe Vector(
         Parameter(CwlDxName.fromSourceName("output"), TInt)
@@ -1678,6 +1678,48 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
       case SuccessfulCompileIR(bundle) => bundle
       case other =>
         throw new Exception(s"expected success not ${other}")
+    }
+  }
+
+  it should "translate a CWL $graph workflow with multiple top-level processes" in {
+    val path = pathFromBasename("cwl", "js-expr-req-wf.cwl.json")
+    val args = path.toString :: cFlags
+    Main.compile(args.toVector) match {
+      case SuccessfulCompileIR(bundle) => bundle
+      case other =>
+        throw new Exception(s"expected success not ${other}")
+    }
+  }
+
+  it should "translate a CWL workflow with nested workflow" in {
+    val path = pathFromBasename("cwl", "count-lines17-wf.cwl.json")
+    val args = path.toString :: cFlags
+    val bundle = Main.compile(args.toVector) match {
+      case SuccessfulCompileIR(bundle) => bundle
+      case other =>
+        throw new Exception(s"expected success not ${other}")
+    }
+    val wf = bundle.primaryCallable match {
+      case Some(wf: Workflow) => wf
+      case other              => throw new Exception(s"expected Workflow not ${other}")
+    }
+    wf.name shouldBe "count-lines17-wf"
+    wf.stages.size shouldBe 1
+    wf.stages.head.calleeName shouldBe "count-lines17-wf_frag_stage-0"
+
+    val subWf = bundle.allCallables.get("count-lines17-wf.cwl@step_step1@run") match {
+      case Some(wf: Workflow) => wf
+      case other              => throw new Exception(s"expected Workflow, not ${other}")
+    }
+    subWf.stages.size shouldBe 2
+    subWf.stages(0).calleeName shouldBe "count-lines17-wf.cwl@step_step1@run_frag_stage-0"
+    subWf.stages(1).calleeName shouldBe "count-lines17-wf.cwl@step_step1@run@step_step2@run"
+
+    subWf.stages(1).inputs.size shouldBe 2
+    subWf.stages(1).inputs(1) match {
+      case StageInputStatic(value) =>
+        value shouldBe VString("count-lines17-wf#step1/count-lines17-wf.cwl@step_step1@run/step2")
+      case other => throw new Exception(s"expected static value not ${other}")
     }
   }
 
@@ -1703,6 +1745,15 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     val path = pathFromBasename("cwl", "scatter-valuefrom-wf2.cwl.json")
     val args = path.toString :: cFlags
     Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
+  }
+
+  it should "translate a CWL workflow with auto-generated embedded process IDs" in {
+    val path = pathFromBasename("cwl", "cond-wf-003_nojs.cwl.json")
+    val args = path.toString :: cFlags
+    Main.compile(args.toVector) match {
+      case SuccessfulCompileIR(bundle) => ()
+      case other                       => throw new Exception(s"expected success not ${other}")
+    }
   }
 
   it should "translate a CWL workflow with workflow input link of different name" in {
@@ -1734,7 +1785,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
   }
 
   it should "translate a CWL workflow with stage input with linkMerge" in {
-    val path = pathFromBasename("cwl", "count-lines-19-wf.cwl.json")
+    val path = pathFromBasename("cwl", "count-lines19-wf.cwl.json")
     val args = path.toString :: cFlags
     val bundle = Main.compile(args.toVector) match {
       case SuccessfulCompileIR(bundle) => bundle
@@ -1753,10 +1804,42 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     }
   }
 
+  it should "translate a CWL workflow with workflow input default value" in {
+    val path = pathFromBasename("cwl", "io-file-default-wf.cwl.json")
+    val args = path.toString :: cFlags
+    val bundle = Main.compile(args.toVector) match {
+      case SuccessfulCompileIR(bundle) => bundle
+      case other                       => throw new Exception(s"expected success not ${other}")
+    }
+    val wf = bundle.primaryCallable match {
+      case Some(wf: Workflow) => wf
+      case other              => throw new Exception(s"expected workflow not ${other}")
+    }
+    wf.inputs.size shouldBe 1
+    wf.inputs.head._1.defaultValue shouldBe Some(
+        VFile("dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G0G0V1Q0yzZZZXfx3xPK1B1Z")
+    )
+  }
+
   it should "translate a WDL workflow with dx runtime attributes" in {
     val path = pathFromBasename("bugs", "dx_runtime_keys.wdl")
     val args = path.toString :: cFlags
     Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
+  }
+
+  it should "translate a CWL workflow with a multi-type default value" in {
+    val path = pathFromBasename("cwl", "io-union-input-default-wf.cwl.json")
+    val args = path.toString :: cFlags
+    val bundle = Main.compile(args.toVector) match {
+      case SuccessfulCompileIR(bundle) => bundle
+      case other                       => throw new Exception(s"expected success not ${other}")
+    }
+    val wf = bundle.primaryCallable match {
+      case Some(wf: Workflow) => wf
+      case other              => throw new Exception(s"expected workflow not ${other}")
+    }
+    wf.inputs.size shouldBe 1
+    wf.inputs.head._1.defaultValue shouldBe Some(VString("the default value"))
   }
 
   it should "translate a CWL workflow with a step input source and default value" in {

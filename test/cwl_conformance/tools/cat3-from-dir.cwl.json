@@ -2,10 +2,10 @@
   "baseCommand": "cat",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
+  "id": "cat3-from-dir",
   "inputs": [
     {
-      "id": "#main/dir1",
+      "id": "dir1",
       "inputBinding": {
         "valueFrom": "$(self.listing[0].path)"
       },
@@ -14,11 +14,16 @@
   ],
   "outputs": [
     {
-      "id": "#main/output_file",
+      "id": "output_file",
       "outputBinding": {
         "glob": "output.txt"
       },
       "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ],
   "stdout": "output.txt"

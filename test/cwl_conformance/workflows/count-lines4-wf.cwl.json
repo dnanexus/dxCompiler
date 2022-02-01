@@ -1,85 +1,86 @@
 {
-  "$graph": [
+  "class": "Workflow",
+  "cwlVersion": "v1.2",
+  "id": "count-lines4-wf",
+  "inputs": [
     {
-      "class": "Workflow",
-      "id": "#main",
-      "inputs": [
-        {
-          "id": "#main/file1",
-          "type": "File"
-        },
-        {
-          "id": "#main/file2",
-          "type": "File"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "#main/count_output",
-          "outputSource": "#main/step1/output",
-          "type": {
-            "items": "int",
-            "type": "array"
-          }
-        }
-      ],
-      "requirements": [
-        {
-          "class": "ScatterFeatureRequirement"
-        },
-        {
-          "class": "MultipleInputFeatureRequirement"
-        }
-      ],
-      "steps": [
-        {
-          "id": "#main/step1",
-          "in": [
-            {
-              "id": "#main/step1/file1",
-              "source": [
-                "#main/file1",
-                "#main/file2"
-              ]
-            }
-          ],
-          "out": [
-            "#main/step1/output"
-          ],
-          "run": "#wc2-tool.cwl",
-          "scatter": "#main/step1/file1"
-        }
-      ]
+      "id": "file1",
+      "type": "File"
     },
     {
-      "baseCommand": "wc",
-      "class": "CommandLineTool",
-      "id": "#wc2-tool.cwl",
-      "inputs": [
-        {
-          "id": "#wc2-tool.cwl/file1",
-          "inputBinding": {},
-          "type": "File"
-        }
-      ],
-      "outputs": [
-        {
-          "id": "#wc2-tool.cwl/output",
-          "outputBinding": {
-            "glob": "output.txt",
-            "loadContents": true,
-            "outputEval": "$(parseInt(self[0].contents))"
-          },
-          "type": "int"
-        }
-      ],
-      "requirements": [
-        {
-          "class": "InlineJavascriptRequirement"
-        }
-      ],
-      "stdout": "output.txt"
+      "id": "file2",
+      "type": "File"
     }
   ],
-  "cwlVersion": "v1.2"
+  "outputs": [
+    {
+      "id": "count_output",
+      "outputSource": "step1/output",
+      "type": {
+        "items": "int",
+        "type": "array"
+      }
+    }
+  ],
+  "requirements": [
+    {
+      "class": "ScatterFeatureRequirement"
+    },
+    {
+      "class": "MultipleInputFeatureRequirement"
+    },
+    {
+      "class": "SubworkflowFeatureRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step1",
+      "in": [
+        {
+          "id": "file1",
+          "source": [
+            "file1",
+            "file2"
+          ]
+        }
+      ],
+      "out": [
+        "output"
+      ],
+      "run": {
+        "baseCommand": "wc",
+        "class": "CommandLineTool",
+        "id": "wc2-tool.cwl",
+        "inputs": [
+          {
+            "id": "file1",
+            "inputBinding": {},
+            "type": "File"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "output",
+            "outputBinding": {
+              "glob": "output.txt",
+              "loadContents": true,
+              "outputEval": "$(parseInt(self[0].contents))"
+            },
+            "type": "int"
+          }
+        ],
+        "requirements": [
+          {
+            "class": "InlineJavascriptRequirement"
+          }
+        ],
+        "stdout": "output.txt"
+      },
+      "scatter": "file1"
+    }
+  ]
 }

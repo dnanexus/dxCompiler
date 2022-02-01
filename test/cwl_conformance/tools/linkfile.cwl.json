@@ -2,10 +2,10 @@
   "baseCommand": "touch",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
+  "id": "linkfile",
   "inputs": [
     {
-      "id": "#main/src",
+      "id": "src",
       "inputBinding": {
         "position": 1,
         "valueFrom": "$(self.nameroot).class"
@@ -15,7 +15,7 @@
   ],
   "outputs": [
     {
-      "id": "#main/classfile",
+      "id": "classfile",
       "outputBinding": {
         "glob": "*.class"
       },
@@ -28,6 +28,9 @@
       "listing": [
         "$(inputs.src)"
       ]
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ]
 }

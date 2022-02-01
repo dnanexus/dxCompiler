@@ -3,17 +3,16 @@
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
   "doc": "Print the contents of a file to stdout using 'cat' running in a docker container.",
-  "hints": [
-    {
-      "class": "DockerRequirement",
+  "hints": {
+    "DockerRequirement": {
       "dockerPull": "debian:stretch-slim"
     }
-  ],
-  "id": "#main",
+  },
+  "id": "optional-output",
   "inputs": [
     {
       "doc": "The file that will be copied using 'cat'",
-      "id": "#main/file1",
+      "id": "file1",
       "inputBinding": {
         "position": 1
       },
@@ -23,7 +22,17 @@
   ],
   "outputs": [
     {
-      "id": "#main/optional_file",
+      "id": "output_file",
+      "outputBinding": {
+        "glob": "output.txt"
+      },
+      "secondaryFiles": [
+        ".idx"
+      ],
+      "type": "File"
+    },
+    {
+      "id": "optional_file",
       "outputBinding": {
         "glob": "bumble.txt"
       },
@@ -31,19 +40,11 @@
         "null",
         "File"
       ]
-    },
+    }
+  ],
+  "requirements": [
     {
-      "id": "#main/output_file",
-      "outputBinding": {
-        "glob": "output.txt"
-      },
-      "secondaryFiles": [
-        {
-          "pattern": ".idx",
-          "required": null
-        }
-      ],
-      "type": "File"
+      "class": "InlineJavascriptRequirement"
     }
   ],
   "stdout": "output.txt"

@@ -10,36 +10,30 @@
   "baseCommand": "touch",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
+  "id": "record-out-secondaryFiles",
   "inputs": [],
   "outputs": [
     {
-      "id": "#main/record_output",
+      "id": "record_output",
       "type": {
         "fields": [
           {
-            "name": "#main/record_output/f1",
+            "name": "f1",
             "outputBinding": {
               "glob": "A"
             },
-            "secondaryFiles": {
-              "pattern": ".s2",
-              "required": null
-            },
+            "secondaryFiles": ".s2",
             "type": "File"
           },
           {
-            "name": "#main/record_output/f2",
+            "name": "f2",
             "outputBinding": {
               "glob": [
                 "B",
                 "C"
               ]
             },
-            "secondaryFiles": {
-              "pattern": ".s3",
-              "required": null
-            },
+            "secondaryFiles": ".s3",
             "type": {
               "items": "File",
               "type": "array"
@@ -48,6 +42,11 @@
         ],
         "type": "record"
       }
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ]
 }

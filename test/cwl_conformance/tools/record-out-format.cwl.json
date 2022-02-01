@@ -1,0 +1,60 @@
+{
+  "arguments": [
+    "true"
+  ],
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "id": "record-out-format",
+  "inputs": [
+    {
+      "id": "record_input",
+      "type": {
+        "fields": [
+          {
+            "name": "f1",
+            "type": "File"
+          },
+          {
+            "name": "f2",
+            "type": {
+              "items": "File",
+              "type": "array"
+            }
+          }
+        ],
+        "type": "record"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "format": "http://example.com/format1",
+      "id": "f1out",
+      "outputBinding": {
+        "outputEval": "$(inputs.record_input.f1)"
+      },
+      "type": "File"
+    },
+    {
+      "id": "record_output",
+      "type": {
+        "fields": [
+          {
+            "format": "http://example.com/format2",
+            "name": "f2out",
+            "outputBinding": {
+              "outputEval": "$(inputs.record_input.f2[0])"
+            },
+            "type": "File"
+          }
+        ],
+        "type": "record"
+      }
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ]
+}

@@ -14,17 +14,17 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
+  "id": "dir5",
   "inputs": [
     {
-      "id": "#main/indir",
+      "id": "indir",
       "loadListing": "shallow_listing",
       "type": "Directory"
     }
   ],
   "outputs": [
     {
-      "id": "#main/outlist",
+      "id": "outlist",
       "outputBinding": {
         "glob": "output.txt"
       },
@@ -38,6 +38,9 @@
     {
       "class": "InitialWorkDirRequirement",
       "listing": "$(inputs.indir.listing)"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ],
   "stdout": "output.txt"
