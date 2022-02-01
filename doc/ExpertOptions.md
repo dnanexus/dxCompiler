@@ -32,6 +32,9 @@ dxCompiler takes a pipeline written in WDL and statically compiles it to an equi
 - [Debugging an applet](#debugging-an-applet)
   * [Getting WDL sources](#getting-wdl-sources)
 - [Recompilation](#recompilation)
+- [Publishing global workflows](#publishing-global-workflows)
+  * [Global workflow recommendations](#global-workflow-recommendations)
+  * [Global workflow limitations](#global-workflow-limitations)
 
 # Getting started
 
@@ -1575,3 +1578,93 @@ dx describe /builds/1.02/applets/hello --json --details | jq '.details | .wdlSou
 # Recompilation
 
 Any significant WDL workflow is compiled into multiple DNAnexus applets and workflows. Naively, any modification to the WDL source would necessitate recompilation of all the constituent objects, which is expensive. To optimize this use case, all generated platform objects are checksumed. If a dx:object has not changed, it is not recompiled, and the existing version can be used. The checksum covers the WDL source code, the DNAnexus runtime specification, and any other attributes. There are two exceptions: the project name, and the folder. This allows moving WDL workflows in the folder hierarchy without recompilation.
+
+# Publishing global workflows
+
+A [global workflow](https://documentation.dnanexus.com/developer/workflows/version-and-publish-workflows#about-workflows-and-global-workflows) is an executable that can be versioned and published to other users. Publishing global workflows may facilitate collaboration across multiple projects, compared with local, project-based workflows.
+
+Publishing a dxCompiler WDL workflow as a global workflow is supported from dxCompiler >= `v2.9.0` and dxpy >= `v0.319.2`. This is done in two steps. First, use `dxCompiler` to compile a workflow from WDL source to a local workflow in a project. Second, use `dx-toolkit` to publish the local workflow as a global workflow. Once the global workflow is published, you can add authorized users.
+
+Example: compiling a WDL workflow for later use as a global workflow.
+```
+java -jar dxCompiler.jar compile <workflow name>.wdl -instanceTypeSelection dynamic
+```
+
+Example: publishing a global workflow from a local workflow. The global workflow's name will match the WDL workflow name. The global workflow's version must be set with `--version`, since a local workflow does not have a `version` property. If `--bill-to` is not specified, your default billing account will be assumed.
+```
+dx build --globalworkflow --from <project id>:<workflow id> --version <version> --bill-to <user-xxxx | org-yyyy>
+dx publish globalworkflow-<workflow name>/<version>
+```
+
+Example: [adding and removing authorized users](https://documentation.dnanexus.com/user/helpstrings-of-sdk-command-line-utilities#add-users)
+```
+dx add users globalworkflow-<workflow name> <user-xxxx | org-yyyy>
+
+dx remove users globalworkflow-<workflow name> <user-xxxx | org-yyyy>
+```
+
+Example: [adding and removing tags](https://documentation.dnanexus.com/developer/api/running-analyses/global-workflows#api-method-globalworkflow-xxxx-yyyy-addtags)
+```
+dx api globalworkflow-<workflow name> addTags '{"tags":["<tag 1>", "<tag 2>"]}'
+
+dx api globalworkflow-<workflow name> removeTags '{"tags":["<tag 1>", "<tag 2>"]}'
+```
+
+Example: [adding and removing categories](https://documentation.dnanexus.com/developer/api/running-analyses/global-workflows#api-method-globalworkflow-xxxx-yyyy-addcategories)
+```
+dx api globalworkflow-<workflow name> addCategories '{"categories":["<category 1>", "<category 2>"]}'
+
+dx api globalworkflow-<workflow name> removeCategories '{"categories":["<category 1>", "<category 2>"]}'
+```
+
+Example: [updating title, summary, and/or developer notes](https://documentation.dnanexus.com/developer/api/running-analyses/global-workflows#api-method-globalworkflow-xxxx-yyyy-update)
+```
+dx api globalworkflow-<workflow name> update '{"title":"<new title>", "summary":"<new summary>", "developerNotes":"<new developer notes>"}'
+```
+
+See [Limitations](#limitations) below for more details on which dependencies of the workflow will be automatically included in the global workflow.
+
+## Global workflow recommendations
+
+Avoid storing credentials (passwords, keys, etc.) in the source code of the global workflow, as authorized users will have permission to download (via `dx get`) and view all dxCompiler-generated applets used in the global workflow.
+
+Use simple data types in inputs and outputs of global workflows to make it more intuitive for platform users to provide workflow inputs and examine workflow outputs via CLI and UI.
+
+For better execution stability and to reduce dependence on third-party infrastructure, use Docker images stored on the platform rather than in external registries.
+
+For better portability across projects where the workflow will be run, hard-coding instance types using the key `dx_instance_type` should be avoided for global workflows. You should specify runtime resources using numeric requirements for memory / disk / CPU and compile WDL workflows with the flag `-instanceTypeSelection dynamic`. This option ensures that instance types for jobs will always be selected at runtime, based on the actual instance types available in the runtime project. While this option can result in longer runtimes, it is better for portability because it will never attempt to start a job on an instance type that is not supported.
+
+For informational purposes, include a reference to a git repo commit containing the original workflow source code in the `developerNotes` metadata field (see above example how to update developer notes).
+
+Grant appropriate permissions to users authorized to run the global workflow the dependencies of the  global workflow that are not bundled with the global workflow.  These include credentials for external docker registries, DNAnexus apps called within the workflow, and other dependencies discussed in the [Limitations section](#global-workflows-limitations)
+
+## Global workflow limitations
+
+Publishing a dxCompiler-generated workflow as a global workflow is currently only supported for WDL.
+
+The global workflow will currently only support a single region (matching the region in which the original workflow was compiled).
+
+Some dependencies of the original workflow will be automatically included in the global workflow, i.e. they will be cloned into the global workflow's resource container and authorized users of the global workflow will not require additional permissions. These include
+- Applets and sub-workflows that were part of the original workflow
+- Native applets included in the workflow via `dxni`
+- Docker images that are stored as platform files
+
+Some dependencies of the original workflow will not be automatically included in the global workflow, so the user may need additional permissions to access and run the workflow. These include
+- Publicly inaccessible DNAnexus apps included in the workflow via `dxni`. Users must have permission to run such apps, which should be granted with `dx add users <app> <user or org>` by apps' developers.
+- Platform files referenced in workflow parameters (e.g. default or suggested inputs) or in the workflow body (user needs access to the files)
+- Credentials file for a private Docker registry (user needs access to the file)
+- Docker images in external registries, or dynamically specified at runtime (these will be pulled at runtime)
+- Hard-coded `dx_instance_type` (runtime project needs to support the instance type; using numeric resource requirements, as mentioned under Recommendations, is preferred)
+
+Authorized users will have permission to download (via `dx get`) and view any applets and their data referenced in the global workflow.
+
+<!-- TODO mention URL when the UI supports global workflows -->
+Any usage of the above in a workflow (including in its tasks and sub-workflows) will produce a warning in the workflow's `description` metadata field, which can be viewed using:
+```
+dx describe globalworkflow-<name>/<version> --json | jq -rc '.description | tostring'
+```
+
+This also works for a regular workflow:
+```
+dx describe <project-xxxx>:<workflow-yyyy> --json | jq -rc '.description | tostring'
+```
