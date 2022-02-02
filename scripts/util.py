@@ -558,13 +558,15 @@ def build_executable(
 #
 # return                        List of tuples (input #, analysis or job id)
 #
-# oid                           Id of executable to run
+# oid                           Id of executable to run, or name for global workflow
 # project                       Destination project on platform
 # test_folder                   Destination folder on platform
+# test_name                     Test name
 # test_inputs                   Inputs for running, if non-default
 # debug_flag                    Keep jobs open for debugging?
 # delay_workspace_destruction   Delay workspace destruction?
 # instance_type                 Instance type, if non-default
+# expected_failures             List of test names where failure is expected
 def run_executable(
     oid,
     project,
@@ -588,7 +590,11 @@ def run_executable(
                 print("Running with input file: {}".format(test_inputs[i]))
                 inputs = read_json_file(test_inputs[i])
             project.new_folder(test_folder, parents=True)
-            if "workflow-" in oid:
+            if "globalworkflow-" in oid:
+                global_workflow_name = oid.replace("globalworkflow-", "")
+                exec_obj = dxpy.DXGlobalWorkflow(name=global_workflow_name)
+                run_kwargs = {"ignore_reuse_stages": ["*"]}
+            elif "workflow-" in oid:
                 exec_obj = dxpy.DXWorkflow(project=project.get_id(), dxid=oid)
                 run_kwargs = {"ignore_reuse_stages": ["*"]}
             elif "applet-" in oid:

@@ -5,6 +5,7 @@
 * Command file is now echoed to stderr rather than stdout
 * Fixes a bug where directory support was broken for WDL; directories in WDL are represented as strings
 * Switches from using cwltool to cwlpack
+* Adds support for publishing global workflows from dxCompiler-generated WDL workflows; see [documentation](https://github.com/dnanexus/dxCompiler/blob/develop/doc/ExpertOptions.md#publishing-global-workflows)
 
 ## 2.8.3 2022-01-07
 
