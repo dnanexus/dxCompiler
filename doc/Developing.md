@@ -83,7 +83,7 @@ See below on how to run unit and integration tests. To recompile dxCompiler with
 - For example, when you first created the branch you set the version to `1.0.1-SNAPSHOT`, but then you realized you needed to add a new function to the public API, change the version to `1.1.0-SNAPSHOT`.
 - You can use a script to update the version simultaneously in all of the sub-packages: `scripts/update_version.sh <version>`
 4. Make your changes. Test locally using `sbt test`.
-5. Update the [release notes](RELEASE_NOTES.md) under the top-most header (which should be "in develop").
+5. Update the [release notes](/RELEASE_NOTES.md) under the top-most header (which should be "in develop").
 6. When you are done, create a pull request against the `develop` branch.
 
 While developing, make sure you do the following:
@@ -120,7 +120,7 @@ If there are errors in your code, the compiler will fail with (hopefully useful)
 
 Generate a staging token via the web UI and login with `dx login --staging --token <token>`.
 
-Run [scripts/clean_build.sh](scripts/clean_build.sh) to clean up existing artifacts (locally and on staging) and build new dxCompiler artifacts.
+Run [scripts/clean_build.sh](/scripts/clean_build.sh) to clean up existing artifacts (locally and on staging) and build new dxCompiler artifacts.
 
 ### Running unit tests
 
