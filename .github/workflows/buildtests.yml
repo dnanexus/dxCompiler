@@ -80,9 +80,9 @@ jobs:
               echo "Will run tests $TEST_SUITE"
             fi
           else
-            $DEFAULT_TEST="cwl_workflows"
-            CMD="--test $DEFAULT_TEST"
-            echo "Will run tests $DEFAULT_TEST"
+            TEST_SUITE="cwl_workflows"
+            CMD="--test $TEST_SUITE"
+            echo "Will run tests $TEST_SUITE"
           fi
 
           # Build and Run tests
