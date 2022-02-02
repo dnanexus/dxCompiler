@@ -74,12 +74,15 @@ jobs:
             if [ "$IF_BUILDONLY" == "true" ]
             then
               CMD="--build only"
+              echo "Build dxCompiler only"
             else
               CMD="--test $TEST_SUITE"
+              echo "Will run tests $TEST_SUITE"
             fi
           else
-            $TEST_SUITE="cwl_workflows"
-            CMD="--test $TEST_SUITE"
+            $DEFAULT_TEST="cwl_workflows"
+            CMD="--test $DEFAULT_TEST"
+            echo "Will run tests $DEFAULT_TEST"
           fi
 
           # Build and Run tests
