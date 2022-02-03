@@ -704,7 +704,7 @@ object CwlUtils {
   def simplifyProcess(process: Process): Process = {
     process.copySimplifyIds(dropNamespace = true,
                             replacePrefix = (Left(true), None),
-                            simplifyAutoNames = false,
+                            simplifyAutoNames = true,
                             dropCwlExtension = false)
   }
 
