@@ -74,7 +74,7 @@ jobs:
       - name: Run unit tests
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          AUTH_TOKEN: ${{ secrets.DX_STAGING_TOKEN }}
+          AUTH_TOKEN: ${{ secrets.DX_STAGING_TEST_ROBOT_TOKEN }}
           SBT_OPTS: "-XX:+CMSClassUnloadingEnabled -Xmx4G -Xms1G"
         run: |
           sudo apt-get update
@@ -100,24 +100,33 @@ jobs:
         if: ${{ github.event.inputs.should-run-tests == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          AUTH_TOKEN: ${{ secrets.DX_STAGING_TOKEN }}
+          ROBOT_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
+          TEST_ROBOT_TOKEN: ${{ secrets.DX_STAGING_TEST_ROBOT_TOKEN }}
         run: |
           export PATH="$PATH:$HOME/.local/bin"
 
-          # set up DNAnexus staging environment
-          dx login --noprojects --staging --token $AUTH_TOKEN
+          # Set up DNAnexus staging environment
+          dx login --noprojects --staging --token $ROBOT_TOKEN
           dx select $PROJECT
-
-          # run tests
           cd ${GITHUB_WORKSPACE}
+
+          # Run integration tests
           FOLDER=/builds/test_gha_dxcompiler_$(date +%s)_$RANDOM
-          dx mkdir $FOLDER
-          python3 scripts/run_tests.py --test L --folder $FOLDER --project $PROJECT
-          #TODO: also remove the folder when the tests fail
-          dx rm -rf $FOLDER
+          dx mkdir -p $FOLDER
+          python3 scripts/run_tests.py --folder $FOLDER --project $PROJECT \
+          --clean \
+          --test L
+
+          # Run multi-user tests
+          FOLDER=/builds/test_gha_dxcompiler_$(date +%s)_$RANDOM
+          dx mkdir -p $FOLDER
+          python3 scripts/run_multiuser_tests.py --folder $FOLDER --project $PROJECT \
+          --clean \
+          --alice-token $ROBOT_TOKEN \
+          --bob-token $TEST_ROBOT_TOKEN
       - name: Run the release script
         env:
-          DX_STAGING_RELEASE_TOKEN: ${{ secrets.DX_STAGING_RELEASE_TOKEN }}
+          DX_STAGING_RELEASE_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
           DX_PROD_RELEASE_TOKEN: ${{ secrets.DX_PROD_RELEASE_TOKEN }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
