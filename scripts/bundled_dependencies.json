@@ -7,7 +7,7 @@
       {
         "name": "cwltool",
         "package_manager": "pip",
-        "version": "3.1.20220124184855"
+        "version": "3.1.20220202110738"
       }
     ]
   },
