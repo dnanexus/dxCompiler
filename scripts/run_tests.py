@@ -1402,7 +1402,7 @@ def wait_for_completion(test_exec_objs):
 # Run [workflow] on several inputs, return the analysis ID.
 def run_executable(
         project, test_folder, tname, oid, debug_flag, delay_workspace_destruction,
-        instance_type=default_instance_type, reuse=False, wait_and_destroy=False
+        instance_type=util.DEFAULT_INSTANCE_TYPE, reuse=False, wait_and_destroy=False
 ):
     desc = test_files[tname]
     def once(i):
