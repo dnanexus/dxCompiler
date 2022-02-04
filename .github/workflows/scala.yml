@@ -34,11 +34,11 @@ jobs:
         run: |
           cd compiler/src/test/resources
           ./clone-corpora.sh
-      - name: Run Tests
+      - name: Run unit tests
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          AUTH_TOKEN: ${{ secrets.DX_STAGING_TOKEN }}
-          SBT_OPTS: "-XX:+CMSClassUnloadingEnabled -Xmx2G -Xms1G"
+          AUTH_TOKEN: ${{ secrets.DX_STAGING_TEST_ROBOT_TOKEN }}
+          SBT_OPTS: "-XX:+CMSClassUnloadingEnabled -Xmx4G -Xms1G"
         run: |
           sudo apt-get update
           sudo apt-get install -y apt-transport-https wget git openssh-server tree python3 python3-pip python3-venv
@@ -57,6 +57,7 @@ jobs:
 
           # check formatting
           sbt scalafmtCheckAll
+
           # run unit tests
           cd ${GITHUB_WORKSPACE}
           pwd

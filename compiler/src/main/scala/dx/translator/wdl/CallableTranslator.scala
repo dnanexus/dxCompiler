@@ -57,9 +57,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
   private def translateStaticFileDependencies(
       privateVariables: Vector[TAT.PrivateVariable]
   ): Set[String] = {
-
     // TODO: also consider files nested in arrays, structs
-
     privateVariables.collect {
       case TAT.PrivateVariable(_, WdlTypes.T_File, ValueFile(value, _)) if value.contains("://") =>
         value
@@ -155,23 +153,23 @@ case class CallableTranslator(wdlBundle: WdlBundle,
     def apply: Application = {
       // If the container is stored as a file on the platform, we need to rewrite
       // the dxURLs in the runtime section to avoid a runtime lookup. For example:
-      //   dx://dxCompiler_playground:/glnexus_internal -> dx://project-xxxx:record-yyyy
+      //   dx://dxCompiler_playground:/glnexus_internal -> dx://project-xxxx:file-yyyy
       def replaceContainer(runtime: TAT.RuntimeSection,
                            newContainer: String): TAT.RuntimeSection = {
-        Set("docker", "container").foreach { key =>
-          if (runtime.kvs.contains(key)) {
-            return TAT.RuntimeSection(
-                runtime.kvs ++ Map(
-                    key -> TAT.ValueString(newContainer, T_String, quoting = Quoting.Double)(
-                        runtime.kvs(key).loc
-                    )
-                )
-            )(
-                runtime.loc
-            )
+        Set("docker", "container")
+          .collectFirst {
+            case key if runtime.kvs.contains(key) =>
+              TAT.RuntimeSection(
+                  runtime.kvs ++ Map(
+                      key -> TAT.ValueString(newContainer, T_String, quoting = Quoting.Double)(
+                          runtime.kvs(key).loc
+                      )
+                  )
+              )(
+                  runtime.loc
+              )
           }
-        }
-        runtime
+          .getOrElse(runtime)
       }
 
       logger.trace(s"Translating task ${task.name}")
@@ -234,6 +232,42 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           (wf.name != wf2.name) || locked
         case _ =>
           true
+      }
+    }
+
+    private case class WdlCallEnv(env: Map[DxName, LinkedVar]) extends CallEnv(env) {
+      override protected def create(env: Map[DxName, (Parameter, StageInput)]): CallEnv = {
+        WdlCallEnv(env)
+      }
+
+      /**
+        * Returns the value associated with a name or any of its "ancestors".
+        * For example, if `dxName` is "A.B.C", then we look up "A.B.C", "A.B",
+        * and "A", in that order, and return the first non-empty result.
+        * @example {{{
+        * env = {"p": Pair(1, 2), "p.right": 2}
+        * env.lookup("p.left") -> Pair(1, 2)
+        * env.lookup("p.right") -> 2
+        * }}}
+        * @param dxName fully-qualified name
+        */
+      def lookup(dxName: DxName): Option[(DxName, LinkedVar)] = {
+        env.get(dxName).map((dxName, _)).orElse {
+          if (dxName.numParts > 1) {
+            val (prefix, _) = dxName.popDecodedIdentifier()
+            lookup(prefix)
+          } else {
+            None
+          }
+        }
+      }
+    }
+
+    private object WdlCallEnv {
+      def fromLinkedVars(lvars: Vector[LinkedVar]): CallEnv = {
+        WdlCallEnv(lvars.map {
+          case (parameter, stageInput) => parameter.name -> (parameter, stageInput)
+        }.toMap)
       }
     }
 
@@ -474,7 +508,6 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           }
         }
 
-        // TODO: will there ever be block inputs that are not included in closureInputs?
         val closureInputs = subBlocks.flatMap { block =>
           block.inputs.collect {
             case blockInput if !containsName(blockInput.name) =>
@@ -543,13 +576,11 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           }
       )
 
-      // The fragment runner can only handle a single call. If the block contains
-      // a scatter/conditional with several calls, then we compile the inner
-      // block into a sub-workflow. We also need the name of the callable so
-      // we can link with it when we get to the compile phase.
-      // TODO: handle call.afters - we need to bundle some metadata with the applet
-      //  so that it can launch the call execution with dependencies on the right
-      //  upstream executions.
+      // The fragment runner can only handle a single call. If the block contains a
+      // scatter/conditional with several calls, then we compile the inner block into a sub-workflow.
+      // We also need the name of the callable so  we can link with it when in the compile phase.
+      // TODO: handle call.afters - we need to bundle some metadata with the applet so that it can
+      //  launch the call execution with dependencies on the right upstream executions.
       val (innerCall, auxCallables, newScatterPath) =
         block.kind match {
           case BlockKind.ExpressionsOnly => (None, Vector.empty, None)
@@ -680,7 +711,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
     ): (Vector[(Stage, Vector[Callable])], CallEnv) = {
       logger.trace(s"Assembling workflow backbone $wfName")
 
-      val inputEnv: CallEnv = CallEnv.fromLinkedVars(wfInputs)
+      val inputEnv: CallEnv = WdlCallEnv.fromLinkedVars(wfInputs)
 
       val logger2 = logger.withIncTraceIndent()
       logger2.trace(s"inputs: ${inputEnv.keys}")
@@ -907,9 +938,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
 
       val (backboneInputs, commonStageInfo) =
         if (useManifests || dynamicDefaults.exists(identity)) {
-          // If we are using manifests, we need an initial applet to merge multiple
-          // manifests into a single manifest.
-          // If the workflow has inputs that are defined with complex expressions,
+          // If we are using manifests, we need an initial applet to merge multiple manifests into
+          // a single manifest. If the workflow has inputs that are defined with complex expressions,
           // we need an initial applet to evaluate those.
           val commonStageInputs = allWfInputParameters.map(p => StageInputWorkflowLink(p))
           val inputOutputs: Vector[Parameter] = inputs.map { i =>

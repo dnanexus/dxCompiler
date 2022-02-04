@@ -1,50 +1,51 @@
 {
-    "class": "CommandLineTool",
-    "doc": "Print the contents of a file to stdout using 'cat' running in a docker container.",
-    "hints": [
-        {
-            "dockerPull": "debian:stretch-slim",
-            "class": "DockerRequirement"
-        }
-    ],
-    "inputs": [
-        {
-            "type": "File",
-            "label": "Input File",
-            "doc": "The file that will be copied using 'cat'",
-            "inputBinding": {
-                "position": 1
-            },
-            "id": "#main/file1"
-        }
-    ],
-    "outputs": [
-        {
-            "type": [
-                "null",
-                "File"
-            ],
-            "outputBinding": {
-                "glob": "bumble.txt"
-            },
-            "id": "#main/optional_file"
-        },
-        {
-            "type": "File",
-            "outputBinding": {
-                "glob": "output.txt"
-            },
-            "secondaryFiles": [
-                {
-                    "pattern": ".idx",
-                    "required": null
-                }
-            ],
-            "id": "#main/output_file"
-        }
-    ],
-    "baseCommand": "cat",
-    "stdout": "output.txt",
-    "id": "#main",
-    "cwlVersion": "v1.2"
+  "baseCommand": "cat",
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "doc": "Print the contents of a file to stdout using 'cat' running in a docker container.",
+  "hints": {
+    "DockerRequirement": {
+      "dockerPull": "debian:stretch-slim"
+    }
+  },
+  "id": "optional-output",
+  "inputs": [
+    {
+      "doc": "The file that will be copied using 'cat'",
+      "id": "file1",
+      "inputBinding": {
+        "position": 1
+      },
+      "label": "Input File",
+      "type": "File"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "output_file",
+      "outputBinding": {
+        "glob": "output.txt"
+      },
+      "secondaryFiles": [
+        ".idx"
+      ],
+      "type": "File"
+    },
+    {
+      "id": "optional_file",
+      "outputBinding": {
+        "glob": "bumble.txt"
+      },
+      "type": [
+        "null",
+        "File"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ],
+  "stdout": "output.txt"
 }

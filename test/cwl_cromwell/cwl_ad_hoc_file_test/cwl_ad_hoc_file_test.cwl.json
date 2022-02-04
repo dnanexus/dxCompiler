@@ -1,0 +1,63 @@
+{
+    "$graph": [
+        {
+            "class": "CommandLineTool",
+            "requirements": [
+                {
+                    "listing": [
+                        {
+                            "entryname": "example.sh",
+                            "entry": "PREFIX='Message is:'\nMSG=\"\\${PREFIX} Hello world!\"\necho \\${MSG}"
+                        }
+                    ],
+                    "class": "InitialWorkDirRequirement"
+                }
+            ],
+            "hints": [
+                {
+                    "dockerPull": "ubuntu:latest",
+                    "class": "DockerRequirement"
+                },
+                {
+                    "loadListing": "deep_listing",
+                    "class": "LoadListingRequirement"
+                },
+                {
+                    "networkAccess": true,
+                    "class": "NetworkAccess"
+                }
+            ],
+            "inputs": [],
+            "baseCommand": [
+                "sh",
+                "example.sh"
+            ],
+            "stdout": "output.txt",
+            "id": "#cwl-test.cwl",
+            "outputs": [
+                {
+                    "type": "File",
+                    "id": "#cwl-test.cwl/example_out",
+                    "outputBinding": {
+                        "glob": "output.txt"
+                    }
+                }
+            ]
+        },
+        {
+            "class": "Workflow",
+            "inputs": [],
+            "steps": [
+                {
+                    "run": "#cwl-test.cwl",
+                    "in": [],
+                    "out": [],
+                    "id": "#main/test"
+                }
+            ],
+            "outputs": [],
+            "id": "#main"
+        }
+    ],
+    "cwlVersion": "v1.2"
+}

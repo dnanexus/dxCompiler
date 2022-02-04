@@ -1,0 +1,239 @@
+{
+    "class": "Workflow",
+    "id": "#main",
+    "hints": [
+        {
+            "dockerPull": "ubuntu:latest",
+            "class": "DockerRequirement"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "#main/pattern",
+            "type": "string"
+        }
+    ],
+    "steps": [
+        {
+            "id": "#main/ps",
+            "in": [],
+            "out": [
+                {
+                    "id": "#main/ps/ps-stdOut"
+                }
+            ],
+            "run": {
+                "inputs": [],
+                "outputs": [
+                    {
+                        "id": "#main/ps/run/ps-stdOut",
+                        "outputBinding": {
+                            "glob": "ps-stdOut.txt"
+                        },
+                        "type": "File"
+                    }
+                ],
+                "class": "CommandLineTool",
+                "requirements": [
+                    {
+                        "dockerPull": "ubuntu:bionic",
+                        "class": "DockerRequirement"
+                    }
+                ],
+                "baseCommand": "ps",
+                "stdout": "ps-stdOut.txt",
+                "hints": [
+                    {
+                        "loadListing": "deep_listing",
+                        "class": "LoadListingRequirement"
+                    },
+                    {
+                        "networkAccess": true,
+                        "class": "NetworkAccess"
+                    }
+                ]
+            }
+        },
+        {
+            "id": "#main/cgrep",
+            "in": [
+                {
+                    "id": "#main/cgrep/pattern",
+                    "source": "#main/pattern"
+                },
+                {
+                    "id": "#main/cgrep/file",
+                    "source": "#main/ps/ps-stdOut"
+                }
+            ],
+            "out": [
+                {
+                    "id": "#main/cgrep/cgrep-count"
+                }
+            ],
+            "requirements": [
+                {
+                    "dockerPull": "debian:jessie",
+                    "class": "DockerRequirement"
+                }
+            ],
+            "run": {
+                "inputs": [
+                    {
+                        "id": "#main/cgrep/run/pattern",
+                        "type": "string"
+                    },
+                    {
+                        "id": "#main/cgrep/run/file",
+                        "type": "File"
+                    }
+                ],
+                "outputs": [
+                    {
+                        "id": "#main/cgrep/run/cgrep-count",
+                        "outputBinding": {
+                            "glob": "cgrep-stdOut.txt",
+                            "loadContents": true,
+                            "outputEval": "$(parseInt(self[0].contents))"
+                        },
+                        "type": "int"
+                    }
+                ],
+                "class": "CommandLineTool",
+                "requirements": [
+                    {
+                        "class": "ShellCommandRequirement"
+                    },
+                    {
+                        "class": "InlineJavascriptRequirement"
+                    }
+                ],
+                "arguments": [
+                    {
+                        "valueFrom": "grep",
+                        "shellQuote": false
+                    },
+                    {
+                        "valueFrom": "$(inputs.pattern)",
+                        "shellQuote": false
+                    },
+                    {
+                        "valueFrom": "${return inputs.file}",
+                        "shellQuote": false
+                    },
+                    {
+                        "valueFrom": "|",
+                        "shellQuote": false
+                    },
+                    {
+                        "valueFrom": "wc",
+                        "shellQuote": false
+                    },
+                    {
+                        "valueFrom": "-l",
+                        "shellQuote": false
+                    }
+                ],
+                "stdout": "cgrep-stdOut.txt",
+                "hints": [
+                    {
+                        "loadListing": "deep_listing",
+                        "class": "LoadListingRequirement"
+                    },
+                    {
+                        "networkAccess": true,
+                        "class": "NetworkAccess"
+                    }
+                ]
+            }
+        },
+        {
+            "id": "#main/wc",
+            "in": [
+                {
+                    "id": "#main/wc/file",
+                    "source": "#main/ps/ps-stdOut"
+                }
+            ],
+            "out": [
+                {
+                    "id": "#main/wc/wc-count"
+                }
+            ],
+            "run": {
+                "inputs": [
+                    {
+                        "id": "#main/wc/run/file",
+                        "type": "File"
+                    }
+                ],
+                "outputs": [
+                    {
+                        "id": "#main/wc/run/wc-count",
+                        "outputBinding": {
+                            "glob": "wc-stdOut.txt",
+                            "loadContents": true,
+                            "outputEval": "$(parseInt(self[0].contents))"
+                        },
+                        "type": "int"
+                    }
+                ],
+                "class": "CommandLineTool",
+                "requirements": [
+                    {
+                        "class": "ShellCommandRequirement"
+                    },
+                    {
+                        "class": "InlineJavascriptRequirement"
+                    }
+                ],
+                "arguments": [
+                    {
+                        "valueFrom": "cat",
+                        "shellQuote": false
+                    },
+                    {
+                        "valueFrom": "$(inputs.file)",
+                        "shellQuote": false
+                    },
+                    {
+                        "valueFrom": "|",
+                        "shellQuote": false
+                    },
+                    {
+                        "valueFrom": "wc",
+                        "shellQuote": false
+                    },
+                    {
+                        "valueFrom": "-l",
+                        "shellQuote": false
+                    }
+                ],
+                "stdout": "wc-stdOut.txt",
+                "hints": [
+                    {
+                        "loadListing": "deep_listing",
+                        "class": "LoadListingRequirement"
+                    },
+                    {
+                        "networkAccess": true,
+                        "class": "NetworkAccess"
+                    }
+                ]
+            }
+        }
+    ],
+    "outputs": [
+        {
+            "id": "#main/cgrep-count",
+            "outputSource": "#main/cgrep/cgrep-count",
+            "type": "int"
+        },
+        {
+            "id": "#main/wc-count",
+            "outputSource": "#main/wc/wc-count",
+            "type": "int"
+        }
+    ],
+    "cwlVersion": "v1.2"
+}

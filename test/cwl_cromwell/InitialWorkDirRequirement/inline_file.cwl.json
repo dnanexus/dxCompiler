@@ -1,0 +1,48 @@
+{
+    "id": "#main",
+    "class": "CommandLineTool",
+    "baseCommand": [
+        "python3",
+        "prime_sieve.py",
+        "100"
+    ],
+    "requirements": [
+        {
+            "class": "DockerRequirement",
+            "dockerPull": "python:3.5.0"
+        },
+        {
+            "class": "InitialWorkDirRequirement",
+            "listing": [
+                {
+                    "entryname": "prime_sieve.py",
+                    "entry": "import sys\nimport math\n\nlimit = int(sys.argv[1])\nsieve = [True for i in range(limit)]\nfor i in range(2, math.floor(limit / 2)):\n    if sieve[i]:\n        for j in range(i * 2, limit, i):\n            sieve[j] = False\n\nresult = \"[\"\nfor i in range(2, limit):\n    if sieve[i]:\n        if result != \"[\":\n            result += \", \"\n        result += str(i)\nresult += \"]\"\n\nprint(result)\n"
+                }
+            ]
+        }
+    ],
+    "stdout": "primes",
+    "inputs": [],
+    "hints": [
+        {
+            "loadListing": "deep_listing",
+            "class": "LoadListingRequirement"
+        },
+        {
+            "networkAccess": true,
+            "class": "NetworkAccess"
+        }
+    ],
+    "outputs": [
+        {
+            "id": "#main/prime_list",
+            "type": "string",
+            "outputBinding": {
+                "glob": "primes",
+                "loadContents": true,
+                "outputEval": "$(self[0].contents.trim())"
+            }
+        }
+    ],
+    "cwlVersion": "v1.2"
+}

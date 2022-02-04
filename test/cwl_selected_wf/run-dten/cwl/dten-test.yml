@@ -1,0 +1,12 @@
+input-file-id: syn18523913
+synapse-config:
+  class: File
+  path: /Users/sgosline/.synapseConfig
+gene-id-type: hugo
+beta-params: [1,2,5,10,20,30]
+mu-params: [0.1,0.01,0.001,0.0001,10e-5]
+w-params: [1,10,100,0.1,0.01]
+output-parent-id: syn18812749
+output-project-id: syn16941818
+name: Pan-NF Networks
+metaviper-store-id: syn18918341

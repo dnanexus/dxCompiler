@@ -1,0 +1,38 @@
+{
+  "reads": {
+    "class": "File",
+    "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G0G0V0j0yzZbQZv43vqv7x6k"
+  },
+  "stages": [
+    {
+      "algos": [
+        {
+          "algo": "map1",
+          "minSeqLen": 20
+        },
+        {
+          "algo": "map2",
+          "minSeqLen": 20
+        }
+      ],
+      "stageId": 1
+    },
+    {
+      "algos": [
+        {
+          "minSeqLen": 10,
+          "maxSeqLen": 20,
+          "seedLength": 16,
+          "algo": "map1"
+        },
+        {
+          "maxSeedHits": -1,
+          "minSeqLen": 10,
+          "maxSeqLen": 20,
+          "algo": "map2"
+        }
+      ],
+      "stageId": 2
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+inp2: baz  # type "string"
+inp:  # array of type "string"
+  - foo
+  - bar

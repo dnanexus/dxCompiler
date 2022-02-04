@@ -52,8 +52,7 @@ object WdlWorkflowExecutor {
   }
 }
 
-// TODO: implement graph building from workflow - input and output parameters
-//  should be ordered in calls to InputOutput.*
+// TODO: implement graph building from workflow - input and output parameters should be ordered
 /**
   * Executor for WDL workflows.
   * @param docSource the FileNode from which the workflow source originated.
@@ -534,7 +533,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         if (env.contains(innerName)) {
           Some(env(innerName)._2)
         } else {
-          // TODO: use dxName.popDecodedIdentifier
+          // TODO: use dxName.popDecodedIdentifier instead of a regexp
           innerName.decoded match {
             case qualifiedNameRegexp(lhs, rhs) =>
               inner(WdlDxName.fromDecodedName(lhs)).map {

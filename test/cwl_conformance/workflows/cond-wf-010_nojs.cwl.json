@@ -1,104 +1,110 @@
 {
-    "$graph": [
+  "class": "Workflow",
+  "cwlVersion": "v1.2",
+  "id": "cond-wf-010_nojs",
+  "inputs": [
+    {
+      "default": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "id": "val",
+      "type": {
+        "items": "int",
+        "type": "array"
+      }
+    },
+    {
+      "default": [
+        false,
+        false,
+        false,
+        true,
+        true,
+        true
+      ],
+      "id": "test",
+      "type": {
+        "items": "boolean",
+        "type": "array"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "out1",
+      "outputSource": "step1/out1",
+      "pickValue": "all_non_null",
+      "type": {
+        "items": "string",
+        "type": "array"
+      }
+    }
+  ],
+  "requirements": [
+    {
+      "class": "ScatterFeatureRequirement"
+    },
+    {
+      "class": "SubworkflowFeatureRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step1",
+      "in": [
         {
-            "class": "Workflow",
-            "inputs": [
-                {
-                    "type": {
-                        "type": "array",
-                        "items": "boolean"
-                    },
-                    "default": [
-                        false,
-                        false,
-                        false,
-                        true,
-                        true,
-                        true
-                    ],
-                    "id": "#main/test"
-                },
-                {
-                    "type": {
-                        "type": "array",
-                        "items": "int"
-                    },
-                    "default": [
-                        1,
-                        2,
-                        3,
-                        4,
-                        5,
-                        6
-                    ],
-                    "id": "#main/val"
-                }
-            ],
-            "steps": [
-                {
-                    "in": [
-                        {
-                            "source": "#main/test",
-                            "id": "#main/step1/a_new_var"
-                        },
-                        {
-                            "source": "#main/val",
-                            "id": "#main/step1/in1"
-                        }
-                    ],
-                    "run": "#foo.cwl",
-                    "when": "$(inputs.a_new_var)",
-                    "out": [
-                        "#main/step1/out1"
-                    ],
-                    "scatter": [
-                        "#main/step1/in1",
-                        "#main/step1/a_new_var"
-                    ],
-                    "scatterMethod": "dotproduct",
-                    "id": "#main/step1"
-                }
-            ],
-            "outputs": [
-                {
-                    "type": {
-                        "type": "array",
-                        "items": "string"
-                    },
-                    "outputSource": "#main/step1/out1",
-                    "pickValue": "all_non_null",
-                    "id": "#main/out1"
-                }
-            ],
-            "requirements": [
-                {
-                    "class": "ScatterFeatureRequirement"
-                }
-            ],
-            "id": "#main"
+          "id": "in1",
+          "source": "val"
         },
         {
-            "class": "CommandLineTool",
-            "inputs": [
-                {
-                    "type": "int",
-                    "id": "#foo.cwl/in1"
-                }
-            ],
-            "baseCommand": [
-                "echo"
-            ],
-            "outputs": [
-                {
-                    "type": "string",
-                    "outputBinding": {
-                        "outputEval": "foo $(inputs.in1)"
-                    },
-                    "id": "#foo.cwl/out1"
-                }
-            ],
-            "id": "#foo.cwl"
+          "id": "a_new_var",
+          "source": "test"
         }
-    ],
-    "cwlVersion": "v1.2"
+      ],
+      "out": [
+        "out1"
+      ],
+      "run": {
+        "baseCommand": [
+          "echo"
+        ],
+        "class": "CommandLineTool",
+        "id": "foo.cwl",
+        "inputs": [
+          {
+            "id": "in1",
+            "type": "int"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "out1",
+            "outputBinding": {
+              "outputEval": "foo $(inputs.in1)"
+            },
+            "type": "string"
+          }
+        ],
+        "requirements": [
+          {
+            "class": "InlineJavascriptRequirement"
+          }
+        ]
+      },
+      "scatter": [
+        "in1",
+        "a_new_var"
+      ],
+      "scatterMethod": "dotproduct",
+      "when": "$(inputs.a_new_var)"
+    }
+  ]
 }

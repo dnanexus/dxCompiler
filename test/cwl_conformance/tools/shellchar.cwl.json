@@ -1,32 +1,29 @@
 {
-    "class": "CommandLineTool",
-    "doc": "Ensure that arguments containing shell directives are not interpreted and\nthat `shellQuote: false` has no effect when ShellCommandRequirement is not in\neffect.\n",
-    "inputs": [],
-    "outputs": [
-        {
-            "type": "File",
-            "id": "#main/stderr_file",
-            "outputBinding": {
-                "glob": "93416edd825d2561858457a99dce03bbbeaedb00"
-            }
-        },
-        {
-            "type": "File",
-            "id": "#main/stdout_file",
-            "outputBinding": {
-                "glob": "3407952f038cc03fe249629cff9be668684a8007"
-            }
-        }
-    ],
-    "baseCommand": "echo",
-    "arguments": [
-        {
-            "valueFrom": "foo 1>&2",
-            "shellQuote": false
-        }
-    ],
-    "id": "#main",
-    "stderr": "93416edd825d2561858457a99dce03bbbeaedb00",
-    "stdout": "3407952f038cc03fe249629cff9be668684a8007",
-    "cwlVersion": "v1.2"
+  "arguments": [
+    {
+      "shellQuote": false,
+      "valueFrom": "foo 1>&2"
+    }
+  ],
+  "baseCommand": "echo",
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "doc": "Ensure that arguments containing shell directives are not interpreted and\nthat `shellQuote: false` has no effect when ShellCommandRequirement is not in\neffect.\n",
+  "id": "shellchar",
+  "inputs": [],
+  "outputs": [
+    {
+      "id": "stdout_file",
+      "type": "stdout"
+    },
+    {
+      "id": "stderr_file",
+      "type": "stderr"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ]
 }

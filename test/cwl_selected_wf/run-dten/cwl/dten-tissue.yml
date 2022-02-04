@@ -1,0 +1,18 @@
+input-query-list:
+  - SELECT zScore as "counts", Symbol as gene, specimenID as "sample", tumorType as "conditions" FROM syn20449214 WHERE  ( ( "isCellLine" IS NULL ) OR "isCellLine" = 'FALSE' ) AND ("transplantationType" is NULL OR "transplantationType" = '')
+synapse-config:
+  class: File
+  path: /home/sgosline/.synapseConfig
+gene-id-type: hugo
+beta-params: [1,2,5,10,20,30]
+mu-params: [0.1,0.01,0.001,0.0001,10e-5]
+w-params: [1,10,100,0.1,0.01]
+metaviper-store-id: syn18918341
+output-parent-id: syn18483806
+output-folder-id: syn18483806
+output-project-id: syn16941818
+gene-data:
+  class: File
+  path: newTab.csv
+name: Tumor-Only Pan-NF Node Networks
+id-type: hugo

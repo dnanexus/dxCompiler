@@ -1,0 +1,14 @@
+{
+  "rename-outputs.output_file": {
+    "class": "File",
+    "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+    "size": 0,
+    "location": "secondary_file_test.txt",
+    "secondaryFiles": [{
+      "class": "File",
+      "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "location": "secondary_file_test.txt.accessory",
+      "size": 0
+    }]
+  }
+}

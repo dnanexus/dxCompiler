@@ -1,28 +1,33 @@
 {
-    "class": "CommandLineTool",
-    "inputs": [],
-    "baseCommand": [
-        "touch",
-        "z",
-        "y",
-        "x",
-        "w",
-        "c",
-        "b",
-        "a"
-    ],
-    "outputs": [
-        {
-            "type": {
-                "type": "array",
-                "items": "File"
-            },
-            "outputBinding": {
-                "glob": "*"
-            },
-            "id": "#main/letters"
-        }
-    ],
-    "id": "#main",
-    "cwlVersion": "v1.2"
+  "baseCommand": [
+    "touch",
+    "z",
+    "y",
+    "x",
+    "w",
+    "c",
+    "b",
+    "a"
+  ],
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "id": "glob_test",
+  "inputs": [],
+  "outputs": [
+    {
+      "id": "letters",
+      "outputBinding": {
+        "glob": "*"
+      },
+      "type": {
+        "items": "File",
+        "type": "array"
+      }
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ]
 }

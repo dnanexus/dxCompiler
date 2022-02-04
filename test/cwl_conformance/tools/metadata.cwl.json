@@ -1,48 +1,52 @@
 {
-    "class": "CommandLineTool",
-    "doc": "Print the contents of a file to stdout using 'cat' running in a docker container.",
-    "hints": [
-        {
-            "dockerPull": "debian:stretch-slim",
-            "class": "DockerRequirement"
-        }
-    ],
-    "inputs": [
-        {
-            "type": "File",
-            "inputBinding": {
-                "position": 1
-            },
-            "id": "#main/file1"
-        },
-        {
-            "type": [
-                "null",
-                "boolean"
-            ],
-            "inputBinding": {
-                "position": 0,
-                "prefix": "-n"
-            },
-            "id": "#main/numbering"
-        }
-    ],
-    "outputs": [],
-    "baseCommand": "cat",
-    "id": "#main",
-    "http://purl.org/dc/terms/creator": {
-        "id": "#0000-0003-3566-7705",
-        "class": "http://xmlns.com/foaf/0.1/Person",
-        "http://xmlns.com/foaf/0.1/name": "Peter Amstutz",
-        "http://xmlns.com/foaf/0.1/mbox": "mailto:peter.amstutz@curoverse.com"
-    },
-    "cwlVersion": "v1.2",
-    "$schemas": [
-        "file:///Users/jdidion/projects/dxCompiler/test/cwl_conformance/tools/dcterms.rdf",
-        "file:///Users/jdidion/projects/dxCompiler/test/cwl_conformance/tools/foaf.rdf"
-    ],
-    "$namespaces": {
-        "dct": "http://purl.org/dc/terms/",
-        "foaf": "http://xmlns.com/foaf/0.1/"
+  "$namespaces": {
+    "dct": "http://purl.org/dc/terms/",
+    "foaf": "http://xmlns.com/foaf/0.1/"
+  },
+  "$schemas": [
+    "foaf.rdf",
+    "dcterms.rdf"
+  ],
+  "baseCommand": "cat",
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "dct:creator": {
+    "class": "foaf:Person",
+    "foaf:mbox": "mailto:peter.amstutz@curoverse.com",
+    "foaf:name": "Peter Amstutz",
+    "id": "http://orcid.org/0000-0003-3566-7705"
+  },
+  "doc": "Print the contents of a file to stdout using 'cat' running in a docker container.",
+  "hints": {
+    "DockerRequirement": {
+      "dockerPull": "debian:stretch-slim"
     }
+  },
+  "id": "metadata",
+  "inputs": [
+    {
+      "id": "file1",
+      "inputBinding": {
+        "position": 1
+      },
+      "type": "File"
+    },
+    {
+      "id": "numbering",
+      "inputBinding": {
+        "position": 0,
+        "prefix": "-n"
+      },
+      "type": [
+        "null",
+        "boolean"
+      ]
+    }
+  ],
+  "outputs": [],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ]
 }

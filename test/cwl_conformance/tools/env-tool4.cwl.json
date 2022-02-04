@@ -1,37 +1,37 @@
 {
-    "class": "CommandLineTool",
-    "inputs": [
-        {
-            "type": "string",
-            "id": "#main/in"
-        }
-    ],
-    "outputs": [
-        {
-            "type": "File",
-            "outputBinding": {
-                "glob": "out"
-            },
-            "id": "#main/out"
-        }
-    ],
-    "requirements": [
-        {
-            "envDef": [
-                {
-                    "envValue": "conflict_original",
-                    "envName": "TEST_ENV"
-                }
-            ],
-            "class": "EnvVarRequirement"
-        }
-    ],
-    "baseCommand": [
-        "/bin/bash",
-        "-c",
-        "echo $TEST_ENV"
-    ],
-    "stdout": "out",
-    "id": "#main",
-    "cwlVersion": "v1.2"
+  "baseCommand": [
+    "/bin/bash",
+    "-c",
+    "echo $TEST_ENV"
+  ],
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "id": "env-tool4",
+  "inputs": [
+    {
+      "id": "in",
+      "type": "string"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "out",
+      "outputBinding": {
+        "glob": "out"
+      },
+      "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "EnvVarRequirement",
+      "envDef": {
+        "TEST_ENV": "conflict_original"
+      }
+    },
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ],
+  "stdout": "out"
 }
