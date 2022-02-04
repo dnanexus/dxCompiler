@@ -86,14 +86,15 @@ See below on how to run unit and integration tests. To recompile dxCompiler with
 
 1. Checkout the `develop` branch.
 2. Create a new branch with your changes. Name it something meaningful, like `APPS-123-download-bug`.
-3. If the current snapshot version matches the release version, increment the snapshot version.
+3. Update snapshot version (in the `application.conf` files of all the sub-packages):
+- If the current snapshot version matches the release version, increment the snapshot version.
 - For example, if the current release is `1.0.0` and the current snapshot version is `1.0.0-SNAPSHOT`, increment the snapshot version to `1.0.1-SNAPSHOT`.
+- If the current snapshot version only differs from the release version by a patch, and you added any new functionality (vs just fixing a bug), increment the minor version instead.
+- For example, when you first created the branch you set the version to `1.0.1-SNAPSHOT`, but then you realized you needed to add a new function to the public API, change the version to `1.1.0-SNAPSHOT`.
 - You can use a script to update the version simultaneously in all of the sub-packages: `scripts/update_version.sh <version>`
 4. Make your changes. Test locally using `sbt test`.
-5. Update the release notes under the top-most header (which should be "in develop").
-6. If the current snapshot version only differs from the release version by a patch, and you added any new functionality (vs just fixing a bug), increment the minor version instead.
-- For example, when you first created the branch you set the version to `1.0.1-SNAPSHOT`, but then you realized you needed to add a new function to the public API, change the version to `1.1.0-SNAPSHOT`.
-7. When you are done, create a pull request against the `develop` branch.
+5. Update the [release notes](/RELEASE_NOTES.md) under the top-most header (which should be "in develop").
+6. When you are done, create a pull request against the `develop` branch.
 
 While developing, make sure you do the following:
 
@@ -129,7 +130,7 @@ If there are errors in your code, the compiler will fail with (hopefully useful)
 
 Generate a staging token via the web UI and login with `dx login --staging --token <token>`.
 
-Run [scripts/clean_build.sh](scripts/clean_build.sh) to clean up existing artifacts (locally and on staging) and build new dxCompiler artifacts.
+Run [scripts/clean_build.sh](/scripts/clean_build.sh) to clean up existing artifacts (locally and on staging) and build new dxCompiler artifacts.
 
 ### Running unit tests
 
@@ -148,6 +149,10 @@ You can run run integration tests after submitting a PR. By default the integrat
 The results will be available in the [Actions](https://github.com/dnanexus/dxCompiler/actions) tab. Ideally set the label only before requesting a review so that we don't incur too high costs from running the jobs at each push.
 
 Note that only DNAnexus developers can set up a label on a PR so let us know when you'd like to request a review and we'll start them for you.
+
+#### Skipping running all tests on GitHub
+
+In order to skip unit and intergration tests add a `minor` label to the PR.
 
 ### Running integration tests locally
 
