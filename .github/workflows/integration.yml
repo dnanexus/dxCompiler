@@ -62,4 +62,4 @@ jobs:
           dx mkdir -p $FOLDER
           python3 scripts/run_tests.py --folder $FOLDER --project $PROJECT \
           --clean \
-          --test cwl_workflows
+          --test cwl_workflows --test cwl_tools
