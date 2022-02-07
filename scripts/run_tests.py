@@ -1305,7 +1305,7 @@ def build_test(tname, project, folder, version_id, compiler_flags, reuse=False):
     # both static and dynamic instance type selection should work,
     # so we can test them at random
     if "-instanceTypeSelection" not in compiler_flags:
-    instance_type_selection = random.choice(["static", "dynamic"])
+        instance_type_selection = random.choice(["static", "dynamic"])
     cmdline = [
         "java",
         "-jar",
