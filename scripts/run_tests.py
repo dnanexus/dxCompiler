@@ -1297,7 +1297,8 @@ def build_test(tname, project, folder, version_id, compiler_flags, reuse=False):
         print("Compiling {} to a {}".format(desc.source_file, desc.kind))
         # Both static and dynamic instance type selection should work,
         # so we can test them at random
-        compiler_flags += ["-instanceTypeSelection", random.choice(["static", "dynamic"])]
+        if "-instanceTypeSelection" not in compiler_flags:
+            compiler_flags += ["-instanceTypeSelection", random.choice(["static", "dynamic"])]
         source_file = desc.source_file
         flags = compiler_flags
     else:
