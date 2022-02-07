@@ -520,8 +520,7 @@ cwl_cromwell_tests_list = [
 long_test_list = ["diskspace_exhauster"]  # APPS-749
 
 medium_test_list = (
-    wdl_v1_list
-    # wdl_v1_list + wdl_v1_1_list + docker_test_list + special_flags_list + cwl_tools
+    wdl_v1_list + wdl_v1_1_list + docker_test_list + special_flags_list + cwl_tools
 )
 large_test_list = (
     medium_test_list
