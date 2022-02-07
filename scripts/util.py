@@ -14,7 +14,7 @@ import threading
 import traceback
 
 AssetDesc = namedtuple("AssetDesc", "region asset_id project")
-
+File = namedtuple("File",["id", "proj"])
 max_num_retries = 5
 # enumeration of supported languages
 # used in the following ways:
@@ -576,12 +576,35 @@ def run_executable(
     debug_flag=False,
     delay_workspace_destruction=False,
     instance_type=DEFAULT_INSTANCE_TYPE,
+    reuse=False,
+    wait_and_destroy=False,
     expected_failures=None,
+    reuse_jobs=None,
 ):
+    expected_failures=expected_failures or set()
+    reuse_jobs=reuse_jobs or set()
     test_inputs = test_inputs or []
-    expected_failures = expected_failures or set()
+
 
     def once(i):
+        def destroy_outputs(dxjob:dxpy.DXJob):
+            ids_to_delete = set()
+            outputs = dxjob.describe().get("output", {})
+            for o in outputs:
+                output_id = outputs[o].get("$dnanexus_link", None)
+                if type(output_id) is dict:
+                    output_id = outputs[o].get("$dnanexus_link",{}).get("id")
+                output_proj = dxpy.describe(output_id).get("project")
+                if output_id:
+                    output_desc = dxpy.describe(output_id)
+                    import tempfile
+
+                    # safety check, not to delete something older than 1800s by accident (files should be newly created)
+                    if time.time()*1000.0 - int(output_desc.get("created")) < 1800000:
+                        ids_to_delete.add(File(id=output_id, proj=output_proj))
+            for o in ids_to_delete:
+                dxpy.DXFile(dxid=o.id, project=o.proj).remove()
+
         try:
             if len(test_inputs) == 0 or i < 0:
                 print("Running with empty input")
@@ -593,13 +616,16 @@ def run_executable(
             if "globalworkflow-" in oid:
                 global_workflow_name = oid.replace("globalworkflow-", "")
                 exec_obj = dxpy.DXGlobalWorkflow(name=global_workflow_name)
-                run_kwargs = {"ignore_reuse_stages": ["*"]}
+                if test_name not in reuse_jobs or reuse:
+                    run_kwargs = {"ignore_reuse_stages": ["*"]}
             elif "workflow-" in oid:
                 exec_obj = dxpy.DXWorkflow(project=project.get_id(), dxid=oid)
-                run_kwargs = {"ignore_reuse_stages": ["*"]}
+                if test_name not in reuse_jobs or reuse:
+                    run_kwargs = {"ignore_reuse_stages": ["*"]}
             elif "applet-" in oid:
                 exec_obj = dxpy.DXApplet(project=project.get_id(), dxid=oid)
-                run_kwargs = {"ignore_reuse": True}
+                if test_name not in reuse_jobs or reuse:
+                    run_kwargs = {"ignore_reuse": True}
             else:
                 raise RuntimeError(
                     "Unable to determine executable kind for {}".format(oid)
@@ -616,13 +642,17 @@ def run_executable(
             if instance_type:
                 run_kwargs["instance_type"] = instance_type
 
-            return exec_obj.run(
+            job = exec_obj.run(
                 inputs,
                 project=project.get_id(),
                 folder=test_folder,
                 name="{} {}".format(test_name, GIT_REVISION),
                 **run_kwargs,
             )
+            if wait_and_destroy:
+                job.wait_on_done()
+                destroy_outputs(job)
+            return job
         except Exception as e:
             print("Exception message {}".format(e))
             return None

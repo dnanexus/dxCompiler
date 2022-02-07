@@ -1396,88 +1396,6 @@ def wait_for_completion(test_exec_objs):
     print("tools execution completed")
     return successes, failures
 
-
-# Run [workflow] on several inputs, return the analysis ID.
-def run_executable(
-        project, test_folder, tname, oid, debug_flag, delay_workspace_destruction,
-        instance_type=util.DEFAULT_INSTANCE_TYPE, reuse=False, wait_and_destroy=False
-):
-    desc = test_files[tname]
-    def once(i):
-        def destroy_outputs(job:dxpy.DXJob):
-            ids_to_delete = set()
-            outputs = job.describe().get("output",{})
-            for o in outputs:
-                output_id = outputs[o].get("$dnanexus_link", None)
-                if type(output_id) is dict:
-                    output_id = outputs[o].get("$dnanexus_link",{}).get("id")
-                output_proj = dxpy.describe(output_id).get("project")
-                if output_id:
-                    output_desc = dxpy.describe(output_id)
-                    # safety check, not to delete something older than 1800s by accident (files should be newly created)
-                    if time.time()*1000.0 - int(output_desc.get("created")) < 1800000:
-                        ids_to_delete.add(File(id=output_id, proj=output_proj))
-            for o in ids_to_delete:
-                dxpy.DXFile(dxid=o.id, project=o.proj).remove()
-        try:
-            run_kwargs = {}
-            if tname in test_defaults or i < 0:
-                print("  with empty input")
-                inputs = {}
-            else:
-                print("  with input file: {}".format(desc.dx_input[i]))
-                inputs = read_json_file(desc.dx_input[i])
-            project.new_folder(test_folder, parents=True)
-            if desc.kind == "workflow":
-                exec_obj = dxpy.DXWorkflow(project=project.get_id(), dxid=oid)
-                if tname not in reuse_jobs or reuse:
-                    run_kwargs = {"ignore_reuse_stages": ["*"]}
-            elif desc.kind == "applet":
-                exec_obj = dxpy.DXApplet(project=project.get_id(), dxid=oid)
-                if tname not in reuse_jobs or reuse:
-                    run_kwargs = {"ignore_reuse": True}
-            else:
-                raise RuntimeError("Unknown kind {}".format(desc.kind))
-            if debug_flag:
-                run_kwargs["debug"] = {
-                    "debugOn": ["AppError", "AppInternalError", "ExecutionError"]
-                }
-                run_kwargs["allow_ssh"] = ["*"]
-            if delay_workspace_destruction:
-                run_kwargs["delay_workspace_destruction"] = True
-            if instance_type:
-                run_kwargs["instance_type"] = instance_type
-            job = exec_obj.run(
-                inputs,
-                project=project.get_id(),
-                folder=test_folder,
-                name="{} {}".format(desc.name, git_revision),
-                **run_kwargs,
-            )
-            if wait_and_destroy:
-                job.wait_on_done()
-                destroy_outputs(job)
-            return job
-        except Exception as e:
-            print("exception message={}".format(e))
-            return None
-
-    def run(i):
-        for _ in range(1, 5):
-            retval = once(i)
-            if retval is not None:
-                return retval
-            print("Sleeping for 5 seconds before trying again")
-            time.sleep(5)
-        else:
-            raise RuntimeError("running workflow")
-
-    n = len(desc.dx_input)
-    if n == 0:
-        return [(0, run(-1))]
-    else:
-        return [(i, run(i)) for i in range(n)]
-
 def extract_outputs(tname, exec_obj) -> dict:
     desc = test_files[tname]
     if desc.kind == "workflow":
@@ -1518,7 +1436,6 @@ def run_test_subset(
         if tname in test_instance_type:
             instance_type = None
         else:
-
             instance_type = util.DEFAULT_INSTANCE_TYPE
         wait_and_destroy = tname in delete_reuse_results and reuse
         try:
@@ -1531,9 +1448,11 @@ def run_test_subset(
                 debug_flag=debug_flag,
                 delay_workspace_destruction=delay_workspace_destruction,
                 instance_type=instance_type,
-                expected_failures=test_run_failing,
                 reuse=reuse,
-                wait_and_destroy=wait_and_destroy
+                wait_and_destroy=wait_and_destroy,
+                expected_failures=test_run_failing,
+                reuse_jobs=reuse_jobs,
+
             )
             test_exec_objs.extend(anl)
         except Exception as ex:
