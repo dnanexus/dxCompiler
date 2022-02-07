@@ -1295,10 +1295,6 @@ def build_test(tname, project, folder, version_id, compiler_flags, reuse=False):
     if not reuse:
         print("build {} {}".format(desc.kind, desc.name))
         print("Compiling {} to a {}".format(desc.source_file, desc.kind))
-        # Both static and dynamic instance type selection should work,
-        # so we can test them at random
-        if "-instanceTypeSelection" not in compiler_flags:
-            compiler_flags += ["-instanceTypeSelection", random.choice(["static", "dynamic"])]
         source_file = desc.source_file
         flags = compiler_flags
     else:
@@ -1308,6 +1304,7 @@ def build_test(tname, project, folder, version_id, compiler_flags, reuse=False):
         flags = update_flags(compiler_flags, desc.reuse_input[0])
     # both static and dynamic instance type selection should work,
     # so we can test them at random
+    if "-instanceTypeSelection" not in compiler_flags:
     instance_type_selection = random.choice(["static", "dynamic"])
     cmdline = [
         "java",
