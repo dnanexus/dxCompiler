@@ -606,6 +606,7 @@ def run_executable(
                 dxpy.DXFile(dxid=o.id, project=o.proj).remove()
 
         try:
+            run_kwargs={}
             if len(test_inputs) == 0 or i < 0:
                 print("Running with empty input")
                 inputs = {}
