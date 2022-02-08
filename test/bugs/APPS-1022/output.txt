@@ -1,1 +1,0 @@
---example-string string1
