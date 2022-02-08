@@ -433,7 +433,7 @@ case class CwlWorkflowExecutor(workflow: Workflow,
           (cwlType, cwlValue)
         })
         .getOrElse((CwlOptional(CwlAny), NullValue))
-      (dxName, (stepInput, (cwlType, cwlValue)))
+      dxName -> (stepInput, (cwlType, cwlValue))
     }
     private def createEvalInputs(
         inputs: Map[WorkflowStepInput, (CwlType, CwlValue)]
