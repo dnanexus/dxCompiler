@@ -234,6 +234,10 @@ cwl_conformance_workflows = [
     )
 ]
 
+cwl_conformance_ignored_tests = [
+
+]
+
 # Tests run in continuous integration. We remove the native app test,
 # because we don't want to give permissions for creating platform apps.
 ci_test_list = [
@@ -524,6 +528,7 @@ large_test_list = (
     + cwl_conformance_tools
     + cwl_conformance_workflows
     + cromwell_tests_list
+    - cwl_conformance_ignored_tests
 )
 
 manifest_test_list = ("simple_manifest", "complex_manifest", "view_and_count_manifest")
