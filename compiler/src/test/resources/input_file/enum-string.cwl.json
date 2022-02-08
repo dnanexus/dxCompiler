@@ -1,0 +1,72 @@
+{
+    "cwlVersion": "v1.2",
+    "class": "Workflow",
+    "inputs": [
+        {
+            "type": [
+                "null",
+                {
+                    "type": "enum",
+                    "symbols": [
+                        "string1",
+                        "string2"
+                    ]
+                }
+            ],
+            "id": "example_in"
+        }
+    ],
+    "steps": [
+        {
+            "run": {
+                "class": "CommandLineTool",
+                "requirements": [
+                    {
+                        "class": "InlineJavascriptRequirement"
+                    }
+                ],
+                "stdout": "output.txt",
+                "inputs": [
+                    {
+                        "inputBinding": {
+                            "prefix": "--example-string",
+                            "position": 0
+                        },
+                        "id": "example_in",
+                        "type":"string"
+                    }
+                ],
+                "baseCommand": [
+                    "echo"
+                ],
+                "outputs": [
+                    {
+                        "type": "stdout",
+                        "id": "example_out"
+                    }
+                ],
+                "id": "enum-string.cwl@step_step1@task.cwl"
+            },
+            "in": [
+                {
+                    "default": "string1",
+                    "id": "example_in",
+                    "source":"example_in"
+                }
+            ],
+            "out": [
+                "example_out"
+            ],
+            "id": "step1"
+        }
+    ],
+    "outputs": [
+        {
+            "type": "File",
+            "outputSource": "step1/example_out",
+            "id": "wf_out"
+        }
+    ],
+    "requirements": [],
+    "id": "enum-string"
+}

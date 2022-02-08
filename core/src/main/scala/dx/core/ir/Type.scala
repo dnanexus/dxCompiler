@@ -96,6 +96,7 @@ object Type {
       case TString                      => true
       case TFile if pathsAreNative      => true
       case TDirectory if pathsAreNative => true
+      case TEnum(_)                     => true
       case _                            => false
     }
   }
