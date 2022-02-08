@@ -1862,4 +1862,29 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
       case ExecutableKindWfFragment(_, _, _, _) =>
     }
   }
+
+  it should "translate a CWL workflow with a step enum input with default value" in {
+    val path = pathFromBasename("cwl", "enum-stepdefault.cwl.json")
+    val args = path.toString :: cFlags
+    val bundle = Main.compile(args.toVector) match {
+      case SuccessfulCompileIR(bundle) => bundle
+      case other                       => throw new Exception(s"expected success not ${other}")
+    }
+    val wf = bundle.primaryCallable match {
+      case Some(wf: Workflow) => wf
+      case other              => throw new Exception(s"expected workflow not ${other}")
+    }
+    wf.inputs.size shouldBe 0
+
+    wf.stages.size shouldBe 1
+    val stage0Applet = bundle.allCallables(wf.stages(0).calleeName) match {
+      case applet: Application => applet
+      case other               => throw new Exception(s"expected applet not ${other}")
+    }
+    stage0Applet.inputs.size shouldBe 2
+    stage0Applet.inputs.map(_.dxType) should contain(
+        TOptional(TEnum(Vector(s"string1", s"string2")))
+    )
+    wf.stages(0).inputs should contain(StageInputStatic(VString(s"string1")))
+  }
 }
