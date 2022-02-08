@@ -227,16 +227,18 @@ cwl_conformance_tools = [
         os.path.join(test_dir, "cwl_conformance", "tools", "*.cwl.json")
     )
 ]
-cwl_conformance_workflows = [
-    os.path.basename(path)[:-9]
+cwl_conformance_ignored_tests = [
+    "count-lines8-wf-noET",
+    "count-lines11-null-step-wf-noET",
+    "count-lines11-null-step-wf",
+    "count-lines8-wf",
+]
+
+cwl_conformance_workflows = [ t for t in 
+    [os.path.basename(path)[:-9]
     for path in glob.glob(
         os.path.join(test_dir, "cwl_conformance", "workflows", "*.cwl.json")
-    )
-]
-
-cwl_conformance_ignored_tests = [
-
-]
+    )] if t not in cwl_conformance_ignored_tests]
 
 # Tests run in continuous integration. We remove the native app test,
 # because we don't want to give permissions for creating platform apps.
@@ -528,7 +530,6 @@ large_test_list = (
     + cwl_conformance_tools
     + cwl_conformance_workflows
     + cromwell_tests_list
-    - cwl_conformance_ignored_tests
 )
 
 manifest_test_list = ("simple_manifest", "complex_manifest", "view_and_count_manifest")
