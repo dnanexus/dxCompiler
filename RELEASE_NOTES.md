@@ -1,6 +1,6 @@
 # Release Notes
 
-## 2.9.0 (2022-02-08)
+## 2.9.0 2022-02-08
 
 * Command file is now echoed to stderr rather than stdout
 * Fixes a bug where directory support was broken for WDL; directories in WDL are represented as strings
