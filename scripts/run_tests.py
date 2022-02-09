@@ -229,9 +229,15 @@ cwl_conformance_tools = [
 ]
 cwl_conformance_ignored_tests = [
     "count-lines8-wf-noET",
+    "count-lines8-wf",
+    "count-lines10-wf",
     "count-lines11-null-step-wf-noET",
     "count-lines11-null-step-wf",
-    "count-lines8-wf",
+    "count-lines14-wf",
+    "count-lines17-wf",
+    "count-lines15-wf",
+    "count-lines16-wf",
+    "count-lines18-wf",
 ]
 
 cwl_conformance_workflows = [ t for t in 
