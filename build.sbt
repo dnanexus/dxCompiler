@@ -141,6 +141,7 @@ lazy val dependencies =
     val sprayVersion = "1.3.6"
     val scalatestVersion = "3.2.9"
     val logbackVersion = "1.2.10"
+    val mockitoVersion = "3.2.10.0"
 
     val dxCommon = "com.dnanexus" % "dxcommon" % dxCommonVersion
     val dxApi = "com.dnanexus" % "dxapi" % dxApiVersion
@@ -152,6 +153,7 @@ lazy val dependencies =
     val spray = "io.spray" %% "spray-json" % sprayVersion
     val logback = "ch.qos.logback" % "logback-classic" % logbackVersion
     val scalatest = "org.scalatest" % "scalatest_2.13" % scalatestVersion
+    val mockito = "org.scalatestplus" %% "mockito-3-4" % mockitoVersion % "test"
   }
 
 lazy val commonDependencies = Seq(
@@ -160,7 +162,8 @@ lazy val commonDependencies = Seq(
     dependencies.dxFileAccessProtocols,
     dependencies.logback,
     dependencies.spray,
-    dependencies.scalatest % Test
+    dependencies.scalatest % Test,
+    dependencies.mockito
 )
 
 // SETTINGS

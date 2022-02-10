@@ -1,6 +1,7 @@
 # Release Notes
 
 ## in develop
+* Exception messages of subprocesses are propagated to the exception message of the main process. 
 
 ## 2.9.0 2022-02-08
 
