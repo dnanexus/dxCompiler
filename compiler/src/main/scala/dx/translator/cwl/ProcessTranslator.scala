@@ -476,8 +476,6 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       Stage(call.name, getStage(), calleeName, inputs, callee.outputVars)
     }
 
-    // TODO this is where fragment applet is built
-
     /**
       * Builds an applet to evaluate a WDL workflow fragment.
       *
@@ -575,8 +573,6 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       val fqnDictTypes: Map[DxName, Type] = inputParams.map { param: Parameter =>
         param.name -> param.dxType
       }.toMap
-
-      // TODO this is where fragment applet is built
 
       val applet = Application(
           s"${wfName}_frag_${getStageId()}",
