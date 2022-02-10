@@ -65,8 +65,9 @@ case class WdlTaskExecutor(task: TAT.Task,
       Some(versionSupport.version),
       Vector.empty,
       jobMeta.fileResolver,
-      Logger.Quiet
+      Logger.Verbose // DEBUG
   )
+
   private lazy val taskIO = TaskInputOutput(task, logger)
 
   override val executorName: String = "dxExecutorWdl"

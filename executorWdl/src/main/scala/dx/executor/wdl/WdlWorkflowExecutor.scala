@@ -71,14 +71,12 @@ case class WdlWorkflowExecutor(docSource: FileNode,
                                separateOutputs: Boolean)
     extends WorkflowExecutor[WdlBlock](jobMeta = jobMeta, separateOutputs = separateOutputs) {
   private val logger = jobMeta.logger
-
-  // DEBUG
   private lazy val evaluator = Eval(
       jobMeta.workerPaths,
       Some(versionSupport.version),
       Vector.empty,
       jobMeta.fileResolver,
-      Logger.Verbose
+      Logger.Verbose // DEBUG
   )
 
   override val executorName: String = "dxExecutorWdl"
