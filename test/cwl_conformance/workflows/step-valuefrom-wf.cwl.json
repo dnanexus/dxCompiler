@@ -1,113 +1,118 @@
 {
-    "$graph": [
+  "class": "Workflow",
+  "cwlVersion": "v1.2",
+  "id": "step-valuefrom-wf",
+  "inputs": [
+    {
+      "id": "in",
+      "type": {
+        "fields": [
+          {
+            "name": "file1",
+            "type": "File"
+          }
+        ],
+        "name": "in",
+        "type": "record"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "count_output",
+      "outputSource": "step2/output",
+      "type": "int"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "StepInputExpressionRequirement"
+    },
+    {
+      "class": "SubworkflowFeatureRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step1",
+      "in": [
         {
-            "class": "ExpressionTool",
-            "requirements": [
-                {
-                    "class": "InlineJavascriptRequirement"
-                }
-            ],
-            "inputs": [
-                {
-                    "type": "File",
-                    "loadContents": true,
-                    "id": "#parseInt-tool.cwl/file1"
-                }
-            ],
-            "outputs": [
-                {
-                    "type": "int",
-                    "id": "#parseInt-tool.cwl/output"
-                }
-            ],
-            "expression": "$({'output': parseInt(inputs.file1.contents)})",
-            "id": "#parseInt-tool.cwl"
-        },
-        {
-            "class": "Workflow",
-            "requirements": [
-                {
-                    "class": "StepInputExpressionRequirement"
-                }
-            ],
-            "inputs": [
-                {
-                    "type": {
-                        "name": "#main/in/in",
-                        "type": "record",
-                        "fields": [
-                            {
-                                "name": "#main/in/in/file1",
-                                "type": "File"
-                            }
-                        ]
-                    },
-                    "id": "#main/in"
-                }
-            ],
-            "outputs": [
-                {
-                    "type": "int",
-                    "outputSource": "#main/step2/output",
-                    "id": "#main/count_output"
-                }
-            ],
-            "steps": [
-                {
-                    "run": "#wc-tool.cwl",
-                    "in": [
-                        {
-                            "source": "#main/in",
-                            "valueFrom": "$(self.file1)",
-                            "id": "#main/step1/file1"
-                        }
-                    ],
-                    "out": [
-                        "#main/step1/output"
-                    ],
-                    "id": "#main/step1"
-                },
-                {
-                    "run": "#parseInt-tool.cwl",
-                    "in": [
-                        {
-                            "source": "#main/step1/output",
-                            "id": "#main/step2/file1"
-                        }
-                    ],
-                    "out": [
-                        "#main/step2/output"
-                    ],
-                    "id": "#main/step2"
-                }
-            ],
-            "id": "#main"
-        },
-        {
-            "class": "CommandLineTool",
-            "inputs": [
-                {
-                    "type": "File",
-                    "id": "#wc-tool.cwl/file1"
-                }
-            ],
-            "outputs": [
-                {
-                    "type": "File",
-                    "outputBinding": {
-                        "glob": "output"
-                    },
-                    "id": "#wc-tool.cwl/output"
-                }
-            ],
-            "baseCommand": [
-                "wc",
-                "-l"
-            ],
-            "stdin": "$(inputs.file1.path)",
-            "stdout": "output",
-            "id": "#wc-tool.cwl"
+          "id": "file1",
+          "source": "in",
+          "valueFrom": "$(self.file1)"
         }
-    ],
-    "cwlVersion": "v1.2"
+      ],
+      "out": [
+        "output"
+      ],
+      "run": {
+        "baseCommand": [
+          "wc",
+          "-l"
+        ],
+        "class": "CommandLineTool",
+        "id": "wc-tool.cwl",
+        "inputs": [
+          {
+            "id": "file1",
+            "type": "File"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "output",
+            "outputBinding": {
+              "glob": "output"
+            },
+            "type": "File"
+          }
+        ],
+        "requirements": [
+          {
+            "class": "InlineJavascriptRequirement"
+          }
+        ],
+        "stdin": "$(inputs.file1.path)",
+        "stdout": "output"
+      }
+    },
+    {
+      "id": "step2",
+      "in": [
+        {
+          "id": "file1",
+          "source": "step1/output"
+        }
+      ],
+      "out": [
+        "output"
+      ],
+      "run": {
+        "class": "ExpressionTool",
+        "expression": "$({'output': parseInt(inputs.file1.contents)})",
+        "id": "parseInt-tool.cwl",
+        "inputs": [
+          {
+            "id": "file1",
+            "loadContents": true,
+            "type": "File"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "output",
+            "type": "int"
+          }
+        ],
+        "requirements": [
+          {
+            "class": "InlineJavascriptRequirement"
+          }
+        ]
+      }
+    }
+  ]
 }

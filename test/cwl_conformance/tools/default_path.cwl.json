@@ -1,20 +1,25 @@
 {
-    "class": "CommandLineTool",
-    "inputs": [
-        {
-            "id": "#main/file1",
-            "type": "File",
-            "default": {
-                "class": "File",
-                "path": "file:///Users/jdidion/projects/dxCompiler/test/cwl_conformance/tools/whale.txt"
-            }
-        }
-    ],
-    "outputs": [],
-    "arguments": [
-        "cat",
-        "$(inputs.file1.path)"
-    ],
-    "id": "#main",
-    "cwlVersion": "v1.2"
+  "arguments": [
+    "cat",
+    "$(inputs.file1.path)"
+  ],
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "id": "default_path",
+  "inputs": [
+    {
+      "default": {
+        "class": "File",
+        "path": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G0G0V1Q0yzZZZXfx3xPK1B1Z"
+      },
+      "id": "file1",
+      "type": "File"
+    }
+  ],
+  "outputs": [],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ]
 }

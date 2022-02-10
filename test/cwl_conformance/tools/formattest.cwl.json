@@ -1,29 +1,34 @@
 {
-    "class": "CommandLineTool",
-    "doc": "Reverse each line using the `rev` command",
-    "inputs": [
-        {
-            "type": "File",
-            "inputBinding": {},
-            "format": "http://edamontology.org/format_2330",
-            "id": "#main/input"
-        }
-    ],
-    "outputs": [
-        {
-            "type": "File",
-            "outputBinding": {
-                "glob": "output.txt"
-            },
-            "format": "http://edamontology.org/format_2330",
-            "id": "#main/output"
-        }
-    ],
-    "baseCommand": "rev",
-    "stdout": "output.txt",
-    "id": "#main",
-    "cwlVersion": "v1.2",
-    "$namespaces": {
-        "edam": "http://edamontology.org/"
+  "$namespaces": {
+    "edam": "http://edamontology.org/"
+  },
+  "baseCommand": "rev",
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "doc": "Reverse each line using the `rev` command",
+  "id": "formattest",
+  "inputs": [
+    {
+      "format": "edam:format_2330",
+      "id": "input",
+      "inputBinding": {},
+      "type": "File"
     }
+  ],
+  "outputs": [
+    {
+      "format": "edam:format_2330",
+      "id": "output",
+      "outputBinding": {
+        "glob": "output.txt"
+      },
+      "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ],
+  "stdout": "output.txt"
 }

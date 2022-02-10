@@ -53,7 +53,6 @@ object CliUtils {
       getValue[T](name).getOrElse(default)
     }
 
-    // TODO: is there a way to do this without resorting to asInstanceOf?
     def getList[T](name: String): Vector[T] = {
       options.get(name) match {
         case Some(list: ListOption[_]) => list.value.asInstanceOf[Vector[T]]

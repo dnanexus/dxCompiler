@@ -680,7 +680,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
       case Some(expectedType) if value.isDefined =>
         logger.trace(s"Coercing value ${value.get} to ${expectedType}")
         try {
-          // TODO: add a Type.coercibleTo function
+          // TODO: add a Type.isCoercibleTo function
           logger.ignore(Value.coerceTo(value.get, expectedType))
           expectedType
         } catch {

@@ -1,27 +1,31 @@
 {
-    "class": "CommandLineTool",
-    "doc": "CommandLineTool without inputs.",
-    "hints": [
-        {
-            "dockerPull": "debian:stretch-slim",
-            "class": "DockerRequirement"
-        }
-    ],
-    "inputs": [],
-    "outputs": [
-        {
-            "type": "File",
-            "outputBinding": {
-                "glob": "output"
-            },
-            "id": "#main/output"
-        }
-    ],
-    "baseCommand": [
-        "echo",
-        "cwl"
-    ],
-    "stdout": "output",
-    "id": "#main",
-    "cwlVersion": "v1.2"
+  "baseCommand": [
+    "echo",
+    "cwl"
+  ],
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "doc": "CommandLineTool without inputs.",
+  "hints": {
+    "DockerRequirement": {
+      "dockerPull": "debian:stretch-slim"
+    }
+  },
+  "id": "no-inputs-tool",
+  "inputs": [],
+  "outputs": [
+    {
+      "id": "output",
+      "outputBinding": {
+        "glob": "output"
+      },
+      "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ],
+  "stdout": "output"
 }

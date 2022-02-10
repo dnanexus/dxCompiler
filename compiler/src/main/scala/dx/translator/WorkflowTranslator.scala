@@ -46,13 +46,15 @@ abstract class WorkflowTranslator(wfName: String,
     DxWorkflowStage(getStageId(stageName))
   }
 
-  protected case class CallEnv(env: Map[DxName, LinkedVar]) {
+  protected abstract class CallEnv(env: Map[DxName, LinkedVar]) {
+    protected def create(env: Map[DxName, LinkedVar]): CallEnv
+
     def add(key: DxName, lvar: LinkedVar): CallEnv = {
-      copy(env = env + (key -> lvar))
+      create(env = env + (key -> lvar))
     }
 
     def addAll(items: Vector[(DxName, LinkedVar)]): CallEnv = {
-      copy(env = env ++ items)
+      create(env = env ++ items)
     }
 
     def contains(key: DxName): Boolean = env.contains(key)
@@ -79,27 +81,7 @@ abstract class WorkflowTranslator(wfName: String,
       })
     }
 
-    /**
-      * Returns the value associated with a name or any of its "ancestors".
-      * For example, if `dxName` is "A.B.C", then we look up "A.B.C", "A.B",
-      * and "A", in that order, and return the first non-empty result.
-      * @example {{{
-      * env = {"p": Pair(1, 2), "p.right": 2}
-      * env.lookup("p.left") -> Pair(1, 2)
-      * env.lookup("p.right") -> 2
-      * }}}
-      * @param dxName fully-qualified name
-      */
-    def lookup(dxName: DxName): Option[(DxName, LinkedVar)] = {
-      env.get(dxName).map((dxName, _)).orElse {
-        if (dxName.numParts > 1) {
-          val (prefix, _) = dxName.popDecodedIdentifier()
-          lookup(prefix)
-        } else {
-          None
-        }
-      }
-    }
+    def lookup(dxName: DxName): Option[(DxName, LinkedVar)]
 
     def stageInputs: Map[DxName, StageInput] = {
       env.map {
@@ -114,14 +96,6 @@ abstract class WorkflowTranslator(wfName: String,
         case (key, (_, StageInputWorkflowLink(Parameter(_, dxType, Some(value), _)))) =>
           key -> (dxType, value)
       }
-    }
-  }
-
-  protected object CallEnv {
-    def fromLinkedVars(lvars: Vector[LinkedVar]): CallEnv = {
-      CallEnv(lvars.map {
-        case (parameter, stageInput) => parameter.name -> (parameter, stageInput)
-      }.toMap)
     }
   }
 
