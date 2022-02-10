@@ -1,0 +1,49 @@
+{
+  "name": "global_wf_from_wdl_multiply",
+  "title": "Global WF From WDL Multiply",
+  "summary": "global_wf_from_wdl_multiply",
+  "dxapi": "1.0.0",
+  "version": "0.0.1",
+  "inputSpec": [
+    {
+      "name": "multiply_first",
+      "class": "int",
+      "optional": false,
+      "help": ""
+    },
+    {
+      "name": "multiply_second",
+      "class": "int",
+      "optional": false,
+      "help": ""
+    }
+  ],
+  "outputSpec": [
+    {
+      "name": "product",
+      "class": "int",
+      "help": ""
+    }
+  ],
+  "runSpec": {
+    "timeoutPolicy": {
+      "*": {
+        "hours": 48
+      }
+    },
+    "interpreter": "python3",
+    "file": "src/global_wf_from_wdl_multiply.py",
+    "distribution": "Ubuntu",
+    "release": "20.04",
+    "version": "0"
+  },
+  "regionalOptions": {
+    "aws:us-east-1": {
+      "systemRequirements": {
+        "*": {
+          "instanceType": "mem1_ssd1_v2_x4"
+        }
+      }
+    }
+  }
+}

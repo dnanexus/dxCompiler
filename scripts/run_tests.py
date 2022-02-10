@@ -227,12 +227,24 @@ cwl_conformance_tools = [
         os.path.join(test_dir, "cwl_conformance", "tools", "*.cwl.json")
     )
 ]
-cwl_conformance_workflows = [
-    os.path.basename(path)[:-9]
+cwl_conformance_ignored_tests = [
+    "count-lines8-wf-noET",
+    "count-lines8-wf",
+    "count-lines10-wf",
+    "count-lines11-null-step-wf-noET",
+    "count-lines11-null-step-wf",
+    "count-lines14-wf",
+    "count-lines17-wf",
+    "count-lines15-wf",
+    "count-lines16-wf",
+    "count-lines18-wf",
+]
+
+cwl_conformance_workflows = [ t for t in 
+    [os.path.basename(path)[:-9]
     for path in glob.glob(
         os.path.join(test_dir, "cwl_conformance", "workflows", "*.cwl.json")
-    )
-]
+    )] if t not in cwl_conformance_ignored_tests]
 
 # Tests run in continuous integration. We remove the native app test,
 # because we don't want to give permissions for creating platform apps.
@@ -1243,7 +1255,7 @@ def lookup_dataobj(tname, project, folder):
 
 # Build executable for test.
 #
-# tname             Test name
+# tname             Test name, should match workflow name
 # project           Destination project on platform
 # folder            Destination folder on platform
 # version_id        dxCompiler version
@@ -1258,9 +1270,13 @@ def build_test(tname, project, folder, version_id, compiler_flags):
     if "manifest" in desc.source_file:
         compiler_flags.append("-useManifests")
     return util.build_executable(
-        desc.source_file, project, folder, top_dir, version_id, compiler_flags
+        source_file=desc.source_file,
+        project=project,
+        folder=folder,
+        top_dir=top_dir,
+        version_id=version_id,
+        compiler_flags=compiler_flags
     )
-
 
 def ensure_dir(path):
     print("making sure that {} exists".format(path))
@@ -1779,7 +1795,7 @@ def compile_tests_to_project(
 def main():
     global test_unlocked
     argparser = argparse.ArgumentParser(
-        description="Run WDL compiler tests on the platform"
+        description="Run dxCompiler tests on the platform"
     )
     argparser.add_argument(
         "--archive", help="Archive old applets", action="store_true", default=False
@@ -1817,7 +1833,7 @@ def main():
         default=False,
     )
     argparser.add_argument(
-        "--folder", help="Use an existing folder, instead of building dxCompiler"
+        "--folder", help="Use an existing folder with dxCompiler assets, instead of building dxCompiler"
     )
     argparser.add_argument(
         "--lazy",
@@ -1930,7 +1946,7 @@ def main():
     if args.folder is None:
         base_folder = util.create_build_dirs(project, version_id)
     else:
-        # Use existing prebuilt base folder
+        # Use an existing folder with dxCompiler assets, instead of building dxCompiler
         base_folder = args.folder
         util.create_build_subdirs(project, base_folder)
     applet_folder = base_folder + "/applets"

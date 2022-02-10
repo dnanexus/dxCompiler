@@ -23,6 +23,8 @@ jobs:
     name: WDL Integration Tests (Staging)
     if: contains(github.event.pull_request.labels.*.name, 'integration')
     runs-on: ubuntu-20.04
+    env:
+      PROJECT: dxCompiler_playground
     steps:
       - name: Git checkout
         uses: actions/checkout@v2
@@ -42,21 +44,30 @@ jobs:
           # install dxda
           sudo wget -O/usr/local/bin/dx-download-agent https://github.com/dnanexus/dxda/releases/download/v0.5.7/dx-download-agent-linux
           sudo chmod +x /usr/local/bin/dx-download-agent
-      - name: Run tests
+      - name: Run integration tests
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          AUTH_TOKEN: ${{ secrets.DX_STAGING_TOKEN }}
+          ROBOT_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
+          TEST_ROBOT_TOKEN: ${{ secrets.DX_STAGING_TEST_ROBOT_TOKEN }}
         run: |
           export PATH="$PATH:$HOME/.local/bin"
 
-          # set up DNAnexus staging environment
-          dx login --noprojects --staging --token $AUTH_TOKEN
-          PROJECT=dxCompiler_playground
+          # Set up DNAnexus staging environment
+          dx login --noprojects --staging --token $ROBOT_TOKEN
           dx select $PROJECT
-
-          # run tests
           cd ${GITHUB_WORKSPACE}
+
+          # Run integration tests
           FOLDER=/builds/test_gha_dxcompiler_$(date +%s)_$RANDOM
-          dx mkdir $FOLDER
-          python3 scripts/run_tests.py --test M --folder $FOLDER --project $PROJECT
-          dx rm -rf $FOLDER
+          dx mkdir -p $FOLDER
+          python3 scripts/run_tests.py --folder $FOLDER --project $PROJECT \
+          --clean \
+          --test M
+
+          # Run multi-user tests
+          FOLDER=/builds/test_gha_dxcompiler_$(date +%s)_$RANDOM
+          dx mkdir -p $FOLDER
+          python3 scripts/run_multiuser_tests.py --folder $FOLDER --project $PROJECT \
+          --clean \
+          --alice-token $ROBOT_TOKEN \
+          --bob-token $TEST_ROBOT_TOKEN
