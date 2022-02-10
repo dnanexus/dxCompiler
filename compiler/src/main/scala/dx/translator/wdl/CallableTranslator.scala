@@ -671,6 +671,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         param.name -> param.dxType
       }.toMap
 
+      // TODO fragment applet is created here
       val applet = Application(
           s"${wfName}_frag_${getStageId()}",
           inputParams,
