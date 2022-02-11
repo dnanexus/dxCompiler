@@ -1,8 +1,8 @@
 version 1.0
 
-# A WDL workflow with expressions, but without branches and loops.
+# A WDL workflow with a subprocess that fails with IndexError
 
-workflow wf_linear {
+workflow python_task_fail {
   input {
     Int x = 10
   }
@@ -13,7 +13,7 @@ workflow wf_linear {
   call mul { input: a=out, b="It did NOT" }
 
   output {
-    Int result = mul.result
+    String result = mul.result
   }
 }
 
@@ -43,6 +43,6 @@ task mul {
     echo "I'm in the next task"
   }
   output {
-    Int result = "${a}_${b}"
+    String result = "${a}_${b}"
   }
 }
