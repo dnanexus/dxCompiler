@@ -1,56 +1,58 @@
 {
-    "id": "#main",
-    "class": "CommandLineTool",
-    "baseCommand": [
-        "python3"
-    ],
-    "requirements": [
+    "cwlVersion": "v1.2",
+    "$graph": [
         {
-            "class": "DockerRequirement",
-            "dockerPull": "python:3.5.0"
-        },
-        {
-            "class": "InitialWorkDirRequirement",
-            "listing": [
+            "id": "main",
+            "class": "CommandLineTool",
+            "baseCommand": [
+                "python3"
+            ],
+            "requirements": [
                 {
-                    "entryname": "$(inputs.script_name)",
-                    "entry": "import sys\nimport math\n\nlimit = int(sys.argv[1])\nsieve = [True for i in range(limit)]\nfor i in range(2, math.floor(limit / 2)):\n    if sieve[i]:\n        for j in range(i * 2, limit, i):\n            sieve[j] = False\n\nresult = \"[\"\nfor i in range(2, limit):\n    if sieve[i]:\n        if result != \"[\":\n            result += \", \"\n        result += str(i)\nresult += \"]\"\n\nprint(result)\n"
+                    "class": "DockerRequirement",
+                    "dockerPull": "python:3.5.0"
+                },
+                {
+                    "class": "InitialWorkDirRequirement",
+                    "listing": [
+                        {
+                            "entryname": "$(inputs.script_name)",
+                            "entry": "import sys\nimport math\n\nlimit = int(sys.argv[1])\nsieve = [True for i in range(limit)]\nfor i in range(2, math.floor(limit / 2)):\n    if sieve[i]:\n        for j in range(i * 2, limit, i):\n            sieve[j] = False\n\nresult = \"[\"\nfor i in range(2, limit):\n    if sieve[i]:\n        if result != \"[\":\n            result += \", \"\n        result += str(i)\nresult += \"]\"\n\nprint(result)\n"
+                        }
+                    ]
                 }
-            ]
-        }
-    ],
-    "stdout": "primes",
-    "inputs": [
-        {
-            "id": "#main/script_name",
-            "type": "string",
-            "default": "astounding.py"
-        }
-    ],
-    "arguments": [
-        "$(inputs.script_name)",
-        "100"
-    ],
-    "hints": [
-        {
-            "loadListing": "deep_listing",
-            "class": "LoadListingRequirement"
-        },
-        {
-            "networkAccess": true,
-            "class": "NetworkAccess"
-        }
-    ],
-    "outputs": [
-        {
-            "id": "#main/prime_list",
-            "type": "string",
-            "outputBinding": {
-                "glob": "primes",
-                "loadContents": true,
-                "outputEval": "$(self[0].contents.trim())"
+            ],
+            "stdout": "primes",
+            "inputs": [
+                {
+                    "id": "script_name",
+                    "type": "string",
+                    "default": "astounding.py"
+                }
+            ],
+            "arguments": [
+                "$(inputs.script_name)",
+                "100"
+            ],
+            "outputs": [
+                {
+                    "id": "prime_list",
+                    "type": "string",
+                    "outputBinding": {
+                        "glob": "primes",
+                        "loadContents": true,
+                        "outputEval": "$(self[0].contents.trim())"
+                    }
+                }
+            ],
+            "hints": {
+                "NetworkAccess": {
+                    "networkAccess": true
+                },
+                "LoadListingRequirement": {
+                    "loadListing": "deep_listing"
+                }
             }
         }
-    ],
-    "cwlVersion": "v1.2"
+    ]
 }

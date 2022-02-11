@@ -1,7 +1,121 @@
 {
+    "cwlVersion": "v1.2",
     "$graph": [
         {
-            "id": "#main",
+            "id": "one",
+            "class": "CommandLineTool",
+            "requirements": [
+                {
+                    "class": "InlineJavascriptRequirement"
+                },
+                {
+                    "class": "ShellCommandRequirement"
+                }
+            ],
+            "inputs": {
+                "r": {
+                    "type": "float"
+                }
+            },
+            "outputs": {
+                "rSquared": {
+                    "type": "float",
+                    "outputBinding": {
+                        "glob": "stdout.txt",
+                        "loadContents": true,
+                        "outputEval": "$(parseFloat(self[0].contents))"
+                    }
+                },
+                "rCopy": {
+                    "type": "float",
+                    "outputBinding": {
+                        "outputEval": "$(inputs.r)"
+                    }
+                }
+            },
+            "arguments": [
+                {
+                    "valueFrom": "echo $(inputs.r * inputs.r)",
+                    "shellQuote": false
+                }
+            ],
+            "stdout": "stdout.txt",
+            "hints": {
+                "NetworkAccess": {
+                    "networkAccess": true
+                },
+                "LoadListingRequirement": {
+                    "loadListing": "deep_listing"
+                }
+            }
+        },
+        {
+            "id": "two",
+            "class": "CommandLineTool",
+            "requirements": [
+                {
+                    "class": "InlineJavascriptRequirement"
+                },
+                {
+                    "class": "ShellCommandRequirement"
+                }
+            ],
+            "inputs": {
+                "rSquared": "float",
+                "pi": "float"
+            },
+            "outputs": {
+                "area": {
+                    "outputBinding": {
+                        "glob": "stdout.txt",
+                        "loadContents": true,
+                        "outputEval": "$(parseInt(self[0].contents))"
+                    },
+                    "type": "int"
+                },
+                "rSquaredCopy": {
+                    "outputBinding": {
+                        "outputEval": "$(inputs.rSquared)"
+                    },
+                    "type": "float"
+                }
+            },
+            "arguments": [
+                {
+                    "valueFrom": "echo $(inputs.rSquared * inputs.pi)",
+                    "shellQuote": false
+                }
+            ],
+            "stdout": "stdout.txt",
+            "hints": {
+                "NetworkAccess": {
+                    "networkAccess": true
+                },
+                "LoadListingRequirement": {
+                    "loadListing": "deep_listing"
+                }
+            }
+        },
+        {
+            "id": "three",
+            "class": "ExpressionTool",
+            "requirements": [
+                {
+                    "class": "InlineJavascriptRequirement"
+                }
+            ],
+            "inputs": {
+                "rSquared": "float",
+                "pi": "float"
+            },
+            "outputs": {
+                "area": "int",
+                "rSquaredCopy": "float"
+            },
+            "expression": "${\nreturn {\"area\": parseInt(inputs.pi * inputs.rSquared),\n        \"rSquaredCopy\": inputs.rSquared };\n}\n"
+        },
+        {
+            "id": "main",
             "class": "Workflow",
             "requirements": [
                 {
@@ -12,261 +126,82 @@
                     "class": "ShellCommandRequirement"
                 }
             ],
-            "inputs": [
-                {
-                    "type": "float",
-                    "id": "#main/pi"
+            "inputs": {
+                "radius": "float",
+                "pi": "float"
+            },
+            "outputs": {
+                "area": {
+                    "type": "int",
+                    "outputSource": "re-bar/area"
                 },
-                {
-                    "type": "float",
-                    "id": "#main/radius"
+                "area-expression": {
+                    "type": "int",
+                    "outputSource": "re-baz/area"
                 }
-            ],
+            },
             "steps": [
                 {
-                    "id": "#main/foo",
+                    "id": "foo",
                     "run": "#one",
-                    "in": [
-                        {
-                            "source": "#main/pi",
-                            "id": "#main/foo/pi"
-                        },
-                        {
-                            "source": "#main/radius",
-                            "id": "#main/foo/r"
-                        }
-                    ],
+                    "in": {
+                        "r": "radius",
+                        "pi": "pi"
+                    },
                     "out": [
-                        "#main/foo/rSquared",
-                        "#main/foo/rCopy"
+                        "rSquared",
+                        "rCopy"
                     ]
                 },
                 {
-                    "id": "#main/bar",
+                    "id": "bar",
                     "run": "#two",
-                    "in": [
-                        {
-                            "source": "#main/pi",
-                            "id": "#main/bar/pi"
-                        },
-                        {
-                            "source": "#main/foo/rSquared",
-                            "id": "#main/bar/rSquared"
-                        }
-                    ],
+                    "in": {
+                        "rSquared": "foo/rSquared",
+                        "pi": "pi"
+                    },
                     "out": [
-                        "#main/bar/area",
-                        "#main/bar/rSquaredCopy"
+                        "area",
+                        "rSquaredCopy"
                     ]
                 },
                 {
-                    "id": "#main/re-bar",
+                    "id": "re-bar",
                     "run": "#two",
-                    "in": [
-                        {
-                            "source": "#main/pi",
-                            "id": "#main/re-bar/pi"
-                        },
-                        {
-                            "source": "#main/bar/rSquaredCopy",
-                            "id": "#main/re-bar/rSquared"
-                        }
-                    ],
+                    "in": {
+                        "rSquared": "bar/rSquaredCopy",
+                        "pi": "pi"
+                    },
                     "out": [
-                        "#main/re-bar/area",
-                        "#main/re-bar/rSquaredCopy"
+                        "area",
+                        "rSquaredCopy"
                     ]
                 },
                 {
-                    "id": "#main/baz",
+                    "id": "baz",
                     "run": "#three",
-                    "in": [
-                        {
-                            "source": "#main/pi",
-                            "id": "#main/baz/pi"
-                        },
-                        {
-                            "source": "#main/foo/rSquared",
-                            "id": "#main/baz/rSquared"
-                        }
-                    ],
+                    "in": {
+                        "rSquared": "foo/rSquared",
+                        "pi": "pi"
+                    },
                     "out": [
-                        "#main/baz/area",
-                        "#main/baz/rSquaredCopy"
+                        "area",
+                        "rSquaredCopy"
                     ]
                 },
                 {
-                    "id": "#main/re-baz",
+                    "id": "re-baz",
                     "run": "#three",
-                    "in": [
-                        {
-                            "source": "#main/pi",
-                            "id": "#main/re-baz/pi"
-                        },
-                        {
-                            "source": "#main/baz/rSquaredCopy",
-                            "id": "#main/re-baz/rSquared"
-                        }
-                    ],
+                    "in": {
+                        "rSquared": "baz/rSquaredCopy",
+                        "pi": "pi"
+                    },
                     "out": [
-                        "#main/re-baz/area",
-                        "#main/re-baz/rSquaredCopy"
+                        "area",
+                        "rSquaredCopy"
                     ]
-                }
-            ],
-            "outputs": [
-                {
-                    "type": "int",
-                    "outputSource": "#main/re-bar/area",
-                    "id": "#main/area"
-                },
-                {
-                    "type": "int",
-                    "outputSource": "#main/re-baz/area",
-                    "id": "#main/area-expression"
-                }
-            ]
-        },
-        {
-            "id": "#one",
-            "class": "CommandLineTool",
-            "requirements": [
-                {
-                    "class": "InlineJavascriptRequirement"
-                },
-                {
-                    "class": "ShellCommandRequirement"
-                }
-            ],
-            "inputs": [
-                {
-                    "type": "float",
-                    "id": "#one/r"
-                }
-            ],
-            "outputs": [
-                {
-                    "type": "float",
-                    "outputBinding": {
-                        "outputEval": "$(inputs.r)"
-                    },
-                    "id": "#one/rCopy"
-                },
-                {
-                    "type": "float",
-                    "outputBinding": {
-                        "glob": "stdout.txt",
-                        "loadContents": true,
-                        "outputEval": "$(parseFloat(self[0].contents))"
-                    },
-                    "id": "#one/rSquared"
-                }
-            ],
-            "arguments": [
-                {
-                    "valueFrom": "echo $(inputs.r * inputs.r)",
-                    "shellQuote": false
-                }
-            ],
-            "stdout": "stdout.txt",
-            "hints": [
-                {
-                    "loadListing": "deep_listing",
-                    "class": "LoadListingRequirement"
-                },
-                {
-                    "networkAccess": true,
-                    "class": "NetworkAccess"
-                }
-            ]
-        },
-        {
-            "id": "#three",
-            "class": "ExpressionTool",
-            "requirements": [
-                {
-                    "class": "InlineJavascriptRequirement"
-                }
-            ],
-            "inputs": [
-                {
-                    "type": "float",
-                    "id": "#three/pi"
-                },
-                {
-                    "type": "float",
-                    "id": "#three/rSquared"
-                }
-            ],
-            "outputs": [
-                {
-                    "type": "int",
-                    "id": "#three/area"
-                },
-                {
-                    "type": "float",
-                    "id": "#three/rSquaredCopy"
-                }
-            ],
-            "expression": "${\nreturn {\"area\": parseInt(inputs.pi * inputs.rSquared),\n        \"rSquaredCopy\": inputs.rSquared };\n}\n"
-        },
-        {
-            "id": "#two",
-            "class": "CommandLineTool",
-            "requirements": [
-                {
-                    "class": "InlineJavascriptRequirement"
-                },
-                {
-                    "class": "ShellCommandRequirement"
-                }
-            ],
-            "inputs": [
-                {
-                    "type": "float",
-                    "id": "#two/pi"
-                },
-                {
-                    "type": "float",
-                    "id": "#two/rSquared"
-                }
-            ],
-            "outputs": [
-                {
-                    "outputBinding": {
-                        "glob": "stdout.txt",
-                        "loadContents": true,
-                        "outputEval": "$(parseInt(self[0].contents))"
-                    },
-                    "type": "int",
-                    "id": "#two/area"
-                },
-                {
-                    "outputBinding": {
-                        "outputEval": "$(inputs.rSquared)"
-                    },
-                    "type": "float",
-                    "id": "#two/rSquaredCopy"
-                }
-            ],
-            "arguments": [
-                {
-                    "valueFrom": "echo $(inputs.rSquared * inputs.pi)",
-                    "shellQuote": false
-                }
-            ],
-            "stdout": "stdout.txt",
-            "hints": [
-                {
-                    "loadListing": "deep_listing",
-                    "class": "LoadListingRequirement"
-                },
-                {
-                    "networkAccess": true,
-                    "class": "NetworkAccess"
                 }
             ]
         }
-    ],
-    "cwlVersion": "v1.2"
+    ]
 }
