@@ -227,12 +227,24 @@ cwl_conformance_tools = [
         os.path.join(test_dir, "cwl_conformance", "tools", "*.cwl.json")
     )
 ]
-cwl_conformance_workflows = [
-    os.path.basename(path)[:-9]
+cwl_conformance_ignored_tests = [
+    "count-lines8-wf-noET",
+    "count-lines8-wf",
+    "count-lines10-wf",
+    "count-lines11-null-step-wf-noET",
+    "count-lines11-null-step-wf",
+    "count-lines14-wf",
+    "count-lines17-wf",
+    "count-lines15-wf",
+    "count-lines16-wf",
+    "count-lines18-wf",
+]
+
+cwl_conformance_workflows = [ t for t in 
+    [os.path.basename(path)[:-9]
     for path in glob.glob(
         os.path.join(test_dir, "cwl_conformance", "workflows", "*.cwl.json")
-    )
-]
+    )] if t not in cwl_conformance_ignored_tests]
 
 # Tests run in continuous integration. We remove the native app test,
 # because we don't want to give permissions for creating platform apps.
