@@ -914,6 +914,12 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           case (dxName, (wdlType, _)) => dxName.decoded -> wdlType
         }), docSource)
         accu + (dxName -> (wdlType, evaluateExpression(expr, wdlType, accu)))
+      case (accu, OptionalBlockInput(dxName, wdlType))
+          if compoundNameRegexp.matches(dxName.decoded) =>
+        val expr = versionSupport.parseExpression(dxName.decoded, DefaultBindings(accu.map {
+          case (dxName, (wdlType, _)) => dxName.decoded -> wdlType
+        }), docSource)
+        accu + (dxName -> (wdlType, evaluateExpression(expr, wdlType, accu)))
       case (_, RequiredBlockInput(name, _)) =>
         throw new Exception(s"missing required input ${name}")
       case (accu, OverridableBlockInputWithStaticDefault(name, wdlType, defaultValue)) =>
