@@ -76,7 +76,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       Some(versionSupport.version),
       Vector.empty,
       jobMeta.fileResolver,
-      Logger.Verbose // DEBUG
+      Logger.Quiet
   )
 
   override val executorName: String = "dxExecutorWdl"

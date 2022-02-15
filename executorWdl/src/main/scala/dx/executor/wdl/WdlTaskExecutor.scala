@@ -65,7 +65,7 @@ case class WdlTaskExecutor(task: TAT.Task,
       Some(versionSupport.version),
       Vector.empty,
       jobMeta.fileResolver,
-      Logger.Verbose // DEBUG
+      Logger.Quiet
   )
 
   private lazy val taskIO = TaskInputOutput(task, logger)
