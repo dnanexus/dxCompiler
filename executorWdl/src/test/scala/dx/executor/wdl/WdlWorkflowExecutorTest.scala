@@ -630,6 +630,7 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
     )
 
     // TODO assert block context has right contents
-    print(blockContext)
+    // TODO expose inputEnv or wdlEnv of WdlBlockContext for testing?
+    print(blockContext.getInputEnv)
   }
 }
