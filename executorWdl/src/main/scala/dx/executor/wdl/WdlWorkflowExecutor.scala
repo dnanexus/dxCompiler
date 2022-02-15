@@ -217,15 +217,10 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       case (dxName, (t, v)) =>
         dxName -> WdlUtils.fromIRValue(v, WdlUtils.fromIRType(t, wdlTypeAliases), dxName.decoded)
     }
-
-    // TODO find logging that prints "Env..." in job log
-
     // next add defaults for any optional values in the output closure that are not inputs
     val outputWdlValues: Map[DxName, V] =
       WdlUtils.getOutputClosure(outputParamMap).collect {
         case (name, T_Optional(_)) if !inputWdlValues.contains(name) =>
-          // DEBUG
-          logger.trace(s"--> Set optional input ${name} to null")
           // set missing optional inputs to null
           name -> V_Null
         case (name, T_Array(_, false)) if !inputWdlValues.contains(name) =>
