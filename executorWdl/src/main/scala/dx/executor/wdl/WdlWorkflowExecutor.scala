@@ -22,7 +22,7 @@ import dx.core.languages.wdl.{
   WdlUtils
 }
 import dx.executor.{JobMeta, WorkflowExecutor}
-import dx.util.{DefaultBindings, FileNode, Logger, TraceLevel}
+import dx.util.{DefaultBindings, FileNode, TraceLevel}
 import spray.json.JsValue
 import wdlTools.eval.{Eval, EvalException, EvalUtils, WdlValueBindings}
 import wdlTools.eval.WdlValues._
@@ -75,8 +75,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       jobMeta.workerPaths,
       Some(versionSupport.version),
       Vector.empty,
-      jobMeta.fileResolver,
-      Logger.Quiet
+      jobMeta.fileResolver
   )
 
   override val executorName: String = "dxExecutorWdl"

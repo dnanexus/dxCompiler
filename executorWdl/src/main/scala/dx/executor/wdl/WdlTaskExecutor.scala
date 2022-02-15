@@ -12,7 +12,7 @@ import dx.core.languages.wdl.{
   WdlUtils
 }
 import dx.executor.{JobMeta, TaskExecutor}
-import dx.util.{Bindings, DockerUtils, Logger}
+import dx.util.{Bindings, DockerUtils}
 import spray.json.JsObject
 import wdlTools.eval.WdlValues._
 import wdlTools.eval.{Eval, WdlValueBindings}
@@ -64,8 +64,7 @@ case class WdlTaskExecutor(task: TAT.Task,
       jobMeta.workerPaths,
       Some(versionSupport.version),
       Vector.empty,
-      jobMeta.fileResolver,
-      Logger.Quiet
+      jobMeta.fileResolver
   )
 
   private lazy val taskIO = TaskInputOutput(task, logger)
