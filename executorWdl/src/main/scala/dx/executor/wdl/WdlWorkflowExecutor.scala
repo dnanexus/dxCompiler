@@ -24,7 +24,7 @@ import dx.core.languages.wdl.{
 import dx.executor.{JobMeta, WorkflowExecutor}
 import dx.util.{DefaultBindings, FileNode, Logger, TraceLevel}
 import spray.json.JsValue
-import wdlTools.eval.{Eval, EvalUtils, WdlValueBindings}
+import wdlTools.eval.{Eval, EvalException, EvalUtils, WdlValueBindings}
 import wdlTools.eval.WdlValues._
 import wdlTools.exec.{InputOutput, TaskInputOutput}
 import wdlTools.types.{TypeUtils, TypedAbstractSyntax => TAT}
@@ -52,8 +52,7 @@ object WdlWorkflowExecutor {
   }
 }
 
-// TODO: implement graph building from workflow - input and output parameters
-//  should be ordered in calls to InputOutput.*
+// TODO: implement graph building from workflow - input and output parameters should be ordered
 /**
   * Executor for WDL workflows.
   * @param docSource the FileNode from which the workflow source originated.
@@ -370,7 +369,26 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           } else {
             TypeUtils.unwrapOptional(wdlType)
           }
-          val value = evaluateExpression(call.inputs(name), optType, env)
+          val value =
+            try {
+              evaluateExpression(call.inputs(name), optType, env)
+            } catch {
+              case ee: EvalException =>
+                call.inputs(name) match {
+                  case _: TAT.ValueNull if !TypeUtils.isOptional(optType) =>
+                    throw new Exception(
+                        s"""missing/null value for non-optional input ${name} to call 
+                           |${call.fullyQualifiedName}""".stripMargin.replaceAll("\n", " "),
+                        ee
+                    )
+                  case _ =>
+                    throw new Exception(
+                        s"""Error evaluating input ${name} value ${call.inputs(name)} to call 
+                           |${call.fullyQualifiedName}""".stripMargin.replaceAll("\n", " "),
+                        ee
+                    )
+                }
+            }
           Some(dxName -> (optType, value))
         case (name, (_, optional)) if optional =>
           logger.trace(s"no input for optional input ${name} to call ${call.fullyQualifiedName}")
@@ -515,7 +533,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         if (env.contains(innerName)) {
           Some(env(innerName)._2)
         } else {
-          // TODO: use dxName.popDecodedIdentifier
+          // TODO: use dxName.popDecodedIdentifier instead of a regexp
           innerName.decoded match {
             case qualifiedNameRegexp(lhs, rhs) =>
               inner(WdlDxName.fromDecodedName(lhs)).map {

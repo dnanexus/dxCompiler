@@ -66,6 +66,10 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
                                                         "-folder",
                                                         unitTestsPath,
                                                         "-locked")
+//  private val cFlagsUnlocked: List[String] = cFlagsBase ++ List("-compileMode",
+//                                                                "NativeWithoutRuntimeAsset",
+//                                                                "-folder",
+//                                                                unitTestsPath)
   private val cFlagsReorgIR: List[String] = cFlagsBase ++
     List("-compileMode", "IR", "-folder", "/reorg_tests")
   private val cFlagsReorgCompile: List[String] = cFlagsBase ++
@@ -128,6 +132,25 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     retval shouldBe a[SuccessfulCompileNativeNoTree]
   }
 
+  it should "compile a WDL file with a directory input" in {
+    val sourceCode = pathFromBasename("input_file", "wdldir.wdl")
+    val inputs = pathFromBasename("input_file", "wdldir_input.json")
+    val args = List(sourceCode.toString, "--inputs", inputs.toString) ++ cFlags
+    val wfId = Main.compile(args.toVector) match {
+      case SuccessfulCompileNativeNoTree(_, Vector(id)) => id
+      case other                                        => throw new Exception(s"expected success, not ${other}")
+    }
+    val dxInputsFile = inputs.getParent.resolve(FileUtils.replaceFileSuffix(inputs, ".dx.json"))
+    val jsInputs = JsUtils.jsFromFile(dxInputsFile)
+    val fields = jsInputs.asJsObject.fields
+    fields.size shouldBe 1
+    fields("WorkingDir") shouldBe JsString("dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/tmp/")
+    val wf = dxApi.workflow(wfId)
+    val params = wf.describe(Set(Field.InputSpec)).inputs.get
+    params.size shouldBe 1
+    params.head.ioClass shouldBe DxIOClass.String
+  }
+
   it should "Native compile a workflow with a scatter without a call" taggedAs NativeTest in {
     val path = pathFromBasename("compiler", "scatter_no_call.wdl")
     val args = path.toString :: cFlags
@@ -149,7 +172,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     Main.compile(args.toVector) shouldBe a[SuccessfulCompileNativeNoTree]
   }
 
-  ignore should "be able to include pattern information in inputSpec" in {
+  it should "be able to include pattern information in inputSpec" in {
     val path = pathFromBasename("compiler", "pattern_params.wdl")
     val args = path.toString :: cFlags
     val appId = Main.compile(args.toVector) match {
@@ -159,24 +182,26 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     }
 
     val dxApplet = dxApi.applet(appId)
-    val inputSpec = dxApplet.describe(Set(Field.InputSpec))
-    val params = inputSpec.inputSpec match {
+    val desc = dxApplet.describe(Set(Field.InputSpec, Field.OutputSpec))
+    val inputParams = desc.inputSpec match {
       case Some(x) => x.map(p => p.name -> p).toMap
       case other   => throw new Exception(s"Unexpected result ${other}")
     }
-    val pattern = params("pattern")
+    val pattern = inputParams("pattern")
     pattern.help shouldBe Some("The pattern to use to search in_file")
     pattern.group shouldBe Some("Common")
     pattern.label shouldBe Some("Search pattern")
-    val inFile = params("in_file")
+    val inFile = inputParams("in_file")
     inFile.patterns shouldBe Some(IOParameterPatternArray(Vector("*.txt", "*.tsv")))
     inFile.help shouldBe Some("The input file to be searched")
     inFile.group shouldBe Some("Common")
     inFile.label shouldBe Some("Input file")
-    // TODO: fix this
-    // out_file would be part of the outputSpec, but wom currently doesn't
-    // support parameter_meta for output vars
-    //out_file.pattern shouldBe Some(Vector("*.txt", "*.tsv"))
+    val outputParams = desc.outputSpec match {
+      case Some(x) => x.map(p => p.name -> p).toMap
+      case other   => throw new Exception(s"Unexpected result ${other}")
+    }
+    val outFile = outputParams("out_file")
+    outFile.patterns shouldBe Some(IOParameterPatternArray(Vector("*.txt", "*.tsv")))
   }
 
   it should "be able to include pattern object information in inputSpec" in {
@@ -189,16 +214,16 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     }
 
     val dxApplet = dxApi.applet(appId)
-    val inputSpec = dxApplet.describe(Set(Field.InputSpec))
-    val params = inputSpec.inputSpec match {
+    val desc = dxApplet.describe(Set(Field.InputSpec, Field.OutputSpec))
+    val inputParams = desc.inputSpec match {
       case Some(x) => x.map(p => p.name -> p).toMap
       case other   => throw new Exception(s"Unexpected result ${other}")
     }
-    val pattern = params("pattern")
+    val pattern = inputParams("pattern")
     pattern.help shouldBe Some("The pattern to use to search in_file")
     pattern.group shouldBe Some("Common")
     pattern.label shouldBe Some("Search pattern")
-    val inFile = params("in_file")
+    val inFile = inputParams("in_file")
     inFile.patterns shouldBe Some(
         IOParameterPatternObject(Some(Vector("*.txt", "*.tsv")),
                                  Some("file"),
@@ -207,10 +232,12 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     inFile.help shouldBe Some("The input file to be searched")
     inFile.group shouldBe Some("Common")
     inFile.label shouldBe Some("Input file")
-    // TODO: fix this
-    // out_file would be part of the outputSpec, but wom currently doesn't
-    // support parameter_meta for output vars
-    //out_file.pattern shouldBe Some(Vector("*.txt", "*.tsv"))
+    val outputParams = desc.outputSpec match {
+      case Some(x) => x.map(p => p.name -> p).toMap
+      case other   => throw new Exception(s"Unexpected result ${other}")
+    }
+    val outFile = outputParams("out_file")
+    outFile.patterns shouldBe Some(IOParameterPatternArray(Vector("*.txt", "*.tsv")))
   }
 
   it should "be able to include choices information in inputSpec" in {
@@ -223,18 +250,18 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     }
 
     val dxApplet = dxApi.applet(appId)
-    val inputSpec = dxApplet.describe(Set(Field.InputSpec))
-    val params = inputSpec.inputSpec match {
+    val desc = dxApplet.describe(Set(Field.InputSpec, Field.OutputSpec))
+    val inputParams = desc.inputSpec match {
       case Some(x) => x.map(p => p.name -> p).toMap
       case other   => throw new Exception(s"Unexpected result ${other}")
     }
-    params("pattern").choices shouldBe Some(
+    inputParams("pattern").choices shouldBe Some(
         Vector(
             IOParameterValueString(value = "A"),
             IOParameterValueString(value = "B")
         )
     )
-    params("in_file").choices shouldBe Some(
+    inputParams("in_file").choices shouldBe Some(
         Vector(
             IOParameterValueDataObject("file-Fg5PgBQ0ffP7B8bg3xqB115G"),
             IOParameterValueDataObject("file-Fg5PgBj0ffPP0Jjv3zfv0yxq")
@@ -523,9 +550,10 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
           case (Constants.SourceCode, JsString(_))                 => () // ignore
           case (Constants.ParseOptions, JsObject(_))               => () // ignore
           // old values for sourceCode - can probalby delete these
-          case ("womSourceCode", JsString(_)) => () // ignore
-          case ("wdlSourceCode", JsString(_)) => () // ignore
-          case other                          => throw new Exception(s"Unexpected result ${other}")
+          case ("womSourceCode", JsString(_))        => () // ignore
+          case ("wdlSourceCode", JsString(_))        => () // ignore
+          case (Constants.OriginalName, JsString(_)) => () // ignore
+          case other                                 => throw new Exception(s"Unexpected result ${other}")
         }
       case other => throw new Exception(s"Unexpected result ${other}")
     }
@@ -723,6 +751,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
           case ("womSourceCode", JsString(_))                   => ()
           case ("wdlSourceCode", JsString(_))                   => ()
           case ("staticInstanceTypeSelection", JsBoolean(true)) => ()
+          case (Constants.OriginalName, JsString(_))            => ()
           case other                                            => throw new Exception(s"Unexpected result ${other}")
         }
       case other => throw new Exception(s"Unexpected result ${other}")

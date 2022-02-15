@@ -1,21 +1,24 @@
 {
-    "class": "CommandLineTool",
-    "inputs": [],
-    "outputs": [],
-    "requirements": [
-        {
-            "timelimit": 0,
-            "class": "ToolTimeLimit"
-        },
-        {
-            "enableReuse": false,
-            "class": "WorkReuse"
-        }
-    ],
-    "baseCommand": [
-        "sleep",
-        "15"
-    ],
-    "id": "#main",
-    "cwlVersion": "v1.2"
+  "baseCommand": [
+    "sleep",
+    "15"
+  ],
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "id": "timelimit3",
+  "inputs": [],
+  "outputs": [],
+  "requirements": [
+    {
+      "class": "ToolTimeLimit",
+      "timelimit": 0
+    },
+    {
+      "class": "WorkReuse",
+      "enableReuse": false
+    },
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ]
 }

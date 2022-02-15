@@ -1,0 +1,1 @@
+files: ["dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/cwl_secondary_files/foo.txt","dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/cwl_secondary_files/bar.txt"]  # array of type "File"

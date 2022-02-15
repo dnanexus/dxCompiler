@@ -1,44 +1,47 @@
 {
-    "class": "CommandLineTool",
-    "requirements": [
-        {
-            "class": "ShellCommandRequirement"
-        },
-        {
-            "class": "InitialWorkDirRequirement",
-            "listing": "$(inputs.indir.listing)"
-        }
-    ],
-    "inputs": [
-        {
-            "type": "Directory",
-            "loadListing": "shallow_listing",
-            "id": "#main/indir"
-        }
-    ],
-    "outputs": [
-        {
-            "type": "File",
-            "outputBinding": {
-                "glob": "output.txt"
-            },
-            "id": "#main/outlist"
-        }
-    ],
-    "arguments": [
-        "find",
-        "-L",
-        ".",
-        "!",
-        "-path",
-        "*.txt",
-        {
-            "shellQuote": false,
-            "valueFrom": "|"
-        },
-        "sort"
-    ],
-    "stdout": "output.txt",
-    "id": "#main",
-    "cwlVersion": "v1.2"
+  "arguments": [
+    "find",
+    "-L",
+    ".",
+    "!",
+    "-path",
+    "*.txt",
+    {
+      "shellQuote": false,
+      "valueFrom": "|"
+    },
+    "sort"
+  ],
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "id": "dir5",
+  "inputs": [
+    {
+      "id": "indir",
+      "loadListing": "shallow_listing",
+      "type": "Directory"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "outlist",
+      "outputBinding": {
+        "glob": "output.txt"
+      },
+      "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "ShellCommandRequirement"
+    },
+    {
+      "class": "InitialWorkDirRequirement",
+      "listing": "$(inputs.indir.listing)"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ],
+  "stdout": "output.txt"
 }

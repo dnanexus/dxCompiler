@@ -1,0 +1,22 @@
+script_name: "prime_sieve.py"  # default value of type "string".
+script: |
+    import sys
+    import math
+
+    limit = int(sys.argv[1])
+    sieve = [True for i in range(limit)]
+    for i in range(2, math.floor(limit / 2)):
+        if sieve[i]:
+            for j in range(i * 2, limit, i):
+                sieve[j] = False
+
+    result = "["
+    for i in range(2, limit):
+        if sieve[i]:
+            if result != "[":
+                result += ", "
+            result += str(i)
+    result += "]"
+
+    print(result)
+ # default value of type "string".

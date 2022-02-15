@@ -1,32 +1,34 @@
 {
-    "class": "CommandLineTool",
-    "inputs": [],
-    "outputs": [
+  "baseCommand": [
+    "/bin/sh",
+    "-c",
+    "echo $TEST_ENV"
+  ],
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "hints": [
+    {
+      "class": "EnvVarRequirement",
+      "envDef": [
         {
-            "type": "File",
-            "id": "#main/out",
-            "outputBinding": {
-                "glob": "out"
-            }
+          "envName": "TEST_ENV",
+          "envValue": "hello test env"
         }
-    ],
-    "hints": [
-        {
-            "class": "EnvVarRequirement",
-            "envDef": [
-                {
-                    "envName": "TEST_ENV",
-                    "envValue": "hello test env"
-                }
-            ]
-        }
-    ],
-    "baseCommand": [
-        "/bin/sh",
-        "-c",
-        "echo $TEST_ENV"
-    ],
-    "stdout": "out",
-    "id": "#main",
-    "cwlVersion": "v1.2"
+      ]
+    }
+  ],
+  "id": "imported-hint",
+  "inputs": [],
+  "outputs": [
+    {
+      "id": "out",
+      "type": "stdout"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ],
+  "stdout": "out"
 }

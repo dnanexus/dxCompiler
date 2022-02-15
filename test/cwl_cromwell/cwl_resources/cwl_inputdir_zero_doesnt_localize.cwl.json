@@ -1,0 +1,265 @@
+{
+    "id": "#main",
+    "class": "Workflow",
+    "hints": [
+        {
+            "class": "ShellCommandRequirement"
+        },
+        {
+            "class": "DockerRequirement",
+            "dockerPull": "gcr.io/google.com/cloudsdktool/cloud-sdk:slim"
+        },
+        {
+            "class": "https://www.dnanexus.com/cwl#InputResourceRequirement",
+            "indirMin": 0
+        }
+    ],
+    "inputs": [],
+    "steps": [
+        {
+            "id": "#main/echo",
+            "in": [],
+            "out": [
+                {
+                    "id": "#main/echo/echoOut"
+                },
+                {
+                    "id": "#main/echo/echoArrayOut"
+                },
+                {
+                    "id": "#main/echo/echoRecordOut"
+                },
+                {
+                    "id": "#main/echo/echoMaybeOut"
+                }
+            ],
+            "run": {
+                "class": "CommandLineTool",
+                "requirements": [
+                    {
+                        "class": "InlineJavascriptRequirement"
+                    }
+                ],
+                "inputs": [],
+                "outputs": [
+                    {
+                        "id": "#main/echo/run/echoOut",
+                        "outputBinding": {
+                            "glob": "lonely_file"
+                        },
+                        "type": "File",
+                        "secondaryFiles": [
+                            {
+                                "pattern": ".also",
+                                "required": null
+                            }
+                        ]
+                    },
+                    {
+                        "id": "#main/echo/run/echoArrayOut",
+                        "outputBinding": {
+                            "glob": "*.txt*",
+                            "outputEval": "$([self[0]])"
+                        },
+                        "secondaryFiles": [
+                            {
+                                "pattern": ".also",
+                                "required": null
+                            }
+                        ],
+                        "type": {
+                            "items": "File",
+                            "type": "array"
+                        }
+                    },
+                    {
+                        "id": "#main/echo/run/echoRecordOut",
+                        "secondaryFiles": [
+                            {
+                                "pattern": ".also",
+                                "required": null
+                            }
+                        ],
+                        "type": {
+                            "type": "record",
+                            "name": "#main/echo/run/echoRecordOut/foo",
+                            "fields": [
+                                {
+                                    "name": "#main/echo/run/echoRecordOut/foo/a",
+                                    "type": "File",
+                                    "outputBinding": {
+                                        "glob": "file_in_object"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "id": "#main/echo/run/echoMaybeOut",
+                        "type": [
+                            "File",
+                            "null"
+                        ],
+                        "secondaryFiles": [
+                            {
+                                "pattern": ".also",
+                                "required": null
+                            }
+                        ],
+                        "outputBinding": {
+                            "glob": "maybe_file"
+                        }
+                    }
+                ],
+                "arguments": [
+                    {
+                        "valueFrom": "echo \"lonely_file\" > lonely_file\necho \"lonely_file.also\" > lonely_file.also\necho \"file_in_array.txt\" > file_in_array.txt\necho \"file_in_array.txt.also\" > file_in_array.txt.also\necho \"file_in_object\" > file_in_object\necho \"file_in_object.also\" > file_in_object.also\necho \"maybe_file\" > maybe_file\necho \"maybe_file.also\" > maybe_file.also\n",
+                        "shellQuote": false
+                    }
+                ],
+                "hints": [
+                    {
+                        "loadListing": "deep_listing",
+                        "class": "LoadListingRequirement"
+                    },
+                    {
+                        "networkAccess": true,
+                        "class": "NetworkAccess"
+                    }
+                ]
+            }
+        },
+        {
+            "id": "#main/findFile",
+            "in": [
+                {
+                    "id": "#main/findFile/f",
+                    "source": "#main/echo/echoOut"
+                },
+                {
+                    "id": "#main/findFile/g",
+                    "source": "#main/echo/echoArrayOut"
+                },
+                {
+                    "id": "#main/findFile/h",
+                    "source": "#main/echo/echoRecordOut"
+                },
+                {
+                    "id": "#main/findFile/i",
+                    "source": "#main/echo/echoMaybeOut"
+                }
+            ],
+            "out": [
+                {
+                    "id": "#main/findFile/errors"
+                }
+            ],
+            "run": {
+                "inputs": [
+                    {
+                        "id": "#main/findFile/run/f",
+                        "type": "File",
+                        "secondaryFiles": [
+                            {
+                                "pattern": ".also",
+                                "required": null
+                            }
+                        ]
+                    },
+                    {
+                        "id": "#main/findFile/run/i",
+                        "type": [
+                            "null",
+                            "File"
+                        ],
+                        "secondaryFiles": [
+                            {
+                                "pattern": ".also",
+                                "required": null
+                            }
+                        ]
+                    },
+                    {
+                        "id": "#main/findFile/run/g",
+                        "type": {
+                            "type": "array",
+                            "items": "File"
+                        },
+                        "secondaryFiles": [
+                            {
+                                "pattern": ".also",
+                                "required": null
+                            }
+                        ]
+                    },
+                    {
+                        "id": "#main/findFile/run/h",
+                        "secondaryFiles": [
+                            {
+                                "pattern": ".also",
+                                "required": null
+                            }
+                        ],
+                        "type": {
+                            "type": "record",
+                            "name": "#main/findFile/run/h/foo",
+                            "fields": [
+                                {
+                                    "name": "#main/findFile/run/h/foo/a",
+                                    "type": "File"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "outputs": [
+                    {
+                        "id": "#main/findFile/run/errors",
+                        "type": "string",
+                        "outputBinding": {
+                            "glob": "errors.txt",
+                            "loadContents": true,
+                            "outputEval": "$(self[0].contents)"
+                        }
+                    }
+                ],
+                "class": "CommandLineTool",
+                "requirements": [
+                    {
+                        "class": "ShellCommandRequirement"
+                    },
+                    {
+                        "class": "InlineJavascriptRequirement"
+                    }
+                ],
+                "arguments": [
+                    {
+                        "valueFrom": "touch errors.txt\nfind . -name lonely_file >> errors.txt\nfind . -name lonely_file.also >> errors.txt\nfind . -name file_in_array >> errors.txt\nfind . -name file_in_array.also >> errors.txt\nfind . -name file_in_object >> errors.txt\nfind . -name file_in_object.also >> errors.txt\nfind . -name maybe_file >> errors.txt\nfind . -name maybe_file.also >> errors.txt\n",
+                        "shellQuote": false
+                    }
+                ],
+                "hints": [
+                    {
+                        "loadListing": "deep_listing",
+                        "class": "LoadListingRequirement"
+                    },
+                    {
+                        "networkAccess": true,
+                        "class": "NetworkAccess"
+                    }
+                ]
+            }
+        }
+    ],
+    "outputs": [
+        {
+            "id": "#main/errors",
+            "type": "string",
+            "outputSource": "#main/findFile/errors"
+        }
+    ],
+    "cwlVersion": "v1.2",
+    "$namespaces": {
+        "dx": "https://www.dnanexus.com/cwl#"
+    }
+}

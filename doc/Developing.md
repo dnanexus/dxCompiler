@@ -2,69 +2,54 @@
 
 ## Setting up your development environment
 
-### Install JDK 8
-
-* On macOS with [homebrew](https://brew.sh/) installed:
-  ```
-  $ brew tap AdoptOpenJDK/openjdk
-  $ brew cask install adoptopenjdk8
-  ```
-  Find the path to set for JAVA_HOME
-  ```
-  $ /usr/libexec/java_home -V
-  ```
-  Set the following in `~/.zshenv`
-  ```
-  # Java
-  export JAVA_HOME=<path>
-
-  # Mitigation for log4j2
-  export JAVA_OPTS=-Dlog4j2.formatMsgNoLookups=true
-  ```
-
-* On Linux (assuming Ubuntu 20.04)
-  ```
-  $ sudo apt install openjdk-8-jre-headless
-  ```
-  Set the following in `~/.bash_profile`
-  ```
-  # Java
-  export JAVA_HOME=<path>
-
-  # Mitigation for log4j2
-  export JAVA_OPTS=-Dlog4j2.formatMsgNoLookups=true
-  ```
-
-* Scala will compile with JDK 11, but the JDK on DNAnexus worker instances is JDK 8 and will not be able to run a JAR file with classes compiled by a later version of Java
-
-### Install Scala & sbt
-
+* Install JDK 11
+    * On MacOS with [homebrew](https://brew.sh/) installed:
+    ```
+    $ brew tap AdoptOpenJDK/openjdk
+    $ brew install adoptopenjdk11 --cask
+    # Use java_home to find the location of JAVA_HOME to set
+    $ /usr/libexec/java_home -V
+    $ export JAVA_HOME=/Library/Java/...
+    ```
+    * On Linux (assuming Ubuntu 16.04)
+    ```
+    $ sudo apt install openjdk-11-jre-headless
+    ```
+    * Note that dxCompiler will compile with JDK8 or JDK11 and that JDK8 is used as the build target so the resulting JAR file can be executed with JRE8 or later.
 * Install [sbt](https://www.scala-sbt.org/), which also installs Scala. Sbt is a make-like utility that works with the ```scala``` language.
     * On MacOS: `brew install sbt`
     * On Linux:
-      ```
-      $ wget www.scala-lang.org/files/archive/scala-2.12.1.deb
-      $ sudo dpkg -i scala-2.12.1.deb
-      $ echo "deb https://dl.bintray.com/sbt/debian /" | sudo tee -a /etc/apt/sources.list.d/sbt.list
-      $ sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2EE0EA64E40A89B84B2DF73499E82A75642AC823
-      $ sudo apt-get update
-      $ sudo apt-get install sbt
-      ```
+    ```
+    $ wget www.scala-lang.org/files/archive/scala-2.13.7.deb
+    $ sudo dpkg -i scala-2.13.7.deb
+    $ echo "deb https://dl.bintray.com/sbt/debian /" | sudo tee -a /etc/apt/sources.list.d/sbt.list
+    $ sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2EE0EA64E40A89B84B2DF73499E82A75642AC823
+    $ sudo apt-get update
+    $ sudo apt-get install sbt
+    ```
     * Running sbt for the first time takes several minutes, because it downloads all required packages.
-* We also recommend to install [Metals](https://scalameta.org/metals/), which enables better integration with your IDE
+* Install [dxpy](https://pypi.org/project/dxpy/). If you use conda or virtual environments make sure you have `dxpy` 
+installed.
+* Install [dxda](https://github.com/dnanexus/dxda/releases). Download pre-compiled binaries for your platform from a 
+release version of your choice. Rename the binary to `dx-download-agent` and add it to your `PATH` environment variable. 
+Make sure to make it executable for your user by:
+```
+sudo chmod +x dx-download-agent
+```
+On MacOS you may need to explicitly allow execution of this file because the OS will be blocking it due to an 
+unrecognized developer. Check your `Settings/Security & Privacy`.
+* We also recommend installing [Metals](https://scalameta.org/metals/), which enables better integration with your IDE
     * For VSCode, install the "Scala (Metals)" and "Scala Syntax (official)" plugins
-* You will also need Python installed (we recommend version 3.6+) and dx-toolkit (`pip install dxpy`)
-
-### Additional developer setup
-
-* You will also need to create a GitHub personal access token (this is required by the sbt-github-packages plugin). In GitHub settings, go to "Developer settings > Personal access token" and create a new token with "write:packages" and "read:packages" scopes only. Then, export the `GITHUB_TOKEN` environment variable with this token as the value. For example, in your `.profile`:
-  ```bash
-  export GITHUB_TOKEN=<your personal access token>
-  ```
+* You will need to create a GitHub personal access token (this is required by the sbt-github-packages plugin).
+    * In GitHub settings, go to "Developer settings > Personal access token" and create a new token with "write:packages" and "read:packages" scopes only.
+    * Export the `GITHUB_TOKEN` environment variable with this token as the value. For example, in your `.profile`:
+    ```bash
+    export GITHUB_TOKEN=<your personal access token>
+    ```
     * On macOS, you may also want to add this token into your global environment so it is visible to your IDE:
-  ```bash
-  launchctl setenv GITHUB_TOKEN $GITHUB_TOKEN
-  ```
+    ```bash
+    launchctl setenv GITHUB_TOKEN $GITHUB_TOKEN
+    ```
 
 ## Getting the source code
 
@@ -101,14 +86,15 @@ See below on how to run unit and integration tests. To recompile dxCompiler with
 
 1. Checkout the `develop` branch.
 2. Create a new branch with your changes. Name it something meaningful, like `APPS-123-download-bug`.
-3. If the current snapshot version matches the release version, increment the snapshot version.
+3. Update snapshot version (in the `application.conf` files of all the sub-packages):
+- If the current snapshot version matches the release version, increment the snapshot version.
 - For example, if the current release is `1.0.0` and the current snapshot version is `1.0.0-SNAPSHOT`, increment the snapshot version to `1.0.1-SNAPSHOT`.
-- You can use a script to update the version simultaneously in all of the sub-packages: `scripts/update_version.md <version>`
-4. Make your changes. Test locally using `sbt test`.
-5. Update the release notes under the top-most header (which should be "in develop").
-6. If the current snapshot version only differs from the release version by a patch, and you added any new functionality (vs just fixing a bug), increment the minor version instead.
+- If the current snapshot version only differs from the release version by a patch, and you added any new functionality (vs just fixing a bug), increment the minor version instead.
 - For example, when you first created the branch you set the version to `1.0.1-SNAPSHOT`, but then you realized you needed to add a new function to the public API, change the version to `1.1.0-SNAPSHOT`.
-7. When you are done, create a pull request against the `develop` branch.
+- You can use a script to update the version simultaneously in all of the sub-packages: `scripts/update_version.sh <version>`
+4. Make your changes. Test locally using `sbt test`.
+5. Update the [release notes](/RELEASE_NOTES.md) under the top-most header (which should be "in develop").
+6. When you are done, create a pull request against the `develop` branch.
 
 While developing, make sure you do the following:
 
@@ -144,13 +130,13 @@ If there are errors in your code, the compiler will fail with (hopefully useful)
 
 Generate a staging token via the web UI and login with `dx login --staging --token <token>`.
 
-Run [scripts/clean_build.sh](scripts/clean_build.sh) to clean up existing artifacts (locally and on staging) and build new dxCompiler artifacts.
+Run [scripts/clean_build.sh](/scripts/clean_build.sh) to clean up existing artifacts (locally and on staging) and build new dxCompiler artifacts.
 
 ### Running unit tests
 
 You should always run the unit tests after every successful compile. Generally, you want to run `sbt testQuick`, which only runs the tests that failed previously, as well as the tests for any code you've modified since the last time you ran the tests. However, the first time you checkout the code (to make sure your development environment is set up correctly) and then right before you push any changes to the repository, you should run the full test suite using `sbt test`.
 
-You need to have a DNAnexus account and be logged into DNAnexus via the command line before you can run the tests (`dx login`).
+You need to have a DNAnexus account and be logged into DNAnexus via the command line before you can run the tests (`dx login`). Your default project has to be `dxCompiler_playground` upon login. 
 
 ### Running the integration tests
 
@@ -164,9 +150,13 @@ The results will be available in the [Actions](https://github.com/dnanexus/dxCom
 
 Note that only DNAnexus developers can set up a label on a PR so let us know when you'd like to request a review and we'll start them for you.
 
+#### Skipping running all tests on GitHub
+
+In order to skip unit and intergration tests add a `minor` label to the PR.
+
 ### Running integration tests locally
 
-First, you need to an account on the DNAnexus staging environment, and you need to be added to the projects that have been setup for testing. Next, log into the DNAnexus staging environment using dx-toolkit: `dx login --staging`. Note that very often your login will timeout while the integration tests are running unless you are actively using the platform in another session, and this will cause the tests to fail. To avoid, this, generate a token via the web UI and use that token to log in on the command line: `dx login --staging --token <token>`.
+First, you need to have an account on the DNAnexus staging environment, and you need to be added to the projects that have been setup for testing. Next, log into the DNAnexus staging environment using dx-toolkit: `dx login --staging`. Note that very often your login will timeout while the integration tests are running unless you are actively using the platform in another session, and this will cause the tests to fail. To avoid, this, generate a token via the web UI and use that token to log in on the command line: `dx login --staging --token <token>`.
 
 Follow the "Cleaning up artifacts & building" instructions above.
 
@@ -175,6 +165,8 @@ Finally, run the integration tests. From the root dxCompiler directory, run `./s
 Note that the test script does a lot of things for you. If for some reason you want to run them manually, here is what happens:
 
 The dxCompiler and dxExecutor* JAR files are built and staged in the root dxCompiler directory. To do this manually, run `sbt assembly`, then move the JAR files from the `applet_resources` folder to the root dxCompiler folder, e.g. `mv applet_resources/dxCompiler.jar ./dxCompiler-X.Y.Z.jar`.
+
+If you experience timeout errors (response to PUT requests returning code 400) during integration tests contact the developer team 
 
 ### Running a subset of tests locally
 
@@ -221,7 +213,7 @@ dxCompiler can be released from Github. The release pipeline (optionally) runs l
         * [executorWdl](https://github.com/dnanexus/dxCompiler/blob/main/executorWdl/src/main/resources/application.conf)
         * [executorCwl](https://github.com/dnanexus/dxCompiler/blob/main/executorCwl/src/main/resources/application.conf)
 4. Update the [Release Notes](https://github.com/dnanexus/dxCompiler/blob/main/RELEASE_NOTES.md)
-    - Change the top header from "in develop" to "<version> (<date>)"
+    - Change the top header from "in develop" to "\<version\> (\<date\>)"
 5. Update versions of libraries as needed in [build.sbt](/build.sbt).
     - Add release notes of updated library dependencies to [Release Notes](https://github.com/dnanexus/dxCompiler/blob/main/RELEASE_NOTES.md)
 6. Push the release branch to GitHub.

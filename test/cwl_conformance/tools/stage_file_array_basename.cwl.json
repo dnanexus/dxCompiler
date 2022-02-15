@@ -1,49 +1,46 @@
 {
-    "class": "CommandLineTool",
-    "id": "#main",
-    "label": "Stage File Array (with Directory Basename)",
-    "arguments": [
-        "ls"
-    ],
-    "inputs": [
+  "arguments": [
+    "ls"
+  ],
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "id": "stage_file_array_basename",
+  "inputs": [
+    {
+      "id": "input_list",
+      "secondaryFiles": [
+        ".sec"
+      ],
+      "type": {
+        "items": "File",
+        "type": "array"
+      }
+    }
+  ],
+  "label": "Stage File Array (with Directory Basename)",
+  "outputs": [
+    {
+      "id": "output",
+      "outputBinding": {
+        "glob": "input_dir/*"
+      },
+      "type": {
+        "items": "File",
+        "type": "array"
+      }
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
+    },
+    {
+      "class": "InitialWorkDirRequirement",
+      "listing": [
         {
-            "id": "#main/input_list",
-            "type": {
-                "type": "array",
-                "items": "File"
-            },
-            "secondaryFiles": [
-                {
-                    "pattern": ".sec",
-                    "required": null
-                }
-            ]
+          "entry": "${ return {class: 'Directory', basename: 'input_dir', listing: inputs.input_list} }"
         }
-    ],
-    "outputs": [
-        {
-            "id": "#main/output",
-            "type": {
-                "type": "array",
-                "items": "File"
-            },
-            "outputBinding": {
-                "glob": "input_dir/*"
-            }
-        }
-    ],
-    "requirements": [
-        {
-            "class": "InlineJavascriptRequirement"
-        },
-        {
-            "class": "InitialWorkDirRequirement",
-            "listing": [
-                {
-                    "entry": "${ return {class: 'Directory', basename: 'input_dir', listing: inputs.input_list} }"
-                }
-            ]
-        }
-    ],
-    "cwlVersion": "v1.2"
+      ]
+    }
+  ]
 }

@@ -1,14 +1,19 @@
 {
-    "class": "CommandLineTool",
-    "inputs": [
-        {
-            "type": "File",
-            "loadContents": true,
-            "id": "#main/filelist"
-        }
-    ],
-    "baseCommand": "true",
-    "id": "#main",
-    "outputs": [],
-    "cwlVersion": "v1.2"
+  "baseCommand": "true",
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "id": "loadContents-limit",
+  "inputs": [
+    {
+      "id": "filelist",
+      "loadContents": true,
+      "type": "File"
+    }
+  ],
+  "outputs": [],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ]
 }

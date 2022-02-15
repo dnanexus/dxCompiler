@@ -1,36 +1,39 @@
 {
-    "class": "CommandLineTool",
-    "baseCommand": "true",
-    "requirements": [
+  "baseCommand": "true",
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "id": "rename",
+  "inputs": [
+    {
+      "id": "srcfile",
+      "type": "File"
+    },
+    {
+      "id": "newname",
+      "type": "string"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "outfile",
+      "outputBinding": {
+        "glob": "$(inputs.newname)"
+      },
+      "type": "File"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "InitialWorkDirRequirement",
+      "listing": [
         {
-            "listing": [
-                {
-                    "entryname": "$(inputs.newname)",
-                    "entry": "$(inputs.srcfile)"
-                }
-            ],
-            "class": "InitialWorkDirRequirement"
+          "entry": "$(inputs.srcfile)",
+          "entryname": "$(inputs.newname)"
         }
-    ],
-    "inputs": [
-        {
-            "type": "string",
-            "id": "#main/newname"
-        },
-        {
-            "type": "File",
-            "id": "#main/srcfile"
-        }
-    ],
-    "outputs": [
-        {
-            "type": "File",
-            "outputBinding": {
-                "glob": "$(inputs.newname)"
-            },
-            "id": "#main/outfile"
-        }
-    ],
-    "id": "#main",
-    "cwlVersion": "v1.2"
+      ]
+    },
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ]
 }

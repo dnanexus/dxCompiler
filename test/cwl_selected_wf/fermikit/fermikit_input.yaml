@@ -1,0 +1,12 @@
+reference_genome:  # type "File"
+    class: File
+    path: dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/ce10.fasta.gz
+reads2:  # type "File" (optional)
+    class: File
+    path: dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/SRR100022_20_small_1.fq.gz
+reads1:  # type "File"
+    class: File
+    path: dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/SRR100022_20_small_2.fq.gz
+read_length: 150  # default value of type "long".
+output_name: genome  # default value of type "string".
+estimated_genome_size: 3200000000  # default value of type "long".

@@ -231,10 +231,9 @@ object SquashFs {
 }
 
 /**
-  * An Archive is a squashfs image that contains 1) a JSON file (called manifest.json)
-  * with the serialized representation of a complex value, along with its serialized
-  * type information, and 2) the files referenced by all of the VFile values nested
-  * within the complex value.
+  * An Archive is a squashfs image that contains 1) a JSON file (called manifest.json) with the
+  * serialized representation of a complex value, along with its serialized type information, and
+  * 2) the files referenced by all of the VFile values nested within the complex value.
   * TODO: add option to support compressing the file system
   */
 trait Archive {
