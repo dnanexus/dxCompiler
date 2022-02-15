@@ -977,12 +977,15 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths,
     val command = s"bash -c 'source ${codeFile} && ${name}'"
     logger.trace(s"Running job script function ${name}")
     if (forwardStd) {
-      val (rc, _, _) = SysUtils.runCommand(command,
-                                           exceptionOnFailure = false,
-                                           stdoutMode = StdMode.Forward,
-                                           stderrMode = StdMode.Forward)
+      val (rc, _, stderr) = SysUtils.runCommand(command,
+                                                exceptionOnFailure = false,
+                                                stdoutMode = StdMode.Forward,
+                                                stderrMode = StdMode.Forward)
       if (!successCodes.forall(_.contains(rc))) {
-        throw new Exception(s"job script function ${name} exited with permanent fail code ${rc}")
+        throw new Exception(s"""job script function ${name} exited with permanent fail code ${rc}
+                               |----- stderr-----:
+                               |${truncateStd(stderr)}
+                               |""".stripMargin)
       }
     } else {
       val (rc, stdout, stderr) = SysUtils.execCommand(command, exceptionOnFailure = false)
@@ -1004,17 +1007,18 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths,
                         |----- stderr-----:
                         |${stderr}
                         |-----------------""".stripMargin)
-        throw new Exception(s"""job script function ${name} exited with permanent fail code ${rc}
-                               |----- stderr-----:
-                               |${truncateStd(stderr)}
-                               |""".stripMargin)
+        throw new Exception(s"job script function ${name} exited with permanent fail code ${rc}")
       }
     }
   }
 
-  private def truncateStd(stdString: String): String = {
-    val lastLines = stdString.split("\n").takeRight(stdLimit("lines")).mkString("\n")
-    lastLines.takeRight(Math.min(lastLines.length(), stdLimit("chars")))
+  private def truncateStd(stdString: Option[String]): String = {
+    stdString match {
+      case Some(stdString) =>
+        val lastLines = stdString.split("\n").takeRight(stdLimit("lines")).mkString("\n")
+        lastLines.takeRight(Math.min(lastLines.length(), stdLimit("chars")))
+      case None => ""
+    }
   }
 
   lazy override val rawJsInputs: Map[DxName, JsValue] = {

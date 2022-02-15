@@ -3,12 +3,7 @@ version 1.0
 # A WDL workflow with a subprocess that fails with IndexError
 
 workflow python_task_fail {
-  input {
-    Int x = 10
-  }
-  call python_command {
-    input: num=x
-  }
+  call python_command
   String out = python_command.result + "Did it?"
   call mul { input: a=out, b="It did NOT" }
 
@@ -17,15 +12,11 @@ workflow python_task_fail {
   }
 }
 
-
 task python_command {
-  input {
-    Int num
-  }
   command <<<
-python <<CODE
+python3 <<CODE
 mock_array = list(range(9))
-failure = mock_array["${num}"]
+failure = mock_array[10]
 CODE
   >>>
   output {
