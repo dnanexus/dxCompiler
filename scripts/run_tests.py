@@ -504,19 +504,19 @@ cwl_cromwell_tests_list = [
     "cwl_optionals",
     "cwl_output_json",
     "prefix_for_array",
-    "cwl_recursive_link_directories",
+    # "cwl_recursive_link_directories",
     "cwl_relative_imports",
     # "cwl_disk_resources", # APPS-961 Could not resolve host: metadata.google.internal
     #                       # Unknown hint https://www.dnanexus.com/cwl#InputResourceRequirement (Should be deprecated)
-    # "cwl_inputdir_zero_doesnt_localize", # APPS-1008: Error translating to IR, downcasting failed
+    "cwl_inputdir_zero_doesnt_localize",
     # "cwl_resources", # APPS-961 Could not resolve host: metadata.google.internal
-    # "cwl_restart", # APPS-834 AppInternalError: workflow does not contain a tool
+    "cwl_restart", 
     "1st-tool",
     "cwl_secondary_files",
-    # "cwl_secondary_files_workflow", # APPS-1005 Error creating translator
+    "cwl_secondary_files_workflow",
     "cwl_stdout_expression",
-    # "scatter-wf1", # APPS-834 Could not find linking information
-    # "cwl_three_step", # APPS-834 AppInternalError: workflow does not contain a tool
+    "scatter-wf1", 
+    "cwl_three_step",
     # "cwl_three_step_caller_wf" # APPS-834 AppInternalError: workflow does not contain a tool
     #                              (raised from calling cwl_three_step)
 ]
@@ -1545,7 +1545,7 @@ def register_all_tests(verbose: bool) -> None:
         ).endswith("_notimplemented"):
             continue
         for t_file in files:
-            if t_file.endswith(".wdl") or t_file.endswith(".cwl"):
+            if t_file.endswith(".wdl"): # or t_file.endswith(".cwl"):
                 base = os.path.basename(t_file)
                 (fname, ext) = os.path.splitext(base)
             elif t_file.endswith(".cwl.json"):
