@@ -623,8 +623,9 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
 
     val aaDxName = WdlDxName.fromSourceName("t1.testStructOut.aa")
     val bbDxName = WdlDxName.fromSourceName("t1.testStructOut.bb")
-    val aaFile = WdlValues.V_File("dx://file-xxx::/a")
-    val bbOptionalFile = WdlValues.V_Optional(WdlValues.V_File("dx://file-yyy::/b"))
+    val aaFile = WdlUtils.toIRValue(WdlValues.V_File("dx://file-xxx::/a"))
+    val bbOptionalFile =
+      WdlUtils.toIRValue(WdlValues.V_Optional(WdlValues.V_File("dx://file-yyy::/b")))
     val jobInputs = Map(
         aaDxName -> (Type.TFile, aaFile),
         bbDxName -> (Type.TOptional(Type.TFile), bbOptionalFile)
