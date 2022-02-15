@@ -983,7 +983,7 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths,
                                                 stderrMode = StdMode.Forward)
       if (!successCodes.forall(_.contains(rc))) {
         throw new Exception(s"""job script function ${name} exited with permanent fail code ${rc}
-                               |----- stderr-----:
+                               |----- stderr of subprocess (repeats last 10 lines) -----:
                                |${truncateStd(stderr)}
                                |""".stripMargin)
       }
@@ -1015,7 +1015,11 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths,
   private def truncateStd(stdString: Option[String]): String = {
     stdString match {
       case Some(stdString) =>
-        val lastLines = stdString.split("\n").takeRight(stdLimit("lines")).mkString("\n")
+        val lastLines = stdString
+          .split("\n")
+          .filterNot(_.startsWith("+")) // some stderr capture parts of the executing bash script. They start with "+"
+          .takeRight(stdLimit("lines"))
+          .mkString("\n")
         lastLines.takeRight(Math.min(lastLines.length(), stdLimit("chars")))
       case None => ""
     }
