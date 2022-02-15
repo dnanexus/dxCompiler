@@ -621,14 +621,18 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
       case _                        => throw new Exception("expected WdlWorkflowSupport")
     }
 
-    val wdlFile = WdlValues.V_File("dx://file-xxx::/a")
-    val wdlOptionalFile = WdlValues.V_Optional(WdlValues.V_File("dx://file-yyy::/b"))
+    val aaDxName = WdlDxName.fromSourceName("t1.testStructOut.aa")
+    val bbDxName = WdlDxName.fromSourceName("t1.testStructOut.bb")
+    val aaFile = WdlValues.V_File("dx://file-xxx::/a")
+    val bbOptionalFile = WdlValues.V_Optional(WdlValues.V_File("dx://file-yyy::/b"))
     jobInputs = Map(
-      WdlDxName.fromSourceName("t1.testStructOut.aa") -> (Type.TFile, wdlFile),
-      WdlDxName.fromSourceName("t1.testStructOut.bb") -> (Type.TOptional(Type.TFile), wdlOptionalFile)
+      aaDxName -> (Type.TFile, aaFile),
+      bbDxName -> (Type.TOptional(Type.TFile), bbOptionalFile)
     )
     val blockContext = wdlWorkflowSupport.evaluateBlockInputs(jobInputs)
 
     // TODO assert block context has right contents
+    print(blockContext.wdlEnv.get(aaDxName))
+    print(blockContext.wdlEnv.get(bbDxName))
   }
 }

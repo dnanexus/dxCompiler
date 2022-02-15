@@ -61,4 +61,5 @@ jobs:
           # run unit tests
           cd ${GITHUB_WORKSPACE}
           pwd
-          sbt version && sbt compile && sbt "testOnly -- -l prod"
+          # TODO revert
+          sbt version && sbt compile && sbt "testOnly -- -z APPS-1052"
