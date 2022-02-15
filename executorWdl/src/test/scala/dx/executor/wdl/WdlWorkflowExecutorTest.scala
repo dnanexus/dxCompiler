@@ -626,8 +626,8 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
     val aaFile = WdlValues.V_File("dx://file-xxx::/a")
     val bbOptionalFile = WdlValues.V_Optional(WdlValues.V_File("dx://file-yyy::/b"))
     jobInputs = Map(
-      aaDxName -> (Type.TFile, aaFile),
-      bbDxName -> (Type.TOptional(Type.TFile), bbOptionalFile)
+        aaDxName -> (Type.TFile, aaFile),
+        bbDxName -> (Type.TOptional(Type.TFile), bbOptionalFile)
     )
     val blockContext = wdlWorkflowSupport.evaluateBlockInputs(jobInputs)
 
