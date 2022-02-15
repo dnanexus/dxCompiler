@@ -611,7 +611,7 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
     getComplexScatterName(Vector.empty, 4) shouldBe ""
   }
 
-  it should "include optional block inputs APPS-1052" in {
+  it should "include optional block inputs 09Q83LAKSJDFAO9NC" in {
     val path = pathFromBasename("bugs", "apps1052_optional_block_inputs_wdl10.wdl")
     val workerPaths = setup()
     // TODO which block paths? stage = 2
@@ -625,7 +625,7 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
     val bbDxName = WdlDxName.fromSourceName("t1.testStructOut.bb")
     val aaFile = WdlValues.V_File("dx://file-xxx::/a")
     val bbOptionalFile = WdlValues.V_Optional(WdlValues.V_File("dx://file-yyy::/b"))
-    jobInputs = Map(
+    val jobInputs = Map(
         aaDxName -> (Type.TFile, aaFile),
         bbDxName -> (Type.TOptional(Type.TFile), bbOptionalFile)
     )

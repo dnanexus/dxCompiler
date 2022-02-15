@@ -62,4 +62,4 @@ jobs:
           cd ${GITHUB_WORKSPACE}
           pwd
           # TODO revert
-          sbt version && sbt compile && sbt "testOnly -- -z APPS-1052"
+          sbt version && sbt compile && sbt "testOnly -- -z 09Q83LAKSJDFAO9NC"
