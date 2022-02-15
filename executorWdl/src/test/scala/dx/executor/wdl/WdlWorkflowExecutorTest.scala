@@ -612,9 +612,8 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
   }
 
   it should "include optional block inputs 09Q83LAKSJDFAO9NC" in {
-    val path = pathFromBasename("bugs", "apps1052_optional_block_inputs_wdl10.wdl")
+    val path = pathFromBasename("bugs", "apps1052_optional_block_inputs.wdl")
     val workerPaths = setup()
-    // TODO which block paths? stage = 2
     val wfExecutor = createWorkflowExecutor(workerPaths, path)
     val wdlWorkflowSupport = wfExecutor match {
       case exe: WdlWorkflowExecutor => exe
@@ -622,13 +621,12 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
     }
 
     val aaFile = WdlUtils.toIRValue(WdlValues.V_File("dx://file-xxx::/a"))
-    val bbOptionalFile =
-      WdlUtils.toIRValue(WdlValues.V_Optional(WdlValues.V_File("dx://file-yyy::/b")))
+    val bbFile = WdlUtils.toIRValue(WdlValues.V_File("dx://file-yyy::/b"))
     val blockContext = wdlWorkflowSupport.evaluateBlockInputs(
-      Map(
-        WdlDxName.fromSourceName("aa") -> (Type.TFile, aaFile),
-        WdlDxName.fromSourceName("bb") -> (Type.TOptional(Type.TFile), bbOptionalFile)
-      )
+        Map(
+            WdlDxName.fromSourceName("aa") -> (Type.TFile, aaFile),
+            WdlDxName.fromSourceName("bb") -> (Type.TOptional(Type.TFile), bbFile)
+        )
     )
 
     // TODO assert block context has right contents
