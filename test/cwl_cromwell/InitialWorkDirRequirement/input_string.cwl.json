@@ -15,6 +15,9 @@
                     "dockerPull": "python:3.5.0"
                 },
                 {
+                    "class": "InlineJavascriptRequirement"
+                },
+                {
                     "class": "InitialWorkDirRequirement",
                     "listing": [
                         {
