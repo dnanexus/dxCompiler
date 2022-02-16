@@ -7,16 +7,17 @@ name := "dxc"
 ThisBuild / organization := "com.dnanexus"
 ThisBuild / scalaVersion := "2.13.7"
 ThisBuild / developers := List(
-    Developer("jdidion", "jdidion", "jdidion@dnanexus.com", url("https://github.com/dnanexus")),
     Developer("commandlinegirl",
-              "commandlinegirl",
+              "Ola Zalcman",
               "azalcman@dnanexus.com",
               url("https://github.com/dnanexus")),
-    Developer("mhrvol", "mhrvol", "mhrvol-cf@dnanexus.com", url("https://github.com/dnanexus")),
+    Developer("Gvaihir", "Gvaihir", "", url("https://github.com/dnanexus")),
+    Developer("mhrvol", "Marek Hrvol", "mhrvol-cf@dnanexus.com", url("https://github.com/dnanexus")),
     Developer("r-i-v-a",
               "Riva Nathans",
-              "rnathans-cf@dnanexus.com",
-              url("https://github.com/dnanexus"))
+              "rnathans@dnanexus.com",
+              url("https://github.com/dnanexus")),
+    Developer("YuxinShi0423", "Yuxin Shi", "yshi@dnanexus.com", url("https://github.com/dnanexus")),
 )
 ThisBuild / homepage := Some(url("https://github.com/dnanexus/dxCompiler"))
 ThisBuild / scmInfo := Some(
