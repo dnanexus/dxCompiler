@@ -489,11 +489,10 @@ cwl_cromwell_tests_list = [
     "cwl_dynamic_initial_workdir",
     "cwl_expressionLib",
     "cwl_format",
-    # "cwl_format_url", # APPS-961 Could not load extension schema https
+    # "cwl_format_url", # PTFM-30630 Job failed with network is unreachable error
     "cwl_glob_sort",
     "cwl_hello",
-    # "cwl_http_inputs", # APPS-961 HTTPS input link is not supported:
-    #                     Error translating inputs: java.lang.RuntimeException: Unsupported file source .png
+    # "cwl_http_inputs", # Ignored HTTPS input link is not supported:
     "test_wf",
     "touch",
     "test_pack",
@@ -506,10 +505,9 @@ cwl_cromwell_tests_list = [
     "prefix_for_array",
     # "cwl_recursive_link_directories",
     "cwl_relative_imports",
-    # "cwl_disk_resources", # APPS-961 Could not resolve host: metadata.google.internal
-    #                       # Unknown hint https://www.dnanexus.com/cwl#InputResourceRequirement (Should be deprecated)
+    # "cwl_disk_resources", # Ignored since we don't have support for GCP
     "cwl_inputdir_zero_doesnt_localize",
-    # "cwl_resources", # APPS-961 Could not resolve host: metadata.google.internal
+    # "cwl_resources", # Ignored since we don't have support for GCP
     "cwl_restart", 
     "1st-tool",
     "cwl_secondary_files",
@@ -517,8 +515,7 @@ cwl_cromwell_tests_list = [
     "cwl_stdout_expression",
     "scatter-wf1", 
     "cwl_three_step",
-    # "cwl_three_step_caller_wf" # APPS-834 AppInternalError: workflow does not contain a tool
-    #                              (raised from calling cwl_three_step)
+    # "cwl_three_step_caller_wf" # APPS-832 Specify full path to target step
 ]
 
 # these are tests that take a long time to run
