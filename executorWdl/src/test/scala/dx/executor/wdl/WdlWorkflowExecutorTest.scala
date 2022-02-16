@@ -210,7 +210,7 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
     val env = Map.empty[DxName, (WdlTypes.T, WdlValues.V)]
     val results: Map[DxName, (WdlTypes.T, WdlValues.V)] = wfExecutor match {
       case exe: WdlWorkflowExecutor => exe.evaluateWorkflowElementVariables(block.elements, env)
-      case _                        => throw new Exception("expected WdlWorkflowExecutor")
+      case _                        => throw new Exception("expected WdlWorkflowSupport")
     }
     results.keys.map(_.decoded) should be(Set("names", "full_name"))
     results should be(
@@ -253,7 +253,7 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
     val env = Map.empty[DxName, (WdlTypes.T, WdlValues.V)]
     val results: Map[DxName, (WdlTypes.T, WdlValues.V)] = wfExecutor match {
       case exe: WdlWorkflowExecutor => exe.evaluateWorkflowElementVariables(block.elements, env)
-      case _                        => throw new Exception("expected WdlWorkflowExecutor")
+      case _                        => throw new Exception("expected WdlWorkflowSupport")
     }
     results should be(
         Map(
@@ -280,7 +280,7 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
       case exe: WdlWorkflowExecutor =>
         exe.evaluateWorkflowElementVariables(block.elements,
                                              Map.empty[DxName, (WdlTypes.T, WdlValues.V)])
-      case _ => throw new Exception("expected WdlWorkflowExecutor")
+      case _ => throw new Exception("expected WdlWorkflowSupport")
     }
     results should be(
         Map(
@@ -309,7 +309,7 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
     val wfExecutor = createWorkflowExecutor(workerPaths, path, Vector(2, 0))
     val wdlWorkflowSupport = wfExecutor match {
       case exe: WdlWorkflowExecutor => exe
-      case _                        => throw new Exception("expected WdlWorkflowExecutor")
+      case _                        => throw new Exception("expected WdlWorkflowSupport")
     }
     val wdlX = WdlValues.V_Array(Vector(WdlValues.V_String("x"), WdlValues.V_String("y")))
     val irX = WdlUtils.toIRValue(wdlX)
@@ -332,7 +332,7 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
     val wfExecutor = createWorkflowExecutor(workerPaths, path)
     val wdlWorkflowSupport = wfExecutor match {
       case exe: WdlWorkflowExecutor => exe
-      case _                        => throw new Exception("expected WdlWorkflowExecutor")
+      case _                        => throw new Exception("expected WdlWorkflowSupport")
     }
     // Make sure an exception is thrown if eval-expressions is called with
     // a wdl-call.
@@ -358,7 +358,7 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
       case exe: WdlWorkflowExecutor =>
         exe.evaluateWorkflowElementVariables(subBlocks(0).elements,
                                              Map.empty[DxName, (WdlTypes.T, WdlValues.V)])
-      case _ => throw new Exception("expected WdlWorkflowExecutor")
+      case _ => throw new Exception("expected WdlWorkflowSupport")
     }
     results.keys.map(_.decoded) should be(Set("powers10", "i1", "i2", "i3"))
     results(WdlDxName.fromSourceName("i1")) should be(
@@ -416,7 +416,7 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
     val call1 = findCallByName("MaybeInt", wf.body)
     val wfSupport = wfExecutor match {
       case exe: WdlWorkflowExecutor => exe
-      case _                        => throw new Exception("expected WdlWorkflowExecutor")
+      case _                        => throw new Exception("expected WdlWorkflowSupport")
     }
     val callInputs1: Map[DxName, (WdlTypes.T, WdlValues.V)] =
       wfSupport.WdlBlockContext.evaluateCallInputs(
@@ -497,7 +497,7 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
     val zincCall = findCallByName("zincWithNoParams", wf.body)
     val wfSupport = wfExecutor match {
       case exe: WdlWorkflowExecutor => exe
-      case _                        => throw new Exception("expected WdlWorkflowExecutor")
+      case _                        => throw new Exception("expected WdlWorkflowSupport")
     }
     val args = wfSupport.WdlBlockContext.evaluateCallInputs(zincCall, Map.empty)
     args shouldBe Map.empty // ("a" -> (WdlTypes.T_Int, WdlValues.V_Int(3)))
@@ -515,7 +515,7 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
     val wfExecutor = createWorkflowExecutor(workerPaths, path)
     val wfSupport = wfExecutor match {
       case exe: WdlWorkflowExecutor => exe
-      case _                        => throw new Exception("expected WdlWorkflowExecutor")
+      case _                        => throw new Exception("expected WdlWorkflowSupport")
     }
     val results =
       wfSupport.evaluateWorkflowElementVariables(subBlocks(0).elements,
@@ -609,28 +609,5 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
     getComplexScatterName(Vector("A", "B", "hel", "nope"), 10) shouldBe "A,B,hel,..."
     getComplexScatterName(Vector("A", "B", "C", "D", "neverland"), 17) shouldBe "A,B,C,D,neverland"
     getComplexScatterName(Vector.empty, 4) shouldBe ""
-  }
-
-  it should "include optional block inputs 09Q83LAKSJDFAO9NC" in {
-    val path = pathFromBasename("bugs", "apps1052_optional_block_inputs.wdl")
-    val workerPaths = setup()
-    val wfExecutor = createWorkflowExecutor(workerPaths, path)
-    val wdlWorkflowSupport = wfExecutor match {
-      case exe: WdlWorkflowExecutor => exe
-      case _                        => throw new Exception("expected WdlWorkflowExecutor")
-    }
-
-    val aaFile = WdlUtils.toIRValue(WdlValues.V_File("dx://file-xxx::/a"))
-    val bbFile = WdlUtils.toIRValue(WdlValues.V_File("dx://file-yyy::/b"))
-    val blockContext = wdlWorkflowSupport.evaluateBlockInputs(
-        Map(
-            WdlDxName.fromSourceName("aa") -> (Type.TFile, aaFile),
-            WdlDxName.fromSourceName("bb") -> (Type.TOptional(Type.TFile), bbFile)
-        )
-    )
-
-    // TODO assert block context has right contents
-    // TODO expose inputEnv or wdlEnv of WdlBlockContext for testing?
-    print(blockContext.getInputEnv)
   }
 }
