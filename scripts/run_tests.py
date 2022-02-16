@@ -492,22 +492,22 @@ cwl_cromwell_tests_list = [
     # "cwl_format_url", # PTFM-30630 Job failed with network is unreachable error
     "cwl_glob_sort",
     "cwl_hello",
-    # "cwl_http_inputs", # Ignored HTTPS input link is not supported:
+    # "cwl_http_inputs", # Ignored: HTTPS input link is not supported
     "test_wf",
     "touch",
     "test_pack",
     "cwl_input_binding_expression",
-    # "cwl_input_json", # APPS-1008: Error translating to IR, downcasting failed
+    # "cwl_input_json", # APPS-1104
     "cwl_input_typearray",
     "cwl_interpolated_strings",
     "cwl_optionals",
     "cwl_output_json",
     "prefix_for_array",
-    # "cwl_recursive_link_directories",
+    # "cwl_recursive_link_directories", # Ignored: Invalid test for cwltool
     "cwl_relative_imports",
-    # "cwl_disk_resources", # Ignored since we don't have support for GCP
+    # "cwl_disk_resources", # Ignored: No support for GCP
     "cwl_inputdir_zero_doesnt_localize",
-    # "cwl_resources", # Ignored since we don't have support for GCP
+    # "cwl_resources", # Ignored: No support for GCP
     "cwl_restart", 
     "1st-tool",
     "cwl_secondary_files",
