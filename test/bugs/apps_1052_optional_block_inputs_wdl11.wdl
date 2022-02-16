@@ -32,9 +32,7 @@ workflow apps_1052_optional_block_inputs_wdl11 {
 	File? cc = t1.testStructOut.cc # T to T?
 	File? dd = t1.testStructOut.dd # null to T?
 	output {
-		File aa_out = aa
-		File? bb_out = bb
-		File? cc_out = cc
-		File? dd_out = dd
+		# Expect 3 files to exist
+		Int filesCount = length(select_all([aa, bb, cc, dd]))
 	}
 }
