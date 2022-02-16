@@ -11,7 +11,7 @@ ThisBuild / developers := List(
               "Ola Zalcman",
               "azalcman@dnanexus.com",
               url("https://github.com/dnanexus")),
-    Developer("Gvaihir", "Gvaihir", "", url("https://github.com/dnanexus")),
+    Developer("Gvaihir", "Gvaihir", "aogrodnikov@dnanexus.com", url("https://github.com/dnanexus")),
     Developer("mhrvol", "Marek Hrvol", "mhrvol-cf@dnanexus.com", url("https://github.com/dnanexus")),
     Developer("r-i-v-a",
               "Riva Nathans",
