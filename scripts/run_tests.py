@@ -489,7 +489,7 @@ cwl_cromwell_tests_list = [
     "cwl_dynamic_initial_workdir",
     "cwl_expressionLib",
     "cwl_format",
-    "cwl_format_url", # APPS-1111
+    # "cwl_format_url", # APPS-1111 Network access hint is not recognized by dxCompiler
     "cwl_glob_sort",
     "cwl_hello",
     # "cwl_http_inputs", # Ignored: HTTPS input link is not supported

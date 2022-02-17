@@ -14,14 +14,10 @@
             "class": "CommandLineTool",
             "requirements": [
                 {
-                    "class": "NetworkAccess",
-                    "networkAccess": true
-                },
-                {
                     "class": "InlineJavascriptRequirement"
                 }
             ],
-            "cwlVersion": "v1.2",
+            "cwlVersion": "v1.0",
             "inputs": [
                 {
                     "id": "reference",
@@ -49,6 +45,9 @@
             ],
             "stdout": "stdout",
             "hints": {
+                "NetworkAccess": {
+                    "networkAccess": true
+                },
                 "LoadListingRequirement": {
                     "loadListing": "deep_listing"
                 }
