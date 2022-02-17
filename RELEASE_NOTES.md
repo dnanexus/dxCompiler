@@ -2,6 +2,8 @@
 
 ## in develop
 
+* Fixes a bug where inputs to a WDL block were being ignored if they were Optional
+
 ## 2.9.0 2022-02-08
 
 * Command file is now echoed to stderr rather than stdout
