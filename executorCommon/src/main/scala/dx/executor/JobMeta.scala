@@ -977,14 +977,14 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths,
     val command = s"bash -c 'source ${codeFile} && ${name}'"
     logger.trace(s"Running job script function ${name}")
     if (forwardStd) {
-      val (rc, _, stderr) = SysUtils.runCommand(command,
-                                                exceptionOnFailure = false,
-                                                stdoutMode = StdMode.Forward,
-                                                stderrMode = StdMode.Forward)
+      val (rc, _, _) = SysUtils.runCommand(command,
+                                           exceptionOnFailure = false,
+                                           stdoutMode = StdMode.Forward,
+                                           stderrMode = StdMode.Forward)
       if (!successCodes.forall(_.contains(rc))) {
+        val subprocessStderr = FileUtils.readFileContent(workerPaths.getStderrFile().asJavaPath)
         throw new Exception(s"""job script function ${name} exited with permanent fail code ${rc}
-                               |----- stderr of subprocess (repeats last 10 lines) -----:
-                               |${truncateStd(stderr)}
+                               |${truncateStd(subprocessStderr)}
                                |""".stripMargin)
       }
     } else {
@@ -1012,17 +1012,13 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths,
     }
   }
 
-  private def truncateStd(stdString: Option[String]): String = {
-    stdString match {
-      case Some(stdString) =>
-        val lastLines = stdString
-          .split("\n")
-          .filterNot(_.startsWith("+")) // some stderr capture parts of the executing bash script. They start with "+"
-          .takeRight(stdLimit("lines"))
-          .mkString("\n")
-        lastLines.takeRight(Math.min(lastLines.length(), stdLimit("chars")))
-      case None => ""
-    }
+  private def truncateStd(stdString: String): String = {
+    val lastLines = stdString
+      .split("\n")
+      .takeRight(stdLimit("lines"))
+      .mkString("\n")
+    lastLines.takeRight(Math.min(lastLines.length(), stdLimit("chars")))
+
   }
 
   lazy override val rawJsInputs: Map[DxName, JsValue] = {
