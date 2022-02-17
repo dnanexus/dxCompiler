@@ -50,8 +50,9 @@
                 }
             ],
             "inputs": [],
-            "outputs": {
-                "fileoutput": {
+            "outputs": [
+                {
+                    "id": "fileoutput",
                     "type": {
                         "fields": [
                             {
@@ -63,7 +64,7 @@
                         "type": "record"
                     }
                 }
-            },
+            ],
             "arguments": [
                 {
                     "valueFrom": "echo foo > foo && echo '{ \"fileoutput\": { \"input_file\": {\"path\": \"$(runtime.outdir)/foo\", \"class\": \"File\"} } }' > cwl.output.json\n",
@@ -85,7 +86,7 @@
             "hints": [
                 {
                     "class": "DockerRequirement",
-                    "dockerPull": "stedolan/jq:latest"
+                    "dockerPull": "ubuntu:latest"
                 },
                 {
                     "class": "NetworkAccess",
@@ -128,7 +129,7 @@
                     "class": "InitialWorkDirRequirement",
                     "listing": [
                         {
-                            "entry": "$(JSON.stringify(inputs))",
+                            "entry": "$(JSON.stringify(inputs.input_record))",
                             "entryname": "cwl.inputs.json"
                         }
                     ]
@@ -136,7 +137,7 @@
             ],
             "arguments": [
                 {
-                    "valueFrom": "INPUT_FILE=\\$(cat cwl.inputs.json | jq -r '.. | .path? // empty') && ls $INPUT_FILE && echo \"{\\\"output_file\\\": {\\\"path\\\": \\\"\\$INPUT_FILE\\\", \\\"class\\\": \\\"File\\\"} }\" > cwl.output.json\n",
+                    "valueFrom": "sed 's/input_file/output_file/' cwl.inputs.json > cwl.output.json",
                     "shellQuote": false
                 }
             ]
