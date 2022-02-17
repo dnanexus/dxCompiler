@@ -489,7 +489,7 @@ cwl_cromwell_tests_list = [
     "cwl_dynamic_initial_workdir",
     "cwl_expressionLib",
     "cwl_format",
-    # "cwl_format_url", # APPS-1111
+    "cwl_format_url", # APPS-1111
     "cwl_glob_sort",
     "cwl_hello",
     # "cwl_http_inputs", # Ignored: HTTPS input link is not supported
@@ -497,7 +497,7 @@ cwl_cromwell_tests_list = [
     "touch",
     "test_pack",
     "cwl_input_binding_expression",
-    # "cwl_input_json", # APPS-1104
+    "cwl_input_json",
     "cwl_input_typearray",
     "cwl_interpolated_strings",
     "cwl_optionals",
