@@ -195,18 +195,6 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
     value should be(WdlValues.V_Int(9))
   }
 
-  it should "fail at the internal python process and output subprocess error stack" in {
-    val workerPaths = setup()
-    val path = pathFromBasename("frag_runner", "python_task_fail.wdl")
-    val wdlBundle = parse(path)
-    val wf: TAT.Workflow = wdlBundle.primaryCallable match {
-      case Some(wf: TAT.Workflow) => wf
-      case _                      => throw new Exception("unexpected")
-    }
-    workerPaths should be
-    wf should be(None)
-  }
-
   it should "evaluate a scatter without a call" in {
     val workerPaths = setup()
     val path = pathFromBasename("frag_runner", "scatter_no_call.wdl")
