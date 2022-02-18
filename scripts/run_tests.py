@@ -1414,7 +1414,6 @@ def run_test_subset(
         test_desc = test_files[tname]
         try:
             exec_outputs = extract_outputs(tname, exec_desc)
-            print(f"EXTRACTED {str(exec_outputs)}")
         except Exception:
             if (
                 tname in expected_failure
