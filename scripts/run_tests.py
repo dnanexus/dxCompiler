@@ -1414,6 +1414,7 @@ def run_test_subset(
         test_desc = test_files[tname]
         try:
             exec_outputs = extract_outputs(tname, exec_desc)
+            print(f"EXTRACTED {str(exec_outputs)}")
         except Exception:
             if (
                 tname in expected_failure
@@ -1426,7 +1427,7 @@ def run_test_subset(
                 or "{}.{}".format(tname, i) in expected_failure_msg
             ):
                 print("Analysis {}.{} failed as expected. Checking error message".format(tname, i))
-                expected_error = read_json_file_maybe_empty(test_desc.results[i]).get("error", "")
+                expected_error = read_json_file_maybe_empty(test_desc.results[i]).get("error")
                 if expected_error == exec_desc.get("failureMessage"):
                     return None
                 else:
