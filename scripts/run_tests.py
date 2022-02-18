@@ -36,6 +36,12 @@ test_run_failing = {
     "null-expression2-tool.0",
 }
 
+# these tests are expected to fail at runtime AND throw a specific error message which will be checked
+expected_failure_msg = {
+    "python_task_fail",
+    "python_task_fail_docker"
+}
+
 # these tests are expected to fail at runtime
 expected_failure = {
     "bad_status",
@@ -77,7 +83,7 @@ expected_failure = {
     "record-in-secondaryFiles-missing-wf",
     "null-expression2-tool.1",
     "timelimit-wf",
-    "timelimit4-wf",
+    "timelimit4-wf"
 }
 
 wdl_v1_list = [
@@ -1314,6 +1320,9 @@ def wait_for_completion(test_exec_objs):
             ):
                 print("Analysis {}.{} failed as expected".format(desc.name, i))
                 successes.append((i, exec_obj, False))
+            elif tname in expected_failure_msg:
+                print("Analysis {}.{} failed as expected. Analyzing the error message".format(desc.name, i))
+                successes.append((i, exec_obj, True))
             else:
                 cprint("Error: analysis {}.{} failed".format(desc.name, i), "red")
                 failures.append((tname, exec_obj))
@@ -1412,6 +1421,22 @@ def run_test_subset(
             ):
                 print("Analysis {}.{} failed as expected".format(tname, i))
                 return None
+            elif (
+                tname in expected_failure_msg
+                or "{}.{}".format(tname, i) in expected_failure_msg
+            ):
+                print("Analysis {}.{} failed as expected. Checking error message".format(tname, i))
+                expected_error = read_json_file_maybe_empty(test_desc.results[i]).get("error", "")
+                if expected_error == exec_desc.get("failureMessage"):
+                    return None
+                else:
+                    cprint(
+                        "Error: analysis {}.{} results are invalid.\nExpected {}.\nReceived{}".format(
+                            test_desc.name, i, expected_error, exec_desc.get("failureMessage")
+                        ),
+                        "red",
+                    )
+                    return tname
             else:
                 raise
         if len(test_desc.results) > i:
