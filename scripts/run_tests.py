@@ -833,7 +833,7 @@ def compare_result_file(result, expected_val, field_name, tname, project, verbos
     expected_basename = expected_val.get(
         "basename", os.path.basename(expected_location) if expected_location else None
     )
-    if expected_basename:
+    if expected_basename and expected_basename != "Any":
         basename = os.path.basename(location) if location else None
         if basename != expected_basename:
             if verbose:
@@ -974,7 +974,7 @@ def compare_result_directory(
     expected_basename = expected_val.get(
         "basename", os.path.basename(expected_location) if expected_location else None
     )
-    if expected_basename:
+    if expected_basename and expected_basename != "Any":
         if basename != expected_basename:
             if verbose:
                 cprint("Analysis {} gave unexpected results".format(tname), "red")
