@@ -1,45 +1,53 @@
 {
   "class": "Workflow",
   "cwlVersion": "v1.2",
-  "id": "#main",
+  "id": "any-type-compat",
   "inputs": [
     {
-      "id": "#main/input1",
+      "id": "input1",
       "type": "Any"
     },
     {
-      "id": "#main/input2",
+      "id": "input2",
       "type": {
         "items": "Any",
         "type": "array"
       }
     },
     {
-      "id": "#main/input3",
+      "id": "input3",
       "type": "Any"
     }
   ],
   "outputs": [
     {
-      "id": "#main/output1",
-      "outputSource": "#main/input1",
+      "id": "output1",
+      "outputSource": "input1",
       "type": {
         "items": "string",
         "type": "array"
       }
     },
     {
-      "id": "#main/output2",
-      "outputSource": "#main/input2",
+      "id": "output2",
+      "outputSource": "input2",
       "type": {
         "items": "string",
         "type": "array"
       }
     },
     {
-      "id": "#main/output3",
-      "outputSource": "#main/input3",
+      "id": "output3",
+      "outputSource": "input3",
       "type": "string"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "SubworkflowFeatureRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ],
   "steps": []

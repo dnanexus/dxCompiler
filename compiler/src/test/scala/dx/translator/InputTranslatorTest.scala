@@ -304,6 +304,18 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
     retval shouldBe a[SuccessfulCompileIR]
   }
 
+  it should "translate cwl inputs for packed file with two tools" in {
+    val cwlCode = pathFromBasename("input_file", "echo-tool-packed.cwl.json")
+    val inputs = pathFromBasename("input_file", "echo-tool-packed_input.json")
+    val args = List(cwlCode.toString, "--inputs", inputs.toString) ++ cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileIR]
+    val dxInputsFile = inputs.getParent.resolve(FileUtils.replaceFileSuffix(inputs, ".dx.json"))
+    val jsInputs = JsUtils.jsFromFile(dxInputsFile).asJsObject.fields
+    jsInputs.size shouldBe 2
+    jsInputs("in") shouldBe JsObject("___" -> JsString("hello test env"))
+  }
+
   it should "translate cwl file inputs" in {
     val cwlCode = pathFromBasename("input_file", "io-any-wf.cwl.json")
     val inputs = pathFromBasename("input_file", "io-any-wf_input3.json")
@@ -415,6 +427,20 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
             )
         )
     )
+  }
+
+  it should "translate cwl string input into enum" in {
+    val cwlCode = pathFromBasename("input_file", "enum-string.cwl.json")
+    val inputs = pathFromBasename("input_file", "enum-string_input.json")
+    val args = List(cwlCode.toString, "--inputs", inputs.toString) ++ cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileIR]
+
+    val dxInputsFile = inputs.getParent.resolve(FileUtils.replaceFileSuffix(inputs, ".dx.json"))
+    val jsInputs = JsUtils.jsFromFile(dxInputsFile)
+    val fields = jsInputs.asJsObject.fields
+    fields.size shouldBe 1
+    fields.keySet should contain("stage-common.example_in")
   }
 
   it should "translate cwl file with secondary files" in {

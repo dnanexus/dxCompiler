@@ -1,0 +1,37 @@
+{
+  "arguments": [
+    "python",
+    "$(inputs.script)"
+  ],
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "id": "cwloutput-nolimit",
+  "inputs": [
+    {
+      "default": {
+        "class": "File",
+        "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G0G3GvQ0yzZV5q4q3vkQJK4y"
+      },
+      "id": "script",
+      "type": "File"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "filelist",
+      "type": {
+        "items": "string",
+        "type": "array"
+      }
+    }
+  ],
+  "requirements": [
+    {
+      "class": "DockerRequirement",
+      "dockerPull": "python:3-slim"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ]
+}

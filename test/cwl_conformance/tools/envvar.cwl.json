@@ -30,12 +30,15 @@
   ],
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
+  "id": "envvar",
   "inputs": [],
   "outputs": [],
   "requirements": [
     {
       "class": "ShellCommandRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ]
 }

@@ -4,36 +4,35 @@
     "foaf": "http://xmlns.com/foaf/0.1/"
   },
   "$schemas": [
-    "file:///Users/jdidion/projects/dxCompiler/test/cwl_conformance/tools/dcterms.rdf",
-    "file:///Users/jdidion/projects/dxCompiler/test/cwl_conformance/tools/foaf.rdf"
+    "foaf.rdf",
+    "dcterms.rdf"
   ],
   "baseCommand": "cat",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
+  "dct:creator": {
+    "class": "foaf:Person",
+    "foaf:mbox": "mailto:peter.amstutz@curoverse.com",
+    "foaf:name": "Peter Amstutz",
+    "id": "http://orcid.org/0000-0003-3566-7705"
+  },
   "doc": "Print the contents of a file to stdout using 'cat' running in a docker container.",
-  "hints": [
-    {
-      "class": "DockerRequirement",
+  "hints": {
+    "DockerRequirement": {
       "dockerPull": "debian:stretch-slim"
     }
-  ],
-  "http://purl.org/dc/terms/creator": {
-    "class": "http://xmlns.com/foaf/0.1/Person",
-    "http://xmlns.com/foaf/0.1/mbox": "mailto:peter.amstutz@curoverse.com",
-    "http://xmlns.com/foaf/0.1/name": "Peter Amstutz",
-    "id": "#0000-0003-3566-7705"
   },
-  "id": "#main",
+  "id": "metadata",
   "inputs": [
     {
-      "id": "#main/file1",
+      "id": "file1",
       "inputBinding": {
         "position": 1
       },
       "type": "File"
     },
     {
-      "id": "#main/numbering",
+      "id": "numbering",
       "inputBinding": {
         "position": 0,
         "prefix": "-n"
@@ -44,5 +43,10 @@
       ]
     }
   ],
-  "outputs": []
+  "outputs": [],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ]
 }

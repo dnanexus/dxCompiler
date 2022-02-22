@@ -2,20 +2,20 @@
   "baseCommand": "true",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
+  "id": "rename",
   "inputs": [
     {
-      "id": "#main/newname",
-      "type": "string"
+      "id": "srcfile",
+      "type": "File"
     },
     {
-      "id": "#main/srcfile",
-      "type": "File"
+      "id": "newname",
+      "type": "string"
     }
   ],
   "outputs": [
     {
-      "id": "#main/outfile",
+      "id": "outfile",
       "outputBinding": {
         "glob": "$(inputs.newname)"
       },
@@ -31,6 +31,9 @@
           "entryname": "$(inputs.newname)"
         }
       ]
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ]
 }

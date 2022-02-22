@@ -2,20 +2,26 @@
 ![](https://github.com/dnanexus/dxCompiler/workflows/WDL%20Integration%20Tests/badge.svg)
 
 dxCompiler takes a pipeline written in the
-[Workflow Description Language (WDL)](http://www.openwdl.org/) or [Common Workflow Language](https://www.commonwl.org/v1.2) and compiles it to an equivalent workflow on the DNAnexus platform. WDL draft-2 and versions 1.0 and 1.1 are fully supported. Support for WDL 2.0 (aka 'development') and CWL 1.2 are under active development and not yet production-ready.
+[Workflow Description Language (WDL)](http://www.openwdl.org/) or [Common Workflow Language](https://www.commonwl.org/v1.2) and compiles it to an equivalent workflow on the DNAnexus platform. WDL draft-2, 1.0, and 1.1, and CWL 1.2 are fully supported. Support for WDL 2.0 (aka 'development') is under active development and not yet production-ready.
 
 ## Setup
 
-Prerequisites:
 * [DNAnexus platform](https://platform.dnanexus.com) account
 * [dx-toolkit](https://documentation.dnanexus.com/downloads)
+  * Log in using `dx login`
+  * It is recommended to pre-select the project where you want to your compiled workflows to go using `dx select`
 * Java 8 or 11
-* python 3.x
-* [docker](https://docs.docker.com/get-docker/) if you want to invoke dxCompiler with the [run-dxcompiler-docker](https://github.com/dnanexus/dxCompiler/blob/main/scripts/compiler_image/run-dxcompiler-docker) script using a public `dnanexus/dxcompiler` docker container.
+* The latest dxCompiler JAR file from the [releases](https://github.com/dnanexus/dxCompiler/releases) page.
+* To compile CWL tools/workflows, you'll also need:
+  * [sbpack](https://github.com/rabix/sbpack) - install from master, e.g. `pip install https://github.com/rabix/sbpack.git`
+  * [cwl-utils](https://github.com/common-workflow-language/cwl-utils)
+* [docker](https://docs.docker.com/get-docker/), if you want to invoke dxCompiler with the [run-dxcompiler-docker](https://github.com/dnanexus/dxCompiler/blob/main/scripts/compiler_image/run-dxcompiler-docker) script using a public `dnanexus/dxcompiler` docker container.
 
-Make sure you've installed the dx-toolkit CLI, and initialized it with `dx login`. Download the latest compiler jar file from the [releases](https://github.com/dnanexus/dxCompiler/releases) page.
+To run the dxCompiler integration tests, you will also need to install Python 3.x.
 
-## Example workflow
+## WDL
+
+### Example workflow
 
 The `bam_chrom_counter` workflow is written in WDL. Task `slice_bam` splits a bam file into an array of sub-files. Task
 `count_bam` counts the number of alignments on a bam file. The workflow takes an input bam file, calls `slice_bam` to split it into chromosomes, and calls `count_bam` in parallel on each chromosome. The results comprise a bam index file, and an array with the number of reads per chromosome.
@@ -102,24 +108,35 @@ The compiled workflow can be executed via the DNAnexus command line client or we
 
 ![this](doc/bam_chrom_counter.png)
 
-## Strict syntax
+### Strict syntax
 
 dxCompiler uses [wdlTools](https://github.com/dnanexus/wdlTools), a parser that adheres strictly to the WDL specifications. Most of the problematic automatic type conversions that are allowed by some other WDL runtime engines are not allowed by dxCompiler. Please use the command line tools in wdlTools (e.g. `check` and `lint`) to validate your WDL files before trying to compile them with dxCompiler.
+
+## CWL
+
+To compile a CWL workflow/tool, you will first need to process it using the following steps:
+
+1. Upgrade it to CWL 1.2 if it is not already: 
+    ```
+    $ cwl-upgrader my-workflow.cwl
+    ```
+2. Pack it:
+    ```
+    $ cwlpack --add-ids --json my-workflow.cwl > my-workflow.cwl.json
+    ```
+3. De-localize all local paths referenced in your CWL: if your CWL specifies a local path, e.g. a schema or a default value for a `file`-type input, you need to upload those files to a DNAnexus project and then replace the local path in your CWL with a DNAnexus URI, e.g. `dx://project-XXX:file-YYY`.
 
 ## Limitations
 
 * WDL and CWL
   * Calls with missing arguments have [limited support](doc/ExpertOptions.md#task-and-workflow-inputs).
   * All task and workflow names must be unique across the entire import tree
-    * For example, if `A.wdl` imports `B.wdl` and `A.wdl` defines workflow `foo`, then `B.wdl` could not have a workflow or task named `foo`
-  * The `Directory` type is only supported in stand-alone tasks, not yet in workflows
+  * For example, if `A.wdl` imports `B.wdl` and `A.wdl` defines workflow `foo`, then `B.wdl` could not have a workflow or task named `foo`
   * Subworkflows built from higher-level workflows are not intented to be used on their own.
 * WDL only
   * Workflows with forward references (i.e. a variable referenced before it is declared) are not yet supported.
   * The [alternative workflow output syntax](https://github.com/openwdl/wdl/blob/main/versions/draft-2/SPEC.md#outputs) that has been deprecated since WDL draft2 is not supported
-* CWL only
-  * Nested workflows (i.e. a workflow step calling another workflow) are not yet supported
-  * In-line processes in workflow steps must have explicit IDs
+  * The `call ... after` syntax introduced in WDL 1.1 is not yet supported
 
 ## Additional information
 

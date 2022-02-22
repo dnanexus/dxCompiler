@@ -9,18 +9,18 @@
             "inputBinding": {
                 "position": 1
             },
-            "id": "#main/file"
+            "id": "file"
         }
     ],
     "outputs": [
         {
             "type": "File",
-            "id": "#main/contents",
+            "id": "contents",
             "outputBinding": {
                 "glob": "output.txt"
             }
         }
     ],
-    "id": "#main",
-    "cwlVersion": "v1.2"
+    "cwlVersion": "v1.2",
+    "id": "cat"
 }

@@ -1,88 +1,89 @@
 {
-  "$graph": [
+  "class": "Workflow",
+  "cwlVersion": "v1.2",
+  "id": "count-lines7-wf",
+  "inputs": [
     {
-      "class": "Workflow",
-      "id": "#main",
-      "inputs": [
-        {
-          "id": "#main/file1",
-          "type": {
-            "items": "File",
-            "type": "array"
-          }
-        },
-        {
-          "id": "#main/file2",
-          "type": {
-            "items": "File",
-            "type": "array"
-          }
-        }
-      ],
-      "outputs": [
-        {
-          "id": "#main/count_output",
-          "outputSource": "#main/step1/output",
-          "type": "int"
-        }
-      ],
-      "requirements": [
-        {
-          "class": "MultipleInputFeatureRequirement"
-        }
-      ],
-      "steps": [
-        {
-          "id": "#main/step1",
-          "in": [
-            {
-              "id": "#main/step1/file1",
-              "linkMerge": "merge_flattened",
-              "source": [
-                "#main/file1",
-                "#main/file2"
-              ]
-            }
-          ],
-          "out": [
-            "#main/step1/output"
-          ],
-          "run": "#wc3-tool.cwl"
-        }
-      ]
+      "id": "file1",
+      "type": {
+        "items": "File",
+        "type": "array"
+      }
     },
     {
-      "baseCommand": "wc",
-      "class": "CommandLineTool",
-      "id": "#wc3-tool.cwl",
-      "inputs": [
-        {
-          "id": "#wc3-tool.cwl/file1",
-          "inputBinding": {},
-          "type": {
-            "items": "File",
-            "type": "array"
-          }
-        }
-      ],
-      "outputs": [
-        {
-          "id": "#wc3-tool.cwl/output",
-          "outputBinding": {
-            "glob": "output.txt",
-            "loadContents": true,
-            "outputEval": "${\n  var s = self[0].contents.split(/\\r?\\n/);\n  return parseInt(s[s.length-2]);\n}\n"
-          },
-          "type": "int"
-        }
-      ],
-      "requirements": [
-        {
-          "class": "InlineJavascriptRequirement"
-        }
-      ],
-      "stdout": "output.txt"
+      "id": "file2",
+      "type": {
+        "items": "File",
+        "type": "array"
+      }
     }
   ],
-  "cwlVersion": "v1.2"
+  "outputs": [
+    {
+      "id": "count_output",
+      "outputSource": "step1/output",
+      "type": "int"
+    }
+  ],
+  "requirements": [
+    {
+      "class": "MultipleInputFeatureRequirement"
+    },
+    {
+      "class": "SubworkflowFeatureRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step1",
+      "in": [
+        {
+          "id": "file1",
+          "linkMerge": "merge_flattened",
+          "source": [
+            "file1",
+            "file2"
+          ]
+        }
+      ],
+      "out": [
+        "output"
+      ],
+      "run": {
+        "baseCommand": "wc",
+        "class": "CommandLineTool",
+        "id": "wc3-tool.cwl",
+        "inputs": [
+          {
+            "id": "file1",
+            "inputBinding": {},
+            "type": {
+              "items": "File",
+              "type": "array"
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "id": "output",
+            "outputBinding": {
+              "glob": "output.txt",
+              "loadContents": true,
+              "outputEval": "${\n  var s = self[0].contents.split(/\\r?\\n/);\n  return parseInt(s[s.length-2]);\n}\n"
+            },
+            "type": "int"
+          }
+        ],
+        "requirements": [
+          {
+            "class": "InlineJavascriptRequirement"
+          }
+        ],
+        "stdout": "output.txt"
+      }
+    }
+  ]
 }

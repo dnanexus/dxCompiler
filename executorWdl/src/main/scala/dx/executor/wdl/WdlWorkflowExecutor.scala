@@ -22,7 +22,7 @@ import dx.core.languages.wdl.{
   WdlUtils
 }
 import dx.executor.{JobMeta, WorkflowExecutor}
-import dx.util.{DefaultBindings, FileNode, Logger, TraceLevel}
+import dx.util.{DefaultBindings, FileNode, TraceLevel}
 import spray.json.JsValue
 import wdlTools.eval.{Eval, EvalException, EvalUtils, WdlValueBindings}
 import wdlTools.eval.WdlValues._
@@ -52,8 +52,7 @@ object WdlWorkflowExecutor {
   }
 }
 
-// TODO: implement graph building from workflow - input and output parameters
-//  should be ordered in calls to InputOutput.*
+// TODO: implement graph building from workflow - input and output parameters should be ordered
 /**
   * Executor for WDL workflows.
   * @param docSource the FileNode from which the workflow source originated.
@@ -76,8 +75,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       jobMeta.workerPaths,
       Some(versionSupport.version),
       Vector.empty,
-      jobMeta.fileResolver,
-      Logger.Quiet
+      jobMeta.fileResolver
   )
 
   override val executorName: String = "dxExecutorWdl"
@@ -534,7 +532,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         if (env.contains(innerName)) {
           Some(env(innerName)._2)
         } else {
-          // TODO: use dxName.popDecodedIdentifier
+          // TODO: use dxName.popDecodedIdentifier instead of a regexp
           innerName.decoded match {
             case qualifiedNameRegexp(lhs, rhs) =>
               inner(WdlDxName.fromDecodedName(lhs)).map {
@@ -906,6 +904,12 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       case (accu, RequiredBlockInput(dxName, wdlType))
           if compoundNameRegexp.matches(dxName.decoded) =>
         // the input name is a compound reference - evaluate it as an identifier
+        val expr = versionSupport.parseExpression(dxName.decoded, DefaultBindings(accu.map {
+          case (dxName, (wdlType, _)) => dxName.decoded -> wdlType
+        }), docSource)
+        accu + (dxName -> (wdlType, evaluateExpression(expr, wdlType, accu)))
+      case (accu, OptionalBlockInput(dxName, wdlType))
+          if compoundNameRegexp.matches(dxName.decoded) =>
         val expr = versionSupport.parseExpression(dxName.decoded, DefaultBindings(accu.map {
           case (dxName, (wdlType, _)) => dxName.decoded -> wdlType
         }), docSource)

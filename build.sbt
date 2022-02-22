@@ -7,16 +7,17 @@ name := "dxc"
 ThisBuild / organization := "com.dnanexus"
 ThisBuild / scalaVersion := "2.13.7"
 ThisBuild / developers := List(
-    Developer("jdidion", "jdidion", "jdidion@dnanexus.com", url("https://github.com/dnanexus")),
     Developer("commandlinegirl",
-              "commandlinegirl",
+              "Ola Zalcman",
               "azalcman@dnanexus.com",
               url("https://github.com/dnanexus")),
-    Developer("mhrvol", "mhrvol", "mhrvol-cf@dnanexus.com", url("https://github.com/dnanexus")),
+    Developer("Gvaihir", "Gvaihir", "aogrodnikov@dnanexus.com", url("https://github.com/dnanexus")),
+    Developer("mhrvol", "Marek Hrvol", "mhrvol@dnanexus.com", url("https://github.com/dnanexus")),
     Developer("r-i-v-a",
               "Riva Nathans",
-              "rnathans-cf@dnanexus.com",
-              url("https://github.com/dnanexus"))
+              "rnathans@dnanexus.com",
+              url("https://github.com/dnanexus")),
+    Developer("YuxinShi0423", "Yuxin Shi", "yshi@dnanexus.com", url("https://github.com/dnanexus")),
 )
 ThisBuild / homepage := Some(url("https://github.com/dnanexus/dxCompiler"))
 ThisBuild / scmInfo := Some(
@@ -136,7 +137,7 @@ lazy val dependencies =
     val dxFileAccessProtocolsVersion = "0.5.3"
     val dxYamlVersion = "0.1.1"
     val wdlToolsVersion = "0.17.7"
-    val cwlScalaVersion = "0.7.4"
+    val cwlScalaVersion = "0.8.0"
     val typesafeVersion = "1.4.1"
     val sprayVersion = "1.3.6"
     val scalatestVersion = "3.2.9"

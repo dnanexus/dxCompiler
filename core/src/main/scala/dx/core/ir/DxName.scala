@@ -18,6 +18,21 @@ object DxName {
       }
       .getOrElse(a.size.compare(b.size))
   }
+
+  def lookup[T](key: DxName, map: Map[DxName, T]): Option[(DxName, T)] = {
+    // the key may be prefixed one or more namespaces - we start with the full name
+    // and remove the namespaces successively (left to right) until we find a match
+    key
+      .dropNamespaceIter()
+      .map { key =>
+        map.get(key).map(value => (key, value))
+      }
+      .find {
+        case Some(_) => true
+        case _       => false
+      }
+      .flatten
+  }
 }
 
 /**
@@ -51,6 +66,9 @@ abstract class DxName(private var encodedParts: Option[Vector[String]],
                       val stage: Option[String],
                       val suffix: Option[String])
     extends Ordered[DxName] {
+
+  protected def illegalDecodedSequencesRegex: Option[Regex] = None
+
   assert(
       encodedParts.isEmpty || decodedParts.isEmpty || encodedParts.get.size == decodedParts.get.size,
       s"""encoded and decoded parts are not the same size:
@@ -65,7 +83,6 @@ abstract class DxName(private var encodedParts: Option[Vector[String]],
       }
     }
   }
-  protected def illegalDecodedSequencesRegex: Option[Regex] = None
   decodedParts.foreach { d =>
     assert(d.nonEmpty, s"there must be at least one decoded part")
     d.zipWithIndex.foreach {
@@ -229,6 +246,10 @@ abstract class DxName(private var encodedParts: Option[Vector[String]],
     create(decodedParts = Some(Vector(ns) ++ getDecodedParts), stage = stage, suffix = suffix)
   }
 
+  def pushDecodedNamespaces(namespaces: Vector[String]): DxName = {
+    create(decodedParts = Some(namespaces ++ getDecodedParts), stage = stage, suffix = suffix)
+  }
+
   /**
     * Removes the first namespace part and returns it as a String along with the new name.
     * Throws an Exception if there are no namespace parts.
@@ -242,6 +263,14 @@ abstract class DxName(private var encodedParts: Option[Vector[String]],
                          stage = Option.when(keepStage)(stage).flatten,
                          suffix = suffix)
     (decoded.head, newName)
+  }
+
+  def dropNamespaceIter(keepStage: Boolean = false): Iterator[DxName] = {
+    Iterator.unfold[DxName, Option[DxName]](Some(this)) {
+      case Some(n) if n.numParts > 1 => Some((n, Some(n.popDecodedNamespace(keepStage)._2)))
+      case Some(n)                   => Some((n, None))
+      case _                         => None
+    }
   }
 
   /**

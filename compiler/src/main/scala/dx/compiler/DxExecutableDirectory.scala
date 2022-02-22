@@ -219,7 +219,7 @@ case class DxExecutableDirectory(bundle: Bundle,
     * Moves an executable into an archive directory. For example if the applet is /A/B/C/GLnexus,
     * moves it to /A/B/C/.archive/GLnexus {date}/GLnexus. The archived executable is tagged with
     * "dxCompilerArchived" so that it can be filtered out when searching for existing applets.
-    * TODO: need to update the execInfo in the directory
+    * TODO: update the execInfo in the directory
     * @param execInfo the object to archive
     */
   def archive(execInfo: DxExecutableInfo): Unit = {
@@ -248,7 +248,7 @@ case class DxExecutableDirectory(bundle: Bundle,
 
   /**
     * Remove executables from the project and update the directory.
-    * TODO: need to remove the execInfos in the directory
+    * TODO: remove the execInfos from the directory
     * @param execInfos the executables to remove
     */
   def remove(execInfos: Vector[DxExecutableInfo]): Unit = {

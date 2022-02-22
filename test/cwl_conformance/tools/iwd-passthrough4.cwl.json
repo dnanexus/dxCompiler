@@ -2,16 +2,16 @@
   "baseCommand": "true",
   "class": "CommandLineTool",
   "cwlVersion": "v1.2",
-  "id": "#main",
+  "id": "iwd-passthrough4",
   "inputs": [
     {
-      "id": "#main/filelist",
+      "id": "filelist",
       "type": "File"
     }
   ],
   "outputs": [
     {
-      "id": "#main/filelist",
+      "id": "filelist",
       "outputBinding": {
         "glob": "$(inputs.filelist.basename)"
       },
@@ -24,6 +24,9 @@
       "listing": [
         "$(inputs.filelist)"
       ]
+    },
+    {
+      "class": "InlineJavascriptRequirement"
     }
   ]
 }

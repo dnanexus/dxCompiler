@@ -40,6 +40,7 @@ object Constants {
   val FileDependencies = "fileDependencies"
   val NativeAppDependencies = "nativeAppDependencies"
   val DockerRegistryCredentialsUri = "dockerRegistryCredentialsUri"
+  val OriginalName = "originalName"
 
   // keys used in details of jobs of native applets
   val ContinueStart = "continue_start___"
