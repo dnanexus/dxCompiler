@@ -153,6 +153,7 @@ wdl_v1_list = [
     "subworkflow_with_task",
     "apps_700",
     "apps_864",
+    "apps_1052_optional_block_inputs_wdl10",
 ]
 
 wdl_v1_1_list = [
@@ -164,6 +165,7 @@ wdl_v1_1_list = [
     "apps_579_boolean_flag_expr",
     "apps_579_string_substitution_expr",
     "apps_956_private_var_local",
+    "apps_1052_optional_block_inputs_wdl11",
 ]
 
 # docker image tests
@@ -1289,7 +1291,6 @@ def ensure_dir(path):
     if not os.path.exists(path):
         os.makedirs(path)
 
-
 def wait_for_completion(test_exec_objs):
     print("awaiting completion ...")
     successes = []
@@ -1408,6 +1409,7 @@ def run_test_subset(
 
     print("Verifying results")
 
+    # Verify workflow outputs
     def verify_test(exec_obj, i):
         exec_desc = exec_obj.describe()
         tname = find_test_from_exec(exec_obj)
@@ -1440,6 +1442,7 @@ def run_test_subset(
             else:
                 raise
         if len(test_desc.results) > i:
+            # If testname_results.json file exists, check against it
             shouldbe = read_json_file_maybe_empty(test_desc.results[i])
             correct = True
             print("Checking results for workflow {} job {}".format(test_desc.name, i))
@@ -1482,6 +1485,7 @@ def run_test_subset(
 
     failed_verifications = []
     verification_errors = []
+    # Verify workflow outputs
     for i, exec_obj, verify in successful_executions:
         if verify:
             failed_name = None

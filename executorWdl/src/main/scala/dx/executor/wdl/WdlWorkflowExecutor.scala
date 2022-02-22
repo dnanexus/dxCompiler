@@ -22,7 +22,7 @@ import dx.core.languages.wdl.{
   WdlUtils
 }
 import dx.executor.{JobMeta, WorkflowExecutor}
-import dx.util.{DefaultBindings, FileNode, Logger, TraceLevel}
+import dx.util.{DefaultBindings, FileNode, TraceLevel}
 import spray.json.JsValue
 import wdlTools.eval.{Eval, EvalException, EvalUtils, WdlValueBindings}
 import wdlTools.eval.WdlValues._
@@ -75,8 +75,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       jobMeta.workerPaths,
       Some(versionSupport.version),
       Vector.empty,
-      jobMeta.fileResolver,
-      Logger.Quiet
+      jobMeta.fileResolver
   )
 
   override val executorName: String = "dxExecutorWdl"
@@ -905,6 +904,12 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       case (accu, RequiredBlockInput(dxName, wdlType))
           if compoundNameRegexp.matches(dxName.decoded) =>
         // the input name is a compound reference - evaluate it as an identifier
+        val expr = versionSupport.parseExpression(dxName.decoded, DefaultBindings(accu.map {
+          case (dxName, (wdlType, _)) => dxName.decoded -> wdlType
+        }), docSource)
+        accu + (dxName -> (wdlType, evaluateExpression(expr, wdlType, accu)))
+      case (accu, OptionalBlockInput(dxName, wdlType))
+          if compoundNameRegexp.matches(dxName.decoded) =>
         val expr = versionSupport.parseExpression(dxName.decoded, DefaultBindings(accu.map {
           case (dxName, (wdlType, _)) => dxName.decoded -> wdlType
         }), docSource)

@@ -3,6 +3,8 @@
 ## in develop
 * Exception messages of subprocesses are propagated to the exception message of the main process. 
 
+* Fixes a bug where inputs to a WDL block were being ignored if they were Optional
+
 ## 2.9.0 2022-02-08
 
 * Command file is now echoed to stderr rather than stdout
