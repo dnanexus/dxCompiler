@@ -131,7 +131,7 @@ To compile a CWL workflow/tool, you will first need to process it using the foll
 * WDL and CWL
   * Calls with missing arguments have [limited support](doc/ExpertOptions.md#task-and-workflow-inputs).
   * All task and workflow names must be unique across the entire import tree
-    * For example, if `A.wdl` imports `B.wdl` and `A.wdl` defines workflow `foo`, then `B.wdl` could not have a workflow or task named `foo`
+    * For example, if `A.wdl` imports `B.wdl` and `A.wdl` defines workflow `foo`, then `B.wdl` cannot have a workflow or task named `foo`
   * Subworkflows built from higher-level workflows are not intented to be used on their own.
 * WDL only
   * Workflows with forward references (i.e. a variable referenced before it is declared) are not yet supported.
