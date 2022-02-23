@@ -964,6 +964,7 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths,
   private val jobInfoPath = rootDir.resolve(JobMeta.JobInfoFile)
   private val executableInfoPath = rootDir.resolve(JobMeta.ExecutableInfoFile)
   private val LogLimit = 1_000_000
+  private val stdLimit = Map("lines" -> 10, "chars" -> 500)
 
   def codeFile: Path = {
     workerPaths.getRootDir().resolve(s"${jobId}.code.sh").asJavaPath
@@ -981,7 +982,10 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths,
                                            stdoutMode = StdMode.Forward,
                                            stderrMode = StdMode.Forward)
       if (!successCodes.forall(_.contains(rc))) {
-        throw new Exception(s"job script function ${name} exited with permanent fail code ${rc}")
+        val subprocessStderr = FileUtils.readFileContent(workerPaths.getStderrFile().asJavaPath)
+        throw new Exception(s"""job script function ${name} exited with permanent fail code ${rc}
+                               |${truncateStd(subprocessStderr)}
+                               |""".stripMargin)
       }
     } else {
       val (rc, stdout, stderr) = SysUtils.execCommand(command, exceptionOnFailure = false)
@@ -1006,6 +1010,15 @@ case class WorkerJobMeta(override val workerPaths: DxWorkerPaths,
         throw new Exception(s"job script function ${name} exited with permanent fail code ${rc}")
       }
     }
+  }
+
+  private def truncateStd(stdString: String): String = {
+    val lastLines = stdString
+      .split("\n")
+      .takeRight(stdLimit("lines"))
+      .mkString("\n")
+    lastLines.takeRight(Math.min(lastLines.length(), stdLimit("chars")))
+
   }
 
   lazy override val rawJsInputs: Map[DxName, JsValue] = {
