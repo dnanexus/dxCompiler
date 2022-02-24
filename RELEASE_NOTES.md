@@ -1,6 +1,7 @@
 # Release Notes
 
 ## in develop
+* Exception messages of subprocesses are propagated to the exception message of the main process. 
 
 * Fixes a bug where inputs to a WDL block were being ignored if they were Optional
 
