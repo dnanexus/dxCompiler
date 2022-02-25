@@ -919,12 +919,9 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         } catch {
           case ex: EvalException =>
             val errorMsg = exceptionToString(ex, brief = true)
-            if (errorMsg.matches("identifier .* not found")) {
-              logger.trace(s"""${errorMsg} but it's optional, setting it to null""".stripMargin)
-              accu + (dxName -> (wdlType, V_Null))
-            } else {
-              throw ex
-            }
+            logger.trace(s"""${errorMsg} but it's optional, setting it to null""".stripMargin)
+            accu + (dxName -> (wdlType, V_Null))
+          case other: Exception => throw other
         }
       case (_, RequiredBlockInput(name, _)) =>
         throw new Exception(s"missing required input ${name}")
