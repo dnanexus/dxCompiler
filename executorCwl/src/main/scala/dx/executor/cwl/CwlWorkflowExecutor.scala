@@ -610,6 +610,7 @@ case class CwlWorkflowExecutor(workflow: Workflow,
         dxName -> stepInputs
           .get(dxName)
           .map(_._2)
+          .orElse(Option.when(param.default.isDefined)((param.cwlType, param.default.get)))
           .orElse(Option.when(CwlOptional.isOptional(param.cwlType))((param.cwlType, NullValue)))
           .getOrElse {
             throw new Exception(
