@@ -919,7 +919,9 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         } catch {
           case ex: EvalException =>
             val errorMsg = exceptionToString(ex, brief = true)
-            logger.trace(s"""${errorMsg}; setting the input value to null as it is optional""".stripMargin)
+            logger.trace(
+                s"""${errorMsg}; setting the input value to null as it is optional""".stripMargin
+            )
             accu + (dxName -> (wdlType, V_Null))
           case other: Exception => throw other
         }
