@@ -23,6 +23,7 @@ import dx.core.languages.wdl.{
 }
 import dx.executor.{JobMeta, WorkflowExecutor}
 import dx.util.{DefaultBindings, FileNode, TraceLevel}
+import dx.util.exceptionToString
 import spray.json.JsValue
 import wdlTools.eval.{Eval, EvalException, EvalUtils, WdlValueBindings}
 import wdlTools.eval.WdlValues._
@@ -916,9 +917,15 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           }), docSource)
           accu + (dxName -> (wdlType, evaluateExpression(expr, wdlType, accu)))
         } catch {
-          case a: EvalException =>
-          logger.trace(s"""Identifier ${dxName.decoded} not found but it's optional - setting to null""".stripMargin)
-          accu + (dxName -> (wdlType, V_Null))
+          case ex: EvalException =>
+            val errorMsg = exceptionToString(ex, brief = true)
+            if (errorMsg.matches("identifier .* not found")) {
+              logger.trace(s"""${errorMsg} but it's optional, setting it to null""".stripMargin)
+              accu + (dxName -> (wdlType, V_Null))
+            }
+            else {
+              throw ex
+            }
         }
       case (_, RequiredBlockInput(name, _)) =>
         throw new Exception(s"missing required input ${name}")
