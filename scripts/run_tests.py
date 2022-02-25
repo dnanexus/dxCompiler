@@ -154,7 +154,7 @@ wdl_v1_list = [
     "apps_700",
     "apps_864",
     "apps_1052_optional_block_inputs_wdl10",
-    "apps_1052_optional_compound_input_wdl10.wdl"
+    "apps_1052_optional_compound_input_wdl10",
 ]
 
 wdl_v1_1_list = [
