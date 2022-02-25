@@ -910,30 +910,14 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         accu + (dxName -> (wdlType, evaluateExpression(expr, wdlType, accu)))
       case (accu, OptionalBlockInput(dxName, wdlType))
           if compoundNameRegexp.matches(dxName.decoded) =>
-        val bindings = DefaultBindings(accu.map {
-          case (dxName, (wdlType, _)) => dxName.decoded -> wdlType
-        })
-        // this prints: 
-        //  Matching case 1: dxName_decoded:
-        // make_false.out
-        // bindings:
-        // DefaultBindings(Map(make_true.out -> T_Optional(T_File)),binding)
-        logger.trace(s"""Matching case 1: dxName_decoded:
-                            |${dxName.decoded}
-                            |bindings:
-                            |${bindings}""".stripMargin)
-        if (bindings.contains(dxName.decoded)) {
-          val expr = versionSupport.parseExpression(dxName.decoded, bindings, docSource)  
-          logger.trace(s"""Matching case 1: dxName_decoded:
-                            |${dxName.decoded}
-                            |expr:
-                            |${expr}
-                            |accu:
-                            |${accu}
-                            |wdlType:
-                            |${wdlType}""".stripMargin)
+        try {
+          val expr = versionSupport.parseExpression(dxName.decoded, DefaultBindings(accu.map {
+            case (dxName, (wdlType, _)) => dxName.decoded -> wdlType
+          }), docSource)
           accu + (dxName -> (wdlType, evaluateExpression(expr, wdlType, accu)))
-        } else {
+        } catch {
+          case a: EvalException =>
+          logger.trace(s"""Identifier ${dxName.decoded} not found but it's optional - setting to null""".stripMargin)
           accu + (dxName -> (wdlType, V_Null))
         }
       case (_, RequiredBlockInput(name, _)) =>
@@ -945,10 +929,6 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         accu + (name -> (wdlType, wdlValue))
       case (accu, OptionalBlockInput(name, wdlType)) =>
         // the input is missing but it could be optional - add a V_Null
-        logger.trace(s"""Matching case 2: name:
-                            |${name}
-                            |wdlType:
-                            |${wdlType}""".stripMargin)
         accu + (name -> (wdlType, V_Null))
     }
     val prereqEnv = evaluateWorkflowElementVariables(block.prerequisites, inputEnv)
