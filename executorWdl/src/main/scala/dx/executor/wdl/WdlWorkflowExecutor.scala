@@ -922,8 +922,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
             if (errorMsg.matches("identifier .* not found")) {
               logger.trace(s"""${errorMsg} but it's optional, setting it to null""".stripMargin)
               accu + (dxName -> (wdlType, V_Null))
-            }
-            else {
+            } else {
               throw ex
             }
         }
