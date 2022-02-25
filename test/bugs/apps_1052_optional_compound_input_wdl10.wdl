@@ -9,7 +9,7 @@ struct TestStruct {
     innerStruct inner
 }
 
-workflow optional_compound_input {
+workflow apps_1052_optional_compound_input_wdl10 {
     input {
         TestStruct t1
     }
