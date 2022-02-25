@@ -62,5 +62,5 @@ jobs:
           dx mkdir -p $FOLDER
           python3 scripts/run_tests.py --folder $FOLDER --project $PROJECT \
           --clean \
-          --test complex_types_files --test defined_function --test apps_1052_optional_block_inputs_wdl11
+          --test M 
 
