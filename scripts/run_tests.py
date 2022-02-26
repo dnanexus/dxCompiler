@@ -154,6 +154,7 @@ wdl_v1_list = [
     "apps_700",
     "apps_864",
     "apps_1052_optional_block_inputs_wdl10",
+    "apps_1052_optional_compound_input_wdl10",
 ]
 
 wdl_v1_1_list = [
@@ -248,7 +249,7 @@ cwl_conformance_ignored_tests = [
     "count-lines18-wf",
 ]
 
-cwl_conformance_workflows = [ t for t in 
+cwl_conformance_workflows = [ t for t in
     [os.path.basename(path)[:-9]
     for path in glob.glob(
         os.path.join(test_dir, "cwl_conformance", "workflows", "*.cwl.json")
