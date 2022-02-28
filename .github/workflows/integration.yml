@@ -71,3 +71,4 @@ jobs:
           --clean \
           --alice-token $ROBOT_TOKEN \
           --bob-token $TEST_ROBOT_TOKEN
+

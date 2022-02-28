@@ -1,9 +1,19 @@
 # Release Notes
 
 ## in develop
-* Exception messages of subprocesses are propagated to the exception message of the main process. 
 
+## 2.9.1 2022-02-25
+
+* Exception messages of subprocesses are propagated to the exception message of the main process. 
 * Fixes a bug where inputs to a WDL block were being ignored if they were Optional
+* CWL: run input default is now used when not declared in step
+* Minor updates to Developing docs
+
+### Dependency updates
+
+#### dxCommon 0.11.2
+
+* Minor changes to JSON formatting
 
 ## 2.9.0 2022-02-08
 
