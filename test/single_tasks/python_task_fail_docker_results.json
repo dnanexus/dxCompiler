@@ -1,0 +1,3 @@
+{
+  "error": "A job in the job tree named \"python_command\" running function \"main\" of \"python_command\" failed because of AppInternalError: job script function run_command exited with permanent fail code 1\nTraceback (most recent call last):\n  File  <stdin> , line 2, in <module>\nIndexError: list index out of range\n"
+}
