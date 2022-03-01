@@ -345,16 +345,26 @@ case class CwlTaskExecutor(tool: Process,
                   .getOptionalValues(finalOverrides, "requirements")
                   .getOrElse(Vector.empty)}")
               }
-              val finalreqs = Option
-                .when(fields.get("id").equals(JsString(targetToolID)))(
-                    reqs ++ JsUtils
+              val overridereqs = Option
+                .when(fields.getOrElse("id", "").equals(JsString(targetToolID)))(
+                    JsUtils
                       .getOptionalValues(finalOverrides, "requirements")
-                      .getOrElse(Vector.empty)
+                      .getOrElse(Vector.empty) ++ reqs
                 )
                 .getOrElse(reqs)
               if (logger.isVerbose) {
-                logger.trace(s"req after override:\n${reqs}")
+                logger.trace(s"req after override:\n${overridereqs}")
               }
+
+              val finalreqs = overridereqs.distinctBy({
+                case JsObject(reqFields) if reqFields.contains("class") =>
+                  reqFields.get("class").get.toString()
+                case other => other.toString()
+              })
+              if (logger.isVerbose) {
+                logger.trace(s"final reqs:\n${finalreqs}")
+              }
+
               "requirements" -> JsArray(finalreqs.map {
                 case JsObject(reqFields)
                     if reqFields.get("class").contains(JsString("InitialWorkDirRequirement")) =>
@@ -467,9 +477,8 @@ case class CwlTaskExecutor(tool: Process,
       ""
     }
     // update the source code if necessary
-    val sourceCode = localizedDependencies
-      .map(dep => updateSourceCode(dep, finalOverrides, tool.name))
-      .getOrElse(jobMeta.sourceCode)
+    val sourceCode =
+      updateSourceCode(localizedDependencies.getOrElse(Map.empty), finalOverrides, tool.name)
     if (logger.isVerbose) {
       logger.trace(
           s"""Executing CWL:
