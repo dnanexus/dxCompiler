@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "dxCint"
+name = "dxcint"
 version = "0.0.1"
 description = "Integration tests for dxCompiler"
 authors = ["Gvaihir <aogorodnikov@dnanexus.com>"]
