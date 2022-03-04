@@ -107,7 +107,9 @@ object CwlBundle {
         val newWorkflows = workflows + (wf.name -> wf)
         wf.steps.foldLeft(tools, expressions, newWorkflows, newReqs, newHints, newParents) {
           case ((toolAccu, exprAccu, wfAccu, reqAccu, hintAccu, parentAccu), step) =>
-            val newParent = currentParent ++ CwlDxName.fromDecodedName(step.frag).getDecodedParts
+            val newParent = currentParent ++
+              CwlDxName.fromDecodedName(wf.name).getDecodedParts ++
+              CwlDxName.fromDecodedName(step.name).getDecodedParts
             getProcesses(
                 CwlUtils.simplifyProcess(step.run),
                 newParent,
