@@ -26,8 +26,10 @@ def test_init(registered_test_wdl):
     assert registered_test_wdl.name == "foo"
     assert registered_test_wdl.kind == "bar"
     assert registered_test_wdl.project_id == "lol"
+    assert registered_test_wdl.language == "wdl"
     assert registered_test_wdl.exec_id is None
     assert registered_test_wdl.job_id is None
+    assert registered_test_wdl.has_outputs
 
 
 def test_build_executable_wdl(build_executable_wdl):
@@ -39,6 +41,8 @@ def test_run_wdl(build_executable_wdl):
     assert build_executable_wdl.job_id.startswith("analysis")
 
 
-
-
-
+def test__parse_expected_results(registered_test_wdl):
+    outs = registered_test_wdl._parse_expected_results
+    assert isinstance(outs, dict)
+    assert outs[f"{registered_test_wdl.name}.outs"] == "foo"
+    assert isinstance(outs[f"{registered_test_wdl.name}.outs"], str)

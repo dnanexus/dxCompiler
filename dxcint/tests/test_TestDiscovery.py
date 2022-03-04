@@ -9,5 +9,3 @@ def test_discover(fixtures_dir):
     discovered_tests = test_discovery.discover()
     assert len(discovered_tests) == 2
     assert all([isinstance(x, RegisteredTest) for x in discovered_tests])
-
-

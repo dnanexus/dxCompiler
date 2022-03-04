@@ -3,12 +3,13 @@
 ## Test suite architecture
 The following architecture will be implemented to support integration tests for the compiler.
 1. **CLI** orchestrates the flow 
-2. **TestDiscovery** scans for config files, registers the tests by creating an array of RegisteredTest objects 
-3. **Dependency** class sets up necessary environment with immutable state for **RegisteredTest**’s 
-4. **RegisteredTest** has methods to compile test, run test and output results 
-5. **Messenger** is attached to a **RegisteredTest** to monitor the completion of the test 
-6. **Validator** contains methods to validate test results if **Messenger** shows that the test is finished 
-7. **PlatformUtil** and **JsonUtil** have methods for platform interaction and JSON parsing, respectively
+2. **TestDiscovery** scans for config files, registers the tests by creating an array of RegisteredTest objects. 
+3. **Dependency** class sets up necessary environment with immutable state for **RegisteredTest**’s.
+4. **Terraform** takes the list of **RegisteredTest**’s and prepares the platform for running.
+5. **RegisteredTest** has methods to compile test, run test and output results.
+6. **Messenger** is attached to a **RegisteredTest** to monitor the completion of the test.
+7. **Validator** contains methods to validate test results if **Messenger** shows that the test is finished.
+8. **JsonUtil** has methods for JSON parsing.
 
 
 ### Requirements
