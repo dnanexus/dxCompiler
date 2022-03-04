@@ -233,13 +233,13 @@ cwl_tools = [
 ]
 
 cwl_conformance_tools = [
-    os.path.basename(path).replace(".cwl.json","")
+    os.path.basename(path)[:-len(".cwl.json")]
     for path in glob.glob(
         os.path.join(test_dir, "cwl_conformance", "tools", "*.cwl.json")
     )
 ]
 cwl_conformance_workflows = [
-    os.path.basename(path).replace(".cwl.json","")
+    os.path.basename(path)[:-len(".cwl.json")]
     for path in glob.glob(
         os.path.join(test_dir, "cwl_conformance", "workflows", "*.cwl.json")
     )
@@ -1571,7 +1571,7 @@ def register_all_tests(verbose: bool) -> None:
             elif t_file.endswith(".cwl.json"):
                 base = os.path.basename(t_file)
                 ext = ".cwl.json"
-                fname = base[:-len(ext)-1]
+                fname = base[:-len(ext)]
             else:
                 continue
 
