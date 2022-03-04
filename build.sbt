@@ -134,9 +134,9 @@ lazy val dependencies =
   new {
     val dxCommonVersion = "0.11.2"
     val dxApiVersion = "0.13.1"
-    val dxFileAccessProtocolsVersion = "0.5.3"
+    val dxFileAccessProtocolsVersion = "0.5.4-SNAPSHOT"
     val dxYamlVersion = "0.1.1"
-    val wdlToolsVersion = "0.17.7"
+    val wdlToolsVersion = "0.17.8-SNAPSHOT"
     val cwlScalaVersion = "0.8.0"
     val typesafeVersion = "1.4.1"
     val sprayVersion = "1.3.6"
