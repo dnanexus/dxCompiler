@@ -119,7 +119,7 @@ case class CwlTaskExecutor(tool: Process,
       )
       CwlTaskExecutor.parseString(JsObject(doc).prettyPrint) match {
         case ParserResult(Some(overridesTool: CommandLineTool), _, _, _) =>
-          (overridesTool.requirements ++ tool.requirements, overridesTool.hints ++ tool.hints)
+          (tool.requirements ++ overridesTool.requirements, tool.hints ++ overridesTool.hints)
         case other =>
           throw new Exception(s"expected CommandLineTool, not ${other}")
       }
@@ -264,7 +264,9 @@ case class CwlTaskExecutor(tool: Process,
 
   // scan through the source file and update any hard-coded files/directories
   // with a location in `dependencies`
-  private def updateSourceCode(dependencies: Map[String, (Type, Value)]): String = {
+  private def updateSourceCode(dependencies: Map[String, (Type, Value)],
+                               finalOverrides: Map[String, JsValue],
+                               targetToolID: String): String = {
     def updateListing(jsv: JsValue): JsValue = {
       jsv match {
         case JsArray(entries) =>
@@ -335,7 +337,35 @@ case class CwlTaskExecutor(tool: Process,
         case JsObject(fields) =>
           JsObject(fields.map {
             case ("requirements", JsArray(reqs)) =>
-              "requirements" -> JsArray(reqs.map {
+              if (logger.isVerbose) {
+                logger.trace(s"field id:${fields.get("id")}")
+                logger.trace(s"req before override:\n${reqs}")
+                logger.trace(s"targetToolID: ${targetToolID}")
+                logger.trace(s"override reqs: ${JsUtils
+                  .getOptionalValues(finalOverrides, "requirements")
+                  .getOrElse(Vector.empty)}")
+              }
+              val overridereqs = Option
+                .when(fields.getOrElse("id", "").equals(JsString(targetToolID)))(
+                    JsUtils
+                      .getOptionalValues(finalOverrides, "requirements")
+                      .getOrElse(Vector.empty) ++ reqs
+                )
+                .getOrElse(reqs)
+              if (logger.isVerbose) {
+                logger.trace(s"req after override:\n${overridereqs}")
+              }
+
+              val finalreqs = overridereqs.distinctBy({
+                case JsObject(reqFields) if reqFields.contains("class") =>
+                  reqFields.get("class").get.toString()
+                case other => other.toString()
+              })
+              if (logger.isVerbose) {
+                logger.trace(s"final reqs:\n${finalreqs}")
+              }
+
+              "requirements" -> JsArray(finalreqs.map {
                 case JsObject(reqFields)
                     if reqFields.get("class").contains(JsString("InitialWorkDirRequirement")) =>
                   JsObject(reqFields + ("listing" -> updateListing(reqFields("listing"))))
@@ -366,9 +396,12 @@ case class CwlTaskExecutor(tool: Process,
         case _              => jsv
       }
     }
+    if (logger.isVerbose) {
+      logger.trace(s"before inner")
+    }
     val updatedSource = inner(jobMeta.sourceCode.parseJson).prettyPrint
     if (logger.isVerbose) {
-      logger.trace(s"updated source code:\n${updatedSource}", minLevel = TraceLevel.VVerbose)
+      logger.trace(s"updated source code:\n${updatedSource}")
     }
     updatedSource
   }
@@ -382,17 +415,8 @@ case class CwlTaskExecutor(tool: Process,
                                  isInput = true,
                                  fileResolver = jobMeta.fileResolver)
     val metaDir = workerPaths.getMetaDir(ensureExists = true).asJavaPath
-    // update the source code if necessary
-    val sourceCode = localizedDependencies.map(updateSourceCode).getOrElse(jobMeta.sourceCode)
-    if (logger.isVerbose) {
-      logger.trace(
-          s"""Executing CWL:
-             |${sourceCode}""".stripMargin
-      )
-    }
     // write the CWL and input files
     val cwlPath = metaDir.resolve(s"tool.cwl")
-    FileUtils.writeFileContent(cwlPath, sourceCode)
     val cwlPathStr = targetProcess.map(p => s"${cwlPath}#${p}").getOrElse(cwlPath.toString)
     val inputPath = metaDir.resolve("tool_input.json")
     val inputJson = CwlUtils.toJson(inputs)
@@ -449,6 +473,16 @@ case class CwlTaskExecutor(tool: Process,
     } else {
       ""
     }
+    // update the source code if necessary
+    val sourceCode =
+      updateSourceCode(localizedDependencies.getOrElse(Map.empty), finalOverrides, tool.name)
+    if (logger.isVerbose) {
+      logger.trace(
+          s"""Executing CWL:
+             |${sourceCode}""".stripMargin
+      )
+    }
+    FileUtils.writeFileContent(cwlPath, sourceCode)
     val command =
       s"""#!/bin/bash
          |(
