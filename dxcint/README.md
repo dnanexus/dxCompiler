@@ -9,7 +9,6 @@ The following architecture will be implemented to support integration tests for 
 5. **RegisteredTest** has methods to compile test, run test and output results.
 6. **Messenger** is attached to a **RegisteredTest** to monitor the completion of the test.
 7. **Validator** contains methods to validate test results if **Messenger** shows that the test is finished.
-8. **JsonUtil** has methods for JSON parsing.
 
 
 ### Requirements
