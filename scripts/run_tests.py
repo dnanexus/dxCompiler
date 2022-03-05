@@ -83,7 +83,9 @@ expected_failure = {
     "record-in-secondaryFiles-missing-wf",
     "null-expression2-tool.1",
     "timelimit-wf",
-    "timelimit4-wf"
+    "timelimit4-wf",
+    "count-lines11-null-step-wf",
+    "count-lines11-null-step-wf-noET",
 }
 
 wdl_v1_list = [
@@ -231,29 +233,17 @@ cwl_tools = [
 ]
 
 cwl_conformance_tools = [
-    os.path.basename(path)[:-9]
+    os.path.basename(path)[:-len(".cwl.json")]
     for path in glob.glob(
         os.path.join(test_dir, "cwl_conformance", "tools", "*.cwl.json")
     )
 ]
-cwl_conformance_ignored_tests = [
-    "count-lines8-wf-noET",
-    "count-lines8-wf",
-    "count-lines10-wf",
-    "count-lines11-null-step-wf-noET",
-    "count-lines11-null-step-wf",
-    "count-lines14-wf",
-    "count-lines17-wf",
-    "count-lines15-wf",
-    "count-lines16-wf",
-    "count-lines18-wf",
-]
-
-cwl_conformance_workflows = [ t for t in
-    [os.path.basename(path)[:-9]
+cwl_conformance_workflows = [
+    os.path.basename(path)[:-len(".cwl.json")]
     for path in glob.glob(
         os.path.join(test_dir, "cwl_conformance", "workflows", "*.cwl.json")
-    )] if t not in cwl_conformance_ignored_tests]
+    )
+]
 
 # Tests run in continuous integration. We remove the native app test,
 # because we don't want to give permissions for creating platform apps.
@@ -840,7 +830,7 @@ def compare_result_file(result, expected_val, field_name, tname, project, verbos
     expected_basename = expected_val.get(
         "basename", os.path.basename(expected_location) if expected_location else None
     )
-    if expected_basename:
+    if expected_basename and expected_basename != "Any":
         basename = os.path.basename(location) if location else None
         if basename != expected_basename:
             if verbose:
@@ -981,7 +971,7 @@ def compare_result_directory(
     expected_basename = expected_val.get(
         "basename", os.path.basename(expected_location) if expected_location else None
     )
-    if expected_basename:
+    if expected_basename and expected_basename != "Any":
         if basename != expected_basename:
             if verbose:
                 cprint("Analysis {} gave unexpected results".format(tname), "red")
@@ -1580,8 +1570,8 @@ def register_all_tests(verbose: bool) -> None:
                 (fname, ext) = os.path.splitext(base)
             elif t_file.endswith(".cwl.json"):
                 base = os.path.basename(t_file)
-                fname = base[:-9]
                 ext = ".cwl.json"
+                fname = base[:-len(ext)]
             else:
                 continue
 

@@ -2,6 +2,6 @@
   "basename-fields-test.cwlVersion": "v1.2",
   "basename-fields-test.tool": {
     "class": "File",
-    "location": "dx://file-G1JgJB00yzZxxpVpGGVyvbXf"
+    "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G1JgJB00yzZxxpVpGGVyvbXf"
   }
 }
