@@ -69,13 +69,7 @@ class CwlDxName(encodedParts: Option[Vector[String]] = None,
       .zip(ends ++ Vector(name.length))
       .map {
         case (start, end) if start == end => ""
-        case (start, end)
-            if (start > 0 && name.charAt(start) == '_')
-              || (end < name.length && name.charAt(end - 1) == '_') =>
-          throw new Exception(
-              s"illegal name ${name}: '_' must not be adjacent to a non-alphanumeric character"
-          )
-        case (start, end) => name.substring(start, end)
+        case (start, end)                 => name.substring(start, end)
       }
       .zipAll(delims, "", "")
       .map {
