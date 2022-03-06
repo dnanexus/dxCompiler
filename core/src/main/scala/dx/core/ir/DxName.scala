@@ -128,6 +128,8 @@ abstract class DxName(private var encodedParts: Option[Vector[String]],
       }
   }
 
+  protected def namespaceDelimEncoded: Option[String]
+
   /**
     * The encoded form of this DxName.
     */
