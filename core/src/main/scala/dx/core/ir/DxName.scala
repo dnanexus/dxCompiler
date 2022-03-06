@@ -134,7 +134,12 @@ abstract class DxName(private var encodedParts: Option[Vector[String]],
     * The encoded form of this DxName.
     */
   def encoded: String = {
-    val name = getEncodedParts.mkString(DxName.NamespaceDelimEncoded)
+    val name = getEncodedParts match {
+      case Vector(id) => namespaceDelimEncoded.getOrElse("") + id
+      case _ if namespaceDelimEncoded.isEmpty =>
+        throw new Exception("this name does not allow namespaces")
+      case v => namespaceDelimEncoded.get + v.mkString(namespaceDelimEncoded.get)
+    }
     (stage, suffix) match {
       case (Some(stg), Some(suf)) => s"${stg}.${name}${suf}"
       case (Some(stg), None)      => s"${stg}.${name}"
