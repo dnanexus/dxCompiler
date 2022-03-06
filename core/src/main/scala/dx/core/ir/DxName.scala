@@ -346,7 +346,13 @@ object DxNameFactory {
       case stageRegex(stage, rest) => (Option(stage), rest)
     }
     val (prefix, suffix) = splitSuffix(rest)
-    (splitParts(prefix), stage, suffix)
+    val parts = splitParts(prefix)
+    val validparts = parts.zipWithIndex.foldLeft(Vector.empty[String]) {
+      case (accu, (part, idx)) if !part.isEmpty || (idx != 0) => //&& idx != parts.size - 1) =>
+        accu ++ Vector(part)
+      case (accu, (_, _)) => accu
+    }
+    (validparts, stage, suffix)
   }
 }
 
