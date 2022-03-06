@@ -7,7 +7,8 @@ import scala.util.matching.Regex
 object WdlDxName extends DxNameFactory {
   val NamespaceDelim = "."
   private val NamespaceDelimRegex = "\\.".r
-  private val NamespaceDelimEncodedRegex: Regex = DxName.NamespaceDelimEncoded.r
+  private val NamespaceDelimEncoded = s"__${NamespaceDelim.charAt(0).toInt}__" // "__46__"
+  private val NamespaceDelimEncodedRegex: Regex = NamespaceDelimEncoded.r
 
   override def fromEncodedName(name: String): WdlDxName = {
     val (parts, stage, suffix) = DxNameFactory.split(name, Some(NamespaceDelimEncodedRegex))
@@ -45,6 +46,10 @@ class WdlDxName(encodedParts: Option[Vector[String]] = None,
     Some(DxName.disallowedCharsRegex)
 
   override protected val namespaceDelim: Option[String] = Some(WdlDxName.NamespaceDelim)
+
+  override protected val namespaceDelimEncoded: Option[String] = Some(
+      WdlDxName.NamespaceDelimEncoded
+  )
 
   override protected def create(encodedParts: Option[Vector[String]] = None,
                                 decodedParts: Option[Vector[String]] = None,

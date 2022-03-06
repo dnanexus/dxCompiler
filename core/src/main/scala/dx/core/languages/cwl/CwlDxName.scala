@@ -11,14 +11,15 @@ object CwlDxName extends DxNameFactory {
   // encoding consecutive disallowed characters, we will end up with
   // something like "__42____67__", which we don't want to match as
   // a namespace delimiter.
-  private val encodedNamespaceDelimRegex = "((?<=[^_])|^)(___)((?=[^_])|$)".r
+  private val NamespaceDelimEncoded = s"__${NamespaceDelim.charAt(0).toInt}__" // "__47__"
+  private val NamespaceDelimEncodedRegex = NamespaceDelimEncoded.r
   // character sequences that may not appear in a non-encoded name
-  private val illegalDecodedSequencesRegex = "/|__|\\s+".r
+  private val illegalDecodedSequencesRegex = "/|\\s+".r
   // character sequences that need to be decoded
   private val decodeSequencesRegex = "__(\\d+)__".r
 
   override def fromEncodedName(name: String): CwlDxName = {
-    val (parts, stage, suffix) = DxNameFactory.split(name, Some(encodedNamespaceDelimRegex))
+    val (parts, stage, suffix) = DxNameFactory.split(name, Some(NamespaceDelimEncodedRegex))
     new CwlDxName(encodedParts = Some(parts), stage = stage, suffix = suffix)
   }
 
@@ -50,6 +51,8 @@ class CwlDxName(encodedParts: Option[Vector[String]] = None,
     Some(CwlDxName.illegalDecodedSequencesRegex)
 
   override protected def namespaceDelim: Option[String] = Some(CwlDxName.NamespaceDelim)
+  override protected def namespaceDelimEncoded: Option[String] =
+    Some(CwlDxName.NamespaceDelimEncoded)
 
   override protected def create(encodedParts: Option[Vector[String]] = None,
                                 decodedParts: Option[Vector[String]] = None,
