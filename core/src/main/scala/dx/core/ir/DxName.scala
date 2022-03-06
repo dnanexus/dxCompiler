@@ -379,7 +379,8 @@ object SimpleDxName extends DxNameFactory {
 class SimpleDxName(parts: Vector[String],
                    stage: Option[String] = None,
                    suffix: Option[String] = None,
-                   override val namespaceDelim: Option[String] = None)
+                   override val namespaceDelim: Option[String] = None,
+                   override val namespaceDelimEncoded: Option[String] = None)
     extends DxName(Some(parts), Some(parts), stage, suffix) {
   override protected def create(encodedParts: Option[Vector[String]],
                                 decodedParts: Option[Vector[String]],
@@ -389,7 +390,7 @@ class SimpleDxName(parts: Vector[String],
       case (Some(e), Some(d)) if DxName.compareStringVectors(e, d) != 0 =>
         throw new Exception(s"encoded and decoded parts must be the same: ${e} != ${d}")
       case _ =>
-        new SimpleDxName(encodedParts.orElse(decodedParts).get, stage, suffix, namespaceDelim)
+        new SimpleDxName(encodedParts.orElse(decodedParts).get, stage, suffix)
     }
   }
 }
