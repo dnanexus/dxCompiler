@@ -5,7 +5,6 @@ import dx.core.Constants
 import scala.util.matching.Regex
 
 object DxName {
-  val NamespaceDelimEncoded = "___"
   // characters that need to be encoded
   val disallowedCharsRegex: Regex = "([^a-zA-Z0-9_])".r
 
