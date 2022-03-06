@@ -87,11 +87,6 @@ abstract class DxName(private var encodedParts: Option[Vector[String]],
     d.zipWithIndex.foreach {
       case (part, idx) =>
         assert(part.trim.nonEmpty, s"one or more decoded parts is empty")
-        assert(idx == 0 || !part.startsWith("_"), "only the first part may start with '_'")
-        assert(
-            !part.endsWith("_") || (idx == d.size - 1 && !suffix.exists(_.startsWith("_"))),
-            "only the last part may end with '_', and only if the suffix does not start with '_'"
-        )
         illegalDecodedSequencesRegex.foreach { r =>
           r.findFirstIn(part).map { seq =>
             throw new Exception(s"decoded part ${part} contains illegal sequences '${seq}'")
