@@ -62,7 +62,7 @@ jobs:
           dx mkdir -p $FOLDER
           python3 scripts/run_tests.py --folder $FOLDER --project $PROJECT \
           --clean \
-          --test nested_manifest from_scatter_manifest scatter_file_manifest
+          --test nested_manifest --test from_scatter_manifest --test scatter_file_manifest
 
           # Run multi-user tests
           FOLDER=/builds/test_gha_dxcompiler_$(date +%s)_$RANDOM
