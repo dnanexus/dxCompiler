@@ -205,7 +205,7 @@ dxCompiler can be released from Github. The release pipeline (optionally) runs l
 1. Checkout the develop branch (either HEAD or the specific commit you want to release)
 2. Create a release branch named with the version number, e.g. `release-X.Y.Z`. Use [semver](https://semver.org/) to decide on the version number.
 3. Update the application.conf files with the release version number, without -SNAPSHOT.
-    - Run `scripts/update_version.md X.Y.Z`
+    - Run `scripts/update_version.sh X.Y.Z`
     - If you want to update the versions manually, there are 5 of them:
         * [compiler](https://github.com/dnanexus/dxCompiler/blob/main/compiler/src/main/resources/application.conf)
         * [core](https://github.com/dnanexus/dxCompiler/blob/main/core/src/main/resources/application.conf)
@@ -225,9 +225,10 @@ dxCompiler can be released from Github. The release pipeline (optionally) runs l
 9. Publish the draft [release](https://github.com/dnanexus/dxCompiler/releases). The compressed source code (in `zip` and `tar.gz`) will be added to the release page automatically.
 10. Post-release PR to `develop` branch
     - Create branch `post-release-X.Y.Z` based on branch `release-X.Y.Z`
-    - Run `scripts/update_version.md X.Y.(Z+1)-SNAPSHOT` to increment the working version from e.g. `1.2.3-SNAPSHOT` to `1.2.4-SNAPSHOT`
+    - Run `scripts/update_version.sh X.Y.(Z+1)-SNAPSHOT` to increment the working version from e.g. `1.2.3-SNAPSHOT` to `1.2.4-SNAPSHOT`
     - Open pull request from branch `post-release-X.Y.Z` to `develop`. Fix release notes and resolve conflicts as needed.
-11. Move released Jira tickets to `Done / In Prod` column
+11. Do not remove the branch `release-X.Y.Z` and don't merge it back to `main` nor `develop`. We keep this branch for tagging purposes.
+12. Move released Jira tickets to `Done / In Prod` column
 
 If you encounter any additional issues while creating the release, you will need to make the fixes in `develop` and then merge them into the release branch.
 
