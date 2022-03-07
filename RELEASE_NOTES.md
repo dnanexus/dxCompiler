@@ -3,14 +3,14 @@
 ## in develop
 
 * WDL: Minor fixes with directory path handling when passing `-separateOutputs` flag (in the dependency)
-* WDL: Input variables are now evaluated even when they are not used since they may be assigned to other (unused) variables
+* WDL: Input variables are now evaluated even when they are not used, which is needed since they may be assigned to other (unused) variables
 * CWL: Fix to error with execution of nested workflow step due to incorrect step identifiers
 
 ### Dependency updates
 
 #### dxApi 0.13.2-SNAPSHOT
 
-* Added database and dbcluster to list of recognized objects in a folder
+* Added `database` and `dbcluster` to list of recognized data objects in a folder
 
 #### dxFileAccessProtocols 0.5.4-SNAPSHOT
 
