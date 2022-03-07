@@ -161,7 +161,7 @@ wdl_v1_list = [
     "apps_864",
     "nested_manifest",
     "from_scatter_manifest",
-    "scatter_file_manifest"
+    "scatter_file_manifest",
     "apps_1052_optional_block_inputs_wdl10",
     "apps_1052_optional_compound_input_wdl10",
 ]
