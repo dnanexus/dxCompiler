@@ -1,5 +1,5 @@
 {
-  "count-lines8-wf.file1": {
+  "count-lines8-wf.cwl.file1": {
     "class": "File",
     "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/whale.txt"
   }

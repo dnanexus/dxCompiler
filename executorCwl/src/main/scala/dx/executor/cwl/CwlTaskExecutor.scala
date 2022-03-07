@@ -42,10 +42,10 @@ object CwlTaskExecutor {
       case _                    => throw new Exception("missing executable name")
     }
     jobMeta.logger.trace(s"toolName: ${toolName}")
-    val tool = parseString(jobMeta.sourceCode) match {
-      case ParserResult(Some(tool: CommandLineTool), _, _, _) => tool
-      case ParserResult(Some(expr: ExpressionTool), _, _, _)  => expr
-      case ParserResult(_, doc: Document, _, _) =>
+    val (tool, root) = parseString(jobMeta.sourceCode) match {
+      case ParserResult(Some(tool: CommandLineTool), _, _, _) => (tool, None)
+      case ParserResult(Some(expr: ExpressionTool), _, _, _)  => (expr, None)
+      case ParserResult(Some(wf: Workflow), doc: Document, _, _) =>
         doc.values
           .foldLeft(Set.empty[Process]) {
             case (accu, tool: CommandLineTool) if tool.name == toolName =>
@@ -55,7 +55,7 @@ object CwlTaskExecutor {
             case (accu, _) => accu
           }
           .toVector match {
-          case Vector(tool) => tool
+          case Vector(tool) => (tool, Some(wf))
           case Vector() =>
             throw new Exception(s"CWL document does not contain a tool named ${toolName}")
           case v =>
@@ -63,8 +63,12 @@ object CwlTaskExecutor {
                 s"CWL document contains more than one tool with name ${toolName}: ${v.mkString("\n")}"
             )
         }
+      case _ =>
+        throw new Exception(
+            s"CWL document cannot be parsed properly"
+        )
     }
-    CwlTaskExecutor(tool, jobMeta, streamFiles, checkInstanceType)
+    CwlTaskExecutor(tool, root, jobMeta, streamFiles, checkInstanceType)
   }
 }
 
@@ -72,6 +76,7 @@ object CwlTaskExecutor {
 // TODO: SHA1 checksums are computed for all outputs - we need to add these as properties on the
 //  uploaded files so they can be propagated to downstream CWL inputs
 case class CwlTaskExecutor(tool: Process,
+                           root: Option[Workflow],
                            jobMeta: JobMeta,
                            streamFiles: StreamFiles.StreamFiles,
                            checkInstanceType: Boolean)
@@ -141,6 +146,20 @@ case class CwlTaskExecutor(tool: Process,
     if (missingTypes.nonEmpty) {
       throw new Exception(s"no type information given for input(s) ${missingTypes.mkString(",")}")
     }
+    // if this is a step in a workflow, get default values from step inputs
+    val stepDefaults = Option
+      .when(targetStep.isDefined && root.isDefined) {
+        root.get.steps.collectFirst {
+          case step if step.id.map(_.frag).contains(targetStep.get) =>
+            val stepDefaults: Map[DxName, CwlValue] = step.inputs.collect {
+              case inp if inp.default.isDefined =>
+                CwlDxName.fromSourceName(inp.name) -> inp.default.get
+            }.toMap
+            stepDefaults
+        }
+      }
+      .flatten
+      .getOrElse(Map.empty)
     // convert IR to CWL values; discard auxiliary fields
     val evaluator = Evaluator.create(requirements, hints)
     val cwlInputs = inputParams.foldLeft(Map.empty[DxName, (CwlType, CwlValue)]) {
@@ -152,6 +171,11 @@ case class CwlTaskExecutor(tool: Process,
                                          name.decoded,
                                          isInput = true,
                                          fileResolver = jobMeta.fileResolver)
+          case None if stepDefaults.contains(name) =>
+            val ctx = CwlUtils.createEvaluatorContext(env = env.map {
+              case (dxName, tv) => dxName.decoded -> tv
+            }, runtime = runtime)
+            evaluator.evaluate(stepDefaults(name), param.cwlType, ctx, coerce = true)
           case None if param.default.isDefined =>
             val ctx = CwlUtils.createEvaluatorContext(env = env.map {
               case (dxName, tv) => dxName.decoded -> tv
@@ -349,6 +373,9 @@ case class CwlTaskExecutor(tool: Process,
     updatedSource
   }
 
+  private lazy val rawStep: Option[String] = {
+    targetStep.map(_.split('/').grouped(2).flatMap(_.take(1)).toArray.mkString("/"))
+  }
   override protected def writeCommandScript(
       localizedInputs: Map[DxName, (Type, Value)],
       localizedDependencies: Option[Map[String, (Type, Value)]]
@@ -377,7 +404,7 @@ case class CwlTaskExecutor(tool: Process,
     }
     JsUtils.jsToFile(inputJson, inputPath)
     // if a target is specified (a specific workflow step), add the --single-process option
-    val targetOpt = targetStep.map(t => s"--single-process ${t}").getOrElse("")
+    val targetOpt = rawStep.map(t => s"--single-process ${t}").getOrElse("")
     // if a dx:// URI is specified for the Docker container, download it and create an overrides
     // file to override the value in the CWL file
     val requirementOverrides =

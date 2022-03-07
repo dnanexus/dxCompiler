@@ -36,6 +36,12 @@ test_run_failing = {
     "null-expression2-tool.0",
 }
 
+# these tests are expected to fail at runtime AND throw a specific error message which will be checked
+expected_failure_msg = {
+    "python_task_fail",
+    "python_task_fail_docker"
+}
+
 # these tests are expected to fail at runtime
 expected_failure = {
     "bad_status",
@@ -78,6 +84,8 @@ expected_failure = {
     "null-expression2-tool.1",
     "timelimit-wf",
     "timelimit4-wf",
+    "count-lines11-null-step-wf",
+    "count-lines11-null-step-wf-noET",
 }
 
 reuse_jobs={"nested_manifest":[], "from_scatter_manifest":["*"], "scatter_file_manifest":["*"], "nested_outer2":[]}
@@ -154,6 +162,8 @@ wdl_v1_list = [
     "nested_manifest",
     "from_scatter_manifest",
     "scatter_file_manifest"
+    "apps_1052_optional_block_inputs_wdl10",
+    "apps_1052_optional_compound_input_wdl10",
 ]
 
 wdl_v1_1_list = [
@@ -165,6 +175,7 @@ wdl_v1_1_list = [
     "apps_579_boolean_flag_expr",
     "apps_579_string_substitution_expr",
     "apps_956_private_var_local",
+    "apps_1052_optional_block_inputs_wdl11",
 ]
 
 # docker image tests
@@ -229,13 +240,13 @@ cwl_tools = [
 ]
 
 cwl_conformance_tools = [
-    os.path.basename(path)[:-9]
+    os.path.basename(path)[:-len(".cwl.json")]
     for path in glob.glob(
         os.path.join(test_dir, "cwl_conformance", "tools", "*.cwl.json")
     )
 ]
 cwl_conformance_workflows = [
-    os.path.basename(path)[:-9]
+    os.path.basename(path)[:-len(".cwl.json")]
     for path in glob.glob(
         os.path.join(test_dir, "cwl_conformance", "workflows", "*.cwl.json")
     )
@@ -844,7 +855,7 @@ def compare_result_file(result, expected_val, field_name, tname, project, verbos
     expected_basename = expected_val.get(
         "basename", os.path.basename(expected_location) if expected_location else None
     )
-    if expected_basename:
+    if expected_basename and expected_basename != "Any":
         basename = os.path.basename(location) if location else None
         if basename != expected_basename:
             if verbose:
@@ -985,7 +996,7 @@ def compare_result_directory(
     expected_basename = expected_val.get(
         "basename", os.path.basename(expected_location) if expected_location else None
     )
-    if expected_basename:
+    if expected_basename and expected_basename != "Any":
         if basename != expected_basename:
             if verbose:
                 cprint("Analysis {} gave unexpected results".format(tname), "red")
@@ -1343,7 +1354,6 @@ def ensure_dir(path):
     if not os.path.exists(path):
         os.makedirs(path)
 
-
 def wait_for_completion(test_exec_objs):
     print("awaiting completion ...")
     successes = []
@@ -1390,6 +1400,9 @@ def wait_for_completion(test_exec_objs):
             ):
                 print("Analysis {}.{} failed as expected".format(desc.name, i))
                 successes.append((i, exec_obj, False))
+            elif tname in expected_failure_msg:
+                print("Analysis {}.{} failed as expected. Analyzing the error message".format(desc.name, i))
+                successes.append((i, exec_obj, True))
             else:
                 cprint("Error: analysis {}.{} failed".format(desc.name, i), "red")
                 failures.append((tname, exec_obj))
@@ -1483,6 +1496,7 @@ def run_test_subset(
 
     print("Verifying results")
 
+    # Verify workflow outputs
     def verify_test(exec_obj, i):
         exec_desc = exec_obj.describe()
         tname = find_test_from_exec(exec_obj)
@@ -1496,9 +1510,26 @@ def run_test_subset(
             ):
                 print("Analysis {}.{} failed as expected".format(tname, i))
                 return None
+            elif (
+                tname in expected_failure_msg
+                or "{}.{}".format(tname, i) in expected_failure_msg
+            ):
+                print("Analysis {}.{} failed as expected. Checking error message".format(tname, i))
+                expected_error = read_json_file_maybe_empty(test_desc.results[i]).get("error")
+                if expected_error == exec_desc.get("failureMessage"):
+                    return None
+                else:
+                    cprint(
+                        "Error: analysis {}.{} results are invalid.\nExpected {}.\nReceived{}".format(
+                            test_desc.name, i, expected_error, exec_desc.get("failureMessage")
+                        ),
+                        "red",
+                    )
+                    return tname
             else:
                 raise
         if len(test_desc.results) > i:
+            # If testname_results.json file exists, check against it
             shouldbe = read_json_file_maybe_empty(test_desc.results[i])
             correct = True
             print("Checking results for workflow {} job {}".format(test_desc.name, i))
@@ -1541,6 +1572,7 @@ def run_test_subset(
 
     failed_verifications = []
     verification_errors = []
+    # Verify workflow outputs
     for i, exec_obj, verify in successful_executions:
         if verify:
             failed_name = None
@@ -1634,8 +1666,8 @@ def register_all_tests(verbose: bool) -> None:
                 (fname, ext) = os.path.splitext(base)
             elif t_file.endswith(".cwl.json"):
                 base = os.path.basename(t_file)
-                fname = base[:-9]
                 ext = ".cwl.json"
+                fname = base[:-len(ext)]
             else:
                 continue
 

@@ -136,7 +136,7 @@ Run [scripts/clean_build.sh](/scripts/clean_build.sh) to clean up existing artif
 
 You should always run the unit tests after every successful compile. Generally, you want to run `sbt testQuick`, which only runs the tests that failed previously, as well as the tests for any code you've modified since the last time you ran the tests. However, the first time you checkout the code (to make sure your development environment is set up correctly) and then right before you push any changes to the repository, you should run the full test suite using `sbt test`.
 
-You need to have a DNAnexus account and be logged into DNAnexus via the command line before you can run the tests (`dx login`).
+You need to have a DNAnexus account and be logged into DNAnexus via the command line before you can run the tests (`dx login`). Your default project has to be `dxCompiler_playground` upon login. 
 
 ### Running the integration tests
 
@@ -225,7 +225,7 @@ dxCompiler can be released from Github. The release pipeline (optionally) runs l
         * [executorWdl](https://github.com/dnanexus/dxCompiler/blob/main/executorWdl/src/main/resources/application.conf)
         * [executorCwl](https://github.com/dnanexus/dxCompiler/blob/main/executorCwl/src/main/resources/application.conf)
 4. Update the [Release Notes](https://github.com/dnanexus/dxCompiler/blob/main/RELEASE_NOTES.md)
-    - Change the top header from "in develop" to "<version> (<date>)"
+    - Change the top header from "in develop" to "\<version\> (\<date\>)"
 5. Update versions of libraries as needed in [build.sbt](/build.sbt).
     - Add release notes of updated library dependencies to [Release Notes](https://github.com/dnanexus/dxCompiler/blob/main/RELEASE_NOTES.md)
 6. Push the release branch to GitHub.
