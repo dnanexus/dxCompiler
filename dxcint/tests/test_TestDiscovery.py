@@ -18,7 +18,7 @@ def add_test_to_existing_category(fixtures_dir):
     added_tests = test_discovery.add_tests(
         dir_name=new_tests_dir,
         extension="wdl",
-        suite="medium",
+        suite="M",
         category="mock_category"
     )
     yield added_tests
@@ -40,7 +40,7 @@ def add_test_to_new_category(fixtures_dir):
     added_tests = test_discovery.add_tests(
         dir_name=new_tests_dir,
         extension="wdl",
-        suite="medium",
+        suite="M",
         category="new_mock_category"
     )
     yield added_tests
@@ -51,10 +51,15 @@ def add_test_to_new_category(fixtures_dir):
 
 
 def test_discover(fixtures_dir):
-    test_discovery = TestDiscovery(os.path.join(fixtures_dir, "config"))
-    discovered_tests = test_discovery.discover()
+    test_discovery = TestDiscovery(
+        config=os.path.join(fixtures_dir, "config"),
+        resources=os.path.join(fixtures_dir, "resources")
+    )
+    discovered_tests = test_discovery.discover(suite="M")
     assert len(discovered_tests) == 2
     assert all([isinstance(x, RegisteredTest) for x in discovered_tests])
+    assert discovered_tests[0].name == "mock_1"
+    assert all([x.category == "mock_category" for x in discovered_tests])
 
 
 def test_add_tests(add_test_to_existing_category, add_test_to_new_category ,fixtures_dir):

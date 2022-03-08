@@ -4,7 +4,7 @@ import logging
 import shutil
 from glob import glob
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
 from dxcint.RegisteredTest import RegisteredTest
 
@@ -28,9 +28,27 @@ class TestDiscovery(object):
             "cwl.json": 2,
             "wdl": 3
         }
+        self._suites = {
+            "M": "medium.json",
+            "L": "large.json",
+            "CT": "cwl_tools.json",
+            "CW": "cwl_workflows.json",
+            "CC": "cwl_cromwell.json"
+        }
 
-    def discover(self) -> List[RegisteredTest]:
-        pass
+    def discover(self, suite: str) -> List[RegisteredTest]:
+        """
+        Method to discover and register tests
+        :param suite: str. One of several suites supplied as a capital letter code. See self._suites.keys
+        :return: List[RegisteredTest]. List of registered tests
+        """
+        if suite not in self._suites.keys():
+            raise TestDiscoveryError(f"TestDiscovery.discover(): suite {suite} is not registered. Existing suites "
+                                     f"are {self._suites}")
+        with open(os.path.join(self._config_location, f"{self._suites.get(suite)}"), "r") as suite_handle:
+            suite_config = self._config_linter(json.load(suite_handle))
+        registered_tests = [RegisteredTest(category=x[0], test_name=x[1]) for x in self._flatten_config(suite_config)]
+        return registered_tests
 
     def add_tests(self, dir_name: str, extension: str, suite: str, category: str) -> List[str]:
         """
@@ -41,6 +59,11 @@ class TestDiscovery(object):
         :param category: str. Test category name. Usually a team-defined category that reflects a type of the test
         :return: List[str]. Names of the added tests
         """
+        if suite not in self._suites.keys():
+            raise TestDiscoveryError(
+                f"TestDiscovery.add_tests(): registering new suite {suite} is not supported. To add a new suite "
+                f"consult with the team. Existing suites are {self._suites}"
+            )
         added_tests = []
         if extension not in self._allowed_wf_extensions.keys():
             raise TestDiscoveryError(
@@ -65,7 +88,7 @@ class TestDiscovery(object):
         return added_tests
 
     @staticmethod
-    def _config_linter(config) -> bool:
+    def _config_linter(config) -> Dict:
         for test_category, tests in config.items():
             if not isinstance(tests, List):
                 raise TestDiscoveryError(
@@ -74,16 +97,14 @@ class TestDiscovery(object):
                 )
             else:
                 continue
-        return True
+        return config
 
     @staticmethod
     def _resolve_from_root(dir_name: str) -> Path:
         return Path(os.path.join(os.path.dirname(os.path.abspath(__file__)), f"../../{dir_name}")).resolve()
 
     def _add_name_to_config(self, test_name: str, suite: str, category: str) -> None:
-        suite_file_path = os.path.join(self._config_location, f"{suite}.json")
-        if not os.path.exists(suite_file_path):
-            logging.warning(f"Test suite `{suite}` does not exist. Creating...")
+        suite_file_path = os.path.join(self._config_location, self._suites.get(suite))
         with open(suite_file_path, "r+") as suite_config_handle:
             suite_config = json.load(suite_config_handle)
             existing_category = suite_config.get(category, test_name)
@@ -103,3 +124,16 @@ class TestDiscovery(object):
             if os.path.exists(destination_file):
                 logging.warning(f"Test file {one_test_file} exists. Replacing with the new file")
             shutil.copyfile(one_test_file, destination_file)
+
+    @staticmethod
+    def _flatten_config(config: Dict) -> List[Tuple[str, str]]:
+        """
+        :param config: Dict. Config to flatten
+        :return: List[Tuple[str, str]]. Each tuple is Category [0] and test name [1]
+        """
+        flat_config = []
+        for category, test_collection in config.items():
+            flattened = [(category, x) for x in test_collection]
+            flat_config.extend(flattened)
+        return flat_config
+
