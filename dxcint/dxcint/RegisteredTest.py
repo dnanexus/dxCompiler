@@ -1,6 +1,11 @@
 import os
-
 from dxcint.utils import rm_prefix
+
+
+class RegisteredTestError(Exception):
+    """
+    Class to handle RegisteredTest errors
+    """
 
 
 class RegisteredTest(object):
@@ -16,7 +21,6 @@ class RegisteredTest(object):
         self._language = rm_prefix(os.path.basename(src_file), test_name)
         self._exec_id = None
         self._job_id = None
-        self._project_id = self._resolve_project()
 
     @property
     def category(self):
@@ -29,6 +33,3 @@ class RegisteredTest(object):
     @property
     def language(self):
         return self._language
-
-    def _resolve_project(self):
-        pass
