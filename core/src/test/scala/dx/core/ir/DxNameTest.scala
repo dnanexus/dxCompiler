@@ -113,9 +113,6 @@ class DxNameTest extends AnyFlatSpec with Matchers {
     assertThrows[Throwable] {
       WdlDxName.fromDecodedName("foo.")
     }
-    // assertThrows[Throwable] {
-    //   WdlDxName.fromDecodedName("a_._b")
-    // }
     assertThrows[Throwable] {
       WdlDxName.fromDecodedName("a-b.c")
     }
