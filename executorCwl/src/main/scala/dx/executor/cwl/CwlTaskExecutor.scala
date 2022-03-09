@@ -404,7 +404,7 @@ case class CwlTaskExecutor(tool: Process,
     }
     JsUtils.jsToFile(inputJson, inputPath)
     // if a target is specified (a specific workflow step), add the --single-process option
-    val targetOpt = rawStep.map(t => s"--single-process ${t}").getOrElse("")
+    val targetOpt = rawStep.map(t => s"--single-process '${t}'").getOrElse("")
     // if a dx:// URI is specified for the Docker container, download it and create an overrides
     // file to override the value in the CWL file
     val requirementOverrides =
