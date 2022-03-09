@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import List, Dict, Tuple
 
 from dxcint.RegisteredTest import RegisteredTest
+from dxcint.utils import rm_suffix
 
 
 class TestDiscoveryError(Exception):
@@ -47,7 +48,11 @@ class TestDiscovery(object):
                                      f"are {self._suites}")
         with open(os.path.join(self._config_location, f"{self._suites.get(suite)}"), "r") as suite_handle:
             suite_config = self._config_linter(json.load(suite_handle))
-        registered_tests = [RegisteredTest(category=x[0], test_name=x[1]) for x in self._flatten_config(suite_config)]
+        registered_tests = [RegisteredTest(
+            src_file=self._find_workflow_source(x[0], x[1]),
+            category=x[0],
+            test_name=x[1]
+        ) for x in self._flatten_config(suite_config)]
         return registered_tests
 
     def add_tests(self, dir_name: str, extension: str, suite: str, category: str) -> List[str]:
@@ -71,14 +76,7 @@ class TestDiscovery(object):
                 f"Allowed extensions are {self._allowed_wf_extensions.keys()}"
             )
         for test_file in glob(os.path.join(dir_name, f"*.{extension}")):
-            test_name_parts = os.path.basename(test_file).split(f".{extension}")
-            if test_name_parts[1]:
-                raise TestDiscoveryError(
-                    f"TestDiscovery.add_tests(): test file name {test_file} contains extension in the middle of the"
-                    f"string. Please rename your test file name such that extension `{extension}` is only in the end "
-                    f"of the file name"
-                )
-            test_name = test_name_parts[0]
+            test_name = rm_suffix(os.path.basename(test_file), f".{extension}")
             test_file_with_dependencies = glob(os.path.join(dir_name, f"{test_name}*"))
             self._copy_resource_files(test_file_with_dependencies, category)
             # Next line inefficient I/O, but an attempt to make EVERY test addition atomic
@@ -136,4 +134,24 @@ class TestDiscovery(object):
             flattened = [(category, x) for x in test_collection]
             flat_config.extend(flattened)
         return flat_config
+
+    def _find_workflow_source(self, category: str, test_name: str) -> str:
+        potential_source_files = []
+        for extension in self._allowed_wf_extensions.keys():
+            potential_source_files.extend(
+                glob(os.path.join(self._resources_location, category, f"{test_name}.{extension}"))
+            )
+        if len(potential_source_files) == 0:
+            raise TestDiscoveryError(
+                f"TestDiscovery._find_workflow_source(): could not find any source file for test `{test_name}` in "
+                f"category `{category}`. First try to add tests by using `add-tests` CLI command"
+            )
+        elif len(potential_source_files) > 1:
+            raise TestDiscoveryError(
+                f"TestDiscovery._find_workflow_source(): for test name `{test_name}` in category `{category}`, "
+                f"found source files for multiple workflow languages: {potential_source_files}. "
+                f"Delete one of the test files with duplicate name and add again with a changed name."
+            )
+        else:
+            return potential_source_files[0]
 
