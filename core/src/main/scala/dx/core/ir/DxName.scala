@@ -134,12 +134,7 @@ abstract class DxName(private var encodedParts: Option[Vector[String]],
     * The encoded form of this DxName.
     */
   def encoded: String = {
-    val name = getEncodedParts match {
-      case Vector(id) => namespaceDelimEncoded.getOrElse("") + id
-      case _ if namespaceDelimEncoded.isEmpty =>
-        throw new Exception("this name does not allow namespaces")
-      case v => namespaceDelimEncoded.get + v.mkString(namespaceDelimEncoded.get)
-    }
+    val name = getEncodedParts.mkString(namespaceDelimEncoded.getOrElse(""))
     (stage, suffix) match {
       case (Some(stg), Some(suf)) => s"${stg}.${name}${suf}"
       case (Some(stg), None)      => s"${stg}.${name}"
@@ -346,13 +341,8 @@ object DxNameFactory {
       case stageRegex(stage, rest) => (Option(stage), rest)
     }
     val (prefix, suffix) = splitSuffix(rest)
-    val parts = splitParts(prefix)
-    val validparts = parts.zipWithIndex.foldLeft(Vector.empty[String]) {
-      case (accu, (part, idx)) if !part.isEmpty || (idx != 0) => //&& idx != parts.size - 1) =>
-        accu ++ Vector(part)
-      case (accu, (_, _)) => accu
-    }
-    (validparts, stage, suffix)
+    val parts = splitParts(prefix).dropWhile(_.isEmpty())
+    (parts, stage, suffix)
   }
 }
 
