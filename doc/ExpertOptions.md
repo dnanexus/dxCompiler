@@ -579,6 +579,51 @@ workflow math {
 
 Currently, dxCompiler does not support this feature. However, there is a [suggestion](MissingCallArguments.md) for limited support.
 
+# DNAnexus files as outputs
+
+User can work with DNAnexus files inside WDL tasks or workflow using dx commands and create tasks or workflows that output DNAnexus files. This can be used to generate multiple outputs without storing all of them on local filesystem.
+
+## Example 1: DNAnexus files as outputs
+```wdl
+task find_fastq_from_previous{
+  input{
+    String sample
+    String old_fastq_folder
+    String R1_or_R2
+  }
+  command<<<
+    project=$DX_PROJECT_CONTEXT_ID
+    folder=$project://~{old_fastq_folder}
+    fq=$(dx find data --name "{sample}{R1_or_R2}.fastq.gz" --path ${folder} --norecurse --brief)
+    for file_id in $fq
+    do
+    echo "dx://${file_id}"
+    done
+  >>>
+  output{
+    Array[File] fq = read_lines(stdout())
+  }
+}
+```
+
+## Example 2: Uploading local file to DNAnexus
+
+```wdl
+task upload_and_delete{
+  input{
+    File f
+  }
+  command<<<
+    file_id=$(dx upload {f} --brief)
+    rm ~{f}
+    echo "dx://${file_id}"
+  >>>
+  output{
+    Array[File] fq = read_lines(stdout())
+  }
+}
+```
+
 # Task metadata
 
 A WDL task has two sections where metadata can be specified:
