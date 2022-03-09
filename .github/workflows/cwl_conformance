@@ -20,7 +20,7 @@ permissions:
   packages: read
 jobs:
   test:
-    name: WDL Integration Tests (Staging)
+    name: CWL Conformance Tests (Staging)
     if: contains(github.event.pull_request.labels.*.name, 'cwl_conformance')
     runs-on: ubuntu-20.04
     env:
@@ -44,11 +44,10 @@ jobs:
           # install dxda
           sudo wget -O/usr/local/bin/dx-download-agent https://github.com/dnanexus/dxda/releases/download/v0.5.7/dx-download-agent-linux
           sudo chmod +x /usr/local/bin/dx-download-agent
-      - name: Run integration tests
+      - name: Run CWL conformance tests
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ROBOT_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
-          TEST_ROBOT_TOKEN: ${{ secrets.DX_STAGING_TEST_ROBOT_TOKEN }}
         run: |
           export PATH="$PATH:$HOME/.local/bin"
 
@@ -62,5 +61,5 @@ jobs:
           dx mkdir -p $FOLDER
           python3 scripts/run_tests.py --folder $FOLDER --project $PROJECT \
           --clean \
-          --test cwl_conformance_tools 
+          --test cwl_conformance_tools cwl_conformance_workflows
 
