@@ -221,18 +221,12 @@ class DxNameTest extends AnyFlatSpec with Matchers {
     assertThrows[Throwable] {
       CwlDxName.fromDecodedName("  ")
     }
-    // assertThrows[Throwable] {
-    //   CwlDxName.fromDecodedName("a__b")
-    // }
     assertThrows[Throwable] {
       CwlDxName.fromDecodedName("a b")
     }
     assertThrows[Throwable] {
       CwlDxName.fromDecodedName("foo/")
     }
-    // assertThrows[Throwable] {
-    //   CwlDxName.fromDecodedName("a_/_b")
-    // }
     assertThrows[Throwable] {
       CwlDxName.fromSourceName("a/b")
     }
@@ -274,7 +268,7 @@ class DxNameTest extends AnyFlatSpec with Matchers {
     m(dxName2) shouldBe "x"
   }
 
-  it should "add prevail slash before CWL names started with a number" in {
+  it should "add a leading slash before CWL names started with a number" in {
     val dxName = CwlDxName.fromDecodedName("47/47-a-b/c.d___dxfiles")
     dxName.numParts shouldBe 3
     dxName.getDecodedParts shouldBe Vector("47", "47-a-b", "c.d")
