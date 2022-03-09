@@ -2,6 +2,33 @@
 
 ## in develop
 
+* WDL: Minor fixes with directory path handling when passing `-separateOutputs` flag (in the dependency)
+* WDL: Input variables are now evaluated even when they are not used, which is needed since they may be assigned to other (unused) variables
+* CWL: Fix to error with execution of nested workflow step due to incorrect step identifiers
+
+### Dependency updates
+
+#### dxApi 0.13.2-SNAPSHOT
+
+* Added `database` and `dbcluster` to list of recognized data objects in a folder
+
+#### dxFileAccessProtocols 0.5.4-SNAPSHOT
+
+* Fix to the issue where `-separateOutputs` option was causing a dx API runtime error due to a missing `/` in folder path
+
+## 2.9.1 2022-02-25
+
+* Exception messages of subprocesses are propagated to the exception message of the main process. 
+* Fixes a bug where inputs to a WDL block were being ignored if they were Optional
+* CWL: run input default is now used when not declared in step
+* Minor updates to Developing docs
+
+### Dependency updates
+
+#### dxCommon 0.11.2
+
+* Minor changes to JSON formatting
+
 ## 2.9.0 2022-02-08
 
 * Command file is now echoed to stderr rather than stdout

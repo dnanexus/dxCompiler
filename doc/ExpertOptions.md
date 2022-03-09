@@ -725,8 +725,8 @@ task cgrep {
           default: 1,
           max: 5,
           errors: object {
-              "UnresponsiveWorker": 2,
-              "ExecutionError": 2,
+              UnresponsiveWorker: 2,
+              ExecutionError: 2,
           }
       }
       dx_timeout: "12H30M"

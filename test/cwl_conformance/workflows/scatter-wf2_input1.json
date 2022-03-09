@@ -1,4 +1,10 @@
 {
-  "scatter-wf2.inp1": ["one", "two"],
-  "scatter-wf2.inp2": ["three", "four"]
+  "scatter-wf2.inp1": [
+    "one",
+    "two"
+  ],
+  "scatter-wf2.inp2": [
+    "three",
+    "four"
+  ]
 }

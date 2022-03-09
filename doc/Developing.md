@@ -136,7 +136,7 @@ Run [scripts/clean_build.sh](/scripts/clean_build.sh) to clean up existing artif
 
 You should always run the unit tests after every successful compile. Generally, you want to run `sbt testQuick`, which only runs the tests that failed previously, as well as the tests for any code you've modified since the last time you ran the tests. However, the first time you checkout the code (to make sure your development environment is set up correctly) and then right before you push any changes to the repository, you should run the full test suite using `sbt test`.
 
-You need to have a DNAnexus account and be logged into DNAnexus via the command line before you can run the tests (`dx login`).
+You need to have a DNAnexus account and be logged into DNAnexus via the command line before you can run the tests (`dx login`). Your default project has to be `dxCompiler_playground` upon login. 
 
 ### Running the integration tests
 
@@ -205,7 +205,7 @@ dxCompiler can be released from Github. The release pipeline (optionally) runs l
 1. Checkout the develop branch (either HEAD or the specific commit you want to release)
 2. Create a release branch named with the version number, e.g. `release-X.Y.Z`. Use [semver](https://semver.org/) to decide on the version number.
 3. Update the application.conf files with the release version number, without -SNAPSHOT.
-    - Run `scripts/update_version.md X.Y.Z`
+    - Run `scripts/update_version.sh X.Y.Z`
     - If you want to update the versions manually, there are 5 of them:
         * [compiler](https://github.com/dnanexus/dxCompiler/blob/main/compiler/src/main/resources/application.conf)
         * [core](https://github.com/dnanexus/dxCompiler/blob/main/core/src/main/resources/application.conf)
@@ -213,7 +213,7 @@ dxCompiler can be released from Github. The release pipeline (optionally) runs l
         * [executorWdl](https://github.com/dnanexus/dxCompiler/blob/main/executorWdl/src/main/resources/application.conf)
         * [executorCwl](https://github.com/dnanexus/dxCompiler/blob/main/executorCwl/src/main/resources/application.conf)
 4. Update the [Release Notes](https://github.com/dnanexus/dxCompiler/blob/main/RELEASE_NOTES.md)
-    - Change the top header from "in develop" to "<version> (<date>)"
+    - Change the top header from "in develop" to "\<version\> (\<date\>)"
 5. Update versions of libraries as needed in [build.sbt](/build.sbt).
     - Add release notes of updated library dependencies to [Release Notes](https://github.com/dnanexus/dxCompiler/blob/main/RELEASE_NOTES.md)
 6. Push the release branch to GitHub.
@@ -225,9 +225,10 @@ dxCompiler can be released from Github. The release pipeline (optionally) runs l
 9. Publish the draft [release](https://github.com/dnanexus/dxCompiler/releases). The compressed source code (in `zip` and `tar.gz`) will be added to the release page automatically.
 10. Post-release PR to `develop` branch
     - Create branch `post-release-X.Y.Z` based on branch `release-X.Y.Z`
-    - Run `scripts/update_version.md X.Y.(Z+1)-SNAPSHOT` to increment the working version from e.g. `1.2.3-SNAPSHOT` to `1.2.4-SNAPSHOT`
+    - Run `scripts/update_version.sh X.Y.(Z+1)-SNAPSHOT` to increment the working version from e.g. `1.2.3-SNAPSHOT` to `1.2.4-SNAPSHOT`
     - Open pull request from branch `post-release-X.Y.Z` to `develop`. Fix release notes and resolve conflicts as needed.
-11. Move released Jira tickets to `Done / In Prod` column
+11. Do not remove the branch `release-X.Y.Z` and don't merge it back to `main` nor `develop`. We keep this branch for tagging purposes.
+12. Move released Jira tickets to `Done / In Prod` column
 
 If you encounter any additional issues while creating the release, you will need to make the fixes in `develop` and then merge them into the release branch.
 
