@@ -2,22 +2,33 @@
 ![](https://github.com/dnanexus/dxCompiler/workflows/WDL%20Integration%20Tests/badge.svg)
 
 dxCompiler takes a pipeline written in the
-[Workflow Description Language (WDL)](http://www.openwdl.org/) or [Common Workflow Language](https://www.commonwl.org/v1.2) and compiles it to an equivalent workflow on the DNAnexus platform. WDL draft-2, 1.0, and 1.1, and CWL 1.2 are fully supported. Support for WDL 2.0 (aka 'development') is under active development and not yet production-ready.
+[Workflow Description Language (WDL)](http://www.openwdl.org/) or [Common Workflow Language](https://www.commonwl.org/v1.2) and compiles it to an equivalent workflow on the DNAnexus platform. 
+The following standards are fully supported:
+* WDL: draft-2, 1.0, and 1.1
+* CWL: 1.2 
+
+Support for WDL 2.0 (aka 'development') is under active development and not yet production-ready. CWL 1.0 and 1.1 are not supported but can be upgraded to 1.2 to be compiled (see )
 
 ## Setup
 
+To compile and run your workflow, make sure you have the following ready:
 * [DNAnexus platform](https://platform.dnanexus.com) account
 * [dx-toolkit](https://documentation.dnanexus.com/downloads)
   * Log in using `dx login`
   * It is recommended to pre-select the project where you want to your compiled workflows to go using `dx select`
 * Java 8 or 11
 * The latest dxCompiler JAR file from the [releases](https://github.com/dnanexus/dxCompiler/releases) page.
-* To compile CWL tools/workflows, you'll also need:
-  * [sbpack](https://github.com/rabix/sbpack) - install from master, e.g. `pip install https://github.com/rabix/sbpack.git`
-  * [cwl-utils](https://github.com/common-workflow-language/cwl-utils)
 * [docker](https://docs.docker.com/get-docker/), if you want to invoke dxCompiler with the [run-dxcompiler-docker](https://github.com/dnanexus/dxCompiler/blob/main/scripts/compiler_image/run-dxcompiler-docker) script using a public `dnanexus/dxcompiler` docker container.
+* Python 3.x to run the dxCompiler integration tests
 
-To run the dxCompiler integration tests, you will also need to install Python 3.x.
+To compile CWL tools/workflows, you might also need:
+  * [sbpack](https://github.com/rabix/sbpack) to pack the workflow made up of multiple files into a single compound JSON document before compilation
+  * [cwl-utils](https://github.com/common-workflow-language/cwl-utils) if you want to convert expression tool into commandline tool in the workflow
+  * [cwl-upgrader](https://github.com/common-workflow-language/cwl-upgrader) to upgrade your workflow to version 1.2 
+  * [cwltool]() to validate your workflow or test it locally 
+
+
+
 
 ## WDL
 
@@ -114,18 +125,117 @@ dxCompiler uses [wdlTools](https://github.com/dnanexus/wdlTools), a parser that 
 
 ## CWL
 
-To compile a CWL workflow/tool, you will first need to process it using the following steps:
 
-1. Upgrade it to CWL 1.2 if it is not already: 
+dxCompiler requires the source CWL file be "packed" as a `cwl.json` file, which contains a single compound workflow with all the dependent processes included.
+Before compiling your CWL workflow/tool, you might first need to process it into the packed format using the following steps:
+
+1. Install `cwl-upgrader` and upgrade your workflow to CWL 1.2 (if it is not already): 
     ```
-    $ cwl-upgrader my-workflow.cwl
+    $ pip install cwl-upgrader
+    $ cwl-upgrader my-workflow.cwl [subworkflow1.cwl subworkflow2.cwl ...]
     ```
-2. Pack it:
+2. Install `sbpack` package and use the `cwlpack` command on the top-level workflow file to build the "packed" one:
     ```
+    $ pip install https://github.com/rabix/sbpack.git`
     $ cwlpack --add-ids --json my-workflow.cwl > my-workflow.cwl.json
     ```
 3. De-localize all local paths referenced in your CWL: if your CWL specifies a local path, e.g. a schema or a default value for a `file`-type input, you need to upload those files to a DNAnexus project and then replace the local path in your CWL with a DNAnexus URI, e.g. `dx://project-XXX:file-YYY`.
 
+### Example workflow
+The same `bam_chrom_counter` workflow as the example WDL above is now written in CWL v1.0:
+```
+cwlVersion: v1.0
+$graph:
+- id: bam_chrom_counter
+  class: Workflow
+  requirements:
+  - class: ScatterFeatureRequirement
+  inputs:
+  - id: bam
+    type: File
+  outputs:
+  - id: bai
+    type: File
+    outputSource: slice_bam/bai
+  - id: count
+    type: int[]
+    outputSource: count_bam/count
+  steps:
+  - id: slice_bam
+    run: "#slice_bam"
+    in:
+      bam: bam
+    out: [bai, slices]
+  - id: count_bam
+    run: "#count_bam"
+    scatter: bam
+    in:
+      bam: slice_bam/slices
+    out: [count]
+- id: slice_bam
+  class: CommandLineTool
+  inputs:
+  - id: bam
+    type: File
+    inputBinding:
+      position: 1
+  - id: num_chrom
+    default: 22
+    type: int
+    inputBinding:
+      position: 2
+  outputs:
+  - id: bai
+    type: File
+    outputBinding:
+      glob: $(inputs.bam).bai
+  - id: slices
+    type: File[]
+    outputBinding:
+      glob: "*.bam"
+  requirements:
+  - class: InlineJavascriptRequirement
+  - class: ShellCommandRequirement
+  - class: DockerRequirement
+    dockerPull: "quay.io/biocontainers/samtools:1.12--hd5e65b6_0"
+  - class: InitialWorkDirRequirement
+    listing:
+    - entryname: slice_bam.sh
+      entry: |-
+        set -ex
+        samtools index $1
+        mkdir slices/
+        for i in `seq $2`; do
+            samtools view -b $1 -o slices/$i.bam $i
+        done
+  baseCommand: ["sh", "slice_bam.sh"]
+- id: count_bam
+  class: CommandLineTool
+  requirements:
+  - class: InlineJavascriptRequirement
+  - class: ShellCommandRequirement
+  - class: DockerRequirement
+    dockerPull: "quay.io/biocontainers/samtools:1.12--hd5e65b6_0"
+  inputs:
+  - id: bam
+    type: File
+    inputBinding:
+      position: 1
+  baseCommand: ["samtools", "view", "-c"]
+  outputs:
+  - id: count
+    type: int
+    outputBinding:
+      glob: stdout
+      loadContents: true
+      outputEval: "$(parseInt(self[0].contents))"
+  stdout: stdout
+```
+Once it is upgraded and packed into `bam_chrom_counter.cwl.json` as suggested above, we can compile it to the DNAnexus platform and run it.
+```
+$ java -jar dxCompiler.jar compile bam_chrom_counter.cwl.json -project project-xxxx -folder /my/workflows/
+$ dx run bam_chrom_counter -istage-common.bam=project-xxxx:file-yyyy
+```
 ## Limitations
 
 * WDL and CWL
