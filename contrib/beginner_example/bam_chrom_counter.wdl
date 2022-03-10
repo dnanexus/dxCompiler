@@ -29,7 +29,7 @@ task slice_bam {
     done
     >>>
     runtime {
-        docker: "quay.io/ucsc_cgl/samtools"
+        docker: "quay.io/biocontainers/samtools:1.12--hd5e65b6_0"
     }
     output {
         File bai = "${bam}.bai"
@@ -43,7 +43,7 @@ task count_bam {
     samtools view -c ${bam}
     >>>
     runtime {
-        docker: "quay.io/ucsc_cgl/samtools"
+        docker: "quay.io/biocontainers/samtools:1.12--hd5e65b6_0"
     }
     output {
         Int count = read_int(stdout())
