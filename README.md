@@ -32,7 +32,7 @@ To compile CWL tools/workflows, you might also need:
 
 ## WDL
 
-### Example workflow
+### Compile and run workflow
 
 The `bam_chrom_counter` workflow is written in WDL. Task `slice_bam` splits a bam file into an array of sub-files. Task
 `count_bam` counts the number of alignments on a bam file. The workflow takes an input bam file, calls `slice_bam` to split it into chromosomes, and calls `count_bam` in parallel on each chromosome. The results comprise a bam index file, and an array with the number of reads per chromosome.
@@ -119,12 +119,13 @@ The compiled workflow can be executed via the DNAnexus command line client or we
 
 ![this](doc/bam_chrom_counter.png)
 
-### Strict syntax
+### Validate the workflow
 
 dxCompiler uses [wdlTools](https://github.com/dnanexus/wdlTools), a parser that adheres strictly to the WDL specifications. Most of the problematic automatic type conversions that are allowed by some other WDL runtime engines are not allowed by dxCompiler. Please use the command line tools in wdlTools (e.g. `check` and `lint`) to validate your WDL files before trying to compile them with dxCompiler.
 
 ## CWL
 
+### Preprocess CWL workflow
 
 dxCompiler requires the source CWL file be "packed" as a `cwl.json` file, which contains a single compound workflow with all the dependent processes included.
 Before compiling your CWL workflow/tool, you might first need to process it into the packed format using the following steps:
@@ -141,7 +142,7 @@ Before compiling your CWL workflow/tool, you might first need to process it into
     ```
 3. De-localize all local paths referenced in your CWL: if your CWL specifies a local path, e.g. a schema or a default value for a `file`-type input, you need to upload those files to a DNAnexus project and then replace the local path in your CWL with a DNAnexus URI, e.g. `dx://project-XXX:file-YYY`.
 
-### Example workflow
+### Compile and run workflow
 The same `bam_chrom_counter` workflow as the example WDL above is now written in CWL v1.0:
 ```
 cwlVersion: v1.0
@@ -236,6 +237,9 @@ Once it is upgraded and packed into `bam_chrom_counter.cwl.json` as suggested ab
 $ java -jar dxCompiler.jar compile bam_chrom_counter.cwl.json -project project-xxxx -folder /my/workflows/
 $ dx run bam_chrom_counter -istage-common.bam=project-xxxx:file-yyyy
 ```
+### Validate the workflow
+
+dxCompiler support [CWL v1.2 standard](https://www.commonwl.org/v1.2/index.html) and compiles tools/workflows written using correspounding syntax specifications. You can use `cwltool --validate` to validate the packed CWL file you want to compile.
 ## Limitations
 
 * WDL and CWL
