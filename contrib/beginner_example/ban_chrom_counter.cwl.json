@@ -104,7 +104,7 @@
                     "listing": [
                         {
                             "entryname": "slice_bam.sh",
-                            "entry": "set -ex\nsamtools index $1\nmkdir slices/\nfor i in `seq $2`; do\n    samtools view -b $1 -o slices/$i.bam $i\ndone\n"
+                            "entry": "set -ex\nsamtools index $1\nmkdir slices/\nfor i in `seq $2`; do\n    samtools view -b $1 -o slices/$i.bam $i\ndone"
                         }
                     ]
                 }
@@ -112,7 +112,15 @@
             "baseCommand": [
                 "sh",
                 "slice_bam.sh"
-            ]
+            ],
+            "hints": {
+                "NetworkAccess": {
+                    "networkAccess": true
+                },
+                "LoadListingRequirement": {
+                    "loadListing": "deep_listing"
+                }
+            }
         },
         {
             "id": "count_bam",
@@ -154,7 +162,15 @@
                     }
                 }
             ],
-            "stdout": "stdout"
+            "stdout": "stdout",
+            "hints": {
+                "NetworkAccess": {
+                    "networkAccess": true
+                },
+                "LoadListingRequirement": {
+                    "loadListing": "deep_listing"
+                }
+            }
         }
     ]
 }
