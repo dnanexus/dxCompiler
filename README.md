@@ -25,7 +25,7 @@ To compile CWL tools/workflows, you might also need:
   * [sbpack](https://github.com/rabix/sbpack) to pack the workflow made up of multiple files into a single compound JSON document before compilation
   * [cwl-utils](https://github.com/common-workflow-language/cwl-utils) if you want to convert expression tool into commandline tool in the workflow
   * [cwl-upgrader](https://github.com/common-workflow-language/cwl-upgrader) to upgrade your workflow to version 1.2 
-  * [cwltool]() to validate your workflow or test it locally 
+  * [cwltool](https://github.com/common-workflow-language/cwltool) to validate your workflow or test it locally 
 
 
 
@@ -127,8 +127,7 @@ dxCompiler uses [wdlTools](https://github.com/dnanexus/wdlTools), a parser that 
 
 ### Preprocess CWL workflow
 
-dxCompiler requires the source CWL file be "packed" as a `cwl.json` file, which contains a single compound workflow with all the dependent processes included.
-Before compiling your CWL workflow/tool, you might first need to process it into the packed format using the following steps:
+dxCompiler requires the source CWL file to be "packed" as a cwl.json file, which contains a single compound workflow with all the dependent processes included. Additionally, you may need to upgrade the version of your workflow to 1.2. The following examples demonstrate how to do that:
 
 1. Install `cwl-upgrader` and upgrade your workflow to CWL 1.2 (if it is not already): 
     ```
