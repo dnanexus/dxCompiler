@@ -144,7 +144,8 @@ dxCompiler requires the source CWL file to be "packed" as a cwl.json file, which
 ### Compile and run workflow
 The same `bam_chrom_counter` workflow as the example WDL above is now written in CWL v1.0:
 ```
-cwlVersion: v1.0
+#!/usr/bin/env cwl-runner
+cwlVersion: v1.2
 $graph:
 - id: bam_chrom_counter
   class: Workflow
@@ -209,6 +210,11 @@ $graph:
             samtools view -b $1 -o slices/$i.bam $i
         done
   baseCommand: ["sh", "slice_bam.sh"]
+  hints:
+    NetworkAccess:
+      networkAccess: true
+    LoadListingRequirement:
+      loadListing: deep_listing
 - id: count_bam
   class: CommandLineTool
   requirements:
@@ -230,6 +236,11 @@ $graph:
       loadContents: true
       outputEval: "$(parseInt(self[0].contents))"
   stdout: stdout
+  hints:
+    NetworkAccess:
+      networkAccess: true
+    LoadListingRequirement:
+      loadListing: deep_listing
 ```
 Once it is upgraded and packed into [`bam_chrom_counter.cwl.json`](contrib/beginner_example/bam_chrom_counter.cwl.json) as suggested above, we can compile it to the DNAnexus platform and run it.
 ```
