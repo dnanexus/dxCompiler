@@ -271,13 +271,21 @@ class DxNameTest extends AnyFlatSpec with Matchers {
     dxName.encoded shouldBe "___47___47__45__a__45__b___c__46__d___dxfiles"
     dxName.suffix shouldBe Some("___dxfiles")
 
-    val dxName2 = CwlDxName.fromDecodedName("c.d___dxfiles")
-    dxName.endsWith(dxName2) shouldBe true
-    dxName2.pushDecodedNamespaces(Vector("47", "47-a-b")) shouldBe dxName
     dxName.popDecodedIdentifier() shouldBe (CwlDxName.fromEncodedName(
         "___47___47__45__a__45__b"
     ), "c.d")
-    dxName2.encoded shouldBe "___47__45__a__45__b___c__46__d"
+    val dxName1alter = dxName.popDecodedIdentifier()._1
+    dxName1alter.popDecodedIdentifier() shouldBe (CwlDxName.fromEncodedName(
+        "___47"
+    ), "47-a-b")
+
+    val dxName2 = CwlDxName.fromDecodedName("c.d___dxfiles")
+    dxName.endsWith(dxName2) shouldBe true
+    dxName2.pushDecodedNamespaces(Vector("47", "47-a-b")) shouldBe dxName
+
+    val dxName2alter = dxName2.pushDecodedNamespaces(Vector("47-a-b"))
+    dxName2alter.encoded shouldBe "___47__45__a__45__b___c__46__d___dxfiles"
+    dxName2alter.pushDecodedNamespaces(Vector("47")) shouldBe dxName
 
     val dxName3 = dxName.dropSuffix()
     dxName3.suffix shouldBe None
