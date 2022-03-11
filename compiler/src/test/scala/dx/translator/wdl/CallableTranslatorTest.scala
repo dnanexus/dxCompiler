@@ -1,6 +1,6 @@
 package dx.translator.wdl
 
-import dx.core.ir.{Callable, InstanceTypeSelection, Application}
+import dx.core.ir.{Application, Callable, InstanceTypeSelection, Workflow}
 import dx.core.languages.wdl.{VersionSupport, WdlBundle}
 import dx.translator.DefaultReorgSettings
 import org.scalatest.flatspec.AnyFlatSpec
@@ -14,7 +14,7 @@ class CallableTranslatorTest extends AnyFlatSpec with Matchers {
   private def pathFromBasename(dir: String, basename: String): Path = {
     Paths.get(getClass.getResource(s"/${dir}/${basename}").getPath)
   }
-  "CallableTranslator" should "paste only a single exec task to the document" in {
+  "CallableTranslator" should "render different wdl code for every block/app/frag" in {
     val (docV1, typeAliasesV1, versionSupportV1) =
       VersionSupport.fromSourceFile(pathFromBasename("bugs", "apps_994_v1.wdl"))
     val wdlBundleV1: WdlBundle = WdlBundle.create(doc = docV1)
@@ -40,11 +40,11 @@ class CallableTranslatorTest extends AnyFlatSpec with Matchers {
               sortedCallables ++ translatedCallables
           )
       }
-
-    val deconstructedCallables = sortedCallables.foldLeft(Vector.empty[String]) {
-      case Application(_, _, _, _, _, _, document, _, _, _, _, _) => document.toString
-    }
-    sortedCallables shouldBe ()
+    val deconstructedCallables: Map[String, String] = sortedCallables.map {
+      case Application(name, _, _, _, _, _, document, _, _, _, _, _) => name -> document.toString
+      case Workflow(name, _, _, _, document, _, _, _, _, _, _)       => name -> document.toString
+    }.toMap
+    deconstructedCallables shouldBe ()
   }
 
 }
