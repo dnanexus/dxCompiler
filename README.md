@@ -7,7 +7,7 @@ The following standards are fully supported:
 * WDL: draft-2, 1.0, and 1.1
 * CWL: 1.2 
 
-Support for WDL 2.0 (aka 'development') is under active development and not yet production-ready. CWL 1.0 and 1.1 are not supported but can be upgraded to 1.2 to be compiled (see )
+Support for WDL 2.0 (aka 'development') is under active development and not yet production-ready. CWL 1.0 and 1.1 are not supported but can be upgraded to 1.2 to be compiled (see [Preprocess CWL workflow](#preprocess-cwl-workflow))
 
 ## Setup
 
@@ -232,7 +232,7 @@ $graph:
       outputEval: "$(parseInt(self[0].contents))"
   stdout: stdout
 ```
-Once it is upgraded and packed into `bam_chrom_counter.cwl.json` as suggested above, we can compile it to the DNAnexus platform and run it.
+Once it is upgraded and packed into [`bam_chrom_counter.cwl.json`](contrib/beginner_example/bam_chrom_counter.cwl.json) as suggested above, we can compile it to the DNAnexus platform and run it.
 ```
 $ java -jar dxCompiler.jar compile bam_chrom_counter.cwl.json -project project-xxxx -folder /my/workflows/
 $ dx run bam_chrom_counter -istage-common.bam=project-xxxx:file-yyyy
