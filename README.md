@@ -242,14 +242,14 @@ $graph:
     LoadListingRequirement:
       loadListing: deep_listing
 ```
-Once it is upgraded and packed into [`bam_chrom_counter.cwl.json`](contrib/beginner_example/bam_chrom_counter.cwl.json) as suggested above, we can compile it to the DNAnexus platform and run it.
+Once it is packed into [`bam_chrom_counter.cwl.json`](contrib/beginner_example/bam_chrom_counter.cwl.json) as suggested above, we can compile it to the DNAnexus platform and run it.
 ```
 $ java -jar dxCompiler.jar compile bam_chrom_counter.cwl.json -project project-xxxx -folder /my/workflows/
 $ dx run bam_chrom_counter -istage-common.bam=project-xxxx:file-yyyy
 ```
 ### Validate the workflow
 
-dxCompiler support [CWL v1.2 standard](https://www.commonwl.org/v1.2/index.html) and compiles tools/workflows written using corresponding syntax specifications. You can use `cwltool --validate` to validate the packed CWL file you want to compile.
+dxCompiler support [CWL v1.2 standard](https://www.commonwl.org/v1.2/index.html) and compiles tools/workflows written using the corresponding syntax specifications. You can use `cwltool --validate` to validate the packed CWL file you want to compile.
 ## Limitations
 
 * WDL and CWL
