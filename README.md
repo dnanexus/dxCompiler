@@ -239,7 +239,7 @@ $ dx run bam_chrom_counter -istage-common.bam=project-xxxx:file-yyyy
 ```
 ### Validate the workflow
 
-dxCompiler support [CWL v1.2 standard](https://www.commonwl.org/v1.2/index.html) and compiles tools/workflows written using correspounding syntax specifications. You can use `cwltool --validate` to validate the packed CWL file you want to compile.
+dxCompiler support [CWL v1.2 standard](https://www.commonwl.org/v1.2/index.html) and compiles tools/workflows written using corresponding syntax specifications. You can use `cwltool --validate` to validate the packed CWL file you want to compile.
 ## Limitations
 
 * WDL and CWL
