@@ -3,6 +3,7 @@ package dx.translator.wdl
 import dx.core.ir.{Application, Callable, InstanceTypeSelection, Workflow}
 import dx.core.languages.wdl.{VersionSupport, WdlBundle}
 import dx.translator.DefaultReorgSettings
+import dx.util.CodecUtils
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import wdlTools.types.{TypedAbstractSyntax => TAT}
@@ -41,10 +42,18 @@ class CallableTranslatorTest extends AnyFlatSpec with Matchers {
           )
       }
     val deconstructedCallables: Map[String, String] = sortedCallables.map {
-      case Application(name, _, _, _, _, _, document, _, _, _, _, _) => name -> document.toString
-      case Workflow(name, _, _, _, document, _, _, _, _, _, _)       => name -> document.toString
+      case Application(name, _, _, _, _, _, document, _, _, _, _, _) =>
+        name -> CodecUtils.md5Checksum(document.toString)
+      case Workflow(name, _, _, _, document, _, _, _, _, _, _) =>
+        name -> CodecUtils.md5Checksum(document.toString)
     }.toMap
-    deconstructedCallables shouldBe ()
+    deconstructedCallables("reuse_print") should not equal deconstructedCallables("reuse_multiply")
+    deconstructedCallables("reuse_block_2") should not equal deconstructedCallables("reuse_block_4")
+    deconstructedCallables("reuse_frag_stage-12") should not equal deconstructedCallables(
+        "reuse_frag_stage-6"
+    )
+    deconstructedCallables(" reuse_frag_stage-0") should not equal deconstructedCallables(
+        "reuse_block_4"
+    )
   }
-
 }
