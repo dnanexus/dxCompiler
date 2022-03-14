@@ -131,18 +131,25 @@ dxCompiler requires the source CWL file to be "packed" as a cwl.json file, which
 
 1. Install `cwl-upgrader` and upgrade your workflow to CWL 1.2 (if it is not already): 
     ```
-    $ pip install cwl-upgrader
+    $ pip3 install cwl-upgrader
+    
+    # upgrade all your workflow and subworkflow CWL files in-place 
+    $ cd path/to/all-my-workflow
     $ cwl-upgrader my-workflow.cwl [subworkflow1.cwl subworkflow2.cwl ...]
+
+    # alternatively, upgrade all CWL files and save them all to a new folder
+    $ cd path/to/upgraded-workflow
+    $ cwl-upgrader path/to/my-workflow.cwl [path/to/subworkflow1.cwl path/to/subworkflow2.cwl ...]
     ```
 2. Install `sbpack` package and use the `cwlpack` command on the top-level workflow file to build the "packed" one:
     ```
-    $ pip install https://github.com/rabix/sbpack.git`
+    $ pip3 install https://github.com/rabix/sbpack.git`
     $ cwlpack --add-ids --json my-workflow.cwl > my-workflow.cwl.json
     ```
 3. De-localize all local paths referenced in your CWL: if your CWL specifies a local path, e.g. a schema or a default value for a `file`-type input, you need to upload those files to a DNAnexus project and then replace the local path in your CWL with a DNAnexus URI, e.g. `dx://project-XXX:file-YYY`.
 
 ### Compile and run workflow
-The same `bam_chrom_counter` workflow as the example WDL above is now written in CWL v1.0:
+We'll use the `bam_chrom_counter` workflow  that was used as a WDL example above to illustrate running a CWL v1.2 workflow:
 ```
 #!/usr/bin/env cwl-runner
 cwlVersion: v1.2
@@ -249,7 +256,7 @@ $ dx run bam_chrom_counter -istage-common.bam=project-xxxx:file-yyyy
 ```
 ### Validate the workflow
 
-dxCompiler support [CWL v1.2 standard](https://www.commonwl.org/v1.2/index.html) and compiles tools/workflows written using the corresponding syntax specifications. You can use `cwltool --validate` to validate the packed CWL file you want to compile.
+dxCompiler compiles tools/workflows written according to [CWL v1.2 standard](https://www.commonwl.org/v1.2/index.html). You can use `cwltool --validate` to validate the packed CWL file you want to compile.
 ## Limitations
 
 * WDL and CWL
