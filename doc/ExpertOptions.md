@@ -585,7 +585,7 @@ User can work with DNAnexus files inside WDL tasks or workflow using dx commands
 
 ## Example 1: DNAnexus files as outputs
 ```wdl
-task find_fastq_from_previous{
+task find_fastq_from_previous {
   input{
     String sample
     String old_fastq_folder
