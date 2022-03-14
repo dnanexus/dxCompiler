@@ -261,4 +261,37 @@ class DxNameTest extends AnyFlatSpec with Matchers {
     val m = Map(dxName1 -> "x")
     m(dxName2) shouldBe "x"
   }
+
+  it should "add a leading slash before CWL names started with a number" in {
+    val dxName = CwlDxName.fromDecodedName("47/47-a-b/c.d___dxfiles")
+    dxName.numParts shouldBe 3
+    dxName.getDecodedParts shouldBe Vector("47", "47-a-b", "c.d")
+    dxName.getEncodedParts shouldBe Vector("47", "47__45__a__45__b", "c__46__d")
+    dxName.decoded shouldBe "47/47-a-b/c.d___dxfiles"
+    dxName.encoded shouldBe "___47___47__45__a__45__b___c__46__d___dxfiles"
+    dxName.suffix shouldBe Some("___dxfiles")
+
+    dxName.popDecodedIdentifier() shouldBe (CwlDxName.fromEncodedName(
+        "___47___47__45__a__45__b"
+    ), "c.d")
+    val dxName1alter = dxName.popDecodedIdentifier()._1
+    dxName1alter.popDecodedIdentifier() shouldBe (CwlDxName.fromEncodedName(
+        "___47"
+    ), "47-a-b")
+
+    val dxName2 = CwlDxName.fromDecodedName("c.d___dxfiles")
+    dxName.endsWith(dxName2) shouldBe true
+    dxName2.pushDecodedNamespaces(Vector("47", "47-a-b")) shouldBe dxName
+
+    val dxName2alter = dxName2.pushDecodedNamespaces(Vector("47-a-b"))
+    dxName2alter.encoded shouldBe "___47__45__a__45__b___c__46__d___dxfiles"
+    dxName2alter.pushDecodedNamespaces(Vector("47")) shouldBe dxName
+
+    val dxName3 = dxName.dropSuffix()
+    dxName3.suffix shouldBe None
+    dxName3.encoded shouldBe "___47___47__45__a__45__b___c__46__d"
+    dxName3.decoded shouldBe "47/47-a-b/c.d"
+
+    dxName3.withSuffix("___dxfiles") shouldBe dxName
+  }
 }
