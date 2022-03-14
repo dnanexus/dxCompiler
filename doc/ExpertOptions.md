@@ -600,7 +600,7 @@ task find_fastq_from_previous {
     echo "dx://${file_id}"
     done
   >>>
-  output{
+  output {
     Array[File] fq = read_lines(stdout())
   }
 }
