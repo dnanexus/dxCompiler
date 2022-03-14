@@ -581,20 +581,18 @@ Currently, dxCompiler does not support this feature. However, there is a [sugges
 
 # DNAnexus files as outputs
 
-User can work with DNAnexus files inside WDL tasks or workflow using dx commands and create tasks or workflows that output DNAnexus files. This can be used to generate multiple outputs without storing all of them on local filesystem.
+User can work with DNAnexus files inside non-dockerized WDL tasks using dx commands and create tasks or workflows that output DNAnexus files. This can be used to generate multiple outputs without storing them all on local filesystem.
 
 ## Example 1: DNAnexus files as outputs
 ```wdl
-task find_fastq_from_previous {
+task find_fastq_in_folder {
   input {
-    String sample
-    String old_fastq_folder
-    String R1_or_R2
+    String fastq_folder
   }
   command<<<
     project=$DX_PROJECT_CONTEXT_ID
-    folder=$project://~{old_fastq_folder}
-    fq=$(dx find data --name "{sample}{R1_or_R2}.fastq.gz" --path ${folder} --norecurse --brief)
+    folder=$project://~{fastq_folder}
+    fq=$(dx find data --name "*.fastq.gz" --path ${folder} --norecurse --brief)
     for file_id in $fq
     do
     echo "dx://${file_id}"
@@ -611,12 +609,15 @@ task find_fastq_from_previous {
 ```wdl
 task upload_and_delete{
   input{
-    File f
+    Array[File] tar_files
   }
   command<<<
-    file_id=$(dx upload {f} --brief)
-    rm ~{f}
-    echo "dx://${file_id}"
+    scatter(f in files) {
+      tar -zxf ${f} -C /tmp/${f}
+      file_id=$(dx upload /tmp/${f} --brief)
+      rm /tmp/${f}
+      echo "dx://${file_id}"
+    }
   >>>
   output{
     Array[File] fq = read_lines(stdout())
