@@ -69,7 +69,7 @@ task slice_bam {
     samtools index ~{bam}
     mkdir slices/
     for i in `seq ~{num_chrom}`; do
-        samtools view -b ~{bam} -o slices/$i.bam $i
+        samtools view -b ~{bam} -o slices/$i.bam chr$i
     done
     >>>
     runtime {
@@ -150,7 +150,7 @@ dxCompiler requires the source CWL file to be "packed" as a cwl.json file, which
 
 ### Compile and run workflow
 We'll use the `bam_chrom_counter` workflow  that was used as a WDL example above to illustrate running a CWL v1.2 workflow:
-```
+```cwl
 #!/usr/bin/env cwl-runner
 cwlVersion: v1.2
 $graph:
@@ -185,22 +185,18 @@ $graph:
   inputs:
   - id: bam
     type: File
-    inputBinding:
-      position: 1
   - id: num_chrom
     default: 22
     type: int
-    inputBinding:
-      position: 2
   outputs:
   - id: bai
     type: File
     outputBinding:
-      glob: $(inputs.bam).bai
+      glob: $(inputs.bam.basename).bai
   - id: slices
     type: File[]
     outputBinding:
-      glob: "*.bam"
+      glob: "slices/*.bam"
   requirements:
   - class: InlineJavascriptRequirement
   - class: ShellCommandRequirement
@@ -214,9 +210,15 @@ $graph:
         samtools index $1
         mkdir slices/
         for i in `seq $2`; do
-            samtools view -b $1 -o slices/$i.bam $i
+            samtools view -b $1 -o slices/$i.bam chr$i
         done
+    - entry: $(inputs.bam)
   baseCommand: ["sh", "slice_bam.sh"]
+  arguments:
+    - position: 0
+      valueFrom: $(inputs.bam.basename)
+    - position: 1
+      valueFrom: $(inputs.num_chrom)
   hints:
     NetworkAccess:
       networkAccess: true
