@@ -16,6 +16,10 @@ case class WdlDocumentSource(doc: TAT.Document, versionSupport: VersionSupport) 
   override def toString: String = versionSupport.generateDocument(doc)
 
   override def optionsToJson: JsValue = versionSupport.wdlOptions.toJson
+
+  def getDocContents: String = {
+    doc.source.readLines.mkString
+  }
 }
 
 case class WdlWorkflowSource(workflow: TAT.Workflow, versionSupport: VersionSupport)
@@ -25,6 +29,10 @@ case class WdlWorkflowSource(workflow: TAT.Workflow, versionSupport: VersionSupp
   override def toString: String = versionSupport.generateElement(workflow)
 
   override def optionsToJson: JsValue = versionSupport.wdlOptions.toJson
+
+  def getDocContents: String = {
+    workflow.body.mkString
+  }
 }
 
 case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
@@ -277,13 +285,24 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
   }
 
   def createStandAloneTask(task: TAT.Task): TAT.Document = {
-    TAT.Document(StringFileNode.empty,
-                 TAT.Version(outputWdlVersion)(SourceLocation.empty),
-                 structDefs :+ task,
-                 None,
-                 CommentMap.empty)(
+    val doc = TAT.Document(StringFileNode.empty,
+                           TAT.Version(outputWdlVersion)(SourceLocation.empty),
+                           structDefs :+ task,
+                           None,
+                           CommentMap.empty)(
         SourceLocation.empty
     )
+    doc
+  }
+
+  def createStandAloneFrag(fragSource: String): TAT.Document = {
+    TAT.Document(
+        source = StringFileNode(contents = fragSource),
+        version = TAT.Version(outputWdlVersion)(SourceLocation.empty),
+        elements = structDefs,
+        workflow = None,
+        comments = CommentMap.empty
+    )(SourceLocation.empty)
   }
 
   /*
