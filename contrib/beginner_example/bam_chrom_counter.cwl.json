@@ -58,18 +58,12 @@
             "inputs": [
                 {
                     "id": "bam",
-                    "type": "File",
-                    "inputBinding": {
-                        "position": 1
-                    }
+                    "type": "File"
                 },
                 {
                     "id": "num_chrom",
                     "default": 22,
-                    "type": "int",
-                    "inputBinding": {
-                        "position": 2
-                    }
+                    "type": "int"
                 }
             ],
             "outputs": [
@@ -77,14 +71,14 @@
                     "id": "bai",
                     "type": "File",
                     "outputBinding": {
-                        "glob": "$(inputs.bam).bai"
+                        "glob": "$(inputs.bam.basename).bai"
                     }
                 },
                 {
                     "id": "slices",
                     "type": "File[]",
                     "outputBinding": {
-                        "glob": "*.bam"
+                        "glob": "slices/*.bam"
                     }
                 }
             ],
@@ -104,7 +98,10 @@
                     "listing": [
                         {
                             "entryname": "slice_bam.sh",
-                            "entry": "set -ex\nsamtools index $1\nmkdir slices/\nfor i in `seq $2`; do\n    samtools view -b $1 -o slices/$i.bam $i\ndone"
+                            "entry": "set -ex\nsamtools index $1\nmkdir slices/\nfor i in `seq $2`; do\n    samtools view -b $1 -o slices/$i.bam chr$i\ndone"
+                        },
+                        {
+                            "entry": "$(inputs.bam)"
                         }
                     ]
                 }
@@ -112,6 +109,16 @@
             "baseCommand": [
                 "sh",
                 "slice_bam.sh"
+            ],
+            "arguments": [
+                {
+                    "position": 0,
+                    "valueFrom": "$(inputs.bam.basename)"
+                },
+                {
+                    "position": 1,
+                    "valueFrom": "$(inputs.num_chrom)"
+                }
             ],
             "hints": {
                 "NetworkAccess": {

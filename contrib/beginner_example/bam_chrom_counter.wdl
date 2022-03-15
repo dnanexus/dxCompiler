@@ -29,7 +29,7 @@ task slice_bam {
     samtools index ~{bam}
     mkdir slices/
     for i in `seq ~{num_chrom}`; do
-        samtools view -b ~{bam} -o slices/$i.bam $i
+        samtools view -b ~{bam} -o slices/$i.bam chr$i
     done
     >>>
     runtime {
