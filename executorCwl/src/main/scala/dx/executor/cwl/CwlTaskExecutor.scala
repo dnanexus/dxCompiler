@@ -497,7 +497,7 @@ case class CwlTaskExecutor(tool: Process,
          |    --move-outputs \\
          |    --rm-container \\
          |    --rm-tmpdir \\
-         |    ${targetOpt} ${overridesOpt} ${cwlPathStr} ${inputPath.toString}
+         |    ${targetOpt} ${cwlPathStr} ${inputPath.toString}
          |) \\
          |> >( tee ${workerPaths.getStdoutFile(ensureParentExists = true)} ) \\
          |2> >( tee ${workerPaths.getStderrFile(ensureParentExists = true)} >&2 )
