@@ -224,6 +224,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         availableDependencies.view.filterKeys(dependencyNames.contains).values.toVector
       WdlDocumentSource(codegen.standAloneWorkflow(wf, dependencies), versionSupport)
     }
+
     // Only the toplevel workflow may be unlocked. This happens
     // only if the user specifically compiles it as "unlocked".
     protected lazy val isLocked: Boolean = {
@@ -673,7 +674,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         param.name -> param.dxType
       }.toMap
 
-      // TODO fragment applet is created here
+      val standAloneFrag =
+        WdlDocumentSource(codegen.createStandAloneFrag(block.prettyFormat), versionSupport)
       val applet = Application(
           s"${wfName}_frag_${getStageId()}",
           inputParams,
@@ -681,7 +683,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           DefaultInstanceType,
           NoImage,
           ExecutableKindWfFragment(innerCall, blockPath, fqnDictTypes, scatterChunkSize),
-          standAloneWorkflow
+          standAloneFrag
       )
 
       (Stage(stageName, getStage(), applet.name, stageInputs, outputParams), auxCallables :+ applet)
@@ -1042,13 +1044,13 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       }
       val staticFileDependencies = translateStaticFileDependencies(privateVariables)
 
-      // TODO document for block subworkflow is set here
+      val standAloneBlock = WdlDocumentSource(codegen.createWdlBlockSrc(subBlocks), versionSupport)
       (Workflow(
            name = wfName,
            inputs = wfInputLinks,
            outputs = wfOutputs,
            stages = finalStages,
-           document = WdlWorkflowSource(wf, versionSupport),
+           document = standAloneBlock,
            locked = true,
            level = level,
            attributes = meta.translate,

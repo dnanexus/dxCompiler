@@ -305,6 +305,16 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
     )(SourceLocation.empty)
   }
 
+  def createWdlBlockSrc(subBlocks: Vector[WdlBlock]): TAT.Document = {
+    TAT.Document(
+        source = StringFileNode(contents = subBlocks.map(_.prettyFormat).mkString),
+        version = TAT.Version(outputWdlVersion)(SourceLocation.empty),
+        elements = structDefs,
+        workflow = None,
+        comments = CommentMap.empty
+    )(SourceLocation.empty)
+  }
+
   /*
    A workflow can import other libraries:
 
