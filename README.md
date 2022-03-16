@@ -104,19 +104,24 @@ From the command line, we can compile the workflow to the DNAnexus platform usin
 $ java -jar dxCompiler.jar compile bam_chrom_counter.wdl -project project-xxxx -folder /my/workflows/
 ```
 
-This compiles the source WDL file to several platform objects.
+This compiles the source WDL file to several platform objects in the specified DNAnexus project `project-xxxx` under folder `/my/workflows/`
 - A workflow `bam_chrom_counter`
 - Two applets that can be called independently: `slice_bam`, and `count_bam`
 - A few auxiliary applets that process workflow inputs, outputs, and launch the scatter.
 
-These objects are all created in the specified DNAnexus project and folder. The generated workflow can be run using `dx run`. For example:
+The generated workflow can be executed from the web UI (see instructions [here](https://documentation.dnanexus.com/getting-started/key-concepts/apps-and-workflows#launching-from-a-project)) or via the DNAnexus command-line client. For example, to run the workflow with the input bam file `project-BQbJpBj0bvygyQxgQ1800Jkk:file-FpQKQk00FgkGV3Vb3jJ8xqGV`, use the following command:
 
 ```
-dx run bam_chrom_counter -istage-common.bam=project-xxxx:file-yyyy
+dx run bam_chrom_counter -istage-common.bam=project-BQbJpBj0bvygyQxgQ1800Jkk:file-FpQKQk00FgkGV3Vb3jJ8xqGV
+```
+Alternatively, you can also convert a Cromwell JSON [format](https://software.broadinstitute.org/wdl/documentation/inputs.php) [input file](contrib/beginner_example/bam_chrom_counter_input.json) into an equivalent DNAnexus format one when compiling the workflow. Then you can pass DNAnexus input file to `dx run` using `-f` option as described in detail [here](doc/ExpertOptions.md###inputs).
+```
+$ java -jar dxCompiler.jar compile bam_chrom_counter.wdl -project project-xxxx -folder /my/workflows/ -inputs bam_chrom_counter_input.json
+$ dx run bam_chrom_counter -f bam_chrom_counter_input.dx.json
+
 ```
 
-The compiled workflow can be executed via the DNAnexus command line client or web UI:
-
+After launching the workflow analysis, you can monitor it on the CLI following [these instructions](https://documentation.dnanexus.com/user/running-apps-and-workflows/monitoring-executions) or from the UI as suggested [here](https://documentation.dnanexus.com/getting-started#monitoring-jobs-and-viewing-results). The snapshot below shows what you will see from the UI when the workflow execution is completed: 
 ![this](doc/bam_chrom_counter.png)
 
 ### Validate the workflow
