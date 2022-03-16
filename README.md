@@ -127,138 +127,145 @@ dxCompiler uses [wdlTools](https://github.com/dnanexus/wdlTools), a parser that 
 
 ### Preprocess CWL workflow
 
-dxCompiler requires the source CWL file to be "packed" as a cwl.json file, which contains a single compound workflow with all the dependent processes included. Additionally, you may need to upgrade the version of your workflow to 1.2. The following examples demonstrate how to do that:
+dxCompiler requires the source CWL file to be "packed" as a cwl.json file, which contains a single compound workflow with all the dependent processes included. Additionally, you may need to upgrade the version of your workflow to 1.2. 
 
-1. Install `cwl-upgrader` and upgrade your workflow to CWL 1.2 (if it is not already): 
+We'll use the `bam_chrom_counter` workflow that was used as a WDL example above to illustrate upgrading, packing and running a CWL workflow. This workflow is written in CWL v1.0 and the main `Workflow` in `bam_chrom_counter.cwl` will call the `CommandLineTool` described in `slice_bam.cwl` and `count_bam.cwl` in order as two workflow steps.
+
+[`bam_chrom_counter.cwl`](contrib/beginner_example/cwl_v1.0/bam_chrom_counter.cwl)
+```bam_chrom_counter
+cwlVersion: v1.0
+id: bam_chrom_counter
+class: Workflow
+requirements:
+- class: ScatterFeatureRequirement
+inputs:
+- id: bam
+  type: File
+outputs:
+- id: bai
+  type: File
+  outputSource: slice_bam/bai
+- id: count
+  type: int[]
+  outputSource: count_bam/count
+steps:
+- id: slice_bam
+  run: slice_bam.cwl
+  in:
+    bam: bam
+  out: [bai, slices]
+- id: count_bam
+  run: count_bam.cwl
+  scatter: bam
+  in:
+    bam: slice_bam/slices
+  out: [count]
+```
+[`slice_bam.cwl`](contrib/beginner_example/cwl_v1.0/slice_bam.cwl)
+```
+cwlVersion: v1.0
+id: slice_bam
+class: CommandLineTool
+inputs:
+- id: bam
+  type: File
+- id: num_chrom
+  default: 22
+  type: int
+outputs:
+- id: bai
+  type: File
+  outputBinding:
+    glob: $(inputs.bam.basename).bai
+- id: slices
+  type: File[]
+  outputBinding:
+    glob: "slices/*.bam"
+requirements:
+- class: InlineJavascriptRequirement
+- class: ShellCommandRequirement
+- class: DockerRequirement
+  dockerPull: "quay.io/biocontainers/samtools:1.12--hd5e65b6_0"
+- class: InitialWorkDirRequirement
+  listing:
+  - entryname: slice_bam.sh
+    entry: |-
+      set -ex
+      samtools index $1
+      mkdir slices/
+      for i in `seq $2`; do
+          samtools view -b $1 -o slices/$i.bam $i
+      done
+  - entry: $(inputs.bam)
+baseCommand: ["sh", "slice_bam.sh"]
+arguments:
+  - position: 0
+    valueFrom: $(inputs.bam.basename)
+  - position: 1
+    valueFrom: $(inputs.num_chrom)
+hints:
+- class: NetworkAccess
+  networkAccess: true
+- class: LoadListingRequirement
+  loadListing: deep_listing
+```
+[`count_bam.cwl`](contrib/beginner_example/cwl_v1.0/count_bam.cwl)
+```
+cwlVersion: v1.0
+id: count_bam
+class: CommandLineTool
+requirements:
+- class: InlineJavascriptRequirement
+- class: ShellCommandRequirement
+- class: DockerRequirement
+  dockerPull: "quay.io/biocontainers/samtools:1.12--hd5e65b6_0"
+inputs:
+- id: bam
+  type: File
+  inputBinding:
+    position: 1
+baseCommand: ["samtools", "view", "-c"]
+outputs:
+- id: count
+  type: int
+  outputBinding:
+    glob: stdout
+    loadContents: true
+    outputEval: "$(parseInt(self[0].contents))"
+stdout: stdout
+hints:
+- class: NetworkAccess
+  networkAccess: true
+- class: LoadListingRequirement
+  loadListing: deep_listing
+```
+Before compilation, follow the steps below to preprocess these CWL files:
+1. Install `cwl-upgrader` and upgrade the CWL files to v1.2 (since they are not already): 
     ```
     $ pip3 install cwl-upgrader
     
-    # upgrade all your workflow and subworkflow CWL files in-place 
-    $ cd path/to/all-my-workflow
-    $ cwl-upgrader my-workflow.cwl [subworkflow1.cwl subworkflow2.cwl ...]
-
-    # alternatively, upgrade all CWL files and save them all to a new folder
-    $ cd path/to/upgraded-workflow
-    $ cwl-upgrader path/to/my-workflow.cwl [path/to/subworkflow1.cwl path/to/subworkflow2.cwl ...]
+    # upgrade all your workflow and dependent CWL files and save them in the current directory
+    $ cd contrib/beginner_example
+    $ cwl-upgrader cwl_v1.0/bam_chrom_counter.cwl cwl_v1.0/slice_bam.cwl cwl_v1.0/count_bam.cwl
     ```
-2. Install `sbpack` package and use the `cwlpack` command on the top-level workflow file to build the "packed" one:
+2. Install `sbpack` package and run the `cwlpack` command on the top-level workflow file to build the "packed" one as [`bam_chrom_counter.cwl.json`](contrib/beginner_example/bam_chrom_counter.cwl.json):
     ```
-    $ pip3 install https://github.com/rabix/sbpack.git
-    $ cwlpack --add-ids --json my-workflow.cwl > my-workflow.cwl.json
+    $ pip3 install sbpack
+    $ cwlpack --add-ids --json bam_chrom_counter.cwl > bam_chrom_counter.cwl.json
     ```
-3. De-localize all local paths referenced in your CWL: if your CWL specifies a local path, e.g. a schema or a default value for a `file`-type input, you need to upload those files to a DNAnexus project and then replace the local path in your CWL with a DNAnexus URI, e.g. `dx://project-XXX:file-YYY`.
+3. De-localize all local paths referenced in the packed CWL: if the CWL specifies a local path, e.g. a schema or a default value for a `file`-type input, you need to upload this file to a DNAnexus project and then replace the local path in the packed CWL with its full DNAnexus URI, e.g. `dx://project-XXX:file-YYY`.
 
 ### Compile and run workflow
-We'll use the `bam_chrom_counter` workflow  that was used as a WDL example above to illustrate running a CWL v1.2 workflow:
-```cwl
-#!/usr/bin/env cwl-runner
-cwlVersion: v1.2
-$graph:
-- id: bam_chrom_counter
-  class: Workflow
-  requirements:
-  - class: ScatterFeatureRequirement
-  inputs:
-  - id: bam
-    type: File
-  outputs:
-  - id: bai
-    type: File
-    outputSource: slice_bam/bai
-  - id: count
-    type: int[]
-    outputSource: count_bam/count
-  steps:
-  - id: slice_bam
-    run: "#slice_bam"
-    in:
-      bam: bam
-    out: [bai, slices]
-  - id: count_bam
-    run: "#count_bam"
-    scatter: bam
-    in:
-      bam: slice_bam/slices
-    out: [count]
-- id: slice_bam
-  class: CommandLineTool
-  inputs:
-  - id: bam
-    type: File
-  - id: num_chrom
-    default: 22
-    type: int
-  outputs:
-  - id: bai
-    type: File
-    outputBinding:
-      glob: $(inputs.bam.basename).bai
-  - id: slices
-    type: File[]
-    outputBinding:
-      glob: "slices/*.bam"
-  requirements:
-  - class: InlineJavascriptRequirement
-  - class: ShellCommandRequirement
-  - class: DockerRequirement
-    dockerPull: "quay.io/biocontainers/samtools:1.12--hd5e65b6_0"
-  - class: InitialWorkDirRequirement
-    listing:
-    - entryname: slice_bam.sh
-      entry: |-
-        set -ex
-        samtools index $1
-        mkdir slices/
-        for i in `seq $2`; do
-            samtools view -b $1 -o slices/$i.bam chr$i
-        done
-    - entry: $(inputs.bam)
-  baseCommand: ["sh", "slice_bam.sh"]
-  arguments:
-    - position: 0
-      valueFrom: $(inputs.bam.basename)
-    - position: 1
-      valueFrom: $(inputs.num_chrom)
-  hints:
-    NetworkAccess:
-      networkAccess: true
-    LoadListingRequirement:
-      loadListing: deep_listing
-- id: count_bam
-  class: CommandLineTool
-  requirements:
-  - class: InlineJavascriptRequirement
-  - class: ShellCommandRequirement
-  - class: DockerRequirement
-    dockerPull: "quay.io/biocontainers/samtools:1.12--hd5e65b6_0"
-  inputs:
-  - id: bam
-    type: File
-    inputBinding:
-      position: 1
-  baseCommand: ["samtools", "view", "-c"]
-  outputs:
-  - id: count
-    type: int
-    outputBinding:
-      glob: stdout
-      loadContents: true
-      outputEval: "$(parseInt(self[0].contents))"
-  stdout: stdout
-  hints:
-    NetworkAccess:
-      networkAccess: true
-    LoadListingRequirement:
-      loadListing: deep_listing
-```
-Once it is packed into [`bam_chrom_counter.cwl.json`](contrib/beginner_example/bam_chrom_counter.cwl.json) as suggested above, we can compile it to the DNAnexus platform and run it.
+
+Once it is upgraded and packed as suggested above, we can compile it as a DNAnexus workflow and run it.
 ```
 $ java -jar dxCompiler.jar compile bam_chrom_counter.cwl.json -project project-xxxx -folder /my/workflows/
-$ dx run bam_chrom_counter -istage-common.bam=project-xxxx:file-yyyy
+$ dx run bam_chrom_counter -istage-common.bam=project-BQbJpBj0bvygyQxgQ1800Jkk:file-FpQKQk00FgkGV3Vb3jJ8xqGV
 ```
-### Validate the workflow
 
+### Validate the workflow
 dxCompiler compiles tools/workflows written according to the [CWL v1.2 standard](https://www.commonwl.org/v1.2/index.html). You can use `cwltool --validate` to validate the packed CWL file you want to compile.
+
 ## Limitations
 
 * WDL and CWL
