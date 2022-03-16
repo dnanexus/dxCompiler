@@ -274,14 +274,17 @@ dxCompiler compiles tools/workflows written according to the [CWL v1.2 standard]
 ## Limitations
 
 * WDL and CWL
-  * Calls with missing arguments have [limited support](doc/ExpertOptions.md#task-and-workflow-inputs).
+  * Calls with missing arguments have [limited support](doc/ExpertOptions.md#task-and-workflow-inputs)
   * All task and workflow names must be unique across the entire import tree
     * For example, if `A.wdl` imports `B.wdl` and `A.wdl` defines workflow `foo`, then `B.wdl` cannot have a workflow or task named `foo`
-  * Subworkflows built from higher-level workflows are not intented to be used on their own.
+  * Subworkflows built from higher-level workflows are not intented to be used on their own
 * WDL only
-  * Workflows with forward references (i.e. a variable referenced before it is declared) are not yet supported.
+  * Workflows with forward references (i.e. a variable referenced before it is declared) are not yet supported
   * The [alternative workflow output syntax](https://github.com/openwdl/wdl/blob/main/versions/draft-2/SPEC.md#outputs) that has been deprecated since WDL draft2 is not supported
   * The `call ... after` syntax introduced in WDL 1.1 is not yet supported
+* CWL only
+  * `SoftwareRequirement` and `InplaceUpdateRequirement` are not yet supported
+  * Publishing a dxCompiler-generated workflow as a global workflow is not supported
 
 ## Additional information
 
