@@ -3,7 +3,7 @@
 
 dxCompiler takes a pipeline written in the
 [Workflow Description Language (WDL)](http://www.openwdl.org/) or [Common Workflow Language](https://www.commonwl.org/v1.2) and compiles it to an equivalent workflow on the DNAnexus platform. 
-The following standards are fully supported:
+The following standards are supported:
 * WDL: draft-2, 1.0, and 1.1
 * CWL: 1.2 
 
