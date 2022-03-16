@@ -2,16 +2,18 @@
 ![](https://github.com/dnanexus/dxCompiler/workflows/WDL%20Integration%20Tests/badge.svg)
 
 dxCompiler takes a pipeline written in the
-[Workflow Description Language (WDL)](http://www.openwdl.org/) or [Common Workflow Language](https://www.commonwl.org/v1.2) and compiles it to an equivalent workflow on the DNAnexus platform. 
+[Workflow Description Language (WDL)](http://www.openwdl.org/) or [Common Workflow Language](https://www.commonwl.org/v1.2) and compiles it to an equivalent workflow on the DNAnexus platform.
 The following standards are supported:
+
 * WDL: draft-2, 1.0, and 1.1
-* CWL: 1.2 
+* CWL: 1.2
 
 Support for WDL 2.0 (aka 'development') is under active development and not yet production-ready. CWL 1.0 and 1.1 are not supported but can be upgraded to 1.2 to be compiled (see [Preprocess CWL workflow](#preprocess-cwl-workflow))
 
 ## Setup
 
 To compile and run your workflow, make sure you have the following ready:
+
 * [DNAnexus platform](https://platform.dnanexus.com) account
 * [dx-toolkit](https://documentation.dnanexus.com/downloads)
   * Log in using `dx login`
@@ -22,15 +24,17 @@ To compile and run your workflow, make sure you have the following ready:
 * Python 3.x to run the dxCompiler integration tests
 
 To compile CWL tools/workflows, you might also need:
-  * [sbpack](https://github.com/rabix/sbpack) to pack the workflow made up of multiple files into a single compound JSON document before compilation
-  * [cwl-utils](https://github.com/common-workflow-language/cwl-utils) which includes a collection of Python scripts for loading and parsing CWL files
-  * [cwl-upgrader](https://github.com/common-workflow-language/cwl-upgrader) to upgrade your workflow to version 1.2 
-  * [cwltool](https://github.com/common-workflow-language/cwltool) which provides comprehensive validation of CWL files as well as other tools related to working with CWL 
 
-
-
+* [sbpack](https://github.com/rabix/sbpack) to pack the workflow made up of multiple files into a single compound JSON document before compilation
+* [cwl-utils](https://github.com/common-workflow-language/cwl-utils) which includes a collection of Python scripts for loading and parsing CWL files
+* [cwl-upgrader](https://github.com/common-workflow-language/cwl-upgrader) to upgrade your workflow to version 1.2
+* [cwltool](https://github.com/common-workflow-language/cwltool) which provides comprehensive validation of CWL files as well as other tools related to working with CWL
 
 ## WDL
+
+### Validate the workflow
+
+dxCompiler uses [wdlTools](https://github.com/dnanexus/wdlTools), a parser that adheres strictly to the WDL specifications. Most of the problematic automatic type conversions that are allowed by some other WDL runtime engines are not allowed by dxCompiler. Please use the command line tools in wdlTools (e.g. `check` and `lint`) to validate your WDL files before trying to compile them with dxCompiler.
 
 ### Compile and run workflow
 
@@ -105,38 +109,38 @@ $ java -jar dxCompiler.jar compile bam_chrom_counter.wdl -project project-xxxx -
 ```
 
 This compiles the source WDL file to several platform objects in the specified DNAnexus project `project-xxxx` under folder `/my/workflows/`
-- A workflow `bam_chrom_counter`
-- Two applets that can be called independently: `slice_bam`, and `count_bam`
-- A few auxiliary applets that process workflow inputs, outputs, and launch the scatter.
+
+* A workflow `bam_chrom_counter`
+* Two applets that can be called independently: `slice_bam`, and `count_bam`
+* A few auxiliary applets that process workflow inputs, outputs, and launch the scatter.
 
 The generated workflow can be executed from the web UI (see instructions [here](https://documentation.dnanexus.com/getting-started/key-concepts/apps-and-workflows#launching-from-a-project)) or via the DNAnexus command-line client. For example, to run the workflow with the input bam file `project-BQbJpBj0bvygyQxgQ1800Jkk:file-FpQKQk00FgkGV3Vb3jJ8xqGV`, use the following command:
 
 ```
 dx run bam_chrom_counter -istage-common.bam=project-BQbJpBj0bvygyQxgQ1800Jkk:file-FpQKQk00FgkGV3Vb3jJ8xqGV
 ```
-Alternatively, you can also convert a Cromwell JSON [format](https://software.broadinstitute.org/wdl/documentation/inputs.php) [input file](contrib/beginner_example/bam_chrom_counter_input.json) into an equivalent DNAnexus format one when compiling the workflow. Then you can pass DNAnexus input file to `dx run` using `-f` option as described in detail [here](doc/ExpertOptions.md###inputs).
+
+Alternatively, you can also convert a [Cromwell JSON format](https://software.broadinstitute.org/wdl/documentation/inputs.php) [input file](contrib/beginner_example/bam_chrom_counter_input.json) into an equivalent DNAnexus format one when compiling the workflow. Then you can pass the DNAnexus input file to `dx run` using `-f` option as described in detail [here](doc/ExpertOptions.md###inputs).
+
 ```
 $ java -jar dxCompiler.jar compile bam_chrom_counter.wdl -project project-xxxx -folder /my/workflows/ -inputs bam_chrom_counter_input.json
 $ dx run bam_chrom_counter -f bam_chrom_counter_input.dx.json
 
 ```
 
-After launching the workflow analysis, you can monitor it on the CLI following [these instructions](https://documentation.dnanexus.com/user/running-apps-and-workflows/monitoring-executions) or from the UI as suggested [here](https://documentation.dnanexus.com/getting-started#monitoring-jobs-and-viewing-results). The snapshot below shows what you will see from the UI when the workflow execution is completed: 
+After launching the workflow analysis, you can monitor it on the CLI following [these instructions](https://documentation.dnanexus.com/user/running-apps-and-workflows/monitoring-executions) or from the UI as suggested [here](https://documentation.dnanexus.com/getting-started#monitoring-jobs-and-viewing-results). The snapshot below shows what you will see from the UI when the workflow execution is completed:
 ![this](doc/bam_chrom_counter.png)
-
-### Validate the workflow
-
-dxCompiler uses [wdlTools](https://github.com/dnanexus/wdlTools), a parser that adheres strictly to the WDL specifications. Most of the problematic automatic type conversions that are allowed by some other WDL runtime engines are not allowed by dxCompiler. Please use the command line tools in wdlTools (e.g. `check` and `lint`) to validate your WDL files before trying to compile them with dxCompiler.
 
 ## CWL
 
 ### Preprocess CWL workflow
 
-dxCompiler requires the source CWL file to be "packed" as a cwl.json file, which contains a single compound workflow with all the dependent processes included. Additionally, you may need to upgrade the version of your workflow to 1.2. 
+dxCompiler requires the source CWL file to be "packed" as a cwl.json file, which contains a single compound workflow with all the dependent processes included. Additionally, you may need to upgrade the version of your workflow to 1.2.
 
 We'll use the `bam_chrom_counter` workflow that was used as a WDL example above to illustrate upgrading, packing and running a CWL workflow. This workflow is written in CWL v1.0 and the main `Workflow` in `bam_chrom_counter.cwl` will call the `CommandLineTool` described in `slice_bam.cwl` and `count_bam.cwl` in order as two workflow steps.
 
 [`bam_chrom_counter.cwl`](contrib/beginner_example/cwl_v1.0/bam_chrom_counter.cwl)
+
 ```bam_chrom_counter
 cwlVersion: v1.0
 id: bam_chrom_counter
@@ -166,7 +170,9 @@ steps:
     bam: slice_bam/slices
   out: [count]
 ```
+
 [`slice_bam.cwl`](contrib/beginner_example/cwl_v1.0/slice_bam.cwl)
+
 ```
 cwlVersion: v1.0
 id: slice_bam
@@ -214,7 +220,9 @@ hints:
 - class: LoadListingRequirement
   loadListing: deep_listing
 ```
+
 [`count_bam.cwl`](contrib/beginner_example/cwl_v1.0/count_bam.cwl)
+
 ```
 cwlVersion: v1.0
 id: count_bam
@@ -244,32 +252,39 @@ hints:
 - class: LoadListingRequirement
   loadListing: deep_listing
 ```
+
 Before compilation, follow the steps below to preprocess these CWL files:
-1. Install `cwl-upgrader` and upgrade the CWL files to v1.2 (since they are not already): 
-    ```
-    $ pip3 install cwl-upgrader
-    
-    # upgrade all your workflow and dependent CWL files and save them in the current directory
-    $ cd contrib/beginner_example
-    $ cwl-upgrader cwl_v1.0/bam_chrom_counter.cwl cwl_v1.0/slice_bam.cwl cwl_v1.0/count_bam.cwl
-    ```
+
+1. Install `cwl-upgrader` and upgrade the CWL files to v1.2 (since they are not already):
+
+   ```
+   $ pip3 install cwl-upgrader
+
+   # upgrade all your workflow and dependent CWL files and save them in the current directory
+   $ cd contrib/beginner_example
+   $ cwl-upgrader cwl_v1.0/bam_chrom_counter.cwl cwl_v1.0/slice_bam.cwl cwl_v1.0/count_bam.cwl
+   ```
+
 2. Install `sbpack` package and run the `cwlpack` command on the top-level workflow file to build the "packed" one as [`bam_chrom_counter.cwl.json`](contrib/beginner_example/bam_chrom_counter.cwl.json):
-    ```
-    $ pip3 install sbpack
-    $ cwlpack --add-ids --json bam_chrom_counter.cwl > bam_chrom_counter.cwl.json
-    ```
+   ```
+   $ pip3 install sbpack
+   $ cwlpack --add-ids --json bam_chrom_counter.cwl > bam_chrom_counter.cwl.json
+   ```
 3. De-localize all local paths referenced in the packed CWL: if the CWL specifies a local path, e.g. a schema or a default value for a `file`-type input, you need to upload this file to a DNAnexus project and then replace the local path in the packed CWL with its full DNAnexus URI, e.g. `dx://project-XXX:file-YYY`.
+
+### Validate the workflow
+
+dxCompiler compiles tools/workflows written according to the [CWL v1.2 standard](https://www.commonwl.org/v1.2/index.html). You can use `cwltool --validate` to validate the packed CWL file you want to compile.
 
 ### Compile and run workflow
 
 Once it is upgraded and packed as suggested above, we can compile it as a DNAnexus workflow and run it.
+
 ```
 $ java -jar dxCompiler.jar compile bam_chrom_counter.cwl.json -project project-xxxx -folder /my/workflows/
 $ dx run bam_chrom_counter -istage-common.bam=project-BQbJpBj0bvygyQxgQ1800Jkk:file-FpQKQk00FgkGV3Vb3jJ8xqGV
 ```
 
-### Validate the workflow
-dxCompiler compiles tools/workflows written according to the [CWL v1.2 standard](https://www.commonwl.org/v1.2/index.html). You can use `cwltool --validate` to validate the packed CWL file you want to compile.
 
 ## Limitations
 
