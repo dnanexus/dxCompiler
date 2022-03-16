@@ -23,9 +23,9 @@ To compile and run your workflow, make sure you have the following ready:
 
 To compile CWL tools/workflows, you might also need:
   * [sbpack](https://github.com/rabix/sbpack) to pack the workflow made up of multiple files into a single compound JSON document before compilation
-  * [cwl-utils](https://github.com/common-workflow-language/cwl-utils) if you want to convert expression tool into commandline tool in the workflow
+  * [cwl-utils](https://github.com/common-workflow-language/cwl-utils) which includes a collection of Python scripts for loading and parsing CWL files
   * [cwl-upgrader](https://github.com/common-workflow-language/cwl-upgrader) to upgrade your workflow to version 1.2 
-  * [cwltool](https://github.com/common-workflow-language/cwltool) to validate your workflow or test it locally 
+  * [cwltool](https://github.com/common-workflow-language/cwltool) which provides comprehensive validation of CWL files as well as other tools related to working with CWL 
 
 
 
