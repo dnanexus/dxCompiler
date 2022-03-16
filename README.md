@@ -150,6 +150,8 @@ requirements:
 inputs:
 - id: bam
   type: File
+  # upload this local file to the platform and replace the path below with its full DNAnexus URI
+  default: "path/to/my/input_bam"
 outputs:
 - id: bai
   type: File
@@ -255,7 +257,9 @@ hints:
 
 Before compilation, follow the steps below to preprocess these CWL files:
 
-1. Install `cwl-upgrader` and upgrade the CWL files to v1.2 (since they are not already):
+1. De-localize all local paths referenced in the CWL: if the CWL specifies a local path, e.g. a schema or a default value for a `file`-type input (like the default path "path/to/my/input_bam" for input `bam` in [`bam_chrom_counter.cwl`](contrib/beginner_example/cwl_v1.0/bam_chrom_counter.cwl)), you need to upload this file to a DNAnexus project and then replace the local path in the CWL with its full DNAnexus URI, e.g. `dx://project-XXX:file-YYY`.
+
+2. Install `cwl-upgrader` and upgrade the CWL files to v1.2 (since they are not already):
 
    ```
    $ pip3 install cwl-upgrader
@@ -265,12 +269,11 @@ Before compilation, follow the steps below to preprocess these CWL files:
    $ cwl-upgrader cwl_v1.0/bam_chrom_counter.cwl cwl_v1.0/slice_bam.cwl cwl_v1.0/count_bam.cwl
    ```
 
-2. Install `sbpack` package and run the `cwlpack` command on the top-level workflow file to build the "packed" one as [`bam_chrom_counter.cwl.json`](contrib/beginner_example/bam_chrom_counter.cwl.json):
+3. Install `sbpack` package and run the `cwlpack` command on the top-level workflow file to build the "packed" one as [`bam_chrom_counter.cwl.json`](contrib/beginner_example/bam_chrom_counter.cwl.json):
    ```
    $ pip3 install sbpack
    $ cwlpack --add-ids --json bam_chrom_counter.cwl > bam_chrom_counter.cwl.json
    ```
-3. De-localize all local paths referenced in the packed CWL: if the CWL specifies a local path, e.g. a schema or a default value for a `file`-type input, you need to upload this file to a DNAnexus project and then replace the local path in the packed CWL with its full DNAnexus URI, e.g. `dx://project-XXX:file-YYY`.
 
 ### Validate the workflow
 

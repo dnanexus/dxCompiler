@@ -10,7 +10,8 @@
     "inputs": [
         {
             "id": "bam",
-            "type": "File"
+            "type": "File",
+            "default": "dx://project-BQbJpBj0bvygyQxgQ1800Jkk:file-FpQKQk00FgkGV3Vb3jJ8xqGV"
         }
     ],
     "steps": [

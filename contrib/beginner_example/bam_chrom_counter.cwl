@@ -7,6 +7,7 @@ requirements:
 inputs:
 - id: bam
   type: File
+  default: "dx://project-BQbJpBj0bvygyQxgQ1800Jkk:file-FpQKQk00FgkGV3Vb3jJ8xqGV"
 steps:
 - id: slice_bam
   run: slice_bam.cwl
