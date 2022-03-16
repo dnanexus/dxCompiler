@@ -2,7 +2,7 @@
 ![](https://github.com/dnanexus/dxCompiler/workflows/WDL%20Integration%20Tests/badge.svg)
 
 dxCompiler takes a pipeline written in the
-[Workflow Description Language (WDL)](http://www.openwdl.org/) or [Common Workflow Language](https://www.commonwl.org/v1.2) and compiles it to an equivalent workflow on the DNAnexus platform.
+[Workflow Description Language (WDL)](http://www.openwdl.org/) or [Common Workflow Language (CWL)](https://www.commonwl.org/v1.2) and compiles it to an equivalent workflow on the DNAnexus platform.
 The following standards are supported:
 
 * WDL: draft-2, 1.0, and 1.1
@@ -120,7 +120,7 @@ The generated workflow can be executed from the web UI (see instructions [here](
 dx run bam_chrom_counter -istage-common.bam=project-BQbJpBj0bvygyQxgQ1800Jkk:file-FpQKQk00FgkGV3Vb3jJ8xqGV
 ```
 
-Alternatively, you can also convert a [Cromwell JSON format](https://software.broadinstitute.org/wdl/documentation/inputs.php) [input file](contrib/beginner_example/bam_chrom_counter_input.json) into an equivalent DNAnexus format one when compiling the workflow. Then you can pass the DNAnexus input file to `dx run` using `-f` option as described in detail [here](doc/ExpertOptions.md###inputs).
+Alternatively, you can also convert a [Cromwell JSON format](https://software.broadinstitute.org/wdl/documentation/inputs.php) [input file](contrib/beginner_example/bam_chrom_counter_input.json) into an DNAnexus format when compiling the workflow.  Then you can pass the DNAnexus input file to `dx run` using `-f` option as described in detail [here](doc/ExpertOptions.md###inputs).
 
 ```
 $ java -jar dxCompiler.jar compile bam_chrom_counter.wdl -project project-xxxx -folder /my/workflows/ -inputs bam_chrom_counter_input.json
@@ -135,13 +135,13 @@ After launching the workflow analysis, you can monitor it on the CLI following [
 
 ### Preprocess CWL workflow
 
-dxCompiler requires the source CWL file to be "packed" as a cwl.json file, which contains a single compound workflow with all the dependent processes included. Additionally, you may need to upgrade the version of your workflow to 1.2.
+dxCompiler requires the source CWL file to be "packed" as a cwl.json file, which contains a single compound workflow with all the dependent processes included. Additionally, you may need to upgrade the version of your workflow to CWL v1.2.
 
-We'll use the `bam_chrom_counter` workflow that was used as a WDL example above to illustrate upgrading, packing and running a CWL workflow. This workflow is written in CWL v1.0 and the top-level `Workflow` in `bam_chrom_counter.cwl` will call the `CommandLineTool` described in `slice_bam.cwl` and `count_bam.cwl` in order as two workflow steps.
+We'll use the `bam_chrom_counter` CWL workflow similar to the WDL example above to illustrate upgrading, packing and running a CWL workflow. This workflow is written in CWL v1.0 and the top-level `Workflow` in `bam_chrom_counter.cwl` calls the two `CommandLineTool`s  in `slice_bam.cwl` and `count_bam.cwl`.
 
 [`bam_chrom_counter.cwl`](contrib/beginner_example/cwl_v1.0/bam_chrom_counter.cwl)
 
-```bam_chrom_counter
+```cwl
 cwlVersion: v1.0
 id: bam_chrom_counter
 class: Workflow
@@ -150,7 +150,7 @@ requirements:
 inputs:
 - id: bam
   type: File
-  # upload this local file to the platform and replace the path below with its full DNAnexus URI
+  # upload this local file to the platform and replace the path below with the DNAnexus URI "dx://project-xxx:file-yyyy"
   default: "path/to/my/input_bam"
 outputs:
 - id: bai
@@ -175,7 +175,7 @@ steps:
 
 [`slice_bam.cwl`](contrib/beginner_example/cwl_v1.0/slice_bam.cwl)
 
-```
+```cwl
 cwlVersion: v1.0
 id: slice_bam
 class: CommandLineTool
@@ -225,7 +225,7 @@ hints:
 
 [`count_bam.cwl`](contrib/beginner_example/cwl_v1.0/count_bam.cwl)
 
-```
+```cwl
 cwlVersion: v1.0
 id: count_bam
 class: CommandLineTool
@@ -259,17 +259,17 @@ Before compilation, follow the steps below to preprocess these CWL files:
 
 1. De-localize all local paths referenced in the CWL: if the CWL specifies a local path, e.g. a schema or a default value for a `file`-type input (like the default path "path/to/my/input_bam" for input `bam` in [`bam_chrom_counter.cwl`](contrib/beginner_example/cwl_v1.0/bam_chrom_counter.cwl)), you need to upload this file to a DNAnexus project and then replace the local path in the CWL with its full DNAnexus URI, e.g. `dx://project-XXX:file-YYY`.
 
-2. Install `cwl-upgrader` and upgrade the CWL files to v1.2 (since they are not already):
+2. Install `cwl-upgrader` and upgrade the CWL files to v1.2 (needed in this case as CWL files are in CWL v1.0):
 
    ```
    $ pip3 install cwl-upgrader
 
-   # upgrade all dependent CWL files, which will be saved in the current directory
+   # upgrade all dependent CWL files, which will be saved in the current working directory
    $ cd contrib/beginner_example
    $ cwl-upgrader cwl_v1.0/bam_chrom_counter.cwl cwl_v1.0/slice_bam.cwl cwl_v1.0/count_bam.cwl
    ```
 
-3. Install `sbpack` package and run the `cwlpack` command on the top-level workflow file to build the "packed" one as [`bam_chrom_counter.cwl.json`](contrib/beginner_example/bam_chrom_counter.cwl.json):
+3. Install `sbpack` package and run the `cwlpack` command on the top-level workflow file to build a single packed [`bam_chrom_counter.cwl.json`](contrib/beginner_example/bam_chrom_counter.cwl.json) file containing the top level workflow and all the steps it depends on:
    ```
    $ pip3 install sbpack
    $ cwlpack --add-ids --json bam_chrom_counter.cwl > bam_chrom_counter.cwl.json
