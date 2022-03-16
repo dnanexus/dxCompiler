@@ -13,7 +13,11 @@ import dx.core.ir.Callable
 import dx.core.CliUtils.Termination
 import dx.util.{FileUtils, JsUtils, Logger, SysUtils}
 import dxCompiler.Main
-import dxCompiler.Main.{SuccessfulCompileIR, SuccessfulCompileNativeNoTree}
+import dxCompiler.Main.{
+  SuccessfulCompileIR,
+  SuccessfulCompileNativeNoTree,
+  SuccessfulDescribeJsonTree
+}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -549,7 +553,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
           case (Constants.Checksum, JsString(_))                   => () // ignore
           case (Constants.SourceCode, JsString(_))                 => () // ignore
           case (Constants.ParseOptions, JsObject(_))               => () // ignore
-          // old values for sourceCode - can probalby delete these
+          case (Constants.DocContents, JsString(_))                => () // ignore
+          // old values for sourceCode - can probably delete these
           case ("womSourceCode", JsString(_))        => () // ignore
           case ("wdlSourceCode", JsString(_))        => () // ignore
           case (Constants.OriginalName, JsString(_)) => () // ignore
@@ -1359,6 +1364,30 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         throw new Exception(s"expected single applet not ${other}")
     }
     appletId shouldBe appletId2
+  }
+
+  it should "reuse identical blocks/frags" in {
+    val pathV1 = pathFromBasename("bugs", "apps_994_v1.wdl")
+    val pathV2 = pathFromBasename("bugs", "apps_994_v2.wdl")
+    val args = pathV1.toString :: cFlags
+    val appletIdV1 = Main.compile(args.toVector) match {
+      case SuccessfulCompileNativeNoTree(_, Vector(appletId)) => appletId
+      case other =>
+        throw new Exception(s"expected single applet not ${other}")
+    }
+    val stagesV1 = Main.describe(Vector(appletIdV1)) match {
+      case SuccessfulDescribeJsonTree(treeJs: JsObject) => {
+        treeJs.getFields("stages").map(_.asJsObject.getFields("id", "name"))
+      }
+    }
+    val args2 = pathV2.toString :: cFlagsReuse
+    val appletId2 = Main.compile(args2.toVector) match {
+      case SuccessfulCompileNativeNoTree(_, Vector(appletId)) => appletId
+      case other =>
+        throw new Exception(s"expected single applet not ${other}")
+    }
+    appletIdV1 shouldBe appletId2
+    stagesV1 shouldBe ()
   }
 
 //  it should "compile a task with a string + int concatenation" taggedAs NativeTest in {
