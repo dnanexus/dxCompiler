@@ -137,7 +137,7 @@ After launching the workflow analysis, you can monitor it on the CLI following [
 
 dxCompiler requires the source CWL file to be "packed" as a cwl.json file, which contains a single compound workflow with all the dependent processes included. Additionally, you may need to upgrade the version of your workflow to 1.2.
 
-We'll use the `bam_chrom_counter` workflow that was used as a WDL example above to illustrate upgrading, packing and running a CWL workflow. This workflow is written in CWL v1.0 and the main `Workflow` in `bam_chrom_counter.cwl` will call the `CommandLineTool` described in `slice_bam.cwl` and `count_bam.cwl` in order as two workflow steps.
+We'll use the `bam_chrom_counter` workflow that was used as a WDL example above to illustrate upgrading, packing and running a CWL workflow. This workflow is written in CWL v1.0 and the top-level `Workflow` in `bam_chrom_counter.cwl` will call the `CommandLineTool` described in `slice_bam.cwl` and `count_bam.cwl` in order as two workflow steps.
 
 [`bam_chrom_counter.cwl`](contrib/beginner_example/cwl_v1.0/bam_chrom_counter.cwl)
 
@@ -260,7 +260,7 @@ Before compilation, follow the steps below to preprocess these CWL files:
    ```
    $ pip3 install cwl-upgrader
 
-   # upgrade all your workflow and dependent CWL files and save them in the current directory
+   # upgrade all dependent CWL files, which will be saved in the current directory
    $ cd contrib/beginner_example
    $ cwl-upgrader cwl_v1.0/bam_chrom_counter.cwl cwl_v1.0/slice_bam.cwl cwl_v1.0/count_bam.cwl
    ```
