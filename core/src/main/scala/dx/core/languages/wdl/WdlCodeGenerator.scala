@@ -285,14 +285,13 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
   }
 
   def createStandAloneTask(task: TAT.Task): TAT.Document = {
-    val doc = TAT.Document(StringFileNode.empty,
-                           TAT.Version(outputWdlVersion)(SourceLocation.empty),
-                           structDefs :+ task,
-                           None,
-                           CommentMap.empty)(
+    TAT.Document(StringFileNode.empty,
+                 TAT.Version(outputWdlVersion)(SourceLocation.empty),
+                 structDefs :+ task,
+                 None,
+                 CommentMap.empty)(
         SourceLocation.empty
     )
-    doc
   }
 
   def createStandAloneFrag(fragSource: String): TAT.Document = {
