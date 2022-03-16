@@ -1,183 +1,209 @@
 {
     "cwlVersion": "v1.2",
-    "$graph": [
+    "class": "Workflow",
+    "id": "bam_chrom_counter",
+    "requirements": [
         {
-            "id": "bam_chrom_counter",
-            "class": "Workflow",
-            "requirements": [
-                {
-                    "class": "ScatterFeatureRequirement"
-                }
-            ],
-            "inputs": [
-                {
-                    "id": "bam",
-                    "type": "File"
-                }
-            ],
-            "outputs": [
-                {
-                    "id": "bai",
-                    "type": "File",
-                    "outputSource": "slice_bam/bai"
-                },
-                {
-                    "id": "count",
-                    "type": "int[]",
-                    "outputSource": "count_bam/count"
-                }
-            ],
-            "steps": [
-                {
-                    "id": "slice_bam",
-                    "run": "#slice_bam",
-                    "in": {
-                        "bam": "bam"
+            "class": "ScatterFeatureRequirement"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "bam",
+            "type": "File"
+        }
+    ],
+    "steps": [
+        {
+            "id": "slice_bam",
+            "run": {
+                "class": "CommandLineTool",
+                "id": "slice_bam",
+                "requirements": [
+                    {
+                        "class": "InlineJavascriptRequirement"
                     },
-                    "out": [
-                        "bai",
-                        "slices"
-                    ]
-                },
-                {
-                    "id": "count_bam",
-                    "run": "#count_bam",
-                    "scatter": "bam",
-                    "in": {
-                        "bam": "slice_bam/slices"
+                    {
+                        "class": "ShellCommandRequirement"
                     },
-                    "out": [
-                        "count"
-                    ]
+                    {
+                        "class": "DockerRequirement",
+                        "dockerPull": "quay.io/biocontainers/samtools:1.12--hd5e65b6_0"
+                    },
+                    {
+                        "class": "InitialWorkDirRequirement",
+                        "listing": [
+                            {
+                                "entryname": "slice_bam.sh",
+                                "entry": "set -ex\nsamtools index $1\nmkdir slices/\nfor i in `seq $2`; do\n    samtools view -b $1 -o slices/$i.bam $i\ndone"
+                            },
+                            {
+                                "entry": "$(inputs.bam)"
+                            }
+                        ]
+                    }
+                ],
+                "hints": [
+                    {
+                        "class": "NetworkAccess",
+                        "networkAccess": true
+                    },
+                    {
+                        "class": "LoadListingRequirement",
+                        "loadListing": "deep_listing"
+                    },
+                    {
+                        "class": "NetworkAccess",
+                        "networkAccess": true
+                    },
+                    {
+                        "class": "LoadListingRequirement",
+                        "loadListing": "deep_listing"
+                    }
+                ],
+                "inputs": [
+                    {
+                        "id": "bam",
+                        "type": "File"
+                    },
+                    {
+                        "id": "num_chrom",
+                        "default": 22,
+                        "type": "int"
+                    }
+                ],
+                "baseCommand": [
+                    "sh",
+                    "slice_bam.sh"
+                ],
+                "arguments": [
+                    {
+                        "position": 0,
+                        "valueFrom": "$(inputs.bam.basename)"
+                    },
+                    {
+                        "position": 1,
+                        "valueFrom": "$(inputs.num_chrom)"
+                    }
+                ],
+                "outputs": [
+                    {
+                        "id": "bai",
+                        "type": "File",
+                        "outputBinding": {
+                            "glob": "$(inputs.bam.basename).bai"
+                        }
+                    },
+                    {
+                        "id": "slices",
+                        "type": {
+                            "type": "array",
+                            "items": "File"
+                        },
+                        "outputBinding": {
+                            "glob": "slices/*.bam"
+                        }
+                    }
+                ]
+            },
+            "in": [
+                {
+                    "source": "bam",
+                    "id": "bam"
                 }
+            ],
+            "out": [
+                "bai",
+                "slices"
             ]
         },
         {
-            "id": "slice_bam",
-            "class": "CommandLineTool",
-            "inputs": [
-                {
-                    "id": "bam",
-                    "type": "File"
-                },
-                {
-                    "id": "num_chrom",
-                    "default": 22,
-                    "type": "int"
-                }
-            ],
-            "outputs": [
-                {
-                    "id": "bai",
-                    "type": "File",
-                    "outputBinding": {
-                        "glob": "$(inputs.bam.basename).bai"
+            "id": "count_bam",
+            "run": {
+                "class": "CommandLineTool",
+                "id": "count_bam",
+                "requirements": [
+                    {
+                        "class": "InlineJavascriptRequirement"
+                    },
+                    {
+                        "class": "ShellCommandRequirement"
+                    },
+                    {
+                        "class": "DockerRequirement",
+                        "dockerPull": "quay.io/biocontainers/samtools:1.12--hd5e65b6_0"
                     }
-                },
-                {
-                    "id": "slices",
-                    "type": "File[]",
-                    "outputBinding": {
-                        "glob": "slices/*.bam"
+                ],
+                "hints": [
+                    {
+                        "class": "NetworkAccess",
+                        "networkAccess": true
+                    },
+                    {
+                        "class": "LoadListingRequirement",
+                        "loadListing": "deep_listing"
+                    },
+                    {
+                        "class": "NetworkAccess",
+                        "networkAccess": true
+                    },
+                    {
+                        "class": "LoadListingRequirement",
+                        "loadListing": "deep_listing"
                     }
-                }
-            ],
-            "requirements": [
-                {
-                    "class": "InlineJavascriptRequirement"
-                },
-                {
-                    "class": "ShellCommandRequirement"
-                },
-                {
-                    "class": "DockerRequirement",
-                    "dockerPull": "quay.io/biocontainers/samtools:1.12--hd5e65b6_0"
-                },
-                {
-                    "class": "InitialWorkDirRequirement",
-                    "listing": [
-                        {
-                            "entryname": "slice_bam.sh",
-                            "entry": "set -ex\nsamtools index $1\nmkdir slices/\nfor i in `seq $2`; do\n    samtools view -b $1 -o slices/$i.bam chr$i\ndone"
-                        },
-                        {
-                            "entry": "$(inputs.bam)"
+                ],
+                "inputs": [
+                    {
+                        "id": "bam",
+                        "type": "File",
+                        "inputBinding": {
+                            "position": 1
                         }
-                    ]
-                }
-            ],
-            "baseCommand": [
-                "sh",
-                "slice_bam.sh"
-            ],
-            "arguments": [
+                    }
+                ],
+                "baseCommand": [
+                    "samtools",
+                    "view",
+                    "-c"
+                ],
+                "stdout": "stdout",
+                "outputs": [
+                    {
+                        "id": "count",
+                        "type": "int",
+                        "outputBinding": {
+                            "glob": "stdout",
+                            "loadContents": true,
+                            "outputEval": "$(parseInt(self[0].contents))"
+                        }
+                    }
+                ]
+            },
+            "scatter": "bam",
+            "in": [
                 {
-                    "position": 0,
-                    "valueFrom": "$(inputs.bam.basename)"
-                },
-                {
-                    "position": 1,
-                    "valueFrom": "$(inputs.num_chrom)"
+                    "source": "slice_bam/slices",
+                    "id": "bam"
                 }
             ],
-            "hints": {
-                "NetworkAccess": {
-                    "networkAccess": true
-                },
-                "LoadListingRequirement": {
-                    "loadListing": "deep_listing"
-                }
-            }
+            "out": [
+                "count"
+            ]
+        }
+    ],
+    "outputs": [
+        {
+            "id": "bai",
+            "type": "File",
+            "outputSource": "slice_bam/bai"
         },
         {
-            "id": "count_bam",
-            "class": "CommandLineTool",
-            "requirements": [
-                {
-                    "class": "InlineJavascriptRequirement"
-                },
-                {
-                    "class": "ShellCommandRequirement"
-                },
-                {
-                    "class": "DockerRequirement",
-                    "dockerPull": "quay.io/biocontainers/samtools:1.12--hd5e65b6_0"
-                }
-            ],
-            "inputs": [
-                {
-                    "id": "bam",
-                    "type": "File",
-                    "inputBinding": {
-                        "position": 1
-                    }
-                }
-            ],
-            "baseCommand": [
-                "samtools",
-                "view",
-                "-c"
-            ],
-            "outputs": [
-                {
-                    "id": "count",
-                    "type": "int",
-                    "outputBinding": {
-                        "glob": "stdout",
-                        "loadContents": true,
-                        "outputEval": "$(parseInt(self[0].contents))"
-                    }
-                }
-            ],
-            "stdout": "stdout",
-            "hints": {
-                "NetworkAccess": {
-                    "networkAccess": true
-                },
-                "LoadListingRequirement": {
-                    "loadListing": "deep_listing"
-                }
-            }
+            "id": "count",
+            "type": {
+                "type": "array",
+                "items": "int"
+            },
+            "outputSource": "count_bam/count"
         }
     ]
 }
