@@ -143,7 +143,7 @@ dxCompiler requires the source CWL file to be "packed" as a cwl.json file, which
     ```
 2. Install `sbpack` package and use the `cwlpack` command on the top-level workflow file to build the "packed" one:
     ```
-    $ pip3 install https://github.com/rabix/sbpack.git`
+    $ pip3 install https://github.com/rabix/sbpack.git
     $ cwlpack --add-ids --json my-workflow.cwl > my-workflow.cwl.json
     ```
 3. De-localize all local paths referenced in your CWL: if your CWL specifies a local path, e.g. a schema or a default value for a `file`-type input, you need to upload those files to a DNAnexus project and then replace the local path in your CWL with a DNAnexus URI, e.g. `dx://project-XXX:file-YYY`.
