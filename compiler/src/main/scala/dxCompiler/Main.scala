@@ -890,7 +890,7 @@ object Main {
         |                             outputs. Implies -locked.
         |      -waitOnUpload          Whether to wait for each file upload to complete.
         |
-        |  dxni
+        |  dxni (WDL only)
         |    DNAnexus Native call Interface. Creates stubs for calling DNAnexus executables 
         |    (apps/applets/workflows), and stores them as WDL tasks in a local file. Enables 
         |    calling existing platform executables without modification.
