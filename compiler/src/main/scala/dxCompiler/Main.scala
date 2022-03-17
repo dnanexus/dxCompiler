@@ -833,7 +833,14 @@ object Main {
         |    Compile a WDL or CWL file to a DNAnexus workflow or applet.
         |    options
         |      -archive               Archive older versions of applets.
-        |      -compileMode <string>  Compilation mode - a debugging flag for internal use.
+        |      -compileMode [IR, NativeWithoutRuntimeAsset, All]
+        |                             Compilation mode. If not specified, the compilation mode 
+        |                             is "All" and the compiler will translate and compile the workflow 
+        |                             file into applications that are bundled with runtime asset.
+        |                             Use "IR" if you only want to translate the file and generate
+        |                             the DNAnexus JSON input file from a standard-formatted one
+        |                             without compilation, or use "NativeWithoutRuntimeAsset" if you 
+        |                             don't want to package the runtime asset with generated applications.
         |      -defaults <string>     JSON file with standard-formatted default values.
         |      -defaultInstanceType <string>
         |                             The default instance type to use for "helper" applets
