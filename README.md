@@ -301,6 +301,7 @@ $ dx run bam_chrom_counter -istage-common.bam=project-BQbJpBj0bvygyQxgQ1800Jkk:f
   * The [alternative workflow output syntax](https://github.com/openwdl/wdl/blob/main/versions/draft-2/SPEC.md#outputs) that has been deprecated since WDL draft2 is not supported
   * The `call ... after` syntax introduced in WDL 1.1 is not yet supported
 * CWL only
+  * Calling native DNAnexus apps/applets in CWL workflow using `dxni` is not supported.
   * `SoftwareRequirement` and `InplaceUpdateRequirement` are not yet supported
   * Publishing a dxCompiler-generated workflow as a global workflow is not supported
 
