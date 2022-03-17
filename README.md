@@ -8,7 +8,7 @@ The following standards are supported:
 * WDL: draft-2, 1.0, and 1.1
 * CWL: 1.2
 
-Support for WDL 2.0 (aka 'development') is under active development and not yet production-ready. CWL 1.0 and 1.1 are not supported but can be upgraded to 1.2 to be compiled (see [Preprocess CWL workflow](#preprocess-cwl-workflow))
+Support for WDL 2.0 (aka 'development') is under active development and not yet production-ready. CWL 1.0 and 1.1 are not supported but can be upgraded to 1.2 to be compiled (see [Preprocess CWL workflow](#preprocess-cwl-workflow)).
 
 ## Setup
 
@@ -120,7 +120,7 @@ The generated workflow can be executed from the web UI (see instructions [here](
 dx run bam_chrom_counter -istage-common.bam=project-BQbJpBj0bvygyQxgQ1800Jkk:file-FpQKQk00FgkGV3Vb3jJ8xqGV
 ```
 
-Alternatively, you can also convert a [Cromwell JSON format](https://software.broadinstitute.org/wdl/documentation/inputs.php) [input file](contrib/beginner_example/bam_chrom_counter_input.json) into an DNAnexus format when compiling the workflow.  Then you can pass the DNAnexus input file to `dx run` using `-f` option as described in detail [here](doc/ExpertOptions.md###inputs).
+Alternatively, you can also convert a [Cromwell JSON format](https://software.broadinstitute.org/wdl/documentation/inputs.php) [input file](contrib/beginner_example/bam_chrom_counter_input.json) into a DNAnexus format when compiling the workflow.  Then you can pass the DNAnexus input file to `dx run` using `-f` option as described in detail [here](doc/ExpertOptions.md###inputs).
 
 ```
 $ java -jar dxCompiler.jar compile bam_chrom_counter.wdl -project project-xxxx -folder /my/workflows/ -inputs bam_chrom_counter_input.json
