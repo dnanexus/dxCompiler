@@ -1,20 +1,21 @@
 # Release Notes
 
-## 2.9.2 2022-03-15
+## 2.10.0 2022-03-17
 
 * CWL: All tasks and workflows conformance tests now pass 
-* CWL: Allow a CWL identifier that starts with a number or other characters disallowed by the DNAnexus platform
-  * Valid CWL IDs starting with disallowed characters will be padded with an extra "\_\_\_" when generating the full encoded name, which will still be a valid CWL ID (as an URI) when decoded.
+* CWL: Allow a valid CWL identifier that starts with a number or other characters disallowed by the DNAnexus platform
+  * Valid CWL IDs starting with disallowed characters will be padded with an extra "\_\_\_" when generating the full encoded name, which will still be a valid CWL ID (as an URI) when decoded
 * CWL: Fix to an error with execution of nested workflow step due to incorrect step identifiers. Previously it prevented running of workflows with the `--single-process` flag.
-* WDL: Minor fixes with directory path handling when passing `-separateOutputs` flag (in the `dxFileAccessProtocols` dependency).
-  * When a workflow was [compiled with this flag](https://github.com/dnanexus/dxCompiler/blob/fa748771fbefe30bb9d311fc891b36696d683eaa/doc/ExpertOptions.md#compiling-workflow), it would result in an error at runtime saying "InvalidInput: Folder path must start with /."
+* WDL: Minor fixes with directory path handling when passing `-separateOutputs` flag
+  * When a workflow was [compiled with the -separateOutputs flag](https://github.com/dnanexus/dxCompiler/blob/fa748771fbefe30bb9d311fc891b36696d683eaa/doc/ExpertOptions.md#compiling-workflow), it would result in an error at runtime saying "InvalidInput: Folder path must start with /."
+* WDL: Fix an issue with optional identifiers not found when they were a part of an unused expression
 * Fix an issue where a `dbcluster` object stored in a project in which a workflow was run was causing a runtime error, if the workflow was compiled with the `-reorg` flag.
 
 ### Dependency updates
 
 #### dxApi 0.13.2
 
-* Added `database` and `dbcluster` to the list of DNAnexus data objects that are recognized and can be described. 
+* Added `database` and `dbcluster` to the list of DNAnexus data objects that are recognized and can be described
 
 #### dxFileAccessProtocols 0.5.4
 
