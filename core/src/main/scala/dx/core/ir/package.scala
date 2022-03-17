@@ -146,7 +146,6 @@ object ExecutableKind {
   */
 trait RuntimeRequirement
 
-// TODO case class Application defined here
 // document = where to set source code
 
 /**

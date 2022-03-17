@@ -63,6 +63,7 @@ class CallableTranslatorTest extends AnyFlatSpec with Matchers {
         typeAliases = typeAliases,
         versionSupport = versionSupport
     )
+    deconstructedCallables("reuse") should equal(deconstructedCallables("reuse"))
     deconstructedCallables("reuse_print") should not equal deconstructedCallables("reuse_multiply")
     deconstructedCallables("reuse_block_2") should not equal deconstructedCallables("reuse_block_4")
     deconstructedCallables("reuse_frag_stage-12") should not equal deconstructedCallables(
@@ -100,6 +101,9 @@ class CallableTranslatorTest extends AnyFlatSpec with Matchers {
     )
     deconstructedCallablesV1("reuse_frag_stage-0") should not equal (deconstructedCallablesV2(
         "reuse_frag_stage-0"
+    ))
+    deconstructedCallablesV1("reuse") should not equal (deconstructedCallablesV2(
+        "reuse"
     ))
   }
 }

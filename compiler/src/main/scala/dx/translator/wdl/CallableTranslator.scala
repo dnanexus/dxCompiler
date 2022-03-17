@@ -528,7 +528,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         )
         val blockName = s"${wfName}_block_${pathStr}"
 
-        // TODO block subworkflow is created here
+        // A block subworkflow is created here
         val (subwf, auxCallables, _) = translateWorkflowLocked(
             blockName,
             inputs,
@@ -1044,7 +1044,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       }
       val staticFileDependencies = translateStaticFileDependencies(privateVariables)
 
-      val standAloneBlock = WdlDocumentSource(codegen.createWdlBlockSrc(subBlocks), versionSupport)
+      val standAloneBlock =
+        WdlDocumentSource(codegen.createWdlBlockSrc(subBlocks, wf), versionSupport)
       (Workflow(
            name = wfName,
            inputs = wfInputLinks,

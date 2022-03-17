@@ -3,7 +3,7 @@ package dx.core.languages.wdl
 import dx.core.ir.{Application, Callable, ExecutableKindApplet, ExecutableKindNative, SourceCode}
 import dx.util.{Logger, StringFileNode}
 import spray.json.JsValue
-import wdlTools.eval.WdlValues
+import wdlTools.eval.{DefaultEvalPaths, IoSupport, WdlValues}
 import wdlTools.generators.code.{Utils => GeneratorUtils}
 import wdlTools.syntax.{CommentMap, Quoting, SourceLocation, WdlVersion}
 import wdlTools.types.{GraphUtils, TypeGraph, WdlTypes, TypedAbstractSyntax => TAT}
@@ -285,7 +285,9 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
   }
 
   def createStandAloneTask(task: TAT.Task): TAT.Document = {
-    TAT.Document(StringFileNode.empty,
+    val ioSupp = IoSupport(DefaultEvalPaths.empty)
+    val srcString = ioSupp.readFilePosition(task.loc.source.toString, task.loc)
+    TAT.Document(StringFileNode(contents = srcString),
                  TAT.Version(outputWdlVersion)(SourceLocation.empty),
                  structDefs :+ task,
                  None,
@@ -304,12 +306,12 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
     )(SourceLocation.empty)
   }
 
-  def createWdlBlockSrc(subBlocks: Vector[WdlBlock]): TAT.Document = {
+  def createWdlBlockSrc(subBlocks: Vector[WdlBlock], wf: TAT.Workflow): TAT.Document = {
     TAT.Document(
         source = StringFileNode(contents = subBlocks.map(_.prettyFormat).mkString),
         version = TAT.Version(outputWdlVersion)(SourceLocation.empty),
         elements = structDefs,
-        workflow = None,
+        workflow = Some(wf),
         comments = CommentMap.empty
     )(SourceLocation.empty)
   }
@@ -399,9 +401,10 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
         .map { case (_, task) => task }
 
     val wfWithoutImportCalls = wf.copy(body = unqualifyCallNames(wf.body))(wf.loc)
-
+    val ioSupp = IoSupport(DefaultEvalPaths.empty)
+    val srcString = ioSupp.readFilePosition(wf.loc.source.toString, wf.loc)
     TAT.Document(
-        StringFileNode.empty,
+        StringFileNode(contents = srcString),
         TAT.Version(outputWdlVersion)(SourceLocation.empty),
         structDefs ++ tasks,
         Some(wfWithoutImportCalls),
