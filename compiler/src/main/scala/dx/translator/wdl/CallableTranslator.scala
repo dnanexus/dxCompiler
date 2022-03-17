@@ -1044,14 +1044,12 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       }
       val staticFileDependencies = translateStaticFileDependencies(privateVariables)
 
-      val standAloneBlock =
-        WdlDocumentSource(codegen.createWdlBlockSrc(subBlocks, wf), versionSupport)
       (Workflow(
            name = wfName,
            inputs = wfInputLinks,
            outputs = wfOutputs,
            stages = finalStages,
-           document = standAloneBlock,
+           document = WdlWorkflowSource(wf, versionSupport),
            locked = true,
            level = level,
            attributes = meta.translate,
