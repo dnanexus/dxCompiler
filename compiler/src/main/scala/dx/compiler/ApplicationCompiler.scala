@@ -609,7 +609,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
           }))
         case _ => Map.empty
       }
-    // compress and base64 encode the source code
+    // compress and base64 encode the source code - source now comes from Document.source, not from Document.elements
     val sourceDocStringEncoded = CodecUtils.gzipAndBase64Encode(applet.document.getDocContents)
     // compress and base64 encode the instance types, unless we specify that we want to
     // resolve them at runtime, which requires that the user running the applet has
@@ -617,7 +617,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     val dbEncoded = Option.when(instanceTypeSelection == InstanceTypeSelection.Static) {
       CodecUtils.gzipAndBase64Encode(instanceTypeDb.toJson.prettyPrint)
     }
-    // serilize default runtime attributes
+    // serialize default runtime attributes
     val defaultRuntimeAttributes = extras
       .flatMap(ex =>
         ex.defaultRuntimeAttributes.map(attr => JsObject(ValueSerde.serializeMap(attr)))

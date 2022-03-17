@@ -24,9 +24,9 @@ class CallableTranslatorTest extends AnyFlatSpec with Matchers {
   private def getDeconstructedCallables(doc: TAT.Document,
                                         typeAliases: Bindings[String, WdlTypes.T_Struct],
                                         versionSupport: VersionSupport): Map[String, String] = {
-    val wdlBundleV1: WdlBundle = WdlBundle.create(doc = doc)
-    val callableTranslatorV1: CallableTranslator = CallableTranslator(
-        wdlBundle = wdlBundleV1,
+    val wdlBundle: WdlBundle = WdlBundle.create(doc = doc)
+    val callableTranslator: CallableTranslator = CallableTranslator(
+        wdlBundle = wdlBundle,
         typeAliases = typeAliases.toMap,
         locked = false,
         defaultRuntimeAttrs = Map.empty,
@@ -37,11 +37,11 @@ class CallableTranslatorTest extends AnyFlatSpec with Matchers {
         instanceTypeSelection = InstanceTypeSelection.Static,
         versionSupport = versionSupport
     )
-    val depOrder: Vector[TAT.Callable] = wdlBundleV1.sortByDependencies()
+    val depOrder: Vector[TAT.Callable] = wdlBundle.sortByDependencies()
     val (_, sortedCallables) =
       depOrder.foldLeft((Map.empty[String, Callable], Vector.empty[Callable])) {
         case ((allCallables, sortedCallables), callable) =>
-          val translatedCallables = callableTranslatorV1.translateCallable(callable, allCallables)
+          val translatedCallables = callableTranslator.translateCallable(callable, allCallables)
           (
               allCallables ++ translatedCallables.map(c => c.name -> c).toMap,
               sortedCallables ++ translatedCallables

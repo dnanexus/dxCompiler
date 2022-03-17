@@ -526,11 +526,10 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                 |    closureInputs = $closureInputs
                 |""".stripMargin
         )
-        val blockName = s"${wfName}_block_${pathStr}"
 
         // A block subworkflow is created here
         val (subwf, auxCallables, _) = translateWorkflowLocked(
-            blockName,
+            s"${wfName}_block_${pathStr}",
             inputs,
             closureInputs,
             outputs,
