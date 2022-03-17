@@ -903,7 +903,7 @@ object Main {
         |    -project <string>        Platform project (defaults to currently selected project).
         |    -language <string> [ver] Which language to use? May be WDL or CWL. You can optionally 
         |                             specify a version. Currently: i. WDL: draft-2, 1.0, and 1.1, and
-        |                             ii. CWL: 1.2 are fully supported and WDL development is partially
+        |                             ii. CWL: 1.2 are supported and WDL development is partially
         |                             supported. The default is to auto-detect the language from the
         |                             source file.
         |    -quiet                   Do not print warnings or informational outputs.
