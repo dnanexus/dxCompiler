@@ -581,7 +581,7 @@ Currently, dxCompiler does not support this feature. However, there is a [sugges
 
 # DNAnexus files as outputs
 
-User can work with DNAnexus files inside non-dockerized WDL tasks using dx commands and create tasks or workflows that output DNAnexus files. This can be used to generate multiple outputs without storing them all on local filesystem.
+User can work with DNAnexus files inside non-dockerized WDL tasks using dx commands and create tasks or workflows that output DNAnexus files. This can be used to generate multiple outputs without storing them all on local filesystem. DNAnexus output files need to be in closed state.
 
 ## Example 1: DNAnexus files as outputs
 ```wdl
@@ -595,7 +595,7 @@ task find_fastq_in_folder {
     fq=$(dx find data --name "*.fastq.gz" --path ${folder} --norecurse --brief)
     for file_id in $fq
     do
-    echo "dx://${file_id}"
+        echo "dx://${file_id}"
     done
   >>>
   output {
@@ -607,21 +607,23 @@ task find_fastq_in_folder {
 ## Example 2: Uploading local file to DNAnexus
 
 ```wdl
-task upload_and_delete{
-  input{
-    Array[File] tar_files
-  }
-  command<<<
-    scatter(f in files) {
-      tar -zxf ${f} -C /tmp/${f}
-      file_id=$(dx upload /tmp/${f} --brief)
-      rm /tmp/${f}
-      echo "dx://${file_id}"
+task unzip_files {
+    input {
+        Array[File] zipped_files
     }
-  >>>
-  output{
-    Array[File] fq = read_lines(stdout())
-  }
+    command <<<
+        for f in ~{sep='' zipped_files}; do
+            gunzip "${f}"
+            f_unzipped="${f%%.gz}"
+            file_id=$(dx upload "${f_unzipped}" --brief --tag unzipped --project ${DX_WORKSPACE_ID} --wait)
+            # clean up the unzipped file to save local disk space
+            rm "${f_unzipped}"
+            echo "dx://${DX_WORKSPACE_ID}:${file_id}"
+        done
+    >>>
+    output {
+        Array[File] files_out = read_lines(stdout())
+    }
 }
 ```
 
