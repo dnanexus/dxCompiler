@@ -1375,10 +1375,12 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       case other =>
         throw new Exception(s"expected single applet not ${other}")
     }
-    val stagesV1 = Main.describe(Vector(appletIdV1)) match {
-      case SuccessfulDescribeJsonTree(treeJs: JsObject) => {
-        treeJs.getFields("stages").map(_.asJsObject.getFields("id", "name"))
-      }
+    val descV1 = Main.describe(Vector(appletIdV1))
+
+    val stagesV1 = descV1 match {
+      case SuccessfulDescribeJsonTree(jsTree: JsObject) =>
+        jsTree
+          .getFields("stages")
     }
     val args2 = pathV2.toString :: cFlagsReuse
     val appletId2 = Main.compile(args2.toVector) match {
