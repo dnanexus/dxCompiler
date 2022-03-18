@@ -28,7 +28,7 @@ import dx.core.languages.wdl.{
 import wdlTools.eval.{DefaultEvalPaths, Eval, EvalException, WdlValueBindings, WdlValues}
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 import wdlTools.types.WdlTypes._
-import dx.util.{Adjuncts, FileSourceResolver, Logger}
+import dx.util.{Adjuncts, FileSourceResolver, Logger, StringFileNode}
 import wdlTools.syntax.Quoting
 
 import scala.annotation.tailrec
@@ -674,7 +674,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       }.toMap
 
       val standAloneFrag =
-        WdlDocumentSource(codegen.createStandAloneFrag(block.prettyFormat), versionSupport)
+        WdlDocumentSource(codegen.createStandAloneFrag(block), versionSupport)
       val applet = Application(
           s"${wfName}_frag_${getStageId()}",
           inputParams,
@@ -1042,13 +1042,15 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         case e: TAT.PrivateVariable => e
       }
       val staticFileDependencies = translateStaticFileDependencies(privateVariables)
-
+      StringFileNode(subBlocks.map(_.prettyFormat).mkString("\n"))
+      val wfCopy =
+        wf.copy(source = StringFileNode(subBlocks.map(_.prettyFormat).mkString("\n")))(wf.loc)
       (Workflow(
            name = wfName,
            inputs = wfInputLinks,
            outputs = wfOutputs,
            stages = finalStages,
-           document = WdlWorkflowSource(wf, versionSupport),
+           document = WdlWorkflowSource(wfCopy, versionSupport),
            locked = true,
            level = level,
            attributes = meta.translate,
@@ -1161,7 +1163,9 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         Vector(taskTranslator.apply)
       case wf: TAT.Workflow =>
         val wfAttrs = perWorkflowAttrs.get(wf.name)
-        val wfTranslator = WdlWorkflowTranslator(wf, availableDependencies, wfAttrs)
+        // Next is a hack to force checksums to be calculated on the source code not directly form the doc
+        val wfCopy = wf.copy(source = StringFileNode(wf.body.toString))(wf.loc)
+        val wfTranslator = WdlWorkflowTranslator(wfCopy, availableDependencies, wfAttrs)
         wfTranslator.apply
     }
   }

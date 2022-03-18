@@ -31,7 +31,7 @@ case class WdlWorkflowSource(workflow: TAT.Workflow, versionSupport: VersionSupp
   override def optionsToJson: JsValue = versionSupport.wdlOptions.toJson
 
   def getDocContents: String = {
-    workflow.body.mkString
+    workflow.source.readLines.mkString
   }
 }
 
@@ -296,22 +296,12 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
     )
   }
 
-  def createStandAloneFrag(fragSource: String): TAT.Document = {
+  def createStandAloneFrag(block: WdlBlock): TAT.Document = {
     TAT.Document(
-        source = StringFileNode(contents = fragSource),
+        source = StringFileNode(contents = block.prettyFormat),
         version = TAT.Version(outputWdlVersion)(SourceLocation.empty),
         elements = structDefs,
         workflow = None,
-        comments = CommentMap.empty
-    )(SourceLocation.empty)
-  }
-
-  def createWdlBlockSrc(subBlocks: Vector[WdlBlock], wf: TAT.Workflow): TAT.Document = {
-    TAT.Document(
-        source = StringFileNode(contents = subBlocks.map(_.prettyFormat).mkString),
-        version = TAT.Version(outputWdlVersion)(SourceLocation.empty),
-        elements = structDefs,
-        workflow = Some(wf),
         comments = CommentMap.empty
     )(SourceLocation.empty)
   }

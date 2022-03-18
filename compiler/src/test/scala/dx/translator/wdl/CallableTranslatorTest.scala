@@ -1,6 +1,6 @@
 package dx.translator.wdl
 
-import dx.core.ir.{Application, Callable, InstanceTypeSelection, SourceCode, Workflow}
+import dx.core.ir.{Application, Callable, InstanceTypeSelection, Workflow}
 import dx.core.languages.wdl.{VersionSupport, WdlBundle}
 import dx.translator.DefaultReorgSettings
 import dx.util.Bindings
@@ -14,11 +14,6 @@ class CallableTranslatorTest extends AnyFlatSpec with Matchers {
 
   private def pathFromBasename(dir: String, basename: String): Path = {
     Paths.get(getClass.getResource(s"/${dir}/${basename}").getPath)
-  }
-
-  private def docOrContents(srcDoc: SourceCode): String = srcDoc.getDocContents match {
-    case "" => srcDoc.toString
-    case _  => srcDoc.getDocContents
   }
 
   private def getDeconstructedCallables(doc: TAT.Document,
@@ -49,9 +44,9 @@ class CallableTranslatorTest extends AnyFlatSpec with Matchers {
       }
     sortedCallables.map {
       case Application(name, _, _, _, _, _, document, _, _, _, _, _) =>
-        name -> docOrContents(document)
+        name -> document.getDocContents
       case Workflow(name, _, _, _, document, _, _, _, _, _, _) =>
-        name -> docOrContents(document)
+        name -> document.getDocContents
     }.toMap
   }
 

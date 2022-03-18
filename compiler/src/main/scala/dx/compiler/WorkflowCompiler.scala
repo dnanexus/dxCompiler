@@ -602,7 +602,7 @@ case class WorkflowCompiler(separateOutputs: Boolean,
     // compress and base64 encode the source code
     val sourceDetails = Map(
         Constants.SourceCode -> JsString(
-            CodecUtils.gzipAndBase64Encode(workflow.document.toString)
+            CodecUtils.gzipAndBase64Encode(workflow.document.getDocContents)
         ),
         Constants.ParseOptions -> workflow.document.optionsToJson
     )
