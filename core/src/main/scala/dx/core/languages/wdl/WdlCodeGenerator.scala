@@ -296,23 +296,6 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
     )
   }
 
-  /**
-    * Creates a document for Frag applet. Main Idea is to populate the `source` attribute
-    * to further use for checksum calculations when deciding whether an applet exists or should be rebuilt.
-    * These checks are happening in ApplicationCompiler.scala via WdlDocumentGenerator.getDocContents
-    * @param block A block object that will be pretty-formatted to pass a string to the source
-    * @return A document object to be converted into a WdlDocumentSource
-    */
-  def createStandAloneFrag(block: WdlBlock): TAT.Document = {
-    TAT.Document(
-        source = StringFileNode(contents = block.prettyFormat),
-        version = TAT.Version(outputWdlVersion)(SourceLocation.empty),
-        elements = structDefs,
-        workflow = None,
-        comments = CommentMap.empty
-    )(SourceLocation.empty)
-  }
-
   /*
    A workflow can import other libraries:
 

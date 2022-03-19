@@ -29,7 +29,7 @@ import wdlTools.eval.{DefaultEvalPaths, Eval, EvalException, WdlValueBindings, W
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 import wdlTools.types.WdlTypes._
 import dx.util.{Adjuncts, FileSourceResolver, Logger, StringFileNode}
-import wdlTools.syntax.Quoting
+import wdlTools.syntax.{Quoting, SourceLocation}
 
 import scala.annotation.tailrec
 import wdlTools.types.TypedAbstractSyntax.ValueString
@@ -218,11 +218,14 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       wdlBundle.adjunctFiles.getOrElse(wf.name, Vector.empty)
     private lazy val meta = WorkflowMetaTranslator(wdlBundle.version, wf.meta, adjunctFiles)
     private lazy val parameterMeta = ParameterMetaTranslator(wdlBundle.version, wf.parameterMeta)
-    override protected lazy val standAloneWorkflow: WdlDocumentSource = {
+    private lazy val dependencies: Vector[Callable] = {
       val dependencyNames = WdlUtils.deepFindCalls(wf.body).map(_.unqualifiedName).toSet
-      val dependencies =
-        availableDependencies.view.filterKeys(dependencyNames.contains).values.toVector
-      WdlDocumentSource(codegen.standAloneWorkflow(wf, dependencies), versionSupport)
+      availableDependencies.view.filterKeys(dependencyNames.contains).values.toVector
+    }
+    private lazy val standAloneWorkflowDocument: TAT.Document =
+      codegen.standAloneWorkflow(wf, dependencies)
+    override protected lazy val standAloneWorkflow: WdlDocumentSource = {
+      WdlDocumentSource(standAloneWorkflowDocument, versionSupport)
     }
 
     // Only the toplevel workflow may be unlocked. This happens
@@ -673,8 +676,11 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         param.name -> param.dxType
       }.toMap
 
-      val standAloneFrag =
-        WdlDocumentSource(codegen.createStandAloneFrag(block), versionSupport)
+      // A hacky way to introduce the fragment-only source for the downstream checks when maybe rebuilding the applet
+      // More in APPS-994
+      val wfDocCopy = standAloneWorkflowDocument
+        .copy(source = StringFileNode(block.prettyFormat))(SourceLocation.empty)
+      val standAloneFrag = WdlDocumentSource(wfDocCopy, versionSupport)
       val applet = Application(
           s"${wfName}_frag_${getStageId()}",
           inputParams,
