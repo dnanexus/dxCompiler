@@ -1,5 +1,5 @@
 version 1.0
-task upload_and_delete {
+task unzip_files {
     input {
         Array[File] zipped_files
     }
