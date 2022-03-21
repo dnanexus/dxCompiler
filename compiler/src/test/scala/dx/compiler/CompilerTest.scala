@@ -13,11 +13,7 @@ import dx.core.ir.Callable
 import dx.core.CliUtils.Termination
 import dx.util.{FileUtils, JsUtils, Logger, SysUtils}
 import dxCompiler.Main
-import dxCompiler.Main.{
-  SuccessfulCompileIR,
-  SuccessfulCompileNativeNoTree,
-  SuccessfulDescribeJsonTree
-}
+import dxCompiler.Main.{SuccessfulCompileIR, SuccessfulCompileNativeNoTree}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
