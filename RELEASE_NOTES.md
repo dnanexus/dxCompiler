@@ -1,11 +1,13 @@
 # Release Notes
 
-## in develop
+## in develop (potentially breaking)
 
 * WDL: Minor fixes with directory path handling when passing `-separateOutputs` flag (in the dependency)
 * WDL: Input variables are now evaluated even when they are not used, which is needed since they may be assigned to other (unused) variables
 * CWL: Fix to error with execution of nested workflow step due to incorrect step identifiers
-* WDL: Stages (frags/blocks) reuse applets as well. Previously only tasks were reused
+* WDL: Stages (frags/blocks) reuse applets as well. Previously only tasks were reused. **Breaking**: can break the logic 
+of any App reuse for CWL (even tasks maybe are not reused), because `ApplicationCompiler` and `WorkflowCompiler` now 
+look at the `DocContents` for checksum, and `SourceCode` attribute is now ignored.
 
 ### Dependency updates
 
