@@ -113,39 +113,6 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     }
   }
 
-  it should "reuse identical blocks/frags" in {
-    val pathV1 = pathFromBasename("bugs", "apps_994_v1.wdl")
-    val pathV2 = pathFromBasename("bugs", "apps_994_v2.wdl")
-    val args = pathV1.toString :: cFlags
-    val appletIdV1 = Main.compile(args.toVector) match {
-      case SuccessfulCompileNativeNoTree(_, Vector(appletId)) => appletId
-      case other =>
-        throw new Exception(s"expected single applet not ${other}")
-    }
-    val descV1 = Main.describe(Vector(appletIdV1))
-
-    val stagesV1 = descV1 match {
-      case SuccessfulDescribeJsonTree(jsTree: JsObject) =>
-        jsTree.getFields("stages").head match {
-          case JsArray(elements) =>
-            elements map {
-              case jsTreenest: JsObject =>
-                jsTreenest.fields.head._2.asJsObject.getFields("name", "id")
-              case _ => Vector.empty
-            }
-          case _ => Vector.empty
-        }
-    }
-    val args2 = pathV2.toString :: cFlagsReuse
-    val appletIdV2 = Main.compile(args2.toVector) match {
-      case SuccessfulCompileNativeNoTree(_, Vector(appletId)) => appletId
-      case other =>
-        throw new Exception(s"expected single applet not ${other}")
-    }
-    appletIdV1 shouldBe appletIdV2
-    stagesV1 shouldBe ()
-  }
-
   it should "compile a task with dynamic instance type selection" in {
     def compile(instanceTypeSelection: String): Map[String, JsValue] = {
       val path = pathFromBasename("compiler", "add.wdl")
