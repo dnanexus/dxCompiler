@@ -2,7 +2,9 @@
 
 ## in develop
 
-* ..
+* WDL: Stages (frags/blocks) reuse applets as well. Previously only tasks were reused. **Breaking**: can break the logic
+  of any App reuse for CWL (even tasks maybe are not reused), because `ApplicationCompiler` and `WorkflowCompiler` now
+  look at the `DocContents` for checksum, and `SourceCode` attribute is now ignored.
 
 ## 2.10.0 2022-03-17
 
