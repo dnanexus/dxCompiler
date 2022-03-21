@@ -41,7 +41,7 @@ task reuse_print {
 workflow reuse {
 
 	# Frag applet via sub-expression
-	# declaration of inputs is dofferent from V1. Therefore this frag should be rebuilt
+	# declaration of inputs is different from V1. Therefore this frag should be rebuilt
 	Int f = 1 + 10000
 	Int s = 4 + 5
 	call reuse_multiply as sub_expr {
