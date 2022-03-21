@@ -345,7 +345,8 @@ object DxNameFactory {
       case stageRegex(stage, rest) => (Option(stage), rest)
     }
     val (prefix, suffix) = splitSuffix(rest)
-    (splitParts(prefix), stage, suffix)
+    val parts = splitParts(prefix).dropWhile(_.isEmpty())
+    (parts, stage, suffix)
   }
 }
 
