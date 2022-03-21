@@ -304,6 +304,7 @@ $ dx run bam_chrom_counter -istage-common.bam=project-BQbJpBj0bvygyQxgQ1800Jkk:f
   * Calling native DNAnexus apps/applets in CWL workflow using `dxni` is not supported.
   * `SoftwareRequirement` and `InplaceUpdateRequirement` are not yet supported
   * Publishing a dxCompiler-generated workflow as a global workflow is not supported
+  * Applet and job reuse is not supported 
 
 ## Additional information
 

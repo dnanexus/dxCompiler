@@ -22,7 +22,7 @@ import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir._
 import dx.util.CodecUtils
 import dx.translator.Extras
-import spray.json._
+import spray.json.{JsValue, _}
 import dx.util.{FileSourceResolver, FileUtils, JsUtils, Logger, TraceLevel}
 
 import scala.jdk.CollectionConverters._
@@ -168,10 +168,22 @@ case class Compiler(extras: Option[Extras],
 
               |""".stripMargin
       )
+      // We need to exclude source code from the details for the checksum calculations see APPS-994
+      val detailsNoSource: Map[String, JsValue] = {
+        desc.get("details") match {
+          case Some(JsObject(details)) => details.removed(Constants.SourceCode)
+          case None                    => Map.empty
+          case other =>
+            throw new Exception(s"Bad properties json value ${other}")
+        }
+      }
+      val filteredDesc: Map[String, JsValue] = desc.removed("details") ++ Map {
+        "details" -> JsObject(detailsNoSource)
+      }
       // We need to sort the hash-tables. They are naturally unsorted,
       // causing the same object to have different checksums.
       val digest =
-        CodecUtils.md5Checksum(JsUtils.makeDeterministic(JsObject(desc)).prettyPrint)
+        CodecUtils.md5Checksum(JsUtils.makeDeterministic(JsObject(filteredDesc)).prettyPrint)
       // Add the checksum to the properties
       val existingDetails: Map[String, JsValue] =
         desc.get("details") match {
