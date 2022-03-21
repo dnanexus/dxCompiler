@@ -4,7 +4,7 @@ task unzip_files {
         Array[File] zipped_files
     }
     command <<<
-        for f in ~{sep='' zipped_files}; do
+        for f in ~{sep=' ' zipped_files}; do
             gunzip "${f}"
             f_unzipped="${f%%.gz}"
             file_id=$(dx upload "${f_unzipped}" --brief --tag unzipped --project ${DX_WORKSPACE_ID} --wait)
