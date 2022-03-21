@@ -225,6 +225,7 @@ single_tasks_list = [
     "echo_line_split",
     "opt_array",
     "stream_diff_v1",
+    "unzip_files"
 ]
 
 cwl_tools = [
