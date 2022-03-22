@@ -83,6 +83,7 @@ import scala.util.Try
 case class CwlSourceCode(source: Path) extends SourceCode {
   override val language: String = "cwl"
   override def toString: String = FileUtils.readFileContent(source)
+  def getDocContents: String = toString
 }
 
 case class ProcessTranslator(cwlBundle: CwlBundle,
