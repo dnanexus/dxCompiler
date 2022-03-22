@@ -461,15 +461,24 @@ object Extras {
   private val RuntimeAttrs =
     Set(
         "dx_instance_type",
+        // WDL default runtime attributes
         "memory",
         "disks",
         "cpu",
         "docker",
         "container",
-        // TODO: I think these are no longer allowed - they have been moved to top-level
-        "docker_registry",
-        "container_registry",
-        "custom_reorg"
+        "gpu",
+        "maxRetries",
+        "returnCodes",
+        // CWL runtime attributes used in ResourceRequirement
+        "coresMin",
+        "coresMax",
+        "ramMin",
+        "ramMax",
+        "tmpdirMin",
+        "tmpdirMax",
+        "outdirMin",
+        "outdirMax"
     )
   private val camelizeRegexp = "_([a-z\\d])".r
 
