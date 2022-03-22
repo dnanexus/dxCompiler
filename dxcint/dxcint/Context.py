@@ -1,4 +1,5 @@
 import dxpy
+import inspect
 
 
 class ContextError(Exception):
@@ -13,6 +14,12 @@ class Context(object):
             project: str
     ):
         self._project_id = self._resolve_project(project=project)
+
+    def __setattr__(self, *args):
+        if inspect.stack()[1][3] == "__init__":
+            object.__setattr__(self, *args)
+        else:
+            raise ContextError("Context class is immutable")
 
     @property
     def project_id(self):

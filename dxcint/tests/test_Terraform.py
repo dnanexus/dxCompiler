@@ -7,5 +7,11 @@ def terraform_init():
     yield Terraform()
 
 
-def build(terraform_init):
-    terraform_init.build()
+def test__wdl_asset(terraform_init):
+    built = terraform_init._wdl_asset()
+    assert "whatever" in built.keys()
+
+
+def test__cwl_asset(terraform_init):
+    built = terraform_init._cwl_asset()
+    assert "whatever" in built.keys()
