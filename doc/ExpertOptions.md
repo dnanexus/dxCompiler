@@ -1016,6 +1016,19 @@ task concat {
   }
 }
 ```
+# Workflow metadata
+
+Similar to tasks, workflows can also have `meta` AND `parameter_meta` sections that contain arbitrary workflow-level metadata. dxCompiler recognizes the following `meta` attributes and uses them when generating the native DNAnexus workflow:
+
+* `title`: A short title for the workflow. If not specified, the task name is used as the title.
+* `summary`: A short description of the workflow. If not specified, the first line of the description is used (up to 50 characters or the first period, whichever comes first).
+* `description`: A longer description of the workflow.
+* `types`: An array of DNAnexus [types](https://documentation.dnanexus.com/developer/api/data-object-lifecycle/types).
+* `tags`: An array of strings that will be added as tags on the generated applet.
+* `properties`: A hash of key-value pairs that will be added as properties on the generated applet. Both keys and values must be strings.
+* `details`: A hash of workflow details. The only key that is specifically recogized is `whatsNew`, and the formatting is handled for workflows the same way as it is for tasks.
+
+The workflow `parameter_meta` section supports the same attributes as the task `parameter_meta` section.
 
 # Setting DNAnexus-specific attributes in extras.json
 
@@ -1086,21 +1099,7 @@ In order to override the defaults for specific tasks, you can add the `perTaskDx
 
 will override the default timeout for tasks `Add` and `Inc`. It will also provide `UPLOAD` instead of `VIEW` project access to `Inc`.
 
-You are also able to specify metadata for tasks in the `defaultTaskDxAttributes` and `perTaskDxAttributes` sections, including adding citation or license information.
-
-The full set of attributes that may be specified are:
-
-* title
-* summary
-* description
-* developerNotes
-* version
-* categories
-* types
-* tags
-* properties
-* details
-* openSource
+You are also able to specify metadata for tasks in the `defaultTaskDxAttributes` and `perTaskDxAttributes` sections, including adding citation or license information. The full set of attributes that may be specified are those that can be recognized by dxCompiler as listed in [task meta](#meta-section)
 
 For example:
 
@@ -1188,6 +1187,7 @@ If you want the default scatter chunk size for this workflow to be 100, but you 
 }
 ```
 TODO: add default wf dx attr example
+TODO: add list of allowed wf attrs
 ## Job reuse
 
 By default, job results are [reused](https://documentation.dnanexus.com/user/running-apps-and-workflows/job-reuse). This is an optimization whereby when a job is run a second time, the results from the previous execution are returned, skipping job execution entirely. Sometimes, it is desirable to disable this behavior. To do so use:
@@ -1214,19 +1214,6 @@ This will be passed down through the entire workflow, sub-workflows, and tasks. 
 dx run YOUR_WORKFLOW --delay-workspace-destruction
 ```
 
-# Workflow metadata
-
-Similar to tasks, workflows can also have `meta` AND `parameter_meta` sections that contain arbitrary workflow-level metadata. dxCompiler recognizes the following `meta` attributes and uses them when generating the native DNAnexus workflow:
-
-* `title`: A short title for the workflow. If not specified, the task name is used as the title.
-* `summary`: A short description of the workflow. If not specified, the first line of the description is used (up to 50 characters or the first period, whichever comes first).
-* `description`: A longer description of the workflow.
-* `types`: An array of DNAnexus [types](https://documentation.dnanexus.com/developer/api/data-object-lifecycle/types).
-* `tags`: An array of strings that will be added as tags on the generated applet.
-* `properties`: A hash of key-value pairs that will be added as properties on the generated applet. Both keys and values must be strings.
-* `details`: A hash of workflow details. The only key that is specifically recogized is `whatsNew`, and the formatting is handled for workflows the same way as it is for tasks.
-
-The workflow `parameter_meta` section supports the same attributes as the task `parameter_meta` section.
 
 # Handling intermediate workflow outputs
 
