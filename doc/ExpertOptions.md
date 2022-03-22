@@ -1137,7 +1137,7 @@ For example:
 
 Note that `details` specified in `perTaskDxAttributes` override those that are set in the task's `meta` section.
 
-## Per-workflow attributes
+## Default and per-workflow attributes
 
 There are also attributes that can be set at the workflow level. Currently, the only attribute that can be set is the "chunk size" limit for scatters. DNAnexus executes large scatters in "chunks" of no more than 1000 jobs at a time (the default is 500). For some scatters, it may be necessary to increase or decrease the chunk size for efficient execution. You should not need to modify this attribute unless instructed to do so by the DNAnexus support team.
 
@@ -1187,7 +1187,7 @@ If you want the default scatter chunk size for this workflow to be 100, but you 
   }
 }
 ```
-
+TODO: add default wf dx attr example
 ## Job reuse
 
 By default, job results are [reused](https://documentation.dnanexus.com/user/running-apps-and-workflows/job-reuse). This is an optimization whereby when a job is run a second time, the results from the previous execution are returned, skipping job execution entirely. Sometimes, it is desirable to disable this behavior. To do so use:
