@@ -549,7 +549,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
           case (Constants.Checksum, JsString(_))                   => () // ignore
           case (Constants.SourceCode, JsString(_))                 => () // ignore
           case (Constants.ParseOptions, JsObject(_))               => () // ignore
-          // old values for sourceCode - can probalby delete these
+          case (Constants.DocContents, JsString(_))                => () // ignore
+          // old values for sourceCode - can probably delete these
           case ("womSourceCode", JsString(_))        => () // ignore
           case ("wdlSourceCode", JsString(_))        => () // ignore
           case (Constants.OriginalName, JsString(_)) => () // ignore
@@ -745,6 +746,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
           case ("execTree", JsString(_))                   => ()
           case (Constants.Version, JsString(_))            => () // ignore
           case (Constants.Checksum, JsString(_))           => () // ignore
+          case (Constants.DocContents, JsString(_))        => () // ignore
           case (Constants.SourceCode, JsString(_))         => () // ignore
           case (Constants.ParseOptions, JsObject(_))       => () // ignore
           // old values for sourceCode - can probalby delete these
@@ -1360,7 +1362,6 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     }
     appletId shouldBe appletId2
   }
-
 //  it should "compile a task with a string + int concatenation" taggedAs NativeTest in {
 //    val path = pathFromBasename("non_spec", "string_int_concat.wdl")
 //    val args = path.toString :: "-wdlMode" :: "lenient" :: cFlags

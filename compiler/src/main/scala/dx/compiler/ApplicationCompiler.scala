@@ -609,21 +609,23 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
           }))
         case _ => Map.empty
       }
-    // compress and base64 encode the source code
+    // compress and base64 encode the source code - source now comes from Document.source along with from Document.elements
     val sourceEncoded = CodecUtils.gzipAndBase64Encode(applet.document.toString)
+    val sourceDocStringEncoded = CodecUtils.gzipAndBase64Encode(applet.document.getDocContents)
     // compress and base64 encode the instance types, unless we specify that we want to
     // resolve them at runtime, which requires that the user running the applet has
     // permission to describe the project it is running in
     val dbEncoded = Option.when(instanceTypeSelection == InstanceTypeSelection.Static) {
       CodecUtils.gzipAndBase64Encode(instanceTypeDb.toJson.prettyPrint)
     }
-    // serilize default runtime attributes
+    // serialize default runtime attributes
     val defaultRuntimeAttributes = extras
       .flatMap(ex =>
         ex.defaultRuntimeAttributes.map(attr => JsObject(ValueSerde.serializeMap(attr)))
       )
     val auxDetails = Vector(
         Some(Constants.SourceCode -> JsString(sourceEncoded)),
+        Some(Constants.DocContents -> JsString(sourceDocStringEncoded)),
         Some(Constants.ParseOptions -> applet.document.optionsToJson),
         dbEncoded.map(db => Constants.InstanceTypeDb -> JsString(db)),
         defaultRuntimeAttributes.map(attr => Constants.RuntimeAttributes -> attr),
