@@ -1178,8 +1178,10 @@ If you want the default scatter chunk size for this workflow to be 100, but you 
       "scatterDefaults": {
         "chunkSize": 100
       },
-      "sample_files.file": {
-        "chunkSize": 700
+      "scatters": {
+          "sample_files.file": {
+          "chunkSize": 700
+        }
       }
     }
   }
