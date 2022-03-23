@@ -206,28 +206,28 @@ case class RequirementEvaluator(requirements: Vector[Requirement],
     // evaluated at runtime
     Vector(
         getHint {
-          case _: WorkReuseRequirement => true
-          case _                       => false
+          case _: WorkReuse => true
+          case _            => false
         },
         getHint {
-          case _: NetworkAccessRequirement => true
-          case _                           => false
+          case _: NetworkAccess => true
+          case _                => false
         },
         getHint {
-          case _: ToolTimeLimitRequirement => true
-          case _                           => false
+          case _: ToolTimeLimit => true
+          case _                => false
         },
         getHint {
           case _: SoftwareRequirement => true
           case _                      => false
         }
     ).flatten.collect {
-      case (WorkReuseRequirement(BooleanValue(allow)), _) =>
+      case (WorkReuse(BooleanValue(allow)), _) =>
         IgnoreReuseRequirement(!allow)
-      case (NetworkAccessRequirement(BooleanValue(allow)), _) =>
+      case (NetworkAccess(BooleanValue(allow)), _) =>
         // TODO: the second value (optional) should probably have some effect here
         AccessRequirement(network = if (allow) Vector("*") else Vector.empty)
-      case (ToolTimeLimitRequirement(timeLimit: NumericValue), _) =>
+      case (ToolTimeLimit(timeLimit: NumericValue), _) =>
         TimeoutRequirement(minutes =
           Some((timeLimit.decimalValue / 60).setScale(0, MaxRoundingMode).toLongExact)
         )
