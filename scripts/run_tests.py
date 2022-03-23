@@ -1161,6 +1161,8 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
                     return True
                 elif n > 1:
                     if isinstance(actual[0], dict):
+                        print(actual)
+                        print(expected)
                         actual, expected = sort_dicts(actual, expected)
                     else:
                         actual = sort_maybe_mixed(actual)
