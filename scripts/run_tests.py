@@ -1180,11 +1180,16 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
                 if n == 0:
                     return True
                 elif n > 1:
+                    print("HERE")
                     if isinstance(actual[0], dict):
+                        print("HERE2")
                         if len(actual[0]) == 1 and "$dnanexus_link" in actual[0]:
+                            print("HERE3")
                             for exp, act in zip(expected, actual):
+                                print("HERE3.5")
                                 added, removed, modified, same = dict_compare(act, exp)
                                 if modified:
+                                    print("HERE4")
                                     return False
                         print(actual)
                         print(expected)
