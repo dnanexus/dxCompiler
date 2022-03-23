@@ -1,5 +1,11 @@
+import logging
 import dxpy
 import inspect
+import os
+import re
+from pathlib import Path
+from typing import Optional
+from dxpy.api import project_new_folder
 
 
 class ContextError(Exception):
@@ -11,9 +17,14 @@ class ContextError(Exception):
 class Context(object):
     def __init__(
             self,
-            project: str
+            project: str,
+            folder: Optional[str] = None
     ):
         self._project_id = self._resolve_project(project=project)
+        self._user = dxpy.whoami()
+        self._repo_root_dir = Path(os.path.join(os.path.dirname(__file__), "../..")).resolve()
+        self._platform_build_dir = self._create_platform_build_folder(folder)
+        self._compiler_version = self._get_version()
 
     def __setattr__(self, *args):
         if inspect.stack()[1][3] == "__init__":
@@ -24,6 +35,18 @@ class Context(object):
     @property
     def project_id(self):
         return self._project_id
+
+    @property
+    def repo_root_dir(self):
+        return self._repo_root_dir
+
+    @property
+    def platform_build_dir(self):
+        return self._platform_build_dir
+
+    @property
+    def version(self):
+        return self._compiler_version
 
     @staticmethod
     def _resolve_project(project: str) -> str:
@@ -45,3 +68,39 @@ class Context(object):
                 )
             else:
                 return found_projects[0].get("id")
+
+    def _get_version(self) -> str:
+        application_conf_path = os.path.join(
+            self._repo_root_dir, "core", "src", "main", "resources", "application.conf"
+        )
+        pattern = re.compile(r"^(\s*)(version)(\s*)(=)(\s*)(\S+)(\s*)$")
+        with open(application_conf_path, "r") as fd:
+            for line in fd:
+                line_clean = line.replace('"', "").replace("'", "")
+                m = re.match(pattern, line_clean)
+                if m is not None:
+                    return m.group(6).strip()
+        raise Exception(f"version ID not found in {application_conf_path}")
+
+    def _create_platform_build_folder(self, folder: str) -> str:
+        if folder:
+            _ = self._create_build_subdirs(folder)
+        else:
+            folder = f"/builds/{self._user}/{self._compiler_version}"
+            _ = self._create_build_subdirs(base_dir=folder)
+        logging.info(f"Project: {self._project_id}.\nBuild directory {folder}")
+        return folder
+
+    def _create_build_subdirs(self, base_dir: str) -> bool:
+        """
+        Impure function. Creates destination subdirs on the platform
+        :param base_dir: str. Parent
+        :return:
+        """
+        subdirectories = (os.path.join(base_dir, x) for x in ("/applets", "/test"))
+        for subdir in subdirectories:
+            _ = project_new_folder(
+                object_id=self._project_id,
+                input_params={"folder": subdir, "parents": True}
+            )
+        return True
