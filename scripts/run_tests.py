@@ -1158,6 +1158,7 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
             if isinstance(actual, dict) and "___" in actual:
                 if len(actual) == 1 and "$dnanexus_link" in actual and len(expected) == 1 and "$dnanexus_link" in expected:
                     _, _, modified, _ = dict_compare(actual, expected)
+                    cprint("Given files are not the same ({}).".format(modified), "red")
                     return not bool(modified)
                 actual = actual["___"]
                 if isinstance(expected, dict) and "___" in expected:
@@ -1187,7 +1188,7 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
                         if (all(len(act) == 1 and isinstance(act,dict) and "$dnanexus_link" in act for act in actual)) and \
                                 (all(len(exp) == 1 and isinstance(exp,dict) and "$dnanexus_link" in exp for exp in expected)):
                             for exp, act in zip(expected, actual):
-                                if not compare_values(exp, act):
+                                if not compare_values(exp, act, field):
                                     return False
                             return True
                         actual, expected = sort_dicts(actual, expected)
