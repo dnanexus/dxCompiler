@@ -27,6 +27,7 @@ object Constants {
   val PathsAsObjects = "pathsAsObjects"
   val CompilerTag = "dxCompiler"
   val SourceCode = "sourceCode"
+  val DocContents = "docContents"
   val ParseOptions = "parseOptions"
   val Language = "language"
   val ScatterChunkSize = "scatterChunkSize"
