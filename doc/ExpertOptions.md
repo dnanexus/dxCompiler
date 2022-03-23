@@ -581,7 +581,7 @@ Currently, dxCompiler does not support this feature. However, there is a [sugges
 
 # DNAnexus files as outputs
 
-User can work with DNAnexus files inside non-dockerized WDL tasks using dx commands and create tasks or workflows that output DNAnexus files. This can be used to generate multiple outputs without storing them all on local filesystem. DNAnexus output files need to be in closed state.
+User can work with DNAnexus files inside non-dockerized WDL tasks using `dx` commands and create tasks or workflows that output DNAnexus files. This can be used to generate multiple outputs without storing them all on the local filesystem. DNAnexus output files need to be in a closed state.
 
 ## Example 1: DNAnexus files as outputs
 ```wdl
