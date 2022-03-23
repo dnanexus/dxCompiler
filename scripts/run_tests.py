@@ -1100,6 +1100,26 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
             )
             return False
 
+        def dict_compare(actual, expected):
+            d1_keys = set(actual.keys())
+            d2_keys = set(expected.keys())
+            shared_keys = d1_keys.intersection(d2_keys)
+            added = d1_keys - d2_keys
+            removed = d2_keys - d1_keys
+            modified={}
+            for o in shared_keys:
+                if not (type(actual[o]) is type(expected[o])):
+                    modified[o] = (actual[o], expected[o])
+                    continue
+                if isinstance(actual[o], dict):
+                    a, r, m, s = dict_compare(actual[o], expected[o])
+                    if not r and not m: # expected dict cannot contain more keys, actual can
+                        continue
+                elif actual[o] == expected[o]:
+                    continue
+                modified[o] = (actual[o], expected[o])
+            same = set(o for o in shared_keys if actual[o] == expected[o])
+            return added, removed, modified, same
         # Sort two lists of dicts to make them comparable. Given lists of dicts a and b:
         # 1. get the set of all keys in all dicts in both lists
         # 2. expand each dict into a list of tuples where the first element is the key and the
@@ -1161,6 +1181,11 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
                     return True
                 elif n > 1:
                     if isinstance(actual[0], dict):
+                        if len(actual[0]) == 1 and "$dnanexus_link" in actual[0]:
+                            for exp, act in zip(expected, actual):
+                                added, removed, modified, same = dict_compare(act, exp)
+                                if modified:
+                                    return False
                         print(actual)
                         print(expected)
                         actual, expected = sort_dicts(actual, expected)
