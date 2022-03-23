@@ -1156,6 +1156,9 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
 
         def compare_values(expected, actual, field):
             if isinstance(actual, dict) and "___" in actual:
+                if len(actual) == 1 and "$dnanexus_link" in actual and len(expected) == 1 and "$dnanexus_link" in expected:
+                    _, _, modified, _ = dict_compare(actual, expected)
+                    return not bool(modified)
                 actual = actual["___"]
                 if isinstance(expected, dict) and "___" in expected:
                     expected = expected["___"]
@@ -1181,14 +1184,12 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
                     return True
                 elif n > 1:
                     if isinstance(actual[0], dict):
-                        if len(actual[0]) == 1 and "$dnanexus_link" in actual[0]:
+                        if (all(len(act) == 1 and isinstance(act,dict) and "$dnanexus_link" in act for act in actual)) and \
+                                (all(len(exp) == 1 and isinstance(exp,dict) and "$dnanexus_link" in exp for exp in expected)):
                             for exp, act in zip(expected, actual):
-                                added, removed, modified, same = dict_compare(act, exp)
-                                if modified:
+                                if not compare_values(exp, act):
                                     return False
                             return True
-                        print(actual)
-                        print(expected)
                         actual, expected = sort_dicts(actual, expected)
                     else:
                         actual = sort_maybe_mixed(actual)
