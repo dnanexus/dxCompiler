@@ -1188,11 +1188,11 @@ dx run YOUR_WORKFLOW --delay-workspace-destruction
 
 # Handling intermediate workflow outputs
 
-A workflow may create a large number of files, taking up significant disk space, and incurring storage costs. Some of the files are workflow outputs, but many of them may be intermediate results that are not needed once the workflow completes. By default, all outputs are stored in one platform folder. With the `--reorg` flag, the intermediate results are moved into a subfolder named "intermediate". This is achieved by adding a stage to the workflow that reorganizes the output folder, it uses `CONTRIBUTE` access to reach into the parent project, create a subfolder, and move files into it.
+A workflow may create a large number of files, taking up significant disk space, and incurring storage costs. Some of the files are workflow outputs, but many of them may be intermediate results that are not needed once the workflow completes. By default, all outputs are stored in one platform folder. With the `-reorg` flag, the intermediate results are moved into a subfolder named "intermediate". This is achieved by adding a stage to the workflow that reorganizes the output folder, it uses `CONTRIBUTE` access to reach into the parent project, create a subfolder, and move files into it.
 
 ## Use your own applet
 
-You may want to use a different applet than the one provided with `--reorg`. To do that, write a native applet, and call it at the end your workflow.
+You may want to use a different applet than the one provided with `-reorg`. To do that, write a native applet, and call it at the end your workflow.
 
 Writing your own applet for reorganization purposes is tricky. If you are not careful, it may misplace or outright delete files. The applet:
 1. Requires `CONTRIBUTE` project access, so it can move files and folders around.
