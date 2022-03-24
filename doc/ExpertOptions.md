@@ -611,14 +611,40 @@ task fileSize {
 }
 ```
 
-There are several parameters affecting the runtime environment that can be specified in the dxapp.json file:
+## Task Runtime and Hints
 
-* `executionPolicy`: Specifies when to try to automatically restart failed jobs, and how many times
-* `timeoutPolicy`: Specifies the maximum amount of time the job can run
+### Instance type
+A task declaration has a runtime section where [native WDL runtime attributes(https://github.com/openwdl/wdl/blob/main/versions/1.1/SPEC.md#mandatory-runtime-attributes)] can be specified to customize its execution environment on the DNAnexus platform. Based on these attributes, an instance type is chosen by
+the compiler. If you wish to choose an instance type from the
+DNAnexus [native](https://documentation.dnanexus.com/developer/api/running-analyses/instance-types)
+list, this can be done by specifying the `dx_instance_type` key
+instead. For example:
+
+```
+runtime {
+   dx_instance_type: "mem1_ssd2_x4"
+}
+```
+
+If you want an instance that has a GPU chipset, set the `gpu` attribute to true. For example:
+```
+runtime {
+   memory: "4 GB"
+   cpu : 4
+   gpu : true
+}
+```
+CWL provides a different set of runtime attributes used in the ResourceRequirement, and an DNAnexus instance type will be chosen accordingly. Recognized attributes and its mapping to WDL is listed [here](CWL_v1.2.0_to_WDL_v1.md###requirements)
+
+### Addtional DNAnexus-specific runtime settings
+
+There are several parameters that also affect the runtime environment specified in the dxapp.json file https://documentation.dnanexus.com/developer/api/running-analyses/io-and-run-specifications#run-specification:
+* `runSpec.executionPolicy`: Specifies when to try to automatically restart failed jobs, and how many times
+* `runSpec.timeoutPolicy`: Specifies the maximum amount of time the job can run
 * `access`: Specifies which resources the applet can access
 * `ignoreReuse`: Specifies whether to allow the outputs of the applet to be reused
 
-These attributes can be specified in the `runtime` section of the WDL task, but their representation there is slightly different than in dxapp.json. Also note that the runtime section is different than the metadata section when it comes to attribute values - specifically, object values must be prefixed by the `object` keyword, and map values must have their keys in quotes.
+These attributes can also be specified in the `runtime` section of the WDL task, but their representation there is slightly different than in dxapp.json. Also note that the runtime section is different than the metadata section when it comes to attribute values - specifically, object values must be prefixed by the `object` keyword, and mapped values must have their keys in quotes.
 
 * `dx_restart`: Either an integer value indicating the number of times to automatically restart regardless of the failure reason, or an object value with the following keys:
   * `max`: Maximum number of restarts
@@ -632,8 +658,6 @@ These attributes can be specified in the `runtime` section of the WDL task, but 
   * `developer`: Boolean - whether the applet is a developer, i.e. can create new applets
   * `projectCreation`: Boolean - whether the applet can create new projects
 * `dx_ignore_reuse`: Boolean - whether to allow the outputs of the applet to be reused
-* `dx_instance_type`: String - DNAnexus instance type which the applet will use.
-
 ## Example tasks with DNAnexus-specific metadata and runtime
 
 ### Example 1: grep for pattern in file
