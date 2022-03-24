@@ -1,6 +1,6 @@
-The reader is assumed to understand the [Workflow Description Language (WDL)](http://www.openwdl.org/), and have some experience using the [DNAnexus](http://www.dnanexus.com) platform.
+The reader is assumed to understand the [Workflow Description Language (WDL)](http://www.openwdl.org/) and [Common Workflow Language (CWL)](https://www.commonwl.org/v1.2), and have some experience using the [DNAnexus](http://www.dnanexus.com) platform.
 
-dxCompiler takes a pipeline written in WDL and statically compiles it to an equivalent workflow on the DNAnexus platform.
+dxCompiler takes a pipeline written in WDL or CWL and statically compiles it to an equivalent workflow on the DNAnexus platform. This document will use WDL examples to explain additional compiler options and features. To implement them when working with CWL workflows, please refer to [CWL v1.2.0 to WDL v1.0 mapping](CWL_v1.2.0_to_WDL_v1.md) for type and syntax equivalence between WDL and CWL. 
 
 - [Getting started](#getting-started)
 - [Extensions](#extensions)
@@ -55,15 +55,15 @@ Compilation can be controled with several parameters.
 | Option   |  Description |
 | ------   | ------------ |
 | archive  | Archive older versions of applets.|
-| compileMode \<string\> | Compilation mode - a debugging flag for internal use.|
+| compileMode [IR, NativeWithoutRuntimeAsset, All] | Compilation mode - If not specified, the compilation mode is "All" and the compiler will translate and compile the workflow file into applications that are bundled with runtime asset.Use "IR" if you only want to translate the file and generatethe DNAnexus JSON input file from a standard-formatted onewithout compilation, or use "NativeWithoutRuntimeAsset" if you don't want to package the runtime asset with generated applications.|
 | defaults \<string\> | JSON file with standard-formatted default values. |
-| defaultInstanceType \<string\> | The default instance type to use for "helper" applets that perform runtime evaluation of instance type requirements. This instance type is also used when the '-instanceTypeSelection dynamic' option is set. This value is overriden by any defaults set in extras. |
+| defaultInstanceType \<string\> | The default instance type to use for "helper" applets that perform runtime evaluation of instance type requirements. This instance type is also used when the '-instanceTypeSelection dynamic' option is set. This value is overriden by any defaults set in extras.json specified by '-extras'.|
 | destination \<string\> | Full platform path (project:/folder) |
 | execTree \[json,pretty\] | Print a JSON representation of the workflow. |
 | extras \<string\> | JSON file with extra options (see documentation). |
 | inputs \<string\> | JSON file with standard-formatted input values. May be specified multiple times. A DNAnexus JSON input file is generated for each standard input file. |
-| instanceTypeSelection \[static,dynamic\] | Whether to select instance types at compile time for tasks with runtime requirements that can all be statically evaluated (the default "static" option), or to defer instance type selection in such cases to runtime (the "dynamic" option). Using static instance type selection can save time, but it requires the same set of instances to be accessible during WDL compilation and during the runtime of the generated applets and workflows. Use the "dynamic" option if you plan on creating global DNAnexus workflows or cloning the generated workflows between DNAnexus organizations with different available instance types. |
-| imports \<string\> | Directory to search for imported WDL files. May be specified multiple times. |
+| instanceTypeSelection \[static,dynamic\] | Whether to select instance types at compile time for tasks with runtime requirements that can all be statically evaluated (the default "static" option), or to defer instance type selection in such cases to runtime (the "dynamic" option). Using static instance type selection can save time, but it requires the same set of instances to be accessible during WDL/CWL compilation and during the runtime of the generated applets and workflows. Use the "dynamic" option if you plan on creating global DNAnexus workflows or cloning the generated workflows between DNAnexus organizations with different available instance types. |
+| imports \<string\> | Directory to search for imported WDL or CWL files. May be specified multiple times. |
 | locked   | Create a locked workflow. When running a locked workflow, input values may only be specified for the top-level workflow. |
 | leaveWorkflowsOpen | Leave created workflows open (otherwise they are closed). |
 | projectWideReuse | Look for existing applets/workflows in the entire project before generating new ones. The default search scope is the target folder only. |
@@ -79,7 +79,7 @@ The following common options can also be specified when compiling a workflow.
 | ------- | ----------- |
 | folder \<string> | Platform folder (defaults to '/'). |
 | project \<string\> | Platform project (defaults to currently selected project).
-| language \<string\> \[ver\] | Which language to use? May be WDL or CWL. You can optionally specify a version. Currently, WDL draft-2, 1.0, and 1.1 are fully supported and WDL development and CWL 1.2 are partially supported. The default is to auto-detect the language from the source file.
+| language \<string\> \[ver\] | Which language to use? May be WDL or CWL. You can optionally specify a version. Currently: i. WDL: draft-2, 1.0, and 1.1, and ii. CWL: 1.2 are supported and WDL development is partially supported. The default is to auto-detect the language from the source file. The default is to auto-detect the language from the source file.
 | quiet | Do not print warnings or informational outputs.
 | verbose | Print detailed logging.
 | verboseKey \<module\> | Print verbose output only for a specific module. May be specified multiple times.
