@@ -1028,7 +1028,16 @@ The workflow `parameter_meta` section supports the same attributes as the task `
 
 # Setting DNAnexus-specific attributes in extras.json
 
-When writing a DNAnexus applet the user can specify options through the [dxapp.json](https://documentation.dnanexus.com/developer/apps/app-metadata#annotated-example) file. The dxCompiler equivalent is the *extras* file, specified with the `extras` command line option.
+When writing a DNAnexus applet the user can specify options through the [dxapp.json](https://documentation.dnanexus.com/developer/apps/app-metadata#annotated-example) file. The dxCompiler equivalent is the _extra_ file, specified with the `-extras` command line option.
+
+The following first-level keys are accepted in the _extras_ file:
+* `defaultRuntimeAttributes`: native WDL/CWL runtime attributes
+* `defaultTaskDxAttributes` and `perTaskDxAttributes`: metadata and runtime attributes as default or of specific task
+* `defaultWorkflowDxAttributes` and `perWorkflowDxAttributes`: metadata and runtime attributes as default or of specific workflow
+* `dockerRegistry`: private registry configuration. See [Private registries](##private-registries])
+* `customReorgAttributes`: custom reorganization applet URI and its configuration. See [Adding config file based reorg alet at compilation time](##adding-config-file-based-reorg-applet-at-compilation-time)
+* `ignoreReuse`: boolean value that overrides value supplied in task runtime section.See [Job reuse](##job-reuse)
+* `delayWorkspaceDestruction`: boolean value indicating whether to keep the job's temporary workspace after execution. See [Delay workspace destruction](##delay-workspace-destruction)
 
 *Note:* the first-level keys in the extras file have been changed to camel case; however, all the old keys (v2.1.0 and earlier) are still recoginzed.
 
