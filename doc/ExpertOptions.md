@@ -438,79 +438,6 @@ java -jar dxCompiler-xxx.jar describe <workflow_id>
 ```bash
 java -jar dxCompiler-xxx.jar describe <workflow_id> -pretty 
 ```
-   
-# Extensions
-
-## Runtime
-
-A task declaration has a runtime section where memory, cpu, and disk
-space can be specified. Based on these attributes, an instance type is chosen by
-the compiler. If you wish to choose an instance type from the
-[native](https://documentation.dnanexus.com/developer/api/running-analyses/instance-types)
-list, this can be done by specifying the `dx_instance_type` key
-instead. For example:
-
-```
-runtime {
-   dx_instance_type: "mem1_ssd2_x4"
-}
-```
-
-If you want an instance that has a GPU chipset, set the `gpu` attribute to true. For example:
-```
-runtime {
-   memory: "4 GB"
-   cpu : 4
-   gpu : true
-}
-```
-
-## Streaming
-
-Normally, a file used in a task is downloaded to the instance, and
-then used locally (*localized*). If the file only needs to be
-examined once in sequential order, then this can be optimized by
-streaming instead. The Unix `cat`, `wc`, and `head` commands are of
-this nature. To specify that a file is to be streamed, mark it as such
-in the `parameter_meta` section. For example:
-
-```wdl
-task head {
-    File in_file
-    Int num_lines
-
-    parameter_meta {
-        in_file : "stream"
-    }
-    command {
-        head -n ${num_lines} ${in_file}
-    }
-    output {
-        String result = read_string(stdout())
-    }
-}
-```
-
-File streaming is an optimization, and there are limiting rules to its
-correct usage. The file must be accessed only once, in sequential
-order, from the beginning. It need not be read to the end. If the task
-does not keep this contract, it could fail in unexpected ways.
-
-Some tasks have empty command sections. For example, the `fileSize`
-task (below) calculates the size of a file, but does not need to
-download it.  In such cases, the input files are downloaded lazily,
-only if their data is accessed.
-
-```wdl
-task fileSize {
-    File in_file
-
-    command {}
-    output {
-        Float num_bytes = size(in_file)
-    }
-}
-```
 
 # Task and workflow inputs
 
@@ -636,7 +563,52 @@ The [WDL Spec](https://github.com/openwdl/wdl/blob/master/versions/1.0/SPEC.md#p
 
 Although the WDL spec indicates that the `parameter_meta` section should apply to both input and output variables, currently the `parameter_meta` section is mapped only to the input parameters.
 
-## Runtime hints
+### Streaming
+
+Normally, a file used in a task is downloaded to the instance, and
+then used locally (*localized*). If the file only needs to be
+examined once in sequential order, then this can be optimized by
+streaming instead. The Unix `cat`, `wc`, and `head` commands are of
+this nature. To specify that a file is to be streamed, mark it as such
+in the `parameter_meta` section. For example:
+
+```wdl
+task head {
+    File in_file
+    Int num_lines
+
+    parameter_meta {
+        in_file : "stream"
+    }
+    command {
+        head -n ${num_lines} ${in_file}
+    }
+    output {
+        String result = read_string(stdout())
+    }
+}
+```
+
+File streaming is an optimization, and there are limiting rules to its
+correct usage. The file must be accessed only once, in sequential
+order, from the beginning. It need not be read to the end. If the task
+does not keep this contract, it could fail in unexpected ways.
+
+Some tasks have empty command sections. For example, the `fileSize`
+task (below) calculates the size of a file, but does not need to
+download it.  In such cases, the input files are downloaded lazily,
+only if their data is accessed.
+
+```wdl
+task fileSize {
+    File in_file
+
+    command {}
+    output {
+        Float num_bytes = size(in_file)
+    }
+}
+```
 
 There are several parameters affecting the runtime environment that can be specified in the dxapp.json file:
 
