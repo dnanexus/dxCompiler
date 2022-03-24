@@ -1076,7 +1076,7 @@ The workflow `parameter_meta` section supports the same attributes as the task `
 
 # Setting DNAnexus-specific attributes in extras.json
 
-When writing a DNAnexus applet the user can specify options through the [dxapp.json](https://documentation.dnanexus.com/developer/apps/app-metadata#annotated-example) file. The dxCompiler equivalent is the _extra_ file, specified with the `-extras` command line option.
+When writing a DNAnexus applet the user can specify options through the [dxapp.json](https://documentation.dnanexus.com/developer/apps/app-metadata#annotated-example) file. The dxCompiler equivalent is the _extras_ file, specified with the `-extras` command line option.
 
 The following first-level keys are accepted in the _extras_ file:
 * `defaultRuntimeAttributes`: native WDL/CWL runtime attributes
