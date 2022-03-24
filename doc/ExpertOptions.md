@@ -402,8 +402,7 @@ $ dx run files
 
 ### Extras 
 
-The `extras` command line option allows, for example, the Cromwell feature of setting the
-default runtime attributes of a task.
+The `-extras` command line option takes an additional JSON file to set or override metadata and runtime attributes of workflows and tasks during compilation. See [Setting DNAnexus-specific attributes in extras.json](#setting-DNAnexus-specific-attributes-in-extras.json) for details on how to write the extras file.
 
 If this is file `extraOptions.json`:
 
