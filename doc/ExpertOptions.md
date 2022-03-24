@@ -1219,7 +1219,10 @@ By default, temporary workspaces hold the results of executed workflows and appl
 }
 ```
 
-This will be passed down through the entire workflow, sub-workflows, and tasks. Workspaces will remain intact for 72 hours. This is a runtime flag, so you will need to run the toplevel workflow with that flag:
+This will be applied to the top-level workflow, sub-workflows, and tasks during compilation.
+
+However, if it is set to true, it only guarantees the workspaces of subjobs (that launched from the origin job) to remain intact for 72 hours. 
+To keep the parent job's workspace, you  need to run the top-level workflow with the runtime flag `--delay-workspace-destruction` together with this attribute.
 
 ```
 dx run YOUR_WORKFLOW --delay-workspace-destruction
