@@ -1246,9 +1246,9 @@ Writing your own applet for reorganization purposes is tricky. If you are not ca
    
 You must also be aware that the analysis information is updated in the platform's database asynchronously, so the result of calling `dx describe` on the analysis may not be up-to-date. The most reliable method for making sure you have an up-to-date analysis description is to call `dx describe` in a loop (waiting at least 3 seconds between iterations), and exit the loop when the `dependsOn` field returns an array that contains exactly one item - the ID of the reorg job itself. See the [example](CustomReorgAppletExample.md).
 
-## Adding config-file based reorg applet at compilation time
+## Adding config file based reorg applet at compilation time
 
-In addition to using `--reorg` flag to add the reorg stage, you may also add a custom reorganization applet that takes an optional input by declaring a "customReorgAttributes" object in the JSON file used as parameter with `-extras`
+In addition to using `-reorg` flag to add the reorg stage, you may also add a custom reorganization applet that takes an optional input by declaring a "customReorgAttributes" object in the JSON file used as parameter with `-extras`
 
 The `customReorgAttributes` object has two properties in extra.json:
 * `appUri`: reorg app or applet URI - either an ID (e.g. "app-bwa_mem" or "app-xxx" or "applet-yyy") or a URI of a platform file (e.g. "dx://file-xxx").
