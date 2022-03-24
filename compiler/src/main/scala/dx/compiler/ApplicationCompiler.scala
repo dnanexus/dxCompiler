@@ -440,10 +440,17 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       case ExecutableKindWorkflowOutputReorg =>
         // The reorg applet requires higher permissions to organize the output directory.
         Some(DxAccess.empty.copy(project = Some(DxAccessLevel.Contribute)))
+      case ExecutableKindWfInputs(blockPath) =>
+        Some(
+            DxAccess.empty.copy(project = Some(DxAccessLevel.Upload),
+                                allProjects = Some(DxAccessLevel.View))
+        )
+      case ExecutableKindWfOutputs(blockPath) =>
+        Some(DxAccess.empty.copy(allProjects = Some(DxAccessLevel.Upload)))
       case _ =>
         // Scatters need network access, because they spawn subjobs that (may) use dx-docker.
         // We end up allowing all applets to use the network
-        Some(DxAccess.empty.copy(network = Some(Vector("*"))))
+        Some(DxAccess.empty)
     }
     // using manifests requires at least UPLOAD access
     val manifestAccess = if (useManifests) {
@@ -451,6 +458,11 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     } else {
       None
     }
+    val asDeveloperAccess = (applet.kind match {
+      case ExecutableKindNative(_, _, _, _, _) =>
+        Some(DxAccess.empty)
+      case _ => Some(DxAccess.empty.copy(developer = Some(true)))
+    })
     // merge all
     val access = defaultAccess
       .merge(taskAccess)
@@ -458,6 +470,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       .merge(allProjectsAccess)
       .mergeOpt(appletKindAccess)
       .mergeOpt(manifestAccess)
+      .mergeOpt(asDeveloperAccess)
     access.toJson match {
       case JsObject(fields) if fields.isEmpty => JsNull
       case fields                             => fields
