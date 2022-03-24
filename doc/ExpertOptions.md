@@ -1208,6 +1208,7 @@ By default, job results are [reused](https://documentation.dnanexus.com/user/run
   "ignoreReuse" : true
 }
 ```
+This will be applied to the top-level workflow, sub-workflows, and tasks during compilation, and used for all jobs/analyses during execution (which is equivalent to using `--ignore-reuse` flag with `dx run`). 
 
 ## Delay workspace destruction
 
