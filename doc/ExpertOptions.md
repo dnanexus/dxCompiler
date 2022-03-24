@@ -505,8 +505,9 @@ workflow math {
 
 Currently, dxCompiler does not support this feature. However, there is a [suggestion](MissingCallArguments.md) for limited support.
 
-# Task metadata
+# Task metadata and runtime
 
+## Task meta and parameter_meta
 A WDL task has two sections where metadata can be specified:
 
 * meta: Provides overall metadata about the task
@@ -514,7 +515,7 @@ A WDL task has two sections where metadata can be specified:
 
 Both of these sections allow arbitrary keys and values; unrecognized keys must be ignored by the workflow engine. dxCompiler recognized specific keys in each section that are used when generating the native DNAnexus applets. The purpose of these keys is to provide the same information that can be specified in the [dxapp.json](https://documentation.dnanexus.com/developer/apps/app-metadata) file. 
 
-## meta section
+### meta section
 
 The following keys are recognized:
 
@@ -546,7 +547,7 @@ The following keys are also recognized but currently unused, as they only apply 
 * `open_source`: Whether the generated app should be open-source
 * `version`: The app version
 
-## parameter_meta section
+### parameter_meta section
 
 The [WDL Spec](https://github.com/openwdl/wdl/blob/master/versions/1.0/SPEC.md#parameter-metadata-section) defines a `parameter_meta` section that may contain key value pairs to assoicate metadata with input and output variables. Currently, the following keywords are supported:
 
