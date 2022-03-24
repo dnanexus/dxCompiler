@@ -839,7 +839,7 @@ task bwa_mem {
 The DNAnexus tools library provides apps for many existing bioinformatics tools, and you may have already developed app(let)s of your own. You may want to use these existing app(let)s rather than rewriting them in WDL. Calling a native app(let) from WDL can be done using a native task wrapper. The dxCompiler `dxni` subcommand is provided to generate native task wrappers automatically. It can generate a wrapper for a specific app(let), all apps, and/or all applets in a specific platform folder. For example, the command:
 
 ```console
-$ java -jar dxCompiler-xxx.jar dxni -project project-xxxx -folder /A/B/C --output dx_extern.wdl
+$ java -jar dxCompiler-xxx.jar dxni -project project-xxxx -folder /A/B/C -output dx_extern.wdl
 ```
 
 will find native applets in the `/A/B/C` folder, generate tasks for them, and write to local file `dx_extern.wdl`. If an applet has the `dxapp.json` signature:
@@ -1406,7 +1406,7 @@ Currently, when a workflow compiled with manifest support is run, the outputs of
 ## Setting a default docker image for all tasks
 
 Sometimes, you want to use a default docker image for tasks.
-The `extras` commad line flag can help achieve this. It takes a JSON file
+The `-extras` command line flag can help achieve this. It takes a JSON file
 as an argument. For example, if `taskAttrs.json` is this file:
 ```
 {
@@ -1432,8 +1432,8 @@ For example:
 {
   "dockerRegistry" : {
       "registry" : "foo.acme.com",
-       "username" : "perkins",
-       "credentials" : "dx://CornSequencing:/B/creds.txt"
+      "username" : "perkins",
+      "credentials" : "dx://CornSequencing:/B/creds.txt"
   }
 }
 ```
