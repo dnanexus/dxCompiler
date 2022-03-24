@@ -3,9 +3,10 @@ import dxpy
 import inspect
 import os
 import re
+from threading import Lock
 from pathlib import Path
 from typing import Optional
-from dxpy.api import project_new_folder
+from dxpy.api import project_new_folder, project_describe
 
 
 class ContextError(Exception):
@@ -25,6 +26,8 @@ class Context(object):
         self._repo_root_dir = Path(os.path.join(os.path.dirname(__file__), "../..")).resolve()
         self._platform_build_dir = self._create_platform_build_folder(folder)
         self._compiler_version = self._get_version()
+        self._lock = Lock()
+        self._project_info = project_describe(self._project_id)
 
     def __setattr__(self, *args):
         if inspect.stack()[1][3] == "__init__":
@@ -47,6 +50,14 @@ class Context(object):
     @property
     def version(self):
         return self._compiler_version
+
+    @property
+    def lock(self):
+        return self._lock
+
+    @property
+    def project_info(self):
+        return self._project_info
 
     @staticmethod
     def _resolve_project(project: str) -> str:
