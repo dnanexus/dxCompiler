@@ -1039,7 +1039,12 @@ The following first-level keys are accepted in the _extras_ file:
 * `ignoreReuse`: boolean value that overrides value supplied in task runtime section.See [Job reuse](##job-reuse)
 * `delayWorkspaceDestruction`: boolean value indicating whether to keep the job's temporary workspace after execution. See [Delay workspace destruction](##delay-workspace-destruction)
 
-*Note:* the first-level keys in the extras file have been changed to camel case; however, all the old keys (v2.1.0 and earlier) are still recoginzed.
+If one attribute is specified multiple times, its final value will be computed from the following sources where the latter (if exists)overrides the former: 
+* `defaultTaskDxAttributes`/`defaultWorkflowDxAttributes` in extras.json
+* task/workflow metadata/runtime section
+* `perTaskDxAttributes`/`perWorkflowDxAttributes` in extras.json
+
+\* Note: the first-level keys in the extras file have been changed to camel case; however, all the old keys (v2.1.0 and earlier) are still recoginzed.
 
 ## Default and per-task attributes
 
