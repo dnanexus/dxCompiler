@@ -701,8 +701,8 @@ These attributes can also be specified in the `runtime` section of the WDL task,
 * `dx_timeout`: Either a string value that specifies days, hours, and/or minutes in the format "1D6H30M" or an object with at least one of the keys `days`, `hours`, `minutes`.
 * `dx_access`: An object with any of the keys:
   * `network`: An array of domains to which the app has access, or "*" for all domains
-  * `project`: The maximum level of access the applet has to the host project - a string with any DNAnexus access level
-  * `allProjects`: The maximum level of access the applet has to all projects
+  * `project`: The maximum level of access the applet has to the host project it was launched in - a string with any [DNAnexus access level](https://documentation.dnanexus.com/getting-started/key-concepts/projects#project-access-levels)
+  * `allProjects`: The maximum level of access the applet has to all projects the user has access to - a string with any DNAnexus access level
   * `developer`: Boolean - whether the applet is a developer, i.e. can create new applets
   * `projectCreation`: Boolean - whether the applet can create new projects
 * `dx_ignore_reuse`: Boolean - whether to allow the outputs of the applet to be reused
@@ -1084,10 +1084,10 @@ The following first-level keys are accepted in the _extras_ file:
 * `defaultWorkflowDxAttributes` and `perWorkflowDxAttributes`: metadata and runtime attributes as default or of specific workflow
 * `dockerRegistry`: private registry configuration. See [Private registries](##private-registries])
 * `customReorgAttributes`: custom reorganization applet URI and its configuration. See [Adding config file based reorg alet at compilation time](##adding-config-file-based-reorg-applet-at-compilation-time)
-* `ignoreReuse`: boolean value that overrides value supplied in task runtime section.See [Job reuse](##job-reuse)
+* `ignoreReuse`: boolean value indicating whether to skip current execution and reuse the results from the previous one. See [Job reuse](##job-reuse)
 * `delayWorkspaceDestruction`: boolean value indicating whether to keep the job's temporary workspace after execution. See [Delay workspace destruction](##delay-workspace-destruction)
 
-If one attribute is specified multiple times, its final value will be computed from the following sources where the latter (if exists)overrides the former: 
+If one attribute is specified multiple times, its final value will be retrieved from the following sources and the latter (if exists) will override the former: 
 * `defaultTaskDxAttributes`/`defaultWorkflowDxAttributes` in extras.json
 * task/workflow metadata/runtime section
 * `perTaskDxAttributes`/`perWorkflowDxAttributes` in extras.json
@@ -1270,8 +1270,8 @@ By default, temporary workspaces hold the results of executed workflows and appl
 
 This will be applied to the top-level workflow, sub-workflows, and tasks during compilation.
 
-However, if it is set to true, it only guarantees the workspaces of subjobs (that launched from the origin job) to remain intact for 72 hours. 
-To keep the parent job's workspace, you  need to run the top-level workflow with the runtime flag `--delay-workspace-destruction` together with this attribute.
+However, since it is a runtime option, compiling your workflow with this attribute set to true will only guarantee the workspaces of subjobs (that sprawn from the parent job) to remain intact for around 3 days after the analysis. 
+To keep the parent job's workspace, you still need to run the top-level workflow with the runtime flag `--delay-workspace-destruction`.
 
 ```
 dx run YOUR_WORKFLOW --delay-workspace-destruction
