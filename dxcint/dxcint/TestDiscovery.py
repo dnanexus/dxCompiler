@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import List, Dict, Tuple
 
 from dxcint.RegisteredTest import RegisteredTest
+from dxcint.Dependency import Dependency
 from dxcint.utils import rm_suffix
 
 
@@ -24,6 +25,9 @@ class TestDiscovery(object):
         """
         self._config_location = test_kwargs.get("config", self._resolve_from_root("config"))
         self._resources_location = test_kwargs.get("resources", self._resolve_from_root("resources"))
+        self._dependency_config_location = test_kwargs.get(
+            "dependencies", self._resolve_from_root("dependencies/config")
+        )
         self._allowed_wf_extensions = {
             "cwl": 1,
             "cwl.json": 2,
@@ -46,7 +50,7 @@ class TestDiscovery(object):
         if suite not in self._suites.keys():
             raise TestDiscoveryError(f"TestDiscovery.discover(): suite {suite} is not registered. Existing suites "
                                      f"are {self._suites}")
-        with open(os.path.join(self._config_location, f"{self._suites.get(suite)}"), "r") as suite_handle:
+        with open(os.path.join(self._config_location, self._suites.get(suite)), "r") as suite_handle:
             suite_config = self._config_linter(json.load(suite_handle))
         registered_tests = [RegisteredTest(
             src_file=self._find_workflow_source(x[0], x[1]),
@@ -84,6 +88,19 @@ class TestDiscovery(object):
             added_tests.append(test_name)
         logging.warning(f"Added {len(added_tests)} tests to the suite `{suite}` under category `{category}`")
         return added_tests
+
+    def discover_dependencies(self) -> List[Dependency]:
+        """
+        Method to discover existing dependencies for every language
+        :return: List[Dependency]. List of objects of class Dependency
+        """
+        dependencies = []
+        for dependency_config in os.listdir(self._dependency_config_location):
+            if not dependency_config.endswith(".json"):
+                continue
+            one_dependency = Dependency(os.path.join(self._dependency_config_location, dependency_config))
+            dependencies.append(one_dependency)
+        return dependencies
 
     @staticmethod
     def _config_linter(config) -> Dict:

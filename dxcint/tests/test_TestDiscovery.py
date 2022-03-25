@@ -4,6 +4,7 @@ import pytest
 
 from dxcint.TestDiscovery import TestDiscovery
 from dxcint.RegisteredTest import RegisteredTest
+from dxcint.Dependency import Dependency
 
 
 @pytest.fixture(scope="session")
@@ -62,7 +63,7 @@ def test_discover(fixtures_dir):
     assert all([x.category == "mock_category" for x in discovered_tests])
 
 
-def test_add_tests(add_test_to_existing_category, add_test_to_new_category ,fixtures_dir):
+def test_add_tests(add_test_to_existing_category, add_test_to_new_category, fixtures_dir):
     assert add_test_to_existing_category[0] == "mock_test"
     with open(os.path.join(fixtures_dir, "config", "medium.json"), "r") as modified_suite_handle:
         modified_suite = json.load(modified_suite_handle)
@@ -72,3 +73,9 @@ def test_add_tests(add_test_to_existing_category, add_test_to_new_category ,fixt
         modified_suite = json.load(modified_suite_handle)
     assert "mock_test" in modified_suite["new_mock_category"]
     assert "new_mock_category" in modified_suite.keys()
+
+
+def test_discover_dependencies(fixtures_dir):
+    test_discovery = TestDiscovery(dependencies=os.path.join(fixtures_dir, "dependencies/config"))
+    dependencies = test_discovery.discover_dependencies()
+    assert all(isinstance(x, Dependency) for x in dependencies)

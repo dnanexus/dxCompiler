@@ -99,10 +99,12 @@ class Terraform(object):
         return _async_retry_inner
 
     def _make_prerequisites(self, language: str):
+        language_specific_dependencies = [x for x in self._dependencies if language in x.languages]
         try:
             local_asset_dirs = self._create_local_asset_dir(language)
-            for dependency in self._dependencies:
-                _ = dependency.link(local_asset_dirs.get("bin"), language)
+            for dependency in language_specific_dependencies:
+                _ = dependency.link(local_asset_dirs.get("bin"))
+                dependency.update_dot_env(local_asset_dirs.get("home"))
             _ = self._create_asset_spec(language)
             asset_id = self._build_asset(language)
             return asset_id
