@@ -847,7 +847,8 @@ object Main {
         |                             that perform runtime evaluation of instance type
         |                             requirements. This instance type is also used when 
         |                             the '-instanceTypeSelection dynamic' option is set.
-        |                             This value is overriden by any defaults set in extras.
+        |                             This value is overriden by any defaults set in set in the 
+        |                             JSON file specified by '-extras'.
         |      -destination <string>  Full platform path (project:/folder).
         |      -execTree [json,pretty]    
         |                             Print a JSON representation of the workflow.

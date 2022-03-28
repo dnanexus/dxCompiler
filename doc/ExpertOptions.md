@@ -57,7 +57,7 @@ Compilation can be controled with several parameters.
 | archive  | Archive older versions of applets.|
 | compileMode [IR, NativeWithoutRuntimeAsset, All] | Compilation mode - If not specified, the compilation mode is "All" and the compiler will translate and compile the workflow file into applications that are bundled with runtime asset.Use "IR" if you only want to translate the file and generatethe DNAnexus JSON input file from a standard-formatted onewithout compilation, or use "NativeWithoutRuntimeAsset" if you don't want to package the runtime asset with generated applications.|
 | defaults \<string\> | JSON file with standard-formatted default values. |
-| defaultInstanceType \<string\> | The default instance type to use for "helper" applets that perform runtime evaluation of instance type requirements. This instance type is also used when the '-instanceTypeSelection dynamic' option is set. This value is overriden by any defaults set in extras.json specified by '-extras'.|
+| defaultInstanceType \<string\> | The default instance type to use for "helper" applets that perform runtime evaluation of instance type requirements. This instance type is also used when the '-instanceTypeSelection dynamic' option is set. This value is overriden by any defaults set in the JSON file specified by '-extras'.|
 | destination \<string\> | Full platform path (project:/folder) |
 | execTree \[json,pretty\] | Print a JSON representation of the workflow. |
 | extras \<string\> | JSON file with extra options (see documentation). |
