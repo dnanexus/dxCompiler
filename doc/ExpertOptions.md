@@ -686,7 +686,7 @@ CWL provides a different set of runtime attributes used in the ResourceRequireme
 
 ### Addtional DNAnexus-specific runtime settings
 
-There are several parameters that also affect the runtime environment specified in the dxapp.json file https://documentation.dnanexus.com/developer/api/running-analyses/io-and-run-specifications#run-specification:
+There are several parameters that also affect the runtime environment and can be specified in the [dxapp.json file of a native app](https://documentation.dnanexus.com/developer/api/running-analyses/io-and-run-specifications#run-specification):
 * `runSpec.executionPolicy`: Specifies when to try to automatically restart failed jobs, and how many times
 * `runSpec.timeoutPolicy`: Specifies the maximum amount of time the job can run
 * `runSpec.access`: Specifies which resources the applet can access
@@ -1260,7 +1260,7 @@ This will be applied to the top-level workflow, sub-workflows, and tasks during 
 
 ## Delay workspace destruction
 
-By default, temporary workspaces hold the results of executed workflows and applets. Normally, these are garbage collected by the system. If you wish to leave them around longer for debugging purposes, please use:
+By default, temporary workspaces hold the results of executed workflows and applets. Normally, these are garbage collected by the system. If you wish to leave them around longer (around 3 days) for debugging purposes, please use:
 
 ```
 {
