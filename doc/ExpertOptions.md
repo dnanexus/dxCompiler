@@ -692,7 +692,7 @@ There are several parameters that also affect the runtime environment specified 
 * `runSpec.access`: Specifies which resources the applet can access
 * `ignoreReuse`: Specifies whether to allow the outputs of the applet to be reused
 
-These attributes can also be specified in the `runtime` section of the WDL task, but their representation there is slightly different than in dxapp.json. Also note that the runtime section is different than the metadata section when it comes to attribute values - specifically, object values must be prefixed by the `object` keyword, and mapped values must have their keys in quotes.
+These attributes can be specified in the `runtime` section of the WDL task, but their representation there is slightly different than in `dxapp.json`. Also note that the runtime section is different than the metadata section when it comes to attribute values - specifically, object values must be prefixed by the `object` keyword, and mapped values must have their keys in quotes.
 
 * `dx_restart`: Either an integer value indicating the number of times to automatically restart regardless of the failure reason, or an object value with the following keys:
   * `max`: Maximum number of restarts
