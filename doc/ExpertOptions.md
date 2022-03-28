@@ -1198,7 +1198,7 @@ Note that `details` specified in `perTaskDxAttributes` override those that are s
 
 There are also metadata [attributes](#workflow-metadata) that can be set at the workflow level. You can specify metadata as defaults as `defaultWorkflowDxAttributes`, or set them for each workflow in the `perWorkflowDxAttributes` section.
 
-Workflow does not have runtime attributes; however, you can set the `chunkSize` limit for scatters in the workflow level. DNAnexus executes large scatters in "chunks" of no more than 1000 jobs at a time (the default is 500). For some scatters, it may be necessary to increase or decrease the chunk size for efficient execution. You should not need to modify this attribute unless instructed to do so by the DNAnexus support team.
+Note that workflows in WDL do not have a native runtime section; however, you can set the `chunkSize` limit for scatters in the workflow level as a DNAnexus-specific runtime attribute. DNAnexus executes large scatters in "chunks" of no more than 1000 jobs at a time (the default is 500). For some scatters, it may be necessary to increase or decrease the chunk size for efficient execution. You should not need to modify this attribute unless instructed to do so by the DNAnexus support team.
 
 Consider the following workflow:
 
