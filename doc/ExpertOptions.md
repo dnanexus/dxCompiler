@@ -60,7 +60,7 @@ Compilation can be controled with several parameters.
 | defaultInstanceType \<string\> | The default instance type to use for "helper" applets that perform runtime evaluation of instance type requirements. This instance type is also used when the '-instanceTypeSelection dynamic' option is set. This value is overriden by any defaults set in the JSON file specified by '-extras'.|
 | destination \<string\> | Full platform path (project:/folder) |
 | execTree \[json,pretty\] | Print a JSON representation of the workflow. |
-| extras \<string\> | JSON file with extra options (see documentation). |
+| extras \<string\> | JSON file with extra options |
 | inputs \<string\> | JSON file with standard-formatted input values. May be specified multiple times. A DNAnexus JSON input file is generated for each standard input file. |
 | instanceTypeSelection \[static,dynamic\] | Whether to select instance types at compile time for tasks with runtime requirements that can all be statically evaluated (the default "static" option), or to defer instance type selection in such cases to runtime (the "dynamic" option). Using static instance type selection can save time, but it requires the same set of instances to be accessible during WDL/CWL compilation and during the runtime of the generated applets and workflows. Use the "dynamic" option if you plan on creating global DNAnexus workflows or cloning the generated workflows between DNAnexus organizations with different available instance types. |
 | imports \<string\> | Directory to search for imported WDL or CWL files. May be specified multiple times. |
@@ -79,7 +79,7 @@ The following common options can also be specified when compiling a workflow.
 | ------- | ----------- |
 | folder \<string> | Platform folder (defaults to '/'). |
 | project \<string\> | Platform project (defaults to currently selected project).
-| language \<string\> \[ver\] | Which language to use? May be WDL or CWL. You can optionally specify a version. Currently: i. WDL: draft-2, 1.0, and 1.1, and ii. CWL: 1.2 are supported and WDL development is partially supported. The default is to auto-detect the language from the source file. The default is to auto-detect the language from the source file.
+| language \<string\> \[ver\] | Which language to use? May be WDL or CWL. You can optionally specify a version. Currently: i. WDL: draft-2, 1.0, and 1.1, and ii. CWL: 1.2 are supported and WDL development is partially supported. The default is to auto-detect the language from the source file.
 | quiet | Do not print warnings or informational outputs.
 | verbose | Print detailed logging.
 | verboseKey \<module\> | Print verbose output only for a specific module. May be specified multiple times.
