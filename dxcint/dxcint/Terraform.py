@@ -16,12 +16,14 @@ from dxcint.Dependency import Dependency
 # enumeration of supported languages
 # used in the following ways:
 # - language_dir = lang.upper()
-# - JAR name = "dxExecutor{}".format(lang)
+# - JAR name = "dxExecutor{}".format(lang) - only first letter is upper case (Cwl, Wdl)
 # - asset name = "dx{}rt".format(lang.upper())
 
 class Terraform(object):
     def __init__(self, languages: Optional[Set[str]], context: Context, dependencies: List[Dependency]):
         self._languages = languages
+        for language in languages:
+            self._clean_up(language.upper())
         self._asset_switch = {
             "wdl": self._wdl_asset,
             "cwl": self._cwl_asset,
@@ -38,27 +40,23 @@ class Terraform(object):
         """
         build_queue = set([self._asset_switch[x] for x in self._languages])     # set of partial functions
         self._generate_config_file()
+        _ = self._build_compiler()
         with futures.ThreadPoolExecutor(max_workers=len(build_queue)) as executor:
             future_to_build_task = {executor.submit(build_task): build_task for build_task in build_queue}
             assets = {future_to_build_task[f]: f.result() for f in futures.as_completed(future_to_build_task)}
         return list(assets.values())
 
-    def destroy(self, language: str) -> bool:
+    def _clean_up(self, language: str) -> bool:
         """
         Method to remove local asset directories for a given language.
-        :param language:
+        :param language: str. Language for which to destroy terraformed paths with resources.
         :return: bool. True if all is done
         """
-        local_asset_dirs = self._local_created_dirs.pop(language, None)
-        if local_asset_dirs:
-            for key, value in local_asset_dirs.items():
-                if os.path.exists(value):
-                    logging.info(f"Removing local asset directory {value}")
-                    shutil.rmtree(value)
-                else:
-                    continue
+        language_dir = os.path.join(self._context.repo_root_dir, "applet_resources", language)
+        if os.path.exists(language_dir):
+            shutil.rmtree(language_dir)
         else:
-            logging.info(f"No local asset directories were created for `{language.upper()}` language")
+            logging.info(f"No local asset directories for `{language}` language were pre-existing")
         return True
 
     def _wdl_asset(self) -> str:
@@ -99,29 +97,30 @@ class Terraform(object):
         return _async_retry_inner
 
     def _make_prerequisites(self, language: str):
+        always_capital_lang = language.upper()
         language_specific_dependencies = [x for x in self._dependencies if language in x.languages]
         try:
-            local_asset_dirs = self._create_local_asset_dir(language)
+            local_asset_dirs = self._create_local_asset_dir(always_capital_lang)
             for dependency in language_specific_dependencies:
                 _ = dependency.link(local_asset_dirs.get("bin"))
                 dependency.update_dot_env(local_asset_dirs.get("home"))
-            _ = self._create_asset_spec(language)
-            asset_id = self._build_asset(language)
+            _ = self._create_asset_spec(always_capital_lang)
+            asset_id = self._build_asset(always_capital_lang)
             return asset_id
         except Exception as e:
-            self.destroy(language)
+            self._clean_up(always_capital_lang)
             raise e
 
     @_async_retry()
     def _build_asset(self, language: str) -> str:
-        asset_name = f"dx{language.upper()}rt"
+        asset_name = f"dx{language}rt"
         destination = f"{self._context.project_id}:{self._context.platform_build_dir}/{asset_name}"
         cwd = os.getcwd()
         os.chdir(os.path.join(self._context.repo_root_dir, "applet_resources"))
         logging.info(f"Creating a runtime asset for {language}")
         try:
             subprocess.run(
-                ["dx", "build_asset", language.upper(), "--destination", destination],
+                ["dx", "build_asset", language, "--destination", destination],
                 check=True,
                 universal_newlines=True,
                 stdout=subprocess.PIPE,
@@ -150,17 +149,17 @@ class Terraform(object):
                        ] + (self._dependencies or [])
         asset_spec = {
             "version": self._context.version,
-            "name": f"dx{language.upper()}rt",
-            "title": f"dx{language.upper()} asset",
+            "name": f"dx{language}rt",
+            "title": f"dx{language} asset",
             "release": "20.04",
             "distribution": "Ubuntu",
             "execDepends": exec_depends,
             "instanceType": "mem1_ssd1_v2_x4",
-            "description": f"Prerequisites for running {language.upper()} workflows compiled to the platform",
+            "description": f"Prerequisites for running {language} workflows compiled to the platform",
             "excludeResource": ["/dev/console"],
         }
         asset_spec_file = os.path.join(
-            self._context.repo_root_dir, "applet_resources", language.upper(), "dxasset.json"
+            self._context.repo_root_dir, "applet_resources", language, "dxasset.json"
         )
         with open(asset_spec_file, "w") as asset_spec_handle:
             asset_spec_handle.write(json.dumps(asset_spec, indent=4))
@@ -168,9 +167,7 @@ class Terraform(object):
 
     def _create_local_asset_dir(self, language: str) -> Dict:
         logging.info(f"Creating local asset directories for {language}.")
-        language_dir = os.path.join(self._context.repo_root_dir, "applet_resources", language.upper())
-        if os.path.exists(language_dir):
-            shutil.rmtree(language_dir)
+        language_dir = os.path.join(self._context.repo_root_dir, "applet_resources", language)
         resources_dir = os.path.join(language_dir, "resources")
         local_assets = {
             "resources": resources_dir,
@@ -220,3 +217,24 @@ class Terraform(object):
         logging.info(
             f"Built configuration regions [{all_regions_str}] into {rt_conf_path}"
         )
+
+    def _build_compiler(self) -> bool:
+        try:
+            subprocess.check_call(["sbt", "clean"])
+            subprocess.check_call(["sbt", "assembly"])
+        except subprocess.CalledProcessError as e:
+            print(e.stdout)
+            print(e.stderr)
+            raise e
+        jar_exec_origin = os.path.join(
+            self._context.repo_root_dir,
+            "applet_resources",
+            "dxCompiler.jar"
+        )
+        jar_exec_destination = os.path.join(
+            self._context.repo_root_dir,
+            f"dxCompiler-{self._context.version}.jar"
+        )
+        shutil.move(jar_exec_origin, jar_exec_destination)
+        return True
+
