@@ -402,7 +402,7 @@ $ dx run files
 
 ### Extras 
 
-The `-extras` command line option takes an additional JSON file to set or override metadata and runtime attributes of workflows and tasks during compilation. See [Setting DNAnexus-specific attributes in extras.json](#setting-DNAnexus-specific-attributes-in-extras.json) for details on how to write the extras file.
+The `-extras` command line option takes an additional JSON file to set or override metadata and runtime attributes of workflows and tasks during compilation. See [Setting DNAnexus-specific attributes in extras.json](#setting-dnanexus-specific-attributes-in-extrasjson) for details on how to write the extras file.
 
 If this is file `extraOptions.json`:
 
@@ -1068,8 +1068,8 @@ Similar to tasks, workflows can also have `meta` AND `parameter_meta` sections t
 * `summary`: A short description of the workflow. If not specified, the first line of the description is used (up to 50 characters or the first period, whichever comes first).
 * `description`: A longer description of the workflow.
 * `types`: An array of DNAnexus [types](https://documentation.dnanexus.com/developer/api/data-object-lifecycle/types).
-* `tags`: An array of strings that will be added as tags on the generated applet.
-* `properties`: A hash of key-value pairs that will be added as properties on the generated applet. Both keys and values must be strings.
+* `tags`: An array of strings that will be added as tags on the generated workflow.
+* `properties`: A hash of key-value pairs that will be added as properties on the generated workflow. Both keys and values must be strings.
 * `details`: A hash of workflow details. The only key that is specifically recogized is `whatsNew`, and the formatting is handled for workflows the same way as it is for tasks.
 
 The workflow `parameter_meta` section supports the same attributes as the task `parameter_meta` section.
@@ -1083,7 +1083,7 @@ The following first-level keys are accepted in the _extras_ file:
 * `defaultTaskDxAttributes` and `perTaskDxAttributes`: metadata and runtime attributes as default or of specific task
 * `defaultWorkflowDxAttributes` and `perWorkflowDxAttributes`: metadata and runtime attributes as default or of specific workflow
 * `dockerRegistry`: private registry configuration. See [Private registries](##private-registries])
-* `customReorgAttributes`: custom reorganization applet URI and its configuration. See [Adding config file based reorg alet at compilation time](##adding-config-file-based-reorg-applet-at-compilation-time)
+* `customReorgAttributes`: custom reorganization applet URI and its configuration. See [Adding config file based reorg applet at compilation time](##adding-config-file-based-reorg-applet-at-compilation-time)
 * `ignoreReuse`: boolean value indicating whether to skip current execution and reuse the results from the previous one. See [Job reuse](##job-reuse)
 * `delayWorkspaceDestruction`: boolean value indicating whether to keep the job's temporary workspace after execution. See [Delay workspace destruction](##delay-workspace-destruction)
 
@@ -1270,7 +1270,7 @@ By default, temporary workspaces hold the results of executed workflows and appl
 
 This will be applied to the top-level workflow, sub-workflows, and tasks during compilation.
 
-However, since it is a runtime option, compiling your workflow with this attribute set to true will only guarantee the workspaces of subjobs (that sprawn from the parent job) to remain intact for around 3 days after the analysis. 
+However, since it is a runtime option, compiling your workflow with this attribute set to true will only guarantee the workspaces of subjobs (that sprawn from the parent jobs, which correspond to tasks) to remain intact after the analysis. 
 To keep the parent job's workspace, you still need to run the top-level workflow with the runtime flag `--delay-workspace-destruction`.
 
 ```
