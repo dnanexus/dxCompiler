@@ -689,7 +689,7 @@ CWL provides a different set of runtime attributes used in the ResourceRequireme
 There are several parameters that also affect the runtime environment specified in the dxapp.json file https://documentation.dnanexus.com/developer/api/running-analyses/io-and-run-specifications#run-specification:
 * `runSpec.executionPolicy`: Specifies when to try to automatically restart failed jobs, and how many times
 * `runSpec.timeoutPolicy`: Specifies the maximum amount of time the job can run
-* `access`: Specifies which resources the applet can access
+* `runSpec.access`: Specifies which resources the applet can access
 * `ignoreReuse`: Specifies whether to allow the outputs of the applet to be reused
 
 These attributes can also be specified in the `runtime` section of the WDL task, but their representation there is slightly different than in dxapp.json. Also note that the runtime section is different than the metadata section when it comes to attribute values - specifically, object values must be prefixed by the `object` keyword, and mapped values must have their keys in quotes.
