@@ -1260,23 +1260,28 @@ This will be applied to the top-level workflow, sub-workflows, and tasks during 
 
 ## Delay workspace destruction
 
-By default, temporary workspaces hold the results of executed workflows and applets. Normally, these are garbage collected by the system. If you wish to leave them around longer (around 3 days) for debugging purposes, please use:
+When calling a workflow with `dx run`, jobs and analyses launched by this workflow will have their temporary workspaces to store resources and intermediate outputs. By default, when a job/analysis has transitioned to a terminal state (done, failed, or terminated), its workspace will be destroyed and garbage collected by the system. 
+
+If you wish to leave them around longer (around 3 days) after executing the workflow, two things needs to be done:
+
+1. Add this setting to the top-level of the extras.json:
 
 ```
 {
   "delayWorkspaceDestruction" : true
 }
 ```
+This will guarantee the workspace containers of all jobs that sprawn from the parent jobs (e.g. in scatters) during workflow execution to remain intact after the analysis.
 
-This will be applied to the top-level workflow, sub-workflows, and tasks during compilation.
-
-However, since it is a runtime option, compiling your workflow with this attribute set to true will only guarantee the workspaces of subjobs (that sprawn from the parent jobs, which correspond to tasks) to remain intact after the analysis. 
-To keep the parent job's workspace, you still need to run the top-level workflow with the runtime flag `--delay-workspace-destruction`.
-
+2. When running the workflow use `--delay-workspace-destruction` flag:
 ```
 dx run YOUR_WORKFLOW --delay-workspace-destruction
 ```
+This will guarantee the root analysis and the jobs/analyses as its stages will have their workspaces kept intact for longer.
 
+Taking both steps will ensure all of your workflow containers are not immediately destroyed regardless of whether the analysis succeeds or fails, and will allow you to view the stored data objects for debugging purposes.
+
+To learn about jobs' workspaces used during execution, please refer to [the official DNAnexus documentation](https://documentation.dnanexus.com/user/running-apps-and-workflows/job-lifecycle#example-execution-tree).
 
 # Handling intermediate workflow outputs
 
