@@ -108,7 +108,7 @@ class Context(object):
         :param base_dir: str. Parent
         :return:
         """
-        subdirectories = (os.path.join(base_dir, x) for x in ("/applets", "/test"))
+        subdirectories = (os.path.join(base_dir, x) for x in ("applets", "test"))
         for subdir in subdirectories:
             _ = project_new_folder(
                 object_id=self._project_id,
