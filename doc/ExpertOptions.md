@@ -2,37 +2,46 @@ The reader is assumed to understand the [Workflow Description Language (WDL)](ht
 
 dxCompiler takes a pipeline written in WDL or CWL and statically compiles it to an equivalent workflow on the DNAnexus platform. This document will use WDL examples to explain additional compiler options and features. To implement them when working with CWL workflows, please refer to [CWL v1.2.0 to WDL v1.0 mapping](CWL_v1.2.0_to_WDL_v1.md) for type and syntax equivalence between WDL and CWL. 
 
-- [Getting started](#getting-started)
-- [Extensions](#extensions)
-  * [Runtime](#runtime)
-  * [Streaming](#streaming)
-- [Task and workflow inputs](#task-and-workflow-inputs)
-  * [Directories](#directories)
-- [Task metadata](#task-metadata)
-  * [meta section](#meta-section)
-  * [parameter_meta section](#parameter_meta-section)
-  * [Runtime hints](#runtime-hints)
-  * [Example task with DNAnexus-specific metadata and runtime](#example-task-with-dnanexus-specific-metadata-and-runtime)
-- [Calling existing applets](#calling-existing-applets)
+* [Getting started](#getting-started)
+  * [Compiling Workflow](#compiling-workflow)
+  * [Describe WDL workflow to obtain execution tree](#describe-wdl-workflow-to-obtain-execution-tree)
+* [Task and workflow inputs](#task-and-workflow-inputs)
+* [DNAnexus files as outputs](#dnanexus-files-as-outputs)
+  * [Example 1: DNAnexus files as outputs](#example-1-dnanexus-files-as-outputs)
+  * [Example 2: Uploading local file to DNAnexus](#example-2-uploading-local-file-to-dnanexus)
+* [Task metadata and runtime](#task-metadata-and-runtime)
+  * [Task meta and parameter_meta](#task-meta-and-parameter_meta)
+  * [Task Runtime and Hints](#task-runtime-and-hints)
+  * [Example tasks with DNAnexus-specific metadata and runtime](#example-tasks-with-dnanexus-specific-metadata-and-runtime)
+* [Calling existing app(let)s](#calling-existing-applets)
   * [Calling apps](#calling-apps)
-- [Setting DNAnexus-specific attributes in extras.json](#setting-dnanexus-specific-attributes-in-extrasjson)
+  * [Calling app(let)s using WDL `development`](#calling-applets-using-wdl-development)
+  * [Overriding the native app(let) instance type](#overriding-the-native-applet-instance-type)
+* [Workflow metadata](#workflow-metadata)
+* [Setting DNAnexus-specific attributes in extras.json](#setting-dnanexus-specific-attributes-in-extrasjson)
+  * [Default and per-task attributes](#default-and-per-task-attributes)
+  * [Default and per-workflow attributes](#default-and-per-workflow-attributes)
   * [Job reuse](#job-reuse)
   * [Delay workspace destruction](#delay-workspace-destruction)
-- [Workflow metadata](#workflow-metadata)
-- [Handling intermediate workflow outputs](#handling-intermediate-workflow-outputs)
+* [Handling intermediate workflow outputs](#handling-intermediate-workflow-outputs)
   * [Use your own applet](#use-your-own-applet)
-  * [Adding config-file based reorg applet at compilation time](#adding-config-file-based-reorg-applet-at-compilation-time)
-- [Top-level calls compiled as stages](#toplevel-calls-compiled-as-stages)
-- [Manifests](#manifests)  
-- [Docker](#docker)
+  * [Adding config file based reorg applet at compilation time](#adding-config-file-based-reorg-applet-at-compilation-time)
+* [Top-level calls compiled as stages](#top-level-calls-compiled-as-stages)
+* [Manifests](#manifests)
+  * [Manifest JSON](#manifest-json)
+  * [Manifest file](#manifest-file)
+  * [Analysis outputs](#analysis-outputs)
+* [Docker](#docker)
   * [Setting a default docker image for all tasks](#setting-a-default-docker-image-for-all-tasks)
   * [Private registries](#private-registries)
   * [Storing a docker image as a file](#storing-a-docker-image-as-a-file)
-- [Proxy configurations](#proxy-configurations)
-- [Debugging an applet](#debugging-an-applet)
+* [Proxy configurations](#proxy-configurations)
+* [Debugging an applet](#debugging-an-applet)
+  * [Logging](#logging)
+  * [Getting applet sources](#getting-applet-sources)
   * [Getting WDL sources](#getting-wdl-sources)
-- [Recompilation](#recompilation)
-- [Publishing global workflows](#publishing-global-workflows)
+* [Recompilation](#recompilation)
+* [Publishing global workflows](#publishing-global-workflows)
   * [Global workflow recommendations](#global-workflow-recommendations)
   * [Global workflow limitations](#global-workflow-limitations)
 
@@ -1260,24 +1269,27 @@ This will be applied to the top-level workflow, sub-workflows, and tasks during 
 
 ## Delay workspace destruction
 
-By default, temporary workspaces hold the results of executed workflows and applets. Normally, these are garbage collected by the system. If you wish to leave them around longer (around 3 days) for debugging purposes, please use:
+When calling a workflow with `dx run`, jobs and analyses launched by this workflow will have their temporary workspaces to store resources and intermediate outputs. By default, when a job/analysis has transitioned to a terminal state (done, failed, or terminated), its workspace will be destroyed and garbage collected by the system. 
+
+If you wish to leave them around longer (around 3 days) after executing the workflow, two things needs to be done:
+1. Add this setting to the top-level of the extras.json:
 
 ```
 {
   "delayWorkspaceDestruction" : true
 }
 ```
+This will guarantee the workspace containers of all jobs that sprawn from the parent jobs (e.g. in scatters) during workflow execution to remain intact after the analysis.
 
-This will be applied to the top-level workflow, sub-workflows, and tasks during compilation.
-
-However, since it is a runtime option, compiling your workflow with this attribute set to true will only guarantee the workspaces of subjobs (that sprawn from the parent jobs, which correspond to tasks) to remain intact after the analysis. 
-To keep the parent job's workspace, you still need to run the top-level workflow with the runtime flag `--delay-workspace-destruction`.
-
+2. When running the workflow use `--delay-workspace-destruction` flag:
 ```
 dx run YOUR_WORKFLOW --delay-workspace-destruction
 ```
+This will guarantee the root analysis and the jobs/analyses as its stages will have their workspaces kept intact for longer.
 
+Taking both steps will ensure all of your workflow containers are not immediately destroyed regardless of whether the analysis succeeds or fails, and will allow you to view the stored data objects for debugging purposes.
 
+To learn about jobs' workspaces used during execution, please refer to [the official DNAnexus documentation](https://documentation.dnanexus.com/user/running-apps-and-workflows/job-lifecycle#example-execution-tree).
 # Handling intermediate workflow outputs
 
 A workflow may create a large number of files, taking up significant disk space, and incurring storage costs. Some of the files are workflow outputs, but many of them may be intermediate results that are not needed once the workflow completes. By default, all outputs are stored in one platform folder. With the `-reorg` flag, the intermediate results are moved into a subfolder named "intermediate". This is achieved by adding a stage to the workflow that reorganizes the output folder, it uses `CONTRIBUTE` access to reach into the parent project, create a subfolder, and move files into it.
