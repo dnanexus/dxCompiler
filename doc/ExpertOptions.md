@@ -1271,7 +1271,7 @@ If you wish to leave them around longer (around 3 days) after executing the work
   "delayWorkspaceDestruction" : true
 }
 ```
-This will guarantee the workspace containers of all jobs that sprawn from the parent jobs (e.g. in scatters) during workflow execution to remain intact after the analysis.
+This will guarantee the workspace containers of all jobs that spawned from the parent jobs (e.g. in scatters) during workflow execution to remain intact after the analysis.
 
 2. When running the workflow use `--delay-workspace-destruction` flag:
 ```
