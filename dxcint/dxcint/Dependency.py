@@ -26,12 +26,17 @@ class DependencyFactory(object):
         return self._type_switch[detected_type](self._config_file)
 
     def _detect_type(self) -> str:
+        """
+        This logic defines the precedence of detection. First precedence: If config has `package_manager` field, then
+        it's a package dependency. Later this will be reconsidered to always deliver dependencies as packages
+        :return:
+        """
         with open(self._config_file, "r") as config_handle:
             config = json.load(config_handle)
-        if config.get("source_link"):
-            return "source"
         if config.get("package_manager"):
             return "package_manager"
+        if config.get("source_link"):
+            return "source"
 
 
 class Dependency(object):
@@ -41,7 +46,7 @@ class Dependency(object):
             config = json.load(config_handle)
         # Required config parameters
         self._name = config.get("name")
-        self._languages = config.get("langauges")
+        self._languages = config.get("languages")
         self._version = config.get("version")
         self._source_link = config.get("source_link", None)
         self._package_manager = config.get("package_manager", None)
@@ -103,6 +108,7 @@ class BinaryDependency(Dependency):
             self._dependencies_root, self._name, self._version, self._name
         )
         if os.path.exists(local_dependency_dir):
+            logging.info(f"Found binary in local directory {local_dependency_dir}. Will be using that one.")
             return Path(local_dependency_dir)
         else:
             os.makedirs(local_dependency_dir, exist_ok=True)
