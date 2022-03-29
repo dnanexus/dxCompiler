@@ -2,6 +2,8 @@ import logging
 import os
 import json
 import subprocess as sp
+
+from typing import Dict
 from pathlib import Path
 
 
@@ -9,6 +11,27 @@ class DependencyError(Exception):
     """
     Class to handle Dependency exceptions
     """
+
+
+class DependencyFactory(object):
+    def __init__(self, config_file: str):
+        self._type_switch = {
+            "source": BinaryDependency,
+            "package_manager": PackageDependency
+        }
+        self._config_file = config_file
+
+    def make(self):
+        detected_type = self._detect_type()
+        return self._type_switch[detected_type](self._config_file)
+
+    def _detect_type(self) -> str:
+        with open(self._config_file, "r") as config_handle:
+            config = json.load(config_handle)
+        if config.get("source_link"):
+            return "source"
+        if config.get("package_manager"):
+            return "package_manager"
 
 
 class Dependency(object):
@@ -20,25 +43,12 @@ class Dependency(object):
         self._name = config.get("name")
         self._languages = config.get("langauges")
         self._version = config.get("version")
-        self._source_link = config.get("source_link")
-        # Optional config parameters
+        self._source_link = config.get("source_link", None)
         self._package_manager = config.get("package_manager", None)
-        # Computed config parameters
-        self._local_dir = self._get_exec()
 
     @property
     def languages(self):
         return self._languages
-
-    def link(self, symlink_destination: Path) -> Path:
-        """
-        Method to create a symlink for the dependency executable in the asset resources
-        :param symlink_destination: Path. Dir name of the
-        :return: Path. Path of a symlink
-        """
-        link_path = Path(os.path.join(symlink_destination, Path(self._local_dir).name))
-        os.link(self._local_dir, link_path)
-        return link_path
 
     def update_dot_env(self, home_dir: Path) -> bool:
         """
@@ -56,6 +66,33 @@ class Dependency(object):
         with open(dot_env_file, "a") as dot_env_handle:
             dot_env_handle.write(dot_env)
         return True
+
+    def link(self, symlink_destination: Path) -> None:
+        pass
+
+    def export_spec(self) -> None:
+        pass
+
+
+class BinaryDependency(Dependency):
+    def __init__(self, config_file: str):
+        super().__init__(config_file)
+        # additional attributes
+        self._local_dir = self._get_exec()
+        if not self._source_link:
+            raise DependencyError(
+                f"BinaryDependency(): `source_link` field in the config file can not be None for BinaryDependency class"
+            )
+
+    def link(self, symlink_destination: Path) -> Path:
+        """
+        Method to create a symlink for the dependency executable in the asset resources
+        :param symlink_destination: Path. Dir name of the
+        :return: Path. Path of a symlink
+        """
+        link_path = Path(os.path.join(symlink_destination, Path(self._local_dir).name))
+        os.link(self._local_dir, link_path)
+        return link_path
 
     def _get_exec(self) -> Path:
         """
@@ -79,3 +116,20 @@ class Dependency(object):
                 raise e
             os.chmod(local_dependency_dir, 0o775)
         return Path(local_dependency_dir)
+
+
+class PackageDependency(Dependency):
+    def __init__(self, config_file: str):
+        super().__init__(config_file)
+        if not self._package_manager:
+            raise DependencyError(
+                f"PackageDependency(): `package_manager` field in the config file can not be None for "
+                f"PackageDependency class"
+            )
+
+    def export_spec(self) -> Dict:
+        return {
+            "name": self._name,
+            "package_manager": self._package_manager,
+            "version": self._version
+        }

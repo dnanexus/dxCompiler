@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import List, Dict, Tuple
 
 from dxcint.RegisteredTest import RegisteredTest
-from dxcint.Dependency import Dependency
+from dxcint.Dependency import DependencyFactory, Dependency
 from dxcint.utils import rm_suffix
 
 
@@ -98,7 +98,9 @@ class TestDiscovery(object):
         for dependency_config in os.listdir(self._dependency_config_location):
             if not dependency_config.endswith(".json"):
                 continue
-            one_dependency = Dependency(os.path.join(self._dependency_config_location, dependency_config))
+            config_path = os.path.join(self._dependency_config_location, dependency_config)
+            dependency_factory = DependencyFactory(config_file=config_path)
+            one_dependency = dependency_factory.make()
             dependencies.append(one_dependency)
         return dependencies
 
