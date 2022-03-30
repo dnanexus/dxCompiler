@@ -30,7 +30,7 @@ RECORD=${PROJECT_NAME}:/releases/$DXCOMPILER_VERSION/dx${LANGUAGE}rt
 ASSET_FILE=$(dx describe ${RECORD} | grep "Outgoing links" | awk '{print $3}')
 echo "Downloading dxCompiler $DXCOMPILER_VERSION asset"
 dx download $ASSET_FILE
-echo "Done."
+echo "Done downloading $ASSET_FILE."
 ```
  
 ## In your DNAnexus mini env - upload the runtime executor asset to a specific location
@@ -57,9 +57,9 @@ DXCOMPILER_PROJECT_ID=$(dx new project --region aws:us-east-1 ${PROJECT_NAME} --
 dx mkdir -p ${DXCOMPILER_PROJECT_ID}:/releases/$DXCOMPILER_VERSION
 
 # Upload the asset
-echo "Uplading the asset.."
-ASSET_FILE_ID=$(dx upload - --brief --wait --visibility hidden --destination ${PROJECT_NAME}:/releases/$DXCOMPILER_VERSION/dx${LANGUAGE}rt.tar.gz)
- 
+echo "Uplading the asset dx${LANGUAGE}rt.tar.gz..""
+ASSET_FILE_ID=$(dx upload dx${LANGUAGE}rt.tar.gz --brief --visibility hidden --destination ${PROJECT_NAME}:/releases/$DXCOMPILER_VERSION/dx${LANGUAGE}rt.tar.gz)
+
 # Create a record pointing to the asset
 echo "Creating the record.."
 dx new record \
