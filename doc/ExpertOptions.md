@@ -1080,12 +1080,13 @@ When writing a DNAnexus applet the user can specify options through the [dxapp.j
 
 The following first-level keys are accepted in the _extras_ file:
 * `defaultRuntimeAttributes`: native WDL/CWL runtime attributes
-* `defaultTaskDxAttributes` and `perTaskDxAttributes`: metadata and runtime attributes as default or of specific task
+* `defaultTaskDxAttributes` metadata and runtime attributes defaults for tasks
+* `perTaskDxAttributes`: metadata and runtime attributes for specific tasks that override defaultTaskDxAttributes.
 * `defaultWorkflowDxAttributes` and `perWorkflowDxAttributes`: metadata and runtime attributes as default or of specific workflow
 * `dockerRegistry`: private registry configuration. See [Private registries](##private-registries])
 * `customReorgAttributes`: custom reorganization applet URI and its configuration. See [Adding config file based reorg applet at compilation time](##adding-config-file-based-reorg-applet-at-compilation-time)
-* `ignoreReuse`: boolean value indicating whether to skip current execution and reuse the results from the previous one. See [Job reuse](##job-reuse)
-* `delayWorkspaceDestruction`: boolean value indicating whether to keep the job's temporary workspace after execution. See [Delay workspace destruction](##delay-workspace-destruction)
+* `ignoreReuse`: boolean value indicating whether to disable [job reuse](##job-reuse)
+* `delayWorkspaceDestruction`: boolean value indicating whether to delay the destruction of the job's temporary workspace after execution. See [Delay workspace destruction](##delay-workspace-destruction)
 
 If one attribute is specified multiple times, its final value will be retrieved from the following sources and the latter (if exists) will override the former: 
 * `defaultTaskDxAttributes`/`defaultWorkflowDxAttributes` in extras.json
@@ -1260,7 +1261,7 @@ This will be applied to the top-level workflow, sub-workflows, and applets durin
 
 ## Delay workspace destruction
 
-When calling a workflow with `dx run`, jobs and analyses launched by this workflow will have their temporary workspaces to store resources and intermediate outputs. By default, when a job/analysis has transitioned to a terminal state (done, failed, or terminated), its workspace will be destroyed and garbage collected by the system. 
+When calling a workflow with `dx run`, jobs and analyses launched by this workflow will have their temporary workspaces to store resources and intermediate outputs. By default, when a job or an analysis has transitioned to a terminal state (done, failed, or terminated), its temporary workspace will be destroyed by the system. 
 
 If you wish to leave them around longer (around 3 days) after executing the workflow, two things needs to be done:
 
@@ -1277,9 +1278,9 @@ This will guarantee the workspace containers of all jobs that spawned from the p
 ```
 dx run YOUR_WORKFLOW --delay-workspace-destruction
 ```
-This will guarantee the root analysis and the jobs/analyses as its stages will have their workspaces kept intact for longer.
+This will guarantee the root analysis and its stages will have their workspace destruction delayed.
 
-Taking both steps will ensure all of your workflow containers are not immediately destroyed regardless of whether the analysis succeeds or fails, and will allow you to view the stored data objects for debugging purposes.
+Taking both steps will ensure all of your workflow containers are not immediately destroyed regardless of whether the analysis succeeds or fails, and will allow you to view the data objects stored in the workflow workspace containers for debugging purposes.
 
 To learn about jobs' workspaces used during execution, please refer to [the official DNAnexus documentation](https://documentation.dnanexus.com/user/running-apps-and-workflows/job-lifecycle#example-execution-tree).
 
