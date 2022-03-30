@@ -8,6 +8,7 @@ from typing import List, Dict, Tuple
 
 from dxcint.RegisteredTest import RegisteredTest
 from dxcint.Dependency import DependencyFactory, Dependency
+from dxcint.Context import Context
 from dxcint.utils import rm_suffix
 
 
@@ -18,9 +19,10 @@ class TestDiscoveryError(Exception):
 
 
 class TestDiscovery(object):
-    def __init__(self, **test_kwargs):
+    def __init__(self, context: Context, **test_kwargs):
         """
         Class to handle discovery and addition of the tests to the suite
+        :param context: Context. Suite global context
         :param test_kwargs: use only for unit testing of this class
         """
         self._config_location = test_kwargs.get("config", self._resolve_from_root("config"))
@@ -40,6 +42,7 @@ class TestDiscovery(object):
             "CW": "cwl_workflows.json",
             "CC": "cwl_cromwell.json"
         }
+        self._context = context
 
     def discover(self, suite: str) -> List[RegisteredTest]:
         """
@@ -55,9 +58,11 @@ class TestDiscovery(object):
         registered_tests = [RegisteredTest(
             src_file=self._find_workflow_source(x[0], x[1]),
             category=x[0],
-            test_name=x[1]
+            test_name=x[1],
+            context=self._context
         ) for x in self._flatten_config(suite_config)]
         return registered_tests
+
 
     def add_tests(self, dir_name: str, extension: str, suite: str, category: str) -> List[str]:
         """
@@ -173,4 +178,3 @@ class TestDiscovery(object):
             )
         else:
             return potential_source_files[0]
-

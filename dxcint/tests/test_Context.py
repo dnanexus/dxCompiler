@@ -1,12 +1,7 @@
 import pytest
 import dxpy
 from dxpy.api import project_list_folder
-from dxcint.Context import Context, ContextError
-
-
-@pytest.fixture(scope="session")
-def context_init():
-    yield Context(project="dxCompiler_playground", folder="/gvaihir/dxcint_testing")
+from dxcint.Context import ContextError
 
 
 def test__resolve_project(context_init):

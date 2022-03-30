@@ -24,14 +24,14 @@ class RegisteredTest(object):
             test_name: str,
             context: Context
     ):
+        self._context = context
         self._src_file = src_file
         self._category = category
         self._test_name = test_name
         self._language = rm_prefix(os.path.basename(src_file), test_name)
-        self._messenger = self._create_messenger()
-        self._exec_id = self._compile_executable()
+        self._messenger = None
+        self._exec_id = None
         self._job_id = None
-        self._context = context
 
     @property
     def category(self):
@@ -44,6 +44,24 @@ class RegisteredTest(object):
     @property
     def language(self):
         return self._language
+
+    @property
+    def messenger(self):
+        if not self._messenger:
+            self._messenger = self._create_messenger()
+        return self._messenger
+
+    @property
+    def exec_id(self):
+        if not self._exec_id:
+            self._exec_id = self._compile_executable()
+        return self._exec_id
+
+    @property
+    def job_id(self):
+        if not self._job_id:
+            self._job_id = self._run_executable()
+            # TODO STOPPED HERE
 
     def _compile_executable(self, additional_compiler_flags: Optional[List[str]] = None) -> str:
         compiler_flags = ["-instanceTypeSelection", random.choice(["static", "dynamic"])]
@@ -67,10 +85,9 @@ class RegisteredTest(object):
             raise cpe
         return oid.decode("ascii")
 
-
     def _create_messenger(self) -> Messenger:
         return Messenger(
-            test_name=self._test_name,
-            job_id=self._job_id,
-            variant=   #TODO
+            test_name=self.name,
+            job_id=self.job_id,
+            variant=None  # TODO
         )

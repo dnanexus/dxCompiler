@@ -8,11 +8,12 @@ from dxcint.Dependency import Dependency
 
 
 @pytest.fixture(scope="session")
-def add_test_to_existing_category(fixtures_dir):
+def add_test_to_existing_category(fixtures_dir, context_init):
     with open(os.path.join(fixtures_dir, "config", "medium.json"), "r") as old_suite_handle:
         old_suite = json.load(old_suite_handle)
     new_tests_dir = os.path.join(fixtures_dir, "new_tests")
     test_discovery = TestDiscovery(
+        context=context_init,
         config=os.path.join(fixtures_dir, "config"),
         resources=os.path.join(fixtures_dir, "resources")
     )
@@ -30,11 +31,12 @@ def add_test_to_existing_category(fixtures_dir):
 
 
 @pytest.fixture(scope="session")
-def add_test_to_new_category(fixtures_dir):
+def add_test_to_new_category(fixtures_dir, context_init):
     with open(os.path.join(fixtures_dir, "config", "medium.json"), "r") as old_suite_handle:
         old_suite = json.load(old_suite_handle)
     new_tests_dir = os.path.join(fixtures_dir, "new_tests")
     test_discovery = TestDiscovery(
+        context=context_init,
         config=os.path.join(fixtures_dir, "config"),
         resources=os.path.join(fixtures_dir, "resources")
     )
@@ -51,8 +53,9 @@ def add_test_to_new_category(fixtures_dir):
         os.remove(os.path.join(fixtures_dir, "resources", "new_mock_category", added_file))
 
 
-def test_discover(fixtures_dir):
+def test_discover(fixtures_dir, context_init):
     test_discovery = TestDiscovery(
+        context=context_init,
         config=os.path.join(fixtures_dir, "config"),
         resources=os.path.join(fixtures_dir, "resources")
     )
@@ -75,7 +78,10 @@ def test_add_tests(add_test_to_existing_category, add_test_to_new_category, fixt
     assert "new_mock_category" in modified_suite.keys()
 
 
-def test_discover_dependencies(fixtures_dir):
-    test_discovery = TestDiscovery(dependencies=os.path.join(fixtures_dir, "dependencies/config"))
+def test_discover_dependencies(fixtures_dir, context_init):
+    test_discovery = TestDiscovery(
+        context=context_init,
+        dependencies=os.path.join(fixtures_dir, "dependencies/config")
+    )
     dependencies = test_discovery.discover_dependencies()
     assert all(isinstance(x, Dependency) for x in dependencies)
