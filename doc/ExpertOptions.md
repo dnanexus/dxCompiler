@@ -1082,7 +1082,8 @@ The following first-level keys are accepted in the _extras_ file:
 * `defaultRuntimeAttributes`: native WDL/CWL runtime attributes
 * `defaultTaskDxAttributes` metadata and runtime attributes defaults for tasks
 * `perTaskDxAttributes`: metadata and runtime attributes for specific tasks that override defaultTaskDxAttributes.
-* `defaultWorkflowDxAttributes` and `perWorkflowDxAttributes`: metadata and runtime attributes as default or of specific workflow
+* `defaultWorkflowDxAttributes`: metadata and runtime attributes defaults for workflows 
+* `perWorkflowDxAttributes`: metadata and runtime attributes for specific workflows that override defaultWorkflowDxAttributes.
 * `dockerRegistry`: private registry configuration. See [Private registries](##private-registries])
 * `customReorgAttributes`: custom reorganization applet URI and its configuration. See [Adding config file based reorg applet at compilation time](##adding-config-file-based-reorg-applet-at-compilation-time)
 * `ignoreReuse`: boolean value indicating whether to disable [job reuse](##job-reuse)
@@ -1250,7 +1251,7 @@ If you want the default scatter chunk size for this workflow to be 100, but you 
 
 ## Job reuse
 
-By default, job results are [reused](https://documentation.dnanexus.com/user/running-apps-and-workflows/job-reuse). This is an optimization whereby when a job is run a second time, the results from the previous execution are returned, skipping job execution entirely. Sometimes, it is desirable to disable this behavior. To do so use:
+By default, job results are [reused](https://documentation.dnanexus.com/user/running-apps-and-workflows/job-reuse). This is an optimization whereby when a job is run a second time, the results from the previous execution are returned, skipping job execution entirely. Sometimes, it is desirable to disable this behavior. To do so, add this setting to the top-level of the extras file:
 
 ```
 {
@@ -1263,9 +1264,9 @@ This will be applied to the top-level workflow, sub-workflows, and applets durin
 
 When calling a workflow with `dx run`, jobs and analyses launched by this workflow will have their temporary workspaces to store resources and intermediate outputs. By default, when a job or an analysis has transitioned to a terminal state (done, failed, or terminated), its temporary workspace will be destroyed by the system. 
 
-If you wish to leave them around longer (around 3 days) after executing the workflow, two things needs to be done:
+If you wish to delay the destruction of these temporary workspaces and keep them around longer (around 3 days) after executing the workflow, two things need to be done:
 
-1. Add this setting to the top-level of the extras.json:
+1. Add this setting to the top-level of the extras file:
 
 ```
 {
