@@ -77,7 +77,7 @@ dx new record \
 echo "Done."
 ```     
 
-## Download the compiler to your local machine
+## Download the compiler to the mini env
 
 In order to compile workflows in your mini env, download the dxCompiler **with the same version** you downloaded & uploaded the asset, from:
 
@@ -85,6 +85,8 @@ In order to compile workflows in your mini env, download the dxCompiler **with t
 DXCOMPILER_VERSION=2.10.0
 wget https://github.com/dnanexus/dxCompiler/releases/download/$DXCOMPILER_VERSION/dxCompiler-$DXCOMPILER_VERSION.jar
 ```
+
+## Test your setup
 
 You can test your dxCompiler setup by compiling a small test WDL, for example the [add3 task](https://github.com/dnanexus/dxCompiler/blob/develop/test/single_tasks/add3.wdl) or the [echo_pairs workflow](https://github.com/dnanexus/dxCompiler/blob/develop/test/input_file/echo_pairs.wdl). For a quick intro on how to compile workflows with dxCompiler, please read the [Readme](https://github.com/dnanexus/dxCompiler).
 
