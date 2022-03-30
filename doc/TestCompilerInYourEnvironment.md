@@ -2,7 +2,7 @@
 
 Every applet compiled from WDL/CWL using dxCompiler has a reference to a runtime executor asset, which is required to properly execute the applet.
 
-The asset is stored in a public `dxCompiler` project (one per region) in the `/releases/\<version\>` folder. Each version of dxCompiler contains a config file that stores a json with a mapping of region projects and folder paths where the asset of the corresponding version is stored (the dxCompiler doesn't store asset record IDs).
+The asset is stored in a public `dxCompiler` project (one per region) in the `/releases/<version>` folder. Each version of dxCompiler contains a config file that stores a json with a mapping of region projects and folder paths where the asset of the corresponding version is stored (the dxCompiler doesn't store asset record IDs).
 
 In order to move dxCompiler to a new environment (other than staging or prod), for example mini environment, the asset for the dxCompiler version you want to work with needs to be downloaded from the DNAnexus platform, uploaded to your environment, and stored in a location where the dxCompiler executor expects it, as shown below.
 
@@ -58,7 +58,7 @@ dx mkdir -p ${DXCOMPILER_PROJECT_ID}:/releases/$DXCOMPILER_VERSION
 
 # Upload the asset
 echo "Uplading the asset.."
-ASSET_FILE_ID=$(dx upload - --brief --visibility hidden --destination ${PROJECT_NAME}:/releases/$DXCOMPILER_VERSION/dx${LANGUAGE}rt.tar.gz)
+ASSET_FILE_ID=$(dx upload - --brief --wait --visibility hidden --destination ${PROJECT_NAME}:/releases/$DXCOMPILER_VERSION/dx${LANGUAGE}rt.tar.gz)
  
 # Create a record pointing to the asset
 echo "Creating the record.."
