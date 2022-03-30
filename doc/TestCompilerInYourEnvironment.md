@@ -1,12 +1,10 @@
 # How to set up dxCompiler in DNAnexus mini dev instance
 
 Every applet compiled from WDL/CWL using dxCompiler has a reference to a runtime executor asset, which is required to properly execute the applet.
-The asset is stored in a public `dxCompiler` project (one per region) in the `/releases/\<version\>` folder. Each version of dxCompiler contains a config
-file that stores a json with a mapping of region projects and folder paths where the asset of the corresponding version is stored (the dxCompiler doesn't
-store asset record IDs).
 
-In order to move dxCompiler to a new environment (other than staging or prod), for example mini environment, the asset for the dxCompiler version you want to work with needs to be downloaded
-from the DNAnexus platform, uploaded to your environment, and stored in a location where the dxCompiler executor expects it, as shown below.
+The asset is stored in a public `dxCompiler` project (one per region) in the `/releases/\<version\>` folder. Each version of dxCompiler contains a config file that stores a json with a mapping of region projects and folder paths where the asset of the corresponding version is stored (the dxCompiler doesn't store asset record IDs).
+
+In order to move dxCompiler to a new environment (other than staging or prod), for example mini environment, the asset for the dxCompiler version you want to work with needs to be downloaded from the DNAnexus platform, uploaded to your environment, and stored in a location where the dxCompiler executor expects it, as shown below.
 
 ## In DNAnexus staging or prod environment - download the runtime executor asset
 
