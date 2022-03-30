@@ -6,7 +6,7 @@ The asset is stored in a public `dxCompiler` project (one per region) in the `/r
 
 In order to move dxCompiler to a new environment (other than staging or prod), for example mini environment, the asset for the dxCompiler version you want to work with needs to be downloaded from the DNAnexus platform, uploaded to your environment, and stored in a location where the dxCompiler executor expects it, as shown below.
 
-## In DNAnexus staging or prod environment - download the runtime executor asset
+## Download the runtime executor asset
 
 The following example assumes you will be working in the aws:us-east-1 region and uses version 2.10.0 as the version.
 
@@ -16,7 +16,7 @@ The following example assumes you will be working in the aws:us-east-1 region an
 export DXCOMPILER_VERSION=2.10.0
 ```
 
-2. Download the asset from the DNAnexus platform (either prod or staging):
+2. Log into staging or prod environment and download the asset from the DNAnexus platform (either prod or staging):
 ```
 #!/usr/bin/env bash
 
@@ -33,14 +33,14 @@ dx download $ASSET_FILE
 echo "Done downloading $ASSET_FILE."
 ```
  
-## In your DNAnexus mini env - upload the runtime executor asset to a specific location
+## Upload the runtime executor asset to a specific location in your dedicated DNAnexus "mini environment"
 
 1. Set the version
 ```
 export DXCOMPILER_VERSION=2.10.0
 ```
 
-2. Create a project with the same name as on prod/staging, a specific folder in it, and upload the asset to it
+2. Log into your mini env and create a project with the same name as on prod/staging, a specific folder in it, and upload the asset to it
 
 ```
 #!/usr/bin/env bash
