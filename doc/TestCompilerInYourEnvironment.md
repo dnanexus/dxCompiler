@@ -85,3 +85,6 @@ In order to compile workflows in your mini env, download the dxCompiler **with t
 DXCOMPILER_VERSION=2.10.0
 wget https://github.com/dnanexus/dxCompiler/releases/download/$DXCOMPILER_VERSION/dxCompiler-$DXCOMPILER_VERSION.jar
 ```
+
+You can test your dxCompiler setup by compiling a small test WDL, for example [add3 workflow](https://github.com/dnanexus/dxCompiler/blob/develop/test/single_tasks/add3.wdl). For a quick intro on how to compile workflows with dxCompiler, please read the [Readme](https://github.com/dnanexus/dxCompiler).
+
