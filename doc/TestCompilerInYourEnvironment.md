@@ -8,38 +8,62 @@ store asset record IDs).
 In order to move dxCompiler to a new environment (other than staging or prod), for example mini environment, the asset for the dxCompiler version you want to work with needs to be downloaded
 from the DNAnexus platform, uploaded to your environment, and stored in a location where the dxCompiler executor expects it, as shown below.
 
-## Upload the runtime executor asset to your environment
+## In DNAnexus staging or prod environment - download the runtime executor asset
 
 The following example assumes you will be working in the aws:us-east-1 region and uses version 2.10.0 as the version.
 
-1. Download the asset from the DNAnexus platform (either prod or staging):
+1. First specify the version of dxCompiler you want to work with:
+
 ```
+export DXCOMPILER_VERSION=2.10.0
+```
+
+2. Download the asset from the DNAnexus platform (either prod or staging):
+```
+#!/usr/bin/env bash
+
+set -e
+
 # Set environment variables
-DXCOMPILER_VERSION=2.10.0
 LANGUAGE=WDL
 PROJECT_NAME=dxCompiler
 
 RECORD=${PROJECT_NAME}:/releases/$DXCOMPILER_VERSION/dx${LANGUAGE}rt
 ASSET_FILE=$(dx describe ${RECORD} | grep "Outgoing links" | awk '{print $3}')
+echo "Downloading dxCompiler $DXCOMPILER_VERSION asset"
 dx download $ASSET_FILE
+echo "Done."
 ```
  
-2. Create a project with the same name, a specific folder in it, and upload the asset to it:
+## In your DNAnexus mini env - upload the runtime executor asset to a specific location
+
+1. Set the version
+```
+export DXCOMPILER_VERSION=2.10.0
+```
+
+2. Create a project with the same name as on prod/staging, a specific folder in it, and upload the asset to it
 
 ```
-# Set the same environment variables
-DXCOMPILER_VERSION=2.10.0
+#!/usr/bin/env bash
+
+set -e
+
+# Set the same environment
 LANGUAGE=WDL
 PROJECT_NAME=dxCompiler
 
 # Create project and folder
+echo "Creating the project for dxCompiler $DXCOMPILER_VERSION asset"
 DXCOMPILER_PROJECT_ID=$(dx new project --region aws:us-east-1 ${PROJECT_NAME} --brief)
 dx mkdir -p ${DXCOMPILER_PROJECT_ID}:/releases/$DXCOMPILER_VERSION
 
 # Upload the asset
+echo "Uplading the asset.."
 ASSET_FILE_ID=$(dx upload - --brief --visibility hidden --destination ${PROJECT_NAME}:/releases/$DXCOMPILER_VERSION/dx${LANGUAGE}rt.tar.gz)
  
 # Create a record pointing to the asset
+echo "Creating the record.."
 dx new record \
      --type AssetBundle \
      --details '{"archiveFileId": {"$dnanexus_link": "'"${ASSET_FILE_ID}"'"}}' \
@@ -51,11 +75,13 @@ dx new record \
      --property runSpecVersion="0" \
      --close \
      ${PROJECT_NAME}:/releases/${DXCOMPILER_VERSION}/dx${LANGUAGE}rt
+
+echo "Done."
 ```     
 
 ## Download the compiler to your local machine
 
-In order to compile workflows in your mini env, download the dxCompiler with the same version you downloaded & uploaded the asset, from:
+In order to compile workflows in your mini env, download the dxCompiler **with the same version** you downloaded & uploaded the asset, from:
 
 ```
 DXCOMPILER_VERSION=2.10.0
