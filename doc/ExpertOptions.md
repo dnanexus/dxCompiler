@@ -402,7 +402,7 @@ $ dx run files
 
 ### Extras 
 
-The `-extras` command line option takes an additional JSON file to set or override metadata and runtime attributes of workflows and tasks during compilation. See [Setting DNAnexus-specific attributes in extras.json](#setting-dnanexus-specific-attributes-in-extrasjson) for details on how to write the extras file.
+The `-extras` command line option takes an additional JSON file to set or override metadata and runtime attributes of workflows and tasks during compilation. See [Setting DNAnexus-specific attributes in extras file](#setting-dnanexus-specific-attributes-in-extras-file) for details on how to write the extras file.
 
 If this is file `extraOptions.json`:
 
