@@ -1068,7 +1068,7 @@ task concat {
 ```
 # Workflow metadata
 
-Similar to tasks, workflows can also have `meta` AND `parameter_meta` sections that contain arbitrary workflow-level metadata. dxCompiler recognizes the following `meta` attributes and uses them when generating the native DNAnexus workflow:
+Similar to tasks, workflows can also have `meta` AND `parameter_meta` sections that contain arbitrary workflow-level metadata. dxCompiler recognizes the following `meta` attributes which are usually specified in [dxworkflow.json](https://documentation.dnanexus.com/developer/workflows/workflow-metadata) and uses them when generating the native DNAnexus workflow:
 
 * `title`: A short title for the workflow. If not specified, the task name is used as the title.
 * `summary`: A short description of the workflow. If not specified, the first line of the description is used (up to 50 characters or the first period, whichever comes first).
