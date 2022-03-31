@@ -707,6 +707,11 @@ Similarly, these attributes can be specified in the WDL workflow, but their repr
   * `developer`: Boolean - whether the applet is a developer, i.e. can create new applets
   * `projectCreation`: Boolean - whether the applet can create new projects
 * `dx_ignore_reuse`: Boolean - whether to allow the outputs of the applet to be reused
+  
+### Native DNAnexus executable
+
+You can also specify a native DNAnexus app(let) that will be called as a task at runtime by adding key `dx_app` in the `runtime` section. See [Calling existing app(let)s](#calling-existing-applets) for more details.
+
 ## Example tasks with DNAnexus-specific metadata and runtime
 
 ### Example 1: grep for pattern in file
