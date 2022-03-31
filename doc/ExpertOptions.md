@@ -1104,7 +1104,7 @@ If one attribute is specified multiple times, its final value will be retrieved 
 
 ## Default and per-task attributes
 
-The extras file has a `defaultTaskDxAttributes` section where runtime specification, timeout policies, and access control can be set.
+The extras file has a `defaultTaskDxAttributes` section where execution policies, timeout policies, and access control can be set as `runSpec` attributes.
 
 ```json
 {
