@@ -682,7 +682,7 @@ runtime {
    gpu : true
 }
 ```
-CWL provides a different set of runtime attributes used in the ResourceRequirement, and a DNAnexus instance type will be chosen accordingly. Recognized attributes and its mapping to WDL is listed [here](CWL_v1.2.0_to_WDL_v1.md###requirements).
+CWL provides a different set of runtime attributes used in the [ResourceRequirement](https://www.commonwl.org/v1.2/CommandLineTool.html#ResourceRequirement), and a DNAnexus instance type will be chosen accordingly. Recognized attributes and its mapping to WDL are listed [here](CWL_v1.2.0_to_WDL_v1.md#requirements).
 
 ### Addtional DNAnexus-specific runtime settings
 
