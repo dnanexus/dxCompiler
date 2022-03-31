@@ -661,12 +661,13 @@ task fileSize {
 
 ## Task Runtime and Hints
 
+A task declaration has a runtime section where [native WDL runtime attributes](https://github.com/openwdl/wdl/blob/main/versions/1.1/SPEC.md#mandatory-runtime-attributes) can be specified. Besides, several DNAnexus-specific attributes can also be added to this section if you want customize its execution environment and runtime behavior on the DNAnexus platform.
+
 ### Instance type
-A task declaration has a runtime section where [native WDL runtime attributes](https://github.com/openwdl/wdl/blob/main/versions/1.1/SPEC.md#mandatory-runtime-attributes) can be specified to customize its execution environment on the DNAnexus platform. Based on these attributes, an instance type is chosen by
-the compiler. If you wish to choose an instance type from the
-DNAnexus [native](https://documentation.dnanexus.com/developer/api/running-analyses/instance-types)
-list, this can be done by specifying the `dx_instance_type` key
-instead. For example:
+An instance type is chosen by the compiler to satisfy the execution requirments defined by the native runtime attributes. If you wish to choose an instance type from the
+DNAnexus [native](https://documentation.dnanexus.com/developer/api/running-analyses/instance-types) list, this can be done by specifying the `dx_instance_type` key
+instead. 
+For example:
 
 ```
 runtime {
