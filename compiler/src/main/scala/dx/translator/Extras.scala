@@ -460,8 +460,12 @@ case class Extras(defaultRuntimeAttributes: Option[Map[String, Value]],
 object Extras {
   private val RuntimeAttrs =
     Set(
+        // DNAnexus-specific runtime attributes
         "dx_instance_type",
-        // WDL default runtime attributes
+        "dx_timeout",
+        "dx_restart",
+        "dx_ignore_reuse",
+        // WDL native runtime attributes
         "memory",
         "disks",
         "cpu",
