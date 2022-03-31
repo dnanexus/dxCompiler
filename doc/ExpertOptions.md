@@ -684,15 +684,15 @@ runtime {
 ```
 CWL provides a different set of runtime attributes used in the [ResourceRequirement](https://www.commonwl.org/v1.2/CommandLineTool.html#ResourceRequirement), and a DNAnexus instance type will be chosen accordingly. Recognized attributes and its mapping to WDL are listed [here](CWL_v1.2.0_to_WDL_v1.md#requirements).
 
-### Addtional DNAnexus-specific runtime settings
+### Additional DNAnexus-specific runtime settings
 
-There are several parameters that also affect the runtime environment and can be specified in the [dxapp.json file of a native app](https://documentation.dnanexus.com/developer/api/running-analyses/io-and-run-specifications#run-specification):
+There are several parameters that also affect the runtime behaviour of an applet and can be be supplied upon its creation in its [dxapp.json file](https://documentation.dnanexus.com/developer/apps/app-metadata#annotated-example):
 * `runSpec.executionPolicy`: Specifies when to try to automatically restart failed jobs, and how many times
 * `runSpec.timeoutPolicy`: Specifies the maximum amount of time the job can run
-* `runSpec.access`: Specifies which resources the applet can access
+* `access`: Specifies additional permissions and resources the applet can access
 * `ignoreReuse`: Specifies whether to allow the outputs of the applet to be reused
 
-These attributes can be specified in the `runtime` section of the WDL task, but their representation there is slightly different than in `dxapp.json`. Also note that the runtime section is different than the metadata section when it comes to attribute values - specifically, object values must be prefixed by the `object` keyword, and mapped values must have their keys in quotes.
+Similarly, these attributes can be specified in the WDL workflow, but their representation there is slightly different than in `dxapp.json`, and all of them should be specified under the `runtime` section of the WDL task. Also note that the runtime section is different than the metadata section when it comes to attribute values - specifically, object values must be prefixed by the `object` keyword, and mapped values must have their keys in quotes.
 
 * `dx_restart`: Either an integer value indicating the number of times to automatically restart regardless of the failure reason, or an object value with the following keys:
   * `max`: Maximum number of restarts
