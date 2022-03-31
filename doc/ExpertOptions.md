@@ -1080,25 +1080,25 @@ Similar to tasks, workflows can also have `meta` AND `parameter_meta` sections t
 
 The workflow `parameter_meta` section supports the same attributes as the task `parameter_meta` section.
 
-# Setting DNAnexus-specific attributes in extras.json
+# Setting DNAnexus-specific attributes in extras file
 
-When writing a DNAnexus applet the user can specify options through the [dxapp.json](https://documentation.dnanexus.com/developer/apps/app-metadata#annotated-example) file. The dxCompiler equivalent is the _extras_ file, specified with the `-extras` command line option.
+When writing a DNAnexus applet the user can specify metadata and runtime options through the [dxapp.json](https://documentation.dnanexus.com/developer/apps/app-metadata#annotated-example) file. The dxCompiler equivalent is the _extras_ file, specified with the `-extras` command line option.
 
 The following first-level keys are accepted in the _extras_ file:
 * `defaultRuntimeAttributes`: native WDL/CWL runtime attributes
 * `defaultTaskDxAttributes` metadata and runtime attributes defaults for tasks
-* `perTaskDxAttributes`: metadata and runtime attributes for specific tasks that override defaultTaskDxAttributes.
+* `perTaskDxAttributes`: metadata and runtime attributes for specific tasks
 * `defaultWorkflowDxAttributes`: metadata and runtime attributes defaults for workflows 
-* `perWorkflowDxAttributes`: metadata and runtime attributes for specific workflows that override defaultWorkflowDxAttributes.
+* `perWorkflowDxAttributes`: metadata and runtime attributes for specific workflows
 * `dockerRegistry`: private registry configuration. See [Private registries](##private-registries])
 * `customReorgAttributes`: custom reorganization applet URI and its configuration. See [Adding config file based reorg applet at compilation time](##adding-config-file-based-reorg-applet-at-compilation-time)
 * `ignoreReuse`: boolean value indicating whether to disable [job reuse](##job-reuse)
 * `delayWorkspaceDestruction`: boolean value indicating whether to delay the destruction of the job's temporary workspace after execution. See [Delay workspace destruction](##delay-workspace-destruction)
 
 If one attribute is specified multiple times, its final value will be retrieved from the following sources and the latter (if exists) will override the former: 
-* `defaultTaskDxAttributes`/`defaultWorkflowDxAttributes` in extras.json
+* `defaultTaskDxAttributes`/`defaultWorkflowDxAttributes` in the extras file
 * task/workflow metadata/runtime section
-* `perTaskDxAttributes`/`perWorkflowDxAttributes` in extras.json
+* `perTaskDxAttributes`/`perWorkflowDxAttributes` in the extras file
 
 \* Note: the first-level keys in the extras file have been changed to camel case; however, all the old keys (v2.1.0 and earlier) are still recoginzed.
 
