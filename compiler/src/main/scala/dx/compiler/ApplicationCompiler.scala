@@ -458,11 +458,6 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     } else {
       None
     }
-    val asDeveloperAccess = (applet.kind match {
-      case ExecutableKindNative(_, _, _, _, _) =>
-        Some(DxAccess.empty)
-      case _ => Some(DxAccess.empty.copy(developer = Some(true)))
-    })
     // merge all
     val access = defaultAccess
       .merge(taskAccess)
@@ -470,7 +465,6 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       .merge(allProjectsAccess)
       .mergeOpt(appletKindAccess)
       .mergeOpt(manifestAccess)
-      .mergeOpt(asDeveloperAccess)
     access.toJson match {
       case JsObject(fields) if fields.isEmpty => JsNull
       case fields                             => fields
