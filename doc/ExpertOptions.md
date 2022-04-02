@@ -565,7 +565,7 @@ Both of these sections allow arbitrary keys and values; unrecognized keys must b
 
 ### meta section
 
-The following keys are recognized:
+The following keys are recognized by dxCompiler (with slightly different representation than in `dxapp.json`):
 
 * `title`: A short title for the applet. If not specified, the task name is used as the title.
 * `summary`: A short description of the applet. If not specified, the first line of the description is used (up to 50 characters or the first period, whichever comes first).
@@ -580,11 +580,13 @@ The following keys are recognized:
   * `contactEmail`
   * `contactOrg`
   * `contactUrl`
+  * `contactEmail`
   * `exampleProject`
   * `repoUrl`
   * `upstreamLicenses`
   * `upstreamUrl`
   * `upstreamVersion`
+  * `upstreamProjects`: licenses of the dependency software and packages. The following keys are required to ensure compliance with open-source licenses: `name`, `repoUrl`, `version`, `license`, and `licenseUrl`, while `author` is optional but good to have.
   * `whatsNew`: The task's change log. There are two different formats that are accepted:
     * A (possibly Markdown-formatted) string
     * An array of versions, where each version is a hash with two keys: `version`, a version string, and `changes`, an array of change description strings. This object will be formatted into a Markdown string upon compilation.
@@ -1104,7 +1106,7 @@ If one attribute is specified multiple times, its final value will be retrieved 
 
 ## Default and per-task attributes
 
-The extras file has a `defaultTaskDxAttributes` section where execution policies, timeout policies, and access control can be set as `runSpec` attributes.
+The extras file has a `defaultTaskDxAttributes` section where runtime properties `executionPolicy`, `timeoutPolicy`, and `access` control) can be set as `runSpec` attributes.
 
 ```json
 {
@@ -1136,7 +1138,16 @@ The extras file has a `defaultTaskDxAttributes` section where execution policies
 In order to override the defaults for specific tasks, you can add the `perTaskDxAttributes` section. For example
 
 ```json
-{
+{  
+  "defaultTaskDxAttributes" : {
+    "runSpec": {
+        "timeoutPolicy": {
+          "*": {
+            "hours": 12
+          }
+        }
+      }
+    },
   "perTaskDxAttributes" : {
     "Add": {
       "runSpec": {
@@ -1163,9 +1174,9 @@ In order to override the defaults for specific tasks, you can add the `perTaskDx
 }
 ```
 
-will override the default timeout for tasks `Add` and `Inc`. It will also provide `UPLOAD` instead of `VIEW` project access to `Inc`.
+will override the default task timeout and `dx_timeout` in the runtime section of tasks `Add` and `Inc`. It will also provide `UPLOAD` instead of `VIEW` project access to `Inc`.
 
-You are also able to specify metadata for tasks in the `defaultTaskDxAttributes` and `perTaskDxAttributes` sections, including adding citation or license information. The full set of attributes that may be specified are those that can be recognized by dxCompiler as listed in [task meta](#meta-section)
+You are also able to specify metadata for tasks in the `defaultTaskDxAttributes` and `perTaskDxAttributes` sections, including adding citation or license information. The full set of attributes that may be specified are those allowed in the [dxapp.json](https://documentation.dnanexus.com/developer/apps/app-metadata) file.
 
 For example:
 
@@ -1195,12 +1206,13 @@ For example:
           }
         ]
       }
+      "developerNotes": "This note is used to provide additional info to advanced users."
     }
   }
 }
 ```
 
-Note that `details` specified in `perTaskDxAttributes` override those that are set in the task's `meta` section.
+Note that `details` and `developerNotes` specified in `perTaskDxAttributes` override `details` and `developer_notes` that are set in the task's `meta` section. 
 
 ## Default and per-workflow attributes
 
