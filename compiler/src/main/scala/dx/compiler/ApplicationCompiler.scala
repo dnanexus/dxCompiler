@@ -440,13 +440,6 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       case ExecutableKindWorkflowOutputReorg =>
         // The reorg applet requires higher permissions to organize the output directory.
         Some(DxAccess.empty.copy(project = Some(DxAccessLevel.Contribute)))
-      case ExecutableKindWfInputs(blockPath) =>
-        Some(
-            DxAccess.empty.copy(project = Some(DxAccessLevel.Upload),
-                                allProjects = Some(DxAccessLevel.View))
-        )
-      case ExecutableKindWfOutputs(blockPath) =>
-        Some(DxAccess.empty.copy(allProjects = Some(DxAccessLevel.Upload)))
       case _ =>
         // Scatters need network access, because they spawn subjobs that (may) use dx-docker.
         // We end up allowing all applets to use the network
