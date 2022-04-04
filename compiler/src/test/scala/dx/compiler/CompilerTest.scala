@@ -625,7 +625,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     desc.ignoreReuse shouldBe Some(true)
   }
 
-  it should "be able to include runtime hints and override extras global" in {
+  it should "be able to include runtime hints and override extras task default" in {
     val path = pathFromBasename("compiler", "add_runtime_hints.wdl")
     val extraPath = pathFromBasename("compiler/extras", "short_timeout.json")
     val args = path.toString :: "--extras" :: extraPath.toString :: cFlags
