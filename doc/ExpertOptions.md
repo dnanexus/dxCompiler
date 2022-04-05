@@ -580,7 +580,6 @@ The following keys are recognized by dxCompiler (with slightly different represe
   * `contactEmail`
   * `contactOrg`
   * `contactUrl`
-  * `contactEmail`
   * `exampleProject`
   * `repoUrl`
   * `upstreamLicenses`
@@ -1106,7 +1105,7 @@ If one attribute is specified multiple times, its final value will be retrieved 
 
 ## Default and per-task attributes
 
-The extras file has a `defaultTaskDxAttributes` section where runtime properties `executionPolicy`, `timeoutPolicy`, and `access` control) can be set as `runSpec` attributes.
+The extras file has a `defaultTaskDxAttributes` section where `executionPolicy`, `timeoutPolicy`, and `access` `runSpec` attributes can be set.
 
 ```json
 {
@@ -1176,7 +1175,7 @@ In order to override the defaults for specific tasks, you can add the `perTaskDx
 
 will override the default task timeout and `dx_timeout` in the runtime section of tasks `Add` and `Inc`. It will also provide `UPLOAD` instead of `VIEW` project access to `Inc`.
 
-You are also able to specify metadata for tasks in the `defaultTaskDxAttributes` and `perTaskDxAttributes` sections, including adding citation or license information. The full set of attributes that may be specified are those allowed in the [dxapp.json](https://documentation.dnanexus.com/developer/apps/app-metadata) file.
+You are also able to specify metadata for tasks in the `defaultTaskDxAttributes` and `perTaskDxAttributes` sections, including adding citation or license information. The full set of recognized attributes is listed in [task meta](#meta-section) with snake_case fields converted to camelCase to agree with [dxapp.json](https://documentation.dnanexus.com/developer/apps/app-metadata) syntax (e.g.  `developer_notes` and `open_source` meta attributes are specified as `developerNotes` and `openSource` in `extras.json`).
 
 For example:
 
