@@ -31,4 +31,7 @@ task Concat {
     output {
         String result = read_string(stdout())
     }
+    runtime {
+        dx_ignore_reuse: false
+    }
 }
