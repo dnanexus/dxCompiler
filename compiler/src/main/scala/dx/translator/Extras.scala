@@ -500,7 +500,7 @@ object Extras {
     })
     val camelized = camelizeKeys(fixed)
     val a = camelized.convertTo[Extras]
-    logger.warning(a)
+    logger.warning(a.toString)
     a
   }
 
