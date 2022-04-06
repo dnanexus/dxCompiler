@@ -732,6 +732,51 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         )
     )
   }
+
+  it should "be able to build access for applet with dockerRegistry" in {
+    val path = pathFromBasename("compiler", "help_input_params.wdl")
+    val extraPath = pathFromBasename("non_spec", "dependency_report_extras.json")
+    val args = path.toString :: "-extras" :: extraPath.toString :: cFlags
+    //:: "--verbose"
+    val (appId1, appId2) = Main.compile(args.toVector) match {
+      case SuccessfulCompileNativeNoTree(_, x: Vector[String]) => (x.head, x.last)
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
+    }
+
+    val dxApplet1 = dxApi.applet(appId1)
+    val desc1 = dxApplet1.describe(
+        Set(
+            Field.Access
+        )
+    )
+
+    desc1.access shouldBe Some(
+        JsObject(
+            Map(
+                "allProjects" -> JsString("VIEW"),
+                "network" -> JsArray(Vector.empty)
+            )
+        )
+    )
+
+    val dxApplet2 = dxApi.applet(appId2)
+    val desc2 = dxApplet2.describe(
+        Set(
+            Field.Access
+        )
+    )
+
+    desc2.access shouldBe Some(
+        JsObject(
+            Map(
+                "allProjects" -> JsString("VIEW"),
+                "network" -> JsArray(Vector(JsString("*")))
+            )
+        )
+    )
+
+  }
   }
 
   it should "be able to include information from workflow meta" in {
