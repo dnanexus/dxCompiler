@@ -1,4 +1,5 @@
 {
+    "cwlVersion": "v1.2",
     "class": "Workflow",
     "requirements": [
         {
@@ -15,41 +16,41 @@
                 "type": "array",
                 "items": "string"
             },
-            "id": "#main/inp"
+            "id": "inp"
         },
         {
             "type": "string",
-            "id": "#main/inp2"
+            "id": "inp2"
         }
     ],
     "steps": [
         {
             "in": [
                 {
-                    "source": "#main/inp",
-                    "id": "#main/step1/echo_in"
+                    "source": "inp",
+                    "id": "echo_in"
                 },
                 {
-                    "source": "#main/inp2",
-                    "id": "#main/step1/echo_in2"
+                    "source": "inp2",
+                    "id": "echo_in2"
                 }
             ],
             "out": [
-                "#main/step1/echo_out"
+                "echo_out"
             ],
-            "scatter": "#main/step1/echo_in",
+            "scatter": "echo_in",
             "run": {
                 "class": "CommandLineTool",
                 "inputs": [
                     {
                         "type": "string",
                         "inputBinding": {},
-                        "id": "#main/step1/run/echo_in"
+                        "id": "echo_in"
                     },
                     {
                         "type": "string",
                         "inputBinding": {},
-                        "id": "#main/step1/run/echo_in2"
+                        "id": "echo_in2"
                     }
                 ],
                 "outputs": [
@@ -60,7 +61,7 @@
                             "loadContents": true,
                             "outputEval": "$(self[0].contents)"
                         },
-                        "id": "#main/step1/run/echo_out"
+                        "id": "echo_out"
                     }
                 ],
                 "baseCommand": "echo",
@@ -69,30 +70,29 @@
                     "foo"
                 ],
                 "stdout": "step1_out",
-                "hints": [
-                    {
-                        "loadListing": "deep_listing",
-                        "class": "LoadListingRequirement"
+                "hints": {
+                    "NetworkAccess": {
+                        "networkAccess": true
                     },
-                    {
-                        "networkAccess": true,
-                        "class": "NetworkAccess"
+                    "LoadListingRequirement": {
+                        "loadListing": "deep_listing"
                     }
-                ]
+                },
+                "requirements": [],
+                "id": "scatter-wf1.cwl@step_step1@run"
             },
-            "id": "#main/step1"
+            "id": "step1"
         }
     ],
-    "id": "#main",
     "outputs": [
         {
             "type": {
                 "type": "array",
                 "items": "string"
             },
-            "outputSource": "#main/step1/echo_out",
-            "id": "#main/out"
+            "outputSource": "step1/echo_out",
+            "id": "out"
         }
     ],
-    "cwlVersion": "v1.2"
+    "id": "scatter-wf1.cwl"
 }
