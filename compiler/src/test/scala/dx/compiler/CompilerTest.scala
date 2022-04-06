@@ -639,9 +639,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
     val dxApplet = dxApi.applet(appId)
     val desc = dxApplet.describe(
-        Set(
-            Field.RunSpec
-        )
+        Set(Field.Access, Field.IgnoreReuse, Field.RunSpec)
     )
 
     desc.runSpec match {
@@ -659,6 +657,17 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         )
       case _ => throw new Exception("Missing runSpec")
     }
+
+    desc.access shouldBe Some(
+        JsObject(
+            Map(
+                "project" -> JsString("ADMINISTER"),
+                "allProjects" -> JsString("VIEW"),
+                "network" -> JsArray(Vector(JsString("*"))),
+                "developer" -> JsBoolean(true)
+            )
+        )
+    )
   }
 
   it should "be able to include runtime hints with extras per-task override" in {
