@@ -100,7 +100,7 @@ object ExtrasJsonProtocol extends DefaultJsonProtocol {
             case exe: DxApplet =>
               Logger.get.warning(exe.describe(Set(Field.Access)).toString)
               exe.describe(Set(Field.Access)) match {
-                case desc: DxAppDescribe    => desc.access
+//                case desc: DxAppDescribe    => desc.access
                 case desc: DxAppletDescribe => desc.access
                 case _ =>
                   deserializationError(s"${reorgAppId} is not a DNAnexus executable")
