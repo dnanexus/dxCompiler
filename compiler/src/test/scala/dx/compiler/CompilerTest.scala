@@ -777,6 +777,93 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     )
 
   }
+
+  it should "be able to build access for tasks in a workflow with dockerRegistry" in {
+    val path = pathFromBasename("non_spec", "dependency_report_wf2.wdl")
+    val extraPath = pathFromBasename("non_spec", "dependency_report_extras.json")
+    val args = path.toString :: "--extras" :: extraPath.toString :: cFlags
+    //:: "--verbose"
+    val wfId = Main.compile(args.toVector) match {
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
+    }
+
+    val wf = dxApi.workflow(wfId)
+    val wfDesc = wf.describe(Set(Field.Stages))
+    val wfStages = wfDesc.stages.get
+
+    val fragAppletId =
+      wfStages.collectFirst({ case s if s.name == "frag dependency_report_t1" => s.executable }).get
+    val dxFragApplet = dxApi.applet(fragAppletId)
+    val fragDesc = dxFragApplet.describe(
+        Set(
+            Field.Access,
+            Field.Details
+        )
+    )
+    fragDesc.access shouldBe Some(
+        JsObject(
+            Map("allProjects" -> JsString("VIEW"), "network" -> JsArray(Vector.empty))
+        )
+    )
+    val taskAppletId = fragDesc.details match {
+      case Some(d) => {
+        val execLinkInfo = d.asJsObject.fields.getOrElse(
+            Constants.ExecLinkInfo,
+            throw new Exception(s"Missing ExecLinkInfo")
+        )
+        execLinkInfo match {
+          case JsObject(e) => {
+            val task = e.getOrElse(
+                "dependency_report_t1",
+                throw new Exception(s"Missing task dependency_report_t1")
+            )
+            task match {
+              case JsObject(t) => {
+                val taskId = t.getOrElse(
+                    "id",
+                    throw new Exception(s"Missing dependency_report_t1 applet id")
+                )
+                JsUtils.getString(taskId)
+              }
+              case _ => throw new Exception("Expected dependency_report_t1 applet info")
+            }
+          }
+          case _ => throw new Exception("Expected ExecLinkInfo as a map")
+        }
+      }
+      case _ => throw new Exception(s"Missing details")
+    }
+
+    val dxTaskApplet = dxApi.applet(taskAppletId)
+    val taskDesc = dxTaskApplet.describe(
+        Set(
+            Field.Access
+        )
+    )
+    taskDesc.access shouldBe Some(
+        JsObject(
+            Map(
+                "allProjects" -> JsString("VIEW"),
+                "network" -> JsArray(Vector(JsString("*")))
+            )
+        )
+    )
+
+    val dxNativeApp = dxApi.resolveApp(
+        wfStages.collectFirst({ case s if s.name == "dependency_report_t2" => s.executable }).get
+    )
+    val nativeDesc = dxNativeApp.describe(
+        Set(
+            Field.Access
+        )
+    )
+    nativeDesc.access shouldBe Some(
+        JsObject(
+            Map("network" -> JsArray(Vector.empty))
+        )
+    )
   }
 
   it should "be able to include information from workflow meta" in {
