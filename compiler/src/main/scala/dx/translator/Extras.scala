@@ -490,7 +490,7 @@ object Extras {
     }
   }
 
-  def parse(jsv: JsValue): Extras = {
+  def parse(jsv: JsValue, logger: Logger = Logger.get): Extras = {
     // The format used to have some snake-cased and some weirdly named attributes,
     // so we update them all to camel-case and fix the names first.
     val fixed = JsObject(jsv.asJsObject.fields.map {
@@ -500,7 +500,7 @@ object Extras {
     })
     val camelized = camelizeKeys(fixed)
     val a = camelized.convertTo[Extras]
-    println(a)
+    logger.warning(a)
     a
   }
 

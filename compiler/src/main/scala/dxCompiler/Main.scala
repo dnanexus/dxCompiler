@@ -347,7 +347,8 @@ object Main {
 
     val extras: Option[Extras] =
       options.getValue[Path]("extras").map(extrasPath => Extras.parse(extrasPath))
-    println(extras)
+    logger.warning(">>> extras")
+    logger.warning(extras)
 //    if (extras.exists(_.customReorgAttributes.isDefined)) {
 //      val conflictingOpts = Set("reorg", "locked").filter(options.contains)
 //      if (conflictingOpts.nonEmpty) {
