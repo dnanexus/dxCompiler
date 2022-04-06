@@ -13,7 +13,8 @@ import spray.json._
 object ExtrasJsonProtocol extends DefaultJsonProtocol {
   implicit object DxAccessLevelProtocol extends RootJsonFormat[DxAccessLevel] {
     def write(level: DxAccessLevel): JsString = JsString(level.name)
-    def read(jsv: JsValue, logger: Logger = Logger.get): DxAccessLevel = {
+    def read(jsv: JsValue): DxAccessLevel = {
+      logger = Logger.get
       logger.warning(jsv.toString)
       jsv match {
         case JsString(name) => DxAccessLevel.withName(name)
