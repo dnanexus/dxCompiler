@@ -98,7 +98,7 @@ object ExtrasJsonProtocol extends DefaultJsonProtocol {
           Logger.get.warning(DxApi.get.getObject(reorgAppId).toString)
           DxApi.get.getObject(reorgAppId) match {
             case exe: DxExecutable =>
-              Logger.get.warning(exe.describe(Set(Field.Access)))
+              Logger.get.warning(exe.describe(Set(Field.Access)).toString)
               exe.describe(Set(Field.Access)) match {
                 case desc: DxAppDescribe    => desc.access
                 case desc: DxAppletDescribe => desc.access
