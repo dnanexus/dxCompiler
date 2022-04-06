@@ -14,7 +14,7 @@ object ExtrasJsonProtocol extends DefaultJsonProtocol {
   implicit object DxAccessLevelProtocol extends RootJsonFormat[DxAccessLevel] {
     def write(level: DxAccessLevel): JsString = JsString(level.name)
     def read(jsv: JsValue): DxAccessLevel = {
-      Logger.get.warning(jsv.toString)
+
       jsv match {
         case JsString(name) => DxAccessLevel.withName(name)
         case other          => deserializationError(s"invalid access level ${other}")
@@ -94,6 +94,8 @@ object ExtrasJsonProtocol extends DefaultJsonProtocol {
       }
       val access: Option[JsValue] =
         try {
+          Logger.get.warning(reorgAppId.toString)
+          Logger.get.warning(DxApi.get.getObject(reorgAppId).toString)
           DxApi.get.getObject(reorgAppId) match {
             case exe: DxExecutable =>
               exe.describe(Set(Field.Access)) match {
@@ -105,6 +107,7 @@ object ExtrasJsonProtocol extends DefaultJsonProtocol {
           }
         } catch {
           case t: Throwable =>
+            Logger.get.warning("ggg!! here")
             deserializationError(s"Invalid reorg app(let) ID ${reorgAppId}", t)
         }
       val hasAccess = access match {
