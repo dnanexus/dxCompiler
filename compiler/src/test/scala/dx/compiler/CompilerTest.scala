@@ -684,7 +684,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val dxApplet = dxApi.applet(appId)
     val desc = dxApplet.describe(
         Set(
-            Field.RunSpec
+            Field.RunSpec,
+            Field.Access
         )
     )
 
@@ -720,6 +721,17 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         )
       case _ => throw new Exception("Missing runSpec")
     }
+    desc.access shouldBe Some(
+        JsObject(
+            Map(
+                "project" -> JsString("VIEW"),
+                "allProjects" -> JsString("VIEW"),
+                "network" -> JsArray(Vector(JsString("*"))),
+                "developer" -> JsBoolean(true)
+            )
+        )
+    )
+  }
   }
 
   it should "be able to include information from workflow meta" in {
