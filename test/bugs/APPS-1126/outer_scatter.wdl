@@ -1,5 +1,4 @@
 version 1.0
-import "inner.wdl" as inner
 
 task nf {
     input {

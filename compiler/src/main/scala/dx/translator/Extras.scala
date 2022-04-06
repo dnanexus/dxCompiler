@@ -499,7 +499,9 @@ object Extras {
       case other => other
     })
     val camelized = camelizeKeys(fixed)
-    camelized.convertTo[Extras]
+    val a = camelized.convertTo[Extras]
+    println(a)
+    a
   }
 
   def parse(path: Path): Extras = {
