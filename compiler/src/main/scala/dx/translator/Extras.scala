@@ -97,10 +97,11 @@ object ExtrasJsonProtocol extends DefaultJsonProtocol {
           Logger.get.warning(reorgAppId.toString)
           Logger.get.warning(DxApi.get.getObject(reorgAppId).toString)
           DxApi.get.getObject(reorgAppId) match {
-            case exe: DxApplet =>
+            case exe: DxExecutable =>
+              Logger.get.warning("HERE")
               Logger.get.warning(exe.describe(Set(Field.Access)).toString)
               exe.describe(Set(Field.Access)) match {
-//                case desc: DxAppDescribe    => desc.access
+                case desc: DxAppDescribe    => desc.access
                 case desc: DxAppletDescribe => desc.access
                 case _ =>
                   deserializationError(s"${reorgAppId} is not a DNAnexus executable")
@@ -109,6 +110,7 @@ object ExtrasJsonProtocol extends DefaultJsonProtocol {
         } catch {
           case t: Throwable =>
             Logger.get.warning("ggg!! here")
+            Logger.get.warning(t.toString)
             deserializationError(s"Invalid reorg app(let) ID ${reorgAppId}", t)
         }
       val hasAccess = access match {
