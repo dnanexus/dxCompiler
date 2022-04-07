@@ -652,12 +652,13 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         "hidden" -> JsBoolean(hidden)
     )
     // look for ignoreReuse in runtime hints and in extras - the later overrides the former
-    val ignoreReuse = applet.requirements
-      .collectFirst {
-        case IgnoreReuseRequirement(value) => value
-      }
+    val ignoreReuse = extras
+      .flatMap(_.ignoreReuse)
       .orElse(
-          extras.flatMap(_.ignoreReuse)
+          applet.requirements
+            .collectFirst {
+              case IgnoreReuseRequirement(value) => value
+            }
       )
       .map(ignoreReuse => Map("ignoreReuse" -> JsBoolean(ignoreReuse)))
       .getOrElse(Map.empty)
