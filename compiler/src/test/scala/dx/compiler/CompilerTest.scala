@@ -625,7 +625,31 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     desc.ignoreReuse shouldBe Some(true)
   }
 
-  it should "be able to include runtime hints and override extras global" in {
+  it should "timeout can be overriden from the extras file" taggedAs NativeTest in {
+    val path = pathFromBasename("compiler", "add_timeout_override.wdl")
+    val extraPath = pathFromBasename("compiler/extras", "short_timeout.json")
+    val args = path.toString :: "--extras" :: extraPath.toString :: cFlags
+    val appId = Main.compile(args.toVector) match {
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
+    }
+
+    // make sure the timeout is what it should be
+    val (_, stdout, _) = SysUtils.execCommand(s"dx describe ${dxTestProject.id}:${appId} --json")
+
+    val timeout = stdout.parseJson.asJsObject.fields.get("runSpec") match {
+      case Some(JsObject(x)) =>
+        x.get("timeoutPolicy") match {
+          case None    => throw new Exception("No timeout policy set")
+          case Some(s) => s
+        }
+      case other => throw new Exception(s"Unexpected result ${other}")
+    }
+    timeout shouldBe JsObject("*" -> JsObject("hours" -> JsNumber(3)))
+  }
+
+  it should "be able to include runtime hints and override extras task default" in {
     val path = pathFromBasename("compiler", "add_runtime_hints.wdl")
     val extraPath = pathFromBasename("compiler/extras", "short_timeout.json")
     val args = path.toString :: "--extras" :: extraPath.toString :: cFlags
@@ -918,30 +942,6 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     )
   }
 
-  it should "timeout can be overriden from the extras file" taggedAs NativeTest in {
-    val path = pathFromBasename("compiler", "add_timeout_override.wdl")
-    val extraPath = pathFromBasename("compiler/extras", "short_timeout.json")
-    val args = path.toString :: "--extras" :: extraPath.toString :: cFlags
-    val appId = Main.compile(args.toVector) match {
-      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
-      case other =>
-        throw new Exception(s"unexpected result ${other}")
-    }
-
-    // make sure the timeout is what it should be
-    val (_, stdout, _) = SysUtils.execCommand(s"dx describe ${dxTestProject.id}:${appId} --json")
-
-    val timeout = stdout.parseJson.asJsObject.fields.get("runSpec") match {
-      case Some(JsObject(x)) =>
-        x.get("timeoutPolicy") match {
-          case None    => throw new Exception("No timeout policy set")
-          case Some(s) => s
-        }
-      case other => throw new Exception(s"Unexpected result ${other}")
-    }
-    timeout shouldBe JsObject("*" -> JsObject("hours" -> JsNumber(3)))
-  }
-
   it should "allow choosing GPU instances" taggedAs NativeTest in {
     val path = pathFromBasename("compiler", "GPU2.wdl")
     val args = path.toString :: cFlags
@@ -1095,7 +1095,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     retval shouldBe a[SuccessfulCompileNativeNoTree]
   }
 
-  it should "Set job-reuse flag" taggedAs NativeTest in {
+  it should "set job-reuse flag on applet" taggedAs NativeTest in {
     val path = pathFromBasename("compiler", "add_timeout.wdl")
     val extrasContent =
       """|{
@@ -1119,8 +1119,32 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     ignoreReuseFlag shouldBe Some(JsBoolean(true))
   }
 
+  it should "override job-reuse flag on applet" taggedAs NativeTest in {
+    val path = pathFromBasename("compiler", "add_runtime_hints.wdl")
+    val extrasContent =
+      """|{
+         |  "ignoreReuse": false
+         |}
+         |""".stripMargin
+    val retval = WithExtras(extrasContent) { extrasPath =>
+      val args = path.toString :: "--extras" :: extrasPath :: cFlags
+      Main.compile(args.toVector)
+    }
+    val appletId = retval match {
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
+    }
+
+    // make sure the job reuse flag is set
+    val (_, stdout, _) =
+      SysUtils.execCommand(s"dx describe ${dxTestProject.id}:${appletId} --json")
+    val ignoreReuseFlag = stdout.parseJson.asJsObject.fields.get("ignoreReuse")
+    ignoreReuseFlag shouldBe Some(JsBoolean(false))
+  }
+
   it should "set job-reuse flag on workflow" taggedAs NativeTest in {
-    val path = pathFromBasename("subworkflows", basename = "trains_station.wdl")
+    val path = pathFromBasename("subworkflows", basename = "check_route.wdl")
     val extrasContent =
       """|{
          |  "ignoreReuse": true
@@ -1139,8 +1163,25 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     // make sure the job reuse flag is set
     val (_, stdout, _) =
       SysUtils.execCommand(s"dx describe ${dxTestProject.id}:${wfId} --json")
-    val ignoreReuseFlag = stdout.parseJson.asJsObject.fields.get("ignoreReuse")
+    val wfDesc = stdout.parseJson.asJsObject
+    val ignoreReuseFlag = wfDesc.fields.get("ignoreReuse")
     ignoreReuseFlag shouldBe Some(JsArray(JsString("*")))
+
+    val taskIgnoreReuseFlag = {
+      val taskId = wfDesc.fields
+        .get("links")
+        .map(
+            {
+              case l: JsArray => l.elements.map(_.toString).head
+              case _          => None
+            }
+        )
+        .getOrElse("Concat")
+      val (_, stdout, _) =
+        SysUtils.execCommand(s"dx describe ${dxTestProject.id}:${taskId} --json")
+      stdout.parseJson.asJsObject.fields.get("ignoreReuse")
+    }
+    taskIgnoreReuseFlag shouldBe Some(JsBoolean(true))
   }
 
   it should "set delayWorkspaceDestruction on applet" taggedAs NativeTest in {
