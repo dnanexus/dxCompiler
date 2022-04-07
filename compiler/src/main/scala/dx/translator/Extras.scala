@@ -14,7 +14,6 @@ object ExtrasJsonProtocol extends DefaultJsonProtocol {
   implicit object DxAccessLevelProtocol extends RootJsonFormat[DxAccessLevel] {
     def write(level: DxAccessLevel): JsString = JsString(level.name)
     def read(jsv: JsValue): DxAccessLevel = {
-
       jsv match {
         case JsString(name) => DxAccessLevel.withName(name)
         case other          => deserializationError(s"invalid access level ${other}")

@@ -216,7 +216,7 @@ abstract class WorkflowTranslator(wfName: String,
       case DefaultReorgSettings(true) =>
         val (reorgStage, reorgApl) = createReorgStage(wfName, irOutputs)
         (irWf.copy(stages = irWf.stages :+ reorgStage), irCallables :+ reorgApl)
-      case CustomReorgSettings(appUri, reorgConfigFile, true) if !isLocked =>
+      case CustomReorgSettings(appUri, reorgConfigFile, true) =>
         val (reorgStage, reorgApl) = createCustomReorgStage(irOutputs, appUri, reorgConfigFile)
         (irWf.copy(stages = irWf.stages :+ reorgStage), irCallables :+ reorgApl)
       case _ =>
