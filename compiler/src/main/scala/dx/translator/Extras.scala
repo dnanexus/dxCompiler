@@ -94,12 +94,9 @@ object ExtrasJsonProtocol extends DefaultJsonProtocol {
       }
       val access: Option[JsValue] =
         try {
-          Logger.get.warning(reorgAppId.toString)
-          Logger.get.warning(DxApi.get.getObject(reorgAppId).toString)
           DxApi.get.getObject(reorgAppId) match {
             case exe: DxExecutable =>
-              Logger.get.warning("HERE")
-              Logger.get.warning(exe.describe().toString)
+              Logger.get.warning("HERE comes the parsing error.")
               exe.describe(Set(Field.Access)) match {
                 case desc: DxAppDescribe    => desc.access
                 case desc: DxAppletDescribe => desc.access
@@ -109,7 +106,7 @@ object ExtrasJsonProtocol extends DefaultJsonProtocol {
           }
         } catch {
           case t: Throwable =>
-            Logger.get.warning("ggg!! here")
+            Logger.get.warning("Errored here")
             Logger.get.warning(t.toString)
             deserializationError(s"Invalid reorg app(let) ID ${reorgAppId}", t)
         }
