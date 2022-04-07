@@ -83,7 +83,7 @@ object TranslatorFactory {
     }
     val perWorkflowAttrs = extras.flatMap(_.perWorkflowDxAttributes).getOrElse(Map.empty)
     val translatorFactories = Vector(
-        (wdlOptions),
+        WdlTranslatorFactory(wdlOptions),
         CwlTranslatorFactory()
     )
     translatorFactories
