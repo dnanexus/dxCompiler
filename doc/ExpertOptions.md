@@ -688,7 +688,7 @@ CWL provides a different set of runtime attributes used in the [ResourceRequirem
 
 ### Additional DNAnexus-specific runtime settings
 
-There are several parameters that also affect the runtime behaviour of an applet and can be be supplied upon its creation in its [dxapp.json file](https://documentation.dnanexus.com/developer/apps/app-metadata#annotated-example):
+There are several parameters that also affect the runtime behavior of an applet and can be supplied upon its creation in its [dxapp.json file](https://documentation.dnanexus.com/developer/apps/app-metadata#annotated-example):
 * `runSpec.executionPolicy`: Specifies when to try to automatically restart failed jobs, and how many times
 * `runSpec.timeoutPolicy`: Specifies the maximum amount of time the job can run
 * `access`: Specifies additional permissions and resources the applet can access
