@@ -828,7 +828,10 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     )
     fragDesc.access shouldBe Some(
         JsObject(
-            Map("allProjects" -> JsString("VIEW"), "network" -> JsArray(Vector.empty))
+            Map(
+                "allProjects" -> JsString("VIEW"),
+                "network" -> JsArray(Vector(JsString("*")))
+            )
         )
     )
     val taskAppletId = fragDesc.details match {
