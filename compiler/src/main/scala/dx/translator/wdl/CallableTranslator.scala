@@ -681,14 +681,25 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       val wfDocCopy = standAloneWorkflowDocument
         .copy(source = StringFileNode(block.prettyFormat))(SourceLocation.empty)
       val standAloneFrag = WdlDocumentSource(wfDocCopy, versionSupport)
+
+      val (instanceType, container, attributes, requirements) = availableDependencies
+        .collectFirst({
+          case (iname, i: Application) if iname == innerCall.getOrElse("") => {
+            (i.instanceType, i.container, i.attributes, i.requirements)
+          }
+        })
+        .getOrElse((DefaultInstanceType, NoImage, Vector.empty, Vector.empty))
+
       val applet = Application(
-          s"${wfName}_frag_${getStageId()}",
-          inputParams,
-          outputParams,
-          DefaultInstanceType,
-          NoImage,
-          ExecutableKindWfFragment(innerCall, blockPath, fqnDictTypes, scatterChunkSize),
-          standAloneFrag
+          name = s"${wfName}_frag_${getStageId()}",
+          inputs = inputParams,
+          outputs = outputParams,
+          instanceType = instanceType,
+          container = container,
+          kind = ExecutableKindWfFragment(innerCall, blockPath, fqnDictTypes, scatterChunkSize),
+          document = standAloneFrag,
+          attributes = attributes,
+          requirements = requirements
       )
 
       (Stage(stageName, getStage(), applet.name, stageInputs, outputParams), auxCallables :+ applet)

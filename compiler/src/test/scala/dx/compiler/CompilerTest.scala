@@ -663,9 +663,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
     val dxApplet = dxApi.applet(appId)
     val desc = dxApplet.describe(
-        Set(
-            Field.RunSpec
-        )
+        Set(Field.Access, Field.IgnoreReuse, Field.RunSpec)
     )
 
     desc.runSpec match {
@@ -683,6 +681,17 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         )
       case _ => throw new Exception("Missing runSpec")
     }
+
+    desc.access shouldBe Some(
+        JsObject(
+            Map(
+                "project" -> JsString("ADMINISTER"),
+                "allProjects" -> JsString("VIEW"),
+                "network" -> JsArray(Vector(JsString("*"))),
+                "developer" -> JsBoolean(true)
+            )
+        )
+    )
   }
 
   it should "be able to include runtime hints with extras per-task override" in {
@@ -699,7 +708,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val dxApplet = dxApi.applet(appId)
     val desc = dxApplet.describe(
         Set(
-            Field.RunSpec
+            Field.RunSpec,
+            Field.Access
         )
     )
 
@@ -735,6 +745,152 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         )
       case _ => throw new Exception("Missing runSpec")
     }
+    desc.access shouldBe Some(
+        JsObject(
+            Map(
+                "project" -> JsString("VIEW"),
+                "allProjects" -> JsString("VIEW"),
+                "network" -> JsArray(Vector(JsString("*"))),
+                "developer" -> JsBoolean(true)
+            )
+        )
+    )
+  }
+
+  it should "be able to build access for applet with dockerRegistry" in {
+    val path = pathFromBasename("compiler", "help_input_params.wdl")
+    val extraPath = pathFromBasename("non_spec", "dependency_report_extras.json")
+    val args = path.toString :: "-extras" :: extraPath.toString :: cFlags
+    //:: "--verbose"
+    val (appId1, appId2) = Main.compile(args.toVector) match {
+      case SuccessfulCompileNativeNoTree(_, x: Vector[String]) => (x.head, x.last)
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
+    }
+
+    val dxApplet1 = dxApi.applet(appId1)
+    val desc1 = dxApplet1.describe(
+        Set(
+            Field.Access
+        )
+    )
+
+    desc1.access shouldBe Some(
+        JsObject(
+            Map(
+                "allProjects" -> JsString("VIEW"),
+                "network" -> JsArray(Vector.empty)
+            )
+        )
+    )
+
+    val dxApplet2 = dxApi.applet(appId2)
+    val desc2 = dxApplet2.describe(
+        Set(
+            Field.Access
+        )
+    )
+
+    desc2.access shouldBe Some(
+        JsObject(
+            Map(
+                "allProjects" -> JsString("VIEW"),
+                "network" -> JsArray(Vector(JsString("*")))
+            )
+        )
+    )
+
+  }
+
+  it should "be able to build access for tasks in a workflow with dockerRegistry" in {
+    val path = pathFromBasename("non_spec", "dependency_report_wf2.wdl")
+    val extraPath = pathFromBasename("non_spec", "dependency_report_extras.json")
+    val args = path.toString :: "--extras" :: extraPath.toString :: cFlags
+    //:: "--verbose"
+    val wfId = Main.compile(args.toVector) match {
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
+    }
+
+    val wf = dxApi.workflow(wfId)
+    val wfDesc = wf.describe(Set(Field.Stages))
+    val wfStages = wfDesc.stages.get
+
+    val fragAppletId =
+      wfStages.collectFirst({ case s if s.name == "frag dependency_report_t1" => s.executable }).get
+    val dxFragApplet = dxApi.applet(fragAppletId)
+    val fragDesc = dxFragApplet.describe(
+        Set(
+            Field.Access,
+            Field.Details
+        )
+    )
+    fragDesc.access shouldBe Some(
+        JsObject(
+            Map(
+                "allProjects" -> JsString("VIEW"),
+                "network" -> JsArray(Vector(JsString("*")))
+            )
+        )
+    )
+    val taskAppletId = fragDesc.details match {
+      case Some(d) => {
+        val execLinkInfo = d.asJsObject.fields.getOrElse(
+            Constants.ExecLinkInfo,
+            throw new Exception(s"Missing ExecLinkInfo")
+        )
+        execLinkInfo match {
+          case JsObject(e) => {
+            val task = e.getOrElse(
+                "dependency_report_t1",
+                throw new Exception(s"Missing task dependency_report_t1")
+            )
+            task match {
+              case JsObject(t) => {
+                val taskId = t.getOrElse(
+                    "id",
+                    throw new Exception(s"Missing dependency_report_t1 applet id")
+                )
+                JsUtils.getString(taskId)
+              }
+              case _ => throw new Exception("Expected dependency_report_t1 applet info")
+            }
+          }
+          case _ => throw new Exception("Expected ExecLinkInfo as a map")
+        }
+      }
+      case _ => throw new Exception(s"Missing details")
+    }
+
+    val dxTaskApplet = dxApi.applet(taskAppletId)
+    val taskDesc = dxTaskApplet.describe(
+        Set(
+            Field.Access
+        )
+    )
+    taskDesc.access shouldBe Some(
+        JsObject(
+            Map(
+                "allProjects" -> JsString("VIEW"),
+                "network" -> JsArray(Vector(JsString("*")))
+            )
+        )
+    )
+
+    val dxNativeApp = dxApi.resolveApp(
+        wfStages.collectFirst({ case s if s.name == "dependency_report_t2" => s.executable }).get
+    )
+    val nativeDesc = dxNativeApp.describe(
+        Set(
+            Field.Access
+        )
+    )
+    nativeDesc.access shouldBe Some(
+        JsObject(
+            Map("network" -> JsArray(Vector.empty))
+        )
+    )
   }
 
   it should "be able to include information from workflow meta" in {

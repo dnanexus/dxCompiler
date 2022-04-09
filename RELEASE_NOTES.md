@@ -1057,7 +1057,7 @@ the compiler will route all requests through the machine `proxy.acme.com` on por
 
 ## 0.80
 
-- Native docker is now the default. If you still want to use [dx-docker](https://wiki.dnanexus.com/Developer-Tutorials/Using-Docker-Images), the `-useDxDocker` flag is available. In order to store a docker image on the platform, you can do `docker save`, and upload the tarball to a file. More details are provided in the [export options](./doc/ExpertOptions.md#Docker).
+- Native docker is now the default. If you still want to use [dx-docker](https://wiki.dnanexus.com/Developer-Tutorials/Using-Docker-Images), the `-useDxDocker` flag is available. In order to store a docker image on the platform, you can do `docker save`, and upload the tarball to a file. More details are provided in the [Expert options](./doc/ExpertOptions.md#Docker).
 
 - The compiler emits a warning for partialy defined workflow outputs. For example, in workflow `foo`, the output `add.result` is partial, because it is not assigned to a variable. Partial definitions are discarded during compilation, hence the warning.
 

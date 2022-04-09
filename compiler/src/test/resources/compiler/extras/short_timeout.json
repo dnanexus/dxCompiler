@@ -1,10 +1,16 @@
 {
-  "default_task_dx_attributes" : {
+  "default_task_dx_attributes": {
     "runSpec": {
       "timeoutPolicy": {
         "*": {
           "hours": 3
         }
+      },
+      "access": {
+        "project": "ADMINISTER",
+        "allProjects": "VIEW",
+        "network": [],
+        "developer": false
       }
     }
   }
