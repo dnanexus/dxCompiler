@@ -95,7 +95,6 @@ object ExtrasJsonProtocol extends DefaultJsonProtocol {
         try {
           DxApi.get.getObject(reorgAppId) match {
             case exe: DxExecutable =>
-              Logger.get.warning("HERE comes the parsing error.")
               exe.describe(Set(Field.Access)) match {
                 case desc: DxAppDescribe    => desc.access
                 case desc: DxAppletDescribe => desc.access
@@ -105,8 +104,6 @@ object ExtrasJsonProtocol extends DefaultJsonProtocol {
           }
         } catch {
           case t: Throwable =>
-            Logger.get.warning("Errored here")
-            Logger.get.warning(t.toString)
             deserializationError(s"Invalid reorg app(let) ID ${reorgAppId}", t)
         }
       val hasAccess = access match {
@@ -493,7 +490,7 @@ object Extras {
     }
   }
 
-  def parse(jsv: JsValue, logger: Logger = Logger.get): Extras = {
+  def parse(jsv: JsValue): Extras = {
     // The format used to have some snake-cased and some weirdly named attributes,
     // so we update them all to camel-case and fix the names first.
     val fixed = JsObject(jsv.asJsObject.fields.map {
@@ -502,7 +499,6 @@ object Extras {
       case other => other
     })
     val camelized = camelizeKeys(fixed)
-    logger.warning(camelized.toString)
     camelized.convertTo[Extras]
   }
 

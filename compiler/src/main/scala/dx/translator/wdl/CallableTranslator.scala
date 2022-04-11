@@ -866,7 +866,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       // workflow (custom reorg applet doesn't apply to locked workflows), add an output
       // variable for reorg status.
       val (applicationKind, updatedOutputVars) = reorgAttrs match {
-        case CustomReorgSettings(_, _, true) =>
+        case CustomReorgSettings(_, _, true) if !isLocked =>
           val updatedOutputVars = outputVars :+ Parameter(
               ReorgStatus,
               TString,
