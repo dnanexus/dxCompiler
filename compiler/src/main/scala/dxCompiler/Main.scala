@@ -344,6 +344,7 @@ object Main {
 
     val (baseFileResolver, logger) = initCommon(options)
     val dxApi = DxApi()(logger)
+
     val extras: Option[Extras] =
       options.getValue[Path]("extras").map(extrasPath => Extras.parse(extrasPath))
     if (extras.exists(_.customReorgAttributes.isDefined)) {
