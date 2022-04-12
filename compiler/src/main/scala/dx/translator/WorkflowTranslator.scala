@@ -171,6 +171,7 @@ abstract class WorkflowTranslator(wfName: String,
                                      appletId: String,
                                      reorgConfigFile: Option[String]): (Stage, Application) = {
     logger.trace(s"Creating custom output reorganization applet ${appletId}")
+    logger.warning(wfOutputs)
     val (statusParam, statusStageInput): LinkedVar = wfOutputs.filter {
       case (x, _) => x.name == ReorgStatus
     } match {
