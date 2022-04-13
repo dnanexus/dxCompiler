@@ -176,7 +176,7 @@ abstract class WorkflowTranslator(wfName: String,
       val (statusParam, statusStageInput): LinkedVar = wfOutputs.filter {
         case (x, _) => x.name == ReorgStatus
       } match {
-        case Vector(lvar) => Some(lvar)
+        case Vector(lvar) => lvar
         case other =>
           throw new Exception(
             s"Expected exactly one output with name ${ReorgStatus}, found ${other}"
