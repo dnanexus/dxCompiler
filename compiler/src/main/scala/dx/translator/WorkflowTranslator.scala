@@ -181,6 +181,8 @@ abstract class WorkflowTranslator(wfName: String,
             s"Expected exactly one output with name ${ReorgStatus}, found ${other}"
         )
     }
+    logger.warning(statusParam)
+    logger.warning(statusStageInput)
     val configFile: Option[VFile] = reorgConfigFile.map(VFile(_))
     val appInputs = Vector(
         statusParam,
@@ -213,6 +215,7 @@ abstract class WorkflowTranslator(wfName: String,
   def apply: Vector[Callable] = {
     val (irWf, irCallables, irOutputs) = translate
     // add a reorg applet if necessary
+    Logger.get.warning(irOutputs.toString)
     val (updatedWf, updatedCallables) = reorgAttrs match {
       case DefaultReorgSettings(true) =>
         val (reorgStage, reorgApl) = createReorgStage(wfName, irOutputs)

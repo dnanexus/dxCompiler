@@ -1163,6 +1163,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
     */
   def translateCallable(callable: TAT.Callable,
                         availableDependencies: Map[String, Callable]): Vector[Callable] = {
+    Logger.get.warning(callable.toString)
     callable match {
       case task: TAT.Task =>
         val taskTranslator = WdlTaskTranslator(task)
