@@ -197,7 +197,7 @@ abstract class WorkflowTranslator(wfName: String,
         )
       }
 
-    val inputs: Vector[StageInput] = = isLocked match {
+    val inputs: Vector[StageInput] = isLocked match {
       case false => configFile match {
         case Some(x) => Vector(statusStageInput, StageInputStatic(x))
         case _       => Vector(statusStageInput)
