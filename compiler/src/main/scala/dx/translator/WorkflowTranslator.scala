@@ -172,15 +172,17 @@ abstract class WorkflowTranslator(wfName: String,
                                      reorgConfigFile: Option[String]): (Stage, Application) = {
     logger.trace(s"Creating custom output reorganization applet ${appletId}")
     logger.warning(wfOutputs.toString)
-    val (statusParam, statusStageInput): LinkedVar = wfOutputs.filter {
-      case (x, _) => x.name == ReorgStatus
-    } match {
-      case Vector(lvar) => lvar
-      case Vector() => None
-      case other =>
-        throw new Exception(
+    if (!isLocked) {
+      val (statusParam, statusStageInput): Option[LinkedVar] = wfOutputs.filter {
+        case (x, _) => x.name == ReorgStatus
+      } match {
+        case Vector(lvar) => Some(lvar)
+        case Vector() => None
+        case other =>
+          throw new Exception(
             s"Expected exactly one output with name ${ReorgStatus}, found ${other}"
-        )
+          )
+      }
     }
     logger.warning(statusParam.toString)
     logger.warning(statusStageInput.toString)
