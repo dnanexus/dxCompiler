@@ -192,7 +192,7 @@ abstract class WorkflowTranslator(wfName: String,
         statusParam,
         Parameter(Constants.ReorgConfig, TFile, configFile)
       )
-      inputs: Vector[StageInput] = configFile match {
+      inputs = configFile match {
         case Some(x) => Vector(statusStageInput, StageInputStatic(x))
         case _       => Vector(statusStageInput)
       }
@@ -201,7 +201,7 @@ abstract class WorkflowTranslator(wfName: String,
       appInputs = Vector(
         Parameter(Constants.ReorgConfig, TFile, configFile)
       )
-      inputs: Vector[StageInput] = configFile match {
+      inputs = configFile match {
         case Some(x) => Vector(StageInputStatic(x))
         case _       => Vector()
       }
