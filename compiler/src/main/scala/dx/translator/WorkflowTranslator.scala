@@ -186,7 +186,7 @@ abstract class WorkflowTranslator(wfName: String,
     logger.warning(statusStageInput.toString)
     val configFile: Option[VFile] = reorgConfigFile.map(VFile(_))
     var inputs: Vector[StageInput];
-    var appInputs: Vector();
+    var appInputs: Vector;
     if (!isLocked) {
       appInputs = Vector(
         statusParam,
