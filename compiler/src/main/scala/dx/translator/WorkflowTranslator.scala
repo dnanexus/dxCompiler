@@ -192,7 +192,7 @@ abstract class WorkflowTranslator(wfName: String,
           statusParam,
           Parameter(Constants.ReorgConfig, TFile, configFile)
         )
-        case false => Vector(
+        case true => Vector(
           Parameter(Constants.ReorgConfig, TFile, configFile)
         )
       }
