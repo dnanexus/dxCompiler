@@ -172,43 +172,69 @@ abstract class WorkflowTranslator(wfName: String,
                                      reorgConfigFile: Option[String]): (Stage, Application) = {
     logger.trace(s"Creating custom output reorganization applet ${appletId}")
     logger.warning(wfOutputs.toString)
-    if (!isLocked) {
-      val (statusParam, statusStageInput): LinkedVar = wfOutputs.filter {
-        case (x, _) => x.name == ReorgStatus
-      } match {
-        case Vector(lvar) => lvar
-        case other =>
-          throw new Exception(
-            s"Expected exactly one output with name ${ReorgStatus}, found ${other}"
-          )
-      }
-      logger.warning(statusParam.toString)
-      logger.warning(statusStageInput.toString)
+    val (statusParam, statusStageInput): LinkedVar = wfOutputs.filter {
+      case (x, _) => x.name == ReorgStatus
+    } match {
+      case Vector(lvar) => lvar
+      case other =>
+        throw new Exception(
+          s"Expected exactly one output with name ${ReorgStatus}, found ${other}"
+        )
     }
+    logger.warning(statusParam.toString)
+    logger.warning(statusStageInput.toString)
+    val configFile: Option[VFile] = reorgConfigFile.map(VFile(_))
+
+
+    val appInputs = Vector(
+        statusParam,
+        Parameter(Constants.ReorgConfig, TFile, configFile)
+      )
+
+    val inputs: Vector[StageInput] = configFile match {
+        case Some(x) => Vector(statusStageInput, StageInputStatic(x))
+        case _       => Vector(statusStageInput)
+      }
+
+    val appletKind = ExecutableKindWorkflowCustomReorg(appletId)
+    val applet = Application(
+      appletId,
+      appInputs,
+      Vector.empty,
+      DefaultInstanceType,
+      NoImage,
+      appletKind,
+      standAloneWorkflow
+    )
+
+    val stage =
+      Stage(Constants.ReorgStage,
+        getStage(Some(Constants.ReorgStage)),
+        applet.name,
+        inputs,
+        Vector.empty[Parameter])
+    (stage, applet)
+  }
+
+
+  private def createCustomLockedReorgStage(wfOutputs: Vector[LinkedVar],
+                                     appletId: String,
+                                     reorgConfigFile: Option[String]): (Stage, Application) = {
+    logger.trace(s"Creating custom output reorganization applet ${appletId}")
+    logger.warning(wfOutputs.toString)
 
     val configFile: Option[VFile] = reorgConfigFile.map(VFile(_))
 
 
-      val appInputs = isLocked match {
-        case false => Vector(
-          statusParam,
-          Parameter(Constants.ReorgConfig, TFile, configFile)
-        )
-        case true => Vector(
-          Parameter(Constants.ReorgConfig, TFile, configFile)
-        )
-      }
+    val appInputs = Vector(
+        Parameter(Constants.ReorgConfig, TFile, configFile)
+      )
 
-    val inputs: Vector[StageInput] = isLocked match {
-      case false => configFile match {
-        case Some(x) => Vector(statusStageInput, StageInputStatic(x))
-        case _       => Vector(statusStageInput)
-      }
-      case true => configFile match {
+
+    val inputs: Vector[StageInput] = configFile match {
         case Some(x) => Vector(StageInputStatic(x))
         case _       => Vector()
       }
-    }
 
     val appletKind = ExecutableKindWorkflowCustomReorg(appletId)
     val applet = Application(
@@ -238,8 +264,11 @@ abstract class WorkflowTranslator(wfName: String,
       case DefaultReorgSettings(true) =>
         val (reorgStage, reorgApl) = createReorgStage(wfName, irOutputs)
         (irWf.copy(stages = irWf.stages :+ reorgStage), irCallables :+ reorgApl)
-      case CustomReorgSettings(appUri, reorgConfigFile, true) =>
+      case CustomReorgSettings(appUri, reorgConfigFile, true) if !isLocked =>
         val (reorgStage, reorgApl) = createCustomReorgStage(irOutputs, appUri, reorgConfigFile)
+        (irWf.copy(stages = irWf.stages :+ reorgStage), irCallables :+ reorgApl)
+      case CustomReorgSettings(appUri, reorgConfigFile, true) =>
+        val (reorgStage, reorgApl) = createCustomLockedReorgStage(irOutputs, appUri, reorgConfigFile)
         (irWf.copy(stages = irWf.stages :+ reorgStage), irCallables :+ reorgApl)
       case _ =>
         (irWf, irCallables)
