@@ -176,7 +176,7 @@ abstract class WorkflowTranslator(wfName: String,
       case (x, _) => x.name == ReorgStatus
     } match {
       case Vector(lvar) => lvar
-      case Vector() => null
+      case Vector() => None
       case other =>
         throw new Exception(
             s"Expected exactly one output with name ${ReorgStatus}, found ${other}"
