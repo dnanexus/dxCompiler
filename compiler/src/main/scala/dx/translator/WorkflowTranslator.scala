@@ -182,9 +182,10 @@ abstract class WorkflowTranslator(wfName: String,
             s"Expected exactly one output with name ${ReorgStatus}, found ${other}"
           )
       }
+      logger.warning(statusParam.toString)
+      logger.warning(statusStageInput.toString)
     }
-    logger.warning(statusParam.toString)
-    logger.warning(statusStageInput.toString)
+
     val configFile: Option[VFile] = reorgConfigFile.map(VFile(_))
 
 
