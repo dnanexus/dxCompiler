@@ -361,7 +361,7 @@ class WdlTaskExecutorTest extends AnyFlatSpec with Matchers {
 
   it should "override instance type of the native app with hardcoded instance type" in {
     val taskJobMeta = runTask("apps_1128_task_memory")
-    taskJobMeta shouldBe ()
+    taskJobMeta shouldBe (None) // Failing - WIP
   }
 
   it should "execute a simple WDL task" in {

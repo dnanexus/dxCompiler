@@ -34,15 +34,7 @@ workflow override {
 	}
 }
 
-task create_input {
-  command <<<
-    echo "a" > input_a.txt
-    echo "b" > input_b.txt
-  >>>
-  output {
-    Array[File] inputs = ["input_a.txt", "input_b.txt"]
-  }
-}
+
 
 task default {
   input {
