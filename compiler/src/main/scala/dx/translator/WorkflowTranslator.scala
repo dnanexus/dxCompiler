@@ -176,6 +176,7 @@ abstract class WorkflowTranslator(wfName: String,
       case (x, _) => x.name == ReorgStatus
     } match {
       case Vector(lvar) => lvar
+      case Vector() => (_,_)
       case other =>
         throw new Exception(
             s"Expected exactly one output with name ${ReorgStatus}, found ${other}"
@@ -184,10 +185,26 @@ abstract class WorkflowTranslator(wfName: String,
     logger.warning(statusParam.toString)
     logger.warning(statusStageInput.toString)
     val configFile: Option[VFile] = reorgConfigFile.map(VFile(_))
-    val appInputs = Vector(
+    if (!isLocked) {
+      val appInputs = Vector(
         statusParam,
         Parameter(Constants.ReorgConfig, TFile, configFile)
-    )
+      )
+      val inputs: Vector[StageInput] = configFile match {
+        case Some(x) => Vector(statusStageInput, StageInputStatic(x))
+        case _       => Vector(statusStageInput)
+      }
+    }
+    else {
+      val appInputs = Vector(
+        Parameter(Constants.ReorgConfig, TFile, configFile)
+      )
+      val inputs: Vector[StageInput] = configFile match {
+        case Some(x) => Vector(StageInputStatic(x))
+        case _       => Vector()
+      }
+    }
+
     val appletKind = ExecutableKindWorkflowCustomReorg(appletId)
     val applet = Application(
         appletId,
@@ -198,11 +215,7 @@ abstract class WorkflowTranslator(wfName: String,
         appletKind,
         standAloneWorkflow
     )
-    // Link to the X.y original variables
-    val inputs: Vector[StageInput] = configFile match {
-      case Some(x) => Vector(statusStageInput, StageInputStatic(x))
-      case _       => Vector(statusStageInput)
-    }
+
     val stage =
       Stage(Constants.ReorgStage,
             getStage(Some(Constants.ReorgStage)),
