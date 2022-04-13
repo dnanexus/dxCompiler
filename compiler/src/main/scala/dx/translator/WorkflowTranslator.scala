@@ -185,23 +185,24 @@ abstract class WorkflowTranslator(wfName: String,
     logger.warning(statusParam.toString)
     logger.warning(statusStageInput.toString)
     val configFile: Option[VFile] = reorgConfigFile.map(VFile(_))
-    var inputs: Vector[StageInput];
-    var appInputs: Vector;
-    if (!isLocked) {
-      appInputs = Vector(
-        statusParam,
-        Parameter(Constants.ReorgConfig, TFile, configFile)
-      )
-      inputs = configFile match {
+
+
+      val appInputs = isLocked match {
+        case false => Vector(
+          statusParam,
+          Parameter(Constants.ReorgConfig, TFile, configFile)
+        )
+        case false => Vector(
+          Parameter(Constants.ReorgConfig, TFile, configFile)
+        )
+      }
+
+    val inputs: Vector[StageInput] = = isLocked match {
+      case false => configFile match {
         case Some(x) => Vector(statusStageInput, StageInputStatic(x))
         case _       => Vector(statusStageInput)
       }
-    }
-    else {
-      appInputs = Vector(
-        Parameter(Constants.ReorgConfig, TFile, configFile)
-      )
-      inputs = configFile match {
+      case true => configFile match {
         case Some(x) => Vector(StageInputStatic(x))
         case _       => Vector()
       }
