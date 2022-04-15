@@ -235,34 +235,38 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       case _ => Map.empty
     }
     // Add platform Docker image dependency to bundledDepends
-    val bundledDependsDocker: Option[JsValue] = applet.container match {
-      case DxFileDockerImage(_, dxfile) => {
-        val id = dxfile.id
+    val bundledDependsDocker: Option[JsValue] = if (applet.kind == ExecutableKindApplet) {
+      applet.container match {
+        case DxFileDockerImage(_, dxfile) => {
+          val id = dxfile.id
 
-        // If source project not specified for Docker image file, try to find it
-        val sourceProject = dxfile.project.getOrElse(
-            Try {
-              dxApi.getObject(id).describe() match {
-                case f: DxFileDescribe => dxApi.project(f.project)
-                case _                 => throw new RuntimeException(s"Expected ${id} to be a file")
+          // If source project not specified for Docker image file, try to find it
+          val sourceProject = dxfile.project.getOrElse(
+              Try {
+                dxApi.getObject(id).describe() match {
+                  case f: DxFileDescribe => dxApi.project(f.project)
+                  case _                 => throw new RuntimeException(s"Expected ${id} to be a file")
+                }
+              } match {
+                case Success(project) => project
+                case Failure(ex)      => throw new RuntimeException(s"Unable to locate file ${id}", ex)
               }
-            } match {
-              case Success(project) => project
-              case Failure(ex)      => throw new RuntimeException(s"Unable to locate file ${id}", ex)
-            }
-        )
+          )
 
-        // If dependency on Docker image file in another project, clone
-        dxApi.cloneDataObject(id, sourceProject, project, folder)
+          // If dependency on Docker image file in another project, clone
+          dxApi.cloneDataObject(id, sourceProject, project, folder)
 
-        val mapping = JsObject(
-            Constants.BundledDependsNameKey -> JsString(dxfile.describe().name),
-            Constants.BundledDependsIdKey -> JsObject(DxUtils.DxLinkKey -> JsString(dxfile.id)),
-            Constants.BundledDependsStagesKey -> JsArray(Vector.empty)
-        )
-        Some(mapping)
+          val mapping = JsObject(
+              Constants.BundledDependsNameKey -> JsString(dxfile.describe().name),
+              Constants.BundledDependsIdKey -> JsObject(DxUtils.DxLinkKey -> JsString(dxfile.id)),
+              Constants.BundledDependsStagesKey -> JsArray(Vector.empty)
+          )
+          Some(mapping)
+        }
+        case _ => None
       }
-      case _ => None
+    } else {
+      None
     }
 
     // Add executables called by this applet to bundledDepends to ensure cloning
@@ -305,11 +309,15 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       case _ => Map.empty
     }
     // Add Docker image info to details
-    val dockerImageDetails: Map[String, JsValue] = applet.container match {
-      case DxFileDockerImage(_, dxfile) => Map(Constants.DockerImage -> dxfile.asJson)
-      case NetworkDockerImage(pullName) => Map(Constants.NetworkDockerImage -> JsString(pullName))
-      case DynamicDockerImage           => Map(Constants.DynamicDockerImage -> JsBoolean(true))
-      case NoImage                      => Map.empty
+    val dockerImageDetails: Map[String, JsValue] = if (applet.kind == ExecutableKindApplet) {
+      applet.container match {
+        case DxFileDockerImage(_, dxfile) => Map(Constants.DockerImage -> dxfile.asJson)
+        case NetworkDockerImage(pullName) => Map(Constants.NetworkDockerImage -> JsString(pullName))
+        case DynamicDockerImage           => Map(Constants.DynamicDockerImage -> JsBoolean(true))
+        case NoImage                      => Map.empty
+      }
+    } else {
+      Map.empty
     }
     (runSpec, instanceTypeDetails ++ dockerImageDetails)
   }
@@ -430,7 +438,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     }
     // update depending on applet type
     val appletKindAccess = applet.kind match {
-      case ExecutableKindApplet =>
+      case ExecutableKindApplet | ExecutableKindWfFragment(_, _, _, _) =>
         applet.container match {
           // Require network access if Docker image needs to be downloaded
           case NetworkDockerImage(_) | DynamicDockerImage =>
@@ -441,9 +449,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         // The reorg applet requires higher permissions to organize the output directory.
         Some(DxAccess.empty.copy(project = Some(DxAccessLevel.Contribute)))
       case _ =>
-        // Scatters need network access, because they spawn subjobs that (may) use dx-docker.
-        // We end up allowing all applets to use the network
-        Some(DxAccess.empty.copy(network = Some(Vector("*"))))
+        // ExecutableKindWfInputs / ExecutableKindWfOutputs / ExecutableKindWfCustomReorgOutputs
+        Some(DxAccess.empty)
     }
     // using manifests requires at least UPLOAD access
     val manifestAccess = if (useManifests) {
@@ -609,21 +616,23 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
           }))
         case _ => Map.empty
       }
-    // compress and base64 encode the source code
+    // compress and base64 encode the source code - source now comes from Document.source along with from Document.elements
     val sourceEncoded = CodecUtils.gzipAndBase64Encode(applet.document.toString)
+    val sourceDocStringEncoded = CodecUtils.gzipAndBase64Encode(applet.document.getDocContents)
     // compress and base64 encode the instance types, unless we specify that we want to
     // resolve them at runtime, which requires that the user running the applet has
     // permission to describe the project it is running in
     val dbEncoded = Option.when(instanceTypeSelection == InstanceTypeSelection.Static) {
       CodecUtils.gzipAndBase64Encode(instanceTypeDb.toJson.prettyPrint)
     }
-    // serilize default runtime attributes
+    // serialize default runtime attributes
     val defaultRuntimeAttributes = extras
       .flatMap(ex =>
         ex.defaultRuntimeAttributes.map(attr => JsObject(ValueSerde.serializeMap(attr)))
       )
     val auxDetails = Vector(
         Some(Constants.SourceCode -> JsString(sourceEncoded)),
+        Some(Constants.DocContents -> JsString(sourceDocStringEncoded)),
         Some(Constants.ParseOptions -> applet.document.optionsToJson),
         dbEncoded.map(db => Constants.InstanceTypeDb -> JsString(db)),
         defaultRuntimeAttributes.map(attr => Constants.RuntimeAttributes -> attr),
@@ -650,12 +659,13 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         "hidden" -> JsBoolean(hidden)
     )
     // look for ignoreReuse in runtime hints and in extras - the later overrides the former
-    val ignoreReuse = applet.requirements
-      .collectFirst {
-        case IgnoreReuseRequirement(value) => value
-      }
+    val ignoreReuse = extras
+      .flatMap(_.ignoreReuse)
       .orElse(
-          extras.flatMap(_.ignoreReuse)
+          applet.requirements
+            .collectFirst {
+              case IgnoreReuseRequirement(value) => value
+            }
       )
       .map(ignoreReuse => Map("ignoreReuse" -> JsBoolean(ignoreReuse)))
       .getOrElse(Map.empty)

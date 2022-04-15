@@ -225,6 +225,7 @@ single_tasks_list = [
     "echo_line_split",
     "opt_array",
     "stream_diff_v1",
+    "unzip_files"
 ]
 
 cwl_tools = [
@@ -1099,6 +1100,26 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
             )
             return False
 
+        def dict_compare(actual, expected):
+            d1_keys = set(actual.keys())
+            d2_keys = set(expected.keys())
+            shared_keys = d1_keys.intersection(d2_keys)
+            added = d1_keys - d2_keys
+            removed = d2_keys - d1_keys
+            modified={}
+            for o in shared_keys:
+                if not (type(actual[o]) is type(expected[o])):
+                    modified[o] = (actual[o], expected[o])
+                    continue
+                if isinstance(actual[o], dict):
+                    a, r, m, s = dict_compare(actual[o], expected[o])
+                    if not r and not m: # expected dict cannot contain more keys, actual can
+                        continue
+                elif actual[o] == expected[o]:
+                    continue
+                modified[o] = (actual[o], expected[o])
+            same = set(o for o in shared_keys if actual[o] == expected[o])
+            return added, removed, modified, same
         # Sort two lists of dicts to make them comparable. Given lists of dicts a and b:
         # 1. get the set of all keys in all dicts in both lists
         # 2. expand each dict into a list of tuples where the first element is the key and the
@@ -1142,7 +1163,12 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
                 actual = actual["wrapped___"]
                 if isinstance(expected, dict) and "wrapped___" in expected:
                     expected = expected["wrapped___"]
-
+            if isinstance(actual, dict) and isinstance(expected, dict):
+                if len(actual) == 1 and "$dnanexus_link" in actual and len(expected) == 1 and "$dnanexus_link" in expected:
+                    _, _, modified, _ = dict_compare(actual, expected)
+                    if modified:
+                        cprint("Given files are not the same ({}).".format(modified), "red")
+                    return not bool(modified)
             if isinstance(actual, list) and isinstance(expected, list):
                 actual = list(filter(lambda x: x is not None, actual))
                 expected = list(filter(lambda x: x is not None, expected))
@@ -1160,6 +1186,12 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
                     return True
                 elif n > 1:
                     if isinstance(actual[0], dict):
+                        if (all(len(act) == 1 and isinstance(act,dict) and "$dnanexus_link" in act for act in actual)) and \
+                                (all(len(exp) == 1 and isinstance(exp,dict) and "$dnanexus_link" in exp for exp in expected)):
+                            for exp, act in zip(expected, actual):
+                                if not compare_values(exp, act, field):
+                                    return False
+                            return True
                         actual, expected = sort_dicts(actual, expected)
                     else:
                         actual = sort_maybe_mixed(actual)
