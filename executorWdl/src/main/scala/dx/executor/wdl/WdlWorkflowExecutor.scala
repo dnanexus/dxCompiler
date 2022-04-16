@@ -440,6 +440,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
             }
           }
           val hintsIsNative = hintsDx.exists(_.contains("app"))
+
           val isNative = runtimeIsNative || hintsIsNative || task.meta.exists { meta =>
             meta.kvs.get("type") match {
               case Some(TAT.MetaValueString("native", _)) => true

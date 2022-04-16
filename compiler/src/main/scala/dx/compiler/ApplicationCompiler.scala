@@ -173,12 +173,19 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       applet: Application,
       executableDict: Map[String, ExecutableLink]
   ): (JsValue, Map[String, JsValue]) = {
-    val instanceType: String = applet.instanceType match {
-      case static: StaticInstanceType                => instanceTypeDb.apply(static.req).name
-      case DefaultInstanceType | DynamicInstanceType =>
-        // TODO: should we use the project default here rather than picking one from the database?
+    val instanceType: String = applet.kind match {
+      // Frag wrappers are small, so better use default (usually smallest instance type
+      case ExecutableKindWfFragment(_, _, _, _) =>
         defaultInstanceType.getOrElse(instanceTypeDb.defaultInstanceType.name)
+      case _ =>
+        applet.instanceType match {
+          case static: StaticInstanceType                => instanceTypeDb.apply(static.req).name
+          case DefaultInstanceType | DynamicInstanceType =>
+            // TODO: should we use the project default here rather than picking one from the database?
+            defaultInstanceType.getOrElse(instanceTypeDb.defaultInstanceType.name)
+        }
     }
+
     // Generate the applet's job script
     val jobScript = generateJobScript(applet)
     // build the run spec

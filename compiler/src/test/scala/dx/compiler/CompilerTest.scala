@@ -109,6 +109,35 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     }
   }
 
+  it should "compile a workflow with a frag app wrapper using a default instance" in {
+    val path = pathFromBasename("frag_runner", "apps_1128_frag_default.wdl")
+    val args = path.toString :: cFlagsBase ++ List("-folder", unitTestsPath)
+    val retval = Main.compile(args.toVector)
+    val wfId = retval match {
+      case SuccessfulCompileNativeNoTree(_, Vector(wfId)) => wfId
+      case other                                          => throw new Exception(s"expected single workflow not ${other}")
+    }
+    val stages = dxApi.workflow(wfId).describe().stages.get
+    stages.size shouldBe 3
+    val applet = dxApi.applet(stages.filter(_.name.contains("if")).head.executable)
+    val instance = applet
+      .describe(Set(Field.RunSpec))
+      .runSpec
+      .get
+      .asJsObject
+      .fields
+      .get("systemRequirements")
+      .get
+      .asJsObject
+      .fields
+      .get("main")
+      .get
+      .asJsObject
+      .fields
+      .get("instanceType")
+    instance.getOrElse("Undefined") shouldBe JsString("mem1_ssd1_v2_x2")
+  }
+
   it should "compile a task with dynamic instance type selection" in {
     def compile(instanceTypeSelection: String): Map[String, JsValue] = {
       val path = pathFromBasename("compiler", "add.wdl")
