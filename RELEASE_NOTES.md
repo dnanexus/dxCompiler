@@ -4,6 +4,23 @@
 
 * WDL: Fragments and blocks reuse applets as well, i.e. they are not rebuilt if the code corresponding to them hasn't  been updated in the WDL source file. Previously only tasks were reused. **Breaking**: can break the logic of any App reuse for CWL (even tasks maybe are not reused), because `ApplicationCompiler` and `WorkflowCompiler` now look at the `DocContents` for checksum, and `SourceCode` attribute is now ignored.
 * CWL: `NetworkAccess`, `WorkReuse` and `ToolTimeLimit` hints are now supported
+* WDL: Update custom reorg applet (used for [custom handling of your workflow outputs](https://github.com/dnanexus/dxCompiler/blob/444036acb16f2555d3cfe5f4c892b9996a8079dc/doc/ExpertOptions.md#adding-config-file-based-reorg-applet-at-compilation-time)) example in documentation
+* WDL: Fix to configuring network access to tasks (applets). Now you can disable network access to your tasks with the `runSpec.access` setting in the `extras.json` file:
+
+```
+{
+  "defaultTaskDxAttributes" : {
+    "runSpec": {
+        "access" : {
+          "network": []
+        }
+      }
+  }
+}
+```
+However, if the task needs network access since it uses a Docker image from an external registry (e.g. DockerHub), the setting will be overwritten and full network access will be given to the task. You can prevent this by storing the Docker image as a file in your DNAnexus project.
+
+Note that the setting above is under `defaultTaskDxAttributes`, which means it will be the default setting for all tasks; follow [these instructions](https://github.com/dnanexus/dxCompiler/blob/444036acb16f2555d3cfe5f4c892b9996a8079dc/doc/ExpertOptions.md#default-and-per-task-attributes) to configure a specific task.
 
 ### Dependency updates
 
