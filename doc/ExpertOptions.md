@@ -1092,7 +1092,7 @@ The following first-level keys are accepted in the _extras_ file:
 * `defaultWorkflowDxAttributes`: metadata and runtime attributes defaults for workflows 
 * `perWorkflowDxAttributes`: metadata and runtime attributes for specific workflows
 * `dockerRegistry`: private registry configuration. See [Private registries](##private-registries])
-* `customReorgAttributes`: custom reorganization applet URI and its configuration. See [Adding config file based reorg applet at compilation time](##adding-config-file-based-reorg-applet-at-compilation-time)
+* `customReorgAttributes`: custom reorganization applet URI and its configuration. See [Adding config file based reorg applet at compilation time](#adding-config-file-based-reorg-applet-at-compilation-time)
 * `ignoreReuse`: boolean value indicating whether to disable [job reuse](##job-reuse)
 * `delayWorkspaceDestruction`: boolean value indicating whether to delay the destruction of the job's temporary workspace after execution. See [Delay workspace destruction](##delay-workspace-destruction)
 
