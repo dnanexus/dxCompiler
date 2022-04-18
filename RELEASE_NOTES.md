@@ -21,6 +21,7 @@
 However, if the task needs network access since it uses a Docker image from an external registry (e.g. DockerHub), the setting will be overwritten and full network access will be given to the task. You can prevent this by storing the Docker image as a file in your DNAnexus project.
 
 Note that the setting above is under `defaultTaskDxAttributes`, which means it will be the default setting for all tasks; follow [these instructions](https://github.com/dnanexus/dxCompiler/blob/444036acb16f2555d3cfe5f4c892b9996a8079dc/doc/ExpertOptions.md#default-and-per-task-attributes) to configure a specific task.
+* WDL: Fix to the order of precedence for the different job reuse settings. The [ignoreReuse](https://github.com/dnanexus/dxCompiler/blob/d6371c3f5087c9de23e671928a741007280c2c33/doc/ExpertOptions.md#setting-dnanexus-specific-attributes-in-extras-file) setting specified in the `extras.json` file should override the [dx_ignore_reuse](https://github.com/dnanexus/dxCompiler/blob/d6371c3f5087c9de23e671928a741007280c2c33/doc/ExpertOptions.md#additional-dnanexus-specific-runtime-settings)  setting specified in the `runtime` section of the WDL file.
 
 ### Dependency updates
 
