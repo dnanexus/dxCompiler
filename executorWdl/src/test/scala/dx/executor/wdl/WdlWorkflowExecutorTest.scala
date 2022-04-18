@@ -170,22 +170,6 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
     WdlBundle.create(doc)
   }
 
-  "WdlWorkflowExecutor" should "override native app runtime" in {
-    val workerPaths = setup()
-    val path = pathFromBasename("bugs", "apps_1128_frag_native_runtime_override.wdl")
-    val wdlBundle = parse(path)
-    val wf: TAT.Workflow = wdlBundle.primaryCallable match {
-      case Some(wf: TAT.Workflow) => wf
-      case _                      => throw new Exception("unexpected")
-    }
-    val subBlocks = WdlBlock.createBlocks(wf.body)
-    val wfExecutor = createWorkflowExecutor(workerPaths, path)
-    val (results, msg) = wfExecutor.apply(WorkflowAction.Run)
-    subBlocks shouldBe ()
-    results shouldBe ()
-    msg shouldBe ()
-  }
-
   it should "second block in a linear workflow" in {
     val workerPaths = setup()
     val path = pathFromBasename("frag_runner", "wf_linear.wdl")

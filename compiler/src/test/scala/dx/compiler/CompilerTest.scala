@@ -111,14 +111,14 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
   it should "compile a workflow with a frag app wrapper using a default instance" in {
     val path = pathFromBasename("frag_runner", "apps_1128_frag_default.wdl")
-    val args = path.toString :: cFlagsBase ++ List("-folder", unitTestsPath)
+    val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
     val wfId = retval match {
       case SuccessfulCompileNativeNoTree(_, Vector(wfId)) => wfId
       case other                                          => throw new Exception(s"expected single workflow not ${other}")
     }
     val stages = dxApi.workflow(wfId).describe().stages.get
-    stages.size shouldBe 3
+    stages.size shouldBe 1
     val applet = dxApi.applet(stages.filter(_.name.contains("if")).head.executable)
     val instance = applet
       .describe(Set(Field.RunSpec))

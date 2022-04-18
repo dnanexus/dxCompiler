@@ -79,6 +79,9 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
   private val logger = jobMeta.logger
   private val seqNumIter = Iterator.from(0)
 
+  lazy val thisExecDefaultInstance: Option[JsValue] =
+    jobMeta.getExecutableDetail("staticInstanceType")
+
   protected def nextScatterChunkIndex: Int = seqNumIter.next()
 
   val executorName: String

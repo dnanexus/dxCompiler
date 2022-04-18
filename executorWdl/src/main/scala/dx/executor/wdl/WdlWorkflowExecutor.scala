@@ -489,8 +489,8 @@ case class WdlWorkflowExecutor(docSource: FileNode,
                 None
             }
           } else {
-            // no need to evaluate the runtime requirements; just use app(let)'s default instance type
-            None
+            // Try to get instance type from the job details (for frag apps may be populated by ApplicationCompiler)
+            thisExecDefaultInstance
           }
           (instanceType, isNative)
         }
