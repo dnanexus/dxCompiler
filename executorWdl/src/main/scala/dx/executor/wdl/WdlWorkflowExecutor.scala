@@ -1,7 +1,7 @@
 package dx.executor.wdl
 
 import dx.AppInternalException
-import dx.api.DxExecution
+import dx.api.{DxExecution, InstanceTypeRequest}
 import dx.core.Constants
 import dx.core.ir.{Block, BlockKind, DxName, ExecutableLink, ParameterLink, Type, Value}
 import dx.core.ir.Type._
@@ -490,7 +490,9 @@ case class WdlWorkflowExecutor(docSource: FileNode,
             }
           } else {
             // Try to get instance type from the job details (for frag apps may be populated by ApplicationCompiler)
-            thisExecDefaultInstance
+            val a = jobMeta.instanceTypeDb.apply(InstanceTypeRequest(thisExecDefaultInstance))
+            logger.trace(s"Instance type initiated as ${a}")
+            Some(a)
           }
           (instanceType, isNative)
         }
