@@ -6,7 +6,9 @@
 Consider the following WDL task and workflow:
 
 ```
-simple_wf {
+version 1.0
+
+workflow simple_wf {
     input {}
     call simple_task
     output {
@@ -14,13 +16,13 @@ simple_wf {
     }
 }
 
-simple_task {
+task simple_task {
 
   input {}
 
   command <<<
-    touch out_1.vcf
-    touch out.bam
+    echo "vcf out" > out.vcf
+    echo "bam out" > out.bam
   >>>
 
   output {
@@ -32,8 +34,8 @@ simple_task {
 The workflow will generate an array of files - `out.vcf` and `out.bam`.
 Suppose we want to reorganize the results into to 2 different folders on the project.
 
-`out.vcf` will go to /results/out/vcf
-`out.bam` will go to /bam/
+`out.vcf` will go to /folder_for_bam
+`out.bam` will go to /folder_for_vcf
 
 A simple reorg applet is shown below.
 
@@ -43,10 +45,9 @@ The key is the suffix for the files that we will move to the destination declare
 
 ```
 {
-  "vcf": "/resuts/out/vcf",
-  "bam": "/bam"
-}
-
+  "bam": "/folder_for_bam",
+  "vcf": "/folder_for_vcf"
+}     
 ```
 
 ## code.py
@@ -60,13 +61,14 @@ The applet code does the following.
 ```
 import json
 import dxpy
+import time
 
 @dxpy.entry_point('main')
 def main(reorg_conf___=None, reorg_status___=None):
 
     # download and parse `reorg_conf___`
     conf_file = dxpy.DXFile(reorg_conf___)
-    dxpy.download_dxfile(conf.get_id(), "conf.json")
+    dxpy.download_dxfile(conf_file.get_id(), "conf.json")
     with open('conf.json') as f:
         conf = json.load(f)
 
@@ -81,32 +83,33 @@ def main(reorg_conf___=None, reorg_status___=None):
             break
         else:
             time.sleep(3)
-            
+
     stages = analysis_desc["stages"]
 
     # retrieve the dictionary containing outputs, where key is the name of output and value is the link to the file.
     output_map = [x['execution']['output'] for x in stages if x['id'] == 'stage-outputs'][0]
-
     out = output_map['out']
-
-    bam = [x for x in out if x.endswith('.bam')][0]
-    vcf = [x for x in out if x.endswith('.vcf')][0]
+    filenames = [dxpy.DXFile(x).describe(fields={'name'}) for x in out]
+    bam = [x['id'] for x in filenames if x["name"].endswith('.bam')][0]
+    vcf = [x['id'] for x in filenames if x["name"].endswith('.vcf')][0]
 
     vcf_folder = conf['vcf']
     bam_folder = conf['bam']
 
     # get the container instance
     dx_container = dxpy.DXProject(dxpy.PROJECT_CONTEXT_ID)
-
+    dx_container.new_folder(vcf_folder, parents=True)
+    dx_container.new_folder(bam_folder, parents=True)
     dx_container.move(
         destination=vcf_folder,
-        objects=[ vcf['$dnanexus_link'] ]
+        objects=[ vcf ]
     )
     dx_container.move(
-        objects=bam_folder,
-        destination=[ bam['$dnanexus_link'] ],
+        destination=bam_folder,
+        objects=[ bam ],
     )
 
+    return dict(outputs=out)
 ```
 
 ## dxapp.json
@@ -137,16 +140,26 @@ This is the spec for the applet.
       "optional": true
     }
   ],
+  "outputSpec": [
+    {
+      "name": "outputs",
+      "label": "Outputs",
+      "help": "",
+      "class": "array:file",
+      "patterns": ["*"]
+    }
+  ],
   "runSpec": {
-    "interpreter": "python2.7",
+    "version": "0",
+    "interpreter": "python3",
     "timeoutPolicy": {
       "*": {
         "hours": 48
       }
     },
     "distribution": "Ubuntu",
-    "release": "16.04",
-    "file": "code.py"
+    "release": "20.04",
+    "file": "reorg.py"
   },
   "access": {
     "network": [
@@ -159,7 +172,7 @@ This is the spec for the applet.
     "aws:us-east-1": {
       "systemRequirements": {
         "*": {
-          "instanceType": "mem1_ssd1_x4"
+          "instanceType": "mem1_ssd1_v2_x4"
         }
       }
     }

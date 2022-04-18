@@ -11,6 +11,11 @@
 
 * Fixes CWL default requirement classnames `NetworkAccess`, `WorkReuse` and `ToolTimeLimit` so the corresponding hints can be recognized by dxCompiler (instead of being defined as `GenericHints` which are not interpreted during compilation).
 
+#### wdlTools 0.17.9
+
+* `TAT.Workflow` has a `source` attribute in analogy to `TAT.Document` to be used for checksum calculation for App/Job reuse
+* Fixes evaluation of structs as input parameters of workflow/scatter: hash inputs are coerced from object to struct, and their optional elements are assigned to Null if not specified in job inputs.
+
 ## 2.10.0 2022-03-17
 
 * CWL: All tasks and workflows conformance tests now pass 
