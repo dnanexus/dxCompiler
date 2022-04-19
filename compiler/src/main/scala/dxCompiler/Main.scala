@@ -331,7 +331,7 @@ object Main {
       .map(Paths.get(_))
       .getOrElse(
           throw OptionParseException(
-              "Missing required positional argument <WDL file>"
+              "Missing required positional argument <WDL or CWL file>"
           )
       )
     val options: Options =
@@ -735,7 +735,7 @@ object Main {
   def describe(args: Vector[String]): Termination = {
     val workflowId = args.headOption.getOrElse(
         throw OptionParseException(
-            "Missing required positional argument <WDL file>"
+            "Missing required positional argument <WDL or CWL file>"
         )
     )
     val options =
@@ -829,18 +829,25 @@ object Main {
         |    options
         |      -pretty                Print exec tree in "pretty" text format instead of JSON.
         |
-        |  compile <WDL file>
-        |    Compile a WDL file to a DNAnexus workflow or applet.
+        |  compile <WDL or CWL file>
+        |    Compile a WDL or CWL file to a DNAnexus workflow or applet.
         |    options
         |      -archive               Archive older versions of applets.
-        |      -compileMode <string>  Compilation mode - a debugging flag for internal use.
+        |      -compileMode [IR, All]
+        |                             Compilation mode - If not specified, the compilation
+        |                             mode is "All" and the compiler will translate WDL or CWL 
+        |                             inputs into DNAnexus workflows and tasks. 
+        |                             Use "IR" if you only want to parse CWL or WDL files and
+        |                             convert standard-formatted input files to DNAnexus JSON
+        |                             input format without performing full compilation.
         |      -defaults <string>     JSON file with standard-formatted default values.
         |      -defaultInstanceType <string>
         |                             The default instance type to use for "helper" applets
         |                             that perform runtime evaluation of instance type
         |                             requirements. This instance type is also used when 
         |                             the '-instanceTypeSelection dynamic' option is set.
-        |                             This value is overriden by any defaults set in extras.
+        |                             This value is overriden by any defaults set in set in the 
+        |                             JSON file specified by '-extras'.
         |      -destination <string>  Full platform path (project:/folder).
         |      -execTree [json,pretty]    
         |                             Print a JSON representation of the workflow.
@@ -854,7 +861,7 @@ object Main {
         |                             (the default "static" option), or to defer instance type
         |                             selection in such cases to runtime (the "dynamic" option).
         |                             Using static instance type selection can save time, but it
-        |                             requires the same set of instances to be accessible during WDL
+        |                             requires the same set of instances to be accessible during WDL/CWL
         |                             compilation and during the runtime of the generated applets and
         |                             workflows. Use the "dynamic" option if you plan on creating global
         |                             DNAnexus workflows or cloning the generated workflows between
@@ -862,7 +869,7 @@ object Main {
         |      -locked                Create a locked workflow. When running a locked workflow,
         |                             input values may only be specified for the top-level workflow.
         |      -leaveWorkflowsOpen    Leave created workflows open (otherwise they are closed).
-        |      -p | -imports <string> Directory to search for imported WDL files. May be specified
+        |      -p | -imports <string> Directory to search for imported WDL or CWL files. May be specified
         |                             multiple times.
         |      -projectWideReuse      Look for existing applets/workflows in the entire project
         |                             before generating new ones. The default search scope is the
@@ -883,7 +890,7 @@ object Main {
         |                             outputs. Implies -locked.
         |      -waitOnUpload          Whether to wait for each file upload to complete.
         |
-        |  dxni
+        |  dxni (WDL only)
         |    DNAnexus Native call Interface. Creates stubs for calling DNAnexus executables 
         |    (apps/applets/workflows), and stores them as WDL tasks in a local file. Enables 
         |    calling existing platform executables without modification.
@@ -902,8 +909,8 @@ object Main {
         |    -folder <string>         Platform folder (defaults to '/').
         |    -project <string>        Platform project (defaults to currently selected project).
         |    -language <string> [ver] Which language to use? May be WDL or CWL. You can optionally 
-        |                             specify a version. Currently, WDL draft-2, 1.0, and 1.1 are
-        |                             fully supported and WDL development and CWL 1.2 are partially
+        |                             specify a version. Currently: i. WDL: draft-2, 1.0, and 1.1, and
+        |                             ii. CWL: 1.2 are supported and WDL development is partially
         |                             supported. The default is to auto-detect the language from the
         |                             source file.
         |    -quiet                   Do not print warnings or informational outputs.

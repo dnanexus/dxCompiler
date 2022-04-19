@@ -17,6 +17,8 @@ object CwlDxName extends DxNameFactory {
   // character sequences that need to be decoded
   private val decodeSequencesRegex = "__(\\d+)__".r
 
+  private val disallowedDxNameFormat: String = "^[^a-zA-Z_].*"
+
   override def fromEncodedName(name: String): CwlDxName = {
     val (parts, stage, suffix) = DxNameFactory.split(name, Some(encodedNamespaceDelimRegex))
     new CwlDxName(encodedParts = Some(parts), stage = stage, suffix = suffix)
@@ -56,6 +58,23 @@ class CwlDxName(encodedParts: Option[Vector[String]] = None,
                                 stage: Option[String],
                                 suffix: Option[String]): CwlDxName = {
     new CwlDxName(encodedParts, decodedParts, stage, suffix)
+  }
+
+  /**
+    * The encoded form of CwlDxName.
+    */
+  override def encoded: String = {
+    val name = getEncodedParts.mkString(DxName.NamespaceDelimEncoded) match {
+      case n if n.matches(CwlDxName.disallowedDxNameFormat) =>
+        DxName.NamespaceDelimEncoded + n
+      case n => n
+    }
+    (stage, suffix) match {
+      case (Some(stg), Some(suf)) => s"${stg}.${name}${suf}"
+      case (Some(stg), None)      => s"${stg}.${name}"
+      case (None, Some(suf))      => s"${name}${suf}"
+      case (None, None)           => name
+    }
   }
 
   private def makeNewPart(name: String,

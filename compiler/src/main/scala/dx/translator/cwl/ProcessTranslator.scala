@@ -83,6 +83,7 @@ import scala.util.Try
 case class CwlSourceCode(source: Path) extends SourceCode {
   override val language: String = "cwl"
   override def toString: String = FileUtils.readFileContent(source)
+  def getDocContents: String = toString
 }
 
 case class ProcessTranslator(cwlBundle: CwlBundle,
@@ -574,14 +575,24 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         param.name -> param.dxType
       }.toMap
 
+      val (instanceType, container, attributes, requirements) = availableDependencies
+        .collectFirst({
+          case (iname, i: Application) if iname == calleeName.getOrElse("") => {
+            (i.instanceType, i.container, i.attributes, i.requirements)
+          }
+        })
+        .getOrElse((DefaultInstanceType, NoImage, Vector.empty, Vector.empty))
+
       val applet = Application(
-          s"${wfName}_frag_${getStageId()}",
-          inputParams,
-          outputParams,
-          DefaultInstanceType,
-          NoImage,
-          ExecutableKindWfFragment(calleeName, blockPath, fqnDictTypes, scatterChunkSize),
-          standAloneWorkflow
+          name = s"${wfName}_frag_${getStageId()}",
+          inputs = inputParams,
+          outputs = outputParams,
+          instanceType = instanceType,
+          container = container,
+          kind = ExecutableKindWfFragment(calleeName, blockPath, fqnDictTypes, scatterChunkSize),
+          document = standAloneWorkflow,
+          attributes = attributes,
+          requirements = requirements
       )
 
       (Stage(stageName, getStage(), applet.name, stageInputs, outputParams), applet)

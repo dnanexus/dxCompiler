@@ -2,7 +2,76 @@
 
 ## in develop
 
+* WDL: Fragments and blocks reuse applets as well, i.e. they are not rebuilt if the code corresponding to them hasn't  been updated in the WDL source file. Previously only tasks were reused. **Breaking**: can break the logic of any App reuse for CWL (even tasks maybe are not reused), because `ApplicationCompiler` and `WorkflowCompiler` now look at the `DocContents` for checksum, and `SourceCode` attribute is now ignored.
+* CWL: `NetworkAccess`, `WorkReuse` and `ToolTimeLimit` hints are now supported
+* WDL: Update custom reorg applet (used for [custom handling of your workflow outputs](https://github.com/dnanexus/dxCompiler/blob/444036acb16f2555d3cfe5f4c892b9996a8079dc/doc/ExpertOptions.md#adding-config-file-based-reorg-applet-at-compilation-time)) example in documentation.
+* WDL: Fix to the order of precedence for the different job reuse settings. The [ignoreReuse](https://github.com/dnanexus/dxCompiler/blob/d6371c3f5087c9de23e671928a741007280c2c33/doc/ExpertOptions.md#setting-dnanexus-specific-attributes-in-extras-file) setting specified in the `extras.json` file should override the [dx_ignore_reuse](https://github.com/dnanexus/dxCompiler/blob/d6371c3f5087c9de23e671928a741007280c2c33/doc/ExpertOptions.md#additional-dnanexus-specific-runtime-settings)  setting specified in the `runtime` section of the WDL file.
+* Updates to the documentation, esp. sections about [delay workspace destruction](https://github.com/dnanexus/dxCompiler/blob/444036acb16f2555d3cfe5f4c892b9996a8079dc/doc/ExpertOptions.md#delay-workspace-destruction), [DNAnexus-specific runtime settings](https://github.com/dnanexus/dxCompiler/blob/444036acb16f2555d3cfe5f4c892b9996a8079dc/doc/ExpertOptions.md#additional-dnanexus-specific-runtime-settings), and [outputing DNAnexus files](https://github.com/dnanexus/dxCompiler/blob/444036acb16f2555d3cfe5f4c892b9996a8079dc/doc/ExpertOptions.md#dnanexus-files-as-outputs).
+* WDL: Fix to configuring network access to tasks (applets). Now you can disable network access to your tasks with the `runSpec.access` setting in the `extras.json` file:
+
+```
+{
+  "defaultTaskDxAttributes" : {
+    "runSpec": {
+        "access" : {
+          "network": []
+        }
+      }
+  }
+}
+```
+However, if the task needs network access since it uses a Docker image from an external registry (e.g. DockerHub), the setting will be overwritten and full network access will be given to the task. You can prevent this by storing the Docker image as a file in your DNAnexus project.
+
+Note that the setting above is under `defaultTaskDxAttributes`, which means it will be the default setting for all tasks; follow [these instructions](https://github.com/dnanexus/dxCompiler/blob/444036acb16f2555d3cfe5f4c892b9996a8079dc/doc/ExpertOptions.md#default-and-per-task-attributes) to configure a specific task.
+
+### Dependency updates
+
+#### cwlScala 0.8.1
+
+* Fixes CWL default requirement classnames `NetworkAccess`, `WorkReuse` and `ToolTimeLimit` so the corresponding hints can be recognized by dxCompiler (instead of being defined as `GenericHints` which are not interpreted during compilation).
+
+#### wdlTools 0.17.9
+
+* `TAT.Workflow` has a `source` attribute in analogy to `TAT.Document` to be used for checksum calculation for App/Job reuse
+* Fixes evaluation of structs as input parameters of workflow/scatter: hash inputs are coerced from object to struct, and their optional elements are assigned to Null if not specified in job inputs.
+
+## 2.10.0 2022-03-17
+
+* CWL: All tasks and workflows conformance tests now pass 
+* CWL: Allow a valid CWL identifier that starts with a number or other characters disallowed by the DNAnexus platform
+  * Valid CWL IDs starting with disallowed characters will be padded with an extra "\_\_\_" when generating the full encoded name, which will still be a valid CWL ID (as an URI) when decoded
+* CWL: Fix to an error with execution of nested workflow step due to incorrect step identifiers. Previously it prevented running of workflows with the `--single-process` flag.
+* WDL: Minor fixes with directory path handling when passing `-separateOutputs` flag
+  * When a workflow was [compiled with the -separateOutputs flag](https://github.com/dnanexus/dxCompiler/blob/fa748771fbefe30bb9d311fc891b36696d683eaa/doc/ExpertOptions.md#compiling-workflow), it would result in an error at runtime saying "InvalidInput: Folder path must start with /."
+* WDL: Fix an issue with optional identifiers not found when they were a part of an unused expression
+* Fix an issue where a `dbcluster` object stored in a project in which a workflow was run was causing a runtime error, if the workflow was compiled with the `-reorg` flag.
+
+### Dependency updates
+
+#### dxApi 0.13.2
+
+* Added `database` and `dbcluster` to the list of DNAnexus data objects that are recognized and can be described
+
+#### dxFileAccessProtocols 0.5.4
+
+* Fix to the issue where `-separateOutputs` option was causing a dx API runtime error due to a missing leading `/` in folder path
+
+#### wdlTools 0.17.8
+
+* Input variables are now evaluated and added to the dependency graph, even when they are optional and not used. They need to be a part of the graph in the case when they are assigned to other (unused) variables for a proper expression evaluation.
+
+## 2.9.1 2022-02-25
+
+* Exception messages of subprocesses are propagated to the exception message of the main process. 
 * Fixes a bug where inputs to a WDL block were being ignored if they were Optional
+* CWL: run input default is now used when not declared in step
+* Minor updates to Developing docs
+
+### Dependency updates
+
+#### dxCommon 0.11.2
+
+* Minor changes to JSON formatting
 
 ## 2.9.0 2022-02-08
 
@@ -612,7 +681,7 @@ Development and codebase changes:
 - Providing a tree structure representing a compiled workflow via `--execTree pretty`
 - For the json structure use `--execTree json`
 - Added support for the parameter_meta: patterns to take an object: [docs/ExpertOptions](doc/ExpertOptions.md#parameter_meta-section)
-- Support the `ignoreReuse` and `delayWorkflowDestruction` in the extras file. More details are in the [expert options](https://github.com/dnanexus/dxWDL/blob/DEVEX-1499-support-job-reuse-flag/doc/ExpertOptions.md#job-reuse).
+- Support the `ignoreReuse` and `delayWorkspaceDestruction` in the extras file. More details are in the [expert options](doc/ExpertOptions.md#job-reuse).
 
 
 ## 1.42 2020-01-23
@@ -1012,7 +1081,7 @@ the compiler will route all requests through the machine `proxy.acme.com` on por
 
 ## 0.80
 
-- Native docker is now the default. If you still want to use [dx-docker](https://wiki.dnanexus.com/Developer-Tutorials/Using-Docker-Images), the `-useDxDocker` flag is available. In order to store a docker image on the platform, you can do `docker save`, and upload the tarball to a file. More details are provided in the [export options](./doc/ExpertOptions.md#Docker).
+- Native docker is now the default. If you still want to use [dx-docker](https://wiki.dnanexus.com/Developer-Tutorials/Using-Docker-Images), the `-useDxDocker` flag is available. In order to store a docker image on the platform, you can do `docker save`, and upload the tarball to a file. More details are provided in the [Expert options](./doc/ExpertOptions.md#Docker).
 
 - The compiler emits a warning for partialy defined workflow outputs. For example, in workflow `foo`, the output `add.result` is partial, because it is not assigned to a variable. Partial definitions are discarded during compilation, hence the warning.
 

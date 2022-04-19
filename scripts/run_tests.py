@@ -36,6 +36,12 @@ test_run_failing = {
     "null-expression2-tool.0",
 }
 
+# these tests are expected to fail at runtime AND throw a specific error message which will be checked
+expected_failure_msg = {
+    "python_task_fail",
+    "python_task_fail_docker"
+}
+
 # these tests are expected to fail at runtime
 expected_failure = {
     "bad_status",
@@ -78,6 +84,8 @@ expected_failure = {
     "null-expression2-tool.1",
     "timelimit-wf",
     "timelimit4-wf",
+    "count-lines11-null-step-wf",
+    "count-lines11-null-step-wf-noET",
 }
 
 wdl_v1_list = [
@@ -148,6 +156,7 @@ wdl_v1_list = [
     "apps_700",
     "apps_864",
     "apps_1052_optional_block_inputs_wdl10",
+    "apps_1052_optional_compound_input_wdl10",
 ]
 
 wdl_v1_1_list = [
@@ -216,6 +225,7 @@ single_tasks_list = [
     "echo_line_split",
     "opt_array",
     "stream_diff_v1",
+    "unzip_files"
 ]
 
 cwl_tools = [
@@ -224,29 +234,17 @@ cwl_tools = [
 ]
 
 cwl_conformance_tools = [
-    os.path.basename(path)[:-9]
+    os.path.basename(path)[:-len(".cwl.json")]
     for path in glob.glob(
         os.path.join(test_dir, "cwl_conformance", "tools", "*.cwl.json")
     )
 ]
-cwl_conformance_ignored_tests = [
-    "count-lines8-wf-noET",
-    "count-lines8-wf",
-    "count-lines10-wf",
-    "count-lines11-null-step-wf-noET",
-    "count-lines11-null-step-wf",
-    "count-lines14-wf",
-    "count-lines17-wf",
-    "count-lines15-wf",
-    "count-lines16-wf",
-    "count-lines18-wf",
-]
-
-cwl_conformance_workflows = [ t for t in 
-    [os.path.basename(path)[:-9]
+cwl_conformance_workflows = [
+    os.path.basename(path)[:-len(".cwl.json")]
     for path in glob.glob(
         os.path.join(test_dir, "cwl_conformance", "workflows", "*.cwl.json")
-    )] if t not in cwl_conformance_ignored_tests]
+    )
+]
 
 # Tests run in continuous integration. We remove the native app test,
 # because we don't want to give permissions for creating platform apps.
@@ -830,7 +828,7 @@ def compare_result_file(result, expected_val, field_name, tname, project, verbos
     expected_basename = expected_val.get(
         "basename", os.path.basename(expected_location) if expected_location else None
     )
-    if expected_basename:
+    if expected_basename and expected_basename != "Any":
         basename = os.path.basename(location) if location else None
         if basename != expected_basename:
             if verbose:
@@ -971,7 +969,7 @@ def compare_result_directory(
     expected_basename = expected_val.get(
         "basename", os.path.basename(expected_location) if expected_location else None
     )
-    if expected_basename:
+    if expected_basename and expected_basename != "Any":
         if basename != expected_basename:
             if verbose:
                 cprint("Analysis {} gave unexpected results".format(tname), "red")
@@ -1099,6 +1097,26 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
             )
             return False
 
+        def dict_compare(actual, expected):
+            d1_keys = set(actual.keys())
+            d2_keys = set(expected.keys())
+            shared_keys = d1_keys.intersection(d2_keys)
+            added = d1_keys - d2_keys
+            removed = d2_keys - d1_keys
+            modified={}
+            for o in shared_keys:
+                if not (type(actual[o]) is type(expected[o])):
+                    modified[o] = (actual[o], expected[o])
+                    continue
+                if isinstance(actual[o], dict):
+                    a, r, m, s = dict_compare(actual[o], expected[o])
+                    if not r and not m: # expected dict cannot contain more keys, actual can
+                        continue
+                elif actual[o] == expected[o]:
+                    continue
+                modified[o] = (actual[o], expected[o])
+            same = set(o for o in shared_keys if actual[o] == expected[o])
+            return added, removed, modified, same
         # Sort two lists of dicts to make them comparable. Given lists of dicts a and b:
         # 1. get the set of all keys in all dicts in both lists
         # 2. expand each dict into a list of tuples where the first element is the key and the
@@ -1142,7 +1160,12 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
                 actual = actual["wrapped___"]
                 if isinstance(expected, dict) and "wrapped___" in expected:
                     expected = expected["wrapped___"]
-
+            if isinstance(actual, dict) and isinstance(expected, dict):
+                if len(actual) == 1 and "$dnanexus_link" in actual and len(expected) == 1 and "$dnanexus_link" in expected:
+                    _, _, modified, _ = dict_compare(actual, expected)
+                    if modified:
+                        cprint("Given files are not the same ({}).".format(modified), "red")
+                    return not bool(modified)
             if isinstance(actual, list) and isinstance(expected, list):
                 actual = list(filter(lambda x: x is not None, actual))
                 expected = list(filter(lambda x: x is not None, expected))
@@ -1160,6 +1183,12 @@ def validate_result(tname, exec_outputs: dict, key, expected_val, project):
                     return True
                 elif n > 1:
                     if isinstance(actual[0], dict):
+                        if (all(len(act) == 1 and isinstance(act,dict) and "$dnanexus_link" in act for act in actual)) and \
+                                (all(len(exp) == 1 and isinstance(exp,dict) and "$dnanexus_link" in exp for exp in expected)):
+                            for exp, act in zip(expected, actual):
+                                if not compare_values(exp, act, field):
+                                    return False
+                            return True
                         actual, expected = sort_dicts(actual, expected)
                     else:
                         actual = sort_maybe_mixed(actual)
@@ -1312,6 +1341,9 @@ def wait_for_completion(test_exec_objs):
             ):
                 print("Analysis {}.{} failed as expected".format(desc.name, i))
                 successes.append((i, exec_obj, False))
+            elif tname in expected_failure_msg:
+                print("Analysis {}.{} failed as expected. Analyzing the error message".format(desc.name, i))
+                successes.append((i, exec_obj, True))
             else:
                 cprint("Error: analysis {}.{} failed".format(desc.name, i), "red")
                 failures.append((tname, exec_obj))
@@ -1411,6 +1443,22 @@ def run_test_subset(
             ):
                 print("Analysis {}.{} failed as expected".format(tname, i))
                 return None
+            elif (
+                tname in expected_failure_msg
+                or "{}.{}".format(tname, i) in expected_failure_msg
+            ):
+                print("Analysis {}.{} failed as expected. Checking error message".format(tname, i))
+                expected_error = read_json_file_maybe_empty(test_desc.results[i]).get("error")
+                if expected_error == exec_desc.get("failureMessage"):
+                    return None
+                else:
+                    cprint(
+                        "Error: analysis {}.{} results are invalid.\nExpected {}.\nReceived{}".format(
+                            test_desc.name, i, expected_error, exec_desc.get("failureMessage")
+                        ),
+                        "red",
+                    )
+                    return tname
             else:
                 raise
         if len(test_desc.results) > i:
@@ -1551,8 +1599,8 @@ def register_all_tests(verbose: bool) -> None:
                 (fname, ext) = os.path.splitext(base)
             elif t_file.endswith(".cwl.json"):
                 base = os.path.basename(t_file)
-                fname = base[:-9]
                 ext = ".cwl.json"
+                fname = base[:-len(ext)]
             else:
                 continue
 

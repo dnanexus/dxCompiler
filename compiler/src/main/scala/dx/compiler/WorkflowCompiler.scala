@@ -51,7 +51,7 @@ case class WorkflowCompiler(separateOutputs: Boolean,
   }
 
   /**
-    * Converts a workflow output paramter to outputSpec JSON. A complex output
+    * Converts a workflow output parameter to outputSpec JSON. A complex output
     * will generate two output specs - one for the value and one for an array
     * of files that are nested within the complex value.
     * @param parameter the workflow output Parameter
@@ -601,6 +601,9 @@ case class WorkflowCompiler(separateOutputs: Boolean,
     val defaultTags = Set(Constants.CompilerTag)
     // compress and base64 encode the source code
     val sourceDetails = Map(
+        Constants.DocContents -> JsString(
+            CodecUtils.gzipAndBase64Encode(workflow.document.getDocContents)
+        ),
         Constants.SourceCode -> JsString(
             CodecUtils.gzipAndBase64Encode(workflow.document.toString)
         ),
