@@ -625,31 +625,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     desc.ignoreReuse shouldBe Some(true)
   }
 
-  it should "timeout can be overriden from the extras file" taggedAs NativeTest in {
-    val path = pathFromBasename("compiler", "add_timeout_override.wdl")
-    val extraPath = pathFromBasename("compiler/extras", "short_timeout.json")
-    val args = path.toString :: "--extras" :: extraPath.toString :: cFlags
-    val appId = Main.compile(args.toVector) match {
-      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
-      case other =>
-        throw new Exception(s"unexpected result ${other}")
-    }
-
-    // make sure the timeout is what it should be
-    val (_, stdout, _) = SysUtils.execCommand(s"dx describe ${dxTestProject.id}:${appId} --json")
-
-    val timeout = stdout.parseJson.asJsObject.fields.get("runSpec") match {
-      case Some(JsObject(x)) =>
-        x.get("timeoutPolicy") match {
-          case None    => throw new Exception("No timeout policy set")
-          case Some(s) => s
-        }
-      case other => throw new Exception(s"Unexpected result ${other}")
-    }
-    timeout shouldBe JsObject("*" -> JsObject("hours" -> JsNumber(3)))
-  }
-
-  it should "be able to include runtime hints and override extras task default" in {
+  it should "be able to include runtime hints and override extras global" in {
     val path = pathFromBasename("compiler", "add_runtime_hints.wdl")
     val extraPath = pathFromBasename("compiler/extras", "short_timeout.json")
     val args = path.toString :: "--extras" :: extraPath.toString :: cFlags
@@ -663,7 +639,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
     val dxApplet = dxApi.applet(appId)
     val desc = dxApplet.describe(
-        Set(Field.Access, Field.IgnoreReuse, Field.RunSpec)
+        Set(
+            Field.RunSpec
+        )
     )
 
     desc.runSpec match {
@@ -681,17 +659,6 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         )
       case _ => throw new Exception("Missing runSpec")
     }
-
-    desc.access shouldBe Some(
-        JsObject(
-            Map(
-                "project" -> JsString("ADMINISTER"),
-                "allProjects" -> JsString("VIEW"),
-                "network" -> JsArray(Vector(JsString("*"))),
-                "developer" -> JsBoolean(true)
-            )
-        )
-    )
   }
 
   it should "be able to include runtime hints with extras per-task override" in {
@@ -708,8 +675,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val dxApplet = dxApi.applet(appId)
     val desc = dxApplet.describe(
         Set(
-            Field.RunSpec,
-            Field.Access
+            Field.RunSpec
         )
     )
 
@@ -745,152 +711,6 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         )
       case _ => throw new Exception("Missing runSpec")
     }
-    desc.access shouldBe Some(
-        JsObject(
-            Map(
-                "project" -> JsString("VIEW"),
-                "allProjects" -> JsString("VIEW"),
-                "network" -> JsArray(Vector(JsString("*"))),
-                "developer" -> JsBoolean(true)
-            )
-        )
-    )
-  }
-
-  it should "be able to build access for applet with dockerRegistry" in {
-    val path = pathFromBasename("compiler", "help_input_params.wdl")
-    val extraPath = pathFromBasename("non_spec", "dependency_report_extras.json")
-    val args = path.toString :: "-extras" :: extraPath.toString :: cFlags
-    //:: "--verbose"
-    val (appId1, appId2) = Main.compile(args.toVector) match {
-      case SuccessfulCompileNativeNoTree(_, x: Vector[String]) => (x.head, x.last)
-      case other =>
-        throw new Exception(s"unexpected result ${other}")
-    }
-
-    val dxApplet1 = dxApi.applet(appId1)
-    val desc1 = dxApplet1.describe(
-        Set(
-            Field.Access
-        )
-    )
-
-    desc1.access shouldBe Some(
-        JsObject(
-            Map(
-                "allProjects" -> JsString("VIEW"),
-                "network" -> JsArray(Vector.empty)
-            )
-        )
-    )
-
-    val dxApplet2 = dxApi.applet(appId2)
-    val desc2 = dxApplet2.describe(
-        Set(
-            Field.Access
-        )
-    )
-
-    desc2.access shouldBe Some(
-        JsObject(
-            Map(
-                "allProjects" -> JsString("VIEW"),
-                "network" -> JsArray(Vector(JsString("*")))
-            )
-        )
-    )
-
-  }
-
-  it should "be able to build access for tasks in a workflow with dockerRegistry" in {
-    val path = pathFromBasename("non_spec", "dependency_report_wf2.wdl")
-    val extraPath = pathFromBasename("non_spec", "dependency_report_extras.json")
-    val args = path.toString :: "--extras" :: extraPath.toString :: cFlags
-    //:: "--verbose"
-    val wfId = Main.compile(args.toVector) match {
-      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
-      case other =>
-        throw new Exception(s"unexpected result ${other}")
-    }
-
-    val wf = dxApi.workflow(wfId)
-    val wfDesc = wf.describe(Set(Field.Stages))
-    val wfStages = wfDesc.stages.get
-
-    val fragAppletId =
-      wfStages.collectFirst({ case s if s.name == "frag dependency_report_t1" => s.executable }).get
-    val dxFragApplet = dxApi.applet(fragAppletId)
-    val fragDesc = dxFragApplet.describe(
-        Set(
-            Field.Access,
-            Field.Details
-        )
-    )
-    fragDesc.access shouldBe Some(
-        JsObject(
-            Map(
-                "allProjects" -> JsString("VIEW"),
-                "network" -> JsArray(Vector(JsString("*")))
-            )
-        )
-    )
-    val taskAppletId = fragDesc.details match {
-      case Some(d) => {
-        val execLinkInfo = d.asJsObject.fields.getOrElse(
-            Constants.ExecLinkInfo,
-            throw new Exception(s"Missing ExecLinkInfo")
-        )
-        execLinkInfo match {
-          case JsObject(e) => {
-            val task = e.getOrElse(
-                "dependency_report_t1",
-                throw new Exception(s"Missing task dependency_report_t1")
-            )
-            task match {
-              case JsObject(t) => {
-                val taskId = t.getOrElse(
-                    "id",
-                    throw new Exception(s"Missing dependency_report_t1 applet id")
-                )
-                JsUtils.getString(taskId)
-              }
-              case _ => throw new Exception("Expected dependency_report_t1 applet info")
-            }
-          }
-          case _ => throw new Exception("Expected ExecLinkInfo as a map")
-        }
-      }
-      case _ => throw new Exception(s"Missing details")
-    }
-
-    val dxTaskApplet = dxApi.applet(taskAppletId)
-    val taskDesc = dxTaskApplet.describe(
-        Set(
-            Field.Access
-        )
-    )
-    taskDesc.access shouldBe Some(
-        JsObject(
-            Map(
-                "allProjects" -> JsString("VIEW"),
-                "network" -> JsArray(Vector(JsString("*")))
-            )
-        )
-    )
-
-    val dxNativeApp = dxApi.resolveApp(
-        wfStages.collectFirst({ case s if s.name == "dependency_report_t2" => s.executable }).get
-    )
-    val nativeDesc = dxNativeApp.describe(
-        Set(
-            Field.Access
-        )
-    )
-    nativeDesc.access shouldBe Some(
-        JsObject(
-            Map("network" -> JsArray(Vector.empty))
-        )
-    )
   }
 
   it should "be able to include information from workflow meta" in {
@@ -1098,6 +918,30 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     )
   }
 
+  it should "timeout can be overriden from the extras file" taggedAs NativeTest in {
+    val path = pathFromBasename("compiler", "add_timeout_override.wdl")
+    val extraPath = pathFromBasename("compiler/extras", "short_timeout.json")
+    val args = path.toString :: "--extras" :: extraPath.toString :: cFlags
+    val appId = Main.compile(args.toVector) match {
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
+    }
+
+    // make sure the timeout is what it should be
+    val (_, stdout, _) = SysUtils.execCommand(s"dx describe ${dxTestProject.id}:${appId} --json")
+
+    val timeout = stdout.parseJson.asJsObject.fields.get("runSpec") match {
+      case Some(JsObject(x)) =>
+        x.get("timeoutPolicy") match {
+          case None    => throw new Exception("No timeout policy set")
+          case Some(s) => s
+        }
+      case other => throw new Exception(s"Unexpected result ${other}")
+    }
+    timeout shouldBe JsObject("*" -> JsObject("hours" -> JsNumber(3)))
+  }
+
   it should "allow choosing GPU instances" taggedAs NativeTest in {
     val path = pathFromBasename("compiler", "GPU2.wdl")
     val args = path.toString :: cFlags
@@ -1251,7 +1095,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     retval shouldBe a[SuccessfulCompileNativeNoTree]
   }
 
-  it should "set job-reuse flag on applet" taggedAs NativeTest in {
+  it should "Set job-reuse flag" taggedAs NativeTest in {
     val path = pathFromBasename("compiler", "add_timeout.wdl")
     val extrasContent =
       """|{
@@ -1275,32 +1119,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     ignoreReuseFlag shouldBe Some(JsBoolean(true))
   }
 
-  it should "override job-reuse flag on applet" taggedAs NativeTest in {
-    val path = pathFromBasename("compiler", "add_runtime_hints.wdl")
-    val extrasContent =
-      """|{
-         |  "ignoreReuse": false
-         |}
-         |""".stripMargin
-    val retval = WithExtras(extrasContent) { extrasPath =>
-      val args = path.toString :: "--extras" :: extrasPath :: cFlags
-      Main.compile(args.toVector)
-    }
-    val appletId = retval match {
-      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
-      case other =>
-        throw new Exception(s"unexpected result ${other}")
-    }
-
-    // make sure the job reuse flag is set
-    val (_, stdout, _) =
-      SysUtils.execCommand(s"dx describe ${dxTestProject.id}:${appletId} --json")
-    val ignoreReuseFlag = stdout.parseJson.asJsObject.fields.get("ignoreReuse")
-    ignoreReuseFlag shouldBe Some(JsBoolean(false))
-  }
-
   it should "set job-reuse flag on workflow" taggedAs NativeTest in {
-    val path = pathFromBasename("subworkflows", basename = "check_route.wdl")
+    val path = pathFromBasename("subworkflows", basename = "trains_station.wdl")
     val extrasContent =
       """|{
          |  "ignoreReuse": true
@@ -1319,25 +1139,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     // make sure the job reuse flag is set
     val (_, stdout, _) =
       SysUtils.execCommand(s"dx describe ${dxTestProject.id}:${wfId} --json")
-    val wfDesc = stdout.parseJson.asJsObject
-    val ignoreReuseFlag = wfDesc.fields.get("ignoreReuse")
+    val ignoreReuseFlag = stdout.parseJson.asJsObject.fields.get("ignoreReuse")
     ignoreReuseFlag shouldBe Some(JsArray(JsString("*")))
-
-    val taskIgnoreReuseFlag = {
-      val taskId = wfDesc.fields
-        .get("links")
-        .map(
-            {
-              case l: JsArray => l.elements.map(_.toString).head
-              case _          => None
-            }
-        )
-        .getOrElse("Concat")
-      val (_, stdout, _) =
-        SysUtils.execCommand(s"dx describe ${dxTestProject.id}:${taskId} --json")
-      stdout.parseJson.asJsObject.fields.get("ignoreReuse")
-    }
-    taskIgnoreReuseFlag shouldBe Some(JsBoolean(true))
   }
 
   it should "set delayWorkspaceDestruction on applet" taggedAs NativeTest in {
