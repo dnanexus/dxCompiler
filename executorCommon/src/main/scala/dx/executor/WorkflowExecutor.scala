@@ -1,5 +1,6 @@
 package dx.executor
 
+import spray.json.DefaultJsonProtocol._
 import dx.AppInternalException
 import dx.api.{
   DxAnalysis,
@@ -81,7 +82,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
 
   lazy val thisExecDefaultInstance: Option[String] =
     jobMeta.getExecutableDetail("staticInstanceType") match {
-      case Some(instance: JsValue) => Option(instance.toString())
+      case Some(instance: JsValue) => Option(instance.convertTo[String])
       case _                       => None
     }
 
