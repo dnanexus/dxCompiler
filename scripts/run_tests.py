@@ -489,7 +489,7 @@ cwl_cromwell_tests_list = [
     "cwl_dynamic_initial_workdir",
     "cwl_expressionLib",
     "cwl_format",
-    # "cwl_format_url", # APPS-1111 Network access hint is not recognized by dxCompiler
+    "cwl_format_url",
     "cwl_glob_sort",
     "cwl_hello",
     # "cwl_http_inputs", # Ignored: HTTPS input link is not supported
@@ -515,7 +515,7 @@ cwl_cromwell_tests_list = [
     "cwl_stdout_expression",
     "scatter-wf1", 
     "cwl_three_step",
-    # "cwl_three_step_caller_wf" # APPS-832 Specify full path to target step
+    "cwl_three_step_caller_wf"
 ]
 
 # these are tests that take a long time to run
