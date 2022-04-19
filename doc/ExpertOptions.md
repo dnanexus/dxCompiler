@@ -1,6 +1,6 @@
-The reader is assumed to understand the [Workflow Description Language (WDL)](http://www.openwdl.org/), and have some experience using the [DNAnexus](http://www.dnanexus.com) platform.
+The reader is assumed to understand the [Workflow Description Language (WDL)](http://www.openwdl.org/) and [Common Workflow Language (CWL)](https://www.commonwl.org/v1.2), and have some experience using the [DNAnexus](http://www.dnanexus.com) platform.
 
-dxCompiler takes a pipeline written in WDL and statically compiles it to an equivalent workflow on the DNAnexus platform.
+dxCompiler takes a pipeline written in WDL or CWL and statically compiles it to an equivalent workflow on the DNAnexus platform. This document will use WDL examples to explain additional compiler options and features. To implement them when working with CWL workflows, please refer to [CWL v1.2.0 to WDL v1.0 mapping](CWL_v1.2.0_to_WDL_v1.md) for type and syntax equivalence between WDL and CWL. 
 
 - [Getting started](#getting-started)
 - [Extensions](#extensions)
@@ -55,15 +55,15 @@ Compilation can be controled with several parameters.
 | Option   |  Description |
 | ------   | ------------ |
 | archive  | Archive older versions of applets.|
-| compileMode \<string\> | Compilation mode - a debugging flag for internal use.|
+| compileMode [All, IR] | Compilation mode - If not specified, the compilation mode is "All" and the compiler will translate WDL or CWL inputs into DNAnexus workflows and tasks.  Use "IR" if you only want to parse CWL or WDL files and convert standard-formatted input files to DNAnexus JSON input format without performing full compilation.|
 | defaults \<string\> | JSON file with standard-formatted default values. |
-| defaultInstanceType \<string\> | The default instance type to use for "helper" applets that perform runtime evaluation of instance type requirements. This instance type is also used when the '-instanceTypeSelection dynamic' option is set. This value is overriden by any defaults set in extras. |
+| defaultInstanceType \<string\> | The default instance type to use for "helper" applets that perform runtime evaluation of instance type requirements. This instance type is also used when the '-instanceTypeSelection dynamic' option is set. This value is overriden by any defaults set in the JSON file specified by '-extras'.|
 | destination \<string\> | Full platform path (project:/folder) |
 | execTree \[json,pretty\] | Print a JSON representation of the workflow. |
-| extras \<string\> | JSON file with extra options (see documentation). |
+| extras \<string\> | JSON file with extra options |
 | inputs \<string\> | JSON file with standard-formatted input values. May be specified multiple times. A DNAnexus JSON input file is generated for each standard input file. |
-| instanceTypeSelection \[static,dynamic\] | Whether to select instance types at compile time for tasks with runtime requirements that can all be statically evaluated (the default "static" option), or to defer instance type selection in such cases to runtime (the "dynamic" option). Using static instance type selection can save time, but it requires the same set of instances to be accessible during WDL compilation and during the runtime of the generated applets and workflows. Use the "dynamic" option if you plan on creating global DNAnexus workflows or cloning the generated workflows between DNAnexus organizations with different available instance types. |
-| imports \<string\> | Directory to search for imported WDL files. May be specified multiple times. |
+| instanceTypeSelection \[static,dynamic\] | Whether to select instance types at compile time for tasks with runtime requirements that can all be statically evaluated (the default "static" option), or to defer instance type selection in such cases to runtime (the "dynamic" option). Using static instance type selection can save time, but it requires the same set of instances to be accessible during WDL/CWL compilation and during the runtime of the generated applets and workflows. Use the "dynamic" option if you plan on creating global DNAnexus workflows or cloning the generated workflows between DNAnexus organizations with different available instance types. |
+| imports \<string\> | Directory to search for imported WDL or CWL files. May be specified multiple times. |
 | locked   | Create a locked workflow. When running a locked workflow, input values may only be specified for the top-level workflow. |
 | leaveWorkflowsOpen | Leave created workflows open (otherwise they are closed). |
 | projectWideReuse | Look for existing applets/workflows in the entire project before generating new ones. The default search scope is the target folder only. |
@@ -79,7 +79,7 @@ The following common options can also be specified when compiling a workflow.
 | ------- | ----------- |
 | folder \<string> | Platform folder (defaults to '/'). |
 | project \<string\> | Platform project (defaults to currently selected project).
-| language \<string\> \[ver\] | Which language to use? May be WDL or CWL. You can optionally specify a version. Currently, WDL draft-2, 1.0, and 1.1 are fully supported and WDL development and CWL 1.2 are partially supported. The default is to auto-detect the language from the source file.
+| language \<string\> \[ver\] | Which language to use? May be WDL or CWL. You can optionally specify a version. Currently: i. WDL: draft-2, 1.0, and 1.1, and ii. CWL: 1.2 are supported and WDL development is partially supported. The default is to auto-detect the language from the source file.
 | quiet | Do not print warnings or informational outputs.
 | verbose | Print detailed logging.
 | verboseKey \<module\> | Print verbose output only for a specific module. May be specified multiple times.
@@ -402,8 +402,7 @@ $ dx run files
 
 ### Extras 
 
-The `extras` command line option allows, for example, the Cromwell feature of setting the
-default runtime attributes of a task.
+The `-extras` command line option takes an additional JSON file to set or override metadata and runtime attributes of workflows and tasks during compilation. See [Setting DNAnexus-specific attributes in extras file](#setting-dnanexus-specific-attributes-in-extras-file) for details on how to write the extras file.
 
 If this is file `extraOptions.json`:
 
@@ -424,7 +423,7 @@ $ java -jar dxCompiler-xxx.jar compile test/files.wdl -project project-xxxx -def
 
 ## Describe WDL workflow to obtain execution tree
 
-You can describe a dnanexus workflow that was compiled by dxCompiler to get an execution tree presentating the workflow. The execution tree will include information on the executables in the workflow (applets and subworkflows). By default, the execution tree is return as JSON. You can supply a `--pretty` flag to return a pretty print. 
+You can describe a DNAnexus workflow that was compiled by dxCompiler to get an execution tree presentating the workflow. The execution tree will include information on the executables in the workflow (applets and subworkflows). By default, the execution tree is return as JSON. You can supply a `-pretty` flag to return a pretty print. 
 
 To obtain execution tree from a dxCompiler compiled workflow:
 
@@ -438,79 +437,6 @@ java -jar dxCompiler-xxx.jar describe <workflow_id>
 
 ```bash
 java -jar dxCompiler-xxx.jar describe <workflow_id> -pretty 
-```
-   
-# Extensions
-
-## Runtime
-
-A task declaration has a runtime section where memory, cpu, and disk
-space can be specified. Based on these attributes, an instance type is chosen by
-the compiler. If you wish to choose an instance type from the
-[native](https://documentation.dnanexus.com/developer/api/running-analyses/instance-types)
-list, this can be done by specifying the `dx_instance_type` key
-instead. For example:
-
-```
-runtime {
-   dx_instance_type: "mem1_ssd2_x4"
-}
-```
-
-If you want an instance that has a GPU chipset, set the `gpu` attribute to true. For example:
-```
-runtime {
-   memory: "4 GB"
-   cpu : 4
-   gpu : true
-}
-```
-
-## Streaming
-
-Normally, a file used in a task is downloaded to the instance, and
-then used locally (*localized*). If the file only needs to be
-examined once in sequential order, then this can be optimized by
-streaming instead. The Unix `cat`, `wc`, and `head` commands are of
-this nature. To specify that a file is to be streamed, mark it as such
-in the `parameter_meta` section. For example:
-
-```wdl
-task head {
-    File in_file
-    Int num_lines
-
-    parameter_meta {
-        in_file : "stream"
-    }
-    command {
-        head -n ${num_lines} ${in_file}
-    }
-    output {
-        String result = read_string(stdout())
-    }
-}
-```
-
-File streaming is an optimization, and there are limiting rules to its
-correct usage. The file must be accessed only once, in sequential
-order, from the beginning. It need not be read to the end. If the task
-does not keep this contract, it could fail in unexpected ways.
-
-Some tasks have empty command sections. For example, the `fileSize`
-task (below) calculates the size of a file, but does not need to
-download it.  In such cases, the input files are downloaded lazily,
-only if their data is accessed.
-
-```wdl
-task fileSize {
-    File in_file
-
-    command {}
-    output {
-        Float num_bytes = size(in_file)
-    }
-}
 ```
 
 # Task and workflow inputs
@@ -627,8 +553,9 @@ task unzip_files {
 }
 ```
 
-# Task metadata
+# Task metadata and runtime
 
+## Task meta and parameter_meta
 A WDL task has two sections where metadata can be specified:
 
 * meta: Provides overall metadata about the task
@@ -636,9 +563,9 @@ A WDL task has two sections where metadata can be specified:
 
 Both of these sections allow arbitrary keys and values; unrecognized keys must be ignored by the workflow engine. dxCompiler recognized specific keys in each section that are used when generating the native DNAnexus applets. The purpose of these keys is to provide the same information that can be specified in the [dxapp.json](https://documentation.dnanexus.com/developer/apps/app-metadata) file. 
 
-## meta section
+### meta section
 
-The following keys are recognized:
+The following keys are recognized by dxCompiler (with slightly different representation than in `dxapp.json`):
 
 * `title`: A short title for the applet. If not specified, the task name is used as the title.
 * `summary`: A short description of the applet. If not specified, the first line of the description is used (up to 50 characters or the first period, whichever comes first).
@@ -658,6 +585,7 @@ The following keys are recognized:
   * `upstreamLicenses`
   * `upstreamUrl`
   * `upstreamVersion`
+  * `upstreamProjects`: licenses of the dependency software and packages. The following keys are required to ensure compliance with open-source licenses: `name`, `repoUrl`, `version`, `license`, and `licenseUrl`, while `author` is optional but good to have.
   * `whatsNew`: The task's change log. There are two different formats that are accepted:
     * A (possibly Markdown-formatted) string
     * An array of versions, where each version is a hash with two keys: `version`, a version string, and `changes`, an array of change description strings. This object will be formatted into a Markdown string upon compilation.
@@ -668,7 +596,7 @@ The following keys are also recognized but currently unused, as they only apply 
 * `open_source`: Whether the generated app should be open-source
 * `version`: The app version
 
-## parameter_meta section
+### parameter_meta section
 
 The [WDL Spec](https://github.com/openwdl/wdl/blob/master/versions/1.0/SPEC.md#parameter-metadata-section) defines a `parameter_meta` section that may contain key value pairs to assoicate metadata with input and output variables. Currently, the following keywords are supported:
 
@@ -685,16 +613,88 @@ The [WDL Spec](https://github.com/openwdl/wdl/blob/master/versions/1.0/SPEC.md#p
 
 Although the WDL spec indicates that the `parameter_meta` section should apply to both input and output variables, currently the `parameter_meta` section is mapped only to the input parameters.
 
-## Runtime hints
+### Streaming
 
-There are several parameters affecting the runtime environment that can be specified in the dxapp.json file:
+Normally, a file used in a task is downloaded to the instance, and
+then used locally (*localized*). If the file only needs to be
+examined once in sequential order, then this can be optimized by
+streaming instead. The Unix `cat`, `wc`, and `head` commands are of
+this nature. To specify that a file is to be streamed, mark it as such
+in the `parameter_meta` section. For example:
 
-* `executionPolicy`: Specifies when to try to automatically restart failed jobs, and how many times
-* `timeoutPolicy`: Specifies the maximum amount of time the job can run
-* `access`: Specifies which resources the applet can access
+```wdl
+task head {
+    File in_file
+    Int num_lines
+
+    parameter_meta {
+        in_file : "stream"
+    }
+    command {
+        head -n ${num_lines} ${in_file}
+    }
+    output {
+        String result = read_string(stdout())
+    }
+}
+```
+
+File streaming is an optimization, and there are limiting rules to its
+correct usage. The file must be accessed only once, in sequential
+order, from the beginning. It need not be read to the end. If the task
+does not keep this contract, it could fail in unexpected ways.
+
+Some tasks have empty command sections. For example, the `fileSize`
+task (below) calculates the size of a file, but does not need to
+download it.  In such cases, the input files are downloaded lazily,
+only if their data is accessed.
+
+```wdl
+task fileSize {
+    File in_file
+
+    command {}
+    output {
+        Float num_bytes = size(in_file)
+    }
+}
+```
+
+## Task Runtime and Hints
+
+A task declaration has a runtime section where [native WDL runtime attributes](https://github.com/openwdl/wdl/blob/main/versions/1.1/SPEC.md#mandatory-runtime-attributes) can be specified. Besides, several DNAnexus-specific attributes can also be added to this section if you want customize its execution environment and runtime behavior on the DNAnexus platform.
+
+### Instance type
+An instance type is chosen by the compiler to satisfy the execution requirments defined by the native runtime attributes. If you wish to choose an instance type from the
+DNAnexus [native](https://documentation.dnanexus.com/developer/api/running-analyses/instance-types) list, this can be done by specifying the `dx_instance_type` key
+instead. 
+For example:
+
+```
+runtime {
+   dx_instance_type: "mem1_ssd2_x4"
+}
+```
+
+If you want an instance that has a GPU chipset, set the `gpu` attribute to true. For example:
+```
+runtime {
+   memory: "4 GB"
+   cpu : 4
+   gpu : true
+}
+```
+CWL provides a different set of runtime attributes used in the [ResourceRequirement](https://www.commonwl.org/v1.2/CommandLineTool.html#ResourceRequirement), and a DNAnexus instance type will be chosen accordingly. Recognized attributes and its mapping to WDL are listed [here](CWL_v1.2.0_to_WDL_v1.md#requirements).
+
+### Additional DNAnexus-specific runtime settings
+
+There are several parameters that also affect the runtime behavior of an applet and can be supplied upon its creation in its [dxapp.json file](https://documentation.dnanexus.com/developer/apps/app-metadata#annotated-example):
+* `runSpec.executionPolicy`: Specifies when to try to automatically restart failed jobs, and how many times
+* `runSpec.timeoutPolicy`: Specifies the maximum amount of time the job can run
+* `access`: Specifies additional permissions and resources the applet can access
 * `ignoreReuse`: Specifies whether to allow the outputs of the applet to be reused
 
-These attributes can be specified in the `runtime` section of the WDL task, but their representation there is slightly different than in dxapp.json. Also note that the runtime section is different than the metadata section when it comes to attribute values - specifically, object values must be prefixed by the `object` keyword, and map values must have their keys in quotes.
+Similarly, these attributes can be specified in the WDL workflow, but their representation there is slightly different than in `dxapp.json`, and all of them should be specified under the `runtime` section of the WDL task. Also note that the runtime section is different than the metadata section when it comes to attribute values - specifically, object values must be prefixed by the `object` keyword, and mapped values must have their keys in quotes.
 
 * `dx_restart`: Either an integer value indicating the number of times to automatically restart regardless of the failure reason, or an object value with the following keys:
   * `max`: Maximum number of restarts
@@ -703,12 +703,15 @@ These attributes can be specified in the `runtime` section of the WDL task, but 
 * `dx_timeout`: Either a string value that specifies days, hours, and/or minutes in the format "1D6H30M" or an object with at least one of the keys `days`, `hours`, `minutes`.
 * `dx_access`: An object with any of the keys:
   * `network`: An array of domains to which the app has access, or "*" for all domains
-  * `project`: The maximum level of access the applet has to the host project - a string with any DNAnexus access level
-  * `allProjects`: The maximum level of access the applet has to all projects
+  * `project`: The maximum level of access the applet has to the host project it was launched in - a string with any [DNAnexus access level](https://documentation.dnanexus.com/getting-started/key-concepts/projects#project-access-levels)
+  * `allProjects`: The maximum level of access the applet has to all projects the user has access to - a string with any DNAnexus access level
   * `developer`: Boolean - whether the applet is a developer, i.e. can create new applets
   * `projectCreation`: Boolean - whether the applet can create new projects
 * `dx_ignore_reuse`: Boolean - whether to allow the outputs of the applet to be reused
-* `dx_instance_type`: String - DNAnexus instance type which the applet will use.
+  
+### Native DNAnexus executable
+
+You can also specify a native DNAnexus app(let) that will be called as a task at runtime by adding key `dx_app` in the `runtime` section. See [Calling existing app(let)s](#calling-existing-applets) for more details.
 
 ## Example tasks with DNAnexus-specific metadata and runtime
 
@@ -916,7 +919,7 @@ task bwa_mem {
 The DNAnexus tools library provides apps for many existing bioinformatics tools, and you may have already developed app(let)s of your own. You may want to use these existing app(let)s rather than rewriting them in WDL. Calling a native app(let) from WDL can be done using a native task wrapper. The dxCompiler `dxni` subcommand is provided to generate native task wrappers automatically. It can generate a wrapper for a specific app(let), all apps, and/or all applets in a specific platform folder. For example, the command:
 
 ```console
-$ java -jar dxCompiler-xxx.jar dxni -project project-xxxx -folder /A/B/C --output dx_extern.wdl
+$ java -jar dxCompiler-xxx.jar dxni -project project-xxxx -folder /A/B/C -output dx_extern.wdl
 ```
 
 will find native applets in the `/A/B/C` folder, generate tasks for them, and write to local file `dx_extern.wdl`. If an applet has the `dxapp.json` signature:
@@ -1064,16 +1067,45 @@ task concat {
   }
 }
 ```
+# Workflow metadata
 
-# Setting DNAnexus-specific attributes in extras.json
+Similar to tasks, workflows can also have `meta` AND `parameter_meta` sections that contain arbitrary workflow-level metadata. dxCompiler recognizes the following `meta` attributes which are usually specified in [dxworkflow.json](https://documentation.dnanexus.com/developer/workflows/workflow-metadata) and uses them when generating the native DNAnexus workflow:
 
-When writing a DNAnexus applet the user can specify options through the [dxapp.json](https://documentation.dnanexus.com/developer/apps/app-metadata#annotated-example) file. The dxCompiler equivalent is the *extras* file, specified with the `extras` command line option.
+* `title`: A short title for the workflow. If not specified, the task name is used as the title.
+* `summary`: A short description of the workflow. If not specified, the first line of the description is used (up to 50 characters or the first period, whichever comes first).
+* `description`: A longer description of the workflow.
+* `types`: An array of DNAnexus [types](https://documentation.dnanexus.com/developer/api/data-object-lifecycle/types).
+* `tags`: An array of strings that will be added as tags on the generated workflow.
+* `properties`: A hash of key-value pairs that will be added as properties on the generated workflow. Both keys and values must be strings.
+* `details`: A hash of workflow details. The only key that is specifically recogized is `whatsNew`, and the formatting is handled for workflows the same way as it is for tasks.
 
-*Note:* the first-level keys in the extras file have been changed to camel case; however, all the old keys (v2.1.0 and earlier) are still recoginzed.
+The workflow `parameter_meta` section supports the same attributes as the task `parameter_meta` section.
+
+# Setting DNAnexus-specific attributes in extras file
+
+When writing a DNAnexus applet the user can specify metadata and runtime options through the [dxapp.json](https://documentation.dnanexus.com/developer/apps/app-metadata#annotated-example) file. The dxCompiler equivalent is the _extras_ file, specified with the `-extras` command line option.
+
+The following first-level keys are accepted in the _extras_ file:
+* `defaultRuntimeAttributes`: native WDL/CWL runtime attributes
+* `defaultTaskDxAttributes` metadata and runtime attributes defaults for tasks
+* `perTaskDxAttributes`: metadata and runtime attributes for specific tasks
+* `defaultWorkflowDxAttributes`: metadata and runtime attributes defaults for workflows 
+* `perWorkflowDxAttributes`: metadata and runtime attributes for specific workflows
+* `dockerRegistry`: private registry configuration. See [Private registries](#private-registries])
+* `customReorgAttributes`: custom reorganization applet URI and its configuration. See [Adding config file based reorg applet at compilation time](#adding-config-file-based-reorg-applet-at-compilation-time)
+* `ignoreReuse`: boolean value indicating whether to disable [job reuse](#job-reuse)
+* `delayWorkspaceDestruction`: boolean value indicating whether to delay the destruction of the job's temporary workspace after execution. See [Delay workspace destruction](#delay-workspace-destruction)
+
+If one attribute is specified multiple times, its final value will be retrieved from the following sources and the latter (if exists) will override the former: 
+* `defaultTaskDxAttributes`/`defaultWorkflowDxAttributes` in the extras file
+* task/workflow metadata/runtime section
+* `perTaskDxAttributes`/`perWorkflowDxAttributes` in the extras file
+
+\* Note: the first-level keys in the extras file have been changed to camel case; however, all the old keys (v2.1.0 and earlier) are still recoginzed.
 
 ## Default and per-task attributes
 
-The extras file has a `defaultTaskDxAttributes` section where runtime specification, timeout policies, and access control can be set.
+The extras file has a `defaultTaskDxAttributes` section where `executionPolicy`, `timeoutPolicy`, and `access` `runSpec` attributes can be set.
 
 ```json
 {
@@ -1105,7 +1137,16 @@ The extras file has a `defaultTaskDxAttributes` section where runtime specificat
 In order to override the defaults for specific tasks, you can add the `perTaskDxAttributes` section. For example
 
 ```json
-{
+{  
+  "defaultTaskDxAttributes" : {
+    "runSpec": {
+        "timeoutPolicy": {
+          "*": {
+            "hours": 12
+          }
+        }
+      }
+    },
   "perTaskDxAttributes" : {
     "Add": {
       "runSpec": {
@@ -1132,23 +1173,9 @@ In order to override the defaults for specific tasks, you can add the `perTaskDx
 }
 ```
 
-will override the default timeout for tasks `Add` and `Inc`. It will also provide `UPLOAD` instead of `VIEW` project access to `Inc`.
+will override the default task timeout and `dx_timeout` in the runtime section of tasks `Add` and `Inc`. It will also provide `UPLOAD` instead of `VIEW` project access to `Inc`.
 
-You are also able to specify metadata for tasks in the `defaultTaskDxAttributes` and `perTaskDxAttributes` sections, including adding citation or license information.
-
-The full set of attributes that may be specified are:
-
-* title
-* summary
-* description
-* developerNotes
-* version
-* categories
-* types
-* tags
-* properties
-* details
-* openSource
+You are also able to specify metadata for tasks in the `defaultTaskDxAttributes` and `perTaskDxAttributes` sections, including adding citation or license information. The full set of recognized attributes is listed in [task meta](#meta-section) with snake_case fields converted to camelCase to agree with [dxapp.json](https://documentation.dnanexus.com/developer/apps/app-metadata) syntax (e.g.  `developer_notes` and `open_source` meta attributes are specified as `developerNotes` and `openSource` in `extras.json`).
 
 For example:
 
@@ -1178,16 +1205,19 @@ For example:
           }
         ]
       }
+      "developerNotes": "This note is used to provide additional info to advanced users."
     }
   }
 }
 ```
 
-Note that `details` specified in `perTaskDxAttributes` override those that are set in the task's `meta` section.
+Note that `details` and `developerNotes` specified in `perTaskDxAttributes` override `details` and `developer_notes` that are set in the task's `meta` section. 
 
-## Per-workflow attributes
+## Default and per-workflow attributes
 
-There are also attributes that can be set at the workflow level. Currently, the only attribute that can be set is the "chunk size" limit for scatters. DNAnexus executes large scatters in "chunks" of no more than 1000 jobs at a time (the default is 500). For some scatters, it may be necessary to increase or decrease the chunk size for efficient execution. You should not need to modify this attribute unless instructed to do so by the DNAnexus support team.
+There are also metadata [attributes](#workflow-metadata) that can be set at the workflow level. You can specify metadata as defaults as `defaultWorkflowDxAttributes`, or set them for each workflow in the `perWorkflowDxAttributes` section.
+
+Note that workflows in WDL do not have a native runtime section; however, you can set the `chunkSize` limit for scatters in the workflow level as a DNAnexus-specific runtime attribute. DNAnexus executes large scatters in "chunks" of no more than 1000 jobs at a time (the default is 500). For some scatters, it may be necessary to increase or decrease the chunk size for efficient execution. You should not need to modify this attribute unless instructed to do so by the DNAnexus support team.
 
 Consider the following workflow:
 
@@ -1226,8 +1256,10 @@ If you want the default scatter chunk size for this workflow to be 100, but you 
       "scatterDefaults": {
         "chunkSize": 100
       },
-      "sample_files.file": {
-        "chunkSize": 700
+      "scatters": {
+          "sample_files.file": {
+          "chunkSize": 700
+        }
       }
     }
   }
@@ -1236,51 +1268,47 @@ If you want the default scatter chunk size for this workflow to be 100, but you 
 
 ## Job reuse
 
-By default, job results are [reused](https://documentation.dnanexus.com/user/running-apps-and-workflows/job-reuse). This is an optimization whereby when a job is run a second time, the results from the previous execution are returned, skipping job execution entirely. Sometimes, it is desirable to disable this behavior. To do so use:
+By default, job results are [reused](https://documentation.dnanexus.com/user/running-apps-and-workflows/job-reuse). This is an optimization whereby when a job is run a second time, the results from the previous execution are returned, skipping job execution entirely. Sometimes, it is desirable to disable this behavior. To do so, add this setting to the top-level of the extras file:
 
 ```
 {
   "ignoreReuse" : true
 }
 ```
+This will be applied to the top-level workflow, sub-workflows, and applets during compilation, and used for all jobs/analyses during execution (which is equivalent to using `--ignore-reuse` flag with `dx run`). 
 
 ## Delay workspace destruction
 
-By default, temporary workspaces hold the results of executed workflows and applets. Normally, these are garbage collected by the system. If you wish to leave them around longer for debugging purposes, please use:
+When calling a workflow with `dx run`, jobs and analyses launched by this workflow will have their temporary workspaces to store resources and intermediate outputs. By default, when a job or an analysis has transitioned to a terminal state (done, failed, or terminated), its temporary workspace will be destroyed by the system. 
+
+If you wish to delay the destruction of these temporary workspaces and keep them around longer (around 3 days) after executing the workflow, two things need to be done:
+
+1. Add this setting to the top-level of the extras file:
 
 ```
 {
   "delayWorkspaceDestruction" : true
 }
 ```
+This will guarantee the workspace containers of all jobs that spawned from the parent jobs (e.g. in scatters) during workflow execution to remain intact after the analysis.
 
-This will be passed down through the entire workflow, sub-workflows, and tasks. Workspaces will remain intact for 72 hours. This is a runtime flag, so you will need to run the toplevel workflow with that flag:
-
+2. When running the workflow use `--delay-workspace-destruction` flag:
 ```
 dx run YOUR_WORKFLOW --delay-workspace-destruction
 ```
+This will guarantee the root analysis and its stages will have their workspace destruction delayed.
 
-# Workflow metadata
+Taking both steps will ensure all of your workflow containers are not immediately destroyed regardless of whether the analysis succeeds or fails, and will allow you to view the data objects stored in the workflow workspace containers for debugging purposes.
 
-Similar to tasks, workflows can also have `meta` AND `parameter_meta` sections that contain arbitrary workflow-level metadata. dxCompiler recognizes the following `meta` attributes and uses them when generating the native DNAnexus workflow:
-
-* `title`: A short title for the workflow. If not specified, the task name is used as the title.
-* `summary`: A short description of the workflow. If not specified, the first line of the description is used (up to 50 characters or the first period, whichever comes first).
-* `description`: A longer description of the workflow.
-* `types`: An array of DNAnexus [types](https://documentation.dnanexus.com/developer/api/data-object-lifecycle/types).
-* `tags`: An array of strings that will be added as tags on the generated applet.
-* `properties`: A hash of key-value pairs that will be added as properties on the generated applet. Both keys and values must be strings.
-* `details`: A hash of workflow details. The only key that is specifically recogized is `whatsNew`, and the formatting is handled for workflows the same way as it is for tasks.
-
-The workflow `parameter_meta` section supports the same attributes as the task `parameter_meta` section.
+To learn about jobs' workspaces used during execution, please refer to [the official DNAnexus documentation](https://documentation.dnanexus.com/user/running-apps-and-workflows/job-lifecycle#example-execution-tree).
 
 # Handling intermediate workflow outputs
 
-A workflow may create a large number of files, taking up significant disk space, and incurring storage costs. Some of the files are workflow outputs, but many of them may be intermediate results that are not needed once the workflow completes. By default, all outputs are stored in one platform folder. With the `--reorg` flag, the intermediate results are moved into a subfolder named "intermediate". This is achieved by adding a stage to the workflow that reorganizes the output folder, it uses `CONTRIBUTE` access to reach into the parent project, create a subfolder, and move files into it.
+A workflow may create a large number of files, taking up significant disk space, and incurring storage costs. Some of the files are workflow outputs, but many of them may be intermediate results that are not needed once the workflow completes. By default, all outputs are stored in one platform folder. With the `-reorg` flag, the intermediate results are moved into a subfolder named "intermediate". This is achieved by adding a stage to the workflow that reorganizes the output folder, it uses `CONTRIBUTE` access to reach into the parent project, create a subfolder, and move files into it.
 
 ## Use your own applet
 
-You may want to use a different applet than the one provided with `--reorg`. To do that, write a native applet, and call it at the end your workflow.
+You may want to use a different applet than the one provided with `-reorg`. To do that, write a native applet, and call it at the end your workflow.
 
 Writing your own applet for reorganization purposes is tricky. If you are not careful, it may misplace or outright delete files. The applet:
 1. Requires `CONTRIBUTE` project access, so it can move files and folders around.
@@ -1290,9 +1318,9 @@ Writing your own applet for reorganization purposes is tricky. If you are not ca
    
 You must also be aware that the analysis information is updated in the platform's database asynchronously, so the result of calling `dx describe` on the analysis may not be up-to-date. The most reliable method for making sure you have an up-to-date analysis description is to call `dx describe` in a loop (waiting at least 3 seconds between iterations), and exit the loop when the `dependsOn` field returns an array that contains exactly one item - the ID of the reorg job itself. See the [example](CustomReorgAppletExample.md).
 
-## Adding config-file based reorg applet at compilation time
+## Adding config file based reorg applet at compilation time
 
-In addition to using `--reorg` flag to add the reorg stage, you may also add a custom reorganization applet that takes an optional input by declaring a "customReorgAttributes" object in the JSON file used as parameter with `-extras`
+In addition to using `-reorg` flag to add the reorg stage, you may also add a custom reorganization applet that takes an optional input by declaring a "customReorgAttributes" object in the JSON file used as parameter with `-extras`
 
 The `customReorgAttributes` object has two properties in extra.json:
 * `appUri`: reorg app or applet URI - either an ID (e.g. "app-bwa_mem" or "app-xxx" or "applet-yyy") or a URI of a platform file (e.g. "dx://file-xxx").
@@ -1494,7 +1522,7 @@ Currently, when a workflow compiled with manifest support is run, the outputs of
 ## Setting a default docker image for all tasks
 
 Sometimes, you want to use a default docker image for tasks.
-The `extras` commad line flag can help achieve this. It takes a JSON file
+The `-extras` command line flag can help achieve this. It takes a JSON file
 as an argument. For example, if `taskAttrs.json` is this file:
 ```
 {
@@ -1520,8 +1548,8 @@ For example:
 {
   "dockerRegistry" : {
       "registry" : "foo.acme.com",
-       "username" : "perkins",
-       "credentials" : "dx://CornSequencing:/B/creds.txt"
+      "username" : "perkins",
+      "credentials" : "dx://CornSequencing:/B/creds.txt"
   }
 }
 ```
@@ -1682,7 +1710,7 @@ For better execution stability and to reduce dependence on third-party infrastru
 
 For better portability across projects where the workflow will be run, hard-coding instance types using the key `dx_instance_type` should be avoided for global workflows. You should specify runtime resources using numeric requirements for memory / disk / CPU and compile WDL workflows with the flag `-instanceTypeSelection dynamic`. This option ensures that instance types for jobs will always be selected at runtime, based on the actual instance types available in the runtime project. While this option can result in longer runtimes, it is better for portability because it will never attempt to start a job on an instance type that is not supported.
 
-For informational purposes, include a reference to a git repo commit containing the original workflow source code in the `developerNotes` metadata field (see above example how to update developer notes).
+For informational purposes, include a reference to a git repo commit containing the original workflow source code in the `developerNotes` metadata field (see [example above](#publishing-global-workflows) on how to update developer notes).
 
 Grant appropriate permissions to users authorized to run the global workflow the dependencies of the  global workflow that are not bundled with the global workflow.  These include credentials for external docker registries, DNAnexus apps called within the workflow, and other dependencies discussed in the [Limitations section](#global-workflows-limitations)
 
