@@ -1,14 +1,19 @@
 {
-    "per_task_dx_attributes" : {
-      "add_runtime_hints": {
-        "runSpec": {
-          "timeoutPolicy": {
-            "*": {
-              "hours": 3
-            }
+  "per_task_dx_attributes": {
+    "add_runtime_hints": {
+      "runSpec": {
+        "timeoutPolicy": {
+          "*": {
+            "hours": 3
           }
+        },
+        "access": {
+          "project": "VIEW",
+          "allProjects": "VIEW",
+          "network": [],
+          "developer": false
         }
       }
     }
+  }
 }
-  
