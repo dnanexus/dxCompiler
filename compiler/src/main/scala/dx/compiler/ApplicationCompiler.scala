@@ -440,10 +440,11 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       case ExecutableKindWorkflowOutputReorg =>
         // The reorg applet requires higher permissions to organize the output directory.
         Some(DxAccess.empty.copy(project = Some(DxAccessLevel.Contribute)))
-      case _ =>
-        // Scatters need network access, because they spawn subjobs that (may) use dx-docker.
-        // We end up allowing all applets to use the network
+      case ExecutableKindWfFragment(_,_,_,_) =>
         Some(DxAccess.empty.copy(network = Some(Vector("*"))))
+      case _ =>
+        // ExecutableKindWfInputs / ExecutableKindWfOutputs / ExecutableKindWfCustomReorgOutputs
+        Some(DxAccess.empty)
     }
     // using manifests requires at least UPLOAD access
     val manifestAccess = if (useManifests) {
