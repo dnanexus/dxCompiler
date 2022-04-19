@@ -625,7 +625,31 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     desc.ignoreReuse shouldBe Some(true)
   }
 
-  it should "be able to include runtime hints and override extras global" in {
+  it should "timeout can be overriden from the extras file" taggedAs NativeTest in {
+    val path = pathFromBasename("compiler", "add_timeout_override.wdl")
+    val extraPath = pathFromBasename("compiler/extras", "short_timeout.json")
+    val args = path.toString :: "--extras" :: extraPath.toString :: cFlags
+    val appId = Main.compile(args.toVector) match {
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
+    }
+
+    // make sure the timeout is what it should be
+    val (_, stdout, _) = SysUtils.execCommand(s"dx describe ${dxTestProject.id}:${appId} --json")
+
+    val timeout = stdout.parseJson.asJsObject.fields.get("runSpec") match {
+      case Some(JsObject(x)) =>
+        x.get("timeoutPolicy") match {
+          case None    => throw new Exception("No timeout policy set")
+          case Some(s) => s
+        }
+      case other => throw new Exception(s"Unexpected result ${other}")
+    }
+    timeout shouldBe JsObject("*" -> JsObject("hours" -> JsNumber(3)))
+  }
+
+  it should "be able to include runtime hints and override extras task default" in {
     val path = pathFromBasename("compiler", "add_runtime_hints.wdl")
     val extraPath = pathFromBasename("compiler/extras", "short_timeout.json")
     val args = path.toString :: "--extras" :: extraPath.toString :: cFlags
@@ -916,30 +940,6 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     timeout shouldBe JsObject(
         "*" -> JsObject("days" -> JsNumber(2), "hours" -> JsNumber(0), "minutes" -> JsNumber(0))
     )
-  }
-
-  it should "timeout can be overriden from the extras file" taggedAs NativeTest in {
-    val path = pathFromBasename("compiler", "add_timeout_override.wdl")
-    val extraPath = pathFromBasename("compiler/extras", "short_timeout.json")
-    val args = path.toString :: "--extras" :: extraPath.toString :: cFlags
-    val appId = Main.compile(args.toVector) match {
-      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
-      case other =>
-        throw new Exception(s"unexpected result ${other}")
-    }
-
-    // make sure the timeout is what it should be
-    val (_, stdout, _) = SysUtils.execCommand(s"dx describe ${dxTestProject.id}:${appId} --json")
-
-    val timeout = stdout.parseJson.asJsObject.fields.get("runSpec") match {
-      case Some(JsObject(x)) =>
-        x.get("timeoutPolicy") match {
-          case None    => throw new Exception("No timeout policy set")
-          case Some(s) => s
-        }
-      case other => throw new Exception(s"Unexpected result ${other}")
-    }
-    timeout shouldBe JsObject("*" -> JsObject("hours" -> JsNumber(3)))
   }
 
   it should "allow choosing GPU instances" taggedAs NativeTest in {
