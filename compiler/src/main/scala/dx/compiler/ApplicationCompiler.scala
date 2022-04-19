@@ -440,7 +440,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       case ExecutableKindWorkflowOutputReorg =>
         // The reorg applet requires higher permissions to organize the output directory.
         Some(DxAccess.empty.copy(project = Some(DxAccessLevel.Contribute)))
-      case ExecutableKindWfFragment(_,_,_,_) =>
+      case ExecutableKindWfFragment(_, _, _, _) =>
         Some(DxAccess.empty.copy(network = Some(Vector("*"))))
       case _ =>
         // ExecutableKindWfInputs / ExecutableKindWfOutputs / ExecutableKindWfCustomReorgOutputs
