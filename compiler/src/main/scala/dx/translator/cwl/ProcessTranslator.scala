@@ -575,24 +575,14 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         param.name -> param.dxType
       }.toMap
 
-      val (instanceType, container, attributes, requirements) = availableDependencies
-        .collectFirst({
-          case (iname, i: Application) if iname == calleeName.getOrElse("") => {
-            (i.instanceType, i.container, i.attributes, i.requirements)
-          }
-        })
-        .getOrElse((DefaultInstanceType, NoImage, Vector.empty, Vector.empty))
-
       val applet = Application(
-          name = s"${wfName}_frag_${getStageId()}",
-          inputs = inputParams,
-          outputs = outputParams,
-          instanceType = instanceType,
-          container = container,
-          kind = ExecutableKindWfFragment(calleeName, blockPath, fqnDictTypes, scatterChunkSize),
-          document = standAloneWorkflow,
-          attributes = attributes,
-          requirements = requirements
+          s"${wfName}_frag_${getStageId()}",
+          inputParams,
+          outputParams,
+          DefaultInstanceType,
+          NoImage,
+          ExecutableKindWfFragment(calleeName, blockPath, fqnDictTypes, scatterChunkSize),
+          standAloneWorkflow
       )
 
       (Stage(stageName, getStage(), applet.name, stageInputs, outputParams), applet)
