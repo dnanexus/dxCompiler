@@ -1070,7 +1070,16 @@ task concat {
 ### Unsupported overrides
 Current version of dxCompiler **does not** support instance override for native app(let)s in the following cases:
 1. Specifications of system requirements (RAM/CPU/storage/etc.) is not supported. Use instance names instead e.g. `mem1_ssd1_v2_x4` (instance names may be not transferable between regions)
-2. Instance override by string interpolation: e.g. `mem1_ssd1_v2_x~{scale}` or dynamic calculation of required RAM/CPU.
+2. Instance override by string interpolation: e.g. `mem1_ssd1_~{REMAINING_PART_OF_INSTANCE_NAME}`
+3. Dynamic calculation of required RAM/CPU: 
+```wdl
+...
+Int calc_mem = 30+15
+runtime {
+  memory: "~{calc_mem} GB"
+}
+...
+```
 
 # Workflow metadata
 
