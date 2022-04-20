@@ -19,6 +19,13 @@ workflow override {
     }
   }
 
+  # scatter, single call
+  scatter (i in [1,2]) {
+    call instance_type as scatter_isntance_type {
+      input: files = create_input.inputs
+    }
+  }
+
   # Conditional, multiple calls
   Boolean m = true
   if (m) {
