@@ -1067,6 +1067,11 @@ task concat {
   }
 }
 ```
+### Unsupported overrides
+Current version of dxCompiler **does not** support instance override for native app(let)s in the following cases:
+1. Specifications of system requirements (RAM/CPU/storage/etc.) is not supported. Use instance names instead e.g. `mem1_ssd1_v2_x4` (instance names may be not transferable between regions)
+2. Instance override by string interpolation: e.g. `mem1_ssd1_v2_x~{scale}` or dynamic calculation of required RAM/CPU.
+
 # Workflow metadata
 
 Similar to tasks, workflows can also have `meta` AND `parameter_meta` sections that contain arbitrary workflow-level metadata. dxCompiler recognizes the following `meta` attributes which are usually specified in [dxworkflow.json](https://documentation.dnanexus.com/developer/workflows/workflow-metadata) and uses them when generating the native DNAnexus workflow:
