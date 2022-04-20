@@ -242,38 +242,34 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       case _ => Map.empty
     }
     // Add platform Docker image dependency to bundledDepends
-    val bundledDependsDocker: Option[JsValue] = if (applet.kind == ExecutableKindApplet) {
-      applet.container match {
-        case DxFileDockerImage(_, dxfile) => {
-          val id = dxfile.id
+    val bundledDependsDocker: Option[JsValue] = applet.container match {
+      case DxFileDockerImage(_, dxfile) => {
+        val id = dxfile.id
 
-          // If source project not specified for Docker image file, try to find it
-          val sourceProject = dxfile.project.getOrElse(
-              Try {
-                dxApi.getObject(id).describe() match {
-                  case f: DxFileDescribe => dxApi.project(f.project)
-                  case _                 => throw new RuntimeException(s"Expected ${id} to be a file")
-                }
-              } match {
-                case Success(project) => project
-                case Failure(ex)      => throw new RuntimeException(s"Unable to locate file ${id}", ex)
+        // If source project not specified for Docker image file, try to find it
+        val sourceProject = dxfile.project.getOrElse(
+            Try {
+              dxApi.getObject(id).describe() match {
+                case f: DxFileDescribe => dxApi.project(f.project)
+                case _                 => throw new RuntimeException(s"Expected ${id} to be a file")
               }
-          )
+            } match {
+              case Success(project) => project
+              case Failure(ex)      => throw new RuntimeException(s"Unable to locate file ${id}", ex)
+            }
+        )
 
-          // If dependency on Docker image file in another project, clone
-          dxApi.cloneDataObject(id, sourceProject, project, folder)
+        // If dependency on Docker image file in another project, clone
+        dxApi.cloneDataObject(id, sourceProject, project, folder)
 
-          val mapping = JsObject(
-              Constants.BundledDependsNameKey -> JsString(dxfile.describe().name),
-              Constants.BundledDependsIdKey -> JsObject(DxUtils.DxLinkKey -> JsString(dxfile.id)),
-              Constants.BundledDependsStagesKey -> JsArray(Vector.empty)
-          )
-          Some(mapping)
-        }
-        case _ => None
+        val mapping = JsObject(
+            Constants.BundledDependsNameKey -> JsString(dxfile.describe().name),
+            Constants.BundledDependsIdKey -> JsObject(DxUtils.DxLinkKey -> JsString(dxfile.id)),
+            Constants.BundledDependsStagesKey -> JsArray(Vector.empty)
+        )
+        Some(mapping)
       }
-    } else {
-      None
+      case _ => None
     }
 
     // Add executables called by this applet to bundledDepends to ensure cloning
@@ -316,15 +312,11 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       case _ => Map.empty
     }
     // Add Docker image info to details
-    val dockerImageDetails: Map[String, JsValue] = if (applet.kind == ExecutableKindApplet) {
-      applet.container match {
-        case DxFileDockerImage(_, dxfile) => Map(Constants.DockerImage -> dxfile.asJson)
-        case NetworkDockerImage(pullName) => Map(Constants.NetworkDockerImage -> JsString(pullName))
-        case DynamicDockerImage           => Map(Constants.DynamicDockerImage -> JsBoolean(true))
-        case NoImage                      => Map.empty
-      }
-    } else {
-      Map.empty
+    val dockerImageDetails: Map[String, JsValue] = applet.container match {
+      case DxFileDockerImage(_, dxfile) => Map(Constants.DockerImage -> dxfile.asJson)
+      case NetworkDockerImage(pullName) => Map(Constants.NetworkDockerImage -> JsString(pullName))
+      case DynamicDockerImage           => Map(Constants.DynamicDockerImage -> JsBoolean(true))
+      case NoImage                      => Map.empty
     }
     (runSpec, instanceTypeDetails ++ dockerImageDetails)
   }
@@ -445,7 +437,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     }
     // update depending on applet type
     val appletKindAccess = applet.kind match {
-      case ExecutableKindApplet | ExecutableKindWfFragment(_, _, _, _) =>
+      case ExecutableKindApplet =>
         applet.container match {
           // Require network access if Docker image needs to be downloaded
           case NetworkDockerImage(_) | DynamicDockerImage =>
@@ -455,6 +447,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
       case ExecutableKindWorkflowOutputReorg =>
         // The reorg applet requires higher permissions to organize the output directory.
         Some(DxAccess.empty.copy(project = Some(DxAccessLevel.Contribute)))
+      case ExecutableKindWfFragment(_, _, _, _) =>
+        Some(DxAccess.empty.copy(network = Some(Vector("*"))))
       case _ =>
         // ExecutableKindWfInputs / ExecutableKindWfOutputs / ExecutableKindWfCustomReorgOutputs
         Some(DxAccess.empty)
