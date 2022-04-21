@@ -80,10 +80,32 @@ import spray.json._
 import java.nio.file.{Path, Paths}
 import scala.util.Try
 
-case class CwlSourceCode(source: Path) extends SourceCode {
+case class CwlSourceCode(source: Path, name: String = "") extends SourceCode {
   override val language: String = "cwl"
   override def toString: String = FileUtils.readFileContent(source)
-  def getDocContents: String = toString
+  override def getDocContents: String = {
+    def inner(jsv: JsValue, name: String): Option[JsValue] = {
+      jsv match {
+        case JsObject(fields) if fields.get("id").contains(JsString(s"${name}")) => Some(jsv)
+        case JsObject(fields) if fields.contains("run") =>
+          inner(fields.getOrElse("run", JsNull), name)
+        case JsObject(fields) if fields.contains("steps") =>
+          inner(fields.getOrElse("steps", JsArray.empty), name)
+        case JsArray(items) =>
+          val v = items.map(inner(_, name)).flatten
+          v match {
+            case Vector(i) => Some(i)
+            case _         => None
+          }
+        case _ => None
+      }
+    }
+    if (name.nonEmpty) {
+      inner(toString.parseJson, name).getOrElse(JsString.empty).sortedPrint
+    } else {
+      toString.parseJson.sortedPrint
+    }
+  }
 }
 
 case class ProcessTranslator(cwlBundle: CwlBundle,
@@ -312,7 +334,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           case _                 => Vector.empty
         }
       }
-
+      val standAloneTask = CwlSourceCode(docSource, name)
       Application(
           name,
           inputs,
@@ -323,7 +345,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           requirementEvaluator.translateInstanceType(instanceTypeSelection),
           requirementEvaluator.translateContainer,
           ExecutableKindApplet,
-          CwlSourceCode(docSource),
+          standAloneTask,
           translateCallableAttributes(tool, hintCallableAttrs),
           requirementEvaluator.translateApplicationRequirements,
           tags = Set("cwl"),
@@ -372,12 +394,14 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       }
     }
 
-    override protected def standAloneWorkflow: SourceCode = {
-      val docSource = wf.source.orElse(cwlBundle.primaryProcess.source) match {
+    private lazy val docSource: Path =
+      wf.source.orElse(cwlBundle.primaryProcess.source) match {
         case Some(path) => Paths.get(path)
         case None       => throw new Exception(s"no source code for tool ${wf.name}")
       }
-      CwlSourceCode(docSource)
+
+    override protected def standAloneWorkflow: SourceCode = {
+      CwlSourceCode(docSource, wf.name)
     }
 
     private def createWorkflowInput(input: WorkflowInputParameter): Parameter = {
@@ -575,6 +599,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         param.name -> param.dxType
       }.toMap
 
+      val standAloneFrag = CwlSourceCode(docSource, calleeName.get)
       val applet = Application(
           s"${wfName}_frag_${getStageId()}",
           inputParams,
@@ -582,7 +607,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           DefaultInstanceType,
           NoImage,
           ExecutableKindWfFragment(calleeName, blockPath, fqnDictTypes, scatterChunkSize),
-          standAloneWorkflow
+          standAloneFrag
       )
 
       (Stage(stageName, getStage(), applet.name, stageInputs, outputParams), applet)
