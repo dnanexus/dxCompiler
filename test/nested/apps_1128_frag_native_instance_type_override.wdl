@@ -1,6 +1,6 @@
 version 1.1
 
-workflow override {
+workflow apps_1128_frag_native_instance_type_override {
   call create_input
 
   call default {
