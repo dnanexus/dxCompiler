@@ -1,44 +1,44 @@
 version 1.1
 
 workflow apps_1128_frag_native_instance_type_override {
-  call create_input
+  call apps_1128_create_input
 
-  call default {
-    input: files = create_input.inputs
+  call apps_1128_default_instance {
+    input: files = apps_1128_create_input.inputs
   }
 
-  call instance_type {
-    input: files = create_input.inputs
+  call apps_1128_override_instance_name {
+    input: files = apps_1128_create_input.inputs
   }
 
   # Conditional, single call
   Boolean n = true
   if (n) {
-    call instance_type as conditional_isntance_type {
-      input: files = create_input.inputs
+    call apps_1128_override_instance_name as conditional_isntance_type {
+      input: files = apps_1128_create_input.inputs
     }
   }
 
   # scatter, single call
   scatter (i in [1,2]) {
-    call instance_type as scatter_isntance_type {
-      input: files = create_input.inputs
+    call apps_1128_override_instance_name as scatter_isntance_type {
+      input: files = apps_1128_create_input.inputs
     }
   }
 
   # Conditional, multiple calls
   Boolean m = true
   if (m) {
-    call instance_type as conditional_isntance_type_1 {
-      input: files = create_input.inputs
+    call apps_1128_override_instance_name as conditional_isntance_type_1 {
+      input: files = apps_1128_create_input.inputs
     }
-    call instance_type_2 as conditional_isntance_type_2 {
-      input: files = create_input.inputs
+    call apps_1128_override_instance_name_2 as conditional_isntance_type_2 {
+      input: files = apps_1128_create_input.inputs
     }
   }
 }
 
-task create_input {
+task apps_1128_create_input {
   command <<<
     echo "a" > input_a.txt
     echo "b" > input_b.txt
@@ -48,7 +48,7 @@ task create_input {
   }
 }
 
-task default {
+task apps_1128_default_instance {
   input {
     Array[File]+ files
     String? output_filename
@@ -68,7 +68,7 @@ task default {
     }
   }
 }
-task instance_type {
+task apps_1128_override_instance_name {
   input {
     Array[File]+ files
     String? output_filename
@@ -90,7 +90,7 @@ task instance_type {
   }
 }
 
-task instance_type_2 {
+task apps_1128_override_instance_name_2 {
   input {
     Array[File]+ files
     String? output_filename
