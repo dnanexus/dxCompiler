@@ -81,7 +81,7 @@ task instance_type {
   }
 
   runtime {
-    dx_instance_type: "mem1_ssd1_v2_x16"
+    dx_instance_type: "mem1_ssd1_v2_x2"
     dx_app: object {
       type: "app",
       id: "app-BZ9ZQzQ02VP5gpkP54b96pYY",
@@ -103,7 +103,7 @@ task instance_type_2 {
   }
 
   runtime {
-    dx_instance_type: "mem1_ssd1_v2_x8"
+    dx_instance_type: "mem1_ssd1_v2_x4"
     dx_app: object {
       type: "app",
       id: "app-BZ9ZQzQ02VP5gpkP54b96pYY",
