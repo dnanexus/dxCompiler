@@ -400,6 +400,7 @@ case class Compiler(extras: Option[Extras],
                          useManifests,
                          complexPathValues,
                          fileResolver,
+                         project,
                          instanceTypeSelection,
                          dxApi,
                          logger2)

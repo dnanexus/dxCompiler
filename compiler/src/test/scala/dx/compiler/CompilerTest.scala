@@ -109,6 +109,37 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     }
   }
 
+  it should "compile a workflow with a native app and override instance based using RAM and CPU spec" in {
+    val path = pathFromBasename("bugs", "apps_1177_frag_native_indirect_override_unit.wdl")
+    val args = path.toString :: cFlags
+    val retval = Main.compile(args.toVector)
+    val wfId = retval match {
+      case SuccessfulCompileNativeNoTree(_, Vector(wfId)) => wfId
+      case other                                          => throw new Exception(s"expected single workflow not ${other}")
+    }
+    // the native app has an instance type of mem1_ssd1_v2_x2, with 2 CPUs and 4 Gb RAM. The tasks request 30 Gb and
+    // 8 CPU respectively so the instances should be scaled
+    val stages = dxApi
+      .workflow(wfId)
+      .describe()
+      .stages
+      .get
+      .map { stage =>
+        stage.name -> stage.systemRequirements
+      }
+      .toMap
+    stages.size shouldBe 3
+    stages("default") shouldBe JsObject(
+        "*" -> JsObject("instanceType" -> JsString("mem1_ssd1_v2_x2"))
+    )
+    stages("mem_int") shouldBe JsObject(
+        "*" -> JsObject("instanceType" -> JsString("mem3_ssd1_x4"))
+    )
+    stages("cpu_int") shouldBe JsObject(
+        "*" -> JsObject("instanceType" -> JsString("mem1_ssd1_x8"))
+    )
+  }
+
   it should "compile a task with dynamic instance type selection" in {
     def compile(instanceTypeSelection: String): Map[String, JsValue] = {
       val path = pathFromBasename("compiler", "add.wdl")

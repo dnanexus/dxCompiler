@@ -1,6 +1,6 @@
 package dx.compiler
 
-import dx.api.{DxApi, DxApplet, DxUtils, DxWorkflow, DxWorkflowStage, Field, InstanceTypeRequest}
+import dx.api.{DxApi, DxApplet, DxProject, DxUtils, DxWorkflow, DxWorkflowStage, Field}
 import dx.core.Constants
 import dx.core.ir._
 import dx.translator.CallableAttributes._
@@ -10,7 +10,7 @@ import spray.json._
 
 import scala.collection.immutable.SeqMap
 import dx.translator.DockerRegistry
-import dx.core.ir.RunSpec.StaticInstanceType
+import dx.core.ir.RunSpec.{InstanceType, StaticInstanceType}
 
 case class WorkflowCompiler(separateOutputs: Boolean,
                             extras: Option[Extras],
@@ -18,6 +18,7 @@ case class WorkflowCompiler(separateOutputs: Boolean,
                             useManifests: Boolean,
                             complexPathValues: Boolean,
                             fileResolver: FileSourceResolver,
+                            project: DxProject,
                             instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
                             dxApi: DxApi = DxApi.get,
                             logger: Logger = Logger.get)
@@ -26,6 +27,8 @@ case class WorkflowCompiler(separateOutputs: Boolean,
                                complexPathValues,
                                fileResolver,
                                dxApi) {
+
+  private lazy val instanceTypeDb = InstanceType.createDb(Some(project))
 
   private def workflowInputParameterToNative(parameter: Parameter,
                                              stageInput: StageInput): Vector[JsValue] = {
@@ -557,28 +560,18 @@ case class WorkflowCompiler(separateOutputs: Boolean,
         } else {
           irExecutable.inputVars.zip(stage.inputs)
         }
+
         val systemRequirements = irExecutable match {
           // specify the instance type for native app stubs that specify it in the runtime section
-          case Application(
-              _,
-              _,
-              _,
-              StaticInstanceType(
-                  InstanceTypeRequest(Some(staticInstanceType), _, _, _, _, _, _, _, _, _, _)
-              ),
-              _,
-              _: ExecutableKindNative,
-              _,
-              _,
-              _,
-              _,
-              _,
-              _
-              ) =>
+          case app: Application =>
+            val instanceType: String = app.instanceType match {
+              case static: StaticInstanceType => instanceTypeDb.apply(static.req).name
+              case _                          => instanceTypeDb.defaultInstanceType.name
+            }
             Some(
                 "systemRequirements" -> JsObject(
                     "*" -> JsObject(
-                        "instanceType" -> JsString(staticInstanceType)
+                        "instanceType" -> JsString(instanceType)
                     )
                 )
             )
