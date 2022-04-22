@@ -2,7 +2,8 @@
 
 ## in develop
 
-..
+* WDL: Fix to native app(let)s instance override. Now native app(let)s wrapped in scatters and conditionals get their default instances overridden with static dnanexus names. Dynamic instance override is not yet supported. Override with compute requirements (CPU/RAM/etc.) is not supported.
+
 
 ## 2.10.1 2022-04-18
 
@@ -12,7 +13,6 @@
 * WDL: Fix to the order of precedence for the different job reuse settings. The [ignoreReuse](https://github.com/dnanexus/dxCompiler/blob/d6371c3f5087c9de23e671928a741007280c2c33/doc/ExpertOptions.md#setting-dnanexus-specific-attributes-in-extras-file) setting specified in the `extras.json` file should override the [dx_ignore_reuse](https://github.com/dnanexus/dxCompiler/blob/d6371c3f5087c9de23e671928a741007280c2c33/doc/ExpertOptions.md#additional-dnanexus-specific-runtime-settings)  setting specified in the `runtime` section of the WDL file.
 * Updates to the documentation, esp. sections about [delay workspace destruction](https://github.com/dnanexus/dxCompiler/blob/444036acb16f2555d3cfe5f4c892b9996a8079dc/doc/ExpertOptions.md#delay-workspace-destruction), [DNAnexus-specific runtime settings](https://github.com/dnanexus/dxCompiler/blob/444036acb16f2555d3cfe5f4c892b9996a8079dc/doc/ExpertOptions.md#additional-dnanexus-specific-runtime-settings), and [outputing DNAnexus files](https://github.com/dnanexus/dxCompiler/blob/444036acb16f2555d3cfe5f4c892b9996a8079dc/doc/ExpertOptions.md#dnanexus-files-as-outputs).
 * WDL: Fix to configuring network access to tasks (applets). Now you can disable network access to your tasks with the `runSpec.access` setting in the `extras.json` file:
-* WDL: Fix to native app(let)s instance override. Now native app(let)s wrapped in scatters and conditionals get their default instances overridden with static dnanexus names. Dynamic instance override is not yet supported. Override with compute requirements (CPU/RAM/etc.) is not supported.
 
 ```
 {
