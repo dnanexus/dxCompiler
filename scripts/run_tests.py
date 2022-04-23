@@ -95,6 +95,7 @@ wdl_v1_list = [
     "cast",
     "dict",
     "instance_types",
+    "apps_1128_frag_native_instance_type_override",
     "linear_no_expressions",
     "linear",
     "optionals",
