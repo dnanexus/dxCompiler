@@ -528,4 +528,4 @@ The overall structure is
 
 #### Default instance types
 - **Direct call**: Native executable uses default instance that's been defined in the executable defaults (`dxapp.json`).
-- **Frag call**: Frag wrapper uses the smallest instance type of the `InstanceTypeDB` object. Wrapped native executable follows the rules above. 
+- **Frag call**: Frag wrapper uses the smallest instance type of the [InstanceTypeDB](https://github.com/dnanexus/dxScala/blob/dd2c823caf206008d2de55b15da1427b21fdd31d/api/src/main/scala/dx/api/DxInstanceType.scala#L260) object. Wrapped native executable follows the rules above. 
