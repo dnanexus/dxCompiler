@@ -15,7 +15,7 @@ The compiler has three phases:
 2. Translation: The language-specific AST is translated into dxCompiler "Intermediate Representation" (IR), which mirrors the structure of DNAnexus applets/workflows, including DNAnexus-supported data types, metadata, and runtime specifications. The output of this step is an IR "Bundle".
 3. Compilation: Generates native applets and workflows from the IR. The output of this step is the applet ID (for a source file that contains a single tool/task) or workflow ID.
 
-The compiler can be invoked programatically, but it is most common to use it via the [command line interface](../compiler/src/main/scala/dxCompiler/Main.scala).
+The compiler can be invoked programmatically, but it is most common to use it via the [command line interface](../compiler/src/main/scala/dxCompiler/Main.scala).
 
 ### Translation
 
@@ -91,7 +91,7 @@ Once a `Bundle` has been created, it can be used in conjunction with the `Transl
 
 An IR bundle is compiled into equivalent DNAnexus workflows and applets.
 
-* Each tool/task is compiled into an native applet, which is esentially a call to the `applet/new` API method. The applet code is generated from one of the [templates](../compiler/src/main/resources/templates), which are written in [SSP](https://scalate.github.io/scalate/documentation/ssp-reference.html).
+* Each tool/task is compiled into a native applet, which is essentially a call to the `applet/new` API method. The applet code is generated from one of the [templates](../compiler/src/main/resources/templates), which are written in [SSP](https://scalate.github.io/scalate/documentation/ssp-reference.html).
 * Each workflow is compiled into a native workflow, which is essentially a call to the `workflow/new` API method. Each workflow stage references either a tool/task applet, a "frag" applet, or another workflow.
 
 Compilation for each applet/workflow is performed in two steps. First, the IR `Application` is translated to a JSON document, which is the payload of the API call. The JSON document is hashed to generate a digest. The compiler then searches the project to see if there is an existing applet with that digest. If there is, then that applet is reused. Otherwise, the digest is added to the `details` of the document and then the API call is performed to create the applet.
@@ -509,3 +509,23 @@ call mul {input: a=1, b=4}
 The overall structure is
 
 ![](./images/two_levels.png)
+
+## Support for native DNAnexus executables
+
+### Instance type overrides
+
+| #   | Call type | Instance type<br/>request | Method              | Support | Implementation note                                                                                                                                                                                                      |
+|-----|-----------|---------------------------|---------------------|:-------:|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 1   | Direct    | Static                    | Instance name       | &check; | Supported as of `v2.10.1`                                                                                                                                                                                                |
+| 2   | Direct    | Static                    | System requirements |    _    | Support with system requirements (CPU/RAM/etc) is in `v2.10.2-SNAPSHOT`                                                                                                                                                  |
+| 3   | Direct    | Dynamic                   | Instance name       |    _    | Example: `mem1_ssd1_~{REMAINING_PART_OF_INSTANCE_NAME}`                                                                                                                                                                  |
+| 4   | Direct    | Dynamic                   | System requirements |    _    | Example: `memory: ~{mem}GB`, where `mem` is determined elsewhere                                                                                                                                                         |
+| 5   | Fragment  | Static                    | Instance name       | &check; | Implemented in `v2.10.2-SNAPSHOT`                                                                                                                                                                                        |
+| 6   | Fragment  | Static                    | System requirements |    _    | Implementation follows #2 above                                                                                                                                                                                          |
+| 7   | Fragment  | Dynamic                   | Instance name       |    _    | The task wrappers for native executables cannot have inputs with expressions and cannot have private variables, so the runtime expressions can only operate on the actual inputs will be passed to the native executable |
+| 8   | Fragment  | Dynamic                   | System requirements |    _    | See #7                                                                                                                                                                                                                   |
+
+
+#### Default instance types
+- **Direct call**: Native executable uses default instance that's been defined in the executable defaults (`dxapp.json`).
+- **Frag call**: Frag wrapper uses the smallest instance type of the `InstanceTypeDB` object. Wrapped native executable follows the rules above. 
