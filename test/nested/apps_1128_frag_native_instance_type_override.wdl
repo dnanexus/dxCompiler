@@ -1,4 +1,4 @@
-version 1.1
+version 1.0
 
 workflow apps_1128_frag_native_instance_type_override {
 
