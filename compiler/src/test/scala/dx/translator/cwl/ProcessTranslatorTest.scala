@@ -120,36 +120,32 @@ class ProcessTranslatorTest extends AnyFlatSpec with Matchers {
     )
   }
 
-  // it should "render same wdl code for every unchanged block/app/frag and different if there are changes" in {
-  //   val (docV1, typeAliasesV1, versionSupportV1) =
-  //     VersionSupport.fromSourceFile(pathFromBasename("bugs", "apps_994_v1.wdl"))
-  //   val (docV2, typeAliasesV2, versionSupportV2) =
-  //     VersionSupport.fromSourceFile(pathFromBasename("bugs", "apps_994_v2.wdl"))
-  //   val deconstructedCallablesV1 = getDeconstructedCallables(
-  //       doc = docV1,
-  //       typeAliases = typeAliasesV1,
-  //       versionSupport = versionSupportV1
-  //   )
-  //   val deconstructedCallablesV2 = getDeconstructedCallables(
-  //       doc = docV2,
-  //       typeAliases = typeAliasesV2,
-  //       versionSupport = versionSupportV2
-  //   )
+  "ProcessTranslator" should "render different cwl code for subworkflow but not unchanged tasks" in {
 
-  //   deconstructedCallablesV1("reuse_print") should equal(deconstructedCallablesV2("reuse_print"))
-  //   deconstructedCallablesV1("reuse_block_2") should equal(
-  //       deconstructedCallablesV2("reuse_block_2")
-  //   )
-  //   deconstructedCallablesV1("reuse_frag_stage-12") should equal(
-  //       deconstructedCallablesV2(
-  //           "reuse_frag_stage-12"
-  //       )
-  //   )
-  //   deconstructedCallablesV1("reuse_frag_stage-0") should not equal (deconstructedCallablesV2(
-  //       "reuse_frag_stage-0"
-  //   ))
-  //   deconstructedCallablesV1("reuse") should not equal (deconstructedCallablesV2(
-  //       "reuse"
-  //   ))
-  // }
+    val standAloneProcessDoc1 = getProcessDocContent("count-lines8-wf")
+    val standAloneProcessDoc2 = getProcessDocContent("count-lines8-wf-dup")
+    standAloneProcessDoc1("count-lines1-wf.cwl@step_step1@wc-tool.cwl") should equal(
+        standAloneProcessDoc2("count-lines1-wf.cwl@step_step1@wc-tool.cwl")
+    )
+    standAloneProcessDoc1("count-lines1-wf.cwl@step_step2@parseInt-tool.cwl") should equal(
+        standAloneProcessDoc2("count-lines1-wf.cwl@step_step2@parseInt-tool.cwl")
+    )
+    standAloneProcessDoc1("count-lines8-wf.cwl@step_step1@count-lines1-wf.cwl") should equal(
+        standAloneProcessDoc2("count-lines8-wf.cwl@step_step1@count-lines1-wf.cwl")
+    )
+
+    // step name changed
+    standAloneProcessDoc1("count-lines8-wf.cwl_frag_stage-0") should not equal (
+        standAloneProcessDoc2("count-lines8-wf.cwl_frag_stage-0")
+    )
+    standAloneProcessDoc1("count-lines8-wf.cwl_common") should not equal standAloneProcessDoc2(
+        "count-lines8-wf.cwl_common"
+    )
+    standAloneProcessDoc1("count-lines8-wf.cwl_outputs") should not equal standAloneProcessDoc2(
+        "count-lines8-wf.cwl_outputs"
+    )
+    standAloneProcessDoc1("count-lines8-wf.cwl") should not equal standAloneProcessDoc2(
+        "count-lines8-wf.cwl"
+    )
+  }
 }
