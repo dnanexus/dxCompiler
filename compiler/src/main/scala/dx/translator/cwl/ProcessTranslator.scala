@@ -80,31 +80,29 @@ import spray.json._
 import java.nio.file.{Path, Paths}
 import scala.util.Try
 
-case class CwlSourceCode(source: Path, name: String = "") extends SourceCode {
+case class CwlSourceCode(source: Path, target: Vector[String] = Vector.empty) extends SourceCode {
   override val language: String = "cwl"
   override def toString: String = FileUtils.readFileContent(source)
   override def getDocContents: String = {
-    def inner(jsv: JsValue, name: String): Option[JsValue] = {
+    def inner(jsv: JsValue, target: Vector[String]): Option[JsValue] = {
       jsv match {
-        case JsObject(fields) if fields.get("id").contains(JsString(s"${name}")) => Some(jsv)
-        case JsObject(fields) if fields.contains("run") =>
-          inner(fields.getOrElse("run", JsNull), name)
-        case JsObject(fields) if fields.contains("steps") =>
-          inner(fields.getOrElse("steps", JsArray.empty), name)
+        case JsObject(fields) if fields.get("id").contains(JsString(s"${target.head}")) =>
+          val nextTarget = target.drop(1)
+          if (nextTarget.isEmpty) {
+            Some(jsv)
+          } else {
+            Set("steps", "run").collectFirst(fields).flatMap(inner(_, nextTarget))
+          }
         case JsArray(items) =>
-          val v = items.map(inner(_, name)).flatten
-          v match {
+          items.flatMap(inner(_, target)) match {
             case Vector(i) => Some(i)
             case _         => None
           }
         case _ => None
       }
     }
-    if (name.nonEmpty) {
-      inner(toString.parseJson, name).getOrElse(JsString.empty).sortedPrint
-    } else {
-      toString.parseJson.sortedPrint
-    }
+    val sourceCode = toString.parseJson
+    inner(sourceCode, target).getOrElse(sourceCode).sortedPrint
   }
 }
 
