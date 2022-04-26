@@ -1,5 +1,7 @@
 package dx.translator.wdl
 
+import dx.api.InstanceTypeRequest
+import dx.core.ir.RunSpec.StaticInstanceType
 import dx.core.ir.{Application, Callable, InstanceTypeSelection, Workflow}
 import dx.core.languages.wdl.{VersionSupport, WdlBundle}
 import dx.translator.DefaultReorgSettings
@@ -16,9 +18,9 @@ class CallableTranslatorTest extends AnyFlatSpec with Matchers {
     Paths.get(getClass.getResource(s"/${dir}/${basename}").getPath)
   }
 
-  private def getDeconstructedCallables(doc: TAT.Document,
-                                        typeAliases: Bindings[String, WdlTypes.T_Struct],
-                                        versionSupport: VersionSupport): Map[String, String] = {
+  private def getSortedCallables(doc: TAT.Document,
+                                 typeAliases: Bindings[String, WdlTypes.T_Struct],
+                                 versionSupport: VersionSupport): Vector[Callable] = {
     val wdlBundle: WdlBundle = WdlBundle.create(doc = doc)
     val callableTranslator: CallableTranslator = CallableTranslator(
         wdlBundle = wdlBundle,
@@ -42,6 +44,10 @@ class CallableTranslatorTest extends AnyFlatSpec with Matchers {
               sortedCallables ++ translatedCallables
           )
       }
+    sortedCallables
+  }
+
+  private def deconstructCallables(sortedCallables: Vector[Callable]): Map[String, String] = {
     sortedCallables.map {
       case Application(name, _, _, _, _, _, document, _, _, _, _, _) =>
         name -> document.getDocContents
@@ -53,10 +59,12 @@ class CallableTranslatorTest extends AnyFlatSpec with Matchers {
   "CallableTranslator" should "render different wdl code for every block/app/frag" in {
     val (doc, typeAliases, versionSupport) =
       VersionSupport.fromSourceFile(pathFromBasename("bugs", "apps_994_v1.wdl"))
-    val deconstructedCallables = getDeconstructedCallables(
-        doc = doc,
-        typeAliases = typeAliases,
-        versionSupport = versionSupport
+    val deconstructedCallables = deconstructCallables(
+        getSortedCallables(
+            doc = doc,
+            typeAliases = typeAliases,
+            versionSupport = versionSupport
+        )
     )
     deconstructedCallables("reuse") should equal(deconstructedCallables("reuse"))
     deconstructedCallables("reuse_print") should not equal deconstructedCallables("reuse_multiply")
@@ -74,15 +82,19 @@ class CallableTranslatorTest extends AnyFlatSpec with Matchers {
       VersionSupport.fromSourceFile(pathFromBasename("bugs", "apps_994_v1.wdl"))
     val (docV2, typeAliasesV2, versionSupportV2) =
       VersionSupport.fromSourceFile(pathFromBasename("bugs", "apps_994_v2.wdl"))
-    val deconstructedCallablesV1 = getDeconstructedCallables(
-        doc = docV1,
-        typeAliases = typeAliasesV1,
-        versionSupport = versionSupportV1
+    val deconstructedCallablesV1 = deconstructCallables(
+        getSortedCallables(
+            doc = docV1,
+            typeAliases = typeAliasesV1,
+            versionSupport = versionSupportV1
+        )
     )
-    val deconstructedCallablesV2 = getDeconstructedCallables(
-        doc = docV2,
-        typeAliases = typeAliasesV2,
-        versionSupport = versionSupportV2
+    val deconstructedCallablesV2 = deconstructCallables(
+        getSortedCallables(
+            doc = docV2,
+            typeAliases = typeAliasesV2,
+            versionSupport = versionSupportV2
+        )
     )
 
     deconstructedCallablesV1("reuse_print") should equal(deconstructedCallablesV2("reuse_print"))
@@ -101,4 +113,32 @@ class CallableTranslatorTest extends AnyFlatSpec with Matchers {
         "reuse"
     ))
   }
+
+  it should "render frag wrapper to store the requested instance type of the wrapped child process" in {
+    val (doc, typeAliases, versionSupport) =
+      VersionSupport.fromSourceFile(pathFromBasename("bugs", "apps_1128_wrap_native_exec.wdl"))
+    val sortedCallables = getSortedCallables(
+        doc = doc,
+        typeAliases = typeAliases,
+        versionSupport = versionSupport
+    )
+    val wrapperFrag = sortedCallables.filter(_.name.contains("frag_stage")).head
+    wrapperFrag match {
+      case app: Application =>
+        app.instanceType shouldBe StaticInstanceType(
+            InstanceTypeRequest(Some("mem1_ssd1_v2_x8"),
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
+                                None)
+        )
+      case _ => throw new Exception("Unexpected Value")
+    }
+  }
+
 }
