@@ -364,7 +364,7 @@ case class Compiler(extras: Option[Extras],
                                    JsObject(appletApiRequest).prettyPrint)
       }
       // fetch existing applet or build a new one
-      val dxApplet = getExistingExecutable(applet.name, digest) match {
+      val dxApplet = getExistingExecutable(applet.dxName, digest) match {
         case Some(dxApplet: DxApplet) =>
           // applet exists and it has not changed
           dxApplet
@@ -414,7 +414,7 @@ case class Compiler(extras: Option[Extras],
           "folder" -> JsString(folder),
           "parents" -> JsBoolean(true)
       )
-      val dxWf = getExistingExecutable(workflow.name, digest) match {
+      val dxWf = getExistingExecutable(workflow.dxName, digest) match {
         case Some(wf: DxWorkflow) =>
           // workflow exists and has not changed
           wf
