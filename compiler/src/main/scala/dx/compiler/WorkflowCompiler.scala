@@ -563,6 +563,9 @@ case class WorkflowCompiler(separateOutputs: Boolean,
 
         val systemRequirements = irExecutable match {
           // specify the instance type for native app stubs that specify it in the runtime section
+          // TODO GVAIHIR: need to rollback to the native app default instance. Where to search: runtime translation
+          //  1) maybe add attr declaring if runtime is native.
+          //  2) Or override runtime defaults with instance DB defaults and compare instance names afterwards
           case app: Application =>
             val instanceType: String = app.instanceType match {
               case static: StaticInstanceType => instanceTypeDb.apply(static.req).name
