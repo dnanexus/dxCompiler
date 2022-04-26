@@ -79,36 +79,43 @@ class ProcessTranslatorTest extends AnyFlatSpec with Matchers {
   }
 
   "ProcessTranslator" should "render same cwl code for every unchanged process and different if there are changes" in {
-    val deconstructedCallables1 = getDeconstructedProcesses("count-lines1-wf")
-    val deconstructedCallables2 = getDeconstructedProcesses("count-lines1-wf-dup")
-    deconstructedCallables1("parseInt-tool.cwl") should equal(
-        deconstructedCallables2("parseInt-tool.cwl")
+    val standAloneProcessDoc1 = getProcessDocContent("count-lines1-wf")
+    val standAloneProcessDoc2 = getProcessDocContent("count-lines1-wf-dup")
+    standAloneProcessDoc1("parseInt-tool.cwl") should equal(
+        standAloneProcessDoc2("parseInt-tool.cwl")
     )
 
-    deconstructedCallables1("wc-tool.cwl") should not equal deconstructedCallables2("wc-tool.cwl")
-    deconstructedCallables1("count-lines1-wf") should not equal deconstructedCallables2(
+    // task wc-tool.cwl changed
+    standAloneProcessDoc1("wc-tool.cwl") should not equal standAloneProcessDoc2("wc-tool.cwl")
+    standAloneProcessDoc1("count-lines1-wf_common") should not equal standAloneProcessDoc2(
+        "count-lines1-wf_common"
+    )
+    standAloneProcessDoc1("count-lines1-wf_outputs") should not equal standAloneProcessDoc2(
+        "count-lines1-wf_outputs"
+    )
+    standAloneProcessDoc1("count-lines1-wf") should not equal standAloneProcessDoc2(
         "count-lines1-wf"
     )
 
   }
 
   "ProcessTranslator" should "render different cwl code for changed common/outputs" in {
-    // TODO: not cover the case when multiple process/step has the same simpilied ids
-    // need to fix getDocContent function
-    val deconstructedCallables1 = getDeconstructedProcesses("scatter-valuefrom-wf2")
-    val deconstructedCallables2 = getDeconstructedProcesses("scatter-valuefrom-wf2-dup")
-    deconstructedCallables1("step1command") should equal(deconstructedCallables2("step1command"))
-    deconstructedCallables1("scatter-valuefrom-wf2_frag_stage-0") should equal(
-        deconstructedCallables2("scatter-valuefrom-wf2_frag_stage-0")
-    )
 
-    deconstructedCallables1("scatter-valuefrom-wf2_common") should not equal deconstructedCallables2(
+    val standAloneProcessDoc1 = getProcessDocContent("scatter-valuefrom-wf2")
+    val standAloneProcessDoc2 = getProcessDocContent("scatter-valuefrom-wf2-dup")
+    standAloneProcessDoc1("step1command") should equal(standAloneProcessDoc2("step1command"))
+
+    // top-level wf input/output changed
+    standAloneProcessDoc1("scatter-valuefrom-wf2_frag_stage-0") should not equal (
+        standAloneProcessDoc2("scatter-valuefrom-wf2_frag_stage-0")
+    )
+    standAloneProcessDoc1("scatter-valuefrom-wf2_common") should not equal standAloneProcessDoc2(
         "scatter-valuefrom-wf2_common"
     )
-    deconstructedCallables1("scatter-valuefrom-wf2_outputs") should not equal deconstructedCallables2(
+    standAloneProcessDoc1("scatter-valuefrom-wf2_outputs") should not equal standAloneProcessDoc2(
         "scatter-valuefrom-wf2_outputs"
     )
-    deconstructedCallables1("scatter-valuefrom-wf2") should not equal deconstructedCallables2(
+    standAloneProcessDoc1("scatter-valuefrom-wf2") should not equal standAloneProcessDoc2(
         "scatter-valuefrom-wf2"
     )
   }
