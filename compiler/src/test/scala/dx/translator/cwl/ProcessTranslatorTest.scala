@@ -19,7 +19,7 @@ class ProcessTranslatorTest extends AnyFlatSpec with Matchers {
     Paths.get(getClass.getResource(s"/${dir}/${basename}").getPath)
   }
 
-  private def getDeconstructedProcesses(processName: String): Map[String, String] = {
+  private def getProcessDocContent(processName: String): Map[String, String] = {
     val cwlFile: Path = pathFromBasename("cwl", s"${processName}.cwl.json")
     // val inputs = getInputs(cwlName)
     // Create a clean temp directory for the task to use
