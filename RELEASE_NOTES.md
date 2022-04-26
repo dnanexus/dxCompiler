@@ -2,6 +2,11 @@
 
 ## in develop
 
+* WDL: Fix to native app(let)s instance override. Now native app(let)s wrapped in scatters and conditionals get their default instances overridden with static dnanexus names. Dynamic instance override is not yet supported. Override with compute requirements (CPU/RAM/etc.) is not supported.
+
+
+## 2.10.1 2022-04-18
+
 * WDL: Fragments and blocks reuse applets as well, i.e. they are not rebuilt if the code corresponding to them hasn't  been updated in the WDL source file. Previously only tasks were reused. **Breaking**: can break the logic of any App reuse for CWL (even tasks maybe are not reused), because `ApplicationCompiler` and `WorkflowCompiler` now look at the `DocContents` for checksum, and `SourceCode` attribute is now ignored.
 * CWL: `NetworkAccess`, `WorkReuse` and `ToolTimeLimit` hints are now supported
 * WDL: Update custom reorg applet (used for [custom handling of your workflow outputs](https://github.com/dnanexus/dxCompiler/blob/444036acb16f2555d3cfe5f4c892b9996a8079dc/doc/ExpertOptions.md#adding-config-file-based-reorg-applet-at-compilation-time)) example in documentation.
