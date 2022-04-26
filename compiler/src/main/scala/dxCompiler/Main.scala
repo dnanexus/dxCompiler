@@ -833,21 +833,21 @@ object Main {
         |    Compile a WDL or CWL file to a DNAnexus workflow or applet.
         |    options
         |      -archive               Archive older versions of applets.
-        |      -compileMode [IR, NativeWithoutRuntimeAsset, All]
-        |                             Compilation mode. If not specified, the compilation mode 
-        |                             is "All" and the compiler will translate and compile the workflow 
-        |                             file into applications that are bundled with runtime asset.
-        |                             Use "IR" if you only want to translate the file and generate
-        |                             the DNAnexus JSON input file from a standard-formatted one
-        |                             without compilation, or use "NativeWithoutRuntimeAsset" if you 
-        |                             don't want to package the runtime asset with generated applications.
+        |      -compileMode [IR, All]
+        |                             Compilation mode - If not specified, the compilation
+        |                             mode is "All" and the compiler will translate WDL or CWL 
+        |                             inputs into DNAnexus workflows and tasks. 
+        |                             Use "IR" if you only want to parse CWL or WDL files and
+        |                             convert standard-formatted input files to DNAnexus JSON
+        |                             input format without performing full compilation.
         |      -defaults <string>     JSON file with standard-formatted default values.
         |      -defaultInstanceType <string>
         |                             The default instance type to use for "helper" applets
         |                             that perform runtime evaluation of instance type
         |                             requirements. This instance type is also used when 
         |                             the '-instanceTypeSelection dynamic' option is set.
-        |                             This value is overriden by any defaults set in extras.
+        |                             This value is overriden by any defaults set in set in the 
+        |                             JSON file specified by '-extras'.
         |      -destination <string>  Full platform path (project:/folder).
         |      -execTree [json,pretty]    
         |                             Print a JSON representation of the workflow.

@@ -1,5 +1,6 @@
 package dx.executor
 
+import spray.json.DefaultJsonProtocol._
 import dx.AppInternalException
 import dx.api.{
   DxAnalysis,
@@ -78,6 +79,12 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
   private val dxApi = jobMeta.dxApi
   private val logger = jobMeta.logger
   private val seqNumIter = Iterator.from(0)
+
+  lazy val thisExecDefaultInstance: Option[String] =
+    jobMeta.getExecutableDetail("staticInstanceType") match {
+      case Some(instance: JsValue) => Option(instance.convertTo[String])
+      case _                       => None
+    }
 
   protected def nextScatterChunkIndex: Int = seqNumIter.next()
 

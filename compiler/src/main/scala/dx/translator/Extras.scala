@@ -460,16 +460,29 @@ case class Extras(defaultRuntimeAttributes: Option[Map[String, Value]],
 object Extras {
   private val RuntimeAttrs =
     Set(
+        // DNAnexus-specific runtime attributes
         "dx_instance_type",
+        "dx_timeout",
+        "dx_restart",
+        "dx_ignore_reuse",
+        // WDL native runtime attributes
         "memory",
         "disks",
         "cpu",
         "docker",
         "container",
-        // TODO: I think these are no longer allowed - they have been moved to top-level
-        "docker_registry",
-        "container_registry",
-        "custom_reorg"
+        "gpu",
+        "maxRetries",
+        "returnCodes",
+        // CWL runtime attributes used in ResourceRequirement
+        "coresMin",
+        "coresMax",
+        "ramMin",
+        "ramMax",
+        "tmpdirMin",
+        "tmpdirMax",
+        "outdirMin",
+        "outdirMax"
     )
   private val camelizeRegexp = "_([a-z\\d])".r
 
