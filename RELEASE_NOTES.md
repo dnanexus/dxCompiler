@@ -2,7 +2,8 @@
 
 ## in develop
 
-..
+* WDL: Fix to native app(let)s instance override. Now native app(let)s wrapped in scatters and conditionals get their default instances overridden with static dnanexus names. Dynamic instance override is not yet supported. Override with compute requirements (CPU/RAM/etc.) is not supported.
+
 
 ## 2.10.1 2022-04-18
 
