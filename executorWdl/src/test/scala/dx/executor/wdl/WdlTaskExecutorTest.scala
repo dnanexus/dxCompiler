@@ -255,13 +255,13 @@ class WdlTaskExecutorTest extends AnyFlatSpec with Matchers {
     val standAloneTask = codegen.createStandAloneTask(task)
     val standAloneTaskSource = versionSupport.generateDocument(standAloneTask)
 
-    // update paths of input files - this requires a round-trip de/ser
+    // update paths of input files - this requires a round-trip
     // JSON -> IR -> WDL -> update paths -> IR -> JSON
-    // which requires some auxilliarly objects
+    // which requires some auxiliary objects
     val outputSerializer: ParameterLinkSerializer = ParameterLinkSerializer(fileResolver, dxApi)
     val taskInputs: Map[DxName, TAT.InputParameter] =
       task.inputs.map(inp => WdlDxName.fromDecodedName(inp.name) -> inp).toMap
-    val updatedInputs = inputDeserializer
+    val updatedInputs: Map[DxName, JsValue] = inputDeserializer
       .deserializeInputMap(inputs)
       .collect {
         case (dxName, irValue) if !dxName.suffix.exists(_.endsWith(Constants.FlatFilesSuffix)) =>
@@ -287,15 +287,17 @@ class WdlTaskExecutorTest extends AnyFlatSpec with Matchers {
 
     // create JobMeta
     val jobMeta =
-      TaskTestJobMeta(DxWorkerPaths(PosixPath(jobRootDir.toString)),
-                      dxApi,
-                      logger,
-                      finalInputs,
-                      instanceTypeDB,
-                      standAloneTaskSource,
-                      pathToDxFile,
-                      useManifests,
-                      downloadFiles)
+      TaskTestJobMeta(
+          workerPaths = DxWorkerPaths(PosixPath(jobRootDir.toString)),
+          dxApi = dxApi,
+          logger = logger,
+          rawJsInputs = finalInputs,
+          rawInstanceTypeDb = instanceTypeDB,
+          rawSourceCode = standAloneTaskSource,
+          pathToDxFile = pathToDxFile,
+          useManifestInputs = useManifests,
+          downloadFiles = downloadFiles
+      )
 
     // create TaskExecutor
     (WdlTaskExecutor.create(jobMeta, streamFiles = streamFiles, checkInstanceType = false), jobMeta)
