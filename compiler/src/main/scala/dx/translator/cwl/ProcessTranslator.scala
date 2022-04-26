@@ -332,7 +332,10 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           case _                 => Vector.empty
         }
       }
-      val standAloneTask = CwlSourceCode(docSource, name)
+      val fullToolName = cwlBundle.processParents.getOrElse(tool.name, Vector.empty) ++ Vector(
+          tool.name
+      )
+      val standAloneTask = CwlSourceCode(docSource, fullToolName)
       Application(
           name,
           inputs,
@@ -399,7 +402,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       }
 
     override protected def standAloneWorkflow: SourceCode = {
-      CwlSourceCode(docSource, wf.name)
+      CwlSourceCode(docSource, Vector(wf.name))
     }
 
     private def createWorkflowInput(input: WorkflowInputParameter): Parameter = {
@@ -597,7 +600,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         param.name -> param.dxType
       }.toMap
 
-      val standAloneFrag = CwlSourceCode(docSource, calleeName.get)
+      val fullStepName = cwlBundle.processParents.getOrElse(calleeName.get, Vector.empty)
+      val standAloneFrag = CwlSourceCode(docSource, fullStepName)
       val applet = Application(
           s"${wfName}_frag_${getStageId()}",
           inputParams,
@@ -882,13 +886,12 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         (wfOutputs, stages, auxCallables.flatten)
       }
 
-      (Workflow(wfName,
-                wfInputLinks,
-                wfOutputs,
-                finalStages,
-                standAloneWorkflow,
-                locked = true,
-                level),
+      val fullWfName = cwlBundle.processParents.getOrElse(wfName, Vector.empty) ++ Vector(
+          wfName
+      )
+      val standAloneWf = CwlSourceCode(docSource, fullWfName)
+
+      (Workflow(wfName, wfInputLinks, wfOutputs, finalStages, standAloneWf, locked = true, level),
        finalCallables,
        wfOutputs)
     }
@@ -931,12 +934,16 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       val wfOutputs =
         outputStage.outputs.map(param => (param, StageInputStageLink(outputStage.dxStage, param)))
 
+      val fullWfName = cwlBundle.processParents.getOrElse(wf.name, Vector.empty) ++ Vector(
+          wf.name
+      )
+      val standAloneWf = CwlSourceCode(docSource, fullWfName)
       val irwf = Workflow(
           wf.name,
           wfInputs,
           wfOutputs,
           commonStg +: stages :+ outputStage,
-          standAloneWorkflow,
+          standAloneWf,
           locked = false,
           Level.Top
       )
