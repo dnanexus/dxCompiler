@@ -34,8 +34,8 @@ task simple_task {
 The workflow will generate an array of files - `out.vcf` and `out.bam`.
 Suppose we want to reorganize the results into to 2 different folders on the project.
 
-`out.vcf` will go to /folder_for_bam
-`out.bam` will go to /folder_for_vcf
+`out.vcf` will go to /folder_for_vcf
+`out.bam` will go to /folder_for_bam
 
 A simple reorg applet is shown below.
 
