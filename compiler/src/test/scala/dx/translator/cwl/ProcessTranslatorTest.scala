@@ -99,7 +99,7 @@ class ProcessTranslatorTest extends AnyFlatSpec with Matchers {
 
   }
 
-  "ProcessTranslator" should "render different cwl code for changed common/outputs" in {
+  it should "render different cwl code for changed common/outputs" in {
 
     val standAloneProcessDoc1 = getProcessDocContent("scatter-valuefrom-wf2")
     val standAloneProcessDoc2 = getProcessDocContent("scatter-valuefrom-wf2-dup")
@@ -120,7 +120,7 @@ class ProcessTranslatorTest extends AnyFlatSpec with Matchers {
     )
   }
 
-  "ProcessTranslator" should "render different cwl code for subworkflow but not unchanged tasks" in {
+  it should "render different cwl code for subworkflow but not unchanged tasks" in {
 
     val standAloneProcessDoc1 = getProcessDocContent("count-lines8-wf")
     val standAloneProcessDoc2 = getProcessDocContent("count-lines8-wf-dup")
