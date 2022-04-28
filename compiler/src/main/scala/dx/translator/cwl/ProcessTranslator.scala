@@ -80,6 +80,12 @@ import spray.json._
 import java.nio.file.{Path, Paths}
 import scala.util.Try
 
+/**
+  * Compile IR to native applets and workflows.
+  * @param source path to the packed CWL json file
+  * @param target vector of ids from the top-level to the target process whose
+  source code will be extracted as a standalone json
+  */
 case class CwlSourceCode(source: Path, target: Vector[String] = Vector.empty) extends SourceCode {
   override val language: String = "cwl"
   override def toString: String = FileUtils.readFileContent(source)
