@@ -10,7 +10,7 @@ import spray.json._
 
 import scala.collection.immutable.SeqMap
 import dx.translator.DockerRegistry
-import dx.core.ir.RunSpec.{InstanceType, StaticInstanceType}
+import dx.core.ir.RunSpec.{DefaultInstanceType, InstanceType, StaticInstanceType}
 
 case class WorkflowCompiler(separateOutputs: Boolean,
                             extras: Option[Extras],
@@ -563,21 +563,25 @@ case class WorkflowCompiler(separateOutputs: Boolean,
 
         val systemRequirements = irExecutable match {
           // specify the instance type for native app stubs that specify it in the runtime section
-          // TODO GVAIHIR: need to rollback to the native app default instance. Where to search: runtime translation
-          //  1) maybe add attr declaring if runtime is native.
-          //  2) Or override runtime defaults with instance DB defaults and compare instance names afterwards
           case app: Application =>
             val instanceType: String = app.instanceType match {
               case static: StaticInstanceType => instanceTypeDb.apply(static.req).name
-              case _                          => instanceTypeDb.defaultInstanceType.name
+              case DefaultInstanceType if (app.kind.getClass == classOf[ExecutableKindNative]) =>
+                "Use Native Default"
+              case _ => instanceTypeDb.defaultInstanceType.name
             }
-            Some(
-                "systemRequirements" -> JsObject(
-                    "*" -> JsObject(
-                        "instanceType" -> JsString(instanceType)
-                    )
-                )
-            )
+            if (instanceType == "Use Native Default") {
+              None
+            } else {
+              Some(
+                  "systemRequirements" -> JsObject(
+                      "*" -> JsObject(
+                          "instanceType" -> JsString(instanceType)
+                      )
+                  )
+              )
+            }
+
           case _ => None
         }
         JsObject(

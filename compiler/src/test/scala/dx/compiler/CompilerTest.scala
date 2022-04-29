@@ -110,7 +110,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
   }
 
   it should "compile a workflow with a native app and override instance based using RAM and CPU spec" in {
-    val path = pathFromBasename("bugs", "apps_1177_frag_native_indirect_override_unit.wdl")
+    val path = pathFromBasename("bugs", "apps_1177_native_indirect_override_unit.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
     val wfId = retval match {
