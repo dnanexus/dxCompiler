@@ -427,7 +427,6 @@ case class WdlWorkflowExecutor(docSource: FileNode,
               |""".stripMargin,
           minLevel = TraceLevel.VVerbose
       )
-      val executableLink = getExecutableLink(call.callee.name)
       val callInputsIR = WdlUtils.toIR(callInputs)
       val callee = tasks.get(call.callee.name)
       val (instanceType, isNative) = callee
@@ -440,6 +439,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
             }
           }
           val hintsIsNative = hintsDx.exists(_.contains("app"))
+
           val isNative = runtimeIsNative || hintsIsNative || task.meta.exists { meta =>
             meta.kvs.get("type") match {
               case Some(TAT.MetaValueString("native", _)) => true
@@ -488,8 +488,12 @@ case class WdlWorkflowExecutor(docSource: FileNode,
                 None
             }
           } else {
-            // no need to evaluate the runtime requirements; just use app(let)'s default instance type
-            None
+            // Try to get instance type from the job details (for frag apps may be populated by ApplicationCompiler)
+            val instanceType = thisExecDefaultInstance match {
+              case Some(default: String) => jobMeta.instanceTypeDb.selectByName(default)
+              case None                  => None
+            }
+            instanceType
           }
           (instanceType, isNative)
         }
@@ -497,6 +501,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       // TODO: in the case where instanceType is None, we need to signal to the target that it
       //  needs to try to calculate it's own instance type (unless it's a native app(let)), which
       //  probably means adding an additional input parameter.
+      val executableLink = getExecutableLink(call.callee.name)
       val (dxExecution, execName) = launchJob(
           executableLink,
           call.actualName,

@@ -681,14 +681,23 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       val wfDocCopy = standAloneWorkflowDocument
         .copy(source = StringFileNode(block.prettyFormat))(SourceLocation.empty)
       val standAloneFrag = WdlDocumentSource(wfDocCopy, versionSupport)
+      // A way to preserve the requested instance type for instance override for the wrapped executable; mostly relevant
+      // for native executables. This instance type will not be used for the wrapper process, but only for the child
+      // process. See test "compile a workflow with a frag app wrapper using a default instance" in CompilerTest.
+      // See APPS-1128 ticket.
+      val instanceType = availableDependencies
+        .collectFirst({
+          case (iname, i: Application) if iname == innerCall.getOrElse("") => i.instanceType
+        })
+        .getOrElse(DefaultInstanceType)
       val applet = Application(
-          s"${wfName}_frag_${getStageId()}",
-          inputParams,
-          outputParams,
-          DefaultInstanceType,
-          NoImage,
-          ExecutableKindWfFragment(innerCall, blockPath, fqnDictTypes, scatterChunkSize),
-          standAloneFrag
+          name = s"${wfName}_frag_${getStageId()}",
+          inputs = inputParams,
+          outputs = outputParams,
+          instanceType = instanceType,
+          container = NoImage,
+          kind = ExecutableKindWfFragment(innerCall, blockPath, fqnDictTypes, scatterChunkSize),
+          document = standAloneFrag
       )
 
       (Stage(stageName, getStage(), applet.name, stageInputs, outputParams), auxCallables :+ applet)

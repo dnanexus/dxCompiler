@@ -1,0 +1,8 @@
+{
+  "apps_1128_frag_native_instance_type_override.outs_apps_1128_default_instance" : "mem1_ssd1_x2",
+  "apps_1128_frag_native_instance_type_override.outs_apps_1128_override_instance_name" : "mem1_ssd1_v2_x2",
+  "apps_1128_frag_native_instance_type_override.outs_conditional_isntance_type" : "mem1_ssd1_v2_x2",
+  "apps_1128_frag_native_instance_type_override.outs_scatter_isntance_type" : [ "mem1_ssd1_v2_x2", "mem1_ssd1_v2_x2" ],
+  "apps_1128_frag_native_instance_type_override.outs_conditional_isntance_type_1": "mem1_ssd1_v2_x2",
+  "apps_1128_frag_native_instance_type_override.outs_conditional_isntance_type_2" : "mem1_ssd1_v2_x4"
+}

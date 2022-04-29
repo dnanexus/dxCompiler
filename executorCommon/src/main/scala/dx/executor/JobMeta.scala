@@ -61,7 +61,7 @@ object JobMeta {
   val InputFile = "job_input.json"
   val OutputFile = "job_output.json"
   val ErrorFile = "job_error.json"
-  // this file has all the information about the job that is avaiable
+  // this file has all the information about the job that is available
   // at execution time
   val JobInfoFile = "dnanexus-job.json"
   // this file has all the information about the executable
@@ -75,7 +75,7 @@ object JobMeta {
 
   /**
     * Report an error, since this is called from a bash script, we can't simply
-    * raise an exception. Instead, we write the error to a standard JSON file.
+    * raise an exception. Instead, we write the error to a standard JSON file (job_error.json).
     * @param rootDir the directory that contains the error file
     * @param e the exception
     */

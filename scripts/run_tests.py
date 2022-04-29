@@ -95,6 +95,7 @@ wdl_v1_list = [
     "cast",
     "dict",
     "instance_types",
+    "apps_1128_frag_native_instance_type_override",
     "linear_no_expressions",
     "linear",
     "optionals",
@@ -581,7 +582,7 @@ TestDesc = namedtuple(
 test_upload_wait = {"upload_wait"}
 
 # use the applet's default instance type rather than the default (mem1_ssd1_x4)
-test_instance_type = ["diskspace_exhauster"]
+test_instance_type = ["diskspace_exhauster", "apps_1128_frag_native_instance_type_override"]
 
 # Search a WDL file with a python regular expression.
 # Note this is not 100% accurate.
