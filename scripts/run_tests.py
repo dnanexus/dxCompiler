@@ -514,7 +514,7 @@ cwl_cromwell_tests_list = [
     "cwl_secondary_files",
     "cwl_secondary_files_workflow",
     "cwl_stdout_expression",
-    "scatter-wf1", 
+    "cwl_scatter-wf1", 
     "cwl_three_step",
     "cwl_three_step_caller_wf"
 ]
