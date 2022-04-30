@@ -565,12 +565,15 @@ case class WorkflowCompiler(separateOutputs: Boolean,
           // specify the instance type for native app stubs that specify it in the runtime section
           case app: Application =>
             val instanceType: String = app.instanceType match {
+              case _: StaticInstanceType
+                  if (app.kind.getClass == classOf[ExecutableKindWfFragment]) =>
+                "do not override"
               case static: StaticInstanceType => instanceTypeDb.apply(static.req).name
               case DefaultInstanceType if (app.kind.getClass == classOf[ExecutableKindNative]) =>
-                "Use Native Default"
+                "do not override"
               case _ => instanceTypeDb.defaultInstanceType.name
             }
-            if (instanceType == "Use Native Default") {
+            if (instanceType == "do not override") {
               None
             } else {
               Some(

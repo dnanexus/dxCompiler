@@ -129,9 +129,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       }
       .toMap
     stages.size shouldBe 3
-    stages("default") shouldBe JsObject(
-        "*" -> JsObject("instanceType" -> JsString("mem1_ssd1_v2_x2"))
-    )
+    stages("default") shouldBe JsObject.empty
     stages("mem_int") shouldBe JsObject(
         "*" -> JsObject("instanceType" -> JsString("mem3_ssd1_x4"))
     )
@@ -167,6 +165,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       .fields
       .get("instanceType")
     instance.getOrElse("Undefined") shouldBe JsString("mem1_ssd1_v2_x2")
+    val sysReq = stages.filter(_.name.contains("if")).head.systemRequirements
+    sysReq shouldBe (JsObject.empty)
   }
 
   it should "compile a task with dynamic instance type selection" in {
