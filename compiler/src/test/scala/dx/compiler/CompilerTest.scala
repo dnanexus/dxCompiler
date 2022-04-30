@@ -138,6 +138,31 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     )
   }
 
+  "Compiler" should "compile a workflow with a native app wrapped in frag and override instance based using RAM" in {
+    val path = pathFromBasename("bugs", "apps_1177_native_frag_indirect_override_unit.wdl")
+    val args = path.toString :: cFlags
+    val retval = Main.compile(args.toVector)
+    val wfId = retval match {
+      case SuccessfulCompileNativeNoTree(_, Vector(wfId)) => wfId
+      case other                                          => throw new Exception(s"expected single workflow not ${other}")
+    }
+    // the native app has an instance type of mem1_ssd1_v2_x2, with 2 CPUs and 4 Gb RAM. The tasks request 30 Gb
+    val stages = dxApi
+      .workflow(wfId)
+      .describe()
+      .stages
+      .get
+      .map { stage =>
+        stage.name -> stage.systemRequirements
+      }
+      .toMap
+    stages.size shouldBe 2
+    stages("if (a)") shouldBe JsObject.empty
+    stages("mem_int") shouldBe JsObject(
+        "*" -> JsObject("instanceType" -> JsString("mem3_ssd1_x4"))
+    )
+  }
+
   it should "compile a workflow with a frag app wrapper using a default instance" in {
     val path = pathFromBasename("frag_runner", "apps_1128_frag_default.wdl")
     val args = path.toString :: cFlags
