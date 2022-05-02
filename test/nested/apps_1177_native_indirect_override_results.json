@@ -1,9 +1,9 @@
 {
   "apps_1177_native_indirect_override.outs_apps_1177_default_instance" : "mem1_ssd1_x2",
-  "apps_1177_native_indirect_override.outs_apps_1177_mem_int" : "mem1_ssd1_v2_x2",
-  "apps_1177_native_indirect_override.outs_conditional_mem_int" : "mem1_ssd1_v2_x2",
-  "apps_1177_native_indirect_override.outs_scatter_mem_int" : [ "mem1_ssd1_v2_x2", "mem1_ssd1_v2_x2" ],
-  "apps_1177_native_indirect_override.outs_conditional_mem_int_1": "mem1_ssd1_v2_x2",
+  "apps_1177_native_indirect_override.outs_apps_1177_mem_int" : "mem3_ssd1_v2_x2",
+  "apps_1177_native_indirect_override.outs_conditional_mem_int" : "mem3_ssd1_v2_x2",
+  "apps_1177_native_indirect_override.outs_scatter_mem_int" : [ "mem3_ssd1_v2_x2", "mem3_ssd1_v2_x2" ],
+  "apps_1177_native_indirect_override.outs_conditional_mem_int_1": "mem3_ssd1_v2_x2",
   "apps_1177_native_indirect_override.outs_conditional_cpu_int_2" : "mem1_ssd1_v2_x4"
 }
 
