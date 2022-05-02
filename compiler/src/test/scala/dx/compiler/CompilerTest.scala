@@ -641,10 +641,11 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
           case (Constants.ParseOptions, JsObject(_))               => () // ignore
           case (Constants.DocContents, JsString(_))                => () // ignore
           // old values for sourceCode - can probably delete these
-          case ("womSourceCode", JsString(_))        => () // ignore
-          case ("wdlSourceCode", JsString(_))        => () // ignore
-          case (Constants.OriginalName, JsString(_)) => () // ignore
-          case other                                 => throw new Exception(s"Unexpected result ${other}")
+          case ("womSourceCode", JsString(_))                  => () // ignore
+          case ("wdlSourceCode", JsString(_))                  => () // ignore
+          case (Constants.OriginalName, JsString(_))           => () // ignore
+          case (Constants.StaticInstanceType, JsString(value)) => value shouldBe ("mem1_ssd1_x2")
+          case other                                           => throw new Exception(s"Unexpected result ${other}")
         }
       case other => throw new Exception(s"Unexpected result ${other}")
     }
