@@ -1,21 +1,21 @@
 version 1.0
 
-workflow override {
+workflow apps_1177_native_frag_indirect_override_unit {
 
     # Memory
-    call mem_int {}
+    call apps_1177_mem_int {}
 
     # Conditional mem
     Boolean a = true
     if (a) {
-        call mem_int as conditional_mem {}
+        call apps_1177_mem_int as conditional_mem {}
     }
 
 
 }
 
 
-task mem_int {
+task apps_1177_mem_int {
   input {
     String? mock_input = "asdl"
   }
@@ -29,9 +29,9 @@ task mem_int {
   runtime {
     memory: "30 GB"
     dx_app: object {
-              type: "app",
-              id: "app-G6G0jX80g1FZX1Z57z3zbG6v",
-              name: "mock_app_sciprodbuild/0.0.6"
+                type: "applet",
+                id: "applet-G9VZBF00yzZgj97K42BQKJ7Z",
+                name: "apps_1177"
             }
   }
 }

@@ -1,10 +1,10 @@
-version 1.1
+version 1.0
 
 workflow apps_1177_native_indirect_override {
 
   call apps_1177_default_instance {
     input:
-      mock_input = "apps_1177_default_isntance"
+      mock_input = "apps_1177_default_instance"
   }
 
   call apps_1177_mem_int {
@@ -34,11 +34,11 @@ workflow apps_1177_native_indirect_override {
   if (m) {
     call apps_1177_mem_int as conditional_mem_int_1 {
       input:
-        mock_input = "conditional_isntance_type_block1"
+        mock_input = "conditional_instance_type_block1"
     }
     call apps_1177_cpu_int as conditional_cpu_int_2 {
       input:
-        mock_input = "conditional_isntance_type_block2"
+        mock_input = "conditional_instance_type_block2"
     }
   }
 

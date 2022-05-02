@@ -25,9 +25,9 @@ task default {
 
     runtime {
         dx_app: object {
-                    type: "app",
-                    id: "app-G6G0jX80g1FZX1Z57z3zbG6v",
-                    name: "mock_app_sciprodbuild/0.0.6"
+                    type: "applet",
+                    id: "applet-G9VZBF00yzZgj97K42BQKJ7Z",
+                    name: "apps_1177"
                 }
     }
 }
@@ -46,9 +46,9 @@ task mem_int {
   runtime {
     memory: "30 GB"
     dx_app: object {
-              type: "app",
-              id: "app-G6G0jX80g1FZX1Z57z3zbG6v",
-              name: "mock_app_sciprodbuild/0.0.6"
+                type: "applet",
+                id: "applet-G9VZBF00yzZgj97K42BQKJ7Z",
+                name: "apps_1177"
             }
   }
 }
@@ -67,9 +67,9 @@ task cpu_int {
   runtime {
     cpu: 8
     dx_app: object {
-              type: "app",
-              id: "app-G6G0jX80g1FZX1Z57z3zbG6v",
-              name: "mock_app_sciprodbuild/0.0.6"
+                type: "applet",
+                id: "applet-G9VZBF00yzZgj97K42BQKJ7Z",
+                name: "apps_1177"
             }
   }
 }

@@ -109,6 +109,36 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     }
   }
 
+  "Compiler" should "compile a workflow with a native app wrapped in frag and override instance based using RAM" in {
+    val path = pathFromBasename("bugs", "apps_1177_native_frag_indirect_override_unit.wdl")
+    val args = path.toString :: cFlags
+    val retval = Main.compile(args.toVector)
+    val wfId = retval match {
+      case SuccessfulCompileNativeNoTree(_, Vector(wfId)) => wfId
+      case other                                          => throw new Exception(s"expected single workflow not ${other}")
+    }
+    // the native app has an instance type of mem1_ssd1_v2_x2, with 2 CPUs and 4 Gb RAM. The tasks request 30 Gb
+    val stages = dxApi
+      .workflow(wfId)
+      .describe()
+      .stages
+      .get
+    val stagesSysReq = stages.map { stage =>
+      stage.name -> stage.systemRequirements
+    }.toMap
+    stagesSysReq.size shouldBe 2
+    stagesSysReq("if (a)") shouldBe JsObject.empty
+    stagesSysReq("apps_1177_mem_int") shouldBe JsObject(
+        "*" -> JsObject("instanceType" -> JsString("mem3_ssd1_x4"))
+    )
+    val stagesExecDetails = stages.map { stage =>
+      stage.name -> dxApi.executable(stage.executable).describe(Set(Field.Details))
+    }.toMap
+    stagesExecDetails("if (a)").details.get.asJsObject.fields
+      .get("staticInstanceType")
+      .get shouldBe (JsString("mem3_ssd1_x4"))
+  }
+
   it should "compile a workflow with a native app and override instance based using RAM and CPU spec" in {
     val path = pathFromBasename("bugs", "apps_1177_native_indirect_override_unit.wdl")
     val args = path.toString :: cFlags
@@ -135,31 +165,6 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     )
     stages("cpu_int") shouldBe JsObject(
         "*" -> JsObject("instanceType" -> JsString("mem1_ssd1_x8"))
-    )
-  }
-
-  "Compiler" should "compile a workflow with a native app wrapped in frag and override instance based using RAM" in {
-    val path = pathFromBasename("bugs", "apps_1177_native_frag_indirect_override_unit.wdl")
-    val args = path.toString :: cFlags
-    val retval = Main.compile(args.toVector)
-    val wfId = retval match {
-      case SuccessfulCompileNativeNoTree(_, Vector(wfId)) => wfId
-      case other                                          => throw new Exception(s"expected single workflow not ${other}")
-    }
-    // the native app has an instance type of mem1_ssd1_v2_x2, with 2 CPUs and 4 Gb RAM. The tasks request 30 Gb
-    val stages = dxApi
-      .workflow(wfId)
-      .describe()
-      .stages
-      .get
-      .map { stage =>
-        stage.name -> stage.systemRequirements
-      }
-      .toMap
-    stages.size shouldBe 2
-    stages("if (a)") shouldBe JsObject.empty
-    stages("mem_int") shouldBe JsObject(
-        "*" -> JsObject("instanceType" -> JsString("mem3_ssd1_x4"))
     )
   }
 
