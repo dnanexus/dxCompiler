@@ -66,7 +66,7 @@ task apps_1177_default_instance {
   runtime {
     dx_app: object {
               type: "applet",
-              id: "applet-G9VZBF00yzZgj97K42BQKJ7Z",
+              id: "applet-G9j8B680yzZVZ8X77XQ6ypXJ",
               name: "apps_1177"
             }
   }
@@ -86,7 +86,7 @@ task apps_1177_mem_int {
     memory: "16 GB"
     dx_app: object {
               type: "applet",
-              id: "applet-G9VZBF00yzZgj97K42BQKJ7Z",
+              id: "applet-G9j8B680yzZVZ8X77XQ6ypXJ",
               name: "apps_1177"
             }
   }
@@ -107,7 +107,7 @@ task apps_1177_cpu_int {
     cpu: 4
     dx_app: object {
               type: "applet",
-              id: "applet-G9VZBF00yzZgj97K42BQKJ7Z",
+              id: "applet-G9j8B680yzZVZ8X77XQ6ypXJ",
               name: "apps_1177"
             }
   }
