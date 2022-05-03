@@ -173,6 +173,10 @@ wdl_v1_1_list = [
     "apps_1052_optional_block_inputs_wdl11",
 ]
 
+static_only = [
+    "apps_1177_native_indirect_override"
+]
+
 # docker image tests
 docker_test_list = [
     "broad_genomics",
@@ -1302,8 +1306,9 @@ def build_test(tname, project, folder, version_id, compiler_flags):
     print("build {} {}".format(desc.kind, desc.name))
     print("Compiling {} to a {}".format(desc.source_file, desc.kind))
     # Both static and dynamic instance type selection should work,
-    # so we can test them at random
-    compiler_flags += ["-instanceTypeSelection", random.choice(["static", "dynamic"])]
+    # so we can test them at random except for a few tests
+    instance_type_selection = "static" if tname in static_only else random.choice(["static", "dynamic"])
+    compiler_flags += ["-instanceTypeSelection", instance_type_selection]
     if "manifest" in desc.source_file:
         compiler_flags.append("-useManifests")
     return util.build_executable(
