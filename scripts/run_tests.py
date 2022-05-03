@@ -95,8 +95,6 @@ wdl_v1_list = [
     "cast",
     "dict",
     "instance_types",
-    "apps_1128_frag_native_instance_type_override",
-    "apps_1177_native_indirect_override",
     "linear_no_expressions",
     "linear",
     "optionals",
@@ -162,6 +160,8 @@ wdl_v1_list = [
 ]
 
 wdl_v1_1_list = [
+    "apps_1128_frag_native_instance_type_override",
+    "apps_1177_native_indirect_override",
     "v1_1_dict",
     "apps_847_scatter_empty",
     "optional_missing",
