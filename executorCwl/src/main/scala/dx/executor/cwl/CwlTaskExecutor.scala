@@ -437,16 +437,22 @@ case class CwlTaskExecutor(tool: Process,
       }
       .getOrElse(overridesJs)
 
-    val fullPath = (targetProcess.orElse(root.map(_.name)).getOrElse("")
-      +: targetStep.map(_.split("/").toVector).getOrElse(Vector.empty))
-      .grouped(2)
-      .flatMap(_ :+ s"run")
-      .toVector :+ tool.name
+    val fullTargetPath = if (targetStep.isDefined) {
+      targetProcess.orElse(root.map(_.name)) match {
+        case Some(targetWf) =>
+          (targetWf +: targetStep.get
+            .split("/")).grouped(2).flatMap(_ :+ s"run").toVector :+ tool.name
+        case None => Vector(tool.name)
+      }
+    } else {
+      Vector(tool.name)
+    }
+
     val overridesOpt = if (finalOverrides.nonEmpty) {
       val overridesDocJs = JsObject(
           "cwltool:overrides" -> JsObject(
               "#main" -> JsObject(finalOverrides),
-              s"#${fullPath.mkString("/")}" -> JsObject(finalOverrides)
+              s"#${fullTargetPath.mkString("/")}" -> JsObject(finalOverrides)
           )
       )
       val overridesDocPath = metaDir.resolve("overrides.json")
