@@ -271,12 +271,7 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
     assertThrows[Exception] {
       createRuntime(None, None, None, Some("xxyy"), None).parseInstanceType
     }
-    createRuntime(None, None, None, Some("1"), None).parseInstanceType shouldBe InstanceTypeRequest(
-        minMemoryMB = Some(2048),
-        minDiskGB = Some(1),
-        minCpu = Some(1),
-        os = Some(Constants.DefaultExecutionEnvironment)
-    )
+
     createRuntime(None, None, None, Some("1.2"), None).parseInstanceType shouldBe InstanceTypeRequest(
         minMemoryMB = Some(2048),
         minDiskGB = Some(1),
@@ -302,6 +297,10 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
                           minCpu = Some(1),
                           gpu = Some(false),
                           os = Some(Constants.DefaultExecutionEnvironment))
+  }
+
+  it should "create a runtime with default instance type" in {
+    createRuntime(None, None, None, Some("1"), None).parseInstanceType shouldBe InstanceTypeRequest.empty
   }
 
   it should "get required instance type" in {

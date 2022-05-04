@@ -95,7 +95,6 @@ wdl_v1_list = [
     "cast",
     "dict",
     "instance_types",
-    "apps_1128_frag_native_instance_type_override",
     "linear_no_expressions",
     "linear",
     "optionals",
@@ -161,6 +160,8 @@ wdl_v1_list = [
 ]
 
 wdl_v1_1_list = [
+    "apps_1128_frag_native_instance_type_override",
+    "apps_1177_native_indirect_override",
     "v1_1_dict",
     "apps_847_scatter_empty",
     "optional_missing",
@@ -170,6 +171,10 @@ wdl_v1_1_list = [
     "apps_579_string_substitution_expr",
     "apps_956_private_var_local",
     "apps_1052_optional_block_inputs_wdl11",
+]
+
+static_only = [
+    "apps_1177_native_indirect_override"
 ]
 
 # docker image tests
@@ -585,7 +590,11 @@ TestDesc = namedtuple(
 test_upload_wait = {"upload_wait"}
 
 # use the applet's default instance type rather than the default (mem1_ssd1_x4)
-test_instance_type = ["diskspace_exhauster", "apps_1128_frag_native_instance_type_override"]
+test_instance_type = [
+    "diskspace_exhauster",
+    "apps_1128_frag_native_instance_type_override",
+    "apps_1177_native_indirect_override"
+]
 
 # Search a WDL file with a python regular expression.
 # Note this is not 100% accurate.
@@ -1297,8 +1306,9 @@ def build_test(tname, project, folder, version_id, compiler_flags):
     print("build {} {}".format(desc.kind, desc.name))
     print("Compiling {} to a {}".format(desc.source_file, desc.kind))
     # Both static and dynamic instance type selection should work,
-    # so we can test them at random
-    compiler_flags += ["-instanceTypeSelection", random.choice(["static", "dynamic"])]
+    # so we can test them at random except for a few tests
+    instance_type_selection = "static" if tname in static_only else random.choice(["static", "dynamic"])
+    compiler_flags += ["-instanceTypeSelection", instance_type_selection]
     if "manifest" in desc.source_file:
         compiler_flags.append("-useManifests")
     return util.build_executable(
