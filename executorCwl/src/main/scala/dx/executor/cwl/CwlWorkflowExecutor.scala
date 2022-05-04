@@ -548,8 +548,8 @@ case class CwlWorkflowExecutor(workflow: Workflow,
 
     private def launchCall(
         callInputs: Map[DxName, (CwlType, CwlValue)],
-        nameDetail: Option[String] = None,
-        folder: Option[String] = None
+        nameDetail: Option[String],
+        folder: Option[String]
     ): (DxExecution, ExecutableLink, String) = {
       logger.traceLimited(
           s"""|call = ${step}
@@ -603,8 +603,9 @@ case class CwlWorkflowExecutor(workflow: Workflow,
       (dxExecution, executableLink, execName)
     }
 
-    private def launchCall(stepInputs: Map[DxName, (WorkflowStepInput, (CwlType, CwlValue))],
-                           blockIndex: Int): Map[DxName, ParameterLink] = {
+    private def launchStepCall(stepInputs: Map[DxName, (WorkflowStepInput, (CwlType, CwlValue))],
+                               nameDetail: Option[String],
+                               blockIndex: Option[Int]): (DxExecution, ExecutableLink, String) = {
       // collect all the step input values to pass to the callee
       val callInputs: Map[DxName, (CwlType, CwlValue)] = step.run.inputs.map { param =>
         val dxName = CwlDxName.fromSourceName(param.name)
@@ -619,28 +620,33 @@ case class CwlWorkflowExecutor(workflow: Workflow,
             )
           }
       }.toMap
-      val (dxExecution, executableLink, callName) =
-        launchCall(callInputs, folder = Some(blockIndex.toString))
-      jobMeta.createExecutionOutputLinks(dxExecution, executableLink.outputs, Some(callName))
+      launchCall(callInputs, nameDetail, folder = blockIndex.map(_.toString))
     }
 
     override protected def launchBlockCall(blockIndex: Int): Map[DxName, ParameterLink] = {
       assert(step.scatter.isEmpty)
       assert(step.when.isEmpty)
-      launchCall(evaluateCallStepInputs(), blockIndex)
+      val (dxExecution, executableLink, callName) =
+        launchStepCall(evaluateCallStepInputs(), nameDetail = None, blockIndex = Some(blockIndex))
+      jobMeta
+        .createExecutionOutputLinks(dxExecution, executableLink.outputs, Some(callName))
     }
 
     override protected def launchConditional(): Map[DxName, ParameterLink] = {
       assert(step.scatter.isEmpty)
       assert(step.when.nonEmpty)
-      val stepInputs = evaluateCallStepInputs(isConditinal = true)
+      val stepInputs = evaluateCallStepInputs(isConditional = true)
       val ctx = EvaluatorContext(inputs = createEvalInputs(stepInputs.values.toMap))
       val (_, cond) = eval.evaluate(step.when.get, CwlBoolean, ctx, coerce = true)
       cond match {
         case BooleanValue(true) =>
-          launchCall(stepInputs, block.index).map {
-            case (key, link) => key -> link.makeOptional
-          }
+          val (dxExecution, executableLink, callName) =
+            launchStepCall(stepInputs, nameDetail = None, blockIndex = Some(block.index))
+          jobMeta
+            .createExecutionOutputLinks(dxExecution, executableLink.outputs, Some(callName))
+            .map {
+              case (key, link) => key -> link.makeOptional
+            }
         case _ => Map.empty
       }
     }
