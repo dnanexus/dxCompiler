@@ -623,7 +623,7 @@ case class CwlWorkflowExecutor(workflow: Workflow,
       jobMeta.createExecutionOutputLinks(dxExecution, executableLink.outputs, Some(callName))
     }
 
-    override protected def launchCall(blockIndex: Int): Map[DxName, ParameterLink] = {
+    override protected def launchBlockCall(blockIndex: Int): Map[DxName, ParameterLink] = {
       assert(step.scatter.isEmpty)
       assert(step.when.isEmpty)
       launchCall(evaluateCallStepInputs(), blockIndex)
