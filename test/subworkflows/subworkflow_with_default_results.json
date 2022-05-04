@@ -1,4 +1,5 @@
 {
   "subworkflow_with_default.r1" : 11,
-  "subworkflow_with_default.r2" : 13
+  "subworkflow_with_default.r2" : 13,
+  "subworkflow_with_default.my_output" : ["hello"]
 }
