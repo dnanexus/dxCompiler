@@ -7,8 +7,10 @@ workflow Foo {
     input {
         Int a
         Int b = 10
+        Array[String] my_input = []
     }
     output {
         Int result = a + b
+        Array[String] my_output = my_input
     }
 }
