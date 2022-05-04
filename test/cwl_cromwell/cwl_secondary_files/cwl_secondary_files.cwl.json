@@ -1,112 +1,97 @@
 {
-    "id": "#main",
-    "class": "CommandLineTool",
-    "requirements": [
+    "cwlVersion": "v1.2",
+    "$graph": [
         {
-            "class": "InlineJavascriptRequirement"
-        }
-    ],
-    "hints": [
-        {
-            "dockerPull": "debian:stretch-slim",
-            "class": "DockerRequirement"
-        },
-        {
-            "loadListing": "deep_listing",
-            "class": "LoadListingRequirement"
-        },
-        {
-            "networkAccess": true,
-            "class": "NetworkAccess"
-        }
-    ],
-    "inputs": [
-        {
-            "id": "#main/command",
-            "type": "string"
-        },
-        {
-            "id": "#main/f",
-            "type": "File",
-            "inputBinding": {
-                "position": 2
-            },
-            "secondaryFiles": [
+            "id": "main",
+            "class": "CommandLineTool",
+            "requirements": [
                 {
-                    "pattern": ".also",
-                    "required": null
-                }
-            ]
-        },
-        {
-            "id": "#main/of",
-            "type": [
-                "null",
-                "File"
-            ],
-            "inputBinding": {
-                "position": 3
-            },
-            "secondaryFiles": [
-                {
-                    "pattern": ".also",
-                    "required": null
-                }
-            ]
-        },
-        {
-            "id": "#main/fs",
-            "type": {
-                "type": "array",
-                "items": "File",
-                "inputBinding": {
-                    "position": 4
-                }
-            },
-            "secondaryFiles": [
-                {
-                    "pattern": ".also",
-                    "required": null
-                }
-            ]
-        },
-        {
-            "id": "#main/fr",
-            "secondaryFiles": [
-                {
-                    "pattern": ".also",
-                    "required": null
+                    "class": "InlineJavascriptRequirement"
                 }
             ],
-            "type": {
-                "type": "record",
-                "name": "#main/fr/foo",
-                "fields": [
-                    {
-                        "name": "#main/fr/foo/a",
-                        "type": "File",
+            "hints": {
+                "DockerRequirement": {
+                    "dockerPull": "debian:stretch-slim"
+                },
+                "NetworkAccess": {
+                    "networkAccess": true
+                },
+                "LoadListingRequirement": {
+                    "loadListing": "deep_listing"
+                }
+            },
+            "inputs": [
+                {
+                    "id": "command",
+                    "type": "string"
+                },
+                {
+                    "id": "f",
+                    "type": "File",
+                    "inputBinding": {
+                        "position": 2
+                    },
+                    "secondaryFiles": [
+                        ".also"
+                    ]
+                },
+                {
+                    "id": "of",
+                    "type": "File?",
+                    "inputBinding": {
+                        "position": 3
+                    },
+                    "secondaryFiles": [
+                        ".also"
+                    ]
+                },
+                {
+                    "id": "fs",
+                    "type": {
+                        "type": "array",
+                        "items": "File",
                         "inputBinding": {
-                            "position": 5
+                            "position": 4
                         }
+                    },
+                    "secondaryFiles": [
+                        ".also"
+                    ]
+                },
+                {
+                    "id": "fr",
+                    "secondaryFiles": [
+                        ".also"
+                    ],
+                    "type": {
+                        "type": "record",
+                        "name": "foo",
+                        "fields": [
+                            {
+                                "name": "a",
+                                "type": "File",
+                                "inputBinding": {
+                                    "position": 5
+                                }
+                            }
+                        ]
                     }
-                ]
-            }
-        }
-    ],
-    "baseCommand": [],
-    "arguments": [
-        "bash",
-        "-c",
-        "$(inputs.command)"
-    ],
-    "outputs": [
-        {
-            "type": "string",
-            "outputBinding": {
-                "outputEval": "${ return \"$(\" + 42 + \")\"; }"
+                }
+            ],
+            "outputs": {
+                "the_answer": {
+                    "type": "string",
+                    "outputBinding": {
+                        "outputEval": "${ return \"$(\" + 42 + \")\"; }"
+                    }
+                }
             },
-            "id": "#main/the_answer"
+            "baseCommand": [],
+            "arguments": [
+                "bash",
+                "-c",
+                "$(inputs.command)"
+            ]
         }
-    ],
-    "cwlVersion": "v1.2"
+    ]
 }

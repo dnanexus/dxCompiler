@@ -1,32 +1,31 @@
 {
+    "cwlVersion": "v1.2",
     "class": "Workflow",
-    "id": "#main",
-    "hints": [
-        {
-            "dockerPull": "ubuntu:latest",
-            "class": "DockerRequirement"
+    "hints": {
+        "DockerRequirement": {
+            "dockerPull": "ubuntu:latest"
         }
-    ],
+    },
     "inputs": [
         {
-            "id": "#main/pattern",
+            "id": "pattern",
             "type": "string"
         }
     ],
     "steps": [
         {
-            "id": "#main/ps",
+            "id": "ps",
             "in": [],
             "out": [
                 {
-                    "id": "#main/ps/ps-stdOut"
+                    "id": "ps-stdOut"
                 }
             ],
             "run": {
                 "inputs": [],
                 "outputs": [
                     {
-                        "id": "#main/ps/run/ps-stdOut",
+                        "id": "ps-stdOut",
                         "outputBinding": {
                             "glob": "ps-stdOut.txt"
                         },
@@ -42,55 +41,53 @@
                 ],
                 "baseCommand": "ps",
                 "stdout": "ps-stdOut.txt",
-                "hints": [
-                    {
-                        "loadListing": "deep_listing",
-                        "class": "LoadListingRequirement"
+                "hints": {
+                    "NetworkAccess": {
+                        "networkAccess": true
                     },
-                    {
-                        "networkAccess": true,
-                        "class": "NetworkAccess"
+                    "LoadListingRequirement": {
+                        "loadListing": "deep_listing"
                     }
-                ]
+                },
+                "id": "cwl_three_step.cwl@step_ps@run"
             }
         },
         {
-            "id": "#main/cgrep",
+            "id": "cgrep",
             "in": [
                 {
-                    "id": "#main/cgrep/pattern",
-                    "source": "#main/pattern"
+                    "id": "pattern",
+                    "source": "pattern"
                 },
                 {
-                    "id": "#main/cgrep/file",
-                    "source": "#main/ps/ps-stdOut"
+                    "id": "file",
+                    "source": "ps/ps-stdOut"
                 }
             ],
             "out": [
                 {
-                    "id": "#main/cgrep/cgrep-count"
+                    "id": "cgrep-count"
                 }
             ],
-            "requirements": [
-                {
-                    "dockerPull": "debian:jessie",
-                    "class": "DockerRequirement"
+            "requirements": {
+                "DockerRequirement": {
+                    "dockerPull": "debian:jessie"
                 }
-            ],
+            },
             "run": {
                 "inputs": [
                     {
-                        "id": "#main/cgrep/run/pattern",
+                        "id": "pattern",
                         "type": "string"
                     },
                     {
-                        "id": "#main/cgrep/run/file",
+                        "id": "file",
                         "type": "File"
                     }
                 ],
                 "outputs": [
                     {
-                        "id": "#main/cgrep/run/cgrep-count",
+                        "id": "cgrep-count",
                         "outputBinding": {
                             "glob": "cgrep-stdOut.txt",
                             "loadContents": true,
@@ -135,41 +132,40 @@
                     }
                 ],
                 "stdout": "cgrep-stdOut.txt",
-                "hints": [
-                    {
-                        "loadListing": "deep_listing",
-                        "class": "LoadListingRequirement"
+                "hints": {
+                    "NetworkAccess": {
+                        "networkAccess": true
                     },
-                    {
-                        "networkAccess": true,
-                        "class": "NetworkAccess"
+                    "LoadListingRequirement": {
+                        "loadListing": "deep_listing"
                     }
-                ]
+                },
+                "id": "cwl_three_step.cwl@step_cgrep@run"
             }
         },
         {
-            "id": "#main/wc",
+            "id": "wc",
             "in": [
                 {
-                    "id": "#main/wc/file",
-                    "source": "#main/ps/ps-stdOut"
+                    "id": "file",
+                    "source": "ps/ps-stdOut"
                 }
             ],
             "out": [
                 {
-                    "id": "#main/wc/wc-count"
+                    "id": "wc-count"
                 }
             ],
             "run": {
                 "inputs": [
                     {
-                        "id": "#main/wc/run/file",
+                        "id": "file",
                         "type": "File"
                     }
                 ],
                 "outputs": [
                     {
-                        "id": "#main/wc/run/wc-count",
+                        "id": "wc-count",
                         "outputBinding": {
                             "glob": "wc-stdOut.txt",
                             "loadContents": true,
@@ -210,30 +206,30 @@
                     }
                 ],
                 "stdout": "wc-stdOut.txt",
-                "hints": [
-                    {
-                        "loadListing": "deep_listing",
-                        "class": "LoadListingRequirement"
+                "hints": {
+                    "NetworkAccess": {
+                        "networkAccess": true
                     },
-                    {
-                        "networkAccess": true,
-                        "class": "NetworkAccess"
+                    "LoadListingRequirement": {
+                        "loadListing": "deep_listing"
                     }
-                ]
+                },
+                "id": "cwl_three_step.cwl@step_wc@run"
             }
         }
     ],
     "outputs": [
         {
-            "id": "#main/cgrep-count",
-            "outputSource": "#main/cgrep/cgrep-count",
+            "id": "cgrep-count",
+            "outputSource": "cgrep/cgrep-count",
             "type": "int"
         },
         {
-            "id": "#main/wc-count",
-            "outputSource": "#main/wc/wc-count",
+            "id": "wc-count",
+            "outputSource": "wc/wc-count",
             "type": "int"
         }
     ],
-    "cwlVersion": "v1.2"
+    "requirements": [],
+    "id": "cwl_three_step.cwl"
 }
