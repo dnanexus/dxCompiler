@@ -1,4 +1,4 @@
-version 1.0
+version 1.1
 
 workflow apps_1128_frag_native_instance_type_override {
 
@@ -66,7 +66,7 @@ task apps_1128_default_instance {
   runtime {
     dx_app: object {
               type: "applet",
-              id: "applet-G9VZBF00yzZgj97K42BQKJ7Z",
+              id: "applet-G9j8B680yzZVZ8X77XQ6ypXJ",
               name: "apps_1177"
             }
   }
@@ -86,7 +86,7 @@ task apps_1128_override_instance_name {
     dx_instance_type: "mem1_ssd1_v2_x2"
     dx_app: object {
               type: "applet",
-              id: "applet-G9VZBF00yzZgj97K42BQKJ7Z",
+              id: "applet-G9j8B680yzZVZ8X77XQ6ypXJ",
               name: "apps_1177"
             }
   }
@@ -107,7 +107,7 @@ task apps_1128_override_instance_name_2 {
     dx_instance_type: "mem1_ssd1_v2_x4"
     dx_app: object {
               type: "applet",
-              id: "applet-G9VZBF00yzZgj97K42BQKJ7Z",
+              id: "applet-G9j8B680yzZVZ8X77XQ6ypXJ",
               name: "apps_1177"
             }
   }
