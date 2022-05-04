@@ -48,7 +48,7 @@ $graph:
   class: CommandLineTool
   hints:
   - class: DockerRequirement
-    dockerPull: "stedolan/jq:latest"
+    dockerPull: "ubuntu:latest"
   - class: NetworkAccess
     networkAccess: true
   - class: LoadListingRequirement
@@ -74,5 +74,5 @@ $graph:
   arguments:
   # Round-trips the file referenced in cwl.input.json to cwl.output.json. Also ls it in the command to make sure it's there.
   - valueFrom: |
-      INPUT_FILE=\$(cat cwl.inputs.json | jq -r '.. | .path? // empty') && ls $INPUT_FILE && echo "{\"output_file\": {\"path\": \"\$INPUT_FILE\", \"class\": \"File\"} }" > cwl.output.json
+      sed 's/input_file/output_file/' cwl.inputs.json > cwl.output.json
     shellQuote: false

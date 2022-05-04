@@ -1,4 +1,5 @@
 {
+    "cwlVersion": "v1.2",
     "class": "CommandLineTool",
     "requirements": [
         {
@@ -6,19 +7,17 @@
             "dockerPull": "ubuntu:bionic-20180426"
         }
     ],
-    "hints": [
-        {
-            "loadListing": "deep_listing",
-            "class": "LoadListingRequirement"
+    "hints": {
+        "NetworkAccess": {
+            "networkAccess": true
         },
-        {
-            "networkAccess": true,
-            "class": "NetworkAccess"
+        "LoadListingRequirement": {
+            "loadListing": "deep_listing"
         }
-    ],
+    },
     "inputs": [
         {
-            "id": "#main/input",
+            "id": "input",
             "type": "string",
             "inputBinding": {
                 "position": 0
@@ -28,15 +27,14 @@
     "baseCommand": [
         "touch"
     ],
-    "id": "#main",
     "outputs": [
         {
-            "id": "#main/output",
+            "id": "output",
             "type": "File",
             "outputBinding": {
                 "glob": "$(inputs.input)"
             }
         }
     ],
-    "cwlVersion": "v1.2"
+    "id": "touch.cwl"
 }
