@@ -1,7 +1,8 @@
 {
+    "cwlVersion": "v1.2",
     "$graph": [
         {
-            "id": "#average",
+            "id": "average",
             "class": "CommandLineTool",
             "requirements": [
                 {
@@ -11,18 +12,26 @@
                     "class": "ShellCommandRequirement"
                 }
             ],
-            "inputs": [
-                {
+            "inputs": {
+                "base1": {
                     "type": "int",
-                    "default": 9,
-                    "id": "#average/base1"
+                    "default": 9
                 },
-                {
+                "base2": {
                     "type": "int",
-                    "default": 13,
-                    "id": "#average/base2"
+                    "default": 13
                 }
-            ],
+            },
+            "outputs": {
+                "baseAverage": {
+                    "type": "float",
+                    "outputBinding": {
+                        "glob": "stdout.txt",
+                        "loadContents": true,
+                        "outputEval": "$(parseFloat(self[0].contents))"
+                    }
+                }
+            },
             "arguments": [
                 {
                     "valueFrom": "echo $((inputs.base1 + inputs.base2) / 2)",
@@ -30,30 +39,17 @@
                 }
             ],
             "stdout": "stdout.txt",
-            "hints": [
-                {
-                    "loadListing": "deep_listing",
-                    "class": "LoadListingRequirement"
+            "hints": {
+                "NetworkAccess": {
+                    "networkAccess": true
                 },
-                {
-                    "networkAccess": true,
-                    "class": "NetworkAccess"
+                "LoadListingRequirement": {
+                    "loadListing": "deep_listing"
                 }
-            ],
-            "outputs": [
-                {
-                    "type": "float",
-                    "outputBinding": {
-                        "glob": "stdout.txt",
-                        "loadContents": true,
-                        "outputEval": "$(parseFloat(self[0].contents))"
-                    },
-                    "id": "#average/baseAverage"
-                }
-            ]
+            }
         },
         {
-            "id": "#height-product",
+            "id": "height-product",
             "class": "CommandLineTool",
             "requirements": [
                 {
@@ -63,28 +59,23 @@
                     "class": "ShellCommandRequirement"
                 }
             ],
-            "inputs": [
-                {
+            "inputs": {
+                "baseAverage": "float",
+                "height": {
                     "type": "float",
-                    "id": "#height-product/baseAverage"
-                },
-                {
-                    "type": "float",
-                    "default": 7.0,
-                    "id": "#height-product/height"
+                    "default": 7.0
                 }
-            ],
-            "outputs": [
-                {
+            },
+            "outputs": {
+                "trapezoidalArea": {
                     "type": "long",
                     "outputBinding": {
                         "glob": "stdout.txt",
                         "loadContents": true,
                         "outputEval": "$(parseFloat(self[0].contents))"
-                    },
-                    "id": "#height-product/trapezoidalArea"
+                    }
                 }
-            ],
+            },
             "arguments": [
                 {
                     "valueFrom": "echo $(inputs.baseAverage * inputs.height)",
@@ -92,19 +83,17 @@
                 }
             ],
             "stdout": "stdout.txt",
-            "hints": [
-                {
-                    "loadListing": "deep_listing",
-                    "class": "LoadListingRequirement"
+            "hints": {
+                "NetworkAccess": {
+                    "networkAccess": true
                 },
-                {
-                    "networkAccess": true,
-                    "class": "NetworkAccess"
+                "LoadListingRequirement": {
+                    "loadListing": "deep_listing"
                 }
-            ]
+            }
         },
         {
-            "id": "#main",
+            "id": "main",
             "class": "Workflow",
             "requirements": [
                 {
@@ -119,42 +108,36 @@
                 }
             ],
             "inputs": [],
-            "outputs": [
-                {
+            "outputs": {
+                "baseAverage": {
                     "type": "float",
-                    "outputSource": "#main/step-average/baseAverage",
-                    "id": "#main/baseAverage"
+                    "outputSource": "step-average/baseAverage"
                 },
-                {
+                "trapezoidalArea": {
                     "type": "long",
-                    "outputSource": "#main/step-product/trapezoidalArea",
-                    "id": "#main/trapezoidalArea"
+                    "outputSource": "step-product/trapezoidalArea"
                 }
-            ],
+            },
             "steps": [
                 {
-                    "id": "#main/step-average",
+                    "id": "step-average",
                     "run": "#average",
                     "in": [],
                     "out": [
-                        "#main/step-average/baseAverage"
+                        "baseAverage"
                     ]
                 },
                 {
-                    "id": "#main/step-product",
+                    "id": "step-product",
                     "run": "#height-product",
-                    "in": [
-                        {
-                            "source": "#main/step-average/baseAverage",
-                            "id": "#main/step-product/baseAverage"
-                        }
-                    ],
+                    "in": {
+                        "baseAverage": "step-average/baseAverage"
+                    },
                     "out": [
-                        "#main/step-product/trapezoidalArea"
+                        "trapezoidalArea"
                     ]
                 }
             ]
         }
-    ],
-    "cwlVersion": "v1.2"
+    ]
 }
