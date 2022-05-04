@@ -1,24 +1,22 @@
 {
+    "cwlVersion": "v1.2",
     "class": "CommandLineTool",
     "requirements": [
         {
             "class": "InlineJavascriptRequirement"
         }
     ],
-    "hints": [
-        {
-            "dockerPull": "debian:stretch-slim",
-            "class": "DockerRequirement"
+    "hints": {
+        "DockerRequirement": {
+            "dockerPull": "debian:stretch-slim"
         },
-        {
-            "loadListing": "deep_listing",
-            "class": "LoadListingRequirement"
+        "NetworkAccess": {
+            "networkAccess": true
         },
-        {
-            "networkAccess": true,
-            "class": "NetworkAccess"
+        "LoadListingRequirement": {
+            "loadListing": "deep_listing"
         }
-    ],
+    },
     "inputs": [],
     "baseCommand": [
         "touch",
@@ -30,7 +28,6 @@
         "b",
         "a"
     ],
-    "id": "#main",
     "outputs": [
         {
             "type": "string",
@@ -38,8 +35,8 @@
                 "glob": "?",
                 "outputEval": "${ return self.sort(function(a,b) { return a.location > b.location ? 1 : (a.location < b.location ? -1 : 0) }).map(f => f.basename).join(\" \") }\n"
             },
-            "id": "#main/letters"
+            "id": "letters"
         }
     ],
-    "cwlVersion": "v1.2"
+    "id": "cwl_relative_imports_glob_sort.cwl"
 }

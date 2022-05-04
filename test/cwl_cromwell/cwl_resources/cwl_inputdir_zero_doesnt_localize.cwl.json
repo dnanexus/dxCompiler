@@ -1,5 +1,9 @@
 {
-    "id": "#main",
+    "cwlVersion": "v1.2",
+    "$namespaces": {
+        "dx": "https://www.dnanexus.com/cwl#"
+    },
+    "id": "main",
     "class": "Workflow",
     "hints": [
         {
@@ -10,27 +14,34 @@
             "dockerPull": "gcr.io/google.com/cloudsdktool/cloud-sdk:slim"
         },
         {
-            "class": "https://www.dnanexus.com/cwl#InputResourceRequirement",
+            "class": "dx:InputResourceRequirement",
             "indirMin": 0
         }
     ],
     "inputs": [],
+    "outputs": [
+        {
+            "id": "errors",
+            "type": "string",
+            "outputSource": "findFile/errors"
+        }
+    ],
     "steps": [
         {
-            "id": "#main/echo",
+            "id": "echo",
             "in": [],
             "out": [
                 {
-                    "id": "#main/echo/echoOut"
+                    "id": "echoOut"
                 },
                 {
-                    "id": "#main/echo/echoArrayOut"
+                    "id": "echoArrayOut"
                 },
                 {
-                    "id": "#main/echo/echoRecordOut"
+                    "id": "echoRecordOut"
                 },
                 {
-                    "id": "#main/echo/echoMaybeOut"
+                    "id": "echoMaybeOut"
                 }
             ],
             "run": {
@@ -43,29 +54,23 @@
                 "inputs": [],
                 "outputs": [
                     {
-                        "id": "#main/echo/run/echoOut",
+                        "id": "echoOut",
                         "outputBinding": {
                             "glob": "lonely_file"
                         },
                         "type": "File",
                         "secondaryFiles": [
-                            {
-                                "pattern": ".also",
-                                "required": null
-                            }
+                            ".also"
                         ]
                     },
                     {
-                        "id": "#main/echo/run/echoArrayOut",
+                        "id": "echoArrayOut",
                         "outputBinding": {
                             "glob": "*.txt*",
                             "outputEval": "$([self[0]])"
                         },
                         "secondaryFiles": [
-                            {
-                                "pattern": ".also",
-                                "required": null
-                            }
+                            ".also"
                         ],
                         "type": {
                             "items": "File",
@@ -73,19 +78,16 @@
                         }
                     },
                     {
-                        "id": "#main/echo/run/echoRecordOut",
+                        "id": "echoRecordOut",
                         "secondaryFiles": [
-                            {
-                                "pattern": ".also",
-                                "required": null
-                            }
+                            ".also"
                         ],
                         "type": {
                             "type": "record",
-                            "name": "#main/echo/run/echoRecordOut/foo",
+                            "name": "foo",
                             "fields": [
                                 {
-                                    "name": "#main/echo/run/echoRecordOut/foo/a",
+                                    "name": "a",
                                     "type": "File",
                                     "outputBinding": {
                                         "glob": "file_in_object"
@@ -95,16 +97,13 @@
                         }
                     },
                     {
-                        "id": "#main/echo/run/echoMaybeOut",
+                        "id": "echoMaybeOut",
                         "type": [
                             "File",
                             "null"
                         ],
                         "secondaryFiles": [
-                            {
-                                "pattern": ".also",
-                                "required": null
-                            }
+                            ".also"
                         ],
                         "outputBinding": {
                             "glob": "maybe_file"
@@ -117,95 +116,82 @@
                         "shellQuote": false
                     }
                 ],
-                "hints": [
-                    {
-                        "loadListing": "deep_listing",
-                        "class": "LoadListingRequirement"
+                "hints": {
+                    "NetworkAccess": {
+                        "networkAccess": true
                     },
-                    {
-                        "networkAccess": true,
-                        "class": "NetworkAccess"
+                    "LoadListingRequirement": {
+                        "loadListing": "deep_listing"
                     }
-                ]
+                },
+                "id": "main@step_echo@run"
             }
         },
         {
-            "id": "#main/findFile",
+            "id": "findFile",
             "in": [
                 {
-                    "id": "#main/findFile/f",
-                    "source": "#main/echo/echoOut"
+                    "id": "f",
+                    "source": "echo/echoOut"
                 },
                 {
-                    "id": "#main/findFile/g",
-                    "source": "#main/echo/echoArrayOut"
+                    "id": "g",
+                    "source": "echo/echoArrayOut"
                 },
                 {
-                    "id": "#main/findFile/h",
-                    "source": "#main/echo/echoRecordOut"
+                    "id": "h",
+                    "source": "echo/echoRecordOut"
                 },
                 {
-                    "id": "#main/findFile/i",
-                    "source": "#main/echo/echoMaybeOut"
+                    "id": "i",
+                    "source": "echo/echoMaybeOut"
                 }
             ],
             "out": [
                 {
-                    "id": "#main/findFile/errors"
+                    "id": "errors"
                 }
             ],
             "run": {
                 "inputs": [
                     {
-                        "id": "#main/findFile/run/f",
+                        "id": "f",
                         "type": "File",
                         "secondaryFiles": [
-                            {
-                                "pattern": ".also",
-                                "required": null
-                            }
+                            ".also"
                         ]
                     },
                     {
-                        "id": "#main/findFile/run/i",
+                        "id": "i",
                         "type": [
                             "null",
                             "File"
                         ],
                         "secondaryFiles": [
-                            {
-                                "pattern": ".also",
-                                "required": null
-                            }
+                            ".also"
                         ]
                     },
                     {
-                        "id": "#main/findFile/run/g",
+                        "id": "g",
                         "type": {
                             "type": "array",
                             "items": "File"
                         },
                         "secondaryFiles": [
-                            {
-                                "pattern": ".also",
-                                "required": null
-                            }
+                            ".also"
                         ]
                     },
                     {
-                        "id": "#main/findFile/run/h",
+                        "id": "h",
                         "secondaryFiles": [
-                            {
-                                "pattern": ".also",
-                                "required": null
-                            }
+                            ".also"
                         ],
                         "type": {
                             "type": "record",
-                            "name": "#main/findFile/run/h/foo",
+                            "name": "foo",
                             "fields": [
                                 {
-                                    "name": "#main/findFile/run/h/foo/a",
+                                    "name": "a",
                                     "type": "File"
                                 }
                             ]
@@ -214,7 +200,7 @@
                 ],
                 "outputs": [
                     {
-                        "id": "#main/findFile/run/errors",
+                        "id": "errors",
                         "type": "string",
                         "outputBinding": {
                             "glob": "errors.txt",
@@ -238,28 +224,17 @@
                         "shellQuote": false
                     }
                 ],
-                "hints": [
-                    {
-                        "loadListing": "deep_listing",
-                        "class": "LoadListingRequirement"
+                "hints": {
+                    "NetworkAccess": {
+                        "networkAccess": true
                     },
-                    {
-                        "networkAccess": true,
-                        "class": "NetworkAccess"
+                    "LoadListingRequirement": {
+                        "loadListing": "deep_listing"
                     }
-                ]
+                },
+                "id": "main@step_findFile@run"
             }
         }
     ],
-    "outputs": [
-        {
-            "id": "#main/errors",
-            "type": "string",
-            "outputSource": "#main/findFile/errors"
-        }
-    ],
-    "cwlVersion": "v1.2",
-    "$namespaces": {
-        "dx": "https://www.dnanexus.com/cwl#"
-    }
+    "requirements": []
 }

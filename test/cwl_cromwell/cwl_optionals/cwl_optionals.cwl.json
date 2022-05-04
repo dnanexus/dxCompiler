@@ -1,19 +1,17 @@
 {
+    "cwlVersion": "v1.2",
     "class": "CommandLineTool",
-    "hints": [
-        {
-            "dockerPull": "ubuntu:latest",
-            "class": "DockerRequirement"
+    "hints": {
+        "DockerRequirement": {
+            "dockerPull": "ubuntu:latest"
         },
-        {
-            "loadListing": "deep_listing",
-            "class": "LoadListingRequirement"
+        "NetworkAccess": {
+            "networkAccess": true
         },
-        {
-            "networkAccess": true,
-            "class": "NetworkAccess"
+        "LoadListingRequirement": {
+            "loadListing": "deep_listing"
         }
-    ],
+    },
     "inputs": [
         {
             "type": [
@@ -23,7 +21,7 @@
                     "items": "string"
                 }
             ],
-            "id": "#main/message"
+            "id": "message"
         },
         {
             "type": [
@@ -33,11 +31,11 @@
                     "items": "string"
                 }
             ],
-            "id": "#main/unsupplied_optional"
+            "id": "unsupplied_optional"
         }
     ],
     "baseCommand": "echo",
-    "id": "#main",
     "outputs": [],
-    "cwlVersion": "v1.2"
+    "requirements": [],
+    "id": "cwl_optionals.cwl"
 }

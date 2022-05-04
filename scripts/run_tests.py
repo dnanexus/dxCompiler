@@ -495,36 +495,33 @@ cwl_cromwell_tests_list = [
     "cwl_dynamic_initial_workdir",
     "cwl_expressionLib",
     "cwl_format",
-    # "cwl_format_url", # APPS-961 Could not load extension schema https
+    "cwl_format_url",
     "cwl_glob_sort",
     "cwl_hello",
-    # "cwl_http_inputs", # APPS-961 HTTPS input link is not supported:
-    #                     Error translating inputs: java.lang.RuntimeException: Unsupported file source .png
+    # "cwl_http_inputs", # Ignored: HTTPS input link is not supported
     "test_wf",
     "touch",
     "test_pack",
     "cwl_input_binding_expression",
-    # "cwl_input_json", # APPS-1008: Error translating to IR, downcasting failed
+    "cwl_input_json",
     "cwl_input_typearray",
     "cwl_interpolated_strings",
     "cwl_optionals",
     "cwl_output_json",
     "prefix_for_array",
-    "cwl_recursive_link_directories",
+    # "cwl_recursive_link_directories", # Ignored: Invalid test for cwltool
     "cwl_relative_imports",
-    # "cwl_disk_resources", # APPS-961 Could not resolve host: metadata.google.internal
-    #                       # Unknown hint https://www.dnanexus.com/cwl#InputResourceRequirement (Should be deprecated)
-    # "cwl_inputdir_zero_doesnt_localize", # APPS-1008: Error translating to IR, downcasting failed
-    # "cwl_resources", # APPS-961 Could not resolve host: metadata.google.internal
-    # "cwl_restart", # APPS-834 AppInternalError: workflow does not contain a tool
+    # "cwl_disk_resources", # Ignored: No support for GCP
+    "cwl_inputdir_zero_doesnt_localize",
+    # "cwl_resources", # Ignored: No support for GCP
+    "cwl_restart", 
     "1st-tool",
     "cwl_secondary_files",
-    # "cwl_secondary_files_workflow", # APPS-1005 Error creating translator
+    "cwl_secondary_files_workflow",
     "cwl_stdout_expression",
-    # "scatter-wf1", # APPS-834 Could not find linking information
-    # "cwl_three_step", # APPS-834 AppInternalError: workflow does not contain a tool
-    # "cwl_three_step_caller_wf" # APPS-834 AppInternalError: workflow does not contain a tool
-    #                              (raised from calling cwl_three_step)
+    "cwl_scatter-wf1", 
+    "cwl_three_step",
+    "cwl_three_step_caller_wf"
 ]
 
 # these are tests that take a long time to run
@@ -1608,7 +1605,7 @@ def register_all_tests(verbose: bool) -> None:
         ).endswith("_notimplemented"):
             continue
         for t_file in files:
-            if t_file.endswith(".wdl") or t_file.endswith(".cwl"):
+            if t_file.endswith(".wdl"): # or t_file.endswith(".cwl"):
                 base = os.path.basename(t_file)
                 (fname, ext) = os.path.splitext(base)
             elif t_file.endswith(".cwl.json"):

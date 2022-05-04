@@ -1,26 +1,25 @@
 {
+    "cwlVersion": "v1.2",
     "class": "CommandLineTool",
-    "hints": [
-        {
-            "loadListing": "deep_listing",
-            "class": "LoadListingRequirement"
+    "hints": {
+        "NetworkAccess": {
+            "networkAccess": true
         },
-        {
-            "networkAccess": true,
-            "class": "NetworkAccess"
+        "LoadListingRequirement": {
+            "loadListing": "deep_listing"
         }
-    ],
+    },
     "inputs": [
         {
             "type": "string",
             "inputBinding": {
                 "position": 1
             },
-            "id": "#main/message"
+            "id": "message"
         }
     ],
     "baseCommand": "echo",
-    "id": "#main",
     "outputs": [],
-    "cwlVersion": "v1.2"
+    "requirements": [],
+    "id": "1st-tool.cwl"
 }
