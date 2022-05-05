@@ -88,7 +88,7 @@
             "id": "undeclared_no_default",
             "inputBinding": {
               "position": 1,
-              "prefix": "\nthis should not appear: "
+              "prefix": "this should not appear:"
             }
           },
           {
@@ -99,7 +99,7 @@
             "id": "undeclared_with_default",
             "inputBinding": {
               "position": 2,
-              "prefix": "\nthis should appear:"
+              "prefix": "this should appear:"
             },
             "default": "there is a default."
           },
