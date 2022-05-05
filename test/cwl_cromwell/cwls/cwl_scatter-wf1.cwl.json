@@ -79,7 +79,7 @@
                     }
                 },
                 "requirements": [],
-                "id": "scatter-wf1.cwl@step_step1@run"
+                "id": "cwl_scatter-wf1.cwl@step_step1@run"
             },
             "id": "step1"
         }
@@ -94,5 +94,5 @@
             "id": "out"
         }
     ],
-    "id": "scatter-wf1.cwl"
+    "id": "cwl_scatter-wf1.cwl"
 }

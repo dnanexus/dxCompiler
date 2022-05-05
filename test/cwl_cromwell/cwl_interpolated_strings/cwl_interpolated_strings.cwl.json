@@ -1,46 +1,48 @@
 {
-    "id": "#main",
-    "class": "CommandLineTool",
-    "requirements": [
+    "cwlVersion": "v1.2",
+    "$graph": [
         {
-            "class": "ShellCommandRequirement"
+            "id": "main",
+            "class": "CommandLineTool",
+            "cwlVersion": "v1.0",
+            "requirements": [
+                {
+                    "class": "ShellCommandRequirement"
+                }
+            ],
+            "hints": {
+                "DockerRequirement": {
+                    "dockerPull": "debian:stretch-slim"
+                },
+                "NetworkAccess": {
+                    "networkAccess": true
+                },
+                "LoadListingRequirement": {
+                    "loadListing": "deep_listing"
+                }
+            },
+            "inputs": [
+                {
+                    "id": "bar",
+                    "type": "string"
+                },
+                {
+                    "id": "qux",
+                    "type": "string"
+                }
+            ],
+            "outputs": [
+                {
+                    "id": "rfc3092",
+                    "type": "string"
+                }
+            ],
+            "arguments": [
+                {
+                    "valueFrom": "echo '{ \"rfc3092\": \"foo $(inputs.bar) baz $(inputs.qux) quux\" }' > cwl.output.json\n",
+                    "shellQuote": false
+                }
+            ]
         }
-    ],
-    "hints": [
-        {
-            "dockerPull": "debian:stretch-slim",
-            "class": "DockerRequirement"
-        },
-        {
-            "loadListing": "deep_listing",
-            "class": "LoadListingRequirement"
-        },
-        {
-            "networkAccess": true,
-            "class": "NetworkAccess"
-        }
-    ],
-    "inputs": [
-        {
-            "id": "#main/bar",
-            "type": "string"
-        },
-        {
-            "id": "#main/qux",
-            "type": "string"
-        }
-    ],
-    "arguments": [
-        {
-            "valueFrom": "echo '{ \"rfc3092\": \"foo $(inputs.bar) baz $(inputs.qux) quux\" }' > cwl.output.json\n",
-            "shellQuote": false
-        }
-    ],
-    "outputs": [
-        {
-            "id": "#main/rfc3092",
-            "type": "string"
-        }
-    ],
-    "cwlVersion": "v1.2"
+    ]
 }

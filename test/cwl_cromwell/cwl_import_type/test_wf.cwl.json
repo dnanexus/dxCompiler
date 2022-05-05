@@ -1,101 +1,87 @@
 {
-    "$graph": [
+    "cwlVersion": "v1.2",
+    "class": "Workflow",
+    "requirements": [],
+    "inputs": [
         {
-            "class": "Workflow",
-            "requirements": [
-                {
-                    "class": "SchemaDefRequirement",
-                    "types": [
-                        {
-                            "name": "#capture_kit.yml/capture_kit",
-                            "type": "record",
-                            "fields": [
-                                {
-                                    "name": "#capture_kit.yml/capture_kit/bait",
-                                    "type": "string"
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ],
-            "inputs": [
-                {
-                    "id": "#main/bam",
-                    "type": "string"
-                },
-                {
-                    "id": "#main/capture_kit",
-                    "type": "#capture_kit.yml/capture_kit"
-                }
-            ],
-            "steps": [
-                {
-                    "id": "#main/touch_bam",
-                    "run": "#touch.cwl",
-                    "in": [
-                        {
-                            "id": "#main/touch_bam/input",
-                            "source": "#main/bam"
-                        }
-                    ],
-                    "out": [
-                        {
-                            "id": "#main/touch_bam/output"
-                        }
-                    ]
-                }
-            ],
-            "id": "#main",
-            "outputs": [
-                {
-                    "id": "#main/output_bam",
-                    "type": "File",
-                    "outputSource": "#main/touch_bam/output"
-                }
-            ]
+            "id": "bam",
+            "type": "string"
         },
         {
-            "class": "CommandLineTool",
-            "requirements": [
-                {
-                    "class": "DockerRequirement",
-                    "dockerPull": "ubuntu:bionic-20180426"
-                }
-            ],
-            "hints": [
-                {
-                    "loadListing": "deep_listing",
-                    "class": "LoadListingRequirement"
-                },
-                {
-                    "networkAccess": true,
-                    "class": "NetworkAccess"
-                }
-            ],
-            "inputs": [
-                {
-                    "id": "#touch.cwl/input",
-                    "type": "string",
-                    "inputBinding": {
-                        "position": 0
+            "id": "capture_kit",
+            "type": {
+                "name": "capture_kit",
+                "type": "record",
+                "fields": [
+                    {
+                        "name": "bait",
+                        "type": "string"
                     }
-                }
-            ],
-            "baseCommand": [
-                "touch"
-            ],
-            "outputs": [
-                {
-                    "id": "#touch.cwl/output",
-                    "type": "File",
-                    "outputBinding": {
-                        "glob": "$(inputs.input)"
-                    }
-                }
-            ],
-            "id": "#touch.cwl"
+                ]
+            }
         }
     ],
-    "cwlVersion": "v1.2"
+    "steps": [
+        {
+            "id": "touch_bam",
+            "run": {
+                "class": "CommandLineTool",
+                "requirements": [
+                    {
+                        "class": "DockerRequirement",
+                        "dockerPull": "ubuntu:bionic-20180426"
+                    }
+                ],
+                "hints": {
+                    "NetworkAccess": {
+                        "networkAccess": true
+                    },
+                    "LoadListingRequirement": {
+                        "loadListing": "deep_listing"
+                    }
+                },
+                "inputs": [
+                    {
+                        "id": "input",
+                        "type": "string",
+                        "inputBinding": {
+                            "position": 0
+                        }
+                    }
+                ],
+                "baseCommand": [
+                    "touch"
+                ],
+                "outputs": [
+                    {
+                        "id": "output",
+                        "type": "File",
+                        "outputBinding": {
+                            "glob": "$(inputs.input)"
+                        }
+                    }
+                ],
+                "id": "test_wf.cwl@step_touch_bam@touch.cwl"
+            },
+            "in": [
+                {
+                    "id": "input",
+                    "source": "bam"
+                }
+            ],
+            "out": [
+                {
+                    "id": "output"
+                }
+            ]
+        }
+    ],
+    "outputs": [
+        {
+            "id": "output_bam",
+            "type": "File",
+            "outputSource": "touch_bam/output"
+        }
+    ],
+    "id": "test_wf.cwl"
 }

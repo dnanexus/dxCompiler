@@ -5,6 +5,7 @@ $graph:
   class: CommandLineTool
   baseCommand: ['python3']
   requirements:
+  - class: InlineJavascriptRequirement
   - class: DockerRequirement
     dockerPull: "python:3.5.0"
   - class: InitialWorkDirRequirement
