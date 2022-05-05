@@ -228,7 +228,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       WdlDocumentSource(standAloneWorkflowDocument, versionSupport)
     }
 
-    // Only the toplevel workflow may be unlocked. This happens
+    // Only the top level workflow may be unlocked. This happens
     // only if the user specifically compiles it as "unlocked".
     protected lazy val isLocked: Boolean = {
       wdlBundle.primaryCallable match {
@@ -435,8 +435,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
 
     /**
       * A block inside a conditional or scatter. If it is simple, we can use a
-      * direct call. Otherwise, recursively call into the asssemble-backbone
-      * method, and get a locked subworkflow.
+      * direct call. Otherwise, recursively call into the assemble-backbone
+      * method, and get a locked sub-workflow.
       * @param wfName workflow name
       * @param statements statements in the Block
       * @param blockPath block path
@@ -457,7 +457,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         }
         // At runtime, we will need to execute a workflow fragment. This requires an applet.
         // This is a recursive call, to compile a potentially complex sub-block. It could
-        // have many calls generating many applets and subworkflows.
+        // have many calls generating many applets and sub-workflows.
         val (stage, aux) = translateWfFragment(wfName, block, blockPath :+ 0, scatterPath, env)
         val fragName = stage.calleeName
         val main = aux.find(_.name == fragName) match {
@@ -466,10 +466,10 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         }
         (main, aux)
       } else {
-        // There are several subblocks, we need a subworkflow to string them together.
-        // The subworkflow may access variables outside of its scope. For example,
+        // There are several sub-blocks, we need a sub-workflow to string them together.
+        // The sub-workflow may access variables outside of its scope. For example,
         // stage-0.result, and stage-1.result are inputs to stage-2, that belongs to
-        // a subworkflow. Because the subworkflow is locked, we need to make them
+        // a sub-workflow. Because the sub-workflow is locked, we need to make them
         // proper inputs.
         //
         //  |- stage-0.result
@@ -530,7 +530,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                 |""".stripMargin
         )
 
-        // A block subworkflow is created here
+        // A block sub-workflow is created here
         val (subwf, auxCallables, _) = translateWorkflowLocked(
             s"${wfName}_block_${pathStr}",
             inputs,
@@ -583,7 +583,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
 
       // The fragment runner can only handle a single call. If the block contains a
       // scatter/conditional with several calls, then we compile the inner block into a sub-workflow.
-      // We also need the name of the callable so  we can link with it when in the compile phase.
+      // We also need the name of the callable so we can link with it when in the compile phase.
       // TODO: handle call.afters - we need to bundle some metadata with the applet so that it can
       //  launch the call execution with dependencies on the right upstream executions.
       val (innerCall, auxCallables, newScatterPath) =
@@ -839,7 +839,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       val (outputsToPass, outputsToEval) = outputs.partition(o => env.contains(o.name))
       val outputsToPassEnv: Map[DxName, LinkedVar] =
         outputsToPass.map(o => o.name -> env(o.name)).toMap
-      // create inputs from the closure of the output nodes that need to be evaluate,
+      // create inputs from the closure of the output nodes that need to be evaluated,
       // which includes (recursively) all the variables in the output node expressions
       val outputsToEvalClosureEnv: Map[DxName, LinkedVar] = {
         WdlUtils
