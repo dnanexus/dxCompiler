@@ -177,8 +177,8 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       jobInputs: Map[DxName, (Type, Value)],
       addReorgStatus: Boolean
   ): Map[DxName, (Type, Value)] = {
-    // This might be the output for the entire workflow or just a subblock.
-    // If it is for a sublock, it may be for the body of a conditional or
+    // This might be the output for the entire workflow or just a sub-block.
+    // If it is for a sub-block, it may be for the body of a conditional or
     // scatter, in which case we only need the outputs of the body statements.
     val outputParams: Vector[(DxName, (T, TAT.Expr))] = jobMeta.blockPath match {
       case Vector() =>

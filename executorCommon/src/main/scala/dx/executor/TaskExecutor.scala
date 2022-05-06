@@ -668,9 +668,10 @@ abstract class TaskExecutor(jobMeta: JobMeta,
                               listings: Listings): Map[DxName, (Type, Value)] = {
     // For folders/listings, we have to determine the project output folder, because the platform
     // won't automatically update directory URIs like it does for data object links. The output
-    // folder is either the manifest folder or the concatination of the job/analysis output folder
+    // folder is either the manifest folder or the concatenation of the job/analysis output folder
     // and the container output folder.
     val parentProjectFolder = DxFolderSource.ensureEndsWithSlash(jobMeta.projectOutputFolder)
+    logger.trace(s"Parent folder is ${parentProjectFolder}") // GVAIHIR
 
     // replace local paths with remote URIs
     def handlePath(value: PathValue,
@@ -997,7 +998,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
 
     // Upload output files/directories and replace local paths with remote URIs in the output
     // values. An output file/folder may have been created on the worker or it may be an input that
-    // originated either on the worker or from the platform. We don't want to reupload
+    // originated either on the worker or from the platform. We don't want to re-upload
     // files/directories that already have an identical copy at the specified output location on
     // the platform, but otherwise we need to upload them.
     if (localizedOutputs.nonEmpty) {
