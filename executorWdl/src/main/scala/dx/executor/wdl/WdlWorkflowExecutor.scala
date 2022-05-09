@@ -522,7 +522,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       (dxExecution, executableLink, execName)
     }
 
-    override protected def launchCall(blockIndex: Int): Map[DxName, ParameterLink] = {
+    override protected def launchBlockCall(blockIndex: Int): Map[DxName, ParameterLink] = {
       val callInputs = evaluateCallInputs()
       val (dxExecution, executableLink, callName) =
         launchCall(callInputs, Some(blockIndex.toString))
@@ -604,7 +604,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
           // }
           // The flag evaluates to true, so execute the inner call
           // and ensure it's output type is optional
-          launchCall(block.index)
+          launchBlockCall(block.index)
         case (V_Boolean(true), BlockKind.ConditionalComplex) =>
           // A complex subblock requiring a fragment runner, or a subworkflow. For example:
           //

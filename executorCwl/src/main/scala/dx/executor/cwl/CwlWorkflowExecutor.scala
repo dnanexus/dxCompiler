@@ -446,13 +446,14 @@ case class CwlWorkflowExecutor(workflow: Workflow,
     }
 
     private def evaluateCallStepInputs(
-        isConditinal: Boolean = false
+        inputs: Option[Map[DxName, (WorkflowStepInput, (CwlType, CwlValue))]] = None,
+        isConditional: Boolean = false
     ): Map[DxName, (WorkflowStepInput, (CwlType, CwlValue))] = {
       // Evaluate all the step inputs for a call. There may be step inputs that are not passed to
       // the callee but are referred to in expressions of other step inputs' valueFrom fields. Note
       // that the step input's type here might not match the callee's input type if valueFrom is
       // specified.
-      val stepInputs = step.inputs.map(evaluateStepInput(_, cwlEnv)).toMap
+      val stepInputs = inputs.getOrElse(step.inputs.map(evaluateStepInput(_, cwlEnv)).toMap)
       // evaluate valueFrom expressions - create the evaluator lazily since it might not be needed
       lazy val evalInputs: ObjectValue = createEvalInputs(stepInputs.values.toMap)
       val stepInputValues = stepInputs.map {
@@ -481,7 +482,7 @@ case class CwlWorkflowExecutor(workflow: Workflow,
             val cwlType = runInputs
               .get(dxName)
               .map {
-                case inp if isConditinal && CwlOptional.isOptional(sourceType) =>
+                case inp if isConditional && CwlOptional.isOptional(sourceType) =>
                   // if the source type is optional, it may be used in the 'when' expression of a
                   // conditional, so we force the dest type to be optional
                   CwlOptional.ensureOptional(inp.cwlType)
@@ -547,8 +548,8 @@ case class CwlWorkflowExecutor(workflow: Workflow,
 
     private def launchCall(
         callInputs: Map[DxName, (CwlType, CwlValue)],
-        nameDetail: Option[String] = None,
-        folder: Option[String] = None
+        nameDetail: Option[String],
+        folder: Option[String]
     ): (DxExecution, ExecutableLink, String) = {
       logger.traceLimited(
           s"""|call = ${step}
@@ -602,8 +603,9 @@ case class CwlWorkflowExecutor(workflow: Workflow,
       (dxExecution, executableLink, execName)
     }
 
-    private def launchCall(stepInputs: Map[DxName, (WorkflowStepInput, (CwlType, CwlValue))],
-                           blockIndex: Int): Map[DxName, ParameterLink] = {
+    private def launchStepCall(stepInputs: Map[DxName, (WorkflowStepInput, (CwlType, CwlValue))],
+                               nameDetail: Option[String],
+                               blockIndex: Option[Int]): (DxExecution, ExecutableLink, String) = {
       // collect all the step input values to pass to the callee
       val callInputs: Map[DxName, (CwlType, CwlValue)] = step.run.inputs.map { param =>
         val dxName = CwlDxName.fromSourceName(param.name)
@@ -618,28 +620,33 @@ case class CwlWorkflowExecutor(workflow: Workflow,
             )
           }
       }.toMap
-      val (dxExecution, executableLink, callName) =
-        launchCall(callInputs, folder = Some(blockIndex.toString))
-      jobMeta.createExecutionOutputLinks(dxExecution, executableLink.outputs, Some(callName))
+      launchCall(callInputs, nameDetail, folder = blockIndex.map(_.toString))
     }
 
-    override protected def launchCall(blockIndex: Int): Map[DxName, ParameterLink] = {
+    override protected def launchBlockCall(blockIndex: Int): Map[DxName, ParameterLink] = {
       assert(step.scatter.isEmpty)
       assert(step.when.isEmpty)
-      launchCall(evaluateCallStepInputs(), blockIndex)
+      val (dxExecution, executableLink, callName) =
+        launchStepCall(evaluateCallStepInputs(), nameDetail = None, blockIndex = Some(blockIndex))
+      jobMeta
+        .createExecutionOutputLinks(dxExecution, executableLink.outputs, Some(callName))
     }
 
     override protected def launchConditional(): Map[DxName, ParameterLink] = {
       assert(step.scatter.isEmpty)
       assert(step.when.nonEmpty)
-      val stepInputs = evaluateCallStepInputs(isConditinal = true)
+      val stepInputs = evaluateCallStepInputs(isConditional = true)
       val ctx = EvaluatorContext(inputs = createEvalInputs(stepInputs.values.toMap))
       val (_, cond) = eval.evaluate(step.when.get, CwlBoolean, ctx, coerce = true)
       cond match {
         case BooleanValue(true) =>
-          launchCall(stepInputs, block.index).map {
-            case (key, link) => key -> link.makeOptional
-          }
+          val (dxExecution, executableLink, callName) =
+            launchStepCall(stepInputs, nameDetail = None, blockIndex = Some(block.index))
+          jobMeta
+            .createExecutionOutputLinks(dxExecution, executableLink.outputs, Some(callName))
+            .map {
+              case (key, link) => key -> link.makeOptional
+            }
         case _ => Map.empty
       }
     }
@@ -749,51 +756,11 @@ case class CwlWorkflowExecutor(workflow: Workflow,
               case (dxName, tv) => dxName -> (stepInputs(dxName)._1, tv)
             }
             .toMap
-        lazy val evalInputs: ObjectValue = createEvalInputs(allStepInputs.values.toMap)
-        val scatterJobInputs = runInputs.map {
-          case (dxName, param) =>
-            val (stepInput, (sourceType, sourceValue)) = allStepInputs(dxName)
-            if (stepInput.valueFrom.isDefined) {
-              val selfValue = EvaluatorContext.finalizeInputValue(
-                  sourceValue,
-                  sourceType,
-                  stepInput,
-                  fileResolver = jobMeta.fileResolver
-              )
-              try {
-                dxName -> eval.evaluate(stepInput.valueFrom.get,
-                                        param.cwlType,
-                                        EvaluatorContext(selfValue, evalInputs),
-                                        coerce = true)
-              } catch {
-                case cause: Throwable =>
-                  throw new Exception(
-                      s"error evaluating stepInput ${stepInput.name} valueFrom ${stepInput.valueFrom.get}",
-                      cause
-                  )
-              }
-            } else {
-              val cwlType = if (step.when.isDefined && CwlOptional.isOptional(sourceType)) {
-                // if the source type is optional, it may be used in the 'when' expression of a
-                // conditional, so we force the dest type to be optional
-                CwlOptional.ensureOptional(param.cwlType)
-              } else {
-                param.cwlType
-              }
-              try {
-                dxName -> sourceValue.coerceTo(cwlType)
-              } catch {
-                case cause: Throwable =>
-                  throw new Exception(
-                      s"""effective type ${sourceType} of stepInput ${stepInput.name} value
-                         |${sourceValue} to parameter ${dxName} is not coercible to expected type
-                         |${param.cwlType}""".stripMargin.replaceAll("\n", " "),
-                      cause
-                  )
-              }
-            }
-        }
-        val (dxExecution, _, _) = launchCall(scatterJobInputs, Some(getScatterName(scatterValues)))
+        val scatterJobInputs =
+          evaluateCallStepInputs(Some(allStepInputs), isConditional = step.when.nonEmpty)
+        val (dxExecution, _, _) = launchStepCall(stepInputs = scatterJobInputs,
+                                                 nameDetail = Some(getScatterName(scatterValues)),
+                                                 blockIndex = None)
         dxExecution
       }
 
