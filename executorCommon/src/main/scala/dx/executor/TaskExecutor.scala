@@ -671,7 +671,6 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     // folder is either the manifest folder or the concatenation of the job/analysis output folder
     // and the container output folder.
     val parentProjectFolder = DxFolderSource.ensureEndsWithSlash(jobMeta.projectOutputFolder)
-    logger.trace(s"Parent folder is ${parentProjectFolder}") // GVAIHIR
 
     // replace local paths with remote URIs
     def handlePath(value: PathValue,
@@ -876,7 +875,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
 
     // This object handles mapping FileSources to local paths and deals with file name
     // collisions in the manner specified by the WDL spec. All remote input files except those
-    // streamed by dxfuse are placed in subfolders of the /home/dnanexus/inputs directory.
+    // streamed by dxfuse are placed in sub-folders of the /home/dnanexus/inputs directory.
     val localizer = SafeLocalizationDisambiguator.create(
         rootDir = workerPaths.getInputFilesDir().asJavaPath,
         separateDirsBySource = true,
@@ -1033,7 +1032,6 @@ abstract class TaskExecutor(jobMeta: JobMeta,
       } else {
         Map.empty[Path, DxFile]
       }
-
       // replace local paths with remote paths in outputs
       val delocalizedOutputs = delocalizePaths(finalizedOutputs,
                                                uploadedFiles,
