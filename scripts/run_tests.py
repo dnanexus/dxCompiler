@@ -119,7 +119,7 @@ wdl_v1_list = [
     "map_file_key",
     # defaults and parameter passing
     "top_wf",
-    "subworkflow_with_default",
+    "workflow_with_subworkflow",
     # can we download from a container?
     "download_from_container",
     # input file with pairs
