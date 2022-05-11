@@ -228,6 +228,28 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       WdlDocumentSource(standAloneWorkflowDocument, versionSupport)
     }
 
+    private def collectDependencyOutputs: Map[String, Vector[_]] = {
+      val unflattenedOuts: Map[String, Vector[_]] = availableDependencies map {
+        case (dependencyName: String, callable: Callable) =>
+          dependencyName -> (callable match {
+            case app: Application => app.outputs
+            case wf: Workflow     => wf.outputs
+            case other            => throw new Exception(s"Unexpected class ${other}")
+          }).map {
+            case param: Parameter =>
+              param.copy(name =
+                WdlDxName.fromDecodedName(s"${dependencyName}.${param.name.toString}")
+              )
+            case (param: Parameter, link: StageInputStageLink) =>
+              (param.copy(name =
+                 WdlDxName.fromDecodedName(s"${dependencyName}.${param.name.toString}")
+               ),
+               link)
+          }
+      }
+      unflattenedOuts // GVAIHIR
+    }
+
     // Only the top level workflow may be unlocked. This happens
     // only if the user specifically compiles it as "unlocked".
     protected lazy val isLocked: Boolean = {
@@ -671,6 +693,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           Parameter(dxName, WdlUtils.toIRType(wdlType))
       }
 
+      val aa = collectDependencyOutputs // GVAIHIR
+      logger.trace(s"${aa}")
       // create the type map that will be serialized in the applet's details
       val fqnDictTypes: Map[DxName, Type] = inputParams.map { param: Parameter =>
         param.name -> param.dxType
