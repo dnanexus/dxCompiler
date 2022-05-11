@@ -4,6 +4,7 @@
 
 * WDL: Fix to native app(let)s instance override with system requirements (cpu/memory/disks) in case of the direct calls and executions within fragments. Only `-instanceTypeSelection static` (default) is supported. If compiled with `dynamic` - default instances will be used.
 * CWL: Implement task/fragment applets and workflows reuse. Same as in WDL, the `DocContents` attribute, which is the part of source code that defines each executable, is now used for checksum calculation and comparison. However, since the CWL source code is packed as a nested JSON file (instead of standalone blocks in WDL), fragment applets and workflows will also include the code of all underlying processes in their `DocContents`, and they will not be reused if the wrapped applets/subworkflows have changed.
+* CWL: Fix evaluating scatter inputs during workflow execution. It would no longer raise an error if optional inputs of the underlying task are not declared at the scatter level.
 
 ## 2.10.1 2022-04-18
 
