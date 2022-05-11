@@ -1,10 +1,15 @@
 # Release Notes
 
-## in develop
+## 2.10.2 2022-05-11
 
 * WDL: Fix to native app(let)s instance override with system requirements (cpu/memory/disks) in case of the direct calls and executions within fragments. Only `-instanceTypeSelection static` (default) is supported. If compiled with `dynamic` - default instances will be used.
-* CWL: Implement task/fragment applets and workflows reuse. Same as in WDL, the `DocContents` attribute, which is the part of source code that defines each executable, is now used for checksum calculation and comparison. However, since the CWL source code is packed as a nested JSON file (instead of standalone blocks in WDL), fragment applets and workflows will also include the code of all underlying processes in their `DocContents`, and they will not be reused if the wrapped applets/subworkflows have changed.
+* CWL: Partial implementation of task/fragment applets and workflows reuse. Same as in WDL, the `DocContents` attribute, which is the part of source code that defines each executable, is now used for checksum calculation and comparison. However, since the CWL source code is packed as a nested JSON file (instead of standalone blocks in WDL), fragment applets and workflows will also include the code of all underlying processes in their `DocContents`, and they will not be reused if the wrapped applets/subworkflows have changed.
 * CWL: Fix evaluating scatter inputs during workflow execution. It would no longer raise an error if optional inputs of the underlying task are not declared at the scatter level.
+
+### Dependency updates
+
+* wdlTools [0.17.10](https://github.com/dnanexus/wdlTools/blob/release-0.17.10/RELEASE_NOTES.md#01710-2022-05-11)
+* dxCommon [0.11.3](https://github.com/dnanexus/dxScala/blob/release-0.11.3/common/RELEASE_NOTES.md#0113-2022-05-11)
 
 ## 2.10.1 2022-04-18
 
