@@ -1650,6 +1650,24 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     }
     appletId shouldBe appletId2
   }
+
+  it should "reuse identical cwl tasks" in {
+    val path = pathFromBasename("cwl", "params.cwl.json")
+    val args = path.toString :: cFlags
+    val appletId = Main.compile(args.toVector) match {
+      case SuccessfulCompileNativeNoTree(_, Vector(appletId)) => appletId
+      case other =>
+        throw new Exception(s"expected single applet not ${other}")
+    }
+    // compiling a second time into a different folder with -projectWideReuse should reuse the same applet
+    val args2 = path.toString :: cFlagsReuse
+    val appletId2 = Main.compile(args2.toVector) match {
+      case SuccessfulCompileNativeNoTree(_, Vector(applet2Id)) => applet2Id
+      case other =>
+        throw new Exception(s"expected single applet not ${other}")
+    }
+    appletId shouldBe appletId2
+  }
 //  it should "compile a task with a string + int concatenation" taggedAs NativeTest in {
 //    val path = pathFromBasename("non_spec", "string_int_concat.wdl")
 //    val args = path.toString :: "-wdlMode" :: "lenient" :: cFlags

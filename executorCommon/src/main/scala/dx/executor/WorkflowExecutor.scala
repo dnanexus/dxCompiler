@@ -271,7 +271,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
       }
     }
 
-    protected def launchCall(blockIndex: Int): Map[DxName, ParameterLink]
+    protected def launchBlockCall(blockIndex: Int): Map[DxName, ParameterLink]
 
     protected def launchConditional(): Map[DxName, ParameterLink]
 
@@ -721,7 +721,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
     def launch(): Map[DxName, ParameterLink] = {
       val outputs: Map[DxName, ParameterLink] = block.kind match {
         case BlockKind.CallWithSubexpressions | BlockKind.CallFragment =>
-          launchCall(block.index)
+          launchBlockCall(block.index)
         case BlockKind.ConditionalOneCall | BlockKind.ConditionalComplex =>
           launchConditional()
         case BlockKind.ScatterOneCall | BlockKind.ScatterComplex =>

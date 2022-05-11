@@ -1,0 +1,141 @@
+{
+  "class": "Workflow",
+  "cwlVersion": "v1.2",
+  "id": "apps-1191_scatter_optional",
+  "inputs": [
+    {
+      "default": [
+        1,
+        2
+      ],
+      "id": "scatter_input",
+      "type": {
+        "items": "int",
+        "type": "array"
+      }
+    },
+    {
+      "default": [
+        false,
+        true,
+        false,
+        true
+      ],
+      "id": "condition_arg",
+      "type": {
+        "items": "boolean",
+        "type": "array"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "scatter_output",
+      "outputSource": "step1/scatter_output",
+      "pickValue": "all_non_null",
+      "type": {
+          "items": {
+            "items": [
+              "null",
+              "string"
+            ],
+            "type": "array"
+        },
+        "type": "array"
+      }
+    }
+  ],
+  "requirements": [
+    {
+      "class": "ScatterFeatureRequirement"
+    },
+    {
+      "class": "SubworkflowFeatureRequirement"
+    },
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step1",
+      "in": [
+        {
+          "id": "scatter_input",
+          "source": "scatter_input"
+        },
+        {
+          "id": "condition_input",
+          "source": "condition_arg"
+        }
+      ],
+      "out": [
+        "scatter_output"
+      ],
+      "run": {
+        "baseCommand": [
+          "echo",
+          ""
+        ],
+        "class": "CommandLineTool",
+        "id": "echo",
+        "inputs": [
+          {
+            "type": [
+              "null",
+              "string"
+            ],
+            "id": "undeclared_no_default",
+            "inputBinding": {
+              "position": 1,
+              "prefix": "this should not appear:"
+            }
+          },
+          {
+            "type": [
+              "null",
+              "string"
+            ],
+            "id": "undeclared_with_default",
+            "inputBinding": {
+              "position": 2,
+              "prefix": "this should appear:"
+            },
+            "default": "there is a default."
+          },
+          {
+            "id": "scatter_input",
+            "type": "int",
+            "inputBinding": {
+              "position": 0,
+              "prefix": "scatter number:"
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "id": "scatter_output",
+            "outputBinding": {
+              "glob": "out.txt",
+              "loadContents": true,
+              "outputEval": "$(self[0].contents)"
+            },
+            "type": "string"
+          }
+        ],
+        "requirements": [
+          {
+            "class": "InlineJavascriptRequirement"
+          }
+        ],
+        "stdout": "out.txt"
+      },
+      "scatter": [
+        "scatter_input",
+        "condition_input"
+      ],
+      "scatterMethod": "nested_crossproduct",
+      "when": "$(inputs.condition_input)"
+    }
+  ]
+}
