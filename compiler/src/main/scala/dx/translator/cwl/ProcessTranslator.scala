@@ -478,7 +478,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
     }
 
     /**
-      * Builds an applet to evaluate a WDL workflow fragment.
+      * Builds an applet to evaluate a CWL workflow fragment.
       *
       * @param wfName the workflow name
       * @param block the Block to translate into a WfFragment

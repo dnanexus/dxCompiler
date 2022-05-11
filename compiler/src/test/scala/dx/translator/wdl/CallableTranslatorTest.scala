@@ -77,11 +77,66 @@ class CallableTranslatorTest extends AnyFlatSpec with Matchers {
     )
   }
 
-  // APPS-1175
-  it should "translate a workflow wrapped in a frag applet and propagate the outputs of its stages to the outputs of the frag" in {
+  // APPS-1175 - frag
+  it should "translate with a workflow wrapped in a frag applet and propagate the outputs of its stages to the " +
+    "outputs of the frag" in {
     val (doc, typeAliases, versionSupport) =
       VersionSupport.fromSourceFile(
-          pathFromBasename("subworkflows", "apps_1175_nested_wf_intermediate_outputs.wdl")
+          pathFromBasename("subworkflows", "apps_1175_nested_wf_frag.wdl")
+      )
+    val sortedCallables = getSortedCallables(
+        doc = doc,
+        typeAliases = typeAliases,
+        versionSupport = versionSupport
+    )
+    sortedCallables.count(_.name.contains("frag")) shouldBe 1
+    val fragWrapperOuts = sortedCallables.filter(_.name.contains("frag")).head match {
+      case app: Application => app.outputs
+      case wf: Workflow     => wf.outputs
+      case _                => throw new Exception("Unexpected callable type")
+    }
+    fragWrapperOuts.size shouldBe 2
+    fragWrapperOuts shouldBe a[Vector[_]]
+    val outTypes: Map[String, Type] = (fragWrapperOuts map {
+      case (param: Parameter, _) => param.name.toString -> param.dxType
+      case param: Parameter      => param.name.toString -> param.dxType
+    }).toMap
+    outTypes("nested_inner.nested_inner_wf_out") shouldBe Type.TFile
+    outTypes("nested_inner.___test_inner1.test_out") shouldBe Type.TFile
+  }
+
+  // APPS-1175 - frag with 2 separate calls instead of a nested workflow
+  it should "translate a frag wrapper with 2 calls and maintain outputs from both calls" in {
+    val (doc, typeAliases, versionSupport) =
+      VersionSupport.fromSourceFile(
+          pathFromBasename("subworkflows", "apps_1175_frag_2_calls.wdl")
+      )
+    val sortedCallables = getSortedCallables(
+        doc = doc,
+        typeAliases = typeAliases,
+        versionSupport = versionSupport
+    )
+    sortedCallables.count(_.name.contains("frag")) shouldBe 1
+    val fragWrapperOuts = sortedCallables.filter(_.name.contains("frag")).head match {
+      case app: Application => app.outputs
+      case wf: Workflow     => wf.outputs
+      case _                => throw new Exception("Unexpected callable type")
+    }
+    fragWrapperOuts.size shouldBe 3
+    val outTypes: Map[String, Type] = (fragWrapperOuts map {
+      case (param: Parameter, _) => param.name.toString -> param.dxType
+      case param: Parameter      => param.name.toString -> param.dxType
+    }).toMap
+    outTypes("nested_inner.nested_inner_wf_out") shouldBe Type.TFile
+    outTypes("nested_inner.___test_inner1.test_out") shouldBe Type.TFile
+  }
+
+  // APPS-1175 - conditional
+  it should "translate with a workflow wrapped in a conditional frag applet and propagate the outputs of its stages " +
+    "to the outputs of the frag" in {
+    val (doc, typeAliases, versionSupport) =
+      VersionSupport.fromSourceFile(
+          pathFromBasename("subworkflows", "apps_1175_nested_wf_conditional.wdl")
       )
     val sortedCallables = getSortedCallables(
         doc = doc,
