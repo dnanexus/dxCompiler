@@ -48,8 +48,8 @@ case class DxExecutableDirectory(bundle: Bundle,
                                  dxApi: DxApi = DxApi.get,
                                  logger: Logger = Logger.get) {
 
-  // a list of all dx:workflow and dx:applet names used in this WDL workflow
-  private val allExecutableNames: Set[String] = bundle.allCallables.keySet
+  // a list of all dx:workflow and dx:applet names used in this workflow
+  private val allExecutableNames: Set[String] = bundle.allCallables.map(_._2.dxName).toSet
   private val dxFind = DxFindDataObjects(dxApi)
 
   /**
