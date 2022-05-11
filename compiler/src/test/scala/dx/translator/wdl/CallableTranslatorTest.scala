@@ -2,7 +2,7 @@ package dx.translator.wdl
 
 import dx.api.InstanceTypeRequest
 import dx.core.ir.RunSpec.StaticInstanceType
-import dx.core.ir.{Application, Callable, InstanceTypeSelection, Workflow}
+import dx.core.ir.{Application, Callable, InstanceTypeSelection, Parameter, Type, Workflow}
 import dx.core.languages.wdl.{VersionSupport, WdlBundle}
 import dx.translator.DefaultReorgSettings
 import dx.util.Bindings
@@ -75,6 +75,33 @@ class CallableTranslatorTest extends AnyFlatSpec with Matchers {
     deconstructedCallables("reuse_frag_stage-0") should not equal deconstructedCallables(
         "reuse_block_4"
     )
+  }
+
+  // APPS-1175
+  it should "translate a workflow wrapped in a frag applet and propagate the outputs of its stages to the outputs of the frag" in {
+    val (doc, typeAliases, versionSupport) =
+      VersionSupport.fromSourceFile(
+          pathFromBasename("subworkflows", "apps_1175_nested_wf_intermediate_outputs.wdl")
+      )
+    val sortedCallables = getSortedCallables(
+        doc = doc,
+        typeAliases = typeAliases,
+        versionSupport = versionSupport
+    )
+    sortedCallables.count(_.name.contains("frag")) shouldBe 1
+    val fragWrapperOuts = sortedCallables.filter(_.name.contains("frag")).head match {
+      case app: Application => app.outputs
+      case wf: Workflow     => wf.outputs
+      case _                => throw new Exception("Unexpected callable type")
+    }
+    fragWrapperOuts.size shouldBe 2
+    fragWrapperOuts shouldBe a[Vector[_]]
+    val outTypes: Map[String, Type] = (fragWrapperOuts map {
+      case (param: Parameter, _) => param.name.toString -> param.dxType
+      case param: Parameter      => param.name.toString -> param.dxType
+    }).toMap
+    outTypes("nested_inner.nested_inner_wf_out") shouldBe Type.TFile
+    outTypes("nested_inner.___test_inner1.test_out") shouldBe Type.TFile
   }
 
   it should "render same wdl code for every unchanged block/app/frag and different if there are changes" in {

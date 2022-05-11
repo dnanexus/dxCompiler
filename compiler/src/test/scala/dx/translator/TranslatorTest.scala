@@ -56,23 +56,7 @@ class TranslatorTest extends AnyFlatSpec with Matchers {
       case _              => throw new Exception(s"${name} is not an applet")
     }
 
-  "Translator" should "compile a nested workflow with stages to upload intermediate output files" in {
-    val path = pathFromBasename("subworkflows", "apps_1175_nested_wf_intermediate_outputs.wdl")
-    val args = path.toString :: cFlags
-    val retval = Main.compile(args.toVector)
-    retval shouldBe a[SuccessfulCompileIR]
-    val bundle = retval match {
-      case SuccessfulCompileIR(irwf) => irwf
-      case _                         => throw new Exception("unexpected")
-    }
-    val primaryWf: Workflow = bundle.primaryCallable match {
-      case Some(wf: Workflow) => wf
-      case _                  => throw new Exception("unexpected")
-    }
-    primaryWf.stages.size shouldBe 2
-  }
-
-  it should "IR compile a single WDL task" in {
+  "Translator" should "IR compile a single WDL task" in {
     val path = pathFromBasename("compiler", "add.wdl")
     val args = path.toString :: cFlags
     Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
