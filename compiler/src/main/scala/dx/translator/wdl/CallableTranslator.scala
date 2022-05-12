@@ -228,8 +228,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       WdlDocumentSource(standAloneWorkflowDocument, versionSupport)
     }
 
-    private def collectDependencyOutputs: Map[String, Vector[_]] = {
-      val unflattenedOuts: Map[String, Vector[_]] = availableDependencies map {
+    private lazy val dependencyOutputs: Map[String, Vector[_]] = {
+      availableDependencies map {
         case (dependencyName: String, callable: Callable) =>
           dependencyName -> (callable match {
             case app: Application => app.outputs
@@ -247,7 +247,6 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                link)
           }
       }
-      unflattenedOuts // GVAIHIR
     }
 
     // Only the top level workflow may be unlocked. This happens
