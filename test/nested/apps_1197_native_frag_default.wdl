@@ -19,7 +19,7 @@ workflow apps_1197_native_frag_default {
   # meta section
   call apps_1197_default_instance_meta {
     input:
-      mock_input_meta = "apps_1197_default_instance_meta"
+      mock_input = "apps_1197_default_instance_meta"
   }
 
 
@@ -28,7 +28,7 @@ workflow apps_1197_native_frag_default {
   if (a) {
     call apps_1197_default_instance_meta as frag_default_meta {
       input:
-        mock_input_meta = "frag_default_meta"
+        mock_input = "frag_default_meta"
     }
   }
 
@@ -63,7 +63,7 @@ task apps_1197_default_instance {
 
 task apps_1197_default_instance_meta {
   input {
-    String? mock_input_meta
+    String? mock_input
   }
 
   command <<< >>>
