@@ -158,7 +158,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     }.toMap
     stagesSysReq.size shouldBe 2
     stagesSysReq("if (a)") shouldBe JsObject.empty
-    stagesSysReq("apps_1197_default_isntance") shouldBe JsObject.empty
+    stagesSysReq("apps_1197_default_instance") shouldBe JsObject.empty
   }
 
   it should "compile a workflow with a native app and override instance based using RAM and CPU spec" in {

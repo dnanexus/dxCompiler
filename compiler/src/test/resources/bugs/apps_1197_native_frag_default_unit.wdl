@@ -3,19 +3,19 @@ version 1.0
 workflow apps_1197_native_frag_default_unit {
 
     # Memory
-    call apps_1197_default_isntance {}
+    call apps_1197_default_instance {}
 
     # Conditional mem
     Boolean a = true
     if (a) {
-        call apps_1197_default_isntance as conditional_mem {}
+        call apps_1197_default_instance as conditional_mem {}
     }
 
 
 }
 
 
-task apps_1197_default_isntance {
+task apps_1197_default_instance {
   input {
     String? mock_input = "asdl"
   }
