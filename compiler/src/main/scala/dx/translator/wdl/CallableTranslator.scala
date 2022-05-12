@@ -228,8 +228,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       WdlDocumentSource(standAloneWorkflowDocument, versionSupport)
     }
 
-    private lazy val dependencyOutputs: Map[String, Vector[_]] = {
-      availableDependencies map {
+    private lazy val dependencyOutputs: Map[Parameter, Option[StageInputStageLink]] = {
+      val flatOutputs: Map[String, Vector[Product]] = availableDependencies map {
         case (dependencyName: String, callable: Callable) =>
           dependencyName -> (callable match {
             case app: Application => app.outputs
@@ -247,6 +247,10 @@ case class CallableTranslator(wdlBundle: WdlBundle,
                link)
           }
       }
+      (flatOutputs.values.toVector.flatten map {
+        case param: Parameter                              => param -> None
+        case (param: Parameter, link: StageInputStageLink) => param -> Some(link)
+      }).toMap
     }
 
     // Only the top level workflow may be unlocked. This happens
@@ -692,7 +696,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           Parameter(dxName, WdlUtils.toIRType(wdlType))
       }
 
-      val aa = collectDependencyOutputs // GVAIHIR
+      val aa = dependencyOutputs // GVAIHIR
       logger.trace(s"${aa}")
       // create the type map that will be serialized in the applet's details
       val fqnDictTypes: Map[DxName, Type] = inputParams.map { param: Parameter =>
