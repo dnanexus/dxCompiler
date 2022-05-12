@@ -16,12 +16,27 @@ workflow apps_1197_native_frag_default {
     }
   }
 
+  # meta section
+  call apps_1197_default_instance_meta {
+    input:
+      mock_input_meta = "apps_1197_default_instance_meta"
+  }
 
 
+  # default in frag with meta
+  Boolean b = true
+  if (a) {
+    call apps_1197_default_instance_meta as frag_default_meta {
+      input:
+        mock_input_meta = "frag_default_meta"
+    }
+  }
 
   output {
     String outs_apps_1197_default_instance = apps_1197_default_instance.instance_name
     String? outs_frag_default = frag_default.instance_name
+    String outs_apps_1197_default_instance_meta = apps_1197_default_instance_meta.instance_name_meta
+    String? outs_frag_default_meta = frag_default_meta.instance_name_meta
   }
 }
 
@@ -48,13 +63,13 @@ task apps_1197_default_instance {
 
 task apps_1197_default_instance_meta {
   input {
-    String? mock_input
+    String? mock_input_meta
   }
 
   command <<< >>>
 
   output {
-    String instance_name = ""
+    String instance_name_meta = ""
   }
 
   meta {
