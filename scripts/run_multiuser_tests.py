@@ -214,6 +214,8 @@ def test_global_wf_from_wdl():
         ))
         raise
 
+
+"""Commented out in APPS-1197 because of the fund limits on Bob's account
     # As Bob, run global workflow
     login_bob()
 
@@ -223,7 +225,7 @@ def test_global_wf_from_wdl():
         test_folder=specific_test_folder(tname),
         test_name=tname
     )
-
+"""
     successes, failures = wait_for_completion(exec_objs)
     if len(successes) > 0:
         report_test_success(tname)
