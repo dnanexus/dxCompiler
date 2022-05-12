@@ -35,8 +35,8 @@ workflow apps_1197_native_frag_default {
   output {
     String outs_apps_1197_default_instance = apps_1197_default_instance.instance_name
     String? outs_frag_default = frag_default.instance_name
-    String outs_apps_1197_default_instance_meta = apps_1197_default_instance_meta.instance_name_meta
-    String? outs_frag_default_meta = frag_default_meta.instance_name_meta
+    String outs_apps_1197_default_instance_meta = apps_1197_default_instance_meta.instance_name
+    String? outs_frag_default_meta = frag_default_meta.instance_name
   }
 }
 
@@ -69,7 +69,7 @@ task apps_1197_default_instance_meta {
   command <<< >>>
 
   output {
-    String instance_name_meta = ""
+    String instance_name = ""
   }
 
   meta {
