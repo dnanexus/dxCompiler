@@ -569,7 +569,7 @@ case class WorkflowCompiler(separateOutputs: Boolean,
                   if (app.kind.getClass == classOf[ExecutableKindWfFragment]) =>
                 "do not override"
               case static: StaticInstanceType => instanceTypeDb.apply(static.req).name
-              case DefaultInstanceType if (app.kind.getClass == classOf[ExecutableKindNative]) =>
+              case DefaultInstanceType =>
                 "do not override"
               case _ => instanceTypeDb.defaultInstanceType.name
             }
