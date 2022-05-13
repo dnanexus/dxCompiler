@@ -351,6 +351,31 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       }
     }
 
+    /**
+      * Filters dependencyOutputs to exclude outputs of the current block.
+      * This is done to propagate intermediate outputs of the tasks in a nested workflow wrapped in the fragment.
+      * For non-frag stages it will be irrelevant. There's an assumption that names in the workflow are constant.
+      * @param blockOutputs currently registered outputs of the block.
+      * @return A collection of outputs without already registered outputs of the nested workflow, and without
+      *         intermediate task outputs that the workflow output is linked to.
+      * */
+    private def filterDependencyOutputs(blockOutputs: Vector[Parameter]): Vector[Parameter] = {
+      val excludeLinked = dependencyOutputs filterNot {
+        case (param: Parameter, _) =>
+          dependencyOutputs.values map {
+            case Some(link) => param.name.endsWith(link.param.name)
+            case None       => false
+          } reduce (_ || _)
+      }
+      val excludedNameMatches = excludeLinked filterNot {
+        case (param: Parameter, _) =>
+          blockOutputs map { output =>
+            output.name.toString.equals(param.name.toString)
+          } reduce (_ || _)
+      }
+      excludedNameMatches.keys.toVector
+    }
+
     private def callExprToStageInput(callInputExpr: Option[TAT.Expr],
                                      calleeParam: Parameter,
                                      env: CallEnv,
@@ -691,13 +716,12 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         }
         .unzip
 
-      val outputParams: Vector[Parameter] = block.outputs.map {
+      val blockOuts: Vector[Parameter] = block.outputs.map {
         case WdlBlockOutput(dxName, wdlType, _) =>
           Parameter(dxName, WdlUtils.toIRType(wdlType))
       }
+      val outputParams = blockOuts ++ filterDependencyOutputs(blockOuts)
 
-      val aa = dependencyOutputs // GVAIHIR
-      logger.trace(s"${aa}")
       // create the type map that will be serialized in the applet's details
       val fqnDictTypes: Map[DxName, Type] = inputParams.map { param: Parameter =>
         param.name -> param.dxType
