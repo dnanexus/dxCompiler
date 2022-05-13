@@ -159,6 +159,12 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     stagesSysReq.size shouldBe 2
     stagesSysReq("if (a)") shouldBe JsObject.empty
     stagesSysReq("apps_1197_default_instance") shouldBe JsObject.empty
+    val stagesExecDetails = stages.map { stage =>
+      stage.name -> dxApi.executable(stage.executable).describe(Set(Field.Details))
+    }.toMap
+    stagesExecDetails("if (a)").details.get.asJsObject.fields
+      .get("staticInstanceType")
+      .getOrElse(JsObject.empty) shouldBe JsObject.empty
   }
 
   it should "compile a workflow with a native app and override instance based using RAM and CPU spec" in {
