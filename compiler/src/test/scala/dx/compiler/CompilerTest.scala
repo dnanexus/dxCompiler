@@ -109,7 +109,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     }
   }
 
-  "Compiler" should "compile a workflow with a native app wrapped in frag and override instance based using RAM" in {
+  /*"Compiler" should "compile a workflow with a native app wrapped in frag and override instance based using RAM" in {
     val path = pathFromBasename("bugs", "apps_1177_native_frag_indirect_override_unit.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
@@ -194,7 +194,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     stages("cpu_int") shouldBe JsObject(
         "*" -> JsObject("instanceType" -> JsString("mem1_ssd1_x8"))
     )
-  }
+  }*/
 
   it should "compile a workflow with a frag app wrapper using a default instance" in {
     val path = pathFromBasename("frag_runner", "apps_1128_frag_default.wdl")

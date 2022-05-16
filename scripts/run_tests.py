@@ -162,7 +162,7 @@ wdl_v1_list = [
 
 wdl_v1_1_list = [
     "apps_1128_frag_native_instance_type_override",
-    "apps_1177_native_indirect_override",
+    #"apps_1177_native_indirect_override",
     "v1_1_dict",
     "apps_847_scatter_empty",
     "optional_missing",
@@ -175,7 +175,7 @@ wdl_v1_1_list = [
 ]
 
 static_only = [
-    "apps_1177_native_indirect_override"
+    #"apps_1177_native_indirect_override"
 ]
 
 # docker image tests
@@ -591,7 +591,7 @@ test_upload_wait = {"upload_wait"}
 test_instance_type = [
     "diskspace_exhauster",
     "apps_1128_frag_native_instance_type_override",
-    "apps_1177_native_indirect_override",
+    #"apps_1177_native_indirect_override",
     "apps_1197_native_frag_default"
 ]
 

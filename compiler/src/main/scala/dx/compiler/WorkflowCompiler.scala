@@ -1,6 +1,15 @@
 package dx.compiler
 
-import dx.api.{DxApi, DxApplet, DxProject, DxUtils, DxWorkflow, DxWorkflowStage, Field}
+import dx.api.{
+  DxApi,
+  DxApplet,
+  DxProject,
+  DxUtils,
+  DxWorkflow,
+  DxWorkflowStage,
+  Field,
+  InstanceTypeRequest
+}
 import dx.core.Constants
 import dx.core.ir._
 import dx.translator.CallableAttributes._
@@ -563,33 +572,29 @@ case class WorkflowCompiler(separateOutputs: Boolean,
 
         val systemRequirements = irExecutable match {
           // specify the instance type for native app stubs that specify it in the runtime section
-          case app: Application =>
-            val instanceType: String = app.instanceType match {
-              case _: StaticInstanceType
-                  if (app.kind.getClass == classOf[ExecutableKindWfFragment]) =>
-                "do not override"
-              case static: StaticInstanceType => instanceTypeDb.apply(static.req).name
-              case DefaultInstanceType => {
-                logger.trace(
-                    s"Using default instance type for child process. Going to use `${None}`"
+          case Application(
+              _,
+              _,
+              _,
+              StaticInstanceType(
+                  InstanceTypeRequest(Some(staticInstanceType), _, _, _, _, _, _, _, _, _, _)
+              ),
+              _,
+              _: ExecutableKindNative,
+              _,
+              _,
+              _,
+              _,
+              _,
+              _
+              ) =>
+            Some(
+                "systemRequirements" -> JsObject(
+                    "*" -> JsObject(
+                        "instanceType" -> JsString(staticInstanceType)
+                    )
                 )
-                "do not override"
-              }
-
-              case _ => instanceTypeDb.defaultInstanceType.name
-            }
-            if (instanceType == "do not override") {
-              None
-            } else {
-              Some(
-                  "systemRequirements" -> JsObject(
-                      "*" -> JsObject(
-                          "instanceType" -> JsString(instanceType)
-                      )
-                  )
-              )
-            }
-
+            )
           case _ => None
         }
         logger.trace(s"systemRequirements is ${systemRequirements}")
