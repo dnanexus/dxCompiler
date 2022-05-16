@@ -57,13 +57,6 @@ jobs:
           dx select $PROJECT
           cd ${GITHUB_WORKSPACE}
 
-          # Run integration tests
-          FOLDER=/builds/test_gha_dxcompiler_$(date +%s)_$RANDOM
-          dx mkdir -p $FOLDER
-          python3 scripts/run_tests.py --folder $FOLDER --project $PROJECT \
-          --clean \
-          --test M
-
           # Run multi-user tests
           FOLDER=/builds/test_gha_dxcompiler_$(date +%s)_$RANDOM
           dx mkdir -p $FOLDER
