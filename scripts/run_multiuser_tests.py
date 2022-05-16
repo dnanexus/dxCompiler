@@ -215,7 +215,6 @@ def test_global_wf_from_wdl():
         raise
 
 
-"""Commented out in APPS-1197 because of the fund limits on Bob's account
     # As Bob, run global workflow
     login_bob()
 
@@ -233,7 +232,7 @@ def test_global_wf_from_wdl():
     elif len(failures) > 0:
         report_test_failure(tname)
         raise RuntimeError("Analysis failed in test {}".format(tname))
-"""
+
 def main():
     argparser = argparse.ArgumentParser(
         description="Run dxCompiler multi-user tests on the platform"
