@@ -19,7 +19,7 @@ import spray.json._
 
 import scala.collection.immutable.SeqMap
 import dx.translator.DockerRegistry
-import dx.core.ir.RunSpec.{DefaultInstanceType, InstanceType, StaticInstanceType}
+import dx.core.ir.RunSpec.{InstanceType, StaticInstanceType}
 
 case class WorkflowCompiler(separateOutputs: Boolean,
                             extras: Option[Extras],
@@ -597,6 +597,7 @@ case class WorkflowCompiler(separateOutputs: Boolean,
             )
           case _ => None
         }
+        val _ = instanceTypeDb
         logger.trace(s"systemRequirements is ${systemRequirements}")
         JsObject(
             Vector(
