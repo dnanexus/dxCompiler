@@ -183,6 +183,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       // are required for WDL parsing - they can be safely ignored
       val outputs = task.outputs.map(translateOutput(_, ignoreDefault = isNative))
       val instanceType = runtime.translateInstanceType(instanceTypeSelection)
+      logger.trace(s"App name: ${task.name}. Translated instance type: ${instanceType}") // GVAIHIR
       val requirements = runtime.translateRequirements
       val staticFileDependencies = translateStaticFileDependencies(task.privateVariables)
       val attributes = meta.translate

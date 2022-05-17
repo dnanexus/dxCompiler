@@ -571,8 +571,9 @@ case class WorkflowCompiler(separateOutputs: Boolean,
               case static: StaticInstanceType => instanceTypeDb.apply(static.req).name
               case DefaultInstanceType => {
                 logger.trace(
-                    s"Using default instance type for child process. Going to use `${None}`"
-                )
+                    s"Using default instance type for child process. Going to use `${None}`" +
+                      s"for exec ${app.name}"
+                ) // GVAIHIR
                 "do not override"
               }
 
@@ -592,7 +593,8 @@ case class WorkflowCompiler(separateOutputs: Boolean,
 
           case _ => None
         }
-        logger.trace(s"systemRequirements is ${systemRequirements}")
+        logger
+          .trace(s"systemRequirements is ${systemRequirements} for exec ${irExecutable.name}") // GVAIHIR
         JsObject(
             Vector(
                 Some("id" -> JsString(stage.dxStage.id)),
