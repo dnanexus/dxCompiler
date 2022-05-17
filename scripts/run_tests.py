@@ -95,7 +95,7 @@ wdl_v1_list = [
     "cast",
     "dict",
     "instance_types",
-    "apps_1197_native_frag_default",
+    #"apps_1197_native_frag_default",
     "linear_no_expressions",
     "linear",
     "optionals",
@@ -592,7 +592,7 @@ test_instance_type = [
     "diskspace_exhauster",
     "apps_1128_frag_native_instance_type_override",
     #"apps_1177_native_indirect_override",
-    "apps_1197_native_frag_default"
+    #"apps_1197_native_frag_default"
 ]
 
 # Search a WDL file with a python regular expression.
