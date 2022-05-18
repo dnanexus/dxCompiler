@@ -15,7 +15,7 @@ import wdlTools.eval.{
 import wdlTools.syntax.WdlVersion
 import wdlTools.types.WdlTypes._
 import wdlTools.types.{TypedAbstractSyntax => TAT}
-import dx.util.Bindings
+import dx.util.{Bindings, Logger}
 
 object DxMetaHints {
   val ParameterMetaStream: String = "stream"
@@ -95,6 +95,7 @@ case class Runtime(wdlVersion: WdlVersion,
   }
 
   def parseInstanceType: InstanceTypeRequest = {
+    val logger = Logger.get
     getDxHint(Runtime.InstanceType)
       .map {
         case V_String(dxInstanceType) => InstanceTypeRequest(Some(dxInstanceType))
@@ -128,10 +129,14 @@ case class Runtime(wdlVersion: WdlVersion,
         }
         val usedOtherSysDefaults: Boolean = {
           runtimeAttrs.runtime.map(_.isDefaultSystemRequirements) match {
-            case Some(b) => b
-            case None    => false
+            case Some(b) => {
+              b
+            }
+            case None => false
           }
         }
+        logger.trace(s"") // GVAIHIR
+
         if (usedOtherSysDefaults && usedGpuDefault) {
           InstanceTypeRequest.empty
         } else {
