@@ -1046,7 +1046,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       // We need a common output stage for any of several reasons:
       // 1. we need to build an output manifest
       val useOutputStage = useManifests || {
-        // 2. any output expressions cannot be resolved without by linking to
+        // 2. any output expressions cannot be resolved without linking it to
         // a workflow input or the output of another stage. Note that a constant
         // value *does* require evaluation because output spec does not allow
         // a default value.
