@@ -97,6 +97,22 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     dxTestProject.removeFolder(unitTestsPath, recurse = true)
   }
 
+  private def compileGetStages(fixturePath: String,
+                               compileArgs: List[String]): Vector[DxWorkflowStageDesc] = {
+    val args = fixturePath :: compileArgs
+    val retval = Main.compile(args.toVector)
+    val wfId = retval match {
+      case SuccessfulCompileNativeNoTree(_, Vector(wfId)) => wfId
+      case other                                          => throw new Exception(s"expected single workflow not ${other}")
+    }
+    val stages = dxApi
+      .workflow(wfId)
+      .describe()
+      .stages
+      .get
+    stages
+  }
+
   private object WithExtras {
     def apply(extrasContent: String)(f: String => Termination): Termination = {
       val tmpExtras = File.createTempFile("reorg-", ".json")
@@ -111,18 +127,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
   "Compiler" should "compile a workflow with a native app wrapped in frag and override instance based using RAM" in {
     val path = pathFromBasename("bugs", "apps_1177_native_frag_indirect_override_unit.wdl")
-    val args = path.toString :: cFlags
-    val retval = Main.compile(args.toVector)
-    val wfId = retval match {
-      case SuccessfulCompileNativeNoTree(_, Vector(wfId)) => wfId
-      case other                                          => throw new Exception(s"expected single workflow not ${other}")
-    }
     // the native app has an instance type of mem1_ssd1_x2, with 2 CPUs and 4 Gb RAM. The tasks request 30 Gb
-    val stages = dxApi
-      .workflow(wfId)
-      .describe()
-      .stages
-      .get
+    val stages = compileGetStages(path.toString, cFlags)
     val stagesSysReq = stages.map { stage =>
       stage.name -> stage.systemRequirements
     }.toMap
@@ -141,18 +147,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
   it should "compile a workflow with a native app wrapped in frag and keep the default instance" in {
     val path = pathFromBasename("bugs", "apps_1197_native_frag_default_unit.wdl")
-    val args = path.toString :: cFlags
-    val retval = Main.compile(args.toVector)
-    val wfId = retval match {
-      case SuccessfulCompileNativeNoTree(_, Vector(wfId)) => wfId
-      case other                                          => throw new Exception(s"expected single workflow not ${other}")
-    }
     // the native app has an instance type of mem1_ssd1_x2, with 2 CPUs and 4 Gb RAM
-    val stages = dxApi
-      .workflow(wfId)
-      .describe()
-      .stages
-      .get
+    val stages = compileGetStages(path.toString, cFlags)
     val stagesSysReq = stages.map { stage =>
       stage.name -> stage.systemRequirements
     }.toMap
@@ -169,23 +165,11 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
   it should "compile a workflow with a native app and override instance based using RAM and CPU spec" in {
     val path = pathFromBasename("bugs", "apps_1177_native_indirect_override_unit.wdl")
-    val args = path.toString :: cFlags
-    val retval = Main.compile(args.toVector)
-    val wfId = retval match {
-      case SuccessfulCompileNativeNoTree(_, Vector(wfId)) => wfId
-      case other                                          => throw new Exception(s"expected single workflow not ${other}")
-    }
     // the native app has an instance type of mem1_ssd1_x2, with 2 CPUs and 4 Gb RAM. The tasks request 30 Gb and
     // 8 CPU respectively so the instances should be scaled
-    val stages = dxApi
-      .workflow(wfId)
-      .describe()
-      .stages
-      .get
-      .map { stage =>
-        stage.name -> stage.systemRequirements
-      }
-      .toMap
+    val stages = compileGetStages(path.toString, cFlags).map { stage =>
+      stage.name -> stage.systemRequirements
+    }.toMap
     stages.size shouldBe 3
     stages("default") shouldBe JsObject.empty
     stages("mem_int") shouldBe JsObject(
@@ -196,15 +180,15 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     )
   }
 
+  it should "compile a nested WF wrapped in frag which propagates intermediate outputs to the frag outputs" in {
+    val path = pathFromBasename("subworkflows", "apps_1175_nested_wf_frag.wdl")
+    val stages = compileGetStages(path.toString, cFlags)
+    stages shouldBe ()
+  }
+
   it should "compile a workflow with a frag app wrapper using a default instance" in {
     val path = pathFromBasename("frag_runner", "apps_1128_frag_default.wdl")
-    val args = path.toString :: cFlags
-    val retval = Main.compile(args.toVector)
-    val wfId = retval match {
-      case SuccessfulCompileNativeNoTree(_, Vector(wfId)) => wfId
-      case other                                          => throw new Exception(s"expected single workflow not ${other}")
-    }
-    val stages = dxApi.workflow(wfId).describe().stages.get
+    val stages = compileGetStages(path.toString, cFlags)
     stages.size shouldBe 1
     val applet = dxApi.applet(stages.filter(_.name.contains("if")).head.executable)
     val instance = applet
