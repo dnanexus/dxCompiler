@@ -78,18 +78,7 @@ class TranslatorTest extends AnyFlatSpec with Matchers {
       }
       applet.instanceType
     }
-    compile("static") shouldBe StaticInstanceType(
-        InstanceTypeRequest(None,
-                            None,
-                            None,
-                            None,
-                            None,
-                            None,
-                            None,
-                            None,
-                            None,
-                            Some(ExecutionEnvironment("Ubuntu", "20.04", Vector("0"))))
-    )
+    compile("static") shouldBe DefaultInstanceType
     compile("dynamic") shouldBe DynamicInstanceType
   }
 

@@ -569,14 +569,8 @@ case class WorkflowCompiler(separateOutputs: Boolean,
                   if (app.kind.getClass == classOf[ExecutableKindWfFragment]) =>
                 "do not override"
               case static: StaticInstanceType => instanceTypeDb.apply(static.req).name
-              case DefaultInstanceType => {
-                logger.trace(
-                    s"Using default instance type for child process. Going to use `${None}`"
-                )
-                "do not override"
-              }
-
-              case _ => instanceTypeDb.defaultInstanceType.name
+              case DefaultInstanceType        => "do not override"
+              case _                          => instanceTypeDb.defaultInstanceType.name
             }
             if (instanceType == "do not override") {
               None
@@ -592,7 +586,6 @@ case class WorkflowCompiler(separateOutputs: Boolean,
 
           case _ => None
         }
-        logger.trace(s"systemRequirements is ${systemRequirements}")
         JsObject(
             Vector(
                 Some("id" -> JsString(stage.dxStage.id)),
