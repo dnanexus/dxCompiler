@@ -1,5 +1,9 @@
 # Release Notes
 
+## in develop 
+
+...
+
 ## 2.10.2 2022-05-17
 
 * WDL: Fix to native app(let)s instance override with system requirements (cpu/memory/disks) in case of the direct calls and executions within fragments. Only `-instanceTypeSelection static` (default) is supported. If compiled with `dynamic` - default instances will be used.
