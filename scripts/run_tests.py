@@ -175,7 +175,9 @@ wdl_v1_1_list = [
 ]
 
 static_only = [
-    "apps_1177_native_indirect_override"
+    "apps_1177_native_indirect_override",
+    "apps_1128_frag_native_instance_type_override",
+    "apps_1197_native_frag_default"
 ]
 
 # docker image tests

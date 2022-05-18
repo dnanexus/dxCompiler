@@ -146,6 +146,8 @@ case class RuntimeTranslator(wdlVersion: WdlVersion,
       resolution: InstanceTypeSelection.InstanceTypeSelection
   ): InstanceType = {
     runtime.safeParseInstanceType match {
+      case Some(InstanceTypeRequest.empty) if resolution == InstanceTypeSelection.Dynamic =>
+        DynamicInstanceType
       case Some(InstanceTypeRequest.empty) => DefaultInstanceType
       case Some(req: InstanceTypeRequest)
           if resolution == InstanceTypeSelection.Dynamic && req.dxInstanceType.isDefined =>
