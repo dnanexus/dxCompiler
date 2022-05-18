@@ -130,10 +130,8 @@ case class Runtime(wdlVersion: WdlVersion,
         }
         val usedOtherSysDefaults: Boolean = {
           runtimeAttrs.runtime.map(_.isDefaultSystemRequirements) match {
-            case Some(b) => {
-              b
-            }
-            case None => true
+            case Some(b) => b
+            case None    => true
           }
         }
 
