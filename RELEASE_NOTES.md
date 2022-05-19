@@ -1,10 +1,32 @@
 # Release Notes
 
-## in develop
+## in develop 
+
+...
+
+## 2.10.2 2022-05-17
 
 * WDL: Fix to native app(let)s instance override with system requirements (cpu/memory/disks) in case of the direct calls and executions within fragments. Only `-instanceTypeSelection static` (default) is supported. If compiled with `dynamic` - default instances will be used.
-* CWL: Implement task/fragment applets and workflows reuse. Same as in WDL, the `DocContents` attribute, which is the part of source code that defines each executable, is now used for checksum calculation and comparison. However, since the CWL source code is packed as a nested JSON file (instead of standalone blocks in WDL), fragment applets and workflows will also include the code of all underlying processes in their `DocContents`, and they will not be reused if the wrapped applets/subworkflows have changed.
+* CWL: Partial implementation of task/fragment applets and workflows reuse. Same as in WDL, the `DocContents` attribute, which is the part of source code that defines each executable, is now used for checksum calculation and comparison. However, since the CWL source code is packed as a nested JSON file (instead of standalone blocks in WDL), fragment applets and workflows will also include the code of all underlying processes in their `DocContents`, and they will not be reused if the wrapped applets/subworkflows have changed.
 * CWL: Fix evaluating scatter inputs during workflow execution. It would no longer raise an error if optional inputs of the underlying task are not declared at the scatter level.
+* CWL & WDL: Keep the Docker container after a task finishes running, so users can debug Docker related job failures.
+* CWL: Fix to the `pattern` handling from `secondaryFiles` at workflow level during compilation
+
+### Dependency updates
+
+#### wdlTools [0.17.11](https://github.com/dnanexus/wdlTools/releases/tag/0.17.11)
+
+* Keep the Docker container after a task finishes running, so users can debug Docker related job failures.
+* Runtime object is aware if it was created with default system requirements
+
+#### dxCommon [0.11.3](https://github.com/dnanexus/dxScala/blob/develop/common/RELEASE_NOTES.md#0113-2022-05-11)
+
+* Fix `JsUtils.makeDeterministic` to handle `JsArrays` sorting
+
+#### cwlScala [0.8.3](https://github.com/dnanexus/cwlScala/releases/tag/0.8.3)
+
+* Updated cwljava with fixes to secondaryFiles with pattern field when parsing workflow-level parameters and the helper function utils.Uris.shortname to generate enum symbols without namespaces
+* Updated cwljava to 1.0
 
 ## 2.10.1 2022-04-18
 
