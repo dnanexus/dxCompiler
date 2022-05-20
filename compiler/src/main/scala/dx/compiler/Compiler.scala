@@ -20,6 +20,7 @@ import dx.api.{
 import dx.core.{Constants, getVersion}
 import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir._
+import dx.core.languages.wdl.WdlDxName
 import dx.util.CodecUtils
 import dx.translator.Extras
 import spray.json.{JsValue, _}
@@ -343,13 +344,20 @@ case class Compiler(extras: Option[Extras],
             project = project,
             folder = folder
         )
-      // limit the applet dictionary to actual dependencies
+      // limit the applet dictionary to actual dependencies.
+      // Acc to APPS-1175 links will come from the exec (frag) outputs
       val dependencies: Map[String, ExecutableLink] = applet.kind match {
-        case ExecutableKindWfFragment(call, _, _, _) =>
-          call.map { name =>
-            val CompiledExecutable(irCall, dxObj, _, _) = dependencyDict(name)
-            name -> createLinkForCall(irCall, dxObj)
-          }.toMap
+        case _: ExecutableKindWfFragment =>
+          (applet.outputs map {
+            case param: Parameter =>
+              param.name match {
+                case wdlDxName: WdlDxName => {
+                  val CompiledExecutable(irCall, dxObj, _, _) =
+                    dependencyDict(wdlDxName.getDecodedParts.head)
+                  wdlDxName.getDecodedParts.head -> createLinkForCall(irCall, dxObj)
+                }
+              }
+          }).toMap
         case _ => Map.empty
       }
       // Calculate a checksum of the inputs that went into the making of the applet.

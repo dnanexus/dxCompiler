@@ -78,8 +78,8 @@ import wdlTools.eval.{Eval, EvalException, EvalUtils, WdlValues}
 import wdlTools.types.{TypeUtils, WdlTypes, TypedAbstractSyntax => TAT}
 
 /**
-  * An input to a Block. These are simlar to the TAT.InputParameters, but there is
-  * an extra type to disinguish between inputs with constant and dynamic default
+  * An input to a Block. These are similar to the TAT.InputParameters, but there is
+  * an extra type to distinguish between inputs with constant and dynamic default
   * values, and there is no SourceLocation.
   */
 sealed trait WdlBlockInput {

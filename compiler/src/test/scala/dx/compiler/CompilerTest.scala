@@ -145,6 +145,28 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       .get shouldBe (JsString("mem3_ssd1_x4"))
   }
 
+  it should "add executable links pointing to the intermediate outputs of wrapped workflow" in {
+    val path = pathFromBasename("subworkflows", "apps_1175_nested_wf_frag.wdl")
+    val stages = compileGetStages(path.toString, cFlags)
+    val stagesExecDetails = stages.map { stage =>
+      stage.name -> dxApi.executable(stage.executable).describe(Set(Field.Details))
+    }.toMap
+    val execInfo = stagesExecDetails("frag nested_inner").details.get.asJsObject.fields
+      .get("execLinkInfo")
+      .get
+      .asJsObject
+      .fields
+      .get("test_inner1")
+      .get
+      .asJsObject
+      .fields
+      .get("outputs")
+      .getOrElse(JsObject.empty)
+    execInfo shouldBe (
+        JsObject("test_out" -> JsString("File"))
+    )
+  }
+
   it should "compile a workflow with a native app wrapped in frag and keep the default instance" in {
     val path = pathFromBasename("bugs", "apps_1197_native_frag_default_unit.wdl")
     // the native app has an instance type of mem1_ssd1_x2, with 2 CPUs and 4 Gb RAM
