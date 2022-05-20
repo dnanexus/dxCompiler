@@ -348,15 +348,8 @@ case class Compiler(extras: Option[Extras],
       // Acc to APPS-1175 links will come from the exec (frag) outputs
       val dependencies: Map[String, ExecutableLink] = applet.kind match {
         case _: ExecutableKindWfFragment =>
-          (applet.outputs map {
-            case param: Parameter =>
-              param.name match {
-                case wdlDxName: WdlDxName => {
-                  val CompiledExecutable(irCall, dxObj, _, _) =
-                    dependencyDict(wdlDxName.getDecodedParts.head)
-                  wdlDxName.getDecodedParts.head -> createLinkForCall(irCall, dxObj)
-                }
-              }
+          (applet.outputs map { fragOutput =>
+            getLinksFromFragOutputs(fragOutput, dependencyDict)
           }).toMap
         case _ => Map.empty
       }
@@ -387,6 +380,19 @@ case class Compiler(extras: Option[Extras],
           throw new Exception(s"expected applet ${other}")
       }
       (dxApplet, dependencies.values.toVector)
+    }
+
+    private def getLinksFromFragOutputs(
+        fragOutput: Parameter,
+        dependencyDict: Map[String, CompiledExecutable]
+    ): (String, ExecutableLink) = {
+      fragOutput.name match {
+        case wdlDxName: WdlDxName =>
+          val CompiledExecutable(irCall, dxObj, _, _) = dependencyDict(
+              wdlDxName.getDecodedParts.head
+          )
+          (wdlDxName.getDecodedParts.head, createLinkForCall(irCall, dxObj))
+      }
     }
 
     /**
