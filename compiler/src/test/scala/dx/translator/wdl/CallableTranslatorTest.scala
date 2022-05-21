@@ -122,13 +122,13 @@ class CallableTranslatorTest extends AnyFlatSpec with Matchers {
       case wf: Workflow     => wf.outputs
       case _                => throw new Exception("Unexpected callable type")
     }
-    fragWrapperOuts.size shouldBe 3
+    fragWrapperOuts.size shouldBe 5
     val outTypes: Map[String, Type] = (fragWrapperOuts map {
       case (param: Parameter, _) => param.name.toString -> param.dxType
       case param: Parameter      => param.name.toString -> param.dxType
     }).toMap
-    outTypes("nested_inner.nested_inner_wf_out") shouldBe Type.TFile
-    outTypes("nested_inner.___test_inner1.test_out") shouldBe Type.TFile
+    outTypes("call_1.test_out") shouldBe Type.TOptional(Type.TFile)
+    outTypes("test_inner1.test_out") shouldBe Type.TFile
   }
 
   // APPS-1175 - conditional

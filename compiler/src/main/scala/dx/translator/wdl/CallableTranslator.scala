@@ -363,15 +363,15 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       val excludeLinked = dependencyOutputs filterNot {
         case (param: Parameter, _) =>
           dependencyOutputs.values map {
-            case Some(link) => param.name.endsWith(link.param.name)
+            case Some(link) => param.name.getDecodedParts.last.equals(link.param.name.toString)
             case None       => false
-          } reduce (_ || _)
+          } reduce (_ | _)
       }
       val excludedNameMatches = excludeLinked filterNot {
         case (param: Parameter, _) =>
           blockOutputs map { output =>
             output.name.toString.equals(param.name.toString)
-          } reduce (_ || _)
+          } reduce (_ | _)
       }
       excludedNameMatches.keys.toVector
     }
