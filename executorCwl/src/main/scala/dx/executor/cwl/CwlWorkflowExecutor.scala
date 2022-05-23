@@ -557,7 +557,7 @@ case class CwlWorkflowExecutor(workflow: Workflow,
               |""".stripMargin,
           minLevel = TraceLevel.VVerbose
       )
-      val executableLink = getExecutableLink(step.run.name)
+      val executableLink = getExecutableLinkFromJobMetaDetails(step.run.name)
       // add the target step for app(let) calls
       val targetCallInput = executableLink.dxExec match {
         case _: DxWorkflow => Map.empty

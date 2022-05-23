@@ -103,7 +103,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
       case other => throw new Exception(s"invalid ${Constants.ExecLinkInfo} value: ${other}")
     }
 
-  protected def getExecutableLink(name: String): ExecutableLink = {
+  protected def getExecutableLinkFromJobMetaDetails(name: String): ExecutableLink = {
     execLinkInfo.getOrElse(
         name,
         throw new AppInternalException(s"Could not find linking information for ${name}")

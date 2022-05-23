@@ -20,7 +20,6 @@ import dx.api.{
 import dx.core.{Constants, getVersion}
 import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir._
-import dx.core.languages.wdl.WdlDxName
 import dx.util.CodecUtils
 import dx.translator.Extras
 import spray.json.{JsValue, _}
@@ -345,14 +344,17 @@ case class Compiler(extras: Option[Extras],
             folder = folder
         )
       // limit the applet dictionary to actual dependencies.
-      // Acc to APPS-1175 links will come from the exec (frag) outputs
       val dependencies: Map[String, ExecutableLink] = applet.kind match {
-        case _: ExecutableKindWfFragment =>
-          (applet.outputs map { fragOutput =>
-            getLinksFromFragOutputs(fragOutput, dependencyDict)
-          }).toMap
+        case ExecutableKindWfFragment(call, _, _, _) =>
+          call.map { name =>
+            val CompiledExecutable(irCall, dxObj, _, _) = dependencyDict(name)
+            name -> createLinkForCall(irCall, dxObj)
+          }.toMap ++
+            // Acc to APPS-1175 links will come from the exec (frag) outputs
+            getLinksFromFragOutputs(applet.outputs, dependencyDict)
         case _ => Map.empty
       }
+
       // Calculate a checksum of the inputs that went into the making of the applet.
       val (appletApiRequest, digest) = checksumRequest(
           applet.name,
@@ -383,16 +385,20 @@ case class Compiler(extras: Option[Extras],
     }
 
     private def getLinksFromFragOutputs(
-        fragOutput: Parameter,
+        fragOutputs: Vector[Parameter],
         dependencyDict: Map[String, CompiledExecutable]
-    ): (String, ExecutableLink) = {
-      fragOutput.name match {
-        case wdlDxName: WdlDxName =>
-          val CompiledExecutable(irCall, dxObj, _, _) = dependencyDict(
-              wdlDxName.getDecodedParts.head
-          )
-          (wdlDxName.getDecodedParts.head, createLinkForCall(irCall, dxObj))
+    ): Map[String, ExecutableLink] = {
+      val fragOutputExecNames: Vector[String] = fragOutputs map { param: Parameter =>
+        param.name.getDecodedParts.head
       }
+      dependencyDict
+        .filterNot {
+          case (name: String, _) => fragOutputExecNames.contains(name)
+        }
+        .foldLeft(Map.empty[String, ExecutableLink]) {
+          case (accu, (name, CompiledExecutable(irCall, dxObj, _, _))) =>
+            accu + (name -> createLinkForCall(irCall, dxObj))
+        }
     }
 
     /**
