@@ -392,7 +392,7 @@ case class Compiler(extras: Option[Extras],
         param.name.getDecodedParts.head
       }
       dependencyDict
-        .filterNot {
+        .filter {
           case (name: String, _) => fragOutputExecNames.contains(name)
         }
         .foldLeft(Map.empty[String, ExecutableLink]) {

@@ -371,7 +371,10 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         case (param: Parameter, _) =>
           blockOutputs map { output =>
             output.name.toString.equals(param.name.toString)
-          } reduce (_ | _)
+          } reduceOption (_ | _) match {
+            case Some(b) => b
+            case None    => false
+          }
       }
       excludedNameMatches.keys.toVector
     }
