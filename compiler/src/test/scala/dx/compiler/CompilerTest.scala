@@ -202,12 +202,6 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     )
   }
 
-  it should "compile a nested WF wrapped in frag which propagates intermediate outputs to the frag outputs" in {
-    val path = pathFromBasename("subworkflows", "apps_1175_nested_wf_frag.wdl")
-    val stages = compileGetStages(path.toString, cFlags)
-    stages shouldBe ()
-  }
-
   it should "compile a workflow with a frag app wrapper using a default instance" in {
     val path = pathFromBasename("frag_runner", "apps_1128_frag_default.wdl")
     val stages = compileGetStages(path.toString, cFlags)
