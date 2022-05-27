@@ -1039,7 +1039,6 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
             Field.Types
         )
     )
-
     desc.description.get should startWith("This is a workflow that defines some metadata")
     desc.details match {
       case Some(JsObject(fields)) =>
@@ -1048,6 +1047,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
           case ("delayWorkspaceDestruction", JsBoolean(_)) => ()
           case ("link_inc", JsObject(_))                   => ()
           case ("link_mul", JsObject(_))                   => ()
+          case ("link_add", JsObject(_))                   => () // New link added from dependencies. APPS-1175
           case ("execTree", JsString(_))                   => ()
           case (Constants.Version, JsString(_))            => () // ignore
           case (Constants.Checksum, JsString(_))           => () // ignore
