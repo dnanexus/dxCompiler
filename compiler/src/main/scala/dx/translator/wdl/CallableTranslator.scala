@@ -352,22 +352,18 @@ case class CallableTranslator(wdlBundle: WdlBundle,
     }
 
     /**
-      * Filters dependencyOutputs to exclude outputs of the current block.
+      * For a frag applet, retrieves dependency outputs which are not present among the outputs of a current block.
       * This is done to propagate intermediate outputs of the tasks in a nested workflow wrapped in the fragment.
       * For non-frag stages it will be irrelevant. There's an assumption that names in the workflow are constant.
       * @param blockOutputs currently registered outputs of the block.
       * @return A collection of outputs without already registered outputs of the nested workflow, and without
       *         intermediate task outputs that the workflow output is linked to.
       * */
-    private def filterDependencyOutputs(blockOutputs: Vector[Parameter]): Vector[Parameter] = {
-      val excludeLinked = dependencyOutputs filterNot {
-        case (param: Parameter, _) =>
-          dependencyOutputs.values map {
-            case Some(link) => param.name.getDecodedParts.last.equals(link.param.name.toString)
-            case None       => false
-          } reduce (_ | _)
-      }
-      val excludedNameMatches = excludeLinked filterNot {
+    private def getDependencyOutputsNotInBlock(
+        blockOutputs: Vector[Parameter]
+    ): Vector[Parameter] = {
+      val excludeNotLinked = dependencyOutputs.filter(_._2.isDefined)
+      val excludedNameMatches = excludeNotLinked filterNot {
         case (param: Parameter, _) =>
           blockOutputs map { output =>
             output.name.toString.equals(param.name.toString)
@@ -377,6 +373,36 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           }
       }
       excludedNameMatches.keys.toVector
+    }
+
+    /**
+      * For a workflow, retrieves stage outputs which are linked to the WF outputs.
+      * This is done to propagate intermediate outputs of the tasks in a nested workflow wrapped in the fragment.
+      * For non-frag stages it will be irrelevant. There's an assumption that names in the workflow are constant.
+      * @param wfOutputs currently registered outputs of the workflow.
+      * @param stages stages of the current workflow
+      * @return A collection of outputs without already registered outputs of the nested workflow, and without
+      *         intermediate task outputs that the workflow output is linked to.
+      * */
+    private def getDependencyOutputsNotInWf(
+        wfOutputs: Vector[(Parameter, StageInput)],
+        stages: Vector[Stage]
+    ): Vector[(Parameter, StageInput)] = {
+      val stageOutsWithSelfLinking = stages.foldLeft(Map.empty[StageInputStageLink, Parameter]) {
+        case (accu, stage: Stage) => accu ++ createOutputSelfLinks(stage)
+      }
+      stageOutsWithSelfLinking
+        .filterNot {
+          case (link: StageInputStageLink, _) => wfOutputs.map(_._2).contains(link)
+        }
+        .map {
+          case (link: StageInputStageLink, parameter: Parameter) => (parameter, link)
+        }
+        .toVector
+    }
+
+    private def createOutputSelfLinks(stage: Stage): Map[StageInputStageLink, Parameter] = {
+      stage.outputs.map(output => StageInputStageLink(stage.dxStage, output) -> output).toMap
     }
 
     private def callExprToStageInput(callInputExpr: Option[TAT.Expr],
@@ -723,7 +749,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         case WdlBlockOutput(dxName, wdlType, _) =>
           Parameter(dxName, WdlUtils.toIRType(wdlType))
       }
-      val outputParams = blockOuts ++ filterDependencyOutputs(blockOuts)
+      val outputParams = blockOuts ++ getDependencyOutputsNotInBlock(blockOuts)
 
       // create the type map that will be serialized in the applet's details
       val fqnDictTypes: Map[DxName, Type] = inputParams.map { param: Parameter =>
@@ -1112,12 +1138,13 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       }
       val staticFileDependencies = translateStaticFileDependencies(privateVariables)
       StringFileNode(subBlocks.map(_.prettyFormat).mkString("\n"))
+      val extendedOutputs = wfOutputs ++ getDependencyOutputsNotInWf(wfOutputs, finalStages)
       val wfCopy =
         wf.copy(source = StringFileNode(subBlocks.map(_.prettyFormat).mkString("\n")))(wf.loc)
       (Workflow(
            name = wfName,
            inputs = wfInputLinks,
-           outputs = wfOutputs,
+           outputs = extendedOutputs,
            stages = finalStages,
            document = WdlWorkflowSource(wfCopy, versionSupport),
            locked = true,

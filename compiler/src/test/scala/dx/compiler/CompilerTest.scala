@@ -156,14 +156,15 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       .get
       .asJsObject
       .fields
-      .get("test_inner1")
+      .get("nested_inner")
       .get
       .asJsObject
       .fields
       .get("outputs")
       .getOrElse(JsObject.empty)
     execInfo shouldBe (
-        JsObject("test_out" -> JsString("File"))
+        JsObject("test_out" -> JsString("File"),
+                 "nested_inner_wf_out" -> JsString("File"))
     )
   }
 

@@ -349,9 +349,7 @@ case class Compiler(extras: Option[Extras],
           call.map { name =>
             val CompiledExecutable(irCall, dxObj, _, _) = dependencyDict(name)
             name -> createLinkForCall(irCall, dxObj)
-          }.toMap ++
-            // Acc to APPS-1175 links will come from the exec (frag) outputs
-            getLinksFromFragOutputs(applet.outputs, dependencyDict)
+          }.toMap
         case _ => Map.empty
       }
 
@@ -382,23 +380,6 @@ case class Compiler(extras: Option[Extras],
           throw new Exception(s"expected applet ${other}")
       }
       (dxApplet, dependencies.values.toVector)
-    }
-
-    private def getLinksFromFragOutputs(
-        fragOutputs: Vector[Parameter],
-        dependencyDict: Map[String, CompiledExecutable]
-    ): Map[String, ExecutableLink] = {
-      val fragOutputExecNames: Vector[String] = fragOutputs map { param: Parameter =>
-        param.name.getDecodedParts.head
-      }
-      dependencyDict
-        .filter {
-          case (name: String, _) => fragOutputExecNames.contains(name)
-        }
-        .foldLeft(Map.empty[String, ExecutableLink]) {
-          case (accu, (name, CompiledExecutable(irCall, dxObj, _, _))) =>
-            accu + (name -> createLinkForCall(irCall, dxObj))
-        }
     }
 
     /**

@@ -80,7 +80,7 @@ case class WorkflowCompiler(separateOutputs: Boolean,
           ParameterLinkStage(dxStage, IORef.Output, param.name, dxType, param.dxType)
         case StageInputWorkflowLink(wfParam) =>
           // TODO: if the input has a non-static default, link to the value of the workflow input
-          //  (either the user-specified value or the result of evaluting the expression)
+          //  (either the user-specified value or the result of evaluating the expression)
           //  - right now this only links to the user-specified value
           ParameterLinkWorkflowInput(wfParam.name, dxType, wfParam.dxType)
         case StageInputArray(stageInputs) =>
