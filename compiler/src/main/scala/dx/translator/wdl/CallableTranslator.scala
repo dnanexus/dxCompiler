@@ -388,17 +388,23 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         wfOutputs: Vector[(Parameter, StageInput)],
         stages: Vector[Stage]
     ): Vector[(Parameter, StageInput)] = {
-      val stageOutsWithSelfLinking = stages.foldLeft(Map.empty[StageInputStageLink, Parameter]) {
-        case (accu, stage: Stage) => accu ++ createOutputSelfLinks(stage)
-      }
-      stageOutsWithSelfLinking
+      val stageOutsWithSelfLinking: Map[StageInputStageLink, Parameter] = stages
+        .foldLeft(Map.empty[StageInputStageLink, Parameter]) {
+          case (accu, stage: Stage) => accu ++ createOutputSelfLinks(stage)
+        }
+      val extendedOutputs = stageOutsWithSelfLinking
         .filterNot {
           case (link: StageInputStageLink, _) => wfOutputs.map(_._2).contains(link)
         }
         .map {
-          case (link: StageInputStageLink, parameter: Parameter) => (parameter, link)
+          case (link: StageInputStageLink, parameter: Parameter) =>
+            val paramWithNamespace = parameter.copy(name = WdlDxName
+              .fromDecodedName(name = s"output_${link.stageId.id}.${parameter.name.toString}")
+            )
+            (paramWithNamespace, link)
         }
         .toVector
+      extendedOutputs
     }
 
     private def createOutputSelfLinks(stage: Stage): Map[StageInputStageLink, Parameter] = {

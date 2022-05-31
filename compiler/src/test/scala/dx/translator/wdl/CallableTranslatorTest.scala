@@ -102,7 +102,7 @@ class CallableTranslatorTest extends AnyFlatSpec with Matchers {
       case param: Parameter      => param.name.toString -> param.dxType
     }).toMap
     outTypes("nested_inner.nested_inner_wf_out") shouldBe Type.TFile
-    outTypes("test_inner1.test_out") shouldBe Type.TFile
+    outTypes("nested_inner.test_out") shouldBe Type.TFile
   }
 
   // APPS-1175 - frag with 2 separate calls instead of a nested workflow
@@ -122,13 +122,12 @@ class CallableTranslatorTest extends AnyFlatSpec with Matchers {
       case wf: Workflow     => wf.outputs
       case _                => throw new Exception("Unexpected callable type")
     }
-    fragWrapperOuts.size shouldBe 5
+    fragWrapperOuts.size shouldBe 3
     val outTypes: Map[String, Type] = (fragWrapperOuts map {
       case (param: Parameter, _) => param.name.toString -> param.dxType
       case param: Parameter      => param.name.toString -> param.dxType
     }).toMap
     outTypes("call_1.test_out") shouldBe Type.TOptional(Type.TFile)
-    outTypes("test_inner1.test_out") shouldBe Type.TFile
   }
 
   // APPS-1175 - conditional
@@ -156,7 +155,7 @@ class CallableTranslatorTest extends AnyFlatSpec with Matchers {
       case param: Parameter      => param.name.toString -> param.dxType
     }).toMap
     outTypes("nested_inner.nested_inner_wf_out") shouldBe Type.TOptional(Type.TFile)
-    outTypes("test_inner1.test_out") shouldBe Type.TFile
+    outTypes("nested_inner.test_out") shouldBe Type.TFile
   }
 
   it should "render same wdl code for every unchanged block/app/frag and different if there are changes" in {
