@@ -8,9 +8,6 @@ object DxName {
   val NamespaceDelimEncoded = "___"
   // characters that need to be encoded
   val disallowedCharsRegex: Regex = "([^a-zA-Z0-9_])".r
-  // character sequences that need to be decoded - for WDL is used only in name parts, not in the delimiter
-  private val decodeSequencesRegex = "__(\\d+)__".r // For WDL this will be used only to decode single parts
-  private val disallowedDxNameFormat: String = "^[^a-zA-Z_].*"
 
   def compareStringVectors(a: Vector[String], b: Vector[String]): Int = {
     a.zip(b)
@@ -126,53 +123,7 @@ abstract class DxName(private var encodedParts: Option[Vector[String]],
     encodedParts.map(_.size).orElse(decodedParts.map(_.size)).get
   }
 
-  private def makeNewPart(name: String,
-                          starts: Vector[Int],
-                          ends: Vector[Int],
-                          delims: Vector[String]): String = {
-    (Vector(0) ++ starts)
-      .zip(ends ++ Vector(name.length))
-      .map {
-        case (start, end) if start == end => ""
-        case (start, end)
-            if (start > 0 && name.charAt(start) == '_')
-              || (end < name.length && name.charAt(end - 1) == '_') =>
-          throw new Exception(
-              s"illegal name ${name}: '_' must not be adjacent to a non-alphanumeric character"
-          )
-        case (start, end) => name.substring(start, end)
-      }
-      .zipAll(delims, "", "")
-      .map {
-        case (part, delim) => s"${part}${delim}"
-      }
-      .mkString
-  }
-
-  /**
-    * Encodes disallowed characters in a part. In addition to DxName restrictions,
-    * we also disallow parts with consecutive underscores, e.g. {{{"foo__bar"}}}.
-    * Elevated from the CwlDxName
-    * @param part the decoded prefix
-    * @return the encoded parameter name with each illegal character
-    *         replaced with {{{"__ord(x)__"}}}, where `ord(x)` is the ordinal
-    *         value of the illegal character.
-    */
-  protected def encodePart(part: String): String = {
-    DxName.disallowedCharsRegex.findAllMatchIn(part).toVector match {
-      case Vector() => part
-      case matches =>
-        val (starts, ends, delims) = matches.map { m =>
-          val newDelim = m.group(1) match {
-            case c if c.length() == 1 => s"__${c.charAt(0).toInt}__"
-            case other =>
-              throw new Exception(s"unexpected multi-character delimiter ${other}")
-          }
-          (m.end, m.start, newDelim)
-        }.unzip3
-        makeNewPart(part, starts, ends, delims)
-    }
-  }
+  protected def encodePart(part: String): String = part
 
   def getEncodedParts: Vector[String] = {
     encodedParts
@@ -187,11 +138,7 @@ abstract class DxName(private var encodedParts: Option[Vector[String]],
     * The encoded form of this DxName.
     */
   def encoded: String = {
-    val name = getEncodedParts.mkString(DxName.NamespaceDelimEncoded) match {
-      case n if n.matches(DxName.disallowedDxNameFormat) =>
-        DxName.NamespaceDelimEncoded + n
-      case n => n
-    }
+    val name = getEncodedParts.mkString(DxName.NamespaceDelimEncoded)
     (stage, suffix) match {
       case (Some(stg), Some(suf)) => s"${stg}.${name}${suf}"
       case (Some(stg), None)      => s"${stg}.${name}"
@@ -200,17 +147,7 @@ abstract class DxName(private var encodedParts: Option[Vector[String]],
     }
   }
 
-  protected def decodePart(part: String): String = {
-    DxName.decodeSequencesRegex.findAllMatchIn(part).toVector match {
-      case Vector() => part
-      case matches =>
-        val (starts, ends, delims) = matches.map { m =>
-          val newDelim = m.group(1).toInt.toChar.toString
-          (m.end, m.start, newDelim)
-        }.unzip3
-        makeNewPart(part, starts, ends, delims)
-    }
-  }
+  protected def decodePart(part: String): String = part
 
   def getDecodedParts: Vector[String] = {
     decodedParts

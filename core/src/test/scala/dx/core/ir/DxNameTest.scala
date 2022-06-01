@@ -70,17 +70,6 @@ class DxNameTest extends AnyFlatSpec with Matchers {
     dxName4.withSuffix("___dxfiles") shouldBe dxName
   }
 
-  it should "encode a valid WDL name with dashes in parts" in {
-    val dxName = WdlDxName.fromDecodedName("new_frag_stage-1.a.b___dxfiles")
-    dxName.numParts shouldBe 3
-    dxName.getDecodedParts shouldBe Vector("new_frag_stage-1", "a", "b")
-    dxName.getEncodedParts shouldBe Vector("new_frag_stage__45__1", "a", "b")
-    dxName.decoded shouldBe "new_frag_stage-1.a.b___dxfiles"
-    dxName.encoded shouldBe "new_frag_stage__45__1___a___b___dxfiles"
-    dxName.stage shouldBe None
-    dxName.suffix shouldBe Some("___dxfiles")
-  }
-
   it should "decode valid WDL names" in {
     val dxName = WdlDxName.fromEncodedName("a___b___dxfiles")
     dxName.numParts shouldBe 2

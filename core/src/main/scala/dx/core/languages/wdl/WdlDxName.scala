@@ -8,7 +8,6 @@ object WdlDxName extends DxNameFactory {
   val NamespaceDelim = "."
   private val NamespaceDelimRegex = "\\.".r
   private val NamespaceDelimEncodedRegex: Regex = DxName.NamespaceDelimEncoded.r
-  private val illegalDecodedSequencesRegex = "/|__|\\s+".r
 
   override def fromEncodedName(name: String): WdlDxName = {
     val (parts, stage, suffix) = DxNameFactory.split(name, Some(NamespaceDelimEncodedRegex))
@@ -43,7 +42,7 @@ class WdlDxName(encodedParts: Option[Vector[String]] = None,
     extends DxName(encodedParts, decodedParts, stage, suffix) {
 
   override protected def illegalDecodedSequencesRegex: Option[Regex] =
-    Some(WdlDxName.illegalDecodedSequencesRegex)
+    Some(DxName.disallowedCharsRegex)
 
   override protected val namespaceDelim: Option[String] = Some(WdlDxName.NamespaceDelim)
 
