@@ -237,12 +237,14 @@ case class CallableTranslator(wdlBundle: WdlBundle,
             case other            => throw new Exception(s"Unexpected class ${other}")
           }).map {
             case param: Parameter =>
-              param.copy(name =
-                WdlDxName.fromDecodedName(s"${dependencyName}.${param.name.toString}")
+              param.copy(name = WdlDxName.fromDecodedName(
+                  s"${DxName.disallowedCharsRegex.replaceAllIn(dependencyName, "_")}.${param.name.toString}"
+              )
               )
             case (param: Parameter, link: StageInputStageLink) =>
-              (param.copy(name =
-                 WdlDxName.fromDecodedName(s"${dependencyName}.${param.name.toString}")
+              (param.copy(name = WdlDxName.fromDecodedName(
+                   s"${DxName.disallowedCharsRegex.replaceAllIn(dependencyName, "_")}.${param.name.toString}"
+               )
                ),
                link)
           }
