@@ -1342,9 +1342,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       case _                           => throw new Exception("unexpected")
     }
 
-    // this is a subworkflow so there is no reorg_status___ added.
+    // this is a sub-workflow so there is no reorg_status___ added.
     val trainsOutputVector: Callable = bundle.allCallables("trains")
-    trainsOutputVector.outputVars.size shouldBe 1
+    trainsOutputVector.outputVars.size shouldBe 2 // APPS-1175, intermediate outputs are added
   }
 
   it should "compile workflow with task imported by multiple paths" taggedAs NativeTest in {
