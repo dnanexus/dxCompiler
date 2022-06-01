@@ -388,6 +388,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         wfOutputs: Vector[(Parameter, StageInput)],
         stages: Vector[Stage]
     ): Vector[(Parameter, StageInput)] = {
+      val stageIdCalleeName = stages.map(stage => (stage.dxStage, stage.calleeName)).toMap
       val stageOutsWithSelfLinking: Map[StageInputStageLink, Parameter] = stages
         .foldLeft(Map.empty[StageInputStageLink, Parameter]) {
           case (accu, stage: Stage) => accu ++ createOutputSelfLinks(stage)
@@ -399,7 +400,11 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         .map {
           case (link: StageInputStageLink, parameter: Parameter) =>
             val paramWithNamespace = parameter.copy(name = WdlDxName
-              .fromDecodedName(name = s"output_${link.stageId.id}.${parameter.name.toString}")
+              .fromDecodedName(
+                  name =
+                    s"${DxName.disallowedCharsRegex.replaceAllIn(stageIdCalleeName(link.stageId),
+                                                                 "_")}_${parameter.name.toString}"
+              )
             )
             (paramWithNamespace, link)
         }
@@ -972,13 +977,13 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           (ExecutableKindWfOutputs(blockPath), outputVars)
       }
       val application = Application(
-          s"${wfName}_${Constants.OutputStage}",
-          applicationInputs.toVector,
-          updatedOutputVars,
-          DefaultInstanceType,
-          NoImage,
-          applicationKind,
-          standAloneWorkflow
+          name = s"${wfName}_${Constants.OutputStage}",
+          inputs = applicationInputs.toVector,
+          outputs = updatedOutputVars,
+          instanceType = DefaultInstanceType,
+          container = NoImage,
+          kind = applicationKind,
+          document = standAloneWorkflow
       )
       val stage = Stage(
           Constants.OutputStage,

@@ -1,6 +1,13 @@
 package dx.core.languages.wdl
 
-import dx.core.ir.{Application, Callable, ExecutableKindApplet, ExecutableKindNative, SourceCode}
+import dx.core.ir.{
+  Application,
+  Callable,
+  ExecutableKindApplet,
+  ExecutableKindNative,
+  SourceCode,
+  DxName
+}
 import dx.util.{Logger, StringFileNode}
 import spray.json.JsValue
 import wdlTools.eval.{DefaultEvalPaths, IoSupport, WdlValues}
@@ -194,7 +201,12 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
         .map { parameter =>
           val wdlType = WdlUtils.fromIRType(parameter.dxType, typeAliases)
           val defaultVal = WdlUtils.getDefaultValueOfType(wdlType)
-          TAT.OutputParameter(parameter.name.decoded, wdlType, defaultVal)(SourceLocation.empty)
+          TAT.OutputParameter(
+              DxName.disallowedCharsRegex
+                .replaceAllIn(parameter.name.decoded, "_"), // Hack to ensure proper output names in APPS-1175. Can't use .encoded because the subsequent translation will fail
+              wdlType,
+              defaultVal
+          )(SourceLocation.empty)
         }
     val meta = native.map { n =>
       TAT.MetaSection(

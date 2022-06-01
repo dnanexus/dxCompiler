@@ -66,10 +66,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
                                                         "-folder",
                                                         unitTestsPath,
                                                         "-locked")
-//  private val cFlagsUnlocked: List[String] = cFlagsBase ++ List("-compileMode",
-//                                                                "NativeWithoutRuntimeAsset",
-//                                                                "-folder",
-//                                                                unitTestsPath)
+
   private val cFlagsReorgIR: List[String] = cFlagsBase ++
     List("-compileMode", "IR", "-folder", "/reorg_tests")
   private val cFlagsReorgCompile: List[String] = cFlagsBase ++
@@ -1284,7 +1281,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
   // ignore for now as the test will fail in staging
   it should "Compile a workflow with subworkflows on the platform with the reorg app with config file in the input" in {
-    // This works in conjunction with "Compile a workflow with subworkflows on the platform with the reorg app".
+    // This works in conjunction with "Compile a workflow with sub-workflows on the platform with the reorg app".
     val path = pathFromBasename("subworkflows", basename = "trains_station.wdl")
     // upload random file
     val (_, uploadOut, _) = SysUtils.execCommand(
