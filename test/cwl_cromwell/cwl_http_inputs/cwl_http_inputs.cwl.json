@@ -1,101 +1,102 @@
 {
-    "id": "#main",
-    "class": "Workflow",
-    "inputs": [
+    "cwlVersion": "v1.2",
+    "$graph": [
         {
-            "id": "#main/jamie",
-            "type": "File"
-        }
-    ],
-    "steps": [
-        {
-            "id": "#main/sum",
-            "in": [
+            "id": "main",
+            "class": "Workflow",
+            "inputs": [
                 {
-                    "id": "#main/sum/jamie",
-                    "source": "#main/jamie"
+                    "id": "jamie",
+                    "type": "File"
                 }
             ],
-            "out": [
+            "outputs": [
                 {
-                    "id": "#main/sum/md5"
+                    "id": "md5",
+                    "outputSource": "sum/md5",
+                    "type": "string"
                 }
             ],
-            "requirements": [
+            "steps": [
                 {
-                    "dockerPull": "ubuntu:latest",
-                    "class": "DockerRequirement"
+                    "id": "sum",
+                    "in": [
+                        {
+                            "id": "jamie",
+                            "source": "jamie"
+                        }
+                    ],
+                    "out": [
+                        {
+                            "id": "md5"
+                        }
+                    ],
+                    "requirements": {
+                        "DockerRequirement": {
+                            "dockerPull": "ubuntu:latest"
+                        }
+                    },
+                    "run": {
+                        "inputs": [
+                            {
+                                "id": "jamie",
+                                "type": "File"
+                            }
+                        ],
+                        "outputs": [
+                            {
+                                "id": "md5",
+                                "outputBinding": {
+                                    "glob": "md5-stdOut.txt",
+                                    "loadContents": true,
+                                    "outputEval": "$(self[0].contents)"
+                                },
+                                "type": "string"
+                            }
+                        ],
+                        "class": "CommandLineTool",
+                        "requirements": [
+                            {
+                                "class": "ShellCommandRequirement"
+                            },
+                            {
+                                "class": "InlineJavascriptRequirement"
+                            }
+                        ],
+                        "arguments": [
+                            {
+                                "valueFrom": "/usr/bin/md5sum",
+                                "shellQuote": false
+                            },
+                            {
+                                "valueFrom": "$(inputs.jamie)",
+                                "shellQuote": true
+                            },
+                            {
+                                "valueFrom": "|",
+                                "shellQuote": false
+                            },
+                            {
+                                "valueFrom": "cut",
+                                "shellQuote": false
+                            },
+                            {
+                                "valueFrom": "-c1-32",
+                                "shellQuote": false
+                            }
+                        ],
+                        "stdout": "md5-stdOut.txt",
+                        "hints": {
+                            "NetworkAccess": {
+                                "networkAccess": true
+                            },
+                            "LoadListingRequirement": {
+                                "loadListing": "deep_listing"
+                            }
+                        }
+                    }
                 }
-            ],
-            "run": {
-                "inputs": [
-                    {
-                        "id": "#main/sum/run/jamie",
-                        "type": "File"
-                    }
-                ],
-                "outputs": [
-                    {
-                        "id": "#main/sum/run/md5",
-                        "outputBinding": {
-                            "glob": "md5-stdOut.txt",
-                            "loadContents": true,
-                            "outputEval": "$(self[0].contents)"
-                        },
-                        "type": "string"
-                    }
-                ],
-                "class": "CommandLineTool",
-                "requirements": [
-                    {
-                        "class": "ShellCommandRequirement"
-                    },
-                    {
-                        "class": "InlineJavascriptRequirement"
-                    }
-                ],
-                "arguments": [
-                    {
-                        "valueFrom": "/usr/bin/md5sum",
-                        "shellQuote": false
-                    },
-                    {
-                        "valueFrom": "$(inputs.jamie)",
-                        "shellQuote": true
-                    },
-                    {
-                        "valueFrom": "|",
-                        "shellQuote": false
-                    },
-                    {
-                        "valueFrom": "cut",
-                        "shellQuote": false
-                    },
-                    {
-                        "valueFrom": "-c1-32",
-                        "shellQuote": false
-                    }
-                ],
-                "stdout": "md5-stdOut.txt",
-                "hints": [
-                    {
-                        "loadListing": "deep_listing",
-                        "class": "LoadListingRequirement"
-                    },
-                    {
-                        "networkAccess": true,
-                        "class": "NetworkAccess"
-                    }
-                ]
-            }
+            ]
         }
-    ],
-    "outputs": [
-        {
-            "id": "#main/md5",
-            "outputSource": "#main/sum/md5",
-            "type": "string"
-        }
-    ],
-    "cwlVersion": "v1.2"
+    ]
 }

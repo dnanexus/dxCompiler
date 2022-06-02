@@ -263,7 +263,7 @@ case class Compiler(extras: Option[Extras],
             if (archive) {
               logger.trace(
                   s"""Executable(s) ${idStr} with name ${name} have changed;
-                     |archiving existing executable(s) before rebuiding""".stripMargin
+                     |archiving existing executable(s) before rebuilding""".stripMargin
                     .replaceAll("\n", " ")
               )
               try {
@@ -275,7 +275,7 @@ case class Compiler(extras: Option[Extras],
             } else if (force) {
               logger.trace(
                   s"""Executable(s) ${idStr} with name ${name} have changed;
-                     |deleting existing executable(s) before rebuiding""".stripMargin
+                     |deleting existing executable(s) before rebuilding""".stripMargin
                     .replaceAll("\n", " ")
               )
               try {
@@ -364,7 +364,7 @@ case class Compiler(extras: Option[Extras],
                                    JsObject(appletApiRequest).prettyPrint)
       }
       // fetch existing applet or build a new one
-      val dxApplet = getExistingExecutable(applet.name, digest) match {
+      val dxApplet = getExistingExecutable(applet.dxName, digest) match {
         case Some(dxApplet: DxApplet) =>
           // applet exists and it has not changed
           dxApplet
@@ -400,6 +400,7 @@ case class Compiler(extras: Option[Extras],
                          useManifests,
                          complexPathValues,
                          fileResolver,
+                         project,
                          instanceTypeSelection,
                          dxApi,
                          logger2)
@@ -414,7 +415,7 @@ case class Compiler(extras: Option[Extras],
           "folder" -> JsString(folder),
           "parents" -> JsBoolean(true)
       )
-      val dxWf = getExistingExecutable(workflow.name, digest) match {
+      val dxWf = getExistingExecutable(workflow.dxName, digest) match {
         case Some(wf: DxWorkflow) =>
           // workflow exists and has not changed
           wf

@@ -109,6 +109,93 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     }
   }
 
+  "Compiler" should "compile a workflow with a native app wrapped in frag and override instance based using RAM" in {
+    val path = pathFromBasename("bugs", "apps_1177_native_frag_indirect_override_unit.wdl")
+    val args = path.toString :: cFlags
+    val retval = Main.compile(args.toVector)
+    val wfId = retval match {
+      case SuccessfulCompileNativeNoTree(_, Vector(wfId)) => wfId
+      case other                                          => throw new Exception(s"expected single workflow not ${other}")
+    }
+    // the native app has an instance type of mem1_ssd1_x2, with 2 CPUs and 4 Gb RAM. The tasks request 30 Gb
+    val stages = dxApi
+      .workflow(wfId)
+      .describe()
+      .stages
+      .get
+    val stagesSysReq = stages.map { stage =>
+      stage.name -> stage.systemRequirements
+    }.toMap
+    stagesSysReq.size shouldBe 2
+    stagesSysReq("if (a)") shouldBe JsObject.empty
+    stagesSysReq("apps_1177_mem_int") shouldBe JsObject(
+        "*" -> JsObject("instanceType" -> JsString("mem3_ssd1_x4"))
+    )
+    val stagesExecDetails = stages.map { stage =>
+      stage.name -> dxApi.executable(stage.executable).describe(Set(Field.Details))
+    }.toMap
+    stagesExecDetails("if (a)").details.get.asJsObject.fields
+      .get("staticInstanceType")
+      .get shouldBe (JsString("mem3_ssd1_x4"))
+  }
+
+  it should "compile a workflow with a native app wrapped in frag and keep the default instance" in {
+    val path = pathFromBasename("bugs", "apps_1197_native_frag_default_unit.wdl")
+    val args = path.toString :: cFlags
+    val retval = Main.compile(args.toVector)
+    val wfId = retval match {
+      case SuccessfulCompileNativeNoTree(_, Vector(wfId)) => wfId
+      case other                                          => throw new Exception(s"expected single workflow not ${other}")
+    }
+    // the native app has an instance type of mem1_ssd1_x2, with 2 CPUs and 4 Gb RAM
+    val stages = dxApi
+      .workflow(wfId)
+      .describe()
+      .stages
+      .get
+    val stagesSysReq = stages.map { stage =>
+      stage.name -> stage.systemRequirements
+    }.toMap
+    stagesSysReq.size shouldBe 2
+    stagesSysReq("if (a)") shouldBe JsObject.empty
+    stagesSysReq("apps_1197_default_instance") shouldBe JsObject.empty
+    val stagesExecDetails = stages.map { stage =>
+      stage.name -> dxApi.executable(stage.executable).describe(Set(Field.Details))
+    }.toMap
+    stagesExecDetails("if (a)").details.get.asJsObject.fields
+      .get("staticInstanceType")
+      .getOrElse(JsObject.empty) shouldBe JsObject.empty
+  }
+
+  it should "compile a workflow with a native app and override instance based using RAM and CPU spec" in {
+    val path = pathFromBasename("bugs", "apps_1177_native_indirect_override_unit.wdl")
+    val args = path.toString :: cFlags
+    val retval = Main.compile(args.toVector)
+    val wfId = retval match {
+      case SuccessfulCompileNativeNoTree(_, Vector(wfId)) => wfId
+      case other                                          => throw new Exception(s"expected single workflow not ${other}")
+    }
+    // the native app has an instance type of mem1_ssd1_x2, with 2 CPUs and 4 Gb RAM. The tasks request 30 Gb and
+    // 8 CPU respectively so the instances should be scaled
+    val stages = dxApi
+      .workflow(wfId)
+      .describe()
+      .stages
+      .get
+      .map { stage =>
+        stage.name -> stage.systemRequirements
+      }
+      .toMap
+    stages.size shouldBe 3
+    stages("default") shouldBe JsObject.empty
+    stages("mem_int") shouldBe JsObject(
+        "*" -> JsObject("instanceType" -> JsString("mem3_ssd1_x4"))
+    )
+    stages("cpu_int") shouldBe JsObject(
+        "*" -> JsObject("instanceType" -> JsString("mem1_ssd1_x8"))
+    )
+  }
+
   it should "compile a workflow with a frag app wrapper using a default instance" in {
     val path = pathFromBasename("frag_runner", "apps_1128_frag_default.wdl")
     val args = path.toString :: cFlags
@@ -136,6 +223,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       .fields
       .get("instanceType")
     instance.getOrElse("Undefined") shouldBe JsString("mem1_ssd1_v2_x2")
+    val sysReq = stages.filter(_.name.contains("if")).head.systemRequirements
+    sysReq shouldBe (JsObject.empty)
   }
 
   it should "compile a task with dynamic instance type selection" in {
@@ -580,10 +669,11 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
           case (Constants.ParseOptions, JsObject(_))               => () // ignore
           case (Constants.DocContents, JsString(_))                => () // ignore
           // old values for sourceCode - can probably delete these
-          case ("womSourceCode", JsString(_))        => () // ignore
-          case ("wdlSourceCode", JsString(_))        => () // ignore
-          case (Constants.OriginalName, JsString(_)) => () // ignore
-          case other                                 => throw new Exception(s"Unexpected result ${other}")
+          case ("womSourceCode", JsString(_))                  => () // ignore
+          case ("wdlSourceCode", JsString(_))                  => () // ignore
+          case (Constants.OriginalName, JsString(_))           => () // ignore
+          case (Constants.StaticInstanceType, JsString(value)) => value shouldBe ("mem1_ssd1_x2")
+          case other                                           => throw new Exception(s"Unexpected result ${other}")
         }
       case other => throw new Exception(s"Unexpected result ${other}")
     }
@@ -1583,6 +1673,24 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val args2 = path.toString :: cFlagsReuse
     val appletId2 = Main.compile(args2.toVector) match {
       case SuccessfulCompileNativeNoTree(_, Vector(appletId)) => appletId
+      case other =>
+        throw new Exception(s"expected single applet not ${other}")
+    }
+    appletId shouldBe appletId2
+  }
+
+  it should "reuse identical cwl tasks" in {
+    val path = pathFromBasename("cwl", "params.cwl.json")
+    val args = path.toString :: cFlags
+    val appletId = Main.compile(args.toVector) match {
+      case SuccessfulCompileNativeNoTree(_, Vector(appletId)) => appletId
+      case other =>
+        throw new Exception(s"expected single applet not ${other}")
+    }
+    // compiling a second time into a different folder with -projectWideReuse should reuse the same applet
+    val args2 = path.toString :: cFlagsReuse
+    val appletId2 = Main.compile(args2.toVector) match {
+      case SuccessfulCompileNativeNoTree(_, Vector(applet2Id)) => applet2Id
       case other =>
         throw new Exception(s"expected single applet not ${other}")
     }

@@ -214,6 +214,7 @@ def test_global_wf_from_wdl():
         ))
         raise
 
+
     # As Bob, run global workflow
     login_bob()
 
@@ -225,6 +226,7 @@ def test_global_wf_from_wdl():
     )
 
     successes, failures = wait_for_completion(exec_objs)
+    
     if len(successes) > 0:
         report_test_success(tname)
     elif len(failures) > 0:

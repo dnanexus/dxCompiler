@@ -1,70 +1,69 @@
 {
-    "id": "#main",
-    "class": "CommandLineTool",
-    "requirements": [
+    "cwlVersion": "v1.2",
+    "$graph": [
         {
-            "class": "ShellCommandRequirement"
-        },
-        {
-            "class": "InitialWorkDirRequirement",
-            "listing": "$(inputs.indir.listing)"
-        },
-        {
-            "class": "DockerRequirement",
-            "dockerPull": "ubuntu:latest"
-        }
-    ],
-    "inputs": [
-        {
-            "type": "Directory",
-            "id": "#main/indir"
-        }
-    ],
-    "arguments": [
-        "find",
-        "-L",
-        ".",
-        "-name",
-        "?",
-        {
-            "shellQuote": false,
-            "valueFrom": "|"
-        },
-        "sort",
-        {
-            "shellQuote": false,
-            "valueFrom": "|"
-        },
-        "sha1sum",
-        {
-            "shellQuote": false,
-            "valueFrom": "|"
-        },
-        "cut",
-        "-c",
-        "1-40"
-    ],
-    "stdout": "output.txt",
-    "hints": [
-        {
-            "loadListing": "deep_listing",
-            "class": "LoadListingRequirement"
-        },
-        {
-            "networkAccess": true,
-            "class": "NetworkAccess"
-        }
-    ],
-    "outputs": [
-        {
-            "type": "string",
-            "outputBinding": {
-                "glob": "output.txt",
-                "loadContents": true,
-                "outputEval": "$(self[0].contents)"
+            "id": "main",
+            "class": "CommandLineTool",
+            "cwlVersion": "v1.0",
+            "requirements": [
+                {
+                    "class": "ShellCommandRequirement"
+                },
+                {
+                    "class": "InitialWorkDirRequirement",
+                    "listing": "$(inputs.indir.listing)"
+                },
+                {
+                    "class": "DockerRequirement",
+                    "dockerPull": "ubuntu:latest"
+                }
+            ],
+            "inputs": {
+                "indir": "Directory"
             },
-            "id": "#main/sha"
+            "outputs": {
+                "sha": {
+                    "type": "string",
+                    "outputBinding": {
+                        "glob": "output.txt",
+                        "loadContents": true,
+                        "outputEval": "$(self[0].contents)"
+                    }
+                }
+            },
+            "arguments": [
+                "find",
+                "-L",
+                ".",
+                "-name",
+                "?",
+                {
+                    "shellQuote": false,
+                    "valueFrom": "|"
+                },
+                "sort",
+                {
+                    "shellQuote": false,
+                    "valueFrom": "|"
+                },
+                "sha1sum",
+                {
+                    "shellQuote": false,
+                    "valueFrom": "|"
+                },
+                "cut",
+                "-c",
+                "1-40"
+            ],
+            "stdout": "output.txt",
+            "hints": {
+                "NetworkAccess": {
+                    "networkAccess": true
+                },
+                "LoadListingRequirement": {
+                    "loadListing": "deep_listing"
+                }
+            }
         }
-    ],
-    "cwlVersion": "v1.2"
+    ]
 }

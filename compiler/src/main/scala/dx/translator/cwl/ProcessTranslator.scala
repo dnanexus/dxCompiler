@@ -80,10 +80,36 @@ import spray.json._
 import java.nio.file.{Path, Paths}
 import scala.util.Try
 
-case class CwlSourceCode(source: Path) extends SourceCode {
+/**
+  * Compile IR to native applets and workflows.
+  * @param source path to the packed CWL json file
+  * @param target vector of ids from the top-level to the target process whose
+  source code will be extracted as a standalone json
+  */
+case class CwlSourceCode(source: Path, target: Vector[String] = Vector.empty) extends SourceCode {
   override val language: String = "cwl"
   override def toString: String = FileUtils.readFileContent(source)
-  def getDocContents: String = toString
+  override def getDocContents: String = {
+    def inner(jsv: JsValue, target: Vector[String]): Option[JsValue] = {
+      jsv match {
+        case JsObject(fields) if fields.get("id").contains(JsString(s"${target.head}")) =>
+          val nextTarget = target.drop(1)
+          if (nextTarget.isEmpty) {
+            Some(jsv)
+          } else {
+            Set("steps", "run").collectFirst(fields).flatMap(inner(_, nextTarget))
+          }
+        case JsArray(items) =>
+          items.flatMap(inner(_, target)) match {
+            case Vector(i) => Some(i)
+            case _         => None
+          }
+        case _ => None
+      }
+    }
+    val sourceCode = toString.parseJson
+    inner(sourceCode, target).getOrElse(sourceCode).sortedPrint
+  }
 }
 
 case class ProcessTranslator(cwlBundle: CwlBundle,
@@ -312,7 +338,10 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           case _                 => Vector.empty
         }
       }
-
+      val fullToolName = cwlBundle.processParents.getOrElse(tool.name, Vector.empty) ++ Vector(
+          tool.name
+      )
+      val standAloneTask = CwlSourceCode(docSource, fullToolName)
       Application(
           name,
           inputs,
@@ -323,7 +352,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           requirementEvaluator.translateInstanceType(instanceTypeSelection),
           requirementEvaluator.translateContainer,
           ExecutableKindApplet,
-          CwlSourceCode(docSource),
+          standAloneTask,
           translateCallableAttributes(tool, hintCallableAttrs),
           requirementEvaluator.translateApplicationRequirements,
           tags = Set("cwl"),
@@ -372,12 +401,14 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       }
     }
 
-    override protected def standAloneWorkflow: SourceCode = {
-      val docSource = wf.source.orElse(cwlBundle.primaryProcess.source) match {
+    private lazy val docSource: Path =
+      wf.source.orElse(cwlBundle.primaryProcess.source) match {
         case Some(path) => Paths.get(path)
         case None       => throw new Exception(s"no source code for tool ${wf.name}")
       }
-      CwlSourceCode(docSource)
+
+    override protected def standAloneWorkflow: SourceCode = {
+      CwlSourceCode(docSource, Vector(wf.name))
     }
 
     private def createWorkflowInput(input: WorkflowInputParameter): Parameter = {
@@ -575,6 +606,8 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         param.name -> param.dxType
       }.toMap
 
+      val fullStepName = cwlBundle.processParents.getOrElse(calleeName.get, Vector.empty)
+      val standAloneFrag = CwlSourceCode(docSource, fullStepName)
       val applet = Application(
           s"${wfName}_frag_${getStageId()}",
           inputParams,
@@ -582,7 +615,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           DefaultInstanceType,
           NoImage,
           ExecutableKindWfFragment(calleeName, blockPath, fqnDictTypes, scatterChunkSize),
-          standAloneWorkflow
+          standAloneFrag
       )
 
       (Stage(stageName, getStage(), applet.name, stageInputs, outputParams), applet)
@@ -859,13 +892,12 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         (wfOutputs, stages, auxCallables.flatten)
       }
 
-      (Workflow(wfName,
-                wfInputLinks,
-                wfOutputs,
-                finalStages,
-                standAloneWorkflow,
-                locked = true,
-                level),
+      val fullWfName = cwlBundle.processParents.getOrElse(wfName, Vector.empty) ++ Vector(
+          wfName
+      )
+      val standAloneWf = CwlSourceCode(docSource, fullWfName)
+
+      (Workflow(wfName, wfInputLinks, wfOutputs, finalStages, standAloneWf, locked = true, level),
        finalCallables,
        wfOutputs)
     }
@@ -908,12 +940,16 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       val wfOutputs =
         outputStage.outputs.map(param => (param, StageInputStageLink(outputStage.dxStage, param)))
 
+      val fullWfName = cwlBundle.processParents.getOrElse(wf.name, Vector.empty) ++ Vector(
+          wf.name
+      )
+      val standAloneWf = CwlSourceCode(docSource, fullWfName)
       val irwf = Workflow(
           wf.name,
           wfInputs,
           wfOutputs,
           commonStg +: stages :+ outputStage,
-          standAloneWorkflow,
+          standAloneWf,
           locked = false,
           Level.Top
       )

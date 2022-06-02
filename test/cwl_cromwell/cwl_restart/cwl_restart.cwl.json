@@ -1,6 +1,7 @@
 {
+    "cwlVersion": "v1.2",
     "class": "Workflow",
-    "id": "#main",
+    "id": "cwl_restart",
     "requirements": [
         {
             "dockerPull": "ubuntu:latest",
@@ -10,28 +11,28 @@
     "inputs": [],
     "steps": [
         {
-            "id": "#main/first_step",
+            "id": "first_step",
             "in": [],
             "out": [
                 {
-                    "id": "#main/first_step/firstfoofile"
+                    "id": "firstfoofile"
                 },
                 {
-                    "id": "#main/first_step/first-bar-file"
+                    "id": "first-bar-file"
                 }
             ],
             "run": {
                 "inputs": [],
                 "outputs": [
                     {
-                        "id": "#main/first_step/run/firstfoofile",
+                        "id": "firstfoofile",
                         "outputBinding": {
                             "glob": "out.txt"
                         },
                         "type": "File"
                     },
                     {
-                        "id": "#main/first_step/run/first-bar-file",
+                        "id": "first-bar-file",
                         "outputBinding": {
                             "glob": "out.txt"
                         },
@@ -59,59 +60,58 @@
                         "valueFrom": "out.txt"
                     }
                 ],
-                "hints": [
-                    {
-                        "loadListing": "deep_listing",
-                        "class": "LoadListingRequirement"
+                "hints": {
+                    "NetworkAccess": {
+                        "networkAccess": true
                     },
-                    {
-                        "networkAccess": true,
-                        "class": "NetworkAccess"
+                    "LoadListingRequirement": {
+                        "loadListing": "deep_listing"
                     }
-                ]
+                },
+                "id": "cwl_restart@step_first_step@run"
             }
         },
         {
-            "id": "#main/cromwell_killer",
+            "id": "cromwell_killer",
             "in": [
                 {
-                    "id": "#main/cromwell_killer/fooinput",
-                    "source": "#main/first_step/firstfoofile"
+                    "id": "fooinput",
+                    "source": "first_step/firstfoofile"
                 },
                 {
-                    "id": "#main/cromwell_killer/bar-input",
-                    "source": "#main/first_step/first-bar-file"
+                    "id": "bar-input",
+                    "source": "first_step/first-bar-file"
                 }
             ],
             "out": [
                 {
-                    "id": "#main/cromwell_killer/footxt"
+                    "id": "footxt"
                 },
                 {
-                    "id": "#main/cromwell_killer/bar-txt"
+                    "id": "bar-txt"
                 }
             ],
             "run": {
                 "inputs": [
                     {
-                        "id": "#main/cromwell_killer/run/fooinput",
+                        "id": "fooinput",
                         "type": "File"
                     },
                     {
-                        "id": "#main/cromwell_killer/run/bar-input",
+                        "id": "bar-input",
                         "type": "File"
                     }
                 ],
                 "outputs": [
                     {
-                        "id": "#main/cromwell_killer/run/footxt",
+                        "id": "footxt",
                         "outputBinding": {
                             "glob": "foo.txt"
                         },
                         "type": "File"
                     },
                     {
-                        "id": "#main/cromwell_killer/run/bar-txt",
+                        "id": "bar-txt",
                         "outputBinding": {
                             "glob": "bar.txt"
                         },
@@ -166,49 +166,48 @@
                         "valueFrom": "bar.txt"
                     }
                 ],
-                "hints": [
-                    {
-                        "loadListing": "deep_listing",
-                        "class": "LoadListingRequirement"
+                "hints": {
+                    "NetworkAccess": {
+                        "networkAccess": true
                     },
-                    {
-                        "networkAccess": true,
-                        "class": "NetworkAccess"
+                    "LoadListingRequirement": {
+                        "loadListing": "deep_listing"
                     }
-                ]
+                },
+                "id": "cwl_restart@step_cromwell_killer@run"
             }
         },
         {
-            "id": "#main/third_step",
+            "id": "third_step",
             "in": [
                 {
-                    "id": "#main/third_step/foo",
-                    "source": "#main/cromwell_killer/footxt"
+                    "id": "foo",
+                    "source": "cromwell_killer/footxt"
                 },
                 {
-                    "id": "#main/third_step/bar",
-                    "source": "#main/cromwell_killer/bar-txt"
+                    "id": "bar",
+                    "source": "cromwell_killer/bar-txt"
                 }
             ],
             "out": [
                 {
-                    "id": "#main/third_step/flag"
+                    "id": "flag"
                 }
             ],
             "run": {
                 "inputs": [
                     {
-                        "id": "#main/third_step/run/foo",
+                        "id": "foo",
                         "type": "File"
                     },
                     {
-                        "id": "#main/third_step/run/bar",
+                        "id": "bar",
                         "type": "File"
                     }
                 ],
                 "outputs": [
                     {
-                        "id": "#main/third_step/run/flag",
+                        "id": "flag",
                         "outputBinding": {
                             "outputEval": "$(true)"
                         },
@@ -252,25 +251,23 @@
                         "valueFrom": "$(inputs.bar)"
                     }
                 ],
-                "hints": [
-                    {
-                        "loadListing": "deep_listing",
-                        "class": "LoadListingRequirement"
+                "hints": {
+                    "NetworkAccess": {
+                        "networkAccess": true
                     },
-                    {
-                        "networkAccess": true,
-                        "class": "NetworkAccess"
+                    "LoadListingRequirement": {
+                        "loadListing": "deep_listing"
                     }
-                ]
+                },
+                "id": "cwl_restart@step_third_step@run"
             }
         }
     ],
     "outputs": [
         {
-            "id": "#main/flag",
-            "outputSource": "#main/third_step/flag",
+            "id": "flag",
+            "outputSource": "third_step/flag",
             "type": "boolean"
         }
-    ],
-    "cwlVersion": "v1.2"
+    ]
 }

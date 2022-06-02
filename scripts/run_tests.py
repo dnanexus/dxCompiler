@@ -95,7 +95,7 @@ wdl_v1_list = [
     "cast",
     "dict",
     "instance_types",
-    "apps_1128_frag_native_instance_type_override",
+    "apps_1197_native_frag_default",
     "linear_no_expressions",
     "linear",
     "optionals",
@@ -120,7 +120,7 @@ wdl_v1_list = [
     "map_file_key",
     # defaults and parameter passing
     "top_wf",
-    "subworkflow_with_default",
+    "workflow_with_subworkflow",
     # can we download from a container?
     "download_from_container",
     # input file with pairs
@@ -161,6 +161,8 @@ wdl_v1_list = [
 ]
 
 wdl_v1_1_list = [
+    "apps_1128_frag_native_instance_type_override",
+    "apps_1177_native_indirect_override",
     "v1_1_dict",
     "apps_847_scatter_empty",
     "optional_missing",
@@ -170,6 +172,12 @@ wdl_v1_1_list = [
     "apps_579_string_substitution_expr",
     "apps_956_private_var_local",
     "apps_1052_optional_block_inputs_wdl11",
+]
+
+static_only = [
+    "apps_1177_native_indirect_override",
+    "apps_1128_frag_native_instance_type_override",
+    "apps_1197_native_frag_default"
 ]
 
 # docker image tests
@@ -490,36 +498,33 @@ cwl_cromwell_tests_list = [
     "cwl_dynamic_initial_workdir",
     "cwl_expressionLib",
     "cwl_format",
-    # "cwl_format_url", # APPS-961 Could not load extension schema https
+    "cwl_format_url",
     "cwl_glob_sort",
     "cwl_hello",
-    # "cwl_http_inputs", # APPS-961 HTTPS input link is not supported:
-    #                     Error translating inputs: java.lang.RuntimeException: Unsupported file source .png
+    # "cwl_http_inputs", # Ignored: HTTPS input link is not supported
     "test_wf",
     "touch",
     "test_pack",
     "cwl_input_binding_expression",
-    # "cwl_input_json", # APPS-1008: Error translating to IR, downcasting failed
+    "cwl_input_json",
     "cwl_input_typearray",
     "cwl_interpolated_strings",
     "cwl_optionals",
     "cwl_output_json",
     "prefix_for_array",
-    "cwl_recursive_link_directories",
+    # "cwl_recursive_link_directories", # Ignored: Invalid test for cwltool
     "cwl_relative_imports",
-    # "cwl_disk_resources", # APPS-961 Could not resolve host: metadata.google.internal
-    #                       # Unknown hint https://www.dnanexus.com/cwl#InputResourceRequirement (Should be deprecated)
-    # "cwl_inputdir_zero_doesnt_localize", # APPS-1008: Error translating to IR, downcasting failed
-    # "cwl_resources", # APPS-961 Could not resolve host: metadata.google.internal
-    # "cwl_restart", # APPS-834 AppInternalError: workflow does not contain a tool
+    # "cwl_disk_resources", # Ignored: No support for GCP
+    "cwl_inputdir_zero_doesnt_localize",
+    # "cwl_resources", # Ignored: No support for GCP
+    "cwl_restart", 
     "1st-tool",
     "cwl_secondary_files",
-    # "cwl_secondary_files_workflow", # APPS-1005 Error creating translator
+    "cwl_secondary_files_workflow",
     "cwl_stdout_expression",
-    # "scatter-wf1", # APPS-834 Could not find linking information
-    # "cwl_three_step", # APPS-834 AppInternalError: workflow does not contain a tool
-    # "cwl_three_step_caller_wf" # APPS-834 AppInternalError: workflow does not contain a tool
-    #                              (raised from calling cwl_three_step)
+    "cwl_scatter-wf1", 
+    "cwl_three_step",
+    "cwl_three_step_caller_wf"
 ]
 
 # these are tests that take a long time to run
@@ -585,7 +590,12 @@ TestDesc = namedtuple(
 test_upload_wait = {"upload_wait"}
 
 # use the applet's default instance type rather than the default (mem1_ssd1_x4)
-test_instance_type = ["diskspace_exhauster", "apps_1128_frag_native_instance_type_override"]
+test_instance_type = [
+    "diskspace_exhauster",
+    "apps_1128_frag_native_instance_type_override",
+    "apps_1177_native_indirect_override",
+    "apps_1197_native_frag_default"
+]
 
 # Search a WDL file with a python regular expression.
 # Note this is not 100% accurate.
@@ -1297,8 +1307,9 @@ def build_test(tname, project, folder, version_id, compiler_flags):
     print("build {} {}".format(desc.kind, desc.name))
     print("Compiling {} to a {}".format(desc.source_file, desc.kind))
     # Both static and dynamic instance type selection should work,
-    # so we can test them at random
-    compiler_flags += ["-instanceTypeSelection", random.choice(["static", "dynamic"])]
+    # so we can test them at random except for a few tests
+    instance_type_selection = "static" if tname in static_only else random.choice(["static", "dynamic"])
+    compiler_flags += ["-instanceTypeSelection", instance_type_selection]
     if "manifest" in desc.source_file:
         compiler_flags.append("-useManifests")
     return util.build_executable(
@@ -1598,7 +1609,7 @@ def register_all_tests(verbose: bool) -> None:
         ).endswith("_notimplemented"):
             continue
         for t_file in files:
-            if t_file.endswith(".wdl") or t_file.endswith(".cwl"):
+            if t_file.endswith(".wdl"): # or t_file.endswith(".cwl"):
                 base = os.path.basename(t_file)
                 (fname, ext) = os.path.splitext(base)
             elif t_file.endswith(".cwl.json"):

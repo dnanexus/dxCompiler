@@ -122,12 +122,29 @@ case class Runtime(wdlVersion: WdlVersion,
           case other =>
             throw new Exception(s"unexpected ${WdlRuntime.GpuKey} value ${other}")
         }
-        InstanceTypeRequest(minMemoryMB = memoryMB,
-                            minDiskGB = diskGB,
-                            diskType = diskType,
-                            minCpu = cpu,
-                            gpu = gpu,
-                            os = Some(Constants.DefaultExecutionEnvironment))
+        val aa = runtimeAttrs.runtime
+        val _ = aa
+        val usedGpuDefault: Boolean = gpu match {
+          case Some(b) => false
+          case None    => true
+        }
+        val usedOtherSysDefaults: Boolean = {
+          runtimeAttrs.runtime.map(_.isDefaultSystemRequirements) match {
+            case Some(b) => b
+            case None    => true
+          }
+        }
+
+        if (usedOtherSysDefaults && usedGpuDefault) {
+          InstanceTypeRequest.empty
+        } else {
+          InstanceTypeRequest(minMemoryMB = memoryMB,
+                              minDiskGB = diskGB,
+                              diskType = diskType,
+                              minCpu = cpu,
+                              gpu = gpu,
+                              os = Some(Constants.DefaultExecutionEnvironment))
+        }
       }
   }
 

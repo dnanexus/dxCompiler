@@ -1,41 +1,89 @@
 {
+    "cwlVersion": "v1.2",
     "$graph": [
         {
-            "id": "#cwl_secondary_files_workflow_tool",
+            "id": "main",
+            "class": "Workflow",
+            "inputs": [
+                {
+                    "id": "command",
+                    "type": "string"
+                },
+                {
+                    "id": "wf_file_input",
+                    "type": "File",
+                    "secondaryFiles": [
+                        ".also"
+                    ]
+                },
+                {
+                    "id": "wf_file_input_array",
+                    "type": {
+                        "type": "array",
+                        "items": "File"
+                    },
+                    "secondaryFiles": [
+                        ".also"
+                    ]
+                }
+            ],
+            "outputs": [
+                {
+                    "id": "the_answer",
+                    "type": "string",
+                    "outputSource": "run_tool/the_answer"
+                }
+            ],
+            "steps": [
+                {
+                    "id": "run_tool",
+                    "run": "#cwl_secondary_files_workflow_tool",
+                    "in": {
+                        "command": "command",
+                        "f": "wf_file_input",
+                        "fs": "wf_file_input_array"
+                    },
+                    "out": [
+                        {
+                            "id": "the_answer"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "cwl_secondary_files_workflow_tool",
             "class": "CommandLineTool",
             "requirements": [
                 {
                     "class": "InlineJavascriptRequirement"
                 }
             ],
-            "hints": [
-                {
-                    "dockerPull": "debian:stretch-slim",
-                    "class": "DockerRequirement"
+            "hints": {
+                "DockerRequirement": {
+                    "dockerPull": "debian:stretch-slim"
                 },
-                {
-                    "loadListing": "deep_listing",
-                    "class": "LoadListingRequirement"
+                "NetworkAccess": {
+                    "networkAccess": true
                 },
-                {
-                    "networkAccess": true,
-                    "class": "NetworkAccess"
+                "LoadListingRequirement": {
+                    "loadListing": "deep_listing"
                 }
-            ],
+            },
             "inputs": [
                 {
-                    "id": "#cwl_secondary_files_workflow_tool/command",
+                    "id": "command",
                     "type": "string"
                 },
                 {
-                    "id": "#cwl_secondary_files_workflow_tool/f",
+                    "id": "f",
                     "type": "File",
                     "inputBinding": {
                         "position": 2
                     }
                 },
                 {
-                    "id": "#cwl_secondary_files_workflow_tool/fs",
+                    "id": "fs",
                     "type": {
                         "type": "array",
                         "items": "File",
@@ -45,87 +93,20 @@
                     }
                 }
             ],
+            "outputs": {
+                "the_answer": {
+                    "type": "string",
+                    "outputBinding": {
+                        "outputEval": "${ return \"\\$(\" + 42 + \")\"; }"
+                    }
+                }
+            },
             "baseCommand": [],
             "arguments": [
                 "bash",
                 "-c",
                 "$(inputs.command)"
-            ],
-            "outputs": [
-                {
-                    "type": "string",
-                    "outputBinding": {
-                        "outputEval": "${ return \"\\$(\" + 42 + \")\"; }"
-                    },
-                    "id": "#cwl_secondary_files_workflow_tool/the_answer"
-                }
-            ]
-        },
-        {
-            "id": "#main",
-            "class": "Workflow",
-            "inputs": [
-                {
-                    "id": "#main/command",
-                    "type": "string"
-                },
-                {
-                    "id": "#main/wf_file_input",
-                    "type": "File",
-                    "secondaryFiles": [
-                        {
-                            "pattern": ".also",
-                            "required": null
-                        }
-                    ]
-                },
-                {
-                    "id": "#main/wf_file_input_array",
-                    "type": {
-                        "type": "array",
-                        "items": "File"
-                    },
-                    "secondaryFiles": [
-                        {
-                            "pattern": ".also",
-                            "required": null
-                        }
-                    ]
-                }
-            ],
-            "outputs": [
-                {
-                    "id": "#main/the_answer",
-                    "type": "string",
-                    "outputSource": "#main/run_tool/the_answer"
-                }
-            ],
-            "steps": [
-                {
-                    "id": "#main/run_tool",
-                    "run": "#cwl_secondary_files_workflow_tool",
-                    "in": [
-                        {
-                            "source": "#main/command",
-                            "id": "#main/run_tool/command"
-                        },
-                        {
-                            "source": "#main/wf_file_input",
-                            "id": "#main/run_tool/f"
-                        },
-                        {
-                            "source": "#main/wf_file_input_array",
-                            "id": "#main/run_tool/fs"
-                        }
-                    ],
-                    "out": [
-                        {
-                            "id": "#main/run_tool/the_answer"
-                        }
-                    ]
-                }
             ]
         }
-    ],
-    "cwlVersion": "v1.2"
+    ]
 }

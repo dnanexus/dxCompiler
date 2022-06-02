@@ -1,42 +1,41 @@
 {
+    "cwlVersion": "v1.2",
     "$graph": [
         {
-            "id": "#main",
+            "id": "main",
             "class": "Workflow",
             "inputs": [],
+            "outputs": {
+                "final_output": {
+                    "type": "File",
+                    "outputSource": "round/output_file"
+                }
+            },
             "steps": [
                 {
-                    "id": "#main/make",
+                    "id": "make",
                     "run": "#makefile",
                     "in": [],
                     "out": [
-                        "#main/make/fileoutput"
+                        "fileoutput"
                     ]
                 },
                 {
-                    "id": "#main/round",
+                    "id": "round",
                     "run": "#roundtrip",
-                    "in": [
-                        {
-                            "source": "#main/make/fileoutput",
-                            "id": "#main/round/input_record"
+                    "in": {
+                        "input_record": {
+                            "source": "make/fileoutput"
                         }
-                    ],
+                    },
                     "out": [
-                        "#main/round/output_file"
+                        "output_file"
                     ]
-                }
-            ],
-            "outputs": [
-                {
-                    "type": "File",
-                    "outputSource": "#main/round/output_file",
-                    "id": "#main/final_output"
                 }
             ]
         },
         {
-            "id": "#makefile",
+            "id": "makefile",
             "class": "CommandLineTool",
             "requirements": [
                 {
@@ -53,17 +52,17 @@
             "inputs": [],
             "outputs": [
                 {
+                    "id": "fileoutput",
                     "type": {
                         "fields": [
                             {
-                                "name": "#makefile/fileoutput/input_record/input_file",
+                                "name": "input_file",
                                 "type": "File"
                             }
                         ],
-                        "name": "#makefile/fileoutput/input_record",
+                        "name": "input_record",
                         "type": "record"
-                    },
-                    "id": "#makefile/fileoutput"
+                    }
                 }
             ],
             "arguments": [
@@ -72,24 +71,22 @@
                     "shellQuote": false
                 }
             ],
-            "hints": [
-                {
-                    "loadListing": "deep_listing",
-                    "class": "LoadListingRequirement"
+            "hints": {
+                "NetworkAccess": {
+                    "networkAccess": true
                 },
-                {
-                    "networkAccess": true,
-                    "class": "NetworkAccess"
+                "LoadListingRequirement": {
+                    "loadListing": "deep_listing"
                 }
-            ]
+            }
         },
         {
-            "id": "#roundtrip",
+            "id": "roundtrip",
             "class": "CommandLineTool",
             "hints": [
                 {
                     "class": "DockerRequirement",
-                    "dockerPull": "stedolan/jq:latest"
+                    "dockerPull": "ubuntu:latest"
                 },
                 {
                     "class": "NetworkAccess",
@@ -102,22 +99,22 @@
             ],
             "inputs": [
                 {
-                    "id": "#roundtrip/input_record",
+                    "id": "input_record",
                     "type": {
                         "fields": [
                             {
-                                "name": "#roundtrip/input_record/input_record/input_file",
+                                "name": "input_file",
                                 "type": "File"
                             }
                         ],
-                        "name": "#roundtrip/input_record/input_record",
+                        "name": "input_record",
                         "type": "record"
                     }
                 }
             ],
             "outputs": [
                 {
-                    "id": "#roundtrip/output_file",
+                    "id": "output_file",
                     "type": "File"
                 }
             ],
@@ -132,7 +129,7 @@
                     "class": "InitialWorkDirRequirement",
                     "listing": [
                         {
-                            "entry": "$(JSON.stringify(inputs))",
+                            "entry": "$(JSON.stringify(inputs.input_record))",
                             "entryname": "cwl.inputs.json"
                         }
                     ]
@@ -140,11 +137,10 @@
             ],
             "arguments": [
                 {
-                    "valueFrom": "INPUT_FILE=\\$(cat cwl.inputs.json | jq -r '.. | .path? // empty') && ls $INPUT_FILE && echo \"{\\\"output_file\\\": {\\\"path\\\": \\\"\\$INPUT_FILE\\\", \\\"class\\\": \\\"File\\\"} }\" > cwl.output.json\n",
+                    "valueFrom": "sed 's/input_file/output_file/' cwl.inputs.json > cwl.output.json",
                     "shellQuote": false
                 }
             ]
         }
-    ],
-    "cwlVersion": "v1.2"
+    ]
 }

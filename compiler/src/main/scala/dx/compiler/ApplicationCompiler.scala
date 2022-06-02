@@ -8,8 +8,7 @@ import dx.api.{
   DxPath,
   DxProject,
   DxUtils,
-  DxWorkflow,
-  InstanceTypeRequest
+  DxWorkflow
 }
 import dx.core.Constants
 import dx.core.io.{DxWorkerPaths, StreamFiles}
@@ -305,10 +304,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     )
     // Add hard-coded instance type info to details
     val instanceTypeDetails: Map[String, JsValue] = applet.instanceType match {
-      case StaticInstanceType(
-          InstanceTypeRequest(Some(staticInstanceType), _, _, _, _, _, _, _, _, _, _)
-          ) =>
-        Map(Constants.StaticInstanceType -> JsString(staticInstanceType))
+      case static: StaticInstanceType =>
+        Map(Constants.StaticInstanceType -> JsString(instanceTypeDb.apply(static.req).name))
       case _ => Map.empty
     }
     // Add Docker image info to details
