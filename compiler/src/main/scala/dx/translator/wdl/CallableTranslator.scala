@@ -401,13 +401,16 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         }
         .map {
           case (link: StageInputStageLink, parameter: Parameter) =>
-            val paramWithNamespace = parameter.copy(name = WdlDxName
-              .fromDecodedName(
-                  name =
-                    s"${DxName.disallowedCharsRegex.replaceAllIn(stageIdCalleeName(link.stageId),
-                                                                 "_")}_${parameter.name.toString}"
+            val paramWithNamespace =
+              parameter.copy(name =
+                WdlDxName
+                  .fromDecodedName(
+                      name =
+                        s"${DxName.disallowedCharsRegex
+                          .replaceAllIn(s"${stageIdCalleeName(link.stageId)}_${link.stageId.id}",
+                                        "_")}_${parameter.name.toString}"
+                  )
               )
-            )
             (paramWithNamespace, link)
         }
         .toVector
