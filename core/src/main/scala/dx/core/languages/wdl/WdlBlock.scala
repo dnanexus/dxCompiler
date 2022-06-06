@@ -277,7 +277,7 @@ case class WdlBlock(index: Int,
     }
   }
 
-  // APPS-1175 an attempt to preserve the original name of the call. Maps element unqualifiedName to the an actualName
+  // APPS-1175 an attempt to preserve the original name of the call. Maps element unqualifiedName to the actualName
   lazy val blockNames: Map[String, String] = {
     elements.foldLeft(Map.empty[String, String]) {
       case (accu, call: TAT.Call) => accu + (call.unqualifiedName -> call.actualName)

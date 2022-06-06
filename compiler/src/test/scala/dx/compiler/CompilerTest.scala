@@ -142,13 +142,13 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       .get shouldBe (JsString("mem3_ssd1_x4"))
   }
 
-  it should "add executable links pointing to the intermediate outputs of wrapped workflow" in {
+  it should "add executable links pointing to the intermediate outputs of wrapped workflow called with alias" in {
     val path = pathFromBasename("subworkflows", "apps_1175_nested_wf_frag.wdl")
     val stages = compileGetStages(path.toString, cFlags)
     val stagesExecDetails = stages.map { stage =>
       stage.name -> dxApi.executable(stage.executable).describe(Set(Field.Details))
     }.toMap
-    val execInfo = stagesExecDetails("frag nested_inner").details.get.asJsObject.fields
+    val execInfo = stagesExecDetails("frag ni").details.get.asJsObject.fields
       .get("execLinkInfo")
       .get
       .asJsObject

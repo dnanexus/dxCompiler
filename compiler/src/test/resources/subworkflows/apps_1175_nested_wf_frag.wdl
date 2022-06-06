@@ -5,8 +5,8 @@ workflow apps_1175_nested_wf_intermediate_outputs {
   input {
     String s
   }
-  call nested_inner.nested_inner { input: s = "~{s+s}" }
+  call nested_inner.nested_inner as ni { input: s = "~{s+s}" }
   output {
-    File out_inner = nested_inner.nested_inner_wf_out
+    File out_inner = ni.nested_inner_wf_out
   }
 }

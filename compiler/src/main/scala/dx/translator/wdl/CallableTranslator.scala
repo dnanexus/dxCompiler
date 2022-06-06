@@ -357,24 +357,72 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       * For a frag applet, retrieves dependency outputs which are not present among the outputs of a current block.
       * This is done to propagate intermediate outputs of the tasks in a nested workflow wrapped in the fragment.
       * For non-frag stages it will be irrelevant. There's an assumption that names in the workflow are constant.
-      * @param blockOutputs currently registered outputs of the block.
-      * @return A collection of outputs without already registered outputs of the nested workflow, and without
-      *         intermediate task outputs that the workflow output is linked to.
+      * @param block Execution block.
+      * @return A collection of block outputs
       * */
-    private def getDependencyOutputsNotInBlock(
-        blockOutputs: Vector[Parameter]
+    private def constructBlockOutputs(
+        block: WdlBlock
     ): Vector[Parameter] = {
-      val excludeNotLinked = dependencyOutputs.filter(_._2.isDefined)
-      val excludedNameMatches = excludeNotLinked filterNot {
-        case (param: Parameter, _) =>
-          blockOutputs map { output =>
-            output.name.toString.equals(param.name.toString)
-          } reduceOption (_ | _) match {
-            case Some(b) => b
-            case None    => false
-          }
+
+      val blockOuts: Vector[Parameter] = block.outputs.map {
+        case WdlBlockOutput(dxName, wdlType, _) =>
+          Parameter(dxName, WdlUtils.toIRType(wdlType))
       }
-      excludedNameMatches.keys.toVector
+      val excludeNotLinked: Map[Parameter, Option[StageInputStageLink]] =
+        dependencyOutputs.filter(_._2.isDefined)
+      val aliasedDependencyOutputs: Vector[Parameter] = excludeNotLinked.map {
+        case (param: Parameter, _) =>
+          param.copy(name = detectCallAlias(name = param.name, aliases = block.blockNames))
+      }.toVector
+
+      val excludedNameMatches = aliasedDependencyOutputs filterNot { param: Parameter =>
+        blockOuts map { output =>
+          output.name.toString.equals(param.name.toString)
+        } reduceOption (_ | _) match {
+          case Some(b) => b
+          case None    => false
+        }
+      }
+
+      val outputParams = block.kind match {
+        case BlockKind.ExpressionsOnly => blockOuts
+        case _                         => blockOuts ++ excludedNameMatches
+      }
+      outputParams
+    }
+
+    /**
+      * APPS-1175. When filtering intermediate dependency outputs to append to the block outputs, we need to eliminate
+      * also calls that are executed under the alias names if the original names are among dependencyOutputs, like:
+      * `call abc as xyz {}`
+      * because if we don't, those outputs will not be recognized/propagated from lower levels of the task/wf executions
+      * leading to the platform I/O errors at the runtime. This function does those eliminations. The search and
+      * recursion is performed as A.B.C -> lookup (A.B) + C.
+      * @param name: output parameter name
+      * @param aliases: Block.blockNames. unqualifiedName -> actualName
+      * @param substitutedName: Name accumulator, using WdlDxName because it's more restrictive. Seed with a mock name
+      *                         which will be popped upon exit. Hack because DxName does not allow empty names.
+      * TODO: add Cwl functionality.
+      * @return a name where original call is substituted with the alias
+      * */
+    @tailrec
+    private def detectCallAlias(
+        name: DxName,
+        aliases: Map[String, String],
+        substitutedName: DxName = WdlDxName.fromDecodedName("REMOVE")
+    ): DxName = {
+      if (name.getDecodedParts.length == 1) {
+        val (newDxName: DxName, _) = substitutedName
+          .pushDecodedNamespace(aliases.getOrElse(name.decoded, name.decoded))
+          .popDecodedIdentifier()
+        newDxName
+      } else {
+        val (dxNamespace: DxName, dxIdentifier: String) = name.popDecodedIdentifier()
+        val originalDxNamespace =
+          WdlDxName.fromDecodedName(aliases.getOrElse(dxNamespace.decoded, dxNamespace.decoded))
+        val accuName = substitutedName.pushDecodedNamespace(dxIdentifier)
+        detectCallAlias(name = originalDxNamespace, aliases = aliases, substitutedName = accuName)
+      }
     }
 
     /**
@@ -761,14 +809,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         }
         .unzip
 
-      val blockOuts: Vector[Parameter] = block.outputs.map {
-        case WdlBlockOutput(dxName, wdlType, _) =>
-          Parameter(dxName, WdlUtils.toIRType(wdlType))
-      }
-      val outputParams = block.kind match {
-        case BlockKind.ExpressionsOnly => blockOuts
-        case _                         => blockOuts ++ getDependencyOutputsNotInBlock(blockOuts)
-      }
+      val outputParams = constructBlockOutputs(block)
 
       // create the type map that will be serialized in the applet's details
       val fqnDictTypes: Map[DxName, Type] = inputParams.map { param: Parameter =>
