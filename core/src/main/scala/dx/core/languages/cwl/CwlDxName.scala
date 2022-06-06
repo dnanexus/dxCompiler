@@ -40,8 +40,6 @@ object CwlDxName extends DxNameFactory {
                   stage = None,
                   suffix = suffix)
   }
-
-  override def empty: DxName = new CwlDxName()
 }
 
 class CwlDxName(encodedParts: Option[Vector[String]] = None,

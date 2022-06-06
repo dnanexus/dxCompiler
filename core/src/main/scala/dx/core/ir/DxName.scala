@@ -312,8 +312,6 @@ trait DxNameFactory {
   def fromEncodedName(name: String): DxName
 
   def fromDecodedName(name: String): DxName
-
-  def empty: DxName
 }
 
 object DxNameFactory {

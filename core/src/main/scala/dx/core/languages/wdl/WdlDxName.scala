@@ -14,8 +14,6 @@ object WdlDxName extends DxNameFactory {
     new WdlDxName(encodedParts = Some(parts), stage = stage, suffix = suffix)
   }
 
-  def empty: WdlDxName = new WdlDxName()
-
   override def fromDecodedName(name: String): WdlDxName = {
     val (parts, stage, suffix) = DxNameFactory.split(name, Some(NamespaceDelimRegex))
     new WdlDxName(decodedParts = Some(parts), stage = stage, suffix = suffix)
