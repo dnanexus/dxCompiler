@@ -1363,7 +1363,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
     // this is a sub-workflow so there is no reorg_status___ added.
     val trainsOutputVector: Callable = bundle.allCallables("trains")
-    trainsOutputVector.outputVars.size shouldBe 1
+    trainsOutputVector.outputVars.size shouldBe 2 // APPS-1175, intermediate outputs are propagated
   }
 
   it should "compile workflow with task imported by multiple paths" taggedAs NativeTest in {
