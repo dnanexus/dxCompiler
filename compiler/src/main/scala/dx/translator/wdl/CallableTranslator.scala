@@ -1049,7 +1049,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       val application = Application(
           name = appName,
           inputs = applicationInputs.toVector,
-          outputs = extendedOutputs.map(_._1),
+          outputs = wfOutputs.map(_._1),
           instanceType = DefaultInstanceType,
           container = NoImage,
           kind = applicationKind,
