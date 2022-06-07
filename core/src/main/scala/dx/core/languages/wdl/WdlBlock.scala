@@ -278,11 +278,25 @@ case class WdlBlock(index: Int,
   }
 
   // APPS-1175 an attempt to preserve the original name of the call. Maps element unqualifiedName to the actualName
-  lazy val blockNames: Map[String, String] = {
-    elements.foldLeft(Map.empty[String, String]) {
-      case (accu, call: TAT.Call) => accu + (call.unqualifiedName -> call.actualName)
-      case (accu, _)              => accu
+  private def getBlockNames(elements: Vector[TAT.WorkflowElement],
+                            accu: Map[String, String] = Map.empty): Map[String, String] = {
+    elements match {
+      case head +: tail =>
+        head match {
+          case call: TAT.Call =>
+            getBlockNames(tail, accu + (call.unqualifiedName -> call.actualName))
+          case conditional: TAT.Conditional =>
+            getBlockNames(tail, accu ++ getBlockNames(conditional.body, accu))
+          case scatter: TAT.Scatter =>
+            getBlockNames(tail, accu ++ getBlockNames(scatter.body, accu))
+          case _ => accu ++ getBlockNames(tail, accu)
+        }
+      case _ => accu
     }
+  }
+
+  lazy val blockNames: Map[String, String] = {
+    getBlockNames(elements)
   }
 
   lazy val (prerequisites, target): (Vector[TAT.WorkflowElement], Option[TAT.WorkflowElement]) = {
