@@ -137,9 +137,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val stagesExecDetails = stages.map { stage =>
       stage.name -> dxApi.executable(stage.executable).describe(Set(Field.Details))
     }.toMap
-    stagesExecDetails("if (a)").details.get.asJsObject.fields
-      .get("staticInstanceType")
-      .get shouldBe (JsString("mem3_ssd1_x4"))
+    stagesExecDetails("if (a)").details.get.asJsObject
+      .fields("staticInstanceType") shouldBe (JsString("mem3_ssd1_x4"))
   }
 
   it should "add executable links pointing to the intermediate outputs of wrapped workflow called with alias" in {
@@ -148,20 +147,45 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val stagesExecDetails = stages.map { stage =>
       stage.name -> dxApi.executable(stage.executable).describe(Set(Field.Details))
     }.toMap
-    val execInfo = stagesExecDetails("frag ni").details.get.asJsObject.fields
-      .get("execLinkInfo")
-      .get
+    val execInfo = stagesExecDetails("frag ni").details.get.asJsObject
+      .fields("execLinkInfo")
+      .asJsObject
+      .fields("nested_inner")
       .asJsObject
       .fields
-      .get("nested_inner")
-      .get
-      .asJsObject
-      .fields
-      .get("outputs")
-      .getOrElse(JsObject.empty)
+      .getOrElse("outputs", JsObject.empty)
     execInfo shouldBe (
         JsObject("test_inner1_stage_0_test_out" -> JsString("File"),
                  "nested_inner_wf_out" -> JsString("File"))
+    )
+  }
+
+  it should "propagate intermediate outputs from common stage and others intermediates to the output stage" in {
+    val path = pathFromBasename("subworkflows", "apps_1175_outer_common_outs.wdl")
+    val stages = compileGetStages(path.toString, cFlags)
+    val stagesExecDetails = stages.map { stage =>
+      stage.name -> dxApi.executable(stage.executable).describe(Set(Field.Details))
+    }.toMap
+    val execInfo = stagesExecDetails("frag ni_co").details.get.asJsObject
+      .fields("execLinkInfo")
+      .asJsObject
+      .fields("nested_inner_co")
+      .asJsObject
+      .fields
+      .getOrElse("outputs", JsObject.empty)
+
+    execInfo shouldBe (
+        JsObject(
+            "nested_inner_co_common_stage_common_double_s" -> JsObject(
+                "optional" -> JsBoolean(true),
+                "type" -> JsString("String")
+            ), // from common
+            "nested_inner_co_common_stage_common_s" -> JsString("String"), // from common
+            "nested_inner_wf_out" -> JsString("File"), // from WF
+            "s_out" -> JsString("String"), // from WF
+            "test_inner1_stage_0_test_out" -> JsString("File"), // from task test_inner1
+            "test_inner2_stage_1_test_out2" -> JsString("File") // from task test_inner2 Propagated because links to stage-output and not to the original stage
+        )
     )
   }
 
@@ -179,8 +203,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       stage.name -> dxApi.executable(stage.executable).describe(Set(Field.Details))
     }.toMap
     stagesExecDetails("if (a)").details.get.asJsObject.fields
-      .get("staticInstanceType")
-      .getOrElse(JsObject.empty) shouldBe JsObject.empty
+      .getOrElse("staticInstanceType", JsObject.empty) shouldBe JsObject.empty
   }
 
   it should "compile a workflow with a native app and override instance based using RAM and CPU spec" in {
@@ -210,13 +233,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       .runSpec
       .get
       .asJsObject
-      .fields
-      .get("systemRequirements")
-      .get
+      .fields("systemRequirements")
       .asJsObject
-      .fields
-      .get("main")
-      .get
+      .fields("main")
       .asJsObject
       .fields
       .get("instanceType")

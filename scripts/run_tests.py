@@ -91,6 +91,7 @@ expected_failure = {
 wdl_v1_list = [
     # calling native dx applets/apps
     "apps_1175_outs_not_uploaded_outer",
+    "apps_1175_inner_common_outs"
     "call_native_v1",
     "call_native_app",
     "cast",

@@ -1056,7 +1056,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
           document = standAloneWorkflow
       )
 
-      (wfOutputs, application, stage)
+      (extendedOutputs, application, stage)
     }
 
     /**
