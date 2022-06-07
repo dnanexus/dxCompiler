@@ -1,7 +1,7 @@
 version 1.0
 import "apps_1175_inner_common_outs.wdl" as nested_inner_co
 
-workflow apps_1175_outs_not_uploaded_outer {
+workflow apps_1175_outer_common_outs {
   input {
     String s
   }
