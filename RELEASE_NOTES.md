@@ -2,7 +2,7 @@
 
 ## in develop 
 
-...
+* WDL: Intermediate outputs from nested workflows are propagated to the project, completely enabling executable and job reuse.
 
 ## 2.10.2 2022-05-17
 
