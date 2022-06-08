@@ -386,6 +386,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
 
       val outputParams = block.kind match {
         case BlockKind.ExpressionsOnly => blockOuts
+        case _ if useManifests         => blockOuts
         case _                         => blockOuts ++ excludedNameMatches
       }
       outputParams
@@ -960,7 +961,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         }
         (param, stageInput)
       }
-      wfOutputs ++ getDependencyOutputsNotInWf(wfOutputs, stages)
+      if (useManifests) wfOutputs
+      else wfOutputs ++ getDependencyOutputsNotInWf(wfOutputs, stages)
     }
 
     /**
@@ -1045,7 +1047,10 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       val wfOutputs = stage.outputs.map { param =>
         (param, StageInputStageLink(stage.dxStage, param))
       }
-      val extendedOutputs = wfOutputs ++ getDependencyOutputsNotInWf(wfOutputs, stages)
+      val extendedOutputs = {
+        if (useManifests) wfOutputs
+        else wfOutputs ++ getDependencyOutputsNotInWf(wfOutputs, stages)
+      }
       val application = Application(
           name = appName,
           inputs = applicationInputs.toVector,
