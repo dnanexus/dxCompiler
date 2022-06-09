@@ -384,10 +384,16 @@ case class CallableTranslator(wdlBundle: WdlBundle,
         }
       }
 
+      // some blocks contain an entire nested WF as a dependency even if that nested WF is not a part of the block.
+      // This line excludes those instances
+      val excludeNonDependencies = excludedNameMatches filter { param: Parameter =>
+        block.blockNames.values.toVector.contains(param.name.popDecodedNamespace()._1)
+      }
+
       val outputParams = block.kind match {
         case BlockKind.ExpressionsOnly => blockOuts
         case _ if useManifests         => blockOuts
-        case _                         => blockOuts ++ excludedNameMatches
+        case _                         => blockOuts ++ excludeNonDependencies
       }
       outputParams
     }
