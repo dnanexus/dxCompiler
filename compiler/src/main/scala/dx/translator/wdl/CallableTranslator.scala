@@ -408,8 +408,7 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       * @param name: output parameter name
       * @param aliases: Block.blockNames. unqualifiedName -> actualName
       * @param substitutedName: Name accumulator, using WdlDxName because it's more restrictive. Seed with a mock name
-      *                         which will be popped upon exit. Hack because DxName does not allow empty names.
-      * TODO: add Cwl functionality.
+      *                         which will be popped upon exit. It's a hack because DxName does not allow empty names.
       * @return a name where original call is substituted with the alias
       * */
     @tailrec
