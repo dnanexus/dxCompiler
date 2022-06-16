@@ -203,7 +203,15 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
           val defaultVal = WdlUtils.getDefaultValueOfType(wdlType)
           TAT.OutputParameter(
               DxName.disallowedCharsRegex
-                .replaceAllIn(parameter.name.decoded, "_"), // Hack to ensure proper output names in APPS-1175. Can't use .encoded because the subsequent translation will fail
+              // Hack to ensure proper output names in APPS-1175.
+              // A correct way to replace disallowed characters is to instantiate DxName by
+              // DxNameFactory.fromDecodedName. However, sometimes we inherit a name with a namespace delimiter,
+              // e.g. task_a.output_name where namespace delimiter is a dot (.) However, WDL does not allow dots in
+              // the names when we try to instantiate by WdlDxName.fromDecodedName("task_a.output_name"). We also can
+              // not use WdlDxName.fromEncodedName, because if a name comes from a frag wrapper, it will have
+              // "stage-n" substring (where n is an integer). Dash characters (-) are disallowed in encoded names.
+              // Hence, this hack to replace all disallowed characters in the output names.
+                .replaceAllIn(parameter.name.decoded, "_"),
               wdlType,
               defaultVal
           )(SourceLocation.empty)
