@@ -66,10 +66,10 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
                                                         "-folder",
                                                         unitTestsPath,
                                                         "-locked")
-//  private val cFlagsUnlocked: List[String] = cFlagsBase ++ List("-compileMode",
-//                                                                "NativeWithoutRuntimeAsset",
-//                                                                "-folder",
-//                                                                unitTestsPath)
+  private val cFlagsUnlocked: List[String] = cFlagsBase ++ List("-compileMode",
+                                                                "NativeWithoutRuntimeAsset",
+                                                                "-folder",
+                                                                unitTestsPath)
   private val cFlagsReorgIR: List[String] = cFlagsBase ++
     List("-compileMode", "IR", "-folder", "/reorg_tests")
   private val cFlagsReorgCompile: List[String] = cFlagsBase ++
@@ -141,7 +141,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
   it should "compile a nested workflow with optional inputs defaulted to None" in {
     val path = pathFromBasename("bugs", "apps_1222_optional_default_none_outer.wdl")
-    val args = path.toString :: cFlagsBase ++ List("-folder", unitTestsPath)
+    val args = path.toString :: cFlagsUnlocked
     val retval = Main.compile(args.toVector)
     val wfId = retval match {
       case SuccessfulCompileNativeNoTree(_, Vector(wfId)) => wfId
