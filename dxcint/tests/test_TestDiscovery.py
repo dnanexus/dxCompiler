@@ -84,4 +84,5 @@ def test_discover_dependencies(fixtures_dir, context_init):
         dependencies=os.path.join(fixtures_dir, "dependencies/config")
     )
     dependencies = test_discovery.discover_dependencies()
+    assert len(dependencies) != 0
     assert all(isinstance(x, Dependency) for x in dependencies)

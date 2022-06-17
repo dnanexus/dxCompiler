@@ -63,7 +63,6 @@ class TestDiscovery(object):
         ) for x in self._flatten_config(suite_config)]
         return registered_tests
 
-
     def add_tests(self, dir_name: str, extension: str, suite: str, category: str) -> List[str]:
         """
         Adds tests to the test suite.
