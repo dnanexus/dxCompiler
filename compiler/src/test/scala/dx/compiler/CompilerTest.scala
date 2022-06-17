@@ -139,6 +139,23 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       .get shouldBe (JsString("mem3_ssd1_x4"))
   }
 
+  it should "compile a nested workflow with optional inputs defaulted to None" in {
+    val path = pathFromBasename("bugs", "apps_1222_optional_default_none_outer.wdl")
+    val args = path.toString :: cFlagsBase ++ List("-folder", unitTestsPath)
+    val retval = Main.compile(args.toVector)
+    val wfId = retval match {
+      case SuccessfulCompileNativeNoTree(_, Vector(wfId)) => wfId
+      case other                                          => throw new Exception(s"expected single workflow not ${other}")
+    }
+    val stages = dxApi
+      .workflow(wfId)
+      .describe()
+      .stages
+      .get
+    val innerStage = stages.filter(_.id == "stage-0").head
+    innerStage.input shouldBe (JsObject("arg1" -> JsNumber(1)))
+  }
+
   it should "compile a workflow with a native app wrapped in frag and keep the default instance" in {
     val path = pathFromBasename("bugs", "apps_1197_native_frag_default_unit.wdl")
     val args = path.toString :: cFlags
