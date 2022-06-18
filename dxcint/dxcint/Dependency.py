@@ -89,13 +89,15 @@ class BinaryDependency(Dependency):
                 f"BinaryDependency(): `source_link` field in the config file can not be None for BinaryDependency class"
             )
 
-    def link(self, symlink_destination: Path) -> Path:
+    def link(self, symlink_destination_dir: Path) -> Path:
         """
         Method to create a symlink for the dependency executable in the asset resources
-        :param symlink_destination: Path. Dir name of the
+        :param symlink_destination_dir: Path. Dir name of the
         :return: Path. Path of a symlink
         """
-        link_path = Path(os.path.join(symlink_destination, Path(self._local_dir).name))
+        if not os.path.exists(symlink_destination_dir):
+            os.makedirs(symlink_destination_dir)
+        link_path = Path(os.path.join(symlink_destination_dir, Path(self._local_dir).name))
         os.link(self._local_dir, link_path)
         return link_path
 
@@ -104,24 +106,24 @@ class BinaryDependency(Dependency):
         Method to download (if not available) the dependency executable
         :return: Path. Location of a downloaded binary exec
         """
-        local_dependency_dir = os.path.join(
+        local_dependency = os.path.join(
             self._dependencies_root, self._name, self._version, self._name
         )
-        if os.path.exists(local_dependency_dir):
-            logging.info(f"Found binary in local directory {local_dependency_dir}. Will be using that one.")
-            return Path(local_dependency_dir)
+        if os.path.exists(local_dependency):
+            logging.info(f"Found binary in local directory {local_dependency}. Will be using that one.")
+            return Path(local_dependency)
         else:
-            os.makedirs(local_dependency_dir, exist_ok=True)
+            os.makedirs(os.path.dirname(local_dependency), exist_ok=True)
             logging.info(f"Downloading {self._name} version {self._version}")
-            try:
-                download_cmd = ["wget", self._source_link, "-O", local_dependency_dir]
-                sp.check_call(download_cmd)
-            except sp.CalledProcessError as e:
-                print(e.stdout)
-                print(e.stderr)
-                raise e
-            os.chmod(local_dependency_dir, 0o775)
-        return Path(local_dependency_dir)
+            download_cmd = ["wget", self._source_link, "-O", local_dependency]
+            proc = sp.Popen(download_cmd, stdout=sp.PIPE, stderr=sp.PIPE)
+            out, err = proc.communicate()
+            if proc.returncode != 0:
+                raise DependencyError(f"Executable download raised {err.decode()}")
+            else:
+                logging.info(f"Executable download returned {out.decode()}\n{err.decode()}")
+            os.chmod(local_dependency, 0o775)
+        return Path(local_dependency)
 
 
 class PackageDependency(Dependency):
