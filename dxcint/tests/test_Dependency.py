@@ -6,12 +6,7 @@ from dxcint.Dependency import Dependency, DependencyFactory, BinaryDependency, P
 
 
 @pytest.fixture(scope="session")
-def dependency_conf_dir(fixtures_dir):
-    yield os.path.join(fixtures_dir, "dependencies/config/")
-
-
-@pytest.fixture(scope="session")
-def symlink_dest_and_cleanup(dependency_conf_dir, fixtures_dir):
+def link_dest_and_cleanup(dependency_conf_dir, fixtures_dir):
     link_dir = Path(os.path.join(dependency_conf_dir, "links"))
 
     yield link_dir
@@ -31,8 +26,8 @@ def test_dependency_factory_package(dependency_conf_dir):
         }
 
 
-def test_dependency_factory_binary(dependency_conf_dir, fixtures_dir, symlink_dest_and_cleanup):
+def test_dependency_factory_binary(dependency_conf_dir, fixtures_dir, link_dest_and_cleanup):
     dependency_factory = DependencyFactory(os.path.join(dependency_conf_dir, "mock_dependency_src.json"))
     binary_dependency = dependency_factory.make()
-    symlink = os.path.exists(binary_dependency.link(symlink_dest_and_cleanup))
+    symlink = os.path.exists(binary_dependency.link(link_dest_and_cleanup))
     assert os.path.exists(symlink)

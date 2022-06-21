@@ -7,7 +7,7 @@ import functools
 import time
 import dxpy
 
-from typing import Set, Dict, Optional, List
+from typing import Set, Dict, List
 from concurrent import futures
 from dxcint.Context import Context
 from dxcint.Dependency import Dependency
@@ -20,7 +20,7 @@ from dxcint.Dependency import Dependency
 # - asset name = "dx{}rt".format(lang.upper())
 
 class Terraform(object):
-    def __init__(self, languages: Optional[Set[str]], context: Context, dependencies: List[Dependency]):
+    def __init__(self, languages: Set[str], context: Context, dependencies: Set[Dependency]):
         self._languages = languages
         for language in languages:
             self._clean_up(language.upper())

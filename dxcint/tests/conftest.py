@@ -18,3 +18,16 @@ def fixtures_dir():
 @pytest.fixture(scope="session")
 def context_init():
     yield Context(project="dxCompiler_playground", folder="/gvaihir/dxcint_testing")
+
+
+@pytest.fixture(scope="session")
+def dependency_conf_dir(fixtures_dir):
+    yield os.path.join(fixtures_dir, "dependencies/config/")
+
+
+@pytest.fixture(scope="function")
+def change_to_root_dir(root_dir):
+    original_dir = os.path.dirname(__file__)
+    os.chdir(root_dir)
+    yield
+    os.chdir(original_dir)

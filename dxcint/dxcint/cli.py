@@ -11,6 +11,7 @@ from typing import Optional
     type=click.Choice(["error", "warning", "info", "debug"]),
 )
 def dxcint(verbosity: str) -> None:
+    # TODO check build.sbt in the CWD
     pass
 
 
