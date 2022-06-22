@@ -13,13 +13,6 @@ def terraform_init(dependency_conf_dir, context_init):
     yield Terraform(languages={"wdl"}, context=context_init, dependencies={bin_dependency})
 
 
-@pytest.fixture(scope="function")
-def make_prerequisites(terraform_init):
-    asset_id = terraform_init._make_prerequisites("wdl")
-    yield asset_id
-    dxpy.remove(asset_id)
-
-
 def test__build_compiler(change_to_root_dir, terraform_init):
     compiler_built = terraform_init._build_compiler()
     assert compiler_built
@@ -47,12 +40,9 @@ def test__create_asset_spec(change_to_root_dir, terraform_init):
     assert spec == spec_import
 
 
-def test__make_prerequisites(make_prerequisites, context_init):
-    descr = dxpy.describe(make_prerequisites)
+def test_build(terraform_init, change_to_root_dir, context_init):
+    built_ids = terraform_init.build()
+    assert len(built_ids) == 1
+    descr = dxpy.describe(built_ids[0])
     assert descr.get("name", None) == "dxWDLrt"
     assert descr.get("folder", None) == context_init.platform_build_dir
-
-
-def test_build(terraform_init):
-    built_ids = terraform_init.build()
-
