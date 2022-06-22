@@ -3,6 +3,8 @@ import logging
 import sys
 from typing import Optional
 
+from dxcint.Context import Context
+
 
 @click.group()
 @click.option(
@@ -29,7 +31,9 @@ def integration(
         location: str,
         test_name: Optional[str]
 ) -> None:
-    test_discovery = TestDiscovery(location)
+    # test_discovery = TestDiscovery(location)
+    cont = Context(project="dxCompiler_playground", folder="/gvaihir/dxcint_testing")
+    print(cont.repo_root_dir)
 
 
 @dxcint.command()

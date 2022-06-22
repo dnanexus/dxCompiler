@@ -6,7 +6,7 @@ import re
 from threading import Lock
 from pathlib import Path
 from typing import Optional
-from dxpy.api import project_new_folder, project_describe
+from dxpy.api import project_new_folder, project_describe, project_remove_folder
 
 
 class ContextError(Exception):
@@ -94,19 +94,18 @@ class Context(object):
         raise Exception(f"version ID not found in {application_conf_path}")
 
     def _create_platform_build_folder(self, folder: str) -> str:
-        if folder:
-            _ = self._create_build_subdirs(folder)
-        else:
-            folder = f"/builds/{self._user}/{self._compiler_version}"
-            _ = self._create_build_subdirs(base_dir=folder)
+        folder = folder or f"/builds/{self._user}/{self._compiler_version}"
+        _ = self._clean_up_build_dir(folder)
+        _ = self._create_build_subdirs(base_dir=folder)
         logging.info(f"Project: {self._project_id}.\nBuild directory {folder}")
         return folder
 
     def _create_build_subdirs(self, base_dir: str) -> bool:
         """
         Impure function. Creates destination subdirs on the platform
-        :param base_dir: str. Parent
-        :return:
+        Args:
+            base_dir: str. Parent dir
+        Returns: bool. True when executing without errors
         """
         subdirectories = (os.path.join(base_dir, x) for x in ("applets", "test"))
         for subdir in subdirectories:
@@ -115,3 +114,17 @@ class Context(object):
                 input_params={"folder": subdir, "parents": True}
             )
         return True
+
+    def _clean_up_build_dir(self, folder) -> bool:
+        """
+        Impure function. Cleans up (removes) target build directories on the platform
+        Args:
+            folder: str. Dir on the platform to clean up.
+        Returns: bool. True when executing without errors
+        """
+        _ = project_remove_folder(
+            object_id=self._project_id,
+            input_params={"folder": folder, "force": True, "recurse": True}
+        )
+        return True
+

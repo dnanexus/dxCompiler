@@ -1,12 +1,13 @@
 import logging
 import os
 import shutil
-import subprocess
+import subprocess as sp
 import json
 import functools
 import time
 import dxpy
 
+from glob import glob
 from typing import Set, Dict, List
 from concurrent import futures
 from dxcint.Context import Context
@@ -19,9 +20,53 @@ from dxcint.Dependency import Dependency
 # - JAR name = "dxExecutor{}".format(lang) - only first letter is upper case (Cwl, Wdl)
 # - asset name = "dx{}rt".format(lang.upper())
 
+def async_retry(max_retries: int = 5, delay: int = 5):
+    """
+    A decorator method to perform retry a decorated function
+    Args:
+        max_retries: int. Number of maximum retries.
+        delay: int. Amount of time to sleep in seconds between retries.
+    Returns: A result of a decorated callable.
+    """
+    def async_retry_inner(func):
+        @functools.wraps(func)
+        def async_retry_wrapper(*args, **kwargs):
+            lock = args[0].context.lock
+            for i in range(0, max_retries):
+                try:
+                    logging.info(f"Retry {i} for function `{func.__name__}`")
+                    ret_value = func(*args, **kwargs)
+                    return ret_value
+                except Exception:
+                    with lock:
+                        logging.info(
+                            f"Error when running an async retry for function `{func.__name__}`\n"
+                            f"With ARGS: {args}\n"
+                            f"With KWARGS: {kwargs}\n"
+                            f"Retry in {delay} sec"
+                        )
+                    time.sleep(delay)
+            else:
+                raise Exception(f"Failed after {max_retries} retries for function `{func.__name__}`\n"
+                                f"With ARGS: {args}\n"
+                                f"With KWARGS: {kwargs}")
+
+        return async_retry_wrapper
+
+    return async_retry_inner
+
+
+class TerraformError(Exception):
+    """
+    Handles Terraform errors
+    """
+
+
 class Terraform(object):
     def __init__(self, languages: Set[str], context: Context, dependencies: Set[Dependency]):
         self._languages = languages
+        self._context = context
+        self._dependencies = dependencies
         for language in languages:
             self._clean_up(language.upper())
         self._asset_switch = {
@@ -29,17 +74,20 @@ class Terraform(object):
             "cwl": self._cwl_asset,
             "cwl.json": self._cwl_asset
         }
-        self._context = context
-        self._dependencies = dependencies
         self._local_created_dirs = {}
+
+    @property
+    def context(self):
+        return self._context
 
     def build(self) -> List[str]:
         """
         Main interface for preparing the local space and the platform for testing dxCompiler.
-        :return: List[str]. List of built asset IDs
+
+        Returns: List[str]. List of built asset IDs
         """
-        build_queue = set([self._asset_switch[x] for x in self._languages])     # set of partial functions
-        self._generate_config_file()
+        build_queue = {self._asset_switch[x] for x in self._languages}     # set of partial functions
+        _ = self._generate_config_file()
         _ = self._build_compiler()
         with futures.ThreadPoolExecutor(max_workers=len(build_queue)) as executor:
             future_to_build_task = {executor.submit(build_task): build_task for build_task in build_queue}
@@ -49,8 +97,10 @@ class Terraform(object):
     def _clean_up(self, language: str) -> bool:
         """
         Method to remove local asset directories for a given language.
-        :param language: str. Language for which to destroy terraformed paths with resources.
-        :return: bool. True if all is done
+        Args:
+            language: str. Language for which to destroy terraformed paths with resources.
+
+        Returns: bool. True if all is done
         """
         language_dir = os.path.join(self._context.repo_root_dir, "applet_resources", language)
         if os.path.exists(language_dir):
@@ -65,38 +115,7 @@ class Terraform(object):
     def _cwl_asset(self) -> str:
         return self._make_prerequisites("cwl")
 
-    def _async_retry(self, max_retries: int = 5, delay: int = 5):
-        """
-        A decorator method to perform retry a decorated function
-        :param max_retries: int.
-        :param delay: int. Amount of time to sleep in seconds between retries.
-        :return: A result of a decorated callable.
-        """
-        def _async_retry_inner(func):
-            @functools.wraps(func)
-            def _async_retry_wrapper(*args, **kwargs):
-                for i in range(0, max_retries):
-                    try:
-                        logging.info(f"Retry {i} for function `{func.__name__}`")
-                        func(*args, **kwargs)
-                        break
-                    except Exception:
-                        with self._context.lock:
-                            logging.info(
-                                f"Error when running an async retry for function `{func.__name__}`\n"
-                                f"With ARGS: {args}\n"
-                                f"With KWARGS: {kwargs}\n"
-                                f"Retry in {delay} sec"
-                            )
-                        time.sleep(delay)
-                else:
-                    raise Exception(f"Failed after {max_retries} retries for function `{func.__name__}`\n"
-                                    f"With ARGS: {args}\n"
-                                    f"With KWARGS: {kwargs}")
-            return _async_retry_wrapper
-        return _async_retry_inner
-
-    def _make_prerequisites(self, language: str):
+    def _make_prerequisites(self, language: str) -> str:
         always_capital_lang = language.upper()
         language_specific_dependencies = [x for x in self._dependencies if language in x.languages]
         try:
@@ -111,38 +130,36 @@ class Terraform(object):
             self._clean_up(always_capital_lang)
             raise e
 
-    @_async_retry()
+    @async_retry()
     def _build_asset(self, language: str) -> str:
         asset_name = f"dx{language}rt"
         destination = f"{self._context.project_id}:{self._context.platform_build_dir}/{asset_name}"
         cwd = os.getcwd()
         os.chdir(os.path.join(self._context.repo_root_dir, "applet_resources"))
         logging.info(f"Creating a runtime asset for {language}")
-        try:
-            subprocess.run(
-                ["dx", "build_asset", language, "--destination", destination],
-                check=True,
-                universal_newlines=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
+        proc = sp.Popen(
+            ["dx", "build_asset", language, "--destination", destination],
+            stdout=sp.PIPE,
+            stderr=sp.PIPE
+        )
+        out, err = proc.communicate()
+        if proc.returncode != 0:
+            raise TerraformError(f"Building DNAnexus asset raised {err.decode()}")
+        else:
             with self._context.lock:
-                logging.info(f"Successfully built asset for language {language}")
-        except subprocess.CalledProcessError as e:
-            logging.error(e.stdout)
-            logging.error(e.stderr)
-            raise e
+                logging.info(f"Building DNAnexus asset returned {out.decode()}\n{err.decode()}")
         os.chdir(cwd)
-        return dxpy.search.find_one_data_object(
+        asset_id = dxpy.search.find_one_data_object(
             classname="record",
             project=self._context.project_id,
             name=asset_name,
             folder=self._context.platform_build_dir,
             more_ok=False
         )
+        return asset_id.get("id")
 
     def _create_asset_spec(self, language: str) -> Dict:
-        spec_exports = [x.export_spec() for x in self._dependencies]
+        spec_exports = [x.export_spec() for x in self._dependencies].remove(None)
         exec_depends = [
                            {"name": "openjdk-8-jre-headless"},
                            {"name": "bzip2"},
@@ -180,11 +197,13 @@ class Terraform(object):
         self._local_created_dirs.update({language: local_assets})
         return local_assets
 
-    def _generate_config_file(self) -> None:
+    def _generate_config_file(self) -> str:
         """
         Create a dxCompiler_runtime.conf file (in typesafe-config format) in the
         compiler's resources directory. It holds a mapping from region to project
         where the runtime asset is stored.
+
+        Returns: str. Config as a string.
         """
         region_project_hocon = []
         all_regions = []
@@ -206,24 +225,24 @@ class Terraform(object):
         conf = "\n".join(
             ["dxCompiler {", "  regionToProject = [\n{}\n  ]".format(buf), "}"]
         )
-
-        rt_conf_path = os.path.join(
+        runtime_conf_path = os.path.join(
             self._context.repo_root_dir, "compiler", "src", "main", "resources", "dxCompiler_runtime.conf"
         )
-        if os.path.exists(rt_conf_path):
-            os.remove(rt_conf_path)
-        with open(rt_conf_path, "w") as fd:
+        if os.path.exists(runtime_conf_path):
+            os.remove(runtime_conf_path)
+        with open(runtime_conf_path, "w") as fd:
             fd.write(conf)
         all_regions_str = ", ".join(all_regions)
         logging.info(
-            f"Built configuration regions [{all_regions_str}] into {rt_conf_path}"
+            f"Built configuration regions [{all_regions_str}] into {runtime_conf_path}"
         )
+        return conf
 
     def _build_compiler(self) -> bool:
         try:
-            subprocess.check_call(["sbt", "clean"])
-            subprocess.check_call(["sbt", "assembly"])
-        except subprocess.CalledProcessError as e:
+            sp.check_call(["sbt", "clean"])
+            sp.check_call(["sbt", "assembly"])
+        except sp.CalledProcessError as e:
             print(e.stdout)
             print(e.stderr)
             raise e
@@ -236,6 +255,9 @@ class Terraform(object):
             self._context.repo_root_dir,
             f"dxCompiler-{self._context.version}.jar"
         )
+        for existing_exe in glob(os.path.join(self._context.repo_root_dir, "dxCompiler-*-SNAPSHOT.jar")):
+            os.remove(jar_exec_destination)
+            logging.info(f"Removing dxCompiler exe {os.path.basename(existing_exe)}")
         shutil.move(jar_exec_origin, jar_exec_destination)
         return True
 

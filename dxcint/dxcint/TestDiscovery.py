@@ -22,8 +22,9 @@ class TestDiscovery(object):
     def __init__(self, context: Context, **test_kwargs):
         """
         Class to handle discovery and addition of the tests to the suite
-        :param context: Context. Suite global context
-        :param test_kwargs: use only for unit testing of this class
+        Args:
+            context: Context. Global context of the suite
+            **test_kwargs: use only for unit testing of this class
         """
         self._config_location = test_kwargs.get("config", self._resolve_from_root("config"))
         self._resources_location = test_kwargs.get("resources", self._resolve_from_root("resources"))
@@ -46,9 +47,11 @@ class TestDiscovery(object):
 
     def discover(self, suite: str) -> List[RegisteredTest]:
         """
-        Method to discover and register tests
-        :param suite: str. One of several suites supplied as a capital letter code. See self._suites.keys
-        :return: List[RegisteredTest]. List of registered tests
+         Method to discover and register the tests.
+        Args:
+            suite: str. One of several suites supplied as a capital letter code. See self._suites.keys
+
+        Returns: List[RegisteredTest]. List of registered tests
         """
         if suite not in self._suites.keys():
             raise TestDiscoveryError(f"TestDiscovery.discover(): suite {suite} is not registered. Existing suites "
@@ -66,11 +69,13 @@ class TestDiscovery(object):
     def add_tests(self, dir_name: str, extension: str, suite: str, category: str) -> List[str]:
         """
         Adds tests to the test suite.
-        :param dir_name: str. Location of the test-related files (workflow, inputs-outputs, etc.)
-        :param extension: str. Test workflow format. Allowed are 'cwl', 'cwl.json', 'wdl'
-        :param suite: str. Test suite name. Usually a team-defined group of tests to be run in each CI/CD step
-        :param category: str. Test category name. Usually a team-defined category that reflects a type of the test
-        :return: List[str]. Names of the added tests
+        Args:
+            dir_name: str. Location of the test-related files (workflow, inputs-outputs, etc.)
+            extension: str. Test workflow format. Allowed are 'cwl', 'cwl.json', 'wdl'
+            suite: str. Test suite name. Usually a team-defined group of tests to be run in each CI/CD step
+            category: str. Test category name. Usually a team-defined category that reflects a type of the test
+
+        Returns: List[str]. Names of the added tests
         """
         if suite not in self._suites.keys():
             raise TestDiscoveryError(
@@ -96,7 +101,8 @@ class TestDiscovery(object):
     def discover_dependencies(self) -> List[Dependency]:
         """
         Method to discover existing dependencies for every language
-        :return: List[Dependency]. List of objects of class Dependency
+
+        Returns: List[Dependency]. List of objects of class Dependency
         """
         dependencies = []
         for dependency_config in os.listdir(self._dependency_config_location):
@@ -149,8 +155,11 @@ class TestDiscovery(object):
     @staticmethod
     def _flatten_config(config: Dict) -> List[Tuple[str, str]]:
         """
-        :param config: Dict. Config to flatten
-        :return: List[Tuple[str, str]]. Each tuple is Category [0] and test name [1]
+        Flattens the config dict.
+        Args:
+            config: Dict. Config to flatten
+
+        Returns: List[Tuple[str, str]]. Each tuple is Category [0] and test name [1]
         """
         flat_config = []
         for category, test_collection in config.items():

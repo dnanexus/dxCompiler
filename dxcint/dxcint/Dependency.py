@@ -29,7 +29,8 @@ class DependencyFactory(object):
         """
         This logic defines the precedence of detection. First precedence: If config has `package_manager` field, then
         it's a package dependency. Later this will be reconsidered to always deliver dependencies as packages
-        :return:
+
+        Returns: str. Type of package.
         """
         with open(self._config_file, "r") as config_handle:
             config = json.load(config_handle)
@@ -58,8 +59,10 @@ class Dependency(object):
     def update_dot_env(self, home_dir: Path) -> bool:
         """
         Method to update .env file with current dependency
-        :param home_dir: Path. Perspective "home" directory in asset "resources"
-        :return:
+        Args:
+            home_dir:  Path. Perspective "home" directory in asset "resources"
+
+        Returns: bool. True if executes without errors.
         """
         if not str(home_dir).endswith("home/dnanexus"):
             raise DependencyError(
@@ -89,22 +92,26 @@ class BinaryDependency(Dependency):
                 f"BinaryDependency(): `source_link` field in the config file can not be None for BinaryDependency class"
             )
 
-    def link(self, symlink_destination_dir: Path) -> Path:
+    def link(self, link_destination_dir: Path) -> Path:
         """
         Method to create a symlink for the dependency executable in the asset resources
-        :param symlink_destination_dir: Path. Dir name of the
-        :return: Path. Path of a symlink
+        Args:
+            link_destination_dir: Path. Path to the link.
+
+        Returns: Path. Path of a symlink
+
         """
-        if not os.path.exists(symlink_destination_dir):
-            os.makedirs(symlink_destination_dir)
-        link_path = Path(os.path.join(symlink_destination_dir, Path(self._local_dir).name))
+        if not os.path.exists(link_destination_dir):
+            os.makedirs(link_destination_dir)
+        link_path = Path(os.path.join(link_destination_dir, Path(self._local_dir).name))
         os.link(self._local_dir, link_path)
         return link_path
 
     def _get_exec(self) -> Path:
         """
         Method to download (if not available) the dependency executable
-        :return: Path. Location of a downloaded binary exec
+
+        Returns: Path. Location of a downloaded binary exec
         """
         local_dependency = os.path.join(
             self._dependencies_root, self._name, self._version, self._name
