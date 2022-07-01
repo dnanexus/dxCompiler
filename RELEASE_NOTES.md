@@ -389,7 +389,7 @@ wdlTools 0.17.0
 
 ### Dependency updates 
 
-#### dxApi [0.0.6](https://github.com/dnanexus/dxScala/blob/release-2021.07.12/api/RELEASE_NOTES.md#dxapi)
+#### dxApi [0.6.0](https://github.com/dnanexus/dxScala/blob/release-2021.07.12/api/RELEASE_NOTES.md#dxapi)
 
 * Adds option to `DxApi.describeFilesBulk` to search first in the workspace container
 * `DxApi.resolveDataObject` now searches in the current workspace and/or project if the project is not specified explicitly. The call is used to find one data object at a time, it's not used in bulk resolution.
