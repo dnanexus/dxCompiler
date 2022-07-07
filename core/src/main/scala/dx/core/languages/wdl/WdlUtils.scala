@@ -649,7 +649,7 @@ object WdlUtils {
   def irValueToExpr(value: Value): TAT.Expr = {
     val loc = SourceLocation.empty
     value match {
-      case VNull       => TAT.ValueNull(T_Any)(loc)
+      case VNull       => TAT.ValueNone(T_Any)(loc)
       case VBoolean(b) => TAT.ValueBoolean(b, T_Boolean)(loc)
       case VInt(i)     => TAT.ValueInt(i, T_Int)(loc)
       case VFloat(f)   => TAT.ValueFloat(f, T_Float)(loc)

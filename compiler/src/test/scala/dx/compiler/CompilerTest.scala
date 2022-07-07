@@ -66,10 +66,10 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
                                                         "-folder",
                                                         unitTestsPath,
                                                         "-locked")
-//  private val cFlagsUnlocked: List[String] = cFlagsBase ++ List("-compileMode",
-//                                                                "NativeWithoutRuntimeAsset",
-//                                                                "-folder",
-//                                                                unitTestsPath)
+  private val cFlagsUnlocked: List[String] = cFlagsBase ++ List("-compileMode",
+                                                                "NativeWithoutRuntimeAsset",
+                                                                "-folder",
+                                                                unitTestsPath)
   private val cFlagsReorgIR: List[String] = cFlagsBase ++
     List("-compileMode", "IR", "-folder", "/reorg_tests")
   private val cFlagsReorgCompile: List[String] = cFlagsBase ++
@@ -137,6 +137,23 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     stagesExecDetails("if (a)").details.get.asJsObject.fields
       .get("staticInstanceType")
       .get shouldBe (JsString("mem3_ssd1_x4"))
+  }
+
+  it should "compile a nested workflow with optional inputs defaulted to None" in {
+    val path = pathFromBasename("bugs", "apps_1222_optional_default_none_outer.wdl")
+    val args = path.toString :: cFlagsUnlocked
+    val retval = Main.compile(args.toVector)
+    val wfId = retval match {
+      case SuccessfulCompileNativeNoTree(_, Vector(wfId)) => wfId
+      case other                                          => throw new Exception(s"expected single workflow not ${other}")
+    }
+    val stages = dxApi
+      .workflow(wfId)
+      .describe()
+      .stages
+      .get
+    val innerStage = stages.filter(_.id == "stage-0").head
+    innerStage.input shouldBe (JsObject("arg1" -> JsNumber(1)))
   }
 
   it should "compile a workflow with a native app wrapped in frag and keep the default instance" in {
