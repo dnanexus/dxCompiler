@@ -18,6 +18,28 @@ class RegisteredTestError(Exception):
     """
 
 
+class RegisteredTestFactory(object):
+    @classmethod
+    def register_test(
+            cls,
+            src_file: str,
+            category: str,
+            test_name: str,
+            context: Context
+    ):
+        test_type_switch = {
+            "mock_category": RegisteredTest     # For testing only
+        }
+        registered_test = test_type_switch.get(category, None)
+        if not registered_test:
+            raise RegisteredTestError(
+                f"RegisteredTestFactory.register_test(): Category {category} is not recognized. Existing categories "
+                f"are {test_type_switch.keys()}. Add new category and new test implementation as a subclass of "
+                f"`RegisteredTest`."
+            )
+        return registered_test(src_file, category, test_name, context)
+
+
 class RegisteredTest(object):
     def __init__(
             self,
@@ -73,6 +95,10 @@ class RegisteredTest(object):
             self._job_id = self._run_executable()
         return self._job_id
 
+    # TODO base implementation???
+    def validate(self) -> None:
+        pass
+
     def _compile_executable(self, additional_compiler_flags: Optional[List[str]] = None) -> str:
         """
         Basic implementation. For different test classes override `exec_id` property with calling this method with
@@ -117,6 +143,7 @@ class RegisteredTest(object):
             name="{} {}".format(self._test_name, self._git_revision)
         )
         exec_desc = dx_execution.describe()
+        # TODO retry. STOPPED HERE
         return exec_desc.get("id")
 
     def _create_messenger(self) -> Messenger:

@@ -6,7 +6,7 @@ from glob import glob
 from pathlib import Path
 from typing import List, Dict, Tuple
 
-from dxcint.RegisteredTest import RegisteredTest
+from dxcint.RegisteredTest import RegisteredTest, RegisteredTestFactory
 from dxcint.Dependency import DependencyFactory, Dependency
 from dxcint.Context import Context
 from dxcint.utils import rm_suffix
@@ -26,6 +26,7 @@ class TestDiscovery(object):
             context: Context. Global context of the suite
             **test_kwargs: use only for unit testing of this class
         """
+        self._context = context
         self._config_location = test_kwargs.get("config", self._resolve_from_root("config"))
         self._resources_location = test_kwargs.get("resources", self._resolve_from_root("resources"))
         self._dependency_config_location = test_kwargs.get(
@@ -43,7 +44,6 @@ class TestDiscovery(object):
             "CW": "cwl_workflows.json",
             "CC": "cwl_cromwell.json"
         }
-        self._context = context
 
     def discover(self, suite: str) -> List[RegisteredTest]:
         """
@@ -58,7 +58,7 @@ class TestDiscovery(object):
                                      f"are {self._suites}")
         with open(os.path.join(self._config_location, self._suites.get(suite)), "r") as suite_handle:
             suite_config = self._config_linter(json.load(suite_handle))
-        registered_tests = [RegisteredTest(
+        registered_tests = [RegisteredTestFactory.register_test(
             src_file=self._find_workflow_source(x[0], x[1]),
             category=x[0],
             test_name=x[1],
@@ -126,9 +126,8 @@ class TestDiscovery(object):
                 continue
         return config
 
-    @staticmethod
-    def _resolve_from_root(dir_name: str) -> Path:
-        return Path(os.path.join(os.path.dirname(os.path.abspath(__file__)), f"../../{dir_name}")).resolve()
+    def _resolve_from_root(self, dir_name: str) -> Path:
+        return Path(os.path.join(self._context.repo_root_dir, dir_name)).resolve()
 
     def _add_name_to_config(self, test_name: str, suite: str, category: str) -> None:
         suite_file_path = os.path.join(self._config_location, self._suites.get(suite))
