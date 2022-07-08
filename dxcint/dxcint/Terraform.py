@@ -3,8 +3,6 @@ import os
 import shutil
 import subprocess as sp
 import json
-import functools
-import time
 import dxpy
 
 from glob import glob
@@ -12,6 +10,7 @@ from typing import Set, Dict, List
 from concurrent import futures
 from dxcint.Context import Context
 from dxcint.Dependency import Dependency
+from dxcint.utils import async_retry
 
 
 # enumeration of supported languages
@@ -19,41 +18,6 @@ from dxcint.Dependency import Dependency
 # - language_dir = lang.upper()
 # - JAR name = "dxExecutor{}".format(lang) - only first letter is upper case (Cwl, Wdl)
 # - asset name = "dx{}rt".format(lang.upper())
-
-def async_retry(max_retries: int = 5, delay: int = 5):
-    """
-    A decorator method to perform retry a decorated function
-    Args:
-        max_retries: int. Number of maximum retries.
-        delay: int. Amount of time to sleep in seconds between retries.
-    Returns: A result of a decorated callable.
-    """
-    def async_retry_inner(func):
-        @functools.wraps(func)
-        def async_retry_wrapper(*args, **kwargs):
-            lock = args[0].context.lock
-            for i in range(0, max_retries):
-                try:
-                    logging.info(f"Retry {i} for function `{func.__name__}`")
-                    ret_value = func(*args, **kwargs)
-                    return ret_value
-                except Exception:
-                    with lock:
-                        logging.info(
-                            f"Error when running an async retry for function `{func.__name__}`\n"
-                            f"With ARGS: {args}\n"
-                            f"With KWARGS: {kwargs}\n"
-                            f"Retry in {delay} sec"
-                        )
-                    time.sleep(delay)
-            else:
-                raise Exception(f"Failed after {max_retries} retries for function `{func.__name__}`\n"
-                                f"With ARGS: {args}\n"
-                                f"With KWARGS: {kwargs}")
-
-        return async_retry_wrapper
-
-    return async_retry_inner
 
 
 class TerraformError(Exception):

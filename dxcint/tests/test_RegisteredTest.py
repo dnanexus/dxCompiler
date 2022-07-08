@@ -7,13 +7,18 @@ from dxcint.RegisteredTest import RegisteredTest
 
 
 @pytest.fixture(scope="session")
-def registered_test_wdl(fixtures_dir):
-    yield RegisteredTest(os.path.join(fixtures_dir, "mock_tests", "mock_test.wdl"))
+def registered_test_wdl(fixtures_dir, context_init):
+    yield RegisteredTest(
+        src_file=os.path.join(fixtures_dir, "resources", "mock_category",  "mock_1.wdl"),
+        category="mock_category",
+        test_name="mock_1",
+        context=context_init
+    )
 
 
 @pytest.fixture(scope="session")
 def build_executable_wdl(registered_test_wdl):
-    registered_test_wdl.build()
+    _ = registered_test_wdl.exec_id()
     yield registered_test_wdl
     try:
         container_remove_objects(registered_test_wdl.project_id, {"objects": [registered_test_wdl.exec_id]})
@@ -23,13 +28,9 @@ def build_executable_wdl(registered_test_wdl):
 
 
 def test_init(registered_test_wdl):
-    assert registered_test_wdl.name == "foo"
-    assert registered_test_wdl.kind == "bar"
-    assert registered_test_wdl.project_id == "lol"
+    assert registered_test_wdl.category == "mock_category"
+    assert registered_test_wdl.name == "mock_1"
     assert registered_test_wdl.language == "wdl"
-    assert registered_test_wdl.exec_id is None
-    assert registered_test_wdl.job_id is None
-    assert registered_test_wdl.has_outputs
 
 
 def test_build_executable_wdl(build_executable_wdl):
@@ -37,12 +38,6 @@ def test_build_executable_wdl(build_executable_wdl):
 
 
 def test_run_wdl(build_executable_wdl):
-    build_executable_wdl.run()
-    assert build_executable_wdl.job_id.startswith("analysis")
+    job_id = build_executable_wdl.job_id
+    assert job_id.startswith("analysis")
 
-
-def test__parse_expected_results(registered_test_wdl):
-    outs = registered_test_wdl._parse_expected_results
-    assert isinstance(outs, dict)
-    assert outs[f"{registered_test_wdl.name}.outs"] == "foo"
-    assert isinstance(outs[f"{registered_test_wdl.name}.outs"], str)

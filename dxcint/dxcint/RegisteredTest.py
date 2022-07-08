@@ -5,7 +5,7 @@ import random
 import dxpy
 
 import subprocess as sp
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 from dxcint.utils import rm_prefix
 from dxcint.Messenger import Messenger
@@ -66,6 +66,10 @@ class RegisteredTest(object):
         ).strip()
 
     @property
+    def context(self):
+        return self._context
+
+    @property
     def category(self):
         return self._category
 
@@ -95,20 +99,19 @@ class RegisteredTest(object):
             self._job_id = self._run_executable()
         return self._job_id
 
-    # TODO base implementation???
     def validate(self) -> None:
-        pass
+        return None
 
     def _compile_executable(self, additional_compiler_flags: Optional[List[str]] = None) -> str:
         """
-        Basic implementation. For different test classes override `exec_id` property with calling this method with
-        arguments which suite particular test type. For example, when implementing class ManifestTest(RegisteredTest)
+        Base implementation. For different test classes override `exec_id` property with calling this method with
+        arguments which suite a particular test type. For example, when implementing class ManifestTest(RegisteredTest)
         call this method with `additional_compiler_flags=['-useManifests']` argument in parameter `exec_id`.
         Args:
             additional_compiler_flags: Optional[List[str]]. Use this argument to alter the compiler behavior for
             concrete class implementation
 
-        Returns: str.
+        Returns: str. Compiled workflow ID
         """
         compiler_flags = ["-instanceTypeSelection", random.choice(["static", "dynamic"])]
         compiler_flags += additional_compiler_flags or []
@@ -130,8 +133,16 @@ class RegisteredTest(object):
         return workflow_id.decode("ascii")
 
     def _run_executable(self):
+        """
+        This method will be implemented in subclasses with or without additional decorators (e.g. for async_retry)
+
+        Returns: str. Execution ID (analysis or job)
+        """
+        return self._run_executable_inner()
+
+    def _run_executable_inner(self, exec_input: Optional[Dict] = None) -> str:
         exec_type = self.exec_id.split("-")[0]
-        exec_input = {}
+        exec_input = exec_input or {}
         exec_handler = self._executable_type_switch.get(exec_type)(
             project=self._context.project_id,
             dxid=self.exec_id
@@ -143,7 +154,6 @@ class RegisteredTest(object):
             name="{} {}".format(self._test_name, self._git_revision)
         )
         exec_desc = dx_execution.describe()
-        # TODO retry. STOPPED HERE
         return exec_desc.get("id")
 
     def _create_messenger(self) -> Messenger:
