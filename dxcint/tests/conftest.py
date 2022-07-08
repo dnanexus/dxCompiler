@@ -2,6 +2,8 @@ import pytest
 import os
 
 from dxcint.Context import Context
+from dxcint.Dependency import DependencyFactory
+from dxcint.Terraform import Terraform
 
 
 @pytest.fixture(scope="session")
@@ -31,3 +33,10 @@ def change_to_root_dir(root_dir):
     os.chdir(root_dir)
     yield
     os.chdir(original_dir)
+
+
+@pytest.fixture(scope="session")
+def terraform_init(dependency_conf_dir, context_init):
+    dependency_factory = DependencyFactory(os.path.join(dependency_conf_dir, "mock_dependency_src.json"))
+    bin_dependency = dependency_factory.make()
+    yield Terraform(languages={"wdl"}, context=context_init, dependencies={bin_dependency})

@@ -5,7 +5,7 @@ import random
 import dxpy
 
 import subprocess as sp
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Union
 
 from dxcint.utils import rm_prefix
 from dxcint.Messenger import Messenger
@@ -52,7 +52,7 @@ class RegisteredTest(object):
         self._src_file = src_file
         self._category = category
         self._test_name = test_name
-        self._language = rm_prefix(os.path.basename(src_file), test_name)
+        self._language = rm_prefix(os.path.basename(src_file), test_name).strip(".")
         self._messenger = None
         self._exec_id = None
         self._job_id = None
@@ -115,7 +115,7 @@ class RegisteredTest(object):
         compiler_jar_path = os.path.join(self._context.repo_root_dir, f"dxCompiler-{self._context.version}.jar")
         compile_dir = os.path.join(self._context.platform_build_dir, "applets", self._test_name)
         cmd = f"java -jar {compiler_jar_path} compile {self._src_file} -force -folder {compile_dir} " \
-              f"-project {self._context.project_id}"
+              f"-project {self._context.project_id} "
         cmd += " ".join(compiler_flags)
         try:
             logging.info(f"COMPILE COMMAND: {cmd}")
@@ -135,15 +135,16 @@ class RegisteredTest(object):
 
         Returns: str. Execution ID (analysis or job)
         """
-        return self._run_executable_inner()
+        exec_desc = self._run_executable_inner().describe()
+        return exec_desc.get("id")
 
-    def _run_executable_inner(self, exec_input: Optional[Dict] = None) -> str:
+    def _run_executable_inner(self, exec_input: Optional[Dict] = None) -> Union[dxpy.DXAnalysis, dxpy.DXJob]:
         """
         Override this method if the changes to the workflow execution are needed.
         Args:
             exec_input: Optional[Dict]. Json-ingested inputs for workflow
 
-        Returns: str. Execution ID (analysis or job)
+        Returns: Union[DXAnalysis,DXJob]. Execution handler
 
         """
         exec_type = self.exec_id.split("-")[0]
@@ -158,8 +159,7 @@ class RegisteredTest(object):
             folder=os.path.join(self._context.platform_build_dir, "test"),
             name="{} {}".format(self._test_name, self._git_revision)
         )
-        exec_desc = dx_execution.describe()
-        return exec_desc.get("id")
+        return dx_execution
 
     def _create_messenger(self) -> Messenger:
         raise RegisteredTestError("Messenger is not implemented")
