@@ -99,9 +99,6 @@ class RegisteredTest(object):
             self._job_id = self._run_executable()
         return self._job_id
 
-    def validate(self) -> None:
-        return None
-
     def _compile_executable(self, additional_compiler_flags: Optional[List[str]] = None) -> str:
         """
         Base implementation. For different test classes override `exec_id` property with calling this method with
@@ -132,7 +129,7 @@ class RegisteredTest(object):
             raise e
         return workflow_id.decode("ascii")
 
-    def _run_executable(self):
+    def _run_executable(self) -> str:
         """
         This method will be implemented in subclasses with or without additional decorators (e.g. for async_retry)
 
@@ -141,6 +138,14 @@ class RegisteredTest(object):
         return self._run_executable_inner()
 
     def _run_executable_inner(self, exec_input: Optional[Dict] = None) -> str:
+        """
+        Override this method if the changes to the workflow execution are needed.
+        Args:
+            exec_input: Optional[Dict]. Json-ingested inputs for workflow
+
+        Returns: str. Execution ID (analysis or job)
+
+        """
         exec_type = self.exec_id.split("-")[0]
         exec_input = exec_input or {}
         exec_handler = self._executable_type_switch.get(exec_type)(
@@ -158,3 +163,6 @@ class RegisteredTest(object):
 
     def _create_messenger(self) -> Messenger:
         raise RegisteredTestError("Messenger is not implemented")
+
+    def validate(self) -> None:
+        return None
