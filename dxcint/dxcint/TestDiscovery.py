@@ -66,6 +66,33 @@ class TestDiscovery(object):
         ) for x in self._flatten_config(suite_config)]
         return registered_tests
 
+    def discover_single_test(self, test_name: str) -> List[RegisteredTest]:
+        """
+         Method to discover and register a single test. Find the first complete match of the test name.
+        Args:
+            test_name: str. Test name as present in one of the suite config files
+
+        Returns: List[RegisteredTest]. Subclass of a RegisteredTest, according to the test category. For consistency,
+                returned as a list of 1 element
+        """
+        for suite_file in self._suites.values():
+            with open(os.path.join(self._config_location, suite_file), "r") as suite_handle:
+                suite_config = self._config_linter(json.load(suite_handle))
+            for category, test_collection in suite_config.items():
+                if test_name in test_collection:
+                    registered_test = RegisteredTestFactory.register_test(
+                        src_file=self._find_workflow_source(category, test_name),
+                        category=category,
+                        test_name=test_name,
+                        context=self._context
+                    )
+                    return [registered_test]
+        else:
+            raise TestDiscoveryError(
+                f"Test name {test_name} was not found among any existing test suites {self._suites}. Add the test to "
+                f"the suite. See README `Adding Tests` for instructions"
+            )
+
     def add_tests(self, dir_name: str, extension: str, suite: str, category: str) -> List[str]:
         """
         Adds tests to the test suite.

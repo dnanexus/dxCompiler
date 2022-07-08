@@ -127,4 +127,3 @@ class Context(object):
             input_params={"folder": folder, "force": True, "recurse": True}
         )
         return True
-

@@ -66,6 +66,19 @@ def test_discover(fixtures_dir, context_init):
     assert all([x.category == "mock_category" for x in discovered_tests])
 
 
+def test_discover_single_test(fixtures_dir, context_init):
+    test_discovery = TestDiscovery(
+        context=context_init,
+        config=os.path.join(fixtures_dir, "config"),
+        resources=os.path.join(fixtures_dir, "resources")
+    )
+    discovered_tests = test_discovery.discover_single_test(test_name="mock_1")
+    assert len(discovered_tests) == 1
+    assert discovered_tests[0].name == "mock_1"
+    assert all([x.category == "mock_category" for x in discovered_tests])
+
+
+
 def test_add_tests(add_test_to_existing_category, add_test_to_new_category, fixtures_dir):
     assert add_test_to_existing_category[0] == "mock_test"
     with open(os.path.join(fixtures_dir, "config", "medium.json"), "r") as modified_suite_handle:
