@@ -28,16 +28,17 @@ class TerraformError(Exception):
 
 class Terraform(object):
     def __init__(self, languages: Set[str], context: Context, dependencies: Set[Dependency]):
-        self._languages = languages
-        self._context = context
-        self._dependencies = dependencies
-        for language in languages:
-            self._clean_up(language.upper())
         self._asset_switch = {
             "wdl": self._wdl_asset,
             "cwl": self._cwl_asset,
             "cwl.json": self._cwl_asset
         }
+        self._languages = languages or set(self._asset_switch.keys())
+        self._context = context
+        self._dependencies = dependencies
+        for language in languages:
+            self._clean_up(language.upper())
+
         self._local_created_dirs = {}
 
     @property

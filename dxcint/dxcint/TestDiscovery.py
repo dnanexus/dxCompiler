@@ -125,11 +125,11 @@ class TestDiscovery(object):
         logging.warning(f"Added {len(added_tests)} tests to the suite `{suite}` under category `{category}`")
         return added_tests
 
-    def discover_dependencies(self) -> List[Dependency]:
+    def discover_dependencies(self) -> Set[Dependency]:
         """
         Method to discover existing dependencies for every language
 
-        Returns: List[Dependency]. List of objects of class Dependency
+        Returns: Set[Dependency]. Set of objects of class Dependency
         """
         dependencies = []
         for dependency_config in os.listdir(self._dependency_config_location):
@@ -139,7 +139,7 @@ class TestDiscovery(object):
             dependency_factory = DependencyFactory(config_file=config_path)
             one_dependency = dependency_factory.make()
             dependencies.append(one_dependency)
-        return dependencies
+        return set(dependencies)
 
     @staticmethod
     def _config_linter(config) -> Dict:
