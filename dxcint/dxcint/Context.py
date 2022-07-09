@@ -19,11 +19,12 @@ class Context(object):
     def __init__(
             self,
             project: str,
+            repo_root: str,
             folder: Optional[str] = None
     ):
         self._project_id = self._resolve_project(project=project)
         self._user = dxpy.whoami()
-        self._repo_root_dir = Path(os.path.join(os.path.dirname(__file__), "../..")).resolve()
+        self._repo_root_dir = repo_root
         self._platform_build_dir = self._create_platform_build_folder(folder)
         self._compiler_version = self._get_version()
         self._lock = Lock()

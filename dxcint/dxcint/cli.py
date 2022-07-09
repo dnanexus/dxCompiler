@@ -23,6 +23,7 @@ def dxcint(verbosity: str = "info") -> None:
 
 
 @dxcint.command()
+@click.argument('dxc_repository_root', required=True)
 @click.option(
     "-t",
     "--test_name",
@@ -32,9 +33,10 @@ def dxcint(verbosity: str = "info") -> None:
          "(e.g. dxCompiler-VERSION.jar)",
 )
 def integration(
+        dxc_repository_root: str,
         test_name: Optional[str]
 ) -> None:
-    test_context = Context(project="dxCompiler_playground")
+    test_context = Context(project="dxCompiler_playground", repo_root=dxc_repository_root)
     test_discovery = TestDiscovery(test_context)
     if test_name:
         try:
