@@ -153,6 +153,7 @@ class RegisteredTest(object):
             project=self._context.project_id,
             dxid=self.exec_id
         )
+        logging.info(f"Running the process for test {self._test_name}")
         dx_execution = exec_handler.run(
             exec_input,
             project=self._context.project_id,
