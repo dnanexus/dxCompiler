@@ -1,3 +1,4 @@
+import functools
 import logging
 import os
 import shlex
@@ -56,6 +57,7 @@ class RegisteredTest(object):
         self._messenger = None
         self._exec_id = None
         self._job_id = None
+        self._test_results = None
         self._executable_type_switch = {
             "workflow": dxpy.DXWorkflow,
             "app": dxpy.DXApp,
@@ -70,15 +72,15 @@ class RegisteredTest(object):
         return self._context
 
     @property
-    def category(self):
+    def category(self) -> str:
         return self._category
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self._test_name
 
     @property
-    def language(self):
+    def language(self) -> str:
         return self._language
 
     @property
@@ -88,16 +90,32 @@ class RegisteredTest(object):
         return self._messenger
 
     @property
-    def exec_id(self):
+    def exec_id(self) -> str:
         if not self._exec_id:
             self._exec_id = self._compile_executable()
         return self._exec_id
 
     @property
-    def job_id(self):
+    def job_id(self) -> str:
         if not self._job_id:
             self._job_id = self._run_executable()
         return self._job_id
+
+    @property
+    def test_result(self) -> bool:
+        if not self._test_results:
+            self._test_results = self._validate()
+        if self._test_results.get("passed"):
+            logging.info(
+                f"Test {self._test_name} successfully PASSED."
+                f"Additional info from the test: {self._test_results.get('message')}"
+            )
+            return True
+        else:
+            logging.error(
+                f"Test {self._test_name} FAILED with message: {self._test_results.get('message')}"
+            )
+            return False
 
     def _compile_executable(self, additional_compiler_flags: Optional[List[str]] = None) -> str:
         """
@@ -162,8 +180,20 @@ class RegisteredTest(object):
         )
         return dx_execution
 
+    def _validate(self) -> Dict:
+        """
+        Implement this method in subclasses with criteria for test validation (e.g. comparison to output fixtures,
+        error messages or other expected behaviors.
+
+        Returns: Dict.
+            'passed' - bool. If the test passed or not, according to the implementation
+            'message' - str. Auxiliary message specific for the test. Or an error message.
+        """
+        return {
+            "passed": False,
+            "message": "This is an abstract base class. Use a concrete implementation"
+        }
+
+
     def _create_messenger(self) -> Messenger:
         raise RegisteredTestError("Messenger is not implemented")
-
-    def validate(self) -> None:
-        return None

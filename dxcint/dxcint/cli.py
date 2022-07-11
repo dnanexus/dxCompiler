@@ -1,11 +1,11 @@
 import click
 import logging
-import sys
 from typing import Optional
 
 from dxcint.Context import Context
 from dxcint.Terraform import Terraform
 from dxcint.TestDiscovery import TestDiscovery, TestDiscoveryError
+from dxcint.LogFormatter import LogFormatter
 
 
 @click.group()
@@ -16,10 +16,14 @@ from dxcint.TestDiscovery import TestDiscovery, TestDiscoveryError
 )
 def dxcint(verbosity: str = "info") -> None:
     level = {"error": 40, "warning": 30, "info": 20, "debug": 10}[verbosity]
-    logging.basicConfig(stream=sys.stdout, format='%(asctime)s - %(levelname)s - %(message)s', level=level)
-    logging.captureWarnings(True)
+    log_format = '%(asctime)s | %(levelname)8s | %(message)s'
+    logger = logging.getLogger(__name__)
+    logger.setLevel(level)
+    ch = logging.StreamHandler()
+    ch.setLevel(level)
+    ch.setFormatter(LogFormatter(log_format))
+    logger.addHandler(ch)
     # TODO check build.sbt in the CWD
-    pass
 
 
 @dxcint.command()
@@ -52,6 +56,4 @@ def integration(
     )
     _ = terraform.build()
     for test in registered_tests:
-        test.validate()
-
-
+        passed = test.test_result
