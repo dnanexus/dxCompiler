@@ -4,7 +4,6 @@ import inspect
 import os
 import re
 from threading import Lock
-from pathlib import Path
 from typing import Optional
 from dxpy.api import project_new_folder, project_describe, project_remove_folder
 

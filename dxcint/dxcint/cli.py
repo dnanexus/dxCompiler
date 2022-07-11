@@ -57,3 +57,43 @@ def integration(
     _ = terraform.build()
     for test in registered_tests:
         passed = test.test_result
+
+
+@dxcint.command()
+@click.argument('dxc_repository_root', required=True)
+@click.option(
+    "-d",
+    "--directory",
+    default=".",
+    type=str,
+    help="Extension of the test workflow script files. Allowed are 'cwl', 'cwl.json', 'wdl'",
+)
+@click.option(
+    "-x",
+    "--extension",
+    default="wdl",
+    type=str,
+    help="Extension of the test workflow script files. Allowed are 'cwl', 'cwl.json', 'wdl'",
+)
+@click.option(
+    "-s",
+    "--suite",
+    type=str,
+    help="Test suite name. Usually a team-defined group of tests to be run in each CI/CD step",
+)
+@click.option(
+    "-c",
+    "--category",
+    type=str,
+    help="Test category name. Usually a team-defined category that reflects a type of the test",
+)
+def add(
+        dxc_repository_root: str,
+        directory: str,
+        extension: str,
+        suite: str,
+        category: str
+) -> None:
+    test_context = Context(project="dxCompiler_playground", repo_root=dxc_repository_root)
+    test_discovery = TestDiscovery(test_context)
+    _ = test_discovery.add_tests(directory, extension, suite, category)

@@ -4,7 +4,7 @@ import logging
 import shutil
 from glob import glob
 from pathlib import Path
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Set
 
 from dxcint.RegisteredTest import RegisteredTest, RegisteredTestFactory
 from dxcint.Dependency import DependencyFactory, Dependency

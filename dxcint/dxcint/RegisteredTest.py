@@ -1,4 +1,3 @@
-import functools
 import logging
 import os
 import shlex
@@ -29,7 +28,8 @@ class RegisteredTestFactory(object):
             context: Context
     ):
         test_type_switch = {
-            "mock_category": RegisteredTest     # For testing only
+            "mock_category": RegisteredTest,        # For testing only
+            # ADD NEW CATEGORY HERE
         }
         registered_test = test_type_switch.get(category, None)
         if not registered_test:
