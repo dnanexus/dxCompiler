@@ -104,9 +104,10 @@ for each dependency they need to be included into language specific assets for d
 3. "version": str. Version of the software to be used.
 
 Required fields that define type of the dependency (implemented as separate subclasses of `Dependency`)
-* "package_manager": str. As in dxapp.json
+* "package_manager": str. Also, all necessary tags should be added as [here](https://documentation.dnanexus.com/developer/apps/execution-environment#external-utilities)
 * "source_link": str. Link where to get the binary executable, if it was not downloaded before
 The "package_manager" attribute has a precedence over "source_link". If "package_manager" is not provided, "source_link" 
-will be used to download the binary executable of the dependency. If neither is used `DependencyError` will be thrown.
+will be used to download the binary executable of the dependency. If neither is used dxCint will assume the dependency 
+is installed on the workers by default and nothing will happen.
 
 
