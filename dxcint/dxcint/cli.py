@@ -2,7 +2,7 @@ import click
 import logging
 from typing import Optional
 
-from dxcint.Context import Context
+from dxcint.Context import Context, ContextEmpty
 from dxcint.Terraform import Terraform
 from dxcint.TestDiscovery import TestDiscovery, TestDiscoveryError
 from dxcint.LogFormatter import LogFormatter
@@ -49,6 +49,7 @@ def integration(
             registered_tests = test_discovery.discover_single_test(test_name)
     else:
         registered_tests = []
+        logging.info("No test/suite name provided. dxCint will only build the core dxCompiler executable")
     terraform = Terraform(
         languages={x.language for x in registered_tests},
         context=test_context,
@@ -97,3 +98,13 @@ def add(
     test_context = Context(project="dxCompiler_playground", repo_root=dxc_repository_root)
     test_discovery = TestDiscovery(test_context)
     _ = test_discovery.add_tests(directory, extension, suite, category)
+
+
+@dxcint.command()
+def suites() -> None:
+    empty_context = ContextEmpty()
+    test_discovery = TestDiscovery(empty_context)
+    print(
+        f"Available suites are:\n"
+        f"{test_discovery.suites}"
+    )

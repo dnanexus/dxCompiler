@@ -127,3 +127,20 @@ class Context(object):
             input_params={"folder": folder, "force": True, "recurse": True}
         )
         return True
+
+
+class ContextEmpty(Context):
+    def __init__(self):
+        self._project_id = None
+        self._user = None
+        self._repo_root_dir = "."
+        self._platform_build_dir = None
+        self._compiler_version = None
+        self._lock = Lock()
+        self._project_info = None
+
+    def __setattr__(self, *args):
+        if inspect.stack()[1][3] == "__init__":
+            object.__setattr__(self, *args)
+        else:
+            raise ContextError("Context class is immutable")

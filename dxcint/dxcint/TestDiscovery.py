@@ -4,11 +4,11 @@ import logging
 import shutil
 from glob import glob
 from pathlib import Path
-from typing import List, Dict, Tuple, Set
+from typing import List, Dict, Tuple, Set, Union
 
 from dxcint.RegisteredTest import RegisteredTest, RegisteredTestFactory
 from dxcint.Dependency import DependencyFactory, Dependency
-from dxcint.Context import Context
+from dxcint.Context import Context, ContextEmpty
 from dxcint.utils import rm_suffix
 
 
@@ -19,7 +19,7 @@ class TestDiscoveryError(Exception):
 
 
 class TestDiscovery(object):
-    def __init__(self, context: Context, **test_kwargs):
+    def __init__(self, context: Union[Context, ContextEmpty], **test_kwargs):
         """
         Class to handle discovery and addition of the tests to the suite
         Args:
@@ -44,6 +44,10 @@ class TestDiscovery(object):
             "CW": "cwl_workflows.json",
             "CC": "cwl_cromwell.json"
         }
+
+    @property
+    def suites(self):
+        return self._suites
 
     def discover(self, suite: str) -> List[RegisteredTest]:
         """

@@ -18,7 +18,7 @@ def fixtures_dir():
 
 
 @pytest.fixture(scope="session")
-def context_init():
+def context_init(root_dir):
     yield Context(project="dxCompiler_playground", repo_root=root_dir, folder="/gvaihir/dxcint_testing")
 
 
@@ -35,7 +35,7 @@ def change_to_root_dir(root_dir):
     os.chdir(original_dir)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def terraform_init(dependency_conf_dir, context_init):
     dependency_factory = DependencyFactory(os.path.join(dependency_conf_dir, "mock_dependency_src.json"))
     bin_dependency = dependency_factory.make()
