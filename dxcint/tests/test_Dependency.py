@@ -2,7 +2,7 @@ import pytest
 import os
 import shutil
 from pathlib import Path
-from dxcint.Dependency import Dependency, DependencyFactory, BinaryDependency, PackageDependency
+from dxcint.Dependency import Dependency, DependencyFactory, BinaryDependency, PackageDependency, TarballDependency
 
 
 @pytest.fixture(scope="session")
@@ -26,8 +26,17 @@ def test_dependency_factory_package(dependency_conf_dir):
         }
 
 
-def test_dependency_factory_binary(dependency_conf_dir, fixtures_dir, link_dest_and_cleanup):
+def test_dependency_factory_binary(dependency_conf_dir, link_dest_and_cleanup):
     dependency_factory = DependencyFactory(os.path.join(dependency_conf_dir, "mock_dependency_src.json"))
     binary_dependency = dependency_factory.make()
     symlink = os.path.exists(binary_dependency.link(link_dest_and_cleanup))
+    assert os.path.exists(symlink)
+
+
+def test_dependency_factory_tarball(dependency_conf_dir, link_dest_and_cleanup):
+    dependency_factory = DependencyFactory(os.path.join(dependency_conf_dir, "mock_dependency_tar.json"))
+    tarball_dependency = dependency_factory.make()
+    assert isinstance(tarball_dependency, TarballDependency)
+    assert tarball_dependency.languages == ["wdl", "cwl"]
+    symlink = os.path.exists(tarball_dependency.link(link_dest_and_cleanup))
     assert os.path.exists(symlink)

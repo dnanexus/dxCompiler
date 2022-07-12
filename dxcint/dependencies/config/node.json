@@ -1,0 +1,7 @@
+{
+  "name": "node",
+  "languages": ["cwl"],
+  "version": "1.0.0",
+  "package_manager": "git",
+  "source_link": "https://mock_url.blablabla"
+}

@@ -1,0 +1,6 @@
+{
+  "name": "node",
+  "languages": ["wdl", "cwl"],
+  "version": "v0.5.9",
+  "source_link": "https://nodejs.org/dist/v16.16.0/node-v16.16.0-linux-x64.tar.xz"
+}
