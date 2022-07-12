@@ -93,3 +93,20 @@ The following architecture will be implemented to support integration tests for 
 5. **RegisteredTest** has methods to compile test, run test and validate results.
 
 
+## Dependency config 
+Dependency config is a `.json` file with basic information about the dependency package. Developers have to create one 
+for each dependency they need to be included into language specific assets for dxCompiler.  
+**!!!Please consult the IT and compliance teams before adding new dependencies**
+#### Structure
+**Required fields**:
+1. "name": str. Name of a dependency. E.g. “awscli”
+2. "languages": Array[str]. Languages that this dependency is built for. E.g. [“wdl”, “cwl”]
+3. "version": str. Version of the software to be used.
+
+Required fields that define type of the dependency (implemented as separate subclasses of `Dependency`)
+* "package_manager": str. As in dxapp.json
+* "source_link": str. Link where to get the binary executable, if it was not downloaded before
+The "package_manager" attribute has a precedence over "source_link". If "package_manager" is not provided, "source_link" 
+will be used to download the binary executable of the dependency. If neither is used `DependencyError` will be thrown.
+
+

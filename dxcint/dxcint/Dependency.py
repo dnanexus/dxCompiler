@@ -34,10 +34,14 @@ class DependencyFactory(object):
         """
         with open(self._config_file, "r") as config_handle:
             config = json.load(config_handle)
-        if config.get("package_manager"):
+        if config.get("package_manager", None):
             return "package_manager"
-        if config.get("source_link"):
+        if config.get("source_link", None):
             return "source"
+        else:
+            raise DependencyError(
+                "Could not detect dependency type. Specify `package_manager` or `source_link` in the dependency config"
+            )
 
 
 class Dependency(object):
