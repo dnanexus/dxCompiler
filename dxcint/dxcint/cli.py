@@ -67,7 +67,7 @@ def integration(
     "--directory",
     default=".",
     type=str,
-    help="Extension of the test workflow script files. Allowed are 'cwl', 'cwl.json', 'wdl'",
+    help="Directory containing workflow fixtures to be added",
 )
 @click.option(
     "-x",

@@ -18,8 +18,7 @@ See [Adding tests](#adding-tests) section
 Usage: dxcint add [OPTIONS] DXC_REPOSITORY_ROOT
 
 Options:
-  -d, --directory TEXT  Extension of the test workflow script files. Allowed
-                        are 'cwl', 'cwl.json', 'wdl'
+  -d, --directory TEXT  Directory containing workflow fixtures to be added
   -x, --extension TEXT  Extension of the test workflow script files. Allowed
                         are 'cwl', 'cwl.json', 'wdl'
   -s, --suite TEXT      Test suite name. Usually a team-defined group of tests
