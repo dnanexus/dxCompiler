@@ -1,1 +1,1 @@
-{"pilot": ["a", "w", "just_fail_wf", "_", "u", "j", "f", "l", "bad_status", "bad_status2", "s", "i", "t"]}
+{"expected_failure": ["just_fail_wf", "bad_status2", "bad_status"]}

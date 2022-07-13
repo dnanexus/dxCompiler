@@ -1,6 +1,21 @@
 import logging
 
 
+class Logger(object):
+
+    @classmethod
+    def make(cls, verbosity):
+        level = {"error": 40, "warning": 30, "info": 20, "debug": 10}[verbosity]
+        log_format = '%(asctime)s | %(levelname)8s | %(message)s'
+        logger = logging.getLogger(__name__)
+        logger.setLevel(level)
+        ch = logging.StreamHandler()
+        ch.setLevel(level)
+        ch.setFormatter(LogFormatter(log_format))
+        logger.addHandler(ch)
+        return logger
+
+
 class LogFormatter(logging.Formatter):
     """
     Logging colored formatter, adapted from https://stackoverflow.com/a/56944256/3638629

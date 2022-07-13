@@ -1,4 +1,3 @@
-import logging
 import dxpy
 import inspect
 import os
@@ -6,6 +5,8 @@ import re
 from threading import Lock
 from typing import Optional
 from dxpy.api import project_new_folder, project_describe, project_remove_folder
+
+from dxcint.Logger import Logger
 
 
 class ContextError(Exception):
@@ -19,7 +20,8 @@ class Context(object):
             self,
             project: str,
             repo_root: str,
-            folder: Optional[str] = None
+            folder: Optional[str] = None,
+            logger_verbosity: str = "info"
     ):
         self._project_id = self._resolve_project(project=project)
         self._user = dxpy.whoami()
@@ -28,6 +30,7 @@ class Context(object):
         self._platform_build_dir = self._create_platform_build_folder(folder)
         self._lock = Lock()
         self._project_info = project_describe(self._project_id)
+        self._logger = Logger.make(logger_verbosity)
 
     def __setattr__(self, *args):
         if inspect.stack()[1][3] == "__init__":
@@ -58,6 +61,10 @@ class Context(object):
     @property
     def project_info(self):
         return self._project_info
+
+    @property
+    def logger(self):
+        return self._logger
 
     @staticmethod
     def _resolve_project(project: str) -> str:
@@ -97,7 +104,7 @@ class Context(object):
         folder = folder or f"/builds/{self._user}/{self._compiler_version}"
         _ = self._clean_up_build_dir(folder)
         _ = self._create_build_subdirs(base_dir=folder)
-        logging.info(f"Project: {self._project_id}.\nBuild directory {folder}")
+        self.logger.info(f"Project: {self._project_id}.\nBuild directory {folder}")
         return folder
 
     def _create_build_subdirs(self, base_dir: str) -> bool:

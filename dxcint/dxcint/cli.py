@@ -1,32 +1,30 @@
 import click
-import logging
 from typing import Optional
 
 from dxcint.Context import Context, ContextEmpty
 from dxcint.Terraform import Terraform
 from dxcint.TestDiscovery import TestDiscovery, TestDiscoveryError
-from dxcint.LogFormatter import LogFormatter
+
+
+class CliContext(object):
+    def __init__(self):
+        self.verbosity = None
 
 
 @click.group()
+@click.pass_context
 @click.option(
     "--verbosity",
     default="info",
     type=click.Choice(["error", "warning", "info", "debug"]),
 )
-def dxcint(verbosity: str = "info") -> None:
-    level = {"error": 40, "warning": 30, "info": 20, "debug": 10}[verbosity]
-    log_format = '%(asctime)s | %(levelname)8s | %(message)s'
-    logger = logging.getLogger(__name__)
-    logger.setLevel(level)
-    ch = logging.StreamHandler()
-    ch.setLevel(level)
-    ch.setFormatter(LogFormatter(log_format))
-    logger.addHandler(ch)
-    # TODO check build.sbt in the CWD
+def dxcint(ctx, verbosity: str = "info") -> None:
+    ctx.obj = CliContext()
+    ctx.obj.verbosity = verbosity
 
 
 @dxcint.command()
+@click.pass_context
 @click.argument('dxc_repository_root', required=True)
 @click.option(
     "-t",
@@ -37,10 +35,15 @@ def dxcint(verbosity: str = "info") -> None:
          "(e.g. dxCompiler-VERSION.jar)",
 )
 def integration(
+        ctx,
         dxc_repository_root: str,
         test_name: Optional[str]
 ) -> None:
-    test_context = Context(project="dxCompiler_playground", repo_root=dxc_repository_root)
+    test_context = Context(
+        project="dxCompiler_playground",
+        repo_root=dxc_repository_root,
+        logger_verbosity=ctx.obj.verbosity
+    )
     test_discovery = TestDiscovery(test_context)
     if test_name:
         try:
@@ -49,7 +52,9 @@ def integration(
             registered_tests = test_discovery.discover_single_test(test_name)
     else:
         registered_tests = []
-        logging.info("No test/suite name provided. dxCint will only build the core dxCompiler executable")
+        test_context.logger.info(
+            "CLI: No test/suite name provided. dxCint will only build the core dxCompiler executable"
+        )
     terraform = Terraform(
         languages={x.language for x in registered_tests},
         context=test_context,
@@ -108,3 +113,7 @@ def suites() -> None:
         f"Available suites are:\n"
         f"{test_discovery.suites}"
     )
+
+
+if __name__ == "__main__":
+    dxcint()
