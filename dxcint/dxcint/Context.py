@@ -24,8 +24,8 @@ class Context(object):
         self._project_id = self._resolve_project(project=project)
         self._user = dxpy.whoami()
         self._repo_root_dir = repo_root
-        self._platform_build_dir = self._create_platform_build_folder(folder)
         self._compiler_version = self._get_version()
+        self._platform_build_dir = self._create_platform_build_folder(folder)
         self._lock = Lock()
         self._project_info = project_describe(self._project_id)
 
