@@ -1,4 +1,3 @@
-import logging
 import os
 import shutil
 import subprocess as sp
@@ -71,7 +70,7 @@ class Terraform(object):
         if os.path.exists(language_dir):
             shutil.rmtree(language_dir)
         else:
-            logging.info(f"No local asset directories for `{language}` language were pre-existing")
+            self._context.logger.info(f"No local asset directories for `{language}` language were pre-existing")
         return True
 
     def _wdl_asset(self) -> str:
@@ -100,7 +99,7 @@ class Terraform(object):
         destination = f"{self._context.project_id}:{self._context.platform_build_dir}/{asset_name}"
         cwd = os.getcwd()
         os.chdir(os.path.join(self._context.repo_root_dir, "applet_resources"))
-        logging.info(f"Creating a runtime asset for {language}")
+        self._context.logger.info(f"Creating a runtime asset for {language}")
         proc = sp.Popen(
             ["dx", "build_asset", language, "--destination", destination],
             stdout=sp.PIPE,
@@ -111,7 +110,7 @@ class Terraform(object):
             raise TerraformError(f"Building DNAnexus asset raised {err.decode()}")
         else:
             with self._context.lock:
-                logging.info(f"Building DNAnexus asset returned {out.decode()}\n{err.decode()}")
+                self._context.logger.info(f"Building DNAnexus asset returned {out.decode()}\n{err.decode()}")
         os.chdir(cwd)
         asset_id = dxpy.search.find_one_data_object(
             classname="record",
@@ -120,7 +119,7 @@ class Terraform(object):
             folder=self._context.platform_build_dir,
             more_ok=False
         )
-        logging.info(f"Successfully created asset for {language.upper()}")
+        self._context.logger.info(f"Successfully created asset for {language.upper()}")
         return asset_id.get("id")
 
     def _create_asset_spec(self, language: str) -> Dict:
@@ -149,7 +148,7 @@ class Terraform(object):
         return asset_spec
 
     def _create_local_asset_dir(self, language: str) -> Dict:
-        logging.info(f"Creating local asset directories for {language}.")
+        self._context.logger.info(f"Creating local asset directories for {language}.")
         language_dir = os.path.join(self._context.repo_root_dir, "applet_resources", language)
         resources_dir = os.path.join(language_dir, "resources")
         local_assets = {
@@ -198,12 +197,13 @@ class Terraform(object):
         with open(runtime_conf_path, "w") as fd:
             fd.write(conf)
         all_regions_str = ", ".join(all_regions)
-        logging.info(
+        self._context.logger.info(
             f"Built configuration regions [{all_regions_str}] into {runtime_conf_path}"
         )
         return conf
 
     def _build_compiler(self) -> bool:
+        os.chdir(self._context.repo_root_dir)
         try:
             sp.check_call(["sbt", "clean"])
             sp.check_call(["sbt", "assembly"])
@@ -222,6 +222,6 @@ class Terraform(object):
         )
         for existing_exe in glob(os.path.join(self._context.repo_root_dir, "dxCompiler-*-SNAPSHOT.jar")):
             os.remove(jar_exec_destination)
-            logging.info(f"Removing dxCompiler exe {os.path.basename(existing_exe)}")
+            self._context.logger.info(f"Removing dxCompiler exe {os.path.basename(existing_exe)}")
         shutil.move(jar_exec_origin, jar_exec_destination)
         return True

@@ -1,5 +1,4 @@
 import functools
-import logging
 import time
 
 from threading import Lock
@@ -48,12 +47,12 @@ def async_retry(max_retries: int = 5, delay: int = 5):
                 lock = Lock()                   # For other functions.
             for i in range(0, max_retries):
                 try:
-                    logging.info(f"Retry {i} for function `{func.__name__}`")
+                    logger.info(f"Retry {i} for function `{func.__name__}`")
                     ret_value = func(*args, **kwargs)
                     return ret_value
                 except Exception:
                     with lock:
-                        logging.info(
+                        logger.info(
                             f"Error when running an async retry for function `{func.__name__}`\n"
                             f"With ARGS: {args}\n"
                             f"With KWARGS: {kwargs}\n"

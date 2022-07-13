@@ -1,6 +1,5 @@
 import json
 import os
-import logging
 import shutil
 from glob import glob
 from pathlib import Path
@@ -119,7 +118,6 @@ class TestDiscovery(object):
                 f"TestDiscovery.add_tests(): {extension} is not recognized. "
                 f"Allowed extensions are {self._allowed_wf_extensions.keys()}"
             )
-        all_f = glob(os.path.join(dir_name, f"*.{extension}"))
         for test_file in glob(os.path.join(dir_name, f"*.{extension}")):
             test_name = rm_suffix(os.path.basename(test_file), f".{extension}")
             test_file_with_dependencies = glob(os.path.join(dir_name, f"{test_name}*"))
@@ -127,7 +125,7 @@ class TestDiscovery(object):
             # Next line inefficient I/O, but an attempt to make EVERY test addition atomic
             self._add_name_to_config(test_name, suite, category)
             added_tests.append(test_name)
-        logging.warning(f"Added {len(added_tests)} tests to the suite `{suite}` under category `{category}`")
+        self._context.logger.warning(f"Added {len(added_tests)} tests to the suite `{suite}` under category `{category}`")
         return added_tests
 
     def discover_dependencies(self) -> Set[Dependency]:
@@ -141,7 +139,7 @@ class TestDiscovery(object):
             if not dependency_config.endswith(".json"):
                 continue
             config_path = os.path.join(self._dependency_config_location, dependency_config)
-            dependency_factory = DependencyFactory(config_file=config_path)
+            dependency_factory = DependencyFactory(config_file=config_path, context=self._context)
             one_dependency = dependency_factory.make()
             dependencies.append(one_dependency)
         return set(dependencies)
@@ -180,12 +178,12 @@ class TestDiscovery(object):
     def _copy_resource_files(self, files: List[str], category: str) -> None:
         category_location = os.path.join(self._resources_location, category)
         if not os.path.exists(category_location):
-            logging.warning(f"Category location {category_location} does not exist. Creating...")
+            self._context.logger.warning(f"Category location {category_location} does not exist. Creating...")
             os.makedirs(category_location)
         for one_test_file in files:
             destination_file = os.path.join(category_location, os.path.basename(one_test_file))
             if os.path.exists(destination_file):
-                logging.warning(f"Test file {one_test_file} exists. Replacing with the new file")
+                self._context.logger.warning(f"Test file {one_test_file} exists. Replacing with the new file")
             shutil.copyfile(one_test_file, destination_file)
 
     @staticmethod
