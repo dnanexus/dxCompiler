@@ -119,6 +119,7 @@ class TestDiscovery(object):
                 f"TestDiscovery.add_tests(): {extension} is not recognized. "
                 f"Allowed extensions are {self._allowed_wf_extensions.keys()}"
             )
+        all_f = glob(os.path.join(dir_name, f"*.{extension}"))
         for test_file in glob(os.path.join(dir_name, f"*.{extension}")):
             test_name = rm_suffix(os.path.basename(test_file), f".{extension}")
             test_file_with_dependencies = glob(os.path.join(dir_name, f"{test_name}*"))
@@ -169,7 +170,7 @@ class TestDiscovery(object):
             )
         with open(suite_file_path, "r+") as suite_config_handle:
             suite_config = json.load(suite_config_handle)
-            existing_category = suite_config.get(category, test_name)
+            existing_category = suite_config.get(category, [test_name])
             extended_test_collection = set.union(set(existing_category), {test_name})
             suite_config.update({category: list(extended_test_collection)})
             suite_config_handle.seek(0)
