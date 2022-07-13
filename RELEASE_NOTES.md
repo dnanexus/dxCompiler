@@ -110,6 +110,7 @@ Note that the setting above is under `defaultTaskDxAttributes`, which means it w
 * Adds support for publishing global workflows from dxCompiler-generated WDL workflows; see [documentation](https://github.com/dnanexus/dxCompiler/blob/develop/doc/ExpertOptions.md#publishing-global-workflows)
 * Fix an error message detecting unsupported CWL version
 * Update sbt to 1.6.1
+* Update dxda to 0.5.9 and dxfuse to 1.0.0
 
 ### Dependency updates
 
