@@ -23,6 +23,7 @@ class Context(object):
             folder: Optional[str] = None,
             logger_verbosity: str = "info"
     ):
+        self._logger = Logger.make(logger_verbosity)
         self._project_id = self._resolve_project(project=project)
         self._user = dxpy.whoami()
         self._repo_root_dir = repo_root
@@ -30,7 +31,6 @@ class Context(object):
         self._platform_build_dir = self._create_platform_build_folder(folder)
         self._lock = Lock()
         self._project_info = project_describe(self._project_id)
-        self._logger = Logger.make(logger_verbosity)
 
     def __setattr__(self, *args):
         if inspect.stack()[1][3] == "__init__":
@@ -104,7 +104,7 @@ class Context(object):
         folder = folder or f"/builds/{self._user}/{self._compiler_version}"
         _ = self._clean_up_build_dir(folder)
         _ = self._create_build_subdirs(base_dir=folder)
-        self.logger.info(f"Project: {self._project_id}.\nBuild directory {folder}")
+        self.logger.info(f"Context._get_version(): Project: {self._project_id}.\nBuild directory {folder}")
         return folder
 
     def _create_build_subdirs(self, base_dir: str) -> bool:

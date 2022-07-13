@@ -4,6 +4,10 @@ import time
 
 from threading import Lock
 
+from dxcint.Logger import Logger
+
+logger = Logger.make(verbosity="info")
+
 
 def rm_suffix(original_string: str, suffix: str) -> str:
     if not original_string:

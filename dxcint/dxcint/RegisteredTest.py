@@ -1,4 +1,3 @@
-import logging
 import os
 import shlex
 import random
@@ -106,13 +105,13 @@ class RegisteredTest(object):
         if not self._test_results:
             self._test_results = self._validate()
         if self._test_results.get("passed"):
-            logging.info(
+            self._context.logger.info(
                 f"Test {self._test_name} successfully PASSED."
                 f"Additional info from the test: {self._test_results.get('message')}"
             )
             return True
         else:
-            logging.error(
+            self._context.logger.error(
                 f"Test {self._test_name} FAILED with message: {self._test_results.get('message')}"
             )
             return False
@@ -136,10 +135,10 @@ class RegisteredTest(object):
               f"-project {self._context.project_id} "
         cmd += " ".join(compiler_flags)
         try:
-            logging.info(f"COMPILE COMMAND: {cmd}")
+            self._context.logger.info(f"COMPILE COMMAND: {cmd}")
             workflow_id = sp.check_output(shlex.split(cmd)).strip()
         except sp.CalledProcessError as e:
-            logging.error(
+            self._context.logger.error(
                 f"Error compiling {self._src_file}\n"
                 f"stdout: {e.stdout}\n"
                 f"stderr: {e.stderr}"
@@ -171,7 +170,7 @@ class RegisteredTest(object):
             project=self._context.project_id,
             dxid=self.exec_id
         )
-        logging.info(f"Running the process for test {self._test_name}")
+        self._context.logger.info(f"Running the process for test {self._test_name}")
         dx_execution = exec_handler.run(
             exec_input,
             project=self._context.project_id,

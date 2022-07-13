@@ -19,7 +19,12 @@ def fixtures_dir():
 
 @pytest.fixture(scope="session")
 def context_init(root_dir):
-    yield Context(project="dxCompiler_playground", repo_root=root_dir, folder="/gvaihir/dxcint_testing")
+    yield Context(
+        project="dxCompiler_playground",
+        repo_root=root_dir,
+        folder="/gvaihir/dxcint_testing",
+        logger_verbosity="info"
+    )
 
 
 @pytest.fixture(scope="session")
