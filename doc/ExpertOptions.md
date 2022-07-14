@@ -1475,28 +1475,29 @@ You would write the following manifest:
 }
 ```
 
-When you compile the workflow, provide the manifest using the `-inputs` option, and it will be translated to:
-
-`mymanifest.dx.json`
+Compile the workflow `test` from above with the `-inputs mymanifest.json` option. A new file `mymanifest.dx.json` will be 
+created with the following content. **NOTE** `mymanifest.dx.json` is created by the compiler - the user does not need to 
+create/change it manually.
 ```json
 {
   "input_manifest___": {
-    "s": "hello",
-    "f": {
-      "$dnanexus_link": "file-xxx"
+    "encoded": false,
+    "types": {
+      "f": "File",
+      "s": "String"
+    },
+    "values": {
+      "s": "hello",
+      "f": "dx://file-xxx"
     }
-  },
-  "input_manifest___files": [
-    {
-      "$dnanexus_link": "file-xxx"
-    }
-  ]
+  }
 }
 ```
 
-Finally, run your workflow using the translated input file:
-
-`dx run workflow-yyy -f mymanifest.dx.json`
+The created `mymanifest.dx.json` should be used as an input file when running the workflow:
+```commandline
+dx run workflow-yyy -f mymanifest.dx.json
+```
 
 ## Manifest file
 
