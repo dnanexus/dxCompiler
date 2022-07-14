@@ -23,7 +23,7 @@ class Context(object):
             folder: Optional[str] = None,
             logger_verbosity: str = "info"
     ):
-        self._logger = Logger.make(logger_verbosity)
+        self._logger = Logger.make(name=__name__, verbosity=logger_verbosity)
         self._project_id = self._resolve_project(project=project)
         self._user = dxpy.whoami()
         self._repo_root_dir = repo_root

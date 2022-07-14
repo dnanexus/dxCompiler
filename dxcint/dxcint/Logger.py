@@ -4,10 +4,10 @@ import logging
 class Logger(object):
 
     @classmethod
-    def make(cls, verbosity):
+    def make(cls, name: str, verbosity: str):
         level = {"error": 40, "warning": 30, "info": 20, "debug": 10}[verbosity]
         log_format = '%(asctime)s | %(levelname)8s | %(message)s'
-        logger = logging.getLogger(__name__)
+        logger = logging.getLogger(name)
         logger.setLevel(level)
         ch = logging.StreamHandler()
         ch.setLevel(level)

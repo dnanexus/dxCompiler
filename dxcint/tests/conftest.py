@@ -42,6 +42,9 @@ def change_to_root_dir(root_dir):
 
 @pytest.fixture(scope="function")
 def terraform_init(dependency_conf_dir, context_init):
-    dependency_factory = DependencyFactory(os.path.join(dependency_conf_dir, "mock_dependency_src.json"))
+    dependency_factory = DependencyFactory(
+        config_file=os.path.join(dependency_conf_dir, "mock_dependency_src.json"),
+        context=context_init
+    )
     bin_dependency = dependency_factory.make()
     yield Terraform(languages={"wdl"}, context=context_init, dependencies={bin_dependency})

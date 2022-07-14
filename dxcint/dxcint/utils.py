@@ -5,7 +5,7 @@ from threading import Lock
 
 from dxcint.Logger import Logger
 
-logger = Logger.make(verbosity="info")
+logger = Logger.make(name=__name__, verbosity="info")
 
 
 def rm_suffix(original_string: str, suffix: str) -> str:
@@ -47,7 +47,10 @@ def async_retry(max_retries: int = 5, delay: int = 5):
                 lock = Lock()                   # For other functions.
             for i in range(0, max_retries):
                 try:
-                    logger.info(f"Retry {i} for function `{func.__name__}`")
+                    with lock:
+                        logger.info(
+                            f"Retry {i} for function `{func.__name__}({args}, {kwargs})`"
+                        )
                     ret_value = func(*args, **kwargs)
                     return ret_value
                 except Exception:

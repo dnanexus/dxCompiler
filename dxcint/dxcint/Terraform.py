@@ -70,7 +70,9 @@ class Terraform(object):
         if os.path.exists(language_dir):
             shutil.rmtree(language_dir)
         else:
-            self._context.logger.info(f"No local asset directories for `{language}` language were pre-existing")
+            self._context.logger.info(
+                f"Terraform._clean_up(): No local asset directories for `{language}` language were pre-existing"
+            )
         return True
 
     def _wdl_asset(self) -> str:
@@ -88,9 +90,10 @@ class Terraform(object):
                 _ = dependency.link(local_asset_dirs.get("bin"))
             _ = self._create_asset_spec(always_capital_lang)
             asset_id = self._build_asset(always_capital_lang)
+            _ = self._clean_up(always_capital_lang)
             return asset_id
         except Exception as e:
-            self._clean_up(always_capital_lang)
+            _ = self._clean_up(always_capital_lang)
             raise e
 
     @async_retry()
@@ -99,7 +102,8 @@ class Terraform(object):
         destination = f"{self._context.project_id}:{self._context.platform_build_dir}/{asset_name}"
         cwd = os.getcwd()
         os.chdir(os.path.join(self._context.repo_root_dir, "applet_resources"))
-        self._context.logger.info(f"Creating a runtime asset for {language}")
+        with self._context.lock:
+            self._context.logger.info(f"Terraform._build_asset(): Creating a runtime asset for {language}")
         proc = sp.Popen(
             ["dx", "build_asset", language, "--destination", destination],
             stdout=sp.PIPE,
@@ -110,7 +114,7 @@ class Terraform(object):
             raise TerraformError(f"Building DNAnexus asset raised {err.decode()}")
         else:
             with self._context.lock:
-                self._context.logger.info(f"Building DNAnexus asset returned {out.decode()}\n{err.decode()}")
+                self._context.logger.info(f"Successfully created asset for {language.upper()}")
         os.chdir(cwd)
         asset_id = dxpy.search.find_one_data_object(
             classname="record",
@@ -119,7 +123,6 @@ class Terraform(object):
             folder=self._context.platform_build_dir,
             more_ok=False
         )
-        self._context.logger.info(f"Successfully created asset for {language.upper()}")
         return asset_id.get("id")
 
     def _create_asset_spec(self, language: str) -> Dict:
@@ -203,6 +206,7 @@ class Terraform(object):
         return conf
 
     def _build_compiler(self) -> bool:
+        self._context.logger.info(f"Terraform._build_compiler(): Building dxCompiler version {self._context.version}")
         os.chdir(self._context.repo_root_dir)
         try:
             sp.check_call(["sbt", "clean"])
@@ -222,6 +226,8 @@ class Terraform(object):
         )
         for existing_exe in glob(os.path.join(self._context.repo_root_dir, "dxCompiler-*-SNAPSHOT.jar")):
             os.remove(jar_exec_destination)
-            self._context.logger.info(f"Removing dxCompiler exe {os.path.basename(existing_exe)}")
+            self._context.logger.info(
+                f"Terraform._build_compiler(): Removed dxCompiler exe {os.path.basename(existing_exe)}"
+            )
         shutil.move(jar_exec_origin, jar_exec_destination)
         return True
