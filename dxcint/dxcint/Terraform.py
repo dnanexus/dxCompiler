@@ -112,9 +112,6 @@ class Terraform(object):
         out, err = proc.communicate()
         if proc.returncode != 0:
             raise TerraformError(f"Building DNAnexus asset raised {err.decode()}")
-        else:
-            with self._context.lock:
-                self._context.logger.info(f"Successfully created asset for {language.upper()}")
         os.chdir(cwd)
         asset_id = dxpy.search.find_one_data_object(
             classname="record",
@@ -123,6 +120,10 @@ class Terraform(object):
             folder=self._context.platform_build_dir,
             more_ok=False
         )
+        with self._context.lock:
+            self._context.logger.info(
+                f"Successfully created asset for {language.upper()}. Asset ID:{asset_id.get('id')}"
+            )
         return asset_id.get("id")
 
     def _create_asset_spec(self, language: str) -> Dict:

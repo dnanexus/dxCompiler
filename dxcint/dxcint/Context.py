@@ -104,7 +104,7 @@ class Context(object):
         folder = folder or f"/builds/{self._user}/{self._compiler_version}"
         _ = self._clean_up_build_dir(folder)
         _ = self._create_build_subdirs(base_dir=folder)
-        self.logger.info(f"Context._get_version(): Project: {self._project_id}.\nBuild directory {folder}")
+        self.logger.info(f"Context._get_version(): Project: {self._project_id}.\nBuild directory: {folder}")
         return folder
 
     def _create_build_subdirs(self, base_dir: str) -> bool:

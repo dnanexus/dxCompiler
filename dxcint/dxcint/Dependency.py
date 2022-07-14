@@ -114,7 +114,7 @@ class BinaryDependency(Dependency):
         )
         if os.path.exists(local_dependency):
             self._context.logger.info(
-                f"BinaryDependency._get_exec():Found binary in local directory {local_dependency}. "
+                f"BinaryDependency._get_exec(): Found binary in local directory {local_dependency}. "
                 f"Will be using that one."
             )
             return Path(local_dependency)
@@ -165,7 +165,10 @@ class TarballDependency(BinaryDependency):
             else:
                 self._context.logger.info(f"Executable download returned {out.decode()}\n{err.decode()}")
         else:
-            self._context.logger.info(f"Found tarball in local directory {local_dependency_tarball}. Will be using that one.")
+            self._context.logger.info(
+                f"TarballDependency._get_exec(): Found tarball in local directory {local_dependency_tarball}. "
+                f"Will be using that one."
+            )
         with tarfile.open(local_dependency_tarball, "r") as tar_handle:
             top_tar_dir = tar_handle.getnames()[0]
             if not os.path.exists(os.path.join(os.path.dirname(local_dependency_tarball), top_tar_dir)):
