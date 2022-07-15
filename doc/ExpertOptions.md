@@ -1441,13 +1441,23 @@ For an in depth discussion, please see [Missing Call Arguments](MissingCallArgum
 
 # Manifests
 
-In extreme cases, running compiled workflows can fail due to DNAnexus platform limits on the total size of the input and output JSON documents of a job. An example is a task with many inputs/outputs that is called in scatter over a large collection. In such a case, you can enable manifest support at compile time with the `-useManifests` option. This option causes each generated applet or workflow to accept inputs as a manifest, and to produce outputs as a manifest.
+In extreme cases, running compiled workflows can fail due to DNAnexus platform limits on the total size of the input and 
+output JSON documents of a job. An example is a task with many inputs/outputs that is called in scatter over a large collection. 
+In such a case, you can enable manifest support at compile time with the `-useManifests` option. 
+This option causes each generated applet or workflow to accept inputs as a manifest, and to produce outputs as a manifest.
 
-A manifest is a JSON document that contains all the inputs/outputs that would otherwise be passed directly to/from the applet. A manifest can be specified in one of two ways: via a JSON input, or via a File input (where the file must exist on the platform).
+A manifest is a JSON document that contains all the inputs/outputs that would otherwise be passed directly to/from the 
+workflow stage. A manifest can be specified in one of two ways: 
+1. A `.json` input file (see `Manifest JSON`). Here, when the workflow is **compiled** with `-inputs mymanifest.json`, a new 
+file `mymanifest.dx.json` will be generated locally. This is a recommended way to provide inputs in the manifest format.
+2. A `file-xxx` input, where the file must exist on the platform (see `Intermediate manifest file inputs/outputs`). A 
+typical use case for this scenario is when a user wants to pass manifest output file from a stage (including `output` stage) 
+directly to a new workflow. Also, this scenario might be useful when debugging individual stages of a failing workflow.
 
 ## Manifest JSON
 
-When manifest support is enabled, each applet has an `input_mainfest___` input field of type `hash`, which means that it accepts a JSON document as a string. For example, given the following workflow:
+When manifest support is enabled, each applet has an `input_mainfest___` input field of type `hash`, which means that it 
+accepts a JSON document as a string or as a `.json` file. For example, given the following workflow:
 
 ```wdl
 workflow test {
@@ -1470,7 +1480,7 @@ You would write the following manifest:
 {
   "test.input_manifest___": {
     "s": "hello",
-    "f": "dx://file-xxx"
+    "f": "project-aaa:file-xxx"
   }
 }
 ```
@@ -1478,6 +1488,8 @@ You would write the following manifest:
 Compile the workflow `test` from above with the `-inputs mymanifest.json` option. A new file `mymanifest.dx.json` will be 
 created with the following content. **NOTE** `mymanifest.dx.json` is created by the compiler - the user does not need to 
 create/change it manually.
+
+`mymanifest.dx.json`
 ```json
 {
   "input_manifest___": {
@@ -1488,7 +1500,7 @@ create/change it manually.
     },
     "values": {
       "s": "hello",
-      "f": "dx://file-xxx"
+      "f": "project-aaa:file-xxx"
     }
   }
 }
@@ -1499,30 +1511,31 @@ The created `mymanifest.dx.json` should be used as an input file when running th
 dx run workflow-yyy -f mymanifest.dx.json
 ```
 
-## Manifest file
+#### Intermediate manifest file inputs/outputs
 
-Manifest files are less convenient to use as applet/workflow inputs because they must be uploaded to the platform. However, when manifest support is enabled, applet/workflow outputs are in the form of manifest files, so it is useful to understand the format.
+When manifest support is enabled, applet/workflow outputs which are passed from one stage to another (or to the final output 
+stage) exist on the form of intermediate manifests. Here we describe the format of such an intermediary manifest for users to better 
+understand the format. There is no need to use them as your workflow inputs, and JSON manifest above is the recommended way.
 
-Given the above workflow, the manifest output would be:
+Given the above workflow, the manifest output from `common` stage to the next stage (not shown) would be:
 
 ```json
 {
-  "id": "test",
+  "encoded": false,
+  "id": "stage-common",
   "values": {
-    "i": 1,
-    "p": {
-      "left": "hello",
-      "right": {
-        "$dnanexus_link": "file-xxx"
-      }
-    }
+    "s": "hello",
+    "f": "project-aaa:file-xxx"
   }
 }
 ```
 
-The `id` field is optional but will always be populated in the output manfiests. The manifest may contain additional fields (`types` and `definitions`) that are only for internal use and can be ignored.
+The `id` field represents the ID of the stage which created the manifest output. It is optional but will always be 
+populated in the output manifests. The manifest may contain additional fields (`types` and `definitions`) that are only 
+for internal use and can be ignored.
 
-To specify a manifest file as input to an applet or workflow, first upload the file to the platform and then pass it as input to the `input_manifest_files___` parameter:
+To specify a manifest output file as input to an applet or workflow, first upload the file to the platform and then pass 
+it as input to the `input_manifest_files___` parameter:
 
 `dx run workflow-yyy -iinput_manifest_files___=file-zzz`
 
