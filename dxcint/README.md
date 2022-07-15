@@ -28,7 +28,7 @@ Options:
 ```
 
 #### Running tests
-See [Running tests](#running-tests) section
+See [Running tests](#running-tests-1) section
 ```commandline
 Usage: dxcint integration [OPTIONS] DXC_REPOSITORY_ROOT
 
