@@ -2,7 +2,7 @@ version 1.0
 
 workflow mock_1 {
     input {
-        String in_1 = "Hello World!"
+        String in_1
     }
     call mock_1_task_1 {
         input: t1_inp = in_1
