@@ -67,31 +67,21 @@ def integration(
 
 @dxcint.command()
 @click.argument('dxc_repository_root', required=True)
+@click.argument("suite", required=True)
+@click.argument("category", required=True)
 @click.option(
     "-d",
     "--directory",
     default=".",
     type=str,
-    help="Directory containing workflow fixtures to be added",
+    help="Directory containing workflow fixtures to be added. DEFAULT: current WD",
 )
 @click.option(
     "-x",
     "--extension",
     default="wdl",
     type=str,
-    help="Extension of the test workflow script files. Allowed are 'cwl', 'cwl.json', 'wdl'",
-)
-@click.option(
-    "-s",
-    "--suite",
-    type=str,
-    help="Test suite name. Usually a team-defined group of tests to be run in each CI/CD step",
-)
-@click.option(
-    "-c",
-    "--category",
-    type=str,
-    help="Test category name. Usually a team-defined category that reflects a type of the test",
+    help="Extension of the test workflow script files. Allowed are 'cwl', 'cwl.json', 'wdl'. DEFAULT: wdl",
 )
 def add(
         dxc_repository_root: str,

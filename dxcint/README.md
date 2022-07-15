@@ -72,7 +72,7 @@ the names in appropriate config file.
 
 ## Extending the framework
 ### Adding new test types
-New test types can be easily added to the framework. First, one needs to add a new test category (e.g. 'expected failure'). 
+New test types can be easily added to the framework. First, one needs to add a new test category (e.g. 'expected_failure'). 
 Then, if this category needs a new behavior when compiling, running and/or validating the test, a new subclass of 
 `RegisteredTest` needs to be implemented. There might be up to 3 methods that might need implementation.
 
