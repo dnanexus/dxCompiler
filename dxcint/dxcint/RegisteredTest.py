@@ -2,6 +2,7 @@ import os
 import shlex
 import random
 import dxpy
+import json
 
 import subprocess as sp
 from typing import List, Optional, Dict, Union
@@ -42,6 +43,8 @@ class RegisteredTest(object):
         self._git_revision = sp.check_output(
             ["git", "describe", "--always", "--dirty", "--tags"]
         ).strip()
+        self._inputs_suffix = "_input.json"      # wf inputs supplied as json usually have this suffix. Can be changed in subclasses
+        self._test_inputs = self._import_inputs()
 
     @property
     def context(self):
@@ -132,29 +135,35 @@ class RegisteredTest(object):
         exec_desc = self._run_executable_inner().describe()
         return exec_desc.get("id")
 
-    def _run_executable_inner(self, exec_input: Optional[Dict] = None) -> Union[dxpy.DXAnalysis, dxpy.DXJob]:
+    def _run_executable_inner(self) -> Union[dxpy.DXAnalysis, dxpy.DXJob]:
         """
         Override this method if the changes to the workflow execution are needed.
-        Args:
-            exec_input: Optional[Dict]. Json-ingested inputs for workflow
 
         Returns: Union[DXAnalysis,DXJob]. Execution handler
 
         """
         exec_type = self.exec_id.split("-")[0]
-        exec_input = exec_input or {}
         exec_handler = self._executable_type_switch.get(exec_type)(
             project=self._context.project_id,
             dxid=self.exec_id
         )
         self._context.logger.info(f"Running the process for test {self._test_name}")
         dx_execution = exec_handler.run(
-            exec_input,
+            self._test_inputs,
             project=self._context.project_id,
             folder=os.path.join(self._context.platform_build_dir, "test"),
             name="{} {}".format(self._test_name, self._git_revision)
         )
         return dx_execution
+
+    def _import_inputs(self):
+        input_basename = "".join([self._test_name, self._inputs_suffix])
+        input_src = os.path.join(os.path.dirname(self._src_file), input_basename)
+        if os.path.exists(input_src):
+            with open(input_src, "r") as input_src_handle:
+                return json.load(input_src_handle)
+        else:
+            return {}
 
     def _validate(self) -> Dict:
         """
