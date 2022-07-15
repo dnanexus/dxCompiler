@@ -8,7 +8,7 @@ self testing.
 ## Installing
 1. Clone this repo
 2. `cd dxcint`
-3. `potry install` (recommended, because will be installed from `poetry.lock` with pinned dependency versions). Or 
+3. `poetry install` (recommended, because will be installed from `poetry.lock` with pinned dependency versions). Or 
 `pip install .`
 
 ## CLI methods
