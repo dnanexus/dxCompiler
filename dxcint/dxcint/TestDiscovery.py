@@ -5,7 +5,8 @@ from glob import glob
 from pathlib import Path
 from typing import List, Dict, Tuple, Set, Union
 
-from dxcint.RegisteredTest import RegisteredTest, RegisteredTestFactory
+from dxcint.RegisteredTestFactory import RegisteredTestFactory
+from dxcint.RegisteredTest import RegisteredTest
 from dxcint.Dependency import DependencyFactory, Dependency
 from dxcint.Context import Context, ContextEmpty
 from dxcint.utils import rm_suffix
