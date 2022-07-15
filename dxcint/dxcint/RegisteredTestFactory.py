@@ -14,7 +14,8 @@ class RegisteredTestFactory(object):
     ):
         test_type_switch = {
             "mock_category": RegisteredTest,        # For testing only
-            "expected_failure": ExpectedFailure,    # ADD NEW CATEGORY HERE
+            "expected_failure": ExpectedFailure,
+            # ADD NEW CATEGORY HERE
         }
         registered_test = test_type_switch.get(category, None)
         if not registered_test:
