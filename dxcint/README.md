@@ -13,7 +13,7 @@ self testing.
 
 ## CLI methods
 #### Adding tests
-See [Adding tests](#adding-tests) section
+See [Adding tests](#adding-tests-1) section
 ```commandline
 Usage: dxcint add [OPTIONS] DXC_REPOSITORY_ROOT
 
