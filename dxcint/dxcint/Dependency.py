@@ -45,7 +45,7 @@ class DependencyFactory(object):
 
         src_link = config.get("source_link", None)
         if src_link:
-            if re.search(r"tar\..z$", src_link):
+            if re.search(r"tar\..z2?$", src_link):
                 return "tarball"
             else:
                 return "binary"

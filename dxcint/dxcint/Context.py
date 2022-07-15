@@ -70,8 +70,8 @@ class Context(object):
     def _resolve_project(project: str) -> str:
         # First, see if the project is a project-id.
         try:
-            project = dxpy.DXProject(project)
-            return project.get_id()
+            project_obj = dxpy.DXProject(project)
+            return project_obj.get_id()
         except dxpy.DXError:
             found_projects = list(
                 dxpy.find_projects(name=project, level="VIEW")
