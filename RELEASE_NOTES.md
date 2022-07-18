@@ -383,7 +383,18 @@ wdlTools 0.17.0
 * Fixes issue where compiling with `-execTree [pretty|json]` did not print the workflow tree
 * Adds support for specifying app metadata in the hints section in WDL development version
 * All compile-time calls to `findDataObjects` now search the context project for any file with no project specified
-* All runtime calls to `findDataObjects` now search the job/analysis workspace first before searching the source project(s)
+* All runtime `dxAPI.describeFilesBulk` calls, which invoke the platform's `system.findDataObjects`, now search in the job/analysis workspace first before searching the source project(s). 
+  * The call is used to search and  describe input files for the analysis and to search and describe output files during the outputs reorganization of the analysis (in its default implementation, not the customized one). If the files cannot be found in the workspace container they are looked for in the project that qualifies file ID (e.g. in project_A if file_B's path is project_A:file_B)
+* Better handles insufficient permissions when requesting instance type price list
+
+### Dependency updates 
+
+#### dxApi [0.6.0](https://github.com/dnanexus/dxScala/blob/release-2021.07.12/api/RELEASE_NOTES.md#dxapi)
+
+* Adds option to `DxApi.describeFilesBulk` to search first in the workspace container
+* `DxApi.resolveDataObject` now searches in the current workspace and/or project if the project is not specified explicitly. The call is used to find one data object at a time, it's not used in bulk resolution.
+* Refactors` DxFindDataObjects` to use separate `DxFindDataObjectsConstraints` class for specifying constraints
+* Uses the currently select project ID as the workspace ID when not running in a job
 * Better handles insufficient permissions when requesting instance type price list
 
 ## 2.4.7 2021-06-09
