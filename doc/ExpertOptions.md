@@ -1482,7 +1482,7 @@ You would write the following manifest:
 {
   "test.input_manifest___": {
     "s": "hello",
-    "f": "project-aaa:file-xxx"
+    "f": "dx://project-aaa:file-xxx"
   }
 }
 ```
@@ -1502,7 +1502,7 @@ create/change it manually.
     },
     "values": {
       "s": "hello",
-      "f": "project-aaa:file-xxx"
+      "f": "dx://project-aaa:file-xxx"
     }
   }
 }
@@ -1527,7 +1527,7 @@ Given the above workflow, the manifest output from `common` stage to the next st
   "id": "stage-common",
   "values": {
     "s": "hello",
-    "f": "project-aaa:file-xxx"
+    "f": "dx://project-aaa:file-xxx"
   }
 }
 ```
