@@ -1534,7 +1534,8 @@ Given the above workflow, the manifest output from `common` stage to the next st
 
 The `id` field represents the ID of the stage which created the manifest output. It is optional but will always be 
 populated in the output manifests. The manifest may contain additional fields (`types` and `definitions`) that are only 
-for internal use and can be ignored.
+for internal use and can be ignored. The actual outputs of the workflow are recorded in the output manifest under the attribute 
+`values` in the form of a map, where keys are the names of the outputs specified in the workflow script.
 
 To specify a manifest output file as input to an applet or workflow, first upload the file to the platform and then pass 
 it as input to the `input_manifest_files___` parameter:
