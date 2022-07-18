@@ -1448,9 +1448,11 @@ This option causes each generated applet or workflow to accept inputs as a manif
 
 A manifest is a JSON document that contains all the inputs/outputs that would otherwise be passed directly to/from the 
 workflow stage. A manifest can be specified in one of two ways: 
-1. A `.json` input file (see [Manifest JSON](#manifest-json)) is the recommended way to provide inputs in the manifest format.  `java -jar dxCompiler.jar -inputs mymanifest.json` will produce `mymanifest.dx.json` that can be passed to `dx run`.
-file `mymanifest.dx.json` will be generated locally. This is a recommended way to provide inputs in the manifest format.
-2. A `file-xxx` input, where the file must exist on the platform (see `Intermediate manifest file inputs/outputs`). A 
+1. A `.json` input file (see [Manifest JSON](#manifest-json)) is the recommended way to provide inputs in the manifest format.  
+`java -jar dxCompiler.jar -inputs mymanifest.json` will produce `mymanifest.dx.json` that can be passed to `dx run`.
+This is a recommended way to provide inputs in the manifest format.
+2. A platform `file-xxx` with content described in  [Intermediate manifest file inputs/outputs](#intermediate-manifest-file-inputs/outputs) 
+section can be used to pass manifest output from a stage of one workflow (including the `output` stage) as input to another workflow.  A 
 typical use case for this scenario is when a user wants to pass manifest output file from a stage (including `output` stage) 
 directly to a new workflow. Also, this scenario might be useful when debugging individual stages of a failing workflow.
 
