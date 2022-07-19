@@ -48,7 +48,8 @@ jobs:
           export PATH="$PATH:$HOME/.local/bin"
 
           # install dxda
-          sudo wget -O/usr/local/bin/dx-download-agent https://github.com/dnanexus/dxda/releases/download/v0.5.7/dx-download-agent-linux
+          dxda_version=`jq -r '.dxda' scripts/bundled_dependencies.json`
+          sudo wget -O/usr/local/bin/dx-download-agent https://github.com/dnanexus/dxda/releases/download/${dxda_version}/dx-download-agent-linux
           sudo chmod +x /usr/local/bin/dx-download-agent
 
           # set up DNAnexus staging environment
