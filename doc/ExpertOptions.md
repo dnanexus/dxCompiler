@@ -1462,7 +1462,31 @@ When manifest support is enabled, each applet has an `input_mainfest___` input f
 accepts a JSON document as a string or as a `.json` file. For example, given the following workflow:
 
 ```wdl
+version 1.1
+
+task t1 {
+  input {
+    File f
+  }
+  command <<<
+    echo "t1: "  >>out
+    cat "~{f}" >>out
+  >>>
+  output {
+     File t1_out = "out"
+  }
+}
+
 workflow test {
+  input {
+    String s
+    File f
+  }
+  call t1 {    input:      f = f  }
+  output {
+    File wf_out = t1.t1_out
+  }
+}
   input {
     String s
     File f
