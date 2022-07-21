@@ -39,7 +39,8 @@ object Value {
                    checksum: Option[String] = None,
                    size: Option[Long] = None,
                    secondaryFiles: Vector[PathValue] = Vector.empty,
-                   format: Option[String] = None)
+                   format: Option[String] = None,
+                   metadata: Option[String] = None)
       extends PathValue
 
   sealed trait DirectoryValue extends PathValue
