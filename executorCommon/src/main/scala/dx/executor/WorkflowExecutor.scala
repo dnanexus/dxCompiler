@@ -8,7 +8,6 @@ import dx.api.{
   DxApplet,
   DxExecution,
   DxFile,
-  DxObject,
   DxPath,
   DxWorkflow,
   Field,
