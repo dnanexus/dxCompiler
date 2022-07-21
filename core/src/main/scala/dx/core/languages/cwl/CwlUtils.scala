@@ -92,7 +92,8 @@ object CwlUtils {
                          size,
                          secondaryFiles,
                          format,
-                         contents) =>
+                         contents,
+                         metadata) =>
         VFile(
             location
               .orElse(path)
@@ -107,7 +108,8 @@ object CwlUtils {
             checksum,
             size,
             secondaryFiles.map(toIRPath),
-            format
+            format,
+            metadata
         )
       case d @ DirectoryValue(location, path, basename, listing) =>
         location.orElse(path) match {
@@ -291,13 +293,16 @@ object CwlUtils {
   def fromIRPath(path: IRPathValue): PathValue = {
     path match {
       case f: VFile =>
-        FileValue(Some(f.uri),
-                  basename = f.basename,
-                  checksum = f.checksum,
-                  size = f.size,
-                  contents = f.contents,
-                  secondaryFiles = f.secondaryFiles.map(fromIRPath),
-                  format = f.format)
+        FileValue(
+            Some(f.uri),
+            basename = f.basename,
+            checksum = f.checksum,
+            size = f.size,
+            contents = f.contents,
+            secondaryFiles = f.secondaryFiles.map(fromIRPath),
+            format = f.format,
+            metadata = f.metadata
+        )
       case VFolder(uri, basename, listing) =>
         DirectoryValue(location = Some(uri),
                        basename = basename,
