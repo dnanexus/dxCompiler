@@ -472,9 +472,9 @@ case class CwlTaskExecutor(tool: Process,
          |    --outdir ${workerPaths.getOutputFilesDir(ensureExists = true)} \\
          |    --tmpdir-prefix ${workerPaths.getTempDir(ensureExists = true)} \\
          |    --enable-pull \\
-         |    --move-outputs \\
-         |    --rm-container \\
-         |    --rm-tmpdir \\
+         |    --copy-outputs \\
+         |    --leave-container \\
+         |    --leave-tmpdir \\
          |    ${targetOpt} ${overridesOpt} ${cwlPathStr} ${inputPath.toString}
          |) \\
          |> >( tee ${workerPaths.getStdoutFile(ensureParentExists = true)} ) \\

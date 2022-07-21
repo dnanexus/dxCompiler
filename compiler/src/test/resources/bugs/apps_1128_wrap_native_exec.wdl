@@ -4,9 +4,9 @@ workflow apps_1128_native_instance {
 
     Boolean n = true
     if (n) {
-        call apps_1128_override_instance_name as conditional_isntance_type {
+        call apps_1128_override_instance_name as conditional_instance_type {
             input:
-                mock_input = "conditional_isntance_type"
+                mock_input = "conditional_instance_type"
         }
     }
 }

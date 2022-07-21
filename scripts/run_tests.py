@@ -95,6 +95,7 @@ wdl_v1_list = [
     "cast",
     "dict",
     "instance_types",
+    "apps_1197_native_frag_default",
     "linear_no_expressions",
     "linear",
     "optionals",
@@ -119,7 +120,7 @@ wdl_v1_list = [
     "map_file_key",
     # defaults and parameter passing
     "top_wf",
-    "subworkflow_with_default",
+    "workflow_with_subworkflow",
     # can we download from a container?
     "download_from_container",
     # input file with pairs
@@ -174,7 +175,9 @@ wdl_v1_1_list = [
 ]
 
 static_only = [
-    "apps_1177_native_indirect_override"
+    "apps_1177_native_indirect_override",
+    "apps_1128_frag_native_instance_type_override",
+    "apps_1197_native_frag_default"
 ]
 
 # docker image tests
@@ -590,7 +593,8 @@ test_upload_wait = {"upload_wait"}
 test_instance_type = [
     "diskspace_exhauster",
     "apps_1128_frag_native_instance_type_override",
-    "apps_1177_native_indirect_override"
+    "apps_1177_native_indirect_override",
+    "apps_1197_native_frag_default"
 ]
 
 # Search a WDL file with a python regular expression.

@@ -1,13 +1,36 @@
 # Release Notes
 
-## in develop
+## in develop 
 
-* WDL: Fix to native app(let)s instance override. Now native app(let)s wrapped in scatters and conditionals get their default instances overridden with static dnanexus names. Dynamic instance override is not yet supported. Override with compute requirements (CPU/RAM/etc.) is not supported.
+* WDL: (WDL >= 1.1) Fix for nested workflows when compiled in the unlocked mode: optional inputs with `None` as default are coerced correctly.  
+
+## 2.10.2 2022-05-17
+
 * WDL: Fix to native app(let)s instance override with system requirements (cpu/memory/disks) in case of the direct calls and executions within fragments. Only `-instanceTypeSelection static` (default) is supported. If compiled with `dynamic` - default instances will be used.
+* CWL: Partial implementation of task/fragment applets and workflows reuse. Same as in WDL, the `DocContents` attribute, which is the part of source code that defines each executable, is now used for checksum calculation and comparison. However, since the CWL source code is packed as a nested JSON file (instead of standalone blocks in WDL), fragment applets and workflows will also include the code of all underlying processes in their `DocContents`, and they will not be reused if the wrapped applets/subworkflows have changed.
+* CWL: Fix evaluating scatter inputs during workflow execution. It would no longer raise an error if optional inputs of the underlying task are not declared at the scatter level.
+* CWL & WDL: Keep the Docker container after a task finishes running, so users can debug Docker related job failures.
+* CWL: Fix to the `pattern` handling from `secondaryFiles` at workflow level during compilation
+
+### Dependency updates
+
+#### wdlTools [0.17.11](https://github.com/dnanexus/wdlTools/releases/tag/0.17.11)
+
+* Keep the Docker container after a task finishes running, so users can debug Docker related job failures.
+* Runtime object is aware if it was created with default system requirements
+
+#### dxCommon [0.11.3](https://github.com/dnanexus/dxScala/blob/develop/common/RELEASE_NOTES.md#0113-2022-05-11)
+
+* Fix `JsUtils.makeDeterministic` to handle `JsArrays` sorting
+
+#### cwlScala [0.8.3](https://github.com/dnanexus/cwlScala/releases/tag/0.8.3)
+
+* Updated cwljava with fixes to secondaryFiles with pattern field when parsing workflow-level parameters and the helper function utils.Uris.shortname to generate enum symbols without namespaces
+* Updated cwljava to 1.0
 
 ## 2.10.1 2022-04-18
 
-* WDL: Fragments and blocks reuse applets as well, i.e. they are not rebuilt if the code corresponding to them hasn't  been updated in the WDL source file. Previously only tasks were reused. **Breaking**: can break the logic of any App reuse for CWL (even tasks maybe are not reused), because `ApplicationCompiler` and `WorkflowCompiler` now look at the `DocContents` for checksum, and `SourceCode` attribute is now ignored.
+* WDL: Fragments and blocks reuse applets as well, i.e. they are not rebuilt if the code corresponding to them hasn't been updated in the WDL source file. Previously only tasks were reused. **Breaking**: can break the logic of any App reuse for CWL (even tasks maybe are not reused), because `ApplicationCompiler` and `WorkflowCompiler` now look at the `DocContents` for checksum, and `SourceCode` attribute is now ignored.
 * CWL: `NetworkAccess`, `WorkReuse` and `ToolTimeLimit` hints are now supported
 * WDL: Update custom reorg applet (used for [custom handling of your workflow outputs](https://github.com/dnanexus/dxCompiler/blob/444036acb16f2555d3cfe5f4c892b9996a8079dc/doc/ExpertOptions.md#adding-config-file-based-reorg-applet-at-compilation-time)) example in documentation.
 * WDL: Fix to the order of precedence for the different job reuse settings. The [ignoreReuse](https://github.com/dnanexus/dxCompiler/blob/d6371c3f5087c9de23e671928a741007280c2c33/doc/ExpertOptions.md#setting-dnanexus-specific-attributes-in-extras-file) setting specified in the `extras.json` file should override the [dx_ignore_reuse](https://github.com/dnanexus/dxCompiler/blob/d6371c3f5087c9de23e671928a741007280c2c33/doc/ExpertOptions.md#additional-dnanexus-specific-runtime-settings)  setting specified in the `runtime` section of the WDL file.
@@ -87,6 +110,7 @@ Note that the setting above is under `defaultTaskDxAttributes`, which means it w
 * Adds support for publishing global workflows from dxCompiler-generated WDL workflows; see [documentation](https://github.com/dnanexus/dxCompiler/blob/develop/doc/ExpertOptions.md#publishing-global-workflows)
 * Fix an error message detecting unsupported CWL version
 * Update sbt to 1.6.1
+* Update dxda to 0.5.9 and dxfuse to 1.0.0
 
 ### Dependency updates
 
@@ -360,7 +384,18 @@ wdlTools 0.17.0
 * Fixes issue where compiling with `-execTree [pretty|json]` did not print the workflow tree
 * Adds support for specifying app metadata in the hints section in WDL development version
 * All compile-time calls to `findDataObjects` now search the context project for any file with no project specified
-* All runtime calls to `findDataObjects` now search the job/analysis workspace first before searching the source project(s)
+* All runtime `dxAPI.describeFilesBulk` calls, which invoke the platform's `system.findDataObjects`, now search in the job/analysis workspace first before searching the source project(s). 
+  * The call is used to search and  describe input files for the analysis and to search and describe output files during the outputs reorganization of the analysis (in its default implementation, not the customized one). If the files cannot be found in the workspace container they are looked for in the project that qualifies file ID (e.g. in project_A if file_B's path is project_A:file_B)
+* Better handles insufficient permissions when requesting instance type price list
+
+### Dependency updates 
+
+#### dxApi [0.6.0](https://github.com/dnanexus/dxScala/blob/release-2021.07.12/api/RELEASE_NOTES.md#dxapi)
+
+* Adds option to `DxApi.describeFilesBulk` to search first in the workspace container
+* `DxApi.resolveDataObject` now searches in the current workspace and/or project if the project is not specified explicitly. The call is used to find one data object at a time, it's not used in bulk resolution.
+* Refactors` DxFindDataObjects` to use separate `DxFindDataObjectsConstraints` class for specifying constraints
+* Uses the currently select project ID as the workspace ID when not running in a job
 * Better handles insufficient permissions when requesting instance type price list
 
 ## 2.4.7 2021-06-09
