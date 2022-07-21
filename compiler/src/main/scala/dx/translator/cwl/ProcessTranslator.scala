@@ -960,7 +960,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
     }
 
     def translate: (Workflow, Vector[Callable], Vector[LinkedVar]) = {
-      logger.trace(s"Translating workflow ${wf.frag}")
+      logger.trace(s"Translating workflow ${wf.name}")
       // Create a stage per workflow step - steps with conditional and/or scatter
       // require helper applets.
       val subBlocks = CwlBlock.createBlocks(wf)
