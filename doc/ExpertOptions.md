@@ -1557,7 +1557,7 @@ Given the above workflow, the manifest output from the `common` stage to the fol
 ```
 
 The `id` field represents the ID of the stage which created the manifest output. It is optional but will always be 
-populated in the output manifests. The manifest may contain additional fields (`types` and `definitions`) that are only 
+populated in the output manifests. The manifest may contain additional types` and `definitions` fields  that are only 
 for internal use and can be ignored. The actual outputs of the workflow are recorded in the output manifest under the attribute 
 `values` in the form of a map, where keys are the names of the outputs specified in the workflow script.
 
