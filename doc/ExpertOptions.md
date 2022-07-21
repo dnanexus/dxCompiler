@@ -1543,7 +1543,7 @@ When manifest support is enabled, applet/workflow outputs which are passed from 
 stage) exist on the form of intermediate manifests. Here we describe the format of such an intermediary manifest for users to better 
 There is no need to use them as your workflow inputs, as the JSON manifest above is the recommended format.
 
-Given the above workflow, the manifest output from `common` stage to the next stage (not shown) would be:
+Given the above workflow, the manifest output from the `common` stage to the following stages (not shown) would be:
 
 ```json
 {
