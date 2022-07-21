@@ -2,7 +2,20 @@
 
 ## in develop 
 
-* WDL: (WDL >= 1.1) Fix for nested workflows when compiled in the unlocked mode: optional inputs with `None` as default are coerced correctly.  
+* WDL: (WDL >= 1.1) Fix for nested workflows when compiled in the unlocked mode: optional inputs with `None` as default are coerced correctly.
+* CWL: Input File "metadata" field in CWL (not in CWL 1.2 standard)
+* CWL: cwl wf calling same task twice: dxCompiler error: "two different processes with the same name"
+* CWL: fix target tool id when overriding docker requirement
+* CWL: fix casting cwl types from scatter to scatter
+* CWL: fix optional source input merging	
+* CWL: fix making target step argument for cwltool
+* CWL: fix stage-output output param mapping
+
+### Dependency updates
+
+#### cwlScala [0.8.4](TBD)
+* fix enum symbols parsing
+* Input File "metadata" field in CWL (not in CWL 1.2 standard)
 
 ## 2.10.2 2022-05-17
 
