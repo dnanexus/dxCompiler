@@ -1540,7 +1540,7 @@ dx run workflow-yyy -f mymanifest.dx.json
 #### Intermediate manifest file inputs/outputs
 
 When manifest support is enabled, applet/workflow outputs which are passed from one stage to another (or to the final output 
-stage) exist on the form of intermediate manifests. Here we describe the format of such an intermediary manifest for users to better 
+stage) exist in the form of intermediate manifests. Here we describe the format of intermediate manifest for informational purposes only.
 There is no need to use them as your workflow inputs, as the JSON manifest above is the recommended format.
 
 Given the above workflow, the manifest output from the `common` stage to the following stages (not shown) would be:
