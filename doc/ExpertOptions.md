@@ -1459,7 +1459,7 @@ directly to a new workflow. Also, this scenario might be useful when debugging i
 ## Manifest JSON
 
 When manifest support is enabled, each applet has an `input_manifest___` input field of type `hash`, which means that it 
-accepts a JSON document as a string or as a `.json` file. For example, given the following workflow:
+For example, given the following workflow:
 
 ```wdl
 version 1.1
