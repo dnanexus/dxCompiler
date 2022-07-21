@@ -525,24 +525,23 @@ case class CwlWorkflowExecutor(workflow: Workflow,
     }
 
     /*
-     * Format an identifier as the target workflow step to execute. A target is in the format
-     * {proc}#{path}, where proc is the top-level process name and path is the path from the
-     * top-level process to the target. For example, if the top-level workflow is 'wf' and we want
-     * to run a step in a sub-workflow, it might be 'wf#step1/nested/step2'.
+     * Format an identifier as the target workflow step to execute.
+     * The block target id is in the format current_wf/step, and the parent is
+     * the path from top-level wf to the current wf as a vector of string
+     * Here the target string (which will be passed to task executor) will be formatted
+     * as 'top_wf#path/to/current_wf/step'
+     * For example, if the top-level workflow is 'top_wf' and we want
+     * to run a step in a sub-workflow, it might be 'top_wf#step1/nested/step2'.
      */
     private lazy val target: String = {
       val targetId = block.target.id.get
       val dxName = CwlDxName.fromDecodedName(targetId.frag)
-      val fullDxName = if (!dxName.getDecodedParts.startsWith(parent)) {
-        dxName.pushDecodedNamespaces(parent)
-      } else {
-        dxName
-      }
+      val fullDxName = dxName.pushDecodedNamespaces(parent.dropRight(1))
       if (fullDxName.numParts == 1) {
         targetId.name
       } else {
-        val (process, step) = fullDxName.popDecodedNamespace()
-        s"${process}#${step.toString}"
+        val (top_wf, step) = fullDxName.popDecodedNamespace()
+        s"${top_wf}#${step.toString}"
       }
     }
 
