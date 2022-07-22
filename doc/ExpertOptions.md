@@ -1505,6 +1505,7 @@ Compile the workflow `test` from above with the `-inputs mymanifest.json` option
 created with the following content. **NOTE** `mymanifest.dx.json` is created by the compiler - the user does not need to 
 create/change it manually.
 
+
 `mymanifest.dx.json`
 ```json
 {
@@ -1526,6 +1527,7 @@ The created `mymanifest.dx.json` should be used as an input file when running th
 ```commandline
 dx run workflow-yyy -f mymanifest.dx.json
 ```
+
 
 #### Intermediate manifest file inputs/outputs
 
