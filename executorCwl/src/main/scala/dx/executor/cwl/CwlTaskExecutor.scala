@@ -463,6 +463,7 @@ case class CwlTaskExecutor(tool: Process,
          |    --copy-outputs \\
          |    --leave-container \\
          |    --leave-tmpdir \\
+         |    --custom-net host \\
          |    ${targetOpt} ${overridesOpt} ${cwlPathStr} ${inputPath.toString}
          |) \\
          |> >( tee ${workerPaths.getStdoutFile(ensureParentExists = true)} ) \\
