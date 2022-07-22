@@ -1451,7 +1451,7 @@ workflow stage. A manifest can be specified in one of two ways:
 1. A `.json` input file (see [Manifest JSON](#manifest-json)) is the recommended way to provide inputs in the manifest format.  
 `java -jar dxCompiler.jar -inputs mymanifest.json` will produce `mymanifest.dx.json` that can be passed to `dx run -f mymanifest.dx.json`.
 This is the recommended way to provide inputs in manifest format.
-2. A platform `file-xxx` with content described in  [Intermediate manifest file inputs/outputs](#intermediatemanifestfileinputsoutputs) 
+2. A platform `file-xxx` with content described in  [Intermediate manifest file inputs/outputs](#intermediate-manifest-file-inputs-and-outputs) 
 section can be used to pass manifest output from a stage of one workflow (including the `output` stage) as input to another workflow.  A 
 typical use case for this scenario is when a user wants to pass manifest output file from a stage (including `output` stage) 
 directly to a new workflow. Also, this scenario might be useful when debugging individual stages of a failing workflow.
@@ -1531,7 +1531,7 @@ dx run workflow-yyy -f mymanifest.dx.json
 ```
 
 
-#### Intermediate manifest file inputs/outputs
+#### Intermediate manifest file inputs and outputs
 
 When manifest support is enabled, applet/workflow outputs which are passed from one stage to another (or to the final output 
 stage) exist in the form of intermediate manifests. Here we describe the format of intermediate manifest for informational purposes only.
