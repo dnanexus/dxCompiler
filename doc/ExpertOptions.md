@@ -1487,16 +1487,6 @@ workflow test {
     File wf_out = t1.t1_out
   }
 }
-  input {
-    String s
-    File f
-  }
-  ...
-  output {
-    Int i
-    Pair[String, File] p
-  }
-}
 ```
 
 You would write the following manifest:
@@ -1560,13 +1550,6 @@ The `id` field represents the ID of the stage which created the manifest output.
 populated in the output manifests. The manifest may contain additional types` and `definitions` fields  that are only 
 for internal use and can be ignored. The outputs of the workflow are referenced in the `values` field of the output manifest
 in the form of a map, where keys are the names of the workflow outputs from the WDL `output` workflow section.
-
-To specify a manifest output file as input to an applet or workflow, first upload the file to the platform and then pass 
-it as input to the `input_manifest_files___` parameter:
-
-`dx run workflow-yyy -iinput_manifest_files___=file-zzz`
-
-Note that while `input_manifest_files___` is an array, you may only pass a single manifest file as input.
 
 ## Analysis outputs
 
