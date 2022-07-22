@@ -1547,7 +1547,7 @@ Given the above workflow, the manifest output from the `common` stage to the fol
 ```
 
 The `id` field represents the ID of the stage which created the manifest output. It is optional but will always be 
-populated in the output manifests. The manifest may contain additional types` and `definitions` fields  that are only 
+populated in the output manifests. The manifest may contain additional `types` and `definitions` fields  that are only 
 for internal use and can be ignored. The outputs of the workflow are referenced in the `values` field of the output manifest
 in the form of a map, where keys are the names of the workflow outputs from the WDL `output` workflow section.
 
