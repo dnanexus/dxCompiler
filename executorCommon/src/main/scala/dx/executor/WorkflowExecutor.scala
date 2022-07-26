@@ -10,6 +10,7 @@ import dx.api.{
   DxFile,
   DxPath,
   DxWorkflow,
+  DxObject,
   Field,
   FileUpload,
   FolderContents
@@ -437,7 +438,10 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
           limit.map(i => "limit" -> JsNumber(i))
       ).flatten.toMap
       val describeField = Map(
-          "describe" -> JsBoolean(true)
+          "describe" -> JsObject(
+              "fields" -> DxObject
+                .requestFields(Set(Field.Output, Field.ExecutableName, Field.Details))
+          )
       )
       val response = dxApi.findExecutions(fields ++ describeField)
       val results: Vector[ScatterExecution] = response.fields.get("results") match {
