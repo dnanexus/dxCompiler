@@ -111,7 +111,7 @@ object CwlBundle {
               CwlDxName.fromDecodedName(wf.name).getDecodedParts ++
               CwlDxName.fromDecodedName(step.name).getDecodedParts
             getProcesses(
-                CwlUtils.simplifyProcess(step.run),
+                step.run,
                 newParent,
                 toolAccu,
                 exprAccu,
@@ -138,7 +138,10 @@ object CwlBundle {
     )
     // get a copy of the process with the ID simplified so that two processes that are identical
     // except for their ID namespace will compare as equal
-    CwlUtils.simplifyProcess(process) match {
+    process.copySimplifyIds(dropNamespace = true,
+                            replacePrefix = (Left(false), None),
+                            simplifyAutoNames = false,
+                            dropCwlExtension = false) match {
       case tool: CommandLineTool =>
         CwlBundle(version,
                   tool,
