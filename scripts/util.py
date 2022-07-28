@@ -227,7 +227,6 @@ def _download_awscli_to_resources(top_dir, awscli_version):
 
 
 def _create_asset_spec(version_id, top_dir, language, dependencies=None):
-    # TODO: update to 20.04 - just waiting for staging to catch up to prod
     exec_depends = [
         {"name": "openjdk-11-jre-headless"},
         {"name": "bzip2"},
