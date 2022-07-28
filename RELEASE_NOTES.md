@@ -3,6 +3,8 @@
 ## in develop 
 
 * WDL: (WDL >= 1.1) Fix for nested workflows when compiled in the unlocked mode: optional inputs with `None` as default are coerced correctly.  
+* CWL: Fix for merging optional source inputs 
+
 
 ## 2.10.2 2022-05-17
 
