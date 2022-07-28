@@ -70,7 +70,7 @@
             "outputBinding": {
               "outputEval": "foo $(inputs.in1)"
             },
-            "type": ["null","string"]
+            "type": "string"
           }
         ],
         "requirements": [
