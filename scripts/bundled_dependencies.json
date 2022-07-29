@@ -8,6 +8,11 @@
         "name": "cwltool",
         "package_manager": "pip",
         "version": "3.1.20220623174452"
+      },
+      {
+        "name": "schema-salad",
+        "package_manager": "pip",
+        "version": "8.2.20220204150214"
       }
     ]
   },
