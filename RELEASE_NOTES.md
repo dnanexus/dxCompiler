@@ -4,7 +4,7 @@
 
 * WDL: (WDL >= 1.1) Fix for nested workflows when compiled in the unlocked mode: optional inputs with `None` as default are coerced correctly.  
 * CWL: Fix for merging optional source inputs. If an input is a collection (e.g. an array), where some items are the type of `"null"`, it is correctly merged when MultipleInputFeatureRequirement is specified.
-* CWL: Fix for making target step argument for cwltool
+* CWL: Fix for making target step argument for cwltool.
 
 
 ## 2.10.2 2022-05-17
