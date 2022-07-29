@@ -372,7 +372,7 @@ case class CwlWorkflowExecutor(workflow: Workflow,
             if (stepInput.linkMerge.nonEmpty || stepInput.pickValue.nonEmpty) {
               val mergedValues = (sourceValues, stepInput.linkMerge) match {
                 case (_, Some(LinkMergeMethod.MergeFlattened)) =>
-                  sourceValues.flatMap {
+                  sourceValues.map(s => (CwlOptional.unwrapOptional(s._1), s._2)).flatMap {
                     case (array: CwlArray, ArrayValue(items)) => items.map(i => (array.itemType, i))
                     case (t, value)                           => Vector((t, value))
                   }

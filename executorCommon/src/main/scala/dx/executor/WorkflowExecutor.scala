@@ -8,9 +8,9 @@ import dx.api.{
   DxApplet,
   DxExecution,
   DxFile,
-  DxObject,
   DxPath,
   DxWorkflow,
+  DxObject,
   Field,
   FileUpload,
   FolderContents
