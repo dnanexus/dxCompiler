@@ -53,23 +53,24 @@ object ValueSerde extends DefaultJsonProtocol {
     }
     def inner(innerPath: PathValue): JsValue = {
       innerPath match {
-        case VFile(uri, None, None, None, None, Vector(), None) if !pathsAsObjects =>
+        case VFile(uri, None, None, None, None, Vector(), None, None) if !pathsAsObjects =>
           serializeFileUri(uri)
         case VFolder(uri, None, None) if !pathsAsObjects =>
           serializeFolderUri(uri)
-        case f: VFile if pathsAsObjects =>
+        case vFile: VFile if pathsAsObjects =>
           JsObject(
               Vector(
                   Some("type" -> JsString("File")),
-                  Some("uri" -> serializeFileUri(f.uri)),
-                  f.basename.map("basename" -> JsString(_)),
-                  f.contents.map("contents" -> JsString(_)),
-                  f.checksum.map("checksum" -> JsString(_)),
-                  f.size.map("size" -> JsNumber(_)),
-                  Option.when(f.secondaryFiles.nonEmpty)(
-                      "secondaryFiles" -> JsArray(f.secondaryFiles.map(inner))
+                  Some("uri" -> serializeFileUri(vFile.uri)),
+                  vFile.basename.map("basename" -> JsString(_)),
+                  vFile.contents.map("contents" -> JsString(_)),
+                  vFile.checksum.map("checksum" -> JsString(_)),
+                  vFile.size.map("size" -> JsNumber(_)),
+                  Option.when(vFile.secondaryFiles.nonEmpty)(
+                      "secondaryFiles" -> JsArray(vFile.secondaryFiles.map(inner))
                   ),
-                  f.format.map(f => "format" -> JsString(f))
+                  vFile.format.map(f => "format" -> JsString(f)),
+                  vFile.metadata.map("metadata" -> _.parseJson)
               ).flatten.toMap
           )
         case VFolder(uri, basename, listing) if pathsAsObjects =>
@@ -296,7 +297,8 @@ object ValueSerde extends DefaultJsonProtocol {
                       }
                     }
                     .getOrElse(Vector.empty),
-                  JsUtils.getOptionalString(fields, "format")
+                  JsUtils.getOptionalString(fields, "format"),
+                  JsUtils.getOptional(fields, "metadata").map(_.toString())
               )
             case Some(JsString("Folder")) =>
               VFolder(
