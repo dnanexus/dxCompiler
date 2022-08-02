@@ -711,13 +711,16 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
         param.sources.map(source => CwlDxName.fromDecodedName(source.frag))
       }.toSet
       logger.trace(s"paramNames: ${paramNames}")
-      val (applicationInputs, stageInputs) = paramNames.map { name =>
-        env.lookup(name) match {
-          case Some((_, (param, stageInput))) => (param, stageInput)
-          case None =>
-            throw new Exception(s"parameter ${name} missing from CallEnv")
+      val (applicationInputs, stageInputs) =
+        paramNames.foldLeft(Vector.empty[Parameter], Vector.empty[StageInput]) {
+          case ((appInput, stageInput), name) =>
+            env.lookup(name) match {
+              case Some((_, (appInputParam, stageInputParam))) =>
+                (appInput :+ appInputParam, stageInput :+ stageInputParam)
+              case None =>
+                throw new Exception(s"parameter ${name} missing from CallEnv")
+            }
         }
-      }.unzip
 
       // build definitions of the output variables - if the expression can be evaluated,
       // set the values as the parameter's default
@@ -743,7 +746,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       }
       val application = Application(
           s"${wfName}_${Constants.OutputStage}",
-          applicationInputs.toVector,
+          applicationInputs,
           updatedOutputVars,
           DefaultInstanceType,
           NoImage,
@@ -754,7 +757,7 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
           Constants.OutputStage,
           getStage(Some(Constants.OutputStage)),
           application.name,
-          stageInputs.toVector,
+          stageInputs,
           updatedOutputVars
       )
       (stage, application)
