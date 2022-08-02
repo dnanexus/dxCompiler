@@ -6,6 +6,7 @@
 * CWL: Fix for merging optional source inputs. If an input is a collection (e.g. an array), where some items are the type of `"null"`, it is correctly merged when MultipleInputFeatureRequirement is specified.
 * CWL: Fix for making target step argument for cwltool.
 * CWL: Added support for "metadata" field for input files in CWL under development (pending inclusion in CWL standard).
+* CWL: Fix for parameter mapping for output stage of the workflow.
 
 
 ## 2.10.2 2022-05-17
