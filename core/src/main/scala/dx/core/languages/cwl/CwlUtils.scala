@@ -82,17 +82,20 @@ object CwlUtils {
 
   def toIRPath(path: PathValue): IRPathValue = {
     path match {
-      case f @ FileValue(location,
-                         path,
-                         basename,
-                         _,
-                         _,
-                         _,
-                         checksum,
-                         size,
-                         secondaryFiles,
-                         format,
-                         contents) =>
+      case fileValue @ FileValue(
+              location,
+              path,
+              basename,
+              _,
+              _,
+              _,
+              checksum,
+              size,
+              secondaryFiles,
+              format,
+              contents,
+              metadata
+          ) =>
         VFile(
             location
               .orElse(path)
@@ -100,14 +103,17 @@ object CwlUtils {
                   Option.when(contents.isDefined)(basename.getOrElse(UUID.randomUUID().toString))
               )
               .getOrElse(
-                  throw new Exception(s"FileValue does not have 'location' or 'contents' ${f}")
+                  throw new Exception(
+                      s"FileValue does not have 'location' or 'contents' ${fileValue}"
+                  )
               ),
             basename,
             contents,
             checksum,
             size,
             secondaryFiles.map(toIRPath),
-            format
+            format,
+            metadata
         )
       case d @ DirectoryValue(location, path, basename, listing) =>
         location.orElse(path) match {
@@ -290,14 +296,17 @@ object CwlUtils {
 
   def fromIRPath(path: IRPathValue): PathValue = {
     path match {
-      case f: VFile =>
-        FileValue(Some(f.uri),
-                  basename = f.basename,
-                  checksum = f.checksum,
-                  size = f.size,
-                  contents = f.contents,
-                  secondaryFiles = f.secondaryFiles.map(fromIRPath),
-                  format = f.format)
+      case vFile: VFile =>
+        FileValue(
+            Some(vFile.uri),
+            basename = vFile.basename,
+            checksum = vFile.checksum,
+            size = vFile.size,
+            contents = vFile.contents,
+            secondaryFiles = vFile.secondaryFiles.map(fromIRPath),
+            format = vFile.format,
+            metadata = vFile.metadata
+        )
       case VFolder(uri, basename, listing) =>
         DirectoryValue(location = Some(uri),
                        basename = basename,
