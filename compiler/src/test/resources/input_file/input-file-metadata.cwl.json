@@ -1,0 +1,20 @@
+{
+  "baseCommand": [
+    "cat"
+  ],
+  "class": "CommandLineTool",
+  "cwlVersion": "v1.2",
+  "id": "input-file-metadata",
+  "inputs": [
+    {
+      "id": "file1",
+      "type": "File"
+    }
+  ],
+  "outputs": [],
+  "requirements": [
+    {
+      "class": "InlineJavascriptRequirement"
+    }
+  ]
+}

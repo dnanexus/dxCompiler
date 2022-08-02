@@ -1,0 +1,10 @@
+{
+  "input-file-metadata.file1": {
+    "class": "File",
+    "metadata": {
+      "key1": 1,
+      "key2": "value"
+    },
+    "location": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/test_data/cwl/whale.txt"
+  }
+}
