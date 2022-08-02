@@ -32,6 +32,8 @@ object Value {
     * @param checksum the file checksum
     * @param size the file size
     * @param secondaryFiles additional files that must accompany this file
+    * @param format File format according to the language specification
+    *
     */
   case class VFile(uri: String,
                    basename: Option[String] = None,
@@ -39,7 +41,8 @@ object Value {
                    checksum: Option[String] = None,
                    size: Option[Long] = None,
                    secondaryFiles: Vector[PathValue] = Vector.empty,
-                   format: Option[String] = None)
+                   format: Option[String] = None,
+                   metadata: Option[String] = None)
       extends PathValue
 
   sealed trait DirectoryValue extends PathValue
