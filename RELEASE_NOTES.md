@@ -1,6 +1,6 @@
 # Release Notes
 
-## in develop 
+## 2.10.3 2022-08-02
 
 * WDL: (WDL >= 1.1) Fix for nested workflows when compiled in the unlocked mode: optional inputs with `None` as default are coerced correctly.  
 * CWL: Fix for merging optional source inputs. If an input is a collection (e.g. an array), where some items are the type of `"null"`, it is correctly merged when MultipleInputFeatureRequirement is specified.
@@ -8,6 +8,12 @@
 * CWL: Added support for "metadata" field for input files in CWL under development (pending inclusion in CWL standard).
 * CWL: fix casting cwl types from scatter to scatter.
 * CWL: Fix for parameter mapping for output stage of the workflow.
+
+### Dependency updates
+
+#### cwlScala [0.8.4](https://github.com/dnanexus/cwlScala/releases/tag/0.8.4)
+* For duplicated calls - prepends a process name to make the name unique, avoiding exception "two different processes with the same name"
+* Added support for "metadata" field for input files in CWL under development (pending inclusion in CWL standard).
 
 
 ## 2.10.2 2022-05-17
