@@ -542,14 +542,14 @@ case class ProcessTranslator(cwlBundle: CwlBundle,
       // block - all the variables defined earlier that are required to evaluate any expression.
       // Some referenced variables may be undefined because they are optional.
       val (inputParams, stageInputs) = block.inputs.flatMap {
-        case RequiredBlockInput(name, _) =>
+        case RequiredBlockInput(name, _, _) =>
           env.lookup(name) match {
             case Some((fqn, (param, stageInput))) =>
               Some(param.copy(name = fqn), stageInput)
             case None =>
               throw new Exception(s"missing required input ${name}")
           }
-        case OptionalBlockInput(name, _) =>
+        case OptionalBlockInput(name, _, _) =>
           env.lookup(name).map {
             case (fqn, (param, stageInput)) => (param.copy(name = fqn), stageInput)
           }

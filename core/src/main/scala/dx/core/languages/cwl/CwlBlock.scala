@@ -33,11 +33,27 @@ sealed trait CwlBlockInput {
   val name: DxName
   def source: Parameter
   val kind: InputKind.InputKind
-
-  def cwlType: CwlType = source.cwlType
+  val cwlType: CwlType
 }
 
 object CwlBlockInput {
+  def getSrcStepOutputType(srcStep: WorkflowStep, itemType: CwlType): CwlType = {
+    val condItemType = if (srcStep.when.isDefined) {
+      CwlOptional.ensureOptional(itemType)
+    } else {
+      itemType
+    }
+    if (srcStep.scatter.isEmpty) {
+      condItemType
+    } else if (srcStep.scatter.length == 1 || srcStep.scatterMethod.get != ScatterMethod.NestedCrossproduct) {
+      CwlArray(condItemType)
+    } else {
+      srcStep.scatter.indices.foldLeft(condItemType) {
+        case (t, _) => CwlArray(t)
+      }
+    }
+  }
+
   def create(stepInput: WorkflowStepInput,
              wfId: Identifier,
              workflowSteps: Map[String, WorkflowStep],
@@ -47,11 +63,11 @@ object CwlBlockInput {
     val sources = stepInput.sources.map { src =>
       (src, CwlDxName.fromDecodedName(src.frag))
     }
-    val sourceParams = sources.foldLeft(SeqMap.empty[DxName, Parameter]) {
+    val sourceParams = sources.foldLeft(SeqMap.empty[DxName, (CwlType, Parameter)]) {
       case (accu, (_, name)) if accu.contains(name) => accu
       case (accu, (id, name)) if id.parent.contains(wfId.frag) =>
         val wfName = name.dropNamespaces()
-        accu + (wfName -> workflowInputs(wfName))
+        accu + (wfName -> (workflowInputs(wfName).cwlType, workflowInputs(wfName)))
       case (accu, (id, name)) if id.parent.exists(workflowSteps.contains) =>
         val srcStep = workflowSteps(id.parent.get)
         val param = srcStep.outputs
@@ -73,25 +89,26 @@ object CwlBlockInput {
                   s"step ${id.parent.get} does not define output parameter ${id.name}"
               )
           )
-        accu + (name -> param)
+        accu + (name -> (getSrcStepOutputType(srcStep, param.cwlType), param))
       case (accu, (_, name)) if workflowInputs.contains(name) =>
-        accu + (name -> workflowInputs(name))
+        accu + (name -> (workflowInputs(name).cwlType, workflowInputs(name)))
       case (_, (_, name)) =>
         throw new Exception(s"invalid parameter source ${name}")
     }
     val hasDefault = stepInput.default.isDefined
     sourceParams.map {
-      case (dxName, param) =>
-        if (hasDefault || CwlOptional.isOptional(param.cwlType)) {
-          OptionalBlockInput(dxName, param)
+      case (dxName, (paramType, param)) =>
+        if (hasDefault || CwlOptional.isOptional(paramType)) {
+          OptionalBlockInput(dxName, paramType, param)
         } else {
-          RequiredBlockInput(dxName, param)
+          RequiredBlockInput(dxName, paramType, param)
         }
     }.toVector
   }
 }
 
-case class RequiredBlockInput(name: DxName, source: Parameter) extends CwlBlockInput {
+case class RequiredBlockInput(name: DxName, cwlType: CwlType, source: Parameter)
+    extends CwlBlockInput {
   val kind: InputKind.InputKind = InputKind.Required
 }
 
@@ -99,7 +116,8 @@ case class RequiredBlockInput(name: DxName, source: Parameter) extends CwlBlockI
   * An input that may be omitted by the caller. In that case the value will
   * be null (or None).
   */
-case class OptionalBlockInput(name: DxName, source: Parameter) extends CwlBlockInput {
+case class OptionalBlockInput(name: DxName, cwlType: CwlType, source: Parameter)
+    extends CwlBlockInput {
   val kind: InputKind.InputKind = InputKind.Optional
 }
 
