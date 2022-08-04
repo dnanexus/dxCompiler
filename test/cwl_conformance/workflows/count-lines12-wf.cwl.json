@@ -15,6 +15,7 @@
     {
       "id": "file2",
       "type": [
+        "null",
         {
           "items": "File",
           "type": "array"
@@ -47,15 +48,11 @@
         {
           "id": "file1",
           "linkMerge": "merge_flattened",
-          "source": [
-            "file1",
-            "file2"
-          ]
+          "pickValue": "all_non_null",
+          "source": ["file1", "file2"]
         }
       ],
-      "out": [
-        "output"
-      ],
+      "out": ["output"],
       "run": {
         "baseCommand": "wc",
         "class": "CommandLineTool",
