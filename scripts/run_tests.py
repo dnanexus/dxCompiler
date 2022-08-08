@@ -151,6 +151,7 @@ wdl_v1_list = [
     "simple_manifest",
     "complex_manifest",
     "view_and_count_manifest",
+    "apps_1269_1270_unqualified_ids_manifest",
     # workflow with output files created by expressions
     "upload_workflow_files",
     "subworkflow_with_task",
@@ -544,7 +545,7 @@ large_test_list = (
     + cromwell_tests_list
 )
 
-manifest_test_list = ("simple_manifest", "complex_manifest", "view_and_count_manifest")
+manifest_test_list = ("simple_manifest", "complex_manifest", "view_and_count_manifest", "apps_1269_1270_unqualified_ids_manifest")
 
 test_suites = {
     "CI": ci_test_list,
