@@ -134,9 +134,36 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val stagesExecDetails = stages.map { stage =>
       stage.name -> dxApi.executable(stage.executable).describe(Set(Field.Details))
     }.toMap
-    stagesExecDetails("if (a)").details.get.asJsObject.fields
-      .get("staticInstanceType")
-      .get shouldBe (JsString("mem3_ssd1_x4"))
+    stagesExecDetails("if (a)").details.get.asJsObject
+      .fields("staticInstanceType") shouldBe (JsString("mem3_ssd1_x4"))
+  }
+
+  it should "compile with manifest inputs with unqualified file IDs" in {
+    val sourceCode =
+      pathFromBasename("manifest", "apps_1269_1270_unqualified_ids_manifest_unit.wdl")
+    val inputs =
+      pathFromBasename("manifest", "apps_1269_1270_unqualified_ids_manifest_unit_input.json")
+    val args = List(sourceCode.toString, "--inputs", inputs.toString, "--useManifests") ++ cFlags
+    val retval = Main.compile(args.toVector)
+    val wfId = retval match {
+      case SuccessfulCompileNativeNoTree(_, Vector(wfId)) => wfId
+      case other                                          => throw new Exception(s"expected single workflow not ${other}")
+    }
+    val stages = dxApi
+      .workflow(wfId)
+      .describe()
+      .stages
+      .get
+    val innerStages = stages.filter(_.name.contains("if "))
+    val appletsDesc = innerStages.map { stage: DxWorkflowStageDesc =>
+      dxApi.applet(stage.executable)
+    } map { applet: DxApplet =>
+      applet.describe(Set(Field.Access))
+    }
+    val allProjectAccess = appletsDesc.map { desc: DxAppletDescribe =>
+      desc.access.get.asJsObject.fields.get("allProjects")
+    }
+    all(allProjectAccess) shouldBe Some(JsString("VIEW"))
   }
 
   it should "compile a nested workflow with optional inputs defaulted to None" in {
@@ -761,7 +788,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     desc.ignoreReuse shouldBe Some(true)
   }
 
-  it should "timeout can be overriden from the extras file" taggedAs NativeTest in {
+  it should "timeout can be overridden from the extras file" taggedAs NativeTest in {
     val path = pathFromBasename("compiler", "add_timeout_override.wdl")
     val extraPath = pathFromBasename("compiler/extras", "short_timeout.json")
     val args = path.toString :: "--extras" :: extraPath.toString :: cFlags
