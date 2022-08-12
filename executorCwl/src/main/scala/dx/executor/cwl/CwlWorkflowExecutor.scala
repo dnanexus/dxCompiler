@@ -192,15 +192,15 @@ case class CwlWorkflowExecutor(workflow: Workflow,
       case path =>
         val block: CwlBlock = Block.getSubBlockAt(CwlBlock.createBlocks(workflow), path)
         val inputTypes = block.inputs.map {
-          case RequiredBlockInput(name, param: Parameter with Loadable) =>
-            name -> (CwlUtils.toIRType(param.cwlType), param.loadContents, param.loadListing)
-          case RequiredBlockInput(name, param) =>
-            name -> (CwlUtils.toIRType(param.cwlType), false, LoadListing.No)
-          case OptionalBlockInput(name, param: Parameter with Loadable) =>
-            val irType = Type.ensureOptional(CwlUtils.toIRType(param.cwlType))
+          case RequiredBlockInput(name, cwlType, param: Parameter with Loadable) =>
+            name -> (CwlUtils.toIRType(cwlType), param.loadContents, param.loadListing)
+          case RequiredBlockInput(name, cwlType, param) =>
+            name -> (CwlUtils.toIRType(cwlType), false, LoadListing.No)
+          case OptionalBlockInput(name, cwlType, param: Parameter with Loadable) =>
+            val irType = Type.ensureOptional(CwlUtils.toIRType(cwlType))
             name -> (irType, param.loadContents, param.loadListing)
-          case OptionalBlockInput(name, param) =>
-            name -> (Type.ensureOptional(CwlUtils.toIRType(param.cwlType)), false, LoadListing.No)
+          case OptionalBlockInput(name, cwlType, param) =>
+            name -> (Type.ensureOptional(CwlUtils.toIRType(cwlType)), false, LoadListing.No)
         }.toMap
         if (logger.isVerbose) {
           logger.trace(
@@ -372,7 +372,7 @@ case class CwlWorkflowExecutor(workflow: Workflow,
             if (stepInput.linkMerge.nonEmpty || stepInput.pickValue.nonEmpty) {
               val mergedValues = (sourceValues, stepInput.linkMerge) match {
                 case (_, Some(LinkMergeMethod.MergeFlattened)) =>
-                  sourceValues.flatMap {
+                  sourceValues.map(s => (CwlOptional.unwrapOptional(s._1), s._2)).flatMap {
                     case (array: CwlArray, ArrayValue(items)) => items.map(i => (array.itemType, i))
                     case (t, value)                           => Vector((t, value))
                   }
@@ -696,6 +696,9 @@ case class CwlWorkflowExecutor(workflow: Workflow,
           case Some((_, (_, ArrayValue(items)))) if items.isEmpty     => None
           case Some((_, (array: CwlArray, ArrayValue(items)))) =>
             Some(array.itemType, items)
+          case Some((_, (t, ArrayValue(items))))
+              if CwlOptional.unwrapOptional(t).isInstanceOf[CwlArray] =>
+            Some(CwlOptional.unwrapOptional(t), items)
           case None =>
             throw new Exception(s"scatter parameter ${name} is missing from step inputs")
           case Some((_, (t, _))) =>
@@ -868,8 +871,8 @@ case class CwlWorkflowExecutor(workflow: Workflow,
                                                    inp.cwlType,
                                                    inp.name.decoded,
                                                    isInput = true)
-        case (OptionalBlockInput(name, param), None) =>
-          name -> (param.cwlType, NullValue)
+        case (OptionalBlockInput(name, cwlType, param), None) =>
+          name -> (cwlType, NullValue)
         case _ => throw new Exception(s"missing required input ${inp.name}")
       }
     }.toMap

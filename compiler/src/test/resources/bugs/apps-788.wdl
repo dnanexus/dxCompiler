@@ -1,6 +1,6 @@
 version 1.0
 
-task dyno_runtime {
+task dyno_runtime_reuse {
     input {
         Int i
     }
