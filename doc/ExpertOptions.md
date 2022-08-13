@@ -1502,6 +1502,16 @@ You would write the following manifest:
 }
 ```
 
+`dxCompiler` also supports input manifests in the format of raw inputs, typically used with Cromwell:
+`alternative_manifest.json`
+```json
+{
+  "test.s": "hello",
+  "test.f": "dx://project-aaa:file-xxx"
+}
+```
+
+
 Compile the workflow `test` from above with the `-inputs mymanifest.json` option. A new file `mymanifest.dx.json` will be 
 created with the following content. **NOTE** `mymanifest.dx.json` is created by the compiler - the user does not need to 
 create/change it manually.
@@ -1556,7 +1566,13 @@ in the form of a map, where keys are the names of the workflow outputs from the 
 
 ## Analysis outputs
 
-Currently, when a workflow compiled with manifest support is run, the outputs of each job along with the generated manifest files are placed directly in the project, in a temporary folder `/.d/<job id>`. In a future release, upon a successful run, these outputs will be reorganized automatically, with final outputs moved to the analysis output folder and intermediate files deleted. 
+Currently, when a workflow compiled with manifest support is run, the outputs of each job along with the generated 
+manifest files are placed directly in the project, in a temporary folder `/.d/<job id>`.  
+An example command to extract outputs from the output manifests:  
+```bash
+ANALYSIS_ID="analysis-yyy"    # your analysis ID here
+dx cat $(dx describe --json ${ANALYSIS_ID} | jq -rc '.stages|.[]|select(.id == "stage-outputs")|.execution.output.output_manifest___["$dnanexus_link"]|.project+":"+.id')
+```
 
 # Docker
 
