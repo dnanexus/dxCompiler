@@ -2,7 +2,9 @@
 
 ## in develop
 
-...
+* CWL: fixed target tool id when overriding docker requirement. File ID of an image provided in `DockerRequirement.dockerLoad` 
+in a CWL workflow is now correctly mapped and detected upon override. 
+
 
 ## 2.10.3 2022-08-02
 
