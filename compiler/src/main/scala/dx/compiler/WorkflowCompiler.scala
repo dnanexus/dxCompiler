@@ -310,7 +310,7 @@ case class WorkflowCompiler(separateOutputs: Boolean,
         )
     ).flatten.flatten.mkString
 
-    val executableNames = ExecutableTree.extractExecutableNames(execTree)
+    val executableNames = ExecutableTree.extractExecutableFields(execTree, Field.Name)
     val executables = executableNames.collect(executableDict.get(_)).flatten
 
     val subWorkflowsMd = executables

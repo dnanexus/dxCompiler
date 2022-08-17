@@ -256,13 +256,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       .runSpec
       .get
       .asJsObject
-      .fields
-      .get("systemRequirements")
-      .get
+      .fields("systemRequirements")
       .asJsObject
-      .fields
-      .get("main")
-      .get
+      .fields("main")
       .asJsObject
       .fields
       .get("instanceType")
@@ -1528,7 +1524,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     delayWD shouldBe Some(JsTrue)
   }
 
-  it should "set delayWorkspaceDestruction on workflow" taggedAs NativeTest in {
+  it should "set delayWorkspaceDestruction on workflow" in {
     val path = pathFromBasename("subworkflows", basename = "trains_station.wdl")
     val extrasContent =
       """|{
@@ -1544,13 +1540,34 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       case other =>
         throw new Exception(s"unexpected result ${other}")
     }
-
     // make sure the flag is set on the resulting workflow
-    val (_, stdout, _) =
-      SysUtils.execCommand(s"dx describe ${dxTestProject.id}:${wfId} --json")
-    val details = stdout.parseJson.asJsObject.fields("details")
-    val delayWD = details.asJsObject.fields.get("delayWorkspaceDestruction")
+    val wfDetails = dxApi.workflow(wfId).describe(Set(Field.Details)).details.get
+    val delayWD = wfDetails.asJsObject.fields.get("delayWorkspaceDestruction")
     delayWD shouldBe Some(JsTrue)
+
+    // the flag is set on all the stages
+    val execTree = ExecutableTree.fromDxWorkflow(dxApi.workflow(wfId))
+    val stgIds = ExecutableTree.extractExecutableFields(execTree.asJsObject, Field.Id)
+    val delayStages = stgIds.map {
+      case wf: String if wf.startsWith("workflow-") =>
+        dxApi
+          .workflow(wf)
+          .describe(Set(Field.Details))
+          .details
+          .get
+          .asJsObject
+          .fields("delayWorkspaceDestruction")
+      case applet: String if applet.startsWith("applet-") =>
+        dxApi
+          .applet(applet)
+          .describe(Set(Field.Details))
+          .details
+          .get
+          .asJsObject
+          .fields("delayWorkspaceDestruction")
+      case other => throw new Exception(s"Unknown stage type ${other}")
+    }
+    all(delayStages) shouldBe JsBoolean(true)
   }
 
   it should "Native compile a CWL tool" taggedAs NativeTest in {
