@@ -57,27 +57,35 @@ case class CwlInputTranslator(bundle: Bundle,
                             dxApi,
                             logger) {
 
-  private val CwlRegex = "^(?:.*\\.)?cwl:(.+)$".r
+  private val CwlRegex = "^(.*\\.)?cwl:(.+)$".r
 
-  override protected def splitInputs(
+  override def splitInputs(
       rawInputs: Map[String, JsValue]
   ): (Map[String, JsValue], Map[String, JsObject]) = {
+    val processName = bundle.primaryCallable match {
+      case Some(process: Callable) => Some(process.name)
+      case _                       => None
+    }
     val (values, overrides) =
-      rawInputs.foldLeft(Map.empty[String, JsValue], Map.empty[String, JsValue]) {
-        case ((values, overrides), (CwlRegex(key), value)) =>
-          (values, overrides + (key -> value))
+      rawInputs.foldLeft(Map.empty[String, JsValue], Map.empty[String, Map[String, JsValue]]) {
+        case ((values, overrides), (CwlRegex(prefix, key), value)) =>
+          val executable = Option(prefix)
+            .map(_.stripSuffix(s"."))
+            .orElse(processName)
+            .getOrElse(
+                throw new Exception(
+                    s"input prefix is required unless CWL contains a single task."
+                )
+            )
+
+          val newOverrides =
+            overrides.getOrElse(executable, Map.empty[String, JsValue]) + (key -> value)
+          (values, overrides + (executable -> newOverrides))
         case ((values, overrides), (key, value)) =>
           (values + (key -> value), overrides)
       }
-    (values, if (overrides.nonEmpty) {
-      val overridesObj = JsObject(overrides)
-      bundle.primaryCallable match {
-        case Some(c: Callable) => Map(c.name -> overridesObj)
-        case _                 => bundle.allCallables.keys.map(_ -> overridesObj).toMap
-      }
-    } else {
-      Map.empty[String, JsObject]
-    })
+
+    (values, overrides.map(kv => kv._1 -> JsObject(kv._2)))
   }
 
   override protected def convertRawInput(rawInput: JsValue, t: Type): JsValue = {

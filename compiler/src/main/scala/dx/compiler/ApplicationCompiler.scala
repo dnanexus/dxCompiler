@@ -445,7 +445,11 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
         // The reorg applet requires higher permissions to organize the output directory.
         Some(DxAccess.empty.copy(project = Some(DxAccessLevel.Contribute)))
       case ExecutableKindWfFragment(_, _, _, _) =>
-        Some(DxAccess.empty.copy(network = Some(Vector("*"))))
+        // Frag applets need an ability to search other projects for file IDs when manifest is used
+        // APPS-1269, APPS-1270
+        Some(
+            DxAccess.empty.copy(network = Some(Vector("*")), allProjects = Some(DxAccessLevel.View))
+        )
       case _ =>
         // ExecutableKindWfInputs / ExecutableKindWfOutputs / ExecutableKindWfCustomReorgOutputs
         Some(DxAccess.empty)

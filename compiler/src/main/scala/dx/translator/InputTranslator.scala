@@ -477,7 +477,7 @@ abstract class InputTranslator(bundle: Bundle,
             )
             bind(callee,
                  inputPrefix = Some(s"${wf.name}.${stage.description}"),
-                 dxPrefix = Some(stage.description))
+                 dxPrefix = Some(stage.dxStage.id))
           }.unzip
           (commonInputs ++ middleInputs.flatten, commonOverrides ++ middleOverrides.flatten)
         case other => throw new Exception(s"Unknown case ${other.getClass}")

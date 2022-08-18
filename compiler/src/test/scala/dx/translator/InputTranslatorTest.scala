@@ -231,6 +231,23 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
     retval shouldBe a[SuccessfulCompileIR]
   }
 
+  it should "handle input files with metadata" in {
+    val cwlCode = pathFromBasename("input_file", "input-file-metadata.cwl.json")
+    val inputs = pathFromBasename("input_file", "input-file-metadata_input.json")
+    val args = List(cwlCode.toString, "--inputs", inputs.toString) ++ cFlags
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileIR]
+
+    val dxInputsFile = inputs.getParent.resolve(FileUtils.replaceFileSuffix(inputs, ".dx.json"))
+    val jsInputs = JsUtils.jsFromFile(dxInputsFile)
+    val metadataAttr =
+      jsInputs.asJsObject.fields("file1").asJsObject.fields("___").asJsObject.fields("metadata")
+    metadataAttr shouldBe JsObject(
+        "key1" -> JsNumber(1),
+        "key2" -> JsString("value")
+    )
+  }
+
   it should "handle parameter name with dot" in {
     val cwlCode = pathFromBasename("input_file", "bwa-mem-tool.cwl.json")
     val inputs = pathFromBasename("input_file", "bwa-mem-tool_input.json")
