@@ -43,7 +43,7 @@ def integration(
 ) -> None:
     """
         \b
-        Run integration test or test suire
+        Run integration test or test suite
         Positional Arguments:
             DXC_REPOSITORY_ROOT: A root directory of a dxCompiler repository. Should contain build.sbt.
         """

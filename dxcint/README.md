@@ -37,7 +37,7 @@ See [Running tests](#running-tests-1) section
 ```commandline
 Usage: dxcint integration [OPTIONS] DXC_REPOSITORY_ROOT
 
-  Run integration test or test suire
+  Run integration test or test suite
   Positional Arguments:
       DXC_REPOSITORY_ROOT: A root directory of a dxCompiler repository. Should contain build.sbt.
 
