@@ -15,16 +15,21 @@ self testing.
 #### Adding tests
 See [Adding tests](#adding-tests-1) section
 ```commandline
-Usage: dxcint add [OPTIONS] DXC_REPOSITORY_ROOT
+Usage: dxcint add [OPTIONS] DXC_REPOSITORY_ROOT SUITE CATEGORY
+
+  Add tests to the suite
+  Positional Arguments:
+      DXC_REPOSITORY_ROOT: A root directory of a dxCompiler repository. Should contain build.sbt.
+      SUITE: Test suite name. Usually a team-defined group of tests to be run in each CI/CD step. Check README for the
+              CLI command to extract available suites.
+      CATEGORY: Test category name. Usually a team-defined category that reflects a type of the test.
+              Check dxcint/config/{SUITE_FILE}.json, where the keys are category names.
 
 Options:
-  -d, --directory TEXT  Directory containing workflow fixtures to be added
+  -d, --directory TEXT  Directory containing workflow fixtures to be added.
+                        DEFAULT: current WD
   -x, --extension TEXT  Extension of the test workflow script files. Allowed
-                        are 'cwl', 'cwl.json', 'wdl'
-  -s, --suite TEXT      Test suite name. Usually a team-defined group of tests
-                        to be run in each CI/CD step
-  -c, --category TEXT   Test category name. Usually a team-defined category
-                        that reflects a type of the test
+                        are 'cwl', 'cwl.json', 'wdl'. DEFAULT: wdl
 ```
 
 #### Running tests
@@ -32,10 +37,15 @@ See [Running tests](#running-tests-1) section
 ```commandline
 Usage: dxcint integration [OPTIONS] DXC_REPOSITORY_ROOT
 
+  Run integration test or test suire
+  Positional Arguments:
+      DXC_REPOSITORY_ROOT: A root directory of a dxCompiler repository. Should contain build.sbt.
+
 Options:
   -t, --test_name TEXT  Name of a single test or suite of tests. If not
                         provided - builds just the core compiler library (e.g.
                         dxCompiler-VERSION.jar)
+
 ```
 
 #### Available suites
