@@ -87,8 +87,8 @@ the property `exec_id` should be overridden/implemented with passing those compi
 The following architecture will be implemented to support integration tests for the compiler.
 1. **CLI** orchestrates the flow 
 2. **TestDiscovery** scans for config files, registers the tests by creating an array of RegisteredTest objects. 
-3. **Dependency** class sets up necessary environment with immutable state for **RegisteredTest**’s.
-4. **Terraform** takes the list of **RegisteredTest**’s and prepares the platform for running.
+3. **Dependency** class sets up necessary environment with immutable state for **RegisteredTest**s.
+4. **Terraform** takes the list of **RegisteredTest**s and prepares the platform for running.
 5. **RegisteredTest** has methods to compile test, run test and validate results.
 
 
@@ -98,8 +98,8 @@ for each dependency they need to be included into language specific assets for d
 **!!!Please consult the IT and compliance teams before adding new dependencies**
 #### Structure
 **Required fields**:
-1. "name": str. Name of a dependency. E.g. “awscli”
-2. "languages": Array[str]. Languages that this dependency is built for. E.g. [“wdl”, “cwl”]
+1. "name": str. Name of a dependency. E.g. "awscli"
+2. "languages": Array[str]. Languages that this dependency is built for. E.g. ["wdl", "cwl"]
 3. "version": str. Version of the software to be used.
 
 Required fields that define type of the dependency (implemented as separate subclasses of `Dependency`)
