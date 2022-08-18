@@ -39,15 +39,15 @@ Options:
 ```
 
 #### Available suites
-Command to print a hash of available suites with the structure:
-```python
-{"Suite name": "config file name in the dxcint/config where test names are registered"}
-```
+Command to print a hash of available suites
 ```commandline
 Usage: dxcint suites [OPTIONS]
+```
 
-Options:
-  --help  Show this message and exit.
+Returns the structure:
+```commandline
+Available suites are:
+{"Suite name": "config file name in the dxcint/config where test names are registered within categories"}
 ```
 
 ## Running tests
@@ -76,7 +76,7 @@ New test types can be easily added to the framework. First, one needs to add a n
 Then, if this category needs a new behavior when compiling, running and/or validating the test, a new subclass of 
 `RegisteredTest` needs to be implemented. There might be up to 3 methods that might need implementation.
 
-1. **Compilation**. If a test workflows in this new test category should be compiled with a specific combination of dxCompiler flags, 
+1. **Compilation**. If a test workflow in this new test category should be compiled with a specific combination of dxCompiler flags, 
 the property `exec_id` should be overridden/implemented with passing those compiler arguments to the 
 `_compile_executable()` method. 
 2. **Execution**. To change executable run behavior - the methods `_run_executable()` and `_run_executable_inner()` can be overridden.

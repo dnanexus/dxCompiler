@@ -1,3 +1,5 @@
+import pprint
+
 import click
 from typing import Optional
 
@@ -39,6 +41,12 @@ def integration(
         dxc_repository_root: str,
         test_name: Optional[str]
 ) -> None:
+    """
+        \b
+        Run integration test or test suire
+        Positional Arguments:
+            DXC_REPOSITORY_ROOT: A root directory of a dxCompiler repository. Should contain build.sbt.
+        """
     test_context = Context(
         project="dxCompiler_playground",
         repo_root=dxc_repository_root,
@@ -90,6 +98,16 @@ def add(
         suite: str,
         category: str
 ) -> None:
+    """
+    \b
+    Add tests to the suite
+    Positional Arguments:
+        DXC_REPOSITORY_ROOT: A root directory of a dxCompiler repository. Should contain build.sbt.
+        SUITE: Test suite name. Usually a team-defined group of tests to be run in each CI/CD step. Check README for the
+                CLI command to extract available suites.
+        CATEGORY: Test category name. Usually a team-defined category that reflects a type of the test.
+                Check dxcint/config/{SUITE_FILE}.json, where the keys are category names.
+    """
     test_context = Context(project="dxCompiler_playground", repo_root=dxc_repository_root)
     test_discovery = TestDiscovery(test_context)
     _ = test_discovery.add_tests(directory, extension, suite, category)
@@ -99,10 +117,8 @@ def add(
 def suites() -> None:
     empty_context = ContextEmpty()
     test_discovery = TestDiscovery(empty_context)
-    print(
-        f"Available suites are:\n"
-        f"{test_discovery.suites}"
-    )
+    print("Available suites are:")
+    pprint.pp(test_discovery.suites)
 
 
 if __name__ == "__main__":
