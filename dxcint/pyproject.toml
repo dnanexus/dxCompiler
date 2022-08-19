@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "dxcint"
+version = "0.0.1"
+description = "Integration tests for dxCompiler"
+authors = ["Gvaihir <aogorodnikov@dnanexus.com>"]
+
+[tool.poetry.dependencies]
+python = "3.8"
+dxpy = "0.314.0"
+click = "8.0.1"
+
+[tool.poetry.dev-dependencies]
+pytest = "6.2.5"
+
+[tool.poetry.scripts]
+"dxcint" = "dxcint.cli:dxcint"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

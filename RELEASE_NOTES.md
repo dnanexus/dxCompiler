@@ -4,12 +4,11 @@
 
 * CWL: fixed target tool id when overriding docker requirement. File ID of an image provided in `DockerRequirement.dockerLoad` 
 in a CWL workflow is now correctly mapped and detected upon override. 
+* WDL: manifest mode correctly handles non-fully qualified file IDs (updated dxScala: api)
 
 
 ## 2.10.3 2022-08-02
 
-* WDL: (WDL >= 1.1) Fix for nested workflows when compiled in the unlocked mode: optional inputs with `None` as default are coerced correctly.
-* WDL: manifest mode correctly handles non-fully qualified file IDs (updated dxScala: api)
 * WDL: (WDL >= 1.1) Fix for nested workflows when compiled in the unlocked mode: optional inputs with `None` as default are coerced correctly.  
 * CWL: Fix for merging optional source inputs. If an input is a collection (e.g. an array), where some items are the type of `"null"`, it is correctly merged when MultipleInputFeatureRequirement is specified.
 * CWL: Fix for making target step argument for cwltool.
