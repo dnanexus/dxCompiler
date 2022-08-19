@@ -1,0 +1,6 @@
+{
+  "name": "mock_dependency_src",
+  "languages": ["wdl", "cwl"],
+  "version": "1.0.0",
+  "source_link": "https://documentation.dnanexus.com/developer"
+}

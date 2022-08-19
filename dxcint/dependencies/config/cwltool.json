@@ -1,0 +1,6 @@
+{
+  "name": "cwltool",
+  "languages": ["cwl"],
+  "version": "3.1.20220623174452",
+  "package_manager": "pip"
+}

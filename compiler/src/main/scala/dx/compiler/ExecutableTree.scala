@@ -1,6 +1,6 @@
 package dx.compiler
 
-import dx.api.{DxExecutable, DxWorkflow, Field}
+import dx.api.{DxExecutable, DxObject, DxWorkflow, Field}
 import dx.core.ir.{Application, Callable, ExecutableKind, ExecutableLink, Workflow}
 import dx.util.CodecUtils
 import spray.json._
@@ -181,13 +181,16 @@ object ExecutableTree {
     }
   }
 
-  private def extractWorkflowNames(TreeJS: JsObject, namesAcc: Set[String]): Set[String] = {
-    TreeJS.getFields("name", "stages") match {
+  private def extractWorkflowFields(TreeJS: JsObject,
+                                    field: Field.Field,
+                                    fieldAcc: Set[String]): Set[String] = {
+    TreeJS
+      .getFields(DxObject.requestFields(Set(field)).asJsObject.fields.keys.head, "stages") match {
       case Seq(JsString(wfName), JsArray(stages)) => {
         stages
           .flatMap(s =>
             s.asJsObject.getFields("callee") match {
-              case Seq(c: JsObject) => extractExecutableNames(c, namesAcc)
+              case Seq(c: JsObject) => extractExecutableFields(c, field, fieldAcc)
               case x                => throw new Exception(s"Malformed stage ${x} in exec tree.")
             }
           )
@@ -197,23 +200,30 @@ object ExecutableTree {
     }
   }
 
-  private def extractAppletNames(TreeJS: JsObject, namesAcc: Set[String]): Set[String] = {
-    TreeJS.getFields("name", "executables") match {
-      case Seq(JsString(stageName)) => namesAcc + stageName
+  private def extractAppletFields(TreeJS: JsObject,
+                                  field: Field.Field,
+                                  fieldAcc: Set[String]): Set[String] = {
+    TreeJS
+      .getFields(DxObject.requestFields(Set(field)).asJsObject.fields.keys.head, "executables") match {
+      case Seq(JsString(stageName)) => fieldAcc + stageName
       case Seq(JsString(stageName), JsArray(executables)) =>
-        executables.flatMap(e => extractExecutableNames(e.asJsObject, namesAcc)).toSet + stageName
+        executables
+          .flatMap(e => extractExecutableFields(e.asJsObject, field, fieldAcc))
+          .toSet + stageName
       case _ => throw new Exception(s"Missing name in ${TreeJS}.")
     }
   }
 
   // Return set of names of all executables in the tree
-  def extractExecutableNames(TreeJS: JsObject, namesAcc: Set[String] = Set.empty): Set[String] = {
-    val names = TreeJS.fields.get("kind") match {
-      case Some(JsString("workflow")) => extractWorkflowNames(TreeJS, namesAcc)
-      case Some(JsString(_))          => extractAppletNames(TreeJS, namesAcc)
+  def extractExecutableFields(TreeJS: JsObject,
+                              field: Field.Field = Field.Name,
+                              fieldAcc: Set[String] = Set.empty): Set[String] = {
+    val fields = TreeJS.fields.get("kind") match {
+      case Some(JsString("workflow")) => extractWorkflowFields(TreeJS, field, fieldAcc)
+      case Some(JsString(_))          => extractAppletFields(TreeJS, field, fieldAcc)
       case _                          => throw new Exception(s"Missing kind in ${TreeJS}.")
     }
-    namesAcc ++ names
+    fieldAcc ++ fields
   }
 
   def fromDxWorkflow(workflow: DxWorkflow): JsValue = {
