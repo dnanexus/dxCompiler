@@ -1,5 +1,6 @@
-![](https://github.com/dnanexus/dxCompiler/workflows/Unit%20Tests/badge.svg)
-![](https://github.com/dnanexus/dxCompiler/workflows/WDL%20Integration%20Tests/badge.svg)
+![Unit Tests](https://github.com/dnanexus/dxCompiler/actions/workflows/scala.yml/badge.svg)
+![WDL Integration tests](https://github.com/dnanexus/dxCompiler/actions/workflows/integration.yml/badge.svg)
+![CWL Conformance Tests](https://github.com/dnanexus/dxCompiler/actions/workflows/cwl_conformance.yml/badge.svg)
 
 dxCompiler takes a pipeline written in the
 [Workflow Description Language (WDL)](http://www.openwdl.org/) or [Common Workflow Language (CWL)](https://www.commonwl.org/v1.2) and compiles it to an equivalent workflow on the DNAnexus platform.
