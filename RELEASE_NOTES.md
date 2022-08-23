@@ -1,10 +1,31 @@
 # Release Notes
 
-## in develop
+## 2.10.4 2022-08-23
 
 * CWL: fixed target tool id when overriding docker requirement. File ID of an image provided in `DockerRequirement.dockerLoad` 
 in a CWL workflow is now correctly mapped and detected upon override. 
 * WDL: manifest mode correctly handles non-fully qualified file IDs (updated dxScala: api)
+
+### Dependency updates
+
+#### dxApi [0.13.3](https://github.com/dnanexus/dxScala/releases/tag/api-0.13.3)
+
+* Handling of non-fully qualified file IDs for bulk search/describe. Now for the files provided without the project ID,
+  the `describe` response will be returned only for current workspace/project. If a file was cloned to other projects, they
+  will be ignored. Non-fully qualified file IDs are not allowed when searching files in other projects.
+* Regression tests for API calls to platform
+
+#### dxCommon [0.11.4](https://github.com/dnanexus/dxScala/releases/tag/common-0.11.4)
+
+* Fix for handling 503 error in dx CLI when API requests are throttled
+
+#### dxFileAccessProtocols [0.5.5](https://github.com/dnanexus/dxScala/releases/tag/protocols-0.5.5)
+
+* Dependency update
+
+#### wdlTools [0.17.12](https://github.com/dnanexus/wdlTools/releases/tag/0.17.12)
+
+* Optional types are preserved when using outputs from the standard library functions without explicit declaration.
 
 
 ## 2.10.3 2022-08-02
