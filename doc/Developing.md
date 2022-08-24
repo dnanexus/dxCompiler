@@ -230,9 +230,11 @@ dxCompiler can be released from Github. The release pipeline (optionally) runs l
 11. Do not remove the branch `release-X.Y.Z` and don't merge it back to `main` nor `develop`. We keep this branch for tagging purposes.
 12. Move released Jira tickets to `Done / In Prod` column
 
-If you encounter any additional issues while creating the release, you will need to make the fixes in `develop` and then merge them into the release branch.
+If you encounter any additional issues while creating the release, you will need to make the fixes in `develop` and then 
+merge them into the release branch.
 
-Following the release, you need to merge `RELEASE_NOTES.md` from the release branch into develop. If you released from `HEAD`, then you also need to bump the SNAPSHOT versions in the `develop` branch using the `scripts/update_versions.sh` script.
+Following the release, you need to merge `RELEASE_NOTES.md` from the release branch into develop. If you released from 
+`HEAD`, then you also need to bump the SNAPSHOT versions in the `develop` branch using the `scripts/update_version.sh` script.
 
 ### Releasing manually
 
