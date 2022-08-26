@@ -294,7 +294,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
     protected val outputTypes: Map[DxName, Type]
 
     /**
-      * Lauch a job to continue or collect a large scatter.
+      * Launch a job to continue or collect a large scatter.
       * @param childJobs child jobs on which the continue job will depend
       * @param nextStart the index at which to continue the scatter
       * @param outputShape the shape of the output array

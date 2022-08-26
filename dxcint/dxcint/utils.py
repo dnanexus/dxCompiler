@@ -53,10 +53,11 @@ def async_retry(max_retries: int = 5, delay: int = 5):
                         )
                     ret_value = func(*args, **kwargs)
                     return ret_value
-                except Exception:
+                except Exception as e:
                     with lock:
                         logger.info(
                             f"Error when running an async retry for function `{func.__name__}`\n"
+                            f"Error CONTENT: {e}\n"
                             f"With ARGS: {args}\n"
                             f"With KWARGS: {kwargs}\n"
                             f"Retry in {delay} sec"
