@@ -100,19 +100,17 @@ class Terraform(object):
     def _build_asset(self, language: str) -> str:
         asset_name = f"dx{language}rt"
         destination = f"{self._context.project_id}:{self._context.platform_build_dir}/{asset_name}"
-        cwd = os.getcwd()
-        os.chdir(os.path.join(self._context.repo_root_dir, "applet_resources"))
+        asset_src = os.path.join(self._context.repo_root_dir, "applet_resources", language)
         with self._context.lock:
             self._context.logger.info(f"Terraform._build_asset(): Creating a runtime asset for {language}")
         proc = sp.Popen(
-            ["dx", "build_asset", language, "--destination", destination],
+            ["dx", "build_asset", asset_src, "--destination", destination],
             stdout=sp.PIPE,
             stderr=sp.PIPE
         )
         out, err = proc.communicate()
         if proc.returncode != 0:
             raise TerraformError(f"Building DNAnexus asset raised {err.decode()}")
-        os.chdir(cwd)
         asset_id = dxpy.search.find_one_data_object(
             classname="record",
             project=self._context.project_id,
