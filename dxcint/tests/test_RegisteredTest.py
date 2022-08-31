@@ -6,7 +6,7 @@ from dxpy.exceptions import DXAPIError
 from dxcint.RegisteredTest import RegisteredTest
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def registered_test_wdl(fixtures_dir, context_init):
     yield RegisteredTest(
         src_file=os.path.join(fixtures_dir, "resources", "mock_category",  "mock_1.wdl"),
@@ -32,7 +32,7 @@ def test_init(registered_test_wdl):
     assert registered_test_wdl.category == "mock_category"
     assert registered_test_wdl.name == "mock_1"
     assert registered_test_wdl.language == "wdl"
-    assert registered_test_wdl._test_inputs == {"mock_1.in_1": "Hello World!"}
+    assert registered_test_wdl._test_inputs == {"stage-common.in_1": "Hello World!"}
 
 
 def test_build_executable_wdl(build_executable_wdl):

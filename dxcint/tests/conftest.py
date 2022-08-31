@@ -1,3 +1,4 @@
+import datetime
 import pytest
 import os
 
@@ -19,10 +20,12 @@ def fixtures_dir():
 
 @pytest.fixture(scope="session")
 def context_init(root_dir):
+    timestamp = str(datetime.datetime.now()) \
+        .replace(' ','T').replace(':','-').split('.')[0]
     yield Context(
         project="dxCompiler_playground",
         repo_root=root_dir,
-        folder="/gvaihir/dxcint_testing",
+        folder=f"/dxcint_testing/test_{timestamp}",
         logger_verbosity="info"
     )
 

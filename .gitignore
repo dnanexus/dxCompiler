@@ -35,6 +35,9 @@ compiler/src/main/resources/dxCompiler_runtime.conf
 venv/
 .failed*
 .java-version
+dxcint/tests/fixtures/dependencies/node/*
+dxcint/tests/fixtures/dependencies/mock*
+
 
 # IntelliJ
 .idea

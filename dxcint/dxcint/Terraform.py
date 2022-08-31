@@ -98,7 +98,22 @@ class Terraform(object):
 
     @async_retry()
     def _build_asset(self, language: str) -> str:
+
+        def find_asset_obj(self: Terraform, asset_name: str, zero_ok: bool) -> str:
+            return dxpy.search.find_one_data_object(
+                classname="record",
+                project=self._context.project_id,
+                name=asset_name,
+                folder=self._context.platform_build_dir,
+                more_ok=False,
+                zero_ok=zero_ok
+            )
+
         asset_name = f"dx{language}rt"
+        # skip building, if asset is already present
+        asset_obj = find_asset_obj(self, asset_name, zero_ok=True)
+        if asset_obj is not None:
+            return asset_obj.get("id")
         destination = f"{self._context.project_id}:{self._context.platform_build_dir}/{asset_name}"
         asset_src = os.path.join(self._context.repo_root_dir, "applet_resources", language)
         with self._context.lock:
@@ -111,18 +126,12 @@ class Terraform(object):
         out, err = proc.communicate()
         if proc.returncode != 0:
             raise TerraformError(f"Building DNAnexus asset raised {err.decode()}")
-        asset_id = dxpy.search.find_one_data_object(
-            classname="record",
-            project=self._context.project_id,
-            name=asset_name,
-            folder=self._context.platform_build_dir,
-            more_ok=False
-        )
+        asset_obj = find_asset_obj(self, asset_name, zero_ok=False)
         with self._context.lock:
             self._context.logger.info(
                 f"Successfully created asset for {language.upper()}. Asset ID:{asset_id.get('id')}"
             )
-        return asset_id.get("id")
+        return asset_obj.get("id")
 
     def _create_asset_spec(self, language: str) -> Dict:
         spec_exports = [x.export_spec() for x in self._dependencies].remove(None)

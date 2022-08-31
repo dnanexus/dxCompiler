@@ -13,12 +13,18 @@ def test__get_version(context_init):
 
 
 def test__create_platform_build_folder(context_init):
-    assert context_init.platform_build_dir == "/gvaihir/dxcint_testing"
-    list_dir = project_list_folder(
+    assert "/dxcint_testing/test_" in context_init.platform_build_dir
+    list_dir1 = project_list_folder(
         object_id=context_init.project_id,
-        input_params={"folder": "/gvaihir/dxcint_testing"}
+        input_params={"folder": "/dxcint_testing"}
     )
-    assert "/gvaihir/dxcint_testing/applets" in list_dir.get("folders")
+    last_folder = list_dir1.get("folders")[-1]
+
+    list_dir2 = project_list_folder(
+        object_id=context_init.project_id,
+        input_params={"folder": last_folder}
+    )
+    assert f"{last_folder}/applets" in list_dir2.get("folders")
 
 
 def test_immutability(context_init):
