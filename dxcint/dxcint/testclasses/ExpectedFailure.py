@@ -37,5 +37,5 @@ class ExpectedFailure(RegisteredTest):
         except dxpy.DXJobFailureError:
             return {
                 "passed": True,
-                "message": "Execution of the test {self.name} failed as expected."
+                "message": f"Execution of the test {self.name} failed as expected."
             }
