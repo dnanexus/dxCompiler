@@ -7,7 +7,7 @@ from dxcint.RegisteredTest import RegisteredTest
 from dxcint.Dependency import Dependency
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def add_test_to_existing_category(fixtures_dir, context_init):
     with open(os.path.join(fixtures_dir, "config", "medium.json"), "r") as old_suite_handle:
         old_suite = json.load(old_suite_handle)
@@ -30,7 +30,7 @@ def add_test_to_existing_category(fixtures_dir, context_init):
         os.remove(os.path.join(fixtures_dir, "resources", "mock_category", added_file))
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def add_test_to_new_category(fixtures_dir, context_init):
     with open(os.path.join(fixtures_dir, "config", "medium.json"), "r") as old_suite_handle:
         old_suite = json.load(old_suite_handle)
