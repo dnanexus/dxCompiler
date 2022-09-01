@@ -1,7 +1,7 @@
 import datetime
 import pytest
 import os
-
+import dxpy
 from dxcint.Context import Context
 from dxcint.Dependency import DependencyFactory
 from dxcint.Terraform import Terraform
@@ -17,17 +17,27 @@ def root_dir():
 def fixtures_dir():
     yield os.path.join(os.path.dirname(__file__), "fixtures")
 
+@pytest.fixture(scope="session")
+def timestamp():
+    yield str(datetime.datetime.now()) \
+              .replace(' ','T').replace(':','-').split('.')[0]
 
 @pytest.fixture(scope="session")
-def context_init(root_dir):
-    timestamp = str(datetime.datetime.now()) \
-        .replace(' ','T').replace(':','-').split('.')[0]
-    yield Context(
+def test_folder(timestamp):
+    yield f"/dxcint_testing/test_{timestamp}"
+
+@pytest.fixture(scope="function")
+def context_init(root_dir, test_folder):
+    context = Context(
         project="dxCompiler_playground",
         repo_root=root_dir,
-        folder=f"/dxcint_testing/test_{timestamp}",
+        folder=test_folder,
         logger_verbosity="info"
     )
+    yield context
+    dxpy.api.project_remove_folder(
+        object_id = context.project_id,
+        input_params = {"folder": test_folder, "recurse": True, "force": True})
 
 
 @pytest.fixture(scope="session")
