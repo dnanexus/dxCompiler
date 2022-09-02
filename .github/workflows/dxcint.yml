@@ -46,6 +46,7 @@ jobs:
           cd dxcint
           poetry install
           cd ..
+          pip3 install dxpy
 
       - name: Run dxCint self tests
         env:
