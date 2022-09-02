@@ -1,0 +1,68 @@
+name: dxCint Unit Tests
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+    types:
+      - opened
+      - synchronize
+      - ready_for_review
+      - labeled
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: write
+  packages: read
+jobs:
+  test:
+    name: dxCint Tests (Staging)
+    if: contains(github.event.pull_request.labels.*.name, 'dxcint') ||  github.event_name == 'workflow_dispatch' 
+    runs-on: ubuntu-20.04
+    env:
+      PROJECT: dxCompiler_playground
+      TEST_DIR: dxcint_testing
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v2
+      # performance optimizations https://abbbi.github.io/actions/
+      - uses: abbbi/github-actions-tune@v1
+      - name: Install java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.1.10
+          virtualenvs-create: true
+
+      - name: Install dependencies and dxcint
+        run: |
+          cd dxcint
+          poetry install
+          cd ..
+          pip3 install dxpy pytest
+
+      - name: Run dxCint self tests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ROBOT_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
+        run: |
+          export PATH="$PATH:$HOME/.local/bin"
+
+          # Set up DNAnexus staging environment
+          dx login --noprojects --staging --token $ROBOT_TOKEN
+          dx select $PROJECT
+          cd ${GITHUB_WORKSPACE}
+
+          # Run integration tests
+          pytest -v dxcint
+
+
+
