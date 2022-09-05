@@ -32,8 +32,8 @@ class RegisteredTest(object):
         self._test_name = test_name
         self._language = rm_prefix(os.path.basename(src_file), test_name).strip(".")
         self._messenger = None
-        self._exec_id = None
-        self._job_id = None
+        self._exec_id = None # id of the executable (workflow or applet)
+        self._job_id = None # id of the execution (job or analysis)
         self._test_results = None
         self._executable_type_switch = {
             "workflow": dxpy.DXWorkflow,
@@ -79,9 +79,11 @@ class RegisteredTest(object):
         if not self._job_id:
             self._job_id = self._run_executable()
         return self._job_id
-
     @property
     def test_result(self) -> bool:
+         return self.get_test_result()
+
+    def get_test_result(self) -> bool:
         if not self._test_results:
             self._test_results = self._validate()
         if self._test_results.get("passed"):
@@ -132,8 +134,8 @@ class RegisteredTest(object):
 
         Returns: str. Execution ID (analysis or job)
         """
-        exec_desc = self._run_executable_inner().describe()
-        return exec_desc.get("id")
+        execution_desc = self._run_executable_inner().describe()
+        return execution_desc.get("id")
 
     def _run_executable_inner(self) -> Union[dxpy.DXAnalysis, dxpy.DXJob]:
         """
@@ -174,10 +176,11 @@ class RegisteredTest(object):
             'passed' - bool. If the test passed or not, according to the implementation
             'message' - str. Auxiliary message specific for the test. Or an error message.
         """
+        self.messenger.wait_for_completion()
         return {
             "passed": False,
             "message": "This is an abstract base class. Use a concrete implementation"
         }
 
-    def _create_messenger(self) -> Messenger:
-        raise RegisteredTestError("Messenger is not implemented")
+    def _create_messenger(self) -> Messenger: 
+        return Messenger(self.name, self.job_id) 

@@ -19,6 +19,7 @@ class TestDiscoveryError(Exception):
 
 
 class TestDiscovery(object):
+    __test__ = False
     def __init__(self, context: Union[Context, ContextEmpty], **test_kwargs):
         """
         Class to handle discovery and addition of the tests to the suite

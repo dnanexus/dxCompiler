@@ -85,7 +85,7 @@ class BinaryDependency(Dependency):
         self._local_dir = self._get_exec()
         if not self._source_link:
             raise DependencyError(
-                f"BinaryDependency(): `source_link` field in the config file can not be None for BinaryDependency class"
+                "BinaryDependency(): `source_link` field in the config file can not be None for BinaryDependency class"
             )
 
     def link(self, link_destination_dir: Path) -> Path:
@@ -141,8 +141,8 @@ class TarballDependency(BinaryDependency):
         self._local_dir = self._get_exec()
         if not self._source_link:
             raise DependencyError(
-                f"TarballDependency(): `source_link` field in the config file can not be None for "
-                f"TarballDependency class"
+                "TarballDependency(): `source_link` field in the config file can not be None for " +
+                "TarballDependency class"
             )
 
     def _get_exec(self) -> Path:
@@ -188,8 +188,8 @@ class PackageDependency(Dependency):
         super().__init__(config_file, context)
         if not self._package_manager:
             raise DependencyError(
-                f"PackageDependency(): `package_manager` field in the config file can not be None for "
-                f"PackageDependency class"
+                "PackageDependency(): `package_manager` field in the config file can not be None for " +
+                "PackageDependency class"
             )
 
     def export_spec(self) -> Dict:

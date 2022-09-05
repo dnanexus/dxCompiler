@@ -101,8 +101,7 @@ class Terraform(object):
         asset_name = f"dx{language}rt"
         destination = f"{self._context.project_id}:{self._context.platform_build_dir}/{asset_name}"
         asset_src = os.path.join(self._context.repo_root_dir, "applet_resources", language)
-        with self._context.lock:
-            self._context.logger.info(f"Terraform._build_asset(): Creating a runtime asset for {language}")
+        self._context.logger.info(f"Terraform._build_asset(): Creating a runtime asset for {language}")
         proc = sp.Popen(
             ["dx", "build_asset", asset_src, "--destination", destination],
             stdout=sp.PIPE,
@@ -118,8 +117,7 @@ class Terraform(object):
             folder=self._context.platform_build_dir,
             more_ok=False,
         )
-        with self._context.lock:
-            self._context.logger.info(
+        self._context.logger.info(
                 f"Successfully created asset for {language.upper()}. Asset ID:{asset_obj.get('id')}"
             )
         return asset_obj.get("id")

@@ -5,6 +5,7 @@ import dxpy
 from dxcint.Context import Context
 from dxcint.Dependency import DependencyFactory
 from dxcint.Terraform import Terraform
+from .test_RegisteredTest import build_executable_wdl, registered_test_wdl
 
 
 @pytest.fixture(scope="session")

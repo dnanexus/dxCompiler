@@ -1,7 +1,9 @@
+from concurrent.futures import ThreadPoolExecutor
+import concurrent.futures as futures
 import pprint
 
 import click
-from typing import Optional
+from typing import Optional, List
 
 from dxcint.Context import Context, ContextEmpty
 from dxcint.Terraform import Terraform
@@ -69,8 +71,21 @@ def integration(
         dependencies=test_discovery.discover_dependencies()
     )
     _ = terraform.build()
-    for test in registered_tests:
-        passed = test.test_result
+
+    # simply give every test a thread, no need for cooperative multitasking,
+    # tests are independent, they will print correctly progress to logger
+    with ThreadPoolExecutor(max_workers=len(registered_tests)+5) as executor:
+        future_to_execute_tests = \
+            {executor.submit(registered_test.get_test_result) 
+             for registered_test in registered_tests}
+        results: List[bool] = [f.result()
+                   for f in futures.as_completed(future_to_execute_tests)]
+    failures = results.count(False)
+    if failures > 0:
+        test_context.logger.error(f"{failures} tests failed")
+        exit(1)
+    else:
+        test_context.logger.info("All tests passed")
 
 
 @dxcint.command()
@@ -108,7 +123,8 @@ def add(
         CATEGORY: Test category name. Usually a team-defined category that reflects a type of the test.
                 Check dxcint/config/{SUITE_FILE}.json, where the keys are category names.
     """
-    test_context = Context(project="dxCompiler_playground", repo_root=dxc_repository_root)
+    test_context = Context(project="dxCompiler_playground",
+                           repo_root=dxc_repository_root)
     test_discovery = TestDiscovery(test_context)
     _ = test_discovery.add_tests(directory, extension, suite, category)
 

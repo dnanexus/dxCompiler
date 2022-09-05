@@ -1,9 +1,8 @@
-import dxpy
-
 from typing import Dict
 
 from dxcint.RegisteredTest import RegisteredTest
 from dxcint.Context import Context
+from dxcint.Messenger import State
 
 
 class ExpectedFailure(RegisteredTest):
@@ -12,13 +11,9 @@ class ExpectedFailure(RegisteredTest):
 
     def _run_executable(self) -> str:
         execution = self._run_executable_inner()
-        try:
-            execution.wait_on_done()
-        except dxpy.DXJobFailureError:
-            pass
         return execution.describe().get("id")
 
-    def _validate(self) -> Dict:
+    async def _validate(self) -> Dict:
         """
         Implement this method in subclasses with criteria for test validation (e.g. comparison to output fixtures,
         error messages or other expected behaviors.
@@ -27,15 +22,20 @@ class ExpectedFailure(RegisteredTest):
             'passed' - bool. If the test passed or not, according to the implementation
             'message' - str. Auxiliary message specific for the test. Or an error message.
         """
-        execution = self._run_executable_inner()
-        try:
-            execution.wait_on_done()
+        self.messenger.wait_for_completion()
+        if self.messenger.state == State.FINISHED:
             return {
-                "passed": False,
-                "message": f"Execution of the test {self.name} DID NOT fail as expected."
+            "passed": False,
+            "message": f"Execution of the test {self.name} DID NOT fail as expected."
             }
-        except dxpy.DXJobFailureError:
+        elif self.messenger.state == State.FAIL:
             return {
-                "passed": True,
-                "message": f"Execution of the test {self.name} failed as expected."
+            "passed": True,
+            "message": f"Execution of the test {self.name} failed as expected."
             }
+        else:
+            return {
+            "passed": False,
+            "message": f"Execution of the test is in an invalid state: {self.messenger.state}."
+            }
+
