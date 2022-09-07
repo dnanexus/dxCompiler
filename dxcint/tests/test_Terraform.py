@@ -19,7 +19,9 @@ def test__generate_config_file(change_to_root_dir, terraform_init):
 
 def test__create_local_asset_dir(change_to_root_dir, terraform_init):
     _ = terraform_init._create_local_asset_dir("WDL")
-    assert os.path.exists(terraform_init._local_created_dirs.get("WDL").get("resources"))
+    assert os.path.exists(
+        terraform_init._local_created_dirs.get("WDL").get("resources")
+    )
 
 
 def test__create_asset_spec(change_to_root_dir, terraform_init):

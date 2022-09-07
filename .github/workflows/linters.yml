@@ -1,0 +1,26 @@
+name: dxCompiler linters
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - develop
+    types:
+      - opened
+      - synchronize
+      - ready_for_review
+
+jobs:
+  pre-commit:
+    name: Run pre-commit Action 
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - uses: pre-commit/action@v2.0.3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}

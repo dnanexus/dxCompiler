@@ -1,0 +1,21 @@
+[flake8]
+max-line-length = 88
+max-complexity = 18
+ignore = # module imported but unused
+    F401,
+    # line break before a binary operator -> black does not adhere to PEP8
+    W503,
+    # line break occurred after a binary operator -> black does not adhere to PEP8
+    W504,
+    # line too long -> we accept long comment lines; black gets rid of long code lines
+    E501,
+    # whitespace before : -> black does not adhere to PEP8
+    E203,
+    # missing whitespace after ,', ';', or ':' -> black does not adhere to PEP8
+    E231,
+    # continuation line over-indented for hanging indent -> black does not adhere to PEP8
+    E126,
+    # E266 too many leading '#' for block comment
+    E266,
+    # Do not assign a lambda expression, use a def
+    E731
