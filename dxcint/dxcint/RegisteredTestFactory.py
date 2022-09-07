@@ -6,14 +6,10 @@ from dxcint.testclasses.ExpectedFailure import ExpectedFailure
 class RegisteredTestFactory(object):
     @classmethod
     def register_test(
-            cls,
-            src_file: str,
-            category: str,
-            test_name: str,
-            context: Context
+        cls, src_file: str, category: str, test_name: str, context: Context
     ):
         test_type_switch = {
-            "mock_category": RegisteredTest,        # For testing only
+            "mock_category": RegisteredTest,  # For testing only
             "expected_failure": ExpectedFailure,
             # ADD NEW CATEGORY HERE
         }

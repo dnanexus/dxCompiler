@@ -38,13 +38,16 @@ def async_retry(max_retries: int = 5, delay: int = 5):
         delay: int. Amount of time to sleep in seconds between retries.
     Returns: A result of a decorated callable.
     """
+
     def async_retry_inner(func):
         @functools.wraps(func)
         def async_retry_wrapper(*args, **kwargs):
             try:
-                lock = args[0].context.lock     # For methods of a class with Context property
+                lock = args[
+                    0
+                ].context.lock  # For methods of a class with Context property
             except AttributeError:
-                lock = Lock()                   # For other functions.
+                lock = Lock()  # For other functions.
             for i in range(0, max_retries):
                 try:
                     with lock:
@@ -64,9 +67,11 @@ def async_retry(max_retries: int = 5, delay: int = 5):
                         )
                     time.sleep(delay)
             else:
-                raise Exception(f"Failed after {max_retries} retries for function `{func.__name__}`\n"
-                                f"With ARGS: {args}\n"
-                                f"With KWARGS: {kwargs}")
+                raise Exception(
+                    f"Failed after {max_retries} retries for function `{func.__name__}`\n"
+                    f"With ARGS: {args}\n"
+                    f"With KWARGS: {kwargs}"
+                )
 
         return async_retry_wrapper
 
