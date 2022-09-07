@@ -29,30 +29,26 @@ def dxcint(ctx, verbosity: str = "info") -> None:
 
 @dxcint.command()
 @click.pass_context
-@click.argument('dxc_repository_root', required=True)
+@click.argument("dxc_repository_root", required=True)
 @click.option(
     "-t",
     "--test_name",
     default=None,
     type=str,
     help="Name of a single test or suite of tests. If not provided - builds just the core compiler library "
-         "(e.g. dxCompiler-VERSION.jar)",
+    "(e.g. dxCompiler-VERSION.jar)",
 )
-def integration(
-        ctx,
-        dxc_repository_root: str,
-        test_name: Optional[str]
-) -> None:
+def integration(ctx, dxc_repository_root: str, test_name: Optional[str]) -> None:
     """
-        \b
-        Run integration test or test suite
-        Positional Arguments:
-            DXC_REPOSITORY_ROOT: A root directory of a dxCompiler repository. Should contain build.sbt.
-        """
+    \b
+    Run integration test or test suite
+    Positional Arguments:
+        DXC_REPOSITORY_ROOT: A root directory of a dxCompiler repository. Should contain build.sbt.
+    """
     test_context = Context(
         project="dxCompiler_playground",
         repo_root=dxc_repository_root,
-        logger_verbosity=ctx.obj.verbosity
+        logger_verbosity=ctx.obj.verbosity,
     )
     test_discovery = TestDiscovery(test_context)
     if test_name:
@@ -68,28 +64,30 @@ def integration(
     terraform = Terraform(
         languages={x.language for x in registered_tests},
         context=test_context,
-        dependencies=test_discovery.discover_dependencies()
+        dependencies=test_discovery.discover_dependencies(),
     )
     _ = terraform.build()
 
     # simply give every test a thread, no need for cooperative multitasking,
-    # tests are independent, they will print correctly progress to logger
-    with ThreadPoolExecutor(max_workers=len(registered_tests)+5) as executor:
-        future_to_execute_tests = \
-            {executor.submit(registered_test.get_test_result) 
-             for registered_test in registered_tests}
-        results: List[bool] = [f.result()
-                   for f in futures.as_completed(future_to_execute_tests)]
-    failures = results.count(False)
-    if failures > 0:
-        test_context.logger.error(f"{failures} tests failed")
+    # tests are independent, they'll correctly print the progress to the logger
+    with ThreadPoolExecutor(max_workers=len(registered_tests) + 5) as executor:
+        future_to_execute_tests = {
+            executor.submit(registered_test.get_test_result)
+            for registered_test in registered_tests
+        }
+        results: List[bool] = [
+            f.result() for f in futures.as_completed(future_to_execute_tests)
+        ]
+    num_failures = results.count(False)
+    if num_failures > 0:
+        test_context.logger.error(f"{num_failures} tests failed")
         exit(1)
     else:
         test_context.logger.info("All tests passed")
 
 
 @dxcint.command()
-@click.argument('dxc_repository_root', required=True)
+@click.argument("dxc_repository_root", required=True)
 @click.argument("suite", required=True)
 @click.argument("category", required=True)
 @click.option(
@@ -107,11 +105,7 @@ def integration(
     help="Extension of the test workflow script files. Allowed are 'cwl', 'cwl.json', 'wdl'. DEFAULT: wdl",
 )
 def add(
-        dxc_repository_root: str,
-        directory: str,
-        extension: str,
-        suite: str,
-        category: str
+    dxc_repository_root: str, directory: str, extension: str, suite: str, category: str
 ) -> None:
     """
     \b
@@ -123,8 +117,9 @@ def add(
         CATEGORY: Test category name. Usually a team-defined category that reflects a type of the test.
                 Check dxcint/config/{SUITE_FILE}.json, where the keys are category names.
     """
-    test_context = Context(project="dxCompiler_playground",
-                           repo_root=dxc_repository_root)
+    test_context = Context(
+        project="dxCompiler_playground", repo_root=dxc_repository_root
+    )
     test_discovery = TestDiscovery(test_context)
     _ = test_discovery.add_tests(directory, extension, suite, category)
 

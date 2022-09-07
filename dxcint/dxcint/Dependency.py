@@ -22,7 +22,7 @@ class DependencyFactory(object):
             "binary": BinaryDependency,
             "tarball": TarballDependency,
             "package_manager": PackageDependency,
-            "default": Dependency
+            "default": Dependency,
         }
         self._config_file = config_file
         self._context = context
@@ -120,7 +120,9 @@ class BinaryDependency(Dependency):
             return Path(local_dependency)
         else:
             os.makedirs(os.path.dirname(local_dependency), exist_ok=True)
-            self._context.logger.info(f"BinaryDependency._get_exec(): Downloading {self._name} version {self._version}")
+            self._context.logger.info(
+                f"BinaryDependency._get_exec(): Downloading {self._name} version {self._version}"
+            )
             download_cmd = ["wget", self._source_link, "-O", local_dependency]
             proc = sp.Popen(download_cmd, stdout=sp.PIPE, stderr=sp.PIPE)
             out, err = proc.communicate()
@@ -141,7 +143,7 @@ class TarballDependency(BinaryDependency):
         self._local_dir = self._get_exec()
         if not self._source_link:
             raise DependencyError(
-                "TarballDependency(): `source_link` field in the config file can not be None for " +
+                "TarballDependency(): `source_link` field in the config file can not be None for "
                 "TarballDependency class"
             )
 
@@ -156,14 +158,18 @@ class TarballDependency(BinaryDependency):
         )
         if not os.path.exists(local_dependency_tarball):
             os.makedirs(os.path.dirname(local_dependency_tarball), exist_ok=True)
-            self._context.logger.info(f"Downloading tarball for {self._name} version {self._version}")
+            self._context.logger.info(
+                f"Downloading tarball for {self._name} version {self._version}"
+            )
             download_cmd = ["wget", self._source_link, "-O", local_dependency_tarball]
             proc = sp.Popen(download_cmd, stdout=sp.PIPE, stderr=sp.PIPE)
             out, err = proc.communicate()
             if proc.returncode != 0:
                 raise DependencyError(f"Executable download raised {err.decode()}")
             else:
-                self._context.logger.info(f"Executable download returned {out.decode()}\n{err.decode()}")
+                self._context.logger.info(
+                    f"Executable download returned {out.decode()}\n{err.decode()}"
+                )
         else:
             self._context.logger.info(
                 f"TarballDependency._get_exec(): Found tarball in local directory {local_dependency_tarball}. "
@@ -171,13 +177,12 @@ class TarballDependency(BinaryDependency):
             )
         with tarfile.open(local_dependency_tarball, "r") as tar_handle:
             top_tar_dir = tar_handle.getnames()[0]
-            if not os.path.exists(os.path.join(os.path.dirname(local_dependency_tarball), top_tar_dir)):
+            if not os.path.exists(
+                os.path.join(os.path.dirname(local_dependency_tarball), top_tar_dir)
+            ):
                 tar_handle.extractall(os.path.dirname(local_dependency_tarball))
         local_dependency = os.path.join(
-            os.path.dirname(local_dependency_tarball),
-            top_tar_dir,
-            "bin",
-            self._name
+            os.path.dirname(local_dependency_tarball), top_tar_dir, "bin", self._name
         )
         os.chmod(local_dependency, 0o775)
         return Path(local_dependency)
@@ -188,7 +193,7 @@ class PackageDependency(Dependency):
         super().__init__(config_file, context)
         if not self._package_manager:
             raise DependencyError(
-                "PackageDependency(): `package_manager` field in the config file can not be None for " +
+                "PackageDependency(): `package_manager` field in the config file can not be None for "
                 "PackageDependency class"
             )
 
@@ -196,5 +201,5 @@ class PackageDependency(Dependency):
         return {
             "name": self._name,
             "package_manager": self._package_manager,
-            "version": self._version
+            "version": self._version,
         }

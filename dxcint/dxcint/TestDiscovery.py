@@ -20,6 +20,7 @@ class TestDiscoveryError(Exception):
 
 class TestDiscovery(object):
     __test__ = False
+
     def __init__(self, context: Union[Context, ContextEmpty], **test_kwargs):
         """
         Class to handle discovery and addition of the tests to the suite
@@ -28,22 +29,22 @@ class TestDiscovery(object):
             **test_kwargs: use only for unit testing of this class
         """
         self._context = context
-        self._config_location = test_kwargs.get("config", self._resolve_from_root("config"))
-        self._resources_location = test_kwargs.get("resources", self._resolve_from_root("resources"))
+        self._config_location = test_kwargs.get(
+            "config", self._resolve_from_root("config")
+        )
+        self._resources_location = test_kwargs.get(
+            "resources", self._resolve_from_root("resources")
+        )
         self._dependency_config_location = test_kwargs.get(
             "dependencies", self._resolve_from_root("dependencies/config")
         )
-        self._allowed_wf_extensions = {
-            "cwl": 1,
-            "cwl.json": 2,
-            "wdl": 3
-        }
+        self._allowed_wf_extensions = {"cwl": 1, "cwl.json": 2, "wdl": 3}
         self._suites = {
             "M": "medium.json",
             "L": "large.json",
             "CT": "cwl_tools.json",
             "CW": "cwl_workflows.json",
-            "CC": "cwl_cromwell.json"
+            "CC": "cwl_cromwell.json",
         }
 
     @property
@@ -59,16 +60,23 @@ class TestDiscovery(object):
         Returns: List[RegisteredTest]. List of registered tests
         """
         if suite not in self._suites.keys():
-            raise TestDiscoveryError(f"TestDiscovery.discover(): suite {suite} is not registered. Existing suites "
-                                     f"are {self._suites}")
-        with open(os.path.join(self._config_location, self._suites.get(suite)), "r") as suite_handle:
+            raise TestDiscoveryError(
+                f"TestDiscovery.discover(): suite {suite} is not registered. Existing suites "
+                f"are {self._suites}"
+            )
+        with open(
+            os.path.join(self._config_location, self._suites.get(suite)), "r"
+        ) as suite_handle:
             suite_config = self._config_linter(json.load(suite_handle))
-        registered_tests = [RegisteredTestFactory.register_test(
-            src_file=self._find_workflow_source(x[0], x[1]),
-            category=x[0],
-            test_name=x[1],
-            context=self._context
-        ) for x in self._flatten_config(suite_config)]
+        registered_tests = [
+            RegisteredTestFactory.register_test(
+                src_file=self._find_workflow_source(x[0], x[1]),
+                category=x[0],
+                test_name=x[1],
+                context=self._context,
+            )
+            for x in self._flatten_config(suite_config)
+        ]
         return registered_tests
 
     def discover_single_test(self, test_name: str) -> List[RegisteredTest]:
@@ -81,7 +89,9 @@ class TestDiscovery(object):
                 returned as a list of 1 element
         """
         for suite_file in self._suites.values():
-            with open(os.path.join(self._config_location, suite_file), "r") as suite_handle:
+            with open(
+                os.path.join(self._config_location, suite_file), "r"
+            ) as suite_handle:
                 suite_config = self._config_linter(json.load(suite_handle))
             for category, test_collection in suite_config.items():
                 if test_name in test_collection:
@@ -89,7 +99,7 @@ class TestDiscovery(object):
                         src_file=self._find_workflow_source(category, test_name),
                         category=category,
                         test_name=test_name,
-                        context=self._context
+                        context=self._context,
                     )
                     return [registered_test]
         else:
@@ -98,7 +108,9 @@ class TestDiscovery(object):
                 f"the suite. See README `Adding Tests` for instructions"
             )
 
-    def add_tests(self, dir_name: str, extension: str, suite: str, category: str) -> List[str]:
+    def add_tests(
+        self, dir_name: str, extension: str, suite: str, category: str
+    ) -> List[str]:
         """
         Adds tests to the test suite.
         Args:
@@ -127,7 +139,9 @@ class TestDiscovery(object):
             # Next line inefficient I/O, but an attempt to make EVERY test addition atomic
             self._add_name_to_config(test_name, suite, category)
             added_tests.append(test_name)
-        self._context.logger.warning(f"Added {len(added_tests)} tests to the suite `{suite}` under category `{category}`")
+        self._context.logger.warning(
+            f"Added {len(added_tests)} tests to the suite `{suite}` under category `{category}`"
+        )
         return added_tests
 
     def discover_dependencies(self) -> Set[Dependency]:
@@ -140,8 +154,12 @@ class TestDiscovery(object):
         for dependency_config in os.listdir(self._dependency_config_location):
             if not dependency_config.endswith(".json"):
                 continue
-            config_path = os.path.join(self._dependency_config_location, dependency_config)
-            dependency_factory = DependencyFactory(config_file=config_path, context=self._context)
+            config_path = os.path.join(
+                self._dependency_config_location, dependency_config
+            )
+            dependency_factory = DependencyFactory(
+                config_file=config_path, context=self._context
+            )
             one_dependency = dependency_factory.make()
             dependencies.append(one_dependency)
         return set(dependencies)
@@ -159,7 +177,9 @@ class TestDiscovery(object):
         return config
 
     def _resolve_from_root(self, dir_name: str) -> Path:
-        return Path(os.path.join(self._context.repo_root_dir, "dxcint", dir_name)).resolve()
+        return Path(
+            os.path.join(self._context.repo_root_dir, "dxcint", dir_name)
+        ).resolve()
 
     def _add_name_to_config(self, test_name: str, suite: str, category: str) -> None:
         suite_file_path = os.path.join(self._config_location, self._suites.get(suite))
@@ -180,12 +200,18 @@ class TestDiscovery(object):
     def _copy_resource_files(self, files: List[str], category: str) -> None:
         category_location = os.path.join(self._resources_location, category)
         if not os.path.exists(category_location):
-            self._context.logger.warning(f"Category location {category_location} does not exist. Creating...")
+            self._context.logger.warning(
+                f"Category location {category_location} does not exist. Creating..."
+            )
             os.makedirs(category_location)
         for one_test_file in files:
-            destination_file = os.path.join(category_location, os.path.basename(one_test_file))
+            destination_file = os.path.join(
+                category_location, os.path.basename(one_test_file)
+            )
             if os.path.exists(destination_file):
-                self._context.logger.warning(f"Test file {one_test_file} exists. Replacing with the new file")
+                self._context.logger.warning(
+                    f"Test file {one_test_file} exists. Replacing with the new file"
+                )
             shutil.copyfile(one_test_file, destination_file)
 
     @staticmethod
@@ -207,7 +233,11 @@ class TestDiscovery(object):
         potential_source_files = []
         for extension in self._allowed_wf_extensions.keys():
             potential_source_files.extend(
-                glob(os.path.join(self._resources_location, category, f"{test_name}.{extension}"))
+                glob(
+                    os.path.join(
+                        self._resources_location, category, f"{test_name}.{extension}"
+                    )
+                )
             )
         if len(potential_source_files) == 0:
             raise TestDiscoveryError(

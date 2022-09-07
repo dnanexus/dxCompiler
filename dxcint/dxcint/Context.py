@@ -17,11 +17,11 @@ class ContextError(Exception):
 
 class Context(object):
     def __init__(
-            self,
-            project: str,
-            repo_root: str,
-            folder: Optional[str] = None,
-            logger_verbosity: str = "info"
+        self,
+        project: str,
+        repo_root: str,
+        folder: Optional[str] = None,
+        logger_verbosity: str = "info",
     ):
         self._logger = Logger.make(name=__name__, verbosity=logger_verbosity)
         self._project_id = self._resolve_project(project=project)
@@ -73,9 +73,7 @@ class Context(object):
             project_obj = dxpy.DXProject(project)
             return project_obj.get_id()
         except dxpy.DXError:
-            found_projects = list(
-                dxpy.find_projects(name=project, level="VIEW")
-            )
+            found_projects = list(dxpy.find_projects(name=project, level="VIEW"))
             if len(found_projects) == 0:
                 raise ContextError(
                     f"Context._resolve_project(): Could not find project `{project}`."
@@ -104,7 +102,9 @@ class Context(object):
         folder = folder or f"/builds/{self._user}/{self._compiler_version}"
         _ = self._clean_up_build_dir(folder)
         _ = self._create_build_subdirs(base_dir=folder)
-        self.logger.info(f"Context._get_version(): Project: {self._project_id}.\nBuild directory: {folder}")
+        self.logger.info(
+            f"Context._get_version(): Project: {self._project_id}.\nBuild directory: {folder}"
+        )
         return folder
 
     def _create_build_subdirs(self, base_dir: str) -> bool:
@@ -118,7 +118,7 @@ class Context(object):
         for subdir in subdirectories:
             _ = project_new_folder(
                 object_id=self._project_id,
-                input_params={"folder": subdir, "parents": True}
+                input_params={"folder": subdir, "parents": True},
             )
         return True
 
@@ -131,7 +131,7 @@ class Context(object):
         """
         _ = project_remove_folder(
             object_id=self._project_id,
-            input_params={"folder": folder, "force": True, "recurse": True}
+            input_params={"folder": folder, "force": True, "recurse": True},
         )
         return True
 
