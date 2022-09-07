@@ -17,7 +17,10 @@ jobs:
     name: Run pre-commit Action 
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
       - uses: pre-commit/action@v2.0.3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
