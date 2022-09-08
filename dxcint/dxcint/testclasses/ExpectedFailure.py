@@ -14,21 +14,8 @@ class ExpectedFailure(RegisteredTest):
         return execution.describe().get("id")
 
     def _validate(self) -> Dict:
-        """
-        Implement this method in subclasses with criteria for test validation (e.g. comparison to output fixtures,
-        error messages or other expected behaviors.
-
-        Returns: Dict.
-            'passed' - bool. If the test passed or not, according to the implementation
-            'message' - str. Auxiliary message specific for the test. Or an error message.
-        """
         self.messenger.wait_for_completion()
-        if self.messenger.state == State.FINISHED:
-            return {
-                "passed": False,
-                "message": f"Execution of the test {self.name} DID NOT fail as expected.",
-            }
-        elif self.messenger.state == State.FAIL:
+        if self.messenger.state == State.FAIL:
             return {
                 "passed": True,
                 "message": f"Execution of the test {self.name} failed as expected.",
@@ -36,5 +23,5 @@ class ExpectedFailure(RegisteredTest):
         else:
             return {
                 "passed": False,
-                "message": f"Execution of the test is in an invalid state: {self.messenger.state}.",
+                "message": f"Execution of the test {self.name} DID NOT fail as expected.",
             }

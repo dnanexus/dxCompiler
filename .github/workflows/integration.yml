@@ -34,6 +34,11 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 11
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.1.10
+          virtualenvs-create: true
       - name: Install dxpy and other dependencies
         run: |
           sudo apt-get update
@@ -45,7 +50,12 @@ jobs:
           dxda_version=`jq -r '.dxda' scripts/bundled_dependencies.json`
           sudo wget -O/usr/local/bin/dx-download-agent https://github.com/dnanexus/dxda/releases/download/${dxda_version}/dx-download-agent-linux
           sudo chmod +x /usr/local/bin/dx-download-agent
-      - name: Run integration tests
+      - name: Install dxcint
+        run: |
+          cd dxcint
+          poetry install
+          cd ..
+      - name: Run old integration tests
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ROBOT_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
@@ -72,4 +82,8 @@ jobs:
           --clean \
           --alice-token $ROBOT_TOKEN \
           --bob-token $TEST_ROBOT_TOKEN
+      - name: Run dxcint tests
+        run: |
+          dxcint integration -t 'M' . 
+
 
