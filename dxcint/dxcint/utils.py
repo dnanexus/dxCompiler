@@ -7,6 +7,8 @@ from dxcint.Logger import Logger
 
 logger = Logger.make(name=__name__, verbosity="info")
 
+DEFAULT_INSTANCE_TYPE = "mem1_ssd1_v2_x4"
+
 
 def rm_suffix(original_string: str, suffix: str) -> str:
     if not original_string:

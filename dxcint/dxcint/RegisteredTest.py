@@ -7,7 +7,7 @@ import json
 import subprocess as sp
 from typing import List, Optional, Dict, Union
 
-from dxcint.utils import rm_prefix
+from dxcint.utils import rm_prefix, DEFAULT_INSTANCE_TYPE
 from dxcint.Messenger import Messenger
 from dxcint.Context import Context
 
@@ -38,6 +38,7 @@ class RegisteredTest(object):
             ["git", "describe", "--always", "--dirty", "--tags"]
         ).strip()
         self._inputs_suffix = "_input.json"  # wf inputs supplied as json usually have this suffix. Can be changed in subclasses
+        self._locked = False
         self._test_inputs = self._import_inputs()
 
     @property
@@ -106,11 +107,17 @@ class RegisteredTest(object):
 
         Returns: str. Compiled workflow ID
         """
-        compiler_flags = [
-            "-instanceTypeSelection",
-            random.choice(["static", "dynamic"]),
-        ]
+        compiler_flags = (
+            [
+                "-instanceTypeSelection",
+                random.choice(["static", "dynamic"]),
+            ]
+            if "-instanceTypeSelection" not in additional_compiler_flags
+            else []
+        )
         compiler_flags += additional_compiler_flags or []
+        if self._locked and "-locked" not in compiler_flags:
+            compiler_flags += ["-locked"]
         compiler_jar_path = os.path.join(
             self._context.repo_root_dir, f"dxCompiler-{self._context.version}.jar"
         )
@@ -143,13 +150,16 @@ class RegisteredTest(object):
         execution_desc = self._run_executable_inner().describe()
         return execution_desc.get("id")
 
-    def _run_executable_inner(self) -> Union[dxpy.DXAnalysis, dxpy.DXJob]:
+    def _run_executable_inner(
+        self, instance_type=DEFAULT_INSTANCE_TYPE, **kwargs
+    ) -> Union[dxpy.DXAnalysis, dxpy.DXJob]:
         """
         Override this method if the changes to the workflow execution are needed.
 
         Returns: Union[DXAnalysis,DXJob]. Execution handler
 
         """
+        kwargs["instance_type"] = instance_type
         exec_type = self.exec_id.split("-")[0]
         exec_handler = self._executable_type_switch.get(exec_type)(
             project=self._context.project_id, dxid=self.exec_id
@@ -160,6 +170,7 @@ class RegisteredTest(object):
             project=self._context.project_id,
             folder=os.path.join(self._context.platform_build_dir, "test"),
             name=f"{self._test_name} {self._git_revision}",
+            **kwargs,
         )
         return dx_execution
 

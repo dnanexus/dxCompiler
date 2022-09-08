@@ -47,7 +47,7 @@ expected_failure = {
     "bad_status", # migrated
     "bad_status2", # migrated
     "just_fail_wf", # migrated
-    "missing_output", #migrated
+    "missing_output", # does not exist
     "docker_retry", #migrated
     "argument_list_too_long", #migrated
     "diskspace_exhauster", #migrated
@@ -147,7 +147,7 @@ wdl_v1_list = [
     "nested_optional",
     "struct_deref",  # APPS-615
     "apps_936",
-    "apps_1014",
+    "apps_1014", #migrated
     # manifests
     "simple_manifest",
     "complex_manifest",
@@ -197,9 +197,9 @@ docker_test_list = [
 # wdl draft-2
 draft2_test_list = [
     "advanced",
-    "bad_status",
-    "bad_status2",
-    "just_fail_wf",
+    "bad_status", #migrated
+    "bad_status2", #migrated
+    "just_fail_wf", #migrated
     "call_with_defaults1",
     "call_with_defaults2",
     "conditionals_base",
@@ -530,7 +530,7 @@ cwl_cromwell_tests_list = [
 ]
 
 # these are tests that take a long time to run
-long_test_list = ["diskspace_exhauster"]  # APPS-749
+long_test_list = ["diskspace_exhauster"]  # APPS-749 #migrated
 
 medium_test_list = (
     wdl_v1_list + wdl_v1_1_list + docker_test_list + special_flags_list + cwl_tools
