@@ -27,7 +27,7 @@ class Messenger(object):
         self._test_name = test_name
         self._variant = variant if variant else ""
         self._state: State = State.NOT_DONE
-        self._job: Union[
+        self._execution: Union[
             dxpy.DXAnalysis, dxpy.DXJob
         ] = dxpy.bindings.dxdataobject_functions.get_handler(job_id)
         self._interval = interval
@@ -50,7 +50,7 @@ class Messenger(object):
         )
         test_name_with_variant = f"{self._test_name}.{self._variant}"
         try:
-            self._job.wait_on_done(interval=self._interval)
+            self._execution.wait_on_done(interval=self._interval)
             logging.info(f"Analysis {test_name_with_variant} succeeded")
             self._state = State.FINISHED
         except dxpy.DXJobFailureError:
@@ -67,7 +67,7 @@ class Messenger(object):
         Returns:
             Union[State,str] State enum or a string state from the API.
         """
-        returned_state = self._job._get_state()
+        returned_state = self._execution._get_state()
         if extended:
             self._state = returned_state
         elif returned_state in [

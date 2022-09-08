@@ -1,4 +1,5 @@
 from typing import Dict
+import dxpy
 from dxcint.Messenger import State
 from dxcint.Context import Context
 from dxcint.testclasses.ExpectedFailure import ExpectedFailure
@@ -17,7 +18,7 @@ class ExpectedFailureMessage(ResultsTestMixin, ExpectedFailure):
     def _validate(self) -> Dict:
         self.messenger.wait_for_completion()
         if self.messenger.state == State.FAIL:
-            failure_msg = self.messenger.execution().describe()["failureMessage"]
+            failure_msg = dxpy.describe(self.job_id)["failureMessage"]
             if failure_msg == self._expected_failure_msg:
                 return {
                     "passed": True,

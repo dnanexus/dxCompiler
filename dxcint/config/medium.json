@@ -1,1 +1,11 @@
-{"expected_failure": ["bad_status2", "bad_status", "just_fail_wf"]}
+{
+    "expected_failure": [
+        "bad_status2",
+        "bad_status",
+        "just_fail_wf"
+    ],
+    "expected_failure_message": [
+        "python_task_fail_docker",
+        "python_task_fail"
+    ]
+}
