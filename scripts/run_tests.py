@@ -38,54 +38,54 @@ test_run_failing = {
 
 # these tests are expected to fail at runtime AND throw a specific error message which will be checked
 expected_failure_msg = {
-    "python_task_fail",
-    "python_task_fail_docker"
+    "python_task_fail", # migrated
+    "python_task_fail_docker" # migrated
 }
 
 # these tests are expected to fail at runtime
 expected_failure = {
-    "bad_status",
-    "bad_status2",
-    "just_fail_wf",
-    "missing_output",
-    "docker_retry",
-    "argument_list_too_long",
-    "diskspace_exhauster",
-    "symlink-illegal",
-    "docker-array-secondaryfiles.1",
-    "iwd-container-entryname2",
-    "iwd-container-entryname3",
-    "iwd-container-entryname4",
-    "loadContents-limit",
-    "cond-wf-003.3",
-    "cond-wf-004.1",
-    "cond-wf-005",
-    "cond-wf-006.1",
-    "cond-wf-012",
-    "cond-wf-003-1.1",
-    "cond-wf-003-1_nojs.1",
-    "cond-wf-004_nojs.1",
-    "cond-wf-005_nojs",
-    "cond-wf-006_nojs.1",
-    "cond-wf-012_nojs",
-    "fail-unconnected",
-    "apps_1014",
-    "echo-tool.1",
-    "echo-tool.2",
-    "glob-path-error",
-    "networkaccess2",
-    "timelimit",
-    "timelimit2",
-    "timelimit4",
-    "record-in-format.1",
-    "record-in-format.2",
-    "record-in-format.3",
-    "record-in-secondaryFiles-missing-wf",
-    "null-expression2-tool.1",
-    "timelimit-wf",
-    "timelimit4-wf",
-    "count-lines11-null-step-wf",
-    "count-lines11-null-step-wf-noET",
+    "bad_status", # migrated
+    "bad_status2", # migrated
+    "just_fail_wf", # migrated
+    "missing_output", #migrated
+    "docker_retry", #migrated
+    "argument_list_too_long", #migrated
+    "diskspace_exhauster", #migrated
+    "symlink-illegal", # cwl conformance not migrated
+    "docker-array-secondaryfiles.1", #cwl conformance not migrated
+    "iwd-container-entryname2", #cwl conformance not migrated
+    "iwd-container-entryname3", #cwl conformance not migrated
+    "iwd-container-entryname4", #cwl conformance not migrated
+    "loadContents-limit", #cwl conformance not migrated
+    "cond-wf-003.3", #cwl conformance not migrated
+    "cond-wf-004.1", #cwl conformance not migrated
+    "cond-wf-005", #cwl conformance not migrated
+    "cond-wf-006.1", #cwl conformance not migrated
+    "cond-wf-012", #cwl conformance not migrated
+    "cond-wf-003-1.1", #cwl conformance not migrated
+    "cond-wf-003-1_nojs.1", #cwl conformance not migrated
+    "cond-wf-004_nojs.1", #cwl conformance not migrated
+    "cond-wf-005_nojs", #cwl conformance not migrated
+    "cond-wf-006_nojs.1", #cwl conformance not migrated
+    "cond-wf-012_nojs", #cwl conformance not migrated
+    "fail-unconnected", #cwl conformance not migrated
+    "apps_1014", # migrated
+    "echo-tool.1", #cwl conformance not migrated
+    "echo-tool.2", #cwl conformance not migrated
+    "glob-path-error", #cwl conformance not migrated
+    "networkaccess2", #cwl conformance not migrated
+    "timelimit", #cwl conformance not migrated
+    "timelimit2", #cwl conformance not migrated
+    "timelimit4", #cwl conformance not migrated
+    "record-in-format.1", #cwl conformance not migrated
+    "record-in-format.2", #cwl conformance not migrated
+    "record-in-format.3", #cwl conformance not migrated
+    "record-in-secondaryFiles-missing-wf", #cwl conformance not migrated
+    "null-expression2-tool.1", #cwl conformance not migrated
+    "timelimit-wf", #cwl conformance not migrated
+    "timelimit4-wf", #cwl conformance not migrated
+    "count-lines11-null-step-wf", #cwl conformance not migrated
+    "count-lines11-null-step-wf-noET", #cwl conformance not migrated
 }
 
 wdl_v1_list = [
