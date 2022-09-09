@@ -2,6 +2,8 @@ from dxcint.Context import Context
 from dxcint.RegisteredTest import RegisteredTest, RegisteredTestError
 from dxcint.testclasses.ExpectedFailure import ExpectedFailure
 from dxcint.testclasses.ExpectedFailureMessage import ExpectedFailureMessage
+from dxcint.testclasses.ExpectedOutput import ExpectedOutput
+from dxcint.testclasses.AnalysisFinished import AnalysisFinished
 
 
 class RegisteredTestFactory(object):
@@ -12,7 +14,9 @@ class RegisteredTestFactory(object):
         test_type_switch = {
             "mock_category": RegisteredTest,  # For testing only
             "expected_failure": ExpectedFailure,
-            "expected_failure_message": ExpectedFailureMessage
+            "expected_failure_message": ExpectedFailureMessage,
+            "expected_output": ExpectedOutput,
+            "analysis_finished": AnalysisFinished,
             # ADD NEW CATEGORY HERE
         }
         registered_test = test_type_switch.get(category, None)

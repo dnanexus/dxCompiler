@@ -55,7 +55,7 @@ jobs:
           cd dxcint
           poetry install
           cd ..
-      - name: Run old integration tests
+      - name: Set-up
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ROBOT_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
@@ -67,23 +67,18 @@ jobs:
           dx login --noprojects --staging --token $ROBOT_TOKEN
           dx select $PROJECT
           cd ${GITHUB_WORKSPACE}
-
-          # Run integration tests
-          FOLDER=/builds/test_gha_dxcompiler_$(date +%s)_$RANDOM
-          dx mkdir -p $FOLDER
-          python3 scripts/run_tests.py --folder $FOLDER --project $PROJECT \
-          --clean \
-          --test M
-
-          # Run multi-user tests
-          FOLDER=/builds/test_gha_dxcompiler_$(date +%s)_$RANDOM
-          dx mkdir -p $FOLDER
-          python3 scripts/run_multiuser_tests.py --folder $FOLDER --project $PROJECT \
-          --clean \
-          --alice-token $ROBOT_TOKEN \
-          --bob-token $TEST_ROBOT_TOKEN
-      - name: Run dxcint tests
+      - name: Run medium integration test suite with dxcint
         run: |
           dxcint integration -t 'M' . 
+
+      - name: Run multi-user tests
+        run: |  
+          echo "TODO reenable"
+          # FOLDER=/builds/test_gha_dxcompiler_$(date +%s)_$RANDOM
+          # dx mkdir -p $FOLDER
+          # python3 scripts/run_multiuser_tests.py --folder $FOLDER --project $PROJECT \
+          # --clean \
+          # --alice-token $ROBOT_TOKEN \
+          # --bob-token $TEST_ROBOT_TOKEN
 
 
