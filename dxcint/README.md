@@ -80,11 +80,22 @@ results) will be copied to `dxcint/resources`.
 Tests can be added manually to the suite by placing them in the appropriate directory in `dxcint/resources` and adding 
 the names in appropriate config file.
 
+## Test categories
+
+|test category| implementation class name | description|
+| --- | --- | --- | 
+| analysis_finished | AnalysisFinished | _validate checks that the analysis succeeded
+| expected_failure | ExpectedFailure | _validate checks that the analysis failed
+| expected_failure_message | ExpectedFailureMessage | _validate checks that the analysis failed with an error message specified in results['error']
+| expected_output | ExpectedOutput | _validate checks that the expected results correspond to the the analysis outputs
+
 ## Extending the framework
 ### Adding new test types
 New test types can be easily added to the framework. First, one needs to add a new test category (e.g. 'expected_failure'). 
 Then, if this category needs a new behavior when compiling, running and/or validating the test, a new subclass of 
 `RegisteredTest` needs to be implemented. There might be up to 3 methods that might need implementation.
+
+You can use `mixins` to add common functionality to your new test type.
 
 1. **Compilation**. If a test workflow in this new test category should be compiled with a specific combination of dxCompiler flags, 
 the property `exec_id` should be overridden/implemented with passing those compiler arguments to the 

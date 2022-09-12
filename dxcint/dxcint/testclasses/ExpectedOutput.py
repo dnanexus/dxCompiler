@@ -1,15 +1,21 @@
-from typing import Dict, Tuple, List, Set
+from typing import Dict, List
 
 from dxcint.RegisteredTest import RegisteredTest
 from dxcint.Context import Context
 from dxcint.Messenger import State
-from dxcint.utils import async_retry
+from dxcint.utils import (
+    download_dxfile,
+    dict_compare,
+    list_dx_folder,
+    sort_dicts,
+    sort_maybe_mixed,
+    async_retry,
+    link_to_dxfile,
+    get_checksum,
+)
 from dxcint.mixins.ResultsTestMixin import ResultsTestMixin
 import dxpy
-import logging
 import os
-import tempfile
-import hashlib
 
 
 class ExpectedOutput(ResultsTestMixin, RegisteredTest):
@@ -54,7 +60,9 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
                 field_name1 = ".".join(field_name_parts)
                 field_name2 = "___".join(field_name_parts)
                 if exec_name != self._test_name:
-                    logging.error("Execution name in output does not match test name")
+                    self.context.logger.error(
+                        "Execution name in output does not match test name"
+                    )
                     return False
                 if field_name1 in exec_outputs:
                     exec_val = exec_outputs[field_name1]
@@ -63,7 +71,7 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
                 elif expected_val is None:
                     continue
                 else:
-                    logging.error(
+                    self.context.logger.error(
                         f"Execution output does not contain expected field: {field_name1}"
                     )
                     return False
@@ -83,7 +91,7 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
             except RuntimeError as e:
                 return {
                     "passed": False,
-                    "message": str(e),
+                    "message": "Extracting outputs threw an exception" + str(e),
                 }
 
             if self._validate_outputs(outputs, self._results):
@@ -101,70 +109,6 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
                 "passed": False,
                 "message": f"Execution of the test {self.name} DID NOT pass as expected.",
             }
-
-    # TODO: refactor
-
-    @staticmethod
-    def dict_compare(actual: Dict, expected: Dict) -> Tuple[Set, Set, Set, Set]:
-        d1_keys = set(actual.keys())
-        d2_keys = set(expected.keys())
-        shared_keys = d1_keys.intersection(d2_keys)
-        added = d1_keys - d2_keys
-        removed = d2_keys - d1_keys
-        modified = {}
-        for o in shared_keys:
-            if not isinstance(actual[o], type(expected[o])):
-                modified[o] = (actual[o], expected[o])
-                continue
-            if isinstance(actual[o], dict):
-                a, r, m, s = ExpectedOutput.dict_compare(actual[o], expected[o])
-                if (
-                    not r and not m
-                ):  # expected dict cannot contain more keys, actual can
-                    continue
-            elif actual[o] == expected[o]:
-                continue
-            modified[o] = (actual[o], expected[o])
-        same = set(o for o in shared_keys if actual[o] == expected[o])
-        return added, removed, modified, same
-
-    @staticmethod
-    def sort_dicts(a: List[Dict], b: List[Dict]) -> Tuple[List[Dict], List[Dict]]:
-        """Sort two lists of dicts to make them comparable. Given lists of dicts a and b:
-
-        1. get the set of all keys in all dicts in both lists
-        2. expand each dict into a list of tuples where the first element is the key and the
-        second element is the value (which may be None if the dict does not contain the key)
-        3. sort each list
-        4. remove the tuples with None values from each list
-        5. turn each list of tuples back into a list of dicts.
-        """
-        all_keys = list(
-            sorted(
-                set(k for x in a for k in x.keys())
-                | set(k for x in b for k in x.keys())
-            )
-        )
-        return (
-            [
-                dict((k, v) for k, v in x if v is not None)
-                for x in list(sorted([(k, i.get(k)) for k in all_keys] for i in a))
-            ],
-            [
-                dict((k, v) for k, v in x if v is not None)
-                for x in list(sorted([(k, j.get(k)) for k in all_keys] for j in b))
-            ],
-        )
-
-    @staticmethod
-    def sort_maybe_mixed(seq):
-        try:
-            # may fail if the lists contain mutliple types of values
-            return list(sorted(seq))
-        except Exception:
-            d = dict((str(x), x) for x in seq)
-            sorted_keys = list(sorted(d.keys()))
-            return [d[k] for k in sorted_keys]
 
     def _unwrap(self, actual, expected):
         if isinstance(actual, dict) and "___" in actual:
@@ -189,7 +133,7 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
                 and len(expected) == 1
                 and "$dnanexus_link" in expected
             ):
-                _, _, modified, _ = ExpectedOutput.dict_compare(actual, expected)
+                _, _, modified, _ = dict_compare(actual, expected)
                 if modified:
                     self.context.logger.error(
                         f"Given files are not the same ({modified})."
@@ -209,14 +153,16 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
         ):
             actual = actual["uri"]
         if isinstance(actual, dict) and "$dnanexus_link" in actual:
-            actual = self._download_dxfile(self._link_to_dxfile(actual))
+            actual = download_dxfile(link_to_dxfile(actual, self.context.project_id))
 
         if isinstance(actual, dict) and isinstance(expected, dict):
             expected_keys = set(expected.keys())
             actual_keys = set(expected.keys())
             if expected_keys != actual_keys:
-                logging.error(f"Analysis {self.name} gave unexpected results")
-                logging.error(
+                self.context.logger.error(
+                    f"Analysis {self.name} gave unexpected results"
+                )
+                self.context.logger.error(
                     f"Field {field} should have keys ({expected_keys}), actual = ({actual_keys})"
                 )
                 return False
@@ -227,31 +173,15 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
                 return True
 
         if str(actual).strip() != str(expected).strip():
-            logging.error(f"Analysis {self.name} gave unexpected results")
-            logging.error(
+            self.context.logger.error(f"Analysis {self.name} gave unexpected results")
+            self.context.logger.error(
                 f"Field {field} should have keys ({expected_keys}), actual = ({actual_keys})"
             )
             return False
 
         return True
 
-    def _download_dxfile(self, dxfile):
-        key = (dxfile.get_proj_id(), dxfile.get_id())
-        if key in self.file_cache:
-            return self.file_cache[key]
-        # the result is a file - download it and extract the contents
-        dlpath = os.path.join(tempfile.mkdtemp(), dxfile.describe()["name"])
-        dxpy.download_dxfile(dxfile, dlpath)
-        try:
-            with open(dlpath, "r") as inp:
-                contents = str(inp.read()).strip()
-                self.file_cache[key] = contents
-                return contents
-        finally:
-            if os.path.exists(dlpath):
-                os.remove(dlpath)
-
-    def _compare_result_path(self, result, expected_val, field_name):
+    def _compare_result_path(self, result, expected_val, field_name: str):
         cls = result.get("class", result.get("type"))
         expected_cls = expected_val.get("class", expected_val.get("type"))
         if cls == "File" and expected_cls == "File":
@@ -267,13 +197,13 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
                 field_name,
             )
         else:
-            logging.error(f"Analysis {self.name} gave unexpected results")
-            logging.error(
+            self.context.logger.error(f"Analysis {self.name} gave unexpected results")
+            self.context.logger.error(
                 f"Field {field_name} should be of class ({expected_cls}), actual = ({cls})"
             )
             return False
 
-    def _compare_result_file(self, result, expected_val, field_name):
+    def _compare_result_file(self, result, expected_val, field_name: str):
         expected_checksum = (
             expected_val["checksum"] if "checksum" in expected_val else None
         )
@@ -290,18 +220,18 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
             contents = result.get("contents")
             location = result.get("location", result.get("path", result.get("uri")))
             if isinstance(location, dict) and "$dnanexus_link" in location:
-                dxfile = self._link_to_dxfile(location)
+                dxfile = link_to_dxfile(location, self.context.project_id)
                 location = os.path.join(
                     dxfile.describe()["folder"], dxfile.describe()["name"]
                 )
                 if contents is None:
-                    contents = self._download_dxfile(dxfile)
+                    contents = download_dxfile(dxfile)
             size = result.get("size")
             checksum = result.get("checksum")
             secondary_files = result.get("secondaryFiles", [])
         elif "$dnanexus_link" in result:
-            dxfile = self._link_to_dxfile(result)
-            contents = self._download_dxfile(dxfile)
+            dxfile = link_to_dxfile(result, self.context.project_id)
+            contents = download_dxfile(dxfile)
             location = os.path.join(
                 dxfile.describe()["folder"], dxfile.describe()["name"]
             )
@@ -347,9 +277,7 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
                 return False
 
         if expected_checksum:
-            checksum = checksum or (
-                self._get_checksum(contents, algo) if contents else None
-            )
+            checksum = checksum or (get_checksum(contents, algo) if contents else None)
             if checksum != expected_checksum:
                 self.context.logger.error(
                     f"Analysis {self.name} gave unexpected results"
@@ -382,26 +310,7 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
 
         return True
 
-    def _link_to_dxfile(self, link):
-        fields = link["$dnanexus_link"]
-        if isinstance(fields, str):
-            return dxpy.DXFile(fields, self.context.project_id)
-        else:
-            return dxpy.DXFile(
-                fields["id"], fields.get("project", self.context.project_id)
-            )
-
-    def _get_checksum(contents, algo):
-        try:
-            m = hashlib.new(algo)
-            m.update(contents)
-            checksum = m.digest()
-            return f"{algo}${checksum}"
-        except Exception:
-            print("python does not support digest algorithm {}".format(algo))
-            return None
-
-    def _compare_lists(self, actual, expected, field):
+    def _compare_lists(self, actual: List, expected: List, field: str) -> bool:
         actual = list(filter(lambda x: x is not None, actual))
         expected = list(filter(lambda x: x is not None, expected))
         n = len(actual)
@@ -434,10 +343,10 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
                         if not self._compare_values(exp, act, field):
                             return False
                     return True
-                actual, expected = ExpectedOutput.sort_dicts(actual, expected)
+                actual, expected = sort_dicts(actual, expected)
             else:
-                actual = ExpectedOutput.sort_maybe_mixed(actual)
-                expected = ExpectedOutput.sort_maybe_mixed(expected)
+                actual = sort_maybe_mixed(actual)
+                expected = sort_maybe_mixed(expected)
 
         for i, (e, a) in enumerate(zip(expected, actual)):
             if not self._compare_values(e, a, f"{field}[{i}]".format(field, i)):
@@ -445,7 +354,7 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
         else:
             return True
 
-    def _compare_result_directory(self, result, expected_val, field_name):
+    def _compare_result_directory(self, result, expected_val, field_name: str) -> bool:
         location = result.get("location", result.get("path", result.get("uri")))
         if location is not None and location.startswith("dx://"):
             project_id, folder = location[5:].split(":")
@@ -488,7 +397,7 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
                 )
                 return False
             else:
-                listing = self.list_dx_folder(project, folder)
+                listing = list_dx_folder(project, folder)
             listing_len = len(listing) if listing else 0
             if len(expected_listing) != listing_len:
                 self.context.logger.error(
@@ -517,24 +426,3 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
                     return False
 
         return True
-
-    def list_dx_folder(self, project, folder):
-        # get shallow listing of remote folder
-        if isinstance(project, str):
-            project = dxpy.DXProject(project)
-        key = (project.get_id(), folder)
-        if key in self.folder_cache:
-            return self.folder_cache[key]
-        contents = project.list_folder(folder)
-        files: List[dict] = [
-            {"$dnanexus_link": {"id": obj["id"], "project": project.get_id()}}
-            for obj in contents["objects"]
-            if obj["id"].startswith("file-")
-        ]
-        dirs: List[dict] = [
-            {"type": "Folder", "uri": "dx://{}:{}".format(project.get_id(), folder)}
-            for folder in contents["folders"]
-        ]
-        listing = files + dirs
-        self.folder_cache[key] = listing
-        return listing

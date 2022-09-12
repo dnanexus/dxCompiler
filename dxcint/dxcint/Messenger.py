@@ -1,8 +1,9 @@
-import logging
 import dxpy
 
 from typing import Optional, Union
 from enum import Enum, auto
+
+from dxcint.Context import Context
 
 
 class State(Enum):
@@ -19,11 +20,13 @@ class Messenger(object):
 
     def __init__(
         self,
+        context: Context,
         test_name: str,
         job_id: str,
         variant: Optional[object] = None,
         interval: int = 20,
     ):
+        self._context = context
         self._test_name = test_name
         self._variant = variant if variant else ""
         self._state: State = State.NOT_DONE
@@ -45,16 +48,16 @@ class Messenger(object):
         Returns:
             State.FINISHED if the execution ran to completion, State.FAIL if it failed or was terminated.
         """
-        logging.info(
+        self._context.logger.info(
             f"Waiting for completion of the test `{self._test_name}` with input variant {self._variant}"
         )
         test_name_with_variant = f"{self._test_name}.{self._variant}"
         try:
             self._execution.wait_on_done(interval=self._interval)
-            logging.info(f"Analysis {test_name_with_variant} succeeded")
+            self._context.logger.info(f"Analysis {test_name_with_variant} succeeded")
             self._state = State.FINISHED
         except dxpy.DXJobFailureError:
-            logging.info(
+            self._context.logger.info(
                 f"Analysis {test_name_with_variant} failed. This failure will verified"
             )
             self._state = State.FAIL

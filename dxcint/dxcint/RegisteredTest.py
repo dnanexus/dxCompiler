@@ -199,4 +199,4 @@ class RegisteredTest(object):
         }
 
     def _create_messenger(self) -> Messenger:
-        return Messenger(self.name, self.job_id)
+        return Messenger(self.context, self.name, self.job_id)
