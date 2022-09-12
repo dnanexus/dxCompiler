@@ -2,7 +2,12 @@
 
 ## in develop
 
-...
+### Dependency updates
+
+#### wdlTools [TBA]
+
+* Fix for V_Directory in Struct to Directory input
+
 
 ## 2.10.4 2022-08-23
 
