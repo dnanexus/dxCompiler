@@ -42,9 +42,10 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y apt-transport-https wget git openssh-server tree python3 python3-pip python3-venv
-          cwltool=`jq -r '.execDepends.cwl[0].name' scripts/bundled_dependencies.json`
+          cwltool=`jq -r '.execDepends.cwl[0].version' scripts/bundled_dependencies.json`
+          salad=`jq -r '.execDepends.cwl[1].version' scripts/bundled_dependencies.json`
           pip3 install --upgrade pip setuptools pyOpenSSL
-          pip3 install termcolor dxpy $cwltool
+          pip3 install termcolor dxpy cwltool==$cwltool schema-salad==$salad
           export PATH="$PATH:$HOME/.local/bin"
 
           # install dxda
