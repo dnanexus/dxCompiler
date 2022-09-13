@@ -45,7 +45,6 @@ jobs:
           cwltool=`jq -r '.execDepends.cwl[0].version' scripts/bundled_dependencies.json`
           salad=`jq -r '.execDepends.cwl[1].version' scripts/bundled_dependencies.json`
           pip3 install --upgrade pip setuptools pyOpenSSL
-          pip3 install CacheControl==0.12.11    #TODO remove this when dependency is fixed
           pip3 install termcolor dxpy cwltool==$cwltool schema-salad==$salad
           export PATH="$PATH:$HOME/.local/bin"
 
