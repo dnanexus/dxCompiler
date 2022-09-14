@@ -14,7 +14,7 @@ class ResultsTestMixin(RegisteredTest):
     def results(self) -> Dict:
         return self._results
 
-    def _import_results(self) -> Dict:
+    def _import_results(self, *args, **kwargs) -> Dict:
         results_basename = f"{self._test_name}{self._results_suffix}"
         results_src = os.path.join(os.path.dirname(self._src_file), results_basename)
         if os.path.exists(results_src):

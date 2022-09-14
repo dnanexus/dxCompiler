@@ -100,7 +100,7 @@ class Terraform(object):
         try:
             local_asset_dirs = self._create_local_asset_dir(always_capital_lang)
             for dependency in language_specific_dependencies:
-                _ = dependency.link(local_asset_dirs.get("bin"))
+                dependency.link(local_asset_dirs.get("bin"))
             _ = self._create_asset_spec(always_capital_lang)
             asset_id = self._build_asset(always_capital_lang)
             _ = self._clean_up(always_capital_lang)
@@ -140,12 +140,13 @@ class Terraform(object):
         return asset_obj.get("id")
 
     def _create_asset_spec(self, language: str) -> Dict:
-        spec_exports = [x.export_spec() for x in self._dependencies].remove(None)
+        # spec_exports = [x.export_spec() for x in self._dependencies].remove(None) # this line doesn't do anything
         exec_depends = [
             {"name": "openjdk-8-jre-headless"},
             {"name": "bzip2"},
             {"name": "jq"},
-        ] + (spec_exports or [])
+        ]
+        # + (spec_exports or [])
         asset_spec = {
             "version": self._context.version,
             "name": f"dx{language}rt",

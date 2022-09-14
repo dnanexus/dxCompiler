@@ -107,7 +107,7 @@ def list_dx_folder(project, folder, folder_cache):
     return listing
 
 
-def dict_compare(actual: Dict, expected: Dict) -> Tuple[Set, Set, Set, Set]:
+def dict_compare(actual: Dict, expected: Dict) -> Tuple[Set, Set, Dict, Set]:
     d1_keys = set(actual.keys())
     d2_keys = set(expected.keys())
     shared_keys = d1_keys.intersection(d2_keys)

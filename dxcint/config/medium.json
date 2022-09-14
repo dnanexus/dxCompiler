@@ -1,1 +1,1 @@
-{"expected_failure": ["bad_status", "apps_1014", "just_fail_wf", "bad_status2"], "expected_failure_message": ["python_task_fail_docker", "python_task_fail"]}
+{"expected_failure": ["bad_status", "apps_1014", "just_fail_wf", "bad_status2"], "expected_failure_message": ["python_task_fail_docker", "python_task_fail"], "reorg_locked_expected_output": ["dict"]}

@@ -21,11 +21,10 @@ import os
 class ExpectedOutput(ResultsTestMixin, RegisteredTest):
     def __init__(self, src_file: str, category: str, test_name: str, context: Context):
         super().__init__(src_file, category, test_name, context)
-        self._output = None
-        self.file_cache = {}
-        self.folder_cache = {}
+        self.file_cache: Dict = {}
+        self.folder_cache: Dict = {}
 
-    @async_retry
+    @async_retry(max_retries=5)
     def _run_executable(self) -> str:
         execution = self._run_executable_inner()
         return execution.describe().get("id")
@@ -33,54 +32,17 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
     def _extract_outputs(self) -> Dict:
         desc = dxpy.describe(self.job_id)
         if desc["class"] == "analysis":
-            if self._locked:
-                return desc["output"]
-            else:
-                stages = desc["stages"]
-                for stage in stages:
-                    if stage["id"] == "stage-outputs":
-                        return stage["execution"]["output"]
-                raise RuntimeError(
-                    f"Analysis for test {self.name} does not have stage 'outputs'"
-                )
+            stages = desc["stages"]
+            for stage in stages:
+                if stage["id"] == "stage-outputs":
+                    return stage["execution"]["output"]
+            raise RuntimeError(
+                f"Analysis for test {self.name} does not have stage 'outputs'"
+            )
         elif desc["class"] == "job":
             return desc["output"]
         else:
             raise RuntimeError(f"Unknown {desc['class']}")
-
-    def _validate_outputs(self, exec_outputs, expected_output) -> bool:
-        try:
-            if exec_outputs is None:
-                if expected_output is None:
-                    return True
-                else:
-                    return False
-            for key, expected_val in expected_output:
-                exec_name, *field_name_parts = key.split(".")
-                field_name1 = ".".join(field_name_parts)
-                field_name2 = "___".join(field_name_parts)
-                if exec_name != self._test_name:
-                    self.context.logger.error(
-                        "Execution name in output does not match test name"
-                    )
-                    return False
-                if field_name1 in exec_outputs:
-                    exec_val = exec_outputs[field_name1]
-                elif field_name2 in exec_outputs:
-                    exec_val = exec_outputs[field_name2]
-                elif expected_val is None:
-                    continue
-                else:
-                    self.context.logger.error(
-                        f"Execution output does not contain expected field: {field_name1}"
-                    )
-                    return False
-                if not self._compare_values(expected_val, exec_val, field_name1):
-                    return False
-
-        except Exception:
-            return False
-        return True
 
     def _validate(self) -> Dict:
         self.messenger.wait_for_completion()
@@ -102,13 +64,48 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
             else:
                 return {
                     "passed": False,
-                    "message": f"Results of test {self.name} are invalid.\nExpected: {self._output}.\nReceived: {outputs}",
+                    "message": f"Results of test {self.name} are invalid.\nExpected: {self._results}.\nReceived: {outputs}",
                 }
         else:
             return {
                 "passed": False,
                 "message": f"Execution of the test {self.name} DID NOT pass as expected.",
             }
+
+    def _validate_outputs(self, exec_outputs, expected_output) -> bool:
+        try:
+            if exec_outputs is None:
+                if expected_output is None:
+                    return True
+                else:
+                    return False
+            for key, expected_val in expected_output.items():
+                exec_name, *field_name_parts = key.split(".")
+                field_name1 = ".".join(field_name_parts)
+                field_name2 = "___".join(field_name_parts)
+                if exec_name != self._test_name:
+                    self.context.logger.error(
+                        "Execution name in output does not match test name"
+                    )
+                    return False
+                if field_name1 in exec_outputs:
+                    exec_val = exec_outputs[field_name1]
+
+                elif field_name2 in exec_outputs:
+                    exec_val = exec_outputs[field_name2]
+                elif expected_val is None:
+                    continue
+                else:
+                    self.context.logger.error(
+                        f"Execution output does not contain expected field: {field_name1}"
+                    )
+                    return False
+                if not self._compare_values(expected_val, exec_val, field_name1):
+                    return False
+
+        except Exception:
+            return False
+        return True
 
     def _unwrap(self, actual, expected):
         if isinstance(actual, dict) and "___" in actual:
@@ -153,7 +150,9 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
         ):
             actual = actual["uri"]
         if isinstance(actual, dict) and "$dnanexus_link" in actual:
-            actual = download_dxfile(link_to_dxfile(actual, self.context.project_id))
+            actual = download_dxfile(
+                link_to_dxfile(actual, self.context.project_id), self.file_cache
+            )
 
         if isinstance(actual, dict) and isinstance(expected, dict):
             expected_keys = set(expected.keys())
@@ -231,7 +230,7 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
             secondary_files = result.get("secondaryFiles", [])
         elif "$dnanexus_link" in result:
             dxfile = link_to_dxfile(result, self.context.project_id)
-            contents = download_dxfile(dxfile)
+            contents = download_dxfile(dxfile, self.file_cache)
             location = os.path.join(
                 dxfile.describe()["folder"], dxfile.describe()["name"]
             )
@@ -397,7 +396,7 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
                 )
                 return False
             else:
-                listing = list_dx_folder(project, folder)
+                listing = list_dx_folder(project, folder, self.folder_cache)
             listing_len = len(listing) if listing else 0
             if len(expected_listing) != listing_len:
                 self.context.logger.error(

@@ -25,10 +25,10 @@ class RegisteredTest(object):
         self._category = category
         self._test_name = test_name
         self._language = rm_prefix(os.path.basename(src_file), test_name).strip(".")
-        self._messenger = None
-        self._exec_id = None  # id of the executable (workflow or applet)
-        self._job_id = None  # id of the execution (job or analysis)
-        self._test_results = None
+        self._messenger: Optional[Messenger] = None
+        self._exec_id: Optional[str] = None  # id of the executable (workflow or applet)
+        self._job_id: Optional[str] = None  # id of the execution (job or analysis)
+        self._test_results: Optional[Dict] = None
         self._executable_type_switch = {
             "workflow": dxpy.DXWorkflow,
             "app": dxpy.DXApp,
@@ -38,11 +38,10 @@ class RegisteredTest(object):
             ["git", "describe", "--always", "--dirty", "--tags"]
         ).strip()
         self._inputs_suffix = "_input.json"  # wf inputs supplied as json usually have this suffix. Can be changed in subclasses
-        self._locked = False
         self._test_inputs = self._import_inputs()
 
     @property
-    def context(self):
+    def context(self) -> Context:
         return self._context
 
     @property
@@ -58,7 +57,7 @@ class RegisteredTest(object):
         return self._language
 
     @property
-    def messenger(self):
+    def messenger(self) -> Messenger:
         if not self._messenger:
             self._messenger = self._create_messenger()
         return self._messenger
@@ -112,12 +111,13 @@ class RegisteredTest(object):
                 "-instanceTypeSelection",
                 random.choice(["static", "dynamic"]),
             ]
-            if "-instanceTypeSelection" not in additional_compiler_flags
+            if (
+                not additional_compiler_flags
+                or "-instanceTypeSelection" not in additional_compiler_flags
+            )
             else []
         )
         compiler_flags += additional_compiler_flags or []
-        if self._locked and "-locked" not in compiler_flags:
-            compiler_flags += ["-locked"]
         compiler_jar_path = os.path.join(
             self._context.repo_root_dir, f"dxCompiler-{self._context.version}.jar"
         )
@@ -151,7 +151,7 @@ class RegisteredTest(object):
         return execution_desc.get("id")
 
     def _run_executable_inner(
-        self, instance_type=DEFAULT_INSTANCE_TYPE, **kwargs
+        self, *args, **kwargs
     ) -> Union[dxpy.DXAnalysis, dxpy.DXJob]:
         """
         Override this method if the changes to the workflow execution are needed.
@@ -159,7 +159,7 @@ class RegisteredTest(object):
         Returns: Union[DXAnalysis,DXJob]. Execution handler
 
         """
-        kwargs["instance_type"] = instance_type
+        kwargs["instance_type"] = kwargs.get("instance_type", DEFAULT_INSTANCE_TYPE)
         exec_type = self.exec_id.split("-")[0]
         exec_handler = self._executable_type_switch.get(exec_type)(
             project=self._context.project_id, dxid=self.exec_id
