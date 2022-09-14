@@ -69,10 +69,17 @@ jobs:
           dx select $PROJECT
           cd ${GITHUB_WORKSPACE}
       - name: Run medium integration test suite with dxcint
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ROBOT_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
         run: |
           dxcint integration -t 'M' . 
 
       - name: Run multi-user tests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ROBOT_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
+          TEST_ROBOT_TOKEN: ${{ secrets.DX_STAGING_TEST_ROBOT_TOKEN }}
         run: |  
           echo "TODO reenable"
           # FOLDER=/builds/test_gha_dxcompiler_$(date +%s)_$RANDOM
