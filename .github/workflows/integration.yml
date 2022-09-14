@@ -55,6 +55,7 @@ jobs:
           cd dxcint
           poetry install
           cd ..
+          pip3 install dxcint/
       - name: Set-up
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
