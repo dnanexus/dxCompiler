@@ -90,33 +90,33 @@ expected_failure = {
 
 wdl_v1_list = [
     # calling native dx applets/apps
-    "apps_1318_nested",
+    "apps_1318_nested", #migrated
     "call_native_v1",
     "call_native_app",
-    "cast",
+    "cast", #migrated
     "dict", #migrated
     "instance_types",
     "apps_1197_native_frag_default",
-    "linear_no_expressions",
-    "linear",
-    "optionals",
-    "optionals3",
-    "spaces_in_file_paths",
+    "linear_no_expressions", #migrated
+    "linear", #migrated
+    "optionals", #migrated
+    "optionals3", #migrated
+    "spaces_in_file_paths", #migrated
     "strings", #migrated
-    "runtime_vs_static_type",
-    "wf_person",
-    "call_level2",
-    "environment_passing_deep_nesting",
-    "optional_output",
-    "unpassed_default_arg",
+    "runtime_vs_static_type", #migrated
+    "wf_person", #migrated
+    "call_level2", #migrated
+    "environment_passing_deep_nesting", #migrated
+    "optional_output", #migrated
+    "unpassed_default_arg", #migrated
     # workflows with nested blocks
-    "two_levels",
-    "three_levels",
-    "four_levels",
-    "param_passing",
-    "nested_scatter",
+    "two_levels", #migrated
+    "three_levels", #migrated
+    "four_levels", #migrated
+    "param_passing", #migrated
+    "nested_scatter", #migrated
     # Array input with no values
-    "empty_array",
+    "empty_array", #migrated
     # Map with a File key
     "map_file_key",
     # defaults and parameter passing

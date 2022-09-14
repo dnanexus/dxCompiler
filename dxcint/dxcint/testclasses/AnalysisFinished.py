@@ -19,13 +19,13 @@ class AnalysisFinished(RegisteredTest):
         self.messenger.wait_for_completion()
         if self.messenger.state == State.FINISHED:
             return {
-                "passed": False,
-                "message": f"Execution of the test {self.name} DID NOT fail as expected.",
+                "passed": True,
+                "message": f"Execution of the test {self.name} finished successfully as expected.",
             }
         elif self.messenger.state == State.FAIL:
             return {
-                "passed": True,
-                "message": f"Execution of the test {self.name} failed as expected.",
+                "passed": False,
+                "message": f"Execution of the test {self.name} FAILED unexpectedly.",
             }
         else:
             return {

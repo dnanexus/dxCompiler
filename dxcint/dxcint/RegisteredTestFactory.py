@@ -4,6 +4,7 @@ from dxcint.testclasses.ReorgLockedExpectedOutput import ReorgLockedExpectedOutp
 from dxcint.testclasses.ExpectedFailure import ExpectedFailure
 from dxcint.testclasses.ExpectedFailureMessage import ExpectedFailureMessage
 from dxcint.testclasses.ExpectedOutput import ExpectedOutput
+from dxcint.testclasses.LockedExpectedOutput import LockedExpectedOutput
 from dxcint.testclasses.AnalysisFinished import AnalysisFinished
 
 
@@ -18,6 +19,7 @@ class RegisteredTestFactory(object):
             "expected_failure_message": ExpectedFailureMessage,
             "expected_output": ExpectedOutput,
             "analysis_finished": AnalysisFinished,
+            "locked_expected_output": LockedExpectedOutput,
             "reorg_locked_expected_output": ReorgLockedExpectedOutput
             # ADD NEW CATEGORY HERE
         }
