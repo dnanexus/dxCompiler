@@ -94,7 +94,7 @@ wdl_v1_list = [
     "call_native_v1",
     "call_native_app",
     "cast",
-    "dict",
+    "dict", #migrated
     "instance_types",
     "apps_1197_native_frag_default",
     "linear_no_expressions",
@@ -102,7 +102,7 @@ wdl_v1_list = [
     "optionals",
     "optionals3",
     "spaces_in_file_paths",
-    "strings",
+    "strings", #migrated
     "runtime_vs_static_type",
     "wf_person",
     "call_level2",
@@ -565,7 +565,9 @@ test_suites = {
 }
 
 # Tests with the reorg flags
-test_reorg = {"dict", "strings", "test_reorg", "test_reorg_no_config"}
+test_reorg = {"dict",# migrated
+ "strings", #migrated
+  "test_reorg", "test_reorg_no_config"}
 test_defaults = set()
 test_unlocked = {
     "array_structs",
