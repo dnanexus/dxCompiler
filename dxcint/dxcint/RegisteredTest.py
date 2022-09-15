@@ -38,7 +38,8 @@ class RegisteredTest(object):
             ["git", "describe", "--always", "--dirty", "--tags"]
         ).strip()
         self._inputs_suffix = "_input.json"  # wf inputs supplied as json usually have this suffix. Can be changed in subclasses
-        self._test_inputs = self._import_inputs()
+        self._compiled_inputs_suffix = "_input.dx.json"
+        self._test_inputs = {}
 
     @property
     def context(self) -> Context:
@@ -73,6 +74,12 @@ class RegisteredTest(object):
         if not self._job_id:
             self._job_id = self._run_executable()
         return self._job_id
+
+    @property
+    def test_inputs(self) -> Dict:
+        if not self._test_inputs:
+            self._test_inputs = self._import_inputs()
+        return self._test_inputs
 
     @property
     def test_result(self) -> bool:
@@ -118,6 +125,12 @@ class RegisteredTest(object):
             else []
         )
         compiler_flags += additional_compiler_flags or []
+
+        input_basename = f"{self._test_name}{self._inputs_suffix}"
+        input_src = os.path.join(os.path.dirname(self._src_file), input_basename)
+        if os.path.exists(input_src):
+            compiler_flags += ["-inputs", input_src]
+
         compiler_jar_path = os.path.join(
             self._context.repo_root_dir, f"dxCompiler-{self._context.version}.jar"
         )
@@ -166,7 +179,7 @@ class RegisteredTest(object):
         )
         self._context.logger.info(f"Running the process for test {self._test_name}")
         dx_execution = exec_handler.run(
-            self._test_inputs,
+            self.test_inputs,
             project=self._context.project_id,
             folder=os.path.join(self._context.platform_build_dir, "test"),
             name=f"{self._test_name} {self._git_revision}",
@@ -174,8 +187,8 @@ class RegisteredTest(object):
         )
         return dx_execution
 
-    def _import_inputs(self):
-        input_basename = f"{self._test_name}{self._inputs_suffix}"
+    def _import_inputs(self) -> Dict:
+        input_basename = f"{self._test_name}{self._compiled_inputs_suffix}"
         input_src = os.path.join(os.path.dirname(self._src_file), input_basename)
         if os.path.exists(input_src):
             with open(input_src, "r") as input_src_handle:
