@@ -28,12 +28,12 @@ test_files = {}
 
 # these tests generally have syntax errors and are expected to fail at the compile step
 test_compilation_failing = {
-    "import_passwd",
+    "import_passwd", #TODO
 }
 
 # these tests generally have missing inputs and are expected to fail at the run step
 test_run_failing = {
-    "null-expression2-tool.0",
+    "null-expression2-tool.0", #TODO
 }
 
 # these tests are expected to fail at runtime AND throw a specific error message which will be checked
@@ -91,12 +91,12 @@ expected_failure = {
 wdl_v1_list = [
     # calling native dx applets/apps
     "apps_1318_nested", #migrated
-    "call_native_v1",
-    "call_native_app",
+    "call_native_v1", #TODO
+    "call_native_app", #TODO
     "cast", #migrated
     "dict", #migrated
-    "instance_types",
-    "apps_1197_native_frag_default",
+    "instance_types", #TODO
+    "apps_1197_native_frag_default", #TODO
     "linear_no_expressions", #migrated
     "linear", #migrated
     "optionals", #migrated
@@ -118,62 +118,62 @@ wdl_v1_list = [
     # Array input with no values
     "empty_array", #migrated
     # Map with a File key
-    "map_file_key",
+    "map_file_key", #migrated
     # defaults and parameter passing
-    "top_wf",
-    "workflow_with_subworkflow",
+    "top_wf", #migrated
+    "workflow_with_subworkflow", #TODO
     # can we download from a container?
-    "download_from_container",
+    "download_from_container", #migrated
     # input file with pairs
-    "echo_pairs",
-    "array_structs",
+    "echo_pairs", #migrated
+    "array_structs", #migrated
     # Missing optional output files, returned as none, instead
     # of an error
-    "missing_optional_output_file",
+    "missing_optional_output_file", #migrated
     # calling with an optional argument not specified
-    "scatter_subworkflow_with_optional",
+    "scatter_subworkflow_with_optional", #migrated
     # streaming
-    "streaming_inputs",
+    "streaming_inputs", #migrated
     # input/output linear_no_expressions
-    "wf_with_input_expressions",
-    "wf_with_output_expressions",
+    "wf_with_input_expressions", #migrated
+    "wf_with_output_expressions", #migrated
     # bug regression tests
-    "nested_pairs",  # APPS-370
-    "apps_378",
-    "apps_384",
-    "diff_stream_and_download",  # APPS-288
-    "apps_573",
-    "apps_612",
-    "nested_optional",
-    "struct_deref",  # APPS-615
-    "apps_936",
+    "nested_pairs",  # APPS-370 #migrated
+    "apps_378", #migrated
+    "apps_384", #migrated
+    "diff_stream_and_download",  # APPS-288 #migrated
+    "apps_573", #migrated
+    "apps_612", #TODO
+    "nested_optional", #migrated
+    "struct_deref",  # APPS-615 #migrated
+    "apps_936", #migrated
     "apps_1014", #migrated
     # manifests
-    "simple_manifest",
-    "complex_manifest",
-    "view_and_count_manifest",
-    "apps_1269_1270_unqualified_ids_manifest",
+    "simple_manifest", #TODO
+    "complex_manifest", #TODO
+    "view_and_count_manifest", #TODO
+    "apps_1269_1270_unqualified_ids_manifest", #TODO
     # workflow with output files created by expressions
-    "upload_workflow_files",
-    "subworkflow_with_task",
-    "apps_700",
-    "apps_864",
-    "apps_1052_optional_block_inputs_wdl10",
-    "apps_1052_optional_compound_input_wdl10",
+    "upload_workflow_files", #migrated
+    "subworkflow_with_task", #TODO
+    "apps_700", #TODO
+    "apps_864", #migrated
+    "apps_1052_optional_block_inputs_wdl10", #migrated
+    "apps_1052_optional_compound_input_wdl10", #migrated
 ]
 
 wdl_v1_1_list = [
-    "apps_1128_frag_native_instance_type_override",
-    "apps_1177_native_indirect_override",
-    "v1_1_dict",
-    "apps_847_scatter_empty",
-    "optional_missing",
-    "inputs_provided_optional",
+    "apps_1128_frag_native_instance_type_override", #TODO
+    "apps_1177_native_indirect_override", #TODO
+    "v1_1_dict", #migrated
+    "apps_847_scatter_empty", #migrated
+    "optional_missing", #TODO
+    "inputs_provided_optional", #TODO
     # bug regression tests
-    "apps_579_boolean_flag_expr",
-    "apps_579_string_substitution_expr",
-    "apps_956_private_var_local",
-    "apps_1052_optional_block_inputs_wdl11",
+    "apps_579_boolean_flag_expr", #migrated
+    "apps_579_string_substitution_expr", #migrated
+    "apps_956_private_var_local", #migrated
+    "apps_1052_optional_block_inputs_wdl11", #migrated
 ]
 
 static_only = [
@@ -184,15 +184,16 @@ static_only = [
 
 # docker image tests
 docker_test_list = [
-    "broad_genomics",
-    "biocontainers",
-    "private_registry",
-    "native_docker_file_image",
-    "native_docker_file_image_gzip",
-    "samtools_count",
-    "dynamic_docker_image",
-    "ecr_docker",
+    "broad_genomics", #migrated
+    "biocontainers", #TODO
+    "private_registry", #TODO
+    "native_docker_file_image", #migrated
+    "native_docker_file_image_gzip", #migrated
+    "samtools_count", #migrated
+    "dynamic_docker_image", #migrated
+    "ecr_docker", #TODO
 ]
+#----- below are tests that are were not attempted to be migrated ---
 
 # wdl draft-2
 draft2_test_list = [

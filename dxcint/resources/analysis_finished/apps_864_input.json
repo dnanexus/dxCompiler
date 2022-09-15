@@ -1,0 +1,5 @@
+{
+  "apps_864.sample" : "wgs_bam_NA12878_20k_b37_NA12878_20k",
+  "apps_864.old_fastq_folder" : "test_data/fastq_gz_files",
+  "apps_864.R1_or_R2" : ".b37"
+}

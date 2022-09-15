@@ -1,0 +1,10 @@
+{
+  "struct_deref.sampleStruct": {
+    "sample_name": "George",
+    "id": 1
+  },
+  "struct_deref.sampleObject": {
+    "sample_name": "George",
+    "id": 1
+  }
+}

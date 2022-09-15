@@ -1,0 +1,3 @@
+{
+  "dynamic_docker_image.docker_dxfile" : "dx:///ubuntu-bionic.tar"
+}
