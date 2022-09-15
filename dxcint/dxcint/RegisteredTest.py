@@ -66,7 +66,8 @@ class RegisteredTest(object):
     @property
     def exec_id(self) -> str:
         if not self._exec_id:
-            self._exec_id = self._compile_executable()
+            with self.context.lock:
+                self._exec_id = self._compile_executable()
         return self._exec_id
 
     @property
