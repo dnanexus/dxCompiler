@@ -25,6 +25,7 @@ import dx.core.languages.wdl.{
   WdlUtils,
   WdlWorkflowSource
 }
+import dx.translator.ParameterAttributes.HelpAttribute
 import wdlTools.eval.{DefaultEvalPaths, Eval, EvalException, WdlValueBindings, WdlValues}
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 import wdlTools.types.WdlTypes._
@@ -82,10 +83,19 @@ case class CallableTranslator(wdlBundle: WdlBundle,
     private lazy val parameterMeta =
       ParameterMetaTranslator(wdlBundle.version, task.parameterMeta, task.hints)
 
+    private def gatherAttributes(input: TAT.InputParameter): Vector[ParameterAttribute] = {
+      val addedAttrs: Option[HelpAttribute] = input.wdlType match {
+        case struct: T_Struct =>
+          Some(HelpAttribute(s"Struct composition: ${struct.flattenMembers().keys.mkString(",")}"))
+        case _ => None
+      }
+      parameterMeta.translateInput(input.name, input.wdlType) ++ addedAttrs
+    }
+
     private def translateInput(input: TAT.InputParameter): Parameter = {
       val wdlType = input.wdlType
       val irType = WdlUtils.toIRType(wdlType)
-      val attrs = parameterMeta.translateInput(input.name, wdlType)
+      val attrs = gatherAttributes(input)
 
       input match {
         case TAT.RequiredInputParameter(name, _) => {
