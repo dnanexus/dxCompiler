@@ -14,7 +14,7 @@ task apps_579_sub_t {
     }
 }
 
-workflow apps_579_sub_wf {
+workflow apps_579_string_substitution_expr {
     call apps_579_sub_t
 
     output {
