@@ -6,6 +6,11 @@ from dxcint.testclasses.ExpectedFailureMessage import ExpectedFailureMessage
 from dxcint.testclasses.ExpectedOutput import ExpectedOutput
 from dxcint.testclasses.LockedExpectedOutput import LockedExpectedOutput
 from dxcint.testclasses.AnalysisFinished import AnalysisFinished
+from dxcint.testclasses.ExtrasAnalysisFinished import ExtrasAnalysisFinished
+from dxcint.testclasses.ExtrasExpectedOutput import ExtrasExpectedOutput
+from dxcint.testclasses.StaticDefaultInstanceExpectedOutput import (
+    StaticDefaultInstanceExpectedOutput,
+)
 
 
 class RegisteredTestFactory(object):
@@ -20,7 +25,10 @@ class RegisteredTestFactory(object):
             "expected_output": ExpectedOutput,
             "analysis_finished": AnalysisFinished,
             "locked_expected_output": LockedExpectedOutput,
-            "reorg_locked_expected_output": ReorgLockedExpectedOutput
+            "reorg_locked_expected_output": ReorgLockedExpectedOutput,
+            "extras_analysis_finished": ExtrasAnalysisFinished,
+            "extras_expected_output": ExtrasExpectedOutput,
+            "static_default_instance_expected_output": StaticDefaultInstanceExpectedOutput,
             # ADD NEW CATEGORY HERE
         }
         registered_test = test_type_switch.get(category, None)

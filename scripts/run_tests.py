@@ -96,7 +96,7 @@ wdl_v1_list = [
     "cast", #migrated
     "dict", #migrated
     "instance_types", #TODO
-    "apps_1197_native_frag_default", #TODO
+    "apps_1197_native_frag_default", #migrated
     "linear_no_expressions", #migrated
     "linear", #migrated
     "optionals", #migrated
@@ -163,12 +163,12 @@ wdl_v1_list = [
 ]
 
 wdl_v1_1_list = [
-    "apps_1128_frag_native_instance_type_override", #TODO
-    "apps_1177_native_indirect_override", #TODO
+    "apps_1128_frag_native_instance_type_override", #migrated
+    "apps_1177_native_indirect_override", #migrated
     "v1_1_dict", #migrated
     "apps_847_scatter_empty", #migrated
-    "optional_missing", #TODO
-    "inputs_provided_optional", #TODO
+    "optional_missing", #migrated
+    "inputs_provided_optional", #migrated
     # bug regression tests
     "apps_579_boolean_flag_expr", #migrated
     "apps_579_string_substitution_expr", #migrated
@@ -177,21 +177,21 @@ wdl_v1_1_list = [
 ]
 
 static_only = [
-    "apps_1177_native_indirect_override",
-    "apps_1128_frag_native_instance_type_override",
+    "apps_1177_native_indirect_override", #migrated
+    "apps_1128_frag_native_instance_type_override", #migrated
     "apps_1197_native_frag_default"
 ]
 
 # docker image tests
 docker_test_list = [
     "broad_genomics", #migrated
-    "biocontainers", #TODO
-    "private_registry", #TODO
+    "biocontainers", #migrated
+    "private_registry", #migrated
     "native_docker_file_image", #migrated
     "native_docker_file_image_gzip", #migrated
     "samtools_count", #migrated
     "dynamic_docker_image", #migrated
-    "ecr_docker", #TODO
+    "ecr_docker", #migrated
 ]
 #----- below are tests that are were not attempted to be migrated ---
 
@@ -596,10 +596,10 @@ test_upload_wait = {"upload_wait"}
 
 # use the applet's default instance type rather than the default (mem1_ssd1_x4)
 test_instance_type = [
-    "diskspace_exhauster",
-    "apps_1128_frag_native_instance_type_override",
-    "apps_1177_native_indirect_override",
-    "apps_1197_native_frag_default"
+    "diskspace_exhauster", #migrated
+    "apps_1128_frag_native_instance_type_override", #migrated
+    "apps_1177_native_indirect_override", #migrated
+    "apps_1197_native_frag_default" #migrated
 ]
 
 # Search a WDL file with a python regular expression.

@@ -1,0 +1,7 @@
+{
+  "docker_registry" : {
+    "registry" : "docker.io",
+    "username" : "orodeh",
+    "credentials" : "dx://dxCompiler_playground:/test_data/credentials.txt"
+  }
+}
