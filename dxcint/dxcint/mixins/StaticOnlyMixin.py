@@ -10,6 +10,6 @@ class StaticOnlyMixin(RegisteredTest):
             "additional_compiler_flags", []
         ) + [
             "-instanceTypeSelection",
-            "-static",
+            "static",
         ]
         return super()._compile_executable(*args, **kwargs)

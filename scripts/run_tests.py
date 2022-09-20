@@ -95,7 +95,7 @@ wdl_v1_list = [
     "call_native_app", #TODO
     "cast", #migrated
     "dict", #migrated
-    "instance_types", #TODO
+    "instance_types", #migrated
     "apps_1197_native_frag_default", #migrated
     "linear_no_expressions", #migrated
     "linear", #migrated
@@ -121,7 +121,7 @@ wdl_v1_list = [
     "map_file_key", #migrated
     # defaults and parameter passing
     "top_wf", #migrated
-    "workflow_with_subworkflow", #TODO
+    "workflow_with_subworkflow", #migrated
     # can we download from a container?
     "download_from_container", #migrated
     # input file with pairs
@@ -143,7 +143,7 @@ wdl_v1_list = [
     "apps_384", #migrated
     "diff_stream_and_download",  # APPS-288 #migrated
     "apps_573", #migrated
-    "apps_612", #TODO
+    "apps_612", #migrated
     "nested_optional", #migrated
     "struct_deref",  # APPS-615 #migrated
     "apps_936", #migrated
@@ -155,8 +155,8 @@ wdl_v1_list = [
     "apps_1269_1270_unqualified_ids_manifest", #TODO
     # workflow with output files created by expressions
     "upload_workflow_files", #migrated
-    "subworkflow_with_task", #TODO
-    "apps_700", #TODO
+    "subworkflow_with_task", #migrated
+    "apps_700", #migrated
     "apps_864", #migrated
     "apps_1052_optional_block_inputs_wdl10", #migrated
     "apps_1052_optional_compound_input_wdl10", #migrated
@@ -179,7 +179,7 @@ wdl_v1_1_list = [
 static_only = [
     "apps_1177_native_indirect_override", #migrated
     "apps_1128_frag_native_instance_type_override", #migrated
-    "apps_1197_native_frag_default"
+    "apps_1197_native_frag_default" #migrated
 ]
 
 # docker image tests
