@@ -1,4 +1,4 @@
-name: WDL Integration Tests
+name: WDL Integration Tests v2
 on:
   push:
     branches:
@@ -20,7 +20,7 @@ permissions:
   packages: read
 jobs:
   test:
-    name: WDL Integration Tests (Staging)
+    name: WDL Integration Tests (Staging) v2
     if: contains(github.event.pull_request.labels.*.name, 'integration2')
     runs-on: ubuntu-20.04
     env:

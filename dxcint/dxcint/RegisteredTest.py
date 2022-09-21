@@ -66,8 +66,7 @@ class RegisteredTest(object):
     @property
     def exec_id(self) -> str:
         if not self._exec_id:
-            with self.context.lock:
-                self._exec_id = self._compile_executable()
+            self._exec_id = self._compile_executable()
         return self._exec_id
 
     @property
@@ -145,7 +144,8 @@ class RegisteredTest(object):
         cmd += " ".join(compiler_flags)
         try:
             self._context.logger.info(f"COMPILE COMMAND: {cmd}")
-            workflow_id = sp.check_output(shlex.split(cmd)).strip()
+            with self.context.lock:
+                workflow_id = sp.check_output(shlex.split(cmd)).strip()
         except sp.CalledProcessError as e:
             self._context.logger.error(
                 f"Error compiling {self._src_file}\n"
