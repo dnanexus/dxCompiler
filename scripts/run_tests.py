@@ -149,10 +149,10 @@ wdl_v1_list = [
     "apps_936", #migrated
     "apps_1014", #migrated
     # manifests
-    "simple_manifest", #TODO
-    "complex_manifest", #TODO
-    "view_and_count_manifest", #TODO
-    "apps_1269_1270_unqualified_ids_manifest", #TODO
+    "simple_manifest", #migrated
+    "complex_manifest", #migrated
+    "view_and_count_manifest", #migrated
+    "apps_1269_1270_unqualified_ids_manifest", #migrated
     # workflow with output files created by expressions
     "upload_workflow_files", #migrated
     "subworkflow_with_task", #migrated
@@ -568,18 +568,18 @@ test_suites = {
 # Tests with the reorg flags
 test_reorg = {"dict",# migrated
  "strings", #migrated
-  "test_reorg", "test_reorg_no_config"}
+ }
 test_defaults = set()
 test_unlocked = {
-    "array_structs",
-    "cast",
+    "array_structs", #migrated
+    "cast", #migrated
     "call_with_defaults1",
     "files",
     "hello",
-    "path_not_taken",
-    "optionals",
+    "path_not_taken", #not run
+    "optionals", #migrated
     "shapes",
-    "population",
+    "population", #not run
 }
 test_project_wide_reuse = {"add2", "add_many"}
 test_separate_outputs = {"localization"}

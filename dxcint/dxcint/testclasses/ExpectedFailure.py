@@ -1,8 +1,7 @@
-from typing import Dict
-
 from dxcint.RegisteredTest import RegisteredTest
 from dxcint.Context import Context
 from dxcint.Messenger import State
+from typing import Dict
 
 
 class ExpectedFailure(RegisteredTest):

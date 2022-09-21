@@ -1,4 +1,3 @@
-import dxpy
 from dxcint.mixins.StaticOnlyMixin import StaticOnlyMixin
 from dxcint.mixins.DefaultInstanceMixin import DefaultInstanceMixin
 from dxcint.testclasses.ExpectedOutput import ExpectedOutput

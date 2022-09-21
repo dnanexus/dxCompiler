@@ -178,6 +178,10 @@ class RegisteredTest(object):
         exec_handler = self._executable_type_switch.get(exec_type)(
             project=self._context.project_id, dxid=self.exec_id
         )
+        if isinstance(exec_handler, dxpy.DXWorkflow):
+            kwargs["ignore_reuse_stages"] = kwargs.get("ignore_reuse_stages", ["*"])
+        else:
+            kwargs["ignore_reuse"] = kwargs.get("ignore_reuse", True)
         self._context.logger.info(f"Running the process for test {self._test_name}")
         dx_execution = exec_handler.run(
             self.test_inputs,

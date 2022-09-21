@@ -1,7 +1,5 @@
-import dxpy
 from dxcint.mixins.ExtrasMixin import ExtrasMixin
 from dxcint.testclasses.ExpectedOutput import ExpectedOutput
-from typing import Dict
 
 
 class ExtrasExpectedOutput(ExtrasMixin, ExpectedOutput):
