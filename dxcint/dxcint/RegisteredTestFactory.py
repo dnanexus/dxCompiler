@@ -12,6 +12,8 @@ from dxcint.testclasses.StaticDefaultInstanceExpectedOutput import (
     StaticDefaultInstanceExpectedOutput,
 )
 from dxcint.testclasses.ManifestAnalysisFinished import ManifestAnalysisFinished
+from dxcint.testclasses.ExternExpectedOutput import ExternExpectedOutput
+from dxcint.testclasses.AppExternExpectedOutput import AppExternExpectedOutput
 
 
 class RegisteredTestFactory(object):
@@ -31,6 +33,8 @@ class RegisteredTestFactory(object):
             "extras_expected_output": ExtrasExpectedOutput,
             "static_default_instance_expected_output": StaticDefaultInstanceExpectedOutput,
             "manifest_analysis_finished": ManifestAnalysisFinished,
+            "extern_expected_output": ExternExpectedOutput,
+            "app_extern_expected_output": AppExternExpectedOutput,
             # ADD NEW CATEGORY HERE
         }
         registered_test = test_type_switch.get(category, None)

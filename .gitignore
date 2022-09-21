@@ -68,3 +68,4 @@ compiler/src/test/resources/corpora/
 
 # macOS
 **/.DS_Store
+Ztmp

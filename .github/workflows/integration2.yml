@@ -21,7 +21,7 @@ permissions:
 jobs:
   test:
     name: WDL Integration Tests (Staging)
-    if: contains(github.event.pull_request.labels.*.name, 'integration')
+    if: contains(github.event.pull_request.labels.*.name, 'integration2')
     runs-on: ubuntu-20.04
     env:
       PROJECT: dxCompiler_playground
@@ -34,6 +34,11 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 11
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.1.10
+          virtualenvs-create: true
       - name: Install dxpy and other dependencies
         run: |
           sudo apt-get update
@@ -45,7 +50,13 @@ jobs:
           dxda_version=`jq -r '.dxda' scripts/bundled_dependencies.json`
           sudo wget -O/usr/local/bin/dx-download-agent https://github.com/dnanexus/dxda/releases/download/${dxda_version}/dx-download-agent-linux
           sudo chmod +x /usr/local/bin/dx-download-agent
-      - name: Run integration tests
+      - name: Install dxcint
+        run: |
+          cd dxcint
+          poetry install
+          cd ..
+          pip3 install dxcint/
+      - name: Set-up
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ROBOT_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
@@ -57,18 +68,25 @@ jobs:
           dx login --noprojects --staging --token $ROBOT_TOKEN
           dx select $PROJECT
           cd ${GITHUB_WORKSPACE}
+      - name: Run medium integration test suite with dxcint
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ROBOT_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
+        run: |
+          dxcint integration -t 'M' . 
 
-          # Run integration tests
-          FOLDER=/builds/test_gha_dxcompiler_$(date +%s)_$RANDOM
-          dx mkdir -p $FOLDER
-          python3 scripts/run_tests.py --folder $FOLDER --project $PROJECT \
-          --clean \
-          --test M
+      - name: Run multi-user tests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ROBOT_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
+          TEST_ROBOT_TOKEN: ${{ secrets.DX_STAGING_TEST_ROBOT_TOKEN }}
+        run: |  
+          echo "TODO reenable"
+          # FOLDER=/builds/test_gha_dxcompiler_$(date +%s)_$RANDOM
+          # dx mkdir -p $FOLDER
+          # python3 scripts/run_multiuser_tests.py --folder $FOLDER --project $PROJECT \
+          # --clean \
+          # --alice-token $ROBOT_TOKEN \
+          # --bob-token $TEST_ROBOT_TOKEN
 
-          # Run multi-user tests
-          FOLDER=/builds/test_gha_dxcompiler_$(date +%s)_$RANDOM
-          dx mkdir -p $FOLDER
-          python3 scripts/run_multiuser_tests.py --folder $FOLDER --project $PROJECT \
-          --clean \
-          --alice-token $ROBOT_TOKEN \
-          --bob-token $TEST_ROBOT_TOKEN
+

@@ -28,12 +28,12 @@ test_files = {}
 
 # these tests generally have syntax errors and are expected to fail at the compile step
 test_compilation_failing = {
-    "import_passwd", #TODO
+    "import_passwd", 
 }
 
 # these tests generally have missing inputs and are expected to fail at the run step
 test_run_failing = {
-    "null-expression2-tool.0", #TODO
+    "null-expression2-tool.0", 
 }
 
 # these tests are expected to fail at runtime AND throw a specific error message which will be checked
@@ -91,8 +91,8 @@ expected_failure = {
 wdl_v1_list = [
     # calling native dx applets/apps
     "apps_1318_nested", #migrated
-    "call_native_v1", #TODO
-    "call_native_app", #TODO
+    "call_native_v1", #migrated
+    "call_native_app", #migrated
     "cast", #migrated
     "dict", #migrated
     "instance_types", #migrated
