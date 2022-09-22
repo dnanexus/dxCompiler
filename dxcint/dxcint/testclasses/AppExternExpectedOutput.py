@@ -21,9 +21,14 @@ class AppExternExpectedOutput(ExpectedOutput):
                     self.context.logger.info("Creating dx_app_extern.wdl")
                     self._native_call_app_setup()
                     self.context.logger.info(f"{self._extern_path} created")
-        except Exception:
-            self.context.logger.error("Error creating dx_app_extern.wdl")
-            self._test_results = {False, "Error creating extern"}
+        except subprocess.CalledProcessError as e:
+            self._context.logger.error(
+                f"Error compiling {self._extern_path}\n"
+                f"stdout: {e.stdout}\n"
+                f"stderr: {e.stderr}"
+            )
+            self._test_results = {"passed": False, "message": "Error creating extern"}
+            raise e
         return super()._compile_executable(*args, **kwargs)
 
     def _native_call_app_setup(self) -> None:
