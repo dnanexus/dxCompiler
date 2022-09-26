@@ -138,6 +138,25 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       .fields("staticInstanceType") shouldBe (JsString("mem3_ssd1_x4"))
   }
 
+  it should "recognize changes in the struct inputs" in {
+    val pathOri = pathFromBasename("struct", "apps_1381_ori.wdl")
+    val argsOri = pathOri.toString :: cFlags
+    val retvalOri = Main.compile(argsOri.toVector)
+    val wfIdOri = retvalOri match {
+      case SuccessfulCompileNativeNoTree(_, Vector(wfId)) => wfId
+      case other                                          => throw new Exception(s"expected single workflow not ${other}")
+    }
+
+    val pathPrime = pathFromBasename("struct", "apps_1381_prime.wdl")
+    val argsPrime = pathPrime.toString :: cFlags
+    val retvalPrime = Main.compile(argsPrime.toVector)
+    val wfIdPrime = retvalPrime match {
+      case SuccessfulCompileNativeNoTree(_, Vector(wfId)) => wfId
+      case other                                          => throw new Exception(s"expected single workflow not ${other}")
+    }
+    wfIdPrime should not equal wfIdOri
+  }
+
   it should "compile with manifest inputs with unqualified file IDs" in {
     val sourceCode =
       pathFromBasename("manifest", "apps_1269_1270_unqualified_ids_manifest_unit.wdl")
