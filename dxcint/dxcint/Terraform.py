@@ -140,13 +140,13 @@ class Terraform(object):
         return asset_obj.get("id")
 
     def _create_asset_spec(self, language: str) -> Dict:
-        # spec_exports = [x.export_spec() for x in self._dependencies].remove(None) # this line doesn't do anything
+        spec_exports = [x.export_spec() for x in self._dependencies]
+        spec_exports = [x for x in spec_exports if x]
         exec_depends = [
             {"name": "openjdk-8-jre-headless"},
             {"name": "bzip2"},
             {"name": "jq"},
-        ]
-        # + (spec_exports or [])
+        ] + spec_exports
         asset_spec = {
             "version": self._context.version,
             "name": f"dx{language}rt",

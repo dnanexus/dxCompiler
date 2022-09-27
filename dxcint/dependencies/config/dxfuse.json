@@ -1,6 +1,6 @@
 {
   "name": "dxfuse",
   "languages": ["wdl", "cwl"],
-  "version": "v1.1.0",
-  "source_link": "https://github.com/dnanexus/dxfuse/releases/download/v1.0.0/dxfuse-linux"
+  "version": "v1.1.1",
+  "source_link": "https://github.com/dnanexus/dxfuse/releases/download/v1.1.1/dxfuse-linux"
 }

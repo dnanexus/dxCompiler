@@ -1,0 +1,26 @@
+{
+    "class": "CommandLineTool",
+    "doc": "Write a file to stdout using cat",
+    "baseCommand": "cat",
+    "stdout": "output.txt",
+    "inputs": [
+        {
+            "type": "File",
+            "inputBinding": {
+                "position": 1
+            },
+            "id": "#main/file"
+        }
+    ],
+    "outputs": [
+        {
+            "type": "File",
+            "id": "#main/contents",
+            "outputBinding": {
+                "glob": "output.txt"
+            }
+        }
+    ],
+    "id": "#main",
+    "cwlVersion": "v1.2"
+}

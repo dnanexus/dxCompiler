@@ -238,12 +238,12 @@ single_tasks_list = [
     "stream_diff_v1", #migrated
     "unzip_files" #migrated
 ]
-#----- below are tests that are were not attempted to be migrated ---
 
 cwl_tools = [
-    "cat",  # hello world tool
-    "tar_files",
+    "cat",  # hello world tool #migrated
+    "tar_files", #migrated
 ]
+#----- below are tests that are were not attempted to be migrated ---
 
 cwl_conformance_tools = [
     os.path.basename(path)[:-len(".cwl.json")]
