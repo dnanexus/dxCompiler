@@ -2,6 +2,8 @@
 
 ## in develop
 
+* Fix for callable recompilation if the Struct composition was changed
+
 ### Dependency updates
 
 #### wdlTools [TBA]
