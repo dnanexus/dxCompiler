@@ -1,0 +1,4 @@
+{
+  "stream_diff_v1.a": "dx://dxCompiler_playground:/test_data/fileB",
+  "stream_diff_v1.b": "dx://dxCompiler_playground:/test_data/fileC"
+}

@@ -225,20 +225,20 @@ draft2_test_list = [
     # "call_native",
     "write_lines_bug", #migrated
 ]
-#----- below are tests that are were not attempted to be migrated ---
 
 single_tasks_list = [
-    "add3",
-    "diff2files",
-    "empty_stdout",
-    "sort_file",
-    "symlinks_wc",
-    "DiskSpace2",
-    "echo_line_split",
-    "opt_array",
-    "stream_diff_v1",
-    "unzip_files"
+    "add3", #migrated
+    "diff2files", #migrated
+    "empty_stdout", #migrated
+    "sort_file", #migrated
+    "symlinks_wc", #migrated
+    "DiskSpace2", #migrated
+    "echo_line_split", #migrated
+    "opt_array", #migrated
+    "stream_diff_v1", #migrated
+    "unzip_files" #migrated
 ]
+#----- below are tests that are were not attempted to be migrated ---
 
 cwl_tools = [
     "cat",  # hello world tool
