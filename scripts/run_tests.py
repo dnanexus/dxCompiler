@@ -193,39 +193,39 @@ docker_test_list = [
     "dynamic_docker_image", #migrated
     "ecr_docker", #migrated
 ]
-#----- below are tests that are were not attempted to be migrated ---
 
 # wdl draft-2
 draft2_test_list = [
-    "advanced",
+    "advanced", #migrated
     "bad_status", #migrated
     "bad_status2", #migrated
     "just_fail_wf", #migrated
-    "call_with_defaults1",
-    "call_with_defaults2",
-    "conditionals_base",
-    "files",
-    "files_with_the_same_name",
-    "hello",
-    "shapes",
+    "call_with_defaults1", #migrated
+    "call_with_defaults2", #migrated
+    "conditionals_base", #migrated
+    "files", #migrated
+    "files_with_the_same_name", #migrated
+    "hello", #migrated
+    "shapes", #migrated
     # this test cannot be enabled yet, because we
     # don't yet support overriding task inputs
     # "population",
     # multiple library imports in one WDL workflow
-    "multiple_imports",
+    "multiple_imports", #migrated
     # subworkflows
-    "conditionals2",
-    "modulo",
-    "movies",
-    "subblocks2",
-    "subblocks",
-    "var_type_change",
-    "outer",
+    "conditionals2", #migrated
+    "modulo", #migrated
+    "movies", #migrated
+    "subblocks2", #migrated
+    "subblocks", #migrated
+    "var_type_change", #migrated
+    "outer", #migrated
     # calling native dx applets/apps
     # We currently do not have a code generator for draft-2, so cannot import dx_extern.wdl.
     # "call_native",
-    "write_lines_bug",
+    "write_lines_bug", #migrated
 ]
+#----- below are tests that are were not attempted to be migrated ---
 
 single_tasks_list = [
     "add3",
@@ -574,11 +574,11 @@ test_unlocked = {
     "array_structs", #migrated
     "cast", #migrated
     "call_with_defaults1",
-    "files",
-    "hello",
+    "files", #migrated
+    "hello", #migrated
     "path_not_taken", #not run
     "optionals", #migrated
-    "shapes",
+    "shapes", #migrated
     "population", #not run
 }
 test_project_wide_reuse = {"add2", "add_many"}
