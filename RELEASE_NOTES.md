@@ -1,12 +1,12 @@
 # Release Notes
 
-## in develop
+## 2.10.5 (2022-09-29)
 
 * Fix for callable recompilation if the Struct composition was changed
 
 ### Dependency updates
 
-#### wdlTools [TBA]
+#### wdlTools [0.17.13](https://github.com/dnanexus/wdlTools/releases/tag/0.17.13)
 
 * Fix for V_Directory in Struct to Directory input
 
