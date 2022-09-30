@@ -86,9 +86,9 @@ the names in appropriate config file.
 |test category| implementation class name | description |
 | --- | --- | --- | 
 | registered_test | RegisteredTest | always fails, parent of all tests
-| analysis_finished | AnalysisFinished | _validate checks that the analysis succeeded
-| expected_failure | ExpectedFailure | _validate checks that the analysis failed
-| expected_output | ExpectedOutput | _validate checks that the expected result fixture matches analysis outputs
+| analysis_finished | AnalysisFinished | `_validate` checks that the analysis succeeded
+| expected_failure | ExpectedFailure | `_validate` checks that the analysis failed
+| expected_output | ExpectedOutput | `_validate` checks that the expected result fixture matches analysis outputs
 
 There more classes are obtained by combining `mixins` with the above basic classes.
 
@@ -107,7 +107,7 @@ Mixins are designed so that many can be used to extend a category class.
 ### Complex categories
 | test category | implementation class name | comments |
 | --- | --- | --- | 
-| expected_failure_message | ExpectedFailureMessage | ExpectedFailure + ResultsMixin, _validate checks that the analysis failed with an error message specified in results['error']
+| expected_failure_message | ExpectedFailureMessage | ExpectedFailure + ResultsMixin, `_validate` checks that the analysis failed with an error message specified in results['error']
 | extras_analysis_finished | ExtrasAnalysisFinished | AnalysisFinished + ExtrasMixin |
 | extras_expected_output | ExtrasExpectedOutput | ExpectedOutput + ExtrasMixin  |
 | locked_expected_output | LockedExpectedOutput |  ExpectedOutput + LockedMixin, _extract_outputs overriden |
@@ -122,7 +122,7 @@ New test types can be easily added to the framework. First, one needs to add a n
 Then, if this category needs a new behavior when compiling, running and/or validating the test, a new subclass of 
 `RegisteredTest` needs to be implemented. There might be up to 3 methods that might need implementation.
 
-Use **Mixins** to add common functionality to your new test type.
+Use **Mixins** (classes designed for multiple inheritance) to add common functionality to your new test type, put them first in the derived class definition. E.g. `class NewTestClass(Mixin1, Mixin2, AnalysisFinished)`. 
 
 1. **Compilation**. If a test workflow in this new test category should be compiled with a specific combination of dxCompiler flags, 
 the property `exec_id` should be overridden/implemented with passing those compiler arguments to the 
