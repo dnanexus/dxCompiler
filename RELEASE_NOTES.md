@@ -1,5 +1,9 @@
 # Release Notes
 
+## in develop
+
+...
+
 ## 2.10.5 (2022-09-29)
 
 * Fix for callable recompilation if the Struct composition was changed
