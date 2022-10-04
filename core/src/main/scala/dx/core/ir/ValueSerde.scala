@@ -73,7 +73,7 @@ object ValueSerde extends DefaultJsonProtocol {
                   vFile.metadata.map("metadata" -> _.parseJson)
               ).flatten.toMap
           )
-        case VFolder(uri, basename, listing) if pathsAsObjects =>
+        case VFolder(uri, basename, listing) =>
           JsObject(
               Vector(
                   Some("type" -> JsString("Folder")),
