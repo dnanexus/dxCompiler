@@ -174,6 +174,7 @@ wdl_v1_1_list = [
     "apps_579_string_substitution_expr",
     "apps_956_private_var_local",
     "apps_1052_optional_block_inputs_wdl11",
+    "apps_1421_dir_output.wdl"  # TODO: this is wdl 2.0 test. Migrate with expected file outputs to dxcint. For now only tests for successful run
 ]
 
 static_only = [
