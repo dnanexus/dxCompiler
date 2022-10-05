@@ -235,7 +235,8 @@ is passed to dxCompiler using the `-input` option, it is transformed into the fo
 }
 ```
 
-The WDL specification states that a `Directory` input is to be treated as a snapshot of the directory at the time the 
+##### Caveats
+1. The WDL specification states that a `Directory` input is to be treated as a snapshot of the directory at the time the 
 job is executed. To enforce this behavior, at the start of the job the full (recursive) listing of the directory is 
 retrieved, and only those files/subfolders are localized to the worker. This means that if a file is added to or removed 
 from the directory in the DNAnexus project while the job is running, that change is not reflected in the local copy on 
@@ -243,10 +244,10 @@ the worker. However, if the same directory is used in multiple jobs, there is (c
 contents are the same between workers. We strongly recommend to enact policies and practices to prevent modification of 
 folders that will be used as input to compiled WDL workflows.
 
-A second important caveat, which results from the fact that folders are not treated as first-class objects by DNAnexus, is that, if [job reuse](#job-reuse) is enabled, a job that is run with the same folder input as a previous job (and all other inputs the same) will reuse the previous job outputs regardless of whether the contents of the folder have changed. There are two possible solutions:
+2. A second important caveat, which results from the fact that folders are not treated as first-class objects by DNAnexus, is that, if [job reuse](#job-reuse) is enabled, a job that is run with the same folder input as a previous job (and all other inputs the same) will reuse the previous job outputs regardless of whether the contents of the folder have changed. There are two possible solutions:
 
-* Disable job reuse when running executables with `Directory`-type inputs.
-* Enact policies and practices to prevent modification of folders that will be used as input when job reuse is enabled.
+   * Disable job reuse when running executables with `Directory`-type inputs.
+   * Enact policies and practices to prevent modification of folders that will be used as input when job reuse is enabled.
 
 ###### Directory outputs:
 WDL 2.0 supports directory outputs. Specify directory outputs in your tasks/workflows by providing an output path as a string.   
