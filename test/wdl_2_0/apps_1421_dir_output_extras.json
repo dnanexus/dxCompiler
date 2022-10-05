@@ -1,0 +1,24 @@
+{
+  "defaultTaskDxAttributes" : {
+    "runSpec": {
+      "timeoutPolicy": {
+        "*": {
+          "hours": 1
+        }
+      }
+    }
+  },
+  "perTaskDxAttributes" : {
+    "apps_1421_task_01": {
+      "runSpec": {
+        "access": {
+          "project": "NONE",
+          "allProjects": "NONE",
+          "network": [
+            "*"
+          ]
+        }
+      }
+    }
+  }
+}
