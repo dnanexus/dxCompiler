@@ -249,7 +249,7 @@ A second important caveat, which results from the fact that folders are not trea
 * Enact policies and practices to prevent modification of folders that will be used as input when job reuse is enabled.
 
 ###### Directory outputs:
-WDL 2.0 supports directory outputs. Specify directory outputs in your tasks/workflows by providing an output pat as a string.   
+WDL 2.0 supports directory outputs. Specify directory outputs in your tasks/workflows by providing an output path as a string.   
 Example:
 
 ```wdl
