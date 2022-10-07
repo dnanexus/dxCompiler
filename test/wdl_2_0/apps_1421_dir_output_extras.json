@@ -14,18 +14,5 @@
         ]
       }
     }
-  },
-  "perTaskDxAttributes" : {
-    "apps_1421_task_01": {
-      "runSpec": {
-        "access": {
-          "project": "VIEW",
-          "allProjects": "NONE",
-          "network": [
-            "*"
-          ]
-        }
-      }
-    }
   }
 }
