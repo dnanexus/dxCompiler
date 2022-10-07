@@ -2,7 +2,7 @@
 
 ## in develop
 
-...
+* Support for Directory outputs in WDL 2.0
 
 ## 2.10.5 2022-09-29
 
