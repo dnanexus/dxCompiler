@@ -249,6 +249,10 @@ folders that will be used as input to compiled WDL workflows.
    * Disable job reuse when running executables with `Directory`-type inputs.
    * Enact policies and practices to prevent modification of folders that will be used as input when job reuse is enabled.
 
+3. Derives from Caveat #2: when Stage-N has Directory outputs which are passed to the inputs (also Directory) of the Stage-N+1, 
+the latter stage needs VIEW permissions to the project to scan the output from Stage-N. This is different from how the i/o of the 
+File type is passed between the stages.
+
 ###### Directory outputs:
 WDL 2.0 supports directory outputs. Specify directory outputs in your tasks/workflows by providing an output path as a string. 
 DNAnexus platform does not support Directory as a first class objects, therefore Directory outputs are coerced to the Hash type.
