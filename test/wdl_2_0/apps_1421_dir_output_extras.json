@@ -7,7 +7,7 @@
         }
       },
       "access": {
-        "project": "NONE",
+        "project": "VIEW",
         "allProjects": "NONE",
         "network": [
           "*"
@@ -19,7 +19,7 @@
     "apps_1421_task_01": {
       "runSpec": {
         "access": {
-          "project": "NONE",
+          "project": "VIEW",
           "allProjects": "NONE",
           "network": [
             "*"

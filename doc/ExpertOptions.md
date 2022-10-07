@@ -250,7 +250,8 @@ folders that will be used as input to compiled WDL workflows.
    * Enact policies and practices to prevent modification of folders that will be used as input when job reuse is enabled.
 
 ###### Directory outputs:
-WDL 2.0 supports directory outputs. Specify directory outputs in your tasks/workflows by providing an output path as a string.   
+WDL 2.0 supports directory outputs. Specify directory outputs in your tasks/workflows by providing an output path as a string. 
+DNAnexus platform does not support Directory as a first class objects, therefore Directory outputs are coerced to the Hash type.
 Example:
 
 ```wdl
