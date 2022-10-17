@@ -266,7 +266,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
             "uri" -> JsObject(
                 "$dnanexus_link" -> JsObject(
                     "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
-                    "id" -> JsString("file-G0G0V000yzZf6x1Y3vxzpg63")
+                    "id" -> JsString("file-GJ6xPPj0yzZxXQFP4kf3FkJq")
                 )
             )
         )
@@ -278,7 +278,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
                 "uri" -> JsObject(
                     "$dnanexus_link" -> JsObject(
                         "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
-                        "id" -> JsString("file-G0G0V0Q0yzZbyFF03xqgxv87")
+                        "id" -> JsString("file-GJ6xPPj0yzZvpF8Z4kq03qv3")
                     )
                 )
             ),
@@ -287,7 +287,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
                 "uri" -> JsObject(
                     "$dnanexus_link" -> JsObject(
                         "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
-                        "id" -> JsString("file-G0G0V0j0yzZV5q4q3vkQJJX5")
+                        "id" -> JsString("file-GJ6xPPj0yzZv8Zvk4kzF5z3x")
                     )
                 )
             )
@@ -350,7 +350,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
       case JsObject(fields) if fields.contains("$dnanexus_link") =>
         fields("$dnanexus_link") shouldBe JsObject(
             "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
-            "id" -> JsString("file-G0G0V1Q0yzZZZXfx3xPK1B1Z")
+            "id" -> JsString("file-GJ6xXF00yzZQpfB04kJGyGj0")
         )
       case other =>
         throw new Exception(s"expected dx link not ${other}")
@@ -410,7 +410,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
                     "type" -> JsString("File"),
                     "uri" -> JsObject(
                         "$dnanexus_link" -> JsObject(
-                            "id" -> JsString("file-G0G0V100yzZg3BBz3x4Y2Q69"),
+                            "id" -> JsString("file-GJ6xXF00yzZQpfB04kJGyGj0"),
                             "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq")
                         )
                     )
@@ -475,7 +475,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
             "type" -> JsString("File"),
             "uri" -> JsObject(
                 "$dnanexus_link" -> JsObject(
-                    "id" -> JsString("file-G0G0V0j0yzZbyFF03xqgxv89"),
+                    "id" -> JsString("file-GJ6xZ0Q0yzZxXQFP4kf3FkKV"),
                     "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq")
                 )
             ),
@@ -484,7 +484,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
                     "type" -> JsString("File"),
                     "uri" -> JsObject(
                         "$dnanexus_link" -> JsObject(
-                            "id" -> JsString("file-G0G3BZQ0yzZZZXfx3xPK1BYF"),
+                            "id" -> JsString("file-GJ6xg0Q0yzZqxJx94kY0q0p0"),
                             "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq")
                         )
                     )

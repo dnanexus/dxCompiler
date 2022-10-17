@@ -1806,7 +1806,7 @@ Main.compile(args.toVector) shouldBe a[SuccessfulCompileIR]
     }
     wf.inputs.size shouldBe 1
     wf.inputs.head._1.defaultValue shouldBe Some(
-        VFile("dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G0G0V1Q0yzZZZXfx3xPK1B1Z")
+        VFile("dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-GJ6xXF00yzZQpfB04kJGyGj0")
     )
   }
 
