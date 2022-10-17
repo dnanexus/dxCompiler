@@ -306,7 +306,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
             "uri" -> JsObject(
                 "$dnanexus_link" -> JsObject(
                     "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
-                    "id" -> JsString("file-G0G3BZQ0yzZf6x1Y3vxzpgk6")
+                    "id" -> JsString("file-GJ6xQ600yzZxXQFP4kf3FkJz")
                 )
             )
         )
