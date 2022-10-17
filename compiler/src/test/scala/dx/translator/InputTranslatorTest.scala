@@ -199,7 +199,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
         "evs" -> "file-FGqFJ8Q0ffPGVz3zGy4FK02P",
         "cmh_maf" -> "file-FGzzpkQ0ffPJX74548Vp6670",
         "exac" -> "file-FGqFY200ffP3qQYgK163Z4gf",
-        "gnomad" -> "file-Fzy8x5j0yzZVQv9KB41FGz3V"
+        "gnomad" -> "file-GJ6vK700yzZqxJx94kY0q0gz"
     )
     map.foreach {
       case (JsString(key), JsObject(value)) =>
