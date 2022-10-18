@@ -291,29 +291,6 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
     )
   }
 
-  it should "correctly reference hash input from previous frag" in {
-    val path = pathFromBasename("frag_runner", "apps_1422_deref_out.wdl")
-
-    val workerPaths = setup()
-    val wfExecutor = createWorkflowExecutor(workerPaths, path, Vector(1))
-    val wdlWorkflowSupport = wfExecutor match {
-      case exe: WdlWorkflowExecutor => exe
-      case _                        => throw new Exception("expected WdlWorkflowExecutor")
-    }
-    val wdlExpression = WdlValues.V_Array(
-        Vector(
-            WdlValues.V_Pair(WdlValues.V_String("Hello"), WdlValues.V_String("World")),
-            WdlValues.V_Pair(WdlValues.V_String("Halo"), WdlValues.V_String("Welt"))
-        )
-    )
-    val irX = WdlUtils.toIRValue(wdlExpression)
-    val blockContext =
-      wdlWorkflowSupport.evaluateBlockInputs(
-          Map(WdlDxName.fromSourceName("pairs") -> (Type.TArray(Type.THash), irX))
-      )
-    blockContext shouldBe ()
-  }
-
   it should "create proper names for scatter results" in {
     val path = pathFromBasename("frag_runner", "strings.wdl")
     val wdlBundle = parse(path)
