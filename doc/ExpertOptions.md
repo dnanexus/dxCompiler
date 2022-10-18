@@ -210,12 +210,15 @@ which, on the worker, results in a file `foo.txt` being created in the inputs di
 
 #### Directories
 
-Both CWL and the development version of WDL have a `Directory` data type. Although DNAnexus does not treat folders as first-class objects, dxCompiler does support `Directory`-typed inputs and outputs, with some caveats.
+Both CWL and the development version of WDL have a `Directory` data type. Although DNAnexus does not treat folders as 
+first-class objects, dxCompiler does support `Directory`-typed inputs and outputs, with some caveats.
 
-A folder within a DNAnexus project can be represented in a standard JSON/YAML input file as a URI of the following form: `dx://project-xxx:/path/to/folder/` (note that the trailing `/` is required). When this file is passed to dxCompiler via the `-inputs` option, it is transformed into DNAnexus input format. 
+A folder within a DNAnexus project can be represented in a standard JSON/YAML input file as a URI of the 
+following form: `dx://project-xxx:/path/to/folder/` (note that the trailing `/` is required). When this file is passed 
+to dxCompiler via the `-inputs` option, it is transformed into DNAnexus input format. 
 
 ##### WDL
-
+###### Directory inputs:
 In WDL, directories are represented as strings. For example, if the following directory input in a standard JSON input file:
 
 ```json
@@ -232,12 +235,45 @@ is passed to dxCompiler using the `-input` option, it is transformed into the fo
 }
 ```
 
-The WDL specification states that a `Directory` input is to be treated as a snapshot of the directory at the time the job is executed. To enforce this behavior, at the start of the job the full (recursive) listing of the directory is retrieved, and only those files/subfolders are localized to the worker. This means that if a file is added to or removed from the directory in the DNAnexus project while the job is running, that change is not reflected in the local copy on the worker. However, if the same directory is used in multiple jobs, there is (currently) no way to guarantee that the contents are the same between workers. We strongly recommend to enact policies and practices to prevent modification of folders that will be used as input to compiled WDL workflows.
+##### Caveats
+1. The WDL specification states that a `Directory` input is to be treated as a snapshot of the directory at the time the 
+job is executed. To enforce this behavior, at the start of the job the full (recursive) listing of the directory is 
+retrieved, and only those files/subfolders are localized to the worker. This means that if a file is added to or removed 
+from the directory in the DNAnexus project while the job is running, that change is not reflected in the local copy on 
+the worker. However, if the same directory is used in multiple jobs, there is (currently) no way to guarantee that the 
+contents are the same between workers. We strongly recommend to enact policies and practices to prevent modification of 
+folders that will be used as input to compiled WDL workflows.
 
-A second important caveat, which results from the fact that folders are not treated as first-class objects by DNAnexus, is that, if [job reuse](#job-reuse) is enabled, a job that is run with the same folder input as a previous job (and all other inputs the same) will reuse the previous job outputs regardless of whether the contents of the folder have changed. There are two possible solutions:
+2. A second important caveat, which results from the fact that folders are not treated as first-class objects by DNAnexus, is that, if [job reuse](#job-reuse) is enabled, a job that is run with the same folder input as a previous job (and all other inputs the same) will reuse the previous job outputs regardless of whether the contents of the folder have changed. There are two possible solutions:
 
-* Disable job reuse when running executables with `Directory`-type inputs.
-* Enact policies and practices to prevent modification of folders that will be used as input when job reuse is enabled.
+   * Disable job reuse when running executables with `Directory`-type inputs.
+   * Enact policies and practices to prevent modification of folders that will be used as input when job reuse is enabled.
+
+3. Derives from Caveat #2: when Stage-N has Directory outputs which are passed to the inputs (also Directory) of the Stage-N+1, 
+the latter stage needs VIEW permissions to the project to scan the output from Stage-N. This is different from how the i/o of the 
+File type is passed between the stages.
+
+###### Directory outputs:
+WDL 2.0 supports directory outputs. Specify directory outputs in your tasks/workflows by providing an output path as a string. 
+DNAnexus platform does not support Directory as a first class objects, therefore Directory outputs are coerced to the Hash type.
+Example:
+
+```wdl
+task task_with_dir_outs {
+  input {}
+
+  command <<<
+    mkdir folderoutput
+    echo hello > folderoutput/hello.txt
+  >>>
+  output {
+    Directory outdir = 'folderoutput/'
+  }
+}
+```
+The `folderoutput/` directory has to be specified **without** `dx://` prefix or project ID. It has to exist on the worker 
+(see `command` above). After the job is done, output files will be delocalized to `project-xxx:/OUTPUT_DIRECTORY/folderoutput` 
+where `OUTPUT_DIRECTORY` is specified output directory in the `dx run` command.
 
 ##### CWL
 
