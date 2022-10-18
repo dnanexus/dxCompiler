@@ -8,14 +8,14 @@
           "basename": "a",
           "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
           "type": "File",
-          "uri": {"$dnanexus_link":"file-G284G3Q0yzZjB9VK3vP1b95X"},
+          "uri": {"$dnanexus_link":"file-GJ712g00yzZv8Zvk4kzF5z8p"},
           "size": 0
         },
         {
           "basename": "b",
           "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
           "type": "File",
-          "uri":{"$dnanexus_link":"file-G284G400yzZXfYxj3vqxVjfk"},
+          "uri":{"$dnanexus_link":"file-GJ712pQ0yzZq61k84gvB4YvP"},
           "size": 0
         },
         {
@@ -26,7 +26,7 @@
               "basename": "d",
               "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
               "type": "File",
-              "uri": {"$dnanexus_link":"file-G284G400yzZgV8xg3vF1jgQp"},
+              "uri": {"$dnanexus_link":"file-GJ712x80yzZXPyG44j4P97Fp"},
               "size": 0
             }
           ],
@@ -36,7 +36,7 @@
           "basename": "e",
           "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
           "type": "File",
-          "uri": {"$dnanexus_link":"file-G4fVbpj0yzZb4yv626B5pgzj"},
+          "uri": {"$dnanexus_link":"file-GJ7130Q0yzZg3JkB4gfK4kjb"},
           "size": 0
         }
       ],
@@ -44,21 +44,21 @@
     }
   },
   "output_dir___dxfiles": [
-    {"$dnanexus_link":"file-G284G3Q0yzZjB9VK3vP1b95X"},
-    {"$dnanexus_link":"file-G284G400yzZXfYxj3vqxVjfk"},
-    {"$dnanexus_link":"file-G284G400yzZgV8xg3vF1jgQp"},
-    {"$dnanexus_link":"file-G4fVbpj0yzZb4yv626B5pgzj"}
+    {"$dnanexus_link":"file-GJ712g00yzZv8Zvk4kzF5z8p"},
+    {"$dnanexus_link":"file-GJ712pQ0yzZq61k84gvB4YvP"},
+    {"$dnanexus_link":"file-GJ712x80yzZXPyG44j4P97Fp"},
+    {"$dnanexus_link":"file-GJ7130Q0yzZg3JkB4gfK4kjb"}
   ],
   "test_result": {
     "___": {
       "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
       "type": "File",
-      "uri": {"$dnanexus_link":"file-G4fVbpj0yzZy3FPx5G50Q4F0"},
+      "uri": {"$dnanexus_link":"file-GJ713F80yzZy59jJ4p5FY8kG"},
       "basename":"output.txt",
       "size": 0
     }
   },
   "test_result___dxfiles": [
-    {"$dnanexus_link":"file-G4fVbpj0yzZy3FPx5G50Q4F0"}
+    {"$dnanexus_link":"file-GJ713F80yzZy59jJ4p5FY8kG"}
   ]
 }
