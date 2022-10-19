@@ -19,7 +19,7 @@ task print_size {
 
 workflow sizerelativepath {
     input {
-        File file = "dx://file-G3f1Y5j0yzZy5G13GVY8J78Q"
+        File file = "dx://file-GJ74pxQ0yzZy59jJ4p5FY930"
     }
 
     call print_size {

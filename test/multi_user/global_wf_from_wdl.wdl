@@ -95,8 +95,8 @@ workflow global_wf_from_wdl {
   call global_wf_from_wdl_t4 {
     input:
       files = [
-        "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G6ggK280yzZgVZ8FJXKJ9vfK",
-        "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G6ggK300yzZZGp7ZJVFXxf5Z"
+        "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-GJ74pxQ0yzZgV5bb4gp59G0q",
+        "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-GJ74pxQ0yzZy59jJ4p5FY930"
       ]
   }
 
