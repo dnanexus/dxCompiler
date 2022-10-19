@@ -22,7 +22,7 @@ import dx.core.languages.wdl.{
   WdlUtils
 }
 import dx.executor.{JobMeta, WorkflowExecutor}
-import dx.util.{FileNode, TraceLevel}
+import dx.util.{DefaultBindings, FileNode, TraceLevel}
 import dx.util.exceptionToString
 import spray.json.JsValue
 import wdlTools.eval.{Eval, EvalException, EvalUtils, WdlValueBindings}
@@ -910,11 +910,17 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       case (accu, RequiredBlockInput(dxName, wdlType))
           if compoundNameRegexp.matches(dxName.decoded) =>
         // the input name is a compound reference - evaluate it as an identifier
-        accu
+        val expr = versionSupport.parseExpression(dxName.decoded, DefaultBindings(accu.map {
+          case (dxName, (wdlType, _)) => dxName.decoded -> wdlType
+        }), docSource)
+        accu + (dxName -> (wdlType, evaluateExpression(expr, wdlType, accu)))
       case (accu, OptionalBlockInput(dxName, wdlType))
           if compoundNameRegexp.matches(dxName.decoded) =>
         try {
-          accu
+          val expr = versionSupport.parseExpression(dxName.decoded, DefaultBindings(accu.map {
+            case (dxName, (wdlType, _)) => dxName.decoded -> wdlType
+          }), docSource)
+          accu + (dxName -> (wdlType, evaluateExpression(expr, wdlType, accu)))
         } catch {
           case ex: EvalException =>
             val errorMsg = exceptionToString(ex, brief = true)
