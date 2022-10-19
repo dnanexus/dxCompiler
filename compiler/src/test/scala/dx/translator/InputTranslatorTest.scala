@@ -350,7 +350,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
       case JsObject(fields) if fields.contains("$dnanexus_link") =>
         fields("$dnanexus_link") shouldBe JsObject(
             "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
-            "id" -> JsString("file-GJ6xXF00yzZQpfB04kJGyGj0")
+            "id" -> JsString("file-GJ87YJ00yzZq4KJ51KF966fB")
         )
       case other =>
         throw new Exception(s"expected dx link not ${other}")
@@ -410,7 +410,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
                     "type" -> JsString("File"),
                     "uri" -> JsObject(
                         "$dnanexus_link" -> JsObject(
-                            "id" -> JsString("file-GJ6xXF00yzZQpfB04kJGyGj0"),
+                            "id" -> JsString("file-GJ87YJ00yzZq4KJ51KF966fB"),
                             "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq")
                         )
                     )

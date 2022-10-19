@@ -1,7 +1,7 @@
 version 1.0
 
 workflow requester_pays_engine_functions {
-    File input_file = "dx://file-GJ74pxQ0yzZy59jJ4p5FY930"
+    File input_file = "dx://file-GJ7VKG00yzZgfZzb1JgY2K2Q"
     call functions {
         input: input_string = read_string(input_file),
                input_size = size(input_file)
