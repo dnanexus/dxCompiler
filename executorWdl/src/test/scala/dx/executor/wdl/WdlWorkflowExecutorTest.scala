@@ -14,8 +14,10 @@ import dx.util.protocols.DxFileAccessProtocol
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spray.json._
+import wdlTools.eval.WdlValues.V_String
 import wdlTools.eval.{Eval, WdlValueBindings, WdlValues}
 import wdlTools.syntax.WdlVersion
+import wdlTools.types.WdlTypes.T_String
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 
 import scala.collection.immutable.SeqMap
@@ -311,7 +313,9 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
       wdlWorkflowSupport.evaluateBlockInputs(
           Map(WdlDxName.fromSourceName("pairs") -> (Type.TArray(Type.THash), irX))
       )
-    blockContext shouldBe ()
+    blockContext.prereqEnv.get(WdlDxName.fromDecodedName("xx")) shouldBe Some(
+        (T_String, V_String("Hello"))
+    )
   }
 
   it should "create proper names for scatter results" in {
