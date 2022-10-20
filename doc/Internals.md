@@ -441,6 +441,26 @@ complete, and returns an array of integers.
 
 ![](./images/mul_loop.png)
 
+### Note on dependencies and frags
+The frag applets include preceding evaluations like in `linear2` workflow above:
+```wdl
+    ...
+    Int z = add.result + 1
+    call mul { input: a=z, b=5 }
+    ...
+ ```
+This means all downstream calls depending on `z` will depend on `mul`. This is prone to decrease the parallelism of some workflows 
+due to this unwanted dependency on `mul`. This should be taken in consideration when designing the workflows.  
+Another situation possible when `z` itself is **not** dependent on previous tasks, like below:
+```wdl
+    ...
+    Int z = 1+2
+    call mul { input: a=z, b=5 }
+    ...
+```
+Here, we recommend to move such declarations to the input section of the top level workflow. This will move 
+`z` to the outputs of the `common` applet and restore parallel execution of the tasks depending on `z`.
+
 ## Nested blocks
 
 WDL allows blocks of scatters and conditionals to be nested arbitrarily. Such complex workflows are broken down into fragments, and tied together with subworkflows. For example, in workflow `two_levels` the scatter block requires a subworkflow that will chain together the calls `inc1`, `inc2`, and `inc3`. Note that `inc3` requires a fragment because it needs to evaluate and export declaration `b`.
