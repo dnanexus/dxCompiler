@@ -443,10 +443,10 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
     runTask(
         "recursive-input-directory",
         pathToDxFile = Map(
-            Paths.get("work_dir/a") -> dxApi.file("file-GJ85V600yzZxbQ1Z1V5z98jB"),
-            Paths.get("work_dir/b") -> dxApi.file("file-GJ712pQ0yzZq61k84gvB4YvP"),
-            Paths.get("work_dir/c/d") -> dxApi.file("file-GJ712x80yzZXPyG44j4P97Fp"),
-            Paths.get("work_dir/e") -> dxApi.file("file-GJ7130Q0yzZg3JkB4gfK4kjb"),
+            Paths.get("work_dir/a") -> dxApi.file("file-GJ8KZ780yzZyBbf07QVxJY2f"),
+            Paths.get("work_dir/b") -> dxApi.file("file-GJ8KZ7j0yzZXkzG57XQkgxbX"),
+            Paths.get("work_dir/c/d") -> dxApi.file("file-GJ8KZ800yzZXkzG57XQkgxbZ"),
+            Paths.get("work_dir/e") -> dxApi.file("file-GJ8KZ800yzZxbjyX7Q7QgXgV"),
             Paths.get("output.txt") -> dxApi.file("file-GJ713F80yzZy59jJ4p5FY8kG")
         )
     )

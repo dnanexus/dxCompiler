@@ -8,14 +8,14 @@
           "basename": "a",
           "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
           "type": "File",
-          "uri": {"$dnanexus_link":"file-GJ85V600yzZxbQ1Z1V5z98jB"},
+          "uri": {"$dnanexus_link":"file-GJ8KZ780yzZyBbf07QVxJY2f"},
           "size": 0
         },
         {
           "basename": "b",
           "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
           "type": "File",
-          "uri":{"$dnanexus_link":"file-GJ712pQ0yzZq61k84gvB4YvP"},
+          "uri":{"$dnanexus_link":"file-GJ8KZ7j0yzZXkzG57XQkgxbX"},
           "size": 0
         },
         {
@@ -26,7 +26,7 @@
               "basename": "d",
               "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
               "type": "File",
-              "uri": {"$dnanexus_link":"file-GJ712x80yzZXPyG44j4P97Fp"},
+              "uri": {"$dnanexus_link":"file-GJ8KZ800yzZXkzG57XQkgxbZ"},
               "size": 0
             }
           ],
@@ -36,7 +36,7 @@
           "basename": "e",
           "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
           "type": "File",
-          "uri": {"$dnanexus_link":"file-GJ7130Q0yzZg3JkB4gfK4kjb"},
+          "uri": {"$dnanexus_link":"file-GJ8KZ800yzZxbjyX7Q7QgXgV"},
           "size": 0
         }
       ],
@@ -44,10 +44,10 @@
     }
   },
   "output_dir___dxfiles": [
-    {"$dnanexus_link":"file-GJ85V600yzZxbQ1Z1V5z98jB"},
-    {"$dnanexus_link":"file-GJ712pQ0yzZq61k84gvB4YvP"},
-    {"$dnanexus_link":"file-GJ712x80yzZXPyG44j4P97Fp"},
-    {"$dnanexus_link":"file-GJ7130Q0yzZg3JkB4gfK4kjb"}
+    {"$dnanexus_link":"file-GJ8KZ780yzZyBbf07QVxJY2f"},
+    {"$dnanexus_link":"file-GJ8KZ7j0yzZXkzG57XQkgxbX"},
+    {"$dnanexus_link":"file-GJ8KZ800yzZXkzG57XQkgxbZ"},
+    {"$dnanexus_link":"file-GJ8KZ800yzZxbjyX7Q7QgXgV"}
   ],
   "test_result": {
     "___": {
