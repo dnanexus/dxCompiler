@@ -40,7 +40,7 @@ task read_map {
     docker: "dx://file-GJ941b80yzZvGbK68zxQzB0B"
   }
 }
-workflow workflow {
+workflow map_workflow {
   call make_files
   Map[File, String] map = {make_files.files[0]: "alice", make_files.files[1]: "bob", make_files.files[2]: "chuck"}
   call write_map {input: file_to_name = map}
