@@ -14,7 +14,7 @@ task blah {
   }
 
   runtime {
-    docker: "dx://file-G66qz3Q0yzZfy6pg5q3yK3Kz"
+    docker: "dx://file-GJ7q5KQ0yzZv7GQzJjX2x9Pb"
   }
 }
 

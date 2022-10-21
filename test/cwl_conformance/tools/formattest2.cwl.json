@@ -3,7 +3,7 @@
     "edam": "http://edamontology.org/"
   },
   "$schemas": [
-    "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G4gFG7Q0yzZjk476FKy3jjf8"
+    "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-GJ7pfzQ0yzZpy6V11KzgJx69"
   ],
   "baseCommand": "rev",
   "class": "CommandLineTool",

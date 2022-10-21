@@ -199,7 +199,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
         "evs" -> "file-FGqFJ8Q0ffPGVz3zGy4FK02P",
         "cmh_maf" -> "file-FGzzpkQ0ffPJX74548Vp6670",
         "exac" -> "file-FGqFY200ffP3qQYgK163Z4gf",
-        "gnomad" -> "file-Fzy8x5j0yzZVQv9KB41FGz3V"
+        "gnomad" -> "file-GJ6vK700yzZqxJx94kY0q0gz"
     )
     map.foreach {
       case (JsString(key), JsObject(value)) =>
@@ -266,7 +266,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
             "uri" -> JsObject(
                 "$dnanexus_link" -> JsObject(
                     "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
-                    "id" -> JsString("file-G0G0V000yzZf6x1Y3vxzpg63")
+                    "id" -> JsString("file-GJ6xPPj0yzZxXQFP4kf3FkJq")
                 )
             )
         )
@@ -278,7 +278,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
                 "uri" -> JsObject(
                     "$dnanexus_link" -> JsObject(
                         "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
-                        "id" -> JsString("file-G0G0V0Q0yzZbyFF03xqgxv87")
+                        "id" -> JsString("file-GJ6xPPj0yzZvpF8Z4kq03qv3")
                     )
                 )
             ),
@@ -287,7 +287,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
                 "uri" -> JsObject(
                     "$dnanexus_link" -> JsObject(
                         "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
-                        "id" -> JsString("file-G0G0V0j0yzZV5q4q3vkQJJX5")
+                        "id" -> JsString("file-GJ6xPPj0yzZv8Zvk4kzF5z3x")
                     )
                 )
             )
@@ -306,7 +306,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
             "uri" -> JsObject(
                 "$dnanexus_link" -> JsObject(
                     "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
-                    "id" -> JsString("file-G0G3BZQ0yzZf6x1Y3vxzpgk6")
+                    "id" -> JsString("file-GJ85b9j0yzZxbQ1Z1V5z98qZ")
                 )
             )
         )
@@ -350,7 +350,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
       case JsObject(fields) if fields.contains("$dnanexus_link") =>
         fields("$dnanexus_link") shouldBe JsObject(
             "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"),
-            "id" -> JsString("file-G0G0V1Q0yzZZZXfx3xPK1B1Z")
+            "id" -> JsString("file-GJ87YJ00yzZq4KJ51KF966fB")
         )
       case other =>
         throw new Exception(s"expected dx link not ${other}")
@@ -410,7 +410,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
                     "type" -> JsString("File"),
                     "uri" -> JsObject(
                         "$dnanexus_link" -> JsObject(
-                            "id" -> JsString("file-G0G0V100yzZg3BBz3x4Y2Q69"),
+                            "id" -> JsString("file-GJ87YJ00yzZq4KJ51KF966fB"),
                             "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq")
                         )
                     )
@@ -475,7 +475,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
             "type" -> JsString("File"),
             "uri" -> JsObject(
                 "$dnanexus_link" -> JsObject(
-                    "id" -> JsString("file-G0G0V0j0yzZbyFF03xqgxv89"),
+                    "id" -> JsString("file-GJ87yb00yzZYkkkq1JxgKqK7"),
                     "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq")
                 )
             ),
@@ -484,7 +484,7 @@ class InputTranslatorTest extends AnyFlatSpec with Matchers {
                     "type" -> JsString("File"),
                     "uri" -> JsObject(
                         "$dnanexus_link" -> JsObject(
-                            "id" -> JsString("file-G0G3BZQ0yzZZZXfx3xPK1BYF"),
+                            "id" -> JsString("file-GJ75JQ00yzZX6Bpf4jFY4YZ1"),
                             "project" -> JsString("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq")
                         )
                     )
