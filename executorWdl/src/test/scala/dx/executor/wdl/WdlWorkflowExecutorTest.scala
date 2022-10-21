@@ -293,8 +293,7 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
     )
   }
 
-  // TODO this is WIP for apps-1422
-  ignore should "correctly reference hash input from previous frag" in {
+  it should "correctly reference hash input from previous frag" in {
     val path = pathFromBasename("frag_runner", "apps_1422_deref_out.wdl")
 
     val workerPaths = setup()
