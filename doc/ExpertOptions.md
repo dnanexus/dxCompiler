@@ -1,40 +1,6 @@
 The reader is assumed to understand the [Workflow Description Language (WDL)](http://www.openwdl.org/) and [Common Workflow Language (CWL)](https://www.commonwl.org/v1.2), and have some experience using the [DNAnexus](http://www.dnanexus.com) platform.
 
-dxCompiler takes a pipeline written in WDL or CWL and statically compiles it to an equivalent workflow on the DNAnexus platform. This document will use WDL examples to explain additional compiler options and features. To implement them when working with CWL workflows, please refer to [CWL v1.2.0 to WDL v1.0 mapping](CWL_v1.2.0_to_WDL_v1.md) for type and syntax equivalence between WDL and CWL. 
-
-- [Getting started](#getting-started)
-- [Extensions](#extensions)
-  * [Runtime](#runtime)
-  * [Streaming](#streaming)
-- [Task and workflow inputs](#task-and-workflow-inputs)
-  * [Directories](#directories)
-- [Task metadata](#task-metadata)
-  * [meta section](#meta-section)
-  * [parameter_meta section](#parameter_meta-section)
-  * [Runtime hints](#runtime-hints)
-  * [Example task with DNAnexus-specific metadata and runtime](#example-task-with-dnanexus-specific-metadata-and-runtime)
-- [Calling existing applets](#calling-existing-applets)
-  * [Calling apps](#calling-apps)
-- [Setting DNAnexus-specific attributes in extras.json](#setting-dnanexus-specific-attributes-in-extrasjson)
-  * [Job reuse](#job-reuse)
-  * [Delay workspace destruction](#delay-workspace-destruction)
-- [Workflow metadata](#workflow-metadata)
-- [Handling intermediate workflow outputs](#handling-intermediate-workflow-outputs)
-  * [Use your own applet](#use-your-own-applet)
-  * [Adding config-file based reorg applet at compilation time](#adding-config-file-based-reorg-applet-at-compilation-time)
-- [Top-level calls compiled as stages](#toplevel-calls-compiled-as-stages)
-- [Manifests](#manifests)  
-- [Docker](#docker)
-  * [Setting a default docker image for all tasks](#setting-a-default-docker-image-for-all-tasks)
-  * [Private registries](#private-registries)
-  * [Storing a docker image as a file](#storing-a-docker-image-as-a-file)
-- [Proxy configurations](#proxy-configurations)
-- [Debugging an applet](#debugging-an-applet)
-  * [Getting WDL sources](#getting-wdl-sources)
-- [Recompilation](#recompilation)
-- [Publishing global workflows](#publishing-global-workflows)
-  * [Global workflow recommendations](#global-workflow-recommendations)
-  * [Global workflow limitations](#global-workflow-limitations)
+dxCompiler takes a pipeline written in WDL or CWL and statically compiles it to an equivalent workflow on the DNAnexus platform. This document will use WDL examples to explain additional compiler options and features. To implement them when working with CWL workflows, please refer to [CWL v1.2.0 to WDL v1.0 mapping](CWL_v1.2.0_to_WDL_v1.md) for type and syntax equivalence between WDL and CWL.
 
 # Getting started
 
