@@ -1157,10 +1157,10 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       case Some(d) => {
         d should include("app-BZ9ZQzQ02VP5gpkP54b96pYY")
         d should include("file-G4BV6180yzZyvZ124KB0q46P")
-        d should include("file-G4BV61j0yzZgf6JQKxP4gQ3Y")
+        d should include("file-GJ6y7200yzZZ00Zz4p9vB2kP")
         d should include("file-G4BV61Q0yzZq60Jj4K5vfG92")
-        d should include("file-G4BV6280yzZq60Jj4K5vfG96")
-        d should include("file-G4BV6200yzZq60Jj4K5vfG94")
+        d should include("file-GJ6y7200yzZxXQFP4kf3FkPk")
+        d should include("file-GJ6y7200yzZvpF8Z4kq03qy4")
         d should include("file-G4BV6280yzZkpgjj4Jx6Fjj9")
         d should include("file-G4BV6100yzZz17bx4JkQkybb")
         d should include("alpine:3.14")

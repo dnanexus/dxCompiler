@@ -1,8 +1,8 @@
 {
   "dir2.outlist": {
-    "size": 20,
+    "size": 24,
     "location": "output.txt",
-    "checksum": "sha1$13cda8661796ae241da3a18668fb552161a72592",
+    "checksum": "sha1$cbc35fc475c508a63718a913fd26973bafba7ae2",
     "class": "File"
   }
 }

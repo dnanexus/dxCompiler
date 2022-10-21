@@ -14,8 +14,10 @@ import dx.util.protocols.DxFileAccessProtocol
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import spray.json._
+import wdlTools.eval.WdlValues.V_String
 import wdlTools.eval.{Eval, WdlValueBindings, WdlValues}
 import wdlTools.syntax.WdlVersion
+import wdlTools.types.WdlTypes.T_String
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 
 import scala.collection.immutable.SeqMap
@@ -288,6 +290,32 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
               .T_Optional(WdlTypes.T_Array(WdlTypes.T_Int, nonEmpty = true)),
             WdlValues.V_Null)
         )
+    )
+  }
+
+  // TODO this is WIP for apps-1422
+  ignore should "correctly reference hash input from previous frag" in {
+    val path = pathFromBasename("frag_runner", "apps_1422_deref_out.wdl")
+
+    val workerPaths = setup()
+    val wfExecutor = createWorkflowExecutor(workerPaths, path, Vector(1))
+    val wdlWorkflowSupport = wfExecutor match {
+      case exe: WdlWorkflowExecutor => exe
+      case _                        => throw new Exception("expected WdlWorkflowExecutor")
+    }
+    val wdlExpression = WdlValues.V_Array(
+        Vector(
+            WdlValues.V_Pair(WdlValues.V_String("Hello"), WdlValues.V_String("World")),
+            WdlValues.V_Pair(WdlValues.V_String("Halo"), WdlValues.V_String("Welt"))
+        )
+    )
+    val irX = WdlUtils.toIRValue(wdlExpression)
+    val blockContext =
+      wdlWorkflowSupport.evaluateBlockInputs(
+          Map(WdlDxName.fromSourceName("pairs") -> (Type.TArray(Type.THash), irX))
+      )
+    blockContext.prereqEnv.get(WdlDxName.fromDecodedName("xx")) shouldBe Some(
+        (T_String, V_String("Hello"))
     )
   }
 

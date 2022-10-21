@@ -18,12 +18,12 @@ task dependency_report_t1 {
       ],
       choices: [
         "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G4BV61Q0yzZq60Jj4K5vfG92",
-        "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G4BV61j0yzZgf6JQKxP4gQ3Y"
+        "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-GJ6y7200yzZZ00Zz4p9vB2kP"
       ]
     }
   }
 
-  File body2 = "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G4BV6200yzZq60Jj4K5vfG94"
+  File body2 = "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-GJ6y7200yzZvpF8Z4kq03qy4"
 
   command <<<
   set -euxo pipefail
@@ -75,12 +75,12 @@ workflow dependency_report_wf2 {
       ],
       choices: [
         "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G4BV61Q0yzZq60Jj4K5vfG92",
-        "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G4BV61j0yzZgf6JQKxP4gQ3Y"
+        "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-GJ6y7200yzZZ00Zz4p9vB2kP"
       ]
     }
   }
 
-  File body1 = "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G4BV6280yzZq60Jj4K5vfG96"
+  File body1 = "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-GJ6y7200yzZxXQFP4kf3FkPk"
 
   call dependency_report_t1 {
     input:
@@ -92,8 +92,8 @@ workflow dependency_report_wf2 {
   call dependency_report_t2 {
     input:
       files = [
-        "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G4BV62Q0yzZjqf4F4KJvv1gG",
-        "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G4BV62j0yzZyvZ124KB0q46V"
+        "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-GJ6y7200yzZqxJx94kY0q0px",
+        "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-GJ6y7200yzZQpfB04kJGyGp4"
       ]
   }
 
