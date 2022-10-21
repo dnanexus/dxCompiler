@@ -26,7 +26,7 @@ task read_map {
   }
 }
 
-workflow wf {
+workflow read_write_map {
   Map[String, String] map = {"f1": "alice", "f2": "bob", "f3": "chuck"}
   call write_map {input: file_to_name = map}
   call read_map
