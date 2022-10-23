@@ -2,7 +2,7 @@
 
 ## 2.10.6 2022-10-20
 
-* Support for Directory outputs in WDL 2.0
+* Support for Directory outputs in the WDL `development` version
 * Minor fixes of type coercion
 
 ### Dependency updates
