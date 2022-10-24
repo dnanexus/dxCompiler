@@ -1,7 +1,14 @@
 # Release Notes
 
-## in develop
+## 2.10.6 2022-10-20
 
+* Support for Directory outputs in the WDL `development` version
+* Minor fixes of type coercion
+
+### Dependency updates
+
+#### wdlTools [0.17.14](https://github.com/dnanexus/wdlTools/releases/tag/0.17.14)
+* 
 * Support for Directory outputs in WDL 2.0
 
 ## 2.10.5 2022-09-29
