@@ -1,15 +1,25 @@
 # Release Notes
 
-## 2.10.6 2022-10-20
+## 2.10.6 2022-10-25
 
-* Support for Directory outputs in the WDL `development` version
-* Minor fixes of type coercion
+* Initial support for `Directory` outputs in the WDL `development` version. Note that the dxCompiler support for the `development` version of WDL is under development and not yet production-ready.
+* Minor fixes of type coercion. It includes a fix to the "Value V_String(1.0 GiB) could not be coerced to one of Vector(T_Int)" error when setting `Runtime.memory` as a string in a `development` version task, for example:
+```
+task {
+  ...
+  runtime {
+    memory: "1 GiB"
+  }
+}
+```
 
 ### Dependency updates
 
 #### wdlTools [0.17.14](https://github.com/dnanexus/wdlTools/releases/tag/0.17.14)
-* 
-* Support for Directory outputs in WDL 2.0
+
+* Support for Directory outputs in the WDL `development` version
+* Minor fixes of type coercion
+
 
 ## 2.10.5 2022-09-29
 
