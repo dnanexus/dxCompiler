@@ -26,7 +26,9 @@ while preserving job environment:
 ```bash
 sudo -E bash
 ```
-5. The job script (from the `command` section of the workflow task/process) is located in `/home/dnanexus/meta/commandScript` for debugging.
+5. The job script (from the `command` section of the workflow task/process) is located in `/home/dnanexus/meta/commandScript` for debugging.   Add a delay to this script (e.g. `sleep 3600`) if the containerized execution inside this script finishes too quickly to debug.  Then invoke the job script:
+ ```bash
+ /home/dnanexus/meta/containerRunScript
 6. To debug inside container while it's running, use GNU screens:
    * create a new screen by pressing `Ctrl a` followed by `c`
    * in the new screen:
