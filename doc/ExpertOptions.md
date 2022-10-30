@@ -1,6 +1,6 @@
 The reader is assumed to understand the [Workflow Description Language (WDL)](http://www.openwdl.org/) and [Common Workflow Language (CWL)](https://www.commonwl.org/v1.2), and have some experience using the [DNAnexus](http://www.dnanexus.com) platform.
 
-dxCompiler takes a pipeline written in WDL or CWL and statically compiles it to an equivalent workflow on the DNAnexus platform. This document will use WDL examples to explain additional compiler options and features. To implement them when working with CWL workflows, please refer to [CWL v1.2.0 to WDL v1.0 mapping](CWL_v1.2.0_to_WDL_v1.md) for type and syntax equivalence between WDL and CWL. 
+dxCompiler takes a pipeline written in WDL or CWL and statically compiles it to an equivalent workflow on the DNAnexus platform. This document will use WDL examples to explain additional compiler options and features. To implement them when working with CWL workflows, please refer to [CWL v1.2.0 to WDL v1.0 mapping](CWL_v1.2.0_to_WDL_v1.md) for type and syntax equivalence between WDL and CWL.
 
 - [Getting started](#getting-started)
 - [Extensions](#extensions)
@@ -35,6 +35,7 @@ dxCompiler takes a pipeline written in WDL or CWL and statically compiles it to 
 - [Publishing global workflows](#publishing-global-workflows)
   * [Global workflow recommendations](#global-workflow-recommendations)
   * [Global workflow limitations](#global-workflow-limitations)
+
 
 # Getting started
 
