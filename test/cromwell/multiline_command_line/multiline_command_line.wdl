@@ -14,10 +14,10 @@ task blah {
   }
 
   runtime {
-    docker: "dx://file-GJ7q5KQ0yzZv7GQzJjX2x9Pb"
+    docker: "dx://file-GJ941b80yzZvGbK68zxQzB0B"
   }
 }
 
-workflow wf {
+workflow multiline_command_line {
   call blah
 }

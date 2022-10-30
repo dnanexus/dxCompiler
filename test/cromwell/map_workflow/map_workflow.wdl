@@ -37,10 +37,10 @@ task read_map {
     Map[String, Int] out_map = read_map(stdout())
   }
   runtime {
-    docker: "dx://file-GJ7q5KQ0yzZv7GQzJjX2x9Pb"
+    docker: "dx://file-GJ941b80yzZvGbK68zxQzB0B"
   }
 }
-workflow wf {
+workflow map_workflow {
   call make_files
   Map[File, String] map = {make_files.files[0]: "alice", make_files.files[1]: "bob", make_files.files[2]: "chuck"}
   call write_map {input: file_to_name = map}
