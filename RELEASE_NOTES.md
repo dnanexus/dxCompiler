@@ -1,5 +1,9 @@
 # Release Notes
 
+## in develop
+
+* added support for new region in Azure London, specifically for OFH projects
+
 ## 2.10.6 2022-10-25
 
 * Initial support for `Directory` outputs in the WDL `development` version. Note that the dxCompiler support for the `development` version of WDL is under development and not yet production-ready.
