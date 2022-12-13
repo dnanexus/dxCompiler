@@ -4,6 +4,7 @@
 
 * `dxda` update to `v0.5.10` which adds a retry for file download. This fixes the "context canceled" error which was 
 thrown due to the `dxda` behavior.
+* added support for new region in Azure London, specifically for OFH projects
 
 ## 2.10.6 2022-10-25
 
