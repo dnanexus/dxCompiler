@@ -26,7 +26,9 @@ projects = ["dxCompiler",
             "dxCompiler_Azure",
             "dxCompiler_Amsterdam",
             "dxCompiler_Berlin",
-            "dxCompiler_OFH_TRE"]
+            "dxCompiler_London",
+            "dxCompiler_Europe_London",
+            "dxCompiler_OFH_TRE_London"]
 
 target_folder = "/release_test"
 

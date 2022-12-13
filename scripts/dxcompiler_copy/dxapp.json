@@ -109,7 +109,7 @@
     }
   },
   "details": {
-    "whatsNew": "* 0.0.3: Added new London OFH region * 0.0.2: Added new London region."
+    "whatsNew": "* 0.0.3: Added new London OFH region\n * 0.0.2: Added new London region."
   },
   "access": {
     "network": [
