@@ -1,5 +1,10 @@
 # Release Notes
 
+## in develop
+
+* `dxda` update to `v0.5.10` which adds a retry for file download. This fixes the "context canceled" error which was 
+thrown due to the `dxda` behavior.
+
 ## 2.10.6 2022-10-25
 
 * Initial support for `Directory` outputs in the WDL `development` version. Note that the dxCompiler support for the `development` version of WDL is under development and not yet production-ready.
