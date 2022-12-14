@@ -1,7 +1,7 @@
 ![Unit Tests](https://github.com/dnanexus/dxCompiler/actions/workflows/scala.yml/badge.svg)
 ![WDL Integration tests](https://github.com/dnanexus/dxCompiler/actions/workflows/integration.yml/badge.svg)
 
-
+## Synopsis
 dxCompiler takes a pipeline written in the
 [Workflow Description Language (WDL)](http://www.openwdl.org/) or [Common Workflow Language (CWL)](https://www.commonwl.org/v1.2) and compiles it to an equivalent workflow on the DNAnexus platform.
 The following standards are supported:
@@ -311,6 +311,7 @@ $ dx run bam_chrom_counter -istage-common.bam=project-BQbJpBj0bvygyQxgQ1800Jkk:f
 - [Advanced options](doc/ExpertOptions.md) explains additional compiler options
 - [Internals](doc/Internals.md) describes current compiler structure (_work in progress_)
 - [Tips](doc/Tips.md) examples for how to write good WDL code
+- [Debugging](doc/Debugging.md) recommendations how to debug the workflows on DNAnexus platform
 - A high-level [list of changes](https://github.com/openwdl/wdl/blob/main/versions/Differences.md#draft-2-to-10) between WDL draft-2 and version 1.0
 
 ## Contributing to dxCompiler
