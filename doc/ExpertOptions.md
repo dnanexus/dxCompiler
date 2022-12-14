@@ -34,7 +34,7 @@ dxCompiler takes a pipeline written in WDL or CWL and statically compiles it to 
 - [Handling intermediate workflow outputs](#handling-intermediate-workflow-outputs)
   * [Use your own applet](#use-your-own-applet)
   * [Adding config-file based reorg applet at compilation time](#adding-config-file-based-reorg-applet-at-compilation-time)
-- [Top-level calls compiled as stages](#toplevel-calls-compiled-as-stages)
+- [Top-level calls compiled as stages](#top-level-calls-compiled-as-stages)
 - [Manifests](#manifests)  
 - [Docker](#docker)
   * [Setting a default docker image for all tasks](#setting-a-default-docker-image-for-all-tasks)
@@ -453,7 +453,7 @@ $ dx run files
 
 ### Extras 
 
-The `-extras` command line option takes an additional JSON file to set or override metadata and runtime attributes of workflows and tasks during compilation. See [Setting DNAnexus-specific attributes in extras file](#setting-dnanexus-specific-attributes-in-extras-file) for details on how to write the extras file.
+The `-extras` command line option takes an additional JSON file to set or override metadata and runtime attributes of workflows and tasks during compilation. See [Setting DNAnexus-specific attributes in extras.json](#setting-dnanexus-specific-attributes-in-extrasjson) for details on how to write the extras file.
 
 If this is file `extraOptions.json`:
 
@@ -1146,7 +1146,7 @@ Similar to tasks, workflows can also have `meta` AND `parameter_meta` sections t
 
 The workflow `parameter_meta` section supports the same attributes as the task `parameter_meta` section.
 
-# Setting DNAnexus-specific attributes in extras file
+# Setting DNAnexus-specific attributes in extras.json
 
 When writing a DNAnexus applet the user can specify metadata and runtime options through the [dxapp.json](https://documentation.dnanexus.com/developer/apps/app-metadata#annotated-example) file. The dxCompiler equivalent is the _extras_ file, specified with the `-extras` command line option.
 
