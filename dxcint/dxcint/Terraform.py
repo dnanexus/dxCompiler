@@ -141,13 +141,12 @@ class Terraform(object):
 
     def _create_asset_spec(self, language: str) -> Dict:
         spec_exports = [x.export_spec() for x in self._dependencies]
-        spec_exports = [x for x in spec_exports if x]
+        spec_exports.remove(None)
         exec_depends = [
             {"name": "openjdk-8-jre-headless"},
             {"name": "bzip2"},
             {"name": "jq"},
-        ]
-        +spec_exports
+        ] + (spec_exports or [])
         asset_spec = {
             "version": self._context.version,
             "name": f"dx{language}rt",
