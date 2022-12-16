@@ -18,7 +18,7 @@ class ExpectedFailureMessage(ResultsTestMixin, ExpectedFailure):
     def _validate(self) -> Dict:
         self.messenger.wait_for_completion()
         if self.messenger.state == State.FAIL:
-            failure_msg = dxpy.describe(self.job_id)["failureMessage"]
+            failure_msg = self.messenger.describe_execution()["failureMessage"]
             if failure_msg == self._expected_failure_msg:
                 return {
                     "passed": True,

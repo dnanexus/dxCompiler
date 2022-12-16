@@ -30,7 +30,7 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
         return execution.describe().get("id")
 
     def _extract_outputs(self) -> Dict:
-        desc = dxpy.describe(self.job_id)
+        desc = self.messenger.describe_execution(self.job_id)
         if desc["class"] == "analysis":
             stages = desc["stages"]
             for stage in stages:

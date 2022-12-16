@@ -1,6 +1,6 @@
 import dxpy
 
-from typing import Optional, Union
+from typing import Optional, Union, Dict
 from enum import Enum, auto
 
 from dxcint.Context import Context
@@ -88,3 +88,7 @@ class Messenger(object):
             self._state = State.UNKNOWN
 
         return self.state
+
+    def describe_execution(self) -> Dict:
+        """Returns the description of the execution."""
+        return self._execution.describe()
