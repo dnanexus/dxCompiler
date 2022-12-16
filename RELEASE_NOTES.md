@@ -2,11 +2,50 @@
 
 ## in develop
 
+* WDL: fixes a runtime error when a scatter over an empty array tries to return an empty array. Error occurred 
+specifically when a task wrapped in a scatter fragment had an array among the outputs. Currently, evaluation of a task 
+over an empty array returns an empty array, and the wrapped task is not executed.
+
+## 2.10.7 2022-12-13
+
+* `dxda` update to `v0.5.10` which adds a retry for file download. This fixes the "context canceled" error which was 
+thrown due to the `dxda` behavior.
+* Added support for new region in Azure London, specifically for OFH projects
+
+### Dependency updates
+
+#### wdlTools [0.17.15](https://github.com/dnanexus/wdlTools/releases/tag/0.17.15)
+
+* Minor fixes and refactoring
+
+## 2.10.6 2022-10-25
+
+* Initial support for `Directory` outputs in the WDL `development` version. Note that the dxCompiler support for the `development` version of WDL is under development and not yet production-ready.
+* Minor fixes of type coercion. It includes a fix to the "Value V_String(1.0 GiB) could not be coerced to one of Vector(T_Int)" error when setting `Runtime.memory` as a string in a `development` version task, for example:
+```
+task {
+  ...
+  runtime {
+    memory: "1 GiB"
+  }
+}
+```
+
+### Dependency updates
+
+#### wdlTools [0.17.14](https://github.com/dnanexus/wdlTools/releases/tag/0.17.14)
+
+* Support for Directory outputs in the WDL `development` version
+* Minor fixes of type coercion
+
+
+## 2.10.5 2022-09-29
+
 * Fix for callable recompilation if the Struct composition was changed
 
 ### Dependency updates
 
-#### wdlTools [TBA]
+#### wdlTools [0.17.13](https://github.com/dnanexus/wdlTools/releases/tag/0.17.13)
 
 * Fix for V_Directory in Struct to Directory input
 

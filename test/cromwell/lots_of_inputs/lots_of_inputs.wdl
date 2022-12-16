@@ -8,7 +8,7 @@ task do_nothing {
     String o = read_string(stdout())
   }
   runtime {
-    docker: "dx://file-G66qz3Q0yzZfy6pg5q3yK3Kz"
+    docker: "dx://file-GJ941b80yzZvGbK68zxQzB0B"
   }
 }
 
@@ -27,7 +27,7 @@ task make_array {
     Array[File] a = glob("file-*")
   }
   runtime {
-    docker: "dx://file-G66qz3Q0yzZfy6pg5q3yK3Kz"
+    docker: "dx://file-GJ941b80yzZvGbK68zxQzB0B"
   }
 }
 

@@ -51,13 +51,11 @@ object ValueSerde extends DefaultJsonProtocol {
         }
         .getOrElse(JsString(uri))
     }
-    def inner(innerPath: PathValue): JsValue = {
+    def inner(innerPath: PathValue, nestedInDir: Boolean = false): JsValue = {
       innerPath match {
-        case VFile(uri, None, None, None, None, Vector(), None, None) if !pathsAsObjects =>
-          serializeFileUri(uri)
         case VFolder(uri, None, None) if !pathsAsObjects =>
           serializeFolderUri(uri)
-        case vFile: VFile if pathsAsObjects =>
+        case vFile: VFile if pathsAsObjects || nestedInDir =>
           JsObject(
               Vector(
                   Some("type" -> JsString("File")),
@@ -67,26 +65,28 @@ object ValueSerde extends DefaultJsonProtocol {
                   vFile.checksum.map("checksum" -> JsString(_)),
                   vFile.size.map("size" -> JsNumber(_)),
                   Option.when(vFile.secondaryFiles.nonEmpty)(
-                      "secondaryFiles" -> JsArray(vFile.secondaryFiles.map(inner))
+                      "secondaryFiles" -> JsArray(vFile.secondaryFiles.map(inner(_)))
                   ),
                   vFile.format.map(f => "format" -> JsString(f)),
                   vFile.metadata.map("metadata" -> _.parseJson)
               ).flatten.toMap
           )
-        case VFolder(uri, basename, listing) if pathsAsObjects =>
+        case VFile(uri, None, None, None, None, Vector(), None, None) if !pathsAsObjects =>
+          serializeFileUri(uri)
+        case VFolder(uri, basename, listing) =>
           JsObject(
               Vector(
                   Some("type" -> JsString("Folder")),
                   Some("uri" -> serializeFolderUri(uri)),
                   basename.map("basename" -> JsString(_)),
-                  listing.map(l => "listing" -> JsArray(l.map(inner)))
+                  listing.map(l => "listing" -> JsArray(l.map(inner(_, nestedInDir = true))))
               ).flatten.toMap
           )
         case VListing(basename, listing) =>
           JsObject(
               "type" -> JsString("Listing"),
               "basename" -> JsString(basename),
-              "listing" -> JsArray(listing.map(inner))
+              "listing" -> JsArray(listing.map(inner(_)))
           )
         case _: PathValue =>
           throw new Exception(s"cannot serialize ${innerPath} with pathsAsObjects=false")

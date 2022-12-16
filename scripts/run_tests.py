@@ -28,12 +28,12 @@ test_files = {}
 
 # these tests generally have syntax errors and are expected to fail at the compile step
 test_compilation_failing = {
-    "import_passwd", 
+    "import_passwd",
 }
 
 # these tests generally have missing inputs and are expected to fail at the run step
 test_run_failing = {
-    "null-expression2-tool.0", 
+    "null-expression2-tool.0",
 }
 
 # these tests are expected to fail at runtime AND throw a specific error message which will be checked
@@ -174,6 +174,7 @@ wdl_v1_1_list = [
     "apps_579_string_substitution_expr", #migrated
     "apps_956_private_var_local", #migrated
     "apps_1052_optional_block_inputs_wdl11", #migrated
+    "apps_1421_dir_output"  # TODO: this is wdl 2.0 test. Migrate with expected file outputs to dxcint. For now only tests for successful run
 ]
 
 static_only = [

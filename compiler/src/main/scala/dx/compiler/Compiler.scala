@@ -286,7 +286,7 @@ case class Compiler(extras: Option[Extras],
             } else {
               throw new Exception(
                   s"""executable(s) ${idStr} with name ${name} exist in ${project.id}:${folder};
-                     |compile with the -a flag to archive them or -f to delete them""".stripMargin
+                     |compile with the -archive flag to archive them or -f to delete them""".stripMargin
                     .replaceAll("\n", " ")
               )
             }

@@ -90,14 +90,14 @@ object Type {
 
   def isNativePrimitive(t: Type, pathsAreNative: Boolean = true): Boolean = {
     t match {
-      case TBoolean                     => true
-      case TInt                         => true
-      case TFloat                       => true
-      case TString                      => true
-      case TFile if pathsAreNative      => true
-      case TDirectory if pathsAreNative => true
-      case TEnum(_)                     => true
-      case _                            => false
+      case TBoolean                => true
+      case TInt                    => true
+      case TFloat                  => true
+      case TString                 => true
+      case TFile if pathsAreNative => true
+      case TEnum(_)                => true
+      case TDirectory              => false
+      case _                       => false
     }
   }
 

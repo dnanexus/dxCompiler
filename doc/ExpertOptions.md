@@ -1,28 +1,40 @@
 The reader is assumed to understand the [Workflow Description Language (WDL)](http://www.openwdl.org/) and [Common Workflow Language (CWL)](https://www.commonwl.org/v1.2), and have some experience using the [DNAnexus](http://www.dnanexus.com) platform.
 
-dxCompiler takes a pipeline written in WDL or CWL and statically compiles it to an equivalent workflow on the DNAnexus platform. This document will use WDL examples to explain additional compiler options and features. To implement them when working with CWL workflows, please refer to [CWL v1.2.0 to WDL v1.0 mapping](CWL_v1.2.0_to_WDL_v1.md) for type and syntax equivalence between WDL and CWL. 
+dxCompiler takes a pipeline written in WDL or CWL and statically compiles it to an equivalent workflow on the DNAnexus platform. This document will use WDL examples to explain additional compiler options and features. To implement them when working with CWL workflows, please refer to [CWL v1.2.0 to WDL v1.0 mapping](CWL_v1.2.0_to_WDL_v1.md) for type and syntax equivalence between WDL and CWL.
 
 - [Getting started](#getting-started)
-- [Extensions](#extensions)
-  * [Runtime](#runtime)
-  * [Streaming](#streaming)
+  * [Compiling Workflow](#compiling-workflow)
+    * [Inputs](#inputs)
+    * [Defaults](#defaults)
+    * [Extras](#extras)
+    * [Describe WDL workflow to obtain execution tree](#describe-wdl-workflow-to-obtain-execution-tree)
 - [Task and workflow inputs](#task-and-workflow-inputs)
   * [Directories](#directories)
-- [Task metadata](#task-metadata)
-  * [meta section](#meta-section)
-  * [parameter_meta section](#parameter_meta-section)
-  * [Runtime hints](#runtime-hints)
-  * [Example task with DNAnexus-specific metadata and runtime](#example-task-with-dnanexus-specific-metadata-and-runtime)
+- [Task metadata and runtime](#task-metadata-and-runtime)
+  * [Task meta and parameter_meta](#task-meta-and-parameter_meta)
+    * [meta section](#meta-section)
+    * [parameter_meta section](#parameter_meta-section)
+    * [streaming](#streaming)
+  * [Task runtime and hints](#task-runtime-and-hints)
+    * [Instance type](#instance-type)
+    * [Additional DNAnexus-specific runtime settings](#additional-dnanexus-specific-runtime-settings)
+    * [Native DNAnexus executable](#native-dnanexus-executable)
+  * [Example tasks with DNAnexus-specific metadata and runtime](#example-tasks-with-dnanexus-specific-metadata-and-runtime)
 - [Calling existing applets](#calling-existing-applets)
   * [Calling apps](#calling-apps)
+  * [Calling apps and applets using WDL development](#calling-apps-and-applets-using-wdl-development)
+  * [Overriding the native app and applet instance type](#overriding-the-native-app-and-applet-instance-type)
+   * [Unsupported overrides](#unsupported-overrides)
+- [Workflow metadata](#workflow-metadata)
 - [Setting DNAnexus-specific attributes in extras.json](#setting-dnanexus-specific-attributes-in-extrasjson)
+  * [Default and per-task attributes](#default-and-per-task-attributes)
+  * [Default and per-workflow attributes](#default-and-per-workflow-attributes)
   * [Job reuse](#job-reuse)
   * [Delay workspace destruction](#delay-workspace-destruction)
-- [Workflow metadata](#workflow-metadata)
 - [Handling intermediate workflow outputs](#handling-intermediate-workflow-outputs)
   * [Use your own applet](#use-your-own-applet)
   * [Adding config-file based reorg applet at compilation time](#adding-config-file-based-reorg-applet-at-compilation-time)
-- [Top-level calls compiled as stages](#toplevel-calls-compiled-as-stages)
+- [Top-level calls compiled as stages](#top-level-calls-compiled-as-stages)
 - [Manifests](#manifests)  
 - [Docker](#docker)
   * [Setting a default docker image for all tasks](#setting-a-default-docker-image-for-all-tasks)
@@ -30,11 +42,14 @@ dxCompiler takes a pipeline written in WDL or CWL and statically compiles it to 
   * [Storing a docker image as a file](#storing-a-docker-image-as-a-file)
 - [Proxy configurations](#proxy-configurations)
 - [Debugging an applet](#debugging-an-applet)
+  * [Logging](#logging)
+  * [Getting applet sources](#getting-applet-sources)
   * [Getting WDL sources](#getting-wdl-sources)
 - [Recompilation](#recompilation)
 - [Publishing global workflows](#publishing-global-workflows)
   * [Global workflow recommendations](#global-workflow-recommendations)
   * [Global workflow limitations](#global-workflow-limitations)
+
 
 # Getting started
 
@@ -210,12 +225,15 @@ which, on the worker, results in a file `foo.txt` being created in the inputs di
 
 #### Directories
 
-Both CWL and the development version of WDL have a `Directory` data type. Although DNAnexus does not treat folders as first-class objects, dxCompiler does support `Directory`-typed inputs and outputs, with some caveats.
+Both CWL and the development version of WDL have a `Directory` data type. Although DNAnexus does not treat folders as 
+first-class objects, dxCompiler does support `Directory`-typed inputs and outputs, with some caveats.
 
-A folder within a DNAnexus project can be represented in a standard JSON/YAML input file as a URI of the following form: `dx://project-xxx:/path/to/folder/` (note that the trailing `/` is required). When this file is passed to dxCompiler via the `-inputs` option, it is transformed into DNAnexus input format. 
+A folder within a DNAnexus project can be represented in a standard JSON/YAML input file as a URI of the 
+following form: `dx://project-xxx:/path/to/folder/` (note that the trailing `/` is required). When this file is passed 
+to dxCompiler via the `-inputs` option, it is transformed into DNAnexus input format. 
 
 ##### WDL
-
+###### Directory inputs:
 In WDL, directories are represented as strings. For example, if the following directory input in a standard JSON input file:
 
 ```json
@@ -232,12 +250,45 @@ is passed to dxCompiler using the `-input` option, it is transformed into the fo
 }
 ```
 
-The WDL specification states that a `Directory` input is to be treated as a snapshot of the directory at the time the job is executed. To enforce this behavior, at the start of the job the full (recursive) listing of the directory is retrieved, and only those files/subfolders are localized to the worker. This means that if a file is added to or removed from the directory in the DNAnexus project while the job is running, that change is not reflected in the local copy on the worker. However, if the same directory is used in multiple jobs, there is (currently) no way to guarantee that the contents are the same between workers. We strongly recommend to enact policies and practices to prevent modification of folders that will be used as input to compiled WDL workflows.
+##### Caveats
+1. The WDL specification states that a `Directory` input is to be treated as a snapshot of the directory at the time the 
+job is executed. To enforce this behavior, at the start of the job the full (recursive) listing of the directory is 
+retrieved, and only those files/subfolders are localized to the worker. This means that if a file is added to or removed 
+from the directory in the DNAnexus project while the job is running, that change is not reflected in the local copy on 
+the worker. However, if the same directory is used in multiple jobs, there is (currently) no way to guarantee that the 
+contents are the same between workers. We strongly recommend to enact policies and practices to prevent modification of 
+folders that will be used as input to compiled WDL workflows.
 
-A second important caveat, which results from the fact that folders are not treated as first-class objects by DNAnexus, is that, if [job reuse](#job-reuse) is enabled, a job that is run with the same folder input as a previous job (and all other inputs the same) will reuse the previous job outputs regardless of whether the contents of the folder have changed. There are two possible solutions:
+2. A second important caveat, which results from the fact that folders are not treated as first-class objects by DNAnexus, is that, if [job reuse](#job-reuse) is enabled, a job that is run with the same folder input as a previous job (and all other inputs the same) will reuse the previous job outputs regardless of whether the contents of the folder have changed. There are two possible solutions:
 
-* Disable job reuse when running executables with `Directory`-type inputs.
-* Enact policies and practices to prevent modification of folders that will be used as input when job reuse is enabled.
+   * Disable job reuse when running executables with `Directory`-type inputs.
+   * Enact policies and practices to prevent modification of folders that will be used as input when job reuse is enabled.
+
+3. Derives from Caveat #2: when Stage-N has Directory outputs which are passed to the inputs (also Directory) of the Stage-N+1, 
+the latter stage needs VIEW permissions to the project to scan the output from Stage-N. This is different from how the i/o of the 
+File type is passed between the stages.
+
+###### Directory outputs:
+WDL 2.0 supports directory outputs. Specify directory outputs in your tasks/workflows by providing an output path as a string. 
+DNAnexus platform does not support Directory as a first class objects, therefore Directory outputs are coerced to the Hash type.
+Example:
+
+```wdl
+task task_with_dir_outs {
+  input {}
+
+  command <<<
+    mkdir folderoutput
+    echo hello > folderoutput/hello.txt
+  >>>
+  output {
+    Directory outdir = 'folderoutput/'
+  }
+}
+```
+The `folderoutput/` directory has to be specified **without** `dx://` prefix or project ID. It has to exist on the worker 
+(see `command` above). After the job is done, output files will be delocalized to `project-xxx:/OUTPUT_DIRECTORY/folderoutput` 
+where `OUTPUT_DIRECTORY` is specified output directory in the `dx run` command.
 
 ##### CWL
 
@@ -402,7 +453,7 @@ $ dx run files
 
 ### Extras 
 
-The `-extras` command line option takes an additional JSON file to set or override metadata and runtime attributes of workflows and tasks during compilation. See [Setting DNAnexus-specific attributes in extras file](#setting-dnanexus-specific-attributes-in-extras-file) for details on how to write the extras file.
+The `-extras` command line option takes an additional JSON file to set or override metadata and runtime attributes of workflows and tasks during compilation. See [Setting DNAnexus-specific attributes in extras.json](#setting-dnanexus-specific-attributes-in-extrasjson) for details on how to write the extras file.
 
 If this is file `extraOptions.json`:
 
@@ -689,7 +740,7 @@ CWL provides a different set of runtime attributes used in the [ResourceRequirem
 ### Additional DNAnexus-specific runtime settings
 
 There are several parameters that also affect the runtime behavior of an applet and can be supplied upon its creation in its [dxapp.json file](https://documentation.dnanexus.com/developer/apps/app-metadata#annotated-example):
-* `runSpec.executionPolicy`: Specifies when to try to automatically restart failed jobs, and how many times
+* `runSpec.executionPolicy`: Specifies when to try to automatically restart failed jobs, and how many times.  Note that applet's restartOn setting will be overridden by the parent job's executionPolicy setting when launched from a job during workflow execution.
 * `runSpec.timeoutPolicy`: Specifies the maximum amount of time the job can run
 * `access`: Specifies additional permissions and resources the applet can access
 * `ignoreReuse`: Specifies whether to allow the outputs of the applet to be reused
@@ -1027,7 +1078,7 @@ task concat {
 }
 ```
 
-## Calling app(let)s using WDL `development`
+## Calling apps and applets using WDL `development`
 
 In version `development` (aka `2.0`), the `runtime` section no longer allows arbitrary keys. Instead, use the hints section:
 
@@ -1048,7 +1099,7 @@ task concat {
 }
 ```
 
-## Overriding the native app(let) instance type
+## Overriding the native app and applet instance type
 
 By default, when a native app(let) is called it is run using its default instance type. This can be overridden in a native task wrapper just as it can with a regular task:
 
@@ -1095,7 +1146,7 @@ Similar to tasks, workflows can also have `meta` AND `parameter_meta` sections t
 
 The workflow `parameter_meta` section supports the same attributes as the task `parameter_meta` section.
 
-# Setting DNAnexus-specific attributes in extras file
+# Setting DNAnexus-specific attributes in extras.json
 
 When writing a DNAnexus applet the user can specify metadata and runtime options through the [dxapp.json](https://documentation.dnanexus.com/developer/apps/app-metadata#annotated-example) file. The dxCompiler equivalent is the _extras_ file, specified with the `-extras` command line option.
 
