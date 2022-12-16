@@ -842,7 +842,9 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       }
       if (childJobs.isEmpty) {
         // no jobs were launched
-        createEmptyScatterOutputs()
+        // APPS-1473. In WDL it should not matter the structure of an array output if the scatter is applied
+        // over an empty array. Here we don't want to check if the task wrapped in the scatter produces arrays.
+        createEmptyScatterOutputs(checkDepth = false)
       } else {
         // if there are remaining chunks this calls a continue sub-job,
         // otherwise it calls a collect sub-job
