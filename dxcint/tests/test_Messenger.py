@@ -27,7 +27,6 @@ def test_parallel_execution(build_executable_wdl: RegisteredTest):
     test2 = copy(build_executable_wdl)
     messenger1 = test1.messenger
     messenger2 = test2.messenger
-    results = []
     with ThreadPoolExecutor(max_workers=10) as executor:
         h1 = executor.submit(track_history, messenger1)
         h2 = executor.submit(track_history, messenger2)

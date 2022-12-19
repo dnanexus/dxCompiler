@@ -37,7 +37,8 @@ class RegisteredTest(object):
         self._git_revision = sp.check_output(
             ["git", "describe", "--always", "--dirty", "--tags"]
         ).strip()
-        self._inputs_suffix = "_input.json"  # wf inputs supplied as json usually have this suffix. Can be changed in subclasses
+        # wf inputs supplied as json usually have this suffix. Can be changed in subclasses
+        self._inputs_suffix = "_input.json"
         self._compiled_inputs_suffix = "_input.dx.json"
         self._test_inputs = {}
 

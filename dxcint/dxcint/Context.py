@@ -23,6 +23,14 @@ class Context(object):
         folder: Optional[str] = None,
         logger_verbosity: str = "info",
     ):
+        """
+        Immutable class maintaining the passed arguments and values which dxcint was initiated with
+        Args:
+            project: project on the platform where the tests will be run
+            repo_root: directory path of the dxCompiler root
+            folder: directory name on the platform to build dxCompiler assets. If None: /builds/<USER_NAME>/<DXC_VERISON>
+            logger_verbosity: verbosity level for Logger class. See dxcint.Logger
+        """
         self._logger = Logger.make(name=__name__, verbosity=logger_verbosity)
         self._project_id = self._resolve_project(project=project)
         self._user = dxpy.whoami()

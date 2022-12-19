@@ -144,10 +144,12 @@ the property `exec_id` should be overridden/implemented with passing those compi
 ## Test suite architecture
 The following architecture is implemented to support the integration tests for dxCompiler.
 1. **CLI** orchestrates the flow 
-2. **TestDiscovery** scans for config files, registers the tests by creating an array of RegisteredTest objects. 
-3. **Dependency** class sets up necessary environment with immutable state for **RegisteredTest**s.
-4. **Terraform** takes the list of **RegisteredTest**s and prepares the DNAnexus platform for running them.
-5. **RegisteredTest** has methods to compile test, run test and validate the results.
+2. **Context**: immutable class maintaining the passed arguments and values which dxcint was initiated with. 
+3. **TestDiscovery** scans for config files, registers the tests by creating an array of RegisteredTest objects. 
+4. **Dependency** provides the necessary dependencies for building dxCompiler assets on the platform.
+5. **Terraform** takes the list of **RegisteredTest**s and prepares the DNAnexus platform for running them.
+6. **RegisteredTest** has methods to compile test, run test and validate the results.
+7. **Messenger** class to communicate between RegisteredTest and the respective analysis/job on the platform.
 
 
 ## Adding a dependency 

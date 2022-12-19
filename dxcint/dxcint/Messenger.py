@@ -16,16 +16,23 @@ class State(Enum):
 
 
 class Messenger(object):
-    """Class for working with the state of a analysis/job."""
-
     def __init__(
         self,
         context: Context,
         test_name: str,
         job_id: str,
-        variant: Optional[object] = None,
+        variant: Optional[int] = None,
         interval: int = 20,
     ):
+        """
+        Class to communicate between RegisteredTest and the respective analysis/job on the platform.
+        Args:
+            context: instance of dxcint.Context
+            test_name: name of the test as it's been registered in the suite
+            job_id: job or analysis id of the running test on the platform
+            variant: variant of the input if multiple inputs were used for the same test workflow
+            interval: Number of seconds between queries to the job’s state
+        """
         self._context = context
         self._test_name = test_name
         self._variant = variant if variant else ""

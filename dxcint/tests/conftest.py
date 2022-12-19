@@ -80,7 +80,7 @@ def registered_test_wdl(fixtures_dir, context_init):
     )
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 def build_executable_wdl(registered_test_wdl, terraform_init, change_to_root_dir):
     _ = terraform_init.build()
     _ = registered_test_wdl.exec_id
