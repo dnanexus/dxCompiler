@@ -58,7 +58,7 @@ def change_to_root_dir(root_dir):
     os.chdir(original_dir)
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 def terraform_init(dependency_conf_dir, context_init):
     dependency_factory = DependencyFactory(
         config_file=os.path.join(dependency_conf_dir, "mock_dependency_src.json"),
@@ -70,7 +70,7 @@ def terraform_init(dependency_conf_dir, context_init):
     )
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 def registered_test_wdl(fixtures_dir, context_init):
     yield RegisteredTest(
         src_file=os.path.join(fixtures_dir, "resources", "mock_category", "mock_1.wdl"),
