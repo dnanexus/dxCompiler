@@ -132,7 +132,8 @@ New test types can be easily added to the framework. First, one needs to add a n
 Then, if this category needs a new behavior when compiling, running and/or validating the test, a new subclass of 
 `RegisteredTest` needs to be implemented. There might be up to 3 methods that might need implementation.
 
-To do that, use [**mixins**](#mixins) (classes designed for multiple inheritance) to add common functionality to your new test type, put them first in the derived class definition. E.g. `class NewTestClass(Mixin1, Mixin2, AnalysisFinished)`. 
+To do that, use [**mixins**](#mixins) (classes designed for multiple inheritance) to add common functionality to your 
+new test type, put them first in the derived class definition. E.g. `class NewTestClass(Mixin1, Mixin2, AnalysisFinished)`. 
 
 1. **Compilation**. If a test workflow in this new test category should be compiled with a specific combination of dxCompiler flags, 
 the property `exec_id` should be overridden/implemented with passing those compiler arguments to the 

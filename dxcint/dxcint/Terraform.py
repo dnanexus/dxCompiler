@@ -100,7 +100,7 @@ class Terraform(object):
         try:
             local_asset_dirs = self._create_local_asset_dir(always_capital_lang)
             for dependency in language_specific_dependencies:
-                dependency.link(local_asset_dirs.get("bin"))
+                _ = dependency.link(local_asset_dirs.get("bin"))
             _ = self._create_asset_spec(always_capital_lang)
             asset_id = self._build_asset(always_capital_lang)
             _ = self._clean_up(always_capital_lang)

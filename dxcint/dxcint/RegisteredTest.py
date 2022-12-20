@@ -7,7 +7,8 @@ import json
 import subprocess as sp
 from typing import List, Optional, Dict, Union
 
-from dxcint.utils import rm_prefix, DEFAULT_INSTANCE_TYPE
+from dxcint.utils import rm_prefix
+from dxcint.constants import DEFAULT_INSTANCE_TYPE
 from dxcint.Messenger import Messenger
 from dxcint.Context import Context
 

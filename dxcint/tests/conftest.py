@@ -30,7 +30,7 @@ def test_folder(timestamp):
     yield f"/dxcint_testing/test_{timestamp}"
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 def context_init(root_dir, test_folder):
     context = Context(
         project="dxCompiler_playground",
@@ -50,7 +50,7 @@ def dependency_conf_dir(fixtures_dir):
     yield os.path.join(fixtures_dir, "dependencies/config/")
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 def change_to_root_dir(root_dir):
     original_dir = os.path.dirname(__file__)
     os.chdir(root_dir)
