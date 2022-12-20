@@ -5,7 +5,7 @@ import dxpy
 import json
 
 import subprocess as sp
-from typing import List, Optional, Dict, Union
+from typing import Optional, Dict, Union
 
 from dxcint.utils import rm_prefix
 from dxcint.constants import DEFAULT_INSTANCE_TYPE
@@ -103,36 +103,23 @@ class RegisteredTest(object):
             return False
 
     def _compile_executable(
-        self, additional_compiler_flags: Optional[List[str]] = None
+        self, additional_compiler_flags: Optional[Dict[str]] = None
     ) -> str:
         """
         Base implementation. For different test classes override `exec_id` property with calling this method with
         arguments which suite a particular test type. For example, when implementing class ManifestTest(RegisteredTest)
         call this method with `additional_compiler_flags=['-useManifests']` argument in parameter `exec_id`.
         Args:
-            additional_compiler_flags: Optional[List[str]]. Use this argument to alter the compiler behavior for
-            concrete class implementation
+            additional_compiler_flags: Optional[Dict[str]]. Use this argument to alter the compiler behavior for
+            concrete class implementation. Must be provided as dictionary where key is the argument name, value is the
+            argument value.
 
         Returns: str. Compiled workflow ID
         """
-        compiler_flags = (
-            [
-                "-instanceTypeSelection",
-                random.choice(["static", "dynamic"]),
-            ]
-            if (
-                not additional_compiler_flags
-                or "-instanceTypeSelection" not in additional_compiler_flags
-            )
-            else []
-        )
-        compiler_flags += additional_compiler_flags or []
-
-        input_basename = f"{self._test_name}{self._inputs_suffix}"
-        input_src = os.path.join(os.path.dirname(self._src_file), input_basename)
-        if os.path.exists(input_src):
-            compiler_flags += ["-inputs", input_src]
-
+        compiler_flags = {
+            "-instanceTypeSelection": random.choice(["static", "dynamic"])
+        }
+        compiler_flags = {**compiler_flags, **additional_compiler_flags}    # update `-instanceTypeSelection` if needed
         compiler_jar_path = os.path.join(
             self._context.repo_root_dir, f"dxCompiler-{self._context.version}.jar"
         )
