@@ -130,7 +130,7 @@ class RegisteredTest(object):
             f"java -jar {compiler_jar_path} compile {self._src_file} -force -folder {compile_dir} "
             f"-project {self._context.project_id} "
         )
-        cmd += " ".join(compiler_flags)
+        cmd += " ".join([f"{k} {v}" for k, v in compiler_flags.items()])
         try:
             self._context.logger.info(f"COMPILE COMMAND: {cmd}")
             with self.context.lock:
