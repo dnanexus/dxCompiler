@@ -153,31 +153,24 @@ class RegisteredTest(object):
         execution_desc = self._run_executable_inner().describe()
         return execution_desc.get("id")
 
-    def _run_executable_inner(
-        self, *args, **kwargs
-    ) -> Union[dxpy.DXAnalysis, dxpy.DXJob]:
+    def _run_executable_inner(self) -> Union[dxpy.DXAnalysis, dxpy.DXJob]:
         """
         Override this method if the changes to the workflow execution are needed.
 
         Returns: Union[DXAnalysis,DXJob]. Execution handler
 
         """
-        kwargs["instance_type"] = kwargs.get("instance_type", DEFAULT_INSTANCE_TYPE)
         exec_type = self.exec_id.split("-")[0]
         exec_handler = self._executable_type_switch.get(exec_type)(
-            project=self._context.project_id, dxid=self.exec_id
+            project=self._context.project_id,
+            dxid=self.exec_id
         )
-        if isinstance(exec_handler, dxpy.DXWorkflow):
-            kwargs["ignore_reuse_stages"] = kwargs.get("ignore_reuse_stages", ["*"])
-        else:
-            kwargs["ignore_reuse"] = kwargs.get("ignore_reuse", True)
         self._context.logger.info(f"Running the process for test {self._test_name}")
         dx_execution = exec_handler.run(
-            self.test_inputs,
+            self._test_inputs,
             project=self._context.project_id,
             folder=os.path.join(self._context.platform_build_dir, "test"),
-            name=f"{self._test_name} {self._git_revision}",
-            **kwargs,
+            name="{} {}".format(self._test_name, self._git_revision)
         )
         return dx_execution
 
