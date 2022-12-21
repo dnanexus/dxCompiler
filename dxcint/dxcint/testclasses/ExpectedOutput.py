@@ -9,7 +9,6 @@ from dxcint.utils import (
     list_dx_folder,
     sort_dicts,
     sort_maybe_mixed,
-    async_retry,
     link_to_dxfile,
     get_checksum,
 )
@@ -23,11 +22,6 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
         super().__init__(src_file, category, test_name, context)
         self.file_cache: Dict = {}
         self.folder_cache: Dict = {}
-
-    @async_retry(max_retries=5)
-    def _run_executable(self) -> str:
-        execution = self._run_executable_inner()
-        return execution.describe().get("id")
 
     def _extract_outputs(self) -> Dict:
         desc = self.messenger.describe_execution(self.job_id)

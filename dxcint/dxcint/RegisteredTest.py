@@ -85,9 +85,6 @@ class RegisteredTest(object):
 
     @property
     def test_result(self) -> bool:
-        return self.get_test_result()
-
-    def get_test_result(self) -> bool:
         if not self._test_results:
             self._test_results = self._validate()
         if self._test_results.get("passed"):
