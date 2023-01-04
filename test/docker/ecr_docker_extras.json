@@ -1,7 +1,7 @@
 {
   "dockerRegistry": {
     "registry": "263799606133.dkr.ecr.us-east-1.amazonaws.com",
-    "credentials": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-GJ74pxj0yzZppXXF4gz830Zx",
+    "credentials": "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-GKV0qKQ0yzZQPxp27FYK7fpj",
     "awsRegion": "us-east-1"
   }
 }
