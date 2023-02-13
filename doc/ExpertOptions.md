@@ -1,28 +1,40 @@
 The reader is assumed to understand the [Workflow Description Language (WDL)](http://www.openwdl.org/) and [Common Workflow Language (CWL)](https://www.commonwl.org/v1.2), and have some experience using the [DNAnexus](http://www.dnanexus.com) platform.
 
-dxCompiler takes a pipeline written in WDL or CWL and statically compiles it to an equivalent workflow on the DNAnexus platform. This document will use WDL examples to explain additional compiler options and features. To implement them when working with CWL workflows, please refer to [CWL v1.2.0 to WDL v1.0 mapping](CWL_v1.2.0_to_WDL_v1.md) for type and syntax equivalence between WDL and CWL. 
+dxCompiler takes a pipeline written in WDL or CWL and statically compiles it to an equivalent workflow on the DNAnexus platform. This document will use WDL examples to explain additional compiler options and features. To implement them when working with CWL workflows, please refer to [CWL v1.2.0 to WDL v1.0 mapping](CWL_v1.2.0_to_WDL_v1.md) for type and syntax equivalence between WDL and CWL.
 
 - [Getting started](#getting-started)
-- [Extensions](#extensions)
-  * [Runtime](#runtime)
-  * [Streaming](#streaming)
+  * [Compiling Workflow](#compiling-workflow)
+    * [Inputs](#inputs)
+    * [Defaults](#defaults)
+    * [Extras](#extras)
+    * [Describe WDL workflow to obtain execution tree](#describe-wdl-workflow-to-obtain-execution-tree)
 - [Task and workflow inputs](#task-and-workflow-inputs)
   * [Directories](#directories)
-- [Task metadata](#task-metadata)
-  * [meta section](#meta-section)
-  * [parameter_meta section](#parameter_meta-section)
-  * [Runtime hints](#runtime-hints)
-  * [Example task with DNAnexus-specific metadata and runtime](#example-task-with-dnanexus-specific-metadata-and-runtime)
+- [Task metadata and runtime](#task-metadata-and-runtime)
+  * [Task meta and parameter_meta](#task-meta-and-parameter_meta)
+    * [meta section](#meta-section)
+    * [parameter_meta section](#parameter_meta-section)
+    * [streaming](#streaming)
+  * [Task runtime and hints](#task-runtime-and-hints)
+    * [Instance type](#instance-type)
+    * [Additional DNAnexus-specific runtime settings](#additional-dnanexus-specific-runtime-settings)
+    * [Native DNAnexus executable](#native-dnanexus-executable)
+  * [Example tasks with DNAnexus-specific metadata and runtime](#example-tasks-with-dnanexus-specific-metadata-and-runtime)
 - [Calling existing applets](#calling-existing-applets)
   * [Calling apps](#calling-apps)
+  * [Calling apps and applets using WDL development](#calling-apps-and-applets-using-wdl-development)
+  * [Overriding the native app and applet instance type](#overriding-the-native-app-and-applet-instance-type)
+   * [Unsupported overrides](#unsupported-overrides)
+- [Workflow metadata](#workflow-metadata)
 - [Setting DNAnexus-specific attributes in extras.json](#setting-dnanexus-specific-attributes-in-extrasjson)
+  * [Default and per-task attributes](#default-and-per-task-attributes)
+  * [Default and per-workflow attributes](#default-and-per-workflow-attributes)
   * [Job reuse](#job-reuse)
   * [Delay workspace destruction](#delay-workspace-destruction)
-- [Workflow metadata](#workflow-metadata)
 - [Handling intermediate workflow outputs](#handling-intermediate-workflow-outputs)
   * [Use your own applet](#use-your-own-applet)
   * [Adding config-file based reorg applet at compilation time](#adding-config-file-based-reorg-applet-at-compilation-time)
-- [Top-level calls compiled as stages](#toplevel-calls-compiled-as-stages)
+- [Top-level calls compiled as stages](#top-level-calls-compiled-as-stages)
 - [Manifests](#manifests)  
 - [Docker](#docker)
   * [Setting a default docker image for all tasks](#setting-a-default-docker-image-for-all-tasks)
@@ -30,11 +42,14 @@ dxCompiler takes a pipeline written in WDL or CWL and statically compiles it to 
   * [Storing a docker image as a file](#storing-a-docker-image-as-a-file)
 - [Proxy configurations](#proxy-configurations)
 - [Debugging an applet](#debugging-an-applet)
+  * [Logging](#logging)
+  * [Getting applet sources](#getting-applet-sources)
   * [Getting WDL sources](#getting-wdl-sources)
 - [Recompilation](#recompilation)
 - [Publishing global workflows](#publishing-global-workflows)
   * [Global workflow recommendations](#global-workflow-recommendations)
   * [Global workflow limitations](#global-workflow-limitations)
+
 
 # Getting started
 
@@ -438,7 +453,7 @@ $ dx run files
 
 ### Extras 
 
-The `-extras` command line option takes an additional JSON file to set or override metadata and runtime attributes of workflows and tasks during compilation. See [Setting DNAnexus-specific attributes in extras file](#setting-dnanexus-specific-attributes-in-extras-file) for details on how to write the extras file.
+The `-extras` command line option takes an additional JSON file to set or override metadata and runtime attributes of workflows and tasks during compilation. See [Setting DNAnexus-specific attributes in extras.json](#setting-dnanexus-specific-attributes-in-extrasjson) for details on how to write the extras file.
 
 If this is file `extraOptions.json`:
 
@@ -1063,7 +1078,7 @@ task concat {
 }
 ```
 
-## Calling app(let)s using WDL `development`
+## Calling apps and applets using WDL `development`
 
 In version `development` (aka `2.0`), the `runtime` section no longer allows arbitrary keys. Instead, use the hints section:
 
@@ -1084,7 +1099,7 @@ task concat {
 }
 ```
 
-## Overriding the native app(let) instance type
+## Overriding the native app and applet instance type
 
 By default, when a native app(let) is called it is run using its default instance type. This can be overridden in a native task wrapper just as it can with a regular task:
 
@@ -1131,7 +1146,7 @@ Similar to tasks, workflows can also have `meta` AND `parameter_meta` sections t
 
 The workflow `parameter_meta` section supports the same attributes as the task `parameter_meta` section.
 
-# Setting DNAnexus-specific attributes in extras file
+# Setting DNAnexus-specific attributes in extras.json
 
 When writing a DNAnexus applet the user can specify metadata and runtime options through the [dxapp.json](https://documentation.dnanexus.com/developer/apps/app-metadata#annotated-example) file. The dxCompiler equivalent is the _extras_ file, specified with the `-extras` command line option.
 
