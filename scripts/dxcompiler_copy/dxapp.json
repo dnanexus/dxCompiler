@@ -61,14 +61,14 @@
     "azure:westeurope": {
       "systemRequirements": {
         "*": {
-          "instanceType": "azure:mem2_ssd1_x2"
+          "instanceType": "azure:mem2_ssd1_v2_x2"
         }
       }
     },
     "azure:westus": {
       "systemRequirements": {
         "*": {
-          "instanceType": "azure:mem2_ssd1_x2"
+          "instanceType": "azure:mem2_ssd1_v2_x2"
         }
       }
     },
@@ -103,7 +103,7 @@
     "azure:uksouth-ofh": {
       "systemRequirements": {
         "*": {
-          "instanceType": "azure:mem2_ssd1_x2"
+          "instanceType": "azure:mem2_ssd1_v2_x2"
         }
       }
     }
