@@ -3,7 +3,7 @@
   "title": "Copy File",
   "summary": "Copy a file to a different region",
   "dxapi": "1.0.0",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "billTo": "org-dnanexus_apps",
   "developers": [
     "org-dnanexus_apps"
@@ -61,14 +61,14 @@
     "azure:westeurope": {
       "systemRequirements": {
         "*": {
-          "instanceType": "azure:mem2_ssd1_v2_x2"
+          "instanceType": "azure:mem2_ssd1_x2"
         }
       }
     },
     "azure:westus": {
       "systemRequirements": {
         "*": {
-          "instanceType": "azure:mem2_ssd1_v2_x2"
+          "instanceType": "azure:mem2_ssd1_x2"
         }
       }
     },
@@ -109,7 +109,7 @@
     }
   },
   "details": {
-    "whatsNew": "* 0.0.4: updated azure instances to v2\n * 0.0.3: Added new London OFH region\n * 0.0.2: Added new London region."
+    "whatsNew": "* 0.0.5: updated azure instances to v2 for OFH region\n * 0.0.3: Added new London OFH region\n * 0.0.2: Added new London region."
   },
   "access": {
     "network": [
