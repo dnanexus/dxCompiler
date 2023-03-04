@@ -2,6 +2,11 @@
 
 ## 2.10.8 2023-02-23
 
+...
+
+
+## 2.10.8 2023-02-23
+
 * WDL: fixes a runtime error when a scatter over an empty array tries to return an empty array. Error occurred 
 specifically when a task wrapped in a scatter fragment had an array among the outputs. Currently, evaluation of a task 
 over an empty array returns an empty array, and the wrapped task is not executed.
