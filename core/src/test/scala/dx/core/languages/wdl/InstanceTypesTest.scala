@@ -321,8 +321,6 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
         None
     )
     val request = runtime.parseInstanceType
-    // TODO: we have requested that v2 instance types be enabled for the staging org - this test
-    //  will break when that happens as the selected instance type should be mem1_ssd1_v2_x8
-    db.apply(request).name shouldBe "mem1_ssd1_x8"
+    db.apply(request).name shouldBe "mem1_ssd1_v2_x8"
   }
 }

@@ -129,13 +129,13 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     stagesSysReq.size shouldBe 2
     stagesSysReq("if (a)") shouldBe JsObject.empty
     stagesSysReq("apps_1177_mem_int") shouldBe JsObject(
-        "*" -> JsObject("instanceType" -> JsString("mem3_ssd1_x4"))
+        "*" -> JsObject("instanceType" -> JsString("mem3_ssd1_v2_x4"))
     )
     val stagesExecDetails = stages.map { stage =>
       stage.name -> dxApi.executable(stage.executable).describe(Set(Field.Details))
     }.toMap
     stagesExecDetails("if (a)").details.get.asJsObject
-      .fields("staticInstanceType") shouldBe (JsString("mem3_ssd1_x4"))
+      .fields("staticInstanceType") shouldBe (JsString("mem3_ssd1_v2_x4"))
   }
 
   it should "recognize changes in the struct inputs" in {
@@ -252,10 +252,10 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     stages.size shouldBe 3
     stages("default") shouldBe JsObject.empty
     stages("mem_int") shouldBe JsObject(
-        "*" -> JsObject("instanceType" -> JsString("mem3_ssd1_x4"))
+        "*" -> JsObject("instanceType" -> JsString("mem3_ssd1_v2_x4"))
     )
     stages("cpu_int") shouldBe JsObject(
-        "*" -> JsObject("instanceType" -> JsString("mem1_ssd1_x8"))
+        "*" -> JsObject("instanceType" -> JsString("mem1_ssd1_v2_x8"))
     )
   }
 
