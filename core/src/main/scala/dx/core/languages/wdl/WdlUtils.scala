@@ -932,6 +932,10 @@ object WdlUtils {
           inner(expr, Some(actualType)) match {
             case Vector(WdlInputRef(lhsName, Some(field), _, _)) if withField =>
               Vector(WdlInputRef(lhsName :+ field, Some(fieldName), actualType, kind))
+            // APPS-1422 stack of eval when accessing array index and hash key successively
+            case Vector(WdlInputRef(lhsName, None, _, _))
+                if withField & expr.getClass == classOf[TAT.ExprAt] =>
+              Vector(WdlInputRef(lhsName, None, actualType, kind))
             case Vector(WdlInputRef(lhsName, None, _, _)) if withField =>
               Vector(WdlInputRef(lhsName, Some(fieldName), actualType, kind))
             case v if withField && v.nonEmpty =>

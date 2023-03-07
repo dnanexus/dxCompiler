@@ -351,13 +351,14 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
     }
 
     protected def createEmptyScatterOutputs(
-        outputShape: Option[Vector[Int]] = None
+        outputShape: Option[Vector[Int]] = None,
+        checkDepth: Boolean = true
     ): Map[DxName, ParameterLink] = {
       def nestedEmptyArray(t: TArray, sizes: Vector[Int]): VArray = {
         (t, sizes) match {
           case (_: TArray, Vector()) =>
             throw new Exception(s"array type is nested more deeply than the output shape")
-          case (TArray(_: TArray, _), Vector(_)) =>
+          case (TArray(_: TArray, _), Vector(_)) if checkDepth =>
             throw new Exception(s"array type is nested more deeply than the output shape")
           case (_: TArray, Vector(_)) => VArray()
           case (TArray(i: TArray, _), v) =>

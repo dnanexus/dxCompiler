@@ -192,7 +192,7 @@ docker_test_list = [
     "native_docker_file_image_gzip",
     "samtools_count",
     "dynamic_docker_image",
-    # "ecr_docker" TODO turn back on when get credentials
+    "ecr_docker"
 ]
 
 # wdl draft-2
