@@ -166,12 +166,13 @@ class DxNativeInterfaceTest extends AnyFlatSpec with Matchers with BeforeAndAfte
   it should "be able to build interfaces to native applets in a folder recursively" taggedAs NativeTest in {
     val args = Vector("-force",
                       "-quiet",
-                      "-path",
+                      "-folder",
                       "/gvaihir/apps_1049/",
                       "-project",
-                      "project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq",
+                      dxTestProject.id,
                       "-apps",
-                      "exclude")
+                      "exclude",
+                      "-r")
     val tasks = runDxni(args)
     tasks.keySet shouldBe Set(
         "native_sum",

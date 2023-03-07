@@ -67,6 +67,7 @@ case class DxNativeInterface(fileResolver: FileSourceResolver = FileSourceResolv
             applet
         }
         .toVector
+    // TODO add warning
     if (applets.isEmpty) {
       logger.warning(s"Found no applets in ${dxProject.id}/${folder}")
     } else {
