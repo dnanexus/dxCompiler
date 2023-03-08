@@ -76,8 +76,8 @@ case class DxNativeInterface(fileResolver: FileSourceResolver = FileSourceResolv
       val dxcAppletNames = dxcApplets.map {
         case (_, desc: DxAppletDescribe) => desc.name
       }
-      logger.trace(
-          s"Applets ${dxcAppletNames.mkString(",")} were compiled with dxCompiler and were ignored by dxni"
+      logger.warning(
+          s"Applets ${dxcAppletNames.mkString(", ")} were ignored by dxni because they were compiled with dxCompiler"
       )
     }
     if (nativeApplets.isEmpty) {
