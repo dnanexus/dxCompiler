@@ -967,7 +967,11 @@ task bwa_mem {
 
 # Calling existing app(let)s
 
-The DNAnexus tools library provides apps for many existing bioinformatics tools, and you may have already developed app(let)s of your own. You may want to use these existing app(let)s rather than rewriting them in WDL. Calling a native app(let) from WDL can be done using a native task wrapper. The dxCompiler `dxni` subcommand is provided to generate native task wrappers automatically. It can generate a wrapper for a specific app(let), all apps, and/or all applets in a specific platform folder. For example, the command:
+The DNAnexus tools library provides apps for many existing bioinformatics tools, and you may have already developed 
+app(let)s of your own. You may want to use these existing app(let)s rather than rewriting them in WDL. Calling a native 
+app(let) from WDL can be done using a native task wrapper. The dxCompiler `dxni` subcommand is provided to generate 
+native task wrappers automatically. It can generate a wrapper for a specific app(let), all apps, and/or all applets in 
+a specific platform folder. For example, the command:
 
 ```console
 $ java -jar dxCompiler-xxx.jar dxni -project project-xxxx -folder /A/B/C -output dx_extern.wdl
@@ -1035,6 +1039,8 @@ workflow w {
   }
 }
 ```
+
+Applets which were built by compiling tasks with dxCompiler will be ignored by `dxni`.
 
 ## Calling apps
 
