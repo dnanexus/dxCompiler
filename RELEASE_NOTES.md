@@ -1,8 +1,16 @@
 # Release Notes
 
 ## in develop
-
 ...
+
+## 2.10.9 2023-03-07
+
+* dxda update to `v0.5.12` which adds a retry for file download. This fixes the "context canceled" error which was
+  thrown due to the `dxda` behavior.
+
+### Dependency updates
+
+#### dxApi [0.13.5](https://github.com/dnanexus/dxScala/releases/tag/api-0.13.5)
 
 
 ## 2.10.8 2023-02-23
