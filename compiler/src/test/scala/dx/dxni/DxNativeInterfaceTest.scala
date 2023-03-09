@@ -11,7 +11,8 @@ import org.scalatest.matchers.should.Matchers
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 import dx.util.{FileUtils, Logger, SysUtils}
 import dxCompiler.Main
-import dxCompiler.Main.SuccessfulDxNI
+import dxCompiler.Main.{SuccessfulCompileNativeNoTree, SuccessfulDxNI}
+import wdlTools.syntax.NoSuchParserException
 
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -42,6 +43,7 @@ class DxNativeInterfaceTest extends AnyFlatSpec with Matchers with BeforeAndAfte
   private val unitTestsPath = s"unit_tests/${username}"
   private val folderPath =
     s"/${unitTestsPath}/applets_${test_time}_${randomUUID().toString.substring(24)}/"
+  private val compilePath = s"${folderPath}compiled/"
 
   override def beforeAll(): Unit = {
     // build the directory with the native applets
@@ -84,11 +86,26 @@ class DxNativeInterfaceTest extends AnyFlatSpec with Matchers with BeforeAndAfte
       val content = FileUtils.readFileContent(outputPath)
       val (tasks, _, _) = parseWdlTasks(content)
       tasks
+    } catch {
+      case _: NoSuchParserException => Map.empty
     } finally {
       if (Files.exists(outputPath)) {
         Files.delete(outputPath)
       }
     }
+  }
+
+  private def runCompile(args: Vector[String]): String = {
+    val wfId = Main.compile(args) match {
+      case SuccessfulCompileNativeNoTree(_, Vector(wfId)) => wfId
+      case other                                          => throw new Exception(s"expected single workflow not ${other}")
+    }
+    wfId
+  }
+
+  private def pathFromBasename(dir: String, basename: String): Path = {
+    val p = getClass.getResource(s"/${dir}/${basename}").getPath
+    Paths.get(p)
   }
 
   it should "be able to build interfaces to native applets" taggedAs NativeTest in {
@@ -161,5 +178,32 @@ class DxNativeInterfaceTest extends AnyFlatSpec with Matchers with BeforeAndAfte
                       "exclude")
     val tasks = runDxni(args)
     tasks.keySet shouldBe Set("native_sum")
+  }
+
+  it should "not build any interfaces for dxCompiler applets and throw a warning" taggedAs NativeTest in {
+    val path = pathFromBasename("bugs", "apps_1351.wdl").toString
+    val compileArgs = Vector(
+        "-project",
+        dxTestProject.id,
+        "-force",
+        "-folder",
+        compilePath
+    )
+    val _ = runCompile(path +: compileArgs)
+    val dxniArgs = Vector(
+        "-force",
+        "-folder",
+        compilePath,
+        "-project",
+        dxTestProject.id,
+        "-apps",
+        "exclude",
+        "-r"
+    )
+    val tasks = runDxni(dxniArgs)
+    tasks.keySet shouldBe Set.empty
+    //logger.peekStream() should contain (
+    //  "Applets apps_1351_outputs, apps_1351_common, aa were ignored by dxni because they were compiled with dxCompiler"
+    //)
   }
 }
