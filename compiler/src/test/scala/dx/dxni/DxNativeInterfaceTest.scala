@@ -44,6 +44,7 @@ class DxNativeInterfaceTest extends AnyFlatSpec with Matchers with BeforeAndAfte
   private val folderPath =
     s"/${unitTestsPath}/applets_${test_time}_${randomUUID().toString.substring(24)}/"
   private val compilePath = s"${folderPath}compiled/"
+  private val logPath: Path = Files.createTempFile("dxni", ".log")
 
   override def beforeAll(): Unit = {
     // build the directory with the native applets
@@ -66,6 +67,9 @@ class DxNativeInterfaceTest extends AnyFlatSpec with Matchers with BeforeAndAfte
 
   override def afterAll(): Unit = {
     dxTestProject.removeFolder(folderPath, recurse = true)
+    if (Files.exists(logPath)) {
+      Files.delete(logPath)
+    }
   }
 
   private def parseWdlTasks(
@@ -198,12 +202,14 @@ class DxNativeInterfaceTest extends AnyFlatSpec with Matchers with BeforeAndAfte
         dxTestProject.id,
         "-apps",
         "exclude",
-        "-r"
+        "-r",
+        "-logFile",
+        logPath.toString
     )
     val tasks = runDxni(dxniArgs)
     tasks.keySet shouldBe Set.empty
-    //logger.peekStream() should contain (
-    //  "Applets apps_1351_outputs, apps_1351_common, aa were ignored by dxni because they were compiled with dxCompiler"
-    //)
+    Files.readString(logPath) should include(
+        "Applets apps_1351_outputs, apps_1351_common, aa were ignored by dxni because they were compiled with dxCompiler"
+    )
   }
 }
