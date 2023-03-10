@@ -190,6 +190,8 @@ class DxNativeInterfaceTest extends AnyFlatSpec with Matchers with BeforeAndAfte
         "-project",
         dxTestProject.id,
         "-force",
+        "-compileMode",
+        "NativeWithoutRuntimeAsset",
         "-folder",
         compilePath
     )
