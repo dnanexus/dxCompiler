@@ -1555,7 +1555,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       case other =>
         throw new Exception(s"unexpected result ${other}")
     }
-    // make sure the flag is set on the resulting workflow
+    // make sure the flag is ignored in the resulting workflow
     val wfDetails = dxApi.workflow(wfId).describe(Set(Field.Details)).details.get
     val delayWD = wfDetails.asJsObject.fields.get("delayWorkspaceDestruction")
     delayWD shouldBe None
