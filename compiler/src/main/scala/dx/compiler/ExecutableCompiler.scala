@@ -451,14 +451,6 @@ class ExecutableCompiler(extras: Option[Extras],
     (metaDefaults ++ meta ++ summary ++ description, originalName ++ metaDetails ++ whatsNew)
   }
 
-  protected def delayWorkspaceDestructionToNative: Map[String, JsValue] = {
-    if (extras.flatMap(_.delayWorkspaceDestruction).getOrElse(false)) {
-      Map(Constants.DelayWorkspaceDestruction -> JsTrue)
-    } else {
-      Map.empty
-    }
-  }
-
   protected def fileDependenciesFromParam(param: Parameter): Set[String] = {
     val default = param.defaultValue match {
       case Some(f: Value.VFile) => Vector(f.uri)
