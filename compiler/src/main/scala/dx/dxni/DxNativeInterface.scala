@@ -51,7 +51,8 @@ case class DxNativeInterface(fileResolver: FileSourceResolver = FileSourceResolv
   private def searchApplets(dxProject: DxProject,
                             folder: String,
                             recursive: Boolean): Vector[DxApplet] = {
-    val applets: Vector[DxApplet] =
+    val (nativeApplets, dxcApplets): (Map[DxApplet, DxAppletDescribe],
+                                      Map[DxApplet, DxAppletDescribe]) =
       DxFindDataObjects(dxApi)
         .apply(Some(dxProject),
                Some(folder),
@@ -60,19 +61,33 @@ case class DxNativeInterface(fileResolver: FileSourceResolver = FileSourceResolv
                withInputOutputSpec = true,
                extraFields = Set(Field.Tags))
         .collect {
+          case (applet: DxApplet, desc: DxAppletDescribe) => (applet, desc)
+        }
+        .partition {
           // ignore any applets with the compiler tag set - it indicates an applet
           // that was compiled with dxCompiler (and thus not "native")
-          case (applet: DxApplet, desc: DxAppletDescribe)
+          case (_: DxApplet, desc: DxAppletDescribe)
               if !desc.tags.get.contains(Constants.CompilerTag) =>
-            applet
+            true
+          case (_: DxApplet, _: DxAppletDescribe) => false
         }
-        .toVector
-    if (applets.isEmpty) {
+
+    if (dxcApplets.nonEmpty) {
+      val dxcAppletNames = dxcApplets.map {
+        case (_, desc: DxAppletDescribe) => desc.name
+      }
+      logger.warning(
+          s"Applets ${dxcAppletNames.mkString(", ")} were ignored by dxni because they were compiled with dxCompiler"
+      )
+    }
+    if (nativeApplets.isEmpty) {
       logger.warning(s"Found no applets in ${dxProject.id}/${folder}")
     } else {
-      logger.trace(s"Found ${applets.size} applets in ${dxProject.id}/${folder}")
+      logger.trace(s"Found ${nativeApplets.size} applets in ${dxProject.id}/${folder}")
     }
-    applets
+    nativeApplets.map {
+      case (applet: DxApplet, _) => applet
+    }.toVector
   }
 
   private def searchApps: Vector[DxApp] = {
