@@ -177,7 +177,7 @@ object ExtrasJsonProtocol extends DefaultJsonProtocol {
   implicit val defaultReorgSettingsFormat: RootJsonFormat[DefaultReorgSettings] = jsonFormat1(
       DefaultReorgSettings
   )
-  implicit val extrasFormat: RootJsonFormat[Extras] = jsonFormat9(Extras.apply)
+  implicit val extrasFormat: RootJsonFormat[Extras] = jsonFormat8(Extras.apply)
 }
 
 import ExtrasJsonProtocol._
@@ -433,8 +433,7 @@ case class Extras(defaultRuntimeAttributes: Option[Map[String, Value]],
                   perWorkflowDxAttributes: Option[Map[String, DxWorkflowAttrs]],
                   dockerRegistry: Option[DockerRegistry],
                   customReorgAttributes: Option[CustomReorgSettings],
-                  ignoreReuse: Option[Boolean],
-                  delayWorkspaceDestruction: Option[Boolean]) {
+                  ignoreReuse: Option[Boolean]) {
   defaultRuntimeAttributes.foreach { attrs =>
     val unsupportedRuntimeAttrs = attrs.keySet.diff(Extras.RuntimeAttrs)
     if (unsupportedRuntimeAttrs.nonEmpty) {

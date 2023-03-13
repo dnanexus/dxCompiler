@@ -624,7 +624,6 @@ case class WorkflowCompiler(separateOutputs: Boolean,
       case ExecutableLink(name, _, _, dxExec) =>
         s"link_${name}" -> JsObject(DxUtils.DxLinkKey -> JsString(dxExec.id))
     }.toMap
-    val delayDetails = delayWorkspaceDestructionToNative
     // generate the executable tree
     val execTree = ExecutableTree(executableDict).apply(workflow)
     val execTreeDetails = Map(
@@ -713,7 +712,7 @@ case class WorkflowCompiler(separateOutputs: Boolean,
     }
 
     // Collect details
-    val details = wfMetaDetails ++ sourceDetails ++ dxLinks ++ delayDetails ++ execTreeDetails ++
+    val details = wfMetaDetails ++ sourceDetails ++ dxLinks ++ execTreeDetails ++
       nativeAppDependenciesDetails ++ fileDependenciesDetails ++ dockerRegistryCredentialsUriDetails ++
       staticInstanceTypeSelectionDetails
     val isTopLevel = workflow.level == Level.Top
