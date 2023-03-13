@@ -272,6 +272,7 @@ ci_test_list = [
     "cat",
 ]
 
+# TODO - migrate to dxcint. Not automated, no regression monitored
 special_flags_list = [
     "add2",  # test the ignoreReuse flag
     "add_many",  # tests the delayWorkspaceDestruction flag

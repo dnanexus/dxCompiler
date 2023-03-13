@@ -1512,7 +1512,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     taskIgnoreReuseFlag shouldBe Some(JsBoolean(true))
   }
 
-  it should "set delayWorkspaceDestruction on applet" taggedAs NativeTest in {
+  // APPS-1616 delayWorkspaceDestruction in extras.json is deprecated
+  it should "ignore delayWorkspaceDestruction in extras for applet" taggedAs NativeTest in {
     val path = pathFromBasename("compiler", "add_timeout.wdl")
     val extrasContent =
       """|{
@@ -1529,15 +1530,16 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         throw new Exception(s"unexpected result ${other}")
     }
 
-    // make sure the delayWorkspaceDestruction flag is set
+    // make sure the delayWorkspaceDestruction flag is ignored
     val (_, stdout, _) =
       SysUtils.execCommand(s"dx describe ${dxTestProject.id}:${appletId} --json")
     val details = stdout.parseJson.asJsObject.fields("details")
     val delayWD = details.asJsObject.fields.get("delayWorkspaceDestruction")
-    delayWD shouldBe Some(JsTrue)
+    delayWD shouldBe None
   }
 
-  it should "set delayWorkspaceDestruction on workflow" in {
+  // APPS-1616 delayWorkspaceDestruction in extras.json is deprecated
+  it should "ignore delayWorkspaceDestruction in extras for workflow" in {
     val path = pathFromBasename("subworkflows", basename = "trains_station.wdl")
     val extrasContent =
       """|{
@@ -1553,10 +1555,10 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       case other =>
         throw new Exception(s"unexpected result ${other}")
     }
-    // make sure the flag is set on the resulting workflow
+    // make sure the flag is ignored in the resulting workflow
     val wfDetails = dxApi.workflow(wfId).describe(Set(Field.Details)).details.get
     val delayWD = wfDetails.asJsObject.fields.get("delayWorkspaceDestruction")
-    delayWD shouldBe Some(JsTrue)
+    delayWD shouldBe None
 
     // the flag is set on all the stages
     val execTree = ExecutableTree.fromDxWorkflow(dxApi.workflow(wfId))
@@ -1569,7 +1571,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
           .details
           .get
           .asJsObject
-          .fields("delayWorkspaceDestruction")
+          .fields
+          .get("delayWorkspaceDestruction")
+          .orElse(None)
       case applet: String if applet.startsWith("applet-") =>
         dxApi
           .applet(applet)
@@ -1577,10 +1581,12 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
           .details
           .get
           .asJsObject
-          .fields("delayWorkspaceDestruction")
+          .fields
+          .get("delayWorkspaceDestruction")
+          .orElse(None)
       case other => throw new Exception(s"Unknown stage type ${other}")
     }
-    all(delayStages) shouldBe JsBoolean(true)
+    all(delayStages) shouldBe None
   }
 
   it should "Native compile a CWL tool" taggedAs NativeTest in {
