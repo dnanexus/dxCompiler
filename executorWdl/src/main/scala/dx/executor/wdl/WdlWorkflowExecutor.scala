@@ -468,7 +468,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
             try {
               val request = runtime.parseInstanceType
               if (request.isEmpty && isNative) {
-                // TODO: this will never happen - request always get's filled in with default values.
+                // TODO: this will never happen - request always gets filled in with default values.
                 //  Currently we're relying on the task wrapper not having a runtime or hints section.
                 //  We should change `isEmpty` to something like `isDefault`, which would return true
                 //  if the request only consists of default values.
