@@ -6,6 +6,11 @@ workspace, `--delay-workspace-destruction` flag should be included in `dx run wo
 * Fixes for the `-pretty` flag in the `describe` command
 * Minor fixes
 
+## 2.11.0 2023-03-15
+* Option `delayWorkspaceDestruction` was deprecated and will be ignored when included in `extras.json`. To preserve the
+  workspace, `--delay-workspace-destruction` flag should be included in `dx run workflow-XXX`.
+* Minor fixes.
+
 ## 2.10.9 2023-03-07
 
 * dxda update to `v0.5.12` which adds a retry for file download. This fixes the "context canceled" error which was
