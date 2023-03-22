@@ -940,10 +940,14 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         val wdlValue = evaluateExpression(defaultExpr, wdlType, accu)
         accu + (name -> (wdlType, wdlValue))
       case (accu, OptionalBlockInput(name, wdlType)) =>
-        // the input is missing but it could be optional - add a V_Null
-        accu + (name -> (wdlType, V_Null))
+        // the input is missing but it could be optional - add a V_ForcedNull
+        accu + (name -> (wdlType, V_ForcedNull))
     }
-    val prereqEnv = evaluateWorkflowElementVariables(block.prerequisites, inputEnv)
-    WdlBlockContext(block, inputEnv, prereqEnv)
+    val inputEnvNew = inputEnv.filter {
+      case (_, (_, V_ForcedNull)) => false
+      case _                      => true
+    }
+    val prereqEnv = evaluateWorkflowElementVariables(block.prerequisites, inputEnvNew)
+    WdlBlockContext(block, inputEnvNew, prereqEnv)
   }
 }

@@ -17,7 +17,7 @@ import spray.json._
 import wdlTools.eval.WdlValues.V_String
 import wdlTools.eval.{Eval, WdlValueBindings, WdlValues}
 import wdlTools.syntax.WdlVersion
-import wdlTools.types.WdlTypes.{T_String}
+import wdlTools.types.WdlTypes.T_String
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 
 import scala.collection.immutable.SeqMap
@@ -369,6 +369,25 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
           Map.empty[DxName, (WdlTypes.T, WdlValues.V)]
       )
     }
+  }
+
+  it should "include only specified inputs" in {
+    val path = pathFromBasename("frag_runner", "apps_1341.wdl")
+    val workerPaths = setup()
+    val wfExecutor = createWorkflowExecutor(workerPaths, path, Vector(1))
+    wfExecutor match {
+      case exe: WdlWorkflowExecutor => exe
+      case _                        => throw new Exception("expected WdlWorkflowExecutor")
+    }
+    val wdlExpression = WdlValues.V_String("hello")
+    val irX = WdlUtils.toIRValue(wdlExpression)
+    val blockContext =
+      wfExecutor.evaluateBlockInputs(
+          Map(WdlDxName.fromSourceName("wf_inp_00") -> (Type.TString, irX))
+      )
+    blockContext.inputEnv shouldBe Map(
+        WdlDxName.fromSourceName("wf_inp_00") -> (T_String, V_String("hello"))
+    )
   }
 
   it should "evaluate expressions that define variables" in {
