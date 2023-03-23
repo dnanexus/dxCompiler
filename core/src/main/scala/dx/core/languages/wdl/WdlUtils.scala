@@ -391,6 +391,7 @@ object WdlUtils {
   def toIRValue(wdlValue: V): Value = {
     wdlValue match {
       case V_Null            => VNull
+      case V_ForcedNull      => VForcedNull
       case V_Boolean(b)      => VBoolean(value = b)
       case V_Int(i)          => VInt(i)
       case V_Float(f)        => VFloat(f)
@@ -434,6 +435,7 @@ object WdlUtils {
   def toIRValue(wdlValue: V, wdlType: T): Value = {
     (wdlType, wdlValue) match {
       case (_, V_Null)                      => VNull
+      case (_, V_ForcedNull)                => VForcedNull
       case (T_Boolean, V_Boolean(b))        => VBoolean(value = b)
       case (T_Int, V_Int(i))                => VInt(i)
       case (T_Float, V_Float(f))            => VFloat(f)
@@ -520,6 +522,7 @@ object WdlUtils {
   def fromIRValue(value: Value, name: Option[String]): V = {
     value match {
       case VNull       => V_Null
+      case VForcedNull => V_ForcedNull
       case VBoolean(b) => V_Boolean(b)
       case VInt(i)     => V_Int(i)
       case VFloat(f)   => V_Float(f)
@@ -559,6 +562,7 @@ object WdlUtils {
   def fromIRValue(value: Value, wdlType: T, name: String): V = {
     (wdlType, value) match {
       case (T_Optional(_), VNull)       => V_Null
+      case (T_Optional(_), VForcedNull) => V_ForcedNull
       case (T_Boolean, VBoolean(b))     => V_Boolean(value = b)
       case (T_Int, VInt(i))             => V_Int(i)
       case (T_Float, VFloat(f))         => V_Float(f)
@@ -650,6 +654,7 @@ object WdlUtils {
     val loc = SourceLocation.empty
     value match {
       case VNull       => TAT.ValueNone(T_Any)(loc)
+      case VForcedNull => TAT.ValueNone(T_Any)(loc)
       case VBoolean(b) => TAT.ValueBoolean(b, T_Boolean)(loc)
       case VInt(i)     => TAT.ValueInt(i, T_Int)(loc)
       case VFloat(f)   => TAT.ValueFloat(f, T_Float)(loc)

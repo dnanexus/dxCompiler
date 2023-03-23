@@ -17,7 +17,7 @@ import spray.json._
 import wdlTools.eval.WdlValues.V_String
 import wdlTools.eval.{Eval, WdlValueBindings, WdlValues}
 import wdlTools.syntax.WdlVersion
-import wdlTools.types.WdlTypes.T_String
+import wdlTools.types.WdlTypes.{T_Optional, T_String}
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 
 import scala.collection.immutable.SeqMap
@@ -374,7 +374,7 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
   it should "include only specified inputs" in {
     val path = pathFromBasename("frag_runner", "apps_1341.wdl")
     val workerPaths = setup()
-    val wfExecutor = createWorkflowExecutor(workerPaths, path, Vector(1))
+    val wfExecutor = createWorkflowExecutor(workerPaths, path, Vector(3))
     wfExecutor match {
       case exe: WdlWorkflowExecutor => exe
       case _                        => throw new Exception("expected WdlWorkflowExecutor")
@@ -387,6 +387,58 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
       )
     blockContext.inputEnv shouldBe Map(
         WdlDxName.fromSourceName("wf_inp_00") -> (T_String, V_String("hello"))
+    )
+  }
+
+  it should "eval WF elements with explicit optional" in {
+    val workerPaths = setup()
+    val path = pathFromBasename("frag_runner", "apps_1341.wdl")
+    val wdlBundle = parse(path)
+    val wf: TAT.Workflow = wdlBundle.primaryCallable match {
+      case Some(wf: TAT.Workflow) => wf
+      case _                      => throw new Exception("unexpected")
+    }
+    val subBlocks = WdlBlock.createBlocks(wf.body)
+    val wfExecutor = createWorkflowExecutor(workerPaths, path)
+    val results: Map[DxName, (WdlTypes.T, WdlValues.V)] = wfExecutor match {
+      case exe: WdlWorkflowExecutor =>
+        exe.evaluateWorkflowElementVariables(
+            subBlocks(0).elements.dropRight(1),
+            Map(
+                WdlDxName.fromSourceName("wf_inp_00") -> (T_String, V_String("hello")),
+                WdlDxName.fromSourceName("wf_inp_01") -> (T_Optional(T_String), V_String("world"))
+            )
+        )
+      case _ => throw new Exception("expected WdlWorkflowExecutor")
+    }
+
+    results(WdlDxName.fromSourceName("new_wf_inp_01")) should be(
+        (WdlTypes.T_Optional(WdlTypes.T_String), WdlValues.V_Optional(WdlValues.V_String("world")))
+    )
+  }
+
+  it should "eval WF elements withOUT explicit optional" in {
+    val workerPaths = setup()
+    val path = pathFromBasename("frag_runner", "apps_1341.wdl")
+    val wdlBundle = parse(path)
+    val wf: TAT.Workflow = wdlBundle.primaryCallable match {
+      case Some(wf: TAT.Workflow) => wf
+      case _                      => throw new Exception("unexpected")
+    }
+    val subBlocks = WdlBlock.createBlocks(wf.body)
+    val wfExecutor = createWorkflowExecutor(workerPaths, path)
+    val results: Map[DxName, (WdlTypes.T, WdlValues.V)] = wfExecutor match {
+      case exe: WdlWorkflowExecutor =>
+        exe.evaluateWorkflowElementVariables(
+            subBlocks(0).elements.dropRight(1),
+            Map(
+                WdlDxName.fromSourceName("wf_inp_00") -> (T_String, V_String("hello"))
+            )
+        )
+      case _ => throw new Exception("expected WdlWorkflowExecutor")
+    }
+    results(WdlDxName.fromSourceName("new_wf_inp_01")) should be(
+        (WdlTypes.T_Optional(WdlTypes.T_String), WdlValues.V_Null)
     )
   }
 

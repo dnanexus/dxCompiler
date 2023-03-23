@@ -523,7 +523,10 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     }
 
     override protected def launchBlockCall(blockIndex: Int): Map[DxName, ParameterLink] = {
-      val callInputs = evaluateCallInputs()
+      val callInputs = evaluateCallInputs().filter {
+        case (_, (_, V_ForcedNull)) => false
+        case _                      => true
+      }
       val (dxExecution, executableLink, callName) =
         launchCall(callInputs, Some(blockIndex.toString))
       // TODO: right now, we export all outputs of the executable, which may include intermediate
@@ -901,53 +904,54 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         val wdlValue = WdlUtils.fromIRValue(irValue, wdlType, dxName.decoded)
         dxName -> (wdlType, wdlValue)
     }
-    val inputEnv = block.inputs.foldLeft(initEnv) {
-      case (accu, blockInput: WdlBlockInput) if accu.contains(blockInput.name) =>
-        accu
-      case (accu, _: ComputedBlockInput) =>
-        // this is the scatter variable, or some expression that references the scatter
-        // variable - we can ignore it since it will be evaluated during launching of
-        // the scatter jobs
-        accu
-      case (accu, RequiredBlockInput(dxName, wdlType))
-          if compoundNameRegexp.matches(dxName.decoded) =>
-        // the input name is a compound reference - evaluate it as an identifier
-        val expr = versionSupport.parseExpression(dxName.decoded, DefaultBindings(accu.map {
-          case (dxName, (wdlType, _)) => dxName.decoded -> wdlType
-        }), docSource)
-        accu + (dxName -> (wdlType, evaluateExpression(expr, wdlType, accu)))
-      case (accu, OptionalBlockInput(dxName, wdlType))
-          if compoundNameRegexp.matches(dxName.decoded) =>
-        try {
+    val inputEnv = block.inputs
+      .foldLeft(initEnv) {
+        case (accu, blockInput: WdlBlockInput) if accu.contains(blockInput.name) =>
+          accu
+        case (accu, _: ComputedBlockInput) =>
+          // this is the scatter variable, or some expression that references the scatter
+          // variable - we can ignore it since it will be evaluated during launching of
+          // the scatter jobs
+          accu
+        case (accu, RequiredBlockInput(dxName, wdlType))
+            if compoundNameRegexp.matches(dxName.decoded) =>
+          // the input name is a compound reference - evaluate it as an identifier
           val expr = versionSupport.parseExpression(dxName.decoded, DefaultBindings(accu.map {
             case (dxName, (wdlType, _)) => dxName.decoded -> wdlType
           }), docSource)
           accu + (dxName -> (wdlType, evaluateExpression(expr, wdlType, accu)))
-        } catch {
-          case ex: EvalException =>
-            val errorMsg = exceptionToString(ex, brief = true)
-            logger.trace(
-                s"""${errorMsg}; setting the input value to null as it is optional""".stripMargin
-            )
-            accu + (dxName -> (wdlType, V_Null))
-          case other: Exception => throw other
-        }
-      case (_, RequiredBlockInput(name, _)) =>
-        throw new Exception(s"missing required input ${name}")
-      case (accu, OverridableBlockInputWithStaticDefault(name, wdlType, defaultValue)) =>
-        accu + (name -> (wdlType, defaultValue))
-      case (accu, OverridableBlockInputWithDynamicDefault(name, wdlType, defaultExpr)) =>
-        val wdlValue = evaluateExpression(defaultExpr, wdlType, accu)
-        accu + (name -> (wdlType, wdlValue))
-      case (accu, OptionalBlockInput(name, wdlType)) =>
-        // the input is missing but it could be optional - add a V_ForcedNull
-        accu + (name -> (wdlType, V_ForcedNull))
-    }
-    val inputEnvNew = inputEnv.filter {
-      case (_, (_, V_ForcedNull)) => false
-      case _                      => true
-    }
-    val prereqEnv = evaluateWorkflowElementVariables(block.prerequisites, inputEnvNew)
-    WdlBlockContext(block, inputEnvNew, prereqEnv)
+        case (accu, OptionalBlockInput(dxName, wdlType))
+            if compoundNameRegexp.matches(dxName.decoded) =>
+          try {
+            val expr = versionSupport.parseExpression(dxName.decoded, DefaultBindings(accu.map {
+              case (dxName, (wdlType, _)) => dxName.decoded -> wdlType
+            }), docSource)
+            accu + (dxName -> (wdlType, evaluateExpression(expr, wdlType, accu)))
+          } catch {
+            case ex: EvalException =>
+              val errorMsg = exceptionToString(ex, brief = true)
+              logger.trace(
+                  s"""${errorMsg}; setting the input value to null as it is optional""".stripMargin
+              )
+              accu + (dxName -> (wdlType, V_Null))
+            case other: Exception => throw other
+          }
+        case (_, RequiredBlockInput(name, _)) =>
+          throw new Exception(s"missing required input ${name}")
+        case (accu, OverridableBlockInputWithStaticDefault(name, wdlType, defaultValue)) =>
+          accu + (name -> (wdlType, defaultValue))
+        case (accu, OverridableBlockInputWithDynamicDefault(name, wdlType, defaultExpr)) =>
+          val wdlValue = evaluateExpression(defaultExpr, wdlType, accu)
+          accu + (name -> (wdlType, wdlValue))
+        case (accu, OptionalBlockInput(name, wdlType)) =>
+          // the input is missing but it could be optional - add a V_ForcedNull
+          accu + (name -> (wdlType, V_ForcedNull))
+      }
+      .filter {
+        case (_, (_, V_ForcedNull)) => false
+        case _                      => true
+      }
+    val prereqEnv = evaluateWorkflowElementVariables(block.prerequisites, inputEnv)
+    WdlBlockContext(block, inputEnv, prereqEnv)
   }
 }
