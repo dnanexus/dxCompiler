@@ -374,7 +374,7 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
   it should "include only specified inputs" in {
     val path = pathFromBasename("frag_runner", "apps_1341.wdl")
     val workerPaths = setup()
-    val wfExecutor = createWorkflowExecutor(workerPaths, path, Vector(3))
+    val wfExecutor = createWorkflowExecutor(workerPaths, path, Vector(0))
     wfExecutor match {
       case exe: WdlWorkflowExecutor => exe
       case _                        => throw new Exception("expected WdlWorkflowExecutor")
