@@ -438,7 +438,7 @@ class WdlWorkflowExecutorTest extends AnyFlatSpec with Matchers {
       case _ => throw new Exception("expected WdlWorkflowExecutor")
     }
     results(WdlDxName.fromSourceName("new_wf_inp_01")) should be(
-        (WdlTypes.T_Optional(WdlTypes.T_String), WdlValues.V_ForcedNull)
+        (WdlTypes.T_Optional(WdlTypes.T_String), WdlValues.V_Null)
     )
   }
 
