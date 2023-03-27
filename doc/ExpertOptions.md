@@ -967,7 +967,11 @@ task bwa_mem {
 
 # Calling existing app(let)s
 
-The DNAnexus tools library provides apps for many existing bioinformatics tools, and you may have already developed app(let)s of your own. You may want to use these existing app(let)s rather than rewriting them in WDL. Calling a native app(let) from WDL can be done using a native task wrapper. The dxCompiler `dxni` subcommand is provided to generate native task wrappers automatically. It can generate a wrapper for a specific app(let), all apps, and/or all applets in a specific platform folder. For example, the command:
+The DNAnexus tools library provides apps for many existing bioinformatics tools, and you may have already developed 
+app(let)s of your own. You may want to use these existing app(let)s rather than rewriting them in WDL. Calling a native 
+app(let) from WDL can be done using a native task wrapper. The dxCompiler `dxni` subcommand is provided to generate 
+native task wrappers automatically. It can generate a wrapper for a specific app(let), all apps, and/or all applets in 
+a specific platform folder. For example, the command:
 
 ```console
 $ java -jar dxCompiler-xxx.jar dxni -project project-xxxx -folder /A/B/C -output dx_extern.wdl
@@ -1035,6 +1039,8 @@ workflow w {
   }
 }
 ```
+
+Applets which were built by compiling tasks with dxCompiler will be ignored by `dxni`.
 
 ## Calling apps
 
@@ -1159,7 +1165,8 @@ The following first-level keys are accepted in the _extras_ file:
 * `dockerRegistry`: private registry configuration. See [Private registries](#private-registries])
 * `customReorgAttributes`: custom reorganization applet URI and its configuration. See [Adding config file based reorg applet at compilation time](#adding-config-file-based-reorg-applet-at-compilation-time)
 * `ignoreReuse`: boolean value indicating whether to disable [job reuse](#job-reuse)
-* `delayWorkspaceDestruction`: boolean value indicating whether to delay the destruction of the job's temporary workspace after execution. See [Delay workspace destruction](#delay-workspace-destruction)
+* **Deprecated** `delayWorkspaceDestruction`: boolean value.  Ignored in `extras.json` but accepted for backwards 
+compatibility. Use `dx run <YOUR_WORKFLOW> --delay-workspace-destruction` to preserve temporary workspace containers for 3 days.
 
 If one attribute is specified multiple times, its final value will be retrieved from the following sources and the latter (if exists) will override the former: 
 * `defaultTaskDxAttributes`/`defaultWorkflowDxAttributes` in the extras file
@@ -1341,31 +1348,6 @@ By default, job results are [reused](https://documentation.dnanexus.com/user/run
 }
 ```
 This will be applied to the top-level workflow, sub-workflows, and applets during compilation, and used for all jobs/analyses during execution (which is equivalent to using `--ignore-reuse` flag with `dx run`). 
-
-## Delay workspace destruction
-
-When calling a workflow with `dx run`, jobs and analyses launched by this workflow will have their temporary workspaces to store resources and intermediate outputs. By default, when a job or an analysis has transitioned to a terminal state (done, failed, or terminated), its temporary workspace will be destroyed by the system. 
-
-If you wish to delay the destruction of these temporary workspaces and keep them around longer (around 3 days) after executing the workflow, two things need to be done:
-
-1. Add this setting to the top-level of the extras file:
-
-```
-{
-  "delayWorkspaceDestruction" : true
-}
-```
-This will guarantee the workspace containers of all jobs that spawned from the parent jobs (e.g. in scatters) during workflow execution to remain intact after the analysis.
-
-2. When running the workflow use `--delay-workspace-destruction` flag:
-```
-dx run YOUR_WORKFLOW --delay-workspace-destruction
-```
-This will guarantee the root analysis and its stages will have their workspace destruction delayed.
-
-Taking both steps will ensure all of your workflow containers are not immediately destroyed regardless of whether the analysis succeeds or fails, and will allow you to view the data objects stored in the workflow workspace containers for debugging purposes.
-
-To learn about jobs' workspaces used during execution, please refer to [the official DNAnexus documentation](https://documentation.dnanexus.com/user/running-apps-and-workflows/job-lifecycle#example-execution-tree).
 
 # Handling intermediate workflow outputs
 

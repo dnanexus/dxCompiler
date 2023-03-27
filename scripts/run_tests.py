@@ -178,9 +178,9 @@ wdl_v1_1_list = [
 ]
 
 static_only = [
-    "apps_1177_native_indirect_override", #migrated
-    "apps_1128_frag_native_instance_type_override", #migrated
-    "apps_1197_native_frag_default" #migrated
+    "apps_1177_native_indirect_override",
+    "apps_1128_frag_native_instance_type_override",
+    "apps_1197_native_frag_default"
 ]
 
 # docker image tests
@@ -273,6 +273,7 @@ ci_test_list = [
     "cat",
 ]
 
+# TODO - migrate to dxcint. Not automated, no regression monitored
 special_flags_list = [
     "add2",  # test the ignoreReuse flag
     "add_many",  # tests the delayWorkspaceDestruction flag

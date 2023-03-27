@@ -129,13 +129,13 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     stagesSysReq.size shouldBe 2
     stagesSysReq("if (a)") shouldBe JsObject.empty
     stagesSysReq("apps_1177_mem_int") shouldBe JsObject(
-        "*" -> JsObject("instanceType" -> JsString("mem3_ssd1_x4"))
+        "*" -> JsObject("instanceType" -> JsString("mem3_ssd1_v2_x4"))
     )
     val stagesExecDetails = stages.map { stage =>
       stage.name -> dxApi.executable(stage.executable).describe(Set(Field.Details))
     }.toMap
     stagesExecDetails("if (a)").details.get.asJsObject
-      .fields("staticInstanceType") shouldBe (JsString("mem3_ssd1_x4"))
+      .fields("staticInstanceType") shouldBe (JsString("mem3_ssd1_v2_x4"))
   }
 
   it should "recognize changes in the struct inputs" in {
@@ -252,10 +252,10 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     stages.size shouldBe 3
     stages("default") shouldBe JsObject.empty
     stages("mem_int") shouldBe JsObject(
-        "*" -> JsObject("instanceType" -> JsString("mem3_ssd1_x4"))
+        "*" -> JsObject("instanceType" -> JsString("mem3_ssd1_v2_x4"))
     )
     stages("cpu_int") shouldBe JsObject(
-        "*" -> JsObject("instanceType" -> JsString("mem1_ssd1_x8"))
+        "*" -> JsObject("instanceType" -> JsString("mem1_ssd1_v2_x8"))
     )
   }
 
@@ -1512,7 +1512,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     taskIgnoreReuseFlag shouldBe Some(JsBoolean(true))
   }
 
-  it should "set delayWorkspaceDestruction on applet" taggedAs NativeTest in {
+  // APPS-1616 delayWorkspaceDestruction in extras.json is deprecated
+  it should "ignore delayWorkspaceDestruction in extras for applet" taggedAs NativeTest in {
     val path = pathFromBasename("compiler", "add_timeout.wdl")
     val extrasContent =
       """|{
@@ -1529,15 +1530,16 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         throw new Exception(s"unexpected result ${other}")
     }
 
-    // make sure the delayWorkspaceDestruction flag is set
+    // make sure the delayWorkspaceDestruction flag is ignored
     val (_, stdout, _) =
       SysUtils.execCommand(s"dx describe ${dxTestProject.id}:${appletId} --json")
     val details = stdout.parseJson.asJsObject.fields("details")
     val delayWD = details.asJsObject.fields.get("delayWorkspaceDestruction")
-    delayWD shouldBe Some(JsTrue)
+    delayWD shouldBe None
   }
 
-  it should "set delayWorkspaceDestruction on workflow" in {
+  // APPS-1616 delayWorkspaceDestruction in extras.json is deprecated
+  it should "ignore delayWorkspaceDestruction in extras for workflow" in {
     val path = pathFromBasename("subworkflows", basename = "trains_station.wdl")
     val extrasContent =
       """|{
@@ -1553,10 +1555,10 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       case other =>
         throw new Exception(s"unexpected result ${other}")
     }
-    // make sure the flag is set on the resulting workflow
+    // make sure the flag is ignored in the resulting workflow
     val wfDetails = dxApi.workflow(wfId).describe(Set(Field.Details)).details.get
     val delayWD = wfDetails.asJsObject.fields.get("delayWorkspaceDestruction")
-    delayWD shouldBe Some(JsTrue)
+    delayWD shouldBe None
 
     // the flag is set on all the stages
     val execTree = ExecutableTree.fromDxWorkflow(dxApi.workflow(wfId))
@@ -1569,7 +1571,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
           .details
           .get
           .asJsObject
-          .fields("delayWorkspaceDestruction")
+          .fields
+          .get("delayWorkspaceDestruction")
+          .orElse(None)
       case applet: String if applet.startsWith("applet-") =>
         dxApi
           .applet(applet)
@@ -1577,10 +1581,12 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
           .details
           .get
           .asJsObject
-          .fields("delayWorkspaceDestruction")
+          .fields
+          .get("delayWorkspaceDestruction")
+          .orElse(None)
       case other => throw new Exception(s"Unknown stage type ${other}")
     }
-    all(delayStages) shouldBe JsBoolean(true)
+    all(delayStages) shouldBe None
   }
 
   it should "Native compile a CWL tool" taggedAs NativeTest in {
