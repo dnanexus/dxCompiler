@@ -1,10 +1,9 @@
 # Release Notes
 
 ## in develop
-* Option `delayWorkspaceDestruction` was deprecated and will be ignored when included in `extras.json`. To preserve the 
-workspace, `--delay-workspace-destruction` flag should be included in `dx run workflow-XXX`
 * Fixes for the `-pretty` flag in the `describe` command
-* Minor fixes
+* WDL: fix for the tasks wrapped in a frag with optional inputs. Those inputs get forcibly evaluated to explicit `null` 
+and cause inconsistencies with applet inputs. This is fixed and all implicit `null` (`None`) values of optionals are remaining implicit.
 
 ## 2.11.0 2023-03-15
 * Option `delayWorkspaceDestruction` was deprecated and will be ignored when included in `extras.json`. To preserve the
