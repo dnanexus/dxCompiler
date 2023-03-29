@@ -8,7 +8,6 @@ import subprocess as sp
 from typing import Optional, Dict, Union
 
 from dxcint.utils import rm_prefix
-from dxcint.constants import DEFAULT_INSTANCE_TYPE
 from dxcint.Messenger import Messenger
 from dxcint.Context import Context
 
@@ -93,7 +92,7 @@ class RegisteredTest(object):
             )
             return True
         else:
-            self._context.logger.info(
+            self._context.logger.error(
                 f"Test {self._test_name} FAILED with message: {self._test_results.get('message')}"
             )
             return False

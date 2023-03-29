@@ -1,6 +1,7 @@
 import os
 import pytest
 from dxcint.Messenger import State
+from dxcint.Context import ContextEmpty
 
 from dxcint.testclasses.AnalysisFinished import AnalysisFinished
 from dxcint.testclasses.AppExternExpectedOutput import AppExternExpectedOutput
@@ -25,7 +26,7 @@ class FakeMessenger(object):
 
 
 def test_AnalysisFinished():
-    af = AnalysisFinished(test_name="aftest", src_file="", category="af", context=None)
+    af = AnalysisFinished(test_name="aftest", src_file="", category="af", context=ContextEmpty)
     fake_messenger = FakeMessenger()
     fake_messenger.wait_for_completion = lambda: None
     af._messenger = fake_messenger
@@ -51,7 +52,7 @@ def test_AnalysisFinished():
 
 
 def test_ExpectedFailure():
-    ef = ExpectedFailure(test_name="eftest", src_file="", category="ef", context=None)
+    ef = ExpectedFailure(test_name="eftest", src_file="", category="ef", context=ContextEmpty)
     ef._messenger = FakeMessenger()
     ef._messenger.state = State.FAIL
     assert ef._validate() == {
@@ -91,6 +92,8 @@ def test_ExpectedFailureMessage(fixtures_dir, context_init):
         "message": "Execution of the test efm DID NOT fail as expected.",
     }
 
+def test_ExternExpectedOutput():
+    pytest.fail()
 
 # TODO classes that are not just comibnation of mixins:
 
@@ -99,8 +102,7 @@ def test_AppExternExpectedOutput():
     pytest.fail()
 
 
-def test_ExternExpectedOutput():
-    pytest.fail()
+
 
 
 def test_LockedExpectedOutput():

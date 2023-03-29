@@ -54,7 +54,7 @@ class TestDiscovery(object):
 
     def discover(self, suite: str) -> List[RegisteredTest]:
         """
-         Method to discover and register the tests.
+        Method to discover and register the tests.
         Args:
             suite: str. One of several suites supplied as a capital letter code. See self._suites.keys
 
@@ -82,7 +82,7 @@ class TestDiscovery(object):
 
     def discover_single_test(self, test_name: str) -> List[RegisteredTest]:
         """
-         Method to discover and register a single test. Find the first complete match of the test name.
+        Method to discover and register a single test. Find the first complete match of the test name.
         Args:
             test_name: str. Test name as present in one of the suite config files
 

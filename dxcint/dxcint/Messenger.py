@@ -41,10 +41,17 @@ class Messenger(object):
             dxpy.DXAnalysis, dxpy.DXJob
         ] = dxpy.bindings.dxdataobject_functions.get_handler(job_id)
         self._interval = interval
+        self._execution_describe = None
 
     @property
     def state(self) -> State:
         return self._state
+
+    @property
+    def describe(self) -> Dict:
+        if not self._execution_describe:
+            self._execution_describe = self._execution.describe()
+        return self._execution_describe
 
     def wait_for_completion(self) -> State:
         """
