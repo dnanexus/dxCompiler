@@ -195,7 +195,7 @@ class TestDiscovery(object):
             extended_test_collection = set.union(set(existing_category), {test_name})
             suite_config.update({category: list(extended_test_collection)})
             suite_config_handle.seek(0)
-            json.dump(suite_config, suite_config_handle)
+            json.dump(suite_config, suite_config_handle, indent=4)
             suite_config_handle.truncate()
 
     def _copy_resource_files(self, files: List[str], category: str) -> None:
