@@ -34,9 +34,9 @@ def test_parallel_execution(build_executable_wdl: RegisteredTest):
             executor.submit(test1.get_test_result),
             executor.submit(test2.get_test_result),
         }
-        results = [f.result() for f in as_completed(test_futures)]
         history1 = h1.result()
         history2 = h2.result()
+        results = [f.result() for f in as_completed(test_futures)]
 
     assert results == [False, False]
     assert State.NOT_DONE in [state for _, state in history1]

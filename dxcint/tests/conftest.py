@@ -1,12 +1,24 @@
 import datetime
 import pytest
 import os
+import dxpy
 from dxpy.api import container_remove_objects, project_remove_folder
 from dxpy.exceptions import DXAPIError
 from dxcint.Context import Context
 from dxcint.Dependency import DependencyFactory
 from dxcint.Terraform import Terraform
 from dxcint.RegisteredTest import RegisteredTest
+from dxcint.constants import DEFAULT_TEST_PROJECT
+
+
+@pytest.fixture(autouse=True, scope="session")
+def prerequisites():
+    yield
+    available_projects = list(dxpy.find_projects(name=DEFAULT_TEST_PROJECT, level="CONTRIBUTE"))
+    if not available_projects:
+        raise ValueError(
+            f"Could not find project {DEFAULT_TEST_PROJECT}, you probably need to be logged into the platform"
+        )
 
 
 @pytest.fixture(scope="session")
@@ -33,7 +45,7 @@ def test_folder(timestamp):
 @pytest.fixture(scope="session")
 def context_init(root_dir, test_folder):
     context = Context(
-        project="dxCompiler_playground",
+        project=DEFAULT_TEST_PROJECT,
         repo_root=root_dir,
         folder=test_folder,
         logger_verbosity="info",

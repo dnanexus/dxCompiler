@@ -47,10 +47,10 @@ class Messenger(object):
         return self._state
 
     def wait_for_completion(self) -> State:
-        """Waits for the job to finish and returns its state.
-
+        """
+        Waits for the job to finish and returns its state.
         It uses a blocking call to dxpy, but can be used concurrently in a separate thread.
-        Most common usage is in the _validate method of RegisteredTest descendant.
+        Most common usage is in the _validate method of an instance of the RegisteredTest subclass.
 
         Returns:
             State.FINISHED if the execution ran to completion, State.FAIL if it failed or was terminated.
@@ -71,13 +71,14 @@ class Messenger(object):
         return self.state
 
     def query_state(self, extended: bool = False) -> Union[State, str]:
-        """Queries the state of the execution and returns it in the form of a State enum or a string.
+        """
+        Queries the state of the execution and returns it in the form of a State enum or a string.
         Args:
             extended: bool. If True, returns the state as a string from the API, otherwise a simple State enum.
         Returns:
             Union[State,str] State enum or a string state from the API.
         """
-        returned_state = self._execution._get_state()
+        returned_state = self._execution.describe(fields=dict(state=True))["state"]
         if extended:
             self._state = returned_state
         elif returned_state in [

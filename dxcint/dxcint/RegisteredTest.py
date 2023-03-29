@@ -41,7 +41,7 @@ class RegisteredTest(object):
         # wf inputs supplied as json usually have this suffix. Can be changed in subclasses
         self._inputs_suffix = "_input.json"
         self._compiled_inputs_suffix = "_input.dx.json"
-        self._test_inputs = {}
+        self._test_inputs = None
 
     @property
     def context(self) -> Context:
@@ -83,8 +83,7 @@ class RegisteredTest(object):
             self._test_inputs = self._import_inputs()
         return self._test_inputs
 
-    @property
-    def test_result(self) -> bool:
+    def get_test_result(self) -> bool:
         if not self._test_results:
             self._test_results = self._validate()
         if self._test_results.get("passed"):
@@ -94,13 +93,13 @@ class RegisteredTest(object):
             )
             return True
         else:
-            self._context.logger.error(
+            self._context.logger.info(
                 f"Test {self._test_name} FAILED with message: {self._test_results.get('message')}"
             )
             return False
 
     def _compile_executable(
-        self, additional_compiler_flags: Optional[Dict[str]] = None
+        self, additional_compiler_flags: Optional[Dict] = None
     ) -> str:
         """
         Base implementation. For different test classes override `exec_id` property with calling this method with
@@ -116,6 +115,7 @@ class RegisteredTest(object):
         compiler_flags = {
             "-instanceTypeSelection": random.choice(["static", "dynamic"])
         }
+        additional_compiler_flags = additional_compiler_flags or {}
         compiler_flags = {**compiler_flags, **additional_compiler_flags}    # update `-instanceTypeSelection` if needed
         compiler_jar_path = os.path.join(
             self._context.repo_root_dir, f"dxCompiler-{self._context.version}.jar"
@@ -164,7 +164,7 @@ class RegisteredTest(object):
         )
         self._context.logger.info(f"Running the process for test {self._test_name}")
         dx_execution = exec_handler.run(
-            self._test_inputs,
+            self.test_inputs,
             project=self._context.project_id,
             folder=os.path.join(self._context.platform_build_dir, "test"),
             name="{} {}".format(self._test_name, self._git_revision)

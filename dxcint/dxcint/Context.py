@@ -81,7 +81,7 @@ class Context(object):
             project_obj = dxpy.DXProject(project)
             return project_obj.get_id()
         except dxpy.DXError:
-            found_projects = list(dxpy.find_projects(name=project, level="VIEW"))
+            found_projects = list(dxpy.find_projects(name=project, level="CONTRIBUTE"))
             if len(found_projects) == 0:
                 raise ContextError(
                     f"Context._resolve_project(): Could not find project `{project}`."
