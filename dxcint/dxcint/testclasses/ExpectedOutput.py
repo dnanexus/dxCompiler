@@ -1,11 +1,13 @@
-from typing import Dict, List
+import tempfile
+import dxpy
+import os
 
-from dxcint.RegisteredTest import RegisteredTest
+from typing import Dict, List, Tuple, Set
+
+from dxcint.RegisteredTest import RegisteredTest, RegisteredTestError
 from dxcint.Context import Context
 from dxcint.Messenger import State
 from dxcint.utils import (
-    download_dxfile,
-    dict_compare,
     list_dx_folder,
     sort_dicts,
     sort_maybe_mixed,
@@ -13,8 +15,6 @@ from dxcint.utils import (
     get_checksum,
 )
 from dxcint.mixins.ResultsTestMixin import ResultsTestMixin
-import dxpy
-import os
 
 
 class ExpectedOutput(ResultsTestMixin, RegisteredTest):
@@ -24,27 +24,26 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
         self.folder_cache: Dict = {}
 
     def _extract_outputs(self) -> Dict:
-        desc = self.messenger.describe_execution(self.job_id)
+        desc = self.messenger.describe
         if desc["class"] == "analysis":
             stages = desc["stages"]
             for stage in stages:
                 if stage["id"] == "stage-outputs":
                     return stage["execution"]["output"]
-            raise RuntimeError(
+            raise RegisteredTestError(
                 f"Analysis for test {self.name} does not have stage 'outputs'"
             )
         elif desc["class"] == "job":
             return desc["output"]
         else:
-            raise RuntimeError(f"Unknown {desc['class']}")
+            raise RegisteredTestError(f"Unknown {desc['class']}")
 
     def _validate(self) -> Dict:
         self.messenger.wait_for_completion()
         if self.messenger.state == State.FINISHED:
-
             try:
                 outputs = self._extract_outputs()
-            except RuntimeError as e:
+            except RegisteredTestError as e:
                 return {
                     "passed": False,
                     "message": "Extracting outputs threw an exception" + str(e),
@@ -58,7 +57,8 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
             else:
                 return {
                     "passed": False,
-                    "message": f"Results of test {self.name} are invalid.\nExpected: {self._results}.\nReceived: {outputs}",
+                    "message": f"Results of test {self.name} are invalid.\nExpected: "
+                               f"{self._results}.\nReceived: {outputs}",
                 }
         else:
             return {
@@ -101,7 +101,8 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
             return False
         return True
 
-    def _unwrap(self, actual, expected):
+    @staticmethod
+    def _unwrap(actual: Dict, expected: Dict) -> Tuple[Dict, Dict]:
         if isinstance(actual, dict) and "___" in actual:
             actual = actual["___"]
             if isinstance(expected, dict) and "___" in expected:
@@ -112,7 +113,7 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
                 expected = expected["wrapped___"]
         return actual, expected
 
-    def _compare_values(self, expected, actual, field):
+    def _compare_values(self, expected, actual, field) -> bool:
         self._unwrap(actual, expected)
 
         if isinstance(actual, list) and isinstance(expected, list):
@@ -124,7 +125,7 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
                 and len(expected) == 1
                 and "$dnanexus_link" in expected
             ):
-                _, _, modified, _ = dict_compare(actual, expected)
+                _, _, modified, _ = self._dict_compare(actual, expected)
                 if modified:
                     self.context.logger.error(
                         f"Given files are not the same ({modified})."
@@ -144,7 +145,7 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
         ):
             actual = actual["uri"]
         if isinstance(actual, dict) and "$dnanexus_link" in actual:
-            actual = download_dxfile(
+            actual = self._download_dxfile(
                 link_to_dxfile(actual, self.context.project_id), self.file_cache
             )
 
@@ -168,22 +169,22 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
         if str(actual).strip() != str(expected).strip():
             self.context.logger.error(f"Analysis {self.name} gave unexpected results")
             self.context.logger.error(
-                f"Field {field} should have keys ({expected_keys}), actual = ({actual_keys})"
+                f"Field {field} should be ({expected}), actual = ({actual})"
             )
             return False
 
         return True
 
     def _compare_result_path(self, result, expected_val, field_name: str):
-        cls = result.get("class", result.get("type"))
-        expected_cls = expected_val.get("class", expected_val.get("type"))
-        if cls == "File" and expected_cls == "File":
+        actual_dx_object_class = result.get("class", result.get("type"))
+        expected_dx_object_class = expected_val.get("class", expected_val.get("type"))
+        if actual_dx_object_class == "File" and expected_dx_object_class == "File":
             return self._compare_result_file(
                 result,
                 expected_val,
                 field_name,
             )
-        elif cls in {"Directory", "Folder"} and expected_cls in {"Directory", "Folder"}:
+        elif actual_dx_object_class in {"Directory", "Folder"} and expected_dx_object_class in {"Directory", "Folder"}:
             return self._compare_result_directory(
                 result,
                 expected_val,
@@ -192,7 +193,7 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
         else:
             self.context.logger.error(f"Analysis {self.name} gave unexpected results")
             self.context.logger.error(
-                f"Field {field_name} should be of class ({expected_cls}), actual = ({cls})"
+                f"Field {field_name} should be of class ({expected_dx_object_class}), actual = ({actual_dx_object_class})"
             )
             return False
 
@@ -218,13 +219,13 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
                     dxfile.describe()["folder"], dxfile.describe()["name"]
                 )
                 if contents is None:
-                    contents = download_dxfile(dxfile)
+                    contents = self._download_dxfile(dxfile, self.file_cache)
             size = result.get("size")
             checksum = result.get("checksum")
             secondary_files = result.get("secondaryFiles", [])
         elif "$dnanexus_link" in result:
             dxfile = link_to_dxfile(result, self.context.project_id)
-            contents = download_dxfile(dxfile, self.file_cache)
+            contents = self._download_dxfile(dxfile, self.file_cache)
             location = os.path.join(
                 dxfile.describe()["folder"], dxfile.describe()["name"]
             )
@@ -302,6 +303,27 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
                     return False
 
         return True
+
+    def _dict_compare(self, actual: Dict, expected: Dict) -> Tuple[Set, Set, Dict, Set]:
+        d1_keys = set(actual.keys())
+        d2_keys = set(expected.keys())
+        shared_keys = d1_keys.intersection(d2_keys)
+        added = d1_keys - d2_keys
+        removed = d2_keys - d1_keys
+        modified = {}
+        for o in shared_keys:
+            if not isinstance(actual[o], type(expected[o])):
+                modified[o] = (actual[o], expected[o])
+                continue
+            if isinstance(actual[o], dict):
+                a, r, m, s = self._dict_compare(actual[o], expected[o])
+                if not r and not m:  # expected dict cannot contain more keys, actual can
+                    continue
+            elif actual[o] == expected[o]:
+                continue
+            modified[o] = (actual[o], expected[o])
+        same = set(o for o in shared_keys if actual[o] == expected[o])
+        return added, removed, modified, same
 
     def _compare_lists(self, actual: List, expected: List, field: str) -> bool:
         actual = list(filter(lambda x: x is not None, actual))
@@ -419,3 +441,19 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
                     return False
 
         return True
+
+    @staticmethod
+    def _download_dxfile(dxfile, file_cache):
+        id_key = (dxfile.get_proj_id(), dxfile.get_id())
+        if id_key in file_cache:
+            return file_cache[id_key]
+        download_path = os.path.join(tempfile.mkdtemp(), dxfile.describe()["name"])
+        dxpy.download_dxfile(dxfile, download_path)
+        try:
+            with open(download_path, "r") as inp:
+                contents = str(inp.read()).strip()
+                file_cache[id_key] = contents
+                return contents
+        finally:
+            if os.path.exists(download_path):
+                os.remove(download_path)

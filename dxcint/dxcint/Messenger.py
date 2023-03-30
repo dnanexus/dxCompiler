@@ -103,7 +103,3 @@ class Messenger(object):
             self._state = State.UNKNOWN
 
         return self.state
-
-    def describe_execution(self) -> Dict:
-        """Returns the description of the execution."""
-        return self._execution.describe()

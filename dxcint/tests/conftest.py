@@ -9,6 +9,14 @@ from dxcint.Dependency import DependencyFactory
 from dxcint.Terraform import Terraform
 from dxcint.RegisteredTest import RegisteredTest
 from dxcint.constants import DEFAULT_TEST_PROJECT
+from dxcint.Messenger import State
+
+
+class MockMessenger(object):
+    def __init__(self):
+        self.wait_for_completion = lambda: None
+        self.state = State.NOT_DONE
+        self.describe_execution = lambda: None
 
 
 @pytest.fixture(autouse=True, scope="session")
@@ -105,3 +113,8 @@ def build_executable_wdl(registered_test_wdl, terraform_init, change_to_root_dir
     except DXAPIError as e:
         print(f"Could not find {registered_test_wdl.exec_id}. Exiting")
         print(e)
+
+
+@pytest.fixture(scope="function")
+def mock_messenger():
+    yield MockMessenger()
