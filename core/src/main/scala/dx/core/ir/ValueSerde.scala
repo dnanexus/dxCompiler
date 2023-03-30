@@ -120,6 +120,7 @@ object ValueSerde extends DefaultJsonProtocol {
       }
       v match {
         case VNull         => JsNull
+        case VForcedNull   => JsNull
         case VBoolean(b)   => JsBoolean(b)
         case VInt(i)       => JsNumber(i)
         case VFloat(f)     => JsNumber(f)
@@ -161,6 +162,7 @@ object ValueSerde extends DefaultJsonProtocol {
       }
       (innerType, v) match {
         case (_: TOptional, VNull)             => JsNull
+        case (_: TOptional, VForcedNull)       => JsNull
         case (TOptional(t), _)                 => inner(v, t)
         case (t: TMulti, _)                    => innerMulti(v, t)
         case (TBoolean, VBoolean(b))           => JsBoolean(b)
@@ -516,6 +518,7 @@ object ValueSerde extends DefaultJsonProtocol {
       case VString(s)   => s"${prefix}${s}"
       case VBoolean(b)  => s"${prefix}${b.toString}"
       case VNull        => s"${prefix}null"
+      case VForcedNull  => s"${prefix}null"
       case VArray(items) if verbose =>
         s"${prefix}[\n${items.map(toString(_, verbose = true, indent = indent + 1)).mkString("\n")}\n${prefix}]"
       case VArray(items) => s"[${items.map(toString(_)).mkString(",")}]"

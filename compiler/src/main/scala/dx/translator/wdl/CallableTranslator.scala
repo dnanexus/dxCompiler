@@ -30,6 +30,7 @@ import wdlTools.eval.{DefaultEvalPaths, Eval, EvalException, WdlValueBindings, W
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
 import wdlTools.types.WdlTypes._
 import dx.util.{Adjuncts, FileSourceResolver, Logger, StringFileNode}
+import wdlTools.eval.WdlValues.V_ForcedNull
 import wdlTools.syntax.{Quoting, SourceLocation}
 
 import scala.annotation.tailrec
@@ -804,8 +805,10 @@ case class CallableTranslator(wdlBundle: WdlBundle,
       } else {
         try {
           // try to evaluate the output as a constant
-          val v = evaluator.applyConstAndCoerce(output.expr, output.wdlType)
-          StageInputStatic(WdlUtils.toIRValue(v, output.wdlType))
+          evaluator.applyConstAndCoerce(output.expr, output.wdlType) match {
+            case V_ForcedNull => throw new EvalException("")
+            case v            => StageInputStatic(WdlUtils.toIRValue(v, output.wdlType))
+          }
         } catch {
           case _: EvalException =>
             output.expr match {
