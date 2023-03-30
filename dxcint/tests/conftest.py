@@ -22,7 +22,9 @@ class MockMessenger(object):
 @pytest.fixture(autouse=True, scope="session")
 def prerequisites():
     yield
-    available_projects = list(dxpy.find_projects(name=DEFAULT_TEST_PROJECT, level="CONTRIBUTE"))
+    available_projects = list(
+        dxpy.find_projects(name=DEFAULT_TEST_PROJECT, level="CONTRIBUTE")
+    )
     if not available_projects:
         raise ValueError(
             f"Could not find project {DEFAULT_TEST_PROJECT}, you probably need to be logged into the platform"

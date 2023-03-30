@@ -5,5 +5,6 @@ from dxcint.Context import ContextEmpty
 
 @pytest.fixture
 def init_ExpectedOutput(mock_messenger):
-    yield ExpectedOutput(test_name="eotest", src_file="", category="eo", context=ContextEmpty)
-
+    yield ExpectedOutput(
+        test_name="eotest", src_file="", category="eo", context=ContextEmpty
+    )

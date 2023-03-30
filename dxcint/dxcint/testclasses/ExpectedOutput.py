@@ -58,7 +58,7 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
                 return {
                     "passed": False,
                     "message": f"Results of test {self.name} are invalid.\nExpected: "
-                               f"{self._results}.\nReceived: {outputs}",
+                    f"{self._results}.\nReceived: {outputs}",
                 }
         else:
             return {
@@ -184,7 +184,10 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
                 expected_val,
                 field_name,
             )
-        elif actual_dx_object_class in {"Directory", "Folder"} and expected_dx_object_class in {"Directory", "Folder"}:
+        elif actual_dx_object_class in {
+            "Directory",
+            "Folder",
+        } and expected_dx_object_class in {"Directory", "Folder"}:
             return self._compare_result_directory(
                 result,
                 expected_val,
@@ -317,7 +320,9 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
                 continue
             if isinstance(actual[o], dict):
                 a, r, m, s = self._dict_compare(actual[o], expected[o])
-                if not r and not m:  # expected dict cannot contain more keys, actual can
+                if (
+                    not r and not m
+                ):  # expected dict cannot contain more keys, actual can
                     continue
             elif actual[o] == expected[o]:
                 continue

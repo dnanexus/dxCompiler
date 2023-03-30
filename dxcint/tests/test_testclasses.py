@@ -16,15 +16,14 @@ from dxcint.testclasses.StaticDefaultInstanceExpectedOutput import (
 )
 
 
-
-def test_ExpectedFailureMessage(fixtures_dir, context_init):
+def test_ExpectedFailureMessage(mock_messenger, fixtures_dir, context_init):
     efm = ExpectedFailureMessage(
         src_file=os.path.join(fixtures_dir, "resources", "mock_category", "efm.wdl"),
         test_name="efm",
         category="mock_category",
         context=context_init,
     )
-    efm._messenger = FakeMessenger()
+    efm._messenger = mock_messenger
     efm._messenger.state = State.FAIL
     efm._messenger.describe_execution = lambda: {"failureMessage": "expected error"}
 
@@ -43,17 +42,16 @@ def test_ExpectedFailureMessage(fixtures_dir, context_init):
         "message": "Execution of the test efm DID NOT fail as expected.",
     }
 
+
 def test_ExternExpectedOutput():
     pytest.fail()
+
 
 # TODO classes that are not just comibnation of mixins:
 
 
 def test_AppExternExpectedOutput():
     pytest.fail()
-
-
-
 
 
 def test_LockedExpectedOutput():

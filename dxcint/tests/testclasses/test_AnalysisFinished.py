@@ -4,7 +4,9 @@ from dxcint.Messenger import State
 
 
 def test_AnalysisFinished(mock_messenger):
-    af = AnalysisFinished(test_name="aftest", src_file="", category="af", context=ContextEmpty)
+    af = AnalysisFinished(
+        test_name="aftest", src_file="", category="af", context=ContextEmpty
+    )
     mock_messenger.wait_for_completion = lambda: None
     af._messenger = mock_messenger
 
@@ -26,4 +28,3 @@ def test_AnalysisFinished(mock_messenger):
     assert af._validate() == o2
     mock_messenger.state = "bad_state"
     assert af._validate() == o3
-

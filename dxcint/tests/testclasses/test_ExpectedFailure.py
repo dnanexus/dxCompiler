@@ -4,7 +4,9 @@ from dxcint.Messenger import State
 
 
 def test_ExpectedFailure(mock_messenger):
-    ef = ExpectedFailure(test_name="eftest", src_file="", category="ef", context=ContextEmpty)
+    ef = ExpectedFailure(
+        test_name="eftest", src_file="", category="ef", context=ContextEmpty
+    )
     ef._messenger = mock_messenger
     ef._messenger.state = State.FAIL
     assert ef._validate() == {

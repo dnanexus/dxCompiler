@@ -141,9 +141,6 @@ def sort_maybe_mixed(seq):
         return [d[k] for k in sorted_keys]
 
 
-
-
-
 def link_to_dxfile(link, project_id):
     fields = link["$dnanexus_link"]
     if isinstance(fields, str):

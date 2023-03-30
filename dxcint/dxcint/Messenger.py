@@ -22,7 +22,7 @@ class Messenger(object):
         test_name: str,
         job_id: str,
         variant: Optional[int] = None,
-        interval: int = 20
+        interval: int = 20,
     ):
         """
         Class to communicate between RegisteredTest and the respective analysis/job on the platform.

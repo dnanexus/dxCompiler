@@ -115,7 +115,10 @@ class RegisteredTest(object):
             "-instanceTypeSelection": random.choice(["static", "dynamic"])
         }
         additional_compiler_flags = additional_compiler_flags or {}
-        compiler_flags = {**compiler_flags, **additional_compiler_flags}    # update `-instanceTypeSelection` if needed
+        compiler_flags = {
+            **compiler_flags,
+            **additional_compiler_flags,
+        }  # update `-instanceTypeSelection` if needed
         compiler_jar_path = os.path.join(
             self._context.repo_root_dir, f"dxCompiler-{self._context.version}.jar"
         )
@@ -158,15 +161,14 @@ class RegisteredTest(object):
         """
         exec_type = self.exec_id.split("-")[0]
         exec_handler = self._executable_type_switch.get(exec_type)(
-            project=self._context.project_id,
-            dxid=self.exec_id
+            project=self._context.project_id, dxid=self.exec_id
         )
         self._context.logger.info(f"Running the process for test {self._test_name}")
         dx_execution = exec_handler.run(
             self.test_inputs,
             project=self._context.project_id,
             folder=os.path.join(self._context.platform_build_dir, "test"),
-            name="{} {}".format(self._test_name, self._git_revision)
+            name="{} {}".format(self._test_name, self._git_revision),
         )
         return dx_execution
 
