@@ -93,6 +93,11 @@ def terraform_init(dependency_conf_dir, context_init):
 
 
 @pytest.fixture(scope="session")
+def terraform_build(terraform_init):
+    yield terraform_init.build()
+
+
+@pytest.fixture(scope="session")
 def registered_test_wdl(fixtures_dir, context_init):
     yield RegisteredTest(
         src_file=os.path.join(fixtures_dir, "resources", "mock_category", "mock_1.wdl"),
@@ -103,8 +108,8 @@ def registered_test_wdl(fixtures_dir, context_init):
 
 
 @pytest.fixture(scope="session")
-def build_executable_wdl(registered_test_wdl, terraform_init, change_to_root_dir):
-    _ = terraform_init.build()
+def build_executable_wdl(registered_test_wdl, terraform_build, change_to_root_dir):
+    _ = terraform_build
     _ = registered_test_wdl.exec_id
     yield registered_test_wdl
     try:
