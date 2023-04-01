@@ -9,7 +9,7 @@ from typing import Optional, Dict, Union
 
 from dxcint.utils import rm_prefix
 from dxcint.Messenger import Messenger
-from dxcint.Context import Context
+from dxcint.Context import Context, ContextEmpty
 
 
 class RegisteredTestError(Exception):
@@ -19,7 +19,13 @@ class RegisteredTestError(Exception):
 
 
 class RegisteredTest(object):
-    def __init__(self, src_file: str, category: str, test_name: str, context: Context):
+    def __init__(
+        self,
+        src_file: str,
+        category: str,
+        test_name: str,
+        context: Union[Context, ContextEmpty],
+    ):
         self._context = context
         self._src_file = src_file
         self._category = category

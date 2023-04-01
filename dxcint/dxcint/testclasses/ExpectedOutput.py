@@ -175,7 +175,7 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
 
         return True
 
-    def _compare_result_path(self, result, expected_val, field_name: str):
+    def _compare_result_path(self, result, expected_val, field_name: str) -> bool:
         actual_dx_object_class = result.get("class", result.get("type"))
         expected_dx_object_class = expected_val.get("class", expected_val.get("type"))
         if actual_dx_object_class == "File" and expected_dx_object_class == "File":
@@ -200,7 +200,7 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
             )
             return False
 
-    def _compare_result_file(self, result, expected_val, field_name: str):
+    def _compare_result_file(self, result, expected_val, field_name: str) -> bool:
         expected_checksum = (
             expected_val["checksum"] if "checksum" in expected_val else None
         )

@@ -1,6 +1,7 @@
 import datetime
 import pytest
 import os
+import json
 import dxpy
 from dxpy.api import container_remove_objects, project_remove_folder
 from dxpy.exceptions import DXAPIError
@@ -125,3 +126,10 @@ def build_executable_wdl(registered_test_wdl, terraform_build, change_to_root_di
 @pytest.fixture(scope="function")
 def mock_messenger():
     yield MockMessenger()
+
+
+@pytest.fixture(scope="session")
+def mock_analysis_desc(fixtures_dir):
+    with open(os.path.join(fixtures_dir, "mocker/mock_analysis.json")) as file_handle:
+        mock_analysis = json.load(file_handle)
+    yield mock_analysis
