@@ -41,18 +41,3 @@ def test_ExpectedFailureMessage(mock_messenger, fixtures_dir, context_init):
         "passed": False,
         "message": "Execution of the test efm DID NOT fail as expected.",
     }
-
-
-def test_ExternExpectedOutput():
-    pytest.fail()
-
-
-# TODO classes that are not just comibnation of mixins:
-
-
-def test_AppExternExpectedOutput():
-    pytest.fail()
-
-
-def test_LockedExpectedOutput():
-    pytest.fail()
