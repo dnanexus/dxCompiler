@@ -10,6 +10,7 @@ from typing import Optional, Dict, Union
 from dxcint.utils import rm_prefix
 from dxcint.Messenger import Messenger
 from dxcint.Context import Context, ContextEmpty
+from dxcint.constants import DEFAULT_INSTANCE_TYPE
 
 
 class RegisteredTestError(Exception):
@@ -124,7 +125,7 @@ class RegisteredTest(object):
         compiler_flags = {
             **compiler_flags,
             **additional_compiler_flags,
-        }  # update `-instanceTypeSelection` if needed
+        }
         compiler_jar_path = os.path.join(
             self._context.repo_root_dir, f"dxCompiler-{self._context.version}.jar"
         )
@@ -149,16 +150,21 @@ class RegisteredTest(object):
             raise e
         return workflow_id.decode("ascii")
 
-    def _run_executable(self) -> str:
+    def _run_executable(self, **dx_run_kwargs) -> str:
         """
         This method will be implemented in subclasses with or without additional decorators (e.g. for async_retry)
-
+        Args:
+            dx_run_kwargs: Dict[str]. Kwargs for the DxApp(let) or DxWorkflow .run call
         Returns: str. Execution ID (analysis or job)
         """
-        execution_desc = self._run_executable_inner().describe()
+        if "instance_type" not in dx_run_kwargs:
+            dx_run_kwargs.update({"instance_type": DEFAULT_INSTANCE_TYPE})
+        execution_desc = self._run_executable_inner(**dx_run_kwargs).describe()
         return execution_desc.get("id")
 
-    def _run_executable_inner(self) -> Union[dxpy.DXAnalysis, dxpy.DXJob]:
+    def _run_executable_inner(
+        self, **dx_run_kwargs
+    ) -> Union[dxpy.DXAnalysis, dxpy.DXJob]:
         """
         Override this method if the changes to the workflow execution are needed.
 
@@ -175,6 +181,7 @@ class RegisteredTest(object):
             project=self._context.project_id,
             folder=os.path.join(self._context.platform_build_dir, "test"),
             name="{} {}".format(self._test_name, self._git_revision),
+            **dx_run_kwargs,
         )
         return dx_execution
 

@@ -1,10 +1,10 @@
 from dxcint.mixins.StaticOnlyMixin import StaticOnlyMixin
-from dxcint.mixins.DefaultInstanceMixin import DefaultInstanceMixin
+from dxcint.mixins.PinnedInstanceMixin import PinnedInstanceMixin
 from dxcint.testclasses.ExpectedOutput import ExpectedOutput
 
 
-class StaticDefaultInstanceExpectedOutput(
-    StaticOnlyMixin, DefaultInstanceMixin, ExpectedOutput
+class StaticPinnedInstanceExpectedOutput(
+    StaticOnlyMixin, PinnedInstanceMixin, ExpectedOutput
 ):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

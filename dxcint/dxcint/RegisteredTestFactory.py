@@ -8,8 +8,8 @@ from dxcint.testclasses.LockedExpectedOutput import LockedExpectedOutput
 from dxcint.testclasses.AnalysisFinished import AnalysisFinished
 from dxcint.testclasses.ExtrasAnalysisFinished import ExtrasAnalysisFinished
 from dxcint.testclasses.ExtrasExpectedOutput import ExtrasExpectedOutput
-from dxcint.testclasses.StaticDefaultInstanceExpectedOutput import (
-    StaticDefaultInstanceExpectedOutput,
+from dxcint.testclasses.StaticPinnedInstanceExpectedOutput import (
+    StaticPinnedInstanceExpectedOutput,
 )
 from dxcint.testclasses.ManifestAnalysisFinished import ManifestAnalysisFinished
 from dxcint.testclasses.ExternExpectedOutput import ExternExpectedOutput
@@ -31,7 +31,7 @@ class RegisteredTestFactory(object):
             "reorg_locked_expected_output": ReorgLockedExpectedOutput,
             "extras_analysis_finished": ExtrasAnalysisFinished,
             "extras_expected_output": ExtrasExpectedOutput,
-            "static_default_instance_expected_output": StaticDefaultInstanceExpectedOutput,
+            "static_pinned_instance_expected_output": StaticPinnedInstanceExpectedOutput,
             "manifest_analysis_finished": ManifestAnalysisFinished,
             "extern_expected_output": ExternExpectedOutput,
             "app_extern_expected_output": AppExternExpectedOutput,

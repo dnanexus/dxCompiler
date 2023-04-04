@@ -97,32 +97,32 @@ the names in appropriate config file. **But this is not recommended.**
 ### Complex categories
 Complex categories are obtained by adding [mixins](#mixins) to the [basic categories](#basic-categories)
 
-|              test category               |      implementation class name       |                                                             comments                                                             |
-|:----------------------------------------:|:------------------------------------:|:--------------------------------------------------------------------------------------------------------------------------------:|
-|         expected_failure_message         |        ExpectedFailureMessage        | ExpectedFailure + ResultsMixin, `_validate` checks that the analysis failed with an error message specified in results['error']  |
-|         extras_analysis_finished         |        ExtrasAnalysisFinished        |                                                  AnalysisFinished + ExtrasMixin                                                  |
-|          extras_expected_output          |         ExtrasExpectedOutput         |                                                   ExpectedOutput + ExtrasMixin                                                   |
-|          locked_expected_output          |         LockedExpectedOutput         |                                     ExpectedOutput + LockedMixin, _extract_outputs overriden                                     |
-|        manifest_analysis_finished        |       ManifestAnalysisFinished       |                                                 AnalysisFinished + ManifestMixin                                                 |
-|       reorg_locked_expected_output       |      ReorgLockedExpectedOutput       |                                                LockedExpectedOutput + ReorgMixin                                                 |
-| static_default_instance_expected_output  | StaticDefaultInstanceExpectedOutput  |                                     ExpectedOutput + StaticOnlyMixin + DefaultInstanceMixin                                      |
-|          extern_expected_output          |         ExternExpectedOutput         |                        before compiling, creates an extern from additional applets in dxcint/dependencies                        |
-|        app_extern_expected_output        |       AppExternExpectedOutput        |                                          before compiling, creates an extern from apps                                           |
+|             test category              |     implementation class name      |                                                            comments                                                             |
+|:--------------------------------------:|:----------------------------------:|:-------------------------------------------------------------------------------------------------------------------------------:|
+|        expected_failure_message        |       ExpectedFailureMessage       | ExpectedFailure + ResultsMixin, `_validate` checks that the analysis failed with an error message specified in results['error'] |
+|        extras_analysis_finished        |       ExtrasAnalysisFinished       |                                                 AnalysisFinished + ExtrasMixin                                                  |
+|         extras_expected_output         |        ExtrasExpectedOutput        |                                                  ExpectedOutput + ExtrasMixin                                                   |
+|         locked_expected_output         |        LockedExpectedOutput        |                                    ExpectedOutput + LockedMixin, _extract_outputs overriden                                     |
+|       manifest_analysis_finished       |      ManifestAnalysisFinished      |                                                AnalysisFinished + ManifestMixin                                                 |
+|      reorg_locked_expected_output      |     ReorgLockedExpectedOutput      |                                                LockedExpectedOutput + ReorgMixin                                                |
+| static_pinned_instance_expected_output | StaticPinnedInstanceExpectedOutput |                                     ExpectedOutput + StaticOnlyMixin + PinnedInstanceMixin                                      |
+|         extern_expected_output         |        ExternExpectedOutput        |                       before compiling, creates an extern from additional applets in dxcint/dependencies                        |
+|       app_extern_expected_output       |      AppExternExpectedOutput       |                                          before compiling, creates an extern from apps                                          |
 
 
 #### Mixins
 
 Mixins are designed so that many can be used to extend a category class.
 
-|         Name         |                                                     purpose                                                     |
-|:--------------------:|:---------------------------------------------------------------------------------------------------------------:|
-| DefaultInstanceMixin |                                        `instance_type` is set to `None`                                         |
-|     ExtrasMixin      |                            appends to compile flags `--extras testname_extras.json`                             |
-|     LockedMixin      |                                       appends to compile flags `-locked`                                        |
-|    ManifestMixin     |                                    appends to compile flags `-useManifests`                                     |
-|      ReorgMixin      |                                        appends to compile flags `-reorg`                                        |
-|   ResultsTestMixin   |              loads result fixture from `testname_results.json` and stores it in `results` property              |
-|   StaticOnlyMixin    | appends to compile flags `-instanceTypeSelection static` preventing random selection of dynamic/static instance |
+|        Name         |                                                     purpose                                                     |
+|:-------------------:|:---------------------------------------------------------------------------------------------------------------:|
+| PinnedInstanceMixin |                                        `instance_type` is set to `None`                                         |
+|     ExtrasMixin     |                            appends to compile flags `--extras testname_extras.json`                             |
+|     LockedMixin     |                                       appends to compile flags `-locked`                                        |
+|    ManifestMixin    |                                    appends to compile flags `-useManifests`                                     |
+|     ReorgMixin      |                                        appends to compile flags `-reorg`                                        |
+|  ResultsTestMixin   |              loads result fixture from `testname_results.json` and stores it in `results` property              |
+|   StaticOnlyMixin   | appends to compile flags `-instanceTypeSelection static` preventing random selection of dynamic/static instance |
 
 
 ## Extending the framework
