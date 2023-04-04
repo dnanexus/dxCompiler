@@ -2,10 +2,10 @@ import tempfile
 import dxpy
 import os
 
-from typing import Dict, List, Tuple, Set
+from typing import Dict, List, Tuple, Set, Union
 
 from dxcint.RegisteredTest import RegisteredTest, RegisteredTestError
-from dxcint.Context import Context
+from dxcint.Context import Context, ContextEmpty
 from dxcint.Messenger import State
 from dxcint.utils import (
     list_dx_folder,
@@ -18,7 +18,13 @@ from dxcint.mixins.ResultsTestMixin import ResultsTestMixin
 
 
 class ExpectedOutput(ResultsTestMixin, RegisteredTest):
-    def __init__(self, src_file: str, category: str, test_name: str, context: Context):
+    def __init__(
+        self,
+        src_file: str,
+        category: str,
+        test_name: str,
+        context: Union[Context, ContextEmpty],
+    ):
         super().__init__(src_file, category, test_name, context)
         self.file_cache: Dict = {}
         self.folder_cache: Dict = {}

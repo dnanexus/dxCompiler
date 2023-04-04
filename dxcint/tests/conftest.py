@@ -17,7 +17,7 @@ class MockMessenger(object):
     def __init__(self):
         self.wait_for_completion = lambda: None
         self.state = State.NOT_DONE
-        self.describe_execution = lambda: None
+        self.describe = None
 
 
 @pytest.fixture(autouse=True, scope="session")

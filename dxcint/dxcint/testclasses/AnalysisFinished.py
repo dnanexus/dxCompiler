@@ -1,12 +1,18 @@
-from typing import Dict
+from typing import Dict, Union
 
 from dxcint.RegisteredTest import RegisteredTest
-from dxcint.Context import Context
+from dxcint.Context import Context, ContextEmpty
 from dxcint.Messenger import State
 
 
 class AnalysisFinished(RegisteredTest):
-    def __init__(self, src_file: str, category: str, test_name: str, context: Context):
+    def __init__(
+        self,
+        src_file: str,
+        category: str,
+        test_name: str,
+        context: Union[Context, ContextEmpty],
+    ):
         super().__init__(src_file, category, test_name, context)
 
     def _validate(self) -> Dict:

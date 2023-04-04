@@ -1,12 +1,18 @@
-from typing import Dict
+from typing import Dict, Union
 from dxcint.Messenger import State
-from dxcint.Context import Context
+from dxcint.Context import Context, ContextEmpty
 from dxcint.testclasses.ExpectedFailure import ExpectedFailure
 from dxcint.mixins.ResultsTestMixin import ResultsTestMixin
 
 
 class ExpectedFailureMessage(ResultsTestMixin, ExpectedFailure):
-    def __init__(self, src_file: str, category: str, test_name: str, context: Context):
+    def __init__(
+        self,
+        src_file: str,
+        category: str,
+        test_name: str,
+        context: Union[Context, ContextEmpty],
+    ):
         super().__init__(src_file, category, test_name, context)
         self._expected_failure_msg = self._get_expected_failure_message()
 

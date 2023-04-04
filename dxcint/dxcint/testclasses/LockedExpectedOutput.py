@@ -9,7 +9,7 @@ class LockedExpectedOutput(LockedMixin, ExpectedOutput):
         super().__init__(*args, **kwargs)
 
     def _extract_outputs(self) -> Dict:
-        desc = self.messenger.describe_execution(self.job_id)
+        desc = self.messenger.describe
         if desc["class"] in ["analysis", "job"]:
             return desc["output"]
         else:
