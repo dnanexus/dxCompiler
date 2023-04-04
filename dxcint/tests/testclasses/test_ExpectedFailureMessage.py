@@ -1,19 +1,6 @@
 import os
-import pytest
 from dxcint.Messenger import State
-
-from dxcint.testclasses.AppExternExpectedOutput import AppExternExpectedOutput
-from dxcint.testclasses.ExpectedFailure import ExpectedFailure
 from dxcint.testclasses.ExpectedFailureMessage import ExpectedFailureMessage
-from dxcint.testclasses.ExpectedOutput import ExpectedOutput
-from dxcint.testclasses.ExternExpectedOutput import ExternExpectedOutput
-from dxcint.testclasses.ExtrasAnalysisFinished import ExtrasAnalysisFinished
-from dxcint.testclasses.LockedExpectedOutput import LockedExpectedOutput
-from dxcint.testclasses.ManifestAnalysisFinished import ManifestAnalysisFinished
-from dxcint.testclasses.ReorgLockedExpectedOutput import ReorgLockedExpectedOutput
-from dxcint.testclasses.StaticDefaultInstanceExpectedOutput import (
-    StaticDefaultInstanceExpectedOutput,
-)
 
 
 def test_ExpectedFailureMessage(mock_messenger, fixtures_dir, context_init):
@@ -25,13 +12,13 @@ def test_ExpectedFailureMessage(mock_messenger, fixtures_dir, context_init):
     )
     efm._messenger = mock_messenger
     efm._messenger.state = State.FAIL
-    efm._messenger.describe_execution = lambda: {"failureMessage": "expected error"}
+    efm._messenger.describe = {"failureMessage": "expected error"}
 
     assert efm._validate() == {
         "passed": True,
         "message": "Execution of the test efm failed as expected.",
     }
-    efm._messenger.describe_execution = lambda: {"failureMessage": "unexpected error"}
+    efm._messenger.describe = {"failureMessage": "unexpected error"}
     assert efm._validate() == {
         "passed": False,
         "message": "Analysis efm results are invalid.\nExpected: expected error.\nReceived: unexpected error",
