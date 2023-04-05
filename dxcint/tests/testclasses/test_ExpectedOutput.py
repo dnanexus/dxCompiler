@@ -1,11 +1,10 @@
 import pytest
 from dxcint.testclasses.ExpectedOutput import ExpectedOutput
-from dxcint.Context import ContextEmpty
 from dxcint.Messenger import Messenger
 
 
 @pytest.fixture
-def init_ExpectedOutput(mocker):
+def init_ExpectedOutput(mocker, context_empty_init):
     mocker.patch.object(
         ExpectedOutput,
         "job_id",
@@ -14,7 +13,7 @@ def init_ExpectedOutput(mocker):
     )
     mocker.patch.object(Messenger, "__init__", return_value=None)
     eo = ExpectedOutput(
-        test_name="mock_1", src_file="", category="eo", context=ContextEmpty
+        test_name="mock_1", src_file="", category="eo", context=context_empty_init
     )
     yield eo
 

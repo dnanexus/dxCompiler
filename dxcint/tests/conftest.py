@@ -5,7 +5,7 @@ import json
 import dxpy
 from dxpy.api import container_remove_objects, project_remove_folder
 from dxpy.exceptions import DXAPIError
-from dxcint.Context import Context
+from dxcint.Context import Context, ContextEmpty
 from dxcint.Dependency import DependencyFactory
 from dxcint.Terraform import Terraform
 from dxcint.RegisteredTest import RegisteredTest
@@ -66,6 +66,12 @@ def context_init(root_dir, test_folder):
         object_id=context.project_id,
         input_params={"folder": test_folder, "recurse": True, "force": True},
     )
+
+
+@pytest.fixture(scope="session")
+def context_empty_init():
+    context = ContextEmpty()
+    yield context
 
 
 @pytest.fixture(scope="session")

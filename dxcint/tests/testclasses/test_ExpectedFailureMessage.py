@@ -3,12 +3,12 @@ from dxcint.Messenger import State
 from dxcint.testclasses.ExpectedFailureMessage import ExpectedFailureMessage
 
 
-def test_ExpectedFailureMessage(mock_messenger, fixtures_dir, context_init):
+def test_ExpectedFailureMessage(mock_messenger, fixtures_dir, context_empty_init):
     efm = ExpectedFailureMessage(
         src_file=os.path.join(fixtures_dir, "resources", "mock_category", "efm.wdl"),
         test_name="efm",
         category="mock_category",
-        context=context_init,
+        context=context_empty_init,
     )
     efm._messenger = mock_messenger
     efm._messenger.state = State.FAIL

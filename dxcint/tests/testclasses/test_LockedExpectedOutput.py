@@ -5,7 +5,7 @@ from dxcint.Messenger import Messenger
 
 
 @pytest.fixture
-def init_LockedExpectedOutput(mocker):
+def init_LockedExpectedOutput(mocker, context_empty_init):
     mocker.patch.object(
         LockedExpectedOutput,
         "job_id",
@@ -14,7 +14,7 @@ def init_LockedExpectedOutput(mocker):
     )
     mocker.patch.object(Messenger, "__init__", return_value=None)
     eo = LockedExpectedOutput(
-        test_name="mock_1", src_file="", category="eo", context=ContextEmpty
+        test_name="mock_1", src_file="", category="eo", context=context_empty_init
     )
     yield eo
 

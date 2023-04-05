@@ -38,7 +38,7 @@ class ExternExpectedOutput(ExpectedOutput):
         else:
             return super()._compile_executable(*args, **kwargs)
 
-    def _build_native_applets(self):
+    def _build_native_applets(self) -> None:
         native_applets = [
             "native_concat",
             "native_diff",
@@ -73,7 +73,7 @@ class ExternExpectedOutput(ExpectedOutput):
                 self.context.logger.info(" ".join(cmdline))
                 subprocess.check_output(cmdline)
 
-    def _dxni_create_extern(self):
+    def _dxni_create_extern(self) -> None:
         # build WDL wrapper tasks in test/dx_extern.wdl
         cmdline_common = [
             "java",

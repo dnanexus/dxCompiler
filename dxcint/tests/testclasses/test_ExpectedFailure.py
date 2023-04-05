@@ -3,9 +3,9 @@ from dxcint.Context import ContextEmpty
 from dxcint.Messenger import State
 
 
-def test_ExpectedFailure(mock_messenger):
+def test_ExpectedFailure(mock_messenger, context_empty_init):
     ef = ExpectedFailure(
-        test_name="eftest", src_file="", category="ef", context=ContextEmpty
+        test_name="eftest", src_file="", category="ef", context=context_empty_init
     )
     ef._messenger = mock_messenger
     ef._messenger.state = State.FAIL

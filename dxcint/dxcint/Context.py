@@ -145,15 +145,15 @@ class Context(object):
 
 
 class ContextEmpty(Context):
-    def __init__(self, project: str, repo_root: str):
-        super().__init__(project, repo_root)
-        self._project_id = None
+    def __init__(self):
+        self._project_id = ""
         self._user = None
-        self._repo_root_dir = "."
-        self._platform_build_dir = None
+        self._repo_root_dir = ""
+        self._platform_build_dir = "."
         self._compiler_version = ""
         self._lock = Lock()
         self._project_info = None
+        self._logger = Logger.make(name=__name__, verbosity="error")
 
     def __setattr__(self, *args):
         if inspect.stack()[1][3] == "__init__":
