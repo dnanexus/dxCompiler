@@ -46,8 +46,6 @@ jobs:
         run: |
           cd dxcint
           poetry install --with dev
-          cd ..
-          pip3 install dxpy pytest
 
       - name: Run dxCint self tests
         env:
@@ -62,4 +60,4 @@ jobs:
           cd ${GITHUB_WORKSPACE}
 
           # Run integration tests
-          pytest -v dxcint
+          poetry run pytest -v dxcint

@@ -81,7 +81,7 @@
         "instance_types",
         "private_registry"
     ],
-    "static_default_instance_expected_output": [
+    "static_pinned_instance_expected_output": [
         "apps_1197_native_frag_default",
         "apps_1177_native_indirect_override",
         "apps_1128_frag_native_instance_type_override"
