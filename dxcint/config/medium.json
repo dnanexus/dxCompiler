@@ -34,8 +34,9 @@
         "scatter_subworkflow_with_optional"
     ],
     "expected_output": [
+        "optionals",
         "cast",
-        "optionals"
+        "array_structs"
     ],
     "locked_expected_output": [
         "upload_workflow_files",
@@ -43,7 +44,6 @@
         "apps_573",
         "optionals3",
         "missing_optional_output_file",
-        "array_structs",
         "echo_pairs",
         "native_docker_file_image_gzip",
         "nested_scatter",
