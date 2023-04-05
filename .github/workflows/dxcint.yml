@@ -62,4 +62,5 @@ jobs:
           cd ${GITHUB_WORKSPACE}
 
           # Run integration tests
-          poetry run pytest -v dxcint
+          cd dxcint
+          poetry run pytest -v
