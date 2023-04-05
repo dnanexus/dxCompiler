@@ -145,12 +145,13 @@ class Context(object):
 
 
 class ContextEmpty(Context):
-    def __init__(self):
+    def __init__(self, project: str, repo_root: str):
+        super().__init__(project, repo_root)
         self._project_id = None
         self._user = None
         self._repo_root_dir = "."
         self._platform_build_dir = None
-        self._compiler_version = None
+        self._compiler_version = ""
         self._lock = Lock()
         self._project_info = None
 
