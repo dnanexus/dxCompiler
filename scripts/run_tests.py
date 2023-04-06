@@ -28,7 +28,7 @@ test_files = {}
 
 # these tests generally have syntax errors and are expected to fail at the compile step
 test_compilation_failing = {
-    "import_passwd",
+    "import_passwd", # not migrated - not a part of any suite
 }
 
 # these tests generally have missing inputs and are expected to fail at the run step
@@ -196,7 +196,7 @@ docker_test_list = [
 ]
 #----- below are tests that are were not attempted to be migrated ---
 
-# wdl draft-2
+# wdl draft-2 - Large suite, not migrated unless specified
 draft2_test_list = [
     "advanced",
     "bad_status", #migrated
@@ -241,8 +241,9 @@ single_tasks_list = [
     "unzip_files"
 ]
 
+# cwl, not migrated
 cwl_tools = [
-    "cat",  # hello world tool
+    "cat",
     "tar_files",
 ]
 
@@ -347,6 +348,7 @@ cromwell_invalid = {
     "default_runtime_attributes",
 }
 
+# LArge suite
 # tests taken from cromwell repository
 cromwell_tests_list = [
     "null_input_values",
@@ -495,6 +497,7 @@ cromwell_tests_list = [
     "exit",
 ]
 
+# CWL - not migrated
 cwl_cromwell_tests_list = [
     "cwl_ad_hoc_file_test",
     "cwl_cache_between_workflows",
