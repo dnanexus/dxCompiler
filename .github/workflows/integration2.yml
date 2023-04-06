@@ -39,7 +39,6 @@ jobs:
         with:
           version: 1.4.2
           virtualenvs-create: true
-          virtualenvs-in-project: true
       - name: Install dxpy and other dependencies
         run: |
           sudo apt-get update
@@ -63,7 +62,6 @@ jobs:
           TEST_ROBOT_TOKEN: ${{ secrets.DX_STAGING_TEST_ROBOT_TOKEN }}
         run: |
           export PATH="$PATH:$HOME/.local/bin"
-
           # Set up DNAnexus staging environment
           dx login --noprojects --staging --token $ROBOT_TOKEN
           dx select $PROJECT
@@ -73,8 +71,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ROBOT_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
         run: |
-          poetry dxcint integration -t 'M' . 
-
+          poetry run dxcint integration -t 'M' .
       - name: Run multi-user tests
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
