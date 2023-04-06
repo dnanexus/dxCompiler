@@ -501,9 +501,7 @@ def build(
 # Read a JSON file
 def read_json_file(path):
     with open(path, "r") as fd:
-        data = fd.read()
-        d = json.loads(data)
-        return d
+        return json.load(fd)
 
 
 # Verify a JSON file

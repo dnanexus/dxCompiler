@@ -35,9 +35,12 @@ compiler/src/main/resources/dxCompiler_runtime.conf
 venv/
 .failed*
 .java-version
+
+#dxcint
 dxcint/tests/fixtures/dependencies/node/*
 dxcint/tests/fixtures/dependencies/mock*
-
+dxcint/dependencies/dx-download-agent/v0.5.9/dx-download-agent
+dxcint/dependencies/dxfuse/v1.1.0/dxfuse
 
 # IntelliJ
 .idea
@@ -65,3 +68,4 @@ compiler/src/test/resources/corpora/
 
 # macOS
 **/.DS_Store
+Ztmp

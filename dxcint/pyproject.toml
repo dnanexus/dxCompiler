@@ -9,8 +9,12 @@ python = "3.8.*"
 dxpy = "0.314.0"
 click = "8.0.1"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
 pytest = "6.2.5"
+pytest-mock = "3.10.0"
 
 [tool.poetry.scripts]
 "dxcint" = "dxcint.cli:dxcint"

@@ -1,0 +1,13 @@
+{
+  "wf_person.people": [
+    {
+      "name": "John",
+      "age": 30
+    },
+    {
+      "name": "Sally",
+      "age": 42
+    }
+  ],
+  "wf_person.years": [5, 10]
+}

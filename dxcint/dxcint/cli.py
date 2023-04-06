@@ -68,6 +68,7 @@ def integration(ctx, dxc_repository_root: str, test_name: Optional[str]) -> None
     )
     _ = terraform.build()
 
+    test_context.logger.info(f"CLI: Running {len(registered_tests)} tests")
     # simply give every test a thread, no need for cooperative multitasking,
     # tests are independent, they'll correctly print the progress to the logger
     with ThreadPoolExecutor(max_workers=len(registered_tests) + 5) as executor:

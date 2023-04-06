@@ -35,8 +35,8 @@ def test__create_asset_spec(change_to_root_dir, terraform_init):
     assert spec == spec_import
 
 
-def test_build(terraform_init, change_to_root_dir, context_init):
-    built_ids = terraform_init.build()
+def test_build(terraform_build, change_to_root_dir, context_init):
+    built_ids = terraform_build
     assert len(built_ids) == 1
     descr = dxpy.describe(built_ids[0])
     assert descr.get("name", None) == "dxWDLrt"

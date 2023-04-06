@@ -28,7 +28,7 @@ test_files = {}
 
 # these tests generally have syntax errors and are expected to fail at the compile step
 test_compilation_failing = {
-    "import_passwd",
+    "import_passwd", # not migrated - not a part of any suite
 }
 
 # these tests generally have missing inputs and are expected to fail at the run step
@@ -38,169 +38,170 @@ test_run_failing = {
 
 # these tests are expected to fail at runtime AND throw a specific error message which will be checked
 expected_failure_msg = {
-    "python_task_fail",
-    "python_task_fail_docker"
+    "python_task_fail", # migrated
+    "python_task_fail_docker" # migrated
 }
 
 # these tests are expected to fail at runtime
 expected_failure = {
-    "bad_status",
-    "bad_status2",
-    "just_fail_wf",
-    "missing_output",
-    "docker_retry",
-    "argument_list_too_long",
-    "diskspace_exhauster",
-    "symlink-illegal",
-    "docker-array-secondaryfiles.1",
-    "iwd-container-entryname2",
-    "iwd-container-entryname3",
-    "iwd-container-entryname4",
-    "loadContents-limit",
-    "cond-wf-003.3",
-    "cond-wf-004.1",
-    "cond-wf-005",
-    "cond-wf-006.1",
-    "cond-wf-012",
-    "cond-wf-003-1.1",
-    "cond-wf-003-1_nojs.1",
-    "cond-wf-004_nojs.1",
-    "cond-wf-005_nojs",
-    "cond-wf-006_nojs.1",
-    "cond-wf-012_nojs",
-    "fail-unconnected",
-    "apps_1014",
-    "echo-tool.1",
-    "echo-tool.2",
-    "glob-path-error",
-    "networkaccess2",
-    "timelimit",
-    "timelimit2",
-    "timelimit4",
-    "record-in-format.1",
-    "record-in-format.2",
-    "record-in-format.3",
-    "record-in-secondaryFiles-missing-wf",
-    "null-expression2-tool.1",
-    "timelimit-wf",
-    "timelimit4-wf",
-    "count-lines11-null-step-wf",
-    "count-lines11-null-step-wf-noET",
+    "bad_status", # migrated
+    "bad_status2", # migrated
+    "just_fail_wf", # migrated
+    "missing_output", # does not exist
+    "docker_retry", #migrated
+    "argument_list_too_long", #migrated
+    "diskspace_exhauster", #migrated
+    "symlink-illegal", # cwl conformance not migrated
+    "docker-array-secondaryfiles.1", #cwl conformance not migrated
+    "iwd-container-entryname2", #cwl conformance not migrated
+    "iwd-container-entryname3", #cwl conformance not migrated
+    "iwd-container-entryname4", #cwl conformance not migrated
+    "loadContents-limit", #cwl conformance not migrated
+    "cond-wf-003.3", #cwl conformance not migrated
+    "cond-wf-004.1", #cwl conformance not migrated
+    "cond-wf-005", #cwl conformance not migrated
+    "cond-wf-006.1", #cwl conformance not migrated
+    "cond-wf-012", #cwl conformance not migrated
+    "cond-wf-003-1.1", #cwl conformance not migrated
+    "cond-wf-003-1_nojs.1", #cwl conformance not migrated
+    "cond-wf-004_nojs.1", #cwl conformance not migrated
+    "cond-wf-005_nojs", #cwl conformance not migrated
+    "cond-wf-006_nojs.1", #cwl conformance not migrated
+    "cond-wf-012_nojs", #cwl conformance not migrated
+    "fail-unconnected", #cwl conformance not migrated
+    "apps_1014", # migrated
+    "echo-tool.1", #cwl conformance not migrated
+    "echo-tool.2", #cwl conformance not migrated
+    "glob-path-error", #cwl conformance not migrated
+    "networkaccess2", #cwl conformance not migrated
+    "timelimit", #cwl conformance not migrated
+    "timelimit2", #cwl conformance not migrated
+    "timelimit4", #cwl conformance not migrated
+    "record-in-format.1", #cwl conformance not migrated
+    "record-in-format.2", #cwl conformance not migrated
+    "record-in-format.3", #cwl conformance not migrated
+    "record-in-secondaryFiles-missing-wf", #cwl conformance not migrated
+    "null-expression2-tool.1", #cwl conformance not migrated
+    "timelimit-wf", #cwl conformance not migrated
+    "timelimit4-wf", #cwl conformance not migrated
+    "count-lines11-null-step-wf", #cwl conformance not migrated
+    "count-lines11-null-step-wf-noET", #cwl conformance not migrated
 }
 
 wdl_v1_list = [
     # calling native dx applets/apps
-    "apps_1318_nested",
-    "call_native_v1",
-    "call_native_app",
-    "cast",
-    "dict",
-    "instance_types",
-    "apps_1197_native_frag_default",
-    "linear_no_expressions",
-    "linear",
-    "optionals",
-    "optionals3",
-    "spaces_in_file_paths",
-    "strings",
-    "runtime_vs_static_type",
-    "wf_person",
-    "call_level2",
-    "environment_passing_deep_nesting",
-    "optional_output",
-    "unpassed_default_arg",
+    "apps_1318_nested", #migrated
+    "call_native_v1", #migrated
+    "call_native_app", #migrated
+    "cast", #migrated
+    "dict", #migrated
+    "instance_types", #migrated
+    "apps_1197_native_frag_default", #migrated
+    "linear_no_expressions", #migrated
+    "linear", #migrated
+    "optionals", #migrated
+    "optionals3", #migrated
+    "spaces_in_file_paths", #migrated
+    "strings", #migrated
+    "runtime_vs_static_type", #migrated
+    "wf_person", #migrated
+    "call_level2", #migrated
+    "environment_passing_deep_nesting", #migrated
+    "optional_output", #migrated
+    "unpassed_default_arg", #migrated
     # workflows with nested blocks
-    "two_levels",
-    "three_levels",
-    "four_levels",
-    "param_passing",
-    "nested_scatter",
+    "two_levels", #migrated
+    "three_levels", #migrated
+    "four_levels", #migrated
+    "param_passing", #migrated
+    "nested_scatter", #migrated
     # Array input with no values
-    "empty_array",
+    "empty_array", #migrated
     # Map with a File key
-    "map_file_key",
+    "map_file_key", #migrated
     # defaults and parameter passing
-    "top_wf",
-    "workflow_with_subworkflow",
+    "top_wf", #migrated
+    "workflow_with_subworkflow", #migrated
     # can we download from a container?
-    "download_from_container",
+    "download_from_container", #migrated
     # input file with pairs
-    "echo_pairs",
-    "array_structs",
+    "echo_pairs", #migrated
+    "array_structs", #migrated
     # Missing optional output files, returned as none, instead
     # of an error
-    "missing_optional_output_file",
+    "missing_optional_output_file", #migrated
     # calling with an optional argument not specified
-    "scatter_subworkflow_with_optional",
+    "scatter_subworkflow_with_optional", #migrated
     # streaming
-    "streaming_inputs",
+    "streaming_inputs", #migrated
     # input/output linear_no_expressions
-    "wf_with_input_expressions",
-    "wf_with_output_expressions",
+    "wf_with_input_expressions", #migrated
+    "wf_with_output_expressions", #migrated
     # bug regression tests
-    "nested_pairs",  # APPS-370
-    "apps_378",
-    "apps_384",
-    "diff_stream_and_download",  # APPS-288
-    "apps_573",
-    "apps_612",
-    "nested_optional",
-    "struct_deref",  # APPS-615
-    "apps_936",
-    "apps_1014",
+    "nested_pairs",  # APPS-370 #migrated
+    "apps_378", #migrated
+    "apps_384", #migrated
+    "diff_stream_and_download",  # APPS-288 #migrated
+    "apps_573", #migrated
+    "apps_612", #migrated
+    "nested_optional", #migrated
+    "struct_deref",  # APPS-615 #migrated
+    "apps_936", #migrated
+    "apps_1014", #migrated
     # manifests
-    "simple_manifest",
-    "complex_manifest",
-    "view_and_count_manifest",
-    "apps_1269_1270_unqualified_ids_manifest",
+    "simple_manifest", #migrated
+    "complex_manifest", #migrated
+    "view_and_count_manifest", #migrated
+    "apps_1269_1270_unqualified_ids_manifest", #migrated
     # workflow with output files created by expressions
-    "upload_workflow_files",
-    "subworkflow_with_task",
-    "apps_700",
-    "apps_864",
-    "apps_1052_optional_block_inputs_wdl10",
-    "apps_1052_optional_compound_input_wdl10",
+    "upload_workflow_files", #migrated
+    "subworkflow_with_task", #migrated
+    "apps_700", #migrated
+    "apps_864", #migrated
+    "apps_1052_optional_block_inputs_wdl10", #migrated
+    "apps_1052_optional_compound_input_wdl10", #migrated
 ]
 
 wdl_v1_1_list = [
-    "apps_1128_frag_native_instance_type_override",
-    "apps_1177_native_indirect_override",
-    "v1_1_dict",
-    "apps_847_scatter_empty",
-    "optional_missing",
-    "inputs_provided_optional",
+    "apps_1128_frag_native_instance_type_override", #migrated
+    "apps_1177_native_indirect_override", #migrated
+    "v1_1_dict", #migrated
+    "apps_847_scatter_empty", #migrated
+    "optional_missing", #migrated
+    "inputs_provided_optional", #migrated
     # bug regression tests
-    "apps_579_boolean_flag_expr",
-    "apps_579_string_substitution_expr",
-    "apps_956_private_var_local",
-    "apps_1052_optional_block_inputs_wdl11",
+    "apps_579_boolean_flag_expr", #migrated
+    "apps_579_string_substitution_expr", #migrated
+    "apps_956_private_var_local", #migrated
+    "apps_1052_optional_block_inputs_wdl11", #migrated
     "apps_1421_dir_output"  # TODO: this is wdl 2.0 test. Migrate with expected file outputs to dxcint. For now only tests for successful run
 ]
 
 static_only = [
-    "apps_1177_native_indirect_override",
-    "apps_1128_frag_native_instance_type_override",
-    "apps_1197_native_frag_default"
+    "apps_1177_native_indirect_override",#migrated
+    "apps_1128_frag_native_instance_type_override",#migrated
+    "apps_1197_native_frag_default"#migrated
 ]
 
 # docker image tests
 docker_test_list = [
-    "broad_genomics",
-    "biocontainers",
-    "private_registry",
-    "native_docker_file_image",
-    "native_docker_file_image_gzip",
-    "samtools_count",
-    "dynamic_docker_image",
-    "ecr_docker"
+    "broad_genomics", #migrated
+    "biocontainers", #migrated
+    "private_registry", #migrated
+    "native_docker_file_image", #migrated
+    "native_docker_file_image_gzip", #migrated
+    "samtools_count", #migrated
+    "dynamic_docker_image", #migrated
+    "ecr_docker", #migrated
 ]
+#----- below are tests that are were not attempted to be migrated ---
 
-# wdl draft-2
+# wdl draft-2 - Large suite, not migrated unless specified
 draft2_test_list = [
     "advanced",
-    "bad_status",
-    "bad_status2",
-    "just_fail_wf",
+    "bad_status", #migrated
+    "bad_status2", #migrated
+    "just_fail_wf", #migrated
     "call_with_defaults1",
     "call_with_defaults2",
     "conditionals_base",
@@ -240,8 +241,9 @@ single_tasks_list = [
     "unzip_files"
 ]
 
+# cwl, not migrated
 cwl_tools = [
-    "cat",  # hello world tool
+    "cat",
     "tar_files",
 ]
 
@@ -346,6 +348,7 @@ cromwell_invalid = {
     "default_runtime_attributes",
 }
 
+# LArge suite
 # tests taken from cromwell repository
 cromwell_tests_list = [
     "null_input_values",
@@ -494,6 +497,7 @@ cromwell_tests_list = [
     "exit",
 ]
 
+# CWL - not migrated
 cwl_cromwell_tests_list = [
     "cwl_ad_hoc_file_test",
     "cwl_cache_between_workflows",
@@ -532,7 +536,7 @@ cwl_cromwell_tests_list = [
 ]
 
 # these are tests that take a long time to run
-long_test_list = ["diskspace_exhauster"]  # APPS-749
+long_test_list = ["diskspace_exhauster"]  # APPS-749 #migrated
 
 medium_test_list = (
     wdl_v1_list + wdl_v1_1_list + docker_test_list + special_flags_list + cwl_tools
@@ -567,18 +571,20 @@ test_suites = {
 }
 
 # Tests with the reorg flags
-test_reorg = {"dict", "strings", "test_reorg", "test_reorg_no_config"}
+test_reorg = {"dict",# migrated
+ "strings", #migrated
+ }
 test_defaults = set()
 test_unlocked = {
-    "array_structs",
-    "cast",
+    "array_structs", #migrated
+    "cast", #migrated
     "call_with_defaults1",
     "files",
     "hello",
-    "path_not_taken",
-    "optionals",
+    "path_not_taken", #not run
+    "optionals", #migrated
     "shapes",
-    "population",
+    "population", #not run
 }
 test_project_wide_reuse = {"add2", "add_many"}
 test_separate_outputs = {"localization"}
@@ -595,10 +601,10 @@ test_upload_wait = {"upload_wait"}
 
 # use the applet's default instance type rather than the default (mem1_ssd1_x4)
 test_instance_type = [
-    "diskspace_exhauster",
-    "apps_1128_frag_native_instance_type_override",
-    "apps_1177_native_indirect_override",
-    "apps_1197_native_frag_default"
+    "diskspace_exhauster", #migrated
+    "apps_1128_frag_native_instance_type_override", #migrated
+    "apps_1177_native_indirect_override", #migrated
+    "apps_1197_native_frag_default" #migrated
 ]
 
 # Search a WDL file with a python regular expression.

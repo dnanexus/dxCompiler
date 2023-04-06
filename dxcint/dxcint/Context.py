@@ -23,6 +23,14 @@ class Context(object):
         folder: Optional[str] = None,
         logger_verbosity: str = "info",
     ):
+        """
+        Immutable class maintaining the passed arguments and values which dxcint was initiated with
+        Args:
+            project: project on the platform where the tests will be run
+            repo_root: directory path of the dxCompiler root
+            folder: directory name on the platform to build dxCompiler assets. If None: /builds/<USER_NAME>/<DXC_VERISON>
+            logger_verbosity: verbosity level for Logger class. See dxcint.Logger
+        """
         self._logger = Logger.make(name=__name__, verbosity=logger_verbosity)
         self._project_id = self._resolve_project(project=project)
         self._user = dxpy.whoami()
@@ -73,7 +81,7 @@ class Context(object):
             project_obj = dxpy.DXProject(project)
             return project_obj.get_id()
         except dxpy.DXError:
-            found_projects = list(dxpy.find_projects(name=project, level="VIEW"))
+            found_projects = list(dxpy.find_projects(name=project, level="CONTRIBUTE"))
             if len(found_projects) == 0:
                 raise ContextError(
                     f"Context._resolve_project(): Could not find project `{project}`."
@@ -138,13 +146,14 @@ class Context(object):
 
 class ContextEmpty(Context):
     def __init__(self):
-        self._project_id = None
+        self._project_id = ""
         self._user = None
-        self._repo_root_dir = "."
-        self._platform_build_dir = None
-        self._compiler_version = None
+        self._repo_root_dir = ""
+        self._platform_build_dir = "."
+        self._compiler_version = ""
         self._lock = Lock()
         self._project_info = None
+        self._logger = Logger.make(name=__name__, verbosity="error")
 
     def __setattr__(self, *args):
         if inspect.stack()[1][3] == "__init__":

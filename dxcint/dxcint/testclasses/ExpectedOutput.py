@@ -1,0 +1,470 @@
+import tempfile
+import dxpy
+import os
+
+from typing import Dict, List, Tuple, Set, Union
+
+from dxcint.RegisteredTest import RegisteredTest, RegisteredTestError
+from dxcint.Context import Context, ContextEmpty
+from dxcint.Messenger import State
+from dxcint.utils import (
+    list_dx_folder,
+    sort_dicts,
+    sort_maybe_mixed,
+    link_to_dxfile,
+    get_checksum,
+)
+from dxcint.mixins.ResultsTestMixin import ResultsTestMixin
+
+
+class ExpectedOutput(ResultsTestMixin, RegisteredTest):
+    def __init__(
+        self,
+        src_file: str,
+        category: str,
+        test_name: str,
+        context: Union[Context, ContextEmpty],
+    ):
+        super().__init__(src_file, category, test_name, context)
+        self.file_cache: Dict = {}
+        self.folder_cache: Dict = {}
+
+    def _extract_outputs(self) -> Dict:
+        desc = self.messenger.describe
+        if desc["class"] == "analysis":
+            stages = desc["stages"]
+            for stage in stages:
+                if stage["id"] == "stage-outputs":
+                    return stage["execution"]["output"]
+            raise RegisteredTestError(
+                f"Analysis for test {self.name} does not have stage 'outputs'"
+            )
+        elif desc["class"] == "job":
+            return desc["output"]
+        else:
+            raise RegisteredTestError(f"Unknown {desc['class']}")
+
+    def _validate(self) -> Dict:
+        self.messenger.wait_for_completion()
+        if self.messenger.state == State.FINISHED:
+            try:
+                outputs = self._extract_outputs()
+            except RegisteredTestError as e:
+                return {
+                    "passed": False,
+                    "message": "Extracting outputs threw an exception" + str(e),
+                }
+
+            if self._validate_outputs(outputs, self._results):
+                return {
+                    "passed": True,
+                    "message": f"Execution of the test {self.name} passed as expected.",
+                }
+            else:
+                return {
+                    "passed": False,
+                    "message": f"Results of test {self.name} are invalid.\nExpected: "
+                    f"{self._results}.\nReceived: {outputs}",
+                }
+        else:
+            return {
+                "passed": False,
+                "message": f"Execution of the test {self.name} DID NOT pass as expected.",
+            }
+
+    def _validate_outputs(self, exec_outputs, expected_output) -> bool:
+        try:
+            if exec_outputs is None:
+                if expected_output is None:
+                    return True
+                else:
+                    return False
+            for key, expected_val in expected_output.items():
+                exec_name, *field_name_parts = key.split(".")
+                field_name1 = ".".join(field_name_parts)
+                field_name2 = "___".join(field_name_parts)
+                if exec_name != self._test_name:
+                    self.context.logger.error(
+                        "Execution name in output does not match test name"
+                    )
+                    return False
+                if field_name1 in exec_outputs:
+                    exec_val = exec_outputs[field_name1]
+
+                elif field_name2 in exec_outputs:
+                    exec_val = exec_outputs[field_name2]
+                elif expected_val is None:
+                    continue
+                else:
+                    self.context.logger.error(
+                        f"Execution output does not contain expected field: {field_name1}"
+                    )
+                    return False
+                if not self._compare_values(expected_val, exec_val, field_name1):
+                    return False
+
+        except Exception:
+            return False
+        return True
+
+    @staticmethod
+    def _unwrap(actual: Dict, expected: Dict) -> Tuple[Dict, Dict]:
+        if isinstance(actual, dict) and "___" in actual:
+            actual = actual["___"]
+            if isinstance(expected, dict) and "___" in expected:
+                expected = expected["___"]
+        if isinstance(actual, dict) and "wrapped___" in actual:
+            actual = actual["wrapped___"]
+            if isinstance(expected, dict) and "wrapped___" in expected:
+                expected = expected["wrapped___"]
+        return actual, expected
+
+    def _compare_values(self, expected, actual, field) -> bool:
+        self._unwrap(actual, expected)
+
+        if isinstance(actual, list) and isinstance(expected, list):
+            return self._compare_lists(actual, expected, field)
+        if isinstance(actual, dict) and isinstance(expected, dict):
+            if (
+                len(actual) == 1
+                and "$dnanexus_link" in actual
+                and len(expected) == 1
+                and "$dnanexus_link" in expected
+            ):
+                _, _, modified, _ = self._dict_compare(actual, expected)
+                if modified:
+                    self.context.logger.error(
+                        f"Given files are not the same ({modified})."
+                    )
+                return not bool(modified)
+
+        if isinstance(expected, dict) and (
+            expected.get("class") in {"File", "Directory"}
+            or expected.get("type") in {"File", "Folder"}
+        ):
+            return self._compare_result_path(actual, expected, field)
+
+        if (
+            isinstance(actual, dict)
+            and actual.get("type") == "File"
+            and "uri" in actual
+        ):
+            actual = actual["uri"]
+        if isinstance(actual, dict) and "$dnanexus_link" in actual:
+            actual = self._download_dxfile(
+                link_to_dxfile(actual, self.context.project_id), self.file_cache
+            )
+
+        if isinstance(actual, dict) and isinstance(expected, dict):
+            expected_keys = set(expected.keys())
+            actual_keys = set(expected.keys())
+            if expected_keys != actual_keys:
+                self.context.logger.error(
+                    f"Analysis {self.name} gave unexpected results"
+                )
+                self.context.logger.error(
+                    f"Field {field} should have keys ({expected_keys}), actual = ({actual_keys})"
+                )
+                return False
+            for k in expected_keys:
+                if not self._compare_values(expected[k], actual[k], f"{field}[{k}]"):
+                    return False
+            else:
+                return True
+
+        if str(actual).strip() != str(expected).strip():
+            self.context.logger.error(f"Analysis {self.name} gave unexpected results")
+            self.context.logger.error(
+                f"Field {field} should be ({expected}), actual = ({actual})"
+            )
+            return False
+
+        return True
+
+    def _compare_result_path(self, result, expected_val, field_name: str) -> bool:
+        actual_dx_object_class = result.get("class", result.get("type"))
+        expected_dx_object_class = expected_val.get("class", expected_val.get("type"))
+        if actual_dx_object_class == "File" and expected_dx_object_class == "File":
+            return self._compare_result_file(
+                result,
+                expected_val,
+                field_name,
+            )
+        elif actual_dx_object_class in {
+            "Directory",
+            "Folder",
+        } and expected_dx_object_class in {"Directory", "Folder"}:
+            return self._compare_result_directory(
+                result,
+                expected_val,
+                field_name,
+            )
+        else:
+            self.context.logger.error(f"Analysis {self.name} gave unexpected results")
+            self.context.logger.error(
+                f"Field {field_name} should be of class ({expected_dx_object_class}), actual = ({actual_dx_object_class})"
+            )
+            return False
+
+    def _compare_result_file(self, result, expected_val, field_name: str) -> bool:
+        expected_checksum = (
+            expected_val["checksum"] if "checksum" in expected_val else None
+        )
+        algo = expected_checksum.split("$")[0] if expected_checksum else None
+
+        location = None
+        size = None
+        checksum = None
+        secondary_files = None
+
+        if isinstance(result, str):
+            contents = result.strip()
+        elif result.get("class", result.get("type")) == "File":
+            contents = result.get("contents")
+            location = result.get("location", result.get("path", result.get("uri")))
+            if isinstance(location, dict) and "$dnanexus_link" in location:
+                dxfile = link_to_dxfile(location, self.context.project_id)
+                location = os.path.join(
+                    dxfile.describe()["folder"], dxfile.describe()["name"]
+                )
+                if contents is None:
+                    contents = self._download_dxfile(dxfile, self.file_cache)
+            size = result.get("size")
+            checksum = result.get("checksum")
+            secondary_files = result.get("secondaryFiles", [])
+        elif "$dnanexus_link" in result:
+            dxfile = link_to_dxfile(result, self.context.project_id)
+            contents = self._download_dxfile(dxfile, self.file_cache)
+            location = os.path.join(
+                dxfile.describe()["folder"], dxfile.describe()["name"]
+            )
+        else:
+            self.context.logger.error(f"Analysis {self.name} gave unexpected results")
+            self.context.logger.error(f"unsupported file value {result}")
+            return False
+
+        expected_location = expected_val.get("location", expected_val.get("path"))
+        expected_basename = expected_val.get(
+            "basename",
+            os.path.basename(expected_location) if expected_location else None,
+        )
+        if expected_basename and expected_basename != "Any":
+            basename = os.path.basename(location) if location else None
+            if basename != expected_basename:
+                self.context.logger.error(
+                    f"Analysis {self.name} gave unexpected results"
+                )
+                self.context.logger.error(
+                    f"Field {field_name} should have location/path with basename ({expected_basename}), actual = ({basename})"
+                )
+                return False
+
+        # the result is a cwl File - match the contents, checksum, and/or size
+        if "contents" in expected_val and contents != expected_val["contents"]:
+            self.context.logger.error(f"Analysis {self.name} gave unexpected results")
+            self.context.logger.error(
+                f"Field {field_name} should have contents ({expected_val['contents']}), actual = ({result.get('contents')})"
+            )
+            return False
+
+        if "size" in expected_val:
+            if size is None and contents is not None:
+                size = len(contents)
+            if size != expected_val["size"]:
+                self.context.logger.error(
+                    f"Analysis {self.name} gave unexpected results"
+                )
+                self.context.logger.error(
+                    f"Field {field_name} should have size ({expected_val['size']}), actual: ({size})"
+                )
+                return False
+
+        if expected_checksum:
+            checksum = checksum or (get_checksum(contents, algo) if contents else None)
+            if checksum != expected_checksum:
+                self.context.logger.error(
+                    f"Analysis {self.name} gave unexpected results"
+                )
+                self.context.logger.error(
+                    f"Field {field_name} should have checksum ({expected_checksum}), actual = ({checksum})"
+                )
+                return False
+
+        expected_secondary_files = expected_val.get("secondaryFiles")
+        if expected_secondary_files:
+            # TODO: sort both lists rather than doing an all-by-all comparison
+            for expected in expected_secondary_files:
+                for actual in secondary_files:
+                    if self._compare_result_path(
+                        actual,
+                        expected,
+                        f"{field_name}.secondaryFiles",
+                    ):
+                        secondary_files.remove(actual)
+                        break
+                else:
+                    self.context.logger.error(
+                        f"Analysis {self.name} gave unexpected results"
+                    )
+                    self.context.logger.error(
+                        f"Field {field_name} is missing secondaryFile ({expected}) from ({secondary_files})"
+                    )
+                    return False
+
+        return True
+
+    def _dict_compare(self, actual: Dict, expected: Dict) -> Tuple[Set, Set, Dict, Set]:
+        d1_keys = set(actual.keys())
+        d2_keys = set(expected.keys())
+        shared_keys = d1_keys.intersection(d2_keys)
+        added = d1_keys - d2_keys
+        removed = d2_keys - d1_keys
+        modified = {}
+        for o in shared_keys:
+            if not isinstance(actual[o], type(expected[o])):
+                modified[o] = (actual[o], expected[o])
+                continue
+            if isinstance(actual[o], dict):
+                a, r, m, s = self._dict_compare(actual[o], expected[o])
+                if (
+                    not r and not m
+                ):  # expected dict cannot contain more keys, actual can
+                    continue
+            elif actual[o] == expected[o]:
+                continue
+            modified[o] = (actual[o], expected[o])
+        same = set(o for o in shared_keys if actual[o] == expected[o])
+        return added, removed, modified, same
+
+    def _compare_lists(self, actual: List, expected: List, field: str) -> bool:
+        actual = list(filter(lambda x: x is not None, actual))
+        expected = list(filter(lambda x: x is not None, expected))
+        n = len(actual)
+        if n != len(expected):
+            self.context.logger.error(f"Analysis {self.name} gave unexpected results")
+            self.context.logger.error(
+                f"Field {field} should have length ({len(expected)}), actual = ({len(actual)})"
+            )
+            return False
+        if n == 0:
+            return True
+        elif n > 1:
+            if isinstance(actual[0], dict):
+                if (
+                    all(
+                        len(act) == 1
+                        and isinstance(act, dict)
+                        and "$dnanexus_link" in act
+                        for act in actual
+                    )
+                ) and (
+                    all(
+                        len(exp) == 1
+                        and isinstance(exp, dict)
+                        and "$dnanexus_link" in exp
+                        for exp in expected
+                    )
+                ):
+                    for exp, act in zip(expected, actual):
+                        if not self._compare_values(exp, act, field):
+                            return False
+                    return True
+                actual, expected = sort_dicts(actual, expected)
+            else:
+                actual = sort_maybe_mixed(actual)
+                expected = sort_maybe_mixed(expected)
+
+        for i, (e, a) in enumerate(zip(expected, actual)):
+            if not self._compare_values(e, a, f"{field}[{i}]".format(field, i)):
+                return False
+        else:
+            return True
+
+    def _compare_result_directory(self, result, expected_val, field_name: str) -> bool:
+        location = result.get("location", result.get("path", result.get("uri")))
+        if location is not None and location.startswith("dx://"):
+            project_id, folder = location[5:].split(":")
+            project = dxpy.DXProject(project_id)
+        else:
+            folder = location
+
+        if "basename" in result:
+            basename = result["basename"]
+        elif folder:
+            basename = os.path.basename(folder)
+        else:
+            basename = None
+
+        expected_location = expected_val.get("location", expected_val.get("path"))
+        expected_basename = expected_val.get(
+            "basename",
+            os.path.basename(expected_location) if expected_location else None,
+        )
+        if expected_basename and expected_basename != "Any":
+            if basename != expected_basename:
+                self.context.logger.error(
+                    f"Analysis {self.name} gave unexpected results"
+                )
+                self.context.logger.error(
+                    f"Field {field_name} should have location/path with basename ({expected_basename}), actual = ({basename})"
+                )
+                return False
+
+        expected_listing = expected_val.get("listing")
+        if expected_listing:
+            if "listing" in result:
+                listing = result["listing"]
+            elif not folder:
+                self.context.logger.error(
+                    f"Analysis {self.name} gave unexpected results"
+                )
+                self.context.logger.error(
+                    f"Field {field_name} is missing a folder, actual = ({result})"
+                )
+                return False
+            else:
+                listing = list_dx_folder(project, folder, self.folder_cache)
+            listing_len = len(listing) if listing else 0
+            if len(expected_listing) != listing_len:
+                self.context.logger.error(
+                    f"Analysis {self.name} gave unexpected results"
+                )
+                self.context.logger.error(
+                    f"Field {field_name} should have listing ({expected_listing}), actual = ({listing})"
+                )
+                return False
+            for expected in expected_listing:
+                for actual in listing:
+                    if self._compare_result_path(
+                        actual,
+                        expected,
+                        "{}.listing".format(field_name),
+                    ):
+                        listing.remove(actual)
+                        break
+                else:
+                    self.context.logger.error(
+                        f"Analysis {self.name} gave unexpected results"
+                    )
+                    self.context.logger.error(
+                        f"Field {field_name} is missing item ({expected}) from listing ({listing})"
+                    )
+                    return False
+
+        return True
+
+    @staticmethod
+    def _download_dxfile(dxfile, file_cache):
+        id_key = (dxfile.get_proj_id(), dxfile.get_id())
+        if id_key in file_cache:
+            return file_cache[id_key]
+        download_path = os.path.join(tempfile.mkdtemp(), dxfile.describe()["name"])
+        dxpy.download_dxfile(dxfile, download_path)
+        try:
+            with open(download_path, "r") as inp:
+                contents = str(inp.read()).strip()
+                file_cache[id_key] = contents
+                return contents
+        finally:
+            if os.path.exists(download_path):
+                os.remove(download_path)

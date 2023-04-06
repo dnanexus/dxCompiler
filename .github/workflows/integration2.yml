@@ -1,0 +1,89 @@
+name: WDL Integration Tests v2
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+    types:
+      - opened
+      - synchronize
+      - ready_for_review
+      - labeled
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: write
+  packages: read
+jobs:
+  test:
+    name: WDL Integration Tests (Staging) v2
+    if: contains(github.event.pull_request.labels.*.name, 'integration2')
+    runs-on: ubuntu-20.04
+    env:
+      PROJECT: dxCompiler_playground
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v2
+      # performance optimizations https://abbbi.github.io/actions/
+      - uses: abbbi/github-actions-tune@v1
+      - name: Install java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.4.2
+          virtualenvs-create: true
+      - name: Install dxpy and other dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y apt-transport-https wget git openssh-server tree python3 python3-pip python3-venv
+          cwltool=`jq -r '.execDepends.cwl[0].name' scripts/bundled_dependencies.json`
+          pip3 install --upgrade pip setuptools==58.3.0 
+          pip3 install termcolor dxpy==0.323.0 $cwltool pyOpenSSL==22.0.0
+          # install dxda
+          dxda_version=`jq -r '.dxda' scripts/bundled_dependencies.json`
+          sudo wget -O/usr/local/bin/dx-download-agent https://github.com/dnanexus/dxda/releases/download/${dxda_version}/dx-download-agent-linux
+          sudo chmod +x /usr/local/bin/dx-download-agent
+      - name: Install dxcint
+        run: |
+          cd dxcint
+          poetry install
+          cd ..
+      - name: Set-up
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ROBOT_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
+          TEST_ROBOT_TOKEN: ${{ secrets.DX_STAGING_TEST_ROBOT_TOKEN }}
+        run: |
+          export PATH="$PATH:$HOME/.local/bin"
+          # Set up DNAnexus staging environment
+          dx login --noprojects --staging --token $ROBOT_TOKEN
+          dx select $PROJECT
+          cd ${GITHUB_WORKSPACE}
+      - name: Run medium integration test suite with dxcint
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ROBOT_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
+        run: |
+          cd dxcint
+          poetry run dxcint integration -t 'M' ${GITHUB_WORKSPACE}
+      - name: Run multi-user tests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ROBOT_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
+          TEST_ROBOT_TOKEN: ${{ secrets.DX_STAGING_TEST_ROBOT_TOKEN }}
+        run: |  
+          FOLDER=/builds/test_gha_dxcompiler_$(date +%s)_$RANDOM
+          dx mkdir -p $FOLDER
+          python3 scripts/run_multiuser_tests.py --folder $FOLDER --project $PROJECT \
+          --clean \
+          --alice-token $ROBOT_TOKEN \
+          --bob-token $TEST_ROBOT_TOKEN
+
+
