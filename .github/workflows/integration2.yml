@@ -39,6 +39,7 @@ jobs:
         with:
           version: 1.4.2
           virtualenvs-create: true
+          virtualenvs-in-project: true
       - name: Install dxpy and other dependencies
         run: |
           sudo apt-get update
