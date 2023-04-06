@@ -72,7 +72,7 @@ jobs:
           ROBOT_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
         run: |
           cd dxcint
-          poetry run dxcint integration -t 'M' .
+          poetry run dxcint integration -t 'M' ../
       - name: Run multi-user tests
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
