@@ -106,8 +106,8 @@ Complex categories are obtained by adding [mixins](#mixins) to the [basic catego
 |       manifest_analysis_finished       |      ManifestAnalysisFinished      |                                                AnalysisFinished + ManifestMixin                                                 |
 |      reorg_locked_expected_output      |     ReorgLockedExpectedOutput      |                                                LockedExpectedOutput + ReorgMixin                                                |
 | static_pinned_instance_expected_output | StaticPinnedInstanceExpectedOutput |                                     ExpectedOutput + StaticOnlyMixin + PinnedInstanceMixin                                      |
-|         extern_expected_output         |        ExternExpectedOutput        |                       before compiling, creates an extern from additional applets in dxcint/dependencies                        |
-|       app_extern_expected_output       |      AppExternExpectedOutput       |                                          before compiling, creates an extern from apps                                          |
+|         extern_expected_output         |        ExternExpectedOutput        |                  before compiling, creates an applet interface from additional applets in dxcint/dependencies                   |
+|       app_extern_expected_output       |      AppExternExpectedOutput       |                                      before compiling, creates a task interface from apps                                       |
 
 
 #### Mixins

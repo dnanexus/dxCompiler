@@ -19,8 +19,13 @@ def init_ExternExpectedOutput(mocker, context_empty_init):
     yield eeo
 
 
-def test__dxni_create_extern(init_ExternExpectedOutput, mocker):
+def test__dxni_look_folder(init_ExternExpectedOutput, mocker):
     mocker.patch("subprocess.check_output")
     spy = mocker.spy(subprocess, "check_output")
-    init_ExternExpectedOutput._dxni_create_extern()
-    assert "dxni" in spy.call_args_list[0].args[0]
+    init_ExternExpectedOutput._create_dxni_stub(
+        "-folder", "applet_src", "stub_dest.wdl"
+    )
+    assert all(
+        x in spy.call_args_list[0].args[0]
+        for x in ["-folder", "applet_src", "stub_dest.wdl"]
+    )
