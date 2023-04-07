@@ -28,9 +28,9 @@ def test_dependency_factory_package(dependency_conf_dir, context_init):
     assert isinstance(package_dependency, PackageDependency)
     assert package_dependency.languages == ["wdl", "cwl"]
     assert package_dependency.export_spec() == {
-        "name": "mock_dependency",
-        "package_manager": "git",
-        "version": "1.0.0",
+        "name": "pytest",
+        "package_manager": "pip",
+        "version": "7.2.2",
     }
 
 

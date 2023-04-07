@@ -5,7 +5,7 @@ description = "Integration tests for dxCompiler"
 authors = ["Gvaihir <aogorodnikov@dnanexus.com>"]
 
 [tool.poetry.dependencies]
-python = "3.8.*"
+python = "3.9.*"
 dxpy = "0.314.0"
 click = "8.0.1"
 
