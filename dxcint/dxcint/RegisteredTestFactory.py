@@ -4,7 +4,7 @@ from dxcint.testclasses.ReorgLockedExpectedOutput import ReorgLockedExpectedOutp
 from dxcint.testclasses.ExpectedFailure import ExpectedFailure
 from dxcint.testclasses.ExpectedFailureMessage import ExpectedFailureMessage
 from dxcint.testclasses.ExpectedOutput import ExpectedOutput
-from dxcint.testclasses.LockedExpectedOutput import LockedExpectedOutput
+from dxcint.testclasses.UnlockedExpectedOutput import UnlockedExpectedOutput
 from dxcint.testclasses.AnalysisFinished import AnalysisFinished
 from dxcint.testclasses.ExtrasAnalysisFinished import ExtrasAnalysisFinished
 from dxcint.testclasses.ExtrasExpectedOutput import ExtrasExpectedOutput
@@ -27,7 +27,7 @@ class RegisteredTestFactory(object):
             "expected_failure_message": ExpectedFailureMessage,
             "expected_output": ExpectedOutput,
             "analysis_finished": AnalysisFinished,
-            "locked_expected_output": LockedExpectedOutput,
+            "locked_expected_output": UnlockedExpectedOutput,
             "reorg_locked_expected_output": ReorgLockedExpectedOutput,
             "extras_analysis_finished": ExtrasAnalysisFinished,
             "extras_expected_output": ExtrasExpectedOutput,

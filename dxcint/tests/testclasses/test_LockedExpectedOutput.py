@@ -1,5 +1,5 @@
 import pytest
-from dxcint.testclasses.LockedExpectedOutput import LockedExpectedOutput
+from dxcint.testclasses.UnlockedExpectedOutput import UnlockedExpectedOutput
 from dxcint.Context import ContextEmpty
 from dxcint.Messenger import Messenger
 
@@ -7,13 +7,13 @@ from dxcint.Messenger import Messenger
 @pytest.fixture
 def init_LockedExpectedOutput(mocker, context_empty_init):
     mocker.patch.object(
-        LockedExpectedOutput,
+        UnlockedExpectedOutput,
         "job_id",
         return_value="job-XXXX",
         new_callable=mocker.PropertyMock,
     )
     mocker.patch.object(Messenger, "__init__", return_value=None)
-    eo = LockedExpectedOutput(
+    eo = UnlockedExpectedOutput(
         test_name="mock_1", src_file="", category="eo", context=context_empty_init
     )
     yield eo

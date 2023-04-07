@@ -1,7 +1,7 @@
 from dxcint.RegisteredTest import RegisteredTest
 
 
-class LockedMixin(RegisteredTest):
+class UnlockedMixin(RegisteredTest):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 

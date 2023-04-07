@@ -35,7 +35,7 @@ class Messenger(object):
         """
         self._context = context
         self._test_name = test_name
-        self._variant = variant if variant else ""
+        self._variant = variant
         self._state: State = State.NOT_DONE
         self._execution: Union[
             dxpy.DXAnalysis, dxpy.DXJob
@@ -62,8 +62,12 @@ class Messenger(object):
         Returns:
             State.FINISHED if the execution ran to completion, State.FAIL if it failed or was terminated.
         """
+        with_variant_add = (
+            f"with input variant {self._variant}" if self._variant else ""
+        )
         self._context.logger.info(
-            f"Waiting for completion of the test `{self._test_name}` with input variant {self._variant}"
+            f"Waiting for completion of the test `{self._test_name}` "
+            + with_variant_add
         )
         test_name_with_variant = f"{self._test_name}.{self._variant}"
         try:
@@ -72,7 +76,7 @@ class Messenger(object):
             self._state = State.FINISHED
         except dxpy.DXJobFailureError:
             self._context.logger.info(
-                f"Analysis {test_name_with_variant} failed. This failure will verified"
+                f"Analysis {test_name_with_variant} failed. This failure will be verified"
             )
             self._state = State.FAIL
         return self.state

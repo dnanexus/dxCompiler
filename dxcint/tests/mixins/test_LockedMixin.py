@@ -1,11 +1,11 @@
 import os
 import subprocess
 from dxcint.RegisteredTest import RegisteredTest
-from dxcint.mixins.LockedMixin import LockedMixin
+from dxcint.mixins.UnlockedMixin import UnlockedMixin
 
 
 def test_LockedMixin(fixtures_dir, context_init, mocker):
-    class ExtrasMixer(LockedMixin, RegisteredTest):
+    class ExtrasMixer(UnlockedMixin, RegisteredTest):
         pass
 
     lm = ExtrasMixer(
