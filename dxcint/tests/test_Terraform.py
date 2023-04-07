@@ -33,6 +33,7 @@ def test__create_asset_spec(change_to_root_dir, terraform_init):
     with open(spec_location, "r") as spec_handle:
         spec_import = json.load(spec_handle)
     assert spec == spec_import
+    assert None not in spec_import.get("execDepends")
 
 
 def test_build(terraform_build, change_to_root_dir, context_init):

@@ -1,6 +1,6 @@
 {
-  "name": "awscli",
+  "name": "awscliv2",
   "languages": ["wdl", "cwl"],
-  "version": "2.1.32",
+  "version": "2.2.0",
   "package_manager": "pip"
 }
