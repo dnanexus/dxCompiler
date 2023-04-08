@@ -1,11 +1,10 @@
 import pytest
 from dxcint.testclasses.UnlockedExpectedOutput import UnlockedExpectedOutput
-from dxcint.Context import ContextEmpty
 from dxcint.Messenger import Messenger
 
 
 @pytest.fixture
-def init_LockedExpectedOutput(mocker, context_empty_init):
+def init_UnlockedExpectedOutput(mocker, context_empty_init):
     mocker.patch.object(
         UnlockedExpectedOutput,
         "job_id",
@@ -19,16 +18,12 @@ def init_LockedExpectedOutput(mocker, context_empty_init):
     yield eo
 
 
-def test__extract_outputs(init_LockedExpectedOutput, mock_analysis_desc, mocker):
+def test__extract_outputs(init_UnlockedExpectedOutput, mock_analysis_desc, mocker):
     mocker.patch.object(
         Messenger,
         "describe",
         return_value=mock_analysis_desc,
         new_callable=mocker.PropertyMock,
     )
-    outs = init_LockedExpectedOutput._extract_outputs()
-    assert outs == {
-        "stage-0.done": "Hello World!",
-        "stage-common.in_1": "Hello World!",
-        "stage-outputs.out": "Hello World!",
-    }
+    outs = init_UnlockedExpectedOutput._extract_outputs()
+    assert outs == {"out": "Hello World!"}

@@ -5,8 +5,8 @@ class UnlockedMixin(RegisteredTest):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    @property
-    def exec_id(self) -> str:
-        if not self._exec_id:
-            self._exec_id = self._compile_executable({"-locked": ""})
-        return self._exec_id
+    def _compile_executable(self, *args, **kwargs) -> str:
+        super_kwargs = kwargs.get("additional_compiler_flags", {})
+        if "-locked" in super_kwargs:
+            _ = super_kwargs.pop("-locked")
+        return super()._compile_executable(super_kwargs)

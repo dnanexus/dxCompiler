@@ -1,16 +1,16 @@
 {
     "id": "analysis-XXXX",
-    "name": "mock_1",
+    "name": "mock_1 b'2.4.2-320-gc56fb4f2-dirty'",
     "tags": [],
     "properties": {},
     "executable": "workflow-YYYY",
     "executableName": "mock_1",
     "class": "analysis",
-    "created": 1680247576447,
-    "modified": 1680247862371,
-    "project": "project-ZZZZ",
-    "billTo": "org-LALALA",
-    "folder": "/dxcint_testing/test_2023-03-31T00-18-53/test",
+    "created": 1680923355689,
+    "modified": 1680923457551,
+    "project": "project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq",
+    "billTo": "org-dnanexus_apps",
+    "folder": "/dxcint_testing/test_2023-04-07T20-02-37/test",
     "parentJob": null,
     "parentAnalysis": null,
     "detachedFrom": null,
@@ -20,9 +20,9 @@
     "rank": 0,
     "maxTreeSpotWaitTime": 2048,
     "maxJobSpotWaitTime": 1024,
-    "spotCostSavings": 1.7763568394002505e-15,
+    "spotCostSavings": 0,
     "preserveJobOutputs": null,
-    "priceComputedAt": 1680247859502,
+    "priceComputedAt": 1680923454717,
     "currency": {
         "dxCode": 0,
         "code": "USD",
@@ -31,16 +31,16 @@
         "decimalSymbol": ".",
         "groupingSymbol": ","
     },
-    "totalPrice": 0.01349117611111111,
+    "totalPrice": 0.00503217,
     "totalEgress": {
         "regionLocalEgress": 0,
         "internetEgress": 0,
         "interRegionEgress": 0
     },
-    "egressComputedAt": 1680247859502,
+    "egressComputedAt": 1680923454717,
     "workflow": {
         "id": "workflow-YYYY",
-        "project": "project-ZZZZ",
+        "project": "project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq",
         "class": "workflow",
         "sponsored": false,
         "name": "mock_1",
@@ -48,22 +48,22 @@
         "state": "closed",
         "hidden": false,
         "links": [],
-        "folder": "/dxcint_testing/test_2023-03-31T00-18-53/applets/mock_1",
+        "folder": "/dxcint_testing/test_2023-04-07T20-02-37/applets/mock_1",
         "tags": [
             "dxCompiler"
         ],
-        "created": 1680247574000,
-        "modified": 1680247575638,
+        "created": 1680923354000,
+        "modified": 1680923355128,
         "createdBy": {
-            "user": "user-loser"
+            "user": "user-schmuzer"
         },
         "details": {
             "originalName": "mock_1",
             "sourceCode": "H4sIAAAAAAAAAGWMSwqAMBBD9z1FTiB2K3gKD1BK/VCsHWlHXYh3dyi6EDchCXnZh5Q9ReiqVuqgNI+BDizkZqNxKsDHdePigI6Tj5NURku+lIizITxzwza/1MM1xQKsjWS0H5Q2/l1LJ6vPX9VTHApz3WD0RdStAAAA",
             "version": "2.11.1-SNAPSHOT",
-            "checksum": "A2A7A63B793F247DD0F1418D1A40C5B2",
-            "docContents": "H4sIAAAAAAAAAAtLTS7JL9JwTszJ0cjNT86ON4wvSSwGUjqovJB4LEpCilJTg1MLfRMLNFLy81IVdO0UQuKDS4oy89I1NYFaQoDKcGspMYzPzCsAadKA6dJJS8wpTgXpxWOyjh9QBELqhEGcr4nuWmy2uFYUFHmmpOaVZKZlphZpZOaBvQVzrqYmANXTI/QLAQAA",
-            "execTree": "H4sIAAAAAAAAAH3PwQqCQBAG4HeZc4G6Cuaxg1GXEjqoEbKahq7rWq6aiu/eCqJg4XH+n5mP6YDE2QMMqNmbRCmrYQMZpqFIKAuIJ4u54PgZFmDcOghwmoai7CAelnCepyHfHixHj1Rdalo3VyRbMZGy+1R7TeyO149ZXvJiedsLGKUsg340vLGd4lUQJQNIGle12wMy5ZOPZvCKC/LDcRGKj5bcsl1VNWlQ28QhL9Oq7NZHl1k9l/zvn2zMl/KU3/svXVgfaokBAAA=",
+            "checksum": "4886DB41A34E27354467F0C9E45750F1",
+            "docContents": "H4sIAAAAAAAAAHPKyU/O1jDQUXBOzMlxySxKTS7RVFDwzCsoLSm2UggDcvOLNIJLijLz0hUy8+INgZL+pSXYZHOBBsUbxpckFgMpvZT8vFSgWqf8lEorBSBIBhqPqkShGmgg0CArhRLDeCBLwRZsgUItAHcjIEaTAAAA",
+            "execTree": "H4sIAAAAAAAAAKtWys7MS1GyUirPL8pOy8kvV9JRykvMTQWK5OYnZ8cbAvnFJYnpqcVKVtHVSsmJOTmpQMlqpUyQpsSCgpzUEl33wCyvpDQLg8qqqLBsL6Mq94ikKmO3gGygXqjpIYnF2egmx5cABYEW1EJtiMcuG1sLAA2aTq6kAAAA",
             "parseOptions": {
                 "regime": "Moderate"
             }
@@ -74,29 +74,34 @@
         "description": "",
         "outputFolder": null,
         "temporary": false,
-        "inputs": null,
-        "outputs": null,
-        "stages": [
+        "inputs": [
             {
-                "id": "stage-common",
-                "name": "common",
-                "executable": "applet-GQY8f480yzZp20X2F329xvB5",
-                "folder": null,
-                "input": {},
-                "executionPolicy": {},
-                "systemRequirements": {},
-                "accessible": true
-            },
+                "name": "in_1",
+                "class": "string"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "out",
+                "class": "string",
+                "outputSource": {
+                    "$dnanexus_link": {
+                        "outputField": "done",
+                        "stage": "stage-0"
+                    }
+                }
+            }
+        ],
+        "stages": [
             {
                 "id": "stage-0",
                 "name": "mock_1_task_1",
-                "executable": "applet-GQY8f3j0yzZkyZ4XzG3F1Jb3",
+                "executable": "applet-AAAA",
                 "folder": null,
                 "input": {
                     "t1_inp": {
                         "$dnanexus_link": {
-                            "outputField": "in_1",
-                            "stage": "stage-common"
+                            "workflowInputField": "in_1"
                         }
                     }
                 },
@@ -107,43 +112,9 @@
                     }
                 },
                 "accessible": true
-            },
-            {
-                "id": "stage-outputs",
-                "name": "outputs",
-                "executable": "applet-GQY8f500yzZzjYkqFQvXzb3P",
-                "folder": null,
-                "input": {
-                    "mock_1_task_1___done": {
-                        "$dnanexus_link": {
-                            "outputField": "done",
-                            "stage": "stage-0"
-                        }
-                    }
-                },
-                "executionPolicy": {},
-                "systemRequirements": {},
-                "accessible": true
             }
         ],
         "inputSpec": [
-            {
-                "name": "stage-common.in_1",
-                "class": "string",
-                "group": "stage-common"
-            },
-            {
-                "name": "stage-common.overrides___",
-                "class": "hash",
-                "optional": true,
-                "group": "stage-common: Reserved for dxCompiler"
-            },
-            {
-                "name": "stage-common.overrides______dxfiles",
-                "class": "array:file",
-                "optional": true,
-                "group": "stage-common: Reserved for dxCompiler"
-            },
             {
                 "name": "stage-0.overrides___",
                 "class": "hash",
@@ -162,203 +133,48 @@
                 "group": "stage-0",
                 "default": {
                     "$dnanexus_link": {
-                        "outputField": "in_1",
-                        "stage": "stage-common"
+                        "workflowInputField": "in_1"
                     }
                 }
-            },
-            {
-                "name": "stage-outputs.mock_1_task_1___done",
-                "class": "string",
-                "group": "stage-outputs",
-                "default": {
-                    "$dnanexus_link": {
-                        "outputField": "done",
-                        "stage": "stage-0"
-                    }
-                }
-            },
-            {
-                "name": "stage-outputs.overrides___",
-                "class": "hash",
-                "optional": true,
-                "group": "stage-outputs: Reserved for dxCompiler"
-            },
-            {
-                "name": "stage-outputs.overrides______dxfiles",
-                "class": "array:file",
-                "optional": true,
-                "group": "stage-outputs: Reserved for dxCompiler"
             }
         ],
         "outputSpec": [
             {
-                "name": "stage-common.in_1",
-                "class": "string",
-                "group": "stage-common"
-            },
-            {
                 "name": "stage-0.done",
                 "class": "string",
                 "group": "stage-0"
-            },
-            {
-                "name": "stage-outputs.out",
-                "class": "string",
-                "group": "stage-outputs"
             }
         ]
     },
     "stages": [
         {
-            "id": "stage-common",
-            "execution": {
-                "id": "job-GQY8f600yzZq1FQ7f7XqJp13",
-                "region": "aws:us-east-1",
-                "name": "common",
-                "tags": [],
-                "properties": {},
-                "executable": "applet-GQY8f480yzZp20X2F329xvB5",
-                "executableName": "mock_1_common",
-                "class": "job",
-                "created": 1680247576536,
-                "modified": 1680247744483,
-                "project": "project-ZZZZ",
-                "billTo": "org-LALALA",
-                "costLimit": null,
-                "invoiceMetadata": null,
-                "folder": "/dxcint_testing/test_2023-03-31T00-18-53/test",
-                "parentJob": null,
-                "originJob": "job-GQY8f600yzZq1FQ7f7XqJp13",
-                "parentAnalysis": "analysis-XXXX",
-                "analysis": "analysis-XXXX",
-                "stage": "stage-common",
-                "rootExecution": "analysis-XXXX",
-                "state": "done",
-                "function": "main",
-                "workspace": "container-GQY8f7Q0ZYxpyjVPzgjBjZ2K",
-                "launchedBy": "user-loser",
-                "detachedFrom": null,
-                "priority": "normal",
-                "workerReuseDeadlineRunTime": {
-                    "state": "reuse-off",
-                    "waitTime": -1,
-                    "at": -1
-                },
-                "dependsOn": [],
-                "singleContext": false,
-                "failureCounts": {},
-                "stateTransitions": [
-                    {
-                        "newState": "runnable",
-                        "setAt": 1680247583081
-                    },
-                    {
-                        "newState": "running",
-                        "setAt": 1680247699419
-                    },
-                    {
-                        "newState": "done",
-                        "setAt": 1680247741143
-                    }
-                ],
-                "applet": "applet-GQY8f480yzZp20X2F329xvB5",
-                "ignoreReuse": false,
-                "httpsApp": {
-                    "enabled": false
-                },
-                "rank": 0,
-                "details": {},
-                "systemRequirements": {
-                    "main": {
-                        "instanceType": "mem1_ssd1_v2_x2"
-                    }
-                },
-                "executionPolicy": {
-                    "maxSpotTries": 1,
-                    "restartOn": {
-                        "UnresponsiveWorker": 2,
-                        "JMInternalError": 1,
-                        "ExecutionError": 1
-                    }
-                },
-                "instanceType": "mem1_ssd1_v2_x2",
-                "trueInstanceType": "dx_s_c5d.large_v2",
-                "finalPriority": "normal",
-                "networkAccess": [],
-                "runInput": {
-                    "in_1": "Hello World!"
-                },
-                "originalInput": {
-                    "in_1": "Hello World!"
-                },
-                "input": {
-                    "in_1": "Hello World!"
-                },
-                "output": {
-                    "in_1": "Hello World!"
-                },
-                "debug": {},
-                "startedRunning": 1680247646000,
-                "stoppedRunning": 1680247737997,
-                "delayWorkspaceDestruction": false,
-                "preserveJobOutputs": null,
-                "spotWaitTime": 0,
-                "maxTreeSpotWaitTime": 2048,
-                "maxJobSpotWaitTime": 1024,
-                "isFree": false,
-                "totalPrice": 0.007308650555555555,
-                "totalEgress": {
-                    "regionLocalEgress": 0,
-                    "internetEgress": 0,
-                    "interRegionEgress": 0
-                },
-                "egressComputedAt": 1680247744449,
-                "priceComputedAt": 1680247744449,
-                "currency": {
-                    "dxCode": 0,
-                    "code": "USD",
-                    "symbol": "$",
-                    "symbolPosition": "left",
-                    "decimalSymbol": ".",
-                    "groupingSymbol": ","
-                },
-                "egressReport": {
-                    "regionLocalEgress": 0,
-                    "internetEgress": 0,
-                    "interRegionEgress": 0
-                },
-                "timeout": 172800000
-            }
-        },
-        {
             "id": "stage-0",
             "execution": {
-                "id": "job-GQY8f600yzZq1FQ7f7XqJp14",
+                "id": "job-GQjJbfj0yzZk8Qb6Q93K7PkB",
                 "region": "aws:us-east-1",
                 "name": "mock_1_task_1",
                 "tags": [],
                 "properties": {},
-                "executable": "applet-GQY8f3j0yzZkyZ4XzG3F1Jb3",
+                "executable": "applet-AAAA",
                 "executableName": "mock_1_task_1",
                 "class": "job",
-                "created": 1680247576580,
-                "modified": 1680247802921,
-                "project": "project-ZZZZ",
-                "billTo": "org-LALALA",
+                "created": 1680923355754,
+                "modified": 1680923451501,
+                "project": "project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq",
+                "billTo": "org-dnanexus_apps",
                 "costLimit": null,
                 "invoiceMetadata": null,
-                "folder": "/dxcint_testing/test_2023-03-31T00-18-53/test",
+                "folder": "/dxcint_testing/test_2023-04-07T20-02-37/test",
                 "parentJob": null,
-                "originJob": "job-GQY8f600yzZq1FQ7f7XqJp14",
+                "originJob": "job-GQjJbfj0yzZk8Qb6Q93K7PkB",
                 "parentAnalysis": "analysis-XXXX",
                 "analysis": "analysis-XXXX",
                 "stage": "stage-0",
                 "rootExecution": "analysis-XXXX",
                 "state": "done",
                 "function": "main",
-                "workspace": "container-GQY8gQj031045Jx01pPG7gxX",
-                "launchedBy": "user-loser",
+                "workspace": "container-GQjJbj808BQ9kjzvJzg573qg",
+                "launchedBy": "user-schmuzer",
                 "detachedFrom": null,
                 "priority": "normal",
                 "workerReuseDeadlineRunTime": {
@@ -371,23 +187,19 @@
                 "failureCounts": {},
                 "stateTransitions": [
                     {
-                        "newState": "waiting_on_input",
-                        "setAt": 1680247582829
-                    },
-                    {
                         "newState": "runnable",
-                        "setAt": 1680247747599
+                        "setAt": 1680923362150
                     },
                     {
                         "newState": "running",
-                        "setAt": 1680247756007
+                        "setAt": 1680923413408
                     },
                     {
                         "newState": "done",
-                        "setAt": 1680247799574
+                        "setAt": 1680923448182
                     }
                 ],
-                "applet": "applet-GQY8f3j0yzZkyZ4XzG3F1Jb3",
+                "applet": "applet-AAAA",
                 "ignoreReuse": false,
                 "httpsApp": {
                     "enabled": false
@@ -396,7 +208,7 @@
                 "details": {},
                 "systemRequirements": {
                     "*": {
-                        "instanceType": "mem1_ssd1_v2_x2"
+                        "instanceType": "mem1_ssd1_v2_x4"
                     }
                 },
                 "executionPolicy": {
@@ -407,28 +219,15 @@
                         "ExecutionError": 1
                     }
                 },
-                "instanceType": "mem1_ssd1_v2_x2",
-                "trueInstanceType": "dx_s_c5d.large_v2",
+                "instanceType": "mem1_ssd1_v2_x4",
+                "trueInstanceType": "dx_s_c5d.xlarge_v2",
                 "finalPriority": "normal",
                 "networkAccess": [],
                 "runInput": {
-                    "t1_inp": {
-                        "$dnanexus_link": {
-                            "analysis": "analysis-XXXX",
-                            "stage": "stage-common",
-                            "field": "in_1",
-                            "wasInternal": true
-                        }
-                    }
+                    "t1_inp": "Hello World!"
                 },
                 "originalInput": {
-                    "t1_inp": {
-                        "$dnanexus_link": {
-                            "analysis": "analysis-XXXX",
-                            "stage": "stage-common",
-                            "field": "in_1"
-                        }
-                    }
+                    "t1_inp": "Hello World!"
                 },
                 "input": {
                     "t1_inp": "Hello World!"
@@ -437,160 +236,22 @@
                     "done": "Hello World!"
                 },
                 "debug": {},
-                "startedRunning": 1680247756007,
-                "stoppedRunning": 1680247796477,
+                "startedRunning": 1680923413408,
+                "stoppedRunning": 1680923445079,
                 "delayWorkspaceDestruction": false,
                 "preserveJobOutputs": null,
                 "spotWaitTime": 0,
                 "maxTreeSpotWaitTime": 2048,
                 "maxJobSpotWaitTime": 1024,
                 "isFree": false,
-                "totalPrice": 0.003215116666666667,
+                "totalPrice": 0.00503217,
                 "totalEgress": {
                     "regionLocalEgress": 0,
                     "internetEgress": 0,
                     "interRegionEgress": 0
                 },
-                "egressComputedAt": 1680247802874,
-                "priceComputedAt": 1680247802874,
-                "currency": {
-                    "dxCode": 0,
-                    "code": "USD",
-                    "symbol": "$",
-                    "symbolPosition": "left",
-                    "decimalSymbol": ".",
-                    "groupingSymbol": ","
-                },
-                "egressReport": {
-                    "regionLocalEgress": 0,
-                    "internetEgress": 0,
-                    "interRegionEgress": 0
-                },
-                "timeout": 172800000
-            }
-        },
-        {
-            "id": "stage-outputs",
-            "execution": {
-                "id": "job-GQY8f600yzZq1FQ7f7XqJp15",
-                "region": "aws:us-east-1",
-                "name": "outputs",
-                "tags": [],
-                "properties": {},
-                "executable": "applet-GQY8f500yzZzjYkqFQvXzb3P",
-                "executableName": "mock_1_outputs",
-                "class": "job",
-                "created": 1680247576622,
-                "modified": 1680247856291,
-                "project": "project-ZZZZ",
-                "billTo": "org-LALALA",
-                "costLimit": null,
-                "invoiceMetadata": null,
-                "folder": "/dxcint_testing/test_2023-03-31T00-18-53/test",
-                "parentJob": null,
-                "originJob": "job-GQY8f600yzZq1FQ7f7XqJp15",
-                "parentAnalysis": "analysis-XXXX",
-                "analysis": "analysis-XXXX",
-                "stage": "stage-outputs",
-                "rootExecution": "analysis-XXXX",
-                "state": "done",
-                "function": "main",
-                "workspace": "container-GQY8gz80Kpy45Jx01pPG7gxY",
-                "launchedBy": "user-loser",
-                "detachedFrom": null,
-                "priority": "normal",
-                "workerReuseDeadlineRunTime": {
-                    "state": "reuse-off",
-                    "waitTime": -1,
-                    "at": -1
-                },
-                "dependsOn": [],
-                "singleContext": false,
-                "failureCounts": {},
-                "stateTransitions": [
-                    {
-                        "newState": "waiting_on_input",
-                        "setAt": 1680247582865
-                    },
-                    {
-                        "newState": "runnable",
-                        "setAt": 1680247806102
-                    },
-                    {
-                        "newState": "running",
-                        "setAt": 1680247812498
-                    },
-                    {
-                        "newState": "done",
-                        "setAt": 1680247852952
-                    }
-                ],
-                "applet": "applet-GQY8f500yzZzjYkqFQvXzb3P",
-                "ignoreReuse": false,
-                "httpsApp": {
-                    "enabled": false
-                },
-                "rank": 0,
-                "details": {},
-                "systemRequirements": {
-                    "main": {
-                        "instanceType": "mem1_ssd1_v2_x2"
-                    }
-                },
-                "executionPolicy": {
-                    "maxSpotTries": 1,
-                    "restartOn": {
-                        "UnresponsiveWorker": 2,
-                        "JMInternalError": 1,
-                        "ExecutionError": 1
-                    }
-                },
-                "instanceType": "mem1_ssd1_v2_x2",
-                "trueInstanceType": "dx_s_c5d.large_v2",
-                "finalPriority": "normal",
-                "networkAccess": [],
-                "runInput": {
-                    "mock_1_task_1___done": {
-                        "$dnanexus_link": {
-                            "analysis": "analysis-XXXX",
-                            "stage": "stage-0",
-                            "field": "done",
-                            "wasInternal": true
-                        }
-                    }
-                },
-                "originalInput": {
-                    "mock_1_task_1___done": {
-                        "$dnanexus_link": {
-                            "analysis": "analysis-XXXX",
-                            "stage": "stage-0",
-                            "field": "done"
-                        }
-                    }
-                },
-                "input": {
-                    "mock_1_task_1___done": "Hello World!"
-                },
-                "output": {
-                    "out": "Hello World!"
-                },
-                "debug": {},
-                "startedRunning": 1680247812498,
-                "stoppedRunning": 1680247849850,
-                "delayWorkspaceDestruction": false,
-                "preserveJobOutputs": null,
-                "spotWaitTime": 0,
-                "maxTreeSpotWaitTime": 2048,
-                "maxJobSpotWaitTime": 1024,
-                "isFree": false,
-                "totalPrice": 0.002967408888888889,
-                "totalEgress": {
-                    "regionLocalEgress": 0,
-                    "internetEgress": 0,
-                    "interRegionEgress": 0
-                },
-                "egressComputedAt": 1680247856260,
-                "priceComputedAt": 1680247856260,
+                "egressComputedAt": 1680923451461,
+                "priceComputedAt": 1680923451461,
                 "currency": {
                     "dxCode": 0,
                     "code": "USD",
@@ -610,62 +271,29 @@
     ],
     "state": "done",
     "costLimit": null,
-    "workspace": "container-GQY8f600yzZq1FQ7f7XqJp11",
-    "launchedBy": "user-loser",
+    "workspace": "container-GQjJbfj0yzZk8Qb6Q93K7Pk8",
+    "launchedBy": "user-schmuzer",
     "priority": "normal",
     "dependsOn": [],
     "stateTransitions": [
         {
             "newState": "done",
-            "setAt": 1680247859221
+            "setAt": 1680923454419
         }
     ],
     "details": {},
     "runInput": {
-        "stage-common.in_1": "Hello World!"
+        "in_1": "Hello World!"
     },
     "originalInput": {
-        "stage-common.in_1": "Hello World!",
-        "stage-0.t1_inp": {
-            "$dnanexus_link": {
-                "analysis": "analysis-XXXX",
-                "stage": "stage-common",
-                "field": "in_1",
-                "wasInternal": true
-            }
-        },
-        "stage-outputs.mock_1_task_1___done": {
-            "$dnanexus_link": {
-                "analysis": "analysis-XXXX",
-                "stage": "stage-0",
-                "field": "done",
-                "wasInternal": true
-            }
-        }
+        "stage-0.t1_inp": "Hello World!"
     },
     "input": {
-        "stage-common.in_1": "Hello World!",
-        "stage-0.t1_inp": {
-            "$dnanexus_link": {
-                "analysis": "analysis-XXXX",
-                "stage": "stage-common",
-                "field": "in_1",
-                "wasInternal": true
-            }
-        },
-        "stage-outputs.mock_1_task_1___done": {
-            "$dnanexus_link": {
-                "analysis": "analysis-XXXX",
-                "stage": "stage-0",
-                "field": "done",
-                "wasInternal": true
-            }
-        }
+        "stage-0.t1_inp": "Hello World!"
     },
     "output": {
-        "stage-common.in_1": "Hello World!",
         "stage-0.done": "Hello World!",
-        "stage-outputs.out": "Hello World!"
+        "out": "Hello World!"
     },
     "delayWorkspaceDestruction": false
 }

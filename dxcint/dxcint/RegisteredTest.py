@@ -45,7 +45,9 @@ class RegisteredTest(object):
             ["git", "describe", "--always", "--dirty", "--tags"]
         ).strip()
         # wf inputs supplied as json usually have this suffix. Can be changed in subclasses
-        self._inputs_suffix = "_input.json"
+        self._raw_inputs_path = os.path.join(
+            os.path.dirname(src_file), f"{test_name}_input.json"
+        )
         self._compiled_inputs_suffix = "_input.dx.json"
         self._test_inputs = None
 
@@ -74,7 +76,15 @@ class RegisteredTest(object):
     @property
     def exec_id(self) -> str:
         if not self._exec_id:
-            self._exec_id = self._compile_executable()
+            additional_flags = {"-locked": ""}
+            if os.path.exists(self._raw_inputs_path):
+                additional_flags = {
+                    **additional_flags,
+                    **{"-inputs": self._raw_inputs_path},
+                }
+            self._exec_id = self._compile_executable(
+                additional_compiler_flags=additional_flags
+            )
         return self._exec_id
 
     @property
