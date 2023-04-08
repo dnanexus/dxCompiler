@@ -152,6 +152,15 @@ def mock_analysis_desc(fixtures_dir):
 
 
 @pytest.fixture(scope="session")
+def mock_analysis_unlocked_desc(fixtures_dir):
+    with open(
+        os.path.join(fixtures_dir, "mocker", "mock_analysis_unlocked.json")
+    ) as file_handle:
+        mock_analysis = json.load(file_handle)
+    yield mock_analysis
+
+
+@pytest.fixture(scope="session")
 def mock_analysis_results(fixtures_dir):
     with open(
         os.path.join(fixtures_dir, "resources", "mock_category", "mock_1_results.json")
