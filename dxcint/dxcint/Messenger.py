@@ -35,7 +35,7 @@ class Messenger(object):
         """
         self._context = context
         self._test_name = test_name
-        self._variant = variant
+        self._variant = variant or ""
         self._state: State = State.NOT_DONE
         self._execution: Union[
             dxpy.DXAnalysis, dxpy.DXJob
