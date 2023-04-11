@@ -1,11 +1,21 @@
 import os
 import json
 import dxpy
+from dxpy.api import project_list_folder
 
 
 def test__build_compiler(change_to_root_dir, terraform_init):
     compiler_built = terraform_init._build_compiler()
     assert compiler_built
+
+
+def test__create_platform_build_folder(terraform_init, test_folder):
+    assert terraform_init._create_build_subdirs()
+    list_dir = project_list_folder(
+        object_id=terraform_init.context.project_id,
+        input_params={"folder": test_folder},
+    )
+    assert f"{test_folder}/applets" in list_dir.get("folders")
 
 
 def test__generate_config_file(change_to_root_dir, terraform_init):

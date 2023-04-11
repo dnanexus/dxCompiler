@@ -3,6 +3,8 @@ import shutil
 import subprocess as sp
 import json
 import dxpy
+from dxpy.api import project_new_folder, project_remove_folder
+
 
 from glob import glob
 from typing import Set, Dict, List
@@ -179,6 +181,43 @@ class Terraform(object):
             os.makedirs(value, exist_ok=True)
         self._local_created_dirs.update({language: local_assets})
         return local_assets
+
+    def _create_platform_build_folder(self) -> bool:
+        _ = self._clean_up_build_dir(self.context.platform_build_dir)
+        _ = self._create_build_subdirs()
+        self.logger.info(
+            f"Context._get_version(): Project: {self._project_id}.\nBuild directory: {self.context.platform_build_dir}"
+        )
+        return True
+
+    def _create_build_subdirs(self) -> bool:
+        """
+        Impure function. Creates destination subdirs on the platform
+        Returns: bool. True when executing without errors
+        """
+        subdirectories = (
+            os.path.join(self.context.platform_build_dir, x)
+            for x in ("applets", "test")
+        )
+        for subdir in subdirectories:
+            _ = project_new_folder(
+                object_id=self.context.project_id,
+                input_params={"folder": subdir, "parents": True},
+            )
+        return True
+
+    def _clean_up_build_dir(self, folder) -> bool:
+        """
+        Impure function. Cleans up (removes) target build directories on the platform
+        Args:
+            folder: str. Dir on the platform to clean up.
+        Returns: bool. True when executing without errors
+        """
+        _ = project_remove_folder(
+            object_id=self.context.project_id,
+            input_params={"folder": folder, "force": True, "recurse": True},
+        )
+        return True
 
     def _generate_config_file(self) -> str:
         """
