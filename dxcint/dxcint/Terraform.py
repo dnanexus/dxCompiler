@@ -141,7 +141,6 @@ class Terraform(object):
 
     def _create_asset_spec(self, language: str) -> Dict:
         spec_exports = [x.export_spec() for x in self._dependencies]
-        self._context.logger.info(f"spec_exp is {spec_exports}")
         exec_depends = [
             {"name": "openjdk-8-jre-headless"},
             {"name": "bzip2"},

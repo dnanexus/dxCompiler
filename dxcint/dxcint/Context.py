@@ -34,7 +34,7 @@ class Context(object):
         self._logger = Logger.make(name=__name__, verbosity=logger_verbosity)
         self._project_id = self._resolve_project(project=project)
         self._user = dxpy.whoami()
-        self._repo_root_dir = repo_root
+        self._repo_root_dir = os.path.realpath(repo_root)
         self._compiler_version = self._get_version()
         self._platform_build_dir = self._create_platform_build_folder(folder)
         self._lock = Lock()

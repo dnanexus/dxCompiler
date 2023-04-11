@@ -22,21 +22,20 @@ class ExternExpectedOutput(ExpectedOutput):
     def _compile_executable(self, *args, **kwargs) -> str:
         try:
             with self.context.lock:
-                if not os.path.exists(os.path.join(self._dxni_output_folder)):
-                    self.context.logger.info("Creating directory for dxni stubs")
-                    self._build_native_applets()
-                    # works with -folder and with -path
-                    self._create_dxni_stub(
-                        "-folder",
-                        self._applet_folder,
-                        os.path.join(self._dxni_output_folder, "dx_extern.wdl"),
-                    )
-                    self._create_dxni_stub(
-                        "-path",
-                        os.path.join(self._applet_folder, "/native_concat"),
-                        os.path.join(self._dxni_output_folder, "dx_extern_one.wdl"),
-                    )
-                    self.context.logger.info(f"{self._dxni_output_folder} created")
+                self.context.logger.info("Creating directory for dxni stubs")
+                self._build_native_applets()
+                # works with -folder and with -path
+                self._create_dxni_stub(
+                    "-folder",
+                    self._applet_folder,
+                    os.path.join(self._dxni_output_folder, "dx_extern.wdl"),
+                )
+                self._create_dxni_stub(
+                    "-path",
+                    os.path.join(self._applet_folder, "native_concat"),
+                    os.path.join(self._dxni_output_folder, "dx_extern_one.wdl"),
+                )
+                self.context.logger.info(f"{self._dxni_output_folder} created")
 
         except subprocess.CalledProcessError as e:
             self._context.logger.error(

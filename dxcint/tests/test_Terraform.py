@@ -1,9 +1,6 @@
-import pytest
 import os
 import json
 import dxpy
-from dxcint.Terraform import Terraform
-from dxcint.Dependency import DependencyFactory
 
 
 def test__build_compiler(change_to_root_dir, terraform_init):
