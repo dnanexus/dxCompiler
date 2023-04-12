@@ -57,6 +57,7 @@ class Terraform(object):
         build_queue = {
             self._asset_switch[x] for x in self._languages
         }  # set of partial functions
+        _ = self._create_platform_build_folder()
         _ = self._generate_config_file()
         _ = self._build_compiler()
         with futures.ThreadPoolExecutor(max_workers=len(build_queue)) as executor:
@@ -185,8 +186,8 @@ class Terraform(object):
     def _create_platform_build_folder(self) -> bool:
         _ = self._clean_up_build_dir(self.context.platform_build_dir)
         _ = self._create_build_subdirs()
-        self.logger.info(
-            f"Context._get_version(): Project: {self._project_id}.\nBuild directory: {self.context.platform_build_dir}"
+        self.context.logger.info(
+            f"Context._get_version(): Project: {self.context.project_id}.\nBuild directory: {self.context.platform_build_dir}"
         )
         return True
 

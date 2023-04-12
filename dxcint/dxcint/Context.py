@@ -36,7 +36,7 @@ class Context(object):
         self._user = dxpy.whoami()
         self._repo_root_dir = os.path.realpath(repo_root)
         self._compiler_version = self._get_version()
-        self._platform_build_dir = folder = (
+        self._platform_build_dir = (
             folder or f"/builds/{self._user}/{self._compiler_version}"
         )
         self._lock = Lock()
