@@ -8,5 +8,7 @@ class ManifestMixin(RegisteredTest):
     @property
     def exec_id(self) -> str:
         if not self._exec_id:
-            self._exec_id = self._compile_executable({"-useManifests": ""})
+            self._exec_id = self._compile_executable(
+                {"-useManifests": "", "-locked": ""}
+            )
         return self._exec_id
