@@ -118,8 +118,8 @@ class RegisteredTest(object):
         self, additional_compiler_flags: Optional[Dict] = None
     ) -> str:
         """
-        Base implementation. For different test classes override `exec_id` property with calling this method with
-        arguments which suite a particular test type. For example, when implementing class ManifestTest(RegisteredTest)
+        Base implementation. For different test classes update this method with new kwargs
+        which suite a particular test type. For example, when implementing class ManifestTest(RegisteredTest)
         call this method with `additional_compiler_flags=['-useManifests']` argument in parameter `exec_id`.
         Args:
             additional_compiler_flags: Optional[Dict[str]]. Use this argument to alter the compiler behavior for

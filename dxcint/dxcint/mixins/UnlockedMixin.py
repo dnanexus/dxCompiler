@@ -9,4 +9,6 @@ class UnlockedMixin(RegisteredTest):
         super_kwargs = kwargs.get("additional_compiler_flags", {})
         if "-locked" in super_kwargs:
             _ = super_kwargs.pop("-locked")
-        return super()._compile_executable(super_kwargs)
+        return super()._compile_executable(
+            *args, **{"additional_compiler_flags": super_kwargs}
+        )

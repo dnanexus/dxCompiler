@@ -5,10 +5,11 @@ class ManifestMixin(RegisteredTest):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    @property
-    def exec_id(self) -> str:
-        if not self._exec_id:
-            self._exec_id = self._compile_executable(
-                {"-useManifests": "", "-locked": ""}
-            )
-        return self._exec_id
+    def _compile_executable(self, *args, **kwargs) -> str:
+        super_kwargs = {
+            **kwargs.get("additional_compiler_flags", {}),
+            **{"-useManifests": ""},
+        }
+        return super()._compile_executable(
+            *args, **{"additional_compiler_flags": super_kwargs}
+        )
