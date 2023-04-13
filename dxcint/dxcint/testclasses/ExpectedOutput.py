@@ -112,7 +112,7 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
         return actual, expected
 
     def _compare_values(self, expected, actual, field) -> bool:
-        self._unwrap(actual, expected)
+        actual, expected = self._unwrap(actual, expected)
 
         if isinstance(actual, list) and isinstance(expected, list):
             return self._compare_lists(actual, expected, field)
