@@ -160,7 +160,7 @@ class RegisteredTest(object):
             raise e
         return workflow_id.decode("ascii")
 
-    def _run_executable(self, **dx_run_kwargs) -> str:
+    def _run_executable(self, dx_run_kwargs) -> str:
         """
         This method will be implemented in subclasses with or without additional decorators (e.g. for async_retry)
         Args:
@@ -169,11 +169,11 @@ class RegisteredTest(object):
         """
         if "instance_type" not in dx_run_kwargs:
             dx_run_kwargs.update({"instance_type": DEFAULT_INSTANCE_TYPE})
-        execution_desc = self._run_executable_inner(**dx_run_kwargs).describe()
+        execution_desc = self._run_executable_inner(dx_run_kwargs).describe()
         return execution_desc.get("id")
 
     def _run_executable_inner(
-        self, **dx_run_kwargs
+        self, dx_run_kwargs
     ) -> Union[dxpy.DXAnalysis, dxpy.DXJob]:
         """
         Override this method if the changes to the workflow execution are needed.
