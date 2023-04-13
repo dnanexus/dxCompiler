@@ -6,7 +6,8 @@ authors = ["Gvaihir <aogorodnikov@dnanexus.com>"]
 
 [tool.poetry.dependencies]
 python = "3.8.*"
-dxpy = "0.314.0"
+pyOpenSSL="22.0.0"
+dxpy = "0.323.0"
 click = "8.0.1"
 
 [tool.poetry.group.dev]
