@@ -8,5 +8,5 @@ class PinnedInstanceMixin(RegisteredTest):
     @property
     def job_id(self) -> str:
         if not self._job_id:
-            self._job_id = self._run_executable(dx_run_kwargs={"instance_type": None})
+            self._job_id = self._run_executable(instance_type=None)
         return self._job_id
