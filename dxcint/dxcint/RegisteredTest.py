@@ -10,7 +10,7 @@ from typing import Optional, Dict, Union
 from dxcint.utils import rm_prefix
 from dxcint.Messenger import Messenger
 from dxcint.Context import Context, ContextEmpty
-from dxcint.constants import DEFAULT_INSTANCE_TYPE
+from dxcint.constants import DEFAULT_INSTANCE_TYPE, DEFAULT_RUN_KWARGS
 
 
 class RegisteredTestError(Exception):
@@ -162,13 +162,11 @@ class RegisteredTest(object):
 
     def _run_executable(self, **dx_run_kwargs) -> str:
         """
-        This method will be implemented in subclasses with or without additional decorators (e.g. for async_retry)
+        This method can be implemented in subclasses with or without additional decorators (e.g. for async_retry)
         Args:
             dx_run_kwargs: Dict[str]. Kwargs for the DxApp(let) or DxWorkflow .run call
         Returns: str. Execution ID (analysis or job)
         """
-        if "instance_type" not in dx_run_kwargs:
-            dx_run_kwargs.update({"instance_type": DEFAULT_INSTANCE_TYPE})
         execution_desc = self._run_executable_inner(**dx_run_kwargs).describe()
         return execution_desc.get("id")
 
@@ -181,11 +179,15 @@ class RegisteredTest(object):
         Returns: Union[DXAnalysis,DXJob]. Execution handler
 
         """
+        if "instance_type" not in dx_run_kwargs:
+            dx_run_kwargs.update({"instance_type": DEFAULT_INSTANCE_TYPE})
+        dx_run_kwargs.update(DEFAULT_RUN_KWARGS)
         exec_type = self.exec_id.split("-")[0]
         exec_handler = self._executable_type_switch.get(exec_type)(
             project=self._context.project_id, dxid=self.exec_id
         )
         self._context.logger.info(f"Running the process for test {self._test_name}")
+        self._context.logger.info(f"KWARGS: {dx_run_kwargs}")
         dx_execution = exec_handler.run(
             self.test_inputs,
             project=self._context.project_id,
