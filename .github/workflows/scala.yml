@@ -45,7 +45,7 @@ jobs:
           cwltool=`jq -r '.execDepends.cwl[0].version' scripts/bundled_dependencies.json`
           salad=`jq -r '.execDepends.cwl[1].version' scripts/bundled_dependencies.json`
           pip3 install --upgrade pip setuptools==58.3.0
-          pip3 install termcolor dxpy cwltool==$cwltool schema-salad==$salad pyOpenSSL==22.0.0
+          pip3 install termcolor dxpy==0.323.0 cwltool==$cwltool schema-salad==$salad pyOpenSSL==22.0.0
           export PATH="$PATH:$HOME/.local/bin"
 
           # install dxda
