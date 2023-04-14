@@ -580,7 +580,6 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     )
     val (taskMeta, taskDetails) =
       applicationAttributesToNative(applet, defaultTags, extendedDescription)
-    val delayDetails = delayWorkspaceDestructionToNative
     // meta information used for running workflow fragments
     val metaDetails: Map[String, JsValue] =
       applet.kind match {
@@ -645,7 +644,6 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
     val details: Map[String, JsValue] =
       taskDetails ++
         runSpecDetails ++
-        delayDetails ++
         dxLinks.toMap ++
         metaDetails ++
         auxDetails ++

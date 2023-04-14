@@ -205,6 +205,38 @@ class ExecTreeTest extends AnyFlatSpec with Matchers {
                        |└───App Outputs: outputs""".stripMargin
   }
 
+  it should "Convert JS Tree to Pretty with sub-workflows" taggedAs NativeTest in {
+    val path = pathFromBasename("nested", "apps_867_w1.wdl")
+    // remove -locked flag to create common stage
+    // "-verbose", "-verboseKey", "GenerateIR"
+    val args = Vector(path.toString, "-execTree", "json") ++ cFlagsUnlocked
+    val retval = Main.compile(args)
+    val treeJs = retval match {
+      case SuccessfulCompileNativeWithJsonTree(_, _, treeJs: JsValue) => treeJs
+      case Failure(msg, Some(exception)) =>
+        throw new Exception(s"Unable to compile workflow: ${msg}", exception)
+      case Failure(msg, None) =>
+        throw new Exception(s"Unable to compile workflow: ${msg}")
+      case _ =>
+        throw new Exception(s"Unexpected result ${retval}")
+    }
+    val prettyTree = ExecutableTree.prettyPrint(treeJs.asJsObject)
+    val results = prettyTree.replaceAll("\u001B\\[[;\\d]*m", "")
+    results shouldBe
+      """Workflow: w1
+        |├───App Inputs: common
+        |├───App Task: t1_1
+        |├───Workflow: apps_867_w2
+        |│   ├───App Fragment: if (t)
+        |│   │   └───App Task: t2_1
+        |│   ├───App Fragment: scatter (s in arr)
+        |│   │   └───App Task: t2_2
+        |│   ├───App Task: t2_3
+        |│   └───App Fragment: frag t2_3_eval
+        |│       └───App Task: t2_3
+        |└───App Outputs: outputs""".stripMargin
+  }
+
   it should "return a execTree in json when using describe with CLI" taggedAs NativeTest in {
     val path = pathFromBasename("nested", "four_levels.wdl")
     val args = path.toString +: cFlagsUnlocked

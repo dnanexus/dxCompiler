@@ -22,7 +22,7 @@ object Constants {
   val InstanceTypeDb = "instanceTypeDB"
   val StaticInstanceType = "staticInstanceType"
   val StaticInstanceTypeSelection = "staticInstanceTypeSelection"
-  val DelayWorkspaceDestruction = "delayWorkspaceDestruction"
+  val DelayWorkspaceDestruction = "delayWorkspaceDestruction" // TODO remove
   val RuntimeAttributes = "runtimeAttrs"
   val PathsAsObjects = "pathsAsObjects"
   val CompilerTag = "dxCompiler"

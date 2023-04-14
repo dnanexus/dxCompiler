@@ -5,11 +5,12 @@ import dxpy
 import json
 
 import subprocess as sp
-from typing import List, Optional, Dict, Union
+from typing import Optional, Dict, Union
 
-from dxcint.utils import rm_prefix, DEFAULT_INSTANCE_TYPE
+from dxcint.utils import rm_prefix
 from dxcint.Messenger import Messenger
-from dxcint.Context import Context
+from dxcint.Context import Context, ContextEmpty
+from dxcint.constants import DEFAULT_INSTANCE_TYPE, DEFAULT_RUN_KWARGS
 
 
 class RegisteredTestError(Exception):
@@ -19,7 +20,13 @@ class RegisteredTestError(Exception):
 
 
 class RegisteredTest(object):
-    def __init__(self, src_file: str, category: str, test_name: str, context: Context):
+    def __init__(
+        self,
+        src_file: str,
+        category: str,
+        test_name: str,
+        context: Union[Context, ContextEmpty],
+    ):
         self._context = context
         self._src_file = src_file
         self._category = category
@@ -37,9 +44,12 @@ class RegisteredTest(object):
         self._git_revision = sp.check_output(
             ["git", "describe", "--always", "--dirty", "--tags"]
         ).strip()
-        self._inputs_suffix = "_input.json"  # wf inputs supplied as json usually have this suffix. Can be changed in subclasses
+        # wf inputs supplied as json usually have this suffix. Can be changed in subclasses
+        self._raw_inputs_path = os.path.join(
+            os.path.dirname(src_file), f"{test_name}_input.json"
+        )
         self._compiled_inputs_suffix = "_input.dx.json"
-        self._test_inputs = {}
+        self._test_inputs = None
 
     @property
     def context(self) -> Context:
@@ -66,7 +76,15 @@ class RegisteredTest(object):
     @property
     def exec_id(self) -> str:
         if not self._exec_id:
-            self._exec_id = self._compile_executable()
+            additional_flags = {"-locked": ""}
+            if os.path.exists(self._raw_inputs_path):
+                additional_flags = {
+                    **additional_flags,
+                    **{"-inputs": self._raw_inputs_path},
+                }
+            self._exec_id = self._compile_executable(
+                additional_compiler_flags=additional_flags
+            )
         return self._exec_id
 
     @property
@@ -80,10 +98,6 @@ class RegisteredTest(object):
         if not self._test_inputs:
             self._test_inputs = self._import_inputs()
         return self._test_inputs
-
-    @property
-    def test_result(self) -> bool:
-        return self.get_test_result()
 
     def get_test_result(self) -> bool:
         if not self._test_results:
@@ -101,36 +115,27 @@ class RegisteredTest(object):
             return False
 
     def _compile_executable(
-        self, additional_compiler_flags: Optional[List[str]] = None
+        self, additional_compiler_flags: Optional[Dict] = None
     ) -> str:
         """
-        Base implementation. For different test classes override `exec_id` property with calling this method with
-        arguments which suite a particular test type. For example, when implementing class ManifestTest(RegisteredTest)
+        Base implementation. For different test classes update this method with new kwargs
+        which suite a particular test type. For example, when implementing class ManifestTest(RegisteredTest)
         call this method with `additional_compiler_flags=['-useManifests']` argument in parameter `exec_id`.
         Args:
-            additional_compiler_flags: Optional[List[str]]. Use this argument to alter the compiler behavior for
-            concrete class implementation
+            additional_compiler_flags: Optional[Dict[str]]. Use this argument to alter the compiler behavior for
+            concrete class implementation. Must be provided as dictionary where key is the argument name, value is the
+            argument value.
 
         Returns: str. Compiled workflow ID
         """
-        compiler_flags = (
-            [
-                "-instanceTypeSelection",
-                random.choice(["static", "dynamic"]),
-            ]
-            if (
-                not additional_compiler_flags
-                or "-instanceTypeSelection" not in additional_compiler_flags
-            )
-            else []
-        )
-        compiler_flags += additional_compiler_flags or []
-
-        input_basename = f"{self._test_name}{self._inputs_suffix}"
-        input_src = os.path.join(os.path.dirname(self._src_file), input_basename)
-        if os.path.exists(input_src):
-            compiler_flags += ["-inputs", input_src]
-
+        compiler_flags = {
+            "-instanceTypeSelection": random.choice(["static", "dynamic"])
+        }
+        additional_compiler_flags = additional_compiler_flags or {}
+        compiler_flags = {
+            **compiler_flags,
+            **additional_compiler_flags,
+        }
         compiler_jar_path = os.path.join(
             self._context.repo_root_dir, f"dxCompiler-{self._context.version}.jar"
         )
@@ -141,7 +146,7 @@ class RegisteredTest(object):
             f"java -jar {compiler_jar_path} compile {self._src_file} -force -folder {compile_dir} "
             f"-project {self._context.project_id} "
         )
-        cmd += " ".join(compiler_flags)
+        cmd += " ".join([f"{k} {v}" for k, v in compiler_flags.items()])
         try:
             self._context.logger.info(f"COMPILE COMMAND: {cmd}")
             with self.context.lock:
@@ -155,17 +160,18 @@ class RegisteredTest(object):
             raise e
         return workflow_id.decode("ascii")
 
-    def _run_executable(self) -> str:
+    def _run_executable(self, **dx_run_kwargs) -> str:
         """
-        This method will be implemented in subclasses with or without additional decorators (e.g. for async_retry)
-
+        This method can be implemented in subclasses with or without additional decorators (e.g. for async_retry)
+        Args:
+            dx_run_kwargs: Dict[str]. Kwargs for the DxApp(let) or DxWorkflow .run call
         Returns: str. Execution ID (analysis or job)
         """
-        execution_desc = self._run_executable_inner().describe()
+        execution_desc = self._run_executable_inner(**dx_run_kwargs).describe()
         return execution_desc.get("id")
 
     def _run_executable_inner(
-        self, *args, **kwargs
+        self, **dx_run_kwargs
     ) -> Union[dxpy.DXAnalysis, dxpy.DXJob]:
         """
         Override this method if the changes to the workflow execution are needed.
@@ -173,22 +179,20 @@ class RegisteredTest(object):
         Returns: Union[DXAnalysis,DXJob]. Execution handler
 
         """
-        kwargs["instance_type"] = kwargs.get("instance_type", DEFAULT_INSTANCE_TYPE)
+        if "instance_type" not in dx_run_kwargs:
+            dx_run_kwargs.update({"instance_type": DEFAULT_INSTANCE_TYPE})
+        dx_run_kwargs.update(DEFAULT_RUN_KWARGS)
         exec_type = self.exec_id.split("-")[0]
         exec_handler = self._executable_type_switch.get(exec_type)(
             project=self._context.project_id, dxid=self.exec_id
         )
-        if isinstance(exec_handler, dxpy.DXWorkflow):
-            kwargs["ignore_reuse_stages"] = kwargs.get("ignore_reuse_stages", ["*"])
-        else:
-            kwargs["ignore_reuse"] = kwargs.get("ignore_reuse", True)
         self._context.logger.info(f"Running the process for test {self._test_name}")
         dx_execution = exec_handler.run(
             self.test_inputs,
             project=self._context.project_id,
             folder=os.path.join(self._context.platform_build_dir, "test"),
-            name=f"{self._test_name} {self._git_revision}",
-            **kwargs,
+            name="{} {}".format(self._test_name, self._git_revision),
+            **dx_run_kwargs,
         )
         return dx_execution
 

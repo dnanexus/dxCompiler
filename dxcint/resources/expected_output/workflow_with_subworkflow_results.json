@@ -1,0 +1,5 @@
+{
+  "workflow_with_subworkflow.r1" : 11,
+  "workflow_with_subworkflow.r2" : 13,
+  "workflow_with_subworkflow.array_output" : ["hello", "world"]
+}

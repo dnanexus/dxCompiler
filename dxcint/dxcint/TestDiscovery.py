@@ -54,7 +54,7 @@ class TestDiscovery(object):
 
     def discover(self, suite: str) -> List[RegisteredTest]:
         """
-         Method to discover and register the tests.
+        Method to discover and register the tests.
         Args:
             suite: str. One of several suites supplied as a capital letter code. See self._suites.keys
 
@@ -82,7 +82,7 @@ class TestDiscovery(object):
 
     def discover_single_test(self, test_name: str) -> List[RegisteredTest]:
         """
-         Method to discover and register a single test. Find the first complete match of the test name.
+        Method to discover and register a single test. Find the first complete match of the test name.
         Args:
             test_name: str. Test name as present in one of the suite config files
 
@@ -195,7 +195,7 @@ class TestDiscovery(object):
             extended_test_collection = set.union(set(existing_category), {test_name})
             suite_config.update({category: list(extended_test_collection)})
             suite_config_handle.seek(0)
-            json.dump(suite_config, suite_config_handle)
+            json.dump(suite_config, suite_config_handle, indent=4)
             suite_config_handle.truncate()
 
     def _copy_resource_files(self, files: List[str], category: str) -> None:

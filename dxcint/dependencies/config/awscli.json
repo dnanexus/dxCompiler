@@ -1,5 +1,5 @@
 {
-  "name": "awscli",
+  "name": "awscliv2",
   "languages": ["wdl", "cwl"],
   "version": "1.25.82",
   "package_manager": "pip"

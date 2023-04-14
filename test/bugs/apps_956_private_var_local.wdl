@@ -4,7 +4,7 @@ task apps_956_private_var_local_t1 {
   input {
     File file_in
   }
-  File file_var = "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-G4BV6100yzZz17bx4JkQkybb"
+  File file_var = "dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:file-GJ74pxj0yzZppXXF4gz830Zx"
 
   command <<<
   set -euxo pipefail

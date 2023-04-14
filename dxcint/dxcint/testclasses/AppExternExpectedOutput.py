@@ -9,7 +9,7 @@ class AppExternExpectedOutput(ExpectedOutput):
         self._compiler_jar_path = os.path.join(
             self.context.repo_root_dir, f"dxCompiler-{self.context.version}.jar"
         )
-        self._extern_path = os.path.join(
+        self._dxni_output_path = os.path.join(
             self.context.repo_root_dir,
             "dxcint/resources/app_extern_expected_output/dx_app_extern.wdl",
         )
@@ -17,13 +17,13 @@ class AppExternExpectedOutput(ExpectedOutput):
     def _compile_executable(self, *args, **kwargs) -> str:
         try:
             with self.context.lock:
-                if not os.path.exists(self._extern_path):
+                if not os.path.exists(self._dxni_output_path):
                     self.context.logger.info("Creating dx_app_extern.wdl")
-                    self._native_call_app_setup()
-                    self.context.logger.info(f"{self._extern_path} created")
+                    self._create_dxni_app_stub()
+                    self.context.logger.info(f"{self._dxni_output_path} created")
         except subprocess.CalledProcessError as e:
             self._context.logger.error(
-                f"Error compiling {self._extern_path}\n"
+                f"Error compiling {self._dxni_output_path}\n"
                 f"stdout: {e.stdout}\n"
                 f"stderr: {e.stderr}"
             )
@@ -31,7 +31,7 @@ class AppExternExpectedOutput(ExpectedOutput):
             raise e
         return super()._compile_executable(*args, **kwargs)
 
-    def _native_call_app_setup(self) -> None:
+    def _create_dxni_app_stub(self) -> None:
         # build WDL wrapper tasks in test/dx_app_extern.wdl
         cmdline = [
             "java",
@@ -44,7 +44,7 @@ class AppExternExpectedOutput(ExpectedOutput):
             "-language",
             "wdl_v1.0",
             "-output",
-            self._extern_path,
+            self._dxni_output_path,
         ]
         self.context.logger.info(" ".join(cmdline))
         subprocess.check_output(cmdline)

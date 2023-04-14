@@ -8,7 +8,7 @@ task make_files {
     Array[File] files = ["f1", "f2", "f3"]
   }
   runtime {
-    docker: "dx://file-G66qz3Q0yzZfy6pg5q3yK3Kz"
+    docker: "dx://file-GJ7q5KQ0yzZv7GQzJjX2x9Pb"
   }
 }
 
@@ -23,7 +23,7 @@ task write_map {
     String contents = read_string(stdout())
   }
   runtime {
-    docker: "dx://file-G66qz3Q0yzZfy6pg5q3yK3Kz"
+    docker: "dx://file-GJ7q5KQ0yzZv7GQzJjX2x9Pb"
   }
 }
 task read_map {
@@ -37,10 +37,10 @@ task read_map {
     Map[String, Int] out_map = read_map(stdout())
   }
   runtime {
-    docker: "dx://file-G66qz3Q0yzZfy6pg5q3yK3Kz"
+    docker: "dx://file-GJ941b80yzZvGbK68zxQzB0B"
   }
 }
-workflow wf {
+workflow map_workflow {
   call make_files
   Map[File, String] map = {make_files.files[0]: "alice", make_files.files[1]: "bob", make_files.files[2]: "chuck"}
   call write_map {input: file_to_name = map}

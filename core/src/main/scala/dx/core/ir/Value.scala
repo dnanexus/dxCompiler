@@ -74,6 +74,11 @@ object Value {
   case object VNull extends Value
 
   /**
+    * Represents the empty value for an optional field which has been forced in frag input evaluation.
+    */
+  case object VForcedNull extends Value
+
+  /**
     * An array of values
     */
   case class VArray(items: Vector[Value]) extends Value
@@ -117,8 +122,11 @@ object Value {
       }
       handler(innerValue, nonOptType, optional, innerContext).getOrElse {
         (nonOptType, innerValue) match {
-          case (_, VNull) if optional => innerContext
+          case (_, VNull) if optional       => innerContext
+          case (_, VForcedNull) if optional => innerContext
           case (_, VNull) =>
+            throw new Exception(s"null value for non-optional type ${innerType.get}")
+          case (_, VForcedNull) =>
             throw new Exception(s"null value for non-optional type ${innerType.get}")
           case (Some(TFile) | None, f: VFile) if f.secondaryFiles.nonEmpty =>
             walkPaths(f.secondaryFiles, innerContext)
@@ -208,8 +216,11 @@ object Value {
       }
       handler(innerValue, nonOptType, optional).getOrElse {
         (nonOptType, innerValue) match {
-          case (_, VNull) if optional => VNull
+          case (_, VNull) if optional       => VNull
+          case (_, VForcedNull) if optional => VForcedNull
           case (_, VNull) =>
+            throw new Exception(s"null value for non-optional type ${innerType.get}")
+          case (_, VForcedNull) =>
             throw new Exception(s"null value for non-optional type ${innerType.get}")
           case (Some(TFile) | None, f: VFile) if f.secondaryFiles.nonEmpty =>
             f.copy(secondaryFiles = transformPaths(f.secondaryFiles))
@@ -257,8 +268,9 @@ object Value {
 
   def coerceTo(value: Value, targetType: Type): Value = {
     (targetType, value) match {
-      case (TOptional(_), VNull) => VNull
-      case (TOptional(t), _)     => coerceTo(value, t)
+      case (TOptional(_), VNull)       => VNull
+      case (TOptional(_), VForcedNull) => VForcedNull
+      case (TOptional(t), _)           => coerceTo(value, t)
       // check whether the value is already of the correct type
       case (TBoolean, b: VBoolean)    => b
       case (TInt, i: VInt)            => i

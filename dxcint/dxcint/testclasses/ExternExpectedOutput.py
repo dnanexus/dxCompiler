@@ -2,6 +2,7 @@ import os
 import dxpy
 import subprocess
 from dxcint.testclasses.ExpectedOutput import ExpectedOutput
+from dxcint.RegisteredTest import RegisteredTestError
 
 
 class ExternExpectedOutput(ExpectedOutput):
@@ -13,23 +14,32 @@ class ExternExpectedOutput(ExpectedOutput):
         self._applet_folder = os.path.join(
             self._context.platform_build_dir, "extern_applets"
         )
-        self._extern_path = os.path.join(
+        self._dxni_output_folder = os.path.join(
             self.context.repo_root_dir,
-            "dxcint/resources/extern_expected_output/dx_extern.wdl",
+            "dxcint/resources/extern_expected_output/",
         )
 
     def _compile_executable(self, *args, **kwargs) -> str:
         try:
             with self.context.lock:
-                if not os.path.exists(self._extern_path):
-                    self.context.logger.info("Creating dx_extern.wdl")
-                    self._build_native_applets()
-                    self._dxni_create_extern()
-                    self.context.logger.info(f"{self._extern_path} created")
+                self.context.logger.info("Creating directory for dxni stubs")
+                self._build_native_applets()
+                # works with -folder and with -path
+                self._create_dxni_stub(
+                    "-folder",
+                    self._applet_folder,
+                    os.path.join(self._dxni_output_folder, "dx_extern.wdl"),
+                )
+                self._create_dxni_stub(
+                    "-path",
+                    os.path.join(self._applet_folder, "native_concat"),
+                    os.path.join(self._dxni_output_folder, "dx_extern_one.wdl"),
+                )
+                self.context.logger.info(f"{self._dxni_output_folder} created")
 
         except subprocess.CalledProcessError as e:
             self._context.logger.error(
-                f"Error compiling {self._extern_path}\n"
+                f"Error compiling {self._dxni_output_folder}\n"
                 f"stdout: {e.stdout}\n"
                 f"stderr: {e.stderr}"
             )
@@ -38,7 +48,7 @@ class ExternExpectedOutput(ExpectedOutput):
         else:
             return super()._compile_executable(*args, **kwargs)
 
-    def _build_native_applets(self):
+    def _build_native_applets(self) -> None:
         native_applets = [
             "native_concat",
             "native_diff",
@@ -73,25 +83,25 @@ class ExternExpectedOutput(ExpectedOutput):
                 self.context.logger.info(" ".join(cmdline))
                 subprocess.check_output(cmdline)
 
-    def _dxni_create_extern(self):
-        # build WDL wrapper tasks in test/dx_extern.wdl
-        cmdline_common = [
+    def _create_dxni_stub(self, path_or_folder: str, src: str, dest: str):
+        if path_or_folder not in ["-path", "-folder"]:
+            raise RegisteredTestError(
+                f"path_or_folder argument should be -path or -folder. Provided {path_or_folder}"
+            )
+        cmdline = [
             "java",
             "-jar",
             self._compiler_jar_path,
             "dxni",
             "-force",
-            "-folder",
-            self._applet_folder,
+            path_or_folder,
+            src,
             "-project",
             self.context.project_id,
-        ]
-
-        cmdline_v1 = cmdline_common + [
             "-language",
             "wdl_v1.0",
             "-output",
-            self._extern_path,
+            dest,
         ]
-        self.context.logger.info(" ".join(cmdline_v1))
-        subprocess.check_output(cmdline_v1)
+        self.context.logger.info(" ".join(cmdline))
+        subprocess.check_output(cmdline)

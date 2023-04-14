@@ -3,6 +3,8 @@ import shutil
 import subprocess as sp
 import json
 import dxpy
+from dxpy.api import project_new_folder, project_remove_folder
+
 
 from glob import glob
 from typing import Set, Dict, List
@@ -55,6 +57,7 @@ class Terraform(object):
         build_queue = {
             self._asset_switch[x] for x in self._languages
         }  # set of partial functions
+        _ = self._create_platform_build_folder()
         _ = self._generate_config_file()
         _ = self._build_compiler()
         with futures.ThreadPoolExecutor(max_workers=len(build_queue)) as executor:
@@ -100,7 +103,7 @@ class Terraform(object):
         try:
             local_asset_dirs = self._create_local_asset_dir(always_capital_lang)
             for dependency in language_specific_dependencies:
-                dependency.link(local_asset_dirs.get("bin"))
+                _ = dependency.link(local_asset_dirs.get("bin"))
             _ = self._create_asset_spec(always_capital_lang)
             asset_id = self._build_asset(always_capital_lang)
             _ = self._clean_up(always_capital_lang)
@@ -141,12 +144,11 @@ class Terraform(object):
 
     def _create_asset_spec(self, language: str) -> Dict:
         spec_exports = [x.export_spec() for x in self._dependencies]
-        spec_exports = [x for x in spec_exports if x]
         exec_depends = [
             {"name": "openjdk-8-jre-headless"},
             {"name": "bzip2"},
             {"name": "jq"},
-        ] + spec_exports
+        ] + ([x for x in spec_exports if x] or [])
         asset_spec = {
             "version": self._context.version,
             "name": f"dx{language}rt",
@@ -180,6 +182,43 @@ class Terraform(object):
             os.makedirs(value, exist_ok=True)
         self._local_created_dirs.update({language: local_assets})
         return local_assets
+
+    def _create_platform_build_folder(self) -> bool:
+        _ = self._clean_up_build_dir(self.context.platform_build_dir)
+        _ = self._create_build_subdirs()
+        self.context.logger.info(
+            f"Context._get_version(): Project: {self.context.project_id}.\nBuild directory: {self.context.platform_build_dir}"
+        )
+        return True
+
+    def _create_build_subdirs(self) -> bool:
+        """
+        Impure function. Creates destination subdirs on the platform
+        Returns: bool. True when executing without errors
+        """
+        subdirectories = (
+            os.path.join(self.context.platform_build_dir, x)
+            for x in ("applets", "test")
+        )
+        for subdir in subdirectories:
+            _ = project_new_folder(
+                object_id=self.context.project_id,
+                input_params={"folder": subdir, "parents": True},
+            )
+        return True
+
+    def _clean_up_build_dir(self, folder) -> bool:
+        """
+        Impure function. Cleans up (removes) target build directories on the platform
+        Args:
+            folder: str. Dir on the platform to clean up.
+        Returns: bool. True when executing without errors
+        """
+        _ = project_remove_folder(
+            object_id=self.context.project_id,
+            input_params={"folder": folder, "force": True, "recurse": True},
+        )
+        return True
 
     def _generate_config_file(self) -> str:
         """

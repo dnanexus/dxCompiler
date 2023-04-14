@@ -468,7 +468,7 @@ case class WdlWorkflowExecutor(docSource: FileNode,
             try {
               val request = runtime.parseInstanceType
               if (request.isEmpty && isNative) {
-                // TODO: this will never happen - request always get's filled in with default values.
+                // TODO: this will never happen - request always gets filled in with default values.
                 //  Currently we're relying on the task wrapper not having a runtime or hints section.
                 //  We should change `isEmpty` to something like `isDefault`, which would return true
                 //  if the request only consists of default values.
@@ -523,7 +523,10 @@ case class WdlWorkflowExecutor(docSource: FileNode,
     }
 
     override protected def launchBlockCall(blockIndex: Int): Map[DxName, ParameterLink] = {
-      val callInputs = evaluateCallInputs()
+      val callInputs = evaluateCallInputs().filter {
+        case (_, (_, V_ForcedNull)) => false
+        case _                      => true
+      }
       val (dxExecution, executableLink, callName) =
         launchCall(callInputs, Some(blockIndex.toString))
       // TODO: right now, we export all outputs of the executable, which may include intermediate
@@ -842,7 +845,9 @@ case class WdlWorkflowExecutor(docSource: FileNode,
       }
       if (childJobs.isEmpty) {
         // no jobs were launched
-        createEmptyScatterOutputs()
+        // APPS-1473. In WDL it should not matter the structure of an array output if the scatter is applied
+        // over an empty array. Here we don't want to check if the task wrapped in the scatter produces arrays.
+        createEmptyScatterOutputs(checkDepth = false)
       } else {
         // if there are remaining chunks this calls a continue sub-job,
         // otherwise it calls a collect sub-job
@@ -899,48 +904,53 @@ case class WdlWorkflowExecutor(docSource: FileNode,
         val wdlValue = WdlUtils.fromIRValue(irValue, wdlType, dxName.decoded)
         dxName -> (wdlType, wdlValue)
     }
-    val inputEnv = block.inputs.foldLeft(initEnv) {
-      case (accu, blockInput: WdlBlockInput) if accu.contains(blockInput.name) =>
-        accu
-      case (accu, _: ComputedBlockInput) =>
-        // this is the scatter variable, or some expression that references the scatter
-        // variable - we can ignore it since it will be evaluated during launching of
-        // the scatter jobs
-        accu
-      case (accu, RequiredBlockInput(dxName, wdlType))
-          if compoundNameRegexp.matches(dxName.decoded) =>
-        // the input name is a compound reference - evaluate it as an identifier
-        val expr = versionSupport.parseExpression(dxName.decoded, DefaultBindings(accu.map {
-          case (dxName, (wdlType, _)) => dxName.decoded -> wdlType
-        }), docSource)
-        accu + (dxName -> (wdlType, evaluateExpression(expr, wdlType, accu)))
-      case (accu, OptionalBlockInput(dxName, wdlType))
-          if compoundNameRegexp.matches(dxName.decoded) =>
-        try {
+    val inputEnv = block.inputs
+      .foldLeft(initEnv) {
+        case (accu, blockInput: WdlBlockInput) if accu.contains(blockInput.name) =>
+          accu
+        case (accu, _: ComputedBlockInput) =>
+          // this is the scatter variable, or some expression that references the scatter
+          // variable - we can ignore it since it will be evaluated during launching of
+          // the scatter jobs
+          accu
+        case (accu, RequiredBlockInput(dxName, wdlType))
+            if compoundNameRegexp.matches(dxName.decoded) =>
+          // the input name is a compound reference - evaluate it as an identifier
           val expr = versionSupport.parseExpression(dxName.decoded, DefaultBindings(accu.map {
             case (dxName, (wdlType, _)) => dxName.decoded -> wdlType
           }), docSource)
           accu + (dxName -> (wdlType, evaluateExpression(expr, wdlType, accu)))
-        } catch {
-          case ex: EvalException =>
-            val errorMsg = exceptionToString(ex, brief = true)
-            logger.trace(
-                s"""${errorMsg}; setting the input value to null as it is optional""".stripMargin
-            )
-            accu + (dxName -> (wdlType, V_Null))
-          case other: Exception => throw other
-        }
-      case (_, RequiredBlockInput(name, _)) =>
-        throw new Exception(s"missing required input ${name}")
-      case (accu, OverridableBlockInputWithStaticDefault(name, wdlType, defaultValue)) =>
-        accu + (name -> (wdlType, defaultValue))
-      case (accu, OverridableBlockInputWithDynamicDefault(name, wdlType, defaultExpr)) =>
-        val wdlValue = evaluateExpression(defaultExpr, wdlType, accu)
-        accu + (name -> (wdlType, wdlValue))
-      case (accu, OptionalBlockInput(name, wdlType)) =>
-        // the input is missing but it could be optional - add a V_Null
-        accu + (name -> (wdlType, V_Null))
-    }
+        case (accu, OptionalBlockInput(dxName, wdlType))
+            if compoundNameRegexp.matches(dxName.decoded) =>
+          try {
+            val expr = versionSupport.parseExpression(dxName.decoded, DefaultBindings(accu.map {
+              case (dxName, (wdlType, _)) => dxName.decoded -> wdlType
+            }), docSource)
+            accu + (dxName -> (wdlType, evaluateExpression(expr, wdlType, accu)))
+          } catch {
+            case ex: EvalException =>
+              val errorMsg = exceptionToString(ex, brief = true)
+              logger.trace(
+                  s"""${errorMsg}; setting the input value to null as it is optional""".stripMargin
+              )
+              accu + (dxName -> (wdlType, V_Null))
+            case other: Exception => throw other
+          }
+        case (_, RequiredBlockInput(name, _)) =>
+          throw new Exception(s"missing required input ${name}")
+        case (accu, OverridableBlockInputWithStaticDefault(name, wdlType, defaultValue)) =>
+          accu + (name -> (wdlType, defaultValue))
+        case (accu, OverridableBlockInputWithDynamicDefault(name, wdlType, defaultExpr)) =>
+          val wdlValue = evaluateExpression(defaultExpr, wdlType, accu)
+          accu + (name -> (wdlType, wdlValue))
+        case (accu, OptionalBlockInput(name, wdlType)) =>
+          // the input is missing but it could be optional - add a V_ForcedNull
+          accu + (name -> (wdlType, V_ForcedNull))
+      }
+      .filter {
+        case (_, (_, V_ForcedNull)) => false
+        case _                      => true
+      }
     val prereqEnv = evaluateWorkflowElementVariables(block.prerequisites, inputEnv)
     WdlBlockContext(block, inputEnv, prereqEnv)
   }

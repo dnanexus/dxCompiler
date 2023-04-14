@@ -129,13 +129,32 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     stagesSysReq.size shouldBe 2
     stagesSysReq("if (a)") shouldBe JsObject.empty
     stagesSysReq("apps_1177_mem_int") shouldBe JsObject(
-        "*" -> JsObject("instanceType" -> JsString("mem3_ssd1_x4"))
+        "*" -> JsObject("instanceType" -> JsString("mem3_ssd1_v2_x4"))
     )
     val stagesExecDetails = stages.map { stage =>
       stage.name -> dxApi.executable(stage.executable).describe(Set(Field.Details))
     }.toMap
     stagesExecDetails("if (a)").details.get.asJsObject
-      .fields("staticInstanceType") shouldBe (JsString("mem3_ssd1_x4"))
+      .fields("staticInstanceType") shouldBe (JsString("mem3_ssd1_v2_x4"))
+  }
+
+  it should "recognize changes in the struct inputs" in {
+    val pathOri = pathFromBasename("struct", "apps_1381_ori.wdl")
+    val argsOri = pathOri.toString :: cFlags
+    val retvalOri = Main.compile(argsOri.toVector)
+    val wfIdOri = retvalOri match {
+      case SuccessfulCompileNativeNoTree(_, Vector(wfId)) => wfId
+      case other                                          => throw new Exception(s"expected single workflow not ${other}")
+    }
+
+    val pathPrime = pathFromBasename("struct", "apps_1381_prime.wdl")
+    val argsPrime = pathPrime.toString :: cFlags
+    val retvalPrime = Main.compile(argsPrime.toVector)
+    val wfIdPrime = retvalPrime match {
+      case SuccessfulCompileNativeNoTree(_, Vector(wfId)) => wfId
+      case other                                          => throw new Exception(s"expected single workflow not ${other}")
+    }
+    wfIdPrime should not equal wfIdOri
   }
 
   it should "compile with manifest inputs with unqualified file IDs" in {
@@ -233,10 +252,10 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     stages.size shouldBe 3
     stages("default") shouldBe JsObject.empty
     stages("mem_int") shouldBe JsObject(
-        "*" -> JsObject("instanceType" -> JsString("mem3_ssd1_x4"))
+        "*" -> JsObject("instanceType" -> JsString("mem3_ssd1_v2_x4"))
     )
     stages("cpu_int") shouldBe JsObject(
-        "*" -> JsObject("instanceType" -> JsString("mem1_ssd1_x8"))
+        "*" -> JsObject("instanceType" -> JsString("mem1_ssd1_v2_x8"))
     )
   }
 
@@ -290,23 +309,17 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     retval shouldBe a[SuccessfulCompileNativeNoTree]
   }
 
-  it should "compile a WDL file with a directory input" in {
-    val sourceCode = pathFromBasename("input_file", "wdldir.wdl")
-    val inputs = pathFromBasename("input_file", "wdldir_input.json")
-    val args = List(sourceCode.toString, "--inputs", inputs.toString) ++ cFlags
+  it should "compile a WDL file with a directory output" in {
+    val sourceCode = pathFromBasename("v2", "apps_1421_dir_output_unit.wdl")
+    val args = List(sourceCode.toString) ++ cFlags
     val wfId = Main.compile(args.toVector) match {
       case SuccessfulCompileNativeNoTree(_, Vector(id)) => id
       case other                                        => throw new Exception(s"expected success, not ${other}")
     }
-    val dxInputsFile = inputs.getParent.resolve(FileUtils.replaceFileSuffix(inputs, ".dx.json"))
-    val jsInputs = JsUtils.jsFromFile(dxInputsFile)
-    val fields = jsInputs.asJsObject.fields
-    fields.size shouldBe 1
-    fields("WorkingDir") shouldBe JsString("dx://project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq:/tmp/")
     val wf = dxApi.workflow(wfId)
-    val params = wf.describe(Set(Field.InputSpec)).inputs.get
-    params.size shouldBe 1
-    params.head.ioClass shouldBe DxIOClass.String
+    val params = wf.describe(Set(Field.OutputSpec)).outputs.get
+    params.size shouldBe 2
+    params.head.ioClass shouldBe DxIOClass.Hash
   }
 
   it should "Native compile a workflow with a scatter without a call" taggedAs NativeTest in {
@@ -1144,10 +1157,10 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       case Some(d) => {
         d should include("app-BZ9ZQzQ02VP5gpkP54b96pYY")
         d should include("file-G4BV6180yzZyvZ124KB0q46P")
-        d should include("file-G4BV61j0yzZgf6JQKxP4gQ3Y")
+        d should include("file-GJ6y7200yzZZ00Zz4p9vB2kP")
         d should include("file-G4BV61Q0yzZq60Jj4K5vfG92")
-        d should include("file-G4BV6280yzZq60Jj4K5vfG96")
-        d should include("file-G4BV6200yzZq60Jj4K5vfG94")
+        d should include("file-GJ6y7200yzZxXQFP4kf3FkPk")
+        d should include("file-GJ6y7200yzZvpF8Z4kq03qy4")
         d should include("file-G4BV6280yzZkpgjj4Jx6Fjj9")
         d should include("file-G4BV6100yzZz17bx4JkQkybb")
         d should include("alpine:3.14")
@@ -1499,7 +1512,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     taskIgnoreReuseFlag shouldBe Some(JsBoolean(true))
   }
 
-  it should "set delayWorkspaceDestruction on applet" taggedAs NativeTest in {
+  // APPS-1616 delayWorkspaceDestruction in extras.json is deprecated
+  it should "ignore delayWorkspaceDestruction in extras for applet" taggedAs NativeTest in {
     val path = pathFromBasename("compiler", "add_timeout.wdl")
     val extrasContent =
       """|{
@@ -1516,15 +1530,16 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
         throw new Exception(s"unexpected result ${other}")
     }
 
-    // make sure the delayWorkspaceDestruction flag is set
+    // make sure the delayWorkspaceDestruction flag is ignored
     val (_, stdout, _) =
       SysUtils.execCommand(s"dx describe ${dxTestProject.id}:${appletId} --json")
     val details = stdout.parseJson.asJsObject.fields("details")
     val delayWD = details.asJsObject.fields.get("delayWorkspaceDestruction")
-    delayWD shouldBe Some(JsTrue)
+    delayWD shouldBe None
   }
 
-  it should "set delayWorkspaceDestruction on workflow" in {
+  // APPS-1616 delayWorkspaceDestruction in extras.json is deprecated
+  it should "ignore delayWorkspaceDestruction in extras for workflow" in {
     val path = pathFromBasename("subworkflows", basename = "trains_station.wdl")
     val extrasContent =
       """|{
@@ -1540,10 +1555,10 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       case other =>
         throw new Exception(s"unexpected result ${other}")
     }
-    // make sure the flag is set on the resulting workflow
+    // make sure the flag is ignored in the resulting workflow
     val wfDetails = dxApi.workflow(wfId).describe(Set(Field.Details)).details.get
     val delayWD = wfDetails.asJsObject.fields.get("delayWorkspaceDestruction")
-    delayWD shouldBe Some(JsTrue)
+    delayWD shouldBe None
 
     // the flag is set on all the stages
     val execTree = ExecutableTree.fromDxWorkflow(dxApi.workflow(wfId))
@@ -1556,7 +1571,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
           .details
           .get
           .asJsObject
-          .fields("delayWorkspaceDestruction")
+          .fields
+          .get("delayWorkspaceDestruction")
+          .orElse(None)
       case applet: String if applet.startsWith("applet-") =>
         dxApi
           .applet(applet)
@@ -1564,10 +1581,12 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
           .details
           .get
           .asJsObject
-          .fields("delayWorkspaceDestruction")
+          .fields
+          .get("delayWorkspaceDestruction")
+          .orElse(None)
       case other => throw new Exception(s"Unknown stage type ${other}")
     }
-    all(delayStages) shouldBe JsBoolean(true)
+    all(delayStages) shouldBe None
   }
 
   it should "Native compile a CWL tool" taggedAs NativeTest in {

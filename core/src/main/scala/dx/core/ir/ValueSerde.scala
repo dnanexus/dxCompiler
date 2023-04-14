@@ -51,13 +51,11 @@ object ValueSerde extends DefaultJsonProtocol {
         }
         .getOrElse(JsString(uri))
     }
-    def inner(innerPath: PathValue): JsValue = {
+    def inner(innerPath: PathValue, nestedInDir: Boolean = false): JsValue = {
       innerPath match {
-        case VFile(uri, None, None, None, None, Vector(), None, None) if !pathsAsObjects =>
-          serializeFileUri(uri)
         case VFolder(uri, None, None) if !pathsAsObjects =>
           serializeFolderUri(uri)
-        case vFile: VFile if pathsAsObjects =>
+        case vFile: VFile if pathsAsObjects || nestedInDir =>
           JsObject(
               Vector(
                   Some("type" -> JsString("File")),
@@ -67,26 +65,28 @@ object ValueSerde extends DefaultJsonProtocol {
                   vFile.checksum.map("checksum" -> JsString(_)),
                   vFile.size.map("size" -> JsNumber(_)),
                   Option.when(vFile.secondaryFiles.nonEmpty)(
-                      "secondaryFiles" -> JsArray(vFile.secondaryFiles.map(inner))
+                      "secondaryFiles" -> JsArray(vFile.secondaryFiles.map(inner(_)))
                   ),
                   vFile.format.map(f => "format" -> JsString(f)),
                   vFile.metadata.map("metadata" -> _.parseJson)
               ).flatten.toMap
           )
-        case VFolder(uri, basename, listing) if pathsAsObjects =>
+        case VFile(uri, None, None, None, None, Vector(), None, None) if !pathsAsObjects =>
+          serializeFileUri(uri)
+        case VFolder(uri, basename, listing) =>
           JsObject(
               Vector(
                   Some("type" -> JsString("Folder")),
                   Some("uri" -> serializeFolderUri(uri)),
                   basename.map("basename" -> JsString(_)),
-                  listing.map(l => "listing" -> JsArray(l.map(inner)))
+                  listing.map(l => "listing" -> JsArray(l.map(inner(_, nestedInDir = true))))
               ).flatten.toMap
           )
         case VListing(basename, listing) =>
           JsObject(
               "type" -> JsString("Listing"),
               "basename" -> JsString(basename),
-              "listing" -> JsArray(listing.map(inner))
+              "listing" -> JsArray(listing.map(inner(_)))
           )
         case _: PathValue =>
           throw new Exception(s"cannot serialize ${innerPath} with pathsAsObjects=false")
@@ -120,6 +120,7 @@ object ValueSerde extends DefaultJsonProtocol {
       }
       v match {
         case VNull         => JsNull
+        case VForcedNull   => JsNull
         case VBoolean(b)   => JsBoolean(b)
         case VInt(i)       => JsNumber(i)
         case VFloat(f)     => JsNumber(f)
@@ -161,6 +162,7 @@ object ValueSerde extends DefaultJsonProtocol {
       }
       (innerType, v) match {
         case (_: TOptional, VNull)             => JsNull
+        case (_: TOptional, VForcedNull)       => JsNull
         case (TOptional(t), _)                 => inner(v, t)
         case (t: TMulti, _)                    => innerMulti(v, t)
         case (TBoolean, VBoolean(b))           => JsBoolean(b)
@@ -516,6 +518,7 @@ object ValueSerde extends DefaultJsonProtocol {
       case VString(s)   => s"${prefix}${s}"
       case VBoolean(b)  => s"${prefix}${b.toString}"
       case VNull        => s"${prefix}null"
+      case VForcedNull  => s"${prefix}null"
       case VArray(items) if verbose =>
         s"${prefix}[\n${items.map(toString(_, verbose = true, indent = indent + 1)).mkString("\n")}\n${prefix}]"
       case VArray(items) => s"[${items.map(toString(_)).mkString(",")}]"

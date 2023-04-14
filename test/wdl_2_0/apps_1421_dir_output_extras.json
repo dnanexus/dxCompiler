@@ -1,0 +1,18 @@
+{
+  "defaultTaskDxAttributes" : {
+    "runSpec": {
+      "timeoutPolicy": {
+        "*": {
+          "hours": 1
+        }
+      },
+      "access": {
+        "project": "VIEW",
+        "allProjects": "NONE",
+        "network": [
+          "*"
+        ]
+      }
+    }
+  }
+}

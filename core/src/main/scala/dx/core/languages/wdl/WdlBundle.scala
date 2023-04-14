@@ -95,13 +95,9 @@ object WdlBundle {
     }
   }
 
-  // check that streaming annotations are only done for files.
   private def validateVariableNames(callable: TAT.Callable): Unit = {
     callable match {
       case wf: TAT.Workflow =>
-        if (wf.parameterMeta.isDefined) {
-          Logger.get.warning("dxCompiler workflows ignore their parameter meta section")
-        }
         checkVariableName(wf.inputs)
         checkVariableName(wf.outputs)
         val allVars: Vector[TAT.PrivateVariable] = wf.body.collect {

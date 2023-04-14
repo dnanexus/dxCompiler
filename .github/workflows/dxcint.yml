@@ -39,15 +39,15 @@ jobs:
       - name: Install Poetry
         uses: snok/install-poetry@v1
         with:
-          version: 1.1.10
+          version: 1.4.2
           virtualenvs-create: true
 
       - name: Install dependencies and dxcint
         run: |
           cd dxcint
-          poetry install
+          poetry install --with dev
           cd ..
-          pip3 install dxpy pytest
+          pip3 install dxpy==0.323.0 pytest
 
       - name: Run dxCint self tests
         env:
@@ -62,4 +62,5 @@ jobs:
           cd ${GITHUB_WORKSPACE}
 
           # Run integration tests
-          pytest -v dxcint
+          cd dxcint
+          poetry run pytest -v

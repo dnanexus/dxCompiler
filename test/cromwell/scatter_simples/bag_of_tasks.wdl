@@ -5,7 +5,7 @@ task A {
     echo -n -e "jeff\nchris\nmiguel\nthibault\nkhalid\nruchi"
   }
   runtime {
-    docker: "dx://file-G66qz3Q0yzZfy6pg5q3yK3Kz"
+    docker: "dx://file-GJ941b80yzZvGbK68zxQzB0B"
   }
   output {
     Array[String] A_out = read_lines(stdout())
@@ -20,7 +20,7 @@ task B {
     python -c "print(len('~{B_in}'))"
   }
   runtime {
-    docker: "dx://file-G66qz3Q0yzZfy6pg5q3yK3Kz"
+    docker: "dx://file-GJ941b80yzZvGbK68zxQzB0B"
   }
     output {
     Int B_out = read_int(stdout())
@@ -35,7 +35,7 @@ task C {
     python -c 'print(~{C_in}*100)'
   }
   runtime {
-    docker: "dx://file-G66qz3Q0yzZfy6pg5q3yK3Kz"
+    docker: "dx://file-GJ941b80yzZvGbK68zxQzB0B"
   }
   output {
     Int C_out = read_int(stdout())
@@ -50,7 +50,7 @@ task D {
     python -c 'print(~{sep='+' D_in})'
   }
   runtime {
-    docker: "dx://file-G66qz3Q0yzZfy6pg5q3yK3Kz"
+    docker: "dx://file-GJ941b80yzZvGbK68zxQzB0B"
   }
   output {
     Int D_out = read_int(stdout())
@@ -62,7 +62,7 @@ task E {
     python -c 'print(9)'
   }
   runtime {
-    docker: "dx://file-G66qz3Q0yzZfy6pg5q3yK3Kz"
+    docker: "dx://file-GJ941b80yzZvGbK68zxQzB0B"
   }
   output {
     Int E_out = read_int(stdout())

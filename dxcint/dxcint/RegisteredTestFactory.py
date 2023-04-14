@@ -1,15 +1,15 @@
 from dxcint.Context import Context
 from dxcint.RegisteredTest import RegisteredTest, RegisteredTestError
-from dxcint.testclasses.ReorgLockedExpectedOutput import ReorgLockedExpectedOutput
+from dxcint.testclasses.ReorgExpectedOutput import ReorgExpectedOutput
 from dxcint.testclasses.ExpectedFailure import ExpectedFailure
 from dxcint.testclasses.ExpectedFailureMessage import ExpectedFailureMessage
 from dxcint.testclasses.ExpectedOutput import ExpectedOutput
-from dxcint.testclasses.LockedExpectedOutput import LockedExpectedOutput
+from dxcint.testclasses.UnlockedExpectedOutput import UnlockedExpectedOutput
 from dxcint.testclasses.AnalysisFinished import AnalysisFinished
 from dxcint.testclasses.ExtrasAnalysisFinished import ExtrasAnalysisFinished
 from dxcint.testclasses.ExtrasExpectedOutput import ExtrasExpectedOutput
-from dxcint.testclasses.StaticDefaultInstanceExpectedOutput import (
-    StaticDefaultInstanceExpectedOutput,
+from dxcint.testclasses.StaticPinnedInstanceExpectedOutput import (
+    StaticPinnedInstanceExpectedOutput,
 )
 from dxcint.testclasses.ManifestAnalysisFinished import ManifestAnalysisFinished
 from dxcint.testclasses.ExternExpectedOutput import ExternExpectedOutput
@@ -27,11 +27,11 @@ class RegisteredTestFactory(object):
             "expected_failure_message": ExpectedFailureMessage,
             "expected_output": ExpectedOutput,
             "analysis_finished": AnalysisFinished,
-            "locked_expected_output": LockedExpectedOutput,
-            "reorg_locked_expected_output": ReorgLockedExpectedOutput,
+            "unlocked_expected_output": UnlockedExpectedOutput,
+            "reorg_expected_output": ReorgExpectedOutput,
             "extras_analysis_finished": ExtrasAnalysisFinished,
             "extras_expected_output": ExtrasExpectedOutput,
-            "static_default_instance_expected_output": StaticDefaultInstanceExpectedOutput,
+            "static_pinned_instance_expected_output": StaticPinnedInstanceExpectedOutput,
             "manifest_analysis_finished": ManifestAnalysisFinished,
             "extern_expected_output": ExternExpectedOutput,
             "app_extern_expected_output": AppExternExpectedOutput,

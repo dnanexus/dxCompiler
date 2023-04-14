@@ -28,12 +28,12 @@ test_files = {}
 
 # these tests generally have syntax errors and are expected to fail at the compile step
 test_compilation_failing = {
-    "import_passwd", 
+    "import_passwd", # not migrated - not a part of any suite
 }
 
 # these tests generally have missing inputs and are expected to fail at the run step
 test_run_failing = {
-    "null-expression2-tool.0", 
+    "null-expression2-tool.0",
 }
 
 # these tests are expected to fail at runtime AND throw a specific error message which will be checked
@@ -174,12 +174,13 @@ wdl_v1_1_list = [
     "apps_579_string_substitution_expr", #migrated
     "apps_956_private_var_local", #migrated
     "apps_1052_optional_block_inputs_wdl11", #migrated
+    "apps_1421_dir_output"  # TODO: this is wdl 2.0 test. Migrate with expected file outputs to dxcint. For now only tests for successful run
 ]
 
 static_only = [
-    "apps_1177_native_indirect_override", #migrated
-    "apps_1128_frag_native_instance_type_override", #migrated
-    "apps_1197_native_frag_default" #migrated
+    "apps_1177_native_indirect_override",#migrated
+    "apps_1128_frag_native_instance_type_override",#migrated
+    "apps_1197_native_frag_default"#migrated
 ]
 
 # docker image tests
@@ -193,57 +194,58 @@ docker_test_list = [
     "dynamic_docker_image", #migrated
     "ecr_docker", #migrated
 ]
+#----- below are tests that are were not attempted to be migrated ---
 
-# wdl draft-2
+# wdl draft-2 - Large suite, not migrated unless specified
 draft2_test_list = [
-    "advanced", #migrated
+    "advanced",
     "bad_status", #migrated
     "bad_status2", #migrated
     "just_fail_wf", #migrated
-    "call_with_defaults1", #migrated
-    "call_with_defaults2", #migrated
-    "conditionals_base", #migrated
-    "files", #migrated
-    "files_with_the_same_name", #migrated
-    "hello", #migrated
-    "shapes", #migrated
+    "call_with_defaults1",
+    "call_with_defaults2",
+    "conditionals_base",
+    "files",
+    "files_with_the_same_name",
+    "hello",
+    "shapes",
     # this test cannot be enabled yet, because we
     # don't yet support overriding task inputs
     # "population",
     # multiple library imports in one WDL workflow
-    "multiple_imports", #migrated
+    "multiple_imports",
     # subworkflows
-    "conditionals2", #migrated
-    "modulo", #migrated
-    "movies", #migrated
-    "subblocks2", #migrated
-    "subblocks", #migrated
-    "var_type_change", #migrated
-    "outer", #migrated
+    "conditionals2",
+    "modulo",
+    "movies",
+    "subblocks2",
+    "subblocks",
+    "var_type_change",
+    "outer",
     # calling native dx applets/apps
     # We currently do not have a code generator for draft-2, so cannot import dx_extern.wdl.
     # "call_native",
-    "write_lines_bug", #migrated
+    "write_lines_bug",
 ]
 
 single_tasks_list = [
-    "add3", #migrated
-    "diff2files", #migrated
-    "empty_stdout", #migrated
-    "sort_file", #migrated
-    "symlinks_wc", #migrated
-    "DiskSpace2", #migrated
-    "echo_line_split", #migrated
-    "opt_array", #migrated
-    "stream_diff_v1", #migrated
-    "unzip_files" #migrated
+    "add3",
+    "diff2files",
+    "empty_stdout",
+    "sort_file",
+    "symlinks_wc",
+    "DiskSpace2",
+    "echo_line_split",
+    "opt_array",
+    "stream_diff_v1",
+    "unzip_files"
 ]
 
+# cwl, not migrated
 cwl_tools = [
-    "cat",  # hello world tool #migrated
-    "tar_files", #migrated
+    "cat",
+    "tar_files",
 ]
-#----- below are tests that are were not attempted to be migrated ---
 
 cwl_conformance_tools = [
     os.path.basename(path)[:-len(".cwl.json")]
@@ -272,6 +274,7 @@ ci_test_list = [
     "cat",
 ]
 
+# TODO - migrate to dxcint. Not automated, no regression monitored
 special_flags_list = [
     "add2",  # test the ignoreReuse flag
     "add_many",  # tests the delayWorkspaceDestruction flag
@@ -345,6 +348,7 @@ cromwell_invalid = {
     "default_runtime_attributes",
 }
 
+# LArge suite
 # tests taken from cromwell repository
 cromwell_tests_list = [
     "null_input_values",
@@ -493,6 +497,7 @@ cromwell_tests_list = [
     "exit",
 ]
 
+# CWL - not migrated
 cwl_cromwell_tests_list = [
     "cwl_ad_hoc_file_test",
     "cwl_cache_between_workflows",
@@ -574,11 +579,11 @@ test_unlocked = {
     "array_structs", #migrated
     "cast", #migrated
     "call_with_defaults1",
-    "files", #migrated
-    "hello", #migrated
+    "files",
+    "hello",
     "path_not_taken", #not run
     "optionals", #migrated
-    "shapes", #migrated
+    "shapes",
     "population", #not run
 }
 test_project_wide_reuse = {"add2", "add_many"}

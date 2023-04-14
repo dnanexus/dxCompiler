@@ -1,10 +1,83 @@
 # Release Notes
 
 ## in develop
+* Fixes for the `-pretty` flag in the `describe` command
+* WDL: fix for the tasks wrapped in a frag with optional inputs. Those inputs get forcibly evaluated to explicit `null` 
+and cause inconsistencies with applet inputs. This is fixed and all implicit `null` (`None`) values of optionals are remaining implicit.
+
+## 2.11.0 2023-03-15
+* Option `delayWorkspaceDestruction` was deprecated and will be ignored when included in `extras.json`. To preserve the
+  workspace, `--delay-workspace-destruction` flag should be included in `dx run workflow-XXX`.
+* Minor fixes.
+
+## 2.10.9 2023-03-07
+
+* dxda update to `v0.5.12` which adds a retry for file download. This fixes the "context canceled" error which was
+  thrown due to the `dxda` behavior.
 
 ### Dependency updates
 
-#### wdlTools [TBA]
+#### dxApi [0.13.5](https://github.com/dnanexus/dxScala/releases/tag/api-0.13.5)
+
+
+## 2.10.8 2023-02-23
+
+* WDL: fixes a runtime error when a scatter over an empty array tries to return an empty array. Error occurred 
+specifically when a task wrapped in a scatter fragment had an array among the outputs. Currently, evaluation of a task 
+over an empty array returns an empty array, and the wrapped task is not executed.
+* WDL: fixes a runtime error when a private variable is accessed by index then by key (e.g. `my_var[0].left`).
+* Minor: error message now suggests to compile with `-archive` flag instead of the deprecated `-a` flag when an applet 
+with duplicate name exists.
+* Minor. WDL: removed obsolete warning messages when compiling with `parameter_meta` section in WDL source. 
+
+### Dependency updates
+
+#### dxApi [0.13.4](https://github.com/dnanexus/dxScala/releases/tag/api-0.13.4)
+
+* Fixes handling of `suggestions` field for IO specs when only project ID is specified. Now instead of exception
+  a warning is thrown.
+
+
+## 2.10.7 2022-12-13
+
+* `dxda` update to `v0.5.10` which adds a retry for file download. This fixes the "context canceled" error which was 
+thrown due to the `dxda` behavior.
+* Added support for new region in Azure London, specifically for OFH projects
+
+### Dependency updates
+
+#### wdlTools [0.17.15](https://github.com/dnanexus/wdlTools/releases/tag/0.17.15)
+
+* Minor fixes and refactoring
+
+## 2.10.6 2022-10-25
+
+* Initial support for `Directory` outputs in the WDL `development` version. Note that the dxCompiler support for the `development` version of WDL is under development and not yet production-ready.
+* Minor fixes of type coercion. It includes a fix to the "Value V_String(1.0 GiB) could not be coerced to one of Vector(T_Int)" error when setting `Runtime.memory` as a string in a `development` version task, for example:
+```
+task {
+  ...
+  runtime {
+    memory: "1 GiB"
+  }
+}
+```
+
+### Dependency updates
+
+#### wdlTools [0.17.14](https://github.com/dnanexus/wdlTools/releases/tag/0.17.14)
+
+* Support for Directory outputs in the WDL `development` version
+* Minor fixes of type coercion
+
+
+## 2.10.5 2022-09-29
+
+* Fix for callable recompilation if the Struct composition was changed
+
+### Dependency updates
+
+#### wdlTools [0.17.13](https://github.com/dnanexus/wdlTools/releases/tag/0.17.13)
 
 * Fix for V_Directory in Struct to Directory input
 

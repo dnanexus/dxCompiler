@@ -1,0 +1,299 @@
+{
+    "id": "analysis-XXXX",
+    "name": "mock_1 b'2.4.2-320-gc56fb4f2-dirty'",
+    "tags": [],
+    "properties": {},
+    "executable": "workflow-YYYY",
+    "executableName": "mock_1",
+    "class": "analysis",
+    "created": 1680923355689,
+    "modified": 1680923457551,
+    "project": "project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq",
+    "billTo": "org-dnanexus_apps",
+    "folder": "/dxcint_testing/test_2023-04-07T20-02-37/test",
+    "parentJob": null,
+    "parentAnalysis": null,
+    "detachedFrom": null,
+    "analysis": null,
+    "stage": null,
+    "rootExecution": "analysis-XXXX",
+    "rank": 0,
+    "maxTreeSpotWaitTime": 2048,
+    "maxJobSpotWaitTime": 1024,
+    "spotCostSavings": 0,
+    "preserveJobOutputs": null,
+    "priceComputedAt": 1680923454717,
+    "currency": {
+        "dxCode": 0,
+        "code": "USD",
+        "symbol": "$",
+        "symbolPosition": "left",
+        "decimalSymbol": ".",
+        "groupingSymbol": ","
+    },
+    "totalPrice": 0.00503217,
+    "totalEgress": {
+        "regionLocalEgress": 0,
+        "internetEgress": 0,
+        "interRegionEgress": 0
+    },
+    "egressComputedAt": 1680923454717,
+    "workflow": {
+        "id": "workflow-YYYY",
+        "project": "project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq",
+        "class": "workflow",
+        "sponsored": false,
+        "name": "mock_1",
+        "types": [],
+        "state": "closed",
+        "hidden": false,
+        "links": [],
+        "folder": "/dxcint_testing/test_2023-04-07T20-02-37/applets/mock_1",
+        "tags": [
+            "dxCompiler"
+        ],
+        "created": 1680923354000,
+        "modified": 1680923355128,
+        "createdBy": {
+            "user": "user-schmuzer"
+        },
+        "details": {
+            "originalName": "mock_1",
+            "sourceCode": "H4sIAAAAAAAAAGWMSwqAMBBD9z1FTiB2K3gKD1BK/VCsHWlHXYh3dyi6EDchCXnZh5Q9ReiqVuqgNI+BDizkZqNxKsDHdePigI6Tj5NURku+lIizITxzwza/1MM1xQKsjWS0H5Q2/l1LJ6vPX9VTHApz3WD0RdStAAAA",
+            "version": "2.11.1-SNAPSHOT",
+            "checksum": "4886DB41A34E27354467F0C9E45750F1",
+            "docContents": "H4sIAAAAAAAAAHPKyU/O1jDQUXBOzMlxySxKTS7RVFDwzCsoLSm2UggDcvOLNIJLijLz0hUy8+INgZL+pSXYZHOBBsUbxpckFgMpvZT8vFSgWqf8lEorBSBIBhqPqkShGmgg0CArhRLDeCBLwRZsgUItAHcjIEaTAAAA",
+            "execTree": "H4sIAAAAAAAAAKtWys7MS1GyUirPL8pOy8kvV9JRykvMTQWK5OYnZ8cbAvnFJYnpqcVKVtHVSsmJOTmpQMlqpUyQpsSCgpzUEl33wCyvpDQLg8qqqLBsL6Mq94ikKmO3gGygXqjpIYnF2egmx5cABYEW1EJtiMcuG1sLAA2aTq6kAAAA",
+            "parseOptions": {
+                "regime": "Moderate"
+            }
+        },
+        "editVersion": 0,
+        "title": "mock_1",
+        "summary": "",
+        "description": "",
+        "outputFolder": null,
+        "temporary": false,
+        "inputs": [
+            {
+                "name": "in_1",
+                "class": "string"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "out",
+                "class": "string",
+                "outputSource": {
+                    "$dnanexus_link": {
+                        "outputField": "done",
+                        "stage": "stage-0"
+                    }
+                }
+            }
+        ],
+        "stages": [
+            {
+                "id": "stage-0",
+                "name": "mock_1_task_1",
+                "executable": "applet-AAAA",
+                "folder": null,
+                "input": {
+                    "t1_inp": {
+                        "$dnanexus_link": {
+                            "workflowInputField": "in_1"
+                        }
+                    }
+                },
+                "executionPolicy": {},
+                "systemRequirements": {
+                    "*": {
+                        "instanceType": "mem1_ssd1_v2_x2"
+                    }
+                },
+                "accessible": true
+            }
+        ],
+        "inputSpec": [
+            {
+                "name": "stage-0.overrides___",
+                "class": "hash",
+                "optional": true,
+                "group": "stage-0: Reserved for dxCompiler"
+            },
+            {
+                "name": "stage-0.overrides______dxfiles",
+                "class": "array:file",
+                "optional": true,
+                "group": "stage-0: Reserved for dxCompiler"
+            },
+            {
+                "name": "stage-0.t1_inp",
+                "class": "string",
+                "group": "stage-0",
+                "default": {
+                    "$dnanexus_link": {
+                        "workflowInputField": "in_1"
+                    }
+                }
+            }
+        ],
+        "outputSpec": [
+            {
+                "name": "stage-0.done",
+                "class": "string",
+                "group": "stage-0"
+            }
+        ]
+    },
+    "stages": [
+        {
+            "id": "stage-0",
+            "execution": {
+                "id": "job-GQjJbfj0yzZk8Qb6Q93K7PkB",
+                "region": "aws:us-east-1",
+                "name": "mock_1_task_1",
+                "tags": [],
+                "properties": {},
+                "executable": "applet-AAAA",
+                "executableName": "mock_1_task_1",
+                "class": "job",
+                "created": 1680923355754,
+                "modified": 1680923451501,
+                "project": "project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq",
+                "billTo": "org-dnanexus_apps",
+                "costLimit": null,
+                "invoiceMetadata": null,
+                "folder": "/dxcint_testing/test_2023-04-07T20-02-37/test",
+                "parentJob": null,
+                "originJob": "job-GQjJbfj0yzZk8Qb6Q93K7PkB",
+                "parentAnalysis": "analysis-XXXX",
+                "analysis": "analysis-XXXX",
+                "stage": "stage-0",
+                "rootExecution": "analysis-XXXX",
+                "state": "done",
+                "function": "main",
+                "workspace": "container-GQjJbj808BQ9kjzvJzg573qg",
+                "launchedBy": "user-schmuzer",
+                "detachedFrom": null,
+                "priority": "normal",
+                "workerReuseDeadlineRunTime": {
+                    "state": "reuse-off",
+                    "waitTime": -1,
+                    "at": -1
+                },
+                "dependsOn": [],
+                "singleContext": false,
+                "failureCounts": {},
+                "stateTransitions": [
+                    {
+                        "newState": "runnable",
+                        "setAt": 1680923362150
+                    },
+                    {
+                        "newState": "running",
+                        "setAt": 1680923413408
+                    },
+                    {
+                        "newState": "done",
+                        "setAt": 1680923448182
+                    }
+                ],
+                "applet": "applet-AAAA",
+                "ignoreReuse": false,
+                "httpsApp": {
+                    "enabled": false
+                },
+                "rank": 0,
+                "details": {},
+                "systemRequirements": {
+                    "*": {
+                        "instanceType": "mem1_ssd1_v2_x4"
+                    }
+                },
+                "executionPolicy": {
+                    "maxSpotTries": 1,
+                    "restartOn": {
+                        "UnresponsiveWorker": 2,
+                        "JMInternalError": 1,
+                        "ExecutionError": 1
+                    }
+                },
+                "instanceType": "mem1_ssd1_v2_x4",
+                "trueInstanceType": "dx_s_c5d.xlarge_v2",
+                "finalPriority": "normal",
+                "networkAccess": [],
+                "runInput": {
+                    "t1_inp": "Hello World!"
+                },
+                "originalInput": {
+                    "t1_inp": "Hello World!"
+                },
+                "input": {
+                    "t1_inp": "Hello World!"
+                },
+                "output": {
+                    "done": "Hello World!"
+                },
+                "debug": {},
+                "startedRunning": 1680923413408,
+                "stoppedRunning": 1680923445079,
+                "delayWorkspaceDestruction": false,
+                "preserveJobOutputs": null,
+                "spotWaitTime": 0,
+                "maxTreeSpotWaitTime": 2048,
+                "maxJobSpotWaitTime": 1024,
+                "isFree": false,
+                "totalPrice": 0.00503217,
+                "totalEgress": {
+                    "regionLocalEgress": 0,
+                    "internetEgress": 0,
+                    "interRegionEgress": 0
+                },
+                "egressComputedAt": 1680923451461,
+                "priceComputedAt": 1680923451461,
+                "currency": {
+                    "dxCode": 0,
+                    "code": "USD",
+                    "symbol": "$",
+                    "symbolPosition": "left",
+                    "decimalSymbol": ".",
+                    "groupingSymbol": ","
+                },
+                "egressReport": {
+                    "regionLocalEgress": 0,
+                    "internetEgress": 0,
+                    "interRegionEgress": 0
+                },
+                "timeout": 172800000
+            }
+        }
+    ],
+    "state": "done",
+    "costLimit": null,
+    "workspace": "container-GQjJbfj0yzZk8Qb6Q93K7Pk8",
+    "launchedBy": "user-schmuzer",
+    "priority": "normal",
+    "dependsOn": [],
+    "stateTransitions": [
+        {
+            "newState": "done",
+            "setAt": 1680923454419
+        }
+    ],
+    "details": {},
+    "runInput": {
+        "in_1": "Hello World!"
+    },
+    "originalInput": {
+        "stage-0.t1_inp": "Hello World!"
+    },
+    "input": {
+        "stage-0.t1_inp": "Hello World!"
+    },
+    "output": {
+        "stage-0.done": "Hello World!",
+        "out": "Hello World!"
+    },
+    "delayWorkspaceDestruction": false
+}

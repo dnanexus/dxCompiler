@@ -55,6 +55,12 @@ class DependencyFactory(object):
 
 class Dependency(object):
     def __init__(self, config_file: str, context: Context):
+        """
+        Parent class for providing the necessary dependencies for building dxCompiler assets on the platform
+        Args:
+            config_file: config file for a dependency. Should be located in ${DXCOMPILER_REPO}/dxcint/dependencies/config
+            context: instance of dxcint.Context
+        """
         self._dependencies_root = Path(os.path.join(config_file, "../..")).resolve()
         with open(config_file, "r") as config_handle:
             config = json.load(config_handle)
@@ -100,7 +106,8 @@ class BinaryDependency(Dependency):
         if not os.path.exists(link_destination_dir):
             os.makedirs(link_destination_dir)
         link_path = Path(os.path.join(link_destination_dir, Path(self._local_dir).name))
-        os.link(self._local_dir, link_path)
+        if not os.path.exists(link_path):
+            os.link(self._local_dir, link_path)
         return link_path
 
     def _get_exec(self) -> Path:

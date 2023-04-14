@@ -6,7 +6,10 @@ class ManifestMixin(RegisteredTest):
         super().__init__(*args, **kwargs)
 
     def _compile_executable(self, *args, **kwargs) -> str:
-        kwargs["additional_compiler_flags"] = kwargs.get(
-            "additional_compiler_flags", []
-        ) + ["-useManifests"]
-        return super()._compile_executable(*args, **kwargs)
+        super_kwargs = {
+            **kwargs.get("additional_compiler_flags", {}),
+            **{"-useManifests": ""},
+        }
+        return super()._compile_executable(
+            *args, **{"additional_compiler_flags": super_kwargs}
+        )

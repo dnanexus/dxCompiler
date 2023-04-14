@@ -900,6 +900,7 @@ object Main {
         |      -o <path>              Destination file for WDL task definitions (defaults to 
         |                             stdout).
         |      -path <string>         Name of a specific app or a path to a specific applet.
+        |                             For recursive search in folders use -folder with -r flag.
         |      -r | recursive         Search recursively for applets in the target folder.
         |
         |Common options

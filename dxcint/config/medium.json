@@ -1,1 +1,101 @@
-{"expected_failure": ["apps_1014"], "expected_failure_message": ["python_task_fail_docker", "python_task_fail"], "reorg_locked_expected_output": ["strings", "dict"], "analysis_finished": ["diff_stream_and_download", "apps_847_scatter_empty", "apps_1052_optional_compound_input_wdl10", "apps_1318_nested", "apps_864", "apps_956_private_var_local", "apps_384", "optional_output", "tar_files", "inputs_provided_optional", "broad_genomics", "scatter_subworkflow_with_optional", "download_from_container", "struct_deref", "call_level2", "optional_missing", "top_wf", "samtools_count", "apps_936", "map_file_key", "unpassed_default_arg", "spaces_in_file_paths"], "expected_output": ["cast", "optionals"], "locked_expected_output": ["environment_passing_deep_nesting", "apps_1052_optional_block_inputs_wdl10", "cat", "apps_573", "apps_579_string_substitution_expr", "workflow_with_subworkflow", "wf_with_output_expressions", "three_levels", "nested_optional", "apps_378", "four_levels", "apps_612", "missing_optional_output_file", "empty_array", "native_docker_file_image", "nested_pairs", "echo_pairs", "dynamic_docker_image", "wf_person", "array_structs", "native_docker_file_image_gzip", "linear_no_expressions", "runtime_vs_static_type", "linear", "wf_with_input_expressions", "streaming_inputs", "apps_700", "v1_1_dict", "apps_1052_optional_block_inputs_wdl11", "apps_579_boolean_flag_expr", "param_passing", "two_levels", "nested_scatter", "optionals3", "upload_workflow_files"], "extras_analysis_finished": ["biocontainers", "ecr_docker"], "extras_expected_output": ["instance_types", "private_registry"], "static_default_instance_expected_output": ["apps_1197_native_frag_default", "apps_1177_native_indirect_override", "apps_1128_frag_native_instance_type_override"], "manifest_analysis_finished": ["apps_1269_1270_unqualified_ids_manifest", "complex_manifest", "view_and_count_manifest", "simple_manifest"], "extern_expected_output": ["call_native_v1"], "app_extern_expected_output": ["call_native_app"]}
+{
+    "expected_failure": [
+        "apps_1014"
+    ],
+    "expected_failure_message": [
+        "python_task_fail_docker",
+        "python_task_fail"
+    ],
+    "reorg_expected_output": [
+        "strings",
+        "dict"
+    ],
+    "analysis_finished": [
+        "apps_864",
+        "unpassed_default_arg",
+        "broad_genomics",
+        "top_wf",
+        "call_level2",
+        "optional_output",
+        "apps_1052_optional_compound_input_wdl10",
+        "spaces_in_file_paths",
+        "download_from_container",
+        "apps_936",
+        "inputs_provided_optional",
+        "apps_956_private_var_local",
+        "apps_384",
+        "struct_deref",
+        "apps_847_scatter_empty",
+        "diff_stream_and_download",
+        "apps_1318_nested",
+        "map_file_key",
+        "samtools_count",
+        "optional_missing",
+        "scatter_subworkflow_with_optional"
+    ],
+    "unlocked_expected_output": [
+        "optionals",
+        "cast",
+        "array_structs"
+    ],
+    "expected_output": [
+        "upload_workflow_files",
+        "apps_1052_optional_block_inputs_wdl11",
+        "apps_573",
+        "optionals3",
+        "missing_optional_output_file",
+        "echo_pairs",
+        "native_docker_file_image_gzip",
+        "nested_scatter",
+        "apps_1052_optional_block_inputs_wdl10",
+        "param_passing",
+        "empty_array",
+        "linear",
+        "three_levels",
+        "apps_579_string_substitution_expr",
+        "native_docker_file_image",
+        "two_levels",
+        "wf_person",
+        "dynamic_docker_image",
+        "apps_612",
+        "linear_no_expressions",
+        "nested_pairs",
+        "streaming_inputs",
+        "runtime_vs_static_type",
+        "nested_optional",
+        "wf_with_input_expressions",
+        "four_levels",
+        "wf_with_output_expressions",
+        "v1_1_dict",
+        "apps_700",
+        "apps_579_boolean_flag_expr",
+        "apps_378",
+        "environment_passing_deep_nesting",
+        "workflow_with_subworkflow"
+    ],
+    "extras_analysis_finished": [
+        "biocontainers",
+        "ecr_docker"
+    ],
+    "extras_expected_output": [
+        "instance_types",
+        "private_registry"
+    ],
+    "static_pinned_instance_expected_output": [
+        "apps_1197_native_frag_default",
+        "apps_1177_native_indirect_override",
+        "apps_1128_frag_native_instance_type_override"
+    ],
+    "manifest_analysis_finished": [
+        "apps_1269_1270_unqualified_ids_manifest",
+        "complex_manifest",
+        "view_and_count_manifest",
+        "simple_manifest"
+    ],
+    "extern_expected_output": [
+        "call_native_v1"
+    ],
+    "app_extern_expected_output": [
+        "call_native_app"
+    ]
+}

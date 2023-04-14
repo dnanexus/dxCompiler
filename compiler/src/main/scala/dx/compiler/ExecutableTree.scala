@@ -82,12 +82,11 @@ object ExecutableTree {
   }
 
   private def generateWholePrefix(prefix: String, isLast: Boolean): String = {
-    val commonPrefix = prefix.replace("└", " ").replace("─", " ")
-    if (isLast) {
-      commonPrefix.replace("├", "│") + LastElement
-    } else {
-      commonPrefix.replace("├", " ") + MidElement
+    val newPrefix: String = prefix.replace("└", " ").replace("─", " ") match {
+      case pref: String if isLast => pref.replace("├", "│") + LastElement
+      case pref                   => pref.replace("├", " ") + MidElement
     }
+    if (newPrefix.startsWith(" ")) "│" + newPrefix.substring(1) else newPrefix
   }
 
   private def generateTreeBlock(prefix: String,
@@ -146,9 +145,9 @@ object ExecutableTree {
   }
 
   /** Recursively traverse the exec tree and generate an appropriate name + color based on the node type.
-    * The prefix is built up as recursive calls happen. This allows for mainaining the locations of branches
+    * The prefix is built up as recursive calls happen. This allows for maintaining the locations of branches
     * in the tree. When a prefix made for a current node, it undergoes a transformation to strip out any
-    * extra characters from previous calls. This maintains the indenation level and tree branches.
+    * extra characters from previous calls. This maintains the indentation level and tree branches.
     *
     * Color scheme:
     *   'types' are in CYAN, types being Workflow, App, Task etc
