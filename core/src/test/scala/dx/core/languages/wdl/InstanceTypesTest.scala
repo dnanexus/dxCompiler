@@ -15,16 +15,6 @@ import dx.util.{FileSourceResolver, JsUtils, Logger}
 import scala.collection.immutable.SeqMap
 
 class InstanceTypesTest extends AnyFlatSpec with Matchers {
-  // The original list is at:
-  // https://github.com/dnanexus/nucleus/blob/master/commons/instance_types/aws_instance_types.json
-  //
-  // The g2,i2,x1 instances have been removed, because they are not
-  // enabled for customers by default.  In addition, the PV (Paravirtual)
-  // instances have been removed, because they work only on Ubuntu
-  // 12.04.
-  //
-  // Removed the ssd2 instances, because they actually use EBS storage. A better
-  // solution would be asking the platform for the available instances.
   private val instanceList: String =
     """{
         "mem2_ssd1_x2":       {"internalName": "m3.large", "cloudInstanceType": "m3.large", "traits": {"numCores":   2, "totalMemoryMB":    7225, "ephemeralStorageGB":   27, "rank": 6}},
@@ -43,7 +33,7 @@ class InstanceTypesTest extends AnyFlatSpec with Matchers {
         "mem3_ssd1_x32":      {"internalName": "r3.8xlarge", "cloudInstanceType": "r3.8xlarge", "traits": {"numCores":  32, "totalMemoryMB":  245751, "ephemeralStorageGB":  597, "rank": 64}}
 }"""
 
-  // Create an availble instance list based on a hard coded list
+  // Create an available instance list based on a hard coded list
   private lazy val testDb: InstanceTypeDB = {
     val allInstances: Map[String, JsValue] = instanceList.parseJson.asJsObject.fields
     val db = allInstances.map {
