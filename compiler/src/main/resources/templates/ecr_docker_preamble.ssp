@@ -24,14 +24,11 @@
     fi
     dx download ${bashDollar}{AWS_CREDENTIALS} -o ${bashDollar}{HOME}/.aws/credentials
 
-    # install the aws client to /usr/local/bin
-    unzip -q /usr/bin/awscliv2.zip && ./aws/install && rm -Rf ./aws
-
     # disable echo to avoid logging password
     set +x
 
     # get the password from the aws client
-    password=${bashDollar}(aws ecr get-login-password --region ${bashDollar}{AWS_REGION})
+    password=${bashDollar}(awscliv2 ecr get-login-password --region ${bashDollar}{AWS_REGION})
 
     # Log into docker. Retry several times.
     i=0

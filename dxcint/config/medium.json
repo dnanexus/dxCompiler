@@ -6,7 +6,7 @@
         "python_task_fail_docker",
         "python_task_fail"
     ],
-    "reorg_locked_expected_output": [
+    "reorg_expected_output": [
         "strings",
         "dict"
     ],
@@ -33,12 +33,12 @@
         "optional_missing",
         "scatter_subworkflow_with_optional"
     ],
-    "expected_output": [
+    "unlocked_expected_output": [
         "optionals",
         "cast",
         "array_structs"
     ],
-    "locked_expected_output": [
+    "expected_output": [
         "upload_workflow_files",
         "apps_1052_optional_block_inputs_wdl11",
         "apps_573",

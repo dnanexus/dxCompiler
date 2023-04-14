@@ -4,7 +4,7 @@ import os
 import re
 from threading import Lock
 from typing import Optional
-from dxpy.api import project_new_folder, project_describe, project_remove_folder
+from dxpy.api import project_describe
 
 from dxcint.Logger import Logger
 
@@ -34,9 +34,11 @@ class Context(object):
         self._logger = Logger.make(name=__name__, verbosity=logger_verbosity)
         self._project_id = self._resolve_project(project=project)
         self._user = dxpy.whoami()
-        self._repo_root_dir = repo_root
+        self._repo_root_dir = os.path.realpath(repo_root)
         self._compiler_version = self._get_version()
-        self._platform_build_dir = self._create_platform_build_folder(folder)
+        self._platform_build_dir = (
+            folder or f"/builds/{self._user}/{self._compiler_version}"
+        )
         self._lock = Lock()
         self._project_info = project_describe(self._project_id)
 
@@ -105,43 +107,6 @@ class Context(object):
                 if m is not None:
                     return m.group(6).strip()
         raise Exception(f"version ID not found in {application_conf_path}")
-
-    def _create_platform_build_folder(self, folder: str) -> str:
-        folder = folder or f"/builds/{self._user}/{self._compiler_version}"
-        _ = self._clean_up_build_dir(folder)
-        _ = self._create_build_subdirs(base_dir=folder)
-        self.logger.info(
-            f"Context._get_version(): Project: {self._project_id}.\nBuild directory: {folder}"
-        )
-        return folder
-
-    def _create_build_subdirs(self, base_dir: str) -> bool:
-        """
-        Impure function. Creates destination subdirs on the platform
-        Args:
-            base_dir: str. Parent dir
-        Returns: bool. True when executing without errors
-        """
-        subdirectories = (os.path.join(base_dir, x) for x in ("applets", "test"))
-        for subdir in subdirectories:
-            _ = project_new_folder(
-                object_id=self._project_id,
-                input_params={"folder": subdir, "parents": True},
-            )
-        return True
-
-    def _clean_up_build_dir(self, folder) -> bool:
-        """
-        Impure function. Cleans up (removes) target build directories on the platform
-        Args:
-            folder: str. Dir on the platform to clean up.
-        Returns: bool. True when executing without errors
-        """
-        _ = project_remove_folder(
-            object_id=self._project_id,
-            input_params={"folder": folder, "force": True, "recurse": True},
-        )
-        return True
 
 
 class ContextEmpty(Context):

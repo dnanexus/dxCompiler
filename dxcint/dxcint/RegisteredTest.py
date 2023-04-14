@@ -10,7 +10,7 @@ from typing import Optional, Dict, Union
 from dxcint.utils import rm_prefix
 from dxcint.Messenger import Messenger
 from dxcint.Context import Context, ContextEmpty
-from dxcint.constants import DEFAULT_INSTANCE_TYPE
+from dxcint.constants import DEFAULT_INSTANCE_TYPE, DEFAULT_RUN_KWARGS
 
 
 class RegisteredTestError(Exception):
@@ -45,7 +45,9 @@ class RegisteredTest(object):
             ["git", "describe", "--always", "--dirty", "--tags"]
         ).strip()
         # wf inputs supplied as json usually have this suffix. Can be changed in subclasses
-        self._inputs_suffix = "_input.json"
+        self._raw_inputs_path = os.path.join(
+            os.path.dirname(src_file), f"{test_name}_input.json"
+        )
         self._compiled_inputs_suffix = "_input.dx.json"
         self._test_inputs = None
 
@@ -74,7 +76,15 @@ class RegisteredTest(object):
     @property
     def exec_id(self) -> str:
         if not self._exec_id:
-            self._exec_id = self._compile_executable()
+            additional_flags = {"-locked": ""}
+            if os.path.exists(self._raw_inputs_path):
+                additional_flags = {
+                    **additional_flags,
+                    **{"-inputs": self._raw_inputs_path},
+                }
+            self._exec_id = self._compile_executable(
+                additional_compiler_flags=additional_flags
+            )
         return self._exec_id
 
     @property
@@ -108,8 +118,8 @@ class RegisteredTest(object):
         self, additional_compiler_flags: Optional[Dict] = None
     ) -> str:
         """
-        Base implementation. For different test classes override `exec_id` property with calling this method with
-        arguments which suite a particular test type. For example, when implementing class ManifestTest(RegisteredTest)
+        Base implementation. For different test classes update this method with new kwargs
+        which suite a particular test type. For example, when implementing class ManifestTest(RegisteredTest)
         call this method with `additional_compiler_flags=['-useManifests']` argument in parameter `exec_id`.
         Args:
             additional_compiler_flags: Optional[Dict[str]]. Use this argument to alter the compiler behavior for
@@ -152,13 +162,11 @@ class RegisteredTest(object):
 
     def _run_executable(self, **dx_run_kwargs) -> str:
         """
-        This method will be implemented in subclasses with or without additional decorators (e.g. for async_retry)
+        This method can be implemented in subclasses with or without additional decorators (e.g. for async_retry)
         Args:
             dx_run_kwargs: Dict[str]. Kwargs for the DxApp(let) or DxWorkflow .run call
         Returns: str. Execution ID (analysis or job)
         """
-        if "instance_type" not in dx_run_kwargs:
-            dx_run_kwargs.update({"instance_type": DEFAULT_INSTANCE_TYPE})
         execution_desc = self._run_executable_inner(**dx_run_kwargs).describe()
         return execution_desc.get("id")
 
@@ -171,6 +179,9 @@ class RegisteredTest(object):
         Returns: Union[DXAnalysis,DXJob]. Execution handler
 
         """
+        if "instance_type" not in dx_run_kwargs:
+            dx_run_kwargs.update({"instance_type": DEFAULT_INSTANCE_TYPE})
+        dx_run_kwargs.update(DEFAULT_RUN_KWARGS)
         exec_type = self.exec_id.split("-")[0]
         exec_handler = self._executable_type_switch.get(exec_type)(
             project=self._context.project_id, dxid=self.exec_id

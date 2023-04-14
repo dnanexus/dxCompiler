@@ -17,4 +17,4 @@ def test_ManifestMixin(fixtures_dir, context_init, mocker):
     mocker.patch("subprocess.check_output")
     spy = mocker.spy(subprocess, "check_output")
     _ = mm.exec_id
-    assert "-useManifests" in spy.call_args_list[0].args[0]
+    assert all(x in spy.call_args_list[0].args[0] for x in ["-useManifests", "-locked"])

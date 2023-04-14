@@ -106,7 +106,8 @@ class BinaryDependency(Dependency):
         if not os.path.exists(link_destination_dir):
             os.makedirs(link_destination_dir)
         link_path = Path(os.path.join(link_destination_dir, Path(self._local_dir).name))
-        os.link(self._local_dir, link_path)
+        if not os.path.exists(link_path):
+            os.link(self._local_dir, link_path)
         return link_path
 
     def _get_exec(self) -> Path:

@@ -21,7 +21,7 @@ permissions:
 jobs:
   test:
     name: WDL Integration Tests (Staging)
-    if: contains(github.event.pull_request.labels.*.name, 'integration')
+    if: contains(github.event.pull_request.labels.*.name, 'deprecated')
     runs-on: ubuntu-20.04
     env:
       PROJECT: dxCompiler_playground

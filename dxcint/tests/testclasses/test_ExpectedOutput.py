@@ -26,7 +26,10 @@ def test__extract_outputs(init_ExpectedOutput, mock_analysis_desc, mocker):
         new_callable=mocker.PropertyMock,
     )
     outs = init_ExpectedOutput._extract_outputs()
-    assert outs == {"out": "Hello World!"}
+    assert outs == {
+        "stage-0.done": "Hello World!",
+        "out": "Hello World!",
+    }
 
 
 def test__validate_outputs(

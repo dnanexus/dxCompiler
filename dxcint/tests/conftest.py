@@ -89,13 +89,21 @@ def change_to_root_dir(root_dir):
 
 @pytest.fixture(scope="session")
 def terraform_init(dependency_conf_dir, context_init):
-    dependency_factory = DependencyFactory(
-        config_file=os.path.join(dependency_conf_dir, "mock_dependency_src.json"),
-        context=context_init,
-    )
-    bin_dependency = dependency_factory.make()
+    dependency_collection = set()
+    for dep in [
+        "mock_dependency_src.json",
+        "mock_dependency_tar.json",
+        "mock_dependency.json",
+    ]:
+        dependency_factory = DependencyFactory(
+            config_file=os.path.join(dependency_conf_dir, dep),
+            context=context_init,
+        )
+        dependency = dependency_factory.make()
+        dependency_collection.add(dependency)
+
     yield Terraform(
-        languages={"wdl"}, context=context_init, dependencies={bin_dependency}
+        languages={"wdl"}, context=context_init, dependencies=dependency_collection
     )
 
 
@@ -138,6 +146,15 @@ def mock_messenger():
 def mock_analysis_desc(fixtures_dir):
     with open(
         os.path.join(fixtures_dir, "mocker", "mock_analysis.json")
+    ) as file_handle:
+        mock_analysis = json.load(file_handle)
+    yield mock_analysis
+
+
+@pytest.fixture(scope="session")
+def mock_analysis_unlocked_desc(fixtures_dir):
+    with open(
+        os.path.join(fixtures_dir, "mocker", "mock_analysis_unlocked.json")
     ) as file_handle:
         mock_analysis = json.load(file_handle)
     yield mock_analysis

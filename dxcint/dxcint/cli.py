@@ -38,7 +38,15 @@ def dxcint(ctx, verbosity: str = "info") -> None:
     help="Name of a single test or suite of tests. If not provided - builds just the core compiler library "
     "(e.g. dxCompiler-VERSION.jar)",
 )
-def integration(ctx, dxc_repository_root: str, test_name: Optional[str]) -> None:
+@click.option(
+    "--clean",
+    default=False,
+    is_flag=True,
+    help="If active rebuilds dxCompiler assets",
+)
+def integration(
+    ctx, dxc_repository_root: str, test_name: Optional[str], clean: bool
+) -> None:
     """
     \b
     Run integration test or test suite
@@ -61,13 +69,13 @@ def integration(ctx, dxc_repository_root: str, test_name: Optional[str]) -> None
         test_context.logger.info(
             "CLI: No test/suite name provided. dxCint will only build the core dxCompiler executable"
         )
-    terraform = Terraform(
-        languages={x.language for x in registered_tests},
-        context=test_context,
-        dependencies=test_discovery.discover_dependencies(),
-    )
-    _ = terraform.build()
-
+    if clean:
+        terraform = Terraform(
+            languages={x.language for x in registered_tests},
+            context=test_context,
+            dependencies=test_discovery.discover_dependencies(),
+        )
+        _ = terraform.build()
     test_context.logger.info(f"CLI: Running {len(registered_tests)} tests")
     # simply give every test a thread, no need for cooperative multitasking,
     # tests are independent, they'll correctly print the progress to the logger

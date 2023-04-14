@@ -31,18 +31,10 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
 
     def _extract_outputs(self) -> Dict:
         desc = self.messenger.describe
-        if desc["class"] == "analysis":
-            stages = desc["stages"]
-            for stage in stages:
-                if stage["id"] == "stage-outputs":
-                    return stage["execution"]["output"]
-            raise RegisteredTestError(
-                f"Analysis for test {self.name} does not have stage 'outputs'"
-            )
-        elif desc["class"] == "job":
+        if desc["class"] in ["analysis", "job"]:
             return desc["output"]
         else:
-            raise RegisteredTestError(f"Unknown {desc['class']}")
+            raise RuntimeError(f"Unknown {desc['class']}")
 
     def _validate(self) -> Dict:
         self.messenger.wait_for_completion()
@@ -120,7 +112,7 @@ class ExpectedOutput(ResultsTestMixin, RegisteredTest):
         return actual, expected
 
     def _compare_values(self, expected, actual, field) -> bool:
-        self._unwrap(actual, expected)
+        actual, expected = self._unwrap(actual, expected)
 
         if isinstance(actual, list) and isinstance(expected, list):
             return self._compare_lists(actual, expected, field)

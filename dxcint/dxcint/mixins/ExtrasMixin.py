@@ -13,8 +13,11 @@ class ExtrasMixin(RegisteredTest):
         extras_src = os.path.join(os.path.dirname(self._src_file), extras_basename)
         return extras_src
 
-    @property
-    def exec_id(self) -> str:
-        if not self._exec_id:
-            self._exec_id = self._compile_executable({"-extras": self._extras})
-        return self._exec_id
+    def _compile_executable(self, *args, **kwargs) -> str:
+        super_kwargs = {
+            **kwargs.get("additional_compiler_flags", {}),
+            **{"-extras": self._extras},
+        }
+        return super()._compile_executable(
+            *args, **{"additional_compiler_flags": super_kwargs}
+        )

@@ -1,7 +1,6 @@
 {
-  "name": "mock_dependency",
+  "name": "pytest",
   "languages": ["wdl", "cwl"],
-  "version": "1.0.0",
-  "package_manager": "git",
-  "source_link": "https://mock_url.blablabla"
+  "version": "7.2.2",
+  "package_manager": "pip"
 }
