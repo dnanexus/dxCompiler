@@ -20,5 +20,10 @@
         "multiple_imports",
         "call_with_defaults2",
         "conditionals_base"
+    ],
+    "unlocked_expected_output": [
+        "files",
+        "shapes",
+        "call_with_defaults1"
     ]
 }
