@@ -1,6 +1,6 @@
 version 1.0
 
-import "nested_wf.wdl"
+import "../imports/nested_wf.wdl"
 
 workflow apps_612 {
   input {

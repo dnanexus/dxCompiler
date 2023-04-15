@@ -1,5 +1,5 @@
 version 1.0
-import "test_task.wdl" as test_task
+import "../imports/test_task.wdl" as test_task
 
 workflow subworkflow_with_task {
 

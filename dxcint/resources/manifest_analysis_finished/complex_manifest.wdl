@@ -1,6 +1,6 @@
 version 1.1
 
-import "tumor_normal.wdl" as tn
+import "../imports/tumor_normal.wdl" as tn
 
 workflow complex_manifest {
   input {
