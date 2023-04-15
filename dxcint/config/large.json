@@ -1,6 +1,5 @@
 {
     "expected_failure": [
-        "diskspace_exhauster",
         "bad_status",
         "bad_status2",
         "just_fail_wf"
@@ -28,5 +27,8 @@
     ],
     "unlocked_extras_expected_output": [
         "hello"
+    ],
+    "static_pinned_instance_expected_failure": [
+        "diskspace_exhauster"
     ]
 }

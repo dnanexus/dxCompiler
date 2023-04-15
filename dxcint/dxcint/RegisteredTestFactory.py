@@ -12,6 +12,9 @@ from dxcint.testclasses.UnlockedExtrasExpectedOutput import UnlockedExtrasExpect
 from dxcint.testclasses.StaticPinnedInstanceExpectedOutput import (
     StaticPinnedInstanceExpectedOutput,
 )
+from dxcint.testclasses.StaticPinnedInstanceExpectedFailure import (
+    StaticPinnedInstanceExpectedFailure,
+)
 from dxcint.testclasses.ManifestAnalysisFinished import ManifestAnalysisFinished
 from dxcint.testclasses.ExternExpectedOutput import ExternExpectedOutput
 from dxcint.testclasses.AppExternExpectedOutput import AppExternExpectedOutput
@@ -34,6 +37,7 @@ class RegisteredTestFactory(object):
             "extras_analysis_finished": ExtrasAnalysisFinished,
             "extras_expected_output": ExtrasExpectedOutput,
             "static_pinned_instance_expected_output": StaticPinnedInstanceExpectedOutput,
+            "static_pinned_instance_expected_failure": StaticPinnedInstanceExpectedFailure,
             "manifest_analysis_finished": ManifestAnalysisFinished,
             "extern_expected_output": ExternExpectedOutput,
             "app_extern_expected_output": AppExternExpectedOutput,
