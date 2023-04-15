@@ -33,7 +33,7 @@ test_compilation_failing = {
 
 # these tests generally have missing inputs and are expected to fail at the run step
 test_run_failing = {
-    "null-expression2-tool.0",
+    "null-expression2-tool.0", # cwl not migrated
 }
 
 # these tests are expected to fail at runtime AND throw a specific error message which will be checked
@@ -198,34 +198,34 @@ docker_test_list = [
 
 # wdl draft-2 - Large suite, not migrated unless specified
 draft2_test_list = [
-    "advanced",
+    "advanced", #migrated
     "bad_status", #migrated
     "bad_status2", #migrated
     "just_fail_wf", #migrated
-    "call_with_defaults1",
-    "call_with_defaults2",
-    "conditionals_base",
-    "files",
-    "files_with_the_same_name",
-    "hello",
-    "shapes",
+    "call_with_defaults1", #migrated
+    "call_with_defaults2", #migrated
+    "conditionals_base", #migrated
+    "files", #migrated
+    "files_with_the_same_name", #migrated
+    "hello", #migrated
+    "shapes", #migrated
     # this test cannot be enabled yet, because we
     # don't yet support overriding task inputs
     # "population",
     # multiple library imports in one WDL workflow
-    "multiple_imports",
+    "multiple_imports", #migrated
     # subworkflows
-    "conditionals2",
-    "modulo",
-    "movies",
-    "subblocks2",
-    "subblocks",
-    "var_type_change",
-    "outer",
+    "conditionals2", #migrated
+    "modulo", #migrated
+    "movies", #migrated
+    "subblocks2", #migrated
+    "subblocks", #migrated
+    "var_type_change", #migrated
+    "outer", #migrated
     # calling native dx applets/apps
     # We currently do not have a code generator for draft-2, so cannot import dx_extern.wdl.
     # "call_native",
-    "write_lines_bug",
+    "write_lines_bug", #migrated
 ]
 
 single_tasks_list = [
@@ -274,11 +274,11 @@ ci_test_list = [
     "cat",
 ]
 
-# TODO - migrate to dxcint. Not automated, no regression monitored
+#
 special_flags_list = [
-    "add2",  # test the ignoreReuse flag
-    "add_many",  # tests the delayWorkspaceDestruction flag
-    "inc_range",  # check that runtime call to job/analysis pass the delayWorkspaceDestruction flag
+    "add2",  # test the ignoreReuse flag. TODO - migrate to dxcint. Not automated, no regression monitored
+    "add_many",  # tests the delayWorkspaceDestruction flag. Obsolete because APPS-1616
+    "inc_range",  # check that runtime call to job/analysis pass the delayWorkspaceDestruction flag. Obsolete because APPS-1616
 ]
 
 # these are the examples from the documentation
@@ -542,8 +542,8 @@ medium_test_list = (
     wdl_v1_list + wdl_v1_1_list + docker_test_list + special_flags_list + cwl_tools
 )
 large_test_list = (
-    medium_test_list
-    + draft2_test_list
+    medium_test_list # migrated
+    + draft2_test_list # migrated
     + single_tasks_list
     + doc_tests_list
     + long_test_list
@@ -578,12 +578,12 @@ test_defaults = set()
 test_unlocked = {
     "array_structs", #migrated
     "cast", #migrated
-    "call_with_defaults1",
-    "files",
-    "hello",
+    "call_with_defaults1", #migrated
+    "files", #migrated
+    "hello", #migrated
     "path_not_taken", #not run
     "optionals", #migrated
-    "shapes",
+    "shapes", #migrated
     "population", #not run
 }
 test_project_wide_reuse = {"add2", "add_many"}

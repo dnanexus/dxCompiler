@@ -1,1 +1,24 @@
-{"expected_failure": ["diskspace_exhauster","bad_status","bad_status2","just_fail_wf"]}
+{
+    "expected_failure": [
+        "diskspace_exhauster",
+        "bad_status",
+        "bad_status2",
+        "just_fail_wf"
+    ],
+    "expected_output": [
+        "var_type_change",
+        "outer",
+        "conditionals2",
+        "subblocks",
+        "files_with_the_same_name",
+        "modulo",
+        "subworkflow_with_task",
+        "movies",
+        "write_lines_bug",
+        "subblocks2",
+        "advanced",
+        "multiple_imports",
+        "call_with_defaults2",
+        "conditionals_base"
+    ]
+}
