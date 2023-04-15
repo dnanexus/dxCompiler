@@ -1,4 +1,4 @@
-from dxcint.UnlockedExpectedOutput import UnlockedExpectedOutput
+from dxcint.testclasses.UnlockedExpectedOutput import UnlockedExpectedOutput
 from dxcint.mixins.ExtrasMixin import ExtrasMixin
 
 
