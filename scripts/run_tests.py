@@ -229,16 +229,16 @@ draft2_test_list = [
 ]
 
 single_tasks_list = [
-    "add3",
-    "diff2files",
-    "empty_stdout",
-    "sort_file",
-    "symlinks_wc",
-    "DiskSpace2",
-    "echo_line_split",
-    "opt_array",
-    "stream_diff_v1",
-    "unzip_files"
+    "add3", # merged
+    "diff2files", # merged
+    "empty_stdout", # merged
+    "sort_file", # merged
+    "symlinks_wc", # merged
+    "DiskSpace2", # merged
+    "echo_line_split", # merged
+    "opt_array", # merged
+    "stream_diff_v1", # merged
+    "unzip_files" # merged
 ]
 
 # cwl, not migrated

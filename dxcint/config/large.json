@@ -5,19 +5,24 @@
         "just_fail_wf"
     ],
     "expected_output": [
+        "empty_stdout",
+        "subblocks",
+        "movies",
+        "modulo",
+        "multiple_imports",
+        "files_with_the_same_name",
+        "call_with_defaults2",
+        "subblocks2",
+        "diff2files",
+        "subworkflow_with_task",
+        "conditionals2",
+        "write_lines_bug",
+        "echo_line_split",
+        "add3",
         "var_type_change",
         "outer",
-        "conditionals2",
-        "subblocks",
-        "files_with_the_same_name",
-        "modulo",
-        "subworkflow_with_task",
-        "movies",
-        "write_lines_bug",
-        "subblocks2",
         "advanced",
-        "multiple_imports",
-        "call_with_defaults2",
+        "stream_diff_v1",
         "conditionals_base"
     ],
     "unlocked_expected_output": [
@@ -30,5 +35,14 @@
     ],
     "static_pinned_instance_expected_failure": [
         "diskspace_exhauster"
+    ],
+    "analysis_finished": [
+        "unzip_files",
+        "DiskSpace2",
+        "sort_file",
+        "opt_array"
+    ],
+    "extras_expected_output": [
+        "symlinks_wc"
     ]
 }
