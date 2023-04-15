@@ -25,5 +25,8 @@
         "files",
         "shapes",
         "call_with_defaults1"
+    ],
+    "unlocked_extras_expected_output": [
+        "hello"
     ]
 }

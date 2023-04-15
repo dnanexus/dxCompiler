@@ -8,6 +8,7 @@ from dxcint.testclasses.UnlockedExpectedOutput import UnlockedExpectedOutput
 from dxcint.testclasses.AnalysisFinished import AnalysisFinished
 from dxcint.testclasses.ExtrasAnalysisFinished import ExtrasAnalysisFinished
 from dxcint.testclasses.ExtrasExpectedOutput import ExtrasExpectedOutput
+from dxcint.testclasses.UnlockedExtrasExpectedOutput import UnlockedExtrasExpectedOutput
 from dxcint.testclasses.StaticPinnedInstanceExpectedOutput import (
     StaticPinnedInstanceExpectedOutput,
 )
@@ -28,6 +29,7 @@ class RegisteredTestFactory(object):
             "expected_output": ExpectedOutput,
             "analysis_finished": AnalysisFinished,
             "unlocked_expected_output": UnlockedExpectedOutput,
+            "unlocked_extras_expected_output": UnlockedExtrasExpectedOutput,
             "reorg_expected_output": ReorgExpectedOutput,
             "extras_analysis_finished": ExtrasAnalysisFinished,
             "extras_expected_output": ExtrasExpectedOutput,
