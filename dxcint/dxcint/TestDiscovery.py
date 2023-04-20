@@ -46,6 +46,7 @@ class TestDiscovery(object):
             "CW": "cwl_workflows.json",
             "CC": "cwl_cromwell.json",
             "U": "uncategorized.json",
+            "WC": "wdl_cromwell.json",
         }
 
     @property

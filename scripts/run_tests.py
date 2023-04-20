@@ -284,6 +284,7 @@ special_flags_list = [
 # these are the examples from the documentation
 doc_tests_list = ["bwa_mem"]
 
+# undefined suite
 cromwell_key_error_list = [
     "http_inputs",
     "drs_usa_hca",
@@ -536,7 +537,7 @@ cwl_cromwell_tests_list = [
 ]
 
 # these are tests that take a long time to run
-long_test_list = ["diskspace_exhauster"]  # APPS-749 #migrated
+long_test_list = ["diskspace_exhauster"]  # APPS-749 # migrated
 
 medium_test_list = (
     wdl_v1_list + wdl_v1_1_list + docker_test_list + special_flags_list + cwl_tools
@@ -544,11 +545,11 @@ medium_test_list = (
 large_test_list = (
     medium_test_list # migrated
     + draft2_test_list # migrated
-    + single_tasks_list
-    + doc_tests_list
-    + long_test_list
-    + cwl_conformance_tools
-    + cwl_conformance_workflows
+    + single_tasks_list # migrated
+    + doc_tests_list # migrated
+    + long_test_list # migrated
+    + cwl_conformance_tools # won't migrate CWL
+    + cwl_conformance_workflows # won't migrate CWL
     + cromwell_tests_list
 )
 

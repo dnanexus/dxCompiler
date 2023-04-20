@@ -37,9 +37,10 @@
         "diskspace_exhauster"
     ],
     "analysis_finished": [
-        "unzip_files",
         "DiskSpace2",
+        "bwa_mem",
         "sort_file",
+        "unzip_files",
         "opt_array"
     ],
     "extras_expected_output": [
