@@ -352,83 +352,83 @@ cromwell_invalid = {
 # LArge suite
 # tests taken from cromwell repository
 cromwell_tests_list = [
-    "null_input_values",
-    "dont_strip_line_prefix",
-    "non_root_default_user",
-    "memory_units",
-    "cacheWithinWF",
-    "dot_dir_stuck_running",
-    "empty_string",
-    "floating_tags",
-    "array_literal_locations",
-    "stdout_delete",
-    "sub_workflow_delete",
-    "no_output_delete",
-    "exhaustive_delete",
-    "scatter_delete",
-    "collections_delete",
-    "hello_delete",
-    "sub_workflow_delete_import",
-    "no_cache_delete",
-    "readFromCache",
-    "sizerelativepath",
-    "subworkflow_wt",
-    "b",
-    "c",
-    "a",
-    "d",
-    "sub_sub_sub",
-    "array_io",
-    "simple_if",
-    "single_to_array_conversion",
-    "coerce_to_array_of_optionals",
-    "wdl_function_locations",
-    "workflow_output_paths",
-    "sub_function",
-    "public_http_import",
-    "control_chars",
-    "prefix",
-    "write_lines_files",
-    "cached_copy",
-    "read_tsv",
-    "custom_entrypoint",
-    "square",
-    "papi_cpu_platform",
-    "complex_types_files",
-    "file_evaluator_identifier_lookups",
-    "non_root_specified_user",
-    "write_lines",
-    "workflow_output_paths_colliding",
-    "jes_labels",
-    "localization_sanity_papi_v2",
-    "recimp_nosubwf_outer",
-    "recimp_nosubwf_inner",
-    "globbingindex",
-    "postfix_quantifiers",
-    "length",
-    "wdl_empty_glob",
-    "output_filename_interpolation",
-    "aliased_subworkflows",
-    "docker_image_cache_false",
-    "curl",
-    "symlink_localization",
-    "error_10_preemptible",
-    "multiline_command_line",
-    "use_cacheCopy_dir",
-    "writeToCache",
-    "cacheBetweenWF",
-    "lots_of_inputs",
-    "local_gcs",
-    "read_write_json_roundtrip_develop",
-    "read_write_json_roundtrip",
-    "checkpointing",
-    "cromwell_restart",
-    "space",
-    "arrays_scatters_ifs",
-    "declarations_as_nodes",
-    "variable_scoping",
-    "sub_workflow_decls",
-    "input_mirror",
+    "null_input_values", # migrated
+    "dont_strip_line_prefix", # migrated
+    "non_root_default_user", # migrated
+    "memory_units", # migrated
+    "cacheWithinWF", # migrated
+    "dot_dir_stuck_running", # migrated
+    "empty_string", # migrated
+    "floating_tags", # migrated
+    "array_literal_locations", # migrated
+    "stdout_delete", # migrated
+    "sub_workflow_delete", # migrated
+    "no_output_delete", # migrated
+    "exhaustive_delete", # migrated
+    "scatter_delete", # migrated
+    "collections_delete", # migrated
+    "hello_delete", # migrated
+    "sub_workflow_delete_import", # migrated
+    "no_cache_delete", # migrated
+    "readFromCache", # migrated
+    "sizerelativepath", # migrated
+    "subworkflow_wt", # migrated
+    "b", # migrated
+    "c", # migrated
+    "a", # migrated
+    "d", # migrated
+    "sub_sub_sub", # migrated
+    "array_io", # migrated
+    "simple_if", # migrated
+    "single_to_array_conversion", # migrated
+    "coerce_to_array_of_optionals", # migrated
+    "wdl_function_locations", # migrated
+    "workflow_output_paths", # migrated
+    "sub_function", # migrated
+    "public_http_import", # migrated
+    "control_chars", # migrated
+    "prefix", # migrated
+    "write_lines_files", # migrated
+    "cached_copy", # migrated
+    "read_tsv", # migrated
+    "custom_entrypoint", # migrated
+    "square", # migrated
+    "papi_cpu_platform", # migrated
+    "complex_types_files", # migrated
+    "file_evaluator_identifier_lookups", # migrated
+    "non_root_specified_user", # migrated
+    "write_lines", # migrated
+    "workflow_output_paths_colliding", # migrated
+    "jes_labels", # migrated
+    "localization_sanity_papi_v2", # migrated
+    "recimp_nosubwf_outer", # migrated
+    "recimp_nosubwf_inner", # migrated
+    "globbingindex", # migrated
+    "postfix_quantifiers", # migrated
+    "length", # migrated
+    "wdl_empty_glob", # migrated
+    "output_filename_interpolation", # migrated
+    "aliased_subworkflows", # migrated
+    "docker_image_cache_false", # migrated
+    "curl", # migrated
+    "symlink_localization", # migrated
+    "error_10_preemptible", # migrated
+    "multiline_command_line", # migrated
+    "use_cacheCopy_dir", # migrated
+    "writeToCache", # migrated
+    "cacheBetweenWF", # migrated
+    "lots_of_inputs", # migrated
+    "local_gcs", # migrated
+    "read_write_json_roundtrip_develop", # migrated
+    "read_write_json_roundtrip", # migrated
+    "checkpointing", # migrated
+    "cromwell_restart", # migrated
+    "space", # migrated
+    "arrays_scatters_ifs", # migrated
+    "declarations_as_nodes", # migrated
+    "variable_scoping", # migrated
+    "sub_workflow_decls", # migrated
+    "input_mirror", # migrated
     "sub_workflow_hello_world_import",
     "sub_workflow_hello_world",
     "volatile_disables_cache",
