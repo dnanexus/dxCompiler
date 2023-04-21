@@ -429,23 +429,23 @@ cromwell_tests_list = [
     "variable_scoping", # migrated
     "sub_workflow_decls", # migrated
     "input_mirror", # migrated
-    "sub_workflow_hello_world_import",
-    "sub_workflow_hello_world",
-    "volatile_disables_cache",
-    "file_outputs_from_input",
-    "write_tsv",
-    "final_call_logs_dir",
-    "subdirectory",
-    "input_localization",
-    "scattered",
-    "filearrayoutput",
-    "array_io",
-    "docker_hash_quay",
-    "docker_hash_gcr",
-    "workflow_type_and_version_wdl",
-    "dontglobinputs",
-    "globbingscatter",
-    "ifs_in_scatters",
+    "sub_workflow_hello_world_import", # migrated as dependency
+    "sub_workflow_hello_world", # migrated
+    "volatile_disables_cache", # migrated
+    "file_outputs_from_input", # migrated
+    "write_tsv", # migrated
+    "final_call_logs_dir", # migrated
+    "subdirectory", # migrated
+    "input_localization", # migrated
+    "scattered", # migrated
+    "filearrayoutput", # migrated
+    "array_io", # migrated
+    "docker_hash_quay", # migrated
+    "docker_hash_gcr", # migrated
+    "workflow_type_and_version_wdl", # migrated
+    "dontglobinputs", # migrated
+    "globbingscatter", # migrated
+    "ifs_in_scatters", # migrated
     "nested_lookups",
     "simple_if",
     "declarations_in_ifs",
