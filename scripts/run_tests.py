@@ -446,56 +446,56 @@ cromwell_tests_list = [
     "dontglobinputs", # migrated
     "globbingscatter", # migrated
     "ifs_in_scatters", # migrated
-    "nested_lookups",
-    "simple_if",
-    "declarations_in_ifs",
-    "lots_of_nesting",
-    "ifs_upstream_and_downstream",
-    "subworkflows_in_ifs",
-    "scatters_in_ifs",
-    "simple_if_workflow_outputs",
-    "scattergather",
-    "map_workflow",
-    "forkjoin",
-    "scatter_chain",
-    "output_redirection",
-    "workflowenginefunctions",
-    "stdout_stderr_passing",
-    "scatter",
-    "siblings_scatter",
-    "simple_scatter",
-    "prepare_scatter_gather",
-    "multiplesourcedarray",
-    "passingfiles",
-    "referencingpreviousinputsandoutputs",
-    "engine_functions",
+    "nested_lookups", # migrated
+    "simple_if", # migrated
+    "declarations_in_ifs", # migrated
+    "lots_of_nesting", # migrated
+    "ifs_upstream_and_downstream", # migrated
+    "subworkflows_in_ifs", # migrated
+    "scatters_in_ifs", # migrated
+    "simple_if_workflow_outputs", # migrated
+    "scattergather", # migrated
+    "map_workflow", # migrated
+    "forkjoin", # migrated
+    "scatter_chain", # migrated
+    "output_redirection", # migrated
+    "workflowenginefunctions", # migrated
+    "stdout_stderr_passing", # migrated
+    "scatter", # migrated
+    "x", # not registered
+    "simple_scatter", # migrated
+    "prepare_scatter_gather", # migrated
+    "multiplesourcedarray", # migrated
+    "passingfiles", # migrated
+    "referencingpreviousinputsandoutputs", # migrated
+    "engine_functions", # migrated
     # "string_interpolation_optional",  # pending wdlTools 170
     # "none_literal",  # pending wdlTools 170
-    "sub_workflow_interactions_scatter",
-    "sub_workflow_one_output_import",
-    "sub_workflow_var_refs",
-    "sub_workflow_var_refs_import",
+    "sub_workflow_interactions_scatter", # migrated
+    "sub_workflow_one_output_import", # migrated
+    "sub_workflow_var_refs", # migrated
+    "sub_workflow_var_refs_import", # migrated
     # "globbingBehavior",  # pending dxCompiler 87
     # "object_access",  # pending wdlTools 171
     # "read_write_json",  # pending wdlTools 171
-    "no_task_no_output_delete",
-    "if_then_else_expressions",
-    "sub_workflow_no_output_block_import",
-    "sub_workflow_no_outputs_in_block_import",
-    "sub_workflow_interactions_import",
-    "workflow_output_declarations",
-    "member_access",
-    "select_functions",
-    "dollars_in_strings",
-    "workflow_name_length_ok",
-    "importer_ok",
-    "read_write_map",
-    "docker_image_cache_unspecified",
-    "defined_function",
-    "workflow_engine_functions",
-    "empty_scatter",
-    "continue_on_return_code",
-    "exit",
+    "no_task_no_output_delete", # migrated
+    "if_then_else_expressions", # migrated
+    "sub_workflow_no_output_block_import", # migrated
+    "sub_workflow_no_outputs_in_block_import", # migrated
+    "sub_workflow_interactions_import", # imported
+    "workflow_output_declarations", # migrated
+    "member_access", # migrated
+    "select_functions", # migrated
+    "dollars_in_strings", # migrated
+    "workflow_name_length_ok", # migrated
+    "importer_ok", # migrated
+    "read_write_map", # migrated
+    "docker_image_cache_unspecified", # migrated
+    "defined_function", # migrated
+    "workflow_engine_functions", # migrated
+    "empty_scatter", # migrated
+    "continue_on_return_code", # migrated
+    "exit", # migrated
 ]
 
 # CWL - not migrated
@@ -550,7 +550,7 @@ large_test_list = (
     + long_test_list # migrated
     + cwl_conformance_tools # won't migrate CWL
     + cwl_conformance_workflows # won't migrate CWL
-    + cromwell_tests_list
+    + cromwell_tests_list # migrated
 )
 
 manifest_test_list = ("simple_manifest", "complex_manifest", "view_and_count_manifest", "apps_1269_1270_unqualified_ids_manifest")
