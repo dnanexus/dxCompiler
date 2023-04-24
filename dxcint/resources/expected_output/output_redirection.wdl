@@ -1,4 +1,4 @@
-task output_redirection {
+task output_redirection_t01 {
     command {
         echo "#!/bin/bash" > writeToStderr.sh
         # Yes, this is deliberate. We'll eventually end up redirecting this to stdout:
@@ -20,6 +20,6 @@ task output_redirection {
     }
 }
 
-workflow output_redirection_wf {
-    call output_redirection
+workflow output_redirection {
+    call output_redirection_t01
 }

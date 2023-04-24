@@ -30,7 +30,7 @@ task consumeFile {
   }
 }
 
-workflow filepassing {
+workflow passingfiles {
   call mkFile
   call consumeFile {input: in_file=mkFile.out, out_name = "myFileName.abc.txt" }
   output {
