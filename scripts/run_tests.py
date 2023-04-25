@@ -396,7 +396,7 @@ cromwell_tests_list = [
     "papi_cpu_platform", # migrated
     "complex_types_files", # migrated
     "file_evaluator_identifier_lookups", # migrated
-    "non_root_specified_user", # migrated
+    "non_root_specified_user", # not migrated docker_user not supported runtime
     "write_lines", # migrated
     "workflow_output_paths_colliding", # migrated
     "jes_labels", # migrated

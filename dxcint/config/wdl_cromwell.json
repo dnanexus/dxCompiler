@@ -135,7 +135,6 @@
         "file_evaluator_identifier_lookups",
         "simple_if_workflow_outputs",
         "output_redirection",
-        "papi_cpu_platform",
-        "non_root_specified_user"
+        "papi_cpu_platform"
     ]
 }
