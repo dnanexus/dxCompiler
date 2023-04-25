@@ -393,10 +393,10 @@ cromwell_tests_list = [
     "read_tsv", # migrated
     "custom_entrypoint", # migrated
     "square", # migrated
-    "papi_cpu_platform", # migrated
+    "papi_cpu_platform", # not migrated - no credentials for google repo
     "complex_types_files", # migrated
     "file_evaluator_identifier_lookups", # migrated
-    "non_root_specified_user", # not migrated docker_user not supported runtime
+    "non_root_specified_user", # not migrated runtime does not support docker_user
     "write_lines", # migrated
     "workflow_output_paths_colliding", # migrated
     "jes_labels", # migrated

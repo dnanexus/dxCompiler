@@ -10,7 +10,7 @@ task runMe {
   }
 }
 
-workflow simple_if {
+workflow simple_if_workflow_outputs {
   if (true) {
     call runMe as runMeTrue
   }

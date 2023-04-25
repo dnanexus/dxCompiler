@@ -125,7 +125,6 @@
         "file_outputs_from_input",
         "workflow_engine_functions",
         "checkpointing",
-        "simple_if",
         "sub_workflow_hello_world",
         "multiline_command_line",
         "docker_image_cache_unspecified",
@@ -134,7 +133,6 @@
         "empty_string",
         "file_evaluator_identifier_lookups",
         "simple_if_workflow_outputs",
-        "output_redirection",
-        "papi_cpu_platform"
+        "output_redirection"
     ]
 }

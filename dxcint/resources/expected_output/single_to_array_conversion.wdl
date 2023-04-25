@@ -19,7 +19,7 @@ task listFiles {
   runtime { docker: "dx://file-G66qpGj0yzZq02K9313pJg5G" }
 }
 
-workflow oneToMany {
+workflow single_to_array_conversion {
   call singleFile
   call listFiles { input: manyIn = [ singleFile.out ] }
 }
