@@ -1,6 +1,6 @@
 {
-    "w.qux": "qux", 
-    "w.hello": "hello", 
-    "w.world": "world", 
-    "w.bar": "bar"
+    "workflow_engine_functions.qux": "qux",
+    "workflow_engine_functions.hello": "hello",
+    "workflow_engine_functions.world": "world",
+    "workflow_engine_functions.bar": "bar"
 }

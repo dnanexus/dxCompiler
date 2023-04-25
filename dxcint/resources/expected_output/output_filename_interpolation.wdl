@@ -1,4 +1,4 @@
-task output_filename_interpolation {
+task output_filename_interpolation_t01 {
     String outputPrefix = "Oops"
     String outputMain = "Upside"
     String outputSuffix = "YourHead"
@@ -19,6 +19,6 @@ task output_filename_interpolation {
     runtime { docker: "dx://file-G66qpGj0yzZq02K9313pJg5G" }
 }
 
-workflow output_filename_interpolation_wf {
-    call output_filename_interpolation
+workflow output_filename_interpolation {
+    call output_filename_interpolation_t01
 }

@@ -1,4 +1,4 @@
-task file_outputs_from_input {
+task file_outputs_from_input_t01 {
   String outputName1
   String outputName2
   String outputName3
@@ -18,11 +18,11 @@ task file_outputs_from_input {
   }
 }
 
-workflow file_outputs_from_input_wf {
-  call file_outputs_from_input { input: outputName1 = "___something___", outputName2 = "___anything___", outputName3 = "___nothing___" }
+workflow file_outputs_from_input {
+  call file_outputs_from_input_t01 { input: outputName1 = "___something___", outputName2 = "___anything___", outputName3 = "___nothing___" }
   output {
-    String foo = read_string(file_outputs_from_input.foo)
-    String bar = read_string(file_outputs_from_input.bar)
-    String baz = read_string(file_outputs_from_input.baz)
+    String foo = read_string(file_outputs_from_input_t01.foo)
+    String bar = read_string(file_outputs_from_input_t01.bar)
+    String baz = read_string(file_outputs_from_input_t01.baz)
   }
 }

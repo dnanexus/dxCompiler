@@ -1,5 +1,5 @@
 {
-    "output_filename_interpolation_wf.output_filename_interpolation.a": "a", 
-    "output_filename_interpolation_wf.output_filename_interpolation.b": "b", 
-    "output_filename_interpolation_wf.output_filename_interpolation.c": "c"
+    "output_filename_interpolation.stage-0.a": "a",
+    "output_filename_interpolation.stage-0.b": "b",
+    "output_filename_interpolation.stage-0.c": "c"
 }

@@ -1,6 +1,6 @@
 version 1.0
 
-workflow custom_entrypoint_wf {
+workflow custom_entrypoint {
     call custom_entrypoint_task
     output {
         String hello = custom_entrypoint_task.hello

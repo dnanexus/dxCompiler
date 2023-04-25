@@ -1,7 +1,7 @@
 version 1.0
 
 
-workflow w {
+workflow workflow_engine_functions {
   String lines1 = "hello"
   String lines2 = "world"
   String map1 = "foo\tbar"
