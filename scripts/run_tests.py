@@ -553,6 +553,11 @@ large_test_list = (
     + cromwell_tests_list # migrated
 )
 
+cwl_conformance = (
+    cwl_conformance_tools
+    + cwl_conformance_workflows
+)
+
 manifest_test_list = ("simple_manifest", "complex_manifest", "view_and_count_manifest", "apps_1269_1270_unqualified_ids_manifest")
 
 test_suites = {
@@ -569,6 +574,7 @@ test_suites = {
     "cromwell": cromwell_tests_list,
     "cwl_cromwell": cwl_cromwell_tests_list,
     "manifests": manifest_test_list,
+    "CWL": cwl_conformance
 }
 
 # Tests with the reorg flags

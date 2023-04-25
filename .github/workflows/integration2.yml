@@ -82,7 +82,6 @@ jobs:
           FOLDER=/builds/test_gha_dxcompiler_$(date +%s)_$RANDOM
           dx mkdir -p $FOLDER
           python3 scripts/run_multiuser_tests.py --folder $FOLDER --project $PROJECT \
-          --clean \
           --alice-token $ROBOT_TOKEN \
           --bob-token $TEST_ROBOT_TOKEN
 

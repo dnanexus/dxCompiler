@@ -61,6 +61,11 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 11
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.4.2
+          virtualenvs-create: true
       - name: Install dxpy and other dependencies
         run: |
           sudo apt-get update
@@ -68,64 +73,72 @@ jobs:
           cwltool=`jq -r '.execDepends.cwl[0].name' scripts/bundled_dependencies.json`
           pip3 install --upgrade pip setuptools==58.3.0 
           pip3 install termcolor dxpy==0.323.0 $cwltool pyOpenSSL==22.0.0
-          # install dxda
-          dxda_version=`jq -r '.dxda' scripts/bundled_dependencies.json`
-          sudo wget -O/usr/local/bin/dx-download-agent https://github.com/dnanexus/dxda/releases/download/${dxda_version}/dx-download-agent-linux
-          sudo chmod +x /usr/local/bin/dx-download-agent
-      - name: Run unit tests
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          AUTH_TOKEN: ${{ secrets.DX_STAGING_TEST_ROBOT_TOKEN }}
-          SBT_OPTS: "-XX:+CMSClassUnloadingEnabled -Xmx4G -Xms1G"
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y apt-transport-https wget git openssh-server tree python3 python3-pip python3-venv
-          cwltool=`jq -r '.execDepends.cwl[0].name' scripts/bundled_dependencies.json`
-          pip3 install --upgrade pip setuptools==58.3.0 
-          pip3 install termcolor dxpy $cwltool pyOpenSSL==22.0.0
           export PATH="$PATH:$HOME/.local/bin"
-
           # install dxda
           dxda_version=`jq -r '.dxda' scripts/bundled_dependencies.json`
           sudo wget -O/usr/local/bin/dx-download-agent https://github.com/dnanexus/dxda/releases/download/${dxda_version}/dx-download-agent-linux
           sudo chmod +x /usr/local/bin/dx-download-agent
-
-          # set up DNAnexus staging environment
-          dx login --noprojects --staging --token $AUTH_TOKEN
-          dx select $PROJECT
-
-          # run unit tests
-          cd ${GITHUB_WORKSPACE}
-          pwd
-          sbt version && sbt compile && sbt "testOnly -- -l prod"
-      - name: Run integration tests
-        if: ${{ github.event.inputs.should-run-tests == 'true' }}
+      - name: Set-up
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ROBOT_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
           TEST_ROBOT_TOKEN: ${{ secrets.DX_STAGING_TEST_ROBOT_TOKEN }}
         run: |
           export PATH="$PATH:$HOME/.local/bin"
-
           # Set up DNAnexus staging environment
           dx login --noprojects --staging --token $ROBOT_TOKEN
           dx select $PROJECT
           cd ${GITHUB_WORKSPACE}
-
-          # Run integration tests
-          FOLDER=/builds/test_gha_dxcompiler_$(date +%s)_$RANDOM
-          dx mkdir -p $FOLDER
-          python3 scripts/run_tests.py --folder $FOLDER --project $PROJECT \
-          --clean \
-          --test L
-
-          # Run multi-user tests
+      - name: Run unit tests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AUTH_TOKEN: ${{ secrets.DX_STAGING_TEST_ROBOT_TOKEN }}
+          SBT_OPTS: "-XX:+CMSClassUnloadingEnabled -Xmx4G -Xms1G"
+        run: |
+          sbt version && sbt compile && sbt "testOnly -- -l prod"
+      - name: Install dxcint
+        run: |
+          cd dxcint
+          poetry install
+          cd ..
+      - name: Run medium integration test suite with dxcint
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ROBOT_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
+        run: |
+          cd dxcint
+          poetry run dxcint integration -t 'M' ../ --clean
+      - name: Run multi-user tests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ROBOT_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
+          TEST_ROBOT_TOKEN: ${{ secrets.DX_STAGING_TEST_ROBOT_TOKEN }}
+        run: |
           FOLDER=/builds/test_gha_dxcompiler_$(date +%s)_$RANDOM
           dx mkdir -p $FOLDER
           python3 scripts/run_multiuser_tests.py --folder $FOLDER --project $PROJECT \
-          --clean \
           --alice-token $ROBOT_TOKEN \
           --bob-token $TEST_ROBOT_TOKEN
+      - name: Run large and cromwell integration test suites with dxcint
+        if: ${{ github.event.inputs.should-run-tests == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ROBOT_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
+        run: |
+          cd dxcint
+          poetry run dxcint integration -t 'L' ../
+          poetry run dxcint integration -t 'CW' ../
+      - name: Run CWL conformance tests
+        if: ${{ github.event.inputs.should-run-tests == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ROBOT_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
+        run: |
+          export PATH="$PATH:$HOME/.local/bin"
+          FOLDER=/builds/test_gha_dxcompiler_$(date +%s)_$RANDOM
+          dx mkdir -p $FOLDER
+          python3 scripts/run_tests.py --folder $FOLDER --project $PROJECT \
+          --test CWL
       - name: Run the release script
         env:
           DX_STAGING_RELEASE_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
