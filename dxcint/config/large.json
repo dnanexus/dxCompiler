@@ -1,1 +1,49 @@
-{"expected_failure": ["diskspace_exhauster","bad_status","bad_status2","just_fail_wf"]}
+{
+    "expected_failure": [
+        "bad_status",
+        "bad_status2",
+        "just_fail_wf"
+    ],
+    "expected_output": [
+        "empty_stdout",
+        "subblocks",
+        "movies",
+        "modulo",
+        "multiple_imports",
+        "files_with_the_same_name",
+        "call_with_defaults2",
+        "subblocks2",
+        "diff2files",
+        "subworkflow_with_task",
+        "conditionals2",
+        "write_lines_bug",
+        "echo_line_split",
+        "add3",
+        "var_type_change",
+        "outer",
+        "advanced",
+        "stream_diff_v1",
+        "conditionals_base"
+    ],
+    "unlocked_expected_output": [
+        "files",
+        "shapes",
+        "call_with_defaults1"
+    ],
+    "unlocked_extras_expected_output": [
+        "hello"
+    ],
+    "static_pinned_instance_expected_failure": [
+        "diskspace_exhauster"
+    ],
+    "analysis_finished": [
+        "DiskSpace2",
+        "bwa_mem",
+        "sort_file",
+        "unzip_files",
+        "opt_array"
+    ],
+    "extras_expected_output": [
+        "symlinks_wc"
+    ]
+}

@@ -1,6 +1,6 @@
 version 1.1
 
-import "subworkflow_with_defaults.wdl" as lib
+import "../imports/subworkflow_with_defaults.wdl" as lib
 
 workflow workflow_with_subworkflow {
 

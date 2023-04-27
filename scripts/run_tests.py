@@ -33,7 +33,7 @@ test_compilation_failing = {
 
 # these tests generally have missing inputs and are expected to fail at the run step
 test_run_failing = {
-    "null-expression2-tool.0",
+    "null-expression2-tool.0", # cwl not migrated
 }
 
 # these tests are expected to fail at runtime AND throw a specific error message which will be checked
@@ -198,47 +198,47 @@ docker_test_list = [
 
 # wdl draft-2 - Large suite, not migrated unless specified
 draft2_test_list = [
-    "advanced",
+    "advanced", #migrated
     "bad_status", #migrated
     "bad_status2", #migrated
     "just_fail_wf", #migrated
-    "call_with_defaults1",
-    "call_with_defaults2",
-    "conditionals_base",
-    "files",
-    "files_with_the_same_name",
-    "hello",
-    "shapes",
+    "call_with_defaults1", #migrated
+    "call_with_defaults2", #migrated
+    "conditionals_base", #migrated
+    "files", #migrated
+    "files_with_the_same_name", #migrated
+    "hello", #migrated
+    "shapes", #migrated
     # this test cannot be enabled yet, because we
     # don't yet support overriding task inputs
     # "population",
     # multiple library imports in one WDL workflow
-    "multiple_imports",
+    "multiple_imports", #migrated
     # subworkflows
-    "conditionals2",
-    "modulo",
-    "movies",
-    "subblocks2",
-    "subblocks",
-    "var_type_change",
-    "outer",
+    "conditionals2", #migrated
+    "modulo", #migrated
+    "movies", #migrated
+    "subblocks2", #migrated
+    "subblocks", #migrated
+    "var_type_change", #migrated
+    "outer", #migrated
     # calling native dx applets/apps
     # We currently do not have a code generator for draft-2, so cannot import dx_extern.wdl.
     # "call_native",
-    "write_lines_bug",
+    "write_lines_bug", #migrated
 ]
 
 single_tasks_list = [
-    "add3",
-    "diff2files",
-    "empty_stdout",
-    "sort_file",
-    "symlinks_wc",
-    "DiskSpace2",
-    "echo_line_split",
-    "opt_array",
-    "stream_diff_v1",
-    "unzip_files"
+    "add3", # merged
+    "diff2files", # merged
+    "empty_stdout", # merged
+    "sort_file", # merged
+    "symlinks_wc", # merged
+    "DiskSpace2", # merged
+    "echo_line_split", # merged
+    "opt_array", # merged
+    "stream_diff_v1", # merged
+    "unzip_files" # merged
 ]
 
 # cwl, not migrated
@@ -274,16 +274,17 @@ ci_test_list = [
     "cat",
 ]
 
-# TODO - migrate to dxcint. Not automated, no regression monitored
+#
 special_flags_list = [
-    "add2",  # test the ignoreReuse flag
-    "add_many",  # tests the delayWorkspaceDestruction flag
-    "inc_range",  # check that runtime call to job/analysis pass the delayWorkspaceDestruction flag
+    "add2",  # test the ignoreReuse flag. TODO - migrate to dxcint. Not automated, no regression monitored
+    "add_many",  # tests the delayWorkspaceDestruction flag. Obsolete because APPS-1616
+    "inc_range",  # check that runtime call to job/analysis pass the delayWorkspaceDestruction flag. Obsolete because APPS-1616
 ]
 
 # these are the examples from the documentation
 doc_tests_list = ["bwa_mem"]
 
+# undefined suite
 cromwell_key_error_list = [
     "http_inputs",
     "drs_usa_hca",
@@ -351,150 +352,150 @@ cromwell_invalid = {
 # LArge suite
 # tests taken from cromwell repository
 cromwell_tests_list = [
-    "null_input_values",
-    "dont_strip_line_prefix",
-    "non_root_default_user",
-    "memory_units",
-    "cacheWithinWF",
-    "dot_dir_stuck_running",
-    "empty_string",
-    "floating_tags",
-    "array_literal_locations",
-    "stdout_delete",
-    "sub_workflow_delete",
-    "no_output_delete",
-    "exhaustive_delete",
-    "scatter_delete",
-    "collections_delete",
-    "hello_delete",
-    "sub_workflow_delete_import",
-    "no_cache_delete",
-    "readFromCache",
-    "sizerelativepath",
-    "subworkflow_wt",
-    "b",
-    "c",
-    "a",
-    "d",
-    "sub_sub_sub",
-    "array_io",
-    "simple_if",
-    "single_to_array_conversion",
-    "coerce_to_array_of_optionals",
-    "wdl_function_locations",
-    "workflow_output_paths",
-    "sub_function",
-    "public_http_import",
-    "control_chars",
-    "prefix",
-    "write_lines_files",
-    "cached_copy",
-    "read_tsv",
-    "custom_entrypoint",
-    "square",
-    "papi_cpu_platform",
-    "complex_types_files",
-    "file_evaluator_identifier_lookups",
-    "non_root_specified_user",
-    "write_lines",
-    "workflow_output_paths_colliding",
-    "jes_labels",
-    "localization_sanity_papi_v2",
-    "recimp_nosubwf_outer",
-    "recimp_nosubwf_inner",
-    "globbingindex",
-    "postfix_quantifiers",
-    "length",
-    "wdl_empty_glob",
-    "output_filename_interpolation",
-    "aliased_subworkflows",
-    "docker_image_cache_false",
-    "curl",
-    "symlink_localization",
-    "error_10_preemptible",
-    "multiline_command_line",
-    "use_cacheCopy_dir",
-    "writeToCache",
-    "cacheBetweenWF",
-    "lots_of_inputs",
-    "local_gcs",
-    "read_write_json_roundtrip_develop",
-    "read_write_json_roundtrip",
-    "checkpointing",
-    "cromwell_restart",
-    "space",
-    "arrays_scatters_ifs",
-    "declarations_as_nodes",
-    "variable_scoping",
-    "sub_workflow_decls",
-    "input_mirror",
-    "sub_workflow_hello_world_import",
-    "sub_workflow_hello_world",
-    "volatile_disables_cache",
-    "file_outputs_from_input",
-    "write_tsv",
-    "final_call_logs_dir",
-    "subdirectory",
-    "input_localization",
-    "scattered",
-    "filearrayoutput",
-    "array_io",
-    "docker_hash_quay",
-    "docker_hash_gcr",
-    "workflow_type_and_version_wdl",
-    "dontglobinputs",
-    "globbingscatter",
-    "ifs_in_scatters",
-    "nested_lookups",
-    "simple_if",
-    "declarations_in_ifs",
-    "lots_of_nesting",
-    "ifs_upstream_and_downstream",
-    "subworkflows_in_ifs",
-    "scatters_in_ifs",
-    "simple_if_workflow_outputs",
-    "scattergather",
-    "map_workflow",
-    "forkjoin",
-    "scatter_chain",
-    "output_redirection",
-    "workflowenginefunctions",
-    "stdout_stderr_passing",
-    "scatter",
-    "siblings_scatter",
-    "simple_scatter",
-    "prepare_scatter_gather",
-    "multiplesourcedarray",
-    "passingfiles",
-    "referencingpreviousinputsandoutputs",
-    "engine_functions",
+    "null_input_values", # migrated
+    "dont_strip_line_prefix", # migrated
+    "non_root_default_user", # migrated
+    "memory_units", # migrated
+    "cacheWithinWF", # migrated
+    "dot_dir_stuck_running", # migrated
+    "empty_string", # migrated
+    "floating_tags", # migrated
+    "array_literal_locations", # migrated
+    "stdout_delete", # migrated
+    "sub_workflow_delete", # migrated
+    "no_output_delete", # migrated
+    "exhaustive_delete", # migrated
+    "scatter_delete", # migrated
+    "collections_delete", # migrated
+    "hello_delete", # migrated
+    "sub_workflow_delete_import", # migrated
+    "no_cache_delete", # migrated
+    "readFromCache", # migrated
+    "sizerelativepath", # migrated
+    "subworkflow_wt", # migrated
+    "b", # migrated
+    "c", # migrated
+    "a", # migrated
+    "d", # migrated
+    "sub_sub_sub", # migrated
+    "array_io", # migrated
+    "simple_if", # migrated
+    "single_to_array_conversion", # migrated
+    "coerce_to_array_of_optionals", # migrated
+    "wdl_function_locations", # migrated
+    "workflow_output_paths", # migrated
+    "sub_function", # migrated
+    "public_http_import", # migrated
+    "control_chars", # migrated
+    "prefix", # migrated
+    "write_lines_files", # migrated
+    "cached_copy", # migrated
+    "read_tsv", # migrated
+    "custom_entrypoint", # migrated
+    "square", # migrated
+    "papi_cpu_platform", # not migrated - no credentials for google repo
+    "complex_types_files", # migrated
+    "file_evaluator_identifier_lookups", # migrated
+    "non_root_specified_user", # not migrated runtime does not support docker_user
+    "write_lines", # migrated
+    "workflow_output_paths_colliding", # migrated
+    "jes_labels", # migrated
+    "localization_sanity_papi_v2", # migrated
+    "recimp_nosubwf_outer", # migrated
+    "recimp_nosubwf_inner", # migrated
+    "globbingindex", # migrated
+    "postfix_quantifiers", # migrated
+    "length", # migrated
+    "wdl_empty_glob", # migrated
+    "output_filename_interpolation", # migrated
+    "aliased_subworkflows", # migrated
+    "docker_image_cache_false", # migrated
+    "curl", # migrated
+    "symlink_localization", # migrated
+    "error_10_preemptible", # migrated
+    "multiline_command_line", # migrated
+    "use_cacheCopy_dir", # migrated
+    "writeToCache", # migrated
+    "cacheBetweenWF", # migrated
+    "lots_of_inputs", # migrated
+    "local_gcs", # migrated
+    "read_write_json_roundtrip_develop", # migrated
+    "read_write_json_roundtrip", # migrated
+    "checkpointing", # migrated
+    "cromwell_restart", # migrated
+    "space", # migrated
+    "arrays_scatters_ifs", # migrated
+    "declarations_as_nodes", # migrated
+    "variable_scoping", # migrated
+    "sub_workflow_decls", # migrated
+    "input_mirror", # migrated
+    "sub_workflow_hello_world_import", # migrated as dependency
+    "sub_workflow_hello_world", # migrated
+    "volatile_disables_cache", # migrated
+    "file_outputs_from_input", # migrated
+    "write_tsv", # migrated
+    "final_call_logs_dir", # migrated
+    "subdirectory", # migrated
+    "input_localization", # migrated
+    "scattered", # migrated
+    "filearrayoutput", # migrated
+    "array_io", # migrated
+    "docker_hash_quay", # migrated
+    "docker_hash_gcr", # migrated
+    "workflow_type_and_version_wdl", # migrated
+    "dontglobinputs", # migrated
+    "globbingscatter", # migrated
+    "ifs_in_scatters", # migrated
+    "nested_lookups", # migrated
+    "simple_if", # migrated
+    "declarations_in_ifs", # migrated
+    "lots_of_nesting", # migrated
+    "ifs_upstream_and_downstream", # migrated
+    "subworkflows_in_ifs", # migrated
+    "scatters_in_ifs", # migrated
+    "simple_if_workflow_outputs", # migrated
+    "scattergather", # migrated
+    "map_workflow", # migrated
+    "forkjoin", # migrated
+    "scatter_chain", # migrated
+    "output_redirection", # migrated
+    "workflowenginefunctions", # migrated
+    "stdout_stderr_passing", # migrated
+    "scatter", # migrated
+    "x", # not registered
+    "simple_scatter", # migrated
+    "prepare_scatter_gather", # migrated
+    "multiplesourcedarray", # migrated
+    "passingfiles", # migrated
+    "referencingpreviousinputsandoutputs", # migrated
+    "engine_functions", # migrated
     # "string_interpolation_optional",  # pending wdlTools 170
     # "none_literal",  # pending wdlTools 170
-    "sub_workflow_interactions_scatter",
-    "sub_workflow_one_output_import",
-    "sub_workflow_var_refs",
-    "sub_workflow_var_refs_import",
+    "sub_workflow_interactions_scatter", # migrated
+    "sub_workflow_one_output_import", # migrated
+    "sub_workflow_var_refs", # migrated
+    "sub_workflow_var_refs_import", # migrated
     # "globbingBehavior",  # pending dxCompiler 87
     # "object_access",  # pending wdlTools 171
     # "read_write_json",  # pending wdlTools 171
-    "no_task_no_output_delete",
-    "if_then_else_expressions",
-    "sub_workflow_no_output_block_import",
-    "sub_workflow_no_outputs_in_block_import",
-    "sub_workflow_interactions_import",
-    "workflow_output_declarations",
-    "member_access",
-    "select_functions",
-    "dollars_in_strings",
-    "workflow_name_length_ok",
-    "importer_ok",
-    "read_write_map",
-    "docker_image_cache_unspecified",
-    "defined_function",
-    "workflow_engine_functions",
-    "empty_scatter",
-    "continue_on_return_code",
-    "exit",
+    "no_task_no_output_delete", # migrated
+    "if_then_else_expressions", # migrated
+    "sub_workflow_no_output_block_import", # migrated
+    "sub_workflow_no_outputs_in_block_import", # migrated
+    "sub_workflow_interactions_import", # imported
+    "workflow_output_declarations", # migrated
+    "member_access", # migrated
+    "select_functions", # migrated
+    "dollars_in_strings", # migrated
+    "workflow_name_length_ok", # migrated
+    "importer_ok", # migrated
+    "read_write_map", # migrated
+    "docker_image_cache_unspecified", # migrated
+    "defined_function", # migrated
+    "workflow_engine_functions", # migrated
+    "empty_scatter", # migrated
+    "continue_on_return_code", # migrated
+    "exit", # migrated
 ]
 
 # CWL - not migrated
@@ -536,20 +537,25 @@ cwl_cromwell_tests_list = [
 ]
 
 # these are tests that take a long time to run
-long_test_list = ["diskspace_exhauster"]  # APPS-749 #migrated
+long_test_list = ["diskspace_exhauster"]  # APPS-749 # migrated
 
 medium_test_list = (
     wdl_v1_list + wdl_v1_1_list + docker_test_list + special_flags_list + cwl_tools
 )
 large_test_list = (
-    medium_test_list
-    + draft2_test_list
-    + single_tasks_list
-    + doc_tests_list
-    + long_test_list
-    + cwl_conformance_tools
+    medium_test_list # migrated
+    + draft2_test_list # migrated
+    + single_tasks_list # migrated
+    + doc_tests_list # migrated
+    + long_test_list # migrated
+    + cwl_conformance_tools # won't migrate CWL
+    + cwl_conformance_workflows # won't migrate CWL
+    + cromwell_tests_list # migrated
+)
+
+cwl_conformance = (
+    cwl_conformance_tools
     + cwl_conformance_workflows
-    + cromwell_tests_list
 )
 
 manifest_test_list = ("simple_manifest", "complex_manifest", "view_and_count_manifest", "apps_1269_1270_unqualified_ids_manifest")
@@ -568,6 +574,7 @@ test_suites = {
     "cromwell": cromwell_tests_list,
     "cwl_cromwell": cwl_cromwell_tests_list,
     "manifests": manifest_test_list,
+    "CWL": cwl_conformance
 }
 
 # Tests with the reorg flags
@@ -578,12 +585,12 @@ test_defaults = set()
 test_unlocked = {
     "array_structs", #migrated
     "cast", #migrated
-    "call_with_defaults1",
-    "files",
-    "hello",
+    "call_with_defaults1", #migrated
+    "files", #migrated
+    "hello", #migrated
     "path_not_taken", #not run
     "optionals", #migrated
-    "shapes",
+    "shapes", #migrated
     "population", #not run
 }
 test_project_wide_reuse = {"add2", "add_many"}

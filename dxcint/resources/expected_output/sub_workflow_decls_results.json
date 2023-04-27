@@ -1,0 +1,14 @@
+{
+    "sub_workflow_decls.passthrough_overridden_input": "This is the correct overridden value", 
+    "sub_workflow_decls.passthrough_initialized_input": "This is the correct initialized value", 
+    "sub_workflow_decls.optional_with_default": "this is a default", 
+    "sub_workflow_decls.needs_to_be_supplied": "initialized", 
+    "sub_workflow_decls.depends_on_needs_to_be_supplied": "initialized", 
+    "sub_workflow_decls.optional_with_default_but_overridden": "supplied but overridden optional", 
+    "sub_workflow_decls.optional_without_default_not_supplied": null, 
+    "sub_workflow_decls.depends_on_task_output": "foo", 
+    "sub_workflow_decls.passthrough_required_input": "This is the correct required value", 
+    "sub_workflow_decls.default_which_is_overridden": "overridden", 
+    "sub_workflow_decls.depends_on_default_which_is_overridden": "overridden", 
+    "sub_workflow_decls.optional_without_default_supplied": "consider yourself supplied"
+}

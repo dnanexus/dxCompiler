@@ -1,0 +1,4 @@
+{
+    "output_redirection.stage-0.stdout": "should be on stdout",
+    "output_redirection.stage-0.stderr": "should be on stderr"
+}

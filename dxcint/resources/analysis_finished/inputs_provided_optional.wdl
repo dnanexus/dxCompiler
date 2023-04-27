@@ -1,6 +1,6 @@
 version 1.1
 
-import "structs.wdl"
+import "../imports/structs.wdl"
 
 workflow test_workflow {
   input {
