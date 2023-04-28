@@ -18,6 +18,7 @@ from dxcint.testclasses.StaticPinnedInstanceExpectedFailure import (
 from dxcint.testclasses.ManifestAnalysisFinished import ManifestAnalysisFinished
 from dxcint.testclasses.ExternExpectedOutput import ExternExpectedOutput
 from dxcint.testclasses.AppExternExpectedOutput import AppExternExpectedOutput
+from dxcint.testclasses.ExpectedFlags import ExpectedFlags
 
 
 class RegisteredTestFactory(object):
@@ -41,6 +42,7 @@ class RegisteredTestFactory(object):
             "manifest_analysis_finished": ManifestAnalysisFinished,
             "extern_expected_output": ExternExpectedOutput,
             "app_extern_expected_output": AppExternExpectedOutput,
+            "expected_flags": ExpectedFlags,
             # ADD NEW CATEGORY HERE
         }
         registered_test = test_type_switch.get(category, None)
