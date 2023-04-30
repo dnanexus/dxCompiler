@@ -1,5 +1,4 @@
 import os
-import subprocess
 from dxcint.RegisteredTest import RegisteredTest
 from dxcint.mixins.JobCollectorMixin import JobCollectorMixin
 
@@ -14,11 +13,11 @@ def test_JobCollectorMixin(fixtures_dir, context_init, mocker):
         "mock_1",
         context_init,
     )
-    mocker.patch("subprocess.check_output")
-    spy = mocker.spy(subprocess, "check_output")
-    _ = jcm.exec_id
-    assert (
-        os.path.join(fixtures_dir, "resources", "mock_category", "mock_1_extras.json")
-        in spy.call_args_list[0].args[0]
+    mocker.patch.object(
+        JobCollectorMixer,
+        "job_id",
+        return_value="analysis-GB63Zv00yzZfP82KGkz1F2Qb",
+        new_callable=mocker.PropertyMock,
     )
-    assert "-extras" in spy.call_args_list[0].args[0]
+    collected_executions = jcm._collect()
+    assert len(collected_executions) == 5
