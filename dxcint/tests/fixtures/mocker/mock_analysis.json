@@ -1,6 +1,6 @@
 {
     "id": "analysis-XXXX",
-    "name": "mock_1 b'2.4.2-320-gc56fb4f2-dirty'",
+    "name": "mock_1",
     "tags": [],
     "properties": {},
     "executable": "workflow-YYYY",

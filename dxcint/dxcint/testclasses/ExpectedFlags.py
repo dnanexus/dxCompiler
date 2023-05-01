@@ -1,8 +1,8 @@
+import dxpy
 from typing import Dict
-from dxcint.testclasses import ExpectedOutput
+from dxcint.RegisteredTest import RegisteredTestError
+from dxcint.testclasses.ExpectedOutput import ExpectedOutput
 from dxcint.mixins.JobCollectorMixin import JobCollectorMixin
-
-from dxpy.api import system_describe_executions
 
 
 class ExpectedFlags(JobCollectorMixin, ExpectedOutput):
@@ -16,8 +16,15 @@ class ExpectedFlags(JobCollectorMixin, ExpectedOutput):
 
     def _execution_cache(self) -> Dict:
         exec_ids = self._collect()
-        cache = system_describe_executions(exec_ids)
-        return {x.get("name"): x for x in cache.get("results", None)}
+        cache = dxpy.api.system_describe_executions(
+            input_params={"executions": exec_ids}
+        ).get("results", None)
+        if not cache:
+            self.context.logger.error(
+                f"No executions (jobs/analyses) were found for the test {self.name}"
+            )
+            raise RegisteredTestError("No executions found")
+        return {x["describe"]["name"]: x["describe"] for x in cache}
 
     def _extract_outputs(self) -> Dict:
         return self.cache

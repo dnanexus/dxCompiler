@@ -1,5 +1,6 @@
 import pytest
 from dxcint.testclasses.ExpectedFlags import ExpectedFlags
+from dxcint.mixins.JobCollectorMixin import JobCollectorMixin
 from dxcint.Messenger import Messenger
 
 
@@ -19,17 +20,13 @@ def init_ExpectedFlags(mocker, context_empty_init):
 
 
 def test__extract_outputs(init_ExpectedFlags, mock_analysis_desc, mocker):
-    mocker.patch.object(
-        Messenger,
-        "describe",
-        return_value=mock_analysis_desc,
-        new_callable=mocker.PropertyMock,
+    mocker.patch(
+        "dxpy.api.system_describe_executions",
+        return_value={"results": [{"describe": mock_analysis_desc}]},
     )
+    mocker.patch.object(JobCollectorMixin, "_collect", return_value=None)
     outs = init_ExpectedFlags._extract_outputs()
-    assert outs == {
-        "stage-0.done": "Hello World!",
-        "out": "Hello World!",
-    }
+    assert outs["mock_1"] == mock_analysis_desc
 
 
 def test__validate_outputs(
