@@ -33,7 +33,7 @@ class ExpectedFlags(JobCollectorMixin, ExpectedOutput):
         try:
             for key, expected_val in expected_output.items():
                 top_exec_name, stage_name, flag = key.split(".")
-                if top_exec_name != self._test_name:
+                if top_exec_name != self.name:
                     self.context.logger.error(
                         "Execution name in output does not match test name"
                     )

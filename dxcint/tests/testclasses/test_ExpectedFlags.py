@@ -30,7 +30,7 @@ def test__extract_outputs(init_ExpectedFlags, mock_analysis_desc, mocker):
 
 
 def test__validate_outputs(
-    init_ExpectedFlags, mock_analysis_desc, mock_analysis_results, mocker
+    init_ExpectedFlags, mock_analysis_desc, mock_analysis_flags, mocker
 ):
     mocker.patch.object(
         Messenger,
@@ -38,6 +38,11 @@ def test__validate_outputs(
         return_value=mock_analysis_desc,
         new_callable=mocker.PropertyMock,
     )
+    mocker.patch(
+        "dxpy.api.system_describe_executions",
+        return_value={"results": [{"describe": mock_analysis_desc}]},
+    )
+    mocker.patch.object(JobCollectorMixin, "_collect", return_value=None)
     output = init_ExpectedFlags._extract_outputs()
-    passed = init_ExpectedFlags._validate_outputs(output, mock_analysis_results)
+    passed = init_ExpectedFlags._validate_outputs(output, mock_analysis_flags)
     assert passed
