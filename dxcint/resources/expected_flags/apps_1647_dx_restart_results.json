@@ -6,5 +6,13 @@
       "ExecutionError": 3
     },
     "maxSpotTries": 1
+  },
+  "apps_1647_dx_restart.if (true).executionPolicy": {
+    "maxSpotTries": 1,
+    "restartOn": {
+      "UnresponsiveWorker": 2,
+      "JMInternalError": 1,
+      "ExecutionError": 1
+    }
   }
 }
