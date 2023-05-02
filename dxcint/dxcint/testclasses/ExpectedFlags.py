@@ -17,7 +17,7 @@ class ExpectedFlags(JobCollectorMixin, ExpectedOutput):
     def _execution_cache(self) -> Dict:
         exec_ids = self._collect()
         cache = dxpy.api.system_describe_executions(
-            input_params={"executions": exec_ids}
+            input_params={"executions": list(exec_ids)}
         ).get("results", None)
         if not cache:
             self.context.logger.error(

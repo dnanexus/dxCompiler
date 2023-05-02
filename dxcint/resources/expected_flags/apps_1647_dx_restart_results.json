@@ -1,0 +1,10 @@
+{
+  "apps_1647_dx_restart.t01_conditional.executionPolicy": {
+    "maxRestarts": 5,
+    "restartOn": {
+      "UnresponsiveWorker": 3,
+      "ExecutionError": 3
+    },
+    "maxSpotTries": 1
+  }
+}
