@@ -20,4 +20,4 @@ def test_JobCollectorMixin(fixtures_dir, context_init, mocker):
         new_callable=mocker.PropertyMock,
     )
     collected_executions = jcm._collect()
-    assert len(collected_executions) == 5
+    assert len(collected_executions) == 6

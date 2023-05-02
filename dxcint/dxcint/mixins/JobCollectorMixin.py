@@ -17,7 +17,9 @@ class JobCollectorMixin(RegisteredTest):
         child_executions = dxpy.find_executions(
             project=self.context.project_id, **self._prep_find_kwargs(self.job_id)
         )
-        return set(self._recursive_collect(child_executions))
+        collected_executions = set(self._recursive_collect(child_executions))
+        collected_executions.add(self.job_id)
+        return collected_executions
 
     def _recursive_collect(
         self, execution_ids: Union[Generator, Iterable]
