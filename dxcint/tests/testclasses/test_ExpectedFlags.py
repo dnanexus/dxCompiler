@@ -24,7 +24,7 @@ def test__extract_outputs(init_ExpectedFlags, mock_analysis_desc, mocker):
         "dxpy.api.system_describe_executions",
         return_value={"results": [{"describe": mock_analysis_desc}]},
     )
-    mocker.patch.object(JobCollectorMixin, "_collect", return_value=None)
+    mocker.patch.object(JobCollectorMixin, "_collect", return_value="123")
     outs = init_ExpectedFlags._extract_outputs()
     assert outs["mock_1"] == mock_analysis_desc
 
@@ -42,7 +42,7 @@ def test__validate_outputs(
         "dxpy.api.system_describe_executions",
         return_value={"results": [{"describe": mock_analysis_desc}]},
     )
-    mocker.patch.object(JobCollectorMixin, "_collect", return_value=None)
+    mocker.patch.object(JobCollectorMixin, "_collect", return_value="123")
     output = init_ExpectedFlags._extract_outputs()
     passed = init_ExpectedFlags._validate_outputs(output, mock_analysis_flags)
     assert passed

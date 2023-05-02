@@ -24,7 +24,7 @@ class ExpectedFlags(JobCollectorMixin, ExpectedOutput):
                 f"No executions (jobs/analyses) were found for the test {self.name}"
             )
             raise RegisteredTestError("No executions found")
-        return {x["describe"]["name"]: x["describe"] for x in cache}
+        return {x["describe"]["executableName"]: x["describe"] for x in cache}
 
     def _extract_outputs(self) -> Dict:
         return self.cache
