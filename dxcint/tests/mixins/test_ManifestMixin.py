@@ -5,10 +5,10 @@ from dxcint.mixins.ManifestMixin import ManifestMixin
 
 
 def test_ManifestMixin(fixtures_dir, context_init, mocker):
-    class ExtrasMixer(ManifestMixin, RegisteredTest):
+    class MnifestMixer(ManifestMixin, RegisteredTest):
         pass
 
-    mm = ExtrasMixer(
+    mm = MnifestMixer(
         os.path.join(fixtures_dir, "resources", "mock_category", "mock_1.wdl"),
         "mock_category",
         "mock_1",

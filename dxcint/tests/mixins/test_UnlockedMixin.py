@@ -5,10 +5,10 @@ from dxcint.mixins.UnlockedMixin import UnlockedMixin
 
 
 def test_UnlockedMixin(fixtures_dir, context_init, mocker):
-    class ExtrasMixer(UnlockedMixin, RegisteredTest):
+    class UnlockedMixer(UnlockedMixin, RegisteredTest):
         pass
 
-    lm = ExtrasMixer(
+    um = UnlockedMixer(
         os.path.join(fixtures_dir, "resources", "mock_category", "mock_1.wdl"),
         "mock_category",
         "mock_1",
@@ -16,5 +16,5 @@ def test_UnlockedMixin(fixtures_dir, context_init, mocker):
     )
     mocker.patch("subprocess.check_output")
     spy = mocker.spy(subprocess, "check_output")
-    _ = lm.exec_id
+    _ = um.exec_id
     assert "-locked" not in spy.call_args_list[0].args[0]

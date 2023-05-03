@@ -5,10 +5,10 @@ from dxcint.mixins.ReorgMixin import ReorgMixin
 
 
 def test_ReorgMixin(fixtures_dir, context_init, mocker):
-    class ExtrasMixer(ReorgMixin, RegisteredTest):
+    class ReorgMixer(ReorgMixin, RegisteredTest):
         pass
 
-    rm = ExtrasMixer(
+    rm = ReorgMixer(
         os.path.join(fixtures_dir, "resources", "mock_category", "mock_1.wdl"),
         "mock_category",
         "mock_1",
