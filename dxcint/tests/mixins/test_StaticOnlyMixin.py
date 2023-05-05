@@ -5,10 +5,10 @@ from dxcint.mixins.StaticOnlyMixin import StaticOnlyMixin
 
 
 def test_StaticOnlyMixin(fixtures_dir, context_init, mocker):
-    class ExtrasMixer(StaticOnlyMixin, RegisteredTest):
+    class StaticOnlyMixer(StaticOnlyMixin, RegisteredTest):
         pass
 
-    som = ExtrasMixer(
+    som = StaticOnlyMixer(
         os.path.join(fixtures_dir, "resources", "mock_category", "mock_1.wdl"),
         "mock_category",
         "mock_1",

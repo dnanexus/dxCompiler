@@ -1,0 +1,18 @@
+{
+  "apps_1647_dx_restart.apps_1647_dx_restart_t01.executionPolicy": {
+    "maxRestarts": 5,
+    "restartOn": {
+      "UnresponsiveWorker": 3,
+      "ExecutionError": 3
+    },
+    "maxSpotTries": 1
+  },
+  "apps_1647_dx_restart.apps_1647_dx_restart_frag_stage-0.executionPolicy": {
+    "maxSpotTries": 1,
+    "restartOn": {
+      "UnresponsiveWorker": 2,
+      "JMInternalError": 1,
+      "ExecutionError": 1
+    }
+  }
+}

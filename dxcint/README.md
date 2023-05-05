@@ -102,6 +102,7 @@ Complex categories are obtained by adding [mixins](#mixins) to the [basic catego
 |:--------------------------------------:|:----------------------------------:|:-------------------------------------------------------------------------------------------------------------------------------:|
 |        expected_failure_message        |       ExpectedFailureMessage       | ExpectedFailure + ResultsMixin, `_validate` checks that the analysis failed with an error message specified in results['error'] |
 |        extras_analysis_finished        |       ExtrasAnalysisFinished       |                                                 AnalysisFinished + ExtrasMixin                                                  |
+|             expected_flags             |           ExpectedFlags            |      ExpectedOutput + JobCollectorMixin + `_validate_outputs` compares flags to the fixture in `<test_name>_results.json`       |
 |         extras_expected_output         |        ExtrasExpectedOutput        |                                                  ExpectedOutput + ExtrasMixin                                                   |
 |        unlocked_expected_output        |       UnlockedExpectedOutput       |                                   ExpectedOutput + UnlockedMixin, _extract_outputs overriden                                    |
 |       manifest_analysis_finished       |      ManifestAnalysisFinished      |                                                AnalysisFinished + ManifestMixin                                                 |
@@ -124,6 +125,7 @@ Mixins are designed so that many can be used to extend a category class.
 |     ReorgMixin      |                                        appends to compile flags `-reorg`                                        |
 |  ResultsTestMixin   |              loads result fixture from `testname_results.json` and stores it in `results` property              |
 |   StaticOnlyMixin   | appends to compile flags `-instanceTypeSelection static` preventing random selection of dynamic/static instance |
+|  JobCollectorMixin  |                          collects all child execution IDs for a given parent execution                          |
 
 
 ## Extending the framework

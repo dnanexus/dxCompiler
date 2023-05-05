@@ -97,5 +97,8 @@
     ],
     "app_extern_expected_output": [
         "call_native_app"
+    ],
+    "expected_flags": [
+        "add2"
     ]
 }

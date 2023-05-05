@@ -45,5 +45,8 @@
     ],
     "extras_expected_output": [
         "symlinks_wc"
+    ],
+    "expected_flags": [
+        "apps_1647_dx_restart"
     ]
 }

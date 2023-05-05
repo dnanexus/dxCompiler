@@ -167,3 +167,14 @@ def mock_analysis_results(fixtures_dir):
     ) as file_handle:
         mock_results = json.load(file_handle)
     yield mock_results
+
+
+@pytest.fixture(scope="session")
+def mock_analysis_flags(fixtures_dir):
+    with open(
+        os.path.join(
+            fixtures_dir, "resources", "mock_category", "mock_1_flags_results.json"
+        )
+    ) as file_handle:
+        mock_results = json.load(file_handle)
+    yield mock_results

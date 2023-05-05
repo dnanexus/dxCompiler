@@ -4,10 +4,10 @@ from dxcint.mixins.PinnedInstanceMixin import PinnedInstanceMixin
 
 
 def test_PinnedInstanceMixin(fixtures_dir, context_init, mocker):
-    class ExtrasMixer(PinnedInstanceMixin, RegisteredTest):
+    class PinnedInstnceMixer(PinnedInstanceMixin, RegisteredTest):
         pass
 
-    pi = ExtrasMixer(
+    pim = PinnedInstnceMixer(
         os.path.join(fixtures_dir, "resources", "mock_category", "mock_1.wdl"),
         "mock_category",
         "mock_1",
@@ -15,6 +15,6 @@ def test_PinnedInstanceMixin(fixtures_dir, context_init, mocker):
     )
     mocker.patch.object(RegisteredTest, "_run_executable")
     spy = mocker.spy(PinnedInstanceMixin, "_run_executable")
-    _ = pi.job_id
+    _ = pim.job_id
     assert "instance_type" in spy.call_args_list[0].kwargs
     assert spy.call_args_list[0].kwargs["instance_type"] is None
