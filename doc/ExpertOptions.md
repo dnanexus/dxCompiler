@@ -1351,7 +1351,13 @@ This will be applied to the top-level workflow, sub-workflows, and applets durin
 
 # Handling intermediate workflow outputs
 
-A workflow may create a large number of files, taking up significant disk space, and incurring storage costs. Some of the files are workflow outputs, but many of them may be intermediate results that are not needed once the workflow completes. By default, all outputs are stored in one platform folder. With the `-reorg` flag, the intermediate results are moved into a subfolder named "intermediate". This is achieved by adding a stage to the workflow that reorganizes the output folder, it uses `CONTRIBUTE` access to reach into the parent project, create a subfolder, and move files into it.
+A workflow may create a large number of files, taking up significant disk space, and incurring storage costs. Some of 
+the files are workflow outputs, but many of them may be intermediate results that are not needed once the workflow 
+completes. By default, all outputs are stored in one platform folder. With the `-reorg` flag, the intermediate results 
+are moved into a subfolder named "intermediate". This is achieved by adding a stage to the workflow that reorganizes the 
+output folder, it uses `CONTRIBUTE` access to reach into the parent project, create a subfolder, and move files into it.
+There is a 1000 file [limit](https://github.com/dnanexus/dxCompiler/blob/43d4d4be0afd9bf55aefbd3669815fb8a67170c3/executorCommon/src/main/scala/dx/executor/WorkflowExecutor.scala#L824) 
+on the default reorg option. If the number of output files exceeds 1000, no files will be moved.
 
 ## Use your own applet
 
