@@ -668,7 +668,7 @@ abstract class TaskExecutor(jobMeta: JobMeta,
                               listings: Listings): Map[DxName, (Type, Value)] = {
     // For folders/listings, we have to determine the project output folder, because the platform
     // won't automatically update directory URIs like it does for data object links. The output
-    // folder is either the manifest folder or the concatination of the job/analysis output folder
+    // folder is either the manifest folder or the concatenation of the job/analysis output folder
     // and the container output folder.
     val parentProjectFolder = DxFolderSource.ensureEndsWithSlash(jobMeta.projectOutputFolder)
 
