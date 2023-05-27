@@ -94,6 +94,25 @@ jobs:
           AUTH_TOKEN: ${{ secrets.DX_STAGING_TEST_ROBOT_TOKEN }}
           SBT_OPTS: "-XX:+CMSClassUnloadingEnabled -Xmx4G -Xms1G"
         run: |
+          sudo apt-get update
+          sudo apt-get install -y apt-transport-https wget git openssh-server tree python3 python3-pip python3-venv
+          cwltool=`jq -r '.execDepends.cwl[0].name' scripts/bundled_dependencies.json`
+          pip3 install --upgrade pip setuptools==58.3.0 
+          pip3 install termcolor dxpy $cwltool pyOpenSSL==22.0.0
+          export PATH="$PATH:$HOME/.local/bin"
+
+          # install dxda
+          dxda_version=`jq -r '.dxda' scripts/bundled_dependencies.json`
+          sudo wget -O/usr/local/bin/dx-download-agent https://github.com/dnanexus/dxda/releases/download/${dxda_version}/dx-download-agent-linux
+          sudo chmod +x /usr/local/bin/dx-download-agent
+
+          # set up DNAnexus staging environment
+          dx login --noprojects --staging --token $AUTH_TOKEN
+          dx select $PROJECT
+
+          # run unit tests
+          cd ${GITHUB_WORKSPACE}
+          pwd
           sbt version && sbt compile && sbt "testOnly -- -l prod"
       - name: Install dxcint
         run: |
