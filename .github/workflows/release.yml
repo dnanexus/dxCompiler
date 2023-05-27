@@ -73,7 +73,6 @@ jobs:
           cwltool=`jq -r '.execDepends.cwl[0].name' scripts/bundled_dependencies.json`
           pip3 install --upgrade pip setuptools==58.3.0 
           pip3 install termcolor dxpy==0.323.0 $cwltool pyOpenSSL==22.0.0
-          export PATH="$PATH:$HOME/.local/bin"
           # install dxda
           dxda_version=`jq -r '.dxda' scripts/bundled_dependencies.json`
           sudo wget -O/usr/local/bin/dx-download-agent https://github.com/dnanexus/dxda/releases/download/${dxda_version}/dx-download-agent-linux
