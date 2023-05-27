@@ -296,4 +296,8 @@ case class ParameterLinkDeserializer(dxFileDescCache: DxFileDescCache, dxApi: Dx
                                    dxApi,
                                    Some(dxFileDescCache))
   }
+
+  def updateWithCache(dxFileDescCache: DxFileDescCache): ParameterLinkDeserializer = {
+    ParameterLinkDeserializer(dxFileDescCache)
+  }
 }

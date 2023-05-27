@@ -403,27 +403,26 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
     }
   }
 
-  private def extendFileDescCache(newFiles: Vector[DxFile]): DxFileDescCache = {
-    DxFileDescCache(allFilesReferenced ++ safeBulkDescribe(newFiles))
-  }
-
-  private def updateFileResolver(extendedCache: DxFileDescCache): FileSourceResolver = {
-    logger.trace(s"Creating  FileSourceResolver localDirectories = ${workerPaths.getWorkDir()}")
-    val dxProtocol = DxFileAccessProtocol(dxApi, extendedCache)
-    val fileResolver = FileSourceResolver.create(
-        localDirectories = Vector(workerPaths.getWorkDir().asJavaPath),
-        userProtocols = Vector(dxProtocol),
-        logger = logger
+  def extendFileDescCache(newFiles: Vector[DxFile]): DxFileDescCache = {
+    DxFileDescCache(
+        allFilesReferenced ++ safeBulkDescribe(queryFiles = newFiles, verifyClosed = false)
     )
-    fileResolver
   }
 
-  private def safeBulkDescribe(queryFiles: Vector[DxFile]): Vector[DxFile] = {
+  private def safeBulkDescribe(queryFiles: Vector[DxFile],
+                               verifyClosed: Boolean = true): Vector[DxFile] = {
     logger.trace(s"Bulk describing ${queryFiles.size} files")
     val dxFiles = dxApi.describeFilesBulk(queryFiles, searchWorkspaceFirst = true, validate = true)
     // check that all files are in the closed state
-    logger.trace(s"Checking that all files are closed")
-    val notClosed = dxFiles.filterNot(_.describe().state == DxState.Closed)
+
+    val notClosed = {
+      if (verifyClosed) {
+        logger.trace(s"Checking that all files are closed")
+        dxFiles.filterNot(_.describe().state == DxState.Closed)
+      } else {
+        Vector.empty
+      }
+    }
     if (notClosed.nonEmpty) {
       throw new Exception(
           s"input file(s) not in the 'closed' state: ${notClosed.map(_.id).mkString(",")}"

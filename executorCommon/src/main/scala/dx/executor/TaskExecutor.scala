@@ -671,7 +671,8 @@ abstract class TaskExecutor(jobMeta: JobMeta,
     // folder is either the manifest folder or the concatenation of the job/analysis output folder
     // and the container output folder.
     val parentProjectFolder = DxFolderSource.ensureEndsWithSlash(jobMeta.projectOutputFolder)
-
+    // APPS-1881
+    val extendedCache = jobMeta.extendFileDescCache(uploadedFiles.values.toVector)
     // replace local paths with remote URIs
     def handlePath(value: PathValue,
                    t: Option[Type] = None,
@@ -695,9 +696,9 @@ abstract class TaskExecutor(jobMeta: JobMeta,
             case local: LocalFileSource if optional && !Files.exists(local.canonicalPath) =>
               VNull
             case local: LocalFileSource if uploadedFiles.contains(local.canonicalPath) =>
-              // an output file that was uploaded
-              f.copy(uri = uploadedFiles(local.canonicalPath).asUri,
-                     secondaryFiles = newSecondaryFiles)
+              // an output file that was uploaded. Update from bulk describe cache
+              val dxFCache = extendedCache.updateFileFromCache(uploadedFiles(local.canonicalPath))
+              f.copy(uri = dxFCache.asUri, secondaryFiles = newSecondaryFiles)
             case local: LocalFileSource if localPathToUri.contains(local.canonicalPath) =>
               // an output file that was an input file
               f.copy(uri = localPathToUri(local.canonicalPath), secondaryFiles = newSecondaryFiles)
