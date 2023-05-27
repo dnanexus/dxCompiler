@@ -72,17 +72,6 @@ jobs:
           dxda_version=`jq -r '.dxda' scripts/bundled_dependencies.json`
           sudo wget -O/usr/local/bin/dx-download-agent https://github.com/dnanexus/dxda/releases/download/${dxda_version}/dx-download-agent-linux
           sudo chmod +x /usr/local/bin/dx-download-agent
-      - name: Set-up
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ROBOT_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
-          TEST_ROBOT_TOKEN: ${{ secrets.DX_STAGING_TEST_ROBOT_TOKEN }}
-        run: |
-          export PATH="$PATH:$HOME/.local/bin"
-          # Set up DNAnexus staging environment
-          dx login --noprojects --staging --token $ROBOT_TOKEN
-          dx select $PROJECT
-          cd ${GITHUB_WORKSPACE}
       - name: Run unit tests
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
