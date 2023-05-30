@@ -1,10 +1,7 @@
 # Release Notes
 
-## in develop
-
-...
-
-## 2.11.1 2023-05-26
+## 2.11.2 2023-05-26
+* fixes awscli dependency
 * dxda version update to v0.6.0 to address occasional filesystem errors seen in DNAnexus jobs.
 * Fixes for the `-pretty` flag in the `describe` command.
 * WDL: fix for the tasks wrapped in a frag with optional inputs. Those inputs get forcibly evaluated to explicit `null` 
