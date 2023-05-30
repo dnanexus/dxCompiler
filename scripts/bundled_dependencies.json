@@ -3,6 +3,13 @@
   "dxfuse": "v1.1.1",
   "awscli": "2.1.32",
   "execDepends": {
+    "wdl": [
+      {
+        "name": "awscliv2",
+        "version": "2.2.0",
+        "package_manager": "pip"
+      }
+    ],
     "cwl": [
       {
         "name": "cwltool",
