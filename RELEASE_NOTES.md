@@ -1,5 +1,9 @@
 # Release Notes
 
+## in develop
+
+...
+
 ## 2.11.2 2023-05-30
 * fixes awscli dependency
 * dxda version update to v0.6.0 to address occasional filesystem errors seen in DNAnexus jobs.
