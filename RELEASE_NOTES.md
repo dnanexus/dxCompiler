@@ -1,9 +1,11 @@
 # Release Notes
 
 ## in develop
-* WDL: optimizations to reduce unnecessary `file-xxx/describe` API calls upon (de)localization of input/output files. 
-Now all files are described in bulk.
-* Fixes for the `-pretty` flag in the `describe` command
+...
+
+## 2.11.1 2023-05-26
+* dxda version update to v0.6.0 to address occasional filesystem errors seen in DNAnexus jobs.
+* Fixes for the `-pretty` flag in the `describe` command.
 * WDL: fix for the tasks wrapped in a frag with optional inputs. Those inputs get forcibly evaluated to explicit `null` 
 and cause inconsistencies with applet inputs. This is fixed and all implicit `null` (`None`) values of optionals are remaining implicit.
 
