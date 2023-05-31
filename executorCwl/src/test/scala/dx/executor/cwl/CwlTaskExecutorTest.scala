@@ -443,11 +443,26 @@ class CwlTaskExecutorTest extends AnyFlatSpec with Matchers {
     runTask(
         "recursive-input-directory",
         pathToDxFile = Map(
-            Paths.get("work_dir/a") -> dxApi.file("file-GJ8KZ780yzZyBbf07QVxJY2f"),
-            Paths.get("work_dir/b") -> dxApi.file("file-GJ8KZ7j0yzZXkzG57XQkgxbX"),
-            Paths.get("work_dir/c/d") -> dxApi.file("file-GJ8KZ800yzZXkzG57XQkgxbZ"),
-            Paths.get("work_dir/e") -> dxApi.file("file-GJ8KZ800yzZxbjyX7Q7QgXgV"),
-            Paths.get("output.txt") -> dxApi.file("file-GJ713F80yzZy59jJ4p5FY8kG")
+            Paths.get("work_dir/a") -> dxApi.file(
+                "file-GJ8KZ780yzZyBbf07QVxJY2f",
+                Option(DxProject("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq")(dxApi))
+            ),
+            Paths.get("work_dir/b") -> dxApi.file(
+                "file-GJ8KZ7j0yzZXkzG57XQkgxbX",
+                Option(DxProject("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq")(dxApi))
+            ),
+            Paths.get("work_dir/c/d") -> dxApi.file(
+                "file-GJ8KZ800yzZXkzG57XQkgxbZ",
+                Option(DxProject("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq")(dxApi))
+            ),
+            Paths.get("work_dir/e") -> dxApi.file(
+                "file-GJ8KZ800yzZxbjyX7Q7QgXgV",
+                Option(DxProject("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq")(dxApi))
+            ),
+            Paths.get("output.txt") -> dxApi.file(
+                "file-GJ713F80yzZy59jJ4p5FY8kG",
+                Option(DxProject("project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq")(dxApi))
+            )
         )
     )
   }
