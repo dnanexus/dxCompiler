@@ -442,8 +442,7 @@ def build(
         # get a copy of the dxfuse executable
         dxfuse_exe = _download_dxfuse_to_resources(top_dir, dependencies["dxfuse"])
         # get a copy of awscliv2
-        awscli_zip = _download_awscli_to_resources(top_dir, dependencies["awscli"])
-        resources = [dxda_exe, dxfuse_exe, awscli_zip]
+        resources = [dxda_exe, dxfuse_exe]
 
         # Create a configuration file
         _gen_config_file(top_dir, path_dict)
