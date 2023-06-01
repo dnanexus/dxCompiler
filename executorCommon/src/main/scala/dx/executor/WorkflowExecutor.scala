@@ -8,9 +8,9 @@ import dx.api.{
   DxApplet,
   DxExecution,
   DxFile,
+  DxObject,
   DxPath,
   DxWorkflow,
-  DxObject,
   Field,
   FileUpload,
   FolderContents
@@ -579,7 +579,10 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
       val flatOuts = execOutputs.foldLeft(Vector.empty[JsValue]) {
         case (accu, outputVals) => accu ++ outputVals.get.values.toVector
       } map { jsv =>
-        dxApi.dataObjectFromJson(jsv)
+        try dxApi.dataObjectFromJson(jsv)
+        catch {
+          case _: AppInternalException => None
+        }
       } collect {
         case dxFile: DxFile => dxFile
       }
