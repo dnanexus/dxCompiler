@@ -1,7 +1,7 @@
 # Release Notes
 
 ## in develop
-...
+* WDL: eliminates inefficient `file-XXX/describe` API calls and replaces them with a bulk describe (i.e `system/findDataObjects)
 
 ## 2.11.2 2023-05-30
 * fixes awscli dependency
