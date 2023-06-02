@@ -8,14 +8,20 @@
           "basename": "a",
           "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
           "type": "File",
-          "uri": {"$dnanexus_link":"file-GJ8KZ780yzZyBbf07QVxJY2f"},
+          "uri": {"$dnanexus_link": {
+            "id": "file-GJ8KZ780yzZyBbf07QVxJY2f",
+            "project": "project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"
+          }},
           "size": 0
         },
         {
           "basename": "b",
           "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
           "type": "File",
-          "uri":{"$dnanexus_link":"file-GJ8KZ7j0yzZXkzG57XQkgxbX"},
+          "uri":{"$dnanexus_link": {
+            "id": "file-GJ8KZ7j0yzZXkzG57XQkgxbX",
+            "project": "project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"
+          }},
           "size": 0
         },
         {
@@ -26,7 +32,10 @@
               "basename": "d",
               "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
               "type": "File",
-              "uri": {"$dnanexus_link":"file-GJ8KZ800yzZXkzG57XQkgxbZ"},
+              "uri": {"$dnanexus_link": {
+                "id": "file-GJ8KZ800yzZXkzG57XQkgxbZ",
+                "project": "project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"
+              }},
               "size": 0
             }
           ],
@@ -36,7 +45,10 @@
           "basename": "e",
           "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
           "type": "File",
-          "uri": {"$dnanexus_link":"file-GJ8KZ800yzZxbjyX7Q7QgXgV"},
+          "uri": {"$dnanexus_link": {
+            "id": "file-GJ8KZ800yzZxbjyX7Q7QgXgV",
+            "project": "project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"
+          }},
           "size": 0
         }
       ],
@@ -44,21 +56,39 @@
     }
   },
   "output_dir___dxfiles": [
-    {"$dnanexus_link":"file-GJ8KZ780yzZyBbf07QVxJY2f"},
-    {"$dnanexus_link":"file-GJ8KZ7j0yzZXkzG57XQkgxbX"},
-    {"$dnanexus_link":"file-GJ8KZ800yzZXkzG57XQkgxbZ"},
-    {"$dnanexus_link":"file-GJ8KZ800yzZxbjyX7Q7QgXgV"}
+    {"$dnanexus_link":{
+      "id": "file-GJ8KZ780yzZyBbf07QVxJY2f",
+      "project": "project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"
+    }},
+    {"$dnanexus_link":{
+      "id": "file-GJ8KZ7j0yzZXkzG57XQkgxbX",
+      "project": "project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"
+    }},
+    {"$dnanexus_link":{
+      "id": "file-GJ8KZ800yzZXkzG57XQkgxbZ",
+      "project": "project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"
+    }},
+    {"$dnanexus_link":{
+      "id": "file-GJ8KZ800yzZxbjyX7Q7QgXgV",
+      "project": "project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"
+    }}
   ],
   "test_result": {
     "___": {
       "checksum": "sha1$da39a3ee5e6b4b0d3255bfef95601890afd80709",
       "type": "File",
-      "uri": {"$dnanexus_link":"file-GJ713F80yzZy59jJ4p5FY8kG"},
+      "uri": {"$dnanexus_link": {
+        "id": "file-GJ713F80yzZy59jJ4p5FY8kG",
+        "project": "project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"
+      }},
       "basename":"output.txt",
       "size": 0
     }
   },
   "test_result___dxfiles": [
-    {"$dnanexus_link":"file-GJ713F80yzZy59jJ4p5FY8kG"}
+    {"$dnanexus_link": {
+      "id": "file-GJ713F80yzZy59jJ4p5FY8kG",
+      "project": "project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq"
+    }}
   ]
 }

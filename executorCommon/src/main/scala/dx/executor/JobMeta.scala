@@ -403,6 +403,35 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
     }
   }
 
+  def extendFileDescCache(newFiles: Vector[DxFile]): DxFileDescCache = {
+    DxFileDescCache(
+        allFilesReferenced ++ safeBulkDescribe(queryFiles = newFiles, verifyClosed = false)
+    )
+  }
+
+  private def safeBulkDescribe(queryFiles: Vector[DxFile],
+                               verifyClosed: Boolean = true): Vector[DxFile] = {
+    logger.trace(s"Bulk describing ${queryFiles.size} files")
+    val dxFiles = dxApi.describeFilesBulk(queryFiles, searchWorkspaceFirst = true, validate = true)
+    // check that all files are in the closed state
+
+    val notClosed = {
+      if (verifyClosed) {
+        logger.trace(s"Checking that all files are closed")
+        dxFiles.filterNot(_.describe().state == DxState.Closed)
+      } else {
+        Vector.empty
+      }
+    }
+    if (notClosed.nonEmpty) {
+      throw new Exception(
+          s"input file(s) not in the 'closed' state: ${notClosed.map(_.id).mkString(",")}"
+      )
+    }
+    logger.trace(s"Successfully described ${dxFiles.size} files")
+    dxFiles
+  }
+
   lazy val (jsInputs: Map[DxName, JsValue], jsOverrides: Option[JsValue]) = {
     // pop the overrides off the rest of the inputs
     val (rawOverrides, rawInputs) = rawJsInputs.partition {
@@ -439,18 +468,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
     // bulk describe all files referenced in the inputs
     logger.trace("Discovering all files in the input values")
     val queryFiles = jsInputs.values.flatMap(DxFile.findFiles(dxApi, _)).toVector.distinct
-    logger.trace(s"Bulk describing ${queryFiles.size} files")
-    val dxFiles = dxApi.describeFilesBulk(queryFiles, searchWorkspaceFirst = true, validate = true)
-    // check that all files are in the closed state
-    logger.trace(s"Checking that all files are closed")
-    val notClosed = dxFiles.filterNot(_.describe().state == DxState.Closed)
-    if (notClosed.nonEmpty) {
-      throw new Exception(
-          s"input file(s) not in the 'closed' state: ${notClosed.map(_.id).mkString(",")}"
-      )
-    }
-    logger.trace(s"Successfully described ${dxFiles.size} files")
-    dxFiles
+    safeBulkDescribe(queryFiles)
   }
 
   protected lazy val dxFileDescCache: DxFileDescCache = DxFileDescCache(allFilesReferenced)

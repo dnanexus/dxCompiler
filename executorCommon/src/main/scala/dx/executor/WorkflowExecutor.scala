@@ -8,9 +8,9 @@ import dx.api.{
   DxApplet,
   DxExecution,
   DxFile,
+  DxObject,
   DxPath,
   DxWorkflow,
-  DxObject,
   Field,
   FileUpload,
   FolderContents
@@ -576,14 +576,25 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
     ): VArray = {
       val encodedNames =
         Vector(Some(fieldName), execName.map(fieldName.pushDecodedNamespace)).flatten
+      val flatOuts = execOutputs.foldLeft(Vector.empty[JsValue]) {
+        case (accu, outputVals) => accu ++ outputVals.get.values.toVector
+      } map { jsv =>
+        try dxApi.dataObjectFromJson(jsv)
+        catch {
+          case _: AppInternalException => None
+        }
+      } collect {
+        case dxFile: DxFile => dxFile
+      }
+      val updatedDeserializer = jobMeta.inputDeserializer.updateWithCache(
+          jobMeta.extendFileDescCache(flatOuts)
+      )
       val items = execOutputs.map {
         case Some(outputs) =>
           encodedNames
             .collectFirst {
               case name if outputs.contains(name) =>
-                jobMeta.inputDeserializer.deserializeInputWithType(outputs(name),
-                                                                   itemType,
-                                                                   name.decoded)
+                updatedDeserializer.deserializeInputWithType(outputs(name), itemType, name.decoded)
             }
             .orElse {
               Option.when(!Type.isOptional(itemType))(
