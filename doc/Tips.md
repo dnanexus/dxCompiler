@@ -75,3 +75,95 @@ task make_error {
 
 (including the hostname in the error message allows the message to have the root
 job ID, facilitating debugging in complex workflows that may be deeply nested.)
+
+
+## Large number of input/output files
+When passing a large number of files from stage to stage, we recommend doing that in the form of a `tar.gz` archive to 
+improve the I/O of the upload and download transactions with the DNAnexus platform storage. This will also make it easier 
+to update input and output specifications of a running job. Of note, this suggestion is applicable for the scenarios when 
+outputs of a stage A are mapped 1:1 to the inputs of a stage B, but not applicable when the outputs of a stage A are 
+to be used for a parallel execution, i.e. a scatter.  
+Since the `File` type declaration is represented by a string value, please follow the official [WDL documentation](https://github.com/openwdl/wdl/blob/main/versions/1.1/SPEC.md#strings) 
+regarding the format and allowed characters.  
+#### Examples
+**Scenario 1.** Stage A creates `N` files to be used only by Stage B, and there is no need for a separate archiving task.
+In this case the archiving can be done in the Stage A `task` section, and un-archiving should be done in the `task` 
+section of the Stage B.
+```wdl
+task stage_a {
+...
+    command <<<
+        # code that creates N files
+        tar czf out.tgz ${DIRECTORY_WITH_N_FILES} 
+    >>>
+    output {
+        File tarball = "out.tgz"
+    }
+}
+
+
+task stage_b {
+    input {
+        File input_tarball
+    }
+    command <<<
+        mkdir -p unpack
+        tar xzvf ~{input_tarball} -C unpack 1>tarball_listing
+        # continue your analysis here
+    >>>
+...
+}
+
+workflow wf_tar {
+...
+    call stage_a {...}
+    call stage_b {input: input_tarball=stage_a.tarball}
+...
+}
+```
+**Scenario 2.** Stage A creates `N` files to be used by Stage B, C, ... m, and it makes sense to refactor the archiving 
+step into a stand-alone stage.
+```wdl
+task stage_a {
+    ...
+    command <<<
+        # Creates N files e.g. with the pattern `file*.out`
+    >>>
+      output {
+         Array[File] generated_files = glob("file*.out")
+      }
+}
+
+
+task stage_b_c_through_m {
+    input {
+        File input_tarball
+    }
+    command <<<
+        mkdir -p unpack
+        tar xzvf ~{input_tarball} -C unpack 1>tarball_listing
+        # continue your analysis here
+    >>>
+    ...
+}
+        
+task archive {
+    input {
+        Array[File] files_to_tar
+    }
+    command <<<
+        tar czf out.tgz -C / ~{sep=' ' files_to_tar} 
+    >>>
+    output {
+        File tarball = "out.tgz"
+    }
+}
+
+workflow wf_tar {
+...
+    call stage_a {...}
+    call archive {input: stage_a.generated_files}
+    call stage_b_c_through_m {input: input_tarball=archive.tarball}
+...
+}
+```
