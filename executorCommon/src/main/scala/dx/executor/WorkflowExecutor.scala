@@ -577,7 +577,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
       val encodedNames =
         Vector(Some(fieldName), execName.map(fieldName.pushDecodedNamespace)).flatten
       val flatOuts = execOutputs.foldLeft(Vector.empty[JsValue]) {
-        case (accu, outputVals) => accu ++ outputVals.get.values.toVector
+        case (accu, outputVals) => accu ++ outputVals.getOrElse(Map.empty).values.toVector
       } map { jsv =>
         try dxApi.dataObjectFromJson(jsv)
         catch {
