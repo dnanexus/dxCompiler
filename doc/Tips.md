@@ -82,7 +82,44 @@ When passing a large number of files (50+) from task to task, we recommend doing
 improve the speed of (de)localizing those files between cloud storage and VMs that execute the WDL tasks. This will also make it easier 
 to update input and output specifications of a running job. Of note, this suggestion is applicable for the scenarios when 
 outputs of a task A are mapped 1:1 to the inputs of a task B, but not applicable when the outputs of a task A are 
-to be used for a parallel execution, i.e. a scatter.  
+to be used for a parallel execution, i.e. a scatter.
+### Example
+```wdl
+task task_a {
+...
+    output {
+        Array[File] files_out = [...]
+    }
+}
+        
+task task_b {
+    input {
+        Array[File] files_in
+    }
+...
+}
+        
+task task_c {
+    input {
+        File single_file
+    }
+...
+}
+
+workflow wf_tar {
+...
+    call task_a {...}
+    # APPLICABLE BELOW: use tar to optimize
+    call task_b {input: files_in=task_a.files_out}
+    # NOT APPLICABLE BELOW: need to preserve an array of output files, not to reduce them to a single archive
+    scatter (s in  task_a.files_out) {
+        call task_c {
+          input:
+          single_file = s
+        }
+    }
+...
+```
 Since the `File` type declaration is represented by a string value, please follow the official [WDL documentation](https://github.com/openwdl/wdl/blob/main/versions/1.1/SPEC.md#strings) 
 regarding the format and allowed characters.  
 ### Examples
