@@ -204,3 +204,7 @@ workflow wf_tar {
 ...
 }
 ```
+
+**Scenario 3.** Stage A creates N files to be used by Stage B, C, ... m, and it makes sense to refactor the archiving step into a stand-alone task.
+
+
