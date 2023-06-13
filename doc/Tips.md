@@ -205,6 +205,53 @@ workflow wf_tar {
 }
 ```
 
-**Scenario 3.** Stage A creates N files to be used by Stage B, C, ... m, and it makes sense to refactor the archiving step into a stand-alone task.
+**Scenario 3.** Stage A creates 1..N files and is wrapped in a scatter with cardinality M. Then, all tarballs can be combined. 
+```wdl
+task task_a {
+    ...
+    command <<<
+        # Creates N files e.g. with the pattern `file*.out`
+    >>>
+      output {
+         Array[File] generated_files = glob("file*.out")
+      }
+}
+                
+task archive {
+    input {
+        Array[File] files_to_tar
+        Int archive_number = 0
+    }
+    command <<<
+        archive_dir="archive_~{archive_number}"
+        mkdir ${archive_dir}
+        mv ~{sep=' ' files_to_tar} ${archive_dir}
+        tar czf out_~{archive_number}.tgz ${archive_dir} 
+    >>>
+    output {
+        File tarball = "out_~{archive_number}.tgz"
+    }
+}
+        
+task combine {
+    input {
+        Array[File] archives_to_combine
+    }
+    command <<<
+        cat ~{sep=' ' archives_to_combine} >> out.tgz
+    >>>
+    output {
+        File final_tarball = "out.tgz"
+    }
+}
 
-
+workflow wf_tar {
+...
+    scatter (s in  range(M)) {
+        call task_a {...}
+        call archive {input: files_to_tar = task_a.generated_files, archive_number = s}
+    }
+    call combine {input: archives_to_combine = archive.tarball}
+...
+}
+```
