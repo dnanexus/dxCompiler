@@ -123,9 +123,9 @@ workflow wf_tar {
 Since the `File` type declaration is represented by a string value, please follow the official [WDL documentation](https://github.com/openwdl/wdl/blob/main/versions/1.1/SPEC.md#strings) 
 regarding the format and allowed characters.  
 ### Examples
-**Scenario 1.** Stage A creates `N` files to be used only by Stage B, and there is no need for a separate archiving task.
-In this case the archiving can be done in the Stage A `task` section, and un-archiving should be done in the `task` 
-section of the Stage B.
+**Scenario 1.** Task A creates `N` files to be used only by Task B, and there is no need for a separate archiving task.
+In this case the archiving can be done in the Task A `task` section, and un-archiving should be done in the `task` 
+section of the Task B.
 ```wdl
 task task_a {
 ...
@@ -158,8 +158,8 @@ workflow wf_tar {
 ...
 }
 ```
-**Scenario 2.** Stage A creates `N` files to be used by Stage B, C, ... m, and it makes sense to refactor the archiving 
-step into a stand-alone task.
+**Scenario 2.** Task A creates `N` files to be used by multiple tasks B, C, ...M, here represented by 
+`task_b_c_through_m`, it makes sense to refactor the archiving
 ```wdl
 task task_a {
     ...
@@ -205,7 +205,7 @@ workflow wf_tar {
 }
 ```
 
-**Scenario 3.** Stage A creates 1..N files and is wrapped in a scatter with cardinality M. Then, all tarballs can be combined. 
+**Scenario 3.** Task A creates 1..N files and is wrapped in a scatter with cardinality M. Then, all tarballs are to be combined. 
 ```wdl
 task task_a {
     ...
