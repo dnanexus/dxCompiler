@@ -1,7 +1,17 @@
 # Release Notes
 
 ## in develop
+...
+
+## 2.11.3 2023-06-08
 * WDL: eliminates inefficient `file-XXX/describe` API calls and replaces them with a bulk describe (i.e `system/findDataObjects)
+
+### Dependency updates
+
+#### dxApi [0.13.6](https://github.com/dnanexus/dxScala/releases/tag/api-0.13.6)
+#### dxFileAccessProtocols [0.5.6](https://github.com/dnanexus/dxScala/releases/tag/protocols-0.5.6)
+* changes to facilitate the optimizations of number of `file-xxx/describe` API calls upon (de)localization of input/output files
+
 
 ## 2.11.2 2023-05-30
 * fixes awscli dependency
