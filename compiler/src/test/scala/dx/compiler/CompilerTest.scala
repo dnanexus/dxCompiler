@@ -226,8 +226,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       stage.name -> dxApi.executable(stage.executable).describe(Set(Field.Details))
     }.toMap
     stagesExecDetails("if (a)").details.get.asJsObject.fields
-      .get("staticInstanceType")
-      .getOrElse(JsObject.empty) shouldBe JsObject.empty
+      .getOrElse("staticInstanceType", JsObject.empty) shouldBe JsObject.empty
   }
 
   it should "compile a workflow with a native app and override instance based using RAM and CPU spec" in {
