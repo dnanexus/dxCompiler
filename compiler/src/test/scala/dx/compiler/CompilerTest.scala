@@ -1511,6 +1511,69 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     taskIgnoreReuseFlag shouldBe Some(JsBoolean(true))
   }
 
+  private def describeStages(dxWf: DxWorkflow,
+                             fields: Set[Field.Value]): Map[String, DxObjectDescribe] = {
+    val desc = dxWf.describe()
+    val stages = desc.stages.get.map(x => x.executable).map {
+      case applet: String if applet.startsWith("applet-") => {
+        val appletDescribe = dxApi.applet(applet).describe(fields)
+        (appletDescribe.name -> appletDescribe)
+      }
+      case wf: String if wf.startsWith("workflow-") => {
+        val wfDescribe = dxApi.workflow(wf).describe(fields)
+        (wfDescribe.name -> wfDescribe)
+      }
+    }
+    stages.toMap
+  }
+
+  it should "compile workflow with treeTurnaroundTimeThreshold from extras, but not for its stages" taggedAs NativeTest in {
+    val path = pathFromBasename("compiler", basename = "apps_1858_tat_wf.wdl")
+    val extraPath = pathFromBasename("compiler/extras", "apps_1858_default_wf_attrs.json")
+    val args = path.toString :: "--extras" :: extraPath.toString :: cFlags
+    val wfId = Main.compile(args.toVector) match {
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
+    }
+    val dxWf = dxApi.workflow(wfId)
+    val desc = dxWf.describe(Set(Field.TreeTurnaroundTimeThreshold))
+    desc.treeTurnaroundTimeThreshold shouldBe 2
+    val stagesDesc = describeStages(dxWf, Set(Field.TreeTurnaroundTimeThreshold))
+    val stageTATs = stagesDesc.values.map {
+      case applet: DxAppletDescribe => applet.treeTurnaroundTimeThreshold
+      case wf: DxWorkflowDescribe   => wf.treeTurnaroundTimeThreshold
+    }
+    stageTATs should contain only None
+  }
+
+  it should "compile a nested workflow with treeTurnaroundTimeThreshold from extras, but not for its stages" taggedAs NativeTest in {
+    val path = pathFromBasename("compiler", basename = "apps_1858_tat_wf.wdl")
+    val extraPath = pathFromBasename("compiler/extras", "apps_1858_per_wf_attrs.json")
+    val args = path.toString :: "--extras" :: extraPath.toString :: cFlags
+    val wfId = Main.compile(args.toVector) match {
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
+    }
+    val dxWf = dxApi.workflow(wfId)
+    val desc = dxWf.describe(Set(Field.TreeTurnaroundTimeThreshold))
+    desc.treeTurnaroundTimeThreshold shouldBe None
+    val nestedWfIds = describeStages(dxWf, Set.empty).values.collect {
+      case wf: DxWorkflowDescribe => wf.id
+    }.toVector
+    nestedWfIds.size shouldBe 1
+    val nestedWf = dxApi.workflow(nestedWfIds.head)
+    val nestedWfDesc = nestedWf.describe(Set(Field.TreeTurnaroundTimeThreshold))
+    nestedWfDesc.treeTurnaroundTimeThreshold shouldBe 5
+    val nestedStagesDesc = describeStages(nestedWf, Set(Field.TreeTurnaroundTimeThreshold))
+    val nestedStageTATs = nestedStagesDesc.values.map {
+      case applet: DxAppletDescribe => applet.treeTurnaroundTimeThreshold
+      case wf: DxWorkflowDescribe   => wf.treeTurnaroundTimeThreshold
+    }
+    nestedStageTATs should contain only None
+  }
+
   // APPS-1616 delayWorkspaceDestruction in extras.json is deprecated
   it should "ignore delayWorkspaceDestruction in extras for applet" taggedAs NativeTest in {
     val path = pathFromBasename("compiler", "add_timeout.wdl")

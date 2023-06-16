@@ -1,5 +1,7 @@
 {
   "per_workflow_dx_attributes": {
-    "tree_turnaround_time_threshold": 5
+    "apps_1858_inner": {
+      "tree_turnaround_time_threshold": 5
+    }
   }
 }

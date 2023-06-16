@@ -307,7 +307,7 @@ abstract class DxMeta(title: Option[String],
                       types: Option[Vector[String]],
                       tags: Option[Vector[String]],
                       properties: Option[Map[String, String]],
-                      treeTurnaroundTimeThreshold: Option[Int]) {
+                      treeTurnaroundTimeThreshold: Option[Long]) {
   def getMetaJson: Map[String, JsValue] = {
     Vector(
         title.map(t => "title" -> JsString(t)),
@@ -339,7 +339,7 @@ case class DxAppJson(runSpec: Option[DxRunSpec] = None,
                      tags: Option[Vector[String]] = None,
                      properties: Option[Map[String, String]] = None,
                      openSource: Option[Boolean] = None,
-                     treeTurnaroundTimeThreshold: Option[Int] = None)
+                     treeTurnaroundTimeThreshold: Option[Long] = None)
     extends DxMeta(title,
                    summary,
                    description,
@@ -399,7 +399,7 @@ case class DxWorkflowAttrs(scatterDefaults: Option[DxScatterAttrs],
                            types: Option[Vector[String]],
                            tags: Option[Vector[String]],
                            properties: Option[Map[String, String]],
-                           treeTurnaroundTimeThreshold: Option[Int])
+                           treeTurnaroundTimeThreshold: Option[Long])
     extends DxMeta(title,
                    summary,
                    description,
