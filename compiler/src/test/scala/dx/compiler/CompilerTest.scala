@@ -1591,12 +1591,10 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       case other =>
         throw new Exception(s"unexpected result ${other}")
     }
-
     // make sure the delayWorkspaceDestruction flag is ignored
-    val (_, stdout, _) =
-      SysUtils.execCommand(s"dx describe ${dxTestProject.id}:${appletId} --json")
-    val details = stdout.parseJson.asJsObject.fields("details")
-    val delayWD = details.asJsObject.fields.get("delayWorkspaceDestruction")
+    val applet = dxApi.applet(appletId)
+    val descr = applet.describe(Set(Field.Details))
+    val delayWD = descr.details.get.asJsObject.fields.get("delayWorkspaceDestruction")
     delayWD shouldBe None
   }
 
