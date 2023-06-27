@@ -9,8 +9,9 @@ import dx.Assumptions.{isLoggedIn, toolkitCallable}
 import dx.Tags.NativeTest
 import dx.api._
 import dx.core.Constants
-import dx.core.ir.Callable
+import dx.core.ir.{Callable, ExecutableLink, ExecutableLinkDeserializer}
 import dx.core.CliUtils.Termination
+import dx.core.languages.wdl.{VersionSupport, WdlDxName, WdlUtils}
 import dx.util.{FileUtils, JsUtils, Logger, SysUtils}
 import dxCompiler.Main
 import dxCompiler.Main.{SuccessfulCompileIR, SuccessfulCompileNativeNoTree}
@@ -109,7 +110,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     }
   }
 
-  "Compiler" should "compile a workflow with a native app wrapped in frag and override instance based using RAM" in {
+  "Compiler" should "compile a workflow with a native app wrapped in frag and override instance using RAM" in {
     val path = pathFromBasename("bugs", "apps_1177_native_frag_indirect_override_unit.wdl")
     val args = path.toString :: cFlags
     val retval = Main.compile(args.toVector)
@@ -1527,6 +1528,23 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     stages.toMap
   }
 
+  private def getExecLinks(dxApplet: DxApplet, srcPath: Path): Vector[ExecutableLink] = {
+    val desc = dxApplet.describe(Set(Field.Details))
+    val (_, typeAliases, _) =
+      VersionSupport.fromSourceFile(srcPath)
+    val execLinks = desc.details.get.asJsObject.fields.get(Constants.ExecLinkInfo) match {
+      case Some(JsObject(fields)) =>
+        fields.map {
+          case (key, link) =>
+            key -> ExecutableLinkDeserializer(WdlDxName)(link,
+                                                         WdlUtils.toIRSchemaMap(typeAliases.toMap))
+        }
+      case None  => Map.empty
+      case other => throw new Exception(s"invalid ${Constants.ExecLinkInfo} value: ${other}")
+    }
+    execLinks.toMap.values.toVector
+  }
+
   it should "compile workflow with treeTurnaroundTimeThreshold from extras, but not for its stages" taggedAs NativeTest in {
     val path = pathFromBasename("compiler", basename = "apps_1858_tat_wf.wdl")
     val extraPath = pathFromBasename("compiler/extras", "apps_1858_default_wf_attrs.json")
@@ -1572,6 +1590,36 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       case wf: DxWorkflowDescribe   => wf.treeTurnaroundTimeThreshold
     }
     nestedStageTATs should contain only None
+  }
+
+  it should "compile a workflow with treeTurnaroundTimeThreshold for the nested workflows/tasks wrapped in frags" taggedAs NativeTest in {
+    val path = pathFromBasename("compiler", basename = "apps_1858_tat_wf_frags.wdl")
+    val extraPath = pathFromBasename("compiler/extras", "apps_1858_for_frags.json")
+    val args = path.toString :: "--extras" :: extraPath.toString :: cFlags
+    val wfId = Main.compile(args.toVector) match {
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
+    }
+    val dxWf = dxApi.workflow(wfId)
+    val desc = dxWf.describe(Set(Field.TreeTurnaroundTimeThreshold))
+    desc.treeTurnaroundTimeThreshold shouldBe None
+
+    val fragLinks = describeStages(dxWf, Set.empty).values.collect {
+      case app: DxAppletDescribe => getExecLinks(dxApi.applet(app.id), path)
+    }.flatten
+    fragLinks.size shouldBe 2
+    val linksTats = fragLinks.map { link: ExecutableLink =>
+      link.dxExec.describe(Set(Field.TreeTurnaroundTimeThreshold))
+    }
+    val nestedStageTats = linksTats.map {
+      case applet: DxAppletDescribe => applet.name -> applet.treeTurnaroundTimeThreshold
+      case wf: DxWorkflowDescribe   => wf.name -> wf.treeTurnaroundTimeThreshold
+    }.toMap
+    nestedStageTats shouldBe Map(
+        "apps_1858_task_01" -> 8,
+        "apps_1858_inner" -> 5
+    )
   }
 
   // APPS-1616 delayWorkspaceDestruction in extras.json is deprecated

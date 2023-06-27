@@ -18,7 +18,7 @@ workflow apps_1858_tat_wf_frags {
     }
 
     output {
-        String wf_out_01 = apps_1858_task_01.out
+        String? wf_out_01 = apps_1858_task_01.out
         String wf_out_02 = apps_1858_task_02.out
     }
 }

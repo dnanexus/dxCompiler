@@ -1,0 +1,12 @@
+{
+  "per_workflow_dx_attributes": {
+    "apps_1858_inner": {
+      "tree_turnaround_time_threshold": 5
+    }
+  },
+  "per_task_dx_attributes": {
+    "apps_1858_task_01": {
+      "tree_turnaround_time_threshold": 8
+    }
+  }
+}
