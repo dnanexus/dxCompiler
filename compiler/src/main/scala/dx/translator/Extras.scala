@@ -318,6 +318,7 @@ abstract class DxMeta(title: Option[String],
         categories.map(c => "categories" -> JsArray(c.map(JsString(_)))),
         types.map(t => "types" -> JsArray(t.map(JsString(_)))),
         tags.map(t => "tags" -> JsArray(t.map(JsString(_)))),
+        treeTurnaroundTimeThreshold.map(tat => "treeTurnaroundTimeThreshold" -> JsNumber(tat)),
         properties.map(p =>
           "properties" -> JsObject(p.map {
             case (key, value) => key -> JsString(value)

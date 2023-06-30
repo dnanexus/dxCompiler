@@ -1545,9 +1545,9 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     execLinks.toMap.values.toVector
   }
 
-  it should "compile workflow with treeTurnaroundTimeThreshold from extras, but not for its stages" taggedAs NativeTest in {
+  it should "compile workflow with treeTurnaroundTimeThreshold from extras for top WF, but not for its stages" taggedAs NativeTest in {
     val path = pathFromBasename("compiler", basename = "apps_1858_tat_wf.wdl")
-    val extraPath = pathFromBasename("compiler/extras", "apps_1858_default_wf_attrs.json")
+    val extraPath = pathFromBasename("compiler/extras", "apps_1858_top_wf_attrs.json")
     val args = path.toString :: "--extras" :: extraPath.toString :: cFlags
     val wfId = Main.compile(args.toVector) match {
       case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
@@ -1556,7 +1556,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     }
     val dxWf = dxApi.workflow(wfId)
     val desc = dxWf.describe(Set(Field.TreeTurnaroundTimeThreshold))
-    desc.treeTurnaroundTimeThreshold shouldBe 2
+    desc.treeTurnaroundTimeThreshold shouldBe Some(2)
     val stagesDesc = describeStages(dxWf, Set(Field.TreeTurnaroundTimeThreshold))
     val stageTATs = stagesDesc.values.map {
       case applet: DxAppletDescribe => applet.treeTurnaroundTimeThreshold
@@ -1576,14 +1576,14 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     }
     val dxWf = dxApi.workflow(wfId)
     val desc = dxWf.describe(Set(Field.TreeTurnaroundTimeThreshold))
-    desc.treeTurnaroundTimeThreshold shouldBe None
+    desc.treeTurnaroundTimeThreshold shouldBe Some(2)
     val nestedWfIds = describeStages(dxWf, Set.empty).values.collect {
       case wf: DxWorkflowDescribe => wf.id
     }.toVector
     nestedWfIds.size shouldBe 1
     val nestedWf = dxApi.workflow(nestedWfIds.head)
     val nestedWfDesc = nestedWf.describe(Set(Field.TreeTurnaroundTimeThreshold))
-    nestedWfDesc.treeTurnaroundTimeThreshold shouldBe 5
+    nestedWfDesc.treeTurnaroundTimeThreshold shouldBe Some(5)
     val nestedStagesDesc = describeStages(nestedWf, Set(Field.TreeTurnaroundTimeThreshold))
     val nestedStageTATs = nestedStagesDesc.values.map {
       case applet: DxAppletDescribe => applet.treeTurnaroundTimeThreshold
@@ -1617,8 +1617,8 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
       case wf: DxWorkflowDescribe   => wf.name -> wf.treeTurnaroundTimeThreshold
     }.toMap
     nestedStageTats shouldBe Map(
-        "apps_1858_task_01" -> 8,
-        "apps_1858_inner" -> 5
+        "apps_1858_task_01" -> Some(8),
+        "apps_1858_inner" -> Some(5)
     )
   }
 
