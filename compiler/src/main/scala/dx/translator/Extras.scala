@@ -170,9 +170,9 @@ object ExtrasJsonProtocol extends DefaultJsonProtocol {
   implicit val timeoutPolicyFormat: RootJsonFormat[DxTimeout] = jsonFormat3(DxTimeout)
   implicit val licenseFormat: RootJsonFormat[DxLicense] = jsonFormat6(DxLicense)
   implicit val detailsFormat: RootJsonFormat[DxDetails] = jsonFormat1(DxDetails)
-  implicit val dxAppFormat: RootJsonFormat[DxAppJson] = jsonFormat12(DxAppJson)
+  implicit val dxAppFormat: RootJsonFormat[DxAppJson] = jsonFormat13(DxAppJson)
   implicit val scatterAttrsFormat: RootJsonFormat[DxScatterAttrs] = jsonFormat1(DxScatterAttrs)
-  implicit val workflowAttrsFormat: RootJsonFormat[DxWorkflowAttrs] = jsonFormat11(DxWorkflowAttrs)
+  implicit val workflowAttrsFormat: RootJsonFormat[DxWorkflowAttrs] = jsonFormat12(DxWorkflowAttrs)
   implicit val dockerRegistryFormat: RootJsonFormat[DockerRegistry] = jsonFormat4(DockerRegistry)
   implicit val defaultReorgSettingsFormat: RootJsonFormat[DefaultReorgSettings] = jsonFormat1(
       DefaultReorgSettings
@@ -306,7 +306,8 @@ abstract class DxMeta(title: Option[String],
                       categories: Option[Vector[String]],
                       types: Option[Vector[String]],
                       tags: Option[Vector[String]],
-                      properties: Option[Map[String, String]]) {
+                      properties: Option[Map[String, String]],
+                      treeTurnaroundTimeThreshold: Option[Long]) {
   def getMetaJson: Map[String, JsValue] = {
     Vector(
         title.map(t => "title" -> JsString(t)),
@@ -317,6 +318,7 @@ abstract class DxMeta(title: Option[String],
         categories.map(c => "categories" -> JsArray(c.map(JsString(_)))),
         types.map(t => "types" -> JsArray(t.map(JsString(_)))),
         tags.map(t => "tags" -> JsArray(t.map(JsString(_)))),
+        treeTurnaroundTimeThreshold.map(tat => "treeTurnaroundTimeThreshold" -> JsNumber(tat)),
         properties.map(p =>
           "properties" -> JsObject(p.map {
             case (key, value) => key -> JsString(value)
@@ -337,7 +339,8 @@ case class DxAppJson(runSpec: Option[DxRunSpec] = None,
                      types: Option[Vector[String]] = None,
                      tags: Option[Vector[String]] = None,
                      properties: Option[Map[String, String]] = None,
-                     openSource: Option[Boolean] = None)
+                     openSource: Option[Boolean] = None,
+                     treeTurnaroundTimeThreshold: Option[Long] = None)
     extends DxMeta(title,
                    summary,
                    description,
@@ -346,7 +349,8 @@ case class DxAppJson(runSpec: Option[DxRunSpec] = None,
                    categories,
                    types,
                    tags,
-                   properties) {
+                   properties,
+                   treeTurnaroundTimeThreshold) {
 
   override def getMetaJson: Map[String, JsValue] = {
     super.getMetaJson ++ Vector(
@@ -395,7 +399,8 @@ case class DxWorkflowAttrs(scatterDefaults: Option[DxScatterAttrs],
                            categories: Option[Vector[String]],
                            types: Option[Vector[String]],
                            tags: Option[Vector[String]],
-                           properties: Option[Map[String, String]])
+                           properties: Option[Map[String, String]],
+                           treeTurnaroundTimeThreshold: Option[Long])
     extends DxMeta(title,
                    summary,
                    description,
@@ -404,7 +409,8 @@ case class DxWorkflowAttrs(scatterDefaults: Option[DxScatterAttrs],
                    categories,
                    types,
                    tags,
-                   properties)
+                   properties,
+                   treeTurnaroundTimeThreshold)
 
 case class DockerRegistry(registry: String,
                           credentials: String,

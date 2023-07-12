@@ -647,6 +647,51 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
     )
   }
 
+  it should "accept treeTurnaroundTimeThreshold in (default) tasks and workflows" in {
+    val runSpec: JsValue =
+      """|{
+         | "defaultTaskDxAttributes": {
+         |   "treeTurnaroundTimeThreshold": 1
+         |  },
+         | "perTaskDxAttributes": {
+         |   "Add": {
+         |      "treeTurnaroundTimeThreshold": 2
+         |    },
+         |    "Multiply" : {
+         |      "treeTurnaroundTimeThreshold": 3
+         |    }
+         |  },
+         | "defaultWorkflowDxAttributes": {
+         |   "treeTurnaroundTimeThreshold": 5
+         | },
+         | "perWorkflowDxAttributes": {
+         |   "NestedWf": {
+         |      "treeTurnaroundTimeThreshold": 8
+         |   }
+         | }
+         |}
+         |""".stripMargin.parseJson
+
+    val extras = Extras.parse(runSpec)
+    extras.defaultTaskDxAttributes.get.treeTurnaroundTimeThreshold should be(Some(1))
+    extras.perTaskDxAttributes.get.map {
+      case (k, v) => k -> v.treeTurnaroundTimeThreshold
+    } should be(
+        Map(
+            "Add" -> Some(2),
+            "Multiply" -> Some(3)
+        )
+    )
+    extras.defaultWorkflowDxAttributes.get.treeTurnaroundTimeThreshold should be(Some(5))
+    extras.perWorkflowDxAttributes.get.map {
+      case (k, v) => k -> v.treeTurnaroundTimeThreshold
+    } should be(
+        Map(
+            "NestedWf" -> Some(8)
+        )
+    )
+  }
+
   it should "include optional details in per task attributes" in {
     val runSpec: JsValue =
       """|{

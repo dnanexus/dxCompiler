@@ -1,0 +1,7 @@
+{
+  "per_workflow_dx_attributes": {
+    "apps_1858_tat_wf": {
+      "treeTurnaroundTimeThreshold": 2
+    }
+  }
+}

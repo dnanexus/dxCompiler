@@ -13,7 +13,7 @@ object Tags {
   object ApiTest extends DxTag("dxApi")
   // test that builds native applets/workflows
   object NativeTest extends DxTag("native")
-  // test that rqeuires being logged into a DNAnexus production account
+  // test that requires being logged into a DNAnexus production account
   object ProdTest extends DxTag("prod")
   // marker for an edge case
   object EdgeTest extends Tag("edge")
