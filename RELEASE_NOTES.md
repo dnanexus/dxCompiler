@@ -3,6 +3,12 @@
 ## in develop
 ...
 
+## 2.11.4 2023-07-21
+* changes to allow compiling with `treeTurnaroundTimeThreshold` attribute which facilitates platform to send the email 
+notifications for the root jobs/analyses with a run time (aka `treeTurnatoundTime`) exceeding the specified threshold. 
+The attribute `treeTurnaroundTimeThreshold` can be specified for tasks and workflows via `extras.json`. This feature is 
+not exclusive for dxCompiler and more information is available in the platform documentation.
+
 ## 2.11.3 2023-06-08
 * WDL: eliminates inefficient `file-XXX/describe` API calls and replaces them with a bulk describe (i.e `system/findDataObjects)
 
