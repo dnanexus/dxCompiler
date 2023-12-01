@@ -1,7 +1,8 @@
 # Release Notes
 
 ## in develop
-...
+
+* Updated wdlTools and its dependencies
 
 ## 2.11.4 2023-07-21
 * changes to allow compiling with `treeTurnaroundTimeThreshold` attribute which facilitates platform to send the email 
