@@ -692,6 +692,45 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
     )
   }
 
+  it should "accept headJobOnDemand as default and per-task param" in {
+    val runSpec: JsValue =
+      """|{
+         | "defaultTaskDxAttributes" : {
+         |   "runSpec": {
+         |     "headJobOnDemand": true
+         |   }
+         |  },
+         | "perTaskDxAttributes" : {
+         |   "Add": {
+         |      "runSpec": {
+         |        "headJobOnDemand": false
+         |      }
+         |    },
+         |    "Multiply" : {
+         |      "runSpec": {
+         |        "timeoutPolicy": {
+         |          "*": {
+         |            "minutes": 30
+         |          }
+         |        }
+         |      }
+         |    }
+         |  }
+         |}
+         |""".stripMargin.parseJson
+
+    val extras = Extras.parse(runSpec)
+    extras.defaultTaskDxAttributes.get.runSpec.get.headJobOnDemand should be(Some(true))
+    extras.perTaskDxAttributes.get.map {
+      case (k, v) => k -> v.runSpec.get.headJobOnDemand
+    } should be(
+      Map(
+        "Add" -> Some(false),
+        "Multiply" -> None
+      )
+    )
+  }
+
   it should "include optional details in per task attributes" in {
     val runSpec: JsValue =
       """|{
