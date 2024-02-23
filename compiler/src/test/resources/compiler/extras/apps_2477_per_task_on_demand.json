@@ -1,0 +1,9 @@
+{
+  "perTaskDxAttributes": {
+    "apps_2477_task_01": {
+      "runSpec": {
+        "headJobOnDemand": true
+      }
+    }
+  }
+}
