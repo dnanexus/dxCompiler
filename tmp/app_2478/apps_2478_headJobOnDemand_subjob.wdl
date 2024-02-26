@@ -1,7 +1,20 @@
 version 1.0
 
 
-task apps_2477_headJobOnDemand_subjob_t01 {
+workflow apps_2478_headJobOnDemand_subjob {
+    input {
+        File fruits
+    }
+    call apps_2478_headJobOnDemand_subjob_t01 { input: fruits = fruits }
+    call apps_2478_headJobOnDemand_subjob_t02 { }
+
+    output {
+        String retval = apps_2478_headJobOnDemand_subjob_t01.retval
+    }
+}
+
+
+task apps_2478_headJobOnDemand_subjob_t01 {
     input {
         File fruits
     }
@@ -27,7 +40,7 @@ task apps_2477_headJobOnDemand_subjob_t01 {
     }
 }
 
-task apps_2477_headJobOnDemand_subjob_t02 {
+task apps_2478_headJobOnDemand_subjob_t02 {
     input {
         Int num = 1
     }
