@@ -103,7 +103,7 @@ Complex categories are obtained by adding [mixins](#mixins) to the [basic catego
 |        expected_failure_message        |       ExpectedFailureMessage       | ExpectedFailure + ResultsMixin, `_validate` checks that the analysis failed with an error message specified in results['error'] |
 |        extras_analysis_finished        |       ExtrasAnalysisFinished       |                                                 AnalysisFinished + ExtrasMixin                                                  |
 |             expected_flags             |           ExpectedFlags            |      ExpectedOutput + JobCollectorMixin + `_validate_outputs` compares flags to the fixture in `<test_name>_results.json`       |
-| dynamic_pinned_instance_expected_flags |     DynamicPinnedExpectedFlags     |                    ExpectedFlags category with DynamicOnlyMixin and PinnedInstance (tests sub-job behavior)                     |
+|      subjob_extras_expected_flag       |     SubjobExtrasExpectedFlags      |                   DynamicOnlyMixin + PinnedInstanceMixin + ExtrasMixin + ExpectedFlags (tests sub-job extras)                   |
 |         extras_expected_output         |        ExtrasExpectedOutput        |                                                  ExpectedOutput + ExtrasMixin                                                   |
 |        unlocked_expected_output        |       UnlockedExpectedOutput       |                                   ExpectedOutput + UnlockedMixin, _extract_outputs overridden                                   |
 |       manifest_analysis_finished       |      ManifestAnalysisFinished      |                                                AnalysisFinished + ManifestMixin                                                 |
@@ -146,6 +146,7 @@ the property `exec_id` should be overridden/implemented with passing those compi
 2. **Execution**. To change executable run behavior - the methods `_run_executable()` and `_run_executable_inner()` can be overridden.
 3. **Validation**. For test validation, each subclass has to have an implementation of `_validate()` method.
 
+After that, an implemented test class should be added as a switch case to the `RegisteredTestFactory` class.
 
 ## Test suite architecture
 The following architecture is implemented to support the integration tests for dxCompiler.
