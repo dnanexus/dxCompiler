@@ -103,8 +103,9 @@ Complex categories are obtained by adding [mixins](#mixins) to the [basic catego
 |        expected_failure_message        |       ExpectedFailureMessage       | ExpectedFailure + ResultsMixin, `_validate` checks that the analysis failed with an error message specified in results['error'] |
 |        extras_analysis_finished        |       ExtrasAnalysisFinished       |                                                 AnalysisFinished + ExtrasMixin                                                  |
 |             expected_flags             |           ExpectedFlags            |      ExpectedOutput + JobCollectorMixin + `_validate_outputs` compares flags to the fixture in `<test_name>_results.json`       |
+|         dynamic_expected_flags         |        DynamicExpectedFlags        |                              ExpectedFlags category with DynamicOnlyMixin (tests sub-job behavior)                              |
 |         extras_expected_output         |        ExtrasExpectedOutput        |                                                  ExpectedOutput + ExtrasMixin                                                   |
-|        unlocked_expected_output        |       UnlockedExpectedOutput       |                                   ExpectedOutput + UnlockedMixin, _extract_outputs overriden                                    |
+|        unlocked_expected_output        |       UnlockedExpectedOutput       |                                   ExpectedOutput + UnlockedMixin, _extract_outputs overridden                                   |
 |       manifest_analysis_finished       |      ManifestAnalysisFinished      |                                                AnalysisFinished + ManifestMixin                                                 |
 |         reorg_expected_output          |        ReorgExpectedOutput         |                                                   ExpectedOutput + ReorgMixin                                                   |
 | static_pinned_instance_expected_output | StaticPinnedInstanceExpectedOutput |                                     ExpectedOutput + StaticOnlyMixin + PinnedInstanceMixin                                      |
@@ -116,16 +117,17 @@ Complex categories are obtained by adding [mixins](#mixins) to the [basic catego
 
 Mixins are designed so that many can be used to extend a category class.
 
-|        Name         |                                                     purpose                                                     |
-|:-------------------:|:---------------------------------------------------------------------------------------------------------------:|
-| PinnedInstanceMixin |                                        `instance_type` is set to `None`                                         |
-|     ExtrasMixin     |                            appends to compile flags `--extras testname_extras.json`                             |
-|    UnlockedMixin    |                                      removes `-locked` from compiler flags                                      |
-|    ManifestMixin    |                                    appends to compile flags `-useManifests`                                     |
-|     ReorgMixin      |                                        appends to compile flags `-reorg`                                        |
-|  ResultsTestMixin   |              loads result fixture from `testname_results.json` and stores it in `results` property              |
-|   StaticOnlyMixin   | appends to compile flags `-instanceTypeSelection static` preventing random selection of dynamic/static instance |
-|  JobCollectorMixin  |                          collects all child execution IDs for a given parent execution                          |
+|        Name         |                                                     purpose                                                      |
+|:-------------------:|:----------------------------------------------------------------------------------------------------------------:|
+| PinnedInstanceMixin |                                         `instance_type` is set to `None`                                         |
+|     ExtrasMixin     |                             appends to compile flags `--extras testname_extras.json`                             |
+|    UnlockedMixin    |                                      removes `-locked` from compiler flags                                       |
+|    ManifestMixin    |                                     appends to compile flags `-useManifests`                                     |
+|     ReorgMixin      |                                        appends to compile flags `-reorg`                                         |
+|  ResultsTestMixin   |              loads result fixture from `testname_results.json` and stores it in `results` property               |
+|   StaticOnlyMixin   | appends `-instanceTypeSelection static` to compile flags preventing random selection of dynamic/static instance  |
+|  DynamicOnlyMixin   | appends `-instanceTypeSelection dynamic` to compile flags preventing random selection of dynamic/static instance |
+|  JobCollectorMixin  |                          collects all child execution IDs for a given parent execution                           |
 
 
 ## Extending the framework
