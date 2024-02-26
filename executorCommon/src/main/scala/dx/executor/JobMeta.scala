@@ -500,6 +500,7 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
         runSpec.asJsObject().fields.get(Constants.HeadJobOnDemand) match {
           case Some(JsBoolean(flag)) => flag
           case None                  => false
+          case other         => throw new Exception(s"invalid headJobOnDemand spec ${other}. Has to be boolean")
         }
       case None =>
         logger.warning(s"runSpec attribute for this task is not specified")
