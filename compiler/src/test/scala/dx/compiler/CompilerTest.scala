@@ -1635,14 +1635,15 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val dxWf = dxApi.workflow(wfId)
     val stagesDesc = describeStages(dxWf, Set(Field.RunSpec))
     val stageOnDemandParams = stagesDesc.values.map {
-      case applet: DxAppletDescribe => applet.name -> applet.runSpec.get.asJsObject().fields.get(DxRunSpec.HeadJobOnDemand)
-      case wf: DxWorkflowDescribe   => throw new Exception(s"should not contain WFs ${wf}")
+      case applet: DxAppletDescribe =>
+        applet.name -> applet.runSpec.get.asJsObject().fields.get(DxRunSpec.HeadJobOnDemand)
+      case wf: DxWorkflowDescribe => throw new Exception(s"should not contain WFs ${wf}")
     }.toMap
     stageOnDemandParams should be(
-      Map(
-        "apps_2477_task_01" -> Some(JsTrue),
-        "apps_2477_task_02" -> Some(JsFalse)
-      )
+        Map(
+            "apps_2477_task_01" -> Some(JsTrue),
+            "apps_2477_task_02" -> Some(JsFalse)
+        )
     )
   }
 
@@ -1658,14 +1659,15 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     val dxWf = dxApi.workflow(wfId)
     val stagesDesc = describeStages(dxWf, Set(Field.RunSpec))
     val stageOnDemandParams = stagesDesc.values.map {
-      case applet: DxAppletDescribe => applet.name -> applet.runSpec.get.asJsObject().fields.get(DxRunSpec.HeadJobOnDemand)
-      case wf: DxWorkflowDescribe   => throw new Exception(s"should not contain WFs ${wf}")
+      case applet: DxAppletDescribe =>
+        applet.name -> applet.runSpec.get.asJsObject().fields.get(DxRunSpec.HeadJobOnDemand)
+      case wf: DxWorkflowDescribe => throw new Exception(s"should not contain WFs ${wf}")
     }.toMap
     stageOnDemandParams should be(
-      Map(
-        "apps_2477_task_01" -> Some(JsTrue),
-        "apps_2477_task_02" -> Some(JsTrue)
-      )
+        Map(
+            "apps_2477_task_01" -> Some(JsTrue),
+            "apps_2477_task_02" -> Some(JsTrue)
+        )
     )
   }
 

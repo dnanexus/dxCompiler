@@ -724,10 +724,10 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
     extras.perTaskDxAttributes.get.map {
       case (k, v) => k -> v.runSpec.get.headJobOnDemand
     } should be(
-      Map(
-        "Add" -> Some(false),
-        "Multiply" -> None
-      )
+        Map(
+            "Add" -> Some(false),
+            "Multiply" -> None
+        )
     )
   }
 

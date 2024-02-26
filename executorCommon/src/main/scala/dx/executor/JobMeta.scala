@@ -496,10 +496,11 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
 
   lazy val headJobOnDemand: Boolean = {
     getExecutableAttribute(Constants.RunSpec) match {
-      case Some(runSpec) => runSpec.asJsObject().fields.get(Constants.HeadJobOnDemand) match {
-        case Some(JsBoolean(flag)) => flag
-        case None => false
-      }
+      case Some(runSpec) =>
+        runSpec.asJsObject().fields.get(Constants.HeadJobOnDemand) match {
+          case Some(JsBoolean(flag)) => flag
+          case None                  => false
+        }
       case None =>
         logger.warning(s"runSpec attribute for this task is not specified")
         false

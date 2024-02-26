@@ -43,7 +43,6 @@ object Constants {
   val DockerRegistryCredentialsUri = "dockerRegistryCredentialsUri"
   val OriginalName = "originalName"
 
-
   // Applet runSpec
   val RunSpec = "runSpec"
   // RunSpec attributes
