@@ -104,6 +104,7 @@ Complex categories are obtained by adding [mixins](#mixins) to the [basic catego
 |        extras_analysis_finished        |       ExtrasAnalysisFinished       |                                                 AnalysisFinished + ExtrasMixin                                                  |
 |             expected_flags             |           ExpectedFlags            |      ExpectedOutput + JobCollectorMixin + `_validate_outputs` compares flags to the fixture in `<test_name>_results.json`       |
 |         extras_expected_output         |        ExtrasExpectedOutput        |                                                  ExpectedOutput + ExtrasMixin                                                   |
+|         extras_expected_flags          |        ExtrasExpectedFlags         |                                                   ExpectedFlags + ExtrasMixin                                                   |
 |        unlocked_expected_output        |       UnlockedExpectedOutput       |                                   ExpectedOutput + UnlockedMixin, _extract_outputs overridden                                   |
 |       manifest_analysis_finished       |      ManifestAnalysisFinished      |                                                AnalysisFinished + ManifestMixin                                                 |
 |         reorg_expected_output          |        ReorgExpectedOutput         |                                                   ExpectedOutput + ReorgMixin                                                   |
