@@ -15,9 +15,11 @@ class ExpectedFlags(JobCollectorMixin, ExpectedOutput):
         return self._cache or self._execution_cache()
 
     def _execution_cache(self) -> Dict:
+        relevant_flags = self._collect_relevant_flags()
         exec_ids = self._collect()
+        describe_payload = [{"id": exec_id, "describe": {"fields": relevant_flags}} for exec_id in exec_ids]
         cache = dxpy.api.system_describe_executions(
-            input_params={"executions": list(exec_ids)}
+            input_params={"executions": describe_payload}
         ).get("results", None)
         if not cache:
             self.context.logger.error(
@@ -44,3 +46,14 @@ class ExpectedFlags(JobCollectorMixin, ExpectedOutput):
         except Exception:
             return False
         return True
+
+    def _collect_relevant_flags(self) -> Dict:
+        """
+        Collects all flags in the expected results. For each executable, all collected fags will be requested in the API call
+        :return: Dict[String, Bool]
+        """
+        bag_of_flags = {}
+        for key in self._results.keys():
+            _, _, flag = key.split(".")
+            bag_of_flags.update(**{flag: True})
+        return bag_of_flags
