@@ -329,15 +329,16 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
           skippedIndices.map(v => Constants.SkippedIndices -> JsArray(v.map(JsNumber(_))))
       ).flatten.toMap
       val dxSubJob: DxExecution = dxApi.runSubJob(
-          entryPoint,
-          Some(jobMeta.instanceTypeDb.defaultInstanceType.name),
-          JsObject(jobMeta.rawJsInputs.map {
+          entryPoint = entryPoint,
+          instanceType = Some(jobMeta.instanceTypeDb.defaultInstanceType.name),
+          inputs = JsObject(jobMeta.rawJsInputs.map {
             case (dxName, jsv) => dxName.encoded -> jsv
           }),
-          childJobs,
-          jobMeta.delayWorkspaceDestruction,
-          Some(jobName),
-          Some(JsObject(details))
+          dependsOn = childJobs,
+          delayWorkspaceDestruction = jobMeta.delayWorkspaceDestruction,
+          name = Some(jobName),
+          details = Some(JsObject(details)),
+          headJobOnDemand = jobMeta.headJobOnDemand
       )
       // Return JBORs for all the outputs. Since the signature of the sub-job
       // is exactly the same as the parent, we can immediately exit the parent job.

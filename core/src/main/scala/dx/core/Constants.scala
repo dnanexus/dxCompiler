@@ -43,6 +43,11 @@ object Constants {
   val DockerRegistryCredentialsUri = "dockerRegistryCredentialsUri"
   val OriginalName = "originalName"
 
+  // Applet runSpec
+  val RunSpec = "runSpec"
+  // RunSpec attributes
+  val HeadJobOnDemand = "headJobOnDemand"
+
   // keys used in details of jobs of native applets
   val ContinueStart = "continue_start___"
   val OutputShape = "output_shape___"

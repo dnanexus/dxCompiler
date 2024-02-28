@@ -494,6 +494,21 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
     inputSpec
   }
 
+  lazy val headJobOnDemand: Boolean = {
+    getExecutableAttribute(Constants.RunSpec) match {
+      case Some(runSpec) =>
+        runSpec.asJsObject().fields.get(Constants.HeadJobOnDemand) match {
+          case Some(JsBoolean(flag)) => flag
+          case None                  => false
+          case other =>
+            throw new Exception(s"invalid headJobOnDemand spec ${other}. Has to be boolean")
+        }
+      case None =>
+        logger.warning(s"runSpec attribute for this task is not specified")
+        false
+    }
+  }
+
   lazy val inputs: Map[DxName, Value] = {
     // If we are using manifests, then the inputSpec won't match the task inputs.
     // Otherwise, if we have access to the inputSpec, use it to guide deserialization.

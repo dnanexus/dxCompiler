@@ -12,6 +12,7 @@ import dx.core.Constants
 import dx.core.ir.{Callable, ExecutableLink, ExecutableLinkDeserializer}
 import dx.core.CliUtils.Termination
 import dx.core.languages.wdl.{VersionSupport, WdlDxName, WdlUtils}
+import dx.translator.DxRunSpec
 import dx.util.{FileUtils, JsUtils, Logger, SysUtils}
 import dxCompiler.Main
 import dxCompiler.Main.{SuccessfulCompileIR, SuccessfulCompileNativeNoTree}
@@ -1619,6 +1620,54 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     nestedStageTats shouldBe Map(
         "apps_1858_task_01" -> Some(8),
         "apps_1858_inner" -> Some(5)
+    )
+  }
+
+  it should "compile workflow with headJobOnDemand for ONE of 2 tasks" taggedAs NativeTest in {
+    val path = pathFromBasename("compiler", basename = "apps_2477_headJobOnDemand.wdl")
+    val extraPath = pathFromBasename("compiler/extras", "apps_2477_per_task_on_demand.json")
+    val args = path.toString :: "--extras" :: extraPath.toString :: cFlags
+    val wfId = Main.compile(args.toVector) match {
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
+    }
+    val dxWf = dxApi.workflow(wfId)
+    val stagesDesc = describeStages(dxWf, Set(Field.RunSpec))
+    val stageOnDemandParams = stagesDesc.values.map {
+      case applet: DxAppletDescribe =>
+        applet.name -> applet.runSpec.get.asJsObject().fields.get(DxRunSpec.HeadJobOnDemand)
+      case wf: DxWorkflowDescribe => throw new Exception(s"should not contain WFs ${wf}")
+    }.toMap
+    stageOnDemandParams should be(
+        Map(
+            "apps_2477_task_01" -> Some(JsTrue),
+            "apps_2477_task_02" -> Some(JsFalse)
+        )
+    )
+  }
+
+  it should "compile workflow with headJobOnDemand as a defaultTaskDxAttr" taggedAs NativeTest in {
+    val path = pathFromBasename("compiler", basename = "apps_2477_headJobOnDemand.wdl")
+    val extraPath = pathFromBasename("compiler/extras", "apps_2477_default_task_on_demand.json")
+    val args = path.toString :: "--extras" :: extraPath.toString :: cFlags
+    val wfId = Main.compile(args.toVector) match {
+      case SuccessfulCompileNativeNoTree(_, Vector(x)) => x
+      case other =>
+        throw new Exception(s"unexpected result ${other}")
+    }
+    val dxWf = dxApi.workflow(wfId)
+    val stagesDesc = describeStages(dxWf, Set(Field.RunSpec))
+    val stageOnDemandParams = stagesDesc.values.map {
+      case applet: DxAppletDescribe =>
+        applet.name -> applet.runSpec.get.asJsObject().fields.get(DxRunSpec.HeadJobOnDemand)
+      case wf: DxWorkflowDescribe => throw new Exception(s"should not contain WFs ${wf}")
+    }.toMap
+    stageOnDemandParams should be(
+        Map(
+            "apps_2477_task_01" -> Some(JsTrue),
+            "apps_2477_task_02" -> Some(JsTrue)
+        )
     )
   }
 

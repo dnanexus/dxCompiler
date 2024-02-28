@@ -843,13 +843,14 @@ abstract class TaskExecutor(jobMeta: JobMeta,
         )
         // launch a sub-job with the same inputs and the dynamically calculated instance type
         val dxSubJob: DxJob = dxApi.runSubJob(
-            "body",
-            Some(requestedInstanceType),
-            JsObject(jobMeta.rawJsInputs.map {
+            entryPoint = "body",
+            instanceType = Some(requestedInstanceType),
+            inputs = JsObject(jobMeta.rawJsInputs.map {
               case (dxName, jsv) => dxName.encoded -> jsv
             }),
-            Vector.empty,
-            jobMeta.delayWorkspaceDestruction
+            dependsOn = Vector.empty,
+            delayWorkspaceDestruction = jobMeta.delayWorkspaceDestruction,
+            headJobOnDemand = jobMeta.headJobOnDemand
         )
         jobMeta.writeExecutionOutputLinks(dxSubJob, outputTypes)
         return TaskExecutorResult.Relaunch
