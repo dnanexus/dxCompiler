@@ -28,7 +28,7 @@ class ExpectedFlags(JobCollectorMixin, ExpectedOutput):
             raise RegisteredTestError("No executions found")
         for executable in cache:
             # differentiate sub-jobs
-            body_suffix = "body" if executable["function"] == "body" else ""
+            body_suffix = "body" if executable["describe"]["function"] == "body" else ""
             exec_name = executable["describe"]["executableName"]
             full_exec_name = ":".join([
                 x for x in [exec_name, body_suffix] if x
