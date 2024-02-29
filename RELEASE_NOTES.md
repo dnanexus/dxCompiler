@@ -1,10 +1,20 @@
 # Release Notes
 
-## in develop
+## 2.11.5 2024-02-29
 
 * Updated wdlTools and its dependencies
 * Updated dxApi
 * WDL workflows allow `headJobOnDemand` for the tasks if this spec is passed through `extras` via `runSpec.headJobOnDemand`.
+
+### Dependency updates
+
+#### wdlTools [0.17.17](https://github.com/dnanexus/wdlTools/releases/tag/0.17.17)
+
+* ANTLR4 version bump to 4.13.1
+
+#### dxApi [0.13.9](https://github.com/dnanexus/dxScala/releases/tag/api-0.13.9)
+
+* adds `headJobOnDemand` attribute to jobNew call
 
 ## 2.11.4 2023-07-21
 * changes to allow compiling with `treeTurnaroundTimeThreshold` attribute which facilitates platform to send the email 
