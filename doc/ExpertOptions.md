@@ -30,7 +30,6 @@ dxCompiler takes a pipeline written in WDL or CWL and statically compiles it to 
   * [Default and per-task attributes](#default-and-per-task-attributes)
   * [Default and per-workflow attributes](#default-and-per-workflow-attributes)
   * [Job reuse](#job-reuse)
-  * [Delay workspace destruction](#delay-workspace-destruction)
 - [Handling intermediate workflow outputs](#handling-intermediate-workflow-outputs)
   * [Use your own applet](#use-your-own-applet)
   * [Adding config-file based reorg applet at compilation time](#adding-config-file-based-reorg-applet-at-compilation-time)
@@ -1245,9 +1244,13 @@ In order to override the defaults for specific tasks, you can add the `perTaskDx
 }
 ```
 
-will override the default task timeout and `dx_timeout` in the runtime section of tasks `Add` and `Inc`. It will also provide `UPLOAD` instead of `VIEW` project access to `Inc`.
+The above specification will override the default task timeout and `dx_timeout` in the runtime section of tasks `Add` and `Inc`. It will also 
+provide `UPLOAD` instead of `VIEW` project access to `Inc`.
 
-You are also able to specify metadata for tasks in the `defaultTaskDxAttributes` and `perTaskDxAttributes` sections, including adding citation or license information. The full set of recognized attributes is listed in [task meta](#meta-section) with snake_case fields converted to camelCase to agree with [dxapp.json](https://documentation.dnanexus.com/developer/apps/app-metadata) syntax (e.g.  `developer_notes` and `open_source` meta attributes are specified as `developerNotes` and `openSource` in `extras.json`).
+You are also able to specify metadata for tasks in the `defaultTaskDxAttributes` and `perTaskDxAttributes` sections, 
+including adding citation or license information. The full set of recognized attributes is listed in [task meta](#meta-section) 
+with snake_case fields converted to camelCase to agree with [dxapp.json](https://documentation.dnanexus.com/developer/apps/app-metadata) syntax (e.g.  `developer_notes` and 
+`open_source` meta attributes are specified as `developerNotes` and `openSource` in `extras.json`).
 
 For example:
 
@@ -1284,6 +1287,15 @@ For example:
 ```
 
 Note that `details` and `developerNotes` specified in `perTaskDxAttributes` override `details` and `developer_notes` that are set in the task's `meta` section. 
+
+### Supported task attributes
+Check the official DNAnexus documentation on [App Metadata](https://documentation.dnanexus.com/developer/apps/app-metadata)
+* `runSpec`:
+  * `access`
+  * `executionPolicy`
+  * `timeoutPolicy`
+  * `headJobOnDemand`
+
 
 ## Default and per-workflow attributes
 
@@ -1340,14 +1352,17 @@ If you want the default scatter chunk size for this workflow to be 100, but you 
 
 ## Job reuse
 
-By default, job results are [reused](https://documentation.dnanexus.com/user/running-apps-and-workflows/job-reuse). This is an optimization whereby when a job is run a second time, the results from the previous execution are returned, skipping job execution entirely. Sometimes, it is desirable to disable this behavior. To do so, add this setting to the top-level of the extras file:
+By default, job results are [reused](https://documentation.dnanexus.com/user/running-apps-and-workflows/job-reuse). This is an optimization whereby when a job is run a second time, the results 
+from the previous execution are returned, skipping job execution entirely. Sometimes, it is desirable to disable this 
+behavior. To do so, add this setting to the top-level of the extras file:
 
 ```
 {
   "ignoreReuse" : true
 }
 ```
-This will be applied to the top-level workflow, sub-workflows, and applets during compilation, and used for all jobs/analyses during execution (which is equivalent to using `--ignore-reuse` flag with `dx run`). 
+This will be applied to the top-level workflow, sub-workflows, and applets during compilation, and used for all 
+jobs/analyses during execution (which is equivalent to using `--ignore-reuse` flag with `dx run`). 
 
 # Handling intermediate workflow outputs
 
