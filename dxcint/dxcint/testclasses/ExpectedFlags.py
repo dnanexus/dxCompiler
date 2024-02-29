@@ -8,23 +8,36 @@ from dxcint.mixins.JobCollectorMixin import JobCollectorMixin
 class ExpectedFlags(JobCollectorMixin, ExpectedOutput):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._cache = None
+        self._cache = {}
 
     @property
     def cache(self):
         return self._cache or self._execution_cache()
 
     def _execution_cache(self) -> Dict:
+        relevant_flags = self._collect_relevant_flags()
         exec_ids = self._collect()
+        describe_payload = [
+            {"id": exec_id, "describe": {"fields": relevant_flags}}
+            for exec_id in exec_ids
+        ]
         cache = dxpy.api.system_describe_executions(
-            input_params={"executions": list(exec_ids)}
+            input_params={"executions": describe_payload}
         ).get("results", None)
         if not cache:
             self.context.logger.error(
                 f"No executions (jobs/analyses) were found for the test {self.name}"
             )
             raise RegisteredTestError("No executions found")
-        return {x["describe"]["executableName"]: x["describe"] for x in cache}
+        for executable in cache:
+            # differentiate sub-jobs
+            body_suffix = (
+                "body" if executable["describe"].get("function", None) == "body" else ""
+            )
+            exec_name = executable["describe"]["executableName"]
+            full_exec_name = ":".join([x for x in [exec_name, body_suffix] if x])
+            self._cache.update(**{full_exec_name: executable["describe"]})
+        return self._cache
 
     def _extract_outputs(self) -> Dict:
         return self.cache
@@ -43,3 +56,14 @@ class ExpectedFlags(JobCollectorMixin, ExpectedOutput):
         except Exception:
             return False
         return True
+
+    def _collect_relevant_flags(self) -> Dict:
+        """
+        Collects all flags in the expected results. For each executable, all collected fags will be requested in the API call
+        :return: Dict[String, Bool]
+        """
+        bag_of_flags = {"executableName": True, "function": True}
+        for key in self._results.keys():
+            _, _, flag = key.split(".")
+            bag_of_flags.update(**{flag: True})
+        return bag_of_flags

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dxcint"
-version = "0.0.1"
+version = "0.0.2"
 description = "Integration tests for dxCompiler"
 authors = ["Gvaihir <aogorodnikov@dnanexus.com>"]
 

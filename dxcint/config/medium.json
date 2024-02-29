@@ -100,5 +100,8 @@
     ],
     "expected_flags": [
         "add2"
+    ],
+    "extras_expected_flags": [
+        "apps_2478_headJobOnDemand_subjob"
     ]
 }
