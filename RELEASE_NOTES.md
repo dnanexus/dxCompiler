@@ -12,6 +12,10 @@
 
 * ANTLR4 version bump to 4.13.1
 
+#### cwlScala [0.8.5](https://github.com/dnanexus/cwlScala/releases/tag/0.8.5)
+
+* ANTLR4 version bump to 4.13.1
+
 #### dxApi [0.13.9](https://github.com/dnanexus/dxScala/releases/tag/api-0.13.9)
 
 * adds `headJobOnDemand` attribute to jobNew call
