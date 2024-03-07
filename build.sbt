@@ -133,11 +133,11 @@ val githubDxCompilerResolver = Resolver.githubPackages("dnanexus", "dxCompiler")
 lazy val dependencies =
   new {
     val dxCommonVersion = "0.11.5"
-    val dxApiVersion = "0.13.9-SNAPSHOT"
+    val dxApiVersion = "0.13.9"
     val dxFileAccessProtocolsVersion = "0.5.6"
     val dxYamlVersion = "0.1.1"
-    val cwlScalaVersion = "0.8.4"
-    val wdlToolsVersion = "0.17.17-SNAPSHOT"
+    val cwlScalaVersion = "0.8.5"
+    val wdlToolsVersion = "0.17.17"
     val typesafeVersion = "1.4.1"
     val sprayVersion = "1.3.6"
     val scalatestVersion = "3.2.9"
