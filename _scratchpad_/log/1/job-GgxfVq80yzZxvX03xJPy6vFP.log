@@ -1,0 +1,62 @@
+collect_scatter (scatter_collect_with_struct_frag_stage-0:collect) (done) job-GgxfVq80yzZxvX03xJPy6vFP
+rnathans 2024-03-20 23:53:33 (runtime 0:00:44)
+2024-03-20 23:55:42 collect_scatter INFO Logging initialized (priority)
+2024-03-20 23:55:42 collect_scatter INFO Logging initialized (bulk)
+2024-03-20 23:55:50 collect_scatter INFO Skipping dependency scatter_task because it is inactive in stage (function) collect
+2024-03-20 23:55:50 collect_scatter INFO Downloading bundled file dxWDLrt.tar.gz
+2024-03-20 23:55:53 collect_scatter STDOUT >>> Unpacking dxWDLrt.tar.gz to /
+2024-03-20 23:55:53 collect_scatter STDERR tar: Removing leading `/' from member names
+2024-03-20 23:56:06 collect_scatter INFO Setting SSH public key
+2024-03-20 23:56:08 collect_scatter STDOUT dxpy/0.371.0 (Linux-5.15.0-1055-aws-x86_64-with-glibc2.29) Python/3.8.10
+2024-03-20 23:56:09 collect_scatter STDOUT bash running (job ID job-GgxfVq80yzZxvX03xJPy6vFP)
+2024-03-20 23:56:09 collect_scatter STDOUT Skipping bash variables for dxCompiler
+2024-03-20 23:56:09 collect_scatter STDERR Creating JobMeta: rootDir /home/dnanexus, waitOnUpload: false
+2024-03-20 23:56:10 collect_scatter STDERR Creating WorkflowExecutor: separateOutputs false, waitOnUpload false
+2024-03-20 23:56:10 collect_scatter STDERR Creating FileSourceResolver localDirectories = /home/dnanexus/work
+2024-03-20 23:56:10 collect_scatter STDERR Discovering all files in the input values
+2024-03-20 23:56:10 collect_scatter STDERR Loading raw JSON input from /home/dnanexus/job_input.json
+2024-03-20 23:56:10 collect_scatter STDERR Raw inputs:
+2024-03-20 23:56:10 collect_scatter STDERR {
+2024-03-20 23:56:10 collect_scatter STDERR   "input_string": "wwwwwwwwwwwww",
+2024-03-20 23:56:10 collect_scatter STDERR   "n": 3
+2024-03-20 23:56:10 collect_scatter STDERR }
+2024-03-20 23:56:10 collect_scatter STDERR No overrides
+2024-03-20 23:56:11 collect_scatter STDERR dxCompiler version: 2.11.6-SNAPSHOT
+2024-03-20 23:56:11 collect_scatter STDERR Executable links: Map(scatter_task -> ExecutableLink(scatter_task,Map(index -> TInt, input_string -> TString),Map(out -> TSchema(OutputStruct,TreeSeqMap(fileField -> TFile))),DxApplet(applet-GgxfPV00yzZXzbQF7Y7pB1yy,None)))
+2024-03-20 23:56:11 collect_scatter STDERR Environment: Map(input_string -> (TString,VString(wwwwwwwwwwwww)), n -> (TInt,VInt(3)))
+2024-03-20 23:56:11 collect_scatter STDERR Block Vector(0) to execute:
+2024-03-20 23:56:11 collect_scatter STDERR Block(0, ScatterOneCall)
+2024-03-20 23:56:11 collect_scatter STDERR   Inputs: Vector(Int n, String input_string, Int i)
+2024-03-20 23:56:11 collect_scatter STDERR   Outputs: Vector(Array[Struct(OutputStruct)] scatter_task.out)
+2024-03-20 23:56:11 collect_scatter STDERR   Body:
+2024-03-20 23:56:11 collect_scatter STDERR     scatter (i in range(n)) {
+2024-03-20 23:56:11 collect_scatter STDERR       call scatter_task { input: input_string = input_string,index = i }
+2024-03-20 23:56:11 collect_scatter STDERR     }
+2024-03-20 23:56:11 collect_scatter STDERR 
+2024-03-20 23:56:11 collect_scatter STDERR Env:
+2024-03-20 23:56:11 collect_scatter STDERR   input_string: String wwwwwwwwwwwww
+2024-03-20 23:56:11 collect_scatter STDERR   n: Int 3
+2024-03-20 23:56:11 collect_scatter STDERR 
+2024-03-20 23:56:11 collect_scatter STDERR 
+2024-03-20 23:56:11 collect_scatter STDERR Scatter job results:
+2024-03-20 23:56:11 collect_scatter STDERR   Some(ScatterExecution(scatter_task,0,Map(out -> {"___":{"fileField":{"$dnanexus_link":"file-GgxfX5j09Y2B0zfYfjf0fg93"}}}, out___dxfiles -> [{"$dnanexus_link":"file-GgxfX5j09Y2B0zfYfjf0fg93"}]),DxJob(job-GgxfVq80yzZbP2b95F1v8Vf2,None)))
+2024-03-20 23:56:11 collect_scatter STDERR   Some(ScatterExecution(scatter_task,1,Map(out -> {"___":{"fileField":{"$dnanexus_link":"file-GgxfXF005bv2Fg6gpf1qP22K"}}}, out___dxfiles -> [{"$dnanexus_link":"file-GgxfXF005bv2Fg6gpf1qP22K"}]),DxJob(job-GgxfVq80yzZxqfqfX305Gzbx,None)))
+2024-03-20 23:56:11 collect_scatter STDERR   Some(ScatterExecution(scatter_task,2,Map(out -> {"___":{"fileField":{"$dnanexus_link":"file-GgxfXZ80VpBQxvkz7Gvjgj3p"}}}, out___dxfiles -> [{"$dnanexus_link":"file-GgxfXZ80VpBQxvkz7Gvjgj3p"}]),DxJob(job-GgxfVq80yzZf683kF4F9qkq4,None)))
+2024-03-20 23:56:11 collect_scatter STDERR ============= flatOuts ============= Vector()
+2024-03-20 23:56:11 collect_scatter STDERR Scatter outputs:
+2024-03-20 23:56:11 collect_scatter STDERR   scatter_task.out -> (TArray(TSchema(OutputStruct,TreeSeqMap(fileField -> TFile)),false),VArray(Vector(VHash(TreeSeqMap(fileField -> VFile(dx://file-GgxfX5j09Y2B0zfYfjf0fg93::/struct_result_0.txt,None,None,None,None,Vector(),None,None))), VHash(TreeSeqMap(fileField -> VFile(dx://file-GgxfXF005bv2Fg6gpf1qP22K::/struct_result_1.txt,None,None,None,None,Vector(),None,None))), VHash(TreeSeqMap(fileField -> VFile(dx://file-GgxfXZ80VpBQxvkz7Gvjgj3p::/struct_result_2.txt,None,None,None,None,Vector(),None,None))))))
+2024-03-20 23:56:11 collect_scatter STDERR prepareBlockOutputs
+2024-03-20 23:56:11 collect_scatter STDERR   env = Set(input_string, n)
+2024-03-20 23:56:11 collect_scatter STDERR   fragResults = Set(scatter_task.out)
+2024-03-20 23:56:11 collect_scatter STDERR   exportedVars = Set(scatter_task.out)
+2024-03-20 23:56:11 collect_scatter STDERR 
+2024-03-20 23:56:11 collect_scatter STDERR outputLinks:
+2024-03-20 23:56:11 collect_scatter STDERR   scatter_task.out -> ParameterLinkValue([{"fileField":{"$dnanexus_link":"file-GgxfX5j09Y2B0zfYfjf0fg93"}},{"fileField":{"$dnanexus_link":"file-GgxfXF005bv2Fg6gpf1qP22K"}},{"fileField":{"$dnanexus_link":"file-GgxfXZ80VpBQxvkz7Gvjgj3p"}}],TArray(TSchema(OutputStruct,TreeSeqMap(fileField -> TFile)),false))
+2024-03-20 23:56:11 collect_scatter STDOUT success Collect
+collect_scatter (scatter_collect_with_struct_frag_stage-0:collect) (done) job-GgxfVq80yzZxvX03xJPy6vFP
+rnathans 2024-03-20 23:53:33 (runtime 0:00:44)
+Output: scatter_task___out = { ___: [ { fileField: file-GgxfX5j09Y2B0zfYfjf0fg93 }, {
+         fileField: file-GgxfXF005bv2Fg6gpf1qP22K }, { fileField:
+         file-GgxfXZ80VpBQxvkz7Gvjgj3p } ] }
+        scatter_task___out___dxfiles = [ file-GgxfX5j09Y2B0zfYfjf0fg93,
+         file-GgxfXF005bv2Fg6gpf1qP22K, file-GgxfXZ80VpBQxvkz7Gvjgj3p ]
