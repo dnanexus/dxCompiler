@@ -1,1 +1,1 @@
-# Investigate caching /file/describe calls
+# Investigate /file/describe calls during scatter-collect
