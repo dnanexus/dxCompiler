@@ -577,6 +577,7 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
     ): VArray = {
       val encodedNames =
         Vector(Some(fieldName), execName.map(fieldName.pushDecodedNamespace)).flatten
+
       val flatOuts = execOutputs.foldLeft(Vector.empty[JsValue]) {
         case (accu, outputVals) => accu ++ outputVals.getOrElse(Map.empty).values.toVector
       } map { jsv =>
@@ -587,9 +588,13 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
       } collect {
         case dxFile: DxFile => dxFile
       }
+
+      logger.trace(s"============= flatOuts ============= ${flatOuts}")
+
       val updatedDeserializer = jobMeta.inputDeserializer.updateWithCache(
           jobMeta.extendFileDescCache(flatOuts)
       )
+
       val items = execOutputs.map {
         case Some(outputs) =>
           encodedNames
