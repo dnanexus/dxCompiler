@@ -3,7 +3,7 @@ version 1.1
 workflow scatter_collect_with_glob {
   input {
     String input_string
-    Int n = 8
+    Int n = 3
   }
   scatter (i in range(n)) {
     call scatter_task {
@@ -20,7 +20,7 @@ task scatter_task {
     Int index
   }
   command <<<
-    for i in {0..999}; do
+    for i in {0..99}; do
       echo ~{input_string} > result_~{index}_${i}.txt
     done
   >>>
