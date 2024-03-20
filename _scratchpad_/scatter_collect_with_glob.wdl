@@ -21,10 +21,10 @@ task scatter_task {
   }
   command <<<
     for i in {0..99}; do
-      echo ~{input_string} > result_~{index}_${i}.txt
+      echo ~{input_string} > glob_result_~{index}_${i}.txt
     done
   >>>
   output {
-    Array[File] out = glob("result_*")
+    Array[File] out = glob("glob_result_*")
   }
 }

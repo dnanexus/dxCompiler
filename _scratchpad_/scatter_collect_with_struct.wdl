@@ -4,7 +4,7 @@ struct OutputStruct {
   File fileField
 }
 
-workflow scatter_collect_no_glob {
+workflow scatter_collect_with_struct {
   input {
     String input_string
     Int n = 3
@@ -24,11 +24,11 @@ task scatter_task {
     Int index
   }
   command <<<
-    echo ~{input_string} > no_glob_result_~{index}.txt
+    echo ~{input_string} > struct_result_~{index}.txt
   >>>
   output {
     OutputStruct out = OutputStruct {
-      fileField: "no_glob_result_~{index}.txt"
+      fileField: "struct_result_~{index}.txt"
     }
   }
 }
