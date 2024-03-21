@@ -1,0 +1,61 @@
+collect_scatter (scatter_collect_no_array_frag_stage-0:collect) (done) job-Ggy7Y1j0yzZbZbq0k2k4B24G
+rnathans 2024-03-21 19:16:39 (runtime 0:00:36)
+2024-03-21 19:18:46 collect_scatter INFO Logging initialized (priority)
+2024-03-21 19:18:46 collect_scatter INFO Logging initialized (bulk)
+2024-03-21 19:18:50 collect_scatter INFO Skipping dependency scatter_task because it is inactive in stage (function) collect
+2024-03-21 19:18:50 collect_scatter INFO Downloading bundled file dxWDLrt.tar.gz
+2024-03-21 19:18:53 collect_scatter STDOUT >>> Unpacking dxWDLrt.tar.gz to /
+2024-03-21 19:18:53 collect_scatter STDERR tar: Removing leading `/' from member names
+2024-03-21 19:19:00 collect_scatter INFO Setting SSH public key
+2024-03-21 19:19:05 collect_scatter STDOUT dxpy/0.371.0 (Linux-5.15.0-1055-aws-x86_64-with-glibc2.29) Python/3.8.10
+2024-03-21 19:19:05 collect_scatter STDOUT bash running (job ID job-Ggy7Y1j0yzZbZbq0k2k4B24G)
+2024-03-21 19:19:05 collect_scatter STDOUT Skipping bash variables for dxCompiler
+2024-03-21 19:19:06 collect_scatter STDERR Creating JobMeta: rootDir /home/dnanexus, waitOnUpload: false
+2024-03-21 19:19:06 collect_scatter STDERR Creating WorkflowExecutor: separateOutputs false, waitOnUpload false
+2024-03-21 19:19:07 collect_scatter STDERR Creating FileSourceResolver localDirectories = /home/dnanexus/work
+2024-03-21 19:19:07 collect_scatter STDERR Discovering all files in the input values
+2024-03-21 19:19:07 collect_scatter STDERR Loading raw JSON input from /home/dnanexus/job_input.json
+2024-03-21 19:19:07 collect_scatter STDERR Raw inputs:
+2024-03-21 19:19:07 collect_scatter STDERR {
+2024-03-21 19:19:07 collect_scatter STDERR   "input_string": "ooooooooooooo",
+2024-03-21 19:19:07 collect_scatter STDERR   "n": 3
+2024-03-21 19:19:07 collect_scatter STDERR }
+2024-03-21 19:19:07 collect_scatter STDERR No overrides
+2024-03-21 19:19:07 collect_scatter STDERR dxCompiler version: 2.11.6-SNAPSHOT
+2024-03-21 19:19:07 collect_scatter STDERR Executable links: Map(scatter_task -> ExecutableLink(scatter_task,Map(index -> TInt, input_string -> TString),Map(out -> TFile),DxApplet(applet-Ggy7VK00yzZvGxy45yJjvkvq,None)))
+2024-03-21 19:19:07 collect_scatter STDERR Environment: Map(input_string -> (TString,VString(ooooooooooooo)), n -> (TInt,VInt(3)))
+2024-03-21 19:19:07 collect_scatter STDERR Block Vector(0) to execute:
+2024-03-21 19:19:07 collect_scatter STDERR Block(0, ScatterOneCall)
+2024-03-21 19:19:07 collect_scatter STDERR   Inputs: Vector(Int n, String input_string, Int i)
+2024-03-21 19:19:07 collect_scatter STDERR   Outputs: Vector(Array[File] scatter_task.out)
+2024-03-21 19:19:07 collect_scatter STDERR   Body:
+2024-03-21 19:19:07 collect_scatter STDERR     scatter (i in range(n)) {
+2024-03-21 19:19:07 collect_scatter STDERR       call scatter_task { input: input_string = input_string,index = i }
+2024-03-21 19:19:07 collect_scatter STDERR     }
+2024-03-21 19:19:07 collect_scatter STDERR 
+2024-03-21 19:19:07 collect_scatter STDERR Env:
+2024-03-21 19:19:07 collect_scatter STDERR   input_string: String ooooooooooooo
+2024-03-21 19:19:07 collect_scatter STDERR   n: Int 3
+2024-03-21 19:19:07 collect_scatter STDERR 
+2024-03-21 19:19:07 collect_scatter STDERR 
+2024-03-21 19:19:07 collect_scatter STDERR Scatter job results:
+2024-03-21 19:19:07 collect_scatter STDERR   Some(ScatterExecution(scatter_task,0,Map(out -> {"$dnanexus_link":"file-Ggy7YG00xKVxf87XQ92QjPp8"}),DxJob(job-Ggy7Y1Q0yzZXx63xzfj6227j,None)))
+2024-03-21 19:19:07 collect_scatter STDERR   Some(ScatterExecution(scatter_task,1,Map(out -> {"$dnanexus_link":"file-Ggy7YVj06fk8jPYfYvVJZ5QF"}),DxJob(job-Ggy7Y1Q0yzZx9VKz79KxQj3G,None)))
+2024-03-21 19:19:07 collect_scatter STDERR   Some(ScatterExecution(scatter_task,2,Map(out -> {"$dnanexus_link":"file-Ggy7YpQ0y5b2qj8Y5xVX3bP6"}),DxJob(job-Ggy7Y1Q0yzZqV9PY9Y4q3pFg,None)))
+2024-03-21 19:19:07 collect_scatter STDERR ============= flatOuts ============= Vector(DxFile(file-Ggy7YG00xKVxf87XQ92QjPp8,None), DxFile(file-Ggy7YVj06fk8jPYfYvVJZ5QF,None), DxFile(file-Ggy7YpQ0y5b2qj8Y5xVX3bP6,None))
+2024-03-21 19:19:08 collect_scatter STDERR Bulk describing 3 unique file ids
+2024-03-21 19:19:08 collect_scatter STDERR Successfully bulk described 3 files
+2024-03-21 19:19:08 collect_scatter STDERR Scatter outputs:
+2024-03-21 19:19:08 collect_scatter STDERR   scatter_task.out -> (TArray(TFile,false),VArray(Vector(VFile(dx://file-Ggy7YG00xKVxf87XQ92QjPp8::/no_array_result_0.txt,None,None,None,None,Vector(),None,None), VFile(dx://file-Ggy7YVj06fk8jPYfYvVJZ5QF::/no_array_result_1.txt,None,None,None,None,Vector(),None,None), VFile(dx://file-Ggy7YpQ0y5b2qj8Y5xVX3bP6::/no_array_result_2.txt,None,None,None,None,Vector(),None,None))))
+2024-03-21 19:19:08 collect_scatter STDERR prepareBlockOutputs
+2024-03-21 19:19:08 collect_scatter STDERR   env = Set(input_string, n)
+2024-03-21 19:19:08 collect_scatter STDERR   fragResults = Set(scatter_task.out)
+2024-03-21 19:19:08 collect_scatter STDERR   exportedVars = Set(scatter_task.out)
+2024-03-21 19:19:08 collect_scatter STDERR 
+2024-03-21 19:19:08 collect_scatter STDERR outputLinks:
+2024-03-21 19:19:08 collect_scatter STDERR   scatter_task.out -> ParameterLinkValue([{"$dnanexus_link":"file-Ggy7YG00xKVxf87XQ92QjPp8"},{"$dnanexus_link":"file-Ggy7YVj06fk8jPYfYvVJZ5QF"},{"$dnanexus_link":"file-Ggy7YpQ0y5b2qj8Y5xVX3bP6"}],TArray(TFile,false))
+2024-03-21 19:19:08 collect_scatter STDOUT success Collect
+collect_scatter (scatter_collect_no_array_frag_stage-0:collect) (done) job-Ggy7Y1j0yzZbZbq0k2k4B24G
+rnathans 2024-03-21 19:16:39 (runtime 0:00:36)
+Output: scatter_task___out = [ file-Ggy7YG00xKVxf87XQ92QjPp8,
+         file-Ggy7YVj06fk8jPYfYvVJZ5QF, file-Ggy7YpQ0y5b2qj8Y5xVX3bP6 ]
