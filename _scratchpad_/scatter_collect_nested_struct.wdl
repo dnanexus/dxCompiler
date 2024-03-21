@@ -29,14 +29,14 @@ task scatter_task {
     Int index
   }
   command <<<
-    echo ~{input_string} > nested_array_result_~{index}_1.txt
-    echo ~{input_string} > nested_array_result_~{index}_2.txt
+    echo ~{input_string} > nested_struct_result_~{index}_1.txt
+    echo ~{input_string} > nested_struct_result_~{index}_2.txt
   >>>
   output {
     OuterStruct out = OuterStruct {
-      fileField: "struct_result_~{index}_1.txt",
+      fileField: "nested_struct_result_~{index}_1.txt",
       structField: InnerStruct {
-        fileField: "struct_result_~{index}_2.txt"
+        fileField: "nested_struct_result_~{index}_2.txt"
       }
     }
   }
