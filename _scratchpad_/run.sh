@@ -3,7 +3,7 @@
 PROJECT=project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq
 FOLDER=/rkepych
 DXCOMPILER_JAR=../dxCompiler-2.11.6-SNAPSHOT.jar
-WDL_SRC=scatter_collect_no_array.wdl
+WDL_SRC=scatter_collect_no_glob.wdl
 
 RUN_OPTS="--ignore-reuse --destination ${PROJECT}:${FOLDER}"
 

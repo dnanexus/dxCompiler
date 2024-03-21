@@ -1,10 +1,15 @@
 version 1.1
 
-struct OutputStruct {
+struct InnerStruct {
   File fileField
 }
 
-workflow scatter_collect_with_struct {
+struct OuterStruct {
+  File fileField
+  InnerStruct structField
+}
+
+workflow scatter_collect_nested_struct {
   input {
     String input_string
     Int n = 3
@@ -24,11 +29,15 @@ task scatter_task {
     Int index
   }
   command <<<
-    echo ~{input_string} > struct_result_~{index}.txt
+    echo ~{input_string} > nested_array_result_~{index}_1.txt
+    echo ~{input_string} > nested_array_result_~{index}_2.txt
   >>>
   output {
-    OutputStruct out = OutputStruct {
-      fileField: "struct_result_~{index}.txt"
+    OuterStruct out = OuterStruct {
+      fileField: "struct_result_~{index}_1.txt",
+      structField: InnerStruct {
+        fileField: "struct_result_~{index}_2.txt"
+      }
     }
   }
 }
