@@ -2,7 +2,7 @@
 
 ## in develop
 
-...
+* Optimize with bulk file describe during scatter collect, also for files inside arrays and structs.
 
 ## 2.11.5 2024-02-29
 
