@@ -403,6 +403,12 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
     }
   }
 
+  def extendFileDescCacheAndGetDeserializer(newFiles: Vector[DxFile]): ParameterLinkDeserializer = {
+    inputDeserializer.updateWithCache(
+        jobMeta.extendFileDescCache(newFiles)
+    )
+  }
+
   def extendFileDescCache(newFiles: Vector[DxFile]): DxFileDescCache = {
     DxFileDescCache(
         allFilesReferenced ++ safeBulkDescribe(queryFiles = newFiles, verifyClosed = false)

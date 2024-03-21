@@ -580,13 +580,8 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
 
       val flatOuts = execOutputs.foldLeft(Vector.empty[JsValue]) {
         case (accu, outputVals) => accu ++ outputVals.getOrElse(Map.empty).values.toVector
-      } map { jsv =>
-        try dxApi.dataObjectFromJson(jsv)
-        catch {
-          case _: AppInternalException => None
-        }
-      } collect {
-        case dxFile: DxFile => dxFile
+      } flatMap {
+        dxApi.flattenDxFileObjectsFromJson
       }
 
       logger.trace(s"============= flatOuts ============= ${flatOuts}")
