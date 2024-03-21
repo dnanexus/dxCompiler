@@ -584,8 +584,6 @@ abstract class WorkflowExecutor[B <: Block[B]](jobMeta: JobMeta, separateOutputs
         dxApi.flattenDxFileObjectsFromJson
       }
 
-      logger.trace(s"============= flatOuts ============= ${flatOuts}")
-
       val updatedDeserializer = jobMeta.extendFileDescCacheAndGetDeserializer(flatOuts)
 
       val items = execOutputs.map {
