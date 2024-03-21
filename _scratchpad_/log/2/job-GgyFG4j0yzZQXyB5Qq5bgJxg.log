@@ -1,5 +1,0 @@
-collect_scatter (scatter_collect_nested_struct_frag_stage-0:collect) (failed) job-GgyFG4j0yzZQXyB5Qq5bgJxg
-rnathans 2024-03-21 23:34:59
-JobTreeFailure: A job in the job tree named "scatter_task 0" running function "main" of
-"scatter_task" failed because of AppInternalError: non-optional output file
-struct_result_0_1.txt does not exist
