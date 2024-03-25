@@ -403,6 +403,10 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
     }
   }
 
+  def extendFileDescCacheAndGetDeserializer(newFiles: Vector[DxFile]): ParameterLinkDeserializer = {
+    inputDeserializer.updateWithCache(extendFileDescCache(newFiles))
+  }
+
   def extendFileDescCache(newFiles: Vector[DxFile]): DxFileDescCache = {
     DxFileDescCache(
         allFilesReferenced ++ safeBulkDescribe(queryFiles = newFiles, verifyClosed = false)
@@ -414,7 +418,6 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
     if (queryFiles.isEmpty) {
       queryFiles
     } else {
-      logger.trace(s"Bulk describing ${queryFiles.size} files")
       val dxFiles =
         dxApi.describeFilesBulk(queryFiles, searchWorkspaceFirst = true, validate = true)
       // check that all files are in the closed state
@@ -432,7 +435,6 @@ abstract class JobMeta(val workerPaths: DxWorkerPaths,
             s"input file(s) not in the 'closed' state: ${notClosed.map(_.id).mkString(",")}"
         )
       }
-      logger.trace(s"Successfully described ${dxFiles.size} files")
       dxFiles
     }
   }
