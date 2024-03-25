@@ -4,6 +4,10 @@
 
 * Optimize with bulk file describe during scatter collect, also for files inside arrays and structs.
 
+### Dependency updates
+
+#### dxApi [0.13.10](https://github.com/dnanexus/dxScala/releases/tag/api-0.13.10)
+
 ## 2.11.5 2024-02-29
 
 * Updated wdlTools and its dependencies
