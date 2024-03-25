@@ -1,6 +1,6 @@
 # Release Notes
 
-## in develop
+## 2.11.6 2024-03-26
 
 * Optimize with bulk file describe during scatter collect, also for files inside arrays and structs.
 
