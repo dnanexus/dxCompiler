@@ -18,6 +18,7 @@ pwd
 # Build, run test applet in each project
 for p in ${TEST_PROJECTS[@]}; do
   dx select $p
-  echo "Building and running test applet in $p"
+  echo 'Running customer acceptance tests in project'
+  dx describe $p --json | jq '.name'
   dx build -f --run --priority normal -y
 done
