@@ -16,7 +16,7 @@ Applet `test-dxcompiler-in-project` can be built and deployed in customer-provid
 
 ## Building & Running the Applet
 
-- Run the dxCompiler release GitHub workflow; this uploads dxCompiler assets to the platform.
-- Set the dxCompiler download URL in `test-dxcompiler-in-project/Makefile`.
+- Run the dxCompiler release GitHub workflow; this uploads dxCompiler assets to the platform and creates a draft release on GitHub.
+- For draft releases, download dxCompiler.jar from the [releases page](https://github.com/dnanexus/dxCompiler/releases) and save it as `test-dxcompiler-in-project/resources/home/dnanexus/dxCompiler.jar`.
 - Run the script `scripts/run_customer_tests`.
 - You will need to be a member of `org-dnanexus_apps_customer_testers` to access the projects.
