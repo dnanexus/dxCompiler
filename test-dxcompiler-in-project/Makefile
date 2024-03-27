@@ -1,6 +1,6 @@
 # TODO: find a way to download from draft release URLs; the below works for final releases.
 # For draft releases, save jar manually to resources/home/dnanexus/dxCompiler.jar
-DXCOMPILER_JAR_URL=https://github.com/dnanexus/dxCompiler/releases/download/2.11.5/dxCompiler-2.11.5.jar
+DXCOMPILER_JAR_URL=https://github.com/dnanexus/dxCompiler/releases/download/2.11.6/dxCompiler-2.11.6.jar
 
 all: no-op
 
