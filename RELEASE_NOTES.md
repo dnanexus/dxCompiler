@@ -2,6 +2,8 @@
 
 ## in develop
 
+* Update dxda to 0.6.2 and dxfuse to 1.4.0
+
 ## 2.11.6 2024-03-26
 
 * Optimize with bulk file describe during scatter collect, also for files inside arrays and structs.

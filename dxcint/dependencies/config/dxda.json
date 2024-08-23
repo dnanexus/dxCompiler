@@ -1,6 +1,6 @@
 {
   "name": "dx-download-agent",
   "languages": ["wdl", "cwl"],
-  "version": "v0.6.0",
-  "source_link": "https://github.com/dnanexus/dxda/releases/download/v0.6.0/dx-download-agent-linux"
+  "version": "v0.6.2",
+  "source_link": "https://github.com/dnanexus/dxda/releases/download/v0.6.2/dx-download-agent-linux"
 }
