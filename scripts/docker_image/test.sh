@@ -12,6 +12,11 @@ if [[ -z "${VERSION}" ]]; then
   exit 1
 fi
 
-bash "${base_dir}/docker_build.sh" 2>&1
+# bash "${base_dir}/docker_build.sh" 2>&1
 
-bash "${base_dir}/docker_run.sh" version 2>&1
+output=$(bash "${base_dir}/docker_run.sh" version 2>&1)
+if ! echo "$output" | grep -q "${VERSION}"
+then
+  echo "Expected dxCompiler version ${VERSION}, output was ${output}"
+  exit 1
+fi
