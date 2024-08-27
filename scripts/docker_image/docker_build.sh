@@ -2,7 +2,10 @@
 
 set -euo pipefail
 
-source "docker.env"
+# Find the root directory of the distribution, regardless of where
+# the script is called from
+base_dir=$(dirname "$0")
+source "${base_dir}/docker.env"
 
 if [[ -z "${VERSION}" ]]; then
   echo "Specify the dxCompiler version in docker.env"
