@@ -12,7 +12,11 @@ if [[ -z "${VERSION}" ]]; then
   exit 1
 fi
 
-# bash "${base_dir}/docker_build.sh" 2>&1
+if ! bash "${base_dir}/docker_build.sh" 2>&1
+then
+  echo "Docker image build failed"
+  exit 1
+fi
 
 output=$(bash "${base_dir}/docker_run.sh" version 2>&1)
 if ! echo "$output" | grep -q "${VERSION}"
