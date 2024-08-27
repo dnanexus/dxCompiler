@@ -1,4 +1,6 @@
-#!/bin/bash -e
+#!/bin/bash
+
+set -euo pipefail
 
 # Specify the dxCompiler version from
 # https://github.com/dnanexus/dxCompiler/releases
