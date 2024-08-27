@@ -119,7 +119,7 @@ jobs:
           python3 scripts/run_multiuser_tests.py --folder $FOLDER --project $PROJECT \
           --alice-token $ROBOT_TOKEN \
           --bob-token $TEST_ROBOT_TOKEN
-      - name: Run Docker tests
+      - name: Run Docker test
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ROBOT_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
