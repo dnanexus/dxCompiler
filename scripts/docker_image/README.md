@@ -12,5 +12,9 @@
 - Run [docker_run](./docker_run.sh) with dxCompiler args as args.
 
 ```bash
-# TODO example
+./docker_run.sh version
+```
+
+```bash
+./docker_run.sh -help  
 ```
