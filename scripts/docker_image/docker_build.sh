@@ -2,12 +2,10 @@
 
 set -euo pipefail
 
-# Specify the dxCompiler version from
-# https://github.com/dnanexus/dxCompiler/releases
-VERSION=2.11.6
+source "docker.env"
 
 if [[ -z "${VERSION}" ]]; then
-  echo "Specify VERSION = the dxCompiler version to use"
+  echo "Specify the dxCompiler version in docker.env"
   exit 1
 fi
 
