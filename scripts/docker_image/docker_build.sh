@@ -13,9 +13,8 @@ if [[ -z "${VERSION}" ]]; then
 fi
 
 echo "Downloading dxCompiler v${VERSION} from GitHub"
-rm -f dxCompiler-${VERSION}.jar
-wget https://github.com/dnanexus/dxCompiler/releases/download/${VERSION}/dxCompiler-${VERSION}.jar
+rm -f "${base_dir}/dxCompiler-${VERSION}.jar"
+wget https://github.com/dnanexus/dxCompiler/releases/download/${VERSION}/dxCompiler-${VERSION}.jar -O "${base_dir}/dxCompiler-${VERSION}.jar"
 
-echo "Building Docker image"
-docker build --build-arg VERSION=${VERSION} -t dnanexus/dxcompiler:${VERSION} .
-docker tag dnanexus/dxcompiler:${VERSION} dnanexus/dxcompiler:latest
+# echo "Building Docker image"
+docker build -f "${base_dir}/Dockerfile" --build-arg VERSION=${VERSION} -t dnanexus/dxcompiler:${VERSION}
