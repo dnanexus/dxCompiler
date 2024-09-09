@@ -1,7 +1,10 @@
-name: Test Docker test
+name: Release dxCompiler
 on:
   workflow_dispatch:
     inputs:
+      release-version:
+        description: 'Release version'
+        required: true
       should-run-tests:
         description: 'Should run large integration tests (false/true; default: true)'
         required: false
@@ -20,10 +23,53 @@ jobs:
         uses: actions/checkout@v2
       # performance optimizations https://abbbi.github.io/actions/
       - uses: abbbi/github-actions-tune@v1
+      - name: Validate inputs
+        run: |
+          # make sure the version doesn't contain -SNAPSHOT
+          snapshot=`echo ${{ github.event.inputs.release-version }} | grep -c 'SNAPSHOT' || true`
+          if [ "$snapshot" -ne "0" ]; then
+            echo "-SNAPSHOT not allowed in release versions"
+            exit 1
+          fi
+          # Check if dxCompiler has already been released under this version
+          URL=https://github.com/dnanexus/dxCompiler/releases/download/${{ github.event.inputs.release-version }}/dxCompiler-${{ github.event.inputs.release-version }}.jar
+          RESP=$(curl -s -o /dev/null -w "%{http_code}" $URL)
+          echo "Response: $RESP"
+          if [ $RESP == 404 ]; then
+            echo "Version ${{ github.event.inputs.release-version }} not found; can continue with the release."
+          else
+            echo "Version ${{ github.event.inputs.release-version }} has already been released; please pick a different release version or delete the ${{ github.event.inputs.release-version }} release page and re-try."
+            exit 1
+          fi
+          # Check if application.conf files are already updated
+          CONF_FILES=(
+            ./executorWdl/src/main/resources/application.conf
+            ./core/src/main/resources/application.conf
+            ./executorCwl/src/main/resources/application.conf
+            ./compiler/src/main/resources/application.conf
+            ./executorCommon/src/main/resources/application.conf
+          )
+          for i in ${CONF_FILES[@]}; do
+            if [ $(grep -c \"${{ github.event.inputs.release-version }}\" $i) == 0 ]; then
+              echo "File $i is not updated with version ${{ github.event.inputs.release-version }}. Please update all application.conf files and re-try."
+              exit 1
+            else
+              echo "File $i is updated with version ${{ github.event.inputs.release-version }}. Continuing.."
+            fi
+          done
+      - name: Install java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.4.2
+          virtualenvs-create: true
       - name: Install dxpy and other dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y apt-transport-https wget git openssh-server tree python3 python3-pip python3-venv docker
+          sudo apt-get install -y apt-transport-https wget git openssh-server tree python3 python3-pip python3-venv
           cwltool_ver=`jq -r '.execDepends.cwl[0].version' scripts/bundled_dependencies.json`
           pip3 install --upgrade pip setuptools==58.3.0 
           pip3 install termcolor dxpy==0.323.0 cwltool==${cwltool_ver} pyOpenSSL==22.0.0
@@ -43,10 +89,109 @@ jobs:
           dx login --noprojects --staging --token $ROBOT_TOKEN
           dx select $PROJECT
           cd ${GITHUB_WORKSPACE}
-      - name: Run Docker test
+      - name: Run unit tests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AUTH_TOKEN: ${{ secrets.DX_STAGING_TEST_ROBOT_TOKEN }}
+          SBT_OPTS: "-XX:+CMSClassUnloadingEnabled -Xmx4G -Xms1G"
+        run: |
+          sbt version && sbt compile && sbt "testOnly -- -l prod"
+      - name: Install dxcint
+        run: |
+          cd dxcint
+          poetry install
+          cd ..
+      - name: Run medium integration test suite with dxcint
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ROBOT_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
         run: |
-          dx select $PROJECT
-          ./scripts/docker_image/test.sh
+          cd dxcint
+          poetry run dxcint integration -t 'M' ../ --clean
+      - name: Run multi-user tests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ROBOT_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
+          TEST_ROBOT_TOKEN: ${{ secrets.DX_STAGING_TEST_ROBOT_TOKEN }}
+        run: |
+          FOLDER=/builds/test_gha_dxcompiler_$(date +%s)_$RANDOM
+          dx mkdir -p $FOLDER
+          python3 scripts/run_multiuser_tests.py --folder $FOLDER --project $PROJECT \
+          --alice-token $ROBOT_TOKEN \
+          --bob-token $TEST_ROBOT_TOKEN
+      - name: Run large and cromwell integration test suites with dxcint
+        if: ${{ github.event.inputs.should-run-tests == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ROBOT_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
+        run: |
+          cd dxcint
+          poetry run dxcint integration -t 'L' ../
+          poetry run dxcint integration -t 'CW' ../
+      - name: Run CWL conformance tests
+        if: ${{ github.event.inputs.should-run-tests == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ROBOT_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
+        run: |
+          export PATH="$PATH:$HOME/.local/bin"
+          FOLDER=/builds/test_gha_dxcompiler_$(date +%s)_$RANDOM
+          dx mkdir -p $FOLDER
+          python3 scripts/run_tests.py --folder $FOLDER --project $PROJECT \
+          --test CWL
+      - name: Run the release script
+        env:
+          DX_STAGING_RELEASE_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
+          DX_PROD_RELEASE_TOKEN: ${{ secrets.DX_PROD_RELEASE_TOKEN }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          export PATH="$PATH:$HOME/.local/bin"
+          export TARGET_BRANCH=`echo ${{ github.ref }} | sed -e 's/refs\/heads\///g'`
+          ./scripts/build_all_releases.sh \
+              --staging-token $DX_STAGING_RELEASE_TOKEN \
+              --production-token $DX_PROD_RELEASE_TOKEN \
+              --docker-user dnanexusappstestrobot \
+              --docker-password $DOCKERHUB_TOKEN \
+              --force \
+              --branch $TARGET_BRANCH
+      - name: Extract release notes
+        id: update-release
+        run: |
+          # Extract release notes for the release into a temporary (unpushed) file
+          # It is expected the RELEASE_NOTES.md has already an entry for the version being
+          # released. The section should start with '# <version>', e.g. # 1.0.0 2021-01-01
+          # The file will be read by the create-release step
+          RELEASE_NOTES_PATH="./release_notes_${{ github.event.inputs.release-version }}.md"
+          sed -n '/# ${{ github.event.inputs.release-version }}/,/##/p' RELEASE_NOTES.md |  sed '1d; $d' > $RELEASE_NOTES_PATH
+          echo ::set-output name=release-notes-path::$(echo "${RELEASE_NOTES_PATH}")
+      - name: Create release entry
+        id: create-release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.event.inputs.release-version }}
+          release_name: dxCompiler ${{ github.event.inputs.release-version }}
+          body_path: ${{ steps.update-release.outputs.release-notes-path }}
+          draft: true
+          prerelease: false
+      - name: Upload release asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # This pulls from the "Create release entry" step above, referencing it's ID to get its outputs object, 
+          # which include a `upload_url`. See this blog post for more info: 
+          # https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+          upload_url: ${{ steps.create-release.outputs.upload_url }}
+          asset_path: ./dxCompiler-${{ github.event.inputs.release-version }}.jar
+          asset_name: dxCompiler-${{ github.event.inputs.release-version }}.jar
+          asset_content_type: application/jar
+      - name: Create and push tag to origin
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git tag ${{ github.event.inputs.release-version }}
+          git push origin ${{ github.event.inputs.release-version }}
