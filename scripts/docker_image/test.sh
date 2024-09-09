@@ -2,6 +2,10 @@
 
 set -euo pipefail
 
+# This tests that the Dockerfile produces a valid Docker image with Java and
+# dxCompiler installed, based on the dxCompiler version specified in docker.env
+# (not necessarily the latest version being released, as it isn't yet published).
+
 # Find the root directory of the distribution, regardless of where
 # the script is called from
 base_dir=$(dirname "$0")
