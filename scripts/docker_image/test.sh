@@ -19,7 +19,9 @@ then
 fi
 
 output=$(bash "${base_dir}/docker_run.sh" version 2>&1)
-if ! echo "$output" | grep -q "${VERSION}"
+echo "Output from running dxCompiler Docker image to check version:"
+echo "${output}"
+if ! echo "${output}" | grep -q "${VERSION}"
 then
   echo "Expected dxCompiler version ${VERSION}, output was ${output}"
   exit 1
