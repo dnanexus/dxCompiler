@@ -119,6 +119,9 @@ jobs:
           python3 scripts/run_multiuser_tests.py --folder $FOLDER --project $PROJECT \
           --alice-token $ROBOT_TOKEN \
           --bob-token $TEST_ROBOT_TOKEN
+      - name: Run Docker image test
+        run:
+          ./scripts/docker_image/test.sh
       - name: Run large and cromwell integration test suites with dxcint
         if: ${{ github.event.inputs.should-run-tests == 'true' }}
         env:

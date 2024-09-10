@@ -3,6 +3,7 @@
 ## in develop
 
 * Update dxda to 0.6.2 and dxfuse to 1.4.0
+* Added [DIY Docker image instructions](./scripts/docker_image/). This replaces the Docker image published to Docker Hub, which is deprecated and will be removed after November 1, 2024.
 
 ## 2.11.6 2024-03-26
 
