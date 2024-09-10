@@ -2,6 +2,8 @@
 
 ## in develop
 
+## 2.11.7 2024-09-10
+
 * Update dxda to 0.6.2 and dxfuse to 1.4.0
 
 ## 2.11.6 2024-03-26
