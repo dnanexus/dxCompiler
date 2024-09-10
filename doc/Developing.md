@@ -221,8 +221,8 @@ dxCompiler can be released from Github. The release pipeline (optionally) runs l
     - Go to `Actions` > `Release dxCompiler` and click `Run workflow` on the right side.
     - Make sure the `release-X.Y.Z` branch is selected. Run with default settings.
     - Once finished, the pipeline will create a draft release page on GitHub.
-8. Test in customer projects: build and run the applet [test-dxcompiler-in-project](/test-dxcompiler-in-project) in customer projects that are shared with `org-dnanexus_apps_customer_testers`.
-9. Publish the draft [release](https://github.com/dnanexus/dxCompiler/releases). The compressed source code (in `zip` and `tar.gz`) will be added to the release page automatically.
+8. Run dxCompiler customer acceptance tests (see internal repo: file-apps/dxcompiler_customer_acceptance_tests)
+9.  Publish the draft [release](https://github.com/dnanexus/dxCompiler/releases). The compressed source code (in `zip` and `tar.gz`) will be added to the release page automatically.
 10. Post-release PR to `develop` branch
     - Create branch `post-release-X.Y.Z` based on branch `release-X.Y.Z`
     - Run `scripts/update_version.sh X.Y.(Z+1)-SNAPSHOT` to increment the working version from e.g. `1.2.3-SNAPSHOT` to `1.2.4-SNAPSHOT`
@@ -241,12 +241,13 @@ Following the release, you need to merge `RELEASE_NOTES.md` from the release bra
 This should only be done if you want to create a debug release for internal testing (and even then, you can follow the automated process above and just not publish the draft release).
 
 1. Follow steps 1-4 above
-2. Make sure the Unit and Integration tests and [customer tests](/test-dxcompiler-in-project) pass.
-3. Clean your `dx` environment because you'll be using limited-power tokens to run the release script. Do not mix them with your regular user token.
+2. Make sure unit and integration tests are passing.
+3. Run dxCompiler customer acceptance tests (see internal repo: file-apps/dxcompiler_customer_acceptance_tests).
+4. Clean your `dx` environment because you'll be using limited-power tokens to run the release script. Do not mix them with your regular user token.
     ```
     dx clearenv
     ```
-4. Build new externally visible release
+5. Build new externally visible release
     ```
     ./scripts/build_all_releases.sh --staging-token XXX --production-token YYY --docker-user UUU --docker-password WWW
     ```
