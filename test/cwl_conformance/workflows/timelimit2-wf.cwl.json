@@ -24,7 +24,7 @@
   "requirements": [
     {
       "class": "ToolTimeLimit",
-      "timelimit": 5
+      "timelimit": 100
     },
     {
       "class": "InlineJavascriptRequirement"
