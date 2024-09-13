@@ -21,7 +21,7 @@ To compile and run your workflow, make sure you have the following ready:
   * It is recommended to pre-select the project where you want to your compiled workflows to go using `dx select`
 * Java 8 or 11
 * The latest dxCompiler JAR file from the [releases](https://github.com/dnanexus/dxCompiler/releases) page.
-* [docker](https://docs.docker.com/get-docker/), if you want to invoke dxCompiler with the [run-dxcompiler-docker](https://github.com/dnanexus/dxCompiler/blob/main/scripts/compiler_image/run-dxcompiler-docker) script using a public `dnanexus/dxcompiler` docker container.
+* [docker](https://docs.docker.com/get-docker/), to [build and run a Docker image with dxCompiler](./scripts/docker_image/) as an alternative to installing Java locally.
 * Python 3.x to run the dxCompiler integration tests
 
 To compile CWL tools/workflows, you might also need:
