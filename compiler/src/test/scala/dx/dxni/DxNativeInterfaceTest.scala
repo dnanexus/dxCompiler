@@ -155,12 +155,12 @@ class DxNativeInterfaceTest extends AnyFlatSpec with Matchers with BeforeAndAfte
         "-force",
         "-quiet",
         "-path",
-        "app-data_model_loader_v2",
+        "app-qualimap2_anlys",
         "-language",
         "wdl_1_0"
     )
     val tasks = runDxni(args)
-    tasks.keySet shouldBe Set("data_model_loader_v2")
+    tasks.keySet shouldBe Set("qualimap2_anlys")
   }
 
   it should "build an interface to an applet specified by ID" taggedAs NativeTest in {
