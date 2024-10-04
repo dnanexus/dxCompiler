@@ -35,20 +35,20 @@
 
         # get the password from the aws client
         password=${bashDollar}(awscliv2 ecr get-login-password --region ${bashDollar}{AWS_REGION})
-        if [[ $? -ne 0 ]]; then
+        if [[ ${bashDollar}? -ne 0 ]]; then
             echo "Could not get password from AWS"
-            continue
+        else
+            # TODO: use credential helper instead https://docs.docker.com/engine/reference/commandline/login/
+            echo ${bashDollar}{password} | docker login ${bashDollar}{DOCKER_REGISTRY} --username AWS --password-stdin
+            rc=${bashDollar}?
+            if [[ ${bashDollar}rc == 0 ]]; then
+                break
+            fi
         fi
 
-        # TODO: use credential helper instead https://docs.docker.com/engine/reference/commandline/login/
-        echo ${bashDollar}{password} | docker login ${bashDollar}{DOCKER_REGISTRY} --username AWS --password-stdin
-        rc=${bashDollar}?
         set -e
-        if [[ ${bashDollar}rc == 0 ]]; then
-            break
-        fi
+        sleep ${bashDollar}((2**i))
         i=${bashDollar}((i + 1))
-        sleep 3
         echo "retry docker login (${bashDollar}i)"
     done
 
