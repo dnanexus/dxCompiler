@@ -3,6 +3,7 @@
 ## in develop
 
 * Added [DIY Docker image instructions](./scripts/docker_image/). This replaces the Docker image published to Docker Hub, which is deprecated and will be removed after November 1, 2024.
+* Added exponential backoff and retry, including attempt to get password from AWS, in ECR docker script template
 
 ## 2.11.7 2024-09-12
 
