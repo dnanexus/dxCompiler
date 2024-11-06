@@ -30,10 +30,3 @@ then
   echo "Expected dxCompiler version ${VERSION}, output was ${output}"
   exit 1
 fi
-
-if ! echo "${output}" | grep -q "WARNING: This Docker image will be removed permanently on"
-then
-  echo "Expected warning message about image removal, output was ${output}"
-  exit 1
-fi
-

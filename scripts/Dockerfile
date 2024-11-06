@@ -11,8 +11,4 @@ RUN apt-get update && \
 # dxCompiler
 COPY dxCompiler-$VERSION.jar /dxCompiler.jar
 
-# Copy the entrypoint script
-COPY docker_image_entry.sh /docker_image_entry.sh
-RUN chmod +x /docker_image_entry.sh
-
-ENTRYPOINT ["/docker_image_entry.sh"]
+ENTRYPOINT ["java", "-jar", "/dxCompiler.jar"]
