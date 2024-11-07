@@ -1,8 +1,8 @@
 # Release Notes
 
-## in develop
+## 2.11.9 2024-11-07
 
-...
+* Added support for new region in AWS Bahrain
 
 ## 2.11.8 2024-10-22
 
