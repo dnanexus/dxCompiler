@@ -19,7 +19,7 @@ task apps_2478_headJobOnDemand_subjob_t01 {
         File fruits
     }
     # provide dynamical size of the disk
-    Int disk_req_gb = ceil(size(fruits, "GB")) + 50
+    Int disk_req_gb = ceil(size(fruits, "GB")) + 120
 
   command <<<
     lines=$(df -t btrfs | grep dev)
