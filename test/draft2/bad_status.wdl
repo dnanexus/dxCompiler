@@ -3,7 +3,7 @@ task BadCommand {
           ls /xx/yyy
       }
       runtime {
-          docker: "broadinstitute/genomes-in-the-cloud:2.2.4-1469632282"
+          docker: "broadinstitute/genomes-in-the-cloud:2.2.5-1485277291"
       }
       output {
           Int rc = 1
