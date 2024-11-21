@@ -4,6 +4,11 @@
 
 ...
 
+## 2.11.9 2024-11-07
+
+* Added support for new region in AWS Bahrain
+* Added a deprecation note for dxCompiler Docker image in the Docker Hub
+
 ## 2.11.8 2024-10-22
 
 * Added [DIY Docker image instructions](./scripts/docker_image/). This replaces the Docker image published to Docker Hub, which is now deprecated.
