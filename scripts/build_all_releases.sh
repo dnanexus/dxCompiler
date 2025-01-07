@@ -7,8 +7,6 @@ dry_run=""
 build_flags=""
 staging_token=""
 production_token=""
-docker_password=""
-docker_user=""
 
 # https://stackoverflow.com/questions/4774054/reliable-way-for-a-bash-script-to-get-the-full-path-to-itself
 # Get the source directory of the distribution
@@ -76,8 +74,6 @@ function usage_die
     echo "  --dry-run: don't actually run anything"
     echo "  --staging-token <string>: an auth token for the staging environment"
     echo "  --production-token <string>: an auth token for the production environment"
-    echo "  --docker-user <string>: docker user name"
-    echo "  --docker-password <string>: docker password"
     echo "  --branch <string>: branch to build from (default=main)"
     exit 1
 }
@@ -101,14 +97,6 @@ function parse_cmd_line {
                 production_token=$2
                 shift
                 ;;
-            --docker-user)
-                docker_user=$2
-                shift
-                ;;
-            --docker-password)
-                docker_password=$2
-                shift
-                ;;
             --branch)
                 target_branch=$2
                 shift
@@ -130,14 +118,6 @@ function parse_cmd_line {
     fi
     if [[ $production_token == "" ]]; then
         echo "production token is missing"
-        exit 1
-    fi
-    if [[ $docker_user == "" ]]; then
-        echo "docker user name is missing"
-        exit 1
-    fi
-    if [[ $docker_password == "" ]]; then
-        echo "docker password is missing"
         exit 1
     fi
     if [[ $target_branch == "" ]]; then
