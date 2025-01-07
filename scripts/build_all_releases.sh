@@ -69,29 +69,6 @@ function build {
     $top_dir/scripts/build_release.py --multi-region $build_flags
 }
 
-
-# Create a public docker image for dxCompiler that allows a simple command line
-# invocation
-function build_docker_image {
-    cd $top_dir/scripts
-    ln $top_dir/dxCompiler-${version}.jar .
-
-    echo "building a docker image"
-    sudo docker build --build-arg VERSION=${version} -t dnanexus/dxcompiler:${version} .
-
-    echo "tagging as latest"
-    sudo docker tag dnanexus/dxcompiler:${version} dnanexus/dxcompiler:latest
-
-    echo "For the next steps to work you need to:"
-    echo "(1) be logged into docker.io"
-    echo "(2) have permissions to create a repository for dnanexus"
-    echo $docker_password | sudo docker login -u $docker_user --password-stdin
-
-    echo "pushing to docker hub"
-    sudo docker push dnanexus/dxcompiler:${version}
-    sudo docker push dnanexus/dxcompiler:latest
-}
-
 function usage_die
 {
     echo "arguments: "
@@ -174,4 +151,3 @@ basic_checks
 get_top_dir
 get_version
 build
-build_docker_image
