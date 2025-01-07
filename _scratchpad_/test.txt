@@ -1,3 +1,0 @@
-Test WDL source 
-
-https://github.com/broadinstitute/gtex-pipeline/blob/master/rnaseq/rnaseq_pipeline_bam.wdl
