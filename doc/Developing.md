@@ -236,22 +236,9 @@ merge them into the release branch.
 Following the release, you need to merge `RELEASE_NOTES.md` from the release branch into develop. If you released from 
 `HEAD`, then you also need to bump the SNAPSHOT versions in the `develop` branch using the `scripts/update_version.sh` script.
 
-### Releasing manually
+### Creating draft release for testing
 
-This should only be done if you want to create a debug release for internal testing (and even then, you can follow the automated process above and just not publish the draft release).
-
-1. Follow steps 1-4 above
-2. Make sure unit and integration tests are passing.
-3. Run dxCompiler customer acceptance tests (see internal repo: file-apps/dxcompiler_customer_acceptance_tests).
-4. Clean your `dx` environment because you'll be using limited-power tokens to run the release script. Do not mix them with your regular user token.
-    ```
-    dx clearenv
-    ```
-5. Build new externally visible release
-    ```
-    ./scripts/build_all_releases.sh --staging-token XXX --production-token YYY --docker-user UUU --docker-password WWW
-    ```
-   this will take a while. It builds the release on staging, runs multi-region tests on staging (one test per region), builds on production, and creates an easy to use Docker image, which is pushed to DockerHub.
+Follow the process above; just don't publish the draft release in the final step.
 
 ## Enabling dxCompiler in new DNAnexus regions
 
