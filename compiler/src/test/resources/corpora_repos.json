@@ -67,10 +67,11 @@
       "entrypoints": [
         {
           "dir": "rnaseq",
-          "reason": "these WDLs are draft2 and require fixing, and the code generator does not support draft2",
+          "reason": "rnaseqc2_aggregate.wdl, star_fastq_list.wdl are draft2 and require fixing, and the code generator does not support draft2. rnaseq_pipeline_bam.wdl imports external files that currently do not exist.",
           "exclude": [
             "rnaseqc2_aggregate.wdl",
-            "star_fastq_list.wdl"
+            "star_fastq_list.wdl",
+            "rnaseq_pipeline_bam.wdl"
           ],
           "lint": {
           }
