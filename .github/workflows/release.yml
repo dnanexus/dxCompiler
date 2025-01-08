@@ -146,7 +146,6 @@ jobs:
         env:
           DX_STAGING_RELEASE_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
           DX_PROD_RELEASE_TOKEN: ${{ secrets.DX_PROD_RELEASE_TOKEN }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           export PATH="$PATH:$HOME/.local/bin"
@@ -154,8 +153,6 @@ jobs:
           ./scripts/build_all_releases.sh \
               --staging-token $DX_STAGING_RELEASE_TOKEN \
               --production-token $DX_PROD_RELEASE_TOKEN \
-              --docker-user dnanexusappstestrobot \
-              --docker-password $DOCKERHUB_TOKEN \
               --force \
               --branch $TARGET_BRANCH
       - name: Extract release notes

@@ -7,8 +7,6 @@ dry_run=""
 build_flags=""
 staging_token=""
 production_token=""
-docker_password=""
-docker_user=""
 
 # https://stackoverflow.com/questions/4774054/reliable-way-for-a-bash-script-to-get-the-full-path-to-itself
 # Get the source directory of the distribution
@@ -69,29 +67,6 @@ function build {
     $top_dir/scripts/build_release.py --multi-region $build_flags
 }
 
-
-# Create a public docker image for dxCompiler that allows a simple command line
-# invocation
-function build_docker_image {
-    cd $top_dir/scripts
-    ln $top_dir/dxCompiler-${version}.jar .
-
-    echo "building a docker image"
-    sudo docker build --build-arg VERSION=${version} -t dnanexus/dxcompiler:${version} .
-
-    echo "tagging as latest"
-    sudo docker tag dnanexus/dxcompiler:${version} dnanexus/dxcompiler:latest
-
-    echo "For the next steps to work you need to:"
-    echo "(1) be logged into docker.io"
-    echo "(2) have permissions to create a repository for dnanexus"
-    echo $docker_password | sudo docker login -u $docker_user --password-stdin
-
-    echo "pushing to docker hub"
-    sudo docker push dnanexus/dxcompiler:${version}
-    sudo docker push dnanexus/dxcompiler:latest
-}
-
 function usage_die
 {
     echo "arguments: "
@@ -99,8 +74,6 @@ function usage_die
     echo "  --dry-run: don't actually run anything"
     echo "  --staging-token <string>: an auth token for the staging environment"
     echo "  --production-token <string>: an auth token for the production environment"
-    echo "  --docker-user <string>: docker user name"
-    echo "  --docker-password <string>: docker password"
     echo "  --branch <string>: branch to build from (default=main)"
     exit 1
 }
@@ -122,14 +95,6 @@ function parse_cmd_line {
                 ;;
             --production-token)
                 production_token=$2
-                shift
-                ;;
-            --docker-user)
-                docker_user=$2
-                shift
-                ;;
-            --docker-password)
-                docker_password=$2
                 shift
                 ;;
             --branch)
@@ -155,14 +120,6 @@ function parse_cmd_line {
         echo "production token is missing"
         exit 1
     fi
-    if [[ $docker_user == "" ]]; then
-        echo "docker user name is missing"
-        exit 1
-    fi
-    if [[ $docker_password == "" ]]; then
-        echo "docker password is missing"
-        exit 1
-    fi
     if [[ $target_branch == "" ]]; then
         target_branch="main"
     fi
@@ -174,4 +131,3 @@ basic_checks
 get_top_dir
 get_version
 build
-build_docker_image

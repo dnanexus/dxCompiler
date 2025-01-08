@@ -2,7 +2,7 @@
 
 ## in develop
 
-...
+* Removed publishing Docker image from release script. Use [DIY Docker image instructions](./scripts/docker_image/) instead.
 
 ## 2.11.9 2024-11-07
 
