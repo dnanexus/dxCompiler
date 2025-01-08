@@ -63,7 +63,7 @@ object Assumptions {
       )
     }
     val installedVersion = stdout.trim.split('.').last.toLong
-    if (installedVersion < 20210628163208L) {
+    if (installedVersion < 20241217163858) {
       throw new Exception(f"wrong cwltool version installed ${installedVersion}")
     }
     true
