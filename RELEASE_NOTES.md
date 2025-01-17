@@ -1,6 +1,6 @@
 # Release Notes
 
-## in develop
+## 2.11.10 2025-01-20
 
 * Removed publishing Docker image from release script. Use [DIY Docker image instructions](./scripts/docker_image/) instead.
 * Upgraded `cwltool` to version 3.1.20240708091337 to address package version conflict.
