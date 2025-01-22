@@ -165,7 +165,7 @@ jobs:
           # The file will be read by the create-release step
           RELEASE_NOTES_PATH="./release_notes_${{ github.event.inputs.release-version }}.md"
           sed -n '/# ${{ github.event.inputs.release-version }}/,/##/p' RELEASE_NOTES.md |  sed '1d; $d' > $RELEASE_NOTES_PATH
-          echo ::set-output name=release-notes-path::$(echo "${RELEASE_NOTES_PATH}")
+          echo "release-notes-path=$(echo "${RELEASE_NOTES_PATH}")" >> $GITHUB_OUTPUT
       - name: Create release entry
         id: create-release
         uses: actions/create-release@v1
