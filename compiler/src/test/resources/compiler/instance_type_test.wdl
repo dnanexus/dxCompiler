@@ -160,9 +160,12 @@ task GPUSpec {
         echo "On a GPU instance"
     }
     runtime {
-        gpu : true
-        # Test if another instance type is more available
-        memory: "32 GiB"
+        # Instance type temporarily hardcoded to avoid picking unavailable one
+        dx_instance_type: "mem2_ssd1_gpu_x16"
+        # TODO use GPU, memory requirements after unavailable instance types
+        # are removed from test pricing model
+        # gpu: true
+        # memory: "2 GiB"
     }
     output {
         String retval = read_string(stdout())
