@@ -161,7 +161,8 @@ task GPUSpec {
     }
     runtime {
         gpu : true
-        memory: "2 GiB"
+        # Test if another instance type is more available
+        memory: "32 GiB"
     }
     output {
         String retval = read_string(stdout())
