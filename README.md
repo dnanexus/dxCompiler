@@ -1,5 +1,8 @@
+# dxCompiler
+
 ![Unit Tests](https://github.com/dnanexus/dxCompiler/actions/workflows/scala.yml/badge.svg)
-![WDL Integration tests](https://github.com/dnanexus/dxCompiler/actions/workflows/integration.yml/badge.svg)
+![WDL Integration Tests v2](https://github.com/dnanexus/dxCompiler/actions/workflows/integration2.yml/badge.svg)
+![CWL Conformance Tests](https://github.com/dnanexus/dxCompiler/actions/workflows/cwl_conformance.yml/badge.svg)
 
 ## Synopsis
 dxCompiler takes a pipeline written in the
