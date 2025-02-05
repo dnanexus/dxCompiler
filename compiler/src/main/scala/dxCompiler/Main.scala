@@ -132,6 +132,19 @@ object Main {
     }
   }
 
+  object ExecutionEnvironment extends Enum {
+    type ExecutionEnvironment = Value
+    val Ubuntu_20_04 = Value("20.04")
+    val Ubuntu_24_04 = Value("24.04")
+  }
+
+  private case class ExecutionEnvironmentSpec
+      extends SingleValueOptionSpec[ExecutionEnvironment.ExecutionEnvironment](choices = ExecutionEnvironment.values.toVector) {
+    override def parseValue(value: String): ExecutionEnvironment.ExecutionEnvironment = {
+      InstanceTypeSelection.withNameIgnoreCase(value)
+    }
+  }
+
 //  private object WdlRegimeOptionSpec
 //      extends SingleValueOptionSpec[TypeCheckingRegime.TypeCheckingRegime](
 //          choices = TypeCheckingRegime.values.toVector
@@ -147,6 +160,7 @@ object Main {
       "defaults" -> PathOptionSpec.mustExist,
       "defaultInstanceType" -> StringOptionSpec(),
       "execTree" -> ExecTreeFormatOptionSpec(),
+      "executionEnvironment" -> ExecutionEnvironmentSpec(),
       "extras" -> PathOptionSpec.mustExist,
       "inputs" -> PathOptionSpec.listMustExist,
       "input" -> PathOptionSpec.listMustExist.copy(alias = Some("inputs")),
@@ -373,7 +387,6 @@ object Main {
 
     val compileMode: CompilerMode.CompilerMode =
       options.getValueOrElse[CompilerMode.CompilerMode]("compileMode", CompilerMode.All)
-
     val useManifests: Boolean = options.getFlag("useManifests")
     val locked = options.getFlag("locked") match {
       case false if useManifests =>
@@ -388,6 +401,9 @@ object Main {
           "instanceTypeSelection",
           InstanceTypeSelection.Static
       )
+
+    val executionEnvironment: ExecutionEnvironment.ExecutionEnvironment =
+      options.getValueOrElse[ExecutionEnvironment.ExecutionEnvironment]("executionEnvironment", ExecutionEnvironment.Ubuntu_24_04)
 
 //    val wdlOptions = options
 //      .getValue[TypeCheckingRegime.TypeCheckingRegime]("wdlMode")
@@ -533,6 +549,7 @@ object Main {
           translator.complexPathValues,
           instanceTypeSelection,
           defaultInstanceType,
+          executionEnvironment,
           fileResolver
       )
       val results = compiler.apply(bundle, project, folder)
