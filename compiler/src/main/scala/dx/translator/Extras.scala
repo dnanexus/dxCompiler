@@ -43,12 +43,22 @@ object ExtrasJsonProtocol extends DefaultJsonProtocol {
             timeout("*").convertTo[DxTimeout]
           }
           val headJobOnDemand = JsUtils.getOptionalBoolean(fields, DxRunSpec.HeadJobOnDemand)
+          val release =
+            JsUtils.getOptionalString(fields, DxRunSpec.release).map {
+              case release if Constants.allowedOsReleases.contains(release) => release
+              case release =>
+                throw new Exception(
+                    s"Unsupported execution environment value ${release}." +
+                      s" Supported values are ${Constants.allowedOsReleases.mkString(", ")}"
+                )
+            }
           DxRunSpec(
               fields.get(DxRunSpec.Access).map(_.convertTo[DxAccess]),
               fields.get(DxRunSpec.ExecutionPolicy).map(_.convertTo[DxExecPolicy]),
               restartableEntryPoints,
               timeout,
-              headJobOnDemand
+              headJobOnDemand,
+              release
           )
         case _ =>
           deserializationError(s"invalid runSpec ${jsv}")
@@ -61,7 +71,8 @@ object ExtrasJsonProtocol extends DefaultJsonProtocol {
           runSpec.timeoutPolicy.map(x => DxRunSpec.TimeoutPolicy -> JsObject("*" -> x.toJson)),
           runSpec.executionPolicy.map(x => DxRunSpec.ExecutionPolicy -> x.toJson),
           runSpec.restartableEntryPoints.map(x => DxRunSpec.RestartableEntryPoints -> JsString(x)),
-          runSpec.headJobOnDemand.map(x => DxRunSpec.HeadJobOnDemand -> JsBoolean(x))
+          runSpec.headJobOnDemand.map(x => DxRunSpec.HeadJobOnDemand -> JsBoolean(x)),
+          runSpec.release.map(x => DxRunSpec.release -> JsString(x.toString))
       ).flatten.toMap
       if (fields.isEmpty) {
         JsNull
@@ -263,7 +274,8 @@ case class DxRunSpec(access: Option[DxAccess],
                      executionPolicy: Option[DxExecPolicy],
                      restartableEntryPoints: Option[String],
                      timeoutPolicy: Option[DxTimeout],
-                     headJobOnDemand: Option[Boolean] = None) {}
+                     headJobOnDemand: Option[Boolean] = None,
+                     release: Option[String] = Some(Constants.DefaultOsRelease)) {}
 
 object DxRunSpec {
   val Access = "access"
@@ -272,6 +284,7 @@ object DxRunSpec {
   val TimeoutPolicy = "timeoutPolicy"
   val EntryPointNames = Set("all", "master")
   val HeadJobOnDemand = "headJobOnDemand"
+  val release = "release"
 
   def toApiJson(runSpec: DxRunSpec): Map[String, JsValue] = {
     runSpec.toJson.asJsObject.fields.filterNot {

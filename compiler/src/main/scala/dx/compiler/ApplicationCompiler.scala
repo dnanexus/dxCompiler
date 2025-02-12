@@ -197,7 +197,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
                 JsObject("instanceType" -> JsString(instanceType))
           ),
         "distribution" -> JsString(Constants.OsDistribution),
-        "release" -> JsString(Constants.OsRelease),
+        "release" -> JsString(Constants.DefaultOsRelease),
         "version" -> JsString(Constants.OsVersion)
     )
     // Add default timeout

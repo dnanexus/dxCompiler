@@ -57,7 +57,7 @@ object RunSpec {
     // - Instance is not an FPGA instance.
     // - Instance does not have local HDD storage (those are older instance types).
     private def instanceTypeFilter(instanceType: DxInstanceType): Boolean = {
-      instanceType.os.exists(_.release == Constants.OsRelease) &&
+      instanceType.os.exists(os => Constants.allowedOsReleases.contains(os.release)) &&
       !instanceType.diskType.contains(DiskType.HDD) &&
       !instanceType.name.contains("fpga")
     }

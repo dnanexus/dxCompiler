@@ -149,7 +149,7 @@ class WdlTaskExecutorTest extends AnyFlatSpec with Matchers {
       gpu = false,
       Vector(
           ExecutionEnvironment(Constants.OsDistribution,
-                               Constants.OsRelease,
+                               Constants.DefaultOsRelease,
                                Vector(Constants.OsVersion))
       ),
       Some(DiskType.SSD),
