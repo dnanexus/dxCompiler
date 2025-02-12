@@ -2,6 +2,9 @@
 
 ## in develop
 
+* Changed default Ubuntu release to 24.04
+* Added possibility to change runSpec.release via extras
+
 ## 2.11.10 2025-01-24
 
 * Removed publishing Docker image from release script. Use [DIY Docker image instructions](./scripts/docker_image/) instead.

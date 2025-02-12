@@ -72,7 +72,7 @@ object ExtrasJsonProtocol extends DefaultJsonProtocol {
           runSpec.executionPolicy.map(x => DxRunSpec.ExecutionPolicy -> x.toJson),
           runSpec.restartableEntryPoints.map(x => DxRunSpec.RestartableEntryPoints -> JsString(x)),
           runSpec.headJobOnDemand.map(x => DxRunSpec.HeadJobOnDemand -> JsBoolean(x)),
-          runSpec.release.map(x => DxRunSpec.release -> JsString(x.toString))
+          runSpec.release.map(x => DxRunSpec.release -> JsString(x))
       ).flatten.toMap
       if (fields.isEmpty) {
         JsNull
