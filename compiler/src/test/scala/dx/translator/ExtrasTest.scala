@@ -154,7 +154,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
                         Some(DxExecPolicy(Some(Map("*" -> 3)), None)),
                         None,
                         Some(DxTimeout(None, Some(12), None)),
-                        Some("24.04")
+                        None
                     )
                 ),
                 None
@@ -973,4 +973,47 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
 
     expected should be(detailsJson)
   }
+  List("20.04", "24.04").foreach { osVersion =>
+    it should s"parse runSpec.release correctly for release $osVersion" in {
+      val runSpec =
+        s"""|{
+            | "defaultTaskDxAttributes" : {
+            |   "runSpec": {
+            |      "release": "$osVersion"
+            |    }
+            |  }
+            |}
+            |""".stripMargin
+
+      val js = runSpec.parseJson
+      val extras = Extras.parse(js)
+      extras.defaultTaskDxAttributes should be(
+          Some(
+              DxAppJson(
+                  Some(DxRunSpec(None, None, None, None, Some(osVersion))),
+                  None
+              )
+          )
+      )
+    }
+  }
+
+  List("16.04", "12.04", "random").foreach { osVersion =>
+    it should s"throw when runSpec.release is $osVersion" in {
+      val runSpec =
+        s"""|{
+            | "defaultTaskDxAttributes" : {
+            |   "runSpec": {
+            |      "release": "$osVersion"
+            |    }
+            |  }
+            |}
+            |""".stripMargin
+      val ex = intercept[Exception] {
+        Extras.parse(runSpec.parseJson)
+      }
+      ex.getMessage shouldBe s"Unsupported execution environment value $osVersion. Supported values are 24.04, 20.04"
+    }
+  }
+
 }
