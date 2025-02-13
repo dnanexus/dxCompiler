@@ -47,7 +47,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
 
     val extras = Extras.parse(runtimeAttrs)
     extras.defaultTaskDxAttributes should be(
-        Some(DxAppJson(Some(DxRunSpec(None, None, Some("all"), None))))
+        Some(DxAppJson(Some(DxRunSpec(None, None, Some("all"), None, None))))
     )
   }
 
@@ -153,7 +153,8 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
                         ),
                         Some(DxExecPolicy(Some(Map("*" -> 3)), None)),
                         None,
-                        Some(DxTimeout(None, Some(12), None))
+                        Some(DxTimeout(None, Some(12), None)),
+                        Some("24.04")
                     )
                 ),
                 None
@@ -188,7 +189,13 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
     extras.defaultTaskDxAttributes should be(
         Some(
             DxAppJson(
-                Some(DxRunSpec(None, Some(DxExecPolicy(Some(restartPolicy), Some(5))), None, None)),
+                Some(
+                    DxRunSpec(None,
+                              Some(DxExecPolicy(Some(restartPolicy), Some(5))),
+                              None,
+                              None,
+                              None)
+                ),
                 None
             )
         )
@@ -435,7 +442,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
          |  }
          |}
          |""".stripMargin.parseJson
-    val runSpec = DxRunSpec(None, None, None, Some(DxTimeout(None, Some(12), Some(30))))
+    val runSpec = DxRunSpec(None, None, None, Some(DxTimeout(None, Some(12), Some(30))), None)
     runSpec.toJson shouldBe expectedJs
   }
 
@@ -517,7 +524,8 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
                               None,
                               None,
                               None,
-                              Some(DxTimeout(None, Some(12), None))
+                              Some(DxTimeout(None, Some(12), None)),
+                              None
                           )
                       ),
                       None)
@@ -532,13 +540,14 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
                             Some(DxAccess(None, Some(DxAccessLevel.Upload), None, None, None)),
                             None,
                             None,
-                            Some(DxTimeout(None, None, Some(30)))
+                            Some(DxTimeout(None, None, Some(30))),
+                            None
                         )
                     ),
                     None
                 ),
                 "Add" -> DxAppJson(
-                    Some(DxRunSpec(None, None, None, Some(DxTimeout(None, None, Some(30))))),
+                    Some(DxRunSpec(None, None, None, Some(DxTimeout(None, None, Some(30))), None)),
                     None
                 )
             )
@@ -604,7 +613,8 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
                               None,
                               None,
                               None,
-                              Some(DxTimeout(None, Some(12), None))
+                              Some(DxTimeout(None, Some(12), None)),
+                              None
                           )
                       ),
                       None)
@@ -615,7 +625,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
         Some(
             Map(
                 "Add" -> DxAppJson(
-                    Some(DxRunSpec(None, None, None, Some(DxTimeout(None, None, Some(30))))),
+                    Some(DxRunSpec(None, None, None, Some(DxTimeout(None, None, Some(30))), None)),
                     Some(
                         DxDetails(
                             Some(
@@ -637,7 +647,8 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
                             Some(DxAccess(None, Some(DxAccessLevel.Upload), None, None, None)),
                             None,
                             None,
-                            Some(DxTimeout(None, None, Some(30)))
+                            Some(DxTimeout(None, None, Some(30))),
+                            None
                         )
                     ),
                     None
@@ -766,7 +777,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
     extras.defaultTaskDxAttributes should be(
         Some(
             DxAppJson(
-                Some(DxRunSpec(None, None, None, Some(DxTimeout(None, Some(12), None)))),
+                Some(DxRunSpec(None, None, None, Some(DxTimeout(None, Some(12), None)), None)),
                 None
             )
         )
@@ -905,7 +916,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
     val expected: Map[String, JsValue] = Map("timeoutPolicy" -> expectedPolicy)
 
     val dxAppJson: DxAppJson = DxAppJson(
-        Some(DxRunSpec(None, None, None, Some(DxTimeout(None, None, Some(30))))),
+        Some(DxRunSpec(None, None, None, Some(DxTimeout(None, None, Some(30))), None)),
         None
     )
 
