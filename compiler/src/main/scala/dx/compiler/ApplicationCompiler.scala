@@ -14,7 +14,7 @@ import dx.core.Constants
 import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir._
 import dx.core.ir.RunSpec._
-import dx.translator.{DockerRegistry, DxAccess, DxRunSpec, DxTimeout, Extras}
+import dx.translator.{DockerRegistry, DxAccess, DxTimeout, DxRunSpec, Extras}
 import dx.translator.CallableAttributes._
 import dx.translator.ExtrasJsonProtocol._
 import dx.util.{CodecUtils, FileSourceResolver, Logger}
@@ -209,7 +209,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
               restartableEntryPoints = None,
               timeoutPolicy = Some(
                   DxTimeout(Some(ApplicationCompiler.DefaultAppletTimeoutInDays), Some(0), Some(0))
-              )
+              ),
+              release = Some(Constants.DefaultOsRelease)
           )
       )
     // Start with the default dx-attribute section, and override

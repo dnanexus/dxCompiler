@@ -57,8 +57,8 @@ object ExtrasJsonProtocol extends DefaultJsonProtocol {
               fields.get(DxRunSpec.ExecutionPolicy).map(_.convertTo[DxExecPolicy]),
               restartableEntryPoints,
               timeout,
-              headJobOnDemand,
-              release
+              release,
+              headJobOnDemand
           )
         case _ =>
           deserializationError(s"invalid runSpec ${jsv}")
@@ -274,8 +274,8 @@ case class DxRunSpec(access: Option[DxAccess],
                      executionPolicy: Option[DxExecPolicy],
                      restartableEntryPoints: Option[String],
                      timeoutPolicy: Option[DxTimeout],
-                     headJobOnDemand: Option[Boolean] = None,
-                     release: Option[String] = Some(Constants.DefaultOsRelease)) {}
+                     release: Option[String],
+                     headJobOnDemand: Option[Boolean] = None) {}
 
 object DxRunSpec {
   val Access = "access"
