@@ -14,7 +14,7 @@ import dx.core.Constants
 import dx.core.io.{DxWorkerPaths, StreamFiles}
 import dx.core.ir._
 import dx.core.ir.RunSpec._
-import dx.translator.{DockerRegistry, DxAccess, DxTimeout, DxRunSpec, Extras}
+import dx.translator.{DockerRegistry, DxAccess, DxRunSpec, DxTimeout, Extras}
 import dx.translator.CallableAttributes._
 import dx.translator.ExtrasJsonProtocol._
 import dx.util.{CodecUtils, FileSourceResolver, Logger}
