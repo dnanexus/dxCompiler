@@ -108,11 +108,12 @@ object Constants {
 
   // other constants
   val OsDistribution = "Ubuntu"
-  val OsRelease = "20.04"
+  val DefaultOsRelease = "24.04"
   val OsVersion = "0"
   val DefaultExecutionEnvironment: ExecutionEnvironment = ExecutionEnvironment(
       OsDistribution,
-      OsRelease,
+      DefaultOsRelease,
       Vector(OsVersion)
   )
+  val allowedOsReleases = Set("24.04", "20.04")
 }
