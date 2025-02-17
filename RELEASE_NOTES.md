@@ -2,6 +2,8 @@
 
 ## in develop
 
+* Changed default Ubuntu release to 24.04
+* Added possibility to change runSpec.release via extras
 * Upgraded dxfuse to 1.4.1.
 
 ## 2.11.10 2025-01-24

@@ -197,7 +197,7 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
                 JsObject("instanceType" -> JsString(instanceType))
           ),
         "distribution" -> JsString(Constants.OsDistribution),
-        "release" -> JsString(Constants.OsRelease),
+        "release" -> JsString(Constants.DefaultOsRelease),
         "version" -> JsString(Constants.OsVersion)
     )
     // Add default timeout
@@ -209,7 +209,8 @@ case class ApplicationCompiler(typeAliases: Map[String, Type],
               restartableEntryPoints = None,
               timeoutPolicy = Some(
                   DxTimeout(Some(ApplicationCompiler.DefaultAppletTimeoutInDays), Some(0), Some(0))
-              )
+              ),
+              release = Some(Constants.DefaultOsRelease)
           )
       )
     // Start with the default dx-attribute section, and override

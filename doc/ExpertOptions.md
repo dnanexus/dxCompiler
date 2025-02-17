@@ -1176,7 +1176,7 @@ If one attribute is specified multiple times, its final value will be retrieved 
 
 ## Default and per-task attributes
 
-The extras file has a `defaultTaskDxAttributes` section where `executionPolicy`, `timeoutPolicy`, and `access` `runSpec` attributes can be set.
+The extras file has a `defaultTaskDxAttributes` section where `executionPolicy`, `timeoutPolicy`, `access` and `release` `runSpec` attributes can be set.
 
 ```json
 {
@@ -1199,7 +1199,8 @@ The extras file has a `defaultTaskDxAttributes` section where `executionPolicy`,
             "*"
           ],
           "developer": true
-        }
+        },
+        "release": "24.04"
       }
   }
 }
@@ -1237,7 +1238,8 @@ In order to override the defaults for specific tasks, you can add the `perTaskDx
         },
         "access" : {
           "project": "UPLOAD"
-        }
+        },
+        "release": "24.04"
       }
     }
   }
@@ -1295,6 +1297,7 @@ Check the official DNAnexus documentation on [App Metadata](https://documentatio
   * `executionPolicy`
   * `timeoutPolicy`
   * `headJobOnDemand`
+  * `release`
 
 
 ## Default and per-workflow attributes
