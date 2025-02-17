@@ -74,11 +74,9 @@
         "workflow_with_subworkflow"
     ],
     "extras_analysis_finished": [
-        "biocontainers",
-        "ecr_docker"
+        "biocontainers"
     ],
     "extras_expected_output": [
-        "instance_types",
         "private_registry"
     ],
     "static_pinned_instance_expected_output": [
