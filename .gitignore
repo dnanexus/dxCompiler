@@ -39,8 +39,8 @@ venv/
 #dxcint
 dxcint/tests/fixtures/dependencies/node/*
 dxcint/tests/fixtures/dependencies/mock*
-dxcint/dependencies/dx-download-agent/v0.5.9/dx-download-agent
-dxcint/dependencies/dxfuse/v1.1.0/dxfuse
+dxcint/dependencies/dx-download-agent/*
+dxcint/dependencies/dxfuse/*
 
 # IntelliJ
 .idea
