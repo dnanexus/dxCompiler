@@ -19,7 +19,7 @@
       {
         "name": "schema-salad",
         "package_manager": "pip",
-        "version": "8.4.20230426093816"
+        "version": "8.8.20250205075315"
       }
     ]
   },
