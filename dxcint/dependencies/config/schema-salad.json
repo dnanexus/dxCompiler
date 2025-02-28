@@ -1,6 +1,6 @@
 {
   "name": "schema-salad",
   "languages": ["cwl"],
-  "version": "8.8.20250205075315",
+  "version": "8.7.20241010092723",
   "package_manager": "pip"
 }
