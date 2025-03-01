@@ -1,5 +1,9 @@
 # Release Notes
 
+## in develop
+
+...
+
 ## 2.12.0 2025-02-26
 
 * Changed default Ubuntu release to 24.04
