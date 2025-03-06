@@ -1,6 +1,7 @@
 #!/bin/bash
 
 TEST=${1}
+PROJECT=project-Gz4gZ1Q0KPY0kbfGKFG2y5kX
 
 # Clean artifacts from prev. builds, local
 sbt clean && sbt cleanFiles
@@ -15,12 +16,12 @@ if [[ $rc -ne 0 ]]; then
   echo "Could not get username; you are probably not logged in to DNAnexus"
   exit $rc
 fi
-dx rm -r "dxCompiler_playground:/builds/$username"
-dx rm -r "dxCompiler_playground:/unit_tests/$username"
+dx rm -r "$PROJECT:/builds/$username"
+dx rm -r "$PROJECT:/unit_tests/$username"
 
 # Run tests if argument specified, otherwise only build
 if [[ -z "$TEST" ]]; then
-  ./scripts/run_tests.py --build only
+  ./scripts/run_tests.py --build only --project $PROJECT
 elif [[ "$TEST" == "--failed" ]]; then
   ./scripts/run_tests.py --failed --delay-compile-errors --delay-run-errors --delay-verification-errors
 else
