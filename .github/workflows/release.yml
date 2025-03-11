@@ -72,8 +72,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y apt-transport-https wget git openssh-server tree python3 python3-pip python3-venv
           cwltool_ver=`jq -r '.execDepends.cwl[0].version' scripts/bundled_dependencies.json`
-          pip3 install --upgrade pip setuptools==58.3.0 
-          pip3 install termcolor dxpy==0.391.0 cwltool==${cwltool_ver} pyOpenSSL==22.0.0
+          pip3 install --upgrade pip setuptools==76.0.0
+          pip3 install termcolor dxpy==0.391.0 cwltool==${cwltool_ver} pyOpenSSL==25.0.0
           export PATH="$PATH:$HOME/.local/bin"
           # install dxda
           dxda_version=`jq -r '.dxda' scripts/bundled_dependencies.json`
