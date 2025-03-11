@@ -30,6 +30,8 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 11
+      - name: Install SBT
+        run: sudo apt update && sudo apt install sbt -y
       - name: Clone corpora
         run: |
           cd compiler/src/test/resources
