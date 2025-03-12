@@ -34,7 +34,7 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 11
-      - name: Install SBT (Official repo)
+      - name: Install SBT
         run: |
           sudo apt-get update
           echo "deb https://repo.scala-sbt.org/scalasbt/debian all main" | sudo tee /etc/apt/sources.list.d/sbt.list
