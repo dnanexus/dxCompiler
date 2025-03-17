@@ -22,7 +22,7 @@ jobs:
   test:
     name: dxCint Tests (Staging)
     if: contains(github.event.pull_request.labels.*.name, 'dxcint') ||  github.event_name == 'workflow_dispatch' 
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     env:
       PROJECT: dxCompiler_playground
       TEST_DIR: dxcint_testing
@@ -47,7 +47,7 @@ jobs:
           cd dxcint
           poetry install --with dev
           cd ..
-          pip3 install dxpy==0.323.0 pytest
+          pip3 install dxpy==0.391.0 pytest
 
       - name: Run dxCint self tests
         env:

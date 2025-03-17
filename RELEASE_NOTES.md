@@ -2,7 +2,9 @@
 
 ## in develop
 
-...
+* Updated cwl_runner and dxcint (cwltool - 3.1.20250110105449, dxpy - 0.391.0, Python - >=3.10,<3.14, pyOpenSSL - 25.0.0, Schema-salad - 8.8.20250205075315)
+* Updated GHA workflows (Ubuntu - 24.04, setuptools - 76.0.0, dxpy - 0.391.0, pyOpenSSL - 25.0.0) and added SBT installation
+* Fixed cwl_conformation tests to pass
 
 ## 2.12.0 2025-02-26
 
