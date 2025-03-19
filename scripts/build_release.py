@@ -149,18 +149,19 @@ def _clone_asset(record, folder, regions, project_dict):
 
     # make records for each file
     for region in regions:
+        print(f"Cloning asset into {region}, project: {dest_proj_id}, asset file name: {asset_file_name}")
         dest_proj_id = region2projid[region]
-        results = list(dxpy.find_data_objects(classname = "file",
-                                              visibility = "hidden",
-                                              name = asset_file_name,
-                                              project = dest_proj_id,
-                                              folder = folder))
+        results = list(dxpy.find_data_objects(classname="file",
+                                              visibility="hidden",
+                                              name=asset_file_name,
+                                              project=dest_proj_id,
+                                              folder=folder))
         file_ids = [p["id"] for p in results]
         if len(file_ids) == 0:
             raise RuntimeError("Found no files {}:{}/{}".format(dest_proj_id, folder, asset_file_name))
         if len(file_ids) > 1:
             raise RuntimeError("Found {} files {}:{}/{}, instead of just one"
-                               .format(len(dxfiles), dest_proj_id, folder, asset_file_name))
+                               .format(len(file_ids), dest_proj_id, folder, asset_file_name))
         dest_asset = dxpy.new_dxrecord(name=record.name,
                                        types=['AssetBundle'],
                                        details={'archiveFileId': dxpy.dxlink(file_ids[0])},
