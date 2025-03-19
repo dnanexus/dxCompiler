@@ -52,7 +52,8 @@ def _clone_asset_into_region(region, dest_proj_id, asset_file_name, dest_folder,
                                             "folder" : dest_folder,
                                             "filename" : asset_file_name },
                               name = "copy to region {}".format(region),
-                              project = dest_proj_id)
+                              project = dest_proj_id,
+                              priority = "high") # added high priority because OFH region, where it takes 3 reruns to build.
     print('{region}: {job_id}'.format(region=region, job_id=dxjob.get_id()),
           file=sys.stderr)
     return dxjob
@@ -149,8 +150,8 @@ def _clone_asset(record, folder, regions, project_dict):
 
     # make records for each file
     for region in regions:
-        print(f"Cloning asset into {region}, project: {dest_proj_id}, asset file name: {asset_file_name}")
         dest_proj_id = region2projid[region]
+        print(f"Cloning asset into {region}, project: {dest_proj_id}, asset file name: {asset_file_name}")
         results = list(dxpy.find_data_objects(classname="file",
                                               visibility="hidden",
                                               name=asset_file_name,
