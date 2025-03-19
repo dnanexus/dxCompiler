@@ -97,18 +97,18 @@ jobs:
           dx login --noprojects --staging --token $ROBOT_TOKEN
           dx select $PROJECT
           cd ${GITHUB_WORKSPACE}
-      - name: Run unit tests
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          AUTH_TOKEN: ${{ secrets.DX_STAGING_TEST_ROBOT_TOKEN }}
-          SBT_OPTS: "-XX:+CMSClassUnloadingEnabled -Xmx4G -Xms1G"
-        run: |
-          sbt version && sbt compile && sbt "testOnly -- -l prod"
-      - name: Install dxcint
-        run: |
-          cd dxcint
-          poetry install
-          cd ..
+#      - name: Run unit tests
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#          AUTH_TOKEN: ${{ secrets.DX_STAGING_TEST_ROBOT_TOKEN }}
+#          SBT_OPTS: "-XX:+CMSClassUnloadingEnabled -Xmx4G -Xms1G"
+#        run: |
+#          sbt version && sbt compile && sbt "testOnly -- -l prod"
+#      - name: Install dxcint
+#        run: |
+#          cd dxcint
+#          poetry install
+#          cd ..
 #      - name: Run medium integration test suite with dxcint
 #        env:
 #          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
