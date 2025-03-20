@@ -236,6 +236,10 @@ merge them into the release branch.
 Following the release, you need to merge `RELEASE_NOTES.md` from the release branch into develop. If you released from 
 `HEAD`, then you also need to bump the SNAPSHOT versions in the `develop` branch using the `scripts/update_version.sh` script.
 
+### Update workflow importer app
+
+Update [workflow_importer](https://github.com/dnanexus/file-apps/tree/master/apps/workflow_importer) to the latest dxCompiler version.
+
 ### Creating draft release for testing
 
 Follow the process above; just don't publish the draft release in the final step.
