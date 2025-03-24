@@ -20,9 +20,9 @@ jobs:
       PROJECT: dxCompiler_playground
     steps:
       - name: Git checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       # performance optimizations https://abbbi.github.io/actions/
-      - uses: abbbi/github-actions-tune@v1
+      - uses: abbbi/github-actions-tune@81fb919e588c20b7ab52b2cac097d2efd765c714 # v1
       - name: Validate inputs
         run: |
           # make sure the version doesn't contain -SNAPSHOT
@@ -58,7 +58,7 @@ jobs:
             fi
           done
       - name: Install java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@3a4f6e1af504cf6a31855fa899c6aa5355ba6c12 # v4.7.0
         with:
           distribution: 'corretto'
           java-version: '11'
@@ -70,7 +70,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y sbt
       - name: Install Poetry
-        uses: snok/install-poetry@v1
+        uses: snok/install-poetry@76e04a911780d5b312d89783f7b1cd627778900a # v1.4.1
         with:
           version: 1.4.2
           virtualenvs-create: true
@@ -175,7 +175,7 @@ jobs:
           echo "release-notes-path=$(echo "${RELEASE_NOTES_PATH}")" >> $GITHUB_OUTPUT
       - name: Create release entry
         id: create-release
-        uses: actions/create-release@v1
+        uses: actions/create-release@0cb9c9b65d5d1901c1f53e5e66eaf4afd303e70e # v1.1.4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -186,7 +186,7 @@ jobs:
           prerelease: false
       - name: Upload release asset
         id: upload-release-asset
-        uses: actions/upload-release-asset@v1
+        uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5 # v1.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:

@@ -27,11 +27,11 @@ jobs:
       PROJECT: dxCompiler_playground
     steps:
       - name: Git checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       # performance optimizations https://abbbi.github.io/actions/
-      - uses: abbbi/github-actions-tune@v1
+      - uses: abbbi/github-actions-tune@81fb919e588c20b7ab52b2cac097d2efd765c714 # v1
       - name: Install java
-        uses: actions/setup-java@v1
+        uses: aactions/setup-java@d202f5dbf7256730fb690ec59f6381650114feb2 # v1.4.3
         with:
           java-version: 11
       - name: Install SBT
