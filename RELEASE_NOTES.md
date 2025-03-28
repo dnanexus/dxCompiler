@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.13.1 2025-03
+
 ### Dependency updates
 
 * dxApi [0.13.12](https://github.com/dnanexus/dxScala/releases/tag/api-0.13.12)

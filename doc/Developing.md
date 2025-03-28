@@ -99,7 +99,7 @@ See below on how to run unit and integration tests. To recompile dxCompiler with
   - For example, when you first created the branch you set the version to `1.0.1-SNAPSHOT`, but then you realized you needed to add a new function to the public API, change the version to `1.1.0-SNAPSHOT`.
   - You can use a script to update the version simultaneously in all of the sub-packages: `scripts/update_version.sh <version>`
 4. Make your changes. Test locally using `sbt test`.
-5. Update the [release notes](/RELEASE_NOTES.md) under the top-most header (which should be "in develop").
+5. Update the [release notes](/RELEASE_NOTES.md) under the top-most header (which should be "Unreleased").
 6. When you are done, create a pull request against the `develop` branch.
 
 While developing, make sure you do the following:
@@ -219,7 +219,7 @@ dxCompiler can be released from Github. The release pipeline (optionally) runs l
         * [executorWdl](https://github.com/dnanexus/dxCompiler/blob/main/executorWdl/src/main/resources/application.conf)
         * [executorCwl](https://github.com/dnanexus/dxCompiler/blob/main/executorCwl/src/main/resources/application.conf)
 4. Update the [Release Notes](https://github.com/dnanexus/dxCompiler/blob/main/RELEASE_NOTES.md)
-    - Change the top header from "in develop" to "\<version\> (\<date\>)"
+    - Change the top header from "Unreleased" to "\<version\> (\<date\>)"
 5. Update versions of libraries as needed in [build.sbt](/build.sbt).
     - Add release notes of updated library dependencies to [Release Notes](https://github.com/dnanexus/dxCompiler/blob/main/RELEASE_NOTES.md)
 6. Push the release branch to GitHub.
