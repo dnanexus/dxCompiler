@@ -39,8 +39,15 @@ On MacOS you may need to explicitly allow execution of this file because the OS 
 unrecognized developer. Check your `Settings/Security & Privacy`.
 * We also recommend installing [Metals](https://scalameta.org/metals/), which enables better integration with your IDE
     * For VSCode, install the "Scala (Metals)" and "Scala Syntax (official)" plugins
+* Install deps for tests:
+  * `brew install wget` (on macOS)
+  * `cd cwl_runner && pip3 install poetry && poetry install && cd ..` should install preferred locked version of `cwltool`
+  * `cd dxcint && pip3 install poetry && poetry install && cd ..` check that you have everything installed for integration tests
+  * `cd scripts && pip3 install -r requirements.txt && cd ..`
 * You will need to create a GitHub personal access token (this is required by the sbt-github-packages plugin).
     * In GitHub settings, go to "Developer settings > Personal access token" and create a new token with "write:packages" and "read:packages" scopes only.
+    * After you generate and copy your new token, make sure you have authorization with DNAnexus SSO to access the DNAnexus organization packages.
+      You will need to press `Configure SSO` next to your generated token and then `Authorize` next to `dnanexus` organization.
     * Export the `GITHUB_TOKEN` environment variable with this token as the value. For example, in your `.profile`:
     ```bash
     export GITHUB_TOKEN=<your personal access token>
@@ -129,13 +136,13 @@ If there are errors in your code, the compiler will fail with (hopefully useful)
 
 Generate a staging token via the web UI and login with `dx login --staging --token <token>`.
 
-Run [scripts/clean_build.sh](/scripts/clean_build.sh) to clean up existing artifacts (locally and on staging) and build new dxCompiler artifacts.
+Run `./scripts/clean_build.sh` ([ref](../scripts/clean_build.sh)) to clean up existing artifacts (locally and on staging) and build new dxCompiler artifacts.
 
 ### Running unit tests
 
 You should always run the unit tests after every successful compile. Generally, you want to run `sbt testQuick`, which only runs the tests that failed previously, as well as the tests for any code you've modified since the last time you ran the tests. However, the first time you checkout the code (to make sure your development environment is set up correctly) and then right before you push any changes to the repository, you should run the full test suite using `sbt test`.
 
-You need to have a DNAnexus account and be logged into DNAnexus via the command line before you can run the tests (`dx login`). Your default project has to be `dxCompiler_playground` upon login. 
+You need to have a DNAnexus account and be logged into DNAnexus via the command line before you can run the tests (`dx login`). Your default project has to be `dxCompiler_playground` upon login.
 
 ### Running the integration tests
 
