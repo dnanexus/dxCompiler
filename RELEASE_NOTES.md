@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Dependency updates
+
+* dxApi [0.13.12](https://github.com/dnanexus/dxScala/releases/tag/api-0.13.12)
+* Updated cwl_runner and dxcint (dxpy - 0.393.0)
+* Updated GHA workflows (dxpy - 0.393.0)
+
 ## 2.13.0 2025-03-20
 
 * Updated cwl_runner and dxcint (cwltool - 3.1.20250110105449, dxpy - 0.391.0, Python - >=3.10,<3.14, pyOpenSSL - 25.0.0, Schema-salad - 8.8.20250205075315)
