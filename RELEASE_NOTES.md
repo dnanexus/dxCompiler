@@ -4,7 +4,7 @@
 
 ### Dependency updates
 
-* dxApi [0.13.12](https://github.com/dnanexus/dxScala/releases/tag/api-0.13.12)
+* dxApi [0.13.13](https://github.com/dnanexus/dxScala/releases/tag/api-0.13.13)
 * Updated cwl_runner and dxcint (dxpy - 0.393.0)
 * Updated GHA workflows (dxpy - 0.393.0)
 
