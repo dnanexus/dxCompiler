@@ -12,8 +12,6 @@ import dx.cwl.{
 }
 import org.w3id.cwl.cwl1_2.CWLVersion
 
-import scala.collection.immutable.SeqMap
-
 case class CwlBundle(version: CWLVersion,
                      primaryProcess: Process,
                      tools: Map[String, CommandLineTool],
@@ -26,19 +24,43 @@ case class CwlBundle(version: CWLVersion,
   lazy val typeAliases: Map[String, CwlSchema] =
     HintUtils.getSchemaDefs(primaryProcess.requirements)
 
-  def sortByDependencies: Vector[Process] = {
-    def inner(wfs: Iterable[Workflow],
-              deps: SeqMap[String, Workflow] = SeqMap.empty): SeqMap[String, Workflow] = {
-      wfs.foldLeft(deps) {
-        case (accu, wf) =>
-          val unsatisfied = wf.steps.map(_.run).collect {
-            case wf: Workflow if !accu.contains(wf.name) => wf
-          }
-          inner(unsatisfied, accu) + (wf.name -> wf)
+  def sortByDependencies: Vector[Vector[Process]] = {
+    val wfDeps: Map[String, Set[String]] = workflows.map {
+      case (name: String, wf: Workflow) =>
+        name -> wf.steps.map(_.run).collect { case depWf: Workflow => depWf.name }.toSet
+    }
+
+    // tools have no dependencies so they come first and their ordering doesn't matter
+    var orderedWorkflows: Vector[Vector[Process]] = Vector(tools.values.toVector ++ expressions.values.toVector)
+
+    // iteratively add workflows in blocks s.t. each block has its dependencies satisfied by earlier blocks
+    var remainingWorkflows = workflows.values.toVector
+    var orderedNames = tools.keySet ++ expressions.keySet
+    while(remainingWorkflows.nonEmpty) {
+      // split the remaining workflows into those who have all dependencies satisfied
+      // and those who do not
+      val (satisfied, unsatisfied) =
+        remainingWorkflows.partition(wf => wfDeps(wf.name).subsetOf(orderedNames))
+      if (satisfied.nonEmpty) {
+        // Add satisfied workflows to orderedWorkflows
+        orderedWorkflows = orderedWorkflows.appended(satisfied)
+        orderedNames |= satisfied.map(_.name).toSet
+        remainingWorkflows = unsatisfied
+      } else {
+        // no workflows were fully satisfied on this pass - we're stuck :(
+        val stuck = remainingWorkflows.map(_.name)
+        val stuckWaitingOn: Map[String, Set[String]] = stuck.map { name =>
+          name -> (wfDeps(name) -- orderedNames)
+        }.toMap
+        throw new Exception(s"""|Cannot find the next callable to compile.
+                                |ready = ${orderedNames}
+                                |stuck = ${stuck}
+                                |stuckWaitingOn =
+                                |${stuckWaitingOn.mkString("\n")}
+                                |""".stripMargin)
       }
     }
-    // tools have no dependencies so they come first and their ordering doesn't matter
-    tools.values.toVector ++ expressions.values.toVector ++ inner(workflows.values).values.toVector
+    orderedWorkflows
   }
 }
 

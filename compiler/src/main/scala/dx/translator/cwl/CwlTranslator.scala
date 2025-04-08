@@ -30,6 +30,8 @@ import org.w3id.cwl.cwl1_2.CWLVersion
 import spray.json._
 
 import java.nio.file.Path
+import scala.collection.parallel.CollectionConverters._
+
 
 /**
   * CWL input details:
@@ -152,33 +154,48 @@ case class CwlTranslator(process: Process,
     )
     // sort callables by dependencies
     val logger2 = logger.withIncTraceIndent()
-    val depOrder: Vector[Process] = cwlBundle.sortByDependencies
+    val depOrder: Vector[Vector[Process]] = cwlBundle.sortByDependencies
     if (logger2.isVerbose) {
       logger2.trace(s"all tasks: ${cwlBundle.tools.keySet}")
-      logger2.trace(s"all processes in dependency order: ${depOrder.map(_.name)}")
+      logger2.trace(s"all processes in dependency order: ${depOrder.flatten.map(_.name)}")
     }
-    // translate processes
-    val (allCallables, sortedCallables) =
-      depOrder.foldLeft((Map.empty[String, Callable], Vector.empty[Callable])) {
-        case ((allCallables, sortedCallables), callable) =>
-          val isPrimary = callable.name == cwlBundle.primaryProcess.name
-          val translatedCallables =
-            callableTranslator.translateProcess(callable, allCallables, isPrimary = isPrimary)
-          (
+
+    // Loop over callable blocks in dependency order, then translate the callables within a block in parallel
+    val primaryName = cwlBundle.primaryProcess.name
+    val (allCallables: Map[String, Callable], sortedCallableNames: Vector[String]) =
+      depOrder.foldLeft((Map.empty[String, Callable], Vector.empty[String])) {
+        case ((allCallables, sortedCallableNames), blockCallables) =>
+          // compile all the callables from this block (Vector[Callable]) in parallel
+          // The allowed dependencies is the current value of allCallables in the accumulator
+          val translatedCallables = blockCallables
+            // convert to parallel
+            .par
+            // translate each original Callable
+            .map { callable =>
+              callableTranslator.translateProcess(callable, allCallables, isPrimary = callable.name == primaryName)
+                .filter(translatedCallable => !allCallables.contains(translatedCallable.name))
+            }
+            // Back to sequential
+            .seq
+            // flatten (will preserve stage-order for Callables that have stages)
+            .flatten
+
+            // update the accumulator
+            (
               allCallables ++ translatedCallables.map(c => c.name -> c).toMap,
-              sortedCallables ++ translatedCallables
-          )
+              sortedCallableNames.appended(translatedCallables.map(c => c.name))
+            )
       }
-    val allCallablesSortedNames = sortedCallables.map(_.name).distinct
+
     val primaryCallable = allCallables(cwlBundle.primaryProcess.name)
     if (logger2.isVerbose) {
       logger2.trace(s"allCallables: ${allCallables.keys}")
-      logger2.trace(s"allCallablesSorted: ${allCallablesSortedNames}")
+      logger2.trace(s"sortedCallableNames: ${sortedCallableNames}")
     }
     val irTypeAliases = cwlBundle.typeAliases.collect {
       case (name, record: CwlRecord) => name -> CwlUtils.toIRType(record)
     }
-    Bundle(Some(primaryCallable), allCallables, allCallablesSortedNames, irTypeAliases)
+    Bundle(Some(primaryCallable), allCallables, sortedCallableNames, irTypeAliases)
   }
 
   override protected def createInputTranslator(bundle: Bundle,

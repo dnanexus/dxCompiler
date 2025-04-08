@@ -13,6 +13,8 @@ import dx.translator.{
   Translator,
   TranslatorFactory
 }
+import scala.collection.parallel.CollectionConverters._
+import scala.collection.immutable.VectorBuilder
 import dx.util.{FileSourceResolver, Logger}
 import spray.json.{JsArray, JsObject, JsString, JsValue}
 import wdlTools.syntax.NoSuchParserException
@@ -156,35 +158,58 @@ case class WdlTranslator(doc: TAT.Document,
         fileResolver,
         logger
     )
-    // sort callables by dependencies
+    // Sort callables into blocks by dependencies. Each element of the outer Vector is a block (inner Vector) of
+    // callables that only depend on prior blocks, and can be built in parallel
     val logger2 = logger.withIncTraceIndent()
-    val depOrder: Vector[TAT.Callable] = wdlBundle.sortByDependencies(logger2)
+    val depOrder: Vector[Vector[TAT.Callable]] = wdlBundle.sortByDependencies(logger2)
     if (logger2.isVerbose) {
       logger2.trace(s"all tasks: ${wdlBundle.tasks.keySet}")
-      logger2.trace(s"all callables in dependency order: ${depOrder.map(_.name)}")
+      logger2.trace(s"all callables in dependency order: ${depOrder.flatten.map(_.name)}")
     }
-    // translate each callable in order
-    val (allCallables, sortedCallables) =
-      depOrder.foldLeft((Map.empty[String, Callable], Vector.empty[Callable])) {
-        case ((allCallables, sortedCallables), callable) =>
-          val translatedCallables = callableTranslator.translateCallable(callable, allCallables)
+
+    // Loop over callable blocks in dependency order, then translate the callables within a block in parallel
+    // Because translation can introduce new dependencies (e.g. workflows can have stages), don't worry much about the
+    // output order, other than keeping it in order for serial processing for consistency with previous versions
+    val (allCallables: Map[String, Callable], sortedCallableNames: Vector[String]) =
+      depOrder.foldLeft((Map.empty[String, Callable], Vector.empty[String])) {
+        case ((allCallables, sortedCallableNames), blockCallables) => {
+          // compile all the callables from this block (Vector[TAT.Callable]) in parallel
+          // The allowed dependencies is the current value of allCallables in the accumulator
+          val translatedCallables: Vector[Callable] = blockCallables
+            // convert to parallel
+            .par
+            // translate each original TAT.Callable
+            .map {
+              callable => callableTranslator.translateCallable(callable, allCallables)
+                .filter(translatedCallable => !allCallables.contains(translatedCallable.name))
+            }
+            // Back to sequential
+            .seq
+            // flatten (will preserve stage-order for TAT.Callables that have stages)
+            .flatten
+
+          // update the accumulator
           (
-              allCallables ++ translatedCallables.map(c => c.name -> c).toMap,
-              sortedCallables ++ translatedCallables
+            allCallables ++ translatedCallables.map{c => c.name -> c}.toMap,
+            sortedCallableNames.appendedAll(translatedCallables.map(_.name))
           )
+        }
       }
-    val allCallablesSortedNames = sortedCallables.map(_.name).distinct
+
     val primaryCallable = wdlBundle.primaryCallable.map { callable =>
       allCallables(WdlUtils.getUnqualifiedName(callable.name))
     }
     if (logger2.isVerbose) {
       logger2.trace(s"allCallables: ${allCallables.keys}")
-      logger2.trace(s"allCallablesSorted: ${allCallablesSortedNames}")
+      logger2.trace(s"sortedCallableNames: ${sortedCallableNames}")
+      logger2.trace(s"sortedCallableBlocks: [")
+      sortedCallableNames.foreach(block => logger2.trace(s"\t${block}"))
+      logger2.trace(s"]")
     }
     val irTypeAliases = typeAliases.map {
       case (name, struct: WdlTypes.T_Struct) => name -> WdlUtils.toIRType(struct)
     }
-    Bundle(primaryCallable, allCallables, allCallablesSortedNames, irTypeAliases)
+    Bundle(primaryCallable, allCallables, sortedCallableNames, irTypeAliases)
   }
 
   override protected def createInputTranslator(bundle: Bundle,
