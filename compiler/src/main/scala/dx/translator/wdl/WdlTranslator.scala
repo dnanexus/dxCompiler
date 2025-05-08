@@ -13,8 +13,7 @@ import dx.translator.{
   Translator,
   TranslatorFactory
 }
-import scala.collection.parallel.CollectionConverters._
-import scala.collection.immutable.VectorBuilder
+import com.fulcrumgenomics.commons.CommonsDef.seqToParSupport
 import dx.util.{FileSourceResolver, Logger}
 import spray.json.{JsArray, JsObject, JsString, JsValue}
 import wdlTools.syntax.NoSuchParserException
@@ -128,6 +127,7 @@ case class WdlTranslator(doc: TAT.Document,
                          perWorkflowAttrs: Map[String, DxWorkflowAttrs],
                          defaultScatterChunkSize: Int,
                          useManifests: Boolean,
+                         executableCreationParallelism: Int,
                          instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
                          versionSupport: VersionSupport,
                          fileResolver: FileSourceResolver = FileSourceResolver.get,
@@ -177,7 +177,7 @@ case class WdlTranslator(doc: TAT.Document,
           // The allowed dependencies is the current value of allCallables in the accumulator
           val translatedCallables: Vector[Callable] = blockCallables
             // convert to parallel
-            .par
+            .parWith(parallelism=executableCreationParallelism)
             // translate each original TAT.Callable
             .map {
               callable => callableTranslator.translateCallable(callable, allCallables)
@@ -187,6 +187,7 @@ case class WdlTranslator(doc: TAT.Document,
             .seq
             // flatten (will preserve stage-order for TAT.Callables that have stages)
             .flatten
+            .toVector
 
           // update the accumulator
           (
@@ -202,9 +203,6 @@ case class WdlTranslator(doc: TAT.Document,
     if (logger2.isVerbose) {
       logger2.trace(s"allCallables: ${allCallables.keys}")
       logger2.trace(s"sortedCallableNames: ${sortedCallableNames}")
-      logger2.trace(s"sortedCallableBlocks: [")
-      sortedCallableNames.foreach(block => logger2.trace(s"\t${block}"))
-      logger2.trace(s"]")
     }
     val irTypeAliases = typeAliases.map {
       case (name, struct: WdlTypes.T_Struct) => name -> WdlUtils.toIRType(struct)
@@ -230,6 +228,7 @@ case class WdlTranslatorFactory(wdlOptions: WdlOptions = WdlOptions.default)
                       perWorkflowAttrs: Map[String, DxWorkflowAttrs],
                       defaultScatterChunkSize: Int,
                       useManifests: Boolean,
+                      executableCreationParallelism: Int,
                       instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
                       fileResolver: FileSourceResolver,
                       dxApi: DxApi = DxApi.get,
@@ -257,6 +256,7 @@ case class WdlTranslatorFactory(wdlOptions: WdlOptions = WdlOptions.default)
             perWorkflowAttrs,
             defaultScatterChunkSize,
             useManifests,
+            executableCreationParallelism,
             instanceTypeSelection,
             versionSupport,
             fileResolver,

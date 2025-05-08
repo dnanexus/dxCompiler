@@ -26,8 +26,8 @@ import spray.json.{JsValue, _}
 import dx.util.{FileSourceResolver, FileUtils, JsUtils, Logger, TraceLevel}
 
 import scala.jdk.CollectionConverters._
-import scala.collection.parallel.CollectionConverters._
 import scala.collection.immutable.VectorBuilder
+import com.fulcrumgenomics.commons.CommonsDef.seqToParSupport
 
 
 
@@ -73,6 +73,7 @@ case class Compiler(extras: Option[Extras],
                     instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
                     defaultInstanceType: Option[String],
                     fileResolver: FileSourceResolver = FileSourceResolver.get,
+                    executableCreationParallelism: Int,
                     dxApi: DxApi = DxApi.get,
                     logger: Logger = Logger.get) {
   // logger for extra trace info
@@ -393,7 +394,7 @@ case class Compiler(extras: Option[Extras],
       */
     private def maybeBuildWorkflow(
         workflow: Workflow,
-        dependencyDict: Map[String, CompiledExecutable]
+        dependencyDict: Map[String, CompiledExecutable],
     ): (DxWorkflow, JsValue) = {
       logger2.trace(s"Compiling workflow ${workflow.name}")
       val workflowCompiler =
@@ -445,7 +446,7 @@ case class Compiler(extras: Option[Extras],
      * @return
      */
     private def buildExecutable(
-      name: String, dependencyDict: Map[String, CompiledExecutable]
+      name: String, dependencyDict: Map[String, CompiledExecutable], workflowBuildParallelism: Int
     ): (String, CompiledExecutable) = {
       bundle.allCallables(name) match {
         case application: Application =>
@@ -513,15 +514,20 @@ case class Compiler(extras: Option[Extras],
       val subBlocks = new VectorBuilder[Vector[String]]
       var allSatisfied = Set.empty[String]
       var remainingNames = bundle.allCallables.keys.toVector
+      logger.trace("Finding blocks of parallelizable callables to build")
       while (remainingNames.nonEmpty) {
         val (satisfied, unsatisfied) = remainingNames.partition(c => deps(c).subsetOf(allSatisfied))
         if(satisfied.isEmpty) {
           throw new RuntimeException(f"Unable to satisfy all dependencies of ${unsatisfied}:\ndeps=${deps}")
         }
+        logger.trace(
+          s"\tblock ${subBlocks.size} callables: $satisfied"
+        )
         subBlocks += satisfied
         allSatisfied |= satisfied.toSet
         remainingNames = unsatisfied
       }
+      logger.trace("Done finding blocks of parallelizable callables")
       subBlocks.result()
     }
 
@@ -529,20 +535,27 @@ case class Compiler(extras: Option[Extras],
       logger.trace(
           s"Generate dx:applets and dx:workflows for ${bundle} in ${project.id}${folder}"
       )
-      val executables: Map[String, CompiledExecutable] = {
+      logger.trace(
+          s""
+      )
+      var stage: Int = 0
+      val executables: Map[String, CompiledExecutable] =
         getCompileOrder.foldLeft(Map.empty[String, CompiledExecutable]) {
           // compile each block of mutually-independent callables, and concatenate into the map
           // all executables from previous blocks (possible dependencies) will be stored in "executables"
-          case (executables, blockExecutableNames: Vector[String]) => {
-            // Build each in parallel
-            val blockExecutables = blockExecutableNames.par.map {
-              name => buildExecutable(name, executables)
-            }.seq
+          case (executables: Map[String, CompiledExecutable], blockExecutableNames: Vector[String]) =>
+            logger.info(s"Parallel compile stage $stage with ${executables.size} old executables and ${blockExecutableNames.size} new executables")
+            val blockExecutables = blockExecutableNames
+                .parWith(parallelism = executableCreationParallelism)
+                .map {
+                  name => buildExecutable(name, executables, 1)
+                }
+                .toMap
+                .seq
+            stage += 1
             // accumulate the executables from this block
-            executables ++ blockExecutables.toMap
-          }
+            executables ++ blockExecutables
         }
-      }
 
       val primary: Option[CompiledExecutable] = bundle.primaryCallable.flatMap { c =>
         executables.get(c.name)

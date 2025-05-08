@@ -12,6 +12,7 @@ import scala.collection.immutable.SeqMap
 import dx.translator.DockerRegistry
 import dx.core.ir.RunSpec.{DefaultInstanceType, InstanceType, StaticInstanceType}
 
+
 case class WorkflowCompiler(separateOutputs: Boolean,
                             extras: Option[Extras],
                             parameterLinkSerializer: ParameterLinkSerializer,
@@ -605,6 +606,7 @@ case class WorkflowCompiler(separateOutputs: Boolean,
             ).flatten.toMap
         )
       }
+
     // build the details JSON
     val defaultTags = Set(Constants.CompilerTag)
     // compress and base64 encode the source code

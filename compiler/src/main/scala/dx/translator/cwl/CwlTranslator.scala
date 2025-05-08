@@ -30,7 +30,7 @@ import org.w3id.cwl.cwl1_2.CWLVersion
 import spray.json._
 
 import java.nio.file.Path
-import scala.collection.parallel.CollectionConverters._
+import com.fulcrumgenomics.commons.CommonsDef.seqToParSupport
 
 
 /**
@@ -124,6 +124,7 @@ case class CwlTranslator(process: Process,
                          perWorkflowAttrs: Map[String, DxWorkflowAttrs],
                          defaultScatterChunkSize: Int,
                          useManifests: Boolean,
+                         executableCreationParallelism: Int,
                          instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
                          fileResolver: FileSourceResolver = FileSourceResolver.get,
                          dxApi: DxApi = DxApi.get,
@@ -169,7 +170,7 @@ case class CwlTranslator(process: Process,
           // The allowed dependencies is the current value of allCallables in the accumulator
           val translatedCallables = blockCallables
             // convert to parallel
-            .par
+            .parWith(parallelism=executableCreationParallelism)
             // translate each original Callable
             .map { callable =>
               callableTranslator.translateProcess(callable, allCallables, isPrimary = callable.name == primaryName)
@@ -183,7 +184,7 @@ case class CwlTranslator(process: Process,
             // update the accumulator
             (
               allCallables ++ translatedCallables.map(c => c.name -> c).toMap,
-              sortedCallableNames.appended(translatedCallables.map(c => c.name))
+              sortedCallableNames.appendedAll(translatedCallables.map(c => c.name))
             )
       }
 
@@ -215,6 +216,7 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
                       perWorkflowAttrs: Map[String, DxWorkflowAttrs],
                       defaultScatterChunkSize: Int,
                       useManifests: Boolean,
+                      executableCreationParallelism: Int,
                       instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
                       fileResolver: FileSourceResolver,
                       dxApi: DxApi,
@@ -276,6 +278,7 @@ case class CwlTranslatorFactory() extends TranslatorFactory {
             perWorkflowAttrs,
             defaultScatterChunkSize,
             useManifests,
+            executableCreationParallelism,
             instanceTypeSelection,
             fileResolver,
             dxApi,
