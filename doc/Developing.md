@@ -50,6 +50,7 @@ unrecognized developer. Check your `Settings/Security & Privacy`.
     ```bash
     launchctl setenv GITHUB_TOKEN $GITHUB_TOKEN
     ```
+* To run tests, you will need to install cwltool
 
 ## Getting the source code
 
