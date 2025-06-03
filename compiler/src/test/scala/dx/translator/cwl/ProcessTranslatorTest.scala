@@ -55,7 +55,7 @@ class ProcessTranslatorTest extends AnyFlatSpec with Matchers {
         instanceTypeSelection = InstanceTypeSelection.Static
     )
 
-    val depOrder: Vector[Process] = cwlBundle.sortByDependencies
+    val depOrder: Vector[Vector[Process]] = cwlBundle.sortByDependencies.flatten
 
     // translate processes
     val (allCallables, sortedCallables) =
