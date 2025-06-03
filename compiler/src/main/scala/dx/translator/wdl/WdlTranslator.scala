@@ -13,7 +13,7 @@ import dx.translator.{
   Translator,
   TranslatorFactory
 }
-import com.fulcrumgenomics.commons.CommonsDef.seqToParSupport
+import dx.parallel.ParallelDef.seqToParSupport
 import dx.util.{FileSourceResolver, Logger}
 import spray.json.{JsArray, JsObject, JsString, JsValue}
 import wdlTools.syntax.NoSuchParserException

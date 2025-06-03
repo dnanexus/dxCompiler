@@ -27,9 +27,7 @@ import dx.util.{FileSourceResolver, FileUtils, JsUtils, Logger, TraceLevel}
 
 import scala.jdk.CollectionConverters._
 import scala.collection.immutable.VectorBuilder
-import com.fulcrumgenomics.commons.CommonsDef.seqToParSupport
-
-
+import dx.parallel.ParallelDef.seqToParSupport
 
 object Compiler {
   val RuntimeConfigFile = "dxCompiler_runtime.conf"

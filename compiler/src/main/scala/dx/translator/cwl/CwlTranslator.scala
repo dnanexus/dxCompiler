@@ -30,8 +30,7 @@ import org.w3id.cwl.cwl1_2.CWLVersion
 import spray.json._
 
 import java.nio.file.Path
-import com.fulcrumgenomics.commons.CommonsDef.seqToParSupport
-
+import dx.parallel.ParallelDef.seqToParSupport
 
 /**
   * CWL input details:
