@@ -26,6 +26,10 @@ import spray.json.{JsValue, _}
 import dx.util.{FileSourceResolver, FileUtils, JsUtils, Logger, TraceLevel}
 
 import scala.jdk.CollectionConverters._
+import scala.collection.immutable.VectorBuilder
+import com.fulcrumgenomics.commons.CommonsDef.seqToParSupport
+
+
 
 object Compiler {
   val RuntimeConfigFile = "dxCompiler_runtime.conf"
@@ -69,6 +73,7 @@ case class Compiler(extras: Option[Extras],
                     instanceTypeSelection: InstanceTypeSelection.InstanceTypeSelection,
                     defaultInstanceType: Option[String],
                     fileResolver: FileSourceResolver = FileSourceResolver.get,
+                    executableCreationParallelism: Int,
                     dxApi: DxApi = DxApi.get,
                     logger: Logger = Logger.get) {
   // logger for extra trace info
@@ -389,7 +394,7 @@ case class Compiler(extras: Option[Extras],
       */
     private def maybeBuildWorkflow(
         workflow: Workflow,
-        dependencyDict: Map[String, CompiledExecutable]
+        dependencyDict: Map[String, CompiledExecutable],
     ): (DxWorkflow, JsValue) = {
       logger2.trace(s"Compiling workflow ${workflow.name}")
       val workflowCompiler =
@@ -434,49 +439,124 @@ case class Compiler(extras: Option[Extras],
       (dxWf, execTree)
     }
 
+    /**
+     * Compile a single executable,
+     * @param name the Callable name to build
+     * @param dependencyDict the dependencies needed for this executable
+     * @return
+     */
+    private def buildExecutable(
+      name: String, dependencyDict: Map[String, CompiledExecutable], workflowBuildParallelism: Int
+    ): (String, CompiledExecutable) = {
+      bundle.allCallables(name) match {
+        case application: Application =>
+          val execRecord = application.kind match {
+            case _: ExecutableKindNative if useManifests =>
+              throw new Exception("cannot use manifest files with native app(let)s")
+            case ExecutableKindNative(ExecutableType.App | ExecutableType.Applet,
+              Some(id),
+              _,
+              _,
+              _) =>
+                  // native app(let)s do not depend on other data-objects
+                CompiledExecutable(application, dxApi.executable(id))
+            case ExecutableKindNative(ExecutableType.Applet, _, _, project, Some(path)) =>
+              val applet = dxApi.resolveDataObject(path, project.map(dxApi.project)) match {
+                case applet: DxApplet => applet
+                case _ =>
+                  throw new Exception(
+                    s"${path} in ${project.getOrElse("current project")} is not an applet"
+                  )
+              }
+              CompiledExecutable(application, applet)
+            case ExecutableKindNative(ExecutableType.App, _, Some(name), _, _) =>
+              CompiledExecutable(application, dxApi.resolveApp(name))
+            case ExecutableKindWorkflowCustomReorg(id) =>
+              // for now, we assume the user has built their reorg applet to handle manifest
+              // input if useManifests = true
+              CompiledExecutable(application, dxApi.executable(id))
+            case _ =>
+
+              val (dxApplet, dependencies) =
+              try {
+                maybeBuildApplet(application, dependencyDict)
+              } catch {
+                case t: Throwable => throw new RuntimeException("Building applet '" + application.name + "': " + t.toString())
+              }
+
+              CompiledExecutable(application, dxApplet, dependencies)
+          }
+          application.name -> execRecord
+        case wf: Workflow =>
+          val (dxWorkflow, execTree) =
+            try {
+              maybeBuildWorkflow(wf, dependencyDict)
+            } catch {
+              case t: Throwable => throw new RuntimeException("Building workflow '" + wf.name + "': " + t.toString())
+            }
+          wf.name -> CompiledExecutable(wf, dxWorkflow, execTree = Some(execTree))
+      }
+    }
+
+    private def getCompileOrder: Vector[Vector[String]] = {
+      val callableNames = bundle.allCallables.keySet
+      val deps: Map[String, Set[String]] = bundle.allCallables.values.map { callable: Callable =>
+        val callableDeps = callable match {
+          case application: Application => application.kind match {
+            case ExecutableKindWfFragment(call, _, _, _) => call.toList.toSet.intersect(callableNames)
+            case _ => Set.empty[String]
+          }
+          case workflow: Workflow => workflow.stages.map(_.calleeName).toSet.intersect(callableNames)
+        }
+        (callable.name, callableDeps)
+      }.toMap
+
+      val subBlocks = new VectorBuilder[Vector[String]]
+      var allSatisfied = Set.empty[String]
+      var remainingNames = bundle.allCallables.keys.toVector
+      logger.trace("Finding blocks of parallelizable callables to build")
+      while (remainingNames.nonEmpty) {
+        val (satisfied, unsatisfied) = remainingNames.partition(c => deps(c).subsetOf(allSatisfied))
+        if(satisfied.isEmpty) {
+          throw new RuntimeException(f"Unable to satisfy all dependencies of ${unsatisfied}:\ndeps=${deps}")
+        }
+        logger.trace(
+          s"\tblock ${subBlocks.size} callables: $satisfied"
+        )
+        subBlocks += satisfied
+        allSatisfied |= satisfied.toSet
+        remainingNames = unsatisfied
+      }
+      logger.trace("Done finding blocks of parallelizable callables")
+      subBlocks.result()
+    }
+
     def apply: CompilerResults = {
       logger.trace(
           s"Generate dx:applets and dx:workflows for ${bundle} in ${project.id}${folder}"
       )
-      val executables = bundle.dependencies.foldLeft(Map.empty[String, CompiledExecutable]) {
-        case (accu, name) =>
-          bundle.allCallables(name) match {
-            case application: Application =>
-              val execRecord = application.kind match {
-                case _: ExecutableKindNative if useManifests =>
-                  throw new Exception("cannot use manifest files with native app(let)s")
-                case ExecutableKindNative(ExecutableType.App | ExecutableType.Applet,
-                                          Some(id),
-                                          _,
-                                          _,
-                                          _) =>
-                  // native app(let)s do not depend on other data-objects
-                  CompiledExecutable(application, dxApi.executable(id))
-                case ExecutableKindNative(ExecutableType.Applet, _, _, project, Some(path)) =>
-                  val applet = dxApi.resolveDataObject(path, project.map(dxApi.project)) match {
-                    case applet: DxApplet => applet
-                    case _ =>
-                      throw new Exception(
-                          s"${path} in ${project.getOrElse("current project")} is not an applet"
-                      )
-                  }
-                  CompiledExecutable(application, applet)
-                case ExecutableKindNative(ExecutableType.App, _, Some(name), _, _) =>
-                  CompiledExecutable(application, dxApi.resolveApp(name))
-                case ExecutableKindWorkflowCustomReorg(id) =>
-                  // for now, we assume the user has built their reorg applet to handle manifest
-                  // input if useManifests = true
-                  CompiledExecutable(application, dxApi.executable(id))
-                case _ =>
-                  val (dxApplet, dependencies) = maybeBuildApplet(application, accu)
-                  CompiledExecutable(application, dxApplet, dependencies)
-              }
-              accu + (application.name -> execRecord)
-            case wf: Workflow =>
-              val (dxWorkflow, execTree) = maybeBuildWorkflow(wf, accu)
-              accu + (wf.name -> CompiledExecutable(wf, dxWorkflow, execTree = Some(execTree)))
-          }
-      }
+      logger.trace(
+          s""
+      )
+      var stage: Int = 0
+      val executables: Map[String, CompiledExecutable] =
+        getCompileOrder.foldLeft(Map.empty[String, CompiledExecutable]) {
+          // compile each block of mutually-independent callables, and concatenate into the map
+          // all executables from previous blocks (possible dependencies) will be stored in "executables"
+          case (executables: Map[String, CompiledExecutable], blockExecutableNames: Vector[String]) =>
+            logger.info(s"Parallel compile stage $stage with ${executables.size} old executables and ${blockExecutableNames.size} new executables")
+            val blockExecutables = blockExecutableNames
+                .parWith(parallelism = executableCreationParallelism)
+                .map {
+                  name => buildExecutable(name, executables, 1)
+                }
+                .toMap
+                .seq
+            stage += 1
+            // accumulate the executables from this block
+            executables ++ blockExecutables
+        }
+
       val primary: Option[CompiledExecutable] = bundle.primaryCallable.flatMap { c =>
         executables.get(c.name)
       }

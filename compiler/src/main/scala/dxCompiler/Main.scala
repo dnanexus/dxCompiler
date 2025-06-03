@@ -147,6 +147,7 @@ object Main {
       "defaults" -> PathOptionSpec.mustExist,
       "defaultInstanceType" -> StringOptionSpec(),
       "execTree" -> ExecTreeFormatOptionSpec(),
+      "executableCreationParallelism" -> IntOptionSpec.one,
       "extras" -> PathOptionSpec.mustExist,
       "inputs" -> PathOptionSpec.listMustExist,
       "input" -> PathOptionSpec.listMustExist.copy(alias = Some("inputs")),
@@ -356,6 +357,9 @@ object Main {
       }
     }
 
+    val executableCreationParallelism: Int = options.getValue[Int]("executableCreationParallelism")
+      .getOrElse(1)
+
     val defaultScatterChunkSize: Int = options.getValue[Int]("scatterChunkSize") match {
       case None => Constants.JobPerScatterDefault
       case Some(size) =>
@@ -419,6 +423,7 @@ object Main {
             locked,
             if (reorg) Some(true) else None,
             useManifests,
+            executableCreationParallelism,
             instanceTypeSelection,
             baseFileResolver
         )
@@ -533,7 +538,8 @@ object Main {
           translator.complexPathValues,
           instanceTypeSelection,
           defaultInstanceType,
-          fileResolver
+          fileResolver,
+          executableCreationParallelism
       )
       val results = compiler.apply(bundle, project, folder)
       // generate the execution tree if requested
