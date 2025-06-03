@@ -176,11 +176,12 @@ case class WdlTranslator(doc: TAT.Document,
           // compile all the callables from this block (Vector[TAT.Callable]) in parallel
           // The allowed dependencies is the current value of allCallables in the accumulator
           val translatedCallables: Vector[Callable] = blockCallables
-            // convert to parallel
-            .parWith(parallelism=executableCreationParallelism)
+          // convert to parallel
+            .parWith(parallelism = executableCreationParallelism)
             // translate each original TAT.Callable
-            .map {
-              callable => callableTranslator.translateCallable(callable, allCallables)
+            .map { callable =>
+              callableTranslator
+                .translateCallable(callable, allCallables)
                 .filter(translatedCallable => !allCallables.contains(translatedCallable.name))
             }
             // Back to sequential
@@ -191,8 +192,10 @@ case class WdlTranslator(doc: TAT.Document,
 
           // update the accumulator
           (
-            allCallables ++ translatedCallables.map{c => c.name -> c}.toMap,
-            sortedCallableNames.appendedAll(translatedCallables.map(_.name))
+              allCallables ++ translatedCallables.map { c =>
+                c.name -> c
+              }.toMap,
+              sortedCallableNames.appendedAll(translatedCallables.map(_.name))
           )
         }
       }

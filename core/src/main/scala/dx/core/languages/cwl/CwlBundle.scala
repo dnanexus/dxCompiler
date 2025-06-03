@@ -31,12 +31,14 @@ case class CwlBundle(version: CWLVersion,
     }
 
     // tools have no dependencies so they come first and their ordering doesn't matter
-    var orderedWorkflows: Vector[Vector[Process]] = Vector(tools.values.toVector ++ expressions.values.toVector)
+    var orderedWorkflows: Vector[Vector[Process]] = Vector(
+        tools.values.toVector ++ expressions.values.toVector
+    )
 
     // iteratively add workflows in blocks s.t. each block has its dependencies satisfied by earlier blocks
     var remainingWorkflows = workflows.values.toVector
     var orderedNames = tools.keySet ++ expressions.keySet
-    while(remainingWorkflows.nonEmpty) {
+    while (remainingWorkflows.nonEmpty) {
       // split the remaining workflows into those who have all dependencies satisfied
       // and those who do not
       val (satisfied, unsatisfied) =

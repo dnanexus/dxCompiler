@@ -394,7 +394,7 @@ case class Compiler(extras: Option[Extras],
       */
     private def maybeBuildWorkflow(
         workflow: Workflow,
-        dependencyDict: Map[String, CompiledExecutable],
+        dependencyDict: Map[String, CompiledExecutable]
     ): (DxWorkflow, JsValue) = {
       logger2.trace(s"Compiling workflow ${workflow.name}")
       val workflowCompiler =
@@ -440,13 +440,15 @@ case class Compiler(extras: Option[Extras],
     }
 
     /**
-     * Compile a single executable,
-     * @param name the Callable name to build
-     * @param dependencyDict the dependencies needed for this executable
-     * @return
-     */
+      * Compile a single executable,
+      * @param name the Callable name to build
+      * @param dependencyDict the dependencies needed for this executable
+      * @return
+      */
     private def buildExecutable(
-      name: String, dependencyDict: Map[String, CompiledExecutable], workflowBuildParallelism: Int
+        name: String,
+        dependencyDict: Map[String, CompiledExecutable],
+        workflowBuildParallelism: Int
     ): (String, CompiledExecutable) = {
       bundle.allCallables(name) match {
         case application: Application =>
@@ -454,18 +456,18 @@ case class Compiler(extras: Option[Extras],
             case _: ExecutableKindNative if useManifests =>
               throw new Exception("cannot use manifest files with native app(let)s")
             case ExecutableKindNative(ExecutableType.App | ExecutableType.Applet,
-              Some(id),
-              _,
-              _,
-              _) =>
-                  // native app(let)s do not depend on other data-objects
-                CompiledExecutable(application, dxApi.executable(id))
+                                      Some(id),
+                                      _,
+                                      _,
+                                      _) =>
+              // native app(let)s do not depend on other data-objects
+              CompiledExecutable(application, dxApi.executable(id))
             case ExecutableKindNative(ExecutableType.Applet, _, _, project, Some(path)) =>
               val applet = dxApi.resolveDataObject(path, project.map(dxApi.project)) match {
                 case applet: DxApplet => applet
                 case _ =>
                   throw new Exception(
-                    s"${path} in ${project.getOrElse("current project")} is not an applet"
+                      s"${path} in ${project.getOrElse("current project")} is not an applet"
                   )
               }
               CompiledExecutable(application, applet)
@@ -476,13 +478,15 @@ case class Compiler(extras: Option[Extras],
               // input if useManifests = true
               CompiledExecutable(application, dxApi.executable(id))
             case _ =>
-
               val (dxApplet, dependencies) =
-              try {
-                maybeBuildApplet(application, dependencyDict)
-              } catch {
-                case t: Throwable => throw new RuntimeException("Building applet '" + application.name + "': " + t.toString())
-              }
+                try {
+                  maybeBuildApplet(application, dependencyDict)
+                } catch {
+                  case t: Throwable =>
+                    throw new RuntimeException(
+                        "Building applet '" + application.name + "': " + t.toString()
+                    )
+                }
 
               CompiledExecutable(application, dxApplet, dependencies)
           }
@@ -492,7 +496,8 @@ case class Compiler(extras: Option[Extras],
             try {
               maybeBuildWorkflow(wf, dependencyDict)
             } catch {
-              case t: Throwable => throw new RuntimeException("Building workflow '" + wf.name + "': " + t.toString())
+              case t: Throwable =>
+                throw new RuntimeException("Building workflow '" + wf.name + "': " + t.toString())
             }
           wf.name -> CompiledExecutable(wf, dxWorkflow, execTree = Some(execTree))
       }
@@ -502,11 +507,14 @@ case class Compiler(extras: Option[Extras],
       val callableNames = bundle.allCallables.keySet
       val deps: Map[String, Set[String]] = bundle.allCallables.values.map { callable: Callable =>
         val callableDeps = callable match {
-          case application: Application => application.kind match {
-            case ExecutableKindWfFragment(call, _, _, _) => call.toList.toSet.intersect(callableNames)
-            case _ => Set.empty[String]
-          }
-          case workflow: Workflow => workflow.stages.map(_.calleeName).toSet.intersect(callableNames)
+          case application: Application =>
+            application.kind match {
+              case ExecutableKindWfFragment(call, _, _, _) =>
+                call.toList.toSet.intersect(callableNames)
+              case _ => Set.empty[String]
+            }
+          case workflow: Workflow =>
+            workflow.stages.map(_.calleeName).toSet.intersect(callableNames)
         }
         (callable.name, callableDeps)
       }.toMap
@@ -517,11 +525,13 @@ case class Compiler(extras: Option[Extras],
       logger.trace("Finding blocks of parallelizable callables to build")
       while (remainingNames.nonEmpty) {
         val (satisfied, unsatisfied) = remainingNames.partition(c => deps(c).subsetOf(allSatisfied))
-        if(satisfied.isEmpty) {
-          throw new RuntimeException(f"Unable to satisfy all dependencies of ${unsatisfied}:\ndeps=${deps}")
+        if (satisfied.isEmpty) {
+          throw new RuntimeException(
+              f"Unable to satisfy all dependencies of ${unsatisfied}:\ndeps=${deps}"
+          )
         }
         logger.trace(
-          s"\tblock ${subBlocks.size} callables: $satisfied"
+            s"\tblock ${subBlocks.size} callables: $satisfied"
         )
         subBlocks += satisfied
         allSatisfied |= satisfied.toSet
@@ -543,15 +553,18 @@ case class Compiler(extras: Option[Extras],
         getCompileOrder.foldLeft(Map.empty[String, CompiledExecutable]) {
           // compile each block of mutually-independent callables, and concatenate into the map
           // all executables from previous blocks (possible dependencies) will be stored in "executables"
-          case (executables: Map[String, CompiledExecutable], blockExecutableNames: Vector[String]) =>
-            logger.info(s"Parallel compile stage $stage with ${executables.size} old executables and ${blockExecutableNames.size} new executables")
+          case (executables: Map[String, CompiledExecutable],
+                blockExecutableNames: Vector[String]) =>
+            logger.info(
+                s"Parallel compile stage $stage with ${executables.size} old executables and ${blockExecutableNames.size} new executables"
+            )
             val blockExecutables = blockExecutableNames
-                .parWith(parallelism = executableCreationParallelism)
-                .map {
-                  name => buildExecutable(name, executables, 1)
-                }
-                .toMap
-                .seq
+              .parWith(parallelism = executableCreationParallelism)
+              .map { name =>
+                buildExecutable(name, executables, 1)
+              }
+              .toMap
+              .seq
             stage += 1
             // accumulate the executables from this block
             executables ++ blockExecutables
