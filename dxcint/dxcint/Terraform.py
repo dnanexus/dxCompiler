@@ -153,7 +153,7 @@ class Terraform(object):
             "version": self._context.version,
             "name": f"dx{language}rt",
             "title": f"dx{language} asset",
-            "release": "20.04",
+            "release": "24.04",
             "distribution": "Ubuntu",
             "execDepends": exec_depends,
             "instanceType": "mem1_ssd1_v2_x4",

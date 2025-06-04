@@ -10,6 +10,7 @@ self testing.
 2. `cd dxcint`
 3. `poetry install` (recommended, because will be installed from `poetry.lock` with pinned dependency versions). Or 
 `pip install .`
+   a. to update dependency edit `pyproject.toml` and run `poetry update` to update `poetry.lock`
 
 ## CLI methods
 #### Adding tests

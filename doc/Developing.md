@@ -5,8 +5,7 @@
 * Install JDK 11
     * On MacOS with [homebrew](https://brew.sh/) installed:
     ```
-    $ brew tap AdoptOpenJDK/openjdk
-    $ brew install adoptopenjdk11 --cask
+    $ brew install openjdk@11
     # Use java_home to find the location of JAVA_HOME to set
     $ /usr/libexec/java_home -V
     $ export JAVA_HOME=/Library/Java/...
@@ -17,7 +16,7 @@
     ```
     * Note that dxCompiler will compile with JDK8 or JDK11 and that JDK8 is used as the build target so the resulting JAR file can be executed with JRE8 or later.
 * Install [sbt](https://www.scala-sbt.org/), which also installs Scala. Sbt is a make-like utility that works with the ```scala``` language.
-    * On MacOS: `brew install sbt`
+    * On MacOS: `brew install sbt` or `brew install --ignore-dependencies sbt` (if you don't want to install the newest JDK)
     * On Linux:
     ```
     $ wget www.scala-lang.org/files/archive/scala-2.13.7.deb
@@ -40,8 +39,15 @@ On MacOS you may need to explicitly allow execution of this file because the OS 
 unrecognized developer. Check your `Settings/Security & Privacy`.
 * We also recommend installing [Metals](https://scalameta.org/metals/), which enables better integration with your IDE
     * For VSCode, install the "Scala (Metals)" and "Scala Syntax (official)" plugins
+* Install deps for tests:
+  * `brew install wget` (on macOS)
+  * `cd cwl_runner && pip3 install poetry && poetry install && cd ..` should install preferred locked version of `cwltool`
+  * `cd dxcint && pip3 install poetry && poetry install && cd ..` check that you have everything installed for integration tests
+  * `cd scripts && pip3 install -r requirements.txt && cd ..`
 * You will need to create a GitHub personal access token (this is required by the sbt-github-packages plugin).
     * In GitHub settings, go to "Developer settings > Personal access token" and create a new token with "write:packages" and "read:packages" scopes only.
+    * After you generate and copy your new token, make sure you have authorization with DNAnexus SSO to access the DNAnexus organization packages.
+      You will need to press `Configure SSO` next to your generated token and then `Authorize` next to `dnanexus` organization.
     * Export the `GITHUB_TOKEN` environment variable with this token as the value. For example, in your `.profile`:
     ```bash
     export GITHUB_TOKEN=<your personal access token>
@@ -73,7 +79,7 @@ unrecognized developer. Check your `Settings/Security & Privacy`.
 
 ## Developing in a Docker container
 
-A Dockerfile with all the dependencies to build and test dxCompiler is available [here](docker/Dockerfile). To build an image from it and run a Docker container, run from the [docker](docker/) directory:
+A Dockerfile with all the dependencies to build and test dxCompiler is available [here](./docker/Dockerfile). To build an image from it and run a Docker container, run from the [docker](./docker) directory:
 
 ```
 make
@@ -88,13 +94,13 @@ See below on how to run unit and integration tests. To recompile dxCompiler with
 1. Checkout the `develop` branch.
 2. Create a new branch with your changes. Name it something meaningful, like `APPS-123-download-bug`.
 3. Update snapshot version (in the `application.conf` files of all the sub-packages):
-- If the current snapshot version matches the release version, increment the snapshot version.
-- For example, if the current release is `1.0.0` and the current snapshot version is `1.0.0-SNAPSHOT`, increment the snapshot version to `1.0.1-SNAPSHOT`.
-- If the current snapshot version only differs from the release version by a patch, and you added any new functionality (vs just fixing a bug), increment the minor version instead.
-- For example, when you first created the branch you set the version to `1.0.1-SNAPSHOT`, but then you realized you needed to add a new function to the public API, change the version to `1.1.0-SNAPSHOT`.
-- You can use a script to update the version simultaneously in all of the sub-packages: `scripts/update_version.sh <version>`
+  - If the current snapshot version matches the release version, increment the snapshot version.
+  - For example, if the current release is `1.0.0` and the current snapshot version is `1.0.0-SNAPSHOT`, increment the snapshot version to `1.0.1-SNAPSHOT`.
+  - If the current snapshot version only differs from the release version by a patch, and you added any new functionality (vs just fixing a bug), increment the minor version instead.
+  - For example, when you first created the branch you set the version to `1.0.1-SNAPSHOT`, but then you realized you needed to add a new function to the public API, change the version to `1.1.0-SNAPSHOT`.
+  - You can use a script to update the version simultaneously in all of the sub-packages: `scripts/update_version.sh <version>`
 4. Make your changes. Test locally using `sbt test`.
-5. Update the [release notes](/RELEASE_NOTES.md) under the top-most header (which should be "in develop").
+5. Update the [release notes](/RELEASE_NOTES.md) under the top-most header (which should be "Unreleased").
 6. When you are done, create a pull request against the `develop` branch.
 
 While developing, make sure you do the following:
@@ -131,13 +137,13 @@ If there are errors in your code, the compiler will fail with (hopefully useful)
 
 Generate a staging token via the web UI and login with `dx login --staging --token <token>`.
 
-Run [scripts/clean_build.sh](/scripts/clean_build.sh) to clean up existing artifacts (locally and on staging) and build new dxCompiler artifacts.
+Run `./scripts/clean_build.sh` ([ref](../scripts/clean_build.sh)) to clean up existing artifacts (locally and on staging) and build new dxCompiler artifacts.
 
 ### Running unit tests
 
 You should always run the unit tests after every successful compile. Generally, you want to run `sbt testQuick`, which only runs the tests that failed previously, as well as the tests for any code you've modified since the last time you ran the tests. However, the first time you checkout the code (to make sure your development environment is set up correctly) and then right before you push any changes to the repository, you should run the full test suite using `sbt test`.
 
-You need to have a DNAnexus account and be logged into DNAnexus via the command line before you can run the tests (`dx login`). Your default project has to be `dxCompiler_playground` upon login. 
+You need to have a DNAnexus account and be logged into DNAnexus via the command line before you can run the tests (`dx login`). Your default project has to be `dxCompiler_playground` upon login.
 
 ### Running the integration tests
 
@@ -145,7 +151,7 @@ Integration tests actually build and run apps/workflows on DNAnexus. These tests
 
 ### Running integration tests on GitHub
 
-You can run run integration tests after submitting a PR. By default the integration tests pipeline is skipped and only runs when the `integration` label is addded to the PR and in subsequent commit pushes. If you want to push more changes and temporarily skip these tests, remove the label.
+You can run integration tests after submitting a PR. By default, the integration tests pipeline is skipped and only runs when the `integration` label is added to the PR and in subsequent commit pushes. If you want to push more changes and temporarily skip these tests, remove the label.
 
 The results will be available in the [Actions](https://github.com/dnanexus/dxCompiler/actions) tab. Ideally set the label only before requesting a review so that we don't incur too high costs from running the jobs at each push.
 
@@ -153,7 +159,7 @@ Note that only DNAnexus developers can set up a label on a PR so let us know whe
 
 #### Skipping running all tests on GitHub
 
-In order to skip unit and intergration tests add a `minor` label to the PR.
+In order to skip unit and integration tests add a `minor` label to the PR.
 
 ### Running integration tests locally
 
@@ -214,7 +220,7 @@ dxCompiler can be released from Github. The release pipeline (optionally) runs l
         * [executorWdl](https://github.com/dnanexus/dxCompiler/blob/main/executorWdl/src/main/resources/application.conf)
         * [executorCwl](https://github.com/dnanexus/dxCompiler/blob/main/executorCwl/src/main/resources/application.conf)
 4. Update the [Release Notes](https://github.com/dnanexus/dxCompiler/blob/main/RELEASE_NOTES.md)
-    - Change the top header from "in develop" to "\<version\> (\<date\>)"
+    - Change the top header from "Unreleased" to "\<version\> (\<date\>)"
 5. Update versions of libraries as needed in [build.sbt](/build.sbt).
     - Add release notes of updated library dependencies to [Release Notes](https://github.com/dnanexus/dxCompiler/blob/main/RELEASE_NOTES.md)
 6. Push the release branch to GitHub.
@@ -236,6 +242,10 @@ merge them into the release branch.
 
 Following the release, you need to merge `RELEASE_NOTES.md` from the release branch into develop. If you released from 
 `HEAD`, then you also need to bump the SNAPSHOT versions in the `develop` branch using the `scripts/update_version.sh` script.
+
+### Update workflow importer app
+
+Update [workflow_importer](https://github.com/dnanexus/file-apps/tree/master/apps/workflow_importer) to the latest dxCompiler version.
 
 ### Creating draft release for testing
 

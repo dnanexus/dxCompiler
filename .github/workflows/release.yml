@@ -15,14 +15,14 @@ permissions:
 jobs:
   run-release:
     name: dxCompiler Release (Staging and Prod)
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     env:
       PROJECT: dxCompiler_playground
     steps:
       - name: Git checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       # performance optimizations https://abbbi.github.io/actions/
-      - uses: abbbi/github-actions-tune@v1
+      - uses: abbbi/github-actions-tune@81fb919e588c20b7ab52b2cac097d2efd765c714 # v1
       - name: Validate inputs
         run: |
           # make sure the version doesn't contain -SNAPSHOT
@@ -58,12 +58,19 @@ jobs:
             fi
           done
       - name: Install java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@3a4f6e1af504cf6a31855fa899c6aa5355ba6c12 # v4.7.0
         with:
           distribution: 'corretto'
           java-version: '11'
+      - name: Install SBT
+        run: |
+          sudo apt-get update
+          echo "deb https://repo.scala-sbt.org/scalasbt/debian all main" | sudo tee /etc/apt/sources.list.d/sbt.list
+          curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x99E82A75642AC823" | sudo apt-key add
+          sudo apt-get update
+          sudo apt-get install -y sbt
       - name: Install Poetry
-        uses: snok/install-poetry@v1
+        uses: snok/install-poetry@76e04a911780d5b312d89783f7b1cd627778900a # v1.4.1
         with:
           version: 1.4.2
           virtualenvs-create: true
@@ -72,8 +79,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y apt-transport-https wget git openssh-server tree python3 python3-pip python3-venv
           cwltool_ver=`jq -r '.execDepends.cwl[0].version' scripts/bundled_dependencies.json`
-          pip3 install --upgrade pip setuptools==58.3.0 
-          pip3 install termcolor dxpy==0.323.0 cwltool==${cwltool_ver} pyOpenSSL==22.0.0
+          pip3 install --upgrade pip setuptools==76.0.0
+          pip3 install termcolor dxpy==0.393.0 cwltool==${cwltool_ver} pyOpenSSL==25.0.0
           export PATH="$PATH:$HOME/.local/bin"
           # install dxda
           dxda_version=`jq -r '.dxda' scripts/bundled_dependencies.json`
@@ -168,7 +175,7 @@ jobs:
           echo "release-notes-path=$(echo "${RELEASE_NOTES_PATH}")" >> $GITHUB_OUTPUT
       - name: Create release entry
         id: create-release
-        uses: actions/create-release@v1
+        uses: actions/create-release@0cb9c9b65d5d1901c1f53e5e66eaf4afd303e70e # v1.1.4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -179,7 +186,7 @@ jobs:
           prerelease: false
       - name: Upload release asset
         id: upload-release-asset
-        uses: actions/upload-release-asset@v1
+        uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5 # v1.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:

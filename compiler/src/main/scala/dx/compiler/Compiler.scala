@@ -392,7 +392,7 @@ case class Compiler(extras: Option[Extras],
       */
     private def maybeBuildWorkflow(
         workflow: Workflow,
-        dependencyDict: Map[String, CompiledExecutable]
+        dependencyDict: Map[String, CompiledExecutable],
     ): (DxWorkflow, JsValue) = {
       logger2.trace(s"Compiling workflow ${workflow.name}")
       val workflowCompiler =
@@ -446,7 +446,6 @@ case class Compiler(extras: Option[Extras],
     private def buildExecutable(
         name: String,
         dependencyDict: Map[String, CompiledExecutable],
-        workflowBuildParallelism: Int
     ): (String, CompiledExecutable) = {
       bundle.allCallables(name) match {
         case application: Application =>
@@ -559,7 +558,7 @@ case class Compiler(extras: Option[Extras],
             val blockExecutables = blockExecutableNames
               .parWith(parallelism = executableCreationParallelism)
               .map { name =>
-                buildExecutable(name, executables, 1)
+                buildExecutable(name, executables)
               }
               .toMap
               .seq

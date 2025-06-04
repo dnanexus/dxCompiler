@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dx_cwl_runner"
-version = "0.1.0"
+version = "0.2.1"
 description = "DNAnexus implementation of cwl-runner interface"
 authors = [
     "mhrvol <mhrvol-cf@dnanexus.com>",
@@ -8,12 +8,12 @@ authors = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.6"
-cwltool = "^3.1.20240708091337"
+python = ">=3.10,<3.14"
+cwltool = "^3.1.20250110105449"
 cwl-upgrader= "^1.2"
 
 [tool.poetry.dev-dependencies]
-dxpy = "^0.314.0"
+dxpy = "^0.393.0"
 
 [tool.poetry.scripts]
 dx-cwl-runner = 'dx_cwl_runner.cwl_runner:main'
