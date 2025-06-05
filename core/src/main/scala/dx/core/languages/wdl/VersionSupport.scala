@@ -137,12 +137,7 @@ object VersionSupport {
       dxApi: DxApi = DxApi.get,
       logger: Logger = Logger.get
   ): (TAT.Document, Bindings[String, WdlTypes.T_Struct], VersionSupport) = {
-    try {
-      fromSource(fileResolver.fromPath(sourceFile), wdlOptions, fileResolver, dxApi, logger)
-    } catch {
-      case t: Throwable =>
-        throw new RuntimeException("Error processing " + sourceFile + ": " + t.toString, t)
-    }
+    fromSource(fileResolver.fromPath(sourceFile), wdlOptions, fileResolver, dxApi, logger)
   }
 
   def fromSourceString(
