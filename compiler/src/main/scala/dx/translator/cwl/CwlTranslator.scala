@@ -30,8 +30,7 @@ import org.w3id.cwl.cwl1_2.CWLVersion
 import spray.json._
 
 import java.nio.file.Path
-import com.fulcrumgenomics.commons.CommonsDef.seqToParSupport
-
+import dx.parallel.ParallelDef.seqToParSupport
 
 /**
   * CWL input details:
@@ -169,11 +168,12 @@ case class CwlTranslator(process: Process,
           // compile all the callables from this block (Vector[Callable]) in parallel
           // The allowed dependencies is the current value of allCallables in the accumulator
           val translatedCallables = blockCallables
-            // convert to parallel
-            .parWith(parallelism=executableCreationParallelism)
+          // convert to parallel
+            .parWith(parallelism = executableCreationParallelism)
             // translate each original Callable
             .map { callable =>
-              callableTranslator.translateProcess(callable, allCallables, isPrimary = callable.name == primaryName)
+              callableTranslator
+                .translateProcess(callable, allCallables, isPrimary = callable.name == primaryName)
                 .filter(translatedCallable => !allCallables.contains(translatedCallable.name))
             }
             // Back to sequential
@@ -181,11 +181,11 @@ case class CwlTranslator(process: Process,
             // flatten (will preserve stage-order for Callables that have stages)
             .flatten
 
-            // update the accumulator
-            (
+          // update the accumulator
+          (
               allCallables ++ translatedCallables.map(c => c.name -> c).toMap,
               sortedCallableNames.appendedAll(translatedCallables.map(c => c.name))
-            )
+          )
       }
 
     val primaryCallable = allCallables(cwlBundle.primaryProcess.name)

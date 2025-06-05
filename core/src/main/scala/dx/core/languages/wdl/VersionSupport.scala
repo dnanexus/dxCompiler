@@ -140,7 +140,8 @@ object VersionSupport {
     try {
       fromSource(fileResolver.fromPath(sourceFile), wdlOptions, fileResolver, dxApi, logger)
     } catch {
-      case t: Throwable => throw new RuntimeException("Error processing " + sourceFile + ": " + t.toString, t)
+      case t: Throwable =>
+        throw new RuntimeException("Error processing " + sourceFile + ": " + t.toString, t)
     }
   }
 

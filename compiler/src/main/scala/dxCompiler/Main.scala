@@ -357,7 +357,8 @@ object Main {
       }
     }
 
-    val executableCreationParallelism: Int = options.getValue[Int]("executableCreationParallelism")
+    val executableCreationParallelism: Int = options
+      .getValue[Int]("executableCreationParallelism")
       .getOrElse(1)
 
     val defaultScatterChunkSize: Int = options.getValue[Int]("scatterChunkSize") match {
