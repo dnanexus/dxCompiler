@@ -12,7 +12,6 @@ import scala.collection.immutable.SeqMap
 import dx.translator.DockerRegistry
 import dx.core.ir.RunSpec.{DefaultInstanceType, InstanceType, StaticInstanceType}
 
-
 case class WorkflowCompiler(separateOutputs: Boolean,
                             extras: Option[Extras],
                             parameterLinkSerializer: ParameterLinkSerializer,
