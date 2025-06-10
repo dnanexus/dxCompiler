@@ -163,6 +163,7 @@ case class Compiler(extras: Option[Extras],
 
     // Add a checksum to a request
     private def checksumRequest(name: String,
+                                versionTag: String,
                                 desc: Map[String, JsValue]): (Map[String, JsValue], String) = {
       logger2.trace(
           s"""|${name} -> checksum request
@@ -196,7 +197,7 @@ case class Compiler(extras: Option[Extras],
         }
       val updatedDetails = existingDetails ++
         Map(
-            Constants.Version -> JsString(getVersion),
+            Constants.Version -> JsString(versionTag),
             Constants.Checksum -> JsString(digest)
         )
       // Add properties and attributes we don't want to fall under the checksum
@@ -320,6 +321,7 @@ case class Compiler(extras: Option[Extras],
       */
     private def maybeBuildApplet(
         applet: Application,
+        versionTag: String,
         dependencyDict: Map[String, CompiledExecutable]
     ): (DxApplet, Vector[ExecutableLink]) = {
       logger2.trace(s"Compiling applet ${applet.name}")
@@ -357,6 +359,7 @@ case class Compiler(extras: Option[Extras],
       // Calculate a checksum of the inputs that went into the making of the applet.
       val (appletApiRequest, digest) = checksumRequest(
           applet.name,
+          versionTag,
           appletCompiler.apply(applet, dependencies)
       )
       // write the request to a file, in case we need it for debugging
@@ -392,6 +395,7 @@ case class Compiler(extras: Option[Extras],
       */
     private def maybeBuildWorkflow(
         workflow: Workflow,
+        versionTag: String,
         dependencyDict: Map[String, CompiledExecutable]
     ): (DxWorkflow, JsValue) = {
       logger2.trace(s"Compiling workflow ${workflow.name}")
@@ -408,7 +412,8 @@ case class Compiler(extras: Option[Extras],
                          logger2)
       // Calculate a checksum of the inputs that went into the making of the applet.
       val (workflowApiRequest, execTree) = workflowCompiler.apply(workflow, dependencyDict)
-      val (requestWithChecksum, digest) = checksumRequest(workflow.name, workflowApiRequest)
+      val (requestWithChecksum, digest) =
+        checksumRequest(workflow.name, versionTag, workflowApiRequest)
       // Add properties we do not want to fall under the checksum.
       // This allows, for example, moving the dx:executable, while
       // still being able to reuse it.
@@ -445,6 +450,7 @@ case class Compiler(extras: Option[Extras],
       */
     private def buildExecutable(
         name: String,
+        versionTag: String,
         dependencyDict: Map[String, CompiledExecutable]
     ): (String, CompiledExecutable) = {
       bundle.allCallables(name) match {
@@ -477,11 +483,11 @@ case class Compiler(extras: Option[Extras],
             case _ =>
               val (dxApplet, dependencies) =
                 try {
-                  maybeBuildApplet(application, dependencyDict)
+                  maybeBuildApplet(application, versionTag, dependencyDict)
                 } catch {
                   case t: Throwable =>
                     throw new RuntimeException(
-                        "Building applet '" + application.name + "': " + t.toString()
+                        "Building applet '" + application.name + "': " + t.toString
                     )
                 }
 
@@ -491,10 +497,10 @@ case class Compiler(extras: Option[Extras],
         case wf: Workflow =>
           val (dxWorkflow, execTree) =
             try {
-              maybeBuildWorkflow(wf, dependencyDict)
+              maybeBuildWorkflow(wf, versionTag, dependencyDict)
             } catch {
               case t: Throwable =>
-                throw new RuntimeException("Building workflow '" + wf.name + "': " + t.toString())
+                throw new RuntimeException("Building workflow '" + wf.name + "': " + t.toString)
             }
           wf.name -> CompiledExecutable(wf, dxWorkflow, execTree = Some(execTree))
       }
@@ -545,6 +551,7 @@ case class Compiler(extras: Option[Extras],
       logger.trace(
           s""
       )
+      val versionTag: String = getVersion
       var stage: Int = 0
       val executables: Map[String, CompiledExecutable] =
         getCompileOrder.foldLeft(Map.empty[String, CompiledExecutable]) {
@@ -558,7 +565,7 @@ case class Compiler(extras: Option[Extras],
             val blockExecutables = blockExecutableNames
               .parWith(parallelism = executableCreationParallelism)
               .map { name =>
-                buildExecutable(name, executables)
+                buildExecutable(name, versionTag, executables)
               }
               .toMap
               .seq
