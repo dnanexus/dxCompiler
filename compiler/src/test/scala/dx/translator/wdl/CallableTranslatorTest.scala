@@ -34,7 +34,7 @@ class CallableTranslatorTest extends AnyFlatSpec with Matchers {
         instanceTypeSelection = InstanceTypeSelection.Static,
         versionSupport = versionSupport
     )
-    val depOrder: Vector[TAT.Callable] = wdlBundle.sortByDependencies()
+    val depOrder: Vector[TAT.Callable] = wdlBundle.sortByDependencies().flatten
     val (_, sortedCallables) =
       depOrder.foldLeft((Map.empty[String, Callable], Vector.empty[Callable])) {
         case ((allCallables, sortedCallables), callable) =>
