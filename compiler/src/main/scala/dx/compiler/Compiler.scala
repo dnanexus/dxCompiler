@@ -524,7 +524,7 @@ case class Compiler(extras: Option[Extras],
 
       val subBlocks = new VectorBuilder[Vector[String]]
       var allSatisfied = Set.empty[String]
-      var remainingNames = bundle.allCallables.keys.toVector
+      var remainingNames = bundle.dependencies
       logger.trace("Finding blocks of parallelizable callables to build")
       while (remainingNames.nonEmpty) {
         val (satisfied, unsatisfied) = remainingNames.partition(c => deps(c).subsetOf(allSatisfied))
