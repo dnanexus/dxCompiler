@@ -2,72 +2,72 @@ The reader is assumed to understand the [Workflow Description Language (WDL)](ht
 
 dxCompiler takes a pipeline written in WDL or CWL and statically compiles it to an equivalent workflow on the DNAnexus platform. This document will use WDL examples to explain additional compiler options and features. To implement them when working with CWL workflows, please refer to [CWL v1.2.0 to WDL v1.0 mapping](CWL_v1.2.0_to_WDL_v1.md) for type and syntax equivalence between WDL and CWL.
 
-- [Getting started](#getting-started)
-  - [Compiling Workflow](#compiling-workflow)
-    - [Inputs](#inputs)
-      - [CWL Files](#cwl-files)
-      - [Directories](#directories)
-        - [WDL](#wdl)
-          - [Directory inputs:](#directory-inputs)
-        - [Caveats](#caveats)
-          - [Directory outputs:](#directory-outputs)
-        - [CWL](#cwl)
-    - [Defaults](#defaults)
-    - [Extras](#extras)
-  - [Describe WDL workflow to obtain execution tree](#describe-wdl-workflow-to-obtain-execution-tree)
-- [Task and workflow inputs](#task-and-workflow-inputs)
-- [DNAnexus files as outputs](#dnanexus-files-as-outputs)
-  - [Example 1: DNAnexus files as outputs](#example-1-dnanexus-files-as-outputs)
-  - [Example 2: Uploading local file to DNAnexus](#example-2-uploading-local-file-to-dnanexus)
-- [Task metadata and runtime](#task-metadata-and-runtime)
-  - [Task meta and parameter\_meta](#task-meta-and-parameter_meta)
-    - [meta section](#meta-section)
-    - [parameter\_meta section](#parameter_meta-section)
-    - [Streaming](#streaming)
-  - [Task Runtime and Hints](#task-runtime-and-hints)
-    - [Instance type](#instance-type)
-    - [Additional DNAnexus-specific runtime settings](#additional-dnanexus-specific-runtime-settings)
-    - [Native DNAnexus executable](#native-dnanexus-executable)
-  - [Example tasks with DNAnexus-specific metadata and runtime](#example-tasks-with-dnanexus-specific-metadata-and-runtime)
-    - [Example 1: grep for pattern in file](#example-1-grep-for-pattern-in-file)
-    - [Example 2: alignment with BWA-MEM](#example-2-alignment-with-bwa-mem)
-- [Calling existing app(let)s](#calling-existing-applets)
-  - [Calling apps](#calling-apps)
-  - [Calling apps and applets using WDL `development`](#calling-apps-and-applets-using-wdl-development)
-  - [Overriding the native app and applet instance type](#overriding-the-native-app-and-applet-instance-type)
-    - [Unsupported overrides](#unsupported-overrides)
-- [Workflow metadata](#workflow-metadata)
-- [Setting DNAnexus-specific attributes in extras.json](#setting-dnanexus-specific-attributes-in-extrasjson)
-  - [Default and per-task attributes](#default-and-per-task-attributes)
-    - [Supported task attributes](#supported-task-attributes)
-  - [Default and per-workflow attributes](#default-and-per-workflow-attributes)
-  - [Job reuse](#job-reuse)
-- [Handling intermediate workflow outputs](#handling-intermediate-workflow-outputs)
-  - [Use your own applet](#use-your-own-applet)
-  - [Adding config file based reorg applet at compilation time](#adding-config-file-based-reorg-applet-at-compilation-time)
-- [Top-level calls compiled as stages](#top-level-calls-compiled-as-stages)
-- [Manifests](#manifests)
-  - [Manifest JSON](#manifest-json)
-      - [Intermediate manifest file inputs and outputs](#intermediate-manifest-file-inputs-and-outputs)
-  - [Analysis outputs](#analysis-outputs)
-- [Docker](#docker)
-  - [Setting a default docker image for all tasks](#setting-a-default-docker-image-for-all-tasks)
-  - [Private registries](#private-registries)
-    - [AWS ECR registries](#aws-ecr-registries)
-  - [Storing a docker image as a file](#storing-a-docker-image-as-a-file)
-- [Proxy configurations](#proxy-configurations)
-- [Debugging an applet](#debugging-an-applet)
-  - [Logging](#logging)
-  - [Getting applet sources](#getting-applet-sources)
-  - [Getting WDL sources](#getting-wdl-sources)
-- [Recompilation](#recompilation)
-- [Publishing global workflows](#publishing-global-workflows)
-  - [Accessing Resource Projects and Files in Global Workflows](#accessing-resource-projects-and-files-in-global-workflows)
-  - [Granting Access to All Projects](#granting-access-to-all-projects)
-  - [Including Resource Projects in the Global Workflow](#including-resource-projects-in-the-global-workflow)
-  - [Example: compiling and publishing a global workflow](#example-compiling-and-publishing-a-global-workflow)
-  - [Global workflow recommendations](#global-workflow-recommendations)
-  - [Global workflow limitations](#global-workflow-limitations)
+* [Getting started](#getting-started)
+  * [Compiling Workflow](#compiling-workflow)
+    * [Inputs](#inputs)
+      * [CWL Files](#cwl-files)
+      * [Directories](#directories)
+        * [WDL](#wdl)
+          * [Directory inputs:](#directory-inputs)
+        * [Caveats](#caveats)
+          * [Directory outputs:](#directory-outputs)
+        * [CWL](#cwl)
+    * [Defaults](#defaults)
+    * [Extras](#extras)
+  * [Describe WDL workflow to obtain execution tree](#describe-wdl-workflow-to-obtain-execution-tree)
+* [Task and workflow inputs](#task-and-workflow-inputs)
+* [DNAnexus files as outputs](#dnanexus-files-as-outputs)
+  * [Example 1: DNAnexus files as outputs](#example-1-dnanexus-files-as-outputs)
+  * [Example 2: Uploading local file to DNAnexus](#example-2-uploading-local-file-to-dnanexus)
+* [Task metadata and runtime](#task-metadata-and-runtime)
+  * [Task meta and parameter\_meta](#task-meta-and-parameter_meta)
+    * [meta section](#meta-section)
+    * [parameter\_meta section](#parameter_meta-section)
+    * [Streaming](#streaming)
+  * [Task Runtime and Hints](#task-runtime-and-hints)
+    * [Instance type](#instance-type)
+    * [Additional DNAnexus-specific runtime settings](#additional-dnanexus-specific-runtime-settings)
+    * [Native DNAnexus executable](#native-dnanexus-executable)
+  * [Example tasks with DNAnexus-specific metadata and runtime](#example-tasks-with-dnanexus-specific-metadata-and-runtime)
+    * [Example 1: grep for pattern in file](#example-1-grep-for-pattern-in-file)
+    * [Example 2: alignment with BWA-MEM](#example-2-alignment-with-bwa-mem)
+* [Calling existing app(let)s](#calling-existing-applets)
+  * [Calling apps](#calling-apps)
+  * [Calling apps and applets using WDL `development`](#calling-apps-and-applets-using-wdl-development)
+  * [Overriding the native app and applet instance type](#overriding-the-native-app-and-applet-instance-type)
+    * [Unsupported overrides](#unsupported-overrides)
+* [Workflow metadata](#workflow-metadata)
+* [Setting DNAnexus-specific attributes in extras.json](#setting-dnanexus-specific-attributes-in-extrasjson)
+  * [Default and per-task attributes](#default-and-per-task-attributes)
+    * [Supported task attributes](#supported-task-attributes)
+  * [Default and per-workflow attributes](#default-and-per-workflow-attributes)
+  * [Job reuse](#job-reuse)
+* [Handling intermediate workflow outputs](#handling-intermediate-workflow-outputs)
+  * [Use your own applet](#use-your-own-applet)
+  * [Adding config file based reorg applet at compilation time](#adding-config-file-based-reorg-applet-at-compilation-time)
+* [Top-level calls compiled as stages](#top-level-calls-compiled-as-stages)
+* [Manifests](#manifests)
+  * [Manifest JSON](#manifest-json)
+      * [Intermediate manifest file inputs and outputs](#intermediate-manifest-file-inputs-and-outputs)
+  * [Analysis outputs](#analysis-outputs)
+* [Docker](#docker)
+  * [Setting a default docker image for all tasks](#setting-a-default-docker-image-for-all-tasks)
+  * [Private registries](#private-registries)
+    * [AWS ECR registries](#aws-ecr-registries)
+  * [Storing a docker image as a file](#storing-a-docker-image-as-a-file)
+* [Proxy configurations](#proxy-configurations)
+* [Debugging an applet](#debugging-an-applet)
+  * [Logging](#logging)
+  * [Getting applet sources](#getting-applet-sources)
+  * [Getting WDL sources](#getting-wdl-sources)
+* [Recompilation](#recompilation)
+* [Publishing global workflows](#publishing-global-workflows)
+  * [Accessing Resource Projects and Files in Global Workflows](#accessing-resource-projects-and-files-in-global-workflows)
+  * [Granting Access to All Projects](#granting-access-to-all-projects)
+  * [Including Resource Projects in the Global Workflow](#including-resource-projects-in-the-global-workflow)
+  * [Example: compiling and publishing a global workflow](#example-compiling-and-publishing-a-global-workflow)
+  * [Global workflow recommendations](#global-workflow-recommendations)
+  * [Global workflow limitations](#global-workflow-limitations)
 
 # Getting started
 
@@ -80,9 +80,14 @@ Make sure you've installed the dx-toolkit CLI, and initialized it with `dx login
 To compile a workflow:
 
 ```shell
-$ java -jar dxCompiler-xxx.jar compile /path/to/foo.wdl -project project-xxxx -folder /my/workflows/
+java -jar dxCompiler-xxx.jar compile /path/to/foo.wdl -project project-xxxx -folder /my/workflows/
 ```
-This compiles `foo.wdl` to platform workflow `foo` in specified dx's project and folder (defaults to currently selected project and '/'). The generated workflow can then be run as usual using `dx run`. For example, if the workflow takes string argument `X`, then: ``` dx run foo -i0.X="hello world" ```
+
+This compiles `foo.wdl` to platform workflow `foo` in specified dx's project and folder (defaults to currently selected project and '/'). The generated workflow can then be run as usual using `dx run`. For example, if the workflow takes string argument `X`, then:
+
+```shell
+dx run foo -i0.X="hello world"
+```
 
 Compilation can be controled with several parameters.
 
@@ -109,6 +114,7 @@ Compilation can be controled with several parameters.
 | waitOnUpload | Whether to wait for each file upload to complete. |
 
 The following common options can also be specified when compiling a workflow.
+
 | Options | Description |
 | ------- | ----------- |
 | folder \<string> | Platform folder (defaults to '/'). |
@@ -172,8 +178,8 @@ generates a `test/files_input.dx.json` file that looks like this:
 
 The workflow can then be run with the command:
 
-```console
-$ dx run files -f test/files_input.dx.json
+```shell
+dx run files -f test/files_input.dx.json
 ```
 
 #### CWL Files
@@ -305,7 +311,7 @@ task task_with_dir_outs {
   }
 }
 ```
-The `folderoutput/` directory has to be specified **without** `dx://` prefix or project ID. It has to exist on the worker 
+The `folderoutput` directory has to be specified **without** `dx://` prefix or project ID. It has to exist on the worker 
 (see `command` above). After the job is done, output files will be delocalized to `project-xxx:/OUTPUT_DIRECTORY/folderoutput` 
 where `OUTPUT_DIRECTORY` is specified output directory in the `dx run` command.
 
@@ -461,13 +467,13 @@ and compiles them as defaults into the workflow. If the `files.wdl` worklow is c
 `-defaults` instead of `-inputs`
 
 ```console
-$ java -jar dxCompiler-xxx.jar compile test/files.wdl -project project-xxxx -defaults test/files_input.json
+java -jar dxCompiler-xxx.jar compile test/files.wdl -project project-xxxx -defaults test/files_input.json
 ```
 
 It can be run without parameters, for an equivalent execution.
 
 ```console
-$ dx run files
+dx run files
 ```
 
 ### Extras 
@@ -488,7 +494,7 @@ Then adding it to the compilation command line will add the `atac-seq` docker im
 tasks by default.
 
 ```console
-$ java -jar dxCompiler-xxx.jar compile test/files.wdl -project project-xxxx -defaults test/files_input.json -extras extraOptions.json
+java -jar dxCompiler-xxx.jar compile test/files.wdl -project project-xxxx -defaults test/files_input.json -extras extraOptions.json
 ```
 
 ## Describe WDL workflow to obtain execution tree
@@ -499,15 +505,15 @@ To obtain execution tree from a dxCompiler compiled workflow:
 
 1. JSON - [example](./examples/four_levels.exectree.json)
 
-```bash
-java -jar dxCompiler-xxx.jar describe <workflow_id> 
-```
+  ```bash
+  java -jar dxCompiler-xxx.jar describe <workflow_id> 
+  ```
 
 2. prettyPrint - [example](./examples/four_levels.exectree.pretty.txt)
 
-```bash
-java -jar dxCompiler-xxx.jar describe <workflow_id> -pretty 
-```
+  ```bash
+  java -jar dxCompiler-xxx.jar describe <workflow_id> -pretty 
+  ```
 
 # Task and workflow inputs
 
@@ -670,7 +676,7 @@ The following keys are also recognized but currently unused, as they only apply 
 
 The [WDL Spec](https://github.com/openwdl/wdl/blob/master/versions/1.0/SPEC.md#parameter-metadata-section) defines a `parameter_meta` section that may contain key value pairs to assoicate metadata with input and output variables. Currently, the following keywords are supported:
 
-- `stream`, indicates whether or not an input file should be streamed. See [here](#Streaming) for more details
+- `stream`, indicates whether or not an input file should be streamed. See [here](#streaming) for more details
 - Direct mappings to [inputSpec and outputSpec keywords in dxapp.json](https://documentation.dnanexus.com/developer/api/running-analyses/io-and-run-specifications):
   - `help` - `description` is also accepted as an alias for `help`; if the parameter definition is a string rather than a hash, the string is used as `help`.
   - `group` - parameter grouping (used in the DNAnexus web UI).
@@ -993,7 +999,7 @@ native task wrappers automatically. It can generate a wrapper for a specific app
 a specific platform folder. For example, the command:
 
 ```console
-$ java -jar dxCompiler-xxx.jar dxni -project project-xxxx -folder /A/B/C -output dx_extern.wdl
+java -jar dxCompiler-xxx.jar dxni -project project-xxxx -folder /A/B/C -output dx_extern.wdl
 ```
 
 will find native applets in the `/A/B/C` folder, generate tasks for them, and write to local file `dx_extern.wdl`. If an applet has the `dxapp.json` signature:
@@ -1066,7 +1072,7 @@ Applets which were built by compiling tasks with dxCompiler will be ignored by `
 To generate WDL calling apps instead of applets, use
 
 ```console
-$ java -jar dxCompiler.jar dxni -apps only -o my_apps.wdl
+java -jar dxCompiler.jar dxni -apps only -o my_apps.wdl
 ```
 
 The compiler will search for all the apps you can call and create WDL tasks for them. The WDL task will look like:
@@ -1181,7 +1187,7 @@ The following first-level keys are accepted in the _extras_ file:
 * `perTaskDxAttributes`: metadata and runtime attributes for specific tasks
 * `defaultWorkflowDxAttributes`: metadata and runtime attributes defaults for workflows 
 * `perWorkflowDxAttributes`: metadata and runtime attributes for specific workflows
-* `dockerRegistry`: private registry configuration. See [Private registries](#private-registries])
+* `dockerRegistry`: private registry configuration. See [Private registries](#private-registries)
 * `customReorgAttributes`: custom reorganization applet URI and its configuration. See [Adding config file based reorg applet at compilation time](#adding-config-file-based-reorg-applet-at-compilation-time)
 * `ignoreReuse`: boolean value indicating whether to disable [job reuse](#job-reuse)
 * **Deprecated** `delayWorkspaceDestruction`: boolean value.  Ignored in `extras.json` but accepted for backwards 
@@ -1669,7 +1675,7 @@ as an argument. For example, if `taskAttrs.json` is this file:
 Then adding it to the compilation command line will add the `atac-seq` docker image to all tasks by default.
 
 ```console
-$ java -jar dxCompiler-xxx.jar compile files.wdl -project project-xxxx -defaults files_input.json -extras taskAttrs.json
+java -jar dxCompiler-xxx.jar compile files.wdl -project project-xxxx -defaults files_input.json -extras taskAttrs.json
 ```
 
 ## Private registries
@@ -1718,12 +1724,8 @@ aws_secret_access_key: ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/ABC
 
 ## Storing a docker image as a file
 
-Normally, [docker](https://www.docker.com/) images are public, and
-stored in publicly available web sites. This enables reproducibility
-across different tools and environments. However, if you have a
-docker image that you wish to store on the platform,
-you can do `docker save`, followed by uploading the tar ball to platform file `file-xxxx`. Then, specify the docker attribute in the runtime section as
-`dx://file-xxxx`. Paths or file ids can be used, for example:
+Normally, [docker](https://www.docker.com/) images are public and stored in publicly available websites, enabling reproducibility across different tools and environments. However, if you have a docker image that you wish to store on the platform, you can use `docker save` to create a tarball and upload it to a platform file (e.g., `file-xxxx`). Then, specify the docker attribute in the runtime section as `dx://file-xxxx`. Paths or file IDs can be used, for example:
+
 ```
 runtime {
    docker: "dx://GenomeSequenceProject:/A/B/myOrgTools"
@@ -1746,22 +1748,23 @@ purposes. In this case, the compiler cannot contact the dnanexus API
 servers, unless is routes its requests through the proxy. Do
 achieve this, set the environment variable `HTTP_PROXY` (or
 `HTTPS_PROXY`) to point to the proxy. For example, if you perform the
+
 following on the command line shell:
 
-```bash
-$ export HTTP_PROXY = proxy.acme.com:8080
-$ java -jar dxCompiler.jar compile ...
+```shell
+export HTTP_PROXY=proxy.acme.com:8080
+java -jar dxCompiler.jar compile ...
 ```
 
 the compiler will send all requests through the machine `proxy.acme.com` on port `8080`.
 
 If an a proxy with NTLM authentication is used, the following configuration is required:
 
-```
-$ export HTTP_PROXY_METHOD=ntlm
-$ export HTTP_PROXY_DOMAIN = acme.com
-$ export HTTP_PROXY = https://john_smith:welcome1@proxy.acme.com:8080
-$ java -jar dxCompiler.jar compile ...
+```shell
+export HTTP_PROXY_METHOD=ntlm
+export HTTP_PROXY_DOMAIN=acme.com
+export HTTP_PROXY=https://john_smith:welcome1@proxy.acme.com:8080
+java -jar dxCompiler.jar compile ...
 ```
 
 # Debugging an applet
@@ -1770,11 +1773,12 @@ $ java -jar dxCompiler.jar compile ...
 
 dxCompiler forwards all of the output (stdout and stderr) from the WDL command to the job log. There is the possibility that excessive logging could cause an out-of-disk-space error. If this occurs, you will need to either use a larger instance type, or reduce the output. To completely ignore output from a command, you can redirect it to `/dev/null`:
 
-```
+```shell
 mycommand > /dev/null 2> /dev/null
 ```
 
 ## Getting applet sources
+
 If you build an applet on the platform with dxCompiler, and want to inspect it, use: ```dx get --omit-resources <applet path>```. This will refrain from downloading the large resource files that go into the applet.
 
 ## Getting WDL sources
@@ -1912,7 +1916,7 @@ Example: [updating title, summary, and/or developer notes](https://documentation
 dx api globalworkflow-<workflow name> update '{"title":"<new title>", "summary":"<new summary>", "developerNotes":"<new developer notes>"}'
 ```
 
-See [Limitations](#limitations) below for more details on which dependencies of the workflow will be automatically included in the global workflow.
+See [Limitations](#global-workflow-limitations) below for more details on which dependencies of the workflow will be automatically included in the global workflow.
 
 ## Global workflow recommendations
 
@@ -1926,7 +1930,7 @@ For better portability across projects where the workflow will be run, hard-codi
 
 For informational purposes, include a reference to a git repo commit containing the original workflow source code in the `developerNotes` metadata field (see [example above](#publishing-global-workflows) on how to update developer notes).
 
-Grant appropriate permissions to users authorized to run the global workflow the dependencies of the  global workflow that are not bundled with the global workflow.  These include credentials for external docker registries, DNAnexus apps called within the workflow, and other dependencies discussed in the [Limitations section](#global-workflows-limitations)
+Grant appropriate permissions to users authorized to run the global workflow the dependencies of the  global workflow that are not bundled with the global workflow.  These include credentials for external docker registries, DNAnexus apps called within the workflow, and other dependencies discussed in the [Limitations section](#global-workflow-limitations)
 
 ## Global workflow limitations
 
