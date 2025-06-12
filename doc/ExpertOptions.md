@@ -3,52 +3,71 @@ The reader is assumed to understand the [Workflow Description Language (WDL)](ht
 dxCompiler takes a pipeline written in WDL or CWL and statically compiles it to an equivalent workflow on the DNAnexus platform. This document will use WDL examples to explain additional compiler options and features. To implement them when working with CWL workflows, please refer to [CWL v1.2.0 to WDL v1.0 mapping](CWL_v1.2.0_to_WDL_v1.md) for type and syntax equivalence between WDL and CWL.
 
 - [Getting started](#getting-started)
-  * [Compiling Workflow](#compiling-workflow)
-    * [Inputs](#inputs)
-    * [Defaults](#defaults)
-    * [Extras](#extras)
-    * [Describe WDL workflow to obtain execution tree](#describe-wdl-workflow-to-obtain-execution-tree)
+  - [Compiling Workflow](#compiling-workflow)
+    - [Inputs](#inputs)
+      - [CWL Files](#cwl-files)
+      - [Directories](#directories)
+        - [WDL](#wdl)
+          - [Directory inputs:](#directory-inputs)
+        - [Caveats](#caveats)
+          - [Directory outputs:](#directory-outputs)
+        - [CWL](#cwl)
+    - [Defaults](#defaults)
+    - [Extras](#extras)
+  - [Describe WDL workflow to obtain execution tree](#describe-wdl-workflow-to-obtain-execution-tree)
 - [Task and workflow inputs](#task-and-workflow-inputs)
-  * [Directories](#directories)
+- [DNAnexus files as outputs](#dnanexus-files-as-outputs)
+  - [Example 1: DNAnexus files as outputs](#example-1-dnanexus-files-as-outputs)
+  - [Example 2: Uploading local file to DNAnexus](#example-2-uploading-local-file-to-dnanexus)
 - [Task metadata and runtime](#task-metadata-and-runtime)
-  * [Task meta and parameter_meta](#task-meta-and-parameter_meta)
-    * [meta section](#meta-section)
-    * [parameter_meta section](#parameter_meta-section)
-    * [streaming](#streaming)
-  * [Task runtime and hints](#task-runtime-and-hints)
-    * [Instance type](#instance-type)
-    * [Additional DNAnexus-specific runtime settings](#additional-dnanexus-specific-runtime-settings)
-    * [Native DNAnexus executable](#native-dnanexus-executable)
-  * [Example tasks with DNAnexus-specific metadata and runtime](#example-tasks-with-dnanexus-specific-metadata-and-runtime)
-- [Calling existing applets](#calling-existing-applets)
-  * [Calling apps](#calling-apps)
-  * [Calling apps and applets using WDL development](#calling-apps-and-applets-using-wdl-development)
-  * [Overriding the native app and applet instance type](#overriding-the-native-app-and-applet-instance-type)
-   * [Unsupported overrides](#unsupported-overrides)
+  - [Task meta and parameter\_meta](#task-meta-and-parameter_meta)
+    - [meta section](#meta-section)
+    - [parameter\_meta section](#parameter_meta-section)
+    - [Streaming](#streaming)
+  - [Task Runtime and Hints](#task-runtime-and-hints)
+    - [Instance type](#instance-type)
+    - [Additional DNAnexus-specific runtime settings](#additional-dnanexus-specific-runtime-settings)
+    - [Native DNAnexus executable](#native-dnanexus-executable)
+  - [Example tasks with DNAnexus-specific metadata and runtime](#example-tasks-with-dnanexus-specific-metadata-and-runtime)
+    - [Example 1: grep for pattern in file](#example-1-grep-for-pattern-in-file)
+    - [Example 2: alignment with BWA-MEM](#example-2-alignment-with-bwa-mem)
+- [Calling existing app(let)s](#calling-existing-applets)
+  - [Calling apps](#calling-apps)
+  - [Calling apps and applets using WDL `development`](#calling-apps-and-applets-using-wdl-development)
+  - [Overriding the native app and applet instance type](#overriding-the-native-app-and-applet-instance-type)
+    - [Unsupported overrides](#unsupported-overrides)
 - [Workflow metadata](#workflow-metadata)
 - [Setting DNAnexus-specific attributes in extras.json](#setting-dnanexus-specific-attributes-in-extrasjson)
-  * [Default and per-task attributes](#default-and-per-task-attributes)
-  * [Default and per-workflow attributes](#default-and-per-workflow-attributes)
-  * [Job reuse](#job-reuse)
+  - [Default and per-task attributes](#default-and-per-task-attributes)
+    - [Supported task attributes](#supported-task-attributes)
+  - [Default and per-workflow attributes](#default-and-per-workflow-attributes)
+  - [Job reuse](#job-reuse)
 - [Handling intermediate workflow outputs](#handling-intermediate-workflow-outputs)
-  * [Use your own applet](#use-your-own-applet)
-  * [Adding config-file based reorg applet at compilation time](#adding-config-file-based-reorg-applet-at-compilation-time)
+  - [Use your own applet](#use-your-own-applet)
+  - [Adding config file based reorg applet at compilation time](#adding-config-file-based-reorg-applet-at-compilation-time)
 - [Top-level calls compiled as stages](#top-level-calls-compiled-as-stages)
-- [Manifests](#manifests)  
+- [Manifests](#manifests)
+  - [Manifest JSON](#manifest-json)
+      - [Intermediate manifest file inputs and outputs](#intermediate-manifest-file-inputs-and-outputs)
+  - [Analysis outputs](#analysis-outputs)
 - [Docker](#docker)
-  * [Setting a default docker image for all tasks](#setting-a-default-docker-image-for-all-tasks)
-  * [Private registries](#private-registries)
-  * [Storing a docker image as a file](#storing-a-docker-image-as-a-file)
+  - [Setting a default docker image for all tasks](#setting-a-default-docker-image-for-all-tasks)
+  - [Private registries](#private-registries)
+    - [AWS ECR registries](#aws-ecr-registries)
+  - [Storing a docker image as a file](#storing-a-docker-image-as-a-file)
 - [Proxy configurations](#proxy-configurations)
 - [Debugging an applet](#debugging-an-applet)
-  * [Logging](#logging)
-  * [Getting applet sources](#getting-applet-sources)
-  * [Getting WDL sources](#getting-wdl-sources)
+  - [Logging](#logging)
+  - [Getting applet sources](#getting-applet-sources)
+  - [Getting WDL sources](#getting-wdl-sources)
 - [Recompilation](#recompilation)
 - [Publishing global workflows](#publishing-global-workflows)
-  * [Global workflow recommendations](#global-workflow-recommendations)
-  * [Global workflow limitations](#global-workflow-limitations)
-
+  - [Accessing Resource Projects and Files in Global Workflows](#accessing-resource-projects-and-files-in-global-workflows)
+  - [Granting Access to All Projects](#granting-access-to-all-projects)
+  - [Including Resource Projects in the Global Workflow](#including-resource-projects-in-the-global-workflow)
+  - [Example: compiling and publishing a global workflow](#example-compiling-and-publishing-a-global-workflow)
+  - [Global workflow recommendations](#global-workflow-recommendations)
+  - [Global workflow limitations](#global-workflow-limitations)
 
 # Getting started
 
@@ -59,7 +78,8 @@ Make sure you've installed the dx-toolkit CLI, and initialized it with `dx login
 ## Compiling Workflow
 
 To compile a workflow:
-```console
+
+```shell
 $ java -jar dxCompiler-xxx.jar compile /path/to/foo.wdl -project project-xxxx -folder /my/workflows/
 ```
 This compiles `foo.wdl` to platform workflow `foo` in specified dx's project and folder (defaults to currently selected project and '/'). The generated workflow can then be run as usual using `dx run`. For example, if the workflow takes string argument `X`, then: ``` dx run foo -i0.X="hello world" ```
@@ -1771,44 +1791,124 @@ Any significant WDL workflow is compiled into multiple DNAnexus applets and work
 
 # Publishing global workflows
 
-A [global workflow](https://documentation.dnanexus.com/developer/workflows/version-and-publish-workflows#about-workflows-and-global-workflows) is an executable that can be versioned and published to other users. Publishing global workflows may facilitate collaboration across multiple projects, compared with local, project-based workflows.
+A [global workflow](https://documentation.dnanexus.com/developer/workflows/version-and-publish-workflows#workflows-and-global-workflows) is an executable that can be versioned and published to other users. Publishing global workflows may facilitate collaboration across multiple projects, compared with local, project-based workflows.
 
 Publishing a dxCompiler WDL workflow as a global workflow is supported from dxCompiler >= `v2.9.0` and dxpy >= `v0.319.2`. This is done in two steps. First, use `dxCompiler` to compile a workflow from WDL source to a local workflow in a project. Second, use `dx-toolkit` to publish the local workflow as a global workflow. Once the global workflow is published, you can add authorized users.
 
-Example: compiling a WDL workflow for later use as a global workflow.
+## Accessing Resource Projects and Files in Global Workflows
+
+When running as a global workflow, files and resources can be made available to all jobs and tasks by including them in the global workflow's resource container. To reference these files in your WDL script, use the environment variable `DX_GWF_RESOURCES_ID`. For compatibility with both global and local workflows, you can use the following pattern in your WDL command block:
+
+```wdl
+command <<<
+  # Allow the docker container to evaluate the environmental variables
+  source /home/dnanexus/environment
+
+  # Determine which resource project to use
+  if [[ "$DX_GWF_RESOURCES_ID" != "" ]]; then
+    DX_ASSETS_ID="$DX_GWF_RESOURCES_ID"
+  else
+    DX_ASSETS_ID="$DX_PROJECT_CONTEXT_ID"  # or a specific project ID
+  fi
+  # Access the object under the determined resource project
+  reference_content=`dx cat $DX_ASSETS_ID:/the_resource_file.txt`
+  ...
+>>>
 ```
+
+**Note:** Any docker image used by a WDL task that needs to access platform resources must include `dx-toolkit`. For example, to build a compatible image based on Ubuntu:
+
+```dockerfile
+FROM ubuntu:22.04
+ENV DEBIAN_FRONTEND noninteractive
+RUN apt-get update && \
+    apt-get install -y ... jq default-jdk vim && \
+    pip3 install dxpy
+```
+
+## Granting Access to All Projects
+
+To allow the global workflow to access files in any project the user can access, grant `allProjects: VIEW` access when compiling the workflow. This is done by specifying it in an `extras.json` file:
+
+```json
+{
+  "default_task_dx_attributes": {
+    "runSpec": {
+      "access": {
+        "allProjects": "VIEW"
+      }
+    }
+  }
+}
+```
+
+Compile with:
+
+```shell
+java -jar dxCompiler-2.11.4.jar compile <WDL script> -extras extras.json
+```
+
+## Including Resource Projects in the Global Workflow
+
+When promoting a compiled workflow to a global workflow, you can include a resource project so its contents are cloned into the global workflow’s resource container. Use the `--extra-args` flag with `dx build`:
+
+```shell
+ dx build --globalworkflow \
+   --from <project ID>:<workflow ID> \
+   --version <version> --bill-to <billTo org> \
+   --extra-args '{"regionalOptions": {"<region>": { "resources": "<project ID>"}}}'
+```
+
+Example:
+
+```shell
+ dx build --globalworkflow \
+   --from project-xxxx:workflow-xxxx --version 0.0.2 \
+   --bill-to org-dnanexus \
+   --extra-args '{"regionalOptions": {"aws:us-east-1": { "resources": "project-xxxx"}}}'
+ dx publish test_workflow/0.0.2
+```
+
+## Example: compiling and publishing a global workflow
+
+```shell
 java -jar dxCompiler.jar compile <workflow name>.wdl -instanceTypeSelection dynamic
 ```
 
-Example: publishing a global workflow from a local workflow. The global workflow's name will match the WDL workflow name. The global workflow's version must be set with `--version`, since a local workflow does not have a `version` property. If `--bill-to` is not specified, your default billing account will be assumed.
-```
+```shell
 dx build --globalworkflow --from <project id>:<workflow id> --version <version> --bill-to <user-xxxx | org-yyyy>
 dx publish globalworkflow-<workflow name>/<version>
 ```
 
+See [Global workflow limitations](#global-workflow-limitations) below for more details on which dependencies of the workflow will be automatically included in the global workflow.
+
 Example: [adding and removing authorized users](https://documentation.dnanexus.com/user/helpstrings-of-sdk-command-line-utilities#add-users)
-```
+
+```shell
 dx add users globalworkflow-<workflow name> <user-xxxx | org-yyyy>
 
 dx remove users globalworkflow-<workflow name> <user-xxxx | org-yyyy>
 ```
 
 Example: [adding and removing tags](https://documentation.dnanexus.com/developer/api/running-analyses/global-workflows#api-method-globalworkflow-xxxx-yyyy-addtags)
-```
+
+```shell
 dx api globalworkflow-<workflow name> addTags '{"tags":["<tag 1>", "<tag 2>"]}'
 
 dx api globalworkflow-<workflow name> removeTags '{"tags":["<tag 1>", "<tag 2>"]}'
 ```
 
 Example: [adding and removing categories](https://documentation.dnanexus.com/developer/api/running-analyses/global-workflows#api-method-globalworkflow-xxxx-yyyy-addcategories)
-```
+
+```shell
 dx api globalworkflow-<workflow name> addCategories '{"categories":["<category 1>", "<category 2>"]}'
 
 dx api globalworkflow-<workflow name> removeCategories '{"categories":["<category 1>", "<category 2>"]}'
 ```
 
 Example: [updating title, summary, and/or developer notes](https://documentation.dnanexus.com/developer/api/running-analyses/global-workflows#api-method-globalworkflow-xxxx-yyyy-update)
-```
+
+```shell
 dx api globalworkflow-<workflow name> update '{"title":"<new title>", "summary":"<new summary>", "developerNotes":"<new developer notes>"}'
 ```
 
@@ -1835,11 +1935,13 @@ Publishing a dxCompiler-generated workflow as a global workflow is currently onl
 The global workflow will currently only support a single region (matching the region in which the original workflow was compiled).
 
 Some dependencies of the original workflow will be automatically included in the global workflow, i.e. they will be cloned into the global workflow's resource container and authorized users of the global workflow will not require additional permissions. These include
+
 - Applets and sub-workflows that were part of the original workflow
 - Native applets included in the workflow via `dxni`
 - Docker images that are stored as platform files
 
 Some dependencies of the original workflow will not be automatically included in the global workflow, so the user may need additional permissions to access and run the workflow. These include
+
 - Publicly inaccessible DNAnexus apps included in the workflow via `dxni`. Users must have permission to run such apps, which should be granted with `dx add users <app> <user or org>` by apps' developers.
 - Platform files referenced in workflow parameters (e.g. default or suggested inputs) or in the workflow body (user needs access to the files)
 - Credentials file for a private Docker registry (user needs access to the file)
@@ -1850,11 +1952,13 @@ Authorized users will have permission to download (via `dx get`) and view any ap
 
 <!-- TODO mention URL when the UI supports global workflows -->
 Any usage of the above in a workflow (including in its tasks and sub-workflows) will produce a warning in the workflow's `description` metadata field, which can be viewed using:
-```
+
+```shell
 dx describe globalworkflow-<name>/<version> --json | jq -rc '.description | tostring'
 ```
 
 This also works for a regular workflow:
-```
+
+```shell
 dx describe <project-xxxx>:<workflow-yyyy> --json | jq -rc '.description | tostring'
 ```
