@@ -83,10 +83,10 @@ To compile a workflow:
 java -jar dxCompiler-xxx.jar compile /path/to/foo.wdl -project project-xxxx -folder /my/workflows/
 ```
 
-This compiles `foo.wdl` to platform workflow `foo` in specified dx's project and folder (defaults to currently selected project and '/'). The generated workflow can then be run as usual using `dx run`. For example, if the workflow takes string argument `X`, then:
+This compiles `foo.wdl` to platform workflow `foo` in specified dx's project and folder (defaults the root directory of the current project). The generated workflow can then be run as usual using `dx run`. For example, if the workflow takes string argument `X`, then:
 
 ```shell
-dx run foo -i0.X="hello world"
+dx run foo -io.X="hello world"
 ```
 
 Compilation can be controled with several parameters.
@@ -1801,7 +1801,7 @@ Publishing a dxCompiler WDL workflow as a global workflow is supported from dxCo
 
 ## Accessing Resource Projects and Files in Global Workflows
 
-When running as a global workflow, files and resources can be made available to all jobs and tasks by including them in the global workflow's resource container. To reference these files in your WDL script, use the environment variable `DX_GWF_RESOURCES_ID`. For compatibility with both global and local workflows, you can use the following pattern in your WDL command block:
+When running as a global workflow, files and resources can be made available to all jobs and tasks by including them in the global workflow's resource container. To reference the resource container ID with these files in your WDL script, use the environment variable `DX_GWF_RESOURCES_ID`. For compatibility with both global and local workflows, you can use the following pattern in your WDL command block:
 
 ```wdl
 command <<<
@@ -1812,7 +1812,7 @@ command <<<
   if [[ "$DX_GWF_RESOURCES_ID" != "" ]]; then
     DX_ASSETS_ID="$DX_GWF_RESOURCES_ID"
   else
-    DX_ASSETS_ID="$DX_PROJECT_CONTEXT_ID"  # or a specific project ID
+    DX_ASSETS_ID="$DX_PROJECT_CONTEXT_ID"  # or a specific project ID which the workflow has access to
   fi
   # Access the object under the determined resource project
   reference_content=`dx cat $DX_ASSETS_ID:/the_resource_file.txt`
