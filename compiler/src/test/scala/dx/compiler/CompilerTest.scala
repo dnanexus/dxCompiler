@@ -954,8 +954,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
             Field.Access
         )
     )
-
-    desc1.access shouldBe Some(
+    val expected1Access = Some(
         JsObject(
             Map(
                 "allProjects" -> JsString("VIEW"),
@@ -970,8 +969,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
             Field.Access
         )
     )
-
-    desc2.access shouldBe Some(
+    val expected2Access = Some(
         JsObject(
             Map(
                 "allProjects" -> JsString("VIEW"),
@@ -979,6 +977,14 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
             )
         )
     )
+
+    if (desc1.access == expected2Access && desc2.access == expected1Access) {
+      fail("Compiled applet order is reversed")
+    }
+
+    desc1.access shouldBe expected1Access
+
+    desc2.access shouldBe expected2Access
 
   }
 
