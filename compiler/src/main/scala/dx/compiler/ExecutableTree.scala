@@ -11,10 +11,11 @@ case class CompiledExecutable(callable: Callable,
                               execTree: Option[JsValue] = None)
 
 case class CompilerResults(primary: Option[CompiledExecutable],
-                           executables: Map[String, CompiledExecutable]) {
+                           executables: Map[String, CompiledExecutable],
+                           executableOrder: Vector[String]) {
   def executableIds: Vector[String] = {
     primary match {
-      case None      => executables.values.map(_.dxExec.id).toVector
+      case None      => (executableOrder collect executables).map(_.dxExec.id)
       case Some(obj) => Vector(obj.dxExec.id)
     }
   }
