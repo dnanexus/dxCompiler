@@ -312,7 +312,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
   it should "Native compile a linear WDL workflow in parallel" taggedAs NativeTest in {
     val path = pathFromBasename("compiler", "wf_linear.wdl")
-    val args = path.toString :: cFlags ++ List("executableCreationParallelism", "4")
+    val args = path.toString :: cFlags ++ List("-executableCreationParallelism", "4")
     val retval = Main.compile(args.toVector)
     retval shouldBe a[SuccessfulCompileNativeNoTree]
   }
