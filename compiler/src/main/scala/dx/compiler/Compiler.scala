@@ -524,7 +524,7 @@ case class Compiler(extras: Option[Extras],
 
       val subBlocks = new VectorBuilder[Vector[String]]
       var allSatisfied = Set.empty[String]
-      var remainingNames = bundle.allCallables.keys.toVector
+      var remainingNames = bundle.dependencies
       logger.trace("Finding blocks of parallelizable callables to build")
       while (remainingNames.nonEmpty) {
         val (satisfied, unsatisfied) = remainingNames.partition(c => deps(c).subsetOf(allSatisfied))
@@ -553,8 +553,9 @@ case class Compiler(extras: Option[Extras],
       )
       val versionTag: String = getVersion
       var stage: Int = 0
+      val compileOrder = getCompileOrder
       val executables: Map[String, CompiledExecutable] =
-        getCompileOrder.foldLeft(Map.empty[String, CompiledExecutable]) {
+        compileOrder.foldLeft(Map.empty[String, CompiledExecutable]) {
           // compile each block of mutually-independent callables, and concatenate into the map
           // all executables from previous blocks (possible dependencies) will be stored in "executables"
           case (executables: Map[String, CompiledExecutable],
@@ -577,7 +578,7 @@ case class Compiler(extras: Option[Extras],
       val primary: Option[CompiledExecutable] = bundle.primaryCallable.flatMap { c =>
         executables.get(c.name)
       }
-      CompilerResults(primary, executables)
+      CompilerResults(primary, executables, compileOrder.flatten)
     }
   }
 
