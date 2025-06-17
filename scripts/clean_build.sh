@@ -2,7 +2,7 @@
 set -euxo pipefail
 
 TEST=${1:-""}
-PROJECT=project-Gz4gZ1Q0KPY0kbfGKFG2y5kX
+PROJECT=project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq # dxCompiler_playground
 
 # Clean artifacts from prev. builds, local
 sbt clean && sbt cleanFiles
