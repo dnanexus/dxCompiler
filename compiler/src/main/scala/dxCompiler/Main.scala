@@ -855,6 +855,9 @@ object Main {
         |      -destination <string>  Full platform path (project:/folder).
         |      -execTree [json,pretty]    
         |                             Print a JSON representation of the workflow.
+        |      -executableCreationParallelism <int>
+        |                             The maximum number of platform executables that dxCompiler can
+        |                             create in parallel, defaults to 1.
         |      -extras <string>       JSON file with extra options (see documentation).
         |      -inputs <string>       JSON file with standard-formatted input values. May be
         |                             specified multiple times. A DNAnexus JSON input file is
