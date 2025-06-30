@@ -460,7 +460,15 @@ case class WorkflowCompiler(separateOutputs: Boolean,
     // build the "stages" part of the API request
     val stages =
       workflow.stages.map { stage =>
-        val CompiledExecutable(irExecutable, dxExec, _, _) = executableDict(stage.calleeName)
+        val CompiledExecutable(irExecutable, dxExec, _, _) =
+          try {
+            executableDict(stage.calleeName)
+          } catch {
+            case e: java.util.NoSuchElementException =>
+              throw new java.util.NoSuchElementException(
+                  e.toString + "\nHave keys: " + executableDict.keys.mkString(",")
+              )
+          }
         val linkedInputs = if (useManifests) {
           // when using manifests, we have to create an input array of all the
           // manifests output by any linked stages, and a hash of links between
@@ -599,6 +607,7 @@ case class WorkflowCompiler(separateOutputs: Boolean,
             ).flatten.toMap
         )
       }
+
     // build the details JSON
     val defaultTags = Set(Constants.CompilerTag)
     // compress and base64 encode the source code

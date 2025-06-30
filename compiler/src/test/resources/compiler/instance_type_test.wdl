@@ -160,12 +160,8 @@ task GPUSpec {
         echo "On a GPU instance"
     }
     runtime {
-        # Instance type temporarily hardcoded to avoid picking unavailable one
-        dx_instance_type: "mem2_ssd1_gpu_x16"
-        # TODO use GPU, memory requirements after unavailable instance types
-        # are removed from test pricing model
-        # gpu: true
-        # memory: "2 GiB"
+        gpu : true
+        memory: "2 GiB"
     }
     output {
         String retval = read_string(stdout())
@@ -179,7 +175,7 @@ workflow instance_types {
     }
 
     ### Check that we can use GPU instances
-    call GPUSpec
+    # call GPUSpec # DEVEX-2483 Un-ignore after pricing model is updated so the cheapest GPU type is a current one
 
     ### Disk space tests
     call DiskSpaceSpec { input: disk_req_gb=90 }
@@ -208,7 +204,7 @@ workflow instance_types {
     call Shortcut
 
     output {
-        String GPUSpec_retval = GPUSpec.retval
+        # String GPUSpec_retval = GPUSpec.retval # DEVEX-2483 Un-ignore after pricing model is updated so the cheapest GPU type is a current one
         String MemorySpec_retval = MemorySpec.retval
         String DiskSpaceSpec_retval = DiskSpaceSpec.retval
         String NumCoresSpec_retval = NumCoresSpec.retval

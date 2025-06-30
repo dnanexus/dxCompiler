@@ -310,6 +310,13 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
     retval shouldBe a[SuccessfulCompileNativeNoTree]
   }
 
+  it should "Native compile a linear WDL workflow in parallel" taggedAs NativeTest in {
+    val path = pathFromBasename("compiler", "wf_linear.wdl")
+    val args = path.toString :: cFlags ++ List("-executableCreationParallelism", "4")
+    val retval = Main.compile(args.toVector)
+    retval shouldBe a[SuccessfulCompileNativeNoTree]
+  }
+
   it should "compile a WDL file with a directory output" in {
     val sourceCode = pathFromBasename("v2", "apps_1421_dir_output_unit.wdl")
     val args = List(sourceCode.toString) ++ cFlags
@@ -947,8 +954,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
             Field.Access
         )
     )
-
-    desc1.access shouldBe Some(
+    val expected1Access = Some(
         JsObject(
             Map(
                 "allProjects" -> JsString("VIEW"),
@@ -963,8 +969,7 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
             Field.Access
         )
     )
-
-    desc2.access shouldBe Some(
+    val expected2Access = Some(
         JsObject(
             Map(
                 "allProjects" -> JsString("VIEW"),
@@ -972,6 +977,14 @@ class CompilerTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
             )
         )
     )
+
+    if (desc1.access == expected2Access && desc2.access == expected1Access) {
+      fail("Compiled applet order is reversed")
+    }
+
+    desc1.access shouldBe expected1Access
+
+    desc2.access shouldBe expected2Access
 
   }
 

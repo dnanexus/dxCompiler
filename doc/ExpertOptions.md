@@ -99,6 +99,7 @@ Compilation can be controled with several parameters.
 | defaultInstanceType \<string\> | The default instance type to use for "helper" applets that perform runtime evaluation of instance type requirements. This instance type is also used when the '-instanceTypeSelection dynamic' option is set. This value is overriden by any defaults set in the JSON file specified by '-extras'.|
 | destination \<string\> | Full platform path (project:/folder) |
 | execTree \[json,pretty\] | Print a JSON representation of the workflow. |
+| executableCreationParallelism \<int\> | The maximum number of platform executables that dxCompiler can create in parallel, defaults to 1. |
 | extras \<string\> | JSON file with extra options |
 | inputs \<string\> | JSON file with standard-formatted input values. May be specified multiple times. A DNAnexus JSON input file is generated for each standard input file. |
 | instanceTypeSelection \[static,dynamic\] | Whether to select instance types at compile time for tasks with runtime requirements that can all be statically evaluated (the default "static" option), or to defer instance type selection in such cases to runtime (the "dynamic" option). Using static instance type selection can save time, but it requires the same set of instances to be accessible during WDL/CWL compilation and during the runtime of the generated applets and workflows. Use the "dynamic" option if you plan on creating global DNAnexus workflows or cloning the generated workflows between DNAnexus organizations with different available instance types. |

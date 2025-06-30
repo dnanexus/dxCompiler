@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+* Added option `-executableCreationParallelism <int>`, the maximum number of platform executables that dxCompiler can
+create in parallel, defaults to 1.
+
 ### Dependency updates
 
 * dxApi [0.13.13](https://github.com/dnanexus/dxScala/releases/tag/api-0.13.13)
