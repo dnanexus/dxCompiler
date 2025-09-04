@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+* Added support for new region in OCI Ashburn
+
 ## 2.14.0 2025-07-03
 
 * Added option `-executableCreationParallelism <int>`, the maximum number of platform executables that dxCompiler can
