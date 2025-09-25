@@ -1,0 +1,61 @@
+name: Build & publish 'dxCompiler Copy File' app
+on:
+  workflow_dispatch:
+    inputs:
+      is-staging:
+        description: 'Deploy to staging? (true/false)'
+        required: false
+        type: choice
+        default: 'true'
+        options:
+          - 'true'
+          - 'false'
+      publish-app:
+        description: 'Publish app? (true/false)'
+        required: false
+        type: choice
+        default: 'false'
+        options:
+          - 'true'
+          - 'false'
+  pull_request:
+    branches:
+      - develop
+
+permissions:
+  contents: write
+  packages: read
+
+jobs:
+  deploy_app:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Install dxpy
+        run: |
+          python3 -m pip install dxpy
+          which dx
+
+      - name: Login to platform
+        run: |
+#          if [[ ${{ inputs.is-staging }} == "true" ]]; then
+            staging_param="--staging"
+#          fi
+#          token="${{ inputs.is-staging == 'true' && secrets.DX_STAGING_ROBOT_TOKEN || secrets.DX_PROD_RELEASE_TOKEN }}"
+          token="${{secrets.DX_STAGING_ROBOT_TOKEN}}"
+          
+          dx login --token $token --noprojects $staging_param
+
+      - name: Build and publish 'dxCompiler Copy File' app
+        run: |
+#           if [[ ${{ inputs.publish-app }} == "true" ]]; then
+#            publish_param="--publish"
+#          fi
+          
+          cd scripts/dxcompiler_copy
+          dx build --app $publish_param dxwdl_copy
