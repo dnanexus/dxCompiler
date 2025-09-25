@@ -43,19 +43,10 @@ jobs:
 
       - name: Login to platform
         run: |
-#          if [[ ${{ inputs.is-staging }} == "true" ]]; then
-            staging_param="--staging"
-#          fi
-#          token="${{ inputs.is-staging == 'true' && secrets.DX_STAGING_ROBOT_TOKEN || secrets.DX_PROD_RELEASE_TOKEN }}"
+          staging_param="--staging"
           token="${{secrets.DX_STAGING_ROBOT_TOKEN}}"
-          
           dx login --token $token --noprojects $staging_param
 
       - name: Build and publish 'dxCompiler Copy File' app
         run: |
-#           if [[ ${{ inputs.publish-app }} == "true" ]]; then
-#            publish_param="--publish"
-#          fi
-          
-          cd scripts/dxcompiler_copy
-          dx build --app $publish_param dxwdl_copy
+          dx build --app --bill-to org-dnanexus_apps $publish_param scripts/dxcompiler_copy
