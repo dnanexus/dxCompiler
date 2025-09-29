@@ -40,11 +40,8 @@ jobs:
 
       - name: Login to platform
         run: |
-          if [[ ${{ inputs.is-staging }} == "true" ]]; then
-            staging_param="--staging"
-          fi
-          token="${{ inputs.is-staging == 'true' && secrets.DX_STAGING_ROBOT_TOKEN || secrets.DX_PROD_RELEASE_TOKEN }}"
-          dx login --token $token --noprojects $staging_param
+          dx login --token ${{ secrets.DX_PROD_RELEASE_TOKEN }} --noprojects
+          dx whoami
 
       - name: Build and publish 'dxCompiler Copy File' app
         run: |
