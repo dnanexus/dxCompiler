@@ -145,6 +145,11 @@ You should always run the unit tests after every successful compile. Generally, 
 
 You need to have a DNAnexus account and be logged into DNAnexus via the command line before you can run the tests (`dx login`). Your default project has to be `dxCompiler_playground` upon login.
 
+```shell
+dx login --staging --noprojects --save --token=<your_staging_token_value>
+dx select project-Fy9QqgQ0yzZbg9KXKP4Jz6Yq
+```
+
 ### Running the integration tests
 
 Integration tests actually build and run apps/workflows on DNAnexus. These tests take much longer to run than the unit tests, and so typically you only run them before submitting a pull request. You can also submit a PR and trigger the integration tests via Github Actions.
@@ -268,4 +273,5 @@ dx api project-xxxx invite '{"invitee": "PUBLIC", "level": "VIEW"}'
 updated (one line change).
 * The app used for copying the assets to different regions during a release ([app-dxwdl_copy](/scripts/dxcompiler_copy)) 
 needs to be enabled in the new region (please update `regionalOptions`, `whatsNew`, and increment the `version` of the app).
+  * To publish `dxwdl_copy` app (`Copy file`) go to `Actions` > `Build & publish 'dxCompiler Copy File' app` and click `Run workflow` on the right side.
 * Update the script for [multi-region testing](/scripts/multi_region_tests.py#L24).

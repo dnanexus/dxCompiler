@@ -327,7 +327,7 @@ class WdlTaskExecutorTest extends AnyFlatSpec with Matchers {
               }
               // sometimes it takes a while for the output file to close -
               // block here until the file is closed
-              if (!Iterator.range(0, 10).exists { i =>
+              if (!Iterator.range(0, 20).exists { i =>
                     if (i > 0) {
                       Thread.sleep(6000)
                     }
