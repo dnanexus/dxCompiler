@@ -4,6 +4,10 @@
 
 * Added support for new region in OCI Ashburn
 
+### Dependency updates
+
+* dxApi [0.13.14](https://github.com/dnanexus/dxScala/releases/tag/api-0.13.14)
+
 ## 2.14.0 2025-07-03
 
 * Added option `-executableCreationParallelism <int>`, the maximum number of platform executables that dxCompiler can
