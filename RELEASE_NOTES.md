@@ -2,7 +2,13 @@
 
 ## Unreleased
 
+## 2.15.0 2025-09-29
+
 * Added support for new region in OCI Ashburn
+
+### Dependency updates
+
+* dxApi [0.13.14](https://github.com/dnanexus/dxScala/releases/tag/api-0.13.14)
 
 ## 2.14.0 2025-07-03
 
