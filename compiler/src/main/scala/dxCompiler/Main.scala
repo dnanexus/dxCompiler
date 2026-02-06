@@ -14,7 +14,8 @@ import dx.core.languages.wdl.WdlOptions
 import dx.dxni.DxNativeInterface
 import dx.translator.{Extras, TranslatorFactory}
 import dx.util.protocols.DxFileAccessProtocol
-import dx.util.{Enum, FileSourceResolver, FileUtils, Logger, TraceLevel}
+import dx.util.{Enum, FileAccessProtocol, FileSourceResolver, FileUtils, LocalFileAccessProtocol, Logger, TraceLevel}
+import dx.core.io.AuthenticatedHttpFileAccessProtocol
 import spray.json.{JsNull, JsValue}
 import wdlTools.types.TypeCheckingRegime
 
@@ -67,17 +68,25 @@ object Main {
     * - creates a FileSourceResolver that looks for local files in any configured -imports
     *   directories and has a DxFileAccessProtocol
     * - initializes a Logger
+    * - configures authenticated HTTP imports if WDL_IMPORT_TOKEN is set
     * @param options parsed options
     * @return (FileSourceResolver, Logger)
     */
   private def initCommon(options: Options): (FileSourceResolver, Logger) = {
     val logger = initLogger(options)
     val imports: Vector[Path] = options.getList[Path]("imports")
-    val fileResolver = FileSourceResolver.create(
-        imports,
-        Vector(DxFileAccessProtocol()),
-        logger
+    
+    // Create authenticated HTTP protocol for importing from private repositories
+    val httpProtocol = AuthenticatedHttpFileAccessProtocol.fromEnvironment(logger)
+    
+    // Build protocol list - order matters, first matching protocol wins
+    val protocols: Vector[FileAccessProtocol] = Vector(
+      LocalFileAccessProtocol(imports, logger),
+      httpProtocol,
+      DxFileAccessProtocol()
     )
+    
+    val fileResolver = FileSourceResolver(protocols)
     FileSourceResolver.set(fileResolver)
     (fileResolver, logger)
   }

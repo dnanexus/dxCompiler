@@ -309,6 +309,64 @@ $ dx run bam_chrom_counter -istage-common.bam=project-BQbJpBj0bvygyQxgQ1800Jkk:f
   * `SoftwareRequirement` and `InplaceUpdateRequirement` are not yet supported
   * Publishing a dxCompiler-generated workflow as a global workflow is not supported
 
+## Authenticated HTTP Imports
+
+dxCompiler supports importing WDL files from private HTTP sources that require authentication, such as private GitHub repositories.
+
+### Configuration
+
+Set the `WDL_IMPORT_TOKEN` environment variable with your access token:
+
+```bash
+# For GitHub, use a Personal Access Token (PAT)
+export WDL_IMPORT_TOKEN="ghp_xxxxxxxxxxxxxxxxxxxx"
+
+# Then run dxCompiler as usual
+java -jar dxCompiler.jar compile workflow.wdl -project project-xxxx -folder /my/workflows/
+```
+
+### Supported Domains
+
+By default, the token is only sent to these domains (for security):
+- `github.com`
+- `raw.githubusercontent.com`
+
+To add additional domains, use the `WDL_IMPORT_TOKEN_DOMAINS` environment variable:
+
+```bash
+# Add custom domains (comma-separated)
+export WDL_IMPORT_TOKEN_DOMAINS="github.com,raw.githubusercontent.com,gitlab.com,my-private-server.com"
+```
+
+### Example Usage
+
+In your WDL file, import from a private repository:
+
+```wdl
+version 1.0
+
+import "https://raw.githubusercontent.com/myorg/private-repo/main/tasks/my_task.wdl" as private_tasks
+
+workflow my_workflow {
+  call private_tasks.my_task
+}
+```
+
+### Getting a GitHub Token
+
+1. Go to https://github.com/settings/tokens
+2. Click "Generate new token (classic)"
+3. Select the `repo` scope for private repository access
+4. Copy the generated token and set it as `WDL_IMPORT_TOKEN`
+
+### Security Notes
+
+- The token is only sent to explicitly allowed domains
+- The token is never logged
+- If the token is not set, imports work as before (for public URLs only)
+
+For more details, see [Authenticated Imports documentation](doc/AUTHENTICATED_IMPORTS.md).
+
 ## Additional information
 
 - [Advanced options](doc/ExpertOptions.md) explains additional compiler options
