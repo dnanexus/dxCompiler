@@ -370,6 +370,7 @@ For more details, see [Authenticated Imports documentation](doc/AUTHENTICATED_IM
 ## Additional information
 
 - [Advanced options](doc/ExpertOptions.md) explains additional compiler options
+- [Authenticated Imports](doc/AUTHENTICATED_IMPORTS.md) how to import WDL from private GitHub repositories
 - [Internals](doc/Internals.md) describes current compiler structure (_work in progress_)
 - [Tips](doc/Tips.md) examples for how to write good WDL code
 - [Debugging](doc/Debugging.md) recommendations how to debug the workflows on DNAnexus platform

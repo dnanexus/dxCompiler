@@ -103,7 +103,7 @@ Compilation can be controled with several parameters.
 | extras \<string\> | JSON file with extra options |
 | inputs \<string\> | JSON file with standard-formatted input values. May be specified multiple times. A DNAnexus JSON input file is generated for each standard input file. |
 | instanceTypeSelection \[static,dynamic\] | Whether to select instance types at compile time for tasks with runtime requirements that can all be statically evaluated (the default "static" option), or to defer instance type selection in such cases to runtime (the "dynamic" option). Using static instance type selection can save time, but it requires the same set of instances to be accessible during WDL/CWL compilation and during the runtime of the generated applets and workflows. Use the "dynamic" option if you plan on creating global DNAnexus workflows or cloning the generated workflows between DNAnexus organizations with different available instance types. |
-| imports \<string\> | Directory to search for imported WDL or CWL files. May be specified multiple times. |
+| imports \<string\> | Directory to search for imported WDL or CWL files. May be specified multiple times. For importing from private HTTP sources (e.g., private GitHub repos), see [Authenticated Imports](AUTHENTICATED_IMPORTS.md). |
 | locked   | Create a locked workflow. When running a locked workflow, input values may only be specified for the top-level workflow. |
 | leaveWorkflowsOpen | Leave created workflows open (otherwise they are closed). |
 | projectWideReuse | Look for existing applets/workflows in the entire project before generating new ones. The default search scope is the target folder only. |
