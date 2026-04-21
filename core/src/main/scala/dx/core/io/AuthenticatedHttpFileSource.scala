@@ -8,10 +8,10 @@ import java.nio.file.{Files, Path}
 
 /**
   * An HTTP file source that supports Bearer token authentication.
-  * 
+  *
   * This class mirrors HttpFileSource from dxScala but adds support for
   * Authorization headers when accessing protected resources.
-  * 
+  *
   * @param uri The URI to fetch
   * @param encoding Character encoding for reading content
   * @param isDirectory Whether this represents a directory (archive)
@@ -68,17 +68,17 @@ case class AuthenticatedHttpFileSource(
         case HttpURLConnection.HTTP_OK => true
         case HttpURLConnection.HTTP_UNAUTHORIZED =>
           throw new Exception(
-             s"""HTTP 401 Unauthorized when accessing ${uri}.
-               |If this is a private repository, ensure WDL_IMPORT_TOKENS is set.
-               |Format: domain:token[;domain:token]*
-               |Example: raw.githubusercontent.com:<YOUR_TOKEN>
-               |For GitHub: generate a token at https://github.com/settings/tokens with 'repo' scope.""".stripMargin
+              s"""HTTP 401 Unauthorized when accessing ${uri}.
+                 |If this is a private repository, ensure WDL_IMPORT_TOKENS is set.
+                 |Format: domain:token[;domain:token]*
+                 |Example: raw.githubusercontent.com:<YOUR_TOKEN>
+                 |For GitHub: generate a token at https://github.com/settings/tokens with 'repo' scope.""".stripMargin
           )
         case HttpURLConnection.HTTP_FORBIDDEN =>
           throw new Exception(
-            s"""HTTP 403 Forbidden when accessing ${uri}.
-               |The token may be invalid or lack the required permissions.
-               |For GitHub: ensure the token has 'repo' scope for private repositories.""".stripMargin
+              s"""HTTP 403 Forbidden when accessing ${uri}.
+                 |The token may be invalid or lack the required permissions.
+                 |For GitHub: ensure the token has 'repo' scope for private repositories.""".stripMargin
           )
         case _ => false
       }
@@ -93,7 +93,9 @@ case class AuthenticatedHttpFileSource(
       None
     } else {
       val newUri = if (isDirectory) uri.resolve("..") else uri.resolve(".")
-      Some(AuthenticatedHttpFileSource(newUri, encoding, isDirectory = true, token)(newUri.toString))
+      Some(
+          AuthenticatedHttpFileSource(newUri, encoding, isDirectory = true, token)(newUri.toString)
+      )
     }
   }
 
@@ -104,7 +106,8 @@ case class AuthenticatedHttpFileSource(
 
   override def resolve(path: String): AuthenticatedHttpFileSource = resolve(path, isDir = false)
 
-  override def resolveDirectory(path: String): AuthenticatedHttpFileSource = resolve(path, isDir = true)
+  override def resolveDirectory(path: String): AuthenticatedHttpFileSource =
+    resolve(path, isDir = true)
 
   override def relativize(fileSource: AddressableFileSource): String = {
     fileSource match {
@@ -131,20 +134,20 @@ case class AuthenticatedHttpFileSource(
       val responseCode = conn.getResponseCode
       if (responseCode == HttpURLConnection.HTTP_UNAUTHORIZED) {
         throw new Exception(
-          s"""HTTP 401 Unauthorized when fetching ${uri}.
-             |If this is a private repository, ensure WDL_IMPORT_TOKENS is set.
-             |Format: domain:token[;domain:token]*
-             |For GitHub: generate a token at https://github.com/settings/tokens with 'repo' scope.""".stripMargin
+            s"""HTTP 401 Unauthorized when fetching ${uri}.
+               |If this is a private repository, ensure WDL_IMPORT_TOKENS is set.
+               |Format: domain:token[;domain:token]*
+               |For GitHub: generate a token at https://github.com/settings/tokens with 'repo' scope.""".stripMargin
         )
       } else if (responseCode == HttpURLConnection.HTTP_FORBIDDEN) {
         throw new Exception(
-          s"""HTTP 403 Forbidden when fetching ${uri}.
-             |The token may be invalid or lack the required permissions.""".stripMargin
+            s"""HTTP 403 Forbidden when fetching ${uri}.
+               |The token may be invalid or lack the required permissions.""".stripMargin
         )
       } else if (responseCode != HttpURLConnection.HTTP_OK) {
         throw new Exception(s"HTTP ${responseCode} when fetching ${uri}")
       }
-      
+
       val is = conn.getInputStream
       try {
         var nRead = 0

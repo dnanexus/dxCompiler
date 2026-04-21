@@ -36,69 +36,81 @@ class AuthenticatedHttpIntegrationTest extends AnyFlatSpec with Matchers with Be
     serverPort = server.getAddress.getPort
 
     // Public endpoint - no auth required
-    server.createContext("/public/file.wdl", new HttpHandler {
-      override def handle(exchange: HttpExchange): Unit = {
-        val response = wdlContent.getBytes(StandardCharsets.UTF_8)
-        exchange.sendResponseHeaders(200, response.length)
-        val os = exchange.getResponseBody
-        os.write(response)
-        os.close()
-      }
-    })
+    server.createContext(
+        "/public/file.wdl",
+        new HttpHandler {
+          override def handle(exchange: HttpExchange): Unit = {
+            val response = wdlContent.getBytes(StandardCharsets.UTF_8)
+            exchange.sendResponseHeaders(200, response.length)
+            val os = exchange.getResponseBody
+            os.write(response)
+            os.close()
+          }
+        }
+    )
 
     // Private endpoint - requires Bearer token
-    server.createContext("/private/file.wdl", new HttpHandler {
-      override def handle(exchange: HttpExchange): Unit = {
-        val authHeader = exchange.getRequestHeaders.getFirst("Authorization")
+    server.createContext(
+        "/private/file.wdl",
+        new HttpHandler {
+          override def handle(exchange: HttpExchange): Unit = {
+            val authHeader = exchange.getRequestHeaders.getFirst("Authorization")
 
-        if (authHeader == s"Bearer $testToken") {
-          val response = wdlContent.getBytes(StandardCharsets.UTF_8)
-          exchange.sendResponseHeaders(200, response.length)
-          val os = exchange.getResponseBody
-          os.write(response)
-          os.close()
-        } else if (authHeader == null) {
-          exchange.sendResponseHeaders(401, -1)
-          exchange.close()
-        } else {
-          exchange.sendResponseHeaders(403, -1)
-          exchange.close()
+            if (authHeader == s"Bearer $testToken") {
+              val response = wdlContent.getBytes(StandardCharsets.UTF_8)
+              exchange.sendResponseHeaders(200, response.length)
+              val os = exchange.getResponseBody
+              os.write(response)
+              os.close()
+            } else if (authHeader == null) {
+              exchange.sendResponseHeaders(401, -1)
+              exchange.close()
+            } else {
+              exchange.sendResponseHeaders(403, -1)
+              exchange.close()
+            }
+          }
         }
-      }
-    })
+    )
 
     // Endpoint that checks for token and returns different content
-    server.createContext("/conditional/file.wdl", new HttpHandler {
-      override def handle(exchange: HttpExchange): Unit = {
-        val authHeader = exchange.getRequestHeaders.getFirst("Authorization")
-        val content = if (authHeader == s"Bearer $testToken") {
-          "authenticated content"
-        } else {
-          "public content"
+    server.createContext(
+        "/conditional/file.wdl",
+        new HttpHandler {
+          override def handle(exchange: HttpExchange): Unit = {
+            val authHeader = exchange.getRequestHeaders.getFirst("Authorization")
+            val content = if (authHeader == s"Bearer $testToken") {
+              "authenticated content"
+            } else {
+              "public content"
+            }
+            val response = content.getBytes(StandardCharsets.UTF_8)
+            exchange.sendResponseHeaders(200, response.length)
+            val os = exchange.getResponseBody
+            os.write(response)
+            os.close()
+          }
         }
-        val response = content.getBytes(StandardCharsets.UTF_8)
-        exchange.sendResponseHeaders(200, response.length)
-        val os = exchange.getResponseBody
-        os.write(response)
-        os.close()
-      }
-    })
+    )
 
     // HEAD endpoint for exists check
-    server.createContext("/head-test/file.wdl", new HttpHandler {
-      override def handle(exchange: HttpExchange): Unit = {
-        val authHeader = exchange.getRequestHeaders.getFirst("Authorization")
+    server.createContext(
+        "/head-test/file.wdl",
+        new HttpHandler {
+          override def handle(exchange: HttpExchange): Unit = {
+            val authHeader = exchange.getRequestHeaders.getFirst("Authorization")
 
-        if (authHeader == s"Bearer $testToken") {
-          exchange.sendResponseHeaders(200, -1)
-        } else if (authHeader == null) {
-          exchange.sendResponseHeaders(401, -1)
-        } else {
-          exchange.sendResponseHeaders(403, -1)
+            if (authHeader == s"Bearer $testToken") {
+              exchange.sendResponseHeaders(200, -1)
+            } else if (authHeader == null) {
+              exchange.sendResponseHeaders(401, -1)
+            } else {
+              exchange.sendResponseHeaders(403, -1)
+            }
+            exchange.close()
+          }
         }
-        exchange.close()
-      }
-    })
+    )
 
     server.setExecutor(null)
     server.start()
@@ -111,10 +123,12 @@ class AuthenticatedHttpIntegrationTest extends AnyFlatSpec with Matchers with Be
     super.afterAll()
   }
 
-  private def createProtocol(domainTokens: Map[String, String]): AuthenticatedHttpFileAccessProtocol = {
+  private def createProtocol(
+      domainTokens: Map[String, String]
+  ): AuthenticatedHttpFileAccessProtocol = {
     AuthenticatedHttpFileAccessProtocol(
-      domainTokens = domainTokens,
-      logger = Logger.Quiet
+        domainTokens = domainTokens,
+        logger = Logger.Quiet
     )
   }
 
@@ -209,10 +223,12 @@ class AuthenticatedHttpIntegrationTest extends AnyFlatSpec with Matchers with Be
 
   it should "work with FileSourceResolver" in {
     val httpProtocol = createProtocol(Map("localhost" -> testToken))
-    val resolver = FileSourceResolver(Vector(
-      LocalFileAccessProtocol(),
-      httpProtocol
-    ))
+    val resolver = FileSourceResolver(
+        Vector(
+            LocalFileAccessProtocol(),
+            httpProtocol
+        )
+    )
 
     val source = resolver.resolve(s"http://localhost:$serverPort/private/file.wdl")
     source.readString should include("version 1.0")

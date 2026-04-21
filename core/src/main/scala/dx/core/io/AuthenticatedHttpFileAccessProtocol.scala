@@ -6,14 +6,14 @@ import java.nio.charset.Charset
 
 /**
   * HTTP file access protocol with Bearer token authentication support.
-  * 
+  *
   * Reads per-domain authentication tokens from the WDL_IMPORT_TOKENS environment
   * variable. Format is semicolon-separated domain:token pairs:
   *   raw.githubusercontent.com:<TOKEN>;gitlab.com:<TOKEN>
-  * 
+  *
   * Only sends tokens to domains explicitly listed in the configuration.
   * Requests to unlisted domains proceed without authentication.
-  * 
+  *
   * @param domainTokens Map of domain -> Bearer token
   * @param encoding Character encoding for file content
   * @param logger Logger for trace/debug output
@@ -67,7 +67,7 @@ object AuthenticatedHttpFileAccessProtocol {
     * Parses the WDL_IMPORT_TOKENS environment variable value.
     * Format: domain:token[;domain:token]*
     * Splits on first colon only, so tokens containing colons are supported.
-    * 
+    *
     * @param value the raw env var value
     * @return Map of lowercase domain -> token
     */
@@ -91,7 +91,7 @@ object AuthenticatedHttpFileAccessProtocol {
 
   /**
     * Creates an instance with configuration from environment variables.
-    * 
+    *
     * @param logger Logger for trace output (token values are never logged)
     * @return AuthenticatedHttpFileAccessProtocol configured from environment
     */
@@ -101,7 +101,8 @@ object AuthenticatedHttpFileAccessProtocol {
         val parsed = parseTokens(value)
         if (parsed.nonEmpty) {
           logger.trace(
-            s"${TokensEnvVar} found; authenticated HTTP imports enabled for domains: ${parsed.keys.mkString(", ")}"
+              s"${TokensEnvVar} found; authenticated HTTP imports enabled for domains: ${parsed.keys
+                .mkString(", ")}"
           )
         }
         parsed
@@ -109,8 +110,8 @@ object AuthenticatedHttpFileAccessProtocol {
         Map.empty[String, String]
     }
     AuthenticatedHttpFileAccessProtocol(
-      domainTokens = domainTokens,
-      logger = logger
+        domainTokens = domainTokens,
+        logger = logger
     )
   }
 }

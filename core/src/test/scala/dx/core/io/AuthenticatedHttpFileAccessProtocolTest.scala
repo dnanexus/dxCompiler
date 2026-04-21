@@ -15,7 +15,7 @@ class AuthenticatedHttpFileAccessProtocolTest extends AnyFlatSpec with Matchers 
 
   "AuthenticatedHttpFileAccessProtocol" should "authenticate to configured domains" in {
     val protocol = AuthenticatedHttpFileAccessProtocol(
-      domainTokens = Map("github.com" -> testToken, "raw.githubusercontent.com" -> testToken)
+        domainTokens = Map("github.com" -> testToken, "raw.githubusercontent.com" -> testToken)
     )
 
     val source = protocol.resolve("https://raw.githubusercontent.com/org/repo/main/file.wdl")
@@ -24,7 +24,7 @@ class AuthenticatedHttpFileAccessProtocolTest extends AnyFlatSpec with Matchers 
 
   it should "not authenticate to unconfigured domains" in {
     val protocol = AuthenticatedHttpFileAccessProtocol(
-      domainTokens = Map("github.com" -> testToken)
+        domainTokens = Map("github.com" -> testToken)
     )
 
     val source = protocol.resolve("https://example.com/file.wdl")
@@ -33,10 +33,10 @@ class AuthenticatedHttpFileAccessProtocolTest extends AnyFlatSpec with Matchers 
 
   it should "use different tokens for different domains" in {
     val protocol = AuthenticatedHttpFileAccessProtocol(
-      domainTokens = Map(
-        "raw.githubusercontent.com" -> testToken,
-        "gitlab.com" -> otherToken
-      )
+        domainTokens = Map(
+            "raw.githubusercontent.com" -> testToken,
+            "gitlab.com" -> otherToken
+        )
     )
 
     val ghSource = protocol.resolve("https://raw.githubusercontent.com/org/repo/main/file.wdl")
@@ -55,7 +55,7 @@ class AuthenticatedHttpFileAccessProtocolTest extends AnyFlatSpec with Matchers 
 
   it should "be case-insensitive for domain matching" in {
     val protocol = AuthenticatedHttpFileAccessProtocol(
-      domainTokens = Map("github.com" -> testToken)
+        domainTokens = Map("github.com" -> testToken)
     )
 
     val source = protocol.resolve("https://GitHub.COM/org/repo/file.wdl")
@@ -64,7 +64,7 @@ class AuthenticatedHttpFileAccessProtocolTest extends AnyFlatSpec with Matchers 
 
   it should "support directory resolution with auth" in {
     val protocol = AuthenticatedHttpFileAccessProtocol(
-      domainTokens = Map("github.com" -> testToken)
+        domainTokens = Map("github.com" -> testToken)
     )
 
     val dirSource = protocol.resolveDirectory("https://github.com/org/repo/archive.tar.gz")
@@ -92,52 +92,52 @@ class AuthenticatedHttpFileAccessProtocolTest extends AnyFlatSpec with Matchers 
 
   "parseTokens" should "parse semicolon-separated domain:token pairs" in {
     val tokens = AuthenticatedHttpFileAccessProtocol.parseTokens(
-      "raw.githubusercontent.com:ghp_abc123;gitlab.com:glpat-xyz789"
+        "raw.githubusercontent.com:ghp_abc123;gitlab.com:glpat-xyz789"
     )
     tokens shouldBe Map(
-      "raw.githubusercontent.com" -> "ghp_abc123",
-      "gitlab.com" -> "glpat-xyz789"
+        "raw.githubusercontent.com" -> "ghp_abc123",
+        "gitlab.com" -> "glpat-xyz789"
     )
   }
 
   it should "handle a single domain:token pair" in {
     val tokens = AuthenticatedHttpFileAccessProtocol.parseTokens(
-      "raw.githubusercontent.com:ghp_abc123"
+        "raw.githubusercontent.com:ghp_abc123"
     )
     tokens shouldBe Map("raw.githubusercontent.com" -> "ghp_abc123")
   }
 
   it should "handle extra whitespace" in {
     val tokens = AuthenticatedHttpFileAccessProtocol.parseTokens(
-      "  github.com : token1 ;  gitlab.com : token2  "
+        "  github.com : token1 ;  gitlab.com : token2  "
     )
     tokens shouldBe Map("github.com" -> "token1", "gitlab.com" -> "token2")
   }
 
   it should "handle trailing semicolons" in {
     val tokens = AuthenticatedHttpFileAccessProtocol.parseTokens(
-      "github.com:token1;"
+        "github.com:token1;"
     )
     tokens shouldBe Map("github.com" -> "token1")
   }
 
   it should "skip malformed entries without colons" in {
     val tokens = AuthenticatedHttpFileAccessProtocol.parseTokens(
-      "github.com:token1;badentry;gitlab.com:token2"
+        "github.com:token1;badentry;gitlab.com:token2"
     )
     tokens shouldBe Map("github.com" -> "token1", "gitlab.com" -> "token2")
   }
 
   it should "split only on first colon (tokens may contain colons)" in {
     val tokens = AuthenticatedHttpFileAccessProtocol.parseTokens(
-      "github.com:token:with:colons"
+        "github.com:token:with:colons"
     )
     tokens shouldBe Map("github.com" -> "token:with:colons")
   }
 
   it should "lowercase domain names" in {
     val tokens = AuthenticatedHttpFileAccessProtocol.parseTokens(
-      "GitHub.COM:mytoken"
+        "GitHub.COM:mytoken"
     )
     tokens shouldBe Map("github.com" -> "mytoken")
   }
@@ -149,17 +149,17 @@ class AuthenticatedHttpFileAccessProtocolTest extends AnyFlatSpec with Matchers 
 
   it should "skip entries with empty domain or token" in {
     val tokens = AuthenticatedHttpFileAccessProtocol.parseTokens(
-      ":token1;github.com:"
+        ":token1;github.com:"
     )
     tokens shouldBe Map.empty
   }
 
   "AuthenticatedHttpFileSource" should "resolve relative paths with token" in {
     val source = AuthenticatedHttpFileSource(
-      java.net.URI.create("https://github.com/org/repo/main/"),
-      StandardCharsets.UTF_8,
-      isDirectory = true,
-      token = Some(testToken)
+        java.net.URI.create("https://github.com/org/repo/main/"),
+        StandardCharsets.UTF_8,
+        isDirectory = true,
+        token = Some(testToken)
     )("https://github.com/org/repo/main/")
 
     val resolved = source.resolve("subdir/file.wdl")
@@ -169,10 +169,10 @@ class AuthenticatedHttpFileAccessProtocolTest extends AnyFlatSpec with Matchers 
 
   it should "propagate token to resolved files" in {
     val source = AuthenticatedHttpFileSource(
-      java.net.URI.create("https://github.com/org/repo/main/"),
-      StandardCharsets.UTF_8,
-      isDirectory = true,
-      token = Some(testToken)
+        java.net.URI.create("https://github.com/org/repo/main/"),
+        StandardCharsets.UTF_8,
+        isDirectory = true,
+        token = Some(testToken)
     )("https://github.com/org/repo/main/")
 
     val resolved = source.resolve("another_file.wdl")
@@ -181,10 +181,10 @@ class AuthenticatedHttpFileAccessProtocolTest extends AnyFlatSpec with Matchers 
 
   it should "propagate token to resolved directories" in {
     val source = AuthenticatedHttpFileSource(
-      java.net.URI.create("https://github.com/org/repo/main/"),
-      StandardCharsets.UTF_8,
-      isDirectory = true,
-      token = Some(testToken)
+        java.net.URI.create("https://github.com/org/repo/main/"),
+        StandardCharsets.UTF_8,
+        isDirectory = true,
+        token = Some(testToken)
     )("https://github.com/org/repo/main/")
 
     val resolved = source.resolveDirectory("subdir")
@@ -194,10 +194,10 @@ class AuthenticatedHttpFileAccessProtocolTest extends AnyFlatSpec with Matchers 
 
   it should "get parent directory with token" in {
     val source = AuthenticatedHttpFileSource(
-      java.net.URI.create("https://github.com/org/repo/main/file.wdl"),
-      StandardCharsets.UTF_8,
-      isDirectory = false,
-      token = Some(testToken)
+        java.net.URI.create("https://github.com/org/repo/main/file.wdl"),
+        StandardCharsets.UTF_8,
+        isDirectory = false,
+        token = Some(testToken)
     )("https://github.com/org/repo/main/file.wdl")
 
     val parent = source.getParent
@@ -208,10 +208,10 @@ class AuthenticatedHttpFileAccessProtocolTest extends AnyFlatSpec with Matchers 
 
   it should "extract name from URI" in {
     val source = AuthenticatedHttpFileSource(
-      java.net.URI.create("https://github.com/org/repo/main/file.wdl"),
-      StandardCharsets.UTF_8,
-      isDirectory = false,
-      token = None
+        java.net.URI.create("https://github.com/org/repo/main/file.wdl"),
+        StandardCharsets.UTF_8,
+        isDirectory = false,
+        token = None
     )("https://github.com/org/repo/main/file.wdl")
 
     source.name shouldBe "file.wdl"
@@ -219,10 +219,10 @@ class AuthenticatedHttpFileAccessProtocolTest extends AnyFlatSpec with Matchers 
 
   it should "extract folder from URI" in {
     val source = AuthenticatedHttpFileSource(
-      java.net.URI.create("https://github.com/org/repo/main/file.wdl"),
-      StandardCharsets.UTF_8,
-      isDirectory = false,
-      token = None
+        java.net.URI.create("https://github.com/org/repo/main/file.wdl"),
+        StandardCharsets.UTF_8,
+        isDirectory = false,
+        token = None
     )("https://github.com/org/repo/main/file.wdl")
 
     source.folder shouldBe "/org/repo/main"
@@ -230,10 +230,10 @@ class AuthenticatedHttpFileAccessProtocolTest extends AnyFlatSpec with Matchers 
 
   it should "not be listable" in {
     val source = AuthenticatedHttpFileSource(
-      java.net.URI.create("https://github.com/org/repo/main/"),
-      StandardCharsets.UTF_8,
-      isDirectory = true,
-      token = None
+        java.net.URI.create("https://github.com/org/repo/main/"),
+        StandardCharsets.UTF_8,
+        isDirectory = true,
+        token = None
     )("https://github.com/org/repo/main/")
 
     source.isListable shouldBe false
@@ -241,17 +241,17 @@ class AuthenticatedHttpFileAccessProtocolTest extends AnyFlatSpec with Matchers 
 
   it should "relativize paths correctly" in {
     val dirSource = AuthenticatedHttpFileSource(
-      java.net.URI.create("https://github.com/org/repo/main/"),
-      StandardCharsets.UTF_8,
-      isDirectory = true,
-      token = None
+        java.net.URI.create("https://github.com/org/repo/main/"),
+        StandardCharsets.UTF_8,
+        isDirectory = true,
+        token = None
     )("https://github.com/org/repo/main/")
 
     val fileSource = AuthenticatedHttpFileSource(
-      java.net.URI.create("https://github.com/org/repo/main/subdir/file.wdl"),
-      StandardCharsets.UTF_8,
-      isDirectory = false,
-      token = None
+        java.net.URI.create("https://github.com/org/repo/main/subdir/file.wdl"),
+        StandardCharsets.UTF_8,
+        isDirectory = false,
+        token = None
     )("https://github.com/org/repo/main/subdir/file.wdl")
 
     val relativePath = dirSource.relativize(fileSource)
