@@ -7,18 +7,19 @@ import java.nio.charset.Charset
 /**
   * HTTP file access protocol with Bearer token authentication support.
   * 
-  * Reads authentication token from WDL_IMPORT_TOKEN environment variable.
-  * Only sends tokens to allowed domains (configurable via WDL_IMPORT_TOKEN_DOMAINS)
-  * to prevent credential leakage to untrusted servers.
+  * Reads per-domain authentication tokens from the WDL_IMPORT_TOKENS environment
+  * variable. Format is semicolon-separated domain:token pairs:
+  *   raw.githubusercontent.com:<TOKEN>;gitlab.com:<TOKEN>
   * 
-  * @param token Optional Bearer token (defaults to WDL_IMPORT_TOKEN env var)
-  * @param allowedDomains Set of domains to send auth token to
+  * Only sends tokens to domains explicitly listed in the configuration.
+  * Requests to unlisted domains proceed without authentication.
+  * 
+  * @param domainTokens Map of domain -> Bearer token
   * @param encoding Character encoding for file content
   * @param logger Logger for trace/debug output
   */
 case class AuthenticatedHttpFileAccessProtocol(
-    token: Option[String] = None,
-    allowedDomains: Set[String] = AuthenticatedHttpFileAccessProtocol.defaultAllowedDomains,
+    domainTokens: Map[String, String] = Map.empty,
     encoding: Charset = FileUtils.DefaultEncoding,
     logger: Logger = Logger.Quiet
 ) extends FileAccessProtocol {
@@ -27,59 +28,65 @@ case class AuthenticatedHttpFileAccessProtocol(
   override val supportsDirectories: Boolean = true
 
   /**
-    * Determines if authentication should be used for the given URI.
-    * Only returns true if a token is configured AND the domain is in the allowed list.
+    * Looks up the token for the given URI's host.
+    * Returns None if no token is configured for the domain.
     */
-  private def shouldAuthenticate(uri: URI): Boolean = {
-    token.isDefined && Option(uri.getHost).exists(host =>
-      allowedDomains.exists(_.equalsIgnoreCase(host))
-    )
+  private def tokenForUri(uri: URI): Option[String] = {
+    Option(uri.getHost).flatMap { host =>
+      domainTokens.collectFirst {
+        case (domain, token) if domain.equalsIgnoreCase(host) => token
+      }
+    }
   }
 
   override def resolve(address: String): AuthenticatedHttpFileSource = {
     val uri = URI.create(address)
-    val useAuth = shouldAuthenticate(uri)
-    if (useAuth) {
+    val token = tokenForUri(uri)
+    if (token.isDefined) {
       logger.trace(s"Using authenticated HTTP for import from: ${uri.getHost}")
     }
-    AuthenticatedHttpFileSource(uri, encoding, isDirectory = false, if (useAuth) token else None)(address)
+    AuthenticatedHttpFileSource(uri, encoding, isDirectory = false, token)(address)
   }
 
   override def resolveDirectory(address: String): AuthenticatedHttpFileSource = {
     val uri = URI.create(address)
-    val useAuth = shouldAuthenticate(uri)
-    if (useAuth) {
+    val token = tokenForUri(uri)
+    if (token.isDefined) {
       logger.trace(s"Using authenticated HTTP for directory import from: ${uri.getHost}")
     }
-    AuthenticatedHttpFileSource(uri, encoding, isDirectory = true, if (useAuth) token else None)(address)
+    AuthenticatedHttpFileSource(uri, encoding, isDirectory = true, token)(address)
   }
 }
 
 object AuthenticatedHttpFileAccessProtocol {
 
-  /** Environment variable name for the Bearer token */
-  val TokenEnvVar: String = "WDL_IMPORT_TOKEN"
-
-  /** Environment variable name for custom allowed domains */
-  val DomainsEnvVar: String = "WDL_IMPORT_TOKEN_DOMAINS"
-
-  /** Default allowed domains that will receive the auth token */
-  val defaultDomains: Set[String] = Set(
-    "github.com",
-    "raw.githubusercontent.com"
-  )
+  /** Environment variable name for per-domain tokens */
+  val TokensEnvVar: String = "WDL_IMPORT_TOKENS"
 
   /**
-    * Gets the allowed domains from environment variable or defaults.
-    * WDL_IMPORT_TOKEN_DOMAINS should be a comma-separated list of domains.
+    * Parses the WDL_IMPORT_TOKENS environment variable value.
+    * Format: domain:token[;domain:token]*
+    * Splits on first colon only, so tokens containing colons are supported.
+    * 
+    * @param value the raw env var value
+    * @return Map of lowercase domain -> token
     */
-  lazy val defaultAllowedDomains: Set[String] = {
-    sys.env.get(DomainsEnvVar) match {
-      case Some(domains) =>
-        domains.split(",").map(_.trim.toLowerCase).filter(_.nonEmpty).toSet
-      case None =>
-        defaultDomains
-    }
+  def parseTokens(value: String): Map[String, String] = {
+    value
+      .split(";")
+      .map(_.trim)
+      .filter(_.nonEmpty)
+      .flatMap { entry =>
+        val idx = entry.indexOf(':')
+        if (idx > 0 && idx < entry.length - 1) {
+          val domain = entry.substring(0, idx).trim.toLowerCase
+          val token = entry.substring(idx + 1).trim
+          if (domain.nonEmpty && token.nonEmpty) Some(domain -> token) else None
+        } else {
+          None
+        }
+      }
+      .toMap
   }
 
   /**
@@ -89,15 +96,20 @@ object AuthenticatedHttpFileAccessProtocol {
     * @return AuthenticatedHttpFileAccessProtocol configured from environment
     */
   def fromEnvironment(logger: Logger = Logger.Quiet): AuthenticatedHttpFileAccessProtocol = {
-    val tokenOpt = sys.env.get(TokenEnvVar)
-    if (tokenOpt.isDefined) {
-      logger.trace(
-        s"${TokenEnvVar} found; authenticated HTTP imports enabled for domains: ${defaultAllowedDomains.mkString(", ")}"
-      )
+    val domainTokens = sys.env.get(TokensEnvVar) match {
+      case Some(value) =>
+        val parsed = parseTokens(value)
+        if (parsed.nonEmpty) {
+          logger.trace(
+            s"${TokensEnvVar} found; authenticated HTTP imports enabled for domains: ${parsed.keys.mkString(", ")}"
+          )
+        }
+        parsed
+      case None =>
+        Map.empty[String, String]
     }
     AuthenticatedHttpFileAccessProtocol(
-      token = tokenOpt,
-      allowedDomains = defaultAllowedDomains,
+      domainTokens = domainTokens,
       logger = logger
     )
   }

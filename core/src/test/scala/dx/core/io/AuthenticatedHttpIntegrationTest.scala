@@ -111,41 +111,40 @@ class AuthenticatedHttpIntegrationTest extends AnyFlatSpec with Matchers with Be
     super.afterAll()
   }
 
-  private def createProtocol(token: Option[String], allowedDomains: Set[String]): AuthenticatedHttpFileAccessProtocol = {
+  private def createProtocol(domainTokens: Map[String, String]): AuthenticatedHttpFileAccessProtocol = {
     AuthenticatedHttpFileAccessProtocol(
-      token = token,
-      allowedDomains = allowedDomains,
+      domainTokens = domainTokens,
       logger = Logger.Quiet
     )
   }
 
   "Authenticated HTTP imports" should "access public endpoints without token" in {
-    val protocol = createProtocol(None, Set.empty)
+    val protocol = createProtocol(Map.empty)
     val source = protocol.resolve(s"http://localhost:$serverPort/public/file.wdl")
 
     source.readString should include("version 1.0")
   }
 
   it should "access private endpoints with valid token" in {
-    val protocol = createProtocol(Some(testToken), Set("localhost"))
+    val protocol = createProtocol(Map("localhost" -> testToken))
     val source = protocol.resolve(s"http://localhost:$serverPort/private/file.wdl")
 
     source.readString should include("version 1.0")
   }
 
   it should "fail on private endpoints without token" in {
-    val protocol = createProtocol(None, Set.empty)
+    val protocol = createProtocol(Map.empty)
     val source = protocol.resolve(s"http://localhost:$serverPort/private/file.wdl")
 
     val exception = intercept[Exception] {
       source.readString
     }
     exception.getMessage should include("401")
-    exception.getMessage should include("WDL_IMPORT_TOKEN")
+    exception.getMessage should include("WDL_IMPORT_TOKENS")
   }
 
   it should "fail on private endpoints with wrong token" in {
-    val protocol = createProtocol(Some("wrong-token"), Set("localhost"))
+    val protocol = createProtocol(Map("localhost" -> "wrong-token"))
     val source = protocol.resolve(s"http://localhost:$serverPort/private/file.wdl")
 
     val exception = intercept[Exception] {
@@ -154,17 +153,17 @@ class AuthenticatedHttpIntegrationTest extends AnyFlatSpec with Matchers with Be
     exception.getMessage should include("403")
   }
 
-  it should "not send token to non-allowed domains" in {
-    // Token configured but localhost not in allowed domains
-    val protocol = createProtocol(Some(testToken), Set("github.com"))
+  it should "not send token to unconfigured domains" in {
+    // Token configured for github.com but not localhost
+    val protocol = createProtocol(Map("github.com" -> testToken))
     val source = protocol.resolve(s"http://localhost:$serverPort/conditional/file.wdl")
 
     // Should get public content since token wasn't sent
     source.readString shouldBe "public content"
   }
 
-  it should "send token only to allowed domains" in {
-    val protocol = createProtocol(Some(testToken), Set("localhost"))
+  it should "send token to configured domains" in {
+    val protocol = createProtocol(Map("localhost" -> testToken))
     val source = protocol.resolve(s"http://localhost:$serverPort/conditional/file.wdl")
 
     // Should get authenticated content since token was sent
@@ -172,7 +171,7 @@ class AuthenticatedHttpIntegrationTest extends AnyFlatSpec with Matchers with Be
   }
 
   it should "read file content correctly" in {
-    val protocol = createProtocol(Some(testToken), Set("localhost"))
+    val protocol = createProtocol(Map("localhost" -> testToken))
     val source = protocol.resolve(s"http://localhost:$serverPort/private/file.wdl")
 
     val content = source.readString
@@ -182,14 +181,14 @@ class AuthenticatedHttpIntegrationTest extends AnyFlatSpec with Matchers with Be
   }
 
   it should "check exists with authentication" in {
-    val protocol = createProtocol(Some(testToken), Set("localhost"))
+    val protocol = createProtocol(Map("localhost" -> testToken))
     val source = protocol.resolve(s"http://localhost:$serverPort/head-test/file.wdl")
 
     source.exists shouldBe true
   }
 
   it should "fail exists check without required token" in {
-    val protocol = createProtocol(None, Set.empty)
+    val protocol = createProtocol(Map.empty)
     val source = protocol.resolve(s"http://localhost:$serverPort/head-test/file.wdl")
 
     val exception = intercept[Exception] {
@@ -199,7 +198,7 @@ class AuthenticatedHttpIntegrationTest extends AnyFlatSpec with Matchers with Be
   }
 
   it should "fail exists check with wrong token" in {
-    val protocol = createProtocol(Some("wrong-token"), Set("localhost"))
+    val protocol = createProtocol(Map("localhost" -> "wrong-token"))
     val source = protocol.resolve(s"http://localhost:$serverPort/head-test/file.wdl")
 
     val exception = intercept[Exception] {
@@ -209,7 +208,7 @@ class AuthenticatedHttpIntegrationTest extends AnyFlatSpec with Matchers with Be
   }
 
   it should "work with FileSourceResolver" in {
-    val httpProtocol = createProtocol(Some(testToken), Set("localhost"))
+    val httpProtocol = createProtocol(Map("localhost" -> testToken))
     val resolver = FileSourceResolver(Vector(
       LocalFileAccessProtocol(),
       httpProtocol
@@ -220,7 +219,7 @@ class AuthenticatedHttpIntegrationTest extends AnyFlatSpec with Matchers with Be
   }
 
   it should "resolve relative imports with authentication" in {
-    val protocol = createProtocol(Some(testToken), Set("localhost"))
+    val protocol = createProtocol(Map("localhost" -> testToken))
     val baseSource = protocol.resolveDirectory(s"http://localhost:$serverPort/private/")
 
     val resolvedSource = baseSource.resolve("file.wdl")

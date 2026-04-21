@@ -4,7 +4,7 @@
 
 ### New Features
 
-* **Authenticated HTTP Imports**: Added support for importing WDL files from private HTTP sources that require authentication (e.g., private GitHub repositories). Set the `WDL_IMPORT_TOKEN` environment variable with a Bearer token to enable authenticated imports. By default, tokens are only sent to `github.com` and `raw.githubusercontent.com` domains. Additional domains can be configured via `WDL_IMPORT_TOKEN_DOMAINS`. See [Authenticated Imports documentation](doc/AUTHENTICATED_IMPORTS.md) for details.
+* **Authenticated HTTP Imports**: Added support for importing WDL files from private HTTP sources that require authentication (e.g., private GitHub repositories). Set the `WDL_IMPORT_TOKENS` environment variable with semicolon-separated `domain:token` pairs (e.g., `raw.githubusercontent.com:<TOKEN>;gitlab.com:<TOKEN>`). See [Authenticated Imports documentation](doc/AUTHENTICATED_IMPORTS.md) for details.
 
 ## 2.15.0 2025-09-29
 

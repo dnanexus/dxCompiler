@@ -6,26 +6,20 @@ This document describes how to import WDL files from HTTP sources that require a
 
 dxCompiler can import WDL files from URLs that require authentication, such as:
 - Private GitHub repositories
-- Private GitLab repositories (when configured)
-- Internal corporate servers (when configured)
+- Private GitLab repositories
+- Internal corporate servers
 
-Authentication is provided via Bearer tokens set in environment variables.
+Authentication is provided via per-domain Bearer tokens set in a single environment variable.
 
-## Environment Variables
+## Environment Variable
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `WDL_IMPORT_TOKEN` | No | Bearer token for HTTP authentication |
-| `WDL_IMPORT_TOKEN_DOMAINS` | No | Comma-separated list of domains to send token to |
+| `WDL_IMPORT_TOKENS` | No | Semicolon-separated `domain:token` pairs for authenticated HTTP imports |
 
-## Default Allowed Domains
+**Format:** `domain:token[;domain:token]*`
 
-When `WDL_IMPORT_TOKEN_DOMAINS` is not set, tokens are only sent to:
-
-- `github.com`
-- `raw.githubusercontent.com`
-
-This prevents accidentally leaking tokens to untrusted servers.
+Tokens are only sent to domains explicitly listed in this variable. Requests to unlisted domains proceed without authentication.
 
 ## Configuration Examples
 
@@ -34,7 +28,7 @@ This prevents accidentally leaking tokens to untrusted servers.
 ```bash
 # Generate a token at https://github.com/settings/tokens
 # Required scope: repo (for private repositories)
-export WDL_IMPORT_TOKEN="ghp_xxxxxxxxxxxxxxxxxxxx"
+export WDL_IMPORT_TOKENS="raw.githubusercontent.com:ghp_xxxxxxxxxxxxxxxxxxxx"
 
 java -jar dxCompiler.jar compile workflow.wdl -project project-xxxx -folder /my/workflows/
 ```
@@ -42,8 +36,8 @@ java -jar dxCompiler.jar compile workflow.wdl -project project-xxxx -folder /my/
 ### Multiple Private Sources
 
 ```bash
-export WDL_IMPORT_TOKEN="your-token-here"
-export WDL_IMPORT_TOKEN_DOMAINS="github.com,raw.githubusercontent.com,gitlab.com,internal.company.com"
+# Different tokens for different services
+export WDL_IMPORT_TOKENS="raw.githubusercontent.com:ghp_xxxxxxxxxxxxxxxxxxxx;gitlab.com:glpat-yyyyyyyyyy;internal.company.com:my-internal-token"
 
 java -jar dxCompiler.jar compile workflow.wdl -project project-xxxx -folder /my/workflows/
 ```
@@ -67,11 +61,11 @@ Use raw.githubusercontent.com URLs instead.
 
 ```
 HTTP 401 Unauthorized when accessing https://raw.githubusercontent.com/...
-If this is a private repository, ensure WDL_IMPORT_TOKEN is set with a valid access token.
-For GitHub: generate a token at https://github.com/settings/tokens with 'repo' scope.
+If this is a private repository, ensure WDL_IMPORT_TOKENS is set.
+Format: domain:token[;domain:token]*
 ```
 
-**Solution:** Set the `WDL_IMPORT_TOKEN` environment variable with a valid token.
+**Solution:** Set the `WDL_IMPORT_TOKENS` environment variable with the appropriate domain and token.
 
 ### 403 Forbidden
 
@@ -85,9 +79,10 @@ The token may be invalid or lack the required permissions.
 ## Security Considerations
 
 1. **Token Scope**: Only grant the minimum required permissions to your token
-2. **Domain Allowlist**: Tokens are only sent to explicitly allowed domains
-3. **No Logging**: Token values are never logged; only usage is traced
+2. **Per-Domain Tokens**: Each domain gets its own token; tokens are never sent to domains they aren't configured for
+3. **No Logging**: Token values are never logged; only domain names are traced
 4. **HTTPS Recommended**: Always use HTTPS URLs for private imports
+5. **Token Format**: Tokens containing colons are supported (only the first colon in each entry is used as a delimiter). Tokens containing semicolons are not supported.
 
 ## Debugging
 
@@ -99,7 +94,7 @@ java -jar dxCompiler.jar compile workflow.wdl -verbose -verboseKey FileSourceRes
 
 Look for log entries like:
 ```
-[TRACE] WDL_IMPORT_TOKEN found; authenticated HTTP imports enabled for domains: github.com, raw.githubusercontent.com
+[TRACE] WDL_IMPORT_TOKENS found; authenticated HTTP imports enabled for domains: raw.githubusercontent.com, gitlab.com
 [TRACE] Using authenticated HTTP for import from: raw.githubusercontent.com
 ```
 
@@ -107,8 +102,8 @@ Look for log entries like:
 
 ### Token not being sent
 
-1. Verify `WDL_IMPORT_TOKEN` is set: `echo $WDL_IMPORT_TOKEN`
-2. Check if the domain is in the allowed list
+1. Verify `WDL_IMPORT_TOKENS` is set: `echo $WDL_IMPORT_TOKENS`
+2. Check that the domain in your import URL matches a domain in the variable
 3. Enable verbose logging to see authentication attempts
 
 ### Token rejected
@@ -119,18 +114,19 @@ Look for log entries like:
 
 ### Public imports stopped working
 
-The authenticated HTTP protocol is backward compatible. If no token is set, it works like the standard HTTP protocol. Verify no token is set if you're testing public access.
+The authenticated HTTP protocol is backward compatible. If `WDL_IMPORT_TOKENS` is not set, it works like the standard HTTP protocol. Verify the variable is not set if you're testing public access.
 
 ## How It Works
 
 dxCompiler uses a custom `AuthenticatedHttpFileAccessProtocol` that:
 
-1. Checks if `WDL_IMPORT_TOKEN` is set
-2. For each HTTP import, checks if the domain is in the allowed list
-3. If both conditions are met, adds an `Authorization: Bearer <token>` header to the request
-4. If either condition is not met, the request proceeds without authentication (backward compatible)
+1. Parses `WDL_IMPORT_TOKENS` into a map of domain -> token
+2. For each HTTP import, looks up the domain in the map
+3. If a token is found for the domain, adds an `Authorization: Bearer <token>` header to the request
+4. If no token is configured for the domain, the request proceeds without authentication
 
 This ensures that:
-- Tokens are never sent to untrusted domains
+- Tokens are never sent to unconfigured domains
+- Different services can use different tokens
 - Existing workflows continue to work without modification
 - Authentication failures produce clear, actionable error messages

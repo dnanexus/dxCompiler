@@ -68,10 +68,11 @@ case class AuthenticatedHttpFileSource(
         case HttpURLConnection.HTTP_OK => true
         case HttpURLConnection.HTTP_UNAUTHORIZED =>
           throw new Exception(
-            s"""HTTP 401 Unauthorized when accessing ${uri}.
-               |If this is a private repository, ensure WDL_IMPORT_TOKEN is set with a valid access token.
-               |For GitHub: generate a token at https://github.com/settings/tokens with 'repo' scope.
-               |Current allowed domains can be configured via WDL_IMPORT_TOKEN_DOMAINS.""".stripMargin
+             s"""HTTP 401 Unauthorized when accessing ${uri}.
+               |If this is a private repository, ensure WDL_IMPORT_TOKENS is set.
+               |Format: domain:token[;domain:token]*
+               |Example: raw.githubusercontent.com:<YOUR_TOKEN>
+               |For GitHub: generate a token at https://github.com/settings/tokens with 'repo' scope.""".stripMargin
           )
         case HttpURLConnection.HTTP_FORBIDDEN =>
           throw new Exception(
@@ -131,7 +132,8 @@ case class AuthenticatedHttpFileSource(
       if (responseCode == HttpURLConnection.HTTP_UNAUTHORIZED) {
         throw new Exception(
           s"""HTTP 401 Unauthorized when fetching ${uri}.
-             |If this is a private repository, ensure WDL_IMPORT_TOKEN is set with a valid access token.
+             |If this is a private repository, ensure WDL_IMPORT_TOKENS is set.
+             |Format: domain:token[;domain:token]*
              |For GitHub: generate a token at https://github.com/settings/tokens with 'repo' scope.""".stripMargin
         )
       } else if (responseCode == HttpURLConnection.HTTP_FORBIDDEN) {

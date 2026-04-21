@@ -315,28 +315,20 @@ dxCompiler supports importing WDL files from private HTTP sources that require a
 
 ### Configuration
 
-Set the `WDL_IMPORT_TOKEN` environment variable with your access token:
+Set the `WDL_IMPORT_TOKENS` environment variable with semicolon-separated `domain:token` pairs:
 
 ```bash
-# For GitHub, use a Personal Access Token (PAT)
-export WDL_IMPORT_TOKEN="ghp_xxxxxxxxxxxxxxxxxxxx"
+# For GitHub private repositories
+export WDL_IMPORT_TOKENS="raw.githubusercontent.com:ghp_xxxxxxxxxxxxxxxxxxxx"
+
+# Multiple domains
+export WDL_IMPORT_TOKENS="raw.githubusercontent.com:ghp_xxxxxxxxxxxxxxxxxxxx;gitlab.com:glpat-yyyyyyyyyy"
 
 # Then run dxCompiler as usual
 java -jar dxCompiler.jar compile workflow.wdl -project project-xxxx -folder /my/workflows/
 ```
 
-### Supported Domains
-
-By default, the token is only sent to these domains (for security):
-- `github.com`
-- `raw.githubusercontent.com`
-
-To add additional domains, use the `WDL_IMPORT_TOKEN_DOMAINS` environment variable:
-
-```bash
-# Add custom domains (comma-separated)
-export WDL_IMPORT_TOKEN_DOMAINS="github.com,raw.githubusercontent.com,gitlab.com,my-private-server.com"
-```
+Tokens are only sent to domains explicitly listed in `WDL_IMPORT_TOKENS`. Requests to unlisted domains proceed without authentication.
 
 ### Example Usage
 
@@ -357,13 +349,13 @@ workflow my_workflow {
 1. Go to https://github.com/settings/tokens
 2. Click "Generate new token (classic)"
 3. Select the `repo` scope for private repository access
-4. Copy the generated token and set it as `WDL_IMPORT_TOKEN`
+4. Copy the generated token and add it to `WDL_IMPORT_TOKENS`
 
 ### Security Notes
 
-- The token is only sent to explicitly allowed domains
-- The token is never logged
-- If the token is not set, imports work as before (for public URLs only)
+- Tokens are only sent to domains explicitly listed in the environment variable
+- Token values are never logged
+- If `WDL_IMPORT_TOKENS` is not set, imports work as before (for public URLs only)
 
 For more details, see [Authenticated Imports documentation](doc/AUTHENTICATED_IMPORTS.md).
 

@@ -887,7 +887,7 @@ object Main {
         |      -leaveWorkflowsOpen    Leave created workflows open (otherwise they are closed).
         |      -p | -imports <string> Directory to search for imported WDL or CWL files. May be specified
         |                             multiple times. For HTTP imports from private repositories,
-        |                             set the WDL_IMPORT_TOKEN environment variable (see below).
+        |                             set the WDL_IMPORT_TOKENS environment variable (see below).
         |      -projectWideReuse      Look for existing applets/workflows in the entire project
         |                             before generating new ones. The default search scope is the
         |                             target folder only.
@@ -938,10 +938,9 @@ object Main {
         |    -logFile <path>          File to use for logging output; defaults to stderr.
         |
         |Environment variables
-        |    WDL_IMPORT_TOKEN         Bearer token for authenticated HTTP imports (e.g., GitHub PAT
-        |                             for private repositories). Token is sent only to allowed domains.
-        |    WDL_IMPORT_TOKEN_DOMAINS Comma-separated list of domains to send the token to.
-        |                             Defaults to: github.com,raw.githubusercontent.com
+        |    WDL_IMPORT_TOKENS        Per-domain Bearer tokens for authenticated HTTP imports.
+        |                             Format: domain:token[;domain:token]*
+        |                             Example: raw.githubusercontent.com:ghp_xxx;gitlab.com:glpat_yyy
         |""".stripMargin
 
   def main(args: Vector[String]): Unit = {
