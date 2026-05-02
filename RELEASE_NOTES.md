@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+* Added two opt-in WDL runtime hints, `dx_shm_size` and `dx_ipc_mode`, that emit
+  `--shm-size` and `--ipc` flags on the generated `docker run` command. Allows
+  multi-GPU workloads (e.g. PyTorch + NCCL) to override Docker's default 64 MB
+  `/dev/shm`. Values are ordinary WDL expressions evaluated per-task and can be
+  overridden per job invocation via the existing `overrides___` input
+  (`dx run ... -i overrides___='{"runtime": {"dx_shm_size": "16g"}}'`).
+  WDL only — CWL containers go through `cwltool` and are not affected.
+  See [Additional DNAnexus-specific runtime settings](doc/ExpertOptions.md#additional-dnanexus-specific-runtime-settings).
+  (APPS-3954)
+
+### Dependency updates
+
+* wdlTools 0.17.17 → 0.17.18 (adds `shmSize`/`ipcMode` to `TaskCommandFileGenerator`)
+
 ## 2.15.0 2025-09-29
 
 * Added support for new region in OCI Ashburn

@@ -31,8 +31,45 @@ object Runtime {
   val GiB: Double = 1024 * 1024 * 1024
   val DxHintsKey = "dnanexus"
   val DxInstanceTypeKey = "dx_instance_type"
+  val DxShmSizeKey = "dx_shm_size"
+  val DxIpcModeKey = "dx_ipc_mode"
   case object InstanceType
       extends DxRuntimeHint(Some(DxInstanceTypeKey), "instance_type", Vector(T_String))
+  case object ShmSize
+      extends DxRuntimeHint(Some(DxShmSizeKey), "shm_size", Vector(T_String))
+  case object IpcMode
+      extends DxRuntimeHint(Some(DxIpcModeKey), "ipc_mode", Vector(T_String))
+
+  // Positive integer with optional SI suffix (b, k, m, g — case-insensitive).
+  // Leading zeros and a bare "0" are rejected because Docker errors on --shm-size=0.
+  private val ShmSizePattern = "^[1-9][0-9]*[bkmgBKMG]?$".r
+
+  // Docker --ipc accepted modes per https://docs.docker.com/reference/cli/docker/container/run/#ipc.
+  // For container:<id|name> we use Docker's container-name grammar
+  // (https://docs.docker.com/reference/cli/docker/container/run/#name) — this is the security
+  // boundary: anything else here would let a malicious WDL author inject arbitrary docker flags
+  // because the value is interpolated into a shell-rendered docker run command.
+  private val IpcModePattern =
+    "^(none|private|shareable|host|container:[A-Za-z0-9][A-Za-z0-9_.-]{0,127})$".r
+
+  def validateShmSize(value: String): Unit = {
+    if (ShmSizePattern.findFirstIn(value).isEmpty) {
+      throw new EvalException(
+          s"invalid ${DxShmSizeKey} value '${value}': must be a positive integer optionally " +
+            s"followed by b/k/m/g (e.g. '8g', '1024m')"
+      )
+    }
+  }
+
+  def validateIpcMode(value: String): Unit = {
+    if (IpcModePattern.findFirstIn(value).isEmpty) {
+      throw new EvalException(
+          s"invalid ${DxIpcModeKey} value '${value}': must be one of " +
+            s"'none', 'private', 'shareable', 'host', or 'container:<name|id>' " +
+            s"(e.g. 'container:my-container')"
+      )
+    }
+  }
 }
 
 case class Runtime(wdlVersion: WdlVersion,
@@ -158,5 +195,25 @@ case class Runtime(wdlVersion: WdlVersion,
 
   def returnCodes: Option[Set[Int]] = {
     runtimeAttrs.runtime.map(_.returnCodes).getOrElse(Some(WdlRuntime.ReturnCodesDefault))
+  }
+
+  lazy val shmSize: Option[String] = {
+    getDxHint(Runtime.ShmSize).map {
+      case V_String(s) =>
+        Runtime.validateShmSize(s)
+        s
+      case other =>
+        throw new EvalException(s"invalid ${Runtime.DxShmSizeKey} value ${other}")
+    }
+  }
+
+  lazy val ipcMode: Option[String] = {
+    getDxHint(Runtime.IpcMode).map {
+      case V_String(s) =>
+        Runtime.validateIpcMode(s)
+        s
+      case other =>
+        throw new EvalException(s"invalid ${Runtime.DxIpcModeKey} value ${other}")
+    }
   }
 }
