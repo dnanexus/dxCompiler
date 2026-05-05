@@ -171,6 +171,7 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
          |     "executionPolicy": {
          |        "restartOn": {
          |           "UnresponsiveWorker": 2,
+         |           "AppInsufficientResourceError": 2,
          |           "JMInternalError": 0,
          |           "ExecutionError": 4
          |        },
@@ -185,7 +186,10 @@ class ExtrasTest extends AnyFlatSpec with Matchers {
     val extras = Extras.parse(js)
 
     val restartPolicy: Map[String, Long] =
-      Map("UnresponsiveWorker" -> 2, "JMInternalError" -> 0, "ExecutionError" -> 4)
+      Map("UnresponsiveWorker" -> 2,
+          "AppInsufficientResourceError" -> 2,
+          "JMInternalError" -> 0,
+          "ExecutionError" -> 4)
     extras.defaultTaskDxAttributes should be(
         Some(
             DxAppJson(
