@@ -3,6 +3,7 @@
 ## Unreleased
 
 * Add support for AppInsufficientResourceError in executionPolicy.restartOn
+* Removing me-south-1 region 
 
 ## 2.15.0 2025-09-29
 
