@@ -4,7 +4,9 @@
 
 ### New Features
 
-* **Authenticated HTTP Imports**: Added support for importing WDL files from private HTTP sources that require authentication (e.g., private GitHub repositories). Set the `WDL_IMPORT_TOKENS` environment variable with semicolon-separated `domain:token` pairs (e.g., `raw.githubusercontent.com:<TOKEN>;gitlab.com:<TOKEN>`). See [Authenticated Imports documentation](doc/AUTHENTICATED_IMPORTS.md) for details.
+* Add support for importing WDL files from private HTTP sources that require authentication (e.g., private GitHub repositories). Set the `WDL_IMPORT_TOKENS` environment variable with semicolon-separated `domain:token` pairs (e.g., `raw.githubusercontent.com:<TOKEN>;gitlab.com:<TOKEN>`). See [Authenticated Imports documentation](doc/AUTHENTICATED_IMPORTS.md) for details.
+* Add support for AppInsufficientResourceError in executionPolicy.restartOn
+* Removing me-south-1 region 
 
 ## 2.15.0 2025-09-29
 

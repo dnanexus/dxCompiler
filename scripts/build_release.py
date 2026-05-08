@@ -39,7 +39,7 @@ RELEASE_DICT = {
     "aws:eu-west-2": "dxCompiler_London",
     "aws:eu-west-2-g": "dxCompiler_Europe_London",
     "azure:uksouth-ofh": "dxCompiler_OFH_TRE_London",
-    "aws:me-south-1": "dxCompiler_Bahrain",
+    # "aws:me-south-1": "dxCompiler_Bahrain",  # Bahrain region no longer supported
     "oci:us-ashburn-1": "dxCompiler_Ashburn",
 }
 

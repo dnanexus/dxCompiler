@@ -259,6 +259,7 @@ case class DxExecPolicy(restartOn: Option[Map[String, Long]], maxRestarts: Optio
 
 object DxExecPolicy {
   private val RunSpecExecPolicyRestartOnAttrs = Set(
+      "AppInsufficientResourceError",
       "ExecutionError",
       "UnresponsiveWorker",
       "JMInternalError",
