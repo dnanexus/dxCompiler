@@ -21,29 +21,13 @@ here = os.path.dirname(sys.argv[0])
 top_dir = os.path.dirname(os.path.abspath(here))
 test_dir = os.path.join(os.path.abspath(top_dir), "test")
 
-projects = ["dxCompiler",
-            "dxCompiler_Sydney",
-            "dxCompiler_Azure",
-            "dxCompiler_Amsterdam",
-            "dxCompiler_Berlin",
-            "dxCompiler_London",
-            "dxCompiler_Europe_London",
-            "dxCompiler_OFH_TRE_London",
-            # "dxCompiler_Bahrain",  # Bahrain region no longer supported
-            "dxCompiler_Ashburn"]
+# Load region-to-project mapping from the shared config file.
+# To add or retire a region, edit scripts/regions.json instead of this file.
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "regions.json")) as _f:
+    REGION_TO_PROJECT = json.load(_f)["regions"]
 
-# Mapping from DNAnexus region name to project name (mirrors RELEASE_DICT in build_release.py)
-REGION_TO_PROJECT = {
-    "aws:us-east-1":      "dxCompiler",
-    "aws:ap-southeast-2": "dxCompiler_Sydney",
-    "azure:westus":       "dxCompiler_Azure",
-    "azure:westeurope":   "dxCompiler_Amsterdam",
-    "aws:eu-central-1":   "dxCompiler_Berlin",
-    "aws:eu-west-2":      "dxCompiler_London",
-    "aws:eu-west-2-g":    "dxCompiler_Europe_London",
-    "azure:uksouth-ofh":  "dxCompiler_OFH_TRE_London",
-    "oci:us-ashburn-1":   "dxCompiler_Ashburn",
-}
+# Ordered list of project names derived from the mapping
+projects = list(REGION_TO_PROJECT.values())
 
 target_folder = "/release_test"
 

@@ -497,6 +497,129 @@ def build(
     return asset_descs
 
 
+_CLONE_URL_DURATION = 60 * 60 * 24  # 24 hours
+
+
+def wait_for_completion(jobs):
+    """Block until all jobs complete. Prints timestamps every 60 s to prevent CI inactivity timeout."""
+    print("awaiting completion ...")
+    noise = subprocess.Popen(["/bin/bash", "-c", "while true; do sleep 60; date; done"])
+    success = True
+    try:
+        for j in jobs:
+            try:
+                j.wait_on_done()
+            except dxpy.exceptions.DXJobFailureError:
+                print("job {} failed".format(j.get_id()))
+                success = False
+    finally:
+        noise.kill()
+    print("done")
+    return success
+
+
+def _launch_copy_job(copy_app, region, dest_proj_id, asset_file_name, dest_folder, url):
+    """Launch the dxwdl_copy app job in the destination region."""
+    dxjob = copy_app.run(
+        app_input={"url": url, "folder": dest_folder, "filename": asset_file_name},
+        name="copy to region {}".format(region),
+        project=dest_proj_id,
+        priority="high",  # high priority needed for some regions (e.g. OFH)
+    )
+    print("{region}: {job_id}".format(region=region, job_id=dxjob.get_id()), file=sys.stderr)
+    return dxjob
+
+
+def clone_asset(copy_app, record, folder, regions, project_dict, num_retries=3):
+    """
+    Clone an AssetBundle record from its home region into each of the given destination regions.
+
+    copy_app:     initialized DXApp handle for the dxwdl_copy app (must be obtained after login)
+    record:       source AssetBundle DXRecord in the home region
+    folder:       target folder path (e.g. /releases/2.11.0)
+    regions:      iterable of region names to clone into
+    project_dict: mapping from region name to DNAnexus project name
+    num_retries:  number of copy attempts before giving up (default 3)
+    """
+    fid = record.get_details()['archiveFileId']['$dnanexus_link']
+    curr_region = dxpy.describe(record.project)['region']
+
+    # Do not clone back into the source region
+    regions = set(regions) - {curr_region}
+    if not regions:
+        return
+
+    # Validate the copy app supports all requested regions
+    app_supported_regions = set(copy_app.describe()['regionalOptions'].keys())
+    unsupported = regions - app_supported_regions
+    if unsupported:
+        print('Currently no support for the following region(s): [{}]'.format(
+            ', '.join(unsupported)), file=sys.stderr)
+        sys.exit(1)
+
+    asset_file_name = dxpy.describe(fid)['name']
+    url = dxpy.DXFile(fid).get_download_url(
+        preauthenticated=True,
+        project=dxpy.DXFile.NO_PROJECT_HINT,
+        duration=_CLONE_URL_DURATION,
+    )[0]
+
+    # Set up destination projects and folders
+    region2projid = {}
+    for region in regions:
+        dest_proj = get_project(project_dict[region])
+        dest_proj.new_folder(folder, parents=True)
+        region2projid[region] = dest_proj.get_id()
+    print(region2projid)
+
+    # Fire copy jobs (all regions in parallel) with retries
+    for _ in range(num_retries):
+        jobs = []
+        for region in regions:
+            dest_proj_id = region2projid[region]
+            results = list(dxpy.find_data_objects(
+                classname="file", visibility="hidden",
+                name=asset_file_name, project=dest_proj_id, folder=folder,
+            ))
+            file_ids = [p["id"] for p in results]
+            nfiles = len(file_ids)
+            if nfiles == 1:
+                continue  # file already present, skip
+            if nfiles > 1:
+                print("cleanup in {}, found {} files instead of 0/1".format(dest_proj_id, nfiles))
+                dxpy.DXProject(dest_proj_id).remove_objects(file_ids)
+            jobs.append(_launch_copy_job(copy_app, region, dest_proj_id, asset_file_name, folder, url))
+        if wait_for_completion(jobs):
+            break
+
+    # Create AssetBundle records pointing at the copied files
+    for region in regions:
+        dest_proj_id = region2projid[region]
+        info("Cloning asset into {}, project: {}, asset file name: {}".format(
+            region, dest_proj_id, asset_file_name))
+        results = list(dxpy.find_data_objects(
+            classname="file", visibility="hidden",
+            name=asset_file_name, project=dest_proj_id, folder=folder,
+        ))
+        file_ids = [p["id"] for p in results]
+        if len(file_ids) == 0:
+            raise RuntimeError("Found no files {}:{}/{}".format(dest_proj_id, folder, asset_file_name))
+        if len(file_ids) > 1:
+            raise RuntimeError("Found {} files {}:{}/{}, instead of just one".format(
+                len(file_ids), dest_proj_id, folder, asset_file_name))
+        asset_properties = record.get_properties()
+        asset_properties['cloned_from'] = record.get_id()
+        dxpy.new_dxrecord(
+            name=record.name,
+            types=['AssetBundle'],
+            details={'archiveFileId': dxpy.dxlink(file_ids[0])},
+            properties=asset_properties,
+            project=dest_proj_id,
+            folder=folder,
+            close=True,
+        )
+
+
 # Read a JSON file
 def read_json_file(path):
     with open(path, "r") as fd:
