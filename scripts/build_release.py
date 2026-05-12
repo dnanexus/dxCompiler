@@ -15,7 +15,6 @@ import util
 here = os.path.dirname(sys.argv[0])
 top_dir = os.path.dirname(os.path.abspath(here))
 
-HOME_REGION = "aws:us-east-1"
 URL_DURATION = 60 * 60 * 24
 SLEEP_TIME = 5
 COPY_FILE_APP_NAME = "dxwdl_copy"
@@ -77,12 +76,12 @@ def main():
                                              ", ".join(sorted(project_dict.keys()))),
                   file=sys.stderr)
             sys.exit(1)
-        if HOME_REGION in skip_clone_regions:
-            print("ERROR: Cannot skip the home region ({}).".format(HOME_REGION),
+        if util.HOME_REGION in skip_clone_regions:
+            print("ERROR: Cannot skip the home region ({}).".format(util.HOME_REGION),
                   file=sys.stderr)
             sys.exit(1)
 
-    project = util.get_project(project_dict[HOME_REGION])
+    project = util.get_project(project_dict[util.HOME_REGION])
     print("project: {} ({})".format(project.name, project.get_id()))
 
     # Figure out what the current version is

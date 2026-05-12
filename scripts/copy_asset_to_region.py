@@ -27,7 +27,6 @@ import util
 
 COPY_FILE_APP_NAME = "dxwdl_copy"
 
-HOME_REGION = "aws:us-east-1"
 HOME_PROJECT_NAME = "dxCompiler"
 
 # Load region-to-project mapping from the shared config file.
@@ -59,8 +58,8 @@ def main():
         print("ERROR: Unknown region '{}'. Supported regions: {}".format(
             args.region, ", ".join(sorted(REGION_TO_PROJECT.keys()))))
         sys.exit(1)
-    if args.region == HOME_REGION:
-        print("ERROR: Destination region is the home region ({}). Nothing to copy.".format(HOME_REGION))
+    if args.region == util.HOME_REGION:
+        print("ERROR: Destination region is the home region ({}). Nothing to copy.".format(util.HOME_REGION))
         sys.exit(1)
 
     # Initialize copy app AFTER login (avoids module-level import-time failure)

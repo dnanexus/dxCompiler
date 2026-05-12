@@ -14,7 +14,7 @@
   "retired_regions": {
     "aws:me-south-1": {
       "project": "dxCompiler_Bahrain",
-      "reason": "Region no longer supported by DNAnexus"
+      "reason": "Region is currently inaccessible"
     }
   }
 }
