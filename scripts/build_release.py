@@ -187,17 +187,40 @@ def main():
                            help="Don't build any artifacts",
                            action='store_true',
                            default=False)
+    argparser.add_argument("--skip-clone-regions",
+                           help="Comma-separated regions to skip asset cloning (e.g. aws:eu-west-2). "
+                                "Region is still included in JAR config.",
+                           default="")
     args = argparser.parse_args()
 
     # build multi-region jar for releases, or
     # if explicitly specified
     multi_region = args.multi_region
+    # strip whitespace around each entry to tolerate "aws:eu-west-2, azure:westeurope"
+    skip_clone_regions = (
+        set(r.strip() for r in args.skip_clone_regions.split(",") if r.strip())
+        if args.skip_clone_regions else set()
+    )
 
     # Choose which dictionary to use
     if multi_region:
         project_dict = RELEASE_DICT
     else:
         project_dict = TEST_DICT
+
+    # Validate skip_clone_regions against known regions and disallow home region
+    if skip_clone_regions:
+        unknown = skip_clone_regions - set(project_dict.keys())
+        if unknown:
+            print("ERROR: Unknown region(s) in --skip-clone-regions: {}. "
+                  "Known regions: {}".format(", ".join(sorted(unknown)),
+                                             ", ".join(sorted(project_dict.keys()))),
+                  file=sys.stderr)
+            sys.exit(1)
+        if HOME_REGION in skip_clone_regions:
+            print("ERROR: Cannot skip the home region ({}).".format(HOME_REGION),
+                  file=sys.stderr)
+            sys.exit(1)
 
     project = util.get_project(project_dict[HOME_REGION])
     print("project: {} ({})".format(project.name, project.get_id()))
@@ -239,9 +262,12 @@ def main():
             home_rec = dxpy.DXRecord(asset_desc.asset_id)
             all_regions = project_dict.keys()
 
-            # Leave only regions where the asset is missing
+            # Leave only regions where the asset is missing and not explicitly skipped
             target_regions = []
             for dest_region in all_regions:
+                if dest_region in skip_clone_regions:
+                    print("Skipping asset clone for region: {}".format(dest_region), file=sys.stderr)
+                    continue
                 dest_proj = util.get_project(project_dict[dest_region])
                 dest_asset = util.find_asset(dest_proj, folder, lang)
                 if dest_asset == None:

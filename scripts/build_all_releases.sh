@@ -7,6 +7,7 @@ dry_run=""
 build_flags=""
 staging_token=""
 production_token=""
+skip_clone_regions=""
 
 # https://stackoverflow.com/questions/4774054/reliable-way-for-a-bash-script-to-get-the-full-path-to-itself
 # Get the source directory of the distribution
@@ -48,14 +49,23 @@ function basic_checks {
 }
 
 function build {
+    local skip_regions_flag=""
+    if [[ -n "$skip_clone_regions" ]]; then
+        skip_regions_flag="--skip-clone-regions $skip_clone_regions"
+    fi
+
     # build the release on staging
     echo "building staging release"
     dx login --staging --token $staging_token --noprojects
-    $top_dir/scripts/build_release.py --multi-region $build_flags
+    $top_dir/scripts/build_release.py --multi-region $build_flags $skip_regions_flag
 
     ## test that it actually works
     echo "running multi region tests on staging"
-    $top_dir/scripts/multi_region_tests.py
+    if [[ -n "$skip_clone_regions" ]]; then
+        $top_dir/scripts/multi_region_tests.py --skip-regions $skip_clone_regions
+    else
+        $top_dir/scripts/multi_region_tests.py
+    fi
     #$top_dir/scripts/proxy_test.py
 
     echo "leave staging"
@@ -64,7 +74,7 @@ function build {
     ## build on production
     echo "building on production"
     dx login --token $production_token --noprojects
-    $top_dir/scripts/build_release.py --multi-region $build_flags
+    $top_dir/scripts/build_release.py --multi-region $build_flags $skip_regions_flag
 }
 
 function usage_die
@@ -75,6 +85,7 @@ function usage_die
     echo "  --staging-token <string>: an auth token for the staging environment"
     echo "  --production-token <string>: an auth token for the production environment"
     echo "  --branch <string>: branch to build from (default=main)"
+    echo "  --skip-clone-regions <string>: comma-separated regions to skip asset cloning (e.g. aws:eu-west-2)"
     exit 1
 }
 
@@ -99,6 +110,10 @@ function parse_cmd_line {
                 ;;
             --branch)
                 target_branch=$2
+                shift
+                ;;
+            --skip-clone-regions)
+                skip_clone_regions=$2
                 shift
                 ;;
             *)

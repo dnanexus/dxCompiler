@@ -1,0 +1,70 @@
+name: Copy Asset to Region
+# Run this workflow to backfill ALL runtime assets (wdl + cwl) into a region
+# that was skipped during the original release (e.g. because it was temporarily
+# unavailable). Once this workflow succeeds the region is fully supported for
+# the given version — no further action is needed.
+on:
+  workflow_dispatch:
+    inputs:
+      release-version:
+        description: 'dxCompiler release version to backfill (e.g. 2.11.0)'
+        required: true
+      region:
+        description: 'Destination region (e.g. aws:eu-west-2)'
+        required: true
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        default: 'production'
+        options:
+          - 'production'
+          - 'staging'
+
+permissions:
+  contents: read
+
+jobs:
+  copy-asset:
+    name: Copy assets to ${{ github.event.inputs.region }} (${{ github.event.inputs.environment }})
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      # performance optimizations https://abbbi.github.io/actions/
+      - uses: abbbi/github-actions-tune@81fb919e588c20b7ab52b2cac097d2efd765c714 # v1
+      - name: Install dxpy
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3 python3-pip
+          pip3 install --upgrade pip setuptools==76.0.0
+          pip3 install dxpy==0.393.0 pyOpenSSL==25.0.0
+          export PATH="$PATH:$HOME/.local/bin"
+      - name: Copy assets to region (staging)
+        if: ${{ github.event.inputs.environment == 'staging' }}
+        env:
+          DX_TOKEN: ${{ secrets.DX_STAGING_ROBOT_TOKEN }}
+        run: |
+          export PATH="$PATH:$HOME/.local/bin"
+          for LANG in wdl cwl; do
+            echo "=== Copying $LANG asset ==="
+            python3 scripts/copy_asset_to_region.py \
+              --version ${{ github.event.inputs.release-version }} \
+              --region "${{ github.event.inputs.region }}" \
+              --language $LANG \
+              --token $DX_TOKEN
+          done
+      - name: Copy assets to region (production)
+        if: ${{ github.event.inputs.environment == 'production' }}
+        env:
+          DX_TOKEN: ${{ secrets.DX_PROD_RELEASE_TOKEN }}
+        run: |
+          export PATH="$PATH:$HOME/.local/bin"
+          for LANG in wdl cwl; do
+            echo "=== Copying $LANG asset ==="
+            python3 scripts/copy_asset_to_region.py \
+              --version ${{ github.event.inputs.release-version }} \
+              --region "${{ github.event.inputs.region }}" \
+              --language $LANG \
+              --token $DX_TOKEN
+          done

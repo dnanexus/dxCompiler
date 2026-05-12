@@ -116,7 +116,7 @@
     }
   },
   "details": {
-    "whatsNew": "* 0.2.1: Removed Bahrain AWS region aws:me-south-1 \n * 0.2.0: Update running environment to Ubuntu 24.04 \n * 0.1.0: Added new OCI Ashburn region \n * 0.0.7: Fixed instance types for Azure regions\n * 0.0.6: Added new Bahrain AWS region aws:me-south-1\n * 0.0.5: updated azure instances to v2 for OFH region\n * 0.0.3: Added new London OFH region\n * 0.0.2: Added new London region."
+    "whatsNew": "* 0.2.1: Removed Bahrain AWS region aws:me-south-1; added scripts/copy_asset_to_region.py for backfilling a skipped region after recovery \n * 0.2.0: Update running environment to Ubuntu 24.04 \n * 0.1.0: Added new OCI Ashburn region \n * 0.0.7: Fixed instance types for Azure regions\n * 0.0.6: Added new Bahrain AWS region aws:me-south-1\n * 0.0.5: updated azure instances to v2 for OFH region\n * 0.0.3: Added new London OFH region\n * 0.0.2: Added new London region."
   },
   "access": {
     "network": [

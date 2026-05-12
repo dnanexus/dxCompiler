@@ -3,7 +3,9 @@
 ## Unreleased
 
 * Add support for AppInsufficientResourceError in executionPolicy.restartOn
-* Removing me-south-1 region 
+* Removing me-south-1 region
+* Added `--skip-clone-regions` flag to `build_release.py` and `build_all_releases.sh` to allow skipping asset cloning into unavailable regions during release; skipped regions remain in the JAR config
+* Added `scripts/copy_asset_to_region.py` script and `.github/workflows/copy_asset_to_region.yml` workflow to backfill a skipped region once it recovers
 
 ## 2.15.0 2025-09-29
 
