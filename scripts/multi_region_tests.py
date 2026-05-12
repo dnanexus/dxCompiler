@@ -21,16 +21,13 @@ here = os.path.dirname(sys.argv[0])
 top_dir = os.path.dirname(os.path.abspath(here))
 test_dir = os.path.join(os.path.abspath(top_dir), "test")
 
-projects = ["dxCompiler",
-            "dxCompiler_Sydney",
-            "dxCompiler_Azure",
-            "dxCompiler_Amsterdam",
-            "dxCompiler_Berlin",
-            "dxCompiler_London",
-            "dxCompiler_Europe_London",
-            "dxCompiler_OFH_TRE_London",
-            # "dxCompiler_Bahrain",  # Bahrain region no longer supported
-            "dxCompiler_Ashburn"]
+# Load region-to-project mapping from the shared config file.
+# To add or retire a region, edit scripts/regions.json instead of this file.
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "regions.json")) as _f:
+    REGION_TO_PROJECT = json.load(_f)["regions"]
+
+# Ordered list of project names derived from the mapping
+projects = list(REGION_TO_PROJECT.values())
 
 target_folder = "/release_test"
 
@@ -77,7 +74,34 @@ def main():
     argparser = argparse.ArgumentParser(description="Run compiler tests on the platform")
     argparser.add_argument("--compile-only", help="Only compile the workflows, don't run them",
                            action="store_true", default=False)
+    argparser.add_argument("--skip-regions",
+                           help="Comma-separated regions to skip testing (e.g. aws:eu-west-2). "
+                                "Uses the same region names as --skip-clone-regions in build_release.py.",
+                           default="")
     args = argparser.parse_args()
+
+    # strip whitespace around each entry to tolerate "aws:eu-west-2, azure:westeurope"
+    skip_regions = (
+        set(r.strip() for r in args.skip_regions.split(",") if r.strip())
+        if args.skip_regions else set()
+    )
+
+    # Validate region names against known mapping
+    if skip_regions:
+        unknown = skip_regions - set(REGION_TO_PROJECT.keys())
+        if unknown:
+            print("ERROR: Unknown region(s) in --skip-regions: {}. "
+                  "Known regions: {}".format(", ".join(sorted(unknown)),
+                                             ", ".join(sorted(REGION_TO_PROJECT.keys()))))
+            sys.exit(1)
+
+    # Build a reverse map: project_name -> region, to filter out skipped regions
+    project_to_region = {v: k for k, v in REGION_TO_PROJECT.items()}
+    active_projects = [p for p in projects if project_to_region.get(p) not in skip_regions]
+
+    if skip_regions:
+        skipped = [p for p in projects if p not in active_projects]
+        print("Skipping projects for regions {}: {}".format(skip_regions, skipped))
 
     version_id = util.get_version_id(top_dir)
     wdl_source_file = os.path.join(test_dir, "multi_region/trivial.wdl")
@@ -85,7 +109,7 @@ def main():
     test_exec_objs=[]
 
     # build version of the applet on all regions
-    for proj_name in projects:
+    for proj_name in active_projects:
         dx_proj = util.get_project(proj_name)
         if dx_proj is None:
             raise RuntimeError("Could not find project {}".format(proj_name))

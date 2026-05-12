@@ -4,7 +4,6 @@
 
 import argparse
 import dxpy
-from dxpy.exceptions import DXJobFailureError
 import json
 import os
 import subprocess
@@ -16,7 +15,6 @@ import util
 here = os.path.dirname(sys.argv[0])
 top_dir = os.path.dirname(os.path.abspath(here))
 
-HOME_REGION = "aws:us-east-1"
 URL_DURATION = 60 * 60 * 24
 SLEEP_TIME = 5
 COPY_FILE_APP_NAME = "dxwdl_copy"
@@ -27,150 +25,11 @@ TEST_DICT = {
     "aws:us-east-1" :  "dxCompiler_playground"
 }
 
-# To add region R, create a project for it, dxCompiler_R, and add
-# a mapping to the lists
-#    R : dxCompiler_R
-RELEASE_DICT = {
-    "aws:us-east-1" :  "dxCompiler",
-    "aws:ap-southeast-2" : "dxCompiler_Sydney",
-    "azure:westus" : "dxCompiler_Azure",
-    "azure:westeurope" : "dxCompiler_Amsterdam",
-    "aws:eu-central-1" : "dxCompiler_Berlin",
-    "aws:eu-west-2": "dxCompiler_London",
-    "aws:eu-west-2-g": "dxCompiler_Europe_London",
-    "azure:uksouth-ofh": "dxCompiler_OFH_TRE_London",
-    # "aws:me-south-1": "dxCompiler_Bahrain",  # Bahrain region no longer supported
-    "oci:us-ashburn-1": "dxCompiler_Ashburn",
-}
+# Load region-to-project mapping from the shared config file.
+# To add or retire a region, edit scripts/regions.json instead of this file.
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "regions.json")) as _f:
+    RELEASE_DICT = json.load(_f)["regions"]
 
-# 1. Use the clone-asset app to copy the file into [region].
-# 2. Create a record pointing to the hidden file in [region].
-def _clone_asset_into_region(region, dest_proj_id, asset_file_name, dest_folder, url):
-    """
-    Clone file into a remote region.
-    """
-    dxjob = COPY_FILE_APP.run(app_input = { "url" : url,
-                                            "folder" : dest_folder,
-                                            "filename" : asset_file_name },
-                              name = "copy to region {}".format(region),
-                              project = dest_proj_id,
-                              priority = "high") # added high priority because OFH region, where it takes 3 reruns to build.
-    print('{region}: {job_id}'.format(region=region, job_id=dxjob.get_id()),
-          file=sys.stderr)
-    return dxjob
-
-
-def _wait_for_completion(jobs):
-    print("awaiting completion ...")
-    # wait for analysis to finish while working around Travis 10m console inactivity timeout
-    noise = subprocess.Popen(["/bin/bash", "-c", "while true; do sleep 60; date; done"])
-    success = True
-    try:
-        for j in jobs:
-            try:
-                j.wait_on_done()
-            except DXJobFailureError:
-                print("job {} failed".format(j.get_id()))
-                success = False
-    finally:
-        noise.kill()
-    print("done")
-    return success
-
-def _clone_to_all_regions(region2projid, regions, asset_file_name, folder, url):
-    jobs = []
-    for region in regions:
-        dest_proj_id = region2projid[region]
-        results = list(dxpy.find_data_objects(classname = "file",
-                                              visibility = "hidden",
-                                              name = asset_file_name,
-                                              project = dest_proj_id,
-                                              folder = folder))
-        file_ids = [p["id"] for p in results]
-        nfiles = len(file_ids)
-        if nfiles == 1:
-            continue
-        if nfiles > 1:
-            print("cleanup in {}, found {} files instead of 0/1".format(dest_proj_id, nfiles))
-            dxpy.DXProject(dest_proj_id).remove_objects(file_ids)
-        dxjob = _clone_asset_into_region(region,
-                                         dest_proj_id,
-                                         asset_file_name,
-                                         folder,
-                                         url)
-        jobs.append(dxjob)
-    return jobs
-
-def _clone_asset(record, folder, regions, project_dict):
-    """
-    This function will attempt to clone the given record into all of the given regions.
-    It will return a dictionary with the regions as keys and the record-ids of the
-    corresponding asset as the values.  If an asset is not able to be created in a given
-    region, the value will be set to None.
-    """
-    # Get the asset record
-    fid = record.get_details()['archiveFileId']['$dnanexus_link']
-    curr_region = dxpy.describe(record.project)['region']
-
-    # Only run once per region
-    regions = set(regions) - set([curr_region])
-    if len(regions) == 0:
-        # there is nothing to do
-        return
-
-    app_supported_regions = set(COPY_FILE_APP.describe()['regionalOptions'].keys())
-    if len(regions - app_supported_regions) > 0:
-        print('Currently no support for the following region(s): [{regions}]'
-              .format(regions=', '.join(regions - app_supported_regions)),
-              file=sys.stderr)
-        sys.exit(1)
-
-    # Get information about the asset
-    asset_properties = record.get_properties()
-    asset_properties['cloned_from'] = record.get_id()
-    asset_file_name = dxpy.describe(fid)['name']
-    url = dxpy.DXFile(fid).get_download_url(preauthenticated=True,
-                                            project=dxpy.DXFile.NO_PROJECT_HINT,
-                                            duration=URL_DURATION)[0]
-
-    # setup target folders
-    region2projid = {}
-    for region in regions:
-        dest_proj = util.get_project(project_dict[region])
-        dest_proj.new_folder(folder, parents=True)
-        region2projid[region] = dest_proj.get_id()
-    print(region2projid)
-
-    # Fire off a clone process for each region
-    # Wait for the cloning to complete
-    for i in [1, 2, 3]:
-        jobs = _clone_to_all_regions(region2projid, regions, asset_file_name, folder, url)
-        retval = _wait_for_completion(jobs)
-        if retval:
-            break
-
-    # make records for each file
-    for region in regions:
-        dest_proj_id = region2projid[region]
-        print(f"Cloning asset into {region}, project: {dest_proj_id}, asset file name: {asset_file_name}")
-        results = list(dxpy.find_data_objects(classname="file",
-                                              visibility="hidden",
-                                              name=asset_file_name,
-                                              project=dest_proj_id,
-                                              folder=folder))
-        file_ids = [p["id"] for p in results]
-        if len(file_ids) == 0:
-            raise RuntimeError("Found no files {}:{}/{}".format(dest_proj_id, folder, asset_file_name))
-        if len(file_ids) > 1:
-            raise RuntimeError("Found {} files {}:{}/{}, instead of just one"
-                               .format(len(file_ids), dest_proj_id, folder, asset_file_name))
-        dest_asset = dxpy.new_dxrecord(name=record.name,
-                                       types=['AssetBundle'],
-                                       details={'archiveFileId': dxpy.dxlink(file_ids[0])},
-                                       properties=record.get_properties(),
-                                       project=dest_proj_id,
-                                       folder=folder,
-                                       close=True)
 
 
 def main():
@@ -187,11 +46,20 @@ def main():
                            help="Don't build any artifacts",
                            action='store_true',
                            default=False)
+    argparser.add_argument("--skip-clone-regions",
+                           help="Comma-separated regions to skip asset cloning (e.g. aws:eu-west-2). "
+                                "Region is still included in JAR config.",
+                           default="")
     args = argparser.parse_args()
 
     # build multi-region jar for releases, or
     # if explicitly specified
     multi_region = args.multi_region
+    # strip whitespace around each entry to tolerate "aws:eu-west-2, azure:westeurope"
+    skip_clone_regions = (
+        set(r.strip() for r in args.skip_clone_regions.split(",") if r.strip())
+        if args.skip_clone_regions else set()
+    )
 
     # Choose which dictionary to use
     if multi_region:
@@ -199,7 +67,21 @@ def main():
     else:
         project_dict = TEST_DICT
 
-    project = util.get_project(project_dict[HOME_REGION])
+    # Validate skip_clone_regions against known regions and disallow home region
+    if skip_clone_regions:
+        unknown = skip_clone_regions - set(project_dict.keys())
+        if unknown:
+            print("ERROR: Unknown region(s) in --skip-clone-regions: {}. "
+                  "Known regions: {}".format(", ".join(sorted(unknown)),
+                                             ", ".join(sorted(project_dict.keys()))),
+                  file=sys.stderr)
+            sys.exit(1)
+        if util.HOME_REGION in skip_clone_regions:
+            print("ERROR: Cannot skip the home region ({}).".format(util.HOME_REGION),
+                  file=sys.stderr)
+            sys.exit(1)
+
+    project = util.get_project(project_dict[util.HOME_REGION])
     print("project: {} ({})".format(project.name, project.get_id()))
 
     # Figure out what the current version is
@@ -239,15 +121,18 @@ def main():
             home_rec = dxpy.DXRecord(asset_desc.asset_id)
             all_regions = project_dict.keys()
 
-            # Leave only regions where the asset is missing
+            # Leave only regions where the asset is missing and not explicitly skipped
             target_regions = []
             for dest_region in all_regions:
+                if dest_region in skip_clone_regions:
+                    print("Skipping asset clone for region: {}".format(dest_region), file=sys.stderr)
+                    continue
                 dest_proj = util.get_project(project_dict[dest_region])
                 dest_asset = util.find_asset(dest_proj, folder, lang)
                 if dest_asset == None:
                     target_regions.append(dest_region)
 
-            _clone_asset(home_rec, folder, target_regions, project_dict)
+            util.clone_asset(COPY_FILE_APP, home_rec, folder, target_regions, project_dict)
 
 if __name__ == '__main__':
     main()
