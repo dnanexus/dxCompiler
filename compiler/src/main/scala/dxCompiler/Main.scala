@@ -916,16 +916,24 @@ object Main {
         |Common options
         |    -folder <string>         Platform folder (defaults to '/').
         |    -project <string>        Platform project (defaults to currently selected project).
-        |    -language <string> [ver] Which language to use? May be WDL or CWL. You can optionally 
+        |    -language <string> [ver] Which language to use? May be WDL or CWL. You can optionally
         |                             specify a version. Currently: i. WDL: draft-2, 1.0, and 1.1, and
         |                             ii. CWL: 1.2 are supported and WDL development is partially
         |                             supported. The default is to auto-detect the language from the
         |                             source file.
         |    -quiet                   Do not print warnings or informational outputs.
         |    -verbose                 Print detailed logging.
-        |    -verboseKey <module>     Print verbose output only for a specific module. May be 
+        |    -verboseKey <module>     Print verbose output only for a specific module. May be
         |                             specified multiple times.
         |    -logFile <path>          File to use for logging output; defaults to stderr.
+        |
+        |Environment variables
+        |    DXCOMPILER_WDL_IMPORT_BEARER_TOKENS
+        |                             Per-domain Bearer tokens for authenticated WDL imports over
+        |                             http(s). Used only by the WDL parser when following 'import'
+        |                             statements; has no effect on CWL compilation.
+        |                             Format: domain:token[;domain:token]*
+        |                             Example: raw.githubusercontent.com:<GITHUB_TOKEN>;example.com:<TOKEN>
         |""".stripMargin
 
   def main(args: Vector[String]): Unit = {
