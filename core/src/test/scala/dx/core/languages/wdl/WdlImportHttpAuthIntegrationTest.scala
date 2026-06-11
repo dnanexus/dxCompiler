@@ -184,7 +184,7 @@ class WdlImportHttpAuthIntegrationTest extends AnyFlatSpec with Matchers with Be
       .takeWhile(_.isDefined)
       .flatMap(_.map(_.getMessage))
       .mkString(" | ")
-    messages should (include("401") or include("Unauthorized"))
+    messages should (include("403") or include("Forbidden"))
   }
 
   it should "successfully parse a main.wdl that imports the protected doc when the token is correct" in {
