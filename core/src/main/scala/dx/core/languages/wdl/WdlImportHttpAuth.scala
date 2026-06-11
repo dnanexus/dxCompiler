@@ -26,6 +26,16 @@ object WdlImportHttpAuth {
   val TokensEnvVar: String = "DXCOMPILER_WDL_IMPORT_BEARER_TOKENS"
 
   /**
+    * Hint surfaced in HTTP 401 errors raised by the
+    * [[AuthenticatedHttpFileAccessProtocol]], telling users how to supply
+    * Bearer tokens for private hosts.
+    */
+  val UnauthorizedHint: String =
+    s"Bearer tokens can be supplied via the ${TokensEnvVar} environment variable. " +
+      "The value must be in the format domain:token[;domain:token]*, for example: " +
+      "raw.githubusercontent.com:<YOUR_GITHUB_TOKEN>;example.com:<YOUR_TOKEN>."
+
+  /**
     * Builds an [[AuthenticatedHttpFileAccessProtocol]] from the
     * [[TokensEnvVar]] environment variable. Returns a protocol with an
     * empty token map (and no auth headers) when the variable is unset.
@@ -36,7 +46,7 @@ object WdlImportHttpAuth {
   ): AuthenticatedHttpFileAccessProtocol = {
     val domainBearerTokens = sys.env.get(TokensEnvVar) match {
       case Some(value) =>
-        val parsed = AuthenticatedHttpFileAccessProtocol.parseTokens(value)
+        val parsed = AuthenticatedHttpFileAccessProtocol.parseAuthTokens(value)
         if (parsed.nonEmpty) {
           logger.trace(
               s"${TokensEnvVar} found; authenticated HTTP imports enabled for domains: ${parsed.keys
@@ -50,7 +60,7 @@ object WdlImportHttpAuth {
     AuthenticatedHttpFileAccessProtocol(
         encoding = encoding,
         domainBearerTokens = domainBearerTokens,
-        tokenEnvVarHint = Some(TokensEnvVar),
+        unauthorizedHint = Some(UnauthorizedHint),
         logger = logger
     )
   }

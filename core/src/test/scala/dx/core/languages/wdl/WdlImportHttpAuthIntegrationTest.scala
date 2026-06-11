@@ -22,7 +22,7 @@ import java.nio.charset.StandardCharsets
   * Spins up a local HTTP server that guards a tiny WDL document behind a
   * static Bearer token, then exercises three configurations:
   *   - no token configured  -> 401
-  *   - wrong token          -> 401
+  *   - wrong token          -> 403
   *   - correct token        -> success (bytes round-trip and a main.wdl that
   *                                       imports the protected doc parses).
   */
@@ -62,7 +62,10 @@ class WdlImportHttpAuthIntegrationTest extends AnyFlatSpec with Matchers with Be
         finally os.close()
       }
     } else {
-      exchange.sendResponseHeaders(401, -1)
+      // 401 when no credentials are supplied, 403 when credentials are supplied
+      // but do not match.
+      val status = if (auth.isEmpty) 401 else 403
+      exchange.sendResponseHeaders(status, -1)
       exchange.close()
     }
   }
@@ -92,7 +95,7 @@ class WdlImportHttpAuthIntegrationTest extends AnyFlatSpec with Matchers with Be
   private def resolverWith(tokens: Map[String, String]): FileSourceResolver = {
     val authProtocol = AuthenticatedHttpFileAccessProtocol(
         domainBearerTokens = tokens,
-        tokenEnvVarHint = Some(WdlImportHttpAuth.TokensEnvVar)
+        unauthorizedHint = Some(WdlImportHttpAuth.UnauthorizedHint)
     )
     FileSourceResolver(
         Vector(
@@ -112,11 +115,11 @@ class WdlImportHttpAuthIntegrationTest extends AnyFlatSpec with Matchers with Be
     thrown.getMessage should include(WdlImportHttpAuth.TokensEnvVar)
   }
 
-  it should "fail with HTTP 401 when the configured token is wrong" in {
+  it should "fail with HTTP 403 when the configured token is wrong" in {
     val resolver = resolverWith(Map(serverHost -> "not-the-right-token"))
     val fs = resolver.resolve(importedUrl)
     val thrown = the[Exception] thrownBy fs.readBytes
-    thrown.getMessage should include("HTTP 401 Unauthorized")
+    thrown.getMessage should include("HTTP 403 Forbidden")
   }
 
   it should "fetch the protected WDL bytes when the configured token is correct" in {
