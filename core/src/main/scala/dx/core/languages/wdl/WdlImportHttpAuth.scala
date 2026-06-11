@@ -1,10 +1,6 @@
 package dx.core.languages.wdl
 
-import dx.util.{
-  AuthenticatedHttpFileAccessProtocol,
-  FileUtils,
-  Logger
-}
+import dx.util.{AuthenticatedHttpFileAccessProtocol, FileUtils, Logger}
 
 import java.nio.charset.Charset
 

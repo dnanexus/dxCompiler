@@ -14,8 +14,10 @@ class WdlImportHttpAuthTest extends AnyFlatSpec with Matchers {
     // We can't portably mutate process env vars on JVM 11, so we only verify
     // the unset path. The set path is logically equivalent to parseAuthTokens(value)
     // followed by direct construction, both covered by AuthenticatedHttpFileAccessProtocolTest.
-    assume(sys.env.get(WdlImportHttpAuth.TokensEnvVar).isEmpty,
-           s"${WdlImportHttpAuth.TokensEnvVar} is set in the test environment; skipping unset-path test")
+    assume(
+        sys.env.get(WdlImportHttpAuth.TokensEnvVar).isEmpty,
+        s"${WdlImportHttpAuth.TokensEnvVar} is set in the test environment; skipping unset-path test"
+    )
     val protocol = WdlImportHttpAuth.fromEnvironment()
     protocol.domainBearerTokens shouldBe empty
     protocol.resolve("https://raw.githubusercontent.com/x.wdl").credentials shouldBe None
