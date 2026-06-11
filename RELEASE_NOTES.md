@@ -2,8 +2,9 @@
 
 ## Unreleased
 
+* Added support for authenticated http(s) WDL imports via per-domain Bearer tokens supplied through the `DXCOMPILER_WDL_IMPORT_BEARER_TOKENS` environment variable
 * Add support for AppInsufficientResourceError in executionPolicy.restartOn
-* Removing me-south-1 region 
+* Removing me-south-1 region
 
 ## 2.15.0 2025-09-29
 

@@ -77,14 +77,30 @@ class BearerAuthImport(RegisteredTest):
         )
         try:
             url = f"http://{host}:{port}/{_PROTECTED_WDL_FILENAME}"
-            scenarios: List[Tuple[str, Union[str, None], bool, Union[str, None]]] = [
-                ("no token configured", None, False, "401"),
-                ("wrong token configured", f"{host}:wrong-token", False, "403"),
+            scenarios: List[Tuple[str, Union[str, None], bool, List[str]]] = [
+                (
+                    "no token configured",
+                    None,
+                    False,
+                    [
+                        "HTTP 401 Unauthorized",
+                        "ensure the credentials are provided",
+                    ],
+                ),
+                (
+                    "wrong token configured",
+                    f"{host}:wrong-token",
+                    False,
+                    [
+                        "HTTP 403 Forbidden",
+                        "the provided credentials are invalid or lack the required permissions",
+                    ],
+                ),
                 (
                     "correct token configured",
                     f"{host}:{_EXPECTED_TOKEN}",
                     True,
-                    None,
+                    [],
                 ),
             ]
             with tempfile.TemporaryDirectory(prefix="dxcint-bearer-auth-") as workdir:
@@ -191,6 +207,11 @@ class BearerAuthImport(RegisteredTest):
             "-compileMode", "IR",
             "-quiet",
         ]
+        token_repr = env.get(_BEARER_TOKENS_ENV_VAR, "<unset>")
+        self._context.logger.info(
+            f"BearerAuthImport: COMPILE COMMAND "
+            f"{_BEARER_TOKENS_ENV_VAR}={token_repr} {' '.join(cmd)}"
+        )
         proc = sp.run(cmd, env=env, capture_output=True, text=True)
         return proc.returncode, (proc.stdout or "") + (proc.stderr or "")
 
@@ -199,7 +220,7 @@ class BearerAuthImport(RegisteredTest):
         rc: int,
         combined: str,
         expect_success: bool,
-        must_include: Union[str, None],
+        must_include: List[str],
     ) -> Tuple[bool, str]:
         if expect_success:
             if rc != 0:
@@ -207,9 +228,10 @@ class BearerAuthImport(RegisteredTest):
             return True, "compile succeeded as expected"
         if rc == 0:
             return False, "expected compile failure, got exit 0"
-        if must_include and must_include not in combined:
+        missing = [s for s in must_include if s not in combined]
+        if missing:
             return (
                 False,
-                f"expected failure output to contain {must_include!r}",
+                f"expected failure output to contain {missing!r}",
             )
         return True, f"compile failed as expected (exit {rc})"
