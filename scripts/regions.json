@@ -1,0 +1,20 @@
+{
+  "_comment": "Single source of truth for region-to-project mapping. To add a region, add an entry here and create the corresponding DNAnexus project. To retire a region, move its entry to 'retired_regions' with a reason.",
+  "regions": {
+    "aws:us-east-1":      "dxCompiler",
+    "aws:ap-southeast-2": "dxCompiler_Sydney",
+    "azure:westus":       "dxCompiler_Azure",
+    "azure:westeurope":   "dxCompiler_Amsterdam",
+    "aws:eu-central-1":   "dxCompiler_Berlin",
+    "aws:eu-west-2":      "dxCompiler_London",
+    "aws:eu-west-2-g":    "dxCompiler_Europe_London",
+    "azure:uksouth-ofh":  "dxCompiler_OFH_TRE_London",
+    "oci:us-ashburn-1":   "dxCompiler_Ashburn"
+  },
+  "retired_regions": {
+    "aws:me-south-1": {
+      "project": "dxCompiler_Bahrain",
+      "reason": "Region is currently inaccessible"
+    }
+  }
+}

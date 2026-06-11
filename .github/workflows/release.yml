@@ -9,6 +9,10 @@ on:
         description: 'Should run large integration tests (false/true; default: true)'
         required: false
         default: 'true'
+      skip-clone-regions:
+        description: 'Comma-separated regions to skip asset cloning (e.g. aws:eu-west-2). Region is still included in JAR config.'
+        required: false
+        default: ''
 permissions:
   contents: write
   packages: read
@@ -158,11 +162,17 @@ jobs:
         run: |
           export PATH="$PATH:$HOME/.local/bin"
           export TARGET_BRANCH=`echo ${{ github.ref }} | sed -e 's/refs\/heads\///g'`
+          SKIP_REGIONS="${{ github.event.inputs.skip-clone-regions }}"
+          SKIP_FLAGS=""
+          if [[ -n "$SKIP_REGIONS" ]]; then
+            SKIP_FLAGS="--skip-clone-regions $SKIP_REGIONS"
+          fi
           ./scripts/build_all_releases.sh \
               --staging-token $DX_STAGING_RELEASE_TOKEN \
               --production-token $DX_PROD_RELEASE_TOKEN \
               --force \
-              --branch $TARGET_BRANCH
+              --branch $TARGET_BRANCH \
+              $SKIP_FLAGS
       - name: Extract release notes
         id: update-release
         run: |
