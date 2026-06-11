@@ -278,7 +278,7 @@ case class WdlTranslatorFactory(wdlOptions: WdlOptions = WdlOptions.default)
             executableCreationParallelism,
             instanceTypeSelection,
             versionSupport,
-            fileResolver,
+            wdlFileResolver,
             dxApi,
             logger
         )

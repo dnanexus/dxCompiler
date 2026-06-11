@@ -1,7 +1,7 @@
 package dx.core.languages.wdl
 
 import dx.core.ir.{Application, Callable, ExecutableKindApplet, ExecutableKindNative, SourceCode}
-import dx.util.{Logger, StringFileNode}
+import dx.util.{FileSourceResolver, Logger, StringFileNode}
 import spray.json.JsValue
 import wdlTools.eval.{DefaultEvalPaths, IoSupport, WdlValues}
 import wdlTools.generators.code.{Utils => GeneratorUtils}
@@ -37,7 +37,8 @@ case class WdlWorkflowSource(workflow: TAT.Workflow, versionSupport: VersionSupp
 
 case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
                          wdlVersion: WdlVersion,
-                         logger: Logger = Logger.get) {
+                         logger: Logger = Logger.get,
+                         fileResolver: FileSourceResolver = FileSourceResolver.get) {
   // A self contained WDL workflow
   private val outputWdlVersion: WdlVersion = {
     if (wdlVersion == WdlVersion.Draft_2) {
@@ -285,7 +286,7 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
   }
 
   def createStandAloneTask(task: TAT.Task): TAT.Document = {
-    val ioSupp = IoSupport(DefaultEvalPaths.empty)
+    val ioSupp = IoSupport(DefaultEvalPaths.empty, fileResolver)
     val srcString = ioSupp.readFilePosition(task.loc.source.toString, task.loc)
     TAT.Document(StringFileNode(contents = srcString),
                  TAT.Version(outputWdlVersion)(SourceLocation.empty),
@@ -381,7 +382,7 @@ case class CodeGenerator(typeAliases: Map[String, WdlTypes.T_Struct],
         .map { case (_, task) => task }
 
     val wfWithoutImportCalls = wf.copy(body = unqualifyCallNames(wf.body))(wf.loc)
-    val ioSupp = IoSupport(DefaultEvalPaths.empty)
+    val ioSupp = IoSupport(DefaultEvalPaths.empty, fileResolver)
     val srcString = ioSupp.readFilePosition(wf.loc.source.toString, wf.loc)
     TAT.Document(
         StringFileNode(contents = srcString),

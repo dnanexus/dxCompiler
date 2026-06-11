@@ -33,8 +33,9 @@ class BearerAuthImport(RegisteredTest):
     The test brings up an HTTP server that serves a single WDL document behind
     a static Bearer token, renders the main workflow with the server URL, and
     invokes `java -jar dxCompiler.jar compile ... -compileMode IR` three times:
-    with no token, a wrong token, and the correct token. The first two must
-    fail with HTTP 401; the third must succeed.
+    with no token, a wrong token, and the correct token. The first must fail
+    with HTTP 401 (no credentials) and the second with HTTP 403 (credentials
+    supplied but rejected); the third must succeed.
 
     It does not interact with the platform: there is no upload, no DXAnalysis,
     and no messenger. `get_test_result` is overridden so the normal
@@ -78,7 +79,7 @@ class BearerAuthImport(RegisteredTest):
             url = f"http://{host}:{port}/{_PROTECTED_WDL_FILENAME}"
             scenarios: List[Tuple[str, Union[str, None], bool, Union[str, None]]] = [
                 ("no token configured", None, False, "401"),
-                ("wrong token configured", f"{host}:wrong-token", False, "401"),
+                ("wrong token configured", f"{host}:wrong-token", False, "403"),
                 (
                     "correct token configured",
                     f"{host}:{_EXPECTED_TOKEN}",
@@ -132,16 +133,24 @@ class BearerAuthImport(RegisteredTest):
         protected_path = "/" + _PROTECTED_WDL_FILENAME
 
         class Handler(BaseHTTPRequestHandler):
-            def _authorized(self) -> bool:
-                return self.headers.get("Authorization") == f"Bearer {expected_token}"
+            def _auth_status(self) -> int:
+                # 401 when no credentials are supplied, 403 when credentials are
+                # supplied but do not match, 200 when they match.
+                auth = self.headers.get("Authorization")
+                if auth is None:
+                    return 401
+                if auth != f"Bearer {expected_token}":
+                    return 403
+                return 200
 
             def _serve(self, send_body: bool) -> None:
                 if self.path != protected_path:
                     self.send_response(404)
                     self.end_headers()
                     return
-                if not self._authorized():
-                    self.send_response(401)
+                status = self._auth_status()
+                if status != 200:
+                    self.send_response(status)
                     self.end_headers()
                     return
                 self.send_response(200)
