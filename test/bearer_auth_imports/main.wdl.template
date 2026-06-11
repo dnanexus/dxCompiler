@@ -1,0 +1,19 @@
+version 1.0
+
+# Import is resolved at compile time by the WDL parser via the dxCompiler file
+# resolver. The {URL} placeholder is substituted by scripts/run_tests.py with
+# the address of a local HTTP server that requires a Bearer token. This file
+# is a template (not parseable WDL on its own) and is rendered into a temp dir
+# at test time.
+
+import "{URL}" as lib
+
+workflow bearer_auth_imports {
+  input {
+    String name = "world"
+  }
+  call lib.hello { input: name = name }
+  output {
+    String greeting = hello.greeting
+  }
+}

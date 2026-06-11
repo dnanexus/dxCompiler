@@ -560,6 +560,13 @@ cwl_conformance = (
 
 manifest_test_list = ("simple_manifest", "complex_manifest", "view_and_count_manifest", "apps_1269_1270_unqualified_ids_manifest")
 
+# `bearer_auth_import` is a reserved pseudo-test name: it is handled by a
+# local HTTP-server-backed compile flow (see run_bearer_auth_tests) rather than
+# the normal platform compile/run pipeline. It is intentionally NOT discovered
+# by register_all_tests (the fixture dir is skipped there) and must be listed
+# here so choose_tests() accepts it.
+BEARER_AUTH_TEST_NAME = "bearer_auth_import"
+
 test_suites = {
     "CI": ci_test_list,
     "M": medium_test_list,
@@ -574,7 +581,8 @@ test_suites = {
     "cromwell": cromwell_tests_list,
     "cwl_cromwell": cwl_cromwell_tests_list,
     "manifests": manifest_test_list,
-    "CWL": cwl_conformance
+    "CWL": cwl_conformance,
+    "bearer_auth": [BEARER_AUTH_TEST_NAME],
 }
 
 # Tests with the reorg flags
@@ -1605,6 +1613,9 @@ def choose_tests(name):
         return test_files.keys()
     if name in test_files.keys():
         return [name]
+    if name == BEARER_AUTH_TEST_NAME:
+        # Reserved pseudo-test (handled in main() before platform setup).
+        return [name]
     # Last chance: check if the name is a prefix.
     # Accept it if there is exactly a single match.
     matches = [key for key in test_files.keys() if key.startswith(name)]
@@ -1624,6 +1635,10 @@ def register_all_tests(verbose: bool) -> None:
         if os.path.basename(root).endswith("_ignore") or os.path.basename(
             root
         ).endswith("_notimplemented"):
+            continue
+        # bearer-auth import fixtures are driven by --bearer-auth-tests; they
+        # are not standalone runnable tests and must not be registered here.
+        if os.path.basename(root) == "bearer_auth_imports":
             continue
         for t_file in files:
             if t_file.endswith(".wdl"): # or t_file.endswith(".cwl"):
@@ -1873,6 +1888,182 @@ def compile_tests_to_project(
     return runnable
 
 
+######################################################################
+# Bearer-token authenticated WDL imports
+#
+# Local-only test: spins up a tiny HTTP server that guards a WDL document
+# behind a static Bearer token, then drives the dxCompiler JAR (in IR mode,
+# so no platform interaction) under three configurations of
+# DXCOMPILER_WDL_IMPORT_BEARER_TOKENS:
+#   1. unset      -> compile must fail with HTTP 401
+#   2. wrong tok  -> compile must fail with HTTP 401
+#   3. right tok  -> compile must succeed
+#
+# The fixture lives in test/bearer_auth_imports/.
+######################################################################
+
+BEARER_AUTH_FIXTURE_DIR = os.path.join(test_dir, "bearer_auth_imports")
+BEARER_AUTH_EXPECTED_TOKEN = "secret-token-abc"
+BEARER_AUTH_ENV_VAR = "DXCOMPILER_WDL_IMPORT_BEARER_TOKENS"
+
+
+def _start_bearer_auth_server(imported_wdl_bytes, expected_token):
+    """Start an HTTP server that serves /imported.wdl behind a Bearer token.
+    Returns (server, host, port). Caller is responsible for shutdown().
+    """
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+    import threading
+
+    class Handler(BaseHTTPRequestHandler):
+        def _check_auth(self):
+            return self.headers.get("Authorization") == "Bearer {}".format(expected_token)
+
+        def _serve(self, send_body):
+            if self.path != "/imported.wdl":
+                self.send_response(404)
+                self.end_headers()
+                return
+            if not self._check_auth():
+                self.send_response(401)
+                self.end_headers()
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Content-Length", str(len(imported_wdl_bytes)))
+            self.end_headers()
+            if send_body:
+                self.wfile.write(imported_wdl_bytes)
+
+        def do_GET(self):  # noqa: N802 (BaseHTTPRequestHandler API)
+            self._serve(send_body=True)
+
+        def do_HEAD(self):  # noqa: N802
+            self._serve(send_body=False)
+
+        def log_message(self, fmt, *args):  # silence the access log
+            return
+
+    server = HTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    host, port = server.server_address
+    return server, host, port
+
+
+def _run_compile_with_env(jar_path, main_wdl_path, env_value):
+    """Invoke `java -jar dxCompiler.jar compile <main.wdl> -compileMode IR -quiet`
+    with DXCOMPILER_WDL_IMPORT_BEARER_TOKENS set to env_value (or unset if None).
+    Returns (returncode, stdout, stderr).
+    """
+    env = dict(os.environ)
+    if env_value is None:
+        env.pop(BEARER_AUTH_ENV_VAR, None)
+    else:
+        env[BEARER_AUTH_ENV_VAR] = env_value
+    cmd = [
+        "java", "-jar", jar_path,
+        "compile", main_wdl_path,
+        "-compileMode", "IR",
+        "-quiet",
+    ]
+    result = subprocess.run(cmd, env=env, capture_output=True, text=True)
+    return result.returncode, result.stdout, result.stderr
+
+
+def run_bearer_auth_tests(version_id, verbose):
+    """Run the bearer-auth WDL import scenarios. Returns 0 on success, 1 on any failure."""
+    jar_path = os.path.join(top_dir, "dxCompiler-{}.jar".format(version_id))
+    if not os.path.exists(jar_path):
+        cprint(
+            "dxCompiler JAR not found at {}; build it first (e.g. via run_tests.py --build only or sbt assembly).".format(jar_path),
+            "red",
+        )
+        return 1
+
+    imported_wdl_path = os.path.join(BEARER_AUTH_FIXTURE_DIR, "imported.wdl")
+    main_template_path = os.path.join(BEARER_AUTH_FIXTURE_DIR, "main.wdl.template")
+    for p in (imported_wdl_path, main_template_path):
+        if not os.path.exists(p):
+            cprint("Missing fixture file: {}".format(p), "red")
+            return 1
+
+    with open(imported_wdl_path, "rb") as f:
+        imported_wdl_bytes = f.read()
+    with open(main_template_path, "r") as f:
+        main_template = f.read()
+
+    server, host, port = _start_bearer_auth_server(
+        imported_wdl_bytes, BEARER_AUTH_EXPECTED_TOKEN
+    )
+    try:
+        imported_url = "http://{}:{}/imported.wdl".format(host, port)
+        cprint("bearer-auth: serving protected WDL at {}".format(imported_url), "yellow")
+
+        scenarios = [
+            # (label, env value, expect_success, must_include_in_output)
+            ("no token configured", None, False, "401"),
+            ("wrong token configured",
+             "{}:wrong-token".format(host), False, "401"),
+            ("correct token configured",
+             "{}:{}".format(host, BEARER_AUTH_EXPECTED_TOKEN), True, None),
+        ]
+
+        with tempfile.TemporaryDirectory(prefix="bearer-auth-tests-") as workdir:
+            main_wdl_path = os.path.join(workdir, "main.wdl")
+            with open(main_wdl_path, "w") as f:
+                f.write(main_template.replace("{URL}", imported_url))
+            if verbose:
+                print("rendered main.wdl at {}".format(main_wdl_path))
+
+            failures = []
+            for label, env_value, expect_success, must_include in scenarios:
+                cprint("\nbearer-auth scenario: {}".format(label), "yellow")
+                rc, stdout, stderr = _run_compile_with_env(
+                    jar_path, main_wdl_path, env_value
+                )
+                combined = (stdout or "") + (stderr or "")
+                if verbose:
+                    print("  exit code: {}".format(rc))
+                    if combined.strip():
+                        print("  output: {}".format(combined.strip()[:1000]))
+
+                ok = True
+                if expect_success and rc != 0:
+                    ok = False
+                    msg = "expected compile to succeed, got exit {}".format(rc)
+                elif not expect_success and rc == 0:
+                    ok = False
+                    msg = "expected compile to fail, got exit 0"
+                elif must_include and must_include not in combined:
+                    ok = False
+                    msg = "output did not contain expected fragment {!r}".format(must_include)
+                else:
+                    msg = "exit code {} as expected".format(rc)
+
+                if ok:
+                    cprint("  PASS: {}".format(msg), "green")
+                else:
+                    cprint("  FAIL: {}".format(msg), "red")
+                    if not verbose and combined.strip():
+                        print("  output: {}".format(combined.strip()[:1000]))
+                    failures.append(label)
+
+            if failures:
+                cprint(
+                    "\nbearer-auth: {}/{} scenarios failed: {}".format(
+                        len(failures), len(scenarios), ", ".join(failures)
+                    ),
+                    "red",
+                )
+                return 1
+            cprint("\nbearer-auth: all {} scenarios passed".format(len(scenarios)), "green")
+            return 0
+    finally:
+        server.shutdown()
+
+
+######################################################################
+
 def main():
     global test_unlocked
     argparser = argparse.ArgumentParser(
@@ -2020,6 +2211,21 @@ def main():
     if test_names:
         print("Running tests {}".format(test_names))
     version_id = util.get_version_id(top_dir)
+
+    # Handle the bearer-auth pseudo-test before any platform setup. It runs an
+    # in-process HTTP server + local compile against the dxCompiler JAR, so it
+    # needs neither a project nor a folder. If it is the only requested test,
+    # exit right after running it.
+    if BEARER_AUTH_TEST_NAME in test_names:
+        bearer_rc = run_bearer_auth_tests(version_id, args.verbose)
+        test_names = [t for t in test_names if t != BEARER_AUTH_TEST_NAME]
+        if not test_names:
+            sys.exit(bearer_rc)
+        if bearer_rc != 0:
+            cprint(
+                "bearer-auth scenarios failed; continuing with the remaining tests",
+                "red",
+            )
 
     project = util.get_project(args.project)
     if project is None:

@@ -20,6 +20,7 @@ from dxcint.testclasses.ExternExpectedOutput import ExternExpectedOutput
 from dxcint.testclasses.AppExternExpectedOutput import AppExternExpectedOutput
 from dxcint.testclasses.ExpectedFlags import ExpectedFlags
 from dxcint.testclasses.ExtrasExpectedFlags import ExtrasExpectedFlags
+from dxcint.testclasses.BearerAuthImport import BearerAuthImport
 
 
 class RegisteredTestFactory(object):
@@ -45,6 +46,7 @@ class RegisteredTestFactory(object):
             "app_extern_expected_output": AppExternExpectedOutput,
             "expected_flags": ExpectedFlags,
             "extras_expected_flags": ExtrasExpectedFlags,
+            "bearer_auth_import": BearerAuthImport,
             # ADD NEW CATEGORY HERE
         }
         registered_test = test_type_switch.get(category, None)
