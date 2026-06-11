@@ -133,9 +133,7 @@ class BearerAuthImport(RegisteredTest):
                     }
                 return {
                     "passed": True,
-                    "message": (
-                        f"all {len(scenarios)} bearer-auth scenarios passed"
-                    ),
+                    "message": (f"all {len(scenarios)} bearer-auth scenarios passed"),
                 }
         finally:
             server.shutdown()
@@ -202,9 +200,13 @@ class BearerAuthImport(RegisteredTest):
         else:
             env[_BEARER_TOKENS_ENV_VAR] = env_value
         cmd = [
-            "java", "-jar", jar_path,
-            "compile", main_wdl_path,
-            "-compileMode", "IR",
+            "java",
+            "-jar",
+            jar_path,
+            "compile",
+            main_wdl_path,
+            "-compileMode",
+            "IR",
             "-quiet",
         ]
         token_repr = env.get(_BEARER_TOKENS_ENV_VAR, "<unset>")
