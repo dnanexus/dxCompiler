@@ -1636,7 +1636,8 @@ def register_all_tests(verbose: bool) -> None:
             root
         ).endswith("_notimplemented"):
             continue
-        # bearer-auth import fixtures are driven by --bearer-auth-tests; they
+        # bearer-auth import fixtures are driven by the bearer_auth_import
+        # pseudo-test (--test bearer_auth / --test bearer_auth_import); they
         # are not standalone runnable tests and must not be registered here.
         if os.path.basename(root) == "bearer_auth_imports":
             continue
@@ -1895,8 +1896,8 @@ def compile_tests_to_project(
 # behind a static Bearer token, then drives the dxCompiler JAR (in IR mode,
 # so no platform interaction) under three configurations of
 # DXCOMPILER_WDL_IMPORT_BEARER_TOKENS:
-#   1. unset      -> compile must fail with HTTP 401
-#   2. wrong tok  -> compile must fail with HTTP 401
+#   1. unset      -> compile must fail with HTTP 401 (no credentials)
+#   2. wrong tok  -> compile must fail with HTTP 403 (credentials rejected)
 #   3. right tok  -> compile must succeed
 #
 # The fixture lives in test/bearer_auth_imports/.
@@ -1915,16 +1916,24 @@ def _start_bearer_auth_server(imported_wdl_bytes, expected_token):
     import threading
 
     class Handler(BaseHTTPRequestHandler):
-        def _check_auth(self):
-            return self.headers.get("Authorization") == "Bearer {}".format(expected_token)
+        def _auth_status(self):
+            # 401 when no credentials are supplied, 403 when credentials are
+            # supplied but do not match, 200 when they match.
+            auth = self.headers.get("Authorization")
+            if auth is None:
+                return 401
+            if auth != "Bearer {}".format(expected_token):
+                return 403
+            return 200
 
         def _serve(self, send_body):
             if self.path != "/imported.wdl":
                 self.send_response(404)
                 self.end_headers()
                 return
-            if not self._check_auth():
-                self.send_response(401)
+            status = self._auth_status()
+            if status != 200:
+                self.send_response(status)
                 self.end_headers()
                 return
             self.send_response(200)
@@ -2003,7 +2012,7 @@ def run_bearer_auth_tests(version_id, verbose):
             # (label, env value, expect_success, must_include_in_output)
             ("no token configured", None, False, "401"),
             ("wrong token configured",
-             "{}:wrong-token".format(host), False, "401"),
+             "{}:wrong-token".format(host), False, "403"),
             ("correct token configured",
              "{}:{}".format(host, BEARER_AUTH_EXPECTED_TOKEN), True, None),
         ]
