@@ -137,6 +137,7 @@ class BearerAuthImport(RegisteredTest):
                 }
         finally:
             server.shutdown()
+            server.server_close()
 
     # --- helpers ----------------------------------------------------------
 

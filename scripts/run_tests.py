@@ -2069,6 +2069,7 @@ def run_bearer_auth_tests(version_id, verbose):
             return 0
     finally:
         server.shutdown()
+        server.server_close()
 
 
 ######################################################################
