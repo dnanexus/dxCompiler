@@ -158,7 +158,9 @@ def local_bearer_auth(ctx, dxc_repository_root: str) -> None:
     test_discovery = TestDiscovery(test_context)
     registered_tests = test_discovery.discover_single_test("bearer_auth_import")
     test_context.logger.info("CLI: Running local bearer_auth_import test")
-    results = [registered_test.get_test_result() for registered_test in registered_tests]
+    results = [
+        registered_test.get_test_result() for registered_test in registered_tests
+    ]
     if results.count(False) > 0:
         test_context.logger.error("local bearer-auth test failed")
         exit(1)
