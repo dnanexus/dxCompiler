@@ -27,15 +27,15 @@ _URL_PLACEHOLDER = "{URL}"
 
 
 class BearerAuthImport(RegisteredTest):
-    """Local-only test that verifies dxCompiler honours
+    """Local-only test that verifies dxCompiler handles
     `DXCOMPILER_WDL_IMPORT_BEARER_TOKENS` when following http(s) WDL imports.
 
     The test brings up an HTTP server that serves a single WDL document behind
     a static Bearer token, renders the main workflow with the server URL, and
     invokes `java -jar dxCompiler.jar compile ... -compileMode IR` three times:
-    with no token, a wrong token, and the correct token. The first must fail
-    with HTTP 401 (no credentials) and the second with HTTP 403 (credentials
-    supplied but rejected); the third must succeed.
+    with no token, a wrong token, and the correct token. All three must fail
+    with HTTP 401 because bearer credentials are never attached to plain HTTP
+    imports.
 
     It does not interact with the platform: there is no upload, no DXAnalysis,
     and no messenger. `get_test_result` is overridden so the normal
@@ -92,15 +92,18 @@ class BearerAuthImport(RegisteredTest):
                     f"{host}:wrong-token",
                     False,
                     [
-                        "HTTP 403 Forbidden",
-                        "the provided credentials are invalid or lack the required permissions",
+                        "HTTP 401 Unauthorized",
+                        "ensure the credentials are provided",
                     ],
                 ),
                 (
-                    "correct token configured",
+                    "correct token configured over HTTP",
                     f"{host}:{_EXPECTED_TOKEN}",
-                    True,
-                    [],
+                    False,
+                    [
+                        "HTTP 401 Unauthorized",
+                        "ensure the credentials are provided",
+                    ],
                 ),
             ]
             with tempfile.TemporaryDirectory(prefix="dxcint-bearer-auth-") as workdir:
@@ -210,11 +213,7 @@ class BearerAuthImport(RegisteredTest):
             "IR",
             "-quiet",
         ]
-        token_repr = env.get(_BEARER_TOKENS_ENV_VAR, "<unset>")
-        self._context.logger.info(
-            f"BearerAuthImport: COMPILE COMMAND "
-            f"{_BEARER_TOKENS_ENV_VAR}={token_repr} {' '.join(cmd)}"
-        )
+        self._context.logger.info(f"BearerAuthImport: COMPILE COMMAND {' '.join(cmd)}")
         proc = sp.run(cmd, env=env, capture_output=True, text=True)
         return proc.returncode, (proc.stdout or "") + (proc.stderr or "")
 

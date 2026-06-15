@@ -125,3 +125,21 @@ class ContextEmpty(Context):
             object.__setattr__(self, *args)
         else:
             raise ContextError("Context class is immutable")
+
+
+class ContextLocal(Context):
+    def __init__(self, repo_root: str, logger_verbosity: str = "info"):
+        self._logger = Logger.make(name=__name__, verbosity=logger_verbosity)
+        self._project_id = ""
+        self._user = None
+        self._repo_root_dir = os.path.realpath(repo_root)
+        self._compiler_version = self._get_version()
+        self._platform_build_dir = "."
+        self._lock = Lock()
+        self._project_info = None
+
+    def __setattr__(self, *args):
+        if inspect.stack()[1][3] == "__init__":
+            object.__setattr__(self, *args)
+        else:
+            raise ContextError("Context class is immutable")

@@ -245,6 +245,8 @@ case class WdlTranslatorFactory(wdlOptions: WdlOptions = WdlOptions.default)
                       logger: Logger = Logger.get): Option[WdlTranslator] = {
     // For WDL imports only, swap in an authenticated http/https protocol so users
     // can supply Bearer tokens for private hosts via DXCOMPILER_WDL_IMPORT_BEARER_TOKENS.
+    // The protocol only attaches credentials to HTTPS requests to avoid
+    // cleartext token transmission over plain HTTP.
     // Strip any existing http/https handler first so the replacement is unambiguous
     // (FileSourceResolver's scheme map otherwise resolves duplicates by Vector order).
     val httpSchemes = Set(FileUtils.HttpScheme, FileUtils.HttpsScheme)

@@ -20,11 +20,11 @@ import java.nio.charset.StandardCharsets
   * End-to-end test for authenticated WDL imports.
   *
   * Spins up a local HTTP server that guards a tiny WDL document behind a
-  * static Bearer token, then exercises three configurations:
+  * static Bearer token, then verifies that Bearer credentials are never
+  * attached over plain HTTP:
   *   - no token configured  -> 401
-  *   - wrong token          -> 403
-  *   - correct token        -> success (bytes round-trip and a main.wdl that
-  *                                       imports the protected doc parses).
+  *   - wrong token          -> 401
+  *   - correct token        -> 401
   */
 class WdlImportHttpAuthIntegrationTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
@@ -115,17 +115,18 @@ class WdlImportHttpAuthIntegrationTest extends AnyFlatSpec with Matchers with Be
     thrown.getMessage should include(WdlImportHttpAuth.TokensEnvVar)
   }
 
-  it should "fail with HTTP 403 when the configured token is wrong" in {
+  it should "fail with HTTP 401 when the configured token is wrong" in {
     val resolver = resolverWith(Map(serverHost -> "not-the-right-token"))
     val fs = resolver.resolve(importedUrl)
     val thrown = the[Exception] thrownBy fs.readBytes
-    thrown.getMessage should include("HTTP 403 Forbidden")
+    thrown.getMessage should include("HTTP 401 Unauthorized")
   }
 
-  it should "fetch the protected WDL bytes when the configured token is correct" in {
+  it should "not send a bearer token over HTTP even when one is configured" in {
     val resolver = resolverWith(Map(serverHost -> ExpectedToken))
     val fs = resolver.resolve(importedUrl)
-    new String(fs.readBytes, StandardCharsets.UTF_8) shouldBe ImportedWdl
+    val thrown = the[Exception] thrownBy fs.readBytes
+    thrown.getMessage should include("HTTP 401 Unauthorized")
   }
 
   it should "only attach the bearer token to hosts present in the token map" in {
@@ -184,11 +185,18 @@ class WdlImportHttpAuthIntegrationTest extends AnyFlatSpec with Matchers with Be
       .takeWhile(_.isDefined)
       .flatMap(_.map(_.getMessage))
       .mkString(" | ")
-    messages should (include("403") or include("Forbidden"))
+    messages should (include("401") or include("Unauthorized"))
   }
 
-  it should "successfully parse a main.wdl that imports the protected doc when the token is correct" in {
-    val (doc, _, _) = parseMain(resolverWith(Map(serverHost -> ExpectedToken)))
-    doc.workflow.map(_.name) shouldBe Some("main")
+  it should "fail to parse a main.wdl that imports the protected doc even when the token is correct over HTTP" in {
+    val thrown = the[Exception] thrownBy parseMain(
+        resolverWith(Map(serverHost -> ExpectedToken))
+    )
+    val messages = Iterator
+      .iterate(Option(thrown: Throwable))(_.flatMap(t => Option(t.getCause)))
+      .takeWhile(_.isDefined)
+      .flatMap(_.map(_.getMessage))
+      .mkString(" | ")
+    messages should (include("401") or include("Unauthorized"))
   }
 }
