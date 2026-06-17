@@ -1,8 +1,9 @@
 # Release Notes
 
-## Unreleased
+## 2.17.0 2026-06-17
 
 * Added support for authenticated http(s) WDL imports via per-domain Bearer tokens supplied through the `DXCOMPILER_WDL_IMPORT_BEARER_TOKENS` environment variable
+* Update dxCommonVersion to 0.12.1
 
 ## 2.16.0 2026-05-13
 
