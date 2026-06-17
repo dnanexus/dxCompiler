@@ -5,7 +5,14 @@ import dx.api.{DxApi, DxProject}
 import dx.core.ir._
 import dx.core.ir.Type.TSchema
 import dx.core.languages.Language
-import dx.core.languages.wdl.{VersionSupport, WdlBundle, WdlDxName, WdlOptions, WdlUtils}
+import dx.core.languages.wdl.{
+  VersionSupport,
+  WdlBundle,
+  WdlDxName,
+  WdlImportHttpAuth,
+  WdlOptions,
+  WdlUtils
+}
 import dx.translator.{
   DxWorkflowAttrs,
   InputTranslator,
@@ -14,7 +21,7 @@ import dx.translator.{
   TranslatorFactory
 }
 import dx.parallel.ParallelDef.seqToParSupport
-import dx.util.{FileSourceResolver, Logger}
+import dx.util.{FileSourceResolver, FileUtils, Logger}
 import spray.json.{JsArray, JsObject, JsString, JsValue}
 import wdlTools.syntax.NoSuchParserException
 import wdlTools.types.{WdlTypes, TypedAbstractSyntax => TAT}
@@ -236,9 +243,20 @@ case class WdlTranslatorFactory(wdlOptions: WdlOptions = WdlOptions.default)
                       fileResolver: FileSourceResolver,
                       dxApi: DxApi = DxApi.get,
                       logger: Logger = Logger.get): Option[WdlTranslator] = {
+    // For WDL imports only, swap in an authenticated http/https protocol so users
+    // can supply Bearer tokens for private hosts via DXCOMPILER_WDL_IMPORT_BEARER_TOKENS.
+    // The protocol only attaches credentials to HTTPS requests to avoid
+    // cleartext token transmission over plain HTTP.
+    // Strip any existing http/https handler first so the replacement is unambiguous
+    // (FileSourceResolver's scheme map otherwise resolves duplicates by Vector order).
+    val httpSchemes = Set(FileUtils.HttpScheme, FileUtils.HttpsScheme)
+    val wdlFileResolver = FileSourceResolver(
+        fileResolver.protocols.filterNot(_.schemes.exists(httpSchemes.contains)) :+
+          WdlImportHttpAuth.fromEnvironment(logger = logger)
+    )
     val (doc, typeAliases, versionSupport) =
       try {
-        VersionSupport.fromSourceFile(sourceFile, wdlOptions, fileResolver, dxApi, logger)
+        VersionSupport.fromSourceFile(sourceFile, wdlOptions, wdlFileResolver, dxApi, logger)
       } catch {
         // If the exception is because this is not a WDL document, return
         // None so other translators will have a chance to try to parse it,
@@ -262,7 +280,7 @@ case class WdlTranslatorFactory(wdlOptions: WdlOptions = WdlOptions.default)
             executableCreationParallelism,
             instanceTypeSelection,
             versionSupport,
-            fileResolver,
+            wdlFileResolver,
             dxApi,
             logger
         )

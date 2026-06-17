@@ -5,7 +5,7 @@ import pprint
 import click
 from typing import Optional, List
 
-from dxcint.Context import Context, ContextEmpty
+from dxcint.Context import Context, ContextEmpty, ContextLocal
 from dxcint.Terraform import Terraform
 from dxcint.TestDiscovery import TestDiscovery, TestDiscoveryError
 
@@ -139,6 +139,32 @@ def suites() -> None:
     test_discovery = TestDiscovery(empty_context)
     print("Available suites are:")
     pprint.pp(test_discovery.suites)
+
+
+@dxcint.command(name="local-bearer-auth")
+@click.pass_context
+@click.argument("dxc_repository_root", required=True)
+def local_bearer_auth(ctx, dxc_repository_root: str) -> None:
+    """
+    \b
+    Run the local-only bearer-auth import test without DX platform setup.
+    Positional Arguments:
+        DXC_REPOSITORY_ROOT: A root directory of a dxCompiler repository. Should contain build.sbt.
+    """
+    test_context = ContextLocal(
+        repo_root=dxc_repository_root,
+        logger_verbosity=ctx.obj.verbosity,
+    )
+    test_discovery = TestDiscovery(test_context)
+    registered_tests = test_discovery.discover_single_test("bearer_auth_import")
+    test_context.logger.info("CLI: Running local bearer_auth_import test")
+    results = [
+        registered_test.get_test_result() for registered_test in registered_tests
+    ]
+    if results.count(False) > 0:
+        test_context.logger.error("local bearer-auth test failed")
+        exit(1)
+    test_context.logger.info("local bearer-auth test passed")
 
 
 if __name__ == "__main__":

@@ -49,6 +49,13 @@ Options:
 
 ```
 
+#### Running local bearer-auth import test
+```bash
+Usage: dxcint local-bearer-auth [OPTIONS] DXC_REPOSITORY_ROOT
+
+  Run the local-only bearer-auth import test without DX platform setup.
+```
+
 #### Available suites
 Command to print a hash of available suites
 ```bash
@@ -68,6 +75,11 @@ dxcint integration ${ROOT_DIR_OF_DXCOMPILER_REPO} --test_name ${TEST_NAME}
 ```
 where `${TEST_NAME}` is the name of a single test ot a test suite. Available test suites can be checked by `dxcint suites`, 
 see [Available suites](#available-suites) for more info.
+
+To run the bearer-auth import test without DX auth/project setup:
+```bash
+dxcint local-bearer-auth ${ROOT_DIR_OF_DXCOMPILER_REPO}
+```
 
 
 ## Adding tests

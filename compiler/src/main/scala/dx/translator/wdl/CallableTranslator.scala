@@ -53,7 +53,8 @@ case class CallableTranslator(wdlBundle: WdlBundle,
 
   private lazy val evaluator: Eval =
     Eval(DefaultEvalPaths.empty, Some(wdlBundle.version), Vector.empty, fileResolver, logger)
-  private lazy val codegen = CodeGenerator(typeAliases, wdlBundle.version, logger)
+  private lazy val codegen =
+    CodeGenerator(typeAliases, wdlBundle.version, logger, fileResolver)
 
   // Return non-local file dependencies of private variables
   private def translateStaticFileDependencies(
