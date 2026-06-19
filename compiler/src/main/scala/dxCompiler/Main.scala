@@ -829,7 +829,7 @@ object Main {
         |  
         |  describe <DxWorkflow ID>
         |    Generate the JSON execution tree for a given DNAnexus workflow ID.
-        |    The workflow needs to be have been previously compiled by dxCompiler.
+        |    The workflow needs to have been previously compiled by dxCompiler.
         |    options
         |      -pretty                Print exec tree in "pretty" text format instead of JSON.
         |
@@ -850,7 +850,7 @@ object Main {
         |                             that perform runtime evaluation of instance type
         |                             requirements. This instance type is also used when 
         |                             the '-instanceTypeSelection dynamic' option is set.
-        |                             This value is overriden by any defaults set in set in the 
+        |                             This value is overridden by any defaults set in the 
         |                             JSON file specified by '-extras'.
         |      -destination <string>  Full platform path (project:/folder).
         |      -execTree [json,pretty]    
