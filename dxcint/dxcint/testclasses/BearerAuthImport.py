@@ -221,24 +221,46 @@ class BearerAuthImport(RegisteredTest):
 
         sp.run(
             [
-                openssl, "req", "-x509", "-newkey", "rsa:2048",
-                "-keyout", key_pem, "-out", cert_pem,
-                "-days", "1", "-nodes",
-                "-subj", f"/CN={_HOST}",
-                "-addext", f"subjectAltName=IP:{_HOST},DNS:localhost",
+                openssl,
+                "req",
+                "-x509",
+                "-newkey",
+                "rsa:2048",
+                "-keyout",
+                key_pem,
+                "-out",
+                cert_pem,
+                "-days",
+                "1",
+                "-nodes",
+                "-subj",
+                f"/CN={_HOST}",
+                "-addext",
+                f"subjectAltName=IP:{_HOST},DNS:localhost",
             ],
-            check=True, capture_output=True, text=True,
+            check=True,
+            capture_output=True,
+            text=True,
         )
         sp.run(
             [
-                keytool, "-importcert", "-noprompt",
-                "-alias", "bearer",
-                "-file", cert_pem,
-                "-keystore", truststore,
-                "-storetype", "PKCS12",
-                "-storepass", _TRUSTSTORE_PASSWORD,
+                keytool,
+                "-importcert",
+                "-noprompt",
+                "-alias",
+                "bearer",
+                "-file",
+                cert_pem,
+                "-keystore",
+                truststore,
+                "-storetype",
+                "PKCS12",
+                "-storepass",
+                _TRUSTSTORE_PASSWORD,
             ],
-            check=True, capture_output=True, text=True,
+            check=True,
+            capture_output=True,
+            text=True,
         )
         self._cert_pem = cert_pem
         self._key_pem = key_pem
@@ -337,7 +359,15 @@ class BearerAuthImport(RegisteredTest):
         cmd = (
             ["java"]
             + jvm_args
-            + ["-jar", jar_path, "compile", main_wdl_path, "-compileMode", "IR", "-quiet"]
+            + [
+                "-jar",
+                jar_path,
+                "compile",
+                main_wdl_path,
+                "-compileMode",
+                "IR",
+                "-quiet",
+            ]
         )
         self._context.logger.info(f"BearerAuthImport: COMPILE COMMAND {' '.join(cmd)}")
         proc = sp.run(cmd, env=env, capture_output=True, text=True)
