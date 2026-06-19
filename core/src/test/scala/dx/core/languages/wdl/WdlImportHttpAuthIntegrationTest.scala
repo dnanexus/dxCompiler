@@ -1,6 +1,12 @@
 package dx.core.languages.wdl
 
-import com.sun.net.httpserver.{HttpExchange, HttpHandler, HttpServer, HttpsConfigurator, HttpsServer}
+import com.sun.net.httpserver.{
+  HttpExchange,
+  HttpHandler,
+  HttpServer,
+  HttpsConfigurator,
+  HttpsServer
+}
 import dx.api.DxApi
 import dx.util.{
   AuthenticatedHttpFileAccessProtocol,
