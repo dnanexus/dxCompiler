@@ -1,15 +1,17 @@
 import os
+import shutil
+import ssl
 import subprocess as sp
 import tempfile
 import threading
-from http.server import BaseHTTPRequestHandler, HTTPServer
-from typing import Dict, List, Tuple, Union
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from typing import Dict, List, Optional, Tuple, Union
 
 from dxcint.Context import Context, ContextEmpty
 from dxcint.RegisteredTest import RegisteredTest
 
 
-# Token expected by the in-process HTTP server. Mirrors the value used by the
+# Token expected by the in-process HTTPS server. Mirrors the value used by the
 # scalatest integration spec; keep these in sync if it ever needs to change.
 _EXPECTED_TOKEN = "secret-token-abc"
 
@@ -17,25 +19,41 @@ _EXPECTED_TOKEN = "secret-token-abc"
 # WDL imports. Mirrored from dx.core.languages.wdl.WdlImportHttpAuth.TokensEnvVar.
 _BEARER_TOKENS_ENV_VAR = "DXCOMPILER_WDL_IMPORT_BEARER_TOKENS"
 
-# Filename of the protected WDL served by the local HTTP server. Lives next to
-# the main workflow template in the test fixture directory.
+# Filename of the WDL served by the local HTTP(S) servers. Lives next to the
+# main workflow template in the test fixture directory.
 _PROTECTED_WDL_FILENAME = "imported.wdl"
 
 # Placeholder in the main WDL fixture that is replaced with the live server
 # URL at test time.
 _URL_PLACEHOLDER = "{URL}"
 
+# Loopback host the servers bind to. Used verbatim in the import URL, in the
+# per-domain token map, and in the certificate SAN so JVM hostname
+# verification succeeds.
+_HOST = "127.0.0.1"
+
+# Password protecting the generated Java truststore.
+_TRUSTSTORE_PASSWORD = "changeit"
+
 
 class BearerAuthImport(RegisteredTest):
-    """Local-only test that verifies dxCompiler handles
-    `DXCOMPILER_WDL_IMPORT_BEARER_TOKENS` when following http(s) WDL imports.
+    """Local-only test that verifies how dxCompiler follows http(s) WDL imports
+    and honours `DXCOMPILER_WDL_IMPORT_BEARER_TOKENS`.
 
-    The test brings up an HTTP server that serves a single WDL document behind
-    a static Bearer token, renders the main workflow with the server URL, and
-    invokes `java -jar dxCompiler.jar compile ... -compileMode IR` three times:
-    with no token, a wrong token, and the correct token. All three must fail
-    with HTTP 401 because bearer credentials are never attached to plain HTTP
-    imports.
+    It exercises two supported flows plus the Bearer-token security gate:
+
+    * a public document over plain HTTP (no credentials) -> compile succeeds;
+    * a document over HTTPS behind a Bearer token, served with a self-signed
+      certificate that is trusted by the JVM via an injected truststore:
+        - no token   -> compile fails with HTTP 401;
+        - wrong token -> compile fails with HTTP 403;
+        - right token -> compile succeeds.
+
+    Bearer tokens are intentionally only attached to HTTPS requests, so the
+    plain-HTTP flow never sends credentials.
+
+    The certificate, server key, and Java truststore are all generated at
+    runtime (openssl + keytool); nothing is checked into the repository.
 
     It does not interact with the platform: there is no upload, no DXAnalysis,
     and no messenger. `get_test_result` is overridden so the normal
@@ -72,47 +90,79 @@ class BearerAuthImport(RegisteredTest):
         return False
 
     def _validate(self) -> Dict:
-        server, host, port = self._start_protected_server(
-            self._protected_bytes, _EXPECTED_TOKEN
-        )
-        try:
-            url = f"http://{host}:{port}/{_PROTECTED_WDL_FILENAME}"
-            scenarios: List[Tuple[str, Union[str, None], bool, List[str]]] = [
-                (
-                    "no token configured",
-                    None,
-                    False,
-                    [
-                        "HTTP 401 Unauthorized",
-                        "ensure the credentials are provided",
-                    ],
-                ),
-                (
-                    "wrong token configured",
-                    f"{host}:wrong-token",
-                    False,
-                    [
-                        "HTTP 401 Unauthorized",
-                        "ensure the credentials are provided",
-                    ],
-                ),
-                (
-                    "correct token configured over HTTP",
-                    f"{host}:{_EXPECTED_TOKEN}",
-                    False,
-                    [
-                        "HTTP 401 Unauthorized",
-                        "ensure the credentials are provided",
-                    ],
-                ),
-            ]
-            with tempfile.TemporaryDirectory(prefix="dxcint-bearer-auth-") as workdir:
-                main_path = os.path.join(workdir, "main.wdl")
-                with open(main_path, "w") as f:
-                    f.write(self._main_template.replace(_URL_PLACEHOLDER, url))
+        with tempfile.TemporaryDirectory(prefix="dxcint-bearer-auth-") as workdir:
+            truststore = self._generate_tls_material(workdir)
+
+            http_server = self._start_server(require_auth=False)
+            https_server = self._start_server(
+                require_auth=True, ssl_context=self._server_ssl_context()
+            )
+            try:
+                http_url = self._url("http", http_server)
+                https_url = self._url("https", https_server)
+
+                # (label, import url, token env value, inject truststore, expect
+                #  success, required output fragments on failure)
+                scenarios: List[
+                    Tuple[str, str, Optional[str], bool, bool, List[str]]
+                ] = [
+                    (
+                        "public import over HTTP (no auth)",
+                        http_url,
+                        None,
+                        False,
+                        True,
+                        [],
+                    ),
+                    (
+                        "HTTPS import, no token configured",
+                        https_url,
+                        None,
+                        True,
+                        False,
+                        [
+                            "HTTP 401 Unauthorized",
+                            "ensure the credentials are provided",
+                        ],
+                    ),
+                    (
+                        "HTTPS import, wrong token configured",
+                        https_url,
+                        f"{_HOST}:wrong-token",
+                        True,
+                        False,
+                        [
+                            "HTTP 403 Forbidden",
+                            "the provided credentials are invalid or lack the required permissions",
+                        ],
+                    ),
+                    (
+                        "HTTPS import, correct token configured",
+                        https_url,
+                        f"{_HOST}:{_EXPECTED_TOKEN}",
+                        True,
+                        True,
+                        [],
+                    ),
+                ]
+
                 failures: List[str] = []
-                for label, env_value, expect_success, must_include in scenarios:
-                    rc, combined = self._run_compile(main_path, env_value)
+                for (
+                    label,
+                    url,
+                    env_value,
+                    inject_truststore,
+                    expect_success,
+                    must_include,
+                ) in scenarios:
+                    main_path = os.path.join(workdir, "main.wdl")
+                    with open(main_path, "w") as f:
+                        f.write(self._main_template.replace(_URL_PLACEHOLDER, url))
+                    rc, combined = self._run_compile(
+                        main_path,
+                        env_value,
+                        truststore if inject_truststore else None,
+                    )
                     ok, msg = self._check_outcome(
                         rc, combined, expect_success, must_include
                     )
@@ -126,6 +176,7 @@ class BearerAuthImport(RegisteredTest):
                             f"output: {combined.strip()[:1000]}"
                         )
                         failures.append(label)
+
                 if failures:
                     return {
                         "passed": False,
@@ -138,22 +189,103 @@ class BearerAuthImport(RegisteredTest):
                     "passed": True,
                     "message": (f"all {len(scenarios)} bearer-auth scenarios passed"),
                 }
-        finally:
-            server.shutdown()
-            server.server_close()
+            finally:
+                for server in (http_server, https_server):
+                    server.shutdown()
+                    server.server_close()
 
-    # --- helpers ----------------------------------------------------------
+    # --- TLS material -----------------------------------------------------
 
-    @staticmethod
-    def _start_protected_server(
-        body_bytes: bytes, expected_token: str
-    ) -> Tuple[HTTPServer, str, int]:
+    def _generate_tls_material(self, workdir: str) -> str:
+        """Generate a self-signed cert + key (openssl) and a Java truststore
+        (keytool) trusting it. Returns the truststore path.
+
+        The cert lives at ``<workdir>/cert.pem`` / ``<workdir>/key.pem`` so the
+        HTTPS server can present it; the truststore lets the JVM running
+        dxCompiler trust that cert when fetching the import.
+        """
+        openssl = shutil.which("openssl")
+        if openssl is None:
+            raise RuntimeError("openssl is required to generate the test certificate")
+        keytool = shutil.which("keytool")
+        if keytool is None:
+            java = shutil.which("java")
+            if java:
+                keytool = os.path.join(os.path.dirname(java), "keytool")
+        if not keytool or not os.path.exists(keytool):
+            raise RuntimeError("keytool is required to build the test truststore")
+
+        cert_pem = os.path.join(workdir, "cert.pem")
+        key_pem = os.path.join(workdir, "key.pem")
+        truststore = os.path.join(workdir, "truststore.p12")
+
+        sp.run(
+            [
+                openssl,
+                "req",
+                "-x509",
+                "-newkey",
+                "rsa:2048",
+                "-keyout",
+                key_pem,
+                "-out",
+                cert_pem,
+                "-days",
+                "1",
+                "-nodes",
+                "-subj",
+                f"/CN={_HOST}",
+                "-addext",
+                f"subjectAltName=IP:{_HOST},DNS:localhost",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        sp.run(
+            [
+                keytool,
+                "-importcert",
+                "-noprompt",
+                "-alias",
+                "bearer",
+                "-file",
+                cert_pem,
+                "-keystore",
+                truststore,
+                "-storetype",
+                "PKCS12",
+                "-storepass",
+                _TRUSTSTORE_PASSWORD,
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        self._cert_pem = cert_pem
+        self._key_pem = key_pem
+        return truststore
+
+    def _server_ssl_context(self) -> ssl.SSLContext:
+        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ctx.load_cert_chain(certfile=self._cert_pem, keyfile=self._key_pem)
+        return ctx
+
+    # --- HTTP(S) server ---------------------------------------------------
+
+    def _start_server(
+        self, require_auth: bool, ssl_context: Optional[ssl.SSLContext] = None
+    ) -> ThreadingHTTPServer:
+        body_bytes = self._protected_bytes
         protected_path = "/" + _PROTECTED_WDL_FILENAME
+        expected_token = _EXPECTED_TOKEN
 
         class Handler(BaseHTTPRequestHandler):
             def _auth_status(self) -> int:
                 # 401 when no credentials are supplied, 403 when credentials are
                 # supplied but do not match, 200 when they match.
+                if not require_auth:
+                    return 200
                 auth = self.headers.get("Authorization")
                 if auth is None:
                     return 401
@@ -187,13 +319,24 @@ class BearerAuthImport(RegisteredTest):
             def log_message(self, fmt, *args):  # silence access log
                 return
 
-        server = HTTPServer(("127.0.0.1", 0), Handler)
+        server = ThreadingHTTPServer((_HOST, 0), Handler)
+        if ssl_context is not None:
+            server.socket = ssl_context.wrap_socket(server.socket, server_side=True)
         threading.Thread(target=server.serve_forever, daemon=True).start()
-        host, port = server.server_address
-        return server, host, port
+        return server
+
+    @staticmethod
+    def _url(scheme: str, server: ThreadingHTTPServer) -> str:
+        port = server.server_address[1]
+        return f"{scheme}://{_HOST}:{port}/{_PROTECTED_WDL_FILENAME}"
+
+    # --- compile ----------------------------------------------------------
 
     def _run_compile(
-        self, main_wdl_path: str, env_value: Union[str, None]
+        self,
+        main_wdl_path: str,
+        env_value: Optional[str],
+        truststore: Optional[str],
     ) -> Tuple[int, str]:
         jar_path = os.path.join(
             self._context.repo_root_dir, f"dxCompiler-{self._context.version}.jar"
@@ -203,16 +346,29 @@ class BearerAuthImport(RegisteredTest):
             env.pop(_BEARER_TOKENS_ENV_VAR, None)
         else:
             env[_BEARER_TOKENS_ENV_VAR] = env_value
-        cmd = [
-            "java",
-            "-jar",
-            jar_path,
-            "compile",
-            main_wdl_path,
-            "-compileMode",
-            "IR",
-            "-quiet",
-        ]
+        # JVM args must precede -jar. Injecting the truststore makes the JVM
+        # trust the self-signed cert; IR compile is local-only, so replacing the
+        # default truststore for this invocation is harmless.
+        jvm_args: List[str] = []
+        if truststore is not None:
+            jvm_args = [
+                f"-Djavax.net.ssl.trustStore={truststore}",
+                "-Djavax.net.ssl.trustStoreType=PKCS12",
+                f"-Djavax.net.ssl.trustStorePassword={_TRUSTSTORE_PASSWORD}",
+            ]
+        cmd = (
+            ["java"]
+            + jvm_args
+            + [
+                "-jar",
+                jar_path,
+                "compile",
+                main_wdl_path,
+                "-compileMode",
+                "IR",
+                "-quiet",
+            ]
+        )
         self._context.logger.info(f"BearerAuthImport: COMPILE COMMAND {' '.join(cmd)}")
         proc = sp.run(cmd, env=env, capture_output=True, text=True)
         return proc.returncode, (proc.stdout or "") + (proc.stderr or "")

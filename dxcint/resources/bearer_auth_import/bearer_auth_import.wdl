@@ -1,8 +1,8 @@
 version 1.0
 
 # Template workflow for the bearer-auth WDL import test.
-# The {URL} placeholder is replaced with the address of a local HTTP server by
-# the BearerAuthImport dxcint test class before invoking the compiler. This
+# The {URL} placeholder is replaced with the address of a local HTTP(S) server
+# by the BearerAuthImport dxcint test class before invoking the compiler. This
 # file is intentionally not parseable as-is — it is rendered into a temp dir at
 # test time. See dxcint/dxcint/testclasses/BearerAuthImport.py.
 
