@@ -1,5 +1,9 @@
 # Release Notes
 
+## in develop
+
+* Update dxda to 0.6.3
+
 ## 2.17.0 2026-06-17
 
 * Added support for authenticated http(s) WDL imports via per-domain Bearer tokens supplied through the `DXCOMPILER_WDL_IMPORT_BEARER_TOKENS` environment variable
