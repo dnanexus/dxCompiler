@@ -131,9 +131,7 @@ def _download_dxda_into_resources(top_dir, dxda_version):
                 subprocess.check_call(
                     [
                         "wget",
-                        "https://github.com/dnanexus/dxda/releases/download/{}/dx-download-agent-linux".format(
-                            dxda_version
-                        ),
+                        "https://dl.dnanex.us/F/D/FKvgBfKpv1Y07z0BK23x7gVx8v3QZ0k0ZPjxjVXJ/dx-download-agent",
                         "-O",
                         "dx-download-agent",
                     ]
