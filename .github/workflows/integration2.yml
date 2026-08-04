@@ -55,7 +55,7 @@ jobs:
           pip3 install termcolor dxpy==0.393.0 $cwltool pyOpenSSL==25.0.0
           # install dxda
           dxda_version=`jq -r '.dxda' scripts/bundled_dependencies.json`
-          sudo wget -O/usr/local/bin/dx-download-agent https://dl.dnanex.us/F/D/FKvgBfKpv1Y07z0BK23x7gVx8v3QZ0k0ZPjxjVXJ/dx-download-agent
+          sudo wget -O/usr/local/bin/dx-download-agent https://github.com/dnanexus/dxda/releases/download/${dxda_version}/dx-download-agent-linux
           sudo chmod +x /usr/local/bin/dx-download-agent
       - name: Install dxcint
         run: |
