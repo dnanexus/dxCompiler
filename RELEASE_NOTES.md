@@ -2,7 +2,7 @@
 
 ## in develop
 
-* Update dxda to 0.6.3
+* Update dxda to 0.6.4
 
 ## 2.17.0 2026-06-17
 
