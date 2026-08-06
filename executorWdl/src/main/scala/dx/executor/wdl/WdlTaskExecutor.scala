@@ -226,7 +226,11 @@ case class WdlTaskExecutor(task: TAT.Task,
               dockerUtils.getImage(images.sortBy(!_.startsWith(DxPath.DxUriPrefix)))
             Some(resolvedImage, jobMeta.workerPaths)
         }
-        generator.apply(Some(command), jobMeta.workerPaths, container)
+        generator.apply(Some(command),
+                        jobMeta.workerPaths,
+                        container,
+                        shmSize = runtime.shmSize,
+                        ipcMode = runtime.ipcMode)
         (true, runtime.returnCodes)
     }
   }
