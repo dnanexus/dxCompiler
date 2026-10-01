@@ -113,6 +113,13 @@
           "instanceType": "oci:mem1_ssd1_v3i_x2"
         }
       }
+    },
+    "oci:sa-saopaulo-1": {
+      "systemRequirements": {
+        "*": {
+          "instanceType": "oci:mem1_ssd1_v3i_x2"
+        }
+      }
     }
   },
   "details": {
