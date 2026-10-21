@@ -9,7 +9,8 @@
     "aws:eu-west-2":      "dxCompiler_London",
     "aws:eu-west-2-g":    "dxCompiler_Europe_London",
     "azure:uksouth-ofh":  "dxCompiler_OFH_TRE_London",
-    "oci:us-ashburn-1":   "dxCompiler_Ashburn"
+    "oci:us-ashburn-1":   "dxCompiler_Ashburn",
+    "oci:sa-saopaulo-1":  "dxCompiler_SaoPaulo"
   },
   "retired_regions": {
     "aws:me-south-1": {

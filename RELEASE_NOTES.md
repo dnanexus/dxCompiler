@@ -2,6 +2,10 @@
 
 ## in develop
 
+* Added support for OCI São Paulo region (`oci:sa-saopaulo-1`)
+
+## 2.18.0 2026-08-05
+
 * Update dxda to 0.6.4
 
 ## 2.17.0 2026-06-17
