@@ -785,7 +785,61 @@ Similarly, these attributes can be specified in the WDL workflow, but their repr
   * `developer`: Boolean - whether the applet is a developer, i.e. can create new applets
   * `projectCreation`: Boolean - whether the applet can create new projects
 * `dx_ignore_reuse`: Boolean - whether to allow the outputs of the applet to be reused
-  
+* `dx_shm_size`: String - sets `--shm-size=<value>` on the generated `docker run` command, allowing the task to override Docker's default 64 MB `/dev/shm`. Accepts a positive integer optionally suffixed with `b`, `k`, `m`, or `g` (e.g. `"8g"`, `"1024m"`). Useful for multi-GPU workloads using NCCL or other shared-memory IPC. NVIDIA's NCCL [troubleshooting guide](https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/troubleshooting.html) lists `1g` as the practical floor; PyTorch / Hugging Face docs commonly recommend `8g` or `16g` as a generous default. The dominant consumer is usually the PyTorch DataLoader, not NCCL itself, so size to `num_workers × per-sample size` plus headroom.
+* `dx_ipc_mode`: String - sets `--ipc=<value>` on the generated `docker run` command. Accepts `host`, `none`, `private`, `shareable`, or `container:<name|id>`. Setting `"host"` lets the container share the worker's IPC namespace, which is another way to bypass the small default `/dev/shm`. NVIDIA recommends `--ipc=host` as an alternative to `--shm-size` for NCCL workloads.
+
+Example for a multi-GPU NCCL job:
+
+```wdl
+runtime {
+  docker: "pytorch/pytorch:2.1.2-cuda12.1-cudnn8-runtime"
+  dx_instance_type: "mem2_ssd2_gpu4_v2_x96"
+  dx_shm_size: "8g"
+}
+```
+
+#### Setting values dynamically
+
+Both attributes are ordinary WDL `runtime` expressions, so they can reference task inputs and computed declarations — they are evaluated when the task runs, not at compile time:
+
+```wdl
+input {
+  Int gpu_count = 4
+  Int dataloader_workers = 8
+}
+Int shm_gb = max(2, gpu_count * 2)
+runtime {
+  dx_shm_size: "${shm_gb}g"
+}
+```
+
+#### Per-job-invocation override
+
+The values set in WDL can be overridden for a single job invocation without editing the WDL source, using dxCompiler's `overrides___` synthetic input. This accepts a JSON object with a `runtime` (and/or `hints`) key:
+
+```bash
+dx run my-applet -i overrides___='{"runtime": {"dx_shm_size": "16g", "dx_ipc_mode": "host"}}'
+```
+
+For WDL 2.0 hints:
+
+```bash
+dx run my-applet -i overrides___='{"hints": {"dnanexus": {"shm_size": "16g"}}}'
+```
+
+#### WDL 1.x vs WDL 2.0
+
+In WDL 1.x, set `dx_shm_size` and `dx_ipc_mode` directly under `runtime` (as in the example above). In WDL 2.0 (`development`), the `runtime` section no longer accepts arbitrary keys, so set them under `hints.dnanexus` as `shm_size` and `ipc_mode`:
+
+```wdl
+hints {
+  dnanexus: {
+    shm_size: "8g"
+    ipc_mode: "host"
+  }
+}
+```
+
 ### Native DNAnexus executable
 
 You can also specify a native DNAnexus app(let) that will be called as a task at runtime by adding key `dx_app` in the `runtime` section. See [Calling existing app(let)s](#calling-existing-applets) for more details.
