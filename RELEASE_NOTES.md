@@ -1,6 +1,6 @@
 # Release Notes
 
-## in develop
+## 2.19.0 2026-10-21
 
 * Added support for OCI São Paulo region (`oci:sa-saopaulo-1`)
 
