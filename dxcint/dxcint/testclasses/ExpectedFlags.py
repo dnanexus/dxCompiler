@@ -51,7 +51,12 @@ class ExpectedFlags(JobCollectorMixin, ExpectedOutput):
                         "Execution name in output does not match test name"
                     )
                     return False
-                if exec_outputs[stage_name][flag] != expected_val:
+                actual_val = exec_outputs[stage_name][flag]
+                # Only compare expected keys; the platform may add defaults (e.g. maxSpotTries)
+                if isinstance(expected_val, dict) and isinstance(actual_val, dict):
+                    if any(actual_val.get(k) != v for k, v in expected_val.items()):
+                        return False
+                elif actual_val != expected_val:
                     return False
         except Exception:
             return False
