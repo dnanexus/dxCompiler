@@ -3,6 +3,7 @@
 ## 2.19.0 2026-10-21
 
 * Added support for OCI São Paulo region (`oci:sa-saopaulo-1`)
+* Bump `certifi` from `2025.1.31` to `2026.10.19` in cwl_runner and dxcint
 
 ## 2.18.0 2026-08-05
 
